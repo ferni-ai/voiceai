@@ -16,6 +16,7 @@
  * ```
  */
 
+import { t } from '../i18n/index.js';
 import { getApiHeadersAsync } from './api.js';
 import { createLogger } from './logger.js';
 import { toast } from '../ui/whisper.ui.js';
@@ -109,7 +110,12 @@ export async function openBillingPortal(
       log.error({ status: response.status, errorText }, 'Billing portal request failed');
 
       if (showErrorToast) {
-        toast.error(billingErrorMessage(response.status));
+        // 409: no Stripe customer (e.g. an App Store plan); retrying won't help.
+        toast.error(
+          response.status === 409
+            ? t('manageSubscription.noBilling')
+            : billingErrorMessage(response.status)
+        );
       }
       return { success: false, error: `HTTP ${response.status}: ${errorText}` };
     }

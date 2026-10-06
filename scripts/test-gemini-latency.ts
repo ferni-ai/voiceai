@@ -9,6 +9,7 @@
  */
 
 import 'dotenv/config';
+import { GEMINI_MODEL } from '../src/config/gemini-config.js';
 
 async function testGeminiLatency(): Promise<void> {
   console.log('🧪 GEMINI LATENCY TEST');
@@ -28,7 +29,7 @@ async function testGeminiLatency(): Promise<void> {
   const restStart = Date.now();
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -63,7 +64,7 @@ async function testGeminiLatency(): Promise<void> {
     const client = new GoogleGenAI({ apiKey });
     
     const result = await client.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
+      model: GEMINI_MODEL,
       contents: 'Say "Hello"',
     });
     const sdkDuration = Date.now() - sdkStart;

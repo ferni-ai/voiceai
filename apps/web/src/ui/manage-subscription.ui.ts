@@ -187,10 +187,9 @@ class ManageSubscriptionUI {
   }
 
   /**
-   * Render action buttons based on subscription provider
-   *
-   * Design: Primary action is always warm and inviting.
-   * Secondary/management actions are subtle, not prominent.
+   * Render action buttons based on where the server says the plan is billed.
+   * Only a Stripe plan gets the Stripe portal; an App Store plan gets Apple's
+   * way to change it; a paid plan billed nowhere we know gets neither.
    */
   private renderActions(): string {
     const { tier, provider } = this.status || { tier: 'free', provider: 'none' };
@@ -208,9 +207,10 @@ class ManageSubscriptionUI {
       `;
     }
 
-    // Apple subscription - guide to settings with warmth
+    // App Store subscription - say so, then guide to Apple
     if (provider === 'apple') {
       return `
+        <p class="manage-sub__footer-note manage-sub__source">${t('manageSubscription.apple.source')}</p>
         <div class="manage-sub__actions">
           <button class="manage-sub__btn manage-sub__btn--subtle" data-action="apple-manage">
             ${ICONS.settings}
@@ -229,6 +229,10 @@ class ManageSubscriptionUI {
         </div>
         <p class="manage-sub__footer-note">${t('manageSubscription.apple.note')}</p>
       `;
+    }
+
+    if (provider !== 'stripe') {
+      return `<p class="manage-sub__footer-note">${t('manageSubscription.noBilling')}</p>`;
     }
 
     // Stripe subscription - subtle management link
@@ -300,22 +304,6 @@ class ManageSubscriptionUI {
         return t('manageSubscription.status.pastDue');
       default:
         return t('manageSubscription.status.default');
-    }
-  }
-
-  /**
-   * Format date for display
-   */
-  private formatDate(dateString: string): string {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    } catch {
-      return dateString;
     }
   }
 
@@ -627,13 +615,15 @@ class ManageSubscriptionUI {
         line-height: 1.5;
       }
 
+      .manage-sub__footer-note.manage-sub__source { margin-bottom: var(--space-4, 16px); }
+
       /* Dark theme - maintain warmth */
       [data-theme="midnight"] .manage-sub__backdrop {
         background: rgba(20, 18, 16, 0.7);
       }
 
       [data-theme="midnight"] .manage-sub__card {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
         border-color: rgba(255, 255, 255, 0.06);
       }
 
@@ -642,7 +632,7 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
@@ -657,7 +647,7 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__plan-badge {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
@@ -666,7 +656,7 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__instructions {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .manage-sub__instructions-title {
@@ -674,12 +664,12 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__btn--subtle {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .manage-sub__btn--subtle:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-primary, #faf6f0);
       }
 

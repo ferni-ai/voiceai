@@ -78,7 +78,7 @@ export const LiveChatWidget: StoryObj = {
               <span style="font-size: 12px; color: #4a6741;">● Online</span>
             </div>
           </div>
-          <div style="font-size: 11px; color: #70605a; background: rgba(44, 37, 32, 0.05); padding: 4px 10px; border-radius: 12px;">
+          <div style="font-size: 11px; color: #a89b8c; background: rgba(44, 37, 32, 0.05); padding: 4px 10px; border-radius: 12px;">
             <span style="font-weight: 600; color: #4a6741;">8</span> messages left
           </div>
         </div>

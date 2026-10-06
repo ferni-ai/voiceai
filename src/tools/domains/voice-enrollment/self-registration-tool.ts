@@ -20,25 +20,24 @@ const log = getLogger().child({ module: 'self-registration-tool' });
 /**
  * Create the self-registration tool.
  */
-function createSelfRegisterTool(_ctx: ToolContext): Tool {
+function createSelfRegisterTool(ctx: ToolContext): Tool {
   return {
     description: `Register an unknown caller so they can be remembered for future calls. Use this when:
 - An unknown caller wants to be remembered
 - They mention knowing an existing Ferni user (potential sponsor)
 - They want to set up their own identity
 
-After registration, they'll be remembered by phone number. If they mention knowing someone, 
+Only works on an inbound phone call: the number registered is always the one they are calling from.
+After registration, they'll be remembered by that number. If they mention knowing someone,
 that person can approve them to become a full sponsored identity.
 
 Parameters:
-- callerPhone (string): The caller's phone number (from caller ID)
 - callerName (string): The name they provided
 - claimedRelationship (string, optional): e.g., "Seth's mom", "friend of Sarah"
 - claimedSponsorName (string, optional): Name of person they claim to know`,
     parameters: {
       type: 'object',
       properties: {
-        callerPhone: { type: 'string', description: "The caller's phone number" },
         callerName: { type: 'string', description: 'The name they provided' },
         claimedRelationship: {
           type: 'string',
@@ -49,20 +48,35 @@ Parameters:
           description: 'Name of person they claim to know',
         },
       },
-      required: ['callerPhone', 'callerName'],
+      required: ['callerName'],
     },
     execute: async (args: {
-      callerPhone: string;
       callerName: string;
       claimedRelationship?: string;
       claimedSponsorName?: string;
     }): Promise<unknown> => {
-      const { callerPhone, callerName, claimedRelationship, claimedSponsorName } = args;
+      const { callerName, claimedRelationship, claimedSponsorName } = args;
 
-      if (!callerPhone || !callerName) {
+      if (!callerName) {
         return {
           success: false,
-          message: "I need your name and phone number to remember you. What's your name?",
+          message: "I need your name to remember you. What's your name?",
+        };
+      }
+
+      // The phone comes from the caller ID the telephony webhook stored for this
+      // session, never from the model: a caller can read out someone else's number,
+      // and once a sponsor approves it, inbound calls from that number route here.
+      const { getInboundCallContext } =
+        await import('../../../intelligence/context-builders/external/inbound-call-context.js');
+      const callerPhone = ctx.sessionId ? getInboundCallContext(ctx.sessionId)?.callerPhone : '';
+
+      if (!callerPhone) {
+        log.warn({ sessionId: ctx.sessionId }, 'Self-registration refused: no inbound caller ID');
+        return {
+          success: false,
+          message:
+            "I can only remember you by number when you call me from the phone you'd like me to know. Give me a ring from that phone and I'll set you up.",
         };
       }
 
@@ -171,7 +185,7 @@ Parameters:
         }
 
         // Filter by sponsor if specified (by checking notes)
-        let filtered = pending;
+        const filtered = pending;
         if (args.sponsorUserId) {
           // In practice, we'd need to match the claimed sponsor name to user ID
           // For now, return all pending and let the sponsor's UI filter

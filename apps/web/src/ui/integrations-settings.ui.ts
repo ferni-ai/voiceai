@@ -17,6 +17,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import { apiGet } from '../utils/api.js';
 import {
   fetchWearableProviders,
@@ -306,7 +307,7 @@ class IntegrationsSettingsUI {
             `}
           </section>
 
-          <!-- LinkedIn Section -->
+          ${LINKEDIN_ENABLED ? `<!-- LinkedIn Section (off: config/linkedin.ts) -->
           <section class="integrations-settings__section">
             <div class="integrations-settings__section-header">
               <span class="integrations-settings__section-icon">${ICONS.linkedin}</span>
@@ -345,8 +346,7 @@ class IntegrationsSettingsUI {
                 We only read your profile and job history to celebrate milestones. We never post or message on your behalf.
               </p>
             `}
-          </section>
-
+          </section>` : ''}
           <!-- Banking Section -->
           <section class="integrations-settings__section">
             <div class="integrations-settings__section-header">
@@ -1080,17 +1080,17 @@ class IntegrationsSettingsUI {
       }
 
       [data-theme="midnight"] .integrations-settings__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .integrations-settings__close:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-primary, #faf6f0);
       }
 
       [data-theme="midnight"] .integrations-settings__section-icon {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-accent-secondary, #7cb36b);
       }
 
@@ -1103,12 +1103,12 @@ class IntegrationsSettingsUI {
       }
 
       [data-theme="midnight"] .integrations-settings__status--disconnected {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-muted, #e8e2da);
       }
 
       [data-theme="midnight"] .integrations-settings__connected-info {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .integrations-settings__platform-name {
@@ -1120,12 +1120,12 @@ class IntegrationsSettingsUI {
       }
 
       [data-theme="midnight"] .integrations-settings__platform-btn {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-primary, #faf6f0);
       }
 
       [data-theme="midnight"] .integrations-settings__platform-btn:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .integrations-settings__connect-btn {
@@ -1137,17 +1137,17 @@ class IntegrationsSettingsUI {
       }
 
       [data-theme="midnight"] .integrations-settings__privacy-note {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-muted, #e8e2da);
       }
 
       [data-theme="midnight"] .integrations-settings__capability {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-muted, #e8e2da);
       }
 
       [data-theme="midnight"] .integrations-settings__social-info {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .integrations-settings__stat-label,

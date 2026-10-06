@@ -9,7 +9,6 @@
  * - POST /api/voice/enroll/complete  - Complete enrollment
  * - POST /api/voice/enroll/cancel    - Cancel enrollment
  * - POST /api/voice/verify           - Verify speaker (with emotion analysis)
- * - POST /api/voice/identify         - Identify speaker (1:N matching)
  * - POST /api/voice/auth/start       - Start continuous auth session
  * - POST /api/voice/auth/check       - Check auth status (with security)
  * - POST /api/voice/auth/stop        - Stop continuous auth session
@@ -22,7 +21,6 @@
  * - POST /api/voice/household              - Create household
  * - POST /api/voice/household/members      - Add member to household
  * - DELETE /api/voice/household/members/:id - Remove member
- * - POST /api/voice/household/identify     - Identify speaker from household
  *
  * Memory Endpoints:
  * - GET  /api/voice/memory                 - Get user's conversation memory
@@ -86,11 +84,11 @@ export async function handleVoiceAuthRoutes(
       return handleEnrollmentRoutes(req, res, route);
     }
 
-    // Verification routes (verify, identify, auth/*, profile, status)
+    // Verification routes (verify, auth/*, profile, status). No 1:N identify
+    // route: comparing audio with other users' prints would be a voice oracle.
     if (
       route === '/status' ||
       route === '/verify' ||
-      route === '/identify' ||
       route.startsWith('/auth') ||
       route === '/profile'
     ) {

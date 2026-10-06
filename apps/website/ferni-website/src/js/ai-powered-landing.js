@@ -62,6 +62,7 @@
     try {
       // Check if FerniExperiments is available (from experiments.js)
       if (typeof window.FerniExperiments === 'undefined') {
+        // eslint-disable-next-line no-console -- report failures in the browser console
         console.warn('[AI Landing] FerniExperiments not available, using defaults');
         return;
       }
@@ -73,6 +74,7 @@
           // Variant is either the percentage bucket or 'control'/'enabled'
           CONFIG[configKey] = variant !== 'control' && variant !== '0';
           if (CONFIG.debugMode) {
+            // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
             console.log(`[AI Landing] Flag ${flagId} = ${CONFIG[configKey]}`);
           }
         } catch (e) {
@@ -81,8 +83,8 @@
       });
 
       await Promise.all(flagPromises);
-      console.log('[AI Landing] Feature flags loaded');
     } catch (error) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[AI Landing] Failed to load feature flags:', error);
     }
   }
@@ -214,12 +216,14 @@
       const fallback = OFFLINE_FALLBACKS[endpoint];
       if (fallback) {
         if (CONFIG.debugMode) {
+          // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
           console.log('[AI Landing] Using offline fallback for:', endpoint);
         }
         return fallback(options.body);
       }
       // Only warn if no fallback available
       if (CONFIG.debugMode) {
+        // eslint-disable-next-line no-console -- report failures in the browser console
         console.warn('[AI Landing] API unavailable, no fallback for:', endpoint);
       }
       return null;
@@ -244,6 +248,7 @@
       this.bindEvents();
 
       if (CONFIG.debugMode) {
+        // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
         console.log('[LiveChat] Initialized');
       }
     },
@@ -282,7 +287,7 @@
           
           <div class="ferni-chat-panel__messages" role="log" aria-live="polite" aria-label="Chat messages">
             <div class="ferni-chat-message ferni-chat-message--ai">
-              <p>Hey! 👋 I'm Ferni. Want to see what it's like to talk to someone who actually listens? Try me—no signup needed.</p>
+              <p>Hey! I'm Ferni. Want to see what it's like to talk to someone who actually listens? Try me—no signup needed.</p>
             </div>
           </div>
           
@@ -443,7 +448,7 @@
       const prompt = document.createElement('div');
       prompt.className = 'ferni-chat-upgrade-prompt';
       prompt.innerHTML = `
-        <p>You've used all your demo messages! 💚</p>
+        <p>You've used all your demo messages!</p>
         <a href="https://app.ferni.ai" class="btn btn--primary btn--sm">
           Create free account to continue
         </a>
@@ -522,6 +527,7 @@
       }
 
       if (CONFIG.debugMode) {
+        // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
         console.log('[PersonalizedHero] Applied:', hero.generationReason);
       }
     },
@@ -988,6 +994,7 @@
         this.appliedChanges = true;
 
         if (CONFIG.debugMode) {
+          // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
           console.log('[SentimentCopy] Applied:', result.reason);
         }
       }
@@ -1364,7 +1371,7 @@
       
       .ferni-chat-panel__remaining {
         font-size: var(--text-2xs, 11px);
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         background: var(--color-border-subtle, rgba(44, 37, 32, 0.05));
         padding: var(--space-1, 4px) var(--space-2, 10px);
         border-radius: var(--radius-lg, 12px);
@@ -1385,7 +1392,7 @@
         background: none;
         border: none;
         cursor: pointer;
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1640,7 +1647,7 @@
       }
       
       .team-card__preview-loading {
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         font-size: var(--text-sm, 13px);
       }
       
@@ -1808,7 +1815,7 @@
       
       .smart-faq__disclaimer {
         font-size: var(--text-sm, 13px);
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
       }
       
       .smart-faq__disclaimer a {
@@ -1826,7 +1833,7 @@
         font-size: var(--text-xs, 12px);
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
       }
       
       .smart-faq__related ul {
@@ -1854,7 +1861,7 @@
       }
       
       .smart-faq__loading {
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         font-style: italic;
       }
       
@@ -1878,7 +1885,7 @@
       
       .memory-demo__try-it > p {
         margin: 0 0 var(--space-4, 16px);
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         font-size: var(--text-sm, 14px);
       }
       
@@ -1924,7 +1931,7 @@
         font-size: var(--text-2xs, 11px);
         text-transform: uppercase;
         letter-spacing: 1px;
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         margin-bottom: var(--space-3, 12px);
       }
       
@@ -1998,7 +2005,7 @@
       
       .memory-demo__connection span {
         font-size: var(--text-xs, 12px);
-        color: var(--color-text-muted, #70605a);
+        color: var(--color-text-muted, #a89b8c);
         text-transform: uppercase;
         letter-spacing: 1px;
       }
@@ -2170,18 +2177,6 @@
     }
 
     state.initialized = true;
-
-    // Log enabled features
-    if (enabledFeatures.length > 0) {
-      console.log('%c🤖 AI-Powered Landing initialized', 'color: #4a6741; font-weight: bold;');
-      console.log('%c  Enabled features:', 'color: #70605a; font-size: 11px;');
-      enabledFeatures.forEach((f) => {
-        console.log(`%c    ✓ ${f}`, 'color: #70605a; font-size: 10px;');
-      });
-    } else {
-      console.log('%c🤖 AI-Powered Landing: All features disabled by flags', 'color: #70605a;');
-    }
-    console.log('%c    ✓ Micro-Expressions', 'color: #70605a; font-size: 10px;');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

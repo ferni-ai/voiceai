@@ -25,6 +25,8 @@ import {
 } from './nonverbal.js';
 import { normalizeForSpeech } from './normalize.js';
 import { decideSpeed } from './pacing.js';
+import { respondToProsody, type ProsodyResponse } from './prosody-response.js';
+import type { CallerProsody } from '../../audio-prosody/caller-prosody.js';
 import { commaDensity, planPauses, removeMidSentenceEllipses } from './pauses.js';
 import { PhraseAssembler } from './phrasing.js';
 import type { CarryOver } from './session-state.js';
@@ -89,6 +91,8 @@ export interface EngineContext {
   };
   /** The user's words this reply answers (nonverbal.ts). */
   userText?: string;
+  /** How the caller sounded this turn, against their baseline (caller-prosody.ts). */
+  callerProsody?: CallerProsody;
   /** Renders opening controls; providers/cartesia.ts prosodyTags. */
   renderTags: (prosody: SSMLProsodyConfig) => string;
   /**
@@ -148,6 +152,13 @@ export class DirectorEngine {
     sighs: 0,
   };
   emotion: EmotionDecision = { emotion: undefined, source: 'none' };
+  /** How this reply answers the caller's voice (applied only when the prosody lever is live). */
+  prosody: ProsodyResponse = { speedNudge: 0, reason: 'no-reading' };
+
+  /** The caller's voice reading this reply answers, for the plan log. */
+  get callerProsody(): CallerProsody | undefined {
+    return this.ctx.callerProsody;
+  }
   speed = 1;
   /** Stage 2 tempo for this reply, when the voice can't take a <speed> tag. */
   tempo: number | undefined;
@@ -344,17 +355,22 @@ export class DirectorEngine {
   private open(openingText: string, leadSpeed: number | undefined): void {
     this.opened = true;
     this.replyValence = readValence(openingText);
+    // Decided in shadow too, so the plan log shows what it would do.
+    this.prosody = respondToProsody(this.ctx.callerProsody, this.replyValence);
+    const answerVoice = this.live('prosody');
     this.emotion = decideEmotion({
       authored: this.ctx.cues.authoredEmotion,
       sessionHint: this.ctx.sessionHint,
       openingText,
       previous: this.ctx.carry.emotion,
+      prosody: answerVoice ? this.prosody.emotion : undefined,
     });
     const pace = decideSpeed({
       valence: readValence(openingText),
       emotion: this.emotion.emotion,
       voiceId: this.ctx.voiceId,
       previous: this.ctx.carry.speed,
+      nudge: answerVoice ? this.prosody.speedNudge : 0,
     });
     this.speed = Math.abs(pace.speed - 1) < SPEED_EPSILON ? 1 : pace.speed;
     this.replySpeed = this.live('pacing') && pace.supported ? this.speed : 1;

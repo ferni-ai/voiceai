@@ -137,7 +137,6 @@
         }
 
         // Track feedback (could send to analytics)
-        console.log(`FAQ feedback: ${type}`);
       });
     });
   }
@@ -147,7 +146,6 @@
     initAccordion();
     initFAQSearch();
     initFeedback();
-    console.log('%c❓ FAQ accordion loaded', 'color: #4a6741; font-weight: bold;');
   }
 
   if (document.readyState === 'loading') {

@@ -306,7 +306,7 @@ function renderUsageChart(usage) {
 
   // Chart colors - use design tokens
   const styles = getComputedStyle(document.documentElement);
-  const accentColor = styles.getPropertyValue('--accent-primary').trim() || '#d4a84a';
+  const accentColor = styles.getPropertyValue('--accent-primary').trim() || '#8eae7a';
   const errorColor = styles.getPropertyValue('--error').trim() || '#e07575';
 
   usageChart = new Chart(ctx, {

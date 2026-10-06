@@ -749,7 +749,7 @@
 }
 
 .app-connection-step.active {
-  background: var(--color-accent-primary, #d4a84a);
+  background: var(--color-accent-primary, #8eae7a);
   border-color: var(--color-accent-primary);
   box-shadow: 0 0 12px var(--color-accent-glow);
   animation: stepPulse 1.5s ease-in-out infinite;

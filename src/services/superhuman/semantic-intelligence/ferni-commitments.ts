@@ -46,12 +46,12 @@ export interface FerniCommitment {
   madeAt: Date;
   dueBy?: Date; // When it should be fulfilled
 
-  // Tracking. A promise with a due time starts 'open' and ends kept, missed or
-  // released (the user let Ferni off, e.g. cancelled the reminder); see promise-keeper.ts.
+  // Tracking. A promise with a due time starts 'open' and ends kept, missed, released
+  // (the user let Ferni off) or unknown (made before tracking); see promise-keeper.ts.
   fulfilled: boolean;
   fulfilledAt?: Date;
   fulfilledHow?: string;
-  outcome?: 'open' | 'kept' | 'missed' | 'released';
+  outcome?: 'open' | 'kept' | 'missed' | 'released' | 'unknown';
   violated?: boolean; // broken: an "avoid" topic raised, or missed by its due time
   violatedAt?: Date;
   missedReason?: string;

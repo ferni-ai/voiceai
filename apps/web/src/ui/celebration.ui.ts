@@ -363,7 +363,7 @@ export class CelebrationUI {
       Object.assign(subtitle.style, {
         fontFamily: 'var(--font-body)',
         fontSize: '16px',
-        color: 'var(--color-text-secondary, #70605a)',
+        color: 'var(--color-text-secondary, #a89b8c)',
         margin: '0',
       });
       card.appendChild(subtitle);

@@ -40,6 +40,28 @@ describe('live backchanneling with clips', () => {
     expect(played).toEqual([]);
   });
 
+  it('stays silent when the caller passes enabled: true and BACKCHANNELS is unset (agent-setup did, defeating #296)', () => {
+    vi.useFakeTimers({ now: 1_000_000 });
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const played: string[] = [];
+    const bc = initializeLiveBackchanneling(
+      `override-${Date.now()}`,
+      'ferni',
+      {} as never,
+      () => false,
+      {
+        enabled: true,
+        playClip: (text) => (played.push(text), true),
+      }
+    );
+    bc.onNewTurn();
+    for (let t = 0; t < 400; t++) {
+      vi.advanceTimersByTime(10);
+      bc.processAudioFrame(frame(t < 300, t)); // 3 s of speech, then a breath pause
+    }
+    expect(played).toEqual([]);
+  });
+
   it('plays a clip at a breath pause in a long turn, keeps the interval, and varies the clip', () => {
     vi.stubEnv('BACKCHANNELS', 'on');
     vi.useFakeTimers({ now: 1_000_000 });

@@ -22,7 +22,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 const args = process.argv.slice(2);
 const TOOL_FILTER = args.find((a) => a.startsWith('--tool='))?.split('=')[1];
 const VERBOSE = args.includes('--verbose') || args.includes('-v');
-const TEST_LLM_MODEL = process.env.TEST_LLM_MODEL || 'gemini-2.5-flash';
+const TEST_LLM_MODEL = process.env.TEST_LLM_MODEL || 'gemini-3.5-flash';
 
 // ============================================================================
 // TOOL EXECUTION SCENARIOS

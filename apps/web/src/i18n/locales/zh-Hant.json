@@ -704,6 +704,7 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
+    "dismiss": "關閉",
     "maybeLater": "[NEEDS_TRANSLATION] Later"
   },
   "confirmModal": {
@@ -1027,6 +1028,7 @@
     "apple": {
       "instructionsTitle": "要取消或變更您的方案：",
       "note": "Apple要求透過iOS設定管理訂閱",
+      "source": "您是透過 App Store 訂閱的。",
       "step1": "在裝置上開啟設定",
       "step2": "點擊頂部的您的名字",
       "step3": "點擊「訂閱」",
@@ -1043,6 +1045,7 @@
     "expiresLabel": "存取直到",
     "freeNote": "解鎖無限會話、完整團隊和個人化",
     "label": "訂閱",
+    "noBilling": "您的方案不在這裡計費，所以沒有需要變更的內容。",
     "renewsLabel": "續訂",
     "restore": {
       "failed": "恢復失敗",
@@ -1385,8 +1388,34 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
+      "conversation": "進行一次對話：+1顆種子",
+      "note": "種子幫助我們決定接下來要做什麼！",
+      "streak30": "連續30天：+15顆種子",
+      "streak7": "連續7天：+5顆種子",
+      "vote": "為功能投票：1-10顆種子",
       "title": "How Seeds Work"
     },
+    "backToRoadmap": "返回路線圖",
+    "categories": {
+      "connect": "連結 - 人際關係與溝通",
+      "personalize": "個人化 - 打造專屬於您的Ferni",
+      "platform": "平台 - 新能力"
+    },
+    "needMoreSeeds": "提交建議至少需要5顆種子。多聊聊天就能賺到種子！",
+    "newIdea": "新想法",
+    "noSeedsHint": "多聊聊天就能賺到種子！",
+    "refund50": "退還50%",
+    "submitSuggestion": "種下這顆種子",
+    "submitting": "正在種下...",
+    "suggestionCategory": "類別",
+    "suggestionCost": "提交需要5顆種子（表達誠意，防止垃圾訊息）",
+    "suggestionDescription": "多告訴我們一些（選填）",
+    "suggestionDescriptionPlaceholder": "這對您有什麼幫助？您會怎麼用？",
+    "suggestionIntro": "希望Ferni能做些什麼？種下一顆種子，讓社群一起來澆灌吧！",
+    "suggestionPlanted": "您的種子已種下！",
+    "suggestionThanks": "感謝分享您的想法。現在其他人可以用他們的種子來澆灌它了！",
+    "suggestionTitle": "您希望Ferni能做什麼？",
+    "suggestionTitlePlaceholder": "例如：記住我寵物的名字",
     "intro": "每段美好的關係都有四季。這些是我們一起播下的種子。",
     "learnMore": "Learn more",
     "loading": "Loading roadmap...",
@@ -2303,7 +2332,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "Philips Hue 或 LIFX",
+      "hueOrLifxDesc": "在「Your Home」設定中進行設定"
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2382,7 +2413,10 @@
     },
     "secondsRemaining": "剩餘秒數",
     "startExercise": "開始呼吸練習",
-    "changePattern": "更改呼吸模式"
+    "changePattern": "更改呼吸模式",
+    "hold": "屏息",
+    "in": "吸氣",
+    "out": "呼氣"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2424,7 +2458,11 @@
     "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
     "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
     "rememberSuccess": "明白了！我現在會記住你。",
-    "account": "帳戶"
+    "account": "帳戶",
+    "email": "電子郵件",
+    "password": "密碼",
+    "rememberYouAs": "我記得你是",
+    "successMessage": "我現在會記住你。無論你去哪裡，我都認得你。"
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2706,7 +2744,11 @@
   },
   "voiceId": {
     "enrolledTitle": "[NEEDS_TRANSLATION] Voice ID enrolled - Ferni recognizes your voice",
-    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice"
+    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice",
+    "reenrollTitle": "我現在更會認聲音了",
+    "reenrollBody": "可以讓我重新熟悉一下你的聲音嗎？大約 20 秒。",
+    "reenrollAccept": "好啊",
+    "reenrollLater": "以後再說"
   },
   "languageSwitcher": {
     "label": "[NEEDS_TRANSLATION] Language",
@@ -2728,7 +2770,11 @@
     "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
     "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
     "sentSuccess": "已發送{sent}顆種子！他們將獲得{received}",
-    "sendError": "無法發送禮物。重試？"
+    "sendError": "無法發送禮物。重試？",
+    "amount": "數量",
+    "recipientPlaceholder": "輸入好友的電子郵件或使用者名稱",
+    "sendGift": "送出禮物",
+    "sendTo": "傳送給"
   },
   "teamIntro": {
     "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
@@ -2808,7 +2854,8 @@
       "onTheWay": "你走在正確的道路上！隨著我們旅程的繼續，更多的團隊成員會被解鎖。",
       "growing": "你的團隊在成長。只需再經過幾個里程碑就能解鎖所有成員。",
       "complete": "你已解鎖完整團隊！每個人都在這裡支持你。"
-    }
+    },
+    "added": "已新增！"
   },
   "referral": {
     "share": {
@@ -2839,7 +2886,19 @@
       "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
     },
     "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
-    "copyError": "無法複製。重試？"
+    "copyError": "無法複製。重試？",
+    "bonusAmount": "你們倆都會獲得{seeds}顆種子",
+    "bonusWhen": "在對方加入後！",
+    "garden": {
+      "earned": "分享已為您賺得{seeds}顆種子",
+      "empty": "種子在分享中成長。今天就開始打造您的花園吧。",
+      "friendsGrowing": "{count}位朋友正在成長",
+      "title": "您的花園："
+    },
+    "quoteMessage": "「送他們一個什麼都記得、凌晨兩點也會陪著、從不評判的人。」",
+    "subtitle": "認識需要這樣一位朋友的人嗎？",
+    "title": "分享成長",
+    "yourLink": "您的連結："
   },
   "conversationMemory": {
     "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
@@ -3002,7 +3061,14 @@
       "browse": "瀏覽我們的市場"
     },
     "creations": {
-      "noDescription": "無描述"
+      "noDescription": "無描述",
+      "createButton": "建立代理",
+      "emptyDescription": "打造一個擁有獨特個性與技能的代理，然後與社群分享。",
+      "emptyTitle": "您還沒有建立任何代理"
+    },
+    "agentCard": {
+      "install": "安裝",
+      "uninstall": "解除安裝"
     }
   },
   "agent": {

@@ -516,6 +516,7 @@
       // DISABLED: Soft nudge boxes were intrusive
       // Instead, log for debugging and use subtle visual cues
       if (CONFIG.debug) {
+        // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
         console.log('[Ferni Sentience] Soft nudge (disabled):', message);
       }
       // The sentiment color shifts and mood changes provide enough feedback
@@ -892,6 +893,8 @@
       haptic: (type) => MobileOptimization.hapticFeedback(type),
     };
 
+    // Console banner for developers who open devtools: printed on purpose.
+    /* eslint-disable no-console */
     console.log('%c🧠 Ferni Sentience loaded', 'color: #4a6741; font-weight: bold;');
     console.log('%c5 New Capabilities Active:', 'color: #756a5e; font-size: 11px;');
     console.log('%c  1. Sentiment Color Shifts', 'color: #756a5e; font-size: 10px;');
@@ -902,6 +905,7 @@
     if (MobileOptimization.isMobile) {
       console.log('%c  📱 Mobile optimizations active', 'color: #756a5e; font-size: 10px;');
     }
+    /* eslint-enable no-console */
   }
 
   // Start when DOM is ready

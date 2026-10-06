@@ -180,7 +180,7 @@
         const btn = form.querySelector('button[type="submit"]');
         if (btn) {
           const originalText = btn.textContent;
-          btn.textContent = '✓ Sent!';
+          btn.textContent = 'Sent!';
           btn.style.background = '#3d7a52';
           
           setTimeout(() => {
@@ -336,7 +336,6 @@
     initFormCelebration();
     initButtonStates();
     
-    console.log('%c📝 Enhanced forms loaded', 'color: #4a6741; font-weight: bold;');
   }
 
   if (document.readyState === 'loading') {

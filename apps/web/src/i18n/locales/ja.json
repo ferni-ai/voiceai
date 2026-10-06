@@ -704,6 +704,7 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
+    "dismiss": "閉じる",
     "maybeLater": "[NEEDS_TRANSLATION] Later"
   },
   "confirmModal": {
@@ -1027,6 +1028,7 @@
     "apple": {
       "instructionsTitle": "プランをキャンセルまたは変更するには:",
       "note": "AppleではサブスクリプションはiOS設定で管理する必要があります",
+      "source": "App Storeでご登録いただいています。",
       "step1": "デバイスで設定を開く",
       "step2": "上部の自分の名前をタップ",
       "step3": "「サブスクリプション」をタップ",
@@ -1043,6 +1045,7 @@
     "expiresLabel": "アクセス期限",
     "freeNote": "無制限のセッション、フルチーム、パーソナライゼーションのロックを解除",
     "label": "サブスクリプション",
+    "noBilling": "このプランはここでは請求されていないため、変更するものはありません。",
     "renewsLabel": "更新予定日",
     "restore": {
       "failed": "復元に失敗しました",
@@ -1385,8 +1388,34 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
+      "conversation": "会話をする：種+1",
+      "note": "種は、次に何を作るかを決める手がかりになります！",
+      "streak30": "30日連続：種+15",
+      "streak7": "7日連続：種+5",
+      "vote": "機能に投票：種1〜10個",
       "title": "How Seeds Work"
     },
+    "backToRoadmap": "ロードマップに戻る",
+    "categories": {
+      "connect": "つながる - 人間関係とコミュニケーション",
+      "personalize": "パーソナライズ - あなただけのFerniに",
+      "platform": "プラットフォーム - 新しい機能"
+    },
+    "needMoreSeeds": "提案するには種が5個以上必要です。もっと会話して種を集めましょう！",
+    "newIdea": "新しいアイデア",
+    "noSeedsHint": "もっと会話して種を集めましょう！",
+    "refund50": "50%が戻ります",
+    "submitSuggestion": "この種を植える",
+    "submitting": "植えています...",
+    "suggestionCategory": "カテゴリー",
+    "suggestionCost": "提案には種が5個必要です（本気度を示し、スパムを防ぐため）",
+    "suggestionDescription": "詳しく教えてください（任意）",
+    "suggestionDescriptionPlaceholder": "どんなときに役立ちますか？どう使いたいですか？",
+    "suggestionIntro": "Ferniにしてほしいことはありますか？種を植えて、みんなに育ててもらいましょう！",
+    "suggestionPlanted": "種を植えました！",
+    "suggestionThanks": "アイデアを共有してくれてありがとう。これでみんなが種を使って応援できます！",
+    "suggestionTitle": "Ferniにどんなことができるといいですか？",
+    "suggestionTitlePlaceholder": "例：ペットの名前を覚えてほしい",
     "intro": "素晴らしい関係には季節があります。これは私たちが一緒に植える種です。",
     "learnMore": "Learn more",
     "loading": "Loading roadmap...",
@@ -2303,7 +2332,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "Philips Hue または LIFX",
+      "hueOrLifxDesc": "「Your Home」設定でセットアップ"
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2382,7 +2413,10 @@
     },
     "secondsRemaining": "残り秒数",
     "startExercise": "呼吸運動を開始",
-    "changePattern": "呼吸パターンを変更"
+    "changePattern": "呼吸パターンを変更",
+    "hold": "止める",
+    "in": "吸う",
+    "out": "吐く"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2424,7 +2458,11 @@
     "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
     "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
     "rememberSuccess": "わかりました！これからはあなたを覚えておきます。",
-    "account": "アカウント"
+    "account": "アカウント",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "rememberYouAs": "このお名前で覚えています",
+    "successMessage": "これからはあなたを覚えています。どこにいても、あなただとわかります。"
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2706,7 +2744,11 @@
   },
   "voiceId": {
     "enrolledTitle": "[NEEDS_TRANSLATION] Voice ID enrolled - Ferni recognizes your voice",
-    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice"
+    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice",
+    "reenrollTitle": "声を聞き分けるのが上手になりました",
+    "reenrollBody": "もう一度あなたの声を覚えてもいいですか？20秒ほどで終わります。",
+    "reenrollAccept": "いいですよ",
+    "reenrollLater": "今はやめておく"
   },
   "languageSwitcher": {
     "label": "[NEEDS_TRANSLATION] Language",
@@ -2728,7 +2770,11 @@
     "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
     "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
     "sentSuccess": "{sent}個の種を送信しました！彼らは{received}個を取得します",
-    "sendError": "ギフトを送信できませんでした。もう一度試しますか？"
+    "sendError": "ギフトを送信できませんでした。もう一度試しますか？",
+    "amount": "個数",
+    "recipientPlaceholder": "友だちのメールアドレスかユーザー名を入力",
+    "sendGift": "ギフトを贈る",
+    "sendTo": "送り先"
   },
   "teamIntro": {
     "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
@@ -2808,7 +2854,8 @@
       "onTheWay": "いい調子ですね！私たちの旅が続くにつれて、より多くのチームメンバーがロック解除されます。",
       "growing": "あなたのチームが成長しています。みんなをロック解除するには、あと少しのマイルストーンがあります。",
       "complete": "フルチームをロック解除しました！みんながあなたをサポートするためにここにいます。"
-    }
+    },
+    "added": "追加しました！"
   },
   "referral": {
     "share": {
@@ -2839,7 +2886,19 @@
       "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
     },
     "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
-    "copyError": "コピーできませんでした。もう一度試しますか？"
+    "copyError": "コピーできませんでした。もう一度試しますか？",
+    "bonusAmount": "お二人とも種を{seeds}個もらえます",
+    "bonusWhen": "お友だちが参加したら！",
+    "garden": {
+      "earned": "シェアで種を{seeds}個獲得しました",
+      "empty": "種は分け合うと育ちます。今日からあなたの庭を始めましょう。",
+      "friendsGrowing": "{count}人の友だちが成長中",
+      "title": "あなたの庭："
+    },
+    "quoteMessage": "「なんでも覚えていて、夜中の2時でもそばにいて、決して否定しない存在を贈りましょう。」",
+    "subtitle": "こんな友だちがいたら心強い人はいませんか？",
+    "title": "成長をシェアしよう",
+    "yourLink": "あなたのリンク："
   },
   "conversationMemory": {
     "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
@@ -3002,7 +3061,14 @@
       "browse": "マーケットプレイスを閲覧"
     },
     "creations": {
-      "noDescription": "説明はありません"
+      "noDescription": "説明はありません",
+      "createButton": "エージェントを作成",
+      "emptyDescription": "独自の個性とスキルを持つエージェントを作って、コミュニティと共有しましょう。",
+      "emptyTitle": "まだエージェントを作成していません"
+    },
+    "agentCard": {
+      "install": "インストール",
+      "uninstall": "アンインストール"
     }
   },
   "agent": {

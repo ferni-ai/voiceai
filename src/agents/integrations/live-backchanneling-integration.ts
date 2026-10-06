@@ -118,7 +118,15 @@ export function initializeLiveBackchanneling<T>(
   isAgentSpeakingFn: () => boolean,
   config: Partial<LiveBackchannelConfig> = {}
 ): LiveBackchannelIntegration {
-  const cfg = { ...DEFAULT_CONFIG, enabled: backchannelsEnabled(), ...config };
+  // The flag gates every caller: a caller's `enabled` can only turn them off
+  // (a native-audio model). Spreading `config` last let agent-setup's
+  // `enabled: true` override BACKCHANNELS, so they played although #296 made
+  // them opt-in.
+  const cfg = {
+    ...DEFAULT_CONFIG,
+    ...config,
+    enabled: backchannelsEnabled() && (config.enabled ?? true),
+  };
 
   // Get session-scoped services
   const breathDetector = getBreathPauseDetector(sessionId);

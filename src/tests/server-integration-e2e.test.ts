@@ -636,8 +636,10 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      // May require LiveKit config, or route may not exist on token server
-      expect([200, 400, 404, 405, 500]).toContain(response.status);
+      // Never a token without a verified caller: 400 (room/username go in the
+      // query), 401 (no Firebase auth), or 429 when other suites hitting this
+      // live server have spent its per-IP token limit.
+      expect([400, 401, 429]).toContain(response.status);
     });
   });
 
@@ -668,8 +670,9 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      // Should redirect to Spotify or return error if not configured (or 404 if route not on this server)
-      expect([200, 302, 400, 404, 500]).toContain(response.status);
+      // Should redirect to Spotify, or 503 if Spotify isn't configured
+      // (servers/api/routes/spotify.ts), or 404 if the route isn't on this server
+      expect([200, 302, 400, 404, 500, 503]).toContain(response.status);
     });
 
     it('should handle /spotify/token', async () => {
@@ -694,7 +697,8 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      expect([200, 400, 404]).toContain(response.status);
+      // No verified caller, so no link status (#219): anything else leaks it.
+      expect(response.status).toBe(401);
     });
 
     it('should handle /auth/google/login', async () => {
@@ -708,10 +712,9 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      // Should redirect to Google or return error if not configured
-      // 503 = service unavailable when Google OAuth not configured
-      // 404 = route not on this server
-      expect([200, 302, 400, 404, 500, 503]).toContain(response.status);
+      // Login needs a state from POST /auth/oauth/start, never a device id (#219):
+      // 401 without one, 503 when Google OAuth is not configured. Never a redirect.
+      expect([401, 503]).toContain(response.status);
     });
   });
 });

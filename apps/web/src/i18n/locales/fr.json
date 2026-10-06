@@ -704,6 +704,7 @@
     "now": "[NEEDS_TRANSLATION] Now",
     "overview": "[NEEDS_TRANSLATION] Overview",
     "you": "[NEEDS_TRANSLATION] You",
+    "dismiss": "Masquer",
     "maybeLater": "[NEEDS_TRANSLATION] Later"
   },
   "confirmModal": {
@@ -1027,6 +1028,7 @@
     "apple": {
       "instructionsTitle": "Pour annuler ou modifier votre plan :",
       "note": "Apple exige que les abonnements soient gérés via les Paramètres iOS",
+      "source": "Vous vous êtes abonné via l'App Store.",
       "step1": "Ouvrez Paramètres sur votre appareil",
       "step2": "Appuyez sur votre nom en haut",
       "step3": "Appuyez sur \"Abonnements\"",
@@ -1043,6 +1045,7 @@
     "expiresLabel": "Accès jusqu'au",
     "freeNote": "Déverrouillez les sessions illimitées, l'équipe complète et la personnalisation",
     "label": "ABONNEMENT",
+    "noBilling": "Votre plan n'est pas facturé ici, il n'y a donc rien à modifier.",
     "renewsLabel": "Renouvellement",
     "restore": {
       "failed": "La restauration a échoué",
@@ -1385,8 +1388,34 @@
       "grow": "Features with more seeds get prioritized",
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
+      "conversation": "Avoir une conversation : +1 graine",
+      "note": "Vos graines nous aident à choisir ce que nous construirons ensuite !",
+      "streak30": "Série de 30 jours : +15 graines",
+      "streak7": "Série de 7 jours : +5 graines",
+      "vote": "Voter pour des fonctionnalités : 1 à 10 graines",
       "title": "How Seeds Work"
     },
+    "backToRoadmap": "Retour à la feuille de route",
+    "categories": {
+      "connect": "Lien - Relations et communication",
+      "personalize": "Personnaliser - Un Ferni à votre image",
+      "platform": "Plateforme - Nouvelles capacités"
+    },
+    "needMoreSeeds": "Il vous faut au moins 5 graines pour proposer une idée. Discutez davantage pour en gagner !",
+    "newIdea": "Nouvelle idée",
+    "noSeedsHint": "Discutez davantage pour gagner des graines !",
+    "refund50": "remboursement de 50 %",
+    "submitSuggestion": "Planter cette graine",
+    "submitting": "Plantation...",
+    "suggestionCategory": "Catégorie",
+    "suggestionCost": "Proposer une idée coûte 5 graines (gage d'engagement, frein au spam)",
+    "suggestionDescription": "Dites-nous-en plus (facultatif)",
+    "suggestionDescriptionPlaceholder": "En quoi cela vous aiderait-il ? Comment l'utiliseriez-vous ?",
+    "suggestionIntro": "Vous avez une idée de ce que Ferni devrait faire ? Plantez une graine et laissez la communauté l'arroser !",
+    "suggestionPlanted": "Votre graine est plantée !",
+    "suggestionThanks": "Merci d'avoir partagé votre idée. Les autres peuvent maintenant l'arroser avec leurs graines !",
+    "suggestionTitle": "Que devrait savoir faire Ferni ?",
+    "suggestionTitlePlaceholder": "Ex. : se souvenir du nom de mon animal",
     "intro": "Toute grande relation a ses saisons. Ce sont des graines que nous plantons ensemble.",
     "learnMore": "Learn more",
     "loading": "Loading roadmap...",
@@ -2303,7 +2332,9 @@
       "ecobee": "[NEEDS_TRANSLATION] Ecobee",
       "ecobeeDesc": "[NEEDS_TRANSLATION] Smart thermostat with room sensors",
       "googleNest": "[NEEDS_TRANSLATION] Google Nest",
-      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat"
+      "googleNestDesc": "[NEEDS_TRANSLATION] Learning thermostat",
+      "hueOrLifx": "Philips Hue ou LIFX",
+      "hueOrLifxDesc": "À configurer dans les réglages « Your Home »"
     },
     "lightsConnected": "[NEEDS_TRANSLATION] Lights connected!",
     "hueLightsConnected": "[NEEDS_TRANSLATION] Hue lights connected!",
@@ -2382,7 +2413,10 @@
     },
     "secondsRemaining": "Secondes restantes",
     "startExercise": "Commencer l'exercice de respiration",
-    "changePattern": "Changer le modèle de respiration"
+    "changePattern": "Changer le modèle de respiration",
+    "hold": "Retenir",
+    "in": "Inspirer",
+    "out": "Expirer"
   },
   "calendar": {
     "saving": "[NEEDS_TRANSLATION] Saving...",
@@ -2424,7 +2458,11 @@
     "forgetDevice": "[NEEDS_TRANSLATION] Forget this device",
     "forgetDeviceSuccess": "[NEEDS_TRANSLATION] Device forgotten. Your data is safe.",
     "rememberSuccess": "Entendu ! Je vais m'en souvenir maintenant.",
-    "account": "Compte"
+    "account": "Compte",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "rememberYouAs": "Je me souviens de vous comme",
+    "successMessage": "Je me souviendrai de vous désormais. Où que vous alliez, je vous reconnaîtrai."
   },
   "visualizations": {
     "lifeSeasons": "[NEEDS_TRANSLATION] Your Life Seasons",
@@ -2706,7 +2744,11 @@
   },
   "voiceId": {
     "enrolledTitle": "[NEEDS_TRANSLATION] Voice ID enrolled - Ferni recognizes your voice",
-    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice"
+    "notEnrolledTitle": "[NEEDS_TRANSLATION] Voice ID not enrolled - Enroll to let Ferni recognize your voice",
+    "reenrollTitle": "Je reconnais mieux les voix maintenant",
+    "reenrollBody": "Puis-je réapprendre la vôtre ? Cela prend environ 20 secondes.",
+    "reenrollAccept": "Volontiers",
+    "reenrollLater": "Pas maintenant"
   },
   "languageSwitcher": {
     "label": "[NEEDS_TRANSLATION] Language",
@@ -2728,7 +2770,11 @@
     "successToast": "[NEEDS_TRANSLATION] Sent {amount} seeds!",
     "errorToast": "[NEEDS_TRANSLATION] Couldn't send seeds. Try again?",
     "sentSuccess": "Envoyé {sent} graines ! Ils recevront {received}",
-    "sendError": "Impossible d'envoyer le cadeau. Réessayer ?"
+    "sendError": "Impossible d'envoyer le cadeau. Réessayer ?",
+    "amount": "Quantité",
+    "recipientPlaceholder": "E-mail ou nom d'utilisateur d'un proche",
+    "sendGift": "Envoyer le cadeau",
+    "sendTo": "Envoyer à"
   },
   "teamIntro": {
     "eyebrow": "[NEEDS_TRANSLATION] YOUR JOURNEY",
@@ -2808,7 +2854,8 @@
       "onTheWay": "Tu es sur la bonne voie ! Plus de membres de l'équipe se déverrouillent au fur et à mesure de notre voyage.",
       "growing": "Ton équipe grandit. Il y a juste quelques jalons supplémentaires pour débloquer tout le monde.",
       "complete": "Tu as déverrouillé l'équipe complète ! Tout le monde est là pour te soutenir."
-    }
+    },
+    "added": "Ajouté !"
   },
   "referral": {
     "share": {
@@ -2839,7 +2886,19 @@
       "emptyState": "[NEEDS_TRANSLATION] Plant your first seed"
     },
     "errorClipboard": "[NEEDS_TRANSLATION] Couldn't copy. Try again?",
-    "copyError": "Impossible de copier. Réessayer ?"
+    "copyError": "Impossible de copier. Réessayer ?",
+    "bonusAmount": "Vous recevrez chacun {seeds} graines",
+    "bonusWhen": "dès son inscription !",
+    "garden": {
+      "earned": "Vous avez gagné {seeds} graines en partageant",
+      "empty": "Les graines poussent quand on les partage. Commencez votre jardin dès aujourd'hui.",
+      "friendsGrowing": "{count} amis grandissent avec vous",
+      "title": "Votre jardin :"
+    },
+    "quoteMessage": "« Offrez-leur quelqu'un qui se souvient de tout, répond présent à 2 h du matin et ne juge jamais. »",
+    "subtitle": "Vous connaissez quelqu'un à qui un tel ami ferait du bien ?",
+    "title": "Grandir ensemble",
+    "yourLink": "Votre lien :"
   },
   "conversationMemory": {
     "demoBanner": "[NEEDS_TRANSLATION] Demo mode - showing example data",
@@ -3002,7 +3061,14 @@
       "browse": "Explore notre marché"
     },
     "creations": {
-      "noDescription": "Pas de description"
+      "noDescription": "Pas de description",
+      "createButton": "Créer un agent",
+      "emptyDescription": "Créez un agent doté de sa propre personnalité et de ses compétences, puis partagez-le avec la communauté.",
+      "emptyTitle": "Vous n'avez pas encore créé d'agent"
+    },
+    "agentCard": {
+      "install": "Installer",
+      "uninstall": "Désinstaller"
     }
   },
   "agent": {

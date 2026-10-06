@@ -93,25 +93,23 @@ export interface HomeKitCommand {
   changes?: Partial<HomeKitDeviceState>;
   query?: string;
   createdAt: string;
+  timestamp: number; // epoch ms; the iOS command poll orders by it
   status: 'pending' | 'executing' | 'completed' | 'failed';
   error?: string;
   result?: unknown;
 }
 
-// ============================================================================
-// FIRESTORE PATHS
-// ============================================================================
-
 function getHomeKitPath(userId: string) {
   return `bogle_users/${userId}/homekit`;
 }
 
+// Firestore layout shared with routes/smart-home.ts (homekit/devices alone is a document)
 function getDevicesPath(userId: string) {
-  return `${getHomeKitPath(userId)}/devices`;
+  return `${getHomeKitPath(userId)}/devices/list`;
 }
 
 function getCommandsPath(userId: string) {
-  return `${getHomeKitPath(userId)}/commands`;
+  return `${getHomeKitPath(userId)}/commands/pending`;
 }
 
 // ============================================================================
@@ -303,6 +301,7 @@ export async function queueDeviceCommand(
     targetDeviceId: deviceId,
     changes,
     createdAt: new Date().toISOString(),
+    timestamp: Date.now(),
     status: 'pending',
   };
 
@@ -324,6 +323,7 @@ export async function queueSceneCommand(userId: string, sceneId: string): Promis
     type: 'scene_activate',
     targetSceneId: sceneId,
     createdAt: new Date().toISOString(),
+    timestamp: Date.now(),
     status: 'pending',
   };
 

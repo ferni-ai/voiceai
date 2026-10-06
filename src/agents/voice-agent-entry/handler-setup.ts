@@ -465,7 +465,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
       }
       const transcript = evt.transcript || '';
       process.stderr.write(`\n📝 [TURN ${userData.turnCount}] FINAL: "${transcript}"\n`);
-      observeFinalTranscript({ session, transcript, userData, sessionId, crisisMode: crisisGuardMode });
+      observeFinalTranscript({ transcript, userData, sessionId, crisisMode: crisisGuardMode });
       if (transcript) {
         const wordCount = transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
         const estimatedDurationSeconds = (wordCount / 150) * 60;

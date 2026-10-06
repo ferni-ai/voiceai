@@ -1,5 +1,89 @@
+diff --git a/dist/llm/provider_format/google.cjs b/dist/llm/provider_format/google.cjs
+index 09ed1ca0e6a3c05d36b8bb32f6a7b67b3e733515..90db7c6feab4f35adba6acbb6550fc2ad6bd9f5e 100644
+--- a/dist/llm/provider_format/google.cjs
++++ b/dist/llm/provider_format/google.cjs
+@@ -29,6 +29,7 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+   const turns = [];
+   const systemMessages = [];
+   let currentRole = null;
++  let currentKey = null;
+   let parts = [];
+   const itemGroups = (0, import_utils2.groupToolCalls)(chatCtx);
+   const flattenedItems = [];
+@@ -50,12 +51,17 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+     } else {
+       continue;
+     }
+-    if (role !== currentRole) {
++    // Function responses get a turn of their own: Gemini 3.5 rejects a user turn
++    // that mixes them with text (flash-lite: 400 "Requests ending with a model
++    // turn"; flash: empty replies), as when the caller speaks after a tool call.
++    const key = msg.type === "function_call_output" ? "function_response" : role;
++    if (key !== currentKey) {
+       if (currentRole !== null && parts.length > 0) {
+         turns.push({ role: currentRole, parts: [...parts] });
+       }
+       parts = [];
+       currentRole = role;
++      currentKey = key;
+     }
+     if (msg.type === "message") {
+       for (const content of msg.content) {
+@@ -97,7 +103,9 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+   if (currentRole !== null && parts.length > 0) {
+     turns.push({ role: currentRole, parts });
+   }
+-  if (injectDummyUserMessage && currentRole !== "user") {
++  // Gemini rejects contents that end on a model turn. Check the last turn sent,
++  // not the last item seen: a trailing empty user message adds no turn.
++  if (injectDummyUserMessage && turns[turns.length - 1]?.role !== "user") {
+     turns.push({ role: "user", parts: [{ text: "." }] });
+   }
+   return [
+diff --git a/dist/llm/provider_format/google.js b/dist/llm/provider_format/google.js
+index 80d90a8426f404afdae800bf9c018c68427ef2ea..7e71e20099f0c8f4a988ff5456f0cd3cb8379515 100644
+--- a/dist/llm/provider_format/google.js
++++ b/dist/llm/provider_format/google.js
+@@ -6,6 +6,7 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+   const turns = [];
+   const systemMessages = [];
+   let currentRole = null;
++  let currentKey = null;
+   let parts = [];
+   const itemGroups = groupToolCalls(chatCtx);
+   const flattenedItems = [];
+@@ -27,12 +28,17 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+     } else {
+       continue;
+     }
+-    if (role !== currentRole) {
++    // Function responses get a turn of their own: Gemini 3.5 rejects a user turn
++    // that mixes them with text (flash-lite: 400 "Requests ending with a model
++    // turn"; flash: empty replies), as when the caller speaks after a tool call.
++    const key = msg.type === "function_call_output" ? "function_response" : role;
++    if (key !== currentKey) {
+       if (currentRole !== null && parts.length > 0) {
+         turns.push({ role: currentRole, parts: [...parts] });
+       }
+       parts = [];
+       currentRole = role;
++      currentKey = key;
+     }
+     if (msg.type === "message") {
+       for (const content of msg.content) {
+@@ -74,7 +80,9 @@ async function toChatCtx(chatCtx, injectDummyUserMessage = true) {
+   if (currentRole !== null && parts.length > 0) {
+     turns.push({ role: currentRole, parts });
+   }
+-  if (injectDummyUserMessage && currentRole !== "user") {
++  // Gemini rejects contents that end on a model turn. Check the last turn sent,
++  // not the last item seen: a trailing empty user message adds no turn.
++  if (injectDummyUserMessage && turns[turns.length - 1]?.role !== "user") {
+     turns.push({ role: "user", parts: [{ text: "." }] });
+   }
+   return [
 diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
-index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..2cca481c5497f486940e59bc903f156501b6f244 100644
+index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..d846257f4a2f0b6553ed8147a6537fe298133911 100644
 --- a/dist/voice/agent_activity.cjs
 +++ b/dist/voice/agent_activity.cjs
 @@ -96,6 +96,12 @@ async function cleanupReusableResources(resources, logger) {
@@ -108,8 +192,34 @@ index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..2cca481c5497f486940e59bc903f1565
          speechHandle = preemptive.speechHandle;
          if (preemptive.userMessage && userMessage) {
            preemptive.userMessage.metrics = userMetricsReport;
+@@ -3138,8 +3199,16 @@ class AgentActivity {
+     if (!this.pausedSpeech) {
+       return;
+     }
++    let __ferniDropped = false;
+     if (interrupt && !this.pausedSpeech.handle.interrupted && this.pausedSpeech.handle.allowInterruptions) {
+       this.pausedSpeech.handle.interrupt();
++      // PATCHED(ferni): the paused reply is being cut. resume() below opened the
++      // gate before the speech task cleared the buffer, so the frame held at the
++      // gate played: a 20-40 ms blip of the cut reply after every interruption
++      // (dev talk-over calls, 2026-10-05). Drop it unplayed; the next reply
++      // resumes the output itself.
++      (_a2 => _a2 == null ? void 0 : _a2.clearBuffer())(this.agentSession.output.audio);
++      __ferniDropped = true;
+       if (this.pausedSpeech.handle._hasGenerations) {
+         await this.pausedSpeech.handle.waitIfNotInterrupted([
+           this.pausedSpeech.handle._waitForGeneration()
+@@ -3148,7 +3217,7 @@ class AgentActivity {
+     }
+     this.pausedSpeech = void 0;
+     const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
+-    if (interruptionOptions.resumeFalseInterruption && this.agentSession.output.audio) {
++    if (interruptionOptions.resumeFalseInterruption && this.agentSession.output.audio && !__ferniDropped) {
+       this.agentSession.output.audio.resume();
+     }
+   }
 diff --git a/dist/voice/agent_activity.js b/dist/voice/agent_activity.js
-index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..1b4e1d3dd1060239feea594b2a239e7796d349bf 100644
+index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..5adaba4e5425aee113ac1c9ea98ef0c9d242a1a9 100644
 --- a/dist/voice/agent_activity.js
 +++ b/dist/voice/agent_activity.js
 @@ -127,6 +127,12 @@ async function cleanupReusableResources(resources, logger) {
@@ -218,6 +328,32 @@ index 939b64e9d4f2fc85412c5c8585a216c6e7eb2bbd..1b4e1d3dd1060239feea594b2a239e77
          speechHandle = preemptive.speechHandle;
          if (preemptive.userMessage && userMessage) {
            preemptive.userMessage.metrics = userMetricsReport;
+@@ -3169,8 +3230,16 @@ class AgentActivity {
+     if (!this.pausedSpeech) {
+       return;
+     }
++    let __ferniDropped = false;
+     if (interrupt && !this.pausedSpeech.handle.interrupted && this.pausedSpeech.handle.allowInterruptions) {
+       this.pausedSpeech.handle.interrupt();
++      // PATCHED(ferni): the paused reply is being cut. resume() below opened the
++      // gate before the speech task cleared the buffer, so the frame held at the
++      // gate played: a 20-40 ms blip of the cut reply after every interruption
++      // (dev talk-over calls, 2026-10-05). Drop it unplayed; the next reply
++      // resumes the output itself.
++      (_a2 => _a2 == null ? void 0 : _a2.clearBuffer())(this.agentSession.output.audio);
++      __ferniDropped = true;
+       if (this.pausedSpeech.handle._hasGenerations) {
+         await this.pausedSpeech.handle.waitIfNotInterrupted([
+           this.pausedSpeech.handle._waitForGeneration()
+@@ -3179,7 +3248,7 @@ class AgentActivity {
+     }
+     this.pausedSpeech = void 0;
+     const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
+-    if (interruptionOptions.resumeFalseInterruption && this.agentSession.output.audio) {
++    if (interruptionOptions.resumeFalseInterruption && this.agentSession.output.audio && !__ferniDropped) {
+       this.agentSession.output.audio.resume();
+     }
+   }
 diff --git a/dist/voice/audio_recognition.cjs b/dist/voice/audio_recognition.cjs
 index 43d1ba26b8be1dc5b885bc41c06770331c5182f6..8ff66b32b98000d90dce0bd8f588c9ca786da45b 100644
 --- a/dist/voice/audio_recognition.cjs

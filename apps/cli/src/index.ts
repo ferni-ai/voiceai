@@ -7165,7 +7165,7 @@ More content.
     } else {
       // Deploy
       console.log(`\n  ${colors.dim}Deploying...${colors.reset}`);
-      spawnSync('sh', ['-c', `cd ${websiteDir} && firebase deploy --only hosting`], {
+      spawnSync('sh', ['-c', `cd ${websiteDir} && firebase deploy --only hosting:ferni-landing`], {
         stdio: 'inherit',
       });
       console.log(

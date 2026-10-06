@@ -23,9 +23,8 @@ import {
 
 const log = getLogger();
 
-// Track if we've already injected a reflection this session
-let reflectionInjectedThisSession = false;
-let currentSessionId: string | null = null;
+// One worker hosts several calls; a single boolean reset the other call.
+const sessionsWithReflection = new Set<string>();
 
 /**
  * Cross-Session Reflection Context Builder
@@ -40,11 +39,7 @@ const crossSessionReflectionBuilder: ContextBuilder = {
     const injections: ContextInjection[] = [];
     const turnCount = userData.turnCount || 0;
 
-    // Reset session tracking on new session
-    if (currentSessionId !== services.sessionId) {
-      currentSessionId = services.sessionId;
-      reflectionInjectedThisSession = false;
-    }
+    const sessionId = services.sessionId;
 
     // =========================================================================
     // PART 1: Detect and save new reflection moments
@@ -73,7 +68,7 @@ const crossSessionReflectionBuilder: ContextBuilder = {
     // =========================================================================
 
     // Only inject once per session, in early turns
-    if (reflectionInjectedThisSession) return injections;
+    if (sessionsWithReflection.has(sessionId)) return injections;
     if (turnCount < 2 || turnCount > 5) return injections;
 
     const moments = getReflectionMoments(userProfile);
@@ -104,7 +99,7 @@ const crossSessionReflectionBuilder: ContextBuilder = {
         markMomentReflectedOn(userProfile, reflection.momentId);
       }
 
-      reflectionInjectedThisSession = true;
+      sessionsWithReflection.add(sessionId);
 
       log.info(
         { momentId: reflection.momentId, appropriateness: reflection.appropriateness },

@@ -6,10 +6,10 @@
  * so before this rule a different person verified as the enrolled user. Only a
  * neural embedding against a neural-enrolled profile may count as a match, and
  * a chunk with no usable voice print is 'unknown', never the previous status.
- * The neural cases need the speaker-embedding worker and live with that branch.
  */
 
-import { describe, expect, it } from 'vitest';
+import { join } from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   ContinuousAuthenticator,
   addEnrollmentSample,
@@ -19,6 +19,10 @@ import {
   verifyUser,
   type VoiceProfile,
 } from '../voice-enrollment.js';
+import { resetSpeakerEmbeddingWorker } from '../speaker-embedding-worker.js';
+import { useSpeakerModel } from './speaker-model-fixture.js';
+
+const NEURAL_FIXTURE = join(__dirname, 'fixtures', 'waveform-contract.onnx');
 
 /** 1.5 s of a voiced sound: fundamental `hz` plus two harmonics. */
 function voice(hz: number, phase = 0): Float32Array {
@@ -42,6 +46,11 @@ async function enroll(userId: string, samples: Float32Array[]): Promise<VoicePro
   expect(done.success).toBe(true);
   return done.profile as VoiceProfile;
 }
+
+afterEach(async () => {
+  await resetSpeakerEmbeddingWorker();
+  useSpeakerModel(undefined);
+});
 
 describe('with DSP voice features (no neural model)', () => {
   it('does not verify a different person as the enrolled user', async () => {
@@ -68,5 +77,41 @@ describe('with DSP voice features (no neural model)', () => {
     const status = await auth.processAudioChunk(voice(220));
     expect(status.status).toBe('unknown');
     expect(status.confidence).toBe(0);
+  });
+});
+
+describe('with the neural model', () => {
+  it('still verifies the enrolled voice against a neural profile', async () => {
+    useSpeakerModel(NEURAL_FIXTURE);
+    const sample = voice(120);
+    const alice = await enroll('alice', [sample, sample, sample]);
+    expect(alice.embeddingMethod).toBe('neural');
+
+    const again = await verifyUser(sample, alice);
+    expect(again.verified).toBe(true);
+    expect(again.userId).toBe('alice');
+  });
+
+  it('refuses a profile enrolled before methods were recorded (DSP vectors)', async () => {
+    useSpeakerModel(NEURAL_FIXTURE);
+    const sample = voice(120);
+    const alice = await enroll('alice', [sample, sample, sample]);
+    const legacy: VoiceProfile = { ...alice, embeddingMethod: undefined };
+
+    expect((await verifyUser(sample, legacy)).verified).toBe(false);
+    expect((await identifySpeaker(sample, [legacy])).identified).toBe(false);
+  });
+
+  it('continuous auth does not repeat a stale "verified" when a chunk has no voice print', async () => {
+    useSpeakerModel(NEURAL_FIXTURE);
+    const sample = voice(120);
+    const alice = await enroll('alice', [sample, sample, sample]);
+    const auth = new ContinuousAuthenticator(alice);
+
+    expect((await auth.processAudioChunk(sample)).status).toBe('verified');
+    const next = await auth.processAudioChunk(new Float32Array(4000)); // too short to embed
+    expect(next.status).toBe('unknown');
+    expect(next.confidence).toBe(0);
+    expect(auth.getStatus().status).toBe('unknown');
   });
 });
