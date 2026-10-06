@@ -37,28 +37,15 @@ async function ensureAuthReady(): Promise<void> {
 }
 
 /**
- * Get the admin API key for authentication.
- * In development, uses 'dev-mode' which the backend accepts.
- * In production, uses VITE_ADMIN_API_KEY environment variable.
- * 
- * SECURITY: Uses import.meta.env.DEV which is ONLY true during `vite dev` builds.
- * This is more secure than hostname detection which could be spoofed.
+ * Get the admin key for local development.
+ *
+ * Returns 'dev-mode' only under `vite dev` (import.meta.env.DEV is fixed at build
+ * time); the server accepts it only when NODE_ENV is 'development'. Production
+ * builds return '' and admins authenticate with their Firebase token. No admin
+ * secret is ever compiled into the bundle: anything in a Vite build is public.
  */
 export function getAdminApiKey(): string {
-  // SECURITY: Only use dev-mode when Vite's DEV flag is true
-  // This flag is set at build time and cannot be changed at runtime
-  if (import.meta.env.DEV) {
-    return 'dev-mode';
-  }
-
-  // In production, use the admin API key from environment (if set)
-  const apiKey = import.meta.env?.VITE_ADMIN_API_KEY;
-  if (apiKey) {
-    return apiKey;
-  }
-
-  // No API key - will rely on Firebase auth
-  return '';
+  return import.meta.env.DEV ? 'dev-mode' : '';
 }
 
 /**
@@ -68,22 +55,8 @@ export function getAdminApiKey(): string {
 export function getAdminHeaders(): HeadersInit {
   const apiKey = getAdminApiKey();
 
-  // Use X-Admin-Key for dev-mode in development
-  if (apiKey === 'dev-mode') {
-    return {
-      'X-Admin-Key': 'dev-mode',
-    };
-  }
-
-  // Use X-API-Key for production admin keys
-  if (apiKey) {
-    return {
-      'X-API-Key': apiKey,
-    };
-  }
-
-  // No API key - empty headers (Firebase auth will be added by async version)
-  return {};
+  // Dev mode only; in production the async version adds the Firebase token
+  return apiKey ? { 'X-Admin-Key': apiKey } : {};
 }
 
 /**
@@ -107,15 +80,13 @@ export async function getAdminHeadersAsync(): Promise<HeadersInit> {
       return headers;
     }
   } catch (error) {
-    log.debug('Firebase token not available, falling back to API key');
+    log.debug('Firebase token not available, falling back to dev mode');
   }
 
-  // Fall back to API key or dev-mode
+  // Local development only: getAdminApiKey() is '' in production builds
   const apiKey = getAdminApiKey();
-  if (apiKey === 'dev-mode') {
-    headers['X-Admin-Key'] = 'dev-mode';
-  } else if (apiKey) {
-    headers['X-API-Key'] = apiKey;
+  if (apiKey) {
+    headers['X-Admin-Key'] = apiKey;
   }
 
   return headers;

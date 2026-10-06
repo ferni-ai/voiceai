@@ -41,14 +41,11 @@ steps:
       - '--destination=gcr.io/$PROJECT_ID/john-bogle-ui:$COMMIT_SHA'
       - '--cache=true'
       - '--cache-ttl=168h'
-      - '--build-arg=GITHUB_PAT=$$GITHUB_PAT'
-      - '--build-arg=VITE_ADMIN_API_KEY=$$ADMIN_API_KEY'
       - '--build-arg=BUILD_TIMESTAMP=$BUILD_ID'
       - '--snapshot-mode=redo'
       - '--use-new-run'
       - '--push-retry=3'
     id: 'build-ui'
-    secretEnv: ['GITHUB_PAT', 'ADMIN_API_KEY']
 
 # Note: Kaniko pushes directly, so 'images:' section not needed
 # (can cause false "failed to find" errors due to timing)
@@ -56,13 +53,5 @@ steps:
 options:
   machineType: 'E2_HIGHCPU_8'
   logging: CLOUD_LOGGING_ONLY
-
-# Access secrets from Secret Manager
-availableSecrets:
-  secretManager:
-    - versionName: projects/$PROJECT_ID/secrets/github-pat/versions/latest
-      env: 'GITHUB_PAT'
-    - versionName: projects/$PROJECT_ID/secrets/admin-api-key/versions/latest
-      env: 'ADMIN_API_KEY'
 
 timeout: '1200s' # Reduced from 1800s since builds should be faster now
