@@ -15,8 +15,16 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'tsconfig*.json'
-      - '.github/workflows/ci.yml'
+      # Build and CI config: a change here can break CI or the images, and a PR
+      # touching only these never got the required checks, so it could not merge.
+      - 'pnpm-workspace.yaml'
+      - '.npmrc'
+      - 'patches/**'
+      - '.github/workflows/**'
       - '.github/actions/**'
+      - '**/Dockerfile*'
+      - 'cloudbuild*.yaml'
+      - 'infra/**'
   pull_request:
     branches: [main, develop]
     paths:
@@ -31,8 +39,16 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'tsconfig*.json'
-      - '.github/workflows/ci.yml'
+      # Build and CI config: a change here can break CI or the images, and a PR
+      # touching only these never got the required checks, so it could not merge.
+      - 'pnpm-workspace.yaml'
+      - '.npmrc'
+      - 'patches/**'
+      - '.github/workflows/**'
       - '.github/actions/**'
+      - '**/Dockerfile*'
+      - 'cloudbuild*.yaml'
+      - 'infra/**'
   # The merge queue tests each PR on top of main and whatever is queued ahead of it.
   merge_group:
 
