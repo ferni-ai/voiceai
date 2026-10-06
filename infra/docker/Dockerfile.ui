@@ -54,8 +54,6 @@ RUN pnpm build:fast || pnpm build
 # ============================================================================
 FROM node:${NODE_VERSION}-slim AS frontend-builder
 
-# Build arg for admin API key (passed from Cloud Build)
-ARG VITE_ADMIN_API_KEY=""
 
 WORKDIR /app
 
@@ -73,8 +71,6 @@ RUN --mount=type=cache,target=/root/.npm \
 
 COPY apps/web/ ./
 
-# Set env var for Vite build (bakes into the bundle)
-ENV VITE_ADMIN_API_KEY=${VITE_ADMIN_API_KEY}
 
 RUN npm run build
 
