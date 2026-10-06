@@ -14,7 +14,6 @@ export { handleMusicRoutes } from './music.js';
 export { handleAgentRoutes } from './agents.js';
 export { handlePushRoutes } from './push.js';
 export { handleWebhookRoutes } from './webhooks.js';
-export { handleSpotifyRoomsRoutes } from './spotify-rooms.js';
 export { handleEcobeeRoutes } from './ecobee.js';
 export { handleSmartHomeRoutes } from './smart-home.js';
 export { handleVibeRoutes } from './vibe.js';
@@ -24,7 +23,6 @@ export { handleAppleHealthRoutes } from './apple-health.js';
 // Apple Sign In notifications (server-to-server)
 export { handleAppleNotification } from './apple-notifications.js';
 // "Better Than Human" routes
-export { handleVisualMemoryRoutes } from './visual-memory.js';
 export { handleAmbientModeRoutes } from './ambient-mode.js';
 // Intelligent routing (6-strategy cascade)
 export {
@@ -37,8 +35,6 @@ export { handleTwilioCallStatus, trackOutboundCall } from './twilio-call-status.
 export { handleSemanticIntelligenceRoutes } from './semantic-intelligence.js';
 // Digital Twin Profile API
 export { handleTwinProfileRoutes } from './twin-profile.js';
-// Utilities API (reminders, lists, alarms, voice memos)
-export { handleUtilitiesRoutes } from './utilities.js';
 // "Better Than Human" Intelligence Debug API
 export { handleBTHIntelligenceRoutes } from './better-than-human-intelligence.js';
 // NOTE: Semantic store routes are in health.ts (uses raw HTTP pattern)
