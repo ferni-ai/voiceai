@@ -21,6 +21,18 @@ export const SECURITY_CONFIG = {
   enableAuditLogging: true, // MANDATORY: Cannot be disabled for compliance
   livenessMinConfidence: 0.6,
   antiSpoofMinConfidence: 0.6,
+  /**
+   * Enrollment scores and audit-logs liveness but is not refused on it; anti-
+   * spoofing still gates it, and verification still enforces liveness.
+   * Measured 2026-10-05 on the web's upload (first 3 s, 16 kHz mono): without
+   * a challenge, which no route issues, checkLiveness passed 0 of 40 real
+   * human utterances (LibriSpeech dev-clean, 8 speakers) and 0 of 40 macOS
+   * `say` clips. Its timing and background-noise checks score under 0.01 on
+   * any of that audio, so the score tops out near 0.4 against a 0.7 bar: it
+   * refused every person and never told a person from TTS. Enrollment is
+   * signed in and records the caller's own voice.
+   */
+  enrollmentLivenessBlocks: false,
 } as const;
 
 // Default sample rate for audio analysis

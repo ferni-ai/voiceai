@@ -219,7 +219,6 @@
     window.ferniTimeAwareness.init();
     window.ferniStickyCTA.init();
     
-    console.log('%c🛠️ Utilities loaded', 'color: #4a6741; font-weight: bold;');
   }
 
   if (document.readyState === 'loading') {

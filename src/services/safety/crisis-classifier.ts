@@ -23,6 +23,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
 
@@ -40,6 +41,12 @@ export interface CrisisClassifierInput {
   latest: string;
   /** The caller's earlier messages this session, oldest first. */
   earlier: readonly string[];
+  /**
+   * What Ferni said just before the latest message. Without it, "tell me step
+   * by step how you'd do it" after Ferni described a birthday plan read as
+   * method-seeking (dev, 2026-10-05).
+   */
+  companion?: string;
 }
 
 /** Sends the prompt and input to a model and returns its raw text reply. */
@@ -59,6 +66,10 @@ export const DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS = 1000;
 const MAX_EARLIER_MESSAGES = 5;
 
 export const CRISIS_CLASSIFIER_PROMPT = `You triage suicide and self-harm risk for a voice companion app. Read the caller's LATEST message, using EARLIER messages from the same conversation only as context, and classify the LATEST message.
+
+The input may include COMPANION: what the companion said just before LATEST.
+First work out what LATEST is about. Short follow-ups and pronouns ("how would you do it", "when should I do it", "is that enough", "how many", "end it") point at the topic of COMPANION and EARLIER: a plan, a recipe, a chore, a purchase, a trip, an everyday ailment. When that topic is ordinary and LATEST adds no meaning about dying or self-harm of its own, LATEST is a follow-up on that topic: risk "none".
+LATEST carries risk of its own when its own words are about dying, not waking up, not being around, killing or hurting oneself, things being over for good, giving things away for after, or how lethal something is. Then judge it as below whatever the topic was; context never lowers that risk, nor when EARLIER already showed risk.
 
 Return JSON only: {"risk":"imminent"|"crisis"|"none","subject":"self"|"third_party"}
 
@@ -115,14 +126,26 @@ export function parseClassifierReply(reply: string): CrisisVerdict | null {
   }
 }
 
+/** The companion's line is context, not the subject: its end is what LATEST answers. */
+const MAX_COMPANION_CHARS = 400;
+
 /** What the classifier actually sees: trimmed, latest not repeated in earlier, last 5 earlier. */
-function normalizeInput(input: CrisisClassifierInput): { latest: string; earlier: string[] } {
+function normalizeInput(input: CrisisClassifierInput): {
+  latest: string;
+  earlier: string[];
+  companion?: string;
+} {
   const latest = input.latest.trim();
   const earlier = input.earlier
     .map((m) => m.trim())
     .filter((m) => m.length > 0 && m !== latest)
     .slice(-MAX_EARLIER_MESSAGES);
-  return { latest, earlier };
+  // Stripped of SSML so the gate (chat context) and the turn pipeline (recorded
+  // reply) key the same line alike and share one call.
+  const companion = stripSSML(input.companion ?? '')
+    .trim()
+    .slice(-MAX_COMPANION_CHARS);
+  return companion ? { latest, earlier, companion } : { latest, earlier };
 }
 
 /**
@@ -134,8 +157,8 @@ export async function classifyCrisis(
   generate: CrisisGenerateFn,
   timeoutMs: number = DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS
 ): Promise<CrisisVerdict | null> {
-  const { latest, earlier } = normalizeInput(input);
-  if (!latest) return null;
+  const seen = normalizeInput(input);
+  if (!seen.latest) return null;
 
   const controller = new globalThis.AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -148,7 +171,7 @@ export async function classifyCrisis(
 
   try {
     const reply = await Promise.race([
-      generate(CRISIS_CLASSIFIER_PROMPT, JSON.stringify({ latest, earlier }), controller.signal),
+      generate(CRISIS_CLASSIFIER_PROMPT, JSON.stringify(seen), controller.signal),
       timeout,
     ]);
     return reply === null ? null : parseClassifierReply(reply);
@@ -255,7 +278,7 @@ export function startCrisisClassifier(
   // Key on what the model sees: the turn pipeline's history ends with the
   // latest message and the chat context's does not, which made them miss.
   const normalized = normalizeInput(input);
-  const key = JSON.stringify([normalized.latest, normalized.earlier]);
+  const key = JSON.stringify([normalized.latest, normalized.earlier, normalized.companion ?? '']);
   const shared = cachedRun(key, startedAt);
   if (shared) return { mode, verdict: shared.verdict };
 

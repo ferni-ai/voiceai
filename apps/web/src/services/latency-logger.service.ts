@@ -100,15 +100,18 @@ export function markAgentSpeechStart(): void {
 
   if (isEnabled) {
     const tier = latency < 500 ? '🟢' : latency < 1000 ? '🟡' : latency < 1500 ? '🟠' : '🔴';
+    // eslint-disable-next-line no-console
     console.log(
       `%c${tier} Turn ${turnNum}: Response latency ${latency}ms`,
       `color: ${latency < 500 ? '#4a6741' : latency < 1000 ? '#c4856a' : latency < 1500 ? '#a67a6a' : '#cc3333'}; font-weight: bold;`
     );
 
     if (latency > SLOW_THRESHOLD_MS) {
+      // eslint-disable-next-line no-console
       console.warn(`⚠️ Slow response detected: ${latency}ms (threshold: ${SLOW_THRESHOLD_MS}ms)`);
     }
     if (latency > CRITICAL_THRESHOLD_MS) {
+      // eslint-disable-next-line no-console
       console.error(`🚨 CRITICAL: Response took ${latency}ms (>${CRITICAL_THRESHOLD_MS}ms)`);
     }
   }
@@ -180,22 +183,33 @@ export function getHistory(limit = 10): TurnTiming[] {
 export function printSummary(): void {
   const stats = getStats();
 
+  // eslint-disable-next-line no-console
   console.log('\n%c📊 LATENCY SUMMARY', 'font-size: 14px; font-weight: bold; color: #4a6741;');
+  // eslint-disable-next-line no-console
   console.log('─'.repeat(40));
+  // eslint-disable-next-line no-console
   console.log(`Total turns: ${stats.totalTurns}`);
+  // eslint-disable-next-line no-console
   console.log(`Average latency: ${stats.avgResponseLatencyMs}ms`);
+  // eslint-disable-next-line no-console
   console.log(`Min/Max: ${stats.minResponseLatencyMs}ms / ${stats.maxResponseLatencyMs}ms`);
+  // eslint-disable-next-line no-console
   console.log(`P50: ${stats.p50ResponseLatencyMs}ms | P95: ${stats.p95ResponseLatencyMs}ms`);
+  // eslint-disable-next-line no-console
   console.log(`Slow turns (>${SLOW_THRESHOLD_MS}ms): ${stats.slowTurns}`);
+  // eslint-disable-next-line no-console
   console.log(`Critical turns (>${CRITICAL_THRESHOLD_MS}ms): ${stats.criticalTurns}`);
+  // eslint-disable-next-line no-console
   console.log('─'.repeat(40));
 
   if (stats.slowTurns > 0) {
+    // eslint-disable-next-line no-console
     console.log('\n⚠️ Recent slow turns:');
     turnHistory
       .filter((t) => t.responseLatencyMs && t.responseLatencyMs > SLOW_THRESHOLD_MS)
       .slice(-5)
       .forEach((t) => {
+        // eslint-disable-next-line no-console
         console.log(`  Turn ${t.turnNumber}: ${t.responseLatencyMs}ms - "${t.transcript || '...'}""`);
       });
   }
@@ -221,14 +235,20 @@ export function clear(): void {
  */
 export function enable(): void {
   isEnabled = true;
+  // eslint-disable-next-line no-console
   console.log(
     '%c⏱️ Latency logging ENABLED',
     'color: #4a6741; font-weight: bold; font-size: 12px;'
   );
+  // eslint-disable-next-line no-console
   console.log('Commands:');
+  // eslint-disable-next-line no-console
   console.log('  window.ferniLatency.summary() - Show latency summary');
+  // eslint-disable-next-line no-console
   console.log('  window.ferniLatency.history() - Show recent turns');
+  // eslint-disable-next-line no-console
   console.log('  window.ferniLatency.stats() - Get stats object');
+  // eslint-disable-next-line no-console
   console.log('  window.ferniLatency.disable() - Turn off logging');
 }
 
@@ -237,6 +257,7 @@ export function enable(): void {
  */
 export function disable(): void {
   isEnabled = false;
+  // eslint-disable-next-line no-console
   console.log('%c⏱️ Latency logging DISABLED', 'color: #888; font-weight: bold;');
 }
 
@@ -279,6 +300,7 @@ if (typeof window !== 'undefined') {
     disable,
     summary: printSummary,
     history: () => {
+      // eslint-disable-next-line no-console
       console.table(getHistory(20));
     },
     stats: getStats,

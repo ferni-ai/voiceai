@@ -1014,7 +1014,8 @@
       timeOfDay: window.ferniTimeOfDay,
     };
 
-    // Console branding
+    // Console branding for developers who open devtools: printed on purpose.
+    /* eslint-disable no-console */
     console.log('%c🌿 Ferni', 'color: #4a6741; font-size: 24px; font-weight: bold;');
     console.log('%cBetter than human.', 'color: #5c544a; font-size: 14px;');
     console.log('%c5 Superhuman Capabilities Active:', 'color: #756a5e; font-size: 11px;');
@@ -1026,6 +1027,7 @@
     console.log('%c  3. Breath Sync (neural mirroring)', 'color: #756a5e; font-size: 10px;');
     console.log('%c  4. Concern Detection (guardian presence)', 'color: #756a5e; font-size: 10px;');
     console.log('%c  5. Anticipation (reading the future)', 'color: #756a5e; font-size: 10px;');
+    /* eslint-enable no-console */
   }
 
   // Start when DOM is ready

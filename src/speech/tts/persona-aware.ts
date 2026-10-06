@@ -12,7 +12,6 @@
  * @module @ferni/speech/tts/persona-aware
  */
 
-import type { DeliveryStyle } from './delivery-style.js';
 import { CartesiaMarkupFilter, filterCartesiaMarkup } from './cartesia-markup-filter.js';
 import { tts } from '@livekit/agents';
 import { TTS as CartesiaTTS } from '@livekit/agents-plugin-cartesia';
@@ -107,7 +106,6 @@ export class PersonaAwareTTS extends tts.TTS {
   private activeStreamCount = 0;
 
   // Adaptive delivery (emotion/speed) for the next reply; survives voice switches.
-  private deliveryStyle: DeliveryStyle | null = null;
 
   // Legacy property for backwards compatibility (no longer auto-subscribes to events)
   private voiceSwitchHandler: ((data: { newAgent: string; voiceId: string }) => void) | null = null;
@@ -270,7 +268,6 @@ export class PersonaAwareTTS extends tts.TTS {
     this.isLocalizedVoice = this.accent !== 'american';
 
     this.personaTTS = createCartesiaTTSInstance(newVoiceId);
-    this.applyDeliveryStyle();
 
     log(
       'info',
@@ -310,8 +307,6 @@ export class PersonaAwareTTS extends tts.TTS {
       }, 100);
     }
   }
-
-
 
   /**
    * Clean up colon-based patterns that sound unnatural in speech.
@@ -375,27 +370,6 @@ export class PersonaAwareTTS extends tts.TTS {
    * Synthesize text to speech. Supported Cartesia markup passes through;
    * anything Cartesia would read aloud is dropped. See cartesia-markup-filter.ts.
    */
-  /**
-   * Set how the next replies should sound (Cartesia Sonic-3 emotion + speed),
-   * or null for default delivery. Applied to the current voice and re-applied
-   * after a persona voice switch.
-   */
-  setDeliveryStyle(style: DeliveryStyle | null): void {
-    this.deliveryStyle = style;
-    this.applyDeliveryStyle();
-  }
-
-  getDeliveryStyle(): DeliveryStyle | null {
-    return this.deliveryStyle;
-  }
-
-  private applyDeliveryStyle(): void {
-    this.personaTTS.updateOptions({
-      emotion: this.deliveryStyle ? [this.deliveryStyle.emotion] : undefined,
-      speed: this.deliveryStyle?.speed,
-    });
-  }
-
   synthesize(text: string): tts.ChunkedStream {
     const cleanText = filterCartesiaMarkup(text);
     log(

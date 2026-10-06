@@ -34,7 +34,6 @@
   const confettiCanvas = document.getElementById('modalConfettiCanvas');
 
   if (!modal) {
-    console.log('[Waitlist Modal] No modal found, integrated gate not active');
     return;
   }
 
@@ -336,6 +335,7 @@
         }
       }
     } catch (err) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.error('[Waitlist Modal] Submission error:', err);
       showError("Lost connection. Are you online?");
     } finally {
@@ -447,11 +447,4 @@
   // ============================================
   // INIT
   // ============================================
-
-  // If user has already joined, don't intercept (they can explore freely)
-  if (hasJoinedWaitlist()) {
-    console.log('%c🌿 Welcome back! You\'re on the waitlist.', 'color: #4a6741; font-weight: bold;');
-  } else {
-    console.log('%c🌿 Waitlist gate active', 'color: #4a6741; font-weight: bold;');
-  }
 })();

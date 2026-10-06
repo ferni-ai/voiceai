@@ -43,6 +43,8 @@ export interface VoiceProfile {
   verificationCount?: number;
   sampleCount?: number;
   needsReEnrollment?: boolean;
+  /** Set when this voice print can't verify anyone but a fresh enrollment would. */
+  needsReenrollment?: boolean;
 }
 
 export interface EnrollmentProgress {
@@ -61,14 +63,6 @@ export interface VerificationResult {
     similarity: number;
     method: 'neural' | 'dsp';
   };
-}
-
-export interface IdentificationResult {
-  identified: boolean;
-  userId?: string;
-  confidence: number;
-  candidates: Array<{ userId: string; similarity: number }>;
-  processingTimeMs: number;
 }
 
 export interface ContinuousAuthStatus {
@@ -251,9 +245,7 @@ class VoiceAuthService {
   // System Status
   // ==========================================================================
 
-  /**
-   * Get voice auth system status.
-   */
+  /** Get voice auth system status. */
   async getStatus(): Promise<VoiceAuthStatus> {
     try {
       const response = await this.fetchApi<{
@@ -294,8 +286,7 @@ class VoiceAuthService {
    */
   async getProfile(): Promise<VoiceProfile> {
     try {
-      const response = await this.fetchApi<VoiceProfile>('/profile');
-      return response;
+      return await this.fetchApi<VoiceProfile>('/profile');
     } catch (error) {
       log.error('Failed to get voice profile:', error);
       return { enrolled: false };
@@ -533,67 +524,6 @@ class VoiceAuthService {
       return {
         verified: false,
         confidence: 0,
-        processingTimeMs: 0,
-      };
-    }
-  }
-
-  // ==========================================================================
-  // Identification
-  // ==========================================================================
-
-  /**
-   * Record and identify speaker from enrolled users.
-   */
-  async identify(
-    durationSeconds = 2,
-    onProgress?: (elapsed: number, level: number) => void
-  ): Promise<IdentificationResult> {
-    try {
-      // Record audio
-      await this.recorder.startRecording();
-
-      const startTime = Date.now();
-      await new Promise<void>((resolve) => {
-        const updateProgress = () => {
-          const elapsed = (Date.now() - startTime) / 1000;
-          const level = this.recorder.getAudioLevel();
-          if (onProgress) onProgress(elapsed, level);
-
-          if (elapsed < durationSeconds) {
-            requestAnimationFrame(updateProgress);
-          } else {
-            resolve();
-          }
-        };
-        updateProgress();
-      });
-
-      const samples = this.recorder.stopRecording();
-
-      // Identify
-      const response = await this.fetchApi<IdentificationResult>('/identify', {
-        method: 'POST',
-        body: JSON.stringify({
-          samples: Array.from(samples),
-        }),
-      });
-
-      log.info('Identification result', {
-        identified: response.identified,
-        userId: response.userId,
-      });
-
-      return response;
-    } catch (error) {
-      if (this.recorder.isRecording()) {
-        this.recorder.stopRecording();
-      }
-      log.error('Identification failed:', error);
-      return {
-        identified: false,
-        confidence: 0,
-        candidates: [],
         processingTimeMs: 0,
       };
     }

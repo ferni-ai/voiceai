@@ -15,10 +15,13 @@ import {
   startEnrollmentSession,
 } from '../../services/voice/voice-enrollment.js';
 import {
+  getVoiceProfileStats,
   hasVoiceProfile,
   saveVoiceProfile,
   updateVoiceProfileIndex,
 } from '../../services/voice/voice-profile-store.js';
+import { getSpeakerEmbeddingMethod } from '../../services/voice/speaker-embedding-worker.js';
+import { needsNeuralReenrollment } from '../../services/voice/voice-match-trust.js';
 import {
   logEnrollmentComplete,
   logEnrollmentFail,
@@ -31,7 +34,7 @@ import {
   enrollmentSessions,
   parseBody,
   sendJson,
-  getUserId,
+  getSignedInUserId,
   getDeviceInfo,
   checkAndEnforceRateLimit,
   runSecurityChecks,
@@ -39,6 +42,13 @@ import {
 } from './helpers.js';
 
 const log = getLogger().child({ module: 'VoiceEnrollmentRoutes' });
+
+/** The stored profile can't verify anyone, and a neural model is running here. */
+async function canReenroll(userId: string): Promise<boolean> {
+  const stats = await getVoiceProfileStats(userId);
+  if (!stats?.exists) return false;
+  return needsNeuralReenrollment(stats.embeddingMethod, await getSpeakerEmbeddingMethod());
+}
 
 /**
  * Handle voice enrollment routes.
@@ -51,7 +61,7 @@ export async function handleEnrollmentRoutes(
 ): Promise<boolean> {
   // POST /api/voice/enroll/start
   if (route === '/enroll/start' && req.method === 'POST') {
-    const userId = getUserId(req);
+    const userId = getSignedInUserId(req);
     if (!userId) {
       sendJson(res, 401, { error: 'Authentication required' });
       return true;
@@ -64,8 +74,9 @@ export async function handleEnrollmentRoutes(
     const body = await parseBody(req);
     const deviceInfo = getDeviceInfo(req);
 
-    const existing = await hasVoiceProfile(userId);
-    if (existing) {
+    // A profile that can no longer verify anyone may be enrolled again; it is
+    // replaced only when /enroll/complete produces a neural one.
+    if ((await hasVoiceProfile(userId)) && !(await canReenroll(userId))) {
       sendJson(res, 400, {
         error: 'Already enrolled',
         message: 'Delete existing profile first to re-enroll.',
@@ -95,7 +106,7 @@ export async function handleEnrollmentRoutes(
 
   // POST /api/voice/enroll/sample
   if (route === '/enroll/sample' && req.method === 'POST') {
-    const userId = getUserId(req);
+    const userId = getSignedInUserId(req);
     if (!userId) {
       sendJson(res, 401, { error: 'Authentication required' });
       return true;
@@ -120,7 +131,9 @@ export async function handleEnrollmentRoutes(
       return true;
     }
 
-    const securityResult = await runSecurityChecks(audio, userId, deviceInfo);
+    const securityResult = await runSecurityChecks(audio, userId, deviceInfo, {
+      livenessBlocks: SECURITY_CONFIG.enrollmentLivenessBlocks,
+    });
     if (!securityResult.passed) {
       if (SECURITY_CONFIG.enableAuditLogging) {
         await logEnrollmentFail(userId, 'Security check failed', deviceInfo);
@@ -168,7 +181,7 @@ export async function handleEnrollmentRoutes(
 
   // POST /api/voice/enroll/complete
   if (route === '/enroll/complete' && req.method === 'POST') {
-    const userId = getUserId(req);
+    const userId = getSignedInUserId(req);
     if (!userId) {
       sendJson(res, 401, { error: 'Authentication required' });
       return true;
@@ -189,6 +202,15 @@ export async function handleEnrollmentRoutes(
         await logEnrollmentFail(userId, result.error || 'Unknown error', deviceInfo);
       }
       sendJson(res, 400, { error: result.error });
+      return true;
+    }
+
+    if (result.profile.embeddingMethod !== 'neural' && (await hasVoiceProfile(userId))) {
+      enrollmentSessions.delete(userId);
+      sendJson(res, 409, {
+        error: 'Voice model unavailable',
+        message: "Couldn't use the new voice model just now. Your voice print is unchanged.",
+      });
       return true;
     }
 
@@ -227,7 +249,7 @@ export async function handleEnrollmentRoutes(
 
   // POST /api/voice/enroll/cancel
   if (route === '/enroll/cancel' && req.method === 'POST') {
-    const userId = getUserId(req);
+    const userId = getSignedInUserId(req);
     if (userId) {
       enrollmentSessions.delete(userId);
     }

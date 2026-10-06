@@ -335,7 +335,7 @@ export async function retrieveMemories(
   // Generate query embedding
   let queryEmbedding: number[] | null = null;
   try {
-    queryEmbedding = await embed(context.query);
+    if (context.query.trim()) queryEmbedding = await embed(context.query); // '' = no topic
   } catch (error) {
     log.warn({ error }, 'Failed to generate query embedding, falling back to keyword matching');
   }

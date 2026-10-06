@@ -56,7 +56,10 @@ vi.mock('../../apps/web/src/services/firebase-auth.service.js', () => ({
 }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() }));
 vi.mock('../../apps/web/src/ui/whisper.ui.js', () => ({ toast }));
-vi.mock('../../apps/web/src/i18n/index.js', () => ({ t: (key: string) => key }));
+vi.mock('../../apps/web/src/i18n/index.js', () => ({
+  t: (key: string) => key,
+  getLocale: () => 'en-US',
+}));
 
 const { bindVerifiedIdentity } = await import('../servers/api/request-identity.js');
 const { handleOAuthStartRoute } = await import('../servers/api/routes/oauth-start.js');

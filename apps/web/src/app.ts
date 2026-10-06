@@ -284,6 +284,7 @@ import { handleOAuthReturns } from './app/oauth-return.js';
 import { createIntegrationsCallbacks } from './app/integrations-callbacks.js';
 // Voice Enrollment UI
 import { initVoiceEnrollmentUI, showVoiceEnrollmentModal } from './ui/voice-enrollment.ui.js';
+import { offerVoiceReenroll, shouldOfferVoiceReenroll } from './ui/voice-reenroll-card.ui.js';
 // Voice ID Badge
 import { initVoiceIdBadge } from './ui/voice-id-badge.ui.js';
 // Speaker Change Indicator - Gentle verification when voice changes
@@ -2612,28 +2613,28 @@ class VoiceAIApp {
   }
 
   /**
-   * Check if user needs to re-enroll their voice profile.
-   * Shows a toast if quality is low, pointing to Settings > Voice ID.
+   * A voice print that can't verify anyone gets a one-time card offering a fresh
+   * one; otherwise a low-quality print gets a toast. Both wait 5 s after load.
    */
   private async checkVoiceReEnrollment(): Promise<void> {
     try {
       const voiceAuth = getVoiceAuthService();
+      const profile = await voiceAuth.getProfile();
+      if (shouldOfferVoiceReenroll(profile)) {
+        setTimeout(() => offerVoiceReenroll(profile, () => void showVoiceEnrollmentModal()), 5000);
+        return;
+      }
       const result = await voiceAuth.checkReEnrollmentNeeded();
-
       if (result.needed && result.message) {
-        // Delay the toast to not overwhelm on startup
         setTimeout(() => {
           if (result.severity === 'high') {
-            // High severity - show warning
             toast.warning('Your voice profile needs a refresh. Head to Settings → Voice ID.');
           } else {
-            // Low severity - just informational
             toast.info('Voice profile could be sharper. Try Settings → Voice ID.');
           }
-        }, 5000); // Wait 5 seconds after app loads
+        }, 5000);
       }
     } catch (error) {
-      // Silently fail - not critical
       log.debug('Voice re-enrollment check skipped:', error);
     }
   }
