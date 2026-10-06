@@ -13,6 +13,8 @@
  * @module agents/integrations/backchannel-policy
  */
 
+import { callerLaughed } from '../personas/turn-extras.js';
+
 export interface BackchannelMoment {
   /** Completed user turns so far in the session. */
   turnCount: number;
@@ -72,4 +74,30 @@ export function pickBackchannel(
 ): string {
   const pool = (emotional ? SOFT : NEUTRAL).filter((p) => p !== last);
   return pool[Math.floor(random() * pool.length)] ?? pool[0];
+}
+
+/** The pre-rendered laugh, in the persona's voice (conversational-audio-cache.ts). */
+export const LAUGH_CLIP = '[laughter]';
+
+export interface LaughMoment {
+  partialTranscript: string;
+  emotional: boolean;
+  agentSpeaking: boolean;
+  turnCount: number;
+  /** Turn of the last laugh-along, or null if none this call. */
+  lastLaughTurn: number | null;
+}
+
+/**
+ * LAUGH_ALONG=on: when the caller laughs mid-turn, laugh with them instead of
+ * an "mm-hm", the way a friend chuckles along. Not into emotion, not over
+ * Ferni's own speech, and not two turns running (a laugh on cue is a tic).
+ */
+export function shouldLaughAlong(
+  m: LaughMoment,
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  if (env.LAUGH_ALONG !== 'on' || m.emotional || m.agentSpeaking) return false;
+  if (m.lastLaughTurn !== null && m.turnCount - m.lastLaughTurn < 2) return false;
+  return callerLaughed(m.partialTranscript);
 }

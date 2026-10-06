@@ -209,7 +209,8 @@ const ARRIVING_BANTER: Record<string, string[]> = {
  */
 const BACKCHANNELS: Record<string, string[]> = {
   // 'Hmm' opens a reply to a question (turn-opening-sound.ts).
-  ferni: ['Mm', 'Hmm', 'Yeah', 'Mhm', 'Right', 'I hear you', 'Mm-hmm', 'Oh'],
+  // '[laughter]' is the laugh-along clip (backchannel-policy.ts shouldLaughAlong).
+  ferni: ['Mm', 'Hmm', 'Yeah', 'Mhm', 'Right', 'I hear you', 'Mm-hmm', 'Oh', '[laughter]'],
   'maya-santos': ['Mm', 'Yeah', 'Mhm', 'Okay', 'I hear you', 'Oh', 'Right'],
   'peter-john': ['Mm', 'Yeah', 'Okay', 'Interesting', 'Oh!', 'Right'],
   'alex-chen': ['Mm', 'Yeah', 'Got it', 'Right', 'Okay', 'I see'],
