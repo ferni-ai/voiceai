@@ -34,6 +34,7 @@ import { fileURLToPath } from 'url';
 import { getLogger } from '../../utils/safe-logger.js';
 
 import { discoverAndLoadBundles, loadBundleById, clearBundleCache } from '../bundles/index.js';
+import { buildAliasMap, withHandoffToolNames } from './alias-map.js';
 
 // ============================================================================
 // AGENT CONFIG - Enable/Disable personas from config file
@@ -217,16 +218,6 @@ function getInitials(name: string): string {
 }
 
 /**
- * Generate handoff tool name from agent ID
- */
-function getHandoffToolName(id: string): string {
-  // Convert 'nayan-patel' to 'handoffToNayan', 'peter-john' to 'handoffToPeter'
-  const parts = id.split('-');
-  const firstName = parts[0];
-  return `handoffTo${firstName.charAt(0).toUpperCase()}${firstName.slice(1)}`;
-}
-
-/**
  * Determine agent role from manifest
  */
 function getAgentRole(manifest: PersonaBundleManifest): 'coach' | 'team' | 'standalone' {
@@ -273,7 +264,7 @@ function bundleToAgent(bundle: LoadedPersonaBundle): Agent {
 
     canHandoff: manifest.role?.can_handoff || manifest.capabilities?.can_handoff || false,
     handoffTargets: manifest.role?.handoff_targets || manifest.capabilities?.handoff_targets || [],
-    handoffToolName: getHandoffToolName(id),
+    handoffToolName: '', // assigned across all agents in discoverAgents (alias-map.ts)
     handoffTriggers: team?.handoff_triggers || [],
 
     aliases: [...new Set(aliases.map((a) => a.toLowerCase()))],
@@ -290,28 +281,6 @@ function bundleToAgent(bundle: LoadedPersonaBundle): Agent {
     manifest,
     bundle,
   };
-}
-
-/**
- * Build the alias lookup map
- */
-function buildAliasMap(agents: Map<string, Agent>): Map<string, string> {
-  const map = new Map<string, string>();
-
-  for (const agent of agents.values()) {
-    // Register all aliases
-    for (const alias of agent.aliases) {
-      map.set(alias.toLowerCase(), agent.id);
-    }
-
-    // Also register the canonical ID
-    map.set(agent.id.toLowerCase(), agent.id);
-
-    // Register handoff tool name -> agent ID
-    map.set(agent.handoffToolName.toLowerCase(), agent.id);
-  }
-
-  return map;
 }
 
 // ============================================================================
@@ -344,10 +313,10 @@ async function discoverAgents(forceRefresh = false): Promise<Map<string, Agent>>
   // Convert bundles to agents
   const agents = new Map<string, Agent>();
 
+  const converted: Agent[] = [];
   for (const bundle of result.bundles) {
     try {
-      const agent = bundleToAgent(bundle);
-      agents.set(agent.id, agent);
+      converted.push(bundleToAgent(bundle));
     } catch (err) {
       getLogger().warn(
         { bundleId: bundle.manifest.identity.id, error: err },
@@ -356,8 +325,8 @@ async function discoverAgents(forceRefresh = false): Promise<Map<string, Agent>>
     }
   }
 
-  // Build alias map
-  aliasMap = buildAliasMap(agents);
+  for (const agent of withHandoffToolNames(converted)) agents.set(agent.id, agent);
+  aliasMap = buildAliasMap(agents.values());
 
   // Update cache
   agentCache = agents;
@@ -402,7 +371,7 @@ export const AgentRegistry = {
     const agents = await discoverAgents();
 
     if (!aliasMap) {
-      aliasMap = buildAliasMap(agents);
+      aliasMap = buildAliasMap(agents.values());
     }
 
     const normalized = idOrAlias.toLowerCase().trim();

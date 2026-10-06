@@ -75,7 +75,8 @@ export function greetingFacts(
   userName: string | undefined,
   history: CallerHistory | undefined
 ): Record<string, string> {
-  const facts: Record<string, string> = { 'time of day': partOfDay };
+  // No time zone, no time of day: guessing it wrong is worse than leaving it out.
+  const facts: Record<string, string> = partOfDay ? { 'time of day': partOfDay } : {};
   if (userName) facts['their name'] = userName;
   if (!history) return facts;
   facts['how well you know each other'] = `${history.calls} calls so far`;

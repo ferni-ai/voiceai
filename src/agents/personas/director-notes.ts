@@ -23,7 +23,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
-import { toldThisCallEnabled, toldThisCallNote } from './told-this-call.js';
+import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
 
@@ -150,7 +150,7 @@ const defaultWriter: NoteWriter = async (system, prompt) => {
 
 export class Director {
   private notes: string[] = [];
-  private toldNote = '';
+  private toldRecord: Told | null = null;
   private generation = 0;
 
   constructor(
@@ -168,7 +168,7 @@ export class Director {
   observe(lines: Line[]): Promise<void> {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
-    this.toldNote = toldThisCallEnabled() ? toldThisCallNote(lines, this.opts.userName) : '';
+    this.toldRecord = toldThisCallEnabled() ? toldThisCall(lines, this.opts.userName) : null;
     if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
     const started = Date.now();
@@ -212,9 +212,20 @@ export class Director {
     return this.notes;
   }
 
-  /** What Ferni has already told on this call, as the note for the next reply, or ''. */
-  told(): string {
-    return this.toldNote;
+  /**
+   * What Ferni has already told on this call, as the note for the next reply,
+   * or ''. `keep` drops quotes and names that mustn't be repeated back to the
+   * model (a locked teammate after the caller moved on: locked-teammates.ts).
+   */
+  told(keep: (text: string) => boolean = () => true): string {
+    const told = this.toldRecord;
+    if (!told) return '';
+    return formatTold({
+      ...told,
+      names: told.names.filter((n) => keep(n.name)),
+      repeated: told.repeated.filter(keep),
+      recentLines: told.recentLines.filter(keep),
+    });
   }
 }
 

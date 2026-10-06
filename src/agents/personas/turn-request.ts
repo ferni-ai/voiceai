@@ -9,16 +9,21 @@
 import type { llm } from '@livekit/agents';
 import { TransformStream, type ReadableStream } from 'node:stream/web';
 
-import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getBargeInFastPath } from '../multi-agent/barge-in-fastpath.js';
-import { withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
+import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
 import {
   getTurnToolRetrieval,
   latestUserText,
   toolRetrievalMode,
 } from '../../tools/retrieval/turn-tool-retrieval.js';
-import { withoutLockedHandoffs, type UnlockView } from '../../tools/handoff/locked-handoffs.js';
+import { withoutLockedHandoffs } from '../../tools/handoff/locked-handoffs.js';
+import {
+  teamStatusNote,
+  unlockViewFor,
+  withoutLockedTeammateNotes,
+  withTeammateAsk,
+} from '../../tools/handoff/locked-teammates.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
@@ -45,8 +50,9 @@ export interface TurnToolsState {
 
 /**
  * A copy of the context with the turn reminder, plus what Ferni has already
- * told on this call and the director's notes for this reply, if any, and
- * without per-turn context built for an earlier turn (turn-intelligence.ts).
+ * told on this call, the team line (locked-teammates.ts), and the director's
+ * notes for this reply, if any, and without per-turn context built for an
+ * earlier turn (turn-intelligence.ts).
  */
 export function withTurnReminder(
   request: llm.ChatContext,
@@ -55,17 +61,36 @@ export function withTurnReminder(
 ): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
   const director = getDirector(session);
-  const notes = formatNotes(director?.current() ?? []);
+  const view = unlockViewFor((session as { userData?: unknown }).userData);
+  const words = callerWords(chatCtx);
+  // Nothing steers back to a locked teammate the caller didn't just name.
+  const keep = (text: string): boolean =>
+    withoutLockedTeammateNotes([text], view, words).length > 0;
+  const notes = formatNotes((director?.current() ?? []).filter(keep));
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
-    director?.told() ?? '',
+    director?.told(keep) ?? '',
+    teamStatusNote(view, words),
     notes,
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
   ]
     .filter(Boolean)
     .join(' ');
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+}
+
+/** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */
+function callerWords(chatCtx: llm.ChatContext): string {
+  const said: string[] = [];
+  for (let i = chatCtx.items.length - 1; i >= 0; i--) {
+    const item = chatCtx.items[i];
+    if (item.type !== 'message') continue; // tool calls and outputs of this turn
+    if (item.role === 'assistant') break;
+    const text = item.textContent ?? '';
+    if (item.role === 'user' && !text.startsWith(TURN_CONTEXT_HEADER)) said.unshift(text);
+  }
+  return said.join(' ');
 }
 
 /**
@@ -93,39 +118,25 @@ function callSeed(session: object): string {
   return seed;
 }
 
-/** Who this user has unlocked, read the way the handoff tool's runtime check reads it. */
-export function unlockViewFor(sessionUserData: unknown): UnlockView {
-  const userData = sessionUserData as
-    { userProfile?: UserProfile | null; personaId?: unknown; services?: unknown } | undefined;
-  const services = userData?.services as
-    | {
-        userProfile?: UserProfile | null;
-        devMode?: { enabled?: boolean; bypassUnlocks?: boolean };
-      }
-    | undefined;
-  const userProfile = services?.userProfile ?? userData?.userProfile ?? null;
-  const tier = (userProfile?.subscription?.tier as UnlockView['tier'] | undefined) ?? 'free';
-  return {
-    userProfile,
-    tier,
-    bypass: Boolean(services?.devMode?.enabled && services.devMode.bypassUnlocks),
-    currentAgentId: (userData?.personaId as string | undefined) ?? 'ferni',
-  };
-}
+// Re-exported for callers that read the unlock view from a session.
+export { unlockViewFor, withTeammateTool } from '../../tools/handoff/locked-teammates.js';
 
-/** The tools this turn's request carries: no locked handoffs, then the retrieval pick. */
+/**
+ * The tools this turn's request carries: no locked handoffs, the agent's
+ * askForTeammate while some teammates are locked (locked-teammates.ts), then
+ * the retrieval pick.
+ */
 export async function toolsForTurn(
   session: TurnSession,
   chatCtx: llm.ChatContext,
   toolCtx: llm.ToolContext,
   state: TurnToolsState
 ): Promise<llm.ToolContext> {
-  const unlocked = await withoutLockedHandoffs(toolCtx, unlockViewFor(session.userData)).catch(
-    (error: unknown) => {
-      log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
-      return toolCtx;
-    }
-  );
+  const view = unlockViewFor(session.userData);
+  const unlocked = await withoutLockedHandoffs(toolCtx, view).catch((error: unknown) => {
+    log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
+    return toolCtx;
+  });
   if (unlocked !== toolCtx && !state.loggedLockedHandoffs) {
     state.loggedLockedHandoffs = true;
     log.info(
@@ -135,7 +146,7 @@ export async function toolsForTurn(
       'Handoffs to locked teammates kept out of the request'
     );
   }
-  return retrievedTools(session, chatCtx, unlocked);
+  return retrievedTools(session, chatCtx, withTeammateAsk(unlocked, view));
 }
 
 /**
