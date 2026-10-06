@@ -3525,7 +3525,7 @@
     "enrolledTitle": "Voice ID activé - Ferni reconnaît ta voix",
     "notEnrolledTitle": "Voice ID non activé - Enregistre ta voix pour que Ferni puisse la reconnaître",
     "reenrollTitle": "Je reconnais mieux les voix maintenant",
-    "reenrollBody": "Puis-je réapprendre la vôtre ? Cela prend environ 20 secondes.",
+    "reenrollBody": "Je peux réapprendre ta voix ? Ça prend environ 20 secondes.",
     "reenrollAccept": "Volontiers",
     "reenrollLater": "Pas maintenant"
   },

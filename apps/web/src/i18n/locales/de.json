@@ -3502,7 +3502,7 @@
     "enrolledTitle": "Voice ID eingerichtet – Ferni erkennt deine Stimme",
     "notEnrolledTitle": "Voice ID nicht eingerichtet – Richte sie ein, damit Ferni deine Stimme erkennt",
     "reenrollTitle": "Ich erkenne Stimmen jetzt besser",
-    "reenrollBody": "Darf ich Ihre noch einmal kennenlernen? Das dauert etwa 20 Sekunden.",
+    "reenrollBody": "Darf ich deine Stimme noch einmal kennenlernen? Das dauert etwa 20 Sekunden.",
     "reenrollAccept": "Gern",
     "reenrollLater": "Nicht jetzt"
   },
