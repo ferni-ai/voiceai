@@ -1467,7 +1467,7 @@ For example:
     );
 
     // Note: generateReply is async and streams - we can't easily capture the response here
-    // The tool execution will be logged by the tool-call-sanitizer and json-function-executor
+    // Tool execution is logged by the tool dispatcher / native FC path
     result.success = true;
     result.diagnostics.totalDurationMs = Date.now() - startTime;
 
