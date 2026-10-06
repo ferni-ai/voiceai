@@ -281,43 +281,58 @@ const breatheWithMeDef: ToolDefinition = {
       execute: async ({ technique, purpose = 'presence' }) => {
         getLogger().info({ agentId: ctx.agentId, technique, purpose }, 'Breathing together');
 
-        let response = `**Breathe With Me**\n\n`;
-
-        if (technique === 'simple') {
-          response += `Let's just breathe together. Simple.\n\n`;
-          response += `Breathe in... 2... 3... 4...\n`;
-          response += `Breathe out... 2... 3... 4... 5... 6...\n\n`;
-          response += `Again.\n`;
-          response += `In... 2... 3... 4...\n`;
-          response += `Out... 2... 3... 4... 5... 6...\n\n`;
-          response += `A longer exhale calms the nervous system.\n\n`;
-          response += `One more time, at your own pace.`;
-        } else if (technique === 'box') {
-          response += `**Box Breathing** (Navy SEALs use this for stress)\n\n`;
-          response += `Four sides of a box, four counts each:\n\n`;
-          response += `• In... 2... 3... 4\n`;
-          response += `• Hold... 2... 3... 4\n`;
-          response += `• Out... 2... 3... 4\n`;
-          response += `• Hold... 2... 3... 4\n\n`;
-          response += `Repeat for 4 cycles. Feel your heart rate slow.`;
-        } else if (technique === '4-7-8') {
-          response += `**4-7-8 Breathing** (Dr. Andrew Weil's relaxation technique)\n\n`;
-          response += `• Inhale through nose: 4 counts\n`;
-          response += `• Hold: 7 counts\n`;
-          response += `• Exhale through mouth: 8 counts\n\n`;
-          response += `The long exhale activates your rest-and-digest system.\n\n`;
-          response += `Do this 4 times. Notice how you feel after.`;
-        } else {
-          response += `**Coherent Breathing** (for heart-brain coherence)\n\n`;
-          response += `Breathe at about 5 breaths per minute:\n`;
-          response += `• In for 6 seconds\n`;
-          response += `• Out for 6 seconds\n\n`;
-          response += `Smooth, continuous, no pause.\n`;
-          response += `This rhythm synchronizes heart, brain, and nervous system.\n\n`;
-          response += `Try for 2-3 minutes and notice the shift.`;
+        try {
+          const { getFrontendPublisher } = await import(
+            '../../../agents/realtime/frontend-publisher.js'
+          );
+          await getFrontendPublisher().sendData('breathing_exercise', { technique, purpose });
+        } catch (error) {
+          getLogger().debug(
+            { error: String(error), technique, purpose },
+            'breathing_exercise publish skipped'
+          );
         }
 
-        return response;
+        if (technique === 'simple') {
+          return [
+            "Let's just breathe together. Simple.",
+            'Breathe in... 2... 3... 4...',
+            'Breathe out... 2... 3... 4... 5... 6...',
+            'Again.',
+            'In... 2... 3... 4...',
+            'Out... 2... 3... 4... 5... 6...',
+            'A longer exhale calms the nervous system.',
+            'One more time, at your own pace.',
+          ].join('\n');
+        }
+        if (technique === 'box') {
+          return [
+            'Box breathing. Four sides of a box, four counts each.',
+            'In... 2... 3... 4.',
+            'Hold... 2... 3... 4.',
+            'Out... 2... 3... 4.',
+            'Hold... 2... 3... 4.',
+            'Repeat for 4 cycles. Feel your heart rate slow.',
+          ].join('\n');
+        }
+        if (technique === '4-7-8') {
+          return [
+            '4-7-8 breathing.',
+            'Inhale through the nose: 4 counts.',
+            'Hold: 7 counts.',
+            'Exhale through the mouth: 8 counts.',
+            'The long exhale activates your rest-and-digest system.',
+            'Do this 4 times. Notice how you feel after.',
+          ].join('\n');
+        }
+        return [
+          'Coherent breathing, about 5 breaths a minute.',
+          'In for 6 seconds.',
+          'Out for 6 seconds.',
+          'Smooth, continuous, no pause.',
+          'This rhythm synchronizes heart, brain, and nervous system.',
+          'Try for 2 or 3 minutes and notice the shift.',
+        ].join('\n');
       },
     });
   },
