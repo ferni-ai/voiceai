@@ -337,12 +337,7 @@ async function loadBetterThanHumanModules(): Promise<string | null> {
  *
  * Falls back to legacy identity/function-calling.md if new files don't exist.
  *
- * SKIP when:
- * - SEMANTIC_ROUTING_PRIMARY=true: Semantic routing handles all tool calls
- * - Provider has native function calling (e.g., OpenAI Realtime)
- *
- * When these are active, we don't want the LLM to output JSON function calls
- * (they would be spoken as text like "fn:speak args:...").
+ * SKIP when the provider has native function calling.
  */
 async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | null> {
   // 🎯 FTIS MODE: Load FTIS instructions instead of JSON function calling
@@ -361,7 +356,6 @@ async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | 
     return null;
   }
 
-  // Check if provider needs JSON function calling prompts
   const provider = getModelProvider();
   const promptConfig = provider.getPromptModules();
 
@@ -537,7 +531,7 @@ async function loadSystemPromptForTTS(
   mode: PromptMode
 ): Promise<string> {
   const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
-  const fallback = FALLBACK_PROMPTS[bundleDir] || `You are ${personaId}, a helpful AI assistant.`;
+  const fallback = FALLBACK_PROMPTS[bundleDir] || `You are ${personaId}, a helpful companion.`;
 
   try {
     // Load assembly config
@@ -726,7 +720,7 @@ export function getCachedPrompt(personaId: string): string {
   const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
   const cached = promptCache.get(bundleDir);
   if (cached) return cached;
-  return FALLBACK_PROMPTS[bundleDir] || `You are ${personaId}, a helpful AI assistant.`;
+  return FALLBACK_PROMPTS[bundleDir] || `You are ${personaId}, a helpful companion.`;
 }
 
 /**
@@ -874,8 +868,7 @@ Your output is SPOKEN ALOUD. NEVER include:
 - Thinking tags: Never output <thinking>, </thinking>, or similar
 Your ENTIRE output becomes audio. Only output what you'd say out loud.`;
 
-    const fallback = skipJsonInstructions
-      ? `You are part of Ferni, a voice-first life coaching platform.
+    const fallback = `You are part of Ferni, a voice-first life coaching platform.
 
 You have tools available as function declarations. When a user requests an action (play music, check weather, set a reminder, etc.), you MUST call the appropriate function. Do NOT describe or narrate actions in brackets like "[plays music]" — actually call the function.
 
@@ -885,18 +878,9 @@ After calling a function, respond conversationally:
 CRITICAL RULES:
 - NEVER output bracketed stage directions like [Ferni plays music] or [searches for weather]
 - NEVER narrate actions instead of calling functions
+- NEVER write JSON, {fn,args}, or function names in speech
 - When the user asks for something you have a tool for, CALL the tool
 - Your text output becomes spoken audio — only output words you'd say out loud
-
-Never claim capabilities you don't have. Be honest.${antiReasoningRules}`
-      : `You are part of Ferni, a voice-first life coaching platform.
-
-When user requests a tool action, output ONLY raw JSON:
-{"fn":"toolName","args":{...}}
-
-NO speech before or after JSON. Just JSON and stop.
-
-For normal conversation, speak naturally with no JSON.
 
 Never claim capabilities you don't have. Be honest.${antiReasoningRules}`;
 

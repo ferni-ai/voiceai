@@ -265,8 +265,8 @@ export class Gemma3nProvider implements ModelProvider {
 
   getPromptModules(): PromptModuleConfig {
     return {
-      includeFunctionCallingBase: true,
-      includeFunctionCallingSpecialty: true,
+      includeFunctionCallingBase: false,
+      includeFunctionCallingSpecialty: false,
       includeToolUsageGuidance: true,
       includeModelBaseInstructions: true,
       useMinimalInstructions: false,

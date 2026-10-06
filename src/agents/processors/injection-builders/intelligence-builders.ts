@@ -173,85 +173,15 @@ export async function buildSemanticIntelligenceInjection(params: {
 // ============================================================================
 
 /**
- * Patterns that indicate a tool request
- */
-const TOOL_REQUEST_PATTERNS = [
-  /\b(play|put on|listen to)\s+(some\s+)?(music|song|jazz|rock|spotify)/i,
-  /\b(play|put on)\s+\w+/i,
-  /\bcould you play\b/i,
-  /\bcan you play\b/i,
-  /\b(weather|temperature|forecast|rain|cold|hot outside)\b/i,
-  /\bwhat('s| is)\s+(the\s+)?(weather|temp)/i,
-  /\bwhat\s+time\b/i,
-  /\bthe\s+time\b/i,
-  /\b(calendar|schedule|appointment|meeting)\b/i,
-  /\bwhat('s| do I have)?\s+(on\s+)?(today|tomorrow|my calendar)\b/i,
-  /\b(call|text|message|reach out to|contact)\s+\w+/i,
-  /\b(news|headlines|what('s| is) happening)\b/i,
-  /\b(talk to|speak with|transfer|switch to)\s+(maya|peter|alex|jordan|nayan|ferni)\b/i,
-  /\bcan you\s+\w+/i,
-  /\bcould you\s+\w+/i,
-  /\bwould you\s+\w+/i,
-];
-
-function detectToolRequest(userText: string): boolean {
-  const text = userText.toLowerCase().trim();
-  return TOOL_REQUEST_PATTERNS.some((pattern) => pattern.test(text));
-}
-
-/**
- * Build function-calling reinforcement injection
- *
- * CRITICAL: This fixes the issue where Gemini outputs text like
- * "I'm playing music now!" instead of the JSON tool call.
+ * Build function-calling reinforcement injection.
+ * JSON {fn,args} reinforcement is gone — native FC / FTIS handle tools.
  */
 export function buildFunctionCallingReinforcement(
-  userText: string,
-  turnCount: number
+  _userText: string,
+  _turnCount: number
 ): ContextInjection | null {
-  const provider = getModelProvider();
-  if (provider.hasNativeFunctionCalling()) {
-    return null;
-  }
-
-  if (!detectToolRequest(userText)) {
-    return null;
-  }
-
-  const isLongSession = turnCount > 20;
-
-  const content = `
-🚨 TOOL REQUEST DETECTED - OUTPUT JSON ONLY 🚨
-
-The user is asking for an ACTION. You MUST output JSON, not text.
-
-${isLongSession ? '⚠️ REMINDER: Saying "I\'m doing X" does NOT do X. Only JSON executes.' : ''}
-
-CORRECT:
-- Music request → {"fn":"playMusic","args":{"query":"..."}}
-- Weather request → {"fn":"getWeather","args":{}}
-- Call/text request → {"fn":"reachOut","args":{"contact":"...","purpose":"..."}}
-- Handoff request → {"fn":"handoffToMaya","args":{"reason":"..."}}
-
-WRONG:
-- "I'm playing music now!" ← DOES NOTHING
-- "Let me check the weather!" ← DOES NOTHING
-- "I'll call them!" ← DOES NOTHING
-
-OUTPUT ONLY THE JSON. NO WORDS. NO PREAMBLE. JUST THE JSON OBJECT.
-`.trim();
-
-  diag.debug('🔧 Function calling reinforcement injected', {
-    turnCount,
-    isLongSession,
-    userTextPreview: userText.slice(0, 50),
-  });
-
-  return {
-    category: 'function_calling_reinforcement',
-    content,
-    priority: 90,
-  };
+  // JSON {fn,args} reinforcement is gone — native FC / FTIS handle tools.
+  return null;
 }
 
 // ============================================================================

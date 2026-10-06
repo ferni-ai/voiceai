@@ -4,16 +4,15 @@
  * Implementation of ModelProvider for Google's Gemini Live API.
  *
  * Key characteristics:
- * - Supports both native function calling AND JSON workaround
+ * - Native function calling by default (VOICE_PIPELINE=gemini-live)
  * - Text-only mode with Cartesia TTS for persona voices
  * - Built-in VAD turn detection (enabled by default in Gemini)
  * - Prewarm recommended for first response latency
  * - Optional Vertex AI mode for higher quotas
  *
  * Configuration (via environment or gemini-fc-config.ts):
- * - GEMINI_USE_NATIVE_FC: Enable native function calling (true/false)
+ * - GEMINI_USE_NATIVE_FC: Native function calling (default true on gemini-live)
  * - GEMINI_FC_MODE: Function calling mode (AUTO/ANY/NONE)
- * - GEMINI_JSON_FALLBACK: Keep JSON workaround as fallback (true/false)
  * - GEMINI_TURN_OPTIMIZATION: Enable turn-by-turn tool optimization (true/false)
  * - GEMINI_NATIVE_PROMPTS: Use simplified prompts without JSON instructions (true/false)
  *
@@ -50,9 +49,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { isFTISEnabled } from '../processors/tool-routing-integration.js';
 import {
   getGeminiFCConfig,
-  isJsonFallbackEnabled,
   isNativeFCEnabled,
-  shouldUseNativePrompts,
   type GeminiFCMode,
 } from '../shared/gemini-fc-config.js';
 import type {
@@ -185,7 +182,7 @@ You're a life coach, not a licensed professional. For medical/legal/financial/cr
 /**
  * Gemini Live Provider
  *
- * Uses Google's Gemini Live API with JSON workaround for function calling.
+ * Uses Google's Gemini Live API with native function calling.
  * Text-only mode with Cartesia TTS for persona voices.
  */
 export class GeminiLiveProvider implements ModelProvider {
@@ -205,8 +202,7 @@ export class GeminiLiveProvider implements ModelProvider {
    *
    * Determined by:
    * 1. FTIS_ONLY_MODE → NO (FTIS handles all tools externally)
-   * 2. GEMINI_USE_NATIVE_FC=true → YES
-   * 3. Default: NO (use JSON workaround)
+   * 2. Otherwise native FC (default when VOICE_PIPELINE=gemini-live)
    */
   hasNativeFunctionCalling(): boolean {
     if (isFTISOnlyMode()) {
@@ -216,26 +212,10 @@ export class GeminiLiveProvider implements ModelProvider {
   }
 
   /**
-   * Whether Gemini needs the JSON workaround for function calling.
-   *
-   * Determined by:
-   * 1. FTIS_ONLY_MODE → NO (FTIS handles all tools externally)
-   * 2. JSON fallback disabled and native FC enabled → NO
-   * 3. Default: YES (provides defense-in-depth)
-   *
-   * The sanitizer intercepts JSON output to execute tools before TTS.
+   * The JSON {fn,args} workaround is gone. Gemini Live uses native FC or FTIS.
    */
   needsJsonWorkaround(): boolean {
-    if (isFTISOnlyMode()) {
-      return false; // FTIS handles all tools - no JSON workaround needed
-    }
-
-    // If native FC is enabled and fallback is disabled, no JSON workaround needed
-    if (isNativeFCEnabled() && !isJsonFallbackEnabled()) {
-      return false;
-    }
-
-    return true; // Default: JSON workaround for defense-in-depth
+    return false;
   }
 
   /**
@@ -253,10 +233,9 @@ export class GeminiLiveProvider implements ModelProvider {
   /**
    * Gemini prompt modules configuration.
    *
-   * Three modes:
+   * Two modes:
    * 1. FTIS_ONLY_MODE: No function calling prompts (FTIS handles all tools)
-   * 2. Native FC with native prompts: No JSON format instructions, just tool guidance
-   * 3. Default/JSON workaround: Full JSON function-calling prompts
+   * 2. Native FC: No JSON format instructions, just tool guidance
    */
   getPromptModules(): PromptModuleConfig {
     if (isFTISOnlyMode()) {
@@ -270,28 +249,13 @@ export class GeminiLiveProvider implements ModelProvider {
       };
     }
 
-    // Check if we should use native prompts (no JSON format instructions)
-    if (shouldUseNativePrompts()) {
-      // Native FC mode: Use minimal instructions + tool guidance
-      // CRITICAL: useMinimalInstructions=true ensures Gemini gets explicit instructions
-      // about HOW to use native function calling (not just WHEN to use tools)
-      log.debug('Using native FC prompts with minimal instructions');
-      return {
-        includeFunctionCallingBase: false, // No JSON format instructions
-        includeFunctionCallingSpecialty: false, // No JSON examples
-        includeToolUsageGuidance: true, // Keep conceptual guidance (when to use tools)
-        includeModelBaseInstructions: true,
-        useMinimalInstructions: true, // CRITICAL: Include native FC instructions
-      };
-    }
-
-    // Default: Include JSON function-calling prompts (for JSON workaround)
+    log.debug('Using native FC prompts with minimal instructions');
     return {
-      includeFunctionCallingBase: true, // JSON format instructions
-      includeFunctionCallingSpecialty: true, // JSON format examples
-      includeToolUsageGuidance: true, // Conceptual guidance (ALL providers need this)
+      includeFunctionCallingBase: false,
+      includeFunctionCallingSpecialty: false,
+      includeToolUsageGuidance: true,
       includeModelBaseInstructions: true,
-      useMinimalInstructions: false,
+      useMinimalInstructions: true,
     };
   }
 
@@ -312,12 +276,7 @@ export class GeminiLiveProvider implements ModelProvider {
    */
   getMinimalInstructions(): string {
     // Only return native FC instructions when using native function calling
-    if (shouldUseNativePrompts()) {
-      return GEMINI_NATIVE_FC_INSTRUCTIONS;
-    }
-    // For JSON workaround mode, no minimal instructions needed
-    // (the full function-calling-base.md provides the instructions)
-    return '';
+    return GEMINI_NATIVE_FC_INSTRUCTIONS;
   }
 
   // -------------------------------------------------------------------------
