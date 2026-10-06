@@ -140,7 +140,12 @@
         "price": "NT$0",
         "period": "永久",
         "description": "瞭解Ferni",
-        "features": ["每月5次對話", "與Ferni（生活教練）聊天", "網頁和電話存取", "基礎對話記憶"]
+        "features": [
+          "每月5次對話",
+          "與Ferni（生活教練）聊天",
+          "網頁和電話存取",
+          "基礎對話記憶"
+        ]
       },
       "friend": {
         "name": "朋友",
@@ -416,5 +421,283 @@
     "hoursAgo": "{n}小時前",
     "yesterday": "昨天",
     "daysAgo": "{n}天前"
+  },
+  "sanctuary": {
+    "greeting": {
+      "morning": "{day} 的早晨",
+      "afternoon": "{day} 的午後",
+      "evening": "{day} 的傍晚",
+      "night": "深夜的 {day}"
+    },
+    "insights": {
+      "actions": {
+        "explore": "探索",
+        "review": "回顧",
+        "viewJourney": "查看旅程"
+      },
+      "sources": {
+        "correlation": "關聯性",
+        "trajectory": "發展軌跡",
+        "relational": "人際關係",
+        "counterfactual": "反事實思考",
+        "growth": "成長",
+        "threading": "脈絡連結",
+        "openLoop": "開放迴圈",
+        "commitment": "承諾",
+        "temporal": "時間維度",
+        "behavioral": "行為模式"
+      },
+      "commitments": {
+        "title": "進行中的承諾",
+        "description": {
+          "other": "你目前有 {count} 個進行中的承諾正在追蹤中。",
+          "one": "你目前有 {count} 個進行中的承諾正在追蹤中。"
+        }
+      },
+      "pattern": {
+        "title": "發現了規律",
+        "description": "當 {trigger} 時，{outcome}"
+      },
+      "growth": {
+        "title": "你的故事正在展開",
+        "description": "你的旅程中有許多值得慶祝的篇章。"
+      },
+      "welcome": {
+        "title": "專屬於你的時刻",
+        "description": "這是你的靜心空間。深呼吸，感受當下。"
+      }
+    },
+    "practices": {
+      "brainstorm": {
+        "name": "腦力激盪",
+        "description": "一起理清眼前的挑戰",
+        "duration": "10-15 分鐘",
+        "prompt": "我們來腦力激盪一下吧。你現在正為什麼挑戰或決定而煩惱呢？",
+        "reason": "讓思緒變得清晰"
+      },
+      "dailyCheckin": {
+        "name": "每日打卡",
+        "description": "用溫柔的自我反思開啟新的一天",
+        "duration": "5-10 分鐘",
+        "prompt": "很高興見到你。你現在真實的感覺如何？",
+        "reason": "最適合帶著覺察開啟你的一天"
+      },
+      "gratitude": {
+        "name": "感恩練習",
+        "description": "一個表達感謝的時刻",
+        "duration": "5 分鐘",
+        "prompt": "讓我們停下腳步，心存感激。此時此刻，有哪一件事讓你感到感恩？",
+        "reason": "片刻的感恩能讓你感到踏實"
+      },
+      "windDown": {
+        "name": "睡前沉澱",
+        "description": "在一天結束時進行溫柔的反思",
+        "duration": "5-10 分鐘",
+        "prompt": "我們一起沉澱下來吧。今天有哪一件事讓你為自己感到驕傲？",
+        "reason": "是時候放下這一天的疲憊了"
+      },
+      "weeklyReview": {
+        "name": "每週回顧",
+        "description": "回顧你的一週，並為自己的進步慶祝",
+        "duration": "15-20 分鐘",
+        "prompt": "我們來回顧一下你的一週。最讓你印象深刻的是什麼？",
+        "reason": "用溫暖的回顧為這一週畫下句點"
+      },
+      "breathFocus": {
+        "name": "專注呼吸",
+        "description": "簡單的呼吸練習，幫助你找回內心的平靜",
+        "duration": "3-5 分鐘",
+        "prompt": "我們一起呼吸吧。找個舒服的姿勢，輕輕閉上雙眼或放鬆眼神。",
+        "reason": "幾次深呼吸就能改變當下的狀態"
+      },
+      "futureLetter": {
+        "name": "寫給未來自己的一封信",
+        "description": "為未來的自己寫下一些智慧與叮嚀",
+        "duration": "10-15 分鐘",
+        "prompt": "你想對 6 個月後的自己說些什麼？",
+        "reason": "為未來的你播下種子"
+      },
+      "valuesCheck": {
+        "name": "價值觀打卡",
+        "description": "重新連結對你而言最重要的事情",
+        "duration": "10 分鐘",
+        "prompt": "我們來探索你的價值觀。此時此刻，你覺得最重要的是什麼？",
+        "reason": "重新校準你的內心指南針"
+      }
+    },
+    "quotes": {
+      "unknownAuthor": "佚名",
+      "morning": {
+        "getStarted": "開始行動的秘訣，就是停止空談、動手去做。",
+        "newPotential": "每個早晨都帶來全新的無限可能。",
+        "wonderfulDay": "這是美好的一天。我從未見過這樣的一天。"
+      },
+      "afternoon": {
+        "greatWork": "成就偉大事業的唯一方法，就是熱愛你所做的事。",
+        "smallSteps": "每天邁出一小步，終將帶來巨大的改變。",
+        "anotherGoal": "設定新的目標，活到老都不嫌晚。"
+      },
+      "evening": {
+        "restNotIdleness": "休息並非無所事事。",
+        "judgedOnLove": "在生命的暮年，衡量我們的唯有愛。",
+        "dailyGifts": "每一天都有它獨特的禮物。"
+      },
+      "night": {
+        "newDay": "明天是全新的一天，還沒有任何過錯。",
+        "bestMeditation": "睡眠是最好的冥想。",
+        "betterHalf": "夜晚是生命的另一半，而且是更美好的那一半。"
+      }
+    }
+  },
+  "quiz": {
+    "questions": {
+      "communicationStyle": {
+        "text": "我偏好哪種溝通方式？",
+        "options": {
+          "direct": "直接且切中要點",
+          "analytical": "詳細且數據導向",
+          "warm": "溫暖且親切",
+          "reflective": "充滿想法且愛沉思"
+        }
+      },
+      "favoriteTopic": {
+        "text": "我最喜歡聊什麼主題？",
+        "options": {
+          "cooking": "烹飪",
+          "sports": "運動",
+          "gardening": "園藝",
+          "fashion": "時尚"
+        }
+      },
+      "conversationCount": {
+        "text": "我們大約進行了幾次對話？",
+        "options": {
+          "range1to5": "1-5",
+          "range6to15": "6-15",
+          "range16to30": "16-30",
+          "over30": "超過 30 次"
+        }
+      },
+      "timeTogether": {
+        "text": "我們花了多少時間一起對話？",
+        "options": {
+          "under30Min": "少於 30 分鐘",
+          "min30To60": "30 分鐘 - 1 小時",
+          "hour1To2": "1-2 小時",
+          "over2Hours": "超過 2 小時"
+        }
+      },
+      "memoryRecall": {
+        "text": "這是我對我們的回憶嗎：「{snippet}……」？",
+        "options": {
+          "yes": "對，沒錯",
+          "no": "不對，不太像",
+          "unsure": "我不確定",
+          "never": "我們從沒聊過這個"
+        }
+      },
+      "firstMeeting": {
+        "text": "當我們第一次開始對話時，我是：",
+        "options": {
+          "excited": "很興奮能認識你",
+          "nervous": "有點緊張",
+          "curious": "對你感到好奇",
+          "allOfTheAbove": "以上皆是"
+        }
+      },
+      "whatMatters": {
+        "text": "在我們的對話中，我最在乎的是什麼？",
+        "options": {
+          "beingHelpful": "能幫上忙",
+          "feelingHeard": "讓你感到被傾聽",
+          "learningAboutYou": "多了解你",
+          "growingTogether": "共同成長"
+        }
+      },
+      "difficultShare": {
+        "text": "當你分享困難的事情時，我有什麼感受？",
+        "options": {
+          "uncomfortable": "感到不自在",
+          "honored": "很榮幸你信任我",
+          "eagerToFix": "急著想幫你解決",
+          "distracted": "分心"
+        }
+      }
+    },
+    "celebrations": {
+      "soulmate": "你真的太懂我了！簡直就像共用同一個大腦。",
+      "bestie": "哇，你超了解我的！一輩子的好朋友。",
+      "friend": "很不錯喔！我們的友誼越來越深厚了。",
+      "acquaintance": "還不賴！我們還在互相認識中。",
+      "stranger": "看來我們還有很多可以一起探索的地方！"
+    }
+  },
+  "practiceView": {
+    "attribution": {
+      "notes": "{persona} 的筆記",
+      "suggests": "{persona} 的建議",
+      "notices": "{persona} 注意到",
+      "reflects": "{persona} 的反思",
+      "tracks": "{persona} 的追蹤",
+      "found": "{persona} 的發現"
+    },
+    "eventContext": {
+      "family": "你的伴侶很喜歡你全心陪伴的時刻",
+      "meeting": "加入前先設定好明確的意圖",
+      "wellness": "先照顧好你自己",
+      "learning": "成長往往發生在突破舒適圈的時刻",
+      "social": "人際連結能滋養心靈"
+    },
+    "habit": {
+      "untitled": "未命名習慣",
+      "streakWeek": "連續 {streak} 天！",
+      "streakDays": "堅持了 {streak} 天",
+      "momentum": "正在累積動力"
+    },
+    "task": {
+      "untitled": "未命名任務",
+      "dueToday": "今天截止",
+      "dueTomorrow": "明天截止",
+      "dueInDays": "{days} 天後截止",
+      "highPriority": "高優先級"
+    },
+    "reminder": {
+      "fallback": "提醒"
+    },
+    "practice": {
+      "streak": "連續 {streak} 天練習"
+    },
+    "defaultIntention": {
+      "start": "帶著意圖開始",
+      "oneThing": "一次做好一件事",
+      "gratitude": "用感恩為一天畫下句點",
+      "gratitudeInsight": "這改善了你的心情"
+    },
+    "dayInsight": {
+      "morningIntention": "早晨意圖",
+      "stayPresent": "保持專注於當下",
+      "reflectAndCelebrate": "反思與慶祝",
+      "newBeginning": "嶄新的開始",
+      "recharge": "充電",
+      "freshStart": "全新開始",
+      "buildMomentum": "累積動力",
+      "midWeek": "週中檢視",
+      "almostThere": "就快到了",
+      "windDown": "放鬆沉澱"
+    },
+    "pattern": {
+      "busyWeek": "你最近開了很多會。你最棒的靈感往往是在安靜的空間裡產生的。",
+      "packedDay": "{day}看起來排得好滿。要不要把一些事情移到{otherDay}呢？",
+      "packedDayNoAlternative": "{day}看起來排得好滿。要不要把一些事情移到其他天呢？",
+      "morningStart": "你早晨的開始，往往決定了那一整天的步調與心情。",
+      "focusTime": "當你預留專注時間，完成的事情會多出 40% 喔。",
+      "creativeAfterWalks": "散步之後，你似乎特別有創意呢。",
+      "tuesdayEvenings": "週二晚上是你最有效率的時候呢。"
+    },
+    "errors": {
+      "loadFailed": "沒辦法載入練習畫面",
+      "completeFailed": "沒辦法完成這個意圖",
+      "patternsFailed": "沒辦法取得分析規律"
+    }
   }
 }

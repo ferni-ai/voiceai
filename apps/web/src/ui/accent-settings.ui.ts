@@ -518,7 +518,7 @@ function injectStyles(): void {
 
     /* Dark theme */
     [data-theme="midnight"] .accent-settings-modal {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
     }
 
     [data-theme="midnight"] .accent-settings-title {
@@ -530,16 +530,16 @@ function injectStyles(): void {
     }
 
     [data-theme="midnight"] .accent-settings-close {
-      background: var(--color-background-tertiary, #685852);
+      background: var(--color-background-tertiary, #2a241f);
       color: var(--color-text-secondary, #f0ebe4);
     }
 
     [data-theme="midnight"] .accent-option {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
 
     [data-theme="midnight"] .accent-option:hover {
-      background: var(--color-background-tertiary, #685852);
+      background: var(--color-background-tertiary, #2a241f);
     }
 
     [data-theme="midnight"] .accent-option-label {
@@ -551,7 +551,7 @@ function injectStyles(): void {
     }
 
     [data-theme="midnight"] .accent-auto-detect {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
 
     [data-theme="midnight"] .accent-auto-detect-label {

@@ -158,7 +158,7 @@ function injectStyles(): void {
     }
 
     .cqw-pill-expand {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       display: flex;
       align-items: center;
     }
@@ -214,7 +214,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
 
@@ -234,7 +234,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-2, 0.5rem);
     }
 
@@ -253,7 +253,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-2, 0.5rem);
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .cqw-countdown-large {
@@ -279,7 +279,7 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--space-1, 0.25rem);
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .cqw-meta-item svg {
@@ -293,7 +293,7 @@ function injectStyles(): void {
 
     .cqw-no-meeting-sub {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-1, 0.25rem);
     }
 
@@ -321,7 +321,7 @@ function injectStyles(): void {
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-0-5, 0.125rem);
     }
 
@@ -367,7 +367,7 @@ function injectStyles(): void {
     .cqw-loading {
       padding: var(--space-6, 1.5rem);
       text-align: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-size: var(--text-sm, 0.875rem);
     }
 

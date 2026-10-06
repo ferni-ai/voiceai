@@ -123,14 +123,19 @@ export function recallForTurn(
   return picked;
 }
 
-/** "today", "yesterday", "5 days ago": how old a memory is, for the note. */
+/**
+ * When a memory was said, for the note. "said" keeps it from reading as part
+ * of the value: "deadline = due this Friday (today)" was read as the deadline
+ * being today, and a Monday reply said "that deadline moved up to today"
+ * (dev, 2026-10-05).
+ */
 function age(extractedAt: string | undefined, now: number): string {
   const t = extractedAt ? Date.parse(extractedAt) : NaN;
   if (Number.isNaN(t)) return '';
   const days = Math.floor((now - t) / 86_400_000);
-  if (days < 1) return ' (today)';
-  if (days === 1) return ' (yesterday)';
-  return ` (${days} days ago)`;
+  if (days < 1) return ' [said today]';
+  if (days === 1) return ' [said yesterday]';
+  return ` [said ${days} days ago]`;
 }
 
 /** A context note for the LLM, or null when there is nothing to recall. */
@@ -153,6 +158,7 @@ export function formatRecall(
   }
   lines.push(
     'These are from past calls, not this one. Use at most one, and only if it fits naturally, the way a friend who remembers would. ' +
+      'Words like today, tomorrow or Friday inside a memory are as of when it was said. ' +
       "Anything a few days old or that could have changed, check instead of asserting (\"is she still...?\"). " +
       'Never bring up health, pregnancy, money or relationships unless they bring it up first. Never list them or say you looked it up.'
   );

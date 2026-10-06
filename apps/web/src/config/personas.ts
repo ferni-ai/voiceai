@@ -431,7 +431,7 @@ export function normalizeAgentId(agentId: string | undefined | null): PersonaId 
     // Defensive: return default persona if agentId is undefined/null
     // This prevents crashes but logs warning in dev
     if (import.meta.env?.DEV) {
-      console.warn('[personas] normalizeAgentId called with undefined/null, defaulting to ferni');
+      log.warn('[personas] normalizeAgentId called with undefined/null, defaulting to ferni');
     }
     return 'ferni';
   }

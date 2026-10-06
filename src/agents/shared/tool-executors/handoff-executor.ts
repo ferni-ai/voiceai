@@ -65,8 +65,7 @@ const PERSONA_ALIASES: Record<string, string> = {
   // Common variations
   'maya-santos': 'maya',
   'alex-chen': 'alex',
-  'peter-john': 'peter',
-  'peter-lynch': 'peter', // Legacy alias
+  'peter-john': 'peter', // Peter Lynch is his own persona (peter-lynch), not an alias
   'jordan-brooks': 'jordan',
   'nayan-patel': 'nayan',
 };

@@ -16,6 +16,8 @@
  * - HTML: Network-first
  */
 
+// v4: v3 served /design-system/tokens.css cache-first from 2025-12, so returning users kept
+// stale design tokens. Bumping the name makes activate() delete those caches.
 const CACHE_VERSION = 'v4';
 const STATIC_CACHE = `ferni-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `ferni-dynamic-${CACHE_VERSION}`;

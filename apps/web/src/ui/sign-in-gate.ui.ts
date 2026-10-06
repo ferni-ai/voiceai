@@ -23,9 +23,7 @@ import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import { t } from '../i18n/index.js';
 
-// ============================================================================
 // TYPES
-// ============================================================================
 
 interface WaitlistCheckResult {
   approved: boolean;
@@ -37,17 +35,13 @@ interface WaitlistCheckResult {
 
 const log = createLogger('SignInGate');
 
-// ============================================================================
 // ELEMENT REFERENCES
-// ============================================================================
 
 let overlayEl: HTMLElement | null = null;
 let isShowing = false;
 let resolveSignIn: (() => void) | null = null;
 
-// ============================================================================
 // STYLES
-// ============================================================================
 
 const STYLES = `
 .sign-in-gate-overlay {
@@ -160,8 +154,13 @@ const STYLES = `
 }
 
 .sign-in-gate-btn--apple {
-  background: #000;
-  color: #fff;
+  background: #2c2520;
+  color: #fafaf9;
+}
+
+[data-theme="midnight"] .sign-in-gate-btn--apple {
+  background: #f4efe6;
+  color: #14110e;
 }
 
 .sign-in-gate-btn--apple:hover {
@@ -171,9 +170,9 @@ const STYLES = `
 .sign-in-gate-error {
   margin-top: var(--space-md, 1rem);
   padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-  background: var(--color-semantic-error-bg, rgba(239, 68, 68, 0.1));
+  background: var(--color-semantic-error-tint, rgba(231, 163, 154, 0.12));
   border-radius: var(--radius-md, 8px);
-  color: var(--color-semantic-error, #ef4444);
+  color: var(--color-semantic-error, #e7a39a);
   font-size: 0.875rem;
   display: none;
 }
@@ -280,9 +279,7 @@ const STYLES = `
 }
 `;
 
-// ============================================================================
 // WAITLIST CHECK
-// ============================================================================
 
 /**
  * Check if the authenticated user has access (approved on waitlist).

@@ -110,6 +110,7 @@
   function applyHeroHeadline(variantId) {
     const variant = HERO_HEADLINE_VARIANTS[variantId];
     if (!variant) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[Variants] Unknown headline variant:', variantId);
       return;
     }
@@ -130,7 +131,6 @@
       subhead.textContent = variant.subhead;
     }
 
-    console.log('[Variants] Applied headline variant:', variantId);
   }
 
   /**
@@ -139,6 +139,7 @@
   function applyHeroCTA(variantId) {
     const variant = HERO_CTA_VARIANTS[variantId];
     if (!variant) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[Variants] Unknown CTA variant:', variantId);
       return;
     }
@@ -157,7 +158,6 @@
     ctaButton.classList.remove('btn--primary', 'btn--secondary', 'btn--ghost');
     ctaButton.classList.add('btn--' + variant.style);
 
-    console.log('[Variants] Applied CTA variant:', variantId);
   }
 
   /**
@@ -166,6 +166,7 @@
   function applyTrustBadges(variantId) {
     const variant = TRUST_BADGE_VARIANTS[variantId];
     if (!variant) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[Variants] Unknown trust badge variant:', variantId);
       return;
     }
@@ -192,7 +193,6 @@
       badges.style.display = '';
     }
 
-    console.log('[Variants] Applied trust badge variant:', variantId);
   }
 
   // ============================================================================
@@ -218,6 +218,7 @@
         applyTrustBadges(variantId);
         break;
       default:
+        // eslint-disable-next-line no-console -- report failures in the browser console
         console.warn('[Variants] Unknown experiment:', experimentId);
     }
   }
@@ -228,6 +229,7 @@
   async function initExperiments() {
     // Check if FerniExperiments is available
     if (typeof window.FerniExperiments === 'undefined') {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[Variants] FerniExperiments not loaded, using control variants');
       return;
     }
@@ -240,6 +242,7 @@
           applyVariant(experimentId, variantId);
         }
       } catch (error) {
+        // eslint-disable-next-line no-console -- report failures in the browser console
         console.warn('[Variants] Failed to get variant for', experimentId, error);
       }
     }
@@ -250,7 +253,6 @@
    */
   function previewVariant(experimentId, variantId) {
     applyVariant(experimentId, variantId);
-    console.log('[Variants] Preview applied:', experimentId, '->', variantId);
   }
 
   /**
@@ -293,5 +295,4 @@
     },
   };
 
-  console.log('%c🎨 Ferni Variants loaded', 'color: #4a6741; font-weight: bold;');
 })();

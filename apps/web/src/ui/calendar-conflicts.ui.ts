@@ -865,11 +865,11 @@ class CalendarConflictsUI {
 
       /* Dark theme */
       [data-theme="midnight"] .calendar-conflicts__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-conflicts__header {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-conflicts__title,
@@ -881,15 +881,15 @@ class CalendarConflictsUI {
 
       [data-theme="midnight"] .calendar-conflicts__card,
       [data-theme="midnight"] .calendar-conflicts__settings {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-conflicts__version {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-conflicts__select {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
         color: var(--color-text-primary, #faf6f0);
       }

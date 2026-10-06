@@ -820,7 +820,7 @@ function render(): string {
                 const prompt = RECORDING_PROMPTS.find(p => p.id === sample.promptId);
                 return `
                   <div class="vcr-sample-item" data-sample-id="${sample.id}">
-                    <button class="vcr-sample-play" data-action="play-sample" data-index="${i}">
+                    <button class="vcr-sample-play" data-action="play-sample" data-index="${i}" aria-label="Play sample ${i + 1}">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                     </button>
                     <div class="vcr-sample-info">

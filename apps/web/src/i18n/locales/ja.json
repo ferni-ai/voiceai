@@ -3500,7 +3500,11 @@
   },
   "voiceId": {
     "enrolledTitle": "ボイスID登録済み - Ferni があなたの声を認識します",
-    "notEnrolledTitle": "ボイスID未登録 - 登録すると Ferni があなたの声を認識できるようになります"
+    "notEnrolledTitle": "ボイスID未登録 - 登録すると Ferni があなたの声を認識できるようになります",
+    "reenrollTitle": "声を聞き分けるのが上手になりました",
+    "reenrollBody": "もう一度あなたの声を覚えてもいいですか？20秒ほどで終わります。",
+    "reenrollAccept": "いいですよ",
+    "reenrollLater": "今はやめておく"
   },
   "languageSwitcher": {
     "label": "言語",
@@ -10374,8 +10378,8 @@
   },
   "theme": {
     "midnight": {
-      "name": "ミッドナイトゴールド",
-      "description": "温かみのあるゴールドが映える、深みのあるダークテーマ"
+      "name": "ナイトインク",
+      "description": "温かみのあるほぼ黒の背景に、セージグリーンの操作ボタン"
     },
     "zen": {
       "name": "Zenのお庭",

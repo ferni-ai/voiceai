@@ -202,7 +202,6 @@
     // Check cache first
     const cacheKey = `${sampleId}-${personaId}`;
     if (CONFIG.cacheAudio && state.audioCache.has(cacheKey)) {
-      console.log('%c🎤 Using cached AI voice', 'color: #4a6741');
       await playAudioBlob(state.audioCache.get(cacheKey));
       return;
     }
@@ -210,7 +209,6 @@
     // Try real AI TTS first
     if (CONFIG.ttsEndpoint) {
       try {
-        console.log('%c🎤 Generating real AI voice...', 'color: #4a6741; font-weight: bold');
         const audioBlob = await generateTTS(sample.response, personaId);
         
         if (audioBlob) {
@@ -222,6 +220,7 @@
           return;
         }
       } catch (err) {
+        // eslint-disable-next-line no-console -- report failures in the browser console
         console.warn('AI TTS failed, trying fallback:', err.message);
       }
     }
@@ -266,7 +265,6 @@
     
     // Log which persona voice was used
     const usedPersona = response.headers.get('X-Persona-Name') || personaId;
-    console.log(`%c✅ Generated ${usedPersona}'s voice (${Math.round(audioBlob.size / 1024)}KB)`, 'color: #4a6741');
     
     return audioBlob;
   }
@@ -289,6 +287,7 @@
     
     audio.addEventListener('error', (e) => {
       URL.revokeObjectURL(audioUrl);
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.error('Audio playback error:', e);
       stopAudio();
     });
@@ -305,7 +304,6 @@
       return;
     }
 
-    console.log('%c⚠️ Using browser TTS fallback', 'color: #b8956a');
     
     const utterance = new SpeechSynthesisUtterance(text);
 
@@ -473,7 +471,7 @@
       return title && title.textContent.toLowerCase().includes('voice');
     });
     if (voiceFeature) {
-      const sample = createInlinePlayButton('stress', '🔊 Hear Ferni respond');
+      const sample = createInlinePlayButton('stress', 'Hear Ferni respond');
       voiceFeature.appendChild(sample);
     }
   }
@@ -581,7 +579,7 @@
       .voice-sample__role {
         display: block;
         font-size: 12px;
-        color: #70605a;
+        color: #a89b8c;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         font-weight: 500;
@@ -679,7 +677,7 @@
       .voice-sample__q-label {
         font-weight: 600;
         font-style: normal;
-        color: #70605a;
+        color: #a89b8c;
         margin-right: 4px;
       }
       
@@ -687,7 +685,7 @@
       .voice-sample__transcript {
         margin-top: 12px;
         font-size: 13px;
-        color: #70605a;
+        color: #a89b8c;
         line-height: 1.6;
       }
       
@@ -766,7 +764,7 @@
       
       .voice-samples-showcase__subtitle {
         font-size: 18px;
-        color: #70605a;
+        color: #a89b8c;
         margin: 0;
         font-weight: 400;
       }
@@ -850,9 +848,8 @@
     state.initialized = true;
 
     const modeInfo = CONFIG.ttsEndpoint 
-      ? '(Real AI voices enabled! 🎤)' 
+      ? '(Real AI voices enabled!)' 
       : '(Using browser TTS fallback)';
-    console.log(`%c🔊 Voice Samples initialized ${modeInfo}`, 'color: #4a6741; font-weight: bold;');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

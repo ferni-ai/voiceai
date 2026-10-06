@@ -642,7 +642,7 @@ function injectStyles(): void {
        DARK THEME
        ======================================================================== */
     [data-theme="midnight"] .trust-signal {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
       box-shadow: 
         0 8px 24px rgba(0, 0, 0, 0.3),
         0 2px 8px rgba(0, 0, 0, 0.2),
@@ -658,7 +658,7 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .trust-signal-close:hover {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
     
     /* ========================================================================

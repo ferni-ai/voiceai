@@ -19,6 +19,7 @@ import {
   type TeamMemberId,
   type TeamUnlockState,
 } from '../../../services/team-unlocks.js';
+import { ALIAS_TO_CANONICAL } from '../../../personas/persona-ids.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   createHintInjection,
@@ -34,19 +35,26 @@ const log = createLogger({ module: 'TeamAvailability' });
 // HELPERS
 // ============================================================================
 
+const TEAM_MEMBER_IDS: ReadonlySet<string> = new Set(TEAM_MEMBERS.map((m) => m.memberId));
+
+/**
+ * The team member an ID or alias names ('maya-santos', 'maya', 'Maya_Santos',
+ * 'spend-save'), or null. Exact lookup only: IDs used to match by substring in
+ * both directions, so '' or 'n' matched 'ferni' and counted as unlocked for
+ * every user, and legacy IDs like 'spend-save' matched no one.
+ */
+export function teamMemberIdOf(id: string): TeamMemberId | null {
+  const key = id.trim().toLowerCase().replace(/_/g, '-');
+  if (!key) return null;
+  const canonical = Object.hasOwn(ALIAS_TO_CANONICAL, key) ? ALIAS_TO_CANONICAL[key] : key;
+  return TEAM_MEMBER_IDS.has(canonical) ? (canonical as TeamMemberId) : null;
+}
+
 /**
  * Check if an agent ID is a core team member (not a marketplace agent).
  */
 export function isCoreTeamMember(agentId: string): boolean {
-  const normalizedId = agentId.toLowerCase().replace(/_/g, '-');
-  return TEAM_MEMBERS.some((m) => {
-    const normalizedMemberId = m.memberId.toLowerCase().replace(/_/g, '-');
-    return (
-      normalizedMemberId === normalizedId ||
-      normalizedMemberId.includes(normalizedId) ||
-      normalizedId.includes(normalizedMemberId)
-    );
-  });
+  return teamMemberIdOf(agentId) !== null;
 }
 
 /**
@@ -252,36 +260,19 @@ export function isTeamMemberUnlocked(
   userProfile: import('../../../types/user-profile.js').UserProfile | null,
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): boolean {
+  const id = teamMemberIdOf(memberId);
+  if (!id) return false;
   // Use the centralized bypass logic from team-unlocks.ts
   // This ensures consistent behavior across all unlock checks
-  const state = getTeamUnlockState(userProfile, tier);
-
-  // Normalize the member ID (handle different formats)
-  const normalizedId = memberId.toLowerCase().replace(/_/g, '-');
-  return state.unlockedMembers.some((id) => {
-    const normalizedUnlocked = id.toLowerCase().replace(/_/g, '-');
-    return (
-      normalizedUnlocked === normalizedId ||
-      normalizedUnlocked.includes(normalizedId) ||
-      normalizedId.includes(normalizedUnlocked)
-    );
-  });
+  return getTeamUnlockState(userProfile, tier).unlockedMembers.includes(id);
 }
 
 /**
  * Get the teaser message for a locked team member.
  */
 export function getLockedMemberTeaser(memberId: string): string | null {
-  const member = TEAM_MEMBERS.find((m) => {
-    const normalizedId = memberId.toLowerCase().replace(/_/g, '-');
-    const normalizedMemberId = m.memberId.toLowerCase().replace(/_/g, '-');
-    return (
-      normalizedMemberId === normalizedId ||
-      normalizedMemberId.includes(normalizedId) ||
-      normalizedId.includes(normalizedMemberId)
-    );
-  });
-  return member?.teaserMessage || null;
+  const id = teamMemberIdOf(memberId);
+  return TEAM_MEMBERS.find((m) => m.memberId === id)?.teaserMessage || null;
 }
 
 // ============================================================================

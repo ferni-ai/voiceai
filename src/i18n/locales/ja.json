@@ -421,5 +421,283 @@
     "hoursAgo": "{n}時間前",
     "yesterday": "昨日",
     "daysAgo": "{n}日前"
+  },
+  "sanctuary": {
+    "greeting": {
+      "morning": "{day}の朝",
+      "afternoon": "{day}の午後",
+      "evening": "{day}の夕方",
+      "night": "夜更けの{day}"
+    },
+    "insights": {
+      "actions": {
+        "explore": "探究する",
+        "review": "振り返る",
+        "viewJourney": "ジャーニーを見る"
+      },
+      "sources": {
+        "correlation": "相関関係",
+        "trajectory": "軌跡",
+        "relational": "関係性",
+        "counterfactual": "もう一つの可能性",
+        "growth": "成長",
+        "threading": "つながり",
+        "openLoop": "オープンループ",
+        "commitment": "コミットメント",
+        "temporal": "時間軸",
+        "behavioral": "行動"
+      },
+      "commitments": {
+        "title": "進行中のコミットメント",
+        "description": {
+          "other": "現在、{count}個の約束を大切に記録しています。",
+          "one": "現在、{count}個の約束を大切に記録しています。"
+        }
+      },
+      "pattern": {
+        "title": "パターンが見つかりました",
+        "description": "{trigger}のとき、{outcome}"
+      },
+      "growth": {
+        "title": "紡がれるあなたの物語",
+        "description": "あなたのジャーニーには、お祝いしたくなるようなチャプターがたくさんあります。"
+      },
+      "welcome": {
+        "title": "あなただけの時間",
+        "description": "ここはあなたのサンクチュアリです。深呼吸をして、今この瞬間に意識を向けてみましょう。"
+      }
+    },
+    "practices": {
+      "brainstorm": {
+        "name": "ブレストセッション",
+        "description": "課題について一緒にじっくり考えましょう",
+        "duration": "10〜15分",
+        "prompt": "ブレストをしましょう。今、どんな課題や決断について考えていますか？",
+        "reason": "頭の中がすっきり整理されますよ"
+      },
+      "dailyCheckin": {
+        "name": "デイリーチェックイン",
+        "description": "穏やかな振り返りで一日を始めましょう",
+        "duration": "5〜10分",
+        "prompt": "お会いできて嬉しいです。今、本当はどんな気分ですか？",
+        "reason": "一日の意図をセットしてスタートするのにぴったりです"
+      },
+      "gratitude": {
+        "name": "感謝のプラクティス",
+        "description": "感謝の気持ちを味わうひととき",
+        "duration": "5分",
+        "prompt": "立ち止まって、感謝を味わいましょう。今、感謝していることを一つ教えてください。",
+        "reason": "感謝のひとときが、心を穏やかに落ち着かせてくれます"
+      },
+      "windDown": {
+        "name": "ウインドダウン",
+        "description": "一日の終わりの穏やかな振り返り",
+        "duration": "5〜10分",
+        "prompt": "一緒に心を落ち着けましょう。今日、自分を誇らしく思えたことは何ですか？",
+        "reason": "今日という一日を手放す時間です"
+      },
+      "weeklyReview": {
+        "name": "ウィークリーレビュー",
+        "description": "一週間を振り返り、進歩をお祝いしましょう",
+        "duration": "15〜20分",
+        "prompt": "この一週間を振り返ってみましょう。どんなことが心に残っていますか？",
+        "reason": "振り返りで一週間を締めくくりましょう"
+      },
+      "breathFocus": {
+        "name": "ブレスフォーカス",
+        "description": "心を整えるためのシンプルな呼吸のエクササイズ",
+        "duration": "3〜5分",
+        "prompt": "一緒に呼吸をしましょう。楽な姿勢をとって、そっと目を閉じるか、視線を和らげてください。",
+        "reason": "数回の深呼吸が、すべてをリセットしてくれます"
+      },
+      "futureLetter": {
+        "name": "未来の自分への手紙",
+        "description": "未来の自分に向けて、今の気づきを書き留めましょう",
+        "duration": "10〜15分",
+        "prompt": "6ヶ月後の自分に、どんな言葉をかけてあげたいですか？",
+        "reason": "未来の自分のために、種をまきましょう"
+      },
+      "valuesCheck": {
+        "name": "価値観のチェックイン",
+        "description": "自分にとって最も大切なことと再びつながりましょう",
+        "duration": "10分",
+        "prompt": "あなたの価値観を探究してみましょう。今、何が一番大切だと感じますか？",
+        "reason": "自分の心の羅針盤をもう一度確かめましょう"
+      }
+    },
+    "quotes": {
+      "unknownAuthor": "作者不明",
+      "morning": {
+        "getStarted": "何かを始めるための秘訣は、言葉を交わすのをやめて、とにかくやってみることです。",
+        "newPotential": "毎朝、新しい可能性が運ばれてきます。",
+        "wonderfulDay": "今日は素晴らしい一日です。こんな日は、これまでに一度も見たことがありません。"
+      },
+      "afternoon": {
+        "greatWork": "素晴らしい仕事をする唯一の方法は、自分の仕事を愛することです。",
+        "smallSteps": "毎日の小さな一歩が、大きな変化へとつながります。",
+        "anotherGoal": "新たな目標を掲げるのに、遅すぎるということはありません。"
+      },
+      "evening": {
+        "restNotIdleness": "休むことは、怠けることではありません。",
+        "judgedOnLove": "人生の夕暮れ時に、私たちは愛だけで評価されるでしょう。",
+        "dailyGifts": "一日一日が、それぞれ特別な贈り物を届けてくれます。"
+      },
+      "night": {
+        "newDay": "明日は、まだ何の失敗もしていない新しい一日です。",
+        "bestMeditation": "睡眠は最高の瞑想です。",
+        "betterHalf": "夜は人生のもう半分の時間であり、より素晴らしい半分の時間です。"
+      }
+    }
+  },
+  "quiz": {
+    "questions": {
+      "communicationStyle": {
+        "text": "私はどのようなコミュニケーションスタイルを好みますか？",
+        "options": {
+          "direct": "ストレートで簡潔",
+          "analytical": "詳細でデータ重視",
+          "warm": "温かくて親しみやすい",
+          "reflective": "思慮深くじっくり考える"
+        }
+      },
+      "favoriteTopic": {
+        "text": "私が一番話すのが好きなトピックは何でしょう？",
+        "options": {
+          "cooking": "料理",
+          "sports": "スポーツ",
+          "gardening": "ガーデニング",
+          "fashion": "ファッション"
+        }
+      },
+      "conversationCount": {
+        "text": "私たちはこれまでに、およそ何回くらい会話を重ねてきたでしょう？",
+        "options": {
+          "range1to5": "1〜5回",
+          "range6to15": "6〜15回",
+          "range16to30": "16〜30回",
+          "over30": "30回以上"
+        }
+      },
+      "timeTogether": {
+        "text": "私たちが一緒に話した時間は、合計でどれくらいでしょう？",
+        "options": {
+          "under30Min": "30分未満",
+          "min30To60": "30分〜1時間",
+          "hour1To2": "1〜2時間",
+          "over2Hours": "2時間以上"
+        }
+      },
+      "memoryRecall": {
+        "text": "これは私が覚えている、私たちの思い出でしょうか：「{snippet}…」？",
+        "options": {
+          "yes": "はい、その通りです",
+          "no": "いいえ、ちょっと違います",
+          "unsure": "よく分かりません",
+          "never": "その話は一度もしていません"
+        }
+      },
+      "firstMeeting": {
+        "text": "私たちが初めて話し始めたとき、私は：",
+        "options": {
+          "excited": "あなたに会えてワクワクしていました",
+          "nervous": "少し緊張していました",
+          "curious": "あなたに興味津々でした",
+          "allOfTheAbove": "上記のすべて"
+        }
+      },
+      "whatMatters": {
+        "text": "私たちの会話の中で、私が一番大切にしていることは何でしょう？",
+        "options": {
+          "beingHelpful": "力になること",
+          "feelingHeard": "あなたの話をしっかり聴くこと",
+          "learningAboutYou": "あなたについてもっと知ること",
+          "growingTogether": "一緒に成長すること"
+        }
+      },
+      "difficultShare": {
+        "text": "あなたが辛いことを打ち明けてくれたとき、私はどう感じているでしょう？",
+        "options": {
+          "uncomfortable": "気まずい",
+          "honored": "信頼してくれて嬉しい",
+          "eagerToFix": "すぐに解決してあげたい",
+          "distracted": "気が散っている"
+        }
+      }
+    },
+    "celebrations": {
+      "soulmate": "私のことを本当によく分かってくれていますね！まるで心が通じ合っているみたいです。",
+      "bestie": "わぁ、私のことをすごくよく知っていますね！一生の親友です。",
+      "friend": "なかなかいいですね！私たちの絆がどんどん深まっています。",
+      "acquaintance": "悪くないですね！まだまだお互いのことを知っていく途中です。",
+      "stranger": "これからもっとお互いのことを発見していけそうですね！"
+    }
+  },
+  "practiceView": {
+    "attribution": {
+      "notes": "{persona}のメモ",
+      "suggests": "{persona}の提案",
+      "notices": "{persona}の気づき",
+      "reflects": "{persona}の振り返り",
+      "tracks": "{persona}の記録",
+      "found": "{persona}の発見"
+    },
+    "eventContext": {
+      "family": "パートナーは、あなたが今この瞬間に心から向き合ってくれることを喜んでいます",
+      "meeting": "参加する前に、明確な意図を設定しましょう",
+      "wellness": "まずは自分自身を大切にすること",
+      "learning": "少し背伸びをすることで成長が生まれます",
+      "social": "人とのつながりは心を豊かにしてくれます"
+    },
+    "habit": {
+      "untitled": "名前のない習慣",
+      "streakWeek": "{streak}日連続のストリーク！",
+      "streakDays": "{streak}日間のストリーク達成中",
+      "momentum": "勢いに乗っています"
+    },
+    "task": {
+      "untitled": "名前のないタスク",
+      "dueToday": "今日が期限",
+      "dueTomorrow": "明日が期限",
+      "dueInDays": "期限まであと{days}日",
+      "highPriority": "優先度：高"
+    },
+    "reminder": {
+      "fallback": "リマインダー"
+    },
+    "practice": {
+      "streak": "{streak}日連続のストリーク"
+    },
+    "defaultIntention": {
+      "start": "意図を持って始めましょう",
+      "oneThing": "一度にひとつずつ",
+      "gratitude": "感謝の気持ちで一日を締めくくりましょう",
+      "gratitudeInsight": "これがあなたの気分を高めるのに役立ちました"
+    },
+    "dayInsight": {
+      "morningIntention": "朝の意図",
+      "stayPresent": "今この瞬間に集中する",
+      "reflectAndCelebrate": "振り返りと祝福",
+      "newBeginning": "新しい始まり",
+      "recharge": "充電",
+      "freshStart": "フレッシュなスタート",
+      "buildMomentum": "勢いをつける",
+      "midWeek": "週半ばのチェック",
+      "almostThere": "あともう少し",
+      "windDown": "心を落ち着かせる"
+    },
+    "pattern": {
+      "busyWeek": "最近、会議がとても多いですね。静かで落ち着いた時間の中にこそ、素晴らしいアイデアが生まれます。",
+      "packedDay": "{day}は予定がぎっしり詰まっているようですね。何かを{otherDay}に移動してみてはどうですか？",
+      "packedDayNoAlternative": "{day}は予定がぎっしり詰まっているようですね。何かを別の日に移動してみてはどうですか？",
+      "morningStart": "朝のスタートの仕方が、その日一日の雰囲気を決めることが多いようです。",
+      "focusTime": "集中する時間を確保すると、40%も多くのことを達成できているようですよ。",
+      "creativeAfterWalks": "お散歩のあとに、一番クリエイティブなアイデアが浮かびやすいようですね。",
+      "tuesdayEvenings": "火曜日の夜は、いつも一番作業がはかどっているようですね。"
+    },
+    "errors": {
+      "loadFailed": "プラクティス画面を読み込めませんでした。",
+      "completeFailed": "インテンションを完了できませんでした。",
+      "patternsFailed": "パターンを取得できませんでした。"
+    }
   }
 }

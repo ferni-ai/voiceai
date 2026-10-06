@@ -812,11 +812,11 @@ class CalendarSelectionUI {
 
       /* Dark theme */
       [data-theme="midnight"] .calendar-selection__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-selection__header {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-selection__title,
@@ -828,15 +828,15 @@ class CalendarSelectionUI {
 
       [data-theme="midnight"] .calendar-selection__select-all,
       [data-theme="midnight"] .calendar-selection__item {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-selection__item:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-selection__checkmark {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.2));
       }
 

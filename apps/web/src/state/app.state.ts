@@ -20,6 +20,9 @@ import {
   type PersonaId,
   type SpeakerId,
 } from '../types/persona.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('App.state');
 
 // ============================================================================
 // STATE SHAPE
@@ -120,7 +123,7 @@ function safeSetItem(key: string, value: string): void {
     localStorage.setItem(key, value);
   } catch {
     // Private browsing mode - silently ignore
-    console.debug(`Could not persist ${key} (private browsing?)`);
+    log.debug(`Could not persist ${key} (private browsing?)`);
   }
 }
 

@@ -142,7 +142,7 @@ const styles = `
   
   .life-coaching-hub__subtitle {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin: 0;
   }
   
@@ -203,7 +203,7 @@ const styles = `
     border-radius: var(--radius-lg, 16px);
     font-size: 13px;
     font-weight: 500;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     white-space: nowrap;
     transition: all var(--duration-fast, 100ms);
   }
@@ -275,7 +275,7 @@ const styles = `
   
   .life-coaching-hub__cta-text {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin: 0 0 var(--space-3, 12px) 0;
   }
   
@@ -316,7 +316,7 @@ const styles = `
   
   .life-coaching-hub__intro-text {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin: 0 0 var(--space-3, 12px) 0;
     line-height: 1.5;
   }

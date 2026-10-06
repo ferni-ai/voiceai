@@ -3523,7 +3523,11 @@
   },
   "voiceId": {
     "enrolledTitle": "Voice ID registrado: Ferni reconoce tu voz",
-    "notEnrolledTitle": "Voice ID no registrado: regístralo para que Ferni reconozca tu voz"
+    "notEnrolledTitle": "Voice ID no registrado: regístralo para que Ferni reconozca tu voz",
+    "reenrollTitle": "He mejorado reconociendo voces",
+    "reenrollBody": "¿Te importa si aprendo la tuya otra vez? Tarda unos 20 segundos.",
+    "reenrollAccept": "Claro",
+    "reenrollLater": "Ahora no"
   },
   "languageSwitcher": {
     "label": "Idioma",
@@ -10480,8 +10484,8 @@
   },
   "theme": {
     "midnight": {
-      "name": "Oro Medianoche",
-      "description": "Un tema oscuro profundo con cálidos toques dorados"
+      "name": "Tinta nocturna",
+      "description": "Fondo cálido casi negro con acciones en verde salvia"
     },
     "zen": {
       "name": "Jardín Zen",

@@ -788,7 +788,7 @@ function injectStyles(): void {
       background: transparent;
       border: none;
       border-radius: var(--radius-full, 999px);
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
       cursor: pointer;
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
@@ -825,7 +825,7 @@ function injectStyles(): void {
     }
 
     .memory-lane-modal__tab:hover {
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
     }
 
     .memory-lane-modal__tab--active {
@@ -856,7 +856,7 @@ function injectStyles(): void {
 
     .memory-lane-empty__text {
       font-size: var(--font-size-md, 1rem);
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
       margin: 0 0 var(--space-xs, 8px);
     }
 
@@ -978,7 +978,7 @@ function injectStyles(): void {
 
     .memory-lane-card__reaction:hover {
       background: var(--color-bg-hover, rgba(0, 0, 0, 0.05));
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
     }
 
     .memory-lane-card__reaction--active {

@@ -228,6 +228,17 @@ for (const [sid, rec] of tracks) {
   writeFileSync(file, wav(pcm, 24000));
   trackSummaries.push({ name: rec.name, file, voice: rec.voice, startT: rec.startT });
 }
-writeFileSync(outJson, JSON.stringify({ results, events, userSpeech, tracks: trackSummaries, mic: { file: micFile, startT: micStartT } }, null, 2));
+// run.sh passes who the call ran as (meta.uid) so a scorecard can be traced
+// back to its Firestore user.
+let meta = null;
+try {
+  meta = process.env.VOICE_EVAL_META ? JSON.parse(process.env.VOICE_EVAL_META) : null;
+} catch {
+  console.error('converse.mjs: VOICE_EVAL_META is not JSON; not recorded');
+}
+writeFileSync(
+  outJson,
+  JSON.stringify({ meta, results, events, userSpeech, tracks: trackSummaries, mic: { file: micFile, startT: micStartT } }, null, 2)
+);
 console.log(JSON.stringify(results));
 process.exit(0);

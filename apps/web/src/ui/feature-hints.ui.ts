@@ -925,7 +925,7 @@ function injectStyles(): void {
        DARK THEME
        ======================================================================== */
     [data-theme="midnight"] .hint-content {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
       box-shadow: 
         0 8px 24px rgba(0, 0, 0, 0.3),
         0 0 0 1px rgba(255, 255, 255, 0.1);
@@ -940,11 +940,11 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .hint-arrow {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
     }
     
     [data-theme="midnight"] .hint-close:hover {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
     
     /* ========================================================================

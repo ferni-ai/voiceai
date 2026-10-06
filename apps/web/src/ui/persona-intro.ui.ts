@@ -906,7 +906,7 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .persona-intro-card {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
     }
     
     [data-theme="midnight"] .persona-intro-title {
@@ -919,7 +919,7 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .persona-intro-close {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
     
     [data-theme="midnight"] .persona-intro-btn--secondary {
@@ -928,7 +928,7 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .persona-intro-btn--secondary:hover {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
     
     /* ========================================================================

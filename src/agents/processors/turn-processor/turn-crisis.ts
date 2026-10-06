@@ -29,7 +29,8 @@ export interface TurnCrisis {
 
 export function startTurnCrisis(
   userText: string,
-  userData: { voiceEmotion?: unknown; recentTranscripts?: string[] } | undefined
+  userData:
+    { voiceEmotion?: unknown; recentTranscripts?: string[]; lastAgentResponse?: string } | undefined
 ): TurnCrisis {
   const patterns = detectCrisis(
     userText,
@@ -38,7 +39,11 @@ export function startTurnCrisis(
   );
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
   const classifier = startCrisisClassifier(
-    { latest: userText, earlier: userData?.recentTranscripts ?? [] },
+    {
+      latest: userText,
+      earlier: userData?.recentTranscripts ?? [],
+      companion: userData?.lastAgentResponse,
+    },
     { pattern: shouldBlock ? 'block' : patterns.isCrisis ? 'crisis' : 'none' }
   );
   let resolved: Promise<CrisisDetectionResult> | null = null;

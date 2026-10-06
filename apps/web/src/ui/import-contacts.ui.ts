@@ -154,7 +154,7 @@ function injectStyles(): void {
     
     .ic-subtitle {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
       margin-top: var(--space-1, 0.25rem);
     }
     
@@ -259,7 +259,7 @@ function injectStyles(): void {
     }
     
     .ic-drop-text {
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
       font-size: 0.875rem;
     }
     
@@ -291,7 +291,7 @@ function injectStyles(): void {
     
     .ic-progress-text {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
       margin-top: var(--space-2, 0.5rem);
       text-align: center;
     }
@@ -404,7 +404,7 @@ function injectStyles(): void {
     .ic-btn-secondary {
       background: var(--tonal-surface-2);
       border: none;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
     }
 
     .ic-btn-secondary:hover {

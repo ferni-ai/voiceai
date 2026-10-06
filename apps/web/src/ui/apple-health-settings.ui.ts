@@ -614,7 +614,7 @@ function injectStyles(): void {
     [data-theme="midnight"] .apple-health-settings__status,
     [data-theme="midnight"] .apple-health-settings__metric,
     [data-theme="midnight"] .apple-health-settings__instructions {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
 
     /* Reduced motion */

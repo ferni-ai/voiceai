@@ -5,17 +5,17 @@
   "themes": {
     "midnight": {
       "meta": {
-        "name": "Cedar Night",
-        "description": "Warm cedar wood tones - Japanese zen garden under moonlight, open and welcoming",
+        "name": "Night Ink",
+        "description": "Warm near-black field, paper type, sage actions. Dark enough that a hairline reads as light.",
         "mode": "dark"
       },
       "background": {
-        "primary": "#584840",
-        "secondary": "#60504a",
-        "tertiary": "#685852",
-        "elevated": "#70605a",
-        "glass": "rgba(230, 195, 160, 0.08)",
-        "overlay": "rgba(88, 72, 64, 0.95)"
+        "primary": "#14110e",
+        "secondary": "#1e1a16",
+        "tertiary": "#2a241f",
+        "elevated": "#352e28",
+        "glass": "rgba(244, 239, 230, 0.06)",
+        "overlay": "rgba(20, 17, 14, 0.92)"
       },
 
       "glass": {
@@ -23,39 +23,39 @@
         "_philosophy": "Deep frosted glass creates spatial depth and premium feel",
 
         "ultraThin": {
-          "background": "rgba(255, 255, 255, 0.02)",
+          "background": "rgba(244, 239, 230, 0.03)",
           "blur": "4px",
-          "border": "rgba(255, 255, 255, 0.04)",
+          "border": "rgba(244, 239, 230, 0.06)",
           "_usage": "Subtle background separation"
         },
         "thin": {
-          "background": "rgba(255, 255, 255, 0.04)",
+          "background": "rgba(244, 239, 230, 0.05)",
           "blur": "8px",
-          "border": "rgba(255, 255, 255, 0.06)",
+          "border": "rgba(244, 239, 230, 0.08)",
           "_usage": "Cards, list items"
         },
         "regular": {
-          "background": "rgba(255, 255, 255, 0.08)",
+          "background": "rgba(244, 239, 230, 0.07)",
           "blur": "16px",
-          "border": "rgba(255, 255, 255, 0.10)",
+          "border": "rgba(244, 239, 230, 0.10)",
           "_usage": "Default glass surfaces"
         },
         "thick": {
-          "background": "rgba(255, 255, 255, 0.12)",
+          "background": "rgba(244, 239, 230, 0.10)",
           "blur": "24px",
-          "border": "rgba(255, 255, 255, 0.14)",
+          "border": "rgba(244, 239, 230, 0.14)",
           "_usage": "Modals, popovers"
         },
         "ultraThick": {
-          "background": "rgba(255, 255, 255, 0.16)",
+          "background": "rgba(244, 239, 230, 0.14)",
           "blur": "40px",
-          "border": "rgba(255, 255, 255, 0.18)",
+          "border": "rgba(244, 239, 230, 0.18)",
           "_usage": "Full-screen overlays, system dialogs"
         },
         "chromatic": {
-          "background": "rgba(212, 168, 74, 0.06)",
+          "background": "rgba(142, 174, 122, 0.10)",
           "blur": "20px",
-          "border": "rgba(212, 168, 74, 0.12)",
+          "border": "rgba(142, 174, 122, 0.22)",
           "_usage": "Accent-tinted glass for persona or brand elements"
         }
       },
@@ -65,76 +65,76 @@
         "_philosophy": "Warm, approachable surfaces with subtle elevation",
 
         "surface1": {
-          "background": "rgba(230, 195, 160, 0.04)",
+          "background": "rgba(244, 239, 230, 0.04)",
           "_usage": "Lowest elevation - background cards"
         },
         "surface2": {
-          "background": "rgba(230, 195, 160, 0.08)",
+          "background": "rgba(244, 239, 230, 0.07)",
           "_usage": "Medium elevation - interactive cards"
         },
         "surface3": {
-          "background": "rgba(230, 195, 160, 0.12)",
+          "background": "rgba(244, 239, 230, 0.10)",
           "_usage": "High elevation - buttons, chips"
         },
         "surfaceHover": {
-          "background": "rgba(230, 195, 160, 0.16)",
+          "background": "rgba(244, 239, 230, 0.14)",
           "_usage": "Hover state for tonal surfaces"
         },
         "surfaceActive": {
-          "background": "rgba(230, 195, 160, 0.20)",
+          "background": "rgba(244, 239, 230, 0.18)",
           "_usage": "Active/pressed state for tonal surfaces"
         }
       },
       "text": {
-        "_wcag": "All colors tested against #70605a elevated background for WCAG AA (4.5:1)",
-        "_contrastRatios": "primary: 5.56:1, secondary: 5.05:1, muted: 4.65:1, dimmed: 4.50:1",
-        "primary": "#faf6f0",
-        "secondary": "#f0ebe4",
-        "muted": "#e8e2da",
-        "dimmed": "#e0d8ce",
-        "inverse": "#2a2420"
+        "_wcag": "All colors tested against #352e28 elevated background for WCAG AA (4.5:1)",
+        "_contrastRatios": "primary: 11.7:1, secondary: 7.7:1, muted: 4.9:1, dimmed: 4.8:1 on #352e28",
+        "primary": "#f4efe6",
+        "secondary": "#cfc3b4",
+        "muted": "#a89b8c",
+        "dimmed": "#a89888",
+        "inverse": "#14110e"
       },
       "border": {
-        "subtle": "rgba(215, 185, 145, 0.12)",
-        "medium": "rgba(215, 185, 145, 0.20)",
-        "strong": "rgba(215, 185, 145, 0.30)"
+        "subtle": "rgba(244, 239, 230, 0.10)",
+        "medium": "rgba(244, 239, 230, 0.16)",
+        "strong": "rgba(244, 239, 230, 0.24)"
       },
       "accent": {
-        "primary": "#d4a84a",
-        "hover": "#e0bc6a",
-        "pressed": "#c49a3a",
-        "glow": "rgba(212, 168, 74, 0.22)",
-        "subtle": "rgba(212, 168, 74, 0.08)",
-        "text": "#e8c870",
-        "_textNote": "Brighter gold for text usage - 4.0:1 contrast, use for large text/accents only"
+        "primary": "#8eae7a",
+        "hover": "#a4c48f",
+        "pressed": "#6f8f5c",
+        "glow": "rgba(142, 174, 122, 0.28)",
+        "subtle": "rgba(142, 174, 122, 0.12)",
+        "text": "#8eae7a",
+        "_textNote": "Sage is the action in both themes. 5.4:1 on #352e28, 7.6:1 on #14110e. Ink #14110e on the sage fill is 7.6:1. Gold is a highlight, not the button."
       },
       "semantic": {
         "success": "#6bc48f",
         "successGlow": "rgba(107, 196, 143, 0.22)",
         "successTint": "rgba(107, 196, 143, 0.12)",
-        "error": "#e07575",
-        "errorGlow": "rgba(224, 117, 117, 0.22)",
-        "errorTint": "rgba(224, 117, 117, 0.12)",
+        "error": "#e7a39a",
+        "errorGlow": "rgba(231, 163, 154, 0.22)",
+        "errorTint": "rgba(231, 163, 154, 0.12)",
         "warning": "#e0b860",
         "warningGlow": "rgba(224, 184, 96, 0.22)",
         "warningTint": "rgba(224, 184, 96, 0.12)",
-        "info": "#7da6cf",
-        "infoGlow": "rgba(125, 166, 207, 0.22)",
-        "infoTint": "rgba(125, 166, 207, 0.12)"
+        "info": "#9ec8c4",
+        "infoGlow": "rgba(158, 200, 196, 0.22)",
+        "infoTint": "rgba(158, 200, 196, 0.12)"
       },
       "utility": {
         "_description": "Utility colors for common UI patterns - focus rings, backdrops, overlays",
-        "focusRing": "rgba(212, 168, 74, 0.3)",
-        "focusRingSubtle": "rgba(212, 168, 74, 0.1)",
-        "backdrop": "rgba(20, 16, 14, 0.7)",
-        "backdropLight": "rgba(20, 16, 14, 0.5)",
-        "scrim": "rgba(20, 16, 14, 0.85)"
+        "focusRing": "rgba(142, 174, 122, 0.45)",
+        "focusRingSubtle": "rgba(142, 174, 122, 0.18)",
+        "backdrop": "rgba(8, 7, 6, 0.72)",
+        "backdropLight": "rgba(8, 7, 6, 0.50)",
+        "scrim": "rgba(8, 7, 6, 0.86)"
       },
       "natural": {
         "_description": "Extended natural palette - Japanese garden, forest, earth tones",
         "cedar": "#a08060",
         "cedarLight": "#c4a882",
-        "cedarDark": "#584840",
+        "cedarDark": "#14110e",
         "moonlight": "#e8e4dc",
         "bamboo": "#7a8660",
         "bambooLight": "#9aaa80",
@@ -149,9 +149,9 @@
         "inkLight": "#5c544a",
         "tea": "#c4a77d",
         "teaLight": "#d8c4a0",
-        "forestGreen": "#2d4a35",
-        "warmAmber": "#d4a84a",
-        "warmAmberLight": "#e8c870",
+        "forestGreen": "#8eae7a",
+        "warmAmber": "#c9a15a",
+        "warmAmberLight": "#e4c27a",
         "highlight": "#fff8e6",
         "highlightGlow": "rgba(255, 248, 230, 0.6)"
       }
@@ -316,7 +316,7 @@
 
   "personas": {
     "_description": "Zen-inspired natural avatar colors - earthy, sophisticated, with depth",
-    "_textOnDarkNote": "textOnDark variants provide WCAG AA (4.5:1+) contrast on dark theme backgrounds (#70605a). Same hue family, lighter for readability.",
+    "_textOnDarkNote": "textOnDark variants provide WCAG AA (4.5:1+) contrast on the Night Ink float surface (#352e28). Same hue family, lighter for readability.",
     "ferni": {
       "primary": "#4a6741",
       "secondary": "#3d5a35",
@@ -328,7 +328,7 @@
       "light": "#6b8760",
       "dark": "#3a5233",
       "_note": "Deep sage green - grounding, wise, natural leader",
-      "_textOnDarkContrast": "4.8:1 on #70605a - WCAG AA compliant"
+      "_textOnDarkContrast": "4.8:1 on #352e28 - WCAG AA compliant"
     },
     "jack": {
       "primary": "#9a7b5a",
@@ -350,7 +350,7 @@
       "subtle": "rgba(58, 107, 115, 0.06)",
       "light": "#5a8b93",
       "_note": "Ocean teal - depth, discovery, research",
-      "_textOnDarkContrast": "4.9:1 on #70605a - WCAG AA compliant"
+      "_textOnDarkContrast": "4.9:1 on #352e28 - WCAG AA compliant"
     },
     "alex": {
       "primary": "#5a6b8a",
@@ -362,7 +362,7 @@
       "subtle": "rgba(90, 107, 138, 0.06)",
       "light": "#7a8baa",
       "_note": "Soft indigo - clarity, flow, communication",
-      "_textOnDarkContrast": "4.7:1 on #70605a - WCAG AA compliant"
+      "_textOnDarkContrast": "4.7:1 on #352e28 - WCAG AA compliant"
     },
     "maya": {
       "primary": "#a67a6a",
@@ -375,7 +375,7 @@
       "subtle": "rgba(166, 122, 106, 0.06)",
       "light": "#c69a8a",
       "_note": "Dusty terracotta - nurturing, warmth, habits",
-      "_textOnDarkContrast": "5.2:1 on #70605a - WCAG AA compliant"
+      "_textOnDarkContrast": "5.2:1 on #352e28 - WCAG AA compliant"
     },
     "jordan": {
       "primary": "#c4856a",
@@ -388,7 +388,7 @@
       "subtle": "rgba(196, 133, 106, 0.06)",
       "light": "#e4a58a",
       "_note": "Warm sunset coral - celebration, joy, events",
-      "_textOnDarkContrast": "5.5:1 on #70605a - WCAG AA compliant"
+      "_textOnDarkContrast": "5.5:1 on #352e28 - WCAG AA compliant"
     },
     "nayan": {
       "primary": "#b8956a",
@@ -401,7 +401,7 @@
       "subtle": "rgba(184, 149, 106, 0.06)",
       "light": "#d8b58a",
       "_note": "Golden Amber - wisdom, warmth, guidance",
-      "_textOnDarkContrast": "5.8:1 on #70605a - WCAG AA compliant"
+      "_textOnDarkContrast": "5.8:1 on #352e28 - WCAG AA compliant"
     },
     "joel": {
       "primary": "#9A0718",
@@ -413,7 +413,7 @@
       "subtle": "rgba(154, 7, 24, 0.06)",
       "light": "#c83040",
       "_note": "Vanguard burgundy red - distinguished, trustworthy, Stanford PhD mentor",
-      "_textOnDarkContrast": "4.9:1 on #70605a - WCAG AA compliant"
+      "_textOnDarkContrast": "4.9:1 on #352e28 - WCAG AA compliant"
     },
     "lynch": {
       "primary": "#1a5f2a",
@@ -425,7 +425,7 @@
       "subtle": "rgba(26, 95, 42, 0.06)",
       "light": "#5f8f6a",
       "_note": "Peter Lynch (Financial Legend) - Fidelity forest green, from his bundle avatar colour",
-      "_textOnDarkContrast": "4.7:1 on #70605a - WCAG AA compliant"
+      "_textOnDarkContrast": "4.7:1 on #352e28 - WCAG AA compliant"
     },
     "bogle": {
       "primary": "#8b0000",
@@ -437,7 +437,7 @@
       "subtle": "rgba(139, 0, 0, 0.06)",
       "light": "#ae4c4c",
       "_note": "John Bogle (Financial Legend) - deep Vanguard red, from his bundle avatar colour",
-      "_textOnDarkContrast": "4.9:1 on #70605a - WCAG AA compliant"
+      "_textOnDarkContrast": "4.9:1 on #352e28 - WCAG AA compliant"
     },
 
     "_marketplace_description": "Marketplace agent colors - specialized support personas",
@@ -699,9 +699,9 @@
       "_note": "Subtle warm paper gradient for light mode hero"
     },
     "heroDark": {
-      "start": "#584840",
-      "end": "#3a302a",
-      "_note": "Rich cedar gradient for dark mode hero"
+      "start": "#14110e",
+      "end": "#1e1a16",
+      "_note": "Night Ink field, a step lighter at the base"
     },
     "warmSunrise": {
       "start": "#faf8f5",
@@ -710,10 +710,10 @@
       "_note": "Warm cream gradient - morning feeling"
     },
     "coolEvening": {
-      "start": "#584840",
-      "mid": "#4a3a35",
-      "end": "#3a2a25",
-      "_note": "Cool cedar gradient - evening feeling"
+      "start": "#14110e",
+      "mid": "#1e1a16",
+      "end": "#2a241f",
+      "_note": "Night Ink depth for evening sections"
     },
     "accentFade": {
       "start": "rgba(61, 90, 69, 0.12)",

@@ -3523,7 +3523,11 @@
   },
   "voiceId": {
     "enrolledTitle": "זיהוי קולי הופעל - Ferni מזהה את הקול שלך",
-    "notEnrolledTitle": "זיהוי קולי לא הופעל - כדאי להפעיל כדי ש-Ferni יזהה את הקול שלך"
+    "notEnrolledTitle": "זיהוי קולי לא הופעל - כדאי להפעיל כדי ש-Ferni יזהה את הקול שלך",
+    "reenrollTitle": "השתפרתי בזיהוי קולות",
+    "reenrollBody": "אכפת לך שאלמד את הקול שלך מחדש? זה לוקח בערך 20 שניות.",
+    "reenrollAccept": "בטח",
+    "reenrollLater": "לא עכשיו"
   },
   "languageSwitcher": {
     "label": "שפה",
@@ -10479,8 +10483,8 @@
   },
   "theme": {
     "midnight": {
-      "name": "זהב חצות",
-      "description": "עיצוב כהה עשיר עם נגיעות זהב חמימות"
+      "name": "דיו לילה",
+      "description": "רקע חמים כמעט שחור עם כפתורים בירוק מרווה"
     },
     "zen": {
       "name": "גינת Zen",

@@ -670,8 +670,9 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      // Should redirect to Spotify or return error if not configured (or 404 if route not on this server)
-      expect([200, 302, 400, 404, 500]).toContain(response.status);
+      // Should redirect to Spotify, or 503 if Spotify isn't configured
+      // (servers/api/routes/spotify.ts), or 404 if the route isn't on this server
+      expect([200, 302, 400, 404, 500, 503]).toContain(response.status);
     });
 
     it('should handle /spotify/token', async () => {

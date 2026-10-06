@@ -3500,7 +3500,11 @@
   },
   "voiceId": {
     "enrolledTitle": "Voice ID enrolled - Ferni recognises your voice",
-    "notEnrolledTitle": "Voice ID not enrolled - Enrol to let Ferni recognise your voice"
+    "notEnrolledTitle": "Voice ID not enrolled - Enrol to let Ferni recognise your voice",
+    "reenrollTitle": "I've got better at recognising voices",
+    "reenrollBody": "Mind if I learn yours again? It takes about 20 seconds.",
+    "reenrollAccept": "Sure",
+    "reenrollLater": "Not now"
   },
   "languageSwitcher": {
     "label": "Language",
@@ -10374,8 +10378,8 @@
   },
   "theme": {
     "midnight": {
-      "name": "Midnight Gold",
-      "description": "Rich dark theme with warm gold accents"
+      "name": "Night Ink",
+      "description": "Warm near-black field with sage actions"
     },
     "zen": {
       "name": "Zen Garden",

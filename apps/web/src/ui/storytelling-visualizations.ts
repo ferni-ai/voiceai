@@ -967,7 +967,7 @@ export function injectStorytellingVisualizationStyles(): void {
     .values-alignment__subtitle,
     .unfinished-stories__subtitle {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin: 0 0 var(--space-4, 1rem);
     }
 
@@ -1059,7 +1059,7 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .conversation-river__legend {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       text-align: center;
     }
 
@@ -1087,7 +1087,7 @@ export function injectStorytellingVisualizationStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-2, 0.5rem);
     }
 
@@ -1115,7 +1115,7 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .the-mirror__pattern {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin: var(--space-2, 0.5rem) 0 0;
     }
 
@@ -1170,7 +1170,7 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .the-unsaid__empty {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-style: italic;
       text-align: center;
       padding: var(--space-6, 1.5rem);
@@ -1199,12 +1199,12 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .the-unsaid__confidence {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .the-unsaid__signals {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin: 0 0 var(--space-2, 0.5rem);
       padding-left: var(--space-4, 1rem);
     }
@@ -1287,7 +1287,7 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .values-alignment__label {
       font-size: 10px;
-      fill: var(--color-text-muted, #70605a);
+      fill: var(--color-text-muted, #352e28);
     }
 
     .values-alignment__stated {
@@ -1352,7 +1352,7 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .unfinished-stories__empty {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-style: italic;
       text-align: center;
       padding: var(--space-6, 1.5rem);
@@ -1416,7 +1416,7 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .unfinished-stories__time-ago {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       display: block;
       margin-bottom: var(--space-2, 0.5rem);
     }
@@ -1493,12 +1493,12 @@ export function injectStorytellingVisualizationStyles(): void {
 
     .ripple-effects__desc {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .ripple-effects__timeframe {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin: var(--space-4, 1rem) 0 0;
     }
 

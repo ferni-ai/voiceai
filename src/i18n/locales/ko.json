@@ -421,5 +421,283 @@
     "hoursAgo": "{n}시간 전",
     "yesterday": "어제",
     "daysAgo": "{n}일 전"
+  },
+  "sanctuary": {
+    "greeting": {
+      "morning": "{day} 아침",
+      "afternoon": "{day} 오후",
+      "evening": "{day} 저녁",
+      "night": "늦은 {day}"
+    },
+    "insights": {
+      "actions": {
+        "explore": "둘러보기",
+        "review": "돌아보기",
+        "viewJourney": "여정 보기"
+      },
+      "sources": {
+        "correlation": "상관관계",
+        "trajectory": "궤적",
+        "relational": "관계성",
+        "counterfactual": "가정적 상황",
+        "growth": "성장",
+        "threading": "연결고리",
+        "openLoop": "열린 루프",
+        "commitment": "다짐",
+        "temporal": "시간적 흐름",
+        "behavioral": "행동 패턴"
+      },
+      "commitments": {
+        "title": "진행 중인 다짐들",
+        "description": {
+          "other": "현재 {count}개의 다짐을 기록하며 실천하고 있어요.",
+          "one": "현재 {count}개의 다짐을 기록하며 실천하고 있어요."
+        }
+      },
+      "pattern": {
+        "title": "발견된 패턴",
+        "description": "{trigger}할 때, {outcome}해요"
+      },
+      "growth": {
+        "title": "펼쳐지는 나의 이야기",
+        "description": "당신의 여정에는 축하할 만한 챕터들이 가득해요."
+      },
+      "welcome": {
+        "title": "오롯이 나를 위한 시간",
+        "description": "이곳은 당신만의 안식처예요. 숨을 깊이 들이쉬고 지금 이 순간에 머물러 보세요."
+      }
+    },
+    "practices": {
+      "brainstorm": {
+        "name": "브레인스토밍 세션",
+        "description": "고민거리를 함께 풀어나가요",
+        "duration": "10-15분",
+        "prompt": "함께 아이디어를 모아봐요. 지금 어떤 고민이나 결정을 앞두고 계신가요?",
+        "reason": "생각이 한결 명료해질 거예요"
+      },
+      "dailyCheckin": {
+        "name": "일일 체크인",
+        "description": "가벼운 돌아보기로 하루를 시작해요",
+        "duration": "5-10분",
+        "prompt": "만나서 반가워요. 지금 기분이 정말 어떠신가요?",
+        "reason": "오늘 하루를 의도 있게 시작하기에 딱 좋아요"
+      },
+      "gratitude": {
+        "name": "감사 실천",
+        "description": "감사함을 느끼는 시간",
+        "duration": "5분",
+        "prompt": "잠시 멈추어 감사함을 느껴봐요. 지금 이 순간 감사한 일 한 가지는 무엇인가요?",
+        "reason": "감사하는 마음은 마음을 차분하게 가라앉혀 줄 거예요"
+      },
+      "windDown": {
+        "name": "하루 마무리",
+        "description": "하루를 부드럽게 돌아보는 시간",
+        "duration": "5-10분",
+        "prompt": "함께 하루를 마무리해 봐요. 오늘 스스로 자랑스러웠던 일 한 가지는 무엇인가요?",
+        "reason": "오늘 하루를 편안히 내려놓을 시간이에요"
+      },
+      "weeklyReview": {
+        "name": "주간 돌아보기",
+        "description": "한 주를 돌아보고 성장을 축하해요",
+        "duration": "15-20분",
+        "prompt": "지난 한 주를 돌아봐요. 어떤 기억이 가장 먼저 떠오르시나요?",
+        "reason": "차분한 돌아보기로 한 주를 마무리해요"
+      },
+      "breathFocus": {
+        "name": "호흡 집중",
+        "description": "마음의 중심을 잡는 간단한 호흡 운동",
+        "duration": "3-5분",
+        "prompt": "함께 숨을 쉬어봐요. 편안한 자세를 잡고 눈을 지긋이 감아보세요.",
+        "reason": "몇 번의 호흡만으로도 모든 것이 달라질 수 있어요"
+      },
+      "futureLetter": {
+        "name": "미래의 나에게 쓰는 편지",
+        "description": "미래의 나를 위한 지혜를 적어보세요",
+        "duration": "10-15분",
+        "prompt": "지금으로부터 6개월 뒤의 나에게 어떤 말을 해주고 싶으신가요?",
+        "reason": "미래의 나를 위한 씨앗들을 심어보세요"
+      },
+      "valuesCheck": {
+        "name": "가치관 체크인",
+        "description": "가장 소중한 가치와 다시 연결되는 시간",
+        "duration": "10분",
+        "prompt": "당신의 가치관을 함께 살펴봐요. 지금 가장 중요하게 느껴지는 것은 무엇인가요?",
+        "reason": "나만의 나침반을 다시 확인해 봐요"
+      }
+    },
+    "quotes": {
+      "unknownAuthor": "작자 미상",
+      "morning": {
+        "getStarted": "시작하는 비결은 말하기를 멈추고 행동하기 시작하는 것이다.",
+        "newPotential": "매일 아침은 새로운 가능성을 품고 찾아옵니다.",
+        "wonderfulDay": "오늘은 정말 멋진 날이에요. 이런 날은 한 번도 본 적이 없거든요."
+      },
+      "afternoon": {
+        "greatWork": "위대한 일을 해내는 유일한 방법은 자신이 하는 일을 사랑하는 것입니다.",
+        "smallSteps": "매일의 작은 걸음이 큰 변화를 만들어냅니다.",
+        "anotherGoal": "새로운 목표를 세우기에 너무 늦은 나이란 없습니다."
+      },
+      "evening": {
+        "restNotIdleness": "휴식은 게으름이 아닙니다.",
+        "judgedOnLove": "삶의 저녁에 우리는 오직 사랑으로만 평가받을 것입니다.",
+        "dailyGifts": "매일은 저마다의 선물을 품고 있습니다."
+      },
+      "night": {
+        "newDay": "내일은 아직 아무런 실수도 저지르지 않은 새로운 날이에요.",
+        "bestMeditation": "잠은 최고의 명상입니다.",
+        "betterHalf": "밤은 인생의 절반이자, 더 아름다운 절반입니다."
+      }
+    }
+  },
+  "quiz": {
+    "questions": {
+      "communicationStyle": {
+        "text": "저는 어떤 소통 방식을 선호하나요?",
+        "options": {
+          "direct": "명확하고 핵심만 말하는 스타일",
+          "analytical": "상세하고 데이터에 기반한 스타일",
+          "warm": "따뜻하고 친근한 스타일",
+          "reflective": "사려 깊고 깊이 생각하는 스타일"
+        }
+      },
+      "favoriteTopic": {
+        "text": "제가 가장 이야기 나누기 좋아하는 주제는 무엇일까요?",
+        "options": {
+          "cooking": "요리",
+          "sports": "스포츠",
+          "gardening": "정원 가꾸기",
+          "fashion": "패션"
+        }
+      },
+      "conversationCount": {
+        "text": "우리는 대략 몇 번의 대화를 나누었을까요?",
+        "options": {
+          "range1to5": "1~5번",
+          "range6to15": "6~15번",
+          "range16to30": "16~30번",
+          "over30": "30번 이상"
+        }
+      },
+      "timeTogether": {
+        "text": "우리는 대화하는 데 총 얼마나 많은 시간을 보냈을까요?",
+        "options": {
+          "under30Min": "30분 미만",
+          "min30To60": "30분~1시간",
+          "hour1To2": "1~2시간",
+          "over2Hours": "2시간 이상"
+        }
+      },
+      "memoryRecall": {
+        "text": "이게 제가 우리에 대해 기억하는 내용이 맞을까요: \"{snippet}...\"?",
+        "options": {
+          "yes": "네, 맞아요",
+          "no": "아니요, 조금 다른 것 같아요",
+          "unsure": "잘 모르겠어요",
+          "never": "그런 이야기는 나눈 적 없어요"
+        }
+      },
+      "firstMeeting": {
+        "text": "우리가 처음 대화를 시작했을 때, 저는 어땠을까요?",
+        "options": {
+          "excited": "만나서 정말 설렜어요",
+          "nervous": "조금 긴장했어요",
+          "curious": "당신이 궁금했어요",
+          "allOfTheAbove": "위의 모든 것 전부요"
+        }
+      },
+      "whatMatters": {
+        "text": "우리의 대화에서 저에게 가장 중요한 것은 무엇일까요?",
+        "options": {
+          "beingHelpful": "도움이 되는 것",
+          "feelingHeard": "당신의 이야기를 잘 들어주는 것",
+          "learningAboutYou": "당신에 대해 알아가는 것",
+          "growingTogether": "함께 성장하는 것"
+        }
+      },
+      "difficultShare": {
+        "text": "당신이 힘든 이야기를 털어놓을 때 저는 어떤 기분일까요?",
+        "options": {
+          "uncomfortable": "불편해요",
+          "honored": "저를 믿어주어서 영광이에요",
+          "eagerToFix": "얼른 해결해 주고 싶어요",
+          "distracted": "집중하지 못해요"
+        }
+      }
+    },
+    "celebrations": {
+      "soulmate": "저를 정말 잘 아시네요! 마치 한마음이 된 것 같아요.",
+      "bestie": "와, 저를 정말 잘 아시네요! 평생 단짝 친구예요.",
+      "friend": "아주 좋아요! 우리의 우정이 점점 더 깊어지고 있네요.",
+      "acquaintance": "나쁘지 않아요! 우리는 아직 서로를 알아가는 중이에요.",
+      "stranger": "앞으로 함께 알아갈 것들이 더 많은 것 같아요!"
+    }
+  },
+  "practiceView": {
+    "attribution": {
+      "notes": "{persona}의 노트",
+      "suggests": "{persona}의 제안",
+      "notices": "{persona}의 발견",
+      "reflects": "{persona}의 성찰",
+      "tracks": "{persona}의 기록",
+      "found": "{persona}의 발견"
+    },
+    "eventContext": {
+      "family": "당신이 온전히 곁에 있어 줄 때 파트너가 정말 좋아해요",
+      "meeting": "참석하기 전에 명확한 의도를 세워보세요",
+      "wellness": "스스로를 먼저 돌보는 것",
+      "learning": "한계를 넓혀갈 때 성장이 일어나요",
+      "social": "관계는 영혼을 풍요롭게 해줘요"
+    },
+    "habit": {
+      "untitled": "이름 없는 습관",
+      "streakWeek": "{streak}일 연속 기록 달성!",
+      "streakDays": "{streak}일째 이어가는 중",
+      "momentum": "탄력받는 중"
+    },
+    "task": {
+      "untitled": "이름 없는 할 일",
+      "dueToday": "오늘까지",
+      "dueTomorrow": "내일까지",
+      "dueInDays": "{days}일 남음",
+      "highPriority": "높은 우선순위"
+    },
+    "reminder": {
+      "fallback": "알림"
+    },
+    "practice": {
+      "streak": "{streak}일 연속 기록"
+    },
+    "defaultIntention": {
+      "start": "의도를 가지고 시작하기",
+      "oneThing": "한 번에 하나씩",
+      "gratitude": "감사함으로 하루 마무리하기",
+      "gratitudeInsight": "이것이 기분을 좋게 만드는 데 도움이 되었어요"
+    },
+    "dayInsight": {
+      "morningIntention": "아침의 의도",
+      "stayPresent": "현재에 집중하기",
+      "reflectAndCelebrate": "돌아보고 축하하기",
+      "newBeginning": "새로운 시작",
+      "recharge": "충전하기",
+      "freshStart": "새로운 출발",
+      "buildMomentum": "원동력 기르기",
+      "midWeek": "주중 체크",
+      "almostThere": "거의 다 왔어요",
+      "windDown": "차분히 마무리하기"
+    },
+    "pattern": {
+      "busyWeek": "요즘 회의가 정말 많으셨네요. 가장 깊은 생각은 조용한 공간에서 찾아오곤 해요.",
+      "packedDay": "{day} 일정이 꽉 차 있네요. 몇 가지 일정을 {otherDay}로 옮겨보는 건 어떨까요?",
+      "packedDayNoAlternative": "{day} 일정이 꽉 차 있네요. 몇 가지 일정을 다른 날로 옮겨보는 건 어떨까요?",
+      "morningStart": "아침을 어떻게 시작하는지가 하루 전체의 흐름을 잡아주곤 해요.",
+      "focusTime": "집중 시간을 따로 확보해 두면, 40%나 더 많은 일을 해내시더라고요.",
+      "creativeAfterWalks": "산책을 하고 난 후에 가장 창의적인 생각이 잘 떠오르시는 것 같아요.",
+      "tuesdayEvenings": "화요일 저녁에 가장 생산적으로 시간을 보내시더라고요."
+    },
+    "errors": {
+      "loadFailed": "실천 화면을 불러오지 못했어요.",
+      "completeFailed": "다짐을 완료하지 못했어요.",
+      "patternsFailed": "패턴을 불러오지 못했어요."
+    }
   }
 }

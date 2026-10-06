@@ -367,10 +367,10 @@ class OnboardingUI {
       }
 
       [data-theme="midnight"] .onboarding { background: var(--backdrop-page); }
-      [data-theme="midnight"] .onboarding__card { background: var(--color-background-elevated, #70605a); }
+      [data-theme="midnight"] .onboarding__card { background: var(--color-background-elevated, #352e28); }
       [data-theme="midnight"] .onboarding__title { color: var(--color-text-primary, #faf6f0); }
       [data-theme="midnight"] .onboarding__description { color: var(--color-text-secondary, #f0ebe4); }
-      [data-theme="midnight"] .onboarding__btn--secondary:hover { background: var(--color-background-secondary, #60504a); color: var(--color-text-primary, #faf6f0); }
+      [data-theme="midnight"] .onboarding__btn--secondary:hover { background: var(--color-background-secondary, #1e1a16); color: var(--color-text-primary, #faf6f0); }
 
       @media (prefers-reduced-motion: reduce) {
         .onboarding { transition: opacity ${DURATION.FAST}ms linear; }

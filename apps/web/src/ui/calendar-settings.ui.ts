@@ -1749,7 +1749,7 @@ class CalendarSettingsUI {
          DARK THEME
          ======================================================================== */
       [data-theme="midnight"] .calendar-settings__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-settings__title,
@@ -1764,20 +1764,20 @@ class CalendarSettingsUI {
       }
 
       [data-theme="midnight"] .calendar-settings__status--disconnected {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-settings__status-icon {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-settings__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .calendar-settings__services {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-settings__service-name {
@@ -1790,7 +1790,7 @@ class CalendarSettingsUI {
       }
 
       [data-theme="midnight"] .calendar-settings__btn--secondary {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-primary, #faf6f0);
       }
 
@@ -1913,7 +1913,7 @@ class CalendarSettingsUI {
       }
 
       [data-theme="midnight"] .calendar-settings__form-group input {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
         color: var(--color-text-primary, #faf6f0);
       }

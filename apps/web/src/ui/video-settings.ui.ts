@@ -679,7 +679,7 @@ class VideoSettingsUI {
 
       /* Dark Theme */
       [data-theme="midnight"] .video-settings__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .video-settings__title,
@@ -691,7 +691,7 @@ class VideoSettingsUI {
       [data-theme="midnight"] .video-settings__control,
       [data-theme="midnight"] .video-settings__mode,
       [data-theme="midnight"] .video-settings__note {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       @media (max-width: clamp(336px, 90vw, 480px)) {

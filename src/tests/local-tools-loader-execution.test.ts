@@ -5,6 +5,7 @@
  * - script: executes a bundled JS module safely
  * - mcp: delegates to MCP loader integration
  */
+import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../utils/safe-logger.js', () => ({
@@ -37,15 +38,18 @@ vi.mock('../personas/bundles/mcp-loader.js', () => ({
 
 import { executeLocalTool } from '../personas/bundles/local-tools-loader.js';
 
+// Relative to this file: an absolute path to one developer's checkout exists
+// only on that machine (and from a worktree it ran the main checkout's copy).
+const toolFilePath = fileURLToPath(
+  new URL('../personas/bundles/__tests__/fixtures/test-bundle/tools/tool.json', import.meta.url)
+);
+
 describe('Local tools execution', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('executes a script tool from inside the bundle', async () => {
-    const toolFilePath =
-      '/Users/sethford/Documents/voiceai/src/personas/bundles/__tests__/fixtures/test-bundle/tools/tool.json';
-
     const result = await executeLocalTool({
       tool: {
         id: 'echo',
@@ -78,9 +82,6 @@ describe('Local tools execution', () => {
   });
 
   it('delegates MCP tool execution through mcp-loader', async () => {
-    const toolFilePath =
-      '/Users/sethford/Documents/voiceai/src/personas/bundles/__tests__/fixtures/test-bundle/tools/tool.json';
-
     const result = await executeLocalTool({
       tool: {
         id: 'mcpTool',

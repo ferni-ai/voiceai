@@ -217,7 +217,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
 
@@ -241,7 +241,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
     }
 
@@ -265,7 +265,7 @@ function injectStyles(): void {
       left: var(--space-3, 0.75rem);
       top: 50%;
       transform: translateY(-50%);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       pointer-events: none;
     }
 
@@ -292,7 +292,7 @@ function injectStyles(): void {
     }
 
     .yp-search-input::placeholder {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     /* Filters */
@@ -309,13 +309,13 @@ function injectStyles(): void {
       background: transparent;
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
 
     .yp-filter:hover {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted, #352e28);
       color: var(--color-text-secondary, #5a4a42);
     }
 
@@ -439,7 +439,7 @@ function injectStyles(): void {
     }
 
     .yp-nudge-arrow {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     /* =========================================================================
@@ -464,7 +464,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -536,7 +536,7 @@ function injectStyles(): void {
 
     .yp-person-meta {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-0-5, 0.125rem);
       display: flex;
       align-items: center;
@@ -568,7 +568,7 @@ function injectStyles(): void {
     }
 
     .yp-person-arrow {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       flex-shrink: 0;
     }
 
@@ -585,7 +585,7 @@ function injectStyles(): void {
       width: 56px;
       height: 56px;
       margin: 0 auto var(--space-4, 1rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       opacity: 0.4;
     }
 
@@ -598,7 +598,7 @@ function injectStyles(): void {
 
     .yp-empty-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       line-height: 1.5;
       max-width: min(280px, 100%);
       margin: 0 auto;
@@ -615,7 +615,7 @@ function injectStyles(): void {
       border: 2px dashed var(--color-border, rgba(44, 37, 32, 0.15));
       border-radius: var(--radius-lg, 1rem);
       background: transparent;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
       cursor: pointer;
@@ -662,7 +662,7 @@ function injectStyles(): void {
     .yp-loading {
       text-align: center;
       padding: var(--space-10, 2.5rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-size: var(--text-sm, 0.875rem);
     }
 
@@ -682,7 +682,7 @@ function injectStyles(): void {
     }
 
     .yp-error-message {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-size: var(--text-sm, 0.875rem);
     }
 

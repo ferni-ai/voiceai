@@ -338,11 +338,11 @@ function injectStyles(): void {
     }
 
     [data-theme="midnight"] .shortcuts-panel__card {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
     }
 
     [data-theme="midnight"] .shortcuts-panel__key {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
 
     /* Reduced motion */

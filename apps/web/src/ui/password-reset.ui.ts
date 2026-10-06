@@ -195,7 +195,7 @@ function applyResetStyles(overlay: HTMLElement): void {
     }
     .password-reset-header .tagline {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
       margin: 0;
     }
     .close-btn {
@@ -226,7 +226,7 @@ function applyResetStyles(overlay: HTMLElement): void {
     .form-field label {
       font-size: 0.8125rem;
       font-weight: 500;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
     }
     .form-field input {
       padding: var(--space-3, 12px);
@@ -277,7 +277,7 @@ function applyResetStyles(overlay: HTMLElement): void {
       color: var(--color-text-primary, #2C2520);
     }
     .password-reset-success p {
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
       margin: 0;
     }
     .spinner {

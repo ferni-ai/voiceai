@@ -136,7 +136,7 @@ const styles = `
   
   .speaker-change-indicator__message {
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -171,7 +171,7 @@ const styles = `
   
   .speaker-change-indicator__btn--secondary {
     background: transparent;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .speaker-change-indicator__btn--secondary:hover {

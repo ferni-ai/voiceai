@@ -295,7 +295,7 @@ function injectStyles(): void {
     }
 
     [data-theme="midnight"] .connection-quality__details {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
     }
 
     /* Reduced motion */

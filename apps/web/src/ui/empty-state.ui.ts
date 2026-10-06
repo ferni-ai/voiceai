@@ -254,7 +254,7 @@ export class EmptyStateUI {
         fontFamily: 'var(--font-body)',
         fontSize: '15px',
         lineHeight: '1.6',
-        color: 'var(--color-text-secondary, #70605a)',
+        color: 'var(--color-text-secondary, #a89b8c)',
         margin: '0 0 24px 0',
         maxWidth: '320px',
       });
@@ -537,7 +537,7 @@ export class EmptyStateUI {
     Object.assign(message.style, {
       fontFamily: 'var(--font-body)',
       fontSize: '14px',
-      color: 'var(--color-text-secondary, #70605a)',
+      color: 'var(--color-text-secondary, #a89b8c)',
       textAlign: 'center',
       margin: '0 0 var(--space-4, 16px)',
       fontStyle: 'italic',

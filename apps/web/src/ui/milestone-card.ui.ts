@@ -59,7 +59,7 @@ const COLORS = {
   primary: '#4a6741', // Ferni sage
   primaryLight: '#6b8f5e',
   text: '#2C2520',
-  textLight: '#70605a',
+  textLight: '#352e28',
   textOnDark: '#FAF6F0',
   accent: {
     relationship: '#4a6741',

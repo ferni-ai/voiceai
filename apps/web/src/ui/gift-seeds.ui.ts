@@ -437,7 +437,7 @@ function injectStyles(): void {
       border: none;
       padding: var(--space-2, 8px);
       cursor: pointer;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       border-radius: var(--radius-full, 9999px);
       transition: transform 0.2s ease, opacity 0.2s ease;
     }
@@ -474,7 +474,7 @@ function injectStyles(): void {
 
     .gift-seeds-subtitle {
       font-size: var(--text-base, 1rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin: 0;
     }
 
@@ -499,7 +499,7 @@ function injectStyles(): void {
       left: var(--space-3, 12px);
       top: 50%;
       transform: translateY(-50%);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .gift-seeds-input {
@@ -559,7 +559,7 @@ function injectStyles(): void {
 
     .gift-seeds-tier-arrow {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .gift-seeds-tier-receive {
@@ -583,7 +583,7 @@ function injectStyles(): void {
       gap: var(--space-2, 8px);
       margin-top: var(--space-3, 12px);
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .gift-seeds-multiplier svg {
@@ -647,7 +647,7 @@ function injectStyles(): void {
     .gift-seeds-balance {
       text-align: center;
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin: var(--space-4, 16px) 0 0;
     }
 

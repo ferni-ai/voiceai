@@ -176,7 +176,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
@@ -221,7 +221,7 @@ function injectStyles(): void {
     }
 
     .sm-channel:hover:not(:disabled) {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted, #352e28);
     }
 
     .sm-channel.selected {
@@ -235,7 +235,7 @@ function injectStyles(): void {
     }
 
     .sm-channel-icon {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .sm-channel.selected .sm-channel-icon {
@@ -245,7 +245,7 @@ function injectStyles(): void {
     .sm-channel-label {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .sm-channel.selected .sm-channel-label {
@@ -255,7 +255,7 @@ function injectStyles(): void {
 
     .sm-no-info {
       font-size: var(--text-xxs, 0.625rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-1, 0.25rem);
     }
 
@@ -270,7 +270,7 @@ function injectStyles(): void {
     .sm-label {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-2, 0.5rem);
       display: block;
     }
@@ -314,13 +314,13 @@ function injectStyles(): void {
     }
 
     .sm-textarea::placeholder {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .sm-char-count {
       text-align: right;
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-1, 0.25rem);
     }
 
@@ -367,7 +367,7 @@ function injectStyles(): void {
 
     .sm-call-hint {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     /* =========================================================================

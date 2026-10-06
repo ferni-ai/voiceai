@@ -255,7 +255,7 @@ const styles = `
   
   .memory-modal__subtitle {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-top: var(--space-1, 4px);
   }
   
@@ -272,7 +272,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     transition: all var(--duration-fast, 100ms) ease;
   }
   
@@ -305,7 +305,7 @@ const styles = `
   
   .memory-stat__label {
     font-size: 12px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-top: 2px;
   }
   
@@ -355,7 +355,7 @@ const styles = `
     border: none;
     font-size: 14px;
     font-weight: 500;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     cursor: pointer;
     position: relative;
     transition: color var(--duration-fast, 100ms) ease;
@@ -563,7 +563,7 @@ const styles = `
   .memory-empty {
     text-align: center;
     padding: var(--space-12, 48px) var(--space-4, 16px);
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .memory-empty__icon {
@@ -708,7 +708,7 @@ const styles = `
   .memory-error {
     text-align: center;
     padding: var(--space-8, 32px) var(--space-4, 16px);
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .memory-error__icon {

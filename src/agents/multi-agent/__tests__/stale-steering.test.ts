@@ -1,8 +1,9 @@
 /**
- * A steering note built for one caller turn doesn't steer the reply to the
- * next one (turn-intelligence.ts withoutStaleTurnContext, director-notes.ts
- * BACK_TO_EARLIER), through the request every reply is built from
- * (turn-request.ts withTurnReminder).
+ * A steering note built for one caller turn doesn't pass as a note on the
+ * next one (turn-intelligence.ts: notes sit right after their own turn's
+ * words; withoutStaleTurnContext drops one left in the unanswered tail;
+ * director-notes.ts BACK_TO_EARLIER), through the request every reply is
+ * built from (turn-request.ts withTurnReminder).
  *
  * Dev call, 2026-10-03: the pushed context for "What more can we do to make
  * you human?" sat just before "Why do you keep forgetting?", and the reply
@@ -13,7 +14,12 @@ import { llm } from '@livekit/agents';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Director, setDirector } from '../../personas/director-notes.js';
 import { withTurnReminder } from '../../personas/turn-request.js';
-import { createTurnContextPusher, withoutStaleTurnContext } from '../turn-intelligence.js';
+import {
+  TURN_CONTEXT_FOR,
+  TURN_CONTEXT_HEADER,
+  createTurnContextPusher,
+  withoutStaleTurnContext,
+} from '../turn-intelligence.js';
 
 const NOTE = 'They seem to be testing whether you are human.';
 
@@ -52,13 +58,47 @@ async function afterTurn(turn: string) {
 describe('pushed turn context', () => {
   afterEach(() => vi.unstubAllEnvs());
 
-  it("doesn't reach the reply to the next turn", async () => {
+  it('reaches the next reply as background on its own turn, never before the new question', async () => {
     const { agent } = await afterTurn('What more can we do to make you human?');
     say(agent.chatCtx, 'user', 'Why do you keep forgetting?');
-    const request = withTurnReminder(agent.chatCtx, {});
-    expect(requestText(request)).toContain('Why do you keep forgetting?');
-    expect(requestText(request)).not.toContain(NOTE);
-    expect(requestText(agent.chatCtx)).toContain(NOTE); // the session's context is untouched
+    const lines = requestText(withTurnReminder(agent.chatCtx, {})).split('\n');
+    const at = (text: string) => lines.findIndex((l) => l.includes(text));
+    expect(at(NOTE)).toBeGreaterThan(at('What more can we do'));
+    expect(at(NOTE)).toBeLessThan(at("I'm just Ferni"));
+    expect(at("I'm just Ferni")).toBeLessThan(at('Why do you keep forgetting?'));
+  });
+
+  it('goes back to its own turn even when it is ready only after the next question', async () => {
+    const agent = agentWith(llm.ChatContext.empty());
+    const pusher = createTurnContextPusher(
+      vi.fn(async (scratch: llm.ChatContext) => {
+        scratch.addMessage({ role: 'user', content: NOTE });
+      }),
+      agent
+    );
+    say(agent.chatCtx, 'user', 'What more can we do to make you human?');
+    await pusher.onAgentState('speaking');
+    say(agent.chatCtx, 'assistant', "I'm just Ferni.");
+    say(agent.chatCtx, 'user', 'Why do you keep forgetting?');
+    await pusher.onAgentState('thinking'); // the next turn started before the note was ready
+    await pusher.onFinalTranscript('What more can we do to make you human?');
+    say(agent.chatCtx, 'assistant', 'I do remember, I promise.');
+    await pusher.onAgentState('listening');
+    const items = agent.chatCtx.items.map((i) => (i as { textContent?: string }).textContent ?? '');
+    expect(items.findIndex((t) => t.includes(NOTE))).toBe(1);
+  });
+
+  it('still drops a note left in the unanswered tail that was built for other words', () => {
+    const chat = llm.ChatContext.empty();
+    say(chat, 'user', 'What more can we do to make you human?');
+    say(chat, 'assistant', "I'm just Ferni.");
+    chat.addMessage({
+      role: 'user',
+      content: `${TURN_CONTEXT_HEADER}\n${NOTE}`,
+      extra: { [TURN_CONTEXT_FOR]: 'What more can we do to make you human?' },
+    });
+    say(chat, 'user', 'Why do you keep forgetting?');
+    expect(requestText(withoutStaleTurnContext(chat))).not.toContain(NOTE);
   });
 
   it('still reaches the reply to the turn it was built for', async () => {
@@ -75,15 +115,12 @@ describe('pushed turn context', () => {
     expect(requestText(withTurnReminder(agent.chatCtx, {}))).toContain(NOTE);
   });
 
-  it("doesn't reach a reply nobody asked for since", async () => {
-    const { agent } = await afterTurn('What more can we do to make you human?');
-    expect(requestText(withoutStaleTurnContext(agent.chatCtx))).not.toContain(NOTE);
-  });
-
   it('reaches every reply with STALE_TURN_CONTEXT=keep', async () => {
     const { agent } = await afterTurn('What more can we do to make you human?');
     say(agent.chatCtx, 'user', 'Why do you keep forgetting?');
-    expect(requestText(withoutStaleTurnContext(agent.chatCtx, { STALE_TURN_CONTEXT: 'keep' }))).toContain(NOTE);
+    expect(
+      requestText(withoutStaleTurnContext(agent.chatCtx, { STALE_TURN_CONTEXT: 'keep' }))
+    ).toContain(NOTE);
   });
 });
 
@@ -126,7 +163,9 @@ describe("the director's notes", () => {
 
   it('send Ferni back again with DIRECTOR_LOOK_BACK=on', async () => {
     vi.stubEnv('DIRECTOR_LOOK_BACK', 'on');
-    const text = await nextReply(`They said "It's hard to say." about quiet moments. Connect to that.`);
+    const text = await nextReply(
+      `They said "It's hard to say." about quiet moments. Connect to that.`
+    );
     expect(text).toContain('Connect to that');
   });
 

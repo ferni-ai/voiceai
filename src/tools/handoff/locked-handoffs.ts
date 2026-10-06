@@ -15,9 +15,9 @@
  */
 
 import { llm } from '@livekit/agents';
-import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team/team-availability.js';
 import { isCoach } from '../../personas/persona-ids.js';
 import type { UserProfile } from '../../types/user-profile.js';
+import { isHandoffTargetOpen } from './handoff-availability.js';
 import { createHandoffTools } from './handoff-factory.js';
 
 export interface UnlockView {
@@ -32,7 +32,7 @@ export interface UnlockView {
 const same = (a: string, b: string): boolean =>
   (isCoach(a) && isCoach(b)) || a.toLowerCase() === b.toLowerCase();
 
-/** Handoff tool name → the teammates it can target (two Peters share a name). */
+/** Handoff tool name → the teammates it can target. */
 let targets: Promise<Map<string, string[]>> | null = null;
 
 function handoffTargets(): Promise<Map<string, string[]>> {
@@ -64,7 +64,7 @@ export async function lockedHandoffTools(names: string[], view: UnlockView): Pro
     return agents.every(
       (id) =>
         (current !== undefined && same(id, current)) ||
-        (!view.bypass && !isCoach(id) && !isTeamMemberUnlocked(id, view.userProfile, view.tier))
+        (!view.bypass && !isHandoffTargetOpen(id, view.userProfile, view.tier))
     );
   });
 }

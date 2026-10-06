@@ -58,7 +58,6 @@
 
   function initGSAPAnimations() {
     if (!hasGSAP || typeof ScrollTrigger === 'undefined') {
-      console.log('GSAP/ScrollTrigger not loaded, using fallback animations');
       initFallbackAnimations();
       return;
     }
@@ -447,7 +446,6 @@
     
     initSkeletonLoading();
     
-    console.log('%c🎬 Advanced motion loaded', 'color: #4a6741; font-weight: bold;');
   }
 
   if (document.readyState === 'loading') {

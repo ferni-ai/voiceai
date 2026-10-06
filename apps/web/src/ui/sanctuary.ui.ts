@@ -1537,7 +1537,7 @@ class SanctuaryUI {
          ============================================ */
 
       [data-theme="midnight"] .sanctuary-content {
-        background: var(--color-bg-elevated, #70605a);
+        background: var(--color-bg-elevated, #352e28);
       }
 
       [data-theme="midnight"] .sanctuary-section {

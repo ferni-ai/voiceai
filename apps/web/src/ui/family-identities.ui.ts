@@ -179,7 +179,7 @@ const styles = `
   
   .family-modal__subtitle {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-top: var(--space-1, 4px);
   }
   
@@ -196,7 +196,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     transition: all var(--duration-fast, ${DURATION.FAST}ms) ${EASING.STANDARD};
   }
   
@@ -236,7 +236,7 @@ const styles = `
   
   .family-empty__text {
     font-size: 14px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     margin-bottom: var(--space-6, 24px);
     line-height: 1.5;
   }
@@ -293,7 +293,7 @@ const styles = `
   
   .family-item__relationship {
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .family-item__badges {
@@ -345,7 +345,7 @@ const styles = `
   .family-form__label {
     font-size: 13px;
     font-weight: 500;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .family-form__input,

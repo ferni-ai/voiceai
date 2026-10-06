@@ -3500,7 +3500,11 @@
   },
   "voiceId": {
     "enrolledTitle": "Voice ID eingerichtet – Ferni erkennt deine Stimme",
-    "notEnrolledTitle": "Voice ID nicht eingerichtet – Richte sie ein, damit Ferni deine Stimme erkennt"
+    "notEnrolledTitle": "Voice ID nicht eingerichtet – Richte sie ein, damit Ferni deine Stimme erkennt",
+    "reenrollTitle": "Ich erkenne Stimmen jetzt besser",
+    "reenrollBody": "Darf ich Ihre noch einmal kennenlernen? Das dauert etwa 20 Sekunden.",
+    "reenrollAccept": "Gern",
+    "reenrollLater": "Nicht jetzt"
   },
   "languageSwitcher": {
     "label": "Sprache",
@@ -10374,8 +10378,8 @@
   },
   "theme": {
     "midnight": {
-      "name": "Mitternachtsgold",
-      "description": "Sattes, dunkles Design mit warmen Goldakzenten"
+      "name": "Nachttinte",
+      "description": "Warmer, fast schwarzer Hintergrund mit salbeigrünen Bedienelementen"
     },
     "zen": {
       "name": "Zen-Garten",

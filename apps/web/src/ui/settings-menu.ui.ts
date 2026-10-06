@@ -2594,14 +2594,14 @@ class SettingsMenuUI {
       
       /* Trigger button */
       [data-theme="midnight"] .settings-trigger {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
         border-color: var(--color-border-subtle, rgba(250, 246, 240, 0.1));
         color: var(--color-text-secondary, #f0ebe4);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
 
       [data-theme="midnight"] .settings-trigger:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-primary, #faf6f0);
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
       }
@@ -2612,15 +2612,15 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__card {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
         box-shadow: -8px 0 40px rgba(0, 0, 0, 0.4);
       }
 
       /* Header */
       [data-theme="midnight"] .settings-menu__header {
         background: linear-gradient(180deg, 
-          var(--color-background-elevated, #70605a) 0%,
-          var(--color-background-primary, #60504a) 100%
+          var(--color-background-elevated, #352e28) 0%,
+          var(--color-background-primary, #1e1a16) 100%
         );
         border-bottom-color: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
       }
@@ -2642,13 +2642,13 @@ class SettingsMenuUI {
       }
 
       [data-theme="midnight"] .settings-menu__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.08));
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .settings-menu__close:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-primary, #faf6f0);
       }
 

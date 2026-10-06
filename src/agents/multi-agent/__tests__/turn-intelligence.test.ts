@@ -20,10 +20,11 @@ const userData = { turnCount: 3 } as unknown as TurnIntelligenceDeps['userData']
 const userMessage = (text: string) => llm.ChatMessage.create({ role: 'user', content: text });
 
 describe('resolveTurnIntelligenceMode', () => {
-  it('is off unless TURN_INTELLIGENCE=on', () => {
-    expect(resolveTurnIntelligenceMode({})).toBe('off');
-    expect(resolveTurnIntelligenceMode({ TURN_INTELLIGENCE: 'true' })).toBe('off');
+  it('is on unless TURN_INTELLIGENCE=off', () => {
+    expect(resolveTurnIntelligenceMode({})).toBe('on');
+    expect(resolveTurnIntelligenceMode({ TURN_INTELLIGENCE: 'true' })).toBe('on');
     expect(resolveTurnIntelligenceMode({ TURN_INTELLIGENCE: 'on' })).toBe('on');
+    expect(resolveTurnIntelligenceMode({ TURN_INTELLIGENCE: 'off' })).toBe('off');
   });
 });
 

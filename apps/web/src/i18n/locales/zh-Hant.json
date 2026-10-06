@@ -3500,7 +3500,11 @@
   },
   "voiceId": {
     "enrolledTitle": "聲紋 ID 已註冊 — Ferni 能認出你的聲音",
-    "notEnrolledTitle": "聲紋 ID 未註冊 — 立即註冊讓 Ferni 認出你的聲音"
+    "notEnrolledTitle": "聲紋 ID 未註冊 — 立即註冊讓 Ferni 認出你的聲音",
+    "reenrollTitle": "我現在更會認聲音了",
+    "reenrollBody": "可以讓我重新熟悉一下你的聲音嗎？大約 20 秒。",
+    "reenrollAccept": "好啊",
+    "reenrollLater": "以後再說"
   },
   "languageSwitcher": {
     "label": "語言",
@@ -10374,8 +10378,8 @@
   },
   "theme": {
     "midnight": {
-      "name": "午夜金",
-      "description": "沉穩的深色主題，搭配溫暖的金黃點綴"
+      "name": "夜墨",
+      "description": "溫暖的近黑色背景，搭配鼠尾草綠操作按鈕"
     },
     "zen": {
       "name": "Zen 花園",
