@@ -9,7 +9,8 @@
  *
  * Run synchronously in onUserTurnCompleted it cost ~300 ms a turn and spoke a
  * second reply, so it now runs in the background, context-only, and its note
- * informs the next reply (createTurnContextPusher). Gated by TURN_INTELLIGENCE.
+ * informs the next reply (createTurnContextPusher). On unless
+ * TURN_INTELLIGENCE=off.
  *
  * @module agents/multi-agent/turn-intelligence
  */
@@ -30,7 +31,7 @@ export type TurnIntelligenceMode = 'on' | 'off';
 export function resolveTurnIntelligenceMode(
   env: Record<string, string | undefined> = process.env
 ): TurnIntelligenceMode {
-  return env.TURN_INTELLIGENCE === 'on' ? 'on' : 'off';
+  return env.TURN_INTELLIGENCE === 'off' ? 'off' : 'on';
 }
 
 export type UserTurnHook = (turnCtx: llm.ChatContext, newMessage: llm.ChatMessage) => Promise<void>;
