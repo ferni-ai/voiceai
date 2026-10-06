@@ -63,7 +63,7 @@ const WEB_FILES = [
   'ui/vibe-controller.ui.ts',
   'ui/vibe-controller.api.ts',
   'ui/practice-experience.ui.ts',
-  'ui/bth-analytics-dashboard.ui.ts',
+  'ui/bth-analytics-api.ts',
   'ui/relationship-card.ui.ts',
 ];
 
