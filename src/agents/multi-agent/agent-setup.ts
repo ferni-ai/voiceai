@@ -1659,7 +1659,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
   // FerniAgent now hoisted to module level for faster startup
   // Per-turn intelligence (context builders, memory retrieval, emotional
-  // guidance) - see turn-intelligence.ts for why this is gated.
+  // guidance). On unless TURN_INTELLIGENCE=off; see turn-intelligence.ts.
   const turnContextHook =
     resolveTurnIntelligenceMode() === 'on'
       ? createTurnIntelligenceHook({ persona, services, userData, room })

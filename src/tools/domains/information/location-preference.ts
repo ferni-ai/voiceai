@@ -37,77 +37,84 @@ const locationCache = new Map<
 // ============================================================================
 
 /**
- * Stores the currently active session's info.
- * Since there's only ONE session per voice agent worker instance,
- * native tools can use this to get the user's location without
- * having userId passed to them directly.
- *
- * This is set when a session starts and cleared when it ends.
+ * One worker hosts several calls. Location is keyed by sessionId so
+ * ending call A cannot clear call B, and tools never read another
+ * caller's city. Prefer the call's RunContext (see information/index.ts);
+ * this map is only a fallback when the tool is given a sessionId.
  */
-let currentActiveSession: {
+interface ActiveSession {
   userId: string;
   location?: string;
-  sessionId?: string;
-} | null = null;
+}
+
+const activeSessions = new Map<string, ActiveSession>();
+
+function sessionKey(sessionId: string | undefined, userId: string): string {
+  return sessionId && sessionId.length > 0 ? sessionId : `user:${userId}`;
+}
 
 /**
- * Set the current active session for native tool access.
- * Called when a voice session starts.
+ * Remember this call's location. Called when a voice session starts.
  */
 export function setCurrentActiveSession(
   userId: string,
   location?: string,
   sessionId?: string
 ): void {
-  currentActiveSession = { userId, location, sessionId };
+  const key = sessionKey(sessionId, userId);
+  activeSessions.set(key, { userId, location });
   log.info(
-    { userId, hasLocation: !!location, sessionId },
+    { userId, hasLocation: !!location, sessionId: key },
     '📍 Current active session set (for native tools)'
   );
 }
 
 /**
- * Clear the current active session.
- * Called when a voice session ends.
+ * Forget this call's location. With no sessionId, forget every call (tests).
  */
-export function clearCurrentActiveSession(): void {
-  const wasSet = !!currentActiveSession;
-  currentActiveSession = null;
-  if (wasSet) {
-    log.debug('📍 Current active session cleared');
+export function clearCurrentActiveSession(sessionId?: string): void {
+  if (!sessionId) {
+    const count = activeSessions.size;
+    activeSessions.clear();
+    if (count > 0) {
+      log.debug({ cleared: count }, '📍 All active sessions cleared');
+    }
+    return;
+  }
+  if (activeSessions.delete(sessionId)) {
+    log.debug({ sessionId }, '📍 Current active session cleared');
   }
 }
 
 /**
- * Get location for the current active session.
- * Used by native tools that don't receive userId in their execute function.
- *
- * Priority:
- * 1. Direct session location (set at session start)
- * 2. Cached location for the user (from IP geo or explicit preference)
+ * Location for one call. Without a sessionId this returns null when more
+ * than one call is live — never another caller's city.
  */
-export function getCurrentSessionLocation(): string | null {
-  if (!currentActiveSession) {
-    log.debug('📍 No active session set - cannot determine location');
-    return null;
+export function getCurrentSessionLocation(sessionId?: string): string | null {
+  if (sessionId) {
+    const session = activeSessions.get(sessionId);
+    if (!session) {
+      log.debug({ sessionId }, '📍 No active session for this call');
+      return null;
+    }
+    if (session.location) {
+      return session.location;
+    }
+    return getUserLocationPreference(session.userId);
   }
 
-  // Priority 1: Direct session location
-  if (currentActiveSession.location) {
-    log.debug(
-      { location: currentActiveSession.location, source: 'active-session' },
-      '📍 Using active session location'
-    );
-    return currentActiveSession.location;
+  if (activeSessions.size === 1) {
+    const only = activeSessions.values().next().value;
+    if (!only) {
+      return null;
+    }
+    return only.location ?? getUserLocationPreference(only.userId);
   }
 
-  // Priority 2: Check location cache for this user
-  const cachedLocation = getUserLocationPreference(currentActiveSession.userId);
-  if (cachedLocation) {
-    return cachedLocation;
-  }
-
-  log.debug({ userId: currentActiveSession.userId }, '📍 No location available for active session');
+  log.debug(
+    { liveSessions: activeSessions.size },
+    '📍 No session id while several calls are live — not guessing a city'
+  );
   return null;
 }
 
