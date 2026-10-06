@@ -83,6 +83,13 @@ const ROUGH_FORMS = [
   'Hesitate once where you are actually working something out ("um", "hm").',
   'Trail off once on something you do not need to finish.',
 ];
+/**
+ * A "second story" (Sacks): people answer something shared with a small thing
+ * of their own, and that trade is how closeness builds. Replayed, only 3-6% of
+ * Ferni's replies said anything of his own.
+ */
+const SECOND_STORY =
+  'If something from your own life comes to mind, share a small piece of it (a sentence), the way a friend trades a story, rather than asking about theirs.';
 const ABOUT_YOU =
   'They asked about you: answer about yourself, something specific from your own life, before anything else.';
 
@@ -118,6 +125,7 @@ export function turnShapeFor(userText: string, rng: () => number = Math.random):
   // it was diluted (replay: 5% of replies 6 words or fewer).
   const parts = [REGISTER];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
+  else if (move === 'share' && shape !== 'react' && rng() < 0.3) parts.push(SECOND_STORY);
   if (move !== 'ack' && rng() < 0.3) parts.push(STANCE);
   if (shape !== 'react' && rng() < 0.5)
     parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
