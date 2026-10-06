@@ -236,8 +236,13 @@ export async function gatedReply(
   const gate = startCrisisGate(chatCtx, session.userData, options);
   if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
 
-  let ctx = withTurnReminder(chatCtx, session);
-  if (gate?.decision.action === 'guide') ctx = withTurnStyleReminder(ctx, gate.decision.guidance);
+  // A reply with crisis guidance keeps the plain style reminder: a per-turn
+  // shape ("six words at most") must never hold it back.
+  const plain = (): llm.ChatContext => withTurnReminder(chatCtx, session, { shape: false });
+  const ctx =
+    gate?.decision.action === 'guide'
+      ? withTurnStyleReminder(plain(), gate.decision.guidance)
+      : withTurnReminder(chatCtx, session);
   const ask = async (request: llm.ChatContext): Promise<ReadableStream<Chunk> | null> => {
     const stream = await model(request);
     return stream && env.OPENER_GATE !== 'off' ? openerGate.wrap(stream) : stream;
@@ -247,6 +252,6 @@ export async function gatedReply(
   return holdUntilCleared(reply, gate.escalation, async (decision) => {
     if (decision.action === 'replace') return textReply(decision.script);
     if (decision.action === 'pass') return null;
-    return ask(withTurnStyleReminder(ctx, decision.guidance));
+    return ask(withTurnStyleReminder(plain(), decision.guidance));
   });
 }
