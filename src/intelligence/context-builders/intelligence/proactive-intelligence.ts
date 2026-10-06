@@ -123,9 +123,7 @@ interface INoticePhrases {
   };
 }
 
-/** Loaded "I notice" phrases per persona, so one persona never speaks another's lines. */
 const phrasesByPersona = new Map<string, INoticePhrases>();
-
 async function loadINoticePhrases(personaId: string): Promise<INoticePhrases | null> {
   const cached = phrasesByPersona.get(personaId);
   if (cached) return cached;

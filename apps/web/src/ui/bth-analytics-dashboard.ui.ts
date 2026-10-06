@@ -15,62 +15,14 @@
 import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
-import { apiGet } from '../utils/api.js';
+import {
+  fetchDashboardData,
+  type CapabilityStats,
+  type DashboardData,
+  type TrendPoint,
+} from './bth-analytics-api.js';
 
 const log = createLogger('BTHAnalyticsDashboard');
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface CapabilityStats {
-  capability: string;
-  totalUsage: number;
-  appliedCount: number;
-  positiveReactions: number;
-  neutralReactions: number;
-  negativeReactions: number;
-  effectivenessScore: number;
-}
-
-interface TrendPoint {
-  date: string;
-  effectiveness: number;
-  usageCount: number;
-}
-
-interface DashboardData {
-  stats: CapabilityStats[];
-  topCapabilities: Array<{ capability: string; score: number }>;
-  trend: TrendPoint[];
-  /** The capability the trend is for (the server only has per-capability trends) */
-  trendCapability: string | null;
-}
-
-/** One row of GET /api/v1/admin/bth/capabilities (`effectivenessRate` is 0-100). */
-interface CapabilityRow {
-  capability: string;
-  usage: number;
-  applied: number;
-  positive: number;
-  neutral: number;
-  negative: number;
-  effectivenessRate: number;
-}
-
-/** One entry of GET /api/v1/admin/bth/top (`effectivenessRate` is 0-1). */
-interface TopCapability {
-  capability: string;
-  effectivenessRate: number;
-}
-
-/** One day of GET /api/v1/admin/bth/trends/:capability. */
-interface TrendDay {
-  date: string;
-  positive: number;
-  neutral: number;
-  negative: number;
-}
 
 // ============================================================================
 // STATE
@@ -336,59 +288,6 @@ function formatCapabilityName(capability: string): string {
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', { weekday: 'short' });
-}
-
-// ============================================================================
-// DATA FETCHING
-// ============================================================================
-
-function toCapabilityStats(row: CapabilityRow): CapabilityStats {
-  return {
-    capability: row.capability,
-    totalUsage: row.usage,
-    appliedCount: row.applied,
-    positiveReactions: row.positive,
-    neutralReactions: row.neutral,
-    negativeReactions: row.negative,
-    effectivenessScore: row.effectivenessRate / 100,
-  };
-}
-
-function toTrendPoint(day: TrendDay): TrendPoint {
-  const usageCount = day.positive + day.neutral + day.negative;
-  return {
-    date: day.date,
-    effectiveness: usageCount > 0 ? day.positive / usageCount : 0,
-    usageCount,
-  };
-}
-
-async function fetchDashboardData(): Promise<DashboardData> {
-  const [statsRes, topRes] = await Promise.all([
-    apiGet<{ all?: CapabilityRow[] }>('/api/v1/admin/bth/capabilities'),
-    apiGet<{ recommended?: TopCapability[] }>('/api/v1/admin/bth/top'),
-  ]);
-
-  if (!statsRes.ok || !topRes.ok) {
-    throw new Error('Failed to fetch analytics data');
-  }
-
-  const top = (topRes.data?.recommended || []).slice(0, 5);
-  const trendCapability = top[0]?.capability ?? null;
-  let trend: TrendPoint[] = [];
-  if (trendCapability) {
-    const trendRes = await apiGet<{ trends?: TrendDay[] }>(
-      `/api/v1/admin/bth/trends/${encodeURIComponent(trendCapability)}`
-    );
-    trend = trendRes.ok ? (trendRes.data?.trends || []).map(toTrendPoint) : [];
-  }
-
-  return {
-    stats: (statsRes.data?.all || []).map(toCapabilityStats),
-    topCapabilities: top.map((c) => ({ capability: c.capability, score: c.effectivenessRate })),
-    trend,
-    trendCapability,
-  };
 }
 
 // ============================================================================

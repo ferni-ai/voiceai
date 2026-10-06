@@ -301,11 +301,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
       ? `${userLocation.city}, ${userLocation.regionCode}`
       : userLocation.city
     : undefined;
-  setCurrentActiveSession({
-    sessionId,
-    userId: userId || 'anonymous',
-    location: formattedLocation,
-  });
+  setCurrentActiveSession({ sessionId, userId: userId || 'anonymous', location: formattedLocation });
 
   // Get tools
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

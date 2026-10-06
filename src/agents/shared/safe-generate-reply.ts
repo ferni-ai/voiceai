@@ -25,12 +25,11 @@
 
 import type { voice } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
-import { FailureTracker } from './lightweight-resilience.js';
-// Speech coordination for centralized speech management
 import { coordinatedSay } from '../../speech/coordination/index.js';
-// Centralized generateReply gateway - this module adds extra safeguards on top
 import { generateReply as gatewayGenerateReply } from './generate-reply-gateway.js';
 import { sayInOwnWords } from '../../speech/direction/index.js';
+import { guardFor } from './reply-guard.js';
+import type { ReplyGuard } from './reply-guard.js';
 
 const logger = getLogger();
 
@@ -58,36 +57,6 @@ const MAX_CONTEXT_CHARS = 32000;
  * At this size, model WILL truncate older context silently
  */
 const CRITICAL_CONTEXT_CHARS = 48000;
-
-/**
- * Circuit breaker, rate limit and mutex for one call. Kept per session: one
- * worker runs several calls at once, and one caller's in-flight reply or
- * failures must not pause another's.
- */
-interface ReplyGuard {
-  failureTracker: FailureTracker;
-  /** Track last call time to prevent rapid-fire calls */
-  lastCallTime: number;
-  /** MUTEX: Prevent concurrent generateReply calls */
-  inProgress: boolean;
-  currentContext: string | null;
-}
-
-const replyGuards = new WeakMap<object, ReplyGuard>();
-
-function guardFor(session: object): ReplyGuard {
-  let guard = replyGuards.get(session);
-  if (!guard) {
-    guard = {
-      failureTracker: new FailureTracker({ windowMs: 60_000, threshold: 3 }),
-      lastCallTime: 0,
-      inProgress: false,
-      currentContext: null,
-    };
-    replyGuards.set(session, guard);
-  }
-  return guard;
-}
 
 // ============================================================================
 // TYPES

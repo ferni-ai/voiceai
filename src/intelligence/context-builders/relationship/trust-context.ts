@@ -635,17 +635,12 @@ const FALLBACK_TRUST_PHRASES = {
   ],
 };
 
-/**
- * Ensure trust phrases are loaded for the active persona (async, lazy, cached per persona)
- */
 async function ensureTrustPhrasesLoaded(personaId = 'ferni'): Promise<TrustPhrases | null> {
-  // Check if already loaded for this persona
   if (trustPhrasesCache.has(personaId)) {
     return trustPhrasesCache.get(personaId) || null;
   }
 
   try {
-    // Load trust phrases for the specific persona (with Ferni fallback built-in)
     const phrases = await loadTrustPhrases(personaId);
     trustPhrasesCache.set(personaId, phrases);
 
@@ -660,10 +655,6 @@ async function ensureTrustPhrasesLoaded(personaId = 'ferni'): Promise<TrustPhras
   }
 }
 
-/**
- * Get a random Ferni-voiced phrase for a trust signal type
- * Now loads from trust-phrases.json with fallback to hardcoded phrases
- */
 function getFerniPhrase(
   type:
     | 'falseFine'

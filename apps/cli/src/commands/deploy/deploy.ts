@@ -596,19 +596,14 @@ async function deployFrontend(options: DeployOptions): Promise<boolean> {
   return true;
 }
 
-/** The landing site. Never ferni-prod, which serves the app. */
-const LANDING_SITE = 'ferni-landing';
-
+const LANDING_SITE = 'ferni-landing'; // never ferni-prod (the app)
 async function deployLanding(options: DeployOptions): Promise<boolean> {
   log.step('DEPLOYING LANDING PAGE (BLUE-GREEN)');
-
   const landingDir = join(PROJECT_ROOT, 'apps/website/ferni-website');
-
   if (!existsSync(landingDir)) {
     log.warn('Landing page directory not found: apps/website/ferni-website');
     return false;
   }
-
   if (options.dryRun) {
     log.info(`Would deploy to a preview channel of ${LANDING_SITE}`);
     log.info('Would health check preview URL');

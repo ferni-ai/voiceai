@@ -508,15 +508,8 @@ export async function getWeatherForecast(location: string, days = 5): Promise<st
 export function createWeatherTools() {
   const logger = getLogger();
 
-  /**
-   * Resolve location from args or session context.
-   * Native tools don't receive userId/userLocation in their execute function,
-   * so we fall back to the current active session's location.
-   */
-  function resolveLocation(
-    argLocation: string | undefined,
-    sessionId: string | undefined
-  ): string | null {
+  /** Resolve location from args or the current session. */
+  function resolveLocation(argLocation?: string, sessionId?: string): string | null {
     // If a valid location was provided, use it
     if (isValidLocation(argLocation)) {
       return argLocation!;
