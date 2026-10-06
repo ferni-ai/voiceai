@@ -26,10 +26,10 @@ describe('Spanner adapter opt-in', () => {
     expect(initializeSpanner).not.toHaveBeenCalled();
   });
 
-  it('connects when SPANNER_ENABLED=true', async () => {
+  it('does not connect even when SPANNER_ENABLED=true', async () => {
     process.env.SPANNER_ENABLED = 'true';
     const { SpannerAdapter } = await import('../spanner-adapter.js');
     await new SpannerAdapter().initialize();
-    expect(initializeSpanner).toHaveBeenCalledTimes(1);
+    expect(initializeSpanner).not.toHaveBeenCalled();
   });
 });

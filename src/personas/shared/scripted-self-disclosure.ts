@@ -20,9 +20,9 @@
  */
 
 export function scriptedSelfDisclosureEnabled(
-  env: Record<string, string | undefined> = process.env
+  _env: Record<string, string | undefined> = process.env
 ): boolean {
-  return env.PERSONALITY_EXPRESSIONS === 'on';
+  return false;
 }
 
 /**

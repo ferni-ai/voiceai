@@ -361,17 +361,6 @@ async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | 
     return null;
   }
 
-  // 🎯 SEMANTIC ROUTING PRIMARY: Skip function calling prompts entirely
-  // The semantic router handles tool execution BEFORE the LLM, so we don't
-  // want to teach the LLM the JSON format (it would output JSON as speech).
-  if (process.env.SEMANTIC_ROUTING_PRIMARY === 'true') {
-    log.info(
-      { bundleDir },
-      '🎯 SEMANTIC_ROUTING_PRIMARY=true: Skipping function-calling prompts (semantic router handles tools)'
-    );
-    return null;
-  }
-
   // Check if provider needs JSON function calling prompts
   const provider = getModelProvider();
   const promptConfig = provider.getPromptModules();

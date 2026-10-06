@@ -68,13 +68,9 @@ import { isServiceHealthyFast } from '../../services/self-healing/index.js';
 import { recordActualToolExecution } from '../../tools/semantic-router/learning/implicit-correction-capture.js';
 // LLMCompiler: Parallel function calling with dependency tracking (Jan 2026)
 import {
-  containsLLMCompilerPlan,
-  // Pre-Act: Upfront reasoning before tool execution
   containsPreActPlan,
   executeLLMCompilerPlan,
-  parseLLMCompilerPlan,
   parsePreActPlan,
-  stripLLMCompilerPlan,
   stripPreActFormat,
 } from './llm-compiler/index.js';
 // Meta-tool pattern: Single executeTool instead of 100+ declarations (Jan 2026)
@@ -82,11 +78,8 @@ import { isMetaToolCall, unwrapMetaToolCall } from './meta-tool.js';
 
 const log = createLogger({ module: 'json-function-executor' });
 
-/** Feature flag for LLMCompiler parallel execution */
-const USE_LLMCOMPILER = process.env.USE_LLMCOMPILER === 'true';
-
-/** Feature flag for Pre-Act upfront reasoning (enabled with LLMCompiler) */
-const USE_PREACT = process.env.USE_PREACT === 'true' || USE_LLMCOMPILER;
+/** Feature flag for Pre-Act upfront reasoning */
+const USE_PREACT = process.env.USE_PREACT === 'true';
 
 // ============================================================================
 // P2 UTO Fix (January 2026): TOOL → SERVICE MAPPING
@@ -1198,36 +1191,6 @@ export async function parseAndExecuteAll(
     }
   }
 
-  // LLMCompiler: Check for DAG format for parallel execution
-  if (USE_LLMCOMPILER && containsLLMCompilerPlan(text)) {
-    const plan = parseLLMCompilerPlan(text);
-
-    if (plan && plan.tasks.length > 1) {
-      log.info(
-        { taskCount: plan.tasks.length, sessionId: ctx.sessionId },
-        '🔀 Using LLMCompiler parallel execution'
-      );
-
-      const compilerResult = await executeLLMCompilerPlan(plan, {
-        userId: ctx.userId,
-        sessionId: ctx.sessionId,
-        personaId: ctx.personaId,
-        publisherId: ctx.publisherId,
-        inputText: ctx.inputText,
-      });
-
-      // Convert to FunctionExecutionResult format for compatibility
-      return compilerResult.taskResults.map((tr) => ({
-        success: tr.success,
-        fn: tr.fn,
-        args: {},
-        result: tr.result,
-        error: tr.error,
-        durationMs: tr.durationMs,
-      }));
-    }
-  }
-
   // Standard sequential execution (fallback)
   const calls = extractAllJsonFunctionCalls(text);
   const results: FunctionExecutionResult[] = [];
@@ -1250,11 +1213,6 @@ export function stripJsonFunctionCalls(text: string): string {
   if (USE_PREACT && containsPreActPlan(text)) {
     const { cleanText } = stripPreActFormat(cleaned);
     cleaned = cleanText;
-  }
-
-  // Strip LLMCompiler DAG format (if present)
-  if (USE_LLMCOMPILER && containsLLMCompilerPlan(cleaned)) {
-    cleaned = stripLLMCompilerPlan(cleaned);
   }
 
   // Strip individual JSON function calls

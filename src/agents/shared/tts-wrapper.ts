@@ -448,7 +448,6 @@ export async function wrappedTtsNode(
   const skipJsonWorkaround =
     isFTISEnabled() || // FTIS handles all tools - no JSON workaround needed
     process.env.DISABLE_JSON_WORKAROUND === 'true' ||
-    process.env.SEMANTIC_ROUTING_PRIMARY === 'true' ||
     !provider.needsJsonWorkaround();
 
   let filteredText: NodeReadableStream<string>;
@@ -457,9 +456,7 @@ export async function wrappedTtsNode(
       ? 'FTIS handles all tools'
       : !provider.needsJsonWorkaround()
         ? `${provider.displayName} has native function calling`
-        : process.env.SEMANTIC_ROUTING_PRIMARY === 'true'
-          ? 'semantic routing is primary'
-          : 'explicitly disabled';
+        : 'explicitly disabled';
     log.info(`${provider.getLogPrefix()} JSON workaround DISABLED - ${reason}`);
 
     // BUG FIX: Even with native function calling, OpenAI Realtime can sometimes

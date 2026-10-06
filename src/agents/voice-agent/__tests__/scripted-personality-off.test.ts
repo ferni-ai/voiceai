@@ -77,12 +77,12 @@ describe('scripted personality lines on a live call', () => {
     expect(processTurn).not.toHaveBeenCalled();
   });
 
-  it('PERSONALITY_EXPRESSIONS=on restores the quoted line', async () => {
+  it('stays off even if PERSONALITY_EXPRESSIONS=on', async () => {
     process.env.PERSONALITY_EXPRESSIONS = 'on';
     const result = await processPersonality(ferniTurn());
 
-    expect(processTurn).toHaveBeenCalledTimes(1);
-    expect(result.injectionContent).toContain(SCRIPTED_LINE);
+    expect(result.shouldInject).toBe(false);
+    expect(processTurn).not.toHaveBeenCalled();
   });
 
   it('does not pre-generate "what I am doing right now" asides at session start', async () => {
@@ -91,6 +91,6 @@ describe('scripted personality lines on a live call', () => {
 
     process.env.PERSONALITY_EXPRESSIONS = 'on';
     await initConversationSession({ sessionId: 's2', userId: 'u', personaId: 'ferni' });
-    expect(prewarmPersonalitySession).toHaveBeenCalledTimes(1);
+    expect(prewarmPersonalitySession).not.toHaveBeenCalled();
   });
 });

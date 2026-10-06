@@ -214,10 +214,6 @@ export function buildFunctionCallingReinforcement(
     return null;
   }
 
-  if (process.env.SEMANTIC_ROUTING_PRIMARY === 'true') {
-    return null;
-  }
-
   if (!detectToolRequest(userText)) {
     return null;
   }
