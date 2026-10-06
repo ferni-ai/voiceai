@@ -19,6 +19,9 @@ const DISAGREE =
 const SELF_REPAIR =
   /[—–]|--|\b(i mean|wait,? no|or,? actually|well,? actually|let me put it|sorry,? i mean|what i meant)\b|\b([a-z']+),? \2\b/i;
 const FILLED_PAUSE = /\b(uh|um|uhm|erm|er)\b/gi;
+// Marks the voice rules ban or that read as broken text: a doubled comma
+// ("Cats are,, I mean"), an ellipsis or a dash.
+const MARKUP_ARTIFACT = /,\s*,|\.\.|…|[—–]/;
 const LAUGHTER = /\[laughter\]|\b(haha+|ha|heh|hah)\b/i;
 // Ferni sharing something of its own life or view, not only asking.
 const SELF_DISCLOSURE =
@@ -93,6 +96,7 @@ export function computeHumanness(runs) {
     selfRepairRate: rate(agent, (a) => SELF_REPAIR.test(a.text)),
     filledPausesPer100Words: totalWords ? Math.round((filled / totalWords) * 1000) / 10 : null,
     laughterRate: rate(agent, (a) => LAUGHTER.test(a.text)),
+    markupArtifactRate: rate(agent, (a) => MARKUP_ARTIFACT.test(a.text)),
     selfDisclosureRate: rate(agent, (a) => SELF_DISCLOSURE.test(a.text)),
     // Picks up one of the caller's own content words, the way people echo.
     echoRate: rate(

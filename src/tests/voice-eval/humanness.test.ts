@@ -67,6 +67,22 @@ describe('voice-eval humanness', () => {
     expect(m.disagreeRate).toBe(0);
   });
 
+  it('counts replies with broken or banned marks', () => {
+    const m = computeHumanness([
+      run([
+        ['user', 'My cat is plotting.'],
+        ['agent', 'Cats are,, I mean, tiny nihilists.'],
+        ['user', 'Ha.'],
+        ['agent', 'She is, um, very committed.'],
+        ['user', 'Right.'],
+        ['agent', 'Well... maybe.'],
+        ['user', 'Yeah.'],
+        ['agent', 'It is one thing — then another.'],
+      ]),
+    ]);
+    expect(m.markupArtifactRate).toBe(0.75);
+  });
+
   it('compares metrics with human ranges', () => {
     const out = compareToTargets(
       { questionEndRate: 0.44, wordsPerTurn: { p50: 31 } },

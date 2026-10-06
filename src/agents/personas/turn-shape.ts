@@ -76,12 +76,17 @@ export function pickShape(move: CallerMove, rng: () => number = Math.random): Sh
 
 const STANCE =
   'If you\'d see it differently, say so; if you don\'t know, say "I don\'t know" or "hm, no idea" instead of covering.';
-/** Spoken roughness, one form per reply so it never settles into a tic ("just, uh," every time). */
+/**
+ * Spoken roughness, one form per reply so it never settles into a tic ("just, uh," every time).
+ * Each says how to write it with commas and full stops: dashes and ellipses are
+ * off limits (speech-markup-notes.ts), and without a written form the model
+ * marked a restart ",," ("Cats are,, I mean", dev 2026-10-06).
+ */
 const ROUGH_FORMS = [
-  'Let one thought come out unpolished: start it, then restart it differently.',
-  'Correct yourself once halfway through a thought ("well, not exactly", "I mean").',
-  'Hesitate once where you are actually working something out ("um", "hm").',
-  'Trail off once on something you do not need to finish.',
+  'Let one thought come out unpolished: start it, then restart it differently, joined with a comma ("I was, well, we were going to").',
+  'Correct yourself once halfway through a thought, set off with commas ("it\'s, I mean, not exactly that").',
+  'Hesitate once where you are actually working something out, with a comma either side ("it\'s, um, Thursday").',
+  'Trail off once: stop a thought short with a full stop and move on ("I was going to say. Anyway.").',
 ];
 /**
  * A "second story" (Sacks): people answer something shared with a small thing

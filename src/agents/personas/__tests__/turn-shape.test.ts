@@ -112,4 +112,18 @@ describe('withTurnReminder seeding and order', () => {
     expect(text.indexOf('THIS REPLY:')).toBeGreaterThan(text.indexOf('Drop the trivia'));
     expect(text.indexOf('THIS REPLY:')).toBeGreaterThan(text.indexOf('Wyoming'));
   });
+
+  it('never asks for marks the voice rules ban, and shows how to write each rough form', () => {
+    // Dashes and ellipses are banned (speech-markup-notes.ts); a restart asked
+    // for with no allowed written form came out ",," on dev.
+    const reminders = Array.from({ length: 400 }, (_, i) => {
+      const rng = rngFor(`seed ${i}`);
+      return turnShapeFor(['My cat did it again.', 'How was your weekend?', 'yeah'][i % 3], rng)
+        .reminder;
+    });
+    const rough = reminders.filter((r) => /restart|Correct yourself|Hesitate|Trail off/.test(r));
+    expect(rough.length).toBeGreaterThan(20);
+    for (const r of reminders) expect(r).not.toMatch(/[—–]|\.\.\.|…|,,/);
+    for (const r of rough) expect(r).toMatch(/\("[^"]+"\)/);
+  });
 });
