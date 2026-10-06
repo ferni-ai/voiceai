@@ -40,11 +40,9 @@ describe('module-level per-caller state check', () => {
     expect(findModuleStateHazards(src, 'c.ts')).toEqual([]);
   });
 
-  it('flags frontend-publisher.ts', () => {
-    const file = 'src/agents/realtime/frontend-publisher.ts';
+  it('does not flag keyed per-call publishers', () => {
+    const file = 'src/agents/realtime/call-publishers.ts';
     const src = readFileSync(join(findProjectRoot(), file), 'utf8');
-    expect(findModuleStateHazards(src, file)).toMatchObject([
-      { variable: 'publisherInstance', fn: 'initializeFrontendPublisher', param: 'room' },
-    ]);
+    expect(findModuleStateHazards(src, file)).toEqual([]);
   });
 });
