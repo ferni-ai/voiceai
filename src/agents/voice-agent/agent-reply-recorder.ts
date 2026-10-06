@@ -24,6 +24,7 @@ import { detectAdvice } from '../../services/superhuman/semantic-intelligence/ad
 import { createLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import type { UserData } from '../shared/types.js';
+import { createLedgerRecorder } from '../personas/life-ledger.js';
 import { recordAgentTurn } from './agent-turn-recorder.js';
 
 const log = createLogger({ module: 'agent-reply-recorder' });
@@ -157,10 +158,22 @@ export function registerAgentReplyRecorder(session: ReplySession, ctx: AgentRepl
   if (recordingSessions.has(session)) return false;
   recordingSessions.add(session);
 
+  // What the agent says about itself, kept for the next call (life-ledger.ts).
+  const userId = ctx.services?.userId;
+  const ledger = userId && userId !== 'anonymous' ? createLedgerRecorder(userId) : null;
   session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (event) => {
-    recordCommittedAgentReply(ctx, event.item).catch((error) => {
-      log.warn({ error: String(error), sessionId: ctx.sessionId }, 'Recording agent reply failed');
-    });
+    recordCommittedAgentReply(ctx, event.item)
+      .then((recorded) => {
+        const text = recorded ? ctx.userData.lastAgentResponse : undefined;
+        if (ledger && text) ledger.add(ctx.userData.personaId ?? 'ferni', text);
+      })
+      .catch((error) => {
+        log.warn(
+          { error: String(error), sessionId: ctx.sessionId },
+          'Recording agent reply failed'
+        );
+      });
   });
+  if (ledger) session.on(voice.AgentSessionEventTypes.Close, () => void ledger.flush());
   return true;
 }

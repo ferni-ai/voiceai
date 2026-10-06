@@ -13,6 +13,8 @@
 import { voice } from '@livekit/agents';
 import { AudioFrame, AudioResampler, type Room } from '@livekit/rtc-node';
 import { createLogger } from '../../utils/safe-logger.js';
+import { synthWhistle } from './presence-sounds.js';
+import { createPresenceWatcher, presenceSoundsEnabled } from './presence-watcher.js';
 
 const log = createLogger({ module: 'ClipPlayer' });
 
@@ -124,6 +126,7 @@ export async function startBackchannelClips(
     return null;
   }
   let lastPlayedAt = 0;
+  const stopPresence = startPresenceSounds(session, player);
   return {
     playClip: (text) => {
       const pcm = getClip(text, personaId());
@@ -132,6 +135,40 @@ export async function startBackchannelClips(
       return true;
     },
     lastPlayedAt: () => lastPlayedAt,
-    close: async () => player.close(),
+    close: async () => {
+      stopPresence();
+      await player.close();
+    },
+  };
+}
+
+/** A whistle is something heard in the room, not said to them: quieter than a backchannel. */
+const WHISTLE_VOLUME = 0.5;
+
+/**
+ * The whistle in an easy silence (presence-watcher.ts), on the same track as
+ * the backchannels. Returns its cleanup; a no-op unless PRESENCE_SOUNDS=on.
+ */
+function startPresenceSounds(session: voice.AgentSession, player: ClipPlayer): () => void {
+  if (!presenceSoundsEnabled()) return () => {};
+  const watcher = createPresenceWatcher({
+    play: () => {
+      const ok = player.play(synthWhistle(), WHISTLE_VOLUME);
+      if (ok) log.info({}, 'PRESENCE_SOUND whistle');
+      return ok;
+    },
+    stop: () => player.stop(),
+    mood: () =>
+      (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
+        ?.primary,
+  });
+  const onAgent = (ev: { newState?: string }) => watcher.onAgentState(ev.newState ?? '');
+  const onUser = (ev: { newState?: string }) => watcher.onUserState(ev.newState ?? '');
+  session.on(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
+  session.on(voice.AgentSessionEventTypes.UserStateChanged, onUser);
+  return () => {
+    watcher.close();
+    session.off(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
+    session.off(voice.AgentSessionEventTypes.UserStateChanged, onUser);
   };
 }

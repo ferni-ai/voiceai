@@ -10,7 +10,9 @@
 //   captions.
 // Listening: short agent sounds while the user is still talking are
 //   backchannels ("mm-hm"); long ones are interruptions.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { compareToTargets, computeHumanness } from './humanness.mjs';
 
 const STOCK_OPENER = /^(?:oh+|ugh+|ha(?:ha)*|hah|yeah|yep|hmm+|mm+|ah+|aw+|wow|whoa)\b/i;
 const BACKCHANNEL_MAX_MS = 1500;
@@ -52,8 +54,10 @@ const overlaps = []; // caller talking over the agent (converse.mjs @backchannel
 // before 2026-10-05, which all called as voice-eval-sam.
 const users = new Set();
 
+const runs = [];
 for (const file of process.argv.slice(2)) {
   const run = JSON.parse(readFileSync(file, 'utf8'));
+  runs.push(run);
   if (run.meta?.uid) users.add(run.meta.uid);
   for (const r of run.results) if (typeof r.replyDelayMs === 'number') delays.push(r.replyDelayMs);
   for (const r of run.results) if (r.mode) overlaps.push(r);
@@ -168,6 +172,14 @@ const score = {
   repeatedPhrases: repeatedPhrases.slice(0, 10),
   greetingUtterances,
   greeting,
+  // Turn shape and stance against human conversation (humanness.mjs). Targets:
+  // HUMAN_TARGETS, or the research file when present.
+  humanness: computeHumanness(runs),
   replyTexts: replies,
 };
+const targetsFile =
+  process.env.HUMAN_TARGETS ?? `${homedir()}/Documents/voiceai-evidence/human-baselines/score-targets.json`;
+if (existsSync(targetsFile)) {
+  score.vsHuman = compareToTargets(score.humanness, JSON.parse(readFileSync(targetsFile, 'utf8')));
+}
 console.log(JSON.stringify(score, null, 2));

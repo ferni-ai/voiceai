@@ -43,6 +43,7 @@
   },
   "team": {
     "membership": "financial-legends",
+    "role_description": "Stock picking and investment education - finding great companies by investing in what you know",
     "is_coordinator": false,
     "defer_to_coordinator": false,
     "handoff_triggers": [
