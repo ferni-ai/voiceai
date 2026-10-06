@@ -25,6 +25,8 @@
 # EVAL_DRY_RUN=1 prints the plan as JSON (user id, rooms, scenarios) and exits:
 #   no audio, no token, no call.
 # EVAL_TZ sets the caller's timezone (default America/New_York).
+# CALLER_VOICE=say (default, macOS Samantha) or cartesia:<voiceId> for a natural
+# caller (see caller-tts.mjs). Each voice keeps its own rendered audio.
 #
 # Output: scripts/voice-eval/out/<scenario>-<label>.{json,*.wav,score.json}.
 # The json has meta.uid and the score.json has users, so a scorecard can be
@@ -48,6 +50,10 @@ else
   project=ferni-dev; agent=voice-agent-lkcloud; url=wss://dev-8sm1ba0z.livekit.cloud
 fi
 out=$HERE/out
+caller=${CALLER_VOICE:-say}
+if [[ $caller == cartesia:* && -z ${CARTESIA_API_KEY:-} && -z ${EVAL_DRY_RUN:-} ]]; then
+  export CARTESIA_API_KEY=$(gcloud secrets versions access latest --secret=cartesia-api-key --project=johnb-2025 2>/dev/null)
+fi
 json=$out/$scenario-$label.json
 stamp=$(date +%H%M%S)
 
@@ -59,7 +65,8 @@ fi
 # Writes $out/audio/<scenario>/turns.list: one PCM per scripted line.
 prepare_turns() {
   local sc=$1 i=0 line mode at rest pcm
-  mkdir -p $out/audio/$sc
+  local adir=$out/audio/$sc${${caller:#say}:+/${caller//:/-}}
+  mkdir -p $adir
   grep -v '^#' $HERE/scenarios/$sc.txt | grep -v '^[[:space:]]*$' | while IFS= read -r line; do
     i=$((i+1))
     # "@backchannel 1800 Mm-hmm." / "@interrupt 1500 Wait...": spoken that many ms
@@ -68,20 +75,26 @@ prepare_turns() {
     if [[ $line == @* ]]; then
       mode=${${line%% *}#@}; rest=${line#* }; at=${rest%% *}; line=${rest#* }
     fi
-    pcm=$out/audio/$sc/t$i.pcm
+    pcm=$adir/t$i.pcm
     if [[ ! -s $pcm || $HERE/scenarios/$sc.txt -nt $pcm ]]; then
-      say -v Samantha -o $out/audio/$sc/t$i.aiff -- "$line"
-      ffmpeg -loglevel error -y -i $out/audio/$sc/t$i.aiff -ac 1 -ar 48000 -f s16le $pcm
+      if [[ $caller == cartesia:* ]]; then
+        node $HERE/caller-tts.mjs ${caller#cartesia:} $pcm "$line"
+      else
+        say -v Samantha -o $adir/t$i.aiff -- "$line"
+        ffmpeg -loglevel error -y -i $adir/t$i.aiff -ac 1 -ar 48000 -f s16le $pcm
+      fi
     fi
     if [[ $mode == turn ]]; then print -r -- $pcm; else print -r -- "$pcm::$mode::$at"; fi
-  done > $out/audio/$sc/turns.list
+  done > $adir/turns.list
+  print -r -- $adir
 }
 
 # One call as $uid: converse_call <scenario> <out.json> <role>
 converse_call() {
   local sc=$1 file=$2 role=$3 room tok turns
-  prepare_turns $sc
-  turns=(${(f)"$(<$out/audio/$sc/turns.list)"})
+  local adir
+  adir=$(prepare_turns $sc)
+  turns=(${(f)"$(<$adir/turns.list)"})
   room="eval-$sc-$label-$(date +%H%M%S)"
   tok=$(lk token create --project $project --join --room $room --identity eval-user --name Sam \
     --agent $agent --job-metadata "{\"user_id\":\"$uid\",\"user_name\":\"Sam\",\"timezone\":\"${EVAL_TZ:-America/New_York}\"}" --valid-for 20m 2>/dev/null \
