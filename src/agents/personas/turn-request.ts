@@ -26,6 +26,7 @@ import {
 } from '../../tools/handoff/locked-teammates.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
 import {
   TURN_STYLE_REMINDER,
   turnStyleReminderEnabled,
@@ -53,7 +54,11 @@ export interface TurnToolsState {
  * notes for this reply, if any, and without per-turn context built for an
  * earlier turn (turn-intelligence.ts).
  */
-export function withTurnReminder(request: llm.ChatContext, session: object): llm.ChatContext {
+export function withTurnReminder(
+  request: llm.ChatContext,
+  session: object,
+  options: { shape?: boolean } = {}
+): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
   const director = getDirector(session);
   const view = unlockViewFor((session as { userData?: unknown }).userData);
@@ -62,11 +67,13 @@ export function withTurnReminder(request: llm.ChatContext, session: object): llm
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
   const notes = formatNotes((director?.current() ?? []).filter(keep));
+  // The style goes last, nearest the reply: the per-turn shape is followed
+  // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
-    turnStyleReminderEnabled() ? TURN_STYLE_REMINDER : '',
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     notes,
+    turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -84,6 +91,31 @@ function callerWords(chatCtx: llm.ChatContext): string {
     if (item.role === 'user' && !text.startsWith(TURN_CONTEXT_HEADER)) said.unshift(text);
   }
   return said.join(' ');
+}
+
+/**
+ * This reply's shape (turn-shape.ts) from the caller's latest words, or the
+ * single style reminder when shaping is off, there are no words, or the
+ * caller asked for none (a crisis reply must not be held to a few words).
+ */
+function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): string {
+  const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
+  if (!said) return TURN_STYLE_REMINDER;
+  // Seeded per call and words: the preemptive and final requests agree, but
+  // the same words on another call (or said again) can get another shape.
+  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`));
+  log.info({ move: turn.move, shape: turn.shape }, 'TURN_SHAPE');
+  return turn.reminder;
+}
+
+const callSeeds = new WeakMap<object, string>();
+function callSeed(session: object): string {
+  let seed = callSeeds.get(session);
+  if (!seed) {
+    seed = Math.random().toString(36).slice(2);
+    callSeeds.set(session, seed);
+  }
+  return seed;
 }
 
 // Re-exported for callers that read the unlock view from a session.
