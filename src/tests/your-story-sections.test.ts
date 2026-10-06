@@ -18,7 +18,11 @@ vi.mock('../services/superhuman/semantic-intelligence/emotional-trajectories.js'
 const { fetchMoodCalendar, fetchEmotionalArc } = await import('../api/your-story-sections.js');
 
 const DAY = 24 * 60 * 60 * 1000;
-const NOW = Date.now();
+// Noon UTC yesterday: the calendar buckets by UTC date, and with the real clock
+// an entry an hour after NOW - 2 days crossed midnight whenever this ran after
+// 23:00 UTC (it failed CI on 2026-10-05).
+const today = new Date();
+const NOW = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 1, 12);
 const days = (moods: string[]) =>
   moods.map((mood, i) => ({ mood, intensity: 0.5, timestamp: NOW - (moods.length - 1 - i) * DAY }));
 

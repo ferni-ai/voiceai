@@ -5,7 +5,7 @@
  * handler routed that field through the translation layer for that locale.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, onTestFinished } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -138,6 +138,15 @@ describe('sanctuary routes localize with Accept-Language', () => {
   });
 
   it('keeps the quote author as-is, and translates the missing-author label', async () => {
+    // Only the morning and afternoon quote lists have an author-less quote, and
+    // the list follows the clock, so pin it to 9:00 (it failed from 17:00 to 05:00).
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const nine = new Date();
+    nine.setHours(9, 0, 0, 0);
+    vi.setSystemTime(nine);
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const authors = new Set<string>();
     const unknown = new Set<string>();
     for (let i = 0; i < 80; i++) {
