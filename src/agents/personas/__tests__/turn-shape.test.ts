@@ -1,6 +1,7 @@
 import { llm } from '@livekit/agents';
 import { describe, expect, it } from 'vitest';
 import { callerMove, pickShape, rngFor, turnShapeFor } from '../turn-shape.js';
+import { Director, setDirector } from '../director-notes.js';
 import { withTurnReminder } from '../turn-request.js';
 import { TURN_STYLE_REMINDER } from '../turn-style.js';
 
@@ -74,5 +75,41 @@ describe('withTurnReminder', () => {
       if (prev === undefined) delete process.env.TURN_SHAPE;
       else process.env.TURN_SHAPE = prev;
     }
+  });
+});
+
+describe('withTurnReminder seeding and order', () => {
+  const ctx = (said: string) => {
+    const c = llm.ChatContext.empty();
+    c.addMessage({ role: 'user', content: said });
+    return c;
+  };
+  const last = (c: llm.ChatContext) =>
+    (c.items[c.items.length - 1] as { textContent?: string }).textContent ?? '';
+
+  it('gives one call the same shape for the same words, and other calls a fresh draw', () => {
+    const session = {};
+    expect(last(withTurnReminder(ctx('My cat did it again.'), session))).toBe(
+      last(withTurnReminder(ctx('My cat did it again.'), session))
+    );
+    const shapes = new Set(
+      Array.from(
+        { length: 40 },
+        () => last(withTurnReminder(ctx('My cat did it again.'), {})).match(/THIS REPLY: \w+/)?.[0]
+      )
+    );
+    expect(shapes.size).toBeGreaterThan(1);
+  });
+
+  it('puts the shape after the told-this-call record and director notes', () => {
+    const session = {};
+    setDirector(session, {
+      current: () => ['Drop the trivia; it makes the call feel like a lecture.'],
+      told: () => 'You already told them about Wyoming.',
+    } as unknown as Director);
+    const text = last(withTurnReminder(ctx('My cat did it again.'), session));
+    setDirector(session, null);
+    expect(text.indexOf('THIS REPLY:')).toBeGreaterThan(text.indexOf('Drop the trivia'));
+    expect(text.indexOf('THIS REPLY:')).toBeGreaterThan(text.indexOf('Wyoming'));
   });
 });

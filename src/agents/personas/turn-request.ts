@@ -56,10 +56,12 @@ export function withTurnReminder(
   const chatCtx = withoutStaleTurnContext(request);
   const director = getDirector(session);
   const notes = formatNotes(director?.current() ?? []);
+  // The style goes last, nearest the reply: the per-turn shape is followed
+  // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
-    turnStyleReminderEnabled() ? styleFor(chatCtx, options.shape !== false) : '',
     director?.told() ?? '',
     notes,
+    turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -71,12 +73,24 @@ export function withTurnReminder(
  * single style reminder when shaping is off, there are no words, or the
  * caller asked for none (a crisis reply must not be held to a few words).
  */
-function styleFor(chatCtx: llm.ChatContext, shape: boolean): string {
+function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): string {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
   if (!said) return TURN_STYLE_REMINDER;
-  const turn = turnShapeFor(said, rngFor(said));
+  // Seeded per call and words: the preemptive and final requests agree, but
+  // the same words on another call (or said again) can get another shape.
+  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`));
   log.info({ move: turn.move, shape: turn.shape }, 'TURN_SHAPE');
   return turn.reminder;
+}
+
+const callSeeds = new WeakMap<object, string>();
+function callSeed(session: object): string {
+  let seed = callSeeds.get(session);
+  if (!seed) {
+    seed = Math.random().toString(36).slice(2);
+    callSeeds.set(session, seed);
+  }
+  return seed;
 }
 
 /** Who this user has unlocked, read the way the handoff tool's runtime check reads it. */
