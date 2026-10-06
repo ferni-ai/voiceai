@@ -15,6 +15,7 @@ export {
 } from './auto-rollback.js';
 export * from './canary-deployment.js';
 export * from './container-watchdog.js';
+export { removeStaleTempFiles } from './stale-temp-cleanup.js';
 export * from './health-checks.js';
 // post-deploy-verification exports different types
 export {

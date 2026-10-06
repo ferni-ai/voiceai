@@ -9,7 +9,7 @@ vi.mock('../../self-healing/ai-diagnostics.js', () => ({
   analyzeFailure: async () => null,
 }));
 
-const { removeStaleTempFiles } = await import('../container-watchdog.js');
+const { removeStaleTempFiles } = await import('../stale-temp-cleanup.js');
 
 describe('removeStaleTempFiles', () => {
   const now = Date.now();
