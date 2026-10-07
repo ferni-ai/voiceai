@@ -72,6 +72,10 @@ let isInitialized = false;
  * Initialize Firebase Admin SDK if not already initialized.
  * Uses application default credentials (ADC) in production.
  */
+export function ensureFirebaseAdmin(): boolean {
+  return ensureInitialized();
+}
+
 function ensureInitialized(): boolean {
   if (isInitialized) {
     return true;

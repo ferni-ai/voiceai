@@ -20,7 +20,7 @@ vi.mock('../auth-middleware.js', () => ({
     }
     return { userId, isAdmin: req.headers['x-admin'] === 'true' };
   }),
-  rateLimit: vi.fn(() => ({ allowed: true })),
+  rateLimit: vi.fn(() => false), // the real contract: true means "limited, response sent"
 }));
 
 // Mock privacy/security services
@@ -57,6 +57,11 @@ vi.mock('firebase-admin', () => {
     },
   };
 });
+
+const deleteAllData = vi.hoisted(() => vi.fn());
+vi.mock('../../services/data-export.js', () => ({ getDataExportService: () => ({ deleteAllData }) }));
+const deleteFirebaseUser = vi.hoisted(() => vi.fn());
+vi.mock('../../services/identity/firebase-auth.js', () => ({ deleteFirebaseUser }));
 
 // Mock helpers
 vi.mock('../helpers.js', async () => {
@@ -127,7 +132,7 @@ describe('GDPR Routes API', () => {
     });
   });
 
-  describe('POST /api/gdpr/export', () => {
+  describe('GET /api/gdpr/export', () => {
     it('should initiate data export for authenticated user', async () => {
       const { handleGDPRRoutes } = await import('../gdpr-routes.js');
       const { parseBody } = await import('../helpers.js');
@@ -135,7 +140,7 @@ describe('GDPR Routes API', () => {
       vi.mocked(parseBody).mockResolvedValue({ format: 'json' });
 
       const req = createMockRequest({
-        method: 'POST',
+        method: 'GET',
         url: '/api/gdpr/export',
         headers: { 'x-user-id': 'test-user' },
       });
@@ -327,7 +332,7 @@ describe('GDPR Routes API', () => {
     });
   });
 
-  describe('POST /api/gdpr/consent', () => {
+  describe('PUT /api/gdpr/consent', () => {
     it('should update consent preferences', async () => {
       const { handleGDPRRoutes } = await import('../gdpr-routes.js');
       const { parseBody } = await import('../helpers.js');
@@ -337,9 +342,13 @@ describe('GDPR Routes API', () => {
         analytics: true,
         thirdParty: false,
       });
+      // The handler reads the profile from the in-memory default store.
+      const { getDefaultStore } = await import('../../memory/index.js');
+      const { createUserProfile } = await import('../../types/user-profile.js');
+      await getDefaultStore().saveProfile(createUserProfile('test-user'));
 
       const req = createMockRequest({
-        method: 'POST',
+        method: 'PUT',
         url: '/api/gdpr/consent',
         headers: { 'x-user-id': 'test-user' },
       });
@@ -347,8 +356,7 @@ describe('GDPR Routes API', () => {
 
       await handleGDPRRoutes(req, res, '/api/gdpr/consent');
 
-      // Should update consent
-      expect([200, 500]).toContain(res._statusCode);
+      expect(res._statusCode).toBe(200);
     });
   });
 
@@ -393,6 +401,38 @@ describe('GDPR Routes API', () => {
 
       // Rate limit check would happen
       expect(rateLimit).toBeDefined();
+    });
+  });
+
+  describe('DELETE /api/gdpr/account', () => {
+    const uid = 'firebase-uid-0123456789abcdef';
+    async function deleteAccount(): Promise<ReturnType<typeof createMockResponse>> {
+      const { parseBody } = await import('../helpers.js');
+      vi.mocked(parseBody).mockResolvedValue({ confirmation: 'DELETE_MY_DATA' });
+      const { handleGDPRRoutes } = await import('../gdpr-routes.js');
+      const req = createMockRequest({ method: 'DELETE', url: '/api/gdpr/account', headers: { 'x-user-id': uid } });
+      Object.assign(req, { socket: { remoteAddress: '127.0.0.1' } });
+      const res = createMockResponse();
+      await handleGDPRRoutes(req, res, '/api/gdpr/account');
+      return res;
+    }
+
+    it('erases the data through the shared sweep, then closes the sign-in', async () => {
+      const order: string[] = [];
+      deleteAllData.mockImplementation(async () => (order.push('data'), { profile: true }));
+      deleteFirebaseUser.mockImplementation(async () => (order.push('sign-in'), true));
+      const res = await deleteAccount();
+      expect(res._statusCode).toBe(200);
+      expect(deleteAllData).toHaveBeenCalledWith(uid);
+      expect(order).toEqual(['data', 'sign-in']);
+    });
+
+    it('keeps the sign-in and says so when the data could not be erased', async () => {
+      deleteAllData.mockRejectedValue(new Error('User record not fully erased'));
+      const res = await deleteAccount();
+      expect(res._statusCode).toBe(500);
+      expect(deleteFirebaseUser).not.toHaveBeenCalled();
+      expect(JSON.parse(res._data).error).toBe('Failed to delete account. Please contact support.');
     });
   });
 });
