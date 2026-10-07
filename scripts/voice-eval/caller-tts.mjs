@@ -17,23 +17,35 @@ if (!voiceId || !out || !text || !key) {
   process.exit(2);
 }
 
-const res = await fetch('https://api.cartesia.ai/tts/bytes', {
-  method: 'POST',
-  headers: {
-    'X-API-Key': key,
-    'Cartesia-Version': '2024-06-10',
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    model_id: 'sonic-3.6-2026-08-27',
-    transcript: text,
-    voice: { mode: 'id', id: voiceId },
-    output_format: { container: 'raw', encoding: 'pcm_s16le', sample_rate: 48000 },
-    language: 'en',
-  }),
-});
-if (!res.ok) {
-  console.error(`caller-tts: Cartesia ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  process.exit(1);
+// `say` reads [[slnc N]] as N ms of silence; Cartesia would read it as text.
+// Render the words between markers and put real silence in between.
+const RATE = 48000;
+async function render(part) {
+  const res = await fetch('https://api.cartesia.ai/tts/bytes', {
+    method: 'POST',
+    headers: {
+      'X-API-Key': key,
+      'Cartesia-Version': '2024-06-10',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model_id: 'sonic-3.6-2026-08-27',
+      transcript: part,
+      voice: { mode: 'id', id: voiceId },
+      output_format: { container: 'raw', encoding: 'pcm_s16le', sample_rate: RATE },
+      language: 'en',
+    }),
+  });
+  if (!res.ok) {
+    console.error(`caller-tts: Cartesia ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    process.exit(1);
+  }
+  return Buffer.from(await res.arrayBuffer());
 }
-writeFileSync(out, Buffer.from(await res.arrayBuffer()));
+
+const pieces = [];
+for (const [i, part] of text.split(/\[\[slnc (\d+)\]\]/).entries()) {
+  if (i % 2 === 1) pieces.push(Buffer.alloc(Math.round((Number(part) / 1000) * RATE) * 2));
+  else if (part.trim()) pieces.push(await render(part.trim()));
+}
+writeFileSync(out, Buffer.concat(pieces));

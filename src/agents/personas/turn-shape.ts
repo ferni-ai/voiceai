@@ -16,6 +16,8 @@
  * @module agents/personas/turn-shape
  */
 
+import { extrasFor } from './turn-extras.js';
+
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
 
@@ -109,17 +111,22 @@ const REGISTER =
  * was taken almost every time (replay: 35% of replies ended on one). So a
  * question is allowed on about a quarter of longer replies.
  */
-function questionLine(shape: Shape, rng: () => number): string {
-  if (shape !== 'react' && shape !== 'one' && rng() < 0.25) {
-    return 'You may ask one question if you really want to know something; otherwise end on a thought.';
-  }
-  return 'No question this time: end on a thought, a reaction or something of your own.';
+function questionAllowed(shape: Shape, rng: () => number): boolean {
+  return shape !== 'react' && shape !== 'one' && rng() < 0.25;
 }
+
+const QUESTION_LINE = {
+  allowed:
+    'You may ask one question if you really want to know something; otherwise end on a thought.',
+  none: 'No question this time: end on a thought, a reaction or something of your own.',
+};
 
 export interface TurnShape {
   move: CallerMove;
   shape: Shape;
   reminder: string;
+  /** Optional behaviours that fired for this reply (turn-extras.ts). */
+  extras: string[];
 }
 
 /** The reminder for one reply to `userText`. */
@@ -134,8 +141,14 @@ export function turnShapeFor(userText: string, rng: () => number = Math.random):
   if (move !== 'ack' && rng() < 0.3) parts.push(STANCE);
   if (shape !== 'react' && rng() < 0.5)
     parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
-  parts.push(SHAPE_LINE[shape], questionLine(shape, rng));
-  return { move, shape, reminder: parts.join(' ') };
+  const asks = questionAllowed(shape, rng);
+  const extras = extrasFor(userText, move, shape, asks, rng);
+  parts.push(...extras.lines);
+  parts.push(
+    extras.shapeLine ?? SHAPE_LINE[shape],
+    extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none)
+  );
+  return { move, shape, reminder: parts.filter(Boolean).join(' '), extras: extras.fired };
 }
 
 export function turnShapeEnabled(env: Record<string, string | undefined> = process.env): boolean {
