@@ -152,7 +152,7 @@ export async function initializeOutreachPersistence(): Promise<void> {
 
   // Register with SessionDataManager
   try {
-    const { getSessionDataManager } = await import('../session-manager/session-data-manager.js');
+    const { getSessionDataManager } = await import('../session/session-data-manager.js');
     getSessionDataManager().registerService({
       name: 'OutreachIntelligence',
       clearUserData: clearUserOutreachData,

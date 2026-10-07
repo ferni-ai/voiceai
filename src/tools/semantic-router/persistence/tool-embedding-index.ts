@@ -419,7 +419,7 @@ class ToolEmbeddingIndexService {
       version: INDEX_VERSION,
       descriptionEmbedding: toNumberArray(embeddings.description),
       exampleEmbeddings: embeddings.examples.map(toNumberArray),
-      embeddingModel: 'text-embedding-004', // TODO: Get from provider
+      embeddingModel: embeddings.description.length === 3072 ? 'gemini-embedding-001' : 'unknown',
       createdAt: new Date(),
       toolHash,
     };

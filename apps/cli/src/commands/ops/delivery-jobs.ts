@@ -55,6 +55,17 @@ export function getDeliveryJobs(uiServerUrl: string): DeliverySchedulerJob[] {
       timeout: '120s',
     },
     {
+      name: 'calendar-morning-briefing',
+      description: 'Alex morning calendar briefing (one push per user per local day)',
+      schedule: '*/15 5-11 * * *',
+      timezone: 'Etc/UTC',
+      uri: `${uiServerUrl}/api/jobs/calendar-briefing`,
+      httpMethod: 'POST',
+      retryCount: 1,
+      minBackoff: '30s',
+      timeout: '180s',
+    },
+    {
       name: 'calendar-triggers',
       description: 'Fire calendar-based coaching triggers',
       schedule: '*/5 * * * *',
