@@ -206,19 +206,19 @@ jobs:
           cache: 'pnpm'
 
       - name: Download rust-perf artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: rust-perf-linux-x64
           path: apps/rust-perf/
 
       - name: Download rust-audio artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: rust-audio-linux-x64
           path: apps/rust-audio/
 
       - name: Download sonata artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sonata-linux-x64
           path: apps/sonata/
