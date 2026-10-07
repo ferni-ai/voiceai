@@ -246,7 +246,7 @@ jobs:
         # The URL is in the job summary; a token without write access
         # must not fail the deploy
         continue-on-error: true
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           BRANCH: ${{ needs.context.outputs.branch }}
         with:

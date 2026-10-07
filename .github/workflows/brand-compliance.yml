@@ -62,7 +62,7 @@ jobs:
         # Dependabot and fork PRs always get a read-only token; the comment is a
         # courtesy and must not decide the check.
         continue-on-error: true
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
