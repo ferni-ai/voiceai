@@ -2606,7 +2606,7 @@
         },
         "human": {
           "title": "Not a Replacement",
-          "description": "Ferni isn't therapy. It's not a substitute for real help. It's support for the 99% of moments that don't need a professional."
+          "description": "Ferni is a coach and a friend, not a clinician. When something needs a professional, we'll help you find one."
         }
       },
       "promise": "Your contribution covers about 20 conversations for someone who can't chip in."
@@ -2952,7 +2952,9 @@
     "changePattern": "Change breathing pattern",
     "hold": "Hold",
     "in": "In",
-    "out": "Out"
+    "out": "Out",
+    "eyebrow": "BREATHE",
+    "title": "Breathe with me"
   },
   "calendar": {
     "saving": "Saving...",
@@ -7899,7 +7901,9 @@
     "lightsFound": {
       "one": "Found {count} light!",
       "other": "Found {count} lights!"
-    }
+    },
+    "siriShortcuts": "Siri Shortcuts",
+    "siriShortcutsDescription": "Tokens for Shortcuts on your phone"
   },
   "wellbeing": {
     "yourWellbeing": "Your Wellbeing",

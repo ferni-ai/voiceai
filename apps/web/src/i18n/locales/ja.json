@@ -2563,7 +2563,7 @@
         },
         "human": {
           "title": "代替品ではありません",
-          "description": "Ferniはセラピーではありません。専門的な治療の代わりにはなりませんが、専門家を必要としない99％の日常の瞬間に寄り添うサポートです。"
+          "description": "Ferniはコーチであり友人であり、臨床の専門家ではありません。専門家が必要なときは、見つけるお手伝いをします。"
         }
       },
       "promise": "あなたのご支援は、費用を払うのが難しい誰かの約20回分のお話を支えることにつながります。"
@@ -2909,7 +2909,9 @@
     "changePattern": "呼吸パターンを変更する",
     "hold": "止める",
     "in": "吸う",
-    "out": "吐く"
+    "out": "吐く",
+    "eyebrow": "[NEEDS_TRANSLATION] BREATHE",
+    "title": "[NEEDS_TRANSLATION] Breathe with me"
   },
   "calendar": {
     "saving": "保存中...",
@@ -7899,7 +7901,9 @@
     "lightsFound": {
       "other": "{count}個のライトが見つかりました！",
       "one": "{count}個のライトが見つかりました！"
-    }
+    },
+    "siriShortcuts": "[NEEDS_TRANSLATION] Siri Shortcuts",
+    "siriShortcutsDescription": "[NEEDS_TRANSLATION] Tokens for Shortcuts on your phone"
   },
   "wellbeing": {
     "yourWellbeing": "あなたのウェルビーイング",

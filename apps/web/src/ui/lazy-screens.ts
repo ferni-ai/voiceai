@@ -173,6 +173,11 @@ export async function showSmartHomeSettings(): Promise<void> {
   await m?.showSmartHomeSettings();
 }
 
+export async function showSiriShortcuts(): Promise<void> {
+  const m = await loadScreen('lazyScreens.screens.siriShortcuts', () => import('./webhook-settings.ui.js'));
+  m?.showWebhookSettings({ tab: 'siri' });
+}
+
 export async function showAppleHealthSettings(): Promise<void> {
   const m = await loadScreen('lazyScreens.screens.appleHealthSettings', () => import('./apple-health-settings.ui.js'));
   await m?.showAppleHealthSettings();

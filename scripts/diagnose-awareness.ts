@@ -10,7 +10,7 @@
  */
 
 import { getFirestoreDb } from '../src/memory/firestore-client.js';
-import { validateUserId } from '../src/services/session-manager/validation.js';
+import { validateUserId } from '../src/services/session/validation.js';
 import { createLogger } from '../src/utils/safe-logger.js';
 
 const log = createLogger({ module: 'diagnose-awareness' });

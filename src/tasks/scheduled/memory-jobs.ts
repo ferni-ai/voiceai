@@ -35,7 +35,7 @@ import {
   GROUP_TRANSCRIPT_RETENTION_DAYS,
   SUMMARY_RETENTION_DAYS,
   TRANSCRIPT_RETENTION_DAYS,
-} from '../../services/session-manager/constants.js';
+} from '../../services/session/constants.js';
 import { runFirestoreQuery } from '../../utils/firestore-query.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';

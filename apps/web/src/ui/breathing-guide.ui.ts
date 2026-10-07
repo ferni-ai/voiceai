@@ -83,10 +83,10 @@ const PHASE_INSTRUCTIONS: Record<BreathingPhase, string> = {
 };
 
 const PHASE_COLORS: Record<BreathingPhase, string> = {
-  inhale: 'rgba(74, 124, 89, 0.3)',    // Ferni green
-  hold: 'rgba(196, 167, 125, 0.3)',    // Warm gold
-  exhale: 'rgba(107, 142, 155, 0.3)',  // Calming blue
-  pause: 'rgba(139, 115, 85, 0.25)',   // Neutral brown
+  inhale: 'var(--persona-tint)',
+  hold: 'var(--persona-glow)',
+  exhale: 'var(--persona-tint)',
+  pause: 'var(--color-bg-tertiary)',
 };
 
 // ============================================================================
@@ -298,7 +298,7 @@ export class BreathingGuide {
     this.options = {
       pattern: 'relaxing',
       size: 200,
-      color: '#4A7C59',
+      color: 'var(--persona-primary)',
       showInstructions: true,
       showTimer: true,
       hapticsEnabled: true,
@@ -348,7 +348,7 @@ export class BreathingGuide {
     // Glow effect
     const glow = document.createElement('div');
     glow.className = 'ferni-breathing-orb__glow';
-    glow.style.background = this.options.color || '#4A7C59';
+    glow.style.background = this.options.color || 'var(--persona-primary)';
     this.orb.appendChild(glow);
 
     // Outer ring

@@ -2563,7 +2563,7 @@
         },
         "human": {
           "title": "并非替代品",
-          "description": "Ferni 不是心理治疗，也不能替代专业的帮助。它是为了陪伴你度过那 99% 不需要专业人士、但依然需要支持的日常时刻。"
+          "description": "Ferni是教练和朋友，不是临床专家。当你需要专业人士时，我们会帮你找到。"
         }
       },
       "promise": "你的支持可以为无法付费的人负担大约 20 次对话。"
@@ -2909,7 +2909,9 @@
     "changePattern": "更改呼吸节奏",
     "hold": "屏气",
     "in": "吸气",
-    "out": "呼气"
+    "out": "呼气",
+    "eyebrow": "[NEEDS_TRANSLATION] BREATHE",
+    "title": "[NEEDS_TRANSLATION] Breathe with me"
   },
   "calendar": {
     "saving": "正在保存...",
@@ -7899,7 +7901,9 @@
     "lightsFound": {
       "other": "找到了 {count} 盏灯！",
       "one": "找到了 {count} 盏灯！"
-    }
+    },
+    "siriShortcuts": "[NEEDS_TRANSLATION] Siri Shortcuts",
+    "siriShortcutsDescription": "[NEEDS_TRANSLATION] Tokens for Shortcuts on your phone"
   },
   "wellbeing": {
     "yourWellbeing": "你的身心健康",

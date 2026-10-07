@@ -2563,7 +2563,7 @@
         },
         "human": {
           "title": "並非取代人類",
-          "description": "Ferni 不是心理治療，也無法取代專業協助。它是在那 99% 不需要專業介入、但需要陪伴的日常時刻裡，給你的溫暖支持。"
+          "description": "Ferni是教練和朋友，不是臨床專家。當你需要專業人士時，我們會幫你找到。"
         }
       },
       "promise": "你的贊助能為無法付費的人，負擔大約 20 次的對話成本。"
@@ -2909,7 +2909,9 @@
     "changePattern": "更改呼吸節奏",
     "hold": "屏息",
     "in": "吸氣",
-    "out": "吐氣"
+    "out": "吐氣",
+    "eyebrow": "[NEEDS_TRANSLATION] BREATHE",
+    "title": "[NEEDS_TRANSLATION] Breathe with me"
   },
   "calendar": {
     "saving": "儲存中...",
@@ -7899,7 +7901,9 @@
     "lightsFound": {
       "other": "找到 {count} 盞燈！",
       "one": "找到 {count} 盞燈！"
-    }
+    },
+    "siriShortcuts": "[NEEDS_TRANSLATION] Siri Shortcuts",
+    "siriShortcutsDescription": "[NEEDS_TRANSLATION] Tokens for Shortcuts on your phone"
   },
   "wellbeing": {
     "yourWellbeing": "你的身心健康",

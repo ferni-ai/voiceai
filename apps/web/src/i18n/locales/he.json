@@ -2582,7 +2582,7 @@
         },
         "human": {
           "title": "לא תחליף",
-          "description": "Ferni היא לא טיפול פסיכולוגי. היא לא תחליף לעזרה אמיתית. היא תמיכה ב-99% מהרגעים שלא דורשים איש מקצוע."
+          "description": "פרני הוא מאמן וחבר, לא איש מקצוע קליני. כשצריך איש מקצוע, נעזור למצוא אחד."
         }
       },
       "promise": "התרומה שלכם מכסה בערך 20 שיחות עבור מישהו שלא יכול לשלם."
@@ -2928,7 +2928,9 @@
     "changePattern": "לשנות את דפוס הנשימה",
     "hold": "להחזיק",
     "in": "שאיפה",
-    "out": "נשיפה"
+    "out": "נשיפה",
+    "eyebrow": "[NEEDS_TRANSLATION] BREATHE",
+    "title": "[NEEDS_TRANSLATION] Breathe with me"
   },
   "calendar": {
     "saving": "שומר...",
@@ -7946,7 +7948,9 @@
       "one": "נמצאה {count} מנורה!",
       "two": "נמצאו {count} מנורות!",
       "other": "נמצאו {count} מנורות!"
-    }
+    },
+    "siriShortcuts": "[NEEDS_TRANSLATION] Siri Shortcuts",
+    "siriShortcutsDescription": "[NEEDS_TRANSLATION] Tokens for Shortcuts on your phone"
   },
   "wellbeing": {
     "yourWellbeing": "הרווחה האישית שלכם",

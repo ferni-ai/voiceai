@@ -1,20 +1,4 @@
-/**
- * Smart Home Settings UI
- *
- * A warm, inviting settings panel for connecting your smart home devices.
- * Ferni can help set the perfect atmosphere for any moment.
- *
- * SUPPORTED INTEGRATIONS:
- * - Ecobee (thermostat) - Direct API
- * - Philips Hue (lights) - Direct bridge communication
- * - LIFX (lights) - Cloud API
- *
- * DESIGN PRINCIPLES:
- * - Warm, human copy (Ferni voice)
- * - Self-service setup with clear guidance
- * - Progress indicators for multi-step flows
- * - Celebrates successful connections
- */
+/** Smart home settings: Ecobee, Hue, LIFX, Sonos, HomeKit, Siri Shortcuts. */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { formatNumber, t } from '../i18n/index.js';
@@ -22,7 +6,6 @@ import { tp } from '../i18n/plural.js';
 import { appState } from '../state/index.js';
 import { apiDelete, apiGet, apiPost } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
-
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -874,6 +857,16 @@ function renderMainView(status: IntegrationStatus): void {
     })
   );
 
+  integrations.appendChild(
+    createIntegrationCard({
+      id: 'siri',
+      name: t('smarthome.siriShortcuts', 'Siri Shortcuts'),
+      description: t('smarthome.siriShortcutsDescription', 'Tokens for Shortcuts on your phone'),
+      icon: 'apple',
+      connected: false,
+    })
+  );
+
   content.appendChild(integrations);
 }
 
@@ -942,6 +935,12 @@ function createIntegrationCard(options: {
   }
 
   const handleCardActivate = () => {
+    if (options.id === 'siri') {
+      void import('./webhook-settings.ui.js').then(({ showWebhookSettings }) => {
+        showWebhookSettings({ tab: 'siri' });
+      });
+      return;
+    }
     if (options.connected) {
       showDisconnectConfirm(options.id, options.name);
     } else {

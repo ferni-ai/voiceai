@@ -1028,8 +1028,8 @@ class SanctuaryUI {
         align-items: center;
         justify-content: center;
         background: var(--color-utility-backdrop, rgba(20, 16, 14, 0.85));
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(var(--glass-blur-heavy));
+        -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
         overflow: hidden;
       }
 

@@ -374,8 +374,8 @@ const MOMENT_STYLES = `
   position: absolute;
   inset: 0;
   background: rgba(44, 37, 32, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
 }
 
 .moment-milestone__card {
