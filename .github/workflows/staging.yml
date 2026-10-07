@@ -127,6 +127,15 @@ jobs:
             apps/web/dist/
           retention-days: 3
 
+      # This job is a required check and runs in the merge queue; Deploy Staging, the
+      # only other build of this image, is skipped there. So a Dockerfile.ui that cannot
+      # build (#392: an npm lockfile out of sync) merged and failed every UI deploy from
+      # main. Build the production image here. No push, no credentials.
+      - name: Build UI image (no push)
+        run: |
+          docker build -f docker/Dockerfile.ui -t john-bogle-ui:merge-check .
+          docker image rm john-bogle-ui:merge-check
+
   # ============================================================================
   # DEPLOY STAGING
   # ============================================================================
