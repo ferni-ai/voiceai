@@ -61,6 +61,9 @@ vi.mock('../utils/safe-logger.js', () => ({
   getLogger: vi.fn(() => mockLogger),
 }));
 
+const eraseUserRecord = vi.hoisted(() => vi.fn());
+vi.mock('../services/platform/erase-user-record.js', () => ({ eraseUserRecord }));
+
 import { getDataExportService, type ExportCategory } from '../services/data-export.js';
 
 // ============================================================================
@@ -348,6 +351,23 @@ describe('GDPR Data Deletion Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockEngagementStore.deleteUserData = vi.fn().mockResolvedValue(undefined);
+    eraseUserRecord.mockResolvedValue(undefined);
+  });
+
+  describe('the user record (bogle_users/{uid})', () => {
+    it('is erased, so the memories the agent keeps there go with the account', async () => {
+      expect(eraseUserRecord).not.toHaveBeenCalled();
+      const results = await getDataExportService().deleteAllData(testUserId);
+      expect(eraseUserRecord).toHaveBeenCalledWith(testUserId);
+      expect(results.engagement).toBe(true);
+    });
+
+    it('fails the whole deletion when it cannot be erased, so nobody is told it worked', async () => {
+      eraseUserRecord.mockRejectedValue(new Error('User record not fully erased'));
+      await expect(getDataExportService().deleteAllData(testUserId)).rejects.toThrow(
+        'User record not fully erased'
+      );
+    });
   });
 
   describe('Complete Data Deletion', () => {
