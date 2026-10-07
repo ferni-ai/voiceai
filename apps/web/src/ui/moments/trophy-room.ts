@@ -536,8 +536,8 @@ const TROPHY_ROOM_STYLES = `
   position: absolute;
   inset: 0;
   background: rgba(44, 37, 32, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
 }
 
 .trophy-room--entering .trophy-room__backdrop {
@@ -550,7 +550,7 @@ const TROPHY_ROOM_STYLES = `
 
 @keyframes trophy-backdrop-in {
   from { opacity: 0; backdrop-filter: blur(0); }
-  to { opacity: 1; backdrop-filter: blur(20px); }
+  to { opacity: 1; backdrop-filter: blur(var(--glass-blur-heavy)); }
 }
 
 @keyframes trophy-backdrop-out {

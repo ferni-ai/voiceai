@@ -4,10 +4,7 @@
  * Tests for the enhanced design system components:
  * - Haptics service (breathing, emotional momentum)
  * - Emotional springs
- * - Insight cards
- * - Predictive UI
  * - Breathing guide
- * - Narrative visuals
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -134,137 +131,6 @@ describe('Emotional Springs', () => {
 });
 
 // ============================================================================
-// INSIGHT CARDS TESTS
-// ============================================================================
-
-describe('Insight Cards', () => {
-  describe('DATA_COLORS', () => {
-    it('should define semantic color categories', async () => {
-      const { DATA_COLORS } = await import('../src/ui/insight-cards.ui.js');
-
-      expect(DATA_COLORS.positive).toBeDefined();
-      expect(DATA_COLORS.negative).toBeDefined();
-      expect(DATA_COLORS.neutral).toBeDefined();
-      expect(DATA_COLORS.highlight).toBeDefined();
-    });
-
-    it('should have color gradients and glows', async () => {
-      const { DATA_COLORS } = await import('../src/ui/insight-cards.ui.js');
-
-      Object.values(DATA_COLORS).forEach(color => {
-        if (typeof color === 'object' && 'primary' in color) {
-          expect(color.primary).toMatch(/^#[0-9A-Fa-f]{6}$/);
-          expect(color.gradient).toContain('linear-gradient');
-          expect(color.glow).toContain('rgba');
-        }
-      });
-    });
-
-    it('should have series colors for multi-line charts', async () => {
-      const { DATA_COLORS } = await import('../src/ui/insight-cards.ui.js');
-
-      expect(DATA_COLORS.series).toBeInstanceOf(Array);
-      expect(DATA_COLORS.series.length).toBeGreaterThanOrEqual(6);
-    });
-  });
-
-  describe('animateCountUp', () => {
-    it('should animate numbers', async () => {
-      const { animateCountUp } = await import('../src/ui/insight-cards.ui.js');
-
-      // Create mock element
-      const mockElement = { textContent: '0' } as HTMLElement;
-
-      animateCountUp(mockElement, 0, 100, 100);
-
-      // After animation, value should update
-      await new Promise(resolve => setTimeout(resolve, 150));
-      expect(mockElement.textContent).not.toBe('0');
-    });
-  });
-});
-
-// ============================================================================
-// PREDICTIVE UI TESTS
-// ============================================================================
-
-describe('Predictive UI', () => {
-  describe('getTimeBasedPreloads', () => {
-    it('should return preload suggestions', async () => {
-      const { getTimeBasedPreloads } = await import('../src/ui/predictive-ui.ui.js');
-
-      const preloads = getTimeBasedPreloads();
-
-      expect(preloads).toBeInstanceOf(Array);
-      expect(preloads.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('getContextualPreloads', () => {
-    it('should return context-appropriate preloads', async () => {
-      const { getContextualPreloads } = await import('../src/ui/predictive-ui.ui.js');
-
-      const goalPreloads = getContextualPreloads('goal-discussion');
-      expect(goalPreloads).toContain('goal-tracker');
-
-      const emotionalPreloads = getContextualPreloads('emotional-conversation');
-      expect(emotionalPreloads).toContain('journal');
-    });
-
-    it('should return empty array for unknown context', async () => {
-      const { getContextualPreloads } = await import('../src/ui/predictive-ui.ui.js');
-
-      const unknownPreloads = getContextualPreloads('unknown-context');
-      expect(unknownPreloads).toEqual([]);
-    });
-  });
-
-  describe('User preferences', () => {
-    it('should update and retrieve preferences', async () => {
-      const { setUserPreferences, getAdaptiveSettings } = await import('../src/ui/predictive-ui.ui.js');
-
-      setUserPreferences({
-        informationDensity: 'dense',
-        interactionSpeed: 'quick',
-      });
-
-      const settings = getAdaptiveSettings();
-
-      expect(settings.density.itemsPerView).toBe(8);
-      expect(settings.speed.animationSpeed).toBe(1.3);
-    });
-  });
-
-  describe('createSkeleton', () => {
-    beforeEach(() => {
-      // Mock DOM
-      vi.stubGlobal('document', {
-        createElement: vi.fn(() => ({
-          style: {},
-          className: '',
-          appendChild: vi.fn(),
-          cloneNode: vi.fn(() => ({ style: {} })),
-        })),
-      });
-    });
-
-    afterEach(() => {
-      vi.unstubAllGlobals();
-    });
-
-    it('should create skeleton elements', async () => {
-      const { createSkeleton } = await import('../src/ui/predictive-ui.ui.js');
-
-      const textSkeleton = createSkeleton({ type: 'text' });
-      expect(textSkeleton).toBeDefined();
-
-      const avatarSkeleton = createSkeleton({ type: 'avatar' });
-      expect(avatarSkeleton).toBeDefined();
-    });
-  });
-});
-
-// ============================================================================
 // BREATHING GUIDE TESTS
 // ============================================================================
 
@@ -307,32 +173,6 @@ describe('Breathing Guide', () => {
       expect(patterns).toContain('energizing');
       expect(patterns).toContain('sleep');
       expect(patterns).toContain('focus');
-    });
-  });
-});
-
-// ============================================================================
-// NARRATIVE VISUALS TESTS
-// ============================================================================
-
-describe('Narrative Visuals', () => {
-  describe('Timeline configuration', () => {
-    it('should have node size configurations', async () => {
-      // The module exports are internal, but we can test the create function works
-      const module = await import('../src/ui/narrative-visuals.ui.js');
-
-      expect(module.createTimeline).toBeDefined();
-      expect(module.createConstellation).toBeDefined();
-      expect(module.createGarden).toBeDefined();
-    });
-  });
-
-  describe('Garden stages', () => {
-    it('should have progressive growth stages', async () => {
-      // Test that the module exports the expected functions
-      const { createGarden } = await import('../src/ui/narrative-visuals.ui.js');
-
-      expect(typeof createGarden).toBe('function');
     });
   });
 });

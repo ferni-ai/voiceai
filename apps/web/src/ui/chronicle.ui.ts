@@ -146,8 +146,8 @@ const styles = `
     position: absolute;
     inset: 0;
     background: var(--color-utility-backdrop, rgba(20, 16, 14, 0.85));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(var(--glass-blur-heavy));
+    -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
   }
   
   .chronicle-container {
@@ -157,7 +157,7 @@ const styles = `
     max-height: 90vh;
     background: var(--color-background-elevated, #fffdfb);
     border-radius: var(--radius-2xl, 24px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--shadow-2xl);
     overflow: hidden;
     transform: scale(0.95) translateY(20px);
     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -329,7 +329,7 @@ const styles = `
   .chronicle-action-card:focus-visible {
     border-color: var(--color-accent, #3d5a45);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(61, 90, 69, 0.15);
+    box-shadow: var(--shadow-lg);
   }
   
   .chronicle-action-icon {
@@ -571,7 +571,7 @@ const styles = `
   .chronicle-capture-textarea:focus {
     outline: none;
     border-color: var(--color-accent, #3d5a45);
-    box-shadow: 0 0 0 4px rgba(61, 90, 69, 0.1);
+    box-shadow: var(--shadow-glow);
   }
   
   .chronicle-capture-textarea::placeholder {

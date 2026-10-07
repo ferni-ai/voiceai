@@ -1,14 +1,5 @@
 /**
- * Webhook Settings UI
- *
- * Manage webhook automations for IFTTT, Zapier, Home Assistant,
- * and Siri Shortcuts integration.
- *
- * DESIGN PRINCIPLES:
- *   - Clear list of webhooks with status indicators
- *   - Easy add/edit/delete flows
- *   - Siri token management with one-time display
- *   - Test webhook button for validation
+ * Webhook Settings UI — IFTTT, Zapier, Home Assistant, and Siri Shortcuts.
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
@@ -182,10 +173,10 @@ class WebhookSettingsUI {
     this.callbacks = callbacks;
   }
 
-  async show(): Promise<void> {
+  async show(options?: { tab?: 'webhooks' | 'siri' }): Promise<void> {
     this.initialize();
     if (!this.panel) return;
-
+    this.activeTab = options?.tab ?? 'webhooks';
     await this.fetchData();
     this.renderContent();
     this.panel.classList.add('webhook-settings--visible');
@@ -1131,11 +1122,8 @@ class WebhookSettingsUI {
 
 export const webhookSettingsUI = new WebhookSettingsUI();
 
-/**
- * Show webhook settings panel
- */
-export function showWebhookSettings(): void {
-  webhookSettingsUI.show();
+export function showWebhookSettings(options?: { tab?: 'webhooks' | 'siri' }): void {
+  void webhookSettingsUI.show(options);
 }
 
 /**
