@@ -330,22 +330,10 @@ export async function startup(): Promise<AppConfig> {
     logger.warn(`Outreach startup gate failed (non-fatal): ${outreachErr}`);
   }
 
-  // Start Calendar Briefing Job (Morning notifications for users with calendars)
-  // Alex delivers personalized morning briefings about upcoming meetings.
-  // Off by default: each voice-call process would run its own copy and track
-  // "already sent today" in its own memory, so briefings would be duplicated.
-  // It needs a single scheduled runner before it's turned on.
-  if (process.env.CALENDAR_BRIEFING_IN_PROCESS === 'on') {
-    try {
-      logger.info('Starting Calendar Briefing Job...');
-      const { startCalendarBriefingJob } =
-        await import('./tasks/scheduled/calendar-briefing-job.js');
-      startCalendarBriefingJob();
-      logger.info('✓ Calendar Briefing Job running (15min intervals)');
-    } catch (briefingErr) {
-      logger.warn(`Calendar Briefing Job startup failed (non-fatal): ${briefingErr}`);
-    }
-  }
+  // Calendar morning briefings run from Cloud Scheduler →
+  // POST /api/jobs/calendar-briefing (see infra/cloud-scheduler-jobs.yaml).
+  // Do not start an in-process interval here: each voice-call process would
+  // send its own copy.
 
   // ============================================================================
   // SPLIT INITIALIZATION: Essential vs Deferred

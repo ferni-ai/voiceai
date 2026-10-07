@@ -81,16 +81,6 @@ export function getPrimingTurns(config: ConversationPrimingConfig): PrimingTurn[
     return turns;
   }
 
-  // 🎯 SEMANTIC ROUTING PRIMARY: Skip JSON priming entirely
-  // When semantic routing handles tools, we don't want to teach the LLM
-  // the JSON format (it would output JSON as speech instead of natural language)
-  if (process.env.SEMANTIC_ROUTING_PRIMARY === 'true') {
-    log.info(
-      '🎯 SEMANTIC_ROUTING_PRIMARY=true: Skipping JSON priming (semantic router handles tools)'
-    );
-    return turns;
-  }
-
   if (!config.enabled) {
     log.debug('Conversation priming disabled');
     return turns;
@@ -399,13 +389,6 @@ export function generateRetryPrompt(
   suggestedTool: string | null,
   attempt: number
 ): string {
-  // 🎯 SEMANTIC ROUTING PRIMARY: Skip retry prompts
-  // When semantic routing handles tools, we don't want to teach the LLM JSON format
-  if (process.env.SEMANTIC_ROUTING_PRIMARY === 'true') {
-    log.debug('🎯 SEMANTIC_ROUTING_PRIMARY=true: Skipping retry prompt');
-    return '';
-  }
-
   log.info(
     { suggestedTool, attempt, originalMessage: originalMessage.slice(0, 50) },
     '🔄 RETRY: Generating retry prompt for failed tool call'
