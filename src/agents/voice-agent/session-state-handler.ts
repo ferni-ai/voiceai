@@ -1451,7 +1451,7 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       const intervals = baseIntervals.map(randomize);
       const targetInterval = intervals[silenceResponseCount];
 
-      const blocked = silenceResponseBlocked(sessionId, room, silenceDurationSec, silenceContext);
+      const blocked = silenceResponseBlocked(sessionId, room, silenceDurationSec, userData);
 
       if (
         !blocked &&
