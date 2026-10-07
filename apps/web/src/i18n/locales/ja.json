@@ -2909,7 +2909,9 @@
     "changePattern": "呼吸パターンを変更する",
     "hold": "止める",
     "in": "吸う",
-    "out": "吐く"
+    "out": "吐く",
+    "eyebrow": "[NEEDS_TRANSLATION] BREATHE",
+    "title": "[NEEDS_TRANSLATION] Breathe with me"
   },
   "calendar": {
     "saving": "保存中...",
@@ -7899,7 +7901,9 @@
     "lightsFound": {
       "other": "{count}個のライトが見つかりました！",
       "one": "{count}個のライトが見つかりました！"
-    }
+    },
+    "siriShortcuts": "[NEEDS_TRANSLATION] Siri Shortcuts",
+    "siriShortcutsDescription": "[NEEDS_TRANSLATION] Tokens for Shortcuts on your phone"
   },
   "wellbeing": {
     "yourWellbeing": "あなたのウェルビーイング",

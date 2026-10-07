@@ -2985,7 +2985,9 @@
     "changePattern": "تغيير نمط التنفس",
     "hold": "حبس",
     "in": "شهيق",
-    "out": "زفير"
+    "out": "زفير",
+    "eyebrow": "[NEEDS_TRANSLATION] BREATHE",
+    "title": "[NEEDS_TRANSLATION] Breathe with me"
   },
   "calendar": {
     "saving": "جاري الحفظ...",
@@ -8087,7 +8089,9 @@
       "few": "تم العثور على {count} مصابيح!",
       "many": "تم العثور على {count} مصباحاً!",
       "other": "تم العثور على {count} مصباح!"
-    }
+    },
+    "siriShortcuts": "[NEEDS_TRANSLATION] Siri Shortcuts",
+    "siriShortcutsDescription": "[NEEDS_TRANSLATION] Tokens for Shortcuts on your phone"
   },
   "wellbeing": {
     "yourWellbeing": "عافيتكم",

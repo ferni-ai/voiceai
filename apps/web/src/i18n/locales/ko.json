@@ -2909,7 +2909,9 @@
     "changePattern": "호흡 패턴 바꾸기",
     "hold": "멈춤",
     "in": "들숨",
-    "out": "날숨"
+    "out": "날숨",
+    "eyebrow": "[NEEDS_TRANSLATION] BREATHE",
+    "title": "[NEEDS_TRANSLATION] Breathe with me"
   },
   "calendar": {
     "saving": "저장하고 있어요...",
@@ -7899,7 +7901,9 @@
     "lightsFound": {
       "other": "조명 {count}개를 찾았어요!",
       "one": "조명 {count}개를 찾았어요!"
-    }
+    },
+    "siriShortcuts": "[NEEDS_TRANSLATION] Siri Shortcuts",
+    "siriShortcutsDescription": "[NEEDS_TRANSLATION] Tokens for Shortcuts on your phone"
   },
   "wellbeing": {
     "yourWellbeing": "나의 웰빙",

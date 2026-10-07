@@ -2928,7 +2928,9 @@
     "changePattern": "Changer de rythme respiratoire",
     "hold": "Retenir",
     "in": "Inspirer",
-    "out": "Expirer"
+    "out": "Expirer",
+    "eyebrow": "[NEEDS_TRANSLATION] BREATHE",
+    "title": "[NEEDS_TRANSLATION] Breathe with me"
   },
   "calendar": {
     "saving": "Enregistrement...",
@@ -7947,7 +7949,9 @@
       "one": "{count} lumière trouvée !",
       "many": "{count} de lumières trouvées !",
       "other": "{count} lumières trouvées !"
-    }
+    },
+    "siriShortcuts": "[NEEDS_TRANSLATION] Siri Shortcuts",
+    "siriShortcutsDescription": "[NEEDS_TRANSLATION] Tokens for Shortcuts on your phone"
   },
   "wellbeing": {
     "yourWellbeing": "Ton bien-être",

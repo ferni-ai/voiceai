@@ -2928,7 +2928,9 @@
     "changePattern": "לשנות את דפוס הנשימה",
     "hold": "להחזיק",
     "in": "שאיפה",
-    "out": "נשיפה"
+    "out": "נשיפה",
+    "eyebrow": "[NEEDS_TRANSLATION] BREATHE",
+    "title": "[NEEDS_TRANSLATION] Breathe with me"
   },
   "calendar": {
     "saving": "שומר...",
@@ -7946,7 +7948,9 @@
       "one": "נמצאה {count} מנורה!",
       "two": "נמצאו {count} מנורות!",
       "other": "נמצאו {count} מנורות!"
-    }
+    },
+    "siriShortcuts": "[NEEDS_TRANSLATION] Siri Shortcuts",
+    "siriShortcutsDescription": "[NEEDS_TRANSLATION] Tokens for Shortcuts on your phone"
   },
   "wellbeing": {
     "yourWellbeing": "הרווחה האישית שלכם",
