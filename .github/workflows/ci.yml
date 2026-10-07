@@ -690,6 +690,13 @@ jobs:
         if: steps.nm-cache.outputs.cache-hit != 'true'
         run: pnpm install --no-frozen-lockfile
 
+      # Blocking. Files over 500 lines may not grow, and brand-copy and brand-lint
+      # counts may not rise (docs/DEFINITION-OF-CLEAN.md). It only ran in Brand
+      # Compliance, which is not a required check and has no merge_group trigger,
+      # so growth reached main three times in a week (#343, #340, #388).
+      - name: Quality ratchet
+        run: pnpm tsx apps/cli/src/commands/quality/ratchet.ts
+
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
         continue-on-error: true
