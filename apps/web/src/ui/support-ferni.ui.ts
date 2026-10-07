@@ -20,6 +20,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { formatCurrency, t } from '../i18n/index.js';
 import { openSubscriptionManagement } from '../services/apple-iap.service.js';
 import { payForSeed, seedPaymentFailureMessage } from '../services/seed-payment.js';
+import { collectCardPayment } from './seed-payment-form.ui.js';
 import { appState } from '../state/app.state.js';
 import { apiPost } from '../utils/api.js';
 import { billingErrorMessage, openBillingPortal } from '../utils/billing.js';
@@ -539,7 +540,7 @@ async function handlePlantSeed(): Promise<void> {
   try {
     // Same Seed Fund flow as the Ferni Fund modal: dollars in, Stripe
     // client secret back. The server acts on the Bearer-token user.
-    const outcome = await payForSeed(selectedTipAmount);
+    const outcome = await payForSeed(selectedTipAmount, collectCardPayment);
     const problem = seedPaymentFailureMessage(outcome);
     if (problem) {
       log.error('Plant seed failed:', outcome);

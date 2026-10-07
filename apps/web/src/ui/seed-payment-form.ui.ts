@@ -13,23 +13,13 @@
  */
 
 import { formatCurrency, t } from '../i18n/index.js';
-import type { SeedPaymentOutcome } from '../services/seed-payment.js';
+import type { SeedPaymentOutcome, StripeForCard } from '../types/seed-fund.types.js';
 
-/** The parts of Stripe.js this form uses. */
-export interface StripePaymentElement {
-  mount(target: HTMLElement): void;
-  destroy(): void;
-}
-export interface StripeElements {
-  create(type: 'payment'): StripePaymentElement;
-}
-export interface StripeForCard {
-  elements(options: { clientSecret: string }): StripeElements;
-  confirmPayment(options: {
-    elements: StripeElements;
-    confirmParams: { return_url: string };
-  }): Promise<{ error?: { message?: string } }>;
-}
+export type {
+  StripeElements,
+  StripeForCard,
+  StripePaymentElement,
+} from '../types/seed-fund.types.js';
 
 const STYLE_ID = 'seed-pay-styles';
 const STYLES = `

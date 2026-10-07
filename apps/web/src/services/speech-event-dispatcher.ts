@@ -80,6 +80,7 @@ export function dispatchUserSpeechStart(): void {
   getMusicStateManager().notifyUserSpeakingStart();
   
   document.dispatchEvent(new CustomEvent('ferni:user-speech-start'));
+  window.dispatchEvent(new CustomEvent('ferni:avatar-listening', { detail: { listening: true } }));
   log.debug('🎤 User speech started');
 }
 
@@ -102,6 +103,7 @@ export function dispatchUserSpeechEnd(): void {
   getMusicStateManager().notifyUserSpeakingEnd();
   
   document.dispatchEvent(new CustomEvent('ferni:user-speech-end'));
+  window.dispatchEvent(new CustomEvent('ferni:avatar-listening', { detail: { listening: false } }));
   log.debug('🎤 User speech ended');
 }
 
@@ -145,6 +147,7 @@ export function dispatchAgentSpeechStart(): void {
   getMusicStateManager().notifyAgentSpeakingStart();
   
   document.dispatchEvent(new CustomEvent('ferni:agent-speech-start'));
+  window.dispatchEvent(new CustomEvent('ferni:avatar-speaking', { detail: { speaking: true } }));
   log.debug('🔊 Agent speech started');
 }
 
@@ -161,6 +164,7 @@ export function dispatchAgentSpeechEnd(): void {
   getMusicStateManager().notifyAgentSpeakingEnd();
   
   document.dispatchEvent(new CustomEvent('ferni:agent-speech-end'));
+  window.dispatchEvent(new CustomEvent('ferni:avatar-speaking', { detail: { speaking: false } }));
   log.debug('🔊 Agent speech ended');
 }
 

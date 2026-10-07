@@ -40,6 +40,7 @@ const log = createLogger('SignInGate');
 let overlayEl: HTMLElement | null = null;
 let isShowing = false;
 let resolveSignIn: (() => void) | null = null;
+let pendingSignIn: Promise<void> | null = null;
 
 // STYLES
 
@@ -646,12 +647,7 @@ async function handleSignIn(provider: 'google' | 'apple'): Promise<void> {
  * Returns a promise that resolves when the user successfully signs in.
  */
 export async function showSignInGate(): Promise<void> {
-  if (isShowing) {
-    log.debug('Sign-in gate already showing');
-    return new Promise((resolve) => {
-      resolveSignIn = resolve;
-    });
-  }
+  if (isShowing && pendingSignIn) return pendingSignIn;
 
   isShowing = true;
   injectStyles();
@@ -680,6 +676,7 @@ export async function showSignInGate(): Promise<void> {
             unsubscribe();
             resolveSignIn?.();
             resolveSignIn = null;
+            pendingSignIn = null;
           } else {
             log.info('User not approved, showing waitlist pending');
             showWaitlistPending(result.email);
@@ -695,9 +692,10 @@ export async function showSignInGate(): Promise<void> {
     }
   });
 
-  return new Promise((resolve) => {
+  pendingSignIn = new Promise((resolve) => {
     resolveSignIn = resolve;
   });
+  return pendingSignIn;
 }
 
 /**

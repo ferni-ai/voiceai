@@ -13,6 +13,7 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import type { CategoryAccuracy, PredictionTrackerData } from '../types/predictions.js';
 
 // ============================================================================
 // TYPES
@@ -21,22 +22,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
-export interface CategoryAccuracy {
-  category: string;
-  correct: number;
-  total: number;
-  accuracy: number;
-}
-
-export interface PredictionTrackerData {
-  overallAccuracy: number;
-  totalPredictions: number;
-  correctPredictions: number;
-  byCategory: CategoryAccuracy[];
-  recentTrend: number[];
-  bestStreak: number;
-  currentStreak: number;
-}
+export type { CategoryAccuracy, PredictionTrackerData } from '../types/predictions.js';
 
 export interface PredictionTrackerUICallbacks {
   onClose?: () => void;

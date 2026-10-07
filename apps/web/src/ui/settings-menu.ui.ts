@@ -74,6 +74,7 @@ export interface SettingsMenuUICallbacks {
   onTeamHuddleClick?: () => void;
   onTeamObservationsClick?: () => void;
   onTrustJourneyClick?: () => void;
+  onTrustDashboardClick?: () => void;
   onMusicDashboardClick?: () => void;
   onPlayGamesClick?: () => void;
   onOutreachScheduleClick?: () => void;
@@ -1301,9 +1302,7 @@ class SettingsMenuUI {
         this.callbacks.onAppleHealthClick?.();
         break;
       case 'trust-dashboard':
-        import('../app/panel-methods.js')
-          .then(async (m) => m.showTrustDashboard())
-          .catch((error: unknown) => log.error({ error }, "Couldn't open the trust dashboard"));
+        this.callbacks.onTrustDashboardClick?.();
         break;
       case 'music-dashboard':
         this.callbacks.onMusicDashboardClick?.();

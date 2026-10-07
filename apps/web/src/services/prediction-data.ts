@@ -14,31 +14,11 @@
  * @module services/prediction-data
  */
 
+import type { PredictionData, PredictionMetric } from '../types/predictions.js';
+
 import type { PredictionRecord } from './prediction-tracker-data.js';
 
-/** One predicted metric: the stored name, the guess, and the actual once recorded. */
-export interface PredictionMetric {
-  key: string;
-  predicted: number;
-  actual?: number;
-}
-
-export interface PredictionData {
-  id: string;
-  category: string;
-  question: string;
-  /** The first metric's guess (shown when only one number fits). */
-  userPrediction: number;
-  /** The first metric's actual value, once recorded. */
-  actualOutcome?: number;
-  /** Every predicted metric, by the name the server stored it under. */
-  metrics?: PredictionMetric[];
-  /** The server's score (0-100), present only for a scored resolution. */
-  accuracy?: number;
-  status: 'pending' | 'resolved';
-  createdAt: string;
-  resolvedAt?: string;
-}
+export type { PredictionData, PredictionMetric };
 
 /** One metric as the server scored it. */
 export interface ScoredMetric {

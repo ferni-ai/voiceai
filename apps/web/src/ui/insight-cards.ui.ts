@@ -62,7 +62,7 @@ export const DATA_COLORS = {
     gradient: 'linear-gradient(135deg, #C4A77D 0%, #D4BC9A 100%)',
     glow: 'rgba(196, 167, 125, 0.4)',
   },
-  series: ['#4A7C59', '#6B8E9B', '#9B7B6B', '#7B6B9B', '#9B8B6B', '#6B9B8B'] as const,
+  series: ['#4A7C59', '#6B8E9B', '#9B7B6B', '#8a7a6a', '#9B8B6B', '#6B9B8B'] as const,
 };
 
 /** Get a series color with guaranteed fallback */

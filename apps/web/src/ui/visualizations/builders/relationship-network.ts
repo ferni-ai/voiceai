@@ -36,7 +36,7 @@ const CATEGORY_CSS_VARS: Record<Relationship['category'], string> = {
   partner: 'var(--viz-mood-joyful, #c4956a)',
   friend: 'var(--color-accent, #3D5A45)',
   colleague: 'var(--persona-peter-primary, #3a6b73)',
-  mentor: 'var(--persona-eli-primary, #8a7a9a)',
+  mentor: 'var(--viz-moods-reflective, #5a6b8a)',
   other: 'var(--color-text-muted, #9a8f85)',
 };
 
@@ -46,7 +46,7 @@ const CATEGORY_COLORS: Record<Relationship['category'], string> = {
   partner: getCssVar('--viz-mood-joyful', '#c4956a'),
   friend: getCssVar('--color-accent', '#3D5A45'),
   colleague: getCssVar('--persona-peter-primary', '#3a6b73'),
-  mentor: getCssVar('--persona-eli-primary', '#8a7a9a'),
+  mentor: getCssVar('--viz-moods-reflective', '#5a6b8a'),
   other: getCssVar('--color-text-muted', '#9a8f85'),
 };
 

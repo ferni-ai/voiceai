@@ -449,7 +449,7 @@ struct StreakFlameView: View {
 
     private var flameColor: Color {
         if streakCount >= 100 {
-            return .purple
+            return Color(red: 0.72, green: 0.58, blue: 0.42) // Nayan golden amber #b8956a
         } else if streakCount >= 30 {
             return .orange
         } else if streakCount >= 7 {

@@ -38,7 +38,7 @@ const DIMENSION_COLORS: Record<string, string> = {
   creative: '#b8956a',     // Nayan golden
   career: '#3a6b73',       // Peter teal
   physical: '#5a7b5a',     // Fresh sage
-  spiritual: '#8a7a9a',    // Lavender wisdom
+  spiritual: '#9a7b5a',    // Cedar wisdom
   intellectual: '#5a6b8a', // Alex slate blue
   financial: '#7a8a5a',    // Olive growth
 };

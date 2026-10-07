@@ -383,6 +383,7 @@ import {
   showDataExport,
   showPredictionTracker,
   showTeamHuddle,
+  showTrustDashboard,
   showYourStoryDashboard,
 } from './app/panel-methods.js';
 
@@ -1255,10 +1256,10 @@ class VoiceAIApp {
     this.deferredInit('SoundUI', 100, async () => {
       initSoundUI();
     });
-    // ⌨️ Global shortcuts (M mute, R reconnect, Enter start/end call, ? help)
+    // ⌨️ Global shortcuts (M mute, R reconnect, Enter start/end call, ? help) + ⌘K quick actions
     this.deferredInit('KeyboardShortcuts', 100, async () => {
-      const { initKeyboardShortcuts } = await import('./ui/keyboard-shortcuts.ui.js');
-      initKeyboardShortcuts();
+      (await import('./ui/keyboard-shortcuts.ui.js')).initKeyboardShortcuts();
+      (await import('./ui/command-palette.ui.js')).initCommandPalette();
     });
     this.deferredInit('TranscriptUI', 100, async () => {
       initTranscriptUI();
@@ -1867,6 +1868,10 @@ class VoiceAIApp {
           void import('./ui/team-observations-panel.ui.js').then((m) => m.show()),
         // Trust Journey is now integrated into the unified Journey modal
         onTrustJourneyClick: () => journeyUI.open(),
+        onTrustDashboardClick: () =>
+          void showTrustDashboard().catch((error: unknown) =>
+            log.error({ error }, "Couldn't open the trust dashboard")
+          ),
         onMusicDashboardClick: () => void openMusicDashboard(),
         onPlayGamesClick: () => void openGamePicker(),
         onOutreachScheduleClick: () => void openOutreachSchedule(),
@@ -2226,8 +2231,6 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-team', () => {
       void showTeamIntro();
     });
-    this.addTrackedListener(window, 'ferni:open-music', () => void openMusicDashboard());
-    this.addTrackedListener(window, 'ferni:open-calendar', () => void openCalendarView());
     this.addTrackedListener(window, 'ferni:open-people', () => {
       void openYourPeople();
     });
@@ -3300,7 +3303,9 @@ class VoiceAIApp {
     rippleUI.dispose();
     easterEggsUI.dispose();
     microInteractionsUI.dispose(); // ✨ Clean up premium button effects
-    // keyboardUI.dispose();
+    import('./ui/command-palette.ui.js')
+      .then(({ disposeCommandPalette }) => disposeCommandPalette())
+      .catch((error: unknown) => log.debug('Command palette was not loaded', error));
     transcriptUI.dispose();
     thinkingUI.dispose();
     connectionQualityUI.dispose();

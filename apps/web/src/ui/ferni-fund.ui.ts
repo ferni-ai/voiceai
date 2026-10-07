@@ -22,6 +22,7 @@ import {
   startMonthlyGift,
 } from '../services/seed-payment.js';
 import type { SeedPaymentOutcome } from '../services/seed-payment.js';
+import { collectCardPayment } from './seed-payment-form.ui.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -366,7 +367,7 @@ async function processContribution(
 
   try {
     // Monthly: Stripe Checkout. One-time: card form, then Stripe.js confirms.
-    outcome = isRecurring ? await startMonthlyGift(amountDollars) : await payForSeed(amountDollars);
+    outcome = isRecurring ? await startMonthlyGift(amountDollars) : await payForSeed(amountDollars, collectCardPayment);
     if (outcome.status === 'confirmed' || outcome.status === 'redirected') return;
   } catch (error) {
     outcome = { status: 'failed', reason: String(error) };

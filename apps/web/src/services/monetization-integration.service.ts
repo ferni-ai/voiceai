@@ -340,7 +340,7 @@ export function initMonetizationIntegration(userId: string): void {
   );
 
   // Listen for conversation end to consider tip jar
-  document.addEventListener('ferni:conversation-end', () => {
+  window.addEventListener('ferni:conversation-end', () => {
     if (currentUserId) {
       considerTipJarOffer(currentUserId);
     }

@@ -203,7 +203,7 @@ export function initEasterEggsUI(): void {
   startIdleDetection();
 
   // 🗣️ Listen for speech events (laughter, sighs, thank you)
-  window.addEventListener('ferni:transcript-update', handleTranscriptForReactions as EventListener);
+  window.addEventListener('ferni:transcript', handleTranscriptForReactions as EventListener);
   window.addEventListener('ferni:user-audio-level', handleAudioLevelForReactions as EventListener);
   
   // Listen for shake gesture (mobile)
@@ -1548,8 +1548,8 @@ let lastSighTime = 0;
 let lastThankYouTime = 0;
 
 function handleTranscriptForReactions(e: CustomEvent): void {
-  const { transcript } = e.detail || {};
-  if (!transcript || typeof transcript !== 'string') return;
+  const { type, text: transcript, isFinal } = e.detail || {};
+  if (type !== 'user' || !isFinal || !transcript || typeof transcript !== 'string') return;
 
   const text = transcript.toLowerCase();
   const now = Date.now();
@@ -1822,7 +1822,7 @@ export function dispose(): void {
 
   // Remove speech event listeners
   window.removeEventListener(
-    'ferni:transcript-update',
+    'ferni:transcript',
     handleTranscriptForReactions as EventListener
   );
   window.removeEventListener(

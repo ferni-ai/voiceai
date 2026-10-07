@@ -12,28 +12,23 @@
  * @module services/seed-payment
  */
 
-import type { PlantSeedResponse, SubscriptionResponse } from '../types/seed-fund.types.js';
+import type {
+  PlantSeedResponse,
+  SeedPaymentOutcome,
+  StripeForCard,
+  SubscriptionResponse,
+} from '../types/seed-fund.types.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
 import { billingErrorMessage } from '../utils/billing.js';
 import { createLogger } from '../utils/logger.js';
-import { collectCardPayment, type StripeForCard } from '../ui/seed-payment-form.ui.js';
 import { loadStripe } from './monetization.service.js';
 
 const log = createLogger('SeedPayment');
 
-export type SeedPaymentOutcome =
-  /** Stripe accepted the payment and is navigating to the return URL. */
-  | { status: 'confirmed' }
-  /** Sent to Stripe Checkout (monthly gift). */
-  | { status: 'redirected' }
-  /** Payments aren't set up (server 503 or no Stripe key in this build); nothing was charged. */
-  | { status: 'not-configured' }
-  /** The user closed the card form; nothing was charged. */
-  | { status: 'cancelled' }
-  | { status: 'failed'; reason: string };
+export type { SeedPaymentOutcome };
 
-/** Shows the card form and confirms the payment (replaceable in tests). */
+/** Shows the card form and confirms the payment (ui/seed-payment-form's collectCardPayment). */
 export type CardCollector = (
   stripe: StripeForCard,
   clientSecret: string,
@@ -48,7 +43,7 @@ async function readError(response: Response): Promise<string> {
 /** Plant a one-time seed of `amountDollars` for the signed-in user. */
 export async function payForSeed(
   amountDollars: number,
-  collect: CardCollector = collectCardPayment
+  collect: CardCollector
 ): Promise<SeedPaymentOutcome> {
   const response = await apiFetch('/api/garden/plant', {
     method: 'POST',
