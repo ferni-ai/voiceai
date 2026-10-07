@@ -125,11 +125,11 @@ importers:
         specifier: 1.5.1
         version: 1.5.1(@livekit/agents@1.5.1(patch_hash=aee146cd6855f3aada0f4749828308772812f565dc78b2b1ebd143b8f1a9d992)(@livekit/rtc-node@0.13.31)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.31)
       '@livekit/noise-cancellation-node':
-        specifier: ^0.1.9
-        version: 0.1.9
+        specifier: ^0.3.0
+        version: 0.3.0(@livekit/rtc-node@0.13.31)
       '@livekit/protocol':
-        specifier: 1.43.4
-        version: 1.43.4
+        specifier: 1.52.1
+        version: 1.52.1
       '@livekit/rtc-node':
         specifier: 0.13.31
         version: 0.13.31
@@ -182,8 +182,8 @@ importers:
         specifier: 6.2.12
         version: 6.2.12
       livekit-client:
-        specifier: ^2.16.0
-        version: 2.16.1(@types/dom-mediacapture-record@1.0.22)
+        specifier: ^2.22.3
+        version: 2.22.3(@types/dom-mediacapture-record@1.0.22)
       livekit-server-sdk:
         specifier: ^2.19.1
         version: 2.19.1
@@ -200,8 +200,8 @@ importers:
         specifier: ^8.23.1
         version: 8.23.1
       pino:
-        specifier: 10.3.1
-        version: 10.3.1
+        specifier: 10.4.0
+        version: 10.4.0
       semver:
         specifier: 7.8.5
         version: 7.8.5
@@ -258,8 +258,8 @@ importers:
         specifier: 7.8.0
         version: 7.8.0
       '@types/ws':
-        specifier: 8.18.1
-        version: 8.18.1
+        specifier: 8.18.2
+        version: 8.18.2
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.48.0
         version: 8.50.0(@typescript-eslint/parser@8.50.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
@@ -312,8 +312,8 @@ importers:
         specifier: 4.23.15
         version: 4.23.15
       turbo:
-        specifier: 2.11.6
-        version: 2.11.6
+        specifier: 2.11.7
+        version: 2.11.7
       typescript:
         specifier: ^5.3.0
         version: 5.9.3
@@ -352,8 +352,8 @@ importers:
         specifier: ^13.6.0
         version: 13.6.0
       pino:
-        specifier: 10.3.1
-        version: 10.3.1
+        specifier: 10.4.0
+        version: 10.4.0
       pino-pretty:
         specifier: ^13.0.0
         version: 13.1.3
@@ -411,8 +411,8 @@ importers:
         specifier: ^13.6.0
         version: 13.6.0
       pino:
-        specifier: 10.3.1
-        version: 10.3.1
+        specifier: 10.4.0
+        version: 10.4.0
       pino-pretty:
         specifier: ^13.0.0
         version: 13.1.3
@@ -472,8 +472,8 @@ importers:
         specifier: ^3.15.0
         version: 3.15.0
       livekit-client:
-        specifier: ^2.0.0
-        version: 2.16.1(@types/dom-mediacapture-record@1.0.22)
+        specifier: ^2.22.3
+        version: 2.22.3(@types/dom-mediacapture-record@1.0.22)
       zod:
         specifier: ^4.6.5
         version: 4.6.5
@@ -1872,45 +1872,44 @@ packages:
   '@livekit/mutex@1.1.1':
     resolution: {integrity: sha512-EsshAucklmpuUAfkABPxJNhzj9v2sG7JuzFDL4ML1oJQSV14sqrpTYnsaOudMAw9yOaW53NU3QQTlUQoRs4czw==}
 
-  '@livekit/noise-cancellation-darwin-arm64@0.1.9':
-    resolution: {integrity: sha512-IBUY2O2FG+zZESxtgghGBxoDsGqk6IYHQyQfkvDjdM41iv0+N9zA1YdMbAbV8W+ZGIxiQ3iS5W6ZCw9JeUf9cA==}
+  '@livekit/noise-cancellation-darwin-arm64@0.3.0':
+    resolution: {integrity: sha512-FFz3KC58iunLZL6gnnrHnE/zye+Z5kawXRT5K93TKatUBYD+lwxpg6j8LQBXrCvCpOsahR4sG+fCFXFiZdhnDg==}
     cpu: [arm64]
     os: [darwin]
 
-  '@livekit/noise-cancellation-darwin-x64@0.1.9':
-    resolution: {integrity: sha512-tpSWmwP1WuIqrwXcSKM+4uLRwfRJmXuOSo/jskxsRKraPZmNgvqxeZhKj9bhCWLTo/Y4PZolRayIeZAiMAltAw==}
+  '@livekit/noise-cancellation-darwin-x64@0.3.0':
+    resolution: {integrity: sha512-wHHfAdIJdhmMyNmQj0D0rrGWFWZqRYRs0GD80ThZjYrGlnKq8Y+q3Lwlgb+mHcsgPf4DcW/bjM4Wqnb0vlNsuA==}
     cpu: [x64]
     os: [darwin]
 
-  '@livekit/noise-cancellation-linux-arm64@0.1.9':
-    resolution: {integrity: sha512-lCb56HMBqjCv02BPpJXwQ3srx2103f2HhFINblZozkVxvQmeyMECaK8neGgviGVSp2noXMKet/rDrB08aw3Bvw==}
+  '@livekit/noise-cancellation-linux-arm64@0.3.0':
+    resolution: {integrity: sha512-NpRGVzO7xfX4PWY8kUL1J/YyW8Y9FBxhhDn4eFK/AFWwGp+ZlJ6AEtBTB3OWoO7nMsJubPSeZ2ad57QzU11Cug==}
     cpu: [arm64]
     os: [linux]
 
-  '@livekit/noise-cancellation-linux-x64@0.1.9':
-    resolution: {integrity: sha512-Uzfujifj5P1rysndzsVpElCy57c81UA0ZCfUHh9Sl4cemJ/WVbwC8FsQVqs3QeDqDd8upZxVsJxLCIz3TFp4yQ==}
+  '@livekit/noise-cancellation-linux-x64@0.3.0':
+    resolution: {integrity: sha512-YcpFmRV298ytqul+YQmH6HpkE76YhoZDmft06M6YmsTJMyuYyEGlP21jjhjEPo7Up0q4miwwt7sFw79zzKXnTw==}
     cpu: [x64]
     os: [linux]
 
-  '@livekit/noise-cancellation-node@0.1.9':
-    resolution: {integrity: sha512-4dnyecpUggKi7LtwcW/oeiiNtkymk0MoXTR7WK5QoGhNZlok1ROz4vnsnh76xcEgYJt6eguMoY6DHHjG19qtgg==}
+  '@livekit/noise-cancellation-node@0.3.0':
+    resolution: {integrity: sha512-/n23yTh2wEMiKHEQdzjNJ7Qv7DZXrT+eD+4WyTSoUE4RnyOBj5mRswTyyOOkpyhUrHLLCz22na+pfTi0/3UDlg==}
+    peerDependencies:
+      '@livekit/rtc-node': 0.13.31
 
-  '@livekit/noise-cancellation-win32-x64@0.1.9':
-    resolution: {integrity: sha512-/CXJWZD9aRU77ggL5SyUYLKFWKIQ7g2SZYE/IPVa93G9nUQBAujX5FP0U2n9+nO9GNsfA0I0rfomEWaO20ZZ/g==}
+  '@livekit/noise-cancellation-win32-x64@0.3.0':
+    resolution: {integrity: sha512-rCrKEMLzK9At+XITF6656z4FIjKGASCr8OKfLvvXYXRdLZMk0eIL10E3trAnDeBbrMypchPCiaAOKLac9Z+Iaw==}
     cpu: [x64]
     os: [win32]
 
-  '@livekit/protocol@1.42.2':
-    resolution: {integrity: sha512-0jeCwoMJKcwsZICg5S6RZM4xhJoF78qMvQELjACJQn6/VB+jmiySQKOSELTXvPBVafHfEbMlqxUw2UR1jTXs2g==}
-
-  '@livekit/protocol@1.43.4':
-    resolution: {integrity: sha512-mJDFt/p+G2OKmIGizYiACK7Jb06wd42m9Pe7Y9cAOfdYpvwCqHlw4yul5Z7iRU3VKPsYJ27WL3oeHEoiu+HuAA==}
-
-  '@livekit/protocol@1.49.0':
-    resolution: {integrity: sha512-TCmihwjHBWAUdNrqvmrN/K59r7vDnPIy3OEaE3p0g4FvdcQTiLynmFC3igR25Q2fnifahhAJjnnfSCtWUK7kYg==}
+  '@livekit/protocol@1.50.4':
+    resolution: {integrity: sha512-L1uggNQAqyY21smQY8AllyOYbcv9Me9TaxwuLytL1R8ck9nbYPmQLNwEDi3pOFGAMa5F8I2nUi2Jc59W5awxlA==}
 
   '@livekit/protocol@1.51.0':
     resolution: {integrity: sha512-kEDEDaFvIcp5VlYBromdSKMJMEJKfPvXPfEaJPdEz1Qgo84gZAoLF2g58CcMlVYGsjrwE5XYgQxRS5B7KuEj3w==}
+
+  '@livekit/protocol@1.52.1':
+    resolution: {integrity: sha512-X8DxKlNbzk6Lh+v630+mjdFHSotdAFwIyzxSRSUql2DbTxCnlpa7JsvFGc6Na3mXiex2OFh0iiQtWwOBP0rIYA==}
 
   '@livekit/rtc-ffi-bindings-darwin-arm64@0.12.60':
     resolution: {integrity: sha512-YHXqybkYfaTc3txJXXWoVogiSP3yKJdkaZlIlZ6IDMGnN9elUoHDYU+ZSn/rbdGu0pp4HUOzffXkbkItN735Bw==}
@@ -2781,139 +2780,174 @@ packages:
 
   '@tsparticles/basic@3.9.1':
     resolution: {integrity: sha512-ijr2dHMx0IQHqhKW3qA8tfwrR2XYbbWYdaJMQuBo2CkwBVIhZ76U+H20Y492j/NXpd1FUnt2aC0l4CEVGVGdeQ==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/engine@3.9.1':
     resolution: {integrity: sha512-DpdgAhWMZ3Eh2gyxik8FXS6BKZ8vyea+Eu5BC4epsahqTGY9V3JGGJcXC6lRJx6cPMAx1A0FaQAojPF3v6rkmQ==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/interaction-external-attract@3.9.1':
     resolution: {integrity: sha512-5AJGmhzM9o4AVFV24WH5vSqMBzOXEOzIdGLIr+QJf4fRh9ZK62snsusv/ozKgs2KteRYQx+L7c5V3TqcDy2upg==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/interaction-external-bounce@3.9.1':
     resolution: {integrity: sha512-bv05+h70UIHOTWeTsTI1AeAmX6R3s8nnY74Ea6p6AbQjERzPYIa0XY19nq/hA7+Nrg+EissP5zgoYYeSphr85A==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/interaction-external-bubble@3.9.1':
     resolution: {integrity: sha512-tbd8ox/1GPl+zr+KyHQVV1bW88GE7OM6i4zql801YIlCDrl9wgTDdDFGIy9X7/cwTvTrCePhrfvdkUamXIribQ==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/interaction-external-connect@3.9.1':
     resolution: {integrity: sha512-sq8YfUNsIORjXHzzW7/AJQtfi/qDqLnYG2qOSE1WOsog39MD30RzmiOloejOkfNeUdcGUcfsDgpUuL3UhzFUOA==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/interaction-external-grab@3.9.1':
     resolution: {integrity: sha512-QwXza+sMMWDaMiFxd8y2tJwUK6c+nNw554+/9+tEZeTTk2fCbB0IJ7p/TH6ZGWDL0vo2muK54Njv2fEey191ow==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/interaction-external-pause@3.9.1':
     resolution: {integrity: sha512-Gzv4/FeNir0U/tVM9zQCqV1k+IAgaFjDU3T30M1AeAsNGh/rCITV2wnT7TOGFkbcla27m4Yxa+Fuab8+8pzm+g==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/interaction-external-push@3.9.1':
     resolution: {integrity: sha512-GvnWF9Qy4YkZdx+WJL2iy9IcgLvzOIu3K7aLYJFsQPaxT8d9TF8WlpoMlWKnJID6H5q4JqQuMRKRyWH8aAKyQw==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/interaction-external-remove@3.9.1':
     resolution: {integrity: sha512-yPThm4UDWejDOWW5Qc8KnnS2EfSo5VFcJUQDWc1+Wcj17xe7vdSoiwwOORM0PmNBzdDpSKQrte/gUnoqaUMwOA==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/interaction-external-repulse@3.9.1':
     resolution: {integrity: sha512-/LBppXkrMdvLHlEKWC7IykFhzrz+9nebT2fwSSFXK4plEBxDlIwnkDxd3FbVOAbnBvx4+L8+fbrEx+RvC8diAw==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/interaction-external-slow@3.9.1':
     resolution: {integrity: sha512-1ZYIR/udBwA9MdSCfgADsbDXKSFS0FMWuPWz7bm79g3sUxcYkihn+/hDhc6GXvNNR46V1ocJjrj0u6pAynS1KQ==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/interaction-particles-attract@3.9.1':
     resolution: {integrity: sha512-CYYYowJuGwRLUixQcSU/48PTKM8fCUYThe0hXwQ+yRMLAn053VHzL7NNZzKqEIeEyt5oJoy9KcvubjKWbzMBLQ==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/interaction-particles-collisions@3.9.1':
     resolution: {integrity: sha512-ggGyjW/3v1yxvYW1IF1EMT15M6w31y5zfNNUPkqd/IXRNPYvm0Z0ayhp+FKmz70M5p0UxxPIQHTvAv9Jqnuj8w==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/interaction-particles-links@3.9.1':
     resolution: {integrity: sha512-MsLbMjy1vY5M5/hu/oa5OSRZAUz49H3+9EBMTIOThiX+a+vpl3sxc9AqNd9gMsPbM4WJlub8T6VBZdyvzez1Vg==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/move-base@3.9.1':
     resolution: {integrity: sha512-X4huBS27d8srpxwOxliWPUt+NtCwY+8q/cx1DvQxyqmTA8VFCGpcHNwtqiN+9JicgzOvSuaORVqUgwlsc7h4pQ==}
+    deprecated: this package was deprecated in tsparticles v4, replaced by @tsparticles/plugin-move
 
   '@tsparticles/move-parallax@3.9.1':
     resolution: {integrity: sha512-whlOR0bVeyh6J/hvxf/QM3DqvNnITMiAQ0kro6saqSDItAVqg4pYxBfEsSOKq7EhjxNvfhhqR+pFMhp06zoCVA==}
+    deprecated: this package was deprecated in tsparticles v4, replaced by @tsparticles/interaction-external-parallax
 
   '@tsparticles/plugin-easing-quad@3.9.1':
     resolution: {integrity: sha512-C2UJOca5MTDXKUTBXj30Kiqr5UyID+xrY/LxicVWWZPczQW2bBxbIbfq9ULvzGDwBTxE2rdvIB8YFKmDYO45qw==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/plugin-hex-color@3.9.1':
     resolution: {integrity: sha512-vZgZ12AjUicJvk7AX4K2eAmKEQX/D1VEjEPFhyjbgI7A65eX72M465vVKIgNA6QArLZ1DLs7Z787LOE6GOBWsg==}
 
   '@tsparticles/plugin-hsl-color@3.9.1':
     resolution: {integrity: sha512-jJd1iGgRwX6eeNjc1zUXiJivaqC5UE+SC2A3/NtHwwoQrkfxGWmRHOsVyLnOBRcCPgBp/FpdDe6DIDjCMO715w==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/plugin-rgb-color@3.9.1':
     resolution: {integrity: sha512-SBxk7f1KBfXeTnnklbE2Hx4jBgh6I6HOtxb+Os1gTp0oaghZOkWcCD2dP4QbUu7fVNCMOcApPoMNC8RTFcy9wQ==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/shape-circle@3.9.1':
     resolution: {integrity: sha512-DqZFLjbuhVn99WJ+A9ajz9YON72RtCcvubzq6qfjFmtwAK7frvQeb6iDTp6Ze9FUipluxVZWVRG4vWTxi2B+/g==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/shape-emoji@3.9.1':
     resolution: {integrity: sha512-ifvY63usuT+hipgVHb8gelBHSeF6ryPnMxAAEC1RGHhhXfpSRWMtE6ybr+pSsYU52M3G9+TF84v91pSwNrb9ZQ==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/shape-image@3.9.1':
     resolution: {integrity: sha512-fCA5eme8VF3oX8yNVUA0l2SLDKuiZObkijb0z3Ky0qj1HUEVlAuEMhhNDNB9E2iELTrWEix9z7BFMePp2CC7AA==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/shape-line@3.9.1':
     resolution: {integrity: sha512-wT8NSp0N9HURyV05f371cHKcNTNqr0/cwUu6WhBzbshkYGy1KZUP9CpRIh5FCrBpTev34mEQfOXDycgfG0KiLQ==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/shape-polygon@3.9.1':
     resolution: {integrity: sha512-dA77PgZdoLwxnliH6XQM/zF0r4jhT01pw5y7XTeTqws++hg4rTLV9255k6R6eUqKq0FPSW1/WBsBIl7q/MmrqQ==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/shape-square@3.9.1':
     resolution: {integrity: sha512-DKGkDnRyZrAm7T2ipqNezJahSWs6xd9O5LQLe5vjrYm1qGwrFxJiQaAdlb00UNrexz1/SA7bEoIg4XKaFa7qhQ==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/shape-star@3.9.1':
     resolution: {integrity: sha512-kdMJpi8cdeb6vGrZVSxTG0JIjCwIenggqk0EYeKAwtOGZFBgL7eHhF2F6uu1oq8cJAbXPujEoabnLsz6mW8XaA==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/slim@3.9.1':
     resolution: {integrity: sha512-CL5cDmADU7sDjRli0So+hY61VMbdroqbArmR9Av+c1Fisa5ytr6QD7Jv62iwU2S6rvgicEe9OyRmSy5GIefwZw==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/updater-color@3.9.1':
     resolution: {integrity: sha512-XGWdscrgEMA8L5E7exsE0f8/2zHKIqnTrZymcyuFBw2DCB6BIV+5z6qaNStpxrhq3DbIxxhqqcybqeOo7+Alpg==}
+    deprecated: this package was deprecated in tsparticles v4, replaced by @tsparticles/updater-paint
 
   '@tsparticles/updater-life@3.9.1':
     resolution: {integrity: sha512-Oi8aF2RIwMMsjssUkCB6t3PRpENHjdZf6cX92WNfAuqXtQphr3OMAkYFJFWkvyPFK22AVy3p/cFt6KE5zXxwAA==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/updater-opacity@3.9.1':
     resolution: {integrity: sha512-w778LQuRZJ+IoWzeRdrGykPYSSaTeWfBvLZ2XwYEkh/Ss961InOxZKIpcS6i5Kp/Zfw0fS1ZAuqeHwuj///Osw==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/updater-out-modes@3.9.1':
     resolution: {integrity: sha512-cKQEkAwbru+hhKF+GTsfbOvuBbx2DSB25CxOdhtW2wRvDBoCnngNdLw91rs+0Cex4tgEeibkebrIKFDDE6kELg==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/updater-rotate@3.9.1':
     resolution: {integrity: sha512-9BfKaGfp28JN82MF2qs6Ae/lJr9EColMfMTHqSKljblwbpVDHte4umuwKl3VjbRt87WD9MGtla66NTUYl+WxuQ==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/updater-size@3.9.1':
     resolution: {integrity: sha512-3NSVs0O2ApNKZXfd+y/zNhTXSFeG1Pw4peI8e6z/q5+XLbmue9oiEwoPy/tQLaark3oNj3JU7Q903ZijPyXSzw==}
+    deprecated: Please update to version 4.1.1
 
   '@tsparticles/updater-stroke-color@3.9.1':
     resolution: {integrity: sha512-3x14+C2is9pZYTg9T2TiA/aM1YMq4wLdYaZDcHm3qO30DZu5oeQq0rm/6w+QOGKYY1Z3Htg9rlSUZkhTHn7eDA==}
+    deprecated: this package was deprecated in tsparticles v4, replaced by @tsparticles/updater-paint
 
-  '@turbo/darwin-64@2.11.6':
-    resolution: {integrity: sha512-nAvJwDBgz/cKoSPhB7YOGPFmDEwCRavFjy0jUsrGqR97cLyJqXU2rZC/zTnw+9J3DkB2gfjpolX7mKsBatMcCQ==}
+  '@turbo/darwin-64@2.11.7':
+    resolution: {integrity: sha512-Z2LFOxwbiJueD1miByXJS/BrW21vv6YaQXZustty5jEX4vQYw6zyh101Sz1QO7WG0mqBzKagZ/DoAeeujI0/Sw==}
     cpu: [x64]
     os: [darwin]
 
-  '@turbo/darwin-arm64@2.11.6':
-    resolution: {integrity: sha512-odk6UHW9hympllPlezz7oJhPmO40+oU8BUh4zvNuSIqQ1QQll4zo1DN4IrD/3jUzkLefvMJ8UHEHlGq9WdR7tw==}
+  '@turbo/darwin-arm64@2.11.7':
+    resolution: {integrity: sha512-Vhv8ybgIflosNDSSRD9fNXHlCFA60dsGyTqQmc7l28SEX5jOaweCCD4BBYNd8/p0WGkw3e7tZbfA9w6FsujGvw==}
     cpu: [arm64]
     os: [darwin]
 
-  '@turbo/linux-64@2.11.6':
-    resolution: {integrity: sha512-PvXbwMqZPEWdWnJSIJ5D/tugnSOrRvLYKkH7iC8TLGVI+4J5znSLn3Tx1YkH5OUzFEFhxJQyHjtiRqBPbCoVlg==}
+  '@turbo/linux-64@2.11.7':
+    resolution: {integrity: sha512-rAqRp3blQKk1+ylMGlZHAW0eJjVNuuGUm4ZrC6RU1Im8tLryvaO4a2zLQ/FQi1TRlmKqKV9YXBki2YeytlLbXA==}
     cpu: [x64]
     os: [android, linux]
 
-  '@turbo/linux-arm64@2.11.6':
-    resolution: {integrity: sha512-8FKA3SqJk6fTv7Hqrmv2JnJfqiXslTRJYBwiI6eU3QXokVMYFLh1wUywF+w3MPtDfx1O/1otbps5AnijbzY1Kg==}
+  '@turbo/linux-arm64@2.11.7':
+    resolution: {integrity: sha512-thVYGov7S+llXAxrl3kBb/efalav0xhrjl5NHCR6AfKx14JkbqaetvbVwyss4FvZ9rt+Pv3xsTb+8SIYix8DTg==}
     cpu: [arm64]
     os: [android, linux]
 
-  '@turbo/windows-64@2.11.6':
-    resolution: {integrity: sha512-XPSgTg494cV31u0Uch8zRq/Jnpe8h4muwNpg9IRPrJqADrjjzxzFMtJCtBZTKVaSEDUU/ol8Gr4SYxtiHt2Tzg==}
+  '@turbo/windows-64@2.11.7':
+    resolution: {integrity: sha512-ZIoKT7J7KutgYl4bGxmmgeUQjG+7E0nY8BF9dxUOiMH2vdTsM4JQ2uSwTYFkTR2Llbg6ghGjSmuZ8LQtkLEYjg==}
     cpu: [x64]
     os: [win32]
 
-  '@turbo/windows-arm64@2.11.6':
-    resolution: {integrity: sha512-dZ0/ZFH2AU/l1KdqISVkWUSnm0ufWZyiYRLDYCL+rJAhkUDMFhTZkSnYEL2O/m0tOu/Jy/EKAnZfocuyMX3LMQ==}
+  '@turbo/windows-arm64@2.11.7':
+    resolution: {integrity: sha512-88Xv2f7SLGVJ68lRRx8o375dKmnZYNdDtvlKcPA0kZpcF93eAQd8l96BKQ0/AMHG0bMJA0Z5QqoqtetxzNsC+g==}
     cpu: [arm64]
     os: [win32]
 
@@ -3069,8 +3103,8 @@ packages:
   '@types/uuid@9.0.8':
     resolution: {integrity: sha512-jg+97EGIcY9AGHJJRaaPVgetKDsrTgbRjQ5Msgjh/DQKEFl0DtyRr/VCOyD1T2R1MNeWPK/u7JoGhlDZnKBAfA==}
 
-  '@types/ws@8.18.1':
-    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
+  '@types/ws@8.18.2':
+    resolution: {integrity: sha512-67MQl+fpWKVTT1NYdnmo3U4sc/xPo/zQBncVnI74qmQa0z/b+1g6iYqNmGCPbxO+zz2aklb08a0oHfegiVd0/w==}
 
   '@typescript-eslint/eslint-plugin@6.21.0':
     resolution: {integrity: sha512-oy9+hTPCUFpngkEZUSzbf9MxI65wbKFoQYsgPdILTfbUldp5ovUuphZVe4i30emU9M/kP+T64Di0mxl7dSw3MA==}
@@ -3191,6 +3225,7 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@vitest/coverage-v8@1.6.1':
     resolution: {integrity: sha512-6YeRZwuO4oTGKxD3bijok756oktHSIm3eczVVzNe3scqzuhLwltIF3S9ZL/vwOVIpURmU6SnZhziXXAfw8/Qlw==}
@@ -4982,8 +5017,8 @@ packages:
     resolution: {integrity: sha512-ME4Fb83LgEgwNw96RKNvKV4VTLuXfoKudAmm2lP8Kk87KaMK0/Xrx/aAkMWmT8mDb+3MlFDspfbCs7adjRxA2g==}
     engines: {node: '>=20.0.0'}
 
-  livekit-client@2.16.1:
-    resolution: {integrity: sha512-PmOHiGdkzw2P/t0vLbJRwHU59+T+JcFlGTYDV7PObWmzvypIij1Vlj0WhZKDZ/Ac7CvwWinbiGCVw/Pb/OiYYw==}
+  livekit-client@2.22.3:
+    resolution: {integrity: sha512-jw9zBKXY5Gtr5MZ7vEON3QhMNccuDvYHck1PFSyG1aaateQPqgKZFBMgZkFZaXHIf9RV4MDW5xpTK2b/+qbwOg==}
     peerDependencies:
       '@types/dom-mediacapture-record': ^1
 
@@ -5104,6 +5139,10 @@ packages:
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
     hasBin: true
+
+  machina@7.0.1:
+    resolution: {integrity: sha512-0Xkgs8NeBvO2hW6bjJT8ewLWrMfh1haMPstaghpASWjXkLjRhtDiaJG1Kb7mslaOHxZYxpH7PIjpmirRVYbMMA==}
+    engines: {node: '>=22.22'}
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -5621,11 +5660,11 @@ packages:
   pino-std-serializers@6.2.2:
     resolution: {integrity: sha512-cHjPPsE+vhj/tnhCy/wiMh3M3z3h/j15zHQX+S9GkTBgqJuTuJzYJ4gUyACLhDaJ7kk9ba9iRDmbH2tJU03OiA==}
 
-  pino-std-serializers@7.0.0:
-    resolution: {integrity: sha512-e906FRY0+tV27iq4juKzSYPbUj2do2X2JX4EzSca1631EB2QJQUqGbDuERal7LCtOpxl6x3+nvo9NPZcmjkiFA==}
+  pino-std-serializers@7.1.0:
+    resolution: {integrity: sha512-BndPH67/JxGExRgiX1dX0w1FvZck5Wa4aal9198SrRhZjH3GxKQUKIBnYJTdj2HDN3UQAS06HlfcSbQj2OHmaw==}
 
-  pino@10.3.1:
-    resolution: {integrity: sha512-r34yH/GlQpKZbU1BvFFqOjhISRo1MNx1tWYsYvmj6KIRHSPMT2+yHOEb1SG6NMvRoHRF0a07kCOox/9yakl1vg==}
+  pino@10.4.0:
+    resolution: {integrity: sha512-bk1ZMTwG/Vymx+zPoa28MhNzucFvXJWp3csrSuxuHPSMeUettaCoQ5Jvg07mtC4JGNpcfTwz41oVCnNgBK9+vA==}
     hasBin: true
 
   pino@8.21.0:
@@ -5720,8 +5759,8 @@ packages:
   process-warning@3.0.0:
     resolution: {integrity: sha512-mqn0kFRl0EoqhnL0GQ0veqFHyIN1yig9RHh/InzORTUiZHFRAur+aMtRkELNwGs9aNwKS6tg/An4NYBPGwvtzQ==}
 
-  process-warning@5.0.0:
-    resolution: {integrity: sha512-a39t9ApHNx2L4+HBnQKqxxHNs1r7KF+Intd8Q/g1bUh6q0WIp9voPXJ/x0j+ZL45KF1pJd9+q2jLIRMfvEshkA==}
+  process-warning@5.1.0:
+    resolution: {integrity: sha512-jQSaVHsPgtyw60e1rQ/A+/ArPEj/S8pS/vFnyGa/gYFXrKk/6RuDkoqVDQ5NI5MmS01698ltlAk0NoDBNLujRw==}
 
   process@0.11.10:
     resolution: {integrity: sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A==}
@@ -5976,8 +6015,8 @@ packages:
     resolution: {integrity: sha512-KrOH82c/W+GYQ0LHqtr3caRpM3ITglq3ljGUIb8LTki7ByacJZ9z+piSGiwZDsRyhQbYBOBJgr2k6X4BZXi3Kw==}
     hasBin: true
 
-  sdp@3.2.1:
-    resolution: {integrity: sha512-lwsAIzOPlH8/7IIjjz3K0zYBk7aBVVcvjMwt3M4fLxpjMYyy7i3I97SLHebgn4YBjirkzfp3RvRDWSKsh/+WFw==}
+  sdp@3.2.2:
+    resolution: {integrity: sha512-xZocWwfyp4hkbN4hLWxMjmv2Q8aNa9MhmOZ7L9aCZPT+dZsgRr6wZRrSYE3HTdyk/2pZKPSgqI7ns7Een1xMSA==}
 
   section-matter@1.0.0:
     resolution: {integrity: sha512-vfD3pmTzGpufjScBh50YHKzEu2lxBWhVEHsNGoEXmCmn2hKGfeNLYMzCJpe8cD7gqX7TJluOVpBkAequ6dgMmA==}
@@ -6100,6 +6139,9 @@ packages:
 
   sonic-boom@4.2.0:
     resolution: {integrity: sha512-INb7TM37/mAcsGmc9hyyI6+QR3rR1zVRu36B0NeGXKnOOLiZOfER5SA+N7X7k3yUYRzLWafduTDvJAfDswwEww==}
+
+  sonic-boom@4.2.1:
+    resolution: {integrity: sha512-w6AxtubXa2wTXAUsZMMWERrsIRAdrK0Sc+FUytWvYAhBJLyuI4llrMIC1DtlNSdI99EI86KZum2MMq3EAZlF9Q==}
 
   source-map-js@1.2.2:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
@@ -6299,8 +6341,8 @@ packages:
   thread-stream@2.7.0:
     resolution: {integrity: sha512-qQiRWsU/wvNolI6tbbCKd9iKaTnCXsTwVxhhKM6nctPdujTyztjlbUkUTUymidWcMnZ5pWR0ej4a0tjsW021vw==}
 
-  thread-stream@3.1.0:
-    resolution: {integrity: sha512-OqyPZ9u96VohAyMfJykzmivOrY2wfMSf3C5TtFJVgN+Hm6aj+voFhlK+kZEIv2FBh1X6Xp3DlnCOfEQ3B2J86A==}
+  thread-stream@3.2.0:
+    resolution: {integrity: sha512-zLBvqpwr4Esa0kRjcrzGU6zL25lePWaCLMx0RQFrmteozIfeNdaMLpG5U7PeHzvlFkAWaRKA9/KVW4F60iB+qw==}
 
   thread-stream@4.2.0:
     resolution: {integrity: sha512-e2zZ96wSChazBsbENf/Pcm/4swHt2cEKQ92rhUjkL9GCKiTDJIaTBenjE/m9DXi0QBmTMDkFDdOomUy20A1tDQ==}
@@ -6407,9 +6449,6 @@ packages:
     peerDependencies:
       typescript: '>=4.8.4'
 
-  ts-debounce@4.0.0:
-    resolution: {integrity: sha512-+1iDGY6NmOGidq7i7xZGA4cm8DAa6fqdYcvO5Z6yBevH++Bdo9Qt/mN0TzHUgcCcKv1gmh9+W5dHqz8pMWbCbg==}
-
   ts-dedent@2.2.0:
     resolution: {integrity: sha512-q5W7tVM71e2xjHZTlgfTDoPF/SmqKG5hddq9SzR49CH2hayqRKJtQ4mtRlSxKaJlR/+9rEM+mnBHf7I2/BQcpQ==}
     engines: {node: '>=6.10'}
@@ -6422,8 +6461,8 @@ packages:
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  turbo@2.11.6:
-    resolution: {integrity: sha512-UppAr5XEHLfVdVp75nd+tzPp/wVEwS7Ken9aYjMlBnHqXynKn9IcQHd6GDOXBxDViSjpS+SzJcOF86v9Hf8GfQ==}
+  turbo@2.11.7:
+    resolution: {integrity: sha512-RhXHbqfvY6o3xt/zSHCwSNwLrZlXiqHzewi4eAj9PtZ1T1CqgMJ2yIDb7SKPTG9IikTm925mfzL6hldQVdyNWw==}
     hasBin: true
 
   twilio@5.10.7:
@@ -8310,7 +8349,7 @@ snapshots:
       '@livekit/av': 7.1.501
       '@livekit/local-inference': 0.2.6
       '@livekit/mutex': 1.1.1
-      '@livekit/protocol': 1.49.0
+      '@livekit/protocol': 1.52.1
       '@livekit/rtc-node': 0.13.31
       '@livekit/throws-transformer': 0.1.8(typescript@5.9.3)
       '@livekit/typed-emitter': 3.0.0
@@ -8400,45 +8439,40 @@ snapshots:
 
   '@livekit/mutex@1.1.1': {}
 
-  '@livekit/noise-cancellation-darwin-arm64@0.1.9':
+  '@livekit/noise-cancellation-darwin-arm64@0.3.0':
     optional: true
 
-  '@livekit/noise-cancellation-darwin-x64@0.1.9':
+  '@livekit/noise-cancellation-darwin-x64@0.3.0':
     optional: true
 
-  '@livekit/noise-cancellation-linux-arm64@0.1.9':
+  '@livekit/noise-cancellation-linux-arm64@0.3.0':
     optional: true
 
-  '@livekit/noise-cancellation-linux-x64@0.1.9':
+  '@livekit/noise-cancellation-linux-x64@0.3.0':
     optional: true
 
-  '@livekit/noise-cancellation-node@0.1.9':
+  '@livekit/noise-cancellation-node@0.3.0(@livekit/rtc-node@0.13.31)':
     dependencies:
       '@livekit/rtc-node': 0.13.31
-      tsx: 4.23.15
     optionalDependencies:
-      '@livekit/noise-cancellation-darwin-arm64': 0.1.9
-      '@livekit/noise-cancellation-darwin-x64': 0.1.9
-      '@livekit/noise-cancellation-linux-arm64': 0.1.9
-      '@livekit/noise-cancellation-linux-x64': 0.1.9
-      '@livekit/noise-cancellation-win32-x64': 0.1.9
+      '@livekit/noise-cancellation-darwin-arm64': 0.3.0
+      '@livekit/noise-cancellation-darwin-x64': 0.3.0
+      '@livekit/noise-cancellation-linux-arm64': 0.3.0
+      '@livekit/noise-cancellation-linux-x64': 0.3.0
+      '@livekit/noise-cancellation-win32-x64': 0.3.0
 
-  '@livekit/noise-cancellation-win32-x64@0.1.9':
+  '@livekit/noise-cancellation-win32-x64@0.3.0':
     optional: true
 
-  '@livekit/protocol@1.42.2':
-    dependencies:
-      '@bufbuild/protobuf': 1.10.1
-
-  '@livekit/protocol@1.43.4':
-    dependencies:
-      '@bufbuild/protobuf': 1.10.1
-
-  '@livekit/protocol@1.49.0':
+  '@livekit/protocol@1.50.4':
     dependencies:
       '@bufbuild/protobuf': 1.10.1
 
   '@livekit/protocol@1.51.0':
+    dependencies:
+      '@bufbuild/protobuf': 1.10.1
+
+  '@livekit/protocol@1.52.1':
     dependencies:
       '@bufbuild/protobuf': 1.10.1
 
@@ -9598,22 +9632,22 @@ snapshots:
     dependencies:
       '@tsparticles/engine': 3.9.1
 
-  '@turbo/darwin-64@2.11.6':
+  '@turbo/darwin-64@2.11.7':
     optional: true
 
-  '@turbo/darwin-arm64@2.11.6':
+  '@turbo/darwin-arm64@2.11.7':
     optional: true
 
-  '@turbo/linux-64@2.11.6':
+  '@turbo/linux-64@2.11.7':
     optional: true
 
-  '@turbo/linux-arm64@2.11.6':
+  '@turbo/linux-arm64@2.11.7':
     optional: true
 
-  '@turbo/windows-64@2.11.6':
+  '@turbo/windows-64@2.11.7':
     optional: true
 
-  '@turbo/windows-arm64@2.11.6':
+  '@turbo/windows-arm64@2.11.7':
     optional: true
 
   '@types/aria-query@5.0.4': {}
@@ -9797,7 +9831,7 @@ snapshots:
 
   '@types/uuid@9.0.8': {}
 
-  '@types/ws@8.18.1':
+  '@types/ws@8.18.2':
     dependencies:
       '@types/node': 20.19.27
 
@@ -12112,16 +12146,16 @@ snapshots:
       rfdc: 1.4.1
       wrap-ansi: 9.0.2
 
-  livekit-client@2.16.1(@types/dom-mediacapture-record@1.0.22):
+  livekit-client@2.22.3(@types/dom-mediacapture-record@1.0.22):
     dependencies:
       '@livekit/mutex': 1.1.1
-      '@livekit/protocol': 1.42.2
+      '@livekit/protocol': 1.50.4
       '@types/dom-mediacapture-record': 1.0.22
       events: 3.3.0
       jose: 6.2.12
       loglevel: 1.9.2
+      machina: 7.0.1
       sdp-transform: 2.15.0
-      ts-debounce: 4.0.0
       tslib: 2.8.1
       typed-emitter: 2.1.0
       webrtc-adapter: 9.0.6
@@ -12223,6 +12257,8 @@ snapshots:
       lru-cache: 6.0.0
 
   lz-string@1.5.0: {}
+
+  machina@7.0.1: {}
 
   magic-string@0.30.21:
     dependencies:
@@ -12710,7 +12746,7 @@ snapshots:
       pump: 3.0.3
       readable-stream: 4.7.0
       secure-json-parse: 2.7.0
-      sonic-boom: 4.2.0
+      sonic-boom: 4.2.1
       strip-json-comments: 3.1.1
 
   pino-pretty@13.1.3:
@@ -12731,20 +12767,20 @@ snapshots:
 
   pino-std-serializers@6.2.2: {}
 
-  pino-std-serializers@7.0.0: {}
+  pino-std-serializers@7.1.0: {}
 
-  pino@10.3.1:
+  pino@10.4.0:
     dependencies:
       '@pinojs/redact': 0.4.0
       atomic-sleep: 1.0.0
       on-exit-leak-free: 2.1.2
       pino-abstract-transport: 3.0.0
-      pino-std-serializers: 7.0.0
-      process-warning: 5.0.0
+      pino-std-serializers: 7.1.0
+      process-warning: 5.1.0
       quick-format-unescaped: 4.0.4
-      real-require: 0.2.0
+      real-require: 1.0.0
       safe-stable-stringify: 2.5.0
-      sonic-boom: 4.2.0
+      sonic-boom: 4.2.1
       thread-stream: 4.2.0
 
   pino@8.21.0:
@@ -12767,13 +12803,13 @@ snapshots:
       atomic-sleep: 1.0.0
       on-exit-leak-free: 2.1.2
       pino-abstract-transport: 2.0.0
-      pino-std-serializers: 7.0.0
-      process-warning: 5.0.0
+      pino-std-serializers: 7.1.0
+      process-warning: 5.1.0
       quick-format-unescaped: 4.0.4
       real-require: 0.2.0
       safe-stable-stringify: 2.5.0
-      sonic-boom: 4.2.0
-      thread-stream: 3.1.0
+      sonic-boom: 4.2.1
+      thread-stream: 3.2.0
 
   pkce-challenge@5.0.1: {}
 
@@ -12853,7 +12889,7 @@ snapshots:
 
   process-warning@3.0.0: {}
 
-  process-warning@5.0.0: {}
+  process-warning@5.1.0: {}
 
   process@0.11.10: {}
 
@@ -13165,7 +13201,7 @@ snapshots:
 
   sdp-transform@2.15.0: {}
 
-  sdp@3.2.1: {}
+  sdp@3.2.2: {}
 
   section-matter@1.0.0:
     dependencies:
@@ -13335,6 +13371,10 @@ snapshots:
       atomic-sleep: 1.0.0
 
   sonic-boom@4.2.0:
+    dependencies:
+      atomic-sleep: 1.0.0
+
+  sonic-boom@4.2.1:
     dependencies:
       atomic-sleep: 1.0.0
 
@@ -13533,7 +13573,7 @@ snapshots:
     dependencies:
       real-require: 0.2.0
 
-  thread-stream@3.1.0:
+  thread-stream@3.2.0:
     dependencies:
       real-require: 0.2.0
 
@@ -13614,8 +13654,6 @@ snapshots:
     dependencies:
       typescript: 5.9.3
 
-  ts-debounce@4.0.0: {}
-
   ts-dedent@2.2.0: {}
 
   tslib@2.8.1: {}
@@ -13626,14 +13664,14 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.3
 
-  turbo@2.11.6:
+  turbo@2.11.7:
     optionalDependencies:
-      '@turbo/darwin-64': 2.11.6
-      '@turbo/darwin-arm64': 2.11.6
-      '@turbo/linux-64': 2.11.6
-      '@turbo/linux-arm64': 2.11.6
-      '@turbo/windows-64': 2.11.6
-      '@turbo/windows-arm64': 2.11.6
+      '@turbo/darwin-64': 2.11.7
+      '@turbo/darwin-arm64': 2.11.7
+      '@turbo/linux-64': 2.11.7
+      '@turbo/linux-arm64': 2.11.7
+      '@turbo/windows-64': 2.11.7
+      '@turbo/windows-arm64': 2.11.7
 
   twilio@5.10.7:
     dependencies:
@@ -13975,7 +14013,7 @@ snapshots:
 
   webrtc-adapter@9.0.6:
     dependencies:
-      sdp: 3.2.1
+      sdp: 3.2.2
 
   websocket-driver@0.7.5:
     dependencies:
