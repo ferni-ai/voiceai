@@ -1,43 +1,43 @@
-# Voice stack direction: Cartesia TTS + Gemini STT
+# Voice stack direction: Cartesia cascade
 
-**Last updated:** March 2026
+**Last updated:** 2026-10-04
 
 ## Production stack
 
-- **TTS:** **Cartesia** — persona voices via Cartesia API (or LiveKit Cartesia plugin when gateway is disabled).
-- **STT:** **Gemini** — speech-to-text is provided by **Gemini Live** (realtime API); no separate STT service when using Gemini as the LLM backend.
-- **LLM:** Gemini Live or OpenAI Realtime (text-only; output goes to TTS).
+The voice agent runs the **Cartesia cascade** (`VOICE_PIPELINE` unset, the default):
 
-So: **Cartesia for TTS, Gemini for STT** is correct when using Gemini Live. With OpenAI Realtime, STT is also built into the realtime API.
+- **STT:** Cartesia **Ink-2**.
+- **LLM:** **Gemini 3.5 Flash** on Vertex (minimal thinking), with native function calling.
+- **TTS:** Cartesia **Sonic** through the TTS gateway, using persona voices.
+
+Defined in `src/agents/model-provider/factory.ts` and `cartesia-cascade.ts`. OpenAI Realtime (`USE_OPENAI_REALTIME=true`) and Gemini Live / Gemini native audio (`VOICE_PIPELINE=gemini-live` / `gemini-native-audio`) remain as legacy opt-ins.
 
 ## Optional: Sonata
 
-**Sonata** (native NAPI addon in `apps/sonata/`) is an optional, self-hosted TTS path. When available and selected, the TTS gateway can use Sonata instead of Cartesia. It is not required for production; Cartesia is the default and recommended TTS.
+**Sonata** (native NAPI addon in `apps/sonata/`) is an optional, self-hosted TTS/STT path that runs Kyutai's model weights on Apple Silicon. The TTS gateway can use it instead of Cartesia when it is built and selected. It is not required for production.
 
-## Ignore for new work
+## Removed (2026-10-04)
 
-Do **not** prioritize or propose:
+These stacks were deleted from the codebase (decision D2). Do not reintroduce them:
 
-| Stack | What to ignore |
-|-------|----------------|
-| **Qwen / Qwen3-Omni** | Qwen3-Omni integration, rust-omni, qwen3-omni session manager E2E, MLX-Qwen3-Omni build/feasibility, Qwen TTS, Candle/Omni pipeline wiring, Director Mode Qwen paths, any "fix Qwen gaps" or "wire Qwen" work. |
-| **Kyutai** | Kyutai DSM setup, Kyutai STT/TTS, Moshi/MLX bridge, Kyutai voice clone Ferni, Kyutai production deploy, Kyutai Rust/Candle roadmaps, "wire Kyutai STT" or Kyutai-focused gap-filling. |
+| Stack | What was removed |
+|-------|------------------|
+| **Qwen3-Omni** | `src/integrations/qwen3-omni/`, the `qwen3-omni` provider and its `USE_QWEN3_*` env vars, the `ferni qwen3` CLI, the Rust Candle thinker/talker/code2wav modules and `qwen3-omni-server` binary, and their docs. |
+| **Director Mode** | `director-mode-setup.ts`, `src/api/director-routes.ts` (`/ws/director`), and the web Director Console. The cascade's director notes and the TTS speech director are different features and remain. |
+| **Local / Omni pipelines** | The Kyutai STT + Ollama `local-pipeline` provider and the Rust `omni-pipeline` provider. |
+| **Kyutai sidecars** | The moshi-server Dockerfile and DSM compose file, the GPU agent image built for them, and the Kyutai STT/TTS configs and setup docs. |
 
-Existing code and docs for Qwen and Kyutai may stay for reference or legacy; do not add new features or E2E for those stacks.
+The FTIS tool router's fine-tuned Qwen3-1.7B classifier is tool routing, not the voice stack, and stays.
 
 ## Focus instead
 
-- **Cartesia TTS** as the default production TTS (persona voices, gateway or LiveKit plugin).
-- **Gemini Live** (and optionally OpenAI Realtime) as LLM backends; **STT is built into these** (no separate STT service).
+- The **Cartesia cascade** and production stability on LiveKit Cloud.
 - **Sonata** as an optional TTS path when the native addon is built and configured.
-- **LiveKit** voice agent path and production stability.
-- Gaps and improvements on the **Cartesia-based pipeline** first.
 
 ## What to work on next
 
-For a single prioritized list of what to fix, wire, or prove (memory, tools, tests, debt, etc.) **excluding** Qwen/Kyutai, see **`docs/FOCUS-EVERYTHING-ELSE.md`**.
+For a prioritized list of what to fix, wire, or prove (memory, tools, tests, debt), see **`docs/FOCUS-EVERYTHING-ELSE.md`**.
 
 ## References
 
-- `CLAUDE.md` → "Voice stack direction: Sonata (ignore Qwen & Kyutai)"
-- `.cursorrules` / Cursor rules → same directive for AI agents
+- `CLAUDE.md` → "Current Production Stack" and "Voice stack direction"

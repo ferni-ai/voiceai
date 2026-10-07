@@ -105,7 +105,7 @@ export function generateToolServiceProbes(): SemanticProbe[] {
         target: 'tools/, docs/architecture/TOOL-LOADING-SYSTEM.md',
         relatedModules: [
           'agents/shared/function-call-format.ts',
-          'agents/shared/json-function-executor.ts',
+          'agents/shared/tool-dispatcher.ts',
         ],
         philosophyPrinciples: [CORE_PRINCIPLES.DISCOVERABLE_ARCHITECTURE],
       },

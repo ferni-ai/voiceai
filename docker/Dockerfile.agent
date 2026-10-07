@@ -78,8 +78,8 @@ COPY apps/rust-perf/build.rs ./rust-perf/
 
 # Build rust-perf native module for Linux x64
 # - CoreML/Metal are conditionally compiled (macOS-only) via Cargo.toml target cfg
-# - Candle ML models (Qwen3-Omni, LFM2) are behind "candle_models" feature (not in default)
-#   This skips ~10K lines of model code + candle-nn/candle-transformers/safetensors/half deps
+# - Candle ML models (FTIS Candle router, LFM2) are behind "candle_models" feature (not in default)
+#   This skips the model code + candle-nn/candle-transformers/safetensors/half deps
 WORKDIR /rust/rust-perf
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \

@@ -8,10 +8,10 @@ This directory contains shared utilities used by all voice agents. These are cri
 
 ## Quick Reference
 
-| What           | Where              |
-| -------------- | ------------------ |
-| LLMCompiler    | `llm-compiler/`    |
-| Tool Sanitizer | `sanitizer/`       |
+| What             | Where                  |
+| ---------------- | ---------------------- |
+| Tool dispatcher  | `tool-dispatcher.ts`   |
+| Tool Sanitizer   | `sanitizer/`           |
 | Performance    | `performance/`     |
 | Handoff        | `handoff/`         |
 | Health Server  | `health-server.ts` |
@@ -24,12 +24,7 @@ This directory contains shared utilities used by all voice agents. These are cri
 
 ```
 shared/
-├── llm-compiler/        # ⚡ Parallel function calling (ICML 2024)
-│   ├── types.ts         # DAG task types
-│   ├── planner.ts       # Plan parsing, DAG validation
-│   ├── executor.ts      # Parallel execution
-│   └── joiner.ts        # Result aggregation
-├── sanitizer/           # Tool call detection & sanitization
+├── sanitizer/           # Leakage detection & TTS safety
 │   ├── detectors/       # Leakage detection
 │   ├── executors/       # Deduplication, retry
 │   └── streams/         # Transform streams
@@ -137,8 +132,8 @@ const sanitizer = createToolCallSanitizer({
 
 | File                          | Purpose                             |
 | ----------------------------- | ----------------------------------- |
-| `function-call-format.ts`     | JSON function call types            |
-| `json-function-executor.ts`   | JSON tool execution                 |
+| `function-call-format.ts`     | Registered tool names / types       |
+| `tool-dispatcher.ts`          | Neutral executeTool for /api/chat   |
 | `function-call-telemetry.ts`  | Tool call telemetry tracking        |
 | `parallel-tool-executor.ts`   | Parallel tool execution             |
 | `tool-updater.ts`             | Dynamic tool list updates           |
@@ -224,83 +219,6 @@ See `sanitizer/CLAUDE.md` for tool call interception:
 
 ---
 
-## LLMCompiler (Parallel Function Calling)
-
-Based on ICML 2024 research. Enables **3.7x latency reduction** and **6.7x cost savings** through parallel tool execution.
-
-### How It Works
-
-```
-LLM outputs DAG format:
-[
-  {"id":"t1","fn":"getWeather","args":{"city":"NYC"},"dependsOn":[]},
-  {"id":"t2","fn":"playMusic","args":{"genre":"jazz"},"dependsOn":[]},
-  {"id":"t3","fn":"summarize","args":{"data":"$t1"},"dependsOn":["t1"]}
-]
-     ↓
-planner.ts: Parse and validate DAG
-     ↓
-executor.ts: Execute via ParallelExecutor (batches by dependencies)
-     ↓
-Batch 1: [t1, t2] run in parallel
-Batch 2: [t3] runs after t1 completes (uses $t1 result)
-     ↓
-joiner.ts: Aggregate results
-```
-
-### Usage
-
-Enabled via feature flag:
-```bash
-USE_LLMCOMPILER=true pnpm dev
-```
-
-### Key Components
-
-| File | Purpose |
-|------|---------|
-| `types.ts` | `LLMCompilerTask`, `LLMCompilerPlan`, `LLMCompilerResult` |
-| `planner.ts` | `containsLLMCompilerPlan()`, `parseLLMCompilerPlan()`, `validateDAG()` |
-| `executor.ts` | `executeLLMCompilerPlan()` - leverages `ParallelExecutor` |
-| `joiner.ts` | `aggregateResults()` - combines task outputs |
-
-### Variable Substitution
-
-Tasks can reference outputs from dependencies using `$taskId`:
-
-```json
-{"id":"t2","fn":"summarize","args":{"weather":"$t1"},"dependsOn":["t1"]}
-```
-
-The `$t1` is replaced with the actual output from task t1 before execution.
-
-### Integration
-
-The `json-function-executor.ts` automatically detects DAG format:
-
-```typescript
-// Detection is automatic in parseAndExecuteAll()
-if (USE_LLMCOMPILER && containsLLMCompilerPlan(text)) {
-  // Uses LLMCompiler parallel execution
-}
-```
-
-### Metrics
-
-Results include parallelism stats:
-
-```typescript
-interface LLMCompilerStats {
-  totalTasks: number;       // Total tasks in plan
-  parallelBatches: number;  // Number of execution batches
-  successCount: number;     // Successful task count
-  failureCount: number;     // Failed task count
-  parallelismRatio: number; // totalTasks / parallelBatches (higher = more parallel)
-}
-```
-
----
-
 ## Rules
 
 ### Do ✅
@@ -324,7 +242,6 @@ interface LLMCompilerStats {
 ## Reference Docs
 
 - Voice Agents: `../CLAUDE.md`
-- LLMCompiler: `llm-compiler/` (parallel function calling)
 - Performance: `performance/CLAUDE.md`
 - Sanitizer: `sanitizer/CLAUDE.md`
 - Handoff: `handoff/CLAUDE.md`

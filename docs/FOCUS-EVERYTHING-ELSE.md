@@ -1,6 +1,6 @@
 # Focus: Everything Else
 
-**Purpose:** Single list of what to fix, wire, or prove next — **excluding Qwen and Kyutai** (we're on Sonata; see `docs/VOICE-STACK-DIRECTION.md`).
+**Purpose:** Single list of what to fix, wire, or prove next for the Cartesia-cascade voice stack (see `docs/VOICE-STACK-DIRECTION.md`).
 
 Use this for prioritization and sprint planning. Update as items are done.
 
@@ -50,22 +50,20 @@ Use this for prioritization and sprint planning. Update as items are done.
 | # | Item | Location | Action |
 |---|------|----------|--------|
 | 15 | **Higgs per-session STT** | HIGGS-INTEGRATION-STATUS | Optional: per-session STT connection when multiple concurrent sessions use Higgs. |
-| 16 | **iOS** | FerniOmniService.swift | Stub only; no UniFFI, no iOS build. Product decision. |
-| 17 | **MCP request_voice_input** | MCP tooling | Queues question but does not block for voice response; improve if MCP voice is a product goal. |
-| 18 | **Context builder execution metrics** | context-builders | Doc says builder-metrics API exists; confirm all 80+ builders are observable and fix any gaps. |
+| 16 | **MCP request_voice_input** | MCP tooling | Queues question but does not block for voice response; improve if MCP voice is a product goal. |
+| 17 | **Context builder execution metrics** | context-builders | Doc says builder-metrics API exists; confirm all 80+ builders are observable and fix any gaps. |
 
 ---
 
-## Out of scope (do not prioritize)
+## Removed
 
-- **Qwen3-Omni / rust-omni / OmniEngine** — See `docs/VOICE-STACK-DIRECTION.md`.
-- **Kyutai** (DSM, STT/TTS, Moshi, bridge, deploy) — Same.
+- **Qwen3-Omni, Director Mode, the local/omni pipelines and the Kyutai sidecars** were deleted on 2026-10-04. See `docs/VOICE-STACK-DIRECTION.md`.
 
 ---
 
 ## References
 
 - `docs/audits/WHAT-ELSE-IS-BROKEN-OR-UNWIRED.md` — Full audit (includes deprecated and done).
-- `docs/VOICE-STACK-DIRECTION.md` — Sonata only; ignore Qwen/Kyutai.
+- `docs/VOICE-STACK-DIRECTION.md` — Voice stack direction and what was removed.
 - `docs/audits/VOICE-AGENT-PIPELINE-GAPS-AUDIT.md` — Pipeline gaps (Ferni TTS, Pre-STT, events).
 - `docs/audits/SRC-ISSUES-AUDIT.md` — Broken, unwired, dead code, TODOs.

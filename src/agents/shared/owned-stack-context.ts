@@ -28,8 +28,8 @@ export function buildOwnedStackContext(opts: {
   parts.push('Reply in 1-3 short sentences. Be concise and natural for spoken delivery.');
   parts.push('Do not use markdown, bullet points, or special formatting.');
   parts.push('');
-  parts.push('If you need to call a tool, output ONLY a JSON object: {"fn":"toolName","args":{"key":"value"}}');
-  parts.push('Do not wrap it in backticks or add any other text. Available tools include: playMusic, rememberAboutUser, recallFromMemory, getCurrentTime, getWeather, setTimer, searchWeb.');
+  parts.push('If you need to call a tool, use native function calling. Never write JSON, function names, or {fn,args} in your reply.');
+  parts.push('Available tools include: playMusic, rememberAboutUser, recallFromMemory, getCurrentTime, getWeather, setTimer, searchWeb.');
 
   const turns = services?.historyTracker?.getSimpleTurns?.();
   if (turns && turns.length > 0) {

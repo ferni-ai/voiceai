@@ -77,7 +77,7 @@ describe('Voice Agent Entry - Module Structure', () => {
     const content = await readAllEntryFiles();
 
     expect(content).toContain('initializeFrontendPublisher');
-    expect(content).toContain('getFrontendPublisher');
+    expect(content).toContain('releaseFrontendPublisher');
     expect(content).toContain('initFrontendSignal');
   });
 

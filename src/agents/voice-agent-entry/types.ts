@@ -52,8 +52,6 @@ export interface SessionCreationResult {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   agent: any;
   voiceAgentRef: import('../shared/handoff/types.js').VoiceAgentRef;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  directorAudioRouter?: any;
   toolCount: number;
   toolLoadMode: string;
 }

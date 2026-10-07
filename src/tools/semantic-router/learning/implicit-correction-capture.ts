@@ -101,14 +101,14 @@ export function recordRoutingPrediction(
 
 /**
  * Record the actual tool that was executed.
- * Call this from JSON function executor after a tool completes.
+ * Call this from the tool dispatcher after a tool completes.
  *
  * Returns true if a correction was detected and recorded.
  */
 export async function recordActualToolExecution(
   sessionId: string,
   actualToolId: string,
-  executionSource: 'semantic_direct' | 'json_fallback'
+  executionSource: 'semantic_direct' | 'json_fallback' | 'native_fc'
 ): Promise<boolean> {
   const prediction = pendingPredictions.get(sessionId);
 

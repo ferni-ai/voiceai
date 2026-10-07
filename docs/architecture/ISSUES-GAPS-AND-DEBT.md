@@ -151,8 +151,5 @@
 
 ## 10. References
 
-- **Candle Omni audit:** `docs/architecture/QWEN3-OMNI-CANDLE-AUDIT.md`
-- **Rust Omni stack audit:** `docs/architecture/RUST-OMNI-STACK-AUDIT.md`
 - **Technical debt:** `src/docs/TECHNICAL-DEBT-TRACKER.md`
-- **MLX/ONNX/GCE:** `docs/architecture/MLX-ONNX-CANDLE-LOCAL-GCE.md`
 - **ONNX Apple:** `docs/guides/ONNX-APPLE-GPU-BUILD.md`

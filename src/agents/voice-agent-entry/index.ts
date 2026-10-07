@@ -669,14 +669,13 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         userData,
         services,
         voiceDeps,
-        roomMetadata: ctx.job.room?.metadata,
         metadata,
         subscriptionTier: finopsTier === 'partner' ? 'partner' : finopsTier === 'friend' ? 'friend' : 'free',
         cleanupHandlers,
       });
 
       session = sessionResult.session;
-      const { agent, voiceAgentRef, directorAudioRouter, toolCount, toolLoadMode } = sessionResult;
+      const { agent, voiceAgentRef, toolCount, toolLoadMode } = sessionResult;
       void toolLoadMode;
 
       e2e.resourceLoaded('agent-session', Date.now() - sessionStart);
@@ -728,7 +727,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         userName: userName ?? null,
         cleanupHandlers,
         cleanupTracker,
-        directorAudioRouter,
         sessionTools: sessionResult.sessionTools,
         toolCount,
         voiceHumanization: null,

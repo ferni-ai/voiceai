@@ -70,9 +70,8 @@ The voice agent does not expose a local HTTP port by default; it connects to Liv
 2. Set at least:
    - `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` (use **dev** LiveKit project for local agent)
    - `GOOGLE_API_KEY`, `CARTESIA_API_KEY` (for voice/TTS)
-3. For Director Mode / Qwen3-Omni: `USE_QWEN3_OMNI=true`, optional `USE_QWEN3_OMNI_DIRECTOR=true`, `DIRECTOR_AUTHORIZED_IDS=<your-user-id>`.
 
-See [environment-variables.md](../guides/environment-variables.md) and [DIRECTOR-MODE-LOCAL-DEV.md](../guides/DIRECTOR-MODE-LOCAL-DEV.md).
+See [environment-variables.md](../guides/environment-variables.md).
 
 ---
 

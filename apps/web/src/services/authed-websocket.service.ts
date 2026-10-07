@@ -2,7 +2,7 @@
  * Open a per-user WebSocket as the signed-in user.
  *
  * The server's per-user sockets (/ws/life-context, /ws/insights,
- * /ws/user-events, /ws/director) take the user from a verified Firebase ID
+ * /ws/user-events) take the user from a verified Firebase ID
  * token at the upgrade. Without one the upgrade is refused (401), and any
  * userId the client names, in the URL or in a message, is ignored.
  *

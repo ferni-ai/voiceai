@@ -14,9 +14,7 @@ How to get inference running on **ONNX** and **Apple GPUs** (Metal / Core ML / N
 | **CandleRouter (Metal)** | ✅ Yes (built, not wired) | Metal on Apple Silicon; not used by the classifier yet (needs Candle-format model).                                                                                       |
 | **Qwen3-Omni Thinker**   | ❌ Separate service       | The Thinker (vLLM / chat completions) runs in its own process or server. vLLM can run on Mac with Metal elsewhere; this repo does not run the Thinker locally by default. |
 
-So **tool routing** can run on Mac GPUs (Core ML or Metal path). The **conversation model (Qwen3-Omni)** is a separate Thinker service; run it where you deploy (e.g. vLLM on Linux/GPU or a Mac Metal build of vLLM if you set that up).
-
-**Full Omni on Mac GPU (Thinker + STT + Tools + TTS):** For running the **whole Omni package** E2E on Mac (Thinker, native STT, tools, TTS) with Rust + Metal where possible, see **[MAC-GPU-OMNI-FULL-STACK-PLAN.md](../plans/MAC-GPU-OMNI-FULL-STACK-PLAN.md)**. That plan covers mlx-omni-server as Mac Thinker, optional Rust STT (whisper-rs + Metal), tools (Core ML/Metal), and native TTS.
+So **tool routing** can run on Mac GPUs (Core ML or Metal path). The conversation model is the production cascade's cloud LLM (see `docs/VOICE-STACK-DIRECTION.md`).
 
 ---
 

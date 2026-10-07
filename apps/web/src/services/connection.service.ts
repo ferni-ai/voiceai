@@ -136,9 +136,6 @@ class ConnectionService {
   private pendingTrackCleanupInterval: ReturnType<typeof setInterval> | null = null;
   private readonly PENDING_TRACK_TTL_MS = 5000; // 5 seconds to match with data message
 
-  /** From token response: when true, backend is Qwen3-Omni; show Director Console in menu */
-  private useQwen3Omni = false;
-
   /** Room joined but the agent hasn't arrived yet: the call is still "connecting". */
   private awaitingAgent = false;
   /** Why the most recent connect() returned false (null after a success). */
@@ -444,8 +441,6 @@ class ConnectionService {
         log.error('Server could not dispatch the voice agent', { room: tokenResponse.room });
       }
 
-      this.useQwen3Omni = tokenResponse.useQwen3Omni === true;
-
       // Create and configure room using global LiveKit (iOS compatible)
       const LiveKit = getLiveKit();
       room = new LiveKit.Room({
@@ -598,7 +593,6 @@ class ConnectionService {
 
       // Disconnect (release our reference first so nothing else closes this room twice)
       this.room = null;
-      this.useQwen3Omni = false;
       await room.disconnect();
 
       this.updateState('disconnected');
@@ -620,7 +614,6 @@ class ConnectionService {
         localParticipantId: null,
         remoteParticipantCount: 0,
         hasActiveAudio: false,
-        useQwen3Omni: this.useQwen3Omni,
       };
     }
 
@@ -630,7 +623,6 @@ class ConnectionService {
       localParticipantId: this.room.localParticipant?.identity ?? null,
       remoteParticipantCount: this.room.remoteParticipants.size,
       hasActiveAudio: this.hasActiveAudioTrack(),
-      useQwen3Omni: this.useQwen3Omni,
     };
   }
 
@@ -991,7 +983,6 @@ class ConnectionService {
     });
     this.audioElements.clear();
     this.room = null;
-    this.useQwen3Omni = false;
     if (!wasAwaitingAgent) this.callbacks.onUnexpectedDisconnect?.(reason);
   }
 

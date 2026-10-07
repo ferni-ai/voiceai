@@ -1,26 +1,12 @@
 /**
- * Conversation Priming for JSON Function Calling
+ * Conversation priming leftovers.
  *
- * CRITICAL INSIGHT (Dec 2024):
- * Testing revealed that Gemini only outputs JSON function calls reliably when
- * the conversation history contains prior examples of JSON output. This module
- * provides "priming" - adding hidden conversation turns that teach Gemini
- * the expected output format.
- *
- * WHY THIS WORKS:
- * - Gemini uses in-context learning from conversation history
- * - Seeing prior JSON outputs primes it to continue the pattern
- * - System prompt alone is NOT sufficient (verified via testing)
- *
- * WHAT THIS MODULE DOES:
- * 1. Adds synthetic "priming" turns after greeting
- * 2. These turns demonstrate JSON output format
- * 3. They're hidden from the user but visible to Gemini
+ * JSON {fn,args} priming was removed. Native function calling / FTIS handle
+ * tools. This module still exposes leakage detection and context pruning.
  *
  * @module agents/shared/conversation-priming
  */
 
-import { isCoach } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ConversationPriming' });
@@ -70,170 +56,9 @@ export interface PrimingResult {
  * These are synthetic conversation turns that prime Gemini to output JSON.
  * They appear in conversation history but are NOT spoken aloud.
  */
-export function getPrimingTurns(config: ConversationPrimingConfig): PrimingTurn[] {
-  const turns: PrimingTurn[] = [];
-
-  // 🎯 FTIS ONLY MODE: Skip JSON priming entirely
-  // When FTIS handles all tools, Gemini should NOT know about JSON format
-  // It would output JSON as speech instead of natural language
-  if (process.env.FTIS_ONLY_MODE === 'true') {
-    log.info('🎯 FTIS_ONLY_MODE=true: Skipping JSON priming (FTIS handles all tools)');
-    return turns;
-  }
-
-  if (!config.enabled) {
-    log.debug('Conversation priming disabled');
-    return turns;
-  }
-
-  log.info(
-    { personaId: config.personaId, primeCriticalTools: config.primeCriticalTools },
-    '🎯 PRIMING: Generating conversation priming turns'
-  );
-
-  // 1. JSON FORMAT PRIMING - Show Gemini what JSON output looks like
-  if (config.primeJsonFormat) {
-    turns.push({
-      role: 'user',
-      content: '[system: format check]',
-      isVisible: false,
-      description: 'Format check trigger (hidden)',
-    });
-
-    turns.push({
-      role: 'assistant',
-      content: '{"fn":"getCurrentTime","args":{}}',
-      isVisible: false,
-      description: 'JSON output example (teaches format)',
-    });
-
-    log.debug('🎯 PRIMING: Added JSON format priming turn');
-  }
-
-  // 2. CRITICAL TOOL PRIMING - Prime for handoffs and music
-  if (config.primeCriticalTools) {
-    // Music priming - DIRECT COMMAND (most common pattern)
-    turns.push({
-      role: 'user',
-      content: '[user: play some jazz]',
-      isVisible: false,
-      description: 'Music direct command (hidden)',
-    });
-
-    turns.push({
-      role: 'assistant',
-      content: '{"fn":"playMusic","args":{"query":"jazz"}}',
-      isVisible: false,
-      description: 'Music JSON example (direct command)',
-    });
-
-    // CRITICAL: Music priming - POLITE REQUEST (Gemini problem pattern!)
-    // Gemini often says "Sure! I'd be happy to play..." instead of calling the tool
-    turns.push({
-      role: 'user',
-      content: '[user: can you play some relaxing music]',
-      isVisible: false,
-      description: 'Music polite request - Gemini problem pattern (hidden)',
-    });
-
-    turns.push({
-      role: 'assistant',
-      content: '{"fn":"playMusic","args":{"query":"relaxing music"}}',
-      isVisible: false,
-      description: 'Music JSON example (polite request → still JSON!)',
-    });
-
-    log.debug('🎯 PRIMING: Added music tool priming turns (including polite pattern)');
-
-    // Weather priming - DIRECT QUESTION (most common pattern)
-    turns.push({
-      role: 'user',
-      content: "[user: what's the weather]",
-      isVisible: false,
-      description: 'Weather direct question (hidden)',
-    });
-
-    turns.push({
-      role: 'assistant',
-      content: '{"fn":"getWeather","args":{}}',
-      isVisible: false,
-      description: 'Weather JSON example (direct question)',
-    });
-
-    // Weather priming - POLITE REQUEST (another Gemini problem pattern)
-    turns.push({
-      role: 'user',
-      content: '[user: could you check the weather]',
-      isVisible: false,
-      description: 'Weather polite request - Gemini problem pattern (hidden)',
-    });
-
-    turns.push({
-      role: 'assistant',
-      content: '{"fn":"getWeather","args":{}}',
-      isVisible: false,
-      description: 'Weather JSON example (polite request → still JSON!)',
-    });
-
-    // Weather priming - CAPABILITY QUESTION (Gemini often explains instead of doing!)
-    turns.push({
-      role: 'user',
-      content: '[user: can you tell me the weather]',
-      isVisible: false,
-      description: 'Weather capability question - Gemini explains instead of doing (hidden)',
-    });
-
-    turns.push({
-      role: 'assistant',
-      content: '{"fn":"getWeather","args":{}}',
-      isVisible: false,
-      description: 'Weather JSON example (capability question → JUST DO IT!)',
-    });
-
-    log.debug('🎯 PRIMING: Added weather tool priming turns (direct, polite, capability)');
-
-    // Handoff priming based on persona (coordinator only)
-    if (isCoach(config.personaId)) {
-      // Handoff priming - DIRECT
-      turns.push({
-        role: 'user',
-        content: '[user: talk to maya about my habits]',
-        isVisible: false,
-        description: 'Handoff direct command (hidden)',
-      });
-
-      turns.push({
-        role: 'assistant',
-        content: '{"fn":"handoffToMaya","args":{"reason":"habits"}}',
-        isVisible: false,
-        description: 'Handoff JSON example (direct)',
-      });
-
-      // CRITICAL: Handoff priming - POLITE REQUEST (Gemini problem pattern!)
-      turns.push({
-        role: 'user',
-        content: '[user: can I speak with Peter about my investments]',
-        isVisible: false,
-        description: 'Handoff polite request - Gemini problem pattern (hidden)',
-      });
-
-      turns.push({
-        role: 'assistant',
-        content: '{"fn":"handoffToPeter","args":{"reason":"investments"}}',
-        isVisible: false,
-        description: 'Handoff JSON example (polite → still JSON!)',
-      });
-
-      log.debug('🎯 PRIMING: Added handoff priming turns for Ferni (including polite pattern)');
-    }
-  }
-
-  log.info(
-    { turnCount: turns.length, personaId: config.personaId },
-    '🎯 PRIMING: Generated priming turns'
-  );
-
-  return turns;
+export function getPrimingTurns(_config: ConversationPrimingConfig): PrimingTurn[] {
+  // Native FC / FTIS handle tools — do not teach JSON {fn,args} in history.
+  return [];
 }
 
 /**
@@ -385,112 +210,12 @@ export function detectsToolCallLeakage(response: string): {
  * Uses progressively more forceful language on subsequent attempts.
  */
 export function generateRetryPrompt(
-  originalMessage: string,
-  suggestedTool: string | null,
-  attempt: number
+  _originalMessage: string,
+  _suggestedTool: string | null,
+  _attempt: number
 ): string {
-  log.info(
-    { suggestedTool, attempt, originalMessage: originalMessage.slice(0, 50) },
-    '🔄 RETRY: Generating retry prompt for failed tool call'
-  );
-
-  // Progressive forcefulness based on attempt number
-  const severity = attempt === 1 ? 'CRITICAL' : attempt === 2 ? 'URGENT' : 'FINAL';
-
-  // Build the most forceful retry prompt possible
-  let retryPrompt: string;
-
-  if (suggestedTool) {
-    // We know which tool was expected - be VERY explicit
-    const toolJson = buildToolJson(suggestedTool, originalMessage);
-
-    retryPrompt = `[${severity} ERROR: YOUR PREVIOUS RESPONSE WAS WRONG.
-
-You said speech text instead of calling the tool. This is incorrect.
-
-CORRECT RESPONSE (output ONLY this, nothing else):
-${toolJson}
-
-DO NOT SAY ANYTHING.
-DO NOT EXPLAIN.
-DO NOT APOLOGIZE.
-OUTPUT ONLY THE JSON ABOVE.]`;
-  } else {
-    // Generic retry - still very forceful
-    retryPrompt = `[${severity} ERROR: YOU MUST OUTPUT JSON, NOT SPEECH.
-
-The user asked: "${originalMessage}"
-
-This request requires a tool call. Output JSON like:
-{"fn":"toolName","args":{...}}
-
-DO NOT SPEAK. OUTPUT JSON ONLY.]`;
-  }
-
-  log.debug(
-    { retryPrompt: retryPrompt.slice(0, 150), attempt },
-    '🔄 RETRY: Generated forceful retry prompt'
-  );
-
-  return retryPrompt;
-}
-
-/**
- * Build the exact JSON that should be output for a given tool
- */
-function buildToolJson(suggestedTool: string, originalMessage: string): string {
-  // Extract relevant content from original message for args
-  const lower = originalMessage.toLowerCase();
-
-  switch (suggestedTool) {
-    case 'playMusic': {
-      // Try to extract query from original message
-      const query = extractMusicQuery(originalMessage) || 'music';
-      return `{"fn":"playMusic","args":{"query":"${query}"}}`;
-    }
-    case 'getWeather':
-      return '{"fn":"getWeather","args":{}}';
-    case 'getNews':
-      return '{"fn":"getNews","args":{}}';
-    case 'handoffToMaya':
-      return '{"fn":"handoffToMaya","args":{"reason":"habits and routines"}}';
-    case 'handoffToAlex':
-      return '{"fn":"handoffToAlex","args":{"reason":"calendar and communication"}}';
-    case 'handoffToPeter':
-      return '{"fn":"handoffToPeter","args":{"reason":"research and analysis"}}';
-    case 'handoffToJordan':
-      return '{"fn":"handoffToJordan","args":{"reason":"planning and celebration"}}';
-    case 'handoffToNayan':
-      return '{"fn":"handoffToNayan","args":{"reason":"wisdom and perspective"}}';
-    default:
-      return `{"fn":"${suggestedTool}","args":{}}`;
-  }
-}
-
-/**
- * Extract music query from user's original message
- */
-function extractMusicQuery(message: string): string | null {
-  // Common patterns
-  const patterns = [
-    /play\s+(?:me\s+)?(?:some\s+)?(.+)/i,
-    /put\s+on\s+(?:some\s+)?(.+)/i,
-    /(?:can|could|would)\s+you\s+play\s+(?:me\s+)?(?:some\s+)?(.+)/i,
-    /i(?:'d|\s+would)\s+like\s+(?:to\s+)?(?:hear|listen\s+to)\s+(.+)/i,
-  ];
-
-  for (const pattern of patterns) {
-    const match = message.match(pattern);
-    if (match && match[1]) {
-      // Clean up the query
-      return match[1]
-        .replace(/\s+please\s*$/i, '')
-        .replace(/\s+for\s+me\s*$/i, '')
-        .trim();
-    }
-  }
-
-  return null;
+  // Native FC — do not teach JSON {fn,args} on retry.
+  return '';
 }
 
 // ============================================================================

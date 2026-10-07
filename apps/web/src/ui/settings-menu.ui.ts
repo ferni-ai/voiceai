@@ -24,9 +24,7 @@ import {
 // Team unlock service - for gating marketplace behind full team unlock
 import { isFullTeamUnlocked } from '../services/team-unlock.service.js';
 // Roadmap service - for "What's Growing" experience
-import { connectionService } from '../services/connection.service.js';
 import { roadmapService } from '../services/roadmap.service.js';
-import { toggleDirectorConsole } from './director-console.ui.js';
 import { showRoadmapPanel } from './roadmap-panel.ui.js';
 
 // Track setTimeout calls for memory leak prevention
@@ -456,7 +454,7 @@ class SettingsMenuUI {
     this.initialize();
     if (!this.panel) return;
 
-    // Re-render so conditional items (e.g. Director Console when useQwen3Omni) reflect current state
+    // Re-render so conditional items reflect current state
     this.renderContent();
 
     this.panel.classList.add('settings-menu--visible');
@@ -847,7 +845,6 @@ class SettingsMenuUI {
             ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript'), transcriptUI.isEnabled())}
             ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects'), !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
-            ${connectionService.getRoomState().useQwen3Omni ? this.renderMenuItem('director-console', ICONS.layers, t('menu.items.directorConsole')) : ''}
             ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
@@ -1332,9 +1329,6 @@ class SettingsMenuUI {
         break;
       case 'billing':
         this.callbacks.onBillingPortalClick?.();
-        break;
-      case 'director-console':
-        toggleDirectorConsole();
         break;
       case 'household':
       case 'household-members':

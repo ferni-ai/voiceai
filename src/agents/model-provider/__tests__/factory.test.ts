@@ -21,6 +21,7 @@ import { GeminiLiveProvider } from '../gemini-live.js';
 import { GeminiNativeAudioProvider } from '../gemini-native-audio.js';
 import { OpenAIRealtimeProvider } from '../openai-realtime.js';
 import type { ModelProvider } from '../types.js';
+import { resetGeminiFCConfig } from '../../shared/gemini-fc-config.js';
 
 describe('ModelProviderFactory', () => {
   // Reset provider state before each test
@@ -29,12 +30,16 @@ describe('ModelProviderFactory', () => {
     // Clear env vars
     delete process.env.USE_OPENAI_REALTIME;
     delete process.env.VOICE_PIPELINE;
+    delete process.env.GEMINI_USE_NATIVE_FC;
+    resetGeminiFCConfig();
   });
 
   afterEach(() => {
     clearModelProvider();
     delete process.env.USE_OPENAI_REALTIME;
     delete process.env.VOICE_PIPELINE;
+    delete process.env.GEMINI_USE_NATIVE_FC;
+    resetGeminiFCConfig();
   });
 
   describe('getModelProvider', () => {
@@ -225,12 +230,16 @@ describe('GeminiLiveProvider', () => {
   let provider: GeminiLiveProvider;
 
   beforeEach(() => {
+    delete process.env.FTIS_ENABLED;
+    process.env.VOICE_PIPELINE = 'gemini-live';
+    resetGeminiFCConfig();
     provider = new GeminiLiveProvider();
   });
 
   afterEach(() => {
-    // Reset FTIS mode env var
     delete process.env.FTIS_ENABLED;
+    delete process.env.VOICE_PIPELINE;
+    resetGeminiFCConfig();
   });
 
   it('should have correct identity', () => {
@@ -270,17 +279,17 @@ describe('GeminiLiveProvider', () => {
       provider = new GeminiLiveProvider();
     });
 
-    it('should use the JSON workaround by default (native FC off unless GEMINI_USE_NATIVE_FC=true)', () => {
-      expect(provider.hasNativeFunctionCalling()).toBe(false);
-      expect(provider.needsJsonWorkaround()).toBe(true);
+    it('should use native function calling by default when VOICE_PIPELINE=gemini-live', () => {
+      expect(provider.hasNativeFunctionCalling()).toBe(true);
+      expect(provider.needsJsonWorkaround()).toBe(false);
     });
 
-    it('should include function calling prompts in non-FTIS mode', () => {
+    it('should use native FC prompts (no JSON {fn,args} instructions)', () => {
       const modules = provider.getPromptModules();
-      expect(modules.includeFunctionCallingBase).toBe(true);
-      expect(modules.includeFunctionCallingSpecialty).toBe(true);
+      expect(modules.includeFunctionCallingBase).toBe(false);
+      expect(modules.includeFunctionCallingSpecialty).toBe(false);
       expect(modules.includeModelBaseInstructions).toBe(true);
-      expect(modules.useMinimalInstructions).toBe(false);
+      expect(modules.useMinimalInstructions).toBe(true);
     });
   });
 

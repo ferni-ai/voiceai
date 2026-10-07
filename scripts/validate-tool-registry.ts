@@ -10,7 +10,7 @@
  * Checks:
  * 1. Tools in function-calling-base.md have matching entries in:
  *    - tool-call-sanitizer.ts TOOL_NAME_PATTERNS
- *    - json-function-executor.ts routeToTool()
+ *    - tool-dispatcher.ts routeToTool()
  *    - function-call-format.ts REGISTERED_TOOLS
  *
  * 2. Tools in REGISTERED_TOOLS exist in at least one prompt file
@@ -28,7 +28,7 @@ const FILES = {
   functionCallingBase: 'src/personas/bundles/shared/function-calling-base.md',
   ferniSpecialty: 'src/personas/bundles/ferni/identity/function-calling-specialty.md',
   sanitizer: 'src/agents/shared/tool-call-sanitizer.ts',
-  executor: 'src/agents/shared/json-function-executor.ts',
+  executor: 'src/agents/shared/tool-dispatcher.ts',
   format: 'src/agents/shared/function-call-format.ts',
 };
 
@@ -172,7 +172,7 @@ function main() {
       const hasPartialMatch = executorTools.some((e) => normalizeToolName(e) === tool);
       if (!hasPartialMatch) {
         issues.push({
-          file: 'json-function-executor.ts',
+          file: 'tool-dispatcher.ts',
           issue: 'Missing route in routeToTool()',
           tool,
         });

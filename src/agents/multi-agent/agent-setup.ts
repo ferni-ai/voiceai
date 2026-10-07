@@ -39,7 +39,6 @@ import {
   createProviderSTT,
   getModelProvider,
   isUsingOpenAI,
-  isUsingQwen3Omni,
 } from '../model-provider/index.js';
 
 // Get the model provider (singleton)
@@ -114,7 +113,7 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
-import { createPersonaTTS, createQwen3TTS } from './persona-tts.js';
+import { createPersonaTTS } from './persona-tts.js';
 import {
   installLiveCallBehaviors,
   logBargeInDecisions,
@@ -216,8 +215,8 @@ export interface AgentSetupResult {
   session: voice.AgentSession<any>;
   /** The agent wrapper */
   agent: voice.Agent<UserData>;
-  /** TTS engine (PersonaAwareTTS or Qwen3TTSAdapter depending on provider) */
-  tts: Awaited<ReturnType<typeof createPersonaTTS>> | Awaited<ReturnType<typeof createQwen3TTS>>;
+  /** TTS engine (PersonaAwareTTS) */
+  tts: Awaited<ReturnType<typeof createPersonaTTS>>;
   /** Cleanup function (cleans up all handlers) */
   cleanup: () => Promise<void>;
   /** Function to make agent speak */
@@ -626,11 +625,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
   mark('parallel_start');
   const parallelStart = Date.now();
 
-  // 1. TTS creation promise (Qwen3-TTS when USE_QWEN3_OMNI, else Cartesia)
+  // 1. TTS creation promise
   mark('tts_start');
-  const ttsPromise = (
-    isUsingQwen3Omni() ? createQwen3TTS(persona.id) : createPersonaTTS(persona.id)
-  ).then((tts) => {
+  const ttsPromise = createPersonaTTS(persona.id).then((tts) => {
     mark('tts_done');
     return tts;
   });

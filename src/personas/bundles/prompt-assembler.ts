@@ -162,18 +162,12 @@ async function loadSuperhumanModules(): Promise<{
  * Load function calling with base + specialty pattern.
  * Base contains critical rules, specialty contains persona-specific tools.
  *
- * SKIP when:
- * - SEMANTIC_ROUTING_PRIMARY=true: Semantic routing handles all tool calls
- * - Provider has native function calling (e.g., OpenAI Realtime)
- *
- * When these are active, we don't want the LLM to output JSON function calls
- * (they would be spoken as text like "fn:speak args:...")
+ * SKIP when the provider has native function calling.
  */
 async function loadFunctionCallingWithBase(
   personaId: string,
   specialtyPath: string
 ): Promise<string> {
-  // Check if provider needs JSON function calling prompts (via DI to avoid layer violation)
   const providerInfo = getModelProviderInfo();
 
   if (!providerInfo.promptModules.includeFunctionCallingBase) {
@@ -184,7 +178,6 @@ async function loadFunctionCallingWithBase(
     return '';
   }
 
-  // Load shared base rules (CRITICAL - contains JSON format instructions)
   const base = await loadSharedFile('function-calling-base.md');
 
   // Load persona-specific specialty tools
