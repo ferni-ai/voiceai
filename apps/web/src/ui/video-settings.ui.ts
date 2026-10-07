@@ -162,7 +162,7 @@ class VideoSettingsUI {
         this.config = response.data.config;
         this.renderContent();
       } else {
-        this.renderError('Unable to load video settings');
+        this.renderError(t('videoSettings.loadError'));
       }
     } catch {
       this.state = {
@@ -223,8 +223,8 @@ class VideoSettingsUI {
 
         <div class="video-settings__coming-soon">
           <div class="video-settings__coming-soon-icon">${ICONS.video}</div>
-          <h3>Video Calls Coming Soon</h3>
-          <p>We're working on bringing video conversations to Ferni. For now, enjoy our voice-first experience with Ferni's expressive avatar.</p>
+          <h3>${t('videoSettings.comingSoonTitle')}</h3>
+          <p>${t('videoSettings.comingSoonBody')}</p>
         </div>
 
         <!-- Video Controls (Hidden - Coming Soon)

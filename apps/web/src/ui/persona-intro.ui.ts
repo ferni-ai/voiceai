@@ -44,17 +44,17 @@ const { trackedTimeout } = createTimeoutTracker();
 // ============================================================================
 
 interface IntroStep {
-  eyebrow: string;
-  title: string;
-  body: string;
-  buttonText: string;
+  eyebrowKey: string;
+  titleKey: string;
+  bodyKey: string;
+  buttonTextKey: string;
 }
 
 interface PersonaIntroData {
   persona: TeamMemberConfig;
   steps: IntroStep[];
-  firstConversationPrompt: string;
-  funFact: string;
+  firstConversationPromptKey: string;
+  funFactKey: string;
 }
 
 // ============================================================================
@@ -118,131 +118,126 @@ const PERSONA_INTROS: Record<string, Omit<PersonaIntroData, 'persona'>> = {
   'maya-santos': {
     steps: [
       {
-        eyebrow: 'MEET YOUR HABITS COACH',
-        title: 'This is Maya',
-        body: "Maya has this gift for making hard things feel possible. She doesn't believe in willpower - she believes in systems. Small ones. The kind you don't even notice until they've changed your life.",
-        buttonText: 'Tell me more',
+        eyebrowKey: 'personaIntro.maya.step1.eyebrow',
+        titleKey: 'personaIntro.maya.step1.title',
+        bodyKey: 'personaIntro.maya.step1.body',
+        buttonTextKey: 'personaIntro.maya.step1.buttonText',
       },
       {
-        eyebrow: 'HER SUPERPOWER',
-        title: 'Start Embarrassingly Small',
-        body: "Maya's philosophy? If you're not embarrassed by how small you're starting, you're starting too big. Want to exercise? Start with one pushup. Want to read? One page. She's relentless about this.",
-        buttonText: 'How does she help?',
+        eyebrowKey: 'personaIntro.maya.step2.eyebrow',
+        titleKey: 'personaIntro.maya.step2.title',
+        bodyKey: 'personaIntro.maya.step2.body',
+        buttonTextKey: 'personaIntro.maya.step2.buttonText',
       },
       {
-        eyebrow: 'READY TO BEGIN',
-        title: 'Your First Conversation',
-        body: "Tell Maya about one thing you've been meaning to do but keep putting off. She won't judge the delay - she'll help you find the tiniest possible first step.",
-        buttonText: 'Talk to Maya',
+        eyebrowKey: 'personaIntro.maya.step3.eyebrow',
+        titleKey: 'personaIntro.maya.step3.title',
+        bodyKey: 'personaIntro.maya.step3.body',
+        buttonTextKey: 'personaIntro.maya.step3.buttonText',
       },
     ],
-    firstConversationPrompt: "What's one small thing you've been putting off?",
-    funFact:
-      'Maya once helped someone finally learn guitar by having them just hold it for 2 minutes a day. Three months later? First song.',
+    firstConversationPromptKey: 'personaIntro.maya.firstConversationPrompt',
+    funFactKey: 'personaIntro.maya.funFact',
   },
 
   'peter-john': {
     steps: [
       {
-        eyebrow: 'MEET THE RESEARCHER',
-        title: 'This is Peter',
-        body: "Peter sees patterns nobody else sees. He's part data scientist, part philosopher, part detective. When you share your life with him, he connects dots you didn't know existed.",
-        buttonText: 'Tell me more',
+        eyebrowKey: 'personaIntro.peter.step1.eyebrow',
+        titleKey: 'personaIntro.peter.step1.title',
+        bodyKey: 'personaIntro.peter.step1.body',
+        buttonTextKey: 'personaIntro.peter.step1.buttonText',
       },
       {
-        eyebrow: 'HIS SUPERPOWER',
-        title: 'Finding Hidden Patterns',
-        body: 'Peter tracks what most people ignore - the small correlations between your mood, sleep, habits, and outcomes. Over time, he helps you understand yourself in ways that feel almost magical.',
-        buttonText: 'How does he help?',
+        eyebrowKey: 'personaIntro.peter.step2.eyebrow',
+        titleKey: 'personaIntro.peter.step2.title',
+        bodyKey: 'personaIntro.peter.step2.body',
+        buttonTextKey: 'personaIntro.peter.step2.buttonText',
       },
       {
-        eyebrow: 'READY TO BEGIN',
-        title: 'Your First Conversation',
-        body: "Peter would love to know about a recent decision you made - good or bad. He's curious about the factors that led to it, even the ones you might not have considered.",
-        buttonText: 'Talk to Peter',
+        eyebrowKey: 'personaIntro.peter.step3.eyebrow',
+        titleKey: 'personaIntro.peter.step3.title',
+        bodyKey: 'personaIntro.peter.step3.body',
+        buttonTextKey: 'personaIntro.peter.step3.buttonText',
       },
     ],
-    firstConversationPrompt: "What's a decision you've been thinking about lately?",
-    funFact:
-      'Peter once predicted a user would get sick 3 days before they did, just from subtle changes in their conversation patterns.',
+    firstConversationPromptKey: 'personaIntro.peter.firstConversationPrompt',
+    funFactKey: 'personaIntro.peter.funFact',
   },
 
   'alex-chen': {
     steps: [
       {
-        eyebrow: 'MEET YOUR CHIEF OF STAFF',
-        title: 'This is Alex',
-        body: "Alex is the person you wish you had in every difficult conversation. She's a communication coach who helps you say what you mean - and hear what others really mean.",
-        buttonText: 'Tell me more',
+        eyebrowKey: 'personaIntro.alex.step1.eyebrow',
+        titleKey: 'personaIntro.alex.step1.title',
+        bodyKey: 'personaIntro.alex.step1.body',
+        buttonTextKey: 'personaIntro.alex.step1.buttonText',
       },
       {
-        eyebrow: 'THEIR SUPERPOWER',
-        title: 'Words That Work',
-        body: "Ever sent an email you regretted? Had a conversation go sideways? Alex helps you prepare for high-stakes moments and debrief the ones that didn't go as planned.",
-        buttonText: 'How do they help?',
+        eyebrowKey: 'personaIntro.alex.step2.eyebrow',
+        titleKey: 'personaIntro.alex.step2.title',
+        bodyKey: 'personaIntro.alex.step2.body',
+        buttonTextKey: 'personaIntro.alex.step2.buttonText',
       },
       {
-        eyebrow: 'READY TO BEGIN',
-        title: 'Your First Conversation',
-        body: "Tell Alex about a conversation you've been avoiding, or one that didn't go the way you hoped. She'll help you see it differently - and prepare for next time.",
-        buttonText: 'Talk to Alex',
+        eyebrowKey: 'personaIntro.alex.step3.eyebrow',
+        titleKey: 'personaIntro.alex.step3.title',
+        bodyKey: 'personaIntro.alex.step3.body',
+        buttonTextKey: 'personaIntro.alex.step3.buttonText',
       },
     ],
-    firstConversationPrompt: "Is there a conversation you've been putting off?",
-    funFact:
-      "Alex helped someone negotiate a 40% raise with just three sentences they'd never thought to say.",
+    firstConversationPromptKey: 'personaIntro.alex.firstConversationPrompt',
+    funFactKey: 'personaIntro.alex.funFact',
   },
 
   'jordan-taylor': {
     steps: [
       {
-        eyebrow: 'MEET YOUR PLANNER',
-        title: 'This is Jordan',
-        body: "Jordan turns vague dreams into actual plans. Not someday plans. Real ones, with dates and steps and backup options. She's obsessed with making your future feel as real as your present.",
-        buttonText: 'Tell me more',
+        eyebrowKey: 'personaIntro.jordan.step1.eyebrow',
+        titleKey: 'personaIntro.jordan.step1.title',
+        bodyKey: 'personaIntro.jordan.step1.body',
+        buttonTextKey: 'personaIntro.jordan.step1.buttonText',
       },
       {
-        eyebrow: 'THEIR SUPERPOWER',
-        title: 'Dreams into Dates',
-        body: "That trip you've 'always wanted to take'? That project you'll start 'when you have time'? Jordan doesn't let those stay hypothetical. She makes them concrete.",
-        buttonText: 'How do they help?',
+        eyebrowKey: 'personaIntro.jordan.step2.eyebrow',
+        titleKey: 'personaIntro.jordan.step2.title',
+        bodyKey: 'personaIntro.jordan.step2.body',
+        buttonTextKey: 'personaIntro.jordan.step2.buttonText',
       },
       {
-        eyebrow: 'READY TO BEGIN',
-        title: 'Your First Conversation',
-        body: "Share something you've been wanting to do 'someday.' Jordan will help you figure out what 'someday' actually looks like - and take the first real step toward it.",
-        buttonText: 'Talk to Jordan',
+        eyebrowKey: 'personaIntro.jordan.step3.eyebrow',
+        titleKey: 'personaIntro.jordan.step3.title',
+        bodyKey: 'personaIntro.jordan.step3.body',
+        buttonTextKey: 'personaIntro.jordan.step3.buttonText',
       },
     ],
-    firstConversationPrompt: "What's something you've always wanted to do but never planned?",
-    funFact:
-      "Jordan helped someone plan their dream wedding in 6 weeks after they'd been 'figuring it out' for 2 years.",
+    firstConversationPromptKey: 'personaIntro.jordan.firstConversationPrompt',
+    funFactKey: 'personaIntro.jordan.funFact',
   },
 
   'nayan-patel': {
     steps: [
       {
-        eyebrow: 'MEET THE SAGE',
-        title: 'This is Nayan',
-        body: "Nayan is different. Quieter. Deeper. He's the wise friend who asks the questions that stay with you for days. He's not here to fix problems - he's here to help you see them differently.",
-        buttonText: 'Tell me more',
+        eyebrowKey: 'personaIntro.nayan.step1.eyebrow',
+        titleKey: 'personaIntro.nayan.step1.title',
+        bodyKey: 'personaIntro.nayan.step1.body',
+        buttonTextKey: 'personaIntro.nayan.step1.buttonText',
       },
       {
-        eyebrow: 'HIS SUPERPOWER',
-        title: 'The Long View',
-        body: "While others focus on the next step, Nayan thinks in decades. He helps you connect today's small actions to the person you're becoming. His favorite phrase? 'Small, consistent actions create extraordinary results.'",
-        buttonText: 'What wisdom does he share?',
+        eyebrowKey: 'personaIntro.nayan.step2.eyebrow',
+        titleKey: 'personaIntro.nayan.step2.title',
+        bodyKey: 'personaIntro.nayan.step2.body',
+        buttonTextKey: 'personaIntro.nayan.step2.buttonText',
       },
       {
-        eyebrow: 'READY TO BEGIN',
-        title: 'Your First Conversation',
-        body: "Nayan doesn't do small talk. Tell him what you're really wrestling with - the big stuff. The meaning stuff. He's listening.",
-        buttonText: 'Talk to Nayan',
+        eyebrowKey: 'personaIntro.nayan.step3.eyebrow',
+        titleKey: 'personaIntro.nayan.step3.title',
+        bodyKey: 'personaIntro.nayan.step3.body',
+        buttonTextKey: 'personaIntro.nayan.step3.buttonText',
       },
     ],
-    firstConversationPrompt: "What's something you've been thinking about deeply lately?",
-    funFact:
-      'Nayan once answered a question with silence that lasted 30 seconds. The user said it was the most helpful thing anyone had ever done.',
+    firstConversationPromptKey: 'personaIntro.nayan.firstConversationPrompt',
+    funFactKey: 'personaIntro.nayan.funFact',
   },
 };
 
@@ -434,7 +429,7 @@ function finishIntro(): void {
       new CustomEvent('ferni:switch-persona', {
         detail: {
           personaId: currentPersona.id,
-          initialPrompt: currentIntroData.firstConversationPrompt,
+          initialPrompt: t(currentIntroData.firstConversationPromptKey),
         },
       })
     );
@@ -515,9 +510,9 @@ function renderStep(): void {
     </div>
     
     <!-- Content -->
-    <span class="persona-intro-eyebrow" style="color: ${colors.primary}">${step.eyebrow}</span>
-    <h2 id="persona-intro-title" class="persona-intro-title">${step.title}</h2>
-    <p class="persona-intro-body">${step.body}</p>
+    <span class="persona-intro-eyebrow" style="color: ${colors.primary}">${t(step.eyebrowKey)}</span>
+    <h2 id="persona-intro-title" class="persona-intro-title">${t(step.titleKey)}</h2>
+    <p class="persona-intro-body">${t(step.bodyKey)}</p>
     
     <!-- Fun fact on first step -->
     ${
@@ -525,7 +520,7 @@ function renderStep(): void {
         ? `
       <div class="persona-intro-funfact" style="background: ${colors.tint}; border-color: ${colors.primary}">
         <span class="funfact-icon">${ICONS.sparkles}</span>
-        <p>${currentIntroData.funFact}</p>
+        <p>${t(currentIntroData.funFactKey)}</p>
       </div>
     `
         : ''
@@ -537,18 +532,18 @@ function renderStep(): void {
         !isFirstStep
           ? `
         <button aria-label="${t('accessibility.back')}" class="persona-intro-btn persona-intro-btn--secondary" data-action="prev">
-          Back
+          ${t('common.back')}
         </button>
       `
           : `
         <button aria-label="${t('accessibility.skipIntro')}" class="persona-intro-btn persona-intro-btn--secondary" data-action="skip">
-          Skip intro
+          ${t('personaIntro.skipIntro')}
         </button>
       `
       }
       <button aria-label="${t('accessibility.goForward')}" class="persona-intro-btn persona-intro-btn--primary" data-action="next" style="background: ${colors.primary}">
         ${isLastStep ? ICONS.messageCircle : ''}
-        <span>${step.buttonText}</span>
+        <span>${t(step.buttonTextKey)}</span>
         ${!isLastStep ? ICONS.arrowRight : ''}
       </button>
     </div>

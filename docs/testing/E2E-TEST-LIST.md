@@ -1,15 +1,7 @@
 # E2E and Integration Test List
 
 > **Phase 0** of the [E2E Better Than Human Master Plan](../plans/E2E-BETTER-THAN-HUMAN-MASTER-PLAN.md).  
-> Canonical list of E2E/synthetic/integration tests that touch Director, BTH, memory, tools, voice, and humanization.
-
----
-
-## Director & Qwen3-Omni
-
-| File                                                        | Description                                                                                       |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `src/tests/integration/director-websocket-protocol.test.ts` | Director WebSocket: auth, session lookup, state push, inbound (query, command, accept_suggestion) |
+> Canonical list of E2E/synthetic/integration tests that touch BTH, memory, tools, voice, and humanization.
 
 ---
 
@@ -99,9 +91,6 @@
 ## Running Subsets
 
 ```bash
-# Director WebSocket
-pnpm vitest run src/tests/integration/director-websocket-protocol.test.ts
-
 # BTH capabilities (some describe blocks may be skipped)
 pnpm vitest run src/tests/e2e/better-than-human-capabilities-e2e.test.ts
 
@@ -125,10 +114,8 @@ pnpm test:voice
 
 | Workflow             | Purpose                                                                                           |
 | -------------------- | ------------------------------------------------------------------------------------------------- |
-| `e2e-critical.yml`   | **Critical E2E subset** – Director WebSocket, tool routing, handoff, superhuman (on path changes) |
+| `e2e-critical.yml`   | **Critical E2E subset** – tool routing, handoff, superhuman (on path changes)                     |
 | `e2e-tests.yml`      | Playwright E2E (frontend)                                                                         |
 | `agent-e2e.yml`      | Agent E2E                                                                                         |
 | `bth-benchmarks.yml` | BTH benchmarks                                                                                    |
 | `ci.yml`             | Lint, test, build (unit/integration)                                                              |
-
-Stress test uses **Qwen Thinker** only (no Ollama): `node scripts/qwen3-omni/stress-test.mjs --url <Thinker URL>`. See [STRESS-TEST-QWEN-OMNI.md](../guides/STRESS-TEST-QWEN-OMNI.md).

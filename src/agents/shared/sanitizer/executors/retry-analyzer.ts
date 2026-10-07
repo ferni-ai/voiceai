@@ -117,95 +117,11 @@ function extractToolFromPattern(text: string): string | null {
 function generateRetryPrompt(
   suggestedTool: string,
   originalMessage: string,
-  attempt: number = 1
+  _attempt: number = 1
 ): string {
-  const isMusic = suggestedTool.toLowerCase().includes('music') || suggestedTool === 'playMusic';
-  const isHandoff =
-    suggestedTool.toLowerCase().includes('handoff') ||
-    suggestedTool.toLowerCase().includes('transfer');
-
-  // ATTEMPT 3: Ultra-explicit with prefilled tool name (last resort)
-  if (attempt >= 3) {
-    if (isMusic) {
-      return `OUTPUT THIS EXACT JSON NOW (fill in the query):
-{"fn":"playMusic","args":{"query":"jazz"}}
-
-User wanted: "${originalMessage}"
-Replace "jazz" with appropriate query. OUTPUT ONLY JSON. NO OTHER TEXT.`;
-    }
-    if (isHandoff) {
-      return `OUTPUT THIS EXACT JSON NOW:
-{"fn":"${suggestedTool}","args":{"reason":"user request"}}
-
-ONLY OUTPUT THE JSON ABOVE. NOTHING ELSE. NO WORDS.`;
-    }
-    return `OUTPUT JSON FUNCTION CALL NOW:
-{"fn":"${suggestedTool}","args":{}}
-
-Fill in args as needed. OUTPUT ONLY JSON. ZERO OTHER TEXT.`;
-  }
-
-  // ATTEMPT 2: Explicit JSON-only with strong warnings
-  if (attempt >= 2) {
-    if (isMusic) {
-      return `CRITICAL: You just spoke instead of calling the function. This is WRONG.
-
-The user asked: "${originalMessage}"
-
-You MUST output ONLY this JSON format (no other text):
-{"fn":"playMusic","args":{"query":"<search query>"}}
-
-DO NOT say "I'll play" or "Let me play" - just output the JSON.`;
-    }
-    if (isHandoff) {
-      return `CRITICAL: You announced the transfer instead of executing it. This is WRONG.
-
-The user asked: "${originalMessage}"
-
-You MUST output ONLY this JSON format (no other text):
-{"fn":"${suggestedTool}","args":{"reason":"<brief reason>"}}
-
-DO NOT say "I'll transfer you" - just output the JSON.`;
-    }
-    return `CRITICAL: You spoke about the tool instead of calling it. This is WRONG.
-
-The user asked: "${originalMessage}"
-
-You MUST output ONLY the JSON function call:
-{"fn":"${suggestedTool}","args":{...}}
-
-NO TEXT BEFORE OR AFTER. ONLY JSON.`;
-  }
-
-  // ATTEMPT 1: Standard instruction (existing behavior)
-  if (isMusic) {
-    return `The user asked: "${originalMessage}"
-
-IMPORTANT: Do NOT say "I'll play" or "Let me play" or "Playing music". 
-Instead, output the JSON function call IMMEDIATELY:
-
-{"fn":"playMusic","args":{"query":"<appropriate search query>"}}
-
-Do not add any text before or after the JSON.`;
-  }
-
-  if (isHandoff) {
-    return `The user asked: "${originalMessage}"
-
-IMPORTANT: Do NOT announce the transfer. Execute it directly with JSON:
-
-{"fn":"${suggestedTool}","args":{"reason":"<brief reason>"}}
-
-No text before or after.`;
-  }
-
-  // Generic retry prompt
   return `The user asked: "${originalMessage}"
 
-IMPORTANT: Execute the appropriate tool by outputting ONLY the JSON function call.
-Format: {"fn":"toolName","args":{...}}
-
-Do not announce what you're doing. Just output the JSON directly.`;
+Call the ${suggestedTool} function through native function calling. Do not announce it. Do not write JSON or the function name in speech.`;
 }
 
 // ============================================================================

@@ -12,6 +12,7 @@
  * // App content reveals after animation
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
@@ -185,7 +186,7 @@ function getSplashHTML(): string {
         <circle class="eye-main" cx="50" cy="50" r="14" fill="${COLORS.white}"/>
       </svg>
       
-      <p class="splash-tagline">Your AI team is ready</p>
+      <p class="splash-tagline">${t('splash.tagline')}</p>
     </div>
   `;
 }

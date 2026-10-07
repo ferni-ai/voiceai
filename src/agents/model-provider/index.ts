@@ -84,14 +84,7 @@ export {
   buildNativeAudioModelOptions,
   toReplicatedVoiceConfig,
 } from './gemini-native-audio.js';
-export { Qwen3OmniProvider } from './qwen3-omni.js';
-export { LocalPipelineProvider, OllamaLLMAdapter } from './local-pipeline.js';
-export {
-  OmniPipelineProvider,
-  OmniPipelineLLMAdapter,
-  isOmniPipelineEnabled,
-  getOmniPipelineUrl,
-} from './omni-pipeline.js';
+export { OllamaLLMAdapter } from './ollama-llm-adapter.js';
 
 // ============================================================================
 // FACTORY EXPORTS
@@ -102,11 +95,6 @@ export {
   getProviderIdSync,
   isUsingOpenAI,
   isUsingGemini,
-  isUsingQwen3Omni,
-  isUsingQwen3TTS,
-  isUsingLocalPipeline,
-  isUsingOmniPipeline,
-  isQwen3OmniCandleBackend,
   setModelProvider,
   clearModelProvider,
   isTestInjectedProvider,

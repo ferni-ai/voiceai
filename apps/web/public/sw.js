@@ -8,9 +8,10 @@
  * - Periodic sync for ritual reminders
  *
  * Cache Strategy:
- * - Hashed build output (/assets/) and fonts: Cache-first (the URL changes when the file does)
- * - Other static files (/design-system/*.css, /voice-engine.js, icons): Stale-while-revalidate,
- *   so an update reaches users on their next load instead of never
+ * - Content-hashed bundles and fonts: Cache-first (a new build changes the URL)
+ * - Other static files (design-system CSS, icons): Stale-while-revalidate, so a
+ *   deploy reaches users on their next load without bumping CACHE_VERSION
+ * - Vite dev modules (/src, /@vite, /node_modules): never cached
  * - API calls: Network-first with cache fallback
  * - HTML: Network-first
  */
@@ -129,10 +130,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // Static assets (CSS, JS, images): cache-first only when the URL is content-hashed
+  // Vite dev server modules change on every edit
+  if (/^\/(src|@vite|@id|@fs|node_modules)\//.test(url.pathname)) {
+    return;
+  }
+
+  // Static assets: hashed bundles never change in place; everything else may
   if (isStaticAsset(url.pathname)) {
-    const strategy = url.pathname.startsWith('/assets/') ? cacheFirst : staleWhileRevalidate;
-    event.respondWith(strategy(request, STATIC_CACHE));
+    event.respondWith(isHashedAsset(url.pathname)
+      ? cacheFirst(request, STATIC_CACHE)
+      : staleWhileRevalidate(event, request, STATIC_CACHE));
     return;
   }
   
@@ -178,21 +185,24 @@ async function cacheFirst(request, cacheName) {
 }
 
 /**
- * Stale-while-revalidate: answer from cache, refresh the cache in the background
- * Good for: static files served at a fixed URL (tokens.css, voice-engine.js)
+ * Stale-while-revalidate: answer from cache at once, refresh it in the background
+ * Good for: static files whose URL stays the same across deploys
  */
-async function staleWhileRevalidate(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
-  const refresh = fetch(request)
-    .then((response) => {
-      if (response.ok && response.status === 200) {
-        cache.put(request, response.clone());
-      }
-      return response;
-    })
-    .catch(() => cached);
-  return cached || refresh;
+async function staleWhileRevalidate(event, request, cacheName) {
+  const cached = await caches.match(request);
+  const refresh = fetch(request).then(async (response) => {
+    if (response.ok && response.status === 200) {
+      const cache = await caches.open(cacheName);
+      await cache.put(request, response.clone());
+    }
+    return response;
+  });
+  if (cached) {
+    event.waitUntil(refresh.catch(() => undefined));
+    return cached;
+  }
+  return refresh.catch(() => caches.match('/offline.html') ||
+    new Response('Offline', { status: 503, statusText: 'Service Unavailable' }));
 }
 
 /**
@@ -230,6 +240,11 @@ async function networkFirstWithCache(request, cacheName) {
     return caches.match('/offline.html') || 
            new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
+}
+
+/** Vite build output: /assets/name-<hash>.ext */
+function isHashedAsset(pathname) {
+  return /^\/assets\/.+-[A-Za-z0-9_-]{8,}\.[a-z0-9]+$/.test(pathname);
 }
 
 /**

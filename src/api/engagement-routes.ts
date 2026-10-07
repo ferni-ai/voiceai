@@ -66,7 +66,6 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
   '/api/relationship',
   '/api/games',
   '/api/sky-check',
-  '/api/growth',
   '/api/insights', // Pattern insights
   '/api/journal', // Growth journal
   '/api/quiz', // Knowledge quiz

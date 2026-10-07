@@ -302,7 +302,7 @@ export class FrontendPublisher {
   /**
    * Set or update the room reference
    */
-  setRoom(room: RoomRef): void {
+  setRoom(room: RoomRef | null): void {
     this.room = room;
   }
 
@@ -810,12 +810,9 @@ export class FrontendPublisher {
   }
 }
 
-// One publisher per call (call-publishers.ts): a process singleton re-pointed
-// by each new call sent one caller's app messages into another caller's room.
 export {
   getFrontendPublisher,
   initializeFrontendPublisher,
   releaseFrontendPublisher,
   resetFrontendPublisher,
-  runInCall,
-} from './call-publishers.js';
+} from './session-publishers.js';

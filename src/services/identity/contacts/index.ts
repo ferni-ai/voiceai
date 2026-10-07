@@ -105,14 +105,6 @@ export {
   outreachNudges,
 } from '../../contacts/outreach-nudges.js';
 
-// Google Contacts Import
-export {
-  importGoogleContacts,
-  syncGoogleContacts,
-  getGoogleContactsAuthUrl,
-  exchangeGoogleContactsCode,
-} from '../../contacts/google-contacts-import.js';
-
 // Voice Message Service
 export {
   generateVoiceAudio,

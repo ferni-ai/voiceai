@@ -183,10 +183,10 @@ function createCelebrationModal(member: TeamMemberConfig): HTMLElement {
       <!-- Content -->
       <div class="unlock-content">
         <span class="unlock-eyebrow">
-          ${isPremium ? 'A SPECIAL INTRODUCTION' : 'SOMEONE NEW'}
+          ${isPremium ? t('teamUnlockCelebration.specialIntroduction') : t('accessibility.someoneNew')}
         </span>
         <h2 id="unlock-title" class="unlock-title">
-          Meet ${member.displayName}
+          ${t('teamUnlockCelebration.meet', { name: member.displayName })}
         </h2>
         <p class="unlock-role">${member.role}</p>
         <p class="unlock-message">
@@ -198,15 +198,15 @@ function createCelebrationModal(member: TeamMemberConfig): HTMLElement {
       <div class="unlock-actions" role="button" tabindex="0">
         <button aria-label="${t('accessibility.sayHello')}" class="unlock-button unlock-button--primary" data-action="meet">
           ${ICONS.heart}
-          <span>Say Hello</span>
+          <span>${t('accessibility.sayHello')}</span>
         </button>
         <button aria-label="${t('accessibility.maybeLater')}" class="unlock-button unlock-button--secondary" data-action="later">
-          Maybe Later
+          ${t('accessibility.maybeLater')}
         </button>
       </div>
       
       <p class="unlock-footer">
-        ${member.displayName} is now part of your team.
+        ${t('teamUnlockCelebration.nowPartOfTeam', { name: member.displayName })}
       </p>
     </div>
   `;

@@ -8,6 +8,7 @@
 
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('TwinProfileService');
 
@@ -258,9 +259,9 @@ export function getCompletionLevel(percentage: number): {
   level: 'none' | 'started' | 'basic' | 'good' | 'complete';
   label: string;
 } {
-  if (percentage === 0) return { level: 'none', label: 'Not started' };
-  if (percentage < 25) return { level: 'started', label: 'Just started' };
-  if (percentage < 50) return { level: 'basic', label: 'Basic info' };
-  if (percentage < 80) return { level: 'good', label: 'Good profile' };
-  return { level: 'complete', label: 'Complete!' };
+  if (percentage === 0) return { level: 'none', label: t('twinProfile.completion.notStarted') };
+  if (percentage < 25) return { level: 'started', label: t('twinProfile.completion.justStarted') };
+  if (percentage < 50) return { level: 'basic', label: t('twinProfile.completion.basicInfo') };
+  if (percentage < 80) return { level: 'good', label: t('twinProfile.completion.goodProfile') };
+  return { level: 'complete', label: t('twinProfile.completion.complete') };
 }

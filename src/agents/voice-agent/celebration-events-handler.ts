@@ -28,6 +28,8 @@ export interface CelebrationContext {
   injections: Array<{ category: string; content: string }>;
   /** LiveKit room (optional for legacy fallback) */
   room?: RoomLike;
+  /** The call's session, used to find its frontend publisher */
+  sessionId?: string;
 }
 
 export interface CelebrationConfig {
@@ -64,13 +66,13 @@ const CELEBRATION_CONFIGS: Record<string, CelebrationConfig> = {
  * First tries FrontendPublisher, falls back to legacy room publishing.
  */
 export async function sendCelebrationEvents(ctx: CelebrationContext): Promise<void> {
-  const { injections, room } = ctx;
+  const { injections, room, sessionId } = ctx;
   const logger = log();
 
   // Try FrontendPublisher first
   try {
     const { getFrontendPublisher } = await import('../realtime/index.js');
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
 
     if (publisher.isConnected()) {
       await publisher.sendCelebrationEvents(injections);

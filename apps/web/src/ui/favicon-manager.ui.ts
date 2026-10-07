@@ -552,7 +552,7 @@ function setupEventListeners(): void {
   }) as EventListener);
 
   // Thinking
-  window.addEventListener('ferni:thinking', ((e: CustomEvent) => {
+  document.addEventListener('ferni:thinking', ((e: CustomEvent) => {
     if (e.detail.thinking) {
       setFaviconState('thinking');
     } else if (currentState === 'thinking') {

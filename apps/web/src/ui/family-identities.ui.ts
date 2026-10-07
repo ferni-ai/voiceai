@@ -14,7 +14,8 @@
  * @module @ferni/family-identities
  */
 
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
@@ -58,24 +59,24 @@ export interface FamilyIdentitiesCallbacks {
 // ============================================================================
 
 const RELATIONSHIP_OPTIONS = [
-  { value: 'mother', label: 'Mother' },
-  { value: 'father', label: 'Father' },
-  { value: 'parent', label: 'Parent' },
-  { value: 'grandmother', label: 'Grandmother' },
-  { value: 'grandfather', label: 'Grandfather' },
-  { value: 'grandparent', label: 'Grandparent' },
-  { value: 'sibling', label: 'Sibling' },
-  { value: 'child', label: 'Child' },
-  { value: 'spouse', label: 'Spouse' },
-  { value: 'partner', label: 'Partner' },
-  { value: 'friend', label: 'Friend' },
-  { value: 'other', label: 'Other' },
+  { value: 'mother', labelKey: 'familyIdentities.relationshipMother' },
+  { value: 'father', labelKey: 'familyIdentities.relationshipFather' },
+  { value: 'parent', labelKey: 'familyIdentities.relationshipParent' },
+  { value: 'grandmother', labelKey: 'familyIdentities.relationshipGrandmother' },
+  { value: 'grandfather', labelKey: 'familyIdentities.relationshipGrandfather' },
+  { value: 'grandparent', labelKey: 'familyIdentities.relationshipGrandparent' },
+  { value: 'sibling', labelKey: 'familyIdentities.relationshipSibling' },
+  { value: 'child', labelKey: 'familyIdentities.relationshipChild' },
+  { value: 'spouse', labelKey: 'familyIdentities.relationshipSpouse' },
+  { value: 'partner', labelKey: 'familyIdentities.relationshipPartner' },
+  { value: 'friend', labelKey: 'familyIdentities.relationshipFriend' },
+  { value: 'other', labelKey: 'familyIdentities.relationshipOther' },
 ];
 
 const ACCESS_LEVEL_OPTIONS = [
-  { value: 'full', label: 'Full Access', description: 'Can talk to all team members' },
-  { value: 'limited', label: 'Limited', description: 'Only Ferni' },
-  { value: 'supervised', label: 'Supervised', description: 'You get notified of calls' },
+  { value: 'full', labelKey: 'familyIdentities.accessLevelFull', descriptionKey: 'familyIdentities.accessLevelFullDesc' },
+  { value: 'limited', labelKey: 'familyIdentities.accessLevelLimited', descriptionKey: 'familyIdentities.accessLevelLimitedDesc' },
+  { value: 'supervised', labelKey: 'familyIdentities.accessLevelSupervised', descriptionKey: 'familyIdentities.accessLevelSupervisedDesc' },
 ];
 
 // ============================================================================
@@ -478,32 +479,19 @@ function formatPhone(phone: string): string {
   return phone;
 }
 
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return 'Never';
-  const date = new Date(dateStr);
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-function formatMinutes(minutes: number): string {
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-}
-
 // ============================================================================
 // API FUNCTIONS
 // ============================================================================
 
 /** The api helpers resolve (not throw) on HTTP errors, so check `ok` explicitly. */
-function reportFailure(what: string, response: { ok: boolean; status?: number }): void {
-  log.error(`Failed to ${what}`, { status: response.status });
-  toast.error(`Couldn't ${what}. Try again?`);
+function reportFailure(messageKey: string, response: { ok: boolean; status?: number }): void {
+  log.error(`Family identities request failed: ${messageKey}`, { status: response.status });
+  toast.error(t(messageKey));
 }
 
 async function loadIdentities(): Promise<void> {
   const response = await apiGet<{ identities: SponsoredIdentity[] }>('/api/sponsored-identities');
-  if (!response.ok) reportFailure('load your family', response);
+  if (!response.ok) reportFailure('familyIdentities.errors.load', response);
   identities = response.data?.identities ?? [];
 }
 
@@ -517,7 +505,7 @@ async function createIdentity(data: {
 }): Promise<SponsoredIdentity | null> {
   const response = await apiPost<{ identity: SponsoredIdentity }>('/api/sponsored-identities', data);
   if (!response.ok || !response.data?.identity) {
-    reportFailure('add them', response);
+    reportFailure('familyIdentities.errors.add', response);
     return null;
   }
   return response.data.identity;
@@ -532,7 +520,7 @@ async function updateIdentity(
     data
   );
   if (!response.ok || !response.data?.identity) {
-    reportFailure('save that', response);
+    reportFailure('familyIdentities.errors.save', response);
     return null;
   }
   return response.data.identity;
@@ -540,7 +528,7 @@ async function updateIdentity(
 
 async function deleteIdentity(id: string): Promise<boolean> {
   const response = await apiDelete(`/api/sponsored-identities/${id}`);
-  if (!response.ok) reportFailure('remove them', response);
+  if (!response.ok) reportFailure('familyIdentities.errors.remove', response);
   return response.ok;
 }
 
@@ -574,7 +562,7 @@ function renderMainView(): string {
     <div class="family-actions">
       <button class="family-btn family-btn--primary" data-action="add">
         ${ICONS.userPlus}
-        Add Family Member
+        ${t('familyIdentities.addMember')}
       </button>
     </div>
   `;
@@ -584,10 +572,9 @@ function renderEmptyState(): string {
   return `
     <div class="family-empty">
       <div class="family-empty__icon">${ICONS.heart}</div>
-      <div class="family-empty__title">Your Ferni Family</div>
+      <div class="family-empty__title">${t('familyIdentities.familyTitle')}</div>
       <div class="family-empty__text">
-        Add family members who call Ferni by phone. They'll be recognized 
-        automatically and can have their own conversations with Ferni.
+        ${t('familyIdentities.emptyText')}
       </div>
     </div>
   `;
@@ -603,7 +590,8 @@ function renderIdentityList(): string {
 
 function renderIdentityItem(identity: SponsoredIdentity): string {
   const initials = getInitials(identity.displayName);
-  const relationship = RELATIONSHIP_OPTIONS.find((r) => r.value === identity.relationship)?.label || identity.relationship;
+  const relationshipOpt = RELATIONSHIP_OPTIONS.find((r) => r.value === identity.relationship);
+  const relationship = relationshipOpt ? t(relationshipOpt.labelKey) : identity.relationship;
 
   return `
     <div class="family-item" data-identity-id="${identity.id}">
@@ -616,7 +604,7 @@ function renderIdentityItem(identity: SponsoredIdentity): string {
         <div class="family-item__badges">
           ${
             identity.voiceEnrolled
-              ? `<span class="family-item__badge family-item__badge--voice" title="${t('forms.voiceEnrolled', 'Voice enrolled')}">
+              ? `<span class="family-item__badge family-item__badge--voice" title="${t('forms.voiceEnrolled')}">
                   ${ICONS.mic}
                 </span>`
               : ''
@@ -626,11 +614,11 @@ function renderIdentityItem(identity: SponsoredIdentity): string {
       <div class="family-item__stats">
         <span class="family-item__stat">
           ${ICONS.phone}
-          ${identity.totalCalls} calls
+          ${tp('familyIdentities.calls', identity.totalCalls)}
         </span>
         <span class="family-item__stat">
           ${ICONS.clock}
-          ${identity.lastCallAt ? `Last: ${formatDate(identity.lastCallAt)}` : 'No calls yet'}
+          ${identity.lastCallAt ? t('familyIdentities.lastCall', { date: formatDate(new Date(identity.lastCallAt), { month: 'short', day: 'numeric' }) }) : t('familyIdentities.noCalls')}
         </span>
       </div>
     </div>
@@ -641,36 +629,35 @@ function renderAddForm(): string {
   return `
     <div class="family-form">
       <div class="family-form__group">
-        <label class="family-form__label">Name *</label>
-        <input type="text" class="family-form__input" id="family-name" placeholder="${t('forms.familyMemberName', 'e.g., Mom')}" required>
+        <label class="family-form__label">${t('familyIdentities.fieldName')} *</label>
+        <input type="text" class="family-form__input" id="family-name" placeholder="${t('forms.familyMemberName')}" required>
       </div>
-      
       <div class="family-form__group">
-        <label class="family-form__label">Phone Number *</label>
-        <input type="tel" class="family-form__input" id="family-phone" placeholder="${t('forms.familyPhone', '+1 555 123 4567')}" required>
+        <label class="family-form__label">${t('familyIdentities.fieldPhoneNumber')} *</label>
+        <input type="tel" class="family-form__input" id="family-phone" placeholder="${t('forms.familyPhone')}" required>
       </div>
-      
+
       <div class="family-form__group">
-        <label class="family-form__label">Relationship *</label>
+        <label class="family-form__label">${t('familyIdentities.fieldRelationship')} *</label>
         <select class="family-form__select" id="family-relationship">
-          ${RELATIONSHIP_OPTIONS.map((opt) => `<option value="${opt.value}">${opt.label}</option>`).join('')}
+          ${RELATIONSHIP_OPTIONS.map((opt) => `<option value="${opt.value}">${t(opt.labelKey)}</option>`).join('')}
         </select>
       </div>
-      
+
       <div class="family-form__group">
-        <label class="family-form__label">What should Ferni call them?</label>
-        <input type="text" class="family-form__input" id="family-preferred" placeholder="${t('forms.familyPreferredName', 'e.g., Barbara (optional)')}">
+        <label class="family-form__label">${t('familyIdentities.fieldWhatShouldFerniCallThem')}</label>
+        <input type="text" class="family-form__input" id="family-preferred" placeholder="${t('forms.familyPreferredName')}">
       </div>
-      
+
       <div class="family-form__group">
-        <label class="family-form__label">Notes for Ferni</label>
-        <textarea class="family-form__textarea" id="family-notes" placeholder="${t('forms.familyNotes', 'Any helpful context (optional)')}"></textarea>
+        <label class="family-form__label">${t('familyIdentities.fieldNotesForFerni')}</label>
+        <textarea class="family-form__textarea" id="family-notes" placeholder="${t('forms.familyNotes')}"></textarea>
       </div>
     </div>
-    
+
     <div class="family-actions">
-      <button class="family-btn family-btn--secondary" data-action="cancel">Cancel</button>
-      <button class="family-btn family-btn--primary" data-action="save-new">Add to Family</button>
+      <button class="family-btn family-btn--secondary" data-action="cancel">${t('familyIdentities.cancel')}</button>
+      <button class="family-btn family-btn--primary" data-action="save-new">${t('familyIdentities.addToFamily')}</button>
     </div>
   `;
 }
@@ -682,43 +669,43 @@ function renderEditForm(): string {
   return `
     <div class="family-form">
       <div class="family-form__group">
-        <label class="family-form__label">Name</label>
+        <label class="family-form__label">${t('familyIdentities.fieldName')}</label>
         <input type="text" class="family-form__input" id="family-name" value="${identity.displayName}">
       </div>
-      
+
       <div class="family-form__group">
-        <label class="family-form__label">Phone Number</label>
+        <label class="family-form__label">${t('familyIdentities.fieldPhoneNumber')}</label>
         <input type="tel" class="family-form__input" id="family-phone" value="${identity.phoneNumber}" disabled>
         <small style="color: var(--color-text-muted); font-size: 12px; margin-top: 4px;">
-          Phone number cannot be changed
+          ${t('familyIdentities.fieldPhoneNumberDisabledHint')}
         </small>
       </div>
-      
+
       <div class="family-form__group">
-        <label class="family-form__label">Relationship</label>
+        <label class="family-form__label">${t('familyIdentities.fieldRelationship')}</label>
         <select class="family-form__select" id="family-relationship">
-          ${RELATIONSHIP_OPTIONS.map((opt) => `<option value="${opt.value}" ${opt.value === identity.relationship ? 'selected' : ''}>${opt.label}</option>`).join('')}
+          ${RELATIONSHIP_OPTIONS.map((opt) => `<option value="${opt.value}" ${opt.value === identity.relationship ? 'selected' : ''}>${t(opt.labelKey)}</option>`).join('')}
         </select>
       </div>
-      
+
       <div class="family-form__group">
-        <label class="family-form__label">What should Ferni call them?</label>
-        <input type="text" class="family-form__input" id="family-preferred" value="${identity.preferredName || ''}" placeholder="${t('forms.optionalField', '(optional)')}">
+        <label class="family-form__label">${t('familyIdentities.fieldWhatShouldFerniCallThem')}</label>
+        <input type="text" class="family-form__input" id="family-preferred" value="${identity.preferredName || ''}" placeholder="${t('forms.optionalField')}">
       </div>
-      
+
       <div class="family-form__group">
-        <label class="family-form__label">Notes for Ferni</label>
-        <textarea class="family-form__textarea" id="family-notes" placeholder="${t('forms.optionalField', '(optional)')}">${identity.notes || ''}</textarea>
+        <label class="family-form__label">${t('familyIdentities.fieldNotesForFerni')}</label>
+        <textarea class="family-form__textarea" id="family-notes" placeholder="${t('forms.optionalField')}">${identity.notes || ''}</textarea>
       </div>
     </div>
-    
+
     <div class="family-actions">
-      <button class="family-btn family-btn--danger family-btn--icon" data-action="delete" title="${t('forms.removeFromFamily', 'Remove from family')}">
+      <button class="family-btn family-btn--danger family-btn--icon" data-action="delete" title="${t('forms.removeFromFamily')}">
         ${ICONS.trash}
       </button>
       <div style="display: flex; gap: var(--space-2, 8px);">
-        <button class="family-btn family-btn--secondary" data-action="cancel">Cancel</button>
-        <button class="family-btn family-btn--primary" data-action="save-edit">Save Changes</button>
+        <button class="family-btn family-btn--secondary" data-action="cancel">${t('familyIdentities.cancel')}</button>
+        <button class="family-btn family-btn--primary" data-action="save-edit">${t('customAgentEditor.saveChanges')}</button>
       </div>
     </div>
   `;
@@ -785,7 +772,7 @@ async function handleAction(action: string, target: HTMLElement): Promise<void> 
       const notes = (document.getElementById('family-notes') as HTMLTextAreaElement)?.value?.trim();
 
       if (!name || !phone) {
-        toast.warning('Name and phone are required');
+        toast.warning(t('familyIdentities.nameAndPhoneRequired'));
         return;
       }
 
@@ -803,7 +790,7 @@ async function handleAction(action: string, target: HTMLElement): Promise<void> 
       if (identity) {
         identities.push(identity);
         callbacks.onIdentityAdded?.(identity);
-        toast.success(`${name} added!`);
+        toast.success(t('toasts.personAdded', { name }));
         currentView = 'main';
       }
 
@@ -833,7 +820,7 @@ async function handleAction(action: string, target: HTMLElement): Promise<void> 
       if (updated) {
         const idx = identities.findIndex((i) => i.id === updated.id);
         if (idx >= 0) identities[idx] = updated;
-        toast.success('Updated!');
+        toast.success(t('toasts.updated'));
         currentView = 'main';
         editingIdentity = null;
       }
@@ -846,7 +833,7 @@ async function handleAction(action: string, target: HTMLElement): Promise<void> 
     case 'delete': {
       if (!editingIdentity) return;
 
-      if (confirm(`Remove ${editingIdentity.displayName} from your family?`)) {
+      if (confirm(t('familyIdentities.confirmRemove', { name: editingIdentity.displayName }))) {
         isLoading = true;
         refresh();
 
@@ -854,7 +841,7 @@ async function handleAction(action: string, target: HTMLElement): Promise<void> 
         if (success) {
           identities = identities.filter((i) => i.id !== editingIdentity!.id);
           callbacks.onIdentityRemoved?.(editingIdentity.id);
-          toast.success('Removed');
+          toast.success(t('toasts.removed'));
           currentView = 'main';
           editingIdentity = null;
         }
@@ -904,10 +891,10 @@ export async function show(options: FamilyIdentitiesCallbacks = {}): Promise<voi
     <div class="family-modal-backdrop"></div>
     <div class="family-modal" role="dialog" aria-modal="true" aria-labelledby="family-modal-title">
       <div class="family-modal__header">
-        <span class="family-modal__eyebrow">Family</span>
-        <h2 class="family-modal__title" id="family-modal-title">Your Ferni Family</h2>
-        <p class="family-modal__subtitle">People who can call Ferni by phone</p>
-        <button class="family-modal__close" aria-label="${t('accessibility.close', 'Close')}">
+        <span class="family-modal__eyebrow">${t('familyIdentities.eyebrow')}</span>
+        <h2 class="family-modal__title" id="family-modal-title">${t('familyIdentities.familyTitle')}</h2>
+        <p class="family-modal__subtitle">${t('familyIdentities.familySubtitle')}</p>
+        <button class="family-modal__close" aria-label="${t('accessibility.close')}">
           ${ICONS.close}
         </button>
       </div>

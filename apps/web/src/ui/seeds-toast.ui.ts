@@ -10,6 +10,7 @@
  * - Queued with other whispers (no overlapping)
  */
 
+import { tp } from '../i18n/plural.js';
 import { whisper } from './whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -37,7 +38,7 @@ export function showSeedsToast(amount: number, reason: string, isCelebration = f
  * Show streak milestone whisper
  */
 export function showStreakToast(days: number, reward: number): void {
-  showSeedsToast(reward, `${days}-day streak!`, true);
+  showSeedsToast(reward, tp('seedsToast.streak', days), true);
 }
 
 // ============================================================================

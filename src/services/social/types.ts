@@ -10,7 +10,7 @@
 // PLATFORM TYPES
 // ============================================================================
 
-export type SocialPlatform = 'twitter' | 'linkedin' | 'instagram' | 'tiktok' | 'medium' | 'discord';
+export type SocialPlatform = 'twitter' | 'linkedin' | 'discord';
 
 export type AccountType = 'personal' | 'brand';
 
@@ -134,8 +134,5 @@ export interface SocialConfig {
 export const PLATFORM_LIMITS: Record<SocialPlatform, { maxLength: number; maxMedia: number }> = {
   twitter: { maxLength: 280, maxMedia: 4 },
   linkedin: { maxLength: 3000, maxMedia: 9 },
-  instagram: { maxLength: 2200, maxMedia: 10 },
-  tiktok: { maxLength: 2200, maxMedia: 1 },
-  medium: { maxLength: 100000, maxMedia: 50 },
   discord: { maxLength: 2000, maxMedia: 10 },
 };

@@ -7,7 +7,7 @@ resource "google_compute_instance_template" "voiceai_agent" {
   machine_type = var.use_gpu ? var.gpu_machine_type : var.machine_type
   region       = var.region
 
-  # GPU accelerator (required for Kyutai bridge STT/TTS on GCE)
+  # GPU accelerator (only when use_gpu is set)
   dynamic "guest_accelerator" {
     for_each = var.use_gpu ? [1] : []
     content {

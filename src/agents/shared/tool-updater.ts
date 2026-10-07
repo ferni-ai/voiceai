@@ -159,7 +159,7 @@ async function announceNewTools(
   const toolList = toolNames.slice(0, 10).join(', ');
   const moreCount = toolNames.length > 10 ? ` and ${toolNames.length - 10} more` : '';
   const domainInfo = domains.length > 0 ? ` (${domains.join(', ')})` : '';
-  const content = `[SYSTEM: New tools now available${domainInfo}: ${toolList}${moreCount}. You can call these using JSON format: {"fn":"toolName","args":{...}}]`;
+  const content = `[SYSTEM: New tools now available${domainInfo}: ${toolList}${moreCount}. Call them through native function calling — never write JSON or function names in speech.]`;
 
   try {
     const chatCtx = agent.chatCtx.copy();

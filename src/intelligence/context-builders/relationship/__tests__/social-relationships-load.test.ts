@@ -3,14 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // vi.mock factories are hoisted above imports; vi.hoisted() lets us declare
 // the mock fns before that hoist point so the factory can reference them.
 const {
-  loadGraphFromFirestore,
+  ensureGraphLoaded,
   generateSocialInsights,
   extractNames,
   recordMention,
   generateSuperhumanMoment,
   getImportantPeople,
 } = vi.hoisted(() => ({
-  loadGraphFromFirestore: vi.fn(async () => undefined),
+  ensureGraphLoaded: vi.fn(async () => undefined),
   generateSocialInsights: vi.fn(() => [
     {
       type: 'pattern',
@@ -27,7 +27,7 @@ const {
 }));
 
 vi.mock('../../../../services/social-graph/index.js', () => ({
-  loadGraphFromFirestore,
+  ensureGraphLoaded,
   generateSocialInsights,
   extractNames,
   recordMention,
@@ -62,7 +62,7 @@ describe('socialRelationshipsBuilder load', () => {
       },
     } as never);
 
-    expect(loadGraphFromFirestore).toHaveBeenCalledWith('user-1');
+    expect(ensureGraphLoaded).toHaveBeenCalledWith('user-1');
     expect(injections.some((i) => i.content.includes('Sarah'))).toBe(true);
   });
 });

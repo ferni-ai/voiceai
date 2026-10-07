@@ -372,9 +372,8 @@ export async function handleGiftRoutes(
     }
   }
 
-  // 404 for unmatched gift routes
-  sendError(res, 'Not found', 404);
-  return true;
+  // Unmatched gift routes: the server answers 404
+  return false;
 }
 
 export default handleGiftRoutes;

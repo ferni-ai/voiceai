@@ -279,7 +279,7 @@ pnpm vitest run src/tools/semantic-router/evaluation/
 
 - `../CLAUDE.md` - Tools overview
 - `../orchestrator/unified-tool-orchestrator.ts` - Orchestrator that uses router
-- `../../agents/shared/json-function-executor.ts` - Fallback JSON execution
+- `../../agents/shared/tool-dispatcher.ts` - Neutral executeTool for text chat
 - `../gateway/` - Tool gateway (tiered loading)
 
 ---

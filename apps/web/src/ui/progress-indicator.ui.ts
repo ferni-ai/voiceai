@@ -60,28 +60,28 @@ const ICONS = {
 // ============================================================================
 
 const STAGE_DESCRIPTIONS: Record<RelationshipStage, {
-  current: string;
-  next: string;
+  currentKey: string;
+  nextKey: string;
 }> = {
   'first-meeting': {
-    current: 'Just starting out',
-    next: 'Keep talking! Each conversation builds our connection.',
+    currentKey: 'progressIndicator.stages.firstMeeting.current',
+    nextKey: 'progressIndicator.stages.firstMeeting.next',
   },
   'getting-started': {
-    current: 'Getting to know each other',
-    next: 'A few more days together will deepen our bond.',
+    currentKey: 'progressIndicator.stages.gettingStarted.current',
+    nextKey: 'progressIndicator.stages.gettingStarted.next',
   },
   'building-trust': {
-    current: 'Building something real',
-    next: 'Trust takes time. Keep showing up.',
+    currentKey: 'relationshipStages.taglines.buildingTrust',
+    nextKey: 'progressIndicator.stages.buildingTrust.next',
   },
   'established': {
-    current: 'A rhythm of our own',
-    next: "We're on our way to a deep partnership.",
+    currentKey: 'progressIndicator.stages.established.current',
+    nextKey: 'progressIndicator.stages.established.next',
   },
   'deep-partnership': {
-    current: 'Partners for life',
-    next: "We've reached the deepest level.",
+    currentKey: 'relationshipStages.taglines.deepPartnership',
+    nextKey: 'progressIndicator.stages.deepPartnership.next',
   },
 };
 
@@ -140,7 +140,7 @@ function createIndicator(): void {
   indicator.className = 'progress-indicator';
   indicator.setAttribute('role', 'button');
   indicator.setAttribute('aria-expanded', 'false');
-  indicator.setAttribute('aria-label', 'Relationship progress');
+  indicator.setAttribute('aria-label', t('progressIndicator.ariaLabel'));
   indicator.tabIndex = 0;
   
   document.body.appendChild(indicator);
@@ -267,7 +267,7 @@ function renderCollapsed(stageName: string, progressPercent: number, isMaxStage:
 function renderExpanded(
   stage: RelationshipStage,
   stageName: string,
-  stageDesc: { current: string; next: string },
+  stageDesc: { currentKey: string; nextKey: string },
   metrics: { totalConversations: number; daysSinceFirstMeeting: number; currentStreak: number },
   progress: { nextStage: RelationshipStage | null; progress: number; requirement: string },
   progressPercent: number,
@@ -281,7 +281,7 @@ function renderExpanded(
   indicator.innerHTML = `
     <div class="progress-expanded">
       <div class="progress-header">
-        <span class="progress-eyebrow">YOUR JOURNEY</span>
+        <span class="progress-eyebrow">${t('accessibility.yourJourney')}</span>
         <button class="progress-collapse-btn" aria-label="${t('accessibility.collapse')}">
           ${ICONS.chevronDown}
         </button>
@@ -299,7 +299,7 @@ function renderExpanded(
             <span class="progress-ring-icon-large">${ICONS.sparkles}</span>
           ` : `
             <span class="progress-ring-value">${progressPercent}%</span>
-            <span class="progress-ring-label">progress</span>
+            <span class="progress-ring-label">${t('progressIndicator.progress')}</span>
           `}
         </div>
       </div>
@@ -307,7 +307,7 @@ function renderExpanded(
       <!-- Stage info -->
       <div class="progress-stage">
         <h3 class="progress-stage-title">${stageName}</h3>
-        <p class="progress-stage-desc">${stageDesc.current}</p>
+        <p class="progress-stage-desc">${t(stageDesc.currentKey)}</p>
       </div>
       
       <!-- Metrics -->
@@ -315,29 +315,29 @@ function renderExpanded(
         <div class="progress-metric">
           <span class="metric-icon">${ICONS.messageCircle}</span>
           <span class="metric-value">${metrics.totalConversations}</span>
-          <span class="metric-label">conversations</span>
+          <span class="metric-label">${t('yourStory.stats.conversations')}</span>
         </div>
         <div class="progress-metric">
           <span class="metric-icon">${ICONS.calendar}</span>
           <span class="metric-value">${metrics.daysSinceFirstMeeting}</span>
-          <span class="metric-label">days together</span>
+          <span class="metric-label">${t('yourStory.stats.daysTogether')}</span>
         </div>
         <div class="progress-metric">
           <span class="metric-icon">${ICONS.flame}</span>
           <span class="metric-value">${metrics.currentStreak}</span>
-          <span class="metric-label">day streak</span>
+          <span class="metric-label">${t('yourStory.stats.dayStreak')}</span>
         </div>
       </div>
       
       <!-- Next stage -->
       ${!isMaxStage && progress.nextStage ? `
         <div class="progress-next">
-          <span class="progress-next-label">Next: ${getTranslatedStageName(progress.nextStage)}</span>
+          <span class="progress-next-label">${t('progressIndicator.next', { stage: getTranslatedStageName(progress.nextStage) })}</span>
           <p class="progress-next-requirement">${progress.requirement}</p>
         </div>
       ` : `
         <div class="progress-complete">
-          <p>${stageDesc.next}</p>
+          <p>${t(stageDesc.nextKey)}</p>
         </div>
       `}
     </div>

@@ -6,10 +6,10 @@
  * - **Local:** Ollama (e.g. gemma3n:e4b) when GEMMA3N_OLLAMA_URL is set
  * - **Cloud:** Vertex AI or Gemini API generateContentStream when GEMMA3N_OLLAMA_URL is unset
  *
- * No Gemini Live WebSocket — use external STT (e.g. Higgs, Kyutai, Gemini) and TTS (Cartesia, Higgs).
+ * No Gemini Live WebSocket — use external STT (e.g. Sonata, Cartesia, Gemini) and TTS (Cartesia, Higgs).
  *
  * Key characteristics:
- * - Local: Ollama /api/chat streaming (same as Local Pipeline)
+ * - Local: Ollama /api/chat streaming (OllamaLLMAdapter)
  * - Cloud: Vertex AI or Gemini API generateContentStream (REST streaming)
  * - No built-in turn detection — use LiveKit server_vad
  * - JSON workaround for function calling (same as Gemini path)
@@ -26,7 +26,7 @@
 
 import { DEFAULT_API_CONNECT_OPTIONS, llm, type APIConnectOptions } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
-import { OllamaLLMAdapter } from './local-pipeline.js';
+import { OllamaLLMAdapter } from './ollama-llm-adapter.js';
 import type {
   LLMModelConfig,
   ModelProvider,
@@ -265,8 +265,8 @@ export class Gemma3nProvider implements ModelProvider {
 
   getPromptModules(): PromptModuleConfig {
     return {
-      includeFunctionCallingBase: true,
-      includeFunctionCallingSpecialty: true,
+      includeFunctionCallingBase: false,
+      includeFunctionCallingSpecialty: false,
       includeToolUsageGuidance: true,
       includeModelBaseInstructions: true,
       useMinimalInstructions: false,

@@ -143,7 +143,8 @@ function getNestedValue(obj, keyPath) {
 function extractPlaceholders(str) {
   if (typeof str !== 'string') return [];
   const matches = str.match(/\{(\w+)\}/g) || [];
-  return matches.map((m) => m.slice(1, -1)).sort();
+  // A translation may repeat a variable ("{name} ... {name}"), so compare sets
+  return [...new Set(matches.map((m) => m.slice(1, -1)))].sort();
 }
 
 function readSourceFiles(patterns) {
@@ -380,8 +381,13 @@ function checkPlaceholderConsistency(config, system) {
 
       if (typeof sourceValue !== 'string' || typeof localeValue !== 'string') continue;
 
-      const sourcePH = extractPlaceholders(sourceValue);
+      let sourcePH = extractPlaceholders(sourceValue);
       const localePH = extractPlaceholders(localeValue);
+      // CLDR singular forms often spell the number out (Arabic "one chat"),
+      // so a plural .one may leave out {count}
+      if (key.endsWith('.one') && !localePH.includes('count')) {
+        sourcePH = sourcePH.filter((name) => name !== 'count');
+      }
 
       // Compare sorted placeholder arrays
       if (JSON.stringify(sourcePH) !== JSON.stringify(localePH)) {

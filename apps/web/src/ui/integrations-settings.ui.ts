@@ -173,7 +173,7 @@ class IntegrationsSettingsUI {
     this.panel = document.createElement('div');
     this.panel.className = 'integrations-settings';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Integration settings');
+    this.panel.setAttribute('aria-label', t('accessibility.integrationSettings'));
 
     document.body.appendChild(this.panel);
 
@@ -209,8 +209,8 @@ class IntegrationsSettingsUI {
           <div class="integrations-settings__title-wrap">
             <span class="integrations-settings__icon-wrap">${ICONS.sparkles}</span>
             <div>
-              <h2>Better than Human</h2>
-              <p class="integrations-settings__subtitle">Give Ferni superhuman awareness</p>
+              <h2>${t('integrationsSettings.betterThanHuman')}</h2>
+              <p class="integrations-settings__subtitle">${t('integrationsSettings.superhuman')}</p>
             </div>
           </div>
           <button class="integrations-settings__close" aria-label="${t('common.close')}">${ICONS.close}</button>
@@ -219,7 +219,7 @@ class IntegrationsSettingsUI {
         <div class="integrations-settings__capabilities-bar">
           <div class="integrations-settings__capabilities-info">
             <span class="integrations-settings__capabilities-count">${activeCapabilities}/${totalCapabilities}</span>
-            <span class="integrations-settings__capabilities-label">capabilities active</span>
+            <span class="integrations-settings__capabilities-label">${t('integrationsSettings.capabilitiesActive')}</span>
           </div>
           <div class="integrations-settings__capabilities-progress">
             <div class="integrations-settings__capabilities-fill" style="width: ${(activeCapabilities / totalCapabilities) * 100}%"></div>
@@ -232,23 +232,23 @@ class IntegrationsSettingsUI {
             <div class="integrations-settings__section-header">
               <span class="integrations-settings__section-icon">${ICONS.activity}</span>
               <div class="integrations-settings__section-info">
-                <h3>Health & Biometrics</h3>
-                <p>Know when you're stressed, tired, or at your best</p>
+                <h3>${t('integrationsSettings.healthBiometrics')}</h3>
+                <p>${t('integrationsSettings.knownWhenStressed')}</p>
               </div>
               ${this.renderStatusBadge(this.status.biometrics.connected)}
             </div>
 
             ${this.status.biometrics.connected ? `
               <div class="integrations-settings__connected-info">
-                <span class="integrations-settings__platform-name">${this.status.biometrics.platform || 'Connected'}</span>
+                <span class="integrations-settings__platform-name">${this.status.biometrics.platform || t('integrationsSettings.connected')}</span>
                 <button aria-label="${t('accessibility.disconnect')}" class="integrations-settings__disconnect-btn" data-action="disconnect-biometrics">
                   ${ICONS.unlink}
-                  <span>Disconnect</span>
+                  <span>${t('integrationsSettings.disconnect')}</span>
                 </button>
               </div>
               <div class="integrations-settings__capabilities-list">
-                ${this.renderCapability('Stress awareness from HRV', capabilities.stressAwareness)}
-                ${this.renderCapability('Sleep quality insights', capabilities.sleepAwareness)}
+                ${this.renderCapability(t('integrationsSettings.stressAwareness'), capabilities.stressAwareness)}
+                ${this.renderCapability(t('integrationsSettings.sleepQuality'), capabilities.sleepAwareness)}
               </div>
             ` : `
               <div class="integrations-settings__platforms">
@@ -258,7 +258,7 @@ class IntegrationsSettingsUI {
                   <div class="integrations-settings__platform-btn integrations-settings__platform-btn--disabled" aria-disabled="true">
                     <span class="integrations-settings__platform-icon">${icon}</span>
                     <span>${p.name}</span>
-                    <span class="integrations-settings__coming-soon-badge">Not available yet</span>
+                    <span class="integrations-settings__coming-soon-badge">${t('integrationsSettings.notAvailableYet')}</span>
                   </div>
                   ` : `
                   <button aria-label="${t('accessibility.goForward')}" class="integrations-settings__platform-btn" data-action="connect-biometrics" data-platform="${p.id}">
@@ -277,32 +277,32 @@ class IntegrationsSettingsUI {
             <div class="integrations-settings__section-header">
               <span class="integrations-settings__section-icon">${ICONS.calendar}</span>
               <div class="integrations-settings__section-info">
-                <h3>Calendar</h3>
-                <p>Anticipate your day and prepare you for what's ahead</p>
+                <h3>${t('integrationsSettings.calendar')}</h3>
+                <p>${t('integrationsSettings.anticipateDay')}</p>
               </div>
               ${this.renderStatusBadge(this.status.calendar.connected)}
             </div>
 
             ${this.status.calendar.connected ? `
               <div class="integrations-settings__connected-info">
-                <span class="integrations-settings__platform-name">Google Calendar</span>
+                <span class="integrations-settings__platform-name">${t('integrationsSettings.googleCalendar')}</span>
                 <button aria-label="${t('accessibility.disconnect')}" class="integrations-settings__disconnect-btn" data-action="disconnect-calendar">
                   ${ICONS.unlink}
-                  <span>Disconnect</span>
+                  <span>${t('integrationsSettings.disconnect')}</span>
                 </button>
               </div>
               <div class="integrations-settings__capabilities-list">
-                ${this.renderCapability('Event anticipation', capabilities.eventAnticipation)}
-                ${this.renderCapability('Location awareness', capabilities.locationAwareness)}
+                ${this.renderCapability(t('integrationsSettings.eventAnticipation'), capabilities.eventAnticipation)}
+                ${this.renderCapability(t('integrationsSettings.locationAwareness'), capabilities.locationAwareness)}
               </div>
             ` : `
               <button aria-label="${t('accessibility.connectGoogleCalendar')}" class="integrations-settings__connect-btn" data-action="connect-calendar">
                 ${ICONS.link}
-                <span>Connect Google Calendar</span>
+                <span>${t('integrationsSettings.connectGoogleCalendar')}</span>
               </button>
               <p class="integrations-settings__privacy-note">
                 ${ICONS.shield}
-                We only read event times and titles, never content or attendee details.
+                ${t('integrationsSettings.privacyCalendar')}
               </p>
             `}
           </section>
@@ -312,8 +312,8 @@ class IntegrationsSettingsUI {
             <div class="integrations-settings__section-header">
               <span class="integrations-settings__section-icon">${ICONS.linkedin}</span>
               <div class="integrations-settings__section-info">
-                <h3>Career</h3>
-                <p>Remember work anniversaries, role changes, and career wins</p>
+                <h3>${t('integrationsSettings.career')}</h3>
+                <p>${t('integrationsSettings.rememberAnniversaries')}</p>
               </div>
               ${this.renderStatusBadge(this.status.linkedin.connected)}
             </div>
@@ -321,29 +321,29 @@ class IntegrationsSettingsUI {
             ${this.status.linkedin.connected ? `
               <div class="integrations-settings__connected-info">
                 <span class="integrations-settings__platform-name">${
-                  this.status.linkedin.profile 
-                    ? `${this.status.linkedin.profile.firstName} ${this.status.linkedin.profile.lastName}` 
+                  this.status.linkedin.profile
+                    ? `${this.status.linkedin.profile.firstName} ${this.status.linkedin.profile.lastName}`
                     : 'LinkedIn Connected'
                 }</span>
                 <button aria-label="${t('accessibility.disconnect')}" class="integrations-settings__disconnect-btn" data-action="disconnect-linkedin">
                   ${ICONS.unlink}
-                  <span>Disconnect</span>
+                  <span>${t('integrationsSettings.disconnect')}</span>
                 </button>
               </div>
               ${this.status.linkedin.profile?.headline ? `
                 <p class="integrations-settings__profile-headline">${this.status.linkedin.profile.headline}</p>
               ` : ''}
               <div class="integrations-settings__capabilities-list">
-                ${this.renderCapability('Career milestone awareness', capabilities.careerAwareness)}
+                ${this.renderCapability(t('integrationsSettings.careerMilestoneAwareness'), capabilities.careerAwareness)}
               </div>
             ` : `
               <button aria-label="${t('accessibility.connectLinkedin')}" class="integrations-settings__connect-btn" data-action="connect-linkedin">
                 ${ICONS.link}
-                <span>Connect LinkedIn</span>
+                <span>${t('integrationsSettings.connectLinkedIn')}</span>
               </button>
               <p class="integrations-settings__privacy-note">
                 ${ICONS.shield}
-                We only read your profile and job history to celebrate milestones. We never post or message on your behalf.
+                ${t('integrationsSettings.privacyLinkedin')}
               </p>
             `}
           </section>` : ''}
@@ -352,31 +352,31 @@ class IntegrationsSettingsUI {
             <div class="integrations-settings__section-header">
               <span class="integrations-settings__section-icon">${ICONS.creditCard}</span>
               <div class="integrations-settings__section-info">
-                <h3>Banking</h3>
-                <p>Predict cash flow and catch money stress before it hits</p>
+                <h3>${t('integrationsSettings.banking')}</h3>
+                <p>${t('integrationsSettings.predictCashFlow')}</p>
               </div>
               ${this.renderStatusBadge(this.status.banking.connected)}
             </div>
 
             ${this.status.banking.connected ? `
               <div class="integrations-settings__connected-info">
-                <span class="integrations-settings__platform-name">${this.status.banking.institution || 'Bank Connected'}</span>
+                <span class="integrations-settings__platform-name">${this.status.banking.institution || t('integrationsSettings.bankConnected')}</span>
                 <button aria-label="${t('accessibility.disconnect')}" class="integrations-settings__disconnect-btn" data-action="disconnect-banking">
                   ${ICONS.unlink}
-                  <span>Disconnect</span>
+                  <span>${t('integrationsSettings.disconnect')}</span>
                 </button>
               </div>
               <div class="integrations-settings__capabilities-list">
-                ${this.renderCapability('Financial prediction', capabilities.financialPrediction)}
+                ${this.renderCapability(t('integrationsSettings.financialPrediction'), capabilities.financialPrediction)}
               </div>
             ` : `
               <button aria-label="${t('accessibility.connectViaPlaid')}" class="integrations-settings__connect-btn" data-action="connect-banking">
                 ${ICONS.link}
-                <span>Connect via Plaid</span>
+                <span>${t('integrationsSettings.connectViaPlaid')}</span>
               </button>
               <p class="integrations-settings__privacy-note">
                 ${ICONS.shield}
-                Powered by Plaid - the same security used by Venmo and major banks. Your credentials are never shared with us.
+                ${t('integrationsSettings.privacyBanking')}
               </p>
             `}
           </section>
@@ -386,8 +386,8 @@ class IntegrationsSettingsUI {
             <div class="integrations-settings__section-header">
               <span class="integrations-settings__section-icon">${ICONS.users}</span>
               <div class="integrations-settings__section-info">
-                <h3>Relationship Awareness</h3>
-                <p>Remember everyone important to you from our conversations</p>
+                <h3>${t('integrationsSettings.relationshipAwareness')}</h3>
+                <p>${t('integrationsSettings.rememberEveryone')}</p>
               </div>
               ${this.renderStatusBadge(this.status.socialGraph.peopleTracked > 0)}
             </div>
@@ -395,21 +395,21 @@ class IntegrationsSettingsUI {
             <div class="integrations-settings__social-info">
               <div class="integrations-settings__social-stat">
                 <span class="integrations-settings__stat-number">${this.status.socialGraph.peopleTracked}</span>
-                <span class="integrations-settings__stat-label">people tracked</span>
+                <span class="integrations-settings__stat-label">${t('integrationsSettings.peopleTracked')}</span>
               </div>
               <div class="integrations-settings__social-actions" role="button" tabindex="0">
                 <button aria-label="${t('accessibility.viewRelationships')}" class="integrations-settings__text-btn" data-action="view-social-graph">
-                  View relationships
+                  ${t('integrationsSettings.viewRelationships')}
                 </button>
                 ${this.status.socialGraph.peopleTracked > 0 ? `
                   <button aria-label="${t('accessibility.clearData')}" class="integrations-settings__text-btn integrations-settings__text-btn--danger" data-action="clear-social-graph">
-                    Clear data
+                    ${t('integrationsSettings.clearData')}
                   </button>
                 ` : ''}
               </div>
             </div>
             <div class="integrations-settings__capabilities-list">
-              ${this.renderCapability('Relationship insights', capabilities.relationshipInsights)}
+              ${this.renderCapability(t('integrationsSettings.relationshipInsights'), capabilities.relationshipInsights)}
             </div>
             <p class="integrations-settings__privacy-note">
               ${ICONS.shield}
@@ -466,7 +466,7 @@ class IntegrationsSettingsUI {
     });
 
     this.panel.querySelector('[data-action="clear-social-graph"]')?.addEventListener('click', () => {
-      if (confirm('Are you sure you want to clear all relationship data? This cannot be undone.')) {
+      if (confirm(t('forms.confirmClearData', 'Are you sure you want to clear all relationship data? This cannot be undone.'))) {
         this.callbacks.onClearSocialGraph?.();
       }
     });
@@ -477,13 +477,13 @@ class IntegrationsSettingsUI {
       return `
         <span class="integrations-settings__status integrations-settings__status--connected">
           ${ICONS.check}
-          <span>Connected</span>
+          <span>${t('integrationsSettings.connected')}</span>
         </span>
       `;
     }
     return `
       <span class="integrations-settings__status integrations-settings__status--disconnected">
-        <span>Not connected</span>
+        <span>${t('integrationsSettings.notConnected')}</span>
       </span>
     `;
   }

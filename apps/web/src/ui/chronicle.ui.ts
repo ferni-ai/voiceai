@@ -20,7 +20,7 @@ import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { apiGet, apiPost, getUserId } from '../utils/api.js';
 import { connectionService } from '../services/connection.service.js';
-import { t } from '../i18n/index.js';
+import { formatDate, getLocale, t } from '../i18n/index.js';
 
 const log = createLogger('ChronicleUI');
 
@@ -488,13 +488,13 @@ const styles = `
     background: var(--color-background-elevated, #fffdfb);
     display: flex;
     flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: translateX(100%); visibility: hidden; /* closed panels leave the tab order */
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0s linear 0.4s;
     z-index: 1;
   }
   
   .chronicle-capture-panel.active {
-    transform: translateX(0);
+    transform: translateX(0); visibility: visible; transition-delay: 0s;
   }
   
   .chronicle-capture-header {
@@ -653,13 +653,13 @@ const styles = `
     background: var(--color-background-elevated, #fffdfb);
     display: flex;
     flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: translateX(100%); visibility: hidden; /* closed panels leave the tab order */
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), visibility 0s linear 0.4s;
     z-index: 1;
   }
   
   .chronicle-converse-panel.active {
-    transform: translateX(0);
+    transform: translateX(0); visibility: visible; transition-delay: 0s;
   }
   
   .chronicle-converse-header {
@@ -972,55 +972,55 @@ function createContainer(): HTMLElement {
   overlay.className = 'chronicle-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-label', 'Your Chronicle');
+  overlay.setAttribute('aria-label', t('chronicle.dialogLabel'));
 
   overlay.innerHTML = `
     <div class="chronicle-backdrop"></div>
     <div class="chronicle-container">
       <header class="chronicle-header">
         <div class="chronicle-header-content">
-          <p class="chronicle-eyebrow">YOUR CHRONICLE</p>
-          <h2 class="chronicle-title">Your Story</h2>
-          <p class="chronicle-subtitle">Capture your thoughts, wisdom, and growth</p>
+          <p class="chronicle-eyebrow">${t('chronicle.eyebrow')}</p>
+          <h2 class="chronicle-title">${t('chronicle.title')}</h2>
+          <p class="chronicle-subtitle">${t('chronicle.subtitle')}</p>
         </div>
-        <button class="chronicle-close" aria-label="Close">
+        <button class="chronicle-close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>
       <div class="chronicle-content" id="chronicle-content">
         <div class="chronicle-loading">
           <div class="chronicle-loading-spinner"></div>
-          <p>Loading your chronicle...</p>
+          <p>${t('chronicle.loading')}</p>
         </div>
       </div>
       
       <!-- Capture Panel (slides in) -->
       <div class="chronicle-capture-panel" id="chronicle-capture-panel">
         <div class="chronicle-capture-header">
-          <button class="chronicle-back-btn" id="capture-back" aria-label="Back">
+          <button class="chronicle-back-btn" id="capture-back" aria-label="${t('chronicle.backButton')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
           </button>
-          <h3 class="chronicle-capture-title">Capture a Thought</h3>
+          <h3 class="chronicle-capture-title">${t('chronicle.captureThought')}</h3>
         </div>
         <div class="chronicle-capture-content">
           <div class="chronicle-capture-prompt" id="capture-prompt">
-            What's on your mind right now?
+            ${t('chronicle.capturePlaceholder')}
           </div>
-          <textarea 
-            class="chronicle-capture-textarea" 
+          <textarea
+            class="chronicle-capture-textarea"
             id="capture-textarea"
-            placeholder="Write freely. No one will see this but you..."
+            placeholder="${t('chronicle.captureTextPlaceholder')}"
           ></textarea>
         </div>
         <div class="chronicle-capture-footer">
           <div class="chronicle-capture-options">
             <button class="chronicle-voice-btn" id="switch-to-voice">
               ${ICONS.mic}
-              Switch to voice
+              ${t('chronicle.switchToVoice')}
             </button>
           </div>
           <button class="chronicle-save-btn" id="save-entry" disabled>
-            Save Entry
+            ${t('chronicle.saveEntry')}
           </button>
         </div>
       </div>
@@ -1028,7 +1028,7 @@ function createContainer(): HTMLElement {
       <!-- Converse Panel (slides in) -->
       <div class="chronicle-converse-panel" id="chronicle-converse-panel">
         <div class="chronicle-converse-header">
-          <button class="chronicle-back-btn" id="converse-back" aria-label="Back">
+          <button class="chronicle-back-btn" id="converse-back" aria-label="${t('chronicle.backButton')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
           </button>
           <div class="chronicle-converse-identity">
@@ -1036,8 +1036,8 @@ function createContainer(): HTMLElement {
               ${ICONS.user}
             </div>
             <div class="chronicle-converse-info">
-              <h3>Your Past Self</h3>
-              <p>Reflecting from your journal entries</p>
+              <h3>${t('chronicle.yourPastSelf')}</h3>
+              <p>${t('chronicle.pastSelfDescription')}</p>
             </div>
           </div>
         </div>
@@ -1046,17 +1046,17 @@ function createContainer(): HTMLElement {
         </div>
         <div class="chronicle-converse-footer">
           <div class="chronicle-chat-input-row">
-            <textarea 
-              class="chronicle-chat-input" 
+            <textarea
+              class="chronicle-chat-input"
               id="converse-input"
-              placeholder="Ask your past self something..."
+              placeholder="${t('chronicle.conversationPlaceholder')}"
               rows="1"
             ></textarea>
             <button class="chronicle-chat-send" id="converse-send">
               ${ICONS.send}
             </button>
           </div>
-          <p class="chronicle-chat-hint">Speak with the perspective you've captured in your journals</p>
+          <p class="chronicle-chat-hint">${t('chronicle.conversationHint')}</p>
         </div>
       </div>
     </div>
@@ -1115,15 +1115,13 @@ function getTimeContext(): TimeContext {
   return 'night';
 }
 
+/** A random variant of a numbered pool of texts (<prefix>.option1..count). */
+function pickVariant(prefix: string, count: number): string {
+  return t(`${prefix}.option${1 + Math.floor(Math.random() * count)}`);
+}
+
 function getGreeting(timeContext: TimeContext): string {
-  const greetings: Record<TimeContext, string[]> = {
-    morning: ['Good morning', 'A fresh day awaits', 'Rise gently'],
-    afternoon: ['Good afternoon', 'The day unfolds', 'Present moment'],
-    evening: ['Good evening', 'As the day settles', 'Evening reflection'],
-    night: ['Hello, night owl', 'In the stillness', 'Quiet hours'],
-  };
-  const options = greetings[timeContext];
-  return options[Math.floor(Math.random() * options.length)] ?? 'Hello';
+  return pickVariant(`chronicle.greetings.${timeContext}`, 3);
 }
 
 async function loadData(): Promise<ChronicleData> {
@@ -1221,49 +1219,23 @@ function getDefaultInsights(): JournalInsight[] {
     {
       id: 'start-journey',
       type: 'growth',
-      title: 'Start Your Journey',
-      description: 'Your first entry awaits. Every great story starts somewhere.',
+      title: t('chronicle.defaultInsights.startJourney.title'),
+      description: t('chronicle.defaultInsights.startJourney.description'),
       icon: ICONS.book,
     },
     {
       id: 'voice-text',
       type: 'pattern',
-      title: 'Two Powerful Paths',
-      description: 'Voice captures emotion. Text captures reflection. Both build wisdom.',
+      title: t('chronicle.defaultInsights.twoPaths.title'),
+      description: t('chronicle.defaultInsights.twoPaths.description'),
       icon: ICONS.brain,
     },
   ];
 }
 
 function getJournalPrompts(): string[] {
-  const prompts: Record<TimeContext, string[]> = {
-    morning: [
-      "What's alive in you this morning?",
-      'What would make today meaningful?',
-      "How did you sleep? What's lingering?",
-      'What intention do you want to carry today?',
-    ],
-    afternoon: [
-      "How is the day unfolding? What's surprised you?",
-      'What are you learning right now?',
-      "What's asking for your attention?",
-      'Pause and notice: how do you feel right now?',
-    ],
-    evening: [
-      'What was the most alive moment of today?',
-      "What are you grateful for? What's unfinished?",
-      'What would you tell yourself from this morning?',
-      'What do you want to remember from today?',
-    ],
-    night: [
-      "What's keeping you awake? Let it out.",
-      'What thoughts need a home before sleep?',
-      'What would your past self think of where you are now?',
-      "If you could only remember one thing from today, what would it be?",
-    ],
-  };
-
-  return prompts[state.data?.timeContext || 'evening'];
+  const timeContext = state.data?.timeContext || 'evening';
+  return Array.from({ length: 4 }, (_, i) => t(`chronicle.prompts.${timeContext}.option${i + 1}`));
 }
 
 // ============================================================================
@@ -1292,38 +1264,38 @@ function render(): void {
         <div class="chronicle-stat-icon">${ICONS.flame}</div>
         <div>
           <div class="chronicle-stat-value">${streak}</div>
-          <div class="chronicle-stat-label">Day Streak</div>
+          <div class="chronicle-stat-label">${t('chronicle.dayStreak')}</div>
         </div>
       </div>
       <div class="chronicle-stat">
         <div class="chronicle-stat-icon">${ICONS.book}</div>
         <div>
           <div class="chronicle-stat-value">${totalEntries}</div>
-          <div class="chronicle-stat-label">Entries</div>
+          <div class="chronicle-stat-label">${t('chronicle.entries')}</div>
         </div>
       </div>
     </div>
-    
+
     <!-- Action Cards -->
     <div class="chronicle-actions">
       <button class="chronicle-action-card" id="action-capture">
         <div class="chronicle-action-icon">${ICONS.pen}</div>
-        <h3 class="chronicle-action-title">Capture a Thought</h3>
-        <p class="chronicle-action-description">Write freely. Text captures what you might never say aloud.</p>
+        <h3 class="chronicle-action-title">${t('chronicle.captureActionTitle')}</h3>
+        <p class="chronicle-action-description">${t('chronicle.captureActionDescription')}</p>
       </button>
       <button class="chronicle-action-card" id="action-converse">
         <div class="chronicle-action-icon">${ICONS.messageCircle}</div>
-        <h3 class="chronicle-action-title">Talk to Past Self</h3>
-        <p class="chronicle-action-description">Have a conversation with who you were.</p>
+        <h3 class="chronicle-action-title">${t('chronicle.talkToPastSelf')}</h3>
+        <p class="chronicle-action-description">${t('chronicle.talkToPastSelfDescription')}</p>
       </button>
     </div>
-    
+
     <!-- Insights Section -->
     ${insights.length > 0 ? `
       <section class="chronicle-section">
         <div class="chronicle-section-header">
           <span class="chronicle-section-icon">${ICONS.sparkles}</span>
-          <h3 class="chronicle-section-title">Patterns I Notice</h3>
+          <h3 class="chronicle-section-title">${t('chronicle.patternsINotice')}</h3>
         </div>
         <div class="chronicle-insights-grid">
           ${insights.map((insight) => renderInsightCard(insight)).join('')}
@@ -1336,7 +1308,7 @@ function render(): void {
       <section class="chronicle-section">
         <div class="chronicle-section-header">
           <span class="chronicle-section-icon">${ICONS.heart}</span>
-          <h3 class="chronicle-section-title">From Your Past</h3>
+          <h3 class="chronicle-section-title">${t('chronicle.fromYourPast')}</h3>
         </div>
         ${renderMemoryCard(memories[0])}
       </section>
@@ -1351,42 +1323,39 @@ function renderEmptyState(greeting: string): string {
     <div class="chronicle-empty">
       <div class="chronicle-empty-icon">${ICONS.book}</div>
       <h3 class="chronicle-empty-title">${greeting}</h3>
-      <p class="chronicle-empty-description">
-        Your chronicle is empty, but every great story starts somewhere. 
-        Capture your first thought, and watch your wisdom grow.
-      </p>
+      <p class="chronicle-empty-description">${t('chronicle.emptyDescription')}</p>
     </div>
-    
+
     <!-- Action Cards -->
     <div class="chronicle-actions">
       <button class="chronicle-action-card" id="action-capture">
         <div class="chronicle-action-icon">${ICONS.pen}</div>
-        <h3 class="chronicle-action-title">Capture a Thought</h3>
-        <p class="chronicle-action-description">Write freely. Text captures what you might never say aloud.</p>
+        <h3 class="chronicle-action-title">${t('chronicle.captureActionTitle')}</h3>
+        <p class="chronicle-action-description">${t('chronicle.captureActionDescription')}</p>
       </button>
       <button class="chronicle-action-card" id="action-voice">
         <div class="chronicle-action-icon">${ICONS.mic}</div>
-        <h3 class="chronicle-action-title">Speak Your Mind</h3>
-        <p class="chronicle-action-description">Your voice captures nuance that text never could.</p>
+        <h3 class="chronicle-action-title">${t('chronicle.speakYourMind')}</h3>
+        <p class="chronicle-action-description">${t('chronicle.speakYourMindDescription')}</p>
       </button>
     </div>
-    
+
     <!-- Tips -->
     <section class="chronicle-section">
       <div class="chronicle-section-header">
         <span class="chronicle-section-icon">${ICONS.sparkles}</span>
-        <h3 class="chronicle-section-title">Two Paths, One Story</h3>
+        <h3 class="chronicle-section-title">${t('chronicle.twoPathsOneStory')}</h3>
       </div>
       <div class="chronicle-insights-grid">
         <div class="chronicle-insight-card">
           <div class="chronicle-insight-icon">${ICONS.pen}</div>
-          <h4 class="chronicle-insight-title">Text Captures Reflection</h4>
-          <p class="chronicle-insight-description">Writing helps you process. The act of finding words for feelings transforms them.</p>
+          <h4 class="chronicle-insight-title">${t('chronicle.textCapturesReflection')}</h4>
+          <p class="chronicle-insight-description">${t('chronicle.textCapturesDescription')}</p>
         </div>
         <div class="chronicle-insight-card">
           <div class="chronicle-insight-icon">${ICONS.mic}</div>
-          <h4 class="chronicle-insight-title">Voice Captures Emotion</h4>
-          <p class="chronicle-insight-description">Speaking reveals what writing filters. The pauses, the tone, the spontaneity.</p>
+          <h4 class="chronicle-insight-title">${t('chronicle.voiceCapturesEmotion')}</h4>
+          <p class="chronicle-insight-description">${t('chronicle.voiceCapturesDescription')}</p>
         </div>
       </div>
     </section>
@@ -1406,7 +1375,7 @@ function renderInsightCard(insight: JournalInsight): string {
 
 function renderMemoryCard(entry: JournalEntry): string {
   const date = new Date(entry.createdAt);
-  const dateStr = date.toLocaleDateString(undefined, {
+  const dateStr = formatDate(date, {
     month: 'long',
     day: 'numeric',
     year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
@@ -1418,7 +1387,7 @@ function renderMemoryCard(entry: JournalEntry): string {
   return `
     <div class="chronicle-memory-card">
       <div class="chronicle-memory-quote">${ICONS.quote}</div>
-      <p class="chronicle-memory-content">"${content}"</p>
+      <p class="chronicle-memory-content">${t('chronicle.quoted', { text: content })}</p>
       <p class="chronicle-memory-date">${dateStr}</p>
     </div>
   `;
@@ -1506,7 +1475,7 @@ async function saveTextEntry(): Promise<void> {
   const saveBtn = container?.querySelector('#save-entry') as HTMLButtonElement;
   if (saveBtn) {
     saveBtn.disabled = true;
-    saveBtn.textContent = 'Saving...';
+    saveBtn.textContent = t('common.saving');
   }
 
   try {
@@ -1524,18 +1493,18 @@ async function saveTextEntry(): Promise<void> {
 
       // Show toast
       const { toast } = await import('./whisper.ui.js');
-      toast.success('Captured!');
+      toast.success(t('chronicle.captured'));
     } else {
       throw new Error(result.error || 'Failed to save');
     }
   } catch (error) {
     log.error('Failed to save entry:', error);
     const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't save. Try again?");
+    toast.error(t('toasts.couldNotSave'));
 
     if (saveBtn) {
       saveBtn.disabled = false;
-      saveBtn.textContent = 'Save Entry';
+      saveBtn.textContent = t('chronicle.saveEntry');
     }
   }
 }
@@ -1565,33 +1534,10 @@ function switchToVoice(): void {
 
 function getConversationWelcome(): string {
   const timeContext = state.data?.timeContext || 'evening';
-  const totalEntries = state.data?.totalEntries || 0;
 
-  if (totalEntries === 0) {
-    return "Hey. I'm here - well, I'm you. Start journaling and I'll have more to reflect on. For now, what's on your mind?";
-  }
+  if (!state.data?.totalEntries) return t('chronicle.welcome.empty');
 
-  const welcomes: Record<TimeContext, string[]> = {
-    morning: [
-      "Good morning. I've been thinking about some of the things we've written. What's waking up with you today?",
-      "Morning. Ready to talk? I've got some perspective from our journals.",
-    ],
-    afternoon: [
-      "Hey. The day's moving. Something on your mind? I've got all our entries to draw from.",
-      "Checking in mid-day. What would help right now?",
-    ],
-    evening: [
-      "Evening. A good time to reflect. What's the day taught you?",
-      "Hey. As the day winds down, what's worth talking through?",
-    ],
-    night: [
-      "Still awake? Me too. Sometimes the quiet hours are when we think clearest. What's up?",
-      "Night thoughts hit different. What's on your mind?",
-    ],
-  };
-
-  const options = welcomes[timeContext];
-  return options[Math.floor(Math.random() * options.length)] ?? 'Welcome';
+  return pickVariant(`chronicle.welcome.${timeContext}`, 2);
 }
 
 function renderChatMessages(): void {
@@ -1682,28 +1628,18 @@ async function sendConversation(): Promise<void> {
 }
 
 function getFallbackResponse(userMessage: string): string {
-  const lower = userMessage.toLowerCase();
+  const lower = userMessage.toLocaleLowerCase(getLocale());
+  // Each locale lists, comma-separated, the words that signal the intent.
+  const mentions = (intent: string): boolean =>
+    t(`chronicle.fallbackKeywords.${intent}`)
+      .split(',')
+      .some((word) => lower.includes(word.trim()));
 
-  if (lower.includes('advice') || lower.includes('should')) {
-    return "I've learned that the best advice usually comes from sitting with the question longer. What does your gut say?";
-  }
+  if (mentions('advice')) return t('chronicle.fallback.advice');
+  if (mentions('feeling')) return t('chronicle.fallback.feeling');
+  if (mentions('remember')) return t('chronicle.fallback.remember');
 
-  if (lower.includes('feel') || lower.includes('feeling')) {
-    return "That's a lot to carry. I've felt that too. What would help right now - to talk it through or to just sit with it?";
-  }
-
-  if (lower.includes('remember')) {
-    return "I remember more than you might think. The journal entries hold a lot. What specifically are you looking for?";
-  }
-
-  const fallbacks = [
-    "That's interesting. What makes you bring that up now?",
-    "I hear you. What else is there?",
-    "Tell me more. What's underneath that?",
-    "That's something I've been thinking about too. What's the question behind the question?",
-  ];
-
-  return fallbacks[Math.floor(Math.random() * fallbacks.length)] ?? "Tell me more.";
+  return pickVariant('chronicle.fallback', 4);
 }
 
 // ============================================================================

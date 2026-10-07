@@ -349,7 +349,7 @@ const SLOW_TIMEOUT_TOOLS = new Set([
 
 /**
  * Get timeout for a tool based on its expected duration
- * Exported for use in json-function-executor and other callers.
+ * Exported for use in tool-dispatcher and other callers.
  */
 export function getTimeoutForTool(toolName: string): number {
   const normalized = toolName.toLowerCase();

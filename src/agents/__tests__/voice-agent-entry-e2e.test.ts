@@ -277,7 +277,7 @@ describe('Voice Agent Entry E2E - Signal Emitters', () => {
       await import('../../services/trust-systems/trust-signal-emitter.js');
 
     const mockEmitter = vi.fn();
-    expect(() => setSignalEmitter(mockEmitter)).not.toThrow();
+    expect(() => setSignalEmitter('test-session', mockEmitter)).not.toThrow();
   });
 });
 

@@ -7,6 +7,9 @@
  * @module typography
  */
 
+import { injectMoodTypographyStyles } from './mood-weight.js';
+import { injectPersonaTypographyStyles } from './persona-voice-type.js';
+
 // Breathing typography - text that subtly pulses with life
 export {
   applyBreathingTypography,
@@ -87,10 +90,6 @@ export type {
  * Call this once at app startup.
  */
 export function initTypographySystem(): void {
-  // Inject all CSS
-  const { injectMoodTypographyStyles } = require('./mood-weight.js');
-  const { injectPersonaTypographyStyles } = require('./persona-voice-type.js');
-
   injectMoodTypographyStyles();
   injectPersonaTypographyStyles();
 }

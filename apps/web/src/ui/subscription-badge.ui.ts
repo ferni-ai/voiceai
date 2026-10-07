@@ -12,6 +12,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
@@ -126,7 +127,7 @@ function cleanupOrphanedElements(): void {
 function createBadge(): void {
   badgeElement = document.createElement('button');
   badgeElement.className = 'subscription-badge';
-  badgeElement.setAttribute('aria-label', 'View subscription options');
+  badgeElement.setAttribute('aria-label', t('subscriptionBadge.viewOptions'));
   badgeElement.setAttribute('role', 'status');
 
   // Insert after persona subtitle
@@ -268,7 +269,7 @@ function formatTrialTime(ms: number): string {
   if (minutes > 0) {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
-  return `${seconds}s`;
+  return t('subscriptionBadge.secondsShort', { seconds });
 }
 
 /**
@@ -306,13 +307,10 @@ function updateTrialDisplay(): void {
 
   badgeElement.innerHTML = `
     <span class="subscription-badge__icon">${icon}</span>
-    <span class="subscription-badge__text">${timeDisplay} left</span>
+    <span class="subscription-badge__text">${t('subscriptionBadge.timeLeft', { time: timeDisplay })}</span>
   `;
 
-  badgeElement.setAttribute(
-    'aria-label',
-    `${timeDisplay} remaining in your free trial. Click for more info.`
-  );
+  badgeElement.setAttribute('aria-label', t('subscriptionBadge.trialAria', { time: timeDisplay }));
 
   // Ensure visible
   if (!badgeElement.classList.contains('subscription-badge--visible')) {
@@ -347,19 +345,16 @@ function updateBadgeDisplay(status: SubscriptionStatus | null): void {
     // Instead, show a warm invitation to support if they want to
     badgeElement.innerHTML = `
       <span class="subscription-badge__icon">${ICONS.sparkle}</span>
-      <span class="subscription-badge__text">Community</span>
+      <span class="subscription-badge__text">${t('subscription.free')}</span>
     `;
     badgeElement.classList.remove('subscription-badge--low');
     badgeElement.classList.remove('subscription-badge--premium');
-    badgeElement.setAttribute(
-      'aria-label',
-      'Community member. Want to help us grow? Click to learn more.'
-    );
+    badgeElement.setAttribute('aria-label', t('subscriptionBadge.communityAria'));
   } else {
     // Show tier name for Founders with gratitude
     const tierDisplay: Record<string, { short: string; full: string }> = {
-      friend: { short: 'Founder', full: 'Founding Member' },
-      partner: { short: 'Patron', full: 'Founding Patron' },
+      friend: { short: t('subscriptionBadge.founderShort'), full: t('subscription.friend') },
+      partner: { short: t('subscriptionBadge.patronShort'), full: t('subscription.partner') },
     };
     const display = tierDisplay[status.tier] || { short: status.tier, full: status.tier };
 
@@ -369,10 +364,7 @@ function updateBadgeDisplay(status: SubscriptionStatus | null): void {
     `;
     badgeElement.classList.remove('subscription-badge--low');
     badgeElement.classList.add('subscription-badge--premium');
-    badgeElement.setAttribute(
-      'aria-label',
-      `${display.full}. Thank you for believing in us! Click to manage.`
-    );
+    badgeElement.setAttribute('aria-label', t('subscriptionBadge.founderAria', { tier: display.full }));
   }
 
   // Animate in if newly visible

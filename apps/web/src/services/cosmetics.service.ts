@@ -9,6 +9,7 @@
  * can see what's available (creating aspiration).
  */
 
+import { t } from '../i18n/index.js';
 import { setTheme, type ThemeName } from '../theme/index.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -24,18 +25,14 @@ export type SubscriptionTier = 'free' | 'friend' | 'partner';
 
 export interface CosmeticItem {
   id: string;
-  name: string;
-  description: string;
+  nameKey: string;
+  descKey: string;
   type: CosmeticType;
   rarity: CosmeticRarity;
   previewUrl?: string;
-  /** Price in Seeds (null = earned/default) */
   priceInSeeds: number | null;
-  /** Minimum tier to purchase */
   requiredTier: SubscriptionTier;
-  /** Is this limited time? */
   isLimited: boolean;
-  /** CSS variables or config for this cosmetic */
   config?: Record<string, string>;
 }
 
@@ -58,8 +55,8 @@ export interface UserCosmetics {
 const DEFAULT_AVATAR_SKINS: CosmeticItem[] = [
   {
     id: 'skin-default',
-    name: 'Classic Ferni',
-    description: 'The original sage green Ferni you know and love',
+    nameKey: 'cosmetics.classicFerni',
+    descKey: 'cosmetics.classicFerniDesc',
     type: 'avatar-skin',
     rarity: 'common',
     priceInSeeds: null,
@@ -75,8 +72,8 @@ const DEFAULT_AVATAR_SKINS: CosmeticItem[] = [
 const DEFAULT_UI_THEMES: CosmeticItem[] = [
   {
     id: 'theme-default',
-    name: 'Zen Garden',
-    description: 'Clean, natural, serene light theme',
+    nameKey: 'cosmetics.zenGarden',
+    descKey: 'cosmetics.zenGardenDesc',
     type: 'ui-theme',
     rarity: 'common',
     priceInSeeds: null,
@@ -95,23 +92,23 @@ const DEFAULT_UI_THEMES: CosmeticItem[] = [
 const PREMIUM_AVATAR_SKINS: CosmeticItem[] = [
   {
     id: 'skin-cosmic',
-    name: 'Cosmic Ferni',
-    description: 'Deep space purple with stardust particles',
+    nameKey: 'cosmetics.cosmicFerni',
+    descKey: 'cosmetics.cosmicFerniDesc',
     type: 'avatar-skin',
     rarity: 'epic',
     priceInSeeds: 500,
     requiredTier: 'friend',
     isLimited: false,
     config: {
-      primaryColor: '#6B5B95',
-      glowColor: '#9B8DC4',
+      primaryColor: '#4a5a73', // design-system/tokens/colors.json personas.alex.secondary
+      glowColor: '#7a8baa', // personas.alex.light
       particleEffect: 'stardust',
     },
   },
   {
     id: 'skin-sunset',
-    name: 'Golden Hour',
-    description: 'Warm sunset gradient that glows',
+    nameKey: 'cosmetics.goldenHour',
+    descKey: 'cosmetics.goldenHourDesc',
     type: 'avatar-skin',
     rarity: 'rare',
     priceInSeeds: 300,
@@ -124,8 +121,8 @@ const PREMIUM_AVATAR_SKINS: CosmeticItem[] = [
   },
   {
     id: 'skin-ocean',
-    name: 'Deep Ocean',
-    description: 'Calming ocean blue with wave shimmer',
+    nameKey: 'cosmetics.deepOcean',
+    descKey: 'cosmetics.deepOceanDesc',
     type: 'avatar-skin',
     rarity: 'rare',
     priceInSeeds: 300,
@@ -138,8 +135,8 @@ const PREMIUM_AVATAR_SKINS: CosmeticItem[] = [
   },
   {
     id: 'skin-aurora',
-    name: 'Northern Lights',
-    description: 'Shifting aurora borealis effect',
+    nameKey: 'cosmetics.northernLights',
+    descKey: 'cosmetics.northernLightsDesc',
     type: 'avatar-skin',
     rarity: 'legendary',
     priceInSeeds: 1000,
@@ -147,7 +144,7 @@ const PREMIUM_AVATAR_SKINS: CosmeticItem[] = [
     isLimited: true,
     config: {
       primaryColor: '#00CED1',
-      secondaryColor: '#9370DB',
+      secondaryColor: '#7a8baa', // personas.alex.light
       effect: 'aurora-shift',
     },
   },
@@ -156,8 +153,8 @@ const PREMIUM_AVATAR_SKINS: CosmeticItem[] = [
 const PREMIUM_UI_THEMES: CosmeticItem[] = [
   {
     id: 'theme-forest',
-    name: 'Deep Forest',
-    description: 'Rich forest greens for a grounding experience',
+    nameKey: 'cosmetics.deepForest',
+    descKey: 'cosmetics.deepForestDesc',
     type: 'ui-theme',
     rarity: 'uncommon',
     priceInSeeds: 200,
@@ -170,8 +167,8 @@ const PREMIUM_UI_THEMES: CosmeticItem[] = [
   },
   {
     id: 'theme-midnight',
-    name: 'Midnight',
-    description: 'True dark mode with warm cedar tones',
+    nameKey: 'cosmetics.midnight',
+    descKey: 'cosmetics.midnightDesc',
     type: 'ui-theme',
     rarity: 'rare',
     priceInSeeds: 300,
@@ -183,8 +180,8 @@ const PREMIUM_UI_THEMES: CosmeticItem[] = [
   },
   {
     id: 'theme-cozy',
-    name: 'Cozy Cabin',
-    description: 'Warm amber tones like firelight',
+    nameKey: 'cosmetics.cozyCabin',
+    descKey: 'cosmetics.cozyCabinDesc',
     type: 'ui-theme',
     rarity: 'epic',
     priceInSeeds: 500,
@@ -200,8 +197,8 @@ const PREMIUM_UI_THEMES: CosmeticItem[] = [
 const PREMIUM_SOUND_PACKS: CosmeticItem[] = [
   {
     id: 'sounds-rain',
-    name: 'Gentle Rain',
-    description: 'Soft rainfall ambient sounds',
+    nameKey: 'cosmetics.gentleRain',
+    descKey: 'cosmetics.gentleRainDesc',
     type: 'sound-pack',
     rarity: 'uncommon',
     priceInSeeds: 150,
@@ -210,8 +207,8 @@ const PREMIUM_SOUND_PACKS: CosmeticItem[] = [
   },
   {
     id: 'sounds-fireplace',
-    name: 'Crackling Fire',
-    description: 'Cozy fireplace ambience',
+    nameKey: 'cosmetics.crackling Fire',
+    descKey: 'cosmetics.crackling FireDesc',
     type: 'sound-pack',
     rarity: 'uncommon',
     priceInSeeds: 150,
@@ -220,8 +217,8 @@ const PREMIUM_SOUND_PACKS: CosmeticItem[] = [
   },
   {
     id: 'sounds-nature',
-    name: 'Forest Morning',
-    description: 'Birds and gentle wind through trees',
+    nameKey: 'cosmetics.forestMorning',
+    descKey: 'cosmetics.forestMorningDesc',
     type: 'sound-pack',
     rarity: 'rare',
     priceInSeeds: 250,
@@ -233,8 +230,8 @@ const PREMIUM_SOUND_PACKS: CosmeticItem[] = [
 const DEFAULT_VOICE_PACKS: CosmeticItem[] = [
   {
     id: 'voice-default',
-    name: 'Natural',
-    description: "Ferni's natural, balanced voice",
+    nameKey: 'cosmetics.natural',
+    descKey: 'cosmetics.natural',
     type: 'voice-pack',
     rarity: 'common',
     priceInSeeds: null,
@@ -251,8 +248,8 @@ const DEFAULT_VOICE_PACKS: CosmeticItem[] = [
 const PREMIUM_VOICE_PACKS: CosmeticItem[] = [
   {
     id: 'voice-warm',
-    name: 'Extra Warm',
-    description: 'A warmer, more comforting tone',
+    nameKey: 'cosmetics.extraWarm',
+    descKey: 'cosmetics.extraWarmDesc',
     type: 'voice-pack',
     rarity: 'uncommon',
     priceInSeeds: 200,
@@ -266,8 +263,8 @@ const PREMIUM_VOICE_PACKS: CosmeticItem[] = [
   },
   {
     id: 'voice-calm',
-    name: 'Zen Calm',
-    description: 'Slower, more meditative pace',
+    nameKey: 'cosmetics.zenCalm',
+    descKey: 'cosmetics.zenCalmDesc',
     type: 'voice-pack',
     rarity: 'rare',
     priceInSeeds: 300,
@@ -281,8 +278,8 @@ const PREMIUM_VOICE_PACKS: CosmeticItem[] = [
   },
   {
     id: 'voice-energetic',
-    name: 'Energetic',
-    description: 'More upbeat and motivating',
+    nameKey: 'cosmetics.energetic',
+    descKey: 'cosmetics.energeticDesc',
     type: 'voice-pack',
     rarity: 'rare',
     priceInSeeds: 300,
@@ -310,12 +307,7 @@ export const COSMETICS_CATALOG: CosmeticItem[] = [
   ...PREMIUM_VOICE_PACKS,
 ];
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-/** Starter seeds for new users - "Seeds to get you growing" */
-const STARTER_SEEDS = 25;
+const STARTER_SEEDS = 25; // Starter seeds for new users
 
 // ============================================================================
 // STATE
@@ -749,6 +741,10 @@ export function devResetCosmetics(): void {
   notifyListeners();
   log.info('Dev: Cosmetics reset');
 }
+
+// Localization helpers
+export function getCosmeticName(cosmetic: CosmeticItem): string { return t(cosmetic.nameKey); }
+export function getCosmeticDescription(cosmetic: CosmeticItem): string { return t(cosmetic.descKey); }
 
 // ============================================================================
 // EXPORTS

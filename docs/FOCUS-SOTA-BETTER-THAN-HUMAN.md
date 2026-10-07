@@ -82,7 +82,7 @@ Use this with `docs/FOCUS-EVERYTHING-ELSE.md` for prioritization (this doc is th
 - `src/agents/integrations/better-than-human-integration.ts` — BTH load at session start.
 - `src/agents/processors/live-superhuman-injections.ts` — Per-turn BTH injections.
 - `src/agents/realtime/emotion-event-dispatcher.ts` — Backend → frontend BTH signals.
-- `docs/FOCUS-EVERYTHING-ELSE.md` — Backlog (excludes Qwen/Kyutai).
+- `docs/FOCUS-EVERYTHING-ELSE.md` — Backlog.
 - `docs/VOICE-STACK-DIRECTION.md` — Sonata only.
 
 ---

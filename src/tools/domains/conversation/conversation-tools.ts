@@ -314,10 +314,14 @@ export function createConversationTools() {
         // This changes the disconnect button to a warm "Goodbye" button
         try {
           const { sendFrontendSignal } = await import('../../../services/frontend-signal.js');
-          const sent = await sendFrontendSignal('wrap_up', {
-            sentiment,
-            // Don't include the message - let the frontend handle UI
-          });
+          const sent = await sendFrontendSignal(
+            'wrap_up',
+            {
+              sentiment,
+              // Don't include the message - let the frontend handle UI
+            },
+            userData.services?.sessionId
+          );
           if (sent) {
             getLogger().info('Sent wrap_up signal to frontend');
           }
@@ -361,8 +365,9 @@ export function createConversationTools() {
           .enum(['goodbye_complete', 'user_request', 'natural_end'])
           .describe('Why the conversation is ending'),
       }),
-      execute: async ({ reason }) => {
+      execute: async ({ reason }, { ctx }) => {
         getLogger().info(`Ending conversation: ${reason}`);
+        const sessionId = (ctx.userData as UserData | undefined)?.services?.sessionId;
 
         // 🎧 Play the exit sound - session end sounds are handled by cleanup handler
         getLogger().info('🎧 Session ending - cleanup handler will handle exit sound');
@@ -370,11 +375,15 @@ export function createConversationTools() {
         // 🌅 Signal the frontend to auto-disconnect
         try {
           const { sendFrontendSignal } = await import('../../../services/frontend-signal.js');
-          const sent = await sendFrontendSignal('conversation_end', {
-            reason: reason === 'natural_end' ? 'goodbye_complete' : reason,
-            disconnectDelay: 2500, // Give time for farewell to be spoken
-            timestamp: Date.now(),
-          });
+          const sent = await sendFrontendSignal(
+            'conversation_end',
+            {
+              reason: reason === 'natural_end' ? 'goodbye_complete' : reason,
+              disconnectDelay: 2500, // Give time for farewell to be spoken
+              timestamp: Date.now(),
+            },
+            sessionId
+          );
           if (sent) {
             getLogger().info('Sent conversation_end signal to frontend');
           }
@@ -438,12 +447,16 @@ export function createConversationTools() {
         // This triggers a different sound/animation - like hanging up the phone
         try {
           const { sendFrontendSignal } = await import('../../../services/frontend-signal.js');
-          const sent = await sendFrontendSignal('conversation_end', {
-            reason: 'agent_exit',
-            exitType: reason,
-            disconnectDelay: 1500, // Shorter delay - we want to exit promptly
-            timestamp: Date.now(),
-          });
+          const sent = await sendFrontendSignal(
+            'conversation_end',
+            {
+              reason: 'agent_exit',
+              exitType: reason,
+              disconnectDelay: 1500, // Shorter delay - we want to exit promptly
+              timestamp: Date.now(),
+            },
+            userData.services?.sessionId
+          );
           if (sent) {
             getLogger().info('Sent agent_exit signal to frontend');
           }

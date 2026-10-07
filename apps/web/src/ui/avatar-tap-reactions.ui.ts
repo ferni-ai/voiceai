@@ -18,6 +18,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('AvatarTapReactions');
 
@@ -93,7 +94,7 @@ function setupTapHandler(avatar: HTMLElement): void {
   // Make avatar focusable and indicate it's interactive
   avatar.setAttribute('tabindex', '0');
   avatar.setAttribute('role', 'button');
-  avatar.setAttribute('aria-label', 'Tap for a fun reaction');
+  avatar.setAttribute('aria-label', t('accessibility.tapForFunReaction'));
   avatar.style.cursor = 'pointer';
 
   // Click/tap handler
@@ -214,7 +215,7 @@ function playSpecialReaction(): void {
   avatarFeedback.pixarReact('bounce');
 
   // Show a brief whisper
-  avatarFeedback.whisper('Hehe, that tickles!', 'success', 1500);
+  avatarFeedback.whisper(t('avatarTapReactions.tickles'), 'success', 1500);
 }
 
 // ============================================================================

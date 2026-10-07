@@ -13,12 +13,11 @@ import { soundUI } from './sound.ui.js';
 import { toast } from './whisper.ui.js';
 import { apiPost } from '../utils/api.js';
 import { escapeHtml, escapeAttr } from './engagement-components.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('AgentPageBuilder');
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// Types
 
 export interface AgentConfig {
   id: string;
@@ -55,27 +54,28 @@ export interface PageBuilderCallbacks {
 
 const STEPS: BuilderStep[] = ['agent', 'brand', 'voice', 'preview'];
 
+// Display text is an i18n key, translated where it is rendered (the locale loads after this module).
 const STEP_LABELS: Record<BuilderStep, string> = {
-  agent: 'Agent',
-  brand: 'Brand',
-  voice: 'Voice',
-  preview: 'Deploy',
+  agent: 'agentPageBuilder.stepAgent',
+  brand: 'agentPageBuilder.stepBrand',
+  voice: 'agentPageBuilder.stepVoice',
+  preview: 'agentPageBuilder.stepPreview',
 };
 
 const STEP_DESCRIPTIONS: Record<BuilderStep, string> = {
-  agent: 'Tell us about your agent',
-  brand: 'Choose your colors',
-  voice: 'Add a custom voice (optional)',
-  preview: 'Review and launch',
+  agent: 'agentPageBuilder.descAgent',
+  brand: 'agentPageBuilder.descBrand',
+  voice: 'agentPageBuilder.descVoice',
+  preview: 'agentPageBuilder.descPreview',
 };
 
 const PRESET_COLORS = [
-  { name: 'Vanguard Red', value: '#96151D' },
-  { name: 'Forest Green', value: '#2D5A27' },
-  { name: 'Ocean Blue', value: '#1E4D8C' },
-  { name: 'Royal Purple', value: '#5B2C6F' },
-  { name: 'Sunset Orange', value: '#D35400' },
-  { name: 'Slate Gray', value: '#34495E' },
+  { nameKey: 'agentPageBuilder.colorVanguardRed', value: '#96151D' },
+  { nameKey: 'agentPageBuilder.colorForestGreen', value: '#2D5A27' },
+  { nameKey: 'agentPageBuilder.colorOceanBlue', value: '#1E4D8C' },
+  { nameKey: 'agentPageBuilder.colorRoyalPurple', value: '#a67a6a' }, // maya terracotta, not purple
+  { nameKey: 'agentPageBuilder.colorSunsetOrange', value: '#D35400' },
+  { nameKey: 'agentPageBuilder.colorSlateGray', value: '#34495E' },
 ];
 
 // ============================================================================
@@ -738,12 +738,12 @@ export class AgentPageBuilder {
     const title = createElement('h2', {
       className: 'builder-title',
       id: 'builder-title',
-    }, ['Create Agent Page']);
+    }, [t('agentPageBuilder.title')]);
     header.appendChild(title);
 
     const closeBtn = createElement('button', {
       className: 'builder-close',
-      'aria-label': 'Close',
+      'aria-label': t('common.close'),
     });
     closeBtn.appendChild(createSvgElement(`
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -775,7 +775,7 @@ export class AgentPageBuilder {
       });
 
       stepEl.appendChild(createElement('div', { className: 'progress-dot' }));
-      stepEl.appendChild(createElement('span', { className: 'progress-label' }, [STEP_LABELS[step]]));
+      stepEl.appendChild(createElement('span', { className: 'progress-label' }, [t(STEP_LABELS[step])]));
 
       stepEl.addEventListener('click', () => {
         if (this.canNavigateTo(step)) {
@@ -795,8 +795,8 @@ export class AgentPageBuilder {
 
     // Step header
     const stepHeader = createElement('div', { className: 'step-header' });
-    stepHeader.appendChild(createElement('h3', { className: 'step-title' }, [STEP_LABELS[this.currentStep]]));
-    stepHeader.appendChild(createElement('p', { className: 'step-description' }, [STEP_DESCRIPTIONS[this.currentStep]]));
+    stepHeader.appendChild(createElement('h3', { className: 'step-title' }, [t(STEP_LABELS[this.currentStep])]));
+    stepHeader.appendChild(createElement('p', { className: 'step-description' }, [t(STEP_DESCRIPTIONS[this.currentStep])]));
     container.appendChild(stepHeader);
 
     // Step-specific content
@@ -820,7 +820,7 @@ export class AgentPageBuilder {
     const agent = this.config.agent || { id: '', name: '', initials: '', tagline: '', description: '' };
 
     // Name field
-    const nameGroup = this.createFormGroup('Agent Name', 'agent-name', 'text', agent.name, 'e.g., Joel Dickson', 'The full name of your AI agent');
+    const nameGroup = this.createFormGroup(t('agentPageBuilder.nameLabel'), 'agent-name', 'text', agent.name, t('agentPageBuilder.namePlaceholder'), t('agentPageBuilder.nameHint'));
     const nameInput = nameGroup.querySelector('input') as HTMLInputElement;
     nameInput.addEventListener('input', () => {
       if (this.config.agent) {
@@ -839,7 +839,7 @@ export class AgentPageBuilder {
     container.appendChild(nameGroup);
 
     // Initials field
-    const initialsGroup = this.createFormGroup('Initials', 'agent-initials', 'text', agent.initials, 'e.g., JD', 'Shown on the avatar (2-3 characters)');
+    const initialsGroup = this.createFormGroup(t('agentPageBuilder.initialsLabel'), 'agent-initials', 'text', agent.initials, t('agentPageBuilder.initialsPlaceholder'), t('agentPageBuilder.initialsHint'));
     const initialsInput = initialsGroup.querySelector('input') as HTMLInputElement;
     initialsInput.maxLength = 3;
     initialsInput.addEventListener('input', () => {
@@ -851,7 +851,7 @@ export class AgentPageBuilder {
     container.appendChild(initialsGroup);
 
     // Tagline field
-    const taglineGroup = this.createFormGroup('Tagline', 'agent-tagline', 'text', agent.tagline, 'e.g., Global Head of Investment Strategy', 'A brief title or role description');
+    const taglineGroup = this.createFormGroup(t('agentPageBuilder.taglineLabel'), 'agent-tagline', 'text', agent.tagline, t('agentPageBuilder.taglinePlaceholder'), t('agentPageBuilder.taglineHint'));
     const taglineInput = taglineGroup.querySelector('input') as HTMLInputElement;
     taglineInput.addEventListener('input', () => {
       if (this.config.agent) {
@@ -861,7 +861,7 @@ export class AgentPageBuilder {
     container.appendChild(taglineGroup);
 
     // Description field
-    const descGroup = this.createFormGroupTextarea('Description', 'agent-description', agent.description, 'Describe what your agent does...', 'This appears in search results and social shares');
+    const descGroup = this.createFormGroupTextarea(t('agentPageBuilder.descriptionLabel'), 'agent-description', agent.description, t('agentPageBuilder.descriptionPlaceholder'), t('agentPageBuilder.descriptionHint'));
     const descInput = descGroup.querySelector('textarea') as HTMLTextAreaElement;
     descInput.addEventListener('input', () => {
       if (this.config.agent) {
@@ -877,7 +877,7 @@ export class AgentPageBuilder {
     const selectedColor = brand.primary || defaultColor;
 
     const group = createElement('div', { className: 'form-group' });
-    group.appendChild(createElement('label', { className: 'form-label' }, ['Primary Color']));
+    group.appendChild(createElement('label', { className: 'form-label' }, [t('agentPageBuilder.primaryColor')]));
 
     // Color presets
     const presets = createElement('div', { className: 'color-presets' });
@@ -885,8 +885,8 @@ export class AgentPageBuilder {
       const btn = createElement('button', {
         className: `color-preset ${c.value === selectedColor ? 'selected' : ''}`,
         'data-color': c.value,
-        title: c.name,
-        'aria-label': c.name,
+        title: t(c.nameKey),
+        'aria-label': t(c.nameKey),
       });
       btn.style.background = c.value;
       btn.addEventListener('click', () => {
@@ -940,7 +940,7 @@ export class AgentPageBuilder {
     custom.appendChild(hexInput);
     group.appendChild(custom);
 
-    group.appendChild(createElement('p', { className: 'form-hint' }, ['Used for buttons, links, and avatar background']));
+    group.appendChild(createElement('p', { className: 'form-hint' }, [t('agentPageBuilder.primaryColorHint')]));
     container.appendChild(group);
   }
 
@@ -958,8 +958,8 @@ export class AgentPageBuilder {
       </svg>
     `));
 
-    dropzone.appendChild(createElement('p', { className: 'voice-upload-text' }, ['Drop an audio file here or click to browse']));
-    dropzone.appendChild(createElement('p', { className: 'voice-upload-hint' }, ['MP3, WAV, or M4A (30 seconds to 5 minutes)']));
+    dropzone.appendChild(createElement('p', { className: 'voice-upload-text' }, [t('agentPageBuilder.voiceDropzone')]));
+    dropzone.appendChild(createElement('p', { className: 'voice-upload-hint' }, [t('agentPageBuilder.voiceFormats')]));
 
     const fileInput = createElement('input', {
       type: 'file',
@@ -993,7 +993,7 @@ export class AgentPageBuilder {
     if (this.audioFile) {
       const info = createElement('div', { className: 'voice-file-info' });
       info.appendChild(createElement('span', { className: 'voice-file-name' }, [this.audioFile.name]));
-      const removeBtn = createElement('button', { className: 'voice-file-remove' }, ['Remove']);
+      const removeBtn = createElement('button', { className: 'voice-file-remove' }, [t('agentPageBuilder.removeAudio')]);
       removeBtn.addEventListener('click', () => {
         this.audioFile = null;
         this.updateContent();
@@ -1003,7 +1003,7 @@ export class AgentPageBuilder {
     }
 
     // Skip link
-    const skipLink = createElement('a', { className: 'skip-link' }, ['Skip this step']);
+    const skipLink = createElement('a', { className: 'skip-link' }, [t('agentPageBuilder.skipStep')]);
     skipLink.addEventListener('click', () => this.goNext());
     container.appendChild(skipLink);
   }
@@ -1023,15 +1023,15 @@ export class AgentPageBuilder {
     avatar.style.background = brand.primary;
     previewHeader.appendChild(avatar);
 
-    previewHeader.appendChild(createElement('h3', { className: 'preview-name' }, [agent.name || 'Your Agent']));
-    previewHeader.appendChild(createElement('p', { className: 'preview-tagline' }, [agent.tagline || 'Here to help']));
+    previewHeader.appendChild(createElement('h3', { className: 'preview-name' }, [agent.name || t('agentPageBuilder.defaultAgentName')]));
+    previewHeader.appendChild(createElement('p', { className: 'preview-tagline' }, [agent.tagline || t('agentPageBuilder.defaultTagline')]));
     card.appendChild(previewHeader);
 
     const details = createElement('div', { className: 'preview-details' });
 
     // Color row
     const colorRow = createElement('div', { className: 'preview-row' });
-    colorRow.appendChild(createElement('span', { className: 'preview-label' }, ['Brand Color']));
+    colorRow.appendChild(createElement('span', { className: 'preview-label' }, [t('agentPageBuilder.brandColor')]));
     const colorValue = createElement('span', { className: 'preview-value' }, [brand.primary]);
     colorValue.style.color = brand.primary;
     colorRow.appendChild(colorValue);
@@ -1039,14 +1039,14 @@ export class AgentPageBuilder {
 
     // Voice row
     const voiceRow = createElement('div', { className: 'preview-row' });
-    voiceRow.appendChild(createElement('span', { className: 'preview-label' }, ['Voice']));
-    voiceRow.appendChild(createElement('span', { className: 'preview-value' }, [this.audioFile ? 'Custom (will be cloned)' : 'Default']));
+    voiceRow.appendChild(createElement('span', { className: 'preview-label' }, [t('agentPageBuilder.stepVoice')]));
+    voiceRow.appendChild(createElement('span', { className: 'preview-value' }, [this.audioFile ? t('agentPageBuilder.voiceCustom') : t('agentPageBuilder.voiceDefault')]));
     details.appendChild(voiceRow);
 
     // Theme row
     const themeRow = createElement('div', { className: 'preview-row' });
-    themeRow.appendChild(createElement('span', { className: 'preview-label' }, ['Theme']));
-    themeRow.appendChild(createElement('span', { className: 'preview-value' }, ['Zen']));
+    themeRow.appendChild(createElement('span', { className: 'preview-label' }, [t('agentPageBuilder.theme')]));
+    themeRow.appendChild(createElement('span', { className: 'preview-value' }, [t('agentPageBuilder.themeZen')]));
     details.appendChild(themeRow);
 
     card.appendChild(details);
@@ -1055,7 +1055,7 @@ export class AgentPageBuilder {
     // Subdomain input
     const subdomainGroup = createElement('div', { className: 'form-group' });
     subdomainGroup.style.marginTop = 'var(--space-lg)';
-    subdomainGroup.appendChild(createElement('label', { className: 'form-label' }, ['URL']));
+    subdomainGroup.appendChild(createElement('label', { className: 'form-label' }, [t('agentPageBuilder.urlLabel')]));
 
     const wrapper = createElement('div', { className: 'subdomain-input-wrapper' });
     wrapper.appendChild(createElement('span', { className: 'subdomain-prefix' }, ['https://']));
@@ -1064,7 +1064,7 @@ export class AgentPageBuilder {
       type: 'text',
       id: 'subdomain',
       className: 'subdomain-input',
-      placeholder: 'your-agent',
+      placeholder: t('agentPageBuilder.subdomainPlaceholder'),
       value: subdomain,
     });
     subdomainInput.addEventListener('input', () => {
@@ -1076,7 +1076,7 @@ export class AgentPageBuilder {
 
     wrapper.appendChild(createElement('span', { className: 'subdomain-suffix' }, ['.ferni.ai']));
     subdomainGroup.appendChild(wrapper);
-    subdomainGroup.appendChild(createElement('p', { className: 'form-hint' }, ['Your agent will be live at this URL']));
+    subdomainGroup.appendChild(createElement('p', { className: 'form-hint' }, [t('agentPageBuilder.urlHint')]));
     container.appendChild(subdomainGroup);
   }
 
@@ -1090,14 +1090,12 @@ export class AgentPageBuilder {
       footer.appendChild(createElement('div'));
       const deploying = createElement('div', { className: 'deploying' });
       deploying.appendChild(createElement('span', { className: 'spinner' }));
-      deploying.appendChild(createElement('span', {}, ['Deploying...']));
+      deploying.appendChild(createElement('span', {}, [t('agentPageBuilder.deploying')]));
       footer.appendChild(deploying);
       return;
     }
 
-    const backBtn = createElement('button', {
-      className: 'btn btn-secondary',
-    }, ['Back']);
+    const backBtn = createElement('button', { className: 'btn btn-secondary' }, [t('common.back')]);
     if (isFirst) {
       (backBtn).disabled = true;
     } else {
@@ -1106,11 +1104,11 @@ export class AgentPageBuilder {
     footer.appendChild(backBtn);
 
     if (isLast) {
-      const deployBtn = createElement('button', { className: 'btn btn-primary btn-deploy' }, ['Deploy Page']);
+      const deployBtn = createElement('button', { className: 'btn btn-primary btn-deploy' }, [t('agentPageBuilder.deployPage')]);
       deployBtn.addEventListener('click', () => this.deploy());
       footer.appendChild(deployBtn);
     } else {
-      const nextBtn = createElement('button', { className: 'btn btn-primary' }, ['Continue']);
+      const nextBtn = createElement('button', { className: 'btn btn-primary' }, [t('common.continue')]);
       nextBtn.addEventListener('click', () => this.goNext());
       footer.appendChild(nextBtn);
     }
@@ -1153,16 +1151,16 @@ export class AgentPageBuilder {
   private handleAudioFile(file: File): void {
     const validTypes = ['audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/mp4'];
     if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|m4a)$/i)) {
-      toast.error('Use MP3, WAV, or M4A format');
+      toast.error(t('agentPageBuilder.errorAudioFormat'));
       return;
     }
     if (file.size > 50 * 1024 * 1024) {
-      toast.error('File too large (max 50MB)');
+      toast.error(t('agentPageBuilder.errorAudioSize'));
       return;
     }
     this.audioFile = file;
     this.updateContent();
-    toast.success('Audio file added');
+    toast.success(t('agentPageBuilder.successAudioAdded'));
   }
 
   private canNavigateTo(step: BuilderStep): boolean {
@@ -1198,7 +1196,7 @@ export class AgentPageBuilder {
 
   private goNext(): void {
     if (!this.isCurrentStepValid()) {
-      toast.warning('Fill in required fields');
+      toast.warning(t('agentPageBuilder.errorMissingFields'));
       return;
     }
     this.completedSteps.add(this.currentStep);
@@ -1233,7 +1231,7 @@ export class AgentPageBuilder {
 
     const subdomain = this.config.subdomain || this.generateSubdomain();
     if (!subdomain) {
-      toast.warning('Enter a URL');
+      toast.warning(t('agentPageBuilder.errorMissingUrl'));
       return;
     }
 
@@ -1272,14 +1270,14 @@ export class AgentPageBuilder {
       const { url, siteId } = response.data;
 
       soundUI.play('success');
-      toast.success('Page deployed!');
+      toast.success(t('agentPageBuilder.successDeployed'));
 
       this.callbacks.onDeployed?.(url, siteId);
       this.hide();
 
       log.info({ url, siteId }, 'Page deployed successfully');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Deployment failed';
+      const message = error instanceof Error ? error.message : t('agentPageBuilder.deployFailed');
       log.error({ error: message }, 'Deployment failed');
       toast.error(message);
     } finally {

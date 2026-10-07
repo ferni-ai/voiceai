@@ -149,6 +149,7 @@ describe('Household Manager UI', () => {
 
     // Reset modules to get fresh state
     vi.resetModules();
+    await (await import('../../src/i18n/index.js')).setLocale('en-US', { reload: false });
 
     // Default: household exists with members - household includes members array
     mockApiGet.mockImplementation((url: string) => {

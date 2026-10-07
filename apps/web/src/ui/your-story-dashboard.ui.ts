@@ -199,7 +199,7 @@ class YourStoryUI {
       }
 
       const loadingText = el('div', 'your-story__loading-text');
-      loadingText.textContent = t('yourStory.loading') || 'Loading your story...';
+      loadingText.textContent = t('yourStory.loading');
       skeleton.appendChild(loadingText);
 
       content.appendChild(skeleton);
@@ -250,7 +250,7 @@ class YourStoryUI {
     this.panel = el('div', 'your-story');
     this.panel.setAttribute('role', 'dialog');
     this.panel.setAttribute('aria-modal', 'true');
-    this.panel.setAttribute('aria-label', t('yourStory.aria.dashboard') || 'Your Story Dashboard');
+    this.panel.setAttribute('aria-label', t('yourStory.aria.dashboard'));
 
     const backdrop = el('div', 'your-story__backdrop');
     backdrop.addEventListener('click', () => this.hide());
@@ -293,12 +293,12 @@ class YourStoryUI {
     const title = el('h2', 'your-story__title');
     title.textContent = this.getTimeGreeting();
     const subtitle = el('p', 'your-story__subtitle');
-    subtitle.textContent = t('yourStory.subtitle') || "Here's your story so far";
+    subtitle.textContent = t('yourStory.subtitle');
     titleGroup.appendChild(title);
     titleGroup.appendChild(subtitle);
 
     const closeBtn = el('button', 'your-story__close') as HTMLButtonElement;
-    closeBtn.setAttribute('aria-label', t('yourStory.aria.close') || 'Close');
+    closeBtn.setAttribute('aria-label', t('yourStory.aria.close'));
     closeBtn.appendChild(svg('close'));
     closeBtn.addEventListener('click', () => this.hide());
 
@@ -309,9 +309,9 @@ class YourStoryUI {
     // Stats row
     const stats = el('div', 'your-story__stats');
     const statItems = [
-      { icon: 'calendar', value: data.analytics.daysTogether, label: t('yourStory.stats.daysTogether') || 'days together' },
-      { icon: 'chat', value: data.analytics.conversations, label: t('yourStory.stats.conversations') || 'conversations' },
-      { icon: 'flame', value: data.analytics.streak, label: t('yourStory.stats.dayStreak') || 'day streak' },
+      { icon: 'calendar', value: data.analytics.daysTogether, label: t('yourStory.stats.daysTogether') },
+      { icon: 'chat', value: data.analytics.conversations, label: t('yourStory.stats.conversations') },
+      { icon: 'flame', value: data.analytics.streak, label: t('yourStory.stats.dayStreak') },
     ].filter((item) => item.value !== null); // no streak is claimed without a day-by-day record
     for (const item of statItems) {
       const stat = el('div', 'your-story__stat');
@@ -367,7 +367,7 @@ class YourStoryUI {
     const banner = el('div', 'your-story__demo-banner');
     banner.appendChild(svg('sparkles'));
     const p = el('p');
-    p.textContent = t('yourStory.demo.banner') || "Here's a glimpse of the story we could write together. Start a conversation to begin yours.";
+    p.textContent = t('yourStory.demo.banner');
     banner.appendChild(p);
     return banner;
   }
@@ -388,7 +388,7 @@ class YourStoryUI {
   private buildCareSection(): HTMLElement {
     const section = el('section', 'your-story__section');
     const title = el('h3', 'your-story__section-title');
-    title.textContent = t('yourStory.sections.care') || "What I've Done for You";
+    title.textContent = t('yourStory.sections.care');
     section.appendChild(title);
 
     // Hero visualization container for actions
@@ -400,7 +400,7 @@ class YourStoryUI {
     const loading = el('div', 'your-story__care-loading');
     loading.innerHTML = `
       <div style="text-align: center; padding: var(--viz-space-breath, 1rem); color: var(--color-text-muted, #9a8f85);">
-        <p>${t('yourStory.care.loading') || 'Loading your care moments...'}</p>
+        <p>${t('yourStory.care.loading')}</p>
       </div>
     `;
     hero.appendChild(loading);
@@ -410,7 +410,7 @@ class YourStoryUI {
     // Insight - will be updated when data loads
     const insight = el('p', 'your-story__insight');
     insight.id = 'care-insight';
-    insight.textContent = t('yourStory.insights.care') || 'Keeping track of what matters to you.';
+    insight.textContent = t('yourStory.insights.care');
     section.appendChild(insight);
 
     return section;
@@ -419,7 +419,7 @@ class YourStoryUI {
   private buildRightNowSection(data: YourStoryData): HTMLElement {
     const section = el('section', 'your-story__section');
     const title = el('h3', 'your-story__section-title');
-    title.textContent = t('yourStory.sections.rightNow') || 'Right Now';
+    title.textContent = t('yourStory.sections.rightNow');
     section.appendChild(title);
 
     const hero = el('div', 'your-story__hero-viz');
@@ -441,8 +441,7 @@ class YourStoryUI {
     const dominantMood = data.moodCalendar?.summary?.dominantMood; // no mood data, no line
     if (dominantMood) {
       const insight = el('p', 'your-story__insight');
-      const moodSummaryTemplate = t('yourStory.insights.moodSummary') || "You've been feeling mostly {mood} this week";
-      insight.textContent = moodSummaryTemplate.replace('{mood}', dominantMood);
+      insight.textContent = t('yourStory.insights.moodSummary', { mood: dominantMood });
       section.appendChild(insight);
     }
 
@@ -452,7 +451,7 @@ class YourStoryUI {
   private buildGrowthSection(data: YourStoryData): HTMLElement {
     const section = el('section', 'your-story__section');
     const title = el('h3', 'your-story__section-title');
-    title.textContent = t('yourStory.sections.yourGrowth') || 'Your Growth';
+    title.textContent = t('yourStory.sections.yourGrowth');
     section.appendChild(title);
 
     const hero = el('div', 'your-story__hero-viz');
@@ -476,8 +475,10 @@ class YourStoryUI {
     const focus = data.growthRadar?.focusArea;
     if (chapter || focus) {
       const insight = el('p', 'your-story__insight');
-      const both = t('yourStory.insights.chapterFocus') || 'Current chapter: {chapter} | Focus area: {focus}';
-      insight.textContent = chapter && focus ? both.replace('{chapter}', chapter).replace('{focus}', focus) : chapter ? `Current chapter: ${chapter}` : `Focus area: ${focus}`;
+      const key = chapter
+        ? focus ? 'yourStory.insights.chapterFocus' : 'yourStory.insights.chapterOnly'
+        : 'yourStory.insights.focusOnly';
+      insight.textContent = t(key, { chapter: chapter ?? '', focus: focus ?? '' });
       section.appendChild(insight);
     }
 
@@ -487,7 +488,7 @@ class YourStoryUI {
   private buildWorldSection(data: YourStoryData): HTMLElement {
     const section = el('section', 'your-story__section');
     const title = el('h3', 'your-story__section-title');
-    title.textContent = t('yourStory.sections.yourWorld') || 'Your World';
+    title.textContent = t('yourStory.sections.yourWorld');
     section.appendChild(title);
 
     const hero = el('div', 'your-story__hero-viz');
@@ -509,8 +510,7 @@ class YourStoryUI {
     const insight = el('p', 'your-story__insight');
     const active = data.relationshipNetwork?.activeConnections || 0;
     const open = data.openLoops?.totalOpen || 0;
-    const connectionsTemplate = t('yourStory.insights.connections') || '{active} active connections | {open} open loops';
-    insight.textContent = connectionsTemplate.replace('{active}', String(active)).replace('{open}', String(open));
+    insight.textContent = t('yourStory.insights.connections', { active, open });
     section.appendChild(insight);
 
     return section;
@@ -591,9 +591,9 @@ class YourStoryUI {
   private showActionsError(): void {
     const container = this.panel?.querySelector('#viz-actions-taken');
     if (!container) return;
-    container.innerHTML = `<div class="error-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button></div>`;
+    container.innerHTML = `<div class="error-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('yourStory.actionsError.message')} <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('yourStory.actionsError.retry')}</button></div>`;
     container.querySelector('button')?.addEventListener('click', () => {
-      container.innerHTML = '<div class="loading-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">Loading...</div>';
+      container.innerHTML = '<div class="loading-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">' + t('common.loading') + '</div>';
       void this.fetchActionsData();
     });
   }
@@ -617,9 +617,9 @@ class YourStoryUI {
 
   private getTimeGreeting(): string {
     const hour = new Date().getHours();
-    if (hour < 12) return t('yourStory.greeting.morning') || 'Good morning';
-    if (hour < 17) return t('yourStory.greeting.afternoon') || 'Good afternoon';
-    return t('yourStory.greeting.evening') || 'Good evening';
+    if (hour < 12) return t('yourStory.greeting.morning');
+    if (hour < 17) return t('yourStory.greeting.afternoon');
+    return t('yourStory.greeting.evening');
   }
 
   private injectStyles(): void {

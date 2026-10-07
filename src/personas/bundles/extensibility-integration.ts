@@ -82,35 +82,11 @@ export function clearBundleCache(personaId?: string): void {
  * Returns the hook result (prompt to inject, or null if no hook)
  */
 export async function executeHook(
-  event: HookEventType,
-  ctx: ExtensibilityContext & Partial<HookExecutionContext>
+  _event: HookEventType,
+  _ctx: ExtensibilityContext & Partial<HookExecutionContext>
 ): Promise<HookExecutionResult | null> {
-  try {
-    const bundle = await getBundle(ctx.personaId);
-    if (!bundle?.getHooks) {
-      return null;
-    }
-
-    const hooks = await bundle.getHooks();
-    if (!hooks) {
-      return null;
-    }
-
-    const hook = hooks[event];
-    if (!hook || hook.enabled === false) {
-      return null;
-    }
-
-    log.debug({ event, personaId: ctx.personaId }, 'Executing extensibility hook');
-
-    // NOTE: hooks-loader.js removed - hooks extensibility system not yet implemented
-    // Return null to indicate no hook was executed
-    log.warn({ event, personaId: ctx.personaId }, 'Hooks system not implemented - skipping');
-    return null;
-  } catch (error) {
-    log.error({ error, event, personaId: ctx.personaId }, 'Failed to execute hook');
-    return null;
-  }
+  // Shell hooks are a security risk and no persona ships any. Never execute.
+  return null;
 }
 
 /**

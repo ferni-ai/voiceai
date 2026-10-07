@@ -48,8 +48,8 @@ const ICONS = {
     <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 4.8 0 0 1 12 8a4.8 4.8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/>
   </svg>`,
   seed: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 22c4-4 8-7.582 8-12a8 8 0 1 0-16 0c0 4.418 4 8 8 12z"/>
-    <path d="M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+    <path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/>
+    <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>
   </svg>`,
   heart: `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -124,7 +124,7 @@ function createModal(): void {
   modal = document.createElement('div');
   modal.className = 'gift-seeds-modal';
   modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-label', 'Share seeds with a friend');
+  modal.setAttribute('aria-label', t('accessibility.shareSeedsWithFriend'));
 
   renderModalContent();
   injectStyles();
@@ -200,7 +200,7 @@ function renderModalContent(): void {
         </div>
         <p class="gift-seeds-multiplier">
           ${ICONS.heart}
-          <span>${t('giftSeeds.multiplier', { sent: selectedAmount, received: selectedTier.receive }, 'You send {sent}, they get {received} seeds')}</span>
+          <span>${t('giftSeeds.exchange', { sent: selectedAmount, received: selectedTier.receive })}</span>
         </p>
       </div>
 
@@ -226,7 +226,7 @@ function renderModalContent(): void {
 
       <!-- Balance -->
       <p class="gift-seeds-balance">
-        ${t('giftSeeds.balance', { count: balance.toLocaleString() }, 'Your balance: {count} seeds')}
+        ${t('giftSeeds.balance', { amount: balance.toLocaleString() })}
       </p>
     </div>
   `;
@@ -432,7 +432,7 @@ function injectStyles(): void {
     .gift-seeds-close {
       position: absolute;
       top: var(--space-4, 16px);
-      right: var(--space-4, 16px);
+      inset-inline-end: var(--space-4, 16px);
       background: none;
       border: none;
       padding: var(--space-2, 8px);

@@ -120,9 +120,9 @@ export async function initializeMultiAgentSession(
 
   const startTime = Date.now();
 
-  // This call's own frontend publisher, bound to its async context before
+  // This call's own frontend publisher, bound to its session before
   // anything else starts, so app messages can't reach another caller's room.
-  initializeFrontendPublisher(room);
+  initializeFrontendPublisher(sessionId, room);
 
   // Warm the TTS socket while the session sets up, before the greeting needs it.
   void import('../../speech/tts-gateway/index.js')

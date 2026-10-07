@@ -22,6 +22,7 @@
  * ```
  */
 
+import { t } from '../i18n/index.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 // Track setTimeout calls for memory leak prevention
@@ -211,13 +212,13 @@ function injectStyles(): void {
 
 function getInsightLabel(type: InsightType): string {
   switch (type) {
-    case 'style_match': return 'Adapting';
-    case 'empathy_shift': return 'Feeling with you';
-    case 'clarity_boost': return 'Clarifying';
-    case 'depth_increase': return 'Going deeper';
-    case 'confidence_check': return 'Thinking...';
-    case 'quirk_active': return 'Just me being me';
-    default: return 'Insight';
+    case 'style_match': return t('cognitiveInsights.labels.styleMatch');
+    case 'empathy_shift': return t('cognitiveInsights.labels.empathyShift');
+    case 'clarity_boost': return t('cognitiveInsights.labels.clarityBoost');
+    case 'depth_increase': return t('cognitiveInsights.labels.depthIncrease');
+    case 'confidence_check': return t('cognitiveInsights.labels.confidenceCheck');
+    case 'quirk_active': return t('cognitiveInsights.labels.quirkActive');
+    default: return t('cognitiveInsights.labels.default');
   }
 }
 
@@ -307,31 +308,31 @@ export function hideCognitiveInsight(): void {
 export const cognitiveInsights = {
   styleMatch: (detail?: string) => showCognitiveInsight({
     type: 'style_match',
-    message: 'Matching your thinking style',
+    message: t('cognitiveInsights.messages.styleMatch'),
     detail,
   }),
   
   empathyShift: (detail?: string) => showCognitiveInsight({
     type: 'empathy_shift',
-    message: 'I hear you',
+    message: t('cognitiveInsights.messages.empathyShift'),
     detail,
   }),
   
   clarityBoost: (detail?: string) => showCognitiveInsight({
     type: 'clarity_boost',
-    message: 'Let me put that more simply',
+    message: t('cognitiveInsights.messages.clarityBoost'),
     detail,
   }),
   
   depthIncrease: (detail?: string) => showCognitiveInsight({
     type: 'depth_increase',
-    message: 'Let me dive deeper',
+    message: t('cognitiveInsights.messages.depthIncrease'),
     detail,
   }),
   
   confidenceCheck: (detail?: string) => showCognitiveInsight({
     type: 'confidence_check',
-    message: "I'm not entirely sure, but...",
+    message: t('cognitiveInsights.messages.confidenceCheck'),
     detail,
     duration: 3000,
   }),

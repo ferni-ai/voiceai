@@ -2,13 +2,16 @@
 /**
  * Setup Cloud Scheduler for External Health Monitoring
  *
- * Creates GCP Cloud Scheduler jobs that ping the voice agent and UI server
- * from OUTSIDE the containers. This catches issues that internal monitoring can't:
+ * Creates Cloud Monitoring uptime checks that ping the UI server from OUTSIDE
+ * its containers. This catches issues that internal monitoring can't:
  * - Container completely dead
  * - Network routing issues
  * - Load balancer problems
  *
  * Alerts are sent to Cloud Monitoring which can trigger Slack/PagerDuty/etc.
+ *
+ * The voice agent is a LiveKit Cloud agent with no public HTTP port; LiveKit
+ * health-checks it, and `ferni status agent` / `pnpm ops:diagnose` read its state.
  *
  * Usage:
  *   npx tsx apps/cli/src/commands/ops/setup-health-scheduler.ts
@@ -27,93 +30,18 @@ const BOLD = '\x1b[1m';
 const RESET = '\x1b[0m';
 
 // Configuration
-const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'ferni-ai';
-const REGION = 'us-central1';
-const VOICE_AGENT_URL = 'http://34.134.186.63:8080';
+const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025';
 const UI_SERVER_URL = 'https://app.ferni.ai';
 const SERVICE_ACCOUNT = `scheduler-health@${PROJECT_ID}.iam.gserviceaccount.com`;
 
-interface SchedulerJob {
-  name: string;
-  description: string;
-  schedule: string; // Cron expression
-  url: string;
-  httpMethod: 'GET' | 'POST';
-  expectedStatus: number;
-  timeoutSeconds: number;
-  retryCount: number;
-}
-
-const HEALTH_JOBS: SchedulerJob[] = [
-  {
-    name: 'voice-agent-health',
-    description: 'Check voice agent health every minute',
-    schedule: '* * * * *', // Every minute
-    url: `${VOICE_AGENT_URL}/health`,
-    httpMethod: 'GET',
-    expectedStatus: 200,
-    timeoutSeconds: 10,
-    retryCount: 3,
-  },
-  {
-    name: 'voice-agent-readiness',
-    description: 'Check voice agent readiness every 2 minutes',
-    schedule: '*/2 * * * *', // Every 2 minutes
-    url: `${VOICE_AGENT_URL}/health/ready`,
-    httpMethod: 'GET',
-    expectedStatus: 200,
-    timeoutSeconds: 10,
-    retryCount: 2,
-  },
-  {
-    name: 'ui-server-health',
-    description: 'Check UI server health every minute',
-    schedule: '* * * * *', // Every minute
-    url: `${UI_SERVER_URL}/health`,
-    httpMethod: 'GET',
-    expectedStatus: 200,
-    timeoutSeconds: 10,
-    retryCount: 3,
-  },
-  {
-    name: 'voice-agent-observability',
-    description: 'Fetch observability metrics every 5 minutes',
-    schedule: '*/5 * * * *', // Every 5 minutes
-    url: `${VOICE_AGENT_URL}/api/observability`,
-    httpMethod: 'GET',
-    expectedStatus: 200,
-    timeoutSeconds: 30,
-    retryCount: 2,
-  },
-  // =========================================================================
-  // BETTER THAN HUMAN SCHEDULED JOBS
-  // =========================================================================
-  {
-    name: 'better-than-human-outreach',
-    description: 'Proactive outreach: thinking-of-you, commitment follow-ups, celebrations',
-    schedule: '0 9 * * *', // Daily at 9am UTC (morning outreach)
-    url: `${UI_SERVER_URL}/api/jobs/better-than-human-outreach`,
-    httpMethod: 'POST',
-    expectedStatus: 200,
-    timeoutSeconds: 300, // 5 minutes - processes all users
-    retryCount: 2,
-  },
-  {
-    name: 'better-than-human-outreach-evening',
-    description: 'Evening proactive outreach batch',
-    schedule: '0 21 * * *', // Daily at 9pm UTC (evening batch)
-    url: `${UI_SERVER_URL}/api/jobs/better-than-human-outreach`,
-    httpMethod: 'POST',
-    expectedStatus: 200,
-    timeoutSeconds: 300,
-    retryCount: 2,
-  },
-];
-
 function printHeader(text: string): void {
-  console.log(`\n${BOLD}${CYAN}═══════════════════════════════════════════════════════════${RESET}`);
+  console.log(
+    `\n${BOLD}${CYAN}═══════════════════════════════════════════════════════════${RESET}`
+  );
   console.log(`${BOLD}${CYAN}  ${text}${RESET}`);
-  console.log(`${BOLD}${CYAN}═══════════════════════════════════════════════════════════${RESET}\n`);
+  console.log(
+    `${BOLD}${CYAN}═══════════════════════════════════════════════════════════${RESET}\n`
+  );
 }
 
 function exec(cmd: string, dryRun: boolean): string {
@@ -143,7 +71,9 @@ function checkPrerequisites(): boolean {
 
   // Check authenticated
   try {
-    const account = execSync('gcloud config get-value account 2>/dev/null', { encoding: 'utf8' }).trim();
+    const account = execSync('gcloud config get-value account 2>/dev/null', {
+      encoding: 'utf8',
+    }).trim();
     if (account) {
       console.log(`${GREEN}✓${RESET} Authenticated as: ${account}`);
     } else {
@@ -184,12 +114,6 @@ function createUptimeChecks(dryRun: boolean): void {
 
   // Create uptime checks using Cloud Monitoring (better than scheduler for simple health)
   const uptimeChecks = [
-    {
-      displayName: 'Voice Agent Health',
-      hostname: '34.134.186.63',
-      port: 8080,
-      path: '/health',
-    },
     {
       displayName: 'UI Server Health',
       hostname: 'app.ferni.ai',
@@ -266,7 +190,8 @@ function createAlertPolicy(dryRun: boolean): void {
       {
         displayName: 'Uptime Check Failed',
         conditionThreshold: {
-          filter: 'metric.type="monitoring.googleapis.com/uptime_check/check_passed" AND resource.type="uptime_url"',
+          filter:
+            'metric.type="monitoring.googleapis.com/uptime_check/check_passed" AND resource.type="uptime_url"',
           comparison: 'COMPARISON_LT',
           thresholdValue: 1,
           duration: '120s',
@@ -300,22 +225,32 @@ function createAlertPolicy(dryRun: boolean): void {
     console.log(`${GREEN}✓${RESET} Created alert policy: ${policyName}`);
   } catch (error) {
     console.log(`${YELLOW}⚠${RESET} Alert policy creation may require additional setup: ${error}`);
-    console.log(`  → Go to: https://console.cloud.google.com/monitoring/alerting?project=${PROJECT_ID}`);
+    console.log(
+      `  → Go to: https://console.cloud.google.com/monitoring/alerting?project=${PROJECT_ID}`
+    );
   }
 }
 
 function printSlackSetupInstructions(): void {
-  console.log(`\n${BOLD}${CYAN}═══════════════════════════════════════════════════════════${RESET}`);
+  console.log(
+    `\n${BOLD}${CYAN}═══════════════════════════════════════════════════════════${RESET}`
+  );
   console.log(`${BOLD}${CYAN}  SLACK INTEGRATION (Manual Step)${RESET}`);
-  console.log(`${BOLD}${CYAN}═══════════════════════════════════════════════════════════${RESET}\n`);
+  console.log(
+    `${BOLD}${CYAN}═══════════════════════════════════════════════════════════${RESET}\n`
+  );
 
   console.log(`To receive alerts in Slack, you need to set up a notification channel:\n`);
-  console.log(`1. Go to: https://console.cloud.google.com/monitoring/alerting/notifications?project=${PROJECT_ID}`);
+  console.log(
+    `1. Go to: https://console.cloud.google.com/monitoring/alerting/notifications?project=${PROJECT_ID}`
+  );
   console.log(`2. Click "ADD NEW" → "Slack"`);
   console.log(`3. Follow the OAuth flow to connect your Slack workspace`);
   console.log(`4. Select the channel (e.g., #ferni-alerts)`);
   console.log(`5. Edit the alert policy to use this notification channel`);
-  console.log(`\nAlternatively, set SLACK_WEBHOOK_URL in your environment for in-container alerts.`);
+  console.log(
+    `\nAlternatively, set SLACK_WEBHOOK_URL in your environment for in-container alerts.`
+  );
 }
 
 async function main(): Promise<void> {
@@ -347,12 +282,15 @@ async function main(): Promise<void> {
   printSlackSetupInstructions();
 
   console.log(`\n${BOLD}${GREEN}✓ Health monitoring scheduler setup complete!${RESET}\n`);
-  console.log(`View uptime checks: https://console.cloud.google.com/monitoring/uptime?project=${PROJECT_ID}`);
-  console.log(`View alerts: https://console.cloud.google.com/monitoring/alerting?project=${PROJECT_ID}\n`);
+  console.log(
+    `View uptime checks: https://console.cloud.google.com/monitoring/uptime?project=${PROJECT_ID}`
+  );
+  console.log(
+    `View alerts: https://console.cloud.google.com/monitoring/alerting?project=${PROJECT_ID}\n`
+  );
 }
 
 main().catch((error) => {
   console.error(`${RED}Error:${RESET}`, error);
   process.exit(1);
 });
-

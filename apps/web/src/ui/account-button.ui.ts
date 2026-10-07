@@ -88,7 +88,7 @@ export function initAccountButtonUI(): void {
     }
     // Show warm confirmation toast
     import('./whisper.ui.js').then(({ toast }) => {
-      toast.success(t('auth.rememberSuccess', "Got it! I'll remember you now."));
+      toast.success(t('auth.rememberSuccess'));
     });
   };
 
@@ -100,7 +100,7 @@ export function initAccountButtonUI(): void {
   // Listen for One-Tap errors - show friendly error toast
   const handleOneTapError = (event: Event): void => {
     const customEvent = event as CustomEvent<{ error: string }>;
-    const errorMessage = customEvent.detail?.error ?? t('auth.somethingWentWrong', 'Something went wrong');
+    const errorMessage = customEvent.detail?.error ?? t('auth.somethingWentWrong');
     log.warn('One-Tap sign-in failed:', errorMessage);
 
     import('./whisper.ui.js').then(({ toast }) => {
@@ -137,7 +137,7 @@ function createAccountButton(): void {
   container.innerHTML = `
     <button class="account-button" aria-label="${t('accessibility.accountSettings')}">
       ${LUCIDE_USER_ICON}
-      <span class="account-button-text" role="button" tabindex="0">${t('auth.rememberMe', 'Remember me')}</span>
+      <span class="account-button-text" role="button" tabindex="0">${t('auth.rememberMe')}</span>
     </button>
   `;
 
@@ -203,16 +203,16 @@ function updateButtonState(state: AuthState): void {
 
   if (state.isLinked) {
     // Show user info
-    textSpan.textContent = state.displayName ?? state.email?.split('@')[0] ?? t('auth.account', 'Account');
-    button.setAttribute('aria-label', `Account menu for ${state.email ?? 'linked account'}`);
+    textSpan.textContent = state.displayName ?? state.email?.split('@')[0] ?? t('auth.account');
+    button.setAttribute('aria-label', t('accountButton.menuFor', { account: state.email ?? t('accountButton.linkedAccount') }));
   } else if (state.isAuthenticated) {
     // Anonymous user - warm invitation to be remembered
     textSpan.textContent = t('ui.accountbutton.rememberMe');
-    button.setAttribute('aria-label', 'Let Ferni remember you across devices');
+    button.setAttribute('aria-label', t('accountButton.rememberAcrossDevices'));
   } else {
     // Not configured or error
     textSpan.textContent = t('ui.accountbutton.rememberMe');
-    button.setAttribute('aria-label', 'Let Ferni remember you across devices');
+    button.setAttribute('aria-label', t('accountButton.rememberAcrossDevices'));
   }
 }
 
@@ -236,9 +236,9 @@ function showLinkAccountModal(): void {
     <div class="account-modal-card" role="dialog" aria-labelledby="account-modal-title">
       <header class="account-modal-header">
         <div>
-          <span class="eyebrow">${t('auth.eyebrow', 'OUR RELATIONSHIP')}</span>
-          <h2 id="account-modal-title">${t('auth.modalTitle', 'Let me remember you')}</h2>
-          <p class="tagline">${t('auth.tagline', "I'll never forget what we've shared—from any device, anytime.")}</p>
+          <span class="eyebrow">${t('auth.eyebrow')}</span>
+          <h2 id="account-modal-title">${t('auth.modalTitle')}</h2>
+          <p class="tagline">${t('auth.tagline')}</p>
         </div>
         <button class="close-btn" aria-label="${t('common.close')}">${LUCIDE_CLOSE_ICON}</button>
       </header>
@@ -247,48 +247,48 @@ function showLinkAccountModal(): void {
         <div class="social-buttons" role="button" tabindex="0">
           <button aria-label="${t('accessibility.continueWithGoogle')}" class="social-btn google-btn" data-provider="google">
             ${GOOGLE_ICON}
-            <span>${t('auth.continueWithGoogle', 'Continue with Google')}</span>
+            <span>${t('auth.continueWithGoogle')}</span>
           </button>
           <button aria-label="${t('accessibility.continueWithApple')}" class="social-btn apple-btn" data-provider="apple">
             ${APPLE_ICON}
-            <span>${t('auth.continueWithApple', 'Continue with Apple')}</span>
+            <span>${t('auth.continueWithApple')}</span>
           </button>
         </div>
         
         <div class="divider">
-          <span>${t('auth.orUseEmail', 'or use email')}</span>
+          <span>${t('auth.orUseEmail')}</span>
         </div>
         
         <form class="email-form" id="account-email-form">
           <div class="form-field">
-            <label for="account-email">${t('auth.email', 'Email')}</label>
+            <label for="account-email">${t('auth.email')}</label>
             <input type="email" id="account-email" name="email" required autocomplete="email" />
           </div>
           <div class="form-field">
-            <label for="account-password">${t('auth.password', 'Password')}</label>
+            <label for="account-password">${t('auth.password')}</label>
             <input type="password" id="account-password" name="password" required minlength="6" autocomplete="new-password" />
           </div>
-          <button aria-label="${t('accessibility.rememberMe')}" type="submit" class="submit-btn">${t('auth.rememberMe', 'Remember me')}</button>
+          <button aria-label="${t('accessibility.rememberMe')}" type="submit" class="submit-btn">${t('auth.rememberMe')}</button>
         </form>
         
         <p class="privacy-note">
-          ${t('auth.privacyNote', 'Your conversations stay between us. I just need a way to find you again.')}
+          ${t('auth.privacyNote')}
         </p>
       </div>
       
       <div class="account-modal-loading" style="display: none;">
         <div class="spinner"></div>
-        <p>${t('auth.loading', 'Making a note...')}</p>
+        <p>${t('auth.loading')}</p>
       </div>
       
       <div class="account-modal-success" style="display: none;">
         ${LUCIDE_CHECK_ICON}
-        <p>${t('auth.successMessage', "I'll remember you now. Wherever you go, I'll know you.")}</p>
+        <p>${t('auth.successMessage')}</p>
       </div>
       
       <div class="account-modal-error" style="display: none;">
         <p class="error-message"></p>
-        <button aria-label="${t('accessibility.tryAgain')}" class="retry-btn">Try Again</button>
+        <button aria-label="${t('accessibility.tryAgain')}" class="retry-btn">${t('common.tryAgain')}</button>
       </div>
     </div>
   `;
@@ -629,7 +629,7 @@ async function handleSocialLink(provider: 'google' | 'apple'): Promise<void> {
     showModalSuccess();
     log.info(`Linked ${provider} account`);
   } catch (error) {
-    const message = error instanceof Error ? error.message : t('auth.somethingWentWrong', 'Something went wrong');
+    const message = error instanceof Error ? error.message : t('auth.somethingWentWrong');
     showModalError(message);
     log.error(`Failed to link ${provider}:`, error);
   }
@@ -652,7 +652,7 @@ async function handleEmailSubmit(event: Event): Promise<void> {
     showModalSuccess();
     log.info('Linked email account');
   } catch (error) {
-    const message = error instanceof Error ? error.message : t('auth.somethingWentWrong', 'Something went wrong');
+    const message = error instanceof Error ? error.message : t('auth.somethingWentWrong');
     showModalError(message);
     log.error('Failed to link email:', error);
   }
@@ -679,10 +679,10 @@ function showAccountMenu(): void {
   menu.className = 'account-menu';
   menu.innerHTML = `
     <div class="account-menu-item account-info">
-      <span class="account-label">${t('auth.rememberYouAs', "I'll remember you as")}</span>
-      <span class="account-email">${currentAuthState.email ?? currentAuthState.displayName ?? 'You'}</span>
+      <span class="account-label">${t('auth.rememberYouAs')}</span>
+      <span class="account-email">${currentAuthState.email ?? currentAuthState.displayName ?? t('common.you')}</span>
     </div>
-    <button aria-label="${t('accessibility.forgetThisDevice')}" class="account-menu-item" data-action="signout">${t('auth.forgetDevice', 'Forget this device')}</button>
+    <button aria-label="${t('accessibility.forgetThisDevice')}" class="account-menu-item" data-action="signout">${t('auth.forgetDevice')}</button>
   `;
 
   Object.assign(menu.style, {

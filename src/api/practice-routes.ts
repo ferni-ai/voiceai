@@ -16,6 +16,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import OpenAI from 'openai';
 import { getOpenAIFallbackModel, MAX_TOKENS_SHORT, TEMP_CONTENT } from '../config/gemini-config.js';
+import { getVerifiedUserId } from '../servers/api/request-identity.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { parseBody, sendJSON, sendError, handleCorsPreflightIfNeeded } from './helpers.js';
 import { rateLimit } from './auth-middleware.js';
@@ -250,13 +251,19 @@ export async function handlePracticeRoutes(
 ): Promise<boolean> {
   const method = req.method?.toUpperCase();
 
-  // Only handle /api/practice/* routes
-  if (!pathname.startsWith('/api/practice')) {
+  // Only /api/practice/*, not the /api/practices and /api/practice-view routes
+  if (!pathname.startsWith('/api/practice/')) {
     return false;
   }
 
   // Handle CORS preflight
   if (handleCorsPreflightIfNeeded(req, res)) {
+    return true;
+  }
+
+  // Each reply is a paid model call, so only signed-in people get one
+  if (!getVerifiedUserId(req)) {
+    sendError(res, 'Sign in required', 401);
     return true;
   }
 
@@ -291,9 +298,8 @@ export async function handlePracticeRoutes(
       }
     }
 
-    // Unknown route under /api/practice/*
-    sendError(res, 'Not found', 404);
-    return true;
+    // Unknown route under /api/practice/*: the server answers 404
+    return false;
   } catch (error) {
     log.error({ error: String(error) }, 'Practice routes error');
     sendError(res, 'Internal error', 500);

@@ -13,7 +13,8 @@
  * @module TrustDashboardUI
  */
 
-import { t } from '../i18n/index.js';
+import { formatDate, formatNumber, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
@@ -35,6 +36,9 @@ import {
 import { renderHealthTab, renderInsightsTab, TOGETHER_STYLES } from './trust-dashboard-together.js';
 
 export { renderHealthTab, renderInsightsTab };
+
+/** Server enum value (emotion, prompt category, ...) -> display label; unknown values pass through. */
+const enumLabel = (group: string, value: string): string => t(`trustDashboard.${group}.${value}`, value);
 
 const log = createLogger('TrustDashboardUI');
 
@@ -182,14 +186,17 @@ export function hideTrustDashboard(): void {
 // HTML GENERATION
 // ============================================================================
 
+const loadingHTML = (): string =>
+  `<div class="content-loading"><div class="spinner"></div><p>${t('trustDashboard.loading')}</p></div>`;
+
 function createDashboardHTML(): string {
   return `
     <div class="trust-dashboard-backdrop"></div>
     <div class="trust-dashboard-modal">
       <header class="trust-dashboard-header">
         <div class="header-left">
-          <span class="eyebrow">YOUR JOURNEY</span>
-          <h2>Trust & Growth</h2>
+          <span class="eyebrow">${t('trustDashboard.journey')}</span>
+          <h2>${t('trustDashboard.trustGrowth')}</h2>
         </div>
         <button class="close-btn" aria-label="${t('common.close')}">
           ${ICONS.close}
@@ -197,43 +204,38 @@ function createDashboardHTML(): string {
       </header>
       
       <nav class="trust-dashboard-tabs">
-        <button aria-label="${t('accessibility.health')}" class="tab-btn active" data-tab="health">
+        <button aria-label="${t('trustDashboard.health')}" class="tab-btn active" data-tab="health">
           ${ICONS.heart}
-          <span>Health</span>
+          <span>${t('trustDashboard.health')}</span>
         </button>
-        <button aria-label="${t('accessibility.timeline')}" class="tab-btn" data-tab="timeline">
+        <button aria-label="${t('trustDashboard.timeline')}" class="tab-btn" data-tab="timeline">
           ${ICONS.timeline}
-          <span>Timeline</span>
+          <span>${t('trustDashboard.timeline')}</span>
         </button>
-        <button aria-label="${t('accessibility.events')}" class="tab-btn" data-tab="events">
+        <button aria-label="${t('trustDashboard.events')}" class="tab-btn" data-tab="events">
           ${ICONS.calendar}
-          <span>Events</span>
+          <span>${t('trustDashboard.events')}</span>
         </button>
-        <button aria-label="${t('accessibility.journal')}" class="tab-btn" data-tab="journal">
+        <button aria-label="${t('trustDashboard.journal')}" class="tab-btn" data-tab="journal">
           ${ICONS.journal}
-          <span>Journal</span>
+          <span>${t('trustDashboard.journal')}</span>
         </button>
-        <button aria-label="${t('accessibility.media')}" class="tab-btn" data-tab="media">
+        <button aria-label="${t('trustDashboard.media')}" class="tab-btn" data-tab="media">
           ${ICONS.music}
-          <span>Media</span>
+          <span>${t('trustDashboard.media')}</span>
         </button>
-        <button aria-label="${t('accessibility.insights')}" class="tab-btn" data-tab="insights">
+        <button aria-label="${t('trustDashboard.insights')}" class="tab-btn" data-tab="insights">
           ${ICONS.chart}
-          <span>Insights</span>
+          <span>${t('trustDashboard.insights')}</span>
         </button>
       </nav>
       
-      <main class="trust-dashboard-content">
-        <div class="content-loading">
-          <div class="spinner"></div>
-          <p>Loading...</p>
-        </div>
-      </main>
-      
+      <main class="trust-dashboard-content">${loadingHTML()}</main>
+
       <footer class="trust-dashboard-footer">
-        <button aria-label="${t('accessibility.refresh')}" class="refresh-btn">
+        <button aria-label="${t('trustDashboard.refresh')}" class="refresh-btn">
           ${ICONS.refresh}
-          <span>Refresh</span>
+          <span>${t('trustDashboard.refresh')}</span>
         </button>
       </footer>
     </div>
@@ -246,28 +248,28 @@ function createDashboardHTML(): string {
 
 export function renderTimelineTab(data: TimelineData | null): string {
   if (!data) {
-    return '<p class="empty-state">Your emotional timeline will appear here as we have more conversations.</p>';
+    return `<p class="empty-state">${t('trustDashboard.emptyTimeline')}</p>`;
   }
 
   return `
     <div class="timeline-content">
       <div class="current-mood">
-        <h4>Current Mood</h4>
-        <p>${esc(data.currentMood || 'Not detected yet')}</p>
+        <h4>${t('trustDashboard.currentMood')}</h4>
+        <p>${esc(data.currentMood ? enumLabel('emotion', data.currentMood) : t('trustDashboard.moodNotDetected'))}</p>
       </div>
       
       ${
         data.peaks.length > 0
           ? `
         <div class="peaks-valleys">
-          <h4>Recent Peaks & Valleys</h4>
+          <h4>${t('trustDashboard.peaksValleys')}</h4>
           ${data.peaks
             .map(
               (p) => `
             <div class="peak-item ${p.type}">
               <span class="peak-type">${p.type === 'peak' ? '↑' : '↓'}</span>
-              <span class="peak-date">${new Date(p.date).toLocaleDateString()}</span>
-              <span class="peak-valence">${(p.valence * 100).toFixed(0)}%</span>
+              <span class="peak-date">${formatDate(new Date(p.date))}</span>
+              <span class="peak-valence">${formatNumber(p.valence, { style: 'percent' })}</span>
             </div>
           `
             )
@@ -281,13 +283,13 @@ export function renderTimelineTab(data: TimelineData | null): string {
         data.patterns.length > 0
           ? `
         <div class="patterns">
-          <h4>Patterns Noticed</h4>
+          <h4>${t('trustDashboard.patternsNoticed')}</h4>
           ${data.patterns
             .map(
               (p) => `
             <div class="pattern-item">
               <p>${esc(p.description)}</p>
-              <span class="confidence">${(p.confidence * 100).toFixed(0)}% confident</span>
+              <span class="confidence">${t('trustDashboard.confidence', { percent: formatNumber(p.confidence, { style: 'percent' }) })}</span>
             </div>
           `
             )
@@ -303,7 +305,7 @@ export function renderTimelineTab(data: TimelineData | null): string {
 export function renderEventsTab(data: EventsData | null): string {
   const later = data ? [...data.nextWeek, ...data.thisMonth] : [];
   if (!data || data.today.length + data.thisWeek.length + later.length === 0) {
-    return '<p class="empty-state">No upcoming events detected. Mention important dates in our conversations!</p>';
+    return `<p class="empty-state">${t('trustDashboard.noEvents')}</p>`;
   }
 
   const section = (title: string, events: UpcomingEvent[]): string =>
@@ -316,7 +318,7 @@ export function renderEventsTab(data: EventsData | null): string {
             .map(
               (e) => `
             <div class="event-item">
-              <span class="event-days">${e.daysUntil === 0 ? getEventIcon(e.type) : `in ${e.daysUntil}d`}</span>
+              <span class="event-days">${e.daysUntil === 0 ? getEventIcon(e.type) : tp('trustDashboard.inDays', e.daysUntil)}</span>
               <span class="event-desc">${esc(e.description)}</span>
             </div>
           `
@@ -326,29 +328,29 @@ export function renderEventsTab(data: EventsData | null): string {
 
   return `
     <div class="events-content">
-      ${section('Today', data.today)}
-      ${section('This Week', data.thisWeek)}
-      ${section('Coming Up', later)}
+      ${section(t('trustDashboard.eventsSection.today'), data.today)}
+      ${section(t('trustDashboard.eventsSection.thisWeek'), data.thisWeek)}
+      ${section(t('trustDashboard.eventsSection.comingUp'), later)}
     </div>
   `;
 }
 
 export function renderJournalTab(data: JournalData | null): string {
   if (!data || data.prompts.length === 0) {
-    return '<p class="empty-state">Journaling prompts will appear here based on your conversations.</p>';
+    return `<p class="empty-state">${t('trustDashboard.emptyJournal')}</p>`;
   }
 
   return `
     <div class="journal-content">
-      <p class="journal-intro">Here are some prompts based on what you've been thinking about:</p>
+      <p class="journal-intro">${t('trustDashboard.journalIntro')}</p>
       
       ${data.prompts
         .map(
           (p) => `
         <div class="prompt-card" data-id="${esc(p.id)}">
-          <span class="prompt-category">${esc(p.category)}</span>
+          <span class="prompt-category">${esc(enumLabel('journalCategory', p.category))}</span>
           <p class="prompt-text">${esc(p.prompt)}</p>
-          <span class="prompt-difficulty">${esc(p.difficulty)}</span>
+          <span class="prompt-difficulty">${esc(enumLabel('journalDifficulty', p.difficulty))}</span>
         </div>
       `
         )
@@ -359,12 +361,12 @@ export function renderJournalTab(data: JournalData | null): string {
 
 export function renderMediaTab(data: MediaData | null): string {
   if (!data || data.suggestions.length === 0) {
-    return '<p class="empty-state">Media suggestions based on your mood will appear here.</p>';
+    return `<p class="empty-state">${t('trustDashboard.emptyMedia')}</p>`;
   }
 
   return `
     <div class="media-content">
-      <p class="media-intro">Based on how you're feeling, you might enjoy:</p>
+      <p class="media-intro">${t('trustDashboard.mediaIntro')}</p>
       
       ${data.suggestions
         .map(
@@ -376,7 +378,7 @@ export function renderMediaTab(data: MediaData | null): string {
             ${s.artist ? `<span class="media-artist">${esc(s.artist)}</span>` : ''}
             <p class="media-reason">${esc(s.reason)}</p>
           </div>
-          <span class="media-intent">${esc(s.intent)}</span>
+          <span class="media-intent">${esc(enumLabel('mediaIntent', s.intent))}</span>
         </div>
       `
         )
@@ -407,7 +409,7 @@ async function loadTabData(tab: DashboardState['activeTab']): Promise<void> {
   } catch (error) {
     log.error({ error }, 'Failed to load tab data');
     state.loading = false;
-    state.error = "Couldn't load this. Try again?";
+    state.error = t('trustDashboard.loadError');
     renderContent();
   }
 }
@@ -417,12 +419,7 @@ function renderContent(): void {
   if (!content) return;
 
   if (state.loading) {
-    content.innerHTML = `
-      <div class="content-loading">
-        <div class="spinner"></div>
-        <p>Loading...</p>
-      </div>
-    `;
+    content.innerHTML = loadingHTML();
     return;
   }
 

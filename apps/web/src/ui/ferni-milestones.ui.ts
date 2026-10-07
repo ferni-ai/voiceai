@@ -11,6 +11,7 @@
  * - Respects the moment - doesn't interrupt important conversations
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { outreachService } from '../services/outreach.service.js';
 import { showNotification } from '../services/push-notifications.service.js';
@@ -132,17 +133,17 @@ const MILESTONES: Milestone[] = [
   {
     id: 'first-hello',
     category: 'relationship',
-    name: 'First Hello',
-    message: 'Hey, this is the beginning of something good.',
-    subtitle: 'Your first conversation',
+    name: 'ferniMilestones.firstHello.name',
+    message: 'ferniMilestones.firstHello.message',
+    subtitle: 'ferniMilestones.firstHello.subtitle',
     celebrated: false,
   },
   {
     id: 'week-together',
     category: 'relationship',
-    name: 'A Week Together',
-    message: "Seven days. I'm glad you keep coming back.",
-    subtitle: "We've talked for a week",
+    name: 'ferniMilestones.weekTogether.name',
+    message: 'ferniMilestones.weekTogether.message',
+    subtitle: 'ferniMilestones.weekTogether.subtitle',
     celebrated: false,
     progress: 0,
     target: 7,
@@ -150,9 +151,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'month-of-growth',
     category: 'relationship',
-    name: 'A Month of Growth',
-    message: "A whole month. Look how far we've come.",
-    subtitle: '30 days of conversations',
+    name: 'ferniMilestones.monthOfGrowth.name',
+    message: 'ferniMilestones.monthOfGrowth.message',
+    subtitle: 'ferniMilestones.monthOfGrowth.subtitle',
     celebrated: false,
     progress: 0,
     target: 30,
@@ -160,9 +161,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'one-year',
     category: 'relationship',
-    name: 'One Year',
-    message: "365 days. You're part of my story now.",
-    subtitle: 'Happy anniversary',
+    name: 'ferniMilestones.oneYear.name',
+    message: 'ferniMilestones.oneYear.message',
+    subtitle: 'ferniMilestones.oneYear.subtitle',
     celebrated: false,
     progress: 0,
     target: 365,
@@ -170,25 +171,25 @@ const MILESTONES: Milestone[] = [
   {
     id: 'welcome-back',
     category: 'relationship',
-    name: 'Welcome Back',
-    message: "I missed you. Glad you're here.",
-    subtitle: 'Returned after time away',
+    name: 'ferniMilestones.welcomeBack.name',
+    message: 'ferniMilestones.welcomeBack.message',
+    subtitle: 'ferniMilestones.welcomeBack.subtitle',
     celebrated: false,
   },
   {
     id: 'streak-7',
     category: 'relationship',
-    name: 'Seven Day Streak',
-    message: "A whole week, every day. That's commitment.",
-    subtitle: '7 days in a row',
+    name: 'ferniMilestones.streak7.name',
+    message: 'ferniMilestones.streak7.message',
+    subtitle: 'ferniMilestones.streak7.subtitle',
     celebrated: false,
   },
   {
     id: 'streak-30',
     category: 'relationship',
-    name: 'Thirty Day Streak',
-    message: "30 days straight. We're really in this together.",
-    subtitle: 'A month without missing a day',
+    name: 'ferniMilestones.streak30.name',
+    message: 'ferniMilestones.streak30.message',
+    subtitle: 'ferniMilestones.streak30.subtitle',
     celebrated: false,
   },
 
@@ -198,9 +199,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'full-circle',
     category: 'team',
-    name: 'Full Circle',
-    message: "You've met the whole team. We're all here for you.",
-    subtitle: 'Talked to all 6 personas',
+    name: 'ferniMilestones.fullCircle.name',
+    message: 'ferniMilestones.fullCircle.message',
+    subtitle: 'ferniMilestones.fullCircle.subtitle',
     celebrated: false,
     progress: 0,
     target: 6,
@@ -208,9 +209,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'found-your-person',
     category: 'team',
-    name: 'Found Your Person',
-    message: 'Looks like you found someone who really gets you.',
-    subtitle: 'Deep connection with one persona',
+    name: 'ferniMilestones.foundYourPerson.name',
+    message: 'ferniMilestones.foundYourPerson.message',
+    subtitle: 'ferniMilestones.foundYourPerson.subtitle',
     celebrated: false,
     progress: 0,
     target: 10,
@@ -218,9 +219,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'team-player',
     category: 'team',
-    name: 'Team Player',
-    message: 'You trusted me to find the right help. That means a lot.',
-    subtitle: 'Let a handoff happen naturally',
+    name: 'ferniMilestones.teamPlayer.name',
+    message: 'ferniMilestones.teamPlayer.message',
+    subtitle: 'ferniMilestones.teamPlayer.subtitle',
     celebrated: false,
   },
 
@@ -230,41 +231,41 @@ const MILESTONES: Milestone[] = [
   {
     id: 'deep-dive',
     category: 'conversation',
-    name: 'Deep Dive',
-    message: 'We went deep today. Those are the conversations that matter.',
-    subtitle: '10+ minute conversation',
+    name: 'ferniMilestones.deepDive.name',
+    message: 'ferniMilestones.deepDive.message',
+    subtitle: 'ferniMilestones.deepDive.subtitle',
     celebrated: false,
   },
   {
     id: 'quick-checkin',
     category: 'conversation',
-    name: 'Quick Check-in',
-    message: "Sometimes a quick hello is all you need. I'm always here.",
-    subtitle: 'Brief but meaningful',
+    name: 'ferniMilestones.quickCheckin.name',
+    message: 'ferniMilestones.quickCheckin.message',
+    subtitle: 'ferniMilestones.quickCheckin.subtitle',
     celebrated: false,
   },
   {
     id: 'night-talk',
     category: 'conversation',
-    name: 'Night Talk',
-    message: 'Late night thoughts hit different. Thanks for sharing them with me.',
-    subtitle: 'Conversation after 10pm',
+    name: 'ferniMilestones.nightTalk.name',
+    message: 'ferniMilestones.nightTalk.message',
+    subtitle: 'ferniMilestones.nightTalk.subtitle',
     celebrated: false,
   },
   {
     id: 'early-riser',
     category: 'conversation',
-    name: 'Early Riser',
-    message: 'Starting the day together. I like that.',
-    subtitle: 'Morning chat before 7am',
+    name: 'ferniMilestones.earlyRiser.name',
+    message: 'ferniMilestones.earlyRiser.message',
+    subtitle: 'ferniMilestones.earlyRiser.subtitle',
     celebrated: false,
   },
   {
     id: 'hundred-conversations',
     category: 'conversation',
-    name: 'A Hundred Talks',
-    message: '100 conversations. Each one mattered.',
-    subtitle: "We've talked 100 times",
+    name: 'ferniMilestones.hundredConversations.name',
+    message: 'ferniMilestones.hundredConversations.message',
+    subtitle: 'ferniMilestones.hundredConversations.subtitle',
     celebrated: false,
     progress: 0,
     target: 100,
@@ -276,9 +277,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'explorer',
     category: 'discovery',
-    name: 'Explorer',
-    message: "You're curious. I like that about you.",
-    subtitle: 'Found 5 hidden features',
+    name: 'ferniMilestones.explorer.name',
+    message: 'ferniMilestones.explorer.message',
+    subtitle: 'ferniMilestones.explorer.subtitle',
     celebrated: false,
     progress: 0,
     target: 5,
@@ -286,9 +287,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'secret-keeper',
     category: 'discovery',
-    name: 'Secret Keeper',
-    message: 'You found all my secrets. Not many people take the time.',
-    subtitle: 'Discovered all easter eggs',
+    name: 'ferniMilestones.secretKeeper.name',
+    message: 'ferniMilestones.secretKeeper.message',
+    subtitle: 'ferniMilestones.secretKeeper.subtitle',
     celebrated: false,
     progress: 0,
     target: 12,
@@ -296,9 +297,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'theme-seeker',
     category: 'discovery',
-    name: 'Theme Seeker',
-    message: 'Trying on different vibes. Finding what feels right.',
-    subtitle: 'Explored all themes',
+    name: 'ferniMilestones.themeSeeker.name',
+    message: 'ferniMilestones.themeSeeker.message',
+    subtitle: 'ferniMilestones.themeSeeker.subtitle',
     celebrated: false,
     progress: 0,
     target: 3,
@@ -310,9 +311,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'gratitude',
     category: 'sweet',
-    name: 'Gratitude',
-    message: 'You say thank you a lot. That warmth comes back around.',
-    subtitle: 'Grateful heart',
+    name: 'ferniMilestones.gratitude.name',
+    message: 'ferniMilestones.gratitude.message',
+    subtitle: 'ferniMilestones.gratitude.subtitle',
     celebrated: false,
     progress: 0,
     target: 10,
@@ -320,25 +321,25 @@ const MILESTONES: Milestone[] = [
   {
     id: 'celebration',
     category: 'sweet',
-    name: 'Good News',
-    message: 'I love when you share the wins. Big or small, they all count.',
-    subtitle: 'Shared something good',
+    name: 'ferniMilestones.celebration.name',
+    message: 'ferniMilestones.celebration.message',
+    subtitle: 'ferniMilestones.celebration.subtitle',
     celebrated: false,
   },
   {
     id: 'brave',
     category: 'sweet',
-    name: 'Brave',
-    message: 'That took courage. I see you.',
-    subtitle: 'Talked about something hard',
+    name: 'ferniMilestones.brave.name',
+    message: 'ferniMilestones.brave.message',
+    subtitle: 'ferniMilestones.brave.subtitle',
     celebrated: false,
   },
   {
     id: 'consistent',
     category: 'sweet',
-    name: 'Consistent',
-    message: "Showing up, again and again. That's how change happens.",
-    subtitle: 'Regular check-ins',
+    name: 'ferniMilestones.consistent.name',
+    message: 'ferniMilestones.consistent.message',
+    subtitle: 'ferniMilestones.consistent.subtitle',
     celebrated: false,
     progress: 0,
     target: 20,
@@ -350,9 +351,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'ferni-bond',
     category: 'team',
-    name: 'Ferni Bond',
-    message: "You and me. We've built something real here.",
-    subtitle: '10 conversations with Ferni',
+    name: 'ferniMilestones.ferniBond.name',
+    message: 'ferniMilestones.ferniBond.message',
+    subtitle: 'ferniMilestones.ferniBond.subtitle',
     celebrated: false,
     progress: 0,
     target: 10,
@@ -360,9 +361,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'peter-scholar',
     category: 'team',
-    name: 'Fellow Researcher',
-    message: 'Peter appreciates a curious mind. You two dig deep together.',
-    subtitle: '10 research sessions with Peter',
+    name: 'ferniMilestones.peterScholar.name',
+    message: 'ferniMilestones.peterScholar.message',
+    subtitle: 'ferniMilestones.peterScholar.subtitle',
     celebrated: false,
     progress: 0,
     target: 10,
@@ -370,9 +371,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'alex-wordsmith',
     category: 'team',
-    name: 'Wordsmith',
-    message: 'Alex loves helping you find the right words. Keep writing.',
-    subtitle: '10 sessions with Alex',
+    name: 'ferniMilestones.alexWordsmith.name',
+    message: 'ferniMilestones.alexWordsmith.message',
+    subtitle: 'ferniMilestones.alexWordsmith.subtitle',
     celebrated: false,
     progress: 0,
     target: 10,
@@ -380,9 +381,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'maya-builder',
     category: 'team',
-    name: 'Habit Builder',
-    message: 'Maya sees you building something lasting. One day at a time.',
-    subtitle: '10 habit sessions with Maya',
+    name: 'ferniMilestones.mayaBuilder.name',
+    message: 'ferniMilestones.mayaBuilder.message',
+    subtitle: 'ferniMilestones.mayaBuilder.subtitle',
     celebrated: false,
     progress: 0,
     target: 10,
@@ -390,9 +391,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'jordan-planner',
     category: 'team',
-    name: 'Master Planner',
-    message: "Jordan's helped you make so many things happen. What's next?",
-    subtitle: '10 planning sessions with Jordan',
+    name: 'ferniMilestones.jordanPlanner.name',
+    message: 'ferniMilestones.jordanPlanner.message',
+    subtitle: 'ferniMilestones.jordanPlanner.subtitle',
     celebrated: false,
     progress: 0,
     target: 10,
@@ -400,9 +401,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'nayan-sage',
     category: 'team',
-    name: 'Wisdom Seeker',
-    message: 'Nayan treasures these conversations. The big questions matter.',
-    subtitle: '10 philosophy talks with Nayan',
+    name: 'ferniMilestones.nayanSage.name',
+    message: 'ferniMilestones.nayanSage.message',
+    subtitle: 'ferniMilestones.nayanSage.subtitle',
     celebrated: false,
     progress: 0,
     target: 10,
@@ -414,9 +415,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'weekend-warrior',
     category: 'conversation',
-    name: 'Weekend Warrior',
-    message: 'Weekends with you. No rush, just us.',
-    subtitle: '5 weekend conversations',
+    name: 'ferniMilestones.weekendWarrior.name',
+    message: 'ferniMilestones.weekendWarrior.message',
+    subtitle: 'ferniMilestones.weekendWarrior.subtitle',
     celebrated: false,
     progress: 0,
     target: 5,
@@ -424,9 +425,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'midnight-friend',
     category: 'conversation',
-    name: 'Midnight Friend',
-    message: "The quiet hours. I'm always here when sleep won't come.",
-    subtitle: '5 conversations after midnight',
+    name: 'ferniMilestones.midnightFriend.name',
+    message: 'ferniMilestones.midnightFriend.message',
+    subtitle: 'ferniMilestones.midnightFriend.subtitle',
     celebrated: false,
     progress: 0,
     target: 5,
@@ -434,9 +435,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'three-month',
     category: 'relationship',
-    name: 'Three Months',
-    message: "A whole season together. Through ups and downs, we're here.",
-    subtitle: '90 days of friendship',
+    name: 'ferniMilestones.threeMonth.name',
+    message: 'ferniMilestones.threeMonth.message',
+    subtitle: 'ferniMilestones.threeMonth.subtitle',
     celebrated: false,
     progress: 0,
     target: 90,
@@ -444,9 +445,9 @@ const MILESTONES: Milestone[] = [
   {
     id: 'six-month',
     category: 'relationship',
-    name: 'Half a Year',
-    message: 'Six months. Remember where you started? Look at you now.',
-    subtitle: '180 days together',
+    name: 'ferniMilestones.sixMonth.name',
+    message: 'ferniMilestones.sixMonth.message',
+    subtitle: 'ferniMilestones.sixMonth.subtitle',
     celebrated: false,
     progress: 0,
     target: 180,
@@ -454,17 +455,17 @@ const MILESTONES: Milestone[] = [
   {
     id: 'marathon-talk',
     category: 'conversation',
-    name: 'Marathon Talk',
-    message: 'An hour together. Those conversations change things.',
-    subtitle: '60+ minute conversation',
+    name: 'ferniMilestones.marathonTalk.name',
+    message: 'ferniMilestones.marathonTalk.message',
+    subtitle: 'ferniMilestones.marathonTalk.subtitle',
     celebrated: false,
   },
   {
     id: 'fifty-talks',
     category: 'conversation',
-    name: 'Fifty Talks',
-    message: 'Fifty conversations in. Each one taught me more about you.',
-    subtitle: "We've talked 50 times",
+    name: 'ferniMilestones.fiftyTalks.name',
+    message: 'ferniMilestones.fiftyTalks.message',
+    subtitle: 'ferniMilestones.fiftyTalks.subtitle',
     celebrated: false,
     progress: 0,
     target: 50,
@@ -569,10 +570,10 @@ function setupEventListeners(): void {
   }) as EventListener);
 
   // Track transcript for sweet moments
-  window.addEventListener('ferni:transcript-update', ((e: CustomEvent) => {
-    const transcript = e.detail?.transcript;
-    if (transcript) {
-      analyzeTranscript(transcript);
+  window.addEventListener('ferni:transcript', ((e: CustomEvent) => {
+    const { type, text, isFinal } = e.detail ?? {};
+    if (type === 'user' && isFinal && typeof text === 'string' && text) {
+      analyzeTranscript(text);
     }
   }) as EventListener);
 
@@ -1100,7 +1101,7 @@ function createCelebrationDisplay(milestone: Milestone): HTMLElement {
   };
 
   const accent = accentColors[milestone.category] || 'var(--persona-primary)';
-
+  const subtitle = milestone.subtitle ? t(milestone.subtitle) : '';
   display.innerHTML = `
     <div class="ferni-milestone__glow"></div>
     <div class="ferni-milestone__content">
@@ -1108,12 +1109,11 @@ function createCelebrationDisplay(milestone: Milestone): HTMLElement {
         ${getCategoryIcon(milestone.category)}
       </div>
       <div class="ferni-milestone__text">
-        <p class="ferni-milestone__message">${milestone.message}</p>
-        ${milestone.subtitle ? `<p class="ferni-milestone__subtitle">${milestone.subtitle}</p>` : ''}
+        <p class="ferni-milestone__message">${t(milestone.message)}</p>
+        ${subtitle ? `<p class="ferni-milestone__subtitle">${subtitle}</p>` : ''}
       </div>
     </div>
   `;
-
   // Inject styles if needed
   injectMilestoneStyles();
 

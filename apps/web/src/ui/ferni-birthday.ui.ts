@@ -19,6 +19,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
 import { soundUI } from './sound.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('FerniBirthday');
 
@@ -33,12 +34,14 @@ const FERNI_BIRTHDAY_DAY = 15;
 const STORAGE_KEY = 'ferni_birthday_celebrated';
 
 // Birthday messages (warm, human tone)
-const BIRTHDAY_MESSAGES = [
-  "It's Ferni's birthday! Thank you for being here.",
-  "Ferni turns another year wiser today!",
-  "Happy Birthday, Ferni! Here's to growing together.",
-  "Today's special - it's Ferni's birthday!",
-];
+function getBirthdayMessages(): string[] {
+  return [
+    t('ferniBirthday.message1'),
+    t('ferniBirthday.message2'),
+    t('ferniBirthday.message3'),
+    t('ferniBirthday.message4'),
+  ];
+}
 
 // ============================================================================
 // STATE
@@ -117,7 +120,8 @@ function celebrate(): void {
   soundUI.play('celebrate');
 
   // Show birthday toast
-  const message = BIRTHDAY_MESSAGES[Math.floor(Math.random() * BIRTHDAY_MESSAGES.length)] ?? "Happy Birthday, Ferni!";
+  const messages = getBirthdayMessages();
+  const message = messages[Math.floor(Math.random() * messages.length)] ?? t('ferniBirthday.message1');
   toast.success(message);
 
   // Add birthday class to avatar
@@ -186,7 +190,7 @@ export function enablePartyMode(): void {
   partyModeActive = true;
   document.body.classList.add('ferni-birthday-mode');
   soundUI.play('celebrate');
-  toast.success("Party mode activated!");
+  toast.success(t('ferniBirthday.partyModeActivated'));
 
   log.debug('Party mode enabled');
 }

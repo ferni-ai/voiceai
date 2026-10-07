@@ -15,6 +15,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
+import { createSessionBindings } from '../../../utils/session-bindings.js';
 
 const log = getLogger();
 
@@ -33,88 +34,80 @@ const locationCache = new Map<
 >();
 
 // ============================================================================
-// CURRENT ACTIVE SESSION (for native tools that don't have context)
+// ACTIVE SESSIONS (for native tools that don't have context)
 // ============================================================================
 
-/**
- * One worker hosts several calls. Location is keyed by sessionId so
- * ending call A cannot clear call B, and tools never read another
- * caller's city. Prefer the call's RunContext (see information/index.ts);
- * this map is only a fallback when the tool is given a sessionId.
- */
-interface ActiveSession {
+interface ActiveSessionLocation {
   userId: string;
   location?: string;
 }
 
-const activeSessions = new Map<string, ActiveSession>();
-
-function sessionKey(sessionId: string | undefined, userId: string): string {
-  return sessionId && sessionId.length > 0 ? sessionId : `user:${userId}`;
-}
+/**
+ * Each live call's user and location, keyed by session ID. One worker runs
+ * several calls at once, so a single "current session" would give one caller
+ * another caller's city and let one call's end clear it for everyone.
+ */
+const activeSessions = createSessionBindings<ActiveSessionLocation>();
 
 /**
- * Remember this call's location. Called when a voice session starts.
+ * Record a live call's user and location for native tool access.
+ * Called when a voice session starts. A later call without a location keeps
+ * the location already recorded for that session.
  */
-export function setCurrentActiveSession(
-  userId: string,
-  location?: string,
-  sessionId?: string
-): void {
-  const key = sessionKey(sessionId, userId);
-  activeSessions.set(key, { userId, location });
+export function setCurrentActiveSession(session: {
+  sessionId: string;
+  userId: string;
+  location?: string;
+}): void {
+  const { sessionId, userId } = session;
+  const location = session.location ?? activeSessions.resolve(sessionId)?.location;
+  activeSessions.bind(sessionId, { userId, location });
   log.info(
-    { userId, hasLocation: !!location, sessionId: key },
-    '📍 Current active session set (for native tools)'
+    { userId, hasLocation: !!location, sessionId },
+    '📍 Active session set (for native tools)'
   );
 }
 
 /**
- * Forget this call's location. With no sessionId, forget every call (tests).
+ * Forget a call's location. Called when that voice session ends.
  */
-export function clearCurrentActiveSession(sessionId?: string): void {
-  if (!sessionId) {
-    const count = activeSessions.size;
-    activeSessions.clear();
-    if (count > 0) {
-      log.debug({ cleared: count }, '📍 All active sessions cleared');
-    }
-    return;
-  }
-  if (activeSessions.delete(sessionId)) {
-    log.debug({ sessionId }, '📍 Current active session cleared');
-  }
+export function clearCurrentActiveSession(sessionId: string): void {
+  activeSessions.release(sessionId);
+  log.debug({ sessionId }, '📍 Active session cleared');
 }
 
 /**
- * Location for one call. Without a sessionId this returns null when more
- * than one call is live — never another caller's city.
+ * Location for a live call.
+ * Used by native tools that don't receive userId in their execute function.
+ * Without a session ID, a location is returned only while a single call is live.
+ *
+ * Priority:
+ * 1. Direct session location (set at session start)
+ * 2. Cached location for the user (from IP geo or explicit preference)
  */
 export function getCurrentSessionLocation(sessionId?: string): string | null {
-  if (sessionId) {
-    const session = activeSessions.get(sessionId);
-    if (!session) {
-      log.debug({ sessionId }, '📍 No active session for this call');
-      return null;
-    }
-    if (session.location) {
-      return session.location;
-    }
-    return getUserLocationPreference(session.userId);
+  const session = activeSessions.resolve(sessionId);
+  if (!session) {
+    log.debug({ sessionId }, '📍 No matching active session - cannot determine location');
+    return null;
   }
 
-  if (activeSessions.size === 1) {
-    const only = activeSessions.values().next().value;
-    if (!only) {
-      return null;
-    }
-    return only.location ?? getUserLocationPreference(only.userId);
+  // Priority 1: Direct session location
+  if (session.location) {
+    log.debug(
+      { location: session.location, source: 'active-session' },
+      '📍 Using active session location'
+    );
+    return session.location;
   }
 
-  log.debug(
-    { liveSessions: activeSessions.size },
-    '📍 No session id while several calls are live — not guessing a city'
-  );
+  // Priority 2: Check location cache for this user
+  const cachedLocation = getUserLocationPreference(session.userId);
+  if (cachedLocation) {
+    return cachedLocation;
+  }
+
+  log.debug({ userId: session.userId }, '📍 No location available for active session');
   return null;
 }
 

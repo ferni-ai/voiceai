@@ -131,7 +131,7 @@ export class Modal extends BaseComponent {
             <h2 id="modal-title" class="ferni-modal__title">${title}</h2>
             ${tagline ? `<p class="ferni-modal__tagline">${tagline}</p>` : ''}
             ${showCloseButton ? `
-              <button class="ferni-modal__close" aria-label="${t('panels.close', 'Close')}">
+              <button class="ferni-modal__close" aria-label="${t('panels.close')}">
                 ${CLOSE_ICON}
               </button>
             ` : ''}

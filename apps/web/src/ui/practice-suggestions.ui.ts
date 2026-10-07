@@ -14,7 +14,7 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createAnimationConfig, ICONS, escapeHtml, injectSharedStyles } from './engagement-components.js';
 import { practiceBriefingsService, type PatternSuggestion } from '../services/practice-briefings.service.js';
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -26,20 +26,21 @@ export interface PracticeSuggestionsUICallbacks {
 }
 
 // ============================================================================
-// COPY
+// COPY KEYS (text lives in the practiceSuggestions.* locale keys)
 // ============================================================================
 
-const SUGGESTIONS_COPY = {
-  title: 'Based on Your Schedule',
-  subtitle: 'Practices that might help',
-  empty: "Keep using Ferni and I'll suggest practices based on your patterns",
-  cta: 'Add Practice',
-  dismiss: 'Not now',
-  confidenceLabels: {
-    high: 'Recommended',
-    medium: 'Worth trying',
-    low: 'Might help',
-  },
+const TIME_OF_DAY_KEYS: Record<PatternSuggestion['suggestedTime'], string> = {
+  morning: 'accessibility.morning',
+  afternoon: 'accessibility.afternoon',
+  evening: 'accessibility.evening',
+  anytime: 'practiceSuggestions.time.anytime',
+};
+
+const FREQUENCY_KEYS: Record<PatternSuggestion['suggestedFrequency'], string> = {
+  daily: 'practiceSuggestions.frequency.daily',
+  weekday: 'rituals.frequency.weekday',
+  weekend: 'rituals.frequency.weekend',
+  weekly: 'rituals.frequency.weekly',
 };
 
 // ============================================================================
@@ -327,7 +328,7 @@ class PracticeSuggestionsUI {
     if (this.loading) {
       this.container.innerHTML = `
         <div class="practice-suggestions">
-          <div class="practice-suggestions__loading">Analyzing your calendar patterns...</div>
+          <div class="practice-suggestions__loading">${t('practiceSuggestions.analyzing')}</div>
         </div>
       `;
       return;
@@ -336,7 +337,7 @@ class PracticeSuggestionsUI {
     if (this.suggestions.length === 0) {
       this.container.innerHTML = `
         <div class="practice-suggestions">
-          <div class="practice-suggestions__empty">${SUGGESTIONS_COPY.empty}</div>
+          <div class="practice-suggestions__empty">${t('practiceSuggestions.empty')}</div>
         </div>
       `;
       return;
@@ -371,10 +372,10 @@ class PracticeSuggestionsUI {
           <p class="practice-suggestions__card-reasoning">${escapeHtml(suggestion.reasoning)}</p>
           <div class="practice-suggestions__card-actions" role="button" tabindex="0">
             <button aria-label="${t('accessibility.copy')}" class="practice-suggestions__card-btn practice-suggestions__card-btn--secondary" data-action="dismiss" type="button">
-              ${SUGGESTIONS_COPY.dismiss}
+              ${t('practiceSuggestions.dismiss')}
             </button>
             <button aria-label="${t('accessibility.copy')}" class="practice-suggestions__card-btn practice-suggestions__card-btn--primary" data-action="accept" type="button">
-              ${SUGGESTIONS_COPY.cta}
+              ${t('practiceSuggestions.cta')}
             </button>
           </div>
         </div>
@@ -386,9 +387,9 @@ class PracticeSuggestionsUI {
         <div class="practice-suggestions__header">
           <h3 class="practice-suggestions__title">
             <span class="practice-suggestions__title-icon">${ICONS.star}</span>
-            ${SUGGESTIONS_COPY.title}
+            ${t('practiceSuggestions.title')}
           </h3>
-          <p class="practice-suggestions__subtitle">${SUGGESTIONS_COPY.subtitle}</p>
+          <p class="practice-suggestions__subtitle">${t('practiceSuggestions.subtitle')}</p>
         </div>
         <div class="practice-suggestions__list">
           ${cardsHtml}
@@ -463,30 +464,22 @@ class PracticeSuggestionsUI {
   }
 
   private getConfidenceLabel(confidence: number): string {
-    if (confidence >= 0.8) return SUGGESTIONS_COPY.confidenceLabels.high;
-    if (confidence >= 0.6) return SUGGESTIONS_COPY.confidenceLabels.medium;
-    return SUGGESTIONS_COPY.confidenceLabels.low;
+    if (confidence >= 0.8) return t('practiceSuggestions.confidence.high');
+    if (confidence >= 0.6) return t('practiceSuggestions.confidence.medium');
+    return t('practiceSuggestions.confidence.low');
   }
 
   private formatTime(suggestion: PatternSuggestion): string {
     if (suggestion.specificTime) {
       const { hour, minute } = suggestion.specificTime;
-      const period = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour % 12 || 12;
-      const displayMinute = String(minute).padStart(2, '0');
-      return `${displayHour}:${displayMinute} ${period}`;
+      return formatDate(new Date(2000, 0, 1, hour, minute), { hour: 'numeric', minute: '2-digit' });
     }
-    return suggestion.suggestedTime.charAt(0).toUpperCase() + suggestion.suggestedTime.slice(1);
+    return t(TIME_OF_DAY_KEYS[suggestion.suggestedTime]);
   }
 
   private formatFrequency(frequency: string): string {
-    const labels: Record<string, string> = {
-      daily: 'Daily',
-      weekday: 'Weekdays',
-      weekend: 'Weekends',
-      weekly: 'Weekly',
-    };
-    return labels[frequency] ?? frequency;
+    const key = FREQUENCY_KEYS[frequency as PatternSuggestion['suggestedFrequency']];
+    return key ? t(key) : frequency;
   }
 }
 

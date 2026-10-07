@@ -89,8 +89,6 @@ RUN npx tsx apps/cli/src/commands/build/build-fast.ts || pnpm build
 # ============================================================================
 FROM node:${NODE_VERSION}-slim AS frontend-builder
 
-# Build arg for admin API key (passed from Cloud Build)
-ARG VITE_ADMIN_API_KEY=""
 
 WORKDIR /app
 
@@ -122,8 +120,6 @@ COPY apps/web/ ./
 ARG BUILD_TIMESTAMP=default
 RUN echo "Build: ${BUILD_TIMESTAMP}" && rm -rf public/design-system/brand 2>/dev/null || true && mkdir -p public/design-system/brand
 
-# Set env var for Vite build (bakes into the bundle)
-ENV VITE_ADMIN_API_KEY=${VITE_ADMIN_API_KEY}
 
 RUN npm run build
 

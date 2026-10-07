@@ -65,7 +65,7 @@ async function tool(id: string): Promise<Executable> {
 const callFrom = (userLocation?: UserLocation) => ({ ctx: { userData: { userLocation } } });
 
 describe("weather tools use the calling session's location", () => {
-  afterEach(() => clearCurrentActiveSession());
+  afterEach(() => clearCurrentActiveSession('other-session'));
 
   it('getWeatherForecast with no location uses the caller city', async () => {
     const forecast = await tool('getWeatherForecast');
@@ -90,7 +90,11 @@ describe("weather tools use the calling session's location", () => {
 
   it("never answers with another concurrent caller's city", async () => {
     // Another call on this worker started later and set the process-wide session.
-    setCurrentActiveSession('other-caller', 'Miami, FL', 'other-session');
+    setCurrentActiveSession({
+      sessionId: 'other-session',
+      userId: 'other-caller',
+      location: 'Miami, FL',
+    });
     const forecast = await tool('getWeatherForecast');
     expect(await forecast.execute({ days: 1 }, callFrom({ city: 'St. George', regionCode: 'UT' }))).toBe(
       'forecast for St. George, UT'

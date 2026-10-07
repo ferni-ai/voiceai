@@ -298,7 +298,7 @@ private enum TimeOfDay {
             return [
                 Color(red: 0.95, green: 0.60, blue: 0.50), // Sunset coral
                 Color(red: 0.85, green: 0.50, blue: 0.55), // Dusty rose
-                Color(red: 0.35, green: 0.30, blue: 0.50)  // Twilight purple
+                Color(red: 0.35, green: 0.42, blue: 0.54)  // Twilight slate (Alex #5a6b8a)
             ]
         case .night:
             return [

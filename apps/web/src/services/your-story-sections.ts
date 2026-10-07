@@ -23,7 +23,7 @@ import type {
   Relationship,
   RelationshipNetworkData,
   TimelineChapter,
-} from '../ui/visualizations/index.js';
+} from '../types/visualization-data.js';
 
 // ============================================================================
 // API SHAPES (mirror src/api/your-story-prediction.ts and your-story-sections.ts)

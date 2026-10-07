@@ -12,6 +12,7 @@
  * - Dismissible with animation
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { getResultIcon, SECTION_ICONS } from './icons/hub-icons.js';
@@ -133,12 +134,12 @@ function createContainer(): void {
   container.innerHTML = `
     <div class="wywa-header">
       <span class="wywa-icon">${SECTION_ICONS.clipboardList}</span>
-      <span class="wywa-title">While you were away...</span>
-      <button class="wywa-close" aria-label="Dismiss">&times;</button>
+      <span class="wywa-title">${t('whileYouWereAway.title')}</span>
+      <button class="wywa-close" aria-label="${t('common.dismiss')}">&times;</button>
     </div>
     <div class="wywa-content"></div>
     <div class="wywa-footer">
-      <button class="wywa-dismiss">Got it</button>
+      <button class="wywa-dismiss">${t('accessibility.gotIt')}</button>
     </div>
   `;
 
@@ -146,11 +147,9 @@ function createContainer(): void {
   addStyles();
 
   // Event listeners
-  const closeBtn = container.querySelector('.wywa-close');
-  const dismissBtn = container.querySelector('.wywa-dismiss');
-
-  closeBtn?.addEventListener('click', () => hide());
-  dismissBtn?.addEventListener('click', () => hide());
+  container
+    .querySelectorAll('.wywa-close, .wywa-dismiss')
+    .forEach((btn) => btn.addEventListener('click', () => hide()));
 
   document.body.appendChild(container);
 }
@@ -179,7 +178,7 @@ function renderUpdates(): void {
         <div class="wywa-item ${urgentClass}">
           <div class="wywa-item-title">${item.title}</div>
           <div class="wywa-item-summary">${item.summary}</div>
-          ${item.requiresAction ? '<span class="wywa-action-needed">Action needed</span>' : ''}
+          ${item.requiresAction ? `<span class="wywa-action-needed">${t('whileYouWereAway.actionNeeded')}</span>` : ''}
         </div>
       `;
     }
@@ -220,15 +219,15 @@ function groupByType(updates: BackgroundUpdate[]): Record<string, BackgroundUpda
 // NOTE: getTypeIcon replaced by getResultIcon from hub-icons.ts (brand-compliant SVG icons)
 
 function getTypeLabel(type: BackgroundUpdate['type']): string {
-  const labels: Record<BackgroundUpdate['type'], string> = {
-    call: 'Calls',
-    research: 'Research',
-    reservation: 'Reservations',
-    follow_up: 'Follow-ups',
-    reminder: 'Reminders',
-    other: 'Tasks',
+  const labelKeys: Record<BackgroundUpdate['type'], string> = {
+    call: 'whileYouWereAway.types.call',
+    research: 'whileYouWereAway.types.research',
+    reservation: 'whileYouWereAway.types.reservation',
+    follow_up: 'whileYouWereAway.types.followUp',
+    reminder: 'whileYouWereAway.types.reminder',
+    other: 'whileYouWereAway.types.other',
   };
-  return labels[type] || 'Tasks';
+  return t(labelKeys[type] || 'whileYouWereAway.types.other');
 }
 
 // ============================================================================
@@ -255,7 +254,7 @@ function handleBackgroundComplete(event: Event): void {
   const update: BackgroundUpdate = {
     id: detail.resultId,
     type: typeMap[detail.resultType] || 'other',
-    title: detail.contactName || 'Task complete',
+    title: detail.contactName || t('whileYouWereAway.taskComplete'),
     summary: detail.summary,
     priority: detail.priority,
     contactName: detail.contactName,
@@ -272,7 +271,7 @@ function handleCallComplete(event: Event): void {
   const update: BackgroundUpdate = {
     id: detail.callId,
     type: 'call',
-    title: `Call to ${detail.contactName}`,
+    title: t('whileYouWereAway.callTo', { name: detail.contactName }),
     summary: detail.outcome,
     priority: detail.callbackRequired ? 'high' : 'normal',
     contactName: detail.contactName,

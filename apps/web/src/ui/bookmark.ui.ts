@@ -18,6 +18,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('BookmarkUI');
 
@@ -247,7 +248,7 @@ function generateId(): string {
 
 function showBookmarkFeedback(): void {
   // Show toast
-  toast.success('Moment saved');
+  toast.success(t('bookmark.momentSaved'));
 
   // Animate avatar
   const avatar = document.querySelector('#coachAvatar');

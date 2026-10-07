@@ -38,6 +38,7 @@ import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { relationshipStageService } from '../services/relationship-stage.service.js';
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 
 const log = createLogger('FutureInsightsUI');
 
@@ -48,17 +49,17 @@ const log = createLogger('FutureInsightsUI');
 interface TimeHorizon {
   id: string;
   days: number;
-  label: string;
-  tagline: string;
+  labelKey: string;
+  taglineKey: string;
   insights: InsightTeaser[];
   unlocked: boolean;
 }
 
 interface InsightTeaser {
-  capability: string;
+  capabilityKey: string;
   icon: string;
-  preview: string;
-  example: string;
+  previewKey: string;
+  exampleKey: string;
 }
 
 // ============================================================================
@@ -107,108 +108,108 @@ function getTimeHorizons(): TimeHorizon[] {
     {
       id: 'week-1',
       days: 7,
-      label: 'Week 1',
-      tagline: 'Learning your world',
+      labelKey: 'futureInsights.week1.label',
+      taglineKey: 'futureInsights.week1.tagline',
       unlocked: daysTogether >= 7,
       insights: [
         {
-          capability: 'Commitment Keeper',
+          capabilityKey: 'futureInsights.commitmentKeeper.name',
           icon: ICONS.target,
-          preview: "I'll remember every intention",
-          example: '"You mentioned wanting to call your mom more often..."',
+          previewKey: 'futureInsights.commitmentKeeper.preview',
+          exampleKey: 'futureInsights.commitmentKeeper.example',
         },
         {
-          capability: 'Relationship Network',
+          capabilityKey: 'futureInsights.relationshipNetwork.name',
           icon: ICONS.users,
-          preview: "I'll know your people",
-          example: '"How did that conversation with Sarah go?"',
+          previewKey: 'futureInsights.relationshipNetwork.preview',
+          exampleKey: 'futureInsights.relationshipNetwork.example',
         },
         {
-          capability: 'Emotional First Aid',
+          capabilityKey: 'futureInsights.emotionalFirstAid.name',
           icon: ICONS.shield,
-          preview: "I'll be there when it's hard",
-          example: '"That sounds heavy. I\'m here."',
+          previewKey: 'futureInsights.emotionalFirstAid.preview',
+          exampleKey: 'futureInsights.emotionalFirstAid.example',
         },
       ],
     },
     {
       id: 'month-1',
       days: 30,
-      label: 'Month 1',
-      tagline: 'Seeing your patterns',
+      labelKey: 'futureInsights.month1.label',
+      taglineKey: 'futureInsights.month1.tagline',
       unlocked: daysTogether >= 30,
       insights: [
         {
-          capability: 'Predictive Coaching',
+          capabilityKey: 'futureInsights.predictiveCoaching.name',
           icon: ICONS.brain,
-          preview: "I'll anticipate your struggles",
-          example: '"Sunday evenings seem hard for you. Want to talk about tomorrow?"',
+          previewKey: 'futureInsights.predictiveCoaching.preview',
+          exampleKey: 'futureInsights.predictiveCoaching.example',
         },
         {
-          capability: 'Capacity Guardian',
+          capabilityKey: 'futureInsights.capacityGuardian.name',
           icon: ICONS.battery,
-          preview: "I'll protect you from burnout",
-          example: '"You\'ve been running hard. Maybe it\'s time to slow down?"',
+          previewKey: 'futureInsights.capacityGuardian.preview',
+          exampleKey: 'futureInsights.capacityGuardian.example',
         },
         {
-          capability: 'Values Alignment',
+          capabilityKey: 'futureInsights.valuesAlignment.name',
           icon: ICONS.compass,
-          preview: "I'll notice when you drift",
-          example: '"You said health was important, but you\'ve cancelled the gym 3 times..."',
+          previewKey: 'futureInsights.valuesAlignment.preview',
+          exampleKey: 'futureInsights.valuesAlignment.example',
         },
       ],
     },
     {
       id: 'month-3',
       days: 90,
-      label: 'Month 3',
-      tagline: 'Understanding your heart',
+      labelKey: 'futureInsights.month3.label',
+      taglineKey: 'futureInsights.month3.tagline',
       unlocked: daysTogether >= 90,
       insights: [
         {
-          capability: 'Dream Keeper',
+          capabilityKey: 'futureInsights.dreamKeeper.name',
           icon: ICONS.star,
-          preview: "I'll guard your aspirations",
-          example: '"You haven\'t mentioned that book you wanted to write in a while..."',
+          previewKey: 'futureInsights.dreamKeeper.preview',
+          exampleKey: 'futureInsights.dreamKeeper.example',
         },
         {
-          capability: 'Life Narrative',
+          capabilityKey: 'futureInsights.lifeNarrative.name',
           icon: ICONS.book,
-          preview: "I'll understand your story",
-          example: '"This feels like the start of a new chapter for you."',
+          previewKey: 'futureInsights.lifeNarrative.preview',
+          exampleKey: 'futureInsights.lifeNarrative.example',
         },
         {
-          capability: 'Relationship Milestones',
+          capabilityKey: 'futureInsights.relationshipMilestones.name',
           icon: ICONS.milestone,
-          preview: "I'll celebrate our journey",
-          example: '"50 conversations. 15 vulnerable moments. We\'ve come so far."',
+          previewKey: 'futureInsights.relationshipMilestones.preview',
+          exampleKey: 'futureInsights.relationshipMilestones.example',
         },
       ],
     },
     {
       id: 'year-1',
       days: 365,
-      label: 'Year 1',
-      tagline: 'Knowing you deeply',
+      labelKey: 'futureInsights.year1.label',
+      taglineKey: 'futureInsights.year1.tagline',
       unlocked: daysTogether >= 365,
       insights: [
         {
-          capability: 'Seasonal Awareness',
+          capabilityKey: 'futureInsights.seasonalAwareness.name',
           icon: ICONS.sun,
-          preview: "I'll know your rhythms",
-          example: '"December is always hard for you. How are you feeling about the holidays?"',
+          previewKey: 'futureInsights.seasonalAwareness.preview',
+          exampleKey: 'futureInsights.seasonalAwareness.example',
         },
         {
-          capability: 'Pattern Synthesis',
+          capabilityKey: 'futureInsights.patternSynthesis.name',
           icon: ICONS.sparkles,
-          preview: "I'll see what you can't",
-          example: '"Every time you achieve something big, you push people away..."',
+          previewKey: 'futureInsights.patternSynthesis.preview',
+          exampleKey: 'futureInsights.patternSynthesis.example',
         },
         {
-          capability: 'Life Coaching',
+          capabilityKey: 'futureInsights.lifeCoaching.name',
           icon: ICONS.heart,
-          preview: "I'll be your deepest mirror",
-          example: '"Looking at this year, your growth has been remarkable."',
+          previewKey: 'futureInsights.lifeCoaching.preview',
+          exampleKey: 'futureInsights.lifeCoaching.example',
         },
       ],
     },
@@ -290,15 +291,15 @@ function createModal(): void {
   modal = document.createElement('div');
   modal.className = 'future-insights-modal';
   modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-label', 'What I\'ll Know About You');
+  modal.setAttribute('aria-label', t('futureInsights.title'));
 
   modal.innerHTML = `
     <div class="future-insights-backdrop"></div>
     <div class="future-insights-content">
       <header class="future-insights-header">
         <div class="future-insights-header__text">
-          <span class="future-insights-eyebrow">YOUR FUTURE WITH FERNI</span>
-          <h2 class="future-insights-title">What I'll Know About You</h2>
+          <span class="future-insights-eyebrow">${t('futureInsights.eyebrow')}</span>
+          <h2 class="future-insights-title">${t('futureInsights.title')}</h2>
         </div>
         <button class="future-insights-close" aria-label="${t('accessibility.close')}">
           ${ICONS.close}
@@ -307,12 +308,11 @@ function createModal(): void {
 
       <div class="future-insights-intro">
         <p class="future-insights-intro__text">
-          The longer we talk, the deeper I understand. Here's what our relationship
-          will look like as we grow together.
+          ${t('futureInsights.intro')}
         </p>
         <div class="future-insights-intro__current">
           <span class="future-insights-intro__days">${metrics.daysSinceFirstMeeting}</span>
-          <span class="future-insights-intro__label">days together</span>
+          <span class="future-insights-intro__label">${tp('futureInsights.daysTogether', metrics.daysSinceFirstMeeting)}</span>
         </div>
       </div>
 
@@ -333,7 +333,7 @@ function createModal(): void {
           ${horizons.map((h, i) => `
             <button 
               class="future-insights-nav__dot ${i === activeHorizon ? 'active' : ''}" 
-              aria-label="Go to ${h.label}"
+              aria-label="${t('futureInsights.goToHorizon', { label: t(h.labelKey) })}"
               data-index="${i}"
             ></button>
           `).join('')}
@@ -345,7 +345,7 @@ function createModal(): void {
 
       <footer class="future-insights-footer">
         <p class="future-insights-footer__cta">
-          Every conversation brings us closer. <strong>Start talking.</strong>
+          ${t('futureInsights.footerCta', { action: `<strong>${t('futureInsights.footerStartTalking')}</strong>` })}
         </p>
       </footer>
     </div>
@@ -366,12 +366,12 @@ function renderTimelineNode(horizon: TimeHorizon, index: number): string {
     <button 
       class="future-insights-timeline__node ${isActive ? 'active' : ''} ${isUnlocked ? 'unlocked' : 'locked'}"
       data-index="${index}"
-      aria-label="${horizon.label}"
+      aria-label="${t(horizon.labelKey)}"
     >
       <span class="future-insights-timeline__icon">
         ${isUnlocked ? ICONS.sparkles : ICONS.lock}
       </span>
-      <span class="future-insights-timeline__label">${horizon.label}</span>
+      <span class="future-insights-timeline__label">${t(horizon.labelKey)}</span>
     </button>
   `;
 }
@@ -380,11 +380,11 @@ function renderHorizonDetail(horizon: TimeHorizon): string {
   return `
     <div class="future-insights-horizon">
       <div class="future-insights-horizon__header">
-        <h3 class="future-insights-horizon__title">${horizon.label}</h3>
-        <p class="future-insights-horizon__tagline">${horizon.tagline}</p>
+        <h3 class="future-insights-horizon__title">${t(horizon.labelKey)}</h3>
+        <p class="future-insights-horizon__tagline">${t(horizon.taglineKey)}</p>
         ${horizon.unlocked
-          ? '<span class="future-insights-horizon__badge future-insights-horizon__badge--unlocked">✓ Reached</span>'
-          : `<span class="future-insights-horizon__badge">${horizon.days - relationshipStageService.getMetrics().daysSinceFirstMeeting} days away</span>`
+          ? `<span class="future-insights-horizon__badge future-insights-horizon__badge--unlocked">${t('futureInsights.reached')}</span>`
+          : `<span class="future-insights-horizon__badge">${tp('futureInsights.daysAway', horizon.days - relationshipStageService.getMetrics().daysSinceFirstMeeting)}</span>`
         }
       </div>
 
@@ -403,10 +403,10 @@ function renderInsightCard(insight: InsightTeaser, index: number, unlocked: bool
     >
       <div class="future-insights-card__icon">${insight.icon}</div>
       <div class="future-insights-card__content">
-        <span class="future-insights-card__capability">${insight.capability}</span>
-        <p class="future-insights-card__preview">${insight.preview}</p>
+        <span class="future-insights-card__capability">${t(insight.capabilityKey)}</span>
+        <p class="future-insights-card__preview">${t(insight.previewKey)}</p>
         <blockquote class="future-insights-card__example">
-          ${insight.example}
+          ${t(insight.exampleKey)}
         </blockquote>
       </div>
     </div>

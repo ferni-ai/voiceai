@@ -110,13 +110,13 @@ const PERSONA_CONFIG: Record<string, PersonaDisplay> = {
   },
 };
 
-const DEFAULT_TYPE_STYLE = { bg: 'var(--color-text-muted, #8a7f75)', label: 'Insight' };
+const DEFAULT_TYPE_STYLE = { bg: 'var(--color-text-muted, #8a7f75)', labelKey: 'observationTypes.insight' };
 
 const OBSERVATION_TYPE_STYLES: Record<string, typeof DEFAULT_TYPE_STYLE> = {
-  concern: { bg: 'var(--color-semantic-warning, #f59e0b)', label: 'Concern' },
-  opportunity: { bg: 'var(--color-semantic-success, #10b981)', label: 'Opportunity' },
-  pattern: { bg: 'var(--color-accent-primary, #4a6741)', label: 'Pattern' },
-  milestone: { bg: 'var(--color-semantic-info, #3b82f6)', label: 'Milestone' },
+  concern: { bg: 'var(--color-semantic-warning, #f59e0b)', labelKey: 'observationTypes.concern' },
+  opportunity: { bg: 'var(--color-semantic-success, #10b981)', labelKey: 'observationTypes.opportunity' },
+  pattern: { bg: 'var(--color-accent-primary, #4a6741)', labelKey: 'observationTypes.pattern' },
+  milestone: { bg: 'var(--color-semantic-info, #3b82f6)', labelKey: 'observationTypes.milestone' },
   insight: DEFAULT_TYPE_STYLE,
 };
 
@@ -179,7 +179,7 @@ function renderObservationCard(obs: PersonaObservation, index: number): string {
           <span class="team-obs-card__persona-name">${persona.name}</span>
         </div>
         <span class="team-obs-card__type" style="--type-bg: ${typeStyle.bg}">
-          ${typeStyle.label}
+          ${t(typeStyle.labelKey)}
         </span>
       </div>
       <p class="team-obs-card__content">${escapeHtml(obs.content)}</p>
@@ -220,16 +220,16 @@ function renderSynthesis(synthesis: TeamSynthesis): string {
           <circle cx="12" cy="12" r="10"/>
           <path d="M12 6v6l4 2"/>
         </svg>
-        <span>Team Synthesis</span>
+        <span>${t('teamObservationsPanel.synthesis')}</span>
       </div>
       <p class="team-obs-synthesis__text">${escapeHtml(synthesis.overallSynthesis)}</p>
-      
+
       ${userState ? `
         <div class="team-obs-synthesis__state team-obs-synthesis__state--${wellbeingClass}">
           <div class="team-obs-synthesis__state-header">
-            <span>Overall Assessment</span>
+            <span>${t('teamObservationsPanel.assessment')}</span>
             <span class="team-obs-synthesis__trajectory">
-              ${userState.trajectory === 'improving' ? '↗️ Improving' : 
+              ${userState.trajectory === 'improving' ? '↗️ Improving' :
                 userState.trajectory === 'declining' ? '↘️ Declining' : '→ Stable'}
             </span>
           </div>
@@ -249,7 +249,7 @@ function renderSynthesis(synthesis: TeamSynthesis): string {
       
       ${synthesis.topConnections && synthesis.topConnections.length > 0 ? `
         <div class="team-obs-synthesis__connections">
-          <h4>Cross-Domain Connections</h4>
+          <h4>${t('teamObservationsPanel.connections')}</h4>
           ${synthesis.topConnections.map(c => `
             <div class="team-obs-synthesis__connection">
               <span class="team-obs-synthesis__connection-confidence">${Math.round(c.confidence * 100)}%</span>
@@ -258,10 +258,10 @@ function renderSynthesis(synthesis: TeamSynthesis): string {
           `).join('')}
         </div>
       ` : ''}
-      
+
       ${synthesis.topRecommendations && synthesis.topRecommendations.length > 0 ? `
         <div class="team-obs-synthesis__recommendations">
-          <h4>Team Recommendations</h4>
+          <h4>${t('teamObservationsPanel.recommendations')}</h4>
           ${synthesis.topRecommendations.map(r => `
             <div class="team-obs-synthesis__recommendation team-obs-synthesis__recommendation--${r.priority}">
               <div class="team-obs-synthesis__recommendation-header">
@@ -283,7 +283,7 @@ function renderContent(): string {
     return `
       <div class="team-obs-loading">
         <div class="team-obs-loading__spinner"></div>
-        <p>Loading team observations...</p>
+        <p>${t('teamObservationsPanel.loading')}</p>
       </div>
     `;
   }
@@ -297,8 +297,8 @@ function renderContent(): string {
           <line x1="9" y1="9" x2="9.01" y2="9"/>
           <line x1="15" y1="9" x2="15.01" y2="9"/>
         </svg>
-        <p>No team observations yet</p>
-        <span>As you talk with the team, they'll share insights with each other.</span>
+        <p>${t('teamObservationsPanel.empty.title')}</p>
+        <span>${t('teamObservationsPanel.empty.description')}</span>
       </div>
     `;
   }
@@ -310,10 +310,10 @@ function renderContent(): string {
 
   return `
     ${cachedData.synthesis ? renderSynthesis(cachedData.synthesis) : ''}
-    
+
     <div class="team-obs-list">
       <div class="team-obs-list__header">
-        <span>Recent Observations</span>
+        <span>${t('teamObservationsPanel.recent')}</span>
         <span class="team-obs-list__count">${cachedData.total}</span>
       </div>
       ${sortedObs.map((obs, i) => renderObservationCard(obs, i)).join('')}
@@ -852,7 +852,7 @@ function createPanel(): void {
             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
           </svg>
-          Team Observations
+          ${t('teamObservationsPanel.title')}
         </div>
         <button class="team-obs-panel__close" aria-label="${t('accessibility.close')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

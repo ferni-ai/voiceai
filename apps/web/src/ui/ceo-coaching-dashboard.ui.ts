@@ -22,6 +22,7 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { playMicroExpression } from './better-than-human.ui.js';
+import { t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -220,7 +221,7 @@ class CEOCoachingDashboardUI {
 
     const title = document.createElement('h2');
     title.className = 'ceo-dashboard__title';
-    title.textContent = 'CEO Dashboard';
+    title.textContent = t('ceoCoaching.dashboardTitle');
     header.appendChild(title);
 
     const actions = document.createElement('div');
@@ -228,7 +229,7 @@ class CEOCoachingDashboardUI {
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'ceo-dashboard__close';
-    closeBtn.setAttribute('aria-label', 'Close dashboard');
+    closeBtn.setAttribute('aria-label', t('ceoCoaching.closeButton'));
     closeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <line x1="18" y1="6" x2="6" y2="18"/>
       <line x1="6" y1="6" x2="18" y2="18"/>
@@ -247,7 +248,7 @@ class CEOCoachingDashboardUI {
 
     const loadingText = document.createElement('p');
     loadingText.className = 'ceo-dashboard__loading-text';
-    loadingText.textContent = 'Loading your progress...';
+    loadingText.textContent = t('ceoCoaching.loading');
     loading.appendChild(loadingText);
 
     this.wrapper.appendChild(header);
@@ -329,7 +330,7 @@ class CEOCoachingDashboardUI {
 
     const title = document.createElement('h2');
     title.className = 'ceo-dashboard__title';
-    title.textContent = 'CEO Dashboard';
+    title.textContent = t('ceoCoaching.dashboardTitle');
     header.appendChild(title);
 
     const actions = document.createElement('div');
@@ -337,7 +338,7 @@ class CEOCoachingDashboardUI {
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'ceo-dashboard__close';
-    closeBtn.setAttribute('aria-label', 'Close dashboard');
+    closeBtn.setAttribute('aria-label', t('ceoCoaching.closeButton'));
     closeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <line x1="18" y1="6" x2="6" y2="18"/>
       <line x1="6" y1="6" x2="18" y2="18"/>
@@ -402,7 +403,7 @@ class CEOCoachingDashboardUI {
     const energySection = document.createElement('section');
     energySection.className = 'ceo-dashboard__chart-section';
     const energyTitle = document.createElement('h3');
-    energyTitle.textContent = 'Energy This Week';
+    energyTitle.textContent = t('ceoCoaching.energyThisWeek');
     energySection.appendChild(energyTitle);
     energySection.appendChild(this.buildEnergyChart(data.energyTrends));
     charts.appendChild(energySection);
@@ -411,7 +412,7 @@ class CEOCoachingDashboardUI {
     const winsSection = document.createElement('section');
     winsSection.className = 'ceo-dashboard__chart-section';
     const winsTitle = document.createElement('h3');
-    winsTitle.textContent = 'Recent Wins';
+    winsTitle.textContent = t('ceoCoaching.recentWins');
     winsSection.appendChild(winsTitle);
     winsSection.appendChild(this.buildWinsList(data.recentWins));
     charts.appendChild(winsSection);
@@ -431,12 +432,12 @@ class CEOCoachingDashboardUI {
 
       const title = document.createElement('p');
       title.className = 'ceo-dashboard__empty-title';
-      title.textContent = 'No energy data yet';
+      title.textContent = t('ceoCoaching.noEnergyData');
       empty.appendChild(title);
 
       const hint = document.createElement('p');
       hint.className = 'ceo-dashboard__empty-hint';
-      hint.textContent = 'Say "My energy is 7 today" to start tracking';
+      hint.textContent = t('ceoCoaching.trackEnergyHint');
       empty.appendChild(hint);
 
       return empty;
@@ -487,12 +488,12 @@ class CEOCoachingDashboardUI {
 
       const title = document.createElement('p');
       title.className = 'ceo-dashboard__empty-title';
-      title.textContent = 'No wins yet';
+      title.textContent = t('ceoCoaching.noWinsYet');
       empty.appendChild(title);
 
       const hint = document.createElement('p');
       hint.className = 'ceo-dashboard__empty-hint';
-      hint.textContent = 'Say "I just shipped v2!" to log a win';
+      hint.textContent = t('ceoCoaching.logWinHint');
       empty.appendChild(hint);
 
       return empty;
@@ -534,7 +535,7 @@ class CEOCoachingDashboardUI {
     const prioritiesSection = document.createElement('section');
     prioritiesSection.className = 'ceo-dashboard__section';
     const prioritiesTitle = document.createElement('h3');
-    prioritiesTitle.textContent = '🎯 Top Priorities';
+    prioritiesTitle.textContent = t('ceoCoaching.priorities');
     prioritiesSection.appendChild(prioritiesTitle);
     prioritiesSection.appendChild(this.buildPrioritiesList(data.priorities));
     twoColumn.appendChild(prioritiesSection);
@@ -543,7 +544,7 @@ class CEOCoachingDashboardUI {
     const gratitudeSection = document.createElement('section');
     gratitudeSection.className = 'ceo-dashboard__section';
     const gratitudeTitle = document.createElement('h3');
-    gratitudeTitle.textContent = '🙏 Gratitude';
+    gratitudeTitle.textContent = t('ceoCoaching.gratitude');
     gratitudeSection.appendChild(gratitudeTitle);
     gratitudeSection.appendChild(this.buildGratitudeList(data.gratitude));
     twoColumn.appendChild(gratitudeSection);
@@ -558,7 +559,7 @@ class CEOCoachingDashboardUI {
       const empty = document.createElement('div');
       empty.className = 'ceo-dashboard__list-empty';
       const p = document.createElement('p');
-      p.textContent = 'No active priorities';
+      p.textContent = t('ceoCoaching.noActivePriorities');
       empty.appendChild(p);
       return empty;
     }
@@ -591,7 +592,7 @@ class CEOCoachingDashboardUI {
       const empty = document.createElement('div');
       empty.className = 'ceo-dashboard__list-empty';
       const p = document.createElement('p');
-      p.textContent = 'No gratitude logged this week';
+      p.textContent = t('ceoCoaching.noGratitudeLogged');
       empty.appendChild(p);
       return empty;
     }
@@ -645,35 +646,28 @@ class CEOCoachingDashboardUI {
     section.className = 'ceo-dashboard__insights';
 
     const title = document.createElement('h3');
-    title.textContent = '💡 Insights';
+    title.textContent = t('ceoCoaching.insights');
     section.appendChild(title);
 
     const insights: string[] = [];
 
     // Energy insight
-    if (data.avgEnergyThisWeek > data.avgEnergyLastWeek && data.avgEnergyLastWeek > 0) {
-      insights.push(`⚡ Energy up from ${data.avgEnergyLastWeek.toFixed(1)} to ${data.avgEnergyThisWeek.toFixed(1)} - great momentum!`);
-    } else if (data.avgEnergyThisWeek < 5 && data.avgEnergyThisWeek > 0) {
-      insights.push(`💤 Energy averaging ${data.avgEnergyThisWeek.toFixed(1)} - consider scheduling recovery time`);
-    }
-
-    if (data.bestEnergyDay) {
-      insights.push(`📅 Best energy typically on ${data.bestEnergyDay}s`);
-    }
-
-    if (data.topWinCategory) {
-      insights.push(`🏆 Most wins in: ${data.topWinCategory}`);
-    }
-
-    if (data.currentWinStreak >= 3) {
-      insights.push(`🔥 ${data.currentWinStreak}-day win streak! Keep it going!`);
-    }
+    if (data.avgEnergyThisWeek > data.avgEnergyLastWeek && data.avgEnergyLastWeek > 0)
+      insights.push(t('ceoCoaching.energyUpMessage').replace('{previousWeek}', data.avgEnergyLastWeek.toFixed(1)).replace('{thisWeek}', data.avgEnergyThisWeek.toFixed(1)));
+    else if (data.avgEnergyThisWeek < 5 && data.avgEnergyThisWeek > 0)
+      insights.push(t('ceoCoaching.energyLowMessage').replace('{level}', data.avgEnergyThisWeek.toFixed(1)));
+    if (data.bestEnergyDay)
+      insights.push(t('ceoCoaching.bestEnergyDayMessage').replace('{day}', data.bestEnergyDay));
+    if (data.topWinCategory)
+      insights.push(t('ceoCoaching.topWinCategoryMessage').replace('{category}', data.topWinCategory));
+    if (data.currentWinStreak >= 3)
+      insights.push(t('ceoCoaching.winStreakMessage').replace('{streak}', String(data.currentWinStreak)));
 
     if (insights.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'ceo-dashboard__insights-empty';
       const p = document.createElement('p');
-      p.textContent = 'Insights will appear as you log more data';
+      p.textContent = t('ceoCoaching.insightsEmpty');
       empty.appendChild(p);
       section.appendChild(empty);
     } else {

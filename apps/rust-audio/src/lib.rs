@@ -427,8 +427,6 @@ pub fn convert_i16_to_f32(samples: Int16Array) -> Float32Array {
 }
 
 /// Resample Float32 audio from one sample rate to another (linear interpolation).
-///
-/// Used for Qwen3-Omni pipeline: 48kHz → 16kHz (input), 24kHz → 48kHz (output).
 #[napi]
 pub fn resample_f32(samples: Float32Array, from_rate: u32, to_rate: u32) -> Float32Array {
     let slice = samples.as_ref();

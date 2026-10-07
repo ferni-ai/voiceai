@@ -35,6 +35,7 @@ import { buildHabitOptimizationContext } from './habit-optimization-engine.js';
 import { buildLifeTrajectoryContext } from './life-trajectory-simulator.js';
 import { buildExperimentationContext } from './n1-experimentation-platform.js';
 import { buildOrchestrationContext } from './orchestration-intelligence.js';
+import { buildCompoundEffectsContext } from './compound-effects-context.js';
 
 // V1 "Better Than Human" capabilities
 import { buildContradictionAwarenessContext } from './contradiction-comfort.js';
@@ -139,6 +140,7 @@ export interface SuperhumanContext {
   lifeTrajectory: string;
   experimentation: string;
   orchestration: string;
+  compoundEffects: string;
 }
 
 // ============================================================================
@@ -231,6 +233,7 @@ export async function buildSuperhumanContext(
     lifeTrajectory,
     experimentation,
     orchestration,
+    compoundEffects,
   ] = await Promise.all([
     buildCommitmentContext(userId),
     buildPredictiveContextString(userId),
@@ -285,6 +288,7 @@ export async function buildSuperhumanContext(
     buildLifeTrajectoryContext(userId),
     buildExperimentationContext(userId),
     buildOrchestrationContext(userId),
+    buildCompoundEffectsContext(userId),
   ]);
 
   // Synchronous builders (don't need await)
@@ -363,6 +367,7 @@ export async function buildSuperhumanContext(
     lifeTrajectory,
     experimentation,
     orchestration,
+    compoundEffects,
   };
 }
 
@@ -472,6 +477,7 @@ export function formatSuperhumanContextForPrompt(context: SuperhumanContext): st
       context.lifeTrajectory,
       context.experimentation,
       context.orchestration,
+      context.compoundEffects,
     ].filter((c) => c && c.length > 0);
 
     if (betterThanHumanV5.length > 0) {

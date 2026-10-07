@@ -146,11 +146,11 @@ function setupEventListeners(): void {
   });
 
   // Also listen for speech events
-  window.addEventListener('ferni:agent-speech-start', () => {
+  document.addEventListener('ferni:agent-speech-start', () => {
     state.isConversing = true;
   });
 
-  window.addEventListener('ferni:agent-speech-end', () => {
+  document.addEventListener('ferni:agent-speech-end', () => {
     // Small delay before resuming to let conversation settle
     trackedTimeout(() => {
       if (!state.isConversing) return;

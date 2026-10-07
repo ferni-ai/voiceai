@@ -48,6 +48,11 @@ export async function handleMarketplaceRoutes(
     return handleBrowseRoutes(req, res, pathname, method);
   }
 
+  // Manifest must be matched before the broader /api/marketplace/ prefix
+  if (pathname.match(/^\/api\/marketplace\/agents\/[^/]+\/manifest$/)) {
+    return handleBrowseRoutes(req, res, pathname, method);
+  }
+
   // Browse routes
   if (pathname.startsWith('/api/marketplace/browse')) {
     return handleBrowseRoutes(req, res, pathname, method);
@@ -92,6 +97,7 @@ export function isMarketplaceRoute(pathname: string): boolean {
   return (
     pathname.startsWith('/api/marketplace/') &&
     (pathname === '/api/marketplace/registry' ||
+      /^\/api\/marketplace\/agents\/[^/]+\/manifest$/.test(pathname) ||
       pathname.startsWith('/api/marketplace/publisher') ||
       pathname.startsWith('/api/marketplace/review') ||
       pathname.startsWith('/api/marketplace/browse') ||

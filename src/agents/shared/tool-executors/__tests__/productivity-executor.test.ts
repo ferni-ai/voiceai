@@ -320,26 +320,28 @@ describe('ProductivityExecutor', () => {
     });
   });
 
-  describe('placeholder implementations', () => {
-    it('should acknowledge timer management as coming soon', async () => {
+  describe('domain tool bridges', () => {
+    it('routes timer status and cancel to the real timer tools', async () => {
       const ctx = createContext();
 
       const result1 = await productivityExecutor.execute('getTimer', {}, ctx);
       const result2 = await productivityExecutor.execute('cancelTimer', {}, ctx);
 
-      expect(result1).toContain('coming soon');
-      expect(result2).toContain('coming soon');
+      expect(result1).toMatch(/timer/i);
+      expect(result2).toMatch(/timer/i);
+      expect(result1).not.toContain('coming soon');
+      expect(result2).not.toContain('coming soon');
     });
 
-    it('should acknowledge getReminders as coming soon', async () => {
+    it('routes getReminders to the real reminder list', async () => {
       const ctx = createContext();
-      // NOTE: cancelReminder is handled by scheduling-executor.ts (has real implementation)
       const result = await productivityExecutor.execute('getReminders', {}, ctx);
 
-      expect(result).toContain('coming soon');
+      expect(result).toMatch(/reminder/i);
+      expect(result).not.toContain('coming soon');
     });
 
-    it('should acknowledge goal update as being implemented', async () => {
+    it('routes updateGoal to the real goal store', async () => {
       const ctx = createContext();
       const result = await productivityExecutor.execute(
         'updateGoal',
@@ -347,7 +349,8 @@ describe('ProductivityExecutor', () => {
         ctx
       );
 
-      expect(result).toContain('being implemented');
+      expect(result).toMatch(/goal/i);
+      expect(result).not.toContain('being implemented');
     });
   });
 });
