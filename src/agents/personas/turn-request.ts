@@ -24,6 +24,7 @@ import {
   withoutLockedTeammateNotes,
   withTeammateAsk,
 } from '../../tools/handoff/locked-teammates.js';
+import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
@@ -192,4 +193,34 @@ export function tapSpokenText(
       },
     })
   );
+}
+
+/**
+ * The LLM reply, reporting its first tool call to the empty-response watchdog
+ * so a tool lookup isn't mistaken for a turn with no reply (empty-response-watchdog.ts).
+ */
+export function tapToolCalls<T>(
+  reply: ReadableStream<T> | null,
+  session: object
+): ReadableStream<T> | null {
+  if (!reply) return reply;
+  let signalled = false;
+  return reply.pipeThrough(
+    new TransformStream<T, T>({
+      transform(chunk, controller) {
+        if (!signalled && hasToolCalls(chunk)) {
+          signalled = true;
+          signalToolCallRequested(session);
+        }
+        controller.enqueue(chunk);
+      },
+    })
+  );
+}
+
+/** LiveKit runs only `function_call` entries (generation.js), so only those count. */
+function hasToolCalls(chunk: unknown): boolean {
+  if (typeof chunk !== 'object') return false;
+  const delta = (chunk as { delta?: { toolCalls?: Array<{ type?: string }> } } | null)?.delta;
+  return delta?.toolCalls?.some((call) => call.type === 'function_call') ?? false;
 }
