@@ -23,6 +23,7 @@ const data = vi.hoisted(() => ({
   voiceMemory: vi.fn(async () => null),
   installations: vi.fn(() => []),
   conversations: vi.fn(async (_uid: unknown) => true),
+  commitments: vi.fn(async () => []),
 }));
 
 // "tok-admin" is an admin's token; "tok-<name>" verifies as uid-<name>.
@@ -75,9 +76,12 @@ vi.mock('../../marketplace/index.js', () => ({
 }));
 // Engagement's own gate is under test; the handler behind it reports who it got.
 vi.mock('../routes/conversations.js', () => ({
-  handleConversationsRoutes: vi.fn(async (req: IncomingMessage) =>
-    data.conversations(req.headers['x-firebase-uid'])
+  handleConversationsRoutes: vi.fn(async (req: IncomingMessage, _res: unknown, pathname: string) =>
+    pathname === '/api/conversations' ? data.conversations(req.headers['x-firebase-uid']) : false
   ),
+}));
+vi.mock('../../services/superhuman/commitment-keeper.js', () => ({
+  loadUserCommitments: data.commitments,
 }));
 
 const { bindVerifiedIdentity } = await import('../../servers/api/request-identity.js');
@@ -114,6 +118,13 @@ const FAMILIES: Family[] = [
     handler: (req, res, url) => handleEngagementRoutes(req, res, url.pathname, url),
     spy: data.conversations,
     adminMayName: false, // the gate has always preferred the verified caller
+  },
+  {
+    name: 'engagement: commitments',
+    path: '/api/commitments',
+    handler: (req, res, url) => handleEngagementRoutes(req, res, url.pathname, url),
+    spy: data.commitments,
+    adminMayName: false, // the gate binds an admin's own uid, as for its other handlers
   },
   {
     name: 'team insights',

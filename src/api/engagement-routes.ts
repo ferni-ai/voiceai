@@ -113,9 +113,8 @@ export async function handleEngagementRoutes(
     return true; // Rate limited
   }
 
-  // A verified caller (or an admin naming a user) is required. The handlers
-  // below read ?userId= themselves, so this gate is what keeps an anonymous
-  // request naming someone else out of them (getUserId no longer trusts it).
+  // A verified caller is required: getUserId no longer takes ?userId= as one.
+  // The handlers below read the user back with requireUserId / requireAuth.
   const auth = await optionalAuthAsync(req);
   const userId = auth?.userId || getUserId(req, parsedUrl);
   if (!userId) {
