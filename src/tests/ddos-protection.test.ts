@@ -371,14 +371,14 @@ describe('DDoS Protection', () => {
   });
 
   describe('getClientIp', () => {
-    it('should extract IP from X-Forwarded-For header', () => {
+    it('should take the entry the trusted proxy appended, not the caller-supplied first one', () => {
       const req = createMockRequest({
         headers: { 'x-forwarded-for': '203.0.113.195, 70.41.3.18, 150.172.238.178' },
       });
 
       const ip = getClientIp(req);
 
-      expect(ip).toBe('203.0.113.195');
+      expect(ip).toBe('150.172.238.178');
     });
 
     it('should fall back to socket remoteAddress', () => {
@@ -401,13 +401,13 @@ describe('DDoS Protection', () => {
 
     it('should validate IP format to prevent injection', () => {
       const req = createMockRequest({
-        headers: { 'x-forwarded-for': 'not-an-ip, 192.168.1.1' },
+        headers: { 'x-forwarded-for': '192.168.1.1, not-an-ip' },
         socket: { remoteAddress: '10.0.0.1' } as any,
       });
 
       const ip = getClientIp(req);
 
-      // Should fall back due to invalid first IP
+      // Should fall back due to the invalid trusted entry, never scanning left
       expect(ip).toBe('10.0.0.1');
     });
   });
