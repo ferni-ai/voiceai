@@ -126,4 +126,18 @@ describe('withTurnReminder seeding and order', () => {
     for (const r of reminders) expect(r).not.toMatch(/[—–]|\.\.\.|…|,,/);
     for (const r of rough) expect(r).toMatch(/\("[^"]+"\)/);
   });
+
+  it('never offers a story of his own while the caller is venting', () => {
+    const venting = Array.from(
+      { length: 200 },
+      (_, i) =>
+        turnShapeFor('Honestly I am exhausted, it has been a long day', rngFor(`v${i}`)).reminder
+    );
+    expect(venting.some((r) => /share a small piece of it/.test(r))).toBe(false);
+    const light = Array.from(
+      { length: 200 },
+      (_, i) => turnShapeFor('We went to the lake this weekend', rngFor(`l${i}`)).reminder
+    );
+    expect(light.some((r) => /share a small piece of it/.test(r))).toBe(true);
+  });
 });
