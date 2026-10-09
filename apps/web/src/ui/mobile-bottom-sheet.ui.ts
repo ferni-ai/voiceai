@@ -398,7 +398,7 @@ function createElements(): void {
   sheetElement.setAttribute('role', 'dialog');
   sheetElement.setAttribute('aria-modal', 'true');
   sheetElement.setAttribute('aria-labelledby', 'mobile-sheet-title');
-  sheetElement.setAttribute('aria-hidden', 'true');
+  sheetElement.inert = true; // closed, it sits off-screen: unreachable by Tab and screen readers
 
   // Create handle (accessible drag indicator)
   handleElement = document.createElement('div');
@@ -633,8 +633,8 @@ export function open(): void {
   sheetElement?.classList.add('open');
   backdropElement?.classList.add('open');
 
-  // Update aria states
-  sheetElement?.setAttribute('aria-hidden', 'false');
+  // Update aria states (inert, not aria-hidden: its buttons must leave the tab order too)
+  if (sheetElement) sheetElement.inert = false;
   const trigger = document.querySelector('.mobile-menu-trigger');
   trigger?.classList.add('hidden');
   trigger?.setAttribute('aria-expanded', 'true');
@@ -657,7 +657,7 @@ export function close(): void {
   backdropElement?.classList.remove('open');
 
   // Update aria states
-  sheetElement?.setAttribute('aria-hidden', 'true');
+  if (sheetElement) sheetElement.inert = true;
   const trigger = document.querySelector('.mobile-menu-trigger');
   trigger?.classList.remove('hidden');
   trigger?.setAttribute('aria-expanded', 'false');
