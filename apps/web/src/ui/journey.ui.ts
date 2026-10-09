@@ -132,11 +132,11 @@ let isLoadingTrustData = false;
 // ============================================================================
 
 const STAGE_KEYS: Record<string, [string, string]> = {
-  'first-meeting': ['journey.stageTaglineFirstMeeting', 'journey.stageDescriptionFirstMeeting'],
-  'getting-started': ['journey.stageTaglineGettingStarted', 'journey.stageDescriptionGettingStarted'],
-  'building-trust': ['journey.stageTaglineBuildingTrust', 'journey.stageDescriptionBuildingTrust'],
-  'established': ['journey.stageTaglineEstablished', 'journey.stageDescriptionEstablished'],
-  'deep-partnership': ['journey.stageTaglineDeepPartnership', 'journey.stageDescriptionDeepPartnership'],
+  'first-meeting': ['relationshipStages.taglines.firstMeeting', 'relationshipStages.descriptions.firstMeeting'],
+  'getting-started': ['relationshipStages.taglines.gettingStarted', 'relationshipStages.descriptions.gettingStarted'],
+  'building-trust': ['relationshipStages.taglines.buildingTrust', 'relationshipStages.descriptions.buildingTrust'],
+  'established': ['relationshipStages.taglines.established', 'relationshipStages.descriptions.established'],
+  'deep-partnership': ['relationshipStages.taglines.deepPartnership', 'relationshipStages.descriptions.deepPartnership'],
 };
 
 // Icons imported from centralized module
@@ -321,7 +321,7 @@ function createModal(): void {
   const stage = relationshipStageService.getStage();
   const stageMetrics = relationshipStageService.getMetrics();
   const stageProgress = relationshipStageService.getProgressToNextStage();
-  const stageKeys = STAGE_KEYS[stage] || ['journey.stageTaglineFirstMeeting', 'journey.stageDescriptionFirstMeeting'];
+  const stageKeys = STAGE_KEYS[stage] || STAGE_KEYS['first-meeting'];
   const [tagKey, descKey] = stageKeys as [string, string];
   const stageName = getTranslatedStageName(stage);
   const progressPercent = Math.round(stageProgress.progress * 100);
@@ -1039,14 +1039,14 @@ function renderMilestoneCard(milestone: ReturnType<typeof getMilestones>[0], col
            style="--milestone-color: ${color}; --rotate: ${rotation}deg"
            tabindex="0"
            role="button"
-           aria-label="${milestone.name}">
+           aria-label="${escapeHtml(t(milestone.name))}">
         <div class="journey-polaroid__image">
           <div class="journey-polaroid__glow"></div>
           <span class="journey-polaroid__emoji">${milestoneEmoji}</span>
         </div>
         <div class="journey-polaroid__caption">
-          <span class="journey-polaroid__title">${escapeHtml(milestone.name)}</span>
-          <p class="journey-polaroid__message">${escapeHtml(milestone.message)}</p>
+          <span class="journey-polaroid__title">${escapeHtml(t(milestone.name))}</span>
+          <p class="journey-polaroid__message">${escapeHtml(t(milestone.message))}</p>
           <div class="journey-polaroid__footer">
             ${dateStr ? `<span class="journey-polaroid__date">${dateStr}</span>` : ''}
             ${milestone.personaId ? `<span class="journey-polaroid__persona">with ${milestone.personaId}</span>` : ''}
@@ -1066,12 +1066,12 @@ function renderMilestoneCard(milestone: ReturnType<typeof getMilestones>[0], col
           <span class="journey-polaroid__mystery-icon">?</span>
         </div>
         <div class="journey-polaroid__caption">
-          <span class="journey-polaroid__title">${milestone.subtitle || 'Keep exploring...'}</span>
+          <span class="journey-polaroid__title">${escapeHtml(milestone.subtitle ? t(milestone.subtitle) : t('journey.mysteryAwaits'))}</span>
           ${hasProgress ? `
             <div class="journey-polaroid__progress">
               <div class="journey-polaroid__progress-fill" style="width: ${progressPercent}%"></div>
             </div>
-            <span class="journey-polaroid__hint">${progressPercent}% discovered</span>
+            <span class="journey-polaroid__hint">${t('teamRoster.percentDiscovered', { percent: progressPercent })}</span>
           ` : `
             <span class="journey-polaroid__hint">${t('journey.mysteryAwaits')}</span>
           `}
