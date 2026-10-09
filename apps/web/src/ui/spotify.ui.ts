@@ -34,6 +34,8 @@ let linkButton: HTMLElement | null = null;
 // Store link status
 let isSpotifyLinked = false;
 let spotifyConfigured = false;
+// A connect is asking the server for its login URL; repeat clicks wait for it.
+let isConnecting = false;
 
 // Callback for state changes (used by menu)
 let onLinkStateChangeCallback: ((linked: boolean, configured: boolean) => void) | null = null;
@@ -141,9 +143,13 @@ async function handleLinkClick(): Promise<void> {
       log.error('Could not unlink Spotify:', e);
     }
   } else {
+    if (isConnecting) return;
     // A page navigation can't carry the sign-in token, so the server first
     // binds a one-time state to this user and returns the login URL to visit.
-    const result = await startOAuthConnect('spotify', window.location.pathname);
+    isConnecting = true;
+    const result = await startOAuthConnect('spotify', window.location.pathname).finally(() => {
+      isConnecting = false;
+    });
     if (!result.success) {
       showSpotifyStatus(result.error ?? 'Could not connect to Spotify', 'error');
       trackedTimeout(() => hideSpotifyStatus(), 4000);

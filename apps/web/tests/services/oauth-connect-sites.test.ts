@@ -135,4 +135,19 @@ describe('Spotify link button', () => {
     expect(mockLocation.href).toBe('/spotify/login?state=sp');
     expect(mockLocation.href).not.toMatch(/device_id/);
   });
+
+  it('a second click while the first start is pending asks the server only once', async () => {
+    vi.doMock('../../src/state/app.state.js', () => ({ getDeviceId: () => 'device-1' }));
+    const { triggerSpotifyLinkToggle } = await import('../../src/ui/spotify.ui.js');
+
+    let answer: (value: unknown) => void = () => undefined;
+    api.apiPost.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    const first = triggerSpotifyLinkToggle();
+    await triggerSpotifyLinkToggle();
+    answer({ ok: true, status: 200, data: { url: '/spotify/login?state=once' } });
+    await first;
+
+    expect(api.apiPost).toHaveBeenCalledTimes(1);
+    expect(mockLocation.href).toBe('/spotify/login?state=once');
+  });
 });
