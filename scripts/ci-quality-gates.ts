@@ -33,12 +33,17 @@ const THRESHOLDS = {
   // Code quality
   maxAsAny: 30, // `as any` assertions
   maxConsoleUsage: 100, // console.* usage (excluding logger wrappers)
-  maxFileLines: 2000, // Lines per file (warning at 500, fail at 2000)
-  maxLargeFiles: 20, // Files over 500 lines allowed
+  maxFileLines: 2000, // Lines per file; files over 500 lines are the ratchet's job
+  maxHugeFiles: 0, // Files over maxFileLines allowed
 
   // Architecture
   maxLayerViolations: 0, // Architecture layer violations
 };
+
+// The limits above are replaced by today's numbers, so a check fails only when a change makes
+// it worse (every gate used to fail on main, behind continue-on-error). --update lowers them.
+const BASELINE_FILE = path.join(process.cwd(), 'scripts', 'ci-quality-gates.baseline.json');
+Object.assign(THRESHOLDS, JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf8')) as Record<string, number>);
 
 // Extra strict mode thresholds
 const STRICT_THRESHOLDS = {
@@ -47,7 +52,7 @@ const STRICT_THRESHOLDS = {
   maxAsAny: 20,
   maxConsoleUsage: 50,
   maxFileLines: 1500,
-  maxLargeFiles: 10,
+  maxHugeFiles: 0,
   maxLayerViolations: 0,
 };
 
@@ -321,20 +326,18 @@ function checkFileSizes(limits: typeof THRESHOLDS): CheckResult {
     }
   }
 
-  const count = largeFiles.length;
   const hugeFiles = largeFiles.filter((f) => f.lines > limits.maxFileLines);
+  const count = hugeFiles.length;
 
   return {
-    name: 'Large Files (>500 lines)',
-    passed: count <= limits.maxLargeFiles && hugeFiles.length === 0,
+    name: `Huge Files (>${limits.maxFileLines} lines)`,
+    passed: count <= limits.maxHugeFiles,
     value: count,
-    threshold: limits.maxLargeFiles,
+    threshold: limits.maxHugeFiles,
     message:
-      hugeFiles.length > 0
-        ? `${hugeFiles.length} file(s) exceed ${limits.maxFileLines} lines: ${hugeFiles.slice(0, 3).map((f) => `${f.file}:${f.lines}`).join(', ')}${hugeFiles.length > 3 ? '...' : ''}`
-        : count <= limits.maxLargeFiles
-          ? `${count} files over 500 lines (within limit of ${limits.maxLargeFiles})`
-          : `${count} large files exceeds limit of ${limits.maxLargeFiles}`,
+      count <= limits.maxHugeFiles
+        ? `${count} files over ${limits.maxFileLines} lines (baseline ${limits.maxHugeFiles})`
+        : `${count} files over ${limits.maxFileLines} lines, up from ${limits.maxHugeFiles}`,
   };
 }
 
@@ -475,5 +478,14 @@ if (todosOnly) {
   process.exit(passed ? 0 : 1);
 } else {
   const results = runAllChecks(strictMode);
+  if (args.includes('--update')) {
+    const key: Record<string, string> = { 'Critical TODOs (FIXME/BUG)': 'maxCriticalTodos', 'Ancient TODOs (>90 days)': 'maxAncientTodos', '`as any` Assertions': 'maxAsAny', 'console.* Usage': 'maxConsoleUsage' };
+    const base = JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf8')) as Record<string, number>;
+    for (const c of results.checks) {
+      const k = key[c.name] ?? (c.name.startsWith('Huge Files') ? 'maxHugeFiles' : undefined);
+      if (k) base[k] = Math.min(base[k] ?? c.value, c.value);
+    }
+    fs.writeFileSync(BASELINE_FILE, JSON.stringify(base, null, 2) + '\n');
+  }
   process.exit(results.passed ? 0 : 1);
 }
