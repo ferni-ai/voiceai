@@ -725,7 +725,6 @@ class NotificationSettingsUI {
       input.addEventListener('change', () => this.handleOutreachChange(input as HTMLInputElement));
     });
 
-    // Footer buttons
     this.panel.querySelector('[data-action="cancel"]')?.addEventListener('click', () => this.hide());
     this.panel.querySelector('[data-action="save"]')?.addEventListener('click', () => this.save());
 
