@@ -128,19 +128,19 @@ describe('API Helpers', () => {
   // ============================================================================
 
   describe('getUserId', () => {
-    it('should get userId from query params', () => {
+    it('should NOT take userId from query params alone', () => {
       const req = createMockRequest({});
       const url = new URL('http://localhost/api/test?userId=user-123');
 
       const result = getUserId(req, url);
 
-      expect(result).toBe('user-123');
+      expect(result).toBeNull();
     });
 
     // SECURITY POSTURE: x-user-id is client-controlled and is deliberately NOT
     // a trusted identity source. Only x-firebase-uid (set by auth-middleware
-    // after verifying the token), the userId query param, or the dev admin_key
-    // bypass identify a caller. These cases pin that, so restoring the old
+    // after verifying the token), a userId query param from a verified admin,
+    // or the dev admin_key bypass identify a caller. These cases pin that, so restoring the old
     // header trust would fail the suite.
     it('should IGNORE the x-user-id header', () => {
       const req = createMockRequest({
@@ -175,7 +175,7 @@ describe('API Helpers', () => {
       expect(result).toBe('firebase-uid-789');
     });
 
-    it('should use the query param when no verified uid is present', () => {
+    it('should NOT use the query param when no verified uid is present', () => {
       const req = createMockRequest({
         headers: { 'x-user-id': 'header-user' },
       });
@@ -183,7 +183,7 @@ describe('API Helpers', () => {
 
       const result = getUserId(req, url);
 
-      expect(result).toBe('query-user');
+      expect(result).toBeNull();
     });
 
     it('should return null if no userId provided', () => {
@@ -213,9 +213,9 @@ describe('API Helpers', () => {
 
   describe('requireUserId', () => {
     it('should return userId when present', () => {
-      const req = createMockRequest({});
+      const req = createMockRequest({ headers: { 'x-firebase-uid': 'user-123' } });
       const { res } = createMockResponse();
-      const url = new URL('http://localhost/api/test?userId=user-123');
+      const url = new URL('http://localhost/api/test');
 
       const result = requireUserId(req, res, url);
 

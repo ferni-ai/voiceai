@@ -163,6 +163,41 @@ describe('life moves on', () => {
     expect(updates.map((u) => u.update)).toEqual(['The rosemary has its first new shoots.']);
   });
 
+  it('knows he said it when the ledger paraphrased it (live wording)', async () => {
+    const said = {
+      personaId: 'ferni',
+      update: "The basil didn't make it; you've started a rosemary instead.",
+      createdAt: ago(3),
+    };
+    const paraphrased = (fact: string): LedgerFact => ({
+      personaId: 'ferni',
+      fact,
+      saidAt: ago(2),
+    });
+    const load = (told: LedgerFact[]) =>
+      loadLifeUpdates('u1', [...told, basil], 'ferni', {
+        store: updateStore([said]),
+        write: writes(['The rosemary has its first new shoots.']),
+        env: ON,
+        now: () => NOW,
+      });
+    // Live: these two came back and the basil update still repeated every call.
+    expect(
+      (
+        await load([
+          paraphrased("Ferni's basil plant did not survive."),
+          paraphrased('Ferni now has a rosemary plant in its place, hoping it is sturdier.'),
+        ])
+      ).map((u) => u.update)
+    ).toEqual(['The rosemary has its first new shoots.']);
+    // One shared word is not saying it.
+    expect(
+      (await load([paraphrased('Ferni bought some fresh basil at the market.')])).map(
+        (u) => u.update
+      )
+    ).toEqual([said.update]);
+  });
+
   it('gives nothing when the model fails', async () => {
     const write = vi.fn(async () => Promise.reject(new Error('quota')));
     expect(

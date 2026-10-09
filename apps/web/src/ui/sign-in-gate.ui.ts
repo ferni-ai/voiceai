@@ -368,6 +368,7 @@ function showAccessNotice(notice: AccessNotice, retry: () => void): void {
 
   // Title
   const title = document.createElement('h1');
+  title.id = TITLE_ID; // the notice replaces the welcome content, so it names the dialog now
   title.className = 'sign-in-gate-waitlist-title';
   title.textContent = t(NOTICE_COPY[notice.kind].title);
   waitlistDiv.appendChild(title);
@@ -485,9 +486,29 @@ function createAppleIcon(): SVGSVGElement {
   return svg;
 }
 
+const TITLE_ID = 'sign-in-gate-title';
+let inertBehindGate: HTMLElement[] = [];
+
+/** Signed out, the app behind the gate must be out of reach of Tab and screen readers. */
+function keepAppBehindGate(): void {
+  inertBehindGate = [...document.body.children].filter(
+    (el): el is HTMLElement => el instanceof HTMLElement && el !== overlayEl && !el.inert
+  );
+  for (const el of inertBehindGate) el.inert = true;
+}
+
+/** Undo only what the gate did: hidden panels keep the inert they set themselves */
+function releaseAppBehindGate(): void {
+  for (const el of inertBehindGate) el.inert = false;
+  inertBehindGate = [];
+}
+
 function createOverlay(): HTMLElement {
   const overlay = document.createElement('div');
   overlay.className = 'sign-in-gate-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', TITLE_ID);
 
   const content = document.createElement('div');
   content.className = 'sign-in-gate-content';
@@ -508,6 +529,7 @@ function createOverlay(): HTMLElement {
 
   // Title
   const title = document.createElement('h1');
+  title.id = TITLE_ID;
   title.className = 'sign-in-gate-title';
   title.textContent = t('auth.welcome');
 
@@ -634,9 +656,8 @@ export async function showSignInGate(): Promise<void> {
   // Create and show overlay
   overlayEl = createOverlay();
   document.body.appendChild(overlayEl);
-
-  // Force reflow for animation
-  void overlayEl.offsetHeight;
+  keepAppBehindGate();
+  void overlayEl.offsetHeight; // reflow, so the fade-in animates
   overlayEl.classList.add('visible');
 
   // Subscribe to auth state changes
@@ -673,7 +694,7 @@ export async function showSignInGate(): Promise<void> {
  */
 export function hideSignInGate(): void {
   if (!overlayEl) return;
-
+  releaseAppBehindGate();
   overlayEl.classList.add('hiding');
 
   setTimeout(() => {

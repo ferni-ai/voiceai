@@ -93,16 +93,26 @@ describe('turn extras', () => {
   it('adds fillers, laughter and opinions only with HUMAN_TEXTURE, and none while venting', () => {
     const env = { HUMAN_TEXTURE: 'on' };
     expect(extrasFor('we got a puppy', 'share', 'answer', false, () => 0, {}).fired).toEqual([]);
-    expect(extrasFor('we got a puppy', 'share', 'answer', false, () => 0, env).fired).toEqual([
-      'filler',
-      'laugh_spontaneous',
-      'opinion',
-    ]);
+    expect(
+      extrasFor('the cat is plotting against me', 'share', 'answer', false, () => 0, env).fired
+    ).toEqual(['filler', 'laugh_spontaneous', 'opinion']);
     const venting = extrasFor('honestly I am exhausted', 'share', 'answer', false, () => 0, env);
     expect(venting.fired).toEqual(['filler']);
     expect(extrasFor('haha she did it', 'share', 'one', false, () => 0, env).fired).not.toContain(
       'laugh_spontaneous'
     );
+  });
+
+  it('laughs on its own only when their words are funny or a happy surprise', () => {
+    const env = { HUMAN_TEXTURE: 'on' };
+    const laughs = (t: string) =>
+      extrasFor(t, 'share', 'one', false, () => 0, env).fired.includes('laugh_spontaneous');
+    expect(laughs('she did it on purpose, I swear')).toBe(true);
+    expect(laughs('guess what, we got engaged')).toBe(true);
+    // Live, he laughed at both of these.
+    expect(laughs("my week's been okay, kind of a slow one")).toBe(false);
+    expect(laughs('she said yes and I teared up')).toBe(false);
+    expect(laughs('my grandpa passed away last week')).toBe(false);
   });
 
   it('hears venting as whole words only', () => {

@@ -7,6 +7,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { AgentManifest, ToolManifest } from '../../marketplace/schema/types.js';
 import { parseBody as parseBodyHelper, sendJSON } from '../helpers.js';
+import { isVerifiedAdmin } from '../rate-limit-identity.js';
 
 // ============================================================================
 // TYPES
@@ -52,16 +53,15 @@ export function sendJson(res: ServerResponse, status: number, data: unknown): vo
 }
 
 /**
- * Get user ID from request headers
- * SECURITY: Prioritizes Firebase auth (x-firebase-uid) over deprecated x-user-id
+ * The user a request acts for: the verified caller (x-firebase-uid, set only
+ * by bindVerifiedIdentity), or the user a verified admin names in x-user-id.
+ * A raw x-user-id is a claim; the door only rewrites it outside development.
  */
 export function getUserId(req: IncomingMessage): string | null {
-  // SECURITY: Prioritize Firebase auth
-  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
-  if (firebaseUid) return firebaseUid;
-
-  // Legacy header (deprecated)
-  return (req.headers['x-user-id'] as string) || null;
+  const firebaseUid = req.headers['x-firebase-uid'];
+  if (typeof firebaseUid === 'string' && firebaseUid) return firebaseUid;
+  const named = req.headers['x-user-id'];
+  return typeof named === 'string' && named && isVerifiedAdmin(req) ? named : null;
 }
 
 /**

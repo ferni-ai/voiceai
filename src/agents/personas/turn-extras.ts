@@ -20,6 +20,7 @@
  *
  * @module agents/personas/turn-extras
  */
+import { classifyBackchannelContext } from '../integrations/backchannel-context.js';
 import type { CallerMove, Shape } from './turn-shape.js';
 
 type Env = Record<string, string | undefined>;
@@ -135,12 +136,16 @@ export function extrasFor(
       out.lines.push(FILLER);
       out.fired.push('filler');
     }
+    // Live at 25% on any share, he laughed at "a slow week" and at tender news
+    // (7 of 20 replies). Only when their words read as funny or a happy surprise.
+    const light = ['funny', 'surprise'].includes(classifyBackchannelContext(userText) ?? '');
     if (
       move === 'share' &&
+      light &&
       !venting &&
       !callerLaughed(userText) &&
       shape !== 'full' &&
-      rng() < 0.25
+      rng() < 0.5
     ) {
       out.lines.push(LAUGH_SPONTANEOUS);
       out.fired.push('laugh_spontaneous');

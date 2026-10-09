@@ -41,7 +41,7 @@ import {
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
 import { withToolLeadIn } from './tool-lead-in.js';
-import { withTurnReminder } from './turn-request.js';
+import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
 
 const log = createLogger({ module: 'CrisisGate' });
@@ -246,7 +246,7 @@ export async function gatedReply(
       ? withTurnStyleReminder(plain(), gate.decision.guidance)
       : withTurnReminder(chatCtx, session);
   const ask = async (request: llm.ChatContext): Promise<ReadableStream<Chunk> | null> => {
-    const stream = await model(request);
+    const stream = tapToolCalls(await model(request), session);
     if (!stream) return stream;
     const trimmed = env.OPENER_GATE !== 'off' ? openerGate.wrap(stream) : stream;
     return withToolLeadIn(trimmed, chatCtx, session, env);
