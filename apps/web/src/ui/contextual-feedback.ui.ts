@@ -324,6 +324,7 @@ function injectStyles(): void {
 function createContainer(): void {
   container = document.createElement('div');
   container.className = 'contextual-feedback';
+  container.inert = true; // invisible until a reply asks for feedback: unreachable until then
   container.setAttribute('role', 'dialog');
   container.setAttribute('aria-label', t('contextualFeedback.ariaLabel'));
 
@@ -411,18 +412,15 @@ function handleFeedbackPrompt(event: FeedbackPromptEvent): void {
 // ============================================================================
 
 export function show(): void {
-  if (!container) {
-    // Try to create if not exists (late initialization)
-    createContainer();
-  }
+  if (!container) createContainer(); // late initialization
   if (!container) return;
-
+  container.inert = false;
   container.classList.add('contextual-feedback--visible');
 }
 
 export function hide(): void {
   if (!container) return;
-
+  container.inert = true;
   container.classList.remove('contextual-feedback--visible');
 
   // Reset button states after animation completes
