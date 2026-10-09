@@ -53,12 +53,7 @@ export class DynamicToolLoader {
     this.config = {
       essentialDomains: DEFAULT_ESSENTIAL_DOMAINS,
       unloadAfterMs: 5 * 60 * 1000, // 5 minutes
-      // Counts the essential domains (12 by default), so each topic load
-      // evicts the previous topic domain from this loader. That is what lets a
-      // topic raised again reload and re-offer its tools, after later domains
-      // pushed them out of the agent's capped set; counting only topic domains
-      // would leave it "loaded" with its tools gone.
-      maxLoadedDomains: 10,
+      maxLoadedDomains: 10, // counts the essential domains: see types.ts
       enableAutoUnload: true,
       ...config,
     };
@@ -437,81 +432,4 @@ export function createSessionToolLoader(config: Partial<DynamicLoaderConfig> = {
 
 export default dynamicToolLoader;
 
-// ============================================================================
-// HELPER: Load Essential Domains (for timeout fallback)
-// ============================================================================
-
-let essentialDomainsReady: Promise<void> | null = null;
-
-/**
- * Register the domain loaders and load the essential domains, once per context.
- *
- * A LiveKit job runs in its own context with a fresh module graph, so the
- * worker's startup preload never reaches it. Without this, the registry is
- * empty when the first agent is built and the call starts with no domain
- * tools. Safe to call early (e.g. at job entry) to take it off the critical
- * path; later callers await the same promise.
- */
-export function ensureEssentialDomainsLoaded(): Promise<void> {
-  essentialDomainsReady ??= (async () => {
-    const { autoRegisterAllDomains, loadToolDomainsLazy } = await import('../registry/loader.js');
-    await autoRegisterAllDomains();
-    await loadToolDomainsLazy([...DEFAULT_ESSENTIAL_DOMAINS]);
-  })().catch((error: unknown) => {
-    essentialDomainsReady = null; // let the next caller retry
-    throw error;
-  });
-  return essentialDomainsReady;
-}
-
-/**
- * Load essential domain tools quickly (for timeout fallback scenarios).
- * Uses the tool registry to build tools from essential domains.
- *
- * @param userId - User ID for tool context
- * @param services - Session services
- * @returns Record of tool name → tool definition
- */
-export async function loadEssentialDomains(
-  userId: string,
-  services: unknown
-): Promise<Record<string, unknown>> {
-  const log = getLogger();
-
-  await ensureEssentialDomainsLoaded();
-
-  // Import registry and build tools for essential domains
-  const { toolRegistry, EnvironmentServiceRegistry } = await import('../registry/index.js');
-  type ToolDomainType = import('../registry/types.js').ToolDomain;
-
-  // Tools look services up through a ServiceRegistry (has/get). Callers on the
-  // live path pass their SessionServices, which is a different shape; building
-  // with it threw "services.has is not a function" and the call got no tools.
-  const isServiceRegistry = typeof (services as { has?: unknown } | undefined)?.has === 'function';
-  const ctx = {
-    userId: userId || 'anonymous',
-    agentId: 'ferni',
-    agentDisplayName: 'Ferni',
-    services: isServiceRegistry ? services : new EnvironmentServiceRegistry(),
-  };
-
-  // Cast domains to the expected type
-  const domains = DEFAULT_ESSENTIAL_DOMAINS as unknown as ToolDomainType[];
-
-  // Build tools from essential domains
-  const result = toolRegistry.buildToolSet(
-    { domains },
-    ctx as import('../registry/types.js').ToolContext
-  );
-
-  log.info(
-    {
-      essentialDomains: DEFAULT_ESSENTIAL_DOMAINS.length,
-      totalTools: result.stats.total,
-      skipped: result.skipped?.length || 0,
-    },
-    '🎵 Essential domain tools loaded from registry'
-  );
-
-  return result.tools as Record<string, unknown>;
-}
+export { ensureEssentialDomainsLoaded, loadEssentialDomains } from './essential-domain-loader.js';
