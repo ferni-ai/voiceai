@@ -20,7 +20,7 @@
  * persist across sessions via Firestore/PostgreSQL.
  */
 
-import { getDefaultStore } from '../../memory/index.js';
+import { getProfileStore } from '../../memory/profile-store.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -282,7 +282,7 @@ async function loadMemoriesForUser(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
 
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(userId);
 
     if (!profile?.personaMemories) {
@@ -336,7 +336,7 @@ export async function saveMemoriesForUser(userId: string): Promise<void> {
   if (!dirtyUsers.has(userId)) return;
 
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(userId);
     if (!profile) return;
 

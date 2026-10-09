@@ -213,8 +213,8 @@ async function runIndexMemoriesJob(
     // Get user profile data from Firestore
     let profile: Record<string, unknown> = {};
     try {
-      const { getDefaultStore } = await import('../memory/index.js');
-      const memoryStore = getDefaultStore();
+      const { getStore } = await import('../memory/store-factory.js');
+      const memoryStore = await getStore();
       const userProfile = await memoryStore.getProfile(userId);
       if (userProfile) {
         profile = userProfile as unknown as Record<string, unknown>;

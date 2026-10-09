@@ -8,8 +8,8 @@
  * - Voicemail detection
  */
 
+import { getProfileStore } from '../../../memory/profile-store.js';
 import { createHmac } from 'crypto';
-import { getDefaultStore } from '../../../memory/in-memory-store.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { recordResponseEvent } from '../analytics.js';
@@ -33,7 +33,7 @@ const log = getLogger().child({ module: 'twilio-webhooks' });
  */
 async function findUserByPhone(phone: string): Promise<UserProfile | null> {
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     if (!store.isInitialized) {
       await store.initialize();
     }

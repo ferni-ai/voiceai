@@ -15,6 +15,7 @@
  * @module proactive/outreach
  */
 
+import { getProfileStore } from '../../../../memory/profile-store.js';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { createLogger } from '../../../../utils/safe-logger.js';
@@ -28,7 +29,6 @@ import {
 import { recordReminderPromise } from '../../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 import { sendEmail, sendSMS } from '../../../../services/communication-service.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
-import { getDefaultStore } from '../../../../memory/index.js';
 import {
   getPersonaDisplayName,
   getCanonicalPersonaId,
@@ -77,7 +77,7 @@ export async function setUserContactInfo(
 
   // Persist to Firestore via user profile's preferences
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     if (!store) {
       log.warn('No store available for persisting contact info');
       return;
@@ -117,7 +117,7 @@ export async function getUserContactInfo(userId: string): Promise<UserContactInf
 
   // Try to load from Firestore
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     if (!store) return null;
 
     const profile = await store.getProfile(userId);

@@ -2988,7 +2988,13 @@
     "tryDifferentAccount": "Essayer un autre compte",
     "checkingAccess": "Vérification de tes accès...",
     "checkingLabel": "Un petit instant...",
-    "signInError": "La connexion a été annulée ou a échoué. Réessaie."
+    "signInError": "La connexion a été annulée ou a échoué. Réessaie.",
+    "verifyEmailTitle": "Vérifie ton adresse e-mail",
+    "verifyEmailMessage": "Ouvre le lien qu'on t'a envoyé par e-mail, puis connecte-toi à nouveau.",
+    "noEmailTitle": "On a besoin d'une adresse e-mail",
+    "noEmailMessage": "Ce compte n'est associé à aucune adresse e-mail. Connecte-toi avec un compte qui en possède une.",
+    "checkFailedTitle": "On n'a pas pu vérifier tes accès",
+    "checkFailedMessage": "Un petit souci est survenu de notre côté. Attends un instant et réessaie."
   },
   "visualizations": {
     "lifeSeasons": "Les saisons de ta vie",

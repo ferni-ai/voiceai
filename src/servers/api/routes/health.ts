@@ -8,6 +8,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import * as spotifyService from '../services/spotify.js';
 import * as plaidService from '../services/plaid.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { requireAdmin } from '../../../api/auth-middleware.js';
 import { parseRawBody } from '../../../api/helpers.js';
 import { getAllStats as getPersistenceStats } from '../../../services/persistence/index.js';
 import { persistenceMetrics } from '../../../services/analytics/persistence-metrics.js';
@@ -401,7 +402,6 @@ export async function handleHealthRoutes(
         alerts: [] as Array<{ level: 'warn' | 'error'; message: string }>,
       };
 
-      // Add alerts
       if (!vectorHealth.healthy) {
         semanticHealth.alerts.push({
           level: 'error',
@@ -444,18 +444,18 @@ export async function handleHealthRoutes(
     return true;
   }
 
-  // TTL cleanup trigger
+  // TTL cleanup trigger. Admin only: it deletes documents across caller-named collections.
   if (pathname === '/api/semantic-store/cleanup') {
     if (req.method !== 'POST') {
       res.writeHead(405, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Method not allowed', allowed: ['POST'] }));
       return true;
     }
+    if (!(await requireAdmin(req, res))) return true;
 
     try {
       const ttl = await import('../../../services/data-layer/ttl-cleanup.js');
 
-      // Parse request body for options
       const body = await parseRawBody(req);
 
       let options: { dryRun?: boolean; collections?: string[] } = {};

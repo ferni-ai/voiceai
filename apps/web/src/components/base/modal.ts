@@ -183,6 +183,9 @@ export class Modal extends BaseComponent {
     const card = this.querySelector<HTMLElement>('.ferni-modal__card');
 
     this.show();
+    // The shared .ferni-modal styles (engagement-components) keep a modal hidden
+    // until it carries this modifier; without it the modal opened invisibly.
+    modal?.classList.add('ferni-modal--visible');
 
     if (modal && card) {
       // Backdrop fade in
@@ -227,6 +230,7 @@ export class Modal extends BaseComponent {
 
     const modal = this.querySelector<HTMLElement>('.ferni-modal');
     const card = this.querySelector<HTMLElement>('.ferni-modal__card');
+    modal?.classList.remove('ferni-modal--visible');
 
     if (modal && card) {
       // Backdrop fade out

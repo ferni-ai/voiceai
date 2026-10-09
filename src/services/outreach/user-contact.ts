@@ -9,8 +9,8 @@
  * and can be imported by both tools (Level 70) and other services.
  */
 
+import { getProfileStore } from '../../memory/profile-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { getDefaultStore } from '../../memory/index.js';
 import { getCanonicalPersonaId, getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { createReminder } from '../scheduling/reminder-scheduler.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -50,7 +50,7 @@ export async function setUserContactInfo(
 
   // Persist to user profile in Firestore
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(userId);
     if (profile) {
       profile.contactInfo = {
@@ -85,7 +85,7 @@ export async function getUserContactInfo(userId: string): Promise<UserContactInf
 
   // Load from profile if not in cache
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(userId);
     if (profile?.contactInfo) {
       const info: UserContactInfo = {

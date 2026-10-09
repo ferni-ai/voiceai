@@ -13,26 +13,17 @@
 import { signOutReleasingPush } from '../services/push-preference.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import {
-  getAuthToken,
   onAuthStateChange,
   signInWithApple,
   signInWithGoogle,
   type AuthState,
 } from '../services/firebase-auth.service.js';
 import { createLogger } from '../utils/logger.js';
-import { apiGet } from '../utils/api.js';
+import { checkAccess, type AccessOutcome } from '../services/access-check.js';
 import { emulatorSignInButtons } from './emulator-sign-in.js';
 import { t } from '../i18n/index.js';
 
 // TYPES
-
-interface WaitlistCheckResult {
-  approved: boolean;
-  status: 'approved' | 'pending' | 'no_email' | 'not_found';
-  tier?: string;
-  email?: string;
-  message?: string;
-}
 
 const log = createLogger('SignInGate');
 
@@ -281,35 +272,6 @@ const STYLES = `
 }
 `;
 
-// WAITLIST CHECK
-
-/**
- * Check if the authenticated user has access (approved on waitlist).
- * Returns the waitlist status to determine what UI to show.
- */
-async function checkWaitlistAccess(): Promise<WaitlistCheckResult> {
-  try {
-    const token = await getAuthToken();
-    if (!token) {
-      log.warn('No auth token available for waitlist check');
-      return { approved: false, status: 'not_found', message: 'Not authenticated' };
-    }
-
-    const response = await apiGet<WaitlistCheckResult>('/api/waitlist/check');
-
-    if (!response.ok || !response.data) {
-      log.error('Waitlist check failed:', response.status);
-      return { approved: false, status: 'not_found', message: 'Check failed' };
-    }
-
-    log.info('Waitlist check result:', response.data);
-    return response.data;
-  } catch (error) {
-    log.error('Waitlist check error:', error);
-    return { approved: false, status: 'not_found', message: 'Network error' };
-  }
-}
-
 /**
  * Show the "checking access" state while verifying waitlist.
  */
@@ -379,7 +341,18 @@ function createWaitlistIcon(): SVGSVGElement {
 /**
  * Transform the UI to show the waitlist pending state.
  */
-function showWaitlistPending(email?: string): void {
+type AccessNotice = Exclude<AccessOutcome, { kind: 'approved' }>;
+
+const NOTICE_COPY: Record<AccessNotice['kind'], { title: string; message: string }> = {
+  waitlisted: { title: 'auth.waitlistTitle', message: 'auth.waitlistMessage' },
+  'verify-email': { title: 'auth.verifyEmailTitle', message: 'auth.verifyEmailMessage' },
+  'no-email': { title: 'auth.noEmailTitle', message: 'auth.noEmailMessage' },
+  unavailable: { title: 'auth.checkFailedTitle', message: 'auth.checkFailedMessage' },
+};
+
+/** Why the user can't come in yet; `unavailable` also offers to check again. */
+function showAccessNotice(notice: AccessNotice, retry: () => void): void {
+  const email = notice.kind === 'waitlisted' ? notice.email : undefined;
   const content = overlayEl?.querySelector('.sign-in-gate-content');
   if (!content) return;
 
@@ -396,13 +369,13 @@ function showWaitlistPending(email?: string): void {
   // Title
   const title = document.createElement('h1');
   title.className = 'sign-in-gate-waitlist-title';
-  title.textContent = t('auth.waitlistTitle');
+  title.textContent = t(NOTICE_COPY[notice.kind].title);
   waitlistDiv.appendChild(title);
 
   // Message
   const message = document.createElement('p');
   message.className = 'sign-in-gate-waitlist-message';
-  message.textContent = t('auth.waitlistMessage');
+  message.textContent = t(NOTICE_COPY[notice.kind].message);
   waitlistDiv.appendChild(message);
 
   // Email confirmation
@@ -418,6 +391,13 @@ function showWaitlistPending(email?: string): void {
   const buttonsDiv = document.createElement('div');
   buttonsDiv.className = 'sign-in-gate-buttons';
 
+  if (notice.kind === 'unavailable') {
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'sign-in-gate-btn sign-in-gate-btn--google';
+    retryBtn.textContent = t('common.tryAgain');
+    retryBtn.addEventListener('click', retry);
+    buttonsDiv.appendChild(retryBtn);
+  }
   const signOutBtn = document.createElement('button');
   signOutBtn.className = 'sign-in-gate-btn sign-in-gate-btn--secondary';
   signOutBtn.textContent = t('auth.tryDifferentAccount');
@@ -662,33 +642,23 @@ export async function showSignInGate(): Promise<void> {
   // Subscribe to auth state changes
   const unsubscribe = onAuthStateChange((state: AuthState) => {
     if (state.isAuthenticated) {
-      log.info('User authenticated, checking waitlist status');
-
-      // Show checking state
-      showCheckingState();
-
-      // Check waitlist access
-      checkWaitlistAccess()
-        .then((result) => {
-          if (result.approved) {
-            log.info('User approved, granting access');
-            hideSignInGate();
-            unsubscribe();
-            resolveSignIn?.();
-            resolveSignIn = null;
-            pendingSignIn = null;
-          } else {
-            log.info('User not approved, showing waitlist pending');
-            showWaitlistPending(result.email);
-            // Don't resolve - user stays on gate
-            // Don't unsubscribe - we might need to check again if they sign out and back in
+      const runCheck = (): void => {
+        showCheckingState();
+        void checkAccess().then((outcome) => {
+          log.info('Access check', { outcome: outcome.kind });
+          if (outcome.kind !== 'approved') {
+            // Stay on the gate and keep listening: they may sign in with another account
+            showAccessNotice(outcome, runCheck);
+            return;
           }
-        })
-        .catch((error) => {
-          log.error('Waitlist check failed:', error);
-          // On error, show waitlist pending as safe default
-          showWaitlistPending();
+          hideSignInGate();
+          unsubscribe();
+          resolveSignIn?.();
+          resolveSignIn = null;
+          pendingSignIn = null;
         });
+      };
+      runCheck();
     }
   });
 

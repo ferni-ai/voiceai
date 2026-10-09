@@ -2988,7 +2988,13 @@
     "tryDifferentAccount": "לנסות חשבון אחר",
     "checkingAccess": "בודקים את הגישה שלך...",
     "checkingLabel": "רק רגע...",
-    "signInError": "ההתחברות בוטלה או נכשלה. כדאי לנסות שוב."
+    "signInError": "ההתחברות בוטלה או נכשלה. כדאי לנסות שוב.",
+    "verifyEmailTitle": "אימות כתובת האימייל",
+    "verifyEmailMessage": "יש לפתוח את הקישור ששלחנו באימייל, ואז להתחבר מחדש.",
+    "noEmailTitle": "אנחנו זקוקים לכתובת אימייל",
+    "noEmailMessage": "לחשבון הזה אין כתובת אימייל. יש להתחבר עם חשבון שיש לו כתובת כזו.",
+    "checkFailedTitle": "לא הצלחנו לבדוק את הגישה שלך",
+    "checkFailedMessage": "משהו השתבש אצלנו. כדאי להמתין רגע ולנסות שוב."
   },
   "visualizations": {
     "lifeSeasons": "עונות החיים שלך",

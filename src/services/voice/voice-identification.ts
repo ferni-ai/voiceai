@@ -12,6 +12,7 @@
  * 4. Present natural confirmation UX
  */
 
+import { getProfileStore } from '../../memory/profile-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import {
@@ -170,8 +171,7 @@ export async function recordVoiceMatchFeedback(
   // Persist to profile if available
   if (profile) {
     try {
-      const { getDefaultStore } = await import('../../memory/index.js');
-      const store = getDefaultStore();
+      const store = await getProfileStore();
       if (!profile.customData) profile.customData = {};
       profile.customData.voiceThresholds = thresholds;
       await store.saveProfile(profile);

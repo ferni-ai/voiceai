@@ -14,7 +14,7 @@
  * Philosophy: Reach out when they're receptive, not when it's convenient for us.
  */
 
-import { getDefaultStore } from '../../memory/in-memory-store.js';
+import { getProfileStore } from '../../memory/profile-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { OutreachPriority } from './decision-engine.js';
 import { loadOutreachProfile, saveOutreachProfile } from './firestore-persistence.js';
@@ -431,7 +431,7 @@ function deserializeTimingProfile(data: Partial<TimingProfile>): Partial<TimingP
  */
 async function loadTimezoneFromUserProfile(userId: string): Promise<void> {
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const userProfile = await store.getProfile(userId);
 
     if (userProfile?.contactInfo?.timezone) {

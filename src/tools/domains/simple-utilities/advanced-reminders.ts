@@ -11,6 +11,7 @@
  * @module simple-utilities/advanced-reminders
  */
 
+import { getProfileStore } from '../../../memory/profile-store.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
@@ -354,13 +355,12 @@ const recurringReminderDef: ToolDefinition = {
             recurrencePattern = { type: 'daily' };
         }
 
-        // Calculate next occurrence
         const nextOccurrence = calculateNextOccurrence(recurrencePattern, parsedTime);
 
         // Get user's timezone preference, defaulting to UTC (neutral for international users)
         let userTimezone = 'Etc/UTC';
         try {
-          const store = await import('../../../memory/index.js').then((m) => m.getDefaultStore());
+          const store = await getProfileStore();
           const profile = await store.getProfile(ctx.userId || 'anon');
           if (profile?.contactInfo?.timezone) {
             userTimezone = profile.contactInfo.timezone;

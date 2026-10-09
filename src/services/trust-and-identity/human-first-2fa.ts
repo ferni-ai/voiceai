@@ -17,9 +17,9 @@
  * @module HumanFirst2FA
  */
 
+import { getProfileStore } from '../../memory/profile-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserProfile } from '../../types/user-profile.js';
-import { getDefaultStore } from '../../memory/index.js';
 import { sendVerificationCode, isTwilioConfigured } from '../twilio-sms.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
@@ -583,7 +583,7 @@ export async function calculateTrustLevel(
     callerIdMatch?: boolean;
   }
 ): Promise<TrustState> {
-  const store = getDefaultStore();
+  const store = await getProfileStore();
   const profile = await store.getProfile(userId);
 
   // Calculate relationship score

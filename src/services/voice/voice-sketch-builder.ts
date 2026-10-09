@@ -9,9 +9,9 @@
  * @module voice/voice-sketch-builder
  */
 
+import { getProfileStore } from '../../memory/profile-store.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { VoiceSketch } from '../../types/user-profile.js';
-import { getDefaultStore } from '../../memory/in-memory-store.js';
 
 const log = createLogger({ module: 'VoiceSketchBuilder' });
 
@@ -210,7 +210,7 @@ export async function updateUserVoiceSketch(
     }
 
     // Load current profile
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(userId);
 
     if (!profile) {
@@ -246,7 +246,7 @@ export async function updateUserVoiceSketch(
  */
 export async function getUserVoiceSketch(userId: string): Promise<VoiceSketch | null> {
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(userId);
     return profile?.voiceSketch ?? null;
   } catch (error) {

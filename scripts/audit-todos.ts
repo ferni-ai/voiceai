@@ -348,7 +348,7 @@ async function main(): Promise<void> {
   const criticalOnly = args.includes('--critical');
   const jsonOutput = args.includes('--json');
 
-  process.stdout.write(colors.dim + 'Scanning codebase for TODOs...\n' + colors.reset);
+  process.stderr.write(colors.dim + 'Scanning codebase for TODOs...\n' + colors.reset);
 
   const allItems: TodoItem[] = [];
   const srcDir = path.join(process.cwd(), 'src');
@@ -378,8 +378,8 @@ async function main(): Promise<void> {
     printReport(report, { staleOnly, criticalOnly });
   }
 
-  // Exit with error if there are critical or ancient items
-  if (report.byPriority['critical'] > 0 || report.byAge.ancient > 10) {
+  // Exit with error if there are critical or ancient items (--json callers judge for themselves)
+  if (!jsonOutput && (report.byPriority['critical'] > 0 || report.byAge.ancient > 10)) {
     process.exit(1);
   }
 }

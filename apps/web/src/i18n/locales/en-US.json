@@ -3012,7 +3012,13 @@
     "tryDifferentAccount": "Try a different account",
     "checkingAccess": "Checking your access...",
     "checkingLabel": "Just a moment...",
-    "signInError": "Sign-in was cancelled or failed. Please try again."
+    "signInError": "Sign-in was cancelled or failed. Please try again.",
+    "verifyEmailTitle": "Verify your email",
+    "verifyEmailMessage": "Open the link we sent to your email, then sign in again.",
+    "noEmailTitle": "We need an email address",
+    "noEmailMessage": "This account has no email address. Sign in with an account that has one.",
+    "checkFailedTitle": "We couldn't check your access",
+    "checkFailedMessage": "Something went wrong on our side. Give it a moment and try again."
   },
   "visualizations": {
     "lifeSeasons": "Your Life Seasons",

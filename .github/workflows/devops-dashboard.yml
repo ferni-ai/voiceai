@@ -67,7 +67,7 @@ jobs:
           echo "has_alerts=$([[ $ALERT_COUNT -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
 
       - name: Upload Dashboard Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: devops-dashboard
           path: ./dashboard/
@@ -110,7 +110,7 @@ jobs:
 
     steps:
       - name: Download Dashboard Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: devops-dashboard
           path: ./dashboard
@@ -140,7 +140,7 @@ jobs:
 
     steps:
       - name: Download metrics
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: devops-dashboard
           path: ./dashboard

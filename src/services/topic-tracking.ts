@@ -7,8 +7,8 @@
  * Persists to user profile for cross-session continuity.
  */
 
+import { getProfileStore } from '../memory/profile-store.js';
 import { getLogger } from '../utils/safe-logger.js';
-import { getDefaultStore } from '../memory/index.js';
 import type { UserProfile } from '../types/user-profile.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 
@@ -72,7 +72,7 @@ async function flushToPersistence(): Promise<void> {
   dirtyUsers.clear();
 
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
 
     for (const userId of usersToFlush) {
       const profile = await store.getProfile(userId);
@@ -110,7 +110,7 @@ async function flushToPersistence(): Promise<void> {
  */
 async function loadFromProfile(userId: string): Promise<void> {
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(userId);
 
     if (profile?.customData?.topicHistory) {
