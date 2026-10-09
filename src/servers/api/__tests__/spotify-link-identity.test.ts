@@ -29,7 +29,7 @@ vi.mock('../../../services/identity/firebase-auth.js', () => ({
   ),
 }));
 
-// Per-user Spotify links, keyed by whatever id the route passes in.
+// Per-account Spotify links, keyed by whatever id the route passes in.
 const link = vi.hoisted(() => {
   const store = new Map<string, { access_token: string; expires_at: number }>();
   return {

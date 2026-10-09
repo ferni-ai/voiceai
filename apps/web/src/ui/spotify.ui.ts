@@ -145,7 +145,7 @@ async function handleLinkClick(): Promise<void> {
   } else {
     if (isConnecting) return;
     // A page navigation can't carry the sign-in token, so the server first
-    // binds a one-time state to this user and returns the login URL to visit.
+    // binds a one-time state to this account and returns the login URL to visit.
     isConnecting = true;
     const result = await startOAuthConnect('spotify', window.location.pathname).finally(() => {
       isConnecting = false;
