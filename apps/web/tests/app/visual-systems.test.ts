@@ -47,6 +47,29 @@ describe('initVisualSystems', () => {
     expect(STYLE_IDS.filter((id) => document.getElementById(id))).toEqual(STYLE_IDS);
   });
 
+  it('starts the remaining systems when one throws', async () => {
+    vi.resetModules();
+    vi.doMock('../../src/ui/color/index.js', () => ({
+      initColorSystem: (): void => {
+        throw new Error('color boom');
+      },
+    }));
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fresh = await import('../../src/app/visual-systems.js');
+    const freshSystems = await import('../../src/systems/index.js');
+
+    try {
+      expect(() => fresh.initVisualSystems('ferni')).not.toThrow();
+      expect(rootVar('--breath-phase')).not.toBe('');
+      expect(document.getElementById('mood-typography-styles')).not.toBeNull();
+      expect(errors.mock.calls.flat().join(' ')).toContain('color system');
+    } finally {
+      freshSystems.destroyTranscendentSystems();
+      errors.mockRestore();
+      vi.doUnmock('../../src/ui/color/index.js');
+    }
+  });
+
   it('seeds the mood palette from the active persona', () => {
     initVisualSystems('ferni');
     const ferni = rootVar('--mood-primary');
