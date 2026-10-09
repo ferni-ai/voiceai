@@ -11,7 +11,10 @@ import { applyAfterReplyStarts, updateAgentTools } from '../shared/tool-updater.
 import type { UserData } from '../shared/types.js';
 
 /**
- * Give the agent the loader's current tools once this reply has started.
+ * Give the agent the newly loaded domains' tools once this reply has started.
+ * Only those: updateAgentTools() puts the tools it is offered first, so the cap
+ * evicts the agent's oldest tools instead of them. Offered the loader's whole
+ * catalog (~211 tools, essential domains first), the cap cut the new domain.
  *
  * Changing the tool set as the turn ends voids LiveKit's preemptive reply
  * (it's reused only if the tools are unchanged), so every reply waited the
@@ -22,13 +25,13 @@ import type { UserData } from '../shared/types.js';
 export async function updateToolsAfterReplyStarts(
   session: voice.AgentSession<UserData>,
   agent: voice.Agent<UserData>,
-  dynamicToolLoader: { getCurrentTools: () => Record<string, unknown> },
+  dynamicToolLoader: { getToolsForDomains: (domains: string[]) => Record<string, unknown> },
   loadedDomains: string[],
   toolUpdaterLog: FallbackLogger
 ): Promise<void> {
   const apply = async (): Promise<void> => {
     try {
-      const newTools = dynamicToolLoader.getCurrentTools();
+      const newTools = dynamicToolLoader.getToolsForDomains(loadedDomains);
       const updated = await updateAgentTools(agent, newTools, {
         domains: loadedDomains,
       });

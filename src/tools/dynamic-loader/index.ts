@@ -53,7 +53,12 @@ export class DynamicToolLoader {
     this.config = {
       essentialDomains: DEFAULT_ESSENTIAL_DOMAINS,
       unloadAfterMs: 5 * 60 * 1000, // 5 minutes
-      maxLoadedDomains: 10, // Increased to accommodate essential domains
+      // Counts the essential domains (12 by default), so each topic load
+      // evicts the previous topic domain from this loader. That is what lets a
+      // topic raised again reload and re-offer its tools, after later domains
+      // pushed them out of the agent's capped set; counting only topic domains
+      // would leave it "loaded" with its tools gone.
+      maxLoadedDomains: 10,
       enableAutoUnload: true,
       ...config,
     };
@@ -338,6 +343,22 @@ export class DynamicToolLoader {
     );
 
     return result.tools;
+  }
+
+  /**
+   * Get only the named domains' tools, for a mid-session update after a topic
+   * loads them. getCurrentTools() lists the essential domains first, so the
+   * update's 64-tool cap kept those and cut the new domain: getCommuteTime
+   * stayed unavailable all call (local, 2026-10-08).
+   */
+  getToolsForDomains(domains: readonly string[]): Record<string, Tool> {
+    if (!this.toolContext) {
+      throw new Error('DynamicToolLoader not initialized');
+    }
+    const known = domains.filter((d): d is ToolDomain =>
+      (ALL_TOOL_DOMAINS as readonly string[]).includes(d)
+    );
+    return toolRegistry.buildToolSet({ domains: known }, this.toolContext).tools;
   }
 
   // ==========================================================================
