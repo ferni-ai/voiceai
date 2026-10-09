@@ -117,7 +117,7 @@ jobs:
           NODE_ENV: staging
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: staging-build-${{ needs.context.outputs.short_sha }}
           path: |
