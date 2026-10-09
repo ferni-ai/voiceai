@@ -53,7 +53,7 @@ export class DynamicToolLoader {
     this.config = {
       essentialDomains: DEFAULT_ESSENTIAL_DOMAINS,
       unloadAfterMs: 5 * 60 * 1000, // 5 minutes
-      maxLoadedDomains: 10, // Increased to accommodate essential domains
+      maxLoadedDomains: 10, // counts the essential domains: see types.ts
       enableAutoUnload: true,
       ...config,
     };
@@ -253,10 +253,7 @@ export class DynamicToolLoader {
     // tools from the other callers' next tool builds as well.
     this.loadedDomains.delete(domain);
 
-    getLogger().info(
-      { domain, toolCount: state.toolCount },
-      '🔄 Domain unloaded from session'
-    );
+    getLogger().info({ domain, toolCount: state.toolCount }, '🔄 Domain unloaded from session');
     return true;
   }
 
@@ -340,6 +337,25 @@ export class DynamicToolLoader {
     return result.tools;
   }
 
+  /**
+   * Get only the named domains' tools, for a mid-session update after a topic
+   * loads them. getCurrentTools() lists the essential domains first, so the
+   * update's 64-tool cap kept those and cut the new domain: getCommuteTime
+   * stayed unavailable all call (local, 2026-10-08).
+   */
+  getToolsForDomains(domains: readonly string[]): Record<string, Tool> {
+    if (!this.toolContext) {
+      throw new Error('DynamicToolLoader not initialized');
+    }
+    const isDomain = (d: string): d is ToolDomain =>
+      (ALL_TOOL_DOMAINS as readonly string[]).includes(d);
+    const unknownDomains = domains.filter((d) => !isDomain(d));
+    if (unknownDomains.length > 0) {
+      getLogger().warn({ unknownDomains }, '🔄 Not tool domains; no tools offered for them');
+    }
+    return toolRegistry.buildToolSet({ domains: domains.filter(isDomain) }, this.toolContext).tools;
+  }
+
   // ==========================================================================
   // AUTO-UNLOAD TIMER
   // ==========================================================================
@@ -410,87 +426,12 @@ export class DynamicToolLoader {
 export const dynamicToolLoader = new DynamicToolLoader();
 
 /** A loader for one voice session; call shutdown() when the session ends. */
-export function createSessionToolLoader(config: Partial<DynamicLoaderConfig> = {}): DynamicToolLoader {
+export function createSessionToolLoader(
+  config: Partial<DynamicLoaderConfig> = {}
+): DynamicToolLoader {
   return new DynamicToolLoader(config);
 }
 
 export default dynamicToolLoader;
 
-// ============================================================================
-// HELPER: Load Essential Domains (for timeout fallback)
-// ============================================================================
-
-let essentialDomainsReady: Promise<void> | null = null;
-
-/**
- * Register the domain loaders and load the essential domains, once per context.
- *
- * A LiveKit job runs in its own context with a fresh module graph, so the
- * worker's startup preload never reaches it. Without this, the registry is
- * empty when the first agent is built and the call starts with no domain
- * tools. Safe to call early (e.g. at job entry) to take it off the critical
- * path; later callers await the same promise.
- */
-export function ensureEssentialDomainsLoaded(): Promise<void> {
-  essentialDomainsReady ??= (async () => {
-    const { autoRegisterAllDomains, loadToolDomainsLazy } = await import('../registry/loader.js');
-    await autoRegisterAllDomains();
-    await loadToolDomainsLazy([...DEFAULT_ESSENTIAL_DOMAINS]);
-  })().catch((error: unknown) => {
-    essentialDomainsReady = null; // let the next caller retry
-    throw error;
-  });
-  return essentialDomainsReady;
-}
-
-/**
- * Load essential domain tools quickly (for timeout fallback scenarios).
- * Uses the tool registry to build tools from essential domains.
- *
- * @param userId - User ID for tool context
- * @param services - Session services
- * @returns Record of tool name → tool definition
- */
-export async function loadEssentialDomains(
-  userId: string,
-  services: unknown
-): Promise<Record<string, unknown>> {
-  const log = getLogger();
-
-  await ensureEssentialDomainsLoaded();
-
-  // Import registry and build tools for essential domains
-  const { toolRegistry, EnvironmentServiceRegistry } = await import('../registry/index.js');
-  type ToolDomainType = import('../registry/types.js').ToolDomain;
-
-  // Tools look services up through a ServiceRegistry (has/get). Callers on the
-  // live path pass their SessionServices, which is a different shape; building
-  // with it threw "services.has is not a function" and the call got no tools.
-  const isServiceRegistry = typeof (services as { has?: unknown } | undefined)?.has === 'function';
-  const ctx = {
-    userId: userId || 'anonymous',
-    agentId: 'ferni',
-    agentDisplayName: 'Ferni',
-    services: isServiceRegistry ? services : new EnvironmentServiceRegistry(),
-  };
-
-  // Cast domains to the expected type
-  const domains = DEFAULT_ESSENTIAL_DOMAINS as unknown as ToolDomainType[];
-
-  // Build tools from essential domains
-  const result = toolRegistry.buildToolSet(
-    { domains },
-    ctx as import('../registry/types.js').ToolContext
-  );
-
-  log.info(
-    {
-      essentialDomains: DEFAULT_ESSENTIAL_DOMAINS.length,
-      totalTools: result.stats.total,
-      skipped: result.skipped?.length || 0,
-    },
-    '🎵 Essential domain tools loaded from registry'
-  );
-
-  return result.tools as Record<string, unknown>;
-}
+export { ensureEssentialDomainsLoaded, loadEssentialDomains } from './essential-domain-loader.js';
