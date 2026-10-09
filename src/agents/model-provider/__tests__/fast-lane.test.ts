@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { llm } from '@livekit/agents';
 import { TURN_CONTEXT_HEADER } from '../../multi-agent/turn-intelligence.js';
+import { withTurnStyleReminder } from '../../personas/turn-style.js';
 import { buildFastLane, buildCascadeLLMOptions } from '../cartesia-cascade.js';
 import { callerTurn, chitChat, fastLaneEnabled, FastLaneLLM } from '../fast-lane.js';
 
@@ -75,6 +76,15 @@ describe('fast lane', () => {
       { type: 'message', role: 'user', textContent: `${TURN_CONTEXT_HEADER} remind them later` },
     ];
     expect(callerTurn(items)).toBe('so anyway, long day');
+  });
+
+  it('ignores the per-turn reminder appended to the caller message (live: every turn went main)', () => {
+    const ctx = new llm.ChatContext();
+    ctx.addMessage({ role: 'user', content: "it's been a long day" });
+    const withReminder = withTurnStyleReminder(ctx);
+    const items = withReminder.items as Parameters<typeof callerTurn>[0];
+    expect(callerTurn(items)).toBe("it's been a long day");
+    expect(chitChat(callerTurn(items))).toBe(true);
   });
 
   it('keeps the reply after a tool result on the main model', () => {
