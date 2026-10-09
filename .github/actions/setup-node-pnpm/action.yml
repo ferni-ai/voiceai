@@ -4,7 +4,7 @@ description: 'Sets up Node.js, pnpm, and installs dependencies with caching'
 inputs:
   node-version:
     description: 'Node.js version'
-    default: '20'
+    default: '22'
   install-deps:
     description: 'Whether to install dependencies'
     default: 'true'

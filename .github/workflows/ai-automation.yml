@@ -56,7 +56,7 @@ on:
           - costs
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
   # These jobs have an API key and no GCP credentials, so use the Gemini API.
   # src/config/gemini-config.ts defaults to Vertex AI, which needs

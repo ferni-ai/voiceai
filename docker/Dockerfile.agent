@@ -19,7 +19,7 @@
 #   docker run -e PERSONA_ID=ferni -e LIVEKIT_URL=... ferni-agent
 # ============================================================================
 
-ARG NODE_VERSION=20
+ARG NODE_VERSION=22
 
 # LiveKit agents SDK version - update this when upgrading @livekit/agents packages
 # Check latest: https://www.npmjs.com/package/@livekit/agents
