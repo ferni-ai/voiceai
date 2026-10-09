@@ -15,7 +15,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'http';
 
-const SRC = '../../../../src';
 vi.mock('../../../../src/api/auth-middleware.js', () => ({
   requireAuth: vi.fn(async () => ({ userId: 'u1', isAdmin: false })),
   rateLimit: vi.fn(() => false),
@@ -90,7 +89,7 @@ vi.mock('../../../../src/services/predictive-insights/index.js', () => ({
 const apiGet = vi.fn();
 vi.mock('../../src/utils/api.js', () => ({ apiGet: (...a: unknown[]) => apiGet(...a) }));
 
-const { handleYourStoryRoutes } = await import(`${SRC}/api/your-story-routes.js`);
+const { handleYourStoryRoutes } = await import('../../../../src/api/your-story-routes.js');
 const { fetchYourStory } = await import('../../src/services/your-story.service.js');
 const { getYourStoryUI } = await import('../../src/ui/your-story-dashboard.ui.js');
 const viz = await import('../../src/ui/visualizations/index.js');
