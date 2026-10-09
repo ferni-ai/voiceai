@@ -2988,7 +2988,13 @@
     "tryDifferentAccount": "Prueba con otra cuenta",
     "checkingAccess": "Comprobando tu acceso...",
     "checkingLabel": "Un momento...",
-    "signInError": "El inicio de sesión se canceló o falló. Por favor, inténtalo de nuevo."
+    "signInError": "El inicio de sesión se canceló o falló. Por favor, inténtalo de nuevo.",
+    "verifyEmailTitle": "Verifica tu correo electrónico",
+    "verifyEmailMessage": "Abre el enlace que te enviamos por correo y luego vuelve a iniciar sesión.",
+    "noEmailTitle": "Necesitamos una dirección de correo electrónico",
+    "noEmailMessage": "Esta cuenta no tiene una dirección de correo asociada. Inicia sesión con una cuenta que sí la tenga.",
+    "checkFailedTitle": "No pudimos verificar tu acceso",
+    "checkFailedMessage": "Algo salió mal de nuestro lado. Espera un momento e inténtalo de nuevo."
   },
   "visualizations": {
     "lifeSeasons": "Tus estaciones de la vida",
