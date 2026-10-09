@@ -2,7 +2,15 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { lineCount, lowered, measureBundle, regressions, type Measurement } from '../ratchet.js';
+import {
+  lineCount,
+  lowered,
+  measureBundle,
+  regressions,
+  type Measurement,
+  eslintErrorsByRule,
+  eslintRegressions,
+} from '../ratchet.js';
 import { findTerm, getAllRelevantFiles, visibleCopy } from '../check-brand-compliance.js';
 
 const base: Measurement = {
@@ -161,5 +169,27 @@ describe('brand copy check', () => {
     } finally {
       rmSync(repo, { recursive: true, force: true });
     }
+  });
+});
+
+describe('web ESLint ratchet', () => {
+  const file = (...msgs: Array<[number, string | null]>) => ({
+    messages: msgs.map(([severity, ruleId]) => ({ severity, ruleId })),
+  });
+
+  it('counts errors per rule, ignoring warnings, with parse errors as "parse"', () => {
+    const results = [file([2, 'no-unused-vars'], [1, 'no-console']), file([2, 'no-unused-vars'], [2, null])];
+    expect(eslintErrorsByRule(results)).toEqual({ 'no-unused-vars': 2, parse: 1 });
+  });
+
+  it('flags only rules whose errors rose, including new rules', () => {
+    const base = { 'no-unused-vars': 95, 'no-base-to-string': 5 };
+    expect(eslintRegressions(base, { 'no-unused-vars': 95, 'no-base-to-string': 4 })).toEqual([]);
+    expect(eslintRegressions(base, { 'no-unused-vars': 96 })).toEqual([
+      'ESLint "no-unused-vars" errors rose 95 → 96.',
+    ]);
+    expect(eslintRegressions(base, { 'no-floating-promises': 1 })).toEqual([
+      'ESLint "no-floating-promises" errors rose 0 → 1.',
+    ]);
   });
 });

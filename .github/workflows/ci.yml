@@ -854,11 +854,12 @@ jobs:
           cd apps/web
           pnpm test:arch
 
-      - name: ESLint check
+      # Web ESLint has 123 old errors, so plain `pnpm lint` can't gate. The ratchet fails
+      # only when a rule gains errors (baseline: ratchet-baseline.json "webEslint").
+      - name: ESLint (ratchet)
         run: |
-          cd apps/web
-          pnpm lint
-        continue-on-error: true
+          (cd apps/web && pnpm lint --format json --output-file eslint.json) || true
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --eslint apps/web/eslint.json
 
       - name: Web unit tests
         working-directory: apps/web
@@ -876,11 +877,11 @@ jobs:
           pnpm audit:ui || true
         continue-on-error: true
 
-      - name: Build and check bundle size
+      # The build must succeed, and the bundle may not grow past its baseline (2% slack).
+      - name: Build and bundle ratchet
         run: |
-          cd apps/web
-          pnpm build:check || true
-        continue-on-error: true
+          (cd apps/web && pnpm build)
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --bundle
 
   # ============================================================================
   # DEPENDENCY CHECK
