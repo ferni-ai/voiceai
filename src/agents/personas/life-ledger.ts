@@ -53,7 +53,7 @@ const STOP = new Set(
     ' '
   )
 );
-const contentWords = (t: string): Set<string> =>
+export const contentWords = (t: string): Set<string> =>
   new Set((t.toLowerCase().match(/[a-z']{4,}/g) ?? []).filter((w) => !STOP.has(w)));
 
 /** Keep facts that are short and grounded in what he actually said, once each. */
@@ -102,12 +102,12 @@ export function formatLedger(
   return [
     `[WHAT YOU'VE TOLD ${who.toUpperCase()} ABOUT YOUR OWN LIFE ON EARLIER CALLS]`,
     ...lines,
-    'This is your life: stay consistent with it, and if it fits, pick a thread back up the way a friend would ("the goat got out again"). Don\'t repeat these back or list them.',
+    'This is your life: stay consistent with it, and if it fits, pick a thread back up the way a friend would ("the goat got out again"). When they ask about something you told them, it is one of these; never make up a different event in its place. Don\'t repeat these back or list them.',
   ].join('\n');
 }
 
 const EXTRACT_PROMPT = (name: string) =>
-  `Below are things ${name} said on a phone call. List the concrete things ${name} said about ${name}'s OWN life: what happened to them, people and pets in their life, places, habits, opinions and plans. One per line, under 15 words, in the third person ("${name}'s wife teases him about his coffee"). Leave out anything about the other person, advice, and generic small talk. If there is nothing, reply NONE.`;
+  `Below are things ${name} said on a phone call. List the concrete things ${name} said about ${name}'s OWN life: what happened to them, people and pets in their life, places, habits, opinions and plans. One per line, under 15 words, in the third person ("${name}'s wife teases him about his coffee"). Only what ${name} states about ${name} ("I", "my", "we"): a remark about a situation in general ("a slow week can be nice") is a reaction to the other person, not part of ${name}'s life. Leave out anything about the other person, advice, and generic small talk. If there is nothing, reply NONE.`;
 
 const defaultExtractor: FactExtractor = async (name, lines) => {
   const { getGenerativeModel } = await import('../../config/generative-model.js');
