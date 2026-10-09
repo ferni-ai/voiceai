@@ -1471,16 +1471,17 @@ function selectBestTopicForCallback(topics: string[]): string | null {
     'fear',
   ];
 
-  for (const topic of topics.reverse()) {
-    // Check recent topics first
+  // topics is newest-first ([lastTopic, ...older]) and belongs to the session's
+  // silence context, so read it in order and never reorder it in place.
+  for (const topic of topics) {
     const lowerTopic = topic.toLowerCase();
     if (personalTopics.some((p) => lowerTopic.includes(p))) {
       return topic;
     }
   }
 
-  // Fall back to any topic
-  return topics.length > 0 ? topics[topics.length - 1] : null;
+  // Fall back to the most recent topic
+  return topics.length > 0 ? topics[0] : null;
 }
 
 /**
