@@ -446,11 +446,9 @@ export class PredictionsUI {
     `;
   }
 
-  /**
-   * Show the panel.
-   * Fetches data from API if not already loaded.
-   */
+  /** Show the panel (fetching data if needed). Its button can beat the deferred init. */
   show(): void {
+    if (!this.container) this.initialize();
     if (!this.container) return;
 
     this.panelVisible = true;
