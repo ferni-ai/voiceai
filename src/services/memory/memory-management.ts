@@ -12,10 +12,9 @@
  * users across sessions, devices, and even voice recognition.
  */
 
-import { getProfileStore } from '../../memory/profile-store.js';
+import { getProfileStore, type MemoryStore } from '../../memory/profile-store.js';
 import { getGCPProjectId } from '../../config/environment.js';
 import { cosineSimilarity } from '../../memory/embeddings.js';
-import { type MemoryStore } from '../../memory/index.js';
 import type { ConversationSummary, UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';

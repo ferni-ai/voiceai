@@ -13,6 +13,8 @@
  */
 
 import type { MemoryStore } from './storage/store.js';
+
+export type { MemoryStore };
 import { getDefaultStore } from './storage/in-memory-store.js';
 import { getStore } from './storage/store-factory.js';
 

@@ -59,6 +59,11 @@ vi.mock('../../memory/index.js', () => ({ getDefaultStore: vi.fn() }));
 vi.mock('../../services/push-endpoint-owners.js', () => ({
   erasePushRecordsFor: vi.fn(async () => undefined),
 }));
+// The migrated callers reach the store through getProfileStore (flag off: the default store).
+vi.mock('../../memory/profile-store.js', async () => {
+  const { getDefaultStore } = await import('../../memory/index.js');
+  return { getProfileStore: async () => getDefaultStore(), isAgentProfilePersistenceOn: () => false };
+});
 vi.mock('../../servers/token/oauth-link-state.js', () => ({
   deleteOAuthLinkStatesFor: vi.fn(async () => undefined),
 }));

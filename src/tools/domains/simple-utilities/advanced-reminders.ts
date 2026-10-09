@@ -355,7 +355,6 @@ const recurringReminderDef: ToolDefinition = {
             recurrencePattern = { type: 'daily' };
         }
 
-        // Calculate next occurrence
         const nextOccurrence = calculateNextOccurrence(recurrencePattern, parsedTime);
 
         // Get user's timezone preference, defaulting to UTC (neutral for international users)

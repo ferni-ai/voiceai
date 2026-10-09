@@ -12,8 +12,7 @@
  * All data is user-scoped and persists across sessions.
  */
 
-import { getProfileStore } from '../../memory/profile-store.js';
-import { type MemoryStore } from '../../memory/index.js';
+import { getProfileStore, type MemoryStore } from '../../memory/profile-store.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
