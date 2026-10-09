@@ -9,7 +9,9 @@
  *
  * Real bindVerifiedIdentity + real rateLimit; only token verification is mocked.
  */
+import { readFileSync } from 'fs';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { resolve } from 'path';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../services/identity/firebase-auth.js', () => ({
@@ -75,5 +77,17 @@ describe('route rate limits', () => {
     await bindVerifiedIdentity(forged, { NODE_ENV: 'production' });
     expect(rateLimitUid(forged)).toBeNull();
     expect(rateLimitUid(request({}, ip))).toBeNull();
+  });
+
+  it('run after the server has verified who is asking (index.ts binds identity first)', () => {
+    // Global and route limits read the uid bindVerifiedIdentity records. If a limiter
+    // ran first it would see no one and quietly key everyone by IP again.
+    const server = readFileSync(resolve(__dirname, '../../servers/api/index.ts'), 'utf8');
+    const bound = server.indexOf('await bindVerifiedIdentity(req)');
+    const limited = server.indexOf('rateLimitUid(req)');
+    const firstRoute = server.search(/await handle\w+Routes\(/);
+    expect(bound).toBeGreaterThan(-1);
+    expect(limited).toBeGreaterThan(bound);
+    expect(firstRoute).toBeGreaterThan(bound);
   });
 });
