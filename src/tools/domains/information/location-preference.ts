@@ -32,6 +32,29 @@ const locationCache = new Map<
   { location: string; timestamp: number; source: 'session' | 'explicit' }
 >();
 
+/** The slice of a session's userData that carries the caller's location. */
+type CallerData = {
+  userId?: string;
+  userLocation?: { city?: string; regionCode?: string; countryCode?: string };
+};
+
+/**
+ * The calling session's location, for a tool's execute(args, run).
+ * LiveKit passes each tool call its session's RunContext (run.ctx); its
+ * userData is that call's own data. Never a process-wide registry: a worker
+ * runs several calls at once.
+ *
+ * Priority: IP-detected city for this call, then this user's saved preference.
+ */
+export function getCallerLocation(run: unknown): string | null {
+  const userData = (run as { ctx?: { userData?: CallerData } } | undefined)?.ctx?.userData;
+  const detected = userData?.userLocation;
+  if (detected?.city) {
+    return detected.regionCode ? `${detected.city}, ${detected.regionCode}` : detected.city;
+  }
+  return userData?.userId ? getUserLocationPreference(userData.userId) : null;
+}
+
 /**
  * Evict oldest entries if cache exceeds max size (LRU-style).
  * Prioritizes removing session entries over explicit user preferences.
