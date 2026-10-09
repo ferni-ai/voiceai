@@ -137,11 +137,9 @@ jobs:
 
       - name: Tool schema validation
         run: pnpm tools:schemas:validate
-        continue-on-error: true
 
       - name: Tool schema check (no drift)
         run: pnpm tools:schemas:check
-        continue-on-error: true
 
   # ============================================================================
   # UNIT TESTS (Fast - ~30-60 seconds)
@@ -663,7 +661,6 @@ jobs:
 
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
-        continue-on-error: true
 
   # ============================================================================
   # VALIDATION (using unified validate CLI)
@@ -848,7 +845,6 @@ jobs:
         run: |
           cd apps/web
           pnpm lint:tokens
-        continue-on-error: true
 
       - name: UI audit
         run: |
