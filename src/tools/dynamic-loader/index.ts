@@ -344,7 +344,8 @@ export class DynamicToolLoader {
    * stayed unavailable all call (local, 2026-10-08).
    */
   getToolsForDomains(domains: readonly string[]): Record<string, Tool> {
-    if (!this.toolContext) {
+    const ctx = this.toolContext;
+    if (!ctx) {
       throw new Error('DynamicToolLoader not initialized');
     }
     const isDomain = (d: string): d is ToolDomain =>
@@ -353,7 +354,21 @@ export class DynamicToolLoader {
     if (unknownDomains.length > 0) {
       getLogger().warn({ unknownDomains }, '🔄 Not tool domains; no tools offered for them');
     }
-    return toolRegistry.buildToolSet({ domains: domains.filter(isDomain) }, this.toolContext).tools;
+    // One domain at a time, then interleaved: offered one domain after another,
+    // the update's cap ran out inside the first. "find me a taco place nearby"
+    // loads information (57 tools) and local-search (6), and none of
+    // local-search's tools landed.
+    const perDomain = domains
+      .filter(isDomain)
+      .map((domain) => Object.entries(toolRegistry.buildToolSet({ domains: [domain] }, ctx).tools));
+    const interleaved: Record<string, Tool> = {};
+    for (let i = 0; perDomain.some((tools) => i < tools.length); i++) {
+      for (const tools of perDomain) {
+        const entry = tools[i];
+        if (entry && !(entry[0] in interleaved)) interleaved[entry[0]] = entry[1];
+      }
+    }
+    return interleaved;
   }
 
   // ==========================================================================

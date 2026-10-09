@@ -4,7 +4,7 @@
  * Tests for the modular dynamic tool loading system.
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach, onTestFinished } from 'vitest';
 import {
   DynamicToolLoader,
   TOPIC_TO_DOMAINS,
@@ -78,6 +78,32 @@ describe('DynamicToolLoader', () => {
       );
       expect(loader.detectTopics('Tell me some jokes').detectedTopics).toContain('joke');
       expect(loader.detectTopics('I keep calling her').detectedTopics).toContain('call');
+    });
+
+    it('loads local search when the caller asks for a place nearby', () => {
+      // "find me a good taco place nearby" never loaded local-search, so
+      // findRestaurants was unavailable and Ferni asked for a city it already
+      // had (voice-eval lookups, 6 of 6 calls, 2026-10-09).
+      for (const ask of [
+        'Can you find me a good taco place nearby? Something casual.',
+        'Any coffee shops near me?',
+        "What's a good restaurant for a birthday dinner?",
+        'Is there a cafe open around here?',
+        'I need a place to eat before the movie',
+      ]) {
+        expect(loader.detectTopics(ask).suggestedDomains, ask).toContain('local-search');
+      }
+    });
+
+    it('does not load local search for "place" in its other senses', () => {
+      for (const said of [
+        "I'm in a good place right now",
+        'Why did I say yes in the first place?',
+        'I need some space tonight',
+        'She came over to my place',
+      ]) {
+        expect(loader.detectTopics(said).suggestedDomains, said).not.toContain('local-search');
+      }
     });
 
     it('should detect finance topics', () => {
@@ -169,6 +195,42 @@ describe('DynamicToolLoader', () => {
         { unknownDomains: ['not-a-domain'] },
         expect.any(String)
       );
+    });
+
+    it("interleaves several domains' tools so a small domain isn't cut behind a big one", async () => {
+      // "find me a taco place nearby" loads information (57 tools) and
+      // local-search (6). Offered information-first, the update's headroom ran
+      // out before findRestaurants: none of local-search's tools landed.
+      const { toolRegistry } = await import('../../registry/index.js');
+      const perDomain: Record<string, string[]> = {
+        information: ['info1', 'info2', 'info3', 'info4'],
+        'local-search': ['place1', 'place2', 'info2'], // info2 is in both domains
+      };
+      const build = vi.mocked(toolRegistry.buildToolSet);
+      const original = build.getMockImplementation();
+      onTestFinished(() => {
+        if (original) build.mockImplementation(original);
+      });
+      build.mockImplementation(((spec: { domains?: string[] }) => ({
+        tools: Object.fromEntries(
+          (spec.domains ?? []).flatMap((d) => perDomain[d] ?? []).map((n) => [n, {}])
+        ),
+      })) as never);
+      loader = new DynamicToolLoader({
+        enableAutoUnload: false,
+        essentialDomains: [],
+        domainOfTool: () => undefined,
+      });
+      await loader.initialize({ userId: 'u1', agentId: 'ferni' } as never);
+
+      expect(Object.keys(loader.getToolsForDomains(['information', 'local-search']))).toEqual([
+        'info1',
+        'place1',
+        'info2',
+        'place2',
+        'info3',
+        'info4',
+      ]);
     });
   });
 
