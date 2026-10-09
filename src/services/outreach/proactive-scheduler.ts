@@ -14,6 +14,7 @@
  * @module proactive-scheduler
  */
 
+import { getProfileStore } from '../../memory/profile-store.js';
 import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -245,8 +246,7 @@ async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
       case 'text': {
         try {
           const { sendSMS } = await import('./delivery/sms-delivery.js');
-          const { getDefaultStore } = await import('../../memory/index.js');
-          const store = getDefaultStore();
+          const store = await getProfileStore();
           const profile = await store.getProfile(outreach.userId);
           const phone = profile?.contactInfo?.phone;
 

@@ -10,9 +10,9 @@
  * Triggers notifications via the Agent Bus.
  */
 
+import { getProfileStore } from '../../memory/profile-store.js';
 import { EventEmitter } from 'events';
 
-import { getDefaultStore } from '../../memory/index.js';
 import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getAgentBus, type AgentId } from '../agent-bus.js';
@@ -85,7 +85,7 @@ async function learnUserEngagementPattern(userId: string): Promise<UserEngagemen
   };
 
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(userId);
 
     if (profile?.conversationPatterns?.sessions) {

@@ -10,7 +10,7 @@
  * @module personality/callback-persistence
  */
 
-import { getDefaultStore } from '../memory/index.js';
+import { getProfileStore } from '../memory/profile-store.js';
 import type { KeyMoment } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { extractCallbackKeyMoments } from './memory-adapter.js';
@@ -66,7 +66,7 @@ export async function extractAndSaveCallbacks(
   log.debug({ userId, count: callbacks.length }, '💝 Extracting callbacks to save');
 
   // Get the memory store
-  const store = getDefaultStore();
+  const store = await getProfileStore();
 
   for (const callback of callbacks) {
     try {
@@ -127,7 +127,7 @@ export async function saveKeyMoment(userId: string, moment: KeyMoment): Promise<
   }
 
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     await store.addKeyMoment(userId, moment);
 
     log.info({ userId, momentId: moment.id, type: moment.type }, '💝 Key moment saved');
@@ -148,7 +148,7 @@ export async function markCallbackComplete(userId: string, momentId: string): Pr
   }
 
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const moments = await store.getKeyMoments(userId, { limit: 100 });
     const moment = moments.find((m) => m.id === momentId);
 

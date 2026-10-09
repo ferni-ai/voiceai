@@ -14,7 +14,7 @@
  * not like logging into a bank.
  */
 
-import { getDefaultStore } from '../../memory/index.js';
+import { getProfileStore } from '../../memory/profile-store.js';
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
@@ -99,7 +99,7 @@ export async function authenticateNaturally(params: {
 }): Promise<AuthContext> {
   const { metadata, voiceSketch, requireVerification = false } = params;
 
-  const store = getDefaultStore();
+  const store = await getProfileStore();
   await store.initialize();
 
   // Use existing voice identification
@@ -139,7 +139,7 @@ export async function verifyIdentity(
   userId: string,
   userResponse: string
 ): Promise<{ verified: boolean; confidence: number; reason: string }> {
-  const store = getDefaultStore();
+  const store = await getProfileStore();
   const profile = await store.getProfile(userId);
 
   if (!profile) {
@@ -190,7 +190,7 @@ export async function verifyIdentity(
  * Called after confirming identity
  */
 export async function enrollVoice(userId: string, voiceSketch: VoiceSketch): Promise<void> {
-  const store = getDefaultStore();
+  const store = await getProfileStore();
   const profile = await store.getProfile(userId);
 
   if (!profile) {
@@ -239,7 +239,7 @@ export async function linkIdentifier(
   userId: string,
   identifier: { type: 'phone' | 'device' | 'email'; value: string }
 ): Promise<void> {
-  const store = getDefaultStore();
+  const store = await getProfileStore();
   const profile = await store.getProfile(userId);
 
   if (!profile) {

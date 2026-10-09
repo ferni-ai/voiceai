@@ -14,6 +14,7 @@
  * @module intelligence/context-builders/family/family-wellbeing-context
  */
 
+import { getProfileStore } from '../../../memory/profile-store.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type {
   FamilyCheckinSchedule,
@@ -21,7 +22,6 @@ import type {
   CheckinCallContext,
 } from '../../../services/family/proactive-family-checkin.js';
 import type { SponsoredIdentity } from '../../../services/identity/sponsored-identity.js';
-import { getDefaultStore } from '../../../memory/index.js';
 
 const log = createLogger({ module: 'FamilyWellbeingContext' });
 
@@ -141,7 +141,7 @@ async function getSponsorInfo(sponsorUserId: string): Promise<SponsorInfo> {
   log.debug({ sponsorUserId }, 'Getting sponsor info');
 
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(sponsorUserId);
 
     if (profile) {
