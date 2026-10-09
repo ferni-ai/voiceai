@@ -25,7 +25,7 @@ import { toast } from './whisper.ui.js';
 
 const log = createLogger('FamilyIdentities');
 
-const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
+const { clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
