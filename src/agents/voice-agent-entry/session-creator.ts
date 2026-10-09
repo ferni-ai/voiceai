@@ -271,16 +271,6 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
 
   userData.userLocation = userLocation;
 
-  // Set current active session for native tool location fallback
-  const { setCurrentActiveSession } =
-    await import('../../tools/domains/information/location-preference.js');
-  const formattedLocation = userLocation?.city
-    ? userLocation.regionCode
-      ? `${userLocation.city}, ${userLocation.regionCode}`
-      : userLocation.city
-    : undefined;
-  setCurrentActiveSession({ sessionId, userId: userId || 'anonymous', location: formattedLocation });
-
   // Get tools
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let sessionTools: Record<string, any>;
