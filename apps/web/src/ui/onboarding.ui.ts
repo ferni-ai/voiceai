@@ -13,6 +13,7 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
 
 // ============================================================================
@@ -191,8 +192,13 @@ class OnboardingUI {
   private createOverlay(): void {
     this.overlay = document.createElement('div');
     this.overlay.className = 'onboarding';
-    this.overlay.setAttribute('role', 'dialog');
-    this.overlay.setAttribute('aria-label', t('onboarding.ariaLabel'));
+    // Escape dismisses the tour the way Skip does
+    asModalDialog(
+      this.overlay,
+      { label: t('onboarding.ariaLabel') },
+      () => this.isVisible,
+      () => this.skip()
+    );
     document.body.appendChild(this.overlay);
   }
 

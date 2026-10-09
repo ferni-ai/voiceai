@@ -11,6 +11,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import { tp } from '../i18n/plural.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 
@@ -82,8 +83,12 @@ class DataExportUI {
   private createPanel(): void {
     this.panel = document.createElement('div');
     this.panel.className = 'data-export';
-    this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', t('accessibility.exportData'));
+    asModalDialog(
+      this.panel,
+      { label: t('accessibility.exportData') },
+      () => this.isVisible,
+      () => this.hide()
+    );
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'data-export__wrapper';

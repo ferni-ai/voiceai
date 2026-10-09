@@ -16,6 +16,7 @@
 
 import { formatDate, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
@@ -24,7 +25,7 @@ import { toast } from './whisper.ui.js';
 
 const log = createLogger('FamilyIdentities');
 
-const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
+const { clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -906,32 +907,36 @@ export async function show(options: FamilyIdentitiesCallbacks = {}): Promise<voi
 
   document.body.appendChild(modal);
   modal.addEventListener('click', handleClick);
+  const opened = modal;
+  closeOnEscape(opened, () => modal === opened, hide);
 
   // Trigger animation
   requestAnimationFrame(() => {
     modal?.classList.add('visible');
   });
 
-  // Load data
+  // Load data, unless this modal was closed or replaced meanwhile
   await loadIdentities();
+  if (modal !== opened) return;
   isLoading = false;
   refresh();
 }
 
 export function hide(): void {
-  if (!modal) return;
-
-  modal.classList.remove('visible');
+  // Let go of the modal now: show() calls hide() and builds a new one at once, and a
+  // timer that read `modal` (and reset the view) when it fired would wipe that one out.
+  const closing = modal;
+  if (!closing) return;
+  modal = null;
+  closing.removeEventListener('click', handleClick);
+  isLoading = false;
+  identities = [];
+  editingIdentity = null;
+  currentView = 'main';
+  closing.classList.remove('visible');
   _clearAllTimeouts();
-
-  trackedTimeout(() => {
-    modal?.removeEventListener('click', handleClick);
-    modal?.remove();
-    modal = null;
-    identities = [];
-    editingIdentity = null;
-    currentView = 'main';
-  }, DURATION.NORMAL);
+  // Untracked, so a later hide() can't cancel it and strand this overlay
+  setTimeout(() => closing.remove(), DURATION.NORMAL);
 }
 
 export function isVisible(): boolean {

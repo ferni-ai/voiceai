@@ -323,6 +323,75 @@ export function setupDialog(
   return { open, close };
 }
 
+interface EscapeDialog {
+  el: HTMLElement;
+  isOpen: () => boolean;
+  close: () => void;
+}
+
+const escapeDialogs = new Set<EscapeDialog>();
+
+/** The open dialog on top: the one under the middle of the screen, else the newest. */
+function topEscapeDialog(): EscapeDialog | undefined {
+  const open = [...escapeDialogs].filter((d) => d.isOpen());
+  const hit = document.elementFromPoint?.(innerWidth / 2, innerHeight / 2);
+  return open.find((d) => hit && d.el.contains(hit)) ?? open[open.length - 1];
+}
+
+/** Forget dialogs whose element has left the page (most are rebuilt on each open). */
+function pruneEscapeDialogs(): void {
+  for (const d of escapeDialogs) if (!d.el.isConnected) escapeDialogs.delete(d);
+}
+
+/** For tests: how many dialogs Escape is tracking. */
+export function trackedEscapeDialogs(): number {
+  return escapeDialogs.size;
+}
+
+function onEscapeKey(e: KeyboardEvent): void {
+  if (e.key !== 'Escape' || e.defaultPrevented) return;
+  pruneEscapeDialogs();
+  const top = topEscapeDialog();
+  if (!top) return;
+  e.preventDefault();
+  top.close();
+}
+
+/**
+ * Escape closes the dialog while it's open. One press closes one dialog: the one
+ * on top, so a dialog left open underneath (the tour, say) isn't closed instead.
+ * Forgotten once the element leaves the page (checked whenever a dialog registers or
+ * Escape is pressed); the returned function forgets it sooner.
+ */
+export function closeOnEscape(
+  el: HTMLElement,
+  isOpen: () => boolean,
+  close: () => void
+): () => void {
+  const dialog = { el, isOpen, close };
+  pruneEscapeDialogs(); // so closed, removed dialogs don't pile up between Escape presses
+  if (escapeDialogs.size === 0) document.addEventListener('keydown', onEscapeKey);
+  escapeDialogs.add(dialog);
+  return () => void escapeDialogs.delete(dialog);
+}
+
+/**
+ * Mark an element as a modal dialog (role, aria-modal, accessible name) and let
+ * Escape close it while it's open.
+ */
+export function asModalDialog(
+  el: HTMLElement,
+  name: { label: string } | { labelledBy: string },
+  isOpen: () => boolean,
+  close: () => void
+): () => void {
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
+  if ('label' in name) el.setAttribute('aria-label', name.label);
+  else el.setAttribute('aria-labelledby', name.labelledBy);
+  return closeOnEscape(el, isOpen, close);
+}
+
 // ============================================================================
 // SCREEN READER ONLY STYLES (inject once)
 // ============================================================================
