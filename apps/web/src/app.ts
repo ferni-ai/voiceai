@@ -2164,9 +2164,6 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-analytics', () => {
       void showAnalyticsDashboard();
     });
-    this.addTrackedListener(window, 'ferni:open-history', () => {
-      void showConversationHistory();
-    });
     this.addTrackedListener(window, 'ferni:open-insights', () => {
       void showCognitiveInsights();
     });
@@ -2224,10 +2221,8 @@ class VoiceAIApp {
       void openMarketplace();
     });
 
-    // 📱 Mobile Bottom Sheet - Quick action event handlers
-    this.addTrackedListener(window, 'ferni:open-settings', () => {
-      void getSettingsMenuUI().show();
-    });
+    // 📱 Mobile Bottom Sheet - Quick action event handlers (settings and history
+    // are handled above; a second listener opened and fetched them twice)
     this.addTrackedListener(window, 'ferni:open-team', () => {
       void showTeamIntro();
     });
