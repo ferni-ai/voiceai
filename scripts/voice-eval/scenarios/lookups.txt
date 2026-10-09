@@ -1,0 +1,8 @@
+# Look-up turns: each asks for something a tool must fetch, so the caller
+# waits on it. Measures the silence before the first word on those turns
+# (tool-lead-in.ts speaks a short line while the tool runs).
+Hey! Quick one, what's the weather looking like this weekend?
+Nice. Anything big in the news today?
+Who won the Dodgers game last night?
+Can you find me a good taco place nearby? Something casual.
+Thanks. Oh, and how long would it take me to drive to Zion from here?
