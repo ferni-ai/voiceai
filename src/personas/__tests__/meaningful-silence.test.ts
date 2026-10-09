@@ -124,25 +124,50 @@ describe('Meaningful Silence System', () => {
         stories: [],
       } as any;
 
-      // Run multiple times to verify we get thoughtful questions
-      let gotQuestion = false;
-      for (let i = 0; i < 10; i++) {
+      // The 15-25s branch is a chain of random gates: topic callback (< 0.4),
+      // then micro-story (< 0.3), then the question fallback. 0.99 fails both
+      // gates, so the question branch is reached deterministically.
+      const random = vi.spyOn(Math, 'random').mockReturnValue(0.99);
+      try {
         const response = getMeaningfulSilenceResponse(mockPersona, {
           silenceDurationSeconds: 20,
           turnCount: 5,
           topicsDiscussed: ['general'],
-          memorableMoments: [], // Empty so we don't get memory_callback
+          memorableMoments: [],
           recentEmotionalTone: 'neutral',
         });
 
-        if (response.type === 'thoughtful_question') {
-          gotQuestion = true;
-          expect(response.invitesReply).toBe(true);
-          break;
-        }
+        expect(response.type).toBe('thoughtful_question');
+        expect(response.invitesReply).toBe(true);
+        expect(response.text.length).toBeGreaterThan(0);
+      } finally {
+        random.mockRestore();
       }
+    });
 
-      expect(gotQuestion).toBe(true);
+    it('should call back to a discussed topic when there are no memorable moments', async () => {
+      const { getMeaningfulSilenceResponse } = await import('../meaningful-silence.js');
+
+      const mockPersona = { id: 'ferni', name: 'Ferni', stories: [] } as any;
+
+      // An empty memorableMoments list does not rule out memory_callback: the
+      // topic gate (< 0.4) can still call back to something they discussed.
+      const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+      try {
+        const response = getMeaningfulSilenceResponse(mockPersona, {
+          silenceDurationSeconds: 20,
+          turnCount: 5,
+          topicsDiscussed: ['gardening'],
+          memorableMoments: [],
+          recentEmotionalTone: 'neutral',
+        });
+
+        expect(response.type).toBe('memory_callback');
+        expect(response.invitesReply).toBe(true);
+        expect(response.text).toContain('gardening');
+      } finally {
+        random.mockRestore();
+      }
     });
 
     it('should provide topic-specific questions for work discussions', async () => {
