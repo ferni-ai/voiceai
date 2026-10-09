@@ -323,6 +323,44 @@ export function setupDialog(
   return { open, close };
 }
 
+/**
+ * Escape closes the dialog while it's open. The first dialog to handle a key
+ * claims it (preventDefault), so one press never closes two. Stops listening by
+ * itself once the element leaves the page; the returned function stops it sooner.
+ */
+export function closeOnEscape(
+  el: HTMLElement,
+  isOpen: () => boolean,
+  close: () => void
+): () => void {
+  const stop = () => document.removeEventListener('keydown', onKey);
+  const onKey = (e: KeyboardEvent) => {
+    if (!el.isConnected) return stop();
+    if (e.key !== 'Escape' || e.defaultPrevented || !isOpen()) return;
+    e.preventDefault();
+    close();
+  };
+  document.addEventListener('keydown', onKey);
+  return stop;
+}
+
+/**
+ * Mark an element as a modal dialog (role, aria-modal, accessible name) and let
+ * Escape close it while it's open.
+ */
+export function asModalDialog(
+  el: HTMLElement,
+  name: { label: string } | { labelledBy: string },
+  isOpen: () => boolean,
+  close: () => void
+): () => void {
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
+  if ('label' in name) el.setAttribute('aria-label', name.label);
+  else el.setAttribute('aria-labelledby', name.labelledBy);
+  return closeOnEscape(el, isOpen, close);
+}
+
 // ============================================================================
 // SCREEN READER ONLY STYLES (inject once)
 // ============================================================================

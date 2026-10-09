@@ -17,6 +17,7 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -265,9 +266,7 @@ class MusicDashboardUI {
     this.bindMusicSourceEvents();
   }
 
-  /**
-   * Compact version of music sources for the empty state
-   */
+  /** Compact version of music sources for the empty state */
   private renderMusicSourcesCompact(): string {
     const sources = this.profileData?.musicSources;
     const gamesPlayed = sources?.games?.gamesPlayed || 0;
@@ -322,9 +321,7 @@ class MusicDashboardUI {
     `;
   }
 
-  /**
-   * Bind events for music source connect buttons (used in both states)
-   */
+  /** Bind events for music source connect buttons (used in both states) */
   private bindMusicSourceEvents(): void {
     this.wrapper
       ?.querySelector('[data-action="connect-spotify"]')
@@ -970,10 +967,13 @@ class MusicDashboardUI {
   private createPanel(): void {
     this.panel = document.createElement('div');
     this.panel.className = 'music-dashboard';
-    this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', t('accessibility.musicalYouDashboard'));
+    asModalDialog(
+      this.panel,
+      { label: t('accessibility.musicalYouDashboard') },
+      () => this.isVisible,
+      () => this.hide()
+    );
 
-    // Backdrop
     const backdrop = document.createElement('div');
     backdrop.className = 'music-dashboard__backdrop';
     backdrop.addEventListener('click', () => this.hide());
