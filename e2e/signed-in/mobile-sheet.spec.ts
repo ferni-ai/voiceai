@@ -22,13 +22,13 @@ const ACTIONS = ['settings', 'team', 'music', 'calendar', 'history', 'people', '
 test.beforeEach(async ({ page }) => {
   await signIn(page, await createUser());
   await expectHome(page);
-  test.skip(!(await page.locator('[aria-label="Open menu"]').isVisible()), 'phone layout only');
+  test.skip(!(await page.locator('.mobile-menu-trigger').isVisible()), 'phone layout only');
 });
 
 for (const action of ACTIONS) {
   test(`quick action "${action}" opens and closes cleanly`, async ({ page }) => {
     const problems = watchProblems(page);
-    await page.locator('[aria-label="Open menu"]').click();
+    await page.locator('.mobile-menu-trigger').click();
     const row = page.locator(`.mobile-bottom-sheet [data-action="${action}"]`);
     await expect(row).toBeVisible();
     const before = await shownDialogs(page);

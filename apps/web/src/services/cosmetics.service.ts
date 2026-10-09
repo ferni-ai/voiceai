@@ -80,7 +80,7 @@ const DEFAULT_UI_THEMES: CosmeticItem[] = [
     requiredTier: 'free',
     isLimited: false,
     config: {
-      systemTheme: 'zen', // Default light theme
+      // No systemTheme: the default leaves light/dark to the person (Look & Feel or system)
     },
   },
 ];
