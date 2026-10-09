@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
+import { resolveCallerLocation } from '../../shared/caller-location.js';
 
 // Google Places (primary)
 import {
@@ -48,6 +49,16 @@ const log = getLogger();
 // ============================================================================
 
 type Source = 'auto' | 'google' | 'yelp';
+
+/** Asked only when the model gave no location and the caller's location is unknown. */
+const LOCATION_UNKNOWN = "Where should I look? I don't have your location.";
+
+const locationParam = z
+  .string()
+  .optional()
+  .describe(
+    "Where to search (city, neighborhood, or address). Optional - leave it out to search near the caller's location"
+  );
 
 interface SearchResult {
   name: string;
@@ -231,20 +242,23 @@ const searchLocalBusinessesDef: ToolDefinition = {
     return llm.tool({
       description:
         'Search for local businesses like restaurants, coffee shops, gyms, salons. ' +
+        'Searches near the caller unless they name a place. ' +
         'Say "on Yelp" or "on Google" to use a specific source. ' +
         'Returns ratings, reviews, price level, and hours.',
       parameters: z.object({
         query: z
           .string()
           .describe('What to search for (e.g., "Italian restaurant", "coffee shop", "gym")'),
-        location: z.string().describe('Where to search (city, neighborhood, or address)'),
+        location: locationParam,
         openNow: z.boolean().optional().describe('Only show places currently open'),
         priceLevel: z
           .string()
           .optional()
           .describe('Price filter: "1" ($), "2" ($$), "3" ($$$), "4" ($$$$)'),
       }),
-      execute: async ({ query, location, openNow, priceLevel }) => {
+      execute: async ({ query, location: requested, openNow, priceLevel }, opts) => {
+        const location = resolveCallerLocation(requested, opts, ctx);
+        if (!location) return LOCATION_UNKNOWN;
         try {
           log.info({ query, location, userId: ctx.userId }, '🔍 Searching local businesses');
 
@@ -281,10 +295,10 @@ const findRestaurantsDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Find restaurants in a specific area. Great for dinner recommendations. ' +
+        'Find restaurants near the caller, or in an area they name. Great for dinner recommendations. ' +
         'Say "on Yelp" or "on Google" to use a specific source.',
       parameters: z.object({
-        location: z.string().describe('Where to search (city, neighborhood, or address)'),
+        location: locationParam,
         cuisine: z
           .string()
           .optional()
@@ -292,7 +306,9 @@ const findRestaurantsDef: ToolDefinition = {
         openNow: z.boolean().optional().describe('Only show restaurants currently open'),
         priceLevel: z.string().optional().describe('Price range: "1" ($) to "4" ($$$$)'),
       }),
-      execute: async ({ location, cuisine, openNow, priceLevel }) => {
+      execute: async ({ location: requested, cuisine, openNow, priceLevel }, opts) => {
+        const location = resolveCallerLocation(requested, opts, ctx);
+        if (!location) return LOCATION_UNKNOWN;
         try {
           const query = cuisine ? `${cuisine} restaurant` : 'restaurant';
           log.info({ query, location, userId: ctx.userId }, '🍽️ Finding restaurants');

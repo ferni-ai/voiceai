@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { resolveCallerLocation } from '../../shared/caller-location.js';
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -466,6 +467,9 @@ export function getSavedLocation(userId: string, name: string): SavedLocation | 
 // TOOL DEFINITIONS
 // ============================================================================
 
+/** Asked only when the model gave no origin and the caller's location is unknown. */
+const ORIGIN_UNKNOWN = "Where are you starting from? I don't have your location.";
+
 export function createTrafficTools() {
   return {
     getCommuteTime: llm.tool({
@@ -473,20 +477,30 @@ export function createTrafficTools() {
       parameters: z.object({
         origin: z
           .string()
-          .describe('Starting location (address, place name, or "current location")'),
+          .optional()
+          .describe(
+            "Starting location. Optional - leave it out to start from the caller's location"
+          ),
         destination: z
           .string()
           .describe('Destination (address, place name, or saved location like "work" or "home")'),
       }),
-      execute: async ({ origin, destination }) => {
-        return getTrafficTime(origin, destination);
+      execute: async ({ origin, destination }, opts) => {
+        const from = resolveCallerLocation(origin, opts);
+        if (!from) return ORIGIN_UNKNOWN;
+        return getTrafficTime(from, destination);
       },
     }),
 
     getDirections: llm.tool({
       description: getToolDescription('getDirections'),
       parameters: z.object({
-        origin: z.string().describe('Starting location'),
+        origin: z
+          .string()
+          .optional()
+          .describe(
+            "Starting location. Optional - leave it out to start from the caller's location"
+          ),
         destination: z.string().describe('Destination'),
         mode: z
           .enum(['driving', 'walking', 'bicycling', 'transit'])
@@ -494,8 +508,10 @@ export function createTrafficTools() {
           .default('driving')
           .describe('Travel mode'),
       }),
-      execute: async ({ origin, destination, mode }) => {
-        return getDirections(origin, destination, mode);
+      execute: async ({ origin, destination, mode }, opts) => {
+        const from = resolveCallerLocation(origin, opts);
+        if (!from) return ORIGIN_UNKNOWN;
+        return getDirections(from, destination, mode);
       },
     }),
 

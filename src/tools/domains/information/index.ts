@@ -166,36 +166,7 @@ function getNewsToolDefinitions(): ToolDefinition[] {
 // ============================================================================
 
 import { getCurrentWeather, getWeatherForecast } from './weather.js';
-
-/** Values the model sends when it means "wherever I am". */
-const PLACEHOLDER_LOCATIONS = ['current', 'here', 'my location', 'local', 'nearby'];
-
-type DetectedLocation = ToolContext['userLocation'];
-
-/** LiveKit hands each tool call its session's RunContext; userData holds the caller's location. */
-function callerLocation(opts: unknown): DetectedLocation {
-  const userData = (opts as { ctx?: { userData?: { userLocation?: DetectedLocation } } } | undefined)
-    ?.ctx?.userData;
-  return userData?.userLocation;
-}
-
-/**
- * The place to look up: an explicit city, else the caller's detected location.
- * Fast-path tools are built once and shared (userId 'shared'), so their ctx has
- * no userLocation; the caller's location comes with the call. Never a
- * process-wide "current session": a worker runs several calls at once.
- */
-function resolveWeatherLocation(
-  location: string | undefined,
-  ctx: ToolContext,
-  opts: unknown
-): string | undefined {
-  const explicit = location?.trim();
-  if (explicit && !PLACEHOLDER_LOCATIONS.includes(explicit.toLowerCase())) return explicit;
-  const detected = callerLocation(opts)?.city ? callerLocation(opts) : ctx.userLocation;
-  if (!detected?.city) return undefined;
-  return detected.regionCode ? `${detected.city}, ${detected.regionCode}` : detected.city;
-}
+import { resolveCallerLocation } from '../../shared/caller-location.js';
 
 function getWeatherToolDefinitions(): ToolDefinition[] {
   const log = getLogger();
@@ -221,7 +192,7 @@ function getWeatherToolDefinitions(): ToolDefinition[] {
           }),
           execute: async ({ location }, opts) => {
             const startTime = Date.now();
-            const effectiveLocation = resolveWeatherLocation(location, ctx, opts);
+            const effectiveLocation = resolveCallerLocation(location, opts, ctx);
 
             if (!effectiveLocation) {
               return "I don't know your location. Which city would you like weather for?";
@@ -262,7 +233,7 @@ function getWeatherToolDefinitions(): ToolDefinition[] {
           }),
           execute: async ({ location, days = 5 }, opts) => {
             const startTime = Date.now();
-            const effectiveLocation = resolveWeatherLocation(location, ctx, opts);
+            const effectiveLocation = resolveCallerLocation(location, opts, ctx);
 
             if (!effectiveLocation) {
               return "I don't know your location. Which city would you like the forecast for?";

@@ -108,8 +108,8 @@ export const searchLocalBusinessesTool: SemanticToolDefinition = {
     {
       name: 'location',
       type: 'string',
-      description: 'Location to search',
-      required: true,
+      description: "Where to search (defaults to the caller's location)",
+      required: false,
       extractionPatterns: [/(?:near|in|around)\s+(.+?)$/i, /(?:nearby|close\s+to)\s+(.+?)$/i],
     },
     {
@@ -232,8 +232,8 @@ export const findRestaurantsTool: SemanticToolDefinition = {
     {
       name: 'location',
       type: 'string',
-      description: 'Where to search',
-      required: true,
+      description: "Where to search (defaults to the caller's location)",
+      required: false,
       extractionPatterns: [/(?:in|near|around)\s+(.+?)$/i, /(?:near\s+me|around\s+here|nearby)/i],
     },
     {
