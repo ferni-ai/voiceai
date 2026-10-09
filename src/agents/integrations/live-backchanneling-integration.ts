@@ -35,6 +35,7 @@ import {
   pickBackchannel,
   shouldLaughAlong,
 } from './backchannel-policy.js';
+import { backchannelContextEnabled, pickContextualBackchannel } from './backchannel-context.js';
 import { backchannelsEnabled } from '../../config/voice-humanization-flags.js';
 
 const log = getLogger().child({ module: 'LiveBackchannelingIntegration' });
@@ -202,8 +203,18 @@ export function initializeLiveBackchanneling<T>(
       log.debug({ reason: decision.reason }, 'backchannel skipped');
       return;
     }
-    const text = pickBackchannel(emotional, lastClip);
-    if (!playClip(text)) return;
+    // BACKCHANNEL_CONTEXT=on: react to what they're saying ("oh no", "whoa").
+    // Nothing fits, or that clip isn't cached for this persona: the neutral pick.
+    const fitting = backchannelContextEnabled()
+      ? pickContextualBackchannel(state.partialTranscript ?? '', emotional, lastClip)
+      : null;
+    let text = fitting ?? pickBackchannel(emotional, lastClip);
+    let played = playClip(text);
+    if (!played && fitting !== null) {
+      text = pickBackchannel(emotional, lastClip);
+      played = playClip(text);
+    }
+    if (!played) return;
     lastClip = text;
     state.lastBackchannelAt = now;
     trackBackchannelEvent(sessionId, {
@@ -213,7 +224,7 @@ export function initializeLiveBackchanneling<T>(
       userEmotion: state.currentEmotion?.primary,
       mode: 'live',
     });
-    log.info({ text, emotional }, 'backchannel clip played');
+    log.info({ text, emotional, contextual: text === fitting }, 'backchannel clip played');
   };
 
   // =========================================================================
