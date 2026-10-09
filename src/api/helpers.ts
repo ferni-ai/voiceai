@@ -9,6 +9,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { API_ERRORS } from './error-messages.js';
+import { isVerifiedAdmin } from './rate-limit-identity.js';
 import {
   getCorsHeaders as getSecureCorsHeaders,
   getAPISecurityHeaders,
@@ -225,23 +226,27 @@ export function validateQueryParams<T>(parsedUrl: URL, schema: ZodSchema<T>): Va
 }
 
 /**
- * Get user ID from request with proper validation.
+ * The user a request acts for: the verified caller, or the user a verified
+ * admin names in ?userId=.
  *
- * SECURITY: Uses Firebase auth (x-firebase-uid) as primary identity.
- * Checks in order: Firebase UID, query params, dev mode.
+ * SECURITY: x-firebase-uid is set only by bindVerifiedIdentity
+ * (servers/api/request-identity.ts), from a verified token, after it drops any
+ * client-sent copy. A ?userId= on its own is a claim, not an identity: this
+ * used to return it to anyone, so its routes were safe only because the door
+ * rewrites ?userId= in production. The door takes claims as given in
+ * development; this does not.
  *
  * @param req - Incoming HTTP request
  * @param parsedUrl - Parsed URL with searchParams
- * @returns User ID or null if not provided
+ * @returns User ID, or null for an anonymous caller
  */
 export function getUserId(req: IncomingMessage, parsedUrl: URL): string | null {
-  // SECURITY: Prioritize Firebase auth (set by auth-middleware)
-  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
-  if (firebaseUid) return firebaseUid;
+  const firebaseUid = req.headers['x-firebase-uid'];
+  if (typeof firebaseUid === 'string' && firebaseUid) return firebaseUid;
 
-  // Query params (for backwards compatibility)
-  const fromQuery = parsedUrl.searchParams.get('userId');
-  if (fromQuery) return fromQuery;
+  // The door leaves an admin's named target in place (and binds no uid header).
+  const named = parsedUrl.searchParams.get('userId');
+  if (named && isVerifiedAdmin(req)) return named;
 
   // Dev mode bypass - allows testing without authentication
   // SECURITY: Only works in development environment

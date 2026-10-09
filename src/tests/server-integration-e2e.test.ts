@@ -381,7 +381,8 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 400, 401, 404]).toContain(response.status);
+      // No token: the ?userId= names someone, but that is not an identity.
+      expect(response.status).toBe(401);
     });
   });
 

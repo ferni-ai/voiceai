@@ -113,15 +113,10 @@ export async function handleEngagementRoutes(
     return true; // Rate limited
   }
 
-  // Auth strategy for engagement routes:
-  // 1. Try Firebase auth (preferred) - sets userId to Firebase UID
-  // 2. Fall back to userId from query params or X-User-Id header (legacy device IDs)
-  // This allows users who haven't migrated to Firebase to still use the API
+  // A verified caller (or an admin naming a user) is required. The handlers
+  // below read ?userId= themselves, so this gate is what keeps an anonymous
+  // request naming someone else out of them (getUserId no longer trusts it).
   const auth = await optionalAuthAsync(req);
-
-  // If we have Firebase auth, we can use the userId from there
-  // Otherwise, individual handlers will get userId from query params/headers
-  // We still need SOME form of user identification
   const userId = auth?.userId || getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, API_ERRORS.USER_ID_REQUIRED, 401);
