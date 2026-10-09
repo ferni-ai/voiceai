@@ -544,7 +544,7 @@ function renderSelectStep(): string {
 
     <div class="task-templates-list">
       ${TASK_TEMPLATES.map(template => `
-        <button aria-label="${t('accessibility.moreInformation')}" class="task-template-card ${taskData.template?.id === template.id ? 'selected' : ''}" data-template="${template.id}">
+        <button class="task-template-card ${taskData.template?.id === template.id ? 'selected' : ''}" data-template="${template.id}">
           <div class="task-template-icon">${template.icon}</div>
           <div class="task-template-info">
             <p class="task-template-name">${t(template.nameKey)}</p>

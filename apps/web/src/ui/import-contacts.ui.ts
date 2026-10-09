@@ -468,7 +468,7 @@ function render(): void {
 function renderSourceSelection(): string {
   return `
     <div class="ic-sources">
-      <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'google' ? 'selected' : ''}" data-source="google">
+      <button class="ic-source-btn ${state.source === 'google' ? 'selected' : ''}" data-source="google">
         <div class="ic-source-icon">${ICONS.google}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">${t('importContacts.googleContacts')}</div>
@@ -476,7 +476,7 @@ function renderSourceSelection(): string {
         </div>
       </button>
 
-      <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'csv' ? 'selected' : ''}" data-source="csv">
+      <button class="ic-source-btn ${state.source === 'csv' ? 'selected' : ''}" data-source="csv">
         <div class="ic-source-icon">${ICONS.csv}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">${t('importContacts.csvFile')}</div>
@@ -484,7 +484,7 @@ function renderSourceSelection(): string {
         </div>
       </button>
 
-      <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'vcard' ? 'selected' : ''}" data-source="vcard">
+      <button class="ic-source-btn ${state.source === 'vcard' ? 'selected' : ''}" data-source="vcard">
         <div class="ic-source-icon">${ICONS.vcard}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">${t('importContacts.vcfFile')}</div>

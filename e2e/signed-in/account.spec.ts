@@ -51,3 +51,49 @@ test('signed out, the keyboard reaches only the sign-in screen', async ({ page }
   }
   expect(behind, 'reachable behind the sign-in screen').toEqual([]);
 });
+
+const AUTH_EMULATOR = process.env.FIREBASE_AUTH_EMULATOR_URL ?? 'http://127.0.0.1:9099';
+
+/** Whether these credentials can still sign in, asked of the Auth emulator directly */
+async function canSignIn(user: { email: string; password: string }): Promise<boolean> {
+  const res = await fetch(`${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=emulator`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: user.email, password: user.password, returnSecureToken: true }),
+  });
+  return res.ok;
+}
+
+async function deleteMyAccount(page: import('@playwright/test').Page, answer: 'accept' | 'dismiss') {
+  page.once('dialog', (d) => void (answer === 'accept' ? d.accept() : d.dismiss()));
+  await openSettingsMenu(page);
+  await page.locator('.settings-menu [data-action="export"]').click();
+  await page.getByRole('button', { name: /delete my account/i }).click();
+}
+
+test('Delete my account, cancelled, keeps the account', async ({ page }) => {
+  const user = await createUser();
+  await signIn(page, user);
+  await expectHome(page);
+  await deleteMyAccount(page, 'dismiss');
+  await page.waitForTimeout(1_500);
+  expect(await canSignIn(user)).toBe(true);
+  await page.reload();
+  await expectHome(page);
+});
+
+test('Delete my account removes the account and leaves this browser signed out', async ({ page }) => {
+  const user = await createUser();
+  await signIn(page, user);
+  await expectHome(page);
+  const theirs = '{"e2e-marker":"this person\'s milestones"}';
+  await page.evaluate((v) => localStorage.setItem('ferni-milestones', v), theirs);
+  const problems = watchProblems(page);
+
+  await deleteMyAccount(page, 'accept');
+  await expect(page.locator(signInButtons).first(), 'back at the sign-in screen').toBeVisible({ timeout: 30_000 });
+  expect(await canSignIn(user), 'the login itself is gone').toBe(false);
+  // The app writes fresh defaults on load; what matters is that theirs are gone
+  expect(await page.evaluate(() => localStorage.getItem('ferni-milestones')), 'nothing of theirs left here').not.toBe(theirs);
+  expect(problems.take().filter((p) => p.startsWith('pageerror'))).toEqual([]);
+});
