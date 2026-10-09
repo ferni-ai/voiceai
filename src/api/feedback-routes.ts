@@ -22,6 +22,7 @@ import {
 import { generateFeedbackInsights } from '../services/feedback/feedback-insights.js';
 import type { FeedbackReaction } from '../services/feedback/types.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { resolveActingUser } from './acting-user.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'FeedbackRoutes' });
@@ -62,10 +63,13 @@ export async function handleFeedbackRoutes(
     // POST /api/feedback - Record a reaction
     if (pathname === '/api/feedback' && req.method === 'POST') {
       const body = (await parseBody(req)) as Record<string, unknown>;
-      const { feedbackId, userId, reaction } = body;
+      const { feedbackId, reaction } = body;
+      // Only the verified caller (or an admin) may react for a user: the body's userId is a claim.
+      const userId = await resolveActingUser(req, res, body.userId);
+      if (!userId) return true;
 
-      if (!feedbackId || !userId || !reaction) {
-        sendError(res, 'Missing required fields: feedbackId, userId, reaction', 400);
+      if (!feedbackId || !reaction) {
+        sendError(res, 'Missing required fields: feedbackId, reaction', 400);
         return true;
       }
 
@@ -85,10 +89,13 @@ export async function handleFeedbackRoutes(
       return true;
     }
 
+    // GET routes below name the user in the path, which central identity binding
+    // (request-identity.ts) cannot see: each checks the verified caller itself.
     // GET /api/feedback/user/:userId - Get user's feedback history
     const userMatch = pathname.match(/^\/api\/feedback\/user\/([^/]+)$/);
     if (userMatch && req.method === 'GET') {
-      const userId = userMatch[1];
+      const userId = await resolveActingUser(req, res, userMatch[1]);
+      if (!userId) return true;
       const limit = parseInt(url.searchParams.get('limit') || '50', 10);
       const sessionId = url.searchParams.get('sessionId') || undefined;
       const personaId = url.searchParams.get('personaId') || undefined;
@@ -109,7 +116,8 @@ export async function handleFeedbackRoutes(
     // GET /api/feedback/insights/:userId - Get aggregated insights
     const insightsMatch = pathname.match(/^\/api\/feedback\/insights\/([^/]+)$/);
     if (insightsMatch && req.method === 'GET') {
-      const userId = insightsMatch[1];
+      const userId = await resolveActingUser(req, res, insightsMatch[1]);
+      if (!userId) return true;
       const insights = await generateFeedbackInsights(userId);
 
       sendJSON(res, {
@@ -123,7 +131,8 @@ export async function handleFeedbackRoutes(
     // GET /api/feedback/stats/:userId - Get feedback statistics
     const statsMatch = pathname.match(/^\/api\/feedback\/stats\/([^/]+)$/);
     if (statsMatch && req.method === 'GET') {
-      const userId = statsMatch[1];
+      const userId = await resolveActingUser(req, res, statsMatch[1]);
+      if (!userId) return true;
       const stats = await calculateUserFeedbackStats(userId);
 
       sendJSON(res, {
