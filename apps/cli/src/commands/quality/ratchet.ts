@@ -292,17 +292,17 @@ async function eslintMain(args: string[]): Promise<void> {
     const base = args.includes('--init') ? undefined : file.webEslint;
     const next = base ? Object.fromEntries(Object.entries(base).map(([r, n]) => [r, Math.min(n, now[r] ?? 0)])) : now;
     writeFileSync(BASELINE, JSON.stringify({ ...file, webEslint: next }, null, 1) + '\n');
-    console.log(`Web ESLint baseline: ${total(next)} errors`);
+    process.stdout.write(`Web ESLint baseline: ${total(next)} errors` + '\n');
     return;
   }
   if (!file.webEslint) throw new Error('No web ESLint baseline: run with --eslint <file> --init');
   const worse = eslintRegressions(file.webEslint, now);
-  console.log(`Web ESLint errors. Baseline: ${total(file.webEslint)}  Now: ${total(now)}`);
+  process.stdout.write(`Web ESLint errors. Baseline: ${total(file.webEslint)}  Now: ${total(now)}` + '\n');
   if (worse.length > 0) {
-    console.log(`\n❌ ${worse.map((w) => `  - ${w}`).join('\n')}`);
+    process.stdout.write(`\n❌ ${worse.map((w) => `  - ${w}`).join('\n')}\n`);
     process.exit(1);
   }
-  console.log('\n✅ No rule has more ESLint errors than its baseline.');
+  process.stdout.write('\n✅ No rule has more ESLint errors than its baseline.' + '\n');
 }
 
 async function main(): Promise<void> {
