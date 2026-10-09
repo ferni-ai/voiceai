@@ -23,12 +23,12 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
-    "@sentry/electron": "^7.5.0",
+    "@sentry/electron": "^7.20.1",
     "electron-store": "^10.0.0",
     "electron-updater": "^6.3.0"
   },
   "devDependencies": {
-    "electron": "^31.0.0",
+    "electron": "^44.7.0",
     "electron-builder": "^25.0.0"
   },
   "build": {
