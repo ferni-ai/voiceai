@@ -14,6 +14,10 @@
  * only `function_tools_executed` once they finish.
  */
 
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'EmptyResponseWatchdog' });
+
 export interface EmptyResponseWatchdog {
   /** The user finished a turn: start the clock (held if a tool is still running). */
   arm: () => void;
@@ -98,7 +102,16 @@ export function onToolCallRequested(session: object, listener: () => void): () =
   return () => listeners.delete(listener);
 }
 
-/** Report that the LLM's reply in this session contains a tool call. */
+/**
+ * Report that the LLM's reply in this session contains a tool call. Runs inside
+ * the reply stream, so a failing listener is logged, never thrown into the reply.
+ */
 export function signalToolCallRequested(session: object): void {
-  toolCallListeners.get(session)?.forEach((listener) => listener());
+  toolCallListeners.get(session)?.forEach((listener) => {
+    try {
+      listener();
+    } catch (error) {
+      log.error({ error: String(error) }, 'Tool-call listener failed');
+    }
+  });
 }

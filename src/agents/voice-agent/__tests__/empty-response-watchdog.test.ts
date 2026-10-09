@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EMPTY_RESPONSE_WATCHDOG_MS } from '../../../config/timeouts.js';
 import { diag } from '../../../services/diagnostic-logger.js';
 import { tapToolCalls } from '../../personas/turn-request.js';
-import { createEmptyResponseWatchdog } from '../empty-response-watchdog.js';
+import { createEmptyResponseWatchdog, onToolCallRequested } from '../empty-response-watchdog.js';
 import { setupSessionStateHandlers, type SessionStateContext } from '../session-state-handler.js';
 
 const TIMEOUT = 3000;
@@ -115,6 +115,33 @@ describe('createEmptyResponseWatchdog', () => {
     vi.advanceTimersByTime(HOLD * 2);
     expect(onTimeout).not.toHaveBeenCalled();
     expect(dog.armed).toBe(false);
+  });
+});
+
+describe('tapToolCalls', () => {
+  it('a failing listener does not break the reply stream or the other listeners', async () => {
+    const session = {};
+    const other = vi.fn();
+    onToolCallRequested(session, () => {
+      throw new Error('listener bug');
+    });
+    onToolCallRequested(session, other);
+    const chunks = [
+      { id: 'c1', delta: { toolCalls: [{ type: 'function_call', name: 'quickTimer' }] } },
+      { id: 'c2', delta: { content: 'done' } },
+    ];
+    const reply = new ReadableStream<object>({
+      start(controller) {
+        chunks.forEach((c) => controller.enqueue(c));
+        controller.close();
+      },
+    });
+    const received: object[] = [];
+    await tapToolCalls(reply, session)?.pipeTo(
+      new WritableStream({ write: (c) => void received.push(c) })
+    );
+    expect(received).toEqual(chunks);
+    expect(other).toHaveBeenCalledTimes(1);
   });
 });
 
