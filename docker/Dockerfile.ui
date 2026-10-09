@@ -62,16 +62,14 @@ COPY apps/async/package.json ./apps/async/
 COPY apps/intelligence-worker/package.json ./apps/intelligence-worker/
 COPY packages/shared-types/package.json ./packages/shared-types/
 
-# Create stub package.json for packages not in build context (rust packages, design-system)
-RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
-    echo '{"name":"@ferni/audio","version":"0.1.0"}' > apps/rust-audio/package.json && \
-    echo '{"name":"@ferni/perf","version":"0.1.0"}' > apps/rust-perf/package.json && \
-    echo '{"name":"@ferni/design-system","version":"1.0.0"}' > design-system/package.json
+# The real package.json of every workspace package the lockfile names (none has install
+# scripts), so both installs below are frozen: the image gets exactly what CI tested.
+COPY apps/rust-audio/package.json ./apps/rust-audio/
+COPY apps/rust-perf/package.json ./apps/rust-perf/
+COPY design-system/package.json ./design-system/
 
-# LiveKit agents packages are exact-pinned in package.json (no file: / no caret).
-# Use --no-frozen-lockfile because Docker creates stub workspace package.json files.
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --prefer-offline --no-frozen-lockfile
+    pnpm install --prefer-offline --frozen-lockfile
 
 # ============================================================================
 # Stage 2: Build Backend TypeScript (esbuild)
@@ -170,7 +168,7 @@ COPY pnpm-workspace.yaml ./
 # Copy patches directory (required by pnpm-lock.yaml)
 COPY patches/ ./patches/
 
-# Copy workspace package stubs from builder
+# Copy workspace package files from builder
 COPY --from=backend-builder /app/apps/rust-audio/package.json ./apps/rust-audio/
 COPY --from=backend-builder /app/apps/rust-perf/package.json ./apps/rust-perf/
 COPY --from=backend-builder /app/design-system/package.json ./design-system/
@@ -186,7 +184,7 @@ COPY --from=backend-builder /app/packages/shared-types/package.json ./packages/s
 # cleanup stays in the same layer (so it still shrinks the image) but runs in a
 # subshell whose failures cannot mask the install.
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --prefer-offline --prod --no-frozen-lockfile && \
+    pnpm install --prefer-offline --prod --frozen-lockfile && \
     test -f node_modules/dotenv/package.json && \
     ( find node_modules -name "*.md" -delete; \
       find node_modules -name "*.map" -delete; \
