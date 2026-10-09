@@ -670,9 +670,9 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      // Should redirect to Spotify, or 503 if Spotify isn't configured
-      // (servers/api/routes/spotify.ts), or 404 if the route isn't on this server
-      expect([200, 302, 400, 404, 500, 503]).toContain(response.status);
+      // A link must start at POST /auth/oauth/start (bound state); a bare
+      // device_id is refused. 503 when Spotify isn't configured.
+      expect([401, 503]).toContain(response.status);
     });
 
     it('should handle /spotify/token', async () => {
@@ -683,8 +683,8 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      // 400 = missing code param, 401 = unauthorized, 404 = route not on this server, 500 = server error
-      expect([200, 400, 401, 404, 500]).toContain(response.status);
+      // The server's own Spotify token: admins only, never an anonymous caller.
+      expect([401]).toContain(response.status);
     });
   });
 

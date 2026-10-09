@@ -1,6 +1,6 @@
 /**
  * Start an OAuth "connect account" flow (Google/Outlook/Apple calendar, wearables,
- * LinkedIn).
+ * LinkedIn, Spotify).
  *
  * A full-page navigation can't carry the Firebase token, so the server never
  * learns who is connecting from the login URL. We first POST /auth/oauth/start
@@ -27,7 +27,8 @@ export type OAuthConnectProvider =
   | 'oura'
   | 'garmin'
   | 'whoop'
-  | 'linkedin';
+  | 'linkedin'
+  | 'spotify';
 
 const PROVIDER_NAMES: Record<OAuthConnectProvider, string> = {
   google_calendar: 'Google Calendar',
@@ -38,6 +39,7 @@ const PROVIDER_NAMES: Record<OAuthConnectProvider, string> = {
   garmin: 'Garmin',
   whoop: 'WHOOP',
   linkedin: 'LinkedIn',
+  spotify: 'Spotify',
 };
 
 /** Only same-origin paths: the server returns e.g. /auth/google/login?state=… */

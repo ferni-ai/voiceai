@@ -114,3 +114,25 @@ describe('calendar connect buttons', () => {
     expectStarted('microsoft_calendar', '/auth/microsoft/login?state=m2');
   });
 });
+
+describe('Spotify link button', () => {
+  // The button used to navigate to /spotify/login?device_id=…, and the server
+  // saved the Spotify tokens under whatever device_id the URL named.
+  // Server side: src/servers/api/__tests__/spotify-link-identity.test.ts
+  it('starts through the start endpoint, not /spotify/login?device_id=…', async () => {
+    vi.doMock('../../src/state/app.state.js', () => ({ getDeviceId: () => 'device-1' }));
+    const { triggerSpotifyLinkToggle } = await import('../../src/ui/spotify.ui.js');
+    Object.assign(mockLocation, { pathname: '/music' });
+
+    serverReturns('/spotify/login?state=sp');
+    await triggerSpotifyLinkToggle();
+
+    expect(api.apiPost).toHaveBeenCalledWith(
+      START,
+      { provider: 'spotify', returnUrl: '/music' },
+      { maxRetries: 0 }
+    );
+    expect(mockLocation.href).toBe('/spotify/login?state=sp');
+    expect(mockLocation.href).not.toMatch(/device_id/);
+  });
+});
