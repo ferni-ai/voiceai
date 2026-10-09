@@ -27,8 +27,7 @@ import {
   formatLocationName,
   type GeocodingResult,
 } from './utils/geocoding.js';
-import { getCurrentSessionLocation, isValidLocation } from './location-preference.js';
-import { getSessionId } from '../../utils/tool-helpers.js';
+import { getUserLocationPreference, isValidLocation } from './location-preference.js';
 
 // ============================================================================
 // GOOGLE WEATHER API
@@ -505,18 +504,36 @@ export async function getWeatherForecast(location: string, days = 5): Promise<st
 // TOOL DEFINITIONS
 // ============================================================================
 
+/** The slice of a session's userData the weather tools read. */
+type CallerData = {
+  userId?: string;
+  userLocation?: { city?: string; regionCode?: string; countryCode?: string };
+};
+
 export function createWeatherTools() {
   const logger = getLogger();
 
-  /** Resolve location from args or the current session. */
-  function resolveLocation(argLocation?: string, sessionId?: string): string | null {
+  /**
+   * Resolve location from args, else the calling session's location.
+   * LiveKit passes each tool call its session's RunContext (run.ctx); its
+   * userData is that call's own data. Never a process-wide registry: a worker
+   * runs several calls at once.
+   */
+  function resolveLocation(argLocation: string | undefined, run: unknown): string | null {
     // If a valid location was provided, use it
     if (isValidLocation(argLocation)) {
       return argLocation!;
     }
 
-    // Fall back to current active session location
-    const sessionLocation = getCurrentSessionLocation(sessionId);
+    const userData = (run as { ctx?: { userData?: CallerData } } | undefined)?.ctx?.userData;
+    const detected = userData?.userLocation;
+    const sessionLocation = detected?.city
+      ? detected.regionCode
+        ? `${detected.city}, ${detected.regionCode}`
+        : detected.city
+      : userData?.userId
+        ? getUserLocationPreference(userData.userId)
+        : null;
     if (sessionLocation) {
       logger.info(
         { argLocation, sessionLocation, source: 'session-fallback' },
@@ -543,7 +560,7 @@ export function createWeatherTools() {
       }),
       execute: async ({ location: argLocation }, run) => {
         const startTime = Date.now();
-        const location = resolveLocation(argLocation, getSessionId(run));
+        const location = resolveLocation(argLocation, run);
 
         if (!location) {
           return "I don't know your location. Which city would you like weather for?";
@@ -577,7 +594,7 @@ export function createWeatherTools() {
       }),
       execute: async ({ location: argLocation, days = 5 }, run) => {
         const startTime = Date.now();
-        const location = resolveLocation(argLocation, getSessionId(run));
+        const location = resolveLocation(argLocation, run);
 
         if (!location) {
           return "I don't know your location. Which city would you like the forecast for?";
