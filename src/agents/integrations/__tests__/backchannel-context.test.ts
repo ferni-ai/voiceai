@@ -108,4 +108,37 @@ describe('backchannelContextEnabled', () => {
     expect(backchannelContextEnabled({ BACKCHANNEL_CONTEXT: 'off' })).toBe(false);
     expect(backchannelContextEnabled({ BACKCHANNEL_CONTEXT: 'on' })).toBe(true);
   });
+
+  it('fits what callers actually said on dev evals (2026-10-09), which all got nothing or "Right"', () => {
+    const cases: Array<[string, string]> = [
+      ["Hey Ferni, it's been kind of a long day.", 'bad_news'],
+      ['My manager moved a big deadline up to Friday.', 'bad_news'],
+      ['Oh, and Biscuit chewed up my phone charger this morning.', 'bad_news'],
+      ['Okay so my cat just knocked a full glass of water onto my keyboard.', 'bad_news'],
+      ["I'm pretty sure she looked me dead in the eye while she did it.", 'funny'],
+      ["I'm starting to think she's plotting against me.", 'funny'],
+      ['I honestly started crying.', 'tender'],
+      ['And then halfway up she proposed', 'surprise'],
+    ];
+    for (const [said, want] of cases) expect(classifyBackchannelContext(said), said).toBe(want);
+  });
+
+  it('does not hear the new cues inside other words or after a negation', () => {
+    for (const said of [
+      'the crackers were stale',
+      'a sickle and a hammer',
+      'the classical station',
+      'I was not stressed at all',
+      'she wonders about it',
+    ])
+      expect(classifyBackchannelContext(said), said).toBeNull();
+    expect(classifyBackchannelContext('I honestly think so')).toBeNull();
+  });
+
+  it('meets tears with a soft "Aw", never "Oh no" or "Right"', () => {
+    for (let i = 0; i < 10; i++)
+      expect(['Aw', 'Mm']).toContain(
+        pickContextualBackchannel('I honestly started crying', false, null, () => i / 10)
+      );
+  });
 });

@@ -36,6 +36,14 @@ broken-mark rate. `vsHuman` compares each against the targets in
 reference points: median turn about 18 words; questions are about 6% of
 utterances; 1 to 4 filled pauses per 100 words.
 
+Captions strip audio tags, so score.mjs's laughter is always 0. To see how often
+he actually laughed (or any `[tag]`), capture the agent log during the batch and
+count what went to TTS:
+```bash
+lk agent logs --project ferni-dev --config <abs>/livekit.toml > agent.log &   # before the runs
+node tts-tags.mjs agent.log    # {"replies":50,"tags":{"laughter":{"replies":7,"rate":0.14}}}
+```
+
 ## Read the transcripts too
 The numbers miss things a listener hears. Print the conversation:
 ```bash
