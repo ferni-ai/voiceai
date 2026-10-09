@@ -328,8 +328,8 @@ async function fetchRelationships(userId: string): Promise<RelationshipGrowth> {
 async function fetchTeamUnlocks(userId: string): Promise<TeamUnlock[]> {
   try {
     const { getTeamUnlockState } = await import('../services/team-unlocks.js');
-    const { getDefaultStore } = await import('../memory/in-memory-store.js');
-    const store = getDefaultStore();
+    const { getStore } = await import('../memory/store-factory.js');
+    const store = await getStore();
     const profile = await store.getProfile(userId);
     const state = getTeamUnlockState(profile);
 
