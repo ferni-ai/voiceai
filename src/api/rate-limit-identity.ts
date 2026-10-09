@@ -10,12 +10,20 @@
 
 import type { IncomingMessage } from 'http';
 import { isVerifiedToken, verifyFirebaseToken } from '../services/identity/firebase-auth.js';
+import { getClientIp } from '../utils/ddos-protection.js';
+import { checkRateLimit } from './auth-middleware.js';
 
 /** How long a rejected token stays rejected before it is checked again */
 const INVALID_TTL_MS = 30_000;
 /** Stop trusting a cached uid this long before its token expires */
 const EXPIRY_MARGIN_MS = 60_000;
 const MAX_ENTRIES = 10_000;
+/**
+ * Unseen tokens one IP may have verified per minute. Verification runs before
+ * the limiter, so without this a stream of random tokens is free work; past
+ * the budget a request is simply limited by its IP.
+ */
+const VERIFY_BUDGET_PER_IP = 30;
 
 const cache = new Map<string, { uid: string | null; until: number }>();
 
@@ -36,6 +44,7 @@ export async function rateLimitUid(req: IncomingMessage, now = Date.now()): Prom
 
   const hit = cache.get(token);
   if (hit && hit.until > now) return hit.uid;
+  if (!checkRateLimit(`verify-token:${getClientIp(req)}`, VERIFY_BUDGET_PER_IP, 60_000).allowed) return null;
 
   let uid: string | null = null;
   let until = now + INVALID_TTL_MS;

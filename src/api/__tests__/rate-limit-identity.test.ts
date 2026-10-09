@@ -9,11 +9,14 @@ vi.mock('../../services/identity/firebase-auth.js', () => ({
 
 const { rateLimitUid, clearRateLimitIdentityCache } = await import('../rate-limit-identity.js');
 
-const req = (authorization?: string) => ({ headers: authorization ? { authorization } : {} }) as IncomingMessage;
+let ip = 0;
+const req = (authorization?: string, from = `198.51.100.${ip}`) =>
+  ({ headers: authorization ? { authorization } : {}, socket: { remoteAddress: from } }) as unknown as IncomingMessage;
 const NOW = 1_800_000_000_000;
 const valid = (uid: string) => ({ uid, expiresAt: NOW / 1000 + 3600, emailVerified: true, isAnonymous: false, claims: {} });
 
 beforeEach(() => {
+  ip += 1; // a fresh address per test, so verification budgets don't carry over
   verifyFirebaseToken.mockReset();
   clearRateLimitIdentityCache();
 });
@@ -45,5 +48,14 @@ describe('rateLimitUid', () => {
     await rateLimitUid(req('Bearer tok-a'), NOW);
     await rateLimitUid(req('Bearer tok-a'), NOW + 3600_000);
     expect(verifyFirebaseToken).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops verifying a flood of unseen tokens from one address', async () => {
+    verifyFirebaseToken.mockResolvedValue(null);
+    for (let i = 0; i < 40; i++) expect(await rateLimitUid(req(`Bearer junk-${i}`), NOW)).toBeNull();
+    expect(verifyFirebaseToken.mock.calls.length).toBeLessThanOrEqual(30);
+    // another address still gets its tokens verified
+    verifyFirebaseToken.mockResolvedValue(valid('uid-c'));
+    expect(await rateLimitUid(req('Bearer real', '192.0.2.50'), NOW)).toBe('uid-c');
   });
 });

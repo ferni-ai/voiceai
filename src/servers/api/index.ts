@@ -302,9 +302,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     return;
   }
 
-  // Global rate limiting for API routes: per signed-in person, else per IP
   if (pathname.startsWith('/api/') && pathname !== '/api/health') {
-    const uid = await rateLimitUid(req);
+    const uid = await rateLimitUid(req); // global limit: per signed-in person, else per IP
+    if (uid && rateLimit(req, res, { maxRequests: 1000, windowMs: 60000, keyPrefix: 'ip-ceiling' })) return; // shared per-IP ceiling
     if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, ...(uid && { keyGenerator: () => `user:${uid}` }) })) return;
   }
 
