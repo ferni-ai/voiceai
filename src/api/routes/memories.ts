@@ -121,11 +121,11 @@ export async function handleGetCognitiveMemories(
 
   try {
     const { getAllUserMemories } = await import('../../services/memory/persona-memories.js');
-    const { getDefaultStore } = await import('../../memory/index.js');
+    const { getStore } = await import('../../memory/store-factory.js');
     const { extractLearnedMemories } = await import('../../services/memory/learned-memories.js');
 
     const rawMemories = (await getAllUserMemories(userId)) as unknown as AnyRecord[];
-    const store = getDefaultStore();
+    const store = await getStore();
     const userProfile = (await store.getProfile(userId)) as unknown as AnyRecord | null;
 
     // Transform persona memories
@@ -230,9 +230,9 @@ export async function handleDeleteMemory(
     // Try profile-based memories
     if (!deleted) {
       const { deleteMemoryFromProfile } = await import('../../services/memory/learned-memories.js');
-      const { getDefaultStore } = await import('../../memory/index.js');
+      const { getStore } = await import('../../memory/store-factory.js');
 
-      const store = getDefaultStore();
+      const store = await getStore();
       const profile = await store.getProfile(userId);
 
       if (profile) {
@@ -272,10 +272,10 @@ export async function handleGetSuperhumanInsights(
   if (!userId) return;
 
   try {
-    const { getDefaultStore } = await import('../../memory/index.js');
+    const { getStore } = await import('../../memory/store-factory.js');
     const { buildSuperhumanContext } = await import('../../intelligence/superhuman-memory.js');
 
-    const store = getDefaultStore();
+    const store = await getStore();
     const profile = await store.getProfile(userId);
 
     if (!profile) {

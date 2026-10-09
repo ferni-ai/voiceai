@@ -117,6 +117,9 @@ export const signInWithPopup = (_auth: Auth, _provider: unknown): Promise<UserCr
   return Promise.reject(new Error('Firebase not configured'));
 };
 
+export const signInWithEmailAndPassword = (_auth: Auth, _email: string, _password: string): Promise<UserCredential> =>
+  Promise.reject(new Error('Firebase stub: email sign-in unavailable'));
+
 export const signInWithCredential = (_auth: Auth, _credential: unknown): Promise<UserCredential> => {
   return Promise.reject(new Error('Firebase not configured'));
 };
@@ -159,7 +162,7 @@ export const OAuthProvider = class {
   setCustomParameters(_params: Record<string, string>) { return this; }
 };
 
-export const connectAuthEmulator = () => {};
+export const connectAuthEmulator = (_auth: Auth, _url: string, _options?: { disableWarnings?: boolean }) => {};
 
 export default {
   initializeApp,
@@ -170,6 +173,7 @@ export default {
   signInWithCustomToken,
   signInWithPopup,
   signInWithCredential,
+  signInWithEmailAndPassword,
   signOut,
   linkWithCredential,
   sendPasswordResetEmail,

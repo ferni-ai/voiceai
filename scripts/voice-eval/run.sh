@@ -1,7 +1,7 @@
 #!/bin/zsh
 # Run one scripted conversation against a LiveKit Cloud agent and score it.
 #
-# usage: scripts/voice-eval/run.sh <dev|prod> <scenario> [label] [user_id]
+# usage: scripts/voice-eval/run.sh <dev|prod|local> <scenario> [label] [user_id]
 #   scenario: a name under scenarios/ (long-day, story, playful, ...)
 #   label:    names the output files (default: HHMMSS)
 #   user_id:  who the agent thinks is calling (also settable as EVAL_UID).
@@ -25,6 +25,10 @@
 # EVAL_DRY_RUN=1 prints the plan as JSON (user id, rooms, scenarios) and exits:
 #   no audio, no token, no call.
 # EVAL_TZ sets the caller's timezone (default America/New_York).
+# EVAL_CITY / EVAL_REGION: the caller's location, as the token server's geo
+#   lookup would send it (weather and local tools use it).
+# local: a worker started from a checkout on the dev project, e.g.
+#   AGENT_NAME=voice-agent-local pnpm dev   (EVAL_AGENT overrides the name)
 # CALLER_VOICE=say (default, macOS Samantha) or cartesia:<voiceId> for a natural
 # caller (see caller-tts.mjs). Each voice keeps its own rendered audio.
 #
@@ -46,6 +50,8 @@ for s in $scenario $seed; do
 done
 if [[ $env == prod ]]; then
   project=ferni-prod; agent=voice-agent; url=wss://test-rvg91u1z.livekit.cloud
+elif [[ $env == local ]]; then
+  project=ferni-dev; agent=${EVAL_AGENT:-voice-agent-local}; url=wss://dev-8sm1ba0z.livekit.cloud
 else
   project=ferni-dev; agent=voice-agent-lkcloud; url=wss://dev-8sm1ba0z.livekit.cloud
 fi
@@ -91,13 +97,20 @@ prepare_turns() {
 
 # One call as $uid: converse_call <scenario> <out.json> <role>
 converse_call() {
-  local sc=$1 file=$2 role=$3 room tok turns
+  local sc=$1 file=$2 role=$3 room tok turns meta
   local adir
   adir=$(prepare_turns $sc)
   turns=(${(f)"$(<$adir/turns.list)"})
   room="eval-$sc-$label-$(date +%H%M%S)"
+  # Built with JSON.stringify: a quote or backslash in a value must not break it.
+  meta=$(node -e '
+    const [uid, tz, city, region] = process.argv.slice(1);
+    const m = { user_id: uid, user_name: "Sam", timezone: tz };
+    if (city) Object.assign(m, { city, regionCode: region });
+    process.stdout.write(JSON.stringify(m));
+  ' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}")
   tok=$(lk token create --project $project --join --room $room --identity eval-user --name Sam \
-    --agent $agent --job-metadata "{\"user_id\":\"$uid\",\"user_name\":\"Sam\",\"timezone\":\"${EVAL_TZ:-America/New_York}\"}" --valid-for 20m 2>/dev/null \
+    --agent $agent --job-metadata "$meta" --valid-for 20m 2>/dev/null \
     | grep -Eo 'eyJ[A-Za-z0-9._-]+' | head -1)
   print -u2 "voice-eval: $role $sc as $uid in $room"
   (cd $ROOT && VOICE_EVAL_META="{\"uid\":\"$uid\",\"env\":\"$env\",\"scenario\":\"$sc\",\"label\":\"$label\",\"room\":\"$room\",\"role\":\"$role\",\"seed\":\"$seed\"}" \

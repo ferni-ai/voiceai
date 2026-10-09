@@ -66,6 +66,7 @@ describe('Store Factory', () => {
     delete process.env.NODE_ENV;
     delete process.env.GOOGLE_CLOUD_PROJECT;
     delete process.env.DATABASE_URL;
+    delete process.env.K_SERVICE;
   });
 
   afterEach(() => {
@@ -175,6 +176,20 @@ describe('Store Factory', () => {
   });
 
   describe('Environment-based selection', () => {
+    it('uses Firestore on Cloud Run even without GOOGLE_CLOUD_PROJECT (the prod UI service)', async () => {
+      process.env.NODE_ENV = 'production';
+      process.env.K_SERVICE = 'john-bogle-ui';
+      const store = (await getStore()) as unknown as { type: string };
+      expect(store.type).toBe('firestore');
+      expect(getDefaultStore).not.toHaveBeenCalled();
+    });
+
+    it('stays in memory in production off GCP (no K_SERVICE, no GOOGLE_CLOUD_PROJECT)', async () => {
+      process.env.NODE_ENV = 'production';
+      const store = (await getStore()) as unknown as { type: string };
+      expect(store.type).toBe('in-memory');
+    });
+
     it('should use in-memory store in development without DATABASE_URL', async () => {
       process.env.NODE_ENV = 'development';
 

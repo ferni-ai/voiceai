@@ -257,8 +257,8 @@ async function handleExportRequest(
 
   try {
     // Get the memory store
-    const { getDefaultStore } = await import('../memory/index.js');
-    const store = getDefaultStore();
+    const { getStore } = await import('../memory/store-factory.js');
+    const store = await getStore();
     await store.initialize();
 
     // Export all user data
@@ -507,8 +507,8 @@ async function handleDataSummary(
   userId: string
 ): Promise<boolean> {
   try {
-    const { getDefaultStore } = await import('../memory/index.js');
-    const store = getDefaultStore();
+    const { getStore } = await import('../memory/store-factory.js');
+    const store = await getStore();
     await store.initialize();
 
     const profile = await store.getProfile(userId);
@@ -715,8 +715,8 @@ async function handleDataRectification(
   }
 
   try {
-    const { getDefaultStore } = await import('../memory/index.js');
-    const store = getDefaultStore();
+    const { getStore } = await import('../memory/store-factory.js');
+    const store = await getStore();
     await store.initialize();
 
     const profile = await store.getProfile(userId);
@@ -779,8 +779,8 @@ async function handleGetConsent(
   userId: string
 ): Promise<boolean> {
   try {
-    const { getDefaultStore } = await import('../memory/index.js');
-    const store = getDefaultStore();
+    const { getStore } = await import('../memory/store-factory.js');
+    const store = await getStore();
     await store.initialize();
 
     const profile = await store.getProfile(userId);
@@ -825,8 +825,8 @@ async function handleUpdateConsent(
   }
 
   try {
-    const { getDefaultStore } = await import('../memory/index.js');
-    const store = getDefaultStore();
+    const { getStore } = await import('../memory/store-factory.js');
+    const store = await getStore();
     await store.initialize();
 
     const profile = await store.getProfile(userId);

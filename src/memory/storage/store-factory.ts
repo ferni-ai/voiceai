@@ -48,7 +48,9 @@ export async function getStore(): Promise<MemoryStore> {
 
 async function initializeStore(): Promise<MemoryStore> {
   const isProduction = process.env.NODE_ENV === 'production';
-  const hasGCP = Boolean(process.env.GOOGLE_CLOUD_PROJECT);
+  // Cloud Run sets K_SERVICE; the UI service has no GOOGLE_CLOUD_PROJECT, so without this it
+  // served profiles from memory (logged "Using in-memory store") and never reached Firestore.
+  const hasGCP = Boolean(process.env.GOOGLE_CLOUD_PROJECT || process.env.K_SERVICE);
   const hasPostgres = Boolean(process.env.DATABASE_URL);
 
   try {

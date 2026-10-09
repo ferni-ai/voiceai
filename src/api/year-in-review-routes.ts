@@ -10,6 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { requireAuth } from './auth-middleware.js';
 import { sendJSON, sendError } from './helpers.js';
 
 const log = createLogger({ module: 'YearInReviewRoutes' });
@@ -328,8 +329,8 @@ async function fetchRelationships(userId: string): Promise<RelationshipGrowth> {
 async function fetchTeamUnlocks(userId: string): Promise<TeamUnlock[]> {
   try {
     const { getTeamUnlockState } = await import('../services/team-unlocks.js');
-    const { getDefaultStore } = await import('../memory/in-memory-store.js');
-    const store = getDefaultStore();
+    const { getStore } = await import('../memory/store-factory.js');
+    const store = await getStore();
     const profile = await store.getProfile(userId);
     const state = getTeamUnlockState(profile);
 
@@ -456,7 +457,15 @@ export async function handleYearInReviewRoutes(
   // GET /api/year-in-review/:userId
   const userMatch = pathname.match(/^\/api\/year-in-review\/([^/]+)$/);
   if (method === 'GET' && userMatch) {
-    const userId = userMatch[1];
+    // A year in review holds the person's commitments, dreams and conversation stats.
+    // It used to answer anyone for any id in the URL; only the person (or an admin) may read it.
+    const auth = await requireAuth(req, res);
+    if (!auth) return true;
+    const userId = userMatch[1] ?? '';
+    if (userId !== auth.userId && !auth.isAdmin) {
+      sendError(res, "That isn't yours to see.", 403);
+      return true;
+    }
 
     try {
       log.info({ userId }, 'Fetching year in review data');

@@ -54,7 +54,7 @@ jobs:
           pnpm build
 
       - name: Upload frontend build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
           path: apps/web/dist/
@@ -81,7 +81,7 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Download frontend build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: apps/web/dist/
@@ -131,7 +131,7 @@ jobs:
           pnpm build:mac
 
       - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-build
           path: |
@@ -160,7 +160,7 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Download frontend build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: apps/web/dist/
@@ -196,7 +196,7 @@ jobs:
           pnpm build:win
 
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-build
           path: |
@@ -224,7 +224,7 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Download frontend build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: apps/web/dist/
@@ -247,7 +247,7 @@ jobs:
           pnpm build:linux
 
       - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-build
           path: |
@@ -305,7 +305,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload iOS project
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-project
           path: apps/ios-native/
@@ -378,7 +378,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Android artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-build
           path: |
@@ -398,7 +398,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts/
 
