@@ -227,7 +227,6 @@
     "build:design-system": "npm run build:tokens && npm run build:persona-colors && npm run build:avatar-images && npm run build:sounds && npm run build:animation-constants && npm run build:expressions && npm run build:tailwind-config && npm run build:content-tokens && npm run build:brand-tokens && npm run build:assets",
     "build:cli": "npx tsx apps/cli/src/commands/build/build.ts",
     "build:frontend": "npx tsx apps/cli/src/commands/build/build.ts frontend",
-    "build:electron": "npx tsx apps/cli/src/commands/build/build.ts electron",
     "build:ios": "npx tsx apps/cli/src/commands/build/build.ts ios",
     "build:android": "npx tsx apps/cli/src/commands/build/build.ts android",
     "build:apps": "npx tsx apps/cli/src/commands/build/build.ts apps",

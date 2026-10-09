@@ -128,8 +128,8 @@ if [ -f "$ICON_PNG" ]; then
 
     rm -rf "$ICONSET_DIR"
 else
-    # Fallback to electron icon if it exists
-    ICON_SOURCE="$PROJECT_ROOT/apps/electron/resources/icon.icns"
+    # Fallback icon (kept from the removed Electron app)
+    ICON_SOURCE="$SCRIPT_DIR/resources/AppIcon-fallback.icns"
     if [ -f "$ICON_SOURCE" ]; then
         cp "$ICON_SOURCE" "$RESOURCES_DIR/AppIcon.icns"
         echo "  ✓ App icon added (fallback)"

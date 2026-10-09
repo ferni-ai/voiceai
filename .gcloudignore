@@ -46,7 +46,6 @@
 # Exclude large subdirs but keep apps/cli/ for build scripts
 apps/android/
 apps/android-native/
-apps/electron/
 apps/ios/
 apps/ios-native/
 apps/macos-menubar/
