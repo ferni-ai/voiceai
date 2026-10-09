@@ -1,0 +1,129 @@
+name: Signed-in E2E
+
+# Clicks through the app as a signed-in user, on desktop and a phone viewport,
+# against a local stack: Firebase Auth + Firestore emulators, the API server and
+# the Vite dev server. Specs: e2e/signed-in/. Config: playwright.signed-in.config.ts.
+#
+# Nothing here touches a real project: the emulators run as demo-ferni, and the
+# LiveKit values are placeholders (voice calls aren't exercised).
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'src/**'
+      - 'e2e/signed-in/**'
+      - 'playwright.signed-in.config.ts'
+      - 'firebase.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/signed-in-e2e.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: signed-in-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20'
+  FIREBASE_TOOLS_VERSION: '15.10.0'
+  PROJECT_ID: demo-ferni
+  FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+  FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+  E2E_BASE_URL: http://localhost:3004
+
+jobs:
+  signed-in-e2e:
+    name: Signed-in walk (desktop + phone)
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          frozen-lockfile: 'true'
+
+      # The Firebase emulators run on the JVM
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install Playwright Chromium
+        # System deps need sudo; the self-hosted runner has them preinstalled.
+        run: pnpm exec playwright install ${{ runner.environment == 'github-hosted' && '--with-deps' || '' }} chromium
+
+      - name: Start Firebase emulators
+        run: |
+          mkdir -p e2e-logs
+          nohup npx --yes "firebase-tools@${FIREBASE_TOOLS_VERSION}" emulators:start \
+            --only auth,firestore --project "$PROJECT_ID" > e2e-logs/emulators.log 2>&1 &
+          for _ in $(seq 1 90); do
+            curl -sf http://127.0.0.1:8080 >/dev/null && curl -sf http://127.0.0.1:9099 >/dev/null && exit 0
+            sleep 2
+          done
+          echo "::error::Firebase emulators did not start"; tail -50 e2e-logs/emulators.log; exit 1
+
+      - name: Start API server
+        env:
+          PORT: '3002'
+          NODE_ENV: development
+          GOOGLE_CLOUD_PROJECT: ${{ env.PROJECT_ID }}
+          GCLOUD_PROJECT: ${{ env.PROJECT_ID }}
+          FIREBASE_PROJECT_ID: ${{ env.PROJECT_ID }}
+          # Placeholders: the walk never starts a voice session
+          LIVEKIT_URL: wss://livekit.localhost.invalid
+          LIVEKIT_API_KEY: ci-placeholder
+          LIVEKIT_API_SECRET: ci-placeholder-not-a-secret
+        run: |
+          nohup npx tsx src/servers/api/index.ts > e2e-logs/api.log 2>&1 &
+          for _ in $(seq 1 90); do
+            # Any HTTP answer means it is listening (status itself needs no auth)
+            curl -s -o /dev/null http://localhost:3002/api/ecobee/status && exit 0
+            sleep 2
+          done
+          echo "::error::API server did not start"; tail -80 e2e-logs/api.log; exit 1
+
+      - name: Start web app (emulator sign-in)
+        working-directory: apps/web
+        run: |
+          cat > .env.development.local <<'EOF'
+          VITE_USE_FIREBASE_EMULATORS=true
+          VITE_FIREBASE_API_KEY=emulator-only-not-a-real-key
+          VITE_FIREBASE_AUTH_DOMAIN=demo-ferni.firebaseapp.com
+          VITE_FIREBASE_PROJECT_ID=demo-ferni
+          VITE_FIREBASE_STORAGE_BUCKET=demo-ferni.appspot.com
+          VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+          VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
+          EOF
+          nohup pnpm exec vite --port 3004 --strictPort > ../../e2e-logs/web.log 2>&1 &
+          for _ in $(seq 1 90); do
+            curl -sf http://localhost:3004 >/dev/null && exit 0
+            sleep 2
+          done
+          echo "::error::Web app did not start"; tail -50 ../../e2e-logs/web.log; exit 1
+
+      - name: Run the signed-in walk
+        run: pnpm exec playwright test -c playwright.signed-in.config.ts
+
+      - name: Upload report, traces and server logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-in-e2e
+          path: |
+            playwright-report-signed-in/
+            test-results/
+            e2e-logs/
+          retention-days: 7
