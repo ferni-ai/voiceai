@@ -17,6 +17,7 @@
  *   /spotify/token              → Web Playback SDK server token (admin only)
  *   /spotify/status?device_id=X → the caller's link status
  *   /spotify/status             → Web Playback SDK config status (public)
+ *   /spotify/device             → Web Playback SDK device (admin only)
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -208,6 +209,12 @@ export async function handleSpotifyRoutes(
       has_web_device: config.hasWebDevice,
     });
     return true;
+  }
+
+  // The device is the playback target for the server's own Spotify account,
+  // not a user's. No client registers or reads it, so only admins may.
+  if (pathname === '/spotify/device' && (req.method === 'POST' || req.method === 'GET')) {
+    if (!(await requireAdmin(req, res))) return true;
   }
 
   // Register Spotify Web Player device

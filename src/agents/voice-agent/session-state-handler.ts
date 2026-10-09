@@ -43,6 +43,7 @@ import type { ConversationManager } from '../../services/conversation-manager.js
 import { diag } from '../../services/diagnostic-logger.js';
 import { checkInDelay, isRealSilence, type SessionStates } from './dead-air.js';
 import { registerAgentReplyRecorder, type AgentReplyContext } from './agent-reply-recorder.js';
+import { createEmptyResponseWatchdog, onToolCallRequested } from './empty-response-watchdog.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import { getLiveBackchannelingService } from '../../speech/live-backchanneling/index.js';
@@ -53,6 +54,7 @@ import {
   validateTurnPrediction,
 } from '../integrations/speech-metrics-integration.js';
 import {
+  EMPTY_RESPONSE_TOOL_HOLD_MS,
   EMPTY_RESPONSE_WATCHDOG_MS,
   BACKCHANNEL_MIN_INTERVAL_MS,
   BACKCHANNEL_TRIGGER_MS,
@@ -227,12 +229,62 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // 📊 Contextual Feedback timer
   let feedbackPromptTimer: ReturnType<typeof setTimeout> | null = null;
 
-  // 🚨 EMPTY RESPONSE WATCHDOG (Jan 2026)
-  // Detects when OpenAI Realtime produces no response and triggers recovery
-  // This fixes the issue where user says "play music" and gets no response
-  let emptyResponseWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
+  // 🚨 EMPTY RESPONSE WATCHDOG: no reply to a user turn. Tool calls hold and
+  // restart its clock (empty-response-watchdog.ts); handler is onEmptyResponse below.
   let lastUserMessageForRecovery: string | null = null;
-  // See config/timeouts.ts EMPTY_RESPONSE_WATCHDOG_MS
+  const emptyResponseWatchdog = createEmptyResponseWatchdog({
+    timeoutMs: EMPTY_RESPONSE_WATCHDOG_MS,
+    toolHoldMs: EMPTY_RESPONSE_TOOL_HOLD_MS,
+    onTimeout: () => void onEmptyResponse(),
+  });
+  const stopToolCallWatch = onToolCallRequested(session, () =>
+    emptyResponseWatchdog.toolsStarted()
+  );
+  session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, () =>
+    emptyResponseWatchdog.toolsExecuted()
+  );
+  /** The watchdog fired: the turn got no reply (and no tool call in flight). */
+  async function onEmptyResponse(): Promise<void> {
+    // Skip if session is closing
+    const { isSessionClosing } = await import('../shared/session-closing-tracker.js');
+    if (isSessionClosing(sessionId)) {
+      return;
+    }
+
+    // Skip if agent is already speaking (late check)
+    if (conversationManager.isAgentSpeaking()) {
+      return;
+    }
+
+    // Check if response is already being handled (gateway state + orchestrator)
+    // This prevents the watchdog from firing recovery when SDK is responding
+    if (hasActiveResponsePending(sessionId) || !canTriggerProactive(sessionId)) {
+      diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Skipped - SDK/gateway handling response');
+      return;
+    }
+
+    // Skip if music is playing (user may be listening intentionally)
+    try {
+      const djController = getDJController();
+      if (djController.isMusicActive()) {
+        diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Skipped - music is playing');
+        return;
+      }
+    } catch {
+      // DJ Controller not initialized - continue with recovery
+    }
+
+    diag.state(
+      `🚨 [EMPTY_RESPONSE_WATCHDOG] No agent response after ${Date.now() - userFinishedSpeakingAt}ms - triggering recovery`,
+      {
+        lastUserMessage: lastUserMessageForRecovery?.slice(0, 50),
+        userFinishedAt: userFinishedSpeakingAt,
+      }
+    );
+
+    // Simplified: Let the silence handler take over for empty responses
+    diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Awaiting silence handler for recovery');
+  }
 
   // Idle timeout tracking - auto-disconnect after extended silence
   let idleTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
@@ -663,11 +715,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       userData.lastAgentSpeechStartTime = Date.now();
 
       // 🚨 EMPTY RESPONSE WATCHDOG: Clear watchdog - agent did respond!
-      if (emptyResponseWatchdogTimer) {
-        clearTimeout(emptyResponseWatchdogTimer);
-        emptyResponseWatchdogTimer = null;
-        lastUserMessageForRecovery = null;
-      }
+      emptyResponseWatchdog.reset();
+      lastUserMessageForRecovery = null;
 
       // Track response latency: time from user finish to agent start
       if (userFinishedSpeakingAt > 0) {
@@ -879,11 +928,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
       // 🚨 EMPTY RESPONSE WATCHDOG: Clear watchdog when user speaks again
       // User might be continuing their thought or correcting themselves
-      if (emptyResponseWatchdogTimer) {
-        clearTimeout(emptyResponseWatchdogTimer);
-        emptyResponseWatchdogTimer = null;
-        lastUserMessageForRecovery = null;
-      }
+      emptyResponseWatchdog.cancel();
+      lastUserMessageForRecovery = null;
 
       // Clear any pending low-priority responses (backchannels) when user starts speaking
       // This prevents "conversation_already_has_active_response" errors from OpenAI
@@ -1025,65 +1071,11 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       notifyUserSpeakingEnd();
       diag.state('User stopped - DJ Controller notified');
 
-      // 🚨 EMPTY RESPONSE WATCHDOG: Start timer to detect if LLM produces no response
-      // This fixes the critical issue where OpenAI Realtime sometimes returns nothing
-      // and the user sits in silence for 15+ seconds
-      if (emptyResponseWatchdogTimer) {
-        clearTimeout(emptyResponseWatchdogTimer);
-      }
-
-      // Store the user's last message for recovery (from userData if available)
+      // 🚨 EMPTY RESPONSE WATCHDOG: start the no-reply clock for this turn
       const recentTranscripts = userData.recentTranscripts ?? [];
       lastUserMessageForRecovery =
         recentTranscripts[recentTranscripts.length - 1] || userData.lastUserMessage || null;
-
-      emptyResponseWatchdogTimer = setTimeout(async () => {
-        // If we get here, the agent didn't respond within 5 seconds
-        // This is abnormal - try direct tool routing as recovery
-        emptyResponseWatchdogTimer = null;
-
-        // Skip if session is closing
-        const { isSessionClosing } = await import('../shared/session-closing-tracker.js');
-        if (isSessionClosing(sessionId)) {
-          return;
-        }
-
-        // Skip if agent is already speaking (late check)
-        if (conversationManager.isAgentSpeaking()) {
-          return;
-        }
-
-        // Check if response is already being handled (gateway state + orchestrator)
-        // This prevents the watchdog from firing recovery when SDK is responding
-        if (hasActiveResponsePending(sessionId) || !canTriggerProactive(sessionId)) {
-          diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Skipped - SDK/gateway handling response');
-          return;
-        }
-
-        // Skip if music is playing (user may be listening intentionally)
-        try {
-          const djController = getDJController();
-          if (djController.isMusicActive()) {
-            diag.state('🚨 [EMPTY_RESPONSE_WATCHDOG] Skipped - music is playing');
-            return;
-          }
-        } catch {
-          // DJ Controller not initialized - continue with recovery
-        }
-
-        diag.state(
-          `🚨 [EMPTY_RESPONSE_WATCHDOG] No agent response after ${EMPTY_RESPONSE_WATCHDOG_MS}ms - triggering recovery`,
-          {
-            lastUserMessage: lastUserMessageForRecovery?.slice(0, 50),
-            userFinishedAt: userFinishedSpeakingAt,
-          }
-        );
-
-        // Simplified: Let the silence handler take over for empty responses
-        diag.state(
-          '🚨 [EMPTY_RESPONSE_WATCHDOG] Awaiting silence handler for recovery'
-        );
-      }, EMPTY_RESPONSE_WATCHDOG_MS);
+      emptyResponseWatchdog.arm();
       // Note: Thinking music is now handled by the ambient-music system automatically
 
       // DEAD AIR FIX: Early silence detection
@@ -1601,10 +1593,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     // Clear idle timeout timers
     clearIdleTimeout();
     // 🚨 EMPTY RESPONSE WATCHDOG: Clear timer
-    if (emptyResponseWatchdogTimer) {
-      clearTimeout(emptyResponseWatchdogTimer);
-      emptyResponseWatchdogTimer = null;
-    }
+    emptyResponseWatchdog.reset();
+    stopToolCallWatch();
     lastUserMessageForRecovery = null;
 
     // 5D: Stop continuous prosody stream
