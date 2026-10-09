@@ -132,7 +132,7 @@ class DataExportUI {
         </div>
       </div>
 
-      <div class="data-export__actions" role="button" tabindex="0">
+      <div class="data-export__actions">
         <button aria-label="${t('accessibility.delete')}" class="data-export__btn data-export__btn--danger">${t('dataExport.deleteAll')}</button>
         <button aria-label="${t('accessibility.exportSelected')}" class="data-export__btn data-export__btn--primary">${t('accessibility.exportSelected')}</button>
       </div>

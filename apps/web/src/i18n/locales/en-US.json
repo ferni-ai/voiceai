@@ -3499,7 +3499,8 @@
       "load": "Couldn't load your family. Try again?",
       "add": "Couldn't add them. Try again?",
       "save": "Couldn't save that. Try again?",
-      "remove": "Couldn't remove them. Try again?"
+      "remove": "Couldn't remove them. Try again?",
+      "phoneInUse": "That number is already set up for someone else."
     }
   },
   "panels": {
