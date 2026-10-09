@@ -18,6 +18,7 @@ export type { MemoryStore };
 import { getDefaultStore } from './storage/in-memory-store.js';
 import { getStore } from './storage/store-factory.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { withUsageTiming } from './profile-store-usage.js';
 
 const logger = getLogger().child({ module: 'ProfileStore' });
 
@@ -36,5 +37,6 @@ export async function getProfileStore(): Promise<MemoryStore> {
     firstUseLogged = true;
     logger.info({ store: persistent ? 'configured' : 'in-memory' }, 'Agent profile store first used');
   }
-  return persistent ? getStore() : getDefaultStore();
+  const store = persistent ? await getStore() : getDefaultStore();
+  return withUsageTiming(store, persistent ? 'configured' : 'in-memory');
 }
