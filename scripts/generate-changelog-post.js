@@ -207,7 +207,7 @@ async function generateWithAI(version, date, commits) {
   }
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: (process.env.GEMINI_MODEL || 'gemini-3.5-flash') });
+  const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash' });
 
   const prompt = CHANGELOG_PROMPT.replace('{VERSION}', version)
     .replace('{DATE}', date)

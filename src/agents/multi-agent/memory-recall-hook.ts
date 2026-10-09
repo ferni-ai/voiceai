@@ -30,6 +30,7 @@ import {
   type RecallStore,
 } from '../../memory/recall/session-recall.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { formatLedger, loadLedger, type LedgerStore } from '../personas/life-ledger.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
@@ -68,6 +69,8 @@ export interface MemoryRecallDeps {
   userId: string;
   userName?: string;
   store?: RecallStore;
+  /** What Ferni told this caller about himself on earlier calls (life-ledger.ts). */
+  ledgerStore?: LedgerStore;
 }
 
 export interface MemoryRecall {
@@ -96,10 +99,20 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let factsThisTurn = 0;
   const entitiesThisTurn = new Map<string, number>();
 
-  const ready = loadRecallSnapshot(deps.store ?? firestoreRecallStore, deps.userId).then((s) => {
+  let ledgerNote: string | null = null;
+  const ready = Promise.all([
+    loadRecallSnapshot(deps.store ?? firestoreRecallStore, deps.userId),
+    loadLedger(deps.userId, 'ferni', deps.ledgerStore),
+  ]).then(([s, told]) => {
     snapshot = s;
+    ledgerNote = formatLedger(told, deps.userName);
     log.info(
-      { facts: s.facts.length, followUps: s.followUps.length, ms: Date.now() - started },
+      {
+        facts: s.facts.length,
+        followUps: s.followUps.length,
+        told: told.length,
+        ms: Date.now() - started,
+      },
       'Recall snapshot loaded'
     );
   });
@@ -115,7 +128,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           ? recallForTurn(snapshot, text, surfaced, budget, FACTS_PER_ENTITY, entitiesThisTurn)
           : [];
       const followUps = followUpsOffered ? [] : snapshot.followUps;
-      const note = formatRecall(facts, followUps, deps.userName);
+      // The ledger, like the follow-ups, comes once, with the first note.
+      const told = followUpsOffered ? null : ledgerNote;
+      const note =
+        [formatRecall(facts, followUps, deps.userName), told].filter(Boolean).join('\n\n') || null;
       if (!note) return null;
       followUpsOffered = true;
       factsThisTurn += facts.length;

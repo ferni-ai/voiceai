@@ -34,6 +34,7 @@ import {
   FALLBACK_CHAIN,
   RTL_LOCALES,
 } from './types.js';
+import { localeFromAcceptLanguage } from './detection/request.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // Import source translations (en-US is always bundled)
@@ -127,6 +128,16 @@ async function loadTranslations(locale: SupportedLocale): Promise<void> {
 }
 
 /**
+ * The locale for an API request (from its Accept-Language header), with its
+ * translations loaded so tFor() can use it synchronously.
+ */
+export async function localeForRequest(acceptLanguage: string | undefined | null): Promise<SupportedLocale> {
+  const locale = localeFromAcceptLanguage(acceptLanguage);
+  await loadTranslations(locale);
+  return locale;
+}
+
+/**
  * Preload translations for multiple locales
  */
 export async function preloadLocales(locales: SupportedLocale[]): Promise<void> {
@@ -183,8 +194,16 @@ function interpolate(str: string, params?: TranslationParams): string {
  * t('time.minutesAgo', { n: 5 }) // "5 minutes ago"
  */
 export function t(key: string, params?: TranslationParams): string {
-  // Try current locale
-  const translations = loadedTranslations.get(currentLocale);
+  return tFor(currentLocale, key, params);
+}
+
+/**
+ * Translate for one request's locale. The server handles many users at once,
+ * so route handlers pass the locale from localeForRequest() instead of
+ * relying on the process-wide current locale.
+ */
+export function tFor(locale: SupportedLocale, key: string, params?: TranslationParams): string {
+  const translations = loadedTranslations.get(locale);
   if (translations) {
     const value = getNestedValue(translations, key);
     if (value) {
@@ -193,7 +212,7 @@ export function t(key: string, params?: TranslationParams): string {
   }
 
   // Try fallback chain
-  for (const fallback of FALLBACK_CHAIN[currentLocale] || []) {
+  for (const fallback of FALLBACK_CHAIN[locale] || []) {
     const fallbackTranslations = loadedTranslations.get(fallback);
     if (fallbackTranslations) {
       const value = getNestedValue(fallbackTranslations, key);

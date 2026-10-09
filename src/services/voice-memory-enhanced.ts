@@ -1,95 +1,23 @@
 /**
  * Enhanced Voice Memory Service
  *
- * Uses native Rust speaker embedding model (ferni-speaker) for high-accuracy
- * voice recognition. Falls back to DSP-based features if native module unavailable.
+ * Speaker embeddings for voice recognition: the neural ECAPA-TDNN model in a
+ * worker thread (services/voice/speaker-embedding-worker.ts) when
+ * SPEAKER_MODEL_PATH names one, DSP voice features here otherwise. Neural
+ * inference never runs on the calling (main) thread.
  *
- * Performance:
- * - Neural embedding: 5-15ms, ~99% accuracy
- * - DSP fallback: <1ms, ~85% accuracy
+ * Performance (measured 2026-10-04, Apple M-series, 2 s windows):
+ * - Neural (ECAPA-TDNN, onnxruntime, 1 thread): ~89 ms per window, in the worker
+ * - DSP fallback: ~6 ms; does not separate speakers (EER ~50%)
  */
 
-import { createRequire } from 'module';
 import { getLogger } from '../utils/safe-logger.js';
-import { voiceHumanizationFlags } from '../config/voice-humanization-flags.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import { cosineSimilarity } from '../memory/rust-accelerator.js';
-
-// Create require function for ESM compatibility with native modules
-const require = createRequire(import.meta.url);
+import { extractDSPFeatures } from './voice/speaker-dsp-features.js';
+import { embedOffMainThread, getSpeakerEmbeddingMethod } from './voice/speaker-embedding-worker.js';
 
 const log = getLogger().child({ module: 'VoiceMemoryEnhanced' });
-
-// Types for ferni-speaker module
-interface SpeakerModule {
-  initialize: (modelPath: string) => void;
-  isInitialized: () => boolean;
-  extractEmbedding: (samples: Float32Array) => Float32Array;
-  compareEmbeddings: (emb1: Float32Array, emb2: Float32Array) => number;
-  extractEmbeddingsBatch: (samplesList: Float32Array[]) => Float32Array[];
-  findBestMatch: (
-    query: Float32Array,
-    candidates: Float32Array[],
-    threshold?: number
-  ) => { index: number; similarity: number } | null;
-  findAllMatches: (
-    query: Float32Array,
-    candidates: Float32Array[],
-    threshold: number
-  ) => Array<{ index: number; similarity: number }>;
-  getModelInfo: () => {
-    name: string;
-    embeddingDim: number;
-    sampleRate: number;
-    minSamples: number;
-  };
-}
-
-// Lazy-loaded native module
-let speakerModule: SpeakerModule | null = null;
-let initAttempted = false;
-
-/**
- * Initialize the neural speaker embedding module.
- * Safe to call multiple times - will only initialize once.
- */
-async function initializeSpeakerModule(): Promise<SpeakerModule | null> {
-  if (initAttempted) {
-    return speakerModule;
-  }
-  initAttempted = true;
-
-  // Check if feature flag is enabled
-  if (!voiceHumanizationFlags.enableEnhancedVoiceFingerprinting) {
-    log.debug('Neural voice fingerprinting disabled by feature flag');
-    return null;
-  }
-
-  try {
-    // Dynamic import to avoid requiring ferni-speaker at startup
-
-    const module = require('ferni-speaker') as SpeakerModule;
-
-    // Initialize with model path
-    const modelPath =
-      process.env.SPEAKER_MODEL_PATH || './node_modules/ferni-speaker/models/ecapa_tdnn.onnx';
-
-    if (!module.isInitialized()) {
-      module.initialize(modelPath);
-      const info = module.getModelInfo();
-      log.info('Neural speaker embedding initialized', {
-        model: info.name,
-        embeddingDim: info.embeddingDim,
-      });
-    }
-
-    speakerModule = module;
-    return module;
-  } catch (error) {
-    log.warn('ferni-speaker not available, using DSP fallback', { error });
-    return null;
-  }
-}
 
 /**
  * Neural speaker embedding (192-dimensional).
@@ -117,10 +45,20 @@ export interface SpeakerMatch {
   isMatch: boolean;
 }
 
+function dspEmbedding(audio: Float32Array): SpeakerEmbedding {
+  return {
+    vector: extractDSPFeatures(audio),
+    method: 'dsp',
+    confidence: 0.7, // Lower confidence for DSP
+    timestamp: new Date(),
+  };
+}
+
 /**
  * Extract speaker embedding from audio samples.
  *
- * Uses neural model if available, otherwise falls back to DSP-based features.
+ * Neural (in the worker thread) when the model is available, otherwise DSP
+ * features computed here.
  *
  * @param audio - Audio samples (16kHz mono Float32Array)
  * @returns Speaker embedding
@@ -138,50 +76,26 @@ export async function extractSpeakerEmbedding(
     return null;
   }
 
-  // Try neural embedding first
-  const speaker = await initializeSpeakerModule();
-  if (speaker) {
-    try {
-      const vector = speaker.extractEmbedding(audio);
-      return {
-        vector,
-        method: 'neural',
-        confidence: 0.95, // High confidence for neural
-        timestamp: new Date(),
-      };
-    } catch (error) {
-      log.warn('Neural embedding failed, using DSP fallback', { error });
-    }
+  if ((await getSpeakerEmbeddingMethod()) === 'dsp') return dspEmbedding(audio);
+  try {
+    const { vector } = await embedOffMainThread(audio);
+    return { vector, method: 'neural', confidence: 0.95, timestamp: new Date() };
+  } catch (error) {
+    // One request failed (or the worker stopped, which it logs once): DSP for this one.
+    log.debug('Neural speaker embedding failed, using DSP', { error: String(error) });
+    return dspEmbedding(audio);
   }
-
-  // DSP fallback - compute simple features
-  const dspFeatures = extractDSPFeatures(audio);
-  return {
-    vector: dspFeatures,
-    method: 'dsp',
-    confidence: 0.7, // Lower confidence for DSP
-    timestamp: new Date(),
-  };
 }
 
 /**
- * Compare two speaker embeddings.
+ * Compare two speaker embeddings (cosine similarity).
  *
- * @returns Similarity score (0-1, higher = more similar)
+ * @returns Similarity score (-1..1, higher = more similar)
  */
 export async function compareSpeakerEmbeddings(
   emb1: SpeakerEmbedding,
   emb2: SpeakerEmbedding
 ): Promise<number> {
-  // If both are neural embeddings, use native comparison
-  if (emb1.method === 'neural' && emb2.method === 'neural') {
-    const speaker = await initializeSpeakerModule();
-    if (speaker) {
-      return speaker.compareEmbeddings(emb1.vector, emb2.vector);
-    }
-  }
-
-  // Fallback to cosine similarity
   return cosineSimilarity(emb1.vector, emb2.vector);
 }
 
@@ -198,31 +112,6 @@ export async function findBestSpeakerMatch(
   candidates: SpeakerEmbedding[],
   threshold = 0.7
 ): Promise<SpeakerMatch | null> {
-  if (candidates.length === 0) {
-    return null;
-  }
-
-  // If query is neural and all candidates are neural, use native matching
-  const allNeural = query.method === 'neural' && candidates.every((c) => c.method === 'neural');
-
-  if (allNeural) {
-    const speaker = await initializeSpeakerModule();
-    if (speaker) {
-      const candidateVectors = candidates.map((c) => c.vector);
-      const match = speaker.findBestMatch(query.vector, candidateVectors, threshold);
-
-      if (match) {
-        return {
-          index: match.index,
-          similarity: match.similarity,
-          isMatch: match.similarity >= threshold,
-        };
-      }
-      return null;
-    }
-  }
-
-  // Fallback to manual comparison
   let bestIndex = -1;
   let bestSimilarity = threshold;
 
@@ -246,42 +135,28 @@ export async function findBestSpeakerMatch(
 }
 
 /**
- * Extract multiple embeddings in batch (more efficient).
+ * Extract multiple embeddings (one worker request each, in order).
  */
 export async function extractSpeakerEmbeddingsBatch(
   audioSamples: Float32Array[]
 ): Promise<SpeakerEmbedding[]> {
-  const speaker = await initializeSpeakerModule();
-
-  if (speaker) {
-    try {
-      const vectors = speaker.extractEmbeddingsBatch(audioSamples);
-      return vectors.map((vector) => ({
-        vector,
-        method: 'neural' as const,
-        confidence: 0.95,
-        timestamp: new Date(),
-      }));
-    } catch (error) {
-      log.warn('Batch neural embedding failed, using DSP fallback', { error });
-    }
+  const results: SpeakerEmbedding[] = [];
+  for (const audio of audioSamples) {
+    // eslint-disable-next-line no-await-in-loop -- one model, requests are serialized anyway
+    results.push((await extractSpeakerEmbedding(audio)) ?? dspEmbedding(audio));
   }
-
-  // Fallback to individual DSP extraction
-  return audioSamples.map((audio) => ({
-    vector: extractDSPFeatures(audio),
-    method: 'dsp' as const,
-    confidence: 0.7,
-    timestamp: new Date(),
-  }));
+  return results;
 }
 
 /**
  * Check if neural speaker embedding is available.
  */
 export async function isNeuralEmbeddingAvailable(): Promise<boolean> {
-  const speaker = await initializeSpeakerModule();
-  return speaker !== null;
+  try {
+    return (await getSpeakerEmbeddingMethod()) === 'neural';
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -293,14 +168,11 @@ export async function getSpeakerModelInfo(): Promise<{
   embeddingDim?: number;
   method: 'neural' | 'dsp';
 }> {
-  const speaker = await initializeSpeakerModule();
-
-  if (speaker) {
-    const info = speaker.getModelInfo();
+  if (await isNeuralEmbeddingAvailable()) {
     return {
       available: true,
-      model: info.name,
-      embeddingDim: info.embeddingDim,
+      model: 'ECAPA-TDNN',
+      embeddingDim: 192,
       method: 'neural',
     };
   }
@@ -310,123 +182,3 @@ export async function getSpeakerModelInfo(): Promise<{
     method: 'dsp',
   };
 }
-
-// ============================================================================
-// DSP Fallback Implementation
-// ============================================================================
-
-/**
- * Extract DSP-based features for speaker characterization.
- * This is the fallback when neural model is unavailable.
- *
- * Features extracted:
- * - Pitch statistics (mean, std, min, max)
- * - Energy statistics
- * - Zero crossing rate
- * - Spectral centroid estimate
- *
- * Returns a 192-dimensional vector to match neural embedding size.
- */
-function extractDSPFeatures(audio: Float32Array): Float32Array {
-  const features = new Float32Array(192);
-
-  // Basic energy
-  let energy = 0;
-  for (const sample of audio) {
-    energy += sample * sample;
-  }
-  energy = Math.sqrt(energy / audio.length);
-  features[0] = energy;
-
-  // Zero crossing rate
-  let zcr = 0;
-  for (let i = 1; i < audio.length; i++) {
-    if (audio[i] >= 0 !== audio[i - 1] >= 0) {
-      zcr++;
-    }
-  }
-  features[1] = zcr / audio.length;
-
-  // Simple spectral features using autocorrelation
-  const frameSize = 512;
-  const hopSize = 256;
-  const numFrames = Math.floor((audio.length - frameSize) / hopSize);
-
-  let pitchSum = 0;
-  let pitchCount = 0;
-
-  for (let frame = 0; frame < Math.min(numFrames, 100); frame++) {
-    const start = frame * hopSize;
-    const frameData = audio.slice(start, start + frameSize);
-
-    // Estimate pitch using simple autocorrelation
-    const pitch = estimatePitch(frameData, 16000);
-    if (pitch > 50 && pitch < 500) {
-      pitchSum += pitch;
-      pitchCount++;
-    }
-
-    // Store frame energy
-    if (frame < 50) {
-      let frameEnergy = 0;
-      for (const sample of frameData) {
-        frameEnergy += sample * sample;
-      }
-      features[2 + frame] = Math.sqrt(frameEnergy / frameData.length);
-    }
-  }
-
-  // Mean pitch
-  features[52] = pitchCount > 0 ? pitchSum / pitchCount : 150;
-
-  // Fill remaining with hash of audio for uniqueness
-  let hash = 0;
-  for (let i = 0; i < Math.min(audio.length, 1000); i++) {
-    hash = ((hash << 5) - hash + Math.floor(audio[i] * 1000)) | 0;
-  }
-
-  for (let i = 53; i < 192; i++) {
-    features[i] = ((hash >> (i % 32)) & 0xff) / 255;
-    hash = ((hash << 5) - hash + i) | 0;
-  }
-
-  // Normalize to unit length
-  let norm = 0;
-  for (const f of features) {
-    norm += f * f;
-  }
-  norm = Math.sqrt(norm);
-  if (norm > 0) {
-    for (let i = 0; i < features.length; i++) {
-      features[i] /= norm;
-    }
-  }
-
-  return features;
-}
-
-/**
- * Simple pitch estimation using autocorrelation.
- */
-function estimatePitch(frame: Float32Array, sampleRate: number): number {
-  const minLag = Math.floor(sampleRate / 500); // 500 Hz max
-  const maxLag = Math.floor(sampleRate / 50); // 50 Hz min
-
-  let maxCorr = 0;
-  let bestLag = 0;
-
-  for (let lag = minLag; lag < Math.min(maxLag, frame.length / 2); lag++) {
-    let corr = 0;
-    for (let i = 0; i < frame.length - lag; i++) {
-      corr += frame[i] * frame[i + lag];
-    }
-    if (corr > maxCorr) {
-      maxCorr = corr;
-      bestLag = lag;
-    }
-  }
-
-  return bestLag > 0 ? sampleRate / bestLag : 0;
-}
-
-// Note: cosineSimilarity is imported from rust-accelerator.js (SIMD-accelerated, accepts Float32Array)

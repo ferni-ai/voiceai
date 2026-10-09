@@ -34,7 +34,7 @@ import { getModelProvider } from '../model-provider/index.js';
 import { filterCaptionStream } from './caption-filter.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
-import { tapSpokenText, toolsForTurn } from './turn-request.js';
+import { tapSpokenText, toolsForTurn, withTeammateTool } from './turn-request.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -547,7 +547,7 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
     super({
       instructions: finalSystemPrompt,
       chatCtx: options.chatCtx,
-      tools: allTools,
+      tools: withTeammateTool(allTools), // executable, not just declared: locked-teammates.ts
     });
 
     this.skipGreeting = options.skipGreeting ?? false;
@@ -661,7 +661,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     ): Promise<void> => {
       try {
         const { getFrontendPublisher } = await import('../realtime/index.js');
-        const pub = getFrontendPublisher();
+        const pub = getFrontendPublisher(sessionId || undefined);
         if (pub?.isConnected()) await pub.sendData(type, payload);
       } catch {
         // Non-critical — frontend publisher may not be initialized yet

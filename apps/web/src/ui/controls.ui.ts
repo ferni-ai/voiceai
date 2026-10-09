@@ -204,11 +204,11 @@ function updateMuteButton(muted: boolean): void {
   if (muted) {
     addClass(elements.muteBtn, 'muted');
     elements.muteBtn.setAttribute('aria-pressed', 'true');
-    elements.muteBtn.setAttribute('aria-label', 'Unmute microphone');
+    elements.muteBtn.setAttribute('aria-label', t('accessibility.unmuteMicrophone'));
   } else {
     removeClass(elements.muteBtn, 'muted');
     elements.muteBtn.setAttribute('aria-pressed', 'false');
-    elements.muteBtn.setAttribute('aria-label', 'Mute microphone');
+    elements.muteBtn.setAttribute('aria-label', t('accessibility.muteMicrophone'));
   }
 }
 

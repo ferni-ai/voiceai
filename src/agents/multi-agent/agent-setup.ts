@@ -39,7 +39,6 @@ import {
   createProviderSTT,
   getModelProvider,
   isUsingOpenAI,
-  isUsingQwen3Omni,
 } from '../model-provider/index.js';
 
 // Get the model provider (singleton)
@@ -83,8 +82,8 @@ import {
 } from './memory-recall-hook.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
-import { loadEssentialDomains } from '../../tools/dynamic-loader/index.js';
-import { buildHandoffTools } from '../../tools/handoff/handoff-factory.js';
+import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
+import { buildEmergencyToolset } from './emergency-toolset.js';
 import { interruptionOverrides } from './interruption-config.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
@@ -114,7 +113,7 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
-import { createPersonaTTS, createQwen3TTS } from './persona-tts.js';
+import { createPersonaTTS } from './persona-tts.js';
 import {
   installLiveCallBehaviors,
   logBargeInDecisions,
@@ -140,6 +139,7 @@ import {
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
 import { endpointingDelays } from '../shared/turn-patience.js';
+import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
 
 const log = getLogger();
 
@@ -215,8 +215,8 @@ export interface AgentSetupResult {
   session: voice.AgentSession<any>;
   /** The agent wrapper */
   agent: voice.Agent<UserData>;
-  /** TTS engine (PersonaAwareTTS or Qwen3TTSAdapter depending on provider) */
-  tts: Awaited<ReturnType<typeof createPersonaTTS>> | Awaited<ReturnType<typeof createQwen3TTS>>;
+  /** TTS engine (PersonaAwareTTS) */
+  tts: Awaited<ReturnType<typeof createPersonaTTS>>;
   /** Cleanup function (cleans up all handlers) */
   cleanup: () => Promise<void>;
   /** Function to make agent speak */
@@ -330,12 +330,10 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // Append date/time to model base instructions (session-specific, not cached)
     modelBaseInstructions = baseInstructions + dateTimeContext;
 
-    // =========================================================================
-    // USER AWARENESS - Enhance model instructions with user context
-    // This makes the agent aware of WHO they're talking to from the first moment
-    // =========================================================================
+    // USER AWARENESS: who they're talking to, from the first moment
     const { userProfile } = services;
     if (userProfile) {
+      rememberCallerHistory(sessionId, callerHistory(userProfile)); // for the greeting
       const userAwareness: string[] = [];
       const sessionStartTime = new Date();
       const displayName = userProfile.preferredName || userProfile.name || userData?.userName;
@@ -627,11 +625,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
   mark('parallel_start');
   const parallelStart = Date.now();
 
-  // 1. TTS creation promise (Qwen3-TTS when USE_QWEN3_OMNI, else Cartesia)
+  // 1. TTS creation promise
   mark('tts_start');
-  const ttsPromise = (
-    isUsingQwen3Omni() ? createQwen3TTS(persona.id) : createPersonaTTS(persona.id)
-  ).then((tts) => {
+  const ttsPromise = createPersonaTTS(persona.id).then((tts) => {
     mark('tts_done');
     return tts;
   });
@@ -753,42 +749,19 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const loadEssentialToolsFallback = async (
     policy: InitialToolPolicy = { essentialOnly: false }
   ): Promise<Record<string, unknown>> => {
-    // This is the fallback when full tool loading times out
-    // Load ESSENTIAL tools (handoff + entertainment + information) so agent can still function
-    // buildHandoffTools now hoisted to module level
+    // Initial agent (essential-only) and timeout fallback: this session's handoffs
+    // plus the essential domains (music, weather, memory...). See essential-tool-set.ts.
     try {
-      const subscriptionTier =
-        (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
-
-      // 1. Build handoff tools (critical for team switching)
-      const { tools: handoffTools, toolCount: handoffCount } = await buildHandoffTools({
-        currentAgentId: persona.id,
-        userProfile: services.userProfile,
-        subscriptionTier,
-        services: services as { devMode?: { enabled: boolean; bypassUnlocks: boolean } },
+      const {
+        tools: allTools,
+        handoffTools,
+        essentialTools,
+      } = await buildEssentialToolSet({
+        personaId: persona.id,
+        userId,
+        services: services as EssentialToolSetInput['services'],
       });
-
-      // 2. Load essential domain tools (music, weather, etc.)
-      // These are pre-loaded at worker startup, so this is fast
-      // loadEssentialDomains now hoisted to module level
-      let essentialTools: Record<string, unknown> = {};
-      try {
-        essentialTools = await loadEssentialDomains(userId || 'anonymous', services);
-        log.info(
-          { personaId: persona.id, essentialToolCount: Object.keys(essentialTools).length },
-          '🎵 Essential domain tools loaded (music, weather, memory, etc.)'
-        );
-      } catch (essentialErr) {
-        log.warn(
-          { error: String(essentialErr) },
-          '⚠️ Failed to load essential tools - only handoffs available'
-        );
-        // This logger is silent inside the job context; a call without its
-        // domain tools must be visible in the agent log.
-        process.stderr.write(`🚨 Essential tools failed to load: ${String(essentialErr)}\n`);
-      }
-
-      const allTools = { ...handoffTools, ...essentialTools };
+      const handoffCount = Object.keys(handoffTools).length;
       const filteredTools = filterToolRecordByInitialPolicy(
         allTools,
         new Set(Object.keys(essentialTools)),
@@ -820,45 +793,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
       );
 
       // Return emergency toolset - better than nothing!
-      return getEmergencyToolset(persona.id);
+      return buildEmergencyToolset(persona.id);
     }
-  };
-
-  // 🚨 EMERGENCY TOOLSET: Absolute last resort when all tool loading fails
-  // These are minimal handoff tools defined inline to guarantee availability
-  const getEmergencyToolset = (currentPersonaId: string): Record<string, unknown> => {
-    const personas = ['ferni', 'maya', 'peter-john', 'jordan', 'alex', 'nayan'];
-    const tools: Record<string, unknown> = {};
-
-    for (const targetId of personas) {
-      if (targetId === currentPersonaId) continue;
-
-      const toolName = `handoffTo${targetId.charAt(0).toUpperCase() + targetId.slice(1).replace('-', '')}`;
-      tools[toolName] = {
-        name: toolName,
-        description: `Transfer the conversation to ${targetId}`,
-        parameters: {
-          type: 'object',
-          properties: {
-            reason: { type: 'string', description: 'Why transferring' },
-          },
-        },
-      };
-    }
-
-    // Add endCall tool
-    tools.endCall = {
-      name: 'endCall',
-      description: 'End the conversation when the user wants to go',
-      parameters: { type: 'object', properties: {} },
-    };
-
-    log.warn(
-      { personaId: currentPersonaId, emergencyToolCount: Object.keys(tools).length },
-      '🚨 EMERGENCY TOOLS ACTIVE - Only handoffs + endCall available!'
-    );
-
-    return tools;
   };
 
   const loadToolsInner = async (): Promise<Record<string, unknown>> => {
@@ -1291,11 +1227,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         personaId: persona.id,
         sessionCount: services.userProfile?.totalConversations,
         relationshipStage: services.userProfile?.relationshipStage as
-          | 'stranger'
-          | 'acquaintance'
-          | 'friend'
-          | 'trusted_advisor'
-          | undefined,
+          'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor' | undefined,
         userProfile: services.userProfile
           ? { humanMemory: services.userProfile.humanMemory }
           : undefined,
@@ -1579,7 +1511,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
       );
       if (!evt.isFinal) return;
       observeFinalTranscript({
-        session: sessionWithEvents,
         transcript: evt.transcript || '',
         userData: userData as unknown as Record<string, unknown>,
         sessionId,
@@ -1725,7 +1656,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
   // FerniAgent now hoisted to module level for faster startup
   // Per-turn intelligence (context builders, memory retrieval, emotional
-  // guidance) - see turn-intelligence.ts for why this is gated.
+  // guidance). On unless TURN_INTELLIGENCE=off; see turn-intelligence.ts.
   const turnContextHook =
     resolveTurnIntelligenceMode() === 'on'
       ? createTurnIntelligenceHook({ persona, services, userData, room })
@@ -2190,7 +2121,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       // FRONTEND PUBLISHER - Required for music state messages to frontend
       // Without this, the frontend won't know when music is playing (hoisted to module level)
       try {
-        initializeFrontendPublisher(room);
+        initializeFrontendPublisher(sessionId, room);
         diag.entry(`🎭 [${persona.id}] Frontend publisher initialized`);
       } catch (pubErr) {
         log.warn({ error: String(pubErr) }, '⚠️ Failed to initialize frontend publisher');

@@ -39,7 +39,6 @@ Active implementation plans and roadmaps for Ferni AI.
 | [E2E-BETTER-THAN-HUMAN-MASTER-PLAN.md](./E2E-BETTER-THAN-HUMAN-MASTER-PLAN.md)     | Massive E2E plan: Director, Qwen Omni, stress, Mac GPU, BTH, voice |
 | [E2E-POLISH-ROADMAP.md](./E2E-POLISH-ROADMAP.md)                                   | E2E polish roadmap                                                 |
 | [E2E-AUDIT-PLAN.md](./E2E-AUDIT-PLAN.md)                                           | E2E audit plan                                                     |
-| [QWEN3-OMNI-SESSION-MANAGER-E2E-PLAN.md](./QWEN3-OMNI-SESSION-MANAGER-E2E-PLAN.md) | Qwen3-Omni session manager E2E                                     |
 
 ### Better Than Human
 

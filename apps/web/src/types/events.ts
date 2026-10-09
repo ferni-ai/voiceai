@@ -7,7 +7,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import type { SpeakerId } from './persona.js';
-import type { PredictionData } from '../services/prediction-data.js';
+import type { PredictionData } from './predictions.js';
 
 const log = createLogger('Events');
 

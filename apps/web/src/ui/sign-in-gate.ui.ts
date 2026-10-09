@@ -21,10 +21,9 @@ import {
 } from '../services/firebase-auth.service.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
+import { t } from '../i18n/index.js';
 
-// ============================================================================
 // TYPES
-// ============================================================================
 
 interface WaitlistCheckResult {
   approved: boolean;
@@ -36,17 +35,14 @@ interface WaitlistCheckResult {
 
 const log = createLogger('SignInGate');
 
-// ============================================================================
 // ELEMENT REFERENCES
-// ============================================================================
 
 let overlayEl: HTMLElement | null = null;
 let isShowing = false;
 let resolveSignIn: (() => void) | null = null;
+let pendingSignIn: Promise<void> | null = null;
 
-// ============================================================================
 // STYLES
-// ============================================================================
 
 const STYLES = `
 .sign-in-gate-overlay {
@@ -155,12 +151,17 @@ const STYLES = `
 }
 
 .sign-in-gate-btn--google:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .sign-in-gate-btn--apple {
-  background: #000;
-  color: #fff;
+  background: #2c2520;
+  color: #fafaf9;
+}
+
+[data-theme="midnight"] .sign-in-gate-btn--apple {
+  background: #f4efe6;
+  color: #14110e;
 }
 
 .sign-in-gate-btn--apple:hover {
@@ -170,9 +171,9 @@ const STYLES = `
 .sign-in-gate-error {
   margin-top: var(--space-md, 1rem);
   padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
-  background: var(--color-semantic-error-bg, rgba(239, 68, 68, 0.1));
+  background: var(--color-semantic-error-tint, rgba(231, 163, 154, 0.12));
   border-radius: var(--radius-md, 8px);
-  color: var(--color-semantic-error, #ef4444);
+  color: var(--color-semantic-error, #e7a39a);
   font-size: 0.875rem;
   display: none;
 }
@@ -279,9 +280,7 @@ const STYLES = `
 }
 `;
 
-// ============================================================================
 // WAITLIST CHECK
-// ============================================================================
 
 /**
  * Check if the authenticated user has access (approved on waitlist).
@@ -324,7 +323,7 @@ function showCheckingState(): void {
 
   if (buttonsDiv) (buttonsDiv as HTMLElement).style.display = 'none';
   if (errorDiv) (errorDiv as HTMLElement).style.display = 'none';
-  if (subtitle) (subtitle as HTMLElement).textContent = 'Checking your access...';
+  if (subtitle) (subtitle as HTMLElement).textContent = t('auth.checkingAccess');
 
   // Add spinner if not already present
   if (!content.querySelector('.sign-in-gate-checking')) {
@@ -336,7 +335,7 @@ function showCheckingState(): void {
 
     const text = document.createElement('p');
     text.className = 'sign-in-gate-checking-text';
-    text.textContent = 'Just a moment...';
+    text.textContent = t('auth.checkingLabel');
 
     checkingDiv.appendChild(spinner);
     checkingDiv.appendChild(text);
@@ -396,22 +395,21 @@ function showWaitlistPending(email?: string): void {
   // Title
   const title = document.createElement('h1');
   title.className = 'sign-in-gate-waitlist-title';
-  title.textContent = "You're on the list!";
+  title.textContent = t('auth.waitlistTitle');
   waitlistDiv.appendChild(title);
 
   // Message
   const message = document.createElement('p');
   message.className = 'sign-in-gate-waitlist-message';
-  message.textContent =
-    "We're rolling out Ferni gradually to ensure everyone gets the best experience. " +
-    "We'll send you an email as soon as your spot opens up.";
+  message.textContent = t('auth.waitlistMessage');
   waitlistDiv.appendChild(message);
 
   // Email confirmation
   if (email) {
     const emailP = document.createElement('p');
     emailP.className = 'sign-in-gate-waitlist-email';
-    emailP.innerHTML = `We'll notify you at <strong>${escapeHtml(email)}</strong>`;
+    const emailMsg = t('auth.waitlistEmail');
+    emailP.innerHTML = emailMsg.replace('{email}', `<strong>${escapeHtml(email)}</strong>`);
     waitlistDiv.appendChild(emailP);
   }
 
@@ -421,15 +419,13 @@ function showWaitlistPending(email?: string): void {
 
   const signOutBtn = document.createElement('button');
   signOutBtn.className = 'sign-in-gate-btn sign-in-gate-btn--secondary';
-  signOutBtn.textContent = 'Try a different account';
+  signOutBtn.textContent = t('auth.tryDifferentAccount');
   signOutBtn.addEventListener('click', handleSignOutAndRetry);
   buttonsDiv.appendChild(signOutBtn);
 
   waitlistDiv.appendChild(buttonsDiv);
-
   content.appendChild(waitlistDiv);
 }
-
 /**
  * Handle signing out and returning to the sign-in buttons.
  */
@@ -532,12 +528,12 @@ function createOverlay(): HTMLElement {
   // Title
   const title = document.createElement('h1');
   title.className = 'sign-in-gate-title';
-  title.textContent = 'Welcome to Ferni';
+  title.textContent = t('auth.welcome');
 
   // Subtitle
   const subtitle = document.createElement('p');
   subtitle.className = 'sign-in-gate-subtitle';
-  subtitle.textContent = 'Sign in to start your journey. Your conversations, memories, and progress will be saved across all your devices.';
+  subtitle.textContent = t('auth.subtitle');
 
   // Buttons container
   const buttonsDiv = document.createElement('div');
@@ -549,7 +545,7 @@ function createOverlay(): HTMLElement {
   googleBtn.dataset.provider = 'google';
   googleBtn.appendChild(createGoogleIcon());
   const googleText = document.createElement('span');
-  googleText.textContent = 'Continue with Google';
+  googleText.textContent = t('auth.continueWithGoogle');
   googleBtn.appendChild(googleText);
 
   // Apple button
@@ -558,7 +554,7 @@ function createOverlay(): HTMLElement {
   appleBtn.dataset.provider = 'apple';
   appleBtn.appendChild(createAppleIcon());
   const appleText = document.createElement('span');
-  appleText.textContent = 'Continue with Apple';
+  appleText.textContent = t('auth.continueWithApple');
   appleBtn.appendChild(appleText);
 
   buttonsDiv.appendChild(googleBtn);
@@ -569,22 +565,24 @@ function createOverlay(): HTMLElement {
   errorDiv.className = 'sign-in-gate-error';
   errorDiv.setAttribute('role', 'alert');
 
-  // Footer
+  // Footer with Terms/Privacy links
   const footer = document.createElement('p');
   footer.className = 'sign-in-gate-footer';
-  footer.textContent = 'By continuing, you agree to our ';
+  const parts = t('auth.agreeTerms').split('{terms}');
+  const parts2 = parts[1]!.split('{privacy}');
+  footer.appendChild(document.createTextNode(parts[0]!));
   const termsLink = document.createElement('a');
   termsLink.href = '/terms';
   termsLink.target = '_blank';
-  termsLink.textContent = 'Terms';
+  termsLink.textContent = t('auth.termsLink');
   footer.appendChild(termsLink);
-  footer.appendChild(document.createTextNode(' and '));
+  footer.appendChild(document.createTextNode(parts2[0]!));
   const privacyLink = document.createElement('a');
   privacyLink.href = '/privacy';
   privacyLink.target = '_blank';
-  privacyLink.textContent = 'Privacy Policy';
+  privacyLink.textContent = t('auth.privacyLink');
   footer.appendChild(privacyLink);
-  footer.appendChild(document.createTextNode('.'));
+  footer.appendChild(document.createTextNode(parts2[1]!));
 
   // Assemble
   content.appendChild(logoDiv);
@@ -630,11 +628,8 @@ async function handleSignIn(provider: 'google' | 'apple'): Promise<void> {
 
     // Show error
     if (errorEl) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Sign-in was cancelled or failed. Please try again.';
-      errorEl.textContent = message;
+      // Library error messages are English-only; show the localized generic one.
+      errorEl.textContent = t('auth.signInError');
       errorEl.classList.add('visible');
     }
 
@@ -652,16 +647,10 @@ async function handleSignIn(provider: 'google' | 'apple'): Promise<void> {
  * Returns a promise that resolves when the user successfully signs in.
  */
 export async function showSignInGate(): Promise<void> {
-  if (isShowing) {
-    log.debug('Sign-in gate already showing');
-    return new Promise((resolve) => {
-      resolveSignIn = resolve;
-    });
-  }
+  if (isShowing && pendingSignIn) return pendingSignIn;
 
   isShowing = true;
   injectStyles();
-
   // Create and show overlay
   overlayEl = createOverlay();
   document.body.appendChild(overlayEl);
@@ -687,6 +676,7 @@ export async function showSignInGate(): Promise<void> {
             unsubscribe();
             resolveSignIn?.();
             resolveSignIn = null;
+            pendingSignIn = null;
           } else {
             log.info('User not approved, showing waitlist pending');
             showWaitlistPending(result.email);
@@ -702,9 +692,10 @@ export async function showSignInGate(): Promise<void> {
     }
   });
 
-  return new Promise((resolve) => {
+  pendingSignIn = new Promise((resolve) => {
     resolveSignIn = resolve;
   });
+  return pendingSignIn;
 }
 
 /**

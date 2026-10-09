@@ -78,8 +78,8 @@ COPY apps/rust-perf/build.rs ./rust-perf/
 
 # Build rust-perf native module for Linux x64
 # - CoreML/Metal are conditionally compiled (macOS-only) via Cargo.toml target cfg
-# - Candle ML models (Qwen3-Omni, LFM2) are behind "candle_models" feature (not in default)
-#   This skips ~10K lines of model code + candle-nn/candle-transformers/safetensors/half deps
+# - Candle ML models (FTIS Candle router, LFM2) are behind "candle_models" feature (not in default)
+#   This skips the model code + candle-nn/candle-transformers/safetensors/half deps
 WORKDIR /rust/rust-perf
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
@@ -159,6 +159,9 @@ COPY scripts/generate-tool-tiers.js ./scripts/
 # - Tool embeddings: 653 pre-computed vectors (30x faster semantic matching)
 # - CLI bundle: Packaged for in-container ops
 # IMPORTANT: Clean dist folder to avoid stale build artifacts from Kaniko cache
+# The CLI fallback is grouped in braces: `a && b || c` runs c when ANY step
+# before it fails, so a failed build:fast shipped an image with no agent
+# (dev, 2026-10-05: esbuild error, step exit 0, version marked Available).
 RUN rm -rf dist && pnpm run build:fast && \
     echo "=== Copying JSON config files ===" && \
     mkdir -p dist/agents/shared/sanitizer/config && \
@@ -171,11 +174,11 @@ RUN rm -rf dist && pnpm run build:fast && \
     pnpm exec tsx apps/cli/src/commands/build/bundle-agent.ts && \
     ls -lh dist/agents/voice-agent-bundle.js && \
     echo "=== Building Ferni CLI for container ===" && \
-    (pnpm exec tsx apps/cli/src/commands/build/build-cli-binary.ts --container --release && \
+    { (pnpm exec tsx apps/cli/src/commands/build/build-cli-binary.ts --container --release && \
     ls -lh dist/ferni-bundle/) || \
     (echo "⚠️ CLI bundle failed (non-fatal) - creating placeholder" && \
      mkdir -p dist/ferni-bundle && echo '#!/bin/sh\necho "ferni CLI not available in this build"' > dist/ferni-bundle/ferni.js && \
-     cp dist/ferni-bundle/ferni.js dist/ferni-bundle/ferni)
+     cp dist/ferni-bundle/ferni.js dist/ferni-bundle/ferni); }
 
 # ============================================================================
 # Stage 1b: Prepare production node_modules (reuses warm pnpm store)
@@ -185,24 +188,27 @@ RUN rm -rf dist && pnpm run build:fast && \
 # (~5s) instead of re-downloading everything from scratch in production (~120s).
 # Also applies LiveKit patches and cleanup here to keep the production stage thin.
 COPY patches/ ./patches/
+# Refuses a partial prod install (see scripts/docker/verify-node-modules.cjs).
+COPY scripts/docker/verify-node-modules.cjs /tmp/verify-node-modules.cjs
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     echo "=== Preparing production node_modules ===" && \
     mkdir -p /prod-deps && \
     cp package.json pnpm-workspace.yaml .npmrc /prod-deps/ && \
-    cp pnpm-lock.yaml /prod-deps/ 2>/dev/null || true && \
-    cp -r patches /prod-deps/ 2>/dev/null || true && \
+    { cp pnpm-lock.yaml /prod-deps/ 2>/dev/null || true; } && \
+    { cp -r patches /prod-deps/ 2>/dev/null || true; } && \
     for dir in apps/rust-audio apps/rust-perf design-system apps/cli apps/web apps/async apps/intelligence-worker packages/shared-types; do \
       mkdir -p /prod-deps/$dir && cp $dir/package.json /prod-deps/$dir/ 2>/dev/null || true; \
     done && \
     cd /prod-deps && \
     pnpm install --prefer-offline --prod --no-frozen-lockfile && \
+    node /tmp/verify-node-modules.cjs /prod-deps && \
     pnpm store prune && \
     echo "=== Cleaning up node_modules ===" && \
-    find node_modules \( -name "*.md" -o -name "*.map" -o -name "CHANGELOG*" \
-      -o -name "LICENSE*" -o -name ".npmignore" \) -delete 2>/dev/null || true && \
-    find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true && \
-    find node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" \
-      -o -name "docs" \) -exec rm -rf {} + 2>/dev/null || true && \
+    { find node_modules \( -name "*.md" -o -name "*.map" -o -name "CHANGELOG*" \
+      -o -name "LICENSE*" -o -name ".npmignore" \) -delete 2>/dev/null || true; } && \
+    { find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true; } && \
+    { find node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" \
+      -o -name "docs" \) -exec rm -rf {} + 2>/dev/null || true; } && \
     echo "=== Patching LiveKit SDK timeouts ===" && \
     find node_modules -name "worker.js" -o -name "worker.cjs" | xargs -I{} sh -c ' \
       grep -q "initializeTimeout: 3e4" "{}" && \
@@ -219,7 +225,7 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
       true \
     ' && \
     echo "=== Production node_modules ready ===" && \
-    grep -r "PATCHED" node_modules/@livekit/agents/dist/ 2>/dev/null | head -4 || echo "Patch verification done"
+    { grep -r "PATCHED" node_modules/@livekit/agents/dist/ 2>/dev/null | head -4 || echo "Patch verification done"; }
 
 # ============================================================================
 # Stage 2: Production
@@ -241,6 +247,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
+
+# Neural speaker model: SpeechBrain ECAPA-TDNN as ONNX, built by
+# scripts/speaker/export-ecapa-onnx.py (see scripts/speaker/README.md). The
+# object is public, so the build needs no GCP credentials (LiveKit Cloud builds
+# cannot pull private registries). A sha256 mismatch fails the build, and the
+# speaker-embedding worker checks the digest again at load and falls back to
+# DSP features if it differs. Kill switch: unset SPEAKER_MODEL_PATH.
+# This layer comes before any app source, so it stays cached.
+ARG SPEAKER_MODEL_SHA256=93ccd596285b31d5debad84ab3f138d5dc1145f19c3f287b81ece65afa034fc9
+ARG SPEAKER_MODEL_URL=https://storage.googleapis.com/ferni-public-models/speaker/ecapa-tdnn-waveform-93ccd596.onnx
+RUN mkdir -p /models/speaker && \
+    curl -fsSL --retry 3 --retry-all-errors \
+      -o /models/speaker/ecapa-tdnn-waveform.onnx "$SPEAKER_MODEL_URL" && \
+    printf '%s  /models/speaker/ecapa-tdnn-waveform.onnx\n' "$SPEAKER_MODEL_SHA256" \
+      > /models/speaker/ecapa-tdnn-waveform.onnx.sha256 && \
+    sha256sum -c /models/speaker/ecapa-tdnn-waveform.onnx.sha256 && \
+    printf '%s\n' \
+      'ECAPA-TDNN speaker model from speechbrain/spkrec-ecapa-voxceleb (SpeechBrain), Apache-2.0.' \
+      'Modified: exported to ONNX with its feature front end (scripts/speaker/export-ecapa-onnx.py).' \
+      'License: https://www.apache.org/licenses/LICENSE-2.0' > /models/speaker/NOTICE
+ENV SPEAKER_MODEL_PATH=/models/speaker/ecapa-tdnn-waveform.onnx \
+    SPEAKER_MODEL_SHA256=${SPEAKER_MODEL_SHA256}
 
 # Copy pre-built production node_modules from builder (already cleaned + patched)
 # This replaces the full pnpm install + cleanup + LiveKit patching that previously

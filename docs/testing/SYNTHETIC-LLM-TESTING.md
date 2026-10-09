@@ -94,7 +94,7 @@ vitest run src/tests/superhuman/synthetic-superhuman.test.ts
 pnpm test:synthetic:all
 
 # With verbose output
-TEST_LLM_MODEL=gemini-2.5-flash pnpm test:platform:verbose
+TEST_LLM_MODEL=gemini-3.5-flash pnpm test:platform:verbose
 ```
 
 ## LLM Model Configuration
@@ -103,11 +103,11 @@ Set via environment variable:
 
 ```bash
 # Default (fast, good quality)
-export TEST_LLM_MODEL=gemini-2.5-flash
+export TEST_LLM_MODEL=gemini-3.5-flash
 
 # Alternative models
-export TEST_LLM_MODEL=gemini-3-flash-preview
-export TEST_LLM_MODEL=gemini-2.0-flash
+export TEST_LLM_MODEL=gemini-3.5-flash-lite
+export TEST_LLM_MODEL=gemini-3.1-pro-preview
 ```
 
 ## Interpreting Results

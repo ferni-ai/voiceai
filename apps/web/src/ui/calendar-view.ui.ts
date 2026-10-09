@@ -12,7 +12,8 @@
  *   - Empty state encourages connection
  */
 
-import { t } from '../i18n/index.js';
+import { formatDate, formatNumber, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost, getUserId } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
@@ -195,6 +196,13 @@ export interface CalendarViewCallbacks {
 }
 
 type ViewMode = 'today' | 'week' | 'month' | 'insights' | 'practice';
+
+const MOMENTUM_KEYS = {
+  rising: 'calendarView.momentumRising',
+  steady: 'calendarView.momentumSteady',
+  building: 'calendarView.momentumBuilding',
+  declining: 'calendarView.momentumDeclining',
+} as const;
 
 // ============================================================================
 // ICONS (Lucide-style, 2px stroke, rounded)
@@ -436,14 +444,14 @@ class CalendarViewUI {
     this.wrapper.innerHTML = `
       <header class="calendar-view__header">
         <div class="calendar-view__icon">${ICONS.calendar}</div>
-        <h2 class="calendar-view__title" id="calendar-view-title">Your Schedule</h2>
+        <h2 class="calendar-view__title" id="calendar-view-title">${t('calendarView.yourSchedule')}</h2>
         <button class="calendar-view__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>
       <div class="calendar-view__loading">
         <div class="calendar-view__spinner"></div>
-        <p>Loading your schedule...</p>
+        <p>${t('calendarView.loadingYourSchedule')}</p>
       </div>
     `;
 
@@ -456,25 +464,25 @@ class CalendarViewUI {
     this.wrapper.innerHTML = `
       <header class="calendar-view__header">
         <div class="calendar-view__icon">${ICONS.calendar}</div>
-        <h2 class="calendar-view__title" id="calendar-view-title">Your Schedule</h2>
+        <h2 class="calendar-view__title" id="calendar-view-title">${t('calendarView.yourSchedule')}</h2>
         <button class="calendar-view__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>
       <div class="calendar-view__disconnected">
         <div class="calendar-view__disconnected-icon">${ICONS.calendar}</div>
-        <h3>Connect Your Calendar</h3>
-        <p>See your schedule at a glance and let Alex help manage your time.</p>
+        <h3>${t('calendarView.connectYourCalendar')}</h3>
+        <p>${t('calendarView.connectDescription')}</p>
         
         <div class="calendar-view__providers">
           <button aria-label="${t('accessibility.googleCalendar')}" class="calendar-view__provider-btn" data-action="connect-google">
             <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            <span>Google Calendar</span>
+            <span>${t('calendarView.googleCalendar')}</span>
           </button>
           
           <button aria-label="${t('accessibility.appleCalendar')}" class="calendar-view__provider-btn" data-action="connect-apple">
             <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#555" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-            <span>Apple Calendar</span>
+            <span>${t('calendarView.appleCalendar')}</span>
           </button>
           
           <button aria-label="${t('accessibility.outlook')}" class="calendar-view__provider-btn" data-action="connect-outlook">
@@ -485,7 +493,7 @@ class CalendarViewUI {
         
         <button aria-label="${t('accessibility.settings')}" class="calendar-view__settings-link" data-action="open-settings">
           ${ICONS.settings}
-          <span>Calendar Settings</span>
+          <span>${t('calendarView.calendarSettings')}</span>
         </button>
       </div>
     `;
@@ -498,17 +506,13 @@ class CalendarViewUI {
     if (!this.wrapper) return;
 
     const today = new Date();
-    const dateStr = today.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    });
+    const dateStr = formatDate(today, { weekday: 'long', month: 'long', day: 'numeric' });
 
     this.wrapper.innerHTML = `
       <header class="calendar-view__header">
         <div class="calendar-view__icon">${this.viewMode === 'practice' ? ICONS.heart : ICONS.calendar}</div>
         <div class="calendar-view__header-content">
-          <h2 class="calendar-view__title" id="calendar-view-title">${this.viewMode === 'practice' ? "What's Ahead" : 'Your Schedule'}</h2>
+          <h2 class="calendar-view__title" id="calendar-view-title">${t(this.viewMode === 'practice' ? 'calendarView.whatsAhead' : 'calendarView.yourSchedule')}</h2>
           <p class="calendar-view__date">${dateStr}</p>
         </div>
         <button class="calendar-view__close" aria-label="${t('common.close')}">
@@ -517,25 +521,25 @@ class CalendarViewUI {
       </header>
 
       <div class="calendar-view__tabs">
-        <button aria-label="Practice view with insights" class="calendar-view__tab ${this.viewMode === 'practice' ? 'calendar-view__tab--active' : ''}" data-view="practice">
+        <button aria-label="${t('calendarView.practiceViewWithInsights')}" class="calendar-view__tab ${this.viewMode === 'practice' ? 'calendar-view__tab--active' : ''}" data-view="practice">
           ${ICONS.heart}
-          Practice
+          ${t('calendarView.practice')}
         </button>
         <button aria-label="${t('accessibility.today')}" class="calendar-view__tab ${this.viewMode === 'today' ? 'calendar-view__tab--active' : ''}" data-view="today">
           ${ICONS.sun}
-          Today
+          ${t('common.today')}
         </button>
         <button aria-label="${t('accessibility.week')}" class="calendar-view__tab ${this.viewMode === 'week' ? 'calendar-view__tab--active' : ''}" data-view="week">
           ${ICONS.clock}
-          Week
+          ${t('accessibility.week')}
         </button>
         <button aria-label="${t('accessibility.month')}" class="calendar-view__tab ${this.viewMode === 'month' ? 'calendar-view__tab--active' : ''}" data-view="month">
           ${ICONS.calendar}
-          Month
+          ${t('accessibility.month')}
         </button>
         <button aria-label="${t('accessibility.insights')}" class="calendar-view__tab ${this.viewMode === 'insights' ? 'calendar-view__tab--active' : ''}" data-view="insights">
           ${ICONS.chart}
-          Insights
+          ${t('accessibility.insights')}
         </button>
       </div>
 
@@ -546,7 +550,7 @@ class CalendarViewUI {
       ${this.renderSyncStatus()}
 
       <footer class="calendar-view__footer">
-        <p class="calendar-view__footer-hint">Say "Alex, schedule a meeting" to add events</p>
+        <p class="calendar-view__footer-hint">${t('calendarView.footerHint')}</p>
       </footer>
     `;
 
@@ -565,11 +569,11 @@ class CalendarViewUI {
         <div class="calendar-view__sync-status calendar-view__sync-status--connected">
           <div class="calendar-view__sync-info">
             <span class="calendar-view__sync-dot"></span>
-            <span>Google Calendar synced</span>
+            <span>${t('calendarView.googleCalendarSynced')}</span>
           </div>
           <label class="calendar-view__sync-toggle">
             <input type="checkbox" ${this.showExternalEvents ? 'checked' : ''} data-action="toggle-external">
-            <span>Show events</span>
+            <span>${t('calendarView.showEvents')}</span>
           </label>
         </div>
       `;
@@ -578,11 +582,11 @@ class CalendarViewUI {
     return `
       <div class="calendar-view__sync-status">
         <div class="calendar-view__sync-info">
-          <span class="calendar-view__sync-hint">Sync your calendar to see events</span>
+          <span class="calendar-view__sync-hint">${t('calendarView.syncYourCalendarToSeeEvents')}</span>
         </div>
         <button aria-label="${t('accessibility.connect')}" class="calendar-view__sync-btn" data-action="connect-google">
           ${ICONS.link}
-          <span>Connect</span>
+          <span>${t('common.connect')}</span>
         </button>
       </div>
     `;
@@ -603,7 +607,7 @@ class CalendarViewUI {
 
   private renderTodayView(): string {
     if (!this.todayData) {
-      return this.renderEmptyState('No events today');
+      return this.renderEmptyState(t('calendarView.noEventsToday'));
     }
 
     const events = this.todayData.events || [];
@@ -613,23 +617,24 @@ class CalendarViewUI {
         <div class="calendar-view__summary calendar-view__summary--clear">
           <div class="calendar-view__summary-icon">${ICONS.sun}</div>
           <div class="calendar-view__summary-text">
-            <strong>Clear day ahead</strong>
-            <span>No meetings scheduled</span>
+            <strong>${t('calendarView.clearDayAhead')}</strong>
+            <span>${t('calendarView.noMeetingsScheduled')}</span>
           </div>
         </div>
-        ${this.renderEmptyState('Your calendar is open')}
+        ${this.renderEmptyState(t('calendarView.calendarIsOpen'))}
       `;
     }
 
     // Show summary
     const summaryClass = this.todayData.isOverloaded ? 'calendar-view__summary--busy' : '';
     const summaryIcon = this.todayData.isOverloaded ? ICONS.alertTriangle : ICONS.clock;
-    const summaryText = this.todayData.isOverloaded
-      ? `Heavy day: ${this.todayData.totalMeetings} meetings`
-      : `${this.todayData.totalMeetings} meeting${this.todayData.totalMeetings !== 1 ? 's' : ''} today`;
+    const summaryText = tp(
+      this.todayData.isOverloaded ? 'calendarView.heavyDayMeetings' : 'calendarView.meetingsToday',
+      this.todayData.totalMeetings
+    );
 
     const freeHours = Math.round(this.todayData.freeTimeMinutes / 60);
-    const freeText = freeHours > 0 ? `${freeHours}h free time` : 'Back-to-back meetings';
+    const freeText = freeHours > 0 ? t('calendarView.freeTimeHours', { hours: freeHours }) : t('calendarView.backToBackMeetings');
 
     return `
       <div class="calendar-view__summary ${summaryClass}">
@@ -648,27 +653,27 @@ class CalendarViewUI {
 
   private renderWeekView(): string {
     if (!this.weekData?.days) {
-      return this.renderEmptyState('No events this week');
+      return this.renderEmptyState(t('calendarView.noEventsThisWeek'));
     }
 
     const days = this.weekData.days;
     const totalMeetings = this.weekData.totalMeetings || 0;
 
     if (totalMeetings === 0) {
-      return this.renderEmptyState('Your week is open');
+      return this.renderEmptyState(t('calendarView.weekIsOpen'));
     }
 
     // Summary
     const busiestDay = this.weekData.busiestDay;
     const summaryText = busiestDay
-      ? `${totalMeetings} meetings this week. ${busiestDay.day} is busiest.`
-      : `${totalMeetings} meetings this week`;
+      ? tp('calendarView.meetingsThisWeekBusiest', totalMeetings, { day: busiestDay.day })
+      : tp('calendarView.meetingsThisWeek', totalMeetings);
 
     return `
       <div class="calendar-view__summary">
         <div class="calendar-view__summary-icon">${ICONS.calendar}</div>
         <div class="calendar-view__summary-text">
-          <strong>Week Overview</strong>
+          <strong>${t('calendarView.weekOverview')}</strong>
           <span>${summaryText}</span>
         </div>
       </div>
@@ -715,7 +720,7 @@ class CalendarViewUI {
         <div class="calendar-view__practice calendar-view__practice--loading">
           <div class="calendar-view__practice-loading">
             <div class="calendar-view__practice-loading-spinner"></div>
-            <span>Jordan is organizing your week...</span>
+            <span>${t('calendarView.jordanIsOrganizingYourWeek')}</span>
           </div>
         </div>
       `;
@@ -779,7 +784,7 @@ class CalendarViewUI {
         <!-- Jordan orchestrates header -->
         <div class="calendar-view__practice-persona">
           <div class="calendar-view__practice-persona-dot" style="background: var(--color-jordan, #c4856a)"></div>
-          <span class="calendar-view__practice-persona-name">Jordan orchestrates your week</span>
+          <span class="calendar-view__practice-persona-name">${t('calendarView.jordanOrchestrates')}</span>
         </div>
 
         <!-- Week Strip with Daily Insights -->
@@ -789,10 +794,10 @@ class CalendarViewUI {
               <div class="calendar-view__practice-day-name">${day.shortName}</div>
               <div class="calendar-view__practice-day-num">${day.dayNum}</div>
               <div class="calendar-view__practice-day-indicators">
-                ${day.hasEvent ? '<span class="calendar-view__practice-indicator calendar-view__practice-indicator--event" title="Event"></span>' : ''}
-                ${day.hasTask ? '<span class="calendar-view__practice-indicator calendar-view__practice-indicator--task" title="Task"></span>' : ''}
-                ${day.hasReminder ? '<span class="calendar-view__practice-indicator calendar-view__practice-indicator--reminder" title="Reminder"></span>' : ''}
-                ${day.hasHabit ? '<span class="calendar-view__practice-indicator calendar-view__practice-indicator--habit" title="Habit"></span>' : ''}
+                ${day.hasEvent ? `<span class="calendar-view__practice-indicator calendar-view__practice-indicator--event" title="${t('calendarView.event')}"></span>` : ''}
+                ${day.hasTask ? `<span class="calendar-view__practice-indicator calendar-view__practice-indicator--task" title="${t('calendarView.task')}"></span>` : ''}
+                ${day.hasReminder ? `<span class="calendar-view__practice-indicator calendar-view__practice-indicator--reminder" title="${t('calendarView.reminder')}"></span>` : ''}
+                ${day.hasHabit ? `<span class="calendar-view__practice-indicator calendar-view__practice-indicator--habit" title="${t('calendarView.habit')}"></span>` : ''}
               </div>
               <div class="calendar-view__practice-day-insight">${day.insight}</div>
             </div>
@@ -804,8 +809,8 @@ class CalendarViewUI {
           ${todayEvents.length > 0 ? `
             <div class="calendar-view__practice-section">
               <div class="calendar-view__practice-section-header">
-                <span class="calendar-view__practice-section-eyebrow">TODAY</span>
-                <span class="calendar-view__practice-section-count">${todayEvents.length} event${todayEvents.length !== 1 ? 's' : ''}</span>
+                <span class="calendar-view__practice-section-eyebrow">${t('calendarView.today')}</span>
+                <span class="calendar-view__practice-section-count">${tp('calendarView.eventCount', todayEvents.length)}</span>
               </div>
               ${todayEvents.map(event => this.renderPracticeEvent(event)).join('')}
             </div>
@@ -813,8 +818,8 @@ class CalendarViewUI {
             <div class="calendar-view__practice-clear">
               <div class="calendar-view__practice-clear-icon">${ICONS.sun}</div>
               <div class="calendar-view__practice-clear-text">
-                <strong>Clear day ahead</strong>
-                <span>Space for what matters most</span>
+                <strong>${t('calendarView.clearDayAhead')}</strong>
+                <span>${t('calendarView.spaceForWhatMatters')}</span>
               </div>
             </div>
           `}
@@ -823,12 +828,12 @@ class CalendarViewUI {
           ${intentions.length > 0 ? `
             <div class="calendar-view__practice-section">
               <div class="calendar-view__practice-section-header">
-                <span class="calendar-view__practice-section-eyebrow">INTENTIONS</span>
+                <span class="calendar-view__practice-section-eyebrow">${t('calendarView.intentions')}</span>
               </div>
               ${intentions.map(intention => `
                 <div class="calendar-view__practice-intention">
                   <div class="calendar-view__practice-intention-check">
-                    <input type="checkbox" ${intention.completed ? 'checked' : ''} aria-label="Mark ${intention.text} complete">
+                    <input type="checkbox" ${intention.completed ? 'checked' : ''} aria-label="${t('calendarView.markComplete', { text: intention.text })}">
                   </div>
                   <div class="calendar-view__practice-intention-content">
                     <span class="calendar-view__practice-intention-text">${intention.text}</span>
@@ -849,7 +854,7 @@ class CalendarViewUI {
             <div class="calendar-view__practice-whisper">
               <div class="calendar-view__practice-whisper-persona">
                 <div class="calendar-view__practice-persona-dot" style="background: var(--color-maya, #a67a6a)"></div>
-                <span>Maya notices</span>
+                <span>${t('calendarView.mayaNotices')}</span>
               </div>
               <p class="calendar-view__practice-whisper-text">"${mayaNotices}"</p>
             </div>
@@ -861,20 +866,20 @@ class CalendarViewUI {
         <div class="calendar-view__practice-stats">
           <div class="calendar-view__practice-stat">
             <div class="calendar-view__practice-stat-value">${typeof followThrough === 'number' ? `${followThrough}%` : '—'}</div>
-            <div class="calendar-view__practice-stat-label">follow-through</div>
+            <div class="calendar-view__practice-stat-label">${t('calendarView.followThrough')}</div>
           </div>
           <div class="calendar-view__practice-stat">
             <div class="calendar-view__practice-stat-value">${typeof habitsThisWeek === 'number' ? habitsThisWeek : '—'}</div>
-            <div class="calendar-view__practice-stat-label">habits this week</div>
+            <div class="calendar-view__practice-stat-label">${t('calendarView.habitsThisWeek')}</div>
           </div>
           <div class="calendar-view__practice-stat">
-            <div class="calendar-view__practice-stat-value">${typeof momentumTrend === 'string' ? momentumTrend : '—'}</div>
-            <div class="calendar-view__practice-stat-label">momentum</div>
+            <div class="calendar-view__practice-stat-value">${typeof momentumTrend === 'string' ? t(MOMENTUM_KEYS[momentumTrend]) : '—'}</div>
+            <div class="calendar-view__practice-stat-label">${t('calendarView.momentum')}</div>
           </div>
         </div>
         ` : `
         <div class="calendar-view__practice-stats calendar-view__practice-stats--empty">
-          <p class="calendar-view__practice-stats-empty-copy">We'll show follow-through and momentum once we have enough of your week to go on.</p>
+          <p class="calendar-view__practice-stats-empty-copy">${t('calendarView.progressMessage')}</p>
         </div>
         `}
 
@@ -882,13 +887,13 @@ class CalendarViewUI {
         ${apiData?.crossPersonaInsights?.length ? `
           <div class="calendar-view__practice-insights">
             <div class="calendar-view__practice-section-header">
-              <span class="calendar-view__practice-section-eyebrow">TEAM INSIGHTS</span>
+              <span class="calendar-view__practice-section-eyebrow">${t('calendarView.teamInsights')}</span>
             </div>
             ${apiData.crossPersonaInsights.slice(0, 2).map(insight => `
               <div class="calendar-view__practice-whisper">
                 <div class="calendar-view__practice-whisper-persona">
                   <div class="calendar-view__practice-persona-dot" style="background: var(--color-${insight.persona}, var(--color-ferni))"></div>
-                  <span>${insight.persona.charAt(0).toUpperCase() + insight.persona.slice(1)} ${insight.type === 'notice' ? 'notices' : insight.type === 'celebrate' ? 'celebrates' : 'suggests'}</span>
+                  <span>${t(insight.type === 'notice' ? 'calendarView.personaNotices' : insight.type === 'celebrate' ? 'calendarView.personaCelebrates' : 'calendarView.personaSuggests', { persona: insight.persona.charAt(0).toUpperCase() + insight.persona.slice(1) })}</span>
                 </div>
                 <p class="calendar-view__practice-whisper-text">"${insight.message}"</p>
               </div>
@@ -914,15 +919,14 @@ class CalendarViewUI {
     insight: string;
   }> {
     const days = [];
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const dayInsights = [
-      'Rest day',
-      'Fresh start',
-      'Build momentum',
-      'Mid-week check',
-      'Almost there',
-      'Wind down',
-      'Reflect'
+    const dayInsightKeys = [
+      'calendarView.dayRestDay',
+      'calendarView.dayFreshStart',
+      'calendarView.dayBuildMomentum',
+      'calendarView.dayMidWeekCheck',
+      'calendarView.dayAlmostThere',
+      'calendarView.dayWindDown',
+      'calendarView.dayReflect',
     ];
 
     // Find the start of the week (Sunday)
@@ -941,14 +945,14 @@ class CalendarViewUI {
 
       days.push({
         date: dateStr,
-        shortName: dayNames[dayOfWeek] ?? 'Day',
+        shortName: formatDate(date, { weekday: 'short' }),
         dayNum: date.getDate(),
         isToday: date.toDateString() === today.toDateString(),
         hasEvent: hasEvents,
         hasTask: dayData?.tasks?.length ? dayData.tasks.length > 0 : false,
         hasReminder: dayData?.reminders?.length ? dayData.reminders.length > 0 : false,
         hasHabit: dayData?.habits?.length ? dayData.habits.length > 0 : false,
-        insight: this.getDayInsight(date, today, dayInsights[dayOfWeek] ?? ''),
+        insight: this.getDayInsight(date, today, dayInsightKeys[dayOfWeek] ?? ''),
       });
     }
 
@@ -958,29 +962,29 @@ class CalendarViewUI {
   /**
    * Get contextual insight for a day
    */
-  private getDayInsight(date: Date, today: Date, defaultInsight: string): string {
+  private getDayInsight(date: Date, today: Date, defaultInsightKey: string): string {
     const isToday = date.toDateString() === today.toDateString();
     const dayOfWeek = date.getDay();
     
     // Special insights for today
     if (isToday) {
       const hour = today.getHours();
-      if (hour < 12) return 'Morning intention';
-      if (hour < 17) return 'Stay present';
-      return 'Reflect & celebrate';
+      if (hour < 12) return t('calendarView.morningIntention');
+      if (hour < 17) return t('calendarView.stayPresent');
+      return t('calendarView.reflectAndCelebrate');
     }
 
     // New year special
     if (date.getMonth() === 0 && date.getDate() === 1) {
-      return 'New beginning';
+      return t('calendarView.newBeginning');
     }
 
     // Weekend wisdom
     if (dayOfWeek === 0 || dayOfWeek === 6) {
-      return 'Recharge';
+      return t('calendarView.recharge');
     }
 
-    return defaultInsight;
+    return defaultInsightKey ? t(defaultInsightKey) : '';
   }
 
   /**
@@ -1020,22 +1024,22 @@ class CalendarViewUI {
     
     // Family/relationship events
     if (title.includes('dinner') || title.includes('family') || title.includes('partner')) {
-      return { persona: 'ALEX NOTED', insight: 'Your partner loves when you\'re present' };
+      return { persona: t('calendarView.alexNoted'), insight: t('calendarView.partnerLovesPresence') };
     }
     
     // Work meetings
     if (title.includes('meeting') || title.includes('sync') || title.includes('1:1')) {
-      return { persona: 'JORDAN SUGGESTS', insight: 'Set a clear intention before joining' };
+      return { persona: t('calendarView.jordanSuggests'), insight: t('calendarView.setClearIntention') };
     }
     
     // Health/wellness
     if (title.includes('doctor') || title.includes('therapy') || title.includes('gym') || title.includes('yoga')) {
-      return { persona: 'MAYA NOTICES', insight: 'Taking care of yourself first' };
+      return { persona: t('calendarView.mayaNoticesLabel'), insight: t('calendarView.selfCareFirst') };
     }
     
     // Creative/learning
     if (title.includes('class') || title.includes('workshop') || title.includes('lesson')) {
-      return { persona: 'NAYAN REFLECTS', insight: 'Growth happens in the stretching' };
+      return { persona: t('calendarView.nayanReflects'), insight: t('calendarView.growthInStretching') };
     }
 
     return null;
@@ -1057,15 +1061,15 @@ class CalendarViewUI {
 
     if (isWeekend) {
       return [
-        { text: 'Spend quality time', completed: false, insight: 'Presence over productivity', insightPersona: 'FERNI' },
-        { text: 'Rest without guilt', completed: false },
+        { text: t('calendarView.spendQualityTime'), completed: false, insight: t('calendarView.presenceOverProductivity'), insightPersona: 'FERNI' },
+        { text: t('calendarView.restWithoutGuilt'), completed: false },
       ];
     }
 
     return [
-      { text: 'Start with intention', completed: true, insight: '3 days in a row', insightPersona: 'MAYA TRACKS' },
-      { text: 'One thing at a time', completed: false },
-      { text: 'End the day with gratitude', completed: false, insight: 'This has helped your mood', insightPersona: 'PETER FOUND' },
+      { text: t('calendarView.startWithIntention'), completed: true, insight: t('calendarView.threeDaysInARow'), insightPersona: t('calendarView.mayaTracks') },
+      { text: t('calendarView.oneThingAtATime'), completed: false },
+      { text: t('calendarView.endDayWithGratitude'), completed: false, insight: t('calendarView.helpedYourMood'), insightPersona: t('calendarView.peterFound') },
     ];
   }
 
@@ -1080,20 +1084,20 @@ class CalendarViewUI {
     const busiestDay = this.weekData.busiestDay;
 
     if (totalMeetings > 15) {
-      return "You've been in a lot of meetings lately. Your best thinking happens in the quiet spaces.";
+      return t('calendarView.manyMeetingsNotice');
     }
 
     if (busiestDay && busiestDay.meetings > 5) {
-      return `${busiestDay.day} looks packed. Maybe move something to ${this.weekData.lightestDay?.day || 'another day'}?`;
+      return t('calendarView.busiestDayPacked', {
+        day: busiestDay.day,
+        lightDay: this.weekData.lightestDay?.day || t('calendarView.anotherDay'),
+      });
     }
 
     // Random wisdom if no pattern detected
-    const wisdoms = [
-      'Your morning starts tend to set the tone for the whole day.',
-      'When you block focus time, you accomplish 40% more.',
-      'You seem most creative after your walks.',
-    ];
-    return wisdoms[Math.floor(Math.random() * wisdoms.length)] ?? null;
+    const wisdomKeys = ['calendarView.wisdomMornings', 'calendarView.wisdomFocusTime', 'calendarView.wisdomWalks'];
+    const wisdomKey = wisdomKeys[Math.floor(Math.random() * wisdomKeys.length)];
+    return wisdomKey ? t(wisdomKey) : null;
   }
 
   /**
@@ -1104,7 +1108,7 @@ class CalendarViewUI {
     const month = this.currentDate.getMonth();
     
     // Get month name and year for header
-    const monthName = this.currentDate.toLocaleDateString('en-US', { month: 'long' });
+    const monthName = formatDate(this.currentDate, { month: 'long' });
     
     // Get first day of month and total days
     const firstDay = new Date(year, month, 1);
@@ -1118,7 +1122,7 @@ class CalendarViewUI {
     const todayDate = today.getDate();
     
     // Build calendar grid
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayNames = Array.from({ length: 7 }, (_, i) => formatDate(new Date(2024, 0, 7 + i), { weekday: 'short' })); // Sunday first
     
     // Get events for this month from weekData or fetch
     const monthEvents = this.getMonthEvents(year, month);
@@ -1188,7 +1192,7 @@ class CalendarViewUI {
         
         <div class="calendar-view__month-footer">
           <button aria-label="${t('accessibility.today')}" class="calendar-view__today-btn" data-action="go-today">
-            Today
+            ${t('common.today')}
           </button>
         </div>
       </div>
@@ -1203,7 +1207,7 @@ class CalendarViewUI {
       return `
         <div class="calendar-view__insights-loading">
           <div class="calendar-view__spinner"></div>
-          <p>Analyzing your calendar...</p>
+          <p>${t('calendarView.analyzingYourCalendar')}</p>
         </div>
       `;
     }
@@ -1212,7 +1216,7 @@ class CalendarViewUI {
       return `
         <div class="calendar-view__empty">
           <div class="calendar-view__empty-icon">${ICONS.chart}</div>
-          <p>Connect your calendar to see insights</p>
+          <p>${t('calendarView.connectCalendarToSeeInsights')}</p>
         </div>
       `;
     }
@@ -1223,14 +1227,14 @@ class CalendarViewUI {
     const circumference = 2 * Math.PI * 32;
     const offset = circumference - (healthScore / 100) * circumference;
     let scoreClass = '';
-    let insight = recommendations[0] || 'Your calendar looks balanced.';
+    let insight = recommendations[0] || t('calendarView.insightBalanced');
     
     if (healthScore < 40) {
       scoreClass = 'critical';
-      insight = recommendations[0] || 'Your calendar needs attention.';
+      insight = recommendations[0] || t('calendarView.insightNeedsAttention');
     } else if (healthScore < 70) {
       scoreClass = 'warning';
-      insight = recommendations[0] || 'Some adjustments could help.';
+      insight = recommendations[0] || t('calendarView.insightAdjustments');
     }
 
     const focusPercent = Math.round((loadFactors?.weeklyFocusTimeRatio || 0) * 100);
@@ -1247,7 +1251,7 @@ class CalendarViewUI {
             <div 
               class="calendar-view__chart-bar ${day.isOverloaded ? 'overloaded' : ''}" 
               style="height: ${heightPercent}%"
-              title="${day.meetingHours}h meetings"
+              title="${t('calendarView.meetingHoursTitle', { hours: day.meetingHours })}"
             ></div>
           </div>
           <span class="calendar-view__chart-bar-label">${day.dayName.slice(0, 3)}</span>
@@ -1282,7 +1286,7 @@ class CalendarViewUI {
             <span class="calendar-view__health-score-value">${healthScore}</span>
           </div>
           <div class="calendar-view__health-score-details">
-            <div class="calendar-view__health-score-label">Calendar Health</div>
+            <div class="calendar-view__health-score-label">${t('calendarView.calendarHealth')}</div>
             <div class="calendar-view__health-score-insight">${insight}</div>
           </div>
         </div>
@@ -1291,34 +1295,34 @@ class CalendarViewUI {
         <div class="calendar-view__metrics-grid">
           <div class="calendar-view__metric-card">
             <div class="calendar-view__metric-icon">${ICONS.clock}</div>
-            <div class="calendar-view__metric-value">${Math.round(loadFactors?.weeklyMeetingHours || 0)}h</div>
-            <div class="calendar-view__metric-label">Meeting Hours</div>
-            ${meetingTrend !== 0 ? `<div class="calendar-view__metric-trend ${meetingTrend < 0 ? 'positive' : 'negative'}">${meetingTrend > 0 ? '+' : ''}${meetingTrend}%</div>` : ''}
+            <div class="calendar-view__metric-value">${t('calendarView.hoursShort', { hours: Math.round(loadFactors?.weeklyMeetingHours || 0) })}</div>
+            <div class="calendar-view__metric-label">${t('calendarView.meetingHours')}</div>
+            ${meetingTrend !== 0 ? `<div class="calendar-view__metric-trend ${meetingTrend < 0 ? 'positive' : 'negative'}">${t('calendarView.percentChange', { change: formatNumber(meetingTrend, { signDisplay: 'exceptZero' }) })}</div>` : ''}
           </div>
           
           <div class="calendar-view__metric-card">
             <div class="calendar-view__metric-icon">${ICONS.target}</div>
             <div class="calendar-view__metric-value">${focusPercent}%</div>
-            <div class="calendar-view__metric-label">Focus Time</div>
+            <div class="calendar-view__metric-label">${t('calendarView.focusTime')}</div>
           </div>
           
           <div class="calendar-view__metric-card">
             <div class="calendar-view__metric-icon">${ICONS.zap}</div>
             <div class="calendar-view__metric-value">${backToBackPercent}%</div>
-            <div class="calendar-view__metric-label">Back-to-Back</div>
+            <div class="calendar-view__metric-label">${t('calendarView.backToBack')}</div>
           </div>
           
           <div class="calendar-view__metric-card">
             <div class="calendar-view__metric-icon">${ICONS.calendar}</div>
             <div class="calendar-view__metric-value">${loadFactors?.lightestDayThisWeek || '-'}</div>
-            <div class="calendar-view__metric-label">Lightest Day</div>
+            <div class="calendar-view__metric-label">${t('calendarView.lightestDay')}</div>
           </div>
         </div>
 
         <!-- Weekly Chart -->
         ${dailyTrends && dailyTrends.length > 0 ? `
           <div class="calendar-view__weekly-chart">
-            <div class="calendar-view__weekly-chart-title">Weekly Meeting Load</div>
+            <div class="calendar-view__weekly-chart-title">${t('calendarView.weeklyMeetingLoad')}</div>
             <div class="calendar-view__chart-bars">
               ${chartBars}
             </div>
@@ -1338,7 +1342,7 @@ class CalendarViewUI {
             <div class="calendar-view__recovery-info">
               <div class="calendar-view__recovery-icon">${ICONS.heart}</div>
               <div class="calendar-view__recovery-text">
-                <h4>Recovery Recommended</h4>
+                <h4>${t('calendarView.recoveryRecommended')}</h4>
                 <p>${recoveryInsight.message}</p>
               </div>
             </div>
@@ -1403,7 +1407,7 @@ class CalendarViewUI {
   private renderDayCard(day: DayOverview): string {
     const date = new Date(day.date);
     const isToday = this.isToday(date);
-    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+    const dayName = formatDate(date, { weekday: 'short' });
     const dayNum = date.getDate();
     const eventCount = day.totalMeetings || 0;
     const events = day.events || [];
@@ -1421,7 +1425,7 @@ class CalendarViewUI {
           <span class="calendar-view__day-num">${dayNum}</span>
         </div>
         <div class="calendar-view__day-content">
-          ${eventCount === 0 ? '<span class="calendar-view__day-empty">Free</span>' : ''}
+          ${eventCount === 0 ? `<span class="calendar-view__day-empty">${t('calendarView.free')}</span>` : ''}
           ${events
             .slice(0, 3)
             .map(
@@ -1433,7 +1437,7 @@ class CalendarViewUI {
           `
             )
             .join('')}
-          ${events.length > 3 ? `<span class="calendar-view__day-more">+${events.length - 3} more</span>` : ''}
+          ${events.length > 3 ? `<span class="calendar-view__day-more">${t('calendarView.moreEvents', { count: events.length - 3 })}</span>` : ''}
         </div>
       </div>
     `;
@@ -1476,7 +1480,7 @@ class CalendarViewUI {
     this.wrapper.innerHTML = `
       <header class="calendar-view__header">
         <div class="calendar-view__icon">${ICONS.calendar}</div>
-        <h2 class="calendar-view__title" id="calendar-view-title">Your Schedule</h2>
+        <h2 class="calendar-view__title" id="calendar-view-title">${t('calendarView.yourSchedule')}</h2>
         <button class="calendar-view__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
@@ -1484,7 +1488,7 @@ class CalendarViewUI {
       <div class="calendar-view__error">
         <p>${message}</p>
         <button aria-label="${t('accessibility.tryAgain')}" class="calendar-view__btn calendar-view__btn--secondary" data-action="retry">
-          Try Again
+          ${t('calendarView.tryAgain')}
         </button>
       </div>
     `;
@@ -1655,7 +1659,7 @@ class CalendarViewUI {
 
   private async startConnect(provider: 'google_calendar' | 'microsoft_calendar'): Promise<void> {
     const result = await startOAuthConnect(provider);
-    if (!result.success) toast.error(result.error ?? "Couldn't connect. Try again?");
+    if (!result.success) toast.error(result.error ?? t('toasts.couldNotConnect'));
   }
 
   private openFullSettings(): void {
@@ -1670,31 +1674,14 @@ class CalendarViewUI {
   // ============================================================================
 
   private formatTime(isoString: string): string {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
+    return formatDate(new Date(isoString), { hour: 'numeric', minute: '2-digit' });
   }
 
   /**
    * Format event time range (e.g., "9:00 AM - 10:30 AM")
    */
   private formatEventTime(startTime: string, endTime: string): string {
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-    const startFormatted = start.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-    const endFormatted = end.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-    return `${startFormatted} - ${endFormatted}`;
+    return `${this.formatTime(startTime)} - ${this.formatTime(endTime)}`;
   }
 
   private formatDuration(start: string, end: string): string {
@@ -1702,10 +1689,12 @@ class CalendarViewUI {
     const endDate = new Date(end);
     const minutes = Math.round((endDate.getTime() - startDate.getTime()) / 60000);
 
-    if (minutes < 60) return `${minutes}m`;
+    if (minutes < 60) return t('calendarView.minutesShort', { minutes });
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    return mins > 0
+      ? t('calendarView.hoursMinutesShort', { hours, minutes: mins })
+      : t('calendarView.hoursShort', { hours });
   }
 
   private isToday(date: Date): boolean {
@@ -1830,7 +1819,7 @@ class CalendarViewUI {
         border-radius: 50%;
         border: none;
         background: var(--color-background-secondary, rgba(44, 37, 32, 0.05));
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -1861,10 +1850,11 @@ class CalendarViewUI {
         gap: var(--space-2, 8px);
         padding: var(--space-3, 12px) var(--space-5, 20px);
         border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        container-type: inline-size; overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
       }
 
       .calendar-view__tab {
-        flex: 1;
+        flex: 1 0 auto; white-space: nowrap;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1881,14 +1871,13 @@ class CalendarViewUI {
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
-      .calendar-view__tab svg {
-        width: 16px;
-        height: 16px;
-      }
+      .calendar-view__tab svg { width: 16px; height: 16px; flex-shrink: 0; }
+      /* Narrow panels: icon over label so all five views fit; longer labels scroll. */
+      @container (max-width: 480px) { .calendar-view__tab { flex-direction: column; gap: 2px; padding: 6px 4px; font-size: var(--text-xs, 0.75rem); } }
 
       .calendar-view__tab:hover {
         background: var(--color-background-secondary, rgba(44, 37, 32, 0.05));
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
       }
 
       .calendar-view__tab--active {
@@ -1947,7 +1936,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__summary--busy .calendar-view__summary-icon {
-        color: var(--color-maya, #a67a6a);
+        color: var(--color-maya-text, #8a6153);
       }
 
       .calendar-view__summary-icon svg {
@@ -2271,7 +2260,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__settings-link:hover {
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
       }
 
       .calendar-view__settings-link:focus-visible {
@@ -2404,7 +2393,7 @@ class CalendarViewUI {
         background: transparent;
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
         border-radius: var(--radius-md, 8px);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         cursor: pointer;
         transition: all var(--duration-fast, 150ms) ease;
       }
@@ -2569,12 +2558,12 @@ class CalendarViewUI {
         gap: var(--space-2, 8px);
         overflow-x: auto;
         padding: var(--space-2, 8px) 0;
-        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; scroll-snap-type: x proximity;
       }
 
       .calendar-view__practice-day {
         flex: 1;
-        min-width: 60px;
+        min-width: 76px; scroll-snap-align: start;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -2648,8 +2637,8 @@ class CalendarViewUI {
       .calendar-view__practice-day-insight {
         font-size: var(--text-2xs, 0.6875rem);
         color: var(--color-text-muted, #756a5e);
-        text-align: center;
-        white-space: nowrap;
+        text-align: center; line-height: 1.25;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
         overflow: hidden;
         text-overflow: ellipsis;
         max-width: 100%;
@@ -2744,7 +2733,7 @@ class CalendarViewUI {
         min-width: 48px;
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-medium, 500);
-        color: var(--color-jordan, #c4856a);
+        color: var(--color-jordan-text, #9c5a3e);
       }
 
       .calendar-view__practice-event-content {
@@ -2775,7 +2764,7 @@ class CalendarViewUI {
 
       .calendar-view__practice-event-insight {
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         font-style: italic;
         padding-top: 4px;
       }
@@ -2845,7 +2834,7 @@ class CalendarViewUI {
 
       .calendar-view__practice-intention-insight {
         font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         font-style: italic;
       }
 
@@ -2867,7 +2856,7 @@ class CalendarViewUI {
       .calendar-view__practice-whisper-persona span {
         font-size: var(--text-xs, 0.75rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-maya, #a67a6a);
+        color: var(--color-maya-text, #8a6153);
         text-transform: uppercase;
         letter-spacing: 0.05em;
       }
@@ -2875,7 +2864,7 @@ class CalendarViewUI {
       .calendar-view__practice-whisper-text {
         margin: 0;
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         font-style: italic;
         line-height: 1.5;
       }
@@ -3193,7 +3182,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__metric-trend.negative {
-        color: var(--color-maya, #a67a6a);
+        color: var(--color-maya-text, #8a6153);
       }
 
       /* Weekly Chart */
@@ -3206,7 +3195,7 @@ class CalendarViewUI {
       .calendar-view__weekly-chart-title {
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         margin-bottom: var(--space-3, 12px);
       }
 
@@ -3288,7 +3277,7 @@ class CalendarViewUI {
 
       .calendar-view__pattern-description {
         font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-secondary, #70605a);
+        color: var(--color-text-secondary, #a89b8c);
         line-height: 1.4;
       }
 
@@ -3343,7 +3332,7 @@ class CalendarViewUI {
          DARK THEME
          ======================================================================== */
       [data-theme="midnight"] .calendar-view__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-view__header,
@@ -3378,12 +3367,12 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .calendar-view__close:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-primary, #faf6f0);
       }
 
@@ -3392,7 +3381,7 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__tab:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
@@ -3402,16 +3391,16 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__summary {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-view__event,
       [data-theme="midnight"] .calendar-view__day {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-view__event:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-view__day--today {
@@ -3434,18 +3423,18 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__btn--secondary {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-primary, #faf6f0);
       }
 
       [data-theme="midnight"] .calendar-view__provider-btn {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
         color: var(--color-text-primary, #faf6f0);
       }
 
       [data-theme="midnight"] .calendar-view__provider-btn:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         border-color: var(--color-alex-light, #8a9bb8);
       }
 
@@ -3472,7 +3461,7 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__month-btn:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-alex-light, #8a9bb8);
       }
 
@@ -3481,11 +3470,11 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__grid-cell {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-view__grid-cell:hover:not(.calendar-view__grid-cell--empty) {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-view__grid-cell--empty {
@@ -3516,7 +3505,7 @@ class CalendarViewUI {
 
       /* Sync status dark theme */
       [data-theme="midnight"] .calendar-view__sync-status {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
       }
 
@@ -3537,7 +3526,7 @@ class CalendarViewUI {
       }
 
       [data-theme="midnight"] .calendar-view__sync-toggle input[type="checkbox"] {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-view__sync-toggle input[type="checkbox"]:checked {

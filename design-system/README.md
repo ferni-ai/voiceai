@@ -93,12 +93,12 @@ Legacy paths (`/sounds/`, `/icons/`, `/logo.svg`) are also maintained for backwa
 
 ## Themes
 
-### Midnight Gold (Dark)
-Warm dark theme with golden light - like a candlelit evening.
-- Background: Warm brown-blacks (`#0c0a08`)
-- Text: Cream-tinted whites (`#faf6f0`)
-- Accent: Rich gold (`#d4a84a`)
-- Borders: Golden-tinted for warmth
+### Night Ink (Dark)
+Warm near-black field, paper type, sage actions.
+- Background: Night Ink (`#14110e`)
+- Text: Cream (`#f4efe6`)
+- Accent: Sage (`#8eae7a`); gold is a highlight only
+- Borders: Warm paper at 10–16% opacity
 - Mode: `data-theme="midnight"`
 
 ### Zen Garden (Light)
@@ -536,9 +536,9 @@ npm run test:a11y
 | Large text (≥18pt) | 3.0:1 | `--color-text-dimmed`, `--color-accent-text` |
 | UI components | 3.0:1 | Borders, icons, focus indicators |
 
-#### Dark Theme Text Colors (Cedar Night)
+#### Dark Theme Text Colors (Night Ink)
 
-All text colors tested against `#70605a` (elevated background):
+All text colors tested against `#352e28` (elevated / float background):
 
 | Token | Color | Contrast | Use |
 |-------|-------|----------|-----|

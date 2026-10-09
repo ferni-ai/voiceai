@@ -14,17 +14,17 @@
    - Consistent with Ferni brand identity
    - Apple-level polish and attention to detail
 
-   Color Palette (Dark Mode — Cedar Night from _tokens.css):
-   - Background: #584840 (warm dark brown)
-   - Elevated: #60504a (slightly lighter)
-   - Surface: #70605a (card surfaces)
-   - Deep: #1f1a16 (for dramatic sections)
+   Color Palette (Dark Mode — Night Ink from _tokens.css):
+   - Background: #14110e (warm near-black)
+   - Raised: #1e1a16
+   - Card: #2a241f
+   - Float: #352e28
 
-   Text Colors (all WCAG AA+ on #584840):
-   - Primary: #faf6f0 (12.1:1 contrast)
-   - Secondary: #f0ebe4 (9.8:1 contrast)
-   - Muted: #e8e2da (7.5:1 contrast)
-   - Dimmed: #e0d8ce (5.9:1 contrast)
+   Text Colors (WCAG AA on #352e28, the lightest surface):
+   - Primary: #f4efe6 (11.7:1)
+   - Secondary: #cfc3b4 (7.7:1)
+   - Muted: #a89b8c (4.9:1)
+   - Dimmed: #a89888 (4.8:1)
 
    ======================================================= */
 
@@ -37,32 +37,40 @@
   /* ===== Surface Colors (semantic aliases) ===== */
   /* Core vars (--color-bg-primary, etc.) are set by _tokens.css dark overrides.
      These are SUPPLEMENTARY aliases used by components. ALL HARDCODED. */
-  --color-background: #584840;
-  --color-background-elevated: #60504a;
-  --color-background-surface: #70605a;
-  --color-background-deep: #1f1a16;
+  --color-background: #14110e;
+  --color-background-elevated: #1e1a16;
+  --color-background-surface: #352e28;
+  --color-background-deep: #0e0c0a;
+  --color-text: #f4efe6;
+  --color-text-primary: #f4efe6;
+  --color-text-secondary: #cfc3b4;
+  --color-text-muted: #a89b8c;
+  --color-accent: #8eae7a;
+  --color-accent-hover: #a4c48f;
+  --color-accent-gold: #e4c27a;
+  --color-accent-gold-hover: #c9a15a;
 
   /* ===== Legacy Variable Aliases (story-brand.css compat) ===== */
-  --color-paper-cream: #584840;
-  --color-sand: #60504a;
-  --color-background-subtle: #60504a;
+  --color-paper-cream: #14110e;
+  --color-sand: #1e1a16;
+  --color-background-subtle: #1e1a16;
 
   /* ===== Additional Text Colors for Components ===== */
-  --color-text-secondary-light: #f0ebe4;
+  --color-text-secondary-light: #cfc3b4;
 
   /* ===== Cinematic Variables (used by two-am, hero-premium sections) ===== */
-  --cinematic-black-rich: #1a1512;
-  --color-ferni-cinematic-dark: #2c2520;
-  --color-ferni-cinematic-deep: #1a1512;
-  --color-ferni-cinematic-text: #faf6f0;
-  --color-ferni-cinematic-text-secondary: #f0ebe4;
-  --color-ferni-cinematic-text-muted: #e8e2da;
-  --color-ferni-cinematic-surface: #3c342f;
+  --cinematic-black-rich: #0e0c0a;
+  --color-ferni-cinematic-dark: #14110e;
+  --color-ferni-cinematic-deep: #0e0c0a;
+  --color-ferni-cinematic-text: #f4efe6;
+  --color-ferni-cinematic-text-secondary: #cfc3b4;
+  --color-ferni-cinematic-text-muted: #a89b8c;
+  --color-ferni-cinematic-surface: #2a241f;
 
   /* ===== Dark-Specific Aliases ===== */
-  --color-dark-text-muted: #e8e2da;
-  --color-dark-text-secondary: #f0ebe4;
-  --color-dark-bg: #584840;
+  --color-dark-text-muted: #a89b8c;
+  --color-dark-text-secondary: #cfc3b4;
+  --color-dark-bg: #14110e;
 
   /* ===== Shadow System - Deeper for dark mode ===== */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
@@ -76,7 +84,7 @@
   --shadow-glow-highlight: 0 8px 32px rgba(212, 178, 117, 0.25);
 
   /* ===== Glass Effect - Lighter glass for visibility ===== */
-  --glass-bg: rgba(60, 52, 47, 0.7);
+  --glass-bg: rgba(42, 36, 31, 0.78);
   --glass-border: rgba(255, 255, 255, 0.15);
   --glass-inset-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
@@ -84,8 +92,8 @@
 /* Base body styles for manual toggle */
 [data-theme="dark"] body,
 [data-theme="dark"] {
-  background: #584840;
-  color: #faf6f0;
+  background: #14110e;
+  color: #f4efe6;
 }
 
 /* Default headings for manual toggle */
@@ -95,16 +103,16 @@
 [data-theme="dark"] h4,
 [data-theme="dark"] h5,
 [data-theme="dark"] h6 {
-  color: #faf6f0;
+  color: #f4efe6;
 }
 
 /* Default links for manual toggle */
 [data-theme="dark"] a {
-  color: #d4a84a;
+  color: #8eae7a;
 }
 
 [data-theme="dark"] a:hover {
-  color: #e0bc6a;
+  color: #a4c48f;
 }
 
 /* =======================================================
@@ -115,32 +123,40 @@
   :root {
     /* ===== Surface Colors (semantic aliases) ===== */
     /* Core vars are set by _tokens.css. These are SUPPLEMENTARY. ALL HARDCODED. */
-    --color-background: #584840;
-    --color-background-elevated: #60504a;
-    --color-background-surface: #70605a;
-    --color-background-deep: #1f1a16;
+    --color-background: #14110e;
+    --color-background-elevated: #1e1a16;
+    --color-background-surface: #352e28;
+    --color-background-deep: #0e0c0a;
+    --color-text: #f4efe6;
+    --color-text-primary: #f4efe6;
+    --color-text-secondary: #cfc3b4;
+    --color-text-muted: #a89b8c;
+    --color-accent: #8eae7a;
+    --color-accent-hover: #a4c48f;
+    --color-accent-gold: #e4c27a;
+    --color-accent-gold-hover: #c9a15a;
 
     /* ===== Legacy Variable Aliases (story-brand.css compat) ===== */
-    --color-paper-cream: #584840;
-    --color-sand: #60504a;
-    --color-background-subtle: #60504a;
+    --color-paper-cream: #14110e;
+    --color-sand: #1e1a16;
+    --color-background-subtle: #1e1a16;
 
     /* ===== Additional Text Colors for Components ===== */
-    --color-text-secondary-light: #f0ebe4;
+    --color-text-secondary-light: #cfc3b4;
 
     /* ===== Cinematic Variables ===== */
-    --cinematic-black-rich: #1a1512;
-    --color-ferni-cinematic-dark: #2c2520;
-    --color-ferni-cinematic-deep: #1a1512;
-    --color-ferni-cinematic-text: #faf6f0;
-    --color-ferni-cinematic-text-secondary: #f0ebe4;
-    --color-ferni-cinematic-text-muted: #e8e2da;
-    --color-ferni-cinematic-surface: #3c342f;
+    --cinematic-black-rich: #0e0c0a;
+    --color-ferni-cinematic-dark: #14110e;
+    --color-ferni-cinematic-deep: #0e0c0a;
+    --color-ferni-cinematic-text: #f4efe6;
+    --color-ferni-cinematic-text-secondary: #cfc3b4;
+    --color-ferni-cinematic-text-muted: #a89b8c;
+    --color-ferni-cinematic-surface: #2a241f;
 
     /* ===== Dark-Specific Aliases ===== */
-    --color-dark-text-muted: #e8e2da;
-    --color-dark-text-secondary: #f0ebe4;
-    --color-dark-bg: #584840;
+    --color-dark-text-muted: #a89b8c;
+    --color-dark-text-secondary: #cfc3b4;
+    --color-dark-bg: #14110e;
 
     /* ===== Shadow System ===== */
     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
@@ -154,29 +170,29 @@
     --shadow-glow-highlight: 0 8px 32px rgba(212, 178, 117, 0.25);
 
     /* ===== Glass Effect ===== */
-    --glass-bg: rgba(60, 52, 47, 0.7);
+    --glass-bg: rgba(42, 36, 31, 0.78);
     --glass-border: rgba(255, 255, 255, 0.15);
     --glass-inset-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
   /* ===== Body Base ===== */
   body {
-    background: #584840;
-    color: #faf6f0;
+    background: #14110e;
+    color: #f4efe6;
   }
 
   /* ===== Default Headings ===== */
   h1, h2, h3, h4, h5, h6 {
-    color: #faf6f0;
+    color: #f4efe6;
   }
 
   /* ===== Default Links ===== */
   a {
-    color: #d4a84a;
+    color: #8eae7a;
   }
 
   a:hover {
-    color: #e0bc6a;
+    color: #a4c48f;
   }
 }
 
@@ -228,7 +244,7 @@
     background: rgba(88, 72, 64, 0.85);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(215, 185, 145, 0.12);
+    border-bottom: 1px solid rgba(244, 239, 230, 0.10);
   }
 
   .nav.is-scrolled {
@@ -246,7 +262,7 @@
   /* Navigation links - explicit light colors */
   .nav__link,
   .nav-link {
-    color: #f0ebe4;
+    color: #cfc3b4;
   }
 
   .nav__link:hover,
@@ -258,7 +274,7 @@
 
   .nav__cta {
     background: var(--color-accent-gold);
-    color: white;
+    color: #14110e;
   }
 
   .nav__cta:hover {
@@ -268,7 +284,7 @@
 
   /* Nav phone link */
   .nav-phone {
-    color: #f0ebe4;
+    color: #cfc3b4;
   }
 
   .nav-phone:hover {
@@ -286,17 +302,17 @@
   }
 
   .mobile-menu__header {
-    border-bottom-color: rgba(215, 185, 145, 0.12);
+    border-bottom-color: rgba(244, 239, 230, 0.10);
   }
 
   .mobile-menu__close {
-    color: #f0ebe4;
+    color: #cfc3b4;
   }
 
   .mobile-menu__nav a,
   .mobile-link {
-    color: #f0ebe4;
-    border-bottom-color: rgba(215, 185, 145, 0.12);
+    color: #cfc3b4;
+    border-bottom-color: rgba(244, 239, 230, 0.10);
   }
 
   .mobile-menu__nav a:hover,
@@ -370,7 +386,7 @@
   }
 
   .hero__subhead {
-    color: #f0ebe4;
+    color: #cfc3b4;
   }
 
   .hero__phone {
@@ -413,7 +429,7 @@
   }
 
   .section__subtitle {
-    color: #f0ebe4;
+    color: #cfc3b4;
   }
 
   /* Alternate section styling */
@@ -487,7 +503,7 @@
   .two-am__avatar-orb {
     background: var(--color-accent);
     box-shadow: var(--shadow-glow-ferni);
-    color: white;
+    color: #14110e;
   }
   
   .two-am__bubble {
@@ -568,7 +584,7 @@
 .theme--dark .two-am__avatar-orb {
   background: var(--color-accent);
   box-shadow: 0 0 20px rgba(90, 122, 82, 0.5);
-  color: white;
+  color: #14110e;
 }
 
 .theme--dark .two-am__bubble {
@@ -671,7 +687,7 @@
   
   .showcase__app-bubble--user {
     background: var(--color-accent);
-    color: white;
+    color: #14110e;
   }
   
   .showcase__app-bubble--ai {
@@ -800,7 +816,7 @@
   
   .memory-story__avatar {
     background: var(--color-accent);
-    color: white;
+    color: #14110e;
   }
   
   .memory-story__name {
@@ -1025,7 +1041,7 @@
   
   .btn--garden {
     background: var(--color-accent);
-    color: white;
+    color: #14110e;
   }
   
   .btn--garden:hover {
@@ -1102,7 +1118,7 @@
   
   .quiz__content button:hover {
     background: var(--color-accent);
-    color: white;
+    color: #14110e;
     border-color: var(--color-accent);
   }
 }
@@ -1356,7 +1372,7 @@
   
   .superpowers__tab.is-active {
     background: var(--color-accent);
-    color: white;
+    color: #14110e;
   }
   
   .superpowers__tab-icon {
@@ -1394,7 +1410,7 @@
   
   .demo-chat__message--user {
     background: var(--color-accent);
-    color: white;
+    color: #14110e;
   }
   
   .demo-chat__message--ai {
@@ -1620,7 +1636,7 @@
   .final-cta__avatar-orb {
     background: var(--color-accent);
     box-shadow: var(--shadow-glow-ferni);
-    color: white;
+    color: #14110e;
   }
   
   .final-cta__headline {
@@ -1633,7 +1649,7 @@
   
   .final-cta__phone {
     background: var(--color-accent);
-    color: white;
+    color: #14110e;
     box-shadow: var(--shadow-glow-ferni);
   }
   
@@ -1642,7 +1658,7 @@
   }
   
   .final-cta__phone-number {
-    color: white;
+    color: #14110e;
   }
   
   .final-cta__phone-label {
@@ -1683,7 +1699,7 @@
   
   .footer__cta {
     background: var(--color-accent);
-    color: white;
+    color: #14110e;
   }
   
   .footer__cta:hover {
@@ -1742,7 +1758,7 @@
 
   .mobile-cta .btn--secondary {
     background: var(--color-background-elevated);
-    color: #f0ebe4;
+    color: #cfc3b4;
     border-color: var(--color-border-medium);
   }
 
@@ -1764,7 +1780,7 @@
   }
 
   .cookie-banner p {
-    color: #f0ebe4;
+    color: #cfc3b4;
   }
 
   .cookie-banner a {
@@ -1772,7 +1788,7 @@
   }
 
   .cookie-banner .btn--ghost {
-    color: #f0ebe4;
+    color: #cfc3b4;
     border-color: var(--color-border-medium);
   }
 
@@ -1787,159 +1803,159 @@
    ======================================================= */
 
 @media (prefers-color-scheme: dark) {
-  /* Primary button — gold accent with glow */
+  /* Primary button — sage fill, ink label */
   .btn--primary {
-    background: #d4a84a;
-    color: #1f1a16;
+    background: #8eae7a;
+    color: #14110e;
     font-weight: 600;
   }
 
   .btn--primary:hover {
-    background: #e0bc6a;
-    box-shadow: 0 8px 32px rgba(212, 168, 74, 0.35);
+    background: #a4c48f;
+    box-shadow: 0 8px 32px rgba(142, 174, 122, 0.35);
   }
 
-  /* Secondary button — subtle surface with visible border */
+  /* Secondary button — raised surface with a hairline */
   .btn--secondary {
-    background: #60504a;
-    color: #f0ebe4;
-    border: 1px solid rgba(215, 185, 145, 0.2);
+    background: #1e1a16;
+    color: #f4efe6;
+    border: 1px solid rgba(244, 239, 230, 0.16);
   }
 
   .btn--secondary:hover {
-    background: #70605a;
-    color: #faf6f0;
-    border-color: rgba(215, 185, 145, 0.35);
+    background: #2a241f;
+    color: #f4efe6;
+    border-color: rgba(244, 239, 230, 0.24);
   }
 
   /* Ghost button — transparent with border */
   .btn--ghost {
     background: transparent;
-    color: #f0ebe4;
-    border: 1px solid rgba(215, 185, 145, 0.2);
+    color: #cfc3b4;
+    border: 1px solid rgba(244, 239, 230, 0.16);
   }
 
   .btn--ghost:hover {
     background: rgba(255, 255, 255, 0.05);
     color: #faf6f0;
-    border-color: rgba(215, 185, 145, 0.35);
+    border-color: rgba(244, 239, 230, 0.24);
   }
 
-  /* Phone CTA button — sage green accent */
+  /* Phone CTA — same sage fill as the primary action */
   .btn--phone,
   .hero__cta--phone {
-    background: linear-gradient(135deg, #3D5A45, #4a6741);
-    color: #faf6f0;
+    background: #8eae7a;
+    color: #14110e;
     font-weight: 600;
   }
 
   .btn--phone:hover,
   .hero__cta--phone:hover {
-    background: linear-gradient(135deg, #4a6741, #5a7a52);
-    box-shadow: 0 8px 32px rgba(157, 192, 130, 0.3);
+    background: #a4c48f;
+    box-shadow: 0 8px 32px rgba(142, 174, 122, 0.28);
   }
 
-  /* Form inputs — dark surface with visible borders */
+  /* Form inputs — card surface with a hairline */
   input,
   textarea,
   select {
-    background: #60504a;
-    color: #faf6f0;
-    border: 1px solid rgba(215, 185, 145, 0.15);
+    background: #2a241f;
+    color: #f4efe6;
+    border: 1px solid rgba(244, 239, 230, 0.16);
   }
 
   input::placeholder,
   textarea::placeholder {
-    color: #e8e2da;
+    color: #a89b8c;
   }
 
   input:focus,
   textarea:focus,
   select:focus {
-    border-color: #9dc082;
+    border-color: #a4c48f;
     box-shadow: 0 0 0 3px rgba(157, 192, 130, 0.15);
   }
 
   /* Demo input in hero section */
   .hero__demo-input,
   .demo-input {
-    background: #60504a;
-    color: #faf6f0;
-    border-color: rgba(215, 185, 145, 0.15);
+    background: #2a241f;
+    color: #f4efe6;
+    border-color: rgba(244, 239, 230, 0.16);
   }
 
   .hero__demo-input::placeholder,
   .demo-input::placeholder {
-    color: #e8e2da;
+    color: #a89b8c;
   }
 }
 
 /* Button & form data-theme overrides */
 [data-theme="dark"] .btn--primary {
-  background: #d4a84a;
-  color: #1f1a16;
+  background: #8eae7a;
+  color: #14110e;
   font-weight: 600;
 }
 
 [data-theme="dark"] .btn--primary:hover {
-  background: #e0bc6a;
-  box-shadow: 0 8px 32px rgba(212, 168, 74, 0.35);
+  background: #a4c48f;
+  box-shadow: 0 8px 32px rgba(142, 174, 122, 0.35);
 }
 
 [data-theme="dark"] .btn--secondary {
-  background: #60504a;
-  color: #f0ebe4;
-  border: 1px solid rgba(215, 185, 145, 0.2);
+  background: #1e1a16;
+  color: #f4efe6;
+  border: 1px solid rgba(244, 239, 230, 0.16);
 }
 
 [data-theme="dark"] .btn--secondary:hover {
-  background: #70605a;
-  color: #faf6f0;
-  border-color: rgba(215, 185, 145, 0.35);
+  background: #2a241f;
+  color: #f4efe6;
+  border-color: rgba(244, 239, 230, 0.24);
 }
 
 [data-theme="dark"] .btn--ghost {
   background: transparent;
-  color: #f0ebe4;
-  border: 1px solid rgba(215, 185, 145, 0.2);
+  color: #cfc3b4;
+  border: 1px solid rgba(244, 239, 230, 0.16);
 }
 
 [data-theme="dark"] .btn--ghost:hover {
   background: rgba(255, 255, 255, 0.05);
   color: #faf6f0;
-  border-color: rgba(215, 185, 145, 0.35);
+  border-color: rgba(244, 239, 230, 0.24);
 }
 
 [data-theme="dark"] .btn--phone,
 [data-theme="dark"] .hero__cta--phone {
-  background: linear-gradient(135deg, #3D5A45, #4a6741);
-  color: #faf6f0;
+  background: #8eae7a;
+  color: #14110e;
   font-weight: 600;
 }
 
 [data-theme="dark"] .btn--phone:hover,
 [data-theme="dark"] .hero__cta--phone:hover {
-  background: linear-gradient(135deg, #4a6741, #5a7a52);
-  box-shadow: 0 8px 32px rgba(157, 192, 130, 0.3);
+  background: #a4c48f;
+  box-shadow: 0 8px 32px rgba(142, 174, 122, 0.28);
 }
 
 [data-theme="dark"] input,
 [data-theme="dark"] textarea,
 [data-theme="dark"] select {
-  background: #60504a;
-  color: #faf6f0;
-  border: 1px solid rgba(215, 185, 145, 0.15);
+  background: #2a241f;
+  color: #f4efe6;
+  border: 1px solid rgba(244, 239, 230, 0.16);
 }
 
 [data-theme="dark"] input::placeholder,
 [data-theme="dark"] textarea::placeholder {
-  color: #e8e2da;
+  color: #a89b8c;
 }
 
 [data-theme="dark"] input:focus,
 [data-theme="dark"] textarea:focus,
 [data-theme="dark"] select:focus {
-  border-color: #9dc082;
+  border-color: #a4c48f;
   box-shadow: 0 0 0 3px rgba(157, 192, 130, 0.15);
 }
 
@@ -1950,21 +1966,21 @@
 @media (prefers-color-scheme: dark) {
   /* Focus ring — bright sage green visible on dark backgrounds */
   *:focus-visible {
-    outline: 2px solid #9dc082;
+    outline: 2px solid #a4c48f;
     outline-offset: 4px;
     box-shadow: 0 0 0 3px rgba(157, 192, 130, 0.15);
   }
 
   /* Button focus — sage green with glow halo */
   .btn:focus-visible {
-    outline: 2px solid #9dc082;
+    outline: 2px solid #a4c48f;
     outline-offset: 4px;
     box-shadow: 0 0 0 4px rgba(157, 192, 130, 0.2);
   }
 
   /* Link focus */
   a:focus-visible {
-    outline: 2px solid #9dc082;
+    outline: 2px solid #a4c48f;
     outline-offset: 4px;
   }
 
@@ -1972,9 +1988,9 @@
   input:focus-visible,
   textarea:focus-visible,
   select:focus-visible {
-    outline: 2px solid #9dc082;
+    outline: 2px solid #a4c48f;
     outline-offset: 0;
-    border-color: #9dc082;
+    border-color: #a4c48f;
     box-shadow: 0 0 0 3px rgba(157, 192, 130, 0.15);
   }
 
@@ -1982,7 +1998,7 @@
   .card:focus-visible,
   .team-card:focus-visible,
   .faq-item:focus-visible {
-    outline: 2px solid #9dc082;
+    outline: 2px solid #a4c48f;
     outline-offset: 4px;
     box-shadow: 0 0 0 3px rgba(157, 192, 130, 0.15);
   }
@@ -1990,13 +2006,13 @@
 
 /* Focus states data-theme override */
 [data-theme="dark"] *:focus-visible {
-  outline: 2px solid #9dc082;
+  outline: 2px solid #a4c48f;
   outline-offset: 4px;
   box-shadow: 0 0 0 3px rgba(157, 192, 130, 0.15);
 }
 
 [data-theme="dark"] .btn:focus-visible {
-  outline: 2px solid #9dc082;
+  outline: 2px solid #a4c48f;
   outline-offset: 4px;
   box-shadow: 0 0 0 4px rgba(157, 192, 130, 0.2);
 }
@@ -2009,10 +2025,10 @@
   :root {
     --color-text-primary: #ffffff;
     --color-text-secondary: #ffffff;
-    --color-text-muted: #f0ebe4;
+    --color-text-muted: #cfc3b4;
     --color-border-subtle: rgba(255, 255, 255, 0.3);
     --color-border-medium: rgba(255, 255, 255, 0.5);
-    --color-accent: #4a6741;
+    --color-accent: #a4c48f;
   }
 }
 
@@ -2059,7 +2075,7 @@
   background: rgba(88, 72, 64, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(215, 185, 145, 0.12);
+  border-bottom: 1px solid rgba(244, 239, 230, 0.10);
 }
 
 [data-theme="dark"] .nav.is-scrolled {
@@ -2077,7 +2093,7 @@
 /* Navigation links - explicit light colors */
 [data-theme="dark"] .nav__link,
 [data-theme="dark"] .nav-link {
-  color: #f0ebe4;
+  color: #cfc3b4;
 }
 
 [data-theme="dark"] .nav__link:hover,
@@ -2089,7 +2105,7 @@
 
 [data-theme="dark"] .nav__cta {
   background: var(--color-accent-gold);
-  color: white;
+  color: #14110e;
 }
 
 [data-theme="dark"] .nav__cta:hover {
@@ -2099,7 +2115,7 @@
 
 /* Nav phone link */
 [data-theme="dark"] .nav-phone {
-  color: #f0ebe4;
+  color: #cfc3b4;
 }
 
 [data-theme="dark"] .nav-phone:hover {
@@ -2116,17 +2132,17 @@
 }
 
 [data-theme="dark"] .mobile-menu__header {
-  border-bottom-color: rgba(215, 185, 145, 0.12);
+  border-bottom-color: rgba(244, 239, 230, 0.10);
 }
 
 [data-theme="dark"] .mobile-menu__close {
-  color: #f0ebe4;
+  color: #cfc3b4;
 }
 
 [data-theme="dark"] .mobile-menu__nav a,
 [data-theme="dark"] .mobile-link {
-  color: #f0ebe4;
-  border-bottom-color: rgba(215, 185, 145, 0.12);
+  color: #cfc3b4;
+  border-bottom-color: rgba(244, 239, 230, 0.10);
 }
 
 [data-theme="dark"] .mobile-menu__nav a:hover,
@@ -2170,7 +2186,7 @@
 }
 
 [data-theme="dark"] .hero__subhead {
-  color: #f0ebe4;
+  color: #cfc3b4;
 }
 
 [data-theme="dark"] .hero__badge {
@@ -2258,7 +2274,7 @@
 
 [data-theme="dark"] .showcase__app-bubble--user {
   background: var(--color-accent);
-  color: white;
+  color: #14110e;
 }
 
 [data-theme="dark"] .showcase__app-bubble--ai {
@@ -2276,7 +2292,7 @@
 }
 
 [data-theme="dark"] .section__subtitle {
-  color: #f0ebe4;
+  color: #cfc3b4;
 }
 
 [data-theme="dark"] .section--alt {
@@ -2354,7 +2370,7 @@
 
 [data-theme="dark"] .footer__cta {
   background: var(--color-accent);
-  color: white;
+  color: #14110e;
 }
 
 [data-theme="dark"] .footer__nav-title {
@@ -2381,7 +2397,7 @@
 /* ----- Buttons (Global) ----- */
 [data-theme="dark"] .btn--primary {
   background: var(--color-accent);
-  color: white;
+  color: #14110e;
 }
 
 [data-theme="dark"] .btn--primary:hover {
@@ -2391,7 +2407,7 @@
 
 [data-theme="dark"] .btn--secondary {
   background: var(--color-background-elevated);
-  color: #f0ebe4;
+  color: #cfc3b4;
   border-color: var(--color-border-medium);
 }
 
@@ -2402,7 +2418,7 @@
 
 [data-theme="dark"] .btn--ghost {
   background: transparent;
-  color: #f0ebe4;
+  color: #cfc3b4;
   border-color: var(--color-border-medium);
 }
 
@@ -2440,7 +2456,7 @@
 [data-theme="dark"] .two-am__avatar-orb {
   background: var(--color-accent);
   box-shadow: var(--shadow-glow-ferni);
-  color: white;
+  color: #14110e;
 }
 
 [data-theme="dark"] .two-am__bubble {
@@ -2541,7 +2557,7 @@
 [data-theme="dark"] .final-cta__avatar-orb {
   background: var(--color-accent);
   box-shadow: var(--shadow-glow-ferni);
-  color: white;
+  color: #14110e;
 }
 
 [data-theme="dark"] .final-cta__headline {
@@ -2733,9 +2749,9 @@
    Ensures all text elements have proper contrast
    Uses tokens from _tokens.css midnight theme:
    - --color-text-primary: #faf6f0 (light cream for main text)
-   - --color-text-secondary: #f0ebe4 (for body text)
-   - --color-text-muted: #e8e2da (for captions/labels)
-   - --color-accent: #d4a84a (golden accent)
+   - --color-text-secondary: #cfc3b4 (for body text)
+   - --color-text-muted: #a89b8c (for captions/labels)
+   - --color-accent: #8eae7a (sage action)
    ======================================================= */
 
 /* ----- Base Card Component ----- */
@@ -3287,7 +3303,7 @@
   .glass,
   .glass-card,
   [class*="glass-"] {
-    background: rgba(60, 52, 47, 0.7);
+    background: rgba(42, 36, 31, 0.78);
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow:
       var(--shadow-md),
@@ -3297,7 +3313,7 @@
   /* Gradient text — saturated for dark mode */
   .gradient-text,
   .text-gradient {
-    background: linear-gradient(135deg, #9dc082, #d4a84a);
+    background: linear-gradient(135deg, #a4c48f, #c9a15a);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -3327,7 +3343,7 @@
 [data-theme="dark"] .glass,
 [data-theme="dark"] .glass-card,
 [data-theme="dark"] [class*="glass-"] {
-  background: rgba(60, 52, 47, 0.7);
+  background: rgba(42, 36, 31, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow:
     var(--shadow-md),
@@ -3336,7 +3352,7 @@
 
 [data-theme="dark"] .gradient-text,
 [data-theme="dark"] .text-gradient {
-  background: linear-gradient(135deg, #9dc082, #d4a84a);
+  background: linear-gradient(135deg, #a4c48f, #c9a15a);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

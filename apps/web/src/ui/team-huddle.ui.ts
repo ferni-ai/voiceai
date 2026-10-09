@@ -173,7 +173,7 @@ class TeamHuddleUI {
     this.panel = document.createElement('div');
     this.panel.className = 'team-huddle';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Team Huddle');
+    this.panel.setAttribute('aria-label', t('accessibility.teamHuddle'));
     this.panel.setAttribute('aria-modal', 'true');
 
     this.wrapper = document.createElement('div');
@@ -316,11 +316,11 @@ class TeamHuddleUI {
 
   private getTypeLabel(type: TeamHuddleData['type']): string {
     const labels = {
-      weekly: 'Weekly Check-in',
-      milestone: 'Milestone Celebration',
-      special: 'Special Moment',
+      weekly: t('teamHuddle.typeWeekly'),
+      milestone: t('teamHuddle.typeMilestone'),
+      special: t('teamHuddle.typeSpecial'),
     };
-    return labels[type] || 'Team Huddle';
+    return labels[type] || t('accessibility.teamHuddle');
   }
 
   private animateParticipantsIn(): void {
@@ -624,7 +624,7 @@ class TeamHuddleUI {
       }
 
       [data-theme="midnight"] .team-huddle__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
         box-shadow: var(--shadow-2xl, 0 24px 48px rgba(0, 0, 0, 0.3));
       }
 
@@ -634,11 +634,11 @@ class TeamHuddleUI {
       }
 
       [data-theme="midnight"] .team-huddle__participant {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .team-huddle__participant:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .team-huddle__participant-name {
@@ -650,25 +650,25 @@ class TeamHuddleUI {
       }
 
       [data-theme="midnight"] .team-huddle__outro {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .team-huddle__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .team-huddle__close:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-primary, #faf6f0);
       }
 
       [data-theme="midnight"] .team-huddle__participant-icon {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .team-huddle__mini-avatar {
-        border-color: var(--color-background-elevated, #70605a);
+        border-color: var(--color-background-elevated, #352e28);
       }
 
       /* WCAG AA Compliant Text */

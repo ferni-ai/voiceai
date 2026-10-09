@@ -469,6 +469,7 @@
 
     // Console easter egg for developers
     setupConsoleEasterEgg() {
+      /* eslint-disable no-console -- easter egg for developers who open devtools */
       console.log(
         '%c Ferni ',
         'background: linear-gradient(135deg, #8AA678 0%, #5D7A4B 100%); color: white; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: bold;'
@@ -481,6 +482,7 @@
         '%cWant to work with us? hello@ferni.ai',
         'color: #666; font-size: 11px;'
       );
+      /* eslint-enable no-console */
     },
 
     showFloatingMessage(message) {

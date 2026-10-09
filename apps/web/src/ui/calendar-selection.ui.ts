@@ -153,7 +153,7 @@ class CalendarSelectionUI {
     this.panel = document.createElement('div');
     this.panel.className = 'calendar-selection';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Calendar Selection');
+    this.panel.setAttribute('aria-label', t('calendarSelection.title'));
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'calendar-selection__wrapper';
@@ -196,12 +196,12 @@ class CalendarSelectionUI {
       <header class="calendar-selection__header">
         <button class="calendar-selection__back" aria-label="${t('accessibility.back')}">${ICONS.back}</button>
         <div class="calendar-selection__provider-icon">${PROVIDER_ICONS[this.currentProvider]}</div>
-        <h2 class="calendar-selection__title">${providerName} Calendars</h2>
+        <h2 class="calendar-selection__title">${t('calendarSelection.providerCalendars', { provider: providerName })}</h2>
         <button class="calendar-selection__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="calendar-selection__loading">
         <div class="calendar-selection__spinner"></div>
-        <p>Loading calendars...</p>
+        <p>${t('calendarSelection.loading')}</p>
       </div>
     `;
 
@@ -219,7 +219,7 @@ class CalendarSelectionUI {
       <header class="calendar-selection__header">
         <button class="calendar-selection__back" aria-label="${t('accessibility.back')}">${ICONS.back}</button>
         <div class="calendar-selection__provider-icon">${PROVIDER_ICONS[this.currentProvider]}</div>
-        <h2 class="calendar-selection__title">${providerName} Calendars</h2>
+        <h2 class="calendar-selection__title">${t('calendarSelection.providerCalendars', { provider: providerName })}</h2>
         <button class="calendar-selection__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="calendar-selection__content">
@@ -227,14 +227,14 @@ class CalendarSelectionUI {
           hasCalendars
             ? `
           <p class="calendar-selection__description">
-            Choose which calendars to sync with Ferni. Selected calendars will appear in your unified calendar.
+            ${t('calendarSelection.description')}
           </p>
 
           <div class="calendar-selection__select-all">
             <label class="calendar-selection__checkbox-label">
               <input type="checkbox" id="select-all" ${selectedCount === this.calendars.length ? 'checked' : ''} />
               <span class="calendar-selection__checkmark">${ICONS.check}</span>
-              <span>Select All (${selectedCount}/${this.calendars.length})</span>
+              <span>${t('calendarSelection.selectAll', { selected: selectedCount, total: this.calendars.length })}</span>
             </label>
           </div>
 
@@ -244,19 +244,19 @@ class CalendarSelectionUI {
 
           <div class="calendar-selection__actions" role="button" tabindex="0">
             <button aria-label="${t('accessibility.cancel')}" class="calendar-selection__btn calendar-selection__btn--secondary" data-action="cancel">
-              Cancel
+              ${t('common.cancel')}
             </button>
             <button aria-label="${t('accessibility.saveSelection')}" class="calendar-selection__btn calendar-selection__btn--primary" data-action="save">
-              Save Selection
+              ${t('calendar.saveSelection')}
             </button>
           </div>
         `
             : `
           <div class="calendar-selection__empty">
             <div class="calendar-selection__empty-icon">${ICONS.calendar}</div>
-            <p>No calendars found</p>
+            <p>${t('calendarSelection.empty.title')}</p>
             <span class="calendar-selection__empty-desc">
-              Make sure your account has calendars configured.
+              ${t('calendarSelection.empty.description')}
             </span>
           </div>
         `
@@ -278,7 +278,7 @@ class CalendarSelectionUI {
     
     // Owner badge for shared calendars
     const ownerBadge = calendar.owner
-      ? `<span class="calendar-selection__owner-badge" title="Shared by ${this.escapeHtml(calendar.owner)}">${this.escapeHtml((calendar.owner ?? '').split('@')[0] ?? '')}</span>`
+      ? `<span class="calendar-selection__owner-badge" title="${this.escapeHtml(t('calendarSelection.sharedBy', { owner: calendar.owner }))}">${this.escapeHtml((calendar.owner ?? '').split('@')[0] ?? '')}</span>`
       : '';
     
     // Provider badge
@@ -288,7 +288,7 @@ class CalendarSelectionUI {
     
     // Read-only indicator
     const readOnlyBadge = calendar.canEdit === false 
-      ? '<span class="calendar-selection__readonly-badge">Read-only</span>' 
+      ? `<span class="calendar-selection__readonly-badge">${t('calendarSelection.readOnly')}</span>` 
       : '';
 
     return `
@@ -304,7 +304,7 @@ class CalendarSelectionUI {
         <div class="calendar-selection__item-content">
           <span class="calendar-selection__item-name">${this.escapeHtml(displayName)}</span>
           <div class="calendar-selection__item-badges">
-            ${calendar.primary ? '<span class="calendar-selection__primary-badge">Primary</span>' : ''}
+            ${calendar.primary ? `<span class="calendar-selection__primary-badge">${t('calendarSelection.primary')}</span>` : ''}
             ${providerBadge}
             ${ownerBadge}
             ${readOnlyBadge}
@@ -368,7 +368,7 @@ class CalendarSelectionUI {
     // Update label
     const label = selectAll.parentElement?.querySelector('span:last-child');
     if (label) {
-      label.textContent = `Select All (${checkedCount}/${totalCount})`;
+      label.textContent = t('calendarSelection.selectAll', { selected: checkedCount, total: totalCount });
     }
   }
 
@@ -812,11 +812,11 @@ class CalendarSelectionUI {
 
       /* Dark theme */
       [data-theme="midnight"] .calendar-selection__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-selection__header {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-selection__title,
@@ -828,15 +828,15 @@ class CalendarSelectionUI {
 
       [data-theme="midnight"] .calendar-selection__select-all,
       [data-theme="midnight"] .calendar-selection__item {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-selection__item:hover {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-selection__checkmark {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.2));
       }
 

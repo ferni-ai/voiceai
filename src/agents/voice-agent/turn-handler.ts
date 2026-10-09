@@ -2191,7 +2191,11 @@ IMPORTANT:
     // ================================================================
     const celebrations = getCelebrationEvents(result);
     if (celebrations.length > 0) {
-      await sendCelebrationEvents({ injections: celebrations, room });
+      await sendCelebrationEvents({
+        injections: celebrations,
+        room,
+        sessionId: services.sessionId,
+      });
     }
 
     const eventCtx: EventDispatchContext = {

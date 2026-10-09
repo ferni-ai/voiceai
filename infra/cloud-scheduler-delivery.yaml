@@ -1,0 +1,64 @@
+# Delivery jobs the voice process used to run in-memory.
+# startup() leaves them off (REMINDER_SCHEDULER_IN_PROCESS / IN_PROCESS_SCHEDULERS).
+# Deploy with: ferni ops memory:deploy-scheduler
+#
+jobs:
+  - name: deliver-reminders
+    description: Deliver due reminders from Firestore
+    schedule: "* * * * *"
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/deliver-reminders
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 2
+      minBackoffDuration: 15s
+      maxBackoffDuration: 60s
+
+  - name: deliver-scheduled-actions
+    description: Run due scheduled actions and workflow reminders
+    schedule: "* * * * *"
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/deliver-scheduled-actions
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 2
+      minBackoffDuration: 15s
+      maxBackoffDuration: 60s
+
+  - name: execute-scheduled-outreach
+    description: Send scheduled outreach that is due
+    schedule: "* * * * *"
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/execute-scheduled-outreach
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 2
+      minBackoffDuration: 15s
+      maxBackoffDuration: 60s
+
+  - name: calendar-triggers
+    description: Fire calendar-based coaching triggers
+    schedule: "*/5 * * * *"
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/calendar-triggers
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+    retryConfig:
+      retryCount: 1
+      minBackoffDuration: 30s
+      maxBackoffDuration: 120s

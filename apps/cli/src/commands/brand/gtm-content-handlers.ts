@@ -255,7 +255,7 @@ export async function gtmVerify(): Promise<void> {
       console.log(chalk.bold('\n📋 Required Actions:'));
       console.log(chalk.gray('  1. Set SOCIAL_ACCOUNT_TYPE=brand in your .env'));
       console.log(chalk.gray('  2. Set LINKEDIN_ORGANIZATION_URN=urn:li:organization:YOUR_ORG_ID'));
-      console.log(chalk.gray('  3. Redeploy with `ferni deploy gce`'));
+      console.log(chalk.gray('  3. Redeploy with `ferni deploy agent --prod`'));
     }
   } catch (error) {
     console.log(chalk.red('Verification failed:'), String(error));

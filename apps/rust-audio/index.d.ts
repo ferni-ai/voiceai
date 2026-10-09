@@ -135,8 +135,6 @@ export declare function clearAllProcessors(): number
 export declare function convertI16ToF32(samples: Int16Array): Float32Array
 /**
  * Resample Float32 audio from one sample rate to another (linear interpolation).
- *
- * Used for Qwen3-Omni pipeline: 48kHz → 16kHz (input), 24kHz → 48kHz (output).
  */
 export declare function resampleF32(samples: Float32Array, fromRate: number, toRate: number): Float32Array
 /**

@@ -165,7 +165,8 @@ describe('Persona E2E Tests', () => {
       expect(existsSync(basePath)).toBe(true);
 
       const content = readFileSync(basePath, 'utf8');
-      expect(content).toContain('{"fn":');
+      expect(content).toContain('native function-calling');
+      expect(content).not.toContain('{"fn":');
     });
 
     it('should have prompt-assembler available', () => {

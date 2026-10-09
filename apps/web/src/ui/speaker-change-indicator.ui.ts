@@ -102,7 +102,7 @@ const styles = `
   
   .speaker-change-indicator--suspicious .speaker-change-indicator__icon {
     background: rgba(196, 133, 106, 0.15);
-    color: var(--color-jordan, #c4856a);
+    color: var(--color-jordan-text, #9c5a3e);
   }
   
   .speaker-change-indicator--changed .speaker-change-indicator__icon {
@@ -136,7 +136,7 @@ const styles = `
   
   .speaker-change-indicator__message {
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -171,7 +171,7 @@ const styles = `
   
   .speaker-change-indicator__btn--secondary {
     background: transparent;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .speaker-change-indicator__btn--secondary:hover {
@@ -275,11 +275,7 @@ export function cleanupSpeakerChangeIndicator(): void {
 
 /** The agent's `speaker_changed` message: ask "Someone new?". */
 export function showSpeakerCheck(): void {
-  showIndicator(
-    'speaker_changed',
-    'Someone new?',
-    'Hi there! Is someone else joining the conversation?'
-  );
+  showIndicator('speaker_changed', t('speakerChange.title'), t('speakerChange.prompt'));
 }
 
 /**
@@ -324,10 +320,10 @@ function showIndicator(state: IndicatorState, title: string, message: string): v
     ${state === 'speaker_changed' ? `
       <div class="speaker-change-indicator__actions" role="group">
         <button aria-label="${t('accessibility.yesItSMe')}" class="speaker-change-indicator__btn speaker-change-indicator__btn--primary" data-action="yes">
-          Yes, it's me
+          ${t('accessibility.yesItSMe')}
         </button>
         <button aria-label="${t('accessibility.someoneNew')}" class="speaker-change-indicator__btn speaker-change-indicator__btn--secondary" data-action="new">
-          Someone new
+          ${t('accessibility.someoneNew')}
         </button>
       </div>
     ` : ''}
@@ -371,12 +367,16 @@ async function handleVerify(isSameUser: boolean): Promise<void> {
   }
   if (result === 'failed') {
     // Nothing reached Ferni: keep the question up so it can be answered again.
-    showIndicator('speaker_changed', 'Someone new?', "Couldn't send that. Try again?");
+    showIndicator('speaker_changed', t('speakerChange.title'), t('speakerChange.sendFailed'));
     return;
   }
 
   // Confirm briefly, then hide
-  showIndicator('verifying', 'Got it!', isSameUser ? 'Welcome back!' : 'Nice to meet you!');
+  showIndicator(
+    'verifying',
+    t('speakerChange.gotIt'),
+    t(isSameUser ? 'speakerChange.welcomeBack' : 'speakerChange.niceToMeet')
+  );
   trackedTimeout(hide, 1500);
 
   if (onVerifyCallback) {
@@ -412,9 +412,17 @@ export function showSpeakerChangePrompt(
   onVerifyCallback = options?.onVerify || null;
 
   if (type === 'suspicious') {
-    showIndicator('suspicious', 'Just checking...', options?.customMessage || "Voice sounds different. Still you?");
+    showIndicator(
+      'suspicious',
+      t('speakerChange.justChecking'),
+      options?.customMessage || t('speakerChange.voiceDifferent')
+    );
   } else {
-    showIndicator('speaker_changed', 'Someone new?', options?.customMessage || "Is someone else joining?");
+    showIndicator(
+      'speaker_changed',
+      t('speakerChange.title'),
+      options?.customMessage || t('speakerChange.someoneJoining')
+    );
   }
 }
 

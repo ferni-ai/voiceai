@@ -303,6 +303,7 @@
               window.trackEvent && window.trackEvent('Form', 'success', 'developer-waitlist'));
           else throw new Error('Form submission failed');
         } catch (i) {
+          // eslint-disable-next-line no-console -- report failures in the browser console
           (console.error('Developer form submission error:', i),
             (c.disabled = !1),
             (c.innerHTML =
@@ -369,6 +370,7 @@
     if (o) o.classList.add('hidden');
     
     if (!e) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('Scroll animation container not found');
       return;
     }
@@ -379,6 +381,7 @@
       e.classList.add('canvas-loaded');
       
       if (typeof gsap > 'u' || typeof ScrollTrigger > 'u') {
+        // eslint-disable-next-line no-console -- report failures in the browser console
         console.warn('GSAP or ScrollTrigger not loaded');
         return;
       }
@@ -436,6 +439,7 @@
     
     // Fallback: Canvas-based animation
     if (!t) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('No video or canvas found');
       return;
     }
@@ -447,6 +451,7 @@
       return;
     }
     if (typeof gsap > 'u' || typeof ScrollTrigger > 'u') {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('GSAP or ScrollTrigger not loaded, skipping scroll animation');
       return;
     }
@@ -493,6 +498,7 @@
             p === 0 && (v(), w(0)));
         }),
           (m.onerror = () => {
+            // eslint-disable-next-line no-console -- report failures in the browser console
             (console.warn(`Failed to load frame ${d}`),
               i++,
               i === c && (o && o.classList.add('hidden'), T()));
@@ -601,8 +607,7 @@
       D(),
       W(),
       j(),
-      N(),
-      console.log('Ferni website initialized'));
+      N());
   }
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', M) : M();
 })(),
@@ -610,10 +615,8 @@
     window.addEventListener('load', () => {
       navigator.serviceWorker
         .register('/sw.js')
-        .then((r) => {
-          console.log('SW registered:', r.scope);
-        })
         .catch((r) => {
+          // eslint-disable-next-line no-console -- report failures in the browser console
           console.log('SW registration failed:', r);
         });
     }));

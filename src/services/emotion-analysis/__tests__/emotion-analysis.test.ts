@@ -36,7 +36,7 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 
 // Mock model-config
 vi.mock('../../model-config.js', () => ({
-  getDefaultModel: () => 'gemini-2.0-flash-exp',
+  getDefaultModel: () => 'gemini-3.5-flash',
 }));
 
 // Mock gemini-config

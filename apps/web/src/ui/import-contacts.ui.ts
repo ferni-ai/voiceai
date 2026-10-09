@@ -13,7 +13,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { t } from '../i18n/index.js';
-
+import { tp } from '../i18n/plural.js';
 const log = createLogger('ImportContactsUI');
 
 // ============================================================================
@@ -154,7 +154,7 @@ function injectStyles(): void {
     
     .ic-subtitle {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
       margin-top: var(--space-1, 0.25rem);
     }
     
@@ -259,7 +259,7 @@ function injectStyles(): void {
     }
     
     .ic-drop-text {
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
       font-size: 0.875rem;
     }
     
@@ -291,7 +291,7 @@ function injectStyles(): void {
     
     .ic-progress-text {
       font-size: 0.875rem;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
       margin-top: var(--space-2, 0.5rem);
       text-align: center;
     }
@@ -404,7 +404,7 @@ function injectStyles(): void {
     .ic-btn-secondary {
       background: var(--tonal-surface-2);
       border: none;
-      color: var(--color-text-secondary, #70605a);
+      color: var(--color-text-secondary, #a89b8c);
     }
 
     .ic-btn-secondary:hover {
@@ -471,24 +471,24 @@ function renderSourceSelection(): string {
       <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'google' ? 'selected' : ''}" data-source="google">
         <div class="ic-source-icon">${ICONS.google}</div>
         <div class="ic-source-info">
-          <div class="ic-source-name">Google Contacts</div>
-          <div class="ic-source-desc">Import from your Google account</div>
+          <div class="ic-source-name">${t('importContacts.googleContacts')}</div>
+          <div class="ic-source-desc">${t('importContacts.googleDescription')}</div>
         </div>
       </button>
-      
+
       <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'csv' ? 'selected' : ''}" data-source="csv">
         <div class="ic-source-icon">${ICONS.csv}</div>
         <div class="ic-source-info">
-          <div class="ic-source-name">CSV File</div>
-          <div class="ic-source-desc">Import from a spreadsheet (Outlook, LinkedIn)</div>
+          <div class="ic-source-name">${t('importContacts.csvFile')}</div>
+          <div class="ic-source-desc">${t('importContacts.csvDescription')}</div>
         </div>
       </button>
-      
+
       <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'vcard' ? 'selected' : ''}" data-source="vcard">
         <div class="ic-source-icon">${ICONS.vcard}</div>
         <div class="ic-source-info">
-          <div class="ic-source-name">vCard File</div>
-          <div class="ic-source-desc">Import .vcf files from other apps</div>
+          <div class="ic-source-name">${t('importContacts.vcfFile')}</div>
+          <div class="ic-source-desc">${t('importContacts.vcfDescription')}</div>
         </div>
       </button>
     </div>
@@ -497,7 +497,7 @@ function renderSourceSelection(): string {
       <div class="ic-drop-zone" id="ic-drop-zone">
         <div class="ic-drop-icon">${ICONS.upload}</div>
         <p class="ic-drop-text">
-          Drag and drop your file here, or <span class="ic-drop-browse" id="ic-browse">browse</span>
+          ${t('importContacts.dragDrop')} <span class="ic-drop-browse" id="ic-browse">${t('common.browse')}</span>
         </p>
       </div>
       <input type="file" class="ic-file-input" id="ic-file-input" accept="${state.source === 'csv' ? '.csv' : '.vcf'}">
@@ -515,8 +515,8 @@ function renderProgress(): string {
       </div>
       <p class="ic-progress-text">
         ${state.isImporting 
-          ? `Importing ${state.imported} of ${state.total} contacts...`
-          : `Imported ${state.imported} contacts!`}
+          ? tp('importContacts.importing', state.total, { imported: state.imported })
+          : tp('toasts.contactsImported', state.imported)}
       </p>
     </div>
   `;
@@ -526,8 +526,8 @@ function renderPreview(): string {
   return `
     <div class="ic-preview-section">
       <div class="ic-preview-header">
-        <span class="ic-preview-title">${state.selectedCount} of ${state.preview.length} selected</span>
-        <button aria-label="${t('accessibility.selectAll')}" class="ic-select-all" id="ic-select-all">Select All</button>
+        <span class="ic-preview-title">${tp('importContacts.selectedCount', state.preview.length, { selected: state.selectedCount })}</span>
+        <button aria-label="${t('accessibility.selectAll')}" class="ic-select-all" id="ic-select-all">${t('importContacts.selectAll')}</button>
       </div>
       <div class="ic-preview-list">
         ${state.preview.map(contact => `
@@ -667,8 +667,7 @@ async function startGoogleImport(): Promise<void> {
           window.location.href = data.authUrl;
         }
       } else {
-        const error = await response.json().catch(() => ({ error: 'Import failed' }));
-        toast.error(error.error || "Couldn't connect to Google. Try again?");
+        toast.error(t('toasts.couldNotConnectToGoogle'));
         state.isImporting = false;
         render();
       }
@@ -723,7 +722,7 @@ async function parseCSVFile(file: File): Promise<void> {
   const phoneIndex = headers.findIndex(h => h.includes('phone'));
 
   if (nameIndex === -1) {
-    toast.error('CSV must have a "name" column');
+    toast.error(t('importContacts.csvNeedsName'));
     state.isImporting = false;
     render();
     return;
@@ -757,7 +756,7 @@ async function parseVCardFile(file: File): Promise<void> {
   const vcards = text.split('END:VCARD').filter(v => v.includes('BEGIN:VCARD'));
 
   const contacts: PreviewContact[] = vcards.map((vcard, index) => {
-    const name = vcard.match(/FN:(.*)/)?.[1]?.trim() || 'Unknown';
+    const name = vcard.match(/FN:(.*)/)?.[1]?.trim() || t('importContacts.unknownContact');
     const email = vcard.match(/EMAIL[^:]*:(.*)/)?.[1]?.trim();
     const phone = vcard.match(/TEL[^:]*:(.*)/)?.[1]?.trim();
 
@@ -808,7 +807,7 @@ async function startImport(): Promise<void> {
       render();
     }
 
-    toast.success(t('toasts.importedStateimportedContacts'));
+    toast.success(tp('toasts.contactsImported', state.imported));
     callbacks.onSuccess?.(state.imported);
     
     setTimeout(() => {
@@ -893,18 +892,18 @@ export function openImportContacts(options: ImportCallbacks = {}): void {
     <div class="ic-backdrop"></div>
     <div class="ic-modal" role="dialog" aria-modal="true" aria-labelledby="ic-title">
       <div class="ic-header">
-        <div class="ic-eyebrow">Your People</div>
-        <h2 class="ic-title" id="ic-title">Import Contacts</h2>
-        <p class="ic-subtitle">Bring your network into Ferni</p>
+        <div class="ic-eyebrow">${t('yourPeople.title')}</div>
+        <h2 class="ic-title" id="ic-title">${t('importContacts.title')}</h2>
+        <p class="ic-subtitle">${t('importContacts.subtitle')}</p>
         <button class="ic-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
       <div class="ic-content">
         ${renderSourceSelection()}
       </div>
       <div class="ic-footer">
-        <button aria-label="${t('accessibility.cancel')}" class="ic-btn ic-btn-secondary">Cancel</button>
+        <button aria-label="${t('accessibility.cancel')}" class="ic-btn ic-btn-secondary">${t('common.cancel')}</button>
         <button aria-label="${t('accessibility.importSelected')}" class="ic-btn ic-btn-primary" ${state.preview.length === 0 ? 'disabled' : ''}>
-          Import Selected
+          ${t('importContacts.importSelected')}
         </button>
       </div>
     </div>

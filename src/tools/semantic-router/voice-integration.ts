@@ -484,11 +484,11 @@ async function doInitializeVoiceRouter(): Promise<void> {
 
   // =========================================================================
   // EMBEDDING STRATEGY:
-  // Always use Google embeddings for best quality (text-embedding-004)
-  // Firestore caching makes subsequent calls fast (~30-80ms first call, cached after)
+  // Always use Google embeddings (gemini-embedding-001; 004 is retired)
+  // Firestore caching makes subsequent calls fast
   // =========================================================================
 
-  log.info({ isDev }, '☁️ Using Google embeddings (text-embedding-004)');
+  log.info({ isDev }, 'Using Google embeddings (gemini-embedding-001)');
   const embeddingProvider = createEmbeddingProvider('google');
   await router.initialize(embeddingProvider);
 

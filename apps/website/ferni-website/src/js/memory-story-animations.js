@@ -81,7 +81,6 @@ class MemoryStoryAnimation {
     // Add hover effects
     this.setupHoverEffects();
     
-    console.log('%c📖 Memory Story Animations loaded', 'color: #4a6741; font-weight: bold;');
   }
 
   injectKeyframes() {

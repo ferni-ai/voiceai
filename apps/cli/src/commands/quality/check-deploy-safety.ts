@@ -7,7 +7,8 @@
  *
  * BLOCKS commits that contain:
  * - Direct `gcloud run deploy` commands (use `ferni deploy`)
- * - Direct `gcloud compute ssh ... docker run` (use `ferni deploy gce`)
+ * - Direct `gcloud compute ssh ... docker run`
+ * - Any Cloud Run deploy of a voice agent (it runs on LiveKit Cloud: `ferni deploy agent`)
  * - Hardcoded credentials or API keys
  *
  * Usage:
@@ -43,15 +44,52 @@ const UNSAFE_PATTERNS = [
     pattern: /gcloud\s+run\s+deploy\s+(?!.*--dry-run)/gi,
     severity: 'error',
     message: 'Direct `gcloud run deploy` is forbidden',
-    fix: 'Use `ferni deploy ui` or `ferni deploy gce` instead',
-    allowedIn: ['scripts/deploy.ts', 'scripts/deploy-gce.ts', 'scripts/deploy-worker.sh', 'apps/cli/src/commands/deploy/', 'apps/cli/src/commands/agent/', '.github/workflows/', 'docs/', '.md', 'CLAUDE.md', 'DEPLOYMENT.md', 'infrastructure/scripts/', 'infra/', 'src/services/pubsub/', '.cursorrules'],
+    fix: 'Use `ferni deploy ui` or `ferni deploy agent` instead',
+    allowedIn: [
+      'scripts/deploy.ts',
+      'scripts/deploy-worker.sh',
+      'apps/cli/src/commands/deploy/',
+      'apps/cli/src/commands/agent/',
+      '.github/workflows/',
+      'docs/',
+      '.md',
+      'CLAUDE.md',
+      'DEPLOYMENT.md',
+      'infrastructure/scripts/',
+      'infra/',
+      'src/services/pubsub/',
+      '.cursorrules',
+    ],
   },
   {
     pattern: /gcloud\s+compute\s+ssh.*docker\s+run/gi,
     severity: 'error',
     message: 'Direct SSH + docker run is forbidden',
-    fix: 'Use `ferni deploy gce` for blue-green deployment with health checks',
-    allowedIn: ['scripts/deploy-gce.ts', 'scripts/check-deploy-safety.ts', 'apps/cli/src/commands/quality/', 'apps/cli/src/commands/deploy/', 'docs/', '.md', 'CLAUDE.md', '.cursorrules'],
+    fix: 'The GCE VM is terminated; deploy the voice agent with `ferni deploy agent`',
+    allowedIn: [
+      'scripts/check-deploy-safety.ts',
+      'apps/cli/src/commands/quality/',
+      'apps/cli/src/commands/deploy/',
+      'docs/',
+      '.md',
+      'CLAUDE.md',
+      '.cursorrules',
+    ],
+  },
+  {
+    // A Cloud Run voice agent registers as a LiveKit worker and steals jobs it
+    // can't serve (no UDP): the 2026-02-24 outage. No path is exempt.
+    pattern: /gcloud\s+run\s+deploy\s+\S*(voiceai-agent|voice-agent|-agent)\b/gi,
+    severity: 'error',
+    message: 'Voice agents must not be deployed to Cloud Run',
+    fix: 'Use `ferni deploy agent` (LiveKit Cloud agents)',
+    allowedIn: [
+      'apps/cli/src/commands/quality/',
+      'docs/',
+      '.md',
+      '.cursorrules',
+      '.github/workflows/deploy-production.yml',
+    ],
   },
   {
     pattern: /docker\s+push\s+gcr\.io/gi,
@@ -65,7 +103,16 @@ const UNSAFE_PATTERNS = [
     severity: 'warning',
     message: 'Direct firebase deploy detected',
     fix: 'Use `ferni deploy frontend` for consistent deployment',
-    allowedIn: ['scripts/', 'apps/cli/src/commands/deploy/', '.github/', 'docs/', '.md', 'CLAUDE.md', 'README', 'apps/website/'],
+    allowedIn: [
+      'scripts/',
+      'apps/cli/src/commands/deploy/',
+      '.github/',
+      'docs/',
+      '.md',
+      'CLAUDE.md',
+      'README',
+      'apps/website/',
+    ],
   },
 ];
 
@@ -170,10 +217,10 @@ function getStagedFiles(): string[] {
 
 function getAllFiles(): string[] {
   try {
-    const output = execSync(
-      'git ls-files --cached --others --exclude-standard',
-      { encoding: 'utf-8', cwd: PROJECT_ROOT }
-    );
+    const output = execSync('git ls-files --cached --others --exclude-standard', {
+      encoding: 'utf-8',
+      cwd: PROJECT_ROOT,
+    });
     return output
       .trim()
       .split('\n')
@@ -268,4 +315,3 @@ main().catch((error) => {
   console.error('Check failed:', error);
   process.exit(1);
 });
-

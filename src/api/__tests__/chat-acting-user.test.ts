@@ -13,16 +13,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PassThrough } from 'stream';
 import type { IncomingMessage, ServerResponse } from 'http';
 
-const executeJsonFunction = vi.hoisted(() => vi.fn());
-vi.mock('../../agents/shared/json-function-executor.js', () => ({ executeJsonFunction }));
+const executeTool = vi.hoisted(() => vi.fn());
+vi.mock('../../agents/shared/tool-dispatcher.js', () => ({ executeTool }));
 
-// The LLM answers with one tool call, so /api/chat/message reaches the executor.
+// Native function call so /api/chat/message reaches the dispatcher.
 vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: class {
     getGenerativeModel() {
       return {
         generateContent: async () => ({
-          response: { text: () => '{"fn": "recallMemory", "args": {"query": "birthday"}}' },
+          response: {
+            text: () => 'Looking that up.',
+            functionCalls: () => [{ name: 'recallMemory', args: { query: 'birthday' } }],
+          },
         }),
       };
     }
@@ -73,13 +76,13 @@ const ROUTES = [
 ];
 
 function ranAs(): unknown[] {
-  return executeJsonFunction.mock.calls.map((args) => (args[1] as { userId: string }).userId);
+  return executeTool.mock.calls.map((args) => (args[1] as { userId: string }).userId);
 }
 
 describe('chat API tool identity', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    executeJsonFunction.mockResolvedValue({ success: true, result: 'ok' });
+    executeTool.mockResolvedValue({ success: true, result: 'ok' });
   });
 
   for (const route of ROUTES) {
@@ -87,7 +90,7 @@ describe('chat API tool identity', () => {
       const status = await post(route.path, { ...route.body, userId: 'bob' }, 'alice');
 
       expect(status).toBe(403);
-      expect(executeJsonFunction).not.toHaveBeenCalled();
+      expect(executeTool).not.toHaveBeenCalled();
     });
 
     it(`${route.path}: alice naming herself (as the CLI does) runs tools as alice`, async () => {

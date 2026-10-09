@@ -240,26 +240,12 @@ async function testIdentifySpeaker(): Promise<{
   passed: boolean;
   details?: Record<string, unknown>;
 }> {
-  const audio = generateTestAudio(2000, 1);
-
-  const { status, data } = await apiRequest('/api/voice/identify', 'POST', {
-    samples: audio,
-    minThreshold: 0.3, // Lower threshold for test
+  // 1:N identification is not served over HTTP: it would tell any caller whose
+  // voice a recording is. Passing means the route stays unexposed.
+  const { status } = await apiRequest('/api/voice/identify', 'POST', {
+    samples: generateTestAudio(2000, 1),
   });
-
-  const response = data as Record<string, unknown>;
-  const passed = status === 200;
-
-  return {
-    passed,
-    details: {
-      status,
-      identified: response.identified,
-      userId: response.userId,
-      confidence: response.confidence,
-      candidateCount: (response.candidates as unknown[])?.length,
-    },
-  };
+  return { passed: status === 404, details: { status } };
 }
 
 async function testContinuousAuthStart(): Promise<{

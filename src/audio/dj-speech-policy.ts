@@ -9,6 +9,6 @@
  * @module audio/dj-speech-policy
  */
 
-export function djSpeaksOnItsOwn(env: Record<string, string | undefined> = process.env): boolean {
-  return env.DJ_SPOKEN_LINES === 'on';
+export function djSpeaksOnItsOwn(_env: Record<string, string | undefined> = process.env): boolean {
+  return false;
 }

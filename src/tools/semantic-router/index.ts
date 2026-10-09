@@ -18,13 +18,7 @@
  *       │
  *       ├── High Confidence (>0.85) ──► Direct Execution ──► Response
  *       │
- *       └── Low Confidence ──► LLM (JSON Fallback)
- *                                  │
- *                                  ▼
- *                          ┌──────────────────┐
- *                          │ JSON Function    │  ◄── Fallback path
- *                          │ Calling System   │      (json-function-executor.ts)
- *                          └──────────────────┘
+ *       └── Low Confidence ──► LLM native function calling
  *
  * @example
  * ```typescript

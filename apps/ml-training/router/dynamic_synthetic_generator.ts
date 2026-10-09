@@ -36,7 +36,7 @@ async function rateLimitedGenerate(prompt: string): Promise<string> {
   lastApiCall = Date.now();
 
   const response = await genai.models.generateContent({
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-3.5-flash',
     contents: prompt,
   });
 

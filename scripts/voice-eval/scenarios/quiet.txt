@@ -1,0 +1,5 @@
+# A light call that goes quiet for a long while: checks presence sounds (whistle, hum, snore) and that nothing heavy triggers them.
+Hey Ferni, haha, I just burned the toast again.
+Yeah, the whole kitchen smells like it now.
+Ha, honestly, I should just give up on toast.
+Okay, give me a second, I'm going to open a window. [[slnc 40000]] Okay, I'm back. Sorry about that.

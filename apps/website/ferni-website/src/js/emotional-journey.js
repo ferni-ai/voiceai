@@ -258,6 +258,7 @@
   // ============================================================================
   
   function logDebug(...args) {
+    // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
     console.log('[EmotionalJourney]', ...args);
   }
 

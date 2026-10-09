@@ -211,7 +211,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
@@ -244,7 +244,7 @@ function injectStyles(): void {
       border-radius: var(--radius-lg, 1rem);
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       cursor: pointer;
       transition: all ${DURATION.FAST}ms;
     }
@@ -299,7 +299,7 @@ function injectStyles(): void {
 
     .ri-loading-text {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     /* =========================================================================
@@ -329,7 +329,7 @@ function injectStyles(): void {
 
     .ri-stat-label {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-1, 0.25rem);
     }
 
@@ -365,7 +365,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -387,7 +387,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .ri-breakdown-icon svg {
@@ -420,7 +420,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -439,7 +439,7 @@ function injectStyles(): void {
     .ri-chart-bar-label {
       width: 60px;
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .ri-chart-bar-track {
@@ -509,7 +509,7 @@ function injectStyles(): void {
 
     .ri-insight-desc {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       line-height: 1.4;
     }
 
@@ -521,14 +521,14 @@ function injectStyles(): void {
     }
 
     .ri-insight-arrow {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       align-self: center;
     }
 
     .ri-empty {
       text-align: center;
       padding: var(--space-8, 2rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .ri-empty-icon {
@@ -549,7 +549,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-3, 0.75rem);
     }
 
@@ -588,7 +588,7 @@ function injectStyles(): void {
       gap: var(--space-1, 0.25rem);
       margin-top: var(--space-2, 0.5rem);
       font-size: var(--text-xxs, 0.625rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .ri-activity-legend-cell {
@@ -660,11 +660,11 @@ function render(): void {
         <div class="ri-header-title">
           <span class="ri-icon">${ICONS.chart}</span>
           <div>
-            <div class="ri-eyebrow">Relationship Health</div>
-            <h2 class="ri-title">Your People Insights</h2>
+            <div class="ri-eyebrow">${t('relationshipInsights.health')}</div>
+            <h2 class="ri-title">${t('relationshipInsights.yourPeople')}</h2>
           </div>
         </div>
-        <button class="ri-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
+        <button class="ri-close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </div>
     </div>
     
@@ -693,7 +693,7 @@ function renderContent(): string {
     return `
       <div class="ri-loading">
         ${ICONS.loader}
-        <p class="ri-loading-text">Analyzing your relationships...</p>
+        <p class="ri-loading-text">${t('relationshipInsights.analyzing')}</p>
       </div>
     `;
   }
@@ -707,7 +707,7 @@ function renderContent(): string {
   }
 
   if (!state.data) {
-    return `<div class="ri-empty">No data available</div>`;
+    return `<div class="ri-empty">${t('relationshipInsights.noData')}</div>`;
   }
 
   switch (state.activeTab) {
@@ -731,39 +731,39 @@ function renderOverviewTab(): string {
     <div class="ri-stats-grid">
       <div class="ri-stat highlight">
         <div class="ri-stat-value">${stats.totalPeople}</div>
-        <div class="ri-stat-label">Total People</div>
+        <div class="ri-stat-label">${t('relationshipInsights.totalPeople')}</div>
       </div>
       <div class="ri-stat ${stats.needsAttention > 0 ? 'warning' : ''}">
         <div class="ri-stat-value">${stats.needsAttention}</div>
-        <div class="ri-stat-label">Need Attention</div>
+        <div class="ri-stat-label">${t('relationshipInsights.needAttention')}</div>
       </div>
       <div class="ri-stat">
         <div class="ri-stat-value">${stats.upcomingDates}</div>
-        <div class="ri-stat-label">Upcoming Dates</div>
+        <div class="ri-stat-label">${t('relationshipInsights.upcomingDates')}</div>
       </div>
       <div class="ri-stat">
         <div class="ri-stat-value">${stats.averageStrength}%</div>
-        <div class="ri-stat-label">Avg Strength</div>
+        <div class="ri-stat-label">${t('relationshipInsights.avgStrength')}</div>
       </div>
     </div>
     
     <!-- Breakdown -->
     <div class="ri-breakdown">
-      <div class="ri-breakdown-title">By Relationship</div>
+      <div class="ri-breakdown-title">${t('relationshipInsights.byRelationship')}</div>
       <div class="ri-breakdown-items">
         <div class="ri-breakdown-item">
           <span class="ri-breakdown-icon">${ICONS.home}</span>
-          <span class="ri-breakdown-label">Family</span>
+          <span class="ri-breakdown-label">${t('relationshipInsights.family')}</span>
           <span class="ri-breakdown-value">${stats.familyCount}</span>
         </div>
         <div class="ri-breakdown-item">
           <span class="ri-breakdown-icon">${ICONS.heart}</span>
-          <span class="ri-breakdown-label">Friends</span>
+          <span class="ri-breakdown-label">${t('relationshipInsights.friends')}</span>
           <span class="ri-breakdown-value">${stats.friendCount}</span>
         </div>
         <div class="ri-breakdown-item">
           <span class="ri-breakdown-icon">${ICONS.briefcase}</span>
-          <span class="ri-breakdown-label">Colleagues</span>
+          <span class="ri-breakdown-label">${t('relationshipInsights.colleagues')}</span>
           <span class="ri-breakdown-value">${stats.colleagueCount}</span>
         </div>
       </div>
@@ -771,7 +771,7 @@ function renderOverviewTab(): string {
     
     <!-- Strength Distribution -->
     <div class="ri-strength-chart">
-      <div class="ri-chart-title">Relationship Strength</div>
+      <div class="ri-chart-title">${t('relationshipInsights.strength')}</div>
       <div class="ri-chart-bars">
         ${strengthDistribution
           .map(
@@ -799,7 +799,7 @@ function renderInsightsTab(): string {
     return `
       <div class="ri-empty">
         <div class="ri-empty-icon">${ICONS.sparkles}</div>
-        <p>No insights right now.<br/>Keep connecting with your people!</p>
+        <p>${t('relationshipInsights.noInsights')}<br/>${t('relationshipInsights.keepConnecting')}</p>
       </div>
     `;
   }
@@ -851,13 +851,13 @@ function renderActivityTab(): string {
         ${cells.join('')}
       </div>
       <div class="ri-activity-legend">
-        Less
+        ${t('relationshipInsights.less')}
         <div class="ri-activity-legend-cell" style="background: var(--color-bg-tertiary)"></div>
         <div class="ri-activity-legend-cell" style="background: rgba(74, 103, 65, 0.2)"></div>
         <div class="ri-activity-legend-cell" style="background: rgba(74, 103, 65, 0.4)"></div>
         <div class="ri-activity-legend-cell" style="background: rgba(74, 103, 65, 0.6)"></div>
         <div class="ri-activity-legend-cell" style="background: var(--persona-primary)"></div>
-        More
+        ${t('relationshipInsights.more')}
       </div>
     </div>
 
@@ -865,7 +865,7 @@ function renderActivityTab(): string {
     ${
       state.data.insights.length > 0
         ? `
-      <div class="ri-chart-title" style="margin-top: var(--space-6)">Based on Your Activity</div>
+      <div class="ri-chart-title" style="margin-top: var(--space-6)">${t('relationshipInsights.basedOnActivity')}</div>
       <div class="ri-insights">
         ${state.data.insights
           .slice(0, 3)

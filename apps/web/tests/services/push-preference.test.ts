@@ -27,9 +27,10 @@ vi.mock('../../src/services/firebase-auth.service.js', () => ({
 
 const ENDPOINT = 'https://fcm.googleapis.com/fcm/send/abc123';
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.clearAllMocks();
   vi.resetModules();
+  await (await import('../../src/i18n/index.js')).setLocale('en-US', { reload: false });
   localStorage.clear();
   mocks.uid = 'alice';
   vi.stubGlobal('Notification', {

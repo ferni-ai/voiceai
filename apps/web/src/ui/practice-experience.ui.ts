@@ -8,6 +8,8 @@
  * "Better than human" - We're always here, always present, always ready to guide.
  */
 
+import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 import { connectionService } from '../services/connection.service.js';
 import { soundUI } from './sound.ui.js';
@@ -31,11 +33,11 @@ export interface Practice {
 interface PracticeStep {
   id: string;
   type: 'intro' | 'prompt' | 'reflection' | 'chat' | 'breathing' | 'gratitude' | 'completion';
-  title: string;
-  content: string;
-  placeholder?: string;
+  titleKey: string;
+  contentKey: string;
+  placeholderKey?: string;
   duration?: number; // in seconds for timed steps
-  ferniMessage?: string;
+  ferniMessageKey?: string;
 }
 
 interface ChatMessage {
@@ -65,233 +67,131 @@ const PRACTICE_STEPS: Record<string, PracticeStep[]> = {
   'daily-check-in': [
     {
       id: 'intro',
-      type: 'intro',
-      title: 'Daily Check-in',
-      content: "Let's take a moment to connect with how you're feeling today.",
-      ferniMessage: "I'm here to listen. There's no right or wrong way to feel.",
+      type: 'intro', titleKey: 'practiceExperience.dailyCheckin.title', contentKey: 'practiceExperience.dailyCheckin.intro.content', ferniMessageKey: 'practiceExperience.dailyCheckin.intro.ferniMessage',
     },
     {
       id: 'body-scan',
-      type: 'prompt',
-      title: 'Body Awareness',
-      content: 'Close your eyes for a moment. How does your body feel right now?',
-      placeholder: 'Describe any sensations, tension, or ease you notice...',
-      ferniMessage: 'Take your time. Your body holds wisdom.',
+      type: 'prompt', titleKey: 'practiceExperience.dailyCheckin.bodyAwareness.title', contentKey: 'practiceExperience.dailyCheckin.bodyAwareness.content', placeholderKey: 'practiceExperience.dailyCheckin.bodyAwareness.placeholder', ferniMessageKey: 'practiceExperience.dailyCheckin.bodyAwareness.ferniMessage',
     },
     {
       id: 'emotional-check',
-      type: 'reflection',
-      title: 'Emotional Landscape',
-      content: "If you could name the emotions you're carrying today, what would they be?",
-      placeholder: 'What emotions are present? (anxious, hopeful, tired, grateful...)',
-      ferniMessage: 'All emotions are welcome here. They all carry information.',
+      type: 'reflection', titleKey: 'practiceExperience.dailyCheckin.emotionalLandscape.title', contentKey: 'practiceExperience.dailyCheckin.emotionalLandscape.content', placeholderKey: 'practiceExperience.dailyCheckin.emotionalLandscape.placeholder', ferniMessageKey: 'practiceExperience.dailyCheckin.emotionalLandscape.ferniMessage',
     },
     {
       id: 'intention',
-      type: 'chat',
-      title: 'Setting Intention',
-      content: "What would make today feel meaningful? Let's talk about it.",
-      ferniMessage: "What's one small thing you'd like to focus on today?",
+      type: 'chat', titleKey: 'practiceExperience.dailyCheckin.settingIntention.title', contentKey: 'practiceExperience.dailyCheckin.settingIntention.content', ferniMessageKey: 'practiceExperience.dailyCheckin.settingIntention.ferniMessage',
     },
     {
       id: 'complete',
-      type: 'completion',
-      title: 'You checked in',
-      content: "You've taken time to connect with yourself. That matters.",
-      ferniMessage: "I'll remember this. Go gently today.",
+      type: 'completion', titleKey: 'practiceExperience.dailyCheckin.complete.title', contentKey: 'practiceExperience.dailyCheckin.complete.content', ferniMessageKey: 'practiceExperience.dailyCheckin.complete.ferniMessage',
     },
   ],
 
   'gratitude-practice': [
     {
       id: 'intro',
-      type: 'intro',
-      title: 'Gratitude Practice',
-      content: 'A moment to notice the good, even in small things.',
-      ferniMessage: 'Gratitude rewires the brain. Science says so.',
+      type: 'intro', titleKey: 'practiceExperience.gratitudePractice.title', contentKey: 'practiceExperience.gratitudePractice.intro.content', ferniMessageKey: 'practiceExperience.gratitudePractice.intro.ferniMessage',
     },
     {
       id: 'breath',
-      type: 'breathing',
-      title: 'Centering Breath',
-      content: 'Take three deep breaths with me.',
-      duration: 30,
-      ferniMessage: 'Breathe in slowly... and out...',
+      type: 'breathing', titleKey: 'practiceExperience.gratitudePractice.centeringBreath.title', contentKey: 'practiceExperience.gratitudePractice.centeringBreath.content', duration: 30, ferniMessageKey: 'practiceExperience.gratitudePractice.centeringBreath.ferniMessage',
     },
     {
       id: 'gratitude-1',
-      type: 'gratitude',
-      title: 'Something Small',
-      content: "What's something small that brought you comfort today?",
-      placeholder: 'A warm cup of coffee, a kind word, soft light...',
-      ferniMessage: 'The small things often carry the most weight.',
+      type: 'gratitude', titleKey: 'practiceExperience.gratitudePractice.somethingSmall.title', contentKey: 'practiceExperience.gratitudePractice.somethingSmall.content', placeholderKey: 'practiceExperience.gratitudePractice.somethingSmall.placeholder', ferniMessageKey: 'practiceExperience.gratitudePractice.somethingSmall.ferniMessage',
     },
     {
       id: 'gratitude-2',
-      type: 'gratitude',
-      title: 'Someone You Appreciate',
-      content: 'Think of someone who made a difference, recently or long ago.',
-      placeholder: 'Who comes to mind? What did they do?',
-      ferniMessage: "We're shaped by the people who care for us.",
+      type: 'gratitude', titleKey: 'practiceExperience.gratitudePractice.someoneYouAppreciate.title', contentKey: 'practiceExperience.gratitudePractice.someoneYouAppreciate.content', placeholderKey: 'practiceExperience.gratitudePractice.someoneYouAppreciate.placeholder', ferniMessageKey: 'practiceExperience.gratitudePractice.someoneYouAppreciate.ferniMessage',
     },
     {
       id: 'gratitude-3',
-      type: 'gratitude',
-      title: 'Your Own Resilience',
-      content: "What's something you've handled well lately?",
-      placeholder: 'A challenge you navigated, a boundary you held...',
-      ferniMessage: 'You forget how strong you are. I remember.',
+      type: 'gratitude', titleKey: 'practiceExperience.gratitudePractice.yourOwnResilience.title', contentKey: 'practiceExperience.gratitudePractice.yourOwnResilience.content', placeholderKey: 'practiceExperience.gratitudePractice.yourOwnResilience.placeholder', ferniMessageKey: 'practiceExperience.gratitudePractice.yourOwnResilience.ferniMessage',
     },
     {
       id: 'complete',
-      type: 'completion',
-      title: 'Gratitude Planted',
-      content: "You've cultivated appreciation. It will grow.",
-      ferniMessage: "I'll hold these moments with you.",
+      type: 'completion', titleKey: 'practiceExperience.gratitudePractice.complete.title', contentKey: 'practiceExperience.gratitudePractice.complete.content', ferniMessageKey: 'practiceExperience.gratitudePractice.complete.ferniMessage',
     },
   ],
 
   'wind-down': [
     {
       id: 'intro',
-      type: 'intro',
-      title: 'Wind Down',
-      content: "The day is ending. Let's help your mind settle.",
-      ferniMessage: "Rest isn't earned. It's essential.",
+      type: 'intro', titleKey: 'practiceExperience.windDown.title', contentKey: 'practiceExperience.windDown.intro.content', ferniMessageKey: 'practiceExperience.windDown.intro.ferniMessage',
     },
     {
       id: 'breath',
-      type: 'breathing',
-      title: 'Calming Breath',
-      content: 'Slow, deep breathing to signal safety to your nervous system.',
-      duration: 45,
-      ferniMessage: 'Inhale for 4... hold for 4... exhale for 6...',
+      type: 'breathing', titleKey: 'practiceExperience.windDown.calmingBreath.title', contentKey: 'practiceExperience.windDown.calmingBreath.content', duration: 45, ferniMessageKey: 'practiceExperience.windDown.calmingBreath.ferniMessage',
     },
     {
       id: 'release',
-      type: 'reflection',
-      title: 'Letting Go',
-      content: "What do you need to put down for the night?",
-      placeholder: "Worries, tasks, conversations that can wait until tomorrow...",
-      ferniMessage: 'Tomorrow will still be there. You can set it down.',
+      type: 'reflection', titleKey: 'practiceExperience.windDown.lettingGo.title', contentKey: 'practiceExperience.windDown.lettingGo.content', placeholderKey: 'practiceExperience.windDown.lettingGo.placeholder', ferniMessageKey: 'practiceExperience.windDown.lettingGo.ferniMessage',
     },
     {
       id: 'celebrate',
-      type: 'prompt',
-      title: 'One Good Thing',
-      content: "What's one thing from today worth remembering?",
-      placeholder: 'A moment, a win, a kindness...',
-      ferniMessage: 'Every day has something. Sometimes we just have to look.',
+      type: 'prompt', titleKey: 'practiceExperience.windDown.oneGoodThing.title', contentKey: 'practiceExperience.windDown.oneGoodThing.content', placeholderKey: 'practiceExperience.windDown.oneGoodThing.placeholder', ferniMessageKey: 'practiceExperience.windDown.oneGoodThing.ferniMessage',
     },
     {
       id: 'chat',
-      type: 'chat',
-      title: 'Anything on Your Mind?',
-      content: "Before you rest, is there anything you'd like to share?",
-      ferniMessage: "I'm listening. No judgment, just presence.",
+      type: 'chat', titleKey: 'practiceExperience.windDown.anythingOnYourMind.title', contentKey: 'practiceExperience.windDown.anythingOnYourMind.content', ferniMessageKey: 'practiceExperience.windDown.anythingOnYourMind.ferniMessage',
     },
     {
       id: 'complete',
-      type: 'completion',
-      title: 'Rest Well',
-      content: "You've prepared yourself for rest. Sleep gently.",
-      ferniMessage: "I'll be here when you wake.",
+      type: 'completion', titleKey: 'practiceExperience.windDown.complete.title', contentKey: 'practiceExperience.windDown.complete.content', ferniMessageKey: 'practiceExperience.windDown.complete.ferniMessage',
     },
   ],
 
   'weekly-review': [
     {
       id: 'intro',
-      type: 'intro',
-      title: 'Weekly Review',
-      content: "Let's look back at your week with curiosity, not judgment.",
-      ferniMessage: 'Reflection is how we turn experience into wisdom.',
+      type: 'intro', titleKey: 'practiceExperience.weeklyReview.title', contentKey: 'practiceExperience.weeklyReview.intro.content', ferniMessageKey: 'practiceExperience.weeklyReview.intro.ferniMessage',
     },
     {
       id: 'highlights',
-      type: 'reflection',
-      title: 'Week Highlights',
-      content: 'What moments stood out this week?',
-      placeholder: 'Wins, surprises, meaningful conversations...',
-      ferniMessage: 'What made you feel most alive?',
+      type: 'reflection', titleKey: 'practiceExperience.weeklyReview.weekHighlights.title', contentKey: 'practiceExperience.weeklyReview.weekHighlights.content', placeholderKey: 'practiceExperience.weeklyReview.weekHighlights.placeholder', ferniMessageKey: 'practiceExperience.weeklyReview.weekHighlights.ferniMessage',
     },
     {
       id: 'challenges',
-      type: 'reflection',
-      title: 'Challenges Faced',
-      content: 'What was difficult this week?',
-      placeholder: 'Obstacles, frustrations, hard conversations...',
-      ferniMessage: 'Challenges are teachers in disguise.',
+      type: 'reflection', titleKey: 'practiceExperience.weeklyReview.challengesFaced.title', contentKey: 'practiceExperience.weeklyReview.challengesFaced.content', placeholderKey: 'practiceExperience.weeklyReview.challengesFaced.placeholder', ferniMessageKey: 'practiceExperience.weeklyReview.challengesFaced.ferniMessage',
     },
     {
       id: 'lessons',
-      type: 'chat',
-      title: 'What You Learned',
-      content: "Let's explore what this week taught you.",
-      ferniMessage: 'If this week could teach you one thing, what would it be?',
+      type: 'chat', titleKey: 'practiceExperience.weeklyReview.whatYouLearned.title', contentKey: 'practiceExperience.weeklyReview.whatYouLearned.content', ferniMessageKey: 'practiceExperience.weeklyReview.whatYouLearned.ferniMessage',
     },
     {
       id: 'next-week',
-      type: 'prompt',
-      title: 'Looking Ahead',
-      content: "What's one thing you'd like to focus on next week?",
-      placeholder: 'An intention, a habit, a project...',
-      ferniMessage: 'One focus is more powerful than ten scattered intentions.',
+      type: 'prompt', titleKey: 'practiceExperience.weeklyReview.lookingAhead.title', contentKey: 'practiceExperience.weeklyReview.lookingAhead.content', placeholderKey: 'practiceExperience.weeklyReview.lookingAhead.placeholder', ferniMessageKey: 'practiceExperience.weeklyReview.lookingAhead.ferniMessage',
     },
     {
       id: 'complete',
-      type: 'completion',
-      title: 'Week Reflected',
-      content: "You've taken time to learn from your experience. That's growth.",
-      ferniMessage: "I've noted your reflections. We'll build on them.",
+      type: 'completion', titleKey: 'practiceExperience.weeklyReview.complete.title', contentKey: 'practiceExperience.weeklyReview.complete.content', ferniMessageKey: 'practiceExperience.weeklyReview.complete.ferniMessage',
     },
   ],
 
   'brainstorm-session': [
     {
       id: 'intro',
-      type: 'intro',
-      title: 'Brainstorm Session',
-      content: "Let's think through a challenge together. No judgment, just possibilities.",
-      ferniMessage: 'The best ideas come from exploration, not pressure.',
+      type: 'intro', titleKey: 'practiceExperience.brainstormSession.title', contentKey: 'practiceExperience.brainstormSession.intro.content', ferniMessageKey: 'practiceExperience.brainstormSession.intro.ferniMessage',
     },
     {
       id: 'define',
-      type: 'prompt',
-      title: 'Define the Challenge',
-      content: "What are you trying to figure out?",
-      placeholder: 'Describe the situation, problem, or decision...',
-      ferniMessage: 'Clarity on the question is half the answer.',
+      type: 'prompt', titleKey: 'practiceExperience.brainstormSession.defineTheChallenge.title', contentKey: 'practiceExperience.brainstormSession.defineTheChallenge.content', placeholderKey: 'practiceExperience.brainstormSession.defineTheChallenge.placeholder', ferniMessageKey: 'practiceExperience.brainstormSession.defineTheChallenge.ferniMessage',
     },
     {
       id: 'explore',
-      type: 'chat',
-      title: 'Exploring Together',
-      content: "Let's dig into this. I'll ask questions to help you think.",
-      ferniMessage: "Tell me more. What's really at the heart of this?",
+      type: 'chat', titleKey: 'practiceExperience.brainstormSession.exploringTogether.title', contentKey: 'practiceExperience.brainstormSession.exploringTogether.content', ferniMessageKey: 'practiceExperience.brainstormSession.exploringTogether.ferniMessage',
     },
     {
       id: 'options',
-      type: 'reflection',
-      title: 'Possible Paths',
-      content: 'What options are you considering?',
-      placeholder: 'List all possibilities, even imperfect ones...',
-      ferniMessage: 'More options = better decisions. What else?',
+      type: 'reflection', titleKey: 'practiceExperience.brainstormSession.possiblePaths.title', contentKey: 'practiceExperience.brainstormSession.possiblePaths.content', placeholderKey: 'practiceExperience.brainstormSession.possiblePaths.placeholder', ferniMessageKey: 'practiceExperience.brainstormSession.possiblePaths.ferniMessage',
     },
     {
       id: 'next-step',
-      type: 'prompt',
-      title: 'The Next Step',
-      content: "What's the smallest next action you could take?",
-      placeholder: 'Something concrete, something doable...',
-      ferniMessage: 'Small steps create momentum.',
+      type: 'prompt', titleKey: 'practiceExperience.brainstormSession.theNextStep.title', contentKey: 'practiceExperience.brainstormSession.theNextStep.content', placeholderKey: 'practiceExperience.brainstormSession.theNextStep.placeholder', ferniMessageKey: 'practiceExperience.brainstormSession.theNextStep.ferniMessage',
     },
     {
       id: 'complete',
-      type: 'completion',
-      title: 'Ideas Captured',
-      content: "You've thought this through. Trust the process.",
-      ferniMessage: "I'll remember this conversation. Let me know how it goes.",
+      type: 'completion', titleKey: 'practiceExperience.brainstormSession.complete.title', contentKey: 'practiceExperience.brainstormSession.complete.content', ferniMessageKey: 'practiceExperience.brainstormSession.complete.ferniMessage',
     },
   ],
 };
@@ -300,24 +200,15 @@ const PRACTICE_STEPS: Record<string, PracticeStep[]> = {
 const DEFAULT_STEPS: PracticeStep[] = [
   {
     id: 'intro',
-    type: 'intro',
-    title: 'Guided Practice',
-    content: "Let's take this journey together.",
-    ferniMessage: "I'm here with you.",
+    type: 'intro', titleKey: 'practiceExperience.default.title', contentKey: 'practiceExperience.default.intro.content', ferniMessageKey: 'practiceExperience.default.intro.ferniMessage',
   },
   {
     id: 'chat',
-    type: 'chat',
-    title: "Let's Talk",
-    content: 'Share what brings you here today.',
-    ferniMessage: "What's on your mind?",
+    type: 'chat', titleKey: 'practiceExperience.default.chat.title', contentKey: 'practiceExperience.default.chat.content', ferniMessageKey: 'practiceExperience.default.chat.ferniMessage',
   },
   {
     id: 'complete',
-    type: 'completion',
-    title: 'Practice Complete',
-    content: "You've taken time for yourself. That matters.",
-    ferniMessage: 'Well done. Go gently.',
+    type: 'completion', titleKey: 'practiceExperience.default.complete.title', contentKey: 'practiceExperience.default.complete.content', ferniMessageKey: 'practiceExperience.default.complete.ferniMessage',
   },
 ];
 
@@ -380,8 +271,8 @@ const styles = `
     position: absolute;
     inset: 0;
     background: rgba(44, 37, 32, 0.6);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(var(--glass-blur-strong));
+    -webkit-backdrop-filter: blur(var(--glass-blur-strong));
   }
 
   .practice-experience-container {
@@ -392,7 +283,7 @@ const styles = `
     margin: var(--space-4);
     background: var(--color-background-elevated, #fffdfb);
     border-radius: var(--radius-2xl, 24px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--shadow-2xl);
     overflow: hidden;
     transform: scale(0.95) translateY(20px);
     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -518,7 +409,7 @@ const styles = `
     margin-bottom: var(--space-6);
     max-width: 85%;
     align-self: flex-start;
-    box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+    box-shadow: var(--shadow-glow);
   }
 
   /* Text input area */
@@ -540,7 +431,7 @@ const styles = `
   .practice-textarea:focus {
     outline: none;
     border-color: var(--color-accent, #3d5a45);
-    box-shadow: 0 0 0 4px rgba(61, 90, 69, 0.1);
+    box-shadow: var(--shadow-glow);
   }
 
   .practice-textarea::placeholder {
@@ -889,14 +780,14 @@ function createContainer(): HTMLElement {
   overlay.className = 'practice-experience-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-label', 'Guided Practice');
+  overlay.setAttribute('aria-label', t('practiceExperience.default.title'));
 
   overlay.innerHTML = `
     <div class="practice-experience-backdrop"></div>
     <div class="practice-experience-container">
       <header class="practice-experience-header">
-        <h2>Practice</h2>
-        <button class="practice-close-btn" aria-label="Close">
+        <h2 id="practice-title">${t('practiceExperience.practice')}</h2>
+        <button class="practice-close-btn" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>
@@ -934,7 +825,7 @@ function render(): void {
 
   const content = container.querySelector('.practice-experience-content');
   const nav = container.querySelector('.practice-navigation');
-  const header = container.querySelector('.practice-experience-header h2');
+  const header = container.querySelector('.practice-experience-header h2') as HTMLElement;
   const progressBar = container.querySelector('.practice-progress-bar') as HTMLElement;
 
   if (!content || !nav || !header || !progressBar) return;
@@ -943,7 +834,7 @@ function render(): void {
   if (!currentStep) return;
 
   // Update header
-  header.textContent = state.currentPractice?.name || 'Practice';
+  header.textContent = state.currentPractice?.name || t('practiceExperience.practice');
 
   // Update progress
   const progress = ((state.currentStepIndex + 1) / state.steps.length) * 100;
@@ -980,19 +871,22 @@ function renderStep(step: PracticeStep): string {
 
 function renderIntroStep(step: PracticeStep): string {
   const isVoiceConnected = connectionService.getRoomState().isConnected;
+  const title = t(step.titleKey);
+  const content = t(step.contentKey);
+  const ferniMessage = step.ferniMessageKey && t(step.ferniMessageKey);
 
   return `
     <div class="practice-step" data-step-id="${step.id}">
-      <h3 class="practice-step-title">${step.title}</h3>
-      <p class="practice-step-content">${step.content}</p>
-      ${step.ferniMessage ? `<div class="ferni-message">${step.ferniMessage}</div>` : ''}
-      
+      <h3 class="practice-step-title">${title}</h3>
+      <p class="practice-step-content">${content}</p>
+      ${ferniMessage ? `<div class="ferni-message">${ferniMessage}</div>` : ''}
+
       ${
         isVoiceConnected
           ? `
         <button class="skip-to-voice-btn" id="continue-with-voice">
           ${ICONS.voice}
-          Continue with voice
+          ${t('practiceExperience.continueWithVoice')}
         </button>
       `
           : ''
@@ -1003,16 +897,20 @@ function renderIntroStep(step: PracticeStep): string {
 
 function renderTextStep(step: PracticeStep): string {
   const savedValue = state.userResponses.get(step.id) || '';
+  const title = t(step.titleKey);
+  const content = t(step.contentKey);
+  const ferniMessage = step.ferniMessageKey && t(step.ferniMessageKey);
+  const placeholder = t(step.placeholderKey ?? 'practiceExperience.shareYourThoughts');
 
   return `
     <div class="practice-step" data-step-id="${step.id}">
-      <h3 class="practice-step-title">${step.title}</h3>
-      <p class="practice-step-content">${step.content}</p>
-      ${step.ferniMessage ? `<div class="ferni-message">${step.ferniMessage}</div>` : ''}
-      <textarea 
-        class="practice-textarea" 
+      <h3 class="practice-step-title">${title}</h3>
+      <p class="practice-step-content">${content}</p>
+      ${ferniMessage ? `<div class="ferni-message">${ferniMessage}</div>` : ''}
+      <textarea
+        class="practice-textarea"
         id="step-input"
-        placeholder="${step.placeholder || 'Share your thoughts...'}"
+        placeholder="${placeholder}"
         rows="4"
       >${savedValue}</textarea>
     </div>
@@ -1020,20 +918,23 @@ function renderTextStep(step: PracticeStep): string {
 }
 
 function renderChatStep(step: PracticeStep): string {
+  const title = t(step.titleKey);
+  const content = t(step.contentKey);
+
   return `
     <div class="practice-step" data-step-id="${step.id}">
-      <h3 class="practice-step-title">${step.title}</h3>
-      <p class="practice-step-content">${step.content}</p>
-      
+      <h3 class="practice-step-title">${title}</h3>
+      <p class="practice-step-content">${content}</p>
+
       <div class="practice-chat">
         <div class="practice-chat-messages" id="chat-messages">
-          ${renderChatMessages()}
+          ${renderChatMessages(step)}
         </div>
         <div class="practice-chat-input-container">
-          <textarea 
-            class="practice-chat-input" 
+          <textarea
+            class="practice-chat-input"
             id="chat-input"
-            placeholder="Type your message..."
+            placeholder="${t('practiceExperience.typeYourMessage')}"
             rows="1"
           ></textarea>
           <button class="practice-chat-send" id="chat-send" ${state.isThinking ? 'disabled' : ''}>
@@ -1045,18 +946,21 @@ function renderChatStep(step: PracticeStep): string {
   `;
 }
 
-function renderChatMessages(): string {
+function renderChatMessages(step?: PracticeStep): string {
   // Add initial Ferni message if chat is empty
-  const currentStep = state.steps[state.currentStepIndex];
   const messages = [...state.chatMessages];
+  const currentStep = step || state.steps[state.currentStepIndex];
 
-  if (messages.length === 0 && currentStep?.ferniMessage) {
-    messages.push({
-      id: 'initial',
-      role: 'ferni',
-      content: currentStep.ferniMessage,
-      timestamp: new Date(),
-    });
+  if (messages.length === 0 && currentStep) {
+    const ferniMessage = currentStep.ferniMessageKey && t(currentStep.ferniMessageKey);
+    if (ferniMessage) {
+      messages.push({
+        id: 'initial',
+        role: 'ferni',
+        content: ferniMessage,
+        timestamp: new Date(),
+      });
+    }
   }
 
   let html = messages
@@ -1084,17 +988,20 @@ function renderChatMessages(): string {
 }
 
 function renderBreathingStep(step: PracticeStep): string {
+  const title = t(step.titleKey);
+  const content = t(step.contentKey);
+
   return `
     <div class="practice-step" data-step-id="${step.id}">
-      <h3 class="practice-step-title">${step.title}</h3>
-      <p class="practice-step-content">${step.content}</p>
-      
+      <h3 class="practice-step-title">${title}</h3>
+      <p class="practice-step-content">${content}</p>
+
       <div class="practice-breathing">
         <div class="breathing-circle" id="breathing-circle">
-          <span class="breathing-instruction" id="breathing-instruction">Ready</span>
+          <span class="breathing-instruction" id="breathing-instruction">${t('practiceExperience.ready')}</span>
         </div>
         <div class="breathing-timer" id="breathing-timer">
-          ${step.duration ? `${step.duration} seconds` : ''}
+          ${step.duration ? tp('practiceExperience.breathing.secondsLeft', step.duration) : ''}
         </div>
       </div>
     </div>
@@ -1102,15 +1009,19 @@ function renderBreathingStep(step: PracticeStep): string {
 }
 
 function renderCompletionStep(step: PracticeStep): string {
+  const title = t(step.titleKey);
+  const content = t(step.contentKey);
+  const ferniMessage = step.ferniMessageKey && t(step.ferniMessageKey);
+
   return `
     <div class="practice-step" data-step-id="${step.id}">
       <div class="practice-completion">
         <div class="completion-icon">
           ${ICONS.sparkles}
         </div>
-        <h3 class="practice-step-title">${step.title}</h3>
-        <p class="practice-step-content">${step.content}</p>
-        ${step.ferniMessage ? `<div class="ferni-message">${step.ferniMessage}</div>` : ''}
+        <h3 class="practice-step-title">${title}</h3>
+        <p class="practice-step-content">${content}</p>
+        ${ferniMessage ? `<div class="ferni-message">${ferniMessage}</div>` : ''}
       </div>
     </div>
   `;
@@ -1125,11 +1036,11 @@ function renderNavigation(): string {
   const showBack = !isFirstStep && currentStep?.type !== 'completion';
 
   // Change label based on step type
-  let nextLabel = 'Continue';
+  let nextLabel = t('common.continue');
   if (currentStep?.type === 'completion') {
-    nextLabel = 'Close';
+    nextLabel = t('practiceExperience.close');
   } else if (isLastStep) {
-    nextLabel = 'Finish';
+    nextLabel = t('practiceExperience.finish');
   }
 
   return `
@@ -1138,7 +1049,7 @@ function renderNavigation(): string {
         ? `
       <button class="practice-nav-btn secondary" id="nav-back">
         ${ICONS.arrowLeft}
-        Back
+        ${t('common.back')}
       </button>
     `
         : '<div></div>'
@@ -1311,7 +1222,7 @@ async function sendChatMessage(): Promise<void> {
     state.chatMessages.push({
       id: `msg-${Date.now() + 1}`,
       role: 'ferni',
-      content: "I'm having trouble thinking right now. Take your time, and try again when you're ready.",
+      content: t('practiceExperience.errorMessage'),
       timestamp: new Date(),
     });
   }
@@ -1340,7 +1251,7 @@ async function generateFerniResponse(userMessage: string): Promise<string> {
       practiceId: practice?.id || 'general',
       practiceName: practice?.name || 'Practice',
       stepId: currentStep?.id || 'chat',
-      stepTitle: currentStep?.title || 'Chat',
+      stepTitle: currentStep ? t(currentStep.titleKey) : 'Chat',
       previousResponses,
       chatHistory: state.chatMessages.slice(-10).map((m) => ({
         role: m.role,
@@ -1359,45 +1270,19 @@ async function generateFerniResponse(userMessage: string): Promise<string> {
   return getFallbackResponse(userMessage, practice?.id);
 }
 
+/** Fallback reply pool per practice: [i18n pool name, number of variants]. */
+const FALLBACK_POOLS: Record<string, [string, number]> = {
+  'daily-check-in': ['dailyCheckIn', 4],
+  'gratitude-practice': ['gratitude', 3],
+  'wind-down': ['windDown', 3],
+  'weekly-review': ['weeklyReview', 3],
+  'brainstorm-session': ['brainstorm', 3],
+};
+
 function getFallbackResponse(userMessage: string, practiceId?: string): string {
   // Simple fallback responses when API is unavailable
-  const responses: Record<string, string[]> = {
-    'daily-check-in': [
-      "That's really honest. Thank you for sharing that with me.",
-      "I hear you. Sometimes just naming it helps.",
-      "How does it feel to put that into words?",
-      "That takes courage to acknowledge. What would support you right now?",
-    ],
-    'gratitude-practice': [
-      "Beautiful. Those small moments matter more than we realize.",
-      "I love that you noticed that. What made it special?",
-      "That's a wonderful thing to appreciate. How does remembering it feel?",
-    ],
-    'wind-down': [
-      "Rest is coming. You've done enough for today.",
-      "That's a lot to carry. Tomorrow can hold what tonight can't.",
-      "Your body knows what it needs. Listen to it.",
-    ],
-    'weekly-review': [
-      "That's insightful. What patterns do you notice?",
-      "Growth often happens in the struggle. You're learning.",
-      "What would you tell a friend who had this week?",
-    ],
-    'brainstorm-session': [
-      "Interesting perspective. What other angles could we explore?",
-      "That's one path. What's holding you back from taking it?",
-      "I wonder - if you couldn't fail, which option would you choose?",
-    ],
-  };
-
-  const practiceResponses = responses[practiceId || ''] || [
-    "Tell me more about that.",
-    "That's meaningful. What else comes up?",
-    "I'm listening. Take your time.",
-    "How does that sit with you?",
-  ];
-
-  return practiceResponses[Math.floor(Math.random() * practiceResponses.length)] ?? "I'm here with you.";
+  const [pool, count] = FALLBACK_POOLS[practiceId || ''] ?? ['default', 4];
+  return t(`practiceExperience.fallback.${pool}.option${1 + Math.floor(Math.random() * count)}`);
 }
 
 function scrollChatToBottom(): void {
@@ -1444,11 +1329,11 @@ function startBreathingExercise(durationSeconds: number): void {
 
       circle?.classList.remove('inhale', 'hold', 'exhale');
       circle?.classList.add(phase);
-      if (instruction) instruction.textContent = phase;
+      if (instruction) instruction.textContent = t(`practiceExperience.breathing.${phase}`);
 
       // Update timer
       remaining -= duration / 1000;
-      if (timer) timer.textContent = `${Math.max(0, Math.ceil(remaining))} seconds`;
+      if (timer) timer.textContent = tp('practiceExperience.breathing.secondsLeft', Math.max(0, Math.ceil(remaining)));
 
       // Next phase
       phaseIndex = (phaseIndex + 1) % phases.length;

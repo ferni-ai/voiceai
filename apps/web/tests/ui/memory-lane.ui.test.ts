@@ -138,6 +138,7 @@ describe('MemoryLaneUI', () => {
 
     // Reset module state by re-importing
     vi.resetModules();
+    await (await import('../../src/i18n/index.js')).setLocale('en-US', { reload: false });
     const module = await import('../../src/ui/memory-lane.ui.js');
     initMemoryLaneUI = module.initMemoryLaneUI;
     disposeMemoryLaneUI = module.disposeMemoryLaneUI;

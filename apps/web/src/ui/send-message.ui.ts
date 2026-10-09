@@ -176,7 +176,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
@@ -221,7 +221,7 @@ function injectStyles(): void {
     }
 
     .sm-channel:hover:not(:disabled) {
-      border-color: var(--color-text-muted, #70605a);
+      border-color: var(--color-text-muted, #352e28);
     }
 
     .sm-channel.selected {
@@ -235,7 +235,7 @@ function injectStyles(): void {
     }
 
     .sm-channel-icon {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .sm-channel.selected .sm-channel-icon {
@@ -245,7 +245,7 @@ function injectStyles(): void {
     .sm-channel-label {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .sm-channel.selected .sm-channel-label {
@@ -255,7 +255,7 @@ function injectStyles(): void {
 
     .sm-no-info {
       font-size: var(--text-xxs, 0.625rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-1, 0.25rem);
     }
 
@@ -270,7 +270,7 @@ function injectStyles(): void {
     .sm-label {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 600;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-2, 0.5rem);
       display: block;
     }
@@ -314,13 +314,13 @@ function injectStyles(): void {
     }
 
     .sm-textarea::placeholder {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .sm-char-count {
       text-align: right;
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-top: var(--space-1, 0.25rem);
     }
 
@@ -367,7 +367,7 @@ function injectStyles(): void {
 
     .sm-call-hint {
       font-size: var(--text-sm, 0.875rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     /* =========================================================================
@@ -455,7 +455,7 @@ function render(): void {
     <div class="sm-header">
       <div class="sm-header-row">
         <div>
-          <div class="sm-eyebrow">Reach Out</div>
+          <div class="sm-eyebrow">${t('sendMessage.eyebrow')}</div>
           <h2 class="sm-title">${escapeHtml(state.contactName)}</h2>
         </div>
         <button class="sm-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
@@ -483,18 +483,18 @@ function renderChannelSelector(): string {
     <div class="sm-channels">
       <button aria-label="${t('accessibility.moreInformation')}" class="sm-channel ${state.channel === 'call' ? 'selected' : ''}" data-channel="call" ${!hasPhone ? 'disabled' : ''}>
         <span class="sm-channel-icon">${ICONS.phone}</span>
-        <span class="sm-channel-label">Call</span>
-        ${!hasPhone ? '<span class="sm-no-info">No phone</span>' : ''}
+        <span class="sm-channel-label">${t('activity.actionCall')}</span>
+        ${!hasPhone ? `<span class="sm-no-info">${t('sendMessage.noPhone')}</span>` : ''}
       </button>
       <button aria-label="${t('accessibility.moreInformation')}" class="sm-channel ${state.channel === 'text' ? 'selected' : ''}" data-channel="text" ${!hasPhone ? 'disabled' : ''}>
         <span class="sm-channel-icon">${ICONS.message}</span>
-        <span class="sm-channel-label">Text</span>
-        ${!hasPhone ? '<span class="sm-no-info">No phone</span>' : ''}
+        <span class="sm-channel-label">${t('activity.actionText')}</span>
+        ${!hasPhone ? `<span class="sm-no-info">${t('sendMessage.noPhone')}</span>` : ''}
       </button>
       <button aria-label="${t('accessibility.moreInformation')}" class="sm-channel ${state.channel === 'email' ? 'selected' : ''}" data-channel="email" ${!hasEmail ? 'disabled' : ''}>
         <span class="sm-channel-icon">${ICONS.mail}</span>
-        <span class="sm-channel-label">Email</span>
-        ${!hasEmail ? '<span class="sm-no-info">No email</span>' : ''}
+        <span class="sm-channel-label">${t('activity.actionEmail')}</span>
+        ${!hasEmail ? `<span class="sm-no-info">${t('sendMessage.noEmail')}</span>` : ''}
       </button>
     </div>
   `;
@@ -518,7 +518,7 @@ function renderCallView(): string {
     <div class="sm-call-view">
       <div class="sm-call-icon">${ICONS.phone}</div>
       <div class="sm-call-number">${formatPhone(state.phone)}</div>
-      <p class="sm-call-hint">Tap the button below to call ${escapeHtml(state.contactName)}</p>
+      <p class="sm-call-hint">${t('sendMessage.callHint', { name: escapeHtml(state.contactName) })}</p>
     </div>
   `;
 }
@@ -530,7 +530,7 @@ function renderTextView(): string {
 
   return `
     <div class="sm-section">
-      <label class="sm-label">Message</label>
+      <label class="sm-label">${t('accessibility.message')}</label>
       <textarea class="sm-textarea" id="sm-message" placeholder="${t('forms.messagePlaceholder', 'What would you like to say?')}">${escapeHtml(state.message)}</textarea>
       <div class="sm-char-count ${charClass}">${charCount}/${maxLength}</div>
     </div>
@@ -540,11 +540,11 @@ function renderTextView(): string {
 function renderEmailView(): string {
   return `
     <div class="sm-section">
-      <label class="sm-label">Subject</label>
+      <label class="sm-label">${t('sendMessage.subject')}</label>
       <input type="text" class="sm-input" id="sm-subject" placeholder="${t('forms.subjectLinePlaceholder', 'Subject line')}" value="${escapeHtml(state.subject)}" />
     </div>
     <div class="sm-section">
-      <label class="sm-label">Message</label>
+      <label class="sm-label">${t('accessibility.message')}</label>
       <textarea class="sm-textarea" id="sm-message" placeholder="${t('forms.messagePlaceholder', 'What would you like to say?')}">${escapeHtml(state.message)}</textarea>
     </div>
   `;
@@ -552,16 +552,16 @@ function renderEmailView(): string {
 
 function renderActionButton(): string {
   const labels: Record<MessageChannel, string> = {
-    call: `${ICONS.phone} Call ${state.contactName.split(' ')[0]}`,
-    text: `${ICONS.send} Send Text`,
-    email: `${ICONS.send} Send Email`,
+    call: `${ICONS.phone} ${t('sendMessage.callName', { name: state.contactName.split(' ')[0] ?? '' })}`,
+    text: `${ICONS.send} ${t('sendMessage.sendText')}`,
+    email: `${ICONS.send} ${t('sendMessage.sendEmail')}`,
   };
 
   const isDisabled = state.channel !== 'call' && !state.message.trim();
 
   return `
     <button class="sm-send-btn" id="sm-send" ${isDisabled || state.isSending ? 'disabled' : ''}>
-      ${state.isSending ? 'Opening...' : labels[state.channel]}
+      ${state.isSending ? t('sendMessage.opening') : labels[state.channel]}
       ${ICONS.externalLink}
     </button>
   `;

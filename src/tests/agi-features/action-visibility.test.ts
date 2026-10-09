@@ -44,6 +44,7 @@ vi.mock('../../agents/shared/generate-reply-gateway.js', () => ({
 }));
 
 // Import after mocking
+import { getFrontendPublisher } from '../../agents/realtime/frontend-publisher.js';
 import {
   detectConfirmationIntent,
   handleActionApprovalIntent,
@@ -304,10 +305,37 @@ describe('Action Visibility System', () => {
           metadata: {},
         };
 
+        initActionDispatcher({
+          session: {} as unknown as Parameters<typeof initActionDispatcher>[0]['session'],
+          sessionId: 'session-1',
+          userId: testUserId,
+        });
+
         const result = await dispatchPendingAction(action, { skipVoice: true });
 
         expect(result.sentToUI).toBe(true);
+        expect(getFrontendPublisher).toHaveBeenCalledWith('session-1');
         expect(mockSendPendingAction).toHaveBeenCalledWith(action);
+      });
+
+      it("should not send to another caller's UI when the user has no live call", async () => {
+        const action: PendingAction = {
+          id: 'test_dispatch_no_call',
+          userId: testUserId,
+          actionType: 'send_sms',
+          category: 'messaging',
+          description: 'Send SMS',
+          preview: createMockActionPreview({ title: 'Test SMS' }),
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 300000).toISOString(),
+          metadata: {},
+        };
+
+        const result = await dispatchPendingAction(action, { skipVoice: true });
+
+        expect(result.sentToUI).toBe(false);
+        expect(mockSendPendingAction).not.toHaveBeenCalled();
       });
 
       it('should skip UI when publisher is not connected', async () => {

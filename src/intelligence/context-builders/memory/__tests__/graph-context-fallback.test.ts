@@ -13,6 +13,22 @@ vi.mock('../../../../memory/spanner-graph/index.js', () => ({
 
 vi.mock('../../../../memory/entity-store/entity-resolver.js', () => ({
   whatDoWeKnowAbout: vi.fn(async (_userId: string, query: string) => {
+    if (query.toLowerCase() === 'dana') {
+      throw new Error('entity store unavailable');
+    }
+    if (query.toLowerCase() === 'mike') {
+      // Slower than Sarah, so lookups for several people finish out of order.
+      await new Promise((resolve) => {
+        setTimeout(resolve, 20);
+      });
+      return {
+        entity: { id: 'e2', canonicalName: 'Mike', type: 'person', attributes: { _type: 'person' } },
+        mentions: [],
+        facts: [{ entityName: 'Mike', key: 'work', value: 'Stripe', confidence: 0.9 }],
+        relationships: [],
+        relatedEntities: [],
+      };
+    }
     if (query.toLowerCase() === 'sarah') {
       return {
         entity: { id: 'e1', canonicalName: 'Sarah', type: 'person', attributes: { _type: 'person' } },
@@ -58,6 +74,7 @@ vi.mock('../../index.js', () => ({
   registerContextBuilder: vi.fn(),
 }));
 
+import { detectEntities } from '../../../entity-detector.js';
 import { buildGraphContext } from '../graph-context.js';
 
 describe('buildGraphContext Firestore fallback', () => {
@@ -74,5 +91,46 @@ describe('buildGraphContext Firestore fallback', () => {
     expect(injections.length).toBeGreaterThan(0);
     expect(injections[0].content).toMatch(/Sarah/i);
     expect(injections[0].content).toMatch(/Google|work/i);
+  });
+
+  it("keeps each person's facts with that person when lookups finish out of order", async () => {
+    vi.mocked(detectEntities).mockReturnValueOnce([
+      { name: 'Mike', type: 'person', confidence: 0.9 },
+      { name: 'Sarah', type: 'person', confidence: 0.9 },
+    ] as never);
+
+    const injections = await buildGraphContext({
+      userText: 'Lunch with Mike today, then Sarah called.',
+      services: { userId: 'user-1', sessionId: 'sess-1' },
+    } as never);
+
+    // The createStandardInjection mock above returns { type, content, meta }.
+    const mocked = injections as unknown as Array<{ type: string; content: string }>;
+    const entity = mocked.filter((i) => i.type === 'entity_context').map((i) => i.content);
+    expect(entity).toHaveLength(2);
+    expect(entity[0]).toMatch(/Mike/);
+    expect(entity[0]).toMatch(/Stripe/);
+    expect(entity[0]).not.toMatch(/Google/);
+    expect(entity[1]).toMatch(/Sarah/);
+    expect(entity[1]).toMatch(/Google/);
+  });
+
+  it("still injects what it found when another person's lookup fails", async () => {
+    vi.mocked(detectEntities).mockReturnValueOnce([
+      { name: 'Dana', type: 'person', confidence: 0.9 },
+      { name: 'Sarah', type: 'person', confidence: 0.9 },
+    ] as never);
+
+    const injections = await buildGraphContext({
+      userText: 'Dana texted me, then Sarah called.',
+      services: { userId: 'user-1', sessionId: 'sess-1' },
+    } as never);
+
+    // The createStandardInjection mock above returns { type, content, meta }.
+    const mocked = injections as unknown as Array<{ type: string; content: string }>;
+    const entity = mocked.filter((i) => i.type === 'entity_context').map((i) => i.content);
+    expect(entity).toHaveLength(1);
+    expect(entity[0]).toMatch(/Sarah/);
+    expect(entity[0]).toMatch(/Google/);
   });
 });

@@ -454,7 +454,7 @@ Generate text using the language model.
   "name": "Summarize",
   "config": {
     "prompt": "Summarize this in one sentence: {{data}}",
-    "model": "gemini-2.0-flash",
+    "model": "gemini-3.5-flash",
     "outputVariable": "summary"
   }
 }

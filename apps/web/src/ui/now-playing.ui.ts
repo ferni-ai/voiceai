@@ -1145,7 +1145,7 @@ class NowPlayingUI {
         ${ICONS.play}
       </div>
       <div class="now-playing__info" tabindex="0" role="button" aria-label="${t('nowPlaying.trackInfo', 'Track info')}">
-        <p class="now-playing__track">Loading...</p>
+        <p class="now-playing__track">${t('common.loading')}</p>
         <p class="now-playing__artist"></p>
         <div class="now-playing__time">
           <span class="now-playing__time-current">0:00</span>
@@ -1380,7 +1380,7 @@ class NowPlayingUI {
     if (ourSongEl) {
       if (this.currentTrack.isOurSong) {
         this.container.classList.add('now-playing--our-song');
-        ourSongEl.title = this.currentTrack.ourSongContext ?? 'A song we share';
+        ourSongEl.title = this.currentTrack.ourSongContext ?? t('titles.sharedSong');
 
         if (!prefersReducedMotion()) {
           ourSongEl.animate(
@@ -1400,7 +1400,7 @@ class NowPlayingUI {
     // Ambient mode
     if (this.currentTrack.isAmbient) {
       this.container.classList.add('now-playing--ambient', 'now-playing--ambient-minimal');
-      this.container.setAttribute('data-ambient-hint', 'Thinking music...');
+      this.container.setAttribute('data-ambient-hint', t('nowPlaying.thinkingMusic'));
     } else {
       this.container.classList.remove('now-playing--ambient', 'now-playing--ambient-minimal');
       this.container.removeAttribute('data-ambient-hint');

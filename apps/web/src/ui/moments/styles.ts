@@ -344,7 +344,7 @@ const MOMENT_STYLES = `
 .moment-celebration__subtitle {
   font-family: var(--font-body, 'Inter');
   font-size: clamp(14px, 3.5vw, 16px);
-  color: var(--color-text-secondary, #70605a);
+  color: var(--color-text-secondary, #a89b8c);
   margin: 0;
 }
 
@@ -374,8 +374,8 @@ const MOMENT_STYLES = `
   position: absolute;
   inset: 0;
   background: rgba(44, 37, 32, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
 }
 
 .moment-milestone__card {

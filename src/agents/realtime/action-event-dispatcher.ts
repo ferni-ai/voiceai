@@ -295,9 +295,9 @@ export async function dispatchPendingAction(
   const ctx = sessionId ? sessionContexts.get(sessionId) : getContextByUserId(action.userId);
 
   // Send to UI via FrontendPublisher
-  if (!opts.skipUI) {
+  if (!opts.skipUI && ctx) {
     try {
-      const publisher = getFrontendPublisher();
+      const publisher = getFrontendPublisher(ctx.sessionId);
       if (publisher.isConnected()) {
         const sent = await publisher.sendPendingAction(action);
         result.sentToUI = sent;
@@ -357,10 +357,14 @@ export async function dispatchActionApproved(
   action: PendingAction,
   options: { skipVoice?: boolean; sessionId?: string } = {}
 ): Promise<void> {
-  // Send UI update
+  const ctx = options.sessionId
+    ? sessionContexts.get(options.sessionId)
+    : getContextByUserId(action.userId);
+
+  // Send UI update to the call that owns the action
   try {
-    const publisher = getFrontendPublisher();
-    if (publisher.isConnected()) {
+    const publisher = getFrontendPublisher(ctx?.sessionId);
+    if (ctx && publisher.isConnected()) {
       await publisher.sendActionResolved(action.id, 'approved');
     }
   } catch (error) {
@@ -368,9 +372,6 @@ export async function dispatchActionApproved(
   }
 
   // Voice confirmation
-  const ctx = options.sessionId
-    ? sessionContexts.get(options.sessionId)
-    : getContextByUserId(action.userId);
 
   if (!options.skipVoice && ctx) {
     try {
@@ -399,10 +400,14 @@ export async function dispatchActionRejected(
   action: PendingAction,
   options: { skipVoice?: boolean; sessionId?: string } = {}
 ): Promise<void> {
-  // Send UI update
+  const ctx = options.sessionId
+    ? sessionContexts.get(options.sessionId)
+    : getContextByUserId(action.userId);
+
+  // Send UI update to the call that owns the action
   try {
-    const publisher = getFrontendPublisher();
-    if (publisher.isConnected()) {
+    const publisher = getFrontendPublisher(ctx?.sessionId);
+    if (ctx && publisher.isConnected()) {
       await publisher.sendActionResolved(action.id, 'rejected');
     }
   } catch (error) {
@@ -410,9 +415,6 @@ export async function dispatchActionRejected(
   }
 
   // Voice acknowledgment
-  const ctx = options.sessionId
-    ? sessionContexts.get(options.sessionId)
-    : getContextByUserId(action.userId);
 
   if (!options.skipVoice && ctx) {
     try {

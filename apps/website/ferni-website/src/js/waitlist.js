@@ -21,6 +21,7 @@
   const confettiCanvas = document.getElementById('confettiCanvas');
 
   if (!form || !emailInput) {
+    // eslint-disable-next-line no-console -- report failures in the browser console
     console.warn('[Waitlist] Form elements not found');
     return;
   }
@@ -215,6 +216,7 @@
         }
       }
     } catch (err) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.error('[Waitlist] Submission error:', err);
       showError("Couldn't connect. Check your internet?");
     } finally {
@@ -241,5 +243,4 @@
   // INIT
   // ============================================
 
-  console.log('%c🌿 Waitlist ready', 'color: #4a6741; font-weight: bold;');
 })();

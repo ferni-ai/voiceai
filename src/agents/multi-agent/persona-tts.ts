@@ -12,21 +12,6 @@ import { getLogger } from '../../utils/safe-logger.js';
 const log = getLogger();
 
 /**
- * Create Qwen3-TTS adapter when USE_QWEN3_OMNI is set.
- * Used by AgentSession for TTS when provider is Qwen3-Omni.
- */
-export async function createQwen3TTS(personaId: string) {
-  const { Qwen3TTSAdapter } =
-    await import('../../integrations/qwen3-omni/adapters/livekit-tts-adapter.js');
-  const serverUrl = process.env.QWEN3_TTS_URL || 'http://localhost:8001';
-  return new Qwen3TTSAdapter({
-    serverUrl,
-    personaId,
-    language: 'English',
-  });
-}
-
-/**
  * Create TTS engine with persona's voice.
  * Uses the same PersonaAwareTTS pattern as voice-agent-entry.ts
  *

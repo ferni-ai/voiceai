@@ -9,9 +9,6 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const showTrustDashboard = vi.fn(async () => undefined);
-vi.mock('../../src/app/panel-methods.js', () => ({ showTrustDashboard }));
-
 const { relationshipStageService } =
   await import('../../src/services/relationship-stage.service.js');
 const { getSettingsMenuUI, initSettingsMenuUI } = await import('../../src/ui/settings-menu.ui.js');
@@ -24,12 +21,13 @@ function menuButton(action: string): HTMLElement | null {
 
 describe('settings menu: dashboard entry points', () => {
   const onWellbeingClick = vi.fn();
+  const onTrustDashboardClick = vi.fn();
 
   beforeEach(() => {
     // A user past the first couple of conversations, with features unlocked.
     vi.spyOn(relationshipStageService, 'getStage').mockReturnValue('established');
     vi.spyOn(relationshipStageService, 'isFeatureUnlocked').mockReturnValue(true);
-    initSettingsMenuUI({ onWellbeingClick });
+    initSettingsMenuUI({ onWellbeingClick, onTrustDashboardClick });
     getSettingsMenuUI().show();
   });
 
@@ -38,7 +36,7 @@ describe('settings menu: dashboard entry points', () => {
   });
 
   // One render: the menu is a singleton and the test setup clears the DOM between tests.
-  it('renders Trust & Growth and wellbeing items that open their dashboards', async () => {
+  it('renders Trust & Growth and wellbeing items that open their dashboards', () => {
     const trust = menuButton('trust-dashboard');
     const wellbeing = menuButton('wellbeing');
     expect(trust).not.toBeNull();
@@ -48,6 +46,6 @@ describe('settings menu: dashboard entry points', () => {
     expect(onWellbeingClick).toHaveBeenCalledTimes(1);
 
     trust?.click();
-    await vi.waitFor(() => expect(showTrustDashboard).toHaveBeenCalledTimes(1));
+    expect(onTrustDashboardClick).toHaveBeenCalledTimes(1);
   });
 });

@@ -14,8 +14,8 @@ import type { Ritual } from './ritual.types.js';
 
 const FIRST_TIME_RITUAL: Ritual = {
   id: 'first-time-ever',
-  name: 'First Time Ever',
-  description: 'Welcome ritual for brand new users',
+  nameKey: 'rituals.firstTimeEver',
+  descriptionKey: 'rituals.firstTimeEverDesc',
   trigger: 'session_start_first_ever',
   priority: 100,
   interruptible: false,
@@ -49,8 +49,8 @@ const FIRST_TIME_RITUAL: Ritual = {
 
 const WELCOME_BACK_RITUAL: Ritual = {
   id: 'welcome-back',
-  name: 'Welcome Back',
-  description: 'Warm welcome for returning users (24h+ gap)',
+  nameKey: 'rituals.welcomeBack',
+  descriptionKey: 'rituals.welcomeBackDesc',
   trigger: 'session_start_after_24h',
   priority: 70,
   interruptible: true,
@@ -85,8 +85,8 @@ const WELCOME_BACK_RITUAL: Ritual = {
 
 const CONNECTION_HEALING_RITUAL: Ritual = {
   id: 'connection-healing',
-  name: 'Connection Healing',
-  description: 'Seamless recovery after disconnection',
+  nameKey: 'rituals.connectionHealing',
+  descriptionKey: 'rituals.connectionHealingDesc',
   trigger: 'session_start', // Triggered by reconnection logic
   conditions: [
     { type: 'user_preference', key: 'wasDisconnected', value: true },
@@ -120,8 +120,8 @@ const CONNECTION_HEALING_RITUAL: Ritual = {
 
 const ACKNOWLEDGMENT_RITUAL: Ritual = {
   id: 'emotional-acknowledgment',
-  name: 'Emotional Acknowledgment',
-  description: 'Acknowledge when user shares something significant',
+  nameKey: 'rituals.emotionalAcknowledgment',
+  descriptionKey: 'rituals.emotionalAcknowledgmentDesc',
   trigger: 'emotional_content_detected',
   conditions: [
     { type: 'emotion', emotion: 'vulnerable' },
@@ -155,8 +155,8 @@ const ACKNOWLEDGMENT_RITUAL: Ritual = {
 
 const DEEP_BREATH_RITUAL: Ritual = {
   id: 'deep-breath',
-  name: 'Deep Breath',
-  description: 'Settle before discussing something serious',
+  nameKey: 'rituals.deepBreath',
+  descriptionKey: 'rituals.deepBreathDesc',
   trigger: 'emotional_content_detected',
   conditions: [
     {
@@ -201,8 +201,8 @@ const DEEP_BREATH_RITUAL: Ritual = {
 
 const SMALL_WIN_RITUAL: Ritual = {
   id: 'small-win',
-  name: 'Small Win Celebration',
-  description: 'Celebrate daily wins and progress',
+  nameKey: 'rituals.smallWinCelebration',
+  descriptionKey: 'rituals.smallWinCelebrationDesc',
   trigger: 'win_detected',
   conditions: [
     { type: 'win_type', winType: 'followed_through' },
@@ -250,8 +250,8 @@ const SMALL_WIN_RITUAL: Ritual = {
 
 const BIG_WIN_RITUAL: Ritual = {
   id: 'big-win',
-  name: 'Big Win Celebration',
-  description: 'Major celebration for significant accomplishments',
+  nameKey: 'rituals.bigWinCelebration',
+  descriptionKey: 'rituals.bigWinCelebrationDesc',
   trigger: 'win_detected',
   conditions: [
     {
@@ -311,8 +311,8 @@ const BIG_WIN_RITUAL: Ritual = {
 
 const COURAGE_RITUAL: Ritual = {
   id: 'courage-moment',
-  name: 'Courage Celebration',
-  description: 'Acknowledge when user did something brave',
+  nameKey: 'rituals.courageCelebration',
+  descriptionKey: 'rituals.courageCelebrationDesc',
   trigger: 'win_detected',
   conditions: [
     { type: 'win_type', winType: 'courage_moment' },
@@ -359,8 +359,8 @@ const COURAGE_RITUAL: Ritual = {
 
 const STAGE_UP_RITUAL: Ritual = {
   id: 'stage-up',
-  name: 'Relationship Stage Up',
-  description: 'Celebrate advancing to a new relationship stage',
+  nameKey: 'rituals.relationshipStageUp',
+  descriptionKey: 'rituals.relationshipStageUpDesc',
   trigger: 'stage_up',
   priority: 90,
   interruptible: false,
@@ -413,8 +413,8 @@ const STAGE_UP_RITUAL: Ritual = {
 
 const TEAM_UNLOCK_RITUAL: Ritual = {
   id: 'team-unlock',
-  name: 'Team Member Unlock',
-  description: 'Welcome a new team member',
+  nameKey: 'rituals.teamMemberUnlock',
+  descriptionKey: 'rituals.teamMemberUnlockDesc',
   trigger: 'team_unlock',
   priority: 85,
   interruptible: false,
@@ -449,8 +449,8 @@ const TEAM_UNLOCK_RITUAL: Ritual = {
 
 const CONVERSATION_MILESTONE_RITUAL: Ritual = {
   id: 'conversation-milestone',
-  name: 'Conversation Milestone',
-  description: 'Acknowledge conversation count milestones',
+  nameKey: 'rituals.conversationMilestone',
+  descriptionKey: 'rituals.conversationMilestoneDesc',
   trigger: 'conversation_milestone',
   conditions: [
     {
@@ -483,8 +483,8 @@ const CONVERSATION_MILESTONE_RITUAL: Ritual = {
 
 const STREAK_RITUAL: Ritual = {
   id: 'streak-achieved',
-  name: 'Streak Achievement',
-  description: 'Celebrate conversation streaks',
+  nameKey: 'rituals.streakAchievement',
+  descriptionKey: 'rituals.streakAchievementDesc',
   trigger: 'streak_achieved',
   priority: 55,
   interruptible: true,
@@ -524,8 +524,8 @@ const STREAK_RITUAL: Ritual = {
 
 const ANNIVERSARY_RITUAL: Ritual = {
   id: 'anniversary',
-  name: 'Anniversary',
-  description: 'One year since first conversation',
+  nameKey: 'rituals.anniversary',
+  descriptionKey: 'rituals.anniversaryDesc',
   trigger: 'anniversary',
   conditions: [
     { type: 'days_since_first', days: 365, operator: 'eq' },
@@ -577,8 +577,8 @@ const ANNIVERSARY_RITUAL: Ritual = {
 
 const SESSION_END_RITUAL: Ritual = {
   id: 'session-end',
-  name: 'Session End',
-  description: 'Warm goodbye at session end',
+  nameKey: 'rituals.sessionEnd',
+  descriptionKey: 'rituals.sessionEndDesc',
   trigger: 'session_end',
   priority: 30,
   interruptible: true,
@@ -609,8 +609,8 @@ const SESSION_END_RITUAL: Ritual = {
 
 const CALLBACK_PROMISE_RITUAL: Ritual = {
   id: 'callback-promise',
-  name: 'Callback Promise',
-  description: 'End with promise to follow up',
+  nameKey: 'rituals.callbackPromise',
+  descriptionKey: 'rituals.callbackPromiseDesc',
   trigger: 'session_end',
   conditions: [
     { type: 'user_preference', key: 'hasPendingTopic', value: true },

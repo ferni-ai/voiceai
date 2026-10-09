@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { createSessionBindings } from '../../utils/session-bindings.js';
 
 const logger = createLogger({ module: 'HumanizationSignalEmitter' });
 
@@ -18,108 +19,21 @@ const logger = createLogger({ module: 'HumanizationSignalEmitter' });
 // TYPES
 // ============================================================================
 
-export type HumanizationSignalType =
-  | 'breakthrough'
-  | 'vulnerability'
-  | 'disengagement'
-  | 'high_engagement'
-  | 'mind_change'
-  | 'memory_callback'
-  | 'running_joke'
-  | 'physical_presence'
-  | 'spontaneous_thought'
-  | 'mood_drift'
-  | 'silence_moment'
-  | 'anticipation'
-  | 'evidence_presented'
-  | 'topic_weight_shift'
-  | 'relationship_milestone'
-  | 'repair_needed'
-  | 'aftercare_needed'
-  | 'subtext_detected'
-  | 'emotional_arc_peak'
-  | 'emotional_arc_release'
-  // Superhuman signals
-  | 'concern_detected'
-  | 'proactive_memory'
-  | 'voice_state_detected'
-  | 'need_predicted'
-  | 'emotional_trajectory'
-  // 🌟 Better Than Human signals
-  | 'emotional_bond_deepen'
-  | 'protective_instinct'
-  | 'spontaneous_delight'
-  | 'inside_joke_callback'
-  | 'superhuman_observation'
-  | 'visible_vulnerability'
-  | 'temporal_insight'
-  | 'meta_relationship_moment'
-  | 'somatic_presence'
-  | 'anticipatory_presence'
-  // Conversation repair & subtext signals
-  | 'repair_needed'
-  | 'aftercare_needed'
-  | 'subtext_detected';
+import type {
+  ConversationRhythmPayload,
+  EmotionalArcPayload,
+  HumanizationSignalPayload,
+  HumanizationSignalType,
+  MemoryCallbackPayload,
+} from './humanization-signal-types.js';
 
-export interface HumanizationSignalPayload {
-  signalType: HumanizationSignalType;
-  content?: string;
-  memoryAge?: string;
-  topic?: string;
-  intensity?: number;
-  mood?: {
-    energy: number;
-    engagement: number;
-    emotionalLoad: number;
-  };
-  relationshipStage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
-  silenceDuration?: number;
-  silenceReason?: 'processing' | 'emotional' | 'invitation' | 'presence';
-  // Superhuman signal data
-  concernLevel?: 'none' | 'mild' | 'moderate' | 'elevated' | 'crisis';
-  concernType?: string;
-  recommendedApproach?: string;
-  voiceState?: string;
-  predictedNeed?: string;
-  emotionalTrajectory?: string;
-  memoryType?: string;
-  // 🌟 Better Than Human signal data
-  bondType?: 'warmth' | 'trust' | 'protectiveness' | 'admiration' | 'concern';
-  bondLevel?: number;
-  protectionTrigger?: string;
-  delightType?: string;
-  jokePhase?: 'new' | 'established' | 'legacy';
-  jokeContent?: string;
-  observationType?: 'linguistic' | 'behavioral' | 'emotional' | 'relationship';
-  observationContent?: string;
-  vulnerabilityType?: string;
-  temporalInsight?: string;
-  metaRelationshipType?: string;
-  somaticCue?: string;
-  // Generic metadata for extensibility
-  metadata?: Record<string, unknown>;
-}
-
-export interface MemoryCallbackPayload {
-  quotedPhrase: string;
-  context: string;
-  whenMentioned: string;
-  emotionalWeight: 'light' | 'medium' | 'heavy';
-}
-
-export interface ConversationRhythmPayload {
-  userPacing: 'rapid' | 'moderate' | 'slow' | 'contemplative';
-  avgTurnLength: number;
-  pausePattern: 'frequent_short' | 'occasional_long' | 'flowing' | 'hesitant';
-  energyTrend: 'rising' | 'stable' | 'falling' | 'oscillating';
-}
-
-export interface EmotionalArcPayload {
-  phase: 'opening' | 'building' | 'peak' | 'release' | 'closing';
-  intensity: number;
-  dominantEmotion: string;
-  turnsSincePeak?: number;
-}
+export type {
+  ConversationRhythmPayload,
+  EmotionalArcPayload,
+  HumanizationSignalPayload,
+  HumanizationSignalType,
+  MemoryCallbackPayload,
+} from './humanization-signal-types.js';
 
 // Callback type for sending data to frontend
 type SendDataCallback = (type: string, payload: Record<string, unknown>) => Promise<void>;
@@ -128,13 +42,20 @@ type SendDataCallback = (type: string, payload: Record<string, unknown>) => Prom
 // STATE
 // ============================================================================
 
-let sendDataCallback: SendDataCallback | null = null;
+interface SessionEmitter {
+  sendData: SendDataCallback;
+  lastSignalTimes: Map<HumanizationSignalType, number>;
+}
+
+// The signal* helpers take no session ID, so a signal is delivered only while a
+// single call is live; with several calls it is dropped rather than sent to
+// another caller's avatar.
+const sessionEmitters = createSessionBindings<SessionEmitter>();
 let isEnabled = true;
 
 // Throttling to prevent overwhelming the frontend
 // Reduced from 2000ms to allow more responsive avatar behavior
 // High-priority signals (concern, anticipation) have shorter throttle
-const lastSignalTimes = new Map<HumanizationSignalType, number>();
 const SIGNAL_THROTTLE_MS = 1200; // Default throttle
 const HIGH_PRIORITY_THROTTLE_MS = 500; // For concern/anticipation
 
@@ -154,9 +75,21 @@ const HIGH_PRIORITY_SIGNALS: HumanizationSignalType[] = [
 /**
  * Initialize the signal emitter with a callback to send data to frontend
  */
-export function initHumanizationSignalEmitter(sendData: SendDataCallback): void {
-  sendDataCallback = sendData;
-  logger.info('Humanization signal emitter initialized');
+export function initHumanizationSignalEmitter(sessionId: string, sendData: SendDataCallback): void {
+  sessionEmitters.bind(sessionId, { sendData, lastSignalTimes: new Map() });
+  logger.info({ sessionId }, 'Humanization signal emitter initialized');
+}
+
+/**
+ * Remove a session's emitter at session end, or every emitter (for tests) when
+ * no session ID is given.
+ */
+export function releaseHumanizationSignalEmitter(sessionId?: string): void {
+  if (sessionId) {
+    sessionEmitters.release(sessionId);
+  } else {
+    sessionEmitters.clear();
+  }
 }
 
 /**
@@ -175,7 +108,10 @@ export function setSignalEmitterEnabled(enabled: boolean): void {
  * Check if a signal should be throttled
  * High-priority signals get a shorter throttle window
  */
-function shouldThrottle(signalType: HumanizationSignalType): boolean {
+function shouldThrottle(
+  signalType: HumanizationSignalType,
+  lastSignalTimes: Map<HumanizationSignalType, number>
+): boolean {
   const lastTime = lastSignalTimes.get(signalType) || 0;
   const elapsed = Date.now() - lastTime;
 
@@ -197,20 +133,21 @@ function shouldThrottle(signalType: HumanizationSignalType): boolean {
  * Emit a humanization signal to the frontend
  */
 export async function emitHumanizationSignal(payload: HumanizationSignalPayload): Promise<void> {
-  if (!isEnabled || !sendDataCallback) {
+  const emitter = isEnabled ? sessionEmitters.resolve() : undefined;
+  if (!emitter) {
     logger.debug(
       { signalType: payload.signalType },
-      'Signal emission skipped (disabled or no callback)'
+      'Signal emission skipped (disabled, or no single live session)'
     );
     return;
   }
 
-  if (shouldThrottle(payload.signalType)) {
+  if (shouldThrottle(payload.signalType, emitter.lastSignalTimes)) {
     return;
   }
 
   try {
-    await sendDataCallback('humanization_signal', {
+    await emitter.sendData('humanization_signal', {
       ...payload,
       type: 'humanization_signal',
     });
@@ -224,14 +161,19 @@ export async function emitHumanizationSignal(payload: HumanizationSignalPayload)
   }
 }
 
+function liveSendData(): SendDataCallback | undefined {
+  return isEnabled ? sessionEmitters.resolve()?.sendData : undefined;
+}
+
 /**
  * Emit a memory callback signal with specific quoted content
  */
 export async function emitMemoryCallback(payload: MemoryCallbackPayload): Promise<void> {
-  if (!isEnabled || !sendDataCallback) return;
+  const sendData = liveSendData();
+  if (!sendData) return;
 
   try {
-    await sendDataCallback('memory_callback', {
+    await sendData('memory_callback', {
       ...payload,
       type: 'memory_callback',
     });
@@ -246,10 +188,11 @@ export async function emitMemoryCallback(payload: MemoryCallbackPayload): Promis
  * Emit conversation rhythm update
  */
 export async function emitConversationRhythm(payload: ConversationRhythmPayload): Promise<void> {
-  if (!isEnabled || !sendDataCallback) return;
+  const sendData = liveSendData();
+  if (!sendData) return;
 
   try {
-    await sendDataCallback('conversation_rhythm', {
+    await sendData('conversation_rhythm', {
       ...payload,
       type: 'conversation_rhythm',
     });
@@ -264,10 +207,11 @@ export async function emitConversationRhythm(payload: ConversationRhythmPayload)
  * Emit emotional arc update
  */
 export async function emitEmotionalArc(payload: EmotionalArcPayload): Promise<void> {
-  if (!isEnabled || !sendDataCallback) return;
+  const sendData = liveSendData();
+  if (!sendData) return;
 
   try {
-    await sendDataCallback('emotional_arc', {
+    await sendData('emotional_arc', {
       ...payload,
       type: 'emotional_arc',
     });

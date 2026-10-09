@@ -1,5 +1,7 @@
 # Testing each LLM provider one by one
 
+> **2026-10-04:** Qwen3-Omni, the Local Pipeline (Kyutai STT + Ollama) and the Omni Pipeline were removed from the codebase. Their sections below are historical. See `docs/VOICE-STACK-DIRECTION.md`.
+
 How to test and compare all voice-agent LLM providers (Gemini Live, OpenAI Realtime, Qwen3-Omni, Gemma 3n, ChipChat, Local Pipeline, Omni Pipeline) **one at a time**.
 
 ---

@@ -5,4 +5,5 @@
  */
 
 export * from './frontend-publisher.js';
+export * from './session-publishers.js';
 export * from './emotion-event-dispatcher.js';

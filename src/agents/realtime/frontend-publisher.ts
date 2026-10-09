@@ -302,7 +302,7 @@ export class FrontendPublisher {
   /**
    * Set or update the room reference
    */
-  setRoom(room: RoomRef): void {
+  setRoom(room: RoomRef | null): void {
     this.room = room;
   }
 
@@ -810,40 +810,9 @@ export class FrontendPublisher {
   }
 }
 
-// ============================================================================
-// SINGLETON INSTANCE
-// ============================================================================
-
-let publisherInstance: FrontendPublisher | null = null;
-
-/**
- * Get the singleton FrontendPublisher instance
- */
-export function getFrontendPublisher(): FrontendPublisher {
-  if (!publisherInstance) {
-    publisherInstance = new FrontendPublisher();
-  }
-  return publisherInstance;
-}
-
-/**
- * Initialize the FrontendPublisher with a room
- */
-export function initializeFrontendPublisher(
-  room: RoomRef,
-  config?: PublisherConfig
-): FrontendPublisher {
-  if (!publisherInstance) {
-    publisherInstance = new FrontendPublisher(room, config);
-  } else {
-    publisherInstance.setRoom(room);
-  }
-  return publisherInstance;
-}
-
-/**
- * Reset the singleton (for testing)
- */
-export function resetFrontendPublisher(): void {
-  publisherInstance = null;
-}
+export {
+  getFrontendPublisher,
+  initializeFrontendPublisher,
+  releaseFrontendPublisher,
+  resetFrontendPublisher,
+} from './session-publishers.js';

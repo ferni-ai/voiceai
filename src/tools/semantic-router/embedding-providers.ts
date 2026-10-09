@@ -163,15 +163,14 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
 // ============================================================================
 
 /**
- * Google text-embedding-004 provider
+ * Google gemini-embedding-001 provider
  *
- * Free tier available, good quality.
- * Dimensions: 768
- * Latency: ~30-80ms
+ * Same model memory/vectors uses. text-embedding-004 is retired.
+ * Dimensions: 3072
  */
 export class GoogleEmbeddingProvider implements EmbeddingProvider {
-  readonly modelName = 'text-embedding-004';
-  readonly dimensions = 768;
+  readonly modelName = 'gemini-embedding-001';
+  readonly dimensions = 3072;
 
   private apiKey: string;
   private useCache: boolean;

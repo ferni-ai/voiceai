@@ -1,16 +1,16 @@
 # Function Calling System Architecture
 
-> **⚠️ CRITICAL SYSTEM - READ THIS BEFORE MAKING ANY CHANGES**
+> **Current (2026-10):** Voice and `/api/chat` use **native function calling**. The JSON `{fn,args}` TTS-sanitizer workaround and LLMCompiler were removed. Sections below that describe the JSON intercept are historical.
 
-This document describes Ferni's function calling workaround for Gemini Live API. This is a **critical, fragile system** that has been carefully tuned. Changes can break the entire voice experience.
+**Current path:** model function declarations → SDK `functionCalls()` / LiveKit tools → `executeTool` in `src/agents/shared/tool-dispatcher.ts` for text chat. TTS leak filters may still strip leftover JSON-shaped text so it is not spoken.
 
 ---
 
-## Why This Exists
+## Historical: Why the JSON workaround existed
 
-**Problem:** Gemini Live API's native function calling is unreliable (as of Dec 2024). Instead of calling tools, Gemini often outputs text like "I'll play some music for you" or "Let me transfer you to Maya."
+**Problem (2024):** Gemini Live native function calling was unreliable. Instead of calling tools, Gemini often outputted text like "I'll play some music for you."
 
-**Solution:** We instruct Gemini to output **raw JSON** in a specific format, then intercept and execute it ourselves.
+**Removed solution:** Instruct Gemini to output raw JSON, then intercept it in the TTS sanitizer.
 
 ```
 User: "Play some jazz"

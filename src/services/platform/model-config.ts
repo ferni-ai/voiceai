@@ -294,16 +294,9 @@ export const DEFAULT_TOOL_CONFIG: ToolConfig = {
  * Available Gemini models
  */
 export const AVAILABLE_MODELS = [
-  {
-    id: 'gemini-3.5-flash',
-    name: 'Gemini 3.5 Flash',
-    description: 'Fast, recommended',
-  },
-  {
-    id: 'gemini-3.5-flash-lite',
-    name: 'Gemini 3.5 Flash-Lite',
-    description: 'Fastest, lowest cost: classification and light tasks',
-  },
+  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', description: 'Fast, recommended' },
+  { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash-Lite', description: 'Fastest, lowest cost' },
+  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro (Preview)', description: 'Higher quality, slower' },
 ];
 
 // ============================================================================

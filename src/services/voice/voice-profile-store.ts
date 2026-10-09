@@ -481,8 +481,9 @@ export async function getVoiceProfileStats(userId: string): Promise<{
   verificationCount?: number;
   sampleCount?: number;
   needsReEnrollment?: boolean;
+  /** How the profile was enrolled; absent means DSP (voice-match-trust). */
+  embeddingMethod?: EmbeddingMethod;
 } | null> {
-  // Check memory cache first
   const cached = memoryCache.get(userId);
   if (cached) {
     return {
@@ -492,24 +493,18 @@ export async function getVoiceProfileStats(userId: string): Promise<{
       verificationCount: cached.verificationCount,
       sampleCount: cached.metadata.sampleCount,
       needsReEnrollment: cached.qualityScore < 0.6 || cached.metadata.sampleCount < 3,
+      embeddingMethod: cached.embeddingMethod,
     };
   }
 
   const db = getFirestoreInstance();
-  if (!db) {
-    return { exists: false };
-  }
+  if (!db) return { exists: false };
 
   try {
-    const profileRef = db.doc(getProfilePath(userId));
-    const profileDoc = await profileRef.get();
-
-    if (!profileDoc.exists) {
-      return { exists: false };
-    }
+    const profileDoc = await db.doc(getProfilePath(userId)).get();
+    if (!profileDoc.exists) return { exists: false };
 
     const data = profileDoc.data() as FirestoreVoiceProfile;
-
     return {
       exists: true,
       enrolledAt: data.enrolledAt.toDate(),
@@ -517,6 +512,7 @@ export async function getVoiceProfileStats(userId: string): Promise<{
       verificationCount: data.verificationCount,
       sampleCount: data.metadata.sampleCount,
       needsReEnrollment: data.qualityScore < 0.6 || data.metadata.sampleCount < 3,
+      embeddingMethod: data.embeddingMethod,
     };
   } catch (error) {
     log.error({ error, userId }, 'Failed to get voice profile stats');

@@ -36,7 +36,7 @@ Write code that is clean, maintainable, and production-ready - but never at the 
 | `johnb-app`        | app.ferni.ai         | Firebase Hosting (app, custom domain) |
 | `ferni-landing`    | ferni.ai             | Landing page                          |
 | `bogle-ui`         | (Cloud Run)          | Backend APIs                          |
-| `voiceai-agent-gce`| 34.134.186.63        | Voice Agent (GCE)                     |
+| `voice-agent`      | LiveKit Cloud        | Voice agent (`lk agent deploy`)       |
 
 ### After Making Changes - ALWAYS DEPLOY
 
@@ -44,7 +44,7 @@ When you finish implementing a feature, **proactively suggest the correct deploy
 
 | Files Changed                       | Deploy Command                | What it does                                |
 | ----------------------------------- | ----------------------------- | ------------------------------------------- |
-| `src/agents/**/*.ts` (voice agent)  | `npm run deploy:agent`        | Deploy voice agent to GCE                   |
+| `src/agents/**/*.ts` (voice agent)  | `lk agent deploy`             | Deploy voice agent to LiveKit Cloud         |
 | `src/**/*.ts` (backend)             | `npm run deploy:ui:async`     | Blue-green deploy UI backend                |
 | `frontend-typescript/src/*`         | `npm run deploy:frontend`     | Deploys to BOTH ferni-prod AND app.ferni.ai |
 | `frontend-typescript/firebase.json` | `npm run deploy:frontend`     | Updates Firebase rewrites                   |
@@ -106,8 +106,8 @@ Example rewrite for new `/api/newfeature` endpoint:
 ### CI/CD vs Manual Deploy
 
 - **Push to main** → CI/CD auto-deploys Cloud Run (UI server only)
-- **Voice Agent (GCE)** → Manual: `npm run deploy:agent`
-- **Firebase Hosting** → Manual: `npm run deploy:frontend` or `npm run deploy:landing`
+- **Voice Agent** → Manual: `lk agent deploy` (LiveKit Cloud; the GCE VM is terminated)
+- **Firebase Hosting** → Manual: `ferni deploy frontend` or `ferni deploy landing`
 
 ### Verification Commands
 
@@ -115,7 +115,7 @@ Example rewrite for new `/api/newfeature` endpoint:
 curl https://app.ferni.ai/health          # Check UI backend
 curl https://app.ferni.ai/api/agents      # Check agents API
 curl https://app.ferni.ai/spotify/status  # Check Spotify
-curl http://34.134.186.63:8080/health     # Check voice agent (GCE)
+lk agent status                           # Check LiveKit Cloud voice agent
 npm run ops:logs                          # View voice agent logs
 ```
 

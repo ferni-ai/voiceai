@@ -14,6 +14,7 @@ import {
   setPersona as setThemePersona,
   startAmbientCycle,
   toggleTheme,
+  watchSystemTheme,
 } from './theme/index.js';
 // Theme & Language Settings panel
 import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
@@ -144,34 +145,6 @@ import { initMoodUI, moodUI } from './ui/mood.ui.js';
 // import { initSkeletonUI, skeletonUI } from './ui/skeleton.ui.js';
 import { initThinkingUI, thinkingUI } from './ui/thinking.ui.js';
 import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
-// Director Mode (Qwen3-Omni ensemble control)
-import { getDirectorConsole, toggleDirectorConsole } from './ui/director-console.ui.js';
-
-const DIRECTOR_TRIGGER_ID = 'directorConsoleTrigger';
-
-function ensureDirectorTriggerButton(): void {
-  let el = document.getElementById(DIRECTOR_TRIGGER_ID);
-  if (el) {
-    el.style.display = 'flex';
-    return;
-  }
-  const controls = document.querySelector('.controls');
-  if (!controls) return;
-  const btn = document.createElement('button');
-  btn.id = DIRECTOR_TRIGGER_ID;
-  btn.type = 'button';
-  btn.className = 'btn btn-secondary anticipate-btn';
-  btn.setAttribute('aria-label', 'Open Director Console');
-  btn.textContent = 'Director';
-  btn.style.marginLeft = 'var(--space-2, 8px)';
-  btn.addEventListener('click', () => toggleDirectorConsole());
-  controls.appendChild(btn);
-}
-
-function hideDirectorTriggerButton(): void {
-  const el = document.getElementById(DIRECTOR_TRIGGER_ID);
-  if (el) el.style.display = 'none';
-}
 import {
   getIntegrationsSettingsUI,
   showIntegrationsSettings,
@@ -232,7 +205,10 @@ import {
   disposeSpeechEventDispatcher,
 } from './services/speech-event-dispatcher.js';
 // I18n - Internationalization and localization
-import { initI18n } from './i18n/index.js';
+import { initI18n, t } from './i18n/index.js';
+import { bindStaticDom } from './i18n/static-dom.js';
+import { installDialogFocus } from './utils/dialog-focus.js';
+import { tp } from './i18n/plural.js';
 // Mood Context - Time-based persona mood for "Better than Human"
 import { disposeMoodContext } from './services/mood-context.service.js';
 // Demo data for testing without backend
@@ -283,6 +259,7 @@ import { handleOAuthReturns } from './app/oauth-return.js';
 import { createIntegrationsCallbacks } from './app/integrations-callbacks.js';
 // Voice Enrollment UI
 import { initVoiceEnrollmentUI, showVoiceEnrollmentModal } from './ui/voice-enrollment.ui.js';
+import { offerVoiceReenroll, shouldOfferVoiceReenroll } from './ui/voice-reenroll-card.ui.js';
 // Voice ID Badge
 import { initVoiceIdBadge } from './ui/voice-id-badge.ui.js';
 // Speaker Change Indicator - Gentle verification when voice changes
@@ -406,6 +383,7 @@ import {
   showDataExport,
   showPredictionTracker,
   showTeamHuddle,
+  showTrustDashboard,
   showYourStoryDashboard,
 } from './app/panel-methods.js';
 
@@ -514,17 +492,21 @@ class VoiceAIApp {
       // Initialize theme system first (affects all UI)
       this.initializeTheme();
 
-      // Initialize i18n (internationalization) - must await before UI init
-      await initI18n();
-
-      // Check authentication - require sign-in before proceeding
-      // This matches iOS behavior where users must sign in with Apple/Google
-      // IMPORTANT: Must await auth initialization to restore any existing session
+      await initI18n(); // before any UI renders
+      bindStaticDom(); // index.html text marked with data-i18n
+      installDialogFocus(); // focus into, around and back out of every modal
+      // Require sign-in, like iOS; await it so an existing session is restored
       const authState = await initializeAuth();
-      if (!authState.isAuthenticated) {
+      // The dev server accepts ?e2e=1 so Playwright can reach the settings
+      // theme picker. Production builds set import.meta.env.DEV to false.
+      const allowDevE2E =
+        import.meta.env.DEV && new URLSearchParams(window.location.search).get('e2e') === '1';
+      if (!authState.isAuthenticated && !allowDevE2E) {
         log.info('User not authenticated, showing sign-in gate');
         await showSignInGate();
         log.info('User signed in, continuing app initialization');
+      } else if (allowDevE2E && !authState.isAuthenticated) {
+        log.info('Dev server e2e bypass: continuing without a session');
       } else {
         log.info('User already authenticated', { uid: authState.uid?.slice(0, 8) });
       }
@@ -586,7 +568,7 @@ class VoiceAIApp {
       avatarFeedback.setEntranceComplete();
     } catch (error) {
       log.error('Initialization failed:', error);
-      messageUI.show('Having trouble starting up. Try refreshing?', 'error');
+      messageUI.show(t('app.startupError'), 'error');
     }
   }
 
@@ -618,16 +600,16 @@ class VoiceAIApp {
         const remaining = subscriptionCheck.remaining;
         if (remaining !== null) {
           if (remaining <= 1) {
-            toast.info("This is your last conversation this month. Let's make it count.");
+            toast.info(t('app.lastConversation'));
           } else if (remaining <= 2) {
-            toast.info(`${remaining} conversations left. I'm here whenever you need me.`);
+            toast.info(tp('app.conversationsLeft', remaining));
           }
         }
       }, 3000);
     }
 
     // Show immediate feedback - user tapped the button
-    messageUI.show('Getting ready...', 'info', 30000);
+    messageUI.show(t('app.gettingReady'), 'info', 30000);
 
     // iOS CRITICAL: Create and resume AudioContext FIRST in user gesture
     // This must happen synchronously at the start of the click handler
@@ -651,7 +633,7 @@ class VoiceAIApp {
     }
 
     // Show thinking indicator with connection progress
-    thinkingUI.show('Connecting');
+    thinkingUI.show(t('app.connecting'));
     thinkingUI.showProgress(0); // Step 0: Authenticating
     waveformUI.setThinking(true);
 
@@ -668,7 +650,7 @@ class VoiceAIApp {
     // Step 2: Connecting audio. Resolves once the agent is in the room;
     // a 30s limit really cancels the attempt.
     thinkingUI.showProgress(2);
-    messageUI.show('Almost there...', 'info', 30000);
+    messageUI.show(t('app.almostThere'), 'info', 30000);
     clearCallNotice();
     const outcome = await connectWithTimeout(connectionService);
 
@@ -754,16 +736,6 @@ class VoiceAIApp {
 
     // Check microphone permission and show helpful message if denied
     void this.checkMicrophoneStatus();
-
-    // Director Console: init with current session; open via menu (Director Console) or Cmd+Shift+E / Cmd+Shift+D
-    const roomState = connectionService.getRoomState();
-    if (roomState.roomName && roomState.localParticipantId) {
-      getDirectorConsole({
-        sessionId: roomState.roomName,
-        userId: roomState.localParticipantId,
-      });
-      // Director button removed from control bar; use menu (Settings → Director Console) or keyboard shortcut
-    }
 
     // 🎉 Dispatch conversation start event for all systems to track
     // This is the SINGLE SOURCE OF TRUTH for conversation tracking
@@ -913,8 +885,6 @@ class VoiceAIApp {
     void this.recordConversationUsage(sessionStart);
     void spotifyService.pause().catch((e) => log.warn('Spotify pause failed', e));
 
-    hideDirectorTriggerButton();
-
     // FIX BUG: Reset handoff service to clear stuck transition states
     handoffService.resetSession();
 
@@ -954,7 +924,7 @@ class VoiceAIApp {
     void room.localParticipant?.setMicrophoneEnabled(!newMuted);
     appState.set('isMuted', newMuted);
 
-    messageUI.show(newMuted ? "I'll wait quietly" : "I'm listening", 'info', 1500);
+    messageUI.show(t(newMuted ? 'app.waitingQuietly' : 'app.listening'), 'info', 1500);
   }
 
   // ============================================================================
@@ -1002,6 +972,7 @@ class VoiceAIApp {
   private initializeTheme(): void {
     // Initialize theme from stored preference or system
     initTheme();
+    watchSystemTheme();
 
     // ========================================================================
     // AMBIENT EXPERIENCE SYSTEM (Better than Apple/Google)
@@ -1046,19 +1017,6 @@ class VoiceAIApp {
         }
       }) as EventListener);
     }
-
-    // Director Console: Cmd+Shift+E / Ctrl+Shift+E (only when not typing)
-    this.addTrackedListener(document, 'keydown', ((e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key?.toLowerCase() === 'e') {
-        if (
-          document.activeElement?.tagName !== 'INPUT' &&
-          document.activeElement?.tagName !== 'TEXTAREA'
-        ) {
-          e.preventDefault();
-          toggleDirectorConsole();
-        }
-      }
-    }) as EventListener);
 
     // Listen for theme changes (for analytics or other systems)
     onThemeChange((_newTheme) => {
@@ -1153,9 +1111,9 @@ class VoiceAIApp {
             // Show warm acknowledgment
             const conversation = result.conversation;
             if (conversation && conversation.highlights && conversation.highlights.length > 0) {
-              toast.success('Welcome back! I remember our conversation.');
+              toast.success(t('app.demoWelcomeBack'));
             } else {
-              toast.success("Welcome! So glad you're here.");
+              toast.success(t('app.demoWelcome'));
             }
             log.info('Demo session claimed successfully');
           } else if (result.success && result.alreadyClaimed) {
@@ -1298,10 +1256,10 @@ class VoiceAIApp {
     this.deferredInit('SoundUI', 100, async () => {
       initSoundUI();
     });
-    // ⌨️ Global shortcuts (M mute, R reconnect, Enter start/end call, ? help)
+    // ⌨️ Global shortcuts (M mute, R reconnect, Enter start/end call, ? help) + ⌘K quick actions
     this.deferredInit('KeyboardShortcuts', 100, async () => {
-      const { initKeyboardShortcuts } = await import('./ui/keyboard-shortcuts.ui.js');
-      initKeyboardShortcuts();
+      (await import('./ui/keyboard-shortcuts.ui.js')).initKeyboardShortcuts();
+      (await import('./ui/command-palette.ui.js')).initCommandPalette();
     });
     this.deferredInit('TranscriptUI', 100, async () => {
       initTranscriptUI();
@@ -1584,7 +1542,7 @@ class VoiceAIApp {
         // Optional: Show a subtle message to indicate Ferni cares
         // We don't want to be intrusive, just present
         if (level === 'significant') {
-          messageUI.show("I'm here with you.", 'info', 3000);
+          messageUI.show(t('app.hereWithYou'), 'info', 3000);
         }
       }) as EventListener);
     });
@@ -1727,7 +1685,7 @@ class VoiceAIApp {
           const room = connectionService.getRoom();
 
           if (!roomState.isConnected || !room?.localParticipant) {
-            messageUI.show('Connect to Ferni first to start a practice', 'info', 3000);
+            messageUI.show(t('app.connectFirstForPractice'), 'info', 3000);
             return;
           }
 
@@ -1744,10 +1702,10 @@ class VoiceAIApp {
             await room.localParticipant.publishData(new TextEncoder().encode(message), {
               reliable: true,
             });
-            messageUI.show(`Starting "${command.name}"...`, 'success', 2500);
+            messageUI.show(t('app.startingPractice', { name: command.name }), 'success', 2500);
           } catch (err) {
             log.error('Failed to start practice', err);
-            messageUI.show("Couldn't start practice. Try asking Ferni directly!", 'error', 4000);
+            messageUI.show(t('app.practiceStartFailed'), 'error', 4000);
           }
         },
         onClose: () => log.debug('Commands panel closed'),
@@ -1910,6 +1868,10 @@ class VoiceAIApp {
           void import('./ui/team-observations-panel.ui.js').then((m) => m.show()),
         // Trust Journey is now integrated into the unified Journey modal
         onTrustJourneyClick: () => journeyUI.open(),
+        onTrustDashboardClick: () =>
+          void showTrustDashboard().catch((error: unknown) =>
+            log.error({ error }, "Couldn't open the trust dashboard")
+          ),
         onMusicDashboardClick: () => void openMusicDashboard(),
         onPlayGamesClick: () => void openGamePicker(),
         onOutreachScheduleClick: () => void openOutreachSchedule(),
@@ -1972,7 +1934,7 @@ class VoiceAIApp {
           // Admin panel requires admin session
           const adminId = localStorage.getItem('ferni_admin_id');
           if (adminId) {
-            void openMarketplaceAdmin({ id: adminId, name: 'Admin' });
+            void openMarketplaceAdmin({ id: adminId, name: t('menu.sections.admin') });
           }
         },
         onCreativeYouClick: () => {
@@ -2147,7 +2109,7 @@ class VoiceAIApp {
       setTimeout(() => {
         void showFerniFundThankYou({
           conversationsSponsored: 1,
-          message: 'Thank you for planting a seed!',
+          message: t('app.gardenThankYou'),
         });
         // Clean up the URL without reload
         window.history.replaceState({}, '', '/');
@@ -2177,21 +2139,19 @@ class VoiceAIApp {
     const calendarError = urlParams.get('calendar_error');
     if (calendarStatus && calendarResult === 'connected') {
       setTimeout(() => {
-        const providerName =
-          calendarStatus === 'google'
-            ? 'Google Calendar'
-            : calendarStatus === 'apple'
-              ? 'Apple Calendar'
-              : calendarStatus === 'outlook'
-                ? 'Outlook Calendar'
-                : 'Calendar';
-        toast.success(`${providerName} connected!`);
+        const providerKeys: Record<string, string> = {
+          google: 'accessibility.googleCalendar',
+          apple: 'accessibility.appleCalendar',
+          outlook: 'app.outlookCalendar',
+        };
+        const integration = t(providerKeys[calendarStatus] ?? 'accessibility.calendar');
+        toast.success(t('toasts.integrationNowConnected', { integration }));
         // Clean up the URL without reload
         window.history.replaceState({}, '', window.location.pathname);
       }, 500);
     } else if (calendarError) {
       setTimeout(() => {
-        toast.error("Couldn't connect calendar. Try again?");
+        toast.error(t('app.calendarConnectFailed'));
         // Clean up the URL without reload
         window.history.replaceState({}, '', window.location.pathname);
       }, 500);
@@ -2237,7 +2197,7 @@ class VoiceAIApp {
       const room = connectionService.getRoom();
 
       if (!roomState.isConnected || !room?.localParticipant) {
-        messageUI.show('Connect to Ferni first to start a practice', 'info', 3000);
+        messageUI.show(t('app.connectFirstForPractice'), 'info', 3000);
         return;
       }
 
@@ -2254,10 +2214,10 @@ class VoiceAIApp {
         await room.localParticipant.publishData(new TextEncoder().encode(message), {
           reliable: true,
         });
-        messageUI.show(`Starting "${practice.name}"...`, 'success', 2500);
+        messageUI.show(t('app.startingPractice', { name: practice.name }), 'success', 2500);
       } catch (err) {
         log.error('Failed to start practice from Sanctuary', err);
-        messageUI.show("Couldn't start practice. Try asking Ferni directly!", 'error', 4000);
+        messageUI.show(t('app.practiceStartFailed'), 'error', 4000);
       }
     });
     this.addTrackedListener(window, 'ferni:open-marketplace', () => {
@@ -2271,8 +2231,6 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:open-team', () => {
       void showTeamIntro();
     });
-    this.addTrackedListener(window, 'ferni:open-music', () => void openMusicDashboard());
-    this.addTrackedListener(window, 'ferni:open-calendar', () => void openCalendarView());
     this.addTrackedListener(window, 'ferni:open-people', () => {
       void openYourPeople();
     });
@@ -2319,7 +2277,7 @@ class VoiceAIApp {
     this.addTrackedListener(window, 'ferni:streak-milestone', ((e: CustomEvent) => {
       const { days, intensity } = e.detail;
       // Show streak notification UI
-      showStreakMilestone('Daily Check-in', days, 'ferni');
+      showStreakMilestone(t('app.dailyCheckIn'), days, 'ferni');
       // Also trigger celebration animation if high enough
       if (intensity === 'large' || intensity === 'epic') {
         celebrateStreak(days, 'ferni');
@@ -2424,19 +2382,19 @@ class VoiceAIApp {
         // Pull-to-refresh: Show feedback and reload data from backend
         log.debug('Pull-to-refresh triggered');
         // Show subtle feedback
-        messageUI.show('Refreshing...', 'info');
+        messageUI.show(t('toasts.refreshing'), 'info');
         // Try to sync with backend
         void relationshipStageService
           .loadFromBackend()
           .then((synced) => {
             if (synced) {
-              messageUI.show('Synced with cloud', 'success');
+              messageUI.show(t('app.syncedWithCloud'), 'success');
             } else {
-              messageUI.show("You're up to date", 'success');
+              messageUI.show(t('app.upToDate'), 'success');
             }
           })
           .catch(() => {
-            messageUI.show("Couldn't sync", 'info');
+            messageUI.show(t('app.syncFailed'), 'info');
           });
       },
       onMenuClose: () => {
@@ -2604,28 +2562,30 @@ class VoiceAIApp {
   }
 
   /**
-   * Check if user needs to re-enroll their voice profile.
-   * Shows a toast if quality is low, pointing to Settings > Voice ID.
+   * A voice print that can't verify anyone gets a one-time card offering a fresh
+   * one; otherwise a low-quality print gets a toast. Both wait 5 s after load.
    */
   private async checkVoiceReEnrollment(): Promise<void> {
     try {
       const voiceAuth = getVoiceAuthService();
+      const profile = await voiceAuth.getProfile();
+      if (shouldOfferVoiceReenroll(profile)) {
+        setTimeout(() => offerVoiceReenroll(profile, () => void showVoiceEnrollmentModal()), 5000);
+        return;
+      }
       const result = await voiceAuth.checkReEnrollmentNeeded();
-
       if (result.needed && result.message) {
-        // Delay the toast to not overwhelm on startup
         setTimeout(() => {
           if (result.severity === 'high') {
             // High severity - show warning
-            toast.warning('Your voice profile needs a refresh. Head to Settings → Voice ID.');
+            toast.warning(t('app.voiceProfileNeedsRefresh'));
           } else {
             // Low severity - just informational
-            toast.info('Voice profile could be sharper. Try Settings → Voice ID.');
+            toast.info(t('app.voiceProfileCouldBeSharper'));
           }
-        }, 5000); // Wait 5 seconds after app loads
+        }, 5000);
       }
     } catch (error) {
-      // Silently fail - not critical
       log.debug('Voice re-enrollment check skipped:', error);
     }
   }
@@ -2663,7 +2623,7 @@ class VoiceAIApp {
   private async openBillingPortal(): Promise<void> {
     const deviceId = appState.get('deviceId');
     if (!deviceId) {
-      toast.error('Connect first, then we can manage that.');
+      toast.error(t('app.connectFirstToManage'));
       return;
     }
 
@@ -2692,7 +2652,7 @@ class VoiceAIApp {
         log.info({ bonus: referralResult.bonusAwarded }, 'Referral bonus applied');
         // Show toast after a short delay so it doesn't conflict with conversation end UI
         setTimeout(() => {
-          toast.success(`+${referralResult.bonusAwarded} seeds from your friend!`);
+          toast.success(tp('app.referralBonus', referralResult.bonusAwarded ?? 0));
         }, 1500);
       }
     }
@@ -2750,7 +2710,7 @@ class VoiceAIApp {
         showLimitReachedModal(
           status.usage?.statusMessage ||
             status.upgradePrompt ||
-            "We've reached our monthly limit. I'd love to keep talking...",
+            t('app.monthlyLimitReached'),
           nextMonth.toISOString()
         );
 
@@ -2789,7 +2749,7 @@ class VoiceAIApp {
         if (!hasAudio) {
           // Mic permission was likely denied - show subtle prompt
           setTimeout(() => {
-            messageUI.show("I'd love to hear your voice - enable mic access?", 'info', 4000);
+            messageUI.show(t('app.enableMicPrompt'), 'info', 4000);
           }, 3000);
         }
       }
@@ -2822,7 +2782,7 @@ class VoiceAIApp {
       onStateChange: (state) => {
         // Update presence and waveform based on connection state
         if (state === 'connecting') {
-          thinkingUI.show('Connecting');
+          thinkingUI.show(t('app.connecting'));
           waveformUI.setThinking(true);
           // 🚀 Ferni EQ: Dispatch thinking state
           dispatchThinking(true);
@@ -2841,7 +2801,7 @@ class VoiceAIApp {
 
       onAgentConnected: () => {
         const persona = appState.get('activePersona');
-        messageUI.show(`${persona.name} joined`, 'success', 2000);
+        messageUI.show(t('app.agentJoined', { name: persona.name }), 'success', 2000);
 
         // Avatar reaction
         presenceUI.bounce();
@@ -2882,7 +2842,7 @@ class VoiceAIApp {
       },
 
       onAgentDisconnected: () => {
-        messageUI.show('See you next time!', 'info', 2000);
+        messageUI.show(t('app.seeYouNextTime'), 'info', 2000);
         presenceUI.setSpeaking(false);
 
         // 🎬 Expression: Warm farewell expression (soft, lingering)
@@ -3114,7 +3074,7 @@ class VoiceAIApp {
       }
 
       thinkingUI.hide();
-      messageUI.show("Couldn't reach them right now. I'm still here though!", 'error', 3000);
+      messageUI.show(t('app.handoffFailed'), 'error', 3000);
     });
 
     // When handoff is cancelled - hide indicator
@@ -3173,7 +3133,7 @@ class VoiceAIApp {
         celebrationsUI.connectionWarmth();
       } else {
         // Returning - show shorter message
-        messageUI.show(`${newPersona.name} is back!`, 'success', 2000);
+        messageUI.show(t('app.personaBack', { name: newPersona.name }), 'success', 2000);
       }
 
       // Update waveform colors to match persona
@@ -3185,7 +3145,7 @@ class VoiceAIApp {
     // Spotify state changes
     spotifyService.onStateChange((state, trackInfo) => {
       if (state === 'playing' && trackInfo) {
-        messageUI.show(`Now playing: ${trackInfo.name}`, 'info', 3000);
+        messageUI.show(t('app.nowPlaying', { name: trackInfo.name }), 'info', 3000);
       }
     });
 
@@ -3244,7 +3204,7 @@ class VoiceAIApp {
         void roadmapService.checkStreakReward(streak.count).then((result) => {
           if (result.awarded && result.seedsAwarded) {
             // Show seed reward notification
-            const msg = result.message || `You earned ${result.seedsAwarded} seeds!`;
+            const msg = result.message || tp('app.seedsEarned', result.seedsAwarded);
             messageUI.show(msg, 'success', 4000);
           }
         });
@@ -3343,7 +3303,9 @@ class VoiceAIApp {
     rippleUI.dispose();
     easterEggsUI.dispose();
     microInteractionsUI.dispose(); // ✨ Clean up premium button effects
-    // keyboardUI.dispose();
+    import('./ui/command-palette.ui.js')
+      .then(({ disposeCommandPalette }) => disposeCommandPalette())
+      .catch((error: unknown) => log.debug('Command palette was not loaded', error));
     transcriptUI.dispose();
     thinkingUI.dispose();
     connectionQualityUI.dispose();

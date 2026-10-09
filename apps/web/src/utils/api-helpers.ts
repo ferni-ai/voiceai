@@ -13,6 +13,7 @@
  * 4. Also send X-User-Id for backward compatibility during migration
  */
 
+import { getLocale } from '../i18n/index.js';
 import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-auth.service.js';
 
 // Track if we've ensured auth is ready
@@ -73,6 +74,7 @@ export function getUserId(): string | null {
 export function getApiHeaders(additionalHeaders?: Record<string, string>): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'Accept-Language': getLocale(), // the app's language, not the browser's
     ...additionalHeaders,
   };
 

@@ -21,6 +21,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { journeyUI } from './journey.ui.js';
@@ -208,7 +209,7 @@ function create(): void {
   // Create the indicator element
   indicator = document.createElement('button');
   indicator.className = 'unified-indicator';
-  indicator.setAttribute('aria-label', 'View your journey with Ferni');
+  indicator.setAttribute('aria-label', t('unifiedIndicator.viewJourney'));
 
   // Create icon container
   indicator.innerHTML = `
@@ -314,9 +315,7 @@ function updateIndicator(): void {
     disconnected: 'disconnected',
     error: 'error',
   };
-  window.dispatchEvent(new CustomEvent('ferni:connection-heart-state', { 
-    detail: { state: connectionStateMap[newPriority] } 
-  }));
+  window.dispatchEvent(new CustomEvent('ferni:connection-heart-state', { detail: { state: connectionStateMap[newPriority] } }));
 
   log.info('Indicator updated:', { from: oldPriority, to: newPriority });
 }
@@ -326,32 +325,32 @@ function updateAriaLabels(priority: IndicatorPriority): void {
 
   const labels: Record<IndicatorPriority, { aria: string; title: string }> = {
     checkin: {
-      aria: 'Ferni wants to check in with you',
-      title: 'Ferni is thinking of you - tap to connect',
+      aria: t('unifiedIndicator.checkin.aria'),
+      title: t('unifiedIndicator.checkin.title'),
     },
     milestone: {
-      aria: 'New milestone achieved!',
-      title: 'You reached a milestone! Tap to celebrate',
+      aria: t('unifiedIndicator.milestone.aria'),
+      title: t('unifiedIndicator.milestone.title'),
     },
     voice_verify: {
-      aria: 'Verifying your voice',
-      title: 'Voice verification in progress',
+      aria: t('unifiedIndicator.voiceVerify.aria'),
+      title: t('unifiedIndicator.voiceVerify.title'),
     },
     connected: {
-      aria: 'Connected with Ferni - tap to see your journey',
-      title: 'Connected - tap to see your story',
+      aria: t('unifiedIndicator.connected.aria'),
+      title: t('unifiedIndicator.connected.title'),
     },
     connecting: {
-      aria: 'Connecting to Ferni',
-      title: 'Connecting...',
+      aria: t('unifiedIndicator.connecting.aria'),
+      title: t('unifiedIndicator.connecting.title'),
     },
     disconnected: {
-      aria: 'Tap to connect with Ferni',
-      title: 'Tap to see your journey',
+      aria: t('unifiedIndicator.disconnected.aria'),
+      title: t('unifiedIndicator.disconnected.title'),
     },
     error: {
-      aria: 'Connection lost - tap to reconnect',
-      title: 'Connection lost - tap to retry',
+      aria: t('unifiedIndicator.error.aria'),
+      title: t('unifiedIndicator.error.title'),
     },
   };
 

@@ -23,6 +23,7 @@
 
 import { voice } from '@livekit/agents';
 import { capToolsToLimit, getMaxTools, isMetaToolEnabled } from '../../config/tool-config.js';
+import { withoutSharedHandoffs } from '../../tools/handoff/handoff-availability.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import type { UserData } from './types.js';
@@ -70,16 +71,18 @@ let warnedMetaTool = false;
  *
  * Merges `newTools` into the agent's tools and applies them via
  * `agent.updateTools()`. Respects TOOL_LIMIT (capToolsToLimit keeps must-keep
- * tools first).
+ * tools first). Handoff tools in `newTools` are ignored: the shared catalogs
+ * passed here carry a handoff to every persona, while the agent's own came
+ * from its per-user build (see handoff-availability.ts).
  *
  * @param agent - The voice agent instance
- * @param newTools - New tools to add (merged with existing)
+ * @param offeredTools - New tools to add (merged with existing)
  * @param options - Optional configuration
  * @returns true if the agent's tools are up to date, false if the update failed
  */
 export async function updateAgentTools(
   agent: voice.Agent<UserData>,
-  newTools: Record<string, unknown>,
+  offeredTools: Record<string, unknown>,
   options: {
     /** Domain names for better logging/messaging */
     domains?: string[];
@@ -92,6 +95,7 @@ export async function updateAgentTools(
   const provider = getModelProvider();
   const { domains = [], silentMerge = false, forceSync = false } = options;
   const target = asToolCapable(agent);
+  const newTools = withoutSharedHandoffs(offeredTools);
 
   try {
     const existing = currentToolRecord(target);
@@ -155,7 +159,7 @@ async function announceNewTools(
   const toolList = toolNames.slice(0, 10).join(', ');
   const moreCount = toolNames.length > 10 ? ` and ${toolNames.length - 10} more` : '';
   const domainInfo = domains.length > 0 ? ` (${domains.join(', ')})` : '';
-  const content = `[SYSTEM: New tools now available${domainInfo}: ${toolList}${moreCount}. You can call these using JSON format: {"fn":"toolName","args":{...}}]`;
+  const content = `[SYSTEM: New tools now available${domainInfo}: ${toolList}${moreCount}. Call them through native function calling — never write JSON or function names in speech.]`;
 
   try {
     const chatCtx = agent.chatCtx.copy();

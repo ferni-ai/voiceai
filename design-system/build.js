@@ -98,19 +98,51 @@ ${generateCSSVariables(flattened)}
 `.trim();
 }
 
-function generatePersonaCSS(personas) {
-  const lines = [];
+/**
+ * Each persona's palette as global custom properties (--color-ferni,
+ * --color-maya-text, ...). App code names a specific persona's color with these;
+ * --persona-* below holds whichever persona is active.
+ */
+function generatePersonaGlobalsCSS(personas) {
+  const suffixes = ['', 'secondary', 'text', 'textOnDark', 'glow', 'tint', 'light', 'dark'];
+  const lines = [':root {'];
   for (const [personaId, personaColors] of Object.entries(personas)) {
+    if (personaId.startsWith('_') || typeof personaColors !== 'object') continue;
     const kebabId = camelToKebab(personaId);
+    for (const suffix of suffixes) {
+      const value = personaColors[suffix || 'primary'];
+      if (!value) continue;
+      const name = suffix ? `--color-${kebabId}-${camelToKebab(suffix)}` : `--color-${kebabId}`;
+      lines.push(`  ${name}: ${value};`);
+    }
+  }
+  lines.push('}');
+  return lines.join('\n');
+}
+
+function generatePersonaCSS(personas) {
+  const lines = [generatePersonaGlobalsCSS(personas)];
+  for (const [personaId, personaColors] of Object.entries(personas)) {
+    if (personaId.startsWith('_') || typeof personaColors !== 'object') continue;
+    const kebabId = camelToKebab(personaId);
+    // --persona-text is persona-coloured text on the page background (the app's
+    // theme-aware text token); --persona-on-primary is text placed on a persona fill.
     lines.push(`
 /* Persona: ${personaId} */
 [data-persona="${kebabId}"] {
   --persona-primary: ${personaColors.primary};
   --persona-secondary: ${personaColors.secondary};
-  --persona-text: ${personaColors.text || '#ffffff'};
+  --persona-text: ${personaColors.textOnLight || personaColors.primary};
+  --persona-on-primary: ${personaColors.text || '#ffffff'};
   --persona-glow: ${personaColors.glow};
   --persona-tint: ${personaColors.tint};
 }`);
+    if (personaColors.textOnDark) {
+      lines.push(`[data-theme="midnight"] [data-persona="${kebabId}"],
+[data-theme="midnight"][data-persona="${kebabId}"] {
+  --persona-text: ${personaColors.textOnDark};
+}`);
+    }
   }
   return lines.join('\n');
 }

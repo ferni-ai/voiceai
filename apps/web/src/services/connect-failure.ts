@@ -7,6 +7,8 @@
  * never compete on screen.
  */
 
+import { t } from '../i18n/index.js';
+
 export type ConnectFailureKind =
   | 'unauthorized' // 401 from /token: sign-in expired or missing
   | 'forbidden' // 403 from /token: identity mismatch
@@ -52,28 +54,31 @@ export class ConnectStepError extends Error {
   }
 }
 
-const COPY: Record<ConnectFailureKind, Omit<ConnectFailure, 'kind'>> = {
-  unauthorized: { message: 'Your sign-in expired. Sign in and try again?', action: 'sign-in' },
-  forbidden: { message: "That account doesn't match. Sign in again?", action: 'sign-in' },
-  rate_limited: { message: 'Too many tries just now. Give it a minute?', action: 'retry' },
-  unavailable: { message: "Ferni's taking a breather. Try again shortly?", action: 'retry' },
-  server_error: { message: 'Something went wrong on our end. Try again?', action: 'retry' },
-  mic_denied: {
-    message: 'I need your microphone to hear you. Allow it, then try again.',
-    action: 'mic-help',
-  },
-  agent_unavailable: { message: "Ferni couldn't join this time. Try again?", action: 'retry' },
-  agent_timeout: { message: "Ferni didn't join in time. Try again?", action: 'retry' },
-  timeout: { message: 'That took too long. Check your connection and retry?', action: 'retry' },
-  network: { message: "Couldn't reach Ferni. Check your internet and retry?", action: 'retry' },
-  cancelled: { message: '', action: 'none' },
-  dropped: { message: 'Lost the connection. Reconnect?', action: 'retry' },
-  unknown: { message: "Couldn't connect. Try again?", action: 'retry' },
+interface FailureCopy {
+  messageKey: string | null;
+  action: ConnectFailureAction;
+}
+
+const COPY: Record<ConnectFailureKind, FailureCopy> = {
+  unauthorized: { messageKey: 'connectFailure.unauthorized', action: 'sign-in' },
+  forbidden: { messageKey: 'connectFailure.forbidden', action: 'sign-in' },
+  rate_limited: { messageKey: 'connectFailure.rateLimited', action: 'retry' },
+  unavailable: { messageKey: 'connectFailure.unavailable', action: 'retry' },
+  server_error: { messageKey: 'connectFailure.serverError', action: 'retry' },
+  mic_denied: { messageKey: 'connectFailure.micDenied', action: 'mic-help' },
+  agent_unavailable: { messageKey: 'connectFailure.agentUnavailable', action: 'retry' },
+  agent_timeout: { messageKey: 'connectFailure.agentTimeout', action: 'retry' },
+  timeout: { messageKey: 'connectFailure.timeout', action: 'retry' },
+  network: { messageKey: 'connectFailure.network', action: 'retry' },
+  cancelled: { messageKey: null, action: 'none' },
+  dropped: { messageKey: 'connectFailure.dropped', action: 'retry' },
+  unknown: { messageKey: 'connectFailure.unknown', action: 'retry' },
 };
 
 /** Build the failure record for a known kind. */
 export function connectFailure(kind: ConnectFailureKind): ConnectFailure {
-  return { kind, ...COPY[kind] };
+  const { messageKey, action } = COPY[kind];
+  return { kind, message: messageKey ? t(messageKey) : '', action };
 }
 
 function kindForStatus(status: number): ConnectFailureKind {

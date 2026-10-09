@@ -45,11 +45,11 @@ const log = createLogger('CustomAgentWizard');
 // ============================================================================
 
 const WIZARD_STEPS = [
-  { id: 'type', title: 'Choose Type', subtitle: 'What kind of agent?' },
-  { id: 'info', title: 'Basic Info', subtitle: 'Give them a name' },
-  { id: 'voice', title: 'Voice', subtitle: 'How they sound' },
-  { id: 'personality', title: 'Personality', subtitle: 'How they act' },
-  { id: 'memories', title: 'Memories', subtitle: 'What they know' },
+  { id: 'type', titleKey: 'customAgentWizard.steps.chooseType' },
+  { id: 'info', titleKey: 'customAgentWizard.steps.basicInfo' },
+  { id: 'voice', titleKey: 'customAgentWizard.steps.voice' },
+  { id: 'personality', titleKey: 'customAgentWizard.steps.personality' },
+  { id: 'memories', titleKey: 'customAgentWizard.steps.memories' },
 ] as const;
 
 // ============================================================================
@@ -91,7 +91,7 @@ function ensureWizardExists(): HTMLElement {
             (step, i) => `
             <div class="wizard-progress-step" data-step="${i}">
               <div class="progress-dot"></div>
-              <span class="progress-label">${step.title}</span>
+              <span class="progress-label">${t(step.titleKey)}</span>
             </div>
           `
           ).join('')}
@@ -117,10 +117,10 @@ function ensureWizardExists(): HTMLElement {
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
-          Back
+          ${t('common.back')}
         </button>
         <button aria-label="${t('accessibility.continue')}" class="wizard-btn wizard-btn--primary" data-action="next">
-          Continue
+          ${t('common.continue')}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
             <polyline points="12 5 19 12 12 19"></polyline>
@@ -324,24 +324,24 @@ function renderTypeStep(): string {
   return `
     <div class="wizard-step wizard-step--type">
       <div class="step-header">
-        <h2 class="step-title" id="wizard-title">What would you like to create?</h2>
-        <p class="step-subtitle">Each type is designed for a specific purpose</p>
+        <h2 class="step-title" id="wizard-title">${t('customAgentWizard.typeStep.title')}</h2>
+        <p class="step-subtitle">${t('customAgentWizard.typeStep.subtitle')}</p>
       </div>
       
       <div class="type-grid">
         ${types
           .map(
             (type) => `
-          <button aria-label="${type.name}"
+          <button aria-label="${t(type.nameKey)}"
             class="type-card ${selectedType === type.id ? 'type-card--selected' : ''}" 
             data-type="${type.id}"
             aria-pressed="${selectedType === type.id}"
           >
             <div class="type-icon">${getTypeIconSvg(type.icon)}</div>
-            <h3 class="type-name">${type.name}</h3>
-            <p class="type-description">${type.description}</p>
+            <h3 class="type-name">${t(type.nameKey)}</h3>
+            <p class="type-description">${t(type.descriptionKey)}</p>
             <ul class="type-features">
-              ${type.features.slice(0, 2).map((f) => `<li>${f}</li>`).join('')}
+              ${type.featureKeys.slice(0, 2).map((key) => `<li>${t(key)}</li>`).join('')}
             </ul>
             <div class="type-selected-indicator">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -362,58 +362,58 @@ function renderTypeStep(): string {
  */
 function renderInfoStep(): string {
   const typeInfo = getAgentTypes().find((t) => t.id === draft.type);
-  const typeLabel = typeInfo?.name || 'Custom';
+  const typeLabel = t(typeInfo?.nameKey ?? 'marketplace.creations.custom');
 
   return `
     <div class="wizard-step wizard-step--info">
       <div class="step-header">
-        <h2 class="step-title" id="wizard-title">Tell us about them</h2>
-        <p class="step-subtitle">Creating a ${typeLabel} agent</p>
+        <h2 class="step-title" id="wizard-title">${t('customAgentWizard.infoStep.title')}</h2>
+        <p class="step-subtitle">${t('customAgentWizard.infoStep.creatingType', { type: typeLabel })}</p>
       </div>
       
       <form class="info-form" id="info-form">
         <div class="form-group">
-          <label for="agent-name" class="form-label">Name</label>
-          <input 
-            type="text" 
-            id="agent-name" 
-            class="form-input" 
-            placeholder="${t('agentWizard.namePlaceholder', 'What should we call them?')}"
+          <label for="agent-name" class="form-label">${t('customAgentWizard.infoStep.nameLabel')}</label>
+          <input
+            type="text"
+            id="agent-name"
+            class="form-input"
+            placeholder="${t('agentWizard.namePlaceholder')}"
             value="${draft.name || ''}"
             maxlength="50"
             required
           />
-          <span class="form-hint">This is the name that appears in conversations</span>
+          <span class="form-hint">${t('customAgentWizard.infoStep.nameHint')}</span>
         </div>
 
         <div class="form-group">
-          <label for="agent-display-name" class="form-label">Display Name (optional)</label>
-          <input 
-            type="text" 
-            id="agent-display-name" 
-            class="form-input" 
-            placeholder="${t('agentWizard.displayNamePlaceholder', "e.g., 'Grandma Rose' or 'Dr. Marcus'")}"
+          <label for="agent-display-name" class="form-label">${t('customAgentWizard.infoStep.displayNameLabel')}</label>
+          <input
+            type="text"
+            id="agent-display-name"
+            class="form-input"
+            placeholder="${t('agentWizard.displayNamePlaceholder')}"
             value="${draft.displayName || ''}"
             maxlength="100"
           />
-          <span class="form-hint">A more personal or formal name</span>
+          <span class="form-hint">${t('customAgentWizard.infoStep.displayNameHint')}</span>
         </div>
 
         <div class="form-group">
-          <label for="agent-description" class="form-label">Description</label>
-          <textarea 
-            id="agent-description" 
-            class="form-input form-textarea" 
-            placeholder="${t('agentWizard.descriptionPlaceholder', 'Who are they? What makes them special?')}"
+          <label for="agent-description" class="form-label">${t('customAgentWizard.infoStep.descriptionLabel')}</label>
+          <textarea
+            id="agent-description"
+            class="form-input form-textarea"
+            placeholder="${t('agentWizard.descriptionPlaceholder')}"
             maxlength="500"
             rows="4"
             required
           >${draft.description || ''}</textarea>
-          <span class="form-hint">This helps define their personality and purpose</span>
+          <span class="form-hint">${t('customAgentWizard.infoStep.descriptionHint')}</span>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Icon</label>
+          <label class="form-label">${t('customAgentWizard.infoStep.iconLabel')}</label>
           <div class="icon-picker" id="icon-picker">
             ${[
               // Nature-inspired, earthy icons following Ferni brand guidelines
@@ -457,13 +457,13 @@ function renderVoiceStep(): string {
   return `
     <div class="wizard-step wizard-step--voice">
       <div class="step-header">
-        <h2 class="step-title" id="wizard-title">How should they sound?</h2>
-        <p class="step-subtitle">Choose a voice or clone one</p>
+        <h2 class="step-title" id="wizard-title">${t('customAgentWizard.voiceStep.title')}</h2>
+        <p class="step-subtitle">${t('customAgentWizard.voiceStep.subtitle')}</p>
       </div>
       
       <div class="voice-options">
-        <button aria-label="${t('accessibility.upload')}" 
-          class="voice-option ${voiceOption === 'clone' ? 'voice-option--selected' : ''}" 
+        <button aria-label="${t('accessibility.upload')}"
+          class="voice-option ${voiceOption === 'clone' ? 'voice-option--selected' : ''}"
           data-voice-option="clone"
         >
           <div class="voice-option-icon">
@@ -475,13 +475,13 @@ function renderVoiceStep(): string {
             </svg>
           </div>
           <div class="voice-option-content">
-            <h3>Clone a Voice</h3>
-            <p>Record or upload audio to create a unique voice</p>
+            <h3>${t('customAgentWizard.voiceOption.cloneTitle')}</h3>
+            <p>${t('customAgentWizard.voiceOption.cloneDescription')}</p>
           </div>
         </button>
 
-        <button 
-          class="voice-option ${voiceOption === 'library' ? 'voice-option--selected' : ''}" 
+        <button
+          class="voice-option ${voiceOption === 'library' ? 'voice-option--selected' : ''}"
           data-voice-option="library"
         >
           <div class="voice-option-icon">
@@ -492,13 +492,13 @@ function renderVoiceStep(): string {
             </svg>
           </div>
           <div class="voice-option-content">
-            <h3>Voice Library</h3>
-            <p>Choose from our collection of voices</p>
+            <h3>${t('customAgentWizard.voiceOption.libraryTitle')}</h3>
+            <p>${t('customAgentWizard.voiceOption.libraryDescription')}</p>
           </div>
         </button>
 
-        <button 
-          class="voice-option ${voiceOption === 'later' ? 'voice-option--selected' : ''}" 
+        <button
+          class="voice-option ${voiceOption === 'later' ? 'voice-option--selected' : ''}"
           data-voice-option="later"
         >
           <div class="voice-option-icon">
@@ -508,8 +508,8 @@ function renderVoiceStep(): string {
             </svg>
           </div>
           <div class="voice-option-content">
-            <h3>Decide Later</h3>
-            <p>Skip for now and choose a voice later</p>
+            <h3>${t('customAgentWizard.voiceOption.laterTitle')}</h3>
+            <p>${t('customAgentWizard.voiceOption.laterDescription')}</p>
           </div>
         </button>
       </div>
@@ -517,7 +517,7 @@ function renderVoiceStep(): string {
       <div class="voice-content" id="voice-content">
         ${voiceOption === 'clone' ? renderVoiceCloneUI() : ''}
         ${voiceOption === 'library' ? renderVoiceLibraryUI(voices) : ''}
-        ${voiceOption === 'later' ? '<p class="voice-skip-message">You can add a voice anytime from the agent settings.</p>' : ''}
+        ${voiceOption === 'later' ? `<p class="voice-skip-message">${t('customAgentWizard.voiceOption.laterMessage')}</p>` : ''}
       </div>
     </div>
   `;
@@ -543,9 +543,9 @@ function renderVoiceCloneUI(): string {
         
         <div class="recording-controls">
           <button aria-label="${t('accessibility.stop')}" class="recording-btn ${isRecording ? 'recording-btn--stop' : ''}" id="record-btn">
-            ${isRecording ? 'Stop Recording' : 'Start Recording'}
+            ${isRecording ? t('ui.customagentwizard.stopRecording') : t('customAgentWizard.voiceClone.startRecording')}
           </button>
-          <p class="recording-hint">Record 10-30 seconds of clear speech</p>
+          <p class="recording-hint">${t('customAgentWizard.voiceClone.recordingHint')}</p>
         </div>
 
         ${
@@ -553,7 +553,7 @@ function renderVoiceCloneUI(): string {
             ? `
           <div class="recorded-preview">
             <audio id="recorded-audio" controls src="${URL.createObjectURL(recordedAudioBlob)}"></audio>
-            <button aria-label="${t('accessibility.clearReRecord')}" class="preview-action" id="clear-recording">Clear & Re-record</button>
+            <button aria-label="${t('accessibility.clearReRecord')}" class="preview-action" id="clear-recording">${t('customAgentWizard.voiceClone.clearAndRerecord')}</button>
           </div>
         `
             : ''
@@ -561,14 +561,14 @@ function renderVoiceCloneUI(): string {
       </div>
 
       <div class="upload-alternative">
-        <span class="divider-text">or</span>
+        <span class="divider-text">${t('customAgentWizard.voiceClone.or')}</span>
         <label for="audio-upload" class="upload-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="17 8 12 3 7 8"></polyline>
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
-          Upload Audio File
+          ${t('accessibility.upload')}
         </label>
         <input type="file" id="audio-upload" accept="audio/*" hidden />
       </div>
@@ -598,12 +598,12 @@ function renderVoiceLibraryUI(voices: ReturnType<typeof getVoiceLibrary>): strin
             </div>
             <div class="voice-info">
               <h4 class="voice-name">${voice.name}</h4>
-              <p class="voice-description">${voice.description}</p>
+              <p class="voice-description">${t(voice.descriptionKey)}</p>
               <div class="voice-tags">
-                ${voice.tags.map((tag) => `<span class="voice-tag">${tag}</span>`).join('')}
+                ${voice.tags.map((tag) => `<span class="voice-tag">${t(`voiceLibrary.tags.${tag}`, tag)}</span>`).join('')}
               </div>
             </div>
-            <button class="voice-preview-btn" data-preview="${voice.previewUrl}" aria-label="${t('agentWizard.previewVoice', `Preview ${voice.name}'s voice`, { name: voice.name })}">
+            <button class="voice-preview-btn" data-preview="${voice.previewUrl}" aria-label="${t('accessibility.moreInformation')}">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
@@ -626,87 +626,87 @@ function renderPersonalityStep(): string {
   return `
     <div class="wizard-step wizard-step--personality">
       <div class="step-header">
-        <h2 class="step-title" id="wizard-title">Define their personality</h2>
-        <p class="step-subtitle">How should they communicate and interact?</p>
+        <h2 class="step-title" id="wizard-title">${t('customAgentWizard.personalityStep.title')}</h2>
+        <p class="step-subtitle">${t('customAgentWizard.personalityStep.subtitle')}</p>
       </div>
       
       <div class="personality-form">
         <div class="personality-sliders">
           <div class="slider-group">
             <label class="slider-label">
-              <span>Warmth</span>
+              <span>${t('customAgentWizard.personalitySlider.warmth')}</span>
               <span class="slider-value">${Math.round((personality.warmth || 0.5) * 100)}%</span>
             </label>
-            <input 
-              type="range" 
-              class="personality-slider" 
+            <input
+              type="range"
+              class="personality-slider"
               data-trait="warmth"
-              min="0" max="100" 
+              min="0" max="100"
               value="${(personality.warmth || 0.5) * 100}"
             />
             <div class="slider-labels">
-              <span>Professional</span>
-              <span>Warm & Friendly</span>
+              <span>${t('customAgentWizard.personalitySlider.warmthMin')}</span>
+              <span>${t('customAgentWizard.personalitySlider.warmthMax')}</span>
             </div>
           </div>
 
           <div class="slider-group">
             <label class="slider-label">
-              <span>Humor</span>
+              <span>${t('customAgentWizard.personalitySlider.humor')}</span>
               <span class="slider-value">${Math.round((personality.humorLevel || 0.3) * 100)}%</span>
             </label>
-            <input 
-              type="range" 
-              class="personality-slider" 
+            <input
+              type="range"
+              class="personality-slider"
               data-trait="humorLevel"
-              min="0" max="100" 
+              min="0" max="100"
               value="${(personality.humorLevel || 0.3) * 100}"
             />
             <div class="slider-labels">
-              <span>Serious</span>
-              <span>Playful</span>
+              <span>${t('customAgentWizard.personalitySlider.humorMin')}</span>
+              <span>${t('customAgentWizard.personalitySlider.humorMax')}</span>
             </div>
           </div>
 
           <div class="slider-group">
             <label class="slider-label">
-              <span>Directness</span>
+              <span>${t('customAgentWizard.personalitySlider.directness')}</span>
               <span class="slider-value">${Math.round((personality.directness || 0.5) * 100)}%</span>
             </label>
-            <input 
-              type="range" 
-              class="personality-slider" 
+            <input
+              type="range"
+              class="personality-slider"
               data-trait="directness"
-              min="0" max="100" 
+              min="0" max="100"
               value="${(personality.directness || 0.5) * 100}"
             />
             <div class="slider-labels">
-              <span>Gentle</span>
-              <span>Direct</span>
+              <span>${t('customAgentWizard.personalitySlider.directnessMin')}</span>
+              <span>${t('customAgentWizard.personalitySlider.directnessMax')}</span>
             </div>
           </div>
 
           <div class="slider-group">
             <label class="slider-label">
-              <span>Energy</span>
+              <span>${t('customAgentWizard.personalitySlider.energy')}</span>
               <span class="slider-value">${Math.round((personality.energy || 0.5) * 100)}%</span>
             </label>
-            <input 
-              type="range" 
-              class="personality-slider" 
+            <input
+              type="range"
+              class="personality-slider"
               data-trait="energy"
-              min="0" max="100" 
+              min="0" max="100"
               value="${(personality.energy || 0.5) * 100}"
             />
             <div class="slider-labels">
-              <span>Calm</span>
-              <span>Energetic</span>
+              <span>${t('customAgentWizard.personalitySlider.energyMin')}</span>
+              <span>${t('customAgentWizard.personalitySlider.energyMax')}</span>
             </div>
           </div>
         </div>
 
         <div class="personality-traits">
-          <label class="form-label">Personality Traits</label>
+          <label class="form-label">${t('customAgentWizard.personalityTraits')}</label>
           <div class="traits-grid">
             ${[
               'empathetic',
@@ -734,11 +734,11 @@ function renderPersonalityStep(): string {
         </div>
 
         <div class="personality-profile">
-          <label class="form-label">Cognitive Style</label>
+          <label class="form-label">${t('customAgentWizard.cognitiveStyle')}</label>
           <div class="profile-options">
-            <button 
+            <button
               type="button"
-              class="profile-option ${personality.cognitiveProfile === 'empathetic' ? 'profile-option--selected' : ''}" 
+              class="profile-option ${personality.cognitiveProfile === 'empathetic' ? 'profile-option--selected' : ''}"
               data-profile="empathetic"
             >
               <span class="profile-icon">
@@ -749,12 +749,12 @@ function renderPersonalityStep(): string {
                   <path d="M15 6.5a3.5 3.5 0 0 0-6.36-1.46M12 6V2"/>
                 </svg>
               </span>
-              <span class="profile-name">Empathetic</span>
-              <span class="profile-desc">Prioritizes feelings and emotional support</span>
+              <span class="profile-name">${t('customAgentWizard.cognitiveProfile.empathetic')}</span>
+              <span class="profile-desc">${t('customAgentWizard.cognitiveProfile.empatheticDescription')}</span>
             </button>
-            <button aria-label="${t('accessibility.analyticalFocusesOnLogicAndProblemSolving')}" 
+            <button aria-label="${t('accessibility.analyticalFocusesOnLogicAndProblemSolving')}"
               type="button"
-              class="profile-option ${personality.cognitiveProfile === 'analytical' ? 'profile-option--selected' : ''}" 
+              class="profile-option ${personality.cognitiveProfile === 'analytical' ? 'profile-option--selected' : ''}"
               data-profile="analytical"
             >
               <span class="profile-icon">
@@ -769,12 +769,12 @@ function renderPersonalityStep(): string {
                   <circle cx="12" cy="13" r="2"/>
                 </svg>
               </span>
-              <span class="profile-name">Analytical</span>
-              <span class="profile-desc">Focuses on logic and problem-solving</span>
+              <span class="profile-name">${t('customAgentWizard.cognitiveProfile.analytical')}</span>
+              <span class="profile-desc">${t('customAgentWizard.cognitiveProfile.analyticalDescription')}</span>
             </button>
-            <button aria-label="${t('accessibility.balancedAdaptsApproachToTheSituation')}" 
+            <button aria-label="${t('accessibility.balancedAdaptsApproachToTheSituation')}"
               type="button"
-              class="profile-option ${(personality.cognitiveProfile || 'balanced') === 'balanced' ? 'profile-option--selected' : ''}" 
+              class="profile-option ${(personality.cognitiveProfile || 'balanced') === 'balanced' ? 'profile-option--selected' : ''}"
               data-profile="balanced"
             >
               <span class="profile-icon">
@@ -787,8 +787,8 @@ function renderPersonalityStep(): string {
                   <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>
                 </svg>
               </span>
-              <span class="profile-name">Balanced</span>
-              <span class="profile-desc">Adapts approach to the situation</span>
+              <span class="profile-name">${t('customAgentWizard.cognitiveProfile.balanced')}</span>
+              <span class="profile-desc">${t('customAgentWizard.cognitiveProfile.balancedDescription')}</span>
             </button>
           </div>
         </div>
@@ -807,8 +807,8 @@ function renderMemoriesStep(): string {
   return `
     <div class="wizard-step wizard-step--memories">
       <div class="step-header">
-        <h2 class="step-title" id="wizard-title">${isDigitalTwin ? 'Start Your Journal' : 'Add Memories'}</h2>
-        <p class="step-subtitle">${isDigitalTwin ? 'Record your first voice journal entry' : 'What should they remember?'}</p>
+        <h2 class="step-title" id="wizard-title">${isDigitalTwin ? t('customAgentWizard.memoriesStep.digitalTwinTitle') : t('customAgentWizard.steps.memories')}</h2>
+        <p class="step-subtitle">${isDigitalTwin ? t('customAgentWizard.memoriesStep.digitalTwinSubtitle') : t('customAgentWizard.steps.memoriesSubtitle')}</p>
       </div>
       
       <div class="memories-section">
@@ -816,14 +816,14 @@ function renderMemoriesStep(): string {
           isDigitalTwin
             ? `
           <div class="journal-prompt">
-            <p class="journal-hint">Record a short entry about how you're feeling today, or what's on your mind. This will be your first journal entry.</p>
+            <p class="journal-hint">${t('customAgentWizard.memoriesStep.journalHint')}</p>
             <div class="recording-area" id="memory-recording-area">
               <button aria-label="${t('accessibility.recordJournalEntry')}" class="recording-btn large-btn" id="journal-record-btn">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
                 </svg>
-                Record Journal Entry
+                ${t('accessibility.recordJournalEntry')}
               </button>
             </div>
           </div>
@@ -835,7 +835,7 @@ function renderMemoriesStep(): string {
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
               </svg>
-              Add Story
+              ${t('accessibility.addStory')}
             </button>
             <button aria-label="${t('accessibility.addWisdom')}" class="memory-type-btn" data-memory-type="wisdom">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -843,13 +843,13 @@ function renderMemoriesStep(): string {
                 <line x1="12" y1="16" x2="12" y2="12"></line>
                 <line x1="12" y1="8" x2="12.01" y2="8"></line>
               </svg>
-              Add Wisdom
+              ${t('accessibility.addWisdom')}
             </button>
             <button aria-label="${t('accessibility.addMoment')}" class="memory-type-btn" data-memory-type="sharedMoment">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>
-              Add Moment
+              ${t('accessibility.addMoment')}
             </button>
           </div>
         `
@@ -859,7 +859,7 @@ function renderMemoriesStep(): string {
           ${
             memories.length > 0
               ? `
-            <h4 class="memories-header">Added Memories (${memories.length})</h4>
+            <h4 class="memories-header">${t('customAgentWizard.memoriesStep.addedMemoriesHeader', { count: memories.length })}</h4>
             <div class="memories-list">
               ${memories
                 .map(
@@ -879,29 +879,29 @@ function renderMemoriesStep(): string {
                 .join('')}
             </div>
           `
-              : '<p class="no-memories-hint">You can add memories now or later from the agent settings.</p>'
+              : `<p class="no-memories-hint">${t('customAgentWizard.memoriesStep.addMemoriesHint')}</p>`
           }
         </div>
       </div>
 
       <div class="review-section">
-        <h3 class="review-title">Ready to create?</h3>
+        <h3 class="review-title">${t('customAgentWizard.review.title')}</h3>
         <div class="review-summary">
           <div class="summary-item">
-            <span class="summary-label">Name</span>
-            <span class="summary-value">${draft.displayName || draft.name || 'Not set'}</span>
+            <span class="summary-label">${t('customAgentWizard.review.nameSummaryLabel')}</span>
+            <span class="summary-value">${draft.displayName || draft.name || t('customAgentWizard.review.defaultName')}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-label">Type</span>
-            <span class="summary-value">${getAgentTypes().find((t) => t.id === draft.type)?.name || 'Not set'}</span>
+            <span class="summary-label">${t('customAgentWizard.review.typeSummaryLabel')}</span>
+            <span class="summary-value">${t(getAgentTypes().find((info) => info.id === draft.type)?.nameKey ?? 'customAgentWizard.review.defaultName')}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-label">Voice</span>
-            <span class="summary-value">${draft.voiceOption === 'clone' ? 'Custom Clone' : draft.voiceOption === 'library' ? 'Library Voice' : 'Not set'}</span>
+            <span class="summary-label">${t('customAgentWizard.review.voiceSummaryLabel')}</span>
+            <span class="summary-value">${draft.voiceOption === 'clone' ? t('customAgentWizard.review.customClone') : draft.voiceOption === 'library' ? t('customAgentWizard.review.libraryVoice') : t('customAgentWizard.review.defaultName')}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-label">Memories</span>
-            <span class="summary-value">${memories.length} added</span>
+            <span class="summary-label">${t('customAgentWizard.review.memoriesSummaryLabel')}</span>
+            <span class="summary-value">${t('customAgentWizard.review.addedCount', { count: memories.length })}</span>
           </div>
         </div>
       </div>
@@ -1074,7 +1074,7 @@ function handleVoiceOptionSelect(e: Event): void {
         card.addEventListener('click', handleVoiceSelect);
       });
     } else {
-      voiceContent.innerHTML = '<p class="voice-skip-message">You can add a voice anytime from the agent settings.</p>';
+      voiceContent.innerHTML = `<p class="voice-skip-message">${t('customAgentWizard.voiceOption.laterMessage')}</p>`;
     }
   }
   
@@ -1289,11 +1289,11 @@ function updateNavButtons(): void {
   if (nextBtn) {
     const isLastStep = currentStep === WIZARD_STEPS.length - 1;
     nextBtn.innerHTML = isLastStep
-      ? `Create Agent
+      ? `${t('accessibility.createAgent')}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>`
-      : `Continue
+      : `${t('common.continue')}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="5" y1="12" x2="19" y2="12"></line>
           <polyline points="12 5 19 12 12 19"></polyline>
@@ -1341,17 +1341,17 @@ function validateCurrentStep(): boolean {
   switch (stepId) {
     case 'type':
       if (!draft.type) {
-        showValidationError('Please select an agent type');
+        showValidationError(t('customAgentWizard.validation.type'));
         return false;
       }
       break;
     case 'info':
       if (!draft.name?.trim()) {
-        showValidationError('Please enter a name');
+        showValidationError(t('customAgentWizard.validation.name'));
         return false;
       }
       if (!draft.description?.trim()) {
-        showValidationError('Please enter a description');
+        showValidationError(t('customAgentWizard.validation.description'));
         return false;
       }
       break;
@@ -1381,7 +1381,7 @@ async function createAgent(): Promise<void> {
       nextBtn.disabled = true;
       nextBtn.innerHTML = `
         <span class="spinner"></span>
-        Creating...
+        ${t('common.processing')}
       `;
     }
     
@@ -1433,25 +1433,25 @@ async function createAgent(): Promise<void> {
     clearAgentDraft();
     
     // Success!
-    toast.success(t('toasts.draftdisplaynameDraftnameCreated'));
+    toast.success(t('toasts.agentCreated', { name: draft.displayName || draft.name || '' }));
     soundUI.play('success');
-    
+
     // Dispatch event
     dispatchCustomAgentEvent('custom-agent:created', { agentId: agent.id });
-    
+
     // Close wizard
     closeCustomAgentWizard();
-    
+
   } catch (error) {
     log.error('Failed to create agent:', error);
     toast.error(t('toasts.somethingWentWrong'));
-    
+
     // Reset button
     const nextBtn = wizardModal?.querySelector('[data-action="next"]') as HTMLButtonElement;
     if (nextBtn) {
       nextBtn.disabled = false;
       nextBtn.innerHTML = `
-        Create Agent
+        ${t('accessibility.createAgent')}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>

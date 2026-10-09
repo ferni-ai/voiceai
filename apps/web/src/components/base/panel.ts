@@ -108,12 +108,12 @@ export class Panel extends BaseComponent {
         <div class="ferni-panel__container" style="width: ${width}">
           <header class="ferni-panel__header">
             ${showBackButton ? `
-              <button class="ferni-panel__back" aria-label="${t('panels.goBack', 'Go back')}">
+              <button class="ferni-panel__back" aria-label="${t('panels.goBack')}">
                 ${BACK_ICON}
               </button>
             ` : ''}
             <h2 class="ferni-panel__title">${title}</h2>
-            <button class="ferni-panel__close" aria-label="${t('panels.close', 'Close')}">
+            <button class="ferni-panel__close" aria-label="${t('panels.close')}">
               ${CLOSE_ICON}
             </button>
           </header>

@@ -56,7 +56,20 @@ vi.mock('../../apps/web/src/services/firebase-auth.service.js', () => ({
 }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() }));
 vi.mock('../../apps/web/src/ui/whisper.ui.js', () => ({ toast }));
-vi.mock('../../apps/web/src/i18n/index.js', () => ({ t: (key: string) => key }));
+// Translate through the real en-US bundle so the assertions check the words a user reads.
+vi.mock('../../apps/web/src/i18n/index.js', async () => {
+  const { default: en } = await import('../../apps/web/src/i18n/locales/en-US.json');
+  const t = (key: string, params?: Record<string, unknown>): string => {
+    const value = key
+      .split('.')
+      .reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], en);
+    if (typeof value !== 'string') return key;
+    return value.replace(/\{(\w+)\}/g, (match, name: string) =>
+      params?.[name] !== undefined ? String(params[name]) : match
+    );
+  };
+  return { t, getLocale: () => 'en-US' };
+});
 
 const { bindVerifiedIdentity } = await import('../servers/api/request-identity.js');
 const { handleOAuthStartRoute } = await import('../servers/api/routes/oauth-start.js');
@@ -187,7 +200,7 @@ describe('web Connect → POST /auth/oauth/start → /api/linkedin/connect', () 
     // the web went on as if LinkedIn were not connected.
     linkedin.connectedUids.push('uid-A');
     const { nav } = await pressConnect();
-    expect(toast.info).toHaveBeenCalledWith('toasts.linkedinAlreadyConnected');
+    expect(toast.info).toHaveBeenCalledWith('LinkedIn already connected!');
     expect(nav).toBe('');
   });
 

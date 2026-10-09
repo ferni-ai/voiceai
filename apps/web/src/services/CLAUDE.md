@@ -80,8 +80,6 @@ This directory contains frontend services that power the Ferni web app. Services
 | `delight.service.ts` | Delightful moments |
 | `haptics.service.ts` | Haptic feedback |
 | `push-notifications.service.ts` | Push notifications |
-| `loading-orchestrator.service.ts` | Loading states |
-
 ### Data & Analytics
 | Service | Purpose |
 |---------|---------|

@@ -99,10 +99,10 @@ const ICONS = {
 };
 
 const DATE_TYPES: { id: DateType; label: string; icon: string }[] = [
-  { id: 'birthday', label: 'Birthday', icon: ICONS.cake },
-  { id: 'anniversary', label: 'Anniversary', icon: ICONS.heart },
-  { id: 'memorial', label: 'Memorial', icon: ICONS.flower },
-  { id: 'custom', label: 'Custom', icon: ICONS.star },
+  { id: 'birthday', label: t('importantDates.typeBirthday'), icon: ICONS.cake },
+  { id: 'anniversary', label: t('importantDates.typeAnniversary'), icon: ICONS.heart },
+  { id: 'memorial', label: t('importantDates.typeMemorial'), icon: ICONS.flower },
+  { id: 'custom', label: t('importantDates.typeCustom'), icon: ICONS.star },
 ];
 
 // ============================================================================
@@ -205,7 +205,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: background ${DURATION.FAST}ms, color ${DURATION.FAST}ms;
       margin: calc(-1 * var(--space-2, 0.5rem)) calc(-1 * var(--space-2, 0.5rem)) 0 0;
     }
@@ -269,7 +269,7 @@ function injectStyles(): void {
 
     .id-date-meta {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       display: flex;
       align-items: center;
       gap: var(--space-2, 0.5rem);
@@ -296,7 +296,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       transition: all ${DURATION.FAST}ms;
     }
 
@@ -342,7 +342,7 @@ function injectStyles(): void {
     .id-form-label {
       font-size: var(--text-xs, 0.75rem);
       font-weight: 500;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-1, 0.25rem);
       display: block;
     }
@@ -435,7 +435,7 @@ function injectStyles(): void {
       border: 2px dashed var(--color-border, rgba(44, 37, 32, 0.15));
       border-radius: var(--radius-lg, 1rem);
       background: transparent;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-size: var(--text-sm, 0.875rem);
       font-weight: 500;
       cursor: pointer;
@@ -460,7 +460,7 @@ function injectStyles(): void {
     .id-empty {
       text-align: center;
       padding: var(--space-8, 2rem) var(--space-4, 1rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .id-empty-icon {
@@ -555,7 +555,7 @@ function render(): void {
     <div class="id-header">
       <div class="id-header-row">
         <div>
-          <div class="id-eyebrow">Important Dates</div>
+          <div class="id-eyebrow">${t('importantDates.title')}</div>
           <h2 class="id-title">${escapeHtml(state.contactName)}</h2>
         </div>
         <button class="id-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
@@ -588,18 +588,18 @@ function renderForm(): string {
   return `
     <div class="id-form">
       <div class="id-form-title">${isEditing ? 'Edit Date' : 'Add Date'}</div>
-      
+
       <div class="id-form-row">
         <div class="id-form-field">
-          <label class="id-form-label">Type</label>
+          <label class="id-form-label">${t('importantDates.type')}</label>
           <select class="id-form-select" id="id-form-type">
-            ${DATE_TYPES.map(t => `
-              <option value="${t.id}" ${state.formType === t.id ? 'selected' : ''}>${t.label}</option>
+            ${DATE_TYPES.map(dtype => `
+              <option value="${dtype.id}" ${state.formType === dtype.id ? 'selected' : ''}>${dtype.label}</option>
             `).join('')}
           </select>
         </div>
         <div class="id-form-field">
-          <label class="id-form-label">Date</label>
+          <label class="id-form-label">${t('importantDates.date')}</label>
           <input type="date" class="id-form-input" id="id-form-date" value="${state.formDate}" />
         </div>
       </div>
@@ -607,17 +607,17 @@ function renderForm(): string {
       ${state.formType === 'custom' ? `
         <div class="id-form-row">
           <div class="id-form-field">
-            <label class="id-form-label">Label</label>
+            <label class="id-form-label">${t('importantDates.label')}</label>
             <input type="text" class="id-form-input" id="id-form-label" placeholder="${t('forms.dateLabelPlaceholder', 'e.g., First date, Graduation')}" value="${escapeHtml(state.formLabel)}" />
           </div>
         </div>
       ` : ''}
-      
+
       <div class="id-form-row">
         <div class="id-form-field">
-          <label class="id-form-label">Remind me</label>
+          <label class="id-form-label">${t('importantDates.remindMe')}</label>
           <select class="id-form-select" id="id-form-reminder">
-            <option value="0" ${state.formReminder === '0' ? 'selected' : ''}>Don't remind</option>
+            <option value="0" ${state.formReminder === '0' ? 'selected' : ''}>${t('importantDates.dontRemind')}</option>
             <option value="1" ${state.formReminder === '1' ? 'selected' : ''}>1 day before</option>
             <option value="3" ${state.formReminder === '3' ? 'selected' : ''}>3 days before</option>
             <option value="7" ${state.formReminder === '7' ? 'selected' : ''}>1 week before</option>
@@ -626,14 +626,14 @@ function renderForm(): string {
           </select>
         </div>
       </div>
-      
+
       <label class="id-form-checkbox">
         <input type="checkbox" id="id-form-recurring" ${state.formRecurring ? 'checked' : ''} />
-        Repeats every year
+        ${t('importantDates.repeatsYearly')}
       </label>
       
       <div class="id-form-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.cancel')}" class="id-form-btn id-form-btn-cancel" id="id-form-cancel">Cancel</button>
+        <button aria-label="${t('importantDates.cancel')}" class="id-form-btn id-form-btn-cancel" id="id-form-cancel">${t('importantDates.cancel')}</button>
         <button aria-label="${t('accessibility.confirm')}" class="id-form-btn id-form-btn-save" id="id-form-save">
           ${ICONS.check} ${isEditing ? 'Update' : 'Add'}
         </button>
@@ -647,7 +647,7 @@ function renderDateList(): string {
     return `
       <div class="id-empty">
         <div class="id-empty-icon">${ICONS.calendar}</div>
-        <p class="id-empty-text">No important dates yet.<br/>Add birthdays, anniversaries, and more.</p>
+        <p class="id-empty-text">${t('importantDates.noDateYet')}<br/>${t('importantDates.noDateDesc')}</p>
       </div>
     `;
   }

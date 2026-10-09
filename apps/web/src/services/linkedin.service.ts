@@ -114,13 +114,13 @@ export function handleLinkedInCallback(): void {
   const linkedinStatus = params.get('linkedin');
 
   if (linkedinStatus === 'connected') {
-    toast.success("LinkedIn connected! I'll remember your work milestones.");
+    toast.success(t('toasts.linkedinConnected'));
   } else if (linkedinStatus === 'denied') {
     toast.info(t('toasts.linkedinConnectionCancelled'));
   } else if (linkedinStatus === 'error') {
-    toast.error("Couldn't connect LinkedIn. Try again?");
+    toast.error(t('toasts.linkedinConnectFailed'));
   } else if (linkedinStatus === 'unavailable') {
-    toast.error("LinkedIn isn't available right now");
+    toast.error(t('oauthConnect.unavailable', { provider: 'LinkedIn' }));
   } else {
     return;
   }

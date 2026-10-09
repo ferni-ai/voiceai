@@ -130,18 +130,15 @@ User Speech → Transcription → Context Building → LLM → SSML → TTS → 
 
 ## Deployment
 
-### GCE Deployment (Production)
+### LiveKit Cloud (Production)
 
-Voice agents run on GCE for WebRTC/UDP support:
+The voice agent runs on LiveKit Cloud (`lk agent deploy`). The GCE VM
+`voiceai-agent-gce` is terminated. Do not deploy a voice worker to Cloud Run
+or GCE — see the current-stack table in root `CLAUDE.md`.
 
 ```bash
-# Deploy via Ferni CLI (ALWAYS use this)
-ferni deploy gce
-
-# NEVER use direct gcloud commands
+lk agent deploy
 ```
-
-See root `CLAUDE.md` for deployment details.
 
 ### Local Development
 

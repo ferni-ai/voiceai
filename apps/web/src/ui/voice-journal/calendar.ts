@@ -8,26 +8,20 @@
 
 import { getModal, getEntries, getCalendarMonth, setCalendarMonth, getFilterDate, setFilterDate } from './state.js';
 import { renderEntries } from './entries.js';
-import { t } from '../../i18n/index.js';
+import { formatDate, t } from '../../i18n/index.js';
+import { tp } from '../../i18n/plural.js';
 
 // ============================================================================
-// MONTH NAMES
+// WEEKDAY NAMES
 // ============================================================================
 
-const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
+/** Narrow weekday letters in the user's locale, Sunday first (matching Date#getDay). */
+function weekdayLabels(): string[] {
+  // 2023-01-01 was a Sunday.
+  return Array.from({ length: 7 }, (_, i) =>
+    formatDate(new Date(2023, 0, 1 + i), { weekday: 'narrow' })
+  );
+}
 
 // ============================================================================
 // CALENDAR NAVIGATION
@@ -92,7 +86,7 @@ export function renderCalendar(): void {
           <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
       </button>
-      <span class="calendar-title">${MONTH_NAMES[month]} ${year}</span>
+      <span class="calendar-title">${formatDate(firstDay, { month: 'long', year: 'numeric' })}</span>
       <button class="calendar-nav" data-action="next-month" aria-label="${t('accessibility.nextMonth')}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"></polyline>
@@ -100,13 +94,7 @@ export function renderCalendar(): void {
       </button>
     </div>
     <div class="calendar-grid">
-      <div class="calendar-day-name">S</div>
-      <div class="calendar-day-name">M</div>
-      <div class="calendar-day-name">T</div>
-      <div class="calendar-day-name">W</div>
-      <div class="calendar-day-name">T</div>
-      <div class="calendar-day-name">F</div>
-      <div class="calendar-day-name">S</div>
+      ${weekdayLabels().map((name) => `<div class="calendar-day-name">${name}</div>`).join('')}
   `;
 
   // Empty cells before first day
@@ -130,7 +118,7 @@ export function renderCalendar(): void {
     calendarHtml += `
       <div class="calendar-day ${hasEntry ? 'calendar-day--has-entry' : ''} ${isToday ? 'calendar-day--today' : ''} ${isSelected ? 'calendar-day--selected' : ''}" 
            data-date="${dateKey}"
-           title="${entryCount} ${entryCount === 1 ? 'entry' : 'entries'}${hasEntry ? ' - Click to filter' : ''}"
+           title="${hasEntry ? tp('voiceJournal.calendar.entriesClickToFilter', entryCount) : tp('voiceJournal.calendar.entries', entryCount)}"
            ${hasEntry ? 'role="button" tabindex="0"' : ''}>
         ${day}
         ${hasEntry ? `<span class="calendar-dot"></span>` : ''}
@@ -146,19 +134,19 @@ export function renderCalendar(): void {
     const fYear = parts[0] ?? new Date().getFullYear();
     const fMonth = parts[1] ?? 1;
     const fDay = parts[2] ?? 1;
-    const filterDateFormatted = new Date(fYear, fMonth - 1, fDay).toLocaleDateString(undefined, {
+    const filterDateFormatted = formatDate(new Date(fYear, fMonth - 1, fDay), {
       month: 'short',
       day: 'numeric',
     });
     calendarHtml += `
       <div class="calendar-filter-active">
-        <span>Showing entries from ${filterDateFormatted}</span>
+        <span>${t('voiceJournal.calendar.showingEntriesFrom', { date: filterDateFormatted })}</span>
         <button class="calendar-clear-filter" data-action="clear-filter" aria-label="${t('accessibility.clearFilter')}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
-          Clear
+          ${t('voiceJournal.calendar.clear')}
         </button>
       </div>
     `;

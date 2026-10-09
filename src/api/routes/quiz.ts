@@ -10,11 +10,21 @@
  * @module QuizRoutes
  */
 
+import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { localeForRequest, tFor, type SupportedLocale } from '../../i18n/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { parseBody, requireUserId, sendJSON, sendJSONCached } from '../helpers.js';
 
 const log = createLogger({ module: 'QuizAPI' });
+
+/** Decoy topic ids (compared against stored topics) mapped to their translation keys. */
+const DECOY_TOPIC_KEYS: Record<string, string> = {
+  cooking: 'quiz.questions.favoriteTopic.options.cooking',
+  sports: 'quiz.questions.favoriteTopic.options.sports',
+  gardening: 'quiz.questions.favoriteTopic.options.gardening',
+  fashion: 'quiz.questions.favoriteTopic.options.fashion',
+};
 
 // ============================================================================
 // TYPES
@@ -42,15 +52,53 @@ interface QuizResult {
 // ============================================================================
 
 /**
+ * Deterministic random numbers from a string seed (mulberry32), so submitting
+ * answers can rebuild exactly the quiz that was served: same questions, same
+ * option order.
+ */
+function seededRandom(seed: string): () => number {
+  let state = 1779033703 ^ seed.length;
+  for (let i = 0; i < seed.length; i++) {
+    state = Math.imul(state ^ seed.charCodeAt(i), 3432918353);
+    state = (state << 13) | (state >>> 19);
+  }
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let x = Math.imul(state ^ (state >>> 15), 1 | state);
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Fisher-Yates; sort(() => random() - 0.5) is biased. */
+function shuffle<T>(items: T[], random: () => number): T[] {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [result[i], result[j]] = [result[j] as T, result[i] as T];
+  }
+  return result;
+}
+
+/**
  * Generate quiz questions from user profile and memories
  */
-async function generateQuizQuestions(userId: string): Promise<QuizQuestion[]> {
+async function generateQuizQuestions(
+  userId: string,
+  locale: SupportedLocale,
+  quizId: string
+): Promise<QuizQuestion[]> {
+  const random = seededRandom(`${userId}:${quizId}`);
   const { getDefaultStore } = await import('../../memory/index.js');
   const { getAllUserMemories } = await import('../../services/memory/persona-memories.js');
 
   const store = getDefaultStore();
   const profile = await store.getProfile(userId);
   const rawMemories = await getAllUserMemories(userId);
+
+  const t = (key: string, params?: Record<string, string | number>): string =>
+    tFor(locale, key, params);
+  const optionTexts = (keys: string[]): string[] => keys.map((key) => t(key));
 
   const questions: QuizQuestion[] = [];
   let questionId = 0;
@@ -60,18 +108,17 @@ async function generateQuizQuestions(userId: string): Promise<QuizQuestion[]> {
     // Communication style question
     if (profile.communicationStyle) {
       const styles = ['direct', 'analytical', 'warm', 'reflective'];
-      const styleDescriptions: Record<string, string> = {
-        direct: 'Direct and to-the-point',
-        analytical: 'Detailed and data-driven',
-        warm: 'Warm and personable',
-        reflective: 'Thoughtful and contemplative',
-      };
       const correctStyle = profile.communicationStyle as string;
       if (styles.includes(correctStyle)) {
         questions.push({
           id: `q-${++questionId}`,
-          question: 'How do I prefer to communicate?',
-          options: styles.map((s) => styleDescriptions[s]),
+          question: t('quiz.questions.communicationStyle.text'),
+          options: optionTexts([
+            'quiz.questions.communicationStyle.options.direct',
+            'quiz.questions.communicationStyle.options.analytical',
+            'quiz.questions.communicationStyle.options.warm',
+            'quiz.questions.communicationStyle.options.reflective',
+          ]),
           correctIndex: styles.indexOf(correctStyle),
           category: 'preferences',
           difficulty: 'medium',
@@ -84,16 +131,19 @@ async function generateQuizQuestions(userId: string): Promise<QuizQuestion[]> {
       const topics = profile.preferredTopics as string[];
       if (topics.length >= 3) {
         const topTopic = topics[0];
-        const decoyTopics = ['cooking', 'sports', 'gardening', 'fashion'].filter(
+        const decoyTopics = Object.keys(DECOY_TOPIC_KEYS).filter(
           (t) => !topics.includes(t)
         );
         if (decoyTopics.length >= 3) {
-          const options = [topTopic, ...decoyTopics.slice(0, 3)];
+          const options = [
+            topTopic,
+            ...decoyTopics.slice(0, 3).map((d) => t(DECOY_TOPIC_KEYS[d] as string)),
+          ];
           // Shuffle options
-          const shuffled = options.sort(() => Math.random() - 0.5);
+          const shuffled = shuffle(options, random);
           questions.push({
             id: `q-${++questionId}`,
-            question: 'What topic do I love talking about most?',
+            question: t('quiz.questions.favoriteTopic.text'),
             options: shuffled,
             correctIndex: shuffled.indexOf(topTopic),
             category: 'preferences',
@@ -106,7 +156,12 @@ async function generateQuizQuestions(userId: string): Promise<QuizQuestion[]> {
     // Total conversations milestone
     if (profile.totalConversations && (profile.totalConversations as number) > 5) {
       const total = profile.totalConversations as number;
-      const ranges = ['1-5', '6-15', '16-30', 'More than 30'];
+      const ranges = optionTexts([
+        'quiz.questions.conversationCount.options.range1to5',
+        'quiz.questions.conversationCount.options.range6to15',
+        'quiz.questions.conversationCount.options.range16to30',
+        'quiz.questions.conversationCount.options.over30',
+      ]);
       let correctRange = 0;
       if (total <= 5) correctRange = 0;
       else if (total <= 15) correctRange = 1;
@@ -115,7 +170,7 @@ async function generateQuizQuestions(userId: string): Promise<QuizQuestion[]> {
 
       questions.push({
         id: `q-${++questionId}`,
-        question: 'About how many conversations have we had together?',
+        question: t('quiz.questions.conversationCount.text'),
         options: ranges,
         correctIndex: correctRange,
         category: 'memories',
@@ -126,7 +181,12 @@ async function generateQuizQuestions(userId: string): Promise<QuizQuestion[]> {
     // Time spent together
     if (profile.totalMinutesTalked && (profile.totalMinutesTalked as number) > 30) {
       const minutes = profile.totalMinutesTalked as number;
-      const ranges = ['Less than 30 minutes', '30 min - 1 hour', '1-2 hours', 'More than 2 hours'];
+      const ranges = optionTexts([
+        'quiz.questions.timeTogether.options.under30Min',
+        'quiz.questions.timeTogether.options.min30To60',
+        'quiz.questions.timeTogether.options.hour1To2',
+        'quiz.questions.timeTogether.options.over2Hours',
+      ]);
       let correctRange = 0;
       if (minutes < 30) correctRange = 0;
       else if (minutes < 60) correctRange = 1;
@@ -135,7 +195,7 @@ async function generateQuizQuestions(userId: string): Promise<QuizQuestion[]> {
 
       questions.push({
         id: `q-${++questionId}`,
-        question: 'How much time have we spent talking together?',
+        question: t('quiz.questions.timeTogether.text'),
         options: ranges,
         correctIndex: correctRange,
         category: 'memories',
@@ -159,13 +219,13 @@ async function generateQuizQuestions(userId: string): Promise<QuizQuestion[]> {
       // Simple true/false style question about memory
       questions.push({
         id: `q-${++questionId}`,
-        question: `Is this something I remember about us: "${m.content.slice(0, 50)}..."?`,
-        options: [
-          'Yes, that sounds right',
-          "No, that's not quite right",
-          "I'm not sure",
-          'We never talked about that',
-        ],
+        question: t('quiz.questions.memoryRecall.text', { snippet: m.content.slice(0, 50) }),
+        options: optionTexts([
+        'quiz.questions.memoryRecall.options.yes',
+        'quiz.questions.memoryRecall.options.no',
+        'quiz.questions.memoryRecall.options.unsure',
+        'quiz.questions.memoryRecall.options.never',
+      ]),
         correctIndex: 0, // Memory is real, so "Yes" is correct
         category: 'memories',
         difficulty: 'medium',
@@ -177,24 +237,39 @@ async function generateQuizQuestions(userId: string): Promise<QuizQuestion[]> {
   const defaultQuestions: QuizQuestion[] = [
     {
       id: `q-${++questionId}`,
-      question: 'When we first started talking, I was:',
-      options: ['Excited to meet you', 'A bit nervous', 'Curious about you', 'All of the above'],
+      question: t('quiz.questions.firstMeeting.text'),
+      options: optionTexts([
+        'quiz.questions.firstMeeting.options.excited',
+        'quiz.questions.firstMeeting.options.nervous',
+        'quiz.questions.firstMeeting.options.curious',
+        'quiz.questions.firstMeeting.options.allOfTheAbove',
+      ]),
       correctIndex: 3,
       category: 'memories',
       difficulty: 'easy',
     },
     {
       id: `q-${++questionId}`,
-      question: 'What matters most to me in our conversations?',
-      options: ['Being helpful', 'Making you feel heard', 'Learning about you', 'Growing together'],
+      question: t('quiz.questions.whatMatters.text'),
+      options: optionTexts([
+        'quiz.questions.whatMatters.options.beingHelpful',
+        'quiz.questions.whatMatters.options.feelingHeard',
+        'quiz.questions.whatMatters.options.learningAboutYou',
+        'quiz.questions.whatMatters.options.growingTogether',
+      ]),
       correctIndex: 1,
       category: 'preferences',
       difficulty: 'easy',
     },
     {
       id: `q-${++questionId}`,
-      question: 'How do I feel when you share something difficult?',
-      options: ['Uncomfortable', 'Honored you trust me', 'Eager to fix it', 'Distracted'],
+      question: t('quiz.questions.difficultShare.text'),
+      options: optionTexts([
+        'quiz.questions.difficultShare.options.uncomfortable',
+        'quiz.questions.difficultShare.options.honored',
+        'quiz.questions.difficultShare.options.eagerToFix',
+        'quiz.questions.difficultShare.options.distracted',
+      ]),
       correctIndex: 1,
       category: 'patterns',
       difficulty: 'easy',
@@ -211,7 +286,7 @@ async function generateQuizQuestions(userId: string): Promise<QuizQuestion[]> {
   }
 
   // Shuffle and return
-  return questions.sort(() => Math.random() - 0.5).slice(0, 7);
+  return shuffle(questions, random).slice(0, 7);
 }
 
 /**
@@ -228,15 +303,15 @@ function calculateGrade(scorePercent: number): QuizResult['grade'] {
 /**
  * Get celebration message based on grade
  */
-function getCelebration(grade: QuizResult['grade']): string {
-  const celebrations: Record<QuizResult['grade'], string> = {
-    soulmate: "You really get me! It's like we share one brain.",
-    bestie: 'Wow, you know me so well! Best friends for life.',
-    friend: 'Pretty good! Our friendship is growing stronger.',
-    acquaintance: "Not bad! We're still learning about each other.",
-    stranger: 'Looks like we have more to discover together!',
+function getCelebration(grade: QuizResult['grade'], locale: SupportedLocale): string {
+  const celebrationKeys: Record<QuizResult['grade'], string> = {
+    soulmate: 'quiz.celebrations.soulmate',
+    bestie: 'quiz.celebrations.bestie',
+    friend: 'quiz.celebrations.friend',
+    acquaintance: 'quiz.celebrations.acquaintance',
+    stranger: 'quiz.celebrations.stranger',
   };
-  return celebrations[grade];
+  return tFor(locale, celebrationKeys[grade]);
 }
 
 // ============================================================================
@@ -255,21 +330,17 @@ async function handleGetQuiz(
   if (!userId) return;
 
   try {
-    const questions = await generateQuizQuestions(userId);
+    const locale = await localeForRequest(req.headers['accept-language']);
+    const quizId = randomUUID();
+    const questions = await generateQuizQuestions(userId, locale, quizId);
 
-    // Don't include correct answers in response (anti-cheat)
-    const sanitizedQuestions = questions.map((q) => ({
-      id: q.id,
-      question: q.question,
-      options: q.options,
-      category: q.category,
-      difficulty: q.difficulty,
-    }));
-
+    // The client shows the right answer after each guess, so it needs
+    // correctIndex; quizId lets the submission be re-scored on the server.
     sendJSONCached(
       res,
       {
-        questions: sanitizedQuestions,
+        quizId,
+        questions,
         totalQuestions: questions.length,
         timeLimit: 60, // seconds per question
       },
@@ -284,7 +355,9 @@ async function handleGetQuiz(
 /**
  * POST /api/quiz/knowledge/results - Submit quiz results
  *
- * Body: { answers: Array<{ questionId: string; selectedIndex: number }> }
+ * Body: { quizId: string; answers: Array<{ questionId: string; selectedIndex: number }> }
+ * Older clients send `results` (same items plus their own `correct` flag) and
+ * no quizId; without a quizId the quiz can't be rebuilt, so their flags count.
  */
 async function handleSubmitResults(
   req: IncomingMessage,
@@ -295,28 +368,30 @@ async function handleSubmitResults(
   if (!userId) return;
 
   try {
-    const body = await parseBody<{
-      answers: Array<{ questionId: string; selectedIndex: number }>;
-    }>(req);
+    type Answer = { questionId: string; selectedIndex: number; correct?: boolean };
+    const body = await parseBody<{ quizId?: string; answers?: Answer[]; results?: Answer[] }>(req);
+    const answers = body.answers ?? body.results;
 
-    if (!body.answers || !Array.isArray(body.answers)) {
+    if (!Array.isArray(answers)) {
       sendJSON(res, { error: 'answers array required' }, 400);
       return;
     }
 
-    // Regenerate questions to verify answers
-    const questions = await generateQuizQuestions(userId);
-    const questionMap = new Map(questions.map((q) => [q.id, q]));
+    const locale = await localeForRequest(req.headers['accept-language']);
 
     let correctCount = 0;
-    for (const answer of body.answers) {
-      const question = questionMap.get(answer.questionId);
-      if (question && question.correctIndex === answer.selectedIndex) {
-        correctCount++;
-      }
+    if (typeof body.quizId === 'string' && body.quizId) {
+      // Rebuild the quiz that was served and score against it
+      const questions = await generateQuizQuestions(userId, locale, body.quizId);
+      const questionMap = new Map(questions.map((q) => [q.id, q]));
+      correctCount = answers.filter(
+        (answer) => questionMap.get(answer.questionId)?.correctIndex === answer.selectedIndex
+      ).length;
+    } else {
+      correctCount = answers.filter((answer) => answer.correct === true).length;
     }
 
-    const totalQuestions = body.answers.length;
+    const totalQuestions = answers.length;
     const scorePercent = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
     const grade = calculateGrade(scorePercent);
 
@@ -325,7 +400,7 @@ async function handleSubmitResults(
       correctAnswers: correctCount,
       scorePercent,
       grade,
-      celebration: getCelebration(grade),
+      celebration: getCelebration(grade, locale),
     };
 
     // Save quiz result to profile for tracking

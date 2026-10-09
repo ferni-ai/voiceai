@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isRealSilence } from '../dead-air.js';
+import { checkInDelay, isRealSilence } from '../dead-air.js';
 
 describe('isRealSilence', () => {
   it('is silence only when the agent is listening and the user is not talking', () => {
@@ -19,5 +19,13 @@ describe('isRealSilence', () => {
   it('defers to the other guards when the session exposes no state', () => {
     expect(isRealSilence(undefined)).toBe(true);
     expect(isRealSilence({})).toBe(true);
+  });
+});
+
+describe('checkInDelay', () => {
+  it('jitters the base wait between 0.75x and 1.25x', () => {
+    expect(checkInDelay(3000, () => 0)).toBe(2250);
+    expect(checkInDelay(3000, () => 0.5)).toBe(3000);
+    expect(checkInDelay(3000, () => 0.999)).toBe(3749);
   });
 });

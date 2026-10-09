@@ -12,6 +12,7 @@
 
 import { execSync } from 'child_process';
 import * as fs from 'fs';
+import { globSync } from 'glob';
 import { pathToFileURL } from 'url';
 
 // ============================================================================
@@ -121,21 +122,16 @@ function getChangedFiles(): string[] {
   }
 }
 
-export function getAllRelevantFiles(): string[] {
-  const files: string[] = [];
-
-  for (const pattern of COPY_PATHS) {
-    try {
-      const result = execSync(`find . -path "./${pattern}" -type f 2>/dev/null || true`, {
-        encoding: 'utf-8',
-      });
-      files.push(...result.trim().split('\n').filter(Boolean));
-    } catch {
-      // Ignore errors
-    }
-  }
-
-  return [...new Set(files)];
+/**
+ * Every file under COPY_PATHS. Glob walks only each pattern's own directory:
+ * a `find .` here walked the whole checkout, including node_modules and any
+ * nested git worktrees, and took over 12 minutes in a checkout that had them.
+ */
+export function getAllRelevantFiles(cwd = process.cwd()): string[] {
+  const files = COPY_PATHS.flatMap((pattern) =>
+    globSync(pattern, { cwd, nodir: true, ignore: ['**/node_modules/**'] })
+  );
+  return [...new Set(files)].sort();
 }
 
 export function checkFile(filePath: string): Violation[] {

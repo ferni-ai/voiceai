@@ -23,13 +23,17 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
-function hasKey(key: string): boolean {
+function valueOf(key: string): string | undefined {
   let node: unknown = EN_US;
   for (const part of key.split('.')) {
-    if (typeof node !== 'object' || node === null || !(part in node)) return false;
+    if (typeof node !== 'object' || node === null || !(part in node)) return undefined;
     node = (node as Record<string, unknown>)[part];
   }
-  return typeof node === 'string';
+  return typeof node === 'string' ? node : undefined;
+}
+
+function hasKey(key: string): boolean {
+  return valueOf(key) !== undefined;
 }
 
 /** `file:line key` for every literal dotted t('...') key missing from en-US. */
@@ -38,6 +42,35 @@ function missingKeys(): string[] {
     const source = readFileSync(file, 'utf8');
     return [...source.matchAll(/\bt\(\s*['"]([a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+)['"]/g)]
       .filter((m) => !hasKey(m[1]))
+      .map((m) => `${relative(SRC, file)}:${source.slice(0, m.index).split('\n').length} ${m[1]}`);
+  });
+}
+
+/** Names a t('key', { ... }) call passes, or null when a spread hides them. */
+function paramNames(objectBody: string): Set<string> | null {
+  const names = new Set<string>();
+  for (const part of objectBody.split(',').map((p) => p.trim()).filter(Boolean)) {
+    if (part.startsWith('...')) return null;
+    const name = /^['"]?(\w+)['"]?\s*(?::|$)/.exec(part)?.[1];
+    if (name) names.add(name);
+  }
+  return names;
+}
+
+/**
+ * `file:line key` for t() calls that leave an en-US placeholder unfilled, which
+ * renders literally ("Your balance: {amount} seeds"). Only calls whose params
+ * are a flat object literal are checked.
+ */
+function unfilledPlaceholders(): string[] {
+  return sourceFiles(SRC).flatMap((file) => {
+    const source = readFileSync(file, 'utf8');
+    return [...source.matchAll(/\bt\(\s*['"]([a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+)['"]\s*,\s*\{([^{}]*)\}/g)]
+      .filter((m) => {
+        const passed = paramNames(m[2]);
+        const wanted = [...(valueOf(m[1]) ?? '').matchAll(/\{(\w+)\}/g)].map((p) => p[1]);
+        return passed !== null && wanted.some((name) => !passed.has(name));
+      })
       .map((m) => `${relative(SRC, file)}:${source.slice(0, m.index).split('\n').length} ${m[1]}`);
   });
 }
@@ -51,6 +84,19 @@ describe('i18n keys', () => {
   it('every literal key used in src/ exists in en-US', () => {
     // i18n/index.ts documents t() with an illustrative key in its JSDoc.
     expect(missingKeys().filter((entry) => !entry.endsWith(' hero.headline'))).toEqual([]);
+  });
+
+  it('every placeholder in a checked call gets a param', () => {
+    expect(paramNames('amount: total, count')).toEqual(new Set(['amount', 'count']));
+    expect(paramNames('...rest')).toBeNull();
+    expect(unfilledPlaceholders()).toEqual([]);
+  });
+
+  it('every data-i18n key in index.html exists in en-US', () => {
+    const html = readFileSync(join(SRC, '..', 'index.html'), 'utf8');
+    const keys = [...html.matchAll(/data-i18n(?:-[a-z-]+)?="([^"]+)"/g)].map((m) => m[1]);
+    expect(keys.length).toBeGreaterThan(5);
+    expect(keys.filter((key) => !hasKey(key))).toEqual([]);
   });
 
   it('interpolates params into the fallback text', () => {

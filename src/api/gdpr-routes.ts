@@ -627,27 +627,11 @@ async function handleAccountDeletion(
   });
 
   try {
-    const { getDefaultStore } = await import('../memory/index.js');
-    const store = getDefaultStore();
-    await store.initialize();
-
-    // Delete profile and all associated data
-    const deleted = await store.deleteProfile(userId);
-
-    // Delete wellbeing data
-    let wellbeingDeleted = false;
-    try {
-      const { deleteWellbeingData } = await import('../services/wellbeing-tracking/persistence.js');
-      wellbeingDeleted = await deleteWellbeingData(userId);
-      if (wellbeingDeleted) {
-        log.info({ userId: `${userId.substring(0, 8)}...` }, 'Wellbeing data deleted');
-      }
-    } catch (wellbeingErr) {
-      log.warn(
-        { error: String(wellbeingErr), userId: `${userId.substring(0, 8)}...` },
-        'Wellbeing data deletion failed (non-fatal)'
-      );
-    }
+    // The same sweep as DELETE /api/account: erases the user record (bogle_users/{uid} with every
+    // subcollection) and the other stores, and throws if the record survives, so the sign-in
+    // below is only closed once the data is gone. This used to delete an in-memory profile only.
+    const { getDataExportService } = await import('../services/data-export.js');
+    const results = await getDataExportService().deleteAllData(userId);
 
     // Also delete Firebase user if this is a Firebase UID
     // Firebase UIDs are 28 characters and don't start with 'device:'
@@ -668,24 +652,13 @@ async function handleAccountDeletion(
       }
     }
 
-    if (deleted || firebaseDeleted || wellbeingDeleted) {
-      sendJSON(res, {
-        success: true,
-        message: 'Your account and all associated data have been deleted.',
-        deletedAt: new Date().toISOString(),
-        note: 'This action is irreversible. Thank you for using Ferni.',
-        details: {
-          profileDeleted: deleted,
-          firebaseDeleted,
-          wellbeingDeleted,
-        },
-      });
-    } else {
-      sendJSON(res, {
-        success: false,
-        message: 'No profile found to delete. You may not have an account.',
-      });
-    }
+    sendJSON(res, {
+      success: true,
+      message: 'Your account and all associated data have been deleted.',
+      deletedAt: new Date().toISOString(),
+      note: 'This action is irreversible. Thank you for using Ferni.',
+      details: { profileDeleted: true, firebaseDeleted, steps: results },
+    });
 
     return true;
   } catch (error) {

@@ -3,7 +3,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { lineCount, lowered, measureBundle, regressions, type Measurement } from '../ratchet.js';
-import { findTerm, visibleCopy } from '../check-brand-compliance.js';
+import { findTerm, getAllRelevantFiles, visibleCopy } from '../check-brand-compliance.js';
 
 const base: Measurement = {
   oversized: { 'src/big.ts': 900, 'src/huge.ts': 2000 },
@@ -111,6 +111,18 @@ describe('bundle measurement', () => {
     });
   });
 
+  it('counts translation chunks once, at the largest, since a visitor loads one locale', () => {
+    const withLocales = {
+      ...manifest,
+      'src/settings/index.ts': { ...manifest['src/settings/index.ts'], dynamicImports: ['src/i18n/locales/de.json', 'src/i18n/locales/ja.json'] },
+      'src/i18n/locales/de.json': { file: 'assets/de-e5.js' },
+      'src/i18n/locales/ja.json': { file: 'assets/ja-f6.js' },
+    };
+    const sizes = measureBundle(build({ ...assets, 'de-e5.js': 30, 'ja-f6.js': 50 }, withLocales));
+    expect(sizes.totalKB).toBe(160 + 50);
+    expect(sizes.initialKB).toBe(10 + 2 + 40 + 7 + 1);
+  });
+
   it('falls back to guessing from filenames, with a warning, when there is no manifest', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     expect(measureBundle(build(assets)).initialKB).toBe(10 + 2 + 40 + 100);
@@ -130,5 +142,24 @@ describe('brand copy check', () => {
     expect(findTerm('not your average bot.', 'bot')).toBeGreaterThan(-1);
     expect(findTerm('AI chatbots forget', 'chatbot')).toBeGreaterThan(-1);
     expect(findTerm('Unlimited Conversations!', 'Unlimited conversations')).toBe(0);
+  });
+
+  it('finds copy files under the copy paths only, top level included', () => {
+    const repo = mkdtempSync(join(tmpdir(), 'brand-files-'));
+    try {
+      for (const file of [
+        'apps/web/src/app.ts',
+        'apps/web/src/ui/menu.ui.ts',
+        'apps/web/src/node_modules/dep/index.ts',
+        '.claude/worktrees/other/apps/web/src/app.ts',
+        'src/services/billing.ts',
+      ]) {
+        mkdirSync(join(repo, file, '..'), { recursive: true });
+        writeFileSync(join(repo, file), '');
+      }
+      expect(getAllRelevantFiles(repo)).toEqual(['apps/web/src/app.ts', 'apps/web/src/ui/menu.ui.ts']);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
   });
 });

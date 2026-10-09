@@ -10,6 +10,12 @@
 # - BuildKit 1.4 syntax enables parallel stage builds
 # - Cache mounts for pnpm store
 #
+# No neural speaker model here: the voice-auth API computes DSP voice features,
+# and DSP can never verify or identify anyone (voice-match-trust.ts), so voice
+# verification on this server fails closed. The model lives in the agent image
+# (Dockerfile.agent). No client calls the voice-auth API today; if one ever
+# needs neural verification here, fetch the model the way Dockerfile.agent does.
+#
 # Build:
 #   docker build -f docker/Dockerfile.ui -t ferni-ui .
 #
@@ -24,12 +30,14 @@ ARG NODE_VERSION=20
 ARG LIVEKIT_AGENTS_VERSION=1.0.31
 
 # ============================================================================
-# Stage 1: Build Backend TypeScript (with pnpm + esbuild)
+# Stage 1: Workspace dependencies (pnpm), shared by the backend and frontend
 # ============================================================================
-FROM node:${NODE_VERSION}-slim AS backend-builder
-
-# Re-declare ARG after FROM to make it available in this stage
-ARG LIVEKIT_AGENTS_VERSION
+# One install from the workspace pnpm-lock.yaml, the lockfile CI tests with.
+# The frontend used to install separately with npm ci from
+# apps/web/package-lock.json, a second lockfile nothing kept in sync: when a
+# PR added a dev dependency to apps/web/package.json (archunit, #392), npm ci
+# refused and every UI deploy from main failed.
+FROM node:${NODE_VERSION}-slim AS workspace-deps
 
 # Install git and enable pnpm
 RUN apt-get update && apt-get install -y --no-install-recommends git \
@@ -41,8 +49,6 @@ WORKDIR /app
 # Copy package files and configs
 COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 COPY .npmrc ./
-COPY tsconfig.json ./
-COPY tsconfig.build.json ./
 
 # Copy patches directory (required by pnpm-lock.yaml)
 COPY patches/ ./patches/
@@ -65,6 +71,17 @@ RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --prefer-offline --no-frozen-lockfile
 
+# ============================================================================
+# Stage 2: Build Backend TypeScript (esbuild)
+# ============================================================================
+FROM workspace-deps AS backend-builder
+
+# Re-declare ARG after FROM to make it available in this stage
+ARG LIVEKIT_AGENTS_VERSION
+
+COPY tsconfig.json ./
+COPY tsconfig.build.json ./
+
 # Copy the CLI source the build script runs from. Copy the whole tree, not
 # build-fast.ts and its imports one by one: each time it gained an import
 # (esbuild-target.ts, then utils/project-root.ts, fixed per file in #147) the
@@ -78,13 +95,9 @@ COPY src/ ./src/
 RUN npx tsx apps/cli/src/commands/build/build-fast.ts || pnpm build
 
 # ============================================================================
-# Stage 2: Build Frontend (runs in parallel with backend)
-# Note: apps/web uses npm (not pnpm) with package-lock.json
+# Stage 3: Build Frontend (runs in parallel with the backend build)
 # ============================================================================
-FROM node:${NODE_VERSION}-slim AS frontend-builder
-
-# Build arg for admin API key (passed from Cloud Build)
-ARG VITE_ADMIN_API_KEY=""
+FROM workspace-deps AS frontend-builder
 
 WORKDIR /app
 
@@ -96,15 +109,10 @@ COPY design-system/dist ./design-system/dist/
 COPY design-system/assets/logos ./design-system/assets/logos/
 COPY design-system/assets/favicons ./design-system/assets/favicons/
 
-# Copy frontend package files (npm-based)
-COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
-
 WORKDIR /app/apps/web
 
-# Install with npm (frontend uses npm, not pnpm)
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline
-
+# Sources only: .dockerignore keeps the host's apps/web/node_modules out, so the
+# workspace install from the previous stage stays in place.
 COPY apps/web/ ./
 
 # Create placeholder for symlinked brand directory (symlink points outside context)
@@ -116,13 +124,10 @@ COPY apps/web/ ./
 ARG BUILD_TIMESTAMP=default
 RUN echo "Build: ${BUILD_TIMESTAMP}" && rm -rf public/design-system/brand 2>/dev/null || true && mkdir -p public/design-system/brand
 
-# Set env var for Vite build (bakes into the bundle)
-ENV VITE_ADMIN_API_KEY=${VITE_ADMIN_API_KEY}
-
-RUN npm run build
+RUN pnpm run build
 
 # ============================================================================
-# Stage 3: Production Server
+# Stage 4: Production Server
 # ============================================================================
 FROM node:${NODE_VERSION}-slim AS production
 

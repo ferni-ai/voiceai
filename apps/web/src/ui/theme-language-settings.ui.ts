@@ -79,7 +79,7 @@ function injectStyles(): void {
       max-width: 480px;
       max-height: 85vh;
       overflow-y: auto;
-      background: var(--color-bg-elevated, #fffdfb);
+      background: var(--color-background-elevated, #fffdfb);
       border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       border-radius: var(--radius-xl, 20px);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -110,7 +110,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text, #3D5A45);
     }
 
     .theme-language-settings__title {
@@ -141,7 +141,7 @@ function injectStyles(): void {
     }
 
     .theme-language-settings__close:focus-visible {
-      outline: 2px solid var(--color-accent, #3D5A45);
+      outline: 2px solid var(--color-accent-text, #3D5A45);
       outline-offset: 2px;
     }
 
@@ -209,13 +209,13 @@ function injectStyles(): void {
 
     .theme-language-settings__theme-option:focus-visible {
       outline: none;
-      border-color: var(--color-accent, #3D5A45);
-      box-shadow: 0 0 0 3px var(--color-accent-tint, rgba(61, 90, 69, 0.2));
+      border-color: var(--color-accent-text, #3D5A45);
+      box-shadow: 0 0 0 3px var(--color-accent-subtle, rgba(61, 90, 69, 0.2));
     }
 
     .theme-language-settings__theme-option--active {
-      border-color: var(--color-accent, #3D5A45);
-      background: var(--color-accent-tint, rgba(61, 90, 69, 0.05));
+      border-color: var(--color-accent-text, #3D5A45);
+      background: var(--color-accent-subtle, rgba(61, 90, 69, 0.05));
     }
 
     .theme-language-settings__theme-preview {
@@ -235,9 +235,9 @@ function injectStyles(): void {
     }
 
     .theme-language-settings__theme-preview--midnight {
-      background: linear-gradient(145deg, #1a1a2e 0%, #16162a 100%);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: #D4AF37;
+      background: #14110e;
+      border: 1px solid rgba(244, 239, 230, 0.16);
+      color: #8eae7a;
     }
 
     .theme-language-settings__theme-info {
@@ -263,8 +263,8 @@ function injectStyles(): void {
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: var(--color-accent, #3D5A45);
-      color: white;
+      background: var(--color-accent-primary, #3D5A45);
+      color: var(--color-background-primary, #fafaf9);
       display: none;
       align-items: center;
       justify-content: center;
@@ -306,11 +306,11 @@ function injectStyles(): void {
     .theme-language-settings__language-option:focus-visible {
       outline: none;
       background: var(--color-background-secondary, rgba(44, 37, 32, 0.04));
-      box-shadow: inset 0 0 0 2px var(--color-accent, #3D5A45);
+      box-shadow: inset 0 0 0 2px var(--color-accent-text, #3D5A45);
     }
 
     .theme-language-settings__language-option--active {
-      background: var(--color-accent-tint, rgba(61, 90, 69, 0.08));
+      background: var(--color-accent-subtle, rgba(61, 90, 69, 0.08));
     }
 
     .theme-language-settings__language-flag {
@@ -338,7 +338,7 @@ function injectStyles(): void {
     .theme-language-settings__language-check {
       width: 20px;
       height: 20px;
-      color: var(--color-accent, #3D5A45);
+      color: var(--color-accent-text, #3D5A45);
       opacity: 0;
     }
 
@@ -448,15 +448,15 @@ function renderThemeOption(theme: ThemeName, currentTheme: ThemeName): string {
       data-theme="${theme}"
       role="radio"
       aria-checked="${isActive}"
-      aria-label="${meta.name}"
+      aria-label="${t(meta.nameKey)}"
     >
       <div class="theme-language-settings__theme-check">${ICONS.check}</div>
       <div class="theme-language-settings__theme-preview theme-language-settings__theme-preview--${theme}">
         ${icon}
       </div>
       <div class="theme-language-settings__theme-info">
-        <span class="theme-language-settings__theme-name">${meta.name}</span>
-        <span class="theme-language-settings__theme-desc">${meta.description}</span>
+        <span class="theme-language-settings__theme-name">${t(meta.nameKey)}</span>
+        <span class="theme-language-settings__theme-desc">${t(meta.descriptionKey)}</span>
       </div>
     </button>
   `;

@@ -49,10 +49,11 @@ async function callGemini(prompt: string, systemPrompt: string): Promise<string>
   if (!apiKey) throw new Error('GOOGLE_API_KEY not set');
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${CLI_GEMINI_MODEL}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${CLI_GEMINI_MODEL}:generateContent`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // Header rather than ?key= so the key never lands in a logged URL.
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${prompt}` }] }],
         generationConfig: { maxOutputTokens: 4096, temperature: 0.2 },
@@ -152,6 +153,46 @@ Output format:
 // REVIEW FUNCTIONS
 // =============================================================================
 
+export type ReviewStatus = 'reviewed' | 'no-changes' | 'failed';
+type ReviewResult = { status: ReviewStatus; critical: number };
+
+const EMPTY_ITEM = /^(none|n\/a|no (critical )?(issues?|vulnerabilities|problems))( found| identified)?\.?$/i;
+
+/**
+ * Count list items under headings marked 🔴 or 🟡. The prompts ask for those
+ * headings even when a section is empty, so counting the emoji itself flags
+ * every review; items reading "None" don't count.
+ */
+export function countIssues(review: string, marker: '🔴' | '🟡'): number {
+  let inSection = false;
+  let count = 0;
+  for (const raw of review.split('\n')) {
+    const line = raw.trim();
+    if (line.startsWith('#')) {
+      inSection = line.includes(marker);
+      continue;
+    }
+    const item = line.match(/^(?:[-*•]|\d+[.)])\s+(.*)$/);
+    if (inSection && item && !EMPTY_ITEM.test(item[1].replace(/[*_`]/g, '').trim())) count++;
+  }
+  return count;
+}
+
+/** Worst status across several reviews: any failure fails, all empty is no-changes. */
+export function combineStatuses(statuses: ReviewStatus[]): ReviewStatus {
+  if (statuses.length === 0 || statuses.includes('failed')) return 'failed';
+  return statuses.every((s) => s === 'no-changes') ? 'no-changes' : 'reviewed';
+}
+
+/** The PR comment's last line. Only reviews that actually ran may call the code clean. */
+export function reviewVerdict(results: ReviewResult[]): string {
+  if (results.some((r) => r.critical > 0)) return '⚠️ **Critical issues found - please address before merging**';
+  const status = combineStatuses(results.map((r) => r.status));
+  if (status === 'reviewed') return '✅ No critical issues found';
+  if (status === 'no-changes') return 'ℹ️ No changes to review, so nothing was reviewed';
+  return "⚠️ **The AI review didn't run**, so this says nothing about the code. See the job log.";
+}
+
 /** What to review: a branch's changes since it left `ref`, or local changes. */
 type DiffSource = { kind: 'base'; ref: string } | { kind: 'staged' } | { kind: 'unstaged' };
 
@@ -201,7 +242,7 @@ function getDiff(source: DiffSource): string {
     : diff;
 }
 
-async function reviewCode(type: 'general' | 'security' | 'perf' = 'general', base?: string): Promise<void> {
+async function reviewCode(type: 'general' | 'security' | 'perf' = 'general', base?: string): Promise<ReviewResult> {
   const titles = {
     general: '🤖 AI Code Review',
     security: '🔒 Security Review',
@@ -218,7 +259,7 @@ async function reviewCode(type: 'general' | 'security' | 'perf' = 'general', bas
 
   if (base && !refExists(base)) {
     log.error(`Can't find ${base} to diff against (in CI, check out with fetch-depth: 0).`);
-    return;
+    return { status: 'failed', critical: 0 };
   }
 
   let source: DiffSource = base ? { kind: 'base', ref: base } : { kind: 'staged' };
@@ -232,7 +273,7 @@ async function reviewCode(type: 'general' | 'security' | 'perf' = 'general', bas
 
   if (!finalDiff) {
     log.warn(base ? `No changes against ${base}.` : 'No changes to review. Make some changes first.');
-    return;
+    return { status: 'no-changes', critical: 0 };
   }
 
   const files = git(['diff', '--name-only', ...diffArgs(source)]);
@@ -245,15 +286,19 @@ async function reviewCode(type: 'general' | 'security' | 'perf' = 'general', bas
       `Review this code diff:\n\n${finalDiff}`,
       prompts[type]
     );
+    if (!review.trim()) {
+      log.error('Review failed: Gemini returned an empty reply');
+      return { status: 'failed', critical: 0 };
+    }
 
     console.log(`\n${colors.dim}${'─'.repeat(60)}${colors.reset}`);
     console.log(formatReview(review));
     console.log(`${colors.dim}${'─'.repeat(60)}${colors.reset}\n`);
 
     // Count issues
-    const criticalCount = (review.match(/🔴/g) || []).length;
-    const warningCount = (review.match(/🟡/g) || []).length;
-    
+    const criticalCount = countIssues(review, '🔴');
+    const warningCount = countIssues(review, '🟡');
+
     if (criticalCount > 0) {
       log.error(`Found ${criticalCount} critical issue(s) - please fix before committing`);
     } else if (warningCount > 0) {
@@ -261,8 +306,10 @@ async function reviewCode(type: 'general' | 'security' | 'perf' = 'general', bas
     } else {
       log.success('Code looks good!');
     }
+    return { status: 'reviewed', critical: criticalCount };
   } catch (error) {
     log.error(`Review failed: ${error}`);
+    return { status: 'failed', critical: 0 };
   }
 }
 
@@ -273,7 +320,9 @@ function formatReview(review: string): string {
     .replace(/🟢/g, `${colors.green}🟢${colors.reset}`)
     .replace(/✅/g, `${colors.green}✅${colors.reset}`)
     .replace(/## /g, `\n${colors.bold}`)
-    .replace(/\n### /g, `${colors.reset}\n${colors.cyan}### `);
+    .replace(/\n### /g, `${colors.reset}\n${colors.cyan}### `)
+    // The workflow reads the AI_REVIEW_VERDICT= line; model text must not be able to forge it.
+    .replace(/^AI_REVIEW_/gm, 'AI-REVIEW-');
 }
 
 // =============================================================================
@@ -283,36 +332,39 @@ function formatReview(review: string): string {
 export async function handleAIReview(args: string[]): Promise<void> {
   const subcommand = args[0] && !args[0].startsWith('--') ? args[0] : 'all';
   const base = baseRef(args);
+  const results: ReviewResult[] = [];
 
   if (!process.env.GOOGLE_API_KEY) {
     log.error('GOOGLE_API_KEY not set');
+    // An empty results list is a failed run, never a clean one.
+    console.log(`AI_REVIEW_VERDICT=${reviewVerdict(results)}`);
     return;
   }
 
   switch (subcommand) {
     case 'all':
     case 'general':
-      await reviewCode('general', base);
+      results.push(await reviewCode('general', base));
       break;
 
     case 'security':
     case 'sec':
-      await reviewCode('security', base);
+      results.push(await reviewCode('security', base));
       break;
 
     case 'perf':
     case 'performance':
-      await reviewCode('perf', base);
+      results.push(await reviewCode('perf', base));
       break;
 
     case 'full':
-      await reviewCode('general', base);
+      results.push(await reviewCode('general', base));
       console.log('\n');
-      await reviewCode('security', base);
+      results.push(await reviewCode('security', base));
       console.log('\n');
-      await reviewCode('perf', base);
+      results.push(await reviewCode('perf', base));
       break;
-    
+
     default:
       console.log(`${colors.bold}AI Code Review:${colors.reset}\n`);
       console.log(`  ${colors.cyan}all${colors.reset}       General code review`);
@@ -320,6 +372,10 @@ export async function handleAIReview(args: string[]): Promise<void> {
       console.log(`  ${colors.cyan}perf${colors.reset}      Performance-focused review`);
       console.log(`  ${colors.cyan}full${colors.reset}      Run all three reviews`);
       console.log(`\n  ${colors.cyan}--base <ref>${colors.reset}  Review the branch's changes since <ref> (default in CI: the PR's base)`);
+      return;
   }
+
+  // Machine-readable, for the PR workflow's comment. It is the last line printed.
+  console.log(`AI_REVIEW_VERDICT=${reviewVerdict(results)}`);
 }
 

@@ -72,7 +72,7 @@ describe('Creative DNA card', () => {
   }
   const styleStat = () =>
     [...(dnaCard()?.querySelectorAll('.dna-stats .stat') ?? [])].find(
-      (stat) => stat.querySelector('.stat-label')?.textContent === 'creativeYou.style'
+      (stat) => stat.querySelector('.stat-label')?.textContent === 'Your Style'
     );
 
   it('leaves out Your Style when Ferni has not learned one', async () => {
@@ -100,7 +100,7 @@ describe('Creative DNA card', () => {
     expect(dnaCard()?.querySelector('.personality-label')).toBeNull();
     expect(dnaCard()?.querySelector('.share-dna-btn')).toBeNull();
     expect(dnaCard()?.querySelector('.personality-desc')?.textContent).toBe(
-      'creativeYou.noProfile'
+      "We're just getting started. This fills in as we talk."
     );
     expect(dnaCard()?.textContent).not.toMatch(/newcomer|null/i);
   });

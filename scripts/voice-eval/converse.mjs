@@ -228,7 +228,18 @@ for (const [sid, rec] of tracks) {
   writeFileSync(file, wav(pcm, 24000));
   trackSummaries.push({ name: rec.name, file, voice: rec.voice, startT: rec.startT });
 }
-// wallT0: the epoch ms every `t` above is relative to, to line turns up with agent logs.
-writeFileSync(outJson, JSON.stringify({ wallT0: t0, results, events, userSpeech, tracks: trackSummaries, mic: { file: micFile, startT: micStartT } }, null, 2));
+// run.sh passes who the call ran as (meta.uid) so a scorecard can be traced
+// back to its Firestore user. wallT0 is the epoch ms every `t` counts from,
+// to line turns up with agent logs.
+let meta = null;
+try {
+  meta = process.env.VOICE_EVAL_META ? JSON.parse(process.env.VOICE_EVAL_META) : null;
+} catch {
+  console.error('converse.mjs: VOICE_EVAL_META is not JSON; not recorded');
+}
+writeFileSync(
+  outJson,
+  JSON.stringify({ meta, wallT0: t0, results, events, userSpeech, tracks: trackSummaries, mic: { file: micFile, startT: micStartT } }, null, 2)
+);
 console.log(JSON.stringify(results));
 process.exit(0);

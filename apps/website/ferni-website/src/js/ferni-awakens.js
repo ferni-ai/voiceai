@@ -55,7 +55,6 @@
 
     // If elements missing, gracefully degrade
     if (!orb) {
-      console.log('[Ferni] Hero elements not found, skipping intro');
       return;
     }
 

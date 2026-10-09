@@ -162,7 +162,7 @@ class VideoSettingsUI {
         this.config = response.data.config;
         this.renderContent();
       } else {
-        this.renderError('Unable to load video settings');
+        this.renderError(t('videoSettings.loadError'));
       }
     } catch {
       this.state = {
@@ -223,8 +223,8 @@ class VideoSettingsUI {
 
         <div class="video-settings__coming-soon">
           <div class="video-settings__coming-soon-icon">${ICONS.video}</div>
-          <h3>Video Calls Coming Soon</h3>
-          <p>We're working on bringing video conversations to Ferni. For now, enjoy our voice-first experience with Ferni's expressive avatar.</p>
+          <h3>${t('videoSettings.comingSoonTitle')}</h3>
+          <p>${t('videoSettings.comingSoonBody')}</p>
         </div>
 
         <!-- Video Controls (Hidden - Coming Soon)
@@ -679,7 +679,7 @@ class VideoSettingsUI {
 
       /* Dark Theme */
       [data-theme="midnight"] .video-settings__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .video-settings__title,
@@ -691,7 +691,7 @@ class VideoSettingsUI {
       [data-theme="midnight"] .video-settings__control,
       [data-theme="midnight"] .video-settings__mode,
       [data-theme="midnight"] .video-settings__note {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       @media (max-width: clamp(336px, 90vw, 480px)) {

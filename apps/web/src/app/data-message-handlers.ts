@@ -403,6 +403,10 @@ export function handleDataMessage(message: DataMessage): void {
       handleBreathSync(message as BreathSyncEvent);
       break;
 
+    case 'breathing_exercise':
+      handleBreathingExercise(message);
+      break;
+
     case 'cinematic_experience':
       // 🌟 Cinematic Experience: Full-screen visual moments (Winter Solstice, etc.)
       handleCinematicExperience(message as CinematicExperienceEvent);
@@ -3027,4 +3031,13 @@ function handleActionResolved(event: ActionResolvedEvent): void {
 
   // Dismiss the confirmation card (it will show success/rejected state briefly)
   actionConfirmation.dismiss(event.actionId);
+}
+
+export function handleBreathingExercise(message: DataMessage): void {
+  const technique = typeof message['technique'] === 'string' ? message['technique'] : undefined;
+  const purpose = typeof message['purpose'] === 'string' ? message['purpose'] : undefined;
+  const pattern = typeof message['pattern'] === 'string' ? message['pattern'] : undefined;
+  void import('../ui/breathing-guide-modal.ui.js').then(({ openBreathingGuideModal }) => {
+    openBreathingGuideModal({ technique, purpose, pattern });
+  });
 }

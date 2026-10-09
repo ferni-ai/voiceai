@@ -207,11 +207,7 @@ try {
 
 // Start Deep Extraction Worker for LLM-powered memory extraction
 // This processes memory jobs queued by fastCapture() in background
-import {
-  configureSyncService,
-  startDeepExtractionWorker,
-  startSyncService,
-} from '../memory/dynamic/index.js';
+import { configureSyncService, startDeepExtractionWorker } from '../memory/dynamic/index.js';
 startDeepExtractionWorker();
 log('✅ Deep extraction worker started');
 
@@ -225,29 +221,9 @@ void initializeKnowledgeCapture()
     })
   );
 
-// Spanner Graph (L3) is opt-in — idle instances cost ~$65/mo with no data.
-// Set SPANNER_ENABLED=true only when a ferni-memory instance is provisioned.
-import { initializeSpanner } from '../memory/spanner-graph/client.js';
-const spannerEnabled = process.env.SPANNER_ENABLED === 'true';
-if (spannerEnabled) {
-  initializeSpanner()
-    .then((ready) => {
-      if (ready) {
-        log('✅ Spanner Graph (L3) initialized - long-term memory active');
-      } else {
-        log('⚠️ Spanner Graph not available - L3 memory disabled (L2 Firestore still works)');
-      }
-    })
-    .catch((err) => {
-      log('⚠️ Spanner initialization failed (non-blocking)', { error: String(err) });
-    });
-
-  startSyncService();
-  log('✅ Firestore → Spanner sync service started');
-} else {
-  configureSyncService({ enabled: false });
-  log('ℹ️ Spanner L3 disabled (SPANNER_ENABLED!=true) — Firestore L2 only');
-}
+// No Spanner instance exists (gcloud instances list empty, 2026-10). Keep L2 Firestore.
+configureSyncService({ enabled: false });
+log('ℹ️ Spanner L3 removed — Firestore L2 only');
 
 // Start OpenAI health monitor orphan cleanup
 // This cleans up stale sessions that exited without calling stopHealthMonitoring()

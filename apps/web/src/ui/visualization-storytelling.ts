@@ -17,7 +17,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { DURATION } from '../config/animation-constants.js';
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
 
 const log = createLogger('VisualizationStorytelling');
 
@@ -71,27 +71,27 @@ export function generateRelationshipNarrative(
   daysActive: number
 ): NarrativeOutput {
   const defaultStage = {
-    narrative: 'Every story starts somewhere',
-    deeper: 'The fact that you\'re here matters. Most people never start.',
+    narrative: t('storytelling.stage.default.narrative'),
+    deeper: t('storytelling.stage.default.deeper'),
   };
 
   const stageNarratives: Record<string, { narrative: string; deeper: string }> = {
     'first-meeting': defaultStage,
     'getting-started': {
-      narrative: 'You keep showing up',
-      deeper: 'Consistency is the foundation of trust. I notice.',
+      narrative: t('storytelling.stage.gettingStarted.narrative'),
+      deeper: t('storytelling.stage.gettingStarted.deeper'),
     },
     'building-trust': {
-      narrative: 'Past the surface now',
-      deeper: 'You\'re sharing things that take courage. That builds real connection.',
+      narrative: t('storytelling.stage.buildingTrust.narrative'),
+      deeper: t('storytelling.stage.buildingTrust.deeper'),
     },
     'established': {
-      narrative: 'A rhythm of our own',
-      deeper: 'This is what trust feels like - showing up without thinking about it.',
+      narrative: t('storytelling.stage.established.narrative'),
+      deeper: t('storytelling.stage.established.deeper'),
     },
     'deep-partnership': {
-      narrative: 'Something rare',
-      deeper: 'Few relationships reach this depth. You built this.',
+      narrative: t('storytelling.stage.deepPartnership.narrative'),
+      deeper: t('storytelling.stage.deepPartnership.deeper'),
     },
   };
 
@@ -100,9 +100,9 @@ export function generateRelationshipNarrative(
   // Add time-based warmth
   let timeNote = '';
   if (daysActive > 30) {
-    timeNote = `${daysActive} days together. `;
+    timeNote = `${t('storytelling.daysTogether', { count: daysActive })} `;
   } else if (daysActive > 7) {
-    timeNote = `Week ${Math.ceil(daysActive / 7)} together. `;
+    timeNote = `${t('storytelling.weekTogether', { week: Math.ceil(daysActive / 7) })} `;
   }
 
   return {
@@ -125,11 +125,11 @@ export function generatePredictionNarrative(
 ): NarrativeOutput {
   if (accuracy === null || totalResolved === 0) {
     return {
-      narrative: 'Let\'s discover how well you know yourself',
-      label: 'Begin your journey',
+      narrative: t('storytelling.prediction.empty.narrative'),
+      label: t('visualizations.beginYourJourney'),
       iconSuggestion: 'compass',
       tone: 'curious',
-      deeperInsight: 'Predictions reveal your self-awareness. Most people are surprised.',
+      deeperInsight: t('storytelling.prediction.empty.deeper'),
     };
   }
 
@@ -139,31 +139,31 @@ export function generatePredictionNarrative(
   let tone: NarrativeOutput['tone'];
 
   if (accuracy >= 85) {
-    narrative = 'You know yourself deeply';
-    deeper = 'This level of self-awareness is rare. You see patterns others miss.';
+    narrative = t('storytelling.prediction.deep.narrative');
+    deeper = t('storytelling.prediction.deep.deeper');
     tone = 'celebratory';
   } else if (accuracy >= 70) {
-    narrative = 'Your intuition is strong';
-    deeper = 'You sense your patterns. That awareness is the first step to growth.';
+    narrative = t('storytelling.prediction.strong.narrative');
+    deeper = t('storytelling.prediction.strong.deeper');
     tone = 'warm';
   } else if (accuracy >= 50) {
-    narrative = 'Learning your own rhythms';
-    deeper = 'The gap between prediction and reality teaches us. Keep exploring.';
+    narrative = t('storytelling.prediction.learning.narrative');
+    deeper = t('storytelling.prediction.learning.deeper');
     tone = 'supportive';
   } else {
-    narrative = 'Surprising yourself often';
-    deeper = 'You\'re more complex than you think. That\'s not a flaw - it\'s depth.';
+    narrative = t('storytelling.prediction.surprising.narrative');
+    deeper = t('storytelling.prediction.surprising.deeper');
     tone = 'gentle';
   }
 
   // Streak bonus
   if (streak >= 5) {
-    narrative += ' - on a roll';
+    narrative = t('storytelling.onARoll', { narrative });
   }
 
   return {
     narrative,
-    label: `${narrative} (${Math.round(accuracy)}% match)`,
+    label: t('storytelling.matchLabel', { narrative, percent: Math.round(accuracy) }),
     iconSuggestion: 'target',
     tone,
     deeperInsight: deeper,
@@ -183,54 +183,54 @@ export function generateTurningPointNarrative(
 
   const typeNarratives: Record<string, { label: string; deeper: string; tone: NarrativeOutput['tone'] }> = {
     'first-conversation': {
-      label: 'The beginning',
-      deeper: 'Every journey has a first step. This was yours.',
+      label: t('visualizations.theBeginning'),
+      deeper: t('storytelling.turningPoint.firstConversation'),
       tone: 'warm',
     },
     'vulnerability-shared': {
-      label: 'A moment of trust',
-      deeper: 'You shared something real. That takes courage.',
+      label: t('visualizations.aMomentOfTrust'),
+      deeper: t('storytelling.turningPoint.vulnerability'),
       tone: 'gentle',
     },
     'milestone-reached': {
-      label: 'A turning point',
-      deeper: 'Progress isn\'t always visible. But it\'s real.',
+      label: t('visualizations.aTurningPoint'),
+      deeper: t('storytelling.turningPoint.milestone'),
       tone: 'celebratory',
     },
     'pattern-recognized': {
-      label: 'Something clicked',
-      deeper: 'Awareness is the first step to change.',
+      label: t('visualizations.somethingClicked'),
+      deeper: t('storytelling.turningPoint.pattern'),
       tone: 'curious',
     },
     'growth-moment': {
-      label: 'Growth happened here',
-      deeper: 'Small moments compound. This one mattered.',
+      label: t('visualizations.growthHappenedHere'),
+      deeper: t('storytelling.turningPoint.growth'),
       tone: 'supportive',
     },
   };
 
   const typeData = typeNarratives[eventType] || {
-    label: 'A moment',
-    deeper: 'Every interaction leaves an impression.',
+    label: t('visualizations.amoment'),
+    deeper: t('storytelling.turningPoint.default'),
     tone: 'warm' as const,
   };
 
   // Add temporal context
   let timeContext = '';
   if (daysSince === 0) {
-    timeContext = 'Today';
+    timeContext = t('common.today');
   } else if (daysSince === 1) {
-    timeContext = 'Yesterday';
+    timeContext = t('common.yesterday');
   } else if (daysSince < 7) {
-    timeContext = `${daysSince} days ago`;
+    timeContext = t('common.daysAgo', { count: daysSince });
   } else if (daysSince < 30) {
-    timeContext = `${Math.ceil(daysSince / 7)} weeks ago`;
+    timeContext = t('common.weeksAgo', { count: Math.ceil(daysSince / 7) });
   } else {
-    timeContext = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    timeContext = formatDate(date, { month: 'short', day: 'numeric' });
   }
 
   return {
-    narrative: `${timeContext}: ${description}`,
+    narrative: t('storytelling.dated', { when: timeContext, description }),
     label: typeData.label,
     iconSuggestion: 'milestone',
     tone: typeData.tone,
@@ -252,20 +252,20 @@ export function generateNetworkNarrative(
   let tone: NarrativeOutput['tone'];
 
   if (totalPeople === 0) {
-    narrative = 'Your story is waiting to be written';
-    deeper = 'Connections start with a single conversation.';
+    narrative = t('storytelling.network.empty.narrative');
+    deeper = t('storytelling.network.empty.deeper');
     tone = 'curious';
   } else if (needsAttention > totalPeople * 0.5) {
-    narrative = 'Some connections could use attention';
-    deeper = 'Relationships need nurturing. Which one calls to you?';
+    narrative = t('storytelling.network.attention.narrative');
+    deeper = t('storytelling.network.attention.deeper');
     tone = 'gentle';
   } else if (averageStrength > 70) {
-    narrative = 'Strong bonds, well-tended';
-    deeper = 'You invest in your relationships. It shows.';
+    narrative = t('storytelling.network.strong.narrative');
+    deeper = t('storytelling.network.strong.deeper');
     tone = 'celebratory';
   } else {
-    narrative = `${totalPeople} connections in your circle`;
-    deeper = 'Every person here matters to you. That matters.';
+    narrative = t('storytelling.network.count.narrative', { count: totalPeople });
+    deeper = t('storytelling.network.count.deeper');
     tone = 'warm';
   }
 
@@ -301,21 +301,21 @@ export function generateTemporalStory(
   let historicalNarrative: NarrativeOutput;
   if (previous === null) {
     historicalNarrative = {
-      narrative: 'This is new territory',
-      label: 'Starting point',
+      narrative: t('storytelling.temporal.newTerritory'),
+      label: t('visualizations.startingPoint'),
       tone: 'curious',
     };
   } else if (change > 0) {
     historicalNarrative = {
-      narrative: `Started at ${previous}`,
-      label: 'Where you began',
+      narrative: t('storytelling.temporal.startedAt', { value: previous }),
+      label: t('visualizations.whereYouBegan'),
       tone: 'supportive',
-      deeperInsight: 'Every starting point is valid. Growth happens from anywhere.',
+      deeperInsight: t('storytelling.temporal.everyStartingPoint'),
     };
   } else {
     historicalNarrative = {
-      narrative: `You were at ${previous}`,
-      label: 'Your baseline',
+      narrative: t('storytelling.temporal.wereAt', { value: previous }),
+      label: t('visualizations.yourBaseline'),
       tone: 'gentle',
     };
   }
@@ -323,13 +323,13 @@ export function generateTemporalStory(
   // Current frame
   const currentNarrative: NarrativeOutput = {
     narrative: current > previous!
-      ? `Now at ${current} - growing`
-      : `Currently at ${current}`,
-    label: `Now: ${current}`,
+      ? t('storytelling.temporal.nowGrowing', { value: current })
+      : t('storytelling.temporal.currentlyAt', { value: current }),
+    label: t('storytelling.temporal.nowLabel', { value: current }),
     tone: trend === 'up' ? 'celebratory' : 'warm',
     deeperInsight: change > 0
-      ? `That's ${Math.abs(changePercent)}% growth. Small wins compound.`
-      : 'Stability has its own value.',
+      ? t('storytelling.temporal.growthPercent', { percent: Math.abs(changePercent) })
+      : t('storytelling.temporal.stability'),
   };
 
   // Predictive frame
@@ -337,24 +337,24 @@ export function generateTemporalStory(
   if (trend === 'up') {
     const projected = Math.round(current * 1.15);
     predictiveNarrative = {
-      narrative: `On track for ${projected}`,
-      label: 'Momentum building',
+      narrative: t('storytelling.temporal.onTrackFor', { value: projected }),
+      label: t('visualizations.momentumBuilding'),
       tone: 'celebratory',
-      deeperInsight: 'If you keep this up, great things are coming.',
+      deeperInsight: t('storytelling.temporal.keepItUp'),
     };
   } else if (trend === 'down') {
     predictiveNarrative = {
-      narrative: 'A chance to reset',
-      label: 'Opportunity ahead',
+      narrative: t('storytelling.temporal.reset'),
+      label: t('visualizations.opportunityAhead'),
       tone: 'supportive',
-      deeperInsight: 'Every dip is a chance to understand what matters.',
+      deeperInsight: t('storytelling.temporal.dip'),
     };
   } else {
     predictiveNarrative = {
-      narrative: 'Steady as she goes',
-      label: 'Consistent path',
+      narrative: t('storytelling.temporal.steady'),
+      label: t('visualizations.consistentPath'),
       tone: 'warm',
-      deeperInsight: 'Consistency is underrated. You\'re building something real.',
+      deeperInsight: t('storytelling.temporal.consistency'),
     };
   }
 
@@ -382,7 +382,7 @@ export function generateMirrorInsight(
     surface: userStatement,
     deeper: observedPattern,
     invitation: emotionalSubtext
-      ? `I wonder if ${emotionalSubtext.toLowerCase()}`
+      ? t('storytelling.invitation', { subtext: emotionalSubtext.toLowerCase() })
       : undefined,
   };
 }
@@ -420,7 +420,7 @@ export function renderTemporalStory(story: TemporalStory): string {
   return `
     <div class="temporal-story">
       <div class="temporal-story__frame temporal-story__frame--past">
-        <span class="temporal-story__label">Then</span>
+        <span class="temporal-story__label">${escapeHtml(t('visualizations.then'))}</span>
         <span class="temporal-story__narrative">${escapeHtml(story.historical.narrative)}</span>
       </div>
       <div class="temporal-story__connector">
@@ -429,7 +429,7 @@ export function renderTemporalStory(story: TemporalStory): string {
         </svg>
       </div>
       <div class="temporal-story__frame temporal-story__frame--present">
-        <span class="temporal-story__label">Now</span>
+        <span class="temporal-story__label">${escapeHtml(t('visualizations.now'))}</span>
         <span class="temporal-story__narrative">${escapeHtml(story.current.narrative)}</span>
       </div>
       <div class="temporal-story__connector">
@@ -438,7 +438,7 @@ export function renderTemporalStory(story: TemporalStory): string {
         </svg>
       </div>
       <div class="temporal-story__frame temporal-story__frame--future">
-        <span class="temporal-story__label">Next</span>
+        <span class="temporal-story__label">${escapeHtml(t('visualizations.next'))}</span>
         <span class="temporal-story__narrative">${escapeHtml(story.predictive.narrative)}</span>
       </div>
     </div>
@@ -454,7 +454,7 @@ export function renderMirrorInsight(
   return `
     <div class="mirror-insight">
       <div class="mirror-insight__surface">
-        <span class="mirror-insight__label">What you said</span>
+        <span class="mirror-insight__label">${escapeHtml(t('visualizations.whatYouSaid'))}</span>
         <p class="mirror-insight__text">"${escapeHtml(mirror.surface)}"</p>
       </div>
       <div class="mirror-insight__divider">
@@ -463,7 +463,7 @@ export function renderMirrorInsight(
         </svg>
       </div>
       <div class="mirror-insight__deeper">
-        <span class="mirror-insight__label">What I notice</span>
+        <span class="mirror-insight__label">${escapeHtml(t('visualizations.whatINotice'))}</span>
         <p class="mirror-insight__text">${escapeHtml(mirror.deeper)}</p>
         ${mirror.invitation ? `
           <p class="mirror-insight__invitation">${escapeHtml(mirror.invitation)}</p>
@@ -513,7 +513,7 @@ export function injectStorytellingStyles(): void {
 
     .narrative-stat__deeper {
       font-size: var(--text-xs, 0.75rem);
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       font-style: italic;
       max-width: 200px;
       opacity: 0;
@@ -559,7 +559,7 @@ export function injectStorytellingStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .temporal-story__narrative {
@@ -580,7 +580,7 @@ export function injectStorytellingStyles(): void {
     }
 
     .temporal-story__frame--past .temporal-story__narrative {
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .temporal-story__frame--present .temporal-story__narrative {
@@ -617,7 +617,7 @@ export function injectStorytellingStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
       margin-bottom: var(--space-2, 0.5rem);
     }
 
@@ -641,7 +641,7 @@ export function injectStorytellingStyles(): void {
       margin: var(--space-2, 0.5rem) 0 0;
       font-size: var(--text-xs, 0.75rem);
       font-style: italic;
-      color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #a89b8c);
     }
 
     .mirror-insight__divider {
@@ -806,7 +806,7 @@ export function createNarrativeStatElement(
     const deeperEl = document.createElement('span');
     deeperEl.className = 'narrative-stat__deeper';
     deeperEl.textContent = narrative.deeperInsight;
-    deeperEl.setAttribute('aria-label', 'Deeper insight');
+    deeperEl.setAttribute('aria-label', t('accessibility.deeperInsight'));
     container.appendChild(deeperEl);
   }
 
@@ -822,9 +822,9 @@ export function createTemporalStoryElement(story: TemporalStory): HTMLElement {
   container.className = 'temporal-story';
 
   const frames: Array<{ key: keyof TemporalStory; label: string; modifier: string }> = [
-    { key: 'historical', label: 'Then', modifier: 'past' },
-    { key: 'current', label: 'Now', modifier: 'present' },
-    { key: 'predictive', label: 'Next', modifier: 'future' },
+    { key: 'historical', label: t('visualizations.then'), modifier: 'past' },
+    { key: 'current', label: t('visualizations.now'), modifier: 'present' },
+    { key: 'predictive', label: t('visualizations.next'), modifier: 'future' },
   ];
 
   frames.forEach((frame, index) => {

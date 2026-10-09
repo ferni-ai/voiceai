@@ -23,6 +23,21 @@ export function isValidTimeZone(tz: unknown): tz is string {
   }
 }
 
+/**
+ * The caller's hour (0-23), or null when their time zone isn't known. The
+ * agent runs in UTC, so the server's own hour is wrong for almost everyone:
+ * a 1 a.m. Eastern greeting said "how's your morning going" (dev, 2026-10-06).
+ */
+export function callerHour(now: Date, callerTimeZone?: string): number | null {
+  if (!isValidTimeZone(callerTimeZone)) return null;
+  const h = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    hourCycle: 'h23',
+    timeZone: callerTimeZone,
+  }).format(now);
+  return Number(h) % 24;
+}
+
 export function partOfDay(hour: number): 'morning' | 'afternoon' | 'evening' | 'night' {
   if (hour >= 5 && hour < 12) return 'morning';
   if (hour >= 12 && hour < 17) return 'afternoon';
@@ -65,7 +80,11 @@ When you talk about your own day, keep it vague about the hour.
     timeZone: callerTimeZone,
   });
   const hour = Number(
-    new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: callerTimeZone }).format(now)
+    new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      hourCycle: 'h23',
+      timeZone: callerTimeZone,
+    }).format(now)
   );
   return `
 ---

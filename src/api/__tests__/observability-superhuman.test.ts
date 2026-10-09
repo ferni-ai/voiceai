@@ -29,7 +29,7 @@ vi.mock('../../memory/redis-cache.js', () => ({
   })),
 }));
 
-vi.mock('../../services/pubsub/redis-pubsub.js', () => ({
+vi.mock('../../services/data/redis-pubsub.js', () => ({
   getRedisPubSubStatus: vi.fn(() => ({ connected: false })),
 }));
 

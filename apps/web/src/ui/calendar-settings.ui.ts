@@ -18,7 +18,7 @@
  *   - Warmth-focused animations
  */
 
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { startOAuthConnect } from '../services/oauth-connect.service.js';
@@ -188,7 +188,7 @@ class CalendarSettingsUI {
     this.panel = document.createElement('div');
     this.panel.className = 'calendar-settings';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', t('calendarSettings.title', 'Calendar Settings'));
+    this.panel.setAttribute('aria-label', t('calendarSettings.title'));
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'calendar-settings__wrapper';
@@ -287,14 +287,14 @@ class CalendarSettingsUI {
     this.wrapper.innerHTML = `
       <header class="calendar-settings__header">
         <div class="calendar-settings__icon">${ICONS.calendar}</div>
-        <h2 class="calendar-settings__title">Calendar</h2>
+        <h2 class="calendar-settings__title">${t('calendarSettings.header')}</h2>
         <button class="calendar-settings__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>
       <div class="calendar-settings__loading">
         <div class="calendar-settings__spinner"></div>
-        <p>Loading calendar settings...</p>
+        <p>${t('calendarSettings.loading')}</p>
       </div>
     `;
 
@@ -310,13 +310,11 @@ class CalendarSettingsUI {
         <div class="calendar-settings__native-header">
           <div class="calendar-settings__status-icon calendar-settings__status-icon--success">${ICONS.check}</div>
           <div class="calendar-settings__status-text">
-            <span class="calendar-settings__status-label">Ferni Calendar</span>
-            <span class="calendar-settings__status-detail">Your personal calendar - always active</span>
+            <span class="calendar-settings__status-label">${t('calendarSettings.ferniCalendar')}</span>
+            <span class="calendar-settings__status-detail">${t('calendarSettings.ferniCalendarDesc')}</span>
           </div>
         </div>
-        <p class="calendar-settings__native-description">
-          Your calendar works right away. Ask me to schedule events, check your availability, or remind you about appointments.
-        </p>
+        <p class="calendar-settings__native-description">${t('calendarSettings.nativeDescription')}</p>
       </div>
     `;
 
@@ -330,28 +328,28 @@ class CalendarSettingsUI {
               <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
             </div>
             <div class="calendar-settings__provider-info">
-              <span class="calendar-settings__provider-name">Google Calendar</span>
+              <span class="calendar-settings__provider-name">${t('calendarSettings.googleCalendar')}</span>
               <span class="calendar-settings__provider-status">
-                ${this.status.email ? this.escapeHtml(this.status.email) : 'Connected'}
+                ${this.status.email ? this.escapeHtml(this.status.email) : t('common.connected')}
               </span>
             </div>
-            <div class="calendar-settings__provider-badge calendar-settings__provider-badge--synced">Synced</div>
+            <div class="calendar-settings__provider-badge calendar-settings__provider-badge--synced">${t('calendarSettings.synced')}</div>
           </div>
           ${
             this.status.lastSynced
-              ? `<div class="calendar-settings__provider-meta">Last synced ${this.formatDate(this.status.lastSynced)}</div>`
+              ? `<div class="calendar-settings__provider-meta">${t('calendarSettings.lastSynced', { date: this.formatDate(this.status.lastSynced) })}</div>`
               : ''
           }
           <div class="calendar-settings__provider-actions" role="button" tabindex="0">
             <button aria-label="${t('accessibility.refresh')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync">
               ${ICONS.refresh}
-              <span>Sync</span>
+              <span>${t('calendarSettings.sync')}</span>
             </button>
-            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-google" title="${t('forms.chooseCalendars', 'Choose calendars')}">
+            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-google" title="${t('forms.chooseCalendars')}">
               ${ICONS.settings}
             </button>
             <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect">
-              <span>Disconnect</span>
+              <span>${t('calendarSettings.disconnect')}</span>
             </button>
           </div>
         </div>
@@ -363,13 +361,13 @@ class CalendarSettingsUI {
               <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
             </div>
             <div class="calendar-settings__provider-info">
-              <span class="calendar-settings__provider-name">Google Calendar</span>
-              <span class="calendar-settings__provider-status">Sync your existing events</span>
+              <span class="calendar-settings__provider-name">${t('calendarSettings.googleCalendar')}</span>
+              <span class="calendar-settings__provider-status">${t('calendarSettings.syncYourEvents')}</span>
             </div>
           </div>
           <button aria-label="${t('accessibility.connect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect">
             ${ICONS.link}
-            <span>Connect</span>
+            <span>${t('calendarSettings.connect')}</span>
           </button>
         </div>
       `;
@@ -383,23 +381,23 @@ class CalendarSettingsUI {
               <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#555" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
             </div>
             <div class="calendar-settings__provider-info">
-              <span class="calendar-settings__provider-name">Apple Calendar</span>
+              <span class="calendar-settings__provider-name">${t('calendarSettings.appleCalendar')}</span>
               <span class="calendar-settings__provider-status">
-                ${this.providersStatus.apple.email ? this.escapeHtml(this.providersStatus.apple.email) : 'Connected'}
+                ${this.providersStatus.apple.email ? this.escapeHtml(this.providersStatus.apple.email) : t('common.connected')}
               </span>
             </div>
-            <div class="calendar-settings__provider-badge calendar-settings__provider-badge--synced">Synced</div>
+            <div class="calendar-settings__provider-badge calendar-settings__provider-badge--synced">${t('calendarSettings.synced')}</div>
           </div>
           <div class="calendar-settings__provider-actions" role="button" tabindex="0">
             <button aria-label="${t('accessibility.refresh')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync-apple">
               ${ICONS.refresh}
-              <span>Sync</span>
+              <span>${t('calendarSettings.sync')}</span>
             </button>
-            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-apple" title="${t('forms.chooseCalendars', 'Choose calendars')}">
+            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-apple" title="${t('forms.chooseCalendars')}">
               ${ICONS.settings}
             </button>
             <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-apple">
-              <span>Disconnect</span>
+              <span>${t('calendarSettings.disconnect')}</span>
             </button>
           </div>
         </div>
@@ -411,13 +409,13 @@ class CalendarSettingsUI {
               <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#555" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
             </div>
             <div class="calendar-settings__provider-info">
-              <span class="calendar-settings__provider-name">Apple Calendar</span>
-              <span class="calendar-settings__provider-status">iCloud sync via app-specific password</span>
+              <span class="calendar-settings__provider-name">${t('calendarSettings.appleCalendar')}</span>
+              <span class="calendar-settings__provider-status">${t('calendarSettings.appleStatus')}</span>
             </div>
           </div>
           <button aria-label="${t('accessibility.connect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-apple">
             ${ICONS.link}
-            <span>Connect</span>
+            <span>${t('calendarSettings.connect')}</span>
           </button>
         </div>
       `;
@@ -431,23 +429,23 @@ class CalendarSettingsUI {
               <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#0078d4" d="M7.88 12.04q0 .45-.11.87-.1.41-.33.74-.22.33-.58.52-.37.2-.87.2t-.85-.2q-.35-.21-.57-.55-.22-.33-.33-.75-.1-.42-.1-.86t.1-.87q.1-.43.34-.76.22-.34.59-.54.36-.2.87-.2t.86.2q.35.21.57.55.22.34.31.77.1.43.1.88zM24 12v9.38q0 .46-.33.8-.33.32-.8.32H7.13q-.46 0-.8-.33-.32-.33-.32-.8V18H1q-.41 0-.7-.3-.3-.29-.3-.7V7q0-.41.3-.7Q.58 6 1 6h6.13V2.55q0-.44.3-.75.3-.3.7-.3H22.88q.46 0 .79.33.33.34.33.8z"/></svg>
             </div>
             <div class="calendar-settings__provider-info">
-              <span class="calendar-settings__provider-name">Outlook</span>
+              <span class="calendar-settings__provider-name">${t('calendarSettings.outlook')}</span>
               <span class="calendar-settings__provider-status">
-                ${this.providersStatus.outlook.email ? this.escapeHtml(this.providersStatus.outlook.email) : 'Connected'}
+                ${this.providersStatus.outlook.email ? this.escapeHtml(this.providersStatus.outlook.email) : t('common.connected')}
               </span>
             </div>
-            <div class="calendar-settings__provider-badge calendar-settings__provider-badge--synced">Synced</div>
+            <div class="calendar-settings__provider-badge calendar-settings__provider-badge--synced">${t('calendarSettings.synced')}</div>
           </div>
           <div class="calendar-settings__provider-actions" role="button" tabindex="0">
             <button aria-label="${t('accessibility.refresh')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync-outlook">
               ${ICONS.refresh}
-              <span>Sync</span>
+              <span>${t('calendarSettings.sync')}</span>
             </button>
-            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-outlook" title="${t('forms.chooseCalendars', 'Choose calendars')}">
+            <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-outlook" title="${t('forms.chooseCalendars')}">
               ${ICONS.settings}
             </button>
             <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-outlook">
-              <span>Disconnect</span>
+              <span>${t('calendarSettings.disconnect')}</span>
             </button>
           </div>
         </div>
@@ -460,13 +458,13 @@ class CalendarSettingsUI {
               <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#0078d4" d="M7.88 12.04q0 .45-.11.87-.1.41-.33.74-.22.33-.58.52-.37.2-.87.2t-.85-.2q-.35-.21-.57-.55-.22-.33-.33-.75-.1-.42-.1-.86t.1-.87q.1-.43.34-.76.22-.34.59-.54.36-.2.87-.2t.86.2q.35.21.57.55.22.34.31.77.1.43.1.88zM24 12v9.38q0 .46-.33.8-.33.32-.8.32H7.13q-.46 0-.8-.33-.32-.33-.32-.8V18H1q-.41 0-.7-.3-.3-.29-.3-.7V7q0-.41.3-.7Q.58 6 1 6h6.13V2.55q0-.44.3-.75.3-.3.7-.3H22.88q.46 0 .79.33.33.34.33.8z"/></svg>
             </div>
             <div class="calendar-settings__provider-info">
-              <span class="calendar-settings__provider-name">Outlook</span>
-              <span class="calendar-settings__provider-status">Microsoft 365 sync</span>
+              <span class="calendar-settings__provider-name">${t('calendarSettings.outlook')}</span>
+              <span class="calendar-settings__provider-status">${t('calendarSettings.outlookStatus')}</span>
             </div>
           </div>
           <button aria-label="${t('accessibility.connect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-outlook">
             ${ICONS.link}
-            <span>Connect</span>
+            <span>${t('calendarSettings.connect')}</span>
           </button>
         </div>
       `
@@ -477,10 +475,10 @@ class CalendarSettingsUI {
               <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#0078d4" d="M7.88 12.04q0 .45-.11.87-.1.41-.33.74-.22.33-.58.52-.37.2-.87.2t-.85-.2q-.35-.21-.57-.55-.22-.33-.33-.75-.1-.42-.1-.86t.1-.87q.1-.43.34-.76.22-.34.59-.54.36-.2.87-.2t.86.2q.35.21.57.55.22.34.31.77.1.43.1.88zM24 12v9.38q0 .46-.33.8-.33.32-.8.32H7.13q-.46 0-.8-.33-.32-.33-.32-.8V18H1q-.41 0-.7-.3-.3-.29-.3-.7V7q0-.41.3-.7Q.58 6 1 6h6.13V2.55q0-.44.3-.75.3-.3.7-.3H22.88q.46 0 .79.33.33.34.33.8z"/></svg>
             </div>
             <div class="calendar-settings__provider-info">
-              <span class="calendar-settings__provider-name">Outlook</span>
-              <span class="calendar-settings__provider-status">Contact admin to enable</span>
+              <span class="calendar-settings__provider-name">${t('calendarSettings.outlook')}</span>
+              <span class="calendar-settings__provider-status">${t('calendarSettings.contactAdmin')}</span>
             </div>
-            <span class="calendar-settings__provider-badge calendar-settings__provider-badge--soon">Not configured</span>
+            <span class="calendar-settings__provider-badge calendar-settings__provider-badge--soon">${t('calendarSettings.notConfigured')}</span>
           </div>
         </div>
       `;
@@ -488,7 +486,7 @@ class CalendarSettingsUI {
     this.wrapper.innerHTML = `
       <header class="calendar-settings__header">
         <div class="calendar-settings__icon">${ICONS.calendar}</div>
-        <h2 class="calendar-settings__title">Calendar</h2>
+        <h2 class="calendar-settings__title">${t('calendarSettings.header')}</h2>
         <button class="calendar-settings__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
@@ -497,7 +495,7 @@ class CalendarSettingsUI {
         ${ferniCalendarSection}
 
         <div class="calendar-settings__divider">
-          <span>Sync Integrations</span>
+          <span>${t('calendarSettings.syncIntegrations')}</span>
         </div>
 
         <div class="calendar-settings__providers">
@@ -508,34 +506,34 @@ class CalendarSettingsUI {
 
         ${this.hasAnyProviderConnected() ? `
         <div class="calendar-settings__notifications-section">
-          <h3 class="calendar-settings__section-title">Notifications</h3>
+          <h3 class="calendar-settings__section-title">${t('calendarSettings.notificationsSection')}</h3>
           <div class="calendar-settings__notification-toggles">
             <label class="calendar-settings__toggle">
               <input type="checkbox" data-setting="preMeetingReminder" checked>
               <span class="calendar-settings__toggle-label">
-                <span class="calendar-settings__toggle-title">Meeting reminders</span>
-                <span class="calendar-settings__toggle-desc">Get notified 15 minutes before meetings</span>
+                <span class="calendar-settings__toggle-title">${t('calendarSettings.meetingReminders')}</span>
+                <span class="calendar-settings__toggle-desc">${t('calendarSettings.meetingRemindersDesc')}</span>
               </span>
             </label>
             <label class="calendar-settings__toggle">
               <input type="checkbox" data-setting="meetingBriefing" checked>
               <span class="calendar-settings__toggle-label">
-                <span class="calendar-settings__toggle-title">Meeting briefings</span>
-                <span class="calendar-settings__toggle-desc">Enriched context about attendees and past discussions</span>
+                <span class="calendar-settings__toggle-title">${t('calendarSettings.meetingBriefings')}</span>
+                <span class="calendar-settings__toggle-desc">${t('calendarSettings.meetingBriefingsDesc')}</span>
               </span>
             </label>
             <label class="calendar-settings__toggle">
               <input type="checkbox" data-setting="postMeetingFollowup">
               <span class="calendar-settings__toggle-label">
-                <span class="calendar-settings__toggle-title">Post-meeting follow-up</span>
-                <span class="calendar-settings__toggle-desc">Prompt to capture action items after meetings</span>
+                <span class="calendar-settings__toggle-title">${t('calendarSettings.postMeetingFollowup')}</span>
+                <span class="calendar-settings__toggle-desc">${t('calendarSettings.postMeetingFollowupDesc')}</span>
               </span>
             </label>
             <label class="calendar-settings__toggle">
               <input type="checkbox" data-setting="weeklyDigest" checked>
               <span class="calendar-settings__toggle-label">
-                <span class="calendar-settings__toggle-title">Weekly digest</span>
-                <span class="calendar-settings__toggle-desc">Sunday evening preview of your week ahead</span>
+                <span class="calendar-settings__toggle-title">${t('calendarSettings.weeklyDigest')}</span>
+                <span class="calendar-settings__toggle-desc">${t('calendarSettings.weeklyDigestDesc')}</span>
               </span>
             </label>
           </div>
@@ -543,13 +541,13 @@ class CalendarSettingsUI {
         <div class="calendar-settings__conflicts-section">
           <button aria-label="${t('accessibility.viewSyncConflicts')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost calendar-settings__btn--full" data-action="show-conflicts">
             ${ICONS.alert}
-            <span>View Sync Conflicts</span>
+            <span>${t('calendarSettings.viewSyncConflicts')}</span>
           </button>
         </div>
         ` : ''}
 
         <p class="calendar-settings__privacy">
-          Integrations sync your existing events into Ferni. Your data stays private.
+          ${t('calendarSettings.integrationsPrivacy')}
         </p>
       </div>
     `;
@@ -564,7 +562,7 @@ class CalendarSettingsUI {
     this.wrapper.innerHTML = `
       <header class="calendar-settings__header">
         <div class="calendar-settings__icon">${ICONS.calendar}</div>
-        <h2 class="calendar-settings__title">Calendar</h2>
+        <h2 class="calendar-settings__title">${t('calendarSettings.header')}</h2>
         <button class="calendar-settings__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
@@ -572,7 +570,7 @@ class CalendarSettingsUI {
       <div class="calendar-settings__error">
         <p>${this.escapeHtml(message)}</p>
         <button aria-label="${t('accessibility.tryAgain')}" class="calendar-settings__btn calendar-settings__btn--secondary" data-action="retry">
-          Try Again
+          ${t('calendarSettings.tryAgain')}
         </button>
       </div>
     `;
@@ -723,7 +721,7 @@ class CalendarSettingsUI {
     try {
       // The server binds the flow to the signed-in user; the URL carries no user id
       const result = await startOAuthConnect('google_calendar');
-      if (!result.success) this.renderError(result.error ?? "Couldn't connect. Try again?");
+      if (!result.success) this.renderError(result.error ?? t('calendar.providers.connectError'));
     } finally {
       this.isLoading = false;
     }
@@ -745,7 +743,7 @@ class CalendarSettingsUI {
       this.renderContent();
       this.callbacks.onConnectionChange?.(false);
     } catch {
-      this.renderError("Couldn't disconnect. Try again?");
+      this.renderError(t('calendar.providers.disconnectError'));
     } finally {
       this.isLoading = false;
     }
@@ -758,7 +756,7 @@ class CalendarSettingsUI {
     const syncButton = this.wrapper?.querySelector('[data-action="sync"]') as HTMLButtonElement;
     if (syncButton) {
       syncButton.disabled = true;
-      syncButton.innerHTML = `${ICONS.refresh}<span>Syncing...</span>`;
+      syncButton.innerHTML = `${ICONS.refresh}<span>${t('calendarSettings.syncing')}</span>`;
     }
 
     try {
@@ -768,7 +766,7 @@ class CalendarSettingsUI {
       // Reload status
       await this.loadStatus();
     } catch {
-      this.renderError("Couldn't sync. Try again?");
+      this.renderError(t('calendar.providers.syncError'));
     } finally {
       this.isLoading = false;
     }
@@ -793,7 +791,7 @@ class CalendarSettingsUI {
             <path d="m15 18-6-6 6-6"/>
           </svg>
         </button>
-        <h2 class="calendar-settings__title">Connect Apple Calendar</h2>
+        <h2 class="calendar-settings__title">${t('calendarSettings.connectAppleCalendar')}</h2>
         <button class="calendar-settings__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
@@ -801,49 +799,49 @@ class CalendarSettingsUI {
       <div class="calendar-settings__content">
         <div class="calendar-settings__apple-setup">
           <div class="calendar-settings__apple-steps">
-            <h3>How to connect Apple Calendar</h3>
+            <h3>${t('calendarSettings.howToConnect')}</h3>
             <ol>
               <li>
-                Go to <a href="https://appleid.apple.com/account/manage" target="_blank" rel="noopener noreferrer">appleid.apple.com</a>
+                ${t('calendarSettings.stepGoToSite', { link: '<a href="https://appleid.apple.com/account/manage" target="_blank" rel="noopener noreferrer">appleid.apple.com</a>' })}
               </li>
-              <li>Sign in with your Apple ID</li>
-              <li>Go to <strong>Sign-In and Security</strong> → <strong>App-Specific Passwords</strong></li>
-              <li>Click the <strong>+</strong> button to generate a new password</li>
-              <li>Name it <strong>"Ferni Calendar"</strong></li>
-              <li>Copy the generated password and paste it below</li>
+              <li>${t('calendarSettings.signInAppleId')}</li>
+              <li>${t('calendarSettings.stepNavigate', { security: `<strong>${t('calendarSettings.signInSecurity')}</strong>`, passwords: `<strong>${t('calendarSettings.appSpecificPasswords')}</strong>` })}</li>
+              <li>${t('calendarSettings.stepClickPlus', { plus: '<strong>+</strong>' })}</li>
+              <li>${t('calendarSettings.stepNameIt', { name: '<strong>"Ferni Calendar"</strong>' })}</li>
+              <li>${t('calendarSettings.copyPassword')}</li>
             </ol>
           </div>
 
           <form class="calendar-settings__apple-form" id="apple-connect-form">
             <div class="calendar-settings__form-group">
-              <label for="apple-id">Apple ID Email</label>
+              <label for="apple-id">${t('calendarSettings.appleIdEmail')}</label>
               <input
                 type="email"
                 id="apple-id"
                 name="appleId"
-                placeholder="${t('forms.appleIdPlaceholder', 'yourname@icloud.com')}"
+                placeholder="${t('forms.appleIdPlaceholder')}"
                 required
                 autocomplete="email"
               />
             </div>
             <div class="calendar-settings__form-group">
-              <label for="apple-password">App-Specific Password</label>
+              <label for="apple-password">${t('calendarSettings.appSpecificPassword')}</label>
               <input
                 type="password"
                 id="apple-password"
                 name="appPassword"
-                placeholder="${t('forms.appPasswordPlaceholder', 'xxxx-xxxx-xxxx-xxxx')}"
+                placeholder="${t('forms.appPasswordPlaceholder')}"
                 required
                 autocomplete="off"
               />
-              <small>This is NOT your Apple ID password. Generate an app-specific password above.</small>
+              <small>${t('calendarSettings.passwordWarning')}</small>
             </div>
             <div class="calendar-settings__apple-actions" role="button" tabindex="0">
               <button aria-label="${t('accessibility.cancel')}" type="button" class="calendar-settings__btn calendar-settings__btn--secondary" data-action="cancel-apple">
-                Cancel
+                ${t('calendarSettings.cancel')}
               </button>
               <button aria-label="${t('accessibility.connect')}" type="submit" class="calendar-settings__btn calendar-settings__btn--primary" id="apple-connect-btn">
-                Connect
+                ${t('calendarSettings.connect')}
               </button>
             </div>
           </form>
@@ -898,10 +896,10 @@ class CalendarSettingsUI {
         this.showingAppleSetup = false;
         await this.loadStatus();
       } else {
-        this.showAppleError(response.error || "Couldn't connect. Check your credentials.");
+        this.showAppleError(response.error || t('calendarSettings.appleConnectFailed'));
       }
     } catch {
-      this.showAppleError("Couldn't connect. Check your credentials and try again.");
+      this.showAppleError(t('calendarSettings.appleConnectFailedRetry'));
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
@@ -937,7 +935,7 @@ class CalendarSettingsUI {
       }
       this.renderContent();
     } catch {
-      this.renderError("Couldn't disconnect. Try again?");
+      this.renderError(t('calendar.providers.disconnectError'));
     } finally {
       this.isLoading = false;
     }
@@ -950,7 +948,7 @@ class CalendarSettingsUI {
     const syncButton = this.wrapper?.querySelector('[data-action="sync-apple"]') as HTMLButtonElement;
     if (syncButton) {
       syncButton.disabled = true;
-      syncButton.innerHTML = `${ICONS.refresh}<span>Syncing...</span>`;
+      syncButton.innerHTML = `${ICONS.refresh}<span>${t('calendarSettings.syncing')}</span>`;
     }
 
     try {
@@ -958,7 +956,7 @@ class CalendarSettingsUI {
       await apiPost(`/calendar/apple/sync`, { user_id: userId });
       await this.loadStatus();
     } catch {
-      this.renderError("Couldn't sync. Try again?");
+      this.renderError(t('calendar.providers.syncError'));
     } finally {
       this.isLoading = false;
     }
@@ -974,7 +972,7 @@ class CalendarSettingsUI {
 
     try {
       const result = await startOAuthConnect('microsoft_calendar');
-      if (!result.success) this.renderError(result.error ?? "Couldn't connect. Try again?");
+      if (!result.success) this.renderError(result.error ?? t('calendar.providers.connectError'));
     } finally {
       this.isLoading = false;
     }
@@ -993,7 +991,7 @@ class CalendarSettingsUI {
       }
       this.renderContent();
     } catch {
-      this.renderError("Couldn't disconnect. Try again?");
+      this.renderError(t('calendar.providers.disconnectError'));
     } finally {
       this.isLoading = false;
     }
@@ -1006,7 +1004,7 @@ class CalendarSettingsUI {
     const syncButton = this.wrapper?.querySelector('[data-action="sync-outlook"]') as HTMLButtonElement;
     if (syncButton) {
       syncButton.disabled = true;
-      syncButton.innerHTML = `${ICONS.refresh}<span>Syncing...</span>`;
+      syncButton.innerHTML = `${ICONS.refresh}<span>${t('calendarSettings.syncing')}</span>`;
     }
 
     try {
@@ -1014,7 +1012,7 @@ class CalendarSettingsUI {
       await apiPost(`/calendar/outlook/sync`, { user_id: userId });
       await this.loadStatus();
     } catch {
-      this.renderError("Couldn't sync. Try again?");
+      this.renderError(t('calendar.providers.syncError'));
     } finally {
       this.isLoading = false;
     }
@@ -1031,7 +1029,7 @@ class CalendarSettingsUI {
     const btn = this.wrapper?.querySelector('[data-action="disconnect"]') as HTMLButtonElement;
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = `${ICONS.refresh}<span>Disconnecting...</span>`;
+      btn.innerHTML = `${ICONS.refresh}<span>${t('calendarSettings.disconnecting')}</span>`;
     }
 
     try {
@@ -1040,7 +1038,7 @@ class CalendarSettingsUI {
       this.renderContent();
       this.callbacks.onConnectionChange?.(false);
     } catch {
-      this.renderError("Couldn't disconnect. Try again?");
+      this.renderError(t('calendar.providers.disconnectError'));
     } finally {
       this.isLoading = false;
     }
@@ -1053,7 +1051,7 @@ class CalendarSettingsUI {
     const btn = this.wrapper?.querySelector('[data-action="sync"]') as HTMLButtonElement;
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = `${ICONS.refresh}<span>Syncing...</span>`;
+      btn.innerHTML = `${ICONS.refresh}<span>${t('calendarSettings.syncing')}</span>`;
       btn.classList.add('calendar-settings__btn--syncing');
     }
 
@@ -1061,7 +1059,7 @@ class CalendarSettingsUI {
       await apiPost('/api/calendar/sync', {});
       await this.loadStatus();
     } catch {
-      this.renderError("Couldn't sync. Try again?");
+      this.renderError(t('calendar.providers.syncError'));
     } finally {
       this.isLoading = false;
     }
@@ -1083,8 +1081,7 @@ class CalendarSettingsUI {
 
   private formatDate(dateString: string): string {
     try {
-      const date = new Date(dateString);
-      return date.toLocaleString('en-US', {
+      return formatDate(new Date(dateString), {
         month: 'short',
         day: 'numeric',
         hour: 'numeric',
@@ -1752,7 +1749,7 @@ class CalendarSettingsUI {
          DARK THEME
          ======================================================================== */
       [data-theme="midnight"] .calendar-settings__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-settings__title,
@@ -1767,20 +1764,20 @@ class CalendarSettingsUI {
       }
 
       [data-theme="midnight"] .calendar-settings__status--disconnected {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-settings__status-icon {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-settings__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .calendar-settings__services {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-settings__service-name {
@@ -1793,7 +1790,7 @@ class CalendarSettingsUI {
       }
 
       [data-theme="midnight"] .calendar-settings__btn--secondary {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-primary, #faf6f0);
       }
 
@@ -1916,7 +1913,7 @@ class CalendarSettingsUI {
       }
 
       [data-theme="midnight"] .calendar-settings__form-group input {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
         color: var(--color-text-primary, #faf6f0);
       }

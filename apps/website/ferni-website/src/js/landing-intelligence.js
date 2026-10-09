@@ -100,6 +100,7 @@
       if (!response.ok) return null;
       return await response.json();
     } catch (error) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[LandingIntelligence] Time content failed:', error);
       return null;
     }
@@ -115,6 +116,7 @@
       if (!response.ok) return null;
       return await response.json();
     } catch (error) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[LandingIntelligence] Chat greeting failed:', error);
       return null;
     }
@@ -138,6 +140,7 @@
         }),
       });
     } catch (error) {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[LandingIntelligence] Tracking failed:', error);
     }
   }
@@ -218,6 +221,7 @@
     }
 
     if (CONFIG.debugMode) {
+      // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
       console.log('[LandingIntelligence] Time-aware content applied:', content.mode);
     }
   }
@@ -297,6 +301,7 @@
     }
 
     if (CONFIG.debugMode) {
+      // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
       console.log('[LandingIntelligence] Returning visitor experience applied');
     }
   }
@@ -328,6 +333,7 @@
     // For now, we just emphasize/hide sections
 
     if (CONFIG.debugMode) {
+      // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
       console.log('[LandingIntelligence] Layout optimization applied');
     }
   }
@@ -372,6 +378,7 @@
     }
 
     if (CONFIG.debugMode) {
+      // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
       console.log('[LandingIntelligence] Variant applied:', variant.id);
     }
   }
@@ -394,6 +401,7 @@
     state.isReturning = visitCount > 1;
 
     if (CONFIG.debugMode) {
+      // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
       console.log('[LandingIntelligence] Initializing...', {
         visitorId: state.visitorId,
         visitCount: state.visitCount,
@@ -461,6 +469,7 @@
     state.initialized = true;
 
     if (CONFIG.debugMode) {
+      // eslint-disable-next-line no-console -- debug output, printed only when debug mode is on
       console.log('[LandingIntelligence] Initialized');
     }
   }
@@ -513,6 +522,5 @@
     setTimeout(initialize, 50);
   }
 
-  console.log('%c🧠 Ferni Landing Intelligence loaded', 'color: #4a6741; font-weight: bold;');
 })();
 

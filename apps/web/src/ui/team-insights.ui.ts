@@ -21,7 +21,7 @@ import { getApiHeadersAsync, getUserId } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
-import { t } from '../i18n/index.js';
+import { formatRelativeTime, t } from '../i18n/index.js';
 import { openAuthedWebSocket } from '../services/authed-websocket.service.js';
 
 const log = createLogger('TeamInsightsUI');
@@ -397,8 +397,8 @@ function createPanel(): HTMLElement {
         <div class="team-insights-header-left">
           <span class="team-insights-icon">${ICONS.users}</span>
           <div>
-            <p class="team-insights-eyebrow">YOUR INNER CIRCLE</p>
-            <h2 id="team-insights-title" class="team-insights-title">What we've been thinking...</h2>
+            <p class="team-insights-eyebrow">${t('teamInsights.innerCircle')}</p>
+            <h2 id="team-insights-title" class="team-insights-title">${t('teamInsights.whatWereThing')}</h2>
           </div>
         </div>
         <div class="team-insights-header-actions" role="button" tabindex="0">
@@ -414,11 +414,11 @@ function createPanel(): HTMLElement {
       <div class="team-insights-body">
         <div class="team-insights-loading">
           <div class="team-insights-spinner"></div>
-          <p>Gathering thoughts from the team...</p>
+          <p>${t('teamInsights.gatheringThoughts')}</p>
         </div>
-        
+
         <div class="team-insights-error" style="display: none;">
-          <p>Couldn't gather thoughts right now. We're still here.</p>
+          <p>${t('teamInsights.couldntGather')}</p>
         </div>
         
         <div class="team-insights-list" style="display: none;"></div>
@@ -485,27 +485,27 @@ function createPanel(): HTMLElement {
           
           <!-- Title & Message -->
           <div class="team-insights-empty__hero">
-            <h3 class="team-insights-empty__title">We're getting to know you</h3>
+            <h3 class="team-insights-empty__title">${t('teamInsights.gettingToKnow')}</h3>
             <p class="team-insights-empty__message">
-              The more we talk, the more we notice. Share what's on your mind, and we'll start connecting dots you might miss.
+              ${t('teamInsights.emptyMessage')}
             </p>
           </div>
           
           <!-- What We're Curious About - Invitation to Share -->
           <div class="team-insights-empty__curious">
-            <p class="team-insights-empty__curious-intro">Things we'd love to learn about you:</p>
+            <p class="team-insights-empty__curious-intro">${t('teamInsights.curiousIntro')}</p>
             <div class="team-insights-empty__curious-items">
               <div class="team-insights-empty__curious-item" style="--delay: 0ms;">
-                <span class="team-insights-empty__curious-quote">"What's something you've always wanted to do?"</span>
-                <span class="team-insights-empty__curious-why">— so Nayan can help keep that dream alive</span>
+                <span class="team-insights-empty__curious-quote">${t('teamInsights.curiousDream')}</span>
+                <span class="team-insights-empty__curious-why">${t('teamInsights.curiousDreamWhy')}</span>
               </div>
               <div class="team-insights-empty__curious-item" style="--delay: 80ms;">
-                <span class="team-insights-empty__curious-quote">"Who are the important people in your life?"</span>
-                <span class="team-insights-empty__curious-why">— so we can remember them with you</span>
+                <span class="team-insights-empty__curious-quote">${t('teamInsights.curiousPeople')}</span>
+                <span class="team-insights-empty__curious-why">${t('teamInsights.curiousPeopleWhy')}</span>
               </div>
               <div class="team-insights-empty__curious-item" style="--delay: 160ms;">
-                <span class="team-insights-empty__curious-quote">"What do you want to get better at?"</span>
-                <span class="team-insights-empty__curious-why">— so Maya can cheer your progress</span>
+                <span class="team-insights-empty__curious-quote">${t('teamInsights.curiousGrowth')}</span>
+                <span class="team-insights-empty__curious-why">${t('teamInsights.curiousGrowthWhy')}</span>
               </div>
             </div>
           </div>
@@ -514,13 +514,13 @@ function createPanel(): HTMLElement {
           <div class="team-insights-empty__preview">
             <div class="team-insights-empty__preview-label">
               <span class="team-insights-empty__preview-pulse"></span>
-              What you'll see here
+              ${t('teamInsights.whatYouWillSee')}
             </div>
             <div class="team-insights-empty__preview-card">
               <div class="team-insights-empty__preview-avatar" style="background: var(--persona-maya, #a67a6a);">M</div>
               <div class="team-insights-empty__preview-bubble">
                 <span class="team-insights-empty__preview-name">Maya</span>
-                <p class="team-insights-empty__preview-text">"I noticed you've been consistent with your morning routine for 12 days now. That's you showing up for yourself."</p>
+                <p class="team-insights-empty__preview-text">${t('teamInsights.previewText')}</p>
               </div>
             </div>
           </div>
@@ -528,13 +528,13 @@ function createPanel(): HTMLElement {
           <!-- Promise - warmer -->
           <div class="team-insights-empty__promise">
             <span class="team-insights-empty__promise-icon">${ICONS.sparkles}</span>
-            <span>We remember what matters. Even when you forget.</span>
+            <span>${t('teamInsights.learnMore')}</span>
           </div>
         </div>
       </div>
       
       <footer class="team-insights-footer">
-        <p class="team-insights-footer-text">Your friends, thinking of you.</p>
+        <p class="team-insights-footer-text">${t('teamInsights.friendsThinking')}</p>
       </footer>
     </div>
   `;
@@ -606,9 +606,9 @@ function renderInsightsList(): void {
           <div class="insight-bubble">
             <div class="insight-header">
               <span class="insight-source-name" style="color: ${style.color}">${capitalize(insight.source)}</span>
-              <time class="insight-time">${formatRelativeTime(insight.createdAt)}</time>
+              <time class="insight-time">${formatRelativeTime(new Date(insight.createdAt))}</time>
             </div>
-            <p class="insight-content">"${escapeHtml(insight.content)}"</p>
+            <p class="insight-content">${escapeHtml(t('teamInsights.quoted', { quote: insight.content }))}</p>
             ${insight.summary !== insight.content ? `<p class="insight-context">${escapeHtml(insight.summary)}</p>` : ''}
           </div>
         </article>
@@ -720,7 +720,7 @@ export function showInsightNotification(insight: TeamInsight): void {
   updateTriggerBadge();
 
   // Show toast notification
-  toast.info(t('toasts.capitalizeinsightsourceInsightsummary'));
+  toast.info(t('toasts.teamInsight', { source: capitalize(insight.source), summary: insight.summary }));
 
   log.info({ insightId: insight.id, source: insight.source }, 'Insight notification shown');
 }
@@ -1613,18 +1613,6 @@ function escapeHtml(str: string): string {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
-}
-
-function formatRelativeTime(timestamp: number): string {
-  const diff = Date.now() - timestamp;
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  return `${days}d ago`;
 }
 
 // ============================================================================

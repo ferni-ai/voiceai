@@ -374,7 +374,7 @@ function setupEventListeners(): void {
   }) as EventListener);
   
   // Thinking
-  window.addEventListener('ferni:thinking', ((e: CustomEvent) => {
+  document.addEventListener('ferni:thinking', ((e: CustomEvent) => {
     if (e.detail.thinking) {
       setLogoState('thinking');
     } else if (currentState === 'thinking') {

@@ -595,8 +595,8 @@ function createModal(): HTMLElement {
     <div class="voice-enrollment-backdrop"></div>
     <div class="voice-enrollment-card">
       <div class="voice-enrollment-header">
-        <p class="voice-enrollment-eyebrow">VOICE RECOGNITION</p>
-        <h2 class="voice-enrollment-title" id="voice-enrollment-title">Let me learn your voice</h2>
+        <p class="voice-enrollment-eyebrow">${t('voiceEnrollment.eyebrow')}</p>
+        <h2 class="voice-enrollment-title" id="voice-enrollment-title">${t('voiceEnrollment.title')}</h2>
         <button class="voice-enrollment-close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </div>
       <div class="voice-enrollment-content" id="voice-enrollment-content">
@@ -625,8 +625,8 @@ function renderCheckingState(): string {
       <div class="voice-enrollment-status-icon voice-enrollment-status-icon--info">
         ${ICONS.speaker}
       </div>
-      <h3 class="voice-enrollment-status-title">Checking voice system...</h3>
-      <p class="voice-enrollment-status-message">One moment while we set things up.</p>
+      <h3 class="voice-enrollment-status-title">${t('voiceEnrollment.checking.title')}</h3>
+      <p class="voice-enrollment-status-message">${t('voiceEnrollment.checking.message')}</p>
     </div>
   `;
 }
@@ -637,14 +637,13 @@ function renderNotAvailableState(): string {
       <div class="voice-enrollment-status-icon voice-enrollment-status-icon--error">
         ${ICONS.alert}
       </div>
-      <h3 class="voice-enrollment-status-title">Voice recognition unavailable</h3>
+      <h3 class="voice-enrollment-status-title">${t('voiceEnrollment.unavailable.title')}</h3>
       <p class="voice-enrollment-status-message">
-        Voice authentication isn't available right now. 
-        This may be a temporary issue—please try again later.
+        ${t('voiceEnrollment.unavailable.message')}
       </p>
       <div class="voice-enrollment-actions" role="button" tabindex="0">
         <button aria-label="${t('accessibility.gotIt')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
-          Got it
+          ${t('voiceEnrollment.unavailable.button')}
         </button>
       </div>
     </div>
@@ -662,40 +661,39 @@ function renderAlreadyEnrolledState(profile: VoiceProfile): string {
       <div class="voice-enrollment-status-icon voice-enrollment-status-icon--success">
         ${ICONS.check}
       </div>
-      <h3 class="voice-enrollment-status-title">I already know your voice!</h3>
+      <h3 class="voice-enrollment-status-title">${t('voiceEnrollment.enrolled.title')}</h3>
       <p class="voice-enrollment-status-message">
-        You enrolled on ${enrolledDate}. Your voiceprint is ${quality}% quality.
+        ${t('voiceEnrollment.enrolled.messagePrefix')} ${enrolledDate}. ${t('voiceEnrollment.enrolled.messageQuality')} ${quality}${t('voiceEnrollment.enrolled.messageSuffix')}
       </p>
-      
+
       <div class="voice-enrollment-enrolled-stats">
         <div class="voice-enrollment-stat">
           <div class="voice-enrollment-stat-value">${profile.sampleCount ?? 0}</div>
-          <div class="voice-enrollment-stat-label">Samples</div>
+          <div class="voice-enrollment-stat-label">${t('voiceEnrollment.enrolled.sampleLabel')}</div>
         </div>
         <div class="voice-enrollment-stat">
           <div class="voice-enrollment-stat-value">${profile.verificationCount ?? 0}</div>
-          <div class="voice-enrollment-stat-label">Verifications</div>
+          <div class="voice-enrollment-stat-label">${t('voiceEnrollment.enrolled.verificationLabel')}</div>
         </div>
       </div>
-      
+
       <div class="voice-enrollment-actions" role="button" tabindex="0">
         <button aria-label="${t('accessibility.delete')}" class="voice-enrollment-btn voice-enrollment-btn--danger" id="btn-delete">
-          ${ICONS.trash} Delete voiceprint
+          ${ICONS.trash} ${t('voiceEnrollment.enrolled.deleteButton')}
         </button>
         <button aria-label="${t('accessibility.done')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
-          Done
+          ${t('voiceEnrollment.enrolled.doneButton')}
         </button>
       </div>
     </div>
   `;
 }
 
-function renderReadyState(): string {
+function renderReadyState(reenroll = false): string {
   return `
     <p class="voice-enrollment-description">
-      I'll learn to recognize your voice so I can greet you personally and 
-      remember our conversations better. Just speak naturally for a few seconds 
-      when prompted.
+      ${reenroll ? `<strong>${t('voiceId.reenrollTitle')}</strong> ${t('voiceId.reenrollBody')}` : `I'll learn to recognize your voice so I can greet you personally and
+      remember our conversations better. Just speak naturally for a few seconds when prompted.`}
     </p>
     
     <div class="voice-enrollment-visualizer">
@@ -714,10 +712,10 @@ function renderReadyState(): string {
     
     <div class="voice-enrollment-actions" role="button" tabindex="0">
       <button aria-label="${t('accessibility.maybeLater')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-cancel">
-        Maybe later
+        ${t('voiceEnrollment.ready.cancelButton')}
       </button>
       <button aria-label="${t('accessibility.startEnrollment')}" class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-start">
-        Start enrollment
+        ${t('voiceEnrollment.ready.startButton')}
       </button>
     </div>
   `;
@@ -768,9 +766,9 @@ function renderProcessingState(): string {
       <div class="voice-enrollment-status-icon voice-enrollment-status-icon--info">
         ${ICONS.speaker}
       </div>
-      <h3 class="voice-enrollment-status-title">Creating your voiceprint...</h3>
+      <h3 class="voice-enrollment-status-title">${t('voiceEnrollment.processing.title')}</h3>
       <p class="voice-enrollment-status-message">
-        Just a moment while I learn to recognize you.
+        ${t('voiceEnrollment.processing.message')}
       </p>
     </div>
   `;
@@ -782,14 +780,13 @@ function renderCompleteState(): string {
       <div class="voice-enrollment-status-icon voice-enrollment-status-icon--success">
         ${ICONS.sparkles}
       </div>
-      <h3 class="voice-enrollment-status-title">I'll remember your voice!</h3>
+      <h3 class="voice-enrollment-status-title">${t('voiceEnrollment.complete.title')}</h3>
       <p class="voice-enrollment-status-message">
-        Now I can recognize you and remember our conversations better. 
-        It's like you've become a familiar friend.
+        ${t('voiceEnrollment.complete.message')}
       </p>
       <div class="voice-enrollment-actions" role="button" tabindex="0">
         <button aria-label="${t('accessibility.letSTalk')}" class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-done">
-          Let's talk!
+          ${t('voiceEnrollment.complete.button')}
         </button>
       </div>
     </div>
@@ -802,14 +799,14 @@ function renderErrorState(message: string): string {
       <div class="voice-enrollment-status-icon voice-enrollment-status-icon--error">
         ${ICONS.alert}
       </div>
-      <h3 class="voice-enrollment-status-title">Something went wrong</h3>
+      <h3 class="voice-enrollment-status-title">${t('voiceEnrollment.error.title')}</h3>
       <p class="voice-enrollment-status-message">${message}</p>
       <div class="voice-enrollment-actions" role="button" tabindex="0">
         <button aria-label="${t('accessibility.tryAgain')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-retry">
-          Try again
+          ${t('voiceEnrollment.error.tryAgain')}
         </button>
         <button aria-label="${t('accessibility.close')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
-          Close
+          ${t('voiceEnrollment.error.close')}
         </button>
       </div>
     </div>
@@ -845,15 +842,13 @@ async function checkStatusAndProfile(): Promise<void> {
       return;
     }
 
-    // Check if already enrolled
+    // Enrolled, unless that voice print can't verify anyone and a new one would
     const profile = await voiceAuth.getProfile();
-    if (profile.enrolled) {
+    if (profile.enrolled && !profile.needsReenrollment) {
       setState('already_enrolled', profile);
       return;
     }
-
-    // Ready to enroll
-    setState('ready');
+    setState('ready', profile.needsReenrollment === true);
   } catch (error) {
     log.error('Failed to check status:', error);
     setState('error', "Couldn't connect to voice system. Try again?");
@@ -878,7 +873,7 @@ function setState(state: EnrollmentState, data?: unknown): void {
       attachButtonListeners();
       break;
     case 'ready':
-      content.innerHTML = renderReadyState();
+      content.innerHTML = renderReadyState(data === true);
       attachButtonListeners();
       break;
     case 'recording': {
@@ -929,7 +924,6 @@ async function handleStartEnrollment(): Promise<void> {
   const voiceAuth = getVoiceAuthService();
 
   try {
-    // Start enrollment session
     const result = await voiceAuth.startEnrollment(5);
     if (!result.success) {
       setState('error', result.error || 'Failed to start enrollment');
@@ -939,31 +933,31 @@ async function handleStartEnrollment(): Promise<void> {
     const requiredSamples = result.requiredSamples ?? 5;
     progress = { collected: 0, required: requiredSamples, quality: 0, status: 'collecting' };
 
-    // Record samples one by one
+    // Record samples one by one; a sample refused three times in a row ends the attempt
+    let refusals = 0;
     for (let i = 0; i < requiredSamples; i++) {
       setState('recording', { sampleIndex: i, total: requiredSamples });
-
-      // Record with progress callback
       const sampleResult = await voiceAuth.recordEnrollmentSample(3, (elapsed, level) => {
         updateRecordingUI(elapsed, level, 3);
       });
 
       if (!sampleResult.success) {
-        // Show error but allow retry
+        if (++refusals >= 3) {
+          void voiceAuth.cancelEnrollment();
+          setState('error', "I couldn't learn your voice just now. Try again later?");
+          return;
+        }
         toast.warning(sampleResult.message || "Didn't catch that. One more time?");
         i--; // Retry this sample
         continue;
       }
-
+      refusals = 0;
       progress = sampleResult.progress ?? progress;
-
-      // Update progress dots
       const dotsContainer = modal?.querySelector('#progress-dots');
       if (dotsContainer) {
         dotsContainer.innerHTML = renderProgressDots(progress.collected, progress.required);
       }
 
-      // Small delay between samples
       if (i < requiredSamples - 1) {
         await new Promise<void>((resolve) => setTimeout(resolve, 500));
       }

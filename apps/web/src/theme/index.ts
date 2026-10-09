@@ -13,20 +13,20 @@ export type ThemeName = 'midnight' | 'zen';
 export type { PersonaId };
 
 export interface ThemeMeta {
-  name: string;
-  description: string;
+  nameKey: string;
+  descriptionKey: string;
   mode: 'light' | 'dark';
 }
 
 export const THEMES: Record<ThemeName, ThemeMeta> = {
   midnight: {
-    name: 'Midnight Gold',
-    description: 'Rich dark theme with warm gold accents',
+    nameKey: 'theme.midnight.name',
+    descriptionKey: 'theme.midnight.description',
     mode: 'dark',
   },
   zen: {
-    name: 'Zen Garden',
-    description: 'Clean, natural, serene light theme',
+    nameKey: 'theme.zen.name',
+    descriptionKey: 'theme.zen.description',
     mode: 'light',
   },
 };
@@ -38,48 +38,56 @@ export const PERSONA_IDS: PersonaId[] = [...ALL_PERSONA_IDS];
 
 const STORAGE_KEY = 'voiceai-theme';
 
-// ============================================================================
-// THEME MANAGEMENT
-// ============================================================================
+const CHROME_ZEN = '#fafaf9';
+const CHROME_MIDNIGHT = '#14110e';
 
 /**
- * Set the active theme with smooth transition animation
+ * Decide the theme for a cold start.
+ * A stored choice is kept. With no choice, follow the current system theme
+ * and do not write storage, so a later system change can still apply.
  */
-export function setTheme(theme: ThemeName, animate = true): void {
+export function resolveInitialTheme(
+  stored: string | null,
+  prefersDark: boolean
+): { theme: ThemeName; persist: boolean } {
+  if (stored === 'midnight' || stored === 'zen') {
+    return { theme: stored, persist: true };
+  }
+  return { theme: prefersDark ? 'midnight' : 'zen', persist: false };
+}
+
+function paintChrome(theme: ThemeName): void {
+  const color = theme === 'zen' ? CHROME_ZEN : CHROME_MIDNIGHT;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
+  if (document.body) {
+    document.body.style.backgroundColor = color;
+  }
+}
+
+/**
+ * Set the active theme with smooth transition animation.
+ * persist=false follows the system without locking out later system changes.
+ */
+export function setTheme(theme: ThemeName, animate = true, persist = true): void {
   const html = document.documentElement;
   const currentTheme = html.getAttribute('data-theme');
 
-  // Skip if already on this theme
+  paintChrome(theme);
+  if (persist) {
+    localStorage.setItem(STORAGE_KEY, theme);
+  }
+
   if (currentTheme === theme) return;
 
-  // Add transitioning class for smooth animation
   if (animate && currentTheme) {
     html.classList.add('theme-transitioning');
-
-    // Remove transitioning class after animation completes
     setTimeout(() => {
       html.classList.remove('theme-transitioning');
-    }, 450); // Slightly longer than CSS transition (400ms)
+    }, 450);
   }
 
-  // Apply the theme
   html.setAttribute('data-theme', theme);
-  localStorage.setItem(STORAGE_KEY, theme);
 
-  // Update meta theme color for iOS Safari
-  const metaTheme = document.querySelector('meta[name="theme-color"]');
-  if (metaTheme) {
-    metaTheme.setAttribute(
-      'content',
-      theme === 'zen' ? '#fafaf9' : '#08080c'
-    );
-  }
-
-  // Update body background for iOS Safari address bar
-  document.body.style.backgroundColor =
-    theme === 'zen' ? '#fafaf9' : '#08080c';
-
-  // Dispatch custom event for listeners
   window.dispatchEvent(
     new CustomEvent('themechange', { detail: { theme } })
   );
@@ -106,24 +114,19 @@ export function toggleTheme(): ThemeName {
 }
 
 /**
- * Initialize theme - defaults to zen theme
- * No animation on initial load for instant appearance
+ * Initialize theme from a stored choice, or the current system theme.
+ * No animation on initial load for instant appearance.
  */
 export function initTheme(): ThemeName {
-  // Ensure default persona is set on body
   if (!document.body.getAttribute('data-persona')) {
     document.body.setAttribute('data-persona', 'ferni');
   }
-  
-  const stored = localStorage.getItem(STORAGE_KEY) as ThemeName | null;
-  if (stored && THEMES[stored]) {
-    setTheme(stored, false); // No animation on init
-    return stored;
-  }
 
-  // Default to zen theme
-  setTheme('zen', false); // No animation on init
-  return 'zen';
+  const stored = localStorage.getItem(STORAGE_KEY);
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const initial = resolveInitialTheme(stored, prefersDark);
+  setTheme(initial.theme, false, initial.persist);
+  return initial.theme;
 }
 
 /**
@@ -136,7 +139,7 @@ export function watchSystemTheme(callback?: (theme: ThemeName) => void): () => v
     // Only auto-switch if user hasn't manually set a preference
     if (!localStorage.getItem(STORAGE_KEY)) {
       const theme = e.matches ? 'midnight' : 'zen';
-      setTheme(theme);
+      setTheme(theme, true, false);
       callback?.(theme);
     }
   };

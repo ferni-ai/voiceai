@@ -107,16 +107,6 @@ export default defineConfig(({ mode }) => {
             });
           },
         },
-        '/ws/director': {
-          target: uiServer,
-          ws: true,
-          changeOrigin: true,
-          configure: (proxy) => {
-            proxy.on('error', () => {
-              // Silently handle proxy errors - WS reconnects automatically
-            });
-          },
-        },
       },
     },
     build: {

@@ -13,6 +13,7 @@
  */
 
 import { ANIMATION_PRESET, DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 import { HANDOFF_TIMING } from '../config/index.js';
 import { getPersonaColorConfig } from '../config/persona-colors.js';
 import { getPersona, isKnownPersonaId } from '../config/personas.js';
@@ -279,7 +280,7 @@ export function initTeamUI(): void {
     const almostThereCleanup = teamUnlockService.onAlmostThere((member, progress) => {
       const progressPercent = Math.round(progress * 100);
       toast.show({
-        message: `You're ${progressPercent}% of the way to meeting ${member.displayName}!`,
+        message: t('teamRoster.almostThere', { percent: progressPercent, name: member.displayName }),
         duration: 4000,
       });
       log.debug('Showed almost there notification:', {
@@ -324,7 +325,7 @@ export function initTeamUI(): void {
     // FIX BUG #57: Announce handoff start events to screen readers
     const unsubStart = handoffService.onHandoffStart((toPersona, _fromPersona, _banter) => {
       const persona = getPersona(toPersona);
-      announceToScreenReader(`Switching to ${persona.name}`);
+      announceToScreenReader(t('teamRoster.switchingTo', { name: persona.name }));
     });
     cleanupFunctions.push(unsubStart);
 
@@ -332,7 +333,7 @@ export function initTeamUI(): void {
     // WARM HANDOFF: Also serves as fallback for roster update if no soft_open_complete was sent
     const unsubComplete = handoffService.onHandoffComplete((toPersona) => {
       const persona = getPersona(toPersona);
-      announceToScreenReader(`Now speaking with ${persona.name}`);
+      announceToScreenReader(t('teamRoster.nowSpeakingWith', { name: persona.name }));
       // Fallback: ensure roster is updated (in case soft_open_complete wasn't sent)
       // This handles backward compatibility when there's no soft open banter
       setActiveTeamMember(toPersona);
@@ -345,8 +346,8 @@ export function initTeamUI(): void {
     const unsubFailed = handoffService.onHandoffFailed((error, targetPersona, rollbackTo) => {
       const rollbackPersonaName = rollbackTo ? getPersona(rollbackTo).name : undefined;
       const announcement = rollbackPersonaName
-        ? `Switch failed. ${error}. Staying with ${rollbackPersonaName}.`
-        : `Switch failed. ${error}`;
+        ? t('teamRoster.switchFailedStaying', { error, name: rollbackPersonaName })
+        : t('teamRoster.switchFailed', { error });
       announceToScreenReader(announcement);
       clearSwitchingFeedback(targetPersona);
     });
@@ -378,10 +379,7 @@ export function initTeamUI(): void {
       }
 
       // Show subtle toast
-      toast.show({
-        message: 'Take your time - one switch at a time',
-        duration: 2000,
-      });
+      toast.show({ message: t('teamRoster.rateLimited'), duration: 2000 });
     });
     cleanupFunctions.push(unsubRateLimited);
 
@@ -436,10 +434,7 @@ function handleAgentDropped(agentId: string): void {
     // Can't remove Ferni!
     if (agentId === 'ferni') {
       log.debug('Cannot remove Ferni from roster');
-      toast.show({
-        message: "Ferni's always here for you",
-        duration: 2000,
-      });
+      toast.show({ message: t('teamRoster.alwaysHere'), duration: 2000 });
       return;
     }
 
@@ -450,10 +445,7 @@ function handleAgentDropped(agentId: string): void {
     rosterPreferences.removeMember(agentId as TeamMemberId);
 
     log.info('Removed from roster:', name);
-    toast.show({
-      message: `${name} removed from roster`,
-      duration: 2000,
-    });
+    toast.show({ message: t('teamRoster.removedFromRoster', { name }), duration: 2000 });
 
     // Animate removal, then rebuild roster to reflect change
     if (element) {
@@ -701,7 +693,7 @@ function createAddableTeamMemberElement(
   element.setAttribute('data-persona-id', member.id);
   element.setAttribute('role', 'button');
   element.setAttribute('tabindex', '0');
-  element.setAttribute('aria-label', `Add ${member.displayName} to your team`);
+  element.setAttribute('aria-label', t('teamRoster.addToTeam', { name: member.displayName }));
 
   // Get colors from API agent or fall back to design system
   const colors = agent?.colors || getPersonaColorConfig(member.id);
@@ -758,10 +750,7 @@ function attachAddableMemberListener(
       soundUI.play('success');
     });
 
-    toast.show({
-      message: `${member.displayName} added to your team`,
-      duration: 2500,
-    });
+    toast.show({ message: t('toasts.addedToTeam', { name: member.displayName }), duration: 2500 });
 
     // Roster will rebuild automatically via the onChange listener
   };
@@ -954,7 +943,7 @@ function createMarketplaceAgentElement(agent: marketplaceService.InstalledAgent)
   element.setAttribute('data-marketplace-agent', 'true');
   element.setAttribute('role', 'button');
   element.setAttribute('tabindex', '0');
-  element.setAttribute('aria-label', `Talk to ${name}. Drag to avatar to remove.`);
+  element.setAttribute('aria-label', t('teamRoster.talkToDragRemove', { name }));
   element.setAttribute('aria-pressed', 'false');
 
   // 🍴 Make draggable for fun "feed to avatar" uninstall
@@ -977,7 +966,7 @@ function createMarketplaceAgentElement(agent: marketplaceService.InstalledAgent)
       </div>
     </div>
     <span class="team-name">${displayName}</span>
-    <span class="drag-hint" aria-hidden="true">Drag to remove</span>
+    <span class="drag-hint" aria-hidden="true">${t('teamRoster.dragToRemove')}</span>
   `;
 
   return element;
@@ -1096,10 +1085,10 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
 
   // Update aria-label based on locked status
   const ariaLabel = isLocked
-    ? `${agent.name} - locked. Keep talking to Ferni to unlock.`
+    ? t('teamRoster.lockedAria', { name: agent.name })
     : canDragToRemove
-      ? `Talk to ${agent.name}. Drag to avatar to remove from roster.`
-      : `Talk to ${agent.name}`;
+      ? t('teamRoster.talkToDragRemoveRoster', { name: agent.name })
+      : t('teamRoster.talkTo', { name: agent.name });
   element.setAttribute('aria-label', ariaLabel);
   element.setAttribute('aria-pressed', 'false');
 
@@ -1121,9 +1110,9 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   // Progress hint - shows conversations remaining on hover
   const progressPercent = Math.round(memberStatus.progress * 100);
   const progressHint = isLocked && memberStatus.progress > 0
-    ? `<div class="team-progress-hint">${progressPercent}% discovered</div>`
+    ? `<div class="team-progress-hint">${t('teamRoster.percentDiscovered', { percent: progressPercent })}</div>`
     : isLocked
-    ? `<div class="team-progress-hint">Keep chatting to meet ${displayName}</div>`
+    ? `<div class="team-progress-hint">${t('teamRoster.keepChattingToMeet', { name: displayName })}</div>`
     : '';
 
   // Progress ring for locked members (shows progress toward unlock)
@@ -1214,7 +1203,7 @@ function attachEventListenersToElement(
       e.preventDefault();
       if (handoffService.isTransitioning) {
         announceToScreenReader(
-          `Please wait. Transitioning to ${handoffService.targetPersona || 'new agent'}.`
+          t('teamRoster.waitTransitioning', { name: handoffService.targetPersona || t('teamRoster.newAgent') })
         );
         return;
       }
@@ -1377,7 +1366,7 @@ function addMarketplaceButton(): void {
   marketplaceBtn.className = 'team-member team-member--marketplace';
   marketplaceBtn.setAttribute('role', 'button');
   marketplaceBtn.setAttribute('tabindex', '0');
-  marketplaceBtn.setAttribute('aria-label', 'Add more agents');
+  marketplaceBtn.setAttribute('aria-label', t('teamRoster.addMoreAgents'));
   marketplaceBtn.innerHTML = `
     <div class="team-avatar-container">
       <div class="team-avatar-ring marketplace-ring"></div>
@@ -1388,7 +1377,7 @@ function addMarketplaceButton(): void {
         </svg>
       </div>
     </div>
-    <span class="team-name">More</span>
+    <span class="team-name">${t('teamRoster.more')}</span>
   `;
 
   rosterContainer.appendChild(marketplaceBtn);
@@ -1436,7 +1425,7 @@ function attachEventListenersToExistingElements(): void {
     const persona = getPersona(personaId);
     htmlElement.setAttribute('role', 'button');
     htmlElement.setAttribute('tabindex', '0');
-    htmlElement.setAttribute('aria-label', `Switch to ${persona.name}`);
+    htmlElement.setAttribute('aria-label', t('teamRoster.switchTo', { name: persona.name }));
     htmlElement.setAttribute('aria-pressed', 'false');
 
     attachEventListenersToElement(htmlElement, personaId, persona.name);
@@ -1542,16 +1531,16 @@ function showLockedMemberFeedback(
   // Get the teaser message or fallback
   const name = memberConfig?.displayName || personaId;
   const message =
-    memberConfig?.teaserMessage ||
-    `${name} isn't available yet. Keep talking to Ferni to unlock more teammates!`;
+    memberConfig?.teaserMessage || t('teamRoster.notAvailableYet', { name });
 
   // Announce to screen readers
   announceToScreenReader(message);
 
   // Show toast notification with progress hint
   const progressPercent = Math.round(status.progress * 100);
-  const progressHint = status.progress > 0 ? ` (${progressPercent}% there!)` : '';
-  toast.show({ message: `${message}${progressHint}`, duration: 3500 });
+  const toastMessage =
+    status.progress > 0 ? t('teamRoster.lockedWithProgress', { message, percent: progressPercent }) : message;
+  toast.show({ message: toastMessage, duration: 3500 });
 
   log.debug('Showed locked member feedback:', { personaId, progress: status.progress });
 }
@@ -1591,8 +1580,8 @@ function updateTeamMemberLockStates(state: ReturnType<typeof teamUnlockService.g
     const memberConfig = getTeamMember(personaId as UnlockTeamMemberId);
     const name = memberConfig?.displayName || personaId;
     const ariaLabel = isLocked
-      ? `${name} - locked. Keep talking to Ferni to unlock.`
-      : `Talk to ${name}`;
+      ? t('teamRoster.lockedAria', { name })
+      : t('teamRoster.talkTo', { name });
     element.setAttribute('aria-label', ariaLabel);
 
     // Update progress ring if present
@@ -1614,7 +1603,7 @@ function updateTeamMemberLockStates(state: ReturnType<typeof teamUnlockService.g
     if (progressHint) {
       progressHint.style.display = isLocked ? '' : 'none';
       if (isLocked && status && status.progress > 0) {
-        progressHint.textContent = `${Math.round(status.progress * 100)}% discovered`;
+        progressHint.textContent = t('teamRoster.percentDiscovered', { percent: Math.round(status.progress * 100) });
       }
     }
   }
@@ -1638,7 +1627,7 @@ function celebrateMemberUnlock(personaId: PersonaId): void {
   log.info('🎉 Celebrating unlock:', name);
 
   // Announce to screen readers
-  announceToScreenReader(`${name} is now available! You can now talk to them.`);
+  announceToScreenReader(t('teamRoster.nowAvailable', { name }));
 
   // Add celebration animation class
   addClass(element, 'team-member--just-unlocked');
@@ -1670,7 +1659,7 @@ function celebrateMemberUnlock(personaId: PersonaId): void {
   const toast = document.createElement('div');
   toast.className = 'ferni-toast ferni-toast--celebration';
   toast.innerHTML = `
-    <span class="ferni-toast__message">${name} unlocked!</span>
+    <span class="ferni-toast__message">${t('teamRoster.unlocked', { name })}</span>
   `;
   // Glass toast styling - consistent with whisper.ui.ts
   toast.style.cssText = `

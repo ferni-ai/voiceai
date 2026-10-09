@@ -266,13 +266,13 @@ class WearableSettingsUI {
           <div class="wearable-settings__provider-info">
             <span class="wearable-settings__provider-name">
               ${t(`wearableSettings.providers.${provider.id}.name`)}
-              ${isComingSoon ? '<span class="wearable-settings__coming-soon-badge">Coming Soon</span>' : ''}
+              ${isComingSoon ? `<span class="wearable-settings__coming-soon-badge">${t('menu.comingSoon')}</span>` : ''}
             </span>
             <span class="wearable-settings__provider-desc">${t(`wearableSettings.providers.${provider.id}.description`)}</span>
           </div>
           ${isComingSoon ? `
             <span class="wearable-settings__provider-btn wearable-settings__provider-btn--disabled" aria-disabled="true">
-              Coming Soon
+              ${t('menu.comingSoon')}
             </span>
           ` : `
             <button aria-label="${t('accessibility.settings')}"
@@ -746,7 +746,7 @@ class WearableSettingsUI {
 
       /* Dark Theme */
       [data-theme="midnight"] .wearable-settings__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .wearable-settings__title,
@@ -757,11 +757,11 @@ class WearableSettingsUI {
 
       [data-theme="midnight"] .wearable-settings__provider,
       [data-theme="midnight"] .wearable-settings__privacy {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .wearable-settings__provider-icon {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
         color: var(--color-text-secondary, #e8e2da);
       }
 

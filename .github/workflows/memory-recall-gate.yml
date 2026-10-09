@@ -30,8 +30,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -39,7 +37,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        # Frozen: this job does not rewrite package.json (the reason ci.yml can't
+        # be), so a lockfile mismatch here is a real error, not drift to absorb.
+        run: pnpm install --frozen-lockfile
 
       - name: Run memory recall golden gate
         run: pnpm test:memory:recall

@@ -37,7 +37,7 @@ const CONFIG = {
     path.join(PROJECT_ROOT, 'apps/website/ferni-website/src/css/_tokens.css'),
     path.join(PROJECT_ROOT, 'brand/ferni-design-tokens.css'),
   ],
-  // Dark theme (Cedar Night) - for developer-facing sites
+  // Dark theme (Night Ink) - for developer-facing sites
   darkThemeOutputs: [
     path.join(PROJECT_ROOT, 'apps/website/developers-portal/src/css/tokens.css'),
     path.join(PROJECT_ROOT, 'apps/website/design-system-portal/src/css/tokens.css'),
@@ -195,17 +195,17 @@ function generateColorVars(colors) {
   lines.push(`  --color-purple-light: #a78bfa;`);
   lines.push('');
 
-  // Dark Theme / Cedar Night Accents (for dark sections on light pages)
+  // Dark Theme / Night Ink accents (for dark sections on light pages)
   lines.push('  /* ============================================');
-  lines.push('     COLORS - Dark Theme / Cedar Night Accents');
+  lines.push('     COLORS - Dark Theme / Night Ink Accents');
   lines.push('     Used for dark sections and dark mode');
   lines.push('     ============================================ */');
-  lines.push(`  --color-accent-gold: ${midnight.accent.primary};`);
-  lines.push(`  --color-accent-gold-hover: ${midnight.accent.hover};`);
+  lines.push(`  --color-accent-gold: ${midnight.natural.warmAmberLight};`);
+  lines.push(`  --color-accent-gold-hover: ${midnight.natural.warmAmber};`);
   lines.push(`  --color-cedar: ${midnight.background.elevated};`);
   lines.push(`  --color-cedar-dark: ${midnight.background.primary};`);
-  lines.push(`  --color-cedar-deep: #1f1a16;`);
-  lines.push(`  --color-ink-deep: #1a1613;`);
+  lines.push(`  --color-cedar-deep: #0e0c0a;`);
+  lines.push(`  --color-ink-deep: #0e0c0a;`);
   // Dark theme background variants
   lines.push(`  --color-dark-bg: ${midnight.background.primary};`);
   lines.push(`  --color-dark-bg-elevated: ${midnight.background.elevated};`);
@@ -214,11 +214,11 @@ function generateColorVars(colors) {
   lines.push(`  --color-dark-text-secondary: ${midnight.text.secondary};`);
   lines.push(`  --color-dark-text-muted: ${midnight.text.muted};`);
   lines.push(`  --color-dark-gradient-start: ${midnight.background.primary};`);
-  lines.push(`  --color-dark-gradient-mid: #4a3a35;`);
+  lines.push(`  --color-dark-gradient-mid: ${midnight.background.secondary};`);
   lines.push(`  --color-bg-dark: ${midnight.background.primary};`);
   lines.push(`  --color-bg-dark-elevated: ${midnight.background.elevated};`);
   lines.push(`  --color-bg-dark-surface: ${midnight.background.secondary};`);
-  lines.push(`  --color-bg-darker: #2a2420;`);
+  lines.push(`  --color-bg-darker: #0e0c0a;`);
   lines.push('');
 
   // Persona colors (with theme-aware text variants)
@@ -391,7 +391,7 @@ function generateDarkThemeVars(colors) {
   lines.push('');
   lines.push('/* ============================================================================');
   lines.push('   DARK THEME OVERRIDES');
-  lines.push('   Midnight theme (Cedar Night) - warm cedar tones under moonlight');
+  lines.push('   Midnight theme (Night Ink) - warm near-black field, paper type, sage actions');
   lines.push('   All persona text colors are WCAG AA compliant (4.5:1+ contrast)');
   lines.push('   ============================================================================ */');
   lines.push('');
@@ -414,6 +414,9 @@ function generateDarkThemeVars(colors) {
   lines.push(`    --color-text-muted: ${midnight.text.muted};`);
   lines.push(`    --color-text-dimmed: ${midnight.text.dimmed};`);
   lines.push(`    --color-text-inverse: ${midnight.text.inverse};`);
+  lines.push(`    --color-text: ${midnight.text.primary};`);
+  lines.push(`    --color-background: ${midnight.background.primary};`);
+  lines.push(`    --color-paper-cream: ${midnight.background.primary};`);
   lines.push('');
 
   // Accent colors
@@ -475,6 +478,9 @@ function generateDarkThemeVars(colors) {
   lines.push(`  --color-text-muted: ${midnight.text.muted};`);
   lines.push(`  --color-text-dimmed: ${midnight.text.dimmed};`);
   lines.push(`  --color-text-inverse: ${midnight.text.inverse};`);
+  lines.push(`  --color-text: ${midnight.text.primary};`);
+  lines.push(`  --color-background: ${midnight.background.primary};`);
+  lines.push(`  --color-paper-cream: ${midnight.background.primary};`);
   lines.push('');
 
   // Accent colors
@@ -655,14 +661,14 @@ function generateEffectsVars(effects) {
 // ============================================================================
 
 /**
- * Generate dark theme (Cedar Night) tokens for developer portals
+ * Generate dark theme (Night Ink) tokens for developer portals
  */
 function generateDarkThemeFile(colors, spacing, typography, animation, effects) {
   const midnight = colors.themes.midnight;
 
   const lines = [
     '/**',
-    ' * Ferni Design Tokens - Cedar Night (Dark Theme)',
+    ' * Ferni Design Tokens - Night Ink (Dark Theme)',
     ' * For developer-facing portals',
     ' *',
     ' * 🎨 AUTO-GENERATED FROM design-system/tokens/',
@@ -672,7 +678,7 @@ function generateDarkThemeFile(colors, spacing, typography, animation, effects) 
     '',
     ':root {',
     '  /* ========================================',
-    '     COLORS - Cedar Night Theme',
+    '     COLORS - Night Ink Theme',
     '     ======================================== */',
     '',
     '  /* Backgrounds */',
@@ -682,8 +688,8 @@ function generateDarkThemeFile(colors, spacing, typography, animation, effects) 
     `  --bg-elevated: ${midnight.background.elevated};`,
     `  --bg-glass: ${midnight.background.glass};`,
     `  --bg-overlay: ${midnight.background.overlay};`,
-    '  --bg-code: #2a2420;',
-    '  --bg-code-inline: rgba(230, 195, 160, 0.12);',
+    '  --bg-code: #0e0c0a;',
+    '  --bg-code-inline: rgba(244, 239, 230, 0.08);',
     '',
     '  /* Text */',
     `  --text-primary: ${midnight.text.primary};`,
@@ -692,13 +698,13 @@ function generateDarkThemeFile(colors, spacing, typography, animation, effects) 
     `  --text-dimmed: ${midnight.text.dimmed};`,
     `  --text-inverse: ${midnight.text.inverse};`,
     '',
-    '  /* Accent - Gold */',
+    '  /* Accent - Sage */',
     `  --accent-primary: ${midnight.accent.primary};`,
     `  --accent-hover: ${midnight.accent.hover};`,
     `  --accent-pressed: ${midnight.accent.pressed};`,
     `  --accent-glow: ${midnight.accent.glow};`,
     `  --accent-subtle: ${midnight.accent.subtle};`,
-    '  --accent-text: #e8c870;',
+    `  --accent-text: ${midnight.accent.text};`,
     '',
     '  /* Borders */',
     `  --border-subtle: ${midnight.border.subtle};`,
@@ -712,8 +718,8 @@ function generateDarkThemeFile(colors, spacing, typography, animation, effects) 
     `  --error-glow: ${midnight.semantic.errorGlow};`,
     `  --warning: ${midnight.semantic.warning};`,
     `  --warning-glow: ${midnight.semantic.warningGlow};`,
-    '  --info: #7da6cf;',
-    '  --info-glow: rgba(125, 166, 207, 0.22);',
+    `  --info: ${midnight.semantic.info};`,
+    `  --info-glow: ${midnight.semantic.infoGlow};`,
     '',
     '  /* Personas */',
   ];
@@ -777,7 +783,7 @@ function build() {
     ...generateDarkThemeVars(colors),
   ];
 
-  // Generate dark theme CSS (Cedar Night) for developer sites
+  // Generate dark theme CSS (Night Ink) for developer sites
   const darkThemeContent = generateDarkThemeFile(colors, spacing, typography, animation, effects);
 
   // Helper to write file
@@ -796,7 +802,7 @@ function build() {
     writeOutput(outputFile, lightContent);
   }
 
-  console.log('\n📝 Dark theme (Cedar Night):');
+  console.log('\n📝 Dark theme (Night Ink):');
   for (const outputFile of CONFIG.darkThemeOutputs) {
     writeOutput(outputFile, darkThemeContent);
   }

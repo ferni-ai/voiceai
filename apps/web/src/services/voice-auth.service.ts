@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 import { getApiHeadersAsync } from '../utils/api.js';
 import { appState } from '../state/app.state.js';
 
@@ -43,6 +44,8 @@ export interface VoiceProfile {
   verificationCount?: number;
   sampleCount?: number;
   needsReEnrollment?: boolean;
+  /** Set when this voice print can't verify anyone but a fresh enrollment would. */
+  needsReenrollment?: boolean;
 }
 
 export interface EnrollmentProgress {
@@ -61,14 +64,6 @@ export interface VerificationResult {
     similarity: number;
     method: 'neural' | 'dsp';
   };
-}
-
-export interface IdentificationResult {
-  identified: boolean;
-  userId?: string;
-  confidence: number;
-  candidates: Array<{ userId: string; similarity: number }>;
-  processingTimeMs: number;
 }
 
 export interface ContinuousAuthStatus {
@@ -224,10 +219,7 @@ class VoiceAuthService {
     return appState.getState().deviceId;
   }
 
-  private async fetchApi<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  private async fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     // Use getApiHeadersAsync for proper Firebase auth
     const authHeaders = await getApiHeadersAsync(true);
 
@@ -240,8 +232,10 @@ class VoiceAuthService {
     });
 
     if (!response.ok) {
-      const error = (await response.json().catch(() => ({ error: 'Unknown error' }))) as { error?: string };
-      throw new Error(error.error || `API error: ${response.status}`);
+      const error = (await response
+        .json()
+        .catch(() => ({ error: t('voiceAuth.unknownError') }))) as { error?: string };
+      throw new Error(error.error || t('voiceAuth.apiError', { status: response.status }));
     }
 
     return response.json() as Promise<T>;
@@ -251,9 +245,7 @@ class VoiceAuthService {
   // System Status
   // ==========================================================================
 
-  /**
-   * Get voice auth system status.
-   */
+  /** Get voice auth system status. */
   async getStatus(): Promise<VoiceAuthStatus> {
     try {
       const response = await this.fetchApi<{
@@ -294,8 +286,7 @@ class VoiceAuthService {
    */
   async getProfile(): Promise<VoiceProfile> {
     try {
-      const response = await this.fetchApi<VoiceProfile>('/profile');
-      return response;
+      return await this.fetchApi<VoiceProfile>('/profile');
     } catch (error) {
       log.error('Failed to get voice profile:', error);
       return { enrolled: false };
@@ -344,7 +335,7 @@ class VoiceAuthService {
       log.info('Enrollment session started', { sessionId: response.sessionId });
       return response;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : t('voiceAuth.unknownError');
       log.error('Failed to start enrollment:', error);
       return { success: false, error: message };
     }
@@ -418,7 +409,7 @@ class VoiceAuthService {
         this.recorder.stopRecording();
       }
 
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : t('voiceAuth.unknownError');
       log.error('Failed to record enrollment sample:', error);
       return { success: false, error: message };
     }
@@ -460,7 +451,7 @@ class VoiceAuthService {
         profile: response.profile,
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : t('voiceAuth.unknownError');
       log.error('Failed to complete enrollment:', error);
       return { success: false, error: message };
     }
@@ -533,67 +524,6 @@ class VoiceAuthService {
       return {
         verified: false,
         confidence: 0,
-        processingTimeMs: 0,
-      };
-    }
-  }
-
-  // ==========================================================================
-  // Identification
-  // ==========================================================================
-
-  /**
-   * Record and identify speaker from enrolled users.
-   */
-  async identify(
-    durationSeconds = 2,
-    onProgress?: (elapsed: number, level: number) => void
-  ): Promise<IdentificationResult> {
-    try {
-      // Record audio
-      await this.recorder.startRecording();
-
-      const startTime = Date.now();
-      await new Promise<void>((resolve) => {
-        const updateProgress = () => {
-          const elapsed = (Date.now() - startTime) / 1000;
-          const level = this.recorder.getAudioLevel();
-          if (onProgress) onProgress(elapsed, level);
-
-          if (elapsed < durationSeconds) {
-            requestAnimationFrame(updateProgress);
-          } else {
-            resolve();
-          }
-        };
-        updateProgress();
-      });
-
-      const samples = this.recorder.stopRecording();
-
-      // Identify
-      const response = await this.fetchApi<IdentificationResult>('/identify', {
-        method: 'POST',
-        body: JSON.stringify({
-          samples: Array.from(samples),
-        }),
-      });
-
-      log.info('Identification result', {
-        identified: response.identified,
-        userId: response.userId,
-      });
-
-      return response;
-    } catch (error) {
-      if (this.recorder.isRecording()) {
-        this.recorder.stopRecording();
-      }
-      log.error('Identification failed:', error);
-      return {
-        identified: false,
-        confidence: 0,
-        candidates: [],
         processingTimeMs: 0,
       };
     }
@@ -722,7 +652,7 @@ class VoiceAuthService {
           needed: true,
           severity: 'high',
           qualityScore: quality,
-          message: "Your voice profile quality is low. Re-enrolling will help me recognize you better.",
+          message: t('voiceAuth.reEnroll.high'),
         };
       }
 
@@ -731,7 +661,7 @@ class VoiceAuthService {
           needed: true,
           severity: 'low',
           qualityScore: quality,
-          message: "Your voice profile could be improved. Consider re-enrolling for better recognition.",
+          message: t('voiceAuth.reEnroll.low'),
         };
       }
 

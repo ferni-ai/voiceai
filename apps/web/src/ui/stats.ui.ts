@@ -63,32 +63,32 @@ function createStatsOverlay(): void {
         </svg>
       </button>
       
-      <h3 class="stats-title">Session Stats</h3>
+      <h3 class="stats-title">${t('sessionStats.title')}</h3>
       
       <div class="stats-grid">
         <div class="stat-item">
           <div class="stat-value" id="statDuration">0:00</div>
-          <div class="stat-label">Duration</div>
+          <div class="stat-label">${t('sessionStats.duration')}</div>
         </div>
         
         <div class="stat-item">
           <div class="stat-value" id="statMessages">0</div>
-          <div class="stat-label">Messages</div>
+          <div class="stat-label">${t('sessionStats.messages')}</div>
         </div>
         
         <div class="stat-item">
           <div class="stat-value" id="statPersona">Ferni</div>
-          <div class="stat-label">Coach</div>
+          <div class="stat-label">${t('sessionStats.coach')}</div>
         </div>
         
         <div class="stat-item">
           <div class="stat-value" id="statChanges">0</div>
-          <div class="stat-label">Switches</div>
+          <div class="stat-label">${t('sessionStats.switches')}</div>
         </div>
       </div>
       
       <div class="stats-footer">
-        <span class="stats-tip">Press <kbd>S</kbd> to toggle stats</span>
+        <span class="stats-tip">${t('sessionStats.tip', { key: '<kbd>S</kbd>' })}</span>
       </div>
     </div>
   `;
