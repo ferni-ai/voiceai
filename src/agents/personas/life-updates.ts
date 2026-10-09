@@ -91,7 +91,7 @@ export function formatLifeUpdates(updates: LifeUpdate[]): string | null {
   return [
     '[SINCE YOU LAST TALKED]',
     ...updates.map((u) => `- ${u.update}`),
-    "Mention only if it comes up naturally; don't announce it.",
+    "Only if they ask how you've been, and one at a time. When they're telling you about their own day, stay with them; don't bring these up.",
   ].join('\n');
 }
 
@@ -177,14 +177,23 @@ export async function loadLifeUpdates(
     const pending = stored.filter(
       (u) => now - Date.parse(u.createdAt) < PENDING_MAX_DAYS * DAY_MS && !spoken(u, told)
     );
-    if (pending.length > 0) return pending.slice(0, MAX_UPDATES);
+    if (pending.length > 0) {
+      log.info({ updates: pending.length }, 'LIFE_UPDATES_PENDING');
+      return pending.slice(0, MAX_UPDATES);
+    }
     // At most one new development a day, however many calls.
-    if (stored.some((u) => now - Date.parse(u.createdAt) < DAY_MS)) return [];
+    if (stored.some((u) => now - Date.parse(u.createdAt) < DAY_MS)) {
+      log.info({ reason: 'written_today' }, 'LIFE_UPDATES_SKIPPED');
+      return [];
+    }
 
     const threads = told.filter(
       (f) => now - Date.parse(f.saidAt) >= DAY_MS && ONGOING.test(f.fact)
     );
-    if (threads.length === 0) return [];
+    if (threads.length === 0) {
+      log.info({ reason: 'no_ongoing_thread', told: told.length }, 'LIFE_UPDATES_SKIPPED');
+      return [];
+    }
     const dated = told.map((f) => {
       const days = Math.floor((now - Date.parse(f.saidAt)) / DAY_MS);
       return `- ${f.fact} (${days < 1 ? 'today' : `${days} days ago`})`;
@@ -196,7 +205,10 @@ export async function loadLifeUpdates(
     );
     const createdAt = new Date(now).toISOString();
     const updates = safeUpdates(raw).map((update) => ({ personaId, update, createdAt }));
-    if (updates.length === 0) return [];
+    if (updates.length === 0) {
+      log.info({ reason: 'none_written', raw: raw.length }, 'LIFE_UPDATES_SKIPPED');
+      return [];
+    }
     await store.save(userId, updates);
     log.info({ updates: updates.length }, 'LIFE_UPDATES_WRITTEN');
     return updates;

@@ -1,4 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+const logged = vi.hoisted(() => [] as string[]);
+vi.mock('../../../utils/safe-logger.js', () => {
+  const logger = {
+    debug: vi.fn(),
+    info: vi.fn((_ctx: unknown, msg: string) => logged.push(msg)),
+    warn: vi.fn(),
+    error: vi.fn(),
+    child: vi.fn(() => logger),
+  };
+  return { createLogger: () => logger };
+});
+
 import { createMemoryRecall } from '../../multi-agent/memory-recall-hook.js';
 import { formatLedger, type LedgerFact, type LedgerStore } from '../life-ledger.js';
 import {
@@ -197,13 +209,26 @@ describe('life moves on', () => {
     ).toEqual(['You booked the Hokkaido flights after all.', "You're halfway through the book."]);
   });
 
+  it('logs why nothing was written, so a quiet call is not a mystery', async () => {
+    logged.length = 0;
+    const write = writes(["The basil didn't make it."]);
+    await loadLifeUpdates('u1', [coffee], 'ferni', {
+      store: updateStore(),
+      write,
+      now: () => NOW,
+      env: ON,
+    });
+    expect(logged).toContain('LIFE_UPDATES_SKIPPED');
+    expect(logged).not.toContain('LIFE_UPDATES_WRITTEN');
+  });
+
   it('formats a separate line to mention only if it comes up', () => {
     expect(formatLifeUpdates([])).toBeNull();
     const note = formatLifeUpdates([
       { personaId: 'ferni', update: 'You booked the Hokkaido flights.', createdAt: ago(0) },
     ]);
     expect(note).toBe(
-      "[SINCE YOU LAST TALKED]\n- You booked the Hokkaido flights.\nMention only if it comes up naturally; don't announce it."
+      "[SINCE YOU LAST TALKED]\n- You booked the Hokkaido flights.\nOnly if they ask how you've been, and one at a time. When they're telling you about their own day, stay with them; don't bring these up."
     );
   });
 
