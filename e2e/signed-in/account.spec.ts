@@ -28,6 +28,26 @@ test('Sign Out ends the session and leaves this browser clean', async ({ page })
   await expect(page.locator(signInButtons).first(), 'still signed out after a reload').toBeVisible({
     timeout: 30_000,
   });
-  await expect(page.locator('#connectBtn')).toBeHidden();
+  // The sign-in screen is what's in front, not the app underneath it
+  expect(
+    await page.evaluate(() => !!document.elementFromPoint(innerWidth / 2, innerHeight / 2)?.closest('.sign-in-gate-overlay'))
+  ).toBe(true);
   expect(problems.take().filter((p) => p.startsWith('pageerror'))).toEqual([]);
+});
+
+test('signed out, the keyboard reaches only the sign-in screen', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator(signInButtons).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('.sign-in-gate-overlay')).toHaveAttribute('aria-modal', 'true');
+  const behind: string[] = [];
+  for (let i = 0; i < 15; i++) {
+    await page.keyboard.press('Tab');
+    const where = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || el === document.body || el.closest('.sign-in-gate-overlay')) return null;
+      return `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 30)}"`;
+    });
+    if (where && !behind.includes(where)) behind.push(where);
+  }
+  expect(behind, 'reachable behind the sign-in screen').toEqual([]);
 });
