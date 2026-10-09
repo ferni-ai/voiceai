@@ -35,7 +35,7 @@ WORKDIR /rust
 # Install Node.js for napi-rs
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g @napi-rs/cli \
     && rm -rf /var/lib/apt/lists/*
@@ -73,12 +73,12 @@ FROM ubuntu:24.04 AS builder
 
 WORKDIR /app
 
-# Install Node.js 20.x and git
+# Install Node.js 22.x and git
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     git \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
@@ -120,14 +120,14 @@ FROM ubuntu:24.04 AS production
 
 WORKDIR /app
 
-# Install Node.js 20.x and system dependencies (including ffmpeg for DJ-style audio fade-out)
+# Install Node.js 22.x and system dependencies (including ffmpeg for DJ-style audio fade-out)
 # DEBIAN_FRONTEND=noninteractive suppresses interactive prompts (e.g. tzdata region picker)
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     ffmpeg \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates \

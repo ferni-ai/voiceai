@@ -736,7 +736,7 @@ async function deployEvolution(options: DeployOptions): Promise<boolean> {
   exec(
     [
       'gcloud functions deploy evolutionScheduler',
-      '--runtime=nodejs20',
+      '--runtime=nodejs22',
       '--trigger-topic=evolution-trigger',
       '--entry-point=evolutionScheduler',
       '--timeout=540s',
@@ -754,7 +754,7 @@ async function deployEvolution(options: DeployOptions): Promise<boolean> {
   exec(
     [
       'gcloud functions deploy evolutionSchedulerHttp',
-      '--runtime=nodejs20',
+      '--runtime=nodejs22',
       '--trigger-http',
       '--entry-point=evolutionSchedulerHttp',
       '--timeout=540s',
