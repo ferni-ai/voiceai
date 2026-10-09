@@ -34,11 +34,7 @@ global.fetch = mockFetch;
 
 // Relationship stage types for proper mocking
 type RelationshipStage =
-  | 'first-meeting'
-  | 'getting-started'
-  | 'building-trust'
-  | 'established'
-  | 'deep-partnership';
+  'first-meeting' | 'getting-started' | 'building-trust' | 'established' | 'deep-partnership';
 
 // Mock relationship stage service - vi.hoisted to ensure it's available before vi.mock
 const mockStageService = vi.hoisted(() => ({
@@ -72,6 +68,9 @@ beforeEach(() => {
     longestStreak: 0,
   });
 
+  // clearAllMocks keeps queued mockResolvedValueOnce values; drop them so
+  // one test's unused responses can't leak into the next.
+  mockFetch.mockReset();
   mockFetch.mockResolvedValue({
     ok: true,
     json: () =>

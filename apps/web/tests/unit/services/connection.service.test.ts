@@ -65,7 +65,9 @@ const createMockRoom = () => ({
 
 // Mock window.LiveKit
 const mockLiveKit = {
-  Room: vi.fn(() => createMockRoom()),
+  Room: vi.fn(function () {
+    return createMockRoom();
+  }),
   RoomEvent: {
     Connected: 'connected',
     Disconnected: 'disconnected',
@@ -100,7 +102,9 @@ describe('ConnectionService', () => {
 
     // Reset mocked room
     mockRoom = createMockRoom();
-    mockLiveKit.Room = vi.fn(() => mockRoom);
+    mockLiveKit.Room = vi.fn(function () {
+      return mockRoom;
+    });
 
     // Import service fresh
     const module = await import('../../../src/services/connection.service.js');
@@ -267,7 +271,6 @@ describe('ConnectionService', () => {
       expect(mockRoom.disconnect).toHaveBeenCalled();
       expect(connectionService.isConnected()).toBe(false);
     });
-
 
     it('should handle disconnect when not connected', async () => {
       // Disconnect without connecting first
@@ -696,7 +699,9 @@ describe('ConnectionService', () => {
         });
 
         mockRoom = createMockRoom();
-        mockLiveKit.Room = vi.fn(() => mockRoom);
+        mockLiveKit.Room = vi.fn(function () {
+          return mockRoom;
+        });
 
         await connectionService.connect();
         await connectionService.disconnect();
@@ -728,7 +733,9 @@ describe('ConnectionService', () => {
 
       // Second cycle
       mockRoom = createMockRoom();
-      mockLiveKit.Room = vi.fn(() => mockRoom);
+      mockLiveKit.Room = vi.fn(function () {
+        return mockRoom;
+      });
 
       await connectionService.connect();
       const secondOnCallCount = mockRoom.on.mock.calls.length;
