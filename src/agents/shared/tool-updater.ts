@@ -22,12 +22,17 @@
  */
 
 import { voice } from '@livekit/agents';
-import { capToolsToLimit, getMaxTools, isMetaToolEnabled } from '../../config/tool-config.js';
+import {
+  capToolsToLimit,
+  getMaxTools,
+  isEssentialTool,
+  isMetaToolEnabled,
+} from '../../config/tool-config.js';
 import { withoutSharedHandoffs } from '../../tools/handoff/handoff-availability.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import type { UserData } from './types.js';
-import { resolveInitialToolLimit } from '../multi-agent/initial-tools.js';
+import { resolveInitialToolLimit, resolveTopicToolHeadroom } from '../multi-agent/initial-tools.js';
 
 const log = createLogger({ module: 'ToolUpdater' });
 
@@ -70,10 +75,11 @@ let warnedMetaTool = false;
  * Update tools mid-session for any LLM provider.
  *
  * Merges `newTools` into the agent's tools and applies them via
- * `agent.updateTools()`. Respects TOOL_LIMIT (capToolsToLimit keeps must-keep
- * tools first). Handoff tools in `newTools` are ignored: the shared catalogs
- * passed here carry a handoff to every persona, while the agent's own came
- * from its per-user build (see handoff-availability.ts).
+ * `agent.updateTools()`. Caps at TOOL_LIMIT (64 when unset) plus up to
+ * MID_SESSION_TOPIC_TOOLS (24) for the topic tools offered; capToolsToLimit
+ * keeps must-keep tools first. Handoff tools in `newTools` are ignored: the
+ * shared catalogs passed here carry a handoff to every persona, while the
+ * agent's own came from its per-user build (see handoff-availability.ts).
  *
  * @param agent - The voice agent instance
  * @param offeredTools - New tools to add (merged with existing)
@@ -114,13 +120,16 @@ export async function updateAgentTools(
     }
 
     // The tools just asked for come first, so the cap evicts the oldest
-    // non-essential ones, not them. Same cap as the first agent (64 when
-    // TOOL_LIMIT is unset): uncapped, a dev call grew 64 -> 160 -> 213 tools,
-    // ~9.5k prompt tokens on every turn.
-    const merged = capToolsToLimit(
-      { ...newTools, ...existing, ...newTools },
-      resolveInitialToolLimit(getMaxTools())
-    );
+    // non-essential ones, not them. Uncapped, a dev call grew 64 -> 160 -> 213
+    // tools (~9.5k prompt tokens on every turn), so the cap is the first
+    // agent's (64 when TOOL_LIMIT is unset) plus headroom for the topic tools
+    // offered: must-keep tools fill ~61 of those 64 slots, which left a topic
+    // domain about 3. The headroom counts the offered tools, not just the new
+    // ones, so re-offering a loaded domain doesn't shrink it back out.
+    const topicToolCount = Object.keys(newTools).filter((name) => !isEssentialTool(name)).length;
+    const limit =
+      resolveInitialToolLimit(getMaxTools()) + Math.min(topicToolCount, resolveTopicToolHeadroom());
+    const merged = capToolsToLimit({ ...newTools, ...existing, ...newTools }, limit);
 
     await target.updateTools(merged);
 
@@ -129,6 +138,7 @@ export async function updateAgentTools(
         existingCount: Object.keys(existing).length,
         newTools: actuallyNew.slice(0, 10),
         totalCount: Object.keys(merged).length,
+        limit,
         provider: provider.id,
         forceSync,
       },

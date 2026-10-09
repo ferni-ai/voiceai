@@ -10,6 +10,7 @@
 import { llm, voice } from '@livekit/agents';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { DEFAULT_INITIAL_TOOL_LIMIT } from '../../multi-agent/initial-tools.js';
 import { getAgentToolNames } from '../../shared/tool-updater.js';
 import { updateToolsAfterReplyStarts } from '../deferred-tool-update.js';
 
@@ -62,7 +63,8 @@ describe('updateToolsAfterReplyStarts', () => {
     );
 
     const names = getAgentToolNames(agent as unknown as Args[1]);
-    expect(names).toHaveLength(64);
+    // Topic headroom adds the domain's tools on top of the 64; none evicted.
+    expect(names).toHaveLength(DEFAULT_INITIAL_TOOL_LIMIT + 2);
     expect(names).toContain('getCommuteTime');
     expect(names).toContain('getDirections');
   });
