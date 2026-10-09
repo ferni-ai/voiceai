@@ -15,9 +15,7 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-
-Object.assign(process.env, { SPOTIFY_CLIENT_ID: 'sp-id', SPOTIFY_CLIENT_SECRET: 'sp-secret' });
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../services/identity/firebase-auth.js', () => ({
   verifyFirebaseToken: vi.fn(async (token: string) =>
@@ -85,7 +83,11 @@ beforeAll(async () => {
       if (await handleSpotifyRoutes(req, res, url.pathname, url)) return;
       res.writeHead(404);
       res.end();
-    })();
+    })().catch((error: unknown) => {
+      // A throwing handler answers 500 instead of leaving the request hanging.
+      if (!res.headersSent) res.writeHead(500);
+      res.end(String(error));
+    });
   });
   await new Promise<void>((r) => {
     server.listen(0, r);
@@ -104,8 +106,11 @@ beforeEach(() => {
   setOAuthLinkStore(null);
   link.store.clear();
   link.configured = true;
-  process.env.SPOTIFY_CLIENT_ID = 'sp-id';
-  process.env.SPOTIFY_CLIENT_SECRET = 'sp-secret';
+  vi.stubEnv('SPOTIFY_CLIENT_ID', 'sp-id');
+  vi.stubEnv('SPOTIFY_CLIENT_SECRET', 'sp-secret');
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 function get(path: string, opts: { token?: string; cookie?: string } = {}) {
@@ -158,7 +163,7 @@ describe('GET /spotify/login', () => {
   });
 
   it('503 when Spotify is not configured, at the start and at login', async () => {
-    delete process.env.SPOTIFY_CLIENT_SECRET;
+    vi.stubEnv('SPOTIFY_CLIENT_SECRET', '');
     const start = await fetch(`${base}/auth/oauth/start`, {
       method: 'POST',
       headers: { authorization: 'Bearer tok-A', 'content-type': 'application/json' },
