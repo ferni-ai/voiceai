@@ -235,12 +235,12 @@ class SanctuaryUI {
    * Close the Sanctuary
    */
   async close(): Promise<void> {
-    if (!this.isOpen || !this.container) return;
-
+    const container = this.container;
+    if (!this.isOpen || !container) return;
+    this.isOpen = false; // before the await, so an overlapping close() bails out
     await this.animateOut();
-    this.container.remove();
-    this.container = null;
-    this.isOpen = false;
+    container.remove();
+    if (this.container === container) this.container = null;
   }
 
   // ============================================================================
