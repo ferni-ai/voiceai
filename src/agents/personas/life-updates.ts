@@ -24,7 +24,7 @@
 
 import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import { groundedFacts, type LedgerFact } from './life-ledger.js';
+import { contentWords, type LedgerFact } from './life-ledger.js';
 
 const log = createLogger({ module: 'LifeUpdates' });
 
@@ -150,12 +150,19 @@ async function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
   return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
 }
 
-/** He said it on a later call: the ledger has a fact told after it, in mostly the same words. */
+/**
+ * He said it on a later call: a fact told after it shares at least two content
+ * words with it. Live, "The basil didn't make it; you've started a rosemary"
+ * came back as "basil plant did not survive" + "now has a rosemary plant": a
+ * half-the-words match never fired and the update repeated on every call.
+ */
 function spoken(u: LifeUpdate, told: LedgerFact[]): boolean {
-  const later = told
-    .filter((f) => Date.parse(f.saidAt) > Date.parse(u.createdAt))
-    .map((f) => f.fact);
-  return later.length > 0 && groundedFacts([u.update], later).length > 0;
+  const said = new Set(
+    told
+      .filter((f) => Date.parse(f.saidAt) > Date.parse(u.createdAt))
+      .flatMap((f) => [...contentWords(f.fact)])
+  );
+  return [...contentWords(u.update)].filter((w) => said.has(w)).length >= 2;
 }
 
 /**
