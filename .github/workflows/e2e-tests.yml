@@ -182,7 +182,7 @@ jobs:
           TEST_URL: ${{ env.TEST_URL }}
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report

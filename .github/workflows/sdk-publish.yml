@@ -58,7 +58,7 @@ jobs:
         run: pnpm build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sdk-dist
           path: packages/ferni-sdk/dist
@@ -80,7 +80,7 @@ jobs:
         uses: ./.github/actions/setup-node-pnpm
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sdk-dist
           path: packages/ferni-sdk/dist
