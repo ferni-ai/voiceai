@@ -10,6 +10,7 @@
  *   /spotify/token              → Web Playback SDK server token
  *   /spotify/status?device_id=X → OAuth link status for a device
  *   /spotify/status             → Web Playback SDK config status
+ *   /spotify/device             → Web Playback SDK device (admin only)
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -18,6 +19,7 @@ import * as spotifyOAuth from '../../token/oauth/spotify.js';
 import { createOAuthStateManager } from '../../../utils/ddos-protection.js';
 import { isValidId, sendInvalidIdError, getClientIp, sanitizeReturnUrl } from '../../token/validation.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { requireAdmin } from '../../../api/auth-middleware.js';
 
 const log = createLogger({ module: 'SpotifyRoutes' });
 
@@ -257,6 +259,12 @@ export async function handleSpotifyRoutes(
       })
     );
     return true;
+  }
+
+  // The device is the playback target for the server's own Spotify account,
+  // not a user's. No client registers or reads it, so only admins may.
+  if (pathname === '/spotify/device' && (req.method === 'POST' || req.method === 'GET')) {
+    if (!(await requireAdmin(req, res))) return true;
   }
 
   // Register Spotify Web Player device
