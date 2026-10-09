@@ -162,7 +162,7 @@ export interface TranscriptHandlerContext {
   dynamicToolLoader: {
     processMessage: (message: string) => Promise<string[]>;
     getLoadedDomains: () => string[];
-    getToolsForDomains: (domains: string[]) => Record<string, unknown>;
+    getToolsForDomains: (domains: readonly string[]) => Record<string, unknown>;
   };
   /** Voice agent reference for tool updates */
   agent: voice.Agent<UserData>;

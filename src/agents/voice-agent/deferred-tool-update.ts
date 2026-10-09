@@ -25,8 +25,10 @@ import type { UserData } from '../shared/types.js';
 export async function updateToolsAfterReplyStarts(
   session: voice.AgentSession<UserData>,
   agent: voice.Agent<UserData>,
-  dynamicToolLoader: { getToolsForDomains: (domains: string[]) => Record<string, unknown> },
-  loadedDomains: string[],
+  dynamicToolLoader: {
+    getToolsForDomains: (domains: readonly string[]) => Record<string, unknown>;
+  },
+  loadedDomains: readonly string[],
   toolUpdaterLog: FallbackLogger
 ): Promise<void> {
   const apply = async (): Promise<void> => {
