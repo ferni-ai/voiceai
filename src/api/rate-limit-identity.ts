@@ -16,14 +16,29 @@
 import type { IncomingMessage } from 'http';
 
 const verifiedUids = new WeakMap<IncomingMessage, string>();
+const verifiedAdmins = new WeakSet<IncomingMessage>();
 
 /** Called once per request by the server, after verifying its credentials. */
 export function rememberVerifiedUid(req: IncomingMessage, uid: string | null): void {
   if (uid) verifiedUids.set(req, uid);
   else verifiedUids.delete(req);
+  verifiedAdmins.delete(req);
+}
+
+/** Called by the server when the credentials it verified are an admin's. */
+export function rememberVerifiedAdmin(req: IncomingMessage): void {
+  verifiedAdmins.add(req);
 }
 
 /** The verified uid behind this request, or null for anonymous/invalid. */
 export function rateLimitUid(req: IncomingMessage): string | null {
   return verifiedUids.get(req) ?? null;
+}
+
+/**
+ * Whether the door verified this request as an admin (admin API key or admin
+ * claim). Routes use it to decide if a client-named user may be acted for.
+ */
+export function isVerifiedAdmin(req: IncomingMessage): boolean {
+  return verifiedAdmins.has(req);
 }

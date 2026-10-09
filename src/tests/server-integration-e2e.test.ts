@@ -391,10 +391,8 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      // No /calendar/events route, so 404 once past the identity check. That check
-      // still takes ?userId as identity on GET (helpers.getUserId); once it stops,
-      // this is 401. Never 200.
-      expect([401, 404]).toContain(response.status);
+      // No token: the ?userId= names someone, but that is not an identity.
+      expect(response.status).toBe(401);
     });
   });
 
