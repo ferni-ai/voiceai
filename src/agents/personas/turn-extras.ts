@@ -33,6 +33,19 @@ export function callerLaughed(text: string): boolean {
   return LAUGHED.test(text);
 }
 
+/**
+ * The caller is venting or having a hard time. A friend stays with them then:
+ * no story of his own, no asking their advice about his basil (on dev a
+ * venting "long day" got a reply about his own lost reading glasses).
+ * Whole words only.
+ */
+const VENTING =
+  /\b(?:tired|exhausted|stressed|stressful|overwhelmed|frustrat(?:ed|ing)|annoyed|upset|sad|angry|furious|awful|terrible|worst|rough|crying|cried|anxious|worried|scared|lonely|miserable|long day|hard day|bad day|broke up|got fired|lost my|don'?t even know where to start)\b/i;
+
+export function callerVenting(text: string): boolean {
+  return VENTING.test(text);
+}
+
 const CURIOUS_QUESTION =
   'You may ask one question, about one specific thing they mentioned (a name, a place, a thing), the way a curious friend would; never how it feels. Otherwise end on a thought.';
 const CURIOUS_ONE =
@@ -41,6 +54,12 @@ const THINK_ALOUD =
   'Work it out aloud for a beat partway through, the way people do ("hm, let me think", "okay, so"), rather than handing over a finished answer.';
 const LAUGH_ALONG =
   'They laughed: laugh with them, [laughter] at the start of your reply, then go on as a friend would.';
+const FILLER =
+  'Somewhere you would genuinely pause to think, use one natural filler ("um", "uh", "you know"), set off with commas.';
+const LAUGH_SPONTANEOUS =
+  "If what they said is genuinely funny, laugh at it, [laughter] at the start, the way a friend does; otherwise don't.";
+const OPINION =
+  'Have a view of your own here: say what you would do or what you think, even if it is small, rather than staying neutral.';
 const ASK_ADVICE =
   'If the moment is light, ask their take on something small in your own life (whether to give up on the basil, what to cook tonight) instead of anything about them.';
 
@@ -72,12 +91,16 @@ export function extrasFor(
     out.lines.push(LAUGH_ALONG);
     out.fired.push('laugh_along');
   }
-  if (
-    on(env, 'THINK_ALOUD') &&
-    (move === 'request' || move === 'about_ferni') &&
-    shape !== 'react'
-  ) {
-    if (rng() < 0.4) {
+  const venting = callerVenting(userText);
+  if (on(env, 'THINK_ALOUD') && shape !== 'react') {
+    // Live, request turns are rare: also think aloud on some longer answers.
+    const p =
+      move === 'request' || move === 'about_ferni'
+        ? 0.6
+        : move === 'share' && shape === 'answer'
+          ? 0.2
+          : 0;
+    if (p && rng() < p) {
       out.lines.push(THINK_ALOUD);
       out.fired.push('think_aloud');
     }
@@ -92,11 +115,39 @@ export function extrasFor(
       out.fired.push('curious_one');
     }
   }
-  if (on(env, 'ASK_ADVICE') && move === 'ack' && shape === 'one' && !out.shapeLine) {
-    if (rng() < 0.12) {
+  // Fired 0 times live when limited to a quick "yeah": also on light shares.
+  if (
+    on(env, 'ASK_ADVICE') &&
+    !venting &&
+    (move === 'ack' || move === 'share') &&
+    (shape === 'one' || shape === 'answer') &&
+    !out.shapeLine
+  ) {
+    if (rng() < 0.1) {
       out.lines.push(ASK_ADVICE);
       out.questionLine = '';
       out.fired.push('ask_advice');
+    }
+  }
+  if (on(env, 'HUMAN_TEXTURE')) {
+    // Live: 0 fillers per 100 words (people: 1-4), 0% laughter, ~5% opinions.
+    if ((shape === 'answer' || shape === 'full') && rng() < 0.35) {
+      out.lines.push(FILLER);
+      out.fired.push('filler');
+    }
+    if (
+      move === 'share' &&
+      !venting &&
+      !callerLaughed(userText) &&
+      shape !== 'full' &&
+      rng() < 0.25
+    ) {
+      out.lines.push(LAUGH_SPONTANEOUS);
+      out.fired.push('laugh_spontaneous');
+    }
+    if (move !== 'ack' && !venting && shape !== 'react' && rng() < 0.25) {
+      out.lines.push(OPINION);
+      out.fired.push('opinion');
     }
   }
   return out;
