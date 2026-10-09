@@ -1519,10 +1519,10 @@ class VoiceAIApp {
       initProactiveOutreachUI();
       initTeamInsightsUI();
 
-      // 🌟 Transcendent Animation Systems - Initialize signature moments
+      // 🌟 Animation, color and typography systems
       // This must come after FerniEQ and HumanizationBridge
-      const { initTranscendentSystems: initTS } = await import('./systems/index.js');
-      initTS();
+      const { initVisualSystems } = await import('./app/visual-systems.js');
+      initVisualSystems(appState.get('activePersona').id);
 
       // Initialize cross-team notifications with userId if available
       const userId = appState.get('deviceId');
