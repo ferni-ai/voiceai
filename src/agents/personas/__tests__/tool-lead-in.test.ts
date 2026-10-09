@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
-import { LEAD_INS, withToolLeadIn } from '../tool-lead-in.js';
+import { LEAD_INS, withoutPastLeadIns, withToolLeadIn } from '../tool-lead-in.js';
 
 const userTurn = { items: [{ type: 'message', role: 'user' }] };
 const afterTool = {
@@ -73,5 +74,77 @@ describe('withToolLeadIn', () => {
   it('TOOL_LEAD_IN=off passes the reply through', async () => {
     const out = await run([call('getWeather')], userTurn, {}, { TOOL_LEAD_IN: 'off' });
     expect(out).toEqual([call('getWeather')]);
+  });
+});
+
+describe('withoutPastLeadIns', () => {
+  /** A weather turn the lead-in spoke for, as it lands in the session's history. */
+  function weatherTurn(ctx: llm.ChatContext, leadIn = 'Hang on, checking. '): void {
+    ctx.addMessage({ role: 'user', content: "What's the weather tomorrow?" });
+    ctx.addMessage({ role: 'assistant', content: leadIn });
+    ctx.items = [
+      ...ctx.items,
+      llm.FunctionCall.create({ callId: 'c1', name: 'getWeatherForecast', args: '{}' }),
+      llm.FunctionCallOutput.create({
+        callId: 'c1',
+        name: 'getWeatherForecast',
+        output: 'sunny, 94F',
+        isError: false,
+      }),
+    ];
+  }
+  const said = (ctx: llm.ChatContext) =>
+    ctx.items.map((item) =>
+      item.type === 'message' ? `${item.role}: ${item.textContent ?? ''}` : item.type
+    );
+
+  it("leaves an earlier turn's lead-in out of the next turn's request", () => {
+    const ctx = llm.ChatContext.empty();
+    weatherTurn(ctx);
+    ctx.addMessage({ role: 'assistant', content: 'Sunny and 94, so go early.' });
+    ctx.addMessage({ role: 'user', content: 'Can you set a timer for ten minutes?' });
+    expect(said(withoutPastLeadIns(ctx))).toEqual([
+      "user: What's the weather tomorrow?",
+      'function_call',
+      'function_call_output',
+      'assistant: Sunny and 94, so go early.',
+      'user: Can you set a timer for ten minutes?',
+    ]);
+  });
+
+  it("keeps this turn's lead-in for the answer after the tool result", () => {
+    const ctx = llm.ChatContext.empty();
+    weatherTurn(ctx);
+    expect(withoutPastLeadIns(ctx)).toBe(ctx);
+  });
+
+  it('keeps the rest of a message that opens with a lead-in', () => {
+    const ctx = llm.ChatContext.empty();
+    ctx.addMessage({ role: 'user', content: 'Any news?' });
+    ctx.addMessage({ role: 'assistant', content: 'Let me look. Quiet day, mostly weather.' });
+    ctx.addMessage({ role: 'user', content: 'Set a timer.' });
+    expect(said(withoutPastLeadIns(ctx))).toEqual([
+      'user: Any news?',
+      'assistant: Quiet day, mostly weather.',
+      'user: Set a timer.',
+    ]);
+  });
+
+  it("changes only the request, never the session's history", () => {
+    const ctx = llm.ChatContext.empty();
+    ctx.addMessage({ role: 'user', content: 'Any news?' });
+    ctx.addMessage({ role: 'assistant', content: 'Let me look. Quiet day.' });
+    ctx.addMessage({ role: 'user', content: 'Set a timer.' });
+    const before = said(ctx);
+    withoutPastLeadIns(ctx);
+    expect(said(ctx)).toEqual(before);
+  });
+
+  it("leaves Ferni's own words alone when no lead-in opens them", () => {
+    const ctx = llm.ChatContext.empty();
+    ctx.addMessage({ role: 'user', content: 'Any news?' });
+    ctx.addMessage({ role: 'assistant', content: "Let me look at that later, it's a lot." });
+    ctx.addMessage({ role: 'user', content: 'Set a timer.' });
+    expect(withoutPastLeadIns(ctx)).toBe(ctx);
   });
 });

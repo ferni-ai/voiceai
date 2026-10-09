@@ -8,6 +8,8 @@
  * said nothing, this puts a short line ("Let me look.") into the stream just
  * ahead of the call. It is spoken while the tool runs, and it lands in the chat
  * history as Ferni's words, so the answer after the result follows on from it.
+ * Later turns' requests leave it out (withoutPastLeadIns): there it taught the
+ * model to announce actions instead of calling tools.
  *
  * Only the first reply of a turn gets one: the answer after a tool result never
  * does. Instant tools (music, handoffs, memory, timers) get none, because the
@@ -16,7 +18,7 @@
  * @module agents/personas/tool-lead-in
  */
 
-import type { llm } from '@livekit/agents';
+import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 
 /** No "Oh"/"Ooh": the opener gate trims those, and "Oh… Oh, it's sunny" doubles. */
@@ -89,6 +91,57 @@ function leadInBefore(chunk: Chunk): boolean | undefined {
   if (delta?.content?.trim()) return false;
   const first = delta?.toolCalls?.[0];
   return first ? LOOKUP_TOOLS.has(first.name) : undefined;
+}
+
+/** The words left once a lead-in opening `text` is cut, or undefined if none opens it. */
+function afterLeadIn(text: string): string | undefined {
+  const t = text.trim();
+  const line = LEAD_INS.find((l) => t === l || t.startsWith(`${l} `));
+  return line === undefined ? undefined : t.slice(line.length).trim();
+}
+
+/**
+ * The request without the lead-ins of earlier turns: a lead-in line in an
+ * assistant message before the caller's latest message is cut.
+ *
+ * In history, "Hang on, checking." reads as Ferni announcing an action in
+ * words, and the model copied that on the next action: asked for a timer after
+ * a weather look-up, it said "I've got that timer set" without calling the tool.
+ * Replaying the same captured requests (2026-10-09), the timer tool was called
+ * on 87 of 130 replies with the earlier lead-in and 130 of 130 without it.
+ * This turn's own lead-in comes after the caller's words, so the answer after
+ * the tool result still sees it and follows on from it. The session's history
+ * is untouched; only the request changes.
+ */
+export function withoutPastLeadIns(chatCtx: llm.ChatContext): llm.ChatContext {
+  const items = chatCtx.items;
+  let lastUser = -1;
+  for (let i = items.length - 1; i >= 0 && lastUser < 0; i--) {
+    const item = items[i];
+    if (item?.type === 'message' && item.role === 'user') lastUser = i;
+  }
+  let changed = false;
+  const kept = items.flatMap((item, i) => {
+    if (i > lastUser || item.type !== 'message' || item.role !== 'assistant') return [item];
+    const rest = afterLeadIn(item.textContent ?? '');
+    if (rest === undefined) return [item];
+    changed = true;
+    if (!rest) return [];
+    return [
+      llm.ChatMessage.create({
+        id: item.id,
+        role: item.role,
+        content: rest,
+        interrupted: item.interrupted,
+        createdAt: item.createdAt,
+        extra: item.extra,
+      }),
+    ];
+  });
+  if (!changed) return chatCtx;
+  const ctx = chatCtx.copy();
+  ctx.items = kept;
+  return ctx;
 }
 
 /** Wrap one reply's LLM stream; `session` keys the line rotation. */
