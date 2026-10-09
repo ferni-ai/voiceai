@@ -52,11 +52,18 @@ let server: Server;
 beforeAll(async () => {
   server = createServer((req, res) => {
     void (async () => {
-      await bindVerifiedIdentity(req, { NODE_ENV: 'production' });
-      const url = new URL(req.url ?? '/', 'http://localhost');
-      if (await handleSpotifyRoutes(req, res, url.pathname, url)) return;
-      res.writeHead(404);
-      res.end();
+      try {
+        await bindVerifiedIdentity(req, { NODE_ENV: 'production' });
+        const url = new URL(req.url ?? '/', 'http://localhost');
+        if (await handleSpotifyRoutes(req, res, url.pathname, url)) return;
+        res.writeHead(404);
+        res.end();
+      } catch (err) {
+        // Answer instead of leaving the request open, so a throw fails the
+        // assertion with a 500 rather than hanging until the test times out.
+        if (!res.headersSent) res.writeHead(500);
+        res.end(String(err));
+      }
     })();
   });
   await new Promise<void>((r) => {
