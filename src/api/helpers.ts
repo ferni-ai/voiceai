@@ -227,18 +227,12 @@ export function validateQueryParams<T>(parsedUrl: URL, schema: ZodSchema<T>): Va
 
 /**
  * The user a request acts for: the verified caller, or the user a verified
- * admin names in ?userId=.
+ * admin names in ?userId=. Null for an anonymous caller.
  *
  * SECURITY: x-firebase-uid is set only by bindVerifiedIdentity
  * (servers/api/request-identity.ts), from a verified token, after it drops any
- * client-sent copy. A ?userId= on its own is a claim, not an identity: this
- * used to return it to anyone, so its routes were safe only because the door
- * rewrites ?userId= in production. The door takes claims as given in
- * development; this does not.
- *
- * @param req - Incoming HTTP request
- * @param parsedUrl - Parsed URL with searchParams
- * @returns User ID, or null for an anonymous caller
+ * client-sent copy. A ?userId= alone is a claim, not an identity: the door
+ * rewrites it in production but takes it as given in development; this never does.
  */
 export function getUserId(req: IncomingMessage, parsedUrl: URL): string | null {
   const firebaseUid = req.headers['x-firebase-uid'];
@@ -248,17 +242,10 @@ export function getUserId(req: IncomingMessage, parsedUrl: URL): string | null {
   const named = parsedUrl.searchParams.get('userId');
   if (named && isVerifiedAdmin(req)) return named;
 
-  // Dev mode bypass - allows testing without authentication
-  // SECURITY: Only works in development environment
-  const isDev = process.env.NODE_ENV === 'development';
+  // Dev mode bypass, development only: test without authentication.
   const adminKey =
     parsedUrl.searchParams.get('admin_key') || (req.headers['x-admin-key'] as string);
-
-  if (isDev && adminKey === 'dev-mode') {
-    return 'dev-user-123';
-  }
-
-  return null;
+  return process.env.NODE_ENV === 'development' && adminKey === 'dev-mode' ? 'dev-user-123' : null;
 }
 
 /**
