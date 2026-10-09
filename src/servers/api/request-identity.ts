@@ -24,7 +24,7 @@
  */
 import type { IncomingMessage } from 'node:http';
 import { optionalAuthAsync } from '../../api/auth-middleware.js';
-import { rememberVerifiedUid } from '../../api/rate-limit-identity.js';
+import { rememberVerifiedAdmin, rememberVerifiedUid } from '../../api/rate-limit-identity.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'RequestIdentity' });
@@ -66,6 +66,7 @@ export async function bindVerifiedIdentity(
   // named in ?userId= or x-user-id; rewriting that to the admin's own id would
   // turn an admin action into a wrong-user action.
   if (auth?.isAdmin) {
+    rememberVerifiedAdmin(req);
     const target = url.searchParams.get('userId') || req.headers['x-user-id'];
     if (!target && uid) req.headers['x-firebase-uid'] = uid;
     return uid;

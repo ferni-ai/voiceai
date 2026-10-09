@@ -2975,7 +2975,8 @@
     "noEmailTitle": "이메일 주소가 필요해요",
     "noEmailMessage": "이 계정에는 등록된 이메일 주소가 없어요. 이메일 주소가 있는 계정으로 로그인해 주세요.",
     "checkFailedTitle": "접속 권한을 확인하지 못했어요",
-    "checkFailedMessage": "저희 쪽에 잠시 문제가 생긴 것 같아요. 잠시 후 다시 시도해 주세요."
+    "checkFailedMessage": "저희 쪽에 잠시 문제가 생긴 것 같아요. 잠시 후 다시 시도해 주세요.",
+    "signOutFailed": "로그아웃하지 못했어요. 다시 시도해 주세요."
   },
   "visualizations": {
     "lifeSeasons": "당신의 인생 계절",

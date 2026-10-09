@@ -39,7 +39,7 @@ describe('contacts nudges contract', () => {
   it("the web parser reads the route's real response as a nudge list", async () => {
     const req = new EventEmitter() as IncomingMessage;
     req.method = 'GET';
-    req.headers = {};
+    req.headers = { 'x-firebase-uid': 'u1' }; // the caller, as the door binds it
     let body = '';
     const res = {
       writeHead: vi.fn(),

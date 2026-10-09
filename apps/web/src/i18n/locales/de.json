@@ -2975,7 +2975,8 @@
     "noEmailTitle": "Wir brauchen eine E-Mail-Adresse",
     "noEmailMessage": "Dieser Account hat keine E-Mail-Adresse. Melde dich bitte mit einem Account an, der eine hat.",
     "checkFailedTitle": "Wir konnten deinen Zugang leider nicht prüfen",
-    "checkFailedMessage": "Bei uns ist gerade etwas schiefgelaufen. Warte einen kurzen Moment und versuche es dann noch einmal."
+    "checkFailedMessage": "Bei uns ist gerade etwas schiefgelaufen. Warte einen kurzen Moment und versuche es dann noch einmal.",
+    "signOutFailed": "Abmelden fehlgeschlagen. Versuche es noch einmal."
   },
   "visualizations": {
     "lifeSeasons": "Deine Lebensjahreszeiten",

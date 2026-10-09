@@ -91,7 +91,7 @@ export async function updateAgentTools(
   offeredTools: Record<string, unknown>,
   options: {
     /** Domain names for better logging/messaging */
-    domains?: string[];
+    domains?: readonly string[];
     /** Skip informing a JSON-workaround LLM about new tools */
     silentMerge?: boolean;
     /** Re-apply the tools even if none are new */
@@ -162,7 +162,7 @@ export async function updateAgentTools(
 async function announceNewTools(
   agent: ToolCapableAgent,
   toolNames: string[],
-  domains: string[]
+  domains: readonly string[]
 ): Promise<void> {
   if (!agent.chatCtx || !agent.updateChatCtx) return;
 

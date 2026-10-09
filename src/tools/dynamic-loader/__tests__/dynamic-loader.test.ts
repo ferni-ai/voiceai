@@ -12,6 +12,12 @@ import {
   DEFAULT_ESSENTIAL_DOMAINS,
 } from '../index.js';
 
+const logger = vi.hoisted(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }));
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  getLogger: () => logger,
+}));
+
 // Mock the tool registry
 vi.mock('../../registry/index.js', () => ({
   toolRegistry: {
@@ -158,6 +164,11 @@ describe('DynamicToolLoader', () => {
       expect(Object.keys(loader.getToolsForDomains(['information', 'not-a-domain']))).toEqual([
         'informationTool',
       ]);
+      // ...and say so, so a misspelled domain doesn't quietly offer nothing.
+      expect(logger.warn).toHaveBeenCalledWith(
+        { unknownDomains: ['not-a-domain'] },
+        expect.any(String)
+      );
     });
   });
 

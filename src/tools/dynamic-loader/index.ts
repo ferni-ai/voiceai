@@ -253,10 +253,7 @@ export class DynamicToolLoader {
     // tools from the other callers' next tool builds as well.
     this.loadedDomains.delete(domain);
 
-    getLogger().info(
-      { domain, toolCount: state.toolCount },
-      '🔄 Domain unloaded from session'
-    );
+    getLogger().info({ domain, toolCount: state.toolCount }, '🔄 Domain unloaded from session');
     return true;
   }
 
@@ -350,10 +347,13 @@ export class DynamicToolLoader {
     if (!this.toolContext) {
       throw new Error('DynamicToolLoader not initialized');
     }
-    const known = domains.filter((d): d is ToolDomain =>
-      (ALL_TOOL_DOMAINS as readonly string[]).includes(d)
-    );
-    return toolRegistry.buildToolSet({ domains: known }, this.toolContext).tools;
+    const isDomain = (d: string): d is ToolDomain =>
+      (ALL_TOOL_DOMAINS as readonly string[]).includes(d);
+    const unknownDomains = domains.filter((d) => !isDomain(d));
+    if (unknownDomains.length > 0) {
+      getLogger().warn({ unknownDomains }, '🔄 Not tool domains; no tools offered for them');
+    }
+    return toolRegistry.buildToolSet({ domains: domains.filter(isDomain) }, this.toolContext).tools;
   }
 
   // ==========================================================================
@@ -426,7 +426,9 @@ export class DynamicToolLoader {
 export const dynamicToolLoader = new DynamicToolLoader();
 
 /** A loader for one voice session; call shutdown() when the session ends. */
-export function createSessionToolLoader(config: Partial<DynamicLoaderConfig> = {}): DynamicToolLoader {
+export function createSessionToolLoader(
+  config: Partial<DynamicLoaderConfig> = {}
+): DynamicToolLoader {
   return new DynamicToolLoader(config);
 }
 

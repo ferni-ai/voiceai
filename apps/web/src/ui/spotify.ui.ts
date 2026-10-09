@@ -11,6 +11,7 @@ import { spotifyService } from '../services/spotify.service.js';
 import { getElementByIdOrNull, setText, addClass, removeClass, setClasses } from '../utils/dom.js';
 import { getDeviceId } from '../state/app.state.js';
 import { apiGet } from '../utils/api.js';
+import { startOAuthConnect } from '../services/oauth-connect.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -33,6 +34,8 @@ let linkButton: HTMLElement | null = null;
 // Store link status
 let isSpotifyLinked = false;
 let spotifyConfigured = false;
+// A connect is asking the server for its login URL; repeat clicks wait for it.
+let isConnecting = false;
 
 // Callback for state changes (used by menu)
 let onLinkStateChangeCallback: ((linked: boolean, configured: boolean) => void) | null = null;
@@ -140,9 +143,17 @@ async function handleLinkClick(): Promise<void> {
       log.error('Could not unlink Spotify:', e);
     }
   } else {
-    // Redirect to OAuth
-    const returnUrl = encodeURIComponent(window.location.origin + window.location.pathname);
-    window.location.href = `/spotify/login?device_id=${encodeURIComponent(deviceId)}&return_url=${returnUrl}`;
+    if (isConnecting) return;
+    // A page navigation can't carry the sign-in token, so the server first
+    // binds a one-time state to this account and returns the login URL to visit.
+    isConnecting = true;
+    const result = await startOAuthConnect('spotify', window.location.pathname).finally(() => {
+      isConnecting = false;
+    });
+    if (!result.success) {
+      showSpotifyStatus(result.error ?? 'Could not connect to Spotify', 'error');
+      trackedTimeout(() => hideSpotifyStatus(), 4000);
+    }
   }
 }
 

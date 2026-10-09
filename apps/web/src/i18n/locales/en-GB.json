@@ -3018,7 +3018,8 @@
     "noEmailTitle": "We need an email address",
     "noEmailMessage": "This account has no email address. Sign in with an account that has one.",
     "checkFailedTitle": "We couldn't check your access",
-    "checkFailedMessage": "Something went wrong on our side. Give it a moment and try again."
+    "checkFailedMessage": "Something went wrong on our side. Give it a moment and try again.",
+    "signOutFailed": "Couldn't sign you out. Try again."
   },
   "visualizations": {
     "lifeSeasons": "Your Life Seasons",

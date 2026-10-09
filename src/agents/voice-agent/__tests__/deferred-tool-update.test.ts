@@ -8,7 +8,7 @@
  * all call long, and Ferni guessed "about four hours" from St. George to Zion.
  */
 import { llm, voice } from '@livekit/agents';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { DEFAULT_INITIAL_TOOL_LIMIT } from '../../multi-agent/initial-tools.js';
 import { getAgentToolNames } from '../../shared/tool-updater.js';
@@ -31,14 +31,11 @@ const toolRecord = (prefix: string, count: number) =>
 const silentLog = { info: () => {}, warn: () => {} } as unknown as Args[4];
 
 describe('updateToolsAfterReplyStarts', () => {
-  let savedDefer: string | undefined;
   beforeEach(() => {
-    savedDefer = process.env.DEFER_TOOL_UPDATES;
-    process.env.DEFER_TOOL_UPDATES = 'off'; // apply now, so the promise waits for it
+    vi.stubEnv('DEFER_TOOL_UPDATES', 'off'); // apply now, so the promise waits for it
   });
   afterEach(() => {
-    if (savedDefer === undefined) delete process.env.DEFER_TOOL_UPDATES;
-    else process.env.DEFER_TOOL_UPDATES = savedDefer;
+    vi.unstubAllEnvs();
   });
 
   it("gives an agent at the cap the newly loaded domain's tools", async () => {

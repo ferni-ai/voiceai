@@ -53,12 +53,6 @@ import {
 // Architecture violation fix: inject generateReply into semantic router
 import { setGenerateReplyFunction } from '../../tools/semantic-router/integration/transcript-integration.js';
 
-// Location preference - set active session for native tool fallback
-import {
-  clearCurrentActiveSession,
-  setCurrentActiveSession,
-} from '../../tools/domains/information/location-preference.js';
-
 import { getModelProvider } from '../model-provider/index.js';
 
 // Inject model provider into personas layer (architecture violation fix)
@@ -691,9 +685,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       // Register session for reconnection
       registerSessionForReconnection(sessionId, session);
 
-      // Set active session for native tool location fallback
-      setCurrentActiveSession({ sessionId, userId: userId || 'anonymous' });
-
       // Action dispatcher
       if (userId && session) {
         try {
@@ -765,8 +756,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       } catch {
         /* ignore */
       }
-
-      clearCurrentActiveSession(sessionId);
 
       try {
         const { handleSessionCleanup } = await import('../voice-agent/cleanup-handler.js');
@@ -983,8 +972,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     process.stderr.write(
       `[voice-agent-entry] 🧹 Registry cleanup: ${registryResult.cleaned} cleaned, ${registryResult.errors} errors, ${registryResult.totalDurationMs}ms\n`
     );
-
-    clearCurrentActiveSession(sessionId);
 
     process.stderr.write(`[voice-agent-entry] 🧹 Running cleanup handlers...\n`);
     const { handleSessionCleanup } = await import('../voice-agent/cleanup-handler.js');

@@ -51,16 +51,17 @@ export async function signIn(page: Page, user: TestUser): Promise<void> {
 
 /** The settings button on wide screens; on phones, the quick-actions sheet button. */
 export function menuTrigger(page: Page) {
-  return page.locator('[aria-label="Open settings"]:visible, [aria-label="Open menu"]:visible').first();
+  // By class, not label: the labels are translated
+  return page.locator('.settings-trigger:visible, .mobile-menu-trigger:visible').first();
 }
 
 /** Open the settings menu the way this screen size does. */
 export async function openSettingsMenu(page: Page): Promise<void> {
   const trigger = menuTrigger(page);
-  const viaSheet = (await trigger.getAttribute('aria-label')) === 'Open menu';
+  const viaSheet = await trigger.evaluate((el) => el.classList.contains('mobile-menu-trigger'));
   await trigger.click();
   if (viaSheet) await page.locator('.mobile-bottom-sheet [data-action="settings"]').click();
-  await expect(page.locator('.settings-menu')).toBeVisible();
+  await expect(page.locator('.settings-menu--visible')).toBeVisible();
 }
 
 /** Wait until the signed-in home screen is usable. */

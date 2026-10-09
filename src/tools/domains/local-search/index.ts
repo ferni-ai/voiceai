@@ -17,200 +17,37 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
+import { resolveCallerLocation } from '../../shared/caller-location.js';
+
+import { detectExplicitSource, formatResults, unifiedSearch } from './unified-search.js';
 
 // Google Places (primary)
 import {
-  searchRestaurants as searchGooglePlaces,
   getPlaceDetails as getGooglePlaceDetails,
-  findNearbyRestaurants as findNearbyGoogle,
-  formatRestaurantListForSpeech as formatGoogleResults,
   isGooglePlacesConfigured,
-  type PlaceSearchResult,
 } from '../../../services/google-places.js';
 
 // Yelp (fallback + explicit)
 import {
-  searchBusinesses as searchYelp,
-  searchRestaurants as searchYelpRestaurants,
   getBusinessDetails as getYelpDetails,
   getBusinessReviews as getYelpReviews,
   getBusinessByPhone as yelpPhoneLookup,
   formatBusinessForSpeech as formatYelpBusiness,
   formatReviewForSpeech as formatYelpReview,
   isYelpConfigured,
-  type YelpBusiness,
 } from '../../../services/yelp.js';
 
 const log = getLogger();
 
-// ============================================================================
-// TYPES
-// ============================================================================
+/** Asked only when the model gave no location and the caller's location is unknown. */
+const LOCATION_UNKNOWN = "Where should I look? I don't have your location.";
 
-type Source = 'auto' | 'google' | 'yelp';
-
-interface SearchResult {
-  name: string;
-  address: string;
-  rating?: number;
-  reviewCount?: number;
-  priceLevel?: string;
-  phone?: string;
-  isOpen?: boolean;
-  source: 'google' | 'yelp';
-  sourceId: string;
-}
-
-// ============================================================================
-// UNIFIED SEARCH LOGIC
-// ============================================================================
-
-/**
- * Detect if user explicitly requested a source
- */
-function detectExplicitSource(query: string): Source {
-  const lower = query.toLowerCase();
-  if (lower.includes('yelp') || lower.includes('on yelp')) return 'yelp';
-  if (lower.includes('google') || lower.includes('on google')) return 'google';
-  return 'auto';
-}
-
-/**
- * Convert Google Places result to unified format
- */
-function googleToUnified(place: PlaceSearchResult): SearchResult {
-  const priceLevels = ['', '$', '$$', '$$$', '$$$$'];
-  return {
-    name: place.name,
-    address: place.address,
-    rating: place.rating,
-    reviewCount: place.userRatingsTotal,
-    priceLevel: place.priceLevel ? priceLevels[place.priceLevel] : undefined,
-    isOpen: place.openNow,
-    source: 'google',
-    sourceId: place.placeId,
-  };
-}
-
-/**
- * Convert Yelp result to unified format
- */
-function yelpToUnified(biz: YelpBusiness): SearchResult {
-  return {
-    name: biz.name,
-    address: biz.location.display_address.join(', '),
-    rating: biz.rating,
-    reviewCount: biz.review_count,
-    priceLevel: biz.price,
-    phone: biz.display_phone,
-    isOpen: !biz.is_closed,
-    source: 'yelp',
-    sourceId: biz.id,
-  };
-}
-
-/**
- * Format unified results for speech
- */
-function formatResults(results: SearchResult[], query: string, location: string): string {
-  if (results.length === 0) {
-    return `I couldn't find any "${query}" in ${location}. Try a different search or location?`;
-  }
-
-  let response = `**Found ${results.length} options for "${query}" near ${location}**\n\n`;
-
-  results.slice(0, 5).forEach((r, i) => {
-    const stars = r.rating ? `⭐ ${r.rating.toFixed(1)}` : '';
-    const reviews = r.reviewCount ? `(${r.reviewCount.toLocaleString()} reviews)` : '';
-    const price = r.priceLevel || '';
-    const open = r.isOpen === true ? '🟢 Open' : r.isOpen === false ? '🔴 Closed' : '';
-
-    response += `**${i + 1}. ${r.name}** ${price}\n`;
-    if (stars || reviews) response += `${stars} ${reviews}\n`;
-    response += `📍 ${r.address}\n`;
-    if (r.phone) response += `📞 ${r.phone}\n`;
-    if (open) response += `${open}\n`;
-    response += '\n';
-  });
-
-  // Note the source
-  const sources = [...new Set(results.map((r) => r.source))];
-  if (sources.length === 1) {
-    response += `_via ${sources[0] === 'google' ? 'Google' : 'Yelp'}_`;
-  }
-
-  return response;
-}
-
-/**
- * Unified search: Google primary, Yelp fallback
- */
-async function unifiedSearch(
-  query: string,
-  location: string,
-  options: { openNow?: boolean; priceLevel?: string; explicitSource?: Source }
-): Promise<SearchResult[]> {
-  const source = options.explicitSource || 'auto';
-
-  // Explicit Yelp request
-  if (source === 'yelp') {
-    if (!isYelpConfigured()) {
-      log.debug('Yelp requested but not configured');
-      return [];
-    }
-    const yelpResults = await searchYelp({
-      term: query,
-      location,
-      open_now: options.openNow,
-      price: options.priceLevel,
-      limit: 10,
-    });
-    return yelpResults.map(yelpToUnified);
-  }
-
-  // Explicit Google request
-  if (source === 'google') {
-    if (!isGooglePlacesConfigured()) {
-      log.debug('Google Places requested but not configured');
-      return [];
-    }
-    const googleResults = await searchGooglePlaces({
-      query,
-      location,
-      openNow: options.openNow,
-    });
-    return googleResults.map(googleToUnified);
-  }
-
-  // Auto: Google primary, Yelp fallback
-  if (isGooglePlacesConfigured()) {
-    const googleResults = await searchGooglePlaces({
-      query,
-      location,
-      openNow: options.openNow,
-    });
-
-    if (googleResults.length > 0) {
-      return googleResults.map(googleToUnified);
-    }
-    log.debug('Google returned no results, trying Yelp fallback');
-  }
-
-  // Fallback to Yelp
-  if (isYelpConfigured()) {
-    const yelpResults = await searchYelp({
-      term: query,
-      location,
-      open_now: options.openNow,
-      price: options.priceLevel,
-      limit: 10,
-    });
-    return yelpResults.map(yelpToUnified);
-  }
-
-  log.warn('Neither Google Places nor Yelp configured for local search');
-  return [];
-}
+const locationParam = z
+  .string()
+  .optional()
+  .describe(
+    "Where to search (city, neighborhood, or address). Optional - leave it out to search near the caller's location"
+  );
 
 // ============================================================================
 // TOOL DEFINITIONS
@@ -231,20 +68,23 @@ const searchLocalBusinessesDef: ToolDefinition = {
     return llm.tool({
       description:
         'Search for local businesses like restaurants, coffee shops, gyms, salons. ' +
+        'Searches near the caller unless they name a place. ' +
         'Say "on Yelp" or "on Google" to use a specific source. ' +
         'Returns ratings, reviews, price level, and hours.',
       parameters: z.object({
         query: z
           .string()
           .describe('What to search for (e.g., "Italian restaurant", "coffee shop", "gym")'),
-        location: z.string().describe('Where to search (city, neighborhood, or address)'),
+        location: locationParam,
         openNow: z.boolean().optional().describe('Only show places currently open'),
         priceLevel: z
           .string()
           .optional()
           .describe('Price filter: "1" ($), "2" ($$), "3" ($$$), "4" ($$$$)'),
       }),
-      execute: async ({ query, location, openNow, priceLevel }) => {
+      execute: async ({ query, location: requested, openNow, priceLevel }, opts) => {
+        const location = resolveCallerLocation(requested, opts, ctx);
+        if (!location) return LOCATION_UNKNOWN;
         try {
           log.info({ query, location, userId: ctx.userId }, '🔍 Searching local businesses');
 
@@ -281,10 +121,10 @@ const findRestaurantsDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Find restaurants in a specific area. Great for dinner recommendations. ' +
+        'Find restaurants near the caller, or in an area they name. Great for dinner recommendations. ' +
         'Say "on Yelp" or "on Google" to use a specific source.',
       parameters: z.object({
-        location: z.string().describe('Where to search (city, neighborhood, or address)'),
+        location: locationParam,
         cuisine: z
           .string()
           .optional()
@@ -292,7 +132,9 @@ const findRestaurantsDef: ToolDefinition = {
         openNow: z.boolean().optional().describe('Only show restaurants currently open'),
         priceLevel: z.string().optional().describe('Price range: "1" ($) to "4" ($$$$)'),
       }),
-      execute: async ({ location, cuisine, openNow, priceLevel }) => {
+      execute: async ({ location: requested, cuisine, openNow, priceLevel }, opts) => {
+        const location = resolveCallerLocation(requested, opts, ctx);
+        if (!location) return LOCATION_UNKNOWN;
         try {
           const query = cuisine ? `${cuisine} restaurant` : 'restaurant';
           log.info({ query, location, userId: ctx.userId }, '🍽️ Finding restaurants');

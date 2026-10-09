@@ -31,9 +31,15 @@ export function isAllowedReturnUrl(returnUrl: string | undefined | null): boolea
     return true; // Caller will use a safe default relative path
   }
 
-  // Relative path on our origin — allow (but reject protocol-relative //evil.com)
-  if (returnUrl.startsWith('/') && !returnUrl.startsWith('//')) {
-    return true;
+  // Relative path on our origin. Judge it the way a browser resolves a Location
+  // header: "\" counts as "/" and tabs/newlines are dropped, so "/\evil.com" and
+  // "/<tab>/evil.com" are protocol-relative too and leave the site.
+  if (returnUrl.startsWith('/')) {
+    try {
+      return new URL(returnUrl, 'https://same-origin.invalid').host === 'same-origin.invalid';
+    } catch {
+      return false;
+    }
   }
 
   try {
@@ -50,10 +56,7 @@ export function isAllowedReturnUrl(returnUrl: string | undefined | null): boolea
 /**
  * Sanitize return_url: return the URL if allowed, otherwise a safe default.
  */
-export function sanitizeReturnUrl(
-  returnUrl: string | undefined | null,
-  fallback = '/'
-): string {
+export function sanitizeReturnUrl(returnUrl: string | undefined | null, fallback = '/'): string {
   if (isAllowedReturnUrl(returnUrl) && returnUrl) {
     return returnUrl;
   }
