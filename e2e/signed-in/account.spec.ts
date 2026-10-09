@@ -12,16 +12,16 @@ const signInButtons = '[data-provider="google"], [data-provider="emulator"]';
 test('Sign Out ends the session and leaves this browser clean', async ({ page }) => {
   await signIn(page, await createUser());
   await expectHome(page);
-  expect(await page.evaluate(() => Object.keys(localStorage).some((k) => k.startsWith('ferni')))).toBe(true);
+  // Something of this person's under each key prefix the app uses
+  const personal = ['ferni_relationship', 'ferni:onboarding:complete', 'ferni-milestones'];
+  await page.evaluate((keys) => keys.forEach((k) => localStorage.setItem(k, localStorage.getItem(k) ?? '{}')), personal);
   const problems = watchProblems(page);
 
   await openSettingsMenu(page);
   await page.locator('.settings-menu [data-action="sign-out"]').click();
 
   await expect(page.locator(signInButtons).first()).toBeVisible({ timeout: 30_000 });
-  const leftovers = await page.evaluate(() =>
-    Object.keys(localStorage).filter((k) => k.startsWith('ferni') && !k.startsWith('ferni:dev'))
-  );
+  const leftovers = await page.evaluate((keys) => keys.filter((k) => localStorage.getItem(k) !== null), personal);
   expect(leftovers, 'data left behind for the next person on this browser').toEqual([]);
 
   await page.reload();

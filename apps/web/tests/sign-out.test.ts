@@ -40,3 +40,18 @@ describe('signOutOfThisBrowser', () => {
     expect(toast.error).toHaveBeenCalledOnce();
   });
 });
+
+describe('what sign-out and account deletion clear', () => {
+  it("removes a person's data under every key prefix, keeps this device's settings", async () => {
+    const { clearAllUserData, exportLocalStorage } = await import('../src/config/storage-keys.js');
+    const personal = ['ferni_relationship', 'ferni:onboarding:complete', 'ferni:notification-prefs',
+      'ferni-milestones', 'ferni-achievements', 'ferni-last-interaction-date', 'voiceai_selectedPersona'];
+    const device = ['ferni_theme', 'ferni_locale', 'ferni-haptics-disabled'];
+    for (const key of [...personal, ...device]) localStorage.setItem(key, 'x');
+
+    expect(Object.keys(exportLocalStorage())).toEqual(expect.arrayContaining(personal)); // export is complete too
+    clearAllUserData();
+    expect(personal.filter((k) => localStorage.getItem(k) !== null), 'left behind').toEqual([]);
+    expect(device.filter((k) => localStorage.getItem(k) === null), 'device settings lost').toEqual([]);
+  });
+});
