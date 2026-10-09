@@ -2969,7 +2969,13 @@
     "tryDifferentAccount": "尝试其他账户",
     "checkingAccess": "正在检查你的访问权限...",
     "checkingLabel": "请稍等片刻...",
-    "signInError": "登录已取消或失败。请重试。"
+    "signInError": "登录已取消或失败。请重试。",
+    "verifyEmailTitle": "验证你的邮箱",
+    "verifyEmailMessage": "打开我们发送到你邮箱的链接，然后重新登录吧。",
+    "noEmailTitle": "我们需要一个邮箱地址",
+    "noEmailMessage": "这个账号没有绑定邮箱。请用一个绑定了邮箱的账号登录吧。",
+    "checkFailedTitle": "暂时无法确认你的访问权限",
+    "checkFailedMessage": "我们这边出了点小状况。稍等片刻，再试一次吧。"
   },
   "visualizations": {
     "lifeSeasons": "你的人生季节",

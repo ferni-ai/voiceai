@@ -1760,5 +1760,16 @@
   "totalKB": 8465.7,
   "initialKB": 3145.2,
   "maxChunkKB": 2302.7
+ },
+ "webEslint": {
+  "@typescript-eslint/no-unused-vars": 95,
+  "@typescript-eslint/no-unnecessary-type-assertion": 9,
+  "@typescript-eslint/unbound-method": 4,
+  "@typescript-eslint/no-redundant-type-constituents": 4,
+  "@typescript-eslint/ban-ts-comment": 1,
+  "@typescript-eslint/no-base-to-string": 5,
+  "prefer-const": 1,
+  "@typescript-eslint/no-explicit-any": 3,
+  "@typescript-eslint/ban-types": 1
  }
 }

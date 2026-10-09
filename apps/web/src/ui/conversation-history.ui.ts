@@ -220,12 +220,12 @@ class ConversationHistoryUI {
   private createPanel(): void {
     this.panel = document.createElement('aside');
     this.panel.className = 'history';
-    this.panel.setAttribute('role', 'complementary');
+    this.panel.setAttribute('role', 'dialog');
+    this.panel.setAttribute('aria-modal', 'true');
     this.panel.setAttribute('aria-label', t('conversationHistory.ariaLabel'));
     this.panel.setAttribute('aria-hidden', 'true');
 
     document.body.appendChild(this.panel);
-    
     // Close on backdrop click
     this.panel.addEventListener('click', (e) => {
       if (e.target === this.panel) {

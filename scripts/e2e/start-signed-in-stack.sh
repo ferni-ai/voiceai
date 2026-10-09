@@ -52,9 +52,13 @@ echo ""
 echo "📦 Starting Firebase emulators..."
 cd "$PROJECT_ROOT"
 
-# Kill any existing emulator processes
-pkill -f "firebase.*emulator" || true
-sleep 1
+# Don't kill emulators: other checkouts on this machine may be using them.
+for port in 9099 8080; do
+    if lsof -iTCP:$port -sTCP:LISTEN >/dev/null 2>&1; then
+        echo "❌ Port $port is already in use (another emulator?). Stop it or reuse it, then rerun."
+        exit 1
+    fi
+done
 
 # Start emulators
 firebase emulators:start --project=demo-ferni &

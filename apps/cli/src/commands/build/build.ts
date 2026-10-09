@@ -8,7 +8,6 @@
  * Usage:
  *   npx tsx scripts/build.ts                 # Show help
  *   npx tsx scripts/build.ts frontend        # Build frontend
- *   npx tsx scripts/build.ts electron        # Build Electron app
  *   npx tsx scripts/build.ts ios             # Build iOS app
  *   npx tsx scripts/build.ts android         # Build Android app
  *   npx tsx scripts/build.ts apps            # Build all native apps
@@ -17,7 +16,6 @@
  *
  * Or via npm:
  *   npm run build:apps
- *   npm run build:electron
  */
 
 import { findProjectRoot } from '../../utils/project-root.js';
@@ -121,55 +119,6 @@ async function buildFrontend(options: BuildOptions): Promise<boolean> {
   return true;
 }
 
-async function buildElectron(options: BuildOptions): Promise<boolean> {
-  log.step('BUILDING ELECTRON APP');
-
-  const electronDir = join(PROJECT_ROOT, 'apps/electron');
-  const frontendDist = join(PROJECT_ROOT, 'apps/web/dist');
-
-  if (!existsSync(electronDir)) {
-    log.error('Electron directory not found: apps/electron');
-    return false;
-  }
-
-  // Build frontend first if not skipped
-  if (!options.skipFrontend) {
-    await buildFrontend(options);
-  }
-
-  // Copy frontend to Electron web folder
-  log.info('Copying frontend to Electron...');
-  const webDir = join(electronDir, 'web');
-  cleanDir(webDir);
-  copyDir(frontendDist, webDir);
-
-  // Install dependencies if needed
-  if (!existsSync(join(electronDir, 'node_modules'))) {
-    log.info('Installing Electron dependencies...');
-    exec('npm install', { cwd: electronDir });
-  }
-
-  // Build for current platform
-  const platform = process.platform;
-  let buildCmd = 'npm run build';
-
-  if (platform === 'darwin') {
-    log.info('Building for macOS...');
-    buildCmd = 'npm run build:mac';
-  } else if (platform === 'win32') {
-    log.info('Building for Windows...');
-    buildCmd = 'npm run build:win';
-  } else if (platform === 'linux') {
-    log.info('Building for Linux...');
-    buildCmd = 'npm run build:linux';
-  }
-
-  exec(buildCmd, { cwd: electronDir });
-  log.success(`Electron build complete! Output: apps/electron/dist/`);
-
-  return true;
-}
-
 async function buildIos(options: BuildOptions): Promise<boolean> {
   log.step('BUILDING iOS NATIVE APP');
 
@@ -242,15 +191,6 @@ async function syncAll(options: BuildOptions): Promise<boolean> {
   if (!existsSync(frontendDist)) {
     log.warn('Frontend not built. Building first...');
     await buildFrontend(options);
-  }
-
-  // Electron
-  log.info('Syncing to Electron...');
-  const electronWeb = join(PROJECT_ROOT, 'apps/electron/web');
-  if (existsSync(join(PROJECT_ROOT, 'apps/electron'))) {
-    cleanDir(electronWeb);
-    copyDir(frontendDist, electronWeb);
-    log.success('Electron synced');
   }
 
   // Note: iOS and Android native apps don't need web asset syncing
@@ -353,7 +293,6 @@ async function buildAll(options: BuildOptions): Promise<boolean> {
   success = await buildFrontend(options) && success;
   
   const skipFrontendOptions = { ...options, skipFrontend: true };
-  success = await buildElectron(skipFrontendOptions) && success;
   success = await buildIos(skipFrontendOptions) && success;
   success = await buildAndroid(skipFrontendOptions) && success;
 
@@ -374,7 +313,6 @@ ${colors.bold}Usage:${colors.reset}
 
 ${colors.bold}Commands:${colors.reset}
   ${colors.green}frontend${colors.reset}       Build frontend (Vite)
-  ${colors.green}electron${colors.reset}       Build Electron desktop app
   ${colors.green}ios${colors.reset}            Build iOS app (macOS only)
   ${colors.green}android${colors.reset}        Build Android app
   ${colors.green}apps${colors.reset}           Build all native apps
@@ -388,7 +326,6 @@ ${colors.bold}Options:${colors.reset}
 
 ${colors.bold}Examples:${colors.reset}
   npm run build:cli frontend       # Build frontend only
-  npm run build:cli electron       # Build Electron app
   npm run build:cli apps           # Build all native apps
   npm run build:cli sync           # Sync to all platforms
   npm run build:cli store-assets   # Generate marketing assets
@@ -429,9 +366,6 @@ ${colors.cyan}╚═════════════════════
       success = await buildFrontend(options);
       break;
 
-    case 'electron':
-      success = await buildElectron(options);
-      break;
 
     case 'ios':
       success = await buildIos(options);

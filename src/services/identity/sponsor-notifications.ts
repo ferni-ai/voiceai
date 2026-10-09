@@ -13,8 +13,8 @@
  * @module services/identity/sponsor-notifications
  */
 
+import { getProfileStore } from '../../memory/profile-store.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getDefaultStore } from '../../memory/index.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
 const log = createLogger({ module: 'SponsorNotifications' });
@@ -167,7 +167,7 @@ export function updateApprovalStatus(approvalId: string, status: 'approved' | 'r
  * Returns users whose name matches the mentioned sponsor name.
  */
 export async function findUsersByName(sponsorName: string): Promise<UserProfile[]> {
-  const store = getDefaultStore();
+  const store = await getProfileStore();
   const results: UserProfile[] = [];
   const nameLower = sponsorName.toLowerCase();
 

@@ -80,9 +80,15 @@ export async function handleEcobeeRoutes(
     return true;
   }
 
-  // Check if Ecobee is configured at app level
+  // Check if Ecobee is configured at app level. Status still has an answer without
+  // it: nobody is connected. Set the Mood asks on open, and a 503 there was retried
+  // and logged as an error for every user of a deployment without Ecobee.
   if (!isApiConfigured() && !pathname.endsWith('/configured')) {
-    sendError(res, 503, API_ERRORS.INTEGRATION_NOT_CONFIGURED('Ecobee'));
+    if (pathname === '/api/ecobee/status' && req.method === 'GET') {
+      sendJson(res, 200, { connected: false, configured: false });
+    } else {
+      sendError(res, 503, API_ERRORS.INTEGRATION_NOT_CONFIGURED('Ecobee'));
+    }
     return true;
   }
 

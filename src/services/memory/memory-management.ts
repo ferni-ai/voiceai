@@ -12,9 +12,9 @@
  * users across sessions, devices, and even voice recognition.
  */
 
+import { getProfileStore, type MemoryStore } from '../../memory/profile-store.js';
 import { getGCPProjectId } from '../../config/environment.js';
 import { cosineSimilarity } from '../../memory/embeddings.js';
-import { getDefaultStore, type MemoryStore } from '../../memory/index.js';
 import type { ConversationSummary, UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -141,7 +141,7 @@ export async function findDuplicateProfiles(
   profile: UserProfile,
   store?: MemoryStore
 ): Promise<UserProfile[]> {
-  const memoryStore = store || getDefaultStore();
+  const memoryStore = store || (await getProfileStore());
   const duplicates: UserProfile[] = [];
 
   try {
@@ -203,7 +203,7 @@ export async function consolidateProfiles(
   profilesToMerge: UserProfile[],
   store?: MemoryStore
 ): Promise<ConsolidationResult> {
-  const memoryStore = store || getDefaultStore();
+  const memoryStore = store || (await getProfileStore());
   const result: ConsolidationResult = {
     primaryProfileId: primaryProfile.id,
     mergedProfileIds: [],
@@ -365,7 +365,7 @@ export async function findProfilesByVoice(
   store?: MemoryStore,
   minSimilarity = 0.75
 ): Promise<Array<{ profile: UserProfile; similarity: number }>> {
-  const memoryStore = store || getDefaultStore();
+  const memoryStore = store || (await getProfileStore());
   const matches: Array<{ profile: UserProfile; similarity: number }> = [];
 
   try {
@@ -653,7 +653,7 @@ export async function pruneMemorySystem(
   store?: MemoryStore
 ): Promise<PruningResult> {
   const cfg = { ...DEFAULT_PRUNING_CONFIG, ...config };
-  const memoryStore = store || getDefaultStore();
+  const memoryStore = store || (await getProfileStore());
   const result: PruningResult = {
     vectorsRemoved: 0,
     summariesRemoved: 0,

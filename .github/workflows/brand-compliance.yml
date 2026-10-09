@@ -48,7 +48,7 @@ jobs:
 
       - name: Upload full report
         if: steps.brand-lint.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: brand-compliance-report
           path: brand-lint.txt
@@ -62,7 +62,7 @@ jobs:
         # Dependabot and fork PRs always get a read-only token; the comment is a
         # courtesy and must not decide the check.
         continue-on-error: true
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
@@ -198,7 +198,7 @@ jobs:
         
       - name: Upload visual diff artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: visual-regression-diff
           path: |
@@ -238,7 +238,7 @@ jobs:
         
       - name: Upload a11y report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: accessibility-report
           path: apps/web/a11y-report/

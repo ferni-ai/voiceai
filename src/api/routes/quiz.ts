@@ -89,10 +89,10 @@ async function generateQuizQuestions(
   quizId: string
 ): Promise<QuizQuestion[]> {
   const random = seededRandom(`${userId}:${quizId}`);
-  const { getDefaultStore } = await import('../../memory/index.js');
+  const { getStore } = await import('../../memory/store-factory.js');
   const { getAllUserMemories } = await import('../../services/memory/persona-memories.js');
 
-  const store = getDefaultStore();
+  const store = await getStore();
   const profile = await store.getProfile(userId);
   const rawMemories = await getAllUserMemories(userId);
 
@@ -405,8 +405,8 @@ async function handleSubmitResults(
 
     // Save quiz result to profile for tracking
     try {
-      const { getDefaultStore } = await import('../../memory/index.js');
-      const store = getDefaultStore();
+      const { getStore } = await import('../../memory/store-factory.js');
+      const store = await getStore();
       const profile = await store.getProfile(userId);
       if (profile) {
         // Use unknown cast to handle dynamic profile data

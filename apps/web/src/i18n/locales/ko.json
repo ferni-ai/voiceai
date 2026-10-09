@@ -2969,7 +2969,13 @@
     "tryDifferentAccount": "다른 계정으로 시도하기",
     "checkingAccess": "접속 권한을 확인하고 있어요...",
     "checkingLabel": "잠시만 기다려 주세요...",
-    "signInError": "로그인이 취소되었거나 실패했어요. 다시 시도해 주세요."
+    "signInError": "로그인이 취소되었거나 실패했어요. 다시 시도해 주세요.",
+    "verifyEmailTitle": "이메일을 인증해 주세요",
+    "verifyEmailMessage": "보내드린 이메일 속 링크를 열고, 다시 로그인해 주세요.",
+    "noEmailTitle": "이메일 주소가 필요해요",
+    "noEmailMessage": "이 계정에는 등록된 이메일 주소가 없어요. 이메일 주소가 있는 계정으로 로그인해 주세요.",
+    "checkFailedTitle": "접속 권한을 확인하지 못했어요",
+    "checkFailedMessage": "저희 쪽에 잠시 문제가 생긴 것 같아요. 잠시 후 다시 시도해 주세요."
   },
   "visualizations": {
     "lifeSeasons": "당신의 인생 계절",

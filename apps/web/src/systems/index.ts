@@ -282,7 +282,7 @@ export interface TranscendentSystemsConfig {
   /** Enable micro-interactions (0.1-0.3s magic moments) */
   microInteractions?: boolean;
 
-  /** Enable contextual spacing (semantic relationship-based spacing) */
+  /** Contextual spacing; off by default: it overwrites the design-system --space-N scale */
   contextualSpacing?: boolean;
 
   /** Enable voice typography (type that responds to speaking state) */
@@ -360,7 +360,7 @@ export function initTranscendentSystems(
     overlappingAction: true,
     secondaryAction: true,
     microInteractions: true,
-    contextualSpacing: true,
+    contextualSpacing: false,
     voiceTypography: true,
     imperfection: true,
     debug: false,

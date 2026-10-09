@@ -11,7 +11,6 @@
 # and apps/web/ for UI server (frontend build)
 apps/android/
 apps/android-native/
-apps/electron/
 apps/ios/
 apps/ios-native/
 apps/macos-menubar/
@@ -46,6 +45,8 @@ design-system/dashboard/
 design-system/*.js
 design-system/*.ts
 design-system/*.json
+# The images install the workspace frozen, which needs every package's real package.json.
+!design-system/package.json
 design-system/*.md
 # Brand - only keep logos and favicons (exclude 27MB of social media exports)
 # Note: logos/ and favicons/ must be INCLUDED for Dockerfile.ui COPY commands

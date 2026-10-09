@@ -21,6 +21,7 @@
  * @module proactive/outreach/service
  */
 
+import { getProfileStore } from '../../../../memory/profile-store.js';
 import { z } from 'zod';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import {
@@ -30,7 +31,6 @@ import {
 } from '../../../../services/scheduling/reminder-scheduler.js';
 import { sendEmail, sendSMS } from '../../../../services/communication-service.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
-import { getDefaultStore } from '../../../../memory/index.js';
 import {
   getPersonaDisplayName,
   getCanonicalPersonaId,
@@ -118,7 +118,7 @@ export async function setUserContactInfo(
 
   // Persist to user profile in Firestore
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(userId);
     if (profile) {
       profile.contactInfo = {
@@ -153,7 +153,7 @@ export async function getUserContactInfo(userId: string): Promise<UserContactInf
 
   // Load from profile if not in cache
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(userId);
     if (profile?.contactInfo) {
       const info: UserContactInfo = {

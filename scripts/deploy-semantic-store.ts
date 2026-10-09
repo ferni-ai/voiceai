@@ -331,7 +331,7 @@ async function runTTLCleanup(endpoint: string, dryRun: boolean): Promise<boolean
   // First do dry run
   const dryRunResponse = await fetchWithRetry(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': process.env.ADMIN_API_KEY ?? '' },
     body: JSON.stringify({ dryRun: true }),
   });
 
@@ -343,7 +343,7 @@ async function runTTLCleanup(endpoint: string, dryRun: boolean): Promise<boolean
   // Run actual cleanup
   const response = await fetchWithRetry(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-API-Key': process.env.ADMIN_API_KEY ?? '' },
     body: JSON.stringify({ dryRun: false }),
   });
 
@@ -398,7 +398,7 @@ async function printFinalReport(healthData: unknown): Promise<void> {
   log(`   Logs: pnpm ops:logs | grep semantic`, colors.reset);
 
   log('\n🔧 Manual Operations:', colors.cyan);
-  log('   Trigger cleanup: curl -X POST ' + CONFIG.cleanupEndpoint, colors.reset);
+  log('   Trigger cleanup: curl -X POST -H "X-API-Key: $ADMIN_API_KEY" ' + CONFIG.cleanupEndpoint, colors.reset);
   log('   Re-run backfill: npx tsx scripts/backfill-semantic-index.ts', colors.reset);
 
   log('\n' + '═'.repeat(60), colors.green);

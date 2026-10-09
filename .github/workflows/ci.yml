@@ -27,28 +27,8 @@ on:
       - 'infra/**'
   pull_request:
     branches: [main, develop]
-    paths:
-      - 'src/**'
-      - 'apps/**'
-      - 'packages/**'
-      - 'design-system/**'
-      # Tested from src/tests (voice-eval scoring, the agent Dockerfile): a PR touching
-      # only these never got the required checks and could not merge.
-      - 'scripts/**'
-      - 'docker/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'tsconfig*.json'
-      # Build and CI config: a change here can break CI or the images, and a PR
-      # touching only these never got the required checks, so it could not merge.
-      - 'pnpm-workspace.yaml'
-      - '.npmrc'
-      - 'patches/**'
-      - '.github/workflows/**'
-      - '.github/actions/**'
-      - '**/Dockerfile*'
-      - 'cloudbuild*.yaml'
-      - 'infra/**'
+    # No path filter on PRs: branch protection requires these checks, so a PR
+    # they skip can never merge (docs, .claude/, dependabot.yml PRs all stuck).
   # The merge queue tests each PR on top of main and whatever is queued ahead of it.
   merge_group:
 
@@ -157,11 +137,9 @@ jobs:
 
       - name: Tool schema validation
         run: pnpm tools:schemas:validate
-        continue-on-error: true
 
       - name: Tool schema check (no drift)
         run: pnpm tools:schemas:check
-        continue-on-error: true
 
   # ============================================================================
   # UNIT TESTS (Fast - ~30-60 seconds)
@@ -508,7 +486,7 @@ jobs:
           pnpm build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build
           path: |
@@ -683,7 +661,6 @@ jobs:
 
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
-        continue-on-error: true
 
   # ============================================================================
   # VALIDATION (using unified validate CLI)
@@ -796,7 +773,7 @@ jobs:
           fi
 
       - name: Upload E2E report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: e2e-validation-report
@@ -854,11 +831,12 @@ jobs:
           cd apps/web
           pnpm test:arch
 
-      - name: ESLint check
+      # Web ESLint has 123 old errors, so plain `pnpm lint` can't gate. The ratchet fails
+      # only when a rule gains errors (baseline: ratchet-baseline.json "webEslint").
+      - name: ESLint (ratchet)
         run: |
-          cd apps/web
-          pnpm lint
-        continue-on-error: true
+          (cd apps/web && pnpm lint --format json --output-file eslint.json) || true
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --eslint apps/web/eslint.json
 
       - name: Web unit tests
         working-directory: apps/web
@@ -868,7 +846,6 @@ jobs:
         run: |
           cd apps/web
           pnpm lint:tokens
-        continue-on-error: true
 
       - name: UI audit
         run: |
@@ -876,11 +853,11 @@ jobs:
           pnpm audit:ui || true
         continue-on-error: true
 
-      - name: Build and check bundle size
+      # The build must succeed, and the bundle may not grow past its baseline (2% slack).
+      - name: Build and bundle ratchet
         run: |
-          cd apps/web
-          pnpm build:check || true
-        continue-on-error: true
+          (cd apps/web && pnpm build)
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --bundle
 
   # ============================================================================
   # DEPENDENCY CHECK

@@ -161,21 +161,21 @@ jobs:
 
       # Upload artifacts
       - name: Upload rust-perf artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rust-perf-${{ matrix.node_arch }}
           path: apps/rust-perf/*.node
           if-no-files-found: error
 
       - name: Upload rust-audio artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rust-audio-${{ matrix.node_arch }}
           path: apps/rust-audio/*.node
           if-no-files-found: error
 
       - name: Upload sonata artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sonata-${{ matrix.node_arch }}
           path: apps/sonata/*.node
@@ -202,19 +202,19 @@ jobs:
           cache: 'pnpm'
 
       - name: Download rust-perf artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: rust-perf-linux-x64
           path: apps/rust-perf/
 
       - name: Download rust-audio artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: rust-audio-linux-x64
           path: apps/rust-audio/
 
       - name: Download sonata artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sonata-linux-x64
           path: apps/sonata/

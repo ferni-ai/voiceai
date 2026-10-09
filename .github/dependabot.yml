@@ -30,6 +30,13 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      # Majors land together in one weekly PR (they arrived one PR each and
+      # crowded the queue: 4 of 10 open dependabot PRs on 2026-10-08).
+      majors:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
     ignore:
       # Ignore major version updates for critical packages (review manually)
       - dependency-name: "@livekit/*"
@@ -48,6 +55,11 @@ updates:
       interval: "monthly"
     commit-message:
       prefix: "chore(ci)"
+    # One PR a month for every action bump, majors included.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
     labels:
       - "dependencies"
       - "ci"
