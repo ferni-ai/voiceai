@@ -16,7 +16,7 @@ const getSubscriptionStatus = vi.fn();
 vi.mock('../src/services/apple-iap.service.js', () => ({ appleIAPService: { getSubscriptionStatus } }));
 vi.mock('../src/utils/billing.js', () => ({ openBillingPortal: vi.fn() }));
 
-const { closeOnEscape, asModalDialog } = await import('../src/utils/accessibility.js');
+const { closeOnEscape, asModalDialog, trackedEscapeDialogs } = await import('../src/utils/accessibility.js');
 
 const escape = () =>
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
@@ -81,6 +81,17 @@ describe('closeOnEscape', () => {
     escape();
     expect(closeGone).not.toHaveBeenCalled();
     expect(closeKept).not.toHaveBeenCalled();
+  });
+
+  it('does not pile up dialogs that were opened, closed and removed', () => {
+    for (let i = 0; i < 50; i++) {
+      const el = document.body.appendChild(document.createElement('div'));
+      closeOnEscape(el, () => false, () => {});
+      el.remove(); // closed and gone, the way rebuilt-per-open dialogs go
+    }
+    const kept = document.body.appendChild(document.createElement('div'));
+    closeOnEscape(kept, () => false, () => {});
+    expect(trackedEscapeDialogs()).toBeLessThanOrEqual(2);
   });
 
   it('asModalDialog sets role, aria-modal and the accessible name', () => {

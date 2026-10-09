@@ -338,9 +338,19 @@ function topEscapeDialog(): EscapeDialog | undefined {
   return open.find((d) => hit && d.el.contains(hit)) ?? open[open.length - 1];
 }
 
+/** Forget dialogs whose element has left the page (most are rebuilt on each open). */
+function pruneEscapeDialogs(): void {
+  for (const d of escapeDialogs) if (!d.el.isConnected) escapeDialogs.delete(d);
+}
+
+/** For tests: how many dialogs Escape is tracking. */
+export function trackedEscapeDialogs(): number {
+  return escapeDialogs.size;
+}
+
 function onEscapeKey(e: KeyboardEvent): void {
   if (e.key !== 'Escape' || e.defaultPrevented) return;
-  for (const d of escapeDialogs) if (!d.el.isConnected) escapeDialogs.delete(d);
+  pruneEscapeDialogs();
   const top = topEscapeDialog();
   if (!top) return;
   e.preventDefault();
@@ -350,7 +360,8 @@ function onEscapeKey(e: KeyboardEvent): void {
 /**
  * Escape closes the dialog while it's open. One press closes one dialog: the one
  * on top, so a dialog left open underneath (the tour, say) isn't closed instead.
- * Forgotten once the element leaves the page; the returned function forgets it sooner.
+ * Forgotten once the element leaves the page (checked whenever a dialog registers or
+ * Escape is pressed); the returned function forgets it sooner.
  */
 export function closeOnEscape(
   el: HTMLElement,
@@ -358,6 +369,7 @@ export function closeOnEscape(
   close: () => void
 ): () => void {
   const dialog = { el, isOpen, close };
+  pruneEscapeDialogs(); // so closed, removed dialogs don't pile up between Escape presses
   if (escapeDialogs.size === 0) document.addEventListener('keydown', onEscapeKey);
   escapeDialogs.add(dialog);
   return () => void escapeDialogs.delete(dialog);
