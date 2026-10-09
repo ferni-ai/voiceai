@@ -323,25 +323,44 @@ export function setupDialog(
   return { open, close };
 }
 
+interface EscapeDialog {
+  el: HTMLElement;
+  isOpen: () => boolean;
+  close: () => void;
+}
+
+const escapeDialogs = new Set<EscapeDialog>();
+
+/** The open dialog on top: the one under the middle of the screen, else the newest. */
+function topEscapeDialog(): EscapeDialog | undefined {
+  const open = [...escapeDialogs].filter((d) => d.isOpen());
+  const hit = document.elementFromPoint?.(innerWidth / 2, innerHeight / 2);
+  return open.find((d) => hit && d.el.contains(hit)) ?? open[open.length - 1];
+}
+
+function onEscapeKey(e: KeyboardEvent): void {
+  if (e.key !== 'Escape' || e.defaultPrevented) return;
+  for (const d of escapeDialogs) if (!d.el.isConnected) escapeDialogs.delete(d);
+  const top = topEscapeDialog();
+  if (!top) return;
+  e.preventDefault();
+  top.close();
+}
+
 /**
- * Escape closes the dialog while it's open. The first dialog to handle a key
- * claims it (preventDefault), so one press never closes two. Stops listening by
- * itself once the element leaves the page; the returned function stops it sooner.
+ * Escape closes the dialog while it's open. One press closes one dialog: the one
+ * on top, so a dialog left open underneath (the tour, say) isn't closed instead.
+ * Forgotten once the element leaves the page; the returned function forgets it sooner.
  */
 export function closeOnEscape(
   el: HTMLElement,
   isOpen: () => boolean,
   close: () => void
 ): () => void {
-  const stop = () => document.removeEventListener('keydown', onKey);
-  const onKey = (e: KeyboardEvent) => {
-    if (!el.isConnected) return stop();
-    if (e.key !== 'Escape' || e.defaultPrevented || !isOpen()) return;
-    e.preventDefault();
-    close();
-  };
-  document.addEventListener('keydown', onKey);
-  return stop;
+  const dialog = { el, isOpen, close };
+  if (escapeDialogs.size === 0) document.addEventListener('keydown', onEscapeKey);
+  escapeDialogs.add(dialog);
+  return () => void escapeDialogs.delete(dialog);
 }
 
 /**

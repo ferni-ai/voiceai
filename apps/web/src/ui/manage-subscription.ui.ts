@@ -73,8 +73,9 @@ class ManageSubscriptionUI {
     // Inject styles
     this.injectStyles();
 
-    // Fetch subscription status
+    // Fetch subscription status; an overlapping open() may have built a modal meanwhile
     this.status = await this.fetchStatus(userId);
+    this.close();
 
     // Create and show modal
     this.createModal();

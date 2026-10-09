@@ -915,8 +915,9 @@ export async function show(options: FamilyIdentitiesCallbacks = {}): Promise<voi
     modal?.classList.add('visible');
   });
 
-  // Load data
+  // Load data, unless this modal was closed or replaced meanwhile
   await loadIdentities();
+  if (modal !== opened) return;
   isLoading = false;
   refresh();
 }
@@ -928,6 +929,7 @@ export function hide(): void {
   if (!closing) return;
   modal = null;
   closing.removeEventListener('click', handleClick);
+  isLoading = false;
   identities = [];
   editingIdentity = null;
   currentView = 'main';

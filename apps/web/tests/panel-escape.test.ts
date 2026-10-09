@@ -32,6 +32,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   document.body.innerHTML = '';
+  delete (document as { elementFromPoint?: unknown }).elementFromPoint;
 });
 
 describe('closeOnEscape', () => {
@@ -134,6 +135,77 @@ describe('panels close on Escape', () => {
   });
 });
 
+describe('panels with their own open state close on Escape', () => {
+  it('connected life', async () => {
+    const { connectedLifeUI } = await import('../src/ui/connected-life.ui.js');
+    await connectedLifeUI.show();
+    vi.advanceTimersByTime(50); // animate in
+    expect(document.querySelector('.connected-life-overlay')?.getAttribute('role')).toBe('dialog');
+
+    escape();
+    vi.advanceTimersByTime(1_000);
+    expect(document.querySelector('.connected-life-overlay')).toBeNull();
+  });
+
+  it('notifications', async () => {
+    const { getNotificationSettingsUI } = await import('../src/ui/notification-settings.ui.js');
+    const ui = getNotificationSettingsUI();
+    const onClose = vi.fn();
+    ui.setCallbacks({ onClose });
+    ui.show();
+    const panel = document.querySelector('.notif-settings');
+    expect(panel?.classList.contains('notif-settings--visible')).toBe(true);
+
+    escape();
+    expect(panel?.classList.contains('notif-settings--visible')).toBe(false);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('music dashboard', async () => {
+    const { musicDashboard } = await import('../src/ui/music-dashboard.ui.js');
+    musicDashboard.showLoading();
+    expect(musicDashboard.isOpen()).toBe(true);
+
+    escape();
+    expect(musicDashboard.isOpen()).toBe(false);
+  });
+});
+
+describe('one Escape closes the dialog on top', () => {
+  it('closes the dialog under the middle of the screen, not one opened earlier', () => {
+    const under = document.body.appendChild(document.createElement('div'));
+    const top = document.body.appendChild(document.createElement('div'));
+    const inner = top.appendChild(document.createElement('button'));
+    const closeUnder = vi.fn();
+    const closeTop = vi.fn();
+    closeOnEscape(top, () => true, closeTop);
+    closeOnEscape(under, () => true, closeUnder); // registered later, but underneath
+    document.elementFromPoint = () => inner;
+
+    escape();
+    expect(closeTop).toHaveBeenCalledOnce();
+    expect(closeUnder).not.toHaveBeenCalled();
+  });
+
+  it('leaves the tour alone when a panel is open over it', async () => {
+    // Fresh instances: the shared ones lost their elements when earlier tests cleared the page
+    const { default: OnboardingUI } = await import('../src/ui/onboarding.ui.js');
+    const { default: DataExportUI } = await import('../src/ui/data-export.ui.js');
+    const tour = new OnboardingUI();
+    localStorage.removeItem('ferni:onboarding:complete');
+    tour.start();
+    const exportUI = new DataExportUI();
+    exportUI.show([]);
+    const panel = document.querySelector('.data-export') as HTMLElement;
+    document.elementFromPoint = () => panel;
+
+    escape();
+    expect(exportUI.getIsVisible()).toBe(false);
+    expect(tour.getIsVisible()).toBe(true);
+    expect(tour.hasCompleted()).toBe(false);
+  });
+});
+
 describe('reopening during the close animation keeps the new modal', () => {
   it('manage subscription', async () => {
     const { manageSubscriptionUI } = await import('../src/ui/manage-subscription.ui.js');
@@ -150,6 +222,15 @@ describe('reopening during the close animation keeps the new modal', () => {
     escape();
     vi.advanceTimersByTime(1_000);
     expect(document.querySelector('.manage-sub')).toBeNull();
+  });
+
+  it('manage subscription opened twice at once leaves one modal', async () => {
+    const { manageSubscriptionUI } = await import('../src/ui/manage-subscription.ui.js');
+    await Promise.all([manageSubscriptionUI.open('user-1'), manageSubscriptionUI.open('user-1')]);
+    vi.advanceTimersByTime(1_000);
+    expect(document.querySelectorAll('.manage-sub')).toHaveLength(1);
+    manageSubscriptionUI.close();
+    vi.advanceTimersByTime(1_000);
   });
 
   it('family', async () => {
