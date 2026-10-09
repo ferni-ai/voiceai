@@ -17,11 +17,24 @@ import type { MemoryStore } from './storage/store.js';
 export type { MemoryStore };
 import { getDefaultStore } from './storage/in-memory-store.js';
 import { getStore } from './storage/store-factory.js';
+import { getLogger } from '../utils/safe-logger.js';
+
+const logger = getLogger().child({ module: 'ProfileStore' });
+
+// Logged once per process, on first use: proves the flag reached the process
+// and that a profile-store caller actually ran (most per-turn uses are reads,
+// which leave no trace in Firestore).
+let firstUseLogged = false;
 
 export function isAgentProfilePersistenceOn(): boolean {
   return process.env.PERSIST_AGENT_PROFILES === 'true';
 }
 
 export async function getProfileStore(): Promise<MemoryStore> {
-  return isAgentProfilePersistenceOn() ? getStore() : getDefaultStore();
+  const persistent = isAgentProfilePersistenceOn();
+  if (!firstUseLogged) {
+    firstUseLogged = true;
+    logger.info({ store: persistent ? 'configured' : 'in-memory' }, 'Agent profile store first used');
+  }
+  return persistent ? getStore() : getDefaultStore();
 }

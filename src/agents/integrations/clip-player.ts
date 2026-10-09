@@ -21,6 +21,7 @@ import {
   presenceSnoreEnabled,
   presenceSoundsEnabled,
 } from './presence-watcher.js';
+import { startToolHum } from './tool-hum.js';
 
 const log = createLogger({ module: 'ClipPlayer' });
 
@@ -133,6 +134,7 @@ export async function startBackchannelClips(
   }
   let lastPlayedAt = 0;
   const stopPresence = startPresenceSounds(session, player);
+  const stopToolHum = startToolHum(session, player);
   return {
     playClip: (text) => {
       const pcm = getClip(text, personaId());
@@ -143,6 +145,7 @@ export async function startBackchannelClips(
     lastPlayedAt: () => lastPlayedAt,
     close: async () => {
       stopPresence();
+      stopToolHum();
       await player.close();
     },
   };

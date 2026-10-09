@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { callerLaughed, extrasFor } from '../turn-extras.js';
+import { callerLaughed, callerVenting, extrasFor } from '../turn-extras.js';
 import { rngFor, turnShapeFor } from '../turn-shape.js';
 
 const ALL_ON = { CURIOUS_DETAIL: 'on', THINK_ALOUD: 'on', LAUGH_ALONG: 'on', ASK_ADVICE: 'on' };
@@ -54,12 +54,16 @@ describe('turn extras', () => {
     expect(extrasFor('She did it again.', 'share', 'one', false, () => 0.9, env).fired).toEqual([]);
   });
 
-  it('thinks aloud only on real questions, never on a quick reaction', () => {
+  it('thinks aloud on real questions and some longer answers, never on a quick reaction', () => {
     const env = { THINK_ALOUD: 'on' };
     expect(extrasFor('what should I do', 'request', 'answer', false, () => 0, env).fired).toEqual([
       'think_aloud',
     ]);
-    expect(extrasFor('my cat did it', 'share', 'answer', false, () => 0, env).fired).toEqual([]);
+    expect(extrasFor('my cat did it', 'share', 'answer', false, () => 0, env).fired).toEqual([
+      'think_aloud',
+    ]);
+    expect(extrasFor('my cat did it', 'share', 'answer', false, () => 0.5, env).fired).toEqual([]);
+    expect(extrasFor('my cat did it', 'share', 'one', false, () => 0, env).fired).toEqual([]);
     expect(extrasFor('how are you', 'about_ferni', 'react', false, () => 0, env).fired).toEqual([]);
   });
 
@@ -74,11 +78,47 @@ describe('turn extras', () => {
     expect(extrasFor('Biscuit ate it', 'share', 'one', false, () => 0.9, env).fired).toEqual([]);
   });
 
-  it('asks for advice only on a light acknowledgement', () => {
+  it('asks for advice on light turns, never while they are venting', () => {
     const env = { ASK_ADVICE: 'on' };
     expect(extrasFor('yeah', 'ack', 'one', false, () => 0, env).fired).toEqual(['ask_advice']);
-    expect(extrasFor('my boss quit', 'share', 'one', false, () => 0, env).fired).toEqual([]);
+    expect(extrasFor('we got a puppy', 'share', 'answer', false, () => 0, env).fired).toEqual([
+      'ask_advice',
+    ]);
+    expect(extrasFor('it has been a long day', 'share', 'one', false, () => 0, env).fired).toEqual(
+      []
+    );
     expect(extrasFor('yeah', 'ack', 'react', false, () => 0, env).fired).toEqual([]);
+  });
+
+  it('adds fillers, laughter and opinions only with HUMAN_TEXTURE, and none while venting', () => {
+    const env = { HUMAN_TEXTURE: 'on' };
+    expect(extrasFor('we got a puppy', 'share', 'answer', false, () => 0, {}).fired).toEqual([]);
+    expect(extrasFor('we got a puppy', 'share', 'answer', false, () => 0, env).fired).toEqual([
+      'filler',
+      'laugh_spontaneous',
+      'opinion',
+    ]);
+    const venting = extrasFor('honestly I am exhausted', 'share', 'answer', false, () => 0, env);
+    expect(venting.fired).toEqual(['filler']);
+    expect(extrasFor('haha she did it', 'share', 'one', false, () => 0, env).fired).not.toContain(
+      'laugh_spontaneous'
+    );
+  });
+
+  it('hears venting as whole words only', () => {
+    for (const t of [
+      'Work was just a lot, I am so stressed',
+      'it has been a long day',
+      'I feel awful',
+    ])
+      expect(callerVenting(t), t).toBe(true);
+    for (const t of [
+      'I saddled the horse',
+      'a rougher draft',
+      'the worstead sweater',
+      'my cat did it',
+    ])
+      expect(callerVenting(t), t).toBe(false);
   });
 
   it('keeps the reply shape the same with extras off, and reports what fired with them on', () => {

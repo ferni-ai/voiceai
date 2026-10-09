@@ -176,6 +176,7 @@ function createBanner(): void {
   
   bannerElement = document.createElement('div');
   bannerElement.className = 'offline-banner';
+  bannerElement.inert = true; // off-screen until offline: out of the tab order and the a11y tree
   bannerElement.setAttribute('role', 'alert');
   bannerElement.setAttribute('aria-live', 'polite');
   
@@ -212,6 +213,7 @@ function showBanner(): void {
   // Force reflow for animation
   bannerElement.offsetHeight;
   
+  bannerElement.inert = false;
   bannerElement.classList.add('visible');
   log.debug('Offline banner shown');
 }
@@ -222,6 +224,7 @@ function hideBanner(): void {
   }
   
   isVisible = false;
+  bannerElement.inert = true;
   bannerElement.classList.remove('visible');
   log.debug('Offline banner hidden');
 }

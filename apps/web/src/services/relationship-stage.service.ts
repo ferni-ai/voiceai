@@ -322,17 +322,14 @@ class RelationshipStageService {
 
   constructor() {
     const loaded = loadRelationshipData();
-    if (loaded) {
-      // Ensure memories array exists (migration for old data)
-      if (!loaded.memories) {
-        loaded.memories = [];
-      }
-      this.data = loaded;
-      // Clean up duplicate memories (migration for bug fix)
-      this.deduplicateMemories();
-    } else {
-      this.data = createInitialData();
-    }
+    const initial = createInitialData();
+    // Fill in whatever an older or partial save lacks. A missing metrics object threw
+    // here, at module load, and stopped the whole app from starting on every reload.
+    this.data = loaded && typeof loaded === 'object'
+      ? { ...initial, ...loaded, metrics: { ...initial.metrics, ...loaded.metrics }, memories: loaded.memories ?? [] }
+      : initial;
+    if (!(this.data.stage in STAGE_KEYS)) this.data.stage = initial.stage;
+    this.deduplicateMemories(); // migration for a streak-milestone bug; a no-op on fresh data
     this.updateDaysSinceFirstMeeting();
   }
 

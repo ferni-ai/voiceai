@@ -26,10 +26,13 @@ LOG=$(mktemp)
  && [ "$(lk room list --project $P | grep -c '│ RM_')" = 0 ] \
  && cp docker/Dockerfile.agent ./Dockerfile \
  && { lk agent deploy --project $P --config $C -y . > $LOG 2>&1; rm -f Dockerfile; } \
- && ! grep -qiE "error TS|ERROR:|build failed|✘ \[ERROR\]" $LOG \
+ && ! grep -qE "error TS[0-9]{4}|^(#[0-9]+ )?ERROR:|[Bb]uild failed|✘ \[ERROR\]" $LOG \
  && echo DEPLOYED $(git rev-parse --short=9 HEAD)
 ```
 - `unable to deploy agent: bufio.Scanner: token too long` at the end is harmless.
+- The build log echoes minified bundle code, which contains strings like
+  `ERROR:` mid-line. The check only matches real error lines (tsc `error TS2322`,
+  a BuildKit line starting `ERROR:` or `#14 ERROR:`, esbuild `✘ [ERROR]`).
 - Then wait until the new version is live:
   `lk agent versions --project $P --config $C`. The row with ✓ in
   Production must show your `git_commit`. Give it about 45 s more before calling.

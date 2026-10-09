@@ -16,7 +16,7 @@
  * @module agents/personas/turn-shape
  */
 
-import { extrasFor } from './turn-extras.js';
+import { callerVenting, extrasFor } from './turn-extras.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -137,7 +137,9 @@ export function turnShapeFor(userText: string, rng: () => number = Math.random):
   // it was diluted (replay: 5% of replies 6 words or fewer).
   const parts = [REGISTER];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
-  else if (move === 'share' && shape !== 'react' && rng() < 0.3) parts.push(SECOND_STORY);
+  // Not while they're venting: a friend stays with them instead of telling a story.
+  else if (move === 'share' && shape !== 'react' && !callerVenting(userText) && rng() < 0.3)
+    parts.push(SECOND_STORY);
   if (move !== 'ack' && rng() < 0.3) parts.push(STANCE);
   if (shape !== 'react' && rng() < 0.5)
     parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);

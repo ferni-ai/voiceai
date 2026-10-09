@@ -513,8 +513,8 @@ export class InsightsView {
   }
 
   show(): void {
+    if (!this.container) this.initialize(); // its button can beat the deferred init
     if (!this.container) return;
-
     this.visible = true;
     this.container.classList.add('insights-view--visible');
     this.container.setAttribute('aria-hidden', 'false');
