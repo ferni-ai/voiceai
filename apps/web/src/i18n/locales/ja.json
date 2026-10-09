@@ -2969,7 +2969,13 @@
     "tryDifferentAccount": "別のアカウントを試す",
     "checkingAccess": "アクセス権を確認中...",
     "checkingLabel": "少々お待ちください...",
-    "signInError": "サインインがキャンセルされたか、失敗しました。もう一度お試しください。"
+    "signInError": "サインインがキャンセルされたか、失敗しました。もう一度お試しください。",
+    "verifyEmailTitle": "メールアドレスを確認しましょう",
+    "verifyEmailMessage": "お届けしたメールのリンクを開いて、もう一度サインインしてくださいね。",
+    "noEmailTitle": "メールアドレスが必要です",
+    "noEmailMessage": "このアカウントにはメールアドレスが登録されていないようです。メールアドレスが登録されているアカウントでサインインしてみてくださいね。",
+    "checkFailedTitle": "うまく確認できませんでした",
+    "checkFailedMessage": "システムで少し問題が発生してしまったようです。少し時間をおいてから、もう一度試してみてくださいね。"
   },
   "visualizations": {
     "lifeSeasons": "あなたの人生の季節",

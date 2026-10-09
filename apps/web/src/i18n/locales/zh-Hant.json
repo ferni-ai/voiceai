@@ -2969,7 +2969,13 @@
     "tryDifferentAccount": "嘗試其他帳號",
     "checkingAccess": "正在檢查你的存取權限...",
     "checkingLabel": "請稍等一下...",
-    "signInError": "登入已取消或失敗。請再試一次。"
+    "signInError": "登入已取消或失敗。請再試一次。",
+    "verifyEmailTitle": "驗證你的電子郵件",
+    "verifyEmailMessage": "請點擊我們寄到你信箱的連結，然後重新登入。",
+    "noEmailTitle": "我們需要你的電子郵件地址",
+    "noEmailMessage": "這個帳號沒有設定電子郵件。請改用有電子郵件的帳號登入。",
+    "checkFailedTitle": "我們無法確認你的存取權限",
+    "checkFailedMessage": "我們這邊出了點小狀況。請稍等一下再試一次。"
   },
   "visualizations": {
     "lifeSeasons": "你的生命季節",

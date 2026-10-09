@@ -2969,7 +2969,13 @@
     "tryDifferentAccount": "Anderes Konto versuchen",
     "checkingAccess": "Dein Zugang wird überprüft...",
     "checkingLabel": "Einen kleinen Moment...",
-    "signInError": "Die Anmeldung wurde abgebrochen oder ist fehlgeschlagen. Bitte versuche es noch einmal."
+    "signInError": "Die Anmeldung wurde abgebrochen oder ist fehlgeschlagen. Bitte versuche es noch einmal.",
+    "verifyEmailTitle": "Bestätige deine E-Mail",
+    "verifyEmailMessage": "Öffne einfach den Link, den wir dir per E-Mail geschickt haben, und melde dich dann noch einmal an.",
+    "noEmailTitle": "Wir brauchen eine E-Mail-Adresse",
+    "noEmailMessage": "Dieser Account hat keine E-Mail-Adresse. Melde dich bitte mit einem Account an, der eine hat.",
+    "checkFailedTitle": "Wir konnten deinen Zugang leider nicht prüfen",
+    "checkFailedMessage": "Bei uns ist gerade etwas schiefgelaufen. Warte einen kurzen Moment und versuche es dann noch einmal."
   },
   "visualizations": {
     "lifeSeasons": "Deine Lebensjahreszeiten",
