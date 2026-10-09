@@ -586,7 +586,7 @@ function renderVoiceLibraryUI(voices: ReturnType<typeof getVoiceLibrary>): strin
         ${voices
           .map(
             (voice) => `
-          <button aria-label="${t('accessibility.moreInformation')}" 
+          <button 
             class="voice-card ${draft.selectedVoiceId === voice.id ? 'voice-card--selected' : ''}" 
             data-voice-id="${voice.id}"
           >
@@ -603,7 +603,7 @@ function renderVoiceLibraryUI(voices: ReturnType<typeof getVoiceLibrary>): strin
                 ${voice.tags.map((tag) => `<span class="voice-tag">${t(`voiceLibrary.tags.${tag}`, tag)}</span>`).join('')}
               </div>
             </div>
-            <button class="voice-preview-btn" data-preview="${voice.previewUrl}" aria-label="${t('accessibility.moreInformation')}">
+            <button class="voice-preview-btn" data-preview="${voice.previewUrl}" aria-label="${t('accessibility.preview')}">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>

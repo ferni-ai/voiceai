@@ -1192,7 +1192,7 @@ function renderTwinsList(): string {
         : '';
 
       return `
-        <button aria-label="${t('accessibility.goForward')}" class="digital-twin-card" data-twin-id="${twin.id}">
+        <button class="digital-twin-card" data-twin-id="${twin.id}">
           <div class="digital-twin-card__avatar">
             ${ICONS.journal}
             ${streakBadge}

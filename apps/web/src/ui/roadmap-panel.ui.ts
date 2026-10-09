@@ -280,7 +280,7 @@ class RoadmapPanelUI {
           </div>
 
           <!-- Suggest a Feature Button -->
-          <button aria-label=") || '5 seeds'}" class="roadmap-panel__suggest-btn" ${seedBalance < 5 ? 'disabled' : ''}>
+          <button class="roadmap-panel__suggest-btn" ${seedBalance < 5 ? 'disabled' : ''}>
             <span class="roadmap-panel__suggest-icon">${ICONS.lightbulb}</span>
             <span class="roadmap-panel__suggest-text">${t('roadmap.plantNewSeed') || 'Plant a New Seed'}</span>
             <span class="roadmap-panel__suggest-cost">${t('roadmap.costSeeds', { count: 5 }) || '5 seeds'}</span>
@@ -438,7 +438,7 @@ class RoadmapPanelUI {
     const totalSeeds = feature.totalSeeds || 0;
 
     return `
-      <button aria-label="${t('accessibility.goForward')}" class="roadmap-card" data-feature-id="${feature.id}" data-stage="${feature.stage}">
+      <button class="roadmap-card" data-feature-id="${feature.id}" data-stage="${feature.stage}">
         <div class="roadmap-card__header">
           <div class="roadmap-card__icon">${featureIcon}</div>
           <span class="roadmap-card__stage ${stageInfo.colorClass}">
@@ -605,7 +605,7 @@ class RoadmapPanelUI {
               `}
 
               ${hasVoted ? `
-                <button aria-label="()" class="roadmap-detail__remove-btn"
+                <button class="roadmap-detail__remove-btn"
                         data-action="unplant"
                         data-feature="${feature.id}">
                   ${t('roadmap.removeSeeds') || 'Remove my seeds'} (${t('roadmap.refund50') || '50% refund'})

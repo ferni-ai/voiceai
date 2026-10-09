@@ -1170,14 +1170,14 @@ class CalendarViewUI {
     return `
       <div class="calendar-view__month">
         <div class="calendar-view__month-nav">
-          <button aria-label="${t('accessibility.goBack')}" class="calendar-view__month-btn" data-action="prev-month">
+          <button aria-label="${t('accessibility.previousMonth')}" class="calendar-view__month-btn" data-action="prev-month">
             ${ICONS.chevronLeft}
           </button>
           <div class="calendar-view__month-label">
             <span class="calendar-view__month-name">${monthName}</span>
             <span class="calendar-view__month-year">${year}</span>
           </div>
-          <button aria-label="${t('accessibility.goForward')}" class="calendar-view__month-btn" data-action="next-month">
+          <button aria-label="${t('accessibility.nextMonth')}" class="calendar-view__month-btn" data-action="next-month">
             ${ICONS.chevronRight}
           </button>
         </div>

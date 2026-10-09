@@ -261,7 +261,7 @@ class IntegrationsSettingsUI {
                     <span class="integrations-settings__coming-soon-badge">${t('integrationsSettings.notAvailableYet')}</span>
                   </div>
                   ` : `
-                  <button aria-label="${t('accessibility.goForward')}" class="integrations-settings__platform-btn" data-action="connect-biometrics" data-platform="${p.id}">
+                  <button class="integrations-settings__platform-btn" data-action="connect-biometrics" data-platform="${p.id}">
                     <span class="integrations-settings__platform-icon">${icon}</span>
                     <span>${p.name}</span>
                     ${ICONS.chevronRight}
