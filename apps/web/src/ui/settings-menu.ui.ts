@@ -23,7 +23,7 @@ import {
 } from '../services/relationship-stage.service.js';
 // Team unlock service - for gating marketplace behind full team unlock
 import { isFullTeamUnlocked } from '../services/team-unlock.service.js';
-import { signOutOfThisBrowser } from '../services/sign-out.js';
+import { signOutOfThisBrowser } from './sign-out.js';
 // Roadmap service - for "What's Growing" experience
 import { roadmapService } from '../services/roadmap.service.js';
 import { showRoadmapPanel } from './roadmap-panel.ui.js';

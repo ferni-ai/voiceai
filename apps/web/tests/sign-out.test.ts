@@ -13,7 +13,7 @@ vi.mock('../src/services/push-preference.js', () => ({ signOutReleasingPush }));
 const toast = { error: vi.fn(), success: vi.fn() };
 vi.mock('../src/ui/whisper.ui.js', () => ({ toast }));
 
-const { signOutOfThisBrowser } = await import('../src/services/sign-out.js');
+const { signOutOfThisBrowser } = await import('../src/ui/sign-out.js');
 
 beforeEach(() => {
   vi.clearAllMocks();

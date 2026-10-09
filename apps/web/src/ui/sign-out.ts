@@ -12,9 +12,9 @@
 
 import { clearAllUserData } from '../config/storage-keys.js';
 import { t } from '../i18n/index.js';
-import { toast } from '../ui/whisper.ui.js';
+import { toast } from './whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
-import { signOutReleasingPush } from './push-preference.js';
+import { signOutReleasingPush } from '../services/push-preference.js';
 
 const log = createLogger('SignOut');
 
