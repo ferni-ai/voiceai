@@ -3,9 +3,9 @@
  *
  * ~70 routes call rateLimit() with its default key. The synchronous
  * authenticate() behind it can't verify Firebase tokens, so every signed-in
- * user was keyed by IP, and most routes share that one key: everyone behind an
+ * person was keyed by IP, and most routes share that one key: everyone behind an
  * office or carrier address drew from a single bucket across routes. The e2e
- * walk saw 429s on profile, rituals and journal with a fresh user per test.
+ * walk saw 429s on profile, rituals and journal with a fresh account per test.
  *
  * Real bindVerifiedIdentity + real rateLimit; only token verification is mocked.
  */

@@ -549,7 +549,7 @@ export function rateLimit(
   const auth = authenticate(req);
   const defaultTier = getRateLimitTier(auth);
 
-  // SECURITY: key by a verified user id (sync auth, else the uid the server verified at the
+  // SECURITY: key by a verified person's id (sync auth, else the uid verified at the
   // door), else getClientIp, never the raw X-Forwarded-For a caller can spoof
   const uid = auth?.userId ?? rateLimitUid(req);
   const {
