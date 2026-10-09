@@ -54,7 +54,17 @@ describe('initVisualSystems', () => {
         throw new Error('color boom');
       },
     }));
-    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const logError = vi.fn();
+    vi.doMock('../../src/utils/logger.js', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('../../src/utils/logger.js')>();
+      return {
+        ...actual,
+        createLogger: (namespace: string) =>
+          namespace === 'VisualSystems'
+            ? { ...actual.createLogger(namespace), error: logError }
+            : actual.createLogger(namespace),
+      };
+    });
     const fresh = await import('../../src/app/visual-systems.js');
     const freshSystems = await import('../../src/systems/index.js');
 
@@ -62,11 +72,11 @@ describe('initVisualSystems', () => {
       expect(() => fresh.initVisualSystems('ferni')).not.toThrow();
       expect(rootVar('--breath-phase')).not.toBe('');
       expect(document.getElementById('mood-typography-styles')).not.toBeNull();
-      expect(errors.mock.calls.flat().join(' ')).toContain('color system');
+      expect(logError).toHaveBeenCalledWith('Failed to start color system', expect.any(Error));
     } finally {
       freshSystems.destroyTranscendentSystems();
-      errors.mockRestore();
       vi.doUnmock('../../src/ui/color/index.js');
+      vi.doUnmock('../../src/utils/logger.js');
     }
   });
 
