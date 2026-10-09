@@ -49,6 +49,11 @@ export const LONG_QUIET: PresenceTiming = { minTurns: 3, quietMs: [18000, 26000]
 
 const HEAVY = /^(sad|hurt|anxious|fearful|scared|angry|grief|distressed)$/i;
 
+/** Their voice read sad, anxious, scared or angry: no playful sounds. */
+export function isHeavyMood(mood: string | undefined): boolean {
+  return HEAVY.test(mood ?? '');
+}
+
 export interface PresenceDeps {
   play: () => boolean;
   stop: () => void;
@@ -82,7 +87,7 @@ export function createPresenceWatcher(deps: PresenceDeps, timing: PresenceTiming
     timer = setT(() => {
       timer = null;
       if (whistled || agent !== 'listening' || user === 'speaking') return;
-      if (HEAVY.test(deps.mood() ?? '')) return;
+      if (isHeavyMood(deps.mood())) return;
       if (rng() >= chance) return;
       if (deps.play()) {
         whistled = true;
