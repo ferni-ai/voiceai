@@ -246,6 +246,29 @@ describe('command palette', () => {
     });
   });
 
+  describe('once closed', () => {
+    const palette = (): HTMLElement => document.querySelector<HTMLElement>('.command-palette')!;
+
+    it('is inert, so it is out of the tab order and cannot keep focus', () => {
+      expect(palette().inert).toBe(true);
+      openPalette();
+      expect(palette().inert).toBe(false);
+      press('Escape', {}, input());
+      expect(palette().inert).toBe(true);
+    });
+
+    it("does not swallow an Escape meant for whatever the command opened", () => {
+      openPalette();
+      press('Escape', {}, input()); // close it
+      const pageEscape = vi.fn();
+      document.addEventListener('keydown', pageEscape);
+      // Focus could linger in the search box (body.focus() can't take it back)
+      press('Escape', {}, input());
+      document.removeEventListener('keydown', pageEscape);
+      expect(pageEscape).toHaveBeenCalledOnce();
+    });
+  });
+
   describe('lifecycle', () => {
     it('removes orphaned palettes on re-init (HMR) and unbinds Cmd+K on dispose', () => {
       disposeCommandPalette();
