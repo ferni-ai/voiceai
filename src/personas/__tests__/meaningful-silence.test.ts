@@ -253,6 +253,62 @@ describe('Meaningful Silence System', () => {
     });
   });
 
+  describe('topic callback selection', () => {
+    // topicsDiscussed arrives newest-first: the voice agent builds it as
+    // [lastTopic, ...older] (transcript-handler.ts, session-state-handler.ts).
+    const mockPersona = { id: 'ferni', name: 'Ferni', stories: [] } as any;
+
+    async function topicCallback(topicsDiscussed: string[]): Promise<string> {
+      const { getMeaningfulSilenceResponse } = await import('../meaningful-silence.js');
+      // 0 passes the topic-callback gate (< 0.4) and picks the first template.
+      const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+      try {
+        const response = getMeaningfulSilenceResponse(mockPersona, {
+          silenceDurationSeconds: 20,
+          turnCount: 5,
+          topicsDiscussed,
+          memorableMoments: [],
+          recentEmotionalTone: 'neutral',
+        });
+        expect(response.type).toBe('memory_callback');
+        return response.text;
+      } finally {
+        random.mockRestore();
+      }
+    }
+
+    it('does not reorder the caller topicsDiscussed array', async () => {
+      const topics = ['work', 'family', 'gardening'];
+
+      await topicCallback(topics);
+
+      expect(topics).toEqual(['work', 'family', 'gardening']);
+    });
+
+    it('calls back to the most recent personal topic', async () => {
+      const text = await topicCallback(['health', 'family']);
+
+      expect(text).toContain('health');
+      expect(text).not.toContain('family');
+    });
+
+    it('picks the same topic on repeated callbacks', async () => {
+      const topics = ['health', 'family'];
+
+      const first = await topicCallback(topics);
+      const second = await topicCallback(topics);
+
+      expect(second).toBe(first);
+    });
+
+    it('falls back to the most recent topic when none are personal', async () => {
+      const text = await topicCallback(['gardening', 'weather']);
+
+      expect(text).toContain('gardening');
+      expect(text).not.toContain('weather');
+    });
+  });
+
   describe('extractMemorableMoments', () => {
     it('should extract family mentions', async () => {
       const { extractMemorableMoments } = await import('../meaningful-silence.js');

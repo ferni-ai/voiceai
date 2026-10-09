@@ -1449,7 +1449,7 @@ function getGameSuggestion(personaId: string): string | null {
 /**
  * Select the most interesting/personal topic to call back to
  */
-function selectBestTopicForCallback(topics: string[]): string | null {
+function selectBestTopicForCallback(topics: readonly string[]): string | null {
   // Prioritize personal/emotional topics
   const personalTopics = [
     'family',
@@ -1471,16 +1471,16 @@ function selectBestTopicForCallback(topics: string[]): string | null {
     'fear',
   ];
 
-  for (const topic of topics.reverse()) {
-    // Check recent topics first
+  // topics is the session's live list, newest-first ([lastTopic, ...older])
+  for (const topic of topics) {
     const lowerTopic = topic.toLowerCase();
     if (personalTopics.some((p) => lowerTopic.includes(p))) {
       return topic;
     }
   }
 
-  // Fall back to any topic
-  return topics.length > 0 ? topics[topics.length - 1] : null;
+  // Fall back to the most recent topic
+  return topics.length > 0 ? topics[0] : null;
 }
 
 /**
