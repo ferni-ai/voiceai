@@ -713,7 +713,8 @@ class NotificationSettingsUI {
     // Each toggle is a real checkbox: make it the switch, named by its row's label
     this.panel.querySelectorAll<HTMLInputElement>('.notif-settings__toggle input').forEach((input) => {
       input.setAttribute('role', 'switch');
-      const label = input.closest('.notif-settings__capability-row')?.querySelector('.notif-settings__label');
+      const row = input.closest('.notif-settings__capability-row, .notif-settings__row');
+      const label = row?.querySelector('.notif-settings__label');
       if (label?.textContent) input.setAttribute('aria-label', label.textContent.trim());
     });
     this.panel.querySelectorAll('[data-pref]').forEach((input) => {
@@ -1115,6 +1116,7 @@ class NotificationSettingsUI {
       .notif-settings__toggle-track {
         position: absolute;
         inset: 0;
+        pointer-events: none; /* drawing only: clicks land on the switch underneath */
         background: var(--color-background-tertiary, #ebe6df);
         border-radius: var(--radius-full, 9999px);
         transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
