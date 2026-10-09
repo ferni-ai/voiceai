@@ -31,6 +31,11 @@ import {
 } from '../../memory/recall/session-recall.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { formatLedger, loadLedger, type LedgerStore } from '../personas/life-ledger.js';
+import {
+  formatLifeUpdates,
+  loadLifeUpdates,
+  type LifeUpdateDeps,
+} from '../personas/life-updates.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
@@ -71,6 +76,8 @@ export interface MemoryRecallDeps {
   store?: RecallStore;
   /** What Ferni told this caller about himself on earlier calls (life-ledger.ts). */
   ledgerStore?: LedgerStore;
+  /** What has happened in his life since (life-updates.ts, LIFE_MOVES_ON). */
+  lifeUpdates?: LifeUpdateDeps;
 }
 
 export interface MemoryRecall {
@@ -100,9 +107,11 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const entitiesThisTurn = new Map<string, number>();
 
   let ledgerNote: string | null = null;
-  const ready = Promise.all([
+  let sinceNote: string | null = null;
+  const ledger = loadLedger(deps.userId, 'ferni', deps.ledgerStore);
+  const loaded = Promise.all([
     loadRecallSnapshot(deps.store ?? firestoreRecallStore, deps.userId),
-    loadLedger(deps.userId, 'ferni', deps.ledgerStore),
+    ledger,
   ]).then(([s, told]) => {
     snapshot = s;
     ledgerNote = formatLedger(told, deps.userName);
@@ -116,6 +125,14 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       'Recall snapshot loaded'
     );
   });
+  // Written by a model, so it never holds up the snapshot; it joins the first
+  // note only if it is ready by then. Never rejects.
+  const since = ledger
+    .then((told) => loadLifeUpdates(deps.userId, told, 'ferni', deps.lifeUpdates))
+    .then((updates) => {
+      sinceNote = formatLifeUpdates(updates);
+    });
+  const ready = Promise.all([loaded, since]).then(() => undefined);
 
   return {
     ready,
@@ -129,7 +146,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           : [];
       const followUps = followUpsOffered ? [] : snapshot.followUps;
       // The ledger, like the follow-ups, comes once, with the first note.
-      const told = followUpsOffered ? null : ledgerNote;
+      const told = followUpsOffered
+        ? null
+        : [ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
       const note =
         [formatRecall(facts, followUps, deps.userName), told].filter(Boolean).join('\n\n') || null;
       if (!note) return null;
