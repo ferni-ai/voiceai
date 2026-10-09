@@ -55,7 +55,10 @@ export function callerTurn(items: readonly ItemView[]): string | null {
     if (item.type === 'function_call' || item.type === 'function_call_output') return null;
     if (item.type !== 'message') continue;
     if (item.role === 'assistant') break;
-    const text = item.textContent ?? '';
+    // Per-turn reminders ride on the caller's message after a blank line
+    // (withTurnStyleReminder); spoken words never hold a newline. Live, the
+    // reminder's "a friend on a call" sent every turn to the main model.
+    const text = (item.textContent ?? '').split('\n')[0];
     if (item.role === 'user' && !text.startsWith(TURN_CONTEXT_HEADER)) said.unshift(text);
   }
   return said.join(' ').trim();
