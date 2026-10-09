@@ -44,7 +44,7 @@ on:
         default: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   API_URL: ${{ secrets.API_URL || 'https://john-bogle-ui-1031920444452.us-central1.run.app' }}
 
 jobs:

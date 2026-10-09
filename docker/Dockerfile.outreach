@@ -8,7 +8,7 @@
 # reserved word") and trips on native .node binaries. It also installed with
 # npm, which can't resolve this pnpm workspace's workspace:* dependencies.
 
-FROM node:20-slim
+FROM node:22-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/* \

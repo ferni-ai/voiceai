@@ -39,7 +39,7 @@ const CONFIG = {
   schedulerJobName: 'outreach-check',
   schedule: '0/15 * * * *', // Every 15 minutes
   timezone: 'America/New_York',
-  runtime: 'nodejs20',
+  runtime: 'nodejs22',
   timeout: '300s',
   memory: '512MB',
 };
