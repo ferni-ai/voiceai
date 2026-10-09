@@ -18,8 +18,28 @@
 
 import { extrasFor } from './turn-extras.js';
 
-export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share';
+export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
+
+/**
+ * Things only a tool knows: weather, news, scores, travel times, places
+ * nearby. Read as "share", these questions got "one short sentence, your own
+ * take" and Ferni answered from nothing: "pretty solid rain all weekend", "the
+ * Dodgers actually pulled it off, wait, no, they lost", "about four hours" to
+ * Zion from St. George (real: one), with the weather, news and search tools in
+ * the request (local A/B, 2026-10-08).
+ */
+const LIVE_TOPIC =
+  /\b(weather|forecast|rain(ing)?|snow(ing)?|temperature|news|headlines?|who won|scores?|standings|did (the )?\w+( \w+)? (win|lose)|game (today|tonight|last night)|traffic|commute|drive|driving|how far|flights?|nearby|near (me|here)|around here|open (now|late|today)|stock price|price of)\b/i;
+/**
+ * Asked, not told ("It rained all weekend" is the caller's news): a question
+ * mark, or a question word after at most a couple of lead-in words ("Hey!
+ * Quick one, what's..."), for transcripts that drop the question mark.
+ */
+const ASKED =
+  /\?|^\W*(is|are|will|did|does|can you|could you)\b|^\W*([\w']+[.!,]?\s+){0,3}(what|what's|whats|who|when|where|how|any|anything)\b/i;
+
+const isLookup = (t: string): boolean => LIVE_TOPIC.test(t) && ASKED.test(t);
 
 const ASKS_FOR_MORE =
   /\b(explain|walk me through|step by step|tell me (a|about|again|more)|plan|ideas|suggest|recommend|advice|what should i|how (do|should|can|would) (i|we)|help me|how does|why (do|does|is|did))\b/i;
@@ -32,6 +52,7 @@ export function callerMove(text: string): CallerMove {
   const t = text.trim();
   const words = t.split(/\s+/).filter(Boolean).length;
   if (words <= 3 && ACK.test(t)) return 'ack';
+  if (isLookup(t)) return 'lookup';
   if (ASKS_FOR_MORE.test(t)) return 'request';
   if (ABOUT_FERNI.test(t)) return 'about_ferni';
   return 'share';
@@ -56,6 +77,7 @@ const SHAPE_ODDS: Record<CallerMove, Array<[Shape, number]>> = {
     ['answer', 0.6],
     ['full', 0.4],
   ],
+  lookup: [['answer', 1]],
 };
 
 const SHAPE_LINE: Record<Shape, string> = {
@@ -129,10 +151,23 @@ export interface TurnShape {
   extras: string[];
 }
 
+/**
+ * A look-up reply: the facts from a tool, said plainly. No story of his own,
+ * no stance, no rough self-correction (that is how "wait, no, they lost" came
+ * out), no question.
+ */
+const LOOKUP =
+  'They asked about something live that you have to look up: if you have no tool result for it yet, call the tool for it now and answer from what it returns. ' +
+  "Never state a forecast, score, headline, price, opening hour or travel time that you didn't get from a tool on this call; if no tool can get it, say you can't check that right now.";
+
 /** The reminder for one reply to `userText`. */
 export function turnShapeFor(userText: string, rng: () => number = Math.random): TurnShape {
   const move = callerMove(userText);
   const shape = pickShape(move, rng);
+  if (move === 'lookup') {
+    const reminder = [REGISTER, LOOKUP, SHAPE_LINE[shape], QUESTION_LINE.none].join(' ');
+    return { move, shape, reminder, extras: [] };
+  }
   // The shape goes last, nearest the reply: first, behind the register lines,
   // it was diluted (replay: 5% of replies 6 words or fewer).
   const parts = [REGISTER];
