@@ -5,6 +5,7 @@
  * Uses shared rate limiting from src/servers/token/demo-rate-limit.ts
  */
 
+import { getProfileStore } from '../../../memory/profile-store.js';
 import { isValidTimeZone } from '../../../agents/shared/time-context.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { rateLimit } from '../../../api/auth-middleware.js';
@@ -553,8 +554,7 @@ export async function handleTokenRoutes(
 
       if (firebaseUid && !preferred_accent) {
         try {
-          const { getDefaultStore } = await import('../../../memory/index.js');
-          const store = getDefaultStore();
+          const store = await getProfileStore();
           const profile = await store.getProfile(firebaseUid);
           if (profile?.preferences?.preferredAccent) {
             savedAccent = profile.preferences.preferredAccent;

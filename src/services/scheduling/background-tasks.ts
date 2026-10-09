@@ -19,9 +19,9 @@
  * Persistence: Stored with user profile in Firestore
  */
 
+import { getProfileStore } from '../../memory/profile-store.js';
 import { EventEmitter } from 'events';
 
-import { getDefaultStore } from '../../memory/index.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -309,7 +309,7 @@ class BackgroundTaskService extends EventEmitter {
     }
 
     // Try to load from storage
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(userId);
 
     const backgroundData: BackgroundData = (
@@ -357,7 +357,7 @@ class BackgroundTaskService extends EventEmitter {
 
   private async persistUserData(userId: string, data: BackgroundData): Promise<void> {
     try {
-      const store = getDefaultStore();
+      const store = await getProfileStore();
       const profile = await store.getProfile(userId);
       if (profile) {
         (profile as UserProfile & { backgroundData?: BackgroundData }).backgroundData = data;

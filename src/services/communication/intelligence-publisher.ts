@@ -9,6 +9,7 @@
  * @module services/intelligence-publisher
  */
 
+import { getProfileStore } from '../../memory/profile-store.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -125,8 +126,7 @@ async function getPubSubTopic(): Promise<unknown> {
 // ============================================================================
 
 async function queueToFirestore(event: IntelligenceEvent): Promise<void> {
-  const { getDefaultStore } = await import('../../memory/index.js');
-  const store = getDefaultStore();
+  const store = await getProfileStore();
 
   if (!store) {
     log.warn('No store available for intelligence queue');

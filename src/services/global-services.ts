@@ -5,6 +5,7 @@
  * These services are shared across all sessions.
  */
 
+import { getProfileStore } from '../memory/profile-store.js';
 import { getDefaultStore, getVectorStore, initializeMemorySystem } from '../memory/index.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { stopAllAutoSaves } from './intelligence-persistence.js';
@@ -223,7 +224,7 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
     getLogger().error(`Failed to initialize services: ${error}`);
 
     // Fallback - create with basic stores
-    const fallbackStore = getDefaultStore();
+    const fallbackStore = await getProfileStore();
     setGlobalStore(fallbackStore);
 
     // Still try to init productivity store in fallback
