@@ -36,9 +36,9 @@ for (const action of ACTIONS) {
 
     if (action === 'settings') {
       // The settings menu itself; the walk covers what it opens
-      await expect(page.locator('.settings-menu')).toBeVisible();
+      await expect(page.locator('.settings-menu--visible')).toBeVisible();
       await page.keyboard.press('Escape');
-      await expect(page.locator('.settings-menu')).toBeHidden({ timeout: 5_000 });
+      await expect(page.locator('.settings-menu--visible')).toHaveCount(0, { timeout: 5_000 });
       expect(problems.take(), 'settings raised problems').toEqual([]);
       return;
     }

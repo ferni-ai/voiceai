@@ -61,7 +61,7 @@ export async function openSettingsMenu(page: Page): Promise<void> {
   const viaSheet = await trigger.evaluate((el) => el.classList.contains('mobile-menu-trigger'));
   await trigger.click();
   if (viaSheet) await page.locator('.mobile-bottom-sheet [data-action="settings"]').click();
-  await expect(page.locator('.settings-menu')).toBeVisible();
+  await expect(page.locator('.settings-menu--visible')).toBeVisible();
 }
 
 /** Wait until the signed-in home screen is usable. */

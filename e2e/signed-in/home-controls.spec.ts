@@ -101,8 +101,9 @@ test('command palette: named, filters as you type, runs a command, closes', asyn
   await expect(options.first()).toContainText(/settings/i);
 
   await page.keyboard.press('Enter');
-  await expect(page.locator('.settings-menu')).toBeVisible();
+  await expect(page.locator('.settings-menu--visible')).toBeVisible(); // the command runs just after the palette closes
   await page.keyboard.press('Escape');
+  await expect(page.locator('.settings-menu--visible')).toHaveCount(0);
 
   const again = await openPalette(page);
   const id = (await again.getAttribute('data-e2e-dialog')) as string;
