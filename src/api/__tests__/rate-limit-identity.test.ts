@@ -50,12 +50,18 @@ describe('rateLimitUid', () => {
     expect(verifyFirebaseToken).toHaveBeenCalledTimes(2);
   });
 
-  it('stops verifying a flood of unseen tokens from one address', async () => {
+  it('never caches a rejected token, so junk cannot crowd out real users', async () => {
+    verifyFirebaseToken.mockResolvedValue(valid('uid-a'));
+    await rateLimitUid(req('Bearer real'), NOW);
     verifyFirebaseToken.mockResolvedValue(null);
-    for (let i = 0; i < 40; i++) expect(await rateLimitUid(req(`Bearer junk-${i}`), NOW)).toBeNull();
-    expect(verifyFirebaseToken.mock.calls.length).toBeLessThanOrEqual(30);
-    // another address still gets its tokens verified
-    verifyFirebaseToken.mockResolvedValue(valid('uid-c'));
-    expect(await rateLimitUid(req('Bearer real', '192.0.2.50'), NOW)).toBe('uid-c');
+    for (let i = 0; i < 50; i++) expect(await rateLimitUid(req(`Bearer junk-${i}`), NOW)).toBeNull();
+    verifyFirebaseToken.mockClear();
+    expect(await rateLimitUid(req('Bearer real'), NOW)).toBe('uid-a');
+    expect(verifyFirebaseToken).not.toHaveBeenCalled();
+  });
+
+  it('does not key anything on the client address, which callers can spoof', async () => {
+    verifyFirebaseToken.mockResolvedValue(valid('uid-a'));
+    for (let i = 0; i < 60; i++) expect(await rateLimitUid(req(`Bearer t-${i}`, '203.0.113.9'), NOW)).toBe('uid-a');
   });
 });

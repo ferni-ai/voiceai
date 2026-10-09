@@ -10,24 +10,14 @@
 
 import type { IncomingMessage } from 'http';
 import { isVerifiedToken, verifyFirebaseToken } from '../services/identity/firebase-auth.js';
-import { getClientIp } from '../utils/ddos-protection.js';
-import { checkRateLimit } from './auth-middleware.js';
 
-/** How long a rejected token stays rejected before it is checked again */
-const INVALID_TTL_MS = 30_000;
 /** Stop trusting a cached uid this long before its token expires */
 const EXPIRY_MARGIN_MS = 60_000;
 const MAX_ENTRIES = 10_000;
-/**
- * Unseen tokens one IP may have verified per minute. Verification runs before
- * the limiter, so without this a stream of random tokens is free work; past
- * the budget a request is simply limited by its IP.
- */
-const VERIFY_BUDGET_PER_IP = 30;
 
-const cache = new Map<string, { uid: string | null; until: number }>();
+const cache = new Map<string, { uid: string; until: number }>();
 
-function remember(token: string, uid: string | null, until: number): void {
+function remember(token: string, uid: string, until: number): void {
   if (cache.size >= MAX_ENTRIES) {
     // Maps iterate in insertion order: drop the oldest entry
     const oldest = cache.keys().next().value;
@@ -44,21 +34,19 @@ export async function rateLimitUid(req: IncomingMessage, now = Date.now()): Prom
 
   const hit = cache.get(token);
   if (hit && hit.until > now) return hit.uid;
-  if (!checkRateLimit(`verify-token:${getClientIp(req)}`, VERIFY_BUDGET_PER_IP, 60_000).allowed) return null;
 
-  let uid: string | null = null;
-  let until = now + INVALID_TTL_MS;
+  // Verification is a signature check against cached Google keys: cheap enough to
+  // run per unseen token. Nothing here is keyed on the client IP, which a caller
+  // can spoof through X-Forwarded-For to lock someone else out.
   try {
     const result = await verifyFirebaseToken(token);
-    if (isVerifiedToken(result)) {
-      uid = result.uid;
-      until = Math.max(now, result.expiresAt * 1000 - EXPIRY_MARGIN_MS);
-    }
+    if (!isVerifiedToken(result)) return null;
+    // Only real tokens are cached, so a flood of junk can't evict them
+    remember(token, result.uid, Math.max(now, result.expiresAt * 1000 - EXPIRY_MARGIN_MS));
+    return result.uid;
   } catch {
-    // Verification unavailable: fall back to the IP key, never fail the request here
+    return null; // verification unavailable: limited by IP, never failed here
   }
-  remember(token, uid, until);
-  return uid;
 }
 
 /** For tests */
