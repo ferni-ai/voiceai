@@ -115,12 +115,32 @@ test('gift: the seed amounts are announced as amounts', async ({ page }) => {
   await expect(panel.locator('[aria-pressed="true"][data-amount]'), 'the chosen amount is marked').toHaveCount(1);
 });
 
+/** A US 555 number no earlier run has used */
+const freshPhone = () => `+1 555 ${String(Date.now() % 10_000_000).padStart(7, '0')}`;
+
+async function addFamilyMember(page: Page, panel: import('@playwright/test').Locator, name: string, phone: string) {
+  await panel.locator('[data-action="add"]').click();
+  await panel.getByPlaceholder('e.g., Mom').fill(name);
+  await panel.getByPlaceholder('+1 555 123 4567').fill(phone);
+  await panel.locator('select').first().selectOption({ index: 1 });
+  await panel.locator('[data-action="save-new"]').click();
+}
+
+test('family phone access: a number already set up says so, not just "couldn\'t add"', async ({ page }) => {
+  const phone = freshPhone();
+  const panel = await openPanel(page, 'family-callers');
+  await addFamilyMember(page, panel, 'Uncle Lee', phone);
+  await expect(panel).toContainText('Uncle Lee', { timeout: 10_000 });
+  await addFamilyMember(page, panel, 'Uncle Lee again', phone);
+  await expect(page.getByText(/already set up for someone else/i)).toBeVisible({ timeout: 10_000 });
+});
+
 test('family phone access: an added family member is listed and kept', async ({ page }) => {
   const problems = watchProblems(page);
   let panel = await openPanel(page, 'family-callers');
   await panel.locator('[data-action="add"]').click();
   await panel.getByPlaceholder('e.g., Mom').fill('Aunt Robin');
-  await panel.getByPlaceholder('+1 555 123 4567').fill('+1 555 010 0199');
+  await panel.getByPlaceholder('+1 555 123 4567').fill(freshPhone()); // a number belongs to one identity
   await panel.locator('select').first().selectOption({ index: 1 });
   await panel.locator('[data-action="save-new"]').click();
   await expect(panel).toContainText('Aunt Robin', { timeout: 10_000 });

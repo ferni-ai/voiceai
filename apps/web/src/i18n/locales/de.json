@@ -3495,7 +3495,8 @@
       "load": "Deine Familie konnte nicht geladen werden. Erneut versuchen?",
       "add": "Hinzufügen fehlgeschlagen. Erneut versuchen?",
       "save": "Speichern fehlgeschlagen. Erneut versuchen?",
-      "remove": "Entfernen fehlgeschlagen. Erneut versuchen?"
+      "remove": "Entfernen fehlgeschlagen. Erneut versuchen?",
+      "phoneInUse": "Diese Nummer ist bereits für jemand anderen eingerichtet."
     },
     "calls": {
       "one": "{count} Anruf",

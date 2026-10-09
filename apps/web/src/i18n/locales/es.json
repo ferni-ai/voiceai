@@ -3517,7 +3517,8 @@
       "load": "No pudimos cargar a tu familia. ¿Quieres volver a intentarlo?",
       "add": "No pudimos agregarle. ¿Quieres volver a intentarlo?",
       "save": "No pudimos guardar eso. ¿Quieres volver a intentarlo?",
-      "remove": "No pudimos eliminarle. ¿Quieres volver a intentarlo?"
+      "remove": "No pudimos eliminarle. ¿Quieres volver a intentarlo?",
+      "phoneInUse": "Ese número ya está configurado para otra persona."
     },
     "calls": {
       "one": "{count} llamada",

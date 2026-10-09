@@ -16,6 +16,7 @@
  */
 
 import admin from 'firebase-admin';
+import { PhoneInUseError } from './phone-in-use-error.js';
 import { getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined, cleanForFirestore, toSafeDate, toSafeDateOptional } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -219,10 +220,9 @@ export async function createSponsoredIdentity(
 
   const normalizedPhone = normalizePhoneNumber(data.phoneNumber);
 
-  // Check if phone number is already registered
   const existing = await lookupByPhone(normalizedPhone);
   if (existing.found) {
-    throw new Error(`Phone number ${normalizedPhone} is already registered to another identity`);
+    throw new PhoneInUseError(normalizedPhone);
   }
 
   const id = `sponsored_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
@@ -347,7 +347,7 @@ export async function updateSponsoredIdentity(
     // Check if new phone is available
     const existing = await lookupByPhone(normalizedPhone);
     if (existing.found && existing.identity?.id !== id) {
-      throw new Error(`Phone number ${normalizedPhone} is already registered to another identity`);
+      throw new PhoneInUseError(normalizedPhone);
     }
 
     // Remove old phone index
