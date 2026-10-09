@@ -60,24 +60,21 @@ class ManageSubscriptionUI {
   private callbacks: ManageSubscriptionCallbacks = {};
   private userId: string | null = null;
   private status: SubscriptionStatus | null = null;
+  private openCount = 0;
 
-  /**
-   * Open the manage subscription modal
-   */
+  /** Open the manage subscription modal */
   async open(userId: string, callbacks: ManageSubscriptionCallbacks = {}): Promise<void> {
+    const opening = ++this.openCount;
     // Close any open modal first, so its onClose is the one it was opened with
     this.close();
+    this.injectStyles();
+    const status = await this.fetchStatus(userId);
+    // A later open() started while this status loaded: this result is stale, so it
+    // must not build a modal or show one person's status under another's
+    if (opening !== this.openCount) return;
     this.userId = userId;
     this.callbacks = callbacks;
-
-    // Inject styles
-    this.injectStyles();
-
-    // Fetch subscription status; an overlapping open() may have built a modal meanwhile
-    this.status = await this.fetchStatus(userId);
-    this.close();
-
-    // Create and show modal
+    this.status = status;
     this.createModal();
 
     log.debug('Manage subscription modal opened');

@@ -244,6 +244,27 @@ describe('reopening during the close animation keeps the new modal', () => {
     vi.advanceTimersByTime(1_000);
   });
 
+  it("manage subscription: a slow first open never shows its status under a later person's", async () => {
+    const { manageSubscriptionUI } = await import('../src/ui/manage-subscription.ui.js');
+    let finishAnn!: (s: unknown) => void;
+    getSubscriptionStatus.mockImplementation((id: string) =>
+      id === 'ann'
+        ? new Promise((resolve) => (finishAnn = resolve)) // Ann's answer is slow
+        : Promise.resolve({ tier: 'free', status: 'expired', provider: 'none' })
+    );
+    const annOpen = manageSubscriptionUI.open('ann');
+    await manageSubscriptionUI.open('bob'); // Bob opens while Ann's status loads
+    finishAnn({ tier: 'premium', status: 'active', provider: 'stripe' });
+    await annOpen;
+    vi.advanceTimersByTime(1_000);
+
+    const modals = document.querySelectorAll('.manage-sub');
+    expect(modals).toHaveLength(1);
+    expect(modals[0].querySelector('.manage-sub__plan-badge--premium')).toBeNull(); // Bob's free plan
+    manageSubscriptionUI.close();
+    vi.advanceTimersByTime(1_000);
+  });
+
   it('family', async () => {
     const family = await import('../src/ui/family-identities.ui.js');
     await family.show();
