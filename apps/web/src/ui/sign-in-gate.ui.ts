@@ -20,6 +20,7 @@ import {
 } from '../services/firebase-auth.service.js';
 import { createLogger } from '../utils/logger.js';
 import { checkAccess, type AccessOutcome } from '../services/access-check.js';
+import { emulatorSignInButtons } from './emulator-sign-in.js';
 import { t } from '../i18n/index.js';
 
 // TYPES
@@ -537,8 +538,7 @@ function createOverlay(): HTMLElement {
   appleText.textContent = t('auth.continueWithApple');
   appleBtn.appendChild(appleText);
 
-  buttonsDiv.appendChild(googleBtn);
-  buttonsDiv.appendChild(appleBtn);
+  buttonsDiv.append(googleBtn, appleBtn, ...emulatorSignInButtons((e) => log.error('Emulator sign-in failed:', e)));
 
   // Error container
   const errorDiv = document.createElement('div');
