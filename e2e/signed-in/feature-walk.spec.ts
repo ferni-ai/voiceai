@@ -25,7 +25,6 @@ const PANELS = [
   'gift',
   'invite',
   'commands',
-  'ritual',
   'calendar-settings',
   'notifications',
   'journal',
@@ -99,6 +98,53 @@ test.describe('every settings feature', () => {
       expect(problems.take(), `${action} raised problems`).toEqual([]);
     });
   }
+});
+
+test.describe('a feature that unlocks later', () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page, user);
+    await expectHome(page);
+  });
+
+  test('says why it is locked, and opens nothing', async ({ page }) => {
+    const problems = watchProblems(page);
+    await openMenu(page);
+    const ritual = page.locator('.settings-menu [data-action="ritual"]');
+    await expect(ritual).toHaveAttribute('aria-disabled', 'true');
+    await expect(ritual).toHaveAccessibleName(/build a ritual, .+/i); // the reason, not just the name
+    const before = await shownDialogs(page);
+    await ritual.click({ force: true }); // aria-disabled, but a person can still tap it
+    await page.waitForTimeout(1_000);
+    expect((await shownDialogs(page)).filter((d) => !before.includes(d))).toEqual([]);
+    expect(problems.take()).toEqual([]);
+  });
+
+  test('opens cleanly once the relationship reaches it', async ({ page }) => {
+    // The stage lives in the browser; a returning user's would already say this
+    await page.evaluate(() => {
+      const data = JSON.parse(localStorage.getItem('ferni_relationship') ?? '{}');
+      localStorage.setItem(
+        'ferni_relationship',
+        JSON.stringify({ ...data, stage: 'getting-started', lastUpdated: new Date().toISOString() })
+      );
+    });
+    await page.reload();
+    await expectHome(page);
+    const problems = watchProblems(page);
+    await openMenu(page);
+    const ritual = page.locator('.settings-menu [data-action="ritual"]');
+    await expect(ritual).not.toHaveAttribute('aria-disabled', 'true');
+    const before = await shownDialogs(page);
+    await ritual.click();
+
+    const panel = await newPanel(page, before, 'ritual');
+    const id = (await panel.getAttribute('data-e2e-dialog')) as string;
+    await page.waitForTimeout(1_500);
+    expect(await rawKeysOnScreen(page), 'raw i18n keys on screen').toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => isGone(page, id), { message: 'ritual did not close on Escape', timeout: 5_000 }).toBe(true);
+    expect(problems.take(), 'ritual raised problems').toEqual([]);
+  });
 });
 
 test('home screen loads without errors', async ({ page }) => {
