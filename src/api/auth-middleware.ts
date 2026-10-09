@@ -99,16 +99,8 @@ function getHeader(req: IncomingMessage, name: string): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-/**
- * Extract IP address from request (handles proxies)
- */
-function getClientIP(req: IncomingMessage): string {
-  return (
-    getHeader(req, 'X-Forwarded-For')?.split(',')[0]?.trim() ||
-    req.socket.remoteAddress ||
-    'unknown'
-  );
-}
+/** Client IP for auth-failure tracking: same trusted-proxy rule as rate limiting. */
+const getClientIP = getClientIp;
 
 // ============================================================================
 // AUTHENTICATION FUNCTIONS
