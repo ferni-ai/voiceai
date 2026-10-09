@@ -24,6 +24,7 @@
  */
 import type { IncomingMessage } from 'node:http';
 import { optionalAuthAsync } from '../../api/auth-middleware.js';
+import { rememberVerifiedUid } from '../../api/rate-limit-identity.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'RequestIdentity' });
@@ -58,6 +59,7 @@ export async function bindVerifiedIdentity(
       })
     : null;
   const uid = auth?.userId ?? null;
+  rememberVerifiedUid(req, uid); // rate limits count per person, not per IP
   const url = new URL(req.url || '/', 'http://local');
 
   // A verified admin (admin API key or admin claim) may act for a target user
