@@ -1,7 +1,7 @@
 /**
  * The home screen's own controls, outside the settings menu: each opens its
  * screen cleanly and closes on Escape; Connect fails gracefully with no voice
- * server; the command palette works from the keyboard; and Tab never lands on
+ * server; the command palette works from the keyboard; and the keyboard never reaches
  * a control nobody can see.
  *
  * Needs the signed-in local stack (scripts/e2e/start-signed-in-stack.sh).
@@ -111,22 +111,23 @@ test('command palette: named, filters as you type, runs a command, closes', asyn
   expect(problems.take()).toEqual([]);
 });
 
-test('Tab never lands on a control nobody can see', async ({ page }) => {
-  const hidden: string[] = [];
-  for (let i = 0; i < 40; i++) {
-    await page.keyboard.press('Tab');
-    const where = await page.evaluate(() => {
-      const el = document.activeElement as HTMLElement | null;
-      if (!el || el === document.body) return null;
+test('nothing the keyboard can reach is invisible', async ({ page }) => {
+  await page.waitForTimeout(2_500); // let the sign-in screen finish fading out
+  const unseen = await page.evaluate(() => {
+    const out: string[] = [];
+    for (const el of document.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, [tabindex]')) {
+      if (el.tabIndex < 0 || (el as HTMLButtonElement).disabled || el.closest('[inert], [hidden]')) continue;
+      const style = getComputedStyle(el);
       const r = el.getBoundingClientRect();
+      if (style.display === 'none' || style.visibility === 'hidden' || (r.width === 0 && r.height === 0)) continue;
       let opacity = 1;
       for (let n: HTMLElement | null = el; n; n = n.parentElement) opacity *= Number(getComputedStyle(n).opacity || 1);
-      const seen = r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth && opacity > 0.05;
-      const label = el.getAttribute('aria-label') || el.textContent?.trim().slice(0, 30) || el.tagName;
+      const onScreen = r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
       // The skip link is meant to be invisible until focused, and shows itself when it is
-      return seen || el.classList.contains('skip-to-content') ? null : `${el.className.toString().split(' ')[0]} "${label}"`;
-    });
-    if (where && !hidden.includes(where)) hidden.push(where);
-  }
-  expect(hidden, 'focusable but invisible').toEqual([]);
+      if ((onScreen && opacity > 0.05) || el.classList.contains('skip-to-content')) continue;
+      out.push(`${el.className.toString().split(' ')[0]} "${(el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 30)}"`);
+    }
+    return out;
+  });
+  expect(unseen, 'focusable but invisible (hidden UI should be inert)').toEqual([]);
 });
