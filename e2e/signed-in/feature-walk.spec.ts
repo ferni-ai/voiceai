@@ -25,6 +25,7 @@ const PANELS = [
   'gift',
   'invite',
   'commands',
+  'ritual',
   'calendar-settings',
   'notifications',
   'journal',
