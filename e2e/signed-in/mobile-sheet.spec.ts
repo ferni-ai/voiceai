@@ -22,13 +22,13 @@ const ACTIONS = ['settings', 'team', 'music', 'calendar', 'history', 'people', '
 test.beforeEach(async ({ page }) => {
   await signIn(page, await createUser());
   await expectHome(page);
-  test.skip(!(await page.locator('[aria-label="Open menu"]').isVisible()), 'phone layout only');
+  test.skip(!(await page.locator('.mobile-menu-trigger').isVisible()), 'phone layout only');
 });
 
 for (const action of ACTIONS) {
   test(`quick action "${action}" opens and closes cleanly`, async ({ page }) => {
     const problems = watchProblems(page);
-    await page.locator('[aria-label="Open menu"]').click();
+    await page.locator('.mobile-menu-trigger').click();
     const row = page.locator(`.mobile-bottom-sheet [data-action="${action}"]`);
     await expect(row).toBeVisible();
     const before = await shownDialogs(page);
@@ -36,9 +36,9 @@ for (const action of ACTIONS) {
 
     if (action === 'settings') {
       // The settings menu itself; the walk covers what it opens
-      await expect(page.locator('.settings-menu')).toBeVisible();
+      await expect(page.locator('.settings-menu--visible')).toBeVisible();
       await page.keyboard.press('Escape');
-      await expect(page.locator('.settings-menu')).toBeHidden({ timeout: 5_000 });
+      await expect(page.locator('.settings-menu--visible')).toHaveCount(0, { timeout: 5_000 });
       expect(problems.take(), 'settings raised problems').toEqual([]);
       return;
     }

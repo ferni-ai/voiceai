@@ -27,8 +27,7 @@ import {
   formatLocationName,
   type GeocodingResult,
 } from './utils/geocoding.js';
-import { getCurrentSessionLocation, isValidLocation } from './location-preference.js';
-import { getSessionId } from '../../utils/tool-helpers.js';
+import { getCallerLocation, isValidLocation } from './location-preference.js';
 
 // ============================================================================
 // GOOGLE WEATHER API
@@ -508,15 +507,14 @@ export async function getWeatherForecast(location: string, days = 5): Promise<st
 export function createWeatherTools() {
   const logger = getLogger();
 
-  /** Resolve location from args or the current session. */
-  function resolveLocation(argLocation?: string, sessionId?: string): string | null {
+  /** Resolve location from args, else the calling session's location. */
+  function resolveLocation(argLocation: string | undefined, run: unknown): string | null {
     // If a valid location was provided, use it
     if (isValidLocation(argLocation)) {
       return argLocation!;
     }
 
-    // Fall back to current active session location
-    const sessionLocation = getCurrentSessionLocation(sessionId);
+    const sessionLocation = getCallerLocation(run);
     if (sessionLocation) {
       logger.info(
         { argLocation, sessionLocation, source: 'session-fallback' },
@@ -543,7 +541,7 @@ export function createWeatherTools() {
       }),
       execute: async ({ location: argLocation }, run) => {
         const startTime = Date.now();
-        const location = resolveLocation(argLocation, getSessionId(run));
+        const location = resolveLocation(argLocation, run);
 
         if (!location) {
           return "I don't know your location. Which city would you like weather for?";
@@ -577,7 +575,7 @@ export function createWeatherTools() {
       }),
       execute: async ({ location: argLocation, days = 5 }, run) => {
         const startTime = Date.now();
-        const location = resolveLocation(argLocation, getSessionId(run));
+        const location = resolveLocation(argLocation, run);
 
         if (!location) {
           return "I don't know your location. Which city would you like the forecast for?";

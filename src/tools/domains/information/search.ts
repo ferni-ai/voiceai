@@ -19,6 +19,14 @@ import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 
 /**
+ * Said with an empty search: "Let me share what I know from experience
+ * instead" came back for a ball score, a taco place and a drive time, and
+ * the model answered them from memory (local lookups calls, 2026-10-09).
+ */
+const NO_GUESS =
+  "If they asked about something live (a score, a price, opening hours, a travel time, a place nearby), say you couldn't find it rather than guess.";
+
+/**
  * Search the web using DuckDuckGo Instant Answer API
  */
 export async function searchWeb(query: string): Promise<string> {
@@ -48,10 +56,10 @@ export async function searchWeb(query: string): Promise<string> {
       return data.RelatedTopics[0].Text.slice(0, 600);
     }
 
-    return `I couldn't find specific information about "${query}". Let me share what I know from experience instead.`;
+    return `No results for "${query}". ${NO_GUESS}`;
   } catch (error) {
     getLogger().warn(`Web search error: ${error}`);
-    return `I had trouble searching for that. Let me share what I know instead.`;
+    return `The search didn't work just now. ${NO_GUESS}`;
   }
 }
 

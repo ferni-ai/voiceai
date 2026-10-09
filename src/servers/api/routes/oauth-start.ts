@@ -23,6 +23,11 @@ import {
 
 export const OAUTH_START_PATH = '/auth/oauth/start';
 
+/** Same test as token/oauth/spotify.ts isConfigured, without loading its token store. */
+function isSpotifyConfigured(): boolean {
+  return !!process.env.SPOTIFY_CLIENT_ID && !!process.env.SPOTIFY_CLIENT_SECRET;
+}
+
 /** Provider → the login route that redirects on to the provider. */
 const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
   ['google_calendar', '/auth/google/login'],
@@ -33,6 +38,7 @@ const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
   ['garmin', '/wearables/garmin/login'],
   ['whoop', '/wearables/whoop/login'],
   [LINKEDIN_PROVIDER, LINKEDIN_CONNECT_PATH],
+  ['spotify', '/spotify/login'],
 ]);
 
 /**
@@ -41,6 +47,7 @@ const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
  */
 const AVAILABILITY: ReadonlyMap<string, { name: string; isConfigured: () => boolean }> = new Map([
   [LINKEDIN_PROVIDER, { name: 'LinkedIn', isConfigured: isLinkedInConfigured }],
+  ['spotify', { name: 'Spotify', isConfigured: isSpotifyConfigured }],
 ]);
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {

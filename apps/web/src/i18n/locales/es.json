@@ -2994,7 +2994,8 @@
     "noEmailTitle": "Necesitamos una dirección de correo electrónico",
     "noEmailMessage": "Esta cuenta no tiene una dirección de correo asociada. Inicia sesión con una cuenta que sí la tenga.",
     "checkFailedTitle": "No pudimos verificar tu acceso",
-    "checkFailedMessage": "Algo salió mal de nuestro lado. Espera un momento e inténtalo de nuevo."
+    "checkFailedMessage": "Algo salió mal de nuestro lado. Espera un momento e inténtalo de nuevo.",
+    "signOutFailed": "No se pudo cerrar la sesión. Inténtalo de nuevo."
   },
   "visualizations": {
     "lifeSeasons": "Tus estaciones de la vida",

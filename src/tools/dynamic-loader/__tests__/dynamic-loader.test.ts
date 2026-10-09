@@ -12,10 +12,25 @@ import {
   DEFAULT_ESSENTIAL_DOMAINS,
 } from '../index.js';
 
+const logger = vi.hoisted(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }));
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  getLogger: () => logger,
+}));
+
 // Mock the tool registry
 vi.mock('../../registry/index.js', () => ({
   toolRegistry: {
     getToolsForDomain: vi.fn(() => [{ name: 'mock-tool-1' }, { name: 'mock-tool-2' }]),
+    // One tool per requested domain, plus the requested optional tool ids.
+    buildToolSet: vi.fn((spec: { domains?: string[]; optional?: string[] }) => ({
+      tools: Object.fromEntries(
+        [...(spec.domains ?? []).map((d) => `${d}Tool`), ...(spec.optional ?? [])].map((n) => [
+          n,
+          {},
+        ])
+      ),
+    })),
   },
 }));
 
@@ -125,6 +140,35 @@ describe('DynamicToolLoader', () => {
 
     it('should have loadDomain method', () => {
       expect(typeof loader.loadDomain).toBe('function');
+    });
+  });
+
+  describe('getToolsForDomains', () => {
+    it("returns only the named domains' tools, not the essential ones", async () => {
+      // A mid-session update merges these ahead of the agent's tools; the whole
+      // catalog (essentials first) pushed the new domain past the 64-tool cap.
+      loader = new DynamicToolLoader({
+        enableAutoUnload: false,
+        essentialDomains: ['memory', 'handoff'],
+        essentialToolIds: ['quickTimer'],
+        domainOfTool: () => undefined,
+      });
+      await loader.initialize({ userId: 'u1', agentId: 'ferni' } as never);
+      await loader.loadDomain('information');
+
+      expect(Object.keys(loader.getCurrentTools()).sort()).toEqual(
+        ['handoffTool', 'informationTool', 'memoryTool', 'quickTimer'].sort()
+      );
+      expect(Object.keys(loader.getToolsForDomains(['information']))).toEqual(['informationTool']);
+      // Names that aren't tool domains never reach the registry.
+      expect(Object.keys(loader.getToolsForDomains(['information', 'not-a-domain']))).toEqual([
+        'informationTool',
+      ]);
+      // ...and say so, so a misspelled domain doesn't quietly offer nothing.
+      expect(logger.warn).toHaveBeenCalledWith(
+        { unknownDomains: ['not-a-domain'] },
+        expect.any(String)
+      );
     });
   });
 

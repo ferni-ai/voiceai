@@ -100,16 +100,8 @@ function getHeader(req: IncomingMessage, name: string): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-/**
- * Extract IP address from request (handles proxies)
- */
-function getClientIP(req: IncomingMessage): string {
-  return (
-    getHeader(req, 'X-Forwarded-For')?.split(',')[0]?.trim() ||
-    req.socket.remoteAddress ||
-    'unknown'
-  );
-}
+/** Client IP for auth-failure tracking: same trusted-proxy rule as rate limiting. */
+const getClientIP = getClientIp;
 
 // ============================================================================
 // AUTHENTICATION FUNCTIONS
@@ -549,7 +541,7 @@ export function rateLimit(
   const auth = authenticate(req);
   const defaultTier = getRateLimitTier(auth);
 
-  // SECURITY: key by a verified user id (sync auth, else the uid the server verified at the
+  // SECURITY: key by a verified person's id (sync auth, else the uid verified at the
   // door), else getClientIp, never the raw X-Forwarded-For a caller can spoof
   const uid = auth?.userId ?? rateLimitUid(req);
   const {

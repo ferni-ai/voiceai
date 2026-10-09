@@ -68,6 +68,8 @@ overrides:
   '@google-cloud/storage@>=7 <8': ^7.22.0
   '@mapbox/node-pre-gyp@<2': ^2.0.3
   uuid@>=8 <11: ^11.1.1
+  js-yaml@3>argparse: '-'
+  '@opentelemetry/sdk-trace-node@1>@opentelemetry/propagator-jaeger': ^2.9.0
 
 packageExtensionsChecksum: sha256-uvpf4QPuEv+rnz0FdBdbR0iSoPTEXOVffanNl1HYoio=
 
@@ -453,7 +455,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^3.10.6
-        version: 3.10.6(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@25.9.9)
+        version: 3.10.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@25.9.9)
 
   apps/rust-perf:
     devDependencies:
@@ -465,7 +467,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^3.10.6
-        version: 3.10.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@25.9.9)
+        version: 3.10.6(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@25.9.9)
 
   apps/web:
     dependencies:
@@ -2707,9 +2709,9 @@ packages:
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0 <1.10.0'
 
-  '@opentelemetry/propagator-jaeger@1.30.1':
-    resolution: {integrity: sha512-Pj/BfnYEKIOImirH76M4hDaBSx6HyZ2CXUqk+Kj02m6BB80c/yo4BdWkn/1gDFfU+YPY+bPR2U0DKBfdxCKwmg==}
-    engines: {node: '>=14'}
+  '@opentelemetry/propagator-jaeger@2.12.0':
+    resolution: {integrity: sha512-Kz2Vz+NILW7S1WtN4rV1wr76fMtT/RRWvAMFBc91uTIi2dDMXxrfBKNe2KH7yaCfFp1X0xfAuabzuFczvoPB6A==}
+    engines: {node: ^18.19.0 || >=20.6.0}
     peerDependencies:
       '@opentelemetry/api': '>=1.0.0 <1.10.0'
 
@@ -3865,9 +3867,6 @@ packages:
   archunit@2.5.4:
     resolution: {integrity: sha512-RiHvwHovO/Ey/sVSXsie/20Y+Ck0MDOqXKZwpRj1VY0A701tMnPwEIWTLFLeuNYpgEZ2DNbjRhWJqC3B5neXGA==}
     engines: {node: '>=14.0.0', npm: '>=6.0.0'}
-
-  argparse@1.0.10:
-    resolution: {integrity: sha512-o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg==}
 
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
@@ -6497,9 +6496,6 @@ packages:
   split2@4.2.0:
     resolution: {integrity: sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg==}
     engines: {node: '>= 10.x'}
-
-  sprintf-js@1.0.3:
-    resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
 
   stack-trace@0.0.10:
     resolution: {integrity: sha512-KGzahc7puUKkzyMt+IqAep+TVNbKP+k2Lmwhub39m1AsTSkaDutx56aDCo+HLDzf/D26BIHTJWNiTG1KAJiQCg==}
@@ -9360,6 +9356,11 @@ snapshots:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/semantic-conventions': 1.28.0
 
+  '@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.0)':
+    dependencies:
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/semantic-conventions': 1.38.0
+
   '@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
@@ -9459,10 +9460,10 @@ snapshots:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/core': 1.30.1(@opentelemetry/api@1.9.0)
 
-  '@opentelemetry/propagator-jaeger@1.30.1(@opentelemetry/api@1.9.0)':
+  '@opentelemetry/propagator-jaeger@2.12.0(@opentelemetry/api@1.9.0)':
     dependencies:
       '@opentelemetry/api': 1.9.0
-      '@opentelemetry/core': 1.30.1(@opentelemetry/api@1.9.0)
+      '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.0)
 
   '@opentelemetry/resources@1.27.0(@opentelemetry/api@1.9.0)':
     dependencies:
@@ -9555,7 +9556,7 @@ snapshots:
       '@opentelemetry/context-async-hooks': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/core': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/propagator-b3': 1.30.1(@opentelemetry/api@1.9.0)
-      '@opentelemetry/propagator-jaeger': 1.30.1(@opentelemetry/api@1.9.0)
+      '@opentelemetry/propagator-jaeger': 2.12.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 1.30.1(@opentelemetry/api@1.9.0)
       semver: 7.8.5
 
@@ -10779,10 +10780,6 @@ snapshots:
       minimatch: 10.2.6
       plantuml-parser: 0.4.0
       typescript: 5.9.3
-
-  argparse@1.0.10:
-    dependencies:
-      sprintf-js: 1.0.3
 
   argparse@2.0.1: {}
 
@@ -12409,7 +12406,6 @@ snapshots:
 
   js-yaml@3.15.2:
     dependencies:
-      argparse: 1.0.10
       esprima: 4.0.1
 
   js-yaml@4.3.2:
@@ -13721,8 +13717,6 @@ snapshots:
       through2: 2.0.5
 
   split2@4.2.0: {}
-
-  sprintf-js@1.0.3: {}
 
   stack-trace@0.0.10: {}
 

@@ -69,7 +69,8 @@ function createMockRequest(options: {
   const req = {
     method,
     url,
-    headers: { 'x-user-id': 'test-user', host: 'localhost:3002', ...headers },
+    // The verified caller, as bindVerifiedIdentity binds it.
+    headers: { 'x-firebase-uid': 'test-user', host: 'localhost:3002', ...headers },
     on: vi.fn((event: string, callback: (chunk?: unknown) => void) => {
       if (event === 'data' && body) {
         setTimeout(() => callback(Buffer.from(body)), 0);
@@ -253,7 +254,7 @@ describe('Predictions Routes', () => {
     it('should return 401 when userId missing', async () => {
       const req = createMockRequest({
         url: '/api/predictions',
-        headers: { 'x-user-id': undefined }, // Explicitly remove x-user-id header
+        headers: { 'x-firebase-uid': undefined }, // anonymous: no verified caller
       });
       const { res, getWrittenData } = createMockResponse();
       const parsedUrl = new URL('/api/predictions', 'http://localhost:3002'); // No userId in query

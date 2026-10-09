@@ -2994,7 +2994,8 @@
     "noEmailTitle": "On a besoin d'une adresse e-mail",
     "noEmailMessage": "Ce compte n'est associé à aucune adresse e-mail. Connecte-toi avec un compte qui en possède une.",
     "checkFailedTitle": "On n'a pas pu vérifier tes accès",
-    "checkFailedMessage": "Un petit souci est survenu de notre côté. Attends un instant et réessaie."
+    "checkFailedMessage": "Un petit souci est survenu de notre côté. Attends un instant et réessaie.",
+    "signOutFailed": "Impossible de vous déconnecter. Réessayez."
   },
   "visualizations": {
     "lifeSeasons": "Les saisons de ta vie",

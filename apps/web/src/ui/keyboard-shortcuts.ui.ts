@@ -8,7 +8,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { trapFocus, announce } from '../utils/accessibility.js';
+import { trapFocus, announce, closeOnEscape } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 
@@ -578,8 +578,8 @@ export function showShortcutsPanel(): void {
   const closeBtn = panel.querySelector('.shortcuts-panel__close') as HTMLElement;
   closeBtn?.focus();
 
-  // Event listeners
   closeBtn?.addEventListener('click', hideShortcutsPanel);
+  closeOnEscape(panel, () => isPanelOpen, hideShortcutsPanel);
   panel.querySelector('.shortcuts-panel__backdrop')?.addEventListener('click', hideShortcutsPanel);
 
   announce(t('keyboardShortcuts.panelOpened'));
