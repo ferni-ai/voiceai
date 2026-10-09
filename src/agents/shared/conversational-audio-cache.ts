@@ -211,7 +211,7 @@ export const BACKCHANNELS: Record<string, string[]> = {
   // 'Hmm' opens replies (turn-opening-sound.ts); '[laughter]', 'Oh no'..'Ha': backchannel-*.ts.
   // prettier-ignore
   ferni: ['Mm', 'Hmm', 'Yeah', 'Mhm', 'Right', 'I hear you', 'Mm-hmm', 'Oh', '[laughter]',
-    'Oh no', 'Oof', 'Whoa', 'No way', 'Ha'],
+    'Oh no', 'Oof', 'Whoa', 'No way', 'Ha', 'Aw'],
   'maya-santos': ['Mm', 'Yeah', 'Mhm', 'Okay', 'I hear you', 'Oh', 'Right'],
   'peter-john': ['Mm', 'Yeah', 'Okay', 'Interesting', 'Oh!', 'Right'],
   'alex-chen': ['Mm', 'Yeah', 'Got it', 'Right', 'Okay', 'I see'],

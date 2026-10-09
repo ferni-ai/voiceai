@@ -19,7 +19,8 @@ export function backchannelContextEnabled(env: Env = process.env): boolean {
   return env.BACKCHANNEL_CONTEXT === 'on';
 }
 
-export type BackchannelContext = 'bad_news' | 'surprise' | 'funny' | 'agreement' | 'narrative';
+export type BackchannelContext =
+  'bad_news' | 'tender' | 'surprise' | 'funny' | 'agreement' | 'narrative';
 
 /**
  * Cues per category, matched as whole words or whole-word phrases. Ordered by
@@ -55,7 +56,36 @@ const CUES: ReadonlyArray<[BackchannelContext, readonly string[]]> = [
       'injured',
       'robbed',
       'stolen',
+      // Everyday mishaps and hard days: what callers actually report (dev evals,
+      // 2026-10-09: a spilled glass, a chewed charger and a long day got nothing).
+      'long day',
+      'hard day',
+      'rough day',
+      'bad day',
+      'exhausted',
+      'stressed',
+      'overwhelmed',
+      'deadline',
+      'chewed',
+      'spilled',
+      'knocked',
+      'dropped',
+      'smashed',
+      'cracked',
+      'ruined',
+      'burned',
+      'burnt',
+      'flat tire',
+      'locked out',
+      'missed my',
+      'lost my',
+      'sick',
+      'worst',
     ],
+  ],
+  [
+    'tender',
+    ['crying', 'cried', 'tears', 'teared up', 'choked up', 'so happy', 'so proud', 'emotional'],
   ],
   [
     'surprise',
@@ -74,6 +104,12 @@ const CUES: ReadonlyArray<[BackchannelContext, readonly string[]]> = [
       'shocked',
       'surprised',
       'insane',
+      'engaged',
+      'proposed',
+      'pregnant',
+      'got married',
+      'won',
+      'quit',
     ],
   ],
   [
@@ -93,14 +129,22 @@ const CUES: ReadonlyArray<[BackchannelContext, readonly string[]]> = [
       'lol',
       'lmao',
       'laughing',
+      'on purpose',
+      'plotting',
+      'dead in the eye',
+      'looked me',
+      'revenge',
+      'sabotage',
+      'chaos',
+      'typical',
+      'classic',
     ],
   ],
   [
     'agreement',
     [
-      'you know',
-      'i mean',
-      'honestly',
+      // Not fillers like "honestly" or "you know": "I honestly started crying"
+      // got "Right".
       'obviously',
       'of course',
       'exactly',
@@ -132,6 +176,7 @@ const WINDOW_WORDS = 12;
 /** What each category says back. Every phrase must be in ferni's BACKCHANNELS. */
 export const REACTIONS: Readonly<Record<BackchannelContext, readonly string[]>> = {
   bad_news: ['Oh no', 'Oof', 'Mm'],
+  tender: ['Aw', 'Mm'],
   surprise: ['Whoa', 'No way', 'Oh'],
   funny: ['Ha'],
   agreement: ['Yeah', 'Right'],
@@ -139,7 +184,7 @@ export const REACTIONS: Readonly<Record<BackchannelContext, readonly string[]>> 
 };
 
 /** In an emotional moment only these: a "whoa" or "ha" there jars. */
-const SOFT = new Set(['Mm', 'Mhm', 'Mm-hmm']);
+const SOFT = new Set(['Mm', 'Mhm', 'Mm-hmm', 'Aw']);
 
 function words(text: string): string[] {
   return text
