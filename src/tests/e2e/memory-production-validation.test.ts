@@ -199,7 +199,7 @@ describe('Session-End Memory Integration', () => {
 
   it('should have promoteSTMToFirestore function exported', async () => {
     const { promoteSTMToFirestore } =
-      await import('../../services/session-manager/session-end-cleanup.js');
+      await import('../../services/session/session-end-cleanup.js');
     expect(promoteSTMToFirestore).toBeDefined();
     expect(typeof promoteSTMToFirestore).toBe('function');
   });
