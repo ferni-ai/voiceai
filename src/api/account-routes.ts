@@ -10,7 +10,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getDefaultStore } from '../memory/index.js';
+import { getStore } from '../memory/store-factory.js';
 import { deleteOAuthLinkStatesFor } from '../servers/token/oauth-link-state.js';
 import { tombstoneTransactionOwnersFor } from '../services/billing/apple-signed-data.js';
 import { eraseMusicalSocialData } from '../services/musical-you/social.js';
@@ -99,7 +99,7 @@ async function handleGetAccount(
   firebaseUid?: string
 ): Promise<boolean> {
   try {
-    const store = getDefaultStore();
+    const store = await getStore();
     const profile = await store.getProfile(userId);
 
     // Get Firebase user info if available
@@ -279,7 +279,7 @@ async function handleUpdateProfile(
   const { name, email, preferences } = body;
 
   try {
-    const store = getDefaultStore();
+    const store = await getStore();
     let profile = await store.getProfile(userId);
 
     if (!profile) {

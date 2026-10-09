@@ -13,7 +13,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 
-import { getDefaultStore } from '../memory/in-memory-store.js';
+import { getStore } from '../memory/store-factory.js';
 import {
   getTimingProfile,
   updateTimingPreferences,
@@ -190,7 +190,7 @@ export async function handleUserRoutes(
 
     const { userId } = auth;
     try {
-      const store = getDefaultStore();
+      const store = await getStore();
       let profile = await store.getProfile(userId);
 
       // Create profile if it doesn't exist (early creation!)
@@ -233,7 +233,7 @@ export async function handleUserRoutes(
     const { userId } = auth;
 
     try {
-      const store = getDefaultStore();
+      const store = await getStore();
       let profile = await store.getProfile(userId);
 
       // Create profile if it doesn't exist
@@ -294,7 +294,7 @@ export async function handleUserRoutes(
 
     const { userId } = auth;
     try {
-      const store = getDefaultStore();
+      const store = await getStore();
       const profile = await store.getProfile(userId);
 
       const onboarding = (profile as (UserProfile & { onboarding?: OnboardingState }) | null)
@@ -333,7 +333,7 @@ export async function handleUserRoutes(
     }
 
     try {
-      const store = getDefaultStore();
+      const store = await getStore();
       let profile = await store.getProfile(userId);
 
       if (!profile) {
@@ -416,7 +416,7 @@ export async function handleUserRoutes(
     // User is authenticated - fetch their preference
     const { userId } = optionalAuth;
     try {
-      const store = getDefaultStore();
+      const store = await getStore();
       const profile = await store.getProfile(userId);
 
       if (!profile) {
@@ -474,7 +474,7 @@ export async function handleUserRoutes(
       updateTimingPreferences(userId, { timezone: body.timezone });
 
       // Also update user profile if it exists
-      const store = getDefaultStore();
+      const store = await getStore();
       const profile = await store.getProfile(userId);
       if (profile) {
         profile.contactInfo = {
@@ -544,7 +544,7 @@ export async function handleUserRoutes(
     }
 
     try {
-      const store = getDefaultStore();
+      const store = await getStore();
       let profile = await store.getProfile(userId);
 
       if (!profile) {
@@ -594,7 +594,7 @@ export async function handleUserRoutes(
     const userId = authenticatedUserId;
 
     try {
-      const store = getDefaultStore();
+      const store = await getStore();
       const profile = await store.getProfile(userId);
 
       if (!profile?.location) {
@@ -676,7 +676,7 @@ export async function handleUserRoutes(
       }
 
       // Also update user profile
-      const store = getDefaultStore();
+      const store = await getStore();
       const profile = await store.getProfile(userId);
       if (profile && updates.timezone) {
         profile.contactInfo = {
@@ -738,7 +738,7 @@ export async function handleUserRoutes(
     const userId = authenticatedUserId;
 
     try {
-      const store = getDefaultStore();
+      const store = await getStore();
       let profile = await store.getProfile(userId);
 
       if (!profile) {
@@ -792,7 +792,7 @@ export async function handleUserRoutes(
     const userId = authenticatedUserId;
 
     try {
-      const store = getDefaultStore();
+      const store = await getStore();
       const profile = await store.getProfile(userId);
 
       if (!profile) {
@@ -841,7 +841,7 @@ export async function handleUserRoutes(
     }
 
     try {
-      const store = getDefaultStore();
+      const store = await getStore();
       let profile = await store.getProfile(userId);
 
       if (!profile) {
@@ -880,7 +880,7 @@ export async function handleUserRoutes(
     const userId = authenticatedUserId;
 
     try {
-      const store = getDefaultStore();
+      const store = await getStore();
       const profile = await store.getProfile(userId);
 
       // Default reminder settings
@@ -932,7 +932,7 @@ export async function handleUserRoutes(
     const userId = authenticatedUserId;
 
     try {
-      const store = getDefaultStore();
+      const store = await getStore();
       let profile = await store.getProfile(userId);
 
       if (!profile) {

@@ -22,8 +22,8 @@ vi.mock('../../../i18n/index.js', () => ({
   tFor: vi.fn((locale: string, key: string) => `${locale}|${key}`),
 }));
 
-vi.mock('../../../memory/index.js', () => ({
-  getDefaultStore: () => ({
+vi.mock('../../../memory/store-factory.js', () => ({
+  getStore: async () => ({
     getProfile: vi.fn(async () => mockProfile.current),
     saveProfile: vi.fn(async () => undefined),
   }),

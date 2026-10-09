@@ -380,8 +380,8 @@ class DataExportService {
 
   private async exportProfile(userId: string) {
     try {
-      const { getDefaultStore } = await import('../../memory/index.js');
-      const store = getDefaultStore();
+      const { getStore } = await import('../../memory/store-factory.js');
+      const store = await getStore();
       await store.initialize();
       const profile = await store.getProfile(userId);
 
@@ -690,8 +690,8 @@ class DataExportService {
 
   private async getProfileItemCount(userId: string): Promise<number> {
     try {
-      const { getDefaultStore } = await import('../../memory/index.js');
-      const store = getDefaultStore();
+      const { getStore } = await import('../../memory/store-factory.js');
+      const store = await getStore();
       await store.initialize();
       const profile = await store.getProfile(userId);
       return profile ? 1 : 0;

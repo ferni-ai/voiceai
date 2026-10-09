@@ -114,10 +114,10 @@ async function handleGetPatternInsights(
   if (!userId) return;
 
   try {
-    const { getDefaultStore } = await import('../../memory/index.js');
+    const { getStore } = await import('../../memory/store-factory.js');
     const { extractLearnedMemories } = await import('../../services/memory/learned-memories.js');
 
-    const store = getDefaultStore();
+    const store = await getStore();
     const profile = await store.getProfile(userId);
 
     if (!profile) {
