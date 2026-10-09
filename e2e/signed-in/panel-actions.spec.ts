@@ -77,12 +77,11 @@ test('Take Your Story: Export gives you a file with your data in it', async ({ p
   expect(problems.take()).toEqual([]);
 });
 
-test('quiz: answering a question moves it on', async ({ page }) => {
+test('quiz: answering a question shows how you did', async ({ page }) => {
   const problems = watchProblems(page);
   const panel = await openPanel(page, 'knowledge-quiz');
-  const first = await panel.textContent();
-  await panel.getByRole('button', { name: /all of the above/i }).click();
-  await expect.poll(() => panel.textContent(), { timeout: 10_000 }).not.toBe(first);
+  await panel.locator('.knowledge-quiz-option').first().click(); // questions are random; any answer will do
+  await expect(panel.locator('.knowledge-quiz-option--correct, .knowledge-quiz-option--selected').first()).toBeVisible();
   expect(problems.take()).toEqual([]);
 });
 
@@ -114,4 +113,48 @@ test('gift: the seed amounts are announced as amounts', async ({ page }) => {
     await expect(panel.locator(`[data-amount="${amount}"]`)).toHaveAccessibleName(new RegExp(amount));
   }
   await expect(panel.locator('[aria-pressed="true"][data-amount]'), 'the chosen amount is marked').toHaveCount(1);
+});
+
+test('family phone access: an added family member is listed and kept', async ({ page }) => {
+  const problems = watchProblems(page);
+  let panel = await openPanel(page, 'family-callers');
+  await panel.locator('[data-action="add"]').click();
+  await panel.getByPlaceholder('e.g., Mom').fill('Aunt Robin');
+  await panel.getByPlaceholder('+1 555 123 4567').fill('+1 555 010 0199');
+  await panel.locator('select').first().selectOption({ index: 1 });
+  await panel.locator('[data-action="save-new"]').click();
+  await expect(panel).toContainText('Aunt Robin', { timeout: 10_000 });
+  await page.keyboard.press('Escape');
+
+  await page.reload();
+  await expectHome(page);
+  panel = await openPanel(page, 'family-callers');
+  await expect(panel, 'kept after a reload').toContainText('Aunt Robin', { timeout: 10_000 });
+  expect(problems.take()).toEqual([]);
+});
+
+test("people you've told me about: an added person is listed and kept", async ({ page }) => {
+  const problems = watchProblems(page);
+  let panel = await openPanel(page, 'contacts');
+  await panel.locator('[data-action="add-person"]').click();
+  const form = page.getByPlaceholder('e.g., Mom, Sarah Chen, Dr. Rivera');
+  await form.fill('Sam Okafor');
+  await page.locator('[data-relationship="friend"]').click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(panel).toContainText('Sam Okafor', { timeout: 10_000 });
+  await page.keyboard.press('Escape');
+
+  await page.reload();
+  await expectHome(page);
+  panel = await openPanel(page, 'contacts');
+  await expect(panel, 'kept after a reload').toContainText('Sam Okafor', { timeout: 10_000 });
+  expect(problems.take()).toEqual([]);
+});
+
+test("let's play: each game is announced by its name", async ({ page }) => {
+  const panel = await openPanel(page, 'play-games');
+  const cards = panel.locator('.game-card');
+  expect(await cards.count()).toBeGreaterThan(0);
+  const names = await cards.evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? ''));
+  expect(names.filter((n) => /more information/i.test(n)), 'cards all announced as "More information"').toEqual([]);
 });
