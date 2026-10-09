@@ -7,8 +7,14 @@
  * @module utils/__tests__/client-ip.test
  */
 
-import { afterEach, describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import type { IncomingMessage } from 'http';
+
+const warn = vi.hoisted(() => vi.fn());
+vi.mock('../safe-logger.js', () => ({
+  createLogger: () => ({ warn, info: vi.fn(), debug: vi.fn(), error: vi.fn() }),
+}));
+
 import { getClientIp, trustedProxyHops } from '../client-ip.js';
 
 function req(xff?: string | string[], remoteAddress = '169.254.8.1'): IncomingMessage {
@@ -42,6 +48,12 @@ describe('getClientIp', () => {
   it('uses the first entry when the trusted entry is a Firebase Hosting egress', () => {
     // Hosting rewrites the header with the real client first; the GFE appends Hosting's address.
     expect(getClientIp(req(`${CALLER}, ${HOSTING_EGRESS}`))).toBe(CALLER);
+  });
+
+  it('does not trust Google addresses outside the observed Hosting egress /24s', () => {
+    // 74.125.0.0/16 is Google-owned, but only specific /24s carry Hosting traffic.
+    expect(getClientIp(req(`${VICTIM}, 74.125.100.5`))).toBe('74.125.100.5');
+    expect(getClientIp(req(`${VICTIM}, 66.249.72.10`))).toBe('66.249.72.10'); // Googlebot
   });
 
   it('does not treat an ordinary last entry as Hosting', () => {
@@ -119,5 +131,39 @@ describe('FIREBASE_HOSTING_PROXY_CIDRS', () => {
     expect(fresh.getClientIp(req(`${CALLER}, 10.9.4.4`))).toBe(CALLER);
     // The default Hosting blocks are replaced, not extended.
     expect(fresh.getClientIp(req(`${CALLER}, ${HOSTING_EGRESS}`))).toBe(HOSTING_EGRESS);
+  });
+});
+
+describe('long Hosting-path chains', () => {
+  // Fresh module per test: the warning throttle is module state.
+  let getClientIp: typeof import('../client-ip.js').getClientIp;
+  beforeEach(async () => {
+    vi.resetModules();
+    ({ getClientIp } = await import('../client-ip.js'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    warn.mockClear();
+  });
+
+  it('keeps using the first entry but warns, at most once per hour', () => {
+    vi.useFakeTimers({ now: new Date('2026-10-09T00:00:00Z') });
+    const xff = `${VICTIM}, ${CALLER}, ${HOSTING_EGRESS}`;
+
+    expect(getClientIp(req(xff))).toBe(VICTIM);
+    expect(getClientIp(req(xff))).toBe(VICTIM);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0]).toEqual({ entryCount: 3, sinceLastWarning: 1 });
+
+    vi.advanceTimersByTime(60 * 60 * 1000);
+    getClientIp(req(xff));
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn.mock.calls[1]?.[0]).toEqual({ entryCount: 3, sinceLastWarning: 2 });
+  });
+
+  it('does not warn for the normal two-entry Hosting chain or the direct path', () => {
+    getClientIp(req(`${CALLER}, ${HOSTING_EGRESS}`));
+    getClientIp(req(`${VICTIM}, ${VICTIM}, ${CALLER}`));
+    expect(warn).not.toHaveBeenCalled();
   });
 });

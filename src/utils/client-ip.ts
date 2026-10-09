@@ -18,6 +18,15 @@
  *    addresses sit in Google-owned blocks that GCP customers can't rent, so when the
  *    trusted entry is one of them, the first entry is Hosting's word for the client.
  *
+ * Residual risk: other Google services (e.g. Apps Script UrlFetch) can egress from the
+ * same blocks, so a caller using one to hit *.run.app directly can choose the first
+ * entry, which means dodging per-IP limits or spending a chosen victim's bucket. The
+ * egress list is the 13 /24s seen carrying Hosting browser traffic over 30 days, not
+ * the whole blocks, to keep that surface small; an unlisted egress fails safe (that
+ * visitor is keyed by the egress address). Hosting's header rewrite is observed, not
+ * documented, so a Hosting-path header with more than two entries is logged: it would
+ * mean Hosting now appends, making the first entry forgeable again.
+ *
  * Env: TRUSTED_PROXY_HOPS (default 1) is how many entries our own proxies append on the
  * direct path; raise it if a load balancer that appends is put in front.
  * FIREBASE_HOSTING_PROXY_CIDRS (comma-separated) replaces the egress blocks; empty disables.
@@ -25,12 +34,49 @@
 
 import type { IncomingMessage } from 'http';
 import { BlockList, isIP } from 'net';
+import { createLogger } from './safe-logger.js';
+
+const log = createLogger({ module: 'ClientIp' });
 
 const DEFAULT_TRUSTED_PROXY_HOPS = 1;
 
-/** Google-owned blocks (goog.json, absent from cloud.json) seen as Hosting egress. */
-const DEFAULT_HOSTING_PROXY_CIDRS =
-  '64.233.160.0/19,66.102.0.0/20,66.249.64.0/19,74.125.0.0/16,192.178.0.0/15';
+/**
+ * /24s seen as Hosting egress for browser traffic in Cloud Run logs, 2026-09-09..10-09;
+ * all inside Google-owned blocks (goog.json, absent from cloud.json). 66.249.72/24 and
+ * 142.250.32/24 also appeared but carried only Googlebot hitting run.app directly.
+ */
+const DEFAULT_HOSTING_PROXY_CIDRS = [
+  '64.233.172.0/24',
+  '66.102.6.0/24',
+  '66.102.8.0/24',
+  '66.249.82.0/24',
+  '66.249.84.0/24',
+  '66.249.93.0/24',
+  '74.125.209.0/24',
+  '74.125.210.0/24',
+  '74.125.212.0/24',
+  '74.125.215.0/24',
+  '192.178.11.0/24',
+  '192.178.14.0/24',
+  '192.178.15.0/24',
+].join(',');
+
+/** At most one warning per window, so a caller can't flood logs by sending long headers. */
+const LONG_HOSTING_CHAIN_WARN_MS = 60 * 60 * 1000;
+let longHostingChains = 0;
+let lastLongChainWarnAt = -Infinity;
+
+function noteLongHostingChain(entryCount: number): void {
+  longHostingChains++;
+  const now = Date.now();
+  if (now - lastLongChainWarnAt < LONG_HOSTING_CHAIN_WARN_MS) return;
+  lastLongChainWarnAt = now;
+  log.warn(
+    { entryCount, sinceLastWarning: longHostingChains },
+    'Hosting-path X-Forwarded-For has more than two entries; Hosting may now append, so its first entry could be forged'
+  );
+  longHostingChains = 0;
+}
 
 const hostingProxies = new BlockList();
 const hostingCidrs = process.env.FIREBASE_HOSTING_PROXY_CIDRS ?? DEFAULT_HOSTING_PROXY_CIDRS;
@@ -79,6 +125,7 @@ export function getClientIp(req: IncomingMessage, hops = trustedProxyHops()): st
   if (!trusted || !isIP(trusted)) return socketIp;
   if (!isHostingProxy(trusted)) return trusted;
 
+  if (entries.length > 2) noteLongHostingChain(entries.length);
   const client = entries[0];
   return client && isIP(client) ? client : socketIp;
 }
