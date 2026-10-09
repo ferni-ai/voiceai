@@ -35,6 +35,7 @@ import {
 } from '../services/security-events.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { getClientIp } from '../utils/ddos-protection.js';
+import { rateLimitUid } from './rate-limit-identity.js';
 import { API_ERRORS } from './error-messages.js';
 import { sendError } from './helpers.js';
 
@@ -522,9 +523,7 @@ export async function checkRateLimitAsync(
   return rateLimiter.check(key, maxRequests, windowMs);
 }
 
-/**
- * Get rate limit tier based on auth context
- */
+/** Get rate limit tier based on auth context */
 export function getRateLimitTier(auth: AuthContext | null): RateLimitTier {
   if (!auth) return RATE_LIMIT_TIERS.anonymous;
   if (auth.isAdmin) return RATE_LIMIT_TIERS.admin;
@@ -550,13 +549,13 @@ export function rateLimit(
   const auth = authenticate(req);
   const defaultTier = getRateLimitTier(auth);
 
-  // SECURITY: Use authenticated userId as primary rate limit key (can't be spoofed)
-  // Fall back to secure getClientIp for anonymous requests (validates IP format)
-  // Never trust raw X-Forwarded-For header directly - allows bypass via header spoofing
+  // SECURITY: key by a verified user id (sync auth, else the uid the server verified at the
+  // door), else getClientIp, never the raw X-Forwarded-For a caller can spoof
+  const uid = auth?.userId ?? rateLimitUid(req);
   const {
     maxRequests = options.tier?.maxRequests ?? defaultTier.maxRequests,
     windowMs = options.tier?.windowMs ?? defaultTier.windowMs,
-    keyGenerator = () => (auth?.userId ? `user:${auth.userId}` : getClientIp(req)),
+    keyGenerator = () => (uid ? `user:${uid}` : getClientIp(req)),
     keyPrefix = '',
   } = options;
 

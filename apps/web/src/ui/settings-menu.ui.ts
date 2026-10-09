@@ -656,7 +656,7 @@ class SettingsMenuUI {
     if (isLocked) {
       const hint = this.getUnlockHint(action);
       return `
-        <button aria-label="${label}" class="settings-menu__item ${lockedClass} ${extraClasses}" data-action="${action}" data-locked="true">
+        <button aria-label="${label}, ${hint}" aria-disabled="true" class="settings-menu__item ${lockedClass} ${extraClasses}" data-action="${action}" data-locked="true">
           <span class="settings-menu__icon">${icon}</span>
           <span class="settings-menu__label-wrap">
             <span class="settings-menu__label">${label}</span>

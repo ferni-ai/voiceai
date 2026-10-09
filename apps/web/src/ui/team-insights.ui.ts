@@ -387,6 +387,7 @@ function createPanel(): HTMLElement {
   const panel = document.createElement('div');
   panel.className = 'team-insights-panel';
   panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
   panel.setAttribute('aria-labelledby', 'team-insights-title');
   panel.setAttribute('aria-hidden', 'true');
 
@@ -636,6 +637,7 @@ function updateTriggerBadge(): void {
 // ============================================================================
 
 function openPanel(): void {
+  if (!panelElement) initTeamInsightsUI(); // its button can beat the deferred init
   if (!panelElement) return;
 
   state.isOpen = true;
@@ -645,13 +647,11 @@ function openPanel(): void {
   panelElement.setAttribute('aria-hidden', 'false');
   panelElement.classList.add('is-open');
 
-  // Load data if stale
   const isStale = !state.lastUpdated || Date.now() - state.lastUpdated > 60000;
   if (isStale) {
     void loadInsights();
   }
 
-  // Focus management
   const closeBtn = panelElement.querySelector('.team-insights-close') as HTMLElement;
   closeBtn?.focus();
 

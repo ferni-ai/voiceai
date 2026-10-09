@@ -45,6 +45,49 @@ describe('turn shape', () => {
     );
   });
 
+  // Asked as "share", these got "one short sentence, your own take" and Ferni
+  // made up the forecast, the score and the drive time (local A/B, 2026-10-08).
+  const LOOKUPS = [
+    "Hey! Quick one, what's the weather looking like this weekend?",
+    'Nice. Anything big in the news today?',
+    'Who won the Dodgers game last night?',
+    'Can you find me a good taco place nearby? Something casual.',
+    'Thanks. Oh, and how long would it take me to drive to Zion from here?',
+    'Is it going to rain tomorrow',
+    'Did the Lakers win?',
+    "What's the traffic like on the way to work?",
+  ];
+
+  it('reads a question about something live as a look-up', () => {
+    for (const text of LOOKUPS) expect(callerMove(text), text).toBe('lookup');
+  });
+
+  it('does not read talk about the same topics as a look-up', () => {
+    for (const text of [
+      'It rained all weekend and my basement flooded.',
+      'I watched the Dodgers game last night with my dad.',
+      'The news has been really getting to me lately.',
+      'The news is so depressing.',
+      'How was your weekend?',
+      'How long should I rest after a run?',
+    ]) {
+      expect(callerMove(text), text).not.toBe('lookup');
+    }
+  });
+
+  it('tells a look-up reply to answer from a tool, plainly, every time', () => {
+    for (const text of LOOKUPS) {
+      for (let i = 0; i < 20; i++) {
+        const turn = turnShapeFor(text, rngFor(`call ${i}:${text}`));
+        expect(turn.shape, text).toBe('answer');
+        expect(turn.reminder).toMatch(/tool/);
+        expect(turn.reminder).toMatch(/never state a forecast, score/i);
+        // No made-up self-corrections ("they won, wait, no, they lost") or stories.
+        expect(turn.reminder).not.toMatch(/Correct yourself|restart it|own life|six words/);
+      }
+    }
+  });
+
   it('gives the preemptive and the final request the same shape', () => {
     expect(turnShapeFor('My cat did it again.', rngFor('My cat did it again.')).reminder).toBe(
       turnShapeFor('My cat did it again.', rngFor('My cat did it again.')).reminder
@@ -125,5 +168,19 @@ describe('withTurnReminder seeding and order', () => {
     expect(rough.length).toBeGreaterThan(20);
     for (const r of reminders) expect(r).not.toMatch(/[—–]|\.\.\.|…|,,/);
     for (const r of rough) expect(r).toMatch(/\("[^"]+"\)/);
+  });
+
+  it('never offers a story of his own while the caller is venting', () => {
+    const venting = Array.from(
+      { length: 200 },
+      (_, i) =>
+        turnShapeFor('Honestly I am exhausted, it has been a long day', rngFor(`v${i}`)).reminder
+    );
+    expect(venting.some((r) => /share a small piece of it/.test(r))).toBe(false);
+    const light = Array.from(
+      { length: 200 },
+      (_, i) => turnShapeFor('We went to the lake this weekend', rngFor(`l${i}`)).reminder
+    );
+    expect(light.some((r) => /share a small piece of it/.test(r))).toBe(true);
   });
 });

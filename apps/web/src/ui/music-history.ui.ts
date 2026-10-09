@@ -297,6 +297,7 @@ function createDrawer(): void {
   // Create drawer
   drawer = document.createElement('div');
   drawer.className = 'music-history';
+  drawer.inert = true; // parked off-screen while closed: out of the tab order and the a11y tree
   drawer.setAttribute('role', 'dialog');
   drawer.setAttribute('aria-modal', 'true');
   drawer.setAttribute('aria-label', t('musicHistory.title'));
@@ -350,6 +351,7 @@ export function open(): void {
   populateHistory();
 
   isOpen = true;
+  drawer.inert = false; // before focusing the close button: inert elements can't take focus
   backdrop.classList.add('music-history-backdrop--visible');
   drawer.classList.add('music-history--open');
 
@@ -364,6 +366,7 @@ export function close(): void {
   if (!drawer || !backdrop || !isOpen) return;
 
   isOpen = false;
+  drawer.inert = true;
   backdrop.classList.remove('music-history-backdrop--visible');
   drawer.classList.remove('music-history--open');
 

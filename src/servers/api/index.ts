@@ -304,7 +304,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
 
   if (pathname.startsWith('/api/') && pathname !== '/api/health') {
     // Global limit: per signed-in person (verified uid), else per IP
-    const uid = await rateLimitUid(req);
+    const uid = rateLimitUid(req);
     if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, ...(uid && { keyGenerator: () => `user:${uid}` }) })) return;
   }
 

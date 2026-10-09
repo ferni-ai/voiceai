@@ -7,6 +7,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
@@ -113,8 +114,6 @@ class GamePickerUI {
   private container: HTMLElement | null = null;
   private isVisible = false;
   private styleElement: HTMLStyleElement | null = null;
-  /** Stored escape key handler for cleanup - prevents memory leak */
-  private escapeHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor() {
     this.injectStyles();
@@ -145,12 +144,6 @@ class GamePickerUI {
   hide(): void {
     if (!this.isVisible || !this.container) return;
 
-    // Remove escape key listener to prevent memory leak
-    if (this.escapeHandler) {
-      document.removeEventListener('keydown', this.escapeHandler);
-      this.escapeHandler = null;
-    }
-
     this.container.classList.remove('game-picker--visible');
 
     trackedTimeout(() => {
@@ -175,6 +168,12 @@ class GamePickerUI {
   private createModal(): HTMLElement {
     const modal = document.createElement('div');
     modal.className = 'game-picker';
+    asModalDialog(
+      modal,
+      { label: t('gamePicker.games') },
+      () => modal.classList.contains('game-picker--visible'),
+      () => this.hide()
+    );
     
     modal.innerHTML = `
       <div class="game-picker__backdrop"></div>
@@ -340,14 +339,6 @@ class GamePickerUI {
     modal.querySelector('.game-picker__help-btn')?.addEventListener('click', () => {
       this.showHelpModal();
     });
-
-    // Escape key - store reference for cleanup in hide()
-    this.escapeHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        this.hide(); // hide() now handles removing the listener
-      }
-    };
-    document.addEventListener('keydown', this.escapeHandler);
   }
   
   /**

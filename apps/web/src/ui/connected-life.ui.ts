@@ -9,6 +9,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { LINKEDIN_ENABLED } from '../config/linkedin.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 import { apiGet } from '../utils/api.js';
@@ -206,6 +207,12 @@ class ConnectedLifeUI {
   private createModal(): void {
     const modal = document.createElement('div');
     modal.className = 'connected-life-overlay';
+    asModalDialog(
+      modal,
+      { label: t('menu.sections.connectedLife') },
+      () => modal.classList.contains('visible'),
+      () => this.hide()
+    );
     modal.innerHTML = `
       <div class="connected-life-backdrop"></div>
       <div class="connected-life-modal">
@@ -395,15 +402,6 @@ class ConnectedLifeUI {
         this.handleConnect(integrationId);
       });
     });
-
-    // Escape key
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        this.hide();
-        document.removeEventListener('keydown', handleEscape);
-      }
-    };
-    document.addEventListener('keydown', handleEscape);
   }
 
   private setTabActive(category: IntegrationCategory): void {

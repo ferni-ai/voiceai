@@ -17,6 +17,7 @@ import {
 } from '../services/push-notifications.service.js';
 import { applyPushPreference } from '../services/push-preference.js';
 import { createLogger } from '../utils/logger.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
 
@@ -140,8 +141,13 @@ class NotificationSettingsUI {
   private createPanel(): void {
     this.panel = document.createElement('div');
     this.panel.className = 'notif-settings';
-    this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', t('notificationSettings.title'));
+    const panel = this.panel;
+    asModalDialog(
+      panel,
+      { label: t('notificationSettings.title') },
+      () => panel.classList.contains('notif-settings--visible'),
+      () => this.hide()
+    );
 
     this.panel.addEventListener('click', (e) => {
       if (e.target === this.panel) this.hide();

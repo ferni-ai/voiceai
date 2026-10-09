@@ -11,7 +11,6 @@
 # and apps/web/ for UI server (frontend build)
 apps/android/
 apps/android-native/
-apps/electron/
 apps/ios/
 apps/ios-native/
 apps/macos-menubar/
