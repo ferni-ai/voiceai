@@ -67,6 +67,16 @@ overrides:
   'vite@>=5 <6': '^6.4.3'
   'proxy-addr@<2.0.8': '2.0.8'
   'source-map-js@<1.2.2': '1.2.2'
+  'handlebars@>=4 <5': '^4.7.10'
+  '@babel/core@>=7 <8': '^7.29.6'
+  'ajv@>=8 <9': '^8.18.0'
+  'fast-copy@>=3 <4': '^3.1.0'
+  'fast-copy@>=4 <5': '^4.1.0'
+  'fflate@>=0.8 <0.9': '^0.8.3'
+  'uuid@>=11 <12': '^11.1.1'
+  '@google-cloud/storage@>=7 <8': '^7.22.0'
+  '@mapbox/node-pre-gyp@<2': '^2.0.3'
+  'uuid@>=8 <11': '^11.1.1'
 
 patchedDependencies:
   '@livekit/agents-plugin-google@1.5.1': 'patches/@livekit__agents-plugin-google@1.5.1.patch'
