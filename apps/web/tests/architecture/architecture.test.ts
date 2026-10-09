@@ -74,7 +74,9 @@ async function expectRuleToHold(rule: DependencyRule): Promise<void> {
   expect(diffAgainstBaseline(rule.id, found)).toEqual({ unexpected: [], stale: [] });
 }
 
-describe('apps/web architecture', () => {
+// The first archunit rule parses the whole project (~5s on a CI runner) and
+// later rules reuse it, so the default 5s timeout flaked the first layering test.
+describe('apps/web architecture', { timeout: 30_000 }, () => {
   describe('layering', () => {
     it('assigns a level to every top-level folder under src/', () => {
       const folders = readdirSync(SRC_DIR).filter((name) => statSync(join(SRC_DIR, name)).isDirectory());
