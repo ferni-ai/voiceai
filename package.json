@@ -479,7 +479,7 @@
     "firebase-admin": "^13.6.0",
     "google-auth-library": "10.5.0",
     "googleapis": "170.0.0",
-    "handlebars": "4.7.9",
+    "handlebars": "4.7.10",
     "ioredis": "^5.8.2",
     "jose": "6.2.12",
     "livekit-client": "^2.22.3",
