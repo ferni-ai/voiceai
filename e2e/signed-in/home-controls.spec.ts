@@ -131,3 +131,16 @@ test('nothing the keyboard can reach is invisible', async ({ page }) => {
   });
   expect(unseen, 'focusable but invisible (hidden UI should be inert)').toEqual([]);
 });
+
+test('? opens the keyboard shortcuts, and Escape closes them', async ({ page }) => {
+  const problems = watchProblems(page);
+  await page.waitForTimeout(1_000); // shortcuts are bound just after load
+  const before = await shownDialogs(page);
+  await page.keyboard.press('Shift+Slash'); // "?" on a US layout
+  const panel = await newPanel(page, before, 'keyboard shortcuts');
+  await expect(panel).toHaveAccessibleName(/\S/);
+  const id = (await panel.getAttribute('data-e2e-dialog')) as string;
+  await page.keyboard.press('Escape');
+  await expect.poll(() => isGone(page, id), { message: 'shortcuts did not close on Escape', timeout: 5_000 }).toBe(true);
+  expect(problems.take()).toEqual([]);
+});
