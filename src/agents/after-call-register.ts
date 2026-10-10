@@ -7,4 +7,4 @@
  *
  * @module agents/after-call-register
  */
-export {};
+import './personas/move-outcomes-register.js';
