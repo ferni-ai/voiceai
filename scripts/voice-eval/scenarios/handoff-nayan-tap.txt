@@ -1,0 +1,5 @@
+# A paid-only teammate (Nayan) tapped in the app by a friend-tier caller: the
+# agent should answer handoff_failed (rollbackTo) and nothing should switch.
+Hey Ferni, quick one.
+@data 6000 {"type":"handoff_request","target":"nayan-patel","timestamp":0,"attempt":1}
+Okay, never mind then. Thanks.
