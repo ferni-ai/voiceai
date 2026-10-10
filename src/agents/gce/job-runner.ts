@@ -49,6 +49,25 @@ function childEntry(): string {
   return fileURLToPath(new URL(`./job-child${extname(self)}`, import.meta.url));
 }
 
+/** Replays a child's call-quality call in the worker's monitor; only the known calls. */
+export async function replayCallQuality(op: string, args: unknown[], log: LogFn): Promise<void> {
+  const cqm = await import('../../services/analytics/call-quality-monitor.js');
+  const fns: Record<string, (...a: never[]) => void> = {
+    recordCallEvent: cqm.recordCallEvent,
+    startCall: cqm.startCall,
+    markCallStage: cqm.markCallStage,
+    recordBargeInDetected: cqm.recordBargeInDetected,
+    recordBargeInAgentStopped: cqm.recordBargeInAgentStopped,
+    endCall: cqm.endCall,
+  };
+  const fn = Object.hasOwn(fns, op) ? fns[op] : undefined;
+  if (!fn || !Array.isArray(args)) {
+    log('Ignored an unknown call-quality message from a child', { op });
+    return;
+  }
+  (fn as (...a: unknown[]) => void)(...args);
+}
+
 /** In process mode, starts the pool so a warmed child is ready before the first job. */
 export function startJobRunner(log: LogFn, mode: JobExecutorMode = jobExecutorMode()): void {
   if (mode !== 'process' || pool) return;
@@ -64,6 +83,7 @@ export function startJobRunner(log: LogFn, mode: JobExecutorMode = jobExecutorMo
     readyTimeoutMs: READY_TIMEOUT_MS,
     log,
     onLifecycle: (jobId, event) => lifecycle?.(jobId, event),
+    onQuality: (msg) => void replayCallQuality(msg.op, msg.args, log),
   });
   pool.start();
   log('Job executor: one process per call', { idle: idleProcesses(), entry });
