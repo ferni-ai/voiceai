@@ -6,6 +6,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { isAllowedWebPushEndpoint } from './web-push-endpoint.js';
 
 // Web-push module interface (optional dependency)
 export interface WebPushModule {
@@ -26,7 +27,18 @@ export async function loadWebPush(): Promise<WebPushModule | null> {
   try {
     // @ts-expect-error - web-push is an optional dependency
     const mod = await import('web-push');
-    webpush = mod.default || mod;
+    const loaded: WebPushModule = mod.default || mod;
+    // Every web push goes through here, including subscriptions stored before
+    // the subscribe route validated endpoints.
+    webpush = {
+      setVapidDetails: (...args) => loaded.setVapidDetails(...args),
+      sendNotification: (subscription, payload) => {
+        if (!isAllowedWebPushEndpoint(subscription.endpoint)) {
+          return Promise.reject(new Error('Refusing web push to a non-push-service endpoint'));
+        }
+        return loaded.sendNotification(subscription, payload);
+      },
+    };
     getLogger().info('web-push module loaded successfully');
     return webpush;
   } catch {

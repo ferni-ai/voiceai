@@ -9,6 +9,7 @@ import { rateLimit, requireAdmin, requireAuth } from '../../../api/auth-middlewa
 import { parseBody, sendError, sendJSON } from '../../../api/helpers.js';
 import { EndpointOwnedError } from '../../../services/push-endpoint-owners.js';
 import { getPushNotificationsService } from '../../../services/push-notifications.js';
+import { isAllowedWebPushEndpoint } from '../../../services/web-push-endpoint.js';
 import { isWebPushDeliverable } from '../../../services/web-push-loader.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { onBodyEnd } from '../request-failure.js';
@@ -81,7 +82,8 @@ export async function handlePushRoutes(
       !endpoint ||
       typeof keys?.auth !== 'string' ||
       typeof keys?.p256dh !== 'string' ||
-      !platform
+      !platform ||
+      (platform === 'web' && !isAllowedWebPushEndpoint(endpoint))
     ) {
       sendError(res, 'Invalid subscription format', 400);
       return true;
