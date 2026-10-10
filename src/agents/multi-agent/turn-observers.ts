@@ -192,6 +192,8 @@ export async function installTurnUnderstanding(
         ready: Boolean(u),
         covered: seen ? Math.round(seen.covered * 100) / 100 : null,
         ageMs: seen?.ageMs ?? null,
+        // Counts only: runs this turn, failures, last call latency, why unready.
+        calls: understander.status(turn),
         words: turn.split(/\s+/).length,
         // Labels only: the model's free-text reaction can echo the caller's words.
         model: u ? { ...u, reaction: undefined, hasReaction: u.reaction !== null } : null,
