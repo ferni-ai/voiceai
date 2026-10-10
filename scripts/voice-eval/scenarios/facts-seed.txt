@@ -1,0 +1,11 @@
+# Seed for facts-recall.txt: the caller tells Ferni about their own week.
+# Facts to recall later: a job interview at Stripe on Monday (nervous about the
+# system design round), sister Priya's wedding in Lisbon next month, a first
+# pottery class on Thursday, and a neighbour's cat named Mochi that keeps
+# sneaking in.
+Hey Ferni! Big week coming up.
+I've got a job interview at Stripe on Monday. I'm kind of nervous about the system design round.
+And my sister Priya is getting married next month, in Lisbon. I still need to book flights.
+Oh, and I signed up for a pottery class. First one is Thursday.
+Also my neighbour's cat, Mochi, keeps sneaking into my kitchen. I think she likes me.
+Okay, I should go prep. Talk soon.

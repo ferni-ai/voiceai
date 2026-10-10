@@ -25,9 +25,14 @@ test('the Sanctuary: starting a practice opens it, and Escape closes it', async 
   const problems = watchProblems(page);
   const panel = await openPanel(page, 'commands');
   const before = await shownDialogs(page);
-  // Whichever practice is offered: the list changes with the day and the time of day
-  await panel.locator('[data-practice-id]').first().click();
-  const practice = await newPanel(page, before, 'a practice');
+  // The Sanctuary offers what fits the hour (the server's commands; built-in
+  // defaults when it has none), so start whichever practice it offers first.
+  // Hard-coding "gratitude" failed every run on a Saturday morning (2026-10-10).
+  const offered = panel.locator('[data-practice-id]').first();
+  await expect(offered, 'the Sanctuary offers no practice to start').toBeVisible();
+  const name = await offered.getAttribute('data-practice-id');
+  await offered.click();
+  const practice = await newPanel(page, before, `${name} practice`);
   await expect(practice).toHaveAccessibleName(/\S/);
   const id = (await practice.getAttribute('data-e2e-dialog')) as string;
   await page.keyboard.press('Escape');

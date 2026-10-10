@@ -123,7 +123,7 @@ import {
 import {
   installDirectorNotes,
   installPaceMatching,
-  installToolRetrieval,
+  installTurnListeners,
   recordAssistantTurns,
 } from './turn-observers.js';
 import { timeContext } from '../shared/time-context.js';
@@ -1877,7 +1877,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         let liveBackchannel: LiveBackchannelIntegration | null = null;
         let lastUserFinalTranscript = '';
         const pace = await installPaceMatching(session, sessionId, cleanupFunctions);
-        const toolRetrieval = await installToolRetrieval({
+        const toolRetrieval = await installTurnListeners({
           session,
           sessionId,
           agent,
