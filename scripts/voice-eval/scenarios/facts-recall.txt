@@ -1,0 +1,10 @@
+# Recall of the caller's own life (play with EVAL_SEED=facts-seed). The caller
+# never restates the facts. A good friend brings up the interview, the pottery
+# class, the wedding or Mochi on their own, gets the details right, and never
+# invents ones that were never said.
+Hey Ferni, it's me again.
+So, guess how Monday went?
+It went really well, actually! They want me back for a final round.
+What else has been going on with me? You know my life better than I do at this point.
+Ha. Okay, anything I should be doing this week?
+Alright, I've got to run. Thanks for remembering all that.

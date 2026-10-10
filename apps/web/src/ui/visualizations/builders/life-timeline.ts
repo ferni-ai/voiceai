@@ -38,7 +38,7 @@ const CHAPTER_TYPE_COLORS: Record<TimelineChapter['type'], string> = {
   challenge: getCssVar('--color-semantic-error', '#e74c3c'),
   transition: getCssVar('--color-semantic-warning', '#f5a623'),
   celebration: getCssVar('--color-semantic-success', '#27ae60'),
-  reflection: getCssVar('--persona-eli-primary', '#8a7a9a'),
+  reflection: getCssVar('--viz-chapters-reflection', '#5a6b8a'),
 };
 
 /**

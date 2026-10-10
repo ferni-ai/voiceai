@@ -1125,9 +1125,9 @@ function renderOnboarding(): string {
       <div class="digital-twin-hero">
         ${ICONS.heroIllustration}
       </div>
-      <h3 class="digital-twin-onboarding__heading">Your Voice, Your Story</h3>
+      <h3 class="digital-twin-onboarding__heading">${t('digitalTwin.title')}</h3>
       <p class="digital-twin-onboarding__description">
-        A Digital Twin is your personal voice journal. Record your thoughts, 
+        A Digital Twin is your personal voice journal. Record your thoughts,
         capture your wisdom, and one day, talk to your past self.
       </p>
 
@@ -1135,27 +1135,27 @@ function renderOnboarding(): string {
         <div class="digital-twin-feature">
           <div class="digital-twin-feature__icon">${ICONS.voice}</div>
           <div class="digital-twin-feature__text">
-            <h4>Record Daily Journals</h4>
-            <p>Speak your thoughts aloud. Your voice captures nuance that text never could.</p>
+            <h4>${t('digitalTwin.recordTitle')}</h4>
+            <p>${t('digitalTwin.recordDescription')}</p>
           </div>
         </div>
         <div class="digital-twin-feature">
           <div class="digital-twin-feature__icon">${ICONS.time}</div>
           <div class="digital-twin-feature__text">
-            <h4>Talk to Your Past Self</h4>
-            <p>Your entries become a conversation partner, reflecting your growth over time.</p>
+            <h4>${t('digitalTwin.talkTitle')}</h4>
+            <p>${t('digitalTwin.talkDescription')}</p>
           </div>
         </div>
         <div class="digital-twin-feature">
           <div class="digital-twin-feature__icon">${ICONS.sparkle}</div>
           <div class="digital-twin-feature__text">
-            <h4>Discover Patterns</h4>
-            <p>See trends in your moods, track streaks, and gain insights from your own wisdom.</p>
+            <h4>${t('digitalTwin.patternsTitle')}</h4>
+            <p>${t('digitalTwin.patternsDescription')}</p>
           </div>
         </div>
       </div>
 
-      <button aria-label="${t('accessibility.add')}" class="digital-twin-create-btn" data-action="create">
+      <button class="digital-twin-create-btn" data-action="create">
         ${ICONS.plus}
         Create Your Digital Twin
       </button>
@@ -1192,7 +1192,7 @@ function renderTwinsList(): string {
         : '';
 
       return `
-        <button aria-label="${t('accessibility.goForward')}" class="digital-twin-card" data-twin-id="${twin.id}">
+        <button class="digital-twin-card" data-twin-id="${twin.id}">
           <div class="digital-twin-card__avatar">
             ${ICONS.journal}
             ${streakBadge}
@@ -1220,11 +1220,11 @@ function renderTwinsList(): string {
 
   return `
     ${renderAutoCaptureCard()}
-    <div class="digital-twin-section-header">Your Journals</div>
+    <div class="digital-twin-section-header">${t('digitalTwin.yourJournals')}</div>
     <div class="digital-twin-list">
       ${twinCards}
     </div>
-    <button aria-label="${t('accessibility.add')}" class="digital-twin-add-btn" data-action="create">
+    <button class="digital-twin-add-btn" data-action="create">
       ${ICONS.plus}
       Create Another Journal
     </button>
@@ -1247,18 +1247,18 @@ function renderAutoCaptureCard(): string {
         <div class="digital-twin-consent__icon">
           ${ICONS.capture}
         </div>
-        <h4>Capture Moments Automatically</h4>
+        <h4>${t('digitalTwin.captureTitle')}</h4>
         <p>
-          I can remember the meaningful moments from our conversations - 
-          breakthroughs, decisions, gratitude - and add them to your journal. 
+          I can remember the meaningful moments from our conversations -
+          breakthroughs, decisions, gratitude - and add them to your journal.
           You're always in control.
         </p>
-        <button aria-label="${t('accessibility.confirm')}" class="digital-twin-consent__btn" data-action="enable-capture">
+        <button class="digital-twin-consent__btn" data-action="enable-capture">
           ${ICONS.check}
           Yes, remember what matters
         </button>
-        <button aria-label="${t('accessibility.maybeLater')}" class="digital-twin-consent__skip" data-action="skip-capture">
-          Maybe later
+        <button class="digital-twin-consent__skip" data-action="skip-capture">
+          ${t('common.maybeLater')}
         </button>
       </div>
     `;
@@ -1270,7 +1270,7 @@ function renderAutoCaptureCard(): string {
       <div class="digital-twin-capture-header">
         <div class="digital-twin-capture-title">
           ${ICONS.capture}
-          <h4>Auto-Capture Moments</h4>
+          <h4>${t('digitalTwin.autoCapture')}</h4>
         </div>
         <label class="digital-twin-toggle">
           <input type="checkbox" ${isEnabled ? 'checked' : ''} data-action="toggle-capture" />
@@ -1291,7 +1291,7 @@ function renderLoading(): string {
   return `
     <div class="digital-twin-loading">
       <div class="digital-twin-loading__spinner"></div>
-      <span>Loading your journals...</span>
+      <span>${t('digitalTwin.loading')}</span>
     </div>
   `;
 }
@@ -1409,9 +1409,9 @@ function ensureModalExists(): HTMLElement {
         <button class="digital-twin-modal__close" aria-label="${t('accessibility.close')}">
           ${ICONS.close}
         </button>
-        <div class="digital-twin-modal__eyebrow">Your Journey</div>
-        <h2 class="digital-twin-modal__title" id="digital-twin-title">Voice Journal</h2>
-        <p class="digital-twin-modal__subtitle">Capture your thoughts, wisdom, and growth</p>
+        <div class="digital-twin-modal__eyebrow">${t('digitalTwin.journey')}</div>
+        <h2 class="digital-twin-modal__title" id="digital-twin-title">${t('digitalTwin.voiceJournal')}</h2>
+        <p class="digital-twin-modal__subtitle">${t('digitalTwin.captureDescription')}</p>
       </header>
       <div class="digital-twin-modal__content">
         ${renderContent()}

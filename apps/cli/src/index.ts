@@ -47,6 +47,14 @@ import {
   weeklyReviewService,
   winsService,
 } from '../../../src/services/ceo/index.js';
+import {
+  LIVEKIT_AGENTS,
+  isLkInstalled,
+  lkAgentArgs,
+  parseAgentStatus,
+  resolveAgentEnv,
+  runLkAgent,
+} from './utils/livekit-agent.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -69,9 +77,8 @@ dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
 const GCP_PROJECT = 'johnb-2025';
 const GCP_REGION = 'us-central1';
 
-// Service names
+// Cloud Run services. The voice agent is a LiveKit Cloud agent (LIVEKIT_AGENTS), not Cloud Run.
 const SERVICES = {
-  agent: 'voiceai-agent',
   ui: 'john-bogle-ui',
 };
 
@@ -165,7 +172,7 @@ const messages = {
   unknownCommand: (cmd: string) =>
     `"${cmd}" doesn't ring a bell. Try \`ferni help\` to see what's available.`,
   unknownService: (service: string) =>
-    `Don't recognize "${service}". Available: ui, agent, gce, frontend`,
+    `Don't recognize "${service}". Available: ui, agent, frontend`,
 
   // Git & Version Control
   uncommittedChanges: () =>
@@ -252,8 +259,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Deploy services to cloud',
     icon: icons.rocket,
     script: 'apps/cli/src/commands/deploy/deploy.ts',
-    subcommands: ['ui', 'agent', 'gce', 'frontend', 'landing', 'all'],
-    examples: ['ferni deploy ui', 'ferni deploy gce', 'ferni deploy all --dry-run'],
+    subcommands: ['ui', 'agent', 'frontend', 'landing', 'all'],
+    examples: ['ferni deploy ui', 'ferni deploy agent --prod', 'ferni deploy all --dry-run'],
   },
   agents: {
     name: 'Agents',
@@ -269,17 +276,17 @@ const COMMANDS: Record<string, CliCommand> = {
   },
   logs: {
     name: 'Logs',
-    description: 'View & analyze Cloud Run logs with AI',
+    description: 'View voice agent (LiveKit Cloud) and Cloud Run logs',
     icon: icons.log,
     handler: handleLogs,
-    subcommands: ['agent', 'ui', 'all', 'errors', 'analyze', 'search', 'gce'],
+    subcommands: ['agent', 'ui', 'all', 'errors', 'analyze', 'search'],
     examples: [
       'ferni logs agent',
+      'ferni logs agent --dev',
       'ferni logs ui --tail',
       'ferni logs errors',
       'ferni logs analyze',
       'ferni logs search "timeout"',
-      'ferni logs gce --since=1h',
     ],
   },
   status: {
@@ -287,8 +294,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Check deployment status',
     icon: icons.cloud,
     handler: handleStatus,
-    subcommands: ['services', 'revisions', 'traffic', 'all'],
-    examples: ['ferni status', 'ferni status services'],
+    subcommands: ['services', 'agent', 'revisions', 'traffic', 'all'],
+    examples: ['ferni status', 'ferni status agent', 'ferni status services'],
   },
   doctor: {
     name: 'Doctor',
@@ -392,7 +399,12 @@ const COMMANDS: Record<string, CliCommand> = {
       'package',
       'all',
     ],
-    examples: ['ferni audit quality', 'ferni audit bth', 'ferni audit package agents', 'ferni audit all'],
+    examples: [
+      'ferni audit quality',
+      'ferni audit bth',
+      'ferni audit package agents',
+      'ferni audit all',
+    ],
   },
   build: {
     name: 'Build',
@@ -781,19 +793,6 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni ops metrics',
     ],
   },
-  qwen3: {
-    name: 'Qwen3-Omni',
-    description: 'Manage Qwen3-Omni self-hosted speech-to-speech AI server',
-    icon: '🧠',
-    handler: handleQwen3Omni,
-    subcommands: ['deploy', 'health', 'logs', 'voices', 'status', 'ssh', 'destroy', 'test'],
-    examples: [
-      'ferni qwen3 deploy',
-      'ferni qwen3 health',
-      'ferni qwen3 voices',
-      'ferni qwen3 test',
-    ],
-  },
   waitlist: {
     name: 'Waitlist',
     description: 'Manage user waitlist',
@@ -1094,8 +1093,8 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Rollback deployments to previous version',
     icon: '⏪',
     handler: handleRollback,
-    subcommands: ['gce', 'agent', 'ui', 'status', 'history'],
-    examples: ['ferni rollback gce', 'ferni rollback agent', 'ferni rollback status'],
+    subcommands: ['agent', 'ui', 'status', 'history'],
+    examples: ['ferni rollback agent', 'ferni rollback ui', 'ferni rollback status'],
   },
   metrics: {
     name: 'Metrics',
@@ -1201,14 +1200,6 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['status', 'clear', 'warmup', 'stats', 'keys'],
     examples: ['ferni cache status', 'ferni cache clear --pattern="user:*"'],
   },
-  disk: {
-    name: 'Disk',
-    description: 'GCE disk management & Docker cleanup',
-    icon: '💽',
-    handler: handleDisk,
-    subcommands: ['status', 'clean', 'clean:aggressive', 'setup-cron'],
-    examples: ['ferni disk', 'ferni disk status', 'ferni disk clean', 'ferni disk setup-cron'],
-  },
   runner: {
     name: 'Runner',
     description: 'GitHub Actions self-hosted runner management',
@@ -1216,14 +1207,6 @@ const COMMANDS: Record<string, CliCommand> = {
     handler: handleRunner,
     subcommands: ['status', 'restart', 'logs', 'ssh'],
     examples: ['ferni runner status', 'ferni runner restart', 'ferni runner logs --follow'],
-  },
-  canary: {
-    name: 'Canary',
-    description: 'Canary deployment management',
-    icon: '🐤',
-    handler: handleCanary,
-    subcommands: ['status', 'start', 'promote', 'abort'],
-    examples: ['ferni canary status', 'ferni canary start', 'ferni canary promote'],
   },
   notify: {
     name: 'Notify',
@@ -1252,11 +1235,11 @@ const COMMANDS: Record<string, CliCommand> = {
   },
   tunnel: {
     name: 'Tunnel',
-    description: 'SSH tunnel to GCE/Cloud Run for debugging',
+    description: 'Tunnels to Cloud SQL and Redis for debugging',
     icon: '🔗',
     handler: handleTunnel,
-    subcommands: ['gce', 'db', 'redis', 'status', 'close'],
-    examples: ['ferni tunnel gce', 'ferni tunnel db', 'ferni tunnel status'],
+    subcommands: ['db', 'redis', 'status', 'close'],
+    examples: ['ferni tunnel db', 'ferni tunnel status'],
   },
   replay: {
     name: 'Replay',
@@ -1767,7 +1750,7 @@ const COMMANDS: Record<string, CliCommand> = {
     ],
     examples: [
       'ferni platform',
-      'ferni platform deploy gce',
+      'ferni platform deploy agent',
       'ferni platform logs agent --tail',
       'ferni platform status',
       'ferni platform metrics live',
@@ -1842,7 +1825,7 @@ async function handlePlatform(args: string[]): Promise<void> {
 
     console.log(`  ${colors.bold}Available Operations:${colors.reset}`);
     console.log(
-      `    ${colors.green}deploy${colors.reset}       Deploy services (gce, ui, frontend)`
+      `    ${colors.green}deploy${colors.reset}       Deploy services (agent, ui, frontend)`
     );
     console.log(`    ${colors.green}logs${colors.reset}         View & analyze logs`);
     console.log(`    ${colors.green}status${colors.reset}       Check deployment status`);
@@ -1862,7 +1845,7 @@ async function handlePlatform(args: string[]): Promise<void> {
     console.log(`    ${colors.green}experiments${colors.reset}  A/B tests & rollouts`);
     console.log();
     console.log(`  ${colors.dim}Examples:${colors.reset}`);
-    console.log(`    ferni platform deploy gce`);
+    console.log(`    ferni platform deploy agent`);
     console.log(`    ferni platform logs agent --tail`);
     console.log(`    ferni platform metrics live`);
     return;
@@ -2159,7 +2142,7 @@ async function handleLogs(args: string[]): Promise<void> {
   const limit = args.includes('--limit') ? args[args.indexOf('--limit') + 1] : '50';
   const sinceArg = args.find((a) => a.startsWith('--since='))?.split('=')[1] || '1h';
 
-  log.header(`${icons.log} Cloud Run Logs`);
+  log.header(`${icons.log} Logs`);
 
   // AI-powered log analysis
   if (subcommand === 'analyze') {
@@ -2179,15 +2162,15 @@ async function handleLogs(args: string[]): Promise<void> {
     return;
   }
 
-  // GCE voice agent logs
-  if (subcommand === 'gce') {
-    await handleLogsGCE(sinceArg, tail);
+  if (subcommand === 'agent') {
+    await handleAgentLogs(args);
     return;
   }
 
   const services: string[] = [];
   if (subcommand === 'all') {
-    services.push(SERVICES.agent, SERVICES.ui);
+    log.info('Cloud Run services only; the voice agent streams with: ferni logs agent\n');
+    services.push(...Object.values(SERVICES));
   } else if (subcommand === 'errors') {
     // Show errors from all services
     log.info('Fetching error logs from all services...\n');
@@ -2198,7 +2181,9 @@ async function handleLogs(args: string[]): Promise<void> {
     const service = SERVICES[subcommand as keyof typeof SERVICES];
     if (!service) {
       log.error(messages.unknownService(subcommand));
-      log.info(`Available: ${Object.keys(SERVICES).join(', ')}, all, errors, analyze, search, gce`);
+      log.info(
+        `Available: agent, ${Object.keys(SERVICES).join(', ')}, all, errors, analyze, search`
+      );
       return;
     }
     services.push(service);
@@ -2342,43 +2327,59 @@ async function handleLogsSearch(query: string, since: string): Promise<void> {
   }
 }
 
-// GCE voice agent logs via SSH
-async function handleLogsGCE(since: string, tail: boolean): Promise<void> {
-  console.log(`${colors.bold}🖥️ GCE Voice Agent Logs${colors.reset}\n`);
-
-  if (tail) {
-    log.info('Streaming GCE logs (Ctrl+C to stop)...\n');
-    const cmd = `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a --command="docker logs voiceai-agent -f --tail=100" 2>/dev/null`;
-    const child = spawn('sh', ['-c', cmd], { stdio: 'inherit' });
-    await new Promise((resolve) => child.on('close', resolve));
+// The voice agent's logs stream from LiveKit Cloud; lk keeps no history, so --since does not apply.
+async function handleAgentLogs(args: string[]): Promise<void> {
+  const target = LIVEKIT_AGENTS[resolveAgentEnv(args, 'prod')];
+  console.log(
+    `${colors.bold}Voice agent logs: ${target.project} (${target.agentId})${colors.reset}\n`
+  );
+  if (!isLkInstalled()) {
+    log.error(messages.missingTool('lk', 'brew install livekit-cli'));
     return;
   }
-
-  const spinner = new Spinner('Fetching GCE logs...');
-  spinner.start();
-
-  // Get logs from the last hour by default
-  const sinceSeconds = since.includes('h') ? parseInt(since) * 3600 : parseInt(since) * 60;
-  const cmd = `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a --command="docker logs voiceai-agent --since=${sinceSeconds}s 2>&1 | tail -100" 2>/dev/null`;
-
-  const logs = execCommand(cmd);
-  spinner.stop(!!logs);
-
-  if (logs) {
-    console.log(`\n${logs}\n`);
-  } else {
-    log.warn('Could not retrieve GCE logs (VM may be unreachable)');
-  }
+  const errorsOnly = args.includes('--errors');
+  log.info(`Streaming${errorsOnly ? ' errors' : ''} (Ctrl+C to stop)...\n`);
+  const lkCmd = ['lk', ...lkAgentArgs('logs', target)].join(' ');
+  const child = errorsOnly
+    ? spawn('sh', ['-c', `${lkCmd} 2>&1 | grep --line-buffered -iE "error|fatal"`], {
+        cwd: PROJECT_ROOT,
+        stdio: 'inherit',
+      })
+    : spawn('lk', lkAgentArgs('logs', target), { cwd: PROJECT_ROOT, stdio: 'inherit' });
+  await new Promise((resolve) => child.on('close', resolve));
 }
 
 // ============================================================================
 // STATUS COMMAND
 // ============================================================================
 
+function printAgentStatus(): void {
+  console.log(`${colors.bold}Voice agent (LiveKit Cloud):${colors.reset}\n`);
+  if (!isLkInstalled()) {
+    console.log(`    ${colors.dim}lk not installed (brew install livekit-cli)${colors.reset}\n`);
+    return;
+  }
+  for (const target of Object.values(LIVEKIT_AGENTS)) {
+    const result = runLkAgent(PROJECT_ROOT, 'status', target, { capture: true });
+    const status = parseAgentStatus(result.output, target.agentId);
+    const dot =
+      status === 'Running' ? `${colors.green}●${colors.reset}` : `${colors.yellow}●${colors.reset}`;
+    console.log(
+      `  ${dot} ${target.env}: ${target.agentId} ${colors.dim}${status ?? 'unknown'}${colors.reset}`
+    );
+  }
+  console.log();
+}
+
 async function handleStatus(args: string[]): Promise<void> {
   const subcommand = args[0] || 'all';
 
   log.header(`${icons.cloud} Deployment Status`);
+
+  if (subcommand === 'all' || subcommand === 'agent') {
+    printAgentStatus();
+    if (subcommand === 'agent') return;
+  }
 
   // Check services
   if (subcommand === 'all' || subcommand === 'services') {
@@ -3273,7 +3274,7 @@ async function handleDev(args: string[]): Promise<void> {
 
     if (target === 'all') {
       console.log(`${colors.bold}Starting all development servers...${colors.reset}\n`);
-      
+
       log.step('UI Server (port 3002)');
       log.step('Frontend (port 3004)');
       console.log();
@@ -3860,7 +3861,7 @@ async function handleFTIS(args: string[]): Promise<void> {
       'npx',
       [
         'tsx',
-        'apps/cli/src/commands/ftis/generate-training-data.ts',
+        'apps/cli/src/commands/tool-classifier/generate-training-data.ts',
         '--output=./data/ftis-training',
         '--examples=400',
       ],
@@ -4149,7 +4150,7 @@ async function handleCosts(args: string[]): Promise<void> {
 
     // Show services
     console.log(`  ${colors.cyan}Estimated Cost Drivers:${colors.reset}`);
-    console.log(`    1. Cloud Run (voiceai-agent) - Compute + Memory`);
+    console.log(`    1. LiveKit Cloud agents (voice agent) - billed by LiveKit`);
     console.log(`    2. Cloud Run (john-bogle-ui) - Compute + Memory`);
     console.log(`    3. Firestore - Document reads/writes`);
     console.log(`    4. Cloud Build - Build minutes`);
@@ -4394,7 +4395,8 @@ async function handleVoices(args: string[]): Promise<void> {
 
     // Import the full persona platform
     // Note: Path is relative to apps/cli/src/
-    const { getVoiceIdForPersona, CARTESIA_MODEL } = await import('../../../src/config/voice-ids.js');
+    const { getVoiceIdForPersona, CARTESIA_MODEL } =
+      await import('../../../src/config/voice-ids.js');
     const { humanizeText, addBreathGroupPauses } =
       await import('../../../src/speech/advanced-humanization/index.js');
 
@@ -6282,7 +6284,7 @@ async function startUIServer(): Promise<void> {
 
 async function startAgent(): Promise<void> {
   log.info('Starting voice agent...');
-  // Use the new unified worker (GCE-optimized, orchestrator pattern)
+  // Use the unified worker (orchestrator pattern)
   const agent = spawn('npx', ['tsx', 'src/agents/worker.ts'], {
     cwd: PROJECT_ROOT,
     detached: true,
@@ -7165,7 +7167,7 @@ More content.
     } else {
       // Deploy
       console.log(`\n  ${colors.dim}Deploying...${colors.reset}`);
-      spawnSync('sh', ['-c', `cd ${websiteDir} && firebase deploy --only hosting`], {
+      spawnSync('sh', ['-c', `cd ${websiteDir} && firebase deploy --only hosting:ferni-landing`], {
         stdio: 'inherit',
       });
       console.log(
@@ -7268,7 +7270,9 @@ async function handleOps(args: string[]): Promise<void> {
     console.log(
       `  ${colors.cyan}ferni ops scheduler${colors.reset}    - Setup GCP Cloud Scheduler`
     );
-    console.log(`  ${colors.cyan}ferni ops logs${colors.reset}         - View GCE container logs`);
+    console.log(
+      `  ${colors.cyan}ferni ops logs${colors.reset}         - Stream voice agent logs (LiveKit Cloud)`
+    );
     console.log(
       `  ${colors.cyan}ferni ops dashboard${colors.reset}    - Generate CI/CD health dashboard`
     );
@@ -7289,7 +7293,7 @@ async function handleOps(args: string[]): Promise<void> {
 
   if (subcommand === 'diagnose') {
     console.log(`${colors.cyan}Diagnosing disconnect issues...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${cliCommandsDir}/diagnose-disconnects.ts`], {
+    spawnSync('npx', ['tsx', `${cliCommandsDir}/diagnose-disconnects.ts`, ...args.slice(1)], {
       stdio: 'inherit',
     });
   }
@@ -7402,14 +7406,7 @@ async function handleOps(args: string[]): Promise<void> {
   }
 
   if (subcommand === 'logs') {
-    const errors = args.includes('--errors');
-    console.log(`${colors.cyan}Fetching GCE container logs...${colors.reset}\n`);
-
-    const logCmd = errors
-      ? `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a -- 'docker logs $(docker ps -q | head -1) 2>&1 | grep -iE error | tail -30'`
-      : `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a -- 'docker logs $(docker ps -q | head -1) 2>&1 | tail -50'`;
-
-    spawnSync('sh', ['-c', logCmd], { stdio: 'inherit' });
+    await handleAgentLogs(args.slice(1));
   }
 
   if (subcommand === 'dashboard') {
@@ -7430,26 +7427,6 @@ async function handleOps(args: string[]): Promise<void> {
       stdio: 'inherit',
     });
   }
-}
-
-// ============================================================================
-// QWEN3-OMNI COMMAND
-// ============================================================================
-
-async function handleQwen3Omni(args: string[]): Promise<void> {
-  const cliDir = join(PROJECT_ROOT, 'apps/cli/src/commands/qwen3-omni');
-
-  if (existsSync(cliDir + '/index.ts')) {
-    try {
-      const { main: qwen3Main } = await import('./commands/qwen3-omni/index.js');
-      await qwen3Main(args);
-      return;
-    } catch (err) {
-      log.error(`Failed to load Qwen3-Omni CLI: ${err}`);
-    }
-  }
-
-  log.error('Qwen3-Omni CLI not found. Ensure apps/cli/src/commands/qwen3-omni/ exists.');
 }
 
 // ============================================================================
@@ -8138,7 +8115,9 @@ async function handleAudit(args: string[]): Promise<void> {
       `  ${colors.cyan}ferni audit intelligence${colors.reset}  - Validate intelligence system`
     );
     console.log(`  ${colors.cyan}ferni audit legacy${colors.reset}        - Find legacy code`);
-    console.log(`  ${colors.cyan}ferni audit a11y${colors.reset}          - Run accessibility audit`);
+    console.log(
+      `  ${colors.cyan}ferni audit a11y${colors.reset}          - Run accessibility audit`
+    );
     console.log(
       `  ${colors.cyan}ferni audit package${colors.reset}     - Run src package audit (quality + arch + checklist)`
     );
@@ -9106,6 +9085,35 @@ async function handleCircuits(args: string[]): Promise<void> {
   console.log();
 }
 
+/**
+ * Restart or roll back the LiveKit Cloud agent. Like `ferni deploy agent`, this
+ * targets the dev agent unless --prod is given, and asks before acting.
+ */
+async function runAgentMutation(action: 'restart' | 'rollback', args: string[]): Promise<void> {
+  const target = LIVEKIT_AGENTS[resolveAgentEnv(args, 'dev')];
+  if (!isLkInstalled()) {
+    log.error(messages.missingTool('lk', 'brew install livekit-cli'));
+    return;
+  }
+  if (action === 'rollback') runLkAgent(PROJECT_ROOT, 'versions', target);
+  console.log(`\n  Agent: ${colors.cyan}${target.project} ${target.agentId}${colors.reset}`);
+  console.log(`  Command: ${colors.dim}lk ${lkAgentArgs(action, target).join(' ')}${colors.reset}`);
+  if (!args.includes('--force') && !args.includes('-f')) {
+    const answer = await prompt(
+      `\n${colors.yellow}${action} ${target.env} agent? [y/N]:${colors.reset} `
+    );
+    if (answer.toLowerCase() !== 'y') {
+      console.log('\nAborted.');
+      return;
+    }
+  }
+  const version = args.find((a) => a.startsWith('--version='))?.split('=')[1];
+  const extra = action === 'rollback' && version ? ['--version', version, '--yes'] : ['--yes'];
+  const ok = runLkAgent(PROJECT_ROOT, action, target, { extra }).ok;
+  if (ok) log.success(`Agent ${action} done. Check: ferni status agent`);
+  else log.error(`lk agent ${action} failed`);
+}
+
 async function handleRestartService(args: string[]): Promise<void> {
   const subcommand = args[0] || 'status';
 
@@ -9143,9 +9151,13 @@ async function handleRestartService(args: string[]): Promise<void> {
     return;
   }
 
+  if (subcommand === 'agent') {
+    await runAgentMutation('restart', args);
+    return;
+  }
+
   // Restart a specific service
-  const serviceName =
-    subcommand === 'agent' ? SERVICES.agent : subcommand === 'ui' ? SERVICES.ui : null;
+  const serviceName = subcommand === 'ui' ? SERVICES.ui : null;
 
   if (!serviceName) {
     log.error(`Unknown service: ${subcommand}`);
@@ -9887,7 +9899,7 @@ ${JSON.stringify(runtimeData, null, 2)}
 
 Context:
 - This is a LiveKit voice agent using Gemini for LLM, Cartesia/Deepgram for TTS/STT
-- Running in ${isContainer ? 'Docker container (likely Cloud Run or GCE)' : 'local development mode'}
+- Running in ${isContainer ? 'Docker container (Cloud Run or LiveKit Cloud)' : 'local development mode'}
 - Single process mode ${envSummary.singleProcess === 'true' ? 'is enabled (good for containers)' : 'is disabled (uses child processes)'}`;
 
   try {
@@ -10540,12 +10552,7 @@ async function handleRollback(args: string[]): Promise<void> {
   if (subcommand === 'status') {
     console.log(`${colors.bold}Current Deployment Status:${colors.reset}\n`);
 
-    // GCE status
-    console.log(`  ${colors.cyan}GCE (Voice Agent):${colors.reset}`);
-    const gceStatus = execCommand(
-      `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a --command="docker ps --format '{{.Names}} {{.Image}} {{.Status}}' | grep voiceai" 2>/dev/null || echo "Not accessible"`
-    );
-    console.log(`    ${gceStatus || 'No containers running'}\n`);
+    printAgentStatus();
 
     // Cloud Run status
     for (const [name, service] of Object.entries(SERVICES)) {
@@ -10567,46 +10574,13 @@ async function handleRollback(args: string[]): Promise<void> {
     return;
   }
 
-  if (subcommand === 'gce') {
-    log.info('Rolling back GCE voice agent...');
-    const spinner = new Spinner('Finding previous image...');
-    spinner.start();
-
-    const images = execCommand(
-      `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a --command="docker images gcr.io/johnb-2025/voiceai-agent --format '{{.Tag}}' | head -3" 2>/dev/null`
-    );
-
-    if (!images) {
-      spinner.stop(false);
-      log.error('Could not retrieve image list from GCE');
-      return;
-    }
-
-    const tags = images.split('\n').filter(Boolean);
-    spinner.stop(true);
-
-    if (tags.length < 2) {
-      log.error('No previous image found to rollback to');
-      return;
-    }
-
-    console.log(`\n  Current: ${colors.green}${tags[0]}${colors.reset}`);
-    console.log(`  Rollback to: ${colors.yellow}${tags[1]}${colors.reset}\n`);
-
-    const answer = await prompt(`${colors.yellow}Proceed with rollback? [y/N]:${colors.reset} `);
-    if (answer.toLowerCase() !== 'y') {
-      console.log('\nAborted.');
-      return;
-    }
-
-    // Execute rollback via deploy-gce.ts
-    log.info('Executing rollback...');
-    runCommand('apps/cli/src/commands/deploy/deploy-gce.ts', ['--rollback']);
+  if (subcommand === 'agent') {
+    await runAgentMutation('rollback', args);
     return;
   }
 
-  if (subcommand === 'agent' || subcommand === 'ui') {
-    const service = subcommand === 'agent' ? SERVICES.agent : SERVICES.ui;
+  if (subcommand === 'ui') {
+    const service = SERVICES.ui;
     log.info(`Rolling back ${subcommand}...`);
 
     // Get previous revision
@@ -10647,7 +10621,7 @@ async function handleRollback(args: string[]): Promise<void> {
   }
 
   log.error(`Unknown rollback target: ${subcommand}`);
-  console.log(`\n  Available: gce, agent, ui, status, history`);
+  console.log(`\n  Available: agent, ui, status, history`);
 }
 
 async function handleMetrics(args: string[]): Promise<void> {
@@ -10861,17 +10835,13 @@ async function handleSLA(args: string[]): Promise<void> {
       console.log();
     }
 
-    console.log(`  ${colors.cyan}GCE Voice Agent:${colors.reset}`);
-    console.log(`    Last 24h:  ${colors.green}100%${colors.reset}`);
-    console.log(`    Last 7d:   ${colors.green}99.99%${colors.reset}`);
-    console.log(`    Last 30d:  ${colors.green}99.97%${colors.reset}`);
     return;
   }
 
   if (subcommand === 'latency') {
     console.log(`${colors.bold}Latency SLA Report:${colors.reset}\n`);
 
-    console.log(`  ${colors.cyan}Voice Agent (GCE):${colors.reset}`);
+    console.log(`  ${colors.cyan}Voice Agent:${colors.reset}`);
     console.log(`    p50:  ${colors.green}89ms${colors.reset}   (target: <200ms)`);
     console.log(`    p95:  ${colors.green}234ms${colors.reset}  (target: <500ms)`);
     console.log(`    p99:  ${colors.yellow}567ms${colors.reset}  (target: <1000ms)`);
@@ -10947,8 +10917,14 @@ async function handleTraffic(args: string[]): Promise<void> {
 
   if (subcommand === 'canary') {
     const percent = parseInt(args[1] || '10', 10);
-    const service = args[2] || 'agent';
-    const serviceName = service === 'agent' ? SERVICES.agent : SERVICES.ui;
+    const service = args[2] || 'ui';
+    if (service !== 'ui') {
+      log.error(
+        'Traffic splits apply to Cloud Run (ui) only; the voice agent runs on LiveKit Cloud'
+      );
+      return;
+    }
+    const serviceName = SERVICES.ui;
 
     console.log(`${colors.bold}Setting up ${percent}% canary for ${service}:${colors.reset}\n`);
 
@@ -11872,38 +11848,6 @@ async function handleCache(args: string[]): Promise<void> {
   console.log(`\n  Available: status, clear, warmup, stats, keys`);
 }
 
-async function handleDisk(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
-  const isDryRun = args.includes('--dry-run');
-
-  log.header('💽 GCE Disk Management');
-
-  // Map CLI subcommands to script arguments
-  const scriptArgsMap: Record<string, string[]> = {
-    status: ['--status'],
-    clean: isDryRun ? ['--dry-run'] : [],
-    'clean:aggressive': isDryRun ? ['--aggressive', '--dry-run'] : ['--aggressive'],
-    'setup-cron': ['--setup-cron'],
-  };
-
-  const scriptArgs = scriptArgsMap[subcommand];
-  if (!scriptArgs) {
-    log.error(`Unknown disk subcommand: ${subcommand}`);
-    console.log(`\n  Available: status, clean, clean:aggressive, setup-cron`);
-    return;
-  }
-
-  // Run the cleanup-gce.ts script
-  const cmd = `npx tsx apps/cli/src/commands/ops/cleanup-gce.ts ${scriptArgs.join(' ')}`;
-
-  try {
-    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
-  } catch (error) {
-    log.error('Disk operation failed');
-    process.exit(1);
-  }
-}
-
 async function handleRunner(args: string[]): Promise<void> {
   const subcommand = args[0] || 'status';
 
@@ -12067,73 +12011,6 @@ async function handleBackup(args: string[]): Promise<void> {
 
   log.error(`Unknown backup subcommand: ${subcommand}`);
   console.log(`\n  Available: status, create, list, restore <path>, cleanup`);
-}
-
-async function handleCanary(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
-
-  log.header('🐤 Canary Deployment');
-
-  if (subcommand === 'status') {
-    console.log(`${colors.bold}Canary Status:${colors.reset}\n`);
-
-    // Check if canary is active by looking at running containers
-    try {
-      const containers = execSync(
-        `gcloud compute ssh voiceai-agent-gce --zone us-central1-a --command "docker ps --format '{{.Names}}'" 2>/dev/null`,
-        { encoding: 'utf-8', timeout: 30000 }
-      );
-
-      const hasBlue = containers.includes('voiceai-agent-blue');
-      const hasGreen = containers.includes('voiceai-agent-green');
-
-      if (hasBlue && hasGreen) {
-        console.log(`  ${colors.green}Canary Active${colors.reset}`);
-        console.log(`  • Blue (stable): Running on port 8080`);
-        console.log(`  • Green (canary): Running on port 8081`);
-      } else if (hasBlue) {
-        console.log(`  ${colors.dim}No active canary${colors.reset}`);
-        console.log(`  • Blue (production): Running on port 8080`);
-      } else if (hasGreen) {
-        console.log(`  ${colors.yellow}Only Green running${colors.reset}`);
-        console.log(`  • Green: Running on port 8081`);
-      } else {
-        log.warn('No containers running!');
-      }
-    } catch (error) {
-      log.error(`Could not check status: ${error}`);
-    }
-    return;
-  }
-
-  if (subcommand === 'start') {
-    console.log(`${colors.bold}Starting Canary Deployment...${colors.reset}\n`);
-
-    log.info('Canary deployment requires traffic splitting.');
-    log.info('Consider using: ferni deploy gce');
-    log.info('For true canary, nginx or a load balancer is needed.');
-    return;
-  }
-
-  if (subcommand === 'promote') {
-    console.log(`${colors.bold}Promoting Canary to Production...${colors.reset}\n`);
-
-    // This would promote GREEN to BLUE
-    log.info('Would promote GREEN container to production');
-    log.info('Run: ferni deploy gce to deploy new version');
-    return;
-  }
-
-  if (subcommand === 'abort') {
-    console.log(`${colors.bold}Aborting Canary...${colors.reset}\n`);
-
-    log.warn('Would roll back to stable version');
-    log.info('Run: ferni deploy gce --rollback');
-    return;
-  }
-
-  log.error(`Unknown canary subcommand: ${subcommand}`);
-  console.log(`\n  Available: status, start, promote, abort`);
 }
 
 async function handleNotify(args: string[]): Promise<void> {
@@ -12400,29 +12277,8 @@ async function handleTunnel(args: string[]): Promise<void> {
     console.log(`  ${colors.dim}No active tunnels${colors.reset}`);
     console.log();
     console.log(`  ${colors.cyan}Available:${colors.reset}`);
-    console.log(`    gce   - Tunnel to GCE voice agent (port 8080)`);
     console.log(`    db    - Tunnel to Cloud SQL (port 5432)`);
     console.log(`    redis - Tunnel to Redis (port 6379)`);
-    return;
-  }
-
-  if (subcommand === 'gce') {
-    console.log(`${colors.bold}Opening tunnel to GCE:${colors.reset}\n`);
-
-    console.log(`  ${colors.cyan}Command:${colors.reset}`);
-    console.log(
-      `    gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a -- -L 8080:localhost:8080`
-    );
-    console.log();
-    console.log(`  ${colors.dim}This will open an SSH tunnel to the GCE instance${colors.reset}`);
-    console.log(`  ${colors.dim}Access at: http://localhost:8080${colors.reset}`);
-
-    const answer = await prompt(`${colors.yellow}Open tunnel? [y/N]:${colors.reset} `);
-    if (answer.toLowerCase() === 'y') {
-      log.info('Starting SSH tunnel...');
-      console.log(`  ${colors.dim}Press Ctrl+C to close${colors.reset}`);
-      // In real implementation, this would spawn the SSH process
-    }
     return;
   }
 
@@ -12452,7 +12308,7 @@ async function handleTunnel(args: string[]): Promise<void> {
   }
 
   log.error(`Unknown tunnel subcommand: ${subcommand}`);
-  console.log(`\n  Available: gce, db, redis, status, close`);
+  console.log(`\n  Available: db, redis, status, close`);
 }
 
 async function handleReplay(args: string[]): Promise<void> {
@@ -13270,7 +13126,6 @@ ${colors.bold}Commands:${colors.reset}
       'integrations',
       'secrets',
       'ops',
-      'qwen3',
       'users',
       'data',
       'waitlist',
@@ -13329,7 +13184,7 @@ ${colors.bold}Commands:${colors.reset}
 
 ${colors.bold}Examples - Platform Operations:${colors.reset}
   ferni platform                 # Platform operations hub
-  ferni platform deploy gce      # Deploy voice agent to GCE
+  ferni platform deploy agent    # Deploy voice agent to LiveKit Cloud
   ferni platform logs agent      # Stream agent logs
   ferni platform status          # Check all services
   ferni deploy ui                # Deploy UI (also works directly)

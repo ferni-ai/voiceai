@@ -123,7 +123,7 @@ import {
   TRANSCRIPT_RETENTION_DAYS,
   SUMMARY_RETENTION_DAYS,
   GROUP_TRANSCRIPT_RETENTION_DAYS,
-} from '../../../services/session-manager/constants.js';
+} from '../../../services/session/constants.js';
 
 // ============================================================================
 // TESTS

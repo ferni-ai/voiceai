@@ -531,4 +531,4 @@ export const alarmToolDefinitions: ToolDefinition[] = [
   snoozeAlarmDef,
 ];
 
-export { setAlarmDef, getAlarmsDef, deleteAlarmDef, snoozeAlarmDef };
+export { setAlarmDef, getAlarmsDef, deleteAlarmDef, snoozeAlarmDef, loadAlarms, saveAlarm, deleteAlarm };

@@ -94,6 +94,19 @@ export function getUserName(context: ToolExecutionContext): string | undefined {
 }
 
 /**
+ * The call's session ID from the tool's run context, or undefined outside a
+ * voice session. Use it for anything sent to the caller's room: one worker runs
+ * several calls at once.
+ */
+export function getSessionId(
+  context: ToolExecutionContext | { ctx?: unknown }
+): string | undefined {
+  const ctx = context?.ctx as ToolExecutionContext['ctx'];
+  const services = ctx?.userData?.services as { sessionId?: unknown } | undefined;
+  return typeof services?.sessionId === 'string' ? services.sessionId : undefined;
+}
+
+/**
  * Get full user data object from context
  */
 export function getUserData(context: ToolExecutionContext): Record<string, unknown> {

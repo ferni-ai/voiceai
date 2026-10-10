@@ -52,7 +52,6 @@ const MAX_FILE_LINES = 500;
 const LINE_LIMIT_EXEMPTIONS = new Set([
   // These are being actively refactored
   'src/agents/shared/tool-call-sanitizer.ts',
-  'src/agents/shared/json-function-executor.ts',
   'src/agents/voice-agent-entry.ts',
   'src/agents/processors/turn-processor.ts',
   'src/agents/processors/injection-builders.ts',

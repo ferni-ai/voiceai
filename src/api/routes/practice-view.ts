@@ -16,11 +16,23 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
-import { requireUserId, handleCorsPreflightIfNeeded, sendJSON, sendError } from '../helpers.js';
+import {
+  requireUserId,
+  handleCorsPreflightIfNeeded,
+  sendJSON,
+  sendError,
+  parseBody,
+} from '../helpers.js';
+import {
+  isDoneToday,
+  markStartersDoneToday,
+  setIntentionCompleted,
+  IntentionNotFoundError,
+} from './practice-intentions.js';
 import { rateLimit } from '../auth-middleware.js';
 import { localeForRequest, tFor, type SupportedLocale } from '../../i18n/index.js';
+import { loadPracticeStats, type PracticeViewStats } from './practice-view-stats.js';
 import {
-  DEFAULT_PATTERN_KEYS,
   attribute,
   generateEventEmotionalContext,
   generateHabitInsight,
@@ -122,12 +134,7 @@ export interface CrossPersonaInsight {
   context?: string;
 }
 
-export interface PracticeViewStats {
-  followThroughPercent: number;
-  habitsCompletedThisWeek: number;
-  momentumTrend: 'rising' | 'steady' | 'building' | 'declining';
-  streak: number;
-}
+export type { PracticeViewStats };
 
 export interface PracticeViewResponse {
   success: boolean;
@@ -283,11 +290,7 @@ async function loadIntentions(userId: string, locale: SupportedLocale): Promise<
   const intentions: PracticeTask[] = [];
 
   try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-    });
+    const db = await practiceDb();
 
     // Load from tasks collection
     const tasksSnapshot = await db
@@ -321,7 +324,7 @@ async function loadIntentions(userId: string, locale: SupportedLocale): Promise<
 
     for (const doc of practicesSnapshot.docs) {
       const data = doc.data();
-      if (data.name && !data.completedToday) {
+      if (data.name && !isDoneToday(data)) {
         intentions.push({
           id: `practice_${doc.id}`,
           text: data.name,
@@ -358,8 +361,10 @@ async function loadIntentions(userId: string, locale: SupportedLocale): Promise<
         insightPersona: attribute(locale, 'peter', 'found'),
       }
     );
+    await markStartersDoneToday(await practiceDb(), userId, intentions).catch((error) =>
+      log.warn({ error: String(error), userId }, 'Could not load starter intentions')
+    );
   }
-
   return intentions;
 }
 
@@ -414,24 +419,13 @@ async function generateMayaPatternNotice(
       await import('../../services/superhuman/semantic-intelligence/index.js');
     const semanticCtx = await buildSemanticIntelligenceContext(userId, {});
 
-    if (semanticCtx?.activeCorrelations?.length) {
-      return {
-        message:
-          semanticCtx.activeCorrelations[0] || tFor(locale, 'practiceView.pattern.morningStart'),
-        type: 'observation',
-        confidence: 0.75,
-      };
+    const correlation = semanticCtx?.activeCorrelations?.[0];
+    if (correlation) {
+      return { message: correlation, type: 'observation', confidence: 0.75 };
     }
 
-    // Default patterns
-    return {
-      message: tFor(
-        locale,
-        DEFAULT_PATTERN_KEYS[Math.floor(Math.random() * DEFAULT_PATTERN_KEYS.length)]
-      ),
-      type: 'observation',
-      confidence: 0.6,
-    };
+    // Nothing real matched: say nothing rather than a canned "pattern"
+    return null;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Could not generate Maya pattern notice');
     return null;
@@ -568,41 +562,6 @@ async function loadPendingOutreach(userId: string): Promise<PracticeOutreach[]> 
 }
 
 /**
- * Calculate practice stats
- */
-async function calculatePracticeStats(
-  userId: string,
-  habits: PracticeHabit[],
-  intentions: PracticeTask[]
-): Promise<PracticeViewStats> {
-  // Calculate follow-through from completed intentions
-  const completedIntentions = intentions.filter((i) => i.completed).length;
-  const totalIntentions = intentions.length || 1;
-  const followThroughPercent = Math.round((completedIntentions / totalIntentions) * 100);
-
-  // Count habits completed this week
-  const habitsCompletedThisWeek = habits.filter((h) => h.completedToday).length;
-
-  // Calculate momentum trend
-  let momentumTrend: 'rising' | 'steady' | 'building' | 'declining' = 'steady';
-  const avgStreak = habits.reduce((sum, h) => sum + h.streak, 0) / (habits.length || 1);
-
-  if (avgStreak > 5) momentumTrend = 'rising';
-  else if (avgStreak > 2) momentumTrend = 'building';
-  else if (followThroughPercent < 30) momentumTrend = 'declining';
-
-  // Get max streak
-  const maxStreak = habits.reduce((max, h) => Math.max(max, h.streak), 0);
-
-  return {
-    followThroughPercent,
-    habitsCompletedThisWeek,
-    momentumTrend,
-    streak: maxStreak,
-  };
-}
-
-/**
  * Build the full week data structure
  */
 async function buildWeekData(
@@ -707,7 +666,7 @@ export async function handleGetPracticeView(
       await Promise.all([
         generateMayaPatternNotice(userId, weekData, locale),
         generateCrossPersonaInsights(userId),
-        calculatePracticeStats(userId, habits, intentions),
+        loadPracticeStats(practiceDb, userId),
         loadPredictions(userId),
         loadPendingOutreach(userId),
       ]);
@@ -757,42 +716,31 @@ export async function handleCompleteIntention(
   const userId = requireUserId(req, res, parsedUrl);
   if (!userId) return;
   const locale = await localeForRequest(req.headers['accept-language']);
-
   try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-    });
-
-    // Handle practice completions
-    if (intentionId.startsWith('practice_')) {
-      const practiceId = intentionId.replace('practice_', '');
-      const { FieldValue } = await import('@google-cloud/firestore');
-      await db
-        .collection('users')
-        .doc(userId)
-        .collection('practices')
-        .doc(practiceId)
-        .update({
-          completedToday: true,
-          lastCompletedAt: new Date().toISOString(),
-          streak: FieldValue.increment(1),
-        });
-    } else {
-      // Handle task completions
-      await db.collection('bogle_users').doc(userId).collection('tasks').doc(intentionId).update({
-        completed: true,
-        completedAt: new Date().toISOString(),
-      });
-    }
-
-    sendJSON(res, { success: true, intentionId });
-    log.info({ userId, intentionId }, 'Intention completed');
+    // { completed: false } undoes it; anything else marks it done
+    const body = await parseBody<{ completed?: unknown }>(req).catch(() => ({
+      completed: undefined,
+    }));
+    const completed = body.completed !== false;
+    await setIntentionCompleted(await practiceDb(), userId, intentionId, completed);
+    sendJSON(res, { success: true, intentionId, completed });
+    log.info({ userId, intentionId, completed }, 'Intention saved');
   } catch (error) {
-    log.error({ error: String(error), userId, intentionId }, 'Failed to complete intention');
-    sendError(res, tFor(locale, 'practiceView.errors.completeFailed'), 500);
+    const notFound = error instanceof IntentionNotFoundError;
+    log[notFound ? 'warn' : 'error'](
+      { error: String(error), userId, intentionId },
+      'Failed to save intention'
+    );
+    sendError(res, tFor(locale, 'practiceView.errors.completeFailed'), notFound ? 404 : 500);
   }
+}
+
+async function practiceDb() {
+  const { Firestore } = await import('@google-cloud/firestore');
+  return new Firestore({
+    projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+    databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+  });
 }
 
 /**

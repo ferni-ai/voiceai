@@ -25,31 +25,15 @@ mod turn_analyzer;
 
 // Candle GPU router (Metal acceleration for Apple Silicon)
 // Requires both candle_models (for candle-nn) AND napi (for NAPI bindings).
-// Without dual gate, `cargo run --features server --no-default-features` fails
-// because candle_router.rs has ungated `use napi::*` imports.
+// candle_router.rs has ungated `use napi::*` imports, so it needs both.
 #[cfg(all(feature = "candle_models", feature = "napi"))]
 mod candle_router;
 
 // ============================================================================
 // Candle ML model modules (behind "candle_models" feature flag)
-// These add ~10K lines of Qwen3-Omni + LFM2 model code and pull in
-// candle-nn, candle-transformers, safetensors, half dependencies.
+// LFM2 model code pulls in candle-nn, candle-transformers, safetensors, half.
 // Disabled in Docker/GCE builds to reduce compile time and binary size.
 // ============================================================================
-#[cfg(feature = "candle_models")]
-mod candle_moe;
-#[cfg(feature = "candle_models")]
-mod candle_thinker;
-#[cfg(feature = "candle_models")]
-mod candle_mel;
-#[cfg(feature = "candle_models")]
-mod candle_audio_encoder;
-#[cfg(feature = "candle_models")]
-mod candle_talker;
-#[cfg(feature = "candle_models")]
-mod candle_code2wav;
-#[cfg(feature = "candle_models")]
-pub mod full_omni_pipeline;
 #[cfg(feature = "candle_models")]
 pub mod lfm2;
 
@@ -67,20 +51,6 @@ pub use onnx_router::*;
 pub use candle_router::*;
 
 // Re-export Candle model types (only when candle_models feature enabled)
-#[cfg(feature = "candle_models")]
-pub use candle_moe::*;
-#[cfg(feature = "candle_models")]
-pub use candle_thinker::*;
-#[cfg(feature = "candle_models")]
-pub use candle_mel::*;
-#[cfg(feature = "candle_models")]
-pub use candle_audio_encoder::*;
-#[cfg(feature = "candle_models")]
-pub use candle_talker::*;
-#[cfg(feature = "candle_models")]
-pub use candle_code2wav::*;
-#[cfg(feature = "candle_models")]
-pub use full_omni_pipeline::*;
 #[cfg(feature = "candle_models")]
 pub use lfm2::*;
 

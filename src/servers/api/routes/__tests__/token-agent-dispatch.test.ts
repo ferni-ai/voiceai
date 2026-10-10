@@ -28,6 +28,11 @@ vi.mock('../../../../services/identity/geo-detection.js', () => ({
 vi.mock('../../../../memory/index.js', () => ({
   getDefaultStore: () => ({ getProfile: async () => null }),
 }));
+// The migrated callers reach the store through getProfileStore (flag off: the default store).
+vi.mock('../../../../memory/profile-store.js', async () => {
+  const { getDefaultStore } = await import('../../../../memory/index.js');
+  return { getProfileStore: async () => getDefaultStore(), isAgentProfilePersistenceOn: () => false };
+});
 vi.mock('../../../../services/llm-dynamic-content.js', () => ({
   prewarmContent: vi.fn(async () => undefined),
 }));

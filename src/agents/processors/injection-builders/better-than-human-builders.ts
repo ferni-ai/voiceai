@@ -212,11 +212,11 @@ export async function buildHealthAwarenessInjections(): Promise<ContextInjection
       }
 
       content += `
-IMPORTANT: Even if a service is degraded, STILL TRY THE TOOL.
-- Output the JSON function call - the system has fallbacks
+IMPORTANT: Even if a service is degraded, STILL CALL THE TOOL.
+- Use native function calling — the system has fallbacks
 - Don't pre-apologize - let the tool execution determine the result
 - If the tool actually fails, the result will tell you what to say
-- Example: User asks for weather → Output {"fn":"getWeather","args":{}} anyway
+- Example: User asks for weather → call getWeather anyway
 `;
     }
 

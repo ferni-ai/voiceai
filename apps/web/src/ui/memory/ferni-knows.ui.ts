@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { t } from '../../i18n/index.js';
 import {
   QUIZ_ICONS,
   GROWTH_ICONS,
@@ -99,14 +100,14 @@ export interface FerniKnowsState {
 // CONSTANTS
 // ============================================================================
 
-const CATEGORY_CONFIG: Record<KnowledgeCategory, { label: string; icon: string }> = {
-  about_you: { label: 'About You', icon: QUIZ_ICONS.personality },
-  relationships: { label: 'People', icon: QUIZ_ICONS.relationships },
-  preferences: { label: 'Preferences', icon: GROWTH_ICONS.heart },
-  goals: { label: 'Goals', icon: ANALYTICS_ICONS.target },
-  commitments: { label: 'Commitments', icon: QUIZ_ICONS.correct },
-  milestones: { label: 'Milestones', icon: GROWTH_ICONS.celebration },
-  emotions: { label: 'Emotional Patterns', icon: EMOTION_ICONS.reflective },
+const CATEGORY_CONFIG: Record<KnowledgeCategory, { labelKey: string; icon: string }> = {
+  about_you: { labelKey: 'ferniKnows.aboutYou', icon: QUIZ_ICONS.personality },
+  relationships: { labelKey: 'ferniKnows.people', icon: QUIZ_ICONS.relationships },
+  preferences: { labelKey: 'ferniKnows.preferences', icon: GROWTH_ICONS.heart },
+  goals: { labelKey: 'ferniKnows.goals', icon: ANALYTICS_ICONS.target },
+  commitments: { labelKey: 'ferniKnows.commitments', icon: QUIZ_ICONS.correct },
+  milestones: { labelKey: 'ferniKnows.milestones', icon: GROWTH_ICONS.celebration },
+  emotions: { labelKey: 'ferniKnows.emotionalPatterns', icon: EMOTION_ICONS.reflective },
 };
 
 // ============================================================================
@@ -267,10 +268,10 @@ function createPanelHeader(): HTMLElement {
   header.innerHTML = `
     <div>
       <h2 style="font-size: var(--font-size-lg); font-weight: 600; color: var(--color-text-primary); margin: 0;">
-        What Ferni Knows
+        ${t('ferniKnows.panelTitle')}
       </h2>
       <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); margin: var(--space-1) 0 0;">
-        Everything I've learned about you
+        ${t('ferniKnows.panelSubtitle')}
       </p>
     </div>
   `;
@@ -328,7 +329,7 @@ function groupByCategory(knowledge: KnowledgeItem[]): KnowledgeSummary[] {
 
       return {
         category: category as KnowledgeCategory,
-        label: config.label,
+        label: t(config.labelKey),
         icon: config.icon,
         count: items.length,
         items: items.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()),
@@ -426,7 +427,7 @@ function createKnowledgeItem(
     border-left: 3px solid ${item.confidence > 0.8 ? 'var(--color-success)' : item.confidence > 0.5 ? 'var(--color-warning)' : 'var(--color-muted)'};
   `;
 
-  const sourceLabel = item.source === 'explicit' ? 'You told me' : 'I noticed';
+  const sourceLabel = item.source === 'explicit' ? t('ferniKnows.sourceExplicit') : t('ferniKnows.sourceInferred');
   const timeAgo = getTimeAgo(item.learnedAt);
 
   el.innerHTML = `
@@ -436,7 +437,7 @@ function createKnowledgeItem(
           ${item.content}
         </p>
         <p style="font-size: var(--font-size-sm); color: var(--color-text-muted); margin: 0;">
-          ${sourceLabel} • ${timeAgo} • ${Math.round(item.confidence * 100)}% confident
+          ${sourceLabel} • ${timeAgo} • ${t('ferniKnows.confidence', { confidence: Math.round(item.confidence * 100) })}
         </p>
       </div>
     </div>
@@ -445,7 +446,7 @@ function createKnowledgeItem(
   // Add correction button
   if (onCorrection) {
     const correctBtn = document.createElement('button');
-    correctBtn.innerHTML = 'Correct';
+    correctBtn.innerHTML = t('ferniKnows.correctButton');
     correctBtn.style.cssText = `
       background: none;
       border: 1px solid var(--color-border);

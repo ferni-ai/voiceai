@@ -570,7 +570,7 @@ export class CoordinatorAdapter {
 
     // CRITICAL: Reset circuit breaker for new agent - don't let old failures block greeting
     // This ensures the new persona gets a clean slate for speech
-    resetCircuitBreaker();
+    resetCircuitBreaker(this.session);
     log.info({ toPersonaId, fromPersonaId }, '🔄 Circuit breaker reset for new persona');
 
     try {

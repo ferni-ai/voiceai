@@ -16,10 +16,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // MOCKS - Set up before dynamic imports
 // ============================================================================
 
-// Mock i18n
-vi.mock('../../src/i18n/index.js', () => ({
-  t: (key: string, fallback?: string) => fallback || key,
-}));
+// i18n is not mocked: tests/setup.ts loads the real en-US strings, so the
+// assertions below check the text users actually see.
 
 // Mock animation constants
 vi.mock('../../src/config/animation-constants.js', () => ({
@@ -120,6 +118,9 @@ describe('Data Export UI', () => {
 
     // Reset module to get fresh singleton each time
     vi.resetModules();
+    // resetModules drops the English strings tests/setup.ts loaded; reload them
+    const { setLocale } = await import('../../src/i18n/index.js');
+    await setLocale('en-US', { reload: false });
     const module = await import('../../src/ui/data-export.ui.js');
     getDataExportUI = module.getDataExportUI;
   });
@@ -548,10 +549,9 @@ describe('Data Export UI', () => {
       const ui = getDataExportUI();
       ui.show(mockExportableData);
 
-      const formatButtons = findFormatButtons();
-      formatButtons.forEach((btn) => {
-        expect(btn.getAttribute('aria-label')).toBeTruthy();
-      });
+      // Named by what they show (a label over the text would hide it)
+      const names = [...findFormatButtons()].map((btn) => btn.getAttribute('aria-label') ?? btn.textContent?.trim());
+      expect(names).toEqual(['JSON', 'CSV']);
     });
   });
 

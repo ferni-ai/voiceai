@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2026-10-05T13:04:16.245Z
+ * Build: 2026-10-06T18:06:30.473Z
  */
 
 /* ========================================
@@ -398,153 +398,238 @@
 [data-persona="ferni"] {
   --persona-primary: #4a6741;
   --persona-secondary: #3d5a35;
-  --persona-text: #ffffff;
+  --persona-text: #4a6741;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(74, 103, 65, 0.28);
   --persona-tint: rgba(74, 103, 65, 0.06);
+}
+[data-theme="midnight"] [data-persona="ferni"],
+[data-theme="midnight"][data-persona="ferni"] {
+  --persona-text: #a5c99a;
 }
 
 /* Persona: jack */
 [data-persona="jack"] {
   --persona-primary: #9a7b5a;
   --persona-secondary: #7d6348;
-  --persona-text: #ffffff;
+  --persona-text: #80664b;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(154, 123, 90, 0.28);
   --persona-tint: rgba(154, 123, 90, 0.06);
+}
+[data-theme="midnight"] [data-persona="jack"],
+[data-theme="midnight"][data-persona="jack"] {
+  --persona-text: #d4c4a8;
 }
 
 /* Persona: peter */
 [data-persona="peter"] {
   --persona-primary: #3a6b73;
   --persona-secondary: #2d5359;
-  --persona-text: #ffffff;
+  --persona-text: #3a6b73;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(58, 107, 115, 0.28);
   --persona-tint: rgba(58, 107, 115, 0.06);
+}
+[data-theme="midnight"] [data-persona="peter"],
+[data-theme="midnight"][data-persona="peter"] {
+  --persona-text: #8bc4cf;
 }
 
 /* Persona: alex */
 [data-persona="alex"] {
   --persona-primary: #5a6b8a;
   --persona-secondary: #4a5a73;
-  --persona-text: #ffffff;
+  --persona-text: #5a6b8a;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(90, 107, 138, 0.28);
   --persona-tint: rgba(90, 107, 138, 0.06);
+}
+[data-theme="midnight"] [data-persona="alex"],
+[data-theme="midnight"][data-persona="alex"] {
+  --persona-text: #a8b8d8;
 }
 
 /* Persona: maya */
 [data-persona="maya"] {
   --persona-primary: #a67a6a;
   --persona-secondary: #8a635a;
-  --persona-text: #ffffff;
+  --persona-text: #8a6153;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(166, 122, 106, 0.28);
   --persona-tint: rgba(166, 122, 106, 0.06);
+}
+[data-theme="midnight"] [data-persona="maya"],
+[data-theme="midnight"][data-persona="maya"] {
+  --persona-text: #e0b8a8;
 }
 
 /* Persona: jordan */
 [data-persona="jordan"] {
   --persona-primary: #c4856a;
   --persona-secondary: #a86d55;
-  --persona-text: #ffffff;
+  --persona-text: #9c5a3e;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(196, 133, 106, 0.28);
   --persona-tint: rgba(196, 133, 106, 0.06);
+}
+[data-theme="midnight"] [data-persona="jordan"],
+[data-theme="midnight"][data-persona="jordan"] {
+  --persona-text: #f0c0a0;
 }
 
 /* Persona: nayan */
 [data-persona="nayan"] {
   --persona-primary: #b8956a;
   --persona-secondary: #9a7a52;
-  --persona-text: #ffffff;
+  --persona-text: #85653f;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(184, 149, 106, 0.28);
   --persona-tint: rgba(184, 149, 106, 0.06);
+}
+[data-theme="midnight"] [data-persona="nayan"],
+[data-theme="midnight"][data-persona="nayan"] {
+  --persona-text: #e8d0a8;
 }
 
 /* Persona: joel */
 [data-persona="joel"] {
   --persona-primary: #9A0718;
   --persona-secondary: #7A0514;
-  --persona-text: #ffffff;
+  --persona-text: #9A0718;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(154, 7, 24, 0.28);
   --persona-tint: rgba(154, 7, 24, 0.06);
+}
+[data-theme="midnight"] [data-persona="joel"],
+[data-theme="midnight"][data-persona="joel"] {
+  --persona-text: #f0a8a8;
 }
 
 /* Persona: lynch */
 [data-persona="lynch"] {
   --persona-primary: #1a5f2a;
   --persona-secondary: #154c22;
-  --persona-text: #ffffff;
+  --persona-text: #1a5f2a;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(26, 95, 42, 0.28);
   --persona-tint: rgba(26, 95, 42, 0.06);
+}
+[data-theme="midnight"] [data-persona="lynch"],
+[data-theme="midnight"][data-persona="lynch"] {
+  --persona-text: #dde7df;
 }
 
 /* Persona: bogle */
 [data-persona="bogle"] {
   --persona-primary: #8b0000;
   --persona-secondary: #6f0000;
-  --persona-text: #ffffff;
+  --persona-text: #8b0000;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(139, 0, 0, 0.28);
   --persona-tint: rgba(139, 0, 0, 0.06);
+}
+[data-theme="midnight"] [data-persona="bogle"],
+[data-theme="midnight"][data-persona="bogle"] {
+  --persona-text: #f3e6e6;
 }
 
 /* Persona: eli */
 [data-persona="eli"] {
   --persona-primary: #6B5B95;
   --persona-secondary: #4A4063;
-  --persona-text: #ffffff;
+  --persona-text: #6B5B95;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(107, 91, 149, 0.28);
   --persona-tint: rgba(107, 91, 149, 0.06);
+}
+[data-theme="midnight"] [data-persona="eli"],
+[data-theme="midnight"][data-persona="eli"] {
+  --persona-text: #b8a8d8;
 }
 
 /* Persona: marcus */
 [data-persona="marcus"] {
   --persona-primary: #2D5A4A;
   --persona-secondary: #1E3D32;
-  --persona-text: #ffffff;
+  --persona-text: #2D5A4A;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(45, 90, 74, 0.28);
   --persona-tint: rgba(45, 90, 74, 0.06);
+}
+[data-theme="midnight"] [data-persona="marcus"],
+[data-theme="midnight"][data-persona="marcus"] {
+  --persona-text: #88c4a8;
 }
 
 /* Persona: kenji */
 [data-persona="kenji"] {
   --persona-primary: #2C3E50;
   --persona-secondary: #1A252F;
-  --persona-text: #ffffff;
+  --persona-text: #2C3E50;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(44, 62, 80, 0.28);
   --persona-tint: rgba(44, 62, 80, 0.06);
+}
+[data-theme="midnight"] [data-persona="kenji"],
+[data-theme="midnight"][data-persona="kenji"] {
+  --persona-text: #90b0c8;
 }
 
 /* Persona: carmen */
 [data-persona="carmen"] {
   --persona-primary: #D4A373;
   --persona-secondary: #A67B5B;
-  --persona-text: #ffffff;
+  --persona-text: #935f2d;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(212, 163, 115, 0.28);
   --persona-tint: rgba(212, 163, 115, 0.06);
+}
+[data-theme="midnight"] [data-persona="carmen"],
+[data-theme="midnight"][data-persona="carmen"] {
+  --persona-text: #f0d0a8;
 }
 
 /* Persona: amara */
 [data-persona="amara"] {
   --persona-primary: #7B6BA8;
   --persona-secondary: #5A4D80;
-  --persona-text: #ffffff;
+  --persona-text: #7261a2;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(123, 107, 168, 0.28);
   --persona-tint: rgba(123, 107, 168, 0.06);
+}
+[data-theme="midnight"] [data-persona="amara"],
+[data-theme="midnight"][data-persona="amara"] {
+  --persona-text: #c0b0d8;
 }
 
 /* Persona: sasha */
 [data-persona="sasha"] {
   --persona-primary: #E07B53;
   --persona-secondary: #B85C3C;
-  --persona-text: #ffffff;
+  --persona-text: #b44a20;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(224, 123, 83, 0.28);
   --persona-tint: rgba(224, 123, 83, 0.06);
+}
+[data-theme="midnight"] [data-persona="sasha"],
+[data-theme="midnight"][data-persona="sasha"] {
+  --persona-text: #f8b898;
 }
 
 /* Persona: ray */
 [data-persona="ray"] {
   --persona-primary: #4A5568;
   --persona-secondary: #2D3748;
-  --persona-text: #ffffff;
+  --persona-text: #4A5568;
+  --persona-on-primary: #ffffff;
   --persona-glow: rgba(74, 85, 104, 0.28);
   --persona-tint: rgba(74, 85, 104, 0.06);
+}
+[data-theme="midnight"] [data-persona="ray"],
+[data-theme="midnight"][data-persona="ray"] {
+  --persona-text: #a0b0c0;
 }
 
 /* ========================================

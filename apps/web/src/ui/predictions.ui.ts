@@ -13,7 +13,7 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
-import { t } from '../i18n/index.js';
+import { formatDate, formatNumber, t } from '../i18n/index.js';
 import {
   ICONS,
   injectSharedStyles,
@@ -126,15 +126,15 @@ export class PredictionsUI {
     this.container.className = 'predictions-panel';
     this.container.setAttribute('role', 'dialog');
     this.container.setAttribute('aria-modal', 'true');
-    this.container.setAttribute('aria-label', 'Predictions');
+    this.container.setAttribute('aria-label', t('titles.predictions'));
     this.container.setAttribute('aria-hidden', 'true');
 
     this.container.innerHTML = `
       <div class="predictions-panel__backdrop"></div>
       <div class="predictions-panel__card">
         <header class="predictions-panel__header">
-          <h2 class="predictions-panel__title">Predictions</h2>
-          ${renderCloseButton('Close panel')}
+          <h2 class="predictions-panel__title">${t('titles.predictions')}</h2>
+          ${renderCloseButton(t('accessibility.closePanel'))}
         </header>
         <div class="predictions-panel__content" id="predictions-content">
           ${this.renderEmptyState()}
@@ -177,9 +177,9 @@ export class PredictionsUI {
               <path d="M12 6v6l4 2"/>
             </svg>
           </div>
-          <h3 class="predictions-empty__title">Your Crystal Ball</h3>
+          <h3 class="predictions-empty__title">${t('predictions.title')}</h3>
           <p class="predictions-empty__subtitle">
-            I'll learn to anticipate what you need before you ask.
+            ${t('predictions.description')}
           </p>
         </div>
 
@@ -189,7 +189,7 @@ export class PredictionsUI {
             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
-          <span>Preview</span>
+          <span>${t('predictions.preview')}</span>
         </div>
 
         <!-- Sample Predictions (shows what it WILL look like) -->
@@ -199,10 +199,10 @@ export class PredictionsUI {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Accurate
+              ${t('predictions.accurate')}
             </div>
-            <p class="predictions-empty__sample-text">"You'd feel overwhelmed this week"</p>
-            <span class="predictions-empty__sample-result">You mentioned stress on Tuesday</span>
+            <p class="predictions-empty__sample-text">${t('predictions.sampleOverwhelmed')}</p>
+            <span class="predictions-empty__sample-result">${t('predictions.exampleStress')}</span>
           </div>
 
           <div class="predictions-empty__sample predictions-empty__sample--accurate">
@@ -210,10 +210,10 @@ export class PredictionsUI {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Accurate
+              ${t('predictions.accurate')}
             </div>
-            <p class="predictions-empty__sample-text">"The gym habit would struggle"</p>
-            <span class="predictions-empty__sample-result">You skipped 2 sessions</span>
+            <p class="predictions-empty__sample-text">${t('predictions.sampleGym')}</p>
+            <span class="predictions-empty__sample-result">${t('predictions.exampleGym')}</span>
           </div>
 
           <div class="predictions-empty__sample predictions-empty__sample--watching">
@@ -222,29 +222,27 @@ export class PredictionsUI {
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12 6 12 12 16 14"/>
               </svg>
-              Watching
+              ${t('predictions.watching')}
             </div>
-            <p class="predictions-empty__sample-text">"Sunday evening will feel heavy"</p>
-            <span class="predictions-empty__sample-result">I'll check in with you</span>
+            <p class="predictions-empty__sample-text">${t('predictions.sampleSunday')}</p>
+            <span class="predictions-empty__sample-result">${t('predictions.checkIn')}</span>
           </div>
         </div>
 
         <!-- Accuracy Preview -->
         <div class="predictions-empty__accuracy">
-          <span class="predictions-empty__accuracy-value">78%</span>
-          <span class="predictions-empty__accuracy-label">Prediction accuracy</span>
+          <span class="predictions-empty__accuracy-value">${formatNumber(0.78, { style: 'percent' })}</span>
+          <span class="predictions-empty__accuracy-label">${t('predictions.accuracy')}</span>
         </div>
 
         <!-- CTA Section -->
         <div class="predictions-empty__cta">
-          <p class="predictions-empty__cta-text">
-            Talk to Peter about making predictions. Build self-awareness through the prediction game.
-          </p>
+          <p class="predictions-empty__cta-text">${t('predictions.ctaText')}</p>
           <div class="predictions-empty__unlock-hint">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
               <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/>
             </svg>
-            <span>Keep talking. We're building something.</span>
+            <span>${t('predictions.keepTalking')}</span>
           </div>
         </div>
       </div>
@@ -284,13 +282,13 @@ export class PredictionsUI {
     // Pending predictions
     const pending = data.predictions.filter((p) => p.status === 'pending');
     if (pending.length > 0) {
-      sections.push(this.renderPredictionGroup('Active Predictions', pending, true));
+      sections.push(this.renderPredictionGroup(t('predictions.activePredictions'), pending, true));
     }
 
     // Resolved predictions
     const resolved = data.predictions.filter((p) => p.status === 'resolved');
     if (resolved.length > 0) {
-      sections.push(this.renderPredictionGroup('Recent Results', resolved.slice(0, 10), false));
+      sections.push(this.renderPredictionGroup(t('predictions.recentResults'), resolved.slice(0, 10), false));
     }
 
     content.innerHTML = sections.join('');
@@ -358,16 +356,16 @@ export class PredictionsUI {
     return `
       <div class="predictions-stats">
         <div class="predictions-stat">
-          <span class="predictions-stat__value">${data.accuracy !== null ? data.accuracy + '%' : '--'}</span>
-          <span class="predictions-stat__label">Accuracy</span>
+          <span class="predictions-stat__value">${data.accuracy !== null ? formatNumber(data.accuracy / 100, { style: 'percent' }) : '--'}</span>
+          <span class="predictions-stat__label">${t('predictions.accuracyLabel')}</span>
         </div>
         <div class="predictions-stat">
           <span class="predictions-stat__value">${data.totalResolved}</span>
-          <span class="predictions-stat__label">Resolved</span>
+          <span class="predictions-stat__label">${t('predictions.resolved')}</span>
         </div>
         <div class="predictions-stat">
           <span class="predictions-stat__value">${data.currentStreak}</span>
-          <span class="predictions-stat__label">Streak</span>
+          <span class="predictions-stat__label">${t('predictions.streak')}</span>
         </div>
       </div>
     `;
@@ -396,10 +394,7 @@ export class PredictionsUI {
    */
   private renderPredictionCard(prediction: PredictionData, isPending: boolean): string {
     const icon = CATEGORY_ICONS[prediction.category] || CATEGORY_ICONS['default'];
-    const date = new Date(prediction.createdAt).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
+    const date = formatDate(new Date(prediction.createdAt), { month: 'short', day: 'numeric' });
 
     let statusClass = '';
     let resultHtml = '';
@@ -429,7 +424,7 @@ export class PredictionsUI {
       // Only predictions that carry their metric names can be scored.
       const resolveBtn =
         metrics.length > 0
-          ? `<button aria-label="${t('accessibility.recordActual')}" class="prediction-resolve-btn" data-prediction-id="${escapeHtml(prediction.id)}">${escapeHtml(t('predictionResolution.record'))}</button>`
+          ? `<button class="prediction-resolve-btn" data-prediction-id="${escapeHtml(prediction.id)}">${escapeHtml(t('predictionResolution.record'))}</button>`
           : '';
       resultHtml = `
         <div class="prediction-card__pending">
@@ -451,11 +446,9 @@ export class PredictionsUI {
     `;
   }
 
-  /**
-   * Show the panel.
-   * Fetches data from API if not already loaded.
-   */
+  /** Show the panel (fetching data if needed). Its button can beat the deferred init. */
   show(): void {
+    if (!this.container) this.initialize();
     if (!this.container) return;
 
     this.panelVisible = true;

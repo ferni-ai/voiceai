@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 import { getApiHeadersAsync } from '../utils/api.js';
 import { appState } from '../state/app.state.js';
 
@@ -218,10 +219,7 @@ class VoiceAuthService {
     return appState.getState().deviceId;
   }
 
-  private async fetchApi<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  private async fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     // Use getApiHeadersAsync for proper Firebase auth
     const authHeaders = await getApiHeadersAsync(true);
 
@@ -234,8 +232,10 @@ class VoiceAuthService {
     });
 
     if (!response.ok) {
-      const error = (await response.json().catch(() => ({ error: 'Unknown error' }))) as { error?: string };
-      throw new Error(error.error || `API error: ${response.status}`);
+      const error = (await response
+        .json()
+        .catch(() => ({ error: t('voiceAuth.unknownError') }))) as { error?: string };
+      throw new Error(error.error || t('voiceAuth.apiError', { status: response.status }));
     }
 
     return response.json() as Promise<T>;
@@ -300,6 +300,7 @@ class VoiceAuthService {
     try {
       await this.fetchApi('/profile', { method: 'DELETE' });
       log.info('Voice profile deleted');
+      window.dispatchEvent(new CustomEvent('ferni:voice-unenrolled'));
       return true;
     } catch (error) {
       log.error('Failed to delete voice profile:', error);
@@ -335,7 +336,7 @@ class VoiceAuthService {
       log.info('Enrollment session started', { sessionId: response.sessionId });
       return response;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : t('voiceAuth.unknownError');
       log.error('Failed to start enrollment:', error);
       return { success: false, error: message };
     }
@@ -409,7 +410,7 @@ class VoiceAuthService {
         this.recorder.stopRecording();
       }
 
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : t('voiceAuth.unknownError');
       log.error('Failed to record enrollment sample:', error);
       return { success: false, error: message };
     }
@@ -446,12 +447,10 @@ class VoiceAuthService {
       });
 
       log.info('Enrollment completed', { profile: response.profile });
-      return {
-        success: response.success,
-        profile: response.profile,
-      };
+      if (response.success) window.dispatchEvent(new CustomEvent('ferni:voice-enrolled'));
+      return { success: response.success, profile: response.profile };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : t('voiceAuth.unknownError');
       log.error('Failed to complete enrollment:', error);
       return { success: false, error: message };
     }
@@ -652,7 +651,7 @@ class VoiceAuthService {
           needed: true,
           severity: 'high',
           qualityScore: quality,
-          message: "Your voice profile quality is low. Re-enrolling will help me recognize you better.",
+          message: t('voiceAuth.reEnroll.high'),
         };
       }
 
@@ -661,7 +660,7 @@ class VoiceAuthService {
           needed: true,
           severity: 'low',
           qualityScore: quality,
-          message: "Your voice profile could be improved. Consider re-enrolling for better recognition.",
+          message: t('voiceAuth.reEnroll.low'),
         };
       }
 

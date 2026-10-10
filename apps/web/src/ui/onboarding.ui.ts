@@ -13,6 +13,7 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
 
 // ============================================================================
@@ -191,8 +192,13 @@ class OnboardingUI {
   private createOverlay(): void {
     this.overlay = document.createElement('div');
     this.overlay.className = 'onboarding';
-    this.overlay.setAttribute('role', 'dialog');
-    this.overlay.setAttribute('aria-label', t('onboarding.ariaLabel'));
+    // Escape dismisses the tour the way Skip does
+    asModalDialog(
+      this.overlay,
+      { label: t('onboarding.ariaLabel') },
+      () => this.isVisible,
+      () => this.skip()
+    );
     document.body.appendChild(this.overlay);
   }
 
@@ -214,9 +220,9 @@ class OnboardingUI {
           ${this.steps.map((_, i) => `<span class="onboarding__dot ${i === this.currentStep ? 'onboarding__dot--active' : ''}"></span>`).join('')}
         </div>
         
-        <div class="onboarding__actions" role="button" tabindex="0">
+        <div class="onboarding__actions">
           ${!isFirst ? `<button class="onboarding__btn onboarding__btn--secondary" data-action="prev">${t('onboarding.buttons.back')}</button>` : `<button class="onboarding__btn onboarding__btn--secondary" data-action="skip">${t('onboarding.buttons.skip')}</button>`}
-          <button aria-label="${t('accessibility.next')}" class="onboarding__btn onboarding__btn--primary" data-action="next">${isLast ? t('onboarding.buttons.begin') : t('onboarding.buttons.next')}</button>
+          <button class="onboarding__btn onboarding__btn--primary" data-action="next">${isLast ? t('onboarding.buttons.begin') : t('onboarding.buttons.next')}</button>
         </div>
       </div>
     `;

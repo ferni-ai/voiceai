@@ -14,8 +14,7 @@ import { WebSocket } from 'ws';
 
 const TOK_A = 'jwtA-7f3c9e.payloadA.sigA';
 const TOK_B = 'jwtB-1d2e3f.payloadB.sigB';
-const TOK_D = 'jwtD-9a8b7c.payloadD.sigD';
-const TOKENS: Record<string, string> = { [TOK_A]: 'user-A', [TOK_B]: 'user-B', [TOK_D]: 'dir-1' };
+const TOKENS: Record<string, string> = { [TOK_A]: 'user-A', [TOK_B]: 'user-B' };
 const verifyFirebaseToken = vi.fn(async (token: string) => {
   if (token === 'tok-expired') return { expired: true as const };
   const uid = TOKENS[token];
@@ -86,7 +85,6 @@ vi.mock('../../../services/user-events/index.js', () => ({
 const lifeWs = await import('../../../services/communication/life-context-websocket.js');
 const insightsWs = await import('../../../services/communication/insights-websocket.js');
 const userEventsWs = await import('../../../services/communication/user-events-websocket.js');
-const director = await import('../../../api/director-routes.js');
 
 type Msg = Record<string, unknown>;
 interface Outcome {
@@ -159,7 +157,7 @@ beforeEach(() => {
 afterEach(async () => {
   // No token may ever reach a URL or a log line, on any path.
   const logged = JSON.stringify(logCalls, (_k, v: unknown) => (v instanceof Error ? String(v) : v));
-  for (const token of [TOK_A, TOK_B, TOK_D]) {
+  for (const token of [TOK_A, TOK_B]) {
     expect(logged).not.toContain(token);
     expect(upgradeUrls.join(' ')).not.toContain(token);
   }
@@ -167,7 +165,6 @@ afterEach(async () => {
   lifeWs.shutdownLifeContextWebSocket();
   insightsWs.shutdownInsightsWebSocket();
   userEventsWs.shutdownUserEventsWebSocket();
-  director.shutdownDirectorWebSocket();
   server?.closeAllConnections();
   await new Promise<void>((resolve) => {
     if (server) server.close(() => resolve());
@@ -255,45 +252,5 @@ describe('/ws/user-events', () => {
     expect(messages.filter((m) => m.type === 'theme').map((m) => m.data)).toEqual([
       { secret: 'A' },
     ]);
-  });
-});
-
-describe('/ws/director', () => {
-  const engine = {
-    getStateSnapshot: vi.fn(() => ({ lead: 'ferni' })),
-    on: vi.fn(),
-    off: vi.fn(),
-  };
-  beforeEach(async () => {
-    director.registerDirectorEngine('s1', engine as never);
-    await start((s) => director.initDirectorWebSocket(s, { authorizedDirectorIds: ['dir-1'] }));
-  });
-  afterEach(() => director.unregisterDirectorEngine('s1'));
-
-  it('refuses a claimed ?userId= of an authorized director with no token', async () => {
-    expect((await connect('/ws/director?sessionId=s1&userId=dir-1')).status).toBe(401);
-    expect(engine.getStateSnapshot).not.toHaveBeenCalled();
-  });
-
-  it('authorizes the verified uid, not the claimed ?userId=', async () => {
-    const { ws, messages } = await open('/ws/director?sessionId=s1&userId=dir-1', TOK_B);
-    const closed = await new Promise<number>((resolve) => {
-      ws.on('close', (code) => resolve(code));
-    });
-    expect(closed).toBe(4001);
-    expect(messages.some((m) => m.type === 'state')).toBe(false);
-    expect(engine.getStateSnapshot).not.toHaveBeenCalled();
-  });
-
-  it('sends state to a verified authorized director', async () => {
-    const { messages } = await open('/ws/director?sessionId=s1', TOK_D);
-    const state = await waitFor(messages, (m) => m.type === 'state');
-    expect(state.snapshot).toEqual({ lead: 'ferni' });
-  });
-
-  it('logs nothing containing the token when the verifier fails', async () => {
-    verifyFirebaseToken.mockRejectedValueOnce(new Error(`bad token ${TOK_D.length}`));
-    expect((await connect('/ws/director?sessionId=s1', offer(TOK_D))).status).toBe(401);
-    expect(logCalls.length).toBeGreaterThan(0); // the failure was logged, without the token
   });
 });

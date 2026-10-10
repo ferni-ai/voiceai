@@ -1,219 +1,162 @@
 /**
  * Referral Service Tests
  *
- * Tests for referral code management:
- * - Code generation
- * - URL detection
- * - Referral tracking
- * - Garden stats
+ * The server issues the referral code and keeps the counts (/api/seeds/*).
+ * The service must show only that: no client-generated code, no local counters,
+ * and no reward the server did not confirm.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: vi.fn((key: string) => store[key] ?? null),
-    setItem: vi.fn((key: string, value: string) => {
-      store[key] = value;
-    }),
-    removeItem: vi.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: vi.fn(() => {
-      store = {};
-    }),
-  };
-})();
-Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+const apiGet = vi.fn();
+const apiPost = vi.fn();
+vi.mock('../../src/utils/api.js', () => ({ apiGet, apiPost }));
+vi.mock('../../src/services/cosmetics.service.js', () => ({ addSeeds: vi.fn() }));
 
-// Mock window.location for URL testing
-const mockLocation = {
-  href: 'https://ferni.ai',
-  origin: 'https://ferni.ai',
-  pathname: '/',
-  search: '',
-  searchParams: new URLSearchParams(),
+const {
+  checkReferralFromUrl,
+  getGarden,
+  getReferralUrl,
+  getReferredBy,
+  loadGarden,
+  processPendingReferral,
+  initReferralService,
+  REFERRAL_NEW_USER_BONUS,
+} = await import('../../src/services/referral.service.js');
+const referralModule = await import('../../src/services/referral.service.js');
+const { addSeeds } = await import('../../src/services/cosmetics.service.js');
+
+const SERVER_GARDEN = {
+  title: 'gardener',
+  totalReferrals: 3,
+  totalEarnedFromReferrals: 75,
+  referralCode: 'k3j9x2-meadow',
+  referralUrl: 'https://ferni.ai/grow/k3j9x2-meadow',
 };
-
-// Mock history.replaceState
-const mockReplaceState = vi.fn();
-Object.defineProperty(global, 'history', {
-  value: { replaceState: mockReplaceState },
-  writable: true,
-});
-
-// Mock cosmetics service
-vi.mock('../../src/services/cosmetics.service.js', () => ({
-  addSeeds: vi.fn(),
-}));
-
-// Mock document.dispatchEvent
-const dispatchEventSpy = vi.spyOn(document, 'dispatchEvent');
 
 beforeEach(() => {
   vi.clearAllMocks();
-  localStorageMock.clear();
-  mockLocation.href = 'https://ferni.ai';
-  mockLocation.pathname = '/';
-  mockLocation.search = '';
+  localStorage.clear();
+  window.history.replaceState({}, '', '/');
 });
 
-// Import after mocking
-import {
-  getReferralCode,
-  getReferralUrl,
-  checkReferralFromUrl,
-  processPendingReferral,
-  recordReferralSuccess,
-  awardReferralMilestone,
-  getGardenStats,
-  getReferredBy,
-  getTotalReferralSeeds,
-  initReferralService,
-  REFERRAL_SIGNUP_REWARD,
-  REFERRAL_NEW_USER_BONUS,
-} from '../../src/services/referral.service.js';
-import { addSeeds } from '../../src/services/cosmetics.service.js';
+describe('server-issued garden', () => {
+  it('has no link until the server provides one (no client-side code)', async () => {
+    apiGet.mockResolvedValueOnce({ ok: false, status: 503, error: 'down' });
 
-describe('ReferralService', () => {
-  describe('getReferralCode', () => {
-    it('should return a referral code', () => {
-      const code = getReferralCode();
+    expect(await loadGarden()).toBeNull();
 
-      expect(code).toBeDefined();
-      expect(typeof code).toBe('string');
-      // Code format: abc123-word
-      expect(code).toMatch(/^[a-z0-9]{6}-[a-z]+$/);
-    });
-
-    it('should return the same code on subsequent calls', () => {
-      const code1 = getReferralCode();
-      const code2 = getReferralCode();
-
-      expect(code1).toBe(code2);
-    });
+    expect(getGarden()).toBeNull();
+    expect(getReferralUrl()).toBeNull();
+    expect(localStorage.length).toBe(0); // nothing minted and stashed locally
   });
 
-  describe('getReferralUrl', () => {
-    it('should return a shareable URL', () => {
-      const url = getReferralUrl();
+  it("uses the server's code, link and counts verbatim", async () => {
+    apiGet.mockResolvedValueOnce({ ok: true, status: 200, data: SERVER_GARDEN });
 
-      expect(url).toContain('https://ferni.ai/grow/');
-      expect(url).toContain(getReferralCode());
+    const garden = await loadGarden();
+
+    expect(apiGet).toHaveBeenCalledWith('/api/seeds/garden');
+    expect(garden).toEqual({
+      referralCode: 'k3j9x2-meadow',
+      referralUrl: 'https://ferni.ai/grow/k3j9x2-meadow',
+      gardenTitle: 'gardener',
+      totalReferrals: 3,
+      totalEarnedFromReferrals: 75,
     });
+    expect(getReferralUrl()).toBe('https://ferni.ai/grow/k3j9x2-meadow');
   });
 
-  describe('getGardenStats', () => {
-    it('should return garden stats object', () => {
-      const stats = getGardenStats();
+  it('a failed refresh drops the old link instead of showing stale counts', async () => {
+    apiGet.mockResolvedValueOnce({ ok: true, status: 200, data: SERVER_GARDEN });
+    await loadGarden();
+    apiGet.mockResolvedValueOnce({ ok: false, status: 500, error: 'boom' });
 
-      expect(stats).toHaveProperty('totalReferrals');
-      expect(stats).toHaveProperty('activeReferrals');
-      expect(stats).toHaveProperty('weeklyPassiveSeeds');
-      expect(stats).toHaveProperty('gardenTitle');
-    });
-
-    it('should return seedling title for new users', () => {
-      const stats = getGardenStats();
-
-      expect(stats.gardenTitle).toBe('seedling');
-      expect(stats.totalReferrals).toBe(0);
-    });
+    expect(await loadGarden()).toBeNull();
+    expect(getReferralUrl()).toBeNull();
   });
 
-  describe('recordReferralSuccess', () => {
-    it('should track new referral', () => {
-      recordReferralSuccess('new-user-123');
+  it('no longer exposes locally-tracked referral counters or rewards', () => {
+    for (const gone of [
+      'getReferralCode',
+      'recordReferralSuccess',
+      'awardReferralMilestone',
+      'getGardenStats',
+      'getTotalReferralSeeds',
+    ]) {
+      expect(referralModule).not.toHaveProperty(gone);
+    }
+  });
+});
 
-      const stats = getGardenStats();
-      expect(stats.totalReferrals).toBe(1);
-    });
+describe('a friend arriving through a link', () => {
+  it('remembers the code from /grow/<code> and cleans the URL', () => {
+    window.history.replaceState({}, '', '/grow/abc123-sunrise');
 
-    it('should dispatch success event', () => {
-      // Re-spy after clearAllMocks
-      const spy = vi.spyOn(document, 'dispatchEvent');
-      
-      recordReferralSuccess('new-user-456');
+    expect(checkReferralFromUrl()).toBe('abc123-sunrise');
 
-      expect(spy).toHaveBeenCalled();
-      const event = spy.mock.calls.find(
-        (call) => (call[0] as CustomEvent).type === 'ferni:referral-success'
-      );
-      expect(event).toBeDefined();
-      
-      spy.mockRestore();
-    });
-
-    it('should award seeds to referrer', () => {
-      recordReferralSuccess('new-user-789');
-
-      expect(addSeeds).toHaveBeenCalledWith(REFERRAL_SIGNUP_REWARD);
-    });
+    expect(localStorage.getItem('ferni_pending_referral')).toBe('abc123-sunrise');
+    expect(window.location.pathname).toBe('/');
   });
 
-  describe('getTotalReferralSeeds', () => {
-    it('should return total seeds earned', () => {
-      const seeds = getTotalReferralSeeds();
-
-      expect(typeof seeds).toBe('number');
-      expect(seeds).toBeGreaterThanOrEqual(0);
+  it('registers with the server and awards only the confirmed bonus', async () => {
+    localStorage.setItem('ferni_pending_referral', 'abc123-sunrise');
+    apiPost.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: { success: true, newUserBonus: 25, referrerBonus: 25 },
     });
+
+    const result = await processPendingReferral();
+
+    expect(apiPost).toHaveBeenCalledWith('/api/seeds/referral', { referralCode: 'abc123-sunrise' });
+    expect(result).toEqual({ processed: true, bonusAwarded: 25 });
+    expect(addSeeds).toHaveBeenCalledWith(REFERRAL_NEW_USER_BONUS);
+    expect(getReferredBy()).toBe('abc123-sunrise');
+    expect(localStorage.getItem('ferni_pending_referral')).toBeNull();
   });
 
-  describe('getReferredBy', () => {
-    it('should return null for organic users', () => {
-      const referrer = getReferredBy();
-
-      // Fresh state should have no referrer
-      expect(referrer).toBeNull();
+  it('awards nothing when the server declines (e.g. already referred)', async () => {
+    localStorage.setItem('ferni_pending_referral', 'abc123-sunrise');
+    apiPost.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      data: { success: false, error: 'Already referred by someone' },
     });
+
+    expect(await processPendingReferral()).toEqual({ processed: false });
+
+    expect(addSeeds).not.toHaveBeenCalled();
+    expect(getReferredBy()).toBeNull();
+    expect(localStorage.getItem('ferni_pending_referral')).toBeNull();
   });
 
-  describe('processPendingReferral', () => {
-    it('should return processed: false when no pending referral', () => {
-      const result = processPendingReferral();
+  it('awards nothing and keeps the code to retry when the server is unreachable', async () => {
+    localStorage.setItem('ferni_pending_referral', 'abc123-sunrise');
+    apiPost.mockResolvedValueOnce({ ok: false, status: 503, error: 'down' });
 
-      expect(result.processed).toBe(false);
-    });
+    expect(await processPendingReferral()).toEqual({ processed: false });
 
-    it('should process pending referral and award bonus', () => {
-      localStorageMock.setItem('ferni_pending_referral', 'abc123-sunrise');
-
-      const result = processPendingReferral();
-
-      expect(result.processed).toBe(true);
-      expect(result.bonusAwarded).toBe(REFERRAL_NEW_USER_BONUS);
-    });
+    expect(addSeeds).not.toHaveBeenCalled();
+    expect(localStorage.getItem('ferni_pending_referral')).toBe('abc123-sunrise');
   });
 
-  describe('awardReferralMilestone', () => {
-    it('should return false for unknown referral', () => {
-      const result = awardReferralMilestone('unknown-user', 'streak-7');
+  it('drops a code the server says is invalid', async () => {
+    localStorage.setItem('ferni_pending_referral', 'nope00-sage');
+    apiPost.mockResolvedValueOnce({ ok: false, status: 404, error: 'Invalid referral code' });
 
-      expect(result).toBe(false);
-    });
+    expect(await processPendingReferral()).toEqual({ processed: false });
 
-    it('should award milestone for known referral', () => {
-      recordReferralSuccess('referred-user');
-      const result = awardReferralMilestone('referred-user', 'streak-7');
-
-      expect(result).toBe(true);
-    });
-
-    it('should not award same milestone twice', () => {
-      recordReferralSuccess('referred-user-2');
-      awardReferralMilestone('referred-user-2', 'streak-7');
-      const result = awardReferralMilestone('referred-user-2', 'streak-7');
-
-      expect(result).toBe(false);
-    });
+    expect(addSeeds).not.toHaveBeenCalled();
+    expect(localStorage.getItem('ferni_pending_referral')).toBeNull();
   });
 
-  describe('initReferralService', () => {
-    it('should initialize without errors', () => {
-      expect(() => initReferralService()).not.toThrow();
-    });
+  it('does nothing without a pending referral', async () => {
+    expect(await processPendingReferral()).toEqual({ processed: false });
+    expect(apiPost).not.toHaveBeenCalled();
+  });
+
+  it('initializes without errors', () => {
+    expect(() => initReferralService()).not.toThrow();
   });
 });

@@ -54,7 +54,7 @@ const WIN_TYPE_COLORS: Record<WinType, string> = {
   self_care: '#7c9a92',
   boundary_held: '#8b7355',
   hard_conversation: '#6b8e9f',
-  showed_up: '#9b8bb0',
+  showed_up: '#7a8baa',
   tried_new_thing: '#c4a35a',
   asked_for_help: '#7aa095',
   effort_made: '#a0785c',

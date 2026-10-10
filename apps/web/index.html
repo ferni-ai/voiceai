@@ -120,7 +120,7 @@
 
   <body data-persona="ferni">
     <!-- Skip to main content link for keyboard/screen reader users -->
-    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+    <a href="#main-content" class="skip-to-content" data-i18n="accessibility.skipToContent">Skip to main content</a>
 
     <!-- ================================================================
        STATUS ISLAND - Apple Dynamic Island inspired
@@ -145,6 +145,8 @@
         class="theme-toggle"
         aria-label="Toggle theme"
         title="Switch theme (T)"
+        data-i18n-aria-label="accessibility.toggleTheme"
+        data-i18n-title="accessibility.toggleThemeShortcut"
       >
         <svg
           class="theme-icon theme-icon--sun"
@@ -204,18 +206,16 @@
                 <span class="thinking-dot"></span>
                 <span class="thinking-dot"></span>
               </div>
-              <span class="thinking-text">Thinking</span>
+              <span class="thinking-text" data-i18n="accessibility.thinking">Thinking</span>
             </div>
           </div>
           <h1 id="personaName" class="entrance-name">Ferni</h1>
-          <p id="personaSubtitle" class="entrance-subtitle">Life Coach</p>
+          <p id="personaSubtitle" class="entrance-subtitle" data-i18n="team.members.ferni.role">Life Coach</p>
 
           <!-- Team Roster - Dynamically populated by JS -->
           <!-- Empty initially to prevent flash of all team members on mobile -->
           <div id="teamRoster" class="entrance-roster roster-initializing"></div>
 
-          <!-- Garden Widget - Seed Fund community contribution status -->
-          <div id="gardenWidgetContainer" class="garden-widget-wrapper"></div>
         </div>
       </header>
 
@@ -239,7 +239,7 @@
               class="btn btn-primary btn-magnetic anticipate-btn anticipate-focus"
               type="button"
             >
-              <span class="btn-content">Connect</span>
+              <span class="btn-content" data-i18n="entrance.connectToTalk">Connect</span>
             </button>
             <button
               id="disconnectBtn"
@@ -247,7 +247,7 @@
               type="button"
               style="display: none"
             >
-              <span class="btn-content">Disconnect</span>
+              <span class="btn-content" data-i18n="entrance.endTalk">Disconnect</span>
             </button>
             <button
               id="muteBtn"
@@ -256,6 +256,8 @@
               aria-label="Mute microphone"
               aria-pressed="false"
               title="Mute (M)"
+              data-i18n-aria-label="accessibility.muteMicrophone"
+              data-i18n-title="accessibility.muteShortcut"
               style="display: none"
             >
               <svg class="btn-icon mute-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 18v4"/></svg>
@@ -265,12 +267,12 @@
         </div>
 
         <!-- Helper Text - Apple-style minimal -->
-        <p id="helperText" class="entrance-helper">Your personal guide</p>
+        <p id="helperText" class="entrance-helper" data-i18n="entrance.helper">Your personal guide</p>
 
         <!-- Spotify Status - Apple-style minimal (hidden, used for status updates) -->
         <div id="spotifyStatus" class="spotify-status hidden">
           <span class="spotify-icon">♪</span>
-          <span id="spotifyStatusText">Initializing...</span>
+          <span id="spotifyStatusText" data-i18n="common.initializing">Initializing...</span>
         </div>
       </main>
     </div>

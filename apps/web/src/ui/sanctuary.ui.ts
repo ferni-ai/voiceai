@@ -22,7 +22,8 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { escapeHtml } from './engagement-components.js';
 import { practiceExperienceUI } from './practice-experience.ui.js';
 import { connectionService } from '../services/connection.service.js';
@@ -109,36 +110,36 @@ interface UserStats {
 
 const CATEGORY_CONFIG: Record<
   PracticeCategory,
-  { name: string; icon: string; description: string; color: string }
+  { nameKey: string; icon: string; descriptionKey: string; color: string }
 > = {
   ground: {
-    name: 'Ground',
+    nameKey: 'sanctuary.categoryGround',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20"/><path d="M2 12h20"/></svg>`,
-    description: 'Find your center',
+    descriptionKey: 'sanctuary.categoryGroundDescription',
     color: 'var(--color-ferni)',
   },
   reflect: {
-    name: 'Reflect',
+    nameKey: 'sanctuary.categoryReflect',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>`,
-    description: 'Look within',
+    descriptionKey: 'sanctuary.categoryReflectDescription',
     color: 'var(--color-maya)',
   },
   explore: {
-    name: 'Explore',
+    nameKey: 'sanctuary.categoryExplore',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
-    description: 'Open to possibility',
+    descriptionKey: 'sanctuary.categoryExploreDescription',
     color: 'var(--color-peter)',
   },
   connect: {
-    name: 'Connect',
+    nameKey: 'sanctuary.categoryConnect',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 7.65l.78.77L12 20.65l7.65-7.65.77-.77a5.4 5.4 0 0 0 0-7.65Z"/></svg>`,
-    description: 'Nurture relationships',
+    descriptionKey: 'sanctuary.categoryConnectDescription',
     color: 'var(--color-jordan)',
   },
   grow: {
-    name: 'Grow',
+    nameKey: 'sanctuary.categoryGrow',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>`,
-    description: 'Gentle progress',
+    descriptionKey: 'sanctuary.categoryGrowDescription',
     color: 'var(--color-nayan)',
   },
 };
@@ -149,32 +150,30 @@ const INSIGHT_ICONS: Record<string, string> = {
   observation: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`,
   prediction: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/></svg>`,
 };
-
-// Time-aware greetings
 const TIME_GREETINGS: Record<TimeContext['period'], string[]> = {
   morning: [
-    'Good morning',
-    'A fresh start',
-    'The day awaits',
-    'Rise gently',
+    'sanctuary.greetingMorning.0',
+    'sanctuary.greetingMorning.1',
+    'sanctuary.greetingMorning.2',
+    'sanctuary.greetingMorning.3',
   ],
   afternoon: [
-    'Good afternoon',
-    'The day continues',
-    'A pause in the day',
-    'Midday moment',
+    'sanctuary.greetingAfternoon.0',
+    'sanctuary.greetingAfternoon.1',
+    'sanctuary.greetingAfternoon.2',
+    'sanctuary.greetingAfternoon.3',
   ],
   evening: [
-    'Good evening',
-    'As the day winds down',
-    'Evening reflections',
-    'A quiet moment',
+    'sanctuary.greetingEvening.0',
+    'sanctuary.greetingEvening.1',
+    'sanctuary.greetingEvening.2',
+    'sanctuary.greetingEvening.3',
   ],
   night: [
-    'Still here with you',
-    'In the quiet hours',
-    'The night holds space',
-    'Rest is coming',
+    'sanctuary.greetingNight.0',
+    'sanctuary.greetingNight.1',
+    'sanctuary.greetingNight.2',
+    'sanctuary.greetingNight.3',
   ],
 };
 
@@ -236,12 +235,12 @@ class SanctuaryUI {
    * Close the Sanctuary
    */
   async close(): Promise<void> {
-    if (!this.isOpen || !this.container) return;
-
+    const container = this.container;
+    if (!this.isOpen || !container) return;
+    this.isOpen = false; // before the await, so an overlapping close() bails out
     await this.animateOut();
-    this.container.remove();
-    this.container = null;
-    this.isOpen = false;
+    container.remove();
+    if (this.container === container) this.container = null;
   }
 
   // ============================================================================
@@ -286,7 +285,7 @@ class SanctuaryUI {
           quote: string;
           source: string;
         };
-      }>(`/api/sanctuary?userId=${userId}`);
+      }>(`/api/sanctuary?userId=${encodeURIComponent(userId)}&tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`); // your time of day, not the server's
 
       if (sanctuaryResult.ok && sanctuaryResult.data) {
         const data = sanctuaryResult.data;
@@ -295,8 +294,7 @@ class SanctuaryUI {
         const insights: BetterThanHumanInsight[] = (data.insights || []).map(i => ({
           id: i.id,
           type: (i.type === 'superhuman' || i.type === 'pattern') ? 'pattern' as const : 
-                i.type === 'commitment' ? 'memory' as const : 
-                i.type === 'growth' ? 'observation' as const : 'observation' as const,
+                i.type === 'commitment' ? 'memory' as const : 'observation' as const,
           icon: i.icon || 'sparkles',
           title: i.title,
           description: i.description,
@@ -368,7 +366,7 @@ class SanctuaryUI {
               id: `notice-${apiInsights.length}`,
               type: n.type === 'pattern' ? 'pattern' : n.type === 'celebration' ? 'memory' : 'observation',
               icon: n.type === 'concern' ? 'heart' : n.type === 'celebration' ? 'sparkle' : 'eye',
-              title: n.type === 'concern' ? 'I notice...' : n.type === 'celebration' ? 'Celebrating' : 'A pattern',
+              title: t(n.type === 'concern' ? 'sanctuary.noticeConcern' : n.type === 'celebration' ? 'sanctuary.noticeCelebration' : 'sanctuary.noticePattern'),
               description: n.insight,
               personaId: n.personaId,
             });
@@ -381,7 +379,7 @@ class SanctuaryUI {
             id: 'growth',
             type: 'pattern',
             icon: 'sun',
-            title: 'Growth',
+            title: t('sanctuary.insightGrowth'),
             description: insightsResult.data.growth.message,
           });
         }
@@ -395,10 +393,10 @@ class SanctuaryUI {
                 id: 'commitment',
                 type: 'memory',
                 icon: 'heart',
-                title: 'Better than human memory',
-                description: `You said you'd ${commitment.text}. That was ${commitment.daysAgo} days ago.`,
+                title: t('sanctuary.sectionTitle.insights'),
+                description: tp('sanctuary.commitmentReminder', commitment.daysAgo, { text: commitment.text }),
                 actionable: true,
-                action: 'Check in on this',
+                action: t('sanctuary.checkInOnThis'),
               });
             }
           }
@@ -435,7 +433,7 @@ class SanctuaryUI {
   private getTimeContext(): TimeContext {
     const now = new Date();
     const hour = now.getHours();
-    const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const dayOfWeek = formatDate(now, { weekday: 'long' });
     const dayNum = now.getDay();
     const isWeekend = dayNum === 0 || dayNum === 6;
 
@@ -449,8 +447,10 @@ class SanctuaryUI {
   }
 
   private getGreeting(time: TimeContext): string {
-    const greetings = TIME_GREETINGS[time.period];
-    return greetings[Math.floor(Math.random() * greetings.length)] ?? greetings[0] ?? 'Hello';
+    const greetingKeys = TIME_GREETINGS[time.period];
+    const keyIndex = Math.floor(Math.random() * greetingKeys.length);
+    const key = greetingKeys[keyIndex] ?? greetingKeys[0] ?? 'sanctuary.greetingMorning.0';
+    return t(key);
   }
 
   private transformCommandsToPractices(commands: Command[]): GuidedPractice[] {
@@ -486,16 +486,16 @@ class SanctuaryUI {
         id: 'morning-pattern',
         type: 'pattern',
         icon: 'pattern',
-        title: 'Your mornings set the tone',
-        description: 'The conversations you start your day with tend to shape how the rest unfolds.',
+        title: t('sanctuary.insightYourMorningsSetTone'),
+        description: t('sanctuary.insightYourMorningsDesc'),
       });
     } else if (time.period === 'evening') {
       insights.push({
         id: 'evening-reflection',
         type: 'observation',
         icon: 'observation',
-        title: 'Evening reflections help',
-        description: 'Taking a moment to reflect before rest often brings clarity to the next day.',
+        title: t('sanctuary.insightEveningReflectionsHelp'),
+        description: t('sanctuary.insightEveningReflectionsDesc'),
       });
     }
 
@@ -504,8 +504,8 @@ class SanctuaryUI {
       id: 'bth-memory',
       type: 'memory',
       icon: 'memory',
-      title: 'I remember everything',
-      description: 'Every conversation, every detail, every growth moment. I hold your story complete.',
+      title: t('sanctuary.insightIRememberEverything'),
+      description: t('sanctuary.insightIRememberEverythingDesc'),
     });
 
     return insights;
@@ -519,14 +519,14 @@ class SanctuaryUI {
     if (time.period === 'morning') {
       practices.push({
         id: 'morning-intention',
-        name: 'Set Your Intention',
-        description: 'Begin with clarity. What matters most today?',
+        name: t('sanctuary.practiceSetYourIntention'),
+        description: t('sanctuary.practiceSetYourIntentionDesc'),
         category: 'ground',
-        duration: '3-5 min',
+        duration: t('sanctuary.durationRange', { min: 3, max: 5 }),
         personaId: 'ferni',
         prompt: '/daily-checkin',
         recommended: true,
-        recommendedReason: 'Perfect for your morning',
+        recommendedReason: t('sanctuary.reasonMorning'),
       });
     }
 
@@ -534,28 +534,28 @@ class SanctuaryUI {
     practices.push(
       {
         id: 'gratitude',
-        name: 'Gratitude Moment',
-        description: 'Notice what\'s already good. A small pause for appreciation.',
+        name: t('sanctuary.practiceGratitudeMoment'),
+        description: t('sanctuary.practiceGratitudeMomentDesc'),
         category: 'reflect',
-        duration: '2-3 min',
+        duration: t('sanctuary.durationRange', { min: 2, max: 3 }),
         personaId: 'ferni',
         prompt: '/gratitude',
       },
       {
         id: 'brainstorm',
-        name: 'Think It Through',
-        description: 'A challenge on your mind? Let\'s explore it together.',
+        name: t('sanctuary.practiceThinkItThrough'),
+        description: t('sanctuary.practiceThinkItThroughDesc'),
         category: 'explore',
-        duration: '5-10 min',
+        duration: t('sanctuary.durationRange', { min: 5, max: 10 }),
         personaId: 'ferni',
         prompt: '/brainstorm',
       },
       {
         id: 'weekly-review',
-        name: 'Weekly Reflection',
-        description: 'Look back with kindness. Celebrate progress. Plan gently.',
+        name: t('sanctuary.practiceWeeklyReflection'),
+        description: t('sanctuary.practiceWeeklyReflectionDesc'),
         category: 'reflect',
-        duration: '10-15 min',
+        duration: t('sanctuary.durationRange', { min: 10, max: 15 }),
         personaId: 'ferni',
         prompt: '/weekly-review',
       }
@@ -565,14 +565,14 @@ class SanctuaryUI {
     if (time.period === 'evening' || time.period === 'night') {
       practices.push({
         id: 'wind-down',
-        name: 'Wind Down',
-        description: 'Release the day gently. Let tomorrow wait.',
+        name: t('sanctuary.practiceWindDown'),
+        description: t('sanctuary.practiceWindDownDesc'),
         category: 'ground',
-        duration: '5 min',
+        duration: t('sanctuary.durationMinutes', { count: 5 }),
         personaId: 'ferni',
         prompt: '/wind-down',
         recommended: true,
-        recommendedReason: 'A gentle way to end the day',
+        recommendedReason: t('sanctuary.reasonEvening'),
       });
     }
 
@@ -587,14 +587,14 @@ class SanctuaryUI {
       inspirations.push({
         id: 'morning-wisdom',
         type: 'wisdom',
-        content: 'You don\'t have to have it all figured out. Just take the next small step.',
+        content: t('sanctuary.wisdomMorning'),
         personaId: 'ferni',
       });
     } else if (time.period === 'evening') {
       inspirations.push({
         id: 'evening-wisdom',
         type: 'wisdom',
-        content: 'Rest is not a reward for finishing. It\'s how you prepare to begin again.',
+        content: t('sanctuary.wisdomEvening'),
         personaId: 'maya',
       });
     }
@@ -604,13 +604,13 @@ class SanctuaryUI {
       {
         id: 'quote-1',
         type: 'quote',
-        content: 'The present moment is filled with joy and happiness. If you are attentive, you will see it.',
+        content: t('sanctuary.quotePresentMoment'),
         source: 'Thich Nhat Hanh',
       },
       {
         id: 'nudge-1',
         type: 'nudge',
-        content: 'I\'m always here. No appointment needed. No judgment given.',
+        content: t('sanctuary.nudgeAlwaysHere'),
         personaId: 'ferni',
       }
     );
@@ -629,7 +629,7 @@ class SanctuaryUI {
     this.container.className = 'sanctuary-overlay';
     this.container.setAttribute('role', 'dialog');
     this.container.setAttribute('aria-modal', 'true');
-    this.container.setAttribute('aria-label', 'The Sanctuary - Guided Practices');
+    this.container.setAttribute('aria-label', t('sanctuary.dialogLabel'));
 
     const content = document.createElement('div');
     content.className = 'sanctuary-content';
@@ -654,7 +654,7 @@ class SanctuaryUI {
     return `
       <!-- Header -->
       <header class="sanctuary-header">
-        <button class="sanctuary-close" aria-label="Close">
+        <button class="sanctuary-close" aria-label="${t('common.close')}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
           </svg>
@@ -671,14 +671,14 @@ class SanctuaryUI {
         
         <!-- Left Column: Insights + Inspiration -->
         <aside class="sanctuary-sidebar">
-          
+
           <!-- Better Than Human Insights -->
           <section class="sanctuary-section sanctuary-insights">
             <div class="sanctuary-section-header">
-              <span class="sanctuary-eyebrow">What I Notice</span>
-              <h2 class="sanctuary-section-title">Better than human memory</h2>
+              <span class="sanctuary-eyebrow">${t('sanctuary.sectionEyebrow.insights')}</span>
+              <h2 class="sanctuary-section-title">${t('sanctuary.sectionTitle.insights')}</h2>
             </div>
-            
+
             <div class="sanctuary-insight-list">
               ${insights.map((insight, i) => this.renderInsight(insight, i)).join('')}
             </div>
@@ -687,24 +687,24 @@ class SanctuaryUI {
           <!-- Inspiration -->
           <section class="sanctuary-section sanctuary-inspiration">
             <div class="sanctuary-section-header">
-              <span class="sanctuary-eyebrow">A thought</span>
+              <span class="sanctuary-eyebrow">${t('sanctuary.sectionEyebrow.inspiration')}</span>
             </div>
-            
+
             ${inspirations.slice(0, 2).map((insp) => this.renderInspiration(insp)).join('')}
           </section>
         </aside>
 
         <!-- Right Column: Practices -->
         <main class="sanctuary-main">
-          
+
           <!-- Recommended Practice (if any) -->
           ${recommendedPractice ? this.renderRecommendedPractice(recommendedPractice) : ''}
 
           <!-- All Practices by Category -->
           <section class="sanctuary-section sanctuary-practices">
             <div class="sanctuary-section-header">
-              <span class="sanctuary-eyebrow">Guided Practices</span>
-              <h2 class="sanctuary-section-title">Choose what calls to you</h2>
+              <span class="sanctuary-eyebrow">${t('sanctuary.sectionEyebrow.practices')}</span>
+              <h2 class="sanctuary-section-title">${t('sanctuary.sectionTitle.practices')}</h2>
             </div>
             
             <div class="sanctuary-categories">
@@ -761,14 +761,14 @@ class SanctuaryUI {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
           </svg>
-          <span>Suggested for now</span>
+          <span>${t('sanctuary.suggestedForNow')}</span>
         </div>
         
         <button 
           class="sanctuary-practice-card sanctuary-practice-card--recommended"
           data-practice-id="${escapeHtml(practice.id)}"
           data-prompt="${escapeHtml(practice.prompt)}"
-          aria-label="Start ${escapeHtml(practice.name)}"
+          aria-label="${t('sanctuary.startPractice', { name: escapeHtml(practice.name) })}"
         >
           <div class="sanctuary-practice-icon" style="background: ${category.color}">
             ${category.icon}
@@ -782,7 +782,7 @@ class SanctuaryUI {
           
           <div class="sanctuary-practice-meta">
             ${practice.duration ? `<span class="sanctuary-practice-duration">${escapeHtml(practice.duration)}</span>` : ''}
-            <span class="sanctuary-practice-start">Begin</span>
+            <span class="sanctuary-practice-start">${t('sanctuary.begin')}</span>
           </div>
         </button>
       </section>
@@ -801,8 +801,8 @@ class SanctuaryUI {
             ${config.icon}
           </div>
           <div class="sanctuary-category-info">
-            <h3 class="sanctuary-category-name">${escapeHtml(config.name)}</h3>
-            <p class="sanctuary-category-desc">${escapeHtml(config.description)}</p>
+            <h3 class="sanctuary-category-name">${escapeHtml(t(config.nameKey))}</h3>
+            <p class="sanctuary-category-desc">${escapeHtml(t(config.descriptionKey))}</p>
           </div>
         </div>
         
@@ -819,7 +819,7 @@ class SanctuaryUI {
         class="sanctuary-practice-item"
         data-practice-id="${escapeHtml(practice.id)}"
         data-prompt="${escapeHtml(practice.prompt)}"
-        aria-label="Start ${escapeHtml(practice.name)}"
+        aria-label="${t('sanctuary.startPractice', { name: escapeHtml(practice.name) })}"
       >
         <div class="sanctuary-practice-item-content">
           <span class="sanctuary-practice-item-name">${escapeHtml(practice.name)}</span>
@@ -1028,8 +1028,8 @@ class SanctuaryUI {
         align-items: center;
         justify-content: center;
         background: var(--color-utility-backdrop, rgba(20, 16, 14, 0.85));
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(var(--glass-blur-heavy));
+        -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
         overflow: hidden;
       }
 
@@ -1067,7 +1067,7 @@ class SanctuaryUI {
       .sanctuary-close {
         position: absolute;
         top: var(--space-md, 16px);
-        right: var(--space-md, 16px);
+        inset-inline-end: var(--space-md, 16px);
         width: 40px;
         height: 40px;
         border: none;

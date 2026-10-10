@@ -20,8 +20,8 @@ import {
   extractNames,
   generateSocialInsights,
   generateSuperhumanMoment,
+  ensureGraphLoaded,
   getImportantPeople,
-  loadGraphFromFirestore,
 } from '../../../services/social-graph/index.js';
 import {
   registerContextBuilder,
@@ -58,19 +58,9 @@ export const socialRelationshipsBuilder: ContextBuilder = {
 
     const injections: ContextInjection[] = [];
 
-    // Load the persisted social graph from Firestore once per user (per process
-    // lifetime), before generating insights, so cross-session data (people,
-    // patterns, mentions) is available rather than starting from an empty graph.
-    const loadedUsers =
-      (globalThis as { __ferniSocialGraphLoaded?: Set<string> }).__ferniSocialGraphLoaded ??
-      new Set<string>();
-    (globalThis as { __ferniSocialGraphLoaded?: Set<string> }).__ferniSocialGraphLoaded =
-      loadedUsers;
-
-    if (!loadedUsers.has(userId)) {
-      await loadGraphFromFirestore(userId);
-      loadedUsers.add(userId);
-    }
+    // Load the stored graph before generating insights, so people and patterns
+    // from earlier calls are available rather than starting from an empty graph.
+    await ensureGraphLoaded(userId);
 
     // Initialize session mentions tracking
     if (!sessionMentions.has(sessionId)) {

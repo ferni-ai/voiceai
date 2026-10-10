@@ -28,85 +28,25 @@ const log = createLogger({ module: 'SocialGraph' });
 // TYPES
 // ============================================================================
 
-export type RelationshipType =
-  | 'family'
-  | 'friend'
-  | 'partner'
-  | 'coworker'
-  | 'acquaintance'
-  | 'professional'
-  | 'unknown';
+import type {
+  ImportantDate,
+  Mention,
+  Person,
+  RelationshipPattern,
+  RelationshipType,
+  SocialInsight,
+  WithdrawalAlert,
+} from './types.js';
 
-export interface Person {
-  id: string;
-  name: string;
-  aliases: string[]; // "mom", "mother", "mama" -> same person
-  relationship: RelationshipType;
-  importance: number; // 0-1 based on mention frequency and emotional weight
-  /** Important dates (birthdays, anniversaries) */
-  importantDates: Array<{
-    date: string; // MM-DD format
-    type: 'birthday' | 'anniversary' | 'memorial' | 'other';
-    label?: string;
-  }>;
-  /** Last time this person was mentioned */
-  lastMentioned: Date;
-  /** Total mention count */
-  mentionCount: number;
-  /** Average sentiment when discussing this person */
-  averageSentiment: number;
-  /** Topics often discussed about this person */
-  associatedTopics: string[];
-  /** Notes about the relationship */
-  notes: string[];
-  /** User-confirmed important person */
-  isConfirmedImportant: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Mention {
-  personId: string;
-  timestamp: Date;
-  sentiment: number; // -1 to 1
-  context: string; // Brief snippet
-  topics: string[];
-  emotionalWeight: number; // How emotionally significant
-}
-
-export interface RelationshipPattern {
-  personId: string;
-  personName: string;
-  pattern: 'positive_correlation' | 'negative_correlation' | 'neutral';
-  description: string;
-  confidence: number;
-}
-
-export interface WithdrawalAlert {
-  personId: string;
-  personName: string;
-  daysSinceLastMention: number;
-  usualFrequencyDays: number;
-  significance: 'low' | 'medium' | 'high';
-  suggestion: string;
-}
-
-export interface ImportantDate {
-  personId: string;
-  personName: string;
-  date: Date;
-  type: 'birthday' | 'anniversary' | 'memorial' | 'other';
-  label?: string;
-  daysUntil: number;
-}
-
-export interface SocialInsight {
-  type: 'withdrawal' | 'pattern' | 'date' | 'sentiment';
-  insight: string;
-  suggestion?: string;
-  personName: string;
-  urgency: 'low' | 'medium' | 'high';
-}
+export type {
+  ImportantDate,
+  Mention,
+  Person,
+  RelationshipPattern,
+  RelationshipType,
+  SocialInsight,
+  WithdrawalAlert,
+} from './types.js';
 
 // ============================================================================
 // STATE
@@ -121,6 +61,8 @@ interface UserSocialGraph {
 }
 
 const userGraphs = new Map<string, UserSocialGraph>();
+/** Users whose stored graph has been read into `userGraphs` since it was last released. */
+const loadedFromFirestore = new Set<string>();
 
 // Common relationship aliases
 const RELATIONSHIP_ALIASES: Record<string, string[]> = {
@@ -893,7 +835,27 @@ export function getMentionFrequency(userId: string, personName: string, days: nu
 
 export function clearSocialGraph(userId: string): void {
   userGraphs.delete(userId);
+  loadedFromFirestore.delete(userId);
   log.info({ userId }, 'Social graph cleared');
+}
+
+/**
+ * Load a user's stored graph into memory once; later calls are no-ops until the
+ * graph is released.
+ */
+export async function ensureGraphLoaded(userId: string): Promise<void> {
+  if (loadedFromFirestore.has(userId)) return;
+  await loadGraphFromFirestore(userId);
+  loadedFromFirestore.add(userId);
+}
+
+/**
+ * Drop a user's graph from memory after it has been saved, so the next call
+ * reloads it from Firestore instead of the worker holding every caller's graph.
+ */
+export function releaseSocialGraph(userId: string): void {
+  userGraphs.delete(userId);
+  loadedFromFirestore.delete(userId);
 }
 
 // ============================================================================
@@ -934,13 +896,13 @@ export function serializeGraph(graph: UserSocialGraph): object {
 export async function persistGraphToFirestore(
   userId: string,
   graph: UserSocialGraph
-): Promise<void> {
+): Promise<boolean> {
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
     const db = getFirestoreDb();
     if (!db) {
       log.warn({ userId }, 'Cannot persist social graph - no Firestore connection');
-      return;
+      return false;
     }
 
     const serialized = serializeGraph(graph);
@@ -1005,8 +967,10 @@ export async function persistGraphToFirestore(
     }
 
     log.debug({ userId, peopleCount: graph.people.size }, 'Social graph persisted');
+    return true;
   } catch (error) {
     log.error({ userId, error: String(error) }, 'Failed to persist social graph');
+    return false;
   }
 }
 
@@ -1093,6 +1057,7 @@ export function getSocialInsights(userId: string): SocialInsight[] {
 export function clearAllSocialGraphs(): void {
   const count = userGraphs.size;
   userGraphs.clear();
+  loadedFromFirestore.clear();
   log.info({ count }, 'All social graphs cleared from memory');
 }
 
@@ -1179,4 +1144,6 @@ export default {
   serializeGraph,
   persistGraphToFirestore,
   loadGraphFromFirestore,
+  ensureGraphLoaded,
+  releaseSocialGraph,
 };

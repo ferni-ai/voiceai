@@ -1664,7 +1664,7 @@ export function injectAdminStyles(): void {
     .admin-detail-close {
       position: absolute;
       top: 1rem;
-      right: 1rem;
+      inset-inline-end: 1rem;
       background: none;
       border: none;
       color: var(--color-text-primary);

@@ -22,7 +22,7 @@ import {
   EASING,
 } from '../utils/dom.js';
 import type { DeviceContext, VisualizationResult } from '../types.js';
-import { t } from '../../../i18n/index.js';
+import { formatDate, formatRelativeTime, t } from '../../../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -96,38 +96,17 @@ const CARE_TYPE_ICONS: Record<CareMomentType, string> = {
   kept_commitment: '✓',
 };
 
-/**
- * Labels for care moment types
- */
-const CARE_TYPE_LABELS: Record<CareMomentType, string> = {
-  called_for_you: 'Call',
-  messaged_for_you: 'Message',
-  remembered: 'Followed up',
-  protected_time: 'Calendar',
-  kept_commitment: 'Commitment',
-};
-
 // ============================================================================
 // HELPERS
 // ============================================================================
 
 /**
- * Format a timestamp as a relative time string
+ * Format a timestamp as a localized relative time (short date after a week)
  */
-function formatRelativeTime(timestamp: string): string {
+function formatMomentTime(timestamp: string): string {
   const date = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const ageDays = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
+  return ageDays < 7 ? formatRelativeTime(date) : formatDate(date, { month: 'short', day: 'numeric' });
 }
 
 // ============================================================================
@@ -205,17 +184,14 @@ function buildWatch(
   container.appendChild(metric);
 
   // Screen reader label
-  container.appendChild(
-    createScreenReaderLabel(
-      `${data.totalActions} actions taken on your behalf`
-    )
-  );
+  const ariaLabel = t('visualizations.actionsTaken.ariaWatch', { total: data.totalActions });
+  container.appendChild(createScreenReaderLabel(ariaLabel));
 
   return {
     element: container,
     type: 'actions-taken',
     device: 'watch',
-    ariaLabel: `${data.totalActions} actions taken on your behalf`,
+    ariaLabel,
     cleanup: () => {},
     update: (newData: unknown) => buildWatch(container, newData as ActionsTakenData),
   };
@@ -260,9 +236,9 @@ function buildMobile(
   });
 
   const stats = [
-    { value: data.summary.callsMade, label: 'Calls' },
-    { value: data.summary.messagesSent, label: 'Messages' },
-    { value: data.summary.commitmentsFulfilled, label: 'Kept' },
+    { value: data.summary.callsMade, label: t('visualizations.actionsTaken.calls') },
+    { value: data.summary.messagesSent, label: t('visualizations.actionsTaken.messages') },
+    { value: data.summary.commitmentsFulfilled, label: t('visualizations.actionsTaken.kept') },
   ];
 
   for (const stat of stats) {
@@ -351,7 +327,7 @@ function buildMobile(
         color: 'var(--viz-text-muted)',
         marginTop: 'var(--viz-space-micro)',
       });
-      time.textContent = formatRelativeTime(moment.timestamp);
+      time.textContent = formatMomentTime(moment.timestamp);
 
       content.appendChild(narrative);
       content.appendChild(time);
@@ -375,17 +351,19 @@ function buildMobile(
   container.appendChild(list);
 
   // Screen reader label
-  container.appendChild(
-    createScreenReaderLabel(
-      `${data.totalActions} actions taken: ${data.summary.callsMade} calls, ${data.summary.messagesSent} messages, ${data.summary.commitmentsFulfilled} commitments kept`
-    )
-  );
+  const ariaLabel = t('visualizations.actionsTaken.ariaMobile', {
+    total: data.totalActions,
+    calls: data.summary.callsMade,
+    messages: data.summary.messagesSent,
+    commitments: data.summary.commitmentsFulfilled,
+  });
+  container.appendChild(createScreenReaderLabel(ariaLabel));
 
   return {
     element: container,
     type: 'actions-taken',
     device: 'mobile',
-    ariaLabel: `${data.totalActions} actions taken: ${data.summary.callsMade} calls, ${data.summary.messagesSent} messages, ${data.summary.commitmentsFulfilled} commitments kept`,
+    ariaLabel,
     cleanup: () => {},
     update: (newData: unknown) => buildMobile(container, newData as ActionsTakenData),
   };
@@ -445,7 +423,10 @@ function buildTablet(
       fontSize: 'var(--font-size-sm)',
       color: 'var(--viz-text-secondary)',
     });
-    badge.textContent = `${data.commitmentProgress.kept}/${data.commitmentProgress.total} kept`;
+    badge.textContent = t('visualizations.actionsTaken.keptProgress', {
+      kept: data.commitmentProgress.kept,
+      total: data.commitmentProgress.total,
+    });
     headerTop.appendChild(badge);
   }
 
@@ -462,10 +443,10 @@ function buildTablet(
   });
 
   const allStats = [
-    { value: data.summary.callsMade, label: 'Calls made', icon: '📞' },
-    { value: data.summary.messagesSent, label: 'Messages sent', icon: '💬' },
-    { value: data.summary.remindersKept, label: 'Reminders', icon: '🔔' },
-    { value: data.summary.commitmentsFulfilled, label: 'Commitments', icon: '✓' },
+    { value: data.summary.callsMade, label: t('visualizations.actionsTaken.callsMade'), icon: '📞' },
+    { value: data.summary.messagesSent, label: t('visualizations.actionsTaken.messagesSent'), icon: '💬' },
+    { value: data.summary.remindersKept, label: t('visualizations.actionsTaken.reminders'), icon: '🔔' },
+    { value: data.summary.commitmentsFulfilled, label: t('ferniKnows.commitments'), icon: '✓' },
   ];
 
   for (const stat of allStats) {
@@ -593,7 +574,7 @@ function buildTablet(
         fontSize: 'var(--font-size-xs)',
         color: 'var(--viz-text-muted)',
       });
-      time.textContent = formatRelativeTime(moment.timestamp);
+      time.textContent = formatMomentTime(moment.timestamp);
       meta.appendChild(time);
 
       if (moment.target) {
@@ -619,11 +600,11 @@ function buildTablet(
       if (moment.success) {
         setStyles(status, { color: 'var(--color-semantic-success)' });
         status.textContent = '✓';
-        status.title = 'Completed';
+        status.title = t('activity.statusCompleted');
       } else {
         setStyles(status, { color: 'var(--color-semantic-warning)' });
         status.textContent = '○';
-        status.title = 'In progress';
+        status.title = t('activity.statusInProgress');
       }
       card.appendChild(status);
 
@@ -635,17 +616,20 @@ function buildTablet(
   container.appendChild(momentsSection);
 
   // Screen reader label
-  container.appendChild(
-    createScreenReaderLabel(
-      `${data.totalActions} actions taken on your behalf: ${data.summary.callsMade} calls, ${data.summary.messagesSent} messages, ${data.summary.remindersKept} reminders, ${data.summary.commitmentsFulfilled} commitments kept`
-    )
-  );
+  const ariaLabel = t('visualizations.actionsTaken.ariaFull', {
+    total: data.totalActions,
+    calls: data.summary.callsMade,
+    messages: data.summary.messagesSent,
+    reminders: data.summary.remindersKept,
+    commitments: data.summary.commitmentsFulfilled,
+  });
+  container.appendChild(createScreenReaderLabel(ariaLabel));
 
   return {
     element: container,
     type: 'actions-taken',
     device: context.type,
-    ariaLabel: `${data.totalActions} actions taken on your behalf: ${data.summary.callsMade} calls, ${data.summary.messagesSent} messages, ${data.summary.remindersKept} reminders, ${data.summary.commitmentsFulfilled} commitments kept`,
+    ariaLabel,
     cleanup: () => {},
     update: (newData: unknown) => buildTablet(container, newData as ActionsTakenData, context),
   };

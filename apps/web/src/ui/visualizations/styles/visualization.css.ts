@@ -91,7 +91,7 @@ export function getVisualizationStyles(): string {
       --viz-mood-anxious: var(--viz-moods-anxious, #b5453a);
       --viz-mood-tired: var(--viz-moods-tired, #756a5e);
       --viz-mood-focused: var(--viz-moods-focused, #3a6b73);
-      --viz-mood-reflective: var(--viz-moods-reflective, #7a6a8a);
+      --viz-mood-reflective: var(--viz-moods-reflective, #5a6b8a);
       --viz-mood-stressed: var(--viz-moods-stressed, #a54545);
       --viz-mood-energized: var(--viz-moods-energized, #4a7a52);
       --viz-mood-peaceful: var(--viz-moods-peaceful, #5a8a73);
@@ -102,7 +102,7 @@ export function getVisualizationStyles(): string {
       --viz-chapter-challenge: var(--viz-chapters-challenge, #b5453a);
       --viz-chapter-transition: var(--viz-chapters-transition, #c4956a);
       --viz-chapter-celebration: var(--viz-chapters-celebration, #4a7a52);
-      --viz-chapter-reflection: var(--viz-chapters-reflection, #7a6a8a);
+      --viz-chapter-reflection: var(--viz-chapters-reflection, #5a6b8a);
 
       /* Semantic colors for DOM elements */
       --viz-accent: var(--color-accent, #3D5A45);

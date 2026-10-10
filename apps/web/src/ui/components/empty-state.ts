@@ -15,6 +15,7 @@
  * @module ui/components/empty-state
  */
 
+import { t } from '../../i18n/index.js';
 import { ANALYTICS_ICONS, GROWTH_ICONS, EMOTION_ICONS } from '../icons/shared-icons.js';
 
 // ============================================================================
@@ -40,79 +41,78 @@ interface EmptyStateConfig {
   encouragement?: string;
 }
 
+/** Stored form: display text lives in i18n keys, resolved by `resolveContent`. */
+interface EmptyStateEntry {
+  icon: string;
+  headlineKey: string;
+  descriptionKey: string;
+  encouragementKey: string;
+}
+
 // ============================================================================
 // EMPTY STATE CONTENT (Brand Voice)
 // ============================================================================
 
-const EMPTY_STATE_CONTENT: Record<EmptyStateType, EmptyStateConfig> = {
+const EMPTY_STATE_CONTENT: Record<EmptyStateType, EmptyStateEntry> = {
   'growth-journal': {
     icon: GROWTH_ICONS.journal,
-    headline: "Your growth story is just beginning",
-    description: "As we talk, I'll notice patterns and celebrate wins you might not see yourself.",
-    encouragement: "Your first reflection will appear soon.",
+    headlineKey: 'emptyState.growthJournal.headline',
+    descriptionKey: 'emptyState.growthJournal.description',
+    encouragementKey: 'emptyState.growthJournal.encouragement',
   },
-  
   'pattern-insights': {
     icon: ANALYTICS_ICONS.sparkles,
-    headline: "I'm learning your rhythms",
-    description: "After a few more conversations, I'll show you patterns that might surprise you.",
-    encouragement: "The best insights come from spending time together.",
+    headlineKey: 'emptyState.patternInsights.headline',
+    descriptionKey: 'emptyState.patternInsights.description',
+    encouragementKey: 'emptyState.patternInsights.encouragement',
   },
-  
   'memory-lane': {
     icon: GROWTH_ICONS.heart,
-    headline: "We're building memories together",
-    description: "Every conversation adds to our shared story. Soon you'll have moments worth revisiting.",
-    encouragement: "Keep chatting, and this will fill with moments that matter.",
+    headlineKey: 'emptyState.memoryLane.headline',
+    descriptionKey: 'emptyState.memoryLane.description',
+    encouragementKey: 'emptyState.memoryLane.encouragement',
   },
-  
   'knowledge-quiz': {
     icon: ANALYTICS_ICONS.brain,
-    headline: "I'm still getting to know you",
-    description: "Quiz questions are generated from our conversations. The more we talk, the more fun the questions!",
-    encouragement: "After a few more chats, I'll have some great questions ready.",
+    headlineKey: 'emptyState.knowledgeQuiz.headline',
+    descriptionKey: 'emptyState.knowledgeQuiz.description',
+    encouragementKey: 'emptyState.knowledgeQuiz.encouragement',
   },
-  
   'your-story': {
     icon: GROWTH_ICONS.seedling,
-    headline: "Your story is unfolding",
-    description: "Every conversation adds a new chapter. Check back as our relationship deepens.",
-    encouragement: "The most meaningful insights emerge over time.",
+    headlineKey: 'emptyState.yourStory.headline',
+    descriptionKey: 'emptyState.yourStory.description',
+    encouragementKey: 'emptyState.yourStory.encouragement',
   },
-  
   'your-year': {
     icon: ANALYTICS_ICONS.calendar,
-    headline: "A year of growth awaits",
-    description: "This space will show your journey over time - streaks, milestones, and memories.",
-    encouragement: "Start your first conversation to begin tracking your year.",
+    headlineKey: 'emptyState.yourYear.headline',
+    descriptionKey: 'emptyState.yourYear.description',
+    encouragementKey: 'emptyState.yourYear.encouragement',
   },
-  
   'conversation-history': {
     icon: ANALYTICS_ICONS.clock,
-    headline: "Ready when you are",
-    description: "Your conversations will appear here, ready to revisit whenever you like.",
-    encouragement: "Every conversation is saved and searchable.",
+    headlineKey: 'emptyState.conversationHistory.headline',
+    descriptionKey: 'emptyState.conversationHistory.description',
+    encouragementKey: 'emptyState.conversationHistory.encouragement',
   },
-  
-  'contacts': {
+  contacts: {
     icon: EMOTION_ICONS.grateful,
-    headline: "Your world starts here",
-    description: "As you mention the people in your life, I'll help you keep track of those relationships.",
-    encouragement: "Tell me about someone important to you.",
+    headlineKey: 'emptyState.contacts.headline',
+    descriptionKey: 'emptyState.contacts.description',
+    encouragementKey: 'emptyState.contacts.encouragement',
   },
-  
   'music-dashboard': {
     icon: ANALYTICS_ICONS.sparkles,
-    headline: "Let's discover your musical self",
-    description: "Play some music during our conversations, and I'll learn what moves you.",
-    encouragement: "Ask me to play something and let's get started.",
+    headlineKey: 'emptyState.musicDashboard.headline',
+    descriptionKey: 'emptyState.musicDashboard.description',
+    encouragementKey: 'emptyState.musicDashboard.encouragement',
   },
-  
-  'activity': {
+  activity: {
     icon: ANALYTICS_ICONS.trendingUp,
-    headline: "Your activity is just getting started",
-    description: "This will show your engagement patterns, streaks, and accomplishments.",
-    encouragement: "Every check-in adds to your story.",
+    headlineKey: 'emptyState.activity.headline',
+    descriptionKey: 'emptyState.activity.description',
+    encouragementKey: 'emptyState.activity.encouragement',
   },
 };
 
@@ -239,6 +239,16 @@ function injectStyles(): void {
   stylesInjected = true;
 }
 
+function resolveContent(type: EmptyStateType): EmptyStateConfig {
+  const { icon, headlineKey, descriptionKey, encouragementKey } = EMPTY_STATE_CONTENT[type];
+  return {
+    icon,
+    headline: t(headlineKey),
+    description: t(descriptionKey),
+    encouragement: t(encouragementKey),
+  };
+}
+
 /**
  * Create an empty state element for a feature
  * 
@@ -253,7 +263,7 @@ function injectStyles(): void {
 export function createEmptyState(type: EmptyStateType, compact = false): HTMLElement {
   injectStyles();
 
-  const config = EMPTY_STATE_CONTENT[type];
+  const config = resolveContent(type);
   const container = document.createElement('div');
   container.className = `ferni-empty-state${compact ? ' ferni-empty-state--compact' : ''}`;
 
@@ -294,7 +304,7 @@ export function createEmptyState(type: EmptyStateType, compact = false): HTMLEle
  * @returns The content configuration object
  */
 export function getEmptyStateContent(type: EmptyStateType): EmptyStateConfig {
-  return EMPTY_STATE_CONTENT[type];
+  return resolveContent(type);
 }
 
 /**

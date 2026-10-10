@@ -69,6 +69,9 @@ export const CIRCUIT_BREAKER_RESET_MS = 10_000;
 /** If no agent speech by this time, trigger recovery (empty response watchdog) */
 export const EMPTY_RESPONSE_WATCHDOG_MS = 3000;
 
+/** Longest the watchdog waits on a tool call before treating the turn as unanswered */
+export const EMPTY_RESPONSE_TOOL_HOLD_MS = 15_000;
+
 /** Min interval between backchannels (avoid robotic "mm-hmm" spam) */
 export const BACKCHANNEL_MIN_INTERVAL_MS = 12000;
 

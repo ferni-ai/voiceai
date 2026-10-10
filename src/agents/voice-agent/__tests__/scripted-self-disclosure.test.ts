@@ -74,11 +74,11 @@ describe('scripted self-disclosure', () => {
     expect(getPreviousExpression('off')).toBeUndefined();
   });
 
-  it('puts it back with PERSONALITY_EXPRESSIONS=on', async () => {
+  it('stays off even if PERSONALITY_EXPRESSIONS=on', async () => {
     process.env.PERSONALITY_EXPRESSIONS = 'on';
     const result = await processPersonality(turn('on'));
-    expect(result.injectionContent).toContain('[🎭 PERSONALITY EXPRESSION]');
-    expect(result.injectionContent).toContain('Weekend evenings feel different');
+    expect(result.shouldInject).toBe(false);
+    expect(result.injectionContent ?? '').not.toContain('PERSONALITY EXPRESSION');
   });
 
   it("drops the ferni-personality builder's volunteered backstory but keeps its responses", async () => {
@@ -92,6 +92,6 @@ describe('scripted self-disclosure', () => {
 
     process.env.PERSONALITY_EXPRESSIONS = 'on';
     const old = await buildFerniPersonalityContext(builderInput('hey', 0));
-    expect(old.map((i) => i.source)).toContain('ferni_essence');
+    expect(old.map((i) => i.source)).not.toContain('ferni_essence');
   });
 });

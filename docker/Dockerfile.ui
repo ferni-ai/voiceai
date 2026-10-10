@@ -10,11 +10,13 @@
 # - BuildKit 1.4 syntax enables parallel stage builds
 # - Cache mounts for pnpm store
 #
-# No neural speaker model here: the voice-auth API computes DSP voice features,
-# and DSP can never verify or identify anyone (voice-match-trust.ts), so voice
-# verification on this server fails closed. The model lives in the agent image
-# (Dockerfile.agent). No client calls the voice-auth API today; if one ever
-# needs neural verification here, fetch the model the way Dockerfile.agent does.
+# Neural speaker model: the same pinned ECAPA-TDNN as Dockerfile.agent. Web
+# enrollment (Settings > Voice ID, /api/voice/*) runs here, and a voice print
+# is only usable by the agent's verifier when both sides embed with the same
+# model: without it this server makes DSP prints, which never verify anyone
+# (voice-match-trust.ts). The worker thread costs ~200-270 MB RSS once a
+# voice request loads it, so the service needs more than 512Mi (see the
+# --memory flags of the john-bogle-ui deploys).
 #
 # Build:
 #   docker build -f docker/Dockerfile.ui -t ferni-ui .
@@ -23,19 +25,21 @@
 #   docker run -p 8080:8080 -e LIVEKIT_URL=... ferni-ui
 # ============================================================================
 
-ARG NODE_VERSION=20
+ARG NODE_VERSION=22
 
 # LiveKit agents SDK version - update this when upgrading @livekit/agents packages
 # Check latest: https://www.npmjs.com/package/@livekit/agents
 ARG LIVEKIT_AGENTS_VERSION=1.0.31
 
 # ============================================================================
-# Stage 1: Build Backend TypeScript (with pnpm + esbuild)
+# Stage 1: Workspace dependencies (pnpm), shared by the backend and frontend
 # ============================================================================
-FROM node:${NODE_VERSION}-slim AS backend-builder
-
-# Re-declare ARG after FROM to make it available in this stage
-ARG LIVEKIT_AGENTS_VERSION
+# One install from the workspace pnpm-lock.yaml, the lockfile CI tests with.
+# The frontend used to install separately with npm ci from
+# apps/web/package-lock.json, a second lockfile nothing kept in sync: when a
+# PR added a dev dependency to apps/web/package.json (archunit, #392), npm ci
+# refused and every UI deploy from main failed.
+FROM node:${NODE_VERSION}-slim AS workspace-deps
 
 # Install git and enable pnpm
 RUN apt-get update && apt-get install -y --no-install-recommends git \
@@ -47,8 +51,6 @@ WORKDIR /app
 # Copy package files and configs
 COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 COPY .npmrc ./
-COPY tsconfig.json ./
-COPY tsconfig.build.json ./
 
 # Copy patches directory (required by pnpm-lock.yaml)
 COPY patches/ ./patches/
@@ -60,16 +62,25 @@ COPY apps/async/package.json ./apps/async/
 COPY apps/intelligence-worker/package.json ./apps/intelligence-worker/
 COPY packages/shared-types/package.json ./packages/shared-types/
 
-# Create stub package.json for packages not in build context (rust packages, design-system)
-RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
-    echo '{"name":"@ferni/audio","version":"0.1.0"}' > apps/rust-audio/package.json && \
-    echo '{"name":"@ferni/perf","version":"0.1.0"}' > apps/rust-perf/package.json && \
-    echo '{"name":"@ferni/design-system","version":"1.0.0"}' > design-system/package.json
+# The real package.json of every workspace package the lockfile names (none has install
+# scripts), so both installs below are frozen: the image gets exactly what CI tested.
+COPY apps/rust-audio/package.json ./apps/rust-audio/
+COPY apps/rust-perf/package.json ./apps/rust-perf/
+COPY design-system/package.json ./design-system/
 
-# LiveKit agents packages are exact-pinned in package.json (no file: / no caret).
-# Use --no-frozen-lockfile because Docker creates stub workspace package.json files.
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --prefer-offline --no-frozen-lockfile
+    pnpm install --prefer-offline --frozen-lockfile
+
+# ============================================================================
+# Stage 2: Build Backend TypeScript (esbuild)
+# ============================================================================
+FROM workspace-deps AS backend-builder
+
+# Re-declare ARG after FROM to make it available in this stage
+ARG LIVEKIT_AGENTS_VERSION
+
+COPY tsconfig.json ./
+COPY tsconfig.build.json ./
 
 # Copy the CLI source the build script runs from. Copy the whole tree, not
 # build-fast.ts and its imports one by one: each time it gained an import
@@ -84,13 +95,9 @@ COPY src/ ./src/
 RUN npx tsx apps/cli/src/commands/build/build-fast.ts || pnpm build
 
 # ============================================================================
-# Stage 2: Build Frontend (runs in parallel with backend)
-# Note: apps/web uses npm (not pnpm) with package-lock.json
+# Stage 3: Build Frontend (runs in parallel with the backend build)
 # ============================================================================
-FROM node:${NODE_VERSION}-slim AS frontend-builder
-
-# Build arg for admin API key (passed from Cloud Build)
-ARG VITE_ADMIN_API_KEY=""
+FROM workspace-deps AS frontend-builder
 
 WORKDIR /app
 
@@ -102,15 +109,10 @@ COPY design-system/dist ./design-system/dist/
 COPY design-system/assets/logos ./design-system/assets/logos/
 COPY design-system/assets/favicons ./design-system/assets/favicons/
 
-# Copy frontend package files (npm-based)
-COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
-
 WORKDIR /app/apps/web
 
-# Install with npm (frontend uses npm, not pnpm)
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline
-
+# Sources only: .dockerignore keeps the host's apps/web/node_modules out, so the
+# workspace install from the previous stage stays in place.
 COPY apps/web/ ./
 
 # Create placeholder for symlinked brand directory (symlink points outside context)
@@ -122,13 +124,10 @@ COPY apps/web/ ./
 ARG BUILD_TIMESTAMP=default
 RUN echo "Build: ${BUILD_TIMESTAMP}" && rm -rf public/design-system/brand 2>/dev/null || true && mkdir -p public/design-system/brand
 
-# Set env var for Vite build (bakes into the bundle)
-ENV VITE_ADMIN_API_KEY=${VITE_ADMIN_API_KEY}
-
-RUN npm run build
+RUN pnpm run build
 
 # ============================================================================
-# Stage 3: Production Server
+# Stage 4: Production Server
 # ============================================================================
 FROM node:${NODE_VERSION}-slim AS production
 
@@ -140,6 +139,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && corepack enable && corepack prepare pnpm@10.29.3 --activate
 
+# Neural speaker model, fetched exactly as docker/Dockerfile.agent does (see
+# scripts/speaker/README.md): public object, so no credentials; a sha256
+# mismatch fails the build, and the speaker-embedding worker checks the digest
+# again at load and falls back to DSP features if it differs. Kill switch:
+# unset SPEAKER_MODEL_PATH. Before any app source, so the layer stays cached.
+ARG SPEAKER_MODEL_SHA256=93ccd596285b31d5debad84ab3f138d5dc1145f19c3f287b81ece65afa034fc9
+ARG SPEAKER_MODEL_URL=https://storage.googleapis.com/ferni-public-models/speaker/ecapa-tdnn-waveform-93ccd596.onnx
+RUN mkdir -p /models/speaker && \
+    curl -fsSL --retry 3 --retry-all-errors \
+      -o /models/speaker/ecapa-tdnn-waveform.onnx "$SPEAKER_MODEL_URL" && \
+    printf '%s  /models/speaker/ecapa-tdnn-waveform.onnx\n' "$SPEAKER_MODEL_SHA256" \
+      > /models/speaker/ecapa-tdnn-waveform.onnx.sha256 && \
+    sha256sum -c /models/speaker/ecapa-tdnn-waveform.onnx.sha256 && \
+    printf '%s\n' \
+      'ECAPA-TDNN speaker model from speechbrain/spkrec-ecapa-voxceleb (SpeechBrain), Apache-2.0.' \
+      'Modified: exported to ONNX with its feature front end (scripts/speaker/export-ecapa-onnx.py).' \
+      'License: https://www.apache.org/licenses/LICENSE-2.0' > /models/speaker/NOTICE
+ENV SPEAKER_MODEL_PATH=/models/speaker/ecapa-tdnn-waveform.onnx \
+    SPEAKER_MODEL_SHA256=${SPEAKER_MODEL_SHA256}
+
 # Copy package files from builder stage (has file: deps replaced with npm versions)
 COPY --from=backend-builder /app/package.json ./
 COPY --from=backend-builder /app/pnpm-lock.yaml* ./
@@ -149,7 +168,7 @@ COPY pnpm-workspace.yaml ./
 # Copy patches directory (required by pnpm-lock.yaml)
 COPY patches/ ./patches/
 
-# Copy workspace package stubs from builder
+# Copy workspace package files from builder
 COPY --from=backend-builder /app/apps/rust-audio/package.json ./apps/rust-audio/
 COPY --from=backend-builder /app/apps/rust-perf/package.json ./apps/rust-perf/
 COPY --from=backend-builder /app/design-system/package.json ./design-system/
@@ -165,7 +184,7 @@ COPY --from=backend-builder /app/packages/shared-types/package.json ./packages/s
 # cleanup stays in the same layer (so it still shrinks the image) but runs in a
 # subshell whose failures cannot mask the install.
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --prefer-offline --prod --no-frozen-lockfile && \
+    pnpm install --prefer-offline --prod --frozen-lockfile && \
     test -f node_modules/dotenv/package.json && \
     ( find node_modules -name "*.md" -delete; \
       find node_modules -name "*.map" -delete; \

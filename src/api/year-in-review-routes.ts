@@ -10,7 +10,13 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { requireAuth } from './auth-middleware.js';
 import { sendJSON, sendError } from './helpers.js';
+import {
+  averageConversationsPerWeek,
+  tenureOf,
+  type ConversationTenure,
+} from './year-in-review-stats.js';
 
 const log = createLogger({ module: 'YearInReviewRoutes' });
 
@@ -34,7 +40,7 @@ interface EmotionalMoment {
 interface TeamUnlock {
   personaId: string;
   personaName: string;
-  unlockedAt: string;
+  unlockedAt?: string; // not recorded anywhere (unlocks follow the relationship stage)
   primaryColor: string;
 }
 
@@ -72,7 +78,7 @@ interface RelationshipGrowth {
 
 interface YearStats {
   totalConversations: number;
-  totalMinutes: number;
+  totalMinutes?: number; // only when every conversation recorded its duration
   longestStreak: number;
   currentStreak: number;
   averageConversationsPerWeek: number;
@@ -135,12 +141,14 @@ async function fetchYearData(userId: string): Promise<YearData> {
 async function fetchConversationHistory(
   userId: string,
   since: Date
-): Promise<{
-  daily: DayData[];
-  emotionalMoments: EmotionalMoment[];
-  milestones: Milestone[];
-  topTopics: TopicSummary[];
-}> {
+): Promise<
+  {
+    daily: DayData[];
+    emotionalMoments: EmotionalMoment[];
+    milestones: Milestone[];
+    topTopics: TopicSummary[];
+  } & ConversationTenure
+> {
   try {
     const { getFirestoreDb } = await import('../services/superhuman/firestore-utils.js');
     const db = getFirestoreDb();
@@ -240,6 +248,7 @@ async function fetchConversationHistory(
       emotionalMoments: emotionalMoments.slice(0, 10), // Top 10 moments
       milestones,
       topTopics,
+      ...tenureOf(snapshot.docs.map((d) => d.data())),
     };
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to fetch conversation history');
@@ -328,8 +337,8 @@ async function fetchRelationships(userId: string): Promise<RelationshipGrowth> {
 async function fetchTeamUnlocks(userId: string): Promise<TeamUnlock[]> {
   try {
     const { getTeamUnlockState } = await import('../services/team-unlocks.js');
-    const { getDefaultStore } = await import('../memory/in-memory-store.js');
-    const store = getDefaultStore();
+    const { getStore } = await import('../memory/store-factory.js');
+    const store = await getStore();
     const profile = await store.getProfile(userId);
     const state = getTeamUnlockState(profile);
 
@@ -359,7 +368,6 @@ async function fetchTeamUnlocks(userId: string): Promise<TeamUnlock[]> {
         DISPLAY_NAMES[memberId] ||
         memberId.split('-')[0]?.charAt(0).toUpperCase() + memberId.split('-')[0]?.slice(1) ||
         memberId,
-      unlockedAt: new Date().toISOString(), // Approximate
       primaryColor: PERSONA_COLORS[memberId] || '#4a6741',
     }));
   } catch (error) {
@@ -368,7 +376,6 @@ async function fetchTeamUnlocks(userId: string): Promise<TeamUnlock[]> {
       {
         personaId: 'ferni',
         personaName: 'Ferni',
-        unlockedAt: new Date().toISOString(),
         primaryColor: '#4a6741',
       },
     ];
@@ -376,7 +383,7 @@ async function fetchTeamUnlocks(userId: string): Promise<TeamUnlock[]> {
 }
 
 function calculateStats(
-  conversations: { daily: DayData[]; milestones: Milestone[] },
+  conversations: { daily: DayData[]; milestones: Milestone[] } & ConversationTenure,
   dreams: DreamProgress[],
   commitments: CommitmentSummary[],
   teamUnlocks: TeamUnlock[]
@@ -430,10 +437,10 @@ function calculateStats(
 
   return {
     totalConversations,
-    totalMinutes: totalConversations * 8, // Estimate 8 min avg
+    totalMinutes: conversations.minutes,
     longestStreak,
     currentStreak,
-    averageConversationsPerWeek: totalConversations / 52,
+    averageConversationsPerWeek: averageConversationsPerWeek(totalConversations, conversations),
     mostActiveMonth,
     teamMembersUnlocked: teamUnlocks.length,
     dreamsTracked: dreams.length,
@@ -456,7 +463,15 @@ export async function handleYearInReviewRoutes(
   // GET /api/year-in-review/:userId
   const userMatch = pathname.match(/^\/api\/year-in-review\/([^/]+)$/);
   if (method === 'GET' && userMatch) {
-    const userId = userMatch[1];
+    // A year in review holds the person's commitments, dreams and conversation stats.
+    // It used to answer anyone for any id in the URL; only the person (or an admin) may read it.
+    const auth = await requireAuth(req, res);
+    if (!auth) return true;
+    const userId = userMatch[1] ?? '';
+    if (userId !== auth.userId && !auth.isAdmin) {
+      sendError(res, "That isn't yours to see.", 403);
+      return true;
+    }
 
     try {
       log.info({ userId }, 'Fetching year in review data');

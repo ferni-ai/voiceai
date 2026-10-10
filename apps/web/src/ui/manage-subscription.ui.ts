@@ -17,6 +17,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { appleIAPService, type SubscriptionStatus } from '../services/apple-iap.service.js';
 import { openBillingPortal } from '../utils/billing.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { t } from '../i18n/index.js';
@@ -59,24 +60,21 @@ class ManageSubscriptionUI {
   private callbacks: ManageSubscriptionCallbacks = {};
   private userId: string | null = null;
   private status: SubscriptionStatus | null = null;
+  private openCount = 0;
 
-  /**
-   * Open the manage subscription modal
-   */
+  /** Open the manage subscription modal */
   async open(userId: string, callbacks: ManageSubscriptionCallbacks = {}): Promise<void> {
+    const opening = ++this.openCount;
+    // Close any open modal first, so its onClose is the one it was opened with
+    this.close();
+    this.injectStyles();
+    const status = await this.fetchStatus(userId);
+    // A later open() started while this status loaded: this result is stale, so it
+    // must not build a modal or show one person's status under another's
+    if (opening !== this.openCount) return;
     this.userId = userId;
     this.callbacks = callbacks;
-
-    // Clean up any existing modal
-    this.close();
-
-    // Inject styles
-    this.injectStyles();
-
-    // Fetch subscription status
-    this.status = await this.fetchStatus(userId);
-
-    // Create and show modal
+    this.status = status;
     this.createModal();
 
     log.debug('Manage subscription modal opened');
@@ -86,14 +84,17 @@ class ManageSubscriptionUI {
    * Close the modal
    */
   close(): void {
-    if (this.container) {
-      this.container.classList.add('manage-sub--closing');
-      trackedTimeout(() => {
-        this.container?.remove();
-        this.container = null;
-        this.callbacks.onClose?.();
-      }, DURATION.NORMAL);
-    }
+    // Remove this modal, not whichever one this.container holds when the timer fires:
+    // open() closes and rebuilds, and the status fetch can finish within the animation.
+    const container = this.container;
+    if (!container) return;
+    this.container = null;
+    const { onClose } = this.callbacks;
+    container.classList.add('manage-sub--closing');
+    trackedTimeout(() => {
+      container.remove();
+      onClose?.();
+    }, DURATION.NORMAL);
   }
 
   /**
@@ -121,6 +122,13 @@ class ManageSubscriptionUI {
   private createModal(): void {
     this.container = document.createElement('div');
     this.container.className = 'manage-sub';
+    const modal = this.container;
+    asModalDialog(
+      modal,
+      { label: t('manageSubscription.title') },
+      () => this.container === modal,
+      () => this.close()
+    );
 
     const tierName = this.getTierDisplayName();
     const statusText = this.getStatusText();

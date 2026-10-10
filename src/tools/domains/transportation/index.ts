@@ -15,6 +15,8 @@ import { llm } from '@livekit/agents';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, Tool, ToolContext } from '../../registry/types.js';
 import { createDomainExport } from '../../registry/loader.js';
+import { resolveCallerLocation } from '../../shared/caller-location.js';
+import { getTrafficTime } from '../information/traffic.js';
 import { getUberClient } from '../../../services/integrations/uber/uber-client.js';
 import { getLyftClient } from '../../../services/integrations/lyft/lyft-client.js';
 import { registerActionType } from '../../../services/actions/action-engine.js';
@@ -363,38 +365,34 @@ const cancelRideDef: ToolDefinition = {
   },
 };
 
+/**
+ * Shares its id with information's getCommuteTime and the registry keeps the
+ * last one registered, so this one does a real lookup too, not a canned reply.
+ */
 const getCommuteTimeDef: ToolDefinition = {
   id: 'getCommuteTime',
   name: 'Get Commute Time',
-  description: 'Check current traffic conditions for your commute.',
+  description: 'Check current drive time and traffic to a destination.',
   domain: 'transportation',
   tags: ['commute', 'traffic', 'time'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Check current traffic conditions for your commute.',
+      description:
+        "Check current drive time and traffic to a destination. Starts from the caller's location unless they name a starting point.",
       parameters: z.object({
-        to: z.string().optional().describe('Destination (default: work)'),
-        from: z.string().optional().describe('Starting point (default: current location)'),
+        to: z.string().optional().describe('Destination (address or place name)'),
+        from: z
+          .string()
+          .optional()
+          .describe("Starting point. Optional - leave it out to start from the caller's location"),
       }),
-      execute: async (params: { to?: string; from?: string }) => {
-        const userId = ctx.userId;
-        if (!userId) {
-          return 'I need to know who you are to check your commute.';
-        }
-
-        // This would use Google Maps API in production
-        return (
-          `🚗 **Commute Check**\n\n` +
-          `To get real-time commute information, I need:\n` +
-          `1. Your home and work addresses saved\n` +
-          `2. Google Maps integration\n\n` +
-          `I can then show you:\n` +
-          `- Current drive time with traffic\n` +
-          `- Best departure time\n` +
-          `- Alternative routes\n` +
-          `- Proactive alerts when you should leave`
-        );
+      execute: async (params: { to?: string; from?: string }, opts) => {
+        const destination = params.to?.trim();
+        if (!destination) return 'Where are you headed?';
+        const origin = resolveCallerLocation(params.from, opts, ctx);
+        if (!origin) return "Where are you starting from? I don't have your location.";
+        return getTrafficTime(origin, destination);
       },
     });
   },

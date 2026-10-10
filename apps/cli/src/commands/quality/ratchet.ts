@@ -18,6 +18,8 @@
  *   npx tsx apps/cli/src/commands/quality/ratchet.ts --update   lower the baseline to today
  *   npx tsx apps/cli/src/commands/quality/ratchet.ts --init     write a fresh baseline
  *   ... ratchet.ts --bundle [--init|--update]   the built web bundle (after pnpm build:frontend)
+ *   ... ratchet.ts --eslint <results.json> [--init|--update]   web ESLint errors per rule
+ *       (results from `eslint --format json --output-file <results.json>`)
  *
  * @module quality/ratchet
  */
@@ -84,13 +86,29 @@ export function initialFiles(manifest: Record<string, ManifestChunk>): Set<strin
   return files;
 }
 
+/**
+ * Lazy translation chunks (src/i18n/locales/<locale>.json). A visitor loads
+ * one, so they count once, at the size of the largest, toward the total.
+ */
+export function localeFiles(manifest: Record<string, ManifestChunk>): Set<string> {
+  return new Set(
+    Object.entries(manifest)
+      .filter(([key]) => /(^|\/)i18n\/locales\/[^/]+\.json$/.test(key))
+      .map(([, chunk]) => chunk.file)
+  );
+}
+
 export function measureBundle(dir = join(ROOT, 'apps/web/dist/assets')): BundleSize {
   const files = readdirSync(dir).filter((f) => /\.(js|css)$/.test(f));
   const manifestPath = join(dir, '..', '.vite', 'manifest.json');
   let isInitial: (file: string) => boolean;
+  let isLocale: (file: string) => boolean = () => false;
   if (existsSync(manifestPath)) {
-    const initial = initialFiles(JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, ManifestChunk>);
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, ManifestChunk>;
+    const initial = initialFiles(manifest);
+    const locales = localeFiles(manifest);
     isInitial = (f) => initial.has(`assets/${f}`);
+    isLocale = (f) => locales.has(`assets/${f}`);
   } else {
     console.warn(`⚠️  No ${relative(ROOT, manifestPath)}: guessing initial files from their names (index*, vendor*).`);
     isInitial = (f) => /^(index|vendor)/.test(f);
@@ -98,12 +116,15 @@ export function measureBundle(dir = join(ROOT, 'apps/web/dist/assets')): BundleS
   let totalKB = 0;
   let initialKB = 0;
   let maxChunkKB = 0;
+  let maxLocaleKB = 0;
   for (const f of files) {
     const kb = statSync(join(dir, f)).size / 1024;
-    totalKB += kb;
+    if (isLocale(f)) maxLocaleKB = Math.max(maxLocaleKB, kb);
+    else totalKB += kb;
     if (isInitial(f)) initialKB += kb;
     maxChunkKB = Math.max(maxChunkKB, kb);
   }
+  totalKB += maxLocaleKB;
   const round = (n: number): number => Math.round(n * 10) / 10;
   return { totalKB: round(totalKB), initialKB: round(initialKB), maxChunkKB: round(maxChunkKB) };
 }
@@ -112,6 +133,25 @@ export function bundleRegressions(base: BundleSize, now: BundleSize): string[] {
   return (Object.keys(base) as Array<keyof BundleSize>)
     .filter((k) => now[k] > base[k] * (1 + BUNDLE_TOLERANCE))
     .map((k) => `Bundle ${k} grew ${base[k]} → ${now[k]} KB (limit: no growth beyond ${BUNDLE_TOLERANCE * 100}%).`);
+}
+
+export interface EslintFileResult {
+  messages: Array<{ severity: number; ruleId: string | null }>;
+}
+
+/** ESLint errors (severity 2) per rule; parse errors have no rule and count as "parse". */
+export function eslintErrorsByRule(results: EslintFileResult[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const r of results)
+    for (const m of r.messages)
+      if (m.severity === 2) out[m.ruleId ?? 'parse'] = (out[m.ruleId ?? 'parse'] ?? 0) + 1;
+  return out;
+}
+
+export function eslintRegressions(base: Record<string, number>, now: Record<string, number>): string[] {
+  return Object.entries(now)
+    .filter(([rule, n]) => n > (base[rule] ?? 0))
+    .map(([rule, n]) => `ESLint "${rule}" errors rose ${base[rule] ?? 0} → ${n}.`);
 }
 
 function isSource(path: string): boolean {
@@ -243,19 +283,44 @@ async function bundleMain(args: string[]): Promise<void> {
   console.log('\n✅ The bundle did not grow.');
 }
 
+async function eslintMain(args: string[]): Promise<void> {
+  const file = JSON.parse(readFileSync(BASELINE, 'utf8')) as { webEslint?: Record<string, number> };
+  const results = JSON.parse(readFileSync(args[args.indexOf('--eslint') + 1] ?? '', 'utf8')) as EslintFileResult[];
+  const now = eslintErrorsByRule(results);
+  const total = (m: Record<string, number>): number => Object.values(m).reduce((a, b) => a + b, 0);
+  if (args.includes('--init') || args.includes('--update')) {
+    const base = args.includes('--init') ? undefined : file.webEslint;
+    const next = base ? Object.fromEntries(Object.entries(base).map(([r, n]) => [r, Math.min(n, now[r] ?? 0)])) : now;
+    writeFileSync(BASELINE, JSON.stringify({ ...file, webEslint: next }, null, 1) + '\n');
+    process.stdout.write(`Web ESLint baseline: ${total(next)} errors` + '\n');
+    return;
+  }
+  if (!file.webEslint) throw new Error('No web ESLint baseline: run with --eslint <file> --init');
+  const worse = eslintRegressions(file.webEslint, now);
+  process.stdout.write(`Web ESLint errors. Baseline: ${total(file.webEslint)}  Now: ${total(now)}` + '\n');
+  if (worse.length > 0) {
+    process.stdout.write(`\n❌ ${worse.map((w) => `  - ${w}`).join('\n')}\n`);
+    process.exit(1);
+  }
+  process.stdout.write('\n✅ No rule has more ESLint errors than its baseline.' + '\n');
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.includes('--bundle')) return bundleMain(args);
+  if (args.includes('--eslint')) return eslintMain(args);
   const now = await measure();
   if (args.includes('--init')) {
-    const old = JSON.parse(readFileSync(BASELINE, 'utf8')) as { bundle?: BundleSize };
-    writeFileSync(BASELINE, JSON.stringify({ ...now, brandCritical: 0, bundle: old.bundle }, null, 1) + '\n');
+    const old = JSON.parse(readFileSync(BASELINE, 'utf8')) as { bundle?: BundleSize; webEslint?: unknown };
+    const keep = { bundle: old.bundle, webEslint: old.webEslint };
+    writeFileSync(BASELINE, JSON.stringify({ ...now, brandCritical: 0, ...keep }, null, 1) + '\n');
     console.log(`Baseline written: ${summary(now)}`);
     return;
   }
   const base = JSON.parse(readFileSync(BASELINE, 'utf8')) as Measurement;
   if (args.includes('--update')) {
-    const next = { ...lowered(base, now), bundle: (base as { bundle?: BundleSize }).bundle };
+    const kept = base as { bundle?: BundleSize; webEslint?: unknown };
+    const next = { ...lowered(base, now), bundle: kept.bundle, webEslint: kept.webEslint };
     writeFileSync(BASELINE, JSON.stringify(next, null, 1) + '\n');
     console.log(`Baseline lowered: ${summary(base)}  →  ${summary(next)}`);
     return;

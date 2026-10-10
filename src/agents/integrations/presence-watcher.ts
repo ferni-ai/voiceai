@@ -18,13 +18,41 @@ export function presenceSoundsEnabled(
   return env.PRESENCE_SOUNDS === 'on';
 }
 
+/** PRESENCE_HUM=on: in an easy silence he hums as often as he whistles. */
+export function presenceHumEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return env.PRESENCE_HUM === 'on';
+}
+
+/** PRESENCE_SNORE=on: a mock snore, once, in a long quiet on a light call. */
+export function presenceSnoreEnabled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return env.PRESENCE_SNORE === 'on';
+}
+
+export interface PresenceTiming {
+  /** Exchanges before the sound could feel natural. */
+  minTurns: number;
+  /** Quiet before the sound, randomized in this range. */
+  quietMs: [number, number];
+  /** Of the silences that qualify, how often it actually plays. */
+  chance: number;
+}
+
+/** A few bars whistled or hummed in a short easy silence. */
+export const IDLE_TUNE: PresenceTiming = { minTurns: 3, quietMs: [4500, 7500], chance: 0.5 };
+/**
+ * A snore in a long quiet: well past the whistle, before the 30 s inactivity
+ * check-in, so a "you still there?" after it lands as the punchline.
+ */
+export const LONG_QUIET: PresenceTiming = { minTurns: 3, quietMs: [18000, 26000], chance: 0.6 };
+
 const HEAVY = /^(sad|hurt|anxious|fearful|scared|angry|grief|distressed)$/i;
-/** Exchanges before a whistle could feel natural. */
-const MIN_TURNS = 3;
-/** Quiet before whistling, randomized in this range. */
-const QUIET_MS: [number, number] = [4500, 7500];
-/** Of the silences that qualify, how often he actually whistles. */
-const CHANCE = 0.5;
+
+/** Their voice read sad, anxious, scared or angry: no playful sounds. */
+export function isHeavyMood(mood: string | undefined): boolean {
+  return HEAVY.test(mood ?? '');
+}
 
 export interface PresenceDeps {
   play: () => boolean;
@@ -36,7 +64,8 @@ export interface PresenceDeps {
   clearTimer?: (handle: unknown) => void;
 }
 
-export function createPresenceWatcher(deps: PresenceDeps) {
+export function createPresenceWatcher(deps: PresenceDeps, timing: PresenceTiming = IDLE_TUNE) {
+  const { minTurns, quietMs, chance } = timing;
   const rng = deps.rng ?? Math.random;
   const setT = deps.setTimer ?? ((fn, ms) => setTimeout(fn, ms));
   const clearT = deps.clearTimer ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>));
@@ -53,13 +82,13 @@ export function createPresenceWatcher(deps: PresenceDeps) {
   };
   const arm = () => {
     cancel();
-    if (whistled || turns < MIN_TURNS || agent !== 'listening' || user === 'speaking') return;
-    const wait = QUIET_MS[0] + rng() * (QUIET_MS[1] - QUIET_MS[0]);
+    if (whistled || turns < minTurns || agent !== 'listening' || user === 'speaking') return;
+    const wait = quietMs[0] + rng() * (quietMs[1] - quietMs[0]);
     timer = setT(() => {
       timer = null;
       if (whistled || agent !== 'listening' || user === 'speaking') return;
-      if (HEAVY.test(deps.mood() ?? '')) return;
-      if (rng() >= CHANCE) return;
+      if (isHeavyMood(deps.mood())) return;
+      if (rng() >= chance) return;
       if (deps.play()) {
         whistled = true;
         playing = true;

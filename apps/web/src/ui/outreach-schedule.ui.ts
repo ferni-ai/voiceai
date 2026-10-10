@@ -8,11 +8,12 @@
  * - See recent outreach history
  */
 
-import { t } from '../i18n/index.js';
+import { formatDate, formatRelativeTime, t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION } from '../config/animation-constants.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('OutreachScheduleUI');
 
@@ -86,6 +87,7 @@ const CHANNEL_ICONS: Record<string, string> = {
 // ============================================================================
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let isOpen = false;
 let currentTab: 'upcoming' | 'history' = 'upcoming';
 
@@ -521,7 +523,7 @@ export async function openOutreachSchedule(): Promise<void> {
  */
 export function closeOutreachSchedule(): void {
   if (!isOpen || !modalContainer) return;
-
+  releaseEscape?.();
   modalContainer.classList.remove('open');
 
   trackedTimeout(() => {
@@ -542,10 +544,10 @@ function createModal(): void {
       <header class="outreach-schedule-header">
         <div class="outreach-schedule-header-top">
           <div>
-            <span class="outreach-schedule-eyebrow">YOUR CHECK-INS</span>
+            <span class="outreach-schedule-eyebrow">${t('outreachSchedule.eyebrow')}</span>
             <h2 class="outreach-schedule-title" id="outreach-schedule-title">
               ${ICONS.calendar}
-              Scheduled Outreach
+              ${t('outreachSchedule.title')}
             </h2>
           </div>
           <button class="outreach-schedule-close" aria-label="${t('common.close')}">
@@ -553,18 +555,18 @@ function createModal(): void {
           </button>
         </div>
         <div class="outreach-schedule-tabs">
-          <button aria-label="${t('accessibility.upcoming')}" class="outreach-schedule-tab active" data-tab="upcoming">
+          <button class="outreach-schedule-tab active" data-tab="upcoming">
             ${ICONS.calendar}
-            Upcoming
+            ${t('accessibility.upcoming')}
           </button>
-          <button aria-label="${t('accessibility.history')}" class="outreach-schedule-tab" data-tab="history">
+          <button class="outreach-schedule-tab" data-tab="history">
             ${ICONS.history}
-            History
+            ${t('accessibility.history')}
           </button>
         </div>
       </header>
       <div class="outreach-schedule-content">
-        <div class="outreach-schedule-loading">Loading...</div>
+        <div class="outreach-schedule-loading">${t('common.loading')}</div>
       </div>
     </div>
   `;
@@ -585,17 +587,12 @@ function createModal(): void {
   });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => isOpen, closeOutreachSchedule);
 
   document.body.appendChild(modalContainer);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && isOpen) {
-    closeOutreachSchedule();
-    document.removeEventListener('keydown', handleEscapeKey);
-  }
-}
 
 function switchTab(tab: 'upcoming' | 'history'): void {
   currentTab = tab;
@@ -617,7 +614,7 @@ async function loadData(): Promise<void> {
   const content = modalContainer?.querySelector('.outreach-schedule-content');
   if (!content) return;
 
-  content.innerHTML = '<div class="outreach-schedule-loading">Loading...</div>';
+  content.innerHTML = `<div class="outreach-schedule-loading">${t('common.loading')}</div>`;
 
   try {
     if (currentTab === 'upcoming') {
@@ -631,8 +628,8 @@ async function loadData(): Promise<void> {
     log.error({ error }, 'Failed to load outreach data');
     content.innerHTML = `
       <div class="outreach-schedule-empty">
-        <div class="outreach-schedule-empty-text">Unable to load data</div>
-        <div class="outreach-schedule-empty-subtext">Please try again later</div>
+        <div class="outreach-schedule-empty-text">${t('outreachSchedule.loadError')}</div>
+        <div class="outreach-schedule-empty-subtext">${t('outreachSchedule.loadErrorHint')}</div>
       </div>
     `;
   }
@@ -669,8 +666,8 @@ function renderUpcoming(container: Element, items: ScheduledOutreach[]): void {
     container.innerHTML = `
       <div class="outreach-schedule-empty">
         <div class="outreach-schedule-empty-icon">${ICONS.calendar}</div>
-        <div class="outreach-schedule-empty-text">No upcoming check-ins</div>
-        <div class="outreach-schedule-empty-subtext">We'll reach out when there's something to discuss!</div>
+        <div class="outreach-schedule-empty-text">${t('outreachSchedule.emptyUpcoming')}</div>
+        <div class="outreach-schedule-empty-subtext">${t('outreachSchedule.emptyUpcomingHint')}</div>
       </div>
     `;
     return;
@@ -702,26 +699,26 @@ function renderUpcomingItem(item: ScheduledOutreach): string {
         <div class="outreach-item-info">
           <p class="outreach-item-persona-name">${item.personaName}</p>
           <div class="outreach-item-meta">
-            <span class="outreach-item-channel">${channelIcon} ${item.channel.toUpperCase()}</span>
+            <span class="outreach-item-channel">${channelIcon} ${channelLabel(item.channel)}</span>
             <span class="outreach-item-time">${ICONS.clock} ${timeStr}</span>
           </div>
         </div>
-        <span class="outreach-item-priority ${item.priority}">${item.priority}</span>
+        <span class="outreach-item-priority ${item.priority}">${priorityLabel(item.priority)}</span>
       </div>
       <p class="outreach-item-preview">${item.preview.body}</p>
       <p class="outreach-item-reason">"${item.reason}"</p>
       <div class="outreach-item-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.preview')}" class="outreach-item-btn outreach-item-btn--preview" data-action="preview" data-id="${item.id}">
-          ${ICONS.eye} Preview
+        <button class="outreach-item-btn outreach-item-btn--preview" data-action="preview" data-id="${item.id}">
+          ${ICONS.eye} ${t('accessibility.preview')}
         </button>
         ${item.canReschedule ? `
-          <button aria-label="${t('accessibility.edit')}" class="outreach-item-btn outreach-item-btn--reschedule" data-action="reschedule" data-id="${item.id}">
-            ${ICONS.edit} Reschedule
+          <button class="outreach-item-btn outreach-item-btn--reschedule" data-action="reschedule" data-id="${item.id}">
+            ${ICONS.edit} ${t('outreachSchedule.reschedule')}
           </button>
         ` : ''}
         ${item.canCancel ? `
-          <button aria-label="${t('accessibility.delete')}" class="outreach-item-btn outreach-item-btn--cancel" data-action="cancel" data-id="${item.id}">
-            ${ICONS.trash} Cancel
+          <button class="outreach-item-btn outreach-item-btn--cancel" data-action="cancel" data-id="${item.id}">
+            ${ICONS.trash} ${t('common.cancel')}
           </button>
         ` : ''}
       </div>
@@ -734,8 +731,8 @@ function renderHistory(container: Element, items: OutreachHistory[]): void {
     container.innerHTML = `
       <div class="outreach-schedule-empty">
         <div class="outreach-schedule-empty-icon">${ICONS.history}</div>
-        <div class="outreach-schedule-empty-text">No outreach history yet</div>
-        <div class="outreach-schedule-empty-subtext">Your recent check-ins will appear here</div>
+        <div class="outreach-schedule-empty-text">${t('outreachSchedule.emptyHistory')}</div>
+        <div class="outreach-schedule-empty-subtext">${t('outreachSchedule.emptyHistoryHint')}</div>
       </div>
     `;
     return;
@@ -747,14 +744,7 @@ function renderHistory(container: Element, items: OutreachHistory[]): void {
 function renderHistoryItem(item: OutreachHistory): string {
   const initial = item.personaName.charAt(0);
   const channelIcon = CHANNEL_ICONS[item.channel] || CHANNEL_ICONS.sms;
-  const timeStr = formatRelativeTime(item.sentAt);
-
-  const statusLabels: Record<string, string> = {
-    delivered: 'Delivered',
-    opened: 'Opened',
-    responded: 'You replied!',
-    failed: 'Not delivered',
-  };
+  const timeStr = formatRelativeTime(new Date(item.sentAt));
 
   return `
     <div class="outreach-item" data-persona="${item.personaId || 'ferni'}">
@@ -765,12 +755,12 @@ function renderHistoryItem(item: OutreachHistory): string {
         <div class="outreach-item-info">
           <p class="outreach-item-persona-name">${item.personaName}</p>
           <div class="outreach-item-meta">
-            <span class="outreach-item-channel">${channelIcon} ${item.channel.toUpperCase()}</span>
+            <span class="outreach-item-channel">${channelIcon} ${channelLabel(item.channel)}</span>
             <span class="outreach-item-time">${ICONS.clock} ${timeStr}</span>
           </div>
         </div>
         <span class="outreach-item-status ${item.status}">
-          ${item.status === 'responded' ? ICONS.check : ''} ${statusLabels[item.status] || item.status}
+          ${item.status === 'responded' ? ICONS.check : ''} ${statusLabel(item.status)}
         </span>
       </div>
       <p class="outreach-item-preview">${item.preview}</p>
@@ -824,7 +814,7 @@ async function showPreview(outreachId: string): Promise<void> {
           </div>
           <div>
             <h3 class="outreach-preview-title">${getPersonaName(item.personaId)}</h3>
-            <span class="outreach-preview-channel">${(item.channel || 'sms').toUpperCase()} • ${item.type.replace(/_/g, ' ')}</span>
+            <span class="outreach-preview-channel">${channelLabel(item.channel || 'sms')} • ${item.type.replace(/_/g, ' ')}</span>
           </div>
           <button class="outreach-preview-close" aria-label="${t('common.close')}">${ICONS.close}</button>
         </header>
@@ -833,7 +823,7 @@ async function showPreview(outreachId: string): Promise<void> {
           <div class="outreach-preview-message">${item.preview?.body || item.reason}</div>
         </div>
         <footer class="outreach-preview-footer">
-          <span class="outreach-preview-time">${ICONS.clock} Scheduled for ${formatTime(new Date(item.scheduledFor))}</span>
+          <span class="outreach-preview-time">${ICONS.clock} ${t('outreachSchedule.scheduledFor', { time: formatTime(new Date(item.scheduledFor)) })}</span>
         </footer>
       </div>
     `;
@@ -1037,23 +1027,23 @@ async function showReschedule(outreachId: string): Promise<void> {
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(9, 0, 0, 0);
-
+  const clock = (d: Date) => formatDate(d, { hour: 'numeric', minute: '2-digit' });
   reschedule.innerHTML = `
     <div class="outreach-preview-backdrop"></div>
     <div class="outreach-reschedule-modal">
-      <h3 class="outreach-reschedule-title">Reschedule check-in</h3>
+      <h3 class="outreach-reschedule-title">${t('outreachSchedule.rescheduleTitle')}</h3>
       <div class="outreach-reschedule-options">
-        <button aria-label="${t('accessibility.in1Hour')}" class="outreach-reschedule-option" data-time="${in1Hour.toISOString()}">
-          In 1 hour (${in1Hour.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })})
+        <button class="outreach-reschedule-option" data-time="${in1Hour.toISOString()}">
+          ${t('outreachSchedule.inOneHour', { time: clock(in1Hour) })}
         </button>
-        <button aria-label="${t('accessibility.in3Hours')}" class="outreach-reschedule-option" data-time="${in3Hours.toISOString()}">
-          In 3 hours (${in3Hours.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })})
+        <button class="outreach-reschedule-option" data-time="${in3Hours.toISOString()}">
+          ${t('outreachSchedule.inThreeHours', { time: clock(in3Hours) })}
         </button>
-        <button aria-label="${t('accessibility.tomorrowMorning900Am')}" class="outreach-reschedule-option" data-time="${tomorrow.toISOString()}">
-          Tomorrow morning (9:00 AM)
+        <button class="outreach-reschedule-option" data-time="${tomorrow.toISOString()}">
+          ${t('outreachSchedule.tomorrowMorning', { time: clock(tomorrow) })}
         </button>
       </div>
-      <button aria-label="${t('accessibility.cancel')}" class="outreach-reschedule-cancel">Cancel</button>
+      <button class="outreach-reschedule-cancel">${t('common.cancel')}</button>
     </div>
   `;
 
@@ -1097,7 +1087,7 @@ async function showReschedule(outreachId: string): Promise<void> {
 }
 
 async function cancelOutreach(outreachId: string): Promise<void> {
-  if (!confirm('Are you sure you want to cancel this check-in?')) {
+  if (!confirm(t('outreachSchedule.confirmCancel'))) {
     return;
   }
 
@@ -1123,46 +1113,41 @@ function formatTime(date: Date): string {
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const isToday = date.toDateString() === now.toDateString();
-  const isTomorrow = date.toDateString() === tomorrow.toDateString();
-
-  const timeStr = date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-
-  if (isToday) {
-    return `Today at ${timeStr}`;
-  } else if (isTomorrow) {
-    return `Tomorrow at ${timeStr}`;
-  } else {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+  const clock = { hour: 'numeric', minute: '2-digit' } as const;
+  if (date.toDateString() === now.toDateString()) {
+    return t('outreachSchedule.todayAt', { time: formatDate(date, clock) });
   }
+  if (date.toDateString() === tomorrow.toDateString()) {
+    return t('outreachSchedule.tomorrowAt', { time: formatDate(date, clock) });
+  }
+  return formatDate(date, { weekday: 'short', month: 'short', day: 'numeric', ...clock });
 }
 
-function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
+function channelLabel(channel: string): string {
+  const labels: Record<string, string> = {
+    sms: t('outreachSchedule.channelSms'),
+    email: t('outreachSchedule.channelEmail'),
+    call: t('outreachSchedule.channelCall'),
+    push: t('outreachSchedule.channelPush'),
+  };
+  return (labels[channel] ?? t('outreachSchedule.channelSms')).toLocaleUpperCase();
+}
 
-  if (diffMins < 60) {
-    return `${diffMins}m ago`;
-  } else if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  } else if (diffDays < 7) {
-    return `${diffDays}d ago`;
-  } else {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  }
+function priorityLabel(priority: ScheduledOutreach['priority']): string {
+  return {
+    high: t('outreachSchedule.priorityHigh'),
+    medium: t('outreachSchedule.priorityMedium'),
+    low: t('outreachSchedule.priorityLow'),
+  }[priority];
+}
+
+function statusLabel(status: OutreachHistory['status']): string {
+  return {
+    delivered: t('outreachSchedule.statusDelivered'),
+    opened: t('outreachSchedule.statusOpened'),
+    responded: t('outreachSchedule.statusResponded'),
+    failed: t('outreachSchedule.statusFailed'),
+  }[status];
 }
 
 // ============================================================================

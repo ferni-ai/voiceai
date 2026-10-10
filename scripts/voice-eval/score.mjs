@@ -50,11 +50,15 @@ let backchannels = 0;
 let interruptions = 0;
 let userSpeechMs = 0;
 const overlaps = []; // caller talking over the agent (converse.mjs @backchannel / @interrupt)
+// Who each run called as (run.sh records meta.uid); empty for runs made
+// before 2026-10-05, which all called as voice-eval-sam.
+const users = new Set();
 
 const runs = [];
 for (const file of process.argv.slice(2)) {
   const run = JSON.parse(readFileSync(file, 'utf8'));
   runs.push(run);
+  if (run.meta?.uid) users.add(run.meta.uid);
   for (const r of run.results) if (typeof r.replyDelayMs === 'number') delays.push(r.replyDelayMs);
   for (const r of run.results) if (r.mode) overlaps.push(r);
 
@@ -110,6 +114,7 @@ const words = replies.map((t) => t.split(/\s+/).filter(Boolean).length);
 const m = mean(words);
 const sd = m === null ? null : Math.sqrt(mean(words.map((w) => (w - m) ** 2)));
 const score = {
+  users: [...users],
   replies: replies.length,
   replyDelayMs: { p50: pct(delays, 50), p90: pct(delays, 90), n: delays.length },
   // First agent sound of any kind (an opening "mm" counts): the gap people hear.

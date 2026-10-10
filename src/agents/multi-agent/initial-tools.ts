@@ -51,3 +51,21 @@ export const DEFAULT_INITIAL_TOOL_LIMIT = 64;
 export function resolveInitialToolLimit(configuredLimit: number): number {
   return configuredLimit > 0 ? configuredLimit : DEFAULT_INITIAL_TOOL_LIMIT;
 }
+
+/**
+ * Extra slots a mid-session update may add on top of the initial cap for the
+ * topic tools it offers (MID_SESSION_TOPIC_TOOLS overrides it; 0 turns it off).
+ *
+ * The first agent's 64 slots hold ~61 must-keep tools, so without headroom a
+ * topic domain loaded mid-call kept about 3 of its tools (information: 7 of 57,
+ * 4 of them essentials). 64 + 24 = 88 tools stays well under the ~120 where
+ * gemini-3.5-flash first-word p50 was ~1.0 s (essential-domains.ts).
+ */
+export const DEFAULT_TOPIC_TOOL_HEADROOM = 24;
+
+export function resolveTopicToolHeadroom(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.MID_SESSION_TOPIC_TOOLS?.trim();
+  if (!raw) return DEFAULT_TOPIC_TOOL_HEADROOM;
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : DEFAULT_TOPIC_TOOL_HEADROOM;
+}

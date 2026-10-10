@@ -1444,10 +1444,9 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 The user may be requesting: ${topMatch.toolId}
 Confidence: ${(confidence * 100).toFixed(0)}%
 
-If the user is indeed asking for this action, use the JSON function call format:
-{"fn":"${topMatch.toolId}","args":{...}}
+If the user is indeed asking for this action, call the ${topMatch.toolId} function through native function calling. Do not write JSON or the function name in speech.
 
-If they're just conversing, respond naturally without the tool call.`,
+If they're just conversing, respond naturally without a tool call.`,
         priority: 80,
       });
     }

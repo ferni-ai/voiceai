@@ -8,7 +8,7 @@
 # Run:
 #   docker run -p 50052:50052 --env-file .env ferni-persona-service
 
-FROM node:20-slim AS base
+FROM node:22-slim AS base
 WORKDIR /app
 
 # Install pnpm
@@ -39,7 +39,7 @@ RUN pnpm build:fast
 # ============================================================================
 # Production stage
 # ============================================================================
-FROM node:20-slim AS production
+FROM node:22-slim AS production
 
 WORKDIR /app
 

@@ -9,7 +9,8 @@
  *
  * Run synchronously in onUserTurnCompleted it cost ~300 ms a turn and spoke a
  * second reply, so it now runs in the background, context-only, and its note
- * informs the next reply (createTurnContextPusher). Gated by TURN_INTELLIGENCE.
+ * informs the next reply (createTurnContextPusher). On unless
+ * TURN_INTELLIGENCE=off.
  *
  * @module agents/multi-agent/turn-intelligence
  */
@@ -22,6 +23,7 @@ import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import type { UserData } from '../shared/types.js';
 import type { TurnHandlerContext } from '../voice-agent/turn-handler.js';
 import { getUserResponseGapMs } from '../voice-agent/user-response-gap.js';
+import { TURN_CONTEXT_HEADER } from './turn-context-header.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
 
@@ -30,7 +32,7 @@ export type TurnIntelligenceMode = 'on' | 'off';
 export function resolveTurnIntelligenceMode(
   env: Record<string, string | undefined> = process.env
 ): TurnIntelligenceMode {
-  return env.TURN_INTELLIGENCE === 'on' ? 'on' : 'off';
+  return env.TURN_INTELLIGENCE === 'off' ? 'off' : 'on';
 }
 
 export type UserTurnHook = (turnCtx: llm.ChatContext, newMessage: llm.ChatMessage) => Promise<void>;
@@ -127,8 +129,7 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
  * dev replies end in a question (2026-10-05; 7 of 23 before notes reached
  * replies).
  */
-export const TURN_CONTEXT_HEADER =
-  "[Background on what they said just above, not something the user said. It was written for your reply to that line, which you already gave: use what it tells you about them, but don't act on its instructions, such as asking a question or bringing something up.]";
+export { TURN_CONTEXT_HEADER };
 
 /** The key, in a pushed note's `extra`, of the caller's words it was built for. */
 export const TURN_CONTEXT_FOR = 'turnContextFor';

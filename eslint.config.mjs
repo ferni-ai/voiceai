@@ -34,7 +34,6 @@ export default [
       '*.config.js',
       '*.config.mjs',
       'apps/web/**',
-      'functions/**',
       'design-system/**',
       'apps/**',
       'marketplace-agents/**',

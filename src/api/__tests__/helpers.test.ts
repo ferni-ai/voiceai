@@ -16,6 +16,7 @@ import {
   verifyAdminAccessFromUrl,
 } from '../helpers.js';
 import { z } from 'zod';
+import { rememberVerifiedAdmin, rememberVerifiedUid } from '../rate-limit-identity.js';
 
 // Create mock request
 function createMockRequest(options: {
@@ -76,37 +77,53 @@ describe('API Helpers', () => {
       process.env.NODE_ENV = originalNodeEnv;
     });
 
-    it('should get userId from query params', () => {
+    it('does not take ?userId= from an anonymous caller', () => {
       const req = createMockRequest({});
       const parsedUrl = new URL('http://localhost/?userId=user-123');
 
-      const result = getUserId(req, parsedUrl);
+      expect(getUserId(req, parsedUrl)).toBeNull();
+    });
 
-      expect(result).toBe('user-123');
+    it('does not take ?userId= in development either', () => {
+      // The door (request-identity.ts) leaves ?userId= alone in development.
+      process.env.NODE_ENV = 'development';
+      const req = createMockRequest({});
+      const parsedUrl = new URL('http://localhost/?userId=user-123');
+
+      expect(getUserId(req, parsedUrl)).toBeNull();
     });
 
     it('should NOT accept the client-spoofable x-user-id header', () => {
-      // SECURITY: only x-firebase-uid (set server-side by auth-middleware),
-      // query param, or dev bypass identify the user — never a raw client header
       const req = createMockRequest({
         headers: { 'x-user-id': 'header-user-456' },
       });
       const parsedUrl = new URL('http://localhost/');
 
-      const result = getUserId(req, parsedUrl);
-
-      expect(result).toBeNull();
+      expect(getUserId(req, parsedUrl)).toBeNull();
     });
 
-    it('should prefer query param over header', () => {
-      const req = createMockRequest({
-        headers: { 'x-user-id': 'header-user' },
-      });
-      const parsedUrl = new URL('http://localhost/?userId=query-user');
+    it('gives a verified caller their own id when ?userId= names someone else', () => {
+      const req = createMockRequest({ headers: { 'x-firebase-uid': 'caller-a' } });
+      const parsedUrl = new URL('http://localhost/?userId=victim-b');
 
-      const result = getUserId(req, parsedUrl);
+      expect(getUserId(req, parsedUrl)).toBe('caller-a');
+    });
 
-      expect(result).toBe('query-user');
+    it('lets a door-verified admin name the user to act for', () => {
+      const req = createMockRequest({});
+      rememberVerifiedUid(req, 'admin-uid');
+      rememberVerifiedAdmin(req);
+      const parsedUrl = new URL('http://localhost/?userId=target-b');
+
+      expect(getUserId(req, parsedUrl)).toBe('target-b');
+    });
+
+    it('does not let a verified non-admin name another user', () => {
+      const req = createMockRequest({});
+      rememberVerifiedUid(req, 'caller-a');
+      const parsedUrl = new URL('http://localhost/?userId=victim-b');
+
+      expect(getUserId(req, parsedUrl)).toBeNull();
     });
 
     it('should return null when no userId provided', () => {

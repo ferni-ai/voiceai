@@ -114,7 +114,12 @@ describe('listener volume', () => {
     ctx.createMediaElementSource = vi.fn(() => {
       throw new Error('Web Audio unavailable');
     });
-    vi.stubGlobal('AudioContext', vi.fn(() => ctx));
+    vi.stubGlobal(
+      'AudioContext',
+      vi.fn(function () {
+        return ctx;
+      })
+    );
     const audio = document.createElement('audio');
     await controller.attachMusicTrack(audio, 'track-fallback');
     vi.stubGlobal('AudioContext', MockAudioContext);
@@ -127,7 +132,12 @@ describe('listener volume', () => {
 describe('Now Playing wiring', () => {
   it("a playing track's card sends slider changes to the listener volume", async () => {
     const setListenerVolume = vi.spyOn(getMusicAudioController(), 'setListenerVolume');
-    handleMusic({ type: 'music', state: 'playing', trackName: 'Blue in Green', artistName: 'Miles Davis' });
+    handleMusic({
+      type: 'music',
+      state: 'playing',
+      trackName: 'Blue in Green',
+      artistName: 'Miles Davis',
+    });
 
     const slider = document.querySelector<HTMLInputElement>('.now-playing__volume-slider');
     const muteButton = document.querySelector<HTMLButtonElement>('.now-playing__btn--volume');

@@ -9,6 +9,9 @@
  * held back until it closes, then dropped. Bracket cues like [laughter] are
  * dropped the same way.
  *
+ * A stammer written as ",," ("Yeah,, uh,, keeping...", dev eval 2026-10-10)
+ * shows as a single comma, even when the two commas arrive in separate chunks.
+ *
  * @module agents/personas/caption-filter
  */
 
@@ -22,18 +25,33 @@ const CUE = /\[[A-Za-z][A-Za-z ]{0,30}\]/g;
 
 export class CaptionFilter {
   private pending = '';
+  private endsWithComma = false;
+  private endsWithSpace = false;
 
   push(chunk: string): string {
     const text = this.pending + chunk;
     const cut = this.unclosedStart(text);
     this.pending = cut === -1 ? '' : text.slice(cut);
-    return clean(cut === -1 ? text : text.slice(0, cut));
+    return this.oneComma(clean(cut === -1 ? text : text.slice(0, cut)));
   }
 
   flush(): string {
     const rest = this.pending;
     this.pending = '';
-    return /^[<[]/.test(rest) && rest.length <= MAX_PENDING ? '' : clean(rest);
+    return /^[<[]/.test(rest) && rest.length <= MAX_PENDING ? '' : this.oneComma(clean(rest));
+  }
+
+  private oneComma(text: string): string {
+    let out = text.replace(/,(\s*,)+/g, ',');
+    if (this.endsWithComma && /^\s*,/.test(out)) {
+      out = out.replace(/^\s*,/, '');
+      if (this.endsWithSpace) out = out.trimStart();
+    }
+    if (out.trim()) {
+      this.endsWithComma = /,\s*$/.test(out);
+      this.endsWithSpace = /\s$/.test(out);
+    }
+    return out;
   }
 
   private unclosedStart(text: string): number {

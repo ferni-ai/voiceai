@@ -13,7 +13,7 @@
  * 4. Quick Connections - Start a conversation with any team member
  */
 
-import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js'; import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
 import { soundUI } from './sound.ui.js';
@@ -171,11 +171,11 @@ function createContainer(): HTMLElement {
         <div class="ferni-hub-greeting">
           <span class="ferni-hub-wave">${SECTION_ICONS.hand}</span>
           <div>
-            <h1>Your Day with Ferni</h1>
-            <p class="ferni-hub-subtitle">Here's what your team has been up to</p>
+            <h1>${t('ui.yourDay')}</h1>
+            <p class="ferni-hub-subtitle">${t('ui.subtitle')}</p>
           </div>
         </div>
-        <button class="ferni-hub-close" aria-label="Close">
+        <button class="ferni-hub-close" aria-label="${t('ui.close')}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -188,14 +188,14 @@ function createContainer(): HTMLElement {
           <div class="ferni-hub-loading-dots">
             <span></span><span></span><span></span>
           </div>
-          <p>Checking in with your team...</p>
+          <p>${t('ui.checkingIn')}</p>
         </div>
       </div>
 
       <footer class="ferni-hub-footer">
         <button class="ferni-hub-talk-btn">
           <span class="ferni-hub-talk-icon">${SECTION_ICONS.mic}</span>
-          Start a Conversation
+          ${t('ui.startConversation')}
         </button>
       </footer>
     </div>
@@ -275,7 +275,7 @@ function renderWhileYouWereAway(results: BackgroundResult[]): string {
             </div>
           ` : ''}
         </div>
-        ${result.requiresCallback ? '<span class="ferni-hub-card-badge">Needs follow-up</span>' : ''}
+        ${result.requiresCallback ? `<span class="ferni-hub-card-badge">${t('ui.needsFollowUp')}</span>` : ''}
       </div>
     `;
   }).join('');
@@ -284,7 +284,7 @@ function renderWhileYouWereAway(results: BackgroundResult[]): string {
     <section class="ferni-hub-section">
       <h2 class="ferni-hub-section-title">
         <span class="ferni-hub-section-icon">${SECTION_ICONS.sparkles}</span>
-        While You Were Away
+        ${t('ui.whileAway')}
       </h2>
       <div class="ferni-hub-cards">
         ${cards}
@@ -320,7 +320,7 @@ function renderOpenThreads(threads: OpenThread[]): string {
     <section class="ferni-hub-section">
       <h2 class="ferni-hub-section-title">
         <span class="ferni-hub-section-icon">${SECTION_ICONS.messageCircle}</span>
-        Open Conversations
+        ${t('ui.openConversations')}
       </h2>
       <div class="ferni-hub-cards">
         ${cards}
@@ -355,9 +355,9 @@ function renderTrackedItems(items: TrackedItem[]): string {
     <section class="ferni-hub-section">
       <h2 class="ferni-hub-section-title">
         <span class="ferni-hub-section-icon">${SECTION_ICONS.clipboardList}</span>
-        On Your Mind
+        ${t('ui.onYourMind')}
       </h2>
-      <p class="ferni-hub-section-subtitle">Things your team is keeping track of for you</p>
+      <p class="ferni-hub-section-subtitle">${t('ui.thingsTracking')}</p>
       <div class="ferni-hub-cards ferni-hub-cards-compact">
         ${cards}
       </div>
@@ -378,9 +378,9 @@ function renderQuickConnections(): string {
     <section class="ferni-hub-section ferni-hub-section-connections">
       <h2 class="ferni-hub-section-title">
         <span class="ferni-hub-section-icon">${SECTION_ICONS.users}</span>
-        Quick Connections
+        ${t('ui.quickConnections')}
       </h2>
-      <p class="ferni-hub-section-subtitle">Start a conversation with anyone on your team</p>
+      <p class="ferni-hub-section-subtitle">${t('ui.startWithAnyone')}</p>
       <div class="ferni-hub-persona-grid">
         ${personaCards}
       </div>
@@ -392,7 +392,7 @@ function renderEmptyState(): string {
   return `
     <div class="ferni-hub-empty">
       <div class="ferni-hub-empty-icon">${SECTION_ICONS.star}</div>
-      <h3>All caught up!</h3>
+      <h3>${t('ui.allCaughtUp')}</h3>
       <p>Your team is here whenever you need them. Start a conversation or check back later.</p>
     </div>
   `;
@@ -560,8 +560,8 @@ function addStyles(): void {
       position: absolute;
       inset: 0;
       background: rgba(44, 37, 32, 0.6);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(var(--glass-blur-heavy));
+      -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
     }
 
     .ferni-hub-panel {

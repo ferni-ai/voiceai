@@ -12,6 +12,7 @@ import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('ImportantDatesUI');
 
@@ -77,6 +78,7 @@ let state: ImportantDatesState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSuccess?: (dates: ImportantDate[]) => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -99,10 +101,10 @@ const ICONS = {
 };
 
 const DATE_TYPES: { id: DateType; label: string; icon: string }[] = [
-  { id: 'birthday', label: 'Birthday', icon: ICONS.cake },
-  { id: 'anniversary', label: 'Anniversary', icon: ICONS.heart },
-  { id: 'memorial', label: 'Memorial', icon: ICONS.flower },
-  { id: 'custom', label: 'Custom', icon: ICONS.star },
+  { id: 'birthday', label: t('importantDates.typeBirthday'), icon: ICONS.cake },
+  { id: 'anniversary', label: t('importantDates.typeAnniversary'), icon: ICONS.heart },
+  { id: 'memorial', label: t('importantDates.typeMemorial'), icon: ICONS.flower },
+  { id: 'custom', label: t('importantDates.typeCustom'), icon: ICONS.star },
 ];
 
 // ============================================================================
@@ -555,7 +557,7 @@ function render(): void {
     <div class="id-header">
       <div class="id-header-row">
         <div>
-          <div class="id-eyebrow">Important Dates</div>
+          <div class="id-eyebrow">${t('importantDates.title')}</div>
           <h2 class="id-title">${escapeHtml(state.contactName)}</h2>
         </div>
         <button class="id-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
@@ -566,15 +568,15 @@ function render(): void {
       ${state.showAddForm || state.editingIndex !== null ? renderForm() : ''}
       ${renderDateList()}
       ${!state.showAddForm && state.editingIndex === null ? `
-        <button aria-label="${t('accessibility.add')}" class="id-add-btn" id="id-add-btn">
+        <button class="id-add-btn" id="id-add-btn">
           ${ICONS.plus} Add Important Date
         </button>
       ` : ''}
     </div>
     
     <div class="id-footer">
-      <button aria-label="${t('accessibility.submit')}" class="id-footer-btn" id="id-done" ${state.isSubmitting ? 'disabled' : ''}>
-        ${state.isSubmitting ? 'Saving...' : 'Done'}
+      <button class="id-footer-btn" id="id-done" ${state.isSubmitting ? 'disabled' : ''}>
+        ${state.isSubmitting ? t('common.saving') : t('common.done')}
       </button>
     </div>
   `;
@@ -588,18 +590,18 @@ function renderForm(): string {
   return `
     <div class="id-form">
       <div class="id-form-title">${isEditing ? 'Edit Date' : 'Add Date'}</div>
-      
+
       <div class="id-form-row">
         <div class="id-form-field">
-          <label class="id-form-label">Type</label>
+          <label class="id-form-label">${t('importantDates.type')}</label>
           <select class="id-form-select" id="id-form-type">
-            ${DATE_TYPES.map(t => `
-              <option value="${t.id}" ${state.formType === t.id ? 'selected' : ''}>${t.label}</option>
+            ${DATE_TYPES.map(dtype => `
+              <option value="${dtype.id}" ${state.formType === dtype.id ? 'selected' : ''}>${dtype.label}</option>
             `).join('')}
           </select>
         </div>
         <div class="id-form-field">
-          <label class="id-form-label">Date</label>
+          <label class="id-form-label">${t('importantDates.date')}</label>
           <input type="date" class="id-form-input" id="id-form-date" value="${state.formDate}" />
         </div>
       </div>
@@ -607,17 +609,17 @@ function renderForm(): string {
       ${state.formType === 'custom' ? `
         <div class="id-form-row">
           <div class="id-form-field">
-            <label class="id-form-label">Label</label>
+            <label class="id-form-label">${t('importantDates.label')}</label>
             <input type="text" class="id-form-input" id="id-form-label" placeholder="${t('forms.dateLabelPlaceholder', 'e.g., First date, Graduation')}" value="${escapeHtml(state.formLabel)}" />
           </div>
         </div>
       ` : ''}
-      
+
       <div class="id-form-row">
         <div class="id-form-field">
-          <label class="id-form-label">Remind me</label>
+          <label class="id-form-label">${t('importantDates.remindMe')}</label>
           <select class="id-form-select" id="id-form-reminder">
-            <option value="0" ${state.formReminder === '0' ? 'selected' : ''}>Don't remind</option>
+            <option value="0" ${state.formReminder === '0' ? 'selected' : ''}>${t('importantDates.dontRemind')}</option>
             <option value="1" ${state.formReminder === '1' ? 'selected' : ''}>1 day before</option>
             <option value="3" ${state.formReminder === '3' ? 'selected' : ''}>3 days before</option>
             <option value="7" ${state.formReminder === '7' ? 'selected' : ''}>1 week before</option>
@@ -626,16 +628,16 @@ function renderForm(): string {
           </select>
         </div>
       </div>
-      
+
       <label class="id-form-checkbox">
         <input type="checkbox" id="id-form-recurring" ${state.formRecurring ? 'checked' : ''} />
-        Repeats every year
+        ${t('importantDates.repeatsYearly')}
       </label>
       
       <div class="id-form-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.cancel')}" class="id-form-btn id-form-btn-cancel" id="id-form-cancel">Cancel</button>
-        <button aria-label="${t('accessibility.confirm')}" class="id-form-btn id-form-btn-save" id="id-form-save">
-          ${ICONS.check} ${isEditing ? 'Update' : 'Add'}
+        <button aria-label="${t('importantDates.cancel')}" class="id-form-btn id-form-btn-cancel" id="id-form-cancel">${t('importantDates.cancel')}</button>
+        <button class="id-form-btn id-form-btn-save" id="id-form-save">
+          ${ICONS.check} ${isEditing ? t('importantDates.update') : t('importantDates.add')}
         </button>
       </div>
     </div>
@@ -647,7 +649,7 @@ function renderDateList(): string {
     return `
       <div class="id-empty">
         <div class="id-empty-icon">${ICONS.calendar}</div>
-        <p class="id-empty-text">No important dates yet.<br/>Add birthdays, anniversaries, and more.</p>
+        <p class="id-empty-text">${t('importantDates.noDateYet')}<br/>${t('importantDates.noDateDesc')}</p>
       </div>
     `;
   }
@@ -744,14 +746,10 @@ function bindEvents(): void {
   modalContainer.querySelector('#id-done')?.addEventListener('click', handleDone);
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeImportantDates);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeImportantDates();
-  }
-}
 
 // ============================================================================
 // ACTIONS
@@ -930,7 +928,7 @@ export function openImportantDates(options: ImportantDatesOptions): void {
 export function closeImportantDates(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 

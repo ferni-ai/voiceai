@@ -12,8 +12,14 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { t, getLocale } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { apiGet } from '../utils/api.js';
-import { relationshipStageService, type RelationshipStage } from './relationship-stage.service.js';
+import {
+  relationshipStageService,
+  type EngagementMetrics,
+  type RelationshipStage,
+} from './relationship-stage.service.js';
 
 const log = createLogger('TeamUnlock');
 
@@ -76,72 +82,105 @@ export interface NextUnlockInfo {
 // TEAM MEMBER DEFINITIONS
 // ============================================================================
 
+/** Team member text is stored as i18n keys (`*Key`) and resolved on read. */
+type TeamMemberDef = Omit<
+  TeamMemberConfig,
+  'role' | 'description' | 'introductionMessage' | 'teaserMessage'
+> &
+  Record<'roleKey' | 'descriptionKey' | 'introductionKey', string> & { teaserKey?: string };
+
+/** Resolve text at access time so it always follows the active locale. */
+function withLocalizedText(def: TeamMemberDef): TeamMemberConfig {
+  const { roleKey, descriptionKey, introductionKey, teaserKey, ...rest } = def;
+  return {
+    ...rest,
+    get role() {
+      return t(roleKey);
+    },
+    get description() {
+      return t(descriptionKey);
+    },
+    get introductionMessage() {
+      return t(introductionKey);
+    },
+    get teaserMessage() {
+      return teaserKey ? t(teaserKey) : '';
+    },
+  };
+}
+
 /**
  * Team members and when they unlock.
  * Order = introduction order.
  */
-export const TEAM_MEMBERS: TeamMemberConfig[] = [
+const TEAM_MEMBER_DEFS: TeamMemberDef[] = [
   {
     id: 'ferni',
     displayName: 'Ferni',
-    role: 'Your Life Coach',
-    description: 'Your main point of contact. Asks the questions that unlock insight.',
+    roleKey: 'teamUnlock.members.ferni.role',
+    descriptionKey: 'teamUnlock.members.ferni.description',
     unlocksAt: 'first-meeting',
-    introductionMessage: "Hey! I'm Ferni. I'm so glad you're here.",
-    teaserMessage: '',
+    introductionKey: 'teamUnlock.members.ferni.introduction',
   },
   {
     id: 'maya-santos',
     displayName: 'Maya',
-    role: 'Habits Coach',
-    description: 'Helps you build habits that stick. Start embarrassingly small.',
+    roleKey: 'teamUnlock.members.maya.role',
+    descriptionKey: 'teamUnlock.members.maya.description',
     unlocksAt: 'getting-started',
-    introductionMessage: "I want you to meet Maya. She's incredible at habits.",
-    teaserMessage:
-      "I have a friend who's amazing at habits... once we talk more, I'll introduce you.",
+    introductionKey: 'teamUnlock.members.maya.introduction',
+    teaserKey: 'teamUnlock.members.maya.teaser',
   },
   {
     id: 'peter-john',
     displayName: 'Peter',
-    role: 'The Quant',
-    description: 'Spots patterns nobody else sees. Turns data into insights.',
+    roleKey: 'teamUnlock.members.peter.role',
+    descriptionKey: 'teamUnlock.members.peter.description',
     unlocksAt: 'building-trust',
-    introductionMessage: "You're ready for Peter. He sees patterns most people miss.",
-    teaserMessage: 'Peter can show you incredible patterns, but I need to know you better first.',
+    introductionKey: 'teamUnlock.members.peter.introduction',
+    teaserKey: 'teamUnlock.members.peter.teaser',
   },
   {
     id: 'alex-chen',
     displayName: 'Alex',
-    role: 'Chief of Staff',
-    description: 'Communication coach. Helps you say what you mean.',
+    roleKey: 'teamUnlock.members.alex.role',
+    descriptionKey: 'teamUnlock.members.alex.description',
     unlocksAt: 'established',
-    introductionMessage: 'Alex is going to change how you communicate.',
-    teaserMessage: "There's someone who can transform your communication... keep talking to me.",
+    introductionKey: 'teamUnlock.members.alex.introduction',
+    teaserKey: 'teamUnlock.members.alex.teaser',
   },
   {
     id: 'jordan-taylor',
     displayName: 'Jordan',
-    role: 'Lifetime Planner',
-    description: 'Turns vague dreams into lived experiences.',
+    roleKey: 'teamUnlock.members.jordan.role',
+    descriptionKey: 'teamUnlock.members.jordan.description',
     unlocksAt: 'established',
-    introductionMessage: 'Jordan helps people turn dreams into actual plans.',
-    teaserMessage: 'I know someone who can help you plan your whole life... soon.',
+    introductionKey: 'teamUnlock.members.jordan.introduction',
+    teaserKey: 'teamUnlock.members.jordan.teaser',
   },
   {
     id: 'nayan-patel',
     displayName: 'Nayan',
-    role: 'The Sage',
-    description: 'Lifetime coach. Small, consistent actions create extraordinary results.',
+    roleKey: 'teamUnlock.members.nayan.role',
+    descriptionKey: 'teamUnlock.members.nayan.description',
     unlocksAt: 'deep-partnership',
-    introductionMessage: "Nayan is the wisest person I know. You've earned this.",
-    teaserMessage: "The sage only speaks to those who've proven their commitment.",
+    introductionKey: 'teamUnlock.members.nayan.introduction',
+    teaserKey: 'teamUnlock.members.nayan.teaser',
     premium: true,
   },
 ];
 
+export const TEAM_MEMBERS: TeamMemberConfig[] = TEAM_MEMBER_DEFS.map(withLocalizedText);
+
 // ============================================================================
 // STAGE THRESHOLDS (matches backend)
 // ============================================================================
+
+interface StageThreshold {
+  minConversations: number;
+  minDays: number;
+  minStreak: number;
+}
 
 /**
  * CAMEO UNLOCK SYSTEM: Thresholds increased to allow for natural,
@@ -155,10 +194,7 @@ export const TEAM_MEMBERS: TeamMemberConfig[] = [
  * - src/services/team-unlocks.ts
  * - src/api/routes/relationship.ts
  */
-const STAGE_THRESHOLDS: Record<
-  RelationshipStage,
-  { minConversations: number; minDays: number; minStreak: number }
-> = {
+const STAGE_THRESHOLDS: Record<RelationshipStage, StageThreshold> = {
   'first-meeting': { minConversations: 0, minDays: 0, minStreak: 0 },
   'getting-started': { minConversations: 10, minDays: 0, minStreak: 0 },
   'building-trust': { minConversations: 15, minDays: 5, minStreak: 3 },
@@ -166,13 +202,8 @@ const STAGE_THRESHOLDS: Record<
   'deep-partnership': { minConversations: 60, minDays: 45, minStreak: 14 },
 };
 
-const STAGE_ORDER: RelationshipStage[] = [
-  'first-meeting',
-  'getting-started',
-  'building-trust',
-  'established',
-  'deep-partnership',
-];
+/** Stages in progression order (the insertion order of STAGE_THRESHOLDS). */
+const STAGE_ORDER = Object.keys(STAGE_THRESHOLDS) as RelationshipStage[];
 
 // ============================================================================
 // STATE
@@ -361,20 +392,10 @@ function getMemberUnlockStatus(
   member: TeamMemberConfig,
   stage: RelationshipStage,
   tier: 'free' | 'friend' | 'partner',
-  metrics: {
-    totalConversations: number;
-    daysSinceFirstMeeting: number;
-    currentStreak: number;
-    longestStreak: number;
-  }
+  metrics: EngagementMetrics
 ): MemberUnlockStatus {
-  // Ferni always unlocked
-  if (member.id === 'ferni') {
-    return { unlocked: true, progress: 1 };
-  }
-
-  // FIX: Check backend bypass mode first
-  if (isMemberBypassed(member.id)) {
+  // Ferni is always unlocked; FIX: backend bypass mode also unlocks everyone it names
+  if (member.id === 'ferni' || isMemberBypassed(member.id)) {
     return { unlocked: true, progress: 1 };
   }
 
@@ -386,8 +407,8 @@ function getMemberUnlockStatus(
       return {
         unlocked: false,
         progress: calculateProgress(metrics, threshold),
-        lockReason: "The sage speaks only to those who've proven their commitment.",
-        unlockHint: 'Reach deep partnership or become a Founding Patron.',
+        lockReason: t('teamUnlock.nayanLockReason'),
+        unlockHint: t('teamUnlock.nayanUnlockHint'),
       };
     }
     return { unlocked: true, progress: 1 };
@@ -407,47 +428,33 @@ function getMemberUnlockStatus(
   };
 }
 
-function calculateProgress(
-  metrics: {
-    totalConversations: number;
-    daysSinceFirstMeeting: number;
-    currentStreak: number;
-    longestStreak: number;
-  },
-  threshold: { minConversations: number; minDays: number; minStreak: number }
-): number {
-  if (threshold.minConversations === 0) return 1;
-
-  const convProgress = Math.min(1, metrics.totalConversations / threshold.minConversations);
-  const daysProgress =
-    threshold.minDays > 0 ? Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays) : 1;
-  const streakProgress =
-    threshold.minStreak > 0
-      ? Math.min(1, Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak)
-      : 1;
-
-  return (convProgress + daysProgress + streakProgress) / 3;
+function calculateProgress(metrics: EngagementMetrics, threshold: StageThreshold): number {
+  // Average only what this member needs: a requirement of zero isn't progress already made
+  // (Maya needs only conversations, and counting her two empty ones showed 67% on day one)
+  const parts: number[] = [];
+  const add = (have: number, need: number) => need > 0 && parts.push(Math.min(1, have / need));
+  add(metrics.totalConversations, threshold.minConversations);
+  add(metrics.daysSinceFirstMeeting, threshold.minDays);
+  add(Math.max(metrics.currentStreak, metrics.longestStreak), threshold.minStreak);
+  return parts.length ? parts.reduce((sum, p) => sum + p, 0) / parts.length : 1;
 }
 
-function getUnlockHint(
-  _stage: RelationshipStage,
-  threshold: { minConversations: number; minDays: number; minStreak: number }
-): string {
+/** Join short requirement phrases with the active locale's list punctuation. */
+function joinRequirements(parts: string[]): string {
+  return new Intl.ListFormat(getLocale(), { type: 'unit', style: 'short' }).format(parts);
+}
+
+function getUnlockHint(_stage: RelationshipStage, threshold: StageThreshold): string {
+  const { minConversations, minDays, minStreak } = threshold;
   const parts: string[] = [];
 
-  if (threshold.minConversations > 0) {
-    parts.push(`${threshold.minConversations} conversations`);
-  }
-  if (threshold.minDays > 0) {
-    parts.push(`${threshold.minDays} days`);
-  }
-  if (threshold.minStreak > 0) {
-    parts.push(`${threshold.minStreak}-day streak`);
-  }
+  if (minConversations > 0) parts.push(tp('teamUnlock.hint.conversations', minConversations));
+  if (minDays > 0) parts.push(tp('teamUnlock.hint.days', minDays));
+  if (minStreak > 0) parts.push(t('teamUnlock.hint.streak', { count: minStreak }));
 
-  if (parts.length === 0) return 'Keep talking to Ferni!';
-  if (parts.length === 1) return `${parts[0]} to unlock`;
-  return parts.join(', ');
+  if (parts.length === 0) return t('teamUnlock.hint.keepTalking');
+  if (parts.length === 1) return t('teamUnlock.hint.toUnlock', { requirement: parts[0] ?? '' });
+  return joinRequirements(parts);
 }
 
 // ============================================================================
@@ -509,15 +516,8 @@ export function updateUnlockState(): TeamUnlockState {
   let nextUnlock: NextUnlockInfo | null = null;
   let newlyUnlocked: TeamMemberId | null = null;
 
-  const metricsData = {
-    totalConversations: metrics.totalConversations,
-    daysSinceFirstMeeting: metrics.daysSinceFirstMeeting,
-    currentStreak: metrics.currentStreak,
-    longestStreak: metrics.longestStreak,
-  };
-
   for (const member of TEAM_MEMBERS) {
-    const status = getMemberUnlockStatus(member, stage, subscriptionTier, metricsData);
+    const status = getMemberUnlockStatus(member, stage, subscriptionTier, metrics);
     memberStatuses.set(member.id, status);
 
     if (status.unlocked) {
@@ -529,14 +529,11 @@ export function updateUnlockState(): TeamUnlockState {
       }
     } else if (!nextUnlock) {
       const threshold = STAGE_THRESHOLDS[member.unlocksAt];
-      const bestStreak = Math.max(metricsData.currentStreak, metricsData.longestStreak);
+      const bestStreak = Math.max(metrics.currentStreak, metrics.longestStreak);
       nextUnlock = {
         member,
-        conversationsNeeded: Math.max(
-          0,
-          threshold.minConversations - metricsData.totalConversations
-        ),
-        daysNeeded: Math.max(0, threshold.minDays - metricsData.daysSinceFirstMeeting),
+        conversationsNeeded: Math.max(0, threshold.minConversations - metrics.totalConversations),
+        daysNeeded: Math.max(0, threshold.minDays - metrics.daysSinceFirstMeeting),
         streakNeeded: Math.max(0, threshold.minStreak - bestStreak),
       };
     }
@@ -746,28 +743,28 @@ export function getTeamMemberClasses(memberId: TeamMemberId): string[] {
 export function getProgressText(memberId: TeamMemberId): string {
   const status = getMemberStatus(memberId);
 
-  if (status.unlocked) return 'Unlocked';
+  if (status.unlocked) return t('teamUnlock.progress.unlocked');
 
   const state = getUnlockState();
   if (!state?.nextUnlock || state.nextUnlock.member.id !== memberId) {
-    return status.unlockHint ?? 'Keep talking to Ferni';
+    return status.unlockHint ?? t('teamUnlock.progress.keepTalking');
   }
 
   const { conversationsNeeded, daysNeeded, streakNeeded } = state.nextUnlock;
   const parts: string[] = [];
 
   if (conversationsNeeded > 0) {
-    parts.push(`${conversationsNeeded} more conversation${conversationsNeeded === 1 ? '' : 's'}`);
+    parts.push(tp('teamUnlock.progress.moreConversations', conversationsNeeded));
   }
   if (daysNeeded > 0) {
-    parts.push(`${daysNeeded} more day${daysNeeded === 1 ? '' : 's'}`);
+    parts.push(tp('teamUnlock.progress.moreDays', daysNeeded));
   }
   if (streakNeeded > 0) {
-    parts.push(`${streakNeeded}-day streak needed`);
+    parts.push(t('teamUnlock.progress.streakNeeded', { count: streakNeeded }));
   }
 
-  if (parts.length === 0) return 'Almost there!';
-  return parts.join(', ');
+  if (parts.length === 0) return t('menu.almostThere');
+  return joinRequirements(parts);
 }
 
 // ============================================================================

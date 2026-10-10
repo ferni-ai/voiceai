@@ -642,7 +642,6 @@
       "found": "{persona} 的發現"
     },
     "eventContext": {
-      "family": "你的伴侶很喜歡你全心陪伴的時刻",
       "meeting": "加入前先設定好明確的意圖",
       "wellness": "先照顧好你自己",
       "learning": "成長往往發生在突破舒適圈的時刻",
@@ -688,11 +687,7 @@
     "pattern": {
       "busyWeek": "你最近開了很多會。你最棒的靈感往往是在安靜的空間裡產生的。",
       "packedDay": "{day}看起來排得好滿。要不要把一些事情移到{otherDay}呢？",
-      "packedDayNoAlternative": "{day}看起來排得好滿。要不要把一些事情移到其他天呢？",
-      "morningStart": "你早晨的開始，往往決定了那一整天的步調與心情。",
-      "focusTime": "當你預留專注時間，完成的事情會多出 40% 喔。",
-      "creativeAfterWalks": "散步之後，你似乎特別有創意呢。",
-      "tuesdayEvenings": "週二晚上是你最有效率的時候呢。"
+      "packedDayNoAlternative": "{day}看起來排得好滿。要不要把一些事情移到其他天呢？"
     },
     "errors": {
       "loadFailed": "沒辦法載入練習畫面",

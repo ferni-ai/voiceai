@@ -21,7 +21,6 @@ import type {
   MemoryType,
 } from '../types.js';
 import {
-  initializeSpanner,
   isSpannerReady,
   closeSpanner,
   upsertEntity,
@@ -135,7 +134,7 @@ export class SpannerAdapter {
 
   private async doInitialize(): Promise<void> {
     try {
-      const ready = process.env.SPANNER_ENABLED === 'true' && (await initializeSpanner()); // no instance unless opted in
+      const ready = false; // no Spanner instance — never connect
       this.initialized = true;
 
       if (ready) {

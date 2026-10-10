@@ -11,16 +11,10 @@
 // MODEL PROVIDERS (local / pipeline servers)
 // ============================================================================
 
-/** Qwen3-Omni Rust server base URL */
-export const QWEN3_OMNI_URL = process.env.QWEN3_OMNI_URL || 'http://localhost:8000';
-
 /** ChipChat-compatible server URL (e.g. Pipecat) */
 export const CHIPCHAT_URL = process.env.CHIPCHAT_URL || 'http://127.0.0.1:8765';
 
-/** Rust FullOmniPipeline server base URL */
-export const OMNI_PIPELINE_URL = process.env.OMNI_PIPELINE_URL || 'http://127.0.0.1:8505';
-
-/** Ollama API URL (local pipeline) */
+/** Ollama API URL (local Gemma 3n) */
 export const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 
 // ============================================================================

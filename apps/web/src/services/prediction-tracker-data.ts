@@ -14,7 +14,7 @@
  * @module services/prediction-tracker-data
  */
 
-import type { PredictionTrackerData } from '../ui/prediction-tracker.ui.js';
+import type { PredictionTrackerData } from '../types/predictions.js';
 
 /** One prediction as the server returns it (a StoredPrediction, maybe marked expired). */
 export interface PredictionRecord {

@@ -8,7 +8,7 @@
 # reserved word") and trips on native .node binaries. It also installed with
 # npm, which can't resolve this pnpm workspace's workspace:* dependencies.
 
-FROM node:20-slim
+FROM node:22-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/* \
@@ -24,15 +24,14 @@ COPY apps/async/package.json ./apps/async/
 COPY apps/intelligence-worker/package.json ./apps/intelligence-worker/
 COPY packages/shared-types/package.json ./packages/shared-types/
 
-# Stubs for workspace packages not in the image (native crates, design system)
-RUN mkdir -p apps/rust-audio apps/rust-perf design-system && \
-    echo '{"name":"@ferni/audio","version":"0.1.0"}' > apps/rust-audio/package.json && \
-    echo '{"name":"@ferni/perf","version":"0.1.0"}' > apps/rust-perf/package.json && \
-    echo '{"name":"@ferni/design-system","version":"1.0.0"}' > design-system/package.json
+# The real package.json of every workspace package the lockfile names (none has install
+# scripts), so the install can be frozen: the image gets exactly what CI tested.
+COPY apps/rust-audio/package.json ./apps/rust-audio/
+COPY apps/rust-perf/package.json ./apps/rust-perf/
+COPY design-system/package.json ./design-system/
 
-# --no-frozen-lockfile: the stub package.json files differ from the lockfile's
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --prefer-offline --no-frozen-lockfile --ignore-scripts
+    pnpm install --prefer-offline --frozen-lockfile --ignore-scripts
 
 COPY tsconfig.json ./
 COPY src/ ./src/

@@ -21,8 +21,9 @@ import { openImportContacts } from './import-contacts.ui.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { getAllMockContacts, MOCK_NUDGES } from '../data/mock-contacts.ts';
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { parseNudgesResponse, type Nudge } from './your-people-nudges.js';
-
+import { closeOnEscape } from '../utils/accessibility.js';
 const log = createLogger('YourPeopleUI');
 
 // ============================================================================
@@ -83,6 +84,7 @@ let state: YourPeopleState = {
 };
 
 let panelContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let previouslyFocusedElement: HTMLElement | null = null;
 
 // ============================================================================
@@ -779,36 +781,36 @@ function renderHeader(): string {
     <div class="yp-header">
       <div class="yp-header-top">
         <div class="yp-header-text">
-          <div class="yp-eyebrow" id="yp-desc">Relationships</div>
-          <h2 class="yp-title" id="yp-title">Your People</h2>
+          <div class="yp-eyebrow" id="yp-desc">${t('yourPeople.section')}</div>
+          <h2 class="yp-title" id="yp-title">${t('yourPeople.title')}</h2>
         </div>
-        <div class="yp-header-actions" role="button" tabindex="0">
-          <button class="yp-action-btn" id="yp-insights-btn" aria-label="${t('accessibility.viewRelationshipInsights')}" title="Insights">${ICONS.chart}</button>
+        <div class="yp-header-actions">
+          <button class="yp-action-btn" id="yp-insights-btn" aria-label="${t('accessibility.viewRelationshipInsights')}" title="${t('yourPeople.insights')}">${ICONS.chart}</button>
           <button class="yp-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
         </div>
       </div>
       
       <div class="yp-search">
         <span class="yp-search-icon">${ICONS.search}</span>
-        <input 
-          type="search" 
-          class="yp-search-input" 
-          placeholder="Search your people..."
+        <input
+          type="search"
+          class="yp-search-input"
+          placeholder="${t('yourPeople.searchPlaceholder')}"
           value="${escapeHtml(state.searchQuery)}"
           aria-label="${t('accessibility.searchContacts')}"
           autocomplete="off"
         />
       </div>
-      
+
       <div class="yp-filters">
-        <button aria-label="${t('accessibility.all')}" class="yp-filter ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">
-          All
+        <button class="yp-filter ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">
+          ${t('yourPeople.filterAll')}
         </button>
-        <button aria-label="${t('accessibility.needsAttention')}" class="yp-filter ${state.activeFilter === 'attention' ? 'active' : ''}" data-filter="attention">
-          Needs attention
+        <button class="yp-filter ${state.activeFilter === 'attention' ? 'active' : ''}" data-filter="attention">
+          ${t('yourPeople.filterAttention')}
         </button>
-        <button aria-label="${t('accessibility.recent')}" class="yp-filter ${state.activeFilter === 'recent' ? 'active' : ''}" data-filter="recent">
-          Recent
+        <button class="yp-filter ${state.activeFilter === 'recent' ? 'active' : ''}" data-filter="recent">
+          ${t('yourPeople.filterRecent')}
         </button>
       </div>
     </div>
@@ -832,17 +834,17 @@ function renderNudges(): string {
   return `
     <div class="yp-nudges">
       <div class="yp-nudges-header">
-        ${ICONS.sparkles} Ferni suggests
+        ${ICONS.sparkles} ${t('yourPeople.ferniSuggests')}
       </div>
       ${visibleNudges.map(nudge => `
-        <div class="yp-nudge" data-contact-id="${nudge.contactId}" role="button" tabindex="0" aria-label="Contact ${escapeHtml(nudge.contactName)}. ${escapeHtml(nudge.reason)}">
+        <div class="yp-nudge" data-contact-id="${nudge.contactId}" role="button" tabindex="0" aria-label="${t('yourPeople.contactAria', { name: escapeHtml(nudge.contactName), reason: escapeHtml(nudge.reason) })}">
           <div class="yp-nudge-avatar" aria-hidden="true">${getInitials(nudge.contactName)}</div>
           <div class="yp-nudge-content">
             <div class="yp-nudge-name">${escapeHtml(nudge.contactName)}</div>
             <div class="yp-nudge-reason">${escapeHtml(nudge.reason)}</div>
           </div>
-          ${nudge.priority === 'high' ? `<span class="yp-nudge-badge high">Soon</span>` : ''}
-          ${nudge.priority === 'medium' ? `<span class="yp-nudge-badge medium">Check in</span>` : ''}
+          ${nudge.priority === 'high' ? `<span class="yp-nudge-badge high">${t('yourPeople.badgeSoon')}</span>` : ''}
+          ${nudge.priority === 'medium' ? `<span class="yp-nudge-badge medium">${t('yourPeople.badgeCheckIn')}</span>` : ''}
           <span class="yp-nudge-arrow" aria-hidden="true">${ICONS.chevronRight}</span>
         </div>
       `).join('')}
@@ -883,7 +885,7 @@ function renderPeopleList(): string {
       return `
         <div class="yp-section">
           <div class="yp-empty">
-            <p class="yp-empty-text">No people matching "${escapeHtml(state.searchQuery)}"</p>
+            <p class="yp-empty-text">${t('yourPeople.noSearchResults', { query: escapeHtml(state.searchQuery) })}</p>
           </div>
         </div>
       `;
@@ -894,14 +896,14 @@ function renderPeopleList(): string {
         <div class="yp-section">
           <div class="yp-empty">
             <div class="yp-empty-icon">${ICONS.users}</div>
-            <div class="yp-empty-title">No one here yet</div>
-            <p class="yp-empty-text">Add people you care about and we'll help you nurture those relationships.</p>
+            <div class="yp-empty-title">${t('yourPeople.emptyTitle')}</div>
+            <p class="yp-empty-text">${t('yourPeople.emptyDescription')}</p>
           </div>
-          <button aria-label="${t('accessibility.add')}" class="yp-add-btn" data-action="add-person">
-            ${ICONS.plus} Add Someone
+          <button class="yp-add-btn" data-action="add-person">
+            ${ICONS.plus} ${t('yourPeople.addSomeone')}
           </button>
-          <button aria-label="${t('accessibility.upload')}" class="yp-add-btn yp-import-btn" data-action="import-contacts" style="margin-top: var(--space-2);">
-            ${ICONS.upload} Import from Google or CSV
+          <button class="yp-add-btn yp-import-btn" data-action="import-contacts" style="margin-top: var(--space-2);">
+            ${ICONS.upload} ${t('yourPeople.importFromGoogleCsv')}
           </button>
         </div>
       `;
@@ -910,7 +912,7 @@ function renderPeopleList(): string {
     return `
       <div class="yp-section">
         <div class="yp-empty">
-          <p class="yp-empty-text">No people match this filter</p>
+          <p class="yp-empty-text">${t('yourPeople.noMatchFilter')}</p>
         </div>
       </div>
     `;
@@ -920,7 +922,7 @@ function renderPeopleList(): string {
   const grouped = groupByRelationship(filteredPeople);
 
   let html = '';
-  for (const [groupName, people] of Object.entries(grouped)) {
+  for (const [groupName, people] of grouped) {
     html += `
       <div class="yp-section">
         <div class="yp-section-title">${groupName}</div>
@@ -930,12 +932,12 @@ function renderPeopleList(): string {
   }
 
   html += `
-    <div class="yp-section yp-action-buttons" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.add')}" class="yp-add-btn" data-action="add-person">
-        ${ICONS.plus} Add Someone
+    <div class="yp-section yp-action-buttons">
+      <button class="yp-add-btn" data-action="add-person">
+        ${ICONS.plus} ${t('yourPeople.addSomeone')}
       </button>
-      <button aria-label="${t('accessibility.upload')}" class="yp-add-btn yp-secondary-btn" data-action="import-contacts">
-        ${ICONS.upload} Import Contacts
+      <button class="yp-add-btn yp-secondary-btn" data-action="import-contacts">
+        ${ICONS.upload} ${t('yourPeople.importContacts')}
       </button>
     </div>
   `;
@@ -943,27 +945,34 @@ function renderPeopleList(): string {
   return html;
 }
 
+function upcomingLabel(date: NonNullable<Person['upcomingDate']>): string {
+  return date.label || t(`yourPeople.dateTypes.${date.type}`, date.type);
+}
+
 function renderPersonItem(person: Person): string {
   const initials = getInitials(person.name);
   const strengthColor = getStrengthColor(person.strengthScore || 50);
   
+  const relationship = person.relationship
+    ? t(`addPerson.relationships.${person.relationship.toLowerCase()}`, person.relationship)
+    : t('yourPeople.contact');
   const lastContactText = person.daysSinceContact !== undefined
-    ? person.daysSinceContact === 0 ? 'Today'
-    : person.daysSinceContact === 1 ? 'Yesterday'
-    : `${person.daysSinceContact}d ago`
+    ? person.daysSinceContact === 0 ? t('common.today')
+    : person.daysSinceContact === 1 ? t('common.yesterday')
+    : t('yourPeople.daysAgo', { count: person.daysSinceContact })
     : '';
 
   const trendIcon = person.strengthTrend === 'growing' ? ICONS.trendUp :
                     person.strengthTrend === 'fading' ? ICONS.trendDown : '';
 
   const metaText = [
-    person.relationship || 'Contact',
+    relationship,
     lastContactText,
-    person.upcomingDate ? `${person.upcomingDate.label || person.upcomingDate.type} in ${person.upcomingDate.daysUntil} days` : ''
+    person.upcomingDate ? tp('yourPeople.upcomingIn', person.upcomingDate.daysUntil, { label: upcomingLabel(person.upcomingDate) }) : ''
   ].filter(Boolean).join('. ');
 
   return `
-    <div class="yp-person" data-contact-id="${person.contactId}" role="button" tabindex="0" aria-label="View ${escapeHtml(person.name)}. ${metaText}">
+    <div class="yp-person" data-contact-id="${person.contactId}" role="button" tabindex="0" aria-label="${t('yourPeople.viewAria', { name: escapeHtml(person.name), details: metaText })}">
       <div class="yp-person-avatar" aria-hidden="true">${initials}</div>
       <div class="yp-person-info">
         <div class="yp-person-name">
@@ -971,12 +980,12 @@ function renderPersonItem(person: Person): string {
           ${trendIcon ? `<span class="yp-person-trend ${person.strengthTrend}" aria-hidden="true">${trendIcon}</span>` : ''}
         </div>
         <div class="yp-person-meta">
-          <span>${person.relationship || 'Contact'}</span>
+          <span>${relationship}</span>
           ${lastContactText ? `<span>${lastContactText}</span>` : ''}
           ${person.upcomingDate ? `
             <span class="yp-person-upcoming">
               ${ICONS.calendar}
-              ${person.upcomingDate.label || person.upcomingDate.type} in ${person.upcomingDate.daysUntil}d
+              ${tp('yourPeople.upcomingShort', person.upcomingDate.daysUntil, { label: upcomingLabel(person.upcomingDate) })}
             </span>
           ` : ''}
         </div>
@@ -988,15 +997,15 @@ function renderPersonItem(person: Person): string {
 }
 
 function renderLoading(): string {
-  return `<div class="yp-loading">Loading your people...</div>`;
+  return `<div class="yp-loading">${t('yourPeople.loading')}</div>`;
 }
 
 function renderError(): string {
   return `
     <div class="yp-error">
       <div class="yp-error-icon">${ICONS.alertCircle}</div>
-      <div class="yp-error-message">${escapeHtml(state.error ?? 'Something went wrong')}</div>
-      <button class="yp-error-retry" aria-label="Retry loading contacts">Try again</button>
+      <div class="yp-error-message">${escapeHtml(state.error ?? t('common.error'))}</div>
+      <button class="yp-error-retry">${t('common.retry')}</button>
     </div>
   `;
 }
@@ -1086,7 +1095,7 @@ function bindEvents(): void {
     btn.addEventListener('click', () => {
       openImportContacts({
         onSuccess: (count) => {
-          toast.success(t('toasts.importedCountContacts'));
+          toast.success(tp('toasts.contactsImported', count));
           loadPeopleData();
         },
       });
@@ -1103,14 +1112,10 @@ function bindEvents(): void {
   });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (panelContainer) releaseEscape = closeOnEscape(panelContainer, () => state.isOpen, closeYourPeople);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeYourPeople();
-  }
-}
 
 function openPersonCard(contactId: string): void {
   // Close this panel and open relationship card
@@ -1152,30 +1157,21 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
-function groupByRelationship(people: Person[]): Record<string, Person[]> {
-  const groups: Record<string, Person[]> = {};
-  
-  for (const person of people) {
-    const group = capitalizeFirst(person.relationship || 'other');
-    if (!groups[group]) groups[group] = [];
-    groups[group].push(person);
-  }
+/** Group headings in display order; relationship ids map to a heading key. */
+const GROUP_HEADINGS: Array<[string, string]> = [
+  ['family', 'yourPeople.groups.family'],
+  ['friend', 'yourPeople.groups.friends'],
+  ['colleague', 'yourPeople.groups.work'],
+  ['mentor', 'yourPeople.groups.mentor'],
+  ['acquaintance', 'yourPeople.groups.acquaintance'],
+  ['other', 'yourPeople.groups.misc'],
+];
 
-  // Sort groups: Family, Friends, Work, then Others
-  const orderedGroups: Record<string, Person[]> = {};
-  const order = ['Family', 'Friend', 'Colleague', 'Mentor', 'Acquaintance', 'Other'];
-  
-  for (const key of order) {
-    if (groups[key]) {
-      orderedGroups[key === 'Friend' ? 'Friends' : key === 'Colleague' ? 'Work' : key] = groups[key];
-    }
-  }
-
-  return orderedGroups;
-}
-
-function capitalizeFirst(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
+function groupByRelationship(people: Person[]): Array<[string, Person[]]> {
+  return GROUP_HEADINGS.map((heading): [string, Person[]] => [
+    t(heading[1]),
+    people.filter((person) => (person.relationship || 'other').toLowerCase() === heading[0]),
+  ]).filter(([, members]) => members.length > 0);
 }
 
 // ============================================================================
@@ -1208,7 +1204,7 @@ async function loadPeopleData(): Promise<void> {
       log.debug('Using mock contact data (API unavailable)');
     } else {
       // Production: set error state
-      state.error = 'Couldn\'t load your contacts';
+      state.error = t('yourPeople.loadError');
     }
 
     // Load nudges
@@ -1228,7 +1224,7 @@ async function loadPeopleData(): Promise<void> {
       log.debug('Using mock data due to API error');
     } else {
       // Production: set error state
-      state.error = 'Couldn\'t load your contacts. Try again?';
+      state.error = t('yourPeople.loadErrorRetry');
     }
   } finally {
     state.isLoading = false;
@@ -1271,7 +1267,7 @@ export async function openYourPeople(): Promise<void> {
   panelContainer.innerHTML = `
     <div class="your-people-backdrop"></div>
     <div class="your-people-panel" role="dialog" aria-modal="true" aria-labelledby="yp-title" aria-describedby="yp-desc">
-      <div class="yp-loading">Loading...</div>
+      <div class="yp-loading">${t('yourPeople.loading')}</div>
     </div>
   `;
   document.body.appendChild(panelContainer);
@@ -1299,7 +1295,7 @@ export async function openYourPeople(): Promise<void> {
 export function closeYourPeople(): void {
   if (!state.isOpen || !panelContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
   
   panelContainer.classList.remove('open');
   
@@ -1327,12 +1323,7 @@ function cleanupOrphanedPanels(): void {
 // ============================================================================
 
 export function initYourPeopleUI(): void {
-  // Listen for open events
-  document.addEventListener('ferni:open-your-people', () => {
-    openYourPeople();
-  });
-
-  // Also support old event name for backward compatibility
+  // ferni:open-contacts is the one open event (voice show_view 'contacts', app.ts, command palette)
   document.addEventListener('ferni:open-contacts', () => {
     openYourPeople();
   });

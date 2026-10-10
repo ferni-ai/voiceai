@@ -380,8 +380,8 @@ class DataExportService {
 
   private async exportProfile(userId: string) {
     try {
-      const { getDefaultStore } = await import('../../memory/index.js');
-      const store = getDefaultStore();
+      const { getStore } = await import('../../memory/store-factory.js');
+      const store = await getStore();
       await store.initialize();
       const profile = await store.getProfile(userId);
 
@@ -690,8 +690,8 @@ class DataExportService {
 
   private async getProfileItemCount(userId: string): Promise<number> {
     try {
-      const { getDefaultStore } = await import('../../memory/index.js');
-      const store = getDefaultStore();
+      const { getStore } = await import('../../memory/store-factory.js');
+      const store = await getStore();
       await store.initialize();
       const profile = await store.getProfile(userId);
       return profile ? 1 : 0;
@@ -771,7 +771,7 @@ class DataExportService {
    * Delete all user data (GDPR right to erasure).
    * Comprehensive deletion across all data stores.
    */
-  async deleteAllData(userId: string): Promise<void> {
+  async deleteAllData(userId: string): Promise<Record<string, boolean>> {
     const deletionResults: Record<string, boolean> = {};
 
     try {
@@ -785,12 +785,12 @@ class DataExportService {
         deletionResults['engagement'] = false;
       }
 
-      // 2. Delete profile data
+      // 2. Erase bogle_users/{uid} + subcollections. Not caught: if it fails, the erasure failed
+      const { eraseUserRecord } = await import('./erase-user-record.js');
+      await eraseUserRecord(userId);
       try {
         const { getDefaultStore } = await import('../../memory/index.js');
-        const store = getDefaultStore();
-        await store.initialize();
-        await store.deleteProfile(userId);
+        await getDefaultStore().deleteProfile(userId);
         deletionResults['profile'] = true;
       } catch (e) {
         log.warn({ error: String(e), userId }, 'Failed to delete profile');
@@ -861,7 +861,6 @@ class DataExportService {
       // 8. Delete cognitive memories (if method exists)
       try {
         const memoryService = getCognitiveMemoryService();
-        // Type narrowing for optional deleteAllMemories method
         interface WithDeleteAllMemories {
           deleteAllMemories?: (userId: string) => Promise<void>;
         }
@@ -879,6 +878,7 @@ class DataExportService {
       }
 
       log.info({ userId, deletionResults }, '🗑️ User data deletion completed');
+      return deletionResults;
     } catch (error) {
       log.error({ error, userId, deletionResults }, 'Failed to delete all user data');
       throw error;

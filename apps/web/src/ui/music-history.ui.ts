@@ -16,7 +16,7 @@
  * @module ui/music-history
  */
 
-import { t } from '../i18n/index.js';
+import { formatRelativeTime, t } from '../i18n/index.js';
 import { nowPlayingUI } from './now-playing.ui.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -297,9 +297,10 @@ function createDrawer(): void {
   // Create drawer
   drawer = document.createElement('div');
   drawer.className = 'music-history';
+  drawer.inert = true; // parked off-screen while closed: out of the tab order and the a11y tree
   drawer.setAttribute('role', 'dialog');
   drawer.setAttribute('aria-modal', 'true');
-  drawer.setAttribute('aria-label', t('musicHistory.title', 'Music history'));
+  drawer.setAttribute('aria-label', t('musicHistory.title'));
 
   // Header
   const header = document.createElement('div');
@@ -307,12 +308,12 @@ function createDrawer(): void {
 
   const title = document.createElement('h2');
   title.className = 'music-history__title';
-  title.textContent = 'Recently Played';
+  title.textContent = t('musicHistory.recentlyPlayed');
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'music-history__close';
   closeBtn.setAttribute('type', 'button');
-  closeBtn.setAttribute('aria-label', t('musicHistory.closeHistory', 'Close history'));
+  closeBtn.setAttribute('aria-label', t('musicHistory.closeHistory'));
   // Safe: hardcoded SVG icon
   closeBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   closeBtn.addEventListener('click', close);
@@ -350,6 +351,7 @@ export function open(): void {
   populateHistory();
 
   isOpen = true;
+  drawer.inert = false; // before focusing the close button: inert elements can't take focus
   backdrop.classList.add('music-history-backdrop--visible');
   drawer.classList.add('music-history--open');
 
@@ -364,6 +366,7 @@ export function close(): void {
   if (!drawer || !backdrop || !isOpen) return;
 
   isOpen = false;
+  drawer.inert = true;
   backdrop.classList.remove('music-history-backdrop--visible');
   drawer.classList.remove('music-history--open');
 
@@ -400,8 +403,8 @@ function populateHistory(): void {
           <line x1="9" y1="9" x2="9.01" y2="9"/>
           <line x1="15" y1="9" x2="15.01" y2="9"/>
         </svg>
-        <p>No tracks played yet</p>
-        <p class="music-history__empty-hint">Ask Ferni to play some music!</p>
+        <p>${t('musicHistory.noTracks')}</p>
+        <p class="music-history__empty-hint">${t('musicHistory.noTracksHint')}</p>
       </div>
     `;
     return;
@@ -418,7 +421,7 @@ function renderTrack(track: HistoryTrack): string {
   // Spotify link button (only if we have a URL)
   // spotifyUrl comes from our backend (trusted Spotify API response)
   const linkButton = track.spotifyUrl
-    ? `<a href="${track.spotifyUrl}" target="_blank" rel="noopener noreferrer" class="music-history__link" aria-label="${t('musicHistory.openInSpotify', 'Open in Spotify')}" title="${t('musicHistory.openFullTrack', 'Open full track in Spotify')}">
+    ? `<a href="${track.spotifyUrl}" target="_blank" rel="noopener noreferrer" class="music-history__link" aria-label="${t('musicHistory.openInSpotify')}" title="${t('musicHistory.openFullTrack')}">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
         </svg>
@@ -427,7 +430,7 @@ function renderTrack(track: HistoryTrack): string {
 
   // Improved placeholder artwork with music note icon
   const artwork = hasArtwork
-    ? `<img class="music-history__artwork" src="${track.artworkUrl}" alt="${t('musicHistory.albumArtwork', 'Album artwork')}" loading="lazy" />`
+    ? `<img class="music-history__artwork" src="${track.artworkUrl}" alt="${t('musicHistory.albumArtwork')}" loading="lazy" />`
     : `<div class="music-history__artwork music-history__artwork--placeholder">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 18V5l12-2v13"/>
@@ -437,7 +440,7 @@ function renderTrack(track: HistoryTrack): string {
       </div>`;
 
   // Preview badge - we play 30s Spotify previews, not full tracks
-  const previewBadge = `<span class="music-history__preview-badge">Preview</span>`;
+  const previewBadge = `<span class="music-history__preview-badge">${t('accessibility.preview')}</span>`;
 
   // IMPORTANT: Track name and artist are user-facing content, escaped for XSS protection
   return `
@@ -459,17 +462,7 @@ function renderTrack(track: HistoryTrack): string {
 
 function formatTimeAgo(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
-
-  if (seconds < 60) return 'Just now';
-  if (seconds < 3600) {
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes}m ago`;
-  }
-  if (seconds < 86400) {
-    const hours = Math.floor(seconds / 3600);
-    return `${hours}h ago`;
-  }
-  return 'Earlier';
+  return seconds < 86400 ? formatRelativeTime(new Date(timestamp)) : t('musicHistory.earlier');
 }
 
 /**

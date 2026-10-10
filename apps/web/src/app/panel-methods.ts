@@ -7,6 +7,7 @@
  */
 
 import type { ScreenName } from '../services/app-context-tracking.service.js';
+import { t } from '../i18n/index.js';
 import { isDemoDataEnabled } from '../services/engagement-demo-data.js';
 import {
   type AnalyticsDashboardData,
@@ -212,13 +213,13 @@ export async function showAnalyticsDashboard(): Promise<void> {
 export async function deleteMemory(memoryId: string): Promise<void> {
   const response = await apiDelete(`/api/cognitive/memories/${encodeURIComponent(memoryId)}`);
   if (response.ok) {
-    toast.success('Memory removed');
+    toast.success(t('app.memoryRemoved'));
   } else {
     log.error(
       { memoryId, status: response.status, error: response.error },
       'Failed to delete memory'
     );
-    toast.error("Couldn't remove that memory. Try again?");
+    toast.error(t(response.status === 404 ? 'app.memoryNotFound' : 'app.couldNotRemoveMemory'));
   }
   // Re-fetch either way so the list matches what the server actually has.
   await showCognitiveInsights();
@@ -466,16 +467,15 @@ function getDemoCognitiveData() {
  */
 export async function showPredictionTracker(): Promise<void> {
   void trackScreen('predictions');
-  const { toast } = await import('../ui/whisper.ui.js');
   const response = await apiGet<PredictionsResponse>('/api/predictions');
   if (!response.ok || !response.data) {
     log.warn({ status: response.status }, 'Prediction tracker load failed');
-    toast.error("Couldn't load your predictions. Try again?");
+    toast.error(t('app.couldNotLoadPredictions'));
     return;
   }
   const data = toPredictionTrackerData(response.data);
   if (!data) {
-    toast.info("No predictions yet. Make one with Ferni and it'll show up here.");
+    toast.info(t('app.noPredictionsYet'));
     return;
   }
   getPredictionTrackerUI().show(data);
@@ -493,44 +493,43 @@ export async function showDataExport(): Promise<void> {
   void trackScreen('settings');
   const { dataExportService, dataRightsErrorMessage } =
     await import('../services/data-export.service.js');
-  const { toast } = await import('../ui/whisper.ui.js');
 
   // Each request only reports success after the server confirms it.
   getDataExportUI().setCallbacks({
     onExport: async (format, categories) => {
       try {
-        toast.info('Preparing your data...');
+        toast.info(t('app.preparingData'));
         await dataExportService.exportData(format, categories);
-        toast.success('Download started!');
+        toast.success(t('app.downloadStarted'));
       } catch (err) {
         log.error('Export failed:', err);
-        toast.error(dataRightsErrorMessage(err, "Couldn't export. Try again?"));
+        toast.error(dataRightsErrorMessage(err, t('dataExportService.exportFailed')));
       }
     },
     onDeleteData: async () => {
       try {
-        toast.info('Deleting your data...');
+        toast.info(t('app.deletingData'));
         await dataExportService.deleteAllData();
-        toast.success('All data deleted');
+        toast.success(t('app.allDataDeleted'));
         setTimeout(() => {
           window.location.href = '/';
         }, 1500);
       } catch (err) {
         log.error('Delete failed:', err);
-        toast.error(dataRightsErrorMessage(err, "Couldn't delete. Try again?"));
+        toast.error(dataRightsErrorMessage(err, t('dataExportService.deleteDataFailed')));
       }
     },
     onDeleteAccount: async () => {
       try {
-        toast.info('Deleting your account...');
+        toast.info(t('app.deletingAccount'));
         const leftover = await dataExportService.deleteAccount();
-        toast[leftover ? 'warning' : 'success'](leftover ?? 'Your account is deleted. Take care.');
+        toast[leftover ? 'warning' : 'success'](leftover ?? t('app.accountDeleted'));
         setTimeout(() => {
           window.location.href = '/';
         }, 1500);
       } catch (err) {
         log.error('Account deletion failed:', err);
-        toast.error(dataRightsErrorMessage(err, "Couldn't delete your account. Try again?"));
+        toast.error(dataRightsErrorMessage(err, t('dataExportService.deleteAccountFailed')));
       }
     },
     onClose: () => {
@@ -558,14 +557,13 @@ interface StartHuddleResponse {
 export async function showTeamHuddle(topic?: string): Promise<void> {
   void trackScreen('team');
   const response = await apiPost<StartHuddleResponse>('/api/huddles/start', {
-    topic: topic || 'Weekly check-in on your progress',
+    topic: topic || t('app.defaultHuddleTopic'),
     type: 'weekly',
   });
   const huddle = response.ok ? response.data?.huddle : undefined;
   if (!huddle) {
     log.warn({ status: response.status }, 'Team huddle start failed');
-    const { toast } = await import('../ui/whisper.ui.js');
-    toast.error("Couldn't start a team huddle. Try again?");
+    toast.error(t('app.couldNotStartHuddle'));
     return;
   }
   const type = huddle.type === 'milestone' || huddle.type === 'special' ? huddle.type : 'weekly';

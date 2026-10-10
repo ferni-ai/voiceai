@@ -108,6 +108,11 @@ function extractPatternsFromProfile(profile: AnyRecord | null): Pattern[] {
   return patterns;
 }
 
+/** ISO string for a real date, undefined when unknown (never invent "now"). */
+function validIso(d: unknown): string | undefined {
+  return d instanceof Date && !Number.isNaN(d.getTime()) ? d.toISOString() : undefined;
+}
+
 /**
  * GET /api/cognitive/memories - What I've Learned
  */
@@ -121,11 +126,11 @@ export async function handleGetCognitiveMemories(
 
   try {
     const { getAllUserMemories } = await import('../../services/memory/persona-memories.js');
-    const { getDefaultStore } = await import('../../memory/index.js');
+    const { getStore } = await import('../../memory/store-factory.js');
     const { extractLearnedMemories } = await import('../../services/memory/learned-memories.js');
 
     const rawMemories = (await getAllUserMemories(userId)) as unknown as AnyRecord[];
-    const store = getDefaultStore();
+    const store = await getStore();
     const userProfile = (await store.getProfile(userId)) as unknown as AnyRecord | null;
 
     // Transform persona memories
@@ -135,7 +140,7 @@ export async function handleGetCognitiveMemories(
       content: formatMemoryContent(m),
       confidence: calculateConfidence(m),
       source: getPersonaName(m.personaId as string),
-      learnedAt: (m.createdAt as Date)?.toISOString?.() || new Date().toISOString(),
+      learnedAt: validIso(m.createdAt),
       personaId: m.personaId as string,
       sourceType: 'persona_memory',
     }));
@@ -153,7 +158,7 @@ export async function handleGetCognitiveMemories(
         content: ((m as AnyRecord).content as string) || '',
         confidence: ((m as AnyRecord).confidence as number) ?? 0.7,
         source: ((m as AnyRecord).source as string) || 'profile',
-        learnedAt: ((m as AnyRecord).learnedAt as string) || new Date().toISOString(),
+        learnedAt: (m as AnyRecord).learnedAt as string | undefined,
         personaId: (m as AnyRecord).personaId as string,
         sourceType: ((m as AnyRecord).sourceType as string) || 'profile',
       }));
@@ -175,7 +180,7 @@ export async function handleGetCognitiveMemories(
     const allMemories = [...personaMemories, ...uniqueProfileMemories];
     allMemories.sort((a, b) => {
       if (b.confidence !== a.confidence) return b.confidence - a.confidence;
-      return new Date(b.learnedAt).getTime() - new Date(a.learnedAt).getTime();
+      return (Date.parse(b.learnedAt ?? '') || 0) - (Date.parse(a.learnedAt ?? '') || 0);
     });
 
     const patterns = [...extractPatternsFromProfile(userProfile), ...profilePatterns];
@@ -192,11 +197,13 @@ export async function handleGetCognitiveMemories(
       Math.round(allMemories.length * 3 + totalInteractions * 2 + uniquePatterns.length * 5)
     );
 
-    sendJSONCached(
-      res,
-      { memories: allMemories, patterns: uniquePatterns, totalInteractions, knowledgeScore },
-      60
-    );
+    // Not cacheable: a browser-cached list would still show a memory the user just forgot.
+    sendJSON(res, {
+      memories: allMemories,
+      patterns: uniquePatterns,
+      totalInteractions,
+      knowledgeScore,
+    });
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to get cognitive memories');
     sendJSON(res, { memories: [], patterns: [], totalInteractions: 0, knowledgeScore: 0 }, 500);
@@ -216,38 +223,12 @@ export async function handleDeleteMemory(
   if (!userId) return;
 
   try {
-    let deleted = false;
-    let deleteSource = '';
-
-    // Try persona memories first
+    // The "what I've learned" list is persona memories (profile memories are not
+    // stored anywhere), so a miss here is "not found" - never a silent success.
     const { forget } = await import('../../services/memory/persona-memories.js');
-    const personaDeleted = await forget(memoryId, userId);
-    if (personaDeleted) {
-      deleted = true;
-      deleteSource = 'persona_memory';
-    }
-
-    // Try profile-based memories
-    if (!deleted) {
-      const { deleteMemoryFromProfile } = await import('../../services/memory/learned-memories.js');
-      const { getDefaultStore } = await import('../../memory/index.js');
-
-      const store = getDefaultStore();
-      const profile = await store.getProfile(userId);
-
-      if (profile) {
-        const result = deleteMemoryFromProfile(profile, memoryId);
-        if (result.success) {
-          await store.saveProfile(result.profile);
-          deleted = true;
-          deleteSource = result.deletedType || 'profile';
-        }
-      }
-    }
-
-    if (deleted) {
-      log.info({ memoryId, source: deleteSource, userId }, 'Memory deleted');
-      sendJSON(res, { success: true, memoryId, source: deleteSource });
+    if (await forget(memoryId, userId)) {
+      log.info({ memoryId, userId }, 'Memory deleted');
+      sendJSON(res, { success: true, memoryId, source: 'persona_memory' });
     } else {
       sendError(res, API_ERRORS.MEMORY_NOT_FOUND, 404);
     }
@@ -272,10 +253,10 @@ export async function handleGetSuperhumanInsights(
   if (!userId) return;
 
   try {
-    const { getDefaultStore } = await import('../../memory/index.js');
+    const { getStore } = await import('../../memory/store-factory.js');
     const { buildSuperhumanContext } = await import('../../intelligence/superhuman-memory.js');
 
-    const store = getDefaultStore();
+    const store = await getStore();
     const profile = await store.getProfile(userId);
 
     if (!profile) {

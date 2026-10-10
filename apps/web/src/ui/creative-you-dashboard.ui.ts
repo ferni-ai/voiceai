@@ -13,6 +13,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { apiGet } from '../utils/api.js';
 
 const log = createLogger('CreativeYouDashboard');
@@ -104,11 +105,11 @@ const MOOD_COLORS: Record<string, string> = {
 };
 
 // Warm mood labels (not clinical categories)
-const MOOD_LABELS: Record<string, string> = {
-  learn: 'Grow',
-  chill: 'Unwind',
-  inspire: 'Spark',
-  reflect: 'Pause',
+const MOOD_LABEL_KEYS: Record<VideoRecommendation['mood'], string> = {
+  learn: 'creativeYou.moods.learn',
+  chill: 'creativeYou.moods.chill',
+  inspire: 'creativeYou.moods.inspire',
+  reflect: 'creativeYou.moods.reflect',
 };
 
 // ============================================================================
@@ -237,6 +238,35 @@ export class CreativeYouDashboard {
     this.bindEvents();
   }
 
+  /** Skeleton sections shown while data loads (Daily Picks, What You're Into, Paths Worth Exploring) */
+  private renderLoadingSections(): string {
+    return `
+      <section class="dashboard-section daily-picks">
+        <h3>${ICONS.lightbulb} ${t('creativeYou.todaysPicks')}</h3>
+        <div class="picks-grid">
+          <div class="pick-card video-pick" data-loading="true">
+            <div class="pick-loading">${t('creativeYou.loadingPicks')}</div>
+          </div>
+          <div class="pick-card podcast-pick" data-loading="true">
+            <div class="pick-loading">${t('creativeYou.loadingPicks')}</div>
+          </div>
+        </div>
+      </section>
+      <section class="dashboard-section creative-dna-section">
+        <h3>${ICONS.brain} ${t('creativeYou.yourDNA')}</h3>
+        <div class="dna-card" data-loading="true">
+          <div class="pick-loading">${t('creativeYou.loadingProfile')}</div>
+        </div>
+      </section>
+      <section class="dashboard-section learning-tracks-section">
+        <h3>${ICONS.book} ${t('creativeYou.learningTracks')}</h3>
+        <div class="tracks-list" data-loading="true">
+          <div class="pick-loading">${t('creativeYou.loadingTracks')}</div>
+        </div>
+      </section>
+    `;
+  }
+
   private renderDashboard(): string {
     return `
       <div class="creative-dashboard-backdrop"></div>
@@ -252,36 +282,7 @@ export class CreativeYouDashboard {
           </button>
         </header>
 
-        <div class="creative-dashboard-body">
-          <!-- Daily Picks Section -->
-          <section class="dashboard-section daily-picks">
-            <h3>${ICONS.lightbulb} ${t('creativeYou.todaysPicks')}</h3>
-            <div class="picks-grid">
-              <div class="pick-card video-pick" data-loading="true">
-                <div class="pick-loading">${t('creativeYou.loadingPicks')}</div>
-              </div>
-              <div class="pick-card podcast-pick" data-loading="true">
-                <div class="pick-loading">${t('creativeYou.loadingPicks')}</div>
-              </div>
-            </div>
-          </section>
-
-          <!-- What You're Into Section -->
-          <section class="dashboard-section creative-dna-section">
-            <h3>${ICONS.brain} ${t('creativeYou.yourDNA')}</h3>
-            <div class="dna-card" data-loading="true">
-              <div class="pick-loading">${t('creativeYou.loadingProfile')}</div>
-            </div>
-          </section>
-
-          <!-- Paths Worth Exploring Section -->
-          <section class="dashboard-section learning-tracks-section">
-            <h3>${ICONS.book} ${t('creativeYou.learningTracks')}</h3>
-            <div class="tracks-list" data-loading="true">
-              <div class="pick-loading">${t('creativeYou.loadingTracks')}</div>
-            </div>
-          </section>
-        </div>
+        <div class="creative-dashboard-body">${this.renderLoadingSections()}</div>
       </div>
     `;
   }
@@ -325,7 +326,7 @@ export class CreativeYouDashboard {
     if (!body) return;
     body.innerHTML = `
       <div class="creative-dashboard-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
-        Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
+        ${t('creativeYou.loadError')} <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('creativeYou.tryAgain')}</button>
       </div>
     `;
     body.querySelector('button')?.addEventListener('click', () => {
@@ -337,31 +338,7 @@ export class CreativeYouDashboard {
   private resetBodyToLoading(): void {
     const body = this.container?.querySelector('.creative-dashboard-body');
     if (!body) return;
-    body.innerHTML = `
-      <section class="dashboard-section daily-picks">
-        <h3>${ICONS.lightbulb} ${t('creativeYou.todaysPicks')}</h3>
-        <div class="picks-grid">
-          <div class="pick-card video-pick" data-loading="true">
-            <div class="pick-loading">${t('creativeYou.loadingPicks')}</div>
-          </div>
-          <div class="pick-card podcast-pick" data-loading="true">
-            <div class="pick-loading">${t('creativeYou.loadingPicks')}</div>
-          </div>
-        </div>
-      </section>
-      <section class="dashboard-section creative-dna-section">
-        <h3>${ICONS.brain} ${t('creativeYou.yourDNA')}</h3>
-        <div class="dna-card" data-loading="true">
-          <div class="pick-loading">${t('creativeYou.loadingProfile')}</div>
-        </div>
-      </section>
-      <section class="dashboard-section learning-tracks-section">
-        <h3>${ICONS.book} ${t('creativeYou.learningTracks')}</h3>
-        <div class="tracks-list" data-loading="true">
-          <div class="pick-loading">${t('creativeYou.loadingTracks')}</div>
-        </div>
-      </section>
-    `;
+    body.innerHTML = this.renderLoadingSections();
   }
 
   /**
@@ -425,11 +402,7 @@ export class CreativeYouDashboard {
   /**
    * Load daily picks (fallback or supplement)
    */
-  private async loadDailyPicks(
-    baseUrl: string,
-    loadVideo = true,
-    loadPodcast = true
-  ): Promise<void> {
+  private async loadDailyPicks(baseUrl: string, loadVideo = true, loadPodcast = true): Promise<void> {
     const requests: Promise<Response>[] = [];
 
     if (loadVideo) {
@@ -499,7 +472,7 @@ export class CreativeYouDashboard {
         <p class="channel">${video.channelTitle}</p>
         <p class="reason">${this.dailyVideo.reason}</p>
         ${superhumanTouch ? `<p class="ferni-remembers"><span class="memory-icon">${ICONS.brain}</span> ${superhumanTouch}</p>` : ''}
-        <span class="mood-badge" style="background: ${moodColor}">${MOOD_LABELS[this.dailyVideo.mood]}</span>
+        <span class="mood-badge" style="background: ${moodColor}">${t(MOOD_LABEL_KEYS[this.dailyVideo.mood])}</span>
       </div>
     `;
 
@@ -543,7 +516,7 @@ export class CreativeYouDashboard {
         ${superhumanTouch ? `<p class="ferni-remembers"><span class="memory-icon">${ICONS.brain}</span> ${superhumanTouch}</p>` : ''}
         <div class="pick-meta">
           <span class="duration">${this.dailyPodcast.estimatedListenTime}</span>
-          <span class="mood-badge" style="background: ${moodColor}">${MOOD_LABELS[this.dailyPodcast.mood]}</span>
+          <span class="mood-badge" style="background: ${moodColor}">${t(MOOD_LABEL_KEYS[this.dailyPodcast.mood])}</span>
         </div>
       </div>
     `;
@@ -650,9 +623,9 @@ export class CreativeYouDashboard {
             <h4>${track.title}</h4>
             <p>${track.description}</p>
             <div class="track-meta">
-              <span>${track.episodes.length} ${t('creativeYou.episodes')}</span>
+              <span>${tp('creativeYou.episodeCount', track.episodes.length)}</span>
               <span>•</span>
-              <span>${Math.round(track.totalDuration / 60)}h ${t('creativeYou.total')}</span>
+              <span>${t('creativeYou.totalHours', { hours: Math.round(track.totalDuration / 60) })}</span>
             </div>
           </div>
           <button class="start-track-btn">${t('creativeYou.start')}</button>
@@ -749,13 +722,13 @@ export class CreativeYouDashboard {
           </div>
           <div class="episode-body">
             <h2>${episode.title}</h2>
-            <p class="episode-duration">${Math.round(episode.duration / 60)} minutes</p>
+            <p class="episode-duration">${tp('creativeYou.minutes', Math.round(episode.duration / 60))}</p>
             <p class="episode-summary">${episode.summary || episode.description}</p>
             ${
               discussionPrompts && discussionPrompts.length > 0
                 ? `
               <div class="discussion-prompts">
-                <h4>After you listen...</h4>
+                <h4>${t('creativeYou.afterYouListen')}</h4>
                 <ul>
                   ${discussionPrompts.map((p: string) => `<li>${p}</li>`).join('')}
                 </ul>
@@ -765,7 +738,7 @@ export class CreativeYouDashboard {
             }
           </div>
           <div class="episode-cta">
-            <p class="listen-hint">Find this episode on your favorite podcast app:</p>
+            <p class="listen-hint">${t('creativeYou.findEpisode')}</p>
             <div class="podcast-links">
               <a href="https://podcasts.apple.com/search?term=${encodeURIComponent(episode.podcastTitle + ' ' + episode.title)}" target="_blank" class="podcast-link">
                 Apple Podcasts
@@ -774,7 +747,7 @@ export class CreativeYouDashboard {
                 Spotify
               </a>
               <a href="https://www.google.com/search?q=${encodeURIComponent(episode.podcastTitle + ' ' + episode.title + ' podcast')}" target="_blank" class="podcast-link">
-                Search
+                ${t('accessibility.search')}
               </a>
             </div>
           </div>
@@ -992,6 +965,13 @@ export class CreativeYouDashboard {
 
     log.debug('Starting track:', trackId);
 
+    const episodeSubtitle = (ep: LearningTrack['episodes'][number]): string => {
+      const title = ep.podcastTitle || t('creativeYou.episode');
+      return ep.duration
+        ? t('creativeYou.episodeMeta', { title, minutes: Math.round(ep.duration / 60) })
+        : title;
+    };
+
     // Create track detail modal
     const modal = document.createElement('div');
     modal.className = 'track-detail-modal';
@@ -1000,7 +980,7 @@ export class CreativeYouDashboard {
       <div class="track-detail-content">
         <header>
           <div>
-            <span class="eyebrow">${track.episodes.length} episodes • ${Math.round(track.totalDuration / 60)}h</span>
+            <span class="eyebrow">${tp('creativeYou.trackSummary', track.episodes.length, { hours: Math.round(track.totalDuration / 60) })}</span>
             <h2>${track.title}</h2>
             <p class="track-desc">${track.description}</p>
           </div>
@@ -1016,7 +996,7 @@ export class CreativeYouDashboard {
               <div class="episode-number">${i + 1}</div>
               <div class="episode-info">
                 <h4>${ep.title}</h4>
-                <p>${ep.podcastTitle || 'Episode'}${ep.duration ? ` • ${Math.round(ep.duration / 60)} min` : ''}</p>
+                <p>${episodeSubtitle(ep)}</p>
               </div>
               <button class="play-episode-btn" aria-label="${t('accessibility.playEpisode')}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -1027,7 +1007,7 @@ export class CreativeYouDashboard {
             .join('')}
         </div>
         <div class="track-cta">
-          <button aria-label="${t('accessibility.startWithEpisode1')}" class="start-first-btn">Start with Episode 1</button>
+          <button aria-label="${t('accessibility.startWithEpisode1')}" class="start-first-btn">${t('accessibility.startWithEpisode1')}</button>
         </div>
       </div>
     `;

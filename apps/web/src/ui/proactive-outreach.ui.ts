@@ -166,14 +166,14 @@ function createNotificationElement(data: ProactiveOutreachData): HTMLElement {
   const icon = icons[data.type] || ICONS.thoughtBubble;
 
   // Header based on type
-  const headers: Record<string, string> = {
-    thinking_of_you: 'Thinking of you...',
-    growth_reflection: 'I noticed something...',
-    celebration: 'Hey, quick thing!',
-    life_event: 'Checking in...',
-    random_warmth: 'Just wanted to say...',
+  const headerKeys: Record<string, string> = {
+    thinking_of_you: 'proactiveOutreach.header.thinkingOfYou',
+    growth_reflection: 'proactiveOutreach.header.growthReflection',
+    celebration: 'proactiveOutreach.header.celebration',
+    life_event: 'proactiveOutreach.header.lifeEvent',
+    random_warmth: 'proactiveOutreach.header.randomWarmth',
   };
-  const header = headers[data.type] || 'Hey...';
+  const header = t(headerKeys[data.type] || 'proactiveOutreach.header.default');
 
   notification.innerHTML = `
     <div class="proactive-outreach__icon">${icon}</div>
@@ -192,11 +192,11 @@ function createNotificationElement(data: ProactiveOutreachData): HTMLElement {
       </svg>
     </button>
     <div class="proactive-outreach__actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.letSTalk')}" class="proactive-outreach__action proactive-outreach__action--respond" type="button">
-        Let's talk
+      <button class="proactive-outreach__action proactive-outreach__action--respond" type="button">
+        ${t('proactiveOutreach.letsTalk')}
       </button>
-      <button aria-label="${t('accessibility.later')}" class="proactive-outreach__action proactive-outreach__action--later" type="button">
-        Later
+      <button class="proactive-outreach__action proactive-outreach__action--later" type="button">
+        ${t('accessibility.later')}
       </button>
     </div>
   `;

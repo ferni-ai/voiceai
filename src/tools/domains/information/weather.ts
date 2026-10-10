@@ -27,7 +27,7 @@ import {
   formatLocationName,
   type GeocodingResult,
 } from './utils/geocoding.js';
-import { getCurrentSessionLocation, isValidLocation } from './location-preference.js';
+import { getCallerLocation, isValidLocation } from './location-preference.js';
 
 // ============================================================================
 // GOOGLE WEATHER API
@@ -507,19 +507,14 @@ export async function getWeatherForecast(location: string, days = 5): Promise<st
 export function createWeatherTools() {
   const logger = getLogger();
 
-  /**
-   * Resolve location from args or session context.
-   * Native tools don't receive userId/userLocation in their execute function,
-   * so we fall back to the current active session's location.
-   */
-  function resolveLocation(argLocation?: string): string | null {
+  /** Resolve location from args, else the calling session's location. */
+  function resolveLocation(argLocation: string | undefined, run: unknown): string | null {
     // If a valid location was provided, use it
     if (isValidLocation(argLocation)) {
       return argLocation!;
     }
 
-    // Fall back to current active session location
-    const sessionLocation = getCurrentSessionLocation();
+    const sessionLocation = getCallerLocation(run);
     if (sessionLocation) {
       logger.info(
         { argLocation, sessionLocation, source: 'session-fallback' },
@@ -544,9 +539,9 @@ export function createWeatherTools() {
             'City name (e.g., "Philadelphia", "New York"). Optional - defaults to user\'s detected location.'
           ),
       }),
-      execute: async ({ location: argLocation }) => {
+      execute: async ({ location: argLocation }, run) => {
         const startTime = Date.now();
-        const location = resolveLocation(argLocation);
+        const location = resolveLocation(argLocation, run);
 
         if (!location) {
           return "I don't know your location. Which city would you like weather for?";
@@ -578,9 +573,9 @@ export function createWeatherTools() {
           .describe("City name. Optional - defaults to user's detected location."),
         days: z.number().optional().describe('Number of days to forecast (1-7), defaults to 5'),
       }),
-      execute: async ({ location: argLocation, days = 5 }) => {
+      execute: async ({ location: argLocation, days = 5 }, run) => {
         const startTime = Date.now();
-        const location = resolveLocation(argLocation);
+        const location = resolveLocation(argLocation, run);
 
         if (!location) {
           return "I don't know your location. Which city would you like the forecast for?";

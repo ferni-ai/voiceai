@@ -22,9 +22,9 @@ import { soundUI } from './sound.ui.js';
 import { toast } from './whisper.ui.js';
 import {
   getReferralUrl,
-  getGardenStats,
-  getTotalReferralSeeds,
+  loadGarden,
   REFERRAL_SIGNUP_REWARD,
+  type GardenData,
 } from '../services/referral.service.js';
 
 const log = createLogger('ReferralUI');
@@ -76,8 +76,8 @@ const ICONS = {
  * Get share content with personalized referral URL
  */
 function getShareContent() {
-  const referralUrl = getReferralUrl();
-  
+  const referralUrl = getReferralUrl() ?? ''; // the modal only opens once the server-issued link loaded
+
   return {
     title: t('referral.share.title', 'Meet Ferni'),
     message: t('referral.share.message', { url: referralUrl }, `Know someone who could use a friend who actually listens?
@@ -108,13 +108,17 @@ No pressure - just wanted to share something that's been meaningful to me.`),
 // PUBLIC API
 // ============================================================================
 
-export function openReferral(): void {
+export async function openReferral(): Promise<void> {
   if (isOpen) return;
-
+  isOpen = true; // held while the link loads so a second tap can't open a second modal
+  const garden = await loadGarden();
+  if (!garden) {
+    isOpen = false;
+    toast.error(t('referral.linkUnavailable'));
+    return;
+  }
   soundUI.play('switch');
-  createModal();
-  isOpen = true;
-
+  createModal(garden);
   log.info('Referral modal opened');
 }
 
@@ -135,19 +139,16 @@ export function closeReferral(): void {
 // MODAL
 // ============================================================================
 
-function createModal(): void {
+function createModal(garden: GardenData): void {
   document.querySelector('.referral-modal')?.remove();
 
   modal = document.createElement('div');
   modal.className = 'referral-modal';
   modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-label', 'Share Ferni with a friend');
+  modal.setAttribute('aria-label', t('accessibility.shareFerniWithFriend'));
 
-  // Get personalized URL and garden stats
-  const referralUrl = getReferralUrl();
-  const gardenStats = getGardenStats();
-  const totalSeeds = getTotalReferralSeeds();
-  const shortUrl = referralUrl.replace('https://', '').replace('http://', '');
+  const totalSeeds = garden.totalEarnedFromReferrals;
+  const shortUrl = garden.referralUrl.replace('https://', '').replace('http://', '');
 
   modal.innerHTML = `
     <div class="referral-backdrop"></div>
@@ -181,30 +182,30 @@ function createModal(): void {
         <span class="referral-link-url">${shortUrl}</span>
       </div>
 
-      <div class="referral-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.share')}" class="referral-btn referral-btn--primary" data-action="share">
+      <div class="referral-actions">
+        <button class="referral-btn referral-btn--primary" data-action="share">
           ${ICONS.share}
           <span>${t('referral.buttons.share', 'Share')}</span>
         </button>
-        <button aria-label="${t('accessibility.copy')}" class="referral-btn" data-action="copy">
+        <button class="referral-btn" data-action="copy">
           ${ICONS.copy}
           <span>${t('referral.buttons.copyLink', 'Copy Link')}</span>
         </button>
-        <button aria-label="${t('accessibility.email')}" class="referral-btn" data-action="email">
+        <button class="referral-btn" data-action="email">
           ${ICONS.mail}
           <span>${t('referral.buttons.email', 'Email')}</span>
         </button>
-        <button aria-label="${t('accessibility.text')}" class="referral-btn" data-action="sms">
+        <button class="referral-btn" data-action="sms">
           ${ICONS.message}
           <span>${t('referral.buttons.text', 'Text')}</span>
         </button>
       </div>
 
       <!-- Garden Stats (if they have referrals) -->
-      ${gardenStats.totalReferrals > 0 || totalSeeds > 0 ? `
+      ${garden.totalReferrals > 0 || totalSeeds > 0 ? `
         <div class="referral-garden">
           <span class="referral-garden-title">${t('referral.garden.title', 'Your garden:')}</span>
-          <span class="referral-garden-stats">${t('referral.garden.friendsGrowing', { count: gardenStats.totalReferrals }, '{count} friends growing')}</span>
+          <span class="referral-garden-stats">${t('referral.garden.friendsGrowing', { count: garden.totalReferrals }, '{count} friends growing')}</span>
           ${totalSeeds > 0 ? `<span class="referral-garden-earned">${t('referral.garden.earned', { seeds: totalSeeds }, "You've earned {seeds} seeds from sharing")}</span>` : ''}
         </div>
       ` : `
@@ -413,7 +414,7 @@ function injectStyles(): void {
     .referral-close {
       position: absolute;
       top: var(--space-4, 16px);
-      right: var(--space-4, 16px);
+      inset-inline-end: var(--space-4, 16px);
       background: none;
       border: none;
       padding: var(--space-2, 8px);
@@ -475,8 +476,8 @@ function injectStyles(): void {
 
     .referral-actions {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: var(--space-3, 12px);
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-2, 8px);
       margin-bottom: var(--space-4, 16px);
     }
 
@@ -506,15 +507,14 @@ function injectStyles(): void {
     }
 
     .referral-btn--primary {
-      grid-column: span 2;
+      grid-column: 1 / -1;
       background: var(--persona-primary, #4a6741);
       border-color: var(--persona-primary, #4a6741);
       color: white;
     }
 
-    .referral-btn--primary:hover {
-      background: var(--persona-secondary, #3d5a35);
-    }
+    .referral-btn--primary:hover { background: var(--persona-secondary, #3d5a35); }
+    .referral-btn:not(.referral-btn--primary) { flex-direction: column; gap: 4px; padding: var(--space-3, 12px) 6px; text-align: center; }
 
     .referral-btn svg {
       width: 18px;

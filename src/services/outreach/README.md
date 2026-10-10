@@ -480,7 +480,6 @@ import {
   isFirestoreAvailable,
   saveOutreachProfile,
   loadOutreachProfile,
-  getOutreachStats 
 } from './services/outreach';
 
 // Check if persistence available
@@ -492,10 +491,6 @@ if (isFirestoreAvailable()) {
     channel: channelProfile,
     relationship: relationshipProfile,
   });
-  
-  // Get stats
-  const stats = await getOutreachStats('user-123', 30);
-  // { totalSent: 45, byChannel: { sms: 30, email: 15 }, ... }
 }
 ```
 

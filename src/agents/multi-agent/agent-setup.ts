@@ -18,7 +18,6 @@
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
-import { routeSayThroughModel } from '../shared/native-speech.js';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig, PersonaId } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
@@ -34,13 +33,7 @@ import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
 import { capToolsToLimit, getMaxTools } from '../../config/tool-config.js';
 
 // Model provider abstraction - centralizes all model-specific behavior
-import {
-  buildCascadeKeyterms,
-  createProviderSTT,
-  getModelProvider,
-  isUsingOpenAI,
-  isUsingQwen3Omni,
-} from '../model-provider/index.js';
+import { getModelProvider, isUsingOpenAI } from '../model-provider/index.js';
 
 // Get the model provider (singleton)
 const modelProvider = getModelProvider();
@@ -57,7 +50,6 @@ import {
   stopHealthMonitoring,
 } from '../shared/openai-health-monitor.js';
 // External STT: Sonata (USE_SONATA_STT=true)
-import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
 // Pipeline switching — dynamic inference routing based on emotion and context
 import {
   isPipelineSwitchingEnabled,
@@ -85,7 +77,6 @@ import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-
 // Tool loading - hoisted for faster initial agent startup
 import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
 import { buildEmergencyToolset } from './emergency-toolset.js';
-import { interruptionOverrides } from './interruption-config.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
   getToolsForAgent,
@@ -114,16 +105,13 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
-import { createPersonaTTS, createQwen3TTS } from './persona-tts.js';
-import {
-  installLiveCallBehaviors,
-  logBargeInDecisions,
-  startTurnSounds,
-} from './live-call-behaviors.js';
+import { createPersonaTTS } from './persona-tts.js';
+import { createCallSession } from './call-session.js';
+import { installLiveCallBehaviors, startTurnSounds } from './live-call-behaviors.js';
 import {
   installDirectorNotes,
   installPaceMatching,
-  installToolRetrieval,
+  installTurnListeners,
   recordAssistantTurns,
 } from './turn-observers.js';
 import { timeContext } from '../shared/time-context.js';
@@ -139,8 +127,8 @@ import {
   type VoiceHumanizationIntegration,
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
-import { endpointingDelays } from '../shared/turn-patience.js';
 import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
+import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 
 const log = getLogger();
 
@@ -205,6 +193,11 @@ export interface AgentSetupConfig {
    * This reduces critical path time by ~500ms (handlers can be wired in background).
    */
   deferHandlers?: boolean;
+  /**
+   * The call's running session, when this persona is swapped into it (persona-swap.ts).
+   * Only this persona's Agent and its own listeners are built; the session stays the call's.
+   */
+  callSession?: voice.AgentSession<UserData>;
 }
 
 /**
@@ -216,10 +209,12 @@ export interface AgentSetupResult {
   session: voice.AgentSession<any>;
   /** The agent wrapper */
   agent: voice.Agent<UserData>;
-  /** TTS engine (PersonaAwareTTS or Qwen3TTSAdapter depending on provider) */
-  tts: Awaited<ReturnType<typeof createPersonaTTS>> | Awaited<ReturnType<typeof createQwen3TTS>>;
+  /** TTS engine (PersonaAwareTTS) */
+  tts: Awaited<ReturnType<typeof createPersonaTTS>>;
   /** Cleanup function (cleans up all handlers) */
   cleanup: () => Promise<void>;
+  /** Removes only this persona's own listeners: what swapping it out of the call removes */
+  release: () => Promise<void>;
   /** Function to make agent speak */
   say: (text: string, options?: { allowInterruptions?: boolean }) => void;
   /** Handlers status */
@@ -269,6 +264,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     conversationManager,
     enableFullHandlers = true, // Default to enabling all handlers
     deferHandlers = false, // ⚡ FAST-AGENT-JOIN: defer handler wiring for faster startup
+    callSession,
   } = config;
 
   // 📊 TIMING INSTRUMENTATION - Track every step
@@ -291,9 +287,15 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   // CRITICAL FIX: Set personaId on userData so TTS wrapper knows which persona is active
   // This enables persona-specific SSML/speech traits (e.g., Peter's excited discovery mode)
   // Without this, all personas use Ferni's TTS configuration
-  userData.personaId = persona.id;
+  if (!callSession) userData.personaId = persona.id; // a swap sets it as it swaps (persona-swap.ts)
 
   const cleanupFunctions: Array<() => void | Promise<void>> = [];
+  // Listeners bound to this persona's Agent or model, which a swap removes (release())
+  const personaCleanups: Array<() => void | Promise<void>> = [];
+  const forPersona = (fn: () => void | Promise<void>) => {
+    cleanupFunctions.push(fn);
+    personaCleanups.push(fn);
+  };
 
   // =========================================================================
   // BUILD SYSTEM PROMPTS - Two levels for optimal instruction following
@@ -329,10 +331,11 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     const dateTimeContext = timeContext(new Date(), userData?.callerTimezone);
 
     // Append date/time to model base instructions (session-specific, not cached)
-    modelBaseInstructions = baseInstructions + dateTimeContext;
+    const outboundAwareness = outboundCallerAwareness(outboundPartiesFor(sessionId));
+    modelBaseInstructions = baseInstructions + dateTimeContext + outboundAwareness;
 
-    // USER AWARENESS: who they're talking to, from the first moment
-    const { userProfile } = services;
+    // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
+    const userProfile = outboundAwareness ? undefined : services.userProfile;
     if (userProfile) {
       rememberCallerHistory(sessionId, callerHistory(userProfile)); // for the greeting
       const userAwareness: string[] = [];
@@ -493,7 +496,6 @@ ${userAwareness.join('\n')}
 Use this awareness naturally. Don't announce what you know - just BE a friend who remembers.
 Reference past context when relevant, but don't force it. Let the conversation flow.
 `;
-        // DETAILED LOGGING: Show exactly what "Better Than Human" context is being injected
         log.info(
           { personaId: persona.id, userAwarenessCount: userAwareness.length },
           `👤 BETTER THAN HUMAN - User awareness injected (${userAwareness.length} facts)`
@@ -567,7 +569,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
               if (calendarAwareness.length > 0) {
                 // Store in userData for use in turn-handler injection (turn 0-1)
                 userData.calendarAwareness = calendarAwareness.join(' ');
-                // DETAILED LOGGING: Show calendar awareness being stored
                 log.info(
                   { personaId: persona.id, calendarInsightsCount: calendarAwareness.length },
                   `📅 BETTER THAN HUMAN - Calendar awareness loaded (${calendarAwareness.length} insights)`
@@ -626,11 +627,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
   mark('parallel_start');
   const parallelStart = Date.now();
 
-  // 1. TTS creation promise (Qwen3-TTS when USE_QWEN3_OMNI, else Cartesia)
+  // 1. TTS creation promise
   mark('tts_start');
-  const ttsPromise = (
-    isUsingQwen3Omni() ? createQwen3TTS(persona.id) : createPersonaTTS(persona.id)
-  ).then((tts) => {
+  const ttsPromise = createPersonaTTS(persona.id).then((tts) => {
     mark('tts_done');
     return tts;
   });
@@ -1130,99 +1129,18 @@ Reference past context when relevant, but don't force it. Let the conversation f
   );
   mark('llm_model_done');
 
-  // =========================================================================
-  // VAD CONFIGURATION (Always-On)
-  // =========================================================================
-  // Silero VAD is loaded for ALL LLM backends to enable sub-100ms barge-in.
-  // Without VAD, Gemini mode relies on server-side STT turn detection which
-  // adds 200-300ms before interruption fires. With VAD, the LiveKit SDK
-  // detects speech at the audio level (~30-50ms) and auto-interrupts.
-  //
-  // DISABLE_VAD=true is an escape hatch to disable if issues arise.
-  // See: https://docs.livekit.io/agents/voice-agent/interruptions/
-  // =========================================================================
-  const DISABLE_VAD = process.env.DISABLE_VAD === 'true';
-  let vad: Awaited<ReturnType<typeof import('@livekit/agents-plugin-silero').VAD.load>> | undefined;
-
-  if (!DISABLE_VAD) {
-    try {
-      const vadLoadStart = Date.now();
-      const { VAD } = await import('@livekit/agents-plugin-silero');
-      // 350 ms of silence ends the caller's speech (Silero's default is 550).
-      // The barge-in fast path reads speech length from these state changes;
-      // with 550 ms a 0.45 s "uh-huh" looked like a second of talk-over.
-      vad = await VAD.load({ minSilenceDuration: Number(process.env.VAD_MIN_SILENCE_MS) || 350 });
-      log.info(
-        {
-          personaId: persona.id,
-          loadTimeMs: Date.now() - vadLoadStart,
-          reason: 'always-on',
-        },
-        '🎙️ Silero VAD loaded (always-on)'
-      );
-    } catch (vadErr) {
-      log.warn(
-        { error: String(vadErr), personaId: persona.id },
-        '⚠️ VAD load failed - barge-in will fall back to transcript-based detection'
-      );
-    }
-  } else {
-    log.info({ personaId: persona.id }, '🎙️ VAD disabled by DISABLE_VAD env var');
-  }
-
-  // Create voice session
-  // Turn detection: Provider-specific (Gemini uses 'realtime_llm', OpenAI uses undefined + VAD)
-  // TTS: Sonata TTS for persona voice
-  // STT: Sonata STT (USE_SONATA_STT=true) or LLM-internal
-  // VAD: Always-on for sub-100ms barge-in (DISABLE_VAD=true to opt out)
   mark('session_create_start');
-
-  const useSonataStt = process.env.USE_SONATA_STT === 'true';
-  const externalStt = useSonataStt
-    ? new SonataSTT({
-        hfRepo: process.env.SONATA_STT_HF_REPO,
-        enableVad: process.env.SONATA_STT_ENABLE_VAD !== 'false',
-      })
-    : (createProviderSTT(
-        modelProvider,
-        buildCascadeKeyterms({
-          userName: (services.userProfile?.preferredName ||
-            services.userProfile?.name ||
-            userData?.userName) as string | undefined,
-        })
-      ) as InstanceType<typeof SonataSTT> | undefined);
-
-  const session = new voice.AgentSession<UserData>({
-    turnDetection: modelProvider.getSessionTurnDetection(),
-    vad, // Silero VAD for turn detection (required for OpenAI to support allowInterruptions: false)
-    ...(externalStt && { stt: externalStt }),
-    llm: llmModel,
-    tts, // Cartesia TTS for both (OpenAI text-only mode outputs text)
-    userData,
-    // Barge-in vs "mm-hmm": see interruption-config.ts. Overrides voiceOptions.
-    turnHandling: { interruption: interruptionOverrides() },
-    voiceOptions: {
-      allowInterruptions: true,
-      ...endpointingDelays(), // waits through thinking pauses: see turn-patience.ts
-      minInterruptionWords: 1,
-      minInterruptionDuration: 150, // Was 200ms - faster interrupt detection
-      preemptiveGeneration: true,
-    },
-  });
-
-  logBargeInDecisions(session, sessionId);
-
-  // Gemini native audio speaks for itself: scripted say() lines must come from
-  // the model too, or the call alternates between Gemini's and Cartesia's voice.
-  if (modelProvider.speaksNatively?.()) {
-    routeSayThroughModel(session as unknown as Parameters<typeof routeSayThroughModel>[0]);
-  }
+  // A persona swapped into a running call joins its session (persona-swap.ts)
+  const session =
+    callSession ??
+    (await createCallSession({ persona, sessionId, services, userData, llmModel, tts }));
 
   mark('session_created');
 
   // Match the single-agent conversation humanization bootstrap without adding
   // work to the agent join critical path.
   void (async () => {
+    if (callSession) return; // once per call, by its first persona
     try {
       await initConversationSession({
         sessionId,
@@ -1264,7 +1182,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // BETTER THAN HUMAN: Start health monitoring for OpenAI connections
   // This proactively tracks connection health and can trigger reconnection
   // =========================================================================
-  if (isUsingOpenAI()) {
+  if (isUsingOpenAI() && !callSession) {
     startHealthMonitoring(sessionId);
 
     // Register a ping callback to keep the connection alive during idle periods
@@ -1419,7 +1337,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     }
 
     // FIX: Add cleanup for all LLM event listeners to prevent memory leaks
-    cleanupFunctions.push(() => {
+    forPersona(() => {
       if (llmWithEvents.off) {
         llmWithEvents.off('error', llmErrorHandler);
         llmWithEvents.off('close', llmCloseHandler);
@@ -1442,7 +1360,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     on?: (event: string, handler: (...args: unknown[]) => void) => void;
     off?: (event: string, handler: (...args: unknown[]) => void) => void;
   };
-  if (sessionWithEvents.on) {
+  if (sessionWithEvents.on && !callSession) {
     // Store all session event handlers for cleanup
     const sessionEventHandlers: Array<{ event: string; handler: (...args: unknown[]) => void }> =
       [];
@@ -1659,7 +1577,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
   // FerniAgent now hoisted to module level for faster startup
   // Per-turn intelligence (context builders, memory retrieval, emotional
-  // guidance) - see turn-intelligence.ts for why this is gated.
+  // guidance). On unless TURN_INTELLIGENCE=off; see turn-intelligence.ts.
   const turnContextHook =
     resolveTurnIntelligenceMode() === 'on'
       ? createTurnIntelligenceHook({ persona, services, userData, room })
@@ -1677,6 +1595,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // function-calling instructions. This can confuse the model and break tool calls.
     // The model will greet naturally based on its system prompt.
     skipGreeting: true,
+    ...(callSession && { voice: { llm: llmModel, tts } }),
   }) as unknown as voice.Agent<UserData>; // Type cast needed - FerniAgent uses compatible session data
 
   // Memory recall: add what Ferni remembers as soon as the user's words are
@@ -1697,7 +1616,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     };
     sessionWithEvents.on('user_input_transcribed', onRecallTranscript);
     sessionWithEvents.on('agent_state_changed', onRecallAgentState);
-    cleanupFunctions.push(() => {
+    forPersona(() => {
       sessionWithEvents.off?.('user_input_transcribed', onRecallTranscript);
       sessionWithEvents.off?.('agent_state_changed', onRecallAgentState);
     });
@@ -1723,7 +1642,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     sessionWithEvents.on('user_input_transcribed', onTranscript);
     sessionWithEvents.on('agent_state_changed', onAgentState);
     sessionWithEvents.on('user_state_changed', onUserState);
-    cleanupFunctions.push(() => {
+    forPersona(() => {
       sessionWithEvents.off?.('user_input_transcribed', onTranscript);
       sessionWithEvents.off?.('agent_state_changed', onAgentState);
       sessionWithEvents.off?.('user_state_changed', onUserState);
@@ -1878,7 +1797,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         let liveBackchannel: LiveBackchannelIntegration | null = null;
         let lastUserFinalTranscript = '';
         const pace = await installPaceMatching(session, sessionId, cleanupFunctions);
-        const toolRetrieval = await installToolRetrieval({
+        const toolRetrieval = await installTurnListeners({
           session,
           sessionId,
           agent,
@@ -2124,7 +2043,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       // FRONTEND PUBLISHER - Required for music state messages to frontend
       // Without this, the frontend won't know when music is playing (hoisted to module level)
       try {
-        initializeFrontendPublisher(room);
+        initializeFrontendPublisher(sessionId, room);
         diag.entry(`🎭 [${persona.id}] Frontend publisher initialized`);
       } catch (pubErr) {
         log.warn({ error: String(pubErr) }, '⚠️ Failed to initialize frontend publisher');
@@ -2172,7 +2091,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   };
 
   // ⚡ FAST-AGENT-JOIN: Wire handlers now or defer for later
-  if (!deferHandlers) {
+  if (!deferHandlers && !callSession) {
     await wireHandlersImpl();
   } else {
     log.info(
@@ -2209,7 +2128,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
     tts,
     handlers: handlersStatus,
     // ⚡ FAST-AGENT-JOIN: wireHandlers function for deferred wiring
-    wireHandlers: deferHandlers ? wireHandlersImpl : undefined,
+    wireHandlers: deferHandlers && !callSession ? wireHandlersImpl : undefined,
+    release: async () => {
+      for (const fn of personaCleanups.splice(0)) await fn();
+    },
     cleanup: async () => {
       const cleanupStart = Date.now();
       log.info(
@@ -2248,6 +2170,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         { personaId: persona.id, durationMs: Date.now() - handlerCleanupStart },
         '🧹 [CLEANUP] Handler cleanups done'
       );
+      if (callSession) return; // a swapped-in persona owns nothing else: the call does
 
       // FIX: Clean up speech session services (29+ services) to prevent memory leaks
       // This matches what the main voice-agent cleanup does

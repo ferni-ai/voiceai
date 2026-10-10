@@ -12,23 +12,14 @@
  * @module ui/seed-payment-form
  */
 
-import type { SeedPaymentOutcome } from '../services/seed-payment.js';
+import { formatCurrency, t } from '../i18n/index.js';
+import type { SeedPaymentOutcome, StripeForCard } from '../types/seed-fund.types.js';
 
-/** The parts of Stripe.js this form uses. */
-export interface StripePaymentElement {
-  mount(target: HTMLElement): void;
-  destroy(): void;
-}
-export interface StripeElements {
-  create(type: 'payment'): StripePaymentElement;
-}
-export interface StripeForCard {
-  elements(options: { clientSecret: string }): StripeElements;
-  confirmPayment(options: {
-    elements: StripeElements;
-    confirmParams: { return_url: string };
-  }): Promise<{ error?: { message?: string } }>;
-}
+export type {
+  StripeElements,
+  StripeForCard,
+  StripePaymentElement,
+} from '../types/seed-fund.types.js';
 
 const STYLE_ID = 'seed-pay-styles';
 const STYLES = `
@@ -66,18 +57,19 @@ function injectStyles(): void {
 }
 
 function buildDialog(amountDollars: number): HTMLElement {
+  const amount = formatCurrency(amountDollars, 'USD', { maximumFractionDigits: 0 });
   const overlay = document.createElement('div');
   overlay.className = 'seed-pay-overlay';
   overlay.innerHTML = `
     <div class="seed-pay-backdrop" data-seed-pay="backdrop"></div>
     <div class="seed-pay-dialog" role="dialog" aria-modal="true"
          aria-labelledby="seed-pay-title" tabindex="-1">
-      <h2 class="seed-pay-title" id="seed-pay-title">Plant a $${amountDollars} seed</h2>
+      <h2 class="seed-pay-title" id="seed-pay-title">${t('seedPayment.title', { amount })}</h2>
       <div class="seed-pay-element" data-seed-pay="element"></div>
       <div class="seed-pay-actions">
-        <button type="button" class="seed-pay-btn" data-seed-pay="cancel">Cancel</button>
+        <button type="button" class="seed-pay-btn" data-seed-pay="cancel">${t('common.cancel')}</button>
         <button type="button" class="seed-pay-btn seed-pay-btn--primary" data-seed-pay="submit">
-          Give $${amountDollars}
+          ${t('seedPayment.give', { amount })}
         </button>
       </div>
     </div>`;

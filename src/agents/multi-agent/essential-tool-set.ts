@@ -42,10 +42,14 @@ export async function buildEssentialToolSet(
   const { personaId, userId, services } = input;
   const subscriptionTier =
     (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
+  // A signed-in person's profile may still be loading (deferred startup): that's unknown,
+  // not "new". Filtering on null dropped every teammate they had unlocked from the first
+  // agent's tools; the handoff's runtime check still refuses one that's locked.
+  const userProfile = services.userProfile ?? (userId ? undefined : null);
 
   const { tools: handoffTools } = await buildHandoffTools({
     currentAgentId: personaId,
-    userProfile: services.userProfile,
+    userProfile,
     subscriptionTier,
     services,
   });

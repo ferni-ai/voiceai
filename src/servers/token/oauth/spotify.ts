@@ -50,10 +50,14 @@ export const SPOTIFY_SCOPES = [
   'playlist-read-collaborative',
 ];
 
-// Firestore-backed persistence store for encrypted tokens
-// Uses per-user storage under bogle_users/{userId}/spotify_oauth_tokens/data
+// Firestore-backed persistence store for encrypted tokens, keyed by the
+// verified Ferni uid: bogle_users/{uid}/spotify_links/data.
+// Not the old spotify_oauth_tokens collection: that was keyed by a client-named
+// device_id, so anyone could have planted their own Spotify link under another
+// person's uid. Those records are never read, and their owners link again.
+export const SPOTIFY_LINK_COLLECTION = 'spotify_links';
 const tokenStore = createPersistenceStore<EncryptedTokenData>({
-  collection: 'spotify_oauth_tokens',
+  collection: SPOTIFY_LINK_COLLECTION,
   documentId: 'data',
   useRootCollection: false, // Per-user storage
   syncIntervalMs: 2000,
@@ -85,27 +89,27 @@ export function getConfig(): {
 }
 
 /**
- * Get tokens for a specific device (from cache or Firestore)
+ * Get tokens for a Ferni user (from cache or Firestore)
  */
-export async function getTokens(deviceId: string): Promise<OAuthTokens | null> {
+export async function getTokens(userId: string): Promise<OAuthTokens | null> {
   // Check cache first
-  const cached = tokenCache.get(deviceId);
+  const cached = tokenCache.get(userId);
   if (cached) {
     return cached;
   }
 
   try {
-    const data = await tokenStore.get(deviceId);
+    const data = await tokenStore.get(userId);
     if (data?.encrypted) {
       const decrypted = decryptData<OAuthTokens>(data.encrypted);
       if (decrypted) {
-        tokenCache.set(deviceId, decrypted);
+        tokenCache.set(userId, decrypted);
         return decrypted;
       }
     }
   } catch (err) {
     log.error(
-      { error: (err as Error).message, deviceId: deviceId.substring(0, 8) },
+      { error: (err as Error).message, userId: userId.substring(0, 8) },
       'Error loading Spotify tokens'
     );
   }
@@ -113,45 +117,45 @@ export async function getTokens(deviceId: string): Promise<OAuthTokens | null> {
 }
 
 /**
- * Save tokens for a specific device (encrypted)
+ * Save tokens for a Ferni user (encrypted)
  */
-export async function saveTokens(deviceId: string, tokens: OAuthTokens): Promise<void> {
+export async function saveTokens(userId: string, tokens: OAuthTokens): Promise<void> {
   const tokensWithTimestamp = {
     ...tokens,
     updated_at: Date.now(),
   };
 
   // Update cache
-  tokenCache.set(deviceId, tokensWithTimestamp);
+  tokenCache.set(userId, tokensWithTimestamp);
 
   // Encrypt and persist
   try {
     const encrypted = encryptData(tokensWithTimestamp);
-    await tokenStore.setImmediate(deviceId, {
+    await tokenStore.setImmediate(userId, {
       encrypted,
       updated_at: Date.now(),
     });
-    log.info({ deviceId: deviceId.substring(0, 8) }, 'Saved Spotify OAuth tokens');
+    log.info({ userId: userId.substring(0, 8) }, 'Saved Spotify OAuth tokens');
   } catch (err) {
     log.error(
-      { error: (err as Error).message, deviceId: deviceId.substring(0, 8) },
+      { error: (err as Error).message, userId: userId.substring(0, 8) },
       'Error saving Spotify tokens'
     );
   }
 }
 
 /**
- * Remove tokens for a specific device
+ * Remove tokens for a Ferni user
  */
-export async function removeTokens(deviceId: string): Promise<void> {
-  tokenCache.delete(deviceId);
+export async function removeTokens(userId: string): Promise<void> {
+  tokenCache.delete(userId);
 
   try {
-    await tokenStore.delete(deviceId);
-    log.info({ deviceId: deviceId.substring(0, 8) }, 'Removed Spotify OAuth tokens');
+    await tokenStore.delete(userId);
+    log.info({ userId: userId.substring(0, 8) }, 'Removed Spotify OAuth tokens');
   } catch (err) {
     log.error(
-      { error: (err as Error).message, deviceId: deviceId.substring(0, 8) },
+      { error: (err as Error).message, userId: userId.substring(0, 8) },
       'Error removing Spotify tokens'
     );
   }
@@ -160,8 +164,8 @@ export async function removeTokens(deviceId: string): Promise<void> {
 /**
  * Refresh access token using refresh token
  */
-export async function refreshToken(deviceId: string): Promise<OAuthTokens | null> {
-  const userTokens = await getTokens(deviceId);
+export async function refreshToken(userId: string): Promise<OAuthTokens | null> {
+  const userTokens = await getTokens(userId);
   if (!userTokens?.refresh_token) {
     return null;
   }
@@ -183,7 +187,7 @@ export async function refreshToken(deviceId: string): Promise<OAuthTokens | null
 
     if (!response.ok) {
       log.error(
-        { status: response.status, deviceId: deviceId.substring(0, 8) },
+        { status: response.status, userId: userId.substring(0, 8) },
         'Spotify token refresh failed'
       );
       return null;
@@ -197,12 +201,12 @@ export async function refreshToken(deviceId: string): Promise<OAuthTokens | null
       scope: data.scope || userTokens.scope,
     };
 
-    await saveTokens(deviceId, newTokens);
-    log.info({ deviceId: deviceId.substring(0, 8) }, 'Spotify token refreshed');
+    await saveTokens(userId, newTokens);
+    log.info({ userId: userId.substring(0, 8) }, 'Spotify token refreshed');
     return newTokens;
   } catch (err) {
     log.error(
-      { error: (err as Error).message, deviceId: deviceId.substring(0, 8) },
+      { error: (err as Error).message, userId: userId.substring(0, 8) },
       'Error refreshing Spotify token'
     );
     return null;
@@ -212,8 +216,8 @@ export async function refreshToken(deviceId: string): Promise<OAuthTokens | null
 /**
  * Get valid access token for a user (refresh if needed)
  */
-export async function getValidToken(deviceId: string): Promise<string | null> {
-  const userTokens = await getTokens(deviceId);
+export async function getValidToken(userId: string): Promise<string | null> {
+  const userTokens = await getTokens(userId);
   if (!userTokens) {
     return null;
   }
@@ -221,7 +225,7 @@ export async function getValidToken(deviceId: string): Promise<string | null> {
   // Check if token is expired (with 5 min buffer)
   const bufferMs = 5 * 60 * 1000;
   if (Date.now() >= userTokens.expires_at - bufferMs) {
-    const refreshed = await refreshToken(deviceId);
+    const refreshed = await refreshToken(userId);
     return refreshed?.access_token || null;
   }
 

@@ -96,18 +96,18 @@ body {
   --color-ferni-text: var(--color-ferni, #4a6741);
   --color-peter-text: var(--color-peter, #3a6b73);
   --color-alex-text: var(--color-alex, #5a6b8a);
-  --color-maya-text: var(--color-maya, #a67a6a);
-  --color-jordan-text: var(--color-jordan, #c4856a);
-  --color-nayan-text: var(--color-nayan, #b8956a);
+  --color-maya-text: #8a6153; /* AA on cream; brand colour is --color-maya */
+  --color-jordan-text: #9c5a3e; /* AA on cream; brand colour is --color-jordan */
+  --color-nayan-text: #85653f; /* AA on cream; brand colour is --color-nayan */
   --color-joel-text: var(--color-joel, #9A0718);
 
   /* Marketplace persona text colors */
   --color-eli-text: var(--color-eli, #6B5B95);
   --color-marcus-text: var(--color-marcus, #2D5A4A);
   --color-kenji-text: var(--color-kenji, #2C3E50);
-  --color-carmen-text: var(--color-carmen, #D4A373);
-  --color-amara-text: var(--color-amara, #7B6BA8);
-  --color-sasha-text: var(--color-sasha, #E07B53);
+  --color-carmen-text: #935f2d; /* AA on cream; brand colour is --color-carmen */
+  --color-amara-text: #7261a2; /* AA on cream; brand colour is --color-amara */
+  --color-sasha-text: #b44a20; /* AA on cream; brand colour is --color-sasha */
   --color-ray-text: var(--color-ray, #4A5568);
 
   /* Sophisticated Gradients */
@@ -2784,6 +2784,9 @@ html.theme-transitioning *::after {
   margin: 0;
   padding: 0;
 }
+
+/* Form controls don't inherit the page font by default (cards built as <button> rendered in Arial). */
+button, input, select, textarea { font-family: inherit; }
 
 html {
   font-size: 16px;

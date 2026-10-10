@@ -1,7 +1,7 @@
 # Ferni Intelligence Worker
 # Processes pattern detection, predictive intelligence, and trust recording
 
-FROM node:20-slim AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
@@ -24,7 +24,7 @@ RUN pnpm build:fast || pnpm build
 # Production image
 # ============================================================================
 
-FROM node:20-slim
+FROM node:22-slim
 
 WORKDIR /app
 

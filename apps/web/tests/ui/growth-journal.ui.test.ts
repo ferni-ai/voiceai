@@ -103,6 +103,7 @@ describe('GrowthJournalUI', () => {
 
     // Reset module state by re-importing
     vi.resetModules();
+    await (await import('../../src/i18n/index.js')).setLocale('en-US', { reload: false });
     const module = await import('../../src/ui/growth-journal.ui.js');
     initGrowthJournalUI = module.initGrowthJournalUI;
     openGrowthJournal = module.openGrowthJournal;

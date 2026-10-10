@@ -15,6 +15,7 @@ import { toast } from '../ui/whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
 import { getFirebaseUid, onAuthStateChange, signOut } from './firebase-auth.service.js';
 import { getPushNotificationsService } from './push-notifications.service.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('PushPreference');
 
@@ -84,9 +85,9 @@ export async function applyPushPreference(enabled: boolean): Promise<void> {
   }
 
   if (service.getPermissionStatus() !== 'granted') {
-    toast.error('Notifications are blocked. Allow them in your browser settings.');
+    toast.error(t('notifications.blockedError'));
   } else {
-    toast.error("Notifications aren't available right now.");
+    toast.error(t('notifications.unavailableError'));
   }
 }
 

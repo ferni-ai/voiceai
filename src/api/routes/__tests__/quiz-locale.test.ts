@@ -22,12 +22,17 @@ vi.mock('../../../i18n/index.js', () => ({
   tFor: vi.fn((locale: string, key: string) => `${locale}|${key}`),
 }));
 
-vi.mock('../../../memory/index.js', () => ({
-  getDefaultStore: () => ({
+vi.mock('../../../memory/store-factory.js', () => ({
+  getStore: async () => ({
     getProfile: vi.fn(async () => mockProfile.current),
     saveProfile: vi.fn(async () => undefined),
   }),
 }));
+// The migrated callers reach the store through getProfileStore (flag off: the default store).
+vi.mock('../../../memory/profile-store.js', async () => {
+  const { getDefaultStore } = await import('../../../memory/index.js');
+  return { getProfileStore: async () => getDefaultStore(), isAgentProfilePersistenceOn: () => false };
+});
 
 vi.mock('../../../services/memory/persona-memories.js', () => ({
   getAllUserMemories: vi.fn(async () => mockMemories.current),

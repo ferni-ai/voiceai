@@ -155,7 +155,6 @@ class SonataSpeechStream extends stt.SpeechStream {
 
 /**
  * Extract Int16Array PCM from a LiveKit AudioFrame.
- * Matches the pattern in kyutai-stt-adapter.ts audioFrameToPcm().
  */
 function audioFrameToI16(frame: AudioFrame): Int16Array {
   const data = frame.data;

@@ -295,6 +295,24 @@ describe('TEAM_HUDDLE_SCRIPTS', () => {
     expect(TEAM_HUDDLE_SCRIPTS.personaComments.ferni.progress.length).toBeGreaterThan(0);
     expect(TEAM_HUDDLE_SCRIPTS.personaComments.ferni.concern.length).toBeGreaterThan(0);
   });
+
+  it('fallback comments never assert measurable facts about the user', () => {
+    // These lines are used when no engagement data backs a comment (huddle persistence
+    // and the static fallback in /api/team), so they must not claim stats or trends.
+    const all = Object.values(TEAM_HUDDLE_SCRIPTS.personaComments).flatMap((byCategory) =>
+      Object.values(byCategory).flat()
+    );
+    expect(all.length).toBeGreaterThan(10);
+    for (const line of all) {
+      expect(line, line).not.toMatch(/\d|%/);
+      expect(line, line).not.toMatch(
+        /response time|before 7am|underestimate|skip exercise|Tuesdays are|has improved|is up\b|watched you grow|more confidence|you're in a growth chapter|trajectory is/i
+      );
+    }
+    // Also guard the specific fabricated lines that used to ship
+    expect(all).not.toContain("Email response time is down 30%. That's efficiency gains.");
+    expect(all).not.toContain('I found a pattern—your best days start before 7am.');
+  });
 });
 
 describe('SEASONAL_EVENTS', () => {

@@ -17,13 +17,15 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
-import { t } from '../i18n/index.js';
+import { getLocale, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import {
   getCustomAgent,
   listMemories,
   type CustomAgent,
 } from '../services/custom-agent.service.js';
 import { apiPost } from '../utils/api.js';
+import { applyChatFraming, replyFromAgent, talksAsPastSelf } from '../services/custom-agent-chat.js';
 
 const log = createLogger('TalkToTwinUI');
 
@@ -88,6 +90,7 @@ let currentAgent: CustomAgent | null = null;
 let messages: Message[] = [];
 let isThinking = false;
 let twinContext: TwinContext | null = null;
+let scene = ''; // roleplay, coaching or task context for an agent that isn't a twin
 
 // ============================================================================
 // INITIALIZATION
@@ -102,7 +105,7 @@ function ensureModalExists(): HTMLElement {
   twinModal = document.createElement('div');
   twinModal.className = 'talk-twin-overlay';
   twinModal.innerHTML = `
-    <div class="twin-backdrop" data-action="close" role="button" tabindex="0"></div>
+    <div class="twin-backdrop" data-action="close"></div>
     <div class="twin-container" role="dialog" aria-modal="true" aria-labelledby="twin-title">
       <header class="twin-header">
         <div class="twin-identity">
@@ -113,8 +116,8 @@ function ensureModalExists(): HTMLElement {
             </svg>
           </div>
           <div class="twin-info">
-            <h2 class="twin-title" id="twin-title">Your Past Self</h2>
-            <p class="twin-subtitle">Based on your journals & profile</p>
+            <h2 class="twin-title" id="twin-title">${t('talkToTwin.title')}</h2>
+            <p class="twin-subtitle">${t('talkToTwin.subtitle')}</p>
           </div>
         </div>
         <button class="twin-close" data-action="close" aria-label="${t('accessibility.close')}">
@@ -134,7 +137,7 @@ function ensureModalExists(): HTMLElement {
           <textarea 
             class="twin-input" 
             id="twin-input"
-            placeholder="Ask your past self something..."
+            placeholder="${t('talkToTwin.placeholder')}"
             rows="1"
           ></textarea>
           <button class="twin-send" id="twin-send" aria-label="${t('accessibility.send')}">
@@ -144,7 +147,7 @@ function ensureModalExists(): HTMLElement {
             </svg>
           </button>
         </div>
-        <p class="twin-hint">Speak with the perspective you've captured in your journals</p>
+        <p class="twin-hint">${t('talkToTwin.hint')}</p>
       </footer>
     </div>
   `;
@@ -182,12 +185,13 @@ export async function openTalkToTwin(agentId: string, initialPrompt?: string): P
 
     currentAgent = agent;
     messages = [];
+    applyChatFraming(modal, agent);
+    scene = talksAsPastSelf(agent) ? '' : (initialPrompt ?? '');
 
     // Build context from profile and journals
     await buildTwinContext(agent);
 
-    // Add welcome message from twin
-    addTwinWelcome();
+    if (talksAsPastSelf(agent)) addTwinWelcome(); // another agent opens its scene itself, below
 
     renderMessages();
 
@@ -200,8 +204,9 @@ export async function openTalkToTwin(agentId: string, initialPrompt?: string): P
 
     soundUI.play('switch');
 
-    // If an initial prompt was provided (from coaching/roleplay/task mode), send it
-    if (initialPrompt) {
+    if (scene) void sendMessage(''); // the agent opens the scene; it isn't the person's message
+    // A twin gets the initial prompt (coaching, roleplay, task mode) as a message
+    if (initialPrompt && talksAsPastSelf(agent)) {
       // Small delay to let the UI settle
       setTimeout(() => {
         const input = twinModal?.querySelector('#twin-input') as HTMLTextAreaElement;
@@ -336,81 +341,51 @@ function addTwinWelcome(): void {
 
   const { profile, recentJournals, currentMood: _currentMood } = twinContext;
 
-  // Build a personalized welcome using the profile
-  let welcome = '';
+  // Build a personalized welcome using the profile; greeting comes from mannerisms if available
+  const parts = [
+    profile.mannerisms[0] ?? t('talkToTwin.welcome.hey'),
+    t('talkToTwin.welcome.intro', { name: profile.name }),
+  ];
+  if (recentJournals.length > 0) parts.push(tp('talkToTwin.welcome.journals', recentJournals.length));
+  if (profile.philosophy) parts.push(t('talkToTwin.welcome.philosophy', { philosophy: profile.philosophy }));
+  const welcome = `${parts.join(' ')}\n\n${t('talkToTwin.welcome.prompt')}`;
 
-  // Use a greeting from mannerisms if available
-  if (profile.mannerisms.length > 0) {
-    welcome = profile.mannerisms[0] + ' ';
-  } else {
-    welcome = 'Hey. ';
-  }
+  addMessage('twin', welcome);
+}
 
-  welcome += `It's me—well, you. The ${profile.name} who's been journaling and reflecting. `;
-
-  if (recentJournals.length > 0) {
-    welcome += `I've got ${recentJournals.length} journal entries worth of perspective to share. `;
-  }
-
-  if (profile.philosophy) {
-    welcome += `Remember what we believe: "${profile.philosophy}" `;
-  }
-
-  welcome += '\n\nWhat would you like to talk about?';
-
-  messages.push({
-    id: `msg-${Date.now()}`,
-    role: 'twin',
-    content: welcome,
-    timestamp: new Date(),
-  });
+function addMessage(role: Message['role'], content: string, idOffset = 0): void {
+  messages.push({ id: `msg-${Date.now() + idOffset}`, role, content, timestamp: new Date() });
 }
 
 async function handleSendMessage(): Promise<void> {
-  if (isThinking || !currentAgent || !twinContext) return;
-
   const input = twinModal?.querySelector('#twin-input') as HTMLTextAreaElement;
   const userMessage = input?.value.trim();
-
-  if (!userMessage) return;
-
-  // Add user message
-  messages.push({
-    id: `msg-${Date.now()}`,
-    role: 'user',
-    content: userMessage,
-    timestamp: new Date(),
-  });
-
-  // Clear input
+  if (!userMessage || isThinking) return;
   input.value = '';
   input.style.height = 'auto';
+  await sendMessage(userMessage);
+}
 
-  // Show thinking state
+/** Send what the person said ('' only asks an agent to open its scene) and add the reply */
+async function sendMessage(userMessage: string): Promise<void> {
+  if (isThinking || !currentAgent || !twinContext) return;
+  const earlier = [...messages];
+  if (userMessage) addMessage('user', userMessage);
   isThinking = true;
   renderMessages();
 
   try {
-    // Generate twin response
-    const response = await generateTwinResponse(userMessage, twinContext);
+    const response = talksAsPastSelf(currentAgent)
+      ? await generateTwinResponse(userMessage, twinContext)
+      : await replyFromAgent(currentAgent.id, earlier, userMessage, scene);
 
     // Add twin response
-    messages.push({
-      id: `msg-${Date.now() + 1}`,
-      role: 'twin',
-      content: response,
-      timestamp: new Date(),
-    });
+    addMessage('twin', response, 1);
 
     soundUI.play('click');
   } catch (error) {
     log.error('Failed to generate twin response:', error);
-    messages.push({
-      id: `msg-${Date.now() + 1}`,
-      role: 'twin',
-      content: "I'm having trouble thinking right now. Give me a moment and try again?",
-      timestamp: new Date(),
-    });
+    addMessage('twin', t('talkToTwin.error'), 1);
   }
 
   isThinking = false;
@@ -426,9 +401,6 @@ async function handleSendMessage(): Promise<void> {
 async function generateTwinResponse(userMessage: string, context: TwinContext): Promise<string> {
   // Build system prompt from profile
   const { profile, recentJournals, keyThemes } = context;
-
-  // For now, we'll use a local generation approach
-  // In production, this would call an LLM API
 
   // Find relevant journal entries
   const relevantJournals = findRelevantJournals(userMessage, recentJournals);
@@ -494,46 +466,47 @@ function generateFallbackResponse(
   profile: TwinProfile,
   relevantJournals: JournalEntry[]
 ): string {
-  // Simple pattern-based response as fallback
+  // Simple pattern-based response as fallback. Each locale lists, comma-separated,
+  // the words that signal an intent in `talkToTwin.fallbackKeywords.<intent>`.
+  const lowerMessage = userMessage.toLocaleLowerCase(getLocale());
+  const mentions = (intent: string): boolean =>
+    t(`talkToTwin.fallbackKeywords.${intent}`)
+      .split(',')
+      .some((word) => lowerMessage.includes(word.trim()));
 
-  const lowerMessage = userMessage.toLowerCase();
-
-  // Check for common patterns
-  if (lowerMessage.includes('advice') || lowerMessage.includes('should i')) {
+  if (mentions('advice')) {
     if (profile.philosophy) {
-      return `You know what I've learned? "${profile.philosophy}" Whatever you're facing, remember that.`;
+      return t('talkToTwin.fallback.advicePhilosophy', { philosophy: profile.philosophy });
     }
     if (profile.values.length > 0) {
-      return `Think about what matters to us: ${profile.values.slice(0, 3).join(', ')}. Let those guide you.`;
+      return t('talkToTwin.fallback.adviceValues', { values: profile.values.slice(0, 3).join(', ') });
     }
   }
 
-  if (lowerMessage.includes('feeling') || lowerMessage.includes('feel')) {
+  if (mentions('feeling')) {
     const recent = relevantJournals[0];
     if (recent) {
-      return `I've felt that too. In my journal I wrote: "${recent.content.slice(0, 200)}..." We got through it before.`;
+      return t('talkToTwin.fallback.feelRecent', { excerpt: recent.content.slice(0, 200) });
     }
-    return "I hear you. We've been through tough times before and found our way. What's really bothering you?";
+    return t('talkToTwin.fallback.feelDefault');
   }
 
-  if (lowerMessage.includes('remember') || lowerMessage.includes('past')) {
+  if (mentions('remember')) {
     if (relevantJournals.length > 0) {
-      const entries = relevantJournals.slice(0, 2);
-      let response = 'Yeah, I remember. ';
-      for (const entry of entries) {
-        response += `There was that time I wrote: "${entry.content.slice(0, 100)}..." `;
-      }
-      return response;
+      const entries = relevantJournals
+        .slice(0, 2)
+        .map((entry) => t('talkToTwin.fallback.rememberEntry', { excerpt: entry.content.slice(0, 100) }));
+      return [t('talkToTwin.fallback.rememberIntro'), ...entries].join(' ');
     }
   }
 
   // Default response using mannerisms
   if (profile.mannerisms.length > 0) {
     const phrase = profile.mannerisms[Math.floor(Math.random() * profile.mannerisms.length)];
-    return `${phrase} That's something I've been thinking about too. What made you bring this up?`;
+    return t('talkToTwin.fallback.mannerism', { phrase: phrase ?? '' });
   }
 
-  return "That's a good question. What made you think of that?";
+  return t('talkToTwin.fallback.default');
 }
 
 // ============================================================================

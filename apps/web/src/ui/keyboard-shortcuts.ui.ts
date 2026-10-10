@@ -8,7 +8,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { trapFocus, announce } from '../utils/accessibility.js';
+import { trapFocus, announce, closeOnEscape } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 
@@ -29,8 +29,8 @@ export interface Shortcut {
   alt?: boolean;
   /** Display label */
   label: string;
-  /** Description */
-  description?: string;
+  /** i18n key for the description */
+  descriptionKey?: string;
   /** Category for grouping */
   category?: 'navigation' | 'actions' | 'media' | 'dev';
   /** Action to execute */
@@ -63,7 +63,7 @@ function getDefaultShortcuts(): Shortcut[] {
       key: '?',
       shift: true, // '?' is typed with Shift on most layouts
       label: '?',
-      description: 'Show shortcuts',
+      descriptionKey: 'keyboardShortcuts.showShortcuts',
       category: 'navigation',
       action: () => showShortcutsPanel(),
     },
@@ -72,21 +72,21 @@ function getDefaultShortcuts(): Shortcut[] {
     {
       key: 'm',
       label: 'M',
-      description: 'Toggle mute',
+      descriptionKey: 'keyboardShortcuts.toggleMute',
       category: 'actions',
       action: () => window.dispatchEvent(new CustomEvent('ferni:toggle-mute')),
     },
     {
       key: 'r',
       label: 'R',
-      description: 'Reconnect',
+      descriptionKey: 'keyboardShortcuts.reconnect',
       category: 'actions',
       action: () => window.dispatchEvent(new CustomEvent('ferni:reconnect')),
     },
     {
       key: 'Enter',
       label: '↵',
-      description: 'Start/end call',
+      descriptionKey: 'keyboardShortcuts.toggleCall',
       category: 'actions',
       action: () => window.dispatchEvent(new CustomEvent('ferni:toggle-call')),
     },
@@ -95,21 +95,21 @@ function getDefaultShortcuts(): Shortcut[] {
     {
       key: '1',
       label: '1',
-      description: 'Talk to Ferni',
+      descriptionKey: 'keyboardShortcuts.talkToFerni',
       category: 'navigation',
       action: () => window.dispatchEvent(new CustomEvent('ferni:switch-persona', { detail: { persona: 'ferni' } })),
     },
     {
       key: '2',
       label: '2',
-      description: 'View team',
+      descriptionKey: 'keyboardShortcuts.viewTeam',
       category: 'navigation',
       action: () => window.dispatchEvent(new CustomEvent('ferni:open-team')),
     },
     {
       key: '3',
       label: '3',
-      description: 'View journey',
+      descriptionKey: 'keyboardShortcuts.viewJourney',
       category: 'navigation',
       action: () => window.dispatchEvent(new CustomEvent('ferni:open-journey')),
     },
@@ -117,7 +117,7 @@ function getDefaultShortcuts(): Shortcut[] {
       key: ',',
       cmd: true,
       label: '⌘,',
-      description: 'Settings',
+      descriptionKey: 'keyboardShortcuts.settings',
       category: 'navigation',
       action: () => window.dispatchEvent(new CustomEvent('ferni:open-settings')),
       preventDefault: true,
@@ -392,15 +392,8 @@ function isInputFocused(): boolean {
   if (!active) return false;
 
   const tagName = active.tagName.toLowerCase();
-  if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
-    return true;
-  }
-
-  if (active.getAttribute('contenteditable') === 'true') {
-    return true;
-  }
-
-  return false;
+  const isFormField = tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+  return isFormField || active.getAttribute('contenteditable') === 'true';
 }
 
 /** Enter on a focused button or link must activate it, not start or end a call. */
@@ -458,7 +451,7 @@ function createPanel(): HTMLElement {
   el.className = 'shortcuts-panel';
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-modal', 'true');
-  el.setAttribute('aria-label', 'Keyboard shortcuts');
+  el.setAttribute('aria-label', t('keyboardShortcuts.title'));
 
   // Group shortcuts by category
   const grouped = new Map<string, Shortcut[]>();
@@ -472,19 +465,23 @@ function createPanel(): HTMLElement {
   }
 
   let categoriesHtml = '';
-  const categoryOrder = ['navigation', 'actions', 'media', 'dev'];
+  const categoryLabelKeys = {
+    navigation: 'keyboardShortcuts.categoryNavigation',
+    actions: 'keyboardShortcuts.categoryActions',
+    media: 'keyboardShortcuts.categoryMedia',
+    dev: 'keyboardShortcuts.categoryDev',
+  };
 
-  for (const cat of categoryOrder) {
+  for (const [cat, labelKey] of Object.entries(categoryLabelKeys)) {
     const catShortcuts = grouped.get(cat);
     if (!catShortcuts || catShortcuts.length === 0) continue;
 
-    const catLabel = cat.charAt(0).toUpperCase() + cat.slice(1);
     let itemsHtml = '';
 
     for (const s of catShortcuts) {
       itemsHtml += `
         <div class="shortcuts-panel__item">
-          <span class="shortcuts-panel__item-label">${s.description || s.label}</span>
+          <span class="shortcuts-panel__item-label">${s.descriptionKey ? t(s.descriptionKey) : s.label}</span>
           <div class="shortcuts-panel__keys">
             <kbd class="shortcuts-panel__key">${s.label}</kbd>
           </div>
@@ -494,7 +491,7 @@ function createPanel(): HTMLElement {
 
     categoriesHtml += `
       <div class="shortcuts-panel__category">
-        <h4 class="shortcuts-panel__category-title">${catLabel}</h4>
+        <h4 class="shortcuts-panel__category-title">${t(labelKey)}</h4>
         <div class="shortcuts-panel__list">
           ${itemsHtml}
         </div>
@@ -508,7 +505,7 @@ function createPanel(): HTMLElement {
       <header class="shortcuts-panel__header">
         <div class="shortcuts-panel__title-group">
           <div class="shortcuts-panel__icon">${ICONS.keyboard}</div>
-          <h3 class="shortcuts-panel__title">Keyboard Shortcuts</h3>
+          <h3 class="shortcuts-panel__title">${t('keyboardShortcuts.title')}</h3>
         </div>
         <button class="shortcuts-panel__close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </header>
@@ -516,7 +513,7 @@ function createPanel(): HTMLElement {
         ${categoriesHtml}
       </div>
       <footer class="shortcuts-panel__footer">
-        Press <kbd class="shortcuts-panel__key">?</kbd> anytime to see shortcuts
+        ${t('keyboardShortcuts.footerHint', { key: '<kbd class="shortcuts-panel__key">?</kbd>' })}
       </footer>
     </div>
   `;
@@ -581,11 +578,11 @@ export function showShortcutsPanel(): void {
   const closeBtn = panel.querySelector('.shortcuts-panel__close') as HTMLElement;
   closeBtn?.focus();
 
-  // Event listeners
   closeBtn?.addEventListener('click', hideShortcutsPanel);
+  closeOnEscape(panel, () => isPanelOpen, hideShortcutsPanel);
   panel.querySelector('.shortcuts-panel__backdrop')?.addEventListener('click', hideShortcutsPanel);
 
-  announce('Keyboard shortcuts panel opened');
+  announce(t('keyboardShortcuts.panelOpened'));
 }
 
 /**
@@ -610,7 +607,7 @@ export function hideShortcutsPanel(): void {
   // Restore focus
   previousActiveElement?.focus();
 
-  announce('Keyboard shortcuts panel closed');
+  announce(t('keyboardShortcuts.panelClosed'));
 }
 
 /**

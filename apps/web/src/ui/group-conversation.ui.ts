@@ -13,6 +13,7 @@
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { toast } from './whisper.ui.js';
+import { escapeHtml } from './trust-dashboard-data.js';
 import { t } from '../i18n/index.js';
 
 const log = createLogger('GroupConversationUI');
@@ -61,13 +62,13 @@ const PERSONA_NAMES: Record<string, string> = {
   'nayan-sharma': 'Nayan',
 };
 
-const PERSONA_SPECIALTIES: Record<string, string> = {
-  ferni: 'Life Coach',
-  'peter-john': 'Research',
-  'maya-habits': 'Habits',
-  'alex-chen': 'Communications',
-  'jordan-taylor': 'Planning',
-  'nayan-sharma': 'Wisdom',
+const PERSONA_SPECIALTY_KEYS: Record<string, string> = {
+  ferni: 'groupConversation.specialties.ferni',
+  'peter-john': 'groupConversation.specialties.peter',
+  'maya-habits': 'groupConversation.specialties.maya',
+  'alex-chen': 'groupConversation.specialties.alex',
+  'jordan-taylor': 'groupConversation.specialties.jordan',
+  'nayan-sharma': 'groupConversation.specialties.nayan',
 };
 
 // ============================================================================
@@ -174,7 +175,7 @@ export class GroupConversationUI {
     this.renderParticipantGrid();
 
     // Celebration toast
-    toast.success(t('toasts.participantnameJoined'));
+    toast.success(t('toasts.participantJoined', { name: participant.name }));
   }
 
   /**
@@ -183,7 +184,7 @@ export class GroupConversationUI {
   removeParticipant(participantId: string): void {
     const participant = this.participants.get(participantId);
     if (participant) {
-      toast.info(t('toasts.participantnameLeft'));
+      toast.info(t('toasts.participantLeft', { name: participant.name }));
       this.participants.delete(participantId);
       this.renderParticipantGrid();
     }
@@ -204,13 +205,10 @@ export class GroupConversationUI {
    * Hide the participant grid
    */
   hideParticipantGrid(): void {
-    if (this.participantGrid) {
-      this.participantGrid.classList.remove('visible');
-      setTimeout(() => {
-        this.participantGrid?.remove();
-        this.participantGrid = null;
-      }, DURATION.SLOW);
-    }
+    const grid = this.participantGrid;
+    this.participantGrid = null; // a grid shown before the fade ends must not be removed with it
+    grid?.classList.remove('visible');
+    if (grid) setTimeout(() => grid.remove(), DURATION.SLOW);
     this.isActive = false;
   }
 
@@ -245,8 +243,8 @@ export class GroupConversationUI {
       <div class="group-modal-backdrop"></div>
       <div class="group-modal-card team-selector">
         <header>
-          <span class="eyebrow">TEAM ROUNDTABLE</span>
-          <h2>Who should join?</h2>
+          <span class="eyebrow">${t('groupConversation.eyebrow')}</span>
+          <h2>${t('groupConversation.whoShouldJoin')}</h2>
           <button class="close-btn" aria-label="${t('accessibility.close')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 6L6 18M6 6l12 12"/>
@@ -259,13 +257,13 @@ export class GroupConversationUI {
         </div>
         
         <div class="topic-input">
-          <label for="roundtable-topic">What would you like to discuss?</label>
-          <input type="text" id="roundtable-topic" placeholder="Career planning, relationship advice..." />
+          <label for="roundtable-topic">${t('groupConversation.topicLabel')}</label>
+          <input type="text" id="roundtable-topic" placeholder="${t('groupConversation.topicPlaceholder')}" />
         </div>
         
         <footer>
-          <button class="secondary-btn" data-action="cancel">Cancel</button>
-          <button class="primary-btn" data-action="start" disabled>Start Roundtable</button>
+          <button class="secondary-btn" data-action="cancel">${t('common.cancel')}</button>
+          <button class="primary-btn" data-action="start" disabled>${t('groupConversation.startRoundtable')}</button>
         </footer>
       </div>
     `;
@@ -289,7 +287,7 @@ export class GroupConversationUI {
         const isUnlocked = unlockedPersonas.includes(personaId);
         const name = PERSONA_NAMES[personaId];
         const color = PERSONA_COLORS[personaId];
-        const specialty = PERSONA_SPECIALTIES[personaId];
+        const specialtyKey = PERSONA_SPECIALTY_KEYS[personaId];
 
         return `
           <div class="team-member ${isUnlocked ? '' : 'locked'}" 
@@ -300,7 +298,7 @@ export class GroupConversationUI {
               ${!isUnlocked ? '<span class="lock-icon">🔒</span>' : ''}
             </div>
             <span class="name">${name}</span>
-            <span class="specialty">${specialty}</span>
+            <span class="specialty">${specialtyKey ? t(specialtyKey) : ''}</span>
             ${isUnlocked ? '<span class="checkmark">✓</span>' : ''}
           </div>
         `;
@@ -405,13 +403,13 @@ export class GroupConversationUI {
           .map(
             (p) => `
           <div class="participant ${p.isSpeaking ? 'speaking' : ''}" 
-               data-id="${p.id}"
+               data-id="${escapeHtml(p.id)}"
                style="--participant-color: ${this.getParticipantColor(p)}">
             <div class="avatar">
-              <span class="initial">${p.name[0]}</span>
+              <span class="initial">${escapeHtml(p.name[0])}</span>
               ${p.isSpeaking ? '<div class="speaking-indicator"></div>' : ''}
             </div>
-            <span class="name">${p.name}</span>
+            <span class="name">${escapeHtml(p.name)}</span>
             <span class="role">${this.getRoleLabel(p)}</span>
           </div>
         `
@@ -433,9 +431,9 @@ export class GroupConversationUI {
   }
 
   private getRoleLabel(participant: Participant): string {
-    if (participant.type === 'human') return 'You';
-    if (participant.type === 'external') return 'Phone';
-    return participant.role === 'moderator' ? 'Moderator' : 'Expert';
+    if (participant.type === 'human') return t('common.you');
+    if (participant.type === 'external') return t('addPerson.phoneLabel');
+    return participant.role === 'moderator' ? t('groupConversation.moderator') : t('groupConversation.expert');
   }
 
   // ==========================================================================

@@ -17,6 +17,7 @@ import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('LogMomentUI');
 
@@ -100,6 +101,7 @@ let state: LogMomentState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSuccess?: (data: LogMomentData) => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -129,21 +131,21 @@ const ICONS = {
 };
 
 // Moment type definitions
-const MOMENT_TYPES: { id: MomentType; label: string; icon: string }[] = [
-  { id: 'call', label: 'Call', icon: ICONS.phone },
-  { id: 'text', label: 'Text', icon: ICONS.message },
-  { id: 'email', label: 'Email', icon: ICONS.mail },
-  { id: 'video_call', label: 'Video', icon: ICONS.video },
-  { id: 'voice_message', label: 'Voice', icon: ICONS.mic },
-  { id: 'coffee', label: 'Coffee', icon: ICONS.coffee },
-  { id: 'dinner', label: 'Meal', icon: ICONS.utensils },
-  { id: 'hangout', label: 'Hangout', icon: ICONS.users },
-  { id: 'activity', label: 'Activity', icon: ICONS.users },
-  { id: 'trip', label: 'Trip', icon: ICONS.plane },
-  { id: 'visit', label: 'Visit', icon: ICONS.home },
-  { id: 'meeting', label: 'Meeting', icon: ICONS.calendar },
-  { id: 'social', label: 'Social', icon: ICONS.share },
-  { id: 'other', label: 'Other', icon: ICONS.more },
+const MOMENT_TYPES: { id: MomentType; labelKey: string; icon: string }[] = [
+  { id: 'call', labelKey: 'logMoment.call', icon: ICONS.phone },
+  { id: 'text', labelKey: 'logMoment.text', icon: ICONS.message },
+  { id: 'email', labelKey: 'logMoment.email', icon: ICONS.mail },
+  { id: 'video_call', labelKey: 'logMoment.video', icon: ICONS.video },
+  { id: 'voice_message', labelKey: 'logMoment.voice', icon: ICONS.mic },
+  { id: 'coffee', labelKey: 'logMoment.coffee', icon: ICONS.coffee },
+  { id: 'dinner', labelKey: 'logMoment.meal', icon: ICONS.utensils },
+  { id: 'hangout', labelKey: 'logMoment.hangout', icon: ICONS.users },
+  { id: 'activity', labelKey: 'logMoment.activity', icon: ICONS.users },
+  { id: 'trip', labelKey: 'logMoment.trip', icon: ICONS.plane },
+  { id: 'visit', labelKey: 'logMoment.visit', icon: ICONS.home },
+  { id: 'meeting', labelKey: 'logMoment.meeting', icon: ICONS.calendar },
+  { id: 'social', labelKey: 'logMoment.social', icon: ICONS.share },
+  { id: 'other', labelKey: 'logMoment.other', icon: ICONS.more },
 ];
 
 // ============================================================================
@@ -642,8 +644,8 @@ function render(): void {
     <div class="lm-header">
       <div class="lm-header-row">
         <div>
-          <div class="lm-eyebrow">Log a Moment</div>
-          <h2 class="lm-title">with ${escapeHtml(state.contactName)}</h2>
+          <div class="lm-eyebrow">${t('logMoment.title')}</div>
+          <h2 class="lm-title">${t('logMoment.withContact', { name: escapeHtml(state.contactName) })}</h2>
         </div>
         <button class="lm-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
       </div>
@@ -652,36 +654,36 @@ function render(): void {
     <div class="lm-content">
       <!-- Type Selector -->
       <div class="lm-section">
-        <label class="lm-label">What happened?</label>
+        <label class="lm-label">${t('logMoment.whatHappened')}</label>
         <div class="lm-types">
           ${MOMENT_TYPES.map(type => `
             <button class="lm-type ${state.selectedType === type.id ? 'selected' : ''}" data-type="${type.id}">
               <span class="lm-type-icon">${type.icon}</span>
-              <span class="lm-type-label">${type.label}</span>
+              <span class="lm-type-label">${t(type.labelKey)}</span>
             </button>
           `).join('')}
         </div>
       </div>
-      
+
       <!-- Direction Selector -->
       <div class="lm-section">
-        <label class="lm-label">Who initiated?</label>
+        <label class="lm-label">${t('logMoment.whoInitiated')}</label>
         <div class="lm-directions">
-          <button aria-label="${t('accessibility.moveUp')}" class="lm-direction ${state.direction === 'outbound' ? 'selected' : ''}" data-direction="outbound">
-            ${ICONS.arrowUp} You reached out
+          <button class="lm-direction ${state.direction === 'outbound' ? 'selected' : ''}" data-direction="outbound">
+            ${ICONS.arrowUp} ${t('logMoment.youReachedOut')}
           </button>
-          <button aria-label="${t('accessibility.moveDown')}" class="lm-direction ${state.direction === 'inbound' ? 'selected' : ''}" data-direction="inbound">
-            ${ICONS.arrowDown} They reached out
+          <button class="lm-direction ${state.direction === 'inbound' ? 'selected' : ''}" data-direction="inbound">
+            ${ICONS.arrowDown} ${t('logMoment.theyReachedOut')}
           </button>
-          <button aria-label="${t('accessibility.together')}" class="lm-direction ${state.direction === 'mutual' ? 'selected' : ''}" data-direction="mutual">
-            ${ICONS.arrowsUpDown} Together
+          <button class="lm-direction ${state.direction === 'mutual' ? 'selected' : ''}" data-direction="mutual">
+            ${ICONS.arrowsUpDown} ${t('logMoment.together')}
           </button>
         </div>
       </div>
       
       <!-- Date/Time -->
       <div class="lm-section">
-        <label class="lm-label">When?</label>
+        <label class="lm-label">${t('logMoment.when')}</label>
         <div class="lm-datetime">
           <div class="lm-datetime-field">
             <input type="date" class="lm-input" id="lm-date" value="${state.date}" />
@@ -691,55 +693,55 @@ function render(): void {
           </div>
         </div>
       </div>
-      
+
       <!-- Quick Summary -->
       <div class="lm-section">
-        <label class="lm-label">Quick note (optional)</label>
-        <textarea class="lm-textarea" id="lm-summary" placeholder="${t('forms.conversationSummary', 'What did you talk about? How did it go?')}">${escapeHtml(state.summary)}</textarea>
+        <label class="lm-label">${t('logMoment.quickNote')}</label>
+        <textarea class="lm-textarea" id="lm-summary" placeholder="${t('forms.conversationSummary')}">${escapeHtml(state.summary)}</textarea>
       </div>
       
       <!-- Advanced Options Toggle -->
       <div class="lm-section">
-        <button aria-label="${t('accessibility.moveDown')}" class="lm-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-toggle">
-          More options ${ICONS.chevronDown}
+        <button class="lm-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-toggle">
+          ${t('logMoment.moreOptions')} ${ICONS.chevronDown}
         </button>
-        
+
         <div class="lm-advanced-content ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-content">
           <!-- Sentiment -->
           <div style="margin-bottom: var(--space-4, 1rem);">
-            <label class="lm-label">How did it feel?</label>
+            <label class="lm-label">${t('logMoment.howDidItFeel')}</label>
             <div class="lm-sentiments">
-              <button aria-label="${t('accessibility.great')}" class="lm-sentiment positive ${state.sentiment === 'positive' ? 'selected' : ''}" data-sentiment="positive">
-                Great
+              <button class="lm-sentiment positive ${state.sentiment === 'positive' ? 'selected' : ''}" data-sentiment="positive">
+                ${t('logMoment.great')}
               </button>
-              <button aria-label="${t('accessibility.okay')}" class="lm-sentiment neutral ${state.sentiment === 'neutral' ? 'selected' : ''}" data-sentiment="neutral">
-                Okay
+              <button class="lm-sentiment neutral ${state.sentiment === 'neutral' ? 'selected' : ''}" data-sentiment="neutral">
+                ${t('logMoment.okay')}
               </button>
-              <button aria-label="${t('accessibility.tough')}" class="lm-sentiment negative ${state.sentiment === 'negative' ? 'selected' : ''}" data-sentiment="negative">
-                Tough
+              <button class="lm-sentiment negative ${state.sentiment === 'negative' ? 'selected' : ''}" data-sentiment="negative">
+                ${t('logMoment.tough')}
               </button>
             </div>
           </div>
-          
+
           <!-- Duration -->
           <div style="margin-bottom: var(--space-4, 1rem);">
-            <label class="lm-label">Duration (minutes)</label>
-            <input type="number" class="lm-input" id="lm-duration" placeholder="${t('forms.durationPlaceholder', 'e.g., 30')}" value="${state.duration}" />
+            <label class="lm-label">${t('logMoment.duration')}</label>
+            <input type="number" class="lm-input" id="lm-duration" placeholder="${t('forms.durationPlaceholder')}" value="${state.duration}" />
           </div>
-          
+
           <!-- Topics -->
           <div>
-            <label class="lm-label">Topics discussed (comma-separated)</label>
-            <input type="text" class="lm-input" id="lm-topics" placeholder="${t('forms.topicsPlaceholder', 'e.g., work, family, travel plans')}" value="${state.topics}" />
+            <label class="lm-label">${t('logMoment.topicsDiscussed')}</label>
+            <input type="text" class="lm-input" id="lm-topics" placeholder="${t('forms.topicsPlaceholder')}" value="${state.topics}" />
           </div>
         </div>
       </div>
     </div>
-    
+
     <div class="lm-footer">
-      <button aria-label="${t('accessibility.cancel')}" class="lm-btn lm-btn-secondary" id="lm-cancel">Cancel</button>
-      <button aria-label="${t('accessibility.submit')}" class="lm-btn lm-btn-primary" id="lm-save" ${state.isSubmitting ? 'disabled' : ''}>
-        ${state.isSubmitting ? 'Saving...' : 'Save Moment'}
+      <button class="lm-btn lm-btn-secondary" id="lm-cancel">${t('logMoment.cancel')}</button>
+      <button class="lm-btn lm-btn-primary" id="lm-save" ${state.isSubmitting ? 'disabled' : ''}>
+        ${state.isSubmitting ? t('common.saving') : t('logMoment.saveMoment')}
       </button>
     </div>
   `;
@@ -815,14 +817,10 @@ function bindEvents(): void {
   modalContainer.querySelector('#lm-save')?.addEventListener('click', () => { void handleSave(); });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeLogMoment);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeLogMoment();
-  }
-}
 
 // ============================================================================
 // SAVE HANDLER
@@ -874,8 +872,8 @@ async function handleSave(): Promise<void> {
       
       closeLogMoment();
     } else {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      toast.error(error.error || "Couldn't save that. Try again?");
+      const error = await response.json().catch(() => ({ error: '' }));
+      toast.error(error.error || t('toasts.couldNotSaveMoment'));
       state.isSubmitting = false;
       render();
     }
@@ -960,7 +958,7 @@ export function openLogMoment(options: LogMomentOptions): void {
 export function closeLogMoment(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 

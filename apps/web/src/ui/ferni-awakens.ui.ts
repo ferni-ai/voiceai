@@ -405,12 +405,12 @@ function getAwakensHTML(): string {
       </svg>
       
       <!-- Greeting - warm, simple -->
-      <h1 class="awakens-greeting">Hello.</h1>
-      <p class="awakens-subtext">I'm Ferni, your AI life coach.</p>
+      <h1 class="awakens-greeting">${t('ferniAwakens.greeting')}</h1>
+      <p class="awakens-subtext">${t('ferniAwakens.subtext')}</p>
       
       <!-- CTA -->
-      <button aria-label="${t('accessibility.startTalking')}" class="awakens-cta awakens-cta-btn">
-        Start talking
+      <button class="awakens-cta awakens-cta-btn">
+        ${t('accessibility.startTalking')}
       </button>
     </div>
   `;

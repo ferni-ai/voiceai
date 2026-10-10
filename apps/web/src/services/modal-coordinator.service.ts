@@ -87,12 +87,12 @@ export function initModalCoordinator(): void {
   lastHintTime = parseInt(localStorage.getItem(STORAGE_KEYS.lastHintTime) ?? '0');
 
   // Listen for conversation state changes
-  document.addEventListener('ferni:conversation-start', () => {
+  window.addEventListener('ferni:conversation-start', () => {
     isConversationActive = true;
     log.debug('Conversation started - blocking modals');
   });
 
-  document.addEventListener('ferni:conversation-end', () => {
+  window.addEventListener('ferni:conversation-end', () => {
     isConversationActive = false;
     log.debug('Conversation ended - modals allowed');
     processQueue();

@@ -13,24 +13,17 @@
 import { signOutReleasingPush } from '../services/push-preference.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import {
-  getAuthToken,
   onAuthStateChange,
   signInWithApple,
   signInWithGoogle,
   type AuthState,
 } from '../services/firebase-auth.service.js';
 import { createLogger } from '../utils/logger.js';
-import { apiGet } from '../utils/api.js';
+import { checkAccess, type AccessOutcome } from '../services/access-check.js';
+import { emulatorSignInButtons } from './emulator-sign-in.js';
+import { t } from '../i18n/index.js';
 
 // TYPES
-
-interface WaitlistCheckResult {
-  approved: boolean;
-  status: 'approved' | 'pending' | 'no_email' | 'not_found';
-  tier?: string;
-  email?: string;
-  message?: string;
-}
 
 const log = createLogger('SignInGate');
 
@@ -39,6 +32,7 @@ const log = createLogger('SignInGate');
 let overlayEl: HTMLElement | null = null;
 let isShowing = false;
 let resolveSignIn: (() => void) | null = null;
+let pendingSignIn: Promise<void> | null = null;
 
 // STYLES
 
@@ -149,7 +143,7 @@ const STYLES = `
 }
 
 .sign-in-gate-btn--google:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .sign-in-gate-btn--apple {
@@ -278,35 +272,6 @@ const STYLES = `
 }
 `;
 
-// WAITLIST CHECK
-
-/**
- * Check if the authenticated user has access (approved on waitlist).
- * Returns the waitlist status to determine what UI to show.
- */
-async function checkWaitlistAccess(): Promise<WaitlistCheckResult> {
-  try {
-    const token = await getAuthToken();
-    if (!token) {
-      log.warn('No auth token available for waitlist check');
-      return { approved: false, status: 'not_found', message: 'Not authenticated' };
-    }
-
-    const response = await apiGet<WaitlistCheckResult>('/api/waitlist/check');
-
-    if (!response.ok || !response.data) {
-      log.error('Waitlist check failed:', response.status);
-      return { approved: false, status: 'not_found', message: 'Check failed' };
-    }
-
-    log.info('Waitlist check result:', response.data);
-    return response.data;
-  } catch (error) {
-    log.error('Waitlist check error:', error);
-    return { approved: false, status: 'not_found', message: 'Network error' };
-  }
-}
-
 /**
  * Show the "checking access" state while verifying waitlist.
  */
@@ -321,7 +286,7 @@ function showCheckingState(): void {
 
   if (buttonsDiv) (buttonsDiv as HTMLElement).style.display = 'none';
   if (errorDiv) (errorDiv as HTMLElement).style.display = 'none';
-  if (subtitle) (subtitle as HTMLElement).textContent = 'Checking your access...';
+  if (subtitle) (subtitle as HTMLElement).textContent = t('auth.checkingAccess');
 
   // Add spinner if not already present
   if (!content.querySelector('.sign-in-gate-checking')) {
@@ -333,7 +298,7 @@ function showCheckingState(): void {
 
     const text = document.createElement('p');
     text.className = 'sign-in-gate-checking-text';
-    text.textContent = 'Just a moment...';
+    text.textContent = t('auth.checkingLabel');
 
     checkingDiv.appendChild(spinner);
     checkingDiv.appendChild(text);
@@ -376,7 +341,18 @@ function createWaitlistIcon(): SVGSVGElement {
 /**
  * Transform the UI to show the waitlist pending state.
  */
-function showWaitlistPending(email?: string): void {
+type AccessNotice = Exclude<AccessOutcome, { kind: 'approved' }>;
+
+const NOTICE_COPY: Record<AccessNotice['kind'], { title: string; message: string }> = {
+  waitlisted: { title: 'auth.waitlistTitle', message: 'auth.waitlistMessage' },
+  'verify-email': { title: 'auth.verifyEmailTitle', message: 'auth.verifyEmailMessage' },
+  'no-email': { title: 'auth.noEmailTitle', message: 'auth.noEmailMessage' },
+  unavailable: { title: 'auth.checkFailedTitle', message: 'auth.checkFailedMessage' },
+};
+
+/** Why the user can't come in yet; `unavailable` also offers to check again. */
+function showAccessNotice(notice: AccessNotice, retry: () => void): void {
+  const email = notice.kind === 'waitlisted' ? notice.email : undefined;
   const content = overlayEl?.querySelector('.sign-in-gate-content');
   if (!content) return;
 
@@ -392,23 +368,23 @@ function showWaitlistPending(email?: string): void {
 
   // Title
   const title = document.createElement('h1');
+  title.id = TITLE_ID; // the notice replaces the welcome content, so it names the dialog now
   title.className = 'sign-in-gate-waitlist-title';
-  title.textContent = "You're on the list!";
+  title.textContent = t(NOTICE_COPY[notice.kind].title);
   waitlistDiv.appendChild(title);
 
   // Message
   const message = document.createElement('p');
   message.className = 'sign-in-gate-waitlist-message';
-  message.textContent =
-    "We're rolling out Ferni gradually to ensure everyone gets the best experience. " +
-    "We'll send you an email as soon as your spot opens up.";
+  message.textContent = t(NOTICE_COPY[notice.kind].message);
   waitlistDiv.appendChild(message);
 
   // Email confirmation
   if (email) {
     const emailP = document.createElement('p');
     emailP.className = 'sign-in-gate-waitlist-email';
-    emailP.innerHTML = `We'll notify you at <strong>${escapeHtml(email)}</strong>`;
+    const emailMsg = t('auth.waitlistEmail');
+    emailP.innerHTML = emailMsg.replace('{email}', `<strong>${escapeHtml(email)}</strong>`);
     waitlistDiv.appendChild(emailP);
   }
 
@@ -416,17 +392,22 @@ function showWaitlistPending(email?: string): void {
   const buttonsDiv = document.createElement('div');
   buttonsDiv.className = 'sign-in-gate-buttons';
 
+  if (notice.kind === 'unavailable') {
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'sign-in-gate-btn sign-in-gate-btn--google';
+    retryBtn.textContent = t('common.tryAgain');
+    retryBtn.addEventListener('click', retry);
+    buttonsDiv.appendChild(retryBtn);
+  }
   const signOutBtn = document.createElement('button');
   signOutBtn.className = 'sign-in-gate-btn sign-in-gate-btn--secondary';
-  signOutBtn.textContent = 'Try a different account';
+  signOutBtn.textContent = t('auth.tryDifferentAccount');
   signOutBtn.addEventListener('click', handleSignOutAndRetry);
   buttonsDiv.appendChild(signOutBtn);
 
   waitlistDiv.appendChild(buttonsDiv);
-
   content.appendChild(waitlistDiv);
 }
-
 /**
  * Handle signing out and returning to the sign-in buttons.
  */
@@ -505,9 +486,29 @@ function createAppleIcon(): SVGSVGElement {
   return svg;
 }
 
+const TITLE_ID = 'sign-in-gate-title';
+let inertBehindGate: HTMLElement[] = [];
+
+/** Signed out, the app behind the gate must be out of reach of Tab and screen readers. */
+function keepAppBehindGate(): void {
+  inertBehindGate = [...document.body.children].filter(
+    (el): el is HTMLElement => el instanceof HTMLElement && el !== overlayEl && !el.inert
+  );
+  for (const el of inertBehindGate) el.inert = true;
+}
+
+/** Undo only what the gate did: hidden panels keep the inert they set themselves */
+function releaseAppBehindGate(): void {
+  for (const el of inertBehindGate) el.inert = false;
+  inertBehindGate = [];
+}
+
 function createOverlay(): HTMLElement {
   const overlay = document.createElement('div');
   overlay.className = 'sign-in-gate-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', TITLE_ID);
 
   const content = document.createElement('div');
   content.className = 'sign-in-gate-content';
@@ -528,13 +529,14 @@ function createOverlay(): HTMLElement {
 
   // Title
   const title = document.createElement('h1');
+  title.id = TITLE_ID;
   title.className = 'sign-in-gate-title';
-  title.textContent = 'Welcome to Ferni';
+  title.textContent = t('auth.welcome');
 
   // Subtitle
   const subtitle = document.createElement('p');
   subtitle.className = 'sign-in-gate-subtitle';
-  subtitle.textContent = 'Sign in to start your journey. Your conversations, memories, and progress will be saved across all your devices.';
+  subtitle.textContent = t('auth.subtitle');
 
   // Buttons container
   const buttonsDiv = document.createElement('div');
@@ -546,7 +548,7 @@ function createOverlay(): HTMLElement {
   googleBtn.dataset.provider = 'google';
   googleBtn.appendChild(createGoogleIcon());
   const googleText = document.createElement('span');
-  googleText.textContent = 'Continue with Google';
+  googleText.textContent = t('auth.continueWithGoogle');
   googleBtn.appendChild(googleText);
 
   // Apple button
@@ -555,33 +557,34 @@ function createOverlay(): HTMLElement {
   appleBtn.dataset.provider = 'apple';
   appleBtn.appendChild(createAppleIcon());
   const appleText = document.createElement('span');
-  appleText.textContent = 'Continue with Apple';
+  appleText.textContent = t('auth.continueWithApple');
   appleBtn.appendChild(appleText);
 
-  buttonsDiv.appendChild(googleBtn);
-  buttonsDiv.appendChild(appleBtn);
+  buttonsDiv.append(googleBtn, appleBtn, ...emulatorSignInButtons((e) => log.error('Emulator sign-in failed:', e)));
 
   // Error container
   const errorDiv = document.createElement('div');
   errorDiv.className = 'sign-in-gate-error';
   errorDiv.setAttribute('role', 'alert');
 
-  // Footer
+  // Footer with Terms/Privacy links
   const footer = document.createElement('p');
   footer.className = 'sign-in-gate-footer';
-  footer.textContent = 'By continuing, you agree to our ';
+  const parts = t('auth.agreeTerms').split('{terms}');
+  const parts2 = parts[1]!.split('{privacy}');
+  footer.appendChild(document.createTextNode(parts[0]!));
   const termsLink = document.createElement('a');
   termsLink.href = '/terms';
   termsLink.target = '_blank';
-  termsLink.textContent = 'Terms';
+  termsLink.textContent = t('auth.termsLink');
   footer.appendChild(termsLink);
-  footer.appendChild(document.createTextNode(' and '));
+  footer.appendChild(document.createTextNode(parts2[0]!));
   const privacyLink = document.createElement('a');
   privacyLink.href = '/privacy';
   privacyLink.target = '_blank';
-  privacyLink.textContent = 'Privacy Policy';
+  privacyLink.textContent = t('auth.privacyLink');
   footer.appendChild(privacyLink);
-  footer.appendChild(document.createTextNode('.'));
+  footer.appendChild(document.createTextNode(parts2[1]!));
 
   // Assemble
   content.appendChild(logoDiv);
@@ -627,11 +630,8 @@ async function handleSignIn(provider: 'google' | 'apple'): Promise<void> {
 
     // Show error
     if (errorEl) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Sign-in was cancelled or failed. Please try again.';
-      errorEl.textContent = message;
+      // Library error messages are English-only; show the localized generic one.
+      errorEl.textContent = t('auth.signInError');
       errorEl.classList.add('visible');
     }
 
@@ -649,59 +649,44 @@ async function handleSignIn(provider: 'google' | 'apple'): Promise<void> {
  * Returns a promise that resolves when the user successfully signs in.
  */
 export async function showSignInGate(): Promise<void> {
-  if (isShowing) {
-    log.debug('Sign-in gate already showing');
-    return new Promise((resolve) => {
-      resolveSignIn = resolve;
-    });
-  }
+  if (isShowing && pendingSignIn) return pendingSignIn;
 
   isShowing = true;
   injectStyles();
-
   // Create and show overlay
   overlayEl = createOverlay();
   document.body.appendChild(overlayEl);
-
-  // Force reflow for animation
-  void overlayEl.offsetHeight;
+  keepAppBehindGate();
+  void overlayEl.offsetHeight; // reflow, so the fade-in animates
   overlayEl.classList.add('visible');
 
   // Subscribe to auth state changes
   const unsubscribe = onAuthStateChange((state: AuthState) => {
     if (state.isAuthenticated) {
-      log.info('User authenticated, checking waitlist status');
-
-      // Show checking state
-      showCheckingState();
-
-      // Check waitlist access
-      checkWaitlistAccess()
-        .then((result) => {
-          if (result.approved) {
-            log.info('User approved, granting access');
-            hideSignInGate();
-            unsubscribe();
-            resolveSignIn?.();
-            resolveSignIn = null;
-          } else {
-            log.info('User not approved, showing waitlist pending');
-            showWaitlistPending(result.email);
-            // Don't resolve - user stays on gate
-            // Don't unsubscribe - we might need to check again if they sign out and back in
+      const runCheck = (): void => {
+        showCheckingState();
+        void checkAccess().then((outcome) => {
+          log.info('Access check', { outcome: outcome.kind });
+          if (outcome.kind !== 'approved') {
+            // Stay on the gate and keep listening: they may sign in with another account
+            showAccessNotice(outcome, runCheck);
+            return;
           }
-        })
-        .catch((error) => {
-          log.error('Waitlist check failed:', error);
-          // On error, show waitlist pending as safe default
-          showWaitlistPending();
+          hideSignInGate();
+          unsubscribe();
+          resolveSignIn?.();
+          resolveSignIn = null;
+          pendingSignIn = null;
         });
+      };
+      runCheck();
     }
   });
 
-  return new Promise((resolve) => {
+  pendingSignIn = new Promise((resolve) => {
     resolveSignIn = resolve;
   });
+  return pendingSignIn;
 }
 
 /**
@@ -709,7 +694,7 @@ export async function showSignInGate(): Promise<void> {
  */
 export function hideSignInGate(): void {
   if (!overlayEl) return;
-
+  releaseAppBehindGate();
   overlayEl.classList.add('hiding');
 
   setTimeout(() => {

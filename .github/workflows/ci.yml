@@ -15,24 +15,20 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'tsconfig*.json'
-      - '.github/workflows/ci.yml'
+      # Build and CI config: a change here can break CI or the images, and a PR
+      # touching only these never got the required checks, so it could not merge.
+      - 'pnpm-workspace.yaml'
+      - '.npmrc'
+      - 'patches/**'
+      - '.github/workflows/**'
       - '.github/actions/**'
+      - '**/Dockerfile*'
+      - 'cloudbuild*.yaml'
+      - 'infra/**'
   pull_request:
     branches: [main, develop]
-    paths:
-      - 'src/**'
-      - 'apps/**'
-      - 'packages/**'
-      - 'design-system/**'
-      # Tested from src/tests (voice-eval scoring, the agent Dockerfile): a PR touching
-      # only these never got the required checks and could not merge.
-      - 'scripts/**'
-      - 'docker/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'tsconfig*.json'
-      - '.github/workflows/ci.yml'
-      - '.github/actions/**'
+    # No path filter on PRs: branch protection requires these checks, so a PR
+    # they skip can never merge (docs, .claude/, dependabot.yml PRs all stuck).
   # The merge queue tests each PR on top of main and whatever is queued ahead of it.
   merge_group:
 
@@ -42,7 +38,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   NODE_OPTIONS: '--max-old-space-size=3072'
 
 jobs:
@@ -109,8 +105,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -143,11 +137,9 @@ jobs:
 
       - name: Tool schema validation
         run: pnpm tools:schemas:validate
-        continue-on-error: true
 
       - name: Tool schema check (no drift)
         run: pnpm tools:schemas:check
-        continue-on-error: true
 
   # ============================================================================
   # UNIT TESTS (Fast - ~30-60 seconds)
@@ -165,8 +157,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -294,8 +284,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -412,8 +400,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -464,8 +450,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -502,7 +486,7 @@ jobs:
           pnpm build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build
           path: |
@@ -524,8 +508,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -602,8 +584,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -648,8 +628,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -674,9 +652,15 @@ jobs:
         if: steps.nm-cache.outputs.cache-hit != 'true'
         run: pnpm install --no-frozen-lockfile
 
+      # Blocking. Files over 500 lines may not grow, and brand-copy and brand-lint
+      # counts may not rise (docs/DEFINITION-OF-CLEAN.md). It only ran in Brand
+      # Compliance, which is not a required check and has no merge_group trigger,
+      # so growth reached main three times in a week (#343, #340, #388).
+      - name: Quality ratchet
+        run: pnpm tsx apps/cli/src/commands/quality/ratchet.ts
+
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
-        continue-on-error: true
 
   # ============================================================================
   # VALIDATION (using unified validate CLI)
@@ -692,8 +676,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -740,8 +722,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -793,7 +773,7 @@ jobs:
           fi
 
       - name: Upload E2E report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: e2e-validation-report
@@ -814,8 +794,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -848,11 +826,17 @@ jobs:
           cd apps/web
           pnpm typecheck
 
-      - name: ESLint check
+      - name: Architecture tests (layers, cycles, boundaries, naming, file size)
         run: |
           cd apps/web
-          pnpm lint
-        continue-on-error: true
+          pnpm test:arch
+
+      # Web ESLint has 123 old errors, so plain `pnpm lint` can't gate. The ratchet fails
+      # only when a rule gains errors (baseline: ratchet-baseline.json "webEslint").
+      - name: ESLint (ratchet)
+        run: |
+          (cd apps/web && pnpm lint --format json --output-file eslint.json) || true
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --eslint apps/web/eslint.json
 
       - name: Web unit tests
         working-directory: apps/web
@@ -862,7 +846,6 @@ jobs:
         run: |
           cd apps/web
           pnpm lint:tokens
-        continue-on-error: true
 
       - name: UI audit
         run: |
@@ -870,11 +853,11 @@ jobs:
           pnpm audit:ui || true
         continue-on-error: true
 
-      - name: Build and check bundle size
+      # The build must succeed, and the bundle may not grow past its baseline (2% slack).
+      - name: Build and bundle ratchet
         run: |
-          cd apps/web
-          pnpm build:check || true
-        continue-on-error: true
+          (cd apps/web && pnpm build)
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --bundle
 
   # ============================================================================
   # DEPENDENCY CHECK
@@ -890,8 +873,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v7

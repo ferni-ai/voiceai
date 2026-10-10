@@ -38,9 +38,7 @@ import { tapSpokenText, toolsForTurn, withTeammateTool } from './turn-request.js
 
 const log = createLogger({ module: 'FerniAgent' });
 
-/**
- * Estimate token count (~4 chars per token for English)
- */
+/** Estimate token count (~4 chars per token for English) */
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
@@ -105,6 +103,8 @@ export interface PersonaVoiceAgentOptions {
    * context (see agents/multi-agent/turn-intelligence.ts).
    */
   onUserTurn?: (turnCtx: llm.ChatContext, newMessage: llm.ChatMessage) => Promise<void>;
+  /** Its own model and voice, when it joins a call's running session (persona-swap.ts) */
+  voice?: Pick<voice.AgentOptions<FerniSessionData>, 'llm' | 'tts'>;
 }
 
 // ============================================================================
@@ -548,6 +548,7 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
       instructions: finalSystemPrompt,
       chatCtx: options.chatCtx,
       tools: withTeammateTool(allTools), // executable, not just declared: locked-teammates.ts
+      ...options.voice,
     });
 
     this.skipGreeting = options.skipGreeting ?? false;
@@ -651,8 +652,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     const [audioForStt, audioForProcessor] = audio.tee();
 
     const userData = this.session.userData as import('../shared/types.js').UserData | undefined;
-    const sessionId =
-      (userData?.services as { sessionId?: string } | undefined)?.sessionId ?? '';
+    const sessionId = (userData?.services as { sessionId?: string } | undefined)?.sessionId ?? '';
     const userId = userData?.userId as string | undefined;
 
     const sendDataMessage = async (
@@ -661,7 +661,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     ): Promise<void> => {
       try {
         const { getFrontendPublisher } = await import('../realtime/index.js');
-        const pub = getFrontendPublisher();
+        const pub = getFrontendPublisher(sessionId || undefined);
         if (pub?.isConnected()) await pub.sendData(type, payload);
       } catch {
         // Non-critical — frontend publisher may not be initialized yet

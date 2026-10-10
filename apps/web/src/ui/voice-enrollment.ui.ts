@@ -595,8 +595,8 @@ function createModal(): HTMLElement {
     <div class="voice-enrollment-backdrop"></div>
     <div class="voice-enrollment-card">
       <div class="voice-enrollment-header">
-        <p class="voice-enrollment-eyebrow">VOICE RECOGNITION</p>
-        <h2 class="voice-enrollment-title" id="voice-enrollment-title">Let me learn your voice</h2>
+        <p class="voice-enrollment-eyebrow">${t('voiceEnrollment.eyebrow')}</p>
+        <h2 class="voice-enrollment-title" id="voice-enrollment-title">${t('voiceEnrollment.title')}</h2>
         <button class="voice-enrollment-close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </div>
       <div class="voice-enrollment-content" id="voice-enrollment-content">
@@ -625,8 +625,8 @@ function renderCheckingState(): string {
       <div class="voice-enrollment-status-icon voice-enrollment-status-icon--info">
         ${ICONS.speaker}
       </div>
-      <h3 class="voice-enrollment-status-title">Checking voice system...</h3>
-      <p class="voice-enrollment-status-message">One moment while we set things up.</p>
+      <h3 class="voice-enrollment-status-title">${t('voiceEnrollment.checking.title')}</h3>
+      <p class="voice-enrollment-status-message">${t('voiceEnrollment.checking.message')}</p>
     </div>
   `;
 }
@@ -637,14 +637,13 @@ function renderNotAvailableState(): string {
       <div class="voice-enrollment-status-icon voice-enrollment-status-icon--error">
         ${ICONS.alert}
       </div>
-      <h3 class="voice-enrollment-status-title">Voice recognition unavailable</h3>
+      <h3 class="voice-enrollment-status-title">${t('voiceEnrollment.unavailable.title')}</h3>
       <p class="voice-enrollment-status-message">
-        Voice authentication isn't available right now. 
-        This may be a temporary issue—please try again later.
+        ${t('voiceEnrollment.unavailable.message')}
       </p>
       <div class="voice-enrollment-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.gotIt')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
-          Got it
+        <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
+          ${t('voiceEnrollment.unavailable.button')}
         </button>
       </div>
     </div>
@@ -662,28 +661,28 @@ function renderAlreadyEnrolledState(profile: VoiceProfile): string {
       <div class="voice-enrollment-status-icon voice-enrollment-status-icon--success">
         ${ICONS.check}
       </div>
-      <h3 class="voice-enrollment-status-title">I already know your voice!</h3>
+      <h3 class="voice-enrollment-status-title">${t('voiceEnrollment.enrolled.title')}</h3>
       <p class="voice-enrollment-status-message">
-        You enrolled on ${enrolledDate}. Your voiceprint is ${quality}% quality.
+        ${t('voiceEnrollment.enrolled.messagePrefix')} ${enrolledDate}. ${t('voiceEnrollment.enrolled.messageQuality')} ${quality}${t('voiceEnrollment.enrolled.messageSuffix')}
       </p>
-      
+
       <div class="voice-enrollment-enrolled-stats">
         <div class="voice-enrollment-stat">
           <div class="voice-enrollment-stat-value">${profile.sampleCount ?? 0}</div>
-          <div class="voice-enrollment-stat-label">Samples</div>
+          <div class="voice-enrollment-stat-label">${t('voiceEnrollment.enrolled.sampleLabel')}</div>
         </div>
         <div class="voice-enrollment-stat">
           <div class="voice-enrollment-stat-value">${profile.verificationCount ?? 0}</div>
-          <div class="voice-enrollment-stat-label">Verifications</div>
+          <div class="voice-enrollment-stat-label">${t('voiceEnrollment.enrolled.verificationLabel')}</div>
         </div>
       </div>
-      
+
       <div class="voice-enrollment-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.delete')}" class="voice-enrollment-btn voice-enrollment-btn--danger" id="btn-delete">
-          ${ICONS.trash} Delete voiceprint
+        <button class="voice-enrollment-btn voice-enrollment-btn--danger" id="btn-delete">
+          ${ICONS.trash} ${t('voiceEnrollment.enrolled.deleteButton')}
         </button>
-        <button aria-label="${t('accessibility.done')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
-          Done
+        <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
+          ${t('voiceEnrollment.enrolled.doneButton')}
         </button>
       </div>
     </div>
@@ -712,11 +711,11 @@ function renderReadyState(reenroll = false): string {
     </div>
     
     <div class="voice-enrollment-actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.maybeLater')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-cancel">
-        Maybe later
+      <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-cancel">
+        ${t('voiceEnrollment.ready.cancelButton')}
       </button>
-      <button aria-label="${t('accessibility.startEnrollment')}" class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-start">
-        Start enrollment
+      <button class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-start">
+        ${t('voiceEnrollment.ready.startButton')}
       </button>
     </div>
   `;
@@ -767,9 +766,9 @@ function renderProcessingState(): string {
       <div class="voice-enrollment-status-icon voice-enrollment-status-icon--info">
         ${ICONS.speaker}
       </div>
-      <h3 class="voice-enrollment-status-title">Creating your voiceprint...</h3>
+      <h3 class="voice-enrollment-status-title">${t('voiceEnrollment.processing.title')}</h3>
       <p class="voice-enrollment-status-message">
-        Just a moment while I learn to recognize you.
+        ${t('voiceEnrollment.processing.message')}
       </p>
     </div>
   `;
@@ -781,14 +780,13 @@ function renderCompleteState(): string {
       <div class="voice-enrollment-status-icon voice-enrollment-status-icon--success">
         ${ICONS.sparkles}
       </div>
-      <h3 class="voice-enrollment-status-title">I'll remember your voice!</h3>
+      <h3 class="voice-enrollment-status-title">${t('voiceEnrollment.complete.title')}</h3>
       <p class="voice-enrollment-status-message">
-        Now I can recognize you and remember our conversations better. 
-        It's like you've become a familiar friend.
+        ${t('voiceEnrollment.complete.message')}
       </p>
       <div class="voice-enrollment-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.letSTalk')}" class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-done">
-          Let's talk!
+        <button class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-done">
+          ${t('voiceEnrollment.complete.button')}
         </button>
       </div>
     </div>
@@ -801,14 +799,14 @@ function renderErrorState(message: string): string {
       <div class="voice-enrollment-status-icon voice-enrollment-status-icon--error">
         ${ICONS.alert}
       </div>
-      <h3 class="voice-enrollment-status-title">Something went wrong</h3>
+      <h3 class="voice-enrollment-status-title">${t('voiceEnrollment.error.title')}</h3>
       <p class="voice-enrollment-status-message">${message}</p>
       <div class="voice-enrollment-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.tryAgain')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-retry">
-          Try again
+        <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-retry">
+          ${t('voiceEnrollment.error.tryAgain')}
         </button>
-        <button aria-label="${t('accessibility.close')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
-          Close
+        <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
+          ${t('voiceEnrollment.error.close')}
         </button>
       </div>
     </div>

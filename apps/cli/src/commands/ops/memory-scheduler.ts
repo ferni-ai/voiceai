@@ -21,6 +21,7 @@ import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import * as yaml from 'yaml';
+import { getDeliveryJobs } from './delivery-jobs.js';
 
 const execAsync = promisify(exec);
 
@@ -181,6 +182,7 @@ function getMemoryJobs(): SchedulerJob[] {
       maxBackoff: '120s',
       timeout: '300s',
     },
+    ...getDeliveryJobs(CONFIG.uiServerUrl),
   ];
 }
 
@@ -237,7 +239,9 @@ async function createOrUpdateJob(
     `--time-zone="${job.timezone}"`,
     `--uri="${job.uri}"`,
     `--http-method=${job.httpMethod}`,
-    `--headers="Content-Type=application/json,X-CloudScheduler=true"`,
+    action === 'update'
+      ? `--update-headers="Content-Type=application/json,X-CloudScheduler=true"`
+      : `--headers="Content-Type=application/json,X-CloudScheduler=true"`,
     `--oidc-service-account-email="${CONFIG.serviceAccount}"`,
     `--description="${job.description}"`,
   ];

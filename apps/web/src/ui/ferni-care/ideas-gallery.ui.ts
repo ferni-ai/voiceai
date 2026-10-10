@@ -12,39 +12,25 @@ import {
   type TemplateCategory,
   type WorkflowTemplate,
 } from '../../services/life-automation.service.js';
+import { t } from '../../i18n/index.js';
 import { createLogger } from '../../utils/logger.js';
 import { showRoutineBuilder } from './routine-builder.ui.js';
 
 const log = createLogger('IdeasGallery');
 
 // ============================================================================
-// HUMANIZED COPY
+// HUMANIZED COPY (text lives in the ideasGallery.* locale keys)
 // ============================================================================
 
-const COPY = {
-  eyebrow: 'WHAT I DO FOR YOU',
-  title: 'Ideas to get started',
-  subtitle: 'Pick one that feels right, or build your own',
-  searchPlaceholder: 'What would help you?',
-
-  sections: {
-    featured: 'Popular with others like you',
-    all: 'All ideas',
-  },
-
-  // Friendly category names
-  categories: {
-    morning: 'Morning routines',
-    evening: 'Wind-down rituals',
-    productivity: 'Focus & flow',
-    wellness: 'Taking care of yourself',
-    home: 'Smart home',
-    communication: 'Staying connected',
-    custom: 'Start from scratch',
-  } as Record<string, string>,
-
-  empty: 'No ideas match that search',
-  timeToSetup: (time: string) => `Takes about ${time}`,
+// Friendly category names (i18n keys)
+const CATEGORY_KEYS: Record<string, string> = {
+  morning: 'ideasGallery.categories.morning',
+  evening: 'ideasGallery.categories.evening',
+  productivity: 'ideasGallery.categories.productivity',
+  wellness: 'ideasGallery.categories.wellness',
+  home: 'ideasGallery.categories.home',
+  communication: 'ideasGallery.categories.communication',
+  custom: 'ideasGallery.categories.custom',
 };
 
 // ============================================================================
@@ -94,7 +80,7 @@ const styles = `
     background: var(--color-bg-elevated, #FFFDFB);
     border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     border-radius: var(--radius-xl, 20px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-xl);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -184,7 +170,7 @@ const styles = `
   .ideas-gallery__search input:focus {
     outline: none;
     border-color: var(--color-ferni, #4a6741);
-    box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.1);
+    box-shadow: var(--shadow-glow);
   }
   
   .ideas-gallery__search svg {
@@ -265,7 +251,7 @@ const styles = `
     background: var(--color-background-hover, rgba(112, 96, 90, 0.06));
     border-color: var(--color-ferni, #4a6741);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-md);
   }
   
   .idea-card__header {
@@ -435,17 +421,17 @@ export class IdeasGallery {
         <div class="ideas-gallery__header">
           <div class="ideas-gallery__header-top">
             <div>
-              <div class="ideas-gallery__eyebrow">${COPY.eyebrow}</div>
-              <h2 class="ideas-gallery__title">${COPY.title}</h2>
-              <p class="ideas-gallery__subtitle">${COPY.subtitle}</p>
+              <div class="ideas-gallery__eyebrow">${t('ferniCare.whatIDoForYou')}</div>
+              <h2 class="ideas-gallery__title">${t('ideasGallery.title')}</h2>
+              <p class="ideas-gallery__subtitle">${t('ideasGallery.subtitle')}</p>
             </div>
-            <button class="ideas-gallery__close" data-action="close" aria-label="Close">
+            <button class="ideas-gallery__close" data-action="close" aria-label="${t('common.close')}">
               ${ICONS.close}
             </button>
           </div>
           <div class="ideas-gallery__search">
             ${ICONS.search}
-            <input type="text" placeholder="${COPY.searchPlaceholder}" id="ideas-search">
+            <input type="text" placeholder="${t('ideasGallery.searchPlaceholder')}" id="ideas-search">
           </div>
         </div>
         <div class="ideas-gallery__content" id="ideas-content">
@@ -461,19 +447,19 @@ export class IdeasGallery {
     const filtered = this.getFilteredTemplates();
 
     if (filtered.length === 0 && this.searchQuery) {
-      return `<div class="ideas-empty">${COPY.empty}</div>`;
+      return `<div class="ideas-empty">${t('ideasGallery.empty')}</div>`;
     }
 
     return `
       <div class="ideas-categories">
         <button class="ideas-category ${!this.selectedCategory ? 'active' : ''}" data-category="">
-          All
+          ${t('accessibility.all')}
         </button>
         ${this.categories
           .map(
             (cat) => `
           <button class="ideas-category ${this.selectedCategory === cat.category ? 'active' : ''}" data-category="${cat.category}">
-            ${COPY.categories[cat.category] || cat.label}
+            ${this.getCategoryLabel(cat.category)}
           </button>
         `
           )
@@ -484,9 +470,9 @@ export class IdeasGallery {
         !this.selectedCategory && !this.searchQuery && this.featured.length > 0
           ? `
         <div class="ideas-section">
-          <h3 class="ideas-section__title">${COPY.sections.featured}</h3>
+          <h3 class="ideas-section__title">${t('ideasGallery.sections.featured')}</h3>
           <div class="ideas-grid">
-            ${this.featured.map((t) => this.renderIdeaCard(t, true)).join('')}
+            ${this.featured.map((tpl) => this.renderIdeaCard(tpl, true)).join('')}
           </div>
         </div>
       `
@@ -494,9 +480,9 @@ export class IdeasGallery {
       }
       
       <div class="ideas-section">
-        <h3 class="ideas-section__title">${this.selectedCategory ? COPY.categories[this.selectedCategory] || this.getCategoryLabel(this.selectedCategory) : COPY.sections.all}</h3>
+        <h3 class="ideas-section__title">${this.selectedCategory ? this.getCategoryLabel(this.selectedCategory) : t('ideasGallery.sections.all')}</h3>
         <div class="ideas-grid">
-          ${filtered.map((t) => this.renderIdeaCard(t)).join('')}
+          ${filtered.map((tpl) => this.renderIdeaCard(tpl)).join('')}
         </div>
       </div>
     `;
@@ -509,12 +495,12 @@ export class IdeasGallery {
           <div class="idea-card__icon">${template.icon}</div>
           <div class="idea-card__info">
             <div class="idea-card__name">${this.escapeHtml(template.name)}</div>
-            <div class="idea-card__time">${COPY.timeToSetup(template.estimatedTimeToSetup)}</div>
+            <div class="idea-card__time">${t('ideasGallery.timeToSetup', { time: template.estimatedTimeToSetup })}</div>
           </div>
         </div>
         <p class="idea-card__description">${this.escapeHtml(template.description)}</p>
         <div class="idea-card__tags">
-          ${showFeatured ? `<span class="idea-card__featured">${ICONS.star} Popular</span>` : ''}
+          ${showFeatured ? `<span class="idea-card__featured">${ICONS.star} ${t('ideasGallery.popular')}</span>` : ''}
           ${template.tags
             .slice(0, 2)
             .map((tag) => `<span class="idea-card__tag">${tag}</span>`)
@@ -538,7 +524,7 @@ export class IdeasGallery {
       content.innerHTML = this.renderContent();
     } catch (error) {
       log.error('Failed to load templates', error);
-      content.innerHTML = '<div class="ideas-loading"><p>Couldn\'t load ideas</p></div>';
+      content.innerHTML = `<div class="ideas-loading"><p>${t('ideasGallery.loadError')}</p></div>`;
     }
   }
 
@@ -563,8 +549,9 @@ export class IdeasGallery {
   }
 
   private getCategoryLabel(category: string): string {
-    const cat = this.categories.find((c) => c.category === category);
-    return cat?.label || category;
+    const key = CATEGORY_KEYS[category];
+    if (key) return t(key);
+    return this.categories.find((c) => c.category === category)?.label || category;
   }
 
   private attachEventListeners(): void {

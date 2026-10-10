@@ -100,3 +100,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+
+// ============================================================================
+// i18n: load the real English strings, as the app does at startup, so tests
+// assert the text users read rather than raw keys.
+// ============================================================================
+
+const { setLocale } = await import('../src/i18n/index.js');
+await setLocale('en-US', { reload: false });

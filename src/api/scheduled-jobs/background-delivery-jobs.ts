@@ -5,6 +5,7 @@
  * POST /api/jobs/deliver-scheduled-actions   (every minute; ?dryRun=true)
  * POST /api/jobs/execute-scheduled-outreach  (every minute; ?dryRun=true)
  * POST /api/jobs/calendar-triggers           (every 5 minutes)
+ * POST /api/jobs/calendar-briefing           (every 15 minutes, morning window)
  *
  * @module api/scheduled-jobs/background-delivery-jobs
  */
@@ -58,5 +59,13 @@ export async function handleCalendarTriggers(res: ServerResponse): Promise<void>
     const { runCalendarTriggerCheck } =
       await import('../../services/workflows/calendar-trigger-worker.js');
     return { ...(await runCalendarTriggerCheck()) };
+  });
+}
+
+export async function handleCalendarBriefing(res: ServerResponse): Promise<void> {
+  await run(res, 'calendar-briefing', async () => {
+    const { checkAndSendMorningBriefings } =
+      await import('../../tasks/scheduled/calendar-briefing-job.js');
+    return { ...(await checkAndSendMorningBriefings()) };
   });
 }

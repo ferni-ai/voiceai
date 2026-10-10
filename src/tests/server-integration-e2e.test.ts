@@ -15,7 +15,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 // TEST CONFIGURATION
 // ============================================================================
 
-const UI_SERVER_PORT = 3003;
+// The token server was folded into the UI server: both are `pnpm ui-server` on 3002.
+const UI_SERVER_PORT = 3002;
 const TOKEN_SERVER_PORT = 3002;
 const TEST_USER_ID = 'test-user-e2e-123';
 const TEST_DEVICE_ID = 'test-device-e2e-456';
@@ -119,7 +120,7 @@ describe('UI Server Integration', () => {
       }
 
       expect(response.status).toBe(200);
-      expect(response.data).toHaveProperty('status', 'healthy');
+      expect(response.data).toHaveProperty('status', 'ok');
     });
 
     it('should respond to /health/dashboard with detailed health info', async () => {
@@ -144,8 +145,9 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      // May require auth, but should respond
-      expect([200, 401, 403]).toContain(response.status);
+      // requireAuth behind a 60/min per-IP limit sharing the global /api counter, so
+      // 429 once this file and other suites hitting the same server have spent it.
+      expect([401, 429]).toContain(response.status);
     });
 
     it('should handle /api/v1/admin/agents', async () => {
@@ -156,7 +158,9 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 401, 403]).toContain(response.status);
+      // requireAuth behind a 60/min per-IP limit sharing the global /api counter, so
+      // 429 once this file and other suites hitting the same server have spent it.
+      expect([401, 429]).toContain(response.status);
     });
 
     it('should handle /api/v1/admin/diagnostics', async () => {
@@ -167,7 +171,9 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 401, 403]).toContain(response.status);
+      // requireAuth behind a 60/min per-IP limit sharing the global /api counter, so
+      // 429 once this file and other suites hitting the same server have spent it.
+      expect([401, 429]).toContain(response.status);
     });
   });
 
@@ -180,7 +186,9 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 401, 403, 404]).toContain(response.status);
+      // requireAuth behind a 60/min per-IP limit sharing the global /api counter, so
+      // 429 once this file and other suites hitting the same server have spent it.
+      expect([401, 429]).toContain(response.status);
     });
   });
 
@@ -193,7 +201,7 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 401, 403, 404]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
   });
 
@@ -209,7 +217,7 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 400, 401, 404]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
 
     it('should handle /api/trust-export/request', async () => {
@@ -223,7 +231,7 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 400, 401, 403]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
   });
 
@@ -236,7 +244,7 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 400, 401]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
 
     it('should handle /api/habits POST to create habit', async () => {
@@ -254,7 +262,7 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 201, 400, 401]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
   });
 
@@ -267,7 +275,7 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 400, 401, 404]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
   });
 
@@ -283,7 +291,7 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 400, 401, 404]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
   });
 
@@ -296,7 +304,7 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 401, 403]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
 
     it('should handle /api/evalops/fingerprints', async () => {
@@ -307,7 +315,7 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 401, 403]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
   });
 
@@ -320,7 +328,8 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 401, 403]).toContain(response.status);
+      // Public by design: GET lists flags; every write needs the admin key.
+      expect(response.status).toBe(200);
     });
   });
 
@@ -336,7 +345,8 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 400, 401, 404]).toContain(response.status);
+      // Public by design: reports voice-auth capabilities only, ignores userId.
+      expect(response.status).toBe(200);
     });
   });
 
@@ -352,7 +362,7 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 400, 401, 404]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
   });
 
@@ -365,7 +375,7 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 401, 403]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
   });
 
@@ -381,7 +391,8 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 400, 401, 404]).toContain(response.status);
+      // No token: the ?userId= names someone, but that is not an identity.
+      expect(response.status).toBe(401);
     });
   });
 
@@ -397,7 +408,7 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 400, 401, 404]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
   });
 
@@ -424,7 +435,8 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 401, 403]).toContain(response.status);
+      // Public by design: the disabled-agent list the app needs before sign-in.
+      expect(response.status).toBe(200);
     });
   });
 
@@ -439,8 +451,8 @@ describe('UI Server Integration', () => {
 
       expect(response.status).toBe(200);
       if (response.status === 200) {
-        expect(response.data).toHaveProperty('spotify');
-        expect(response.data).toHaveProperty('itunes');
+        expect(response.data).toHaveProperty('spotifyStatus');
+        expect(response.data).toHaveProperty('itunesAvailable');
       }
     });
   });
@@ -454,7 +466,7 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 400]).toContain(response.status);
+      expect(response.status).toBe(401);
     });
   });
 
@@ -470,7 +482,7 @@ describe('UI Server Integration', () => {
       expect(response.status).toBe(200);
       if (response.status === 200) {
         expect(response.data).toHaveProperty('configured');
-        expect(response.data).toHaveProperty('hasTokens');
+        expect(response.data).toHaveProperty('has_refresh_token');
       }
     });
   });
@@ -484,7 +496,8 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 500]).toContain(response.status);
+      // Public by design (a VAPID public key); 503 when web push is not configured.
+      expect([200, 503]).toContain(response.status);
     });
   });
 
@@ -503,8 +516,9 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      // May require LiveKit config
-      expect([200, 400, 500]).toContain(response.status);
+      // Never a token without a verified caller: 400 (room/username go in the
+      // query), 401 (no Firebase auth), or 429 once the per-IP limit is spent.
+      expect([400, 401, 429]).toContain(response.status);
     });
   });
 
@@ -520,7 +534,9 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 202, 400, 401]).toContain(response.status);
+      // requireAuth, behind a 10/min per-IP limit that shares its counter with the
+      // global /api limiter, so earlier requests in this file usually spend it.
+      expect([401, 429]).toContain(response.status);
     });
   });
 
@@ -536,7 +552,8 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 400, 401]).toContain(response.status);
+      // A query userId names no one without a verified caller (#307).
+      expect(response.status).toBe(401);
     });
 
     it('should handle /subscription/usage', async () => {
@@ -550,7 +567,8 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 400, 401]).toContain(response.status);
+      // There is no /subscription/usage route (usage comes back in /subscription/status).
+      expect(response.status).toBe(404);
     });
   });
 
@@ -563,7 +581,8 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 404]).toContain(response.status);
+      // Public by design: the marketplace catalog.
+      expect(response.status).toBe(200);
     });
   });
 
@@ -576,7 +595,9 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      expect([200, 401, 403]).toContain(response.status);
+      // requireAuth behind a 60/min per-IP limit sharing the global /api counter, so
+      // 429 once this file and other suites hitting the same server have spent it.
+      expect([401, 429]).toContain(response.status);
     });
   });
 });
@@ -619,7 +640,8 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      expect([200, 404, 500]).toContain(response.status);
+      // Public by design: the LiveKit URL, which the app needs before sign-in.
+      expect(response.status).toBe(200);
     });
 
     it('should generate tokens via /token POST', async () => {
@@ -652,8 +674,8 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      // 200 = success, 400 = missing device_id, 404 = route not on this server, 500 = server error
-      expect([200, 400, 404, 500]).toContain(response.status);
+      // Public: with no device_id this is the web player's config, booleans only.
+      expect(response.status).toBe(200);
       if (response.status === 200) {
         expect(response.data).toHaveProperty('configured');
       }
@@ -670,9 +692,9 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      // Should redirect to Spotify, or 503 if Spotify isn't configured
-      // (servers/api/routes/spotify.ts), or 404 if the route isn't on this server
-      expect([200, 302, 400, 404, 500, 503]).toContain(response.status);
+      // A link must start at POST /auth/oauth/start (bound state); a bare
+      // device_id is refused. 503 when Spotify isn't configured.
+      expect([401, 503]).toContain(response.status);
     });
 
     it('should handle /spotify/token', async () => {
@@ -683,8 +705,8 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      // 400 = missing code param, 401 = unauthorized, 404 = route not on this server, 500 = server error
-      expect([200, 400, 401, 404, 500]).toContain(response.status);
+      // The server's own Spotify token: admins only, never an anonymous caller.
+      expect([401]).toContain(response.status);
     });
   });
 

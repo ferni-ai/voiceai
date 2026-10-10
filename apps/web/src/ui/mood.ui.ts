@@ -8,6 +8,7 @@
  * - Weather-inspired backgrounds (optional)
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -92,26 +93,26 @@ const TIME_MOODS: Record<TimeOfDay, MoodConfig> = {
 // Holiday themes - using centralized HOLIDAY_COLORS from semantic-colors
 import { HOLIDAY_COLORS } from '../config/semantic-colors.js';
 
-const HOLIDAY_THEMES: Record<string, { colors: string[]; message: string }> = {
+const HOLIDAY_THEMES: Record<string, { colors: string[]; messageKey: string }> = {
   christmas: {
     colors: [HOLIDAY_COLORS.christmas.primary, HOLIDAY_COLORS.christmas.secondary, HOLIDAY_COLORS.christmas.accent],
-    message: 'Happy Holidays',
+    messageKey: 'mood.holiday.christmas',
   },
   newyear: {
     colors: [HOLIDAY_COLORS.newYear.primary, HOLIDAY_COLORS.newYear.secondary, HOLIDAY_COLORS.newYear.accent],
-    message: 'Happy New Year',
+    messageKey: 'mood.holiday.newYear',
   },
   halloween: {
     colors: [HOLIDAY_COLORS.halloween.primary, HOLIDAY_COLORS.halloween.secondary, HOLIDAY_COLORS.halloween.accent],
-    message: 'Happy Halloween',
+    messageKey: 'mood.holiday.halloween',
   },
   valentines: {
     colors: [HOLIDAY_COLORS.valentines.primary, HOLIDAY_COLORS.valentines.secondary, HOLIDAY_COLORS.valentines.accent],
-    message: "Happy Valentine's Day",
+    messageKey: 'mood.holiday.valentines',
   },
   thanksgiving: {
     colors: [HOLIDAY_COLORS.fall.primary, HOLIDAY_COLORS.fall.secondary, HOLIDAY_COLORS.fall.accent],
-    message: 'Happy Thanksgiving',
+    messageKey: 'mood.holiday.thanksgiving',
   },
 };
 
@@ -256,8 +257,7 @@ function applyHolidayTheme(holiday: Holiday): void {
   }
   
   // Show subtle holiday indicator - typography only
-  showHolidayIndicator(theme.message);
-  
+  showHolidayIndicator(t(theme.messageKey));
 }
 
 /**

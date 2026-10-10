@@ -26,7 +26,7 @@ const STYLES = `
   .mentor-teachings-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-tooltip);
+    z-index: var(--z-modal, 2100); /* the layer every dialog shares: the last opened is on top */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -360,7 +360,7 @@ function render(): string {
       <div class="mentor-teachings-modal" role="dialog" aria-labelledby="mentor-title">
         <header class="mentor-teachings-header">
           <div class="mentor-teachings-title">
-            <span class="mentor-teachings-eyebrow">Learning From</span>
+            <span class="mentor-teachings-eyebrow">${t('mentorTeachings.learningFrom')}</span>
             <h2 class="mentor-teachings-name" id="mentor-title">${currentAgent.displayName || currentAgent.name}</h2>
           </div>
           <button class="mentor-close-btn" aria-label="${t('accessibility.closeTeachings')}">
@@ -380,14 +380,14 @@ function render(): string {
                   <path d="m8 3 4 8 5-5 5 15H2L8 3z"/>
                   <path d="m5 21 5-10"/>
                 </svg>
-                Core Principles
+                ${t('mentorTeachings.corePrinciples')}
               </h3>
-              <button aria-label="${t('accessibility.addPrinciple')}" class="mentor-add-btn" data-action="add-principle">
+              <button aria-label="${t('mentorTeachings.addPrinciple')}" class="mentor-add-btn" data-action="add-principle">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                Add Principle
+                ${t('mentorTeachings.addPrinciple')}
               </button>
             </div>
             ${principles.length === 0 ? `
@@ -398,20 +398,20 @@ function render(): string {
                     <path d="m5 21 5-10"/>
                   </svg>
                 </div>
-                <h4 class="mentor-empty-title">No principles yet</h4>
-                <p class="mentor-empty-text">Add the core principles that define this mentor's philosophy.</p>
+                <h4 class="mentor-empty-title">${t('mentorTeachings.noPrinciples')}</h4>
+                <p class="mentor-empty-text">${t('mentorTeachings.noPrinciplesDesc')}</p>
               </div>
             ` : principles.map((p, i) => `
               <div class="mentor-principle-card" data-index="${i}">
                 <h4 class="mentor-principle-title">${p}</h4>
-                <div class="mentor-card-actions" role="button" tabindex="0">
-                  <button class="mentor-action-btn" data-action="edit-principle" data-index="${i}" aria-label="${t('accessibility.editPrinciple')}">
+                <div class="mentor-card-actions">
+                  <button class="mentor-action-btn" data-action="edit-principle" data-index="${i}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Edit
+                    ${t('common.edit')}
                   </button>
-                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-principle" data-index="${i}" aria-label="${t('accessibility.deletePrinciple')}">
+                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-principle" data-index="${i}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    Delete
+                    ${t('common.delete')}
                   </button>
                 </div>
               </div>
@@ -426,14 +426,14 @@ function render(): string {
                   <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21c0 1 0 1 1 1z"/>
                   <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
                 </svg>
-                Key Quotes
+                ${t('mentorTeachings.keyQuotes')}
               </h3>
-              <button aria-label="${t('accessibility.addQuote')}" class="mentor-add-btn" data-action="add-quote">
+              <button aria-label="${t('mentorTeachings.addQuote')}" class="mentor-add-btn" data-action="add-quote">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                Add Quote
+                ${t('mentorTeachings.addQuote')}
               </button>
             </div>
             ${quotes.length === 0 ? `
@@ -444,21 +444,21 @@ function render(): string {
                     <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
                   </svg>
                 </div>
-                <h4 class="mentor-empty-title">No quotes yet</h4>
-                <p class="mentor-empty-text">Capture their most impactful and memorable sayings.</p>
+                <h4 class="mentor-empty-title">${t('mentorTeachings.noQuotes')}</h4>
+                <p class="mentor-empty-text">${t('mentorTeachings.noQuotesDesc')}</p>
               </div>
             ` : quotes.map((q, i) => `
               <div class="mentor-quote-card" data-index="${i}">
                 <p class="mentor-quote-text">${q.quote}</p>
                 ${q.source ? `<span class="mentor-quote-source">— ${q.source}</span>` : ''}
-                <div class="mentor-card-actions" role="button" tabindex="0">
-                  <button class="mentor-action-btn" data-action="edit-quote" data-index="${i}" aria-label="${t('accessibility.editQuote')}">
+                <div class="mentor-card-actions">
+                  <button class="mentor-action-btn" data-action="edit-quote" data-index="${i}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Edit
+                    ${t('common.edit')}
                   </button>
-                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-quote" data-index="${i}" aria-label="${t('accessibility.deleteQuote')}">
+                  <button class="mentor-action-btn mentor-action-btn--delete" data-action="delete-quote" data-index="${i}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    Delete
+                    ${t('common.delete')}
                   </button>
                 </div>
               </div>
@@ -474,11 +474,11 @@ function render(): string {
                   <path d="M12 16v-4"/>
                   <path d="M12 8h.01"/>
                 </svg>
-                Teaching Style
+                ${t('mentorTeachings.teachingStyle')}
               </h3>
             </div>
             <div class="mentor-teaching-style">
-              <div class="mentor-style-label">How They Teach</div>
+              <div class="mentor-style-label">${t('mentorTeachings.howTheyTeach')}</div>
               <div class="mentor-style-value">
                 ${describeMentorStyle(teachingStyle)}
               </div>
@@ -493,14 +493,14 @@ function render(): string {
 function describeMentorStyle(style: Record<string, unknown>): string {
   const traits: string[] = [];
   
-  if (style.usesStories) traits.push('Uses stories and examples');
-  if (style.asksQuestions) traits.push('Asks thought-provoking questions');
-  if (style.directFeedback) traits.push('Gives direct, honest feedback');
-  if (style.encouraging) traits.push('Encouraging and supportive');
-  if (style.challenging) traits.push('Challenges assumptions');
+  if (style.usesStories) traits.push(t('mentorTeachings.styleStories'));
+  if (style.asksQuestions) traits.push(t('mentorTeachings.styleQuestions'));
+  if (style.directFeedback) traits.push(t('mentorTeachings.styleDirect'));
+  if (style.encouraging) traits.push(t('mentorTeachings.styleEncouraging'));
+  if (style.challenging) traits.push(t('mentorTeachings.styleChallenging'));
   
   if (traits.length === 0) {
-    return 'Define the teaching style by editing the agent personality.';
+    return t('mentorTeachings.styleDefault');
   }
   
   return traits.join(' • ');
@@ -521,7 +521,7 @@ export async function openMentorTeachings(agentId: string): Promise<void> {
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
     const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't find this mentor");
+    toast.error(t('mentorTeachings.mentorNotFound'));
     return;
   }
 
@@ -627,7 +627,7 @@ function attachListeners(): void {
 async function handleAddPrinciple(): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   
-  const principle = prompt("What is a core principle this mentor teaches?");
+  const principle = prompt(t('mentorTeachings.promptPrinciple'));
   if (!principle || !currentAgent) return;
 
   try {
@@ -646,17 +646,17 @@ async function handleAddPrinciple(): Promise<void> {
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to add principle:', err);
-    toast.error("Couldn't save. Try again?");
+    toast.error(t('toasts.couldNotSave'));
   }
 }
 
 async function handleAddQuote(): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   
-  const quote = prompt("Enter a memorable quote from this mentor:");
+  const quote = prompt(t('mentorTeachings.promptQuote'));
   if (!quote || !currentAgent) return;
 
-  const source = prompt("Source (book, talk, etc.) - optional:") || undefined;
+  const source = prompt(t('mentorTeachings.promptSource')) || undefined;
 
   try {
     const currentQuotes = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; source?: string }>;
@@ -674,7 +674,7 @@ async function handleAddQuote(): Promise<void> {
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to add quote:', err);
-    toast.error("Couldn't save. Try again?");
+    toast.error(t('toasts.couldNotSave'));
   }
 }
 
@@ -686,7 +686,7 @@ async function handleEditPrinciple(index: number): Promise<void> {
   const item = principles[index];
   if (!item) return;
 
-  const newPrinciple = prompt("Edit this principle:", item);
+  const newPrinciple = prompt(t('mentorTeachings.promptEditPrinciple'), item);
   if (!newPrinciple) return;
 
   try {
@@ -700,7 +700,7 @@ async function handleEditPrinciple(index: number): Promise<void> {
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit principle:', err);
-    toast.error("Couldn't update. Try again?");
+    toast.error(t('mentorTeachings.couldNotUpdate'));
   }
 }
 
@@ -708,7 +708,7 @@ async function handleDeletePrinciple(index: number): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
-  if (!confirm('Delete this principle?')) return;
+  if (!confirm(t('mentorTeachings.confirmDeletePrinciple'))) return;
 
   try {
     const principles = (currentAgent.personality?.values || []);
@@ -721,7 +721,7 @@ async function handleDeletePrinciple(index: number): Promise<void> {
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete principle:', err);
-    toast.error("Couldn't delete. Try again?");
+    toast.error(t('mentorTeachings.couldNotDelete'));
   }
 }
 
@@ -733,10 +733,10 @@ async function handleEditQuote(index: number): Promise<void> {
   const item = quotes[index];
   if (!item) return;
 
-  const newQuote = prompt("Edit this quote:", item.quote);
+  const newQuote = prompt(t('mentorTeachings.promptEditQuote'), item.quote);
   if (!newQuote) return;
 
-  const newSource = prompt("Source (book, talk, etc.) - optional:", item.source || '') || undefined;
+  const newSource = prompt(t('mentorTeachings.promptSource'), item.source || '') || undefined;
 
   try {
     const updatedQuotes = [...quotes];
@@ -749,7 +749,7 @@ async function handleEditQuote(index: number): Promise<void> {
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to edit quote:', err);
-    toast.error("Couldn't update. Try again?");
+    toast.error(t('mentorTeachings.couldNotUpdate'));
   }
 }
 
@@ -757,7 +757,7 @@ async function handleDeleteQuote(index: number): Promise<void> {
   const { toast } = await import('./whisper.ui.js');
   if (!currentAgent) return;
 
-  if (!confirm('Delete this quote?')) return;
+  if (!confirm(t('mentorTeachings.confirmDeleteQuote'))) return;
 
   try {
     const quotes = (currentAgent.memories?.wisdom || []) as unknown as Array<{ quote: string; source?: string }>;
@@ -770,7 +770,7 @@ async function handleDeleteQuote(index: number): Promise<void> {
     await openMentorTeachings(currentAgent.id);
   } catch (err) {
     log.error('Failed to delete quote:', err);
-    toast.error("Couldn't delete. Try again?");
+    toast.error(t('mentorTeachings.couldNotDelete'));
   }
 }
 

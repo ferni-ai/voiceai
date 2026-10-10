@@ -5,6 +5,7 @@
  * Uses shared rate limiting from src/servers/token/demo-rate-limit.ts
  */
 
+import { getProfileStore } from '../../../memory/profile-store.js';
 import { isValidTimeZone } from '../../../agents/shared/time-context.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { rateLimit } from '../../../api/auth-middleware.js';
@@ -306,7 +307,6 @@ export async function handleTokenRoutes(
           city: demoGeoData.city,
           regionCode: demoGeoData.regionCode,
           countryCode: demoGeoData.countryCode,
-          useQwen3Omni: process.env.USE_QWEN3_OMNI === 'true',
         })
       );
     } catch (error) {
@@ -554,8 +554,7 @@ export async function handleTokenRoutes(
 
       if (firebaseUid && !preferred_accent) {
         try {
-          const { getDefaultStore } = await import('../../../memory/index.js');
-          const store = getDefaultStore();
+          const store = await getProfileStore();
           const profile = await store.getProfile(firebaseUid);
           if (profile?.preferences?.preferredAccent) {
             savedAccent = profile.preferences.preferredAccent;
@@ -720,8 +719,6 @@ export async function handleTokenRoutes(
           // IP-detected location for weather, local content
           city: geoData.city,
           regionCode: geoData.regionCode,
-          // Qwen Omni: frontend uses this to show Director Console in menu only when Qwen is active
-          useQwen3Omni: process.env.USE_QWEN3_OMNI === 'true',
         })
       );
     } catch (error) {

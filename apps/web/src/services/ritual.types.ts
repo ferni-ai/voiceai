@@ -203,34 +203,40 @@ export type RitualCondition =
 export interface Ritual {
   /** Unique identifier */
   id: string;
-  
+
   /** Human-readable name */
-  name: string;
-  
+  name?: string;
+
+  /** i18n key for name (if localized) */
+  nameKey?: string;
+
   /** Description of what this ritual does */
-  description: string;
-  
+  description?: string;
+
+  /** i18n key for description (if localized) */
+  descriptionKey?: string;
+
   /** What triggers this ritual */
   trigger: RitualTrigger;
-  
+
   /** Additional conditions that must be true */
   conditions?: RitualCondition[];
-  
+
   /** The sequence of steps to execute */
   sequence: RitualStep[];
-  
+
   /** Cooldown before can trigger again (ms) */
   cooldown?: number;
-  
+
   /** Priority (higher = more important, will preempt lower) */
   priority: number;
-  
+
   /** Whether this ritual can be interrupted */
   interruptible?: boolean;
-  
+
   /** Tags for categorization */
   tags?: string[];
-  
+
   /** A/B test variant (if part of experiment) */
   experimentVariant?: string;
 }

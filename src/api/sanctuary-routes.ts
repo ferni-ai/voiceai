@@ -22,12 +22,13 @@ import {
   INSIGHT_SOURCE_TITLE_KEYS,
   INSPIRATIONS,
 } from './sanctuary-content.js';
-import { parseBody, sendJSON } from './helpers.js';
+import { getUserId, parseBody, sendJSON } from './helpers.js';
 import { requireAuth } from './auth-middleware.js';
 import { buildSuperhumanContext, type SuperhumanContext } from '../services/superhuman/index.js';
 import { loadUserPatterns } from '../services/superhuman/predictive-coaching.js';
 import { getInsightsToSurface } from '../services/superhuman/semantic-intelligence/insight-broker.js';
 import { getFirestoreDb, cleanForFirestore } from '../services/superhuman/firestore-utils.js';
+import { timeOfDay, wallClock } from './local-clock.js';
 
 const log = createLogger({ module: 'SanctuaryRoutes' });
 
@@ -79,16 +80,9 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
   sendJSON(res, data, status);
 }
 
-function getTimeContext(): SanctuaryData['timeContext'] {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return 'morning';
-  if (hour >= 12 && hour < 17) return 'afternoon';
-  if (hour >= 17 && hour < 21) return 'evening';
-  return 'night';
-}
-
-function getGreeting(locale: SupportedLocale, timeContext: SanctuaryData['timeContext']): string {
-  const day = new Date().toLocaleDateString(locale, { weekday: 'long' }).toLocaleUpperCase(locale);
+// `now` throughout is the person's wall clock (wallClock), not the server's
+function getGreeting(locale: SupportedLocale, timeContext: SanctuaryData['timeContext'], now: Date): string {
+  const day = now.toLocaleDateString(locale, { weekday: 'long' }).toLocaleUpperCase(locale);
   return tFor(locale, GREETING_KEYS[timeContext], { day });
 }
 
@@ -123,7 +117,8 @@ function tPlural(locale: SupportedLocale, baseKey: string, count: number): strin
 
 async function generateSanctuaryInsights(
   locale: SupportedLocale,
-  userId: string
+  userId: string,
+  now: Date
 ): Promise<SanctuaryInsight[]> {
   const insights: SanctuaryInsight[] = [];
 
@@ -133,7 +128,7 @@ async function generateSanctuaryInsights(
 
     // Get proactive insights from semantic intelligence
     const proactiveInsights = await getInsightsToSurface(userId, {
-      hourOfDay: new Date().getHours(),
+      hourOfDay: now.getHours(),
       isSessionStart: true,
     });
 
@@ -247,7 +242,8 @@ function getInsightIcon(type: string): string {
 function getRecommendedPractices(
   locale: SupportedLocale,
   timeContext: SanctuaryData['timeContext'],
-  superhumanCtx?: Partial<SuperhumanContext>
+  superhumanCtx: Partial<SuperhumanContext> | undefined,
+  now: Date
 ): SanctuaryPractice[] {
   // Determine recommendations based on time and context
   const recommendations: string[] = [];
@@ -263,7 +259,7 @@ function getRecommendedPractices(
   }
 
   // Check day of week for weekly review
-  const dayOfWeek = new Date().getDay();
+  const dayOfWeek = now.getDay();
   if (dayOfWeek === 0 || dayOfWeek === 5) {
     // Sunday or Friday
     recommendations.push('weekly-review');
@@ -437,7 +433,7 @@ export async function handleSanctuaryRoutes(
     // GET /api/sanctuary - Get full Sanctuary data
     if (method === 'GET' && pathname === '/api/sanctuary') {
       const url = new URL(req.url || '', `http://${req.headers.host}`);
-      const userId = url.searchParams.get('userId');
+      const userId = getUserId(req, url); // the verified caller first, then ?userId=
 
       if (!userId) {
         sendJson(res, 400, { error: 'Missing userId parameter' });
@@ -445,11 +441,12 @@ export async function handleSanctuaryRoutes(
       }
 
       const locale = await localeForRequest(req.headers['accept-language']);
-      const timeContext = getTimeContext();
+      const now = wallClock(url.searchParams.get('tz'));
+      const timeContext = timeOfDay(now);
 
       // Build data in parallel
       const [insights, superhumanCtx] = await Promise.all([
-        generateSanctuaryInsights(locale, userId),
+        generateSanctuaryInsights(locale, userId, now),
         buildSuperhumanContext(userId).catch((err) => {
           log.warn(
             { userId, error: String(err) },
@@ -459,10 +456,10 @@ export async function handleSanctuaryRoutes(
         }),
       ]);
 
-      const practices = getRecommendedPractices(locale, timeContext, superhumanCtx);
+      const practices = getRecommendedPractices(locale, timeContext, superhumanCtx, now);
 
       const data: SanctuaryData = {
-        greeting: getGreeting(locale, timeContext),
+        greeting: getGreeting(locale, timeContext, now),
         timeContext,
         insights,
         practices,
@@ -476,7 +473,7 @@ export async function handleSanctuaryRoutes(
     // GET /api/sanctuary/insights - Get insights only
     if (method === 'GET' && pathname === '/api/sanctuary/insights') {
       const url = new URL(req.url || '', `http://${req.headers.host}`);
-      const userId = url.searchParams.get('userId');
+      const userId = getUserId(req, url); // the verified caller first, then ?userId=
 
       if (!userId) {
         sendJson(res, 400, { error: 'Missing userId parameter' });
@@ -484,7 +481,7 @@ export async function handleSanctuaryRoutes(
       }
 
       const locale = await localeForRequest(req.headers['accept-language']);
-      const insights = await generateSanctuaryInsights(locale, userId);
+      const insights = await generateSanctuaryInsights(locale, userId, wallClock(url.searchParams.get('tz')));
       sendJson(res, 200, { insights });
       return true;
     }
@@ -492,10 +489,11 @@ export async function handleSanctuaryRoutes(
     // GET /api/sanctuary/practices - Get practices only
     if (method === 'GET' && pathname === '/api/sanctuary/practices') {
       const url = new URL(req.url || '', `http://${req.headers.host}`);
-      const userId = url.searchParams.get('userId');
+      const userId = getUserId(req, url); // the verified caller first, then ?userId=
 
       const locale = await localeForRequest(req.headers['accept-language']);
-      const timeContext = getTimeContext();
+      const now = wallClock(url.searchParams.get('tz'));
+      const timeContext = timeOfDay(now);
       let superhumanCtx = {};
 
       if (userId) {
@@ -508,7 +506,7 @@ export async function handleSanctuaryRoutes(
         });
       }
 
-      const practices = getRecommendedPractices(locale, timeContext, superhumanCtx);
+      const practices = getRecommendedPractices(locale, timeContext, superhumanCtx, now);
       sendJson(res, 200, { practices });
       return true;
     }

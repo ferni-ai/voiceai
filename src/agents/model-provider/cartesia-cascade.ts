@@ -28,6 +28,7 @@ import * as cartesia from '@livekit/agents-plugin-cartesia';
 import * as google from '@livekit/agents-plugin-google';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
+import { FastLaneLLM, fastLaneEnabled } from './fast-lane.js';
 import { HedgedLLM } from './hedged-llm.js';
 import type {
   AgentSessionTurnDetection,
@@ -233,6 +234,59 @@ export function buildCascadeHedge(
   };
 }
 
+/**
+ * Options for the fast lane (fast-lane.ts), or null when it is off.
+ * gemini-3.5-flash-lite: first text ~650 ms vs ~1,030 ms for 3.5-flash with a
+ * Ferni-sized prompt (2026-10-09). If it has said nothing after hedgeAfterMs,
+ * the main model is started too.
+ */
+export function buildFastLane(
+  env: Env,
+  main: CascadeLLMOptions
+): { options: CascadeLLMOptions; hedgeAfterMs: number } | null {
+  if (!fastLaneEnabled(env)) return null;
+  const model = env.CASCADE_FAST_LANE_MODEL || 'gemini-3.5-flash-lite';
+  if (model === main.model) return null;
+  const hedgeAfterMs = Number(env.CASCADE_FAST_LANE_HEDGE_MS ?? '900');
+  return {
+    options: { ...main, model, thinkingConfig: cascadeThinking(model, env) },
+    hedgeAfterMs: Number.isFinite(hedgeAfterMs) && hedgeAfterMs >= 0 ? hedgeAfterMs : 900,
+  };
+}
+
+/**
+ * Log each STT stream the session opens. The caller's first turn waits ~1.1 s
+ * for its transcript vs ~0.26 s later (prod, 13 calls, 2026-10-10); if a stream
+ * is reopened just before that turn (an agent restart), its socket is new.
+ */
+export function logStreamOpens<T extends { stream: (...args: never[]) => unknown }>(stt: T): T {
+  const open = stt.stream.bind(stt);
+  const createdAt = Date.now();
+  let opened = 0;
+  stt.stream = ((...args: never[]) => {
+    opened += 1;
+    log.info({ stream: opened, sinceCreatedMs: Date.now() - createdAt }, 'STT_STREAM_OPEN');
+    const stream = open(...args);
+    latestStream.set(stt, stream);
+    return stream;
+  }) as T['stream'];
+  return stt;
+}
+
+/** The last stream each STT opened, for refreshSttStream. */
+const latestStream = new WeakMap<object, unknown>();
+
+/**
+ * Reopen the Cartesia socket under the STT's current stream (our plugin patch's
+ * refresh()). False when there is no stream, the patch is missing, or the
+ * caller is mid-turn.
+ */
+export function refreshSttStream(stt: unknown): boolean {
+  if (!stt || typeof stt !== 'object') return false;
+  const stream = latestStream.get(stt) as { refresh?: () => boolean } | undefined;
+  return typeof stream?.refresh === 'function' ? stream.refresh() : false;
+}
+
 /** STT options for the cascade. ink-2 is Cartesia's English streaming model. */
 export function buildCascadeSTTOptions(env: Env = process.env): CascadeSTTOptions {
   return {
@@ -305,9 +359,18 @@ export class CartesiaCascadeProvider implements ModelProvider {
     const gemini = (o: CascadeLLMOptions): google.LLM =>
       declarations ? createCachedDeclarationsLLM(o, declarations) : new google.LLM(o);
     const primary = gemini(opts);
-    if (!hedge) return primary;
-    const backup = gemini({ ...hedge.backup, temperature: config.temperature });
-    return new HedgedLLM(primary, backup, hedge.hedgeAfterMs);
+    const main = hedge
+      ? new HedgedLLM(
+          primary,
+          gemini({ ...hedge.backup, temperature: config.temperature }),
+          hedge.hedgeAfterMs
+        )
+      : primary;
+    const fast = buildFastLane(process.env, opts);
+    if (!fast) return main;
+    log.info(fast, 'Cascade fast lane on');
+    // A slow or failed fast model hands the turn to the main one.
+    return new FastLaneLLM(new HedgedLLM(gemini(fast.options), main, fast.hedgeAfterMs), main);
   }
 
   createSTT(keyterms: string[] = []): unknown {
@@ -323,7 +386,7 @@ export class CartesiaCascadeProvider implements ModelProvider {
       },
       'Creating cascade Cartesia STT'
     );
-    return new cartesia.STT(opts);
+    return logStreamOpens(new cartesia.STT(opts));
   }
 
   /**

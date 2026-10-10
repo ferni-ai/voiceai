@@ -18,12 +18,6 @@ Object.defineProperty(navigator, 'onLine', {
   configurable: true,
 });
 
-// Mock AbortController signal
-vi.stubGlobal('AbortController', class {
-  signal = { aborted: false };
-  abort = vi.fn();
-});
-
 // Mock fetch
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -56,7 +50,10 @@ vi.stubGlobal('import', {
 const mockStripe = {
   confirmPayment: vi.fn().mockResolvedValue({ error: null }),
 };
-vi.stubGlobal('Stripe', vi.fn(() => mockStripe));
+vi.stubGlobal(
+  'Stripe',
+  vi.fn(() => mockStripe)
+);
 
 // Setup fetch mock
 beforeEach(() => {
@@ -494,7 +491,7 @@ describe('MonetizationService', () => {
         // Test the payment processing logic with mocked Stripe
         // Since loadStripe has timing issues in tests, we test the mock directly
         mockStripe.confirmPayment.mockResolvedValueOnce({ error: null });
-        
+
         const result = await mockStripe.confirmPayment();
         expect(result.error).toBeNull();
       });

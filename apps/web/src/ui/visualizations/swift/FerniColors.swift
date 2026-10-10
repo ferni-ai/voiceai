@@ -57,7 +57,7 @@ enum FerniColors {
         static let anxious = Color(hex: "e74c3c")
         static let tired = Color(hex: "9a8f85")
         static let focused = Color(hex: "3a6b73")
-        static let reflective = Color(hex: "8a7a9a")
+        static let reflective = Color(hex: "5a6b8a")
         static let stressed = Color(hex: "c0392b")
         static let energized = Color(hex: "27ae60")
         static let peaceful = Color(hex: "5a8b73")

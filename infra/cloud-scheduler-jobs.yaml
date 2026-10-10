@@ -150,6 +150,22 @@ data:
       uri: "https://async-worker-xxxxx.run.app/health"
       httpMethod: GET
 
+    # ==========================================================================
+    # CALENDAR MORNING BRIEFING (D9)
+    # Every 15 min across 05:00–11:00 UTC so 7am local fires in each zone.
+    # Deduped per user/day in Firestore. Do not apply this YAML here.
+    # ==========================================================================
+
+    - name: calendar-morning-briefing
+      description: "Alex morning calendar briefing (one push per user per local day)"
+      schedule: "*/15 5-11 * * *"
+      timezone: "Etc/UTC"
+      uri: "https://app.ferni.ai/api/jobs/calendar-briefing"
+      httpMethod: POST
+      retryConfig:
+        retryCount: 1
+        minBackoffDuration: "30s"
+
 ---
 # Terraform configuration for creating these jobs
 # File: infra/scheduler.tf

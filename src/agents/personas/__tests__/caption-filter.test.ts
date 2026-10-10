@@ -26,6 +26,22 @@ describe('CaptionFilter', () => {
   it('does not swallow the tail of a reply that ends mid-tag', () => {
     expect(run(['All good. <break'])).toBe('All good. ');
   });
+
+  it('shows a stammer written as ",," as one comma (dev eval 2026-10-10)', () => {
+    expect(
+      run(['Yeah,, uh,, keeping your head down and just doing the work makes a big difference.'])
+    ).toBe('Yeah, uh, keeping your head down and just doing the work makes a big difference.');
+  });
+
+  it('collapses a double comma split across chunks', () => {
+    expect(run(['Yeah,', ', uh,', ', keeping going.'])).toBe('Yeah, uh, keeping going.');
+    expect(run(['Yeah, ', ' , uh'])).toBe('Yeah, uh');
+  });
+
+  it('leaves single commas alone, including one that ends a chunk', () => {
+    expect(run(['Well,', ' I think so, yes.'])).toBe('Well, I think so, yes.');
+    expect(run(['One, two, three.'])).toBe('One, two, three.');
+  });
 });
 
 describe('filterCaptionStream', () => {

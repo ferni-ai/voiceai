@@ -13,6 +13,37 @@ export type GardenerStatus = 'seedling' | 'gardener' | 'grove-keeper';
 export type GardenHealth = 'thriving' | 'growing' | 'needs-water';
 
 // =============================================================================
+// SEED PAYMENT
+// =============================================================================
+
+export type SeedPaymentOutcome =
+  /** Stripe accepted the payment and is navigating to the return URL. */
+  | { status: 'confirmed' }
+  /** Sent to Stripe Checkout (monthly gift). */
+  | { status: 'redirected' }
+  /** Payments aren't set up (server 503 or no Stripe key in this build); nothing was charged. */
+  | { status: 'not-configured' }
+  /** The user closed the card form; nothing was charged. */
+  | { status: 'cancelled' }
+  | { status: 'failed'; reason: string };
+
+/** The parts of Stripe.js the seed card form uses. */
+export interface StripePaymentElement {
+  mount(target: HTMLElement): void;
+  destroy(): void;
+}
+export interface StripeElements {
+  create(type: 'payment'): StripePaymentElement;
+}
+export interface StripeForCard {
+  elements(options: { clientSecret: string }): StripeElements;
+  confirmPayment(options: {
+    elements: StripeElements;
+    confirmParams: { return_url: string };
+  }): Promise<{ error?: { message?: string } }>;
+}
+
+// =============================================================================
 // API RESPONSE TYPES
 // =============================================================================
 

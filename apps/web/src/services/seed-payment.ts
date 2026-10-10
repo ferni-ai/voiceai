@@ -12,27 +12,25 @@
  * @module services/seed-payment
  */
 
-import type { PlantSeedResponse, SubscriptionResponse } from '../types/seed-fund.types.js';
+import type {
+  PlantSeedResponse,
+  SeedPaymentOutcome,
+  StripeForCard,
+  SubscriptionResponse,
+} from '../types/seed-fund.types.js';
 import { apiFetch } from '../utils/api-helpers.js';
+import { t } from '../i18n/index.js';
 import { billingErrorMessage } from '../utils/billing.js';
 import { createLogger } from '../utils/logger.js';
-import { collectCardPayment, type StripeForCard } from '../ui/seed-payment-form.ui.js';
 import { loadStripe } from './monetization.service.js';
 
 const log = createLogger('SeedPayment');
 
-export type SeedPaymentOutcome =
-  /** Stripe accepted the payment and is navigating to the return URL. */
-  | { status: 'confirmed' }
-  /** Sent to Stripe Checkout (monthly gift). */
-  | { status: 'redirected' }
-  /** Payments aren't set up (server 503 or no Stripe key in this build); nothing was charged. */
-  | { status: 'not-configured' }
-  /** The user closed the card form; nothing was charged. */
-  | { status: 'cancelled' }
-  | { status: 'failed'; reason: string };
+const MONTHLY_GIFT_KEY = 'ferni_monthly_gift_dollars';
 
-/** Shows the card form and confirms the payment (replaceable in tests). */
+export type { SeedPaymentOutcome };
+
+/** Shows the card form and confirms the payment (ui/seed-payment-form's collectCardPayment). */
 export type CardCollector = (
   stripe: StripeForCard,
   clientSecret: string,
@@ -47,7 +45,7 @@ async function readError(response: Response): Promise<string> {
 /** Plant a one-time seed of `amountDollars` for the signed-in user. */
 export async function payForSeed(
   amountDollars: number,
-  collect: CardCollector = collectCardPayment
+  collect: CardCollector
 ): Promise<SeedPaymentOutcome> {
   const response = await apiFetch('/api/garden/plant', {
     method: 'POST',
@@ -68,7 +66,12 @@ export async function payForSeed(
     return { status: 'not-configured' };
   }
 
-  return collect(stripe, result.clientSecret, amountDollars);
+  const outcome = await collect(stripe, result.clientSecret, amountDollars);
+  // Seeds economy listens for this to award the supporter bonus (see seeds-economy.service)
+  if (outcome.status === 'confirmed') {
+    announce('ferni:contribution-success', { amountCents: amountDollars * 100 });
+  }
+  return outcome;
 }
 
 /** Start a monthly gift of `amountDollars`: on success, go to Stripe Checkout. */
@@ -85,13 +88,45 @@ export async function startMonthlyGift(amountDollars: number): Promise<SeedPayme
   if (!result.success || !result.checkoutUrl) {
     return { status: 'failed', reason: result.error || 'Failed to start subscription' };
   }
+  // Checkout leaves the page; remember the amount so the /garden/success return can pay the bonus
+  try {
+    sessionStorage.setItem(MONTHLY_GIFT_KEY, String(amountDollars));
+  } catch {
+    // Private mode: the thank-you still shows, only the seed bonus is skipped
+  }
   window.location.href = result.checkoutUrl;
   return { status: 'redirected' };
+}
+
+/**
+ * On return from monthly-gift Checkout (/garden/success), announce the payment once so the
+ * seeds economy can award the founding bonus. Only fires for a gift this tab started
+ * (startMonthlyGift), so opening /garden/success by hand does nothing. Gifts under $10
+ * have no founding tier. Returns the tier announced, or null.
+ */
+export function announceMonthlyGiftPaid(): 'founding-member' | 'founding-patron' | null {
+  let dollars = 0;
+  try {
+    dollars = Number(sessionStorage.getItem(MONTHLY_GIFT_KEY));
+    sessionStorage.removeItem(MONTHLY_GIFT_KEY);
+  } catch {
+    return null;
+  }
+  if (!Number.isFinite(dollars) || dollars < 10) return null;
+  const tier = dollars >= 20 ? 'founding-patron' : 'founding-member';
+  announce('ferni:subscription-paid', { tier });
+  return tier;
+}
+
+/** Tell the seeds economy (a client-side ledger; nothing server-side is granted). No-op off the page. */
+function announce(name: string, detail: object): void {
+  if (typeof document === 'undefined') return;
+  document.dispatchEvent(new CustomEvent(name, { detail }));
 }
 
 /** The toast for a gift that went wrong, or null when there is nothing to say. */
 export function seedPaymentFailureMessage(outcome: SeedPaymentOutcome): string | null {
   if (outcome.status === 'not-configured') return billingErrorMessage(503);
-  if (outcome.status === 'failed') return "Payment didn't go through. Try again?";
+  if (outcome.status === 'failed') return t('toasts.paymentFailed');
   return null; // confirmed, redirected, or cancelled by the user
 }

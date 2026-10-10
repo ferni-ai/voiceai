@@ -19,7 +19,7 @@
 #   docker run -e PERSONA_ID=ferni -e LIVEKIT_URL=... ferni-agent
 # ============================================================================
 
-ARG NODE_VERSION=20
+ARG NODE_VERSION=22
 
 # LiveKit agents SDK version - update this when upgrading @livekit/agents packages
 # Check latest: https://www.npmjs.com/package/@livekit/agents
@@ -47,7 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cmake \
     && rm -rf /var/lib/apt/lists/* \
     && rustup component add rustfmt \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g @napi-rs/cli
 
@@ -78,8 +78,8 @@ COPY apps/rust-perf/build.rs ./rust-perf/
 
 # Build rust-perf native module for Linux x64
 # - CoreML/Metal are conditionally compiled (macOS-only) via Cargo.toml target cfg
-# - Candle ML models (Qwen3-Omni, LFM2) are behind "candle_models" feature (not in default)
-#   This skips ~10K lines of model code + candle-nn/candle-transformers/safetensors/half deps
+# - Candle ML models (FTIS Candle router, LFM2) are behind "candle_models" feature (not in default)
+#   This skips the model code + candle-nn/candle-transformers/safetensors/half deps
 WORKDIR /rust/rust-perf
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
@@ -101,12 +101,12 @@ ARG LIVEKIT_AGENTS_VERSION
 
 WORKDIR /app
 
-# Install Node.js 20.x, git, and enable pnpm
+# Install Node.js 22.x, git, and enable pnpm
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     git \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/* \
     && corepack enable && corepack prepare pnpm@10.29.3 --activate
@@ -236,14 +236,14 @@ FROM ubuntu:24.04 AS production
 
 WORKDIR /app
 
-# Install Node.js 20.x and system dependencies (including ffmpeg for DJ-style audio fade-out)
+# Install Node.js 22.x and system dependencies (including ffmpeg for DJ-style audio fade-out)
 # DEBIAN_FRONTEND=noninteractive suppresses interactive prompts (e.g. tzdata region picker)
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     ffmpeg \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates

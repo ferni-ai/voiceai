@@ -24,19 +24,14 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
-import {
-  calmGreeting,
-  GREETING_DIRECTION,
-  greetingFacts,
-  partOfDayFor,
-  takeCallerHistory,
-} from './greeting-direction.js';
+import { directedGreeting } from './greeting-direction.js';
+import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 export { calmGreeting } from './greeting-direction.js';
 
 // Predictive handoff - pre-briefings for specialist personas
 import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
 import type { PreBriefing } from '../../services/automation/predictive-handoff.js';
-import { callerHour } from '../shared/time-context.js';
+import { getArrivingBanter, getHandoffBanter } from '../../services/team-engagement/banter.js';
 
 const log = getLogger();
 
@@ -127,6 +122,8 @@ export interface AgentCreationContext {
   isHandoff: boolean;
   /** Previous persona (for handoff context) */
   previousPersonaId?: string;
+  /** The call's running session, to join instead of starting one (persona-swap.ts) */
+  callSession?: unknown;
 }
 
 // ============================================================================
@@ -239,37 +236,25 @@ export class AgentOrchestrator {
    */
   private async generateInitialGreeting(agent: PersonaAgent): Promise<void> {
     try {
-      const { generateWarmGreeting } = await import('../shared/warm-greeting.js');
-      // A returning caller's greeting can pick up from last time (agent-setup hands it over).
-      const history = takeCallerHistory(this.sessionId);
-      const hour = callerHour(new Date(), (agent.userData as UserData | undefined)?.callerTimezone);
-      const ctx = {
-        hour: hour ?? 12,
-        isReturningUser: history !== undefined,
-        relationshipStage: 'friend' as const, // Default for multi-agent
-      };
+      // A call Ferni placed for someone opens with who it is and who it's
+      // for, once the phone is picked up: never the app's "hey <user>" hello.
+      const { outboundOpener, outboundPartiesFor, waitForCallAnswered } =
+        await import('../shared/outbound-opener.js');
+      const parties = outboundPartiesFor(this.sessionId);
+      let greeting: string;
+      if (parties) {
+        const answered = await waitForCallAnswered(this.room, this.userParticipant);
+        if (!answered) {
+          log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
+          return;
+        }
+        greeting = outboundOpener(parties);
+      } else {
+        const userData = agent.userData as UserData | undefined;
+        greeting = await directedGreeting(this.sessionId, agent.personaId, userData);
+      }
 
-      // The scripted greeting is the understudy; the director has the
-      // character say hello in their own words for this caller and hour.
-      const scripted = generateWarmGreeting(agent.personaId, ctx);
-      const { directedText } = await import('../../speech/direction/index.js');
-      const partOfDay = hour === null ? '' : partOfDayFor(hour);
-      const userName = (agent.userData as { userName?: string } | undefined)?.userName;
-      const directed = await directedText(this.sessionId, {
-        moment: 'greeting',
-        direction: GREETING_DIRECTION,
-        facts: greetingFacts(partOfDay, userName, history),
-        fallback: scripted,
-        urgency: 'now',
-        maxChars: 140,
-      });
-      const greeting = calmGreeting(directed.text);
-
-      // ================================================================
-      // GREETING AWARENESS: Store greeting so LLM knows what it said
-      // This prevents the LLM from repeating greetings or being confused
-      // The turn-handler injects this on turn 0 as system context
-      // ================================================================
+      // Greeting awareness: the turn handler tells the LLM on turn 0 what it said.
       if (agent.userData) {
         agent.userData.greetingText = greeting;
         agent.userData.greetingInjected = false;
@@ -290,6 +275,8 @@ export class AgentOrchestrator {
         /* non-fatal */
       }
       agent.say(greeting, { allowInterruptions: false });
+      // Prompt-cache warm + STT refresh when the greeting ends (after-greeting.ts).
+      void import('../model-provider/after-greeting.js').then((m) => m.run(agent.session));
 
       // ⚡ FAST-AGENT-JOIN: Wire deferred handlers in background after greeting starts
       // Handlers run in parallel with speech - user hears greeting while handlers wire
@@ -403,7 +390,8 @@ export class AgentOrchestrator {
         '🎭 [HANDOFF STEP 2/5] Closing old agent...'
       );
       diag.entry(`🎭 Closing ${previousPersonaId}`);
-      await this.removeAgent(currentAgent.id);
+      const swap = singleSessionHandoffs() && isSwappable(currentAgent) ? currentAgent : null;
+      if (!swap) await this.removeAgent(currentAgent.id); // swapped out below instead
       log.info(
         { personaId: previousPersonaId, durationMs: Date.now() - step2Start },
         '🎭 [HANDOFF STEP 2/5] ✅ Old agent closed'
@@ -469,7 +457,9 @@ export class AgentOrchestrator {
         userName: request.userName,
         isHandoff: true,
         previousPersonaId,
+        callSession: swap?.session,
       });
+      if (swap) await swapPersona(swap, newAgent, (persona) => this.agents.delete(persona.id));
       log.info(
         {
           newAgentId: newAgent.id,
@@ -556,6 +546,19 @@ export class AgentOrchestrator {
         },
         '🎭 [HANDOFF] ❌❌❌ HANDOFF FAILED ❌❌❌'
       );
+      // The old agent closed before the new one failed to start: bring it back, or the call goes silent
+      if (!this.getActiveAgent()) {
+        await this.spawnAgent(previousPersonaId, {
+          room: this.room,
+          userParticipant: this.userParticipant,
+          isHandoff: false,
+          recentMessages: request.recentMessages,
+        })
+          .then((agent) => this.setActiveAgent(agent.id))
+          .catch((e: unknown) =>
+            log.error({ error: String(e) }, '🎭 Could not restore previous agent')
+          );
+      }
       return {
         success: false,
         error: String(error),
@@ -648,16 +651,7 @@ export class AgentOrchestrator {
 
     log.debug({ personaId, agentId: agent.id }, '🎭 [spawnAgent] Adding agent to map...');
 
-    // Add to map and verify
     this.agents.set(agent.id, agent);
-    const verifyAdded = this.agents.get(agent.id);
-    if (!verifyAdded) {
-      log.error(
-        { personaId, agentId: agent.id, mapSize: this.agents.size },
-        '🎭 [spawnAgent] ❌ CRITICAL: Agent was set but cannot be retrieved from map'
-      );
-      throw new Error(`Failed to add agent ${agent.id} to map`);
-    }
 
     log.info(
       {
@@ -934,17 +928,11 @@ export class AgentOrchestrator {
    * Get a goodbye phrase for the departing agent.
    */
   private getGoodbyePhrase(fromPersonaId: string, toPersonaId: string): string | null {
-    try {
-      // Import dynamically to avoid circular deps
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { getHandoffBanter } = require('../../services/engagement/team-engagement.js');
-      return getHandoffBanter(fromPersonaId, toPersonaId);
-    } catch {
-      // Fallback if module not available (e.g., in tests)
-      // BUG FIX: Use display name instead of persona ID for natural speech
-      const displayName = getPersonaDisplayName(toPersonaId);
-      return `Let me hand you off to ${displayName}.`;
-    }
+    // Banter, or a plain line (a require() of the wrong module always fell back to it)
+    return (
+      getHandoffBanter(fromPersonaId, toPersonaId) ??
+      `Let me hand you off to ${getPersonaDisplayName(toPersonaId)}.`
+    );
   }
 
   /**
@@ -955,15 +943,7 @@ export class AgentOrchestrator {
     fromPersonaId: string,
     _request: HandoffRequest
   ): string | null {
-    try {
-      // Import dynamically to avoid circular deps
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { getArrivingBanter } = require('../../services/engagement/team-engagement.js');
-      return getArrivingBanter(toPersonaId, fromPersonaId);
-    } catch {
-      // Fallback if module not available (e.g., in tests)
-      return "Hey! What's up?";
-    }
+    return getArrivingBanter(toPersonaId, fromPersonaId) ?? "Hey! What's up?";
   }
 }
 

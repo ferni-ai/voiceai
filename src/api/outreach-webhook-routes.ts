@@ -19,6 +19,7 @@ import {
 } from '../services/outreach/webhooks/index.js';
 import { handlePushInteraction } from '../services/outreach/delivery/push-notifications.js';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { isSignedByTwilio } from './twilio-callback-signature.js';
 import { URL } from 'url';
 
 const log = getLogger().child({ module: 'outreach-webhook-routes' });
@@ -103,6 +104,7 @@ function sendRedirect(res: ServerResponse, url: string): void {
  * - POST /api/outreach/webhooks/twilio/sms-status
  * - POST /api/outreach/webhooks/twilio/sms-inbound
  * - POST /api/outreach/webhooks/twilio/call-status
+ * - POST /api/outreach/webhooks/twilio/conversational-call-status
  * - POST /api/outreach/webhooks/sendgrid
  * - POST /api/outreach/webhooks/resend
  * - GET  /api/outreach/webhooks/email/open
@@ -123,6 +125,25 @@ export async function handleOutreachWebhookRoutes(
     // ========================================================================
     // TWILIO WEBHOOKS
     // ========================================================================
+
+    // Conversational call status (Twilio statusCallback from conversational-calls.ts):
+    // retries, voicemail and completion for scheduled_calls
+    if (webhookPath === '/twilio/conversational-call-status' && method === 'POST') {
+      const { body } = await parseBody(req);
+      const params = body as Record<string, string>;
+      if (!isSignedByTwilio(req, req.url || pathname, params)) {
+        log.warn({ path: webhookPath }, 'Missing or invalid Twilio signature');
+        sendJSON(res, 403, { error: 'Invalid signature' });
+        return true;
+      }
+      const { handleCallStatusUpdate } =
+        await import('../services/outreach/conversational-calls.js');
+      await handleCallStatusUpdate(
+        params as unknown as Parameters<typeof handleCallStatusUpdate>[0]
+      );
+      sendJSON(res, 200, { success: true });
+      return true;
+    }
 
     // SMS Status Webhook
     if (webhookPath === '/twilio/sms-status' && method === 'POST') {

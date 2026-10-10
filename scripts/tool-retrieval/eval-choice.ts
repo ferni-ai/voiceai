@@ -30,6 +30,7 @@ import {
 import { TurnToolRetrieval } from '../../src/tools/retrieval/turn-tool-retrieval.js';
 import { createFindToolsTool, FIND_TOOLS } from '../../src/tools/retrieval/find-tools-tool.js';
 import { loadSystemPrompt } from '../../src/agents/personas/prompt-loader.js';
+import { cascadeThinking } from '../../src/agents/model-provider/cartesia-cascade.js';
 
 const [nArg, seedArg, label = 'live'] = process.argv.slice(2);
 const n = Number(nArg || 100);
@@ -128,7 +129,8 @@ async function ask(contents: Content[], tools: llm.ToolContext) {
     config: {
       systemInstruction: system,
       tools: [{ functionDeclarations: toFunctionDeclarations(tools) as never }],
-      thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+      // The agent's own setting: a 2.x model rejects MINIMAL, so every 2.x row errored.
+      thinkingConfig: cascadeThinking(MODEL) as never,
     },
   });
 }

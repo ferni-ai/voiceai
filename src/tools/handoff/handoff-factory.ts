@@ -34,7 +34,7 @@ import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { executeHandoff } from './executor.js';
 import { handoffToolResponse } from './handoff-tool-response.js';
-import { cameoUnlockEvents } from './state.js';
+import { introduceTeammate } from './introduce-member.js';
 
 // FIX BUG: Use safe-logger utility instead of console fallback
 // This follows project conventions and provides consistent logging
@@ -647,7 +647,7 @@ Do NOT try to transfer to them. This was just a quick hello.`,
         .optional()
         .describe('What you just said to introduce them (used to time the visual reveal)'),
     }),
-    execute: async ({ memberId, spoken_intro }, _runContext) => {
+    execute: async ({ memberId, spoken_intro }, runContext) => {
       // FIX BUG #6: Use normalized ID matching for robust ID comparison
       // This handles all ID formats: maya-santos, maya_santos, Maya, etc.
       const normalizedInput = normalizeAgentIdSync(memberId);
@@ -660,55 +660,35 @@ Do NOT try to transfer to them. This was just a quick hello.`,
         };
       }
 
-      // Mark as introduced in the cameo unlock session tracker
-      // This prevents re-introduction in the same session
-      try {
-        const { markIntroduced } =
-          await import('../../intelligence/context-builders/team/cameo-unlock.js');
-        markIntroduced(member.memberId);
-      } catch {
-        // Non-critical - continue anyway
-      }
-
-      // ================================================================
-      // NATURAL REVEAL TIMING
-      // ================================================================
-      // Calculate how long Ferni's TTS will take to speak the introduction.
-      // Average speaking rate is ~150 words/minute = 2.5 words/second.
-      // We delay the visual celebration so it hits RIGHT as speech finishes.
+      // Reveal as the speech ends: ~2.5 words/second, plus a beat for TTS to start
       const introText = spoken_intro || member.introductionMessage;
-      const wordCount = introText.split(/\s+/).length;
-      const estimatedTtsDurationMs = Math.ceil((wordCount / 2.5) * 1000);
-
-      // Add buffer for TTS startup latency and natural pacing
-      const revealDelayMs = estimatedTtsDurationMs + 800;
-
+      const revealDelayMs = Math.ceil((introText.split(/\s+/).length / 2.5) * 1000) + 800;
+      const services = (
+        runContext as {
+          ctx?: {
+            userData?: { services?: { userProfile?: UserProfile | null; sessionId?: string } };
+          };
+        }
+      )?.ctx?.userData?.services;
+      const runtimeProfile = services?.userProfile || userProfile || null;
+      const tier =
+        (runtimeProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || subscriptionTier;
+      const introduced = await introduceTeammate(member, introText, revealDelayMs, {
+        userProfile: runtimeProfile,
+        tier,
+        sessionId: services?.sessionId,
+      });
+      if (!introduced) {
+        return {
+          success: false,
+          error: `${member.displayName} isn't unlocked yet`,
+          instructions: `Don't introduce ${member.displayName} as available: they join after more conversations together. Carry on with the conversation.`,
+        };
+      }
       getLogger().info(
-        {
-          memberId: member.memberId,
-          displayName: member.displayName,
-          wordCount,
-          estimatedTtsDurationMs,
-          revealDelayMs,
-        },
-        '🎭 Cameo unlock: Timing visual reveal to speech completion'
+        { memberId: member.memberId, revealDelayMs },
+        '🎭 Teammate introduced; reveal scheduled'
       );
-
-      // Schedule the reveal for when the speech should finish. Never wait for
-      // it here: the LLM cannot speak until this tool returns, so awaiting the
-      // delay left the caller in silence for the whole intro (27.6s on a call).
-      setTimeout(() => {
-        cameoUnlockEvents.emit('memberUnlocked', {
-          memberId: member.memberId,
-          displayName: member.displayName,
-          role: member.role,
-          spokenIntro: introText,
-        });
-        getLogger().info(
-          { memberId: member.memberId, displayName: member.displayName },
-          '🎭 Cameo unlock: Visual reveal triggered!'
-        );
-      }, revealDelayMs);
 
       return {
         success: true,
@@ -718,14 +698,14 @@ Do NOT try to transfer to them. This was just a quick hello.`,
         spoken_intro: introText,
         // Signal to frontend to show the unlock celebration
         trigger_cameo_unlock: true,
-        instructions: `Perfect! You've introduced ${member.displayName}; the celebration appears as you finish speaking.
+        instructions: `Perfect! You've introduced ${member.displayName}; they appear in the app as you finish speaking.
 
-The user now has access to talk with them. Offer to connect:
+They're on the user's team now. Offer to connect:
 "Would you like to chat with ${member.displayName} about this?"
 
 If they say yes, use the handoffTo${member.displayName.split(' ')[0]} tool.
 
-Remember: This is a special moment! The user just unlocked a new friend.`,
+Remember: This is a special moment! The user just met a new friend.`,
       };
     },
   });

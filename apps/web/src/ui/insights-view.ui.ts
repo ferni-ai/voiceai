@@ -14,6 +14,7 @@
  * @module ui/insights-view
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import {
   ICONS,
@@ -88,41 +89,41 @@ export interface InsightData {
 // BRAND COMPLIANT: Using Lucide SVG icons, NOT emoji
 interface ChapterCopy {
   icon: string;
-  verb: string;
-  encouragement: string;
+  verbKey: string;
+  encouragementKey: string;
 }
 
 const DEFAULT_CHAPTER_COPY: ChapterCopy = {
   icon: CHAPTER_ICONS.growth,
-  verb: 'growing through',
-  encouragement: 'Something beautiful is taking shape.',
+  verbKey: 'insights.chapter.default.verb',
+  encouragementKey: 'insights.chapter.default.encouragement',
 };
 
 const CHAPTER_COPY: Record<string, ChapterCopy> = {
   struggle: {
     icon: CHAPTER_ICONS.struggle,
-    verb: 'navigating',
-    encouragement: "This is hard, and you're doing it anyway.",
+    verbKey: 'insights.chapter.default.verb',
+    encouragementKey: 'insights.chapter.struggle.encouragement',
   },
   growth: {
     icon: CHAPTER_ICONS.growth,
-    verb: 'growing through',
-    encouragement: 'Something beautiful is taking shape.',
+    verbKey: 'insights.chapter.growth.verb',
+    encouragementKey: 'insights.chapter.growth.encouragement',
   },
   triumph: {
     icon: CHAPTER_ICONS.triumph,
-    verb: 'celebrating',
-    encouragement: 'You did it. Take a moment to feel this.',
+    verbKey: 'insights.chapter.triumph.verb',
+    encouragementKey: 'insights.chapter.triumph.encouragement',
   },
   transition: {
     icon: CHAPTER_ICONS.transition,
-    verb: 'moving through',
-    encouragement: 'Change is hard. You have what you need.',
+    verbKey: 'insights.chapter.transition.verb',
+    encouragementKey: 'insights.chapter.transition.encouragement',
   },
   discovery: {
     icon: CHAPTER_ICONS.discovery,
-    verb: 'discovering',
-    encouragement: 'New understanding is emerging.',
+    verbKey: 'insights.chapter.discovery.verb',
+    encouragementKey: 'insights.chapter.discovery.encouragement',
   },
 };
 
@@ -162,7 +163,7 @@ export class InsightsView {
     this.container.className = 'insights-view';
     this.container.setAttribute('role', 'dialog');
     this.container.setAttribute('aria-modal', 'true');
-    this.container.setAttribute('aria-label', 'What Ferni is noticing');
+    this.container.setAttribute('aria-label', t('accessibility.whatFerniIsNoticing'));
     this.container.setAttribute('aria-hidden', 'true');
 
     this.container.innerHTML = this.renderView();
@@ -177,10 +178,10 @@ export class InsightsView {
       <div class="insights-view__card">
         <header class="insights-view__header">
           <div class="insights-view__header-content">
-            <span class="insights-view__eyebrow">For you</span>
-            <h2 class="insights-view__title">What I'm Noticing</h2>
+            <span class="insights-view__eyebrow">${t('insights.forYou')}</span>
+            <h2 class="insights-view__title">${t('insights.whatNoticing')}</h2>
           </div>
-          ${renderCloseButton('Close')}
+          ${renderCloseButton(t('common.close'))}
         </header>
         <div class="insights-view__content" id="insights-content">
           ${this.renderContent()}
@@ -236,8 +237,7 @@ export class InsightsView {
   private renderPresence(presence: NonNullable<InsightData['presence']>): string {
     const weatherCopy = WEATHER_COPY[presence.weather];
     const energyCopy = ENERGY_COPY[presence.energy];
-    const iconKey = presence.weather as keyof typeof ICONS;
-    const icon = ICONS[iconKey] || ICONS.cloudy;
+    const icon = ICONS[presence.weather as keyof typeof ICONS] || ICONS.cloudy;
 
     return `
       <section class="insights-section insights-section--presence">
@@ -246,11 +246,11 @@ export class InsightsView {
             ${icon}
           </div>
           <div class="insights-presence__content">
-            <span class="insights-presence__label">${escapeHtml(weatherCopy.label)}</span>
-            <span class="insights-presence__energy">${escapeHtml(energyCopy.label)} energy</span>
+            <span class="insights-presence__label">${escapeHtml(t(weatherCopy.labelKey))}</span>
+            <span class="insights-presence__energy">${t('engagementPanel.energyLabel', { energy: escapeHtml(t(energyCopy.labelKey)) })}</span>
           </div>
         </div>
-        <p class="insights-presence__message">${escapeHtml(weatherCopy.encouragement)}</p>
+        <p class="insights-presence__message">${escapeHtml(t(weatherCopy.encouragementKey))}</p>
         ${presence.note ? `<p class="insights-presence__note">"${escapeHtml(presence.note)}"</p>` : ''}
       </section>
     `;
@@ -278,7 +278,7 @@ export class InsightsView {
       <section class="insights-section insights-section--noticing">
         <h3 class="insights-section__title">
           <span class="insights-section__icon">${INSIGHT_ICONS.pattern}</span>
-          Patterns I'm Seeing
+          ${t('insights.patternsSee')}
         </h3>
         <div class="insights-notices">
           ${items}
@@ -292,14 +292,14 @@ export class InsightsView {
 
     return `
       <section class="insights-section insights-section--chapter">
-        <h3 class="insights-section__title">Your Current Chapter</h3>
+        <h3 class="insights-section__title">${t('insights.currentChapter')}</h3>
         <div class="insights-chapter">
           <div class="insights-chapter__header">
-            <span class="insights-chapter__badge">${copy.verb}</span>
+            <span class="insights-chapter__badge">${t(copy.verbKey)}</span>
             ${chapter.duration ? `<span class="insights-chapter__duration">${escapeHtml(chapter.duration)}</span>` : ''}
           </div>
           <h4 class="insights-chapter__title">${escapeHtml(chapter.title)}</h4>
-          <p class="insights-chapter__encouragement">${escapeHtml(copy.encouragement)}</p>
+          <p class="insights-chapter__encouragement">${escapeHtml(t(copy.encouragementKey))}</p>
           ${chapter.arcSummary ? `<p class="insights-chapter__arc">${escapeHtml(chapter.arcSummary)}</p>` : ''}
         </div>
       </section>
@@ -354,9 +354,9 @@ export class InsightsView {
       <section class="insights-section insights-section--holding">
         <h3 class="insights-section__title">
           <span class="insights-section__icon">${INSIGHT_ICONS.memory}</span>
-          What I'm Holding For You
+          ${t('insights.holdingFor')}
         </h3>
-        <p class="insights-holding__intro">Things you've shared that I haven't forgotten.</p>
+        <p class="insights-holding__intro">${t('insights.holdingIntro')}</p>
         <div class="insights-holding__list">
           ${items.join('')}
         </div>
@@ -382,7 +382,7 @@ export class InsightsView {
     return `
       <section class="insights-section insights-section--milestone">
         <div class="insights-milestone">
-          <span class="insights-milestone__badge">Journey Together</span>
+          <span class="insights-milestone__badge">${t('insights.journeyTogether')}</span>
           <p class="insights-milestone__text">${escapeHtml(relationship.milestone || '')}</p>
           <div class="insights-milestone__stats">
             <span>${relationship.daysTogether} days</span>
@@ -411,9 +411,9 @@ export class InsightsView {
               ${INSIGHT_ICONS.pattern}
             </div>
           </div>
-          <h3 class="insights-empty__title">I'm learning what to notice</h3>
+          <h3 class="insights-empty__title">${t('insights.learning')}</h3>
           <p class="insights-empty__subtitle">
-            The patterns that matter to you. The things you might not see yourself.
+            ${t('insights.learningDesc')}
           </p>
         </div>
 
@@ -424,8 +424,8 @@ export class InsightsView {
               ${INSIGHT_ICONS.memory}
             </div>
             <div class="insights-empty__cap-content">
-              <span class="insights-empty__cap-title">Perfect Memory</span>
-              <span class="insights-empty__cap-desc">That thing you mentioned months ago? I'll remember.</span>
+              <span class="insights-empty__cap-title">${t('insights.perfectMemory')}</span>
+              <span class="insights-empty__cap-desc">${t('insights.memoryDesc')}</span>
             </div>
           </div>
           
@@ -434,8 +434,8 @@ export class InsightsView {
               ${INSIGHT_ICONS.pattern}
             </div>
             <div class="insights-empty__cap-content">
-              <span class="insights-empty__cap-title">Pattern Recognition</span>
-              <span class="insights-empty__cap-desc">"Sunday evenings seem hard for you..."</span>
+              <span class="insights-empty__cap-title">${t('insights.patternRecognition')}</span>
+              <span class="insights-empty__cap-desc">${t('insightsView.samplePattern')}</span>
             </div>
           </div>
           
@@ -444,8 +444,8 @@ export class InsightsView {
               ${INSIGHT_ICONS.growth}
             </div>
             <div class="insights-empty__cap-content">
-              <span class="insights-empty__cap-title">Gentle Growth Tracking</span>
-              <span class="insights-empty__cap-desc">Progress you might not notice yourself.</span>
+              <span class="insights-empty__cap-title">${t('insights.gentleGrowth')}</span>
+              <span class="insights-empty__cap-desc">${t('insights.growthDesc')}</span>
             </div>
           </div>
           
@@ -454,8 +454,8 @@ export class InsightsView {
               ${INSIGHT_ICONS.concern}
             </div>
             <div class="insights-empty__cap-content">
-              <span class="insights-empty__cap-title">Guardian Presence</span>
-              <span class="insights-empty__cap-desc">I catch what you're not saying.</span>
+              <span class="insights-empty__cap-title">${t('insights.guardianPresence')}</span>
+              <span class="insights-empty__cap-desc">${t('insights.guardianDesc')}</span>
             </div>
           </div>
         </div>
@@ -464,13 +464,13 @@ export class InsightsView {
         <div class="insights-empty__sample">
           <div class="insights-empty__sample-label">
             <span class="insights-empty__sample-dot"></span>
-            What insights might look like
+            ${t('insights.whatMightLook')}
           </div>
           <div class="insights-empty__sample-card">
             <div class="insights-empty__sample-icon">${INSIGHT_ICONS.pattern}</div>
             <div class="insights-empty__sample-content">
-              <p class="insights-empty__sample-text">"You've mentioned feeling tired 8 times this week. The tiredness seems connected to boundary-setting challenges at work."</p>
-              <span class="insights-empty__sample-evidence">Based on 23 conversations</span>
+              <p class="insights-empty__sample-text">${t('insightsView.sampleInsight')}</p>
+              <span class="insights-empty__sample-evidence">${t('insightsView.sampleEvidence', { count: 23 })}</span>
             </div>
           </div>
         </div>
@@ -478,11 +478,11 @@ export class InsightsView {
         <!-- Warm Invitation -->
         <div class="insights-empty__invitation">
           <p class="insights-empty__invitation-text">
-            Just keep talking. I'm always listening, always learning, always here.
+            ${t('insights.keepTalking')}
           </p>
           <div class="insights-empty__invitation-footer">
             <span class="insights-empty__invitation-icon">✨</span>
-            Better than human memory, working for you.
+            ${t('insights.betterThanMemory')}
           </div>
         </div>
       </div>
@@ -513,8 +513,8 @@ export class InsightsView {
   }
 
   show(): void {
+    if (!this.container) this.initialize(); // its button can beat the deferred init
     if (!this.container) return;
-
     this.visible = true;
     this.container.classList.add('insights-view--visible');
     this.container.setAttribute('aria-hidden', 'false');

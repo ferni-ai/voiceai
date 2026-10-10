@@ -431,36 +431,17 @@ export async function wrappedTtsNode(
     markTurnCheckpoint(sessionId, turnNumber, 'ttsStart');
   }
 
-  // 1. Filter JSON function calls (Gemini workaround)
-  // SKIP when:
-  // - FTIS V2 mode enabled: FTIS handles all tool calls via classification
-  // - DISABLE_JSON_WORKAROUND=true: Explicitly disabled
-  // - SEMANTIC_ROUTING_PRIMARY=true: Semantic router handles all tool calls
-  // - Provider has native function calling (doesn't need JSON workaround)
-  //
-  // When a provider has native function calling (e.g., OpenAI Realtime), the LLM calls
-  // functions directly via the API protocol, not by outputting JSON in text.
-  // The sanitizer would just add latency with no benefit.
-  //
-  // When FTIS V2 is active, the system classifies user intent BEFORE the LLM responds
-  // and executes tools directly. The LLM then receives tool results and responds naturally.
+  // JSON {fn,args} intercept is gone. Always skip that path; keep a leak filter
+  // in case a model still emits JSON-shaped text into the TTS stream.
   const provider = getModelProvider();
-  const skipJsonWorkaround =
-    isFTISEnabled() || // FTIS handles all tools - no JSON workaround needed
-    process.env.DISABLE_JSON_WORKAROUND === 'true' ||
-    process.env.SEMANTIC_ROUTING_PRIMARY === 'true' ||
-    !provider.needsJsonWorkaround();
+  const skipJsonWorkaround = true;
 
   let filteredText: NodeReadableStream<string>;
   if (skipJsonWorkaround) {
     const reason = isFTISEnabled()
       ? 'FTIS handles all tools'
-      : !provider.needsJsonWorkaround()
-        ? `${provider.displayName} has native function calling`
-        : process.env.SEMANTIC_ROUTING_PRIMARY === 'true'
-          ? 'semantic routing is primary'
-          : 'explicitly disabled';
-    log.info(`${provider.getLogPrefix()} JSON workaround DISABLED - ${reason}`);
+      : `${provider.displayName} uses native function calling`;
+    log.info(`${provider.getLogPrefix()} JSON workaround removed — ${reason}`);
 
     // BUG FIX: Even with native function calling, OpenAI Realtime can sometimes
     // leak function call JSON into the text stream (race condition in SDK or model).
@@ -1270,7 +1251,6 @@ export function extractTtsSessionContext(
   agent: voice.Agent,
   defaultPersonaId: string
 ): TtsSessionContext {
-  // Access session userData safely
   const { session } = agent;
   const userData = session?.userData as Record<string, unknown> | undefined;
 
@@ -1279,7 +1259,9 @@ export function extractTtsSessionContext(
   // Previously this was always returning undefined, causing sessionId: 'unknown' in handoffs.
   const services = userData?.services as { sessionId?: string } | undefined;
   const extractedSessionId = services?.sessionId ?? (userData?.sessionId as string | undefined);
-  const personaId = (userData?.personaId as string | undefined) || defaultPersonaId;
+  // A roundtable line sets speakingAs (whose voice); personaId stays who is on the call
+  const voiceOf = userData?.speakingAs ?? userData?.personaId;
+  const personaId = (voiceOf as string | undefined) || defaultPersonaId;
 
   // DIAGNOSTIC: Log when sessionId is missing or 'unknown'
   if (!extractedSessionId || extractedSessionId === 'unknown') {

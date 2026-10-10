@@ -174,186 +174,43 @@ function normalizePermission(p: PermissionRequest | PermissionScope, required: b
 // PERMISSION DISPLAY CONFIG
 // ============================================================================
 
-const PERMISSION_DISPLAY: Record<
-  PermissionScope,
-  { icon: string; label: string; category: string; sensitivity: 'low' | 'medium' | 'high' }
-> = {
-  'user:profile:read': {
-    icon: LUCIDE.user,
-    label: 'See your profile',
-    category: 'Profile',
-    sensitivity: 'low',
-  },
-  'user:profile:write': {
-    icon: LUCIDE.edit,
-    label: 'Update your profile',
-    category: 'Profile',
-    sensitivity: 'medium',
-  },
-  'user:memory:read': {
-    icon: LUCIDE.brain,
-    label: 'Remember what you share',
-    category: 'Memories',
-    sensitivity: 'medium',
-  },
-  'user:memory:write': {
-    icon: LUCIDE.save,
-    label: 'Save new memories',
-    category: 'Memories',
-    sensitivity: 'medium',
-  },
-  'user:memory:delete': {
-    icon: LUCIDE.trash,
-    label: 'Remove memories',
-    category: 'Memories',
-    sensitivity: 'high',
-  },
-  'user:calendar:read': {
-    icon: LUCIDE.calendar,
-    label: 'See your schedule',
-    category: 'Calendar',
-    sensitivity: 'medium',
-  },
-  'user:calendar:write': {
-    icon: LUCIDE.calendarPlus,
-    label: 'Add to your calendar',
-    category: 'Calendar',
-    sensitivity: 'medium',
-  },
-  'user:contacts:read': {
-    icon: LUCIDE.contacts,
-    label: 'See your contacts',
-    category: 'Contacts',
-    sensitivity: 'medium',
-  },
-  'user:contacts:write': {
-    icon: LUCIDE.userPlus,
-    label: 'Add or update contacts',
-    category: 'Contacts',
-    sensitivity: 'medium',
-  },
-  'user:habits:read': {
-    icon: LUCIDE.barChart,
-    label: 'See your habits',
-    category: 'Habits',
-    sensitivity: 'low',
-  },
-  'user:habits:write': {
-    icon: LUCIDE.checkCircle,
-    label: 'Track your habits',
-    category: 'Habits',
-    sensitivity: 'low',
-  },
-  'user:finance:read': {
-    icon: LUCIDE.dollarSign,
-    label: 'See financial info',
-    category: 'Finance',
-    sensitivity: 'high',
-  },
-  'user:finance:write': {
-    icon: LUCIDE.creditCard,
-    label: 'Manage finances',
-    category: 'Finance',
-    sensitivity: 'high',
-  },
-  'user:health:read': {
-    icon: LUCIDE.heart,
-    label: 'See health info',
-    category: 'Health',
-    sensitivity: 'high',
-  },
-  'user:health:write': {
-    icon: LUCIDE.activity,
-    label: 'Track health data',
-    category: 'Health',
-    sensitivity: 'high',
-  },
-  'communication:email:send': {
-    icon: LUCIDE.mail,
-    label: 'Send emails on your behalf',
-    category: 'Communication',
-    sensitivity: 'medium',
-  },
-  'communication:sms:send': {
-    icon: LUCIDE.messageSquare,
-    label: 'Send text messages',
-    category: 'Communication',
-    sensitivity: 'medium',
-  },
-  'communication:notify': {
-    icon: LUCIDE.bell,
-    label: 'Send you notifications',
-    category: 'Communication',
-    sensitivity: 'low',
-  },
-  'external:http:read': {
-    icon: LUCIDE.globe,
-    label: 'Look up info online',
-    category: 'External',
-    sensitivity: 'low',
-  },
-  'external:http:write': {
-    icon: LUCIDE.upload,
-    label: 'Send info to the web',
-    category: 'External',
-    sensitivity: 'medium',
-  },
-  'external:webhook:receive': {
-    icon: LUCIDE.webhook,
-    label: 'Receive updates from services',
-    category: 'External',
-    sensitivity: 'low',
-  },
-  'platform:tools:invoke': {
-    icon: LUCIDE.tool,
-    label: 'Work with other capabilities',
-    category: 'Platform',
-    sensitivity: 'medium',
-  },
-  'platform:agents:handoff': {
-    icon: LUCIDE.users,
-    label: 'Connect you with other coaches',
-    category: 'Platform',
-    sensitivity: 'low',
-  },
-  'platform:billing:read': {
-    icon: LUCIDE.receipt,
-    label: 'See your subscription',
-    category: 'Platform',
-    sensitivity: 'low',
-  },
-  'storage:files:read': {
-    icon: LUCIDE.fileText,
-    label: 'Read your files',
-    category: 'Storage',
-    sensitivity: 'medium',
-  },
-  'storage:files:write': {
-    icon: LUCIDE.filePlus,
-    label: 'Save files for you',
-    category: 'Storage',
-    sensitivity: 'medium',
-  },
-  'storage:blob:read': {
-    icon: LUCIDE.database,
-    label: 'Access saved data',
-    category: 'Storage',
-    sensitivity: 'low',
-  },
-  'storage:blob:write': {
-    icon: LUCIDE.hardDrive,
-    label: 'Store data for you',
-    category: 'Storage',
-    sensitivity: 'low',
-  },
+const PERMISSION_DISPLAY_KEYS: Record<PermissionScope, {icon: string; labelKey: string}> = {
+  'user:profile:read': {icon: LUCIDE.user, labelKey: 'marketplacePermissionConsent.permissions.userProfileRead'},
+  'user:profile:write': {icon: LUCIDE.edit, labelKey: 'marketplacePermissionConsent.permissions.userProfileWrite'},
+  'user:memory:read': {icon: LUCIDE.brain, labelKey: 'marketplacePermissionConsent.permissions.userMemoryRead'},
+  'user:memory:write': {icon: LUCIDE.save, labelKey: 'marketplacePermissionConsent.permissions.userMemoryWrite'},
+  'user:memory:delete': {icon: LUCIDE.trash, labelKey: 'marketplacePermissionConsent.permissions.userMemoryDelete'},
+  'user:calendar:read': {icon: LUCIDE.calendar, labelKey: 'marketplacePermissionConsent.permissions.userCalendarRead'},
+  'user:calendar:write': {icon: LUCIDE.calendarPlus, labelKey: 'marketplacePermissionConsent.permissions.userCalendarWrite'},
+  'user:contacts:read': {icon: LUCIDE.contacts, labelKey: 'marketplacePermissionConsent.permissions.userContactsRead'},
+  'user:contacts:write': {icon: LUCIDE.userPlus, labelKey: 'marketplacePermissionConsent.permissions.userContactsWrite'},
+  'user:habits:read': {icon: LUCIDE.barChart, labelKey: 'marketplacePermissionConsent.permissions.userHabitsRead'},
+  'user:habits:write': {icon: LUCIDE.checkCircle, labelKey: 'marketplacePermissionConsent.permissions.userHabitsWrite'},
+  'user:finance:read': {icon: LUCIDE.dollarSign, labelKey: 'marketplacePermissionConsent.permissions.userFinanceRead'},
+  'user:finance:write': {icon: LUCIDE.creditCard, labelKey: 'marketplacePermissionConsent.permissions.userFinanceWrite'},
+  'user:health:read': {icon: LUCIDE.heart, labelKey: 'marketplacePermissionConsent.permissions.userHealthRead'},
+  'user:health:write': {icon: LUCIDE.activity, labelKey: 'marketplacePermissionConsent.permissions.userHealthWrite'},
+  'communication:email:send': {icon: LUCIDE.mail, labelKey: 'marketplacePermissionConsent.permissions.communicationEmailSend'},
+  'communication:sms:send': {icon: LUCIDE.messageSquare, labelKey: 'marketplacePermissionConsent.permissions.communicationSmsSend'},
+  'communication:notify': {icon: LUCIDE.bell, labelKey: 'marketplacePermissionConsent.permissions.communicationNotify'},
+  'external:http:read': {icon: LUCIDE.globe, labelKey: 'marketplacePermissionConsent.permissions.externalHttpRead'},
+  'external:http:write': {icon: LUCIDE.upload, labelKey: 'marketplacePermissionConsent.permissions.externalHttpWrite'},
+  'external:webhook:receive': {icon: LUCIDE.webhook, labelKey: 'marketplacePermissionConsent.permissions.externalWebhookReceive'},
+  'platform:tools:invoke': {icon: LUCIDE.tool, labelKey: 'marketplacePermissionConsent.permissions.platformToolsInvoke'},
+  'platform:agents:handoff': {icon: LUCIDE.users, labelKey: 'marketplacePermissionConsent.permissions.platformAgentsHandoff'},
+  'platform:billing:read': {icon: LUCIDE.receipt, labelKey: 'marketplacePermissionConsent.permissions.platformBillingRead'},
+  'storage:files:read': {icon: LUCIDE.fileText, labelKey: 'marketplacePermissionConsent.permissions.storageFilesRead'},
+  'storage:files:write': {icon: LUCIDE.filePlus, labelKey: 'marketplacePermissionConsent.permissions.storageFilesWrite'},
+  'storage:blob:read': {icon: LUCIDE.database, labelKey: 'marketplacePermissionConsent.permissions.storageBlobRead'},
+  'storage:blob:write': {icon: LUCIDE.hardDrive, labelKey: 'marketplacePermissionConsent.permissions.storageBlobWrite'},
 };
 
 // Trust badges use simple text characters (brand compliant)
 const TRUST_BADGES = {
-  platform: { label: 'By Ferni', color: 'var(--persona-primary)', icon: '✓' },
-  verified: { label: 'Verified', color: 'var(--color-semantic-success)', icon: '✓' },
-  community: { label: 'Community', color: 'var(--color-semantic-warning)', icon: '●' },
-  unverified: { label: 'Review pending', color: 'var(--color-semantic-error)', icon: '○' },
+  platform: { labelKey: 'marketplacePermissionConsent.trustBadges.byFerni', color: 'var(--persona-primary)', icon: '✓' },
+  verified: { labelKey: 'marketplacePermissionConsent.trustBadges.verified', color: 'var(--color-semantic-success)', icon: '✓' },
+  community: { labelKey: 'marketplacePermissionConsent.trustBadges.community', color: 'var(--color-semantic-warning)', icon: '●' },
+  unverified: { labelKey: 'marketplacePermissionConsent.trustBadges.reviewPending', color: 'var(--color-semantic-error)', icon: '○' },
 } as const;
 
 const DEFAULT_TRUST_BADGE = TRUST_BADGES.community;
@@ -448,6 +305,18 @@ export function requestPermissionConsent(item: MarketplaceItem): Promise<Consent
 // MODAL CREATION
 // ============================================================================
 
+const SENSITIVITY_MAP: Record<PermissionScope, 'low' | 'medium' | 'high'> = {
+  'user:profile:read': 'low', 'user:profile:write': 'medium', 'user:memory:read': 'medium',
+  'user:memory:write': 'medium', 'user:memory:delete': 'high', 'user:calendar:read': 'medium',
+  'user:calendar:write': 'medium', 'user:contacts:read': 'medium', 'user:contacts:write': 'medium',
+  'user:habits:read': 'low', 'user:habits:write': 'low', 'user:finance:read': 'high',
+  'user:finance:write': 'high', 'user:health:read': 'high', 'user:health:write': 'high',
+  'communication:email:send': 'medium', 'communication:sms:send': 'medium', 'communication:notify': 'low',
+  'external:http:read': 'low', 'external:http:write': 'medium', 'external:webhook:receive': 'low',
+  'platform:tools:invoke': 'medium', 'platform:agents:handoff': 'low', 'platform:billing:read': 'low',
+  'storage:files:read': 'medium', 'storage:files:write': 'medium', 'storage:blob:read': 'low', 'storage:blob:write': 'low',
+};
+
 function createModal(item: MarketplaceItem): HTMLElement {
   const el = document.createElement('div');
   el.className = 'permission-consent-modal';
@@ -457,7 +326,7 @@ function createModal(item: MarketplaceItem): HTMLElement {
 
   const trustBadge = TRUST_BADGES[item.trustLevel as keyof typeof TRUST_BADGES] ?? DEFAULT_TRUST_BADGE;
   const hasHighSensitivity = [...item.permissions.required, ...item.permissions.optional].some(
-    (p) => PERMISSION_DISPLAY[getPermissionScope(p)]?.sensitivity === 'high'
+    (p) => SENSITIVITY_MAP[getPermissionScope(p)] === 'high'
   );
 
   el.innerHTML = `
@@ -476,7 +345,7 @@ function createModal(item: MarketplaceItem): HTMLElement {
           by ${item.publisher.name}
           <span class="trust-badge" style="--badge-color: ${trustBadge.color}">
             <span class="trust-badge-icon">${trustBadge.icon}</span>
-            ${trustBadge.label}
+            ${t(trustBadge.labelKey)}
           </span>
         </p>
       </header>
@@ -497,7 +366,7 @@ function createModal(item: MarketplaceItem): HTMLElement {
           item.permissions.required.length > 0
             ? `
           <section class="permission-section">
-            <h3 class="section-label">Required permissions</h3>
+            <h3 class="section-label">${t('marketplacePermissionConsent.requiredPermissions')}</h3>
             <ul class="permission-list" role="list">
               ${item.permissions.required.map((p) => renderPermissionItem(normalizePermission(p, true), true)).join('')}
             </ul>
@@ -510,8 +379,8 @@ function createModal(item: MarketplaceItem): HTMLElement {
           item.permissions.optional.length > 0
             ? `
           <section class="permission-section">
-            <h3 class="section-label">Optional permissions</h3>
-            <p class="section-hint">You can change these later in settings</p>
+            <h3 class="section-label">${t('marketplacePermissionConsent.optionalPermissions')}</h3>
+            <p class="section-hint">${t('marketplacePermissionConsent.settingsHint')}</p>
             <ul class="permission-list" role="list">
               ${item.permissions.optional.map((p) => renderPermissionItem(normalizePermission(p, false), false)).join('')}
             </ul>
@@ -533,10 +402,10 @@ function createModal(item: MarketplaceItem): HTMLElement {
       </div>
 
       <footer class="consent-footer">
-        <button aria-label="${t('accessibility.cancel')}" class="consent-btn consent-btn--secondary" data-action="cancel">
-          Cancel
+        <button class="consent-btn consent-btn--secondary" data-action="cancel">
+          ${t('common.cancel')}
         </button>
-        <button aria-label="${t('accessibility.add')}" class="consent-btn consent-btn--primary" data-action="confirm">
+        <button class="consent-btn consent-btn--primary" data-action="confirm">
           Add ${item.type === 'agent' ? 'to Team' : 'Tool'}
         </button>
       </footer>
@@ -574,18 +443,13 @@ const UNKNOWN_ICON =
   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
 
 function renderPermissionItem(permission: PermissionRequest, required: boolean): string {
-  const display = PERMISSION_DISPLAY[permission.scope] || {
-    icon: UNKNOWN_ICON,
-    label: permission.scope,
-    category: 'Other',
-    sensitivity: 'medium',
-  };
-
-  const sensitivityClass = `sensitivity-${display.sensitivity}`;
+  const display = PERMISSION_DISPLAY_KEYS[permission.scope] || {icon: UNKNOWN_ICON, labelKey: 'common.unknown'};
+  const sens = SENSITIVITY_MAP[permission.scope] || 'medium';
   const checkboxId = `perm-${permission.scope.replace(/:/g, '-')}`;
+  const label = t(display.labelKey);
 
   return `
-    <li class="permission-item ${sensitivityClass}" role="listitem">
+    <li class="permission-item sensitivity-${sens}" role="listitem">
       ${
         !required
           ? `
@@ -602,10 +466,10 @@ function renderPermissionItem(permission: PermissionRequest, required: boolean):
       }
         <span class="permission-icon" aria-hidden="true">${display.icon}</span>
         <div class="permission-info">
-          <span class="permission-name">${display.label}</span>
+          <span class="permission-name">${label}</span>
           <span class="permission-reason">${permission.reason}</span>
         </div>
-        ${required ? '<span class="required-badge">Required</span>' : ''}
+        ${required ? `<span class="required-badge">${t('marketplacePermissionConsent.required')}</span>` : ''}
       ${!required ? '</label>' : '</div>'}
     </li>
   `;

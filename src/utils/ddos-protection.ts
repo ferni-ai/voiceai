@@ -13,6 +13,9 @@
 import type { IncomingMessage, Server, ServerResponse } from 'http';
 import { createLogger } from './safe-logger.js';
 import { registerInterval, clearNamedInterval } from './interval-manager.js';
+import { getClientIp } from './client-ip.js';
+
+export { getClientIp };
 
 const log = createLogger({ module: 'DDoSProtection' });
 
@@ -329,40 +332,7 @@ export function handleHealthEndpoint(
 // IP UTILITIES
 // ============================================================================
 
-/**
- * Get client IP from request, handling proxies securely
- */
-export function getClientIp(req: IncomingMessage): string {
-  // In production behind Cloud Run/Load Balancer, trust X-Forwarded-For
-  // But only take the first IP (client IP), not proxy chain
-  const forwarded = req.headers['x-forwarded-for'];
-  if (forwarded) {
-    const forwardedValue = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-    if (!forwardedValue) {
-      return req.socket?.remoteAddress || 'unknown';
-    }
-    const ips = forwardedValue.split(',');
-    // First IP should be client, last would be the proxy
-    const clientIp = ips[0]?.trim();
-    if (clientIp && isValidIp(clientIp)) {
-      return clientIp;
-    }
-  }
-
-  // Fallback to direct connection
-  return req.socket?.remoteAddress || 'unknown';
-}
-
-/**
- * Basic IP validation (prevents header injection)
- */
-function isValidIp(ip: string): boolean {
-  // IPv4
-  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
-  // IPv6 (simplified)
-  const ipv6Regex = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
-  return ipv4Regex.test(ip) || ipv6Regex.test(ip);
-}
+// getClientIp lives in ./client-ip.ts and is re-exported above for existing importers.
 
 /**
  * Check if request is from internal network (GCP health checks, etc.)

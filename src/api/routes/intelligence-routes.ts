@@ -110,7 +110,7 @@ async function handleGetProfile(
   parsedUrl: URL
 ): Promise<boolean> {
   try {
-    const userId = getUserId(req, parsedUrl) || parsedUrl.searchParams.get('userId');
+    const userId = getUserId(req, parsedUrl);
     if (!userId) {
       sendError(res, 'User ID required', 401);
       return true;
@@ -162,7 +162,7 @@ async function handleGetSuggestions(
   parsedUrl: URL
 ): Promise<boolean> {
   try {
-    const userId = getUserId(req, parsedUrl) || parsedUrl.searchParams.get('userId');
+    const userId = getUserId(req, parsedUrl);
     if (!userId) {
       sendError(res, 'User ID required', 401);
       return true;

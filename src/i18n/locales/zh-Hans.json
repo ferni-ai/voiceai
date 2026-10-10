@@ -642,7 +642,6 @@
       "found": "{persona}发现"
     },
     "eventContext": {
-      "family": "当你全身心投入时，你的伴侣会很开心",
       "meeting": "在加入前设定一个清晰的意图",
       "wellness": "先照顾好你自己",
       "learning": "成长发生在不断突破自我的过程中",
@@ -688,11 +687,7 @@
     "pattern": {
       "busyWeek": "你最近开了不少会。你最棒的思考往往发生在安静的空间里。",
       "packedDay": "{day}看起来排得满满当当的。要不要把一些事情挪到{otherDay}呢？",
-      "packedDayNoAlternative": "{day}看起来排得满满当当的。要不要把一些事情挪到其他日子呢？",
-      "morningStart": "你早晨的开始往往会为一整天奠定基调。",
-      "focusTime": "当你留出专注时间时，能多完成 40% 的事情哦。",
-      "creativeAfterWalks": "散步之后的你，似乎最富有创造力呢。",
-      "tuesdayEvenings": "周二晚上似乎是你效率最高的时候。"
+      "packedDayNoAlternative": "{day}看起来排得满满当当的。要不要把一些事情挪到其他日子呢？"
     },
     "errors": {
       "loadFailed": "没能加载出练习页面",
