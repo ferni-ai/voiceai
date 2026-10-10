@@ -49,8 +49,18 @@ vi.mock('../../context-builders/index.js', () => ({
 }));
 
 import { getAllEntities } from '../../../memory/entity-store/index.js';
-import { buildWorldModelContext } from '../builder.js';
+import { registerContextBuilder } from '../../context-builders/index.js';
+import { buildWorldModelContext, registerWorldModelBuilder } from '../builder.js';
 import { resetWorldModelCacheForTests } from '../cache.js';
+
+// Taken before any beforeEach clears the mocks: what importing builder.ts did.
+const registeredAtImport = vi.mocked(registerContextBuilder).mock.calls.length;
+const ON = { WORLD_MODEL_SNAPSHOT: 'on' };
+const turn = {
+  userText: 'How is Sarah?',
+  services: { userId: 'user-1', sessionId: 'sess-1' },
+  analysis: { emotion: { primary: 'neutral', intensity: 0.2 } },
+} as never;
 
 describe('buildWorldModelContext', () => {
   beforeEach(() => {
@@ -59,11 +69,7 @@ describe('buildWorldModelContext', () => {
   });
 
   it('includes a non-empty World Model section when entity_store has a person and relation', async () => {
-    const injections = await buildWorldModelContext({
-      userText: 'How is Sarah?',
-      services: { userId: 'user-1', sessionId: 'sess-1' },
-      analysis: { emotion: { primary: 'neutral', intensity: 0.2 } },
-    } as never);
+    const injections = await buildWorldModelContext(turn, { env: ON });
 
     expect(getAllEntities).toHaveBeenCalledWith('user-1', expect.any(Object));
     expect(injections.length).toBeGreaterThan(0);
@@ -73,5 +79,28 @@ describe('buildWorldModelContext', () => {
     expect(mocked[0].content).toMatch(/Sarah/);
     expect(mocked[0].content).toMatch(/sister/);
     expect(mocked[0].content).toMatch(/Key relationships|Known entities/);
+  });
+
+  it('builds nothing and reads no store with WORLD_MODEL_SNAPSHOT unset or off', async () => {
+    for (const env of [{}, { WORLD_MODEL_SNAPSHOT: 'off' }]) {
+      expect(await buildWorldModelContext(turn, { env })).toEqual([]);
+    }
+    expect(getAllEntities).not.toHaveBeenCalled();
+    // Same turn, flag on: the section is there.
+    const on = (await buildWorldModelContext(turn, { env: ON })) as unknown as Array<{
+      content: string;
+    }>;
+    expect(on[0]?.content).toMatch(/World Model/);
+  });
+
+  it('registers the live builder only with WORLD_MODEL_SNAPSHOT=on', () => {
+    expect(process.env.WORLD_MODEL_SNAPSHOT).toBeUndefined();
+    expect(registeredAtImport).toBe(0);
+    expect(registerWorldModelBuilder({})).toBe(false);
+    expect(registerContextBuilder).not.toHaveBeenCalled();
+    expect(registerWorldModelBuilder(ON)).toBe(true);
+    expect(registerContextBuilder).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'world-model' })
+    );
   });
 });

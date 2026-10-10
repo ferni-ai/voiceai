@@ -4,7 +4,12 @@
  * @module intelligence/world-model
  */
 
-export { worldModelBuilder, buildWorldModelContext } from './builder.js';
+export {
+  worldModelBuilder,
+  buildWorldModelContext,
+  isWorldModelSnapshotOn,
+  registerWorldModelBuilder,
+} from './builder.js';
 export { resetWorldModelCacheForTests, WORLD_MODEL_CACHE_TTL_MS } from './cache.js';
 export { renderWorldModelSection, WORLD_MODEL_MAX_CHARS } from './render.js';
 export { buildWorldModelSnapshot } from './snapshot.js';

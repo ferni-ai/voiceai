@@ -4,6 +4,10 @@
  * Registers like other memory builders. Loaded via a side-effect import
  * from unified-memory-orchestrator (already on the MEMORY manifest).
  *
+ * Off unless WORLD_MODEL_SNAPSHOT=on: nothing measures yet whether the
+ * section helps the live prompt, so with the flag off the builder is not
+ * registered and builds nothing.
+ *
  * @module intelligence/world-model/builder
  */
 
@@ -27,6 +31,12 @@ export interface BuildWorldModelContextOptions {
   sources?: WorldModelSources;
   nowMs?: number;
   skipCache?: boolean;
+  env?: Record<string, string | undefined>;
+}
+
+/** True when WORLD_MODEL_SNAPSHOT=on. */
+export function isWorldModelSnapshotOn(env: Record<string, string | undefined> = process.env): boolean {
+  return env.WORLD_MODEL_SNAPSHOT === 'on';
 }
 
 export async function buildWorldModelContext(
@@ -34,7 +44,7 @@ export async function buildWorldModelContext(
   options: BuildWorldModelContextOptions = {}
 ): Promise<ContextInjection[]> {
   const userId = input.services?.userId;
-  if (!userId) {
+  if (!isWorldModelSnapshotOn(options.env) || !userId) {
     return [];
   }
 
@@ -111,4 +121,13 @@ export const worldModelBuilder: ContextBuilder = {
   build: buildWorldModelContext,
 };
 
-registerContextBuilder(worldModelBuilder);
+/** Register the builder, only when WORLD_MODEL_SNAPSHOT=on. Returns whether it did. */
+export function registerWorldModelBuilder(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  if (!isWorldModelSnapshotOn(env)) return false;
+  registerContextBuilder(worldModelBuilder);
+  return true;
+}
+
+registerWorldModelBuilder();
