@@ -22,10 +22,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
 import { lookupByPhone, recordCall } from '../../services/identity/sponsored-identity.js';
 import { identifyByPhone } from '../../services/identity/user-identification.js';
-import {
-  mintPhoneAttestation,
-  PHONE_ATTEST_HEADER,
-} from '../../services/identity/phone-attestation.js';
+import { escapeXml, generateAttestedTwiml, phoneAttestConfig } from './attested-twiml.js';
 import { parseRawBody } from '../helpers.js';
 import { isSignedByTwilio } from '../twilio-callback-signature.js';
 
@@ -368,51 +365,6 @@ function generateInboundTwiml(options: InboundTwimlOptions): string {
 </Response>`;
 }
 
-interface PhoneAttestConfig {
-  secret: string;
-  sipHost: string;
-}
-
-/** A bare host[:port] — anything else could inject URI parameters or headers. */
-const SIP_HOST_PATTERN = /^[A-Za-z0-9.-]+(:\d{1,5})?$/;
-
-/**
- * PHONE_ATTEST_SECRET + LIVEKIT_SIP_HOST (e.g. `<project>.sip.livekit.cloud`),
- * read per request. Either missing (or a malformed host) ⇒ null ⇒ today's TwiML.
- */
-function phoneAttestConfig(env: NodeJS.ProcessEnv = process.env): PhoneAttestConfig | null {
-  const secret = env.PHONE_ATTEST_SECRET ?? '';
-  const sipHost = (env.LIVEKIT_SIP_HOST ?? '').trim();
-  if (!secret || !sipHost) return null;
-  if (!SIP_HOST_PATTERN.test(sipHost)) {
-    log.warn('LIVEKIT_SIP_HOST is not a bare host[:port]; phone attestation disabled');
-    return null;
-  }
-  return { secret, sipHost };
-}
-
-/**
- * Dial the Ferni number on the LiveKit SIP trunk (the same route a call takes
- * without this webhook), adding X-Ferni-Attest: a short-lived token binding
- * this call's From/To/StirVerstat, minted only because Twilio signed this
- * request. No <Say> greeting: the agent greets, as on the direct trunk path.
- */
-function generateAttestedTwiml(
-  config: PhoneAttestConfig,
-  call: { callSid: string; from: string; to: string; verstat?: string }
-): string {
-  const token = mintPhoneAttestation(call, config.secret);
-  const sipUri = `sip:${call.to}@${config.sipHost};transport=tls?${PHONE_ATTEST_HEADER}=${token}`;
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Dial callerId="${escapeXml(call.from)}" timeout="30">
-    <Sip>${escapeXml(sipUri)}</Sip>
-  </Dial>
-  <Say voice="Polly.Joanna">I'm sorry, I wasn't able to connect. Please try again later.</Say>
-  <Hangup/>
-</Response>`;
-}
-
 /**
  * Generate TwiML to reject a call.
  */
@@ -506,18 +458,6 @@ async function readSignedTwilioForm(
   res.writeHead(403, { 'Content-Type': 'text/xml' });
   res.end(generateRejectTwiml('Invalid request signature'));
   return null;
-}
-
-/**
- * Escape XML special characters.
- */
-function escapeXml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
 }
 
 // ============================================================================
