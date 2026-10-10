@@ -151,4 +151,18 @@ describe.skipIf(!emulator)('seeds routes on the ledger (Firestore emulator)', ()
     expect(summary.referralCode).toBe(after.referralCode);
     expect(summary.garden).toEqual({ title: 'seedling', totalReferrals: 1 });
   });
+
+  it('a spoofed identity header acts as nobody (it used to act as that user)', async () => {
+    await call(a, 'GET', '/api/seeds'); // a has 25
+    const b2 = id();
+    for (const header of ['x-device-id', 'x-user-id']) {
+      const res = await fetch(`${base}/api/seeds/gift`, {
+        method: 'POST',
+        headers: { [header]: a, 'content-type': 'application/json' },
+        body: JSON.stringify({ toUserId: b2, amount: 10 }),
+      });
+      expect(res.status).toBe(401);
+    }
+    expect(await balance(a)).toBe(25);
+  });
 });

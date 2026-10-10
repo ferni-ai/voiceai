@@ -14,7 +14,7 @@ import { randomUUID } from 'node:crypto';
 import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { parseBody, sendJSON, sendError } from './helpers.js';
+import { getUserId, parseBody, sendJSON, sendError } from './helpers.js';
 import { removeUndefined } from '../utils/firestore-utils.js';
 import { awardDailyConversation, DAILY_SEEDS } from '../services/seeds/earn.js';
 import {
@@ -216,19 +216,6 @@ async function getOrCreateUserSeeds(
 
 // parseBody, sendJSON, sendError imported from './helpers.js'
 
-/**
- * Get user ID from request headers
- * SECURITY: Prioritizes Firebase auth (x-firebase-uid) over deprecated x-user-id
- */
-function getUserId(req: IncomingMessage): string | null {
-  // SECURITY: Prioritize Firebase auth
-  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
-  if (firebaseUid) return firebaseUid;
-
-  // Legacy headers (deprecated - will be removed)
-  return (req.headers['x-user-id'] as string) || (req.headers['x-device-id'] as string) || null;
-}
-
 /** Wrapper for sendError with (status, message) signature used in this file */
 function sendErrorStatus(res: ServerResponse, status: number, message: string): void {
   sendError(res, message, status);
@@ -250,7 +237,9 @@ export async function handleSeedsRoutes(
     return false;
   }
 
-  const userId = getUserId(req);
+  // Only the verified caller (or an admin's named user): the old fallback to the x-user-id /
+  // x-device-id headers let an unauthenticated request act as anyone
+  const userId = getUserId(req, new URL(req.url || '/', 'http://local'));
   if (!userId) {
     sendErrorStatus(res, 401, 'Unauthorized');
     return true;
