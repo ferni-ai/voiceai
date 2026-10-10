@@ -107,6 +107,7 @@ const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
 import { createFindToolsTool, FIND_TOOLS } from '../../tools/retrieval/find-tools-tool.js';
+import { createEndCallTool, END_CALL } from '../outbound-call/call-control.js';
 import { toolRetrievalMode as retrievalModeNow } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { initializeFrontendPublisher } from '../realtime/index.js';
@@ -1068,6 +1069,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // findTools lets the model reach one retrieval ranked too low.
   if (retrievalModeNow() === 'live') {
     finalTools = { ...finalTools, [FIND_TOOLS]: createFindToolsTool() } as typeof finalTools;
+  }
+
+  // On-behalf phone call: Ferni can hang up after a goodbye or a voicemail
+  const endCallTool = createEndCallTool(sessionId);
+  if (endCallTool) {
+    finalTools = { ...finalTools, [END_CALL]: endCallTool } as typeof finalTools;
   }
 
   // 🚨 CRITICAL WARNING: If tool count is suspiciously low, something is wrong!

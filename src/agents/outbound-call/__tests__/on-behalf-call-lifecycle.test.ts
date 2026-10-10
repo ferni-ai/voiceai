@@ -20,6 +20,7 @@ import {
   buildOnBehalfDispatch,
   type OnBehalfDispatch,
 } from '../../../services/outreach/on-behalf-dispatch.js';
+import type { CallDisposition } from '../call-control.js';
 
 function makeCall(callId: string): OnBehalfDispatch {
   return buildOnBehalfDispatch({
@@ -69,8 +70,13 @@ function analysis(): SuperhumanCallResult {
   };
 }
 
-function ports(turns: CallTranscriptTurn[] | null, analyze?: CallLifecyclePorts['analyze']) {
+function ports(
+  turns: CallTranscriptTurn[] | null,
+  analyze?: CallLifecyclePorts['analyze'],
+  disposition?: CallDisposition
+) {
   return {
+    readDisposition: vi.fn<CallLifecyclePorts['readDisposition']>(() => disposition),
     readTranscript: vi.fn<CallLifecyclePorts['readTranscript']>(() => turns),
     analyze: vi.fn<CallLifecyclePorts['analyze']>(analyze ?? (async () => analysis())),
     report: vi.fn<CallLifecyclePorts['report']>(async () => undefined),
@@ -111,7 +117,38 @@ describe('buildCallOutcome', () => {
   });
 });
 
+describe('buildCallOutcome with how Ferni ended the call', () => {
+  const call = makeCall('c');
+  const greeting: CallTranscriptTurn[] = [
+    { role: 'recipient', content: "Hi, you've reached Linda, leave a message after the tone" },
+    { role: 'agent', content: 'Hi Linda, this is Ferni calling for Seth...' },
+  ];
+
+  it('reports a voicemail as a voicemail, even though the greeting was transcribed', () => {
+    expect(buildCallOutcome(call, greeting, null, 'voicemail_left')).toMatchObject({
+      status: 'voicemail',
+      objectiveAchieved: false,
+    });
+  });
+
+  it('reports a wrong number as a failure and a refusal as unachieved', () => {
+    expect(buildCallOutcome(call, conversation, null, 'wrong_number').status).toBe('failed');
+    expect(buildCallOutcome(call, conversation, null, 'refused')).toMatchObject({
+      status: 'completed',
+      objectiveAchieved: false,
+      callbackRequired: true,
+    });
+  });
+});
+
 describe('completeOnBehalfCall', () => {
+  it('does not summarize a voicemail as a conversation', async () => {
+    const p = ports(conversation, undefined, 'voicemail_left');
+    const outcome = await completeOnBehalfCall('s-vm', makeCall('c-vm'), 40, true, p);
+    expect(p.analyze).not.toHaveBeenCalled();
+    expect(outcome?.status).toBe('voicemail');
+  });
+
   it('reports the analyzed outcome with the requester as the recipient of the report', async () => {
     const call = makeCall('c-report');
     const p = ports(conversation);

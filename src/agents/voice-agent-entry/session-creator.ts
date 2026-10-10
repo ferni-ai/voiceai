@@ -357,6 +357,11 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     );
   }
 
+  // On-behalf phone call: Ferni can hang up after a goodbye or a voicemail
+  const { createEndCallTool, END_CALL } = await import('../outbound-call/call-control.js');
+  const endCallTool = createEndCallTool(sessionId);
+  if (endCallTool) sessionTools = { ...(sessionTools ?? {}), [END_CALL]: endCallTool };
+
   // Create agent
   const { FerniAgent } = ferniAgentModule;
   const toolNames = Object.keys(sessionTools || {});
