@@ -1,0 +1,9 @@
+# Seed for common-ground-recall.txt (COMMON_GROUND). The caller coins a
+# nickname for their boss, "the spreadsheet goblin", and uses it again so it
+# becomes shared shorthand; and asks Ferni for advice about sleep and for his
+# take, so he has told them something. Nothing here is scored.
+Hey Ferni! So my boss reorganized every single spreadsheet again. I swear he's a spreadsheet goblin.
+Ha, yes. The spreadsheet goblin. He renamed every tab, moved every column, and called it a fresh start.
+Honestly the spreadsheet goblin is the least of it. I've been sleeping terribly. What would you do?
+Okay, I'll try that. Do you think I should say something to him, or just let it go?
+Fair enough. Thanks, Ferni. Talk soon.

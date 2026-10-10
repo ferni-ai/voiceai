@@ -36,6 +36,8 @@ import {
   loadLifeUpdates,
   type LifeUpdateDeps,
 } from '../personas/life-updates.js';
+import { commonGroundEnabled, formatCommonGround } from '../personas/common-ground.js';
+import { firestoreGroundStore, type GroundStore } from '../personas/common-ground-after-call.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
@@ -78,6 +80,8 @@ export interface MemoryRecallDeps {
   ledgerStore?: LedgerStore;
   /** What has happened in his life since (life-updates.ts, LIFE_MOVES_ON). */
   lifeUpdates?: LifeUpdateDeps;
+  /** What the two of them both know (common-ground.ts, COMMON_GROUND). */
+  groundStore?: GroundStore;
 }
 
 export interface MemoryRecall {
@@ -108,6 +112,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
 
   let ledgerNote: string | null = null;
   let sinceNote: string | null = null;
+  let groundNote: string | null = null;
   const ledger = loadLedger(deps.userId, 'ferni', deps.ledgerStore);
   const loaded = Promise.all([
     loadRecallSnapshot(deps.store ?? firestoreRecallStore, deps.userId),
@@ -132,7 +137,16 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     .then((updates) => {
       sinceNote = formatLifeUpdates(updates);
     });
-  const ready = Promise.all([loaded, since]).then(() => undefined);
+  // Like the life updates: joins the first note only if loaded by then.
+  const ground = commonGroundEnabled()
+    ? (deps.groundStore ?? firestoreGroundStore)
+        .load(deps.userId)
+        .then((g) => {
+          groundNote = formatCommonGround(g, deps.userName);
+        })
+        .catch((error: unknown) => log.warn({ error: String(error) }, 'Common ground not loaded'))
+    : Promise.resolve();
+  const ready = Promise.all([loaded, since, ground]).then(() => undefined);
 
   return {
     ready,
@@ -148,7 +162,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       // The ledger, like the follow-ups, comes once, with the first note.
       const told = followUpsOffered
         ? null
-        : [ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
+        : [ledgerNote, sinceNote, groundNote].filter(Boolean).join('\n') || null;
       const note =
         [formatRecall(facts, followUps, deps.userName), told].filter(Boolean).join('\n\n') || null;
       if (!note) return null;
