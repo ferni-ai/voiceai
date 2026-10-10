@@ -15,7 +15,12 @@ import {
 const NOW = new Date('2026-10-07T15:00:00Z');
 const YESTERDAY = '2026-10-06T09:00:00.000Z';
 
-type Write = { path: string; kind: 'set' | 'update'; data: Record<string, unknown>; options?: unknown };
+type Write = {
+  path: string;
+  kind: 'set' | 'update';
+  data: Record<string, unknown>;
+  options?: unknown;
+};
 
 function fakeDb(docs: Record<string, Record<string, unknown>> = {}) {
   const writes: Write[] = [];
@@ -69,7 +74,9 @@ describe('starter intentions', () => {
     expect(none.map((i) => i.completed)).toEqual([false, false, false]);
 
     const today = intentions();
-    const { db } = fakeDb({ 'bogle_users/u1/intentionDays/2026-10-07': { completed: ['default_2'] } });
+    const { db } = fakeDb({
+      'bogle_users/u1/intentionDays/2026-10-07': { completed: ['default_2'] },
+    });
     await markStartersDoneToday(db, 'u1', today, NOW);
     expect(today.map((i) => i.completed)).toEqual([false, true, false]);
 
@@ -92,7 +99,9 @@ describe('practices', () => {
   const path = 'users/u1/practices/p1';
 
   it('doing one adds to the streak and remembers the last session', async () => {
-    const { db, writes } = fakeDb({ [path]: { name: 'Breathe', lastCompletedAt: YESTERDAY, streak: 3 } });
+    const { db, writes } = fakeDb({
+      [path]: { name: 'Breathe', lastCompletedAt: YESTERDAY, streak: 3 },
+    });
     await setIntentionCompleted(db, 'u1', 'practice_p1', true, NOW);
 
     expect(writes).toHaveLength(1);
@@ -125,23 +134,27 @@ describe('practices', () => {
   });
 
   it('a practice done yesterday is not done today, whatever its old flag says', () => {
-    expect(isDoneToday({ completedToday: true, lastCompletedAt: YESTERDAY } as never, NOW)).toBe(false);
+    expect(isDoneToday({ completedToday: true, lastCompletedAt: YESTERDAY } as never, NOW)).toBe(
+      false
+    );
     expect(isDoneToday({ lastCompletedAt: NOW.toISOString() }, NOW)).toBe(true);
     expect(isDoneToday({}, NOW)).toBe(false);
   });
 
   it('a practice that is gone is not found', async () => {
     const { db, writes } = fakeDb();
-    await expect(setIntentionCompleted(db, 'u1', 'practice_gone', true, NOW)).rejects.toBeInstanceOf(
-      IntentionNotFoundError
-    );
+    await expect(
+      setIntentionCompleted(db, 'u1', 'practice_gone', true, NOW)
+    ).rejects.toBeInstanceOf(IntentionNotFoundError);
     expect(writes).toEqual([]);
   });
 });
 
 describe('tasks', () => {
   it('checking a task completes it, and unchecking reopens it', async () => {
-    const { db, writes } = fakeDb({ 'bogle_users/u1/tasks/t1': { title: 'Call Mom', completed: false } });
+    const { db, writes } = fakeDb({
+      'bogle_users/u1/tasks/t1': { title: 'Call Mom', completed: false },
+    });
     await setIntentionCompleted(db, 'u1', 't1', true, NOW);
     await setIntentionCompleted(db, 'u1', 't1', false, NOW);
 

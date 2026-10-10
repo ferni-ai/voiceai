@@ -16,8 +16,19 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
-import { requireUserId, handleCorsPreflightIfNeeded, sendJSON, sendError, parseBody } from '../helpers.js';
-import { isDoneToday, markStartersDoneToday, setIntentionCompleted, IntentionNotFoundError } from './practice-intentions.js';
+import {
+  requireUserId,
+  handleCorsPreflightIfNeeded,
+  sendJSON,
+  sendError,
+  parseBody,
+} from '../helpers.js';
+import {
+  isDoneToday,
+  markStartersDoneToday,
+  setIntentionCompleted,
+  IntentionNotFoundError,
+} from './practice-intentions.js';
 import { rateLimit } from '../auth-middleware.js';
 import { localeForRequest, tFor, type SupportedLocale } from '../../i18n/index.js';
 import {
@@ -356,7 +367,8 @@ async function loadIntentions(userId: string, locale: SupportedLocale): Promise<
       }
     );
     await markStartersDoneToday(await practiceDb(), userId, intentions).catch((error) =>
-      log.warn({ error: String(error), userId }, 'Could not load starter intentions'));
+      log.warn({ error: String(error), userId }, 'Could not load starter intentions')
+    );
   }
   return intentions;
 }
@@ -757,14 +769,19 @@ export async function handleCompleteIntention(
   const locale = await localeForRequest(req.headers['accept-language']);
   try {
     // { completed: false } undoes it; anything else marks it done
-    const body = await parseBody<{ completed?: unknown }>(req).catch(() => ({ completed: undefined }));
+    const body = await parseBody<{ completed?: unknown }>(req).catch(() => ({
+      completed: undefined,
+    }));
     const completed = body.completed !== false;
     await setIntentionCompleted(await practiceDb(), userId, intentionId, completed);
     sendJSON(res, { success: true, intentionId, completed });
     log.info({ userId, intentionId, completed }, 'Intention saved');
   } catch (error) {
     const notFound = error instanceof IntentionNotFoundError;
-    log[notFound ? 'warn' : 'error']({ error: String(error), userId, intentionId }, 'Failed to save intention');
+    log[notFound ? 'warn' : 'error'](
+      { error: String(error), userId, intentionId },
+      'Failed to save intention'
+    );
     sendError(res, tFor(locale, 'practiceView.errors.completeFailed'), notFound ? 404 : 500);
   }
 }

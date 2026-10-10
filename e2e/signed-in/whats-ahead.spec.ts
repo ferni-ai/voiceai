@@ -4,7 +4,15 @@
  * Needs the signed-in local stack (scripts/e2e/start-signed-in-stack.sh).
  */
 import { expect, test, type Page } from '@playwright/test';
-import { createUser, expectHome, newPanel, openSettingsMenu, shownDialogs, signIn, watchProblems } from './support';
+import {
+  createUser,
+  expectHome,
+  newPanel,
+  openSettingsMenu,
+  shownDialogs,
+  signIn,
+  watchProblems,
+} from './support';
 
 async function openWhatsAhead(page: Page) {
   await openSettingsMenu(page);
@@ -40,7 +48,10 @@ test('an intention checked off stays done, and unchecking it sticks too', async 
   panel = await openWhatsAhead(page);
   const box = panel.getByRole('checkbox', { name });
   await expect(box, 'kept after a reload').toBeChecked();
-  await expect(panel.locator('input[data-intention-id]').first(), 'only that one').not.toBeChecked();
+  await expect(
+    panel.locator('input[data-intention-id]').first(),
+    'only that one'
+  ).not.toBeChecked();
 
   await toggle(page, box);
   await page.keyboard.press('Escape');

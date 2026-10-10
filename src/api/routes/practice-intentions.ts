@@ -20,7 +20,9 @@ export function dayKey(now = new Date()): string {
 
 /** A practice counts as done only on the day it was done, so it comes back tomorrow */
 export function isDoneToday(practice: { lastCompletedAt?: unknown }, now = new Date()): boolean {
-  return typeof practice.lastCompletedAt === 'string' && practice.lastCompletedAt.startsWith(dayKey(now));
+  return (
+    typeof practice.lastCompletedAt === 'string' && practice.lastCompletedAt.startsWith(dayKey(now))
+  );
 }
 
 function starterDay(db: Firestore, userId: string, now: Date) {
@@ -61,7 +63,9 @@ export async function setIntentionCompleted(
     if (!STARTER_ID.test(intentionId)) throw new IntentionNotFoundError(intentionId);
     await starterDay(db, userId, now).set(
       {
-        completed: completed ? FieldValue.arrayUnion(intentionId) : FieldValue.arrayRemove(intentionId),
+        completed: completed
+          ? FieldValue.arrayUnion(intentionId)
+          : FieldValue.arrayRemove(intentionId),
         updatedAt: now.toISOString(),
       },
       { merge: true }
