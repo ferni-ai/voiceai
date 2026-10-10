@@ -11,6 +11,7 @@
 
 // We need to import from the same package the SDK uses
 import { GoogleGenAI } from '@google/genai';
+import { GEMINI_LOCATION, GEMINI_MODEL } from '../src/config/gemini-config.js';
 
 const SMALL_PROMPT = 'Say hello in one word';
 const MEDIUM_PROMPT = `You are Ferni, a warm and supportive life coach.
@@ -43,7 +44,7 @@ async function testGeminiAPI(prompt: string, label: string) {
   
   try {
     const response = await client.models.generateContent({
-      model: 'gemini-2.0-flash-exp',
+      model: GEMINI_MODEL,
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
     });
     const elapsed = Date.now() - start;
@@ -67,7 +68,7 @@ async function testVertexAI(prompt: string, label: string) {
   console.log(`${'='.repeat(60)}`);
   
   const project = process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025';
-  const location = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
+  const location = GEMINI_LOCATION;
   
   console.log(`Project: ${project}`);
   console.log(`Location: ${location}`);
@@ -83,7 +84,7 @@ async function testVertexAI(prompt: string, label: string) {
   
   try {
     const response = await client.models.generateContent({
-      model: 'gemini-2.0-flash-exp',
+      model: GEMINI_MODEL,
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
     });
     const elapsed = Date.now() - start;

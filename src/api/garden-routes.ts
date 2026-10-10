@@ -16,6 +16,7 @@
 import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { claimedUserFor, type VerifiedCaller } from './acting-user.js';
 import { optionalAuthAsync, rateLimit } from './auth-middleware.js';
 import { API_ERRORS } from './error-messages.js';
 import {
@@ -245,37 +246,36 @@ async function handleGetUserGarden(
   }
 }
 
-/**
- * POST /api/garden/plant
- * Create a one-time contribution using Stripe Payment Intent
- */
+/** POST /api/garden/plant, as the verified caller (401 without; acting-user.ts 403s others). */
 async function handlePlantSeed(
   req: IncomingMessage,
   res: ServerResponse,
-  userId: string
+  caller: VerifiedCaller | null
 ): Promise<void> {
   try {
-    const body = await parseBody<PlantSeedRequest>(req);
-    const { amount } = body;
+    const { amount, userId: claimed } = await parseBody<PlantSeedRequest & { userId?: unknown }>(
+      req
+    );
+    const userId = claimedUserFor(caller ?? { userId: '', isAdmin: false }, claimed, res);
+    if (!userId) return;
 
     if (!amount || amount < 1) {
       sendError(res, 'Amount must be at least $1', 400);
       return;
     }
 
-    // Check if Stripe is configured
     if (!isStripeConfigured()) {
+      // 503, like /api/subscription/checkout: the web says "not set up", not "try again".
       log.warn({ userId }, 'Stripe not configured for seed payment');
       const response: PlantSeedResponse = {
         success: false,
         error: 'Payment system not configured',
       };
-      sendJSON(res, response);
+      sendJSON(res, response, 503);
       return;
     }
 
-    // Create payment intent for one-time seed contribution
-    // Convert dollars to cents for Stripe
+    // One-time seed contribution; Stripe takes cents
     const paymentResult = await createPaymentIntent({
       userId,
       amountCents: amount * 100,
@@ -340,7 +340,7 @@ async function handleStartMonthly(
         success: false,
         error: 'Subscription system not configured',
       };
-      sendJSON(res, response);
+      sendJSON(res, response, 503);
       return;
     }
 
@@ -403,7 +403,7 @@ async function handleUpdateMonthly(
         success: false,
         error: 'Subscription system not configured',
       };
-      sendJSON(res, response);
+      sendJSON(res, response, 503);
       return;
     }
 
@@ -463,7 +463,7 @@ async function handleCancelMonthly(
         success: false,
         error: 'Subscription system not configured',
       };
-      sendJSON(res, response);
+      sendJSON(res, response, 503);
       return;
     }
 
@@ -1235,7 +1235,7 @@ export async function handleGardenRoutes(
 
   // POST /api/garden/plant - Plant a seed
   if (pathname === '/api/garden/plant' && method === 'POST') {
-    await handlePlantSeed(req, res, userId);
+    await handlePlantSeed(req, res, auth); // verified caller only: no legacy device ids
     return true;
   }
 

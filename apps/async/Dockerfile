@@ -6,7 +6,7 @@
 # async does this). That local build can see monorepo sources for the
 # daily-outreach bundle; the image only needs dist/ + production deps.
 
-FROM node:20-slim
+FROM node:22-slim
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 RUN npm install -g pnpm@9

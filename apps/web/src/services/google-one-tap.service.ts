@@ -10,6 +10,7 @@
  * @module GoogleOneTapService
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { linkWithGoogleCredential, getAuthState, onAuthStateChange } from './firebase-auth.service.js';
 import { appState } from '../state/app.state.js';
@@ -237,7 +238,7 @@ async function handleCredentialResponse(response: CredentialResponse): Promise<v
     // Dispatch error event
     window.dispatchEvent(
       new CustomEvent('ferni:one-tap-error', {
-        detail: { error: error instanceof Error ? error.message : 'Unknown error' },
+        detail: { error: error instanceof Error ? error.message : t('auth.somethingWentWrong') },
       })
     );
   }

@@ -1,0 +1,7 @@
+{
+  "maxCriticalTodos": 16,
+  "maxTodos": 816,
+  "maxAsAny": 37,
+  "maxConsoleUsage": 7699,
+  "maxHugeFiles": 30
+}

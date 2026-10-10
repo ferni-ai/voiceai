@@ -16,8 +16,31 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
-import { requireUserId, handleCorsPreflightIfNeeded, sendJSON, sendError } from '../helpers.js';
+import {
+  requireUserId,
+  handleCorsPreflightIfNeeded,
+  sendJSON,
+  sendError,
+  parseBody,
+} from '../helpers.js';
+import {
+  isDoneToday,
+  markStartersDoneToday,
+  setIntentionCompleted,
+  IntentionNotFoundError,
+} from './practice-intentions.js';
 import { rateLimit } from '../auth-middleware.js';
+import { localeForRequest, tFor, type SupportedLocale } from '../../i18n/index.js';
+import { loadPracticeStats, type PracticeViewStats } from './practice-view-stats.js';
+import {
+  attribute,
+  generateEventEmotionalContext,
+  generateHabitInsight,
+  generateTaskInsight,
+  getDayInsight,
+  getTaskInsightPersona,
+  weekdayName,
+} from './practice-view-copy.js';
 
 const log = createLogger({ module: 'PracticeViewAPI' });
 
@@ -111,12 +134,7 @@ export interface CrossPersonaInsight {
   context?: string;
 }
 
-export interface PracticeViewStats {
-  followThroughPercent: number;
-  habitsCompletedThisWeek: number;
-  momentumTrend: 'rising' | 'steady' | 'building' | 'declining';
-  streak: number;
-}
+export type { PracticeViewStats };
 
 export interface PracticeViewResponse {
   success: boolean;
@@ -142,7 +160,8 @@ export interface PracticeViewResponse {
 async function loadCalendarEvents(
   userId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  locale: SupportedLocale
 ): Promise<PracticeEvent[]> {
   const events: PracticeEvent[] = [];
 
@@ -161,11 +180,8 @@ async function loadCalendarEvents(
           event.endTime instanceof Date ? event.endTime.toISOString() : String(event.endTime),
         location: event.location,
         source: ((event as { source?: string }).source || 'ferni') as
-          | 'google'
-          | 'ferni'
-          | 'outlook'
-          | 'apple',
-        emotionalContext: generateEventEmotionalContext(event.title),
+          'google' | 'ferni' | 'outlook' | 'apple',
+        emotionalContext: generateEventEmotionalContext(event.title, locale),
       });
     }
   } catch (error) {
@@ -176,70 +192,9 @@ async function loadCalendarEvents(
 }
 
 /**
- * Generate emotional context for an event based on its title/content
- */
-function generateEventEmotionalContext(
-  title: string
-): { persona: string; insight: string } | undefined {
-  const lowerTitle = title.toLowerCase();
-
-  // Family/relationship events
-  if (
-    lowerTitle.includes('dinner') ||
-    lowerTitle.includes('family') ||
-    lowerTitle.includes('partner') ||
-    lowerTitle.includes('date')
-  ) {
-    return { persona: 'ALEX NOTES', insight: "Your partner loves when you're fully present" };
-  }
-
-  // Work meetings
-  if (
-    lowerTitle.includes('meeting') ||
-    lowerTitle.includes('sync') ||
-    lowerTitle.includes('1:1') ||
-    lowerTitle.includes('standup')
-  ) {
-    return { persona: 'JORDAN SUGGESTS', insight: 'Set a clear intention before joining' };
-  }
-
-  // Health/wellness
-  if (
-    lowerTitle.includes('doctor') ||
-    lowerTitle.includes('therapy') ||
-    lowerTitle.includes('gym') ||
-    lowerTitle.includes('yoga') ||
-    lowerTitle.includes('workout')
-  ) {
-    return { persona: 'MAYA NOTICES', insight: 'Taking care of yourself first' };
-  }
-
-  // Creative/learning
-  if (
-    lowerTitle.includes('class') ||
-    lowerTitle.includes('workshop') ||
-    lowerTitle.includes('lesson') ||
-    lowerTitle.includes('course')
-  ) {
-    return { persona: 'NAYAN REFLECTS', insight: 'Growth happens in the stretching' };
-  }
-
-  // Social events
-  if (
-    lowerTitle.includes('party') ||
-    lowerTitle.includes('celebration') ||
-    lowerTitle.includes('birthday')
-  ) {
-    return { persona: 'FERNI', insight: 'Connections nourish the soul' };
-  }
-
-  return undefined;
-}
-
-/**
  * Load habits for a user
  */
-async function loadHabits(userId: string): Promise<PracticeHabit[]> {
+async function loadHabits(userId: string, locale: SupportedLocale): Promise<PracticeHabit[]> {
   const habits: PracticeHabit[] = [];
 
   try {
@@ -256,11 +211,11 @@ async function loadHabits(userId: string): Promise<PracticeHabit[]> {
       const data = doc.data();
       habits.push({
         id: doc.id,
-        name: data.name || data.title || 'Untitled habit',
+        name: data.name || data.title || tFor(locale, 'practiceView.habit.untitled'),
         completedToday: (data.completedDates || []).includes(today),
         streak: data.streak || 0,
-        insight: generateHabitInsight(data),
-        insightPersona: 'MAYA TRACKS',
+        insight: generateHabitInsight(data, locale),
+        insightPersona: attribute(locale, 'maya', 'tracks'),
       });
     }
   } catch (error) {
@@ -276,7 +231,8 @@ async function loadHabits(userId: string): Promise<PracticeHabit[]> {
 async function loadReminders(
   userId: string,
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  locale: SupportedLocale
 ): Promise<Map<string, PracticeReminder[]>> {
   const remindersByDate = new Map<string, PracticeReminder[]>();
 
@@ -304,7 +260,11 @@ async function loadReminders(
       if (dateStr) {
         const reminder: PracticeReminder = {
           id: doc.id,
-          text: data.text || data.message || data.title || 'Reminder',
+          text:
+            data.text ||
+            data.message ||
+            data.title ||
+            tFor(locale, 'practiceView.reminder.fallback'),
           time: reminderTime,
           type: data.type || 'custom',
         };
@@ -324,39 +284,13 @@ async function loadReminders(
 }
 
 /**
- * Generate insight for a habit based on streak/completion patterns
- */
-function generateHabitInsight(habitData: Record<string, unknown>): string | undefined {
-  const streak = (habitData.streak as number) || 0;
-  const completedDates = (habitData.completedDates as string[]) || [];
-
-  if (streak >= 7) {
-    return `${streak} days in a row!`;
-  }
-
-  if (streak >= 3) {
-    return `${streak} days strong`;
-  }
-
-  if (completedDates.length > 0) {
-    return 'Building momentum';
-  }
-
-  return undefined;
-}
-
-/**
  * Load tasks/intentions for a user
  */
-async function loadIntentions(userId: string): Promise<PracticeTask[]> {
+async function loadIntentions(userId: string, locale: SupportedLocale): Promise<PracticeTask[]> {
   const intentions: PracticeTask[] = [];
 
   try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-    });
+    const db = await practiceDb();
 
     // Load from tasks collection
     const tasksSnapshot = await db
@@ -371,12 +305,12 @@ async function loadIntentions(userId: string): Promise<PracticeTask[]> {
       const data = doc.data();
       intentions.push({
         id: doc.id,
-        text: data.title || data.text || 'Untitled task',
+        text: data.title || data.text || tFor(locale, 'practiceView.task.untitled'),
         completed: data.completed || false,
         priority: data.priority,
         dueDate: data.dueDate,
-        insight: generateTaskInsight(data),
-        insightPersona: getTaskInsightPersona(data),
+        insight: generateTaskInsight(data, locale),
+        insightPersona: getTaskInsightPersona(data, locale),
       });
     }
 
@@ -390,13 +324,15 @@ async function loadIntentions(userId: string): Promise<PracticeTask[]> {
 
     for (const doc of practicesSnapshot.docs) {
       const data = doc.data();
-      if (data.name && !data.completedToday) {
+      if (data.name && !isDoneToday(data)) {
         intentions.push({
           id: `practice_${doc.id}`,
           text: data.name,
           completed: false,
-          insight: data.streak ? `${data.streak} day streak` : undefined,
-          insightPersona: 'MAYA TRACKS',
+          insight: data.streak
+            ? tFor(locale, 'practiceView.practice.streak', { streak: data.streak })
+            : undefined,
+          insightPersona: attribute(locale, 'maya', 'tracks'),
         });
       }
     }
@@ -407,56 +343,29 @@ async function loadIntentions(userId: string): Promise<PracticeTask[]> {
   // Add default intentions if none found (better UX than empty state)
   if (intentions.length === 0) {
     intentions.push(
-      { id: 'default_1', text: 'Start with intention', completed: false },
-      { id: 'default_2', text: 'One thing at a time', completed: false },
+      {
+        id: 'default_1',
+        text: tFor(locale, 'practiceView.defaultIntention.start'),
+        completed: false,
+      },
+      {
+        id: 'default_2',
+        text: tFor(locale, 'practiceView.defaultIntention.oneThing'),
+        completed: false,
+      },
       {
         id: 'default_3',
-        text: 'End the day with gratitude',
+        text: tFor(locale, 'practiceView.defaultIntention.gratitude'),
         completed: false,
-        insight: 'This has helped your mood',
-        insightPersona: 'PETER FOUND',
+        insight: tFor(locale, 'practiceView.defaultIntention.gratitudeInsight'),
+        insightPersona: attribute(locale, 'peter', 'found'),
       }
     );
+    await markStartersDoneToday(await practiceDb(), userId, intentions).catch((error) =>
+      log.warn({ error: String(error), userId }, 'Could not load starter intentions')
+    );
   }
-
   return intentions;
-}
-
-/**
- * Generate insight for a task
- */
-function generateTaskInsight(taskData: Record<string, unknown>): string | undefined {
-  const priority = taskData.priority as string;
-  const dueDate = taskData.dueDate as string;
-
-  if (dueDate) {
-    const due = new Date(dueDate);
-    const today = new Date();
-    const daysUntil = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (daysUntil <= 0) return 'Due today';
-    if (daysUntil === 1) return 'Due tomorrow';
-    if (daysUntil <= 3) return `Due in ${daysUntil} days`;
-  }
-
-  if (priority === 'high') return 'High priority';
-
-  return undefined;
-}
-
-/**
- * Get the persona for a task insight
- */
-function getTaskInsightPersona(taskData: Record<string, unknown>): string | undefined {
-  const category = taskData.category as string;
-
-  if (category === 'health' || category === 'wellness') return 'MAYA NOTICES';
-  if (category === 'work' || category === 'career') return 'JORDAN SUGGESTS';
-  if (category === 'relationship' || category === 'family') return 'ALEX NOTES';
-  if (category === 'growth' || category === 'learning') return 'NAYAN REFLECTS';
-  if (category === 'research' || category === 'finance') return 'PETER FOUND';
-
-  return 'FERNI';
 }
 
 /**
@@ -464,7 +373,8 @@ function getTaskInsightPersona(taskData: Record<string, unknown>): string | unde
  */
 async function generateMayaPatternNotice(
   userId: string,
-  weekData: PracticeViewDay[]
+  weekData: PracticeViewDay[],
+  locale: SupportedLocale
 ): Promise<MayaPatternNotice | null> {
   try {
     // Count events across the week
@@ -481,8 +391,7 @@ async function generateMayaPatternNotice(
     // High meeting load
     if (totalEvents > 15) {
       return {
-        message:
-          "You've been in a lot of meetings lately. Your best thinking happens in the quiet spaces.",
+        message: tFor(locale, 'practiceView.pattern.busyWeek'),
         type: 'observation',
         confidence: 0.85,
       };
@@ -491,7 +400,14 @@ async function generateMayaPatternNotice(
     // Heavy single day
     if (busiestDay && busiestDay.events.length > 5) {
       return {
-        message: `${busiestDay.dayName} looks packed. Maybe move something to ${lightestDay?.dayName || 'another day'}?`,
+        message: lightestDay
+          ? tFor(locale, 'practiceView.pattern.packedDay', {
+              day: busiestDay.dayName,
+              otherDay: lightestDay.dayName,
+            })
+          : tFor(locale, 'practiceView.pattern.packedDayNoAlternative', {
+              day: busiestDay.dayName,
+            }),
         type: 'suggestion',
         confidence: 0.8,
         relatedDays: [busiestDay.date],
@@ -503,29 +419,13 @@ async function generateMayaPatternNotice(
       await import('../../services/superhuman/semantic-intelligence/index.js');
     const semanticCtx = await buildSemanticIntelligenceContext(userId, {});
 
-    if (semanticCtx?.activeCorrelations?.length) {
-      return {
-        message:
-          semanticCtx.activeCorrelations[0] ||
-          'Your morning starts tend to set the tone for the whole day.',
-        type: 'observation',
-        confidence: 0.75,
-      };
+    const correlation = semanticCtx?.activeCorrelations?.[0];
+    if (correlation) {
+      return { message: correlation, type: 'observation', confidence: 0.75 };
     }
 
-    // Default patterns
-    const defaultPatterns = [
-      'Your morning starts tend to set the tone for the whole day.',
-      'When you block focus time, you accomplish 40% more.',
-      'You seem most creative after your walks.',
-      'Tuesday evenings have been your most productive.',
-    ];
-
-    return {
-      message: defaultPatterns[Math.floor(Math.random() * defaultPatterns.length)],
-      type: 'observation',
-      confidence: 0.6,
-    };
+    // Nothing real matched: say nothing rather than a canned "pattern"
+    return null;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Could not generate Maya pattern notice');
     return null;
@@ -662,90 +562,15 @@ async function loadPendingOutreach(userId: string): Promise<PracticeOutreach[]> 
 }
 
 /**
- * Calculate practice stats
- */
-async function calculatePracticeStats(
-  userId: string,
-  habits: PracticeHabit[],
-  intentions: PracticeTask[]
-): Promise<PracticeViewStats> {
-  // Calculate follow-through from completed intentions
-  const completedIntentions = intentions.filter((i) => i.completed).length;
-  const totalIntentions = intentions.length || 1;
-  const followThroughPercent = Math.round((completedIntentions / totalIntentions) * 100);
-
-  // Count habits completed this week
-  const habitsCompletedThisWeek = habits.filter((h) => h.completedToday).length;
-
-  // Calculate momentum trend
-  let momentumTrend: 'rising' | 'steady' | 'building' | 'declining' = 'steady';
-  const avgStreak = habits.reduce((sum, h) => sum + h.streak, 0) / (habits.length || 1);
-
-  if (avgStreak > 5) momentumTrend = 'rising';
-  else if (avgStreak > 2) momentumTrend = 'building';
-  else if (followThroughPercent < 30) momentumTrend = 'declining';
-
-  // Get max streak
-  const maxStreak = habits.reduce((max, h) => Math.max(max, h.streak), 0);
-
-  return {
-    followThroughPercent,
-    habitsCompletedThisWeek,
-    momentumTrend,
-    streak: maxStreak,
-  };
-}
-
-/**
- * Get daily insight based on date and context
- */
-function getDayInsight(date: Date, isToday: boolean): { insight: string; persona?: string } {
-  const dayOfWeek = date.getDay();
-  const hour = new Date().getHours();
-
-  // Today gets time-sensitive insights
-  if (isToday) {
-    if (hour < 12) return { insight: 'Morning intention', persona: 'FERNI' };
-    if (hour < 17) return { insight: 'Stay present', persona: 'MAYA' };
-    return { insight: 'Reflect & celebrate', persona: 'JORDAN' };
-  }
-
-  // New Year's Day
-  if (date.getMonth() === 0 && date.getDate() === 1) {
-    return { insight: 'New beginning', persona: 'NAYAN' };
-  }
-
-  // Weekend
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
-    return { insight: 'Recharge', persona: 'MAYA' };
-  }
-
-  // Weekday insights
-  const weekdayInsights = [
-    { insight: 'Rest day', persona: undefined },
-    { insight: 'Fresh start', persona: 'JORDAN' },
-    { insight: 'Build momentum', persona: 'MAYA' },
-    { insight: 'Mid-week check', persona: 'FERNI' },
-    { insight: 'Almost there', persona: 'JORDAN' },
-    { insight: 'Wind down', persona: 'MAYA' },
-    { insight: 'Reflect', persona: 'NAYAN' },
-  ];
-
-  return weekdayInsights[dayOfWeek];
-}
-
-/**
  * Build the full week data structure
  */
 async function buildWeekData(
-  userId: string,
+  locale: SupportedLocale,
   events: PracticeEvent[],
   habits: PracticeHabit[],
   remindersByDate: Map<string, PracticeReminder[]>
 ): Promise<PracticeViewDay[]> {
   const days: PracticeViewDay[] = [];
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const shortNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   // Get start of week (Sunday)
   const today = new Date();
@@ -767,12 +592,12 @@ async function buildWeekData(
     });
 
     // Get insight for the day
-    const { insight, persona } = getDayInsight(date, isToday);
+    const { insight, persona } = getDayInsight(date, isToday, locale);
 
     days.push({
       date: dateStr,
-      dayName: dayNames[dayOfWeek],
-      shortName: shortNames[dayOfWeek],
+      dayName: weekdayName(locale, date, 'long'),
+      shortName: weekdayName(locale, date, 'short'),
       dayNum: date.getDate(),
       isToday,
       isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
@@ -805,6 +630,7 @@ export async function handleGetPracticeView(
 ): Promise<void> {
   const userId = requireUserId(req, res, parsedUrl);
   if (!userId) return;
+  const locale = await localeForRequest(req.headers['accept-language']);
 
   try {
     log.info({ userId }, 'Loading practice view data');
@@ -820,14 +646,14 @@ export async function handleGetPracticeView(
 
     // Load all data in parallel for optimal performance
     const [events, habits, intentions, remindersByDate] = await Promise.all([
-      loadCalendarEvents(userId, startOfWeek, endOfWeek),
-      loadHabits(userId),
-      loadIntentions(userId),
-      loadReminders(userId, startOfWeek, endOfWeek),
+      loadCalendarEvents(userId, startOfWeek, endOfWeek, locale),
+      loadHabits(userId, locale),
+      loadIntentions(userId, locale),
+      loadReminders(userId, startOfWeek, endOfWeek, locale),
     ]);
 
     // Build week data
-    const weekData = await buildWeekData(userId, events, habits, remindersByDate);
+    const weekData = await buildWeekData(locale, events, habits, remindersByDate);
 
     // Get today's events
     const todayStr = today.toISOString().split('T')[0];
@@ -838,9 +664,9 @@ export async function handleGetPracticeView(
     // Generate insights, patterns, predictions, and outreach in parallel
     const [mayaNotices, crossPersonaInsights, stats, predictions, pendingOutreach] =
       await Promise.all([
-        generateMayaPatternNotice(userId, weekData),
+        generateMayaPatternNotice(userId, weekData, locale),
         generateCrossPersonaInsights(userId),
-        calculatePracticeStats(userId, habits, intentions),
+        loadPracticeStats(practiceDb, userId),
         loadPredictions(userId),
         loadPendingOutreach(userId),
       ]);
@@ -872,7 +698,7 @@ export async function handleGetPracticeView(
     );
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to load practice view');
-    sendError(res, 'Could not load practice view', 500);
+    sendError(res, tFor(locale, 'practiceView.errors.loadFailed'), 500);
   }
 }
 
@@ -889,42 +715,32 @@ export async function handleCompleteIntention(
 ): Promise<void> {
   const userId = requireUserId(req, res, parsedUrl);
   if (!userId) return;
-
+  const locale = await localeForRequest(req.headers['accept-language']);
   try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-    });
-
-    // Handle practice completions
-    if (intentionId.startsWith('practice_')) {
-      const practiceId = intentionId.replace('practice_', '');
-      const { FieldValue } = await import('@google-cloud/firestore');
-      await db
-        .collection('users')
-        .doc(userId)
-        .collection('practices')
-        .doc(practiceId)
-        .update({
-          completedToday: true,
-          lastCompletedAt: new Date().toISOString(),
-          streak: FieldValue.increment(1),
-        });
-    } else {
-      // Handle task completions
-      await db.collection('bogle_users').doc(userId).collection('tasks').doc(intentionId).update({
-        completed: true,
-        completedAt: new Date().toISOString(),
-      });
-    }
-
-    sendJSON(res, { success: true, intentionId });
-    log.info({ userId, intentionId }, 'Intention completed');
+    // { completed: false } undoes it; anything else marks it done
+    const body = await parseBody<{ completed?: unknown }>(req).catch(() => ({
+      completed: undefined,
+    }));
+    const completed = body.completed !== false;
+    await setIntentionCompleted(await practiceDb(), userId, intentionId, completed);
+    sendJSON(res, { success: true, intentionId, completed });
+    log.info({ userId, intentionId, completed }, 'Intention saved');
   } catch (error) {
-    log.error({ error: String(error), userId, intentionId }, 'Failed to complete intention');
-    sendError(res, 'Could not complete intention', 500);
+    const notFound = error instanceof IntentionNotFoundError;
+    log[notFound ? 'warn' : 'error'](
+      { error: String(error), userId, intentionId },
+      'Failed to save intention'
+    );
+    sendError(res, tFor(locale, 'practiceView.errors.completeFailed'), notFound ? 404 : 500);
   }
+}
+
+async function practiceDb() {
+  const { Firestore } = await import('@google-cloud/firestore');
+  return new Firestore({
+    projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+    databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+  });
 }
 
 /**
@@ -939,6 +755,7 @@ export async function handleGetPatterns(
 ): Promise<void> {
   const userId = requireUserId(req, res, parsedUrl);
   if (!userId) return;
+  const locale = await localeForRequest(req.headers['accept-language']);
 
   try {
     // Load week data for pattern analysis
@@ -950,12 +767,12 @@ export async function handleGetPatterns(
     endOfWeek.setDate(startOfWeek.getDate() + 7);
 
     const [events, remindersByDate] = await Promise.all([
-      loadCalendarEvents(userId, startOfWeek, endOfWeek),
-      loadReminders(userId, startOfWeek, endOfWeek),
+      loadCalendarEvents(userId, startOfWeek, endOfWeek, locale),
+      loadReminders(userId, startOfWeek, endOfWeek, locale),
     ]);
-    const weekData = await buildWeekData(userId, events, [], remindersByDate);
+    const weekData = await buildWeekData(locale, events, [], remindersByDate);
 
-    const mayaNotices = await generateMayaPatternNotice(userId, weekData);
+    const mayaNotices = await generateMayaPatternNotice(userId, weekData, locale);
 
     sendJSON(res, {
       success: true,
@@ -964,7 +781,7 @@ export async function handleGetPatterns(
     });
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get patterns');
-    sendError(res, 'Could not get patterns', 500);
+    sendError(res, tFor(locale, 'practiceView.errors.patternsFailed'), 500);
   }
 }
 

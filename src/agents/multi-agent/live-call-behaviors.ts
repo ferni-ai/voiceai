@@ -14,9 +14,14 @@ import {
   registerBargeInJudge,
 } from '../../speech/graceful-interrupt/barge-in-judge.js';
 import { createCallAlertSpeaker } from '../shared/call-alerts.js';
-import { createBargeInFastPath, setBargeInFastPath } from './barge-in-fastpath.js';
+import {
+  createBargeInFastPath,
+  installBackchannelHook,
+  setBargeInFastPath,
+} from './barge-in-fastpath.js';
 import { createTurnKeeper } from './turn-keeper.js';
 import { installUnfinishedTurnHold } from './unfinished-turn.js';
+import { turnDetectorMode } from '../shared/turn-patience.js';
 
 const log = getLogger();
 
@@ -130,8 +135,18 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     cleanupFunctions.push(() => keeper.stop());
   }
 
-  // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off).
-  installUnfinishedTurnHold(session);
+  // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). With the
+  // end-of-turn model on, the model decides and a second hold would only stack delay.
+  if (turnDetectorMode() === 'off') installUnfinishedTurnHold(session);
+  else
+    session.on(voice.AgentSessionEventTypes.EotPrediction, (ev) =>
+      log.info(
+        { probability: ev.probability, threshold: ev.threshold, delayMs: ev.delayMs, inferenceMs: ev.inferenceDurationMs },
+        'EOT_PREDICTION'
+      )
+    );
+  // One backchannel list for the patched LiveKit and the barge-in fast path.
+  installBackchannelHook();
 
   // Open the next reply softly only after a real barge-in, not after any
   // overlap (barge-in-judge.ts). BARGE_IN_ACK=any keeps the old behavior.
@@ -200,11 +215,12 @@ export async function startTurnSounds(input: TurnSoundsInput) {
   );
   if (clips) {
     cleanupFunctions.push(() => void clips.close());
-    const { attachTurnOpeningSound } = await import('../integrations/turn-opening-sound.js');
+    const { attachTurnOpeningSound, turnOpeningSoundEnabled } =
+      await import('../integrations/turn-opening-sound.js');
     const { replyAudioSince, clearReplyActivity } =
       await import('../../speech/output-control/reply-activity.js');
     cleanupFunctions.push(() => clearReplyActivity(sessionId));
-    if (process.env.TURN_OPENING_SOUND !== 'off') {
+    if (turnOpeningSoundEnabled()) {
       cleanupFunctions.push(
         attachTurnOpeningSound(
           session as unknown as Parameters<typeof attachTurnOpeningSound>[0],

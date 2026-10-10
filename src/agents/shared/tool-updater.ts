@@ -22,10 +22,17 @@
  */
 
 import { voice } from '@livekit/agents';
-import { capToolsToLimit, getMaxTools, isMetaToolEnabled } from '../../config/tool-config.js';
+import {
+  capToolsToLimit,
+  getMaxTools,
+  isEssentialTool,
+  isMetaToolEnabled,
+} from '../../config/tool-config.js';
+import { withoutSharedHandoffs } from '../../tools/handoff/handoff-availability.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import type { UserData } from './types.js';
+import { resolveInitialToolLimit, resolveTopicToolHeadroom } from '../multi-agent/initial-tools.js';
 
 const log = createLogger({ module: 'ToolUpdater' });
 
@@ -68,20 +75,23 @@ let warnedMetaTool = false;
  * Update tools mid-session for any LLM provider.
  *
  * Merges `newTools` into the agent's tools and applies them via
- * `agent.updateTools()`. Respects TOOL_LIMIT (capToolsToLimit keeps must-keep
- * tools first).
+ * `agent.updateTools()`. Caps at TOOL_LIMIT (64 when unset) plus up to
+ * MID_SESSION_TOPIC_TOOLS (24) for the topic tools offered; capToolsToLimit
+ * keeps must-keep tools first. Handoff tools in `newTools` are ignored: the
+ * shared catalogs passed here carry a handoff to every persona, while the
+ * agent's own came from its per-user build (see handoff-availability.ts).
  *
  * @param agent - The voice agent instance
- * @param newTools - New tools to add (merged with existing)
+ * @param offeredTools - New tools to add (merged with existing)
  * @param options - Optional configuration
  * @returns true if the agent's tools are up to date, false if the update failed
  */
 export async function updateAgentTools(
   agent: voice.Agent<UserData>,
-  newTools: Record<string, unknown>,
+  offeredTools: Record<string, unknown>,
   options: {
     /** Domain names for better logging/messaging */
-    domains?: string[];
+    domains?: readonly string[];
     /** Skip informing a JSON-workaround LLM about new tools */
     silentMerge?: boolean;
     /** Re-apply the tools even if none are new */
@@ -91,6 +101,7 @@ export async function updateAgentTools(
   const provider = getModelProvider();
   const { domains = [], silentMerge = false, forceSync = false } = options;
   const target = asToolCapable(agent);
+  const newTools = withoutSharedHandoffs(offeredTools);
 
   try {
     const existing = currentToolRecord(target);
@@ -108,11 +119,17 @@ export async function updateAgentTools(
       );
     }
 
-    let merged: Record<string, unknown> = { ...existing, ...newTools };
-    const configLimit = getMaxTools();
-    if (configLimit > 0) {
-      merged = capToolsToLimit(merged, configLimit);
-    }
+    // The tools just asked for come first, so the cap evicts the oldest
+    // non-essential ones, not them. Uncapped, a dev call grew 64 -> 160 -> 213
+    // tools (~9.5k prompt tokens on every turn), so the cap is the first
+    // agent's (64 when TOOL_LIMIT is unset) plus headroom for the topic tools
+    // offered: must-keep tools fill ~61 of those 64 slots, which left a topic
+    // domain about 3. The headroom counts the offered tools, not just the new
+    // ones, so re-offering a loaded domain doesn't shrink it back out.
+    const topicToolCount = Object.keys(newTools).filter((name) => !isEssentialTool(name)).length;
+    const limit =
+      resolveInitialToolLimit(getMaxTools()) + Math.min(topicToolCount, resolveTopicToolHeadroom());
+    const merged = capToolsToLimit({ ...newTools, ...existing, ...newTools }, limit);
 
     await target.updateTools(merged);
 
@@ -121,6 +138,7 @@ export async function updateAgentTools(
         existingCount: Object.keys(existing).length,
         newTools: actuallyNew.slice(0, 10),
         totalCount: Object.keys(merged).length,
+        limit,
         provider: provider.id,
         forceSync,
       },
@@ -144,14 +162,14 @@ export async function updateAgentTools(
 async function announceNewTools(
   agent: ToolCapableAgent,
   toolNames: string[],
-  domains: string[]
+  domains: readonly string[]
 ): Promise<void> {
   if (!agent.chatCtx || !agent.updateChatCtx) return;
 
   const toolList = toolNames.slice(0, 10).join(', ');
   const moreCount = toolNames.length > 10 ? ` and ${toolNames.length - 10} more` : '';
   const domainInfo = domains.length > 0 ? ` (${domains.join(', ')})` : '';
-  const content = `[SYSTEM: New tools now available${domainInfo}: ${toolList}${moreCount}. You can call these using JSON format: {"fn":"toolName","args":{...}}]`;
+  const content = `[SYSTEM: New tools now available${domainInfo}: ${toolList}${moreCount}. Call them through native function calling — never write JSON or function names in speech.]`;
 
   try {
     const chatCtx = agent.chatCtx.copy();

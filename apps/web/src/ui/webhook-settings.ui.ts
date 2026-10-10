@@ -1,20 +1,12 @@
 /**
- * Webhook Settings UI
- *
- * Manage webhook automations for IFTTT, Zapier, Home Assistant,
- * and Siri Shortcuts integration.
- *
- * DESIGN PRINCIPLES:
- *   - Clear list of webhooks with status indicators
- *   - Easy add/edit/delete flows
- *   - Siri token management with one-time display
- *   - Test webhook button for validation
+ * Webhook Settings UI — IFTTT, Zapier, Home Assistant, and Siri Shortcuts.
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost, apiPut, apiDelete } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 
 // ============================================================================
 // TYPES
@@ -181,10 +173,10 @@ class WebhookSettingsUI {
     this.callbacks = callbacks;
   }
 
-  async show(): Promise<void> {
+  async show(options?: { tab?: 'webhooks' | 'siri' }): Promise<void> {
     this.initialize();
     if (!this.panel) return;
-
+    this.activeTab = options?.tab ?? 'webhooks';
     await this.fetchData();
     this.renderContent();
     this.panel.classList.add('webhook-settings--visible');
@@ -248,8 +240,8 @@ class WebhookSettingsUI {
 
     // Header
     const header = createElement('div', { className: 'webhook-settings__header' });
-    const title = createElement('h2', { className: 'webhook-settings__title' }, ['Automations']);
-    const closeBtn = createElement('button', { className: 'webhook-settings__close', 'aria-label': 'Close' });
+    const title = createElement('h2', { className: 'webhook-settings__title' }, [t('webhookSettings.title')]);
+    const closeBtn = createElement('button', { className: 'webhook-settings__close', 'aria-label': t('common.close') });
     closeBtn.appendChild(createSvgIcon(ICON_PATHS.close));
     closeBtn.addEventListener('click', () => this.hide());
     header.appendChild(title);
@@ -263,8 +255,7 @@ class WebhookSettingsUI {
       className: `webhook-settings__tab ${this.activeTab === 'webhooks' ? 'active' : ''}`,
       'data-tab': 'webhooks'
     });
-    webhooksTab.appendChild(createSvgIcon(ICON_PATHS.link));
-    webhooksTab.appendChild(createElement('span', {}, ['Webhooks']));
+    webhooksTab.append(createSvgIcon(ICON_PATHS.link), createElement('span', {}, [t('webhookSettings.tabs.webhooks')]));
     webhooksTab.addEventListener('click', () => {
       this.activeTab = 'webhooks';
       this.renderContent();
@@ -275,7 +266,7 @@ class WebhookSettingsUI {
       'data-tab': 'siri'
     });
     siriTab.appendChild(createSvgIcon(ICON_PATHS.key));
-    siriTab.appendChild(createElement('span', {}, ['Siri Tokens']));
+    siriTab.appendChild(createElement('span', {}, [t('webhookSettings.tabs.siriTokens')]));
     siriTab.addEventListener('click', () => {
       this.activeTab = 'siri';
       this.renderContent();
@@ -297,17 +288,17 @@ class WebhookSettingsUI {
 
   private renderWebhooksTab(container: HTMLElement): void {
     if (this.isLoading) {
-      container.appendChild(createElement('div', { className: 'webhook-settings__loading' }, ['Loading...']));
+      container.appendChild(createElement('div', { className: 'webhook-settings__loading' }, [t('common.loading')]));
       return;
     }
 
     // Section header
     const sectionHeader = createElement('div', { className: 'webhook-settings__section-header' });
-    sectionHeader.appendChild(createElement('h3', {}, ['Your Webhooks']));
+    sectionHeader.appendChild(createElement('h3', {}, [t('webhookSettings.yourWebhooks')]));
 
     const addBtn = createElement('button', { className: 'webhook-settings__add-btn' });
     addBtn.appendChild(createSvgIcon(ICON_PATHS.plus));
-    addBtn.appendChild(createElement('span', {}, ['Add']));
+    addBtn.appendChild(createElement('span', {}, [t('accessibility.add')]));
     addBtn.addEventListener('click', () => this.showAddWebhookForm());
     sectionHeader.appendChild(addBtn);
 
@@ -319,7 +310,7 @@ class WebhookSettingsUI {
 
     if (this.webhooks.length === 0) {
       list.appendChild(createElement('div', { className: 'webhook-settings__empty' },
-        ['No webhooks yet. Add one to automate with your voice!']));
+        [t('webhookSettings.noWebhooks')]));
     } else {
       for (const webhook of this.webhooks) {
         list.appendChild(this.createWebhookCard(webhook));
@@ -331,9 +322,9 @@ class WebhookSettingsUI {
 
     // Help section
     const help = createElement('div', { className: 'webhook-settings__help' });
-    help.appendChild(createElement('h4', {}, ['How to use webhooks']));
+    help.appendChild(createElement('h4', {}, [t('webhookSettings.howToTitle')]));
     help.appendChild(createElement('p', {},
-      ['Webhooks let you trigger external automations with your voice. Say "run my bedtime routine" and Ferni will call your IFTTT/Zapier/Home Assistant webhook.']));
+      [t('webhookSettings.howToBody')]));
     container.appendChild(help);
   }
 
@@ -356,7 +347,7 @@ class WebhookSettingsUI {
     info.appendChild(nameSpan);
 
     const triggersSpan = createElement('span', { className: 'webhook-card__triggers' });
-    triggersSpan.textContent = `Say: "${webhook.voiceTriggers.slice(0, 2).join(', ')}"`;
+    triggersSpan.textContent = t('webhookSettings.sayTriggers', { triggers: webhook.voiceTriggers.slice(0, 2).join(', ') });
     info.appendChild(triggersSpan);
     header.appendChild(info);
 
@@ -377,21 +368,21 @@ class WebhookSettingsUI {
     const stats = webhook.successCount + webhook.failureCount;
     const successRate = stats > 0 ? Math.round((webhook.successCount / stats) * 100) : 0;
     const statsSpan = createElement('span', { className: 'webhook-card__stats' });
-    statsSpan.textContent = `${stats} runs (${successRate}% success)`;
+    statsSpan.textContent = tp('webhookSettings.runs', stats, { rate: successRate });
     footer.appendChild(statsSpan);
 
     const actions = createElement('div', { className: 'webhook-card__actions' });
 
-    const testBtn = createElement('button', { className: 'webhook-card__btn', title: 'Test' });
+    const testBtn = createElement('button', { className: 'webhook-card__btn', title: t('webhookSettings.test') });
     testBtn.appendChild(createSvgIcon(ICON_PATHS.play));
     testBtn.addEventListener('click', () => { void this.testWebhook(webhook.id); });
     actions.appendChild(testBtn);
 
-    const editBtn = createElement('button', { className: 'webhook-card__btn', title: 'Edit' });
+    const editBtn = createElement('button', { className: 'webhook-card__btn', title: t('common.edit') });
     editBtn.appendChild(createSvgIcon(ICON_PATHS.edit));
     actions.appendChild(editBtn);
 
-    const deleteBtn = createElement('button', { className: 'webhook-card__btn webhook-card__btn--danger', title: 'Delete' });
+    const deleteBtn = createElement('button', { className: 'webhook-card__btn webhook-card__btn--danger', title: t('common.delete') });
     deleteBtn.appendChild(createSvgIcon(ICON_PATHS.trash));
     deleteBtn.addEventListener('click', () => { void this.deleteWebhook(webhook.id); });
     actions.appendChild(deleteBtn);
@@ -404,17 +395,17 @@ class WebhookSettingsUI {
 
   private renderSiriTab(container: HTMLElement): void {
     if (this.isLoading) {
-      container.appendChild(createElement('div', { className: 'webhook-settings__loading' }, ['Loading...']));
+      container.appendChild(createElement('div', { className: 'webhook-settings__loading' }, [t('common.loading')]));
       return;
     }
 
     // Section header
     const sectionHeader = createElement('div', { className: 'webhook-settings__section-header' });
-    sectionHeader.appendChild(createElement('h3', {}, ['Siri Tokens']));
+    sectionHeader.appendChild(createElement('h3', {}, [t('webhookSettings.tabs.siriTokens')]));
 
     const addBtn = createElement('button', { className: 'webhook-settings__add-btn' });
     addBtn.appendChild(createSvgIcon(ICON_PATHS.plus));
-    addBtn.appendChild(createElement('span', {}, ['Create Token']));
+    addBtn.appendChild(createElement('span', {}, [t('webhookSettings.createToken')]));
     addBtn.addEventListener('click', () => this.createSiriToken());
     sectionHeader.appendChild(addBtn);
 
@@ -424,7 +415,7 @@ class WebhookSettingsUI {
     // New token display
     if (this.newTokenValue) {
       const newTokenSection = createElement('div', { className: 'webhook-settings__new-token' });
-      newTokenSection.appendChild(createElement('p', {}, ["Your new token (copy it now - it won't be shown again!):"]));
+      newTokenSection.appendChild(createElement('p', {}, [t('webhookSettings.newTokenNotice')]));
 
       const tokenDisplay = createElement('div', { className: 'webhook-settings__token-display' });
       const codeEl = createElement('code');
@@ -450,7 +441,7 @@ class WebhookSettingsUI {
 
     if (this.siriTokens.length === 0) {
       list.appendChild(createElement('div', { className: 'webhook-settings__empty' },
-        ['No Siri tokens yet. Create one to trigger webhooks from Shortcuts.']));
+        [t('webhookSettings.noTokens')]));
     } else {
       for (const token of this.siriTokens) {
         list.appendChild(this.createTokenCard(token));
@@ -462,9 +453,9 @@ class WebhookSettingsUI {
 
     // Help section
     const help = createElement('div', { className: 'webhook-settings__help' });
-    help.appendChild(createElement('h4', {}, ['Using with Siri Shortcuts']));
+    help.appendChild(createElement('h4', {}, [t('webhookSettings.siriHelpTitle')]));
     help.appendChild(createElement('p', {},
-      ['Create a Shortcut that calls: POST https://app.ferni.ai/api/webhooks/incoming/trigger with headers X-User-ID and X-Siri-Token, and body {"webhookName": "your webhook name"}.']));
+      [t('webhookSettings.siriHelpBody')]));
     container.appendChild(help);
   }
 
@@ -494,10 +485,10 @@ class WebhookSettingsUI {
     const footer = createElement('div', { className: 'token-card__footer' });
 
     const statsSpan = createElement('span', { className: 'token-card__stats' });
-    statsSpan.textContent = `${token.usageCount} uses`;
+    statsSpan.textContent = tp('webhookSettings.tokenUses', token.usageCount);
     footer.appendChild(statsSpan);
 
-    const deleteBtn = createElement('button', { className: 'token-card__btn token-card__btn--danger', title: 'Delete' });
+    const deleteBtn = createElement('button', { className: 'token-card__btn token-card__btn--danger', title: t('common.delete') });
     deleteBtn.appendChild(createSvgIcon(ICON_PATHS.trash));
     deleteBtn.addEventListener('click', () => this.deleteSiriToken(token.id));
     footer.appendChild(deleteBtn);
@@ -508,13 +499,13 @@ class WebhookSettingsUI {
   }
 
   private showAddWebhookForm(): void {
-    const name = prompt('Webhook name (e.g., "Bedtime routine"):');
+    const name = prompt(t('webhookSettings.prompt.name'));
     if (!name) return;
 
-    const url = prompt('Webhook URL:');
+    const url = prompt(t('webhookSettings.prompt.url'));
     if (!url) return;
 
-    const triggers = prompt('Voice triggers (comma-separated, e.g., "bedtime, goodnight"):');
+    const triggers = prompt(t('webhookSettings.prompt.triggers'));
     if (!triggers) return;
 
     this.createWebhook({
@@ -534,10 +525,10 @@ class WebhookSettingsUI {
         this.callbacks.onWebhookCreated?.(res.data);
         this.renderContent();
       } else {
-        toast.error(res.error || "Couldn't create webhook");
+        toast.error(res.error || t('webhookSettings.errors.createWebhook'));
       }
     } catch (error) {
-      toast.error("Couldn't create webhook");
+      toast.error(t('webhookSettings.errors.createWebhook'));
     }
   }
 
@@ -547,10 +538,10 @@ class WebhookSettingsUI {
       if (res.ok) {
         const webhook = this.webhooks.find((w) => w.id === webhookId);
         if (webhook) webhook.enabled = enabled;
-        toast.success(enabled ? 'Webhook enabled' : 'Webhook disabled');
+        toast.success(enabled ? t('webhookSettings.enabled') : t('webhookSettings.disabled'));
       }
     } catch (error) {
-      toast.error("Couldn't update webhook");
+      toast.error(t('webhookSettings.errors.updateWebhook'));
     }
   }
 
@@ -561,15 +552,15 @@ class WebhookSettingsUI {
       if (res.ok && res.data?.success) {
         toast.success(t('toasts.webhookWorks'));
       } else {
-        toast.error(res.data?.error || "Webhook test failed");
+        toast.error(res.data?.error || t('webhookSettings.errors.testFailed'));
       }
     } catch (error) {
-      toast.error("Couldn't test webhook");
+      toast.error(t('webhookSettings.errors.testWebhook'));
     }
   }
 
   private async deleteWebhook(webhookId: string): Promise<void> {
-    if (!confirm('Delete this webhook?')) return;
+    if (!confirm(t('webhookSettings.confirmDeleteWebhook'))) return;
 
     try {
       const res = await apiDelete(`/api/webhooks/${webhookId}`);
@@ -580,12 +571,12 @@ class WebhookSettingsUI {
         this.renderContent();
       }
     } catch (error) {
-      toast.error("Couldn't delete webhook");
+      toast.error(t('webhookSettings.errors.deleteWebhook'));
     }
   }
 
   private async createSiriToken(): Promise<void> {
-    const name = prompt('Token name (e.g., "iPhone Shortcuts"):');
+    const name = prompt(t('webhookSettings.prompt.tokenName'));
     if (!name) return;
 
     try {
@@ -600,15 +591,15 @@ class WebhookSettingsUI {
         toast.success(t('toasts.tokenCreated'));
         this.renderContent();
       } else {
-        toast.error(res.error || "Couldn't create token");
+        toast.error(res.error || t('webhookSettings.errors.createToken'));
       }
     } catch (error) {
-      toast.error("Couldn't create token");
+      toast.error(t('webhookSettings.errors.createToken'));
     }
   }
 
   private async deleteSiriToken(tokenId: string): Promise<void> {
-    if (!confirm('Delete this token? Any Shortcuts using it will stop working.')) return;
+    if (!confirm(t('webhookSettings.confirmDeleteToken'))) return;
 
     try {
       const res = await apiDelete(`/api/webhooks/siri-tokens/${tokenId}`);
@@ -618,7 +609,7 @@ class WebhookSettingsUI {
         this.renderContent();
       }
     } catch (error) {
-      toast.error("Couldn't delete token");
+      toast.error(t('webhookSettings.errors.deleteToken'));
     }
   }
 
@@ -1131,11 +1122,8 @@ class WebhookSettingsUI {
 
 export const webhookSettingsUI = new WebhookSettingsUI();
 
-/**
- * Show webhook settings panel
- */
-export function showWebhookSettings(): void {
-  webhookSettingsUI.show();
+export function showWebhookSettings(options?: { tab?: 'webhooks' | 'siri' }): void {
+  void webhookSettingsUI.show(options);
 }
 
 /**

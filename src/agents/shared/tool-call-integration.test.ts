@@ -81,41 +81,20 @@ describe('LAYER 1: System Prompts - Silent Execution Instructions', () => {
     expect(content).toContain("you don't SAY you're calling it");
   });
 
-  test('shared function-calling-base.md has silent execution instructions', () => {
+  test('shared function-calling-base.md uses native function calling', () => {
     const content = readFileSync(sharedFunctionCallingPath, 'utf-8');
 
-    // Must have function calling guidance
     expect(content.toLowerCase()).toContain('function');
-
-    // Must instruct immediate stop / silence after JSON
-    const hasSilentInstruction =
-      content.toLowerCase().includes('silence') ||
-      content.toLowerCase().includes('stop') ||
-      content.toLowerCase().includes('nothing else');
-
-    expect(hasSilentInstruction).toBe(true);
-
-    console.log('✅ shared function-calling-base.md has silent execution instructions');
-  });
-
-  test('shared function-calling-base.md shows tool call patterns', () => {
-    const content = readFileSync(sharedFunctionCallingPath, 'utf-8');
-
-    // Should have JSON examples for function calls
-    expect(content).toContain('"fn"');
-    expect(content).toContain('"args"');
-
-    console.log('✅ shared function-calling-base.md shows function call JSON patterns');
+    expect(content.toLowerCase()).toContain('native');
+    expect(content).not.toContain('{"fn"');
+    expect(content).not.toMatch(/"fn"\s*:/);
   });
 
   test('ferni specialty file exists and contains persona-specific tools', () => {
     const content = readFileSync(ferniSpecialtyPath, 'utf-8');
 
-    // Should have ferni-specific tools
     expect(content.toLowerCase()).toContain('ferni');
-    expect(content).toContain('"fn"');
-
-    console.log('✅ ferni specialty file contains persona-specific tools');
+    expect(existsSync(ferniSpecialtyPath)).toBe(true);
   });
 });
 

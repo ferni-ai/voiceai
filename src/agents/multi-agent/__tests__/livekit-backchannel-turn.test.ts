@@ -26,7 +26,10 @@ async function onEndOfTurn(): Promise<OnEndOfTurn> {
 /** The parts of an AgentActivity that onEndOfTurn reads. */
 function activity(paused: boolean) {
   return {
-    agentSession: { amd: undefined, sessionOptions: { turnHandling: { interruption: { minWords: 0 } } } },
+    agentSession: {
+      amd: undefined,
+      sessionOptions: { turnHandling: { interruption: { minWords: 0 } } },
+    },
     schedulingPaused: false,
     newTurnsBlocked: false,
     stt: {},
@@ -79,12 +82,19 @@ describe('LiveKit final transcript over a paused reply (patched)', () => {
 
 describe('LiveKit backchannel over a paused reply (patched)', () => {
   it('drops "mm-hmm" and lets the paused reply resume', async () => {
-    const fn = await onEndOfTurn();
-    for (const said of ['M M M.', 'Mm-hmm.', 'Yeah, right.', 'uh-huh']) {
-      const a = activity(true);
-      expect(await fn.call(a, { newTranscript: said })).toBe(true);
-      expect(a.createSpeechTask).not.toHaveBeenCalled();
-      expect(a.startFalseInterruptionTimer).toHaveBeenCalledWith(0); // resume now, not in 2 s
+    vi.useFakeTimers();
+    try {
+      const fn = await onEndOfTurn();
+      for (const said of ['M M M.', 'Mm-hmm.', 'Yeah, right.', 'uh-huh']) {
+        const a = activity(true);
+        expect(await fn.call(a, { newTranscript: said })).toBe(true);
+        expect(a.createSpeechTask).not.toHaveBeenCalled();
+        // resumes 350 ms on (not the 2 s default, and not at once over "Yeah, so...")
+        vi.advanceTimersByTime(350);
+        expect(a.startFalseInterruptionTimer).toHaveBeenCalledWith(0);
+      }
+    } finally {
+      vi.useRealTimers();
     }
   });
 

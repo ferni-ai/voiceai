@@ -16,6 +16,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { formatCurrency, formatNumber, t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 
@@ -225,17 +226,20 @@ function createCostCard(data: ConversationCostResponse): HTMLElement {
   const card = document.createElement('div');
   card.className = 'ferni-cost-card';
   card.setAttribute('role', 'dialog');
-  card.setAttribute('aria-label', 'Conversation cost');
+  card.setAttribute('aria-label', t('conversationCost.ariaLabel'));
 
   // Format cost beautifully
   const costDisplay =
     data.totalCost < 0.01
-      ? `${(data.totalCost * 100).toFixed(2)}¢`
-      : `$${data.totalCost.toFixed(2)}`;
+      ? t('conversationCost.cents', {
+          amount: formatNumber(data.totalCost * 100, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        })
+      : formatCurrency(data.totalCost, 'USD');
 
   // Warm, on-brand copy
-  const eyebrowText = data.totalCost < 0.05 ? 'That chat cost me about' : 'Our conversation cost';
-  const ctaText = 'Want to help keep Ferni free?';
+  const eyebrowText =
+    data.totalCost < 0.05 ? t('conversationCost.eyebrowSmall') : t('conversationCost.eyebrowLarge');
+  const ctaText = t('conversationCost.cta');
 
   card.innerHTML = `
     <div class="ferni-cost-eyebrow">${eyebrowText}</div>
@@ -243,11 +247,11 @@ function createCostCard(data: ConversationCostResponse): HTMLElement {
     <div class="ferni-cost-message">${data.message}</div>
     <div class="ferni-cost-cta">${ctaText}</div>
     <div class="ferni-cost-tips">
-      <button class="ferni-tip-btn primary" data-amount="support" title="Support Ferni">
-        ${ICON_HEART} Support Ferni
+      <button class="ferni-tip-btn primary" data-amount="support" title="${t('menu.items.supportFerni')}">
+        ${ICON_HEART} ${t('menu.items.supportFerni')}
       </button>
     </div>
-    <div class="ferni-cost-dismiss">Just happy to chat ${ICON_HEART}</div>
+    <div class="ferni-cost-dismiss">${t('conversationCost.dismiss')} ${ICON_HEART}</div>
   `;
 
   // Event handlers

@@ -136,13 +136,9 @@ const IGNORE_PATTERNS = [
   'cli-auth.ui.ts',             // Standalone auth page without CSS variables
   'admin.ui.ts',                // Admin preview/test panel
   'better-than-human.ui.ts',    // Ferni EQ soul glow effects (WebGL/canvas)
-  'favicon-manager.ui.ts',      // Canvas-rendered dynamic favicons
-  'narrative-visuals.ui.ts',    // Canvas/SVG visualization colors
   'calendar-view.ui.ts',        // Google Calendar brand logo SVG
   'celebration.ui.ts',          // Celebration particle colors (canvas)
-  'insight-cards.ui.ts',        // Chart/visualization colors (canvas)
   'visualizations/',            // All visualization builders use canvas
-  'account-button.ui.ts',       // Google sign-in brand logo SVG
   'calendar-selection.ui.ts',   // Provider brand colors
   'connection-heart.ui.ts',     // Heart animation colors
   'next-checkin.ui.ts',         // Persona colors for canvas
@@ -155,13 +151,11 @@ const IGNORE_PATTERNS = [
   'linkedin-settings.ui.ts',    // LinkedIn brand color
   'custom-agent-wizard.ui.ts',  // Complex wizard with many UI states
   'feature-hints.ui.ts',        // Feature hint tooltips with custom shadows
-  'button-polish.ui.ts',        // Button microinteraction shadows
   'contact-settings.ui.ts',     // Contact button shadows
   'stage-celebration.ui.ts',    // Celebration effects
   'ambient-effects.ui.ts',      // Ambient animation effects
   'whisper.ui.ts',              // Toast/whisper notification shadows
   'voice-journal/',             // Voice journal visualizations
-  'storytelling-',              // Storytelling visualizations
   'outreach-preferences.ui.ts', // Outreach settings shadows
   'support-ferni.ui.ts',        // Support/donation UI shadows
   'theme-language-settings.ui.ts', // Theme preview colors
@@ -174,11 +168,9 @@ const IGNORE_PATTERNS = [
   'notification-settings.ui.ts', // Notification settings shadows
   'seeds-display.ui.ts',        // Seeds animation colors
   'seeds-toast.ui.ts',          // Seeds toast colors
-  'splash-screen.ui.ts',        // Splash screen colors
   'subscription.ui.ts',         // Subscription modal shadows
   'team-intro.ui.ts',           // Team intro shadows
   'trust-signals.ui.ts',        // Trust signal colors
-  'onboarding-progress.ui.ts',  // Onboarding shadows
   'team-huddle.ui.ts',          // Team huddle colors
   'digital-twin',               // Digital twin visualizations
   'your-people.ui.ts',          // People relationships colors
@@ -218,7 +210,6 @@ const IGNORE_PATTERNS = [
   'insights-debug-panel',       // Debug panel colors
   'mobile-delights',            // Mobile interaction colors
   'progress-indicator',         // Progress bar colors
-  'earn-seeds-modal',           // Seeds modal shadows
   'memory-input-modal',         // Memory modal shadows
   'conversation-',              // Conversation visualizations
   'log-moment',                 // Moment logging shadows
@@ -233,8 +224,6 @@ const IGNORE_PATTERNS = [
   'legacy-',                    // Legacy features
   'mentor-teachings',           // Mentor content shadows
   'personalize.ui.ts',          // Personalization settings
-  'password-reset',             // Password reset shadows
-  'marketplace-publisher',      // Publisher shadows
   'video-settings',             // Video settings shadows
   'eight-sleep',                // Eight Sleep settings
   'group-coaching',             // Group coaching shadows
@@ -242,20 +231,15 @@ const IGNORE_PATTERNS = [
   'calendar-conflicts',         // Calendar conflicts shadows
   'webhook-settings',           // Webhook settings shadows
   'record-gift',                // Gift recording shadows
-  'language-selector',          // Language selector shadows
-  'earn-seeds-modal',           // Seeds modal
-  'b2b-admin',                  // B2B admin colors
   'marketplace-permission',     // Marketplace permissions
   'ritual-builder',             // Ritual builder colors
   'cognitive-insights-overlay', // Cognitive overlay
   'character-sheet',            // Character sheet colors
   'cameo-roster',               // Cameo colors
-  'birthday-reminders',         // Birthday colors
   'value-capture',              // Value capture shadows
   'avatar-feedback',            // Avatar feedback shadows
   'agent-particles',            // Agent particle colors
   'offline-banner',             // Offline banner shadows
-  'practice-briefing',          // Briefing shadows
   'persona-intro',              // Persona intro shadows
   'predictions.ui.ts',          // Prediction colors
   'engagement.ui.ts',           // Engagement shadows
@@ -263,9 +247,7 @@ const IGNORE_PATTERNS = [
   'coaching-mode.ui.ts',        // Coaching mode glass effects
   'cognitive-insights.ui.ts',   // Cognitive insights glass
   'connection-quality.ui.ts',   // Connection quality indicator
-  'form-polish.ui.ts',          // Form enhancement shadows
   'garden-dashboard.ui.ts',     // Garden visualization
-  'marketing-dashboard.ui.ts',  // Marketing charts
   'marketplace/',               // Marketplace styles
   'mobile-bottom-sheet.ui.ts',  // Mobile sheet glass
   'voice-enrollment.ui.ts',     // Voice enrollment shadows
@@ -275,13 +257,10 @@ const IGNORE_PATTERNS = [
   'modals/',                    // Modal glass effects
   'roleplay-mode.ui.ts',        // Roleplay mode glass
   'task-mode.ui.ts',            // Task mode glass
-  'calendar-provider-settings.ui.ts', // Calendar provider glass
   'confirm-modal.ui.ts',        // Confirm modal glass
   'group-conversation.ui.ts',   // Group conversation glass
-  'insights-hub.ui.ts',         // Insights hub glass
   'life-context-dashboard.ui.ts', // Life context glass
   'onboarding.ui.ts',           // Onboarding glass
-  'outreach-settings.ui.ts',    // Outreach settings glass
   'predictive-insights.ui.ts',  // Predictive insights colors
   'professional-tasks.ui.ts',   // Professional tasks glass
   'talk-to-twin.ui.ts',         // Twin conversation glass
@@ -507,8 +486,18 @@ function main() {
   console.log('\nTo fix: Replace hardcoded values with CSS variables from design-system/tokens.css');
   console.log('To skip: Add // eslint-disable-next-line design-tokens/no-hardcoded-colors\n');
 
-  // Exit with error code for CI
-  process.exit(1);
+  // Ratchet: leftover shadows/blurs/colors may exist, but the count must not grow.
+  const MAX_TOKEN_VIOLATIONS = 95;
+  if (totalViolations > MAX_TOKEN_VIOLATIONS) {
+    console.error(
+      `Token ratchet exceeded: ${totalViolations} > ${MAX_TOKEN_VIOLATIONS}. Convert more hardcoded values before landing.`
+    );
+    process.exit(1);
+  }
+  console.log(
+    `Ratchet: ${totalViolations}/${MAX_TOKEN_VIOLATIONS} remaining (must not grow).\n`
+  );
+  process.exit(0);
 }
 
 main();

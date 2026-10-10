@@ -26,9 +26,10 @@ export async function installPaceMatching(
   sessionId: string,
   cleanupFunctions: Cleanup
 ): Promise<{ onFinalTranscript(text: string): void }> {
-  // The speech director owns pacing when it's on (#180): one speed controller.
-  const { speechDirectorMode } = await import('../../speech/tts-gateway/director/index.js');
-  if (speechDirectorMode() !== 'off') return { onFinalTranscript: () => undefined };
+  // The speech director owns pacing when its pacing lever is live (#180): one speed
+  // controller. In shadow it only logs, so pace matching keeps the job.
+  const { leverModes } = await import('../../speech/tts-gateway/director/index.js');
+  if (leverModes().pacing === 'live') return { onFinalTranscript: () => undefined };
   const { getPaceMatcher, clearPaceMatcher } =
     await import('../../speech/output-control/pace-matching.js');
   const paceWords: string[] = [];
@@ -110,6 +111,7 @@ export async function installToolRetrieval(
     session.off(voice.AgentSessionEventTypes.FunctionToolsExecuted, toolsExecutedHandler);
     session.off(voice.AgentSessionEventTypes.AgentStateChanged, retrievalTurnHandler);
     setTurnToolRetrieval(session, null);
+    retrieval.logSummary();
   });
   log.info({ sessionId, mode: toolRetrievalMode() }, 'tool retrieval on');
   // Live tool retrieval can only send tools the agent has, so load the whole
@@ -121,7 +123,8 @@ export async function installToolRetrieval(
     void dynamicToolLoader
       .loadAllDomains()
       .then(async (domains) => {
-        const { updateAgentTools, applyAfterReplyStarts } = await import('../shared/tool-updater.js');
+        const { updateAgentTools, applyAfterReplyStarts } =
+          await import('../shared/tool-updater.js');
         const tools = dynamicToolLoader.getCurrentTools();
         log.info(
           { sessionId, domains, tools: Object.keys(tools).length, ms: Date.now() - catalogStarted },
@@ -140,6 +143,103 @@ export async function installToolRetrieval(
       const turnText = [...turnFinals, transcript].join(' ');
       if (isFinal) turnFinals.push(transcript);
       retrieval.onTranscript(turnText, isFinal);
+    },
+  };
+}
+
+/**
+ * Turn understanding (TURN_UNDERSTANDING=shadow): a small model reads the
+ * caller's turn while they talk; when Ferni starts replying, one
+ * TURN_UNDERSTANDING record logs its answer next to what the regexes decided.
+ * No transcript text is logged. Null when off.
+ */
+export async function installTurnUnderstanding(
+  session: Session,
+  cleanupFunctions: Cleanup
+): Promise<{ onTranscript(transcript: string, isFinal: boolean): void } | null> {
+  const { understandingMode, TurnUnderstander, geminiUnderstand, setTurnUnderstander } =
+    await import('../personas/turn-understanding.js');
+  if (understandingMode() === 'off') return null;
+  const [
+    { callerMove },
+    { callerVenting, callerLaughed },
+    { mayNeedTool },
+    { classifyBackchannelContext },
+  ] = await Promise.all([
+    import('../personas/turn-shape.js'),
+    import('../personas/turn-extras.js'),
+    import('../model-provider/fast-lane.js'),
+    import('../integrations/backchannel-context.js'),
+  ]);
+  const understander = new TurnUnderstander(geminiUnderstand());
+  setTurnUnderstander(session, understander);
+  const finals: string[] = [];
+  const onState = (ev: unknown): void => {
+    if ((ev as { newState?: string }).newState !== 'speaking') return;
+    const turn = finals.join(' ').trim();
+    finals.length = 0;
+    if (!turn) return;
+    const seen = understander.forTurn(turn);
+    const u = seen?.result;
+    const regex = {
+      move: callerMove(turn),
+      venting: callerVenting(turn),
+      needsTool: mayNeedTool(turn),
+      laughed: callerLaughed(turn),
+      context: classifyBackchannelContext(turn),
+    };
+    log.info(
+      {
+        ready: Boolean(u),
+        covered: seen ? Math.round(seen.covered * 100) / 100 : null,
+        ageMs: seen?.ageMs ?? null,
+        // Counts only: runs this turn, failures, last call latency, why unready.
+        calls: understander.status(turn),
+        words: turn.split(/\s+/).length,
+        // Labels only: the model's free-text reaction can echo the caller's words.
+        model: u ? { ...u, reaction: undefined, hasReaction: u.reaction !== null } : null,
+        regex,
+        agree: u
+          ? {
+              move: u.move === regex.move,
+              venting: (u.mood === 'venting') === regex.venting,
+              needsTool: u.needsTool === regex.needsTool,
+              laughed: u.laughed === regex.laughed,
+            }
+          : null,
+      },
+      'TURN_UNDERSTANDING'
+    );
+    understander.newTurn(turn);
+  };
+  session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+  cleanupFunctions.push(() => {
+    session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+    setTurnUnderstander(session, null);
+  });
+  log.info({ mode: understandingMode() }, 'turn understanding on');
+  return {
+    onTranscript(transcript, isFinal) {
+      const turn = [...finals, transcript].join(' ');
+      if (isFinal) {
+        finals.push(transcript);
+        void understander.settle(turn);
+      } else understander.onTurnText(turn);
+    },
+  };
+}
+
+/** Everything that listens to the caller's words as they speak, behind one feed. */
+export async function installTurnListeners(
+  input: ToolRetrievalInput
+): Promise<{ onTranscript(transcript: string, isFinal: boolean): void } | null> {
+  const retrieval = await installToolRetrieval(input);
+  const understanding = await installTurnUnderstanding(input.session, input.cleanupFunctions);
+  if (!retrieval && !understanding) return null;
+  return {
+    onTranscript(transcript, isFinal) {
+      retrieval?.onTranscript(transcript, isFinal);
+      understanding?.onTranscript(transcript, isFinal);
     },
   };
 }

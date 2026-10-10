@@ -68,7 +68,7 @@ vi.mock('../../firestore-vector-store/index.js', () => ({
 
 // Mock Gemini config
 vi.mock('../../../config/gemini-config.js', () => ({
-  getExtractionModel: vi.fn(() => 'gemini-1.5-flash'),
+  getExtractionModel: vi.fn(() => 'gemini-3.5-flash'),
 }));
 
 // ============================================================================
@@ -142,7 +142,7 @@ describe('DeepExtractionWorker Lifecycle', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    worker = new DeepExtractionWorker();
+    worker = new DeepExtractionWorker({ batchTurns: 1 });
   });
 
   afterEach(() => {
@@ -258,7 +258,7 @@ describe('DeepExtractionWorker Queue Management', () => {
     delete process.env.GOOGLE_API_KEY;
     delete process.env.GEMINI_API_KEY;
 
-    worker = new DeepExtractionWorker();
+    worker = new DeepExtractionWorker({ batchTurns: 1 });
 
     // Capture the event handler when start() is called
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
@@ -367,7 +367,7 @@ describe('DeepExtractionWorker Job Processing', () => {
     delete process.env.GOOGLE_API_KEY;
     delete process.env.GEMINI_API_KEY;
 
-    worker = new DeepExtractionWorker();
+    worker = new DeepExtractionWorker({ batchTurns: 1 });
 
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
       eventHandler = handler;
@@ -510,7 +510,7 @@ describe('DeepExtractionWorker Fallback Extraction', () => {
     delete process.env.GOOGLE_API_KEY;
     delete process.env.GEMINI_API_KEY;
 
-    worker = new DeepExtractionWorker();
+    worker = new DeepExtractionWorker({ batchTurns: 1 });
 
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
       eventHandler = handler;
@@ -584,7 +584,7 @@ describe('DeepExtractionWorker Statistics', () => {
     delete process.env.GOOGLE_API_KEY;
     delete process.env.GEMINI_API_KEY;
 
-    worker = new DeepExtractionWorker();
+    worker = new DeepExtractionWorker({ batchTurns: 1 });
 
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
       eventHandler = handler;
@@ -706,7 +706,7 @@ describe('DeepExtractionWorker AsyncEvents Integration', () => {
   it('should handle missing AsyncEvents configuration gracefully', () => {
     (asyncEventsConfig.safeOnEvent as Mock).mockReturnValue(false);
 
-    const worker = new DeepExtractionWorker();
+    const worker = new DeepExtractionWorker({ batchTurns: 1 });
     worker.start();
 
     // Should not throw
@@ -718,7 +718,7 @@ describe('DeepExtractionWorker AsyncEvents Integration', () => {
   it('should register correct event name', () => {
     (asyncEventsConfig.safeOnEvent as Mock).mockReturnValue(true);
 
-    const worker = new DeepExtractionWorker();
+    const worker = new DeepExtractionWorker({ batchTurns: 1 });
     worker.start();
 
     expect(asyncEventsConfig.safeOnEvent).toHaveBeenCalledWith(
@@ -732,7 +732,7 @@ describe('DeepExtractionWorker AsyncEvents Integration', () => {
   it('should only register event listener once when started multiple times', () => {
     (asyncEventsConfig.safeOnEvent as Mock).mockReturnValue(true);
 
-    const worker = new DeepExtractionWorker();
+    const worker = new DeepExtractionWorker({ batchTurns: 1 });
     worker.start();
     const callsAfterFirst = (asyncEventsConfig.safeOnEvent as Mock).mock.calls.length;
 
@@ -758,7 +758,7 @@ describe('DeepExtractionWorker Job Data Handling', () => {
     delete process.env.GOOGLE_API_KEY;
     delete process.env.GEMINI_API_KEY;
 
-    worker = new DeepExtractionWorker();
+    worker = new DeepExtractionWorker({ batchTurns: 1 });
 
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
       eventHandler = handler;
@@ -852,7 +852,7 @@ describe('DeepExtractionWorker Concurrent Processing', () => {
     delete process.env.GOOGLE_API_KEY;
     delete process.env.GEMINI_API_KEY;
 
-    worker = new DeepExtractionWorker();
+    worker = new DeepExtractionWorker({ batchTurns: 1 });
 
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
       eventHandler = handler;
@@ -906,7 +906,7 @@ describe('DeepExtractionWorker Edge Cases', () => {
     delete process.env.GOOGLE_API_KEY;
     delete process.env.GEMINI_API_KEY;
 
-    worker = new DeepExtractionWorker();
+    worker = new DeepExtractionWorker({ batchTurns: 1 });
 
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
       eventHandler = handler;

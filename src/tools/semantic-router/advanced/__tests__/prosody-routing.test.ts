@@ -125,18 +125,20 @@ describe('AudioProsodyExtractor', () => {
     it('should accumulate samples for baseline', () => {
       const sampleRate = 16000;
       const numSamples = 1600;
-
-      // Process multiple chunks to build up samples
-      for (let i = 0; i < 60; i++) {
-        const samples = new Float32Array(numSamples);
-        for (let j = 0; j < numSamples; j++) {
-          samples[j] = Math.sin((2 * Math.PI * 200 * j) / sampleRate) * 0.5;
-        }
-        extractor.processAudioChunk(samples);
+      const tone = new Float32Array(numSamples);
+      for (let j = 0; j < numSamples; j++) {
+        tone[j] = Math.sin((2 * Math.PI * 200 * j) / sampleRate) * 0.5;
       }
 
-      const baseline = extractor.learnBaseline();
-      expect(baseline).not.toBeNull();
+      // Each chunk adds one feature window and a baseline needs 10, so 9 chunks
+      // are not enough and the 10th is. (It used to feed 60 chunks; every call
+      // re-analyses the growing buffer, so under v8 coverage on CI that took
+      // 28 s on Node 22 and timed out.)
+      for (let i = 0; i < 9; i++) extractor.processAudioChunk(tone);
+      expect(extractor.learnBaseline()).toBeNull();
+
+      extractor.processAudioChunk(tone);
+      expect(extractor.learnBaseline()).not.toBeNull();
     });
 
     it('should return null if not enough samples', () => {

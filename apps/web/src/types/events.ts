@@ -6,7 +6,8 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import type { PersonaId } from './persona.js';
+import type { SpeakerId } from './persona.js';
+import type { PredictionData } from './predictions.js';
 
 const log = createLogger('Events');
 
@@ -111,8 +112,8 @@ export interface HandoffEvent {
  * Normalized handoff data after processing.
  */
 export interface NormalizedHandoff {
-  readonly fromPersona: PersonaId;
-  readonly toPersona: PersonaId;
+  readonly fromPersona: SpeakerId;
+  readonly toPersona: SpeakerId;
   readonly direction: HandoffDirection;
 }
 
@@ -310,7 +311,7 @@ export interface DataMessage {
 /**
  * Type guard for handoff messages.
  * Validates that the message has the required structure for a handoff event.
- * Recognizes: 'handoff', 'handoff_acknowledged', 'handoff_started', 'soft_open_complete', 'handoff_complete', 'handoff_failed', 'handoff_cancelled'
+ * Recognizes: 'handoff', 'handoff_acknowledged', 'handoff_started', 'soft_open_complete', 'handoff_progress', 'handoff_complete', 'handoff_failed', 'handoff_cancelled'
  *
  * FIX BUG: More lenient validation - accepts 'target' OR 'newAgent' for all types
  */
@@ -325,13 +326,13 @@ export function isHandoffMessage(data: unknown): data is HandoffEvent {
     'handoff_acknowledged',
     'handoff_started',
     'soft_open_complete',
+    'handoff_progress',
     'handoff_complete',
     'handoff_failed',
     'handoff_cancelled',
   ];
   if (!validTypes.includes(msg['type'] as string)) return false;
 
-  // DEBUG: Log handoff messages to help diagnose issues
   log.debug(
     `Checking handoff message type=${msg['type']}, newAgent=${msg['newAgent']}, target=${msg['target']}`
   );
@@ -679,15 +680,8 @@ export interface EngagementEvent {
     predictionAccuracy?: number;
     teamHuddlesAttended: number;
   };
-  readonly predictions?: Array<{
-    id: string;
-    category: string;
-    question: string;
-    userPrediction: number;
-    actualOutcome?: number;
-    status: 'pending' | 'resolved';
-    createdAt: string;
-  }>;
+  /** Sent by src/services/engagement/engagement-data-sender.ts (with metric names). */
+  readonly predictions?: PredictionData[];
   readonly message?: string;
   readonly timestamp: number;
 }

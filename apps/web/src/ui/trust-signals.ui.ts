@@ -87,38 +87,38 @@ const SIGNAL_CONFIG: Record<
   {
     icon: string;
     color: string;
-    prefix: string;
+    prefixKey: string;
   }
 > = {
   growth: {
     icon: ICONS.leaf,
     color: 'var(--color-semantic-success, #4a8560)',
-    prefix: 'Ferni noticed',
+    prefixKey: 'trustSignals.prefix.growth',
   },
   boundary: {
     icon: ICONS.shield,
     color: 'var(--persona-primary, #4a6741)',
-    prefix: 'Ferni remembers',
+    prefixKey: 'trustSignals.prefix.boundary',
   },
   callback: {
     icon: ICONS.messageHeart,
     color: 'var(--persona-peter-primary, #3a6b73)',
-    prefix: 'Remember when',
+    prefixKey: 'trustSignals.prefix.callback',
   },
   small_win: {
     icon: ICONS.trophy,
     color: 'var(--color-semantic-warning, #c49a6c)',
-    prefix: 'You did it',
+    prefixKey: 'trustSignals.prefix.smallWin',
   },
   thinking_of_you: {
     icon: ICONS.heart,
     color: 'var(--persona-maya-primary, #a67a6a)',
-    prefix: 'Just thinking',
+    prefixKey: 'trustSignals.prefix.thinkingOfYou',
   },
   reading_lines: {
     icon: ICONS.eye,
     color: 'var(--persona-alex-primary, #5a6b8a)',
-    prefix: 'Ferni senses',
+    prefixKey: 'trustSignals.prefix.readingLines',
   },
 };
 
@@ -181,7 +181,7 @@ function createContainer(): void {
   container = document.createElement('div');
   container.className = 'trust-signals-container';
   container.setAttribute('aria-live', 'polite');
-  container.setAttribute('aria-label', 'Ferni observations');
+  container.setAttribute('aria-label', t('trustSignals.ariaLabel'));
   document.body.appendChild(container);
 }
 
@@ -273,42 +273,42 @@ export const trustSignalHelpers = {
   growthMoment: (observation: string) =>
     showTrustSignal({
       type: 'growth',
-      title: 'Something different',
+      title: t('trustSignals.title.growth'),
       message: observation,
     }),
 
   boundaryRespected: (boundary: string) =>
     showTrustSignal({
       type: 'boundary',
-      title: "I won't forget",
+      title: t('trustSignals.title.boundary'),
       message: boundary,
     }),
 
   sharedMemory: (memory: string) =>
     showTrustSignal({
       type: 'callback',
-      title: 'A shared moment',
+      title: t('trustSignals.title.callback'),
       message: memory,
     }),
 
   smallWin: (win: string) =>
     showTrustSignal({
       type: 'small_win',
-      title: 'Look at you',
+      title: t('trustSignals.title.smallWin'),
       message: win,
     }),
 
   thinkingOfYou: (thought: string) =>
     showTrustSignal({
       type: 'thinking_of_you',
-      title: 'About you',
+      title: t('trustSignals.title.thinkingOfYou'),
       message: thought,
     }),
 
   readingBetweenLines: (observation: string) =>
     showTrustSignal({
       type: 'reading_lines',
-      title: "What I'm hearing",
+      title: t('trustSignals.title.readingLines'),
       message: observation,
     }),
 };
@@ -375,7 +375,7 @@ function createSignalElement(signal: TrustSignal): HTMLElement {
       ${signalConfig.icon}
     </div>
     <div class="trust-signal-content">
-      <span class="trust-signal-prefix">${signalConfig.prefix}</span>
+      <span class="trust-signal-prefix">${t(signalConfig.prefixKey)}</span>
       <p class="trust-signal-title">${escapeHtml(signal.title)}</p>
       <p class="trust-signal-message">${escapeHtml(signal.message)}</p>
     </div>
@@ -642,7 +642,7 @@ function injectStyles(): void {
        DARK THEME
        ======================================================================== */
     [data-theme="midnight"] .trust-signal {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
       box-shadow: 
         0 8px 24px rgba(0, 0, 0, 0.3),
         0 2px 8px rgba(0, 0, 0, 0.2),
@@ -658,7 +658,7 @@ function injectStyles(): void {
     }
     
     [data-theme="midnight"] .trust-signal-close:hover {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
     
     /* ========================================================================

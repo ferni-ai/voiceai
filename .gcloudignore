@@ -46,7 +46,6 @@
 # Exclude large subdirs but keep apps/cli/ for build scripts
 apps/android/
 apps/android-native/
-apps/electron/
 apps/ios/
 apps/ios-native/
 apps/macos-menubar/
@@ -70,10 +69,6 @@ ferni-speaker-build/
 # Promo/marketing site (639MB)
 
 promo/
-
-# Firebase functions (106MB) - separate deployment
-
-functions/
 
 # Design system (105MB total) - only keep dist/ (196KB)
 

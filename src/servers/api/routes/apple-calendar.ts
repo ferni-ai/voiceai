@@ -8,13 +8,14 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { createOAuthStateManager } from '../../../utils/ddos-protection.js';
+import { consumeOAuthLinkState, peekOAuthLinkState } from '../../token/oauth-link-state.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { OAUTH_START_PATH } from './oauth-start.js';
 
 const log = createLogger({ module: 'AppleCalendarRoutes' });
 
-// OAuth state manager (5 minute expiry)
-const appleOAuthStates = createOAuthStateManager(5 * 60 * 1000);
+const PROVIDER = 'apple_calendar';
+const CONNECT = { method: 'POST', url: OAUTH_START_PATH, provider: PROVIDER } as const;
 
 /**
  * Handle Apple Calendar OAuth routes
@@ -25,12 +26,9 @@ export async function handleAppleCalendarRoutes(
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
-  // Start Apple Sign In OAuth flow
+  // Apple Sign In login: only with a state from POST /auth/oauth/start, never a
+  // user id from the URL. /auth/apple/calendar is an older alias.
   if (pathname === '/auth/apple/login' || pathname === '/auth/apple/calendar') {
-    const userId = parsedUrl.searchParams.get('user_id') || parsedUrl.searchParams.get('userId');
-    const returnUrl =
-      parsedUrl.searchParams.get('return_url') || parsedUrl.searchParams.get('redirect');
-
     try {
       const { isAppleSignInConfigured, getAppleAuthorizationUrl } =
         await import('../../../services/identity/apple-signin-oauth.js');
@@ -46,31 +44,16 @@ export async function handleAppleCalendarRoutes(
         return true;
       }
 
-      // Generate state for CSRF protection (embedded in the auth URL by the service)
-      const state = appleOAuthStates.create({
-        user_id: userId || 'anonymous',
-        return_url: returnUrl || '/settings?calendar=apple',
-      });
-
-      if (!state) {
-        log.error('Apple Calendar OAuth: State limit reached (possible attack)');
-        res.writeHead(503, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Service temporarily unavailable, try again' }));
+      const state = parsedUrl.searchParams.get('state');
+      const record = await peekOAuthLinkState(state, PROVIDER);
+      if (!state || !record) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Sign in required', connect: CONNECT }));
         return true;
       }
 
-      // Get the authorization URL with userId embedded in state
-      const authUrl = getAppleAuthorizationUrl(
-        userId || 'anonymous',
-        returnUrl || '/settings?calendar=apple'
-      );
-
-      log.info(
-        { userId, authUrl: `${authUrl.substring(0, 100)}...` },
-        'Redirecting to Apple Sign In'
-      );
-
-      res.writeHead(302, { Location: authUrl });
+      log.info({ userId: record.uid }, 'Redirecting to Apple Sign In');
+      res.writeHead(302, { Location: getAppleAuthorizationUrl(state) });
       res.end();
       return true;
     } catch (error) {
@@ -107,11 +90,19 @@ export async function handleAppleCalendarRoutes(
           return true;
         }
 
+        // The Ferni user comes only from the stored state record, consumed here.
+        const record = await consumeOAuthLinkState(req, state, PROVIDER);
+        if (!record) {
+          res.writeHead(302, { Location: '/settings?calendar_error=invalid_state' });
+          res.end();
+          return true;
+        }
+
         // Exchange code for tokens
         const { handleAppleCallback } =
           await import('../../../services/identity/apple-signin-oauth.js');
 
-        const result = await handleAppleCallback(code, state);
+        const result = await handleAppleCallback(code, record.uid);
 
         if (result.success && result.userId) {
           log.info({ userId: result.userId }, 'Apple Calendar connected successfully');

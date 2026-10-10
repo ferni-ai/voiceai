@@ -5,6 +5,7 @@
  * Uses shared rate limiting from src/servers/token/demo-rate-limit.ts
  */
 
+import { getProfileStore } from '../../../memory/profile-store.js';
 import { isValidTimeZone } from '../../../agents/shared/time-context.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { rateLimit } from '../../../api/auth-middleware.js';
@@ -12,6 +13,7 @@ import { createToken, createRoomWithAgent, getLiveKitUrl } from '../../token/liv
 import type { RoomMetadata } from '../../shared/types.js';
 import { prewarmContent, type ContentType } from '../../../services/llm-dynamic-content.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { onBodyEnd } from '../request-failure.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
 
@@ -278,17 +280,13 @@ export async function handleTokenRoutes(
 
       // Create room and dispatch agent (createRoomWithAgent handles both — no double-dispatch)
       log.info({ room: roomName, persona: personaId, city: demoGeoData.city }, '🚀 Dispatching agent');
-      const dispatched = await createRoomWithAgent(
+      // Failures are logged at error inside createRoomWithAgent; the client learns via agent_dispatched.
+      const dispatch = await createRoomWithAgent(
         roomName,
         demoRoomMetadata,
         DEMO_CONFIG.sessionDurationMinutes * 60 + 30, // emptyTimeout in seconds + buffer
         2 // visitor + agent
       );
-      if (dispatched) {
-        log.info({ room: roomName, persona: personaId }, '✅ Agent dispatched');
-      } else {
-        log.error({ room: roomName }, '❌ Agent dispatch failed');
-      }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -298,6 +296,7 @@ export async function handleTokenRoutes(
           room: roomName,
           username,
           demo_id: demoId,
+          agent_dispatched: dispatch.agentDispatched,
           expires_in_minutes: DEMO_CONFIG.sessionDurationMinutes,
           sessions_remaining: isBrandedPersona
             ? 999
@@ -308,7 +307,6 @@ export async function handleTokenRoutes(
           city: demoGeoData.city,
           regionCode: demoGeoData.regionCode,
           countryCode: demoGeoData.countryCode,
-          useQwen3Omni: process.env.USE_QWEN3_OMNI === 'true',
         })
       );
     } catch (error) {
@@ -338,7 +336,7 @@ export async function handleTokenRoutes(
         resolve(true);
       });
 
-      req.on('end', async () => {
+      onBodyEnd(req, res, resolve, async () => {
         try {
           const { claim_token, firebase_uid } = JSON.parse(body) as {
             claim_token: string;
@@ -401,7 +399,7 @@ export async function handleTokenRoutes(
         resolve(true);
       });
 
-      req.on('end', async () => {
+      onBodyEnd(req, res, resolve, async () => {
         try {
           const data = JSON.parse(body) as { room_name: string; conversation: unknown };
           const { room_name, conversation } = data;
@@ -556,8 +554,7 @@ export async function handleTokenRoutes(
 
       if (firebaseUid && !preferred_accent) {
         try {
-          const { getDefaultStore } = await import('../../../memory/index.js');
-          const store = getDefaultStore();
+          const store = await getProfileStore();
           const profile = await store.getProfile(firebaseUid);
           if (profile?.preferences?.preferredAccent) {
             savedAccent = profile.preferences.preferredAccent;
@@ -703,12 +700,8 @@ export async function handleTokenRoutes(
 
       // Create room and dispatch agent (createRoomWithAgent handles both — no double-dispatch)
       log.info({ room, persona_id: selectedPersona }, '🎯 Dispatching agent with persona');
-      const dispatched = await createRoomWithAgent(room, roomMetadata);
-      if (dispatched) {
-        log.info({ room, persona_id: selectedPersona }, '✅ Agent dispatch successful');
-      } else {
-        log.error({ room, persona_id: selectedPersona }, '❌ Agent dispatch FAILED');
-      }
+      // Failures are logged at error inside createRoomWithAgent; the client learns via agent_dispatched.
+      const dispatch = await createRoomWithAgent(room, roomMetadata);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
@@ -720,13 +713,12 @@ export async function handleTokenRoutes(
           device_id,
           firebase_uid: firebaseUid,
           persona_id: selectedPersona,
+          agent_dispatched: dispatch.agentDispatched,
           accent: geoData.detectedAccent,
           countryCode: geoData.countryCode,
           // IP-detected location for weather, local content
           city: geoData.city,
           regionCode: geoData.regionCode,
-          // Qwen Omni: frontend uses this to show Director Console in menu only when Qwen is active
-          useQwen3Omni: process.env.USE_QWEN3_OMNI === 'true',
         })
       );
     } catch (error) {

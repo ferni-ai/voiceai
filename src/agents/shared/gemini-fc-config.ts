@@ -6,17 +6,12 @@
  *
  * ## Architecture Options
  *
- * 1. **JSON Workaround (Legacy)**
- *    - Gemini outputs `{"fn":"toolName","args":{...}}`
- *    - TTS sanitizer intercepts and executes
- *    - Prompts include JSON format instructions
- *
- * 2. **Native Function Calling (New)**
+ * 1. **Native Function Calling (default for VOICE_PIPELINE=gemini-live)**
  *    - Gemini uses API-level function declarations
  *    - No JSON in output, proper function_call events
- *    - Simpler prompts without JSON instructions
+ *    - Prompts do not teach a `{fn,args}` text format
  *
- * 3. **Turn-by-Turn Optimization**
+ * 2. **Turn-by-Turn Optimization**
  *    - Dynamically update tools each turn based on intent
  *    - Reduces tool bloat (1000+ → 8-15 per turn)
  *    - Eliminates hallucination from tool overload
@@ -37,7 +32,7 @@ const log = createLogger({ module: 'GeminiFCConfig' });
  *
  * - 'AUTO': Model decides when to call functions (default for conversation)
  * - 'ANY': Model MUST call a function when tools available (use when intent is clear)
- * - 'NONE': Disable native FC entirely (fall back to JSON workaround)
+ * - 'NONE': Disable native FC entirely (FTIS or no Gemini-side tools)
  */
 export type GeminiFCMode = 'AUTO' | 'ANY' | 'NONE';
 
@@ -55,10 +50,10 @@ export type ToolInjectionStrategy = 'static' | 'turn-by-turn' | 'hybrid';
  */
 export interface GeminiFCConfiguration {
   // Core mode flags
-  /** Use native function calling instead of JSON workaround */
+  /** Use native function calling (default on for Gemini Live) */
   useNativeFunctionCalling: boolean;
 
-  /** Keep JSON workaround as fallback even with native FC */
+  /** @deprecated JSON fallback was removed; always false */
   enableJsonFallback: boolean;
 
   /** Function calling mode (AUTO, ANY, NONE) */
@@ -104,9 +99,9 @@ export interface GeminiFCConfiguration {
 // ============================================================================
 
 const DEFAULT_CONFIG: GeminiFCConfiguration = {
-  // Core mode - default to JSON workaround for safety
-  useNativeFunctionCalling: false,
-  enableJsonFallback: true,
+  // Native FC is the Gemini Live default. JSON {fn,args} fallback is gone.
+  useNativeFunctionCalling: true,
+  enableJsonFallback: false,
   fcMode: 'AUTO',
 
   // Turn optimization - disabled by default
@@ -119,8 +114,8 @@ const DEFAULT_CONFIG: GeminiFCConfiguration = {
   enforceStrictSchemas: true,
   validateToolCalls: true,
 
-  // Prompts
-  useNativePrompts: false,
+  // Prompts — never teach JSON {fn,args} when native FC is on
+  useNativePrompts: true,
   includeToolGuidance: true,
 
   // Debugging
@@ -138,9 +133,9 @@ let cachedConfig: GeminiFCConfiguration | null = null;
  * Load Gemini function calling configuration from environment.
  *
  * Environment variables:
- * - GEMINI_USE_NATIVE_FC: Enable native function calling (true/false)
+ * - GEMINI_USE_NATIVE_FC: Enable native function calling (true/false; default true on gemini-live)
  * - GEMINI_FC_MODE: Function calling mode (AUTO/ANY/NONE)
- * - GEMINI_JSON_FALLBACK: Keep JSON workaround as fallback (true/false)
+ * - GEMINI_JSON_FALLBACK: Ignored — JSON fallback was removed
  * - GEMINI_TURN_OPTIMIZATION: Enable turn-by-turn tool optimization (true/false)
  * - GEMINI_INJECTION_STRATEGY: Tool injection strategy (static/turn-by-turn/hybrid)
  * - GEMINI_MAX_TOOLS_PER_TURN: Maximum tools per turn (number)
@@ -193,9 +188,9 @@ export function loadGeminiFCConfig(): GeminiFCConfiguration {
     // Core mode
     useNativeFunctionCalling: parseBool(
       env.GEMINI_USE_NATIVE_FC,
-      DEFAULT_CONFIG.useNativeFunctionCalling
+      env.VOICE_PIPELINE === 'gemini-live' ? true : DEFAULT_CONFIG.useNativeFunctionCalling
     ),
-    enableJsonFallback: parseBool(env.GEMINI_JSON_FALLBACK, DEFAULT_CONFIG.enableJsonFallback),
+    enableJsonFallback: false,
     fcMode: parseFCMode(env.GEMINI_FC_MODE),
 
     // Turn optimization
@@ -268,10 +263,10 @@ export function isNativeFCEnabled(): boolean {
 }
 
 /**
- * Check if JSON fallback is enabled
+ * JSON fallback was removed. Always false.
  */
 export function isJsonFallbackEnabled(): boolean {
-  return getGeminiFCConfig().enableJsonFallback;
+  return false;
 }
 
 /**
@@ -300,27 +295,11 @@ export function getFCMode(): GeminiFCMode {
  * both native FC AND JSON format causes confusion and unreliable behavior.
  */
 function shouldUseNativePromptsInternal(config: GeminiFCConfiguration): boolean {
-  // If native prompts flag is explicitly set, use that
   if (process.env.GEMINI_NATIVE_PROMPTS !== undefined) {
     return config.useNativeFunctionCalling && config.useNativePrompts;
   }
-
-  // CHANGED (Jan 2026): When native FC is enabled, ALWAYS use native prompts
-  // regardless of JSON fallback setting. The JSON fallback is a safety net
-  // for the sanitizer, not a reason to teach the model two conflicting formats.
-  //
-  // Old behavior: Only use native prompts when JSON fallback was disabled
-  // New behavior: Use native prompts whenever native FC is enabled
-  //
-  // This prevents the model from getting conflicting instructions like:
-  // - Native FC instructions: "Use function calling API, don't output JSON"
-  // - function-calling-base.md: "Output {"fn":"toolName","args":{...}}"
-  if (config.useNativeFunctionCalling) {
-    return true;
-  }
-
-  // Otherwise, use the explicit config
-  return config.useNativePrompts;
+  // Native FC and native prompts stay paired so the model is never taught {fn,args}.
+  return config.useNativeFunctionCalling || config.useNativePrompts;
 }
 
 /**
@@ -346,20 +325,7 @@ export function shouldUseNativePrompts(): boolean {
  */
 export const GeminiFCPresets = {
   /**
-   * Legacy mode - JSON workaround, full prompts
-   * Use when: Testing, debugging, or if native FC has issues
-   */
-  legacy: (): Partial<GeminiFCConfiguration> => ({
-    useNativeFunctionCalling: false,
-    enableJsonFallback: true,
-    fcMode: 'NONE',
-    enableTurnOptimization: false,
-    useNativePrompts: false,
-  }),
-
-  /**
-   * Native mode - Full native FC, no JSON fallback
-   * Use when: Native FC is stable and working well
+   * Native mode — default for VOICE_PIPELINE=gemini-live
    */
   native: (): Partial<GeminiFCConfiguration> => ({
     useNativeFunctionCalling: true,
@@ -367,22 +333,6 @@ export const GeminiFCPresets = {
     fcMode: 'AUTO',
     enableTurnOptimization: false,
     useNativePrompts: true,
-  }),
-
-  /**
-   * Native with fallback - Native FC + JSON fallback for safety
-   * Use when: Transitioning from JSON to native
-   *
-   * NOTE: Even with JSON fallback enabled, we use native prompts (no JSON
-   * format instructions). The fallback is a sanitizer safety net, not a
-   * reason to teach the model conflicting formats.
-   */
-  nativeWithFallback: (): Partial<GeminiFCConfiguration> => ({
-    useNativeFunctionCalling: true,
-    enableJsonFallback: true,
-    fcMode: 'AUTO',
-    enableTurnOptimization: false,
-    useNativePrompts: true, // Native prompts - sanitizer catches JSON if model outputs it
   }),
 
   /**
@@ -405,11 +355,11 @@ export const GeminiFCPresets = {
    */
   hybridOptimized: (): Partial<GeminiFCConfiguration> => ({
     useNativeFunctionCalling: true,
-    enableJsonFallback: true,
+    enableJsonFallback: false,
     fcMode: 'AUTO',
     enableTurnOptimization: true,
     injectionStrategy: 'hybrid',
     maxToolsPerTurn: 25,
-    useNativePrompts: false,
+    useNativePrompts: true,
   }),
 };

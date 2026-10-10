@@ -399,25 +399,19 @@ describe('Conversation Priming', () => {
   });
 
   describe('Priming Turn Generation', () => {
-    it('should generate priming turns for JSON format when enabled', async () => {
+    it('should not generate JSON {fn,args} priming turns', async () => {
       const { getPrimingTurns } = await import('../../agents/shared/conversation-priming.js');
 
-      // Enable priming with config
-      const config = { enabled: true, includeToolExamples: true, maxPrimingTurns: 10 };
+      const config = {
+        enabled: true,
+        personaId: 'ferni',
+        logLevel: 'info' as const,
+        primeCriticalTools: true,
+        primeJsonFormat: true,
+      };
       const primingTurns = getPrimingTurns(config);
 
-      expect(Array.isArray(primingTurns)).toBe(true);
-
-      // When enabled, should have priming turns (unless SEMANTIC_ROUTING_PRIMARY is set)
-      // The actual content depends on whether semantic routing is enabled
-      if (process.env.SEMANTIC_ROUTING_PRIMARY !== 'true') {
-        // Should contain JSON format examples if semantic routing is not primary
-        const hasJsonExample = primingTurns.some(
-          (turn) => turn.content.includes('"fn"') || turn.content.includes('fn')
-        );
-        // Note: May return empty if semantic routing is primary
-        expect(hasJsonExample || primingTurns.length === 0).toBe(true);
-      }
+      expect(primingTurns).toEqual([]);
     });
 
     it('should return empty array when priming is disabled', async () => {
@@ -471,15 +465,12 @@ describe('Conversation Priming', () => {
   });
 
   describe('Retry Prompt Generation', () => {
-    it('should generate retry prompt for failed tool calls', async () => {
+    it('should not teach JSON {fn,args} on retry', async () => {
       const { generateRetryPrompt } = await import('../../agents/shared/conversation-priming.js');
 
-      const retryPrompt = generateRetryPrompt('playMusic', { query: 'jazz' });
+      const retryPrompt = generateRetryPrompt('play some jazz', 'playMusic', 1);
 
-      // Retry prompt should instruct JSON output format
-      expect(retryPrompt).toBeTruthy();
-      // Should contain instruction about JSON format
-      expect(retryPrompt.toLowerCase()).toMatch(/json|fn|format/i);
+      expect(retryPrompt).toBe('');
     });
   });
 });

@@ -19,6 +19,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../utils/safe-logger.js';
+import { PhoneInUseError } from '../services/identity/phone-in-use-error.js';
+import { requireAuth } from './auth-middleware.js';
 import {
   createSponsoredIdentity,
   getSponsoredIdentity,
@@ -44,7 +46,7 @@ function sendJSON(res: ServerResponse, status: number, data: unknown): void {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Firebase-UID',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   });
   res.end(JSON.stringify(data));
 }
@@ -70,10 +72,6 @@ async function parseBody<T>(req: IncomingMessage): Promise<T> {
   });
 }
 
-function getUserId(req: IncomingMessage): string | null {
-  return (req.headers['x-firebase-uid'] as string) || null;
-}
-
 // ============================================================================
 // MAIN HANDLER
 // ============================================================================
@@ -97,18 +95,16 @@ export async function handleSponsoredIdentityRoutes(
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Firebase-UID',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     });
     res.end();
     return true;
   }
 
-  // Get authenticated user
-  const userId = getUserId(req);
-  if (!userId) {
-    sendError(res, 'Authentication required', 401);
-    return true;
-  }
+  // Identity comes from the verified token, never a header the client can set.
+  const auth = await requireAuth(req, res);
+  if (!auth) return true;
+  const userId = auth.userId;
 
   const route = pathname.replace('/api/sponsored-identities', '');
 
@@ -159,11 +155,14 @@ export async function handleSponsoredIdentityRoutes(
     }
 
     // GET /api/sponsored-identities/pending - List pending self-registrations
+    // This is every caller's pending registration (not filtered to this sponsor),
+    // so it is an admin view only.
     if (route === '/pending' && req.method === 'GET') {
+      if (!auth.isAdmin) {
+        sendError(res, 'Admin access required', 403);
+        return true;
+      }
       const pending = await getPendingIdentities();
-
-      // Note: In a full implementation, we'd filter by claimed sponsor name
-      // For now, return all pending (admin view)
       sendJSON(res, 200, {
         pending: pending.map((p) => ({
           id: p.id,
@@ -183,7 +182,13 @@ export async function handleSponsoredIdentityRoutes(
     const actionMatch = route.match(/^\/([^/]+)\/(approve|revoke)$/);
 
     // POST /api/sponsored-identities/:id/approve - Approve pending identity
+    // Admin only: nothing ties a pending caller to this sponsor yet, so letting any
+    // signed-in user approve would let them claim a stranger's phone identity.
     if (actionMatch && req.method === 'POST' && actionMatch[2] === 'approve') {
+      if (!auth.isAdmin) {
+        sendError(res, 'Admin access required', 403);
+        return true;
+      }
       const identityId = actionMatch[1];
       const body = await parseBody<{
         displayName?: string;
@@ -276,8 +281,14 @@ export async function handleSponsoredIdentityRoutes(
     // Route not found
     return false;
   } catch (error) {
+    // A number already in use is the caller's to fix (409, stable code); anything else is
+    // ours, and its message stays in the log rather than going back to the client
+    if (error instanceof PhoneInUseError) {
+      sendError(res, 'phone_in_use', 409);
+      return true;
+    }
     log.error({ error: String(error), route }, 'Sponsored identity route error');
-    sendError(res, (error as Error).message || 'Internal server error', 500);
+    sendError(res, 'Internal server error', 500);
     return true;
   }
 }

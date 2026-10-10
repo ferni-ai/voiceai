@@ -250,10 +250,9 @@
  * ```kotlin
  * @Serializable
  * data class EnergyRingsData(
- *     val emotional: Int,
- *     val mental: Int,
- *     val physical: Int,
- *     val overall: Int
+ *     val overall: Int,
+ *     val label: String? = null,
+ *     val recommendation: String? = null
  * )
  * ```
  */
@@ -300,7 +299,7 @@
  *         val anxious = Color(0xFFe74c3c)
  *         val tired = Color(0xFF9a8f85)
  *         val focused = Color(0xFF3a6b73)
- *         val reflective = Color(0xFF8a7a9a)
+ *         val reflective = Color(0xFF5a6b8a)
  *         val stressed = Color(0xFFc0392b)
  *         val energized = Color(0xFF27ae60)
  *         val peaceful = Color(0xFF5a8b73)

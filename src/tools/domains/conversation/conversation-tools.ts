@@ -314,10 +314,14 @@ export function createConversationTools() {
         // This changes the disconnect button to a warm "Goodbye" button
         try {
           const { sendFrontendSignal } = await import('../../../services/frontend-signal.js');
-          const sent = await sendFrontendSignal('wrap_up', {
-            sentiment,
-            // Don't include the message - let the frontend handle UI
-          });
+          const sent = await sendFrontendSignal(
+            'wrap_up',
+            {
+              sentiment,
+              // Don't include the message - let the frontend handle UI
+            },
+            userData.services?.sessionId
+          );
           if (sent) {
             getLogger().info('Sent wrap_up signal to frontend');
           }
@@ -361,8 +365,9 @@ export function createConversationTools() {
           .enum(['goodbye_complete', 'user_request', 'natural_end'])
           .describe('Why the conversation is ending'),
       }),
-      execute: async ({ reason }) => {
+      execute: async ({ reason }, { ctx }) => {
         getLogger().info(`Ending conversation: ${reason}`);
+        const sessionId = (ctx.userData as UserData | undefined)?.services?.sessionId;
 
         // 🎧 Play the exit sound - session end sounds are handled by cleanup handler
         getLogger().info('🎧 Session ending - cleanup handler will handle exit sound');
@@ -370,11 +375,15 @@ export function createConversationTools() {
         // 🌅 Signal the frontend to auto-disconnect
         try {
           const { sendFrontendSignal } = await import('../../../services/frontend-signal.js');
-          const sent = await sendFrontendSignal('conversation_end', {
-            reason: reason === 'natural_end' ? 'goodbye_complete' : reason,
-            disconnectDelay: 2500, // Give time for farewell to be spoken
-            timestamp: Date.now(),
-          });
+          const sent = await sendFrontendSignal(
+            'conversation_end',
+            {
+              reason: reason === 'natural_end' ? 'goodbye_complete' : reason,
+              disconnectDelay: 2500, // Give time for farewell to be spoken
+              timestamp: Date.now(),
+            },
+            sessionId
+          );
           if (sent) {
             getLogger().info('Sent conversation_end signal to frontend');
           }
@@ -438,12 +447,16 @@ export function createConversationTools() {
         // This triggers a different sound/animation - like hanging up the phone
         try {
           const { sendFrontendSignal } = await import('../../../services/frontend-signal.js');
-          const sent = await sendFrontendSignal('conversation_end', {
-            reason: 'agent_exit',
-            exitType: reason,
-            disconnectDelay: 1500, // Shorter delay - we want to exit promptly
-            timestamp: Date.now(),
-          });
+          const sent = await sendFrontendSignal(
+            'conversation_end',
+            {
+              reason: 'agent_exit',
+              exitType: reason,
+              disconnectDelay: 1500, // Shorter delay - we want to exit promptly
+              timestamp: Date.now(),
+            },
+            userData.services?.sessionId
+          );
           if (sent) {
             getLogger().info('Sent agent_exit signal to frontend');
           }
@@ -589,128 +602,11 @@ export function createConversationTools() {
       },
     }),
 
-    // Add a new phone number to user's profile for future recognition
-    addPhoneNumber: llm.tool({
-      description:
-        'Add a new phone number to the current user profile so they can be recognized from multiple phones. Use when user mentions calling from a different number or wants to add a work/home phone.',
-      parameters: z.object({
-        phoneNumber: z.string().describe('Phone number to add (any format)'),
-        label: z
-          .string()
-          .optional()
-          .describe('Optional label for the number (work, home, mobile, etc.)'),
-      }),
-      execute: async ({ phoneNumber, label }, { ctx }) => {
-        const userData = ctx.userData as UserData;
-        const userId = userData.services?.userProfile?.id;
-
-        if (!userId) {
-          return '[INTERNAL: No user profile found - cannot add phone number.]';
-        }
-
-        getLogger().info({ userId, phoneNumber, label }, '📱 Adding phone number to profile');
-
-        try {
-          const { normalizePhoneNumber, isValidPhoneNumber, linkPhoneToProfile } =
-            await import('../../../services/identity/user-identification.js');
-          const { lookupByPhone } =
-            await import('../../../services/identity/sponsored-identity.js');
-          const { getCachedPhoneMapping } =
-            await import('../../../services/memory/memory-management.js');
-
-          const normalized = normalizePhoneNumber(phoneNumber);
-
-          // Validate phone number format
-          if (!isValidPhoneNumber(normalized)) {
-            return `[INTERNAL: "${phoneNumber}" doesn't look like a valid phone number. Ask them to confirm the number.]`;
-          }
-
-          // Check if already registered to someone else
-          const existingMapping = getCachedPhoneMapping(normalized);
-          if (existingMapping && existingMapping !== userId) {
-            getLogger().warn(
-              { normalized, existingUser: existingMapping, currentUser: userId },
-              'Phone already registered to different user'
-            );
-            return '[INTERNAL: This phone number is already registered to another account. Ask if they want to link the accounts instead.]';
-          }
-
-          // Check sponsored identities
-          const sponsoredLookup = await lookupByPhone(normalized);
-          if (sponsoredLookup.found && sponsoredLookup.identity?.sponsorUserId !== userId) {
-            return '[INTERNAL: This phone number belongs to a family member account. Cannot add to your profile.]';
-          }
-
-          // Add to profile
-          const success = await linkPhoneToProfile(userId, normalized);
-
-          if (success) {
-            const labelNote = label ? ` (${label})` : '';
-            getLogger().info({ userId, normalized, label }, '✅ Phone number added to profile');
-            return `[INTERNAL: Phone number added successfully${labelNote}. Confirm to them: "Got it! I'll recognize you from that number now."]`;
-          } else {
-            return '[INTERNAL: Failed to add phone number. Apologize and try again later.]';
-          }
-        } catch (error) {
-          getLogger().error({ error: String(error) }, 'Error adding phone number');
-          return '[INTERNAL: Error adding phone number. Apologize and continue.]';
-        }
-      },
-    }),
-
-    // Link phone caller to existing web account
-    linkPhoneToAccount: llm.tool({
-      description:
-        'Link the current phone caller to an existing web/app account after user confirmation. This merges their conversation history and memories.',
-      parameters: z.object({
-        webAccountId: z.string().describe('The web/app account ID to link to'),
-        confirmedByUser: z
-          .boolean()
-          .describe('User explicitly confirmed they want to link accounts'),
-      }),
-      execute: async ({ webAccountId, confirmedByUser }, { ctx }) => {
-        const userData = ctx.userData as UserData;
-
-        if (!confirmedByUser) {
-          return '[INTERNAL: Cannot link accounts without user confirmation. Ask them first!]';
-        }
-
-        const currentUserId = userData.services?.userProfile?.id;
-        if (!currentUserId) {
-          return '[INTERNAL: No current user ID found - cannot link accounts.]';
-        }
-
-        getLogger().info(
-          { currentUserId, webAccountId },
-          '🔗 Attempting to link phone to web account'
-        );
-
-        try {
-          const { mergePhoneToWebAccount } =
-            await import('../../../services/identity/user-identification.js');
-
-          const result = await mergePhoneToWebAccount(currentUserId, webAccountId);
-
-          if (result.success) {
-            // Mark linking complete in context
-            const { markLinkingComplete } =
-              await import('../../../intelligence/context-builders/external/account-linking-context.js');
-            const sessionId = userData.services?.sessionId;
-            if (sessionId) {
-              markLinkingComplete(sessionId);
-            }
-
-            return '[INTERNAL: Accounts linked successfully! Their phone and web history are now combined. Confirm to them: "Done! Your accounts are now linked."]';
-          } else {
-            getLogger().warn({ error: result.error }, 'Account linking failed');
-            return `[INTERNAL: Account linking failed: ${result.error}. Apologize and continue normally.]`;
-          }
-        } catch (error) {
-          getLogger().error({ error: String(error) }, 'Account linking error');
-          return '[INTERNAL: Error linking accounts. Apologize and continue normally.]';
-        }
-      },
-    }),
+    // No tool here adds a phone number to a profile or merges the caller into
+    // another account. A phone mapping decides whose memory every later call
+    // from that number reaches, and nothing said on a call proves the caller
+    // owns the number or the account. Add one only behind a possession check
+    // (a code sent to that number or to the account's verified contact).
 
     // Confirm or update caller identity after voice mismatch
     confirmCallerIdentity: llm.tool({

@@ -20,7 +20,8 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { createEmptyState } from './components/empty-state.js';
@@ -61,7 +62,7 @@ export interface EmotionalMoment {
 export interface TeamUnlock {
   personaId: string;
   personaName: string;
-  unlockedAt: Date;
+  unlockedAt?: Date;
   primaryColor: string;
 }
 
@@ -99,7 +100,7 @@ export interface RelationshipGrowth {
 
 export interface YearStats {
   totalConversations: number;
-  totalMinutes: number;
+  totalMinutes?: number;
   longestStreak: number;
   currentStreak: number;
   averageConversationsPerWeek: number;
@@ -193,8 +194,8 @@ export class YourYearWithFerni {
               </g>
             </svg>
           </div>
-          <span class="your-year-eyebrow">YOUR JOURNEY</span>
-          <h2 id="your-year-title" class="your-year-title">Your Year with Ferni</h2>
+          <span class="your-year-eyebrow">${t('yourYearWithFerni.eyebrow')}</span>
+          <h2 id="your-year-title" class="your-year-title">${t('yourYearWithFerni.title')}</h2>
         </header>
 
         <div class="your-year-content your-year-content--empty" id="your-year-empty-container">
@@ -213,9 +214,7 @@ export class YourYearWithFerni {
 
     // Add event listeners
     this.container.querySelector('.your-year-close')?.addEventListener('click', () => this.close());
-    this.container
-      .querySelector('.your-year-backdrop')
-      ?.addEventListener('click', () => this.close());
+    this.container.querySelector('.your-year-backdrop')?.addEventListener('click', () => this.close());
 
     document.body.appendChild(this.container);
   }
@@ -224,12 +223,12 @@ export class YourYearWithFerni {
    * Close the visualization.
    */
   async close(): Promise<void> {
-    if (!this.isOpen || !this.container) return;
-
+    const container = this.container;
+    if (!this.isOpen || !container) return;
+    this.isOpen = false; // before the await, so an overlapping close() bails out
     await this.animateOut();
-    this.container.remove();
-    this.container = null;
-    this.isOpen = false;
+    container.remove();
+    if (this.container === container) this.container = null;
   }
 
   // ============================================================================
@@ -251,7 +250,7 @@ export class YourYearWithFerni {
           })) ?? [],
           teamUnlocks: data.teamUnlocks?.map((t) => ({
             ...t,
-            unlockedAt: new Date(t.unlockedAt),
+            unlockedAt: t.unlockedAt ? new Date(t.unlockedAt) : undefined,
           })) ?? [],
           dreams: data.dreams?.map((d) => ({
             ...d,
@@ -319,23 +318,23 @@ export class YourYearWithFerni {
               </g>
             </svg>
           </div>
-          <span class="your-year-eyebrow">YOUR JOURNEY</span>
-          <h2 id="your-year-title" class="your-year-title">Your Year with Ferni</h2>
-          <p class="your-year-subtitle">${this.data.stats.totalConversations} conversations. ${this.data.stats.totalMinutes} minutes. Countless moments of growth.</p>
+          <span class="your-year-eyebrow">${t('yourYearWithFerni.eyebrow')}</span>
+          <h2 id="your-year-title" class="your-year-title">${t('yourYearWithFerni.title')}</h2>
+          <p class="your-year-subtitle">${typeof this.data.stats.totalMinutes === 'number' ? t('yourYearWithFerni.subtitle', { conversations: tp('yourYearWithFerni.conversationCount', this.data.stats.totalConversations), minutes: tp('yourYearWithFerni.minuteCount', this.data.stats.totalMinutes) }) : t('yourYearWithFerni.subtitleNoMinutes', { conversations: tp('yourYearWithFerni.conversationCount', this.data.stats.totalConversations) })}</p>
         </header>
 
         <div class="your-year-content">
           <!-- Stats Grid -->
           <section class="your-year-stats">
-            ${this.renderStatCard('Conversations', this.data.stats.totalConversations.toString(), 'Total')}
-            ${this.renderStatCard('Current Streak', `${this.data.stats.currentStreak} days`, `Best: ${this.data.stats.longestStreak}`)}
-            ${this.renderStatCard('Team Members', this.data.stats.teamMembersUnlocked.toString(), 'Unlocked')}
-            ${this.renderStatCard('Dreams Tracked', this.data.stats.dreamsTracked.toString(), 'Growing')}
+            ${this.renderStatCard(t('yourYearWithFerni.statConversations'), this.data.stats.totalConversations.toString(), t('yourYearWithFerni.statTotal'))}
+            ${this.renderStatCard(t('yourYearWithFerni.statCurrentStreak'), tp('yourYearWithFerni.streakDays', this.data.stats.currentStreak), t('yourYearWithFerni.statBestStreak', { count: this.data.stats.longestStreak }))}
+            ${this.renderStatCard(t('yourYearWithFerni.statTeamMembers'), this.data.stats.teamMembersUnlocked.toString(), t('yourYearWithFerni.statUnlocked'))}
+            ${this.renderStatCard(t('yourYearWithFerni.statDreamsTracked'), this.data.stats.dreamsTracked.toString(), t('yourYearWithFerni.statGrowing'))}
           </section>
 
           <!-- Heat Map -->
           <section class="your-year-section">
-            <h3 class="your-year-section-title">Conversation Activity</h3>
+            <h3 class="your-year-section-title">${t('yourYearWithFerni.conversationActivity')}</h3>
             <div class="your-year-heatmap">
               ${this.renderHeatMap()}
             </div>
@@ -343,7 +342,7 @@ export class YourYearWithFerni {
 
           <!-- Emotional Journey -->
           <section class="your-year-section" aria-labelledby="milestones-title">
-            <h3 id="milestones-title" class="your-year-section-title">Emotional Milestones</h3>
+            <h3 id="milestones-title" class="your-year-section-title">${t('yourYearWithFerni.emotionalMilestones')}</h3>
             <div class="your-year-timeline" role="list" aria-label="${t('accessibility.emotionalMilestonesTimeline')}">
               ${this.renderTimeline()}
             </div>
@@ -351,7 +350,7 @@ export class YourYearWithFerni {
 
           <!-- Team Unlocks -->
           <section class="your-year-section" aria-labelledby="team-title">
-            <h3 id="team-title" class="your-year-section-title">Your Team</h3>
+            <h3 id="team-title" class="your-year-section-title">${t('accessibility.yourTeam')}</h3>
             <div class="your-year-team" role="list" aria-label="${t('accessibility.teamMembersUnlocked')}">
               ${this.renderTeam()}
             </div>
@@ -359,7 +358,7 @@ export class YourYearWithFerni {
 
           <!-- Dreams -->
           <section class="your-year-section" aria-labelledby="dreams-title">
-            <h3 id="dreams-title" class="your-year-section-title">Dreams We're Guarding</h3>
+            <h3 id="dreams-title" class="your-year-section-title">${t('yourYearWithFerni.dreamsGuarding')}</h3>
             <div class="your-year-dreams" role="list" aria-label="${t('accessibility.yourTrackedDreams')}">
               ${this.renderDreams()}
             </div>
@@ -373,9 +372,7 @@ export class YourYearWithFerni {
 
     // Add event listeners
     this.container.querySelector('.your-year-close')?.addEventListener('click', () => this.close());
-    this.container
-      .querySelector('.your-year-backdrop')
-      ?.addEventListener('click', () => this.close());
+    this.container.querySelector('.your-year-backdrop')?.addEventListener('click', () => this.close());
 
     document.body.appendChild(this.container);
   }
@@ -414,7 +411,7 @@ export class YourYearWithFerni {
         ${week
           .map((day) => {
             const intensity = Math.min(4, day.count);
-            return `<div class="heatmap-day" data-count="${day.count}" data-intensity="${intensity}" title="${day.date}: ${day.count} conversations"></div>`;
+            return `<div class="heatmap-day" data-count="${day.count}" data-intensity="${intensity}" title="${tp('yourYearWithFerni.heatmapDayTitle', day.count, { date: day.date })}"></div>`;
           })
           .join('')}
       </div>
@@ -433,7 +430,7 @@ export class YourYearWithFerni {
       <div class="timeline-item" role="listitem">
         <div class="timeline-dot" aria-hidden="true"></div>
         <div class="timeline-content">
-          <div class="timeline-date">${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+          <div class="timeline-date">${formatDate(date, { month: 'short', day: 'numeric' })}</div>
           <div class="timeline-emotion">${moment.emotion}</div>
           ${moment.context ? `<div class="timeline-context">${moment.context}</div>` : ''}
         </div>
@@ -483,8 +480,7 @@ export class YourYearWithFerni {
 
     return this.data.teamUnlocks
       .map((member) => {
-        const unlockDate =
-          member.unlockedAt instanceof Date ? member.unlockedAt : new Date(member.unlockedAt);
+        const unlockDate = member.unlockedAt && new Date(member.unlockedAt);
         const personaId = member.personaId.toLowerCase();
         const gradient = personaGradients[personaId] ?? {
           light: member.primaryColor,
@@ -521,7 +517,7 @@ export class YourYearWithFerni {
           </svg>
         </div>
         <div class="team-name">${displayName}</div>
-        <div class="team-unlocked">Unlocked ${unlockDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>
+        ${unlockDate ? `<div class="team-unlocked">${t('yourYearWithFerni.unlockedOn', { date: formatDate(unlockDate, { month: 'short', year: 'numeric' }) })}</div>` : ''}
       </div>
     `;
       })
@@ -546,7 +542,7 @@ export class YourYearWithFerni {
         <div class="dream-icon" aria-hidden="true">${dream.status === 'achieved' ? achievedIcon : activeIcon}</div>
         <div class="dream-content">
           <div class="dream-text">${dream.dream}</div>
-          <div class="dream-meta">Mentioned ${dream.mentionCount} times · ${dream.type}</div>
+          <div class="dream-meta">${tp('yourYearWithFerni.dreamMeta', dream.mentionCount, { type: dream.type })}</div>
         </div>
       </div>
     `
@@ -623,7 +619,7 @@ export class YourYearWithFerni {
       .your-year-close {
         position: absolute;
         top: var(--space-4, 16px);
-        right: var(--space-4, 16px);
+        inset-inline-end: var(--space-4, 16px);
         width: 44px;
         height: 44px;
         border: none;

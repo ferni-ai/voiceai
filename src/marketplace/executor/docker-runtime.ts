@@ -31,10 +31,9 @@ const log = getLogger().child({ module: 'docker-runtime' });
 
 // Allowlist of approved base images for marketplace tools
 const APPROVED_BASE_IMAGES = new Set([
-  'node:20-alpine',
-  'node:20-slim',
-  'node:18-alpine',
-  'node:18-slim',
+  // Node 18 and 20 are end-of-life (no security fixes): not offered to tools.
+  'node:22-alpine',
+  'node:22-slim',
   'denoland/deno:alpine',
   'denoland/deno:latest',
   'python:3.12-slim',

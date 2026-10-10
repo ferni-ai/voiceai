@@ -24,12 +24,9 @@ export async function handleGetCommitments(
   res: ServerResponse,
   parsedUrl: URL
 ): Promise<void> {
-  // Get userId from query param (like background-results API)
-  const userId = parsedUrl.searchParams.get('userId');
-  if (!userId) {
-    sendError(res, 'userId is required', 400);
-    return;
-  }
+  // The verified caller; a ?userId= naming someone else is not an identity.
+  const userId = requireUserId(req, res, parsedUrl);
+  if (!userId) return;
 
   try {
     const limit = parsePositiveInt(parsedUrl.searchParams.get('limit'), 20, 100);

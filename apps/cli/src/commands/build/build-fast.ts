@@ -24,6 +24,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { dirname, join, relative } from 'path';
 import { fileURLToPath } from 'url';
 import { ESBUILD_SUPPORTED, ESBUILD_TARGET } from './esbuild-target.js';
+import { copyImportedJson } from './copy-imported-json.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = findProjectRoot();
@@ -155,6 +156,10 @@ function copyStaticFiles(): void {
     cpSync(sanitizerConfigDir, sanitizerConfigOutDir, { recursive: true });
     log.success('Copied sanitizer config');
   }
+
+  // Every JSON a source file imports (the list above can't keep up).
+  const imported = copyImportedJson(CONFIG.srcDir, CONFIG.outDir);
+  log.success(`Copied ${imported.length} imported JSON files`);
 }
 
 /**

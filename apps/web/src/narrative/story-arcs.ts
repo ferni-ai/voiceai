@@ -425,7 +425,7 @@ export function getSuggestedArc(context: {
   if (context.isFirstLaunch) {
     return FIRST_LAUNCH_ARC;
   }
-  
+
   // Handle emotions first
   if (context.userEmotion === 'sad') {
     return SADNESS_SUPPORT_ARC;
@@ -436,12 +436,12 @@ export function getSuggestedArc(context: {
   if (context.userEmotion === 'excited') {
     return EXCITEMENT_CELEBRATION_ARC;
   }
-  
+
   // Streaks are important
   if (context.streak >= 7) {
     return STREAK_CELEBRATION_ARC;
   }
-  
+
   // Time-based greetings
   if (context.timeOfDay === 'morning') {
     return MORNING_GREETING_ARC;
@@ -452,8 +452,23 @@ export function getSuggestedArc(context: {
   if (context.timeOfDay === 'night') {
     return LATE_NIGHT_ARC;
   }
-  
+
   // Default
   return WELCOME_BACK_ARC;
+}
+
+/** i18n key for an arc's text, derived from its id: first_launch → storyArcs.firstLaunch.name */
+function arcKey(arc: StoryArcDefinition, field: 'name' | 'description'): string {
+  return `storyArcs.${arc.id.replace(/_(\w)/g, (_, c: string) => c.toUpperCase())}.${field}`;
+}
+
+/** Translation key for the arc name (resolve with t() at render time) */
+export function getArcNameKey(arc: StoryArcDefinition): string {
+  return arcKey(arc, 'name');
+}
+
+/** Translation key for the arc description (resolve with t() at render time) */
+export function getArcDescriptionKey(arc: StoryArcDefinition): string {
+  return arcKey(arc, 'description');
 }
 

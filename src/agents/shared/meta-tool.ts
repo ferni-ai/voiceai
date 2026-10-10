@@ -20,7 +20,7 @@
  * - Only `executeTool` is registered with the LLM
  * - Tool catalog is included in system prompt (via META_TOOL_CATALOG_IN_PROMPT)
  * - LLM outputs: `{"fn":"executeTool","args":{"toolName":"playMusic","args":{"query":"jazz"}}}`
- * - json-function-executor unwraps and routes to actual tool
+ * - tool-dispatcher unwraps and routes to the actual tool
  *
  * @module agents/shared/meta-tool
  */

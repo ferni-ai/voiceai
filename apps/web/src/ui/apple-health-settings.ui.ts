@@ -20,6 +20,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiDelete } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
+import { asModalDialog } from '../utils/accessibility.js';
 
 // ============================================================================
 // TYPES
@@ -76,6 +77,7 @@ interface AppleHealthSettingsCallbacks {
 // ============================================================================
 
 let container: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let styleElement: HTMLStyleElement | null = null;
 let callbacks: AppleHealthSettingsCallbacks = {};
 let _isLoading = false;
@@ -614,7 +616,7 @@ function injectStyles(): void {
     [data-theme="midnight"] .apple-health-settings__status,
     [data-theme="midnight"] .apple-health-settings__metric,
     [data-theme="midnight"] .apple-health-settings__instructions {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
 
     /* Reduced motion */
@@ -1135,9 +1137,9 @@ export async function showAppleHealthSettings(): Promise<void> {
   injectStyles();
 
   // Create container
-  container = createElement('div', { className: 'apple-health-settings' });
-  container.setAttribute('role', 'dialog');
-  container.setAttribute('aria-label', 'Apple Health settings');
+  const el = (container = createElement('div', { className: 'apple-health-settings' }));
+  // One Escape closes it, and only when it's the top dialog (it opens over Everything Connected)
+  releaseEscape = asModalDialog(el, { label: t('menu.items.appleHealth') }, () => el.classList.contains('apple-health-settings--visible'), hideAppleHealthSettings);
 
   // Backdrop
   const backdrop = createElement('div', { className: 'apple-health-settings__backdrop' });
@@ -1184,19 +1186,12 @@ export async function showAppleHealthSettings(): Promise<void> {
 
   // Load status
   await loadStatus();
-
-  // Escape to close
-  const handleKeyDown = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') {
-      hideAppleHealthSettings();
-    }
-  };
-  document.addEventListener('keydown', handleKeyDown);
 }
 
 export function hideAppleHealthSettings(): void {
   if (!container) return;
 
+  releaseEscape?.();
   container.classList.remove('apple-health-settings--visible');
   callbacks.onClose?.();
 

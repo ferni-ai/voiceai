@@ -30,16 +30,16 @@ interface MemoryInputResult {
 
 interface MemoryTypeConfig {
   id: MemoryType;
-  name: string;
-  description: string;
+  nameKey: string;
+  descriptionKey: string;
   icon: string;
   fields: MemoryFieldConfig[];
 }
 
 interface MemoryFieldConfig {
   id: string;
-  label: string;
-  placeholder: string;
+  labelKey: string;
+  placeholderKey: string;
   type: 'input' | 'textarea';
   required?: boolean;
 }
@@ -51,57 +51,57 @@ interface MemoryFieldConfig {
 const MEMORY_TYPES: MemoryTypeConfig[] = [
   {
     id: 'story',
-    name: 'Story',
-    description: 'A meaningful story or experience',
+    nameKey: 'memoryInputModal.story',
+    descriptionKey: 'memoryInputModal.storyDesc',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
     </svg>`,
     fields: [
-      { id: 'title', label: 'Title', placeholder: 'Give this story a name', type: 'input', required: true },
-      { id: 'content', label: 'The Story', placeholder: 'Tell the story in detail...', type: 'textarea', required: true },
-      { id: 'context', label: 'Context', placeholder: 'When/where did this happen?', type: 'input' },
+      { id: 'title', labelKey: 'memoryInputModal.storyTitle', placeholderKey: 'memoryInputModal.storyTitlePlaceholder', type: 'input', required: true },
+      { id: 'content', labelKey: 'memoryInputModal.storyContent', placeholderKey: 'memoryInputModal.storyContentPlaceholder', type: 'textarea', required: true },
+      { id: 'context', labelKey: 'memoryInputModal.storyContext', placeholderKey: 'memoryInputModal.storyContextPlaceholder', type: 'input' },
     ],
   },
   {
     id: 'wisdom',
-    name: 'Wisdom',
-    description: 'A saying, lesson, or piece of advice',
+    nameKey: 'memoryInputModal.wisdom',
+    descriptionKey: 'memoryInputModal.wisdomDesc',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10"/>
       <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
       <line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg>`,
     fields: [
-      { id: 'phrase', label: 'The Saying', placeholder: '"Life is what happens when..."', type: 'input', required: true },
-      { id: 'content', label: 'What It Means', placeholder: 'Explain the wisdom behind it...', type: 'textarea', required: true },
-      { id: 'context', label: 'Origin', placeholder: 'Where did they learn this?', type: 'input' },
+      { id: 'phrase', labelKey: 'memoryInputModal.wisdomSaying', placeholderKey: 'memoryInputModal.wisdomSayingPlaceholder', type: 'input', required: true },
+      { id: 'content', labelKey: 'memoryInputModal.wisdomMeaning', placeholderKey: 'memoryInputModal.wisdomMeaningPlaceholder', type: 'textarea', required: true },
+      { id: 'context', labelKey: 'memoryInputModal.wisdomOrigin', placeholderKey: 'memoryInputModal.wisdomOriginPlaceholder', type: 'input' },
     ],
   },
   {
     id: 'sharedMoment',
-    name: 'Shared Moment',
-    description: 'A special memory you shared together',
+    nameKey: 'memoryInputModal.sharedMoment',
+    descriptionKey: 'memoryInputModal.sharedMomentDesc',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
     </svg>`,
     fields: [
-      { id: 'title', label: 'Title', placeholder: 'Name this moment', type: 'input', required: true },
-      { id: 'content', label: 'The Memory', placeholder: 'Describe what happened...', type: 'textarea', required: true },
-      { id: 'context', label: 'When & Where', placeholder: 'Summer 2019, at the lake house...', type: 'input' },
+      { id: 'title', labelKey: 'memoryInputModal.momentTitle', placeholderKey: 'memoryInputModal.momentTitlePlaceholder', type: 'input', required: true },
+      { id: 'content', labelKey: 'memoryInputModal.momentContent', placeholderKey: 'memoryInputModal.momentContentPlaceholder', type: 'textarea', required: true },
+      { id: 'context', labelKey: 'memoryInputModal.momentContext', placeholderKey: 'memoryInputModal.momentContextPlaceholder', type: 'input' },
     ],
   },
   {
     id: 'journalEntry',
-    name: 'Journal Entry',
-    description: 'A personal reflection or thought',
+    nameKey: 'memoryInputModal.journalEntry',
+    descriptionKey: 'memoryInputModal.journalEntryDesc',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
     </svg>`,
     fields: [
-      { id: 'content', label: 'Your Thoughts', placeholder: 'Write what\'s on your mind...', type: 'textarea', required: true },
-      { id: 'mood', label: 'How are you feeling?', placeholder: 'peaceful, anxious, grateful...', type: 'input' },
+      { id: 'content', labelKey: 'memoryInputModal.journalThoughts', placeholderKey: 'memoryInputModal.journalThoughtsPlaceholder', type: 'textarea', required: true },
+      { id: 'mood', labelKey: 'memoryInputModal.journalMood', placeholderKey: 'memoryInputModal.journalMoodPlaceholder', type: 'input' },
     ],
   },
 ];
@@ -407,14 +407,14 @@ function renderTypeSelection(): string {
   return `
     <div class="memory-type-grid">
       ${MEMORY_TYPES.map((type) => `
-        <button 
-          class="memory-type-btn ${selectedType === type.id ? 'memory-type-btn--selected' : ''}" 
+        <button
+          class="memory-type-btn ${selectedType === type.id ? 'memory-type-btn--selected' : ''}"
           data-type="${type.id}"
           type="button"
         >
           <span class="memory-type-icon">${type.icon}</span>
-          <span class="memory-type-name">${type.name}</span>
-          <span class="memory-type-desc">${type.description}</span>
+          <span class="memory-type-name">${t(type.nameKey)}</span>
+          <span class="memory-type-desc">${t(type.descriptionKey)}</span>
         </button>
       `).join('')}
     </div>
@@ -433,7 +433,7 @@ function renderForm(): string {
         if (field.id === 'mood') {
           return `
             <div class="memory-field">
-              <label class="memory-field-label">${field.label}</label>
+              <label class="memory-field-label">${t(field.labelKey)}</label>
               <div class="memory-mood-grid">
                 ${MOOD_OPTIONS.map((mood) => `
                   <button type="button" class="memory-mood-pill" data-mood="${mood}">${mood}</button>
@@ -447,22 +447,22 @@ function renderForm(): string {
         return `
           <div class="memory-field">
             <label class="memory-field-label ${field.required ? 'memory-field-label--required' : ''}" for="memory-${field.id}">
-              ${field.label}
+              ${t(field.labelKey)}
             </label>
             ${field.type === 'textarea'
-              ? `<textarea 
-                  class="memory-field-textarea" 
-                  id="memory-${field.id}" 
+              ? `<textarea
+                  class="memory-field-textarea"
+                  id="memory-${field.id}"
                   name="${field.id}"
-                  placeholder="${field.placeholder}"
+                  placeholder="${t(field.placeholderKey)}"
                   ${field.required ? 'required' : ''}
                 ></textarea>`
-              : `<input 
-                  type="text" 
-                  class="memory-field-input" 
-                  id="memory-${field.id}" 
+              : `<input
+                  type="text"
+                  class="memory-field-input"
+                  id="memory-${field.id}"
                   name="${field.id}"
-                  placeholder="${field.placeholder}"
+                  placeholder="${t(field.placeholderKey)}"
                   ${field.required ? 'required' : ''}
                 />`
             }
@@ -484,7 +484,7 @@ function createModal(initialType?: MemoryType): HTMLElement {
     <div class="memory-input-backdrop" data-action="cancel" role="button" tabindex="0"></div>
     <div class="memory-input-container" role="dialog" aria-modal="true" aria-labelledby="memory-input-title">
       <header class="memory-input-header">
-        <h2 class="memory-input-title" id="memory-input-title">Add Memory</h2>
+        <h2 class="memory-input-title" id="memory-input-title">${t('memoryInputModal.title')}</h2>
         <button class="memory-input-close" data-action="cancel" aria-label="${t('accessibility.close')}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -497,11 +497,11 @@ function createModal(initialType?: MemoryType): HTMLElement {
         ${renderForm()}
       </div>
       <footer class="memory-input-footer">
-        <button aria-label="${t('accessibility.cancel')}" class="memory-input-btn memory-input-btn--cancel" data-action="cancel" type="button">
-          Cancel
+        <button class="memory-input-btn memory-input-btn--cancel" data-action="cancel" type="button">
+          ${t('memoryInputModal.cancel')}
         </button>
-        <button aria-label="${t('accessibility.addMemory')}" class="memory-input-btn memory-input-btn--save" data-action="save" type="button" ${!selectedType ? 'disabled' : ''}>
-          Add Memory
+        <button class="memory-input-btn memory-input-btn--save" data-action="save" type="button" ${!selectedType ? 'disabled' : ''}>
+          ${t('memoryInputModal.addMemory')}
         </button>
       </footer>
     </div>

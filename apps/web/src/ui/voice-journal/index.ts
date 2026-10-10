@@ -20,13 +20,11 @@ import { createLogger } from '../../utils/logger.js';
 import { soundUI } from '../sound.ui.js';
 import { getCustomAgent, listMemories } from '../../services/custom-agent.service.js';
 import { t } from '../../i18n/index.js';
-import { 
-  startJournalSync, 
-  stopJournalSync, 
-  subscribeToJournalSync,
-  type JournalSyncEvent 
+import {
+  startJournalSync,
+  stopJournalSync,
+  type JournalSyncChange,
 } from '../../services/journal-sync.service.js';
-import { getUserId } from '../../utils/api.js';
 import type { JournalTab } from './types.js';
 
 // State management
@@ -37,6 +35,7 @@ import {
   setCurrentTab,
   getCurrentAgent,
   setCurrentAgent,
+  getEntries,
   setEntries,
   setCurrentPrompt,
   setCalendarMonth,
@@ -49,16 +48,18 @@ import { renderMoodOptions } from './mood-icons.js';
 import { fetchPrompt, renderPromptSection, shufflePrompt, prefetchPrompts } from './prompts.js';
 import { toggleRecording, stopRecording, stopVisualization } from './recording.js';
 import { renderStats } from './render-stats.js';
-import { renderCalendar, navigatePrevMonth, navigateNextMonth, filterEntriesByDate } from './calendar.js';
+import {
+  renderCalendar,
+  navigatePrevMonth,
+  navigateNextMonth,
+  filterEntriesByDate,
+} from './calendar.js';
 import { renderEntries, deleteEntry } from './entries.js';
 import { renderInsights } from './insights.js';
 import { exportJournal, shareJournal } from './export.js';
 import { getJournalStyles } from './styles.js';
 
 const log = createLogger('VoiceJournalUI');
-
-// Real-time sync unsubscribe function
-let syncUnsubscribe: (() => void) | null = null;
 
 // ============================================================================
 // MODAL INITIALIZATION
@@ -80,8 +81,8 @@ function ensureModalExists(): HTMLElement {
     <div class="journal-container" role="dialog" aria-modal="true" aria-labelledby="journal-title">
       <header class="journal-header">
         <div class="journal-header-content">
-          <h2 class="journal-title" id="journal-title">Voice Journal</h2>
-          <p class="journal-subtitle">Record your thoughts and feelings</p>
+          <h2 class="journal-title" id="journal-title">${t('voiceJournal.title')}</h2>
+          <p class="journal-subtitle">${t('voiceJournal.subtitle')}</p>
         </div>
         <div class="journal-header-actions">
           <button class="journal-action-btn" data-action="export" aria-label="${t('accessibility.exportJournal')}">
@@ -111,28 +112,28 @@ function ensureModalExists(): HTMLElement {
 
       <!-- Tabs -->
       <nav class="journal-tabs" role="tablist">
-        <button aria-label="${t('accessibility.record')}" class="journal-tab journal-tab--active" data-tab="record" role="tab" aria-selected="true">
+        <button class="journal-tab journal-tab--active" data-tab="record" role="tab" aria-selected="true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
           </svg>
-          Record
+          ${t('accessibility.record')}
         </button>
-        <button aria-label="${t('accessibility.history')}" class="journal-tab" data-tab="history" role="tab" aria-selected="false">
+        <button class="journal-tab" data-tab="history" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="16" y1="2" x2="16" y2="6"></line>
             <line x1="8" y1="2" x2="8" y2="6"></line>
             <line x1="3" y1="10" x2="21" y2="10"></line>
           </svg>
-          History
+          ${t('accessibility.history')}
         </button>
-        <button aria-label="${t('accessibility.insights')}" class="journal-tab" data-tab="insights" role="tab" aria-selected="false">
+        <button class="journal-tab" data-tab="insights" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
           </svg>
-          Insights
+          ${t('accessibility.insights')}
         </button>
       </nav>
 
@@ -151,19 +152,19 @@ function ensureModalExists(): HTMLElement {
             </div>
             
             <div class="recorder-controls">
-              <button aria-label="${t('accessibility.startRecording')}" class="recorder-btn" id="record-btn">
+              <button class="recorder-btn" id="record-btn">
                 <svg class="record-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
                   <line x1="12" y1="19" x2="12" y2="23"></line>
                   <line x1="8" y1="23" x2="16" y2="23"></line>
                 </svg>
-                <span class="btn-label">Start Recording</span>
+                <span class="btn-label">${t('ui.recording.startRecording')}</span>
               </button>
             </div>
 
             <div class="mood-selector">
-              <label class="mood-label">How are you feeling?</label>
+              <label class="mood-label">${t('voiceJournal.howAreYouFeeling')}</label>
               <div class="mood-options">
                 ${renderMoodOptions()}
               </div>
@@ -182,7 +183,7 @@ function ensureModalExists(): HTMLElement {
             <input type="text" 
                    id="journal-search-input" 
                    class="journal-search-input" 
-                   placeholder="Search entries..." 
+                   placeholder="${t('voiceJournal.searchPlaceholder')}" 
                    aria-label="${t('accessibility.searchJournalEntries')}">
           </div>
 
@@ -198,7 +199,7 @@ function ensureModalExists(): HTMLElement {
 
           <!-- Entries List -->
           <div class="journal-entries">
-            <h3 class="entries-title">Recent Entries</h3>
+            <h3 class="entries-title">${t('voiceJournal.recentEntries')}</h3>
             <div class="entries-list" id="entries-list">
               <!-- Entries render here -->
             </div>
@@ -218,7 +219,7 @@ function ensureModalExists(): HTMLElement {
   // Add event listeners
   modal.addEventListener('click', handleModalClick);
   modal.addEventListener('keydown', handleModalKeydown);
-  
+
   // Add search input listener
   const searchInput = modal.querySelector('#journal-search-input') as HTMLInputElement;
   if (searchInput) {
@@ -426,13 +427,13 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
     // Update title with agent name
     const title = modal.querySelector('.journal-title');
     if (title) {
-      title.textContent = `${agent.displayName || agent.name}'s Journal`;
+      title.textContent = t('voiceJournal.agentJournalTitle', { name: agent.displayName || agent.name });
     }
 
     // Load initial prompt
     const prompt = await fetchPrompt();
     setCurrentPrompt(prompt);
-    
+
     // Pre-fetch prompts for offline use (background)
     void prefetchPrompts();
 
@@ -446,16 +447,8 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
     renderEntries();
     renderInsights();
 
-    // Start real-time sync
-    const userId = getUserId();
-    if (userId) {
-      startJournalSync(userId, agent.id);
-      
-      // Subscribe to sync events
-      syncUnsubscribe = subscribeToJournalSync((event: JournalSyncEvent) => {
-        handleSyncEvent(event);
-      });
-    }
+    // Pick up entries written elsewhere (other devices, the agent) on focus
+    startJournalSync(agent.id, getEntries, (change) => void applySyncedEntries(change));
 
     // Show modal
     modal.classList.add('open');
@@ -470,35 +463,18 @@ export async function openVoiceJournal(agentId: string): Promise<void> {
 }
 
 /**
- * Handle real-time sync events from other devices
+ * Show entries that changed elsewhere since the journal last loaded them.
  */
-async function handleSyncEvent(event: JournalSyncEvent): Promise<void> {
-  const currentAgent = getCurrentAgent();
-  if (!currentAgent || event.agentId !== currentAgent.id) return;
-  
-  log.debug('Received sync event:', event.type);
-  
-  if (event.type === 'entry_added' || event.type === 'entry_deleted' || event.type === 'entry_updated') {
-    // Reload entries from server
-    const entries = (await listMemories(currentAgent.id, 'journalEntry')) || [];
-    setEntries(entries);
-    
-    // Re-render all sections
-    renderStats();
-    renderCalendar();
-    renderEntries();
-    renderInsights();
-    
-    // Show toast notification
-    const { toast } = await import('../whisper.ui.js');
-    if (event.type === 'entry_added') {
-      toast.info(t('toasts.newEntrySynced'));
-    } else if (event.type === 'entry_deleted') {
-      toast.info(t('toasts.entryRemoved'));
-    }
-  }
-}
+async function applySyncedEntries(change: JournalSyncChange): Promise<void> {
+  setEntries(change.entries);
+  renderStats();
+  renderCalendar();
+  renderEntries();
+  renderInsights();
 
+  const { toast } = await import('../whisper.ui.js');
+  toast.info(t(change.added > 0 ? 'toasts.newEntrySynced' : 'toasts.entryRemoved'));
+}
 
 /**
  * Close the voice journal
@@ -509,12 +485,7 @@ export function closeVoiceJournal(): void {
 
   stopRecording();
   stopVisualization();
-  
-  // Stop real-time sync
-  if (syncUnsubscribe) {
-    syncUnsubscribe();
-    syncUnsubscribe = null;
-  }
+
   stopJournalSync();
 
   modal.classList.remove('open');
@@ -530,4 +501,3 @@ export function closeVoiceJournal(): void {
 // ============================================================================
 
 export type { JournalTab, JournalPrompt, JournalStats, MoodOption } from './types.js';
-

@@ -25,7 +25,7 @@ export interface UIMemory {
   content: string;
   confidence: number;
   source: string;
-  learnedAt: string;
+  learnedAt?: string; // omitted when unknown - never invented
   personaId?: string;
   sourceType: string;
 }

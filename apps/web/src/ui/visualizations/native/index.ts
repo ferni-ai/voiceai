@@ -126,12 +126,11 @@ export const visualizationSchemas = {
 
   EnergyRingsData: {
     type: 'object',
-    required: ['emotional', 'mental', 'physical', 'overall'],
+    required: ['overall'],
     properties: {
-      emotional: { type: 'integer', minimum: 0, maximum: 100 },
-      mental: { type: 'integer', minimum: 0, maximum: 100 },
-      physical: { type: 'integer', minimum: 0, maximum: 100 },
       overall: { type: 'integer', minimum: 0, maximum: 100 },
+      label: { type: 'string' },
+      recommendation: { type: 'string' },
     },
   },
 } as const;
@@ -159,7 +158,7 @@ export const nativeColorTokens = {
     anxious: '#e74c3c',
     tired: '#9a8f85',
     focused: '#3a6b73',
-    reflective: '#8a7a9a',
+    reflective: '#5a6b8a',
     stressed: '#c0392b',
     energized: '#27ae60',
     peaceful: '#5a8b73',

@@ -13,15 +13,27 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
-import { t } from '../i18n/index.js';
+import { formatDate, formatNumber, t } from '../i18n/index.js';
 import {
   ICONS,
   injectSharedStyles,
   escapeHtml,
   renderCloseButton,
 } from './engagement-components.js';
-import { engagementService, type PredictionData } from '../services/engagement.service.js';
-import { isDemoDataEnabled, getDemoPredictions, calculateDemoPredictionAccuracy } from '../services/engagement-demo-data.js';
+import { engagementService } from '../services/engagement.service.js';
+import {
+  scoredStreak,
+  toneBand,
+  type PredictionData,
+  type ResolutionScore,
+} from '../services/prediction-data.js';
+import { openResolutionModal } from './prediction-resolution-modal.js';
+import { metricLabel } from './prediction-resolution-copy.js';
+import {
+  isDemoDataEnabled,
+  getDemoPredictions,
+  calculateDemoPredictionAccuracy,
+} from '../services/engagement-demo-data.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { playMicroExpression } from './better-than-human.ui.js';
@@ -38,6 +50,12 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // ============================================================================
 // TYPES
 // ============================================================================
+
+/** Records actual values (keyed by metric name) and resolves to the server's score. */
+export type ResolutionSubmit = (
+  id: string,
+  actuals: Record<string, number>
+) => Promise<ResolutionScore>;
 
 export interface PredictionsUIData {
   predictions: PredictionData[];
@@ -79,7 +97,7 @@ export class PredictionsUI {
   private panelVisible: boolean = false;
   private styleElement: HTMLStyleElement | null = null;
   private currentPredictions: PredictionData[] = [];
-  private onResolutionSubmit: ((id: string, actual: number) => Promise<void>) | null = null;
+  private onResolutionSubmit: ResolutionSubmit | null = null;
   private hasDataLoaded: boolean = false;
 
   /**
@@ -108,15 +126,15 @@ export class PredictionsUI {
     this.container.className = 'predictions-panel';
     this.container.setAttribute('role', 'dialog');
     this.container.setAttribute('aria-modal', 'true');
-    this.container.setAttribute('aria-label', 'Predictions');
+    this.container.setAttribute('aria-label', t('titles.predictions'));
     this.container.setAttribute('aria-hidden', 'true');
 
     this.container.innerHTML = `
       <div class="predictions-panel__backdrop"></div>
       <div class="predictions-panel__card">
         <header class="predictions-panel__header">
-          <h2 class="predictions-panel__title">Predictions</h2>
-          ${renderCloseButton('Close panel')}
+          <h2 class="predictions-panel__title">${t('titles.predictions')}</h2>
+          ${renderCloseButton(t('accessibility.closePanel'))}
         </header>
         <div class="predictions-panel__content" id="predictions-content">
           ${this.renderEmptyState()}
@@ -129,10 +147,10 @@ export class PredictionsUI {
     // Bind events
     const backdrop = this.container.querySelector('.predictions-panel__backdrop');
     backdrop?.addEventListener('click', () => this.hide());
-    
+
     const closeBtn = this.container.querySelector('.engagement-close-btn');
     closeBtn?.addEventListener('click', () => this.hide());
-    
+
     // Close on escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.panelVisible) {
@@ -143,7 +161,7 @@ export class PredictionsUI {
 
   /**
    * Render empty state - beautiful preview of what predictions WILL look like
-   * 
+   *
    * Philosophy: Transform "No data yet" into "This is what you'll see"
    * Shows the value proposition through realistic preview data.
    */
@@ -159,9 +177,9 @@ export class PredictionsUI {
               <path d="M12 6v6l4 2"/>
             </svg>
           </div>
-          <h3 class="predictions-empty__title">Your Crystal Ball</h3>
+          <h3 class="predictions-empty__title">${t('predictions.title')}</h3>
           <p class="predictions-empty__subtitle">
-            I'll learn to anticipate what you need before you ask.
+            ${t('predictions.description')}
           </p>
         </div>
 
@@ -171,7 +189,7 @@ export class PredictionsUI {
             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
-          <span>Preview</span>
+          <span>${t('predictions.preview')}</span>
         </div>
 
         <!-- Sample Predictions (shows what it WILL look like) -->
@@ -181,10 +199,10 @@ export class PredictionsUI {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Accurate
+              ${t('predictions.accurate')}
             </div>
-            <p class="predictions-empty__sample-text">"You'd feel overwhelmed this week"</p>
-            <span class="predictions-empty__sample-result">You mentioned stress on Tuesday</span>
+            <p class="predictions-empty__sample-text">${t('predictions.sampleOverwhelmed')}</p>
+            <span class="predictions-empty__sample-result">${t('predictions.exampleStress')}</span>
           </div>
 
           <div class="predictions-empty__sample predictions-empty__sample--accurate">
@@ -192,10 +210,10 @@ export class PredictionsUI {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
-              Accurate
+              ${t('predictions.accurate')}
             </div>
-            <p class="predictions-empty__sample-text">"The gym habit would struggle"</p>
-            <span class="predictions-empty__sample-result">You skipped 2 sessions</span>
+            <p class="predictions-empty__sample-text">${t('predictions.sampleGym')}</p>
+            <span class="predictions-empty__sample-result">${t('predictions.exampleGym')}</span>
           </div>
 
           <div class="predictions-empty__sample predictions-empty__sample--watching">
@@ -204,29 +222,27 @@ export class PredictionsUI {
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12 6 12 12 16 14"/>
               </svg>
-              Watching
+              ${t('predictions.watching')}
             </div>
-            <p class="predictions-empty__sample-text">"Sunday evening will feel heavy"</p>
-            <span class="predictions-empty__sample-result">I'll check in with you</span>
+            <p class="predictions-empty__sample-text">${t('predictions.sampleSunday')}</p>
+            <span class="predictions-empty__sample-result">${t('predictions.checkIn')}</span>
           </div>
         </div>
 
         <!-- Accuracy Preview -->
         <div class="predictions-empty__accuracy">
-          <span class="predictions-empty__accuracy-value">78%</span>
-          <span class="predictions-empty__accuracy-label">Prediction accuracy</span>
+          <span class="predictions-empty__accuracy-value">${formatNumber(0.78, { style: 'percent' })}</span>
+          <span class="predictions-empty__accuracy-label">${t('predictions.accuracy')}</span>
         </div>
 
         <!-- CTA Section -->
         <div class="predictions-empty__cta">
-          <p class="predictions-empty__cta-text">
-            Talk to Peter about making predictions. Build self-awareness through the prediction game.
-          </p>
+          <p class="predictions-empty__cta-text">${t('predictions.ctaText')}</p>
           <div class="predictions-empty__unlock-hint">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14">
               <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/>
             </svg>
-            <span>Keep talking. We're building something.</span>
+            <span>${t('predictions.keepTalking')}</span>
           </div>
         </div>
       </div>
@@ -236,7 +252,7 @@ export class PredictionsUI {
   /**
    * Set callback for resolution submissions
    */
-  setOnResolutionSubmit(callback: (id: string, actual: number) => Promise<void>): void {
+  setOnResolutionSubmit(callback: ResolutionSubmit): void {
     this.onResolutionSubmit = callback;
   }
 
@@ -264,21 +280,21 @@ export class PredictionsUI {
     sections.push(this.renderStatsHeader(data));
 
     // Pending predictions
-    const pending = data.predictions.filter(p => p.status === 'pending');
+    const pending = data.predictions.filter((p) => p.status === 'pending');
     if (pending.length > 0) {
-      sections.push(this.renderPredictionGroup('Active Predictions', pending, true));
+      sections.push(this.renderPredictionGroup(t('predictions.activePredictions'), pending, true));
     }
 
     // Resolved predictions
-    const resolved = data.predictions.filter(p => p.status === 'resolved');
+    const resolved = data.predictions.filter((p) => p.status === 'resolved');
     if (resolved.length > 0) {
-      sections.push(this.renderPredictionGroup('Recent Results', resolved.slice(0, 10), false));
+      sections.push(this.renderPredictionGroup(t('predictions.recentResults'), resolved.slice(0, 10), false));
     }
 
     content.innerHTML = sections.join('');
 
     // Bind resolve buttons
-    content.querySelectorAll('.prediction-resolve-btn').forEach(btn => {
+    content.querySelectorAll('.prediction-resolve-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const predictionId = (e.currentTarget as HTMLElement).dataset.predictionId;
         if (predictionId) {
@@ -305,120 +321,32 @@ export class PredictionsUI {
   }
 
   /**
-   * Show resolution modal for a prediction
+   * Ask for the actual values of a prediction's metrics, then show the
+   * comparison the server scored.
    */
   private showResolutionModal(predictionId: string): void {
-    const prediction = this.currentPredictions.find(p => p.id === predictionId);
-    if (!prediction) return;
+    const prediction = this.currentPredictions.find((p) => p.id === predictionId);
+    const submit = this.onResolutionSubmit;
+    if (!prediction || !submit) return;
 
-    // Create modal overlay
-    const modal = document.createElement('div');
-    modal.className = 'prediction-resolution-modal';
-    modal.innerHTML = `
-      <div class="prediction-resolution-modal__backdrop"></div>
-      <div class="prediction-resolution-modal__card">
-        <header class="prediction-resolution-modal__header">
-          <h3>Record Actual Result</h3>
-          <button class="engagement-close-btn" aria-label="${t('common.close')}">
-            ${ICONS.close}
-          </button>
-        </header>
-        <div class="prediction-resolution-modal__content">
-          <p class="prediction-resolution-modal__question">${escapeHtml(prediction.question)}</p>
-          <p class="prediction-resolution-modal__prediction">You predicted: <strong>${prediction.userPrediction}</strong></p>
-          <div class="prediction-resolution-modal__input-group">
-            <label for="actual-result">What was the actual result?</label>
-            <input 
-              type="number" 
-              id="actual-result" 
-              class="prediction-resolution-modal__input"
-              placeholder="${t('placeholders.enterValue')}"
-              min="0"
-              max="100"
-            />
-          </div>
-        </div>
-        <footer class="prediction-resolution-modal__footer">
-          <button aria-label="${t('accessibility.cancel')}" class="prediction-resolution-modal__cancel">Cancel</button>
-          <button aria-label="${t('accessibility.saveResult')}" class="prediction-resolution-modal__submit engagement-btn-primary">Save Result</button>
-        </footer>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // Animate in
-    requestAnimationFrame(() => {
-      modal.classList.add('prediction-resolution-modal--visible');
+    openResolutionModal({
+      prediction,
+      submit: (actuals) => submit(predictionId, actuals),
+      onScored: (score) => this.triggerResolutionEQ(score.accuracy),
     });
-
-    // Bind events
-    const closeModal = () => {
-      modal.classList.remove('prediction-resolution-modal--visible');
-      trackedTimeout(() => modal.remove(), prefersReducedMotion() ? 0 : DURATION.NORMAL);
-    };
-
-    modal.querySelector('.prediction-resolution-modal__backdrop')?.addEventListener('click', closeModal);
-    modal.querySelector('.engagement-close-btn')?.addEventListener('click', closeModal);
-    modal.querySelector('.prediction-resolution-modal__cancel')?.addEventListener('click', closeModal);
-
-    const input = modal.querySelector('#actual-result') as HTMLInputElement;
-    const submitBtn = modal.querySelector('.prediction-resolution-modal__submit');
-
-    submitBtn?.addEventListener('click', () => {
-      void (async () => {
-        const actualValue = parseInt(input.value, 10);
-        if (isNaN(actualValue)) {
-          input.classList.add('prediction-resolution-modal__input--error');
-          return;
-        }
-
-        if (this.onResolutionSubmit) {
-          submitBtn.textContent = t('common.saving');
-          (submitBtn as HTMLButtonElement).disabled = true;
-
-          try {
-            await this.onResolutionSubmit(predictionId, actualValue);
-
-            // Trigger EQ response based on prediction accuracy
-            this.triggerResolutionEQ(prediction.userPrediction, actualValue);
-
-            closeModal();
-          } catch (err) {
-            submitBtn.textContent = t('common.errorRetry');
-            (submitBtn as HTMLButtonElement).disabled = false;
-          }
-        } else {
-          closeModal();
-        }
-      })();
-    });
-
-    // Focus input
-    input.focus();
   }
 
   /**
-   * Trigger EQ micro-expression based on prediction accuracy
+   * Trigger EQ micro-expression from the server's score for the resolution.
    * Better than Human: Celebrates self-awareness wins
    */
-  private triggerResolutionEQ(predicted: number, actual: number): void {
-    const error = Math.abs(predicted - actual);
-
-    // Priority 1: Very accurate prediction (within 10) → pride for calibrated intuition
-    if (error <= 10) {
-      trackedTimeout(() => playMicroExpression('pride_flash'), 200);
-      return;
-    }
-
-    // Priority 2: Close prediction (within 25) → warmth for effort
-    if (error <= 25) {
-      trackedTimeout(() => playMicroExpression('warmth_pulse'), 200);
-      return;
-    }
-
-    // Priority 3: Any resolution → understanding (engagement is valuable)
-    trackedTimeout(() => playMicroExpression('understanding'), 200);
+  private triggerResolutionEQ(accuracy: number): void {
+    const band = toneBand(accuracy);
+    // Close guess → pride for calibrated intuition; near → warmth for effort;
+    // anything else → understanding (engagement is valuable).
+    const expression =
+      band === 'spotOn' ? 'pride_flash' : band === 'close' ? 'warmth_pulse' : 'understanding';
+    trackedTimeout(() => playMicroExpression(expression), 200);
   }
 
   /**
@@ -428,16 +356,16 @@ export class PredictionsUI {
     return `
       <div class="predictions-stats">
         <div class="predictions-stat">
-          <span class="predictions-stat__value">${data.accuracy !== null ? data.accuracy + '%' : '--'}</span>
-          <span class="predictions-stat__label">Accuracy</span>
+          <span class="predictions-stat__value">${data.accuracy !== null ? formatNumber(data.accuracy / 100, { style: 'percent' }) : '--'}</span>
+          <span class="predictions-stat__label">${t('predictions.accuracyLabel')}</span>
         </div>
         <div class="predictions-stat">
           <span class="predictions-stat__value">${data.totalResolved}</span>
-          <span class="predictions-stat__label">Resolved</span>
+          <span class="predictions-stat__label">${t('predictions.resolved')}</span>
         </div>
         <div class="predictions-stat">
           <span class="predictions-stat__value">${data.currentStreak}</span>
-          <span class="predictions-stat__label">Streak</span>
+          <span class="predictions-stat__label">${t('predictions.streak')}</span>
         </div>
       </div>
     `;
@@ -446,8 +374,12 @@ export class PredictionsUI {
   /**
    * Render prediction group
    */
-  private renderPredictionGroup(title: string, predictions: PredictionData[], isPending: boolean): string {
-    const items = predictions.map(p => this.renderPredictionCard(p, isPending)).join('');
+  private renderPredictionGroup(
+    title: string,
+    predictions: PredictionData[],
+    isPending: boolean
+  ): string {
+    const items = predictions.map((p) => this.renderPredictionCard(p, isPending)).join('');
 
     return `
       <section class="predictions-group">
@@ -462,30 +394,42 @@ export class PredictionsUI {
    */
   private renderPredictionCard(prediction: PredictionData, isPending: boolean): string {
     const icon = CATEGORY_ICONS[prediction.category] || CATEGORY_ICONS['default'];
-    const date = new Date(prediction.createdAt).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
+    const date = formatDate(new Date(prediction.createdAt), { month: 'short', day: 'numeric' });
 
     let statusClass = '';
     let resultHtml = '';
 
+    const metrics = prediction.metrics ?? [];
     if (!isPending && prediction.actualOutcome !== undefined) {
-      const error = Math.abs(prediction.userPrediction - prediction.actualOutcome);
-      statusClass = error <= 10 ? 'prediction-card--accurate' : error <= 25 ? 'prediction-card--close' : 'prediction-card--off';
+      // Status comes from the server's score; unscored results get no verdict.
+      const band = typeof prediction.accuracy === 'number' ? toneBand(prediction.accuracy) : null;
+      statusClass = band
+        ? `prediction-card--${band === 'spotOn' ? 'accurate' : band === 'close' ? 'close' : 'off'}`
+        : '';
+      const score =
+        typeof prediction.accuracy === 'number'
+          ? ` · ${escapeHtml(t('predictionResolution.scored', { accuracy: prediction.accuracy }))}`
+          : '';
       resultHtml = `
         <div class="prediction-card__result">
-          <span class="prediction-card__predicted">You predicted: ${prediction.userPrediction}%</span>
-          <span class="prediction-card__actual">Actual: ${prediction.actualOutcome}%</span>
+          <span class="prediction-card__predicted">${escapeHtml(t('predictionResolution.youGuessed', { value: prediction.userPrediction }))}</span>
+          <span class="prediction-card__actual">${escapeHtml(t('predictionResolution.actual', { value: prediction.actualOutcome }))}${score}</span>
         </div>
       `;
     } else if (isPending) {
+      const guesses =
+        metrics.length > 0
+          ? metrics.map((m) => `${metricLabel(m.key)}: ${m.predicted}`).join(' · ')
+          : t('predictionResolution.youGuessed', { value: prediction.userPrediction });
+      // Only predictions that carry their metric names can be scored.
+      const resolveBtn =
+        metrics.length > 0
+          ? `<button class="prediction-resolve-btn" data-prediction-id="${escapeHtml(prediction.id)}">${escapeHtml(t('predictionResolution.record'))}</button>`
+          : '';
       resultHtml = `
         <div class="prediction-card__pending">
-          <span class="prediction-card__predicted">Your prediction: ${prediction.userPrediction}</span>
-          <button aria-label="${t('accessibility.recordActual')}" class="prediction-resolve-btn" data-prediction-id="${escapeHtml(prediction.id)}">
-            Record Actual
-          </button>
+          <span class="prediction-card__predicted">${escapeHtml(guesses)}</span>
+          ${resolveBtn}
         </div>
       `;
     }
@@ -502,11 +446,9 @@ export class PredictionsUI {
     `;
   }
 
-  /**
-   * Show the panel.
-   * Fetches data from API if not already loaded.
-   */
+  /** Show the panel (fetching data if needed). Its button can beat the deferred init. */
   show(): void {
+    if (!this.container) this.initialize();
     if (!this.container) return;
 
     this.panelVisible = true;
@@ -532,7 +474,7 @@ export class PredictionsUI {
       this.update({
         predictions: cachedPredictions,
         accuracy: engagementService.calculateAccuracy(),
-        totalResolved: cachedPredictions.filter(p => p.status === 'resolved').length,
+        totalResolved: cachedPredictions.filter((p) => p.status === 'resolved').length,
         currentStreak: this.calculateStreak(cachedPredictions),
       });
       this.hasDataLoaded = true;
@@ -548,7 +490,7 @@ export class PredictionsUI {
         this.update({
           predictions,
           accuracy: engagementService.calculateAccuracy(),
-          totalResolved: predictions.filter(p => p.status === 'resolved').length,
+          totalResolved: predictions.filter((p) => p.status === 'resolved').length,
           currentStreak: this.calculateStreak(predictions),
         });
         this.hasDataLoaded = true;
@@ -563,7 +505,7 @@ export class PredictionsUI {
       this.update({
         predictions: demoPredictions,
         accuracy: calculateDemoPredictionAccuracy(),
-        totalResolved: demoPredictions.filter(p => p.status === 'resolved').length,
+        totalResolved: demoPredictions.filter((p) => p.status === 'resolved').length,
         currentStreak: this.calculateStreak(demoPredictions),
       });
       this.hasDataLoaded = true;
@@ -578,27 +520,9 @@ export class PredictionsUI {
     }
   }
 
-  /**
-   * Calculate prediction streak from resolved predictions.
-   */
+  /** Consecutive well-scored predictions, from the server's scores. */
   private calculateStreak(predictions: PredictionData[]): number {
-    // Count consecutive accurate predictions (within 15% of actual)
-    const resolved = predictions
-      .filter(p => p.status === 'resolved' && p.actualOutcome !== undefined)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    
-    let streak = 0;
-    for (const pred of resolved) {
-      const accuracy = pred.actualOutcome !== undefined && pred.userPrediction > 0
-        ? 100 - Math.abs((pred.actualOutcome - pred.userPrediction) / pred.userPrediction * 100)
-        : 0;
-      if (accuracy >= 70) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-    return streak;
+    return scoredStreak(predictions);
   }
 
   /**
@@ -609,11 +533,14 @@ export class PredictionsUI {
 
     this.panelVisible = false;
     this.container.setAttribute('aria-hidden', 'true');
-    
+
     // Wait for animation before hiding
-    trackedTimeout(() => {
-      this.container?.classList.remove('predictions-panel--visible');
-    }, prefersReducedMotion() ? 0 : DURATION.NORMAL);
+    trackedTimeout(
+      () => {
+        this.container?.classList.remove('predictions-panel--visible');
+      },
+      prefersReducedMotion() ? 0 : DURATION.NORMAL
+    );
   }
 
   /**

@@ -33,7 +33,6 @@ import { persistNaturalnessData } from '../../speech/naturalness/index.js';
 // FIX AUDIT: Merged handoff imports to avoid duplicate import warning
 import { getDJController } from '../../audio/dj-controller.js';
 import {
-  cameoUnlockEvents,
   handoffEvents,
   resetHandoffState,
   resetMetPersonas,
@@ -200,6 +199,8 @@ export interface CameoUnlockEventData {
   displayName: string;
   role: string;
   spokenIntro: string;
+  /** The call it belongs to: the emitter is shared by every call in the process */
+  sessionId?: string;
 }
 
 /**
@@ -207,6 +208,8 @@ export interface CameoUnlockEventData {
  */
 export interface CleanupContext {
   sessionId: string;
+  /** Why the session wait ended ('empty_room', 'room.disconnected', 'timeout', ...) */
+  endReason?: string;
   userId?: string;
   services: SessionServices;
   sessionPersona: PersonaConfig;
@@ -221,7 +224,6 @@ export interface CleanupContext {
   // NOTE: Handler may be async (returns Promise<void>) as per EventHandlerResult type
   handoffHandler?: (data: HandoffEventPayload) => void | Promise<void>;
   // FIX AUDIT: Properly typed handler instead of `any`
-  cameoUnlockHandler?: (data: CameoUnlockEventData) => void;
   cameoCleanup?: () => void;
   musicCleanup?: () => void | Promise<void>;
   // User data for trial tracking
@@ -322,7 +324,6 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     feedbackCollector,
     dataChannelCleanup,
     handoffHandler,
-    cameoUnlockHandler,
     cameoCleanup,
     musicCleanup,
     userData,
@@ -344,10 +345,11 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     duration: sessionDuration,
   });
 
-  // Call quality: session disconnect (cleanup runs on room disconnect)
+  // Call quality: how the call ended (a hang-up is not a dropped connection)
   try {
     const { endCall } = await import('../../services/analytics/call-quality-monitor.js');
-    endCall(sessionId, 'disconnect');
+    const { classifyCallEnd } = await import('../../services/analytics/call-end-reason.js');
+    endCall(sessionId, classifyCallEnd(ctx.endReason));
   } catch (qualityErr) {
     diag.debug('Call quality end failed (non-fatal)', { error: String(qualityErr) });
   }
@@ -357,7 +359,6 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
   // ================================================================
   if (dataChannelCleanup) dataChannelCleanup();
   if (handoffHandler) handoffEvents.off('voiceSwitch', handoffHandler);
-  if (cameoUnlockHandler) cameoUnlockEvents.off('memberUnlocked', cameoUnlockHandler);
   if (cameoCleanup) cameoCleanup();
   if (stopPeriodicSync) stopPeriodicSync();
 
@@ -1501,16 +1502,6 @@ async function cleanupDJIntegration(_services: SessionServices): Promise<void> {
       hadMusic: state.currentTrack !== null || state.trackStartTime !== null,
       wasExplicitlyStopped: state.wasExplicitlyStopped,
     });
-
-    // Music preferences are now handled by music-user-learning.ts
-    // No need to extract from DJ Booth since it's been deleted
-    const djBoothPrefs: {
-      likedArtists?: string[];
-      dislikedArtists?: string[];
-      favoriteGenres?: string[];
-      moodPreferences?: Record<string, string[]>;
-      preferredMusicTimes?: Array<'morning' | 'afternoon' | 'evening' | 'night'>;
-    } | null = null;
 
     // Music preferences are now persisted via music-learning-persistence.ts
     // The music-user-learning.ts module handles Thompson Sampling for preferences

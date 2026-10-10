@@ -49,7 +49,10 @@ const createMockRoom = () => ({
     getTrackPublications: vi.fn(() => []),
     publishData: vi.fn().mockResolvedValue(undefined),
   },
-  remoteParticipants: new Map(),
+  // The voice agent is already in the room: connect() only succeeds once it is.
+  remoteParticipants: new Map<string, unknown>([
+    ['agent-1', { identity: 'agent-1', isAgent: true, audioTrackPublications: new Map() }],
+  ]),
   connect: vi.fn().mockResolvedValue(undefined),
   disconnect: vi.fn().mockResolvedValue(undefined),
   on: vi.fn(function (this: ReturnType<typeof createMockRoom>) {
@@ -62,7 +65,9 @@ const createMockRoom = () => ({
 
 // Mock window.LiveKit
 const mockLiveKit = {
-  Room: vi.fn(() => createMockRoom()),
+  Room: vi.fn(function () {
+    return createMockRoom();
+  }),
   RoomEvent: {
     Connected: 'connected',
     Disconnected: 'disconnected',
@@ -97,7 +102,9 @@ describe('ConnectionService', () => {
 
     // Reset mocked room
     mockRoom = createMockRoom();
-    mockLiveKit.Room = vi.fn(() => mockRoom);
+    mockLiveKit.Room = vi.fn(function () {
+      return mockRoom;
+    });
 
     // Import service fresh
     const module = await import('../../../src/services/connection.service.js');
@@ -239,45 +246,6 @@ describe('ConnectionService', () => {
       expect(result).toBe(true);
       expect(mockFetch).toHaveBeenCalledOnce(); // Only first call
     });
-
-    it('should set useQwen3Omni from token response when true (Phase 1 E2E)', async () => {
-      const mockTokenResponse: TokenResponse = {
-        token: 'test-token',
-        url: 'wss://test.livekit.cloud',
-        room: 'voice-12345',
-        username: 'Test User',
-        useQwen3Omni: true,
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: vi.fn().mockResolvedValue(mockTokenResponse),
-      });
-
-      await connectionService.connect();
-      mockRoom.state = 'connected';
-
-      expect(connectionService.getRoomState().useQwen3Omni).toBe(true);
-    });
-
-    it('should not set useQwen3Omni when token omits or sets false (Phase 1 E2E)', async () => {
-      const mockTokenResponse: TokenResponse = {
-        token: 'test-token',
-        url: 'wss://test.livekit.cloud',
-        room: 'voice-12345',
-        username: 'Test User',
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: vi.fn().mockResolvedValue(mockTokenResponse),
-      });
-
-      await connectionService.connect();
-      mockRoom.state = 'connected';
-
-      expect(connectionService.getRoomState().useQwen3Omni).toBe(false);
-    });
   });
 
   describe('disconnect()', () => {
@@ -302,28 +270,6 @@ describe('ConnectionService', () => {
 
       expect(mockRoom.disconnect).toHaveBeenCalled();
       expect(connectionService.isConnected()).toBe(false);
-    });
-
-    it('should clear useQwen3Omni on disconnect (Phase 1 E2E)', async () => {
-      const mockTokenResponse: TokenResponse = {
-        token: 'test-token',
-        url: 'wss://test.livekit.cloud',
-        room: 'voice-12345',
-        username: 'Test User',
-        useQwen3Omni: true,
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: vi.fn().mockResolvedValue(mockTokenResponse),
-      });
-
-      await connectionService.connect();
-      mockRoom.state = 'connected';
-      expect(connectionService.getRoomState().useQwen3Omni).toBe(true);
-
-      await connectionService.disconnect();
-      expect(connectionService.getRoomState().useQwen3Omni).toBe(false);
     });
 
     it('should handle disconnect when not connected', async () => {
@@ -682,7 +628,6 @@ describe('ConnectionService', () => {
         localParticipantId: null,
         remoteParticipantCount: 0,
         hasActiveAudio: false,
-        useQwen3Omni: false,
       });
     });
 
@@ -754,7 +699,9 @@ describe('ConnectionService', () => {
         });
 
         mockRoom = createMockRoom();
-        mockLiveKit.Room = vi.fn(() => mockRoom);
+        mockLiveKit.Room = vi.fn(function () {
+          return mockRoom;
+        });
 
         await connectionService.connect();
         await connectionService.disconnect();
@@ -786,7 +733,9 @@ describe('ConnectionService', () => {
 
       // Second cycle
       mockRoom = createMockRoom();
-      mockLiveKit.Room = vi.fn(() => mockRoom);
+      mockLiveKit.Room = vi.fn(function () {
+        return mockRoom;
+      });
 
       await connectionService.connect();
       const secondOnCallCount = mockRoom.on.mock.calls.length;

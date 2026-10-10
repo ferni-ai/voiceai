@@ -94,12 +94,10 @@ Deploy services to cloud
 | `npm run deploy:all` | `npx tsx scripts/deploy.ts all` |
 | `npm run deploy:brand` | `npx tsx scripts/deploy.ts brand` |
 | `npm run deploy:context` | `bash infrastructure/scripts/deploy-context.sh` |
-| `npm run deploy:evolution` | `npx tsx scripts/deploy.ts evolution` |
 | `npm run deploy:frontend` | `npx tsx scripts/deploy.ts frontend` |
 | `npm run deploy:help` | `npx tsx scripts/deploy.ts --help` |
 | `npm run deploy:joel` | `npx tsx scripts/deploy.ts joel` |
 | `npm run deploy:landing` | `npx tsx scripts/deploy.ts landing` |
-| `npm run deploy:speaker` | `gcloud builds submit --config=cloudbuild-speaker.yaml` |
 | `npm run deploy:ui` | `npx tsx scripts/deploy.ts ui` |
 | `npm run deploy:ui:async` | `npx tsx scripts/deploy.ts ui --async` |
 | `npm run deploy:workers` | `bash infrastructure/scripts/deploy-workers.sh` |

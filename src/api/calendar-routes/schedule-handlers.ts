@@ -6,8 +6,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
-import { parseBody, sendError } from '../helpers.js';
-import { sendJson, formatEventForApi } from './helpers.js';
+import { sendError } from '../helpers.js';
+import { sendJson, formatEventForApi, readJsonBody } from './helpers.js';
 import {
   isConnected,
   getDayOverview,
@@ -134,7 +134,7 @@ export async function handleBlockFocus(
   userId: string
 ): Promise<void> {
   try {
-    const body = await parseBody<{ durationMinutes?: number }>(req);
+    const body = await readJsonBody<{ durationMinutes?: number }>(req);
     const durationMinutes = body?.durationMinutes || 60;
 
     const today = new Date();

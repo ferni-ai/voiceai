@@ -9,21 +9,13 @@ license = "MIT"
 default = ["napi"]
 # Enable NAPI bindings (cdylib). Disable with --no-default-features to run lib tests without NAPI link errors.
 napi = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
-# Enable Candle ML model modules (Qwen3-Omni, LFM2, etc.) — ~10K lines of model code.
+# Enable Candle ML model modules (FTIS Candle router, LFM2).
 # Disabled in Docker/GCE builds to reduce compile time and binary size.
-# Enable for local dev (Apple Silicon Metal) or the qwen3-omni-server binary.
 candle_models = ["dep:candle-core", "dep:candle-nn", "dep:candle-transformers", "dep:safetensors", "dep:half"]
-# Enable HTTP server binary for Candle Qwen3-Omni inference.
-server = ["candle_models", "dep:axum", "dep:tokio", "dep:tower-http", "dep:base64", "dep:futures-util"]
 
 [lib]
 # cdylib for Node.js NAPI bindings, rlib for Rust tests
 crate-type = ["cdylib", "rlib"]
-
-[[bin]]
-name = "qwen3-omni-server"
-path = "src/bin/server.rs"
-required-features = ["server"]
 
 [dependencies]
 # NAPI-RS for Node.js bindings (optional: omit for cargo test --no-default-features)
@@ -62,7 +54,7 @@ memchr = "2.7"
 lazy_static = "1.5"
 
 # RNG for sampling in Thinker generation
-rand = "0.8"
+rand = "0.9"
 
 # Aho-Corasick for multi-pattern matching (O(n) for all patterns)
 aho-corasick = "1.1"
@@ -74,7 +66,7 @@ rustfft = "6.2"
 sha2 = "0.10"
 
 # LRU cache for embedding cache
-lru = "0.12"
+lru = "0.16"
 
 # Generic array for FFT
 num-complex = "0.4"
@@ -99,7 +91,7 @@ candle-core = { version = "0.8", features = ["metal"], optional = true }
 ort = { version = "2.0.0-rc.11" }
 candle-core = { version = "0.8", optional = true }
 
-# Candle ML framework (optional: only for candle_models feature — Qwen3-Omni, LFM2, etc.)
+# Candle ML framework (optional: only for candle_models feature — FTIS router, LFM2)
 [dependencies.candle-nn]
 version = "0.8"
 optional = true
@@ -114,32 +106,6 @@ optional = true
 
 [dependencies.half]
 version = "2.4"
-optional = true
-
-# ============================================================================
-# HTTP server for Candle inference (axum + tokio)
-# ============================================================================
-[dependencies.axum]
-version = "0.8"
-features = ["ws"]
-optional = true
-
-[dependencies.tokio]
-version = "1"
-features = ["full"]
-optional = true
-
-[dependencies.tower-http]
-version = "0.6"
-features = ["cors"]
-optional = true
-
-[dependencies.base64]
-version = "0.22"
-optional = true
-
-[dependencies.futures-util]
-version = "0.3"
 optional = true
 
 [build-dependencies]

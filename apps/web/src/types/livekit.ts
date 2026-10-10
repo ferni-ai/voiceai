@@ -19,7 +19,10 @@ export type {
   VideoTrack,
 } from 'livekit-client';
 
-export {
+// Type-only on purpose: a value export from 'livekit-client' pulls the whole
+// SDK (~420 KB) into the startup bundle. The runtime client comes from the
+// voice-engine.js UMD script (window.LiveKit, see services/connection.service.ts).
+export type {
   ConnectionState as LiveKitConnectionState,
   Track as LiveKitTrack,
   ParticipantEvent,
@@ -39,8 +42,8 @@ export interface TokenResponse {
   readonly url: string; // Server URL (wss://...)
   readonly room: string; // Room name
   readonly username: string; // Participant name
-  /** When true, backend is using Qwen3-Omni; frontend shows Director Console in menu */
-  readonly useQwen3Omni?: boolean;
+  /** False when the server could not dispatch the voice agent into the room. */
+  readonly agent_dispatched?: boolean;
 }
 
 /**
@@ -124,8 +127,6 @@ export interface RoomState {
   readonly localParticipantId: string | null;
   readonly remoteParticipantCount: number;
   readonly hasActiveAudio: boolean;
-  /** When true, session was created with Qwen3-Omni backend; show Director Console in menu */
-  readonly useQwen3Omni?: boolean;
 }
 
 /**
@@ -138,6 +139,5 @@ export function createInitialRoomState(): RoomState {
     localParticipantId: null,
     remoteParticipantCount: 0,
     hasActiveAudio: false,
-    useQwen3Omni: undefined,
   };
 }

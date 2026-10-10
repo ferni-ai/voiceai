@@ -9,6 +9,7 @@
  * @see apps/BETTER-THAN-HUMAN-PLAN.md for architecture
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { appState } from '../state/app.state.js';
 
@@ -101,8 +102,6 @@ export interface RoadmapFeature {
   superhuman: string[];
   /** What's already implemented (partial features) */
   existing?: string[];
-  /** Estimated arrival (quarter/year) */
-  estimatedArrival: string;
   /** Can users vote/express interest */
   canVote: boolean;
   /** Total seeds planted by community */
@@ -113,6 +112,18 @@ export interface RoadmapFeature {
   icon: string;
   /** Category for grouping */
   category: 'connect' | 'personalize' | 'platform';
+}
+
+/** Static feature definition; display text lives under roadmapFeatures.<ns>.* in the locale files. */
+interface RoadmapFeatureDef
+  extends Omit<
+    RoadmapFeature,
+    'headline' | 'description' | 'superhuman' | 'existing' | 'totalSeeds' | 'uniqueVoters'
+  > {
+  /** i18n namespace: headline, description, superhuman1-4, existing1-N */
+  ns: string;
+  /** Number of existing1..N entries (partial features) */
+  existingCount?: number;
 }
 
 export interface UserSeeds {
@@ -160,79 +171,48 @@ export interface RoadmapSuggestion {
 // STAGE METADATA
 // ============================================================================
 
-export const STAGE_INFO: Record<
-  RoadmapStage,
-  {
-    icon: string;
-    label: string;
-    description: string;
-    colorClass: string;
-  }
-> = {
-  seed: {
-    icon: 'seed',
-    label: 'Planted',
-    description: 'This idea is taking root',
-    colorClass: 'stage--seed',
+/** Stage display info; label/description resolve in the active locale on read. */
+const stageInfo = (stage: RoadmapStage) => ({
+  icon: stage,
+  colorClass: `stage--${stage}`,
+  get label(): string {
+    return t(`roadmap.stages.${stage}`);
   },
-  sprout: {
-    icon: 'sprout',
-    label: 'Growing',
-    description: "We're actively building this",
-    colorClass: 'stage--sprout',
+  get description(): string {
+    return t(`roadmap.stageDescriptions.${stage}`);
   },
-  bud: {
-    icon: 'bud',
-    label: 'Budding',
-    description: 'Almost ready to bloom',
-    colorClass: 'stage--bud',
-  },
-  bloom: {
-    icon: 'bloom',
-    label: 'Blooming Soon',
-    description: 'Launching very soon',
-    colorClass: 'stage--bloom',
-  },
+});
+
+export const STAGE_INFO: Record<RoadmapStage, ReturnType<typeof stageInfo>> = {
+  seed: stageInfo('seed'),
+  sprout: stageInfo('sprout'),
+  bud: stageInfo('bud'),
+  bloom: stageInfo('bloom'),
 };
 
 // ============================================================================
 // ROADMAP FEATURES (Static definitions - stats come from API)
 // ============================================================================
 
-export const ROADMAP_FEATURES: RoadmapFeature[] = [
+// Only features that are not built yet. Shipped ones (connections, household, voice ID,
+// personalize, marketplace) have their own panels; listing them here asked people to vote
+// for what they already had. No arrival dates: the old quarters had all passed.
+const ROADMAP_FEATURE_DEFS: RoadmapFeatureDef[] = [
   // -------------------------------------------------------------------------
   // CONNECT CATEGORY
   // -------------------------------------------------------------------------
   {
     id: 'group-coaching',
-    headline: 'Grow together.',
-    description:
-      'Imagine your closest friends, all with perfect memory, showing up for you at once. Group coaching brings multiple Ferni minds into one conversation - different perspectives, same unconditional support.',
+    ns: 'groupCoaching',
     stage: 'sprout',
-    superhuman: [
-      'Perfect recall - Every group member remembers every word you have said',
-      'Multiple perspectives - Six viewpoints, one conversation',
-      'No ego - Pure collaboration, zero competition',
-      'Always available - Your support group never sleeps',
-    ],
-    estimatedArrival: 'Q2 2025',
     canVote: true,
     icon: 'users',
     category: 'connect',
   },
   {
     id: 'video-settings',
-    headline: 'See the warmth.',
-    description:
-      'Sometimes you need to see the face that is listening. Video brings Ferni into your space - gentle expressions, attentive gaze, and the feeling of someone truly being there.',
+    ns: 'videoSettings',
     stage: 'bud',
-    superhuman: [
-      'Full attention - Never looking at their phone',
-      'Genuine expressions - Micro-expressions that show we care',
-      'Your space, your comfort - Call from anywhere, anytime',
-      'Beyond FaceTime - A listener who never needs to be anywhere else',
-    ],
-    estimatedArrival: 'Q1 2025',
     canVote: true,
     icon: 'video',
     category: 'connect',
@@ -241,116 +221,45 @@ export const ROADMAP_FEATURES: RoadmapFeature[] = [
   // -------------------------------------------------------------------------
   // PERSONALIZE CATEGORY
   // -------------------------------------------------------------------------
-  {
-    id: 'connections',
-    headline: 'We sync with your world.',
-    description:
-      'Your wearables, calendar, and trusted services tell a story words cannot. By connecting your life, Ferni understands your rhythms - when you are depleted, when you are overcommitted, when rest is the bravest choice.',
-    stage: 'sprout',
-    superhuman: [
-      'Body awareness - We notice stress before you do',
-      'Calendar intelligence - We see the chaos in your schedule',
-      'Holistic view - Health + time + commitments in one conversation',
-      'Rest advocacy - We will tell you when to stop',
-    ],
-    existing: ['Apple Health basics', 'Google Calendar sync', 'Spotify integration'],
-    estimatedArrival: 'Q1 2025',
-    canVote: true,
-    icon: 'link',
-    category: 'personalize',
-  },
-  {
-    id: 'household',
-    headline: 'One Ferni, your whole family.',
-    description:
-      'Ferni can support multiple people under one roof - each with their own relationship, their own memories, their own journey. Privacy walls between members, shared support within.',
-    stage: 'seed',
-    superhuman: [
-      'Individual relationships - Each person has their own Ferni',
-      'Privacy by default - Your conversations stay yours',
-      'Family coordination - Opt-in shared goals and check-ins',
-      'Kids mode - Age-appropriate support (coming)',
-    ],
-    estimatedArrival: 'Q2 2025',
-    canVote: true,
-    icon: 'household',
-    category: 'personalize',
-  },
-  {
-    id: 'voice-enrollment',
-    headline: 'We know it is you.',
-    description:
-      'Your voice is as unique as your fingerprint. Voice recognition means Ferni knows it is you the moment you speak - personalized from the first word, secured by who you are.',
-    stage: 'sprout',
-    superhuman: [
-      'Biometric security - Your voice is your password',
-      'Instant personalization - No login, just talk',
-      'Multi-user awareness - We know who is speaking',
-      'Mood detection - We hear how you are feeling',
-    ],
-    existing: ['Basic voice enrollment', 'Voice verification'],
-    estimatedArrival: 'Q1 2025',
-    canVote: true,
-    icon: 'fingerprint',
-    category: 'personalize',
-  },
-  {
-    id: 'personalize',
-    headline: 'Make Ferni yours.',
-    description:
-      'Every relationship is unique. Personalization lets you shape how Ferni shows up - their voice, their style, the things they remember to mention. Your Ferni, your way.',
-    stage: 'sprout',
-    superhuman: [
-      'Visual customization - Colors, themes, and presence',
-      'Voice selection - The voice that resonates with you',
-      'Communication style - Formal, casual, encouraging, direct',
-      'Ambient sounds - Your ideal conversation environment',
-    ],
-    existing: ['Theme selection (light/dark)', 'Accent preferences'],
-    estimatedArrival: 'Q1 2025',
-    canVote: true,
-    icon: 'palette',
-    category: 'personalize',
-  },
 
   // -------------------------------------------------------------------------
   // PLATFORM CATEGORY
   // -------------------------------------------------------------------------
   {
-    id: 'marketplace',
-    headline: 'Find your people.',
-    description:
-      'Beyond Ferni core team, a garden of specialized AI coaches awaits. ADHD support, sobriety companions, sleep specialists, parenting guides - experts who understand your specific journey.',
-    stage: 'seed',
-    superhuman: [
-      'Specialized personas - Coaches for specific life challenges',
-      'Community ratings - Real experiences, real reviews',
-      'Free and premium - Support for every budget',
-      'Seamless handoffs - Your Ferni team, expanded',
-    ],
-    estimatedArrival: 'Q2 2025',
-    canVote: true,
-    icon: 'sparkles',
-    category: 'platform',
-  },
-  {
     id: 'developer-portal',
-    headline: 'Build what matters.',
-    description:
-      'Ferni technology is opening up. Build your own AI coaches, create specialized personas, and reach people who need exactly what you offer. The platform that powers Ferni - now yours.',
+    ns: 'developerPortal',
     stage: 'seed',
-    superhuman: [
-      'Full API documentation - Everything you need to build',
-      'SDK and libraries - TypeScript-first development',
-      'Persona builder - Visual tools for creating coaches',
-      'Monetization - Sell your creations on the marketplace',
-    ],
-    estimatedArrival: 'Q3 2025',
     canVote: false,
     icon: 'commands',
     category: 'platform',
   },
 ];
+
+/** Text resolves in the active locale each time it is read; stats come from the API. */
+function toFeature(def: RoadmapFeatureDef): RoadmapFeature {
+  const { ns, existingCount = 0, ...base } = def;
+  const text = (leaf: string): string => t(`roadmapFeatures.${ns}.${leaf}`);
+  const list = (leaf: string, count: number): string[] =>
+    Array.from({ length: count }, (_, i) => text(`${leaf}${i + 1}`));
+
+  return {
+    ...base,
+    get headline() {
+      return text('headline');
+    },
+    get description() {
+      return text('description');
+    },
+    get superhuman() {
+      return list('superhuman', 4);
+    },
+    get existing() {
+      return existingCount > 0 ? list('existing', existingCount) : undefined;
+    },
+  };
+}
+
+export const ROADMAP_FEATURES: RoadmapFeature[] = ROADMAP_FEATURE_DEFS.map(toFeature);
 
 // ============================================================================
 // SERVICE CLASS
@@ -408,14 +317,12 @@ class RoadmapService {
    * Includes menu action IDs that may differ from roadmap feature IDs
    */
   isRoadmapFeature(id: string): boolean {
-    // Map menu action IDs to roadmap feature IDs
+    // Map menu action IDs to roadmap feature IDs. Only still-unbuilt features
+    // belong here: a mapped action is hidden from the menu, so listing a shipped
+    // panel (household, voice ID, personalize, marketplace) made it unreachable.
     const MENU_ACTION_TO_ROADMAP: Record<string, string> = {
       'video-call-settings': 'video-settings',
       'together-sessions': 'group-coaching',
-      'household-members': 'household',
-      'voice-id-settings': 'voice-enrollment',
-      'personal-settings': 'personalize',
-      'discover-agents': 'marketplace',
     };
     
     // Check direct match or mapped match
@@ -520,7 +427,7 @@ class RoadmapService {
         return { success: true, newBalance: this.seedBalanceCache ?? undefined };
       }
 
-      return { success: false, error: response?.error || 'Vote failed' };
+      return { success: false, error: response?.error || t('roadmap.errors.voteFailed') };
     } catch (error) {
       log.error({ error, featureId }, 'Failed to vote');
 
@@ -569,10 +476,10 @@ class RoadmapService {
         return { success: true, seedsRefunded: response.seedsRefunded };
       }
 
-      return { success: false, error: response?.error || 'Unvote failed' };
+      return { success: false, error: response?.error || t('roadmap.errors.unvoteFailed') };
     } catch (error) {
       log.error({ error, featureId }, 'Failed to unvote');
-      return { success: false, error: 'Network error' };
+      return { success: false, error: t('roadmap.errors.network') };
     }
   }
 
@@ -661,10 +568,10 @@ class RoadmapService {
         log.info({ title, category }, 'Suggestion submitted');
       }
 
-      return response ?? { success: false, error: 'No response' };
+      return response ?? { success: false, error: t('roadmap.errors.noResponse') };
     } catch (error) {
       log.error({ error }, 'Failed to submit suggestion');
-      return { success: false, error: 'Network error' };
+      return { success: false, error: t('roadmap.errors.network') };
     }
   }
 

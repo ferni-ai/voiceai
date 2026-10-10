@@ -10,8 +10,8 @@
  * Integrates with the existing MemoryStore system.
  */
 
+import { getProfileStore } from '../../memory/profile-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { getDefaultStore } from '../../memory/index.js';
 import type { MemoryStore } from '../../memory/store.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
@@ -387,7 +387,7 @@ class LifeDataStore {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    this.store = getDefaultStore();
+    this.store = await getProfileStore();
     this.initialized = true;
     getLogger().info('📊 Life Data Store initialized');
   }

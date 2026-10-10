@@ -37,6 +37,7 @@ import {
   type TrackSpeechContext,
 } from '../../audio/dj-speech-engine.js';
 import { getDJTimingEngine } from '../../audio/dj-timing-engine.js';
+import { djCommandFor } from './music-state-bridge.js';
 import {
   getMusicPlayer,
   initializeMusicPlayer,
@@ -150,7 +151,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     // 🎧 CRITICAL: Send music state to frontend via FrontendPublisher
     // Without this, the frontend Never knows about music state changes!
     // ==========================================================================
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
     if (publisher.isConnected()) {
       const track = event.track
         ? { name: event.track.name, artist: event.track.artist }
@@ -185,7 +186,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     // ==========================================================================
     // 🎧 Send track_started state to frontend with full track info
     // ==========================================================================
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
     if (publisher.isConnected()) {
       // Check if this is an "Our Song" (shared musical memory)
       let ourSongInfo: { isOurSong: boolean; context?: string } | undefined;
@@ -235,12 +236,13 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
 
       // Pre-warm LLM cache (only used when the DJ speaks on its own)
       const speechContext: TrackSpeechContext = { track, personaId: sessionPersona.id };
-      if (djSpeaksOnItsOwn()) prewarmInterjectionCache(speechContext).catch((err) => {
-        log.debug(
-          { error: String(err), personaId: sessionPersona.id },
-          'Interjection cache prewarm failed (non-critical)'
-        );
-      });
+      if (djSpeaksOnItsOwn())
+        prewarmInterjectionCache(speechContext).catch((err) => {
+          log.debug(
+            { error: String(err), personaId: sessionPersona.id },
+            'Interjection cache prewarm failed (non-critical)'
+          );
+        });
     }
 
     // Maybe speak intro
@@ -313,7 +315,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     log.info({ track: track.name }, '🎧 Track fading - notifying frontend');
 
     // Send fading state to frontend for visual feedback
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
     if (publisher.isConnected()) {
       publisher
         .sendMusicState('fading', { name: track.name, artist: track.artist })
@@ -330,7 +332,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     // ==========================================================================
     // 🎧 Send track_ended (stopped) state to frontend
     // ==========================================================================
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
     if (publisher.isConnected()) {
       publisher.sendMusicState('stopped').catch((err) => {
         log.error({ error: String(err) }, '🎧 Error sending track_ended to frontend');
@@ -400,7 +402,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
 
     log.info({ reason: event.reason }, '🎧 Ducking started - notifying frontend');
 
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
     if (publisher.isConnected()) {
       const state = djController.getState();
       const track = state.currentTrack
@@ -418,7 +420,7 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
 
     log.info('🎧 Ducking ended - notifying frontend to restore volume');
 
-    const publisher = getFrontendPublisher();
+    const publisher = getFrontendPublisher(sessionId);
     if (publisher.isConnected()) {
       const state = djController.getState();
       const track = state.currentTrack
@@ -439,37 +441,8 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
 
   musicPlayer.setOnMusicStateChangeCallback(
     (state: MusicState, track: MusicTrack | null, isAmbient: boolean) => {
-      switch (state) {
-        case 'playing':
-          if (track) {
-            // 🐛 FIX: Only dispatch PLAY_TRACK for NEW tracks, not when resuming from duck!
-            // Without this check, unduck → playing triggers PLAY_TRACK → track_started → DJ speech → loop forever
-            const currentState = djController.getState();
-            const isNewTrack =
-              !currentState.currentTrack || currentState.currentTrack.name !== track.name;
-            const isResumeFromDuck =
-              currentState.state === 'ducking' && currentState.currentTrack?.name === track.name;
-
-            if (isNewTrack && !isResumeFromDuck) {
-              djController.dispatch({ type: 'PLAY_TRACK', track, isAmbient });
-            } else {
-              log.debug(
-                { track: track.name, state: currentState.state },
-                '🎧 Skipping PLAY_TRACK - same track resuming from duck'
-              );
-            }
-          }
-          break;
-        case 'stopped':
-          djController.dispatch({ type: 'STOP' });
-          break;
-        case 'paused':
-          djController.dispatch({ type: 'PAUSE' });
-          break;
-        case 'fading':
-          djController.dispatch({ type: 'TRACK_NEAR_END' });
-          break;
-      }
+      const command = djCommandFor(state, track, isAmbient, djController.getState());
+      if (command) djController.dispatch(command);
     }
   );
 

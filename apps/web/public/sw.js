@@ -8,12 +8,17 @@
  * - Periodic sync for ritual reminders
  *
  * Cache Strategy:
- * - Static assets: Cache-first (fonts, icons, CSS)
+ * - Content-hashed bundles and fonts: Cache-first (a new build changes the URL)
+ * - Other static files (design-system CSS, icons): Stale-while-revalidate, so a
+ *   deploy reaches users on their next load without bumping CACHE_VERSION
+ * - Vite dev modules (/src, /@vite, /node_modules): never cached
  * - API calls: Network-first with cache fallback
  * - HTML: Network-first
  */
 
-const CACHE_VERSION = 'v3';
+// v4: v3 served /design-system/tokens.css cache-first from 2025-12, so returning users kept
+// stale design tokens. Bumping the name makes activate() delete those caches.
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = `ferni-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `ferni-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `ferni-api-${CACHE_VERSION}`;
@@ -125,9 +130,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // Static assets (CSS, JS, images) - Cache-first
+  // Vite dev server modules change on every edit
+  if (/^\/(src|@vite|@id|@fs|node_modules)\//.test(url.pathname)) {
+    return;
+  }
+
+  // Static assets: hashed bundles never change in place; everything else may
   if (isStaticAsset(url.pathname)) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    event.respondWith(isHashedAsset(url.pathname)
+      ? cacheFirst(request, STATIC_CACHE)
+      : staleWhileRevalidate(event, request, STATIC_CACHE));
     return;
   }
   
@@ -173,6 +185,27 @@ async function cacheFirst(request, cacheName) {
 }
 
 /**
+ * Stale-while-revalidate: answer from cache at once, refresh it in the background
+ * Good for: static files whose URL stays the same across deploys
+ */
+async function staleWhileRevalidate(event, request, cacheName) {
+  const cached = await caches.match(request);
+  const refresh = fetch(request).then(async (response) => {
+    if (response.ok && response.status === 200) {
+      const cache = await caches.open(cacheName);
+      await cache.put(request, response.clone());
+    }
+    return response;
+  });
+  if (cached) {
+    event.waitUntil(refresh.catch(() => undefined));
+    return cached;
+  }
+  return refresh.catch(() => caches.match('/offline.html') ||
+    new Response('Offline', { status: 503, statusText: 'Service Unavailable' }));
+}
+
+/**
  * Network-first: Try network, fall back to cache
  * Good for: API data, HTML pages
  */
@@ -207,6 +240,11 @@ async function networkFirstWithCache(request, cacheName) {
     return caches.match('/offline.html') || 
            new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
+}
+
+/** Vite build output: /assets/name-<hash>.ext */
+function isHashedAsset(pathname) {
+  return /^\/assets\/.+-[A-Za-z0-9_-]{8,}\.[a-z0-9]+$/.test(pathname);
 }
 
 /**

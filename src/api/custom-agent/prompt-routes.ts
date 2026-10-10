@@ -34,7 +34,7 @@ export async function handleGeneratePrompt(
 /**
  * Generate a system prompt from agent configuration
  */
-function generateSystemPrompt(agent: CustomAgent): string {
+export function generateSystemPrompt(agent: CustomAgent): string {
   const { name, displayName, description, type, personality, memories, behaviors } = agent;
 
   let prompt = `# You Are ${displayName || name}\n\n`;

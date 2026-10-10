@@ -36,6 +36,11 @@ vi.mock('../utils/safe-logger.js', () => ({
   })),
 }));
 
+// Writes require a verified caller; these requests come from signed-in test-user.
+vi.mock('../api/auth-middleware.js', () => ({
+  requireAuth: vi.fn(async () => ({ userId: 'test-user', isAdmin: false })),
+}));
+
 // Mock validators
 vi.mock('../api/validators.js', () => ({
   validateBody: vi.fn(),
@@ -64,7 +69,8 @@ function createMockRequest(options: {
   const req = {
     method,
     url,
-    headers: { 'x-user-id': 'test-user', host: 'localhost:3002', ...headers },
+    // The verified caller, as bindVerifiedIdentity binds it.
+    headers: { 'x-firebase-uid': 'test-user', host: 'localhost:3002', ...headers },
     on: vi.fn((event: string, callback: (chunk?: unknown) => void) => {
       if (event === 'data' && body) {
         setTimeout(() => callback(Buffer.from(body)), 0);
@@ -145,7 +151,10 @@ describe('Predictions Routes', () => {
     vi.clearAllMocks();
     mockStore.getRecentPredictions.mockResolvedValue(samplePredictions);
     mockStore.getProfile.mockResolvedValue(sampleProfile);
-    mockStore.updatePredictionActuals.mockResolvedValue({ updated: true, accuracy: 90 });
+    mockStore.updatePredictionActuals.mockResolvedValue({
+      accuracy: 90,
+      metrics: [{ key: 'value', predicted: 90, actual: 100, accuracy: 90 }],
+    });
   });
 
   describe('handleGetPredictions', () => {
@@ -209,10 +218,26 @@ describe('Predictions Routes', () => {
     });
 
     it('should calculate average accuracy from completed predictions', async () => {
+      const now = new Date().toISOString();
       const predictions = [
-        { id: '1', accuracy: 80, createdAt: new Date().toISOString() },
-        { id: '2', accuracy: 90, createdAt: new Date().toISOString() },
-        { id: '3', createdAt: new Date().toISOString() }, // no accuracy
+        // Scored resolutions carry the actuals they were scored from.
+        {
+          id: '1',
+          predictions: { m: 10 },
+          actuals: { m: 8 },
+          accuracy: 80,
+          completedAt: now,
+          createdAt: now,
+        },
+        {
+          id: '2',
+          predictions: { m: 10 },
+          actuals: { m: 9 },
+          accuracy: 90,
+          completedAt: now,
+          createdAt: now,
+        },
+        { id: '3', predictions: { m: 10 }, createdAt: now }, // not resolved yet
       ];
       mockStore.getRecentPredictions.mockResolvedValue(predictions);
 
@@ -229,7 +254,7 @@ describe('Predictions Routes', () => {
     it('should return 401 when userId missing', async () => {
       const req = createMockRequest({
         url: '/api/predictions',
-        headers: { 'x-user-id': undefined }, // Explicitly remove x-user-id header
+        headers: { 'x-firebase-uid': undefined }, // anonymous: no verified caller
       });
       const { res, getWrittenData } = createMockResponse();
       const parsedUrl = new URL('/api/predictions', 'http://localhost:3002'); // No userId in query
@@ -261,6 +286,7 @@ describe('Predictions Routes', () => {
 
       const req = createMockRequest({
         method: 'POST',
+        headers: { 'x-firebase-uid': 'test-user' },
         url: '/api/predictions/pred-1/actuals',
         body: JSON.stringify({ userId: 'test-user', actuals: { value: 100 } }),
       });
@@ -284,6 +310,7 @@ describe('Predictions Routes', () => {
 
       const req = createMockRequest({
         method: 'POST',
+        headers: { 'x-firebase-uid': 'test-user' },
         url: '/api/predictions/nonexistent/actuals',
       });
       const { res, getWrittenData } = createMockResponse();
@@ -319,6 +346,7 @@ describe('Predictions Routes', () => {
 
       const req = createMockRequest({
         method: 'POST',
+        headers: { 'x-firebase-uid': 'test-user' },
         url: '/api/predictions/pred-1/actuals',
       });
       const { res, getWrittenData } = createMockResponse();
@@ -348,7 +376,11 @@ describe('Predictions Routes', () => {
         actuals: { value: 100 },
       });
 
-      const req = createMockRequest({ method: 'POST', url: '/api/predictions/pred-1/actuals' });
+      const req = createMockRequest({
+        method: 'POST',
+        url: '/api/predictions/pred-1/actuals',
+        headers: { 'x-firebase-uid': 'test-user' },
+      });
       const { res, getWrittenData } = createMockResponse();
       const parsedUrl = new URL('/api/predictions/pred-1/actuals', 'http://localhost:3002');
 

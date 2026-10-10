@@ -24,7 +24,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { verifyFirebaseToken } from '../services/identity/firebase-auth.js';
+import { claimsFirebaseIssuer, verifyFirebaseToken } from '../services/identity/firebase-auth.js';
 import { rateLimiter } from '../services/rate-limiter.js';
 import {
   detectAnomalies,
@@ -35,6 +35,7 @@ import {
 } from '../services/security-events.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { getClientIp } from '../utils/ddos-protection.js';
+import { rateLimitUid } from './rate-limit-identity.js';
 import { API_ERRORS } from './error-messages.js';
 import { sendError } from './helpers.js';
 
@@ -80,8 +81,8 @@ const VALID_API_KEYS = new Set((process.env.API_KEYS || '').split(',').filter(Bo
 /** Admin API keys with elevated privileges */
 const ADMIN_API_KEYS = new Set((process.env.ADMIN_API_KEYS || '').split(',').filter(Boolean));
 
-/** Whether we're in development mode */
-const IS_DEV = process.env.NODE_ENV !== 'production';
+/** Dev-mode bypasses only on a developer's machine: never staging or an unset NODE_ENV. */
+const IS_DEV = process.env.NODE_ENV === 'development';
 
 // SECURITY: Legacy X-User-Id auth has been REMOVED
 // This was a critical security vulnerability allowing auth bypass
@@ -99,16 +100,8 @@ function getHeader(req: IncomingMessage, name: string): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-/**
- * Extract IP address from request (handles proxies)
- */
-function getClientIP(req: IncomingMessage): string {
-  return (
-    getHeader(req, 'X-Forwarded-For')?.split(',')[0]?.trim() ||
-    req.socket.remoteAddress ||
-    'unknown'
-  );
-}
+/** Client IP for auth-failure tracking: same trusted-proxy rule as rate limiting. */
+const getClientIP = getClientIp;
 
 // ============================================================================
 // AUTHENTICATION FUNCTIONS
@@ -135,9 +128,9 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
       };
     }
     if (VALID_API_KEYS.has(apiKey)) {
-      const userId = getHeader(req, 'X-User-Id') || 'api-user';
+      // The key authenticates a service, never a user named by the client's X-User-Id.
       return {
-        userId,
+        userId: 'api-user',
         isAdmin: false,
         isDevMode: false,
         authMethod: 'api_key',
@@ -216,8 +209,8 @@ async function tryFirebaseAuth(req: IncomingMessage): Promise<AuthContext | null
   try {
     const verified = await verifyFirebaseToken(token);
     if (!verified) {
-      // Truly invalid token (malformed, revoked, etc.) -- track as failed auth
-      void trackFailedAuth(`firebase:${ip}`, ip, 'firebase_token_invalid').catch((e) =>
+      // A failed Firebase token counts toward lockout; a Google service token (Scheduler's OIDC) doesn't
+      if (claimsFirebaseIssuer(token)) void trackFailedAuth(`firebase:${ip}`, ip, 'firebase_token_invalid').catch((e) =>
         log.error({ error: String(e) }, 'Failed to track auth failure')
       );
       return null;
@@ -522,9 +515,7 @@ export async function checkRateLimitAsync(
   return rateLimiter.check(key, maxRequests, windowMs);
 }
 
-/**
- * Get rate limit tier based on auth context
- */
+/** Get rate limit tier based on auth context */
 export function getRateLimitTier(auth: AuthContext | null): RateLimitTier {
   if (!auth) return RATE_LIMIT_TIERS.anonymous;
   if (auth.isAdmin) return RATE_LIMIT_TIERS.admin;
@@ -550,13 +541,13 @@ export function rateLimit(
   const auth = authenticate(req);
   const defaultTier = getRateLimitTier(auth);
 
-  // SECURITY: Use authenticated userId as primary rate limit key (can't be spoofed)
-  // Fall back to secure getClientIp for anonymous requests (validates IP format)
-  // Never trust raw X-Forwarded-For header directly - allows bypass via header spoofing
+  // SECURITY: key by a verified person's id (sync auth, else the uid verified at the
+  // door), else getClientIp, never the raw X-Forwarded-For a caller can spoof
+  const uid = auth?.userId ?? rateLimitUid(req);
   const {
     maxRequests = options.tier?.maxRequests ?? defaultTier.maxRequests,
     windowMs = options.tier?.windowMs ?? defaultTier.windowMs,
-    keyGenerator = () => (auth?.userId ? `user:${auth.userId}` : getClientIp(req)),
+    keyGenerator = () => (uid ? `user:${uid}` : getClientIp(req)),
     keyPrefix = '',
   } = options;
 

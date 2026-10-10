@@ -16,10 +16,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // MOCKS - Set up before dynamic imports
 // ============================================================================
 
-// Mock i18n
-vi.mock('../../src/i18n/index.js', () => ({
-  t: (key: string, fallback?: string) => fallback || key,
-}));
+// i18n is not mocked: tests/setup.ts loads the real en-US strings, so the
+// assertions below check the text users actually see.
 
 // Mock animation constants
 vi.mock('../../src/config/animation-constants.js', () => ({
@@ -35,6 +33,7 @@ const mockCallbacks = {
   onClose: vi.fn(),
   onExport: vi.fn(),
   onDeleteData: vi.fn(),
+  onDeleteAccount: vi.fn(),
 };
 
 // ============================================================================
@@ -119,6 +118,9 @@ describe('Data Export UI', () => {
 
     // Reset module to get fresh singleton each time
     vi.resetModules();
+    // resetModules drops the English strings tests/setup.ts loaded; reload them
+    const { setLocale } = await import('../../src/i18n/index.js');
+    await setLocale('en-US', { reload: false });
     const module = await import('../../src/ui/data-export.ui.js');
     getDataExportUI = module.getDataExportUI;
   });
@@ -482,6 +484,34 @@ describe('Data Export UI', () => {
     });
   });
 
+  describe('Delete Account', () => {
+    it('asks for confirmation, then calls onDeleteAccount', async () => {
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+      const ui = getDataExportUI();
+      ui.setCallbacks(mockCallbacks);
+      ui.show(mockExportableData);
+
+      document.querySelector<HTMLElement>('.data-export__delete-account')?.click();
+
+      expect(confirmSpy).toHaveBeenCalled();
+      expect(mockCallbacks.onDeleteAccount).toHaveBeenCalledTimes(1);
+      expect(mockCallbacks.onDeleteData).not.toHaveBeenCalled();
+      confirmSpy.mockRestore();
+    });
+
+    it('does nothing when the user backs out', async () => {
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      const ui = getDataExportUI();
+      ui.setCallbacks(mockCallbacks);
+      ui.show(mockExportableData);
+
+      document.querySelector<HTMLElement>('.data-export__delete-account')?.click();
+
+      expect(mockCallbacks.onDeleteAccount).not.toHaveBeenCalled();
+      confirmSpy.mockRestore();
+    });
+  });
+
   describe('Accessibility', () => {
     it('should have proper dialog role', async () => {
       const { getDataExportUI } = await import('../../src/ui/data-export.ui.js');
@@ -519,10 +549,9 @@ describe('Data Export UI', () => {
       const ui = getDataExportUI();
       ui.show(mockExportableData);
 
-      const formatButtons = findFormatButtons();
-      formatButtons.forEach((btn) => {
-        expect(btn.getAttribute('aria-label')).toBeTruthy();
-      });
+      // Named by what they show (a label over the text would hide it)
+      const names = [...findFormatButtons()].map((btn) => btn.getAttribute('aria-label') ?? btn.textContent?.trim());
+      expect(names).toEqual(['JSON', 'CSV']);
     });
   });
 

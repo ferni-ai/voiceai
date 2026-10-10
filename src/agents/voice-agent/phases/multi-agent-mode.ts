@@ -18,6 +18,7 @@ import type { RemoteParticipant, Room } from '@livekit/rtc-node';
 import type { SessionServices } from '../../../services/types.js';
 import type { Persona } from '../../../personas/types.js';
 import type { UserData } from '../types.js';
+import { startInCallChannels } from '../../multi-agent/live-data-context.js';
 
 // ============================================================================
 // TYPES
@@ -51,6 +52,8 @@ export interface MultiAgentModeResult {
   cleanup?: () => Promise<void>;
   /** Error message if activation failed */
   error?: string;
+  /** Why the session wait ended (e.g. 'empty_room', 'room.disconnected', 'timeout') */
+  endReason?: string;
 }
 
 // ============================================================================
@@ -168,6 +171,8 @@ export async function runMultiAgentMode(
     const { createGroupVoiceIntegration } =
       await import('../../group-conversation/voice-integration.js');
     const { handoffEvents } = await import('../../../handoff/index.js');
+    const { handoffStartMessages } = await import('../../multi-agent/handoff-messages.js');
+    const { offerAgent, withdrawAgent } = await import('../../../tools/handoff/ready-agents.js');
 
     // Initialize multi-agent session
     const multiAgentResult = await initializeMultiAgentSession({
@@ -274,14 +279,9 @@ export async function runMultiAgentMode(
                 timestamp: Date.now(),
               });
 
-              // Send handoff_started
-              await publishDataMessage(ctx.room, {
-                type: 'handoff_started',
-                target: message.target,
-                newAgent: message.target,
-                previousAgent: currentPersonaId,
-                timestamp: Date.now(),
-              });
+              for (const m of handoffStartMessages(message.target!, currentPersonaId)) {
+                await publishDataMessage(ctx.room, m);
+              }
 
               const result = await handleHandoffFromDataChannel(
                 multiAgentResult.orchestrator,
@@ -346,20 +346,22 @@ export async function runMultiAgentMode(
             `[multi-agent-mode] 🎭 LLM-triggered handoff via voiceSwitch: ${currentPersonaId || 'unknown'} → ${targetPersonaId}\n`
           );
 
-          // Send handoff_started
-          await publishDataMessage(ctx.room, {
-            type: 'handoff_started',
-            target: targetPersonaId,
-            newAgent: targetPersonaId,
-            previousAgent: currentPersonaId,
-            timestamp: Date.now(),
-          });
+          for (const m of handoffStartMessages(targetPersonaId, currentPersonaId)) {
+            await publishDataMessage(ctx.room, m);
+          }
 
+          // With one session per call the tool hands the next persona to the SDK: it stops
+          // waiting once that persona is built (ready-agents.ts)
+          const handoffTool = { targetId: targetPersonaId, greetingSpoken: false };
           const result = await handleHandoffFromDataChannel(
             multiAgentResult.orchestrator,
             targetPersonaId,
             'LLM requested handoff',
-            services
+            services,
+            (agent) => {
+              offerAgent(String(services.sessionId), targetPersonaId, agent);
+              handoffEvents.emit('handoffHandlerComplete', { ...handoffTool, success: true });
+            }
           );
 
           if (!result.success) {
@@ -382,16 +384,21 @@ export async function runMultiAgentMode(
             error: result.error,
           });
         } finally {
+          withdrawAgent(String(services.sessionId), targetPersonaId); // if the tool never took it
           handoffLock.release();
         }
       })();
     };
 
     handoffEvents.on('voiceSwitch', voiceSwitchHandler);
+    // In-call controls and Ferni's teammate introductions, for the agent speaking now
+    const callParts = { room: ctx.room, ctx, services, userId, sessionId, sessionPersona };
+    const stopInCallChannels = startInCallChannels(callParts, multiAgentResult.orchestrator);
     process.stderr.write(
       `[multi-agent-mode] 🎭 voiceSwitch handler registered for LLM-triggered handoffs\n`
     );
 
+    let endReason: string | undefined;
     // Wait for disconnect — also end when room empties (agent can stay
     // "connected" after the user leaves / room delete).
     await new Promise<void>((resolve) => {
@@ -401,6 +408,7 @@ export async function runMultiAgentMode(
       const finish = (reason: string): void => {
         if (settled) return;
         settled = true;
+        endReason = reason;
         clearInterval(poll);
         clearTimeout(safety);
         process.stderr.write(`[multi-agent-mode] 🎭 Ending session wait (${reason})\n`);
@@ -438,6 +446,8 @@ export async function runMultiAgentMode(
 
     // Cleanup
     handoffEvents.off('voiceSwitch', voiceSwitchHandler);
+    stopInCallChannels();
+    ctx.room?.off('dataReceived', dataHandler);
     if (groupConversationIntegration) {
       await groupConversationIntegration.cleanup();
       process.stderr.write(`[multi-agent-mode] 🎙️ Group conversation cleaned up\n`);
@@ -459,7 +469,7 @@ export async function runMultiAgentMode(
     // Unregister session
     unregisterSession(sessionId, 'multi_agent_clean_exit');
 
-    return { activated: true };
+    return { activated: true, endReason };
   } catch (err) {
     process.stderr.write(
       `[multi-agent-mode] 🎭 Multi-agent mode failed, falling back to single-agent: ${err}\n`

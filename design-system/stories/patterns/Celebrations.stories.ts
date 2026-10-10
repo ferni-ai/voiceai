@@ -19,7 +19,7 @@ interface CelebrationProps {
 const CONFETTI_COLORS = [
   '#4a6741', // Ferni green
   '#c4856a', // Jordan coral
-  '#d4a84a', // Gold accent
+  '#c9a15a', // Gold highlight
   '#3a6b73', // Peter teal
   '#a67a6a', // Maya terracotta
 ];

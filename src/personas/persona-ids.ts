@@ -128,9 +128,9 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
 
   // Peter John (Researcher)
   'peter-john': 'peter-john',
-  peter: 'peter-john',
+  peter: 'peter-john', // Ferni's Peter; Peter Lynch is "peter lynch" / "lynch"
+  'peter john': 'peter-john',
   john: 'peter-john', // Last name alias
-  lynch: 'peter-john', // Inspired by Peter Lynch
   researcher: 'peter-john',
   'stock-storyteller': 'peter-john',
 
@@ -147,6 +147,7 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   // Maya Santos (Habits Coach)
   'maya-santos': 'maya-santos',
   maya: 'maya-santos',
+  'maya-habits': 'maya-santos', // Group conversation / roundtable ID
   santos: 'maya-santos', // Last name alias
   'spend-save': 'maya-santos',
   spend: 'maya-santos',
@@ -175,6 +176,7 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   // Nayan Patel (Sage / Lifetime Advisor)
   'nayan-patel': 'nayan-patel',
   nayan: 'nayan-patel',
+  'nayan-sharma': 'nayan-patel', // Group conversation / roundtable ID
   patel: 'nayan-patel',
   sage: 'nayan-patel',
   'sage-mentor': 'nayan-patel', // Legacy role ID
@@ -194,6 +196,8 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
 
   // Peter Lynch (Stock Picker - Financial Legends)
   'peter-lynch': 'peter-lynch',
+  'peter lynch': 'peter-lynch',
+  lynch: 'peter-lynch',
   'stock-picker': 'peter-lynch',
   magellan: 'peter-lynch',
   'fidelity-legend': 'peter-lynch',

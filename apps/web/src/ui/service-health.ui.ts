@@ -11,6 +11,8 @@
  * - Respects reduced motion preferences
  */
 
+import { formatDate, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet } from '../utils/api.js';
@@ -76,18 +78,18 @@ const POLL_INTERVAL_MS = 30000; // 30 seconds
 const CACHE_TTL_MS = 10000; // 10 seconds
 const INDICATOR_SIZE = '12px';
 
-// Service name to user-friendly name mapping
-const SERVICE_DISPLAY_NAMES: Record<string, string> = {
-  'yahoo-finance': 'Stock Data',
-  'alpha-vantage': 'Market Data',
-  'google-apis': 'Weather & Maps',
-  'wikipedia': 'Historical Facts',
-  'home-assistant': 'Smart Home',
-  'philips-hue': 'Lighting',
-  'lifx': 'Lighting',
-  'smartthings': 'Smart Home',
-  'context-service': 'AI Context',
-  'spotify': 'Music',
+const SERVICE_DISPLAY_NAME_KEYS: Record<string, string> = {
+  'yahoo-finance': 'serviceHealth.names.stockData',
+  'alpha-vantage': 'serviceHealth.names.marketData',
+  'google-apis': 'serviceHealth.names.weatherMaps',
+  'wikipedia': 'serviceHealth.names.historicalFacts',
+  'home-assistant': 'serviceHealth.names.smartHome',
+  'philips-hue': 'serviceHealth.names.lighting',
+  'lifx': 'serviceHealth.names.lighting',
+  'smartthings': 'serviceHealth.names.smartHome',
+  'context-service': 'serviceHealth.names.aiContext',
+  'spotify': 'accessibility.music',
+  'oura-api': 'serviceHealth.names.sleepHealth',
 };
 
 // ============================================================================
@@ -99,7 +101,7 @@ const STYLES = `
     position: fixed;
     bottom: 20px;
     right: 20px;
-    z-index: var(--z-tooltip);
+    z-index: var(--z-sticky);
     font-family: var(--font-body, 'Inter', sans-serif);
     font-size: 13px;
     pointer-events: auto;
@@ -252,7 +254,7 @@ const STYLES = `
 
   /* Hidden when healthy and not hovered */
   .service-health-container.auto-hide .service-health-indicator {
-    opacity: 0.3;
+    opacity: 0;
     transform: scale(0.9);
   }
 
@@ -280,7 +282,8 @@ const STYLES = `
 // ============================================================================
 
 function getDisplayName(serviceName: string): string {
-  return SERVICE_DISPLAY_NAMES[serviceName] || serviceName.replace(/-/g, ' ');
+  const key = SERVICE_DISPLAY_NAME_KEYS[serviceName];
+  return t(key ?? 'serviceHealth.names.other'); // never show a raw service id
 }
 
 function getStatusClass(state: string): string {
@@ -301,20 +304,19 @@ function renderIndicator(): string {
     return `
       <div class="service-health-indicator">
         <div class="service-health-dot healthy"></div>
-        <span class="service-health-text">Loading...</span>
+        <span class="service-health-text">${t('common.loading')}</span>
       </div>
     `;
   }
 
   const { status, summary } = state.data;
   const statusClass = status;
-  
-  let text = 'All systems operational';
+  let text = t('serviceHealth.allOperational');
   if (status === 'degraded') {
     const count = summary.openCircuits + summary.halfOpenCircuits;
-    text = `${count} service${count > 1 ? 's' : ''} degraded`;
+    text = tp('serviceHealth.degraded', count);
   } else if (status === 'unavailable') {
-    text = 'Service issues detected';
+    text = t('serviceHealth.issuesDetected');
   }
 
   return `
@@ -331,13 +333,11 @@ function renderPanel(): string {
   }
 
   const { httpClients, timestamp } = state.data;
-  const time = new Date(timestamp).toLocaleTimeString();
+  const time = formatDate(new Date(timestamp), { hour: 'numeric', minute: '2-digit', second: '2-digit' });
 
   // Only show non-healthy services, or top 5 if all healthy
   const unhealthy = httpClients.filter((c) => c.state !== 'closed');
-  const toShow = unhealthy.length > 0 
-    ? unhealthy 
-    : httpClients.slice(0, 5);
+  const toShow = unhealthy.length > 0 ? unhealthy : httpClients.slice(0, 5);
 
   const items = toShow.map((client) => {
     const statusClass = getStatusClass(client.state);
@@ -345,8 +345,8 @@ function renderPanel(): string {
     const statusText = client.state === 'closed' 
       ? client.successRate 
       : client.state === 'half_open' 
-        ? 'Recovering' 
-        : 'Unavailable';
+        ? t('serviceHealth.recovering')
+        : t('serviceHealth.unavailable');
 
     return `
       <div class="service-health-item">
@@ -360,20 +360,20 @@ function renderPanel(): string {
   }).join('');
 
   const headerText = unhealthy.length > 0
-    ? `${unhealthy.length} service${unhealthy.length > 1 ? 's' : ''} need${unhealthy.length === 1 ? 's' : ''} attention`
-    : 'All services healthy';
+    ? tp('serviceHealth.needsAttention', unhealthy.length)
+    : t('serviceHealth.allHealthy');
 
   return `
     <div class="service-health-panel ${state.expanded ? 'expanded' : ''}">
       <div class="service-health-header">
-        <h3>Service Status</h3>
+        <h3>${t('serviceHealth.title')}</h3>
         <p>${headerText}</p>
       </div>
       <div class="service-health-list">
         ${items}
       </div>
       <div class="service-health-footer">
-        Last updated: ${time}
+        ${t('serviceHealth.lastUpdated', { time })}
       </div>
     </div>
   `;

@@ -8,7 +8,25 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildHandoffTools } from '../handoff-factory.js';
 import { cameoUnlockEvents } from '../state.js';
 
+// The introduction is recorded for the person; no database in this test
+vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  getFirestoreDb: () => null,
+}));
+
 afterEach(() => vi.useRealTimers());
+
+/** The tool's run context for a subscriber, who has Maya (a free newcomer doesn't yet) */
+const subscriberCall = {
+  ctx: {
+    userData: {
+      services: {
+        userProfile: { id: 'subscriber', subscription: { tier: 'friend' } },
+        sessionId: 'call-1',
+      },
+    },
+  },
+};
 
 describe('introduceMember', () => {
   it('returns immediately and fires the reveal after the intro would finish', async () => {
@@ -24,7 +42,7 @@ describe('introduceMember', () => {
     const started = Date.now();
     const result = await tool.execute(
       { memberId: 'maya-santos', spoken_intro: 'one two three four five' },
-      {}
+      subscriberCall
     );
     expect(result.success).toBe(true);
     expect(Date.now() - started).toBe(0); // no fake time had to pass

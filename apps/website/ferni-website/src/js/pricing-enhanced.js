@@ -359,7 +359,6 @@
     initPlanComparison();
     initUpgradeConfetti();
     
-    console.log('%c💰 Enhanced pricing loaded', 'color: #4a6741; font-weight: bold;');
   }
 
   if (document.readyState === 'loading') {

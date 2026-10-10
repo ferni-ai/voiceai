@@ -20,7 +20,7 @@
  * persist across sessions via Firestore/PostgreSQL.
  */
 
-import { getDefaultStore } from '../../memory/index.js';
+import { getProfileStore } from '../../memory/profile-store.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -30,12 +30,7 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 // ============================================================================
 
 export type PersonaId =
-  | 'jack-b'
-  | 'nayan-patel'
-  | 'peter-john'
-  | 'spend-save'
-  | 'event-planner'
-  | 'comm-specialist';
+  'jack-b' | 'nayan-patel' | 'peter-john' | 'spend-save' | 'event-planner' | 'comm-specialist';
 
 // Map persona IDs to profile field names
 const PERSONA_FIELD_MAP: Record<PersonaId, keyof NonNullable<UserProfile['personaMemories']>> = {
@@ -282,7 +277,7 @@ async function loadMemoriesForUser(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
 
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(userId);
 
     if (!profile?.personaMemories) {
@@ -336,7 +331,7 @@ export async function saveMemoriesForUser(userId: string): Promise<void> {
   if (!dirtyUsers.has(userId)) return;
 
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(userId);
     if (!profile) return;
 
@@ -536,9 +531,7 @@ export async function updateMemory(
   return memory;
 }
 
-/**
- * Mark a memory as referenced (used in conversation)
- */
+/** Mark a memory as referenced (saves are batched, not immediate) */
 export async function touchMemory(memoryId: string): Promise<void> {
   const memory = memoriesCache.get(memoryId);
   if (memory) {
@@ -546,22 +539,22 @@ export async function touchMemory(memoryId: string): Promise<void> {
     memory.lastReferencedAt = new Date();
     memoriesCache.set(memoryId, memory);
     dirtyUsers.add(memory.userId);
-    // Don't save immediately for touch - batch with other saves
   }
 }
 
-/**
- * Forget a memory
- */
-export async function forget(memoryId: string): Promise<boolean> {
-  const memory = memoriesCache.get(memoryId);
-  if (memory) {
-    dirtyUsers.add(memory.userId);
-    memoriesCache.delete(memoryId);
-    await saveMemoriesForUser(memory.userId);
-    return true;
+/** Forget a memory: true once persisted, false if not the caller's, throws if the save failed. */
+export async function forget(memoryId: string, ownerId: string): Promise<boolean> {
+  await loadMemoriesForUser(ownerId); // a cold cache (new instance) must not miss a stored memory
+  const memory = memoriesCache.get(memoryId); // cache spans users: owner check required
+  if (!memory || memory.userId !== ownerId) return false;
+  memoriesCache.delete(memoryId);
+  dirtyUsers.add(ownerId);
+  await saveMemoriesForUser(ownerId);
+  if (dirtyUsers.has(ownerId)) {
+    memoriesCache.set(memoryId, memory); // save swallowed an error: the store still has it
+    throw new Error('Failed to persist memory deletion');
   }
-  return false;
+  return true;
 }
 
 /**

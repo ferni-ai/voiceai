@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  shouldLaughAlong,
   decideBackchannel,
   pickBackchannel,
   type BackchannelMoment,
@@ -50,5 +51,32 @@ describe('pickBackchannel', () => {
   it('keeps to soft sounds in an emotional moment', () => {
     for (let i = 0; i < 20; i++)
       expect(['Mm', 'Mhm', 'Mm-hmm']).toContain(pickBackchannel(true, null, () => i / 20));
+  });
+});
+
+describe('laughing along', () => {
+  const ON = { LAUGH_ALONG: 'on' };
+  const base = {
+    partialTranscript: 'Haha, she looked me dead in the eye',
+    emotional: false,
+    agentSpeaking: false,
+    turnCount: 4,
+    lastLaughTurn: null,
+  };
+
+  it('laughs when the caller laughs, only when switched on', () => {
+    expect(shouldLaughAlong(base, ON)).toBe(true);
+    expect(shouldLaughAlong(base, {})).toBe(false);
+    expect(shouldLaughAlong({ ...base, partialTranscript: 'she looked me in the eye' }, ON)).toBe(
+      false
+    );
+  });
+
+  it('never laughs into emotion, over himself, or two turns running', () => {
+    expect(shouldLaughAlong({ ...base, emotional: true }, ON)).toBe(false);
+    expect(shouldLaughAlong({ ...base, agentSpeaking: true }, ON)).toBe(false);
+    expect(shouldLaughAlong({ ...base, lastLaughTurn: 4 }, ON)).toBe(false);
+    expect(shouldLaughAlong({ ...base, lastLaughTurn: 3 }, ON)).toBe(false);
+    expect(shouldLaughAlong({ ...base, lastLaughTurn: 2 }, ON)).toBe(true);
   });
 });

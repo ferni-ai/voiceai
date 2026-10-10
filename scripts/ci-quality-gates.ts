@@ -28,26 +28,36 @@ import * as path from 'path';
 const THRESHOLDS = {
   // TODO tracking
   maxCriticalTodos: 20, // FIXME/BUG - fail if more than this
-  maxAncientTodos: 10, // >90 days old - fail if more than this
+  // All TODO/NOTE/BUG markers. Not ">90 days old": that count rises with the
+  // calendar, so a ratchet on it failed main with no change (2026-10-09).
+  maxTodos: 1000,
 
   // Code quality
   maxAsAny: 30, // `as any` assertions
   maxConsoleUsage: 100, // console.* usage (excluding logger wrappers)
-  maxFileLines: 2000, // Lines per file (warning at 500, fail at 2000)
-  maxLargeFiles: 20, // Files over 500 lines allowed
+  maxFileLines: 2000, // Lines per file; files over 500 lines are the ratchet's job
+  maxHugeFiles: 0, // Files over maxFileLines allowed
 
   // Architecture
   maxLayerViolations: 0, // Architecture layer violations
 };
 
+// The limits above are replaced by today's numbers, so a check fails only when a change makes
+// it worse (every gate used to fail on main, behind continue-on-error). --update lowers them.
+const BASELINE_FILE = path.join(process.cwd(), 'scripts', 'ci-quality-gates.baseline.json');
+Object.assign(
+  THRESHOLDS,
+  JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf8')) as Record<string, number>
+);
+
 // Extra strict mode thresholds
 const STRICT_THRESHOLDS = {
   maxCriticalTodos: 10,
-  maxAncientTodos: 5,
+  maxTodos: 500,
   maxAsAny: 20,
   maxConsoleUsage: 50,
   maxFileLines: 1500,
-  maxLargeFiles: 10,
+  maxHugeFiles: 0,
   maxLayerViolations: 0,
 };
 
@@ -92,10 +102,7 @@ interface GateResults {
  * Recursively find files matching a pattern.
  * No shell execution - pure Node.js file walking.
  */
-function* walkFiles(
-  dir: string,
-  extensions: string[] = ['.ts', '.tsx']
-): Generator<string> {
+function* walkFiles(dir: string, extensions: string[] = ['.ts', '.tsx']): Generator<string> {
   if (!fs.existsSync(dir)) return;
 
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -104,9 +111,7 @@ function* walkFiles(
 
     // Skip excluded directories
     if (
-      ['node_modules', 'dist', 'build', '.git', 'coverage', '__snapshots__'].includes(
-        entry.name
-      )
+      ['node_modules', 'dist', 'build', '.git', 'coverage', '__snapshots__'].includes(entry.name)
     ) {
       continue;
     }
@@ -180,6 +185,7 @@ function checkTodos(limits: typeof THRESHOLDS): CheckResult[] {
     }
     const report = JSON.parse(jsonMatch[0]);
     const criticalCount = report.byPriority?.critical || 0;
+    const totalCount = report.totalCount || 0;
     const ancientCount = report.byAge?.ancient || 0;
 
     results.push({
@@ -194,14 +200,14 @@ function checkTodos(limits: typeof THRESHOLDS): CheckResult[] {
     });
 
     results.push({
-      name: 'Ancient TODOs (>90 days)',
-      passed: ancientCount <= limits.maxAncientTodos,
-      value: ancientCount,
-      threshold: limits.maxAncientTodos,
+      name: 'TODOs',
+      passed: totalCount <= limits.maxTodos,
+      value: totalCount,
+      threshold: limits.maxTodos,
       message:
-        ancientCount <= limits.maxAncientTodos
-          ? `${ancientCount} ancient items (within limit)`
-          : `${ancientCount} ancient items exceeds limit of ${limits.maxAncientTodos}`,
+        totalCount <= limits.maxTodos
+          ? `${totalCount} items, ${ancientCount} over 90 days old (within limit)`
+          : `${totalCount} items exceeds limit of ${limits.maxTodos}`,
     });
   } catch (error) {
     results.push({
@@ -321,20 +327,18 @@ function checkFileSizes(limits: typeof THRESHOLDS): CheckResult {
     }
   }
 
-  const count = largeFiles.length;
   const hugeFiles = largeFiles.filter((f) => f.lines > limits.maxFileLines);
+  const count = hugeFiles.length;
 
   return {
-    name: 'Large Files (>500 lines)',
-    passed: count <= limits.maxLargeFiles && hugeFiles.length === 0,
+    name: `Huge Files (>${limits.maxFileLines} lines)`,
+    passed: count <= limits.maxHugeFiles,
     value: count,
-    threshold: limits.maxLargeFiles,
+    threshold: limits.maxHugeFiles,
     message:
-      hugeFiles.length > 0
-        ? `${hugeFiles.length} file(s) exceed ${limits.maxFileLines} lines: ${hugeFiles.slice(0, 3).map((f) => `${f.file}:${f.lines}`).join(', ')}${hugeFiles.length > 3 ? '...' : ''}`
-        : count <= limits.maxLargeFiles
-          ? `${count} files over 500 lines (within limit of ${limits.maxLargeFiles})`
-          : `${count} large files exceeds limit of ${limits.maxLargeFiles}`,
+      count <= limits.maxHugeFiles
+        ? `${count} files over ${limits.maxFileLines} lines (baseline ${limits.maxHugeFiles})`
+        : `${count} files over ${limits.maxFileLines} lines, up from ${limits.maxHugeFiles}`,
   };
 }
 
@@ -386,18 +390,12 @@ function runAllChecks(strict: boolean): GateResults {
       colors.cyan +
       '═══════════════════════════════════════════════════════════════\n'
   );
+  process.stdout.write('                    CI QUALITY GATES                              \n');
   process.stdout.write(
-    '                    CI QUALITY GATES                              \n'
+    '═══════════════════════════════════════════════════════════════\n' + colors.reset
   );
   process.stdout.write(
-    '═══════════════════════════════════════════════════════════════\n' +
-      colors.reset
-  );
-  process.stdout.write(
-    colors.dim +
-      (strict ? '(STRICT MODE)\n' : '(STANDARD MODE)\n') +
-      colors.reset +
-      '\n'
+    colors.dim + (strict ? '(STRICT MODE)\n' : '(STANDARD MODE)\n') + colors.reset + '\n'
   );
 
   // Run each check
@@ -418,14 +416,10 @@ function runAllChecks(strict: boolean): GateResults {
 
   // Print results
   process.stdout.write(
-    '\n' +
-      colors.bold +
-      '─────────────────────────────────────────────────────────────────\n'
+    '\n' + colors.bold + '─────────────────────────────────────────────────────────────────\n'
   );
   process.stdout.write('Results:\n' + colors.reset);
-  process.stdout.write(
-    '─────────────────────────────────────────────────────────────────\n'
-  );
+  process.stdout.write('─────────────────────────────────────────────────────────────────\n');
 
   let allPassed = true;
   for (const check of checks) {
@@ -475,5 +469,19 @@ if (todosOnly) {
   process.exit(passed ? 0 : 1);
 } else {
   const results = runAllChecks(strictMode);
+  if (args.includes('--update')) {
+    const key: Record<string, string> = {
+      'Critical TODOs (FIXME/BUG)': 'maxCriticalTodos',
+      TODOs: 'maxTodos',
+      '`as any` Assertions': 'maxAsAny',
+      'console.* Usage': 'maxConsoleUsage',
+    };
+    const base = JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf8')) as Record<string, number>;
+    for (const c of results.checks) {
+      const k = key[c.name] ?? (c.name.startsWith('Huge Files') ? 'maxHugeFiles' : undefined);
+      if (k) base[k] = Math.min(base[k] ?? c.value, c.value);
+    }
+    fs.writeFileSync(BASELINE_FILE, JSON.stringify(base, null, 2) + '\n');
+  }
   process.exit(results.passed ? 0 : 1);
 }

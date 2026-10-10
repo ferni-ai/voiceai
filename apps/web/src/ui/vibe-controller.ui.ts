@@ -19,6 +19,19 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { getDeviceId } from '../state/app.state.js';
+import { getMusicStateManager } from '../services/music-state-manager.js';
+import {
+  activatePresetOnServer,
+  fetchLightsStatus,
+  fetchSpotifyLinked,
+  fetchThermostatStatus,
+  getMusicSnapshot,
+  sendMusicControl,
+  setLights,
+  setThermostat,
+  type MusicAction,
+} from './vibe-controller.api.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
 
@@ -97,6 +110,7 @@ interface VibeState {
     track?: string;
     artist?: string;
     volume: number;
+    spotifyLinked: boolean | null;
   };
   lights: {
     connected: boolean;
@@ -335,7 +349,7 @@ let isVisible = false;
 let callbacks: VibeControllerCallbacks = {};
 const currentState: VibeState = {
   activePreset: null,
-  music: { playing: false, volume: 50 },
+  music: { playing: false, volume: 50, spotifyLinked: null },
   lights: { connected: false, brightness: 50, colorTemp: 4000 },
   temperature: { connected: false, current: 70, target: 70, mode: 'home' },
 };
@@ -432,7 +446,6 @@ const ICONS = {
   chevronDown: 'M6 9l6 6 6-6',
   chevronRight: 'M9 18l6-6-6-6',
   plug: 'M12 22v-5M9 8V2M15 8V2M18 8v5a6 6 0 0 1-6 6v0a6 6 0 0 1-6-6V8Z',
-  home: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z|M9 22V12h6v10',
   wifi: 'M5 12.55a11 11 0 0 1 14.08 0|M1.42 9a16 16 0 0 1 21.16 0|M8.53 16.11a6 6 0 0 1 6.95 0|M12 20h.01',
   hue: 'M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z|M9 17v4|M15 17v4',
   ecobee: 'M14 4V10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z',
@@ -1416,7 +1429,9 @@ function renderMusicSection(): HTMLElement {
     currentState.music.track || t('vibe.music.chooseVibe', 'Choose a vibe to start music'),
   ]));
   info.appendChild(createElement('div', { className: 'vibe-music__artist' }, [
-    currentState.music.artist || t('vibe.music.askFerni', 'Or ask Ferni to play something'),
+    currentState.music.artist || (currentState.music.spotifyLinked === false
+      ? t('vibe.music.linkSpotify', 'Link Spotify in Settings for full songs')
+      : t('vibe.music.askFerni', 'Or ask Ferni to play something')),
   ]));
   nowPlaying.appendChild(info);
 
@@ -1426,7 +1441,7 @@ function renderMusicSection(): HTMLElement {
     'aria-label': currentState.music.playing ? t('vibe.music.pause', 'Pause') : t('vibe.music.play', 'Play'),
   });
   playBtn.appendChild(createSvgIcon(currentState.music.playing ? ICONS.pause : ICONS.play));
-  playBtn.addEventListener('click', toggleMusic);
+  playBtn.addEventListener('click', () => controlMusic(currentState.music.playing ? 'pause' : 'resume'));
   controls.appendChild(playBtn);
 
   const skipBtn = createElement('button', {
@@ -1434,7 +1449,7 @@ function renderMusicSection(): HTMLElement {
     'aria-label': t('vibe.music.skip', 'Skip'),
   });
   skipBtn.appendChild(createSvgIcon(ICONS.skipForward));
-  skipBtn.addEventListener('click', skipTrack);
+  skipBtn.addEventListener('click', () => controlMusic('skip'));
   controls.appendChild(skipBtn);
 
   nowPlaying.appendChild(controls);
@@ -1467,7 +1482,7 @@ function renderMusicSection(): HTMLElement {
     // Debounce API call
     if (volumeTimeout) clearTimeout(volumeTimeout);
     volumeTimeout = setTimeout(() => {
-      void setMusicVolume(currentState.music.volume);
+      controlMusic('volume', currentState.music.volume);
     }, 150);
   });
 
@@ -1493,34 +1508,19 @@ function renderLightsSetup(): HTMLElement {
 
   const options = createElement('div', { className: 'vibe-setup__options' });
 
-  // Home Assistant option
-  const haOption = createElement('button', { className: 'vibe-setup__option' });
-  const haIcon = createElement('div', { className: 'vibe-setup__option-icon' });
-  haIcon.appendChild(createSvgIcon(ICONS.home));
-  haOption.appendChild(haIcon);
-  const haInfo = createElement('div', { className: 'vibe-setup__option-info' });
-  haInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, [t('vibe.providers.homeAssistant', 'Home Assistant')]));
-  haInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, [t('vibe.providers.homeAssistantDesc', 'Works with all your devices')]));
-  haOption.appendChild(haInfo);
-  const haArrow = createElement('div', { className: 'vibe-setup__option-arrow' });
-  haArrow.appendChild(createSvgIcon(ICONS.chevronRight));
-  haOption.appendChild(haArrow);
-  haOption.addEventListener('click', () => void connectLightsViaHomeAssistant());
-  options.appendChild(haOption);
-
-  // Philips Hue option
+  // Hue and LIFX credentials are saved in Smart Home settings (/api/smart-home/*/save)
   const hueOption = createElement('button', { className: 'vibe-setup__option' });
   const hueIcon = createElement('div', { className: 'vibe-setup__option-icon' });
   hueIcon.appendChild(createSvgIcon(ICONS.hue));
   hueOption.appendChild(hueIcon);
   const hueInfo = createElement('div', { className: 'vibe-setup__option-info' });
-  hueInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, [t('vibe.providers.philipsHue', 'Philips Hue')]));
-  hueInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, [t('vibe.providers.philipsHueDesc', 'Connect directly to your Hue bridge')]));
+  hueInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, [t('vibe.providers.hueOrLifx', 'Philips Hue or LIFX')]));
+  hueInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, [t('vibe.providers.hueOrLifxDesc', 'Set up in Your Home settings')]));
   hueOption.appendChild(hueInfo);
   const hueArrow = createElement('div', { className: 'vibe-setup__option-arrow' });
   hueArrow.appendChild(createSvgIcon(ICONS.chevronRight));
   hueOption.appendChild(hueArrow);
-  hueOption.addEventListener('click', () => void connectLightsViaHue());
+  hueOption.addEventListener('click', () => void openSmartHomeForLights());
   options.appendChild(hueOption);
 
   setup.appendChild(options);
@@ -1678,36 +1678,6 @@ function renderThermostatSetup(): HTMLElement {
   ecobeeOption.addEventListener('click', () => void connectThermostatViaEcobee());
   options.appendChild(ecobeeOption);
 
-  // Nest option
-  const nestOption = createElement('button', { className: 'vibe-setup__option' });
-  const nestIcon = createElement('div', { className: 'vibe-setup__option-icon' });
-  nestIcon.appendChild(createSvgIcon(ICONS.thermometer));
-  nestOption.appendChild(nestIcon);
-  const nestInfo = createElement('div', { className: 'vibe-setup__option-info' });
-  nestInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, [t('vibe.providers.googleNest', 'Google Nest')]));
-  nestInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, [t('vibe.providers.googleNestDesc', 'Learning thermostat')]));
-  nestOption.appendChild(nestInfo);
-  const nestArrow = createElement('div', { className: 'vibe-setup__option-arrow' });
-  nestArrow.appendChild(createSvgIcon(ICONS.chevronRight));
-  nestOption.appendChild(nestArrow);
-  nestOption.addEventListener('click', () => void connectThermostatViaNest());
-  options.appendChild(nestOption);
-
-  // Home Assistant option
-  const haOption = createElement('button', { className: 'vibe-setup__option' });
-  const haIcon = createElement('div', { className: 'vibe-setup__option-icon' });
-  haIcon.appendChild(createSvgIcon(ICONS.home));
-  haOption.appendChild(haIcon);
-  const haInfo = createElement('div', { className: 'vibe-setup__option-info' });
-  haInfo.appendChild(createElement('div', { className: 'vibe-setup__option-name' }, [t('vibe.providers.homeAssistant', 'Home Assistant')]));
-  haInfo.appendChild(createElement('div', { className: 'vibe-setup__option-desc' }, [t('vibe.providers.homeAssistantClimate', 'Any thermostat via Home Assistant')]));
-  haOption.appendChild(haInfo);
-  const haArrow = createElement('div', { className: 'vibe-setup__option-arrow' });
-  haArrow.appendChild(createSvgIcon(ICONS.chevronRight));
-  haOption.appendChild(haArrow);
-  haOption.addEventListener('click', () => void connectThermostatViaHomeAssistant());
-  options.appendChild(haOption);
-
   setup.appendChild(options);
 
   const skipBtn = createElement('button', { className: 'vibe-setup__skip' }, [t('vibe.skipForNow', 'Skip for now')]);
@@ -1802,131 +1772,83 @@ function render(): void {
 // ============================================================================
 
 async function fetchState(): Promise<void> {
-  try {
-    // Fetch music state
-    const musicRes = await apiGet<{ playing: boolean; track?: string; artist?: string; volume: number }>('/api/spotify/status');
-    if (musicRes.ok && musicRes.data) {
-      currentState.music = { ...currentState.music, ...musicRes.data };
-    }
-
-    // Fetch lights state via vibe API
-    const lightsRes = await apiGet<{ connected: boolean; brightness: number; colorTemp: number }>('/api/vibe/lights/status');
-    if (lightsRes.ok && lightsRes.data) {
-      currentState.lights = { ...currentState.lights, ...lightsRes.data };
-    }
-
-    // Fetch thermostat state
-    const thermoRes = await apiGet<{ connected: boolean; current: number; target: number; mode: string }>('/api/ecobee/status');
-    if (thermoRes.ok && thermoRes.data) {
-      currentState.temperature = { ...currentState.temperature, ...thermoRes.data };
-    }
-  } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to fetch vibe state:', error);
+  const [spotifyLinked, lights, thermostat] = await Promise.all([
+    fetchSpotifyLinked(getDeviceId()),
+    fetchLightsStatus(),
+    fetchThermostatStatus(),
+  ]);
+  currentState.music = { ...currentState.music, ...getMusicSnapshot(), spotifyLinked };
+  if (lights) currentState.lights = { ...currentState.lights, ...lights };
+  if (thermostat) {
+    currentState.temperature = {
+      connected: thermostat.connected,
+      current: thermostat.current ?? currentState.temperature.current,
+      target: thermostat.target ?? currentState.temperature.target,
+      mode: thermostat.mode ?? currentState.temperature.mode,
+    };
   }
 }
 
 async function activatePreset(preset: VibePresetUI): Promise<void> {
-  // Set loading state
   loadingState.activatingPreset = preset.id;
-  currentState.activePreset = preset.id;
   render();
-
   toast.info(t('vibe.settingVibe', 'Setting {name} vibe...', { name: preset.name }));
 
   try {
-    // Use the unified vibe activate endpoint
-    const result = await apiPost<{ success: boolean; message: string; applied: { music: boolean; lights: boolean; temperature: boolean } }>(
-      '/api/vibe/activate',
-      { presetId: preset.id }
-    );
-
-    if (result.ok && result.data?.success) {
-      // Update local state based on what was applied
-      if (result.data.applied.lights && preset.lights) {
+    const result = await activatePresetOnServer(preset.id);
+    if (!result) {
+      toast.error(t('vibe.couldNotSetVibe', "Couldn't set that vibe. Try again?"));
+    } else if (!result.applied) {
+      // Nothing changed in the room: say so in their language, not the server's English message
+      toast.info(t('vibe.connectDevicesFirst', 'Connect your lights or thermostat first'));
+    } else {
+      currentState.activePreset = preset.id;
+      if (result.lights && preset.lights) {
         currentState.lights = { ...currentState.lights, ...preset.lights };
       }
-      if (result.data.applied.temperature && preset.temperature) {
+      if (result.temperature && preset.temperature) {
         currentState.temperature.target = preset.temperature.target;
       }
-
       toast.success(t('vibe.vibeSet', '{name} vibe set!', { name: preset.name }));
       callbacks.onVibeChanged?.(preset.id);
-    } else {
-      toast.warning(result.data?.message || t('vibe.couldNotFullySet', "Couldn't fully set the vibe"));
     }
-  } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to activate preset:', error);
-    toast.error(t('vibe.couldNotSetVibe', "Couldn't set that vibe. Try again?"));
   } finally {
     loadingState.activatingPreset = null;
     render();
   }
 }
 
-async function toggleMusic(): Promise<void> {
-  try {
-    if (currentState.music.playing) {
-      await apiPost('/api/spotify/pause', {});
-      currentState.music.playing = false;
-    } else {
-      await apiPost('/api/spotify/play', {});
-      currentState.music.playing = true;
-    }
-    render();
-  } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to toggle music:', error);
-    toast.error(t('vibe.couldNotControlMusic', "Couldn't control music. Try again?"));
-  }
-}
-
-async function skipTrack(): Promise<void> {
-  try {
-    await apiPost('/api/spotify/skip', {});
-    toast.info(t('vibe.skipped', 'Skipped'));
-  } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to skip track:', error);
-  }
-}
-
-async function setMusicVolume(volume: number): Promise<void> {
-  try {
-    await apiPost('/api/spotify/volume', { volume });
-  } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to set volume:', error);
+/** Playing state only changes when the agent confirms via music_state. */
+function controlMusic(action: MusicAction, volume?: number): void {
+  if (!sendMusicControl(action, volume)) {
+    toast.info(t('vibe.musicNeedsCall', 'Music controls work during a conversation'));
   }
 }
 
 async function setLightBrightness(brightness: number): Promise<void> {
-  try {
-    await apiPost('/api/vibe/lights', { brightness });
-  } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to set brightness:', error);
+  if (!(await setLights({ brightness }))) {
+    toast.error(t('vibe.couldNotChangeLights', "Couldn't change the lights. Try again?"));
   }
 }
 
 async function setLightColorTemp(colorTemp: number): Promise<void> {
-  try {
-    await apiPost('/api/vibe/lights', { colorTemp });
-  } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to set color temp:', error);
+  if (!(await setLights({ colorTemp }))) {
+    toast.error(t('vibe.couldNotChangeLights', "Couldn't change the lights. Try again?"));
   }
 }
 
 async function adjustTemperature(delta: number): Promise<void> {
-  const newTarget = currentState.temperature.target + delta;
-  currentState.temperature.target = newTarget;
+  const previous = currentState.temperature.target;
+  const newTarget = previous + delta;
   loadingState.adjustingTemperature = true;
   render();
 
   try {
-    await apiPost('/api/ecobee/temperature', {
-      heat: newTarget,
-      cool: newTarget + 3,
-      holdType: 'nextTransition',
-    });
-  } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to adjust temperature:', error);
-    toast.error(t('vibe.couldNotChangeTemp', "Couldn't change temperature. Try again?"));
+    if (await setThermostat(newTarget)) {
+      currentState.temperature.target = newTarget;
+    } else {
+      toast.error(t('vibe.couldNotChangeTemp', "Couldn't change temperature. Try again?"));
+    }
   } finally {
     loadingState.adjustingTemperature = false;
     render();
@@ -1957,53 +1879,11 @@ function hideThermostatSetup(): void {
   render();
 }
 
-async function connectLightsViaHomeAssistant(): Promise<void> {
-  loadingState.connectingLights = true;
-  render();
-  toast.info(t('vibe.connectingToHA', 'Connecting to Home Assistant...'));
-
-  try {
-    // Start OAuth flow or show config dialog
-    const result = await apiPost<{ success: boolean; authUrl?: string }>('/api/vibe/lights/connect', { provider: 'home-assistant' });
-    if (result.ok && result.data?.authUrl) {
-      window.open(result.data.authUrl, '_blank', 'width=600,height=700');
-    } else if (result.ok && result.data?.success) {
-      toast.success(t('vibe.lightsConnected', 'Lights connected!'));
-      currentState.lights.connected = true;
-      showingLightsSetup = false;
-    }
-  } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to connect Home Assistant:', error);
-    toast.error(t('vibe.couldNotConnectHA', "Couldn't connect. Check your Home Assistant URL."));
-  } finally {
-    loadingState.connectingLights = false;
-    render();
-  }
-}
-
-async function connectLightsViaHue(): Promise<void> {
-  loadingState.connectingLights = true;
-  render();
-  toast.info(t('vibe.lookingForHue', 'Looking for Philips Hue bridge...'));
-
-  try {
-    const result = await apiPost<{ success: boolean; authUrl?: string; message?: string }>('/api/vibe/lights/connect', { provider: 'hue' });
-    if (result.ok && result.data?.authUrl) {
-      window.open(result.data.authUrl, '_blank', 'width=600,height=700');
-    } else if (result.ok && result.data?.success) {
-      toast.success(t('vibe.hueLightsConnected', 'Hue lights connected!'));
-      currentState.lights.connected = true;
-      showingLightsSetup = false;
-    } else {
-      toast.info(result.data?.message || t('vibe.pressHueButton', 'Press the button on your Hue bridge, then try again'));
-    }
-  } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to connect Hue:', error);
-    toast.error(t('vibe.couldNotFindHue', "Couldn't find Hue bridge. Is it on?"));
-  } finally {
-    loadingState.connectingLights = false;
-    render();
-  }
+async function openSmartHomeForLights(): Promise<void> {
+  hideLightsSetup();
+  hide();
+  const { showSmartHomeSettings } = await import('./smart-home-settings.ui.js');
+  await showSmartHomeSettings();
 }
 
 async function connectThermostatViaEcobee(): Promise<void> {
@@ -2119,50 +1999,6 @@ function hideEcobeePinDialog(): void {
   }
 }
 
-async function connectThermostatViaNest(): Promise<void> {
-  loadingState.connectingThermostat = true;
-  render();
-  toast.info(t('vibe.connectingToNest', 'Connecting to Nest...'));
-
-  try {
-    const result = await apiPost<{ success: boolean; authUrl?: string }>('/api/vibe/thermostat/connect', { provider: 'nest' });
-    if (result.ok && result.data?.authUrl) {
-      window.open(result.data.authUrl, '_blank', 'width=600,height=700');
-    } else if (result.ok && result.data?.success) {
-      toast.success(t('vibe.nestConnected', 'Nest connected!'));
-      currentState.temperature.connected = true;
-      showingThermostatSetup = false;
-    }
-  } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to connect Nest:', error);
-    toast.error(t('vibe.couldNotConnect', "Couldn't connect. Try again?"));
-  } finally {
-    loadingState.connectingThermostat = false;
-    render();
-  }
-}
-
-async function connectThermostatViaHomeAssistant(): Promise<void> {
-  loadingState.connectingThermostat = true;
-  render();
-  toast.info(t('vibe.connectingToHAClimate', 'Using Home Assistant for climate control...'));
-
-  try {
-    const result = await apiPost<{ success: boolean }>('/api/vibe/thermostat/connect', { provider: 'home-assistant' });
-    if (result.ok && result.data?.success) {
-      toast.success(t('vibe.climateControlConnected', 'Climate control connected!'));
-      currentState.temperature.connected = true;
-      showingThermostatSetup = false;
-    }
-  } catch (error) {
-    if (import.meta.env?.DEV) console.debug('Failed to connect Home Assistant climate:', error);
-    toast.error(t('vibe.couldNotConnect', "Couldn't connect. Try again?"));
-  } finally {
-    loadingState.connectingThermostat = false;
-    render();
-  }
-}
-
 async function connectLights(): Promise<void> {
   showLightsSetup();
 }
@@ -2238,6 +2074,11 @@ export function initialize(): void {
   if (container) return;
 
   injectStyles();
+
+  getMusicStateManager().subscribe(() => {
+    currentState.music = { ...currentState.music, ...getMusicSnapshot() };
+    if (isVisible) render();
+  });
 
   container = createElement('div', { className: 'vibe-overlay' });
 

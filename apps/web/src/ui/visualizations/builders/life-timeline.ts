@@ -38,7 +38,7 @@ const CHAPTER_TYPE_COLORS: Record<TimelineChapter['type'], string> = {
   challenge: getCssVar('--color-semantic-error', '#e74c3c'),
   transition: getCssVar('--color-semantic-warning', '#f5a623'),
   celebration: getCssVar('--color-semantic-success', '#27ae60'),
-  reflection: getCssVar('--persona-eli-primary', '#8a7a9a'),
+  reflection: getCssVar('--viz-chapters-reflection', '#5a6b8a'),
 };
 
 /**
@@ -359,34 +359,29 @@ function buildTablet(
 
   detailsGrid.appendChild(currentPanel);
 
-  // Progress/evolution panel
+  // Progress/evolution panel: only what something actually measured
+  const progress = data.currentChapter.progress;
   const progressPanel = createElement('div', 'viz-card viz-animate-slide viz-stagger-3');
   setStyles(progressPanel, { flex: '1' });
-
-  const progressHeader = createElement('div', 'viz-label viz-label--section');
-  progressHeader.textContent = t('visualizations.chapterProgress', 'Chapter Progress');
-  progressPanel.appendChild(progressHeader);
-
-  // Progress bar with design system classes
-  const progressBar = createElement('div', 'viz-progress');
-  setStyles(progressBar, { marginTop: 'var(--viz-space-pause)' });
-
-  const progressFill = createElement('div', `viz-progress__fill viz-progress__fill--${data.currentChapter.type}`);
-  setStyles(progressFill, { width: `${data.currentChapter.progress * 100}%` });
-  progressBar.appendChild(progressFill);
-  progressPanel.appendChild(progressBar);
-
-  // Progress percentage
-  const progressLabel = createElement('div');
-  setStyles(progressLabel, {
-    fontSize: 'var(--viz-text-base)',
-    color: CSS_COLOR_VARS.textSecondary,
-    marginTop: 'var(--viz-space-breath)',
-  });
-  progressLabel.textContent = `${Math.round(data.currentChapter.progress * 100)}% ${t('visualizations.lifeTimeline.throughChapter', 'through this chapter')}`;
-  progressPanel.appendChild(progressLabel);
-
-  // Narrative summary if available
+  if (progress !== undefined) {
+    const progressHeader = createElement('div', 'viz-label viz-label--section');
+    progressHeader.textContent = t('visualizations.chapterProgress', 'Chapter Progress');
+    progressPanel.appendChild(progressHeader);
+    const progressBar = createElement('div', 'viz-progress');
+    setStyles(progressBar, { marginTop: 'var(--viz-space-pause)' });
+    const progressFill = createElement('div', `viz-progress__fill viz-progress__fill--${data.currentChapter.type}`);
+    setStyles(progressFill, { width: `${progress * 100}%` });
+    progressBar.appendChild(progressFill);
+    progressPanel.appendChild(progressBar);
+    const progressLabel = createElement('div');
+    setStyles(progressLabel, {
+      fontSize: 'var(--viz-text-base)',
+      color: CSS_COLOR_VARS.textSecondary,
+      marginTop: 'var(--viz-space-breath)',
+    });
+    progressLabel.textContent = `${Math.round(progress * 100)}% ${t('visualizations.lifeTimeline.throughChapter', 'through this chapter')}`;
+    progressPanel.appendChild(progressLabel);
+  }
   if (data.narrativeSummary) {
     const narrativeEl = createElement('p', 'viz-insight');
     setStyles(narrativeEl, {
@@ -397,7 +392,7 @@ function buildTablet(
     progressPanel.appendChild(narrativeEl);
   }
 
-  detailsGrid.appendChild(progressPanel);
+  if (progressPanel.childElementCount > 0) detailsGrid.appendChild(progressPanel);
   container.appendChild(detailsGrid);
 
   // Screen reader summary

@@ -19,7 +19,6 @@ import { t } from '../i18n/index.js';
 
 const log = createLogger('ControlsUI');
 
-// Note: addClass/removeClass kept for future mute button styling
 
 // ============================================================================
 // TYPES
@@ -119,6 +118,8 @@ function setupSubscriptions(): void {
     // Reset wrap-up state on disconnect
     if (state === 'disconnected') {
       updateWrapUpState(false);
+      // Each call starts with the mic live, so a mute must not carry over.
+      if (appState.get('isMuted')) appState.set('isMuted', false);
     }
   });
 
@@ -143,6 +144,12 @@ function setupSubscriptions(): void {
  */
 function updateButtonVisibility(state: ConnectionState): void {
   if (!elements) return;
+
+  // Mute only means something during a live call
+  if (elements.muteBtn) {
+    if (state === 'connected') show(elements.muteBtn, 'flex');
+    else hide(elements.muteBtn);
+  }
 
   switch (state) {
     case 'disconnected':
@@ -197,9 +204,11 @@ function updateMuteButton(muted: boolean): void {
   if (muted) {
     addClass(elements.muteBtn, 'muted');
     elements.muteBtn.setAttribute('aria-pressed', 'true');
+    elements.muteBtn.setAttribute('aria-label', t('accessibility.unmuteMicrophone'));
   } else {
     removeClass(elements.muteBtn, 'muted');
     elements.muteBtn.setAttribute('aria-pressed', 'false');
+    elements.muteBtn.setAttribute('aria-label', t('accessibility.muteMicrophone'));
   }
 }
 

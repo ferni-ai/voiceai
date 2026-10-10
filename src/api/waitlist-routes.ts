@@ -27,6 +27,7 @@ import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { BRAND_ACCENT, BRAND_TEXT_PRIMARY, getPersonaColor } from '../config/brand-colors.js';
 import { rateLimit, requireAdmin } from './auth-middleware.js';
+import { waitlistRateLimit } from './waitlist-rate-limits.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 import { grantAccess, waitlistGateOn } from './open-access.js';
 
@@ -160,9 +161,8 @@ export async function handleWaitlistRoutes(
     return true;
   }
 
-  // Rate limit: 5 signups per minute per IP
-  // rateLimit returns true if blocked (response already sent), false if allowed
-  if (rateLimit(req, res, { maxRequests: 5, windowMs: 60000, keyPrefix: 'waitlist' })) {
+  // Separate budgets for sign-ups, the per-load access check and votes (true = blocked)
+  if (rateLimit(req, res, { windowMs: 60000, ...waitlistRateLimit(pathname) })) {
     return true;
   }
 

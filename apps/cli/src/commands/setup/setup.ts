@@ -208,7 +208,7 @@ To run with a specific persona:
 
 /**
  * App Icons Setup
- * Generates icons for Electron, iOS, and Android from brand assets
+ * Generates icons for iOS and Android from brand assets
  */
 async function setupIcons(options: SetupOptions): Promise<boolean> {
   log.step('APP ICONS SETUP');
@@ -224,59 +224,6 @@ async function setupIcons(options: SetupOptions): Promise<boolean> {
   // First, ensure design system assets are built
   log.info('Building design system assets...');
   exec('npm run build:assets');
-
-  // Electron icons
-  log.info('Setting up Electron icons...');
-  const electronResources = join(PROJECT_ROOT, 'apps/electron/resources');
-  mkdirSync(electronResources, { recursive: true });
-
-  const sourcePng = join(PROJECT_ROOT, 'apps/web/public/design-system/logos/app-icon-1024.png');
-  if (existsSync(sourcePng)) {
-    copyFileSync(sourcePng, join(electronResources, 'icon.png'));
-    log.success('Copied icon.png (1024x1024)');
-
-    if (hasImageMagick && process.platform === 'darwin') {
-      log.info('Generating macOS .icns...');
-      const iconset = join(electronResources, 'icon.iconset');
-      mkdirSync(iconset, { recursive: true });
-
-      const sizes = [
-        [16, 'icon_16x16.png'],
-        [32, 'icon_16x16@2x.png'],
-        [32, 'icon_32x32.png'],
-        [64, 'icon_32x32@2x.png'],
-        [128, 'icon_128x128.png'],
-        [256, 'icon_128x128@2x.png'],
-        [256, 'icon_256x256.png'],
-        [512, 'icon_256x256@2x.png'],
-        [512, 'icon_512x512.png'],
-        [1024, 'icon_512x512@2x.png'],
-      ];
-
-      for (const [size, name] of sizes) {
-        exec(`convert "${sourcePng}" -resize ${size}x${size} "${join(iconset, name as string)}"`, { silent: true });
-      }
-
-      exec(`iconutil -c icns "${iconset}" -o "${join(electronResources, 'icon.icns')}"`, { silent: true });
-      log.success('Generated icon.icns');
-
-      // Windows ico
-      exec(`convert "${sourcePng}" -define icon:auto-resize=256,128,96,64,48,32,16 "${join(electronResources, 'icon.ico')}"`, { silent: true });
-      log.success('Generated icon.ico');
-
-      // Tray icons
-      exec(`convert "${sourcePng}" -resize 22x22 "${join(electronResources, 'trayTemplate.png')}"`, { silent: true });
-      exec(`convert "${sourcePng}" -resize 44x44 "${join(electronResources, 'trayTemplate@2x.png')}"`, { silent: true });
-      log.success('Generated tray icons');
-
-      // Cleanup
-      exec(`rm -rf "${iconset}"`, { silent: true });
-    }
-  } else {
-    log.warn('Source icon not found. Run npm run build:assets first.');
-  }
-
-  log.success('Electron icons ready');
 
   // iOS - just create reference documentation
   const iosDir = join(PROJECT_ROOT, 'apps/ios');

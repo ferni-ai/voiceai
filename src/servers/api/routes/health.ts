@@ -8,6 +8,8 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import * as spotifyService from '../services/spotify.js';
 import * as plaidService from '../services/plaid.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { requireAdmin } from '../../../api/auth-middleware.js';
+import { parseRawBody } from '../../../api/helpers.js';
 import { getAllStats as getPersistenceStats } from '../../../services/persistence/index.js';
 import { persistenceMetrics } from '../../../services/analytics/persistence-metrics.js';
 
@@ -52,9 +54,8 @@ export async function handleHealthRoutes(
         const initialized = toolRegistry.isInitialized();
 
         if (!initialized || stats.totalTools === 0) {
-          checks.tools = { status: 'error', latencyMs: Date.now() - toolStart, details: 'Not initialized' };
-          overallStatus = 'not_ready';
-          alerts.push({ level: 'error', message: 'Tool registry not ready' });
+          // Tools run in the voice agent, not this API server: informational only.
+          checks.tools = { status: 'ok', latencyMs: Date.now() - toolStart, details: 'Not loaded here (voice agent)' };
         } else if (stats.totalTools < 50) {
           checks.tools = { status: 'degraded', latencyMs: Date.now() - toolStart, details: `${stats.totalTools} tools` };
           if (overallStatus === 'ready') overallStatus = 'degraded';
@@ -90,7 +91,7 @@ export async function handleHealthRoutes(
       // 3. LLM Connectivity Check (OpenAI key present)
       const llmStart = Date.now();
       const hasOpenAI = !!process.env.OPENAI_API_KEY;
-      const hasGemini = !!process.env.GOOGLE_API_KEY;
+      const hasGemini = !!process.env.GOOGLE_API_KEY || process.env.USE_VERTEX_AI !== 'false'; // Vertex: service account
       if (hasOpenAI || hasGemini) {
         checks.llm = { status: 'ok', latencyMs: Date.now() - llmStart, details: hasOpenAI ? 'OpenAI' : 'Gemini' };
       } else {
@@ -401,7 +402,6 @@ export async function handleHealthRoutes(
         alerts: [] as Array<{ level: 'warn' | 'error'; message: string }>,
       };
 
-      // Add alerts
       if (!vectorHealth.healthy) {
         semanticHealth.alerts.push({
           level: 'error',
@@ -444,21 +444,19 @@ export async function handleHealthRoutes(
     return true;
   }
 
-  // TTL cleanup trigger
+  // TTL cleanup trigger. Admin only: it deletes documents across caller-named collections.
   if (pathname === '/api/semantic-store/cleanup') {
     if (req.method !== 'POST') {
       res.writeHead(405, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Method not allowed', allowed: ['POST'] }));
       return true;
     }
+    if (!(await requireAdmin(req, res))) return true;
 
     try {
       const ttl = await import('../../../services/data-layer/ttl-cleanup.js');
 
-      // Parse request body for options
-      let body = '';
-      req.on('data', (chunk) => (body += chunk));
-      await new Promise((resolve) => req.on('end', resolve));
+      const body = await parseRawBody(req);
 
       let options: { dryRun?: boolean; collections?: string[] } = {};
       if (body) {

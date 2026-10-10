@@ -13,14 +13,16 @@ import { t } from '../../i18n/index.js';
 
 const log = createLogger('VoiceJournalPrompts');
 
-// Default prompt fallback
-const DEFAULT_PROMPT: JournalPrompt = {
-  id: 'default-reflection',
-  category: 'reflection',
-  prompt: "What's on your mind today?",
-  difficulty: 'gentle',
-  estimatedMinutes: 3,
-};
+// Default prompt fallback (built on use: translations load after this module does)
+function defaultPrompt(): JournalPrompt {
+  return {
+    id: 'default-reflection',
+    category: 'reflection',
+    prompt: t('voiceJournal.prompts.default'),
+    difficulty: 'gentle',
+    estimatedMinutes: 3,
+  };
+}
 
 // ============================================================================
 // PROMPT CACHE FOR OFFLINE USE
@@ -137,51 +139,69 @@ export async function prefetchPrompts(): Promise<void> {
 // FALLBACK PROMPTS
 // ============================================================================
 
-const FALLBACK_PROMPTS: JournalPrompt[] = [
-  {
-    id: 'reflect-1',
-    category: 'reflection',
-    prompt: "What's been taking up the most space in your mind this week?",
-    difficulty: 'gentle',
-    estimatedMinutes: 5,
-  },
-  {
-    id: 'gratitude-1',
-    category: 'gratitude',
-    prompt: 'What small thing brought you unexpected joy recently?',
-    difficulty: 'gentle',
-    estimatedMinutes: 5,
-  },
-  {
-    id: 'growth-1',
-    category: 'growth',
-    prompt: 'How have you surprised yourself lately?',
-    difficulty: 'moderate',
-    estimatedMinutes: 8,
-  },
-  {
-    id: 'exploration-1',
-    category: 'exploration',
-    prompt: 'When do you feel most like yourself?',
-    difficulty: 'moderate',
-    estimatedMinutes: 10,
-  },
-  {
-    id: 'future-1',
-    category: 'future',
-    prompt: 'What seeds are you planting for your future self?',
-    difficulty: 'moderate',
-    estimatedMinutes: 10,
-  },
-  {
-    id: 'challenge-1',
-    category: 'challenge',
-    prompt: 'What uncomfortable truth are you ready to face?',
-    followUp: 'What becomes possible when you do?',
-    difficulty: 'deep',
-    estimatedMinutes: 15,
-  },
-];
+function fallbackPrompts(): JournalPrompt[] {
+  return [
+    {
+      id: 'reflect-1',
+      category: 'reflection',
+      prompt: t('voiceJournal.prompts.reflect1'),
+      difficulty: 'gentle',
+      estimatedMinutes: 5,
+    },
+    {
+      id: 'gratitude-1',
+      category: 'gratitude',
+      prompt: t('voiceJournal.prompts.gratitude1'),
+      difficulty: 'gentle',
+      estimatedMinutes: 5,
+    },
+    {
+      id: 'growth-1',
+      category: 'growth',
+      prompt: t('voiceJournal.prompts.growth1'),
+      difficulty: 'moderate',
+      estimatedMinutes: 8,
+    },
+    {
+      id: 'exploration-1',
+      category: 'exploration',
+      prompt: t('voiceJournal.prompts.exploration1'),
+      difficulty: 'moderate',
+      estimatedMinutes: 10,
+    },
+    {
+      id: 'future-1',
+      category: 'future',
+      prompt: t('voiceJournal.prompts.future1'),
+      difficulty: 'moderate',
+      estimatedMinutes: 10,
+    },
+    {
+      id: 'challenge-1',
+      category: 'challenge',
+      prompt: t('voiceJournal.prompts.challenge1'),
+      followUp: t('voiceJournal.prompts.challenge1FollowUp'),
+      difficulty: 'deep',
+      estimatedMinutes: 15,
+    },
+  ];
+}
+
+/** i18n keys for the prompt categories this module (and the server) uses. */
+const CATEGORY_KEYS: Record<string, string> = {
+  reflection: 'voiceJournal.prompts.categoryReflection',
+  gratitude: 'voiceJournal.prompts.categoryGratitude',
+  growth: 'voiceJournal.prompts.categoryGrowth',
+  exploration: 'voiceJournal.prompts.categoryExploration',
+  future: 'voiceJournal.prompts.categoryFuture',
+  challenge: 'voiceJournal.prompts.categoryChallenge',
+};
+
+/** The category's display name; an unknown category is shown as it came. */
+function categoryLabel(category: string): string {
+  const key = CATEGORY_KEYS[category];
+  return key ? t(key) : category;
+}
 
 // ============================================================================
 // TIME UTILITIES
@@ -197,14 +217,14 @@ export function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' | 'night' {
 
 function getTimeBasedPrompts(): JournalPrompt[] {
   const timeOfDay = getTimeOfDay();
-  const prompts = [...FALLBACK_PROMPTS];
+  const prompts = fallbackPrompts();
 
   // Add time-specific prompts
   if (timeOfDay === 'morning') {
     prompts.unshift({
       id: 'morning-intention',
       category: 'future',
-      prompt: 'What intention do you want to set for today? What would make today feel successful?',
+      prompt: t('voiceJournal.prompts.morningIntention'),
       difficulty: 'gentle',
       estimatedMinutes: 5,
     });
@@ -212,8 +232,7 @@ function getTimeBasedPrompts(): JournalPrompt[] {
     prompts.unshift({
       id: 'evening-reflection',
       category: 'reflection',
-      prompt:
-        "What are three things that went well today? What's one thing you'd do differently?",
+      prompt: t('voiceJournal.prompts.eveningReflection'),
       difficulty: 'gentle',
       estimatedMinutes: 5,
     });
@@ -260,7 +279,7 @@ export async function fetchPrompt(selectedMood?: string): Promise<JournalPrompt>
   // Final fallback to local prompts
   const timeBasedPrompts = getTimeBasedPrompts();
   const fallbackIndex = Math.floor(Math.random() * timeBasedPrompts.length);
-  return timeBasedPrompts[fallbackIndex] ?? timeBasedPrompts[0] ?? DEFAULT_PROMPT;
+  return timeBasedPrompts[fallbackIndex] ?? timeBasedPrompts[0] ?? defaultPrompt();
 }
 
 export function shufflePrompt(): void {
@@ -278,7 +297,7 @@ export function shufflePrompt(): void {
   const prompts = getTimeBasedPrompts();
   const filtered = prompts.filter((p) => p.id !== currentPrompt?.id);
   const newPromptIndex = Math.floor(Math.random() * filtered.length);
-  const newPrompt = filtered[newPromptIndex] ?? prompts[0] ?? DEFAULT_PROMPT;
+  const newPrompt = filtered[newPromptIndex] ?? prompts[0] ?? defaultPrompt();
   setCurrentPrompt(newPrompt);
   renderPromptSection();
 }
@@ -296,14 +315,14 @@ export function renderPromptSection(): void {
   section.innerHTML = `
     <div class="prompt-card">
       <div class="prompt-header">
-        <span class="prompt-category">${currentPrompt.category}</span>
+        <span class="prompt-category">${categoryLabel(currentPrompt.category)}</span>
         <span class="prompt-difficulty prompt-difficulty--${currentPrompt.difficulty}">
-          ${currentPrompt.estimatedMinutes} min
+          ${t('voiceJournal.prompts.minutes', { minutes: currentPrompt.estimatedMinutes })}
         </span>
       </div>
       <p class="prompt-text">${currentPrompt.prompt}</p>
       ${currentPrompt.followUp ? `<p class="prompt-followup">${currentPrompt.followUp}</p>` : ''}
-      <button class="prompt-shuffle" data-action="shuffle-prompt" aria-label="${t('accessibility.getNewPrompt')}">
+      <button class="prompt-shuffle" data-action="shuffle-prompt">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="16 3 21 3 21 8"></polyline>
           <line x1="4" y1="20" x2="21" y2="3"></line>
@@ -311,7 +330,7 @@ export function renderPromptSection(): void {
           <line x1="15" y1="15" x2="21" y2="21"></line>
           <line x1="4" y1="4" x2="9" y2="9"></line>
         </svg>
-        New prompt
+        ${t('voiceJournal.prompts.newPrompt')}
       </button>
     </div>
   `;

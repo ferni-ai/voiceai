@@ -21,6 +21,8 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { relationshipStageService } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
+import { formatDate, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 
 const log = createLogger('TeaserPreviewUI');
 
@@ -66,10 +68,10 @@ const ICONS = {
 // DUMMY DATA - Realistic previews for each visualization
 // ============================================================================
 
-const TEASER_CONTENT: Record<TeaserType, TeaserContent> = {
+const getTeaserContent = (): Record<TeaserType, TeaserContent> => ({
   wellbeing: {
-    title: 'Your Wellbeing Dashboard',
-    message: 'Track your energy, mood, and stress patterns over time.',
+    title: t('teaserPreview.wellbeing.title'),
+    message: t('teaserPreview.wellbeing.message'),
     daysRequired: 7,
     previewHtml: `
       <div class="teaser-wellbeing">
@@ -82,22 +84,22 @@ const TEASER_CONTENT: Record<TeaserType, TeaserContent> = {
             </svg>
             <span class="teaser-score-value">7.5</span>
           </div>
-          <span class="teaser-score-label">Wellbeing Score</span>
+          <span class="teaser-score-label">${t('teaserPreview.wellbeing.score')}</span>
         </div>
         <div class="teaser-metrics">
           <div class="teaser-metric">
             <span class="teaser-metric-icon">💪</span>
-            <span class="teaser-metric-label">Energy</span>
+            <span class="teaser-metric-label">${t('wellbeing.energy')}</span>
             <div class="teaser-metric-bar"><div class="teaser-metric-fill" style="width: 72%"></div></div>
           </div>
           <div class="teaser-metric">
             <span class="teaser-metric-icon">😊</span>
-            <span class="teaser-metric-label">Mood</span>
+            <span class="teaser-metric-label">${t('wellbeing.mood')}</span>
             <div class="teaser-metric-bar"><div class="teaser-metric-fill" style="width: 85%"></div></div>
           </div>
           <div class="teaser-metric">
             <span class="teaser-metric-icon">🧘</span>
-            <span class="teaser-metric-label">Calm</span>
+            <span class="teaser-metric-label">${t('accessibility.calm')}</span>
             <div class="teaser-metric-bar"><div class="teaser-metric-fill" style="width: 68%"></div></div>
           </div>
         </div>
@@ -108,63 +110,63 @@ const TEASER_CONTENT: Record<TeaserType, TeaserContent> = {
             <path d="M0,45 Q25,50 50,35 T100,30 T150,20 T200,25 L200,60 L0,60 Z" 
                   fill="var(--persona-tint)" opacity="0.3"/>
           </svg>
-          <span class="teaser-trend-label">Trending upward this week</span>
+          <span class="teaser-trend-label">${t('teaserPreview.wellbeing.trend')}</span>
         </div>
       </div>
     `,
   },
 
   patterns: {
-    title: 'Your Patterns',
-    message: "I'll notice things about you that you might not see yourself.",
+    title: t('teaserPreview.patterns.title'),
+    message: t('teaserPreview.patterns.message'),
     daysRequired: 14,
     previewHtml: `
       <div class="teaser-patterns">
         <div class="teaser-pattern-card">
-          <span class="teaser-pattern-type">Emotional</span>
-          <p class="teaser-pattern-insight">"I've noticed you feel anxious on Sunday evenings. It usually passes by Monday afternoon."</p>
-          <span class="teaser-pattern-frequency">Observed 8 times</span>
+          <span class="teaser-pattern-type">${t('accessibility.emotional')}</span>
+          <p class="teaser-pattern-insight">${t('teaserPreview.patterns.insightAnxious')}</p>
+          <span class="teaser-pattern-frequency">${tp('teaserPreview.patterns.observed', 8)}</span>
         </div>
         <div class="teaser-pattern-card">
-          <span class="teaser-pattern-type">Behavioral</span>
-          <p class="teaser-pattern-insight">"When you're stressed about work, you tend to skip your morning routine."</p>
-          <span class="teaser-pattern-frequency">Observed 5 times</span>
+          <span class="teaser-pattern-type">${t('teaserPreview.patterns.behavioral')}</span>
+          <p class="teaser-pattern-insight">${t('teaserPreview.patterns.insightRoutine')}</p>
+          <span class="teaser-pattern-frequency">${tp('teaserPreview.patterns.observed', 5)}</span>
         </div>
         <div class="teaser-pattern-card teaser-pattern-card--faded">
-          <span class="teaser-pattern-type">Success</span>
-          <p class="teaser-pattern-insight">"Your best days seem to follow evenings when you read before bed."</p>
-          <span class="teaser-pattern-frequency">Observed 3 times</span>
+          <span class="teaser-pattern-type">${t('accessibility.success')}</span>
+          <p class="teaser-pattern-insight">${t('teaserPreview.patterns.insightReading')}</p>
+          <span class="teaser-pattern-frequency">${tp('teaserPreview.patterns.observed', 3)}</span>
         </div>
       </div>
     `,
   },
 
   trust_insights: {
-    title: 'What I Notice About You',
-    message: 'The deeper we talk, the more I understand your growth.',
+    title: t('teaserPreview.trust.title'),
+    message: t('teaserPreview.trust.message'),
     daysRequired: 7,
     previewHtml: `
       <div class="teaser-trust">
         <div class="teaser-trust-stats">
           <div class="teaser-trust-stat">
             <span class="teaser-trust-stat-value">12</span>
-            <span class="teaser-trust-stat-label">Growth moments</span>
+            <span class="teaser-trust-stat-label">${t('teaserPreview.trust.growthMoments')}</span>
           </div>
           <div class="teaser-trust-stat">
             <span class="teaser-trust-stat-value">8</span>
-            <span class="teaser-trust-stat-label">Wins celebrated</span>
+            <span class="teaser-trust-stat-label">${t('teaserPreview.trust.winsCelebrated')}</span>
           </div>
           <div class="teaser-trust-stat">
             <span class="teaser-trust-stat-value">5</span>
-            <span class="teaser-trust-stat-label">Boundaries honored</span>
+            <span class="teaser-trust-stat-label">${t('teaserPreview.trust.boundariesHonored')}</span>
           </div>
         </div>
         <div class="teaser-trust-growth">
-          <span class="teaser-trust-growth-title">How you've grown</span>
+          <span class="teaser-trust-growth-title">${t('teaserPreview.trust.howYouveGrown')}</span>
           <div class="teaser-trust-tags">
-            <span class="teaser-trust-tag">Managing emotions better</span>
-            <span class="teaser-trust-tag">Setting boundaries</span>
-            <span class="teaser-trust-tag">Asking for help</span>
+            <span class="teaser-trust-tag">${t('teaserPreview.trust.tagEmotions')}</span>
+            <span class="teaser-trust-tag">${t('teaserPreview.trust.tagBoundaries')}</span>
+            <span class="teaser-trust-tag">${t('teaserPreview.trust.tagHelp')}</span>
           </div>
         </div>
       </div>
@@ -172,99 +174,99 @@ const TEASER_CONTENT: Record<TeaserType, TeaserContent> = {
   },
 
   life_context: {
-    title: 'Your World',
-    message: "I'll understand the context of your life - work, relationships, stress.",
+    title: t('teaserPreview.life.title'),
+    message: t('teaserPreview.life.message'),
     daysRequired: 14,
     previewHtml: `
       <div class="teaser-life">
         <div class="teaser-life-domains">
           <div class="teaser-life-domain">
             <span class="teaser-life-domain-icon">💼</span>
-            <span class="teaser-life-domain-name">Work</span>
+            <span class="teaser-life-domain-name">${t('yourPeople.groups.work')}</span>
             <div class="teaser-life-domain-level" style="--level: 65%">
               <div class="teaser-life-domain-fill"></div>
             </div>
-            <span class="teaser-life-domain-status">Moderate stress</span>
+            <span class="teaser-life-domain-status">${t('teaserPreview.life.moderateStress')}</span>
           </div>
           <div class="teaser-life-domain">
             <span class="teaser-life-domain-icon">❤️</span>
-            <span class="teaser-life-domain-name">Relationships</span>
+            <span class="teaser-life-domain-name">${t('lifeContext.domains.relationships')}</span>
             <div class="teaser-life-domain-level" style="--level: 82%">
               <div class="teaser-life-domain-fill"></div>
             </div>
-            <span class="teaser-life-domain-status">Feeling connected</span>
+            <span class="teaser-life-domain-status">${t('teaserPreview.life.feelingConnected')}</span>
           </div>
           <div class="teaser-life-domain">
             <span class="teaser-life-domain-icon">🏃</span>
-            <span class="teaser-life-domain-name">Health</span>
+            <span class="teaser-life-domain-name">${t('trustDashboard.health')}</span>
             <div class="teaser-life-domain-level" style="--level: 70%">
               <div class="teaser-life-domain-fill"></div>
             </div>
-            <span class="teaser-life-domain-status">Room to grow</span>
+            <span class="teaser-life-domain-status">${t('teaserPreview.life.roomToGrow')}</span>
           </div>
         </div>
         <div class="teaser-life-insight">
           <span class="teaser-life-insight-icon">${ICONS.sparkle}</span>
-          <p>"Your energy dips mid-week. Wednesday seems to be your hardest day."</p>
+          <p>${t('teaserPreview.life.insight')}</p>
         </div>
       </div>
     `,
   },
 
   predictions: {
-    title: 'My Predictions',
-    message: "I'll learn to anticipate what you need before you ask.",
+    title: t('teaserPreview.predictions.title'),
+    message: t('teaserPreview.predictions.message'),
     daysRequired: 21,
     previewHtml: `
       <div class="teaser-predictions">
         <div class="teaser-prediction-card teaser-prediction--accurate">
-          <span class="teaser-prediction-status">✓ Accurate</span>
-          <p class="teaser-prediction-text">"You'd feel overwhelmed this week"</p>
-          <span class="teaser-prediction-result">You mentioned stress on Tuesday and Thursday</span>
+          <span class="teaser-prediction-status">✓ ${t('predictions.accurate')}</span>
+          <p class="teaser-prediction-text">${t('teaserPreview.predictions.guessOverwhelmed')}</p>
+          <span class="teaser-prediction-result">${t('teaserPreview.predictions.resultStress')}</span>
         </div>
         <div class="teaser-prediction-card teaser-prediction--accurate">
-          <span class="teaser-prediction-status">✓ Accurate</span>
-          <p class="teaser-prediction-text">"The gym habit would struggle"</p>
-          <span class="teaser-prediction-result">You skipped 2 sessions this week</span>
+          <span class="teaser-prediction-status">✓ ${t('predictions.accurate')}</span>
+          <p class="teaser-prediction-text">${t('teaserPreview.predictions.guessGym')}</p>
+          <span class="teaser-prediction-result">${tp('teaserPreview.predictions.skipped', 2)}</span>
         </div>
         <div class="teaser-prediction-card teaser-prediction--pending">
-          <span class="teaser-prediction-status">⏳ Watching</span>
-          <p class="teaser-prediction-text">"Sunday evening will feel heavy"</p>
-          <span class="teaser-prediction-result">I'll check in with you</span>
+          <span class="teaser-prediction-status">⏳ ${t('predictions.watching')}</span>
+          <p class="teaser-prediction-text">${t('teaserPreview.predictions.guessSunday')}</p>
+          <span class="teaser-prediction-result">${t('teaserPreview.predictions.resultCheckIn')}</span>
         </div>
         <div class="teaser-prediction-accuracy">
           <span class="teaser-prediction-accuracy-value">78%</span>
-          <span class="teaser-prediction-accuracy-label">Prediction accuracy</span>
+          <span class="teaser-prediction-accuracy-label">${t('predictions.accuracy')}</span>
         </div>
       </div>
     `,
   },
 
   team_insights: {
-    title: 'What We Notice',
-    message: 'Your whole team shares observations to help you grow.',
+    title: t('teaserPreview.team.title'),
+    message: t('teaserPreview.team.message'),
     daysRequired: 14,
     previewHtml: `
       <div class="teaser-team-insights">
         <div class="teaser-team-insight">
           <div class="teaser-team-avatar teaser-team-avatar--maya"></div>
           <div class="teaser-team-insight-content">
-            <span class="teaser-team-name">Maya</span>
-            <p>"Your morning routine streak is connected to better mood scores. Peter noticed it too."</p>
+            <span class="teaser-team-name">${t('team.members.maya.name')}</span>
+            <p>${t('teaserPreview.team.insightMaya')}</p>
           </div>
         </div>
         <div class="teaser-team-insight">
           <div class="teaser-team-avatar teaser-team-avatar--peter"></div>
           <div class="teaser-team-insight-content">
-            <span class="teaser-team-name">Peter</span>
-            <p>"Spending on coffee correlates with your stress levels. Jordan might help with alternatives."</p>
+            <span class="teaser-team-name">${t('team.members.peter.name')}</span>
+            <p>${t('teaserPreview.team.insightPeter')}</p>
           </div>
         </div>
         <div class="teaser-team-insight teaser-team-insight--faded">
           <div class="teaser-team-avatar teaser-team-avatar--nayan"></div>
           <div class="teaser-team-insight-content">
-            <span class="teaser-team-name">Nayan</span>
-            <p>"This feels like the start of a new chapter..."</p>
+            <span class="teaser-team-name">${t('team.members.nayan.name')}</span>
+            <p>${t('teaserPreview.team.insightNayan')}</p>
           </div>
         </div>
       </div>
@@ -272,61 +274,61 @@ const TEASER_CONTENT: Record<TeaserType, TeaserContent> = {
   },
 
   memories: {
-    title: 'Our Memories',
-    message: "I'll remember everything - the big moments and the small ones.",
+    title: t('teaserPreview.memories.title'),
+    message: t('teaserPreview.memories.message'),
     daysRequired: 7,
     previewHtml: `
       <div class="teaser-memories">
         <div class="teaser-memory-card">
-          <span class="teaser-memory-date">Dec 15</span>
-          <span class="teaser-memory-type">Breakthrough</span>
-          <p class="teaser-memory-content">"You realized your perfectionism was holding you back from starting"</p>
-          <span class="teaser-memory-persona">with Ferni</span>
+          <span class="teaser-memory-date">${formatDate(new Date(2000, 11, 15), { month: 'short', day: 'numeric' })}</span>
+          <span class="teaser-memory-type">${t('accessibility.breakthrough')}</span>
+          <p class="teaser-memory-content">${t('teaserPreview.memories.contentPerfectionism')}</p>
+          <span class="teaser-memory-persona">${t('logMoment.withContact', { name: t('team.members.ferni.name') })}</span>
         </div>
         <div class="teaser-memory-card">
-          <span class="teaser-memory-date">Dec 12</span>
-          <span class="teaser-memory-type">Win</span>
-          <p class="teaser-memory-content">"You had that difficult conversation with your manager"</p>
-          <span class="teaser-memory-persona">with Alex</span>
+          <span class="teaser-memory-date">${formatDate(new Date(2000, 11, 12), { month: 'short', day: 'numeric' })}</span>
+          <span class="teaser-memory-type">${t('teaserPreview.memories.win')}</span>
+          <p class="teaser-memory-content">${t('teaserPreview.memories.contentManager')}</p>
+          <span class="teaser-memory-persona">${t('logMoment.withContact', { name: t('team.members.alex.name') })}</span>
         </div>
         <div class="teaser-memory-card teaser-memory-card--faded">
-          <span class="teaser-memory-date">Dec 8</span>
-          <span class="teaser-memory-type">Commitment</span>
-          <p class="teaser-memory-content">"You promised to call your mom every Sunday"</p>
-          <span class="teaser-memory-persona">with Ferni</span>
+          <span class="teaser-memory-date">${formatDate(new Date(2000, 11, 8), { month: 'short', day: 'numeric' })}</span>
+          <span class="teaser-memory-type">${t('memoryThreads.nodeTypes.commitment')}</span>
+          <p class="teaser-memory-content">${t('teaserPreview.memories.contentMom')}</p>
+          <span class="teaser-memory-persona">${t('logMoment.withContact', { name: t('team.members.ferni.name') })}</span>
         </div>
       </div>
     `,
   },
 
   your_people: {
-    title: 'Your People',
-    message: "I'll remember everyone important to you and how you feel about them.",
+    title: t('teaserPreview.people.title'),
+    message: t('teaserPreview.people.message'),
     daysRequired: 14,
     previewHtml: `
       <div class="teaser-people">
         <div class="teaser-person-card">
-          <div class="teaser-person-avatar">S</div>
+          <div class="teaser-person-avatar">${t('teaserPreview.people.sarah').charAt(0)}</div>
           <div class="teaser-person-info">
-            <span class="teaser-person-name">Sarah</span>
-            <span class="teaser-person-relation">Friend • Mentioned 12 times</span>
-            <span class="teaser-person-sentiment teaser-person-sentiment--positive">Brings you joy</span>
+            <span class="teaser-person-name">${t('teaserPreview.people.sarah')}</span>
+            <span class="teaser-person-relation">${tp('teaserPreview.people.mentioned', 12, { relation: t('addPerson.relationships.friend') })}</span>
+            <span class="teaser-person-sentiment teaser-person-sentiment--positive">${t('teaserPreview.people.joy')}</span>
           </div>
         </div>
         <div class="teaser-person-card">
-          <div class="teaser-person-avatar">M</div>
+          <div class="teaser-person-avatar">${t('teaserPreview.people.mom').charAt(0)}</div>
           <div class="teaser-person-info">
-            <span class="teaser-person-name">Mom</span>
-            <span class="teaser-person-relation">Family • Mentioned 8 times</span>
-            <span class="teaser-person-sentiment teaser-person-sentiment--mixed">Complex feelings</span>
+            <span class="teaser-person-name">${t('teaserPreview.people.mom')}</span>
+            <span class="teaser-person-relation">${tp('teaserPreview.people.mentioned', 8, { relation: t('addPerson.relationships.family') })}</span>
+            <span class="teaser-person-sentiment teaser-person-sentiment--mixed">${t('teaserPreview.people.complex')}</span>
           </div>
         </div>
         <div class="teaser-person-card teaser-person-card--faded">
-          <div class="teaser-person-avatar">D</div>
+          <div class="teaser-person-avatar">${t('teaserPreview.people.david').charAt(0)}</div>
           <div class="teaser-person-info">
-            <span class="teaser-person-name">David</span>
-            <span class="teaser-person-relation">Friend • Last mentioned: 30 days ago</span>
-            <span class="teaser-person-sentiment teaser-person-sentiment--check">Worth reconnecting?</span>
+            <span class="teaser-person-name">${t('teaserPreview.people.david')}</span>
+            <span class="teaser-person-relation">${t('teaserPreview.people.lastMentioned', { relation: t('addPerson.relationships.friend'), when: t('common.daysAgo', { count: 30 }) })}</span>
+            <span class="teaser-person-sentiment teaser-person-sentiment--check">${t('teaserPreview.people.reconnect')}</span>
           </div>
         </div>
       </div>
@@ -334,8 +336,8 @@ const TEASER_CONTENT: Record<TeaserType, TeaserContent> = {
   },
 
   growth_analytics: {
-    title: "How You're Growing",
-    message: 'Visual proof of your progress over time.',
+    title: t('teaserPreview.growth.title'),
+    message: t('teaserPreview.growth.message'),
     daysRequired: 14,
     previewHtml: `
       <div class="teaser-analytics">
@@ -353,24 +355,21 @@ const TEASER_CONTENT: Record<TeaserType, TeaserContent> = {
                   fill="url(#growthGradient)"/>
           </svg>
           <div class="teaser-chart-labels">
-            <span>Week 1</span>
-            <span>Week 2</span>
-            <span>Week 3</span>
-            <span>Week 4</span>
+            ${[1, 2, 3, 4].map((n) => `<span>${t('teaserPreview.growth.week', { number: n })}</span>`).join('')}
           </div>
         </div>
         <div class="teaser-analytics-stats">
           <div class="teaser-analytics-stat">
             <span class="teaser-analytics-stat-value">↑ 23%</span>
-            <span class="teaser-analytics-stat-label">Self-awareness</span>
+            <span class="teaser-analytics-stat-label">${t('trustJourney.growthTypes.self_awareness')}</span>
           </div>
           <div class="teaser-analytics-stat">
             <span class="teaser-analytics-stat-value">↑ 18%</span>
-            <span class="teaser-analytics-stat-label">Consistency</span>
+            <span class="teaser-analytics-stat-label">${t('teaserPreview.growth.consistency')}</span>
           </div>
           <div class="teaser-analytics-stat">
             <span class="teaser-analytics-stat-value">↑ 31%</span>
-            <span class="teaser-analytics-stat-label">Follow-through</span>
+            <span class="teaser-analytics-stat-label">${t('teaserPreview.growth.followThrough')}</span>
           </div>
         </div>
       </div>
@@ -378,15 +377,15 @@ const TEASER_CONTENT: Record<TeaserType, TeaserContent> = {
   },
 
   habits: {
-    title: 'Your Habits',
-    message: "Track what you're building and watch momentum grow.",
+    title: t('teaserPreview.habits.title'),
+    message: t('teaserPreview.habits.message'),
     daysRequired: 7,
     previewHtml: `
       <div class="teaser-habits">
         <div class="teaser-habit-card">
           <div class="teaser-habit-info">
-            <span class="teaser-habit-name">Morning walk</span>
-            <span class="teaser-habit-streak">🔥 12 day streak</span>
+            <span class="teaser-habit-name">${t('teaserPreview.habits.morningWalk')}</span>
+            <span class="teaser-habit-streak">🔥 ${tp('moments.streakTitle', 12)}</span>
           </div>
           <div class="teaser-habit-calendar">
             ${Array.from({ length: 7 }, (_, i) => {
@@ -397,8 +396,8 @@ const TEASER_CONTENT: Record<TeaserType, TeaserContent> = {
         </div>
         <div class="teaser-habit-card">
           <div class="teaser-habit-info">
-            <span class="teaser-habit-name">Read before bed</span>
-            <span class="teaser-habit-streak">🌱 5 day streak</span>
+            <span class="teaser-habit-name">${t('teaserPreview.habits.readBeforeBed')}</span>
+            <span class="teaser-habit-streak">🌱 ${tp('moments.streakTitle', 5)}</span>
           </div>
           <div class="teaser-habit-calendar">
             ${Array.from({ length: 7 }, (_, i) => {
@@ -409,8 +408,8 @@ const TEASER_CONTENT: Record<TeaserType, TeaserContent> = {
         </div>
         <div class="teaser-habit-card teaser-habit-card--at-risk">
           <div class="teaser-habit-info">
-            <span class="teaser-habit-name">Meditation</span>
-            <span class="teaser-habit-streak">⚠️ Needs attention</span>
+            <span class="teaser-habit-name">${t('teaserPreview.habits.meditation')}</span>
+            <span class="teaser-habit-streak">⚠️ ${t('accessibility.needsAttention')}</span>
           </div>
           <div class="teaser-habit-calendar">
             ${Array.from({ length: 7 }, (_, i) => {
@@ -422,7 +421,7 @@ const TEASER_CONTENT: Record<TeaserType, TeaserContent> = {
       </div>
     `,
   },
-};
+});
 
 // ============================================================================
 // TEASER PREVIEW CLASS
@@ -435,7 +434,7 @@ export class TeaserPreviewUI {
    * Create a teaser preview element
    */
   create(config: TeaserConfig): HTMLElement {
-    const content = TEASER_CONTENT[config.type];
+    const content = getTeaserContent()[config.type];
     if (!content) {
       log.warn(`Unknown teaser type: ${config.type}`);
       return document.createElement('div');
@@ -448,13 +447,13 @@ export class TeaserPreviewUI {
     const element = document.createElement('div');
     element.className = `teaser-preview teaser-preview--${config.type}`;
     element.setAttribute('role', 'region');
-    element.setAttribute('aria-label', `Preview: ${content.title}`);
+    element.setAttribute('aria-label', t('teaserPreview.ariaLabel', { title: content.title }));
 
     element.innerHTML = `
       <div class="teaser-header">
         <div class="teaser-badge">
           <span class="teaser-badge-icon">${ICONS.eye}</span>
-          <span class="teaser-badge-text">Preview</span>
+          <span class="teaser-badge-text">${t('accessibility.preview')}</span>
         </div>
         <h3 class="teaser-title">${content.title}</h3>
         <p class="teaser-message">${config.customMessage || content.message}</p>
@@ -462,7 +461,7 @@ export class TeaserPreviewUI {
           <div class="teaser-unlock-hint">
             <span class="teaser-unlock-icon">${ICONS.sparkle}</span>
             <span class="teaser-unlock-text">
-              ${daysToGo === 1 ? 'Tomorrow this could be real' : `After ${daysToGo} more days, this will be yours`}
+              ${daysToGo === 1 ? t('teaserPreview.unlockTomorrow') : tp('teaserPreview.unlockDays', daysToGo)}
             </span>
           </div>
         ` : ''}
@@ -471,7 +470,7 @@ export class TeaserPreviewUI {
         ${content.previewHtml}
       </div>
       <div class="teaser-footer">
-        <p class="teaser-cta">Keep talking. We're building something.</p>
+        <p class="teaser-cta">${t('predictions.keepTalking')}</p>
       </div>
     `;
 

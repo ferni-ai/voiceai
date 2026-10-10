@@ -8,23 +8,29 @@ on:
       - 'apps/**'
       - 'packages/**'
       - 'design-system/**'
+      # Tested from src/tests (voice-eval scoring, the agent Dockerfile): a PR touching
+      # only these never got the required checks and could not merge.
+      - 'scripts/**'
+      - 'docker/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'tsconfig*.json'
-      - '.github/workflows/ci.yml'
+      # Build and CI config: a change here can break CI or the images, and a PR
+      # touching only these never got the required checks, so it could not merge.
+      - 'pnpm-workspace.yaml'
+      - '.npmrc'
+      - 'patches/**'
+      - '.github/workflows/**'
       - '.github/actions/**'
+      - '**/Dockerfile*'
+      - 'cloudbuild*.yaml'
+      - 'infra/**'
   pull_request:
     branches: [main, develop]
-    paths:
-      - 'src/**'
-      - 'apps/**'
-      - 'packages/**'
-      - 'design-system/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'tsconfig*.json'
-      - '.github/workflows/ci.yml'
-      - '.github/actions/**'
+    # No path filter on PRs: branch protection requires these checks, so a PR
+    # they skip can never merge (docs, .claude/, dependabot.yml PRs all stuck).
+  # The merge queue tests each PR on top of main and whatever is queued ahead of it.
+  merge_group:
 
 # Cancel in-progress runs when a new run is triggered
 concurrency:
@@ -32,7 +38,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   NODE_OPTIONS: '--max-old-space-size=3072'
 
 jobs:
@@ -99,15 +105,14 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: nm-cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -115,7 +120,14 @@ jobs:
             apps/*/node_modules
             packages/*/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
+
+      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
+      # and cache eviction (10 GB repo limit) both leave it missing; install
+      # instead of failing a job that has nothing wrong with it.
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
 
       - name: TypeScript type check
         run: pnpm typecheck
@@ -125,11 +137,9 @@ jobs:
 
       - name: Tool schema validation
         run: pnpm tools:schemas:validate
-        continue-on-error: true
 
       - name: Tool schema check (no drift)
         run: pnpm tools:schemas:check
-        continue-on-error: true
 
   # ============================================================================
   # UNIT TESTS (Fast - ~30-60 seconds)
@@ -147,15 +157,14 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: nm-cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -163,7 +172,22 @@ jobs:
             apps/*/node_modules
             packages/*/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
+
+      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
+      # and cache eviction (10 GB repo limit) both leave it missing; install
+      # instead of failing a job that has nothing wrong with it.
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
+
+      # The root vitest.config.ts excludes apps/**, so the step below never sees the
+      # CLI's tests; they run under apps/cli/vitest.config.ts instead. They need no
+      # native bindings and finish in seconds, so they run before the Rust build.
+      - name: Run CLI unit tests
+        run: pnpm test:cli:unit
+        env:
+          NODE_ENV: test
 
       # 60 call sites use the THROWING loadRustPerf() (tryLoadRustPerf is documented
       # "for availability checks, not for actual operations"), so the accelerator is
@@ -202,11 +226,22 @@ jobs:
       # binding either, and the suite passes without it — so it is tolerated and is
       # deliberately not built here. rust-native.yml also notes sonata needs
       # pre-built pocket-voice cdylibs, which is a separate problem.
+      #
+      # The binding statically links pyke's prebuilt libonnxruntime.a, which needs
+      # glibc >= 2.38 (__isoc23_strtol & co). On an Ubuntu 22.04 runner (glibc 2.35)
+      # it builds fine but every dlopen fails, and ~65 native tests fail in 1 ms
+      # (run 37171889352). All runners are Ubuntu 24.04 (glibc 2.39), the same as
+      # production, so this builds exactly what ships. The check below turns any
+      # future mismatch into one clear failure with the real dlopen error.
       - name: Build @ferni/perf native binding
         working-directory: apps/rust-perf
         run: |
           pnpm install
           pnpm exec napi build --platform
+
+      # Fail here with the real dlopen error instead of 65 tests failing in 1 ms.
+      - name: Check @ferni/perf loads
+        run: node -e "require('./apps/rust-perf')"
 
       - name: Build @ferni/audio native binding
         working-directory: apps/rust-audio
@@ -249,15 +284,14 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: nm-cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -265,7 +299,14 @@ jobs:
             apps/*/node_modules
             packages/*/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
+
+      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
+      # and cache eviction (10 GB repo limit) both leave it missing; install
+      # instead of failing a job that has nothing wrong with it.
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
 
       # memory-persistence loads the native vector accelerator (loadRustPerf
       # throws without it); see the same steps in Unit Tests for why.
@@ -291,6 +332,23 @@ jobs:
           pnpm install
           pnpm exec napi build --platform
 
+      - name: Check @ferni/perf loads
+        run: node -e "require('./apps/rust-perf')"
+
+      # speech-modules runs the audio-prosody analyzer, which needs this binding
+      # (no JS fallback). The repo only has the darwin-arm64 build, so on Linux
+      # it failed with "Cannot find module '@ferni/audio-linux-x64-gnu'".
+      - name: Build @ferni/audio native binding
+        working-directory: apps/rust-audio
+        run: |
+          pnpm install
+          pnpm exec napi build --platform
+
+      - name: Check @ferni/audio loads
+        run: node -e "require('./apps/rust-audio')"
+
+      # Blocking. It ran with continue-on-error, so 13 tests could fail on every
+      # run of main and the job still showed green.
       - name: Run integration tests
         # No `--`: pnpm would pass it through and vitest ignores every flag after it.
         run: pnpm test:integration --shard=${{ matrix.shard }}/3 --reporter=verbose
@@ -302,8 +360,10 @@ jobs:
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          # A project id with no credentials: code that picks a cloud backend from
+          # the project id alone (Vertex embeddings, firebase-admin) fails here, so
+          # the tests choose their fakes explicitly instead of relying on the env.
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-        continue-on-error: true
 
       - name: Check coverage threshold
         run: |
@@ -340,15 +400,14 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: nm-cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -356,7 +415,14 @@ jobs:
             apps/*/node_modules
             packages/*/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
+
+      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
+      # and cache eviction (10 GB repo limit) both leave it missing; install
+      # instead of failing a job that has nothing wrong with it.
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
 
       - name: Run AGI Feature Unit Tests
         run: pnpm test:agi-features -- --reporter=verbose
@@ -384,15 +450,14 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: nm-cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -400,7 +465,14 @@ jobs:
             apps/*/node_modules
             packages/*/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
+
+      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
+      # and cache eviction (10 GB repo limit) both leave it missing; install
+      # instead of failing a job that has nothing wrong with it.
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build backend
         run: pnpm build
@@ -414,7 +486,7 @@ jobs:
           pnpm build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build
           path: |
@@ -436,15 +508,14 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: nm-cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -452,7 +523,14 @@ jobs:
             apps/*/node_modules
             packages/*/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
+
+      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
+      # and cache eviction (10 GB repo limit) both leave it missing; install
+      # instead of failing a job that has nothing wrong with it.
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
 
       - name: Run pnpm audit
         run: pnpm audit --audit-level=high || echo "⚠️ Security vulnerabilities found - review required"
@@ -472,6 +550,15 @@ jobs:
           path: ./
           base: ${{ github.event.pull_request.base.sha }}
           head: ${{ github.event.pull_request.head.sha }}
+          extra_args: --only-verified
+
+      - name: Check for secrets (merge queue diff)
+        if: github.event_name == 'merge_group'
+        uses: trufflesecurity/trufflehog@4dd8831c5f12599465d4d45c3c447b4018a34c85 # v3.97.9
+        with:
+          path: ./
+          base: ${{ github.event.merge_group.base_sha }}
+          head: ${{ github.event.merge_group.head_sha }}
           extra_args: --only-verified
 
       - name: Check for secrets (full repo, push)
@@ -497,15 +584,14 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: nm-cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -513,7 +599,14 @@ jobs:
             apps/*/node_modules
             packages/*/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
+
+      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
+      # and cache eviction (10 GB repo limit) both leave it missing; install
+      # instead of failing a job that has nothing wrong with it.
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
 
       - name: Run unified audit
         run: pnpm audit all
@@ -535,15 +628,14 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: nm-cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -551,11 +643,24 @@ jobs:
             apps/*/node_modules
             packages/*/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
+
+      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
+      # and cache eviction (10 GB repo limit) both leave it missing; install
+      # instead of failing a job that has nothing wrong with it.
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
+
+      # Blocking. Files over 500 lines may not grow, and brand-copy and brand-lint
+      # counts may not rise (docs/DEFINITION-OF-CLEAN.md). It only ran in Brand
+      # Compliance, which is not a required check and has no merge_group trigger,
+      # so growth reached main three times in a week (#343, #340, #388).
+      - name: Quality ratchet
+        run: pnpm tsx apps/cli/src/commands/quality/ratchet.ts
 
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
-        continue-on-error: true
 
   # ============================================================================
   # VALIDATION (using unified validate CLI)
@@ -571,15 +676,14 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: nm-cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -587,7 +691,14 @@ jobs:
             apps/*/node_modules
             packages/*/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
+
+      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
+      # and cache eviction (10 GB repo limit) both leave it missing; install
+      # instead of failing a job that has nothing wrong with it.
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
 
       - name: Validate voices
         run: pnpm validate voices
@@ -611,15 +722,14 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: nm-cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -627,7 +737,14 @@ jobs:
             apps/*/node_modules
             packages/*/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
+
+      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
+      # and cache eviction (10 GB repo limit) both leave it missing; install
+      # instead of failing a job that has nothing wrong with it.
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build CLI and backend
         run: pnpm build:fast
@@ -656,7 +773,7 @@ jobs:
           fi
 
       - name: Upload E2E report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: e2e-validation-report
@@ -677,15 +794,14 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: nm-cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -693,7 +809,14 @@ jobs:
             apps/*/node_modules
             packages/*/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
+
+      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
+      # and cache eviction (10 GB repo limit) both leave it missing; install
+      # instead of failing a job that has nothing wrong with it.
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build design-system
         run: pnpm build:design-system
@@ -703,17 +826,26 @@ jobs:
           cd apps/web
           pnpm typecheck
 
-      - name: ESLint check
+      - name: Architecture tests (layers, cycles, boundaries, naming, file size)
         run: |
           cd apps/web
-          pnpm lint
-        continue-on-error: true
+          pnpm test:arch
+
+      # Web ESLint has 123 old errors, so plain `pnpm lint` can't gate. The ratchet fails
+      # only when a rule gains errors (baseline: ratchet-baseline.json "webEslint").
+      - name: ESLint (ratchet)
+        run: |
+          (cd apps/web && pnpm lint --format json --output-file eslint.json) || true
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --eslint apps/web/eslint.json
+
+      - name: Web unit tests
+        working-directory: apps/web
+        run: npx vitest run
 
       - name: Design token validation
         run: |
           cd apps/web
           pnpm lint:tokens
-        continue-on-error: true
 
       - name: UI audit
         run: |
@@ -721,11 +853,11 @@ jobs:
           pnpm audit:ui || true
         continue-on-error: true
 
-      - name: Build and check bundle size
+      # The build must succeed, and the bundle may not grow past its baseline (2% slack).
+      - name: Build and bundle ratchet
         run: |
-          cd apps/web
-          pnpm build:check || true
-        continue-on-error: true
+          (cd apps/web && pnpm build)
+          pnpm tsx apps/cli/src/commands/quality/ratchet.ts --bundle
 
   # ============================================================================
   # DEPENDENCY CHECK
@@ -741,15 +873,14 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        id: nm-cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -757,7 +888,14 @@ jobs:
             apps/*/node_modules
             packages/*/node_modules
           key: ${{ needs.setup.outputs.cache-key }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
+
+      # The cache is saved by the setup job of the same run. "Re-run failed jobs"
+      # and cache eviction (10 GB repo limit) both leave it missing; install
+      # instead of failing a job that has nothing wrong with it.
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
 
       - name: Check for outdated dependencies
         run: pnpm outdated || true

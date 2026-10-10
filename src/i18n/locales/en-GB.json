@@ -421,5 +421,278 @@
     "hoursAgo": "{n} hours ago",
     "yesterday": "yesterday",
     "daysAgo": "{n} days ago"
+  },
+  "sanctuary": {
+    "greeting": {
+      "morning": "{day} MORNING",
+      "afternoon": "{day} AFTERNOON",
+      "evening": "{day} EVENING",
+      "night": "LATE {day}"
+    },
+    "insights": {
+      "actions": {
+        "explore": "Explore",
+        "review": "Review",
+        "viewJourney": "View Journey"
+      },
+      "sources": {
+        "correlation": "Correlation",
+        "trajectory": "Trajectory",
+        "relational": "Relational",
+        "counterfactual": "Counterfactual",
+        "growth": "Growth",
+        "threading": "Threading",
+        "openLoop": "Open Loop",
+        "commitment": "Commitment",
+        "temporal": "Temporal",
+        "behavioral": "Behavioural"
+      },
+      "commitments": {
+        "title": "Commitments in Flight",
+        "description": {
+          "one": "You have {count} active commitment being tracked.",
+          "other": "You have {count} active commitments being tracked."
+        }
+      },
+      "pattern": {
+        "title": "Pattern Detected",
+        "description": "When {trigger}, {outcome}"
+      },
+      "growth": {
+        "title": "Your Story Unfolds",
+        "description": "Your journey has chapters worth celebrating."
+      },
+      "welcome": {
+        "title": "A Moment for You",
+        "description": "This is your sanctuary. Take a breath and be present."
+      }
+    },
+    "practices": {
+      "brainstorm": {
+        "name": "Brainstorm Session",
+        "description": "Think through a challenge together",
+        "duration": "10-15 min",
+        "prompt": "Let's brainstorm. What challenge or decision is on your mind?",
+        "reason": "Clear thinking awaits"
+      },
+      "dailyCheckin": {
+        "name": "Daily Check-in",
+        "description": "Start your day with a gentle reflection",
+        "duration": "5-10 min",
+        "prompt": "Good to see you. How are you feeling right now, really?",
+        "reason": "Perfect for starting your day with intention"
+      },
+      "gratitude": {
+        "name": "Gratitude Practice",
+        "description": "A moment of appreciation",
+        "duration": "5 min",
+        "prompt": "Let's pause and appreciate. What's one thing you're grateful for right now?",
+        "reason": "A moment of appreciation grounds you"
+      },
+      "windDown": {
+        "name": "Wind Down",
+        "description": "Gentle end-of-day reflection",
+        "duration": "5-10 min",
+        "prompt": "Let's wind down together. What's one thing you're proud of from today?",
+        "reason": "Time to release the day"
+      },
+      "weeklyReview": {
+        "name": "Weekly Review",
+        "description": "Reflect on your week and celebrate progress",
+        "duration": "15-20 min",
+        "prompt": "Let's look back at your week. What stands out to you?",
+        "reason": "End the week with reflection"
+      },
+      "breathFocus": {
+        "name": "Breath Focus",
+        "description": "Simple breathing exercise to centre yourself",
+        "duration": "3-5 min",
+        "prompt": "Let's breathe together. Find a comfortable position and let your eyes soften.",
+        "reason": "A few breaths can shift everything"
+      },
+      "futureLetter": {
+        "name": "Letter to Future Self",
+        "description": "Write wisdom for your future self",
+        "duration": "10-15 min",
+        "prompt": "What would you want to tell yourself 6 months from now?",
+        "reason": "Plant seeds for future you"
+      },
+      "valuesCheck": {
+        "name": "Values Check-in",
+        "description": "Reconnect with what matters most",
+        "duration": "10 min",
+        "prompt": "Let's explore your values. What feels most important to you right now?",
+        "reason": "Reconnect with your compass"
+      }
+    },
+    "quotes": {
+      "unknownAuthor": "Unknown",
+      "morning": {
+        "getStarted": "The way to get started is to quit talking and begin doing.",
+        "newPotential": "Every morning brings new potential.",
+        "wonderfulDay": "This is a wonderful day. I have never seen this one before."
+      },
+      "afternoon": {
+        "greatWork": "The only way to do great work is to love what you do.",
+        "smallSteps": "Small steps every day lead to big changes.",
+        "anotherGoal": "You are never too old to set another goal."
+      },
+      "evening": {
+        "restNotIdleness": "Rest is not idleness.",
+        "judgedOnLove": "In the evening of life, we will be judged on love alone.",
+        "dailyGifts": "Each day provides its own gifts."
+      },
+      "night": {
+        "newDay": "Tomorrow's a new day with no mistakes in it yet.",
+        "bestMeditation": "Sleep is the best meditation.",
+        "betterHalf": "Night is the other half of life, and the better half."
+      }
+    }
+  },
+  "quiz": {
+    "questions": {
+      "communicationStyle": {
+        "text": "How do I prefer to communicate?",
+        "options": {
+          "direct": "Direct and to-the-point",
+          "analytical": "Detailed and data-driven",
+          "warm": "Warm and personable",
+          "reflective": "Thoughtful and contemplative"
+        }
+      },
+      "favoriteTopic": {
+        "text": "What topic do I love talking about most?",
+        "options": {
+          "cooking": "cooking",
+          "sports": "sports",
+          "gardening": "gardening",
+          "fashion": "fashion"
+        }
+      },
+      "conversationCount": {
+        "text": "About how many conversations have we had together?",
+        "options": {
+          "range1to5": "1-5",
+          "range6to15": "6-15",
+          "range16to30": "16-30",
+          "over30": "More than 30"
+        }
+      },
+      "timeTogether": {
+        "text": "How much time have we spent talking together?",
+        "options": {
+          "under30Min": "Less than 30 minutes",
+          "min30To60": "30 min - 1 hour",
+          "hour1To2": "1-2 hours",
+          "over2Hours": "More than 2 hours"
+        }
+      },
+      "memoryRecall": {
+        "text": "Is this something I remember about us: \"{snippet}...\"?",
+        "options": {
+          "yes": "Yes, that sounds right",
+          "no": "No, that's not quite right",
+          "unsure": "I'm not sure",
+          "never": "We never talked about that"
+        }
+      },
+      "firstMeeting": {
+        "text": "When we first started talking, I was:",
+        "options": {
+          "excited": "Excited to meet you",
+          "nervous": "A bit nervous",
+          "curious": "Curious about you",
+          "allOfTheAbove": "All of the above"
+        }
+      },
+      "whatMatters": {
+        "text": "What matters most to me in our conversations?",
+        "options": {
+          "beingHelpful": "Being helpful",
+          "feelingHeard": "Making you feel heard",
+          "learningAboutYou": "Learning about you",
+          "growingTogether": "Growing together"
+        }
+      },
+      "difficultShare": {
+        "text": "How do I feel when you share something difficult?",
+        "options": {
+          "uncomfortable": "Uncomfortable",
+          "honored": "Honoured you trust me",
+          "eagerToFix": "Eager to fix it",
+          "distracted": "Distracted"
+        }
+      }
+    },
+    "celebrations": {
+      "soulmate": "You really get me! It's like we share one brain.",
+      "bestie": "Wow, you know me so well! Best friends for life.",
+      "friend": "Pretty good! Our friendship is growing stronger.",
+      "acquaintance": "Not bad! We're still learning about each other.",
+      "stranger": "Looks like we have more to discover together!"
+    }
+  },
+  "practiceView": {
+    "attribution": {
+      "notes": "{persona} notes",
+      "suggests": "{persona} suggests",
+      "notices": "{persona} notices",
+      "reflects": "{persona} reflects",
+      "tracks": "{persona} tracks",
+      "found": "{persona} found"
+    },
+    "eventContext": {
+      "meeting": "Set a clear intention before joining",
+      "wellness": "Taking care of yourself first",
+      "learning": "Growth happens in the stretching",
+      "social": "Connections nourish the soul"
+    },
+    "habit": {
+      "untitled": "Untitled habit",
+      "streakWeek": "{streak} days in a row!",
+      "streakDays": "{streak} days strong",
+      "momentum": "Building momentum"
+    },
+    "task": {
+      "untitled": "Untitled task",
+      "dueToday": "Due today",
+      "dueTomorrow": "Due tomorrow",
+      "dueInDays": "Due in {days} days",
+      "highPriority": "High priority"
+    },
+    "reminder": {
+      "fallback": "Reminder"
+    },
+    "practice": {
+      "streak": "{streak} day streak"
+    },
+    "defaultIntention": {
+      "start": "Start with intention",
+      "oneThing": "One thing at a time",
+      "gratitude": "End the day with gratitude",
+      "gratitudeInsight": "This has helped your mood"
+    },
+    "dayInsight": {
+      "morningIntention": "Morning intention",
+      "stayPresent": "Stay present",
+      "reflectAndCelebrate": "Reflect & celebrate",
+      "newBeginning": "New beginning",
+      "recharge": "Recharge",
+      "freshStart": "Fresh start",
+      "buildMomentum": "Build momentum",
+      "midWeek": "Mid-week check",
+      "almostThere": "Almost there",
+      "windDown": "Wind down"
+    },
+    "pattern": {
+      "busyWeek": "You've been in a lot of meetings lately. Your best thinking happens in the quiet spaces.",
+      "packedDay": "{day} looks packed. Maybe move something to {otherDay}?",
+      "packedDayNoAlternative": "{day} looks packed. Maybe move something to another day?"
+    },
+    "errors": {
+      "loadFailed": "Could not load practice view",
+      "completeFailed": "Could not complete intention",
+      "patternsFailed": "Could not get patterns"
+    }
   }
 }

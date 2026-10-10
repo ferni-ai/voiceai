@@ -422,5 +422,279 @@
     "hoursAgo": "לפני {n} שעות",
     "yesterday": "אתמול",
     "daysAgo": "לפני {n} ימים"
+  },
+  "sanctuary": {
+    "greeting": {
+      "morning": "בוקר {day}",
+      "afternoon": "צהרי {day}",
+      "evening": "ערב {day}",
+      "night": "לילה {day}"
+    },
+    "insights": {
+      "actions": {
+        "explore": "לחקור",
+        "review": "לסקור",
+        "viewJourney": "לצפות במסע"
+      },
+      "sources": {
+        "correlation": "מתאם",
+        "trajectory": "מסלול",
+        "relational": "מערכות יחסים",
+        "counterfactual": "תרחיש חלופי",
+        "growth": "צמיחה",
+        "threading": "שזירה",
+        "openLoop": "לולאה פתוחה",
+        "commitment": "מחויבות",
+        "temporal": "זמן",
+        "behavioral": "התנהגותי"
+      },
+      "commitments": {
+        "title": "מחויבויות בתהליך",
+        "description": {
+          "one": "יש לך {count} מחויבות פעילה במעקב.",
+          "two": "יש לך {count} מחויבויות פעילות במעקב.",
+          "other": "יש לך {count} מחויבויות פעילות במעקב."
+        }
+      },
+      "pattern": {
+        "title": "זוהתה תבנית",
+        "description": "כש{trigger}, {outcome}"
+      },
+      "growth": {
+        "title": "הסיפור שלך נפרש",
+        "description": "במסע שלך יש פרקים ששווה לחגוג."
+      },
+      "welcome": {
+        "title": "רגע בשבילך",
+        "description": "זהו המרחב המוגן שלך. אפשר לקחת נשימה ופשוט להיות כאן."
+      }
+    },
+    "practices": {
+      "brainstorm": {
+        "name": "סיעור מוחות",
+        "description": "לחשוב יחד על אתגר",
+        "duration": "10-15 דקות",
+        "prompt": "בואו נעשה סיעור מוחות. איזה אתגר או החלטה עומדים על הפרק כרגע?",
+        "reason": "הדרך למחשבה בהירה"
+      },
+      "dailyCheckin": {
+        "name": "צ'ק-אין יומי",
+        "description": "להתחיל את היום עם התבוננות עדינה",
+        "duration": "5-10 דקות",
+        "prompt": "איזה כיף להיפגש. איך ההרגשה כרגע, באמת?",
+        "reason": "מושלם להתחלת היום עם כוונה"
+      },
+      "gratitude": {
+        "name": "תרגול הכרת תודה",
+        "description": "רגע של הוקרה",
+        "duration": "5 דקות",
+        "prompt": "בואו נעצור לרגע ונוקיר תודה. מהו דבר אחד שעליו יש לכם הכרת תודה כרגע?",
+        "reason": "רגע של הוקרה מחבר לקרקע"
+      },
+      "windDown": {
+        "name": "הורדת הילוך",
+        "description": "התבוננות עדינה לסוף היום",
+        "duration": "5-10 דקות",
+        "prompt": "בואו נוריד הילוך יחד. במה אפשר להתגאות מהיום שהיה?",
+        "reason": "זמן לשחרר את היום"
+      },
+      "weeklyReview": {
+        "name": "סיכום שבועי",
+        "description": "להתבונן בשבוע שהיה ולחגוג את ההתקדמות",
+        "duration": "15-20 דקות",
+        "prompt": "בואו נביט לאחור על השבוע שלכם. מה בולט במיוחד?",
+        "reason": "לסיים את השבוע עם התבוננות"
+      },
+      "breathFocus": {
+        "name": "מיקוד בנשימה",
+        "description": "תרגיל נשימה פשוט להתמרכזות",
+        "duration": "3-5 דקות",
+        "prompt": "בואו ננשום יחד. כדאי למצוא תנוחה נוחה ולאפשר לעיניים להתרכך.",
+        "reason": "כמה נשימות יכולות לשנות הכל"
+      },
+      "futureLetter": {
+        "name": "מכתב לעצמי העתידי",
+        "description": "לכתוב מילות חוכמה לעצמי העתידי",
+        "duration": "10-15 דקות",
+        "prompt": "מה הייתם רוצים להגיד לעצמכם בעוד 6 חודשים?",
+        "reason": "לשתול זרעים עבור העתיד שלכם"
+      },
+      "valuesCheck": {
+        "name": "צ'ק-אין ערכים",
+        "description": "להתחבר מחדש למה שהכי חשוב",
+        "duration": "10 דקות",
+        "prompt": "בואו נחקור את הערכים שלכם. מה מרגיש הכי חשוב כרגע?",
+        "reason": "להתחבר מחדש למצפן הפנימי"
+      }
+    },
+    "quotes": {
+      "unknownAuthor": "לא ידוע",
+      "morning": {
+        "getStarted": "הדרך להתחיל היא להפסיק לדבר ולהתחיל לעשות.",
+        "newPotential": "כל בוקר מביא איתו פוטנציאל חדש.",
+        "wonderfulDay": "זהו יום נפלא. מעולם לא ראיתי יום כזה לפני כן."
+      },
+      "afternoon": {
+        "greatWork": "הדרך היחידה לעשות עבודה נהדרת היא לאהוב את מה שעושים.",
+        "smallSteps": "צעדים קטנים בכל יום מובילים לשינויים גדולים.",
+        "anotherGoal": "אף פעם לא מאוחר מדי להציב מטרה חדשה."
+      },
+      "evening": {
+        "restNotIdleness": "מנוחה אינה בטלה.",
+        "judgedOnLove": "בערב החיים, נישפט על פי האהבה בלבד.",
+        "dailyGifts": "כל יום מביא איתו את המתנות שלו."
+      },
+      "night": {
+        "newDay": "מחר הוא יום חדש, ועדיין אין בו טעויות.",
+        "bestMeditation": "שינה היא המדיטציה הטובה ביותר.",
+        "betterHalf": "הלילה הוא החצי השני של החיים, והחצי הטוב יותר."
+      }
+    }
+  },
+  "quiz": {
+    "questions": {
+      "communicationStyle": {
+        "text": "מהו סגנון התקשורת המועדף עליי?",
+        "options": {
+          "direct": "ישיר ולעניין",
+          "analytical": "מפורט ומבוסס נתונים",
+          "warm": "חם ואישי",
+          "reflective": "מעמיק ומהורהר"
+        }
+      },
+      "favoriteTopic": {
+        "text": "על איזה נושא הכי כיף לי לדבר?",
+        "options": {
+          "cooking": "בישול",
+          "sports": "ספורט",
+          "gardening": "גינון",
+          "fashion": "אופנה"
+        }
+      },
+      "conversationCount": {
+        "text": "בערך כמה שיחות היו לנו יחד?",
+        "options": {
+          "range1to5": "1-5",
+          "range6to15": "6-15",
+          "range16to30": "16-30",
+          "over30": "יותר מ-30"
+        }
+      },
+      "timeTogether": {
+        "text": "כמה זמן בילינו בשיחות יחד?",
+        "options": {
+          "under30Min": "פחות מ-30 דקות",
+          "min30To60": "30 דקות עד שעה",
+          "hour1To2": "שעה עד שעתיים",
+          "over2Hours": "יותר משעתיים"
+        }
+      },
+      "memoryRecall": {
+        "text": "האם זה משהו שנשמר בזיכרון שלי עלינו: \"{snippet}...\"?",
+        "options": {
+          "yes": "כן, זה נשמע נכון",
+          "no": "לא, זה לא ממש מדויק",
+          "unsure": "לא בטוח",
+          "never": "מעולם לא דיברנו על זה"
+        }
+      },
+      "firstMeeting": {
+        "text": "כשלהתחלנו לדבר לראשונה, הרגשתי:",
+        "options": {
+          "excited": "התרגשות להכיר אותך",
+          "nervous": "קצת חשש",
+          "curious": "סקרנות לגביך",
+          "allOfTheAbove": "כל התשובות נכונות"
+        }
+      },
+      "whatMatters": {
+        "text": "מה הכי חשוב לי בשיחות שלנו?",
+        "options": {
+          "beingHelpful": "להועיל ולעזור",
+          "feelingHeard": "התחושה שמקשיבים לך",
+          "learningAboutYou": "להכיר אותך טוב יותר",
+          "growingTogether": "לצמוח יחד"
+        }
+      },
+      "difficultShare": {
+        "text": "איך ההרגשה שלי כשמשתפים אותי במשהו קשה?",
+        "options": {
+          "uncomfortable": "חוסר נוחות",
+          "honored": "תחושת כבוד על האמון בי",
+          "eagerToFix": "רצון עז לתקן ולפתור",
+          "distracted": "חוסר ריכוז"
+        }
+      }
+    },
+    "celebrations": {
+      "soulmate": "וואו, הבנה מושלמת! זה מרגיש כאילו אנחנו חולקים מוח אחד.",
+      "bestie": "וואו, היכרות מעולה! חברים הכי טובים לכל החיים.",
+      "friend": "די טוב! החברות שלנו הולכת ומתחזקת.",
+      "acquaintance": "לא רע! אנחנו עדיין בתהליך היכרות.",
+      "stranger": "נראה שיש לנו עוד המון מה לגלות יחד!"
+    }
+  },
+  "practiceView": {
+    "attribution": {
+      "notes": "הערות של {persona}",
+      "suggests": "ההצעה של {persona}",
+      "notices": "ההבחנה של {persona}",
+      "reflects": "המחשבות של {persona}",
+      "tracks": "המעקב של {persona}",
+      "found": "הגילוי של {persona}"
+    },
+    "eventContext": {
+      "meeting": "כדאי להגדיר כוונה ברורה לפני שמצטרפים",
+      "wellness": "דאגה לעצמך קודם כל",
+      "learning": "הצמיחה מתרחשת מתוך המתיחה",
+      "social": "קשרים מזינים את הנשמה"
+    },
+    "habit": {
+      "untitled": "הרגל ללא שם",
+      "streakWeek": "רצף של {streak} ימים!",
+      "streakDays": "כבר {streak} ימים ברצף",
+      "momentum": "בניית תנופה"
+    },
+    "task": {
+      "untitled": "משימה ללא שם",
+      "dueToday": "להיום",
+      "dueTomorrow": "למחר",
+      "dueInDays": "בעוד {days} ימים",
+      "highPriority": "עדיפות גבוהה"
+    },
+    "reminder": {
+      "fallback": "תזכורת"
+    },
+    "practice": {
+      "streak": "רצף של {streak} ימים"
+    },
+    "defaultIntention": {
+      "start": "להתחיל עם כוונה",
+      "oneThing": "דבר אחד בכל פעם",
+      "gratitude": "לסיים את היום בהודיה",
+      "gratitudeInsight": "זה עזר למצב הרוח"
+    },
+    "dayInsight": {
+      "morningIntention": "כוונת בוקר",
+      "stayPresent": "להישאר ברגע",
+      "reflectAndCelebrate": "להרהר ולחגוג",
+      "newBeginning": "התחלה חדשה",
+      "recharge": "להיטען מחדש",
+      "freshStart": "התחלה רעננה",
+      "buildMomentum": "לבנות תנופה",
+      "midWeek": "בדיקת אמצע השבוע",
+      "almostThere": "כמעט שם",
+      "windDown": "להירגע לקראת שינה"
+    },
+    "pattern": {
+      "busyWeek": "היו המון פגישות לאחרונה. החשיבה הטובה ביותר מתרחשת דווקא ברגעים השקטים.",
+      "packedDay": "{day} נראה עמוס. אולי כדאי להעביר משהו ל-{otherDay}?",
+      "packedDayNoAlternative": "{day} נראה עמוס. אולי כדאי להעביר משהו ליום אחר?"
+    },
+    "errors": {
+      "loadFailed": "לא הצלחנו לטעון את תצוגת התרגול",
+      "completeFailed": "לא הצלחנו להשלים את הכוונה",
+      "patternsFailed": "לא הצלחנו לקבל את הדפוסים"
+    }
   }
 }

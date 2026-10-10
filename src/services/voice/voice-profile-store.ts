@@ -7,26 +7,13 @@
  * ```
  * bogle_users/{userId}/
  *   voice_profile/
- *     profile (document)
- *       - userId: string
- *       - displayName: string
- *       - centroid: number[] (192-dim embedding)
- *       - threshold: number
- *       - qualityScore: number
- *       - verificationCount: number
- *       - enrolledAt: timestamp
- *       - updatedAt: timestamp
- *       - lastVerifiedAt: timestamp
- *       - metadata: { deviceTypes, enrollmentDurationMs, sampleCount }
- *
- *     samples/ (subcollection)
- *       {sampleId}
- *         - embedding: number[] (192-dim)
- *         - collectedAt: timestamp
- *         - durationMs: number
- *         - quality: { snr, clarity, confidence }
- *         - context: { deviceType, environment }
+ *     profile (document): userId, displayName, centroid (192-dim), threshold,
+ *       embeddingMethod, qualityScore, verificationCount, enrolledAt, updatedAt,
+ *       lastVerifiedAt, metadata { deviceTypes, enrollmentDurationMs, sampleCount }
+ *     samples/{sampleId}: embedding (192-dim), method, collectedAt, durationMs,
+ *       quality { snr, clarity, confidence }, context { deviceType, environment }
  * ```
+ * embeddingMethod / method: 'neural' | 'dsp'; absent means DSP (voice-match-trust).
  *
  * @module VoiceProfileStore
  */
@@ -37,6 +24,15 @@ import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.
 import { getLogger } from '../../utils/safe-logger.js';
 import { onVoiceRecognitionChange } from '../data-layer/hooks/better-than-human-hooks.js';
 import type { EnrollmentSample, VoiceProfile } from './voice-enrollment.js';
+import type { EmbeddingMethod } from './voice-match-trust.js';
+
+/** One voice-index entry: enough to identify a speaker without loading samples. */
+export interface VoiceIndexEntry {
+  userId: string;
+  centroid: number[];
+  threshold: number;
+  embeddingMethod?: EmbeddingMethod;
+}
 
 const log = getLogger().child({ module: 'VoiceProfileStore' });
 
@@ -52,7 +48,7 @@ let initAttempted = false;
 
 // In-memory cache for development when Firestore is unavailable
 const memoryCache = new Map<string, VoiceProfile>();
-const indexCache = new Map<string, { userId: string; centroid: number[]; threshold: number }>();
+const indexCache = new Map<string, VoiceIndexEntry>();
 
 /**
  * Get Firestore instance with lazy initialization.
@@ -127,6 +123,7 @@ interface FirestoreVoiceProfile {
   displayName?: string;
   centroid: number[];
   threshold: number;
+  embeddingMethod?: EmbeddingMethod;
   qualityScore: number;
   verificationCount: number;
   enrolledAt: Timestamp;
@@ -141,6 +138,7 @@ interface FirestoreVoiceProfile {
 
 interface FirestoreEnrollmentSample {
   embedding: number[];
+  method?: EmbeddingMethod;
   collectedAt: Timestamp;
   durationMs: number;
   quality: {
@@ -180,6 +178,7 @@ export async function saveVoiceProfile(profile: VoiceProfile): Promise<void> {
       displayName: profile.displayName,
       centroid: profile.centroid,
       threshold: profile.threshold,
+      embeddingMethod: profile.embeddingMethod,
       qualityScore: profile.qualityScore,
       verificationCount: profile.verificationCount,
       enrolledAt: Timestamp.fromDate(profile.enrolledAt),
@@ -213,6 +212,7 @@ export async function saveVoiceProfile(profile: VoiceProfile): Promise<void> {
       for (const sample of chunk) {
         const sampleDoc: FirestoreEnrollmentSample = {
           embedding: sample.embedding,
+          method: sample.method,
           collectedAt: Timestamp.fromDate(sample.collectedAt),
           durationMs: sample.durationMs,
           quality: sample.quality,
@@ -287,6 +287,7 @@ export async function loadVoiceProfile(userId: string): Promise<VoiceProfile | n
       const sampleData = doc.data() as FirestoreEnrollmentSample;
       return {
         embedding: sampleData.embedding,
+        method: sampleData.method,
         collectedAt: sampleData.collectedAt.toDate(),
         durationMs: sampleData.durationMs,
         quality: sampleData.quality,
@@ -301,6 +302,7 @@ export async function loadVoiceProfile(userId: string): Promise<VoiceProfile | n
       embeddings: samples,
       centroid: data.centroid,
       threshold: data.threshold,
+      embeddingMethod: data.embeddingMethod,
       qualityScore: data.qualityScore,
       verificationCount: data.verificationCount,
       enrolledAt: data.enrolledAt.toDate(),
@@ -437,6 +439,7 @@ export async function loadAllVoiceProfiles(options?: { limit?: number }): Promis
         const sampleData = sampleDoc.data() as FirestoreEnrollmentSample;
         return {
           embedding: sampleData.embedding,
+          method: sampleData.method,
           collectedAt: sampleData.collectedAt.toDate(),
           durationMs: sampleData.durationMs,
           quality: sampleData.quality,
@@ -450,6 +453,7 @@ export async function loadAllVoiceProfiles(options?: { limit?: number }): Promis
         embeddings: samples,
         centroid: data.centroid,
         threshold: data.threshold,
+        embeddingMethod: data.embeddingMethod,
         qualityScore: data.qualityScore,
         verificationCount: data.verificationCount,
         enrolledAt: data.enrolledAt.toDate(),
@@ -477,8 +481,9 @@ export async function getVoiceProfileStats(userId: string): Promise<{
   verificationCount?: number;
   sampleCount?: number;
   needsReEnrollment?: boolean;
+  /** How the profile was enrolled; absent means DSP (voice-match-trust). */
+  embeddingMethod?: EmbeddingMethod;
 } | null> {
-  // Check memory cache first
   const cached = memoryCache.get(userId);
   if (cached) {
     return {
@@ -488,24 +493,18 @@ export async function getVoiceProfileStats(userId: string): Promise<{
       verificationCount: cached.verificationCount,
       sampleCount: cached.metadata.sampleCount,
       needsReEnrollment: cached.qualityScore < 0.6 || cached.metadata.sampleCount < 3,
+      embeddingMethod: cached.embeddingMethod,
     };
   }
 
   const db = getFirestoreInstance();
-  if (!db) {
-    return { exists: false };
-  }
+  if (!db) return { exists: false };
 
   try {
-    const profileRef = db.doc(getProfilePath(userId));
-    const profileDoc = await profileRef.get();
-
-    if (!profileDoc.exists) {
-      return { exists: false };
-    }
+    const profileDoc = await db.doc(getProfilePath(userId)).get();
+    if (!profileDoc.exists) return { exists: false };
 
     const data = profileDoc.data() as FirestoreVoiceProfile;
-
     return {
       exists: true,
       enrolledAt: data.enrolledAt.toDate(),
@@ -513,6 +512,7 @@ export async function getVoiceProfileStats(userId: string): Promise<{
       verificationCount: data.verificationCount,
       sampleCount: data.metadata.sampleCount,
       needsReEnrollment: data.qualityScore < 0.6 || data.metadata.sampleCount < 3,
+      embeddingMethod: data.embeddingMethod,
     };
   } catch (error) {
     log.error({ error, userId }, 'Failed to get voice profile stats');
@@ -530,10 +530,7 @@ export async function getVoiceProfileStats(userId: string): Promise<{
  * In production, maintain a separate collection with just centroids
  * for efficient speaker identification across all users.
  */
-interface VoiceProfileIndex {
-  userId: string;
-  centroid: number[];
-  threshold: number;
+interface VoiceProfileIndex extends VoiceIndexEntry {
   updatedAt: Timestamp;
 }
 
@@ -544,11 +541,13 @@ const VOICE_INDEX_COLLECTION = 'voice_profile_index';
  */
 export async function updateVoiceProfileIndex(profile: VoiceProfile): Promise<void> {
   // Update memory index cache
-  indexCache.set(profile.userId, {
+  const entry: VoiceIndexEntry = {
     userId: profile.userId,
     centroid: profile.centroid,
     threshold: profile.threshold,
-  });
+    embeddingMethod: profile.embeddingMethod,
+  };
+  indexCache.set(profile.userId, entry);
 
   const db = getFirestoreInstance();
   if (!db) {
@@ -559,9 +558,7 @@ export async function updateVoiceProfileIndex(profile: VoiceProfile): Promise<vo
     const indexRef = db.collection(VOICE_INDEX_COLLECTION).doc(profile.userId);
 
     const indexEntry: VoiceProfileIndex = {
-      userId: profile.userId,
-      centroid: profile.centroid,
-      threshold: profile.threshold,
+      ...entry,
       updatedAt: Timestamp.fromDate(profile.updatedAt),
     };
 
@@ -577,9 +574,7 @@ export async function updateVoiceProfileIndex(profile: VoiceProfile): Promise<vo
 /**
  * Load voice profile index for fast identification.
  */
-export async function loadVoiceProfileIndex(): Promise<
-  Array<{ userId: string; centroid: number[]; threshold: number }>
-> {
+export async function loadVoiceProfileIndex(): Promise<VoiceIndexEntry[]> {
   const db = getFirestoreInstance();
   if (!db) {
     // Return from memory cache
@@ -595,6 +590,7 @@ export async function loadVoiceProfileIndex(): Promise<
         userId: data.userId,
         centroid: data.centroid,
         threshold: data.threshold,
+        embeddingMethod: data.embeddingMethod,
       };
     });
   } catch (error) {

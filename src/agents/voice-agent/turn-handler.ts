@@ -23,6 +23,7 @@ import { getGracefulErrorResponse } from '../../intelligence/conversation-qualit
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { buildCrisisGuidance } from '../safety/crisis-guard.js';
 import type { SessionServices } from '../../services/index.js';
 import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
 import type { SessionStateManager } from '../session/session-state.js';
@@ -164,6 +165,7 @@ import {
 
 // Redis cache for real-time state (emotional state, voice biomarkers)
 import { getRedisCache } from '../../memory/redis-cache.js';
+import { buildProactiveOutreachPayload } from './proactive-outreach-message.js';
 
 // Phase 11: Voice-Memory Integration - record prosody signals with memories
 import {
@@ -1368,18 +1370,7 @@ ${result.crisis.suggestedResponse}`,
 
       result.context.injections.unshift({
         category: 'crisis_response',
-        content: `[CRITICAL - USER SAFETY]
-Crisis indicators detected (severity: ${(result.crisis.severity * 100).toFixed(0)}%).
-Indicators: ${result.crisis.indicators.join(', ')}
-
-Your response MUST:
-1. Acknowledge their pain with genuine empathy
-2. Create space for them to share (without pressure)
-3. Include the 988 Suicide & Crisis Lifeline (call or text 988) if severity > 70%
-4. NEVER be dismissive or use platitudes like "it'll be okay"
-5. NEVER minimize their feelings
-
-You are their lifeline right now. Be fully present.`,
+        content: buildCrisisGuidance(result.crisis),
         priority: 100,
       });
     }
@@ -1563,22 +1554,7 @@ You are their lifeline right now. Be fully present.`,
         }
       }
 
-      // Send TTS adjustments to frontend for avatar/voice sync
       if (naturalnessResult.activeSystems.length > 0) {
-        void sendDataMessage('naturalness_adjustments', {
-          speedMultiplier: naturalnessResult.ttsAdjustments.speedMultiplier,
-          volumeBoost: naturalnessResult.ttsAdjustments.volumeBoost,
-          warmthLevel: naturalnessResult.ttsAdjustments.warmthLevel,
-          clarityMode: naturalnessResult.ttsAdjustments.clarityMode,
-          rapportLevel: naturalnessResult.rapportLevel,
-          rapportScore: naturalnessResult.rapportScore,
-          isNoisy: naturalnessResult.isNoisy,
-          activeSystems: naturalnessResult.activeSystems,
-          reasons: naturalnessResult.ttsAdjustments.reasons,
-        }).catch((e) => {
-          diag.debug('Naturalness adjustments send failed (non-critical)', { error: String(e) });
-        });
-
         diag.state('🌊 Naturalness adjustments applied', {
           activeSystems: naturalnessResult.activeSystems,
           speedMultiplier: naturalnessResult.ttsAdjustments.speedMultiplier.toFixed(2),
@@ -1808,15 +1784,10 @@ You are their lifeline right now. Be fully present.`,
       // Send to frontend to show proactive outreach UI notification
       const { hasProactiveOutreach, proactiveOutreach } = result.trustContext;
       if (hasProactiveOutreach && proactiveOutreach) {
-        void sendDataMessage('proactive_outreach', {
-          id: `outreach-${Date.now()}`,
-          type: proactiveOutreach.type,
-          message: proactiveOutreach.message,
-          personaId: persona.id,
-          personaName: persona.name,
-          context: proactiveOutreach.context,
-          priority: 'medium',
-        }).catch((e) => {
+        void sendDataMessage(
+          'proactive_outreach',
+          buildProactiveOutreachPayload(proactiveOutreach, persona)
+        ).catch((e) => {
           diag.debug('Proactive outreach send failed (non-critical)', {
             error: String(e),
           });
@@ -2220,7 +2191,11 @@ IMPORTANT:
     // ================================================================
     const celebrations = getCelebrationEvents(result);
     if (celebrations.length > 0) {
-      await sendCelebrationEvents({ injections: celebrations, room });
+      await sendCelebrationEvents({
+        injections: celebrations,
+        room,
+        sessionId: services.sessionId,
+      });
     }
 
     const eventCtx: EventDispatchContext = {

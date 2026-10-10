@@ -36,7 +36,6 @@ import {
   getContact,
   upsertContact,
   recordInteraction,
-  getContactsNeedingAttention,
   getRelationshipInsights,
   searchContacts,
   getInteractionHistory,
@@ -51,10 +50,9 @@ import {
   updateGroup,
   deleteGroup,
 } from '../services/contacts/contact-groups.js';
-import {
-  buildNudgeContext,
-  getOverdueFrequentContacts,
-} from '../services/contacts/outreach-nudges.js';
+import { buildNudgeContext } from '../services/contacts/outreach-nudges.js';
+import { contactEdits } from './contact-edits.js';
+import { buildRelationshipInsightsView } from '../services/contacts/relationship-insights-view.js';
 
 const log = createLogger({ module: 'ContactsAPI' });
 
@@ -204,11 +202,9 @@ async function updateContact(
     return;
   }
 
-  const body = await parseBody<Record<string, unknown>>(req);
-  if (body === null || body === undefined) {
-    sendError(res, 'Invalid request body', 400);
-    return;
-  }
+  // Only what a person may edit; an emptied field is removed
+  const edits = contactEdits(await parseBody<unknown>(req).catch(() => null));
+  if (!edits) return sendError(res, 'Invalid request body', 400);
 
   try {
     const existing = await getContact(userId, contactId);
@@ -219,7 +215,7 @@ async function updateContact(
 
     const contact = await upsertContact(userId, {
       ...existing,
-      ...body,
+      ...edits,
       id: existing.id,
       contactId: existing.contactId,
     } as Parameters<typeof upsertContact>[1]);
@@ -612,23 +608,12 @@ async function getInsights(
   }
 
   try {
-    const [insights, needsAttention, overdueFrequent] = await Promise.all([
+    // Exactly what the web Relationship Insights dashboard reads.
+    const [contacts, insights] = await Promise.all([
+      getContacts(userId),
       getRelationshipInsights(userId),
-      getContactsNeedingAttention(userId, 5),
-      getOverdueFrequentContacts(userId),
     ]);
-
-    sendJSON(res, {
-      insights,
-      needsAttention: needsAttention.map((c) => ({
-        id: c.id,
-        name: c.name,
-        daysSinceContact: Math.floor(
-          (Date.now() - new Date(c.lastInteraction).getTime()) / (1000 * 60 * 60 * 24)
-        ),
-      })),
-      overdueFrequent,
-    });
+    sendJSON(res, buildRelationshipInsightsView(contacts, insights));
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get insights');
     sendError(res, 'Failed to get insights', 500);
@@ -807,8 +792,8 @@ export async function handleContactsRoutes(
   }
 
   // 404 for unmatched contact routes
-  sendError(res, 'Not found', 404);
-  return true;
+  // Unmatched contact routes: the server answers 404
+  return false;
 }
 
 export default handleContactsRoutes;

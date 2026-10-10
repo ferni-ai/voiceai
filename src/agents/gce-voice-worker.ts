@@ -180,98 +180,12 @@ import {
 
 import { markLivekitDisconnected, signalPrewarmComplete } from './shared/worker-readiness.js';
 
-// Initialize crash analytics early for comprehensive crash detection
-import { initCrashAnalytics, getCrashSummary } from './shared/crash-analytics.js';
-initCrashAnalytics();
-log('✅ Crash analytics initialized');
-
-// ============================================================================
-// PHASE 2.5: START ASYNC BACKGROUND WORKERS
-// ============================================================================
-
+// Crash analytics, memory event workers, knowledge capture, orphan cleanups.
+import { getCrashSummary } from './shared/crash-analytics.js';
+import { startProcessRuntime } from './gce/process-runtime.js';
+import { jobExecutorMode, startJobRunner, stopJobRunner } from './gce/job-runner.js';
 log('Phase 2.5: Starting async background workers');
-
-// Configure AsyncEvents dependency injection BEFORE starting workers that need it.
-// Previously this was only done in Phase 3 (global-services.ts), which meant the
-// deep extraction worker would start without event listeners.
-import { configureAsyncEvents } from '../memory/dynamic/async-events-config.js';
-import { memoryAsyncEvents } from '../services/async-events/index.js';
-try {
-  configureAsyncEvents(memoryAsyncEvents);
-  log('✅ AsyncEvents configured for memory workers');
-} catch (diError) {
-  log('⚠️ AsyncEvents DI setup failed (deep extraction will be disabled)', {
-    error: String(diError),
-  });
-}
-
-// Start Deep Extraction Worker for LLM-powered memory extraction
-// This processes memory jobs queued by fastCapture() in background
-import {
-  configureSyncService,
-  startDeepExtractionWorker,
-  startSyncService,
-} from '../memory/dynamic/index.js';
-startDeepExtractionWorker();
-log('✅ Deep extraction worker started');
-
-// Knowledge capture must be ready before first turns — avoids captureTurn no-ops
-import { initializeKnowledgeCapture } from '../memory/knowledge-graph/index.js';
-void initializeKnowledgeCapture()
-  .then(() => log('✅ Knowledge capture initialized'))
-  .catch((err) =>
-    log('⚠️ Knowledge capture init failed (entity persistence may be delayed)', {
-      error: String(err),
-    })
-  );
-
-// Spanner Graph (L3) is opt-in — idle instances cost ~$65/mo with no data.
-// Set SPANNER_ENABLED=true only when a ferni-memory instance is provisioned.
-import { initializeSpanner } from '../memory/spanner-graph/client.js';
-const spannerEnabled = process.env.SPANNER_ENABLED === 'true';
-if (spannerEnabled) {
-  initializeSpanner()
-    .then((ready) => {
-      if (ready) {
-        log('✅ Spanner Graph (L3) initialized - long-term memory active');
-      } else {
-        log('⚠️ Spanner Graph not available - L3 memory disabled (L2 Firestore still works)');
-      }
-    })
-    .catch((err) => {
-      log('⚠️ Spanner initialization failed (non-blocking)', { error: String(err) });
-    });
-
-  startSyncService();
-  log('✅ Firestore → Spanner sync service started');
-} else {
-  configureSyncService({ enabled: false });
-  log('ℹ️ Spanner L3 disabled (SPANNER_ENABLED!=true) — Firestore L2 only');
-}
-
-// Start OpenAI health monitor orphan cleanup
-// This cleans up stale sessions that exited without calling stopHealthMonitoring()
-// Runs every 10 minutes to prevent unbounded Map growth
-import { startOrphanCleanup, stopOrphanCleanup } from './shared/openai-health-monitor.js';
-startOrphanCleanup();
-log('✅ OpenAI health monitor orphan cleanup started');
-
-// Start session cleanup registry orphan cleanup
-// This cleans up stale session registries (sessions that crashed without proper cleanup)
-// Runs every 15 minutes with 2-hour TTL to prevent unbounded Map growth
-import { startRegistryOrphanCleanup, stopRegistryOrphanCleanup } from './session/index.js';
-startRegistryOrphanCleanup();
-log('✅ Session cleanup registry orphan cleanup started');
-
-// Start session closing tracker orphan cleanup
-// This cleans up sessions stuck in "closing" state (crashed before cleanup completed)
-// Runs every 2 minutes with 5-minute TTL to prevent unbounded Map growth
-import {
-  startClosingTrackerCleanup,
-  stopClosingTrackerCleanup,
-} from './shared/session-closing-tracker.js';
-startClosingTrackerCleanup();
-log('✅ Session closing tracker orphan cleanup started');
+const processRuntime = startProcessRuntime(log);
 
 const moduleLoadTime = Date.now() - moduleLoadStart;
 log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
@@ -297,13 +211,18 @@ initLiveKitConnection(
 // ============================================================================
 
 async function main(): Promise<void> {
-  // Phase 3: Warmup resources
-  log('Phase 3: Warming resources');
-  const warmupResult = await warmupResources(log);
-  if (warmupResult.durationMs > 15000) {
-    log('⚠️ Warmup verification: warmup took >15s - check for broken or slow modules', {
-      durationMs: warmupResult.durationMs,
-    });
+  // Phase 3: Warm call resources here, or, with one process per call, start the
+  // pool so its children warm them (docs/plans/2026-10-10-process-per-job.md).
+  if (jobExecutorMode() === 'process') {
+    startJobRunner(log);
+  } else {
+    log('Phase 3: Warming resources');
+    const warmupResult = await warmupResources(log);
+    if (warmupResult.durationMs > 15000) {
+      log('⚠️ Warmup verification: warmup took >15s - check for broken or slow modules', {
+        durationMs: warmupResult.durationMs,
+      });
+    }
   }
 
   // Phase 4: Clean up stale workers from previous crashes, then connect
@@ -347,6 +266,30 @@ async function main(): Promise<void> {
 
 let isShuttingDown = false;
 
+/** Deep extraction and knowledge capture batch turns; run what's pending before exit. */
+async function drainBatchedMemoryWork(timeoutMs: number): Promise<void> {
+  try {
+    const { getDeepExtractionWorker } = await import('../memory/dynamic/index.js');
+    const { drainTurnCaptures } = await import('../memory/knowledge-graph/index.js');
+    const worker = getDeepExtractionWorker();
+    worker.stop(); // flushes batched turns into its queue
+    const deadline = Date.now() + timeoutMs;
+    const extractionIdle = (async (): Promise<void> => {
+      while (Date.now() < deadline) {
+        const { queueDepth, isProcessing } = worker.getHealthStatus();
+        if (queueDepth === 0 && !isProcessing) return;
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 250);
+        });
+      }
+    })();
+    await Promise.all([extractionIdle, drainTurnCaptures(timeoutMs)]);
+    log('Batched memory work drained', { extractionQueue: worker.getHealthStatus().queueDepth });
+  } catch (error) {
+    log('Batched memory drain failed (continuing shutdown)', { error: String(error) });
+  }
+}
+
 const shutdown = async (signal: string): Promise<void> => {
   if (isShuttingDown) {
     log('Shutdown already in progress, ignoring duplicate signal');
@@ -365,26 +308,8 @@ const shutdown = async (signal: string): Promise<void> => {
     // Ignore
   }
 
-  try {
-    stopOrphanCleanup();
-    log('OpenAI health monitor cleanup stopped');
-  } catch {
-    // Ignore
-  }
-
-  try {
-    stopRegistryOrphanCleanup();
-    log('Session cleanup registry stopped');
-  } catch {
-    // Ignore
-  }
-
-  try {
-    stopClosingTrackerCleanup();
-    log('Session closing tracker cleanup stopped');
-  } catch {
-    // Ignore
-  }
+  processRuntime.stop();
+  stopJobRunner();
 
   // 2. Mark LiveKit as disconnected and stop keepalive
   markLivekitDisconnected();
@@ -406,6 +331,9 @@ const shutdown = async (signal: string): Promise<void> => {
     });
     log('Waiting for active jobs...', { activeJobs: getJobMetrics().activeJobs });
   }
+
+  // 6. Run memory work still waiting for its batch (deep extraction, knowledge capture), max 10s
+  await drainBatchedMemoryWork(10_000);
 
   const metrics = getJobMetrics();
   log('Shutdown complete', {

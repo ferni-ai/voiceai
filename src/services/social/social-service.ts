@@ -49,9 +49,6 @@ export function loadSocialConfig(): SocialConfig {
       maxLength: {
         twitter: 260, // Leave room for links
         linkedin: 2500,
-        instagram: 2000,
-        tiktok: 2000,
-        medium: 50000,
         discord: 1800,
       },
     },
@@ -312,14 +309,7 @@ export function getSocialStatus(): {
   }>;
 } {
   const config = getSocialConfig();
-  const allPlatforms: SocialPlatform[] = [
-    'twitter',
-    'linkedin',
-    'discord',
-    'instagram',
-    'tiktok',
-    'medium',
-  ];
+  const allPlatforms: SocialPlatform[] = ['twitter', 'linkedin', 'discord'];
 
   return {
     platforms: allPlatforms.map((platform) => {

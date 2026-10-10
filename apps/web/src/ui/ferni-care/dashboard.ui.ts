@@ -10,64 +10,31 @@
 import { getLifeAutomationService, type Workflow } from '../../services/life-automation.service.js';
 import { getUserId } from '../../utils/api.js';
 import { createLogger } from '../../utils/logger.js';
+import { formatDate, t } from '../../i18n/index.js';
+import { showCareConnections } from './connections-tab.ui.js';
 import { showIdeasGallery } from './ideas-gallery.ui.js';
+import { calendarTriggerSummary } from './routine-builder-calendar.js';
 
 const log = createLogger('FerniCare');
 
 // ============================================================================
-// HUMANIZED COPY - Warm, personal, relationship-focused
+// HUMANIZED COPY - Warm, personal, relationship-focused (see i18n `ferniCare.*`)
 // ============================================================================
 
-const COPY = {
-  eyebrow: 'WHAT I DO FOR YOU',
-  title: 'Little things I remember',
-  subtitle: "So you don't have to",
-
-  emptyTitle: 'Nothing set up yet',
-  emptySubtitle: 'Want me to greet you each morning? Remind you to stretch? I can do that.',
-  emptyButton: 'Show me some ideas',
-
-  addNew: 'Add something new',
-
-  // Trigger descriptions - conversational
-  triggers: {
-    time: (schedule: string) => `Every day at ${formatTimeFromCron(schedule)}`,
-    phrase: (phrase: string) => `When you say "${phrase}"`,
-    location: (name: string, action: string) =>
-      action === 'enter' ? `When you arrive at ${name}` : `When you leave ${name}`,
-    calendar: () => 'Before your calendar events',
-    event: () => 'When something happens',
-  },
-
-  // Status labels - human
-  status: {
-    active: 'Taking care of it',
-    paused: 'On hold',
-    error: 'Needs attention',
-  },
-
-  tabs: {
-    routines: 'My routines for you',
-    ideas: 'Ideas',
-    connections: 'Connected services',
-  },
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  active: 'ferniCare.status.active',
+  paused: 'ferniCare.status.paused',
+  error: 'ferniCare.status.error',
 };
 
-// Helper to make cron expressions human-readable
-function formatTimeFromCron(cron: string): string {
-  try {
-    const parts = cron.split(' ');
-    if (parts.length >= 2) {
-      const minute = parseInt(parts[0] ?? '0', 10);
-      const hour = parseInt(parts[1] ?? '9', 10);
-      const period = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour % 12 || 12;
-      return `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
-    }
-  } catch {
-    // Fall through
-  }
-  return 'a set time';
+/** Format a cron "minute hour ..." expression as a localized time, or null if unparseable. */
+function formatTimeFromCron(cron: string): string | null {
+  const parts = cron.split(' ');
+  if (parts.length < 2) return null;
+  const time = new Date();
+  time.setHours(parseInt(parts[1] ?? '9', 10), parseInt(parts[0] ?? '0', 10), 0, 0);
+  if (Number.isNaN(time.getTime())) return null;
+  return formatDate(time, { hour: 'numeric', minute: '2-digit' });
 }
 
 // ============================================================================
@@ -132,7 +99,7 @@ const styles = `
     background: var(--color-bg-elevated, #FFFDFB);
     border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     border-radius: var(--radius-xl, 20px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-xl);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -503,18 +470,18 @@ export class FerniCareDashboard {
         <div class="ferni-care__header">
           <div class="ferni-care__header-top">
             <div>
-              <div class="ferni-care__eyebrow">${COPY.eyebrow}</div>
-              <h2 id="ferni-care-title" class="ferni-care__title">${COPY.title}</h2>
-              <p class="ferni-care__subtitle">${COPY.subtitle}</p>
+              <div class="ferni-care__eyebrow">${t('ferniCare.eyebrow')}</div>
+              <h2 id="ferni-care-title" class="ferni-care__title">${t('ferniCare.title')}</h2>
+              <p class="ferni-care__subtitle">${t('ferniCare.subtitle')}</p>
             </div>
-            <button class="ferni-care__close" data-action="close" aria-label="Close">
+            <button class="ferni-care__close" data-action="close" aria-label="${t('common.close')}">
               ${ICONS.close}
             </button>
           </div>
           <div class="ferni-care__tabs">
-            <button class="ferni-care__tab active" data-tab="routines">${COPY.tabs.routines}</button>
-            <button class="ferni-care__tab" data-tab="ideas">${COPY.tabs.ideas}</button>
-            <button class="ferni-care__tab" data-tab="connections">${COPY.tabs.connections}</button>
+            <button class="ferni-care__tab active" data-tab="routines">${t('ferniCare.tabs.routines')}</button>
+            <button class="ferni-care__tab" data-tab="ideas">${t('ferniCare.tabs.ideas')}</button>
+            <button class="ferni-care__tab" data-tab="connections">${t('ferniCare.tabs.connections')}</button>
           </div>
         </div>
         <div class="ferni-care__content" id="ferni-care-content">
@@ -533,9 +500,9 @@ export class FerniCareDashboard {
           <div class="ferni-empty__icon">
             ${ICONS.heart}
           </div>
-          <h3 class="ferni-empty__title">${COPY.emptyTitle}</h3>
-          <p class="ferni-empty__description">${COPY.emptySubtitle}</p>
-          <button class="ferni-empty__btn" data-action="browse-ideas">${COPY.emptyButton}</button>
+          <h3 class="ferni-empty__title">${t('ferniCare.emptyTitle')}</h3>
+          <p class="ferni-empty__description">${t('ferniCare.emptySubtitle')}</p>
+          <button class="ferni-empty__btn" data-action="browse-ideas">${t('ferniCare.emptyButton')}</button>
         </div>
       `;
     }
@@ -545,7 +512,7 @@ export class FerniCareDashboard {
         ${this.workflows.map((wf) => this.renderRoutineCard(wf)).join('')}
         <button class="ferni-add-btn" data-action="create-routine">
           ${ICONS.plus}
-          ${COPY.addNew}
+          ${t('ferniCare.addNew')}
         </button>
       </div>
     `;
@@ -555,7 +522,8 @@ export class FerniCareDashboard {
     const triggerIcon = TRIGGER_ICONS[workflow.trigger.type] || ICONS.sparkle;
     const triggerLabel = this.getTriggerLabel(workflow.trigger);
     const statusClass = `ferni-routine__status--${workflow.status}`;
-    const statusLabel = COPY.status[workflow.status] || workflow.status;
+    const statusKey = STATUS_LABEL_KEYS[workflow.status];
+    const statusLabel = statusKey ? t(statusKey) : workflow.status;
 
     return `
       <div class="ferni-routine" data-workflow-id="${workflow.id}">
@@ -571,10 +539,10 @@ export class FerniCareDashboard {
           ${statusLabel}
         </span>
         <div class="ferni-routine__actions">
-          <button class="ferni-routine__btn" data-action="toggle-status" data-workflow-id="${workflow.id}" title="${workflow.status === 'active' ? 'Pause' : 'Resume'}">
+          <button class="ferni-routine__btn" data-action="toggle-status" data-workflow-id="${workflow.id}" title="${workflow.status === 'active' ? t('ferniCare.pause') : t('ferniCare.resume')}">
             ${workflow.status === 'active' ? ICONS.pause : ICONS.play}
           </button>
-          <button class="ferni-routine__btn" data-action="run" data-workflow-id="${workflow.id}" title="Run now">
+          <button class="ferni-routine__btn" data-action="run" data-workflow-id="${workflow.id}" title="${t('ferniCare.runNow')}">
             ${ICONS.play}
           </button>
         </div>
@@ -584,19 +552,27 @@ export class FerniCareDashboard {
 
   private getTriggerLabel(trigger: Workflow['trigger']): string {
     switch (trigger.type) {
-      case 'time':
-        return COPY.triggers.time(trigger.schedule || '0 9 * * *');
+      case 'time': {
+        const time = formatTimeFromCron(trigger.schedule || '0 9 * * *');
+        return time
+          ? t('ferniCare.triggers.dailyAt', { time })
+          : t('ferniCare.triggers.dailyUnset');
+      }
       case 'phrase':
-        return COPY.triggers.phrase(trigger.phrases?.[0] || '...');
-      case 'location':
-        return COPY.triggers.location(
-          trigger.locationName || 'somewhere',
-          trigger.triggerOn || 'enter'
+        return t('ferniCare.triggers.phrase', { phrase: trigger.phrases?.[0] || '...' });
+      case 'location': {
+        const name = trigger.locationName || t('ferniCare.triggers.somewhere');
+        return t(
+          (trigger.triggerOn || 'enter') === 'enter'
+            ? 'ferniCare.triggers.arrive'
+            : 'ferniCare.triggers.leave',
+          { name }
         );
+      }
       case 'calendar':
-        return COPY.triggers.calendar();
+        return calendarTriggerSummary(trigger.triggerOn);
       default:
-        return COPY.triggers.event();
+        return t('ferniCare.triggers.event');
     }
   }
 
@@ -610,8 +586,7 @@ export class FerniCareDashboard {
     try {
       const userId = getUserId();
       if (!userId) {
-        content.innerHTML =
-          '<div class="ferni-empty"><p>Sign in to see what I do for you</p></div>';
+        content.innerHTML = `<div class="ferni-empty"><p>${t('ferniCare.signInPrompt')}</p></div>`;
         return;
       }
 
@@ -620,7 +595,7 @@ export class FerniCareDashboard {
       content.innerHTML = this.renderRoutines();
     } catch (error) {
       log.error('Failed to load workflows', error);
-      content.innerHTML = '<div class="ferni-empty"><p>Couldn\'t load your routines</p></div>';
+      content.innerHTML = `<div class="ferni-empty"><p>${t('ferniCare.loadError')}</p></div>`;
     } finally {
       this.isLoading = false;
     }
@@ -674,7 +649,7 @@ export class FerniCareDashboard {
       this.close();
       showIdeasGallery();
     } else if (tab === 'connections') {
-      content.innerHTML = `<div class="ferni-empty"><p>Connected services coming soon...</p></div>`;
+      void showCareConnections(content, () => this.activeTab === 'connections', () => this.close());
     }
   }
 

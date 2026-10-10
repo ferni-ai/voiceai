@@ -17,6 +17,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('MemoryFeedback');
 
@@ -119,7 +120,7 @@ export class MemoryFeedbackManager {
 
         // Subtle acknowledgment
         if (action === 'helpful') {
-          toast.success('Thanks!');
+          toast.success(t('memoryFeedback.thankYou'));
         }
 
         log.debug({ memoryId: config.memoryId, action }, 'Memory feedback submitted');
@@ -171,7 +172,7 @@ export class MemoryFeedbackManager {
     container.id = id;
     container.className = 'memory-feedback';
     container.setAttribute('role', 'dialog');
-    container.setAttribute('aria-label', 'Was this memory helpful?');
+    container.setAttribute('aria-label', t('memoryFeedback.ariaLabel'));
 
     // Truncate content for display
     const truncatedContent =
@@ -181,27 +182,27 @@ export class MemoryFeedbackManager {
 
     container.innerHTML = `
       <div class="memory-feedback__content">
-        <span class="memory-feedback__label">Was this helpful?</span>
+        <span class="memory-feedback__label">${t('memoryFeedback.label')}</span>
         <span class="memory-feedback__preview">${this.escapeHtml(truncatedContent)}</span>
       </div>
       <div class="memory-feedback__actions">
-        <button 
-          class="memory-feedback__btn memory-feedback__btn--helpful" 
-          aria-label="This memory was helpful"
+        <button
+          class="memory-feedback__btn memory-feedback__btn--helpful"
+          aria-label="${t('memoryFeedback.helpfulAriaLabel')}"
           data-action="helpful"
         >
           ${ICON_THUMBS_UP}
         </button>
-        <button 
-          class="memory-feedback__btn memory-feedback__btn--not-helpful" 
-          aria-label="This memory was not helpful"
+        <button
+          class="memory-feedback__btn memory-feedback__btn--not-helpful"
+          aria-label="${t('memoryFeedback.notHelpfulAriaLabel')}"
           data-action="not_helpful"
         >
           ${ICON_THUMBS_DOWN}
         </button>
-        <button 
-          class="memory-feedback__btn memory-feedback__btn--dismiss" 
-          aria-label="Dismiss"
+        <button
+          class="memory-feedback__btn memory-feedback__btn--dismiss"
+          aria-label="${t('memoryFeedback.dismissAriaLabel')}"
           data-action="dismiss"
         >
           ${ICON_X}

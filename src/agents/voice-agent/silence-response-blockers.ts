@@ -11,14 +11,40 @@ import { getStateMetrics } from '../../speech/coordination/sanitizer-integration
 import { canTriggerProactive } from '../shared/response-orchestrator.js';
 
 /**
+ * The caller said they were stepping away ("give me a second, I'm going to open
+ * a window"). A friend who said "I'll wait" waits: on dev (2026-10-06) Ferni
+ * answered "Go air it out, I'll wait" and then spoke into the silence 20 s
+ * later. Word-bounded phrases only (substring-classifier-pitfalls).
+ */
+const STEPPED_AWAY =
+  /\b(?:give me (?:a|one) (?:sec|second|minute|moment)|(?:one|just a|wait a) (?:sec|second|minute|moment)|hold on|hang on|be right back|brb|bear with me|back in a (?:sec|second|minute|moment|bit))\b/i;
+/** How long a promise to wait holds before a check-in is natural again. */
+const STEP_AWAY_GRACE_SEC = 120;
+
+export function callerSteppedAway(
+  lastUserMessage: string | undefined,
+  silenceSec: number
+): boolean {
+  return silenceSec < STEP_AWAY_GRACE_SEC && STEPPED_AWAY.test(lastUserMessage ?? '');
+}
+
+/**
  * True when a silence response must not be generated right now. Every blocker
  * is evaluated and logged, not just the first that applies.
  */
 export function silenceResponseBlocked(
   sessionId: string,
   room: { remoteParticipants?: Map<string, unknown> } | undefined,
-  silenceDurationSec: number
+  silenceDurationSec: number,
+  context?: { lastUserMessage?: string }
 ): boolean {
+  const steppedAway = callerSteppedAway(context?.lastUserMessage, silenceDurationSec);
+  if (steppedAway) {
+    diag.state('🤫 [SILENCE] Skipped - they said they were stepping away', {
+      silenceSec: Math.round(silenceDurationSec),
+    });
+  }
+
   // FIX: Skip silence response if tools are actively executing (e.g., music search)
   // This prevents gateway timeouts when LLM is busy processing tool calls
   const silenceStateMetrics = getStateMetrics(sessionId);
@@ -67,5 +93,5 @@ export function silenceResponseBlocked(
     });
   }
 
-  return Boolean(toolsActive || handoffOrDraining || noParticipants || !sdkIdle);
+  return Boolean(steppedAway || toolsActive || handoffOrDraining || noParticipants || !sdkIdle);
 }

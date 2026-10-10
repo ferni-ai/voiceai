@@ -17,10 +17,13 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { t } from '../i18n/index.js';
+import { formatCurrency, t } from '../i18n/index.js';
+import { openSubscriptionManagement } from '../services/apple-iap.service.js';
+import { payForSeed, seedPaymentFailureMessage } from '../services/seed-payment.js';
+import { collectCardPayment } from './seed-payment-form.ui.js';
 import { appState } from '../state/app.state.js';
 import { apiPost } from '../utils/api.js';
-import { openBillingPortal } from '../utils/billing.js';
+import { billingErrorMessage, openBillingPortal } from '../utils/billing.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { openFoundersJourney } from './founders-journey.ui.js';
@@ -79,7 +82,6 @@ const ICONS = {
 
 let overlay: HTMLElement | null = null;
 let styleElement: HTMLStyleElement | null = null;
-let _isLoading = false;
 let selectedTipAmount = 0;
 let previouslyFocusedElement: HTMLElement | null = null;
 
@@ -89,22 +91,21 @@ let previouslyFocusedElement: HTMLElement | null = null;
 
 interface TierInfo {
   id: 'free' | 'friend' | 'partner';
-  name: string;
-  tagline: string;
-  price: string;
-  features: string[];
+  nameKey: string;
+  taglineKey: string;
+  monthlyUsd?: number;
+  featureKeys: string[];
 }
 
 // Default tier for fallback
 const DEFAULT_TIER: TierInfo = {
   id: 'free',
-  name: 'Community',
-  tagline: 'Ferni is free. Really free.',
-  price: 'Free forever',
-  features: [
-    'Talk with Ferni whenever you need',
-    '7-minute heart-to-hearts',
-    'Full memory — I remember everything',
+  nameKey: 'subscription.free',
+  taglineKey: 'support.tiers.freeTagline',
+  featureKeys: [
+    'support.tiers.talkWheneverYouNeed',
+    'subscriptionFeatures.community.features.heartToHearts',
+    'subscriptionFeatures.community.features.fullMemory',
   ],
 };
 
@@ -112,26 +113,28 @@ const TIERS: TierInfo[] = [
   DEFAULT_TIER,
   {
     id: 'friend',
-    name: 'Founding Member',
-    tagline: 'Chip in. Help us build this.',
-    price: '$10/mo',
-    features: ['Unlimited time (our thank you)', 'Meet the whole team', 'Your name on Founders Wall'],
+    nameKey: 'subscription.friend',
+    taglineKey: 'support.tiers.friendTagline',
+    monthlyUsd: 10,
+    featureKeys: ['support.tiers.unlimitedTime', 'support.tiers.meetTeam', 'support.tiers.wall'],
   },
   {
     id: 'partner',
-    name: 'Founding Patron',
-    tagline: "You're shaping what we become",
-    price: '$20/mo',
-    features: ['Everything above, plus:', 'Early access to features', 'Family sharing'],
+    nameKey: 'subscription.partner',
+    taglineKey: 'support.tiers.patronTagline',
+    monthlyUsd: 20,
+    featureKeys: ['support.tiers.everythingAbove', 'support.tiers.earlyAccess', 'support.tiers.family'],
   },
 ];
 
 const TIP_AMOUNTS = [
-  { amount: 5, label: '$5', impact: 'Plant a seed' },
-  { amount: 10, label: '$10', impact: 'Sponsor a conversation' },
-  { amount: 25, label: '$25', impact: 'Help someone get started' },
-  { amount: 50, label: '$50', impact: 'Support the mission' },
+  { amount: 5, impactKey: 'support.impact.plantSeed' },
+  { amount: 10, impactKey: 'support.impact.sponsorConversation' },
+  { amount: 25, impactKey: 'support.impact.helpGetStarted' },
+  { amount: 50, impactKey: 'support.impact.supportMission' },
 ];
+
+const formatUsd = (n: number) => formatCurrency(n, 'USD', { maximumFractionDigits: 0 });
 
 // ============================================================================
 // ACCESSIBILITY
@@ -158,10 +161,10 @@ export async function openSupportFerni(): Promise<void> {
   log.info('Opening Support Ferni modal');
   saveFocus();
   log.info('Focus saved');
-  
+
   injectStyles();
   log.info('Styles injected');
-  
+
   cleanupOrphanedElements();
   log.info('Orphaned elements cleaned up');
 
@@ -174,7 +177,7 @@ export async function openSupportFerni(): Promise<void> {
   log.info('Creating overlay...');
   overlay = createOverlay(status);
   log.info('Overlay created', { hasOverlay: !!overlay });
-  
+
   document.body.appendChild(overlay);
   log.info('Overlay appended to body');
 
@@ -249,9 +252,9 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
           <div class="support-ferni-current-tier">
             <div class="support-ferni-tier-badge ${currentTier !== 'free' ? 'support-ferni-tier-badge--active' : ''}">
               ${currentTier === 'free' ? ICONS.heart : ICONS.sparkles}
-              <span>${tierInfo.name}</span>
+              <span>${t(tierInfo.nameKey)}</span>
             </div>
-            <p class="support-ferni-tier-tagline">${tierInfo.tagline}</p>
+            <p class="support-ferni-tier-tagline">${t(tierInfo.taglineKey)}</p>
           </div>
         </section>
 
@@ -265,7 +268,7 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
         ${renderPlantASeed()}
 
         <!-- Billing Link -->
-        ${currentTier !== 'free' ? renderBillingLink() : ''}
+        ${currentTier !== 'free' ? renderBillingLink(status?.billingSource) : ''}
       </div>
 
       <footer class="support-ferni-footer">
@@ -310,9 +313,11 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
   const plantBtn = container.querySelector('[data-action="plant-seed"]');
   plantBtn?.addEventListener('click', () => void handlePlantSeed());
 
-  // Billing portal link
-  const billingLink = container.querySelector('[data-action="billing"]');
-  billingLink?.addEventListener('click', () => void handleOpenBillingPortal());
+  // Billing: Stripe's portal (new tab) for a Stripe plan, Apple's page for an App Store one
+  const billingBtn = container.querySelector('[data-action="billing"]');
+  billingBtn?.addEventListener('click', () => void openBillingPortal({ openInNewTab: true }));
+  const appleBtn = container.querySelector('[data-action="apple-manage"]');
+  appleBtn?.addEventListener('click', () => openSubscriptionManagement());
 
   // Vision journey button
   const visionBtn = container.querySelector('[data-action="see-vision"]');
@@ -379,13 +384,13 @@ function renderUpgradeOptions(currentTier: string): string {
         ${upgradeTiers
           .map(
             (tier, index) => `
-          <button aria-label="Choose ${tier.name}" class="support-ferni-tier-card ${tier.id === 'friend' ? 'support-ferni-tier-card--highlighted' : ''}" data-upgrade-tier="${tier.id}" style="animation-delay: ${index * 100}ms">
+          <button aria-label="${t('support.chooseTier', { name: t(tier.nameKey) })}" class="support-ferni-tier-card ${tier.id === 'friend' ? 'support-ferni-tier-card--highlighted' : ''}" data-upgrade-tier="${tier.id}" style="animation-delay: ${index * 100}ms">
             <div class="support-ferni-tier-header">
-              <span class="support-ferni-tier-name">${tier.name}</span>
-              <span class="support-ferni-tier-price">${tier.price}</span>
+              <span class="support-ferni-tier-name">${t(tier.nameKey)}</span>
+              <span class="support-ferni-tier-price">${t('support.perMonth', { price: formatUsd(tier.monthlyUsd ?? 0) })}</span>
             </div>
             <ul class="support-ferni-tier-features">
-              ${tier.features.map((f) => `<li>${ICONS.check} ${f}</li>`).join('')}
+              ${tier.featureKeys.map((key) => `<li>${ICONS.check} ${t(key)}</li>`).join('')}
             </ul>
           </button>
         `
@@ -423,8 +428,8 @@ function renderPlantASeed(): string {
         ${TIP_AMOUNTS.map(
           (tip) => `
           <button class="support-ferni-tip-btn" data-tip-amount="${tip.amount}">
-            <span class="support-ferni-tip-label">${tip.label}</span>
-            <span class="support-ferni-tip-impact">${tip.impact}</span>
+            <span class="support-ferni-tip-label">${formatUsd(tip.amount)}</span>
+            <span class="support-ferni-tip-impact">${t(tip.impactKey)}</span>
           </button>
         `
         ).join('')}
@@ -450,12 +455,16 @@ function renderPlantASeed(): string {
   `;
 }
 
-function renderBillingLink(): string {
+/** Only a Stripe plan gets Stripe's portal; an App Store plan is changed with Apple. */
+function renderBillingLink(source: SubscriptionStatus['billingSource']): string {
+  if (source !== 'stripe' && source !== 'app_store') return '';
+  const apple = source === 'app_store';
   return `
     <section class="support-ferni-section support-ferni-billing">
-      <button aria-label="${t('accessibility.edit')}" class="support-ferni-billing-btn" data-action="billing">
+      ${apple ? `<p class="support-ferni-tip-desc">${t('manageSubscription.apple.source')}</p>` : ''}
+      <button class="support-ferni-billing-btn" data-action="${apple ? 'apple-manage' : 'billing'}">
         ${ICONS.creditCard}
-        <span>${t('support.manageBilling')}</span>
+        <span>${apple ? t('manageSubscription.buttons.manageApple') : t('support.manageBilling')}</span>
         ${ICONS.externalLink}
       </button>
     </section>
@@ -491,17 +500,14 @@ function selectTipAmount(container: HTMLElement, amount: number, isCustom = fals
 async function handleUpgrade(tier: string): Promise<void> {
   const deviceId = appState.getState().deviceId;
   if (!deviceId) {
-    toast.error("Hmm, that didn't work. Try again?");
+    toast.error(t('support.errorTryAgain'));
     return;
   }
 
-  _isLoading = true;
   updateLoadingState(true);
 
   try {
     const response = await apiPost<{ url?: string }>('/subscription/checkout', {
-      userId: deviceId,
-      device_id: deviceId,
       tier,
       successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
       cancelUrl: window.location.origin + '?upgrade=cancel',
@@ -510,13 +516,12 @@ async function handleUpgrade(tier: string): Promise<void> {
     if (response.ok && response.data?.url) {
       window.location.href = response.data.url;
     } else {
-      toast.error("That didn't go through. Try again?");
+      toast.error(billingErrorMessage(response.status));
     }
   } catch (error) {
     log.error('Upgrade failed:', error);
-    toast.error("Hmm, that didn't work. Try again?");
+    toast.error(t('support.errorTryAgain'));
   } finally {
-    _isLoading = false;
     updateLoadingState(false);
   }
 }
@@ -526,41 +531,27 @@ async function handlePlantSeed(): Promise<void> {
 
   const deviceId = appState.getState().deviceId;
   if (!deviceId) {
-    toast.error("Hmm, that didn't work. Try again?");
+    toast.error(t('support.errorTryAgain'));
     return;
   }
 
-  _isLoading = true;
   updateLoadingState(true);
 
   try {
-    const response = await apiPost<{ url?: string }>('/api/garden/plant', {
-      userId: deviceId,
-      amountInCents: selectedTipAmount * 100,
-      successUrl: window.location.origin + '?tip=success',
-      cancelUrl: window.location.origin + '?tip=cancel',
-    });
-
-    if (response.ok && response.data?.url) {
-      window.location.href = response.data.url;
-    } else {
-      toast.error("Hmm, that didn't work. Try again?");
+    // Same Seed Fund flow as the Ferni Fund modal: dollars in, Stripe
+    // client secret back. The server acts on the Bearer-token user.
+    const outcome = await payForSeed(selectedTipAmount, collectCardPayment);
+    const problem = seedPaymentFailureMessage(outcome);
+    if (problem) {
+      log.error('Plant seed failed:', outcome);
+      toast.error(problem);
     }
   } catch (error) {
     log.error('Plant seed failed:', error);
-    toast.error("Hmm, that didn't work. Try again?");
+    toast.error(t('support.errorTryAgain'));
   } finally {
-    _isLoading = false;
     updateLoadingState(false);
   }
-}
-
-async function handleOpenBillingPortal(): Promise<void> {
-  const deviceId = appState.getState().deviceId;
-  if (!deviceId) return;
-
-  // Use the consolidated billing utility (opens in new tab by default)
-  await openBillingPortal(deviceId, { openInNewTab: true });
 }
 
 function updateLoadingState(loading: boolean): void {

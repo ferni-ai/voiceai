@@ -5,9 +5,9 @@
  * Shows which superhuman capabilities resonate with users and their effectiveness over time.
  *
  * Fetches data from:
- * - GET /api/admin/bth-analytics/stats - All capability stats
- * - GET /api/admin/bth-analytics/top - Most effective capabilities
- * - GET /api/admin/bth-analytics/trend - Effectiveness trend
+ * - GET /api/v1/admin/bth/capabilities - All capability stats
+ * - GET /api/v1/admin/bth/top - Most effective capabilities
+ * - GET /api/v1/admin/bth/trends/:capability - 7-day trend of the top capability
  *
  * @module @ferni/ui/bth-analytics-dashboard
  */
@@ -15,35 +15,14 @@
 import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
-import { apiGet } from '../utils/api.js';
+import {
+  fetchDashboardData,
+  type CapabilityStats,
+  type DashboardData,
+  type TrendPoint,
+} from './bth-analytics-api.js';
 
 const log = createLogger('BTHAnalyticsDashboard');
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface CapabilityStats {
-  capability: string;
-  totalUsage: number;
-  appliedCount: number;
-  positiveReactions: number;
-  neutralReactions: number;
-  negativeReactions: number;
-  effectivenessScore: number;
-}
-
-interface TrendPoint {
-  date: string;
-  effectiveness: number;
-  usageCount: number;
-}
-
-interface DashboardData {
-  stats: CapabilityStats[];
-  topCapabilities: Array<{ capability: string; score: number }>;
-  trend: TrendPoint[];
-}
 
 // ============================================================================
 // STATE
@@ -272,7 +251,9 @@ function renderContent(data: DashboardData | null): HTMLElement {
     const trendSection = createElement('section', { className: 'bth-section' });
     trendSection.appendChild(createElement('h3', {
       className: 'bth-section__title',
-      textContent: '7-Day Trend',
+      textContent: data.trendCapability
+        ? `7-Day Trend: ${formatCapabilityName(data.trendCapability)}`
+        : '7-Day Trend',
     }));
 
     const trend = createElement('div', { className: 'bth-trend' });
@@ -307,28 +288,6 @@ function formatCapabilityName(capability: string): string {
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', { weekday: 'short' });
-}
-
-// ============================================================================
-// DATA FETCHING
-// ============================================================================
-
-async function fetchDashboardData(): Promise<DashboardData> {
-  const [statsRes, topRes, trendRes] = await Promise.all([
-    apiGet<{ stats?: CapabilityStats[] }>('/api/admin/bth-analytics/stats'),
-    apiGet<{ capabilities?: CapabilityStats[] }>('/api/admin/bth-analytics/top?limit=5'),
-    apiGet<{ trend?: TrendPoint[] }>('/api/admin/bth-analytics/trend?days=7'),
-  ]);
-
-  if (!statsRes.ok || !topRes.ok || !trendRes.ok) {
-    throw new Error('Failed to fetch analytics data');
-  }
-
-  return {
-    stats: (statsRes.data?.stats || []),
-    topCapabilities: (topRes.data?.capabilities || []).map(c => ({ capability: String(c.capability || ''), score: Number(c.effectivenessScore || 0) })),
-    trend: trendRes.data?.trend || [],
-  };
 }
 
 // ============================================================================
@@ -489,7 +448,7 @@ function injectStyles(): void {
     .bth-dashboard__close {
       position: absolute;
       top: var(--space-md, 1rem);
-      right: var(--space-md, 1rem);
+      inset-inline-end: var(--space-md, 1rem);
       background: none;
       border: none;
       font-size: 1.5rem;

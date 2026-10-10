@@ -45,10 +45,17 @@ beforeAll(async () => {
     const url = new URL(req.url ?? '/', 'http://localhost');
     void handleOutreachRoutes(req, res, url.pathname, url);
   });
-  await new Promise<void>((r) => server.listen(0, r));
+  await new Promise<void>((r) => {
+    server.listen(0, '127.0.0.1', r);
+  });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
-afterAll(() => new Promise<void>((r) => server.close(() => r())));
+afterAll(
+  () =>
+    new Promise<void>((r) => {
+      server.close(() => r());
+    })
+);
 
 beforeEach(() => {
   vi.clearAllMocks();

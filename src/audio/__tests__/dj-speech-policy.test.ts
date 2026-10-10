@@ -9,8 +9,8 @@ describe('djSpeaksOnItsOwn', () => {
   it('is off by default', () => {
     expect(djSpeaksOnItsOwn({})).toBe(false);
   });
-  it('is on only when DJ_SPOKEN_LINES=on', () => {
-    expect(djSpeaksOnItsOwn({ DJ_SPOKEN_LINES: 'on' })).toBe(true);
+  it('stays off even if DJ_SPOKEN_LINES is set', () => {
+    expect(djSpeaksOnItsOwn({ DJ_SPOKEN_LINES: 'on' })).toBe(false);
     expect(djSpeaksOnItsOwn({ DJ_SPOKEN_LINES: 'true' })).toBe(false);
   });
 });

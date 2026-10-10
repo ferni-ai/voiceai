@@ -30,9 +30,9 @@ let sessionData = {
 
 interface CoachingTopic {
   id: string;
-  name: string;
+  nameKey?: string;
   icon: string;
-  description: string;
+  descriptionKey?: string;
   prompts: string[];
 }
 
@@ -44,7 +44,7 @@ const STYLES = `
   .coaching-mode-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-tooltip);
+    z-index: var(--z-modal, 2100); /* the layer every dialog shares: the last opened is on top */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -382,9 +382,9 @@ const STYLES = `
 const COACHING_TOPICS: CoachingTopic[] = [
   {
     id: 'career',
-    name: 'Career Growth',
+    nameKey: 'coachingMode.topics.career',
     icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
-    description: 'Navigate your professional journey',
+    descriptionKey: 'coachingMode.topics.careerDesc',
     prompts: [
       "I want to get promoted",
       "Feeling stuck in my role",
@@ -393,9 +393,9 @@ const COACHING_TOPICS: CoachingTopic[] = [
   },
   {
     id: 'mindset',
-    name: 'Mindset',
+    nameKey: 'coachingMode.topics.mindset',
     icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
-    description: 'Build mental strength',
+    descriptionKey: 'coachingMode.topics.mindsetDesc',
     prompts: [
       "Dealing with self-doubt",
       "Building confidence",
@@ -404,9 +404,9 @@ const COACHING_TOPICS: CoachingTopic[] = [
   },
   {
     id: 'relationships',
-    name: 'Relationships',
+    nameKey: 'coachingMode.topics.relationships',
     icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
-    description: 'Improve connections',
+    descriptionKey: 'coachingMode.topics.relationshipsDesc',
     prompts: [
       "Better communication",
       "Setting boundaries",
@@ -415,9 +415,9 @@ const COACHING_TOPICS: CoachingTopic[] = [
   },
   {
     id: 'habits',
-    name: 'Habits & Discipline',
+    nameKey: 'coachingMode.topics.habits',
     icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/></svg>`,
-    description: 'Build better routines',
+    descriptionKey: 'coachingMode.topics.habitsDesc',
     prompts: [
       "Morning routine help",
       "Breaking bad habits",
@@ -426,9 +426,9 @@ const COACHING_TOPICS: CoachingTopic[] = [
   },
   {
     id: 'decisions',
-    name: 'Decision Making',
+    nameKey: 'coachingMode.topics.decisions',
     icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`,
-    description: 'Navigate tough choices',
+    descriptionKey: 'coachingMode.topics.decisionsDesc',
     prompts: [
       "Major life decision",
       "Weighing options",
@@ -437,17 +437,15 @@ const COACHING_TOPICS: CoachingTopic[] = [
   },
   {
     id: 'custom',
-    name: 'Something Else',
+    nameKey: 'coachingMode.topics.other',
     icon: `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
-    description: 'Custom coaching topic',
+    descriptionKey: 'coachingMode.topics.otherDesc',
     prompts: []
   }
 ];
-
 // ============================================================================
 // RENDER
 // ============================================================================
-
 function render(): string {
   if (!currentAgent) return '';
 
@@ -457,7 +455,7 @@ function render(): string {
       <div class="coaching-mode-modal" role="dialog" aria-labelledby="coaching-title">
         <header class="coaching-mode-header">
           <div class="coaching-mode-title">
-            <span class="coaching-mode-eyebrow">Coaching Session with</span>
+            <span class="coaching-mode-eyebrow">${t('coachingMode.sessionWith')}</span>
             <h2 class="coaching-mode-name" id="coaching-title">${currentAgent.displayName || currentAgent.name}</h2>
           </div>
           <button class="coaching-close-btn" aria-label="${t('accessibility.close')}">
@@ -496,24 +494,24 @@ function renderTopicStep(): string {
       <div class="coaching-progress-step"></div>
       <div class="coaching-progress-step"></div>
     </div>
-    
-    <h3 class="coaching-step-title">What would you like to work on?</h3>
-    <p class="coaching-step-subtitle">Choose a topic for today's coaching session</p>
-    
+
+    <h3 class="coaching-step-title">${t('coachingMode.whatToWorkOn')}</h3>
+    <p class="coaching-step-subtitle">${t('coachingMode.chooseTopic')}</p>
+
     <div class="coaching-topics-grid">
       ${COACHING_TOPICS.map(topic => `
         <button class="coaching-topic-card ${sessionData.topic === topic.id ? 'selected' : ''}" data-topic="${topic.id}">
           <div class="coaching-topic-icon">${topic.icon}</div>
-          <p class="coaching-topic-name">${topic.name}</p>
-          <p class="coaching-topic-desc">${topic.description}</p>
+          <p class="coaching-topic-name">${topic.nameKey ? t(topic.nameKey) : ''}</p>
+          <p class="coaching-topic-desc">${topic.descriptionKey ? t(topic.descriptionKey) : ''}</p>
         </button>
       `).join('')}
     </div>
-    
-    <div class="coaching-actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.cancel')}" class="coaching-btn coaching-btn--secondary" data-action="cancel">Cancel</button>
-      <button aria-label="${t('accessibility.continue')}" class="coaching-btn coaching-btn--primary" data-action="next" ${!sessionData.topic ? 'disabled' : ''}>
-        Continue
+
+    <div class="coaching-actions">
+      <button class="coaching-btn coaching-btn--secondary" data-action="cancel">${t('coachingMode.cancel')}</button>
+      <button class="coaching-btn coaching-btn--primary" data-action="next" ${!sessionData.topic ? 'disabled' : ''}>
+        ${t('coachingMode.continue')}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
         </svg>
@@ -524,25 +522,26 @@ function renderTopicStep(): string {
 
 function renderContextStep(): string {
   const selectedTopic = COACHING_TOPICS.find(t => t.id === sessionData.topic);
-  
+  const topicName = selectedTopic?.nameKey ? t(selectedTopic.nameKey) : 'this topic';
+
   return `
     <div class="coaching-progress">
       <div class="coaching-progress-step completed"></div>
       <div class="coaching-progress-step active"></div>
       <div class="coaching-progress-step"></div>
     </div>
-    
-    <h3 class="coaching-step-title">Tell me more</h3>
-    <p class="coaching-step-subtitle">What's on your mind about ${selectedTopic?.name.toLowerCase() || 'this topic'}?</p>
-    
+
+    <h3 class="coaching-step-title">${t('coachingMode.tellMeMore')}</h3>
+    <p class="coaching-step-subtitle">${t('coachingMode.whatMindAbout', { topic: topicName.toLowerCase() })}</p>
+
     <div class="coaching-input-group">
-      <label class="coaching-label" for="coaching-context">What's the situation?</label>
-      <textarea 
-        id="coaching-context" 
-        class="coaching-textarea" 
-        placeholder="Describe what's going on. The more context you share, the better I can help..."
+      <label class="coaching-label" for="coaching-context">${t('coachingMode.whatsTheSituation')}</label>
+      <textarea
+        id="coaching-context"
+        class="coaching-textarea"
+        placeholder="${t('coachingMode.describeContext')}"
       >${sessionData.context}</textarea>
-      
+
       ${selectedTopic?.prompts.length ? `
         <div class="coaching-suggestions">
           ${selectedTopic.prompts.map(p => `
@@ -551,26 +550,26 @@ function renderContextStep(): string {
         </div>
       ` : ''}
     </div>
-    
+
     <div class="coaching-input-group">
-      <label class="coaching-label" for="coaching-goal">What outcome would feel good?</label>
-      <textarea 
-        id="coaching-goal" 
-        class="coaching-textarea" 
-        placeholder="What would you like to walk away with from this session?"
+      <label class="coaching-label" for="coaching-goal">${t('coachingMode.whatOutcome')}</label>
+      <textarea
+        id="coaching-goal"
+        class="coaching-textarea"
+        placeholder="${t('coachingMode.walkAway')}"
         style="min-height: 80px;"
       >${sessionData.goal}</textarea>
     </div>
-    
-    <div class="coaching-actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.back')}" class="coaching-btn coaching-btn--secondary" data-action="back">
+
+    <div class="coaching-actions">
+      <button class="coaching-btn coaching-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
-        Back
+        ${t('coachingMode.back')}
       </button>
-      <button aria-label="${t('accessibility.continue')}" class="coaching-btn coaching-btn--primary" data-action="next">
-        Continue
+      <button class="coaching-btn coaching-btn--primary" data-action="next">
+        ${t('coachingMode.continue')}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
         </svg>
@@ -581,58 +580,59 @@ function renderContextStep(): string {
 
 function renderSessionStep(): string {
   const selectedTopic = COACHING_TOPICS.find(t => t.id === sessionData.topic);
-  
+  const topicName = selectedTopic?.nameKey ? t(selectedTopic.nameKey) : 'topic';
+
   return `
     <div class="coaching-progress">
       <div class="coaching-progress-step completed"></div>
       <div class="coaching-progress-step completed"></div>
       <div class="coaching-progress-step active"></div>
     </div>
-    
+
     <div class="coaching-session-intro">
       <div class="coaching-session-icon">
         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
       </div>
-      <h3 class="coaching-session-title">Ready to Begin</h3>
+      <h3 class="coaching-session-title">${t('coachingMode.readyToBegin')}</h3>
       <p class="coaching-session-desc">
-        Let's dive into your ${selectedTopic?.name.toLowerCase() || 'topic'} together.
+        Let's dive into your ${topicName.toLowerCase()} together.
         I'll guide you through this with questions and insights.
       </p>
     </div>
-    
+
     <div class="coaching-summary">
       <div class="coaching-summary-item">
-        <span class="coaching-summary-label">Topic</span>
-        <span class="coaching-summary-value">${selectedTopic?.name || sessionData.topic}</span>
+        <span class="coaching-summary-label">${t('coachingMode.topicLabel')}</span>
+        <span class="coaching-summary-value">${topicName}</span>
       </div>
       ${sessionData.context ? `
         <div class="coaching-summary-item">
-          <span class="coaching-summary-label">Context</span>
+          <span class="coaching-summary-label">${t('coachingMode.contextLabel')}</span>
           <span class="coaching-summary-value">${sessionData.context}</span>
         </div>
       ` : ''}
       ${sessionData.goal ? `
         <div class="coaching-summary-item">
-          <span class="coaching-summary-label">Goal</span>
+          <span class="coaching-summary-label">${t('coachingMode.goalLabel')}</span>
           <span class="coaching-summary-value">${sessionData.goal}</span>
         </div>
       ` : ''}
     </div>
-    
-    <div class="coaching-actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.edit')}" class="coaching-btn coaching-btn--secondary" data-action="back">
+
+    <div class="coaching-actions">
+      <button class="coaching-btn coaching-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
-        Edit
+        ${t('coachingMode.edit')}
       </button>
-      <button aria-label="${t('accessibility.startSession')}" class="coaching-btn coaching-btn--primary" data-action="start-session">
+      <button class="coaching-btn coaching-btn--primary" data-action="start-session">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>
-        Start Session
+        ${t('coachingMode.startSession')}
       </button>
     </div>
   `;
@@ -784,7 +784,7 @@ async function handleStartSession(): Promise<void> {
 
 function buildCoachingPrompt(topic: CoachingTopic | undefined): string {
   let prompt = `[COACHING SESSION]\n`;
-  prompt += `Topic: ${topic?.name || sessionData.topic}\n`;
+  prompt += `Topic: ${sessionData.topic}\n`;
   if (sessionData.context) {
     prompt += `Context: ${sessionData.context}\n`;
   }

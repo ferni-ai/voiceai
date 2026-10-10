@@ -33,22 +33,24 @@ import { t } from '../../../i18n/index.js';
 // CSS variable names for consistent theming
 const CATEGORY_CSS_VARS: Record<Relationship['category'], string> = {
   family: 'var(--color-semantic-error, #e74c3c)',
+  partner: 'var(--viz-mood-joyful, #c4956a)',
   friend: 'var(--color-accent, #3D5A45)',
   colleague: 'var(--persona-peter-primary, #3a6b73)',
-  mentor: 'var(--persona-eli-primary, #8a7a9a)',
+  mentor: 'var(--viz-moods-reflective, #5a6b8a)',
   other: 'var(--color-text-muted, #9a8f85)',
 };
 
 // Computed colors for SVG attributes that need hex values
 const CATEGORY_COLORS: Record<Relationship['category'], string> = {
   family: getCssVar('--color-semantic-error', '#e74c3c'),
+  partner: getCssVar('--viz-mood-joyful', '#c4956a'),
   friend: getCssVar('--color-accent', '#3D5A45'),
   colleague: getCssVar('--persona-peter-primary', '#3a6b73'),
-  mentor: getCssVar('--persona-eli-primary', '#8a7a9a'),
+  mentor: getCssVar('--viz-moods-reflective', '#5a6b8a'),
   other: getCssVar('--color-text-muted', '#9a8f85'),
 };
 
-const TREND_LABELS: Record<Relationship['trend'], string> = {
+const TREND_LABELS: Record<NonNullable<Relationship['trend']>, string> = {
   deepening: 'Growing closer',
   stable: 'Steady',
   fading: 'Needs attention',
@@ -254,13 +256,12 @@ function buildMobile(
     const nameEl = createElement('span', 'mobile-card-title', rel.name);
     nameRow.appendChild(nameEl);
 
-    // Trend indicator
     const trendEl = createElement('span');
     setStyles(trendEl, {
       fontSize: '0.75rem',
       color: rel.trend === 'fading' ? 'var(--color-semantic-warning)' : 'var(--color-text-muted)',
     });
-    trendEl.textContent = TREND_LABELS[rel.trend];
+    trendEl.textContent = rel.trend ? TREND_LABELS[rel.trend] : '';
     nameRow.appendChild(trendEl);
     cardHeader.appendChild(nameRow);
 
@@ -269,7 +270,6 @@ function buildMobile(
     cardHeader.appendChild(categoryBadge);
     card.appendChild(cardHeader);
 
-    // Strength bar
     const strengthRow = createFlexContainer('row', '8px', 'flex-start', 'center');
     setStyles(strengthRow, { marginTop: '8px' });
 
@@ -297,14 +297,13 @@ function buildMobile(
     strengthRow.appendChild(strengthBar);
     card.appendChild(strengthRow);
 
-    // Last contact
     const lastContact = createElement('div');
     setStyles(lastContact, {
       fontSize: '0.75rem',
       color: 'var(--color-text-muted)',
       marginTop: '4px',
     });
-    lastContact.textContent = `Last contact: ${formatRelativeDate(rel.lastContact)}`;
+    lastContact.textContent = `Last mentioned: ${formatRelativeDate(rel.lastContact)}`;
     card.appendChild(lastContact);
 
     container.appendChild(card);
@@ -852,6 +851,7 @@ function getCategoryBreakdown(
 ): Record<Relationship['category'], number> {
   const breakdown: Record<Relationship['category'], number> = {
     family: 0,
+    partner: 0,
     friend: 0,
     colleague: 0,
     mentor: 0,

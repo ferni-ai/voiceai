@@ -23,11 +23,13 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
-import { toldThisCallEnabled, toldThisCallNote } from './told-this-call.js';
+import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
 
-export function directorNotesEnabled(env: Record<string, string | undefined> = process.env): boolean {
+export function directorNotesEnabled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
   return env.DIRECTOR_NOTES === 'on';
 }
 
@@ -40,17 +42,18 @@ export interface Line {
 export type NoteWriter = (system: string, prompt: string) => Promise<string | undefined>;
 
 const DIRECTOR_ROLE =
-  "You are the director of a live, unscripted phone call between Ferni (warm, dry, curious; grew up in Wyoming, lived in Japan, a life coach who talks like a friend) and someone he cares about. Ferni improvises every word. Between his turns you whisper at most two private notes for his next reply.";
+  'You are the director of a live, unscripted phone call between Ferni (warm, dry, curious; grew up in Wyoming, lived in Japan, a life coach who talks like a friend) and someone he cares about. Ferni improvises every word. Between his turns you whisper at most two private notes for his next reply.';
 const DIRECTOR_RULES = [
   "Never tell him to acknowledge, validate, support or ask about feelings: that's what a therapist does and he's a friend. Never write lines for him to say.",
   "Pauses, short answers and unanswered questions are normal in conversation: never tell him to call them out, ask again or check they're still there. Prefer an observation to an instruction to ask something.",
+  "Don't guess at hidden motives or moods (that they're dodging, ignoring him, testing him, stuck, distant, escaping) and never tell him to talk about their tone, mood or reasons instead of what they said. When they ask something, the next reply answers it.",
   'If the conversation is flowing and Ferni is doing fine, reply NONE. Reply with only the notes, one per line, no numbering, or exactly NONE.',
 ];
 
 export const DIRECTOR_SYSTEM = [
   DIRECTOR_ROLE,
   "Every note must point at something that actually happened in this call, naming the detail: what they hinted at but didn't say, a pattern across what they've said, the mood or energy they're bringing, or a habit of Ferni's to drop (too many questions, fixing too early, sounding upbeat, repeating himself). Give the nudge and its reason in under 20 words.",
-  "Ferni reads your notes only after they have spoken again, and what they say next comes first. So never send him back to an earlier line: no connecting to, coming back to or following up on something they said. Say what you notice about them instead.",
+  'Ferni reads your notes only after they have spoken again, and what they say next comes first. So never send him back to an earlier line: no connecting to, coming back to or following up on something they said. Say what you notice about them instead.',
   ...DIRECTOR_RULES,
 ].join('\n');
 
@@ -78,9 +81,20 @@ export function buildDirectorPrompt(lines: Line[], userName?: string): string {
   return `The call so far:\n${transcript}\n\nYour notes for Ferni's next reply:`;
 }
 
-const GENERIC = /^(acknowledge|validate|show (support|empathy)|let (them|him|her) know|be supportive|offer (support|comfort)|empathi[sz]e)/i;
+const GENERIC =
+  /^(acknowledge|validate|show (support|empathy)|let (them|him|her) know|be supportive|offer (support|comfort)|empathi[sz]e)/i;
 /** Pushing on a pause or a question they skipped: a friend lets it go. */
-const PUSHY = /call (that|it) out|ask (it |that )?again|repeat (the|your) question|didn'?t (respond|answer)|still there|check (if|that) (they|he|she)/i;
+const PUSHY =
+  /call (that|it) out|ask (it |that )?again|repeat (the|your) question|didn'?t (respond|answer)|still there|check (if|that) (they|he|she)/i;
+/**
+ * Mind-reading: a motive or hidden mood pinned on the caller, or Ferni told to
+ * discuss their tone instead of answering. Dev call 2026-10-05: "Sam is
+ * ignoring your questions about his morning routine. Talk about the shift in
+ * his tone instead." turned "what would you suggest I start with?" into "I
+ * notice you went from sounding pretty excited to... a bit distant".
+ */
+const MIND_READING =
+  /\b(dodging|deflecting|avoiding|ignoring) (your|the|his|her|their)\b|\btesting (you|him|ferni)\b|\bescape to\b|\b(shift|change|drop) in (his|her|their) (tone|mood|energy)\b|\b(talk|ask) about (his|her|their) (tone|mood|energy|feelings)\b|\b(talk|ask) about why (they|he|she)\b/i;
 /**
  * Sending Ferni back to an earlier line. Notes are read on the caller's next
  * turn, so this one steers away from whatever they just said. Dev call
@@ -88,14 +102,17 @@ const PUSHY = /call (that|it) out|ask (it |that )?again|repeat (the|your) questi
  * that.' reached the reply to "All right, brother.", which opened "No pressure
  * to put words to it"; earlier, 'The "Donald Trump" comment is still hanging.'
  */
-const BACK_TO_EARLIER = /\bconnect (it |this |that )?(to|with|back)\b|\b(come|circle|go|get) back to\b|\breturn to\b|\bbring (it|that|this) (back|up)\b|\bfollow(ing)? up on\b|\b(still|left) hanging\b/i;
-const STOP = new Set('that this they them their with what have from about your just like been were when then there some would could should into only also very really'.split(' '));
+const BACK_TO_EARLIER =
+  /\bconnect (it |this |that )?(to|with|back)\b|\b(come|circle|go|get) back to\b|\breturn to\b|\bbring (it|that|this) (back|up)\b|\bfollow(ing)? up on\b|\b(still|left) hanging\b/i;
+const STOP = new Set(
+  'that this they them their with what have from about your just like been were when then there some would could should into only also very really'.split(
+    ' '
+  )
+);
 
 /** Words a note must share with the call to be about the call (4+ letters, not function words). */
 function contentWords(text: string): Set<string> {
-  return new Set(
-    (text.toLowerCase().match(/[a-z']{4,}/g) ?? []).filter((w) => !STOP.has(w))
-  );
+  return new Set((text.toLowerCase().match(/[a-z']{4,}/g) ?? []).filter((w) => !STOP.has(w)));
 }
 
 /**
@@ -112,7 +129,7 @@ export function parseNotes(reply: string | undefined, call?: Line[]): string[] {
     .filter((l) => l && !/^none\b/i.test(l))
     // A note that is a quoted line for Ferni to say is exactly what we don't want.
     .filter((l) => !/^["“'].*["”']$/.test(l))
-    .filter((l) => !GENERIC.test(l) && !PUSHY.test(l))
+    .filter((l) => !GENERIC.test(l) && !PUSHY.test(l) && !MIND_READING.test(l))
     .filter((l) => directorLooksBack() || !BACK_TO_EARLIER.test(l))
     .filter((l) => !said || [...contentWords(l)].some((w) => said.has(w)))
     .map((l) => (l.length > 160 ? `${l.slice(0, 157)}...` : l));
@@ -122,7 +139,7 @@ export function parseNotes(reply: string | undefined, call?: Line[]): string[] {
 const defaultWriter: NoteWriter = async (system, prompt) => {
   const { getGenerativeModel } = await import('../../config/generative-model.js');
   const model = await getGenerativeModel({
-    model: process.env.DIRECTOR_MODEL || 'gemini-2.5-flash',
+    model: process.env.DIRECTOR_MODEL || 'gemini-3.5-flash',
     systemInstruction: system,
     generationConfig: { temperature: 0.7, maxOutputTokens: 120 },
   });
@@ -133,7 +150,7 @@ const defaultWriter: NoteWriter = async (system, prompt) => {
 
 export class Director {
   private notes: string[] = [];
-  private toldNote = '';
+  private toldRecord: Told | null = null;
   private generation = 0;
 
   constructor(
@@ -151,7 +168,7 @@ export class Director {
   observe(lines: Line[]): Promise<void> {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
-    this.toldNote = toldThisCallEnabled() ? toldThisCallNote(lines, this.opts.userName) : '';
+    this.toldRecord = toldThisCallEnabled() ? toldThisCall(lines, this.opts.userName) : null;
     if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
     const started = Date.now();
@@ -167,7 +184,10 @@ export class Director {
         if (gen !== this.generation) return; // a newer turn superseded this one
         if (reply === undefined) {
           // No model, or over budget: not the same as the director saying NONE.
-          log.warn({ sessionId: this.opts.sessionId, ms: Date.now() - started }, 'director gave no reply');
+          log.warn(
+            { sessionId: this.opts.sessionId, ms: Date.now() - started },
+            'director gave no reply'
+          );
           return;
         }
         this.notes = parseNotes(reply, lines.slice(-12));
@@ -192,9 +212,20 @@ export class Director {
     return this.notes;
   }
 
-  /** What Ferni has already told on this call, as the note for the next reply, or ''. */
-  told(): string {
-    return this.toldNote;
+  /**
+   * What Ferni has already told on this call, as the note for the next reply,
+   * or ''. `keep` drops quotes and names that mustn't be repeated back to the
+   * model (a locked teammate after the caller moved on: locked-teammates.ts).
+   */
+  told(keep: (text: string) => boolean = () => true): string {
+    const told = this.toldRecord;
+    if (!told) return '';
+    return formatTold({
+      ...told,
+      names: told.names.filter((n) => keep(n.name)),
+      repeated: told.repeated.filter(keep),
+      recentLines: told.recentLines.filter(keep),
+    });
   }
 }
 

@@ -161,12 +161,12 @@ class CalendarConflictsUI {
     this.wrapper.innerHTML = `
       <header class="calendar-conflicts__header">
         <div class="calendar-conflicts__icon">${ICONS.alert}</div>
-        <h2 class="calendar-conflicts__title">Sync Conflicts</h2>
+        <h2 class="calendar-conflicts__title">${t('calendarConflicts.syncConflicts')}</h2>
         <button class="calendar-conflicts__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="calendar-conflicts__loading">
         <div class="calendar-conflicts__spinner"></div>
-        <p>Checking for conflicts...</p>
+        <p>${t('calendarConflicts.checking')}</p>
       </div>
     `;
 
@@ -181,7 +181,7 @@ class CalendarConflictsUI {
     this.wrapper.innerHTML = `
       <header class="calendar-conflicts__header">
         <div class="calendar-conflicts__icon">${ICONS.alert}</div>
-        <h2 class="calendar-conflicts__title">Sync Conflicts</h2>
+        <h2 class="calendar-conflicts__title">${t('calendarConflicts.syncConflicts')}</h2>
         <button class="calendar-conflicts__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="calendar-conflicts__content">
@@ -191,27 +191,27 @@ class CalendarConflictsUI {
             : `
           <div class="calendar-conflicts__empty">
             <div class="calendar-conflicts__empty-icon">${ICONS.check}</div>
-            <p>No conflicts found</p>
-            <span class="calendar-conflicts__empty-desc">Your calendars are in sync!</span>
+            <p>${t('calendarConflicts.noConflicts')}</p>
+            <span class="calendar-conflicts__empty-desc">${t('calendarConflicts.inSync')}</span>
           </div>
         `
         }
 
         <div class="calendar-conflicts__settings">
-          <h3>Default Resolution</h3>
-          <p>How should future conflicts be handled automatically?</p>
+          <h3>${t('calendarConflicts.defaultResolution')}</h3>
+          <p>${t('calendarConflicts.howHandle')}</p>
           <select class="calendar-conflicts__select" id="conflict-preference">
             <option value="manual" ${this.preferredResolution === 'manual' ? 'selected' : ''}>
-              Ask me each time
+              ${t('calendarConflicts.askEachTime')}
             </option>
             <option value="ferni-wins" ${this.preferredResolution === 'ferni-wins' ? 'selected' : ''}>
-              Always use Ferni's version
+              ${t('calendarConflicts.useFerni')}
             </option>
             <option value="provider-wins" ${this.preferredResolution === 'provider-wins' ? 'selected' : ''}>
-              Always use provider's version
+              ${t('calendarConflicts.useProvider')}
             </option>
             <option value="newest-wins" ${this.preferredResolution === 'newest-wins' ? 'selected' : ''}>
-              Keep the newest version
+              ${t('calendarConflicts.useNewest')}
             </option>
           </select>
         </div>
@@ -220,9 +220,9 @@ class CalendarConflictsUI {
           hasConflicts
             ? `
           <div class="calendar-conflicts__actions" role="button" tabindex="0">
-            <button aria-label="${t('accessibility.refresh')}" class="calendar-conflicts__btn calendar-conflicts__btn--secondary" data-action="auto-resolve">
+            <button aria-label="${t('calendarConflicts.autoResolveAll')}" class="calendar-conflicts__btn calendar-conflicts__btn--secondary" data-action="auto-resolve">
               ${ICONS.refresh}
-              <span>Auto-resolve All</span>
+              <span>${t('calendarConflicts.autoResolveAll')}</span>
             </button>
           </div>
         `
@@ -260,7 +260,7 @@ class CalendarConflictsUI {
 
         <div class="calendar-conflicts__comparison">
           <div class="calendar-conflicts__version calendar-conflicts__version--ferni">
-            <span class="calendar-conflicts__version-label">Ferni Calendar</span>
+            <span class="calendar-conflicts__version-label">${t('calendarConflicts.ferniCalendar')}</span>
             <div class="calendar-conflicts__event-title">${this.escapeHtml(ferniTitle)}</div>
             <div class="calendar-conflicts__event-time">${ferniTime}</div>
             ${conflict.ferniEvent.location ? `<div class="calendar-conflicts__event-location">${this.escapeHtml(conflict.ferniEvent.location)}</div>` : ''}
@@ -277,14 +277,14 @@ class CalendarConflictsUI {
         </div>
 
         <div class="calendar-conflicts__card-actions" role="button" tabindex="0">
-          <button aria-label="${t('accessibility.keepFerni')}" class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="ferni-wins" data-id="${conflict.id}">
-            Keep Ferni
+          <button aria-label="${t('calendarConflicts.keepFerni')}" class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="ferni-wins" data-id="${conflict.id}">
+            ${t('calendarConflicts.keepFerni')}
           </button>
-          <button aria-label="${t('accessibility.keep')}" class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="provider-wins" data-id="${conflict.id}">
-            Keep ${providerName}
+          <button class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="provider-wins" data-id="${conflict.id}">
+            ${t('calendarConflicts.keepProvider', { provider: providerName })}
           </button>
-          <button aria-label="${t('accessibility.dismiss')}" class="calendar-conflicts__resolve-btn calendar-conflicts__resolve-btn--dismiss" data-action="dismiss" data-id="${conflict.id}">
-            Dismiss
+          <button aria-label="${t('calendarConflicts.dismiss')}" class="calendar-conflicts__resolve-btn calendar-conflicts__resolve-btn--dismiss" data-action="dismiss" data-id="${conflict.id}">
+            ${t('calendarConflicts.dismiss')}
           </button>
         </div>
       </div>
@@ -384,7 +384,7 @@ class CalendarConflictsUI {
     const btn = this.wrapper?.querySelector('[data-action="auto-resolve"]') as HTMLButtonElement;
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = `${ICONS.refresh}<span>Resolving...</span>`;
+      btn.innerHTML = `${ICONS.refresh}<span>${t('calendarConflicts.resolving')}</span>`;
     }
 
     try {
@@ -402,7 +402,7 @@ class CalendarConflictsUI {
       this.isLoading = false;
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = `${ICONS.refresh}<span>Auto-resolve All</span>`;
+        btn.innerHTML = `${ICONS.refresh}<span>${t('calendarConflicts.autoResolveAll')}</span>`;
       }
     }
   }
@@ -865,11 +865,11 @@ class CalendarConflictsUI {
 
       /* Dark theme */
       [data-theme="midnight"] .calendar-conflicts__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-conflicts__header {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .calendar-conflicts__title,
@@ -881,15 +881,15 @@ class CalendarConflictsUI {
 
       [data-theme="midnight"] .calendar-conflicts__card,
       [data-theme="midnight"] .calendar-conflicts__settings {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
       }
 
       [data-theme="midnight"] .calendar-conflicts__version {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .calendar-conflicts__select {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
         color: var(--color-text-primary, #faf6f0);
       }

@@ -2,7 +2,7 @@
  * Manage Subscription UI - Your Journey Together
  *
  * A warm, relationship-focused modal for viewing support status.
- * 
+ *
  * Philosophy: This isn't about "managing a subscription" - it's about
  * celebrating the partnership and making it easy to adjust if needed.
  * We lead with gratitude, not transaction details.
@@ -17,6 +17,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { appleIAPService, type SubscriptionStatus } from '../services/apple-iap.service.js';
 import { openBillingPortal } from '../utils/billing.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { t } from '../i18n/index.js';
@@ -59,24 +60,21 @@ class ManageSubscriptionUI {
   private callbacks: ManageSubscriptionCallbacks = {};
   private userId: string | null = null;
   private status: SubscriptionStatus | null = null;
+  private openCount = 0;
 
-  /**
-   * Open the manage subscription modal
-   */
+  /** Open the manage subscription modal */
   async open(userId: string, callbacks: ManageSubscriptionCallbacks = {}): Promise<void> {
+    const opening = ++this.openCount;
+    // Close any open modal first, so its onClose is the one it was opened with
+    this.close();
+    this.injectStyles();
+    const status = await this.fetchStatus(userId);
+    // A later open() started while this status loaded: this result is stale, so it
+    // must not build a modal or show one person's status under another's
+    if (opening !== this.openCount) return;
     this.userId = userId;
     this.callbacks = callbacks;
-
-    // Clean up any existing modal
-    this.close();
-
-    // Inject styles
-    this.injectStyles();
-
-    // Fetch subscription status
-    this.status = await this.fetchStatus(userId);
-
-    // Create and show modal
+    this.status = status;
     this.createModal();
 
     log.debug('Manage subscription modal opened');
@@ -86,18 +84,21 @@ class ManageSubscriptionUI {
    * Close the modal
    */
   close(): void {
-    if (this.container) {
-      this.container.classList.add('manage-sub--closing');
-      trackedTimeout(() => {
-        this.container?.remove();
-        this.container = null;
-        this.callbacks.onClose?.();
-      }, DURATION.NORMAL);
-    }
+    // Remove this modal, not whichever one this.container holds when the timer fires:
+    // open() closes and rebuilds, and the status fetch can finish within the animation.
+    const container = this.container;
+    if (!container) return;
+    this.container = null;
+    const { onClose } = this.callbacks;
+    container.classList.add('manage-sub--closing');
+    trackedTimeout(() => {
+      container.remove();
+      onClose?.();
+    }, DURATION.NORMAL);
   }
 
   /**
-   * Fetch subscription status from backend/StoreKit
+   * Fetch subscription status from the server
    */
   private async fetchStatus(userId: string): Promise<SubscriptionStatus> {
     try {
@@ -114,13 +115,20 @@ class ManageSubscriptionUI {
 
   /**
    * Create the modal DOM
-   * 
+   *
    * Design philosophy: Lead with gratitude, show impact, make changes easy.
    * Technical details are hidden behind warm, human language.
    */
   private createModal(): void {
     this.container = document.createElement('div');
     this.container.className = 'manage-sub';
+    const modal = this.container;
+    asModalDialog(
+      modal,
+      { label: t('manageSubscription.title') },
+      () => this.container === modal,
+      () => this.close()
+    );
 
     const tierName = this.getTierDisplayName();
     const statusText = this.getStatusText();
@@ -168,16 +176,15 @@ class ManageSubscriptionUI {
     // Action buttons
     this.container
       .querySelector('[data-action="billing-portal"]')
-      ?.addEventListener('click', () => { void this.handleOpenBillingPortal(); });
-    this.container
-      .querySelector('[data-action="apple-manage"]')
-      ?.addEventListener('click', () => { void this.openAppleManagement(); });
+      ?.addEventListener('click', () => {
+        void this.handleOpenBillingPortal();
+      });
+    this.container.querySelector('[data-action="apple-manage"]')?.addEventListener('click', () => {
+      this.openAppleManagement();
+    });
     this.container
       .querySelector('[data-action="upgrade"]')
       ?.addEventListener('click', () => this.handleUpgrade());
-    this.container
-      .querySelector('[data-action="restore"]')
-      ?.addEventListener('click', () => this.handleRestore());
 
     document.body.appendChild(this.container);
 
@@ -188,10 +195,9 @@ class ManageSubscriptionUI {
   }
 
   /**
-   * Render action buttons based on subscription provider
-   * 
-   * Design: Primary action is always warm and inviting.
-   * Secondary/management actions are subtle, not prominent.
+   * Render action buttons based on where the server says the plan is billed.
+   * Only a Stripe plan gets the Stripe portal; an App Store plan gets Apple's
+   * way to change it; a paid plan billed nowhere we know gets neither.
    */
   private renderActions(): string {
     const { tier, provider } = this.status || { tier: 'free', provider: 'none' };
@@ -204,23 +210,15 @@ class ManageSubscriptionUI {
             ${ICONS.heart}
             <span>${t('manageSubscription.buttons.upgrade')}</span>
           </button>
-          ${
-            appleIAPService.isIOS()
-              ? `
-            <button class="manage-sub__btn manage-sub__btn--ghost" data-action="restore">
-              ${t('manageSubscription.buttons.restore')}
-            </button>
-          `
-              : ''
-          }
         </div>
         <p class="manage-sub__footer-note">${t('manageSubscription.freeNote')}</p>
       `;
     }
 
-    // Apple subscription - guide to settings with warmth
+    // App Store subscription - say so, then guide to Apple
     if (provider === 'apple') {
       return `
+        <p class="manage-sub__footer-note manage-sub__source">${t('manageSubscription.apple.source')}</p>
         <div class="manage-sub__actions">
           <button class="manage-sub__btn manage-sub__btn--subtle" data-action="apple-manage">
             ${ICONS.settings}
@@ -241,6 +239,10 @@ class ManageSubscriptionUI {
       `;
     }
 
+    if (provider !== 'stripe') {
+      return `<p class="manage-sub__footer-note">${t('manageSubscription.noBilling')}</p>`;
+    }
+
     // Stripe subscription - subtle management link
     return `
       <div class="manage-sub__actions">
@@ -258,17 +260,15 @@ class ManageSubscriptionUI {
    * Open Stripe billing portal
    */
   private async handleOpenBillingPortal(): Promise<void> {
-    if (!this.userId) return;
-
-    // Use the consolidated billing utility (opens in same tab for redirect flow)
-    await openBillingPortal(this.userId, { openInNewTab: false });
+    // Portal for the Bearer-token user (same tab, for the redirect flow)
+    await openBillingPortal({ openInNewTab: false });
   }
 
   /**
    * Open Apple subscription management
    */
-  private async openAppleManagement(): Promise<void> {
-    await appleIAPService.openSubscriptionManagement();
+  private openAppleManagement(): void {
+    appleIAPService.openSubscriptionManagement();
   }
 
   /**
@@ -277,45 +277,6 @@ class ManageSubscriptionUI {
   private handleUpgrade(): void {
     this.close();
     this.callbacks.onUpgrade?.();
-  }
-
-  /**
-   * Handle restore purchases (iOS)
-   */
-  private async handleRestore(): Promise<void> {
-    if (!this.userId) return;
-
-    const btn = this.container?.querySelector('[data-action="restore"]') as HTMLButtonElement;
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = t('manageSubscription.buttons.restoring');
-    }
-
-    try {
-      const result = await appleIAPService.restorePurchases(this.userId);
-
-      if (result.restoredTier) {
-        // Refresh the modal with new status
-        this.status = await this.fetchStatus(this.userId);
-        this.container?.remove();
-        this.createModal();
-      } else if (btn) {
-        btn.textContent = t('manageSubscription.restore.noFound');
-        trackedTimeout(() => {
-          btn.textContent = t('manageSubscription.buttons.restore');
-          btn.disabled = false;
-        }, 2000);
-      }
-    } catch (error) {
-      log.error('Restore failed:', error);
-      if (btn) {
-        btn.textContent = t('manageSubscription.restore.failed');
-        trackedTimeout(() => {
-          btn.textContent = t('manageSubscription.buttons.restore');
-          btn.disabled = false;
-        }, 2000);
-      }
-    }
   }
 
   /**
@@ -355,24 +316,8 @@ class ManageSubscriptionUI {
   }
 
   /**
-   * Format date for display
-   */
-  private formatDate(dateString: string): string {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    } catch {
-      return dateString;
-    }
-  }
-
-  /**
    * Inject styles
-   * 
+   *
    * Design philosophy: Warm, centered modal with focus on gratitude.
    * Technical elements are subtle, relationship elements are prominent.
    */
@@ -678,13 +623,15 @@ class ManageSubscriptionUI {
         line-height: 1.5;
       }
 
+      .manage-sub__footer-note.manage-sub__source { margin-bottom: var(--space-4, 16px); }
+
       /* Dark theme - maintain warmth */
       [data-theme="midnight"] .manage-sub__backdrop {
         background: rgba(20, 18, 16, 0.7);
       }
 
       [data-theme="midnight"] .manage-sub__card {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
         border-color: rgba(255, 255, 255, 0.06);
       }
 
@@ -693,7 +640,7 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__close {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
@@ -708,7 +655,7 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__plan-badge {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
@@ -717,7 +664,7 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__instructions {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       [data-theme="midnight"] .manage-sub__instructions-title {
@@ -725,12 +672,12 @@ class ManageSubscriptionUI {
       }
 
       [data-theme="midnight"] .manage-sub__btn--subtle {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
         color: var(--color-text-secondary, #f0ebe4);
       }
 
       [data-theme="midnight"] .manage-sub__btn--subtle:hover {
-        background: var(--color-background-tertiary, #685852);
+        background: var(--color-background-tertiary, #2a241f);
         color: var(--color-text-primary, #faf6f0);
       }
 

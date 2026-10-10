@@ -45,6 +45,11 @@ vi.mock('../memory/index.js', () => ({
     getOrCreateProfile: vi.fn().mockResolvedValue({ userId: 'test-user' }),
   })),
 }));
+// The migrated callers reach the store through getProfileStore (flag off: the default store).
+vi.mock('../memory/profile-store.js', async () => {
+  const { getDefaultStore } = await import('../memory/index.js');
+  return { getProfileStore: async () => getDefaultStore(), isAgentProfilePersistenceOn: () => false };
+});
 
 describe('Background Tasks Service', () => {
   let service: ReturnType<typeof getBackgroundTaskService>;

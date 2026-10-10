@@ -32,83 +32,27 @@ const locationCache = new Map<
   { location: string; timestamp: number; source: 'session' | 'explicit' }
 >();
 
-// ============================================================================
-// CURRENT ACTIVE SESSION (for native tools that don't have context)
-// ============================================================================
+/** The slice of a session's userData that carries the caller's location. */
+type CallerData = {
+  userId?: string;
+  userLocation?: { city?: string; regionCode?: string; countryCode?: string };
+};
 
 /**
- * Stores the currently active session's info.
- * Since there's only ONE session per voice agent worker instance,
- * native tools can use this to get the user's location without
- * having userId passed to them directly.
+ * The calling session's location, for a tool's execute(args, run).
+ * LiveKit passes each tool call its session's RunContext (run.ctx); its
+ * userData is that call's own data. Never a process-wide registry: a worker
+ * runs several calls at once.
  *
- * This is set when a session starts and cleared when it ends.
+ * Priority: IP-detected city for this call, then this user's saved preference.
  */
-let currentActiveSession: {
-  userId: string;
-  location?: string;
-  sessionId?: string;
-} | null = null;
-
-/**
- * Set the current active session for native tool access.
- * Called when a voice session starts.
- */
-export function setCurrentActiveSession(
-  userId: string,
-  location?: string,
-  sessionId?: string
-): void {
-  currentActiveSession = { userId, location, sessionId };
-  log.info(
-    { userId, hasLocation: !!location, sessionId },
-    '📍 Current active session set (for native tools)'
-  );
-}
-
-/**
- * Clear the current active session.
- * Called when a voice session ends.
- */
-export function clearCurrentActiveSession(): void {
-  const wasSet = !!currentActiveSession;
-  currentActiveSession = null;
-  if (wasSet) {
-    log.debug('📍 Current active session cleared');
+export function getCallerLocation(run: unknown): string | null {
+  const userData = (run as { ctx?: { userData?: CallerData } } | undefined)?.ctx?.userData;
+  const detected = userData?.userLocation;
+  if (detected?.city) {
+    return detected.regionCode ? `${detected.city}, ${detected.regionCode}` : detected.city;
   }
-}
-
-/**
- * Get location for the current active session.
- * Used by native tools that don't receive userId in their execute function.
- *
- * Priority:
- * 1. Direct session location (set at session start)
- * 2. Cached location for the user (from IP geo or explicit preference)
- */
-export function getCurrentSessionLocation(): string | null {
-  if (!currentActiveSession) {
-    log.debug('📍 No active session set - cannot determine location');
-    return null;
-  }
-
-  // Priority 1: Direct session location
-  if (currentActiveSession.location) {
-    log.debug(
-      { location: currentActiveSession.location, source: 'active-session' },
-      '📍 Using active session location'
-    );
-    return currentActiveSession.location;
-  }
-
-  // Priority 2: Check location cache for this user
-  const cachedLocation = getUserLocationPreference(currentActiveSession.userId);
-  if (cachedLocation) {
-    return cachedLocation;
-  }
-
-  log.debug({ userId: currentActiveSession.userId }, '📍 No location available for active session');
-  return null;
+  return userData?.userId ? getUserLocationPreference(userData.userId) : null;
 }
 
 /**

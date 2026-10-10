@@ -5388,13 +5388,6 @@ function setTimeOverride(time: string): void {
     default:
       log.warn({ time }, 'Unknown time setting');
   }
-
-  // Dispatch event so other components can react
-  window.dispatchEvent(
-    new CustomEvent('ferni:time-override', {
-      detail: { hour: timeOverride },
-    })
-  );
 }
 
 function toggleA11ySetting(a11y: string): void {
@@ -5818,10 +5811,7 @@ function setNetworkSimulation(network: string): void {
     })
   );
 
-  // If offline, simulate disconnection
-  if (network === 'offline') {
-    window.dispatchEvent(new CustomEvent('ferni:simulate-disconnect'));
-  }
+  // 'offline' shows as disconnected via ferni:connection-quality (app.ts maps offline -> disconnected)
 
   // Visual feedback
   switch (network) {
@@ -5975,8 +5965,6 @@ function viewStorage(): void {
   });
   // eslint-disable-next-line no-console
   console.groupEnd();
-
-  log.info({ count: ferniKeys.length }, 'Storage data logged to browser console');
   avatarFeedback.info(`${ferniKeys.length} items logged to console`);
 }
 
@@ -6249,7 +6237,7 @@ function injectStyles(): void {
     /* Dev Indicator - VISIBLE! */
     .dev-indicator {
       position: fixed;
-      bottom: var(--space-4, 16px);
+      top: var(--space-4, 16px);
       left: var(--space-4, 16px);
       display: flex;
       align-items: center;
@@ -7161,13 +7149,13 @@ function injectStyles(): void {
     
     /* Thinking Buttons */
     .dev-expression-btn--thinking {
-      background: rgba(180, 100, 255, 0.15);
-      border-color: rgba(180, 100, 255, 0.25);
-      color: #b080ff;
+      background: rgba(90, 107, 138, 0.15);
+      border-color: rgba(90, 107, 138, 0.25);
+      color: #a8b8d8;
     }
     .dev-expression-btn--thinking:hover {
-      background: rgba(180, 100, 255, 0.25);
-      border-color: rgba(180, 100, 255, 0.4);
+      background: rgba(90, 107, 138, 0.25);
+      border-color: rgba(90, 107, 138, 0.4);
     }
     
     /* Wrap-up Buttons (warm golden) */
@@ -7324,10 +7312,10 @@ function injectStyles(): void {
       align-items: center;
       gap: var(--dev-btn-gap);
       padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
-      background: rgba(180, 100, 255, 0.15);
-      border: 1px solid rgba(180, 100, 255, 0.25);
+      background: rgba(90, 107, 138, 0.15);
+      border: 1px solid rgba(90, 107, 138, 0.25);
       border-radius: var(--radius-md, 8px);
-      color: #c080ff;
+      color: #a8b8d8;
       font-size: 0.75rem;
       font-weight: 500;
       cursor: pointer;
@@ -7341,8 +7329,8 @@ function injectStyles(): void {
     }
     
     .dev-music-btn:hover {
-      background: rgba(180, 100, 255, 0.25);
-      border-color: rgba(180, 100, 255, 0.4);
+      background: rgba(90, 107, 138, 0.25);
+      border-color: rgba(90, 107, 138, 0.4);
       transform: scale(1.02);
     }
     

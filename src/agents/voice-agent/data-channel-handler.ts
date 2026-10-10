@@ -49,11 +49,6 @@ import {
 // TYPES
 // ============================================================================
 
-/** AudioRouter for Director Mode (routes director commands when set) */
-export interface DirectorAudioRouter {
-  handleDataChannelMessage(msg: unknown, identity: string): boolean;
-}
-
 export interface DataChannelContext {
   /** LiveKit room instance */
   room: Room;
@@ -78,8 +73,8 @@ export interface DataChannelContext {
   tts?: {
     switchVoice?: (name: string, voiceId: string, accent?: string) => void;
   };
-  /** Director Mode: routes director commands from data channel to DirectorEngine */
-  audioRouter?: DirectorAudioRouter;
+  /** Multi-agent calls handle handoff_request / handoff_cancel themselves */
+  skipHandoffs?: boolean;
 }
 
 export interface DataChannelResult {
@@ -104,14 +99,12 @@ const getLogger = () => livekitLog();
  * Returns a cleanup function that should be called on disconnect.
  */
 export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelResult {
-  const { room, session, services, sessionPersona, userId, sessionId, voiceAgentRef } = ctx;
+  const { room } = ctx; // handlers read the rest from ctx per message, so it can be live
 
-  // The actual async handler for data messages
   const dataReceivedHandler = async (data: Uint8Array, participant?: { identity: string }) => {
     const ourIdentity = room.localParticipant?.identity;
     const theirIdentity = participant?.identity;
 
-    // Enhanced debugging for handoff requests
     getLogger().info(
       { ourIdentity, theirIdentity, dataLength: data?.length },
       '📩 Data received from participant'
@@ -138,7 +131,7 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
       );
 
       // Handle different message types
-      if (message.type === 'handoff_request') {
+      if (message.type === 'handoff_request' && !ctx.skipHandoffs) {
         await handleHandoffRequest(message, ctx);
       }
 
@@ -168,7 +161,7 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
         await handleSyntheticText(message, ctx);
       }
 
-      if (message.type === 'handoff_cancel') {
+      if (message.type === 'handoff_cancel' && !ctx.skipHandoffs) {
         await handleHandoffCancel(message, ctx);
       }
 
@@ -205,25 +198,6 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
       // 🎯 ACTION RESPONSE: Handle approve/reject from UI action confirmation cards
       if (message.type === 'action_response') {
         await handleActionResponse(message, ctx);
-      }
-
-      // 🎬 DIRECTOR MODE: Handle director commands via data channel
-      if (
-        message.type === 'director_mode_enabled' ||
-        message.type === 'director_mode_disabled' ||
-        message.type === 'director_command'
-      ) {
-        const audioRouter = ctx.audioRouter;
-        if (audioRouter && typeof audioRouter.handleDataChannelMessage === 'function') {
-          const identity = participant?.identity ?? ctx.userId ?? 'unknown';
-          audioRouter.handleDataChannelMessage(message, identity);
-          diag.info('[DataChannel] Director command forwarded to AudioRouter', {
-            type: message.type,
-            identity,
-          });
-        } else {
-          diag.warn('[DataChannel] Director command received but no AudioRouter registered');
-        }
       }
     } catch {
       // Not JSON or not a valid request - this is expected for non-data-channel uses
@@ -1493,7 +1467,7 @@ For example:
     );
 
     // Note: generateReply is async and streams - we can't easily capture the response here
-    // The tool execution will be logged by the tool-call-sanitizer and json-function-executor
+    // Tool execution is logged by the tool dispatcher / native FC path
     result.success = true;
     result.diagnostics.totalDurationMs = Date.now() - startTime;
 

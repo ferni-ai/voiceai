@@ -4,9 +4,16 @@
  * LiveKit emits one `metrics_collected` event per component per turn (end of
  * utterance, LLM, TTS, ...). This joins them into one record per turn, by
  * arrival order (see TurnMetricsAggregator), so latency and cost can be
- * measured per turn rather than guessed. Response latency follows LiveKit's definition:
+ * measured per turn rather than guessed.
  *
- *   responseLatencyMs = EOU delay + LLM time-to-first-token + TTS time-to-first-byte
+ *   llmReadyMs        = when the reply's first tokens existed, from the end of the
+ *                       caller's speech (never before the turn was committed)
+ *   responseLatencyMs = llmReadyMs + TTS time-to-first-byte
+ *
+ * With preemptive generation the LLM starts before the turn is committed, so
+ * LiveKit's EOU delay + TTFT counts the overlap twice (dev, 2026-10-05: 25 of
+ * 25 replies were preemptive). The first token's wall-clock time is used
+ * instead when the metrics carry it.
  *
  * The record carries no transcript or reply text.
  *
@@ -18,6 +25,8 @@ interface EouMetric {
   speechId?: string;
   endOfUtteranceDelayMs: number;
   transcriptionDelayMs: number;
+  /** Epoch ms the caller stopped speaking; 0 when unknown. */
+  lastSpeakingTimeMs?: number;
 }
 
 interface LlmMetric {
@@ -25,7 +34,12 @@ interface LlmMetric {
   speechId?: string;
   ttftMs: number;
   promptTokens: number;
+  /** Prompt tokens the model served from its cache (Gemini cachedContentTokenCount). */
+  promptCachedTokens?: number;
   completionTokens: number;
+  /** Epoch ms the request finished, and how long it ran. */
+  timestamp?: number;
+  durationMs?: number;
 }
 
 interface TtsMetric {
@@ -40,15 +54,17 @@ type AnyMetric = EouMetric | LlmMetric | TtsMetric | { type: string; speechId?: 
 
 export interface TurnMetricsRecord {
   speechId: string;
-  /** EOU delay + LLM TTFT + TTS TTFB; null when the TTS reported no metrics. */
+  /** llmReadyMs + TTS TTFB; null when the TTS reported no metrics. */
   responseLatencyMs: number | null;
-  /** EOU delay + LLM TTFT: when the reply's first words exist. */
+  /** From the end of the caller's speech to the reply's first tokens (see module doc). */
   llmReadyMs: number;
   eouDelayMs: number;
   transcriptionDelayMs: number;
   llmTtftMs: number;
   ttsTtfbMs: number | null;
   promptTokens: number;
+  /** Of promptTokens, how many came from the model's prompt cache. */
+  promptCachedTokens: number;
   completionTokens: number;
   ttsCharacters: number;
   /** The TTS for this reply was cancelled, i.e. the user interrupted it. */
@@ -95,8 +111,18 @@ export class TurnMetricsAggregator {
   }
 }
 
+/** When the first tokens existed, from the end of the caller's speech; never before the commit. */
+function llmReady(eou: EouMetric, llm: LlmMetric): number {
+  const stoppedAt = eou.lastSpeakingTimeMs ?? 0;
+  if (stoppedAt > 0 && llm.timestamp && llm.durationMs !== undefined && llm.ttftMs >= 0) {
+    const firstTokenAt = llm.timestamp - llm.durationMs + llm.ttftMs;
+    return Math.max(eou.endOfUtteranceDelayMs, firstTokenAt - stoppedAt);
+  }
+  return eou.endOfUtteranceDelayMs + llm.ttftMs;
+}
+
 function toRecord(eou: EouMetric, llm: LlmMetric, tts?: TtsMetric): TurnMetricsRecord {
-  const llmReadyMs = eou.endOfUtteranceDelayMs + llm.ttftMs;
+  const llmReadyMs = llmReady(eou, llm);
   return {
     speechId: eou.speechId ?? '',
     responseLatencyMs: tts ? llmReadyMs + tts.ttfbMs : null,
@@ -106,6 +132,7 @@ function toRecord(eou: EouMetric, llm: LlmMetric, tts?: TtsMetric): TurnMetricsR
     llmTtftMs: llm.ttftMs,
     ttsTtfbMs: tts ? tts.ttfbMs : null,
     promptTokens: llm.promptTokens,
+    promptCachedTokens: llm.promptCachedTokens ?? 0,
     completionTokens: llm.completionTokens,
     ttsCharacters: tts ? tts.charactersCount : 0,
     interrupted: tts ? tts.cancelled : false,

@@ -107,6 +107,7 @@ async function createGift(
     item: string;
     description?: string;
     occasion: string;
+    date?: string;
     price?: number;
     reaction?: Gift['reaction'];
     notes?: string;
@@ -125,6 +126,10 @@ async function createGift(
     return;
   }
 
+  // The day the person chose ("When"); today if it's missing or not a date
+  const chosen = typeof body.date === 'string' ? new Date(body.date) : null;
+  const date = chosen && !Number.isNaN(chosen.getTime()) ? chosen : new Date();
+
   try {
     const gift = await recordGift(userId, {
       contactId,
@@ -133,7 +138,7 @@ async function createGift(
       item,
       description: body.description,
       occasion,
-      date: new Date(),
+      date,
       price: body.price,
       reaction: body.reaction,
       notes: body.notes,
@@ -144,7 +149,7 @@ async function createGift(
     await recordInteraction(userId, {
       contactId,
       userId,
-      date: new Date(),
+      date,
       type: direction === 'given' ? 'gift_given' : 'gift_received',
       direction: direction === 'given' ? 'outbound' : 'inbound',
       summary: `${direction === 'given' ? 'Gave' : 'Received'} ${item} for ${occasion}`,
@@ -372,9 +377,8 @@ export async function handleGiftRoutes(
     }
   }
 
-  // 404 for unmatched gift routes
-  sendError(res, 'Not found', 404);
-  return true;
+  // Unmatched gift routes: the server answers 404
+  return false;
 }
 
 export default handleGiftRoutes;

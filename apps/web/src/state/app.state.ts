@@ -11,10 +11,18 @@
  */
 
 import { STORAGE_KEYS } from '../config/index.js';
-import { getCoach, getPersona } from '../config/personas.js';
+import { getCoach, getPersona, LEGENDS } from '../config/personas.js';
 import type { AuthState } from '../services/firebase-auth.service.js';
 import type { AudioState, ConnectionState, SpotifyState } from '../types/events.js';
-import type { PersonaConfig, PersonaId } from '../types/persona.js';
+import {
+  isLegendId,
+  type PersonaConfig,
+  type PersonaId,
+  type SpeakerId,
+} from '../types/persona.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('App.state');
 
 // ============================================================================
 // STATE SHAPE
@@ -115,7 +123,7 @@ function safeSetItem(key: string, value: string): void {
     localStorage.setItem(key, value);
   } catch {
     // Private browsing mode - silently ignore
-    console.debug(`Could not persist ${key} (private browsing?)`);
+    log.debug(`Could not persist ${key} (private browsing?)`);
   }
 }
 
@@ -334,13 +342,35 @@ export function setConnectionState(state: ConnectionState): void {
  * Update active persona (who's currently speaking).
  * Also updates the document's data-persona attribute for theme colors.
  */
-export function setActivePersona(personaId: PersonaId): void {
+export function setActivePersona(personaId: SpeakerId): void {
   const persona = getPersona(personaId);
   appState.set('activePersona', persona);
 
   // Update document theme for CSS persona variables
+  if (isLegendId(personaId)) ensureLegendThemes();
   document.body.setAttribute('data-persona', personaId);
 }
+
+/**
+ * The stylesheets theme Ferni's team by data-persona. A Legend has no rule there,
+ * so add one from their design-token colours (once): the page takes their colour
+ * while they speak, and drops it as soon as data-persona moves on.
+ */
+function ensureLegendThemes(): void {
+  if (document.getElementById(LEGEND_THEME_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = LEGEND_THEME_STYLE_ID;
+  style.textContent = Object.values(LEGENDS)
+    .map(
+      ({ id, colors }) =>
+        `body[data-persona='${id}'] { --persona-primary: ${colors.primary}; ` +
+        `--persona-secondary: ${colors.secondary}; --persona-glow: ${colors.glow}; }`
+    )
+    .join('\n');
+  document.head.appendChild(style);
+}
+
+const LEGEND_THEME_STYLE_ID = 'legend-persona-themes';
 
 /**
  * Update selected persona (user's choice).

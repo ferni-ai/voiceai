@@ -23,8 +23,8 @@ export type AmbientSoundPack = 'none' | 'rain' | 'fireplace' | 'forest';
 
 interface AmbientConfig {
   id: AmbientSoundPack;
-  name: string;
-  description: string;
+  nameKey: string;
+  descriptionKey: string;
   file: string;
   volume: number; // Base volume (0-1)
 }
@@ -37,22 +37,22 @@ const AMBIENT_PACKS: Record<AmbientSoundPack, AmbientConfig | null> = {
   none: null,
   rain: {
     id: 'rain',
-    name: 'Gentle Rain',
-    description: 'Soft rainfall ambience',
+    nameKey: 'ambientSounds.rain.name',
+    descriptionKey: 'ambientSounds.rain.description',
     file: '/sounds/ambient/rain-loop.mp3',
     volume: 0.15, // Subtle
   },
   fireplace: {
     id: 'fireplace',
-    name: 'Crackling Fire',
-    description: 'Cozy fireplace sounds',
+    nameKey: 'ambientSounds.fireplace.name',
+    descriptionKey: 'ambientSounds.fireplace.description',
     file: '/sounds/ambient/fireplace-loop.mp3',
     volume: 0.12, // Very subtle crackling
   },
   forest: {
     id: 'forest',
-    name: 'Forest Morning',
-    description: 'Birds and gentle wind',
+    nameKey: 'ambientSounds.forest.name',
+    descriptionKey: 'ambientSounds.forest.description',
     file: '/sounds/ambient/forest-loop.mp3',
     volume: 0.18, // Nature sounds can be slightly louder
   },

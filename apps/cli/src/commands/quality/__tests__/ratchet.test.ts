@@ -1,6 +1,17 @@
-import { describe, expect, it } from 'vitest';
-import { lineCount, lowered, regressions, type Measurement } from '../ratchet.js';
-import { findTerm, visibleCopy } from '../check-brand-compliance.js';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  lineCount,
+  lowered,
+  measureBundle,
+  regressions,
+  type Measurement,
+  eslintErrorsByRule,
+  eslintRegressions,
+} from '../ratchet.js';
+import { findTerm, getAllRelevantFiles, visibleCopy } from '../check-brand-compliance.js';
 
 const base: Measurement = {
   oversized: { 'src/big.ts': 900, 'src/huge.ts': 2000 },
@@ -56,6 +67,77 @@ describe('quality ratchet', () => {
   });
 });
 
+describe('bundle measurement', () => {
+  let dist = '';
+  afterEach(() => {
+    rmSync(dist, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  /** A dist/ whose assets are `kb` KB each, with an optional Vite manifest. */
+  function build(kb: Record<string, number>, manifest?: object): string {
+    dist = mkdtempSync(join(tmpdir(), 'ratchet-dist-'));
+    mkdirSync(join(dist, 'assets'));
+    for (const [file, size] of Object.entries(kb)) writeFileSync(join(dist, 'assets', file), 'x'.repeat(size * 1024));
+    if (manifest) {
+      mkdirSync(join(dist, '.vite'));
+      writeFileSync(join(dist, '.vite', 'manifest.json'), JSON.stringify(manifest));
+    }
+    return join(dist, 'assets');
+  }
+
+  const assets = {
+    'index-a1.js': 10, // the entry
+    'index-a1.css': 2, // the entry's CSS
+    'vendor-b2.js': 40, // eager vendor chunk
+    'index-c3.js': 100, // lazy settings/index.ts: named index-*, but not initial
+    'firestore-d4.js': 7, // eager, but named like nothing the old regex knew
+    'firestore-d4.css': 1,
+  };
+  const manifest = {
+    'index.html': {
+      file: 'assets/index-a1.js',
+      isEntry: true,
+      css: ['assets/index-a1.css'],
+      imports: ['_vendor-b2.js', 'src/db/firestore.ts'],
+      dynamicImports: ['src/settings/index.ts'],
+    },
+    '_vendor-b2.js': { file: 'assets/vendor-b2.js' },
+    'src/db/firestore.ts': {
+      file: 'assets/firestore-d4.js',
+      css: ['assets/firestore-d4.css'],
+      imports: ['_vendor-b2.js'], // shared: counted once
+    },
+    'src/settings/index.ts': { file: 'assets/index-c3.js', imports: ['_vendor-b2.js'] },
+  };
+
+  it('counts what the entry imports statically, whatever the chunks are called', () => {
+    expect(measureBundle(build(assets, manifest))).toEqual({
+      totalKB: 160,
+      initialKB: 10 + 2 + 40 + 7 + 1, // not the lazy index-c3.js; yes firestore-d4.*
+      maxChunkKB: 100,
+    });
+  });
+
+  it('counts translation chunks once, at the largest, since a visitor loads one locale', () => {
+    const withLocales = {
+      ...manifest,
+      'src/settings/index.ts': { ...manifest['src/settings/index.ts'], dynamicImports: ['src/i18n/locales/de.json', 'src/i18n/locales/ja.json'] },
+      'src/i18n/locales/de.json': { file: 'assets/de-e5.js' },
+      'src/i18n/locales/ja.json': { file: 'assets/ja-f6.js' },
+    };
+    const sizes = measureBundle(build({ ...assets, 'de-e5.js': 30, 'ja-f6.js': 50 }, withLocales));
+    expect(sizes.totalKB).toBe(160 + 50);
+    expect(sizes.initialKB).toBe(10 + 2 + 40 + 7 + 1);
+  });
+
+  it('falls back to guessing from filenames, with a warning, when there is no manifest', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    expect(measureBundle(build(assets)).initialKB).toBe(10 + 2 + 40 + 100);
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/manifest\.json/));
+  });
+});
+
 describe('brand copy check', () => {
   it('reads only what users see: strings in code, text in HTML', () => {
     expect(visibleCopy('if (scrollY <= bottom) return;', 'x.js')).toBe('');
@@ -68,5 +150,46 @@ describe('brand copy check', () => {
     expect(findTerm('not your average bot.', 'bot')).toBeGreaterThan(-1);
     expect(findTerm('AI chatbots forget', 'chatbot')).toBeGreaterThan(-1);
     expect(findTerm('Unlimited Conversations!', 'Unlimited conversations')).toBe(0);
+  });
+
+  it('finds copy files under the copy paths only, top level included', () => {
+    const repo = mkdtempSync(join(tmpdir(), 'brand-files-'));
+    try {
+      for (const file of [
+        'apps/web/src/app.ts',
+        'apps/web/src/ui/menu.ui.ts',
+        'apps/web/src/node_modules/dep/index.ts',
+        '.claude/worktrees/other/apps/web/src/app.ts',
+        'src/services/billing.ts',
+      ]) {
+        mkdirSync(join(repo, file, '..'), { recursive: true });
+        writeFileSync(join(repo, file), '');
+      }
+      expect(getAllRelevantFiles(repo)).toEqual(['apps/web/src/app.ts', 'apps/web/src/ui/menu.ui.ts']);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('web ESLint ratchet', () => {
+  const file = (...msgs: Array<[number, string | null]>) => ({
+    messages: msgs.map(([severity, ruleId]) => ({ severity, ruleId })),
+  });
+
+  it('counts errors per rule, ignoring warnings, with parse errors as "parse"', () => {
+    const results = [file([2, 'no-unused-vars'], [1, 'no-console']), file([2, 'no-unused-vars'], [2, null])];
+    expect(eslintErrorsByRule(results)).toEqual({ 'no-unused-vars': 2, parse: 1 });
+  });
+
+  it('flags only rules whose errors rose, including new rules', () => {
+    const base = { 'no-unused-vars': 95, 'no-base-to-string': 5 };
+    expect(eslintRegressions(base, { 'no-unused-vars': 95, 'no-base-to-string': 4 })).toEqual([]);
+    expect(eslintRegressions(base, { 'no-unused-vars': 96 })).toEqual([
+      'ESLint "no-unused-vars" errors rose 95 → 96.',
+    ]);
+    expect(eslintRegressions(base, { 'no-floating-promises': 1 })).toEqual([
+      'ESLint "no-floating-promises" errors rose 0 → 1.',
+    ]);
   });
 });

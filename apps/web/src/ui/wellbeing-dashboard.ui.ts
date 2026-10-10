@@ -9,9 +9,15 @@
 
 // Design system animation constants available via CSS variables:
 // --duration-normal, --duration-slow, --duration-entrance, --ease-spring, etc.
-import { t } from '../i18n/index.js';
+import { formatDate, formatNumber, t } from '../i18n/index.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
+import {
+  hasWellbeingData,
+  type ApiDashboardWithData,
+  type ApiDashboardResponse,
+  type ApiTrendsResponse,
+} from './wellbeing-api.js';
 
 const log = createLogger('WellbeingDashboard');
 
@@ -27,7 +33,7 @@ export interface WellbeingData {
 
 export interface DimensionCard {
   dimension: string;
-  displayName: string;
+  displayNameKey: string;
   currentScore: number; // 0-1
   trend: 'up' | 'stable' | 'down';
   sparkline: number[]; // Last 30 days
@@ -68,16 +74,16 @@ export interface DashboardData {
 // CONSTANTS
 // ============================================================================
 
-/** Human-friendly dimension names (exported for UI display) */
-export const DIMENSION_NAMES: Record<string, string> = {
-  mood: 'Mood',
-  energy: 'Energy',
-  worry: 'Worry',
-  loneliness: 'Connection',
-  hopefulness: 'Hope',
-  sleepQuality: 'Sleep',
-  motivation: 'Motivation',
-  meaningfulness: 'Purpose',
+/** i18n keys for human-friendly dimension names (resolve with t() where rendered) */
+export const DIMENSION_NAME_KEYS: Record<string, string> = {
+  mood: 'wellbeing.mood',
+  energy: 'wellbeing.energy',
+  worry: 'wellbeing.worry',
+  loneliness: 'wellbeing.connection',
+  hopefulness: 'wellbeing.hope',
+  sleepQuality: 'wellbeing.sleep',
+  motivation: 'wellbeing.motivation',
+  meaningfulness: 'wellbeing.purpose',
 };
 
 // ============================================================================
@@ -161,7 +167,7 @@ const styles = `
   .wellbeing-modal__close {
     position: absolute;
     top: var(--space-4, 16px);
-    right: var(--space-4, 16px);
+    inset-inline-end: var(--space-4, 16px);
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -1230,63 +1236,6 @@ function isCacheValid(): boolean {
 // API
 // ============================================================================
 
-/** API response format from /api/wellbeing/dashboard */
-interface ApiDashboardResponse {
-  userId: string;
-  currentState: {
-    mood: number;
-    energy: number;
-    anxiety: number;
-    connection: number;
-    purpose: number;
-    sleep: number;
-    lastUpdated: string;
-  };
-  trends: {
-    period: 'week' | 'month';
-    direction: 'improving' | 'stable' | 'declining';
-    changedDimensions: string[];
-  };
-  insights: Array<{
-    type: 'pattern' | 'suggestion' | 'celebration';
-    message: string;
-    dimension?: string;
-  }>;
-  warnings: Array<{
-    type: string;
-    severity: 'watch' | 'concern' | 'urgent';
-    message: string;
-  }>;
-  streaks: {
-    currentDays: number;
-    bestDays: number;
-    lastCheckIn: string;
-  };
-}
-
-/** API response format from /api/wellbeing/trends */
-interface ApiTrendsResponse {
-  userId: string;
-  period: 'week' | 'month' | 'quarter';
-  dataPoints: Array<{
-    date: string;
-    mood: number | null;
-    energy: number | null;
-    anxiety: number | null;
-    connection: number | null;
-    purpose: number | null;
-    sleep: number | null;
-  }>;
-  averages: {
-    mood: number;
-    energy: number;
-    anxiety: number;
-    connection: number;
-    purpose: number;
-    sleep: number;
-  };
-}
-
 /** Color mapping for dimensions */
 const DIMENSION_COLORS: Record<string, string> = {
   mood: 'var(--color-ferni)',
@@ -1305,34 +1254,34 @@ function getDimensionInsight(
 ): string {
   const insights: Record<string, Record<string, string>> = {
     mood: {
-      high: 'Your mood has been consistently positive!',
-      medium: 'Mood is steady. Small wins add up.',
-      low: "Some heavier days lately. That's okay.",
+      high: 'wellbeing.insightMoodHigh',
+      medium: 'wellbeing.insightMoodMedium',
+      low: 'wellbeing.insightMoodLow',
     },
     energy: {
-      high: 'Energy levels are strong!',
-      medium: 'Maintaining balance.',
-      low: 'Energy has been lower. Rest matters.',
+      high: 'wellbeing.insightEnergyHigh',
+      medium: 'wellbeing.insightEnergyMedium',
+      low: 'wellbeing.insightEnergyLow',
     },
     anxiety: {
-      high: 'Some tension lately. Breathing helps.',
-      medium: 'Managing stress reasonably well.',
-      low: 'Feeling calm and centered.',
+      high: 'wellbeing.insightAnxietyHigh',
+      medium: 'wellbeing.insightAnxietyMedium',
+      low: 'wellbeing.insightAnxietyLow',
     },
     connection: {
-      high: 'Strong sense of connection!',
-      medium: 'Some good moments with others.',
-      low: 'Feeling a bit isolated. Reach out.',
+      high: 'wellbeing.insightConnectionHigh',
+      medium: 'wellbeing.insightConnectionMedium',
+      low: 'wellbeing.insightConnectionLow',
     },
     purpose: {
-      high: 'Feeling aligned with what matters.',
-      medium: 'Finding meaning in the routine.',
-      low: "Searching for direction. That's growth.",
+      high: 'wellbeing.insightPurposeHigh',
+      medium: 'wellbeing.insightPurposeMedium',
+      low: 'wellbeing.insightPurposeLow',
     },
     sleep: {
-      high: 'Rest is going well!',
-      medium: 'Sleep could be better.',
-      low: 'Sleep quality needs attention.',
+      high: 'wellbeing.insightSleepHigh',
+      medium: 'wellbeing.insightSleepMedium',
+      low: 'wellbeing.insightSleepLow',
     },
   };
 
@@ -1341,39 +1290,41 @@ function getDimensionInsight(
   const effectiveLevel =
     dimension === 'anxiety' ? (score >= 0.7 ? 'low' : score >= 0.4 ? 'medium' : 'high') : level;
 
-  return insights[dimension]?.[effectiveLevel] || 'Keep tracking for insights.';
+  return t(insights[dimension]?.[effectiveLevel] ?? 'wellbeing.insightDefault');
 }
 
 /** Transform API response into UI expected format */
 function transformApiResponse(
-  dashboardData: ApiDashboardResponse,
+  dashboardData: ApiDashboardWithData,
   trendsData: ApiTrendsResponse | null
 ): DashboardData {
   const { currentState, trends, insights } = dashboardData;
 
-  // Calculate overall score as weighted average of dimensions
+  // Overall score averages only the dimensions actually measured.
   // Invert anxiety for the calculation (lower anxiety = better)
   const dimensionScores = [
     currentState.mood,
     currentState.energy,
-    1 - currentState.anxiety, // Invert anxiety
+    currentState.anxiety === null ? null : 1 - currentState.anxiety,
     currentState.connection,
     currentState.purpose,
     currentState.sleep,
-  ];
-  const overallScore = Math.round(
-    (dimensionScores.reduce((a, b) => a + b, 0) / dimensionScores.length) * 100
-  );
+  ].filter((v): v is number => v !== null);
+  const overallScore = dimensionScores.length
+    ? Math.round((dimensionScores.reduce((a, b) => a + b, 0) / dimensionScores.length) * 100)
+    : 0;
 
   // Build dimension cards
-  const dimensions: DimensionCard[] = [
-    { dimension: 'mood', displayName: 'Mood', currentScore: currentState.mood },
-    { dimension: 'energy', displayName: 'Energy', currentScore: currentState.energy },
-    { dimension: 'anxiety', displayName: 'Anxiety', currentScore: currentState.anxiety },
-    { dimension: 'connection', displayName: 'Connection', currentScore: currentState.connection },
-    { dimension: 'purpose', displayName: 'Purpose', currentScore: currentState.purpose },
-    { dimension: 'sleep', displayName: 'Sleep', currentScore: currentState.sleep },
-  ].map((dim) => {
+  // Only dimensions the user actually talked about get a card
+  const measured = [
+    { dimension: 'mood', displayNameKey: 'wellbeing.mood', currentScore: currentState.mood },
+    { dimension: 'energy', displayNameKey: 'wellbeing.energy', currentScore: currentState.energy },
+    { dimension: 'anxiety', displayNameKey: 'wellbeing.anxiety', currentScore: currentState.anxiety },
+    { dimension: 'connection', displayNameKey: 'wellbeing.connection', currentScore: currentState.connection },
+    { dimension: 'purpose', displayNameKey: 'wellbeing.purpose', currentScore: currentState.purpose },
+    { dimension: 'sleep', displayNameKey: 'wellbeing.sleep', currentScore: currentState.sleep },
+  ].filter((dim): dim is typeof dim & { currentScore: number } => dim.currentScore !== null);
+  const dimensions: DimensionCard[] = measured.map((dim) => {
     // Determine trend for this dimension
     const isTrending = trends.changedDimensions.includes(dim.dimension);
     let trend: 'up' | 'stable' | 'down' = 'stable';
@@ -1425,7 +1376,7 @@ function transformApiResponse(
     .filter((i) => i.type === 'celebration')
     .map((i, idx) => ({
       id: `achievement-${idx}`,
-      title: i.dimension ? DIMENSION_NAMES[i.dimension] || i.dimension : 'Milestone',
+      title: i.dimension ? t(DIMENSION_NAME_KEYS[i.dimension] ?? i.dimension) : t('wellbeing.milestone'),
       description: i.message,
       earnedAt: currentState.lastUpdated,
       icon: i.dimension === 'mood' ? ICONS.smile : i.dimension === 'anxiety' ? ICONS.calm : ICONS.star,
@@ -1443,15 +1394,16 @@ function transformApiResponse(
   const prediction: Prediction | null =
     riskFactors.length > 0 || protectiveFactors.length > 0
       ? {
-          nextWeekForecast:
+          nextWeekForecast: t(
             trends.direction === 'improving'
-              ? 'Things are looking up! Keep the momentum going.'
+              ? 'wellbeing.forecastImproving'
               : trends.direction === 'declining'
-                ? 'Some challenges ahead. Be gentle with yourself.'
-                : 'Steady week ahead. Small consistent actions help.',
-          riskFactors: riskFactors.length > 0 ? riskFactors : ['Nothing major to watch for'],
+                ? 'wellbeing.forecastDeclining'
+                : 'wellbeing.forecastStable'
+          ),
+          riskFactors: riskFactors.length > 0 ? riskFactors : [t('wellbeing.nothingToWatchFor')],
           protectiveFactors:
-            protectiveFactors.length > 0 ? protectiveFactors : ['Your consistency in checking in'],
+            protectiveFactors.length > 0 ? protectiveFactors : [t('wellbeing.consistencyCheckingIn')],
         }
       : null;
 
@@ -1483,8 +1435,8 @@ async function fetchDashboardData(): Promise<DashboardData | null> {
     ]);
 
     if (!dashboardResponse.ok) {
-      log.warn('Dashboard API returned error:', dashboardResponse.status);
-      return null;
+      // A failed load is an error, not "no data yet"
+      throw new Error(`Wellbeing dashboard returned ${dashboardResponse.status}`);
     }
 
     const dashboardData: ApiDashboardResponse = await dashboardResponse.json();
@@ -1492,13 +1444,7 @@ async function fetchDashboardData(): Promise<DashboardData | null> {
       ? await trendsResponse.json()
       : null;
 
-    // Check if there's meaningful data
-    const hasData =
-      dashboardData.currentState &&
-      (dashboardData.streaks.currentDays > 0 ||
-        dashboardData.currentState.lastUpdated !== new Date().toISOString().split('T')[0]);
-
-    if (!hasData) {
+    if (!hasWellbeingData(dashboardData)) {
       // Return null to show empty state for new users
       log.debug('No meaningful wellbeing data yet');
       return null;
@@ -1586,9 +1532,9 @@ function createModal(): void {
     <div class="wellbeing-modal-backdrop"></div>
     <div class="wellbeing-modal">
       <header class="wellbeing-modal__header">
-        <p class="wellbeing-modal__eyebrow">Your Wellbeing</p>
-        <h2 id="wellbeing-title" class="wellbeing-modal__title">State of Me</h2>
-        <p class="wellbeing-modal__subtitle">How you've been feeling lately</p>
+        <p class="wellbeing-modal__eyebrow">${t('wellbeing.yourWellbeing')}</p>
+        <h2 id="wellbeing-title" class="wellbeing-modal__title">${t('wellbeing.stateOfMe')}</h2>
+        <p class="wellbeing-modal__subtitle">${t('wellbeing.howYouveBeenFeeling')}</p>
         <button class="wellbeing-modal__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="wellbeing-modal__content" id="wellbeing-content">
@@ -1598,7 +1544,7 @@ function createModal(): void {
       </div>
       <footer class="wellbeing-modal__footer">
         <span class="wellbeing-modal__footer-info" id="wellbeing-footer-info"></span>
-        <button aria-label="${t('accessibility.done')}" class="wellbeing-btn" data-action="close">Done</button>
+        <button class="wellbeing-btn" data-action="close">${t('common.done')}</button>
       </footer>
     </div>
   `;
@@ -1627,12 +1573,12 @@ function createModal(): void {
 function renderEmptyState(): string {
   // Preview dimensions to show what they'll track - now with hex fallbacks for glow
   const previewDimensions = [
-    { name: 'Mood', icon: ICONS.smile, color: 'var(--color-ferni)', hex: '#4a6741' },
-    { name: 'Energy', icon: ICONS.sun, color: 'var(--color-jack)', hex: '#c4a84a' },
-    { name: 'Connection', icon: ICONS.users, color: 'var(--color-peter)', hex: '#3a6b73' },
-    { name: 'Sleep', icon: ICONS.moon, color: 'var(--color-alex)', hex: '#5a6b8a' },
-    { name: 'Purpose', icon: ICONS.compass, color: 'var(--color-nayan)', hex: '#b8956a' },
-    { name: 'Hope', icon: ICONS.sunrise, color: 'var(--color-maya)', hex: '#a67a6a' },
+    { name: t('wellbeing.mood'), icon: ICONS.smile, color: 'var(--color-ferni)', hex: '#4a6741' },
+    { name: t('wellbeing.energy'), icon: ICONS.sun, color: 'var(--color-jack)', hex: '#c4a84a' },
+    { name: t('wellbeing.connection'), icon: ICONS.users, color: 'var(--color-peter)', hex: '#3a6b73' },
+    { name: t('wellbeing.sleep'), icon: ICONS.moon, color: 'var(--color-alex)', hex: '#5a6b8a' },
+    { name: t('wellbeing.purpose'), icon: ICONS.compass, color: 'var(--color-nayan)', hex: '#b8956a' },
+    { name: t('wellbeing.hope'), icon: ICONS.sunrise, color: 'var(--color-maya)', hex: '#a67a6a' },
   ];
 
   // Generate calendar preview cells (28 days = 4 weeks)
@@ -1648,16 +1594,14 @@ function renderEmptyState(): string {
       <div class="wellbeing-empty__hero">
         <div class="wellbeing-empty__icon">${ICONS.heart}</div>
         <div class="wellbeing-empty__text">
-          <h3 class="wellbeing-empty__title">A portrait of you<br/>will take shape here</h3>
-          <p class="wellbeing-empty__subtitle">
-            As we talk, I'll notice patterns—your rhythms, your energy, what lights you up.
-          </p>
+          <h3 class="wellbeing-empty__title">${t('wellbeing.emptyTitle')}</h3>
+          <p class="wellbeing-empty__subtitle">${t('wellbeing.emptySubtitle')}</p>
         </div>
       </div>
       
       <!-- Preview: What you'll track -->
       <div class="wellbeing-empty__preview">
-        <div class="wellbeing-empty__preview-label">What we'll explore together</div>
+        <div class="wellbeing-empty__preview-label">${t('wellbeing.whatWeExplore')}</div>
         <div class="wellbeing-empty__dimensions">
           ${previewDimensions
             .map(
@@ -1682,14 +1626,13 @@ function renderEmptyState(): string {
       
       <!-- Vision Statement -->
       <div class="wellbeing-empty__vision">
-        Over time, <strong>patterns will emerge</strong>. Days will connect to weeks. 
-        You'll see yourself <strong>more clearly</strong>.
+        ${t('wellbeing.emptyVision')}
       </div>
       
       <!-- CTA -->
       <div class="wellbeing-empty__cta">
-        <button aria-label="${t('accessibility.startAConversation')}" class="wellbeing-btn" data-action="start-conversation">
-          Let's begin
+        <button class="wellbeing-btn" data-action="start-conversation">
+          ${t('wellbeing.letsBegin')}
         </button>
       </div>
     </div>
@@ -1736,7 +1679,7 @@ function renderContent(): void {
   if (loadError) {
     content.innerHTML = `
       <div class="wellbeing-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
-        Couldn't load data. <button type="button" class="wellbeing-btn" style="margin-top: var(--space-4); color: var(--color-ferni);">Try again?</button>
+        ${t('wellbeing.couldntLoadData')} <button type="button" class="wellbeing-btn" style="margin-top: var(--space-4); color: var(--color-ferni);">${t('wellbeing.tryAgain')}</button>
       </div>
     `;
     content.querySelector('button')?.addEventListener('click', () => {
@@ -1758,14 +1701,14 @@ function renderContent(): void {
 
   content.innerHTML = `
     ${renderScoreSection(data.overall)}
-    <h3 class="wellbeing-section-title">How You're Doing</h3>
+    <h3 class="wellbeing-section-title">${t('wellbeing.howYoureDoing')}</h3>
     ${renderDimensions(data.dimensions)}
-    <h3 class="wellbeing-section-title">Last 4 Weeks</h3>
+    <h3 class="wellbeing-section-title">${t('wellbeing.last4Weeks')}</h3>
     ${renderCalendar(data.calendar)}
     ${
       data.achievements.length > 0
         ? `
-      <h3 class="wellbeing-section-title">Achievements</h3>
+      <h3 class="wellbeing-section-title">${t('wellbeing.achievements')}</h3>
       ${renderAchievements(data.achievements)}
     `
         : ''
@@ -1773,7 +1716,7 @@ function renderContent(): void {
     ${
       data.prediction
         ? `
-      <h3 class="wellbeing-section-title">Looking Ahead</h3>
+      <h3 class="wellbeing-section-title">${t('wellbeing.lookingAhead')}</h3>
       ${renderPrediction(data.prediction)}
     `
         : ''
@@ -1800,11 +1743,11 @@ function renderScoreSection(overall: WellbeingData): string {
         ? ICONS.trendDown
         : '';
   const trendText =
-    overall.trend === 'improving'
-      ? `+${overall.comparisonToLastMonth}% from last month`
-      : overall.trend === 'declining'
-        ? `${overall.comparisonToLastMonth}% from last month`
-        : 'Stable';
+    overall.trend === 'stable'
+      ? t('wellbeing.stable')
+      : t('wellbeing.fromLastMonth', {
+          change: formatNumber(overall.comparisonToLastMonth, { signDisplay: 'exceptZero' }),
+        });
 
   return `
     <div class="wellbeing-score-section">
@@ -1824,7 +1767,7 @@ function renderScoreSection(overall: WellbeingData): string {
         </svg>
         <div class="wellbeing-score-ring__value">
           <span class="wellbeing-score-ring__number">${overall.overallScore}</span>
-          <span class="wellbeing-score-ring__label">Wellbeing</span>
+          <span class="wellbeing-score-ring__label">${t('wellbeing.wellbeing')}</span>
         </div>
       </div>
       <div class="wellbeing-score-trend wellbeing-score-trend--${overall.trend}">
@@ -1846,14 +1789,15 @@ function renderDimensionCard(dim: DimensionCard): string {
   const score = Math.round(dim.currentScore * 100);
   const trendClass = dim.trend === 'up' ? 'up' : dim.trend === 'down' ? 'down' : 'stable';
   const trendLabel = dim.trend === 'up' ? '↑' : dim.trend === 'down' ? '↓' : '→';
+  const trendTextKey = { up: 'wellbeing.trendUp', down: 'wellbeing.trendDown', stable: 'wellbeing.trendStable' }[trendClass];
 
   return `
     <div class="wellbeing-dimension-card">
       <div class="wellbeing-dimension-card__header">
         <div>
-          <div class="wellbeing-dimension-card__name">${dim.displayName}</div>
+          <div class="wellbeing-dimension-card__name">${t(dim.displayNameKey)}</div>
           <span class="wellbeing-dimension-card__trend wellbeing-dimension-card__trend--${trendClass}">
-            ${trendLabel} ${trendClass}
+            ${trendLabel} ${t(trendTextKey)}
           </span>
         </div>
         <div class="wellbeing-dimension-card__score" style="color: ${dim.color}">${score}</div>
@@ -1912,7 +1856,8 @@ function renderSparkline(data: number[], color: string): string {
 }
 
 function renderCalendar(calendar: MoodCalendarEntry[]): string {
-  const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  // Narrow weekday initials in the current locale, Sunday first (matches getDay())
+  const days = Array.from({ length: 7 }, (_, i) => formatDate(new Date(2024, 0, 7 + i), { weekday: 'narrow' }));
 
   // Handle empty calendar - show empty state
   if (!calendar || calendar.length === 0) {
@@ -1926,7 +1871,7 @@ function renderCalendar(calendar: MoodCalendarEntry[]): string {
             .join('')}
         </div>
         <p style="text-align: center; color: var(--color-text-muted); font-size: 13px; margin-top: var(--space-2, 8px);">
-          Keep chatting to fill in your calendar!
+          ${t('wellbeing.keepChatting')}
         </p>
       </div>
     `;
@@ -1959,7 +1904,7 @@ function renderCalendar(calendar: MoodCalendarEntry[]): string {
             return `
             <div
               class="wellbeing-calendar__cell ${getScoreClass(entry.score)}"
-              title="${new Date(entry.date).toLocaleDateString()}: ${Math.round(entry.score * 100)}%"
+              title="${formatDate(new Date(entry.date))}: ${Math.round(entry.score * 100)}%"
             ></div>
           `;
           })
@@ -1993,7 +1938,7 @@ function renderPrediction(prediction: Prediction): string {
       <div class="wellbeing-prediction__factors">
         <div class="wellbeing-prediction__factor-group">
           <div class="wellbeing-prediction__factor-title wellbeing-prediction__factor-title--risk">
-            Watch For
+            ${t('wellbeing.watchFor')}
           </div>
           <ul class="wellbeing-prediction__factor-list">
             ${prediction.riskFactors
@@ -2007,7 +1952,7 @@ function renderPrediction(prediction: Prediction): string {
         </div>
         <div class="wellbeing-prediction__factor-group">
           <div class="wellbeing-prediction__factor-title wellbeing-prediction__factor-title--protective">
-            Helping You
+            ${t('wellbeing.helpingYou')}
           </div>
           <ul class="wellbeing-prediction__factor-list">
             ${prediction.protectiveFactors
@@ -2028,8 +1973,7 @@ function renderFooter(): void {
   const footerInfo = document.getElementById('wellbeing-footer-info');
   if (!footerInfo || !data) return;
 
-  const lastUpdated = new Date(data.lastUpdated).toLocaleDateString();
-  footerInfo.textContent = `Last updated ${lastUpdated}`;
+  footerInfo.textContent = t('wellbeing.lastUpdated', { date: formatDate(new Date(data.lastUpdated)) });
 }
 
 // ============================================================================

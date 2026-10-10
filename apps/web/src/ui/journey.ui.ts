@@ -131,56 +131,41 @@ let isLoadingTrustData = false;
 // STAGE DESCRIPTIONS - Brand Voice (Warm, Human, Not Saccharine)
 // ============================================================================
 
-const STAGE_DESCRIPTIONS: Record<string, { tagline: string; description: string }> = {
-  'first-meeting': {
-    tagline: 'Just getting started',
-    description: 'Every great friendship starts somewhere. This is our beginning.',
-  },
-  'getting-started': {
-    tagline: 'Building something real',
-    description: 'You keep showing up. That takes courage. I notice.',
-  },
-  'building-trust': {
-    tagline: 'Deeper than small talk',
-    description: 'We are past the surface now. Real conversations. Real growth.',
-  },
-  'established': {
-    tagline: 'A rhythm of our own',
-    description: 'You know me. I know you. This is what trust feels like.',
-  },
-  'deep-partnership': {
-    tagline: 'Something rare',
-    description: 'Few relationships reach this depth. We have built something real.',
-  },
+const STAGE_KEYS: Record<string, [string, string]> = {
+  'first-meeting': ['relationshipStages.taglines.firstMeeting', 'relationshipStages.descriptions.firstMeeting'],
+  'getting-started': ['relationshipStages.taglines.gettingStarted', 'relationshipStages.descriptions.gettingStarted'],
+  'building-trust': ['relationshipStages.taglines.buildingTrust', 'relationshipStages.descriptions.buildingTrust'],
+  'established': ['relationshipStages.taglines.established', 'relationshipStages.descriptions.established'],
+  'deep-partnership': ['relationshipStages.taglines.deepPartnership', 'relationshipStages.descriptions.deepPartnership'],
 };
 
 // Icons imported from centralized module
 const ICONS = JOURNEY_ICONS;
 
-const CATEGORY_META: Record<string, { icon: string; title: string; color: string }> = {
+const CATEGORY_META: Record<string, { icon: string; titleKey: string; color: string }> = {
   relationship: {
     icon: ICONS.heart,
-    title: 'Our Relationship',
+    titleKey: 'journey.categoryRelationship',
     color: 'var(--persona-primary, #4a6741)',
   },
   team: {
     icon: ICONS.team,
-    title: 'Team Connection',
+    titleKey: 'journey.categoryTeam',
     color: 'var(--color-peter, #3a6b73)',
   },
   conversation: {
     icon: ICONS.conversation,
-    title: 'Our Conversations',
+    titleKey: 'journey.categoryConversation',
     color: 'var(--color-alex, #5a6b8a)',
   },
   discovery: {
     icon: ICONS.discovery,
-    title: 'Hidden Discoveries',
+    titleKey: 'journey.categoryDiscovery',
     color: 'var(--color-maya, #a67a6a)',
   },
   sweet: {
     icon: ICONS.sweet,
-    title: 'Sweet Moments',
+    titleKey: 'journey.categorySweet',
     color: 'var(--color-nayan, #b8956a)',
   },
 };
@@ -336,7 +321,8 @@ function createModal(): void {
   const stage = relationshipStageService.getStage();
   const stageMetrics = relationshipStageService.getMetrics();
   const stageProgress = relationshipStageService.getProgressToNextStage();
-  const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting'];
+  const stageKeys = STAGE_KEYS[stage] || STAGE_KEYS['first-meeting'];
+  const [tagKey, descKey] = stageKeys as [string, string];
   const stageName = getTranslatedStageName(stage);
   const progressPercent = Math.round(stageProgress.progress * 100);
 
@@ -376,7 +362,7 @@ function createModal(): void {
     <div class="journey-content">
       <header class="journey-header">
         <div class="journey-header__text">
-          <span class="journey-eyebrow">YOUR JOURNEY</span>
+          <span class="journey-eyebrow">${t('journey.eyebrow')}</span>
         </div>
         <button class="journey-close" aria-label="${t('common.close')}">
           ${ICONS.close}
@@ -386,12 +372,12 @@ function createModal(): void {
       <div class="journey-body">
         <!-- Journey Map - Visual Path (Better than Apple Progress) -->
         ${renderJourneyMap(stage, progressPercent)}
-        
+
         <!-- Progress Overview Section -->
         <section class="journey-progress-overview">
           <h2 class="journey-stage-name">${stageName}</h2>
-          <p class="journey-stage-tagline">${stageInfo?.tagline ?? 'Just getting started'}</p>
-          <p class="journey-stage-description">${stageInfo?.description ?? ''}</p>
+          <p class="journey-stage-tagline">${t(tagKey)}</p>
+          <p class="journey-stage-description">${t(descKey)}</p>
           
           <div class="journey-stats-row">
             <div class="journey-stat">
@@ -423,7 +409,7 @@ function createModal(): void {
             </div>
           ` : `
             <div class="journey-next-stage journey-next-stage--max">
-              <span class="journey-next-stage__label">Max level reached! <span class="journey-next-stage__icon">${ICONS.star}</span></span>
+              <span class="journey-next-stage__label">${t('journey.maxLevelReached')} <span class="journey-next-stage__icon">${ICONS.star}</span></span>
             </div>
           `}
         </section>
@@ -435,7 +421,7 @@ function createModal(): void {
           <div class="journey-insights-header" role="button" tabindex="0" aria-expanded="true">
             <h3 class="journey-insights-title">
               ${ICONS.sparkles}
-              <span>What I've Noticed</span>
+              <span>${t('journey.insights')}</span>
             </h3>
             <span class="journey-insights-toggle" role="button" tabindex="0">${ICONS.chevronDown}</span>
           </div>
@@ -444,15 +430,15 @@ function createModal(): void {
             <div class="journey-insights-loading">
               <div class="journey-insights-skeleton"></div>
               <div class="journey-insights-skeleton journey-insights-skeleton--short"></div>
-              <p class="journey-insights-loading-text">Loading your story...</p>
+              <p class="journey-insights-loading-text">${t('journey.loadingStory')}</p>
             </div>
           </div>
         </section>
-        
+
         <!-- Milestones Section -->
         <section class="journey-milestones-section">
           <div class="journey-milestones-header" role="button" tabindex="0" aria-expanded="true">
-            <h3 class="journey-milestones-title">Milestones</h3>
+            <h3 class="journey-milestones-title">${t('journey.milestones')}</h3>
             <span class="journey-milestones-count">${celebrated}/${total}</span>
             <span class="journey-milestones-toggle" role="button" tabindex="0">${ICONS.chevronDown}</span>
           </div>
@@ -465,10 +451,10 @@ function createModal(): void {
       </div>
 
       <footer class="journey-footer">
-        <p>Every moment matters. Keep going.</p>
-        <button class="journey-share" aria-label="${t('accessibility.shareJourney')}">
+        <p>${t('journey.motivation')}</p>
+        <button class="journey-share">
           ${ICONS.share}
-          <span>Share</span>
+          <span>${t('journey.share')}</span>
         </button>
       </footer>
     </div>
@@ -544,7 +530,7 @@ function renderConnectionBanner(state: ConnectionState): string {
       return `
         <div class="journey-connection journey-connection--connected">
           <span class="journey-connection__icon">${ICONS.heartFilled}</span>
-          <span class="journey-connection__text">We're connected</span>
+          <span class="journey-connection__text">${t('journey.connectionConnected')}</span>
         </div>
       `;
 
@@ -553,7 +539,7 @@ function renderConnectionBanner(state: ConnectionState): string {
       return `
         <div class="journey-connection journey-connection--connecting">
           <span class="journey-connection__icon journey-connection__icon--spin">${ICONS.loader}</span>
-          <span class="journey-connection__text">Connecting...</span>
+          <span class="journey-connection__text">${t('journey.connectionConnecting')}</span>
         </div>
       `;
 
@@ -563,12 +549,12 @@ function renderConnectionBanner(state: ConnectionState): string {
         <div class="journey-connection journey-connection--error">
           <span class="journey-connection__icon">${ICONS.heartBroken}</span>
           <div class="journey-connection__content">
-            <span class="journey-connection__text">Connection lost</span>
-            <p class="journey-connection__subtext">Something went wrong, but we can try again.</p>
+            <span class="journey-connection__text">${t('journey.connectionError')}</span>
+            <p class="journey-connection__subtext">${t('journey.connectionErrorMessage')}</p>
           </div>
-          <button aria-label="${t('accessibility.reconnect')}" class="journey-connect-btn journey-connect-btn--retry">
+          <button class="journey-connect-btn journey-connect-btn--retry">
             ${ICONS.phone}
-            <span>Reconnect</span>
+            <span>${t('journey.connectionReconnect')}</span>
           </button>
         </div>
       `;
@@ -580,12 +566,12 @@ function renderConnectionBanner(state: ConnectionState): string {
         <div class="journey-connection journey-connection--disconnected">
           <span class="journey-connection__icon">${ICONS.heartBroken}</span>
           <div class="journey-connection__content">
-            <span class="journey-connection__text">We're not connected</span>
-            <p class="journey-connection__subtext">Start a conversation to continue our journey together.</p>
+            <span class="journey-connection__text">${t('journey.connectionDisconnected')}</span>
+            <p class="journey-connection__subtext">${t('journey.connectionDisconnectedMessage')}</p>
           </div>
-          <button aria-label="${t('accessibility.startTalking')}" class="journey-connect-btn">
+          <button class="journey-connect-btn">
             ${ICONS.phone}
-            <span>Start talking</span>
+            <span>${t('journey.connectionStartTalking')}</span>
           </button>
         </div>
       `;
@@ -780,29 +766,29 @@ function renderTrustInsights(): void {
       <div class="journey-trust-stat">
         <span class="journey-trust-stat__icon">${ICONS.leaf}</span>
         <span class="journey-trust-stat__value">${growthMoments}</span>
-        <span class="journey-trust-stat__label">Growth moments</span>
+        <span class="journey-trust-stat__label">${t('journey.growthMoments')}</span>
       </div>
       <div class="journey-trust-stat">
         <span class="journey-trust-stat__icon">${ICONS.trophy}</span>
         <span class="journey-trust-stat__value">${winsCelebrated}</span>
-        <span class="journey-trust-stat__label">Wins celebrated</span>
+        <span class="journey-trust-stat__label">${t('journey.winsCelebrated')}</span>
       </div>
       <div class="journey-trust-stat">
         <span class="journey-trust-stat__icon">${ICONS.shield}</span>
         <span class="journey-trust-stat__value">${boundariesRespected}</span>
-        <span class="journey-trust-stat__label">Boundaries honored</span>
+        <span class="journey-trust-stat__label">${t('journey.boundariesHonored')}</span>
       </div>
       <div class="journey-trust-stat">
         <span class="journey-trust-stat__icon">${ICONS.messageHeart}</span>
         <span class="journey-trust-stat__value">${sharedMoments}</span>
-        <span class="journey-trust-stat__label">Shared moments</span>
+        <span class="journey-trust-stat__label">${t('journey.sharedMoments')}</span>
       </div>
     </div>
 
     ${growthPatterns.length > 0 ? `
       <!-- Growth Patterns -->
       <div class="journey-trust-section">
-        <h4 class="journey-trust-section__title">How you've grown</h4>
+        <h4 class="journey-trust-section__title">${t('journey.howYouveGrown')}</h4>
         <div class="journey-growth-patterns">
           ${growthPatterns.map(p => `
             <span class="journey-growth-tag">
@@ -817,7 +803,7 @@ function renderTrustInsights(): void {
     ${recentWins.length > 0 ? `
       <!-- Recent Wins -->
       <div class="journey-trust-section">
-        <h4 class="journey-trust-section__title">Recent wins</h4>
+        <h4 class="journey-trust-section__title">${t('journey.recentWins')}</h4>
         <div class="journey-wins-list">
           ${recentWins.map(w => `
             <div class="journey-win-item">
@@ -835,7 +821,7 @@ function renderTrustInsights(): void {
     ${timeline.length > 0 ? `
       <!-- Timeline Peek -->
       <div class="journey-trust-section">
-        <h4 class="journey-trust-section__title">Our story so far</h4>
+        <h4 class="journey-trust-section__title">${t('journey.ourStoryStart')}</h4>
         <div class="journey-timeline-peek">
           ${timeline.slice(0, 3).map(t => `
             <div class="journey-timeline-item journey-timeline-item--${t.type}">
@@ -864,7 +850,7 @@ function renderTrustInsightsEmpty(): void {
   insightsBody.innerHTML = `
     <div class="journey-insights-empty">
       <span class="journey-insights-empty__icon">${ICONS.sparkles}</span>
-      <h4 class="journey-insights-empty__title">Our story is just beginning</h4>
+      <h4 class="journey-insights-empty__title">${t('journey.ourStoryStart')}</h4>
       <p class="journey-insights-empty__text">
         As we talk more, I'll notice your growth, celebrate your wins, 
         and remember what matters to you. Check back soon.
@@ -965,35 +951,35 @@ function renderJourneyMap(currentStage: string, progressPercent: number): string
   
   return `
     <section class="journey-map-section">
-      <div class="journey-map" role="navigation" aria-label="${t('journey.relationshipJourney', 'Your relationship journey')}">
+      <div class="journey-map" role="navigation" aria-label="${t('journey.yourJourney')}">
         <div class="journey-map__path">
           ${STAGE_ORDER.map((stage, index) => {
             const isPast = index < currentIndex;
             const isCurrent = index === currentIndex;
             const isFuture = index > currentIndex;
             const stateClass = isPast ? 'journey-map__stage--past' : isCurrent ? 'journey-map__stage--current' : 'journey-map__stage--future';
-            
+
             // Calculate connector fill
             const connectorFill = isPast ? 100 : isCurrent ? progressPercent : 0;
-            
+
             return `
               ${index > 0 ? `
                 <div class="journey-map__connector ${isPast ? 'journey-map__connector--filled' : ''}">
                   <div class="journey-map__connector-fill" style="--fill-progress: ${connectorFill}%"></div>
                 </div>
               ` : ''}
-              <div class="journey-map__stage ${stateClass}" role="listitem" tabindex="0" aria-label="${STAGE_LABELS[stage]}${isCurrent ? ` - ${t('journey.currentStage', 'current stage')}` : ''}">
+              <div class="journey-map__stage ${stateClass}" role="listitem" tabindex="0" aria-label="${STAGE_LABELS[stage]}${isCurrent ? ` - ${t('journey.currentStage')}` : ''}">
                 <div class="journey-map__node">
                   ${isCurrent ? '<div class="journey-map__pulse"></div>' : ''}
                   <div class="journey-map__node-inner"></div>
                 </div>
                 <span class="journey-map__label">${STAGE_LABELS[stage]}</span>
-                ${isCurrent ? '<span class="journey-map__here">You are here</span>' : ''}
+                ${isCurrent ? `<span class="journey-map__here">${t('journey.youAreHere')}</span>` : ''}
               </div>
             `;
           }).join('')}
         </div>
-        <p class="journey-map__hint">Every conversation brings us closer</p>
+        <p class="journey-map__hint">${t('journey.conversationHint')}</p>
       </div>
     </section>
   `;
@@ -1011,7 +997,7 @@ function renderCategory(category: string, items: ReturnType<typeof getMilestones
         <span class="journey-category__icon" style="color: ${meta.color}">
           ${meta.icon}
         </span>
-        <h3 class="journey-category__title">${meta.title}</h3>
+        <h3 class="journey-category__title">${t(meta.titleKey)}</h3>
         <span class="journey-category__count">${celebratedInCategory}/${items.length}</span>
       </header>
       <div class="journey-scrapbook">
@@ -1053,14 +1039,14 @@ function renderMilestoneCard(milestone: ReturnType<typeof getMilestones>[0], col
            style="--milestone-color: ${color}; --rotate: ${rotation}deg"
            tabindex="0"
            role="button"
-           aria-label="${milestone.name}">
+           aria-label="${escapeHtml(t(milestone.name))}">
         <div class="journey-polaroid__image">
           <div class="journey-polaroid__glow"></div>
           <span class="journey-polaroid__emoji">${milestoneEmoji}</span>
         </div>
         <div class="journey-polaroid__caption">
-          <span class="journey-polaroid__title">${escapeHtml(milestone.name)}</span>
-          <p class="journey-polaroid__message">${escapeHtml(milestone.message)}</p>
+          <span class="journey-polaroid__title">${escapeHtml(t(milestone.name))}</span>
+          <p class="journey-polaroid__message">${escapeHtml(t(milestone.message))}</p>
           <div class="journey-polaroid__footer">
             ${dateStr ? `<span class="journey-polaroid__date">${dateStr}</span>` : ''}
             ${milestone.personaId ? `<span class="journey-polaroid__persona">with ${milestone.personaId}</span>` : ''}
@@ -1080,14 +1066,14 @@ function renderMilestoneCard(milestone: ReturnType<typeof getMilestones>[0], col
           <span class="journey-polaroid__mystery-icon">?</span>
         </div>
         <div class="journey-polaroid__caption">
-          <span class="journey-polaroid__title">${milestone.subtitle || 'Keep exploring...'}</span>
+          <span class="journey-polaroid__title">${escapeHtml(milestone.subtitle ? t(milestone.subtitle) : t('journey.mysteryAwaits'))}</span>
           ${hasProgress ? `
             <div class="journey-polaroid__progress">
               <div class="journey-polaroid__progress-fill" style="width: ${progressPercent}%"></div>
             </div>
-            <span class="journey-polaroid__hint">${progressPercent}% discovered</span>
+            <span class="journey-polaroid__hint">${t('teamRoster.percentDiscovered', { percent: progressPercent })}</span>
           ` : `
-            <span class="journey-polaroid__hint">A mystery awaits</span>
+            <span class="journey-polaroid__hint">${t('journey.mysteryAwaits')}</span>
           `}
         </div>
       </div>

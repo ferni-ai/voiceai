@@ -639,6 +639,25 @@ describe('applyPostTTSEnhancement with Stage 2 off == Stage 2 module stubbed out
     }
   );
 
+  // Blind A/B on Ferni's instant clone, loudness-matched (2026-10-04): the
+  // founder preferred raw Cartesia 2 of 6 and could not tell 4 of 6; the chain
+  // won none. It re-masters audio Cartesia already masters, so it is opt-in.
+  it('the mastering chain is opt-in: with the flag unset the input stream comes back', async () => {
+    delete process.env.SPEECH_STAGE2_NONVERBAL;
+    delete process.env.SPEECH_STAGE2_TEMPO;
+    delete process.env.POST_TTS_ENHANCEMENT_ENABLED;
+    const s = streamOf(toneFrames(3));
+    expect(await applyPostTTSEnhancement(s, { sessionId: SID }, TURN)).toBe(s);
+  });
+
+  it('POST_TTS_ENHANCEMENT_ENABLED=true runs the mastering chain', async () => {
+    delete process.env.SPEECH_STAGE2_NONVERBAL;
+    delete process.env.SPEECH_STAGE2_TEMPO;
+    process.env.POST_TTS_ENHANCEMENT_ENABLED = 'true';
+    const s = streamOf(toneFrames(3));
+    expect(await applyPostTTSEnhancement(s, { sessionId: SID }, TURN)).not.toBe(s);
+  });
+
   it('enhancement disabled + Stage 2 off: the input stream itself comes back', async () => {
     delete process.env.SPEECH_STAGE2_NONVERBAL;
     delete process.env.SPEECH_STAGE2_TEMPO;

@@ -67,58 +67,55 @@ export interface LifeContextDashboardState {
 /** Domain display configuration */
 const DOMAIN_CONFIG: Record<
   string,
-  { name: string; icon: string; color: string; persona: string }
+  { nameKey: string; icon: string; color: string; persona: string }
 > = {
-  sleep: { name: 'Sleep', icon: 'moon', color: 'var(--color-maya)', persona: 'Maya' },
+  sleep: { nameKey: 'lifeContext.domains.sleep', icon: 'moon', color: 'var(--color-maya)', persona: 'Maya' },
   calendar: {
-    name: 'Schedule',
+    nameKey: 'lifeContext.domains.schedule',
     icon: 'calendar',
     color: 'var(--color-alex)',
     persona: 'Alex',
   },
   finance: {
-    name: 'Finances',
+    nameKey: 'lifeContext.domains.finances',
     icon: 'chart',
     color: 'var(--color-peter)',
     persona: 'Peter',
   },
-  goals: { name: 'Goals', icon: 'target', color: 'var(--color-jordan)', persona: 'Jordan' },
+  goals: { nameKey: 'lifeContext.domains.goals', icon: 'target', color: 'var(--color-jordan)', persona: 'Jordan' },
   relationships: {
-    name: 'Relationships',
+    nameKey: 'lifeContext.domains.relationships',
     icon: 'heart',
     color: 'var(--color-nayan)',
     persona: 'Nayan',
   },
-  habits: { name: 'Habits', icon: 'repeat', color: 'var(--color-maya)', persona: 'Maya' },
+  habits: { nameKey: 'lifeContext.domains.habits', icon: 'repeat', color: 'var(--color-maya)', persona: 'Maya' },
 };
 
 /** Trigger category display */
-const TRIGGER_CATEGORY_CONFIG: Record<
-  string,
-  { label: string; color: string; bgColor: string }
-> = {
+const TRIGGER_CATEGORY_CONFIG: Record<string, { labelKey: string; color: string; bgColor: string }> = {
   support: {
-    label: 'Support',
+    labelKey: 'lifeContext.triggerCategories.support',
     color: 'var(--color-ferni)',
     bgColor: 'var(--persona-tint, rgba(74, 103, 65, 0.1))',
   },
   celebration: {
-    label: 'Celebrate',
+    labelKey: 'lifeContext.triggerCategories.celebration',
     color: 'var(--color-jordan)',
     bgColor: 'var(--color-jordan-tint, rgba(203, 161, 53, 0.1))',
   },
   warning: {
-    label: 'Attention',
+    labelKey: 'lifeContext.triggerCategories.warning',
     color: 'var(--color-maya)',
     bgColor: 'var(--color-maya-tint, rgba(166, 122, 106, 0.1))',
   },
   connection: {
-    label: 'Connect',
+    labelKey: 'lifeContext.triggerCategories.connection',
     color: 'var(--color-nayan)',
     bgColor: 'var(--color-nayan-tint, rgba(90, 96, 106, 0.1))',
   },
   rest: {
-    label: 'Rest',
+    labelKey: 'lifeContext.triggerCategories.rest',
     color: 'var(--color-alex)',
     bgColor: 'var(--color-alex-tint, rgba(58, 107, 115, 0.1))',
   },
@@ -206,7 +203,7 @@ const styles = `
   .life-context-modal__close {
     position: absolute;
     top: var(--space-4, 16px);
-    right: var(--space-4, 16px);
+    inset-inline-end: var(--space-4, 16px);
     width: 32px;
     height: 32px;
     display: flex;
@@ -899,13 +896,16 @@ function renderScores(data: LifeContextSnapshot): string {
 
 function renderDomainCard(indicator: DomainStressIndicator): string {
   const config = DOMAIN_CONFIG[indicator.domain] || {
-    name: indicator.domain,
+    nameKey: 'lifeContext.domains.sleep',
     icon: 'layers',
     color: 'var(--color-ferni)',
     persona: 'Ferni',
   };
   const level = getStressLevel(indicator.stressLevel);
-  const levelLabel = t(`lifeContext.levels.${level}`, level === 'high' ? 'Needs attention' : level === 'medium' ? 'Worth watching' : 'Looking good');
+  const levelLabel = t(
+    `lifeContext.levels.${level}`,
+    level === 'high' ? 'Needs attention' : level === 'medium' ? 'Worth watching' : 'Looking good'
+  );
 
   return `
     <div class="life-context-domain-card" style="--domain-color: ${config.color}">
@@ -914,7 +914,7 @@ function renderDomainCard(indicator: DomainStressIndicator): string {
           <span class="life-context-domain-card__icon" style="color: ${config.color}">
             ${ICONS[config.icon] || ICONS.layers}
           </span>
-          ${config.name}
+          ${t(config.nameKey)}
         </div>
         <span class="life-context-domain-card__level life-context-domain-card__level--${level}">
           ${levelLabel}
@@ -930,9 +930,9 @@ function renderDomains(indicators: DomainStressIndicator[]): string {
   if (indicators.length === 0) {
     return `
       <div class="life-context-domains">
-        <div class="life-context-section-title">${t('lifeContext.sections.areas', 'Areas of Your Life')}</div>
+        <div class="life-context-section-title">${t('lifeContext.sections.areas')}</div>
         <div class="life-context-empty">
-          <div class="life-context-empty__message">${t('lifeContext.balanced', 'Everything seems balanced right now')}</div>
+          <div class="life-context-empty__message">${t('lifeContext.balanced')}</div>
         </div>
       </div>
     `;
@@ -943,7 +943,7 @@ function renderDomains(indicators: DomainStressIndicator[]): string {
 
   return `
     <div class="life-context-domains">
-      <div class="life-context-section-title">${t('lifeContext.sections.areas', 'Areas of Your Life')}</div>
+      <div class="life-context-section-title">${t('lifeContext.sections.areas')}</div>
       <div class="life-context-domain-grid">
         ${sorted.map((i) => renderDomainCard(i)).join('')}
       </div>
@@ -965,7 +965,7 @@ function renderPattern(pattern: CrossDomainPattern): string {
       </div>
       <div class="life-context-pattern__insight">${pattern.insight}</div>
       <div class="life-context-pattern__domains">
-        ${pattern.domains.map((d) => `<span class="life-context-pattern__domain-tag">${DOMAIN_CONFIG[d]?.name || d}</span>`).join('')}
+        ${pattern.domains.map((d) => `<span class="life-context-pattern__domain-tag">${DOMAIN_CONFIG[d] ? t(DOMAIN_CONFIG[d].nameKey) : d}</span>`).join('')}
       </div>
     </div>
   `;
@@ -986,7 +986,7 @@ function renderPatterns(patterns: CrossDomainPattern[]): string {
 
 function renderTrigger(trigger: SynthesisTrigger): string {
   const categoryConfig = TRIGGER_CATEGORY_CONFIG[trigger.category] || {
-    label: trigger.category,
+    labelKey: 'lifeContext.triggerCategories.support',
     color: 'var(--color-ferni)',
     bgColor: 'var(--persona-tint)',
   };
@@ -998,13 +998,13 @@ function renderTrigger(trigger: SynthesisTrigger): string {
     <div class="life-context-trigger" role="button" tabindex="0" style="border-color: ${categoryConfig.color}; background: ${categoryConfig.bgColor}">
       <div class="life-context-trigger__header" role="button" tabindex="0">
         <span class="life-context-trigger__category" role="button" tabindex="0" style="background: ${categoryConfig.color}; color: white">
-          ${categoryConfig.label}
+          ${t(categoryConfig.labelKey)}
         </span>
         <span class="life-context-trigger__priority" role="button" tabindex="0">${priorityLabel}</span>
       </div>
       <div class="life-context-trigger__message" role="button" tabindex="0">${trigger.message}</div>
       <div class="life-context-trigger__response" role="button" tabindex="0">"${trigger.suggestedResponse}"</div>
-      ${trigger.recommendedPersona ? `<div class="life-context-trigger__persona" role="button" tabindex="0">${t('lifeContext.personaHint', '{name} might be good to talk to about this').replace('{name}', trigger.recommendedPersona)}</div>` : ''}
+      ${trigger.recommendedPersona ? `<div class="life-context-trigger__persona" role="button" tabindex="0">${t('lifeContext.personaHint').replace('{name}', trigger.recommendedPersona)}</div>` : ''}
     </div>
   `;
 }
@@ -1022,7 +1022,7 @@ function renderTriggers(triggers?: SynthesisTrigger[]): string {
 
   return `
     <div class="life-context-triggers" role="button" tabindex="0">
-      <div class="life-context-section-title">${t('lifeContext.sections.thoughts', "What's On My Mind")}</div>
+      <div class="life-context-section-title">${t('lifeContext.sections.thoughts')}</div>
       ${sorted.map((trig) => renderTrigger(trig)).join('')}
     </div>
   `;
@@ -1035,12 +1035,12 @@ function renderTriggers(triggers?: SynthesisTrigger[]): string {
 function renderLifeContextEmptyState(): string {
   // Preview domains to show what patterns they'll discover
   const previewDomains = [
-    { name: 'Sleep', icon: ICONS.moon, color: 'var(--color-maya)' },
-    { name: 'Schedule', icon: ICONS.calendar, color: 'var(--color-alex)' },
-    { name: 'Finances', icon: ICONS.chart, color: 'var(--color-peter)' },
-    { name: 'Goals', icon: ICONS.target, color: 'var(--color-jordan)' },
-    { name: 'People', icon: ICONS.heart, color: 'var(--color-nayan)' },
-    { name: 'Habits', icon: ICONS.repeat, color: 'var(--color-maya)' },
+    { nameKey: 'lifeContext.domains.sleep', icon: ICONS.moon, color: 'var(--color-maya)' },
+    { nameKey: 'lifeContext.domains.schedule', icon: ICONS.calendar, color: 'var(--color-alex)' },
+    { nameKey: 'lifeContext.domains.finances', icon: ICONS.chart, color: 'var(--color-peter)' },
+    { nameKey: 'lifeContext.domains.goals', icon: ICONS.target, color: 'var(--color-jordan)' },
+    { nameKey: 'lifeContext.domains.people', icon: ICONS.heart, color: 'var(--color-nayan)' },
+    { nameKey: 'lifeContext.domains.habits', icon: ICONS.repeat, color: 'var(--color-maya)' },
   ];
 
   return `
@@ -1049,17 +1049,17 @@ function renderLifeContextEmptyState(): string {
       <div class="life-context-empty__hero">
         <div class="life-context-empty__icon">${ICONS.globe}</div>
         <div class="life-context-empty__text">
-          <h3 class="life-context-empty__title">I'll learn to see the connections</h3>
+          <h3 class="life-context-empty__title">${t('lifeContext.emptyState.title')}</h3>
           <p class="life-context-empty__message">
-            Your life doesn't happen in silos. Sleep affects work. Relationships shape goals. 
+            Your life doesn't happen in silos. Sleep affects work. Relationships shape goals.
             As we talk, I'll start noticing how different areas of your life influence each other.
           </p>
         </div>
       </div>
-      
+
       <!-- Preview: Domains I'll track -->
       <div class="life-context-empty__preview">
-        <div class="life-context-empty__preview-label">Areas I'll watch</div>
+        <div class="life-context-empty__preview-label">${t('lifeContext.emptyState.previewLabel')}</div>
         <div class="life-context-empty__domains">
           ${previewDomains
             .map(
@@ -1068,14 +1068,14 @@ function renderLifeContextEmptyState(): string {
               <div class="life-context-empty__domain-icon" style="color: ${domain.color}">
                 ${domain.icon}
               </div>
-              <div class="life-context-empty__domain-name">${domain.name}</div>
+              <div class="life-context-empty__domain-name">${t(domain.nameKey)}</div>
             </div>
           `
             )
             .join('')}
         </div>
       </div>
-      
+
       <!-- Connection visualization -->
       <div class="life-context-empty__connections">
         <div class="life-context-empty__connection-dot" style="background: var(--color-maya)"></div>
@@ -1086,16 +1086,16 @@ function renderLifeContextEmptyState(): string {
         <div class="life-context-empty__connection-line"></div>
         <div class="life-context-empty__connection-dot" style="background: var(--color-jordan)"></div>
       </div>
-      
+
       <!-- Vision Statement -->
       <div class="life-context-empty__vision">
         Patterns will emerge. When one part of life shifts, I'll notice how others respond.
       </div>
-      
+
       <!-- CTA -->
       <div class="life-context-empty__cta">
         <button class="life-context-empty__cta-btn" data-action="start-conversation">
-          Let's talk
+          ${t('lifeContext.emptyState.ctaButton')}
         </button>
       </div>
     </div>
@@ -1217,7 +1217,7 @@ export function showLifeContextDashboard(data?: LifeContextSnapshot): void {
         hideLifeContextDashboard();
       }
     });
-    
+
     // Start conversation button (empty state CTA)
     modalElement.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
@@ -1252,7 +1252,7 @@ export function hideLifeContextDashboard(): void {
       modalElement = null;
     }, 300); // Match transition duration
   }
-  log.debug('Life context dashboard hidden');
+  window.dispatchEvent(new CustomEvent('ferni:life-context-hidden')); // ends the live stream
 }
 
 /**

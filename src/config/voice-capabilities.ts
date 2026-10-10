@@ -19,7 +19,7 @@
  * measuring that it ignores `<speed>` / `<emotion>`.
  */
 const PRO_CLONE_VOICE_IDS: ReadonlySet<string> = new Set([
-  // Lester Nare (Pro) V0–V3 — V3 is Ferni's voice (VOICE_IDS.FERNI)
+  // Lester Nare (Pro) V0–V3 — V3 was Ferni's voice 2026-10-03/04 (LESTER_PRO_V3_VOICE_ID)
   'a83a1291-2e22-4af5-ac02-945e7d008c19',
   '42a85814-c3b7-4b3b-bf34-903c4abce255',
   '94850365-1b6e-4f8d-8c41-e96433c0fd4e',

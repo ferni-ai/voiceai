@@ -1,6 +1,6 @@
 /**
  * Re-export shim for backward compatibility.
- * Canonical location: ./communication/slack-notifications.ts
+ * Canonical location: ./integrations/slack-notifications.ts
  * @module
  */
-export * from './communication/slack-notifications.js';
+export * from './integrations/slack-notifications.js';

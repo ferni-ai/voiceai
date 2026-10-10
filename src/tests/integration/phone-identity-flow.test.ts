@@ -27,6 +27,11 @@ vi.mock('../../memory/index.js', () => ({
     listProfiles: vi.fn(async () => Array.from(mockProfiles.values())),
   }),
 }));
+// The migrated callers reach the store through getProfileStore (flag off: the default store).
+vi.mock('../../memory/profile-store.js', async () => {
+  const { getDefaultStore } = await import('../../memory/index.js');
+  return { getProfileStore: async () => getDefaultStore(), isAgentProfilePersistenceOn: () => false };
+});
 
 vi.mock('../../services/memory/voice-memory.js', () => ({
   VOICE_MISMATCH_THRESHOLD: 0.4,
@@ -338,8 +343,8 @@ describe('Phone Identity Full Flow', () => {
       expect(context?.detectedEmail).toBe(SPONSOR.email);
       expect(context?.potentialMatches).toHaveLength(1);
 
-      // STEP 3: User confirms linking
-      // (In real flow, agent would use linkPhoneToAccount tool)
+      // STEP 3: Linking is recorded (never done on the call itself: the voice
+      // agent has no tool to link accounts, since a caller can't prove ownership)
       accountLinkingContext.markLinkingComplete(sessionId, SPONSOR.id);
 
       const updatedContext = accountLinkingContext.getAccountLinkingContext(sessionId);

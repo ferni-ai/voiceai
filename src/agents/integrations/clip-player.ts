@@ -13,6 +13,15 @@
 import { voice } from '@livekit/agents';
 import { AudioFrame, AudioResampler, type Room } from '@livekit/rtc-node';
 import { createLogger } from '../../utils/safe-logger.js';
+import { synthHum, synthSnore, synthWhistle } from './presence-sounds.js';
+import {
+  createPresenceWatcher,
+  LONG_QUIET,
+  presenceHumEnabled,
+  presenceSnoreEnabled,
+  presenceSoundsEnabled,
+} from './presence-watcher.js';
+import { startToolHum } from './tool-hum.js';
 
 const log = createLogger({ module: 'ClipPlayer' });
 
@@ -124,6 +133,8 @@ export async function startBackchannelClips(
     return null;
   }
   let lastPlayedAt = 0;
+  const stopPresence = startPresenceSounds(session, player);
+  const stopToolHum = startToolHum(session, player);
   return {
     playClip: (text) => {
       const pcm = getClip(text, personaId());
@@ -132,6 +143,58 @@ export async function startBackchannelClips(
       return true;
     },
     lastPlayedAt: () => lastPlayedAt,
-    close: async () => player.close(),
+    close: async () => {
+      stopPresence();
+      stopToolHum();
+      await player.close();
+    },
+  };
+}
+
+/** A whistle or hum is heard in the room, not said to them: quieter than a backchannel. */
+const WHISTLE_VOLUME = 0.5;
+
+/**
+ * Sounds of him being there in a silence (presence-watcher.ts), on the same
+ * track as the backchannels: a whistle (or, with PRESENCE_HUM, a hum) in an
+ * easy pause, and with PRESENCE_SNORE a mock snore in a long quiet. Returns
+ * the cleanup; a no-op unless PRESENCE_SOUNDS=on.
+ */
+function startPresenceSounds(session: voice.AgentSession, player: ClipPlayer): () => void {
+  if (!presenceSoundsEnabled()) return () => {};
+  const mood = () =>
+    (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
+      ?.primary;
+  const playing = (kind: string, pcm: ArrayBuffer): boolean => {
+    const ok = player.play(pcm, WHISTLE_VOLUME);
+    if (ok) log.info({ kind }, `PRESENCE_SOUND ${kind}`);
+    return ok;
+  };
+  const stop = () => player.stop();
+  const watchers = [
+    createPresenceWatcher({
+      play: () =>
+        presenceHumEnabled() && Math.random() < 0.5
+          ? playing('hum', synthHum())
+          : playing('whistle', synthWhistle()),
+      stop,
+      mood,
+    }),
+  ];
+  if (presenceSnoreEnabled()) {
+    watchers.push(
+      createPresenceWatcher({ play: () => playing('snore', synthSnore()), stop, mood }, LONG_QUIET)
+    );
+  }
+  const onAgent = (ev: { newState?: string }) =>
+    watchers.forEach((w) => w.onAgentState(ev.newState ?? ''));
+  const onUser = (ev: { newState?: string }) =>
+    watchers.forEach((w) => w.onUserState(ev.newState ?? ''));
+  session.on(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
+  session.on(voice.AgentSessionEventTypes.UserStateChanged, onUser);
+  return () => {
+    watchers.forEach((w) => w.close());
+    session.off(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
+    session.off(voice.AgentSessionEventTypes.UserStateChanged, onUser);
   };
 }

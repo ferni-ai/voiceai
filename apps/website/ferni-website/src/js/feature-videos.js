@@ -114,7 +114,6 @@
       container?.classList.add('is-playing');
     } catch (err) {
       // Autoplay blocked - show fallback
-      console.debug('Video autoplay blocked:', err.name);
       container?.classList.add('autoplay-blocked');
     }
   }

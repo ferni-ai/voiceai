@@ -234,7 +234,7 @@ class GroupCoachingUI {
         this.sessions = response.data.sessions;
         this.renderList();
       } else {
-        this.renderError('Unable to load sessions');
+        this.renderError(t('groupCoaching.errors.loadFailed'));
       }
     } catch {
       this.sessions = [];
@@ -273,7 +273,7 @@ class GroupCoachingUI {
             <div class="group-coaching__session-icon">${getSessionTypes().find((t) => t.id === session.type)?.icon || ICONS.users}</div>
             <div class="group-coaching__session-info">
               <span class="group-coaching__session-type">${getSessionTypes().find((t) => t.id === session.type)?.name || session.type}</span>
-              <span class="group-coaching__session-status">${session.status} • ${session.participants.length} ${t('groupCoaching.participantsLabel')}</span>
+              <span class="group-coaching__session-status">${t(`groupCoaching.status.${session.status}`)} • ${session.participants.length} ${t('groupCoaching.participantsLabel')}</span>
             </div>
             <button class="group-coaching__session-join" data-session-id="${session.id}">
               ${session.status === 'waiting' ? t('groupCoaching.buttons.start') : t('groupCoaching.buttons.join')}
@@ -296,18 +296,18 @@ class GroupCoachingUI {
 
       <div class="group-coaching__content">
         <div class="group-coaching__actions" role="button" tabindex="0">
-          <button aria-label="${t('accessibility.add')}" class="group-coaching__create-btn" data-action="create">
+          <button class="group-coaching__create-btn" data-action="create">
             ${ICONS.plus}
-            <span>New Session</span>
+            <span>${t('groupCoaching.newSession')}</span>
           </button>
-          <button aria-label="${t('accessibility.joinWithLink')}" class="group-coaching__join-btn" data-action="join-link">
+          <button class="group-coaching__join-btn" data-action="join-link">
             ${ICONS.link}
-            <span>Join with Link</span>
+            <span>${t('groupCoaching.joinWithLink')}</span>
           </button>
         </div>
 
         <div class="group-coaching__sessions">
-          <h3>Your Sessions</h3>
+          <h3>${t('groupCoaching.yourSessions')}</h3>
           ${sessionsList}
         </div>
       </div>
@@ -322,13 +322,13 @@ class GroupCoachingUI {
 
     const typeOptions = getSessionTypes().map(
       (type) => `
-      <button aria-label="${t('accessibility.moreInformation')}" class="group-coaching__type" data-type="${type.id}">
+      <button class="group-coaching__type" data-type="${type.id}">
         <div class="group-coaching__type-icon">${type.icon}</div>
         <div class="group-coaching__type-info">
           <span class="group-coaching__type-name">${type.name}</span>
           <span class="group-coaching__type-desc">${type.description}</span>
         </div>
-        <span class="group-coaching__type-max">Up to ${type.maxParticipants}</span>
+        <span class="group-coaching__type-max">${t('groupCoaching.upTo', { count: type.maxParticipants })}</span>
       </button>
     `
     ).join('');
@@ -336,13 +336,13 @@ class GroupCoachingUI {
     this.wrapper.innerHTML = `
       <header class="group-coaching__header">
         <button aria-label="${t('accessibility.goBack')}" class="group-coaching__back" data-action="back">←</button>
-        <h2 class="group-coaching__title">New Session</h2>
+        <h2 class="group-coaching__title">${t('groupCoaching.newSession')}</h2>
         <button class="group-coaching__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
 
       <div class="group-coaching__content">
         <div class="group-coaching__create-intro">
-          <p>Choose a session type:</p>
+          <p>${t('groupCoaching.chooseType')}</p>
         </div>
 
         <div class="group-coaching__types">
@@ -364,7 +364,7 @@ class GroupCoachingUI {
         (p) => `
       <div class="group-coaching__participant ${p.isActive ? 'group-coaching__participant--active' : ''}">
         <span class="group-coaching__participant-name">${p.displayName}</span>
-        <span class="group-coaching__participant-role">${p.role}</span>
+        <span class="group-coaching__participant-role">${t(`groupCoaching.roles.${p.role}`)}</span>
       </div>
     `
       )
@@ -373,7 +373,7 @@ class GroupCoachingUI {
     this.wrapper.innerHTML = `
       <header class="group-coaching__header">
         <button aria-label="${t('accessibility.goBack')}" class="group-coaching__back" data-action="back">←</button>
-        <h2 class="group-coaching__title">${typeInfo?.name || 'Session'}</h2>
+        <h2 class="group-coaching__title">${typeInfo?.name || t('groupCoaching.session')}</h2>
         <button class="group-coaching__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
 
@@ -382,9 +382,9 @@ class GroupCoachingUI {
           <div class="group-coaching__session-icon-lg">${typeInfo?.icon || ICONS.users}</div>
           <div class="group-coaching__session-meta">
             <span class="group-coaching__session-status-badge group-coaching__session-status-badge--${session.status}">
-              ${session.status}
+              ${t(`groupCoaching.status.${session.status}`)}
             </span>
-            <span class="group-coaching__session-id">ID: ${session.id.slice(-8)}</span>
+            <span class="group-coaching__session-id">${t('groupCoaching.sessionId', { id: session.id.slice(-8) })}</span>
           </div>
         </div>
 
@@ -392,7 +392,7 @@ class GroupCoachingUI {
           joinLink
             ? `
           <div class="group-coaching__invite">
-            <h3>Invite Link</h3>
+            <h3>${t('groupCoaching.inviteLink')}</h3>
             <div class="group-coaching__invite-link">
               <input type="text" value="${joinLink}" readonly>
               <button aria-label="${t('accessibility.copy')}" class="group-coaching__copy-btn" data-action="copy" data-link="${joinLink}">
@@ -413,9 +413,9 @@ class GroupCoachingUI {
           ${
             session.status === 'waiting'
               ? `
-            <button aria-label="${t('accessibility.play')}" class="group-coaching__start-btn" data-action="start" data-session-id="${session.id}">
+            <button class="group-coaching__start-btn" data-action="start" data-session-id="${session.id}">
               ${ICONS.play}
-              <span>Start Session</span>
+              <span>${t('groupCoaching.startSession')}</span>
             </button>
           `
               : ''
@@ -439,7 +439,7 @@ class GroupCoachingUI {
       </header>
       <div class="group-coaching__error">
         <p>${message}</p>
-        <button aria-label="${t('accessibility.tryAgain')}" class="group-coaching__retry">Try Again</button>
+        <button class="group-coaching__retry">${t('common.tryAgain')}</button>
       </div>
     `;
 
@@ -463,7 +463,7 @@ class GroupCoachingUI {
     });
 
     this.wrapper?.querySelector('[data-action="join-link"]')?.addEventListener('click', () => {
-      const link = prompt('Enter the session join link:');
+      const link = prompt(t('groupCoaching.promptJoinLink'));
       if (link) {
         const sessionId = link.split('/').pop();
         if (sessionId) {
@@ -545,7 +545,7 @@ class GroupCoachingUI {
 
   private async joinSession(sessionId: string): Promise<void> {
     try {
-      const displayName = prompt('Enter your name:') || 'Guest';
+      const displayName = prompt(t('groupCoaching.promptName')) || t('groupCoaching.guest');
       const response = await apiPost<{ success: boolean; session?: GroupSession }>(
         `/api/group/sessions/${sessionId}/join`,
         { displayName }
@@ -1064,7 +1064,7 @@ class GroupCoachingUI {
 
       /* Dark Theme */
       [data-theme="midnight"] .group-coaching__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .group-coaching__title,
@@ -1077,7 +1077,7 @@ class GroupCoachingUI {
       [data-theme="midnight"] .group-coaching__session,
       [data-theme="midnight"] .group-coaching__type,
       [data-theme="midnight"] .group-coaching__participant {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       @media (max-width: clamp(336px, 90vw, 480px)) {

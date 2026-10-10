@@ -6,6 +6,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
+import { createSessionRegistry } from '../../../utils/session-registry.js';
 import {
   registerContextBuilder,
   createStandardInjection,
@@ -23,9 +24,13 @@ import {
 
 const log = getLogger();
 
-// Track if we've already injected a reflection this session
-let reflectionInjectedThisSession = false;
-let currentSessionId: string | null = null;
+// Calls that already got a reflection. One worker runs several calls at once,
+// so a single flag would let interleaved calls reset each other. Capped because
+// builders get no session-end hook.
+const sessionsWithReflection = createSessionRegistry(() => ({ injected: false }), {
+  name: 'cross-session-reflection',
+  maxInstances: 200,
+});
 
 /**
  * Cross-Session Reflection Context Builder
@@ -40,11 +45,7 @@ const crossSessionReflectionBuilder: ContextBuilder = {
     const injections: ContextInjection[] = [];
     const turnCount = userData.turnCount || 0;
 
-    // Reset session tracking on new session
-    if (currentSessionId !== services.sessionId) {
-      currentSessionId = services.sessionId;
-      reflectionInjectedThisSession = false;
-    }
+    const reflectionState = sessionsWithReflection.get(services.sessionId);
 
     // =========================================================================
     // PART 1: Detect and save new reflection moments
@@ -73,7 +74,7 @@ const crossSessionReflectionBuilder: ContextBuilder = {
     // =========================================================================
 
     // Only inject once per session, in early turns
-    if (reflectionInjectedThisSession) return injections;
+    if (reflectionState.injected) return injections;
     if (turnCount < 2 || turnCount > 5) return injections;
 
     const moments = getReflectionMoments(userProfile);
@@ -104,7 +105,7 @@ const crossSessionReflectionBuilder: ContextBuilder = {
         markMomentReflectedOn(userProfile, reflection.momentId);
       }
 
-      reflectionInjectedThisSession = true;
+      reflectionState.injected = true;
 
       log.info(
         { momentId: reflection.momentId, appropriateness: reflection.appropriateness },

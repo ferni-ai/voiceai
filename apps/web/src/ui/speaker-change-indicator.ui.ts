@@ -1,17 +1,22 @@
 /**
  * Speaker Change Indicator UI
  *
- * Shows a visual indicator when voice authentication detects
- * a different speaker, prompting gentle verification.
+ * "Someone new?" — shown when the voice agent's speaker change detector hears a
+ * different voice (the agent's `speaker_changed` data message, which the agent
+ * only sends past its confidence threshold, never in a call's first 30 s and at
+ * most once per 10 minutes). The buttons answer the agent with a
+ * `speaker_check_reply` data message: "still_me" keeps the current speaker as
+ * the primary user, "someone_new" tags the new voice as a guest
+ * (src/agents/voice-agent/speaker-check.ts).
  *
  * Design: Follows Ferni's warm, non-intrusive style - not alarming,
  * just curious and caring.
  */
 
 import { t } from '../i18n/index.js';
+import { connectionService } from '../services/connection.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import type { ContinuousAuthStatus } from '../services/voice-auth.service.js';
 
 const log = createLogger('SpeakerChangeIndicator');
 
@@ -22,11 +27,8 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // TYPES
 // ============================================================================
 
-export interface SpeakerChangeEvent {
-  status: ContinuousAuthStatus;
-  suggestedPrompt?: string;
-  previousUserId?: string;
-}
+/** The user's answer, as the agent's speaker_check_reply handler reads it. */
+export type SpeakerCheckAnswer = 'still_me' | 'someone_new';
 
 type IndicatorState = 'hidden' | 'suspicious' | 'speaker_changed' | 'verifying';
 
@@ -37,7 +39,6 @@ type IndicatorState = 'hidden' | 'suspicious' | 'speaker_changed' | 'verifying';
 /** Animation duration for transitions (exported for consistency with design system) */
 export const ANIMATION_DURATION = 300;
 const AUTO_DISMISS_MS = 10000;
-const SUSPICIOUS_THRESHOLD = 2; // Show after 2 suspicious events
 
 // ============================================================================
 // STATE
@@ -45,7 +46,6 @@ const SUSPICIOUS_THRESHOLD = 2; // Show after 2 suspicious events
 
 let container: HTMLElement | null = null;
 let currentState: IndicatorState = 'hidden';
-let suspiciousCount = 0;
 let dismissTimeout: ReturnType<typeof setTimeout> | null = null;
 let onVerifyCallback: ((confirmed: boolean) => void) | null = null;
 
@@ -102,7 +102,7 @@ const styles = `
   
   .speaker-change-indicator--suspicious .speaker-change-indicator__icon {
     background: rgba(196, 133, 106, 0.15);
-    color: var(--color-jordan, #c4856a);
+    color: var(--color-jordan-text, #9c5a3e);
   }
   
   .speaker-change-indicator--changed .speaker-change-indicator__icon {
@@ -136,7 +136,7 @@ const styles = `
   
   .speaker-change-indicator__message {
     font-size: 13px;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -171,7 +171,7 @@ const styles = `
   
   .speaker-change-indicator__btn--secondary {
     background: transparent;
-    color: var(--color-text-secondary, #70605a);
+    color: var(--color-text-secondary, #a89b8c);
   }
   
   .speaker-change-indicator__btn--secondary:hover {
@@ -245,12 +245,9 @@ export function initSpeakerChangeIndicator(): void {
   // Create container
   container = document.createElement('div');
   container.className = 'speaker-change-indicator';
-  container.setAttribute('role', 'alert');
+  container.setAttribute('role', 'status');
   container.setAttribute('aria-live', 'polite');
   document.body.appendChild(container);
-
-  // Listen for speaker change events from voice agent
-  window.addEventListener('ferni:speaker-change', handleSpeakerChange as EventListener);
 
   log.debug('Speaker change indicator initialized');
 }
@@ -259,17 +256,13 @@ export function initSpeakerChangeIndicator(): void {
  * Cleanup the speaker change indicator.
  */
 export function cleanupSpeakerChangeIndicator(): void {
-  // Remove event listeners
-  window.removeEventListener('ferni:speaker-change', handleSpeakerChange as EventListener);
-
   // Remove DOM elements
   document.getElementById('speaker-change-indicator-styles')?.remove();
-  document.querySelector('.speaker-change-indicator')?.remove();
+  document.querySelectorAll('.speaker-change-indicator').forEach((el) => el.remove());
 
   // Clear state
   container = null;
   currentState = 'hidden';
-  suspiciousCount = 0;
   if (dismissTimeout) {
     clearTimeout(dismissTimeout);
     dismissTimeout = null;
@@ -277,39 +270,30 @@ export function cleanupSpeakerChangeIndicator(): void {
 }
 
 // ============================================================================
-// EVENT HANDLERS
+// AGENT MESSAGES
 // ============================================================================
 
-function handleSpeakerChange(event: CustomEvent<SpeakerChangeEvent>): void {
-  const { status, suggestedPrompt } = event.detail;
+/** The agent's `speaker_changed` message: ask "Someone new?". */
+export function showSpeakerCheck(): void {
+  showIndicator('speaker_changed', t('speakerChange.title'), t('speakerChange.prompt'));
+}
 
-  log.debug('Speaker change event received:', status.status);
-
-  switch (status.status) {
-    case 'suspicious':
-      suspiciousCount++;
-      if (suspiciousCount >= SUSPICIOUS_THRESHOLD) {
-        showIndicator('suspicious', 'Just checking...', "Voice sounds a bit different. Still you?");
-      }
-      break;
-
-    case 'speaker_changed':
-      suspiciousCount = 0;
-      showIndicator(
-        'speaker_changed',
-        'Someone new?',
-        suggestedPrompt || "Hi there! Is someone else joining the conversation?"
-      );
-      break;
-
-    case 'verified':
-      suspiciousCount = 0;
-      hide();
-      break;
-
-    default:
-      // Reset on unknown status
-      suspiciousCount = 0;
+/**
+ * Send the user's answer to the voice agent: 'sent', 'no-call' when there is no
+ * live call, or 'failed' when publishing failed.
+ */
+export async function sendSpeakerCheckReply(
+  answer: SpeakerCheckAnswer
+): Promise<'sent' | 'no-call' | 'failed'> {
+  const participant = connectionService.getRoom()?.localParticipant;
+  if (!participant) return 'no-call';
+  const message = JSON.stringify({ type: 'speaker_check_reply', answer, timestamp: Date.now() });
+  try {
+    await participant.publishData(new TextEncoder().encode(message), { reliable: true });
+    return 'sent';
+  } catch (error) {
+    log.warn('Speaker check reply not sent', { error: String(error) });
+    return 'failed';
   }
 }
 
@@ -334,12 +318,12 @@ function showIndicator(state: IndicatorState, title: string, message: string): v
       <span class="speaker-change-indicator__message">${message}</span>
     </div>
     ${state === 'speaker_changed' ? `
-      <div class="speaker-change-indicator__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.yesItSMe')}" class="speaker-change-indicator__btn speaker-change-indicator__btn--primary" data-action="yes">
-          Yes, it's me
+      <div class="speaker-change-indicator__actions" role="group">
+        <button class="speaker-change-indicator__btn speaker-change-indicator__btn--primary" data-action="yes">
+          ${t('accessibility.yesItSMe')}
         </button>
-        <button aria-label="${t('accessibility.someoneNew')}" class="speaker-change-indicator__btn speaker-change-indicator__btn--secondary" data-action="new">
-          Someone new
+        <button class="speaker-change-indicator__btn speaker-change-indicator__btn--secondary" data-action="new">
+          ${t('accessibility.someoneNew')}
         </button>
       </div>
     ` : ''}
@@ -347,8 +331,8 @@ function showIndicator(state: IndicatorState, title: string, message: string): v
 
   // Add event listeners
   container.querySelector('.speaker-change-indicator__dismiss')?.addEventListener('click', hide);
-  container.querySelector('[data-action="yes"]')?.addEventListener('click', () => handleVerify(true));
-  container.querySelector('[data-action="new"]')?.addEventListener('click', () => handleVerify(false));
+  container.querySelector('[data-action="yes"]')?.addEventListener('click', () => void handleVerify(true));
+  container.querySelector('[data-action="new"]')?.addEventListener('click', () => void handleVerify(false));
 
   // Show with animation
   requestAnimationFrame(() => {
@@ -375,19 +359,25 @@ function hide(): void {
   log.debug('Speaker change indicator hidden');
 }
 
-function handleVerify(isSameUser: boolean): void {
-  // Show verifying state briefly
-  if (container) {
-    showIndicator('verifying', 'Got it!', isSameUser ? 'Welcome back!' : 'Nice to meet you!');
-    
-    // Dispatch verification response event
-    window.dispatchEvent(new CustomEvent('ferni:speaker-verified', {
-      detail: { isSameUser, timestamp: Date.now() }
-    }));
-
-    // Hide after brief confirmation
-    trackedTimeout(hide, 1500);
+async function handleVerify(isSameUser: boolean): Promise<void> {
+  const result = await sendSpeakerCheckReply(isSameUser ? 'still_me' : 'someone_new');
+  if (result === 'no-call') {
+    hide();
+    return;
   }
+  if (result === 'failed') {
+    // Nothing reached Ferni: keep the question up so it can be answered again.
+    showIndicator('speaker_changed', t('speakerChange.title'), t('speakerChange.sendFailed'));
+    return;
+  }
+
+  // Confirm briefly, then hide
+  showIndicator(
+    'verifying',
+    t('speakerChange.gotIt'),
+    t(isSameUser ? 'speakerChange.welcomeBack' : 'speakerChange.niceToMeet')
+  );
+  trackedTimeout(hide, 1500);
 
   if (onVerifyCallback) {
     onVerifyCallback(isSameUser);
@@ -422,9 +412,17 @@ export function showSpeakerChangePrompt(
   onVerifyCallback = options?.onVerify || null;
 
   if (type === 'suspicious') {
-    showIndicator('suspicious', 'Just checking...', options?.customMessage || "Voice sounds different. Still you?");
+    showIndicator(
+      'suspicious',
+      t('speakerChange.justChecking'),
+      options?.customMessage || t('speakerChange.voiceDifferent')
+    );
   } else {
-    showIndicator('speaker_changed', 'Someone new?', options?.customMessage || "Is someone else joining?");
+    showIndicator(
+      'speaker_changed',
+      t('speakerChange.title'),
+      options?.customMessage || t('speakerChange.someoneJoining')
+    );
   }
 }
 

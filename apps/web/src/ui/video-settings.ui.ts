@@ -162,7 +162,7 @@ class VideoSettingsUI {
         this.config = response.data.config;
         this.renderContent();
       } else {
-        this.renderError('Unable to load video settings');
+        this.renderError(t('videoSettings.loadError'));
       }
     } catch {
       this.state = {
@@ -223,20 +223,20 @@ class VideoSettingsUI {
 
         <div class="video-settings__coming-soon">
           <div class="video-settings__coming-soon-icon">${ICONS.video}</div>
-          <h3>Video Calls Coming Soon</h3>
-          <p>We're working on bringing video conversations to Ferni. For now, enjoy our voice-first experience with Ferni's expressive avatar.</p>
+          <h3>${t('videoSettings.comingSoonTitle')}</h3>
+          <p>${t('videoSettings.comingSoonBody')}</p>
         </div>
 
         <!-- Video Controls (Hidden - Coming Soon)
         <div class="video-settings__controls">
           <h3>${t('videoSettings.controls.title')}</h3>
 
-          <button aria-label="${t('accessibility.settings')}" class="video-settings__control ${this.state.isVideoEnabled ? 'video-settings__control--active' : ''}" data-action="toggle-video" disabled>
+          <button class="video-settings__control ${this.state.isVideoEnabled ? 'video-settings__control--active' : ''}" data-action="toggle-video" disabled>
             <span class="video-settings__control-icon">${this.state.isVideoEnabled ? ICONS.video : ICONS.videoOff}</span>
             <span class="video-settings__control-label">${this.state.isVideoEnabled ? t('videoSettings.camera.on') : t('videoSettings.camera.off')}</span>
           </button>
 
-          <button aria-label="${t('accessibility.settings')}" class="video-settings__control ${this.state.isScreenSharing ? 'video-settings__control--active' : ''}" data-action="toggle-screen" disabled>
+          <button class="video-settings__control ${this.state.isScreenSharing ? 'video-settings__control--active' : ''}" data-action="toggle-screen" disabled>
             <span class="video-settings__control-icon">${ICONS.screen}</span>
             <span class="video-settings__control-label">${this.state.isScreenSharing ? t('videoSettings.screen.on') : t('videoSettings.screen.off')}</span>
           </button>
@@ -291,7 +291,7 @@ class VideoSettingsUI {
       </header>
       <div class="video-settings__error">
         <p>${message}</p>
-        <button aria-label="${t('accessibility.settings')}" class="video-settings__retry">${t('videoSettings.buttons.retry')}</button>
+        <button class="video-settings__retry">${t('videoSettings.buttons.retry')}</button>
       </div>
     `;
 
@@ -679,7 +679,7 @@ class VideoSettingsUI {
 
       /* Dark Theme */
       [data-theme="midnight"] .video-settings__wrapper {
-        background: var(--color-background-elevated, #70605a);
+        background: var(--color-background-elevated, #352e28);
       }
 
       [data-theme="midnight"] .video-settings__title,
@@ -691,7 +691,7 @@ class VideoSettingsUI {
       [data-theme="midnight"] .video-settings__control,
       [data-theme="midnight"] .video-settings__mode,
       [data-theme="midnight"] .video-settings__note {
-        background: var(--color-background-secondary, #60504a);
+        background: var(--color-background-secondary, #1e1a16);
       }
 
       @media (max-width: clamp(336px, 90vw, 480px)) {

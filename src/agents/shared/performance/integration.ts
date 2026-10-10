@@ -313,83 +313,6 @@ export async function processOptimizedTurn(input: {
 }
 
 /**
- * Queue background tasks after turn completes
- */
-export async function queueBackgroundTasks(input: {
-  userId: string;
-  sessionId: string;
-  personaId: string;
-  userMessage: string;
-  assistantResponse: string;
-  turnNumber: number;
-  analysis?: Record<string, unknown>;
-}): Promise<void> {
-  // Queue to Pub/Sub if enabled, otherwise use local async events
-  if (metrics.pubsubEnabled) {
-    try {
-      const { publishEmbeddingTask, publishTrustUpdate, publishAnalyticsEvent } =
-        await import('../../../services/pubsub/index.js');
-
-      // Queue embedding for new content
-      await publishEmbeddingTask('embedding:generate', {
-        text: input.userMessage,
-        userId: input.userId,
-        sessionId: input.sessionId,
-      });
-
-      // Queue analytics
-      await publishAnalyticsEvent('analytics:track', {
-        userId: input.userId,
-        sessionId: input.sessionId,
-        personaId: input.personaId,
-        turnNumber: input.turnNumber,
-        intent: (input.analysis as { intent?: { primary?: string } })?.intent?.primary,
-        emotion: (input.analysis as { emotion?: { primary?: string } })?.emotion?.primary,
-      });
-
-      // Queue trust update
-      await publishTrustUpdate(input.userId, {
-        conversationCount: input.turnNumber,
-        lastInteraction: new Date().toISOString(),
-      });
-    } catch (error) {
-      log.debug({ error: String(error) }, 'Failed to queue to Pub/Sub');
-    }
-  } else {
-    // Use local async events
-    try {
-      const { queueEmbeddingGeneration, emitAnalyticsInteraction, emitTrustUpdate } =
-        await import('../../../services/async-events/index.js');
-
-      queueEmbeddingGeneration(input.userMessage, {
-        userId: input.userId,
-        sessionId: input.sessionId,
-      });
-
-      emitAnalyticsInteraction({
-        userId: input.userId,
-        sessionId: input.sessionId,
-        personaId: input.personaId,
-        interactionType: 'turn',
-        metadata: {
-          turnNumber: input.turnNumber,
-          intent: (input.analysis as { intent?: { primary?: string } })?.intent?.primary,
-        },
-      });
-
-      emitTrustUpdate({
-        userId: input.userId,
-        personaId: input.personaId,
-        trustDelta: 0.01,
-        reason: 'conversation_turn',
-      });
-    } catch (error) {
-      log.debug({ error: String(error) }, 'Failed to emit local events');
-    }
-  }
-}
-
-/**
  * Start speculative TTS based on analysis
  */
 export async function startSpeculativeTTS(input: {
@@ -501,7 +424,6 @@ export function resetPerformanceOptimizations(): void {
 export default {
   initializePerformanceOptimizations,
   processOptimizedTurn,
-  queueBackgroundTasks,
   startSpeculativeTTS,
   getPerformanceMetrics,
   getPerformanceSummary,

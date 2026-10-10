@@ -567,10 +567,6 @@ function initHapticFeedback(): void {
     }
   }) as EventListener);
 
-  // Also listen for general speaking events
-  window.addEventListener('ferni:speaking-start', () => startHeartbeat());
-  window.addEventListener('ferni:speaking-end', () => stopHeartbeat());
-
   log.debug('Haptic feedback initialized');
 }
 
@@ -637,7 +633,7 @@ function createImmersiveOverlay(): void {
   immersiveOverlay.className = 'immersive-overlay';
   immersiveOverlay.innerHTML = `
     <div class="immersive-backdrop"></div>
-    <div class="immersive-close-hint">Tap anywhere to exit</div>
+    <div class="immersive-close-hint">${t('mobile.tapToExit')}</div>
   `;
 
   immersiveOverlay.addEventListener('click', () => {

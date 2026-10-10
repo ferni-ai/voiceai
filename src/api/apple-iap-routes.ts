@@ -12,7 +12,16 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 
 import { appleIAP, isAppleConfigured } from '../services/apple-iap.js';
+import { applyAppleChange, changeFromTransaction } from '../services/billing/apple-entitlement.js';
+import {
+  appAccountTokenFor,
+  claimAppleTransaction,
+  getAppleVerifier,
+  getTransactionOwner,
+} from '../services/billing/apple-signed-data.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { decideActingUser } from './acting-user.js';
+import { optionalAuthAsync } from './auth-middleware.js';
 import { parseBody } from './helpers.js';
 
 const log = createLogger({ module: 'AppleIAPRoutes' });
@@ -27,6 +36,9 @@ interface RequestContext {
   query: Record<string, string>;
   body?: unknown;
   headers: Record<string, string | string[] | undefined>;
+  /** Verified caller (never from the body); set by handleAppleRoutes. */
+  authUserId?: string;
+  isAdmin?: boolean;
 }
 
 interface ResponseContext {
@@ -56,30 +68,58 @@ async function verifyReceipt(ctx: RequestContext): Promise<ResponseContext> {
 
   const body = ctx.body as { receiptData?: string; userId?: string } | undefined;
 
-  if (!body?.receiptData || !body?.userId) {
+  // The receipt is attached to the verified caller; naming another user needs admin.
+  const actor = decideActingUser(ctx.authUserId, ctx.isAdmin, body?.userId);
+  if (!actor.ok) {
+    return {
+      status: actor.status,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: actor.error },
+    };
+  }
+
+  if (!body?.receiptData) {
     return {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-      body: { error: 'receiptData and userId are required' },
+      body: { error: 'receiptData is required' },
     };
   }
 
   try {
-    const result = await appleIAP.verifyReceipt(body.receiptData, body.userId);
-
+    // Verified with Apple's library, then bound to this user (first claim owns it).
+    const claim = await claimAppleTransaction(actor.userId, body.receiptData);
+    if (!claim.ok) {
+      return {
+        status: claim.status,
+        headers: { 'Content-Type': 'application/json' },
+        body: { error: claim.error },
+      };
+    }
+    // The bound owner's profile gets what they paid for (the web reads the profile).
+    const change = changeFromTransaction(claim.transaction);
+    if (change) {
+      try {
+        await applyAppleChange(actor.userId, change, { create: true });
+      } catch (error) {
+        log.error({ error: String(error), userId: actor.userId }, 'Could not apply a purchase');
+        return jsonError(503, "Your purchase is verified but couldn't be applied yet. Try again?");
+      }
+    }
+    const { productId, expiresDate, environment } = claim.transaction;
     return {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
       body: {
-        isValid: result.isValid,
-        tier: result.tier,
-        status: result.status,
-        expiresDate: result.expiresDate?.toISOString(),
-        environment: result.environment,
+        isValid: true,
+        tier: (productId && appleIAP.productToTier[productId]) || 'free',
+        status: expiresDate && expiresDate > Date.now() ? 'active' : 'expired',
+        expiresDate: expiresDate ? new Date(expiresDate).toISOString() : undefined,
+        environment,
       },
     };
   } catch (error) {
-    log.error({ error: String(error), userId: body.userId }, 'Receipt verification failed');
+    log.error({ error: String(error), userId: actor.userId }, 'Receipt verification failed');
     return {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -88,27 +128,31 @@ async function verifyReceipt(ctx: RequestContext): Promise<ResponseContext> {
   }
 }
 
+function jsonError(status: number, error: string): ResponseContext {
+  return { status, headers: { 'Content-Type': 'application/json' }, body: { error } };
+}
+
 /**
- * GET /api/apple/status
- * Get subscription status for a user
+ * GET /api/apple/status?transactionId=<originalTransactionId>
+ * Subscription status for a purchase the verified caller owns (claimed via
+ * /api/apple/verify). Anyone else's transaction is 403: its tier and expiry
+ * are that user's billing data. An admin may look up any transaction.
  */
 async function getStatus(ctx: RequestContext): Promise<ResponseContext> {
-  if (!isAppleConfigured()) {
-    return {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Apple IAP not configured' },
-    };
-  }
+  if (!isAppleConfigured()) return jsonError(503, 'Apple IAP not configured');
 
-  const { userId, transactionId } = ctx.query;
+  // ?userId= is rewritten to the verified caller at the door; naming another user needs admin.
+  const actor = decideActingUser(ctx.authUserId, ctx.isAdmin, ctx.query.userId);
+  if (!actor.ok) return jsonError(actor.status, actor.error);
+  const userId = actor.userId;
+  const { transactionId } = ctx.query;
+  if (!transactionId) return jsonError(400, 'transactionId is required');
 
-  if (!userId || !transactionId) {
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'userId and transactionId are required' },
-    };
+  const ownership = await getTransactionOwner(transactionId);
+  if (ownership === 'unavailable') return jsonError(503, "Purchases can't be checked right now");
+  if (ownership.owner !== userId && !ctx.isAdmin) {
+    log.warn({ userId }, 'Refused subscription status for a transaction the caller does not own');
+    return jsonError(403, 'That purchase belongs to another account');
   }
 
   try {
@@ -159,13 +203,35 @@ async function handleWebhook(ctx: RequestContext): Promise<ResponseContext> {
     };
   }
 
+  // Nothing in the payload is trusted until Apple's library verifies it
+  // (signature chain to Apple's root, our bundle id, app and environment).
+  const verifier = getAppleVerifier();
+  if (!verifier) {
+    return {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: "Notifications can't be verified right now" },
+    };
+  }
+  try {
+    await verifier.verifyAndDecodeNotification(body.signedPayload);
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Rejected Apple webhook with an invalid signature');
+    return {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Invalid signature' },
+    };
+  }
+
   try {
     const result = await appleIAP.handleNotification(body.signedPayload);
 
     if (!result.success) {
       log.warn({ error: result.error }, 'Apple webhook processing failed');
-      // Still return 200 to acknowledge receipt
-      // Apple will retry if we return error status
+      // A transient failure gets a non-2xx so Apple retries (handling is idempotent);
+      // anything else is acknowledged so Apple doesn't retry what can't succeed.
+      if (result.retry) return jsonError(503, 'Try again later');
     }
 
     log.info(
@@ -187,6 +253,33 @@ async function handleWebhook(ctx: RequestContext): Promise<ResponseContext> {
       body: { received: true, error: 'Processing error' },
     };
   }
+}
+
+/**
+ * GET /api/apple/account-token
+ * The appAccountToken for the signed-in user. The iOS app passes it to StoreKit
+ * at purchase, which binds the purchase to this account (see apple-signed-data).
+ * 503 while the server can't verify purchases (POST /api/apple/verify would
+ * refuse them): the app buys only with this token, so nobody is charged for a
+ * purchase we can't record.
+ */
+// eslint-disable-next-line @typescript-eslint/require-await
+async function getAccountToken(ctx: RequestContext): Promise<ResponseContext> {
+  if (!ctx.authUserId) {
+    return {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+      body: { error: 'Authentication required' },
+    };
+  }
+  if (!isAppleConfigured() || !getAppleVerifier()) {
+    return jsonError(503, "Purchases aren't available yet");
+  }
+  return {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+    body: { appAccountToken: appAccountTokenFor(ctx.authUserId) },
+  };
 }
 
 /**
@@ -234,6 +327,7 @@ const routes: {
   GET: {
     '/api/apple/status': getStatus,
     '/api/apple/products': getProducts,
+    '/api/apple/account-token': getAccountToken,
     '/api/apple/cancel-instructions': getCancelInstructions,
   },
   POST: {
@@ -306,12 +400,16 @@ export async function handleAppleRoutes(
     const body = method === 'POST' ? await parseBody(req) : undefined;
     const query = parseQuery(url);
 
+    const auth = pathname === '/api/apple/webhook' ? null : await optionalAuthAsync(req);
+
     const ctx: RequestContext = {
       method,
       pathname,
       query,
       body,
       headers: req.headers as Record<string, string | string[] | undefined>,
+      authUserId: auth?.userId,
+      isAdmin: auth?.isAdmin ?? false,
     };
 
     // Execute handler

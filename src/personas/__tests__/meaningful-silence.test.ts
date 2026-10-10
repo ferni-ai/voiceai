@@ -124,25 +124,50 @@ describe('Meaningful Silence System', () => {
         stories: [],
       } as any;
 
-      // Run multiple times to verify we get thoughtful questions
-      let gotQuestion = false;
-      for (let i = 0; i < 10; i++) {
+      // The 15-25s branch is a chain of random gates: topic callback (< 0.4),
+      // then micro-story (< 0.3), then the question fallback. 0.99 fails both
+      // gates, so the question branch is reached deterministically.
+      const random = vi.spyOn(Math, 'random').mockReturnValue(0.99);
+      try {
         const response = getMeaningfulSilenceResponse(mockPersona, {
           silenceDurationSeconds: 20,
           turnCount: 5,
           topicsDiscussed: ['general'],
-          memorableMoments: [], // Empty so we don't get memory_callback
+          memorableMoments: [],
           recentEmotionalTone: 'neutral',
         });
 
-        if (response.type === 'thoughtful_question') {
-          gotQuestion = true;
-          expect(response.invitesReply).toBe(true);
-          break;
-        }
+        expect(response.type).toBe('thoughtful_question');
+        expect(response.invitesReply).toBe(true);
+        expect(response.text.length).toBeGreaterThan(0);
+      } finally {
+        random.mockRestore();
       }
+    });
 
-      expect(gotQuestion).toBe(true);
+    it('should call back to a discussed topic when there are no memorable moments', async () => {
+      const { getMeaningfulSilenceResponse } = await import('../meaningful-silence.js');
+
+      const mockPersona = { id: 'ferni', name: 'Ferni', stories: [] } as any;
+
+      // An empty memorableMoments list does not rule out memory_callback: the
+      // topic gate (< 0.4) can still call back to something they discussed.
+      const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+      try {
+        const response = getMeaningfulSilenceResponse(mockPersona, {
+          silenceDurationSeconds: 20,
+          turnCount: 5,
+          topicsDiscussed: ['gardening'],
+          memorableMoments: [],
+          recentEmotionalTone: 'neutral',
+        });
+
+        expect(response.type).toBe('memory_callback');
+        expect(response.invitesReply).toBe(true);
+        expect(response.text).toContain('gardening');
+      } finally {
+        random.mockRestore();
+      }
     });
 
     it('should provide topic-specific questions for work discussions', async () => {
@@ -225,6 +250,62 @@ describe('Meaningful Silence System', () => {
       expect(response.type).toBe('comfortable_presence');
       // Empty text means "don't say anything" - user is thinking about their answer
       expect(response.text).toBe('');
+    });
+  });
+
+  describe('topic callback selection', () => {
+    // topicsDiscussed arrives newest-first: the voice agent builds it as
+    // [lastTopic, ...older] (transcript-handler.ts, session-state-handler.ts).
+    const mockPersona = { id: 'ferni', name: 'Ferni', stories: [] } as any;
+
+    async function topicCallback(topicsDiscussed: string[]): Promise<string> {
+      const { getMeaningfulSilenceResponse } = await import('../meaningful-silence.js');
+      // 0 passes the topic-callback gate (< 0.4) and picks the first template.
+      const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+      try {
+        const response = getMeaningfulSilenceResponse(mockPersona, {
+          silenceDurationSeconds: 20,
+          turnCount: 5,
+          topicsDiscussed,
+          memorableMoments: [],
+          recentEmotionalTone: 'neutral',
+        });
+        expect(response.type).toBe('memory_callback');
+        return response.text;
+      } finally {
+        random.mockRestore();
+      }
+    }
+
+    it('does not reorder the caller topicsDiscussed array', async () => {
+      const topics = ['work', 'family', 'gardening'];
+
+      await topicCallback(topics);
+
+      expect(topics).toEqual(['work', 'family', 'gardening']);
+    });
+
+    it('calls back to the most recent personal topic', async () => {
+      const text = await topicCallback(['health', 'family']);
+
+      expect(text).toContain('health');
+      expect(text).not.toContain('family');
+    });
+
+    it('picks the same topic on repeated callbacks', async () => {
+      const topics = ['health', 'family'];
+
+      const first = await topicCallback(topics);
+      const second = await topicCallback(topics);
+
+      expect(second).toBe(first);
+    });
+
+    it('falls back to the most recent topic when none are personal', async () => {
+      const text = await topicCallback(['gardening', 'weather']);
+
+      expect(text).toContain('gardening');
+      expect(text).not.toContain('weather');
     });
   });
 

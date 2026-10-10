@@ -20,6 +20,9 @@ export type WorkflowStatus = 'active' | 'paused' | 'error';
 
 export type TriggerType = 'time' | 'phrase' | 'event' | 'location' | 'calendar' | 'device' | 'webhook';
 
+/** When a calendar trigger fires; the server (workflow-engine.handleCalendarTrigger) matches on it. */
+export type CalendarTriggerOn = 'event_reminder' | 'event_start' | 'event_end';
+
 export interface WorkflowTrigger {
   type: TriggerType;
   // Time trigger
@@ -35,7 +38,7 @@ export interface WorkflowTrigger {
   latitude?: number;
   longitude?: number;
   radiusMeters?: number;
-  triggerOn?: 'enter' | 'exit' | 'both';
+  triggerOn?: 'enter' | 'exit' | 'both' | CalendarTriggerOn;
   // Calendar trigger
   calendarId?: string;
   offsetMinutes?: number;
@@ -424,17 +427,6 @@ class LifeAutomationService {
     );
 
     return response.ok && response.data?.success === true;
-  }
-
-  /**
-   * Get OAuth authorization URL
-   */
-  getAuthorizationUrl(provider: string, userId: string, redirectPath?: string): string {
-    let url = `/api/oauth/${provider}/authorize?userId=${encodeURIComponent(userId)}`;
-    if (redirectPath) {
-      url += `&redirect=${encodeURIComponent(redirectPath)}`;
-    }
-    return url;
   }
 
   // ==========================================================================

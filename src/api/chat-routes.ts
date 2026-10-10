@@ -11,10 +11,14 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+
+import type { FunctionDeclaration } from '@google/generative-ai';
+
+import { claimedUserFor } from './acting-user.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { executeJsonFunction } from '../agents/shared/json-function-executor.js';
+import { executeTool } from '../agents/shared/tool-dispatcher.js';
 import { GEMINI_MODEL } from '../config/gemini-config.js';
 
 const log = createLogger({ module: 'ChatAPI' });
@@ -104,16 +108,13 @@ function buildSystemPrompt(
 
   const basePrompt = personaPrompts[personaId] || personaPrompts.ferni;
 
-  // Add tool instructions
   const toolInstructions = `
-When you need to take an action or retrieve information, use the available tools by outputting a JSON object in this exact format:
-{"fn": "toolName", "args": {"param1": "value1"}}
+When you need to take an action or retrieve information, call a function. Do not write JSON or function names in your reply.
 
 Available tools:
 ${tools.map((t) => `- ${t.name}: ${t.description}`).join('\n')}
 
-After using a tool, incorporate the result naturally into your response. Keep responses conversational and helpful.
-If no tool is needed, just respond naturally to the user.
+After a function returns, incorporate the result naturally. If no tool is needed, just respond.
 `;
 
   return `${basePrompt}\n\n${toolInstructions}`;
@@ -347,7 +348,16 @@ async function callLLMWithTools(
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+  // Chat tool params are JSON Schema objects; the SDK type is FunctionDeclarationSchema.
+  const functionDeclarations = _tools.map((t) => ({
+    name: t.name,
+    description: t.description,
+    parameters: t.parameters ?? { type: 'object', properties: {} },
+  })) as unknown as FunctionDeclaration[];
+  const model = genAI.getGenerativeModel({
+    model: GEMINI_MODEL,
+    tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : undefined,
+  });
 
   // Convert messages to Gemini format
   const geminiMessages = messages.map((m) => ({
@@ -355,7 +365,6 @@ async function callLLMWithTools(
     parts: [{ text: m.content }],
   }));
 
-  // Generate response
   const result = await model.generateContent({
     contents: geminiMessages,
     generationConfig: {
@@ -365,53 +374,18 @@ async function callLLMWithTools(
   });
 
   const responseText = result.response.text();
-
-  // Parse tool calls from response
-  const toolCalls = parseToolCallsFromResponse(responseText);
-
-  // Clean response (remove tool JSON if present)
-  let cleanResponse = responseText;
-  for (const call of toolCalls) {
-    cleanResponse = cleanResponse
-      .replace(JSON.stringify({ fn: call.fn, args: call.args }), '')
-      .trim();
-  }
+  const nativeCalls = result.response.functionCalls?.() ?? [];
+  const toolCalls = nativeCalls
+    .filter((call) => typeof call.name === 'string' && call.name.length > 0)
+    .map((call) => ({
+      fn: call.name,
+      args: (call.args ?? {}) as Record<string, unknown>,
+    }));
 
   return {
-    response: cleanResponse || responseText,
+    response: responseText,
     toolCalls,
   };
-}
-
-/**
- * Parse tool calls from LLM response
- */
-function parseToolCallsFromResponse(
-  response: string
-): Array<{ fn: string; args: Record<string, unknown> }> {
-  const toolCalls: Array<{ fn: string; args: Record<string, unknown> }> = [];
-
-  // Match JSON objects with fn field
-  const jsonPattern = /\{[^{}]*"fn"\s*:\s*"[^"]+"\s*,\s*"args"\s*:\s*\{[^{}]*\}[^{}]*\}/g;
-  const matches = response.match(jsonPattern);
-
-  if (matches) {
-    for (const match of matches) {
-      try {
-        const parsed = JSON.parse(match);
-        if (parsed.fn && typeof parsed.fn === 'string') {
-          toolCalls.push({
-            fn: parsed.fn,
-            args: parsed.args || {},
-          });
-        }
-      } catch {
-        // Ignore parse errors
-      }
-    }
-  }
-
-  return toolCalls;
 }
 
 // ============================================================================
@@ -455,7 +429,9 @@ export async function handleChatRoutes(
         return true;
       }
 
-      const userId = body.userId || auth.userId;
+      // Tools run as this user (memories, calendar, email): only the caller may be named.
+      const userId = claimedUserFor(auth, body.userId, res);
+      if (!userId) return true;
       const personaId = body.personaId || 'ferni';
 
       log.info(
@@ -483,8 +459,8 @@ export async function handleChatRoutes(
       for (const toolCall of llmResult.toolCalls) {
         const startTime = Date.now();
         try {
-          const result = await executeJsonFunction(
-            { fn: toolCall.fn, args: toolCall.args, raw: JSON.stringify(toolCall) },
+          const result = await executeTool(
+            { name: toolCall.fn, args: toolCall.args },
             { userId, personaId, inputText: body.message }
           );
 
@@ -506,13 +482,11 @@ export async function handleChatRoutes(
         }
       }
 
-      const response: ChatResponse = {
+      sendJSON(res, {
         success: true,
         response: llmResult.response,
         toolCalls: executedTools.length > 0 ? executedTools : undefined,
-      };
-
-      sendJSON(res, response);
+      } satisfies ChatResponse);
       return true;
     }
 
@@ -525,17 +499,13 @@ export async function handleChatRoutes(
         return true;
       }
 
-      const userId = body.userId || auth.userId;
-
+      const userId = claimedUserFor(auth, body.userId, res);
+      if (!userId) return true;
       log.info({ userId, tool: body.fn }, 'Executing tool directly');
 
       const startTime = Date.now();
-      const result = await executeJsonFunction(
-        {
-          fn: body.fn,
-          args: body.args || {},
-          raw: JSON.stringify({ fn: body.fn, args: body.args }),
-        },
+      const result = await executeTool(
+        { name: body.fn, args: body.args || {} },
         { userId, inputText: `Direct tool call: ${body.fn}` }
       );
 
@@ -550,10 +520,9 @@ export async function handleChatRoutes(
 
     // GET /api/chat/tools - List available tools
     if (pathname === '/api/chat/tools' && req.method === 'GET') {
-      const { userId } = auth;
       const personaId = 'ferni'; // Could get from query params
 
-      const tools = await getToolDefinitionsForChat(userId, personaId);
+      const tools = await getToolDefinitionsForChat(auth.userId, personaId);
 
       sendJSON(res, {
         success: true,

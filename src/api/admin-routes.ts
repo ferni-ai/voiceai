@@ -10,11 +10,10 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { parse as parseUrl } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
+import { requireAdmin } from './auth-middleware.js';
 
 const log = createLogger({ module: 'AdminAPI' });
 
-// Simple admin API key check (should use proper auth in production)
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'ferni-admin-2026';
 
 // ============================================================================
 // ROUTE HANDLER
@@ -25,13 +24,12 @@ export async function handleAdminRoutes(
   res: ServerResponse,
   path: string
 ): Promise<boolean> {
-  // Check for admin API key
-  const apiKey =
-    req.headers['x-admin-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
-  if (apiKey !== ADMIN_API_KEY) {
-    sendJson(res, 401, { error: 'Unauthorized' });
-    return true;
-  }
+  // Callers, visitors and daily stats are admin-only. This used to compare against
+  // ADMIN_API_KEY with a hardcoded fallback; prod never set that variable, so the
+  // fallback string was the live key. Use the shared admin check instead (a Firebase
+  // admin or an X-API-Key from ADMIN_API_KEYS), which has no default.
+  const auth = await requireAdmin(req, res);
+  if (!auth) return true;
 
   const method = req.method || 'GET';
   const parsedUrl = parseUrl(req.url || '', true);

@@ -31,26 +31,13 @@ import {
 } from '../../../services/identity/ecobee-api.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { API_ERRORS } from '../../../api/error-messages.js';
+import { getVerifiedUserId as getUserId } from '../request-identity.js';
 
 const log = createLogger({ module: 'ecobee-routes' });
 
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function getUserId(req: IncomingMessage): string | null {
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.slice(7);
-  }
-
-  const userIdHeader = req.headers['x-user-id'];
-  if (userIdHeader && typeof userIdHeader === 'string') {
-    return userIdHeader;
-  }
-
-  return null;
-}
 
 function sendJson(res: ServerResponse, statusCode: number, data: unknown): void {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
@@ -93,9 +80,15 @@ export async function handleEcobeeRoutes(
     return true;
   }
 
-  // Check if Ecobee is configured at app level
+  // Check if Ecobee is configured at app level. Status still has an answer without
+  // it: nobody is connected. Set the Mood asks on open, and a 503 there was retried
+  // and logged as an error for every user of a deployment without Ecobee.
   if (!isApiConfigured() && !pathname.endsWith('/configured')) {
-    sendError(res, 503, API_ERRORS.INTEGRATION_NOT_CONFIGURED('Ecobee'));
+    if (pathname === '/api/ecobee/status' && req.method === 'GET') {
+      sendJson(res, 200, { connected: false, configured: false });
+    } else {
+      sendError(res, 503, API_ERRORS.INTEGRATION_NOT_CONFIGURED('Ecobee'));
+    }
     return true;
   }
 

@@ -20,7 +20,7 @@ on:
 
 env:
   RUST_VERSION: 'stable'
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   # ============================================================================
@@ -109,11 +109,9 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
@@ -163,21 +161,21 @@ jobs:
 
       # Upload artifacts
       - name: Upload rust-perf artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rust-perf-${{ matrix.node_arch }}
           path: apps/rust-perf/*.node
           if-no-files-found: error
 
       - name: Upload rust-audio artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rust-audio-${{ matrix.node_arch }}
           path: apps/rust-audio/*.node
           if-no-files-found: error
 
       - name: Upload sonata artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sonata-${{ matrix.node_arch }}
           path: apps/sonata/*.node
@@ -196,29 +194,27 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
-        with:
-          version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
       - name: Download rust-perf artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: rust-perf-linux-x64
           path: apps/rust-perf/
 
       - name: Download rust-audio artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: rust-audio-linux-x64
           path: apps/rust-audio/
 
       - name: Download sonata artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sonata-linux-x64
           path: apps/sonata/

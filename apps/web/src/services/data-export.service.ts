@@ -12,9 +12,12 @@
  * - Clearing localStorage (frontend-only data)
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiFetch } from '../utils/api-helpers.js';
-import { clearAllUserData, exportLocalStorage, STORAGE_KEYS } from '../config/storage-keys.js';
+import { clearAllUserData, exportLocalStorage } from '../config/storage-keys.js';
+import { getAuthToken, initAuth } from './firebase-auth.service.js';
+import { signOutReleasingPush } from './push-preference.js';
 import { ritualsService } from './rituals.service.js';
 
 const log = createLogger('DataExport');
@@ -25,6 +28,8 @@ const log = createLogger('DataExport');
 
 export interface ExportableCategory {
   category: string;
+  /** Localized display name; `category` is the server id. */
+  name?: string;
   description: string;
   itemCount: number;
   exportable: boolean;
@@ -35,6 +40,75 @@ export interface ExportData {
   version: string;
   categories: Record<string, unknown>;
   localStorageData?: Record<string, string | null>;
+}
+
+/**
+ * Category ids are what the server knows them by, so they are sent back unchanged;
+ * only the description shown to the user is localized.
+ */
+const CATEGORY_DESCRIPTION_KEYS: Record<string, string> = {
+  Conversations: 'dataExportService.categoryConversations',
+  Insights: 'dataExportService.categoryInsights',
+  Rituals: 'dataExportService.categoryRituals',
+  Predictions: 'dataExportService.categoryPredictions',
+  'Mood History': 'dataExportService.categoryMoodHistory',
+  Profile: 'dataExportService.categoryProfile',
+  Contacts: 'dataExportService.categoryContacts',
+  'Trust Journey': 'dataExportService.categoryTrustJourney',
+  Wellbeing: 'dataExportService.categoryWellbeing',
+  Habits: 'dataExportService.categoryHabits',
+  Productivity: 'dataExportService.categoryProductivity',
+};
+
+const CATEGORY_NAME_KEYS: Record<string, string> = {
+  Conversations: 'dataExportService.categoryName.conversations',
+  Insights: 'dataExportService.categoryName.insights',
+  Rituals: 'dataExportService.categoryName.rituals',
+  Predictions: 'dataExportService.categoryName.predictions',
+  'Mood History': 'dataExportService.categoryName.moodHistory',
+  Profile: 'dataExportService.categoryName.profile',
+  Contacts: 'dataExportService.categoryName.contacts',
+  'Trust Journey': 'dataExportService.categoryName.trustJourney',
+  Wellbeing: 'dataExportService.categoryName.wellbeing',
+  Habits: 'dataExportService.categoryName.habits',
+  Productivity: 'dataExportService.categoryName.productivity',
+};
+
+function localizeCategories(categories: ExportableCategory[]): ExportableCategory[] {
+  return categories.map((c) => {
+    const key = CATEGORY_DESCRIPTION_KEYS[c.category];
+    return key ? { ...c, name: t(CATEGORY_NAME_KEYS[c.category]!), description: t(key) } : c;
+  });
+}
+
+/**
+ * A data-rights request that did not happen. `message` is safe to show the user.
+ */
+export class DataRightsError extends Error {
+  constructor(
+    readonly reason: 'not_signed_in' | 'server',
+    message: string
+  ) {
+    super(message);
+    this.name = 'DataRightsError';
+  }
+}
+
+/** The user-facing text for a failed data-rights request. */
+export function dataRightsErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof DataRightsError ? err.message : fallback;
+}
+
+/**
+ * The server binds export and delete to the verified Firebase token, never to an
+ * id the client names, so there is nothing to do without one.
+ */
+async function requireSignedIn(message: string): Promise<void> {
+  await initAuth().catch(() => undefined);
+  const token = await getAuthToken();
+  if (!token) {
+    throw new DataRightsError('not_signed_in', message);
+  }
 }
 
 // ============================================================================
@@ -48,28 +122,18 @@ class DataExportService {
    */
   async exportData(format: 'json' | 'csv', categories: string[]): Promise<void> {
     log.info('Starting data export', { format, categories });
-
-    const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
-    if (!userId) {
-      log.warn('No user ID found, cannot export data');
-      throw new Error('Not signed in');
-    }
+    await requireSignedIn(t('dataExportService.signInToDownload'));
 
     try {
-      // Call backend export API
       const response = await apiFetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          format,
-          categories,
-        }),
+        body: JSON.stringify({ format, categories }),
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Export failed: ${error}`);
+        log.error('Export request failed', { status: response.status });
+        throw new DataRightsError('server', t('dataExportService.exportFailed'));
       }
 
       // Get the exported data as blob
@@ -104,44 +168,78 @@ class DataExportService {
 
   /**
    * Delete all user data (GDPR right to erasure).
-   * Clears both backend data and localStorage.
+   * The server deletion must succeed before anything local is cleared, so a
+   * failure leaves the user exactly where they were and says so.
    */
   async deleteAllData(): Promise<void> {
     log.warn('Starting data deletion');
+    await requireSignedIn(t('dataExportService.signInToDeleteData'));
 
-    const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+    const response = await apiFetch('/api/export/all', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmDelete: true }),
+    }).catch((err: unknown) => {
+      log.error('Data deletion request failed', err);
+      return null;
+    });
 
-    try {
-      // 1. Clear all localStorage data
-      clearAllUserData(false); // false = don't preserve dev settings
-
-      // 2. Clear rituals service state
-      ritualsService.clearAll();
-
-      // 3. Delete backend data (if we have a userId)
-      if (userId) {
-        try {
-          const response = await apiFetch('/api/export/all', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, confirmDelete: true }),
-          });
-
-          if (response.ok) {
-            log.info('Backend data deleted');
-          } else {
-            log.warn('Backend deletion returned non-OK status');
-          }
-        } catch (err) {
-          log.warn('Backend deletion failed, local data still cleared', err);
-        }
-      }
-
-      log.info('All user data deleted');
-    } catch (err) {
-      log.error('Data deletion failed', err);
-      throw err;
+    if (!response?.ok) {
+      log.error('Server refused data deletion', { status: response?.status });
+      throw new DataRightsError('server', t('dataExportService.deleteDataFailed'));
     }
+
+    this.clearLocalData();
+    log.info('All user data deleted');
+  }
+
+  /**
+   * Close the account: the server erases every store and the Firebase user,
+   * then this device forgets everything and signs out. Resolves with a notice
+   * for the user when the account is gone but some records couldn't be
+   * removed (the server lists them in details.failures), else null.
+   */
+  async deleteAccount(): Promise<string | null> {
+    log.warn('Starting account deletion');
+    await requireSignedIn(t('dataExportService.signInToDeleteAccount'));
+
+    const response = await apiFetch('/api/account', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmation: 'DELETE_MY_ACCOUNT' }),
+    }).catch((err: unknown) => {
+      log.error('Account deletion request failed', err);
+      return null;
+    });
+    const result = response?.ok
+      ? ((await response.json().catch(() => ({}))) as {
+          success?: boolean;
+          details?: { failures?: unknown };
+        })
+      : null;
+
+    if (!result?.success) {
+      log.error('Server did not confirm account deletion', { status: response?.status });
+      throw new DataRightsError('server', t('dataExportService.deleteAccountFailed'));
+    }
+
+    this.clearLocalData();
+    // Also kills this browser's push endpoint, so nothing addressed to the deleted account lands here.
+    await signOutReleasingPush().catch((err: unknown) =>
+      log.warn('Sign-out after account deletion failed', err)
+    );
+    const failures = result.details?.failures;
+    if (Array.isArray(failures) && failures.length > 0) {
+      log.warn('Account deleted, but some records were left', { failures });
+      return t('dataExportService.accountDeletedPartial');
+    }
+    log.info('Account deleted');
+    return null;
+  }
+
+  private clearLocalData(): void {
+    clearAllUserData(false); // false = don't preserve dev settings
+    ritualsService.clearAll();
   }
 
   /**
@@ -149,13 +247,12 @@ class DataExportService {
    * This shows what data exists and can be exported.
    */
   async getExportableCategories(): Promise<ExportableCategory[]> {
-    const userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
-    if (!userId) {
+    if (!(await getAuthToken())) {
       return this.getDefaultCategories();
     }
 
     try {
-      const response = await apiFetch(`/api/export/categories?userId=${encodeURIComponent(userId)}`);
+      const response = await apiFetch('/api/export/categories');
 
       if (!response.ok) {
         log.warn('Failed to get categories from API, using defaults');
@@ -163,7 +260,7 @@ class DataExportService {
       }
 
       const data = await response.json();
-      return data.categories || this.getDefaultCategories();
+      return data.categories ? localizeCategories(data.categories) : this.getDefaultCategories();
     } catch (err) {
       log.warn('Error fetching categories', err);
       return this.getDefaultCategories();
@@ -174,74 +271,14 @@ class DataExportService {
    * Default categories when API is unavailable.
    */
   private getDefaultCategories(): ExportableCategory[] {
-    return [
-      {
-        category: 'Conversations',
-        description: 'All conversation transcripts and metadata',
+    return localizeCategories(
+      Object.keys(CATEGORY_DESCRIPTION_KEYS).map((category) => ({
+        category,
+        description: '',
         itemCount: 0,
         exportable: true,
-      },
-      {
-        category: 'Insights',
-        description: 'What Ferni has learned about you',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Rituals',
-        description: 'Daily practice history and streaks',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Predictions',
-        description: 'Your predictions and outcomes',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Mood History',
-        description: 'Emotional weather records',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Profile',
-        description: 'Your profile and preferences',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Contacts',
-        description: 'Your people and relationships',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Trust Journey',
-        description: 'Your growth, boundaries, and shared moments',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Wellbeing',
-        description: 'Wellness snapshots and trends',
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Habits',
-        description: "Maya's habit coaching data",
-        itemCount: 0,
-        exportable: true,
-      },
-      {
-        category: 'Productivity',
-        description: 'Tasks, notes, and journal entries',
-        itemCount: 0,
-        exportable: true,
-      },
-    ];
+      }))
+    );
   }
 
   // ============================================================================

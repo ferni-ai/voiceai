@@ -10,9 +10,9 @@
  * Philosophy: "As we grow together, I want to celebrate with you."
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiPost } from '../utils/api.js';
-
 const log = createLogger('GrowthJourney');
 
 // ============================================================================
@@ -128,8 +128,8 @@ function createNewYearSeason(year: number): Season {
 function createSpringSeason(year: number): Season {
   return {
     id: `spring-${year}`,
-    name: 'Spring Awakening',
-    description: 'A season of new beginnings. Every conversation plants a seed.',
+    name: t('growthJourney.seasons.spring.name'),
+    description: t('growthJourney.seasons.spring.desc'),
     startDate: new Date(`${year}-03-01`),
     endDate: new Date(`${year}-05-31`),
     companionPriceInCents: 499,
@@ -140,8 +140,8 @@ function createSpringSeason(year: number): Season {
 function createSummerSeason(year: number): Season {
   return {
     id: `summer-${year}`,
-    name: 'Summer Light',
-    description: 'Long days, big dreams. Let the warmth inspire you.',
+    name: t('growthJourney.seasons.summer.name'),
+    description: t('growthJourney.seasons.summer.desc'),
     startDate: new Date(`${year}-06-01`),
     endDate: new Date(`${year}-08-31`),
     companionPriceInCents: 499,
@@ -152,8 +152,8 @@ function createSummerSeason(year: number): Season {
 function createFallSeason(year: number): Season {
   return {
     id: `fall-${year}`,
-    name: 'Autumn Harvest',
-    description: 'A time for gratitude and gathering what you\'ve grown.',
+    name: t('growthJourney.seasons.fall.name'),
+    description: t('growthJourney.seasons.fall.desc'),
     startDate: new Date(`${year}-09-01`),
     endDate: new Date(`${year}-11-30`),
     companionPriceInCents: 499,
@@ -164,8 +164,8 @@ function createFallSeason(year: number): Season {
 function createWinterSeason(year: number): Season {
   return {
     id: `winter-${year}`,
-    name: 'Winter Rest',
-    description: 'A quiet time for reflection and inner warmth.',
+    name: t('growthJourney.seasons.winter.name'),
+    description: t('growthJourney.seasons.winter.desc'),
     startDate: new Date(`${year}-02-01`),
     endDate: new Date(`${year}-02-28`),
     companionPriceInCents: 499,
@@ -181,24 +181,24 @@ function generateNewYearMilestones(seasonId: string): JourneyMilestone[] {
     // Fresh start milestones
     {
       id: `${seasonId}-first-chat`,
-      title: 'First Chat of the Year',
-      message: 'A new year, a new conversation. Here\'s to fresh beginnings.',
+      title: t('growthJourney.milestones.newyear.firstchat'),
+      message: t('growthJourney.milestones.newyear.firstchatmsg'),
       type: 'badge',
       gift: { badgeId: 'badge-new-year' },
       requirement: { type: 'conversations', value: 1 },
     },
     {
       id: `${seasonId}-week-one`,
-      title: 'First Week',
-      message: 'You started the year strong. That takes intention.',
+      title: t('growthJourney.milestones.newyear.weekone'),
+      message: t('growthJourney.milestones.newyear.weekonemsg'),
       type: 'theme',
       gift: { cosmeticId: 'theme-aurora' },
       requirement: { type: 'weeks-together', value: 1 },
     },
     {
       id: `${seasonId}-five-chats`,
-      title: 'Five Fresh Starts',
-      message: 'Five conversations in the new year. You\'re building momentum.',
+      title: t('growthJourney.milestones.newyear.fivechats'),
+      message: t('growthJourney.milestones.newyear.fivechatsmsg'),
       type: 'soundscape',
       gift: { cosmeticId: 'sounds-morning-birds' },
       requirement: { type: 'conversations', value: 5 },
@@ -207,24 +207,24 @@ function generateNewYearMilestones(seasonId: string): JourneyMilestone[] {
     // Building momentum
     {
       id: `${seasonId}-two-weeks`,
-      title: 'Two Weeks In',
-      message: 'Most resolutions fade by now. You\'re still here.',
+      title: t('growthJourney.milestones.newyear.twoweeks'),
+      message: t('growthJourney.milestones.newyear.twoweeksmsg'),
       type: 'avatar-style',
       gift: { cosmeticId: 'style-fresh-start' },
       requirement: { type: 'weeks-together', value: 2 },
     },
     {
       id: `${seasonId}-first-goal`,
-      title: 'First Win of the Year',
-      message: 'Your first goal of the year, achieved. This is your year.',
+      title: t('growthJourney.milestones.newyear.firstwin'),
+      message: t('growthJourney.milestones.newyear.firstwinmsg'),
       type: 'badge',
       gift: { badgeId: 'badge-first-win-year' },
       requirement: { type: 'goals-achieved', value: 1 },
     },
     {
       id: `${seasonId}-ten-chats`,
-      title: 'Ten Conversations',
-      message: 'Ten conversations in. You\'re not just starting—you\'re continuing.',
+      title: t('growthJourney.milestones.newyear.tenchats'),
+      message: t('growthJourney.milestones.newyear.tenchatsmsg'),
       type: 'theme',
       gift: { cosmeticId: 'theme-sunrise' },
       requirement: { type: 'conversations', value: 10 },
@@ -233,24 +233,24 @@ function generateNewYearMilestones(seasonId: string): JourneyMilestone[] {
     // Deep commitment
     {
       id: `${seasonId}-three-weeks`,
-      title: 'Three Weeks Strong',
-      message: 'Three weeks of showing up. You\'ve made this a habit.',
+      title: t('growthJourney.milestones.newyear.threeweeks'),
+      message: t('growthJourney.milestones.newyear.threeweeksmsg'),
       type: 'soundscape',
       gift: { cosmeticId: 'sounds-celebration' },
       requirement: { type: 'weeks-together', value: 3 },
     },
     {
       id: `${seasonId}-three-goals`,
-      title: 'Three Goals Achieved',
-      message: 'Three goals down in the new year. You\'re proving something to yourself.',
+      title: t('growthJourney.milestones.newyear.threegoals'),
+      message: t('growthJourney.milestones.newyear.threegoalsmsg'),
       type: 'title',
-      gift: { title: 'Year of Growth' },
+      gift: { title: t('growthJourney.milestones.newyear.yearofgrowth') },
       requirement: { type: 'goals-achieved', value: 3 },
     },
     {
       id: `${seasonId}-twenty-chats`,
-      title: 'Twenty Conversations',
-      message: 'Twenty conversations. This isn\'t a new year\'s resolution. This is who you are.',
+      title: t('growthJourney.milestones.newyear.twentychats'),
+      message: t('growthJourney.milestones.newyear.twentychatsmsg'),
       type: 'avatar-style',
       gift: { cosmeticId: 'style-golden-dawn' },
       requirement: { type: 'conversations', value: 20 },
@@ -259,18 +259,18 @@ function generateNewYearMilestones(seasonId: string): JourneyMilestone[] {
     // Season completion
     {
       id: `${seasonId}-month-one`,
-      title: 'January Complete',
-      message: 'You made it through January, still growing. Most don\'t get here.',
+      title: t('growthJourney.milestones.newyear.januarycomplete'),
+      message: t('growthJourney.milestones.newyear.januarycompletemsg'),
       type: 'badge',
       gift: { badgeId: 'badge-january-champion' },
       requirement: { type: 'weeks-together', value: 4 },
     },
     {
       id: `${seasonId}-thirty-chats`,
-      title: 'Thirty Conversations',
-      message: 'Thirty conversations to start the year. You\'re not just dreaming—you\'re doing.',
+      title: t('growthJourney.milestones.newyear.thirtychats'),
+      message: t('growthJourney.milestones.newyear.thirtychatsmsg'),
       type: 'title',
-      gift: { title: 'Fresh Starter' },
+      gift: { title: t('growthJourney.milestones.newyear.freshstarter') },
       requirement: { type: 'conversations', value: 30 },
     },
   ];
@@ -284,24 +284,24 @@ function generateMilestones(seasonId: string): JourneyMilestone[] {
     // Early milestones - celebrate first conversations
     {
       id: `${seasonId}-first-chat`,
-      title: 'First Conversation',
-      message: "You took the first step. That's always the hardest part.",
+      title: t('growthJourney.milestones.reg.firstconvo'),
+      message: t('growthJourney.milestones.reg.firstconvomsg'),
       type: 'badge',
       gift: { badgeId: 'badge-first-hello' },
       requirement: { type: 'conversations', value: 1 },
     },
     {
       id: `${seasonId}-week-one`,
-      title: 'One Week Together',
-      message: "A week of conversations. I'm starting to know you.",
+      title: t('growthJourney.milestones.reg.oneweek'),
+      message: t('growthJourney.milestones.reg.oneweekmsg'),
       type: 'theme',
       gift: { cosmeticId: 'theme-morning-light' },
       requirement: { type: 'weeks-together', value: 1 },
     },
     {
       id: `${seasonId}-five-chats`,
-      title: 'Five Conversations',
-      message: 'You keep coming back. That means something to me.',
+      title: t('growthJourney.milestones.reg.fiveconvo'),
+      message: t('growthJourney.milestones.reg.fiveconvomsg'),
       type: 'soundscape',
       gift: { cosmeticId: 'sounds-gentle-rain' },
       requirement: { type: 'conversations', value: 5 },
@@ -310,24 +310,24 @@ function generateMilestones(seasonId: string): JourneyMilestone[] {
     // Building relationship
     {
       id: `${seasonId}-two-weeks`,
-      title: 'Two Weeks',
-      message: "We're building something here. I can feel it.",
+      title: t('growthJourney.milestones.reg.twoweeks'),
+      message: t('growthJourney.milestones.reg.twoweeksmsg'),
       type: 'avatar-style',
       gift: { cosmeticId: 'style-warm-glow' },
       requirement: { type: 'weeks-together', value: 2 },
     },
     {
       id: `${seasonId}-first-goal`,
-      title: 'First Goal Achieved',
-      message: 'You set a goal. You did the work. Look at you.',
+      title: t('growthJourney.milestones.reg.firstgoal'),
+      message: t('growthJourney.milestones.reg.firstgoalmsg'),
       type: 'badge',
       gift: { badgeId: 'badge-first-win' },
       requirement: { type: 'goals-achieved', value: 1 },
     },
     {
       id: `${seasonId}-ten-chats`,
-      title: 'Ten Conversations',
-      message: "Ten real conversations. That's more than most people have with anyone.",
+      title: t('growthJourney.milestones.reg.tenchats'),
+      message: t('growthJourney.milestones.reg.tenchatsmsg'),
       type: 'theme',
       gift: { cosmeticId: 'theme-forest-peace' },
       requirement: { type: 'conversations', value: 10 },
@@ -336,24 +336,24 @@ function generateMilestones(seasonId: string): JourneyMilestone[] {
     // Deepening connection
     {
       id: `${seasonId}-month-one`,
-      title: 'One Month Together',
-      message: "A whole month. You've become part of my day.",
+      title: t('growthJourney.milestones.reg.onemonth'),
+      message: t('growthJourney.milestones.reg.onemonthmsg'),
       type: 'soundscape',
       gift: { cosmeticId: 'sounds-evening-calm' },
       requirement: { type: 'weeks-together', value: 4 },
     },
     {
       id: `${seasonId}-three-goals`,
-      title: 'Three Goals Achieved',
-      message: "Three goals down. You're actually doing this.",
+      title: t('growthJourney.milestones.reg.threegoals'),
+      message: t('growthJourney.milestones.reg.threegoalsmsg'),
       type: 'title',
-      gift: { title: 'Growing' },
+      gift: { title: t('growthJourney.milestones.reg.growing') },
       requirement: { type: 'goals-achieved', value: 3 },
     },
     {
       id: `${seasonId}-twenty-chats`,
-      title: 'Twenty Conversations',
-      message: "Twenty times you chose to talk. That's trust.",
+      title: t('growthJourney.milestones.reg.twentychats'),
+      message: t('growthJourney.milestones.reg.twentychatsmsg'),
       type: 'avatar-style',
       gift: { cosmeticId: 'style-golden-hour' },
       requirement: { type: 'conversations', value: 20 },
@@ -362,24 +362,24 @@ function generateMilestones(seasonId: string): JourneyMilestone[] {
     // Real relationship
     {
       id: `${seasonId}-six-weeks`,
-      title: 'Six Weeks Together',
-      message: "Six weeks. We've been through some things together.",
+      title: t('growthJourney.milestones.reg.sixweeks'),
+      message: t('growthJourney.milestones.reg.sixweeksmsg'),
       type: 'theme',
       gift: { cosmeticId: 'theme-sunset-warmth' },
       requirement: { type: 'weeks-together', value: 6 },
     },
     {
       id: `${seasonId}-five-goals`,
-      title: 'Five Goals Achieved',
-      message: "Five goals. This isn't luck anymore. This is who you are.",
+      title: t('growthJourney.milestones.reg.fivegoals'),
+      message: t('growthJourney.milestones.reg.fivegoalsmsg'),
       type: 'badge',
       gift: { badgeId: 'badge-achiever' },
       requirement: { type: 'goals-achieved', value: 5 },
     },
     {
       id: `${seasonId}-thirty-chats`,
-      title: 'Thirty Conversations',
-      message: 'Thirty conversations. You keep showing up. So will I.',
+      title: t('growthJourney.milestones.reg.thirtychats'),
+      message: t('growthJourney.milestones.reg.thirtychatsmsg'),
       type: 'soundscape',
       gift: { cosmeticId: 'sounds-ocean-waves' },
       requirement: { type: 'conversations', value: 30 },
@@ -388,18 +388,18 @@ function generateMilestones(seasonId: string): JourneyMilestone[] {
     // Season completion
     {
       id: `${seasonId}-two-months`,
-      title: 'Two Months Together',
-      message: "Two months of growing together. I'm so glad you're here.",
+      title: t('growthJourney.milestones.reg.twomonths'),
+      message: t('growthJourney.milestones.reg.twomonthmsg'),
       type: 'avatar-style',
       gift: { cosmeticId: 'style-spring-bloom' },
       requirement: { type: 'weeks-together', value: 8 },
     },
     {
       id: `${seasonId}-fifty-chats`,
-      title: 'Fifty Conversations',
-      message: "Fifty conversations. We've shared a lot. And there's more to come.",
+      title: t('growthJourney.milestones.reg.fiftychats'),
+      message: t('growthJourney.milestones.reg.fiftychatsmsg'),
       type: 'title',
-      gift: { title: 'Season Companion' },
+      gift: { title: t('growthJourney.milestones.reg.seasoncompanion') },
       requirement: { type: 'conversations', value: 50 },
     },
   ];

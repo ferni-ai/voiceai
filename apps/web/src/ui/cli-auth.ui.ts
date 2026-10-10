@@ -139,7 +139,7 @@ function renderAuthPage(status: AuthStatus, message?: string): void {
     fontWeight: '600',
     color: '#1a1a1a',
     marginBottom: '8px',
-  }, 'Ferni CLI Authentication');
+  }, t('cliAuth.title'));
 
   // Status text
   const statusText = createElement('p', {
@@ -185,7 +185,7 @@ function renderAuthPage(status: AuthStatus, message?: string): void {
       fontWeight: '500',
       cursor: 'pointer',
       transition: 'all 0.2s',
-    }, 'Sign in with Google');
+    }, t('cliAuth.signInWithGoogle'));
 
     btn.addEventListener('mouseenter', () => {
       btn.style.background = '#3d5a35';
@@ -221,8 +221,8 @@ function renderAuthPage(status: AuthStatus, message?: string): void {
       color: '#6b7280',
     });
     helpText.textContent = status === 'success'
-      ? 'You can close this window and return to your terminal.'
-      : 'Please close this window and try again from the CLI.';
+      ? t('cliAuth.closeAfterSuccess')
+      : t('cliAuth.closeAfterError');
     authContainer.appendChild(helpText);
   }
 
@@ -258,7 +258,7 @@ async function handleGoogleSignIn(): Promise<void> {
     // Calculate expiration (Firebase tokens expire in 1 hour = 3600 seconds)
     const expiresIn = 3600;
 
-    const welcomeMsg = `Welcome, ${user.displayName || user.email}!`;
+    const welcomeMsg = t('cliAuth.welcome', { name: user.displayName || user.email || '' });
     renderAuthPage('success', welcomeMsg);
 
     // Redirect to CLI callback
@@ -268,7 +268,7 @@ async function handleGoogleSignIn(): Promise<void> {
     }, 1500);
 
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error occurred';
+    const message = error instanceof Error ? error.message : t('cliAuth.unknownError');
     renderAuthPage('error', message);
 
     // Redirect with error after delay
@@ -289,7 +289,7 @@ export function initCLIAuth(): void {
   const params = getQueryParams();
 
   if (!params.callback) {
-    renderAuthPage('error', 'Missing callback URL. Please run `ferni auth login` from the CLI.');
+    renderAuthPage('error', t('cliAuth.missingCallback'));
     return;
   }
 
@@ -297,11 +297,11 @@ export function initCLIAuth(): void {
   try {
     const callbackUrlParsed = new URL(params.callback);
     if (!['localhost', '127.0.0.1'].includes(callbackUrlParsed.hostname)) {
-      renderAuthPage('error', 'Invalid callback URL. Must be localhost.');
+      renderAuthPage('error', t('cliAuth.callbackNotLocalhost'));
       return;
     }
   } catch {
-    renderAuthPage('error', 'Invalid callback URL format.');
+    renderAuthPage('error', t('cliAuth.callbackInvalid'));
     return;
   }
 

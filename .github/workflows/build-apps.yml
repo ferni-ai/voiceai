@@ -1,6 +1,6 @@
 # Voice AI - Build Native Apps
 #
-# Builds signed desktop and mobile apps for all platforms.
+# Builds signed mobile apps (iOS, Android). The Electron desktop app was removed.
 # Triggered on version tags (v*) or manual dispatch.
 
 name: Build Native Apps
@@ -18,11 +18,7 @@ on:
         type: choice
         options:
           - all
-          - desktop
           - mobile
-          - macos
-          - windows
-          - linux
           - ios
           - android
 
@@ -32,230 +28,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
-  # ============================================================================
-  # BUILD FRONTEND (shared by all platforms)
-  # ============================================================================
-  build-frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js and pnpm
-        uses: ./.github/actions/setup-node-pnpm
-        with:
-          frozen-lockfile: 'false'
-
-      - name: Build frontend
-        run: |
-          cd apps/web
-          pnpm build
-
-      - name: Upload frontend build
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: apps/web/dist/
-          retention-days: 1
-
-  # ============================================================================
-  # macOS BUILD
-  # ============================================================================
-  build-macos:
-    needs: build-frontend
-    if: >
-      github.event_name == 'push' ||
-      github.event.inputs.platforms == 'all' ||
-      github.event.inputs.platforms == 'desktop' ||
-      github.event.inputs.platforms == 'macos'
-    runs-on: macos-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js and pnpm
-        uses: ./.github/actions/setup-node-pnpm
-        with:
-          frozen-lockfile: 'false'
-
-      - name: Download frontend build
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: apps/web/dist/
-
-      - name: Copy frontend to Electron
-        run: |
-          rm -rf apps/electron/web/*
-          cp -r apps/web/dist/* apps/electron/web/
-
-      - name: Install Electron dependencies
-        run: |
-          cd apps/electron
-          pnpm install --no-frozen-lockfile
-
-      - name: Import Code Signing Certificate
-        if: env.APPLE_CERTIFICATE_P12_BASE64 != ''
-        env:
-          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          # Create temporary keychain
-          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
-          
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          
-          # Import certificate
-          echo "$APPLE_CERTIFICATE_P12_BASE64" | base64 --decode > $RUNNER_TEMP/certificate.p12
-          security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          security list-keychain -d user -s "$KEYCHAIN_PATH"
-          
-          # Allow codesign to access the key
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
-      - name: Build macOS App
-        env:
-          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
-          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd apps/electron
-          pnpm build:mac
-
-      - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-build
-          path: |
-            apps/electron/dist/*.dmg
-            apps/electron/dist/*.zip
-          retention-days: 30
-
-  # ============================================================================
-  # WINDOWS BUILD
-  # ============================================================================
-  build-windows:
-    needs: build-frontend
-    if: >
-      github.event_name == 'push' ||
-      github.event.inputs.platforms == 'all' ||
-      github.event.inputs.platforms == 'desktop' ||
-      github.event.inputs.platforms == 'windows'
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js and pnpm
-        uses: ./.github/actions/setup-node-pnpm
-        with:
-          frozen-lockfile: 'false'
-
-      - name: Download frontend build
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: apps/web/dist/
-
-      - name: Copy frontend to Electron
-        run: |
-          Remove-Item -Path "apps\electron\web\*" -Recurse -Force -ErrorAction SilentlyContinue
-          Copy-Item -Path "apps/web\dist\*" -Destination "apps\electron\web\" -Recurse
-        shell: pwsh
-
-      - name: Install Electron dependencies
-        run: |
-          cd apps\electron
-          pnpm install --no-frozen-lockfile
-
-      - name: Import Code Signing Certificate
-        if: env.WINDOWS_CERTIFICATE_P12_BASE64 != ''
-        env:
-          WINDOWS_CERTIFICATE_P12_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_P12_BASE64 }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: |
-          $certBytes = [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_P12_BASE64)
-          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\certificate.pfx", $certBytes)
-          echo "CSC_LINK=$env:RUNNER_TEMP\certificate.pfx" >> $env:GITHUB_ENV
-        shell: pwsh
-
-      - name: Build Windows App
-        env:
-          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd apps\electron
-          pnpm build:win
-
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-build
-          path: |
-            apps/electron/dist/*.exe
-          retention-days: 30
-
-  # ============================================================================
-  # LINUX BUILD
-  # ============================================================================
-  build-linux:
-    needs: build-frontend
-    if: >
-      github.event_name == 'push' ||
-      github.event.inputs.platforms == 'all' ||
-      github.event.inputs.platforms == 'desktop' ||
-      github.event.inputs.platforms == 'linux'
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js and pnpm
-        uses: ./.github/actions/setup-node-pnpm
-        with:
-          frozen-lockfile: 'false'
-
-      - name: Download frontend build
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: apps/web/dist/
-
-      - name: Copy frontend to Electron
-        run: |
-          rm -rf apps/electron/web/*
-          cp -r apps/web/dist/* apps/electron/web/
-
-      - name: Install Electron dependencies
-        run: |
-          cd apps/electron
-          pnpm install --no-frozen-lockfile
-
-      - name: Build Linux App
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd apps/electron
-          pnpm build:linux
-
-      - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-build
-          path: |
-            apps/electron/dist/*.AppImage
-            apps/electron/dist/*.deb
-            apps/electron/dist/*.rpm
-          retention-days: 30
-
   # ============================================================================
   # iOS BUILD (Native SwiftUI)
   # ============================================================================
@@ -305,7 +80,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload iOS project
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-project
           path: apps/ios-native/
@@ -378,7 +153,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Android artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-build
           path: |
@@ -390,7 +165,7 @@ jobs:
   # CREATE RELEASE
   # ============================================================================
   create-release:
-    needs: [build-macos, build-windows, build-linux, build-android]
+    needs: [build-android]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
@@ -398,7 +173,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts/
 
@@ -408,9 +183,6 @@ jobs:
           draft: true
           generate_release_notes: true
           files: |
-            artifacts/macos-build/*
-            artifacts/windows-build/*
-            artifacts/linux-build/*
             artifacts/android-build/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

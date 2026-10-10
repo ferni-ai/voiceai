@@ -35,9 +35,9 @@ sanitizer/
    - High confidence tool requests bypass LLM entirely
    - Never reaches this sanitizer if semantic router handles it
 
-2. **JSON Function Calling** (`json-function-executor.ts`) - LLM fallback
-   - LLM outputs JSON like: `{"fn":"playMusic","args":{"query":"jazz"}}`
-   - This sanitizer catches and executes that JSON
+2. **Native function calling** - the model invokes tools via the API
+   - `/api/chat` runs chosen tools through `tool-dispatcher.ts`
+   - This sanitizer no longer executes `{fn,args}` from speech
 
 3. **Leakage Sanitization** (this module) - Last line of defense
    - Catches any JSON that slips through to TTS

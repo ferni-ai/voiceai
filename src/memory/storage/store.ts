@@ -91,6 +91,20 @@ export abstract class MemoryStore {
   abstract listProfiles(options?: QueryOptions): Promise<UserProfile[]>;
 
   /**
+   * The profile whose linkedIdentifiers holds any of `candidates` (a phone
+   * number, an auth id). Stores that can query this override it; the default
+   * scans the first 1000 profiles.
+   */
+  async findProfileByLinkedIdentifier(candidates: readonly string[]): Promise<UserProfile | null> {
+    const wanted = new Set(candidates.filter(Boolean));
+    if (wanted.size === 0) return null;
+    const profiles = await this.listProfiles({ limit: 1000 });
+    const linked = (p: UserProfile): string[] =>
+      (p as UserProfile & { linkedIdentifiers?: string[] }).linkedIdentifiers ?? [];
+    return profiles.find((p) => linked(p).some((id) => wanted.has(id))) ?? null;
+  }
+
+  /**
    * Get or create a user profile
    */
   async getOrCreateProfile(userId: string, name?: string): Promise<UserProfile> {

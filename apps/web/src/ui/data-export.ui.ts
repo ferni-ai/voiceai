@@ -11,6 +11,8 @@
  */
 
 import { t } from '../i18n/index.js';
+import { asModalDialog } from '../utils/accessibility.js';
+import { tp } from '../i18n/plural.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 
 // ============================================================================
@@ -19,6 +21,8 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 
 export interface ExportableData {
   category: string;
+  /** Localized display name; `category` is the server id. */
+  name?: string;
   description: string;
   itemCount: number;
   exportable: boolean;
@@ -28,6 +32,8 @@ export interface DataExportUICallbacks {
   onClose?: () => void;
   onExport?: (format: 'json' | 'csv', categories: string[]) => void;
   onDeleteData?: () => void;
+  /** Close the account itself: all data plus the sign-in. */
+  onDeleteAccount?: () => void;
 }
 
 // ============================================================================
@@ -77,8 +83,12 @@ class DataExportUI {
   private createPanel(): void {
     this.panel = document.createElement('div');
     this.panel.className = 'data-export';
-    this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Export your data');
+    asModalDialog(
+      this.panel,
+      { label: t('accessibility.exportData') },
+      () => this.isVisible,
+      () => this.hide()
+    );
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'data-export__wrapper';
@@ -98,7 +108,7 @@ class DataExportUI {
 
     this.wrapper.innerHTML = `
       <header class="data-export__header">
-        <h2>Your Data</h2>
+        <h2>${t('dataExport.title')}</h2>
         <button class="data-export__close" aria-label="${t('common.close')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -107,7 +117,7 @@ class DataExportUI {
       </header>
 
       <div class="data-export__intro">
-        <p>You have ${totalItems} items across ${data.length} categories. Select what to export.</p>
+        <p>${tp('dataExport.intro', totalItems, { categories: tp('dataExport.categoryCount', data.length) })}</p>
       </div>
 
       <div class="data-export__categories">
@@ -115,20 +125,21 @@ class DataExportUI {
       </div>
 
       <div class="data-export__format">
-        <label>Export format</label>
+        <label>${t('dataExport.exportFormat')}</label>
         <div class="data-export__format-options">
-          <button aria-label="${t('accessibility.json')}" class="data-export__format-btn data-export__format-btn--active" data-format="json">JSON</button>
-          <button aria-label="${t('accessibility.csv')}" class="data-export__format-btn" data-format="csv">CSV</button>
+          <button class="data-export__format-btn data-export__format-btn--active" data-format="json">JSON</button>
+          <button class="data-export__format-btn" data-format="csv">CSV</button>
         </div>
       </div>
 
-      <div class="data-export__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.delete')}" class="data-export__btn data-export__btn--danger">Delete All Data</button>
-        <button aria-label="${t('accessibility.exportSelected')}" class="data-export__btn data-export__btn--primary">Export Selected</button>
+      <div class="data-export__actions">
+        <button class="data-export__btn data-export__btn--danger">${t('dataExport.deleteAll')}</button>
+        <button class="data-export__btn data-export__btn--primary">${t('accessibility.exportSelected')}</button>
       </div>
 
       <div class="data-export__footer">
-        <p>Your data belongs to you. We respect your privacy.</p>
+        <p>${t('dataExport.footer')}</p>
+        <button type="button" class="data-export__delete-account">${t('dataExport.deleteAccount')}</button>
       </div>
     `;
 
@@ -160,8 +171,16 @@ class DataExportUI {
     });
 
     this.wrapper.querySelector('.data-export__btn--danger')?.addEventListener('click', () => {
-      if (confirm('Are you sure you want to delete all your data? This cannot be undone.')) {
+      if (confirm(t('dataExport.confirmDeleteAll'))) {
         this.callbacks.onDeleteData?.();
+        this.hide();
+      }
+    });
+
+    this.wrapper.querySelector('.data-export__delete-account')?.addEventListener('click', () => {
+      const ok = confirm(t('dataExport.confirmDeleteAccount'));
+      if (ok) {
+        this.callbacks.onDeleteAccount?.();
         this.hide();
       }
     });
@@ -173,7 +192,7 @@ class DataExportUI {
       <label class="data-export__category">
         <input type="checkbox" class="data-export__category-checkbox" data-category="${data.category}" ${checked ? 'checked' : ''} ${!data.exportable ? 'disabled' : ''} />
         <div class="data-export__category-info">
-          <span class="data-export__category-name">${data.category}</span>
+          <span class="data-export__category-name">${data.name ?? data.category}</span>
           <span class="data-export__category-desc">${data.description}</span>
         </div>
         <span class="data-export__category-count">${data.itemCount}</span>
@@ -382,6 +401,17 @@ class DataExportUI {
         text-align: center;
       }
 
+      .data-export__delete-account {
+        margin-top: var(--space-2, 8px);
+        background: none;
+        border: none;
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-semantic-error, #b5453a);
+        text-decoration: underline;
+        cursor: pointer;
+      }
+
       .data-export__footer p {
         font-family: var(--font-body);
         font-size: var(--text-xs, 0.75rem);
@@ -391,13 +421,13 @@ class DataExportUI {
 
       /* Dark theme - WCAG AA Compliant */
       [data-theme="midnight"] .data-export { background: var(--backdrop-page); }
-      [data-theme="midnight"] .data-export__wrapper { background: var(--color-background-elevated, #70605a); }
+      [data-theme="midnight"] .data-export__wrapper { background: var(--color-background-elevated, #352e28); }
       [data-theme="midnight"] .data-export__header h2,
       [data-theme="midnight"] .data-export__category-name,
       [data-theme="midnight"] .data-export__format label { color: var(--color-text-primary, #faf6f0); }
-      [data-theme="midnight"] .data-export__format-btn { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .data-export__footer { background: var(--color-background-secondary, #60504a); }
-      [data-theme="midnight"] .data-export__close { background: var(--color-background-tertiary, #685852); color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .data-export__format-btn { background: var(--color-background-secondary, #1e1a16); }
+      [data-theme="midnight"] .data-export__footer { background: var(--color-background-secondary, #1e1a16); }
+      [data-theme="midnight"] .data-export__close { background: var(--color-background-tertiary, #2a241f); color: var(--color-text-secondary, #f0ebe4); }
       [data-theme="midnight"] .data-export__category-description,
       [data-theme="midnight"] .data-export__hint { color: var(--color-text-muted, #e8e2da); }
 

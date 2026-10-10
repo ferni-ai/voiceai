@@ -15,6 +15,7 @@
  * @see ./session-manager/validation.ts - User ID validation
  */
 
+import { createRepeatTurnGuard } from './turn-dedupe.js';
 import type { SpeechCharacteristics } from '../../personas/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -377,6 +378,7 @@ export async function createSessionServices(
 
   // Create session-specific components
   const historyTracker = getHistoryTracker(sessionId, userId || 'anonymous');
+  const isRepeat = createRepeatTurnGuard(); // two writers record each caller turn
   const contextManager = getContextManager(sessionId, userProfile || undefined);
 
   // Reset intelligence and tasks for new session
@@ -903,6 +905,7 @@ export async function createSessionServices(
     },
 
     addTurn: (role: 'user' | 'assistant', content: string, durationMs?: number) => {
+      if (isRepeat(role, content)) return;
       const turn: ConversationTurn = {
         role,
         content,
@@ -914,8 +917,7 @@ export async function createSessionServices(
         if (durationMs) {
           getSessionWPMTracker(sessionId).addSample(content, durationMs);
 
-          // 🧠 SUPERHUMAN: Record voice pattern for "Better than Human" intelligence
-          // This enables detection of energy level changes over time
+          // Voice pattern over time, for energy-change detection.
           if (validatedUserId) {
             const wpmTracker = getSessionWPMTracker(sessionId);
             const avgWPM = wpmTracker.getAverageWPM();
@@ -958,7 +960,6 @@ export async function createSessionServices(
 
       contextManager.addTurn(turn);
 
-      // Log turn count for debugging memory issues
       const turnCount = historyTracker.getTurnCount();
       if (turnCount <= 5 || turnCount % 10 === 0) {
         getLogger().debug(
@@ -967,8 +968,7 @@ export async function createSessionServices(
         );
       }
 
-      // 🔴 REALTIME PERSISTENCE - persist turn immediately to Firestore
-      // This happens in the background (fire-and-forget) to avoid blocking
+      // Persist the turn to Firestore now, in the background.
       if (validatedUserId && realtimeConversationId) {
         const now = turn.timestamp || new Date();
         // 🧹 ISSUE-005 FIX: Strip SSML from assistant turns before persisting

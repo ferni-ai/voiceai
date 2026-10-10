@@ -21,6 +21,20 @@
 // Import transcendent CSS utility classes (Vite handles bundling)
 import './transcendent.css';
 
+import { createLogger } from '../utils/logger.js';
+
+import * as breathSync from './breath-sync.js';
+import * as contextualSpacing from './contextual-spacing.js';
+import * as emotionalColor from './emotional-color.js';
+import * as expressionPlayer from './expression-player.js';
+import * as imperfection from './imperfection.js';
+import * as momentOrchestrator from './moment-orchestrator.js';
+import * as overlappingAction from './overlapping-action.js';
+import * as secondaryAction from './secondary-action.js';
+import * as voiceTypography from './voice-typography.js';
+
+const log = createLogger('TranscendentSystems');
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Re-exports - Core Systems
 // ─────────────────────────────────────────────────────────────────────────────
@@ -268,7 +282,7 @@ export interface TranscendentSystemsConfig {
   /** Enable micro-interactions (0.1-0.3s magic moments) */
   microInteractions?: boolean;
 
-  /** Enable contextual spacing (semantic relationship-based spacing) */
+  /** Contextual spacing; off by default: it overwrites the design-system --space-N scale */
   contextualSpacing?: boolean;
 
   /** Enable voice typography (type that responds to speaking state) */
@@ -328,9 +342,7 @@ export function initTranscendentSystems(
   config: TranscendentSystemsConfig = {}
 ): TranscendentSystems {
   if (initialized) {
-    if (config.debug) {
-      console.log('[TranscendentSystems] Already initialized');
-    }
+    if (config.debug) log.debug('Already initialized');
     return {
       isInitialized: true,
       config: currentConfig,
@@ -348,7 +360,7 @@ export function initTranscendentSystems(
     overlappingAction: true,
     secondaryAction: true,
     microInteractions: true,
-    contextualSpacing: true,
+    contextualSpacing: false,
     voiceTypography: true,
     imperfection: true,
     debug: false,
@@ -356,112 +368,64 @@ export function initTranscendentSystems(
   };
 
   currentConfig = fullConfig;
+  const enabled: string[] = [];
 
-  if (fullConfig.debug) {
-    console.log('[TranscendentSystems] Initializing...', fullConfig);
-  }
-
-  // Initialize breath sync (foundation for all animation timing)
+  // Breath sync is the foundation for all animation timing
   if (fullConfig.breathSync) {
-    const { initBreathSync } = require('./breath-sync.js');
-    initBreathSync();
-    if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Breath sync initialized');
-    }
+    breathSync.initBreathSync();
+    enabled.push('breathSync');
   }
 
-  // Initialize expression player
   if (fullConfig.expressions) {
-    const { getExpressionPlayer } = require('./expression-player.js');
-    const player = getExpressionPlayer();
-
-    // Bind to avatar container if provided
+    const player = expressionPlayer.getExpressionPlayer();
     if (fullConfig.avatarContainer) {
       player.bindToAvatar(fullConfig.avatarContainer);
-      if (fullConfig.debug) {
-        console.log('[TranscendentSystems] Expression player bound to avatar');
-      }
     }
+    enabled.push('expressions');
   }
 
-  // Initialize moment orchestrator
   if (fullConfig.moments) {
-    const { getMomentOrchestrator } = require('./moment-orchestrator.js');
-    getMomentOrchestrator();
-    if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Moment orchestrator initialized');
-    }
+    momentOrchestrator.getMomentOrchestrator();
+    enabled.push('moments');
   }
 
-  // Initialize emotional color system
   if (fullConfig.emotionalColor) {
-    const { initEmotionalColor } = require('./emotional-color.js');
-    initEmotionalColor();
-    if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Emotional color system initialized');
-    }
+    emotionalColor.initEmotionalColor();
+    enabled.push('emotionalColor');
   }
 
-  // Initialize overlapping action observer (for automatic stagger on scroll-into-view)
+  // Automatic stagger on scroll-into-view
   if (fullConfig.overlappingAction) {
-    const { initStaggerObserver } = require('./overlapping-action.js');
-    initStaggerObserver();
-    if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Overlapping action observer initialized');
-    }
+    overlappingAction.initStaggerObserver();
+    enabled.push('overlappingAction');
   }
 
-  // Auto-bind secondary actions to interactive elements in container
   if (fullConfig.secondaryAction && fullConfig.interactiveContainer) {
-    const { autoBindSecondaryActions } = require('./secondary-action.js');
-    secondaryActionsCleanup = autoBindSecondaryActions(fullConfig.interactiveContainer);
-    if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Secondary actions bound to interactive elements');
-    }
+    secondaryActionsCleanup = secondaryAction.autoBindSecondaryActions(
+      fullConfig.interactiveContainer
+    );
+    enabled.push('secondaryAction');
   }
 
-  // Physics and micro-interactions are stateless - no initialization needed
-  // They're available immediately via the exported functions
-  if (fullConfig.physics && fullConfig.debug) {
-    console.log('[TranscendentSystems] Physics system available');
-  }
-  if (fullConfig.microInteractions && fullConfig.debug) {
-    console.log('[TranscendentSystems] Micro-interactions available');
-  }
+  // Physics and micro-interactions are stateless - available via exported functions
 
-  // Phase 2: Polish & Refinement Systems
-  // Initialize contextual spacing (device-aware semantic spacing)
   if (fullConfig.contextualSpacing) {
-    const { initContextualSpacing } = require('./contextual-spacing.js');
-    initContextualSpacing();
-    if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Contextual spacing initialized');
-    }
+    contextualSpacing.initContextualSpacing();
+    enabled.push('contextualSpacing');
   }
 
-  // Initialize voice typography (speaking-state-aware typography)
   if (fullConfig.voiceTypography) {
-    const { initVoiceTypography } = require('./voice-typography.js');
-    initVoiceTypography();
-    if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Voice typography initialized');
-    }
+    voiceTypography.initVoiceTypography();
+    enabled.push('voiceTypography');
   }
 
-  // Initialize imperfection observer (auto-apply organic variation)
   if (fullConfig.imperfection) {
-    const { initImperfectionObserver } = require('./imperfection.js');
-    initImperfectionObserver();
-    if (fullConfig.debug) {
-      console.log('[TranscendentSystems] Imperfection engine initialized');
-    }
+    imperfection.initImperfectionObserver();
+    enabled.push('imperfection');
   }
 
   initialized = true;
-
-  if (fullConfig.debug) {
-    console.log('[TranscendentSystems] All systems initialized');
-  }
+  if (fullConfig.debug) log.debug('All systems initialized', { enabled });
 
   return {
     isInitialized: true,
@@ -476,45 +440,28 @@ export function initTranscendentSystems(
  */
 export function destroyTranscendentSystems(): void {
   if (!initialized) return;
+  const wasDebug = currentConfig.debug === true;
 
-  // Core systems
-  const { destroyBreathSync } = require('./breath-sync.js');
-  const { destroyExpressionPlayer } = require('./expression-player.js');
-  const { destroyMomentOrchestrator } = require('./moment-orchestrator.js');
-  const { destroyEmotionalColor } = require('./emotional-color.js');
+  breathSync.destroyBreathSync();
+  expressionPlayer.destroyExpressionPlayer();
+  momentOrchestrator.destroyMomentOrchestrator();
+  emotionalColor.destroyEmotionalColor();
 
-  destroyBreathSync();
-  destroyExpressionPlayer();
-  destroyMomentOrchestrator();
-  destroyEmotionalColor();
+  overlappingAction.destroyStaggerObserver();
+  secondaryAction.clearCustomReactions();
 
-  // Physics & motion systems
-  const { destroyStaggerObserver } = require('./overlapping-action.js');
-  const { clearCustomReactions } = require('./secondary-action.js');
-
-  destroyStaggerObserver();
-  clearCustomReactions();
-
-  // Clean up secondary actions bindings
   if (secondaryActionsCleanup) {
     secondaryActionsCleanup();
     secondaryActionsCleanup = null;
   }
 
-  // Phase 2 systems
-  const { destroyContextualSpacing } = require('./contextual-spacing.js');
-  const { destroyVoiceTypography } = require('./voice-typography.js');
-
-  destroyContextualSpacing();
-  destroyVoiceTypography();
-  // Note: Imperfection observer doesn't need explicit cleanup (mutation observer)
+  contextualSpacing.destroyContextualSpacing();
+  voiceTypography.destroyVoiceTypography();
+  // Imperfection observer doesn't need explicit cleanup (mutation observer)
 
   initialized = false;
   currentConfig = {};
-
-  if (currentConfig.debug) {
-    console.log('[TranscendentSystems] All systems destroyed');
-  }
+  if (wasDebug) log.debug('All systems destroyed');
 }
 
 /**
@@ -530,17 +477,39 @@ export function isTranscendentSystemsInitialized(): boolean {
  */
 export function bindToAvatar(container: HTMLElement): void {
   if (!initialized) {
-    console.warn('[TranscendentSystems] Not initialized, cannot bind to avatar');
+    log.warn('Not initialized, cannot bind to avatar');
     return;
   }
-
-  const { getExpressionPlayer } = require('./expression-player.js');
-  getExpressionPlayer().bindToAvatar(container);
+  expressionPlayer.getExpressionPlayer().bindToAvatar(container);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Backend Event Bridge
 // ─────────────────────────────────────────────────────────────────────────────
+
+const BACKEND_EMOTION_MAP: Readonly<Record<string, emotionalColor.EmotionCategory>> = {
+  happy: 'joy',
+  sad: 'grief',
+  anxious: 'concern',
+  excited: 'excitement',
+  calm: 'calm',
+  grateful: 'gratitude',
+  vulnerable: 'vulnerability',
+  reflective: 'reflection',
+  celebratory: 'celebration',
+  tender: 'tenderness',
+  anticipating: 'anticipation',
+};
+
+const KNOWN_EMOTIONS: ReadonlySet<string> = new Set(['neutral', ...Object.values(BACKEND_EMOTION_MAP)]);
+
+const EMOTION_EXPRESSION_MAP: Readonly<Record<string, string>> = {
+  joy: 'joy',
+  concern: 'concern',
+  excitement: 'surprise',
+  gratitude: 'understanding',
+  recognition: 'recognition',
+};
 
 /**
  * Handle emotion event from backend
@@ -553,53 +522,26 @@ export function handleEmotionEvent(event: {
 }): void {
   if (!initialized) return;
 
-  const { getEmotionalColor } = require('./emotional-color.js');
-  const { getExpressionPlayer } = require('./expression-player.js');
+  const mappedEmotion = BACKEND_EMOTION_MAP[event.emotion] ?? event.emotion;
 
-  // Map backend emotion names to our categories
-  const emotionMap: Record<string, string> = {
-    happy: 'joy',
-    sad: 'grief',
-    anxious: 'concern',
-    excited: 'excitement',
-    calm: 'calm',
-    grateful: 'gratitude',
-    vulnerable: 'vulnerability',
-    reflective: 'reflection',
-    celebratory: 'celebration',
-    tender: 'tenderness',
-    anticipating: 'anticipation',
-  };
-
-  const mappedEmotion = emotionMap[event.emotion] || event.emotion;
-
-  // Update emotional color
   try {
-    const colorManager = getEmotionalColor();
-    if (typeof colorManager.setEmotion === 'function') {
-      colorManager.setEmotion(mappedEmotion, event.intensity);
+    if (KNOWN_EMOTIONS.has(mappedEmotion)) {
+      emotionalColor
+        .getEmotionalColor()
+        .setEmotion(mappedEmotion as emotionalColor.EmotionCategory, event.intensity);
     }
   } catch (e) {
-    // Color system not available
+    log.debug('Emotional color unavailable', e);
   }
 
-  // Trigger micro-expression if appropriate
   try {
-    const player = getExpressionPlayer();
-    const expressionMap: Record<string, string> = {
-      joy: 'joy',
-      concern: 'concern',
-      excitement: 'surprise',
-      gratitude: 'understanding',
-      recognition: 'recognition',
-    };
-
-    const expressionName = expressionMap[mappedEmotion];
+    const player = expressionPlayer.getExpressionPlayer();
+    const expressionName = EMOTION_EXPRESSION_MAP[mappedEmotion];
     if (expressionName && player.isReady()) {
       player.play(expressionName);
     }
   } catch (e) {
-    // Expression system not available
+    log.debug('Expression player unavailable', e);
   }
 }
 
@@ -609,27 +551,13 @@ export function handleEmotionEvent(event: {
 export function handleMomentTrigger(moment: 'recognition' | 'breakthrough' | 'holding_space' | 'handoff'): void {
   if (!initialized) return;
 
-  const {
-    playRecognitionMoment,
-    playBreakthroughMoment,
-    enterHoldingSpace,
-    playHandoffMoment,
-  } = require('./moment-orchestrator.js');
-
-  switch (moment) {
-    case 'recognition':
-      playRecognitionMoment();
-      break;
-    case 'breakthrough':
-      playBreakthroughMoment();
-      break;
-    case 'holding_space':
-      enterHoldingSpace();
-      break;
-    case 'handoff':
-      playHandoffMoment();
-      break;
-  }
+  const play: Record<typeof moment, () => Promise<boolean>> = {
+    recognition: momentOrchestrator.playRecognitionMoment,
+    breakthrough: momentOrchestrator.playBreakthroughMoment,
+    holding_space: momentOrchestrator.enterHoldingSpace,
+    handoff: momentOrchestrator.playHandoffMoment,
+  };
+  play[moment]().catch((e: unknown) => log.debug(`Moment ${moment} failed`, e));
 }
 
 /**
@@ -639,10 +567,9 @@ export function handleBreathDetection(phase: number, confidence: number): void {
   if (!initialized) return;
 
   try {
-    const { getBreathSync } = require('./breath-sync.js');
-    getBreathSync().syncToDetected(phase, confidence);
+    breathSync.getBreathSync().syncToDetected(phase, confidence);
   } catch (e) {
-    // Breath sync not available
+    log.debug('Breath sync unavailable', e);
   }
 }
 

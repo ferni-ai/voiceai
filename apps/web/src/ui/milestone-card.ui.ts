@@ -16,6 +16,8 @@
  * - Optimized for social sharing (1200x630 for most platforms)
  */
 
+import { formatDate, t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('MilestoneCard');
@@ -57,7 +59,7 @@ const COLORS = {
   primary: '#4a6741', // Ferni sage
   primaryLight: '#6b8f5e',
   text: '#2C2520',
-  textLight: '#70605a',
+  textLight: '#352e28',
   textOnDark: '#FAF6F0',
   accent: {
     relationship: '#4a6741',
@@ -230,18 +232,13 @@ function drawMilestoneContent(ctx: CanvasRenderingContext2D, data: MilestoneCard
   const stats: string[] = [];
 
   if (data.daysTogeher && data.daysTogeher > 0) {
-    stats.push(`${data.daysTogeher} days together`);
+    stats.push(tp('milestoneCard.daysTogether', data.daysTogeher));
   }
   if (data.streak && data.streak > 1) {
-    stats.push(`${data.streak} day streak`);
+    stats.push(tp('milestoneCard.dayStreak', data.streak));
   }
   if (data.celebratedAt) {
-    const dateStr = data.celebratedAt.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    });
-    stats.push(dateStr);
+    stats.push(formatDate(data.celebratedAt, { month: 'long', day: 'numeric', year: 'numeric' }));
   }
 
   if (stats.length > 0) {
@@ -261,12 +258,12 @@ function drawSummaryContent(ctx: CanvasRenderingContext2D, data: JourneySummaryC
   ctx.font = '600 14px "Inter", sans-serif';
   ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
   ctx.textAlign = 'center';
-  ctx.fillText('MY JOURNEY WITH FERNI', centerX, 160);
+  ctx.fillText(t('milestones.journeyWith').toUpperCase(), centerX, 160);
 
   // Main headline
   ctx.font = '700 56px "Plus Jakarta Sans", sans-serif';
   ctx.fillStyle = COLORS.textOnDark;
-  ctx.fillText('Our Story So Far', centerX, 240);
+  ctx.fillText(t('milestones.ourStory'), centerX, 240);
 
   // Stats grid
   const statsY = 360;
@@ -274,22 +271,22 @@ function drawSummaryContent(ctx: CanvasRenderingContext2D, data: JourneySummaryC
   const startX = centerX - statSpacing * 1.5;
 
   // Milestones
-  drawStat(ctx, startX, statsY, String(data.celebrated), `of ${data.total} milestones`);
+  drawStat(ctx, startX, statsY, String(data.celebrated), tp('milestoneCard.ofMilestones', data.total));
 
   // Days together
-  drawStat(ctx, startX + statSpacing, statsY, String(data.daysTogether), 'days together');
+  drawStat(ctx, startX + statSpacing, statsY, String(data.daysTogether), t('yourStory.stats.daysTogether'));
 
   // Streak
-  drawStat(ctx, startX + statSpacing * 2, statsY, String(data.streak), 'day streak');
+  drawStat(ctx, startX + statSpacing * 2, statsY, String(data.streak), t('yourStory.stats.dayStreak'));
 
   // Conversations (estimated)
   const estimatedConversations = Math.max(data.celebrated, data.daysTogether);
-  drawStat(ctx, startX + statSpacing * 3, statsY, String(estimatedConversations), 'conversations');
+  drawStat(ctx, startX + statSpacing * 3, statsY, String(estimatedConversations), t('yourStory.stats.conversations'));
 
   // Warm tagline
   ctx.font = '400 20px "Inter", sans-serif';
   ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-  ctx.fillText('Every moment matters.', centerX, 520);
+  ctx.fillText(t('milestones.everyMomentMatters'), centerX, 520);
 }
 
 function drawStat(
@@ -340,14 +337,14 @@ function drawCategoryIcon(
 }
 
 function getCategoryLabel(category: string): string {
-  const labels: Record<string, string> = {
-    relationship: 'Our Relationship',
-    team: 'Team Connection',
-    conversation: 'Our Conversations',
-    discovery: 'Discovery',
-    sweet: 'Sweet Moment',
+  const labelKeys: Record<string, string> = {
+    relationship: 'milestones.categories.relationship',
+    team: 'milestones.categories.team',
+    conversation: 'milestones.categories.conversation',
+    discovery: 'milestones.categories.discovery',
+    sweet: 'milestones.categories.sweet',
   };
-  return labels[category] || 'Milestone';
+  return t(labelKeys[category] || 'milestones.categories.milestone');
 }
 
 function wrapText(
@@ -467,10 +464,10 @@ export async function shareJourneySummaryCard(data: JourneySummaryCardData): Pro
     const file = new File([blob], 'my-journey-with-ferni.png', { type: 'image/png' });
 
     const shareText = [
-      'My journey with Ferni:',
-      `${data.celebrated}/${data.total} milestones`,
-      data.streak > 1 ? `${data.streak} day streak` : '',
-      `${data.daysTogether} days together`,
+      t('milestoneCard.shareHeading'),
+      tp('milestoneCard.shareProgress', data.total, { celebrated: data.celebrated }),
+      data.streak > 1 ? tp('milestoneCard.dayStreak', data.streak) : '',
+      tp('milestoneCard.daysTogether', data.daysTogether),
       '',
       'ferni.ai',
     ]
@@ -480,7 +477,7 @@ export async function shareJourneySummaryCard(data: JourneySummaryCardData): Pro
     if (navigator.canShare?.({ files: [file] })) {
       await navigator.share({
         files: [file],
-        title: 'My Journey with Ferni',
+        title: t('milestones.journeyWith'),
         text: shareText,
       });
       log.info('Journey summary card shared');

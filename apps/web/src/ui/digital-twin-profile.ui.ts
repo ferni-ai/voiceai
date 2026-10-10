@@ -154,8 +154,8 @@ function ensureModalExists(): HTMLElement {
     <div class="profile-container" role="dialog" aria-modal="true" aria-labelledby="profile-title">
       <header class="profile-header">
         <div class="profile-header-content">
-          <h2 class="profile-title" id="profile-title">Build Your Digital Twin</h2>
-          <p class="profile-subtitle">Help me understand who you are</p>
+          <h2 class="profile-title" id="profile-title">${t('digitalTwinProfile.title')}</h2>
+          <p class="profile-subtitle">${t('digitalTwinProfile.subtitle')}</p>
         </div>
         <button class="profile-close" data-action="close" aria-label="${t('accessibility.close')}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -180,11 +180,11 @@ function ensureModalExists(): HTMLElement {
       </main>
 
       <footer class="profile-footer">
-        <button aria-label="${t('accessibility.back')}" class="profile-btn profile-btn--secondary" id="btn-back" data-action="back">
-          Back
+        <button class="profile-btn profile-btn--secondary" id="btn-back" data-action="back">
+          ${t('digitalTwinProfile.back')}
         </button>
-        <button aria-label="${t('accessibility.continue')}" class="profile-btn profile-btn--primary" id="btn-next" data-action="next">
-          Continue
+        <button class="profile-btn profile-btn--primary" id="btn-next" data-action="next">
+          ${t('digitalTwinProfile.continue')}
         </button>
       </footer>
     </div>
@@ -334,7 +334,7 @@ function renderSection(): void {
     btnBack.style.visibility = currentSection === 'intro' ? 'hidden' : 'visible';
   }
   if (btnNext) {
-    btnNext.textContent = currentSection === 'review' ? 'Save Profile' : 'Continue';
+    btnNext.textContent = currentSection === 'review' ? t('digitalTwinProfile.saveProfile') : t('digitalTwinProfile.continue');
   }
 
   switch (currentSection) {
@@ -375,34 +375,33 @@ function renderIntroSection(): string {
             <path d="M20 21a8 8 0 0 0-16 0"/>
           </svg>
         </div>
-        <h3 class="intro-title">Let's capture the real you</h3>
+        <h3 class="intro-title">${t('digitalTwinProfile.intro.title')}</h3>
         <p class="intro-description">
-          The more I know about you—your story, your expressions, 
-          how you talk—the more authentic our conversations will feel.
+          ${t('digitalTwinProfile.intro.description')}
         </p>
       </div>
-      
+
       <div class="intro-features">
         <div class="feature">
           <span class="feature-icon">📖</span>
-          <span class="feature-text">Your story and background</span>
+          <span class="feature-text">${t('digitalTwinProfile.intro.features.story')}</span>
         </div>
         <div class="feature">
           <span class="feature-icon">💬</span>
-          <span class="feature-text">How you express yourself</span>
+          <span class="feature-text">${t('digitalTwinProfile.intro.features.expression')}</span>
         </div>
         <div class="feature">
           <span class="feature-icon">💝</span>
-          <span class="feature-text">What matters to you</span>
+          <span class="feature-text">${t('digitalTwinProfile.intro.features.values')}</span>
         </div>
         <div class="feature">
           <span class="feature-icon">✨</span>
-          <span class="feature-text">Your unique mannerisms</span>
+          <span class="feature-text">${t('digitalTwinProfile.intro.features.mannerisms')}</span>
         </div>
       </div>
 
       <p class="intro-note">
-        This takes about 5-10 minutes. You can always come back and add more later.
+        ${t('digitalTwinProfile.intro.note')}
       </p>
     </div>
   `;
@@ -411,74 +410,74 @@ function renderIntroSection(): string {
 function renderBackgroundSection(): string {
   return `
     <div class="section section--background">
-      <h3 class="section-title">Your Story</h3>
+      <h3 class="section-title">${t('digitalTwinProfile.background.title')}</h3>
       <p class="section-description">
-        Help me understand the chapters of your life and the people who matter.
+        ${t('digitalTwinProfile.background.description')}
       </p>
 
       <div class="form-group">
-        <label class="form-label">Life Chapters</label>
-        <p class="form-hint">Think of your life in chapters—childhood, school, career milestones, etc.</p>
+        <label class="form-label">${t('digitalTwinProfile.background.lifeChapters')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.background.lifeChaptersHint')}</p>
         
         <div class="chapters-list" id="chapters-list">
           ${profile.lifeChapters
             .map(
               (chapter, i) => `
             <div class="chapter-card" data-index="${i}">
-              <input type="text" class="chapter-title" placeholder="${t('digitalTwin.chapterTitlePlaceholder', "Chapter title (e.g., 'College Years')")}"
+              <input type="text" class="chapter-title" placeholder="${t('digitalTwinProfile.background.chapterTitlePlaceholder')}"
                      value="${chapter.title}" data-field="title">
-              <input type="text" class="chapter-years" placeholder="${t('digitalTwin.chapterYearsPlaceholder', "Years (e.g., '2015-2019')")}"
+              <input type="text" class="chapter-years" placeholder="${t('digitalTwinProfile.background.chapterYearsPlaceholder')}"
                      value="${chapter.years}" data-field="years">
-              <textarea class="chapter-desc" placeholder="${t('digitalTwin.chapterDescPlaceholder', 'What defined this chapter?')}"
+              <textarea class="chapter-desc" placeholder="${t('digitalTwinProfile.background.chapterDescPlaceholder')}"
                         data-field="description">${chapter.description}</textarea>
-              <button aria-label="${t('accessibility.remove')}" class="chapter-remove" data-action="remove-chapter" data-index="${i}">Remove</button>
+              <button class="chapter-remove" data-action="remove-chapter" data-index="${i}">${t('digitalTwinProfile.background.remove')}</button>
             </div>
           `
             )
             .join('')}
         </div>
-        <button aria-label="${t('accessibility.addALifeChapter')}" class="add-btn" data-action="add-chapter">
+        <button class="add-btn" data-action="add-chapter">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          Add a life chapter
+          ${t('digitalTwinProfile.background.addChapter')}
         </button>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Key Relationships</label>
-        <p class="form-hint">Who are the important people in your life?</p>
-        
+        <label class="form-label">${t('digitalTwinProfile.background.keyRelationships')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.background.keyRelationshipsHint')}</p>
+
         <div class="relationships-list" id="relationships-list">
           ${profile.keyRelationships
             .map(
               (rel, i) => `
             <div class="relationship-row" data-index="${i}">
-              <input type="text" placeholder="${t('digitalTwin.namePlaceholder', 'Name')}" value="${rel.name}" data-field="name">
-              <input type="text" placeholder="${t('digitalTwin.relationshipPlaceholder', 'Relationship')}" value="${rel.relationship}" data-field="relationship">
+              <input type="text" placeholder="${t('digitalTwinProfile.background.namePlaceholder')}" value="${rel.name}" data-field="name">
+              <input type="text" placeholder="${t('digitalTwinProfile.background.relationshipPlaceholder')}" value="${rel.relationship}" data-field="relationship">
               <button aria-label="${t('accessibility.close')}" class="remove-btn" data-action="remove-relationship" data-index="${i}">×</button>
             </div>
           `
             )
             .join('')}
         </div>
-        <button aria-label="${t('accessibility.addARelationship')}" class="add-btn" data-action="add-relationship">
+        <button class="add-btn" data-action="add-relationship">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          Add a relationship
+          ${t('digitalTwinProfile.background.addRelationship')}
         </button>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Formative Experiences</label>
-        <p class="form-hint">What experiences shaped who you are today?</p>
-        <textarea class="form-textarea" id="formative-experiences" 
-                  placeholder="${t('digitalTwin.formativeExperiencesPlaceholder', "e.g., 'Moving to a new country at 12', 'Starting my own business', 'Becoming a parent'...")}"
+        <label class="form-label">${t('digitalTwinProfile.background.formativeExperiences')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.background.formativeExperiencesHint')}</p>
+        <textarea class="form-textarea" id="formative-experiences"
+                  placeholder="${t('digitalTwinProfile.background.formativeExperiencesPlaceholder')}"
         >${profile.formativeExperiences.join('\n')}</textarea>
-        <span class="form-hint">Enter each experience on a new line</span>
+        <span class="form-hint">${t('digitalTwinProfile.background.formativeExperiencesHelper')}</span>
       </div>
     </div>
   `;
@@ -487,23 +486,23 @@ function renderBackgroundSection(): string {
 function renderMannerismsSection(): string {
   return `
     <div class="section section--mannerisms">
-      <h3 class="section-title">Your Expressions</h3>
+      <h3 class="section-title">${t('digitalTwinProfile.mannerisms.title')}</h3>
       <p class="section-description">
-        What are the phrases and expressions that are uniquely you?
+        ${t('digitalTwinProfile.mannerisms.description')}
       </p>
 
       <div class="form-group">
-        <label class="form-label">Signature Phrases</label>
-        <p class="form-hint">Things you always say, catchphrases, expressions you're known for</p>
+        <label class="form-label">${t('digitalTwinProfile.mannerisms.signaturePhrases')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.mannerisms.signaturePhrasesHint')}</p>
         
         <div class="phrases-list" id="phrases-list">
           ${profile.signaturePhrases
             .map(
               (phrase, i) => `
             <div class="phrase-row" data-index="${i}">
-              <input type="text" class="phrase-text" placeholder="${t('digitalTwin.phrasePlaceholder', 'The phrase')}"
+              <input type="text" class="phrase-text" placeholder="${t('digitalTwinProfile.mannerisms.phrasePlaceholder')}"
                      value="${phrase.phrase}" data-field="phrase">
-              <input type="text" class="phrase-context" placeholder="${t('digitalTwin.phraseContextPlaceholder', 'When do you say this?')}"
+              <input type="text" class="phrase-context" placeholder="${t('digitalTwinProfile.mannerisms.phraseContextPlaceholder')}"
                      value="${phrase.context}" data-field="context">
               <button aria-label="${t('accessibility.close')}" class="remove-btn" data-action="remove-phrase" data-index="${i}">×</button>
             </div>
@@ -511,51 +510,51 @@ function renderMannerismsSection(): string {
             )
             .join('')}
         </div>
-        <button aria-label="${t('accessibility.addAPhrase')}" class="add-btn" data-action="add-phrase">
+        <button class="add-btn" data-action="add-phrase">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          Add a phrase
+          ${t('digitalTwinProfile.mannerisms.addPhrase')}
         </button>
       </div>
 
       <div class="form-row">
         <div class="form-group form-group--half">
-          <label class="form-label">How do you greet people?</label>
-          <input type="text" class="form-input" id="greeting-style" 
-                 placeholder="${t('digitalTwin.greetingPlaceholder', "e.g., 'Hey!', 'What's up?', 'Good to see you!'")}"
+          <label class="form-label">${t('digitalTwinProfile.mannerisms.greeting')}</label>
+          <input type="text" class="form-input" id="greeting-style"
+                 placeholder="${t('digitalTwinProfile.mannerisms.greetingPlaceholder')}"
                  value="${profile.greetingStyle}">
         </div>
         <div class="form-group form-group--half">
-          <label class="form-label">How do you say goodbye?</label>
-          <input type="text" class="form-input" id="farewell-style" 
-                 placeholder="${t('digitalTwin.farewellPlaceholder', "e.g., 'Later!', 'Take care', 'Catch you soon'")}"
+          <label class="form-label">${t('digitalTwinProfile.mannerisms.goodbye')}</label>
+          <input type="text" class="form-input" id="farewell-style"
+                 placeholder="${t('digitalTwinProfile.mannerisms.farewellPlaceholder')}"
                  value="${profile.farewellStyle}">
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">How do you express emotions?</label>
+        <label class="form-label">${t('digitalTwinProfile.mannerisms.emotions')}</label>
         <div class="emotion-grid">
           <div class="emotion-input">
             <span class="emotion-label">😊 When happy:</span>
-            <input type="text" id="expr-happy" placeholder="${t('digitalTwin.exprHappyPlaceholder', "e.g., 'Awesome!', 'That's amazing!'")}"
+            <input type="text" id="expr-happy" placeholder="${t('digitalTwinProfile.mannerisms.exprHappyPlaceholder')}"
                    value="${profile.expressionsWhenHappy.join(', ')}">
           </div>
           <div class="emotion-input">
             <span class="emotion-label">😢 When sad:</span>
-            <input type="text" id="expr-sad" placeholder="${t('digitalTwin.exprSadPlaceholder', "e.g., 'That's rough', 'I feel that'")}"
+            <input type="text" id="expr-sad" placeholder="${t('digitalTwinProfile.mannerisms.exprSadPlaceholder')}"
                    value="${profile.expressionsWhenSad.join(', ')}">
           </div>
           <div class="emotion-input">
             <span class="emotion-label">🎉 When excited:</span>
-            <input type="text" id="expr-excited" placeholder="${t('digitalTwin.exprExcitedPlaceholder', "e.g., 'No way!', 'Let's go!'")}"
+            <input type="text" id="expr-excited" placeholder="${t('digitalTwinProfile.mannerisms.exprExcitedPlaceholder')}"
                    value="${profile.expressionsWhenExcited.join(', ')}">
           </div>
           <div class="emotion-input">
             <span class="emotion-label">😤 When frustrated:</span>
-            <input type="text" id="expr-frustrated" placeholder="${t('digitalTwin.exprFrustratedPlaceholder', "e.g., 'Ugh', 'Come on...'")}"
+            <input type="text" id="expr-frustrated" placeholder="${t('digitalTwinProfile.mannerisms.exprFrustratedPlaceholder')}"
                    value="${profile.expressionsWhenFrustrated.join(', ')}">
           </div>
         </div>
@@ -568,16 +567,16 @@ function renderCommunicationSection(): string {
   const style = profile.communicationStyle;
   return `
     <div class="section section--communication">
-      <h3 class="section-title">How You Communicate</h3>
+      <h3 class="section-title">${t('digitalTwinProfile.communication.title')}</h3>
       <p class="section-description">
-        Help me understand your natural communication style.
+        ${t('digitalTwinProfile.communication.description')}
       </p>
 
       <div class="form-group">
-        <label class="form-label">Formality Level</label>
-        <p class="form-hint">How formal or casual is your natural way of speaking?</p>
+        <label class="form-label">${t('digitalTwinProfile.communication.formality')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.communication.formalityHint')}</p>
         <div class="slider-container">
-          <span class="slider-label">Very Casual</span>
+          <span class="slider-label">${t('digitalTwinProfile.communication.formalityVeryCasual')}</span>
           <input type="range" min="1" max="5" value="${
             style.formality === 'very_casual'
               ? 1
@@ -590,15 +589,15 @@ function renderCommunicationSection(): string {
                     : 5
           }" 
                  class="form-slider" id="formality-slider">
-          <span class="slider-label">Very Formal</span>
+          <span class="slider-label">${t('digitalTwinProfile.communication.formalityVeryFormal')}</span>
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Speaking Pace</label>
-        <p class="form-hint">How fast or slow do you typically talk?</p>
+        <label class="form-label">${t('digitalTwinProfile.communication.pace')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.communication.paceHint')}</p>
         <div class="slider-container">
-          <span class="slider-label">Very Slow</span>
+          <span class="slider-label">${t('digitalTwinProfile.communication.paceVerySlow')}</span>
           <input type="range" min="1" max="5" value="${
             style.pace === 'very_slow'
               ? 1
@@ -611,15 +610,15 @@ function renderCommunicationSection(): string {
                     : 5
           }" 
                  class="form-slider" id="pace-slider">
-          <span class="slider-label">Very Fast</span>
+          <span class="slider-label">${t('digitalTwinProfile.communication.paceVeryFast')}</span>
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Detail Level</label>
-        <p class="form-hint">Are you concise or do you like to elaborate?</p>
+        <label class="form-label">${t('digitalTwinProfile.communication.verbosity')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.communication.verbosityHint')}</p>
         <div class="slider-container">
-          <span class="slider-label">Concise</span>
+          <span class="slider-label">${t('digitalTwinProfile.communication.verbosityConcise')}</span>
           <input type="range" min="1" max="4" value="${
             style.verbosity === 'concise'
               ? 1
@@ -630,28 +629,28 @@ function renderCommunicationSection(): string {
                   : 4
           }" 
                  class="form-slider" id="verbosity-slider">
-          <span class="slider-label">Verbose</span>
+          <span class="slider-label">${t('digitalTwinProfile.communication.verbosityVerbose')}</span>
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Communication Tendencies</label>
+        <label class="form-label">${t('digitalTwinProfile.communication.tendencies')}</label>
         <div class="toggle-grid" role="button" tabindex="0">
           <label class="toggle-option">
             <input type="checkbox" id="toggle-storytelling" ${style.storytelling ? 'checked' : ''}>
-            <span class="toggle-text" role="button" tabindex="0">I often tell stories to make a point</span>
+            <span class="toggle-text" role="button" tabindex="0">${t('digitalTwinProfile.communication.storytelling')}</span>
           </label>
           <label class="toggle-option">
             <input type="checkbox" id="toggle-metaphors" ${style.usesMetaphors ? 'checked' : ''}>
-            <span class="toggle-text" role="button" tabindex="0">I use metaphors and analogies</span>
+            <span class="toggle-text" role="button" tabindex="0">${t('digitalTwinProfile.communication.metaphors')}</span>
           </label>
           <label class="toggle-option">
             <input type="checkbox" id="toggle-questions" ${style.askingQuestions ? 'checked' : ''}>
-            <span class="toggle-text" role="button" tabindex="0">I ask a lot of questions</span>
+            <span class="toggle-text" role="button" tabindex="0">${t('digitalTwinProfile.communication.questions')}</span>
           </label>
           <label class="toggle-option">
             <input type="checkbox" id="toggle-advice" ${style.givingAdvice ? 'checked' : ''}>
-            <span class="toggle-text" role="button" tabindex="0">I naturally give advice</span>
+            <span class="toggle-text" role="button" tabindex="0">${t('digitalTwinProfile.communication.advice')}</span>
           </label>
         </div>
       </div>
@@ -662,38 +661,38 @@ function renderCommunicationSection(): string {
 function renderValuesSection(): string {
   return `
     <div class="section section--values">
-      <h3 class="section-title">What Matters to You</h3>
+      <h3 class="section-title">${t('digitalTwinProfile.values.title')}</h3>
       <p class="section-description">
-        Understanding your values helps me respond in ways that feel authentic to you.
+        ${t('digitalTwinProfile.values.description')}
       </p>
 
       <div class="form-group">
-        <label class="form-label">Core Values</label>
-        <p class="form-hint">Select or add the values that define who you are</p>
+        <label class="form-label">${t('digitalTwinProfile.values.core')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.values.coreHint')}</p>
         <div class="values-chips" id="values-chips">
           ${renderValueChips()}
         </div>
         <div class="custom-value-input">
-          <input type="text" id="custom-value" placeholder="${t('digitalTwin.customValuePlaceholder', 'Add a custom value...')}">
-          <button aria-label="${t('accessibility.add')}" class="add-btn add-btn--small" data-action="add-custom-value">Add</button>
+          <input type="text" id="custom-value" placeholder="${t('digitalTwinProfile.values.customValuePlaceholder')}">
+          <button class="add-btn add-btn--small" data-action="add-custom-value">${t('digitalTwinProfile.values.add')}</button>
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Your Life Philosophy</label>
-        <p class="form-hint">In a sentence or two, what's your philosophy on life?</p>
-        <textarea class="form-textarea" id="life-philosophy" 
-                  placeholder="${t('digitalTwin.lifePhilosophyPlaceholder', "e.g., 'Life's too short to not pursue what makes you happy', 'Always be learning and growing'...")}"
+        <label class="form-label">${t('digitalTwinProfile.values.philosophy')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.values.philosophyHint')}</p>
+        <textarea class="form-textarea" id="life-philosophy"
+                  placeholder="${t('digitalTwinProfile.values.lifePhilosophyPlaceholder')}"
         >${profile.lifePhilosophy}</textarea>
       </div>
 
       <div class="form-group">
-        <label class="form-label">What Matters Most</label>
-        <p class="form-hint">What are the things you care deeply about?</p>
-        <textarea class="form-textarea" id="what-matters" 
-                  placeholder="${t('digitalTwin.whatMattersPlaceholder', "e.g., 'Family time', 'Personal growth', 'Making a difference'...")}"
+        <label class="form-label">${t('digitalTwinProfile.values.matters')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.values.mattersHint')}</p>
+        <textarea class="form-textarea" id="what-matters"
+                  placeholder="${t('digitalTwinProfile.values.whatMattersPlaceholder')}"
         >${profile.whatMatters.join('\n')}</textarea>
-        <span class="form-hint">Enter each item on a new line</span>
+        <span class="form-hint">${t('digitalTwinProfile.values.mattersHelper')}</span>
       </div>
     </div>
   `;
@@ -734,40 +733,40 @@ function renderValueChips(): string {
 function renderInterestsSection(): string {
   return `
     <div class="section section--interests">
-      <h3 class="section-title">Your Interests</h3>
+      <h3 class="section-title">${t('digitalTwinProfile.interests.title')}</h3>
       <p class="section-description">
-        What are you passionate about? What do you love to talk about?
+        ${t('digitalTwinProfile.interests.description')}
       </p>
 
       <div class="form-group">
-        <label class="form-label">Passions</label>
-        <p class="form-hint">What lights you up? What could you talk about for hours?</p>
-        <textarea class="form-textarea" id="passions" 
-                  placeholder="${t('digitalTwin.passionsPlaceholder', "e.g., 'Photography', 'Cooking for friends', 'Technology', 'Music'...")}"
+        <label class="form-label">${t('digitalTwinProfile.interests.passions')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.interests.passionsHint')}</p>
+        <textarea class="form-textarea" id="passions"
+                  placeholder="${t('digitalTwinProfile.interests.passionsPlaceholder')}"
         >${profile.passions.join('\n')}</textarea>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Hobbies</label>
-        <p class="form-hint">What do you do in your free time?</p>
-        <textarea class="form-textarea" id="hobbies" 
-                  placeholder="${t('digitalTwin.hobbiesPlaceholder', "e.g., 'Hiking', 'Reading', 'Gaming', 'Gardening'...")}"
+        <label class="form-label">${t('digitalTwinProfile.interests.hobbies')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.interests.hobbiesHint')}</p>
+        <textarea class="form-textarea" id="hobbies"
+                  placeholder="${t('digitalTwinProfile.interests.hobbiesPlaceholder')}"
         >${profile.hobbies.join('\n')}</textarea>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Favorite Topics</label>
-        <p class="form-hint">What subjects do you enjoy discussing?</p>
-        <textarea class="form-textarea" id="favorite-topics" 
-                  placeholder="${t('digitalTwin.favoriteTopicsPlaceholder', "e.g., 'Philosophy', 'Current events', 'Sports', 'Movies'...")}"
+        <label class="form-label">${t('digitalTwinProfile.interests.favoriteTopics')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.interests.favoriteTopicsHint')}</p>
+        <textarea class="form-textarea" id="favorite-topics"
+                  placeholder="${t('digitalTwinProfile.interests.favoriteTopicsPlaceholder')}"
         >${profile.favoriteTopics.join('\n')}</textarea>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Topics to Avoid</label>
-        <p class="form-hint">Are there any topics you'd rather not discuss?</p>
-        <textarea class="form-textarea" id="avoid-topics" 
-                  placeholder="${t('digitalTwin.avoidTopicsPlaceholder', "e.g., 'Politics', 'Work stress'...")}"
+        <label class="form-label">${t('digitalTwinProfile.interests.avoid')}</label>
+        <p class="form-hint">${t('digitalTwinProfile.interests.avoidHint')}</p>
+        <textarea class="form-textarea" id="avoid-topics"
+                  placeholder="${t('digitalTwinProfile.interests.avoidTopicsPlaceholder')}"
         >${profile.thingsToAvoid.join('\n')}</textarea>
       </div>
     </div>
@@ -782,31 +781,31 @@ function renderReviewSection(): string {
 
   return `
     <div class="section section--review">
-      <h3 class="section-title">Your Digital Twin Profile</h3>
+      <h3 class="section-title">${t('digitalTwinProfile.review.title')}</h3>
       <p class="section-description">
-        Here's what I've learned about you. You can always come back to add more!
+        ${t('digitalTwinProfile.review.description')}
       </p>
 
       <div class="review-grid">
         <div class="review-card">
           <span class="review-icon">📖</span>
           <span class="review-stat">${chapterCount}</span>
-          <span class="review-label">Life Chapters</span>
+          <span class="review-label">${t('digitalTwinProfile.review.lifeChapters')}</span>
         </div>
         <div class="review-card">
           <span class="review-icon">💬</span>
           <span class="review-stat">${phraseCount}</span>
-          <span class="review-label">Signature Phrases</span>
+          <span class="review-label">${t('digitalTwinProfile.review.signaturePhrases')}</span>
         </div>
         <div class="review-card">
           <span class="review-icon">💝</span>
           <span class="review-stat">${valueCount}</span>
-          <span class="review-label">Core Values</span>
+          <span class="review-label">${t('digitalTwinProfile.review.coreValues')}</span>
         </div>
         <div class="review-card">
           <span class="review-icon">✨</span>
           <span class="review-stat">${interestCount}</span>
-          <span class="review-label">Interests</span>
+          <span class="review-label">${t('digitalTwinProfile.review.interests')}</span>
         </div>
       </div>
 
@@ -814,7 +813,7 @@ function renderReviewSection(): string {
         profile.lifePhilosophy
           ? `
         <div class="review-philosophy">
-          <h4>Your Philosophy</h4>
+          <h4>${t('digitalTwinProfile.review.philosophy')}</h4>
           <p>"${profile.lifePhilosophy}"</p>
         </div>
       `
@@ -825,7 +824,7 @@ function renderReviewSection(): string {
         profile.signaturePhrases.length > 0
           ? `
         <div class="review-phrases">
-          <h4>Things You Say</h4>
+          <h4>${t('digitalTwinProfile.review.things')}</h4>
           <div class="phrase-tags">
             ${profile.signaturePhrases.map((p) => `<span class="phrase-tag">"${p.phrase}"</span>`).join('')}
           </div>
@@ -836,8 +835,7 @@ function renderReviewSection(): string {
 
       <div class="review-note">
         <p>
-          The more you journal, the better I'll understand your unique voice. 
-          Your expressions, patterns, and perspectives will help make our conversations feel genuinely like you.
+          ${t('digitalTwinProfile.review.note')}
         </p>
       </div>
     </div>
@@ -1231,12 +1229,12 @@ async function saveProfileToAgent(): Promise<void> {
 
   // Show loading state on button
   const btnNext = profileModal?.querySelector('#btn-next') as HTMLButtonElement;
-  const originalText = btnNext?.textContent || 'Save Profile';
+  const originalText = btnNext?.textContent || t('digitalTwinProfile.saveProfile');
   if (btnNext) {
     btnNext.disabled = true;
     btnNext.innerHTML = `
       <span class="loading-spinner"></span>
-      Saving...
+      ${t('digitalTwinProfile.saving')}
     `;
   }
 

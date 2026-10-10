@@ -458,6 +458,40 @@ describe('Embeddings Module', () => {
       expect(embedding).toEqual(mockEmbedding);
     });
 
+    it('backs off and retries when the per-minute quota answers 429', async () => {
+      vi.useFakeTimers();
+      mockFetch.mockReset();
+      const values = new Array(768).fill(0.2);
+      mockFetch
+        .mockResolvedValueOnce({ ok: false, status: 429, text: async () => 'Resource exhausted' })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({ predictions: [{ embeddings: { values } }] }),
+        });
+      const pending = provider.embed('quota test');
+      await vi.advanceTimersByTimeAsync(500);
+      await expect(pending).resolves.toEqual(values);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      vi.useRealTimers();
+    });
+
+    it('gives up after two back-offs', async () => {
+      vi.useFakeTimers();
+      mockFetch.mockReset();
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 429,
+        text: async () => 'Resource exhausted',
+      });
+      const pending = provider.embed('quota test');
+      const settled = expect(pending).rejects.toThrow(/429/);
+      await vi.advanceTimersByTimeAsync(1500);
+      await settled;
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+      vi.useRealTimers();
+    });
+
     it('should handle async token getter', async () => {
       const tokenGetter = vi.fn(async () => 'dynamic-token');
       const dynamicProvider = new VertexAIEmbeddings({
@@ -498,6 +532,9 @@ describe('Embeddings Module', () => {
     it('should get default provider (local when no API keys)', () => {
       vi.stubEnv('GOOGLE_API_KEY', '');
       vi.stubEnv('OPENAI_API_KEY', '');
+      // A project id selects Vertex AI ahead of every key, and CI's integration
+      // job sets GOOGLE_CLOUD_PROJECT, so clear it too.
+      vi.stubEnv('GOOGLE_CLOUD_PROJECT', '');
 
       const provider = getEmbeddingProvider();
       expect(provider.model).toBe('local-hash');

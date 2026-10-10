@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { parseDurationMs } from '../constants.js';
+import { parseDurationMs } from '../../session/constants.js';
 
 describe('parseDurationMs', () => {
   describe('with undefined/empty values', () => {

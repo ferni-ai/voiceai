@@ -166,38 +166,6 @@ describe('Performance Optimization E2E Tests', () => {
     });
   });
 
-  describe('Background Task Queueing', () => {
-    it('should queue background tasks without blocking', async () => {
-      const { queueBackgroundTasks } = await import(
-        '../../src/agents/shared/performance/integration.js'
-      );
-
-      const start = Date.now();
-
-      await queueBackgroundTasks({
-        userId: testUserId,
-        sessionId: testSessionId,
-        personaId: testPersonaId,
-        userMessage: 'Test message for background processing',
-        assistantResponse: 'Test response',
-        turnNumber: 10,
-        analysis: {
-          intent: { primary: 'sharing' },
-          emotion: { primary: 'neutral' },
-        },
-      });
-
-      const duration = Date.now() - start;
-
-      // Should be quick since tasks are queued asynchronously
-      // Note: 500ms threshold accounts for system load variance in CI
-      // (150ms was too tight, causing flaky failures)
-      expect(duration).toBeLessThan(perfBudget(500));
-
-      console.log(`✓ Background tasks queued in ${duration}ms`);
-    });
-  });
-
   describe('Speculative TTS', () => {
     it('should start speculation quickly', async () => {
       const { startSpeculativeTTS, getPerformanceMetrics } = await import(

@@ -43,6 +43,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { getApiHeadersAsync } from '../utils/api.js';
+import { t } from '../i18n/index.js';
 import { getUserTimezone } from './timezone.service.js';
 
 const log = createLogger('GeolocationService');
@@ -382,22 +383,22 @@ async function syncLocationToBackend(location: LocationData): Promise<boolean> {
 // WARM PROMPT MESSAGES
 // ============================================================================
 
-const WARM_PROMPTS: Record<LocationRequestContext, { title: string; message: string }> = {
+const WARM_PROMPTS: Record<LocationRequestContext, { titleKey: string; messageKey: string }> = {
   weather: {
-    title: 'Local weather',
-    message: 'So I can mention your local weather and help you plan your day.',
+    titleKey: 'geolocation.prompts.weather.title',
+    messageKey: 'geolocation.prompts.weather.message',
   },
   events: {
-    title: 'Nearby events',
-    message: 'So I can tell you about interesting things happening near you.',
+    titleKey: 'geolocation.prompts.events.title',
+    messageKey: 'geolocation.prompts.events.message',
   },
   timezone: {
-    title: 'Your time zone',
-    message: 'So I know what time it is for you and can be more helpful.',
+    titleKey: 'geolocation.prompts.timezone.title',
+    messageKey: 'geolocation.prompts.timezone.message',
   },
   personalization: {
-    title: 'Personalization',
-    message: 'So our conversations can feel more personal and relevant to you.',
+    titleKey: 'geolocation.prompts.personalization.title',
+    messageKey: 'geolocation.prompts.personalization.message',
   },
 };
 
@@ -475,15 +476,10 @@ export async function requestPreciseLocation(
 
   // Optionally show warm prompt before browser prompt
   if (showWarmPrompt && storedPermission !== 'granted') {
-    const promptData = WARM_PROMPTS[context];
     // Dispatch event for UI to handle
     window.dispatchEvent(
       new CustomEvent('ferni:location-prompt', {
-        detail: {
-          context,
-          title: promptData.title,
-          message: promptData.message,
-        },
+        detail: { context, ...getWarmPrompt(context) },
       })
     );
 
@@ -630,7 +626,8 @@ export function isLocationDenied(): boolean {
  * Useful for UI components that want to show the prompt.
  */
 export function getWarmPrompt(context: LocationRequestContext): { title: string; message: string } {
-  return WARM_PROMPTS[context];
+  const { titleKey, messageKey } = WARM_PROMPTS[context];
+  return { title: t(titleKey), message: t(messageKey) };
 }
 
 /**

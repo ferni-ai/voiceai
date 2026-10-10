@@ -1,0 +1,7 @@
+# Live handoff proof: Ferni hands the caller to Maya, Maya answers. Record
+# with converse.mjs's `data` (handoff_progress / handoff_complete payloads)
+# and `from` on captions (which participant spoke). A pass: the reply after
+# the handoff comes in Maya's voice, as Maya.
+Hey Ferni. I'd like to talk to Maya about building a morning routine.
+Hi Maya! So I keep hitting snooze and my mornings are chaos. Where would you start?
+Okay, that sounds doable. Thanks.

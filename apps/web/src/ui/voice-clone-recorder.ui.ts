@@ -40,8 +40,8 @@ interface VoiceSample {
 interface RecordingPrompt {
   id: string;
   category: 'intro' | 'emotion' | 'range' | 'conversation';
-  text: string;
-  tip?: string;
+  textKey: string;
+  tipKey?: string;
   minDuration: number;
   maxDuration: number;
 }
@@ -55,24 +55,24 @@ const RECORDING_PROMPTS: RecordingPrompt[] = [
   {
     id: 'intro-1',
     category: 'intro',
-    text: "Hello! My name is [your name] and I'm creating a voice clone. Today is a beautiful day and I'm excited to get started with this project.",
-    tip: 'Speak naturally at your normal pace',
+    textKey: 'voiceCloneRecorder.prompts.intro1.text',
+    tipKey: 'voiceCloneRecorder.prompts.intro1.tip',
     minDuration: 5,
     maxDuration: 15,
   },
   {
     id: 'intro-2',
     category: 'intro',
-    text: "I love spending time with my friends and family. We often go to the park together, or sometimes we'll just stay home and watch movies.",
-    tip: 'Imagine telling a friend about your weekend',
+    textKey: 'voiceCloneRecorder.prompts.intro2.text',
+    tipKey: 'voiceCloneRecorder.prompts.intro2.tip',
     minDuration: 5,
     maxDuration: 15,
   },
   {
     id: 'intro-3',
     category: 'intro',
-    text: "One of my favorite things to do is read books. I especially enjoy science fiction and mystery novels. There's nothing quite like getting lost in a good story.",
-    tip: 'Express genuine enthusiasm',
+    textKey: 'voiceCloneRecorder.prompts.intro3.text',
+    tipKey: 'voiceCloneRecorder.prompts.intro3.tip',
     minDuration: 5,
     maxDuration: 15,
   },
@@ -80,24 +80,24 @@ const RECORDING_PROMPTS: RecordingPrompt[] = [
   {
     id: 'emotion-1',
     category: 'emotion',
-    text: "I'm so happy to hear that news! That's absolutely wonderful, congratulations! I knew you could do it!",
-    tip: 'Express genuine excitement and joy',
+    textKey: 'voiceCloneRecorder.prompts.emotion1.text',
+    tipKey: 'voiceCloneRecorder.prompts.emotion1.tip',
     minDuration: 4,
     maxDuration: 10,
   },
   {
     id: 'emotion-2',
     category: 'emotion',
-    text: "I understand how difficult that must have been. Take your time, I'm here for you whenever you need to talk.",
-    tip: 'Speak with warmth and compassion',
+    textKey: 'voiceCloneRecorder.prompts.emotion2.text',
+    tipKey: 'voiceCloneRecorder.prompts.emotion2.tip',
     minDuration: 4,
     maxDuration: 10,
   },
   {
     id: 'emotion-3',
     category: 'emotion',
-    text: "Hmm, that's interesting. Let me think about that for a moment. I wonder if there might be another way to approach this problem.",
-    tip: 'Sound thoughtful and contemplative',
+    textKey: 'voiceCloneRecorder.prompts.emotion3.text',
+    tipKey: 'voiceCloneRecorder.prompts.emotion3.tip',
     minDuration: 5,
     maxDuration: 12,
   },
@@ -105,24 +105,24 @@ const RECORDING_PROMPTS: RecordingPrompt[] = [
   {
     id: 'range-1',
     category: 'range',
-    text: "Can you believe it? I just won the lottery! Well, not really, but wouldn't that be amazing? One can dream, right?",
-    tip: 'Vary your pitch - go high and low',
+    textKey: 'voiceCloneRecorder.prompts.range1.text',
+    tipKey: 'voiceCloneRecorder.prompts.range1.tip',
     minDuration: 5,
     maxDuration: 12,
   },
   {
     id: 'range-2',
     category: 'range',
-    text: "The quick brown fox jumps over the lazy dog. Peter Piper picked a peck of pickled peppers. She sells seashells by the seashore.",
-    tip: 'Enunciate clearly - these test different sounds',
+    textKey: 'voiceCloneRecorder.prompts.range2.text',
+    tipKey: 'voiceCloneRecorder.prompts.range2.tip',
     minDuration: 5,
     maxDuration: 12,
   },
   {
     id: 'range-3',
     category: 'range',
-    text: "Wait... Did you hear that? I think someone's at the door. Let me go check. Oh, it's just the wind.",
-    tip: 'Use pauses and vary your tempo',
+    textKey: 'voiceCloneRecorder.prompts.range3.text',
+    tipKey: 'voiceCloneRecorder.prompts.range3.tip',
     minDuration: 5,
     maxDuration: 12,
   },
@@ -130,16 +130,16 @@ const RECORDING_PROMPTS: RecordingPrompt[] = [
   {
     id: 'conversation-1',
     category: 'conversation',
-    text: "So anyway, I was telling them about the project, and they seemed really interested. They asked a lot of questions, which I thought was a good sign.",
-    tip: 'Conversational and casual',
+    textKey: 'voiceCloneRecorder.prompts.conversation1.text',
+    tipKey: 'voiceCloneRecorder.prompts.conversation1.tip',
     minDuration: 5,
     maxDuration: 15,
   },
   {
     id: 'conversation-2',
     category: 'conversation',
-    text: "Let me tell you about my day. First, I had breakfast - just some toast and coffee. Then I went for a walk around the neighborhood.",
-    tip: 'Like talking to a friend over coffee',
+    textKey: 'voiceCloneRecorder.prompts.conversation2.text',
+    tipKey: 'voiceCloneRecorder.prompts.conversation2.tip',
     minDuration: 5,
     maxDuration: 15,
   },
@@ -695,6 +695,13 @@ function assessQuality(duration: number, avgVolume: number): VoiceSample['qualit
   return 'good';
 }
 
+function promptCategoryLabel(category: RecordingPrompt['category']): string {
+  return { intro: t('voiceCloneRecorder.categoryIntro'), emotion: t('voiceCloneRecorder.categoryEmotion'), range: t('voiceCloneRecorder.categoryRange'), conversation: t('voiceCloneRecorder.categoryConversation') }[category];
+}
+
+const STOP_ICON = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`;
+const RECORD_ICON = `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>`;
+
 function getCategoryIcon(category: RecordingPrompt['category']): string {
   switch (category) {
     case 'intro':
@@ -726,8 +733,8 @@ function render(): string {
       <div class="voice-clone-recorder-modal" role="dialog" aria-labelledby="vcr-title">
         <header class="vcr-header">
           <div class="vcr-header-content">
-            <span class="vcr-eyebrow">Voice Cloning</span>
-            <h2 class="vcr-title" id="vcr-title">${currentAgent?.displayName || currentAgent?.name || 'Agent'}</h2>
+            <span class="vcr-eyebrow">${t('voiceCloneRecorder.eyebrow')}</span>
+            <h2 class="vcr-title" id="vcr-title">${currentAgent?.displayName || currentAgent?.name || t('voiceCloneRecorder.agentFallback')}</h2>
           </div>
           <button class="vcr-close-btn" data-action="close" aria-label="${t('accessibility.close')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -741,8 +748,8 @@ function render(): string {
           <!-- Progress -->
           <div class="vcr-progress">
             <div class="vcr-progress-header">
-              <span class="vcr-progress-label">Voice Samples</span>
-              <span class="vcr-progress-count">${samples.length} / ${MIN_SAMPLES_REQUIRED} required</span>
+              <span class="vcr-progress-label">${t('voiceCloneRecorder.voiceSamples')}</span>
+              <span class="vcr-progress-count">${t('voiceCloneRecorder.progressCount', { count: samples.length, required: MIN_SAMPLES_REQUIRED })}</span>
             </div>
             <div class="vcr-progress-bar">
               <div class="vcr-progress-fill" style="width: ${progress}%"></div>
@@ -750,7 +757,7 @@ function render(): string {
             ${hasEnoughSamples ? `
               <div class="vcr-progress-complete">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                <span>Ready for voice cloning! Add more samples for better quality.</span>
+                <span>${t('voiceCloneRecorder.readyForCloning')}</span>
               </div>
             ` : ''}
           </div>
@@ -759,13 +766,13 @@ function render(): string {
           <div class="vcr-prompt-card">
             <span class="vcr-prompt-category">
               ${getCategoryIcon(prompt.category)}
-              ${prompt.category}
+              ${promptCategoryLabel(prompt.category)}
             </span>
-            <p class="vcr-prompt-text">${prompt.text}</p>
-            ${prompt.tip ? `
+            <p class="vcr-prompt-text">${t(prompt.textKey)}</p>
+            ${prompt.tipKey ? `
               <div class="vcr-prompt-tip">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/><circle cx="12" cy="12" r="10"/></svg>
-                ${prompt.tip}
+                ${t(prompt.tipKey)}
               </div>
             ` : ''}
           </div>
@@ -781,27 +788,24 @@ function render(): string {
           <!-- Controls -->
           <div class="vcr-controls">
             <button aria-label="${t('accessibility.toggle')}" class="vcr-record-btn ${isRecording ? 'recording' : 'idle'}" id="vcr-record-btn" data-action="toggle-recording">
-              ${isRecording 
-                ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`
-                : `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>`
-              }
+              ${isRecording ? STOP_ICON : RECORD_ICON}
             </button>
             <span class="vcr-controls-hint">
-              ${isRecording ? 'Click to stop recording' : 'Click to start recording'}
+              ${isRecording ? t('voiceCloneRecorder.clickToStop') : t('voiceCloneRecorder.clickToStart')}
             </span>
           </div>
 
           <!-- Navigation -->
           <div class="vcr-nav">
-            <button aria-label="${t('accessibility.previous')}" class="vcr-nav-btn vcr-nav-btn--secondary" data-action="prev-prompt" ${currentPromptIndex === 0 ? 'disabled' : ''}>
+            <button class="vcr-nav-btn vcr-nav-btn--secondary" data-action="prev-prompt" ${currentPromptIndex === 0 ? 'disabled' : ''}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-              Previous
+              ${t('accessibility.previous')}
             </button>
-            <button aria-label="${t('accessibility.skip')}" class="vcr-nav-btn vcr-nav-btn--secondary" data-action="skip-prompt">
-              Skip
+            <button class="vcr-nav-btn vcr-nav-btn--secondary" data-action="skip-prompt">
+              ${t('accessibility.skip')}
             </button>
-            <button aria-label="${t('accessibility.next')}" class="vcr-nav-btn vcr-nav-btn--primary" data-action="next-prompt" ${currentPromptIndex >= RECORDING_PROMPTS.length - 1 ? 'disabled' : ''}>
-              Next
+            <button class="vcr-nav-btn vcr-nav-btn--primary" data-action="next-prompt" ${currentPromptIndex >= RECORDING_PROMPTS.length - 1 ? 'disabled' : ''}>
+              ${t('accessibility.next')}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
@@ -810,22 +814,22 @@ function render(): string {
           ${samples.length > 0 ? `
             <div class="vcr-samples">
               <div class="vcr-samples-header">
-                <span class="vcr-samples-title">Recorded Samples (${samples.length})</span>
+                <span class="vcr-samples-title">${t('voiceCloneRecorder.recordedSamples', { count: samples.length })}</span>
               </div>
               ${samples.map((sample, i) => {
                 const prompt = RECORDING_PROMPTS.find(p => p.id === sample.promptId);
                 return `
                   <div class="vcr-sample-item" data-sample-id="${sample.id}">
-                    <button class="vcr-sample-play" data-action="play-sample" data-index="${i}">
+                    <button class="vcr-sample-play" data-action="play-sample" data-index="${i}" aria-label="Play sample ${i + 1}">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                     </button>
                     <div class="vcr-sample-info">
-                      <div class="vcr-sample-prompt">${prompt?.text.slice(0, 50) || 'Sample'}...</div>
+                      <div class="vcr-sample-prompt">${prompt ? t(prompt.textKey).slice(0, 50) : t('voiceCloneRecorder.sampleFallback')}...</div>
                       <div class="vcr-sample-meta">
                         <span>${formatDuration(sample.duration)}</span>
                         <span class="vcr-sample-quality ${sample.quality}">
                           ${sample.quality === 'excellent' ? '★★★' : sample.quality === 'good' ? '★★' : '★'}
-                          ${sample.quality}
+                          ${{ excellent: t('accessibility.excellent'), good: t('accessibility.good'), poor: t('accessibility.poor') }[sample.quality]}
                         </span>
                       </div>
                     </div>
@@ -840,12 +844,12 @@ function render(): string {
         </div>
 
         <footer class="vcr-footer">
-          <button aria-label="${t('accessibility.cancel')}" class="vcr-footer-btn vcr-footer-btn--secondary" data-action="close">
-            Cancel
+          <button class="vcr-footer-btn vcr-footer-btn--secondary" data-action="close">
+            ${t('accessibility.cancel')}
           </button>
-          <button aria-label="${t('accessibility.saveVoiceSamples')}" class="vcr-footer-btn vcr-footer-btn--primary" data-action="save" ${!hasEnoughSamples ? 'disabled' : ''}>
+          <button class="vcr-footer-btn vcr-footer-btn--primary" data-action="save" ${!hasEnoughSamples ? 'disabled' : ''}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            Save Voice Samples
+            ${t('accessibility.saveVoiceSamples')}
           </button>
         </footer>
       </div>
@@ -960,7 +964,7 @@ async function handleRecordingComplete(): Promise<void> {
   updateUI();
 
   const { toast } = await import('./whisper.ui.js');
-  toast.success(`Sample recorded! ${quality === 'excellent' ? 'Excellent quality!' : quality === 'good' ? 'Good quality' : 'Consider re-recording for better quality'}`);
+  toast.success({ excellent: t('voiceCloneRecorder.sampleRecordedExcellent'), good: t('voiceCloneRecorder.sampleRecordedGood'), poor: t('voiceCloneRecorder.sampleRecordedPoor') }[quality]);
 }
 
 // ============================================================================
@@ -1051,9 +1055,7 @@ function updateRecordingUI(): void {
 
   if (recordBtn) {
     recordBtn.className = `vcr-record-btn ${isRecording ? 'recording' : 'idle'}`;
-    recordBtn.innerHTML = isRecording
-      ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`
-      : `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>`;
+    recordBtn.innerHTML = isRecording ? STOP_ICON : RECORD_ICON;
   }
 
   if (timeEl) {
@@ -1230,7 +1232,7 @@ async function handleSave(): Promise<void> {
       <svg class="vcr-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
       </svg>
-      Uploading samples...
+      ${t('voiceCloneRecorder.uploadingSamples')}
     `;
   }
 
@@ -1260,7 +1262,7 @@ async function handleSave(): Promise<void> {
         <svg class="vcr-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
         </svg>
-        Creating voice clone...
+        ${t('voiceCloneRecorder.creatingClone')}
       `;
     }
 
@@ -1273,11 +1275,7 @@ async function handleSave(): Promise<void> {
     );
 
     if (cloneResult) {
-      if (cloneResult.isSimulated) {
-        toast.success(t('toasts.voiceProfileCreatedDev'));
-      } else {
-        toast.success(t('toasts.voiceCloneCreated'));
-      }
+      toast.success(t(cloneResult.isSimulated ? 'toasts.voiceProfileCreatedDev' : 'toasts.voiceCloneCreated'));
       log.info('Voice clone created:', cloneResult.voiceId);
     } else {
       // Still save locally even if cloning fails
@@ -1287,7 +1285,7 @@ async function handleSave(): Promise<void> {
     closeVoiceCloneRecorder();
   } catch (err) {
     log.error('Failed to save voice samples:', err);
-    toast.error("Couldn't create voice clone. Try again?");
+    toast.error(t('voiceCloneRecorder.cloneFailed'));
     
     // Restore button state
     if (saveBtn && originalContent) {
@@ -1312,7 +1310,7 @@ export async function openVoiceCloneRecorder(agentId: string): Promise<void> {
   if (!currentAgent) {
     log.error('Agent not found:', agentId);
     const { toast } = await import('./whisper.ui.js');
-    toast.error("Couldn't find this agent");
+    toast.error(t('voiceCloneRecorder.agentNotFound'));
     return;
   }
 

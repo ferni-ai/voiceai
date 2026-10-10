@@ -42,7 +42,8 @@ export interface YourStoryData extends VisualizationApiResponse {
   analytics: {
     daysTogether: number;
     conversations: number;
-    streak: number;
+    /** null when nothing records day-by-day conversations */
+    streak: number | null;
   };
   stage: {
     name: string;
@@ -253,7 +254,7 @@ function createDemoGrowthRadar(): GrowthRadarData {
  * Demo emotional arcs showing a recovery journey.
  */
 function createDemoEmotionalArcs(): EmotionalArcsData {
-  const phases: EmotionalArcPhase[] = [
+  const phases: Array<EmotionalArcPhase & { intensity: number }> = [
     { name: 'The Call', position: 0, intensity: 0.3, description: 'Something needed to change' },
     { name: 'The Descent', position: 0.25, intensity: 0.7, description: 'Facing what was hard' },
     { name: 'The Depths', position: 0.4, intensity: 0.9, description: 'Rock bottom became foundation' },
@@ -400,10 +401,9 @@ function createDemoOpenLoops(now: Date): OpenLoopsData {
  */
 function createDemoEnergyRings(): EnergyRingsData {
   return {
-    emotional: 75,
-    mental: 68,
-    physical: 72,
     overall: 72,
+    label: 'Balanced',
+    recommendation: 'A short walk between calls could help.',
   };
 }
 

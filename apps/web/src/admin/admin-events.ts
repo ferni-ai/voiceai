@@ -340,8 +340,8 @@ interface AgentTemplate {
 const TEMPLATE_COLORS = {
   ferni: { primary: '#4a6741', secondary: '#3d5a35' }, // --color-ferni, --color-ferni-dark
   peter: { primary: '#3a6b73', secondary: '#2d545a' }, // --persona-peter
-  nayan: { primary: '#7a5c4f', secondary: '#5d463c' }, // --persona-nayan
-  jordan: { primary: '#5c4a7a', secondary: '#463c5d' }, // --persona-jordan
+  nayan: { primary: '#b8956a', secondary: '#9a7a52' }, // --persona-nayan
+  jordan: { primary: '#c4856a', secondary: '#a86d55' }, // --persona-jordan
   warmth: { primary: '#d4a84b', secondary: '#b8923f' }, // --color-warmth
   maya: { primary: '#a67a6a', secondary: '#8a6458' }, // --persona-maya
 };

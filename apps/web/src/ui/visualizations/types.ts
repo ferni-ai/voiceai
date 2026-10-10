@@ -11,6 +11,19 @@
  * @module visualizations/types
  */
 
+import type {
+  BurnoutGaugeData,
+  EmotionalArcsData,
+  EnergyRingsData,
+  GrowthRadarData,
+  LifeTimelineData,
+  MoodCalendarData,
+  MoodType,
+  OpenLoopsData,
+  PredictionsData,
+  RelationshipNetworkData,
+} from '../../types/visualization-data.js';
+
 // ============================================================================
 // DEVICE TYPES
 // ============================================================================
@@ -78,203 +91,29 @@ export type VisualizationType =
   | 'actions-taken';
 
 // ============================================================================
-// DATA TYPES - Shared across platforms
+// DATA TYPES - Shared across platforms (defined in types/visualization-data.ts)
 // ============================================================================
 
-/**
- * Mood entry for calendar visualization.
- */
-export interface MoodEntry {
-  date: string; // ISO date (YYYY-MM-DD)
-  mood: MoodType;
-  intensity: number; // 0-1
-  note?: string;
-}
+export type {
+  MoodEntry,
+  MoodType,
+  MoodCalendarData,
+  BurnoutGaugeData,
+  TimelineChapter,
+  LifeTimelineData,
+  GrowthDimension,
+  GrowthRadarData,
+  EmotionalArcPhase,
+  EmotionalArcsData,
+  Prediction,
+  PredictionsData,
+  Relationship,
+  RelationshipNetworkData,
+  OpenLoop,
+  OpenLoopsData,
+  EnergyRingsData,
+} from '../../types/visualization-data.js';
 
-export type MoodType =
-  | 'calm'
-  | 'joyful'
-  | 'anxious'
-  | 'tired'
-  | 'focused'
-  | 'reflective'
-  | 'stressed'
-  | 'energized'
-  | 'peaceful'
-  | 'uncertain';
-
-/**
- * Mood calendar data.
- */
-export interface MoodCalendarData {
-  entries: MoodEntry[];
-  summary: {
-    dominantMood: MoodType;
-    calmDays: number;
-    trend: 'improving' | 'stable' | 'declining';
-  };
-  period: 'week' | 'month' | 'quarter';
-}
-
-/**
- * Burnout/capacity gauge data.
- */
-export interface BurnoutGaugeData {
-  /** Current capacity percentage (0-100) */
-  capacity: number;
-  /** Trend over time */
-  trend: 'recovering' | 'stable' | 'declining';
-  /** Status label */
-  status: 'thriving' | 'balanced' | 'stretched' | 'depleted' | 'critical';
-  /** Contributing factors */
-  factors: {
-    emotional: number;
-    mental: number;
-    physical: number;
-  };
-  /** When data was last updated */
-  updatedAt: string;
-}
-
-/**
- * Life timeline chapter.
- */
-export interface TimelineChapter {
-  id: string;
-  title: string;
-  type: 'growth' | 'challenge' | 'transition' | 'celebration' | 'reflection';
-  startDate: string;
-  endDate?: string;
-  isActive: boolean;
-  progress: number; // 0-1
-  summary?: string;
-}
-
-/**
- * Life timeline data.
- */
-export interface LifeTimelineData {
-  chapters: TimelineChapter[];
-  currentChapter: TimelineChapter;
-  totalChapters: number;
-  narrativeSummary?: string;
-}
-
-/**
- * Growth radar dimension.
- */
-export interface GrowthDimension {
-  name: string;
-  value: number; // 0-1
-  previousValue?: number;
-  trend: 'growing' | 'stable' | 'needs-attention';
-}
-
-/**
- * Growth radar data.
- */
-export interface GrowthRadarData {
-  dimensions: GrowthDimension[];
-  overallGrowth: number;
-  focusArea?: string;
-}
-
-/**
- * Emotional arc phase.
- */
-export interface EmotionalArcPhase {
-  name: string;
-  position: number; // 0-1 along the arc
-  intensity: number; // 0-1
-  description?: string;
-}
-
-/**
- * Emotional arcs data.
- */
-export interface EmotionalArcsData {
-  currentPhase: EmotionalArcPhase;
-  phases: EmotionalArcPhase[];
-  arcType: 'hero-journey' | 'growth' | 'recovery' | 'discovery';
-}
-
-/**
- * Prediction with confidence.
- */
-export interface Prediction {
-  metric: string;
-  currentValue: number;
-  predictedValue: number;
-  confidence: number; // 0-1
-  timeframe: string;
-  scenarios: {
-    conservative: number;
-    expected: number;
-    optimistic: number;
-  };
-}
-
-/**
- * Predictions data.
- */
-export interface PredictionsData {
-  predictions: Prediction[];
-  primaryPrediction: Prediction;
-  accuracy: number; // historical accuracy
-}
-
-/**
- * Relationship in network.
- */
-export interface Relationship {
-  name: string;
-  strength: number; // 0-1
-  lastContact: string;
-  category: 'family' | 'friend' | 'colleague' | 'mentor' | 'other';
-  trend: 'deepening' | 'stable' | 'fading';
-}
-
-/**
- * Relationship network data.
- */
-export interface RelationshipNetworkData {
-  relationships: Relationship[];
-  totalConnections: number;
-  activeConnections: number;
-  needsAttention: string[];
-}
-
-/**
- * Open loop (unfinished thread).
- */
-export interface OpenLoop {
-  id: string;
-  description: string;
-  createdAt: string;
-  priority: 'high' | 'medium' | 'low';
-  category: 'commitment' | 'question' | 'intention' | 'follow-up';
-  relatedPerson?: string;
-}
-
-/**
- * Open loops data.
- */
-export interface OpenLoopsData {
-  loops: OpenLoop[];
-  totalOpen: number;
-  oldestLoop?: OpenLoop;
-  recentlyClosed: number;
-}
-
-/**
- * Energy ring data (for watch).
- */
-export interface EnergyRingsData {
-  emotional: number; // 0-100
-  mental: number; // 0-100
-  physical: number; // 0-100
-  overall: number; // 0-100
-}
 
 // ============================================================================
 // VISUALIZATION RENDER RESULT
@@ -352,7 +191,7 @@ export interface VisualizationColors {
   textSecondary: string;
   textMuted: string;
   borderSubtle: string;
-  moods: Record<MoodType, string>;
+  moods: Partial<Record<MoodType, string>>;
   energy: {
     emotional: string;
     mental: string;
@@ -405,7 +244,7 @@ export const DEFAULT_COLORS: VisualizationColors = {
     anxious: '#b5453a',   // Muted red - concern without alarm
     tired: '#756a5e',     // Soft gray-brown - gentle fatigue
     focused: '#3a6b73',   // Peter teal - deep concentration
-    reflective: '#7a6a8a', // Soft purple - thoughtful
+    reflective: '#5a6b8a', // Alex slate blue - thoughtful
     stressed: '#a54545',  // Deeper red - pressure
     energized: '#4a7a52', // Brighter sage - vitality
     peaceful: '#5a8a73',  // Soft teal-green - serenity
@@ -441,7 +280,7 @@ export const DEFAULT_COLORS: VisualizationColors = {
     challenge: '#b5453a', // Warm red - difficulty
     transition: '#c4956a', // Amber - change
     celebration: '#4a7a52', // Green - achievement
-    reflection: '#7a6a8a', // Purple - contemplation
+    reflection: '#5a6b8a', // Alex slate blue - contemplation
   },
 };
 

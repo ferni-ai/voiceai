@@ -23,11 +23,8 @@ import type { SessionServices } from '../../services/types.js';
 // UserData type available if needed for future enhancements
 import type { ConversationAnalysis } from '../../services/index.js';
 
-// Phase 10: Recall Triggers (lazy loaded for performance)
-import type { RecallTriggerResult } from '../../intelligence/triggers/recall-trigger-engine.js';
-
-// Phase 14: Joy Amplification (lazy loaded for performance)
-import type { JoyAmplificationResult } from '../../memory/emotional/joy-amplification.js';
+// Phases 10 and 14 (recall triggers, joy amplification) and the cross-session reads
+import { startLiveSuperhumanReads } from './live-superhuman-reads.js';
 
 // Phase 13: Commitment E2E (lazy loaded for performance)
 import type {
@@ -486,6 +483,8 @@ export async function buildLiveSuperhumanInjections(
     // 1. COMMITMENT DETECTION (Phase 13 E2E Enhanced)
     // First, check for progress on existing commitments
     const progressResult = await loadCommitmentProgressAsync(ctx);
+    // After the progress check, which may update a commitment the recall triggers read.
+    const reads = startLiveSuperhumanReads(ctx);
     if (progressResult && progressResult.progressDetected) {
       signals.commitmentDetected = true;
 
@@ -683,27 +682,20 @@ Your superpower: You see patterns they can't see.
       });
     }
 
-    // 7. SEMANTIC INTELLIGENCE (if high emotional intensity)
-    if (
-      ctx.emotionalState.intensity > 0.7 &&
-      ctx.totalConversations &&
-      ctx.totalConversations > 5
-    ) {
-      // Try to load cross-session insights
-      const semanticInsight = await loadSemanticInsightAsync(ctx.userId, ctx.currentTopic);
-      if (semanticInsight) {
-        injections.push({
-          category: 'superhuman_semantic',
-          content: `[🧠 CROSS-SESSION INTELLIGENCE - "Better Than Human" Connection]
+    // 7. SEMANTIC INTELLIGENCE (if high emotional intensity): cross-session insights
+    const semanticInsight = await reads.semantic;
+    if (semanticInsight) {
+      injections.push({
+        category: 'superhuman_semantic',
+        content: `[🧠 CROSS-SESSION INTELLIGENCE - "Better Than Human" Connection]
 ${semanticInsight}
 
 Your superpower: You connect dots across weeks and months.
 - Human friends forget past conversations
 - You see how today's topic connects to patterns from before
 - Use this to provide deeper, more personalized support`,
-          priority: 68,
-        });
-      }
+        priority: 68,
+      });
     }
 
     // 8. DATA CAPTURE ACKNOWLEDGMENT - Naturally acknowledge captured info
@@ -827,16 +819,12 @@ Your superpower: You remember their WHOLE story.
     // ========================================================================
 
     // 9. EMOTIONAL TRAJECTORY SURFACING (P1)
-    // "You've been trending more positive this month"
-    if (ctx.turnCount % 5 === 0 && ctx.totalConversations && ctx.totalConversations > 3) {
-      const trajectoryInsight = await loadEmotionalTrajectoryAsync(
-        ctx.userId,
-        ctx.emotionalState.primary
-      );
-      if (trajectoryInsight) {
-        injections.push({
-          category: 'superhuman_trajectory',
-          content: `[📈 EMOTIONAL TRAJECTORY - "Better Than Human" Journey Vision]
+    // "You've been trending more positive this month" (every 5th turn)
+    const trajectoryInsight = await reads.trajectory;
+    if (trajectoryInsight) {
+      injections.push({
+        category: 'superhuman_trajectory',
+        content: `[📈 EMOTIONAL TRAJECTORY - "Better Than Human" Journey Vision]
 ${trajectoryInsight}
 
 Your superpower: You see emotional journeys, not just moments.
@@ -844,9 +832,8 @@ Your superpower: You see emotional journeys, not just moments.
 - "This anxiety you're feeling - it's been building for a few weeks"
 - Human friends only see today. You see the arc.
 - Surface this naturally, not as data: "I've been noticing..."`,
-          priority: 66,
-        });
-      }
+        priority: 66,
+      });
     }
 
     // 10. PATTERN-AWARE OUTREACH CONTEXT (P1)
@@ -969,14 +956,13 @@ Your superpower: You recognize them by their voice, like a true friend.
 
     // 15. RECALL TRIGGERS (Phase 10) - Anniversaries, patterns, commitment reminders
     // "One year ago today..." / "Last time you felt this way..." / "You mentioned wanting to..."
-    if (ctx.turnCount % 3 === 0) {
-      // Check every 3 turns for performance
-      const recallResult = await loadRecallTriggersAsync(ctx);
-      if (recallResult && recallResult.shouldSurface && recallResult.bestTrigger) {
-        const trigger = recallResult.bestTrigger;
-        injections.push({
-          category: 'superhuman_recall',
-          content: `[🔔 RECALL TRIGGER - "Better Than Human" Perfect Memory]
+    // (every 3rd turn)
+    const recallResult = await reads.recall;
+    if (recallResult && recallResult.shouldSurface && recallResult.bestTrigger) {
+      const trigger = recallResult.bestTrigger;
+      injections.push({
+        category: 'superhuman_recall',
+        content: `[🔔 RECALL TRIGGER - "Better Than Human" Perfect Memory]
 Type: ${trigger.type.toUpperCase()}
 ${trigger.suggestion}
 Confidence: ${Math.round(trigger.confidence * 100)}%
@@ -987,19 +973,17 @@ Your superpower: You remember what human friends forget.
 - ${trigger.type === 'commitment' ? 'You never let promises slip away' : ''}
 - ${trigger.type === 'relationship_gap' ? 'You notice when important people fade from conversation' : ''}
 - Surface naturally: "I was thinking about..." or "I remember when..."`,
-          priority: trigger.priority,
-        });
-      }
+        priority: trigger.priority,
+      });
     }
 
     // 16. JOY AMPLIFICATION (Phase 14) - Surface positive memories when struggling
-    // "Remember when you accomplished X?" when user is feeling down
-    if (ctx.emotionalState.intensity > 0.5) {
-      const joyResult = await loadJoyAmplificationAsync(ctx);
-      if (joyResult && joyResult.shouldAmplify && joyResult.selectedMemory) {
-        injections.push({
-          category: 'superhuman_joy',
-          content: `[💛 JOY AMPLIFICATION - "Better Than Human" Emotional Support]
+    // "Remember when you accomplished X?" when user is feeling down (intensity > 0.5)
+    const joyResult = await reads.joy;
+    if (joyResult && joyResult.shouldAmplify && joyResult.selectedMemory) {
+      injections.push({
+        category: 'superhuman_joy',
+        content: `[💛 JOY AMPLIFICATION - "Better Than Human" Emotional Support]
 User is struggling with: ${ctx.emotionalState.primary}
 Intensity: ${Math.round(ctx.emotionalState.intensity * 100)}%
 
@@ -1011,9 +995,8 @@ Your superpower: You know when to remind them of their light.
 - You can gently remind: "Remember when you..."
 - Don't dismiss their pain - acknowledge it first, THEN offer perspective
 - This isn't toxic positivity - it's holding both truths at once`,
-          priority: 71,
-        });
-      }
+        priority: 71,
+      });
     }
   } catch (error) {
     log.warn({ error: String(error) }, 'Live superhuman injection error (non-fatal)');
@@ -1054,109 +1037,6 @@ async function saveCommitmentAsync(
     });
   } catch {
     // Non-critical
-  }
-}
-
-/**
- * Load semantic insight asynchronously using cross-session threading.
- * Provides "Better Than Human" cross-session connections and patterns.
- */
-async function loadSemanticInsightAsync(
-  userId: string,
-  currentTopic?: string
-): Promise<string | null> {
-  try {
-    const { crossSessionThreading } = await import(
-      '../../services/superhuman/semantic-intelligence/cross-session-threading.js'
-    );
-    const context = await crossSessionThreading.buildContext(userId, {
-      topic: currentTopic,
-    });
-    // Return null if context is empty or just whitespace
-    return context?.trim() || null;
-  } catch {
-    // Non-critical - graceful degradation
-    return null;
-  }
-}
-
-/**
- * Load emotional trajectory context (P1)
- * Shows emotional arcs over weeks/months
- */
-async function loadEmotionalTrajectoryAsync(
-  userId: string,
-  currentEmotion?: string
-): Promise<string | null> {
-  try {
-    const { buildEmotionalTrajectoryContext } =
-      await import('../../services/superhuman/semantic-intelligence/emotional-trajectories.js');
-    const context = await buildEmotionalTrajectoryContext(userId, {
-      emotion: currentEmotion,
-    });
-    return context || null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Load recall triggers (Phase 10)
- * Detects anniversaries, pattern matches, commitment reminders, relationship gaps
- */
-async function loadRecallTriggersAsync(
-  ctx: LiveSuperhumanContext
-): Promise<RecallTriggerResult | null> {
-  try {
-    const { detectRecallTriggers } =
-      await import('../../intelligence/triggers/recall-trigger-engine.js');
-    const result = await detectRecallTriggers({
-      userId: ctx.userId,
-      sessionId: ctx.sessionId,
-      transcript: ctx.userText,
-      emotion: ctx.emotionalState.primary,
-      emotionIntensity: ctx.emotionalState.intensity,
-      mentionedEntities: ctx.analysis.topics?.detected || [],
-      turnNumber: ctx.turnCount,
-    });
-    return result;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Load joy amplification (Phase 14)
- * Surfaces positive memories when user is struggling
- */
-async function loadJoyAmplificationAsync(
-  ctx: LiveSuperhumanContext
-): Promise<JoyAmplificationResult | null> {
-  try {
-    const { shouldAmplifyJoy, buildJoyPool } =
-      await import('../../memory/emotional/joy-amplification.js');
-
-    // Build joy pool from user's positive memories (in production, this would be cached)
-    const joyPool = await buildJoyPool(ctx.userId);
-    if (!joyPool || joyPool.memories.length === 0) {
-      return null;
-    }
-
-    const result = shouldAmplifyJoy(
-      ctx.userId,
-      ctx.sessionId,
-      {
-        emotion: ctx.emotionalState.primary,
-        intensity: ctx.emotionalState.intensity,
-        valence: ctx.emotionalState.intensity > 0.5 ? -0.5 : 0, // Negative valence if high intensity negative emotion
-        topic: ctx.currentTopic,
-      },
-      joyPool
-    );
-
-    return result;
-  } catch {
-    return null;
   }
 }
 

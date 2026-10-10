@@ -37,7 +37,7 @@ variable "machine_type" {
 }
 
 variable "use_gpu" {
-  description = "Use GPU instance (L4) for Kyutai bridge STT/TTS; requires gpu_machine_type and gpu_accelerator_type"
+  description = "Use GPU instance (L4); requires gpu_machine_type and gpu_accelerator_type"
   type        = bool
   default     = false
 }

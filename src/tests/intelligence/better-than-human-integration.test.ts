@@ -13,8 +13,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock Firebase Admin before imports
 vi.mock('firebase-admin', () => {
+  // Reads resolve to "no document", as an empty Firestore would. A bare vi.fn()
+  // resolved to undefined, so the aggregators threw on `.exists` and dropped
+  // what the service mocks below return; the test only passed when it reached
+  // real Firestore with a developer's credentials.
   const mockDoc = {
-    get: vi.fn(),
+    get: vi.fn().mockResolvedValue({ exists: false, data: () => undefined }),
     set: vi.fn().mockResolvedValue(undefined),
     update: vi.fn().mockResolvedValue(undefined),
     collection: vi.fn(),
@@ -22,7 +26,7 @@ vi.mock('firebase-admin', () => {
 
   const mockCollection = {
     doc: vi.fn(() => mockDoc),
-    get: vi.fn(),
+    get: vi.fn().mockResolvedValue({ docs: [], empty: true }),
     add: vi.fn().mockResolvedValue({ id: 'test-id' }),
     where: vi.fn(() => ({
       get: vi.fn().mockResolvedValue({ docs: [] }),
@@ -265,21 +269,22 @@ vi.mock('../../intelligence/coaching-patterns.js', () => ({
   ]),
 }));
 
-// Mock cross-domain correlator
+// Mock cross-domain correlator. The aggregator calls getCorrelations(); a mock
+// that only exported getCrossCorrelator made that call throw, so correlations
+// were always empty here.
 vi.mock('../../intelligence/patterns/cross-domain-correlator.js', () => ({
-  getCrossCorrelator: vi.fn(() => ({
-    getCorrelations: vi.fn().mockReturnValue([
-      {
-        domains: ['work', 'sleep'],
-        insight: 'Poor sleep correlates with work stress',
-        confidence: 'likely',
-      },
-    ]),
-    clearUser: vi.fn(),
-  })),
+  getCorrelations: vi.fn().mockReturnValue([
+    {
+      domainA: { domain: 'work', pattern: 'stress' },
+      domainB: { domain: 'sleep', pattern: 'poor sleep' },
+      insight: 'Poor sleep correlates with work stress',
+      confidence: 'likely',
+    },
+  ]),
 }));
 
 // Import the module under test
+import admin from 'firebase-admin';
 import {
   getUserKnowledge,
   formatKnowledgeForContext,
@@ -292,6 +297,28 @@ import {
 } from '../../intelligence/user-knowledge/index.js';
 
 const TEST_USER_ID = 'test-user-123';
+
+// The completeness the mocks above add up to (Firestore is empty, so every
+// section that reads only Firestore scores 0): one contact of the five that
+// score full marks, a dream and a commitment, a trajectory and values, a
+// behavior and a correlation, one of three boundary kinds (Ferni's commitments),
+// and an inside joke with no conversation count.
+const EXPECTED_SECTIONS = {
+  identity: 0,
+  lifestyle: 0,
+  relationships: 1 / 5,
+  aspirations: 1,
+  wellness: 0,
+  work: 0,
+  communication: 0,
+  emotional: 1,
+  patterns: 1,
+  boundaries: 1 / 3,
+  sharedHistory: 0.5,
+};
+const EXPECTED_OVERALL =
+  Object.values(EXPECTED_SECTIONS).reduce((sum, score) => sum + score, 0) /
+  Object.keys(EXPECTED_SECTIONS).length;
 
 describe('Better Than Human Integration', () => {
   beforeEach(() => {
@@ -350,6 +377,23 @@ describe('Better Than Human Integration', () => {
       );
     });
 
+    it('should load Ferni commitments when Firestore is unavailable', async () => {
+      // Commitments have their own storage; a missing profile db must not hide them.
+      vi.mocked(admin.firestore).mockImplementation(() => {
+        throw new Error('Firestore unavailable');
+      });
+      try {
+        const knowledge = await getUserKnowledge(TEST_USER_ID);
+
+        expect(knowledge.boundaries.avoidTopics).toEqual([]);
+        expect(knowledge.boundaries.ferniCommitments.map((c) => c.description)).toEqual([
+          'Check in about job interview',
+        ]);
+      } finally {
+        vi.mocked(admin.firestore).mockRestore();
+      }
+    });
+
     it('should load inside jokes into shared history', async () => {
       const knowledge = await getUserKnowledge(TEST_USER_ID);
 
@@ -388,10 +432,9 @@ describe('Better Than Human Integration', () => {
     it('should calculate completeness scores', async () => {
       const knowledge = await getUserKnowledge(TEST_USER_ID);
 
-      expect(knowledge.metadata.completeness.overall).toBeGreaterThanOrEqual(0);
-      expect(knowledge.metadata.completeness.overall).toBeLessThanOrEqual(1);
-      expect(knowledge.metadata.completeness.relationships).toBeGreaterThan(0);
-      expect(knowledge.metadata.completeness.aspirations).toBeGreaterThan(0);
+      const { overall, ...sections } = knowledge.metadata.completeness;
+      expect(sections).toEqual(EXPECTED_SECTIONS);
+      expect(overall).toBeCloseTo(EXPECTED_OVERALL, 10);
     });
 
     it('should cache knowledge for performance', async () => {
@@ -484,9 +527,8 @@ describe('Better Than Human Integration', () => {
     it('should get knowledge completeness', async () => {
       const completeness = await getKnowledgeCompleteness(TEST_USER_ID);
 
-      expect(completeness.overall).toBeGreaterThanOrEqual(0);
-      expect(completeness.sections.relationships).toBeDefined();
-      expect(completeness.sections.aspirations).toBeDefined();
+      expect(completeness.sections).toEqual(EXPECTED_SECTIONS);
+      expect(completeness.overall).toBeCloseTo(EXPECTED_OVERALL, 10);
     });
 
     it('should get user dreams', async () => {

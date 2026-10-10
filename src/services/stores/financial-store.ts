@@ -12,7 +12,7 @@
  * All data is user-scoped and persists across sessions.
  */
 
-import { getDefaultStore, type MemoryStore } from '../../memory/index.js';
+import { getProfileStore, type MemoryStore } from '../../memory/profile-store.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
@@ -168,7 +168,7 @@ class MayaFinancialStore {
 
   async initialize(): Promise<void> {
     try {
-      this.store = getDefaultStore();
+      this.store = await getProfileStore();
       await this.store.initialize();
       getLogger().info('💰 Maya financial store initialized');
     } catch (error) {

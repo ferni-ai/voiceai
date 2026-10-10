@@ -42,7 +42,7 @@ const MOMENT_STYLES = `
 
 .moments-container {
   position: fixed;
-  top: calc(260px + env(safe-area-inset-top, 0px));
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: ${MOMENT_Z_INDEX.whisper};
@@ -55,7 +55,7 @@ const MOMENT_STYLES = `
 
 @media (max-width: 480px) {
   .moments-container {
-    top: calc(220px + env(safe-area-inset-top, 0px));
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -97,7 +97,7 @@ const MOMENT_STYLES = `
 }
 
 .moment-whisper--warning {
-  background: var(--color-semantic-warning, #b8956a);
+  background: color-mix(in srgb, var(--color-semantic-warning, #a67c35) 80%, black);
   color: white;
   border: 1px solid var(--color-semantic-warning-border, rgba(184, 149, 106, 0.8));
 }
@@ -344,7 +344,7 @@ const MOMENT_STYLES = `
 .moment-celebration__subtitle {
   font-family: var(--font-body, 'Inter');
   font-size: clamp(14px, 3.5vw, 16px);
-  color: var(--color-text-secondary, #70605a);
+  color: var(--color-text-secondary, #a89b8c);
   margin: 0;
 }
 
@@ -374,8 +374,8 @@ const MOMENT_STYLES = `
   position: absolute;
   inset: 0;
   background: rgba(44, 37, 32, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
 }
 
 .moment-milestone__card {

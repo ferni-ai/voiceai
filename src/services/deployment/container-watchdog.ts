@@ -21,6 +21,7 @@ import {
   analyzeFailure,
   type DiagnosticResult,
 } from '../self-healing/ai-diagnostics.js';
+import { removeStaleTempFiles } from './stale-temp-cleanup.js';
 
 const log = createLogger({ module: 'ContainerWatchdog' });
 
@@ -106,7 +107,6 @@ export interface WatchdogConfig {
 
   // Instance metadata
   instanceName: string;
-  zone: string;
 }
 
 // Parse number from env with fallback
@@ -136,8 +136,7 @@ const DEFAULT_CONFIG: WatchdogConfig = {
   slackEnabled: process.env.NODE_ENV !== 'development', // Disable Slack in local dev
   alertCooldownMs: 300_000, // 5 minutes between repeat alerts
 
-  instanceName: process.env.GCE_INSTANCE || 'voiceai-agent-gce',
-  zone: process.env.GCP_ZONE || 'us-central1-a',
+  instanceName: process.env.AGENT_INSTANCE_NAME || process.env.HOSTNAME || 'voice-agent',
 };
 
 // ============================================================================
@@ -377,9 +376,8 @@ function performCleanup(aggressive: boolean): CleanupResult {
 
   try {
     // 1. Clean temp files
-    log.info('Cleaning temp files...');
-    execSync('rm -rf /tmp/* 2>/dev/null || true', { stdio: 'pipe' });
-    result.actions.push('Cleaned /tmp');
+    log.info('Removing stale agent temp files...');
+    result.actions.push(`Removed ${removeStaleTempFiles()} stale temp files`);
 
     // 2. Clear Node.js cache
     log.info('Clearing Node.js cache...');

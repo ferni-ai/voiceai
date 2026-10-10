@@ -15,6 +15,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet, apiDelete } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { t } from '../i18n/index.js';
+import { asModalDialog } from '../utils/accessibility.js';
 
 // ============================================================================
 // TYPES
@@ -74,6 +75,7 @@ interface OuraSettingsCallbacks {
 // ============================================================================
 
 let container: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let styleElement: HTMLStyleElement | null = null;
 let callbacks: OuraSettingsCallbacks = {};
 let isLoading = false;
@@ -517,7 +519,7 @@ function injectStyles(): void {
 
     [data-theme="midnight"] .oura-settings__score-card,
     [data-theme="midnight"] .oura-settings__metric {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
 
     /* Reduced motion */
@@ -880,9 +882,9 @@ export async function showOuraSettings(): Promise<void> {
   injectStyles();
 
   // Create container
-  container = createElement('div', { className: 'oura-settings' });
-  container.setAttribute('role', 'dialog');
-  container.setAttribute('aria-label', 'Oura Ring settings');
+  const el = (container = createElement('div', { className: 'oura-settings' }));
+  // One Escape closes it, and only when it's the top dialog (it opens over Everything Connected)
+  releaseEscape = asModalDialog(el, { label: t('menu.items.oura') }, () => el.classList.contains('oura-settings--visible'), hideOuraSettings);
 
   // Backdrop
   const backdrop = createElement('div', { className: 'oura-settings__backdrop' });
@@ -949,19 +951,12 @@ export async function showOuraSettings(): Promise<void> {
     url.searchParams.delete('message');
     window.history.replaceState({}, '', url.toString());
   }
-
-  // Escape to close
-  const handleKeyDown = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') {
-      hideOuraSettings();
-    }
-  };
-  document.addEventListener('keydown', handleKeyDown);
 }
 
 export function hideOuraSettings(): void {
   if (!container) return;
 
+  releaseEscape?.();
   container.classList.remove('oura-settings--visible');
   callbacks.onClose?.();
 

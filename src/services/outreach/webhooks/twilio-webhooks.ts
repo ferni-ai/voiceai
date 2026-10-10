@@ -8,8 +8,8 @@
  * - Voicemail detection
  */
 
+import { getProfileStore } from '../../../memory/profile-store.js';
 import { createHmac } from 'crypto';
-import { getDefaultStore } from '../../../memory/in-memory-store.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { recordResponseEvent } from '../analytics.js';
@@ -33,7 +33,7 @@ const log = getLogger().child({ module: 'twilio-webhooks' });
  */
 async function findUserByPhone(phone: string): Promise<UserProfile | null> {
   try {
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     if (!store.isInitialized) {
       await store.initialize();
     }
@@ -205,15 +205,17 @@ export function onInboundMessage(handler: InboundMessageHandler): void {
 // ============================================================================
 
 /**
- * Validate Twilio webhook signature
- * Uses HMAC-SHA1 as per Twilio's specification
+ * Validate Twilio webhook signature (HMAC-SHA1 as per Twilio's specification).
+ * The token comes from initializeTwilioWebhooks, else TWILIO_AUTH_TOKEN: nothing deployed
+ * calls initializeTwilioWebhooks, so without the env fallback every signature was refused.
  */
 export function validateTwilioSignature(
   signature: string,
   url: string,
   params: Record<string, string>
 ): boolean {
-  if (!twilioAuthToken) {
+  const authToken = twilioAuthToken || process.env.TWILIO_AUTH_TOKEN;
+  if (!authToken) {
     log.warn('Cannot validate signature - auth token not set');
     return false;
   }
@@ -225,9 +227,7 @@ export function validateTwilioSignature(
     for (const key of sortedKeys) {
       data += key + params[key];
     }
-
-    // Create HMAC-SHA1 signature
-    const expectedSignature = createHmac('sha1', twilioAuthToken).update(data).digest('base64');
+    const expectedSignature = createHmac('sha1', authToken).update(data).digest('base64');
 
     return signature === expectedSignature;
   } catch (error) {

@@ -30,6 +30,13 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      # Majors land together in one weekly PR (they arrived one PR each and
+      # crowded the queue: 4 of 10 open dependabot PRs on 2026-10-08).
+      majors:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
     ignore:
       # Ignore major version updates for critical packages (review manually)
       - dependency-name: "@livekit/*"
@@ -37,32 +44,9 @@ updates:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
 
-  # Frontend (apps/web/package.json)
-  - package-ecosystem: "npm"
-    directory: "/apps/web"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/Los_Angeles"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "chore(deps)"
-    labels:
-      - "dependencies"
-      - "frontend"
-    ignore:
-      # No patched braces release exists for its open advisory, so every
-      # security-update run failed with security_update_not_found. Remove
-      # once a fixed version ships.
-      - dependency-name: "braces"
-    groups:
-      minor-and-patch:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
+  # Frontend (apps/web): covered by the root entry above. apps/web is a pnpm
+  # workspace package; its old npm package-lock.json is gone, and
+  # the UI image now installs it from pnpm-lock.yaml like everything else.
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -71,6 +55,11 @@ updates:
       interval: "monthly"
     commit-message:
       prefix: "chore(ci)"
+    # One PR a month for every action bump, majors included.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
     labels:
       - "dependencies"
       - "ci"

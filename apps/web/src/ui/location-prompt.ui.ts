@@ -26,6 +26,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('LocationPromptUI');
 
@@ -46,31 +47,27 @@ export interface LocationPromptResult {
 
 const PROMPT_CONTENT: Record<
   LocationPromptContext,
-  { icon: string; title: string; message: string }
+  { icon: string; titleKey: string; messageKey: string }
 > = {
   weather: {
     icon: '🌤️',
-    title: 'Local weather',
-    message:
-      "I'd love to mention your local weather when it's relevant. This helps me be more helpful—like suggesting you grab an umbrella or enjoy the sunshine.",
+    titleKey: 'locationPrompt.weather.title',
+    messageKey: 'locationPrompt.weather.message',
   },
   events: {
     icon: '📍',
-    title: 'Nearby events',
-    message:
-      'With your location, I can tell you about interesting things happening near you—concerts, workshops, community events that might brighten your week.',
+    titleKey: 'locationPrompt.events.title',
+    messageKey: 'locationPrompt.events.message',
   },
   timezone: {
     icon: '🕐',
-    title: 'Your time zone',
-    message:
-      'Knowing where you are helps me understand what time it is for you, so I can be more present and thoughtful in our conversations.',
+    titleKey: 'locationPrompt.timezone.title',
+    messageKey: 'locationPrompt.timezone.message',
   },
   personalization: {
     icon: '✨',
-    title: 'Personalization',
-    message:
-      "Your location helps me make our conversations feel more personal and relevant—like I'm actually there with you.",
+    titleKey: 'locationPrompt.personalization.title',
+    messageKey: 'locationPrompt.personalization.message',
   },
 };
 
@@ -103,15 +100,15 @@ export function showLocationPrompt(
       <div class="ferni-location-prompt-backdrop"></div>
       <div class="ferni-location-prompt-card" role="dialog" aria-modal="true" aria-labelledby="location-prompt-title">
         <div class="ferni-location-prompt-icon">${content.icon}</div>
-        <h2 id="location-prompt-title" class="ferni-location-prompt-title">${content.title}</h2>
-        <p class="ferni-location-prompt-message">${content.message}</p>
-        <p class="ferni-location-prompt-note">This stays just between us—I only use it to make our conversations more personal.</p>
+        <h2 id="location-prompt-title" class="ferni-location-prompt-title">${t(content.titleKey)}</h2>
+        <p class="ferni-location-prompt-message">${t(content.messageKey)}</p>
+        <p class="ferni-location-prompt-note">${t('locationPrompt.note')}</p>
         <div class="ferni-location-prompt-actions">
           <button class="ferni-location-prompt-btn ferni-location-prompt-btn--secondary" data-action="not-now">
-            Not now
+            ${t('locationPrompt.notNow')}
           </button>
           <button class="ferni-location-prompt-btn ferni-location-prompt-btn--primary" data-action="allow">
-            Allow location
+            ${t('locationPrompt.allow')}
           </button>
         </div>
       </div>

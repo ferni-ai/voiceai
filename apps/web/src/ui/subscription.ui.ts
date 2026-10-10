@@ -30,6 +30,7 @@ import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { teamUnlockService } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { billingErrorMessage } from '../utils/billing.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { addTapListener, addTapListeners, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
@@ -89,12 +90,9 @@ export interface SubscriptionStatus {
   approaching?: boolean;
   upgradePrompt?: string | null;
   canUpgrade?: boolean;
-  prices?: Array<{
-    tier: string;
-    name: string;
-    priceInCents: number;
-    description: string;
-  }>;
+  prices?: Array<{ tier: string; name: string; priceInCents: number; description: string }>;
+  /** Where the plan is billed (server-derived); only 'stripe' can use the Stripe portal. */
+  billingSource?: 'stripe' | 'app_store' | 'none';
 }
 
 export interface SubscriptionConfig {
@@ -305,7 +303,7 @@ function showUpgradeSuccessCelebration(tier: string): void {
   saveFocus();
 
   const tierNames: Record<string, string> = {
-    friend: 'Founding Member',
+    friend: t('subscription.becomeFoundingMember'),
     partner: 'Founding Patron',
   };
 
@@ -325,18 +323,18 @@ function showUpgradeSuccessCelebration(tier: string): void {
         <div class="celebration-icon" aria-hidden="true">
           ${ICONS.sparkles}
         </div>
-        <span class="subscription-eyebrow" aria-hidden="true">WELCOME, FOUNDER</span>
-        <h2 id="celebration-title" class="subscription-title">You're One of Us Now</h2>
+        <span class="subscription-eyebrow" aria-hidden="true">${t('subscription.welcomeFounder')}</span>
+        <h2 id="celebration-title" class="subscription-title">${t('subscription.youreOneOfUs')}</h2>
         <p id="celebration-message" class="celebration-message">
           You're not just supporting us — you're helping us build something we believe everyone deserves.<br/>
-          We're in this together. 💚
+          We're in this together.
         </p>
         <div class="celebration-tier" aria-label="${t('accessibility.yourNewPlan')}">
           <span class="tier-badge">${tierName}</span>
         </div>
-        <button aria-label="${t('accessibility.letSTalk')}" class="celebration-button" data-action="start" autofocus>
+        <button aria-label="${t('subscription.letsTalk')}" class="celebration-button" data-action="start" autofocus>
           ${ICONS.heart}
-          <span>Let's Talk</span>
+          <span>${t('subscription.letsTalk')}</span>
         </button>
       </div>
     </div>
@@ -346,9 +344,7 @@ function showUpgradeSuccessCelebration(tier: string): void {
   trapFocus(container);
 
   // Announce to screen readers
-  announceToScreenReader(
-    `You've upgraded to ${tierName}. Thank you for supporting Ferni.`
-  );
+  announceToScreenReader(`You've upgraded to ${tierName}. Thank you for supporting Ferni.`);
 
   // Animate in (respecting reduced motion)
   requestAnimationFrame(() => {
@@ -378,8 +374,12 @@ function showUpgradeSuccessCelebration(tier: string): void {
   });
 
   // Event handlers (iOS-compatible)
-  addTapListener(container.querySelector('.subscription-backdrop'), () => closeCelebration(container));
-  addTapListener(container.querySelector('[data-action="start"]'), () => closeCelebration(container));
+  addTapListener(container.querySelector('.subscription-backdrop'), () =>
+    closeCelebration(container)
+  );
+  addTapListener(container.querySelector('[data-action="start"]'), () =>
+    closeCelebration(container)
+  );
 
   // Reload subscription status
   void loadStatus();
@@ -619,12 +619,12 @@ function createModal(prompt?: string): HTMLElement {
       </button>
       
       <div class="subscription-header">
-        <span class="subscription-eyebrow" aria-hidden="true">FOUNDERS FUND</span>
+        <span class="subscription-eyebrow" aria-hidden="true">${t('subscription.foundersFund')}</span>
         <h2 id="subscription-title" class="subscription-title">
           ${prompt ? 'Help Us Build This' : 'Support Ferni'}
         </h2>
         <p id="subscription-subtitle" class="subscription-subtitle">
-          ${prompt || 'Ferni is free forever. If you believe in what we\'re building, chip in. As a thank you, we\'ll unlock some perks.'}
+          ${prompt || "Ferni is free forever. If you believe in what we're building, chip in. As a thank you, we'll unlock some perks."}
         </p>
       </div>
       
@@ -633,7 +633,7 @@ function createModal(prompt?: string): HTMLElement {
       </div>
       
       <p class="subscription-footer" aria-live="polite">
-        Not ready? That's totally fine. Ferni is here for you either way.
+        ${t('subscription.notReady')}
       </p>
     </div>
   `;
@@ -688,27 +688,27 @@ function createLimitModal(prompt: string, resetDate?: string): HTMLElement {
       
       <div class="subscription-header">
         <div class="limit-icon" aria-hidden="true">${ICONS.heart}</div>
-        <span class="subscription-eyebrow" aria-hidden="true">LET'S PAUSE HERE</span>
-        <h2 id="limit-title" class="subscription-title">See You Soon</h2>
+        <span class="subscription-eyebrow" aria-hidden="true">${t('subscription.pauseHere')}</span>
+        <h2 id="limit-title" class="subscription-title">${t('subscription.seeYouSoon')}</h2>
         <p id="limit-description" class="subscription-subtitle">
-          Our conversation time is limited to keep Ferni sustainable.<br/>
+          ${t('subscription.pauseMessage')}<br/>
           Want to talk longer? Founding Members get unlimited time — and they help keep Ferni free for everyone.
         </p>
-        ${resetDate ? `<p class="reset-date">Sessions reset on <strong>${formattedDate}</strong></p>` : ''}
+        ${resetDate ? `<p class="reset-date">${t('subscription.sessionsResetOn')} <strong>${formattedDate}</strong></p>` : ''}
       </div>
       
       <div class="limit-actions" role="group" aria-label="${t('accessibility.options')}">
-        <button aria-label="${t('accessibility.becomeAFoundingMember')}" class="limit-button limit-button--primary" data-action="upgrade">
+        <button aria-label="${t('subscription.becomeFoundingMember')}" class="limit-button limit-button--primary" data-action="upgrade">
           ${ICONS.heart}
-          <span>Become a Founding Member</span>
+          <span>${t('subscription.becomeFoundingMember')}</span>
         </button>
-        <button aria-label="${t('accessibility.next')}" class="limit-button limit-button--secondary" data-action="close">
-          See you next time 💚
+        <button class="limit-button limit-button--secondary" data-action="close">
+          See you next time
         </button>
       </div>
       
       <p class="subscription-footer">
-        Your memories are safe. I'll remember everything when you're back.
+        ${t('subscription.memoriesSafe')}
       </p>
     </div>
   `;
@@ -750,8 +750,8 @@ function createTierCard(tier: SubscriptionTier, index: number): string {
       aria-labelledby="tier-${tier.id}-name"
       aria-describedby="tier-${tier.id}-desc"
     >
-      ${isPopular ? `<div class="tier-badge" role="status">${ICONS.star} <span>Most Popular</span></div>` : ''}
-      ${isCurrentTier ? '<div class="tier-badge tier-badge--current" role="status">Current Plan</div>' : ''}
+      ${isPopular ? `<div class="tier-badge" role="status">${ICONS.star} <span>${t('subscription.mostPopular')}</span></div>` : ''}
+      ${isCurrentTier ? `<div class="tier-badge tier-badge--current" role="status">${t('subscription.currentPlan')}</div>` : ''}
 
       <h3 id="tier-${tier.id}-name" class="tier-name">${tier.name}</h3>
       <p id="tier-${tier.id}-desc" class="tier-description">${tier.description}</p>
@@ -765,14 +765,14 @@ function createTierCard(tier: SubscriptionTier, index: number): string {
         ${tier.features.map((f) => `<li>${ICONS.check} <span>${f}</span></li>`).join('')}
       </ul>
       
-      <button 
-        class="tier-button ${isCurrentTier ? 'tier-button--current' : ''}" 
+      <button
+        class="tier-button ${isCurrentTier ? 'tier-button--current' : ''}"
         data-tier="${tier.id}"
         ${isCurrentTier || isFree ? 'disabled aria-disabled="true"' : ''}
         aria-label="${isCurrentTier ? 'You are a Founder - thank you!' : isFree ? 'You are part of the community' : `Chip in ${priceText} as a ${tier.name}`}"
       >
         ${isLoading ? ICONS.loader : ''}
-        <span>${isCurrentTier ? 'You\'re Here 💚' : isFree ? 'Free Forever' : 'Chip In'}</span>
+        <span>${isCurrentTier ? t('subscription.currentPlan') : isFree ? t('subscription.freeForever') : t('subscription.chooseThis')}</span>
       </button>
     </article>
   `;
@@ -852,28 +852,21 @@ async function handleUpgrade(tier: string): Promise<void> {
   sessionStorage.setItem('ferni_upgrade_tier', tier);
 
   try {
-    const response = await apiPost<{ url?: string; error?: string }>(
-      '/subscription/checkout',
-      {
-        userId: deviceId,
-        device_id: deviceId,
-        tier,
-        successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
-        cancelUrl: window.location.origin + '?upgrade=cancel',
-      }
-    );
+    const response = await apiPost<{ url?: string; error?: string }>('/subscription/checkout', {
+      tier,
+      successUrl: window.location.origin + '?upgrade=success&tier=' + tier,
+      cancelUrl: window.location.origin + '?upgrade=cancel',
+    });
 
     const result = response.ok && response.data ? response.data : {};
 
     if (response.ok && result.url) {
       // Redirect to Stripe checkout
       window.location.href = result.url;
-    } else if (result.error === 'Stripe is not configured') {
-      // Dev mode: simulate upgrade
-      await handleDevUpgrade(tier, deviceId);
+    } else if (import.meta.env.DEV && response.status === 503) {
+      await handleDevUpgrade(tier, deviceId); // Stripe not configured locally: simulate
     } else {
-      // Show warm error message
-      showUpgradeError();
+      showUpgradeError(response.status);
     }
   } catch (error) {
     log.error('Upgrade failed:', error);
@@ -892,16 +885,16 @@ function updateButtonLoadingState(tier: string, loading: boolean): void {
     button.classList.toggle('tier-button--loading', loading);
     if (loading) {
       button.setAttribute('aria-busy', 'true');
-      button.innerHTML = `${ICONS.loader} <span>Processing...</span>`;
+      button.innerHTML = `${ICONS.loader} <span>${t('subscription.processing')}</span>`;
     } else {
       button.removeAttribute('aria-busy');
-      button.innerHTML = '<span>Choose This</span>';
+      button.innerHTML = `<span>${t('subscription.chooseThis')}</span>`;
     }
   }
 }
 
-function showUpgradeError(): void {
-  toast.error(t('toasts.somethingWentSidewaysWantToTryAgain'));
+function showUpgradeError(status?: number): void {
+  toast.error(billingErrorMessage(status));
   announceToScreenReader("Couldn't process that upgrade. Try again?");
 }
 
@@ -915,11 +908,11 @@ async function handleDevUpgrade(tier: string, deviceId: string): Promise<void> {
     toast.error(t('toasts.thisFeatureIsOnlyAvailableInDevelopment'));
     return;
   }
-  
+
   try {
     // Get authenticated headers (includes X-User-Id and Firebase token)
     const headers = await getApiHeadersAsync();
-    
+
     const response = await fetch('/subscription/upgrade', {
       method: 'POST',
       headers,

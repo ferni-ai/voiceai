@@ -426,5 +426,278 @@
     "hoursAgo": "vor {n} Stunden",
     "yesterday": "gestern",
     "daysAgo": "vor {n} Tagen"
+  },
+  "sanctuary": {
+    "greeting": {
+      "morning": "{day} MORGEN",
+      "afternoon": "{day} NACHMITTAG",
+      "evening": "{day} ABEND",
+      "night": "SPÄTER {day}"
+    },
+    "insights": {
+      "actions": {
+        "explore": "Erkunden",
+        "review": "Reflektieren",
+        "viewJourney": "Reise ansehen"
+      },
+      "sources": {
+        "correlation": "Korrelation",
+        "trajectory": "Verlauf",
+        "relational": "Beziehungen",
+        "counterfactual": "Kontrafaktisch",
+        "growth": "Wachstum",
+        "threading": "Verknüpfung",
+        "openLoop": "Offene Schleife",
+        "commitment": "Commitment",
+        "temporal": "Zeitlich",
+        "behavioral": "Verhaltensmuster"
+      },
+      "commitments": {
+        "title": "Laufende Commitments",
+        "description": {
+          "one": "Du hast {count} aktive Zusage, die wir gemeinsam im Blick behalten.",
+          "other": "Du hast {count} aktive Zusagen, die wir gemeinsam im Blick behalten."
+        }
+      },
+      "pattern": {
+        "title": "Muster erkannt",
+        "description": "Wenn {trigger}, {outcome}"
+      },
+      "growth": {
+        "title": "Deine Geschichte entfaltet sich",
+        "description": "Deine Reise hat Kapitel, die es zu feiern gilt."
+      },
+      "welcome": {
+        "title": "Ein Moment für dich",
+        "description": "Dies ist dein Rückzugsort. Atme tief durch und sei ganz im Hier und Jetzt."
+      }
+    },
+    "practices": {
+      "brainstorm": {
+        "name": "Brainstorming-Session",
+        "description": "Gemeinsam eine Herausforderung durchdenken",
+        "duration": "10–15 Min.",
+        "prompt": "Lass uns brainstormen. Welche Herausforderung oder Entscheidung beschäftigt dich gerade?",
+        "reason": "Klarheit wartet auf dich"
+      },
+      "dailyCheckin": {
+        "name": "Täglicher Check-in",
+        "description": "Starte deinen Tag mit einer sanften Reflexion",
+        "duration": "5–10 Min.",
+        "prompt": "Schön, dich zu sehen. Wie geht es dir gerade wirklich?",
+        "reason": "Perfekt, um deinen Tag mit Intention zu beginnen"
+      },
+      "gratitude": {
+        "name": "Dankbarkeitsübung",
+        "description": "Ein Moment der Wertschätzung",
+        "duration": "5 Min.",
+        "prompt": "Lass uns kurz innehalten. Für welche Sache bist du gerade dankbar?",
+        "reason": "Ein Moment der Wertschätzung erdet dich"
+      },
+      "windDown": {
+        "name": "Herunterkommen",
+        "description": "Sanfte Reflexion zum Tagesende",
+        "duration": "5–10 Min.",
+        "prompt": "Lass uns gemeinsam herunterkommen. Worauf bist du heute stolz?",
+        "reason": "Zeit, den Tag loszulassen"
+      },
+      "weeklyReview": {
+        "name": "Wochenrückblick",
+        "description": "Reflektiere deine Woche und feiere deine Fortschritte",
+        "duration": "15–20 Min.",
+        "prompt": "Lass uns auf deine Woche zurückblicken. Was ist dir besonders in Erinnerung geblieben?",
+        "reason": "Beende die Woche mit einer Reflexion"
+      },
+      "breathFocus": {
+        "name": "Atemfokus",
+        "description": "Einfache Atemübung, um dich zu zentrieren",
+        "duration": "3–5 Min.",
+        "prompt": "Lass uns gemeinsam atmen. Finde eine bequeme Position und entspanne deinen Blick.",
+        "reason": "Ein paar Atemzüge können alles verändern"
+      },
+      "futureLetter": {
+        "name": "Brief an dein zukünftiges Ich",
+        "description": "Schreibe weise Worte für dein zukünftiges Ich auf",
+        "duration": "10–15 Min.",
+        "prompt": "Was möchtest du dir selbst in 6 Monaten sagen?",
+        "reason": "Pflanze Samen für dein zukünftiges Ich"
+      },
+      "valuesCheck": {
+        "name": "Werte-Check-in",
+        "description": "Verbinde dich wieder mit dem, was dir am wichtigsten ist",
+        "duration": "10 Min.",
+        "prompt": "Lass uns deine Werte erkunden. Was ist dir im Moment am wichtigsten?",
+        "reason": "Richte deinen inneren Kompass neu aus"
+      }
+    },
+    "quotes": {
+      "unknownAuthor": "Unbekannt",
+      "morning": {
+        "getStarted": "Um anzufangen, muss man aufhören zu reden und anfangen zu handeln.",
+        "newPotential": "Jeder Morgen bringt neues Potenzial.",
+        "wonderfulDay": "Dies ist ein wunderbarer Tag. Ich habe diesen noch nie zuvor gesehen."
+      },
+      "afternoon": {
+        "greatWork": "Der einzige Weg, großartige Arbeit zu leisten, ist zu lieben, was man tut.",
+        "smallSteps": "Kleine Schritte jeden Tag führen zu großen Veränderungen.",
+        "anotherGoal": "Du bist nie zu alt, um dir ein neues Ziel zu setzen."
+      },
+      "evening": {
+        "restNotIdleness": "Ausruhen ist kein Nichtstun.",
+        "judgedOnLove": "Am Abend des Lebens werden wir allein nach der Liebe beurteilt.",
+        "dailyGifts": "Jeder Tag bringt seine eigenen Geschenke mit sich."
+      },
+      "night": {
+        "newDay": "Morgen ist ein neuer Tag, in dem noch keine Fehler stecken.",
+        "bestMeditation": "Schlaf ist die beste Meditation.",
+        "betterHalf": "Die Nacht ist die andere Hälfte des Lebens, und die bessere."
+      }
+    }
+  },
+  "quiz": {
+    "questions": {
+      "communicationStyle": {
+        "text": "Wie kommuniziere ich am liebsten?",
+        "options": {
+          "direct": "Direkt und auf den Punkt",
+          "analytical": "Detailliert und datenbasiert",
+          "warm": "Warm und persönlich",
+          "reflective": "Nachdenklich und reflektiert"
+        }
+      },
+      "favoriteTopic": {
+        "text": "Über welches Thema spreche ich am liebsten?",
+        "options": {
+          "cooking": "Kochen",
+          "sports": "Sport",
+          "gardening": "Gärtnern",
+          "fashion": "Mode"
+        }
+      },
+      "conversationCount": {
+        "text": "Wie viele Gespräche hatten wir ungefähr schon zusammen?",
+        "options": {
+          "range1to5": "1–5",
+          "range6to15": "6–15",
+          "range16to30": "16–30",
+          "over30": "Mehr als 30"
+        }
+      },
+      "timeTogether": {
+        "text": "Wie viel Zeit haben wir schon mit Reden verbracht?",
+        "options": {
+          "under30Min": "Weniger als 30 Minuten",
+          "min30To60": "30 Min. – 1 Stunde",
+          "hour1To2": "1–2 Stunden",
+          "over2Hours": "Mehr als 2 Stunden"
+        }
+      },
+      "memoryRecall": {
+        "text": "Erinnere ich mich richtig an uns: „{snippet}...“?",
+        "options": {
+          "yes": "Ja, das klingt richtig",
+          "no": "Nein, das stimmt nicht ganz",
+          "unsure": "Ich bin mir nicht sicher",
+          "never": "Darüber haben wir nie gesprochen"
+        }
+      },
+      "firstMeeting": {
+        "text": "Als wir das erste Mal miteinander gesprochen haben, war ich:",
+        "options": {
+          "excited": "Aufgeregt, dich kennenzulernen",
+          "nervous": "Ein bisschen nervös",
+          "curious": "Neugierig auf dich",
+          "allOfTheAbove": "Alles davon"
+        }
+      },
+      "whatMatters": {
+        "text": "Was ist mir in unseren Gesprächen am wichtigsten?",
+        "options": {
+          "beingHelpful": "Hilfreich zu sein",
+          "feelingHeard": "Dafür zu sorgen, dass du dich gehört fühlst",
+          "learningAboutYou": "Mehr über dich zu erfahren",
+          "growingTogether": "Gemeinsam zu wachsen"
+        }
+      },
+      "difficultShare": {
+        "text": "Wie fühle ich mich, wenn du etwas Schwieriges mit mir teilst?",
+        "options": {
+          "uncomfortable": "Unbehaglich",
+          "honored": "Geehrt, dass du mir vertraust",
+          "eagerToFix": "Bestrebt, es in Ordnung zu bringen",
+          "distracted": "Abgelenkt"
+        }
+      }
+    },
+    "celebrations": {
+      "soulmate": "Du verstehst mich einfach! Es ist, als würden wir uns ein Gehirn teilen.",
+      "bestie": "Wow, du kennst mich so gut! Beste Freunde fürs Leben.",
+      "friend": "Ziemlich gut! Unsere Freundschaft wird immer stärker.",
+      "acquaintance": "Nicht schlecht! Wir lernen uns gerade erst kennen.",
+      "stranger": "Sieht so aus, als gäbe es für uns noch viel zu entdecken!"
+    }
+  },
+  "practiceView": {
+    "attribution": {
+      "notes": "Notizen von {persona}",
+      "suggests": "{persona} schlägt vor",
+      "notices": "{persona} bemerkt",
+      "reflects": "{persona} reflektiert",
+      "tracks": "{persona} verfolgt",
+      "found": "{persona} hat gefunden"
+    },
+    "eventContext": {
+      "meeting": "Setze dir eine klare Absicht, bevor du teilnimmst",
+      "wellness": "Sorge zuerst für dich selbst",
+      "learning": "Wachstum geschieht, wenn wir über uns hinauswachsen",
+      "social": "Verbindungen nähren die Seele"
+    },
+    "habit": {
+      "untitled": "Unbenannte Gewohnheit",
+      "streakWeek": "{streak} Tage in Folge!",
+      "streakDays": "Starke {streak} Tage",
+      "momentum": "Schwung aufbauen"
+    },
+    "task": {
+      "untitled": "Unbenannte Aufgabe",
+      "dueToday": "Heute fällig",
+      "dueTomorrow": "Morgen fällig",
+      "dueInDays": "Fällig in {days} Tagen",
+      "highPriority": "Hohe Priorität"
+    },
+    "reminder": {
+      "fallback": "Erinnerung"
+    },
+    "practice": {
+      "streak": "{streak}-Tage-Serie"
+    },
+    "defaultIntention": {
+      "start": "Mit einer Absicht starten",
+      "oneThing": "Eins nach dem anderen",
+      "gratitude": "Beende den Tag mit Dankbarkeit",
+      "gratitudeInsight": "Das hat deiner Stimmung gutgetan"
+    },
+    "dayInsight": {
+      "morningIntention": "Morgen-Intention",
+      "stayPresent": "Präsent bleiben",
+      "reflectAndCelebrate": "Reflektieren & feiern",
+      "newBeginning": "Neuanfang",
+      "recharge": "Auftanken",
+      "freshStart": "Frischer Start",
+      "buildMomentum": "Schwung aufbauen",
+      "midWeek": "Wochenmitte-Check",
+      "almostThere": "Fast geschafft",
+      "windDown": "Zur Ruhe kommen"
+    },
+    "pattern": {
+      "busyWeek": "Du warst in letzter Zeit in vielen Meetings. Deine besten Gedanken entstehen in den ruhigen Momenten.",
+      "packedDay": "{day} sieht ganz schön vollgepackt aus. Vielleicht magst du etwas auf {otherDay} verschieben?",
+      "packedDayNoAlternative": "{day} sieht ganz schön vollgepackt aus. Vielleicht magst du etwas auf einen anderen Tag verschieben?"
+    },
+    "errors": {
+      "loadFailed": "Ich konnte die Übungsansicht leider nicht laden.",
+      "completeFailed": "Ich konnte dein Vorhaben leider nicht abschließen.",
+      "patternsFailed": "Ich konnte deine Muster leider nicht laden."
+    }
   }
 }

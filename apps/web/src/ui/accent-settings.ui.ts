@@ -31,8 +31,8 @@ type EnglishAccent = 'american' | 'british' | 'australian' | 'indian';
 
 interface AccentOption {
   value: EnglishAccent;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   flagSvg: string;
 }
 
@@ -97,26 +97,26 @@ const FLAG_SVGS = {
 const ACCENT_OPTIONS: AccentOption[] = [
   {
     value: 'american',
-    label: 'American English',
-    description: 'Standard American accent, warm and familiar',
+    labelKey: 'accentSettings.americanLabel',
+    descriptionKey: 'accentSettings.americanDescription',
     flagSvg: FLAG_SVGS.us,
   },
   {
     value: 'british',
-    label: 'British English',
-    description: 'Received Pronunciation, elegant and clear',
+    labelKey: 'accentSettings.britishLabel',
+    descriptionKey: 'accentSettings.britishDescription',
     flagSvg: FLAG_SVGS.gb,
   },
   {
     value: 'australian',
-    label: 'Australian English',
-    description: 'Friendly Australian accent, relaxed and approachable',
+    labelKey: 'accentSettings.australianLabel',
+    descriptionKey: 'accentSettings.australianDescription',
     flagSvg: FLAG_SVGS.au,
   },
   {
     value: 'indian',
-    label: 'Indian English',
-    description: 'Indian English accent, melodic and expressive',
+    labelKey: 'accentSettings.indianLabel',
+    descriptionKey: 'accentSettings.indianDescription',
     flagSvg: FLAG_SVGS.in,
   },
 ];
@@ -518,7 +518,7 @@ function injectStyles(): void {
 
     /* Dark theme */
     [data-theme="midnight"] .accent-settings-modal {
-      background: var(--color-background-elevated, #70605a);
+      background: var(--color-background-elevated, #352e28);
     }
 
     [data-theme="midnight"] .accent-settings-title {
@@ -530,16 +530,16 @@ function injectStyles(): void {
     }
 
     [data-theme="midnight"] .accent-settings-close {
-      background: var(--color-background-tertiary, #685852);
+      background: var(--color-background-tertiary, #2a241f);
       color: var(--color-text-secondary, #f0ebe4);
     }
 
     [data-theme="midnight"] .accent-option {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
 
     [data-theme="midnight"] .accent-option:hover {
-      background: var(--color-background-tertiary, #685852);
+      background: var(--color-background-tertiary, #2a241f);
     }
 
     [data-theme="midnight"] .accent-option-label {
@@ -551,7 +551,7 @@ function injectStyles(): void {
     }
 
     [data-theme="midnight"] .accent-auto-detect {
-      background: var(--color-background-secondary, #60504a);
+      background: var(--color-background-secondary, #1e1a16);
     }
 
     [data-theme="midnight"] .accent-auto-detect-label {
@@ -615,10 +615,10 @@ function render(): void {
         
         <div class="accent-settings-header">
           <div class="accent-settings-icon">${ICONS.mic}</div>
-          <p class="accent-settings-eyebrow">Voice Preferences</p>
-          <h2 class="accent-settings-title">How should Ferni sound?</h2>
+          <p class="accent-settings-eyebrow">${t('accentSettings.eyebrow')}</p>
+          <h2 class="accent-settings-title">${t('accentSettings.title')}</h2>
           <p class="accent-settings-subtitle">
-            Choose your preferred English accent. Ferni will speak to you in a voice that feels like home.
+            ${t('accentSettings.subtitle')}
           </p>
         </div>
 
@@ -628,7 +628,7 @@ function render(): void {
               ? `
             <div class="accent-detected-badge">
               ${ICONS.sparkle}
-              <span>We detected you might prefer ${ACCENT_OPTIONS.find((o) => o.value === state.detectedAccent)?.label ?? 'American English'}</span>
+              <span>${t('accentSettings.detected', { accent: t(ACCENT_OPTIONS.find((o) => o.value === state.detectedAccent)?.labelKey ?? 'accentSettings.americanLabel') })}</span>
             </div>
           `
               : ''
@@ -637,12 +637,12 @@ function render(): void {
           <div class="accent-options">
             ${ACCENT_OPTIONS.map(
               (option) => `
-              <button aria-label="${t('accessibility.confirm')}" class="accent-option ${state.currentAccent === option.value ? 'selected' : ''}" 
+              <button class="accent-option ${state.currentAccent === option.value ? 'selected' : ''}" 
                       data-accent="${option.value}">
                 <span class="accent-option-flag">${option.flagSvg}</span>
                 <div class="accent-option-info">
-                  <p class="accent-option-label">${option.label}</p>
-                  <p class="accent-option-desc">${option.description}</p>
+                  <p class="accent-option-label">${t(option.labelKey)}</p>
+                  <p class="accent-option-desc">${t(option.descriptionKey)}</p>
                 </div>
                 <span class="accent-option-check">${ICONS.check}</span>
               </button>
@@ -653,7 +653,7 @@ function render(): void {
           <div class="accent-auto-detect">
             <div class="accent-auto-detect-info">
               <span class="accent-auto-detect-icon">${ICONS.globe}</span>
-              <span class="accent-auto-detect-label">Auto-detect from location</span>
+              <span class="accent-auto-detect-label">${t('accentSettings.autoDetect')}</span>
             </div>
             <button aria-label="${t('accessibility.toggle')}" class="accent-toggle ${state.autoDetected ? 'on' : ''}" data-action="toggle-auto">
               <span class="accent-toggle-knob" role="button" tabindex="0"></span>
@@ -663,8 +663,8 @@ function render(): void {
           ${state.error ? `<div class="accent-message error">${state.error}</div>` : ''}
           ${state.success ? `<div class="accent-message success">${state.success}</div>` : ''}
 
-          <button aria-label="${t('accessibility.save')}" class="accent-save-btn" ${state.isSaving ? 'disabled' : ''}>
-            ${state.isSaving ? t('common.saving') : 'Save Preference'}
+          <button class="accent-save-btn" ${state.isSaving ? 'disabled' : ''}>
+            ${state.isSaving ? t('common.saving') : t('buttons.savePreference')}
           </button>
         </div>
       </div>
@@ -769,7 +769,7 @@ async function savePreference(): Promise<void> {
     });
 
     if (!response.ok) {
-      throw new Error(response.data?.error ?? response.error ?? 'Failed to save preference');
+      throw new Error(response.data?.error ?? response.error ?? t('toasts.couldNotSave'));
     }
 
     log.info('Accent preference saved:', state.currentAccent);
@@ -798,23 +798,20 @@ async function savePreference(): Promise<void> {
 
         if (sessionResponse.ok) {
           log.info('Mid-session accent change applied:', state.currentAccent);
-          state.success = 'Accent updated! The voice will change on the next response.';
+          state.success = t('accentSettings.updatedLive');
         } else {
           // Session change failed, but preference was saved - still show partial success
           log.warn('Mid-session accent change failed, but preference saved');
-          state.success =
-            'Your preference is saved. The voice will update when you start a new conversation.';
+          state.success = t('accentSettings.savedNextConversation');
         }
       } catch (sessionErr) {
         // Mid-session change failed or timed out - still a partial success
         log.warn('Mid-session accent change failed:', sessionErr);
-        state.success =
-          'Your preference is saved. The voice will update when you start a new conversation.';
+        state.success = t('accentSettings.savedNextConversation');
       }
     } else {
       // No active session - will take effect next time
-      state.success =
-        'Your accent preference has been saved! Ferni will use this voice in your next conversation.';
+      state.success = t('accentSettings.savedNextSession');
     }
 
     // Close after a short delay
@@ -822,7 +819,7 @@ async function savePreference(): Promise<void> {
       close();
     }, 2000);
   } catch (err) {
-    state.error = err instanceof Error ? err.message : 'Failed to save preference';
+    state.error = err instanceof Error ? err.message : t('toasts.couldNotSave');
     log.error('Failed to save accent preference:', err);
   } finally {
     state.isSaving = false;

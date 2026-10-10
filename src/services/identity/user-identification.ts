@@ -483,8 +483,8 @@ export async function identifyFromMetadata(
 // ============================================================================
 
 /**
- * Link a phone number to an existing user profile
- * Allows Jack to recognize you whether you call or use web
+ * Link a phone number to a profile: later calls from it land in this profile,
+ * so call only after the user proves they can receive texts or calls there.
  */
 export async function linkPhoneToProfile(userId: string, phoneNumber: string): Promise<boolean> {
   const normalized = normalizePhoneNumber(phoneNumber);
@@ -658,45 +658,35 @@ export async function findPotentialLinkedAccounts(
 export async function findProfileByLinkedPhone(
   normalizedPhone: string
 ): Promise<UserProfile | null> {
-  const store = getStore();
+  // The formats a linked phone may be stored in.
+  const variants = [
+    `phone:${normalizedPhone}`,
+    normalizedPhone,
+    // Also check without country code for US numbers
+    normalizedPhone.startsWith('+1') ? normalizedPhone.slice(2) : null,
+  ].filter((v): v is string => Boolean(v));
 
   try {
-    const profiles = await store.listProfiles({ limit: 1000 });
-
-    for (const profile of profiles) {
-      const linked = (profile as UserProfileWithLinks).linkedIdentifiers || [];
-
-      // Check all phone formats
-      const phoneVariants = [
-        `phone:${normalizedPhone}`,
-        normalizedPhone,
-        // Also check without country code for US numbers
-        normalizedPhone.startsWith('+1') ? normalizedPhone.slice(2) : null,
-      ].filter(Boolean);
-
-      for (const variant of phoneVariants) {
-        if (linked.includes(variant!)) {
-          getLogger().debug(
-            { userId: profile.id, phone: normalizedPhone },
-            'Found profile via linkedIdentifiers phone'
-          );
-          return profile;
-        }
-      }
+    const profile = await getStore().findProfileByLinkedIdentifier(variants);
+    if (profile) {
+      getLogger().debug(
+        { userId: profile.id, phone: normalizedPhone },
+        'Found profile via linkedIdentifiers phone'
+      );
     }
+    return profile;
   } catch (error) {
     getLogger().warn(
       { error: String(error), phone: normalizedPhone },
       'Error searching profiles by linked phone'
     );
+    return null;
   }
-
-  return null;
 }
 
 /**
- * Merge a phone user into an existing web account.
- * Transfers conversation history and memories.
+ * Merge a phone user (history, memories) into a web account. Call only after
+ * the caller proves they own webAccountId, never on a name/email/phone match.
  */
 export async function mergePhoneToWebAccount(
   phoneUserId: string,
@@ -780,31 +770,27 @@ async function findProfileByPhone(normalizedPhone: string): Promise<UserProfile 
     return directProfile;
   }
 
-  // Search across profiles with linked identifiers
-  // For production, this should use a database index on linkedIdentifiers
+  // Then profiles that list this phone among their linked identifiers
+  // (an indexed query on Firestore, see findProfileByLinkedIdentifier).
   try {
-    const profiles = await store.listProfiles({ limit: 1000 });
-
-    for (const profile of profiles) {
-      const linked = (profile as UserProfileWithLinks).linkedIdentifiers || [];
-
-      // Check if this phone is linked to this profile
-      if (linked.includes(`phone:${normalizedPhone}`) || linked.includes(normalizedPhone)) {
-        getLogger().debug(
-          { userId: profile.id, phone: normalizedPhone },
-          'Found profile via linked identifier'
-        );
-        return profile;
-      }
+    const profile = await store.findProfileByLinkedIdentifier([
+      `phone:${normalizedPhone}`,
+      normalizedPhone,
+    ]);
+    if (profile) {
+      getLogger().debug(
+        { userId: profile.id, phone: normalizedPhone },
+        'Found profile via linked identifier'
+      );
     }
+    return profile;
   } catch (error) {
     getLogger().warn(
       { error, phone: normalizedPhone },
       'Error searching profiles by linked identifier'
     );
+    return null;
   }
-
-  return null;
 }
 
 /**

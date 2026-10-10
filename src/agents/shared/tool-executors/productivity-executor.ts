@@ -15,6 +15,15 @@
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
+import {
+  cancelTimer,
+  deleteAlarm,
+  getAlarms,
+  getReminders,
+  getTimer,
+  snoozeAlarm,
+  updateGoal,
+} from './productivity-time-bridge.js';
 
 const log = createLogger({ module: 'ProductivityExecutor' });
 
@@ -717,21 +726,15 @@ async function execute(
   // Goals
   if (fnLower === 'addgoal') return addGoal(args, ctx);
   if (fnLower === 'getgoals') return getGoals(args, ctx);
-  if (fnLower === 'updategoal') {
-    log.info({ args }, '🎯 Goal update requested');
-    return 'Goal progress tracking is being implemented. Keep working toward your goal!';
-  }
+  if (fnLower === 'updategoal') return updateGoal(args, ctx);
 
-  // Timers & Reminders
+  // Timers & Reminders — same stores as checkTimerStatus / cancelTimer / getReminders
   if (fnLower === 'settimer') return setTimer(args, ctx);
   if (fnLower === 'schedulereminder') return scheduleReminder(args, ctx);
-  if (fnLower === 'gettimer' || fnLower === 'canceltimer') {
-    return 'Timer management is coming soon!';
-  }
+  if (fnLower === 'gettimer') return getTimer(ctx);
+  if (fnLower === 'canceltimer') return cancelTimer(ctx);
   // NOTE: cancelreminder is now handled by scheduling-executor.ts (has real implementation)
-  if (fnLower === 'getreminders') {
-    return 'Reminder management is coming soon!';
-  }
+  if (fnLower === 'getreminders') return getReminders(ctx);
 
   // Alarms
   if (fnLower === 'setalarm') {
@@ -778,14 +781,9 @@ async function execute(
     return `⏰ Alarm set for ${time}${label ? ` (${label})` : ''}${recurring ? ` - repeating ${recurring}` : ''}.`;
   }
 
-  if (fnLower === 'getalarms') {
-    log.info({ userId: ctx.userId }, '⏰ Getting alarms');
-    return 'You have no active alarms.';
-  }
-
-  if (fnLower === 'deletealarm' || fnLower === 'snoozealarm') {
-    return 'Alarm management is coming soon!';
-  }
+  if (fnLower === 'getalarms') return getAlarms(ctx);
+  if (fnLower === 'deletealarm') return deleteAlarm(args, ctx);
+  if (fnLower === 'snoozealarm') return snoozeAlarm(args, ctx);
 
   // Notes
   if (fnLower === 'addnote') return addNote(args, ctx);

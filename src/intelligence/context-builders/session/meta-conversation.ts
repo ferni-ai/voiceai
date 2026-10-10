@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { createSessionRegistry } from '../../../utils/session-registry.js';
 import {
   registerContextBuilder,
   createHintInjection,
@@ -252,9 +253,18 @@ function detectEmotionalShift(
 // META-CONVERSATION CONTEXT BUILDER
 // ============================================================================
 
-// Track emotional history within session (module-level for session persistence)
-const sessionEmotionalHistory: Array<{ emotion: string; turn: number }> = [];
-let lastMetaReflectionTurn = 0;
+interface MetaConversationState {
+  emotionalHistory: Array<{ emotion: string; turn: number }>;
+  lastMetaReflectionTurn: number;
+}
+
+// Emotional history and pacing for each call. One worker runs several calls at
+// once, so this can't be shared; builders get no session-end hook, so the
+// registry is capped instead of cleared.
+const sessionStates = createSessionRegistry<MetaConversationState>(
+  () => ({ emotionalHistory: [], lastMetaReflectionTurn: 0 }),
+  { name: 'meta-conversation', maxInstances: 200 }
+);
 
 /**
  * Build meta-conversation context injections
@@ -265,9 +275,11 @@ const metaConversationBuilder: ContextBuilder = {
   priority: 75, // Late in the chain, after memory and emotion
 
   build: async (input: ContextBuilderInput): Promise<ContextInjection[]> => {
-    const { analysis, userData, userProfile, userText } = input;
+    const { analysis, services, userData, userProfile, userText } = input;
     const injections: ContextInjection[] = [];
     const turnCount = userData.turnCount || 0;
+    const state = sessionStates.get(services.sessionId);
+    const sessionEmotionalHistory = state.emotionalHistory;
 
     // Track emotional history
     if (analysis.emotion.primary) {
@@ -282,7 +294,7 @@ const metaConversationBuilder: ContextBuilder = {
     }
 
     // Don't inject too frequently (minimum 6 turns between meta-reflections)
-    if (turnCount - lastMetaReflectionTurn < 6) {
+    if (turnCount - state.lastMetaReflectionTurn < 6) {
       return injections;
     }
 
@@ -344,7 +356,7 @@ const metaConversationBuilder: ContextBuilder = {
           )
         );
 
-        lastMetaReflectionTurn = turnCount;
+        state.lastMetaReflectionTurn = turnCount;
 
         log.debug(
           {

@@ -1145,7 +1145,7 @@ class NowPlayingUI {
         ${ICONS.play}
       </div>
       <div class="now-playing__info" tabindex="0" role="button" aria-label="${t('nowPlaying.trackInfo', 'Track info')}">
-        <p class="now-playing__track">Loading...</p>
+        <p class="now-playing__track">${t('common.loading')}</p>
         <p class="now-playing__artist"></p>
         <div class="now-playing__time">
           <span class="now-playing__time-current">0:00</span>
@@ -1168,7 +1168,7 @@ class NowPlayingUI {
           <button class="now-playing__btn now-playing__btn--volume" aria-label="${t('nowPlaying.volume', 'Volume')}" title="${t('nowPlaying.adjustVolume', 'Adjust volume')}">
             ${ICONS.volume}
           </button>
-          <input type="range" class="now-playing__volume-slider" min="0" max="100" value="70" aria-label="${t('nowPlaying.volumeSlider', 'Volume slider')}" />
+          <input type="range" class="now-playing__volume-slider" min="0" max="100" value="100" aria-label="${t('nowPlaying.volumeSlider', 'Volume slider')}" />
         </div>
         <button class="now-playing__btn now-playing__btn--history" aria-label="${t('nowPlaying.recentlyPlayed', 'Recently played')}" title="${t('nowPlaying.viewRecentlyPlayed', 'View recently played')}">
           ${ICONS.history}
@@ -1290,7 +1290,7 @@ class NowPlayingUI {
 
     // Volume mute toggle
     if (volumeBtn && volumeSlider) {
-      let lastVolume = 70;
+      let lastVolume = 100;
       volumeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const currentVolume = parseInt(volumeSlider.value, 10);
@@ -1380,7 +1380,7 @@ class NowPlayingUI {
     if (ourSongEl) {
       if (this.currentTrack.isOurSong) {
         this.container.classList.add('now-playing--our-song');
-        ourSongEl.title = this.currentTrack.ourSongContext ?? 'A song we share';
+        ourSongEl.title = this.currentTrack.ourSongContext ?? t('titles.sharedSong');
 
         if (!prefersReducedMotion()) {
           ourSongEl.animate(
@@ -1400,7 +1400,7 @@ class NowPlayingUI {
     // Ambient mode
     if (this.currentTrack.isAmbient) {
       this.container.classList.add('now-playing--ambient', 'now-playing--ambient-minimal');
-      this.container.setAttribute('data-ambient-hint', 'Thinking music...');
+      this.container.setAttribute('data-ambient-hint', t('nowPlaying.thinkingMusic'));
     } else {
       this.container.classList.remove('now-playing--ambient', 'now-playing--ambient-minimal');
       this.container.removeAttribute('data-ambient-hint');

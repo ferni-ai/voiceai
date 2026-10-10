@@ -4,7 +4,7 @@
  * Serves the frontend UI, provides API routes, and handles integrations.
  */
 
-import 'dotenv/config';
+import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
 import http from 'http';
 import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -24,6 +24,10 @@ import {
 } from '../../utils/ddos-protection.js';
 import { notifyDDoSAlert } from '../../services/slack-notifications.js';
 import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
+import { rateLimitUid } from '../../api/rate-limit-identity.js';
+import { bindVerifiedIdentity } from './request-identity.js';
+import { respondOnRejection } from './request-failure.js';
+import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { parseRawBody } from '../../api/helpers.js';
 
 // Local routes
@@ -35,11 +39,11 @@ import {
   handleGoogleCalendarRoutes,
   handleAppleCalendarRoutes,
   handleMicrosoftCalendarRoutes,
+  handleOAuthStartRoute,
   handleMusicRoutes,
   handleAgentRoutes,
   handlePushRoutes,
   handleWebhookRoutes,
-  handleSpotifyRoomsRoutes,
   handleEcobeeRoutes,
   handleSmartHomeRoutes,
   handleVibeRoutes,
@@ -49,7 +53,6 @@ import {
   handleAppleNotification,
   handleIntelligentRoutingRoutes,
   // "Better Than Human" routes
-  handleVisualMemoryRoutes,
   handleAmbientModeRoutes,
   handleBTHIntelligenceRoutes,
   // Wearables OAuth routes
@@ -115,7 +118,6 @@ import { handleConciergeRoutes } from '../../api/concierge-routes.js';
 import { handleProactiveRoutes } from '../../api/proactive-routes.js';
 import { handlePredictionsRoutes } from '../../api/routes/predictions.js';
 import { handleLLMContentRoutes } from '../../api/llm-content-routes.js';
-import { relationshipHealthRoutes } from '../../api/routes/relationship-health-routes.js';
 import { handleYearInReviewRoutes } from '../../api/year-in-review-routes.js';
 import { handleRelationshipRoutes } from '../../api/routes/relationship.js';
 import { handleVoiceHumanizationRoutes } from '../../api/voice-humanization-routes.js';
@@ -135,7 +137,6 @@ import { handleCommitmentsRoutes } from '../../api/routes/commitments.js';
 import { handleConversationThreadsRoutes } from '../../api/routes/conversation-threads.js';
 import { handleConversationsRoutes } from '../../api/routes/conversations.js';
 import { handleGroupCoachingRoutes } from '../../api/routes/group-coaching.js';
-import { handleGrowthRoutes } from '../../api/routes/growth.js';
 import { handleVideoSessionRoutes } from '../../api/routes/video-sessions.js';
 import { handleWearableRoutes } from '../../api/routes/wearable.js';
 import { handleMemoriesRoutes } from '../../api/routes/memories.js';
@@ -156,6 +157,7 @@ import { handleBuilderMetricsRoutes } from '../../api/routes/builder-metrics.js'
 import { handleMusicAnalyticsRoutes } from '../../api/music-analytics-routes.js';
 import { handleAdminRoutes } from '../../api/admin-routes.js';
 import { handleMonetizationRequest, isMonetizationRoute } from '../../api/monetization-routes.js';
+import { parseMonetizationBody } from '../../api/monetization-webhook.js';
 import { handleAppleRoutes, isAppleRoute } from '../../api/apple-iap-routes.js';
 import { handleV1Routes } from '../../api/v1/index.js';
 import { handleV2Routes } from '../../api/v2/index.js';
@@ -173,10 +175,10 @@ import { handleMarketingRoutes } from '../../api/marketing-routes.js';
 import { handleLinkedInRoutes } from '../../api/linkedin-routes.js';
 import { handleSitesRoutes } from '../../api/sites-routes.js';
 import { handleSeedsRoutes } from '../../api/seeds-routes.js';
-import { handleCEORoutes } from '../../api/ceo/index.js';
 import { handleCalendarWebhookRoutes } from '../../api/calendar-webhook-routes.js';
 import { handlePracticeCalendarRoutes } from '../../api/routes/practice-calendar.js';
 import { handlePracticeViewRoutes } from '../../api/routes/practice-view.js';
+import { handlePracticeRoutes } from '../../api/practice-routes.js';
 import { handleFinOpsRoutes } from '../../api/finops-routes.js';
 import { handleConversationCostRoutes } from '../../api/conversation-cost-routes.js';
 import { handleJournalRoutes } from '../../api/journal-routes.js';
@@ -220,19 +222,14 @@ import {
   initUserEventsWebSocket,
   shutdownUserEventsWebSocket,
 } from '../../services/user-events-websocket.js';
-// WebSocket for Director Mode (Qwen3-Omni ensemble control)
-import { initDirectorWebSocket, shutdownDirectorWebSocket } from '../../api/director-routes.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
 // SECURITY: Uses new modular version with Firebase auth (no x-user-id)
 import { handleCustomAgentRoutes } from '../../api/custom-agent/index.js';
 import { handleShareRoutes } from '../../api/routes/share-routes.js';
-import { handleChallengeRoutes } from '../../api/routes/challenge-routes.js';
 import { handleCreativeYouRoutes } from '../../api/routes/creative-you-routes.js';
 import { handleMusicalYouRoutes } from '../../api/routes/musical-you-routes.js';
 import { handleGamesRoutes } from '../../api/routes/games.js';
-import { handleSocialRoutes } from '../../api/routes/social-routes.js';
-import { handlePremiumRoutes } from '../../api/routes/premium-routes.js';
-import { groupConversationRoutes } from '../../api/group-conversation-routes.js';
+import { handleGroupConversationRoutes } from '../../api/group-conversation-handler.js';
 
 // Life Automation (workflows, templates, integrations)
 import {
@@ -262,12 +259,11 @@ if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
 /**
  * Create the HTTP server
  */
-const server = http.createServer(async (req, res) => {
-  // Add request ID for tracing
-  addRequestId(req, res);
+const server = http.createServer((req, res) => respondOnRejection(res, handleRequest(req, res)));
+async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  addRequestId(req, res); // request ID for tracing
 
-  // Set security headers (HSTS, CSP, X-Frame-Options, etc.)
-  setSecurityHeaders(res);
+  setSecurityHeaders(res); // HSTS, CSP, X-Frame-Options, etc.
 
   // Handle CORS
   setCorsHeaders(req, res);
@@ -276,6 +272,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  await bindVerifiedIdentity(req); // identity from verified credentials only; see request-identity.ts
   const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   let pathname = parsedUrl.pathname;
 
@@ -306,11 +303,10 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Global rate limiting for API routes
   if (pathname.startsWith('/api/') && pathname !== '/api/health') {
-    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000 })) {
-      return;
-    }
+    // Global limit: per signed-in person (verified uid), else per IP
+    const uid = rateLimitUid(req);
+    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, ...(uid && { keyGenerator: () => `user:${uid}` }) })) return;
   }
 
   // ============================================================================
@@ -338,18 +334,11 @@ const server = http.createServer(async (req, res) => {
     if (await handleWearablesRoutes(req, res, pathname, parsedUrl)) return;
   }
 
-  // Google Calendar OAuth routes
-  if (pathname.startsWith('/auth/google')) {
+  // OAuth connect: authenticated start, then Google / Apple / Microsoft calendar
+  if (pathname.startsWith('/auth/')) {
+    if (await handleOAuthStartRoute(req, res, pathname)) return;
     if (await handleGoogleCalendarRoutes(req, res, pathname, parsedUrl)) return;
-  }
-
-  // Apple Calendar OAuth routes (Sign in with Apple)
-  if (pathname.startsWith('/auth/apple')) {
     if (await handleAppleCalendarRoutes(req, res, pathname, parsedUrl)) return;
-  }
-
-  // Microsoft Calendar OAuth routes
-  if (pathname.startsWith('/auth/microsoft')) {
     if (await handleMicrosoftCalendarRoutes(req, res, pathname, parsedUrl)) return;
   }
 
@@ -394,11 +383,6 @@ const server = http.createServer(async (req, res) => {
     if (await handleWebhookRoutes(req, res, pathname, parsedUrl)) return;
   }
 
-  // Spotify Rooms routes (multi-room audio)
-  if (pathname.startsWith('/api/spotify/rooms') || pathname.startsWith('/api/spotify/devices')) {
-    if (await handleSpotifyRoomsRoutes(req, res, pathname, parsedUrl)) return;
-  }
-
   // Ecobee thermostat routes
   if (pathname.startsWith('/api/ecobee')) {
     if (await handleEcobeeRoutes(req, res, pathname, parsedUrl)) return;
@@ -432,11 +416,6 @@ const server = http.createServer(async (req, res) => {
   // "BETTER THAN HUMAN" ROUTES
   // Visual Memory, Ambient Mode - superhuman awareness & recall
   // ============================================================================
-
-  // 📸 Visual Memory routes (photo/image recall)
-  if (pathname.startsWith('/api/visual-memory')) {
-    if (await handleVisualMemoryRoutes(req, res, pathname, parsedUrl)) return;
-  }
 
   // 🌙 Ambient Mode routes (continuous background presence)
   if (pathname.startsWith('/api/ambient-mode')) {
@@ -517,13 +496,6 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
-    // Challenge routes (Daily Challenges)
-    if (pathname.startsWith('/api/challenges')) {
-      const query = new URLSearchParams(parsedUrl.search || '');
-      const handled = await handleChallengeRoutes(req, res, pathname, query);
-      if (handled) return;
-    }
-
     // Creative You routes (Videos, Podcasts, DNA)
     if (pathname.startsWith('/api/creative')) {
       const query = new URLSearchParams(parsedUrl.search || '');
@@ -544,23 +516,6 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
-    // Social routes (Challenges, Leaderboards, Taste Match)
-    if (pathname.startsWith('/api/social')) {
-      const query = new URLSearchParams(parsedUrl.search || '');
-      const handled = await handleSocialRoutes(req, res, pathname, query);
-      if (handled) return;
-    }
-
-    // Premium routes (Our Song, Premium Content)
-    if (pathname.startsWith('/api/premium/')) {
-      const query = new URLSearchParams(parsedUrl.search || '');
-      log.debug({
-        path: pathname,
-        params: Object.fromEntries(query.entries()),
-      });
-      const handled = await handlePremiumRoutes(req, res, pathname, query);
-      if (handled) return;
-    }
   } catch (err) {
     log.error({ error: String(err) }, 'Share route error');
     if (!res.writableEnded) {
@@ -571,25 +526,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    // Group conversation routes (Team Roundtable, Conference Calls)
-    // TODO: TECHNICAL DEBT - This uses an Express Router pattern while everything else
-    // uses raw Node.js HTTP handlers. This creates unnecessary overhead (dynamic import,
-    // mock app creation) on every /api/group/ request. Should refactor
-    // group-conversation-routes.ts to use the standard handleXxxRoutes() pattern.
-    // See: src/api/CLAUDE.md for the standard pattern.
-    if (pathname.startsWith('/api/group/')) {
-      const express = await import('express');
-      const mockApp = express.default();
-      mockApp.use('/api/group', groupConversationRoutes);
-
-      // Forward request to express router
-      await new Promise<void>((resolve, reject) => {
-        mockApp(req as any, res as any, (err: any) => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
-      if (res.writableEnded) return;
+    // Group conversation routes (Team Roundtable, Conference Calls): an Express router
+    if (pathname.startsWith('/api/group/') && (await handleGroupConversationRoutes(req, res))) {
+      return;
     }
   } catch (err) {
     log.error({ error: String(err) }, 'Group conversation route error');
@@ -853,6 +792,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Practice chat (text replies inside a guided practice)
+    if (pathname.startsWith('/api/practice/')) {
+      const handled = await handlePracticeRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
     // Trust systems routes
     if (pathname.startsWith('/api/trust/')) {
       const handled = await handleTrustSystemsRoutes(req, res, pathname, parsedUrl);
@@ -877,17 +822,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
-    // Relationship routes (progress & team-unlocks before health routes)
+    // Relationship routes (progress & team-unlocks)
     if (
       pathname === '/api/relationship/progress' ||
       pathname === '/api/relationship/team-unlocks'
     ) {
       const handled = await handleRelationshipRoutes(req, res, pathname, parsedUrl);
-      if (handled) return;
-    }
-
-    if (pathname.startsWith('/api/relationship/')) {
-      const handled = await relationshipHealthRoutes(req, res);
       if (handled) return;
     }
 
@@ -1215,11 +1155,8 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
-    // Growth visibility routes
-    if (pathname.startsWith('/api/growth')) {
-      const handled = await handleGrowthRoutes(req, res, pathname, parsedUrl);
-      if (handled) return;
-    }
+    // Growth journal + pattern insights live on the engagement router
+    // (/api/journal/growth, /api/insights/patterns). Do not remount here.
 
     // Video session routes
     if (pathname.startsWith('/api/video')) {
@@ -1379,12 +1316,6 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
-    // CEO routes (goals, brain, briefing, habits, wins, etc.)
-    if (pathname.startsWith('/api/ceo')) {
-      const handled = await handleCEORoutes(req, res, pathname, parsedUrl);
-      if (handled) return;
-    }
-
     // Subscription routes
     if (isSubscriptionRoute(pathname)) {
       try {
@@ -1463,11 +1394,7 @@ const server = http.createServer(async (req, res) => {
           // Use parseRawBody to avoid race condition with async auth check
           // Also adds timeout, max size limit, and proper error handling
           const rawBody = await parseRawBody(req, { timeoutMs: 30000, maxBytes: 1024 * 1024 });
-          try {
-            body = rawBody ? JSON.parse(rawBody) : {};
-          } catch {
-            body = {};
-          }
+          body = parseMonetizationBody(pathname, rawBody);
         }
 
         const ctx = {
@@ -1518,7 +1445,7 @@ const server = http.createServer(async (req, res) => {
   // STATIC FILES (fallback)
   // ============================================================================
   handleStaticRoutes(req, res, pathname);
-});
+}
 
 // Harden server with DDoS protection
 hardenServer(server);
@@ -1537,14 +1464,6 @@ log.info('Life Context WebSocket server initialized on /ws/life-context');
 initUserEventsWebSocket(server);
 log.info('User Events WebSocket server initialized on /ws/user-events');
 
-// Initialize WebSocket server for Director Mode (Qwen3-Omni ensemble control)
-const directorAuthorizedIds = (process.env.DIRECTOR_AUTHORIZED_IDS ?? '')
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
-initDirectorWebSocket(server, { authorizedDirectorIds: directorAuthorizedIds });
-log.info('Director WebSocket server initialized on /ws/director');
-
 // Register DDoS alerting to Slack
 registerDDoSAlertCallback(async (details) => {
   await notifyDDoSAlert(details);
@@ -1554,7 +1473,8 @@ registerDDoSAlertCallback(async (details) => {
 const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 
 // Start the server
-server.listen(PORT, '0.0.0.0', async () => {
+server.listen(PORT, '0.0.0.0', () => fireAndForget(startBackgroundServices, 'api-startup'));
+async function startBackgroundServices(): Promise<void> {
   log.info(
     {
       port: PORT,
@@ -1575,11 +1495,11 @@ server.listen(PORT, '0.0.0.0', async () => {
     log.info('🍎 Apple Calendar polling service started');
 
     // Google Calendar webhook renewal (watches expire after 7 days)
-    startGoogleWebhookRenewal();
+    fireAndForget(startGoogleWebhookRenewal, 'google-webhook-renewal');
     log.info('📅 Google Calendar webhook renewal service started');
 
     // Outlook subscription renewal (subscriptions expire after hours)
-    startOutlookSubscriptionRenewal();
+    fireAndForget(startOutlookSubscriptionRenewal, 'outlook-subscription-renewal');
     log.info('📧 Outlook Calendar subscription renewal service started');
   } catch (error) {
     log.warn({ error: String(error) }, 'Calendar sync services failed to start (non-blocking)');
@@ -1620,7 +1540,7 @@ server.listen(PORT, '0.0.0.0', async () => {
   } catch (error) {
     log.warn({ error: String(error) }, 'Twilio Stream Bridge failed to start (non-blocking)');
   }
-});
+}
 
 // ============================================================================
 // GRACEFUL SHUTDOWN
@@ -1642,7 +1562,6 @@ async function gracefulShutdown(): Promise<void> {
   shutdownInsightsWebSocket();
   shutdownLifeContextWebSocket();
   shutdownUserEventsWebSocket();
-  shutdownDirectorWebSocket();
 
   // Stop proactive scheduler
   stopProactiveScheduler();
@@ -1656,7 +1575,7 @@ async function gracefulShutdown(): Promise<void> {
       shutdownTokenRoutes(),
       shutdownGoogleCalendar(),
       shutdownSpotifyOAuth(),
-      shutdownApplePolling(),
+      Promise.resolve(shutdownApplePolling()),
       Promise.resolve(shutdownWearablesRoutes()),
     ]);
     log.info('Services shutdown complete');

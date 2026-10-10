@@ -47,9 +47,9 @@ export async function initializeEntityStore(): Promise<void> {
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
     });
 
-    // Test connectivity
     await db.collection('entity_store').doc('_health').get();
-
+    // The EntityStore that proactive surfacing reads needs its own init (was never called).
+    await (await import('./store.js')).getEntityStore().initialize();
     initialized = true;
     log.info('Entity store initialized');
   } catch (error) {
@@ -61,10 +61,8 @@ export async function initializeEntityStore(): Promise<void> {
   }
 }
 
-// Auto-initialize on module load
-initializeEntityStore().catch(() => {
-  // Silently fail - we'll use legacy collections
-});
+// Auto-initialize on load; on failure the legacy collections are used.
+initializeEntityStore().catch(() => undefined);
 
 // ============================================================================
 // PERSON CAPTURE

@@ -12,35 +12,8 @@ import { getLogger } from '../utils/safe-logger.js';
 import { AgentRole } from '../personas/index.js';
 import { createPersistenceStore, type PersistenceStore } from './persistence/index.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
-
-// Web-push module interface (optional dependency)
-interface WebPushModule {
-  setVapidDetails: (subject: string, publicKey: string, privateKey: string) => void;
-  sendNotification: (
-    subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
-    payload: string
-  ) => Promise<unknown>;
-}
-
-// Optional web-push import - notifications will be no-ops if not available
-let webpush: WebPushModule | null = null;
-let webpushLoadAttempted = false;
-
-async function loadWebPush(): Promise<WebPushModule | null> {
-  if (webpushLoadAttempted) return webpush;
-  webpushLoadAttempted = true;
-
-  try {
-    // @ts-expect-error - web-push is an optional dependency
-    const mod = await import('web-push');
-    webpush = mod.default || mod;
-    getLogger().info('web-push module loaded successfully');
-    return webpush;
-  } catch {
-    getLogger().warn('web-push module not available - push notifications disabled');
-    return null;
-  }
-}
+import { loadWebPush } from './web-push-loader.js';
+import { claimEndpoint, getEndpointOwner, releaseEndpoint } from './push-endpoint-owners.js';
 
 // ============================================================================
 // TYPES
@@ -251,27 +224,27 @@ class PushNotificationsBackendService {
     }
   }
 
+  /** Fresh from Firestore: the API server writes subscriptions, other processes send. */
+  private async loadSubscriptions(userId: string): Promise<PushSubscription[]> {
+    const persisted = await this.subscriptionStore?.load(userId, { fresh: true });
+    return persisted?.subscriptions ?? [];
+  }
+
   /**
-   * Register a push subscription for a user
+   * Register a push subscription for a user. An endpoint belongs to one user; it
+   * moves from a previous owner only with the same keys (EndpointOwnedError otherwise).
    */
   async registerSubscription(subscription: PushSubscription): Promise<void> {
-    // Load existing subscriptions from persistence if not in memory
-    let userSubs = this.subscriptions.get(subscription.userId);
-    if (!userSubs) {
-      const persisted = await this.subscriptionStore?.get(subscription.userId);
-      userSubs = persisted?.subscriptions || [];
-      this.subscriptions.set(subscription.userId, userSubs);
-    }
+    const { endpoint, keys, userId } = subscription;
+    const previousOwner = await claimEndpoint(endpoint, keys, userId);
+    if (previousOwner) await this.removeSubscription(previousOwner, endpoint);
 
-    // Check if subscription already exists
-    const exists = userSubs.some((s) => s.endpoint === subscription.endpoint);
-    if (!exists) {
+    const userSubs = await this.loadSubscriptions(subscription.userId);
+    if (!userSubs.some((s) => s.endpoint === subscription.endpoint)) {
       userSubs.push(subscription);
       this.subscriptions.set(subscription.userId, userSubs);
-
-      // Persist to Firestore
-      this.subscriptionStore?.set(subscription.userId, { subscriptions: userSubs });
-
+      // Persist to Firestore now (not on the next batch), so other processes' senders see it
+      await this.subscriptionStore?.setImmediate(subscription.userId, { subscriptions: userSubs });
       getLogger().info(
         { userId: subscription.userId, platform: subscription.platform },
         'Push subscription registered and persisted'
@@ -283,22 +256,15 @@ class PushNotificationsBackendService {
    * Remove a push subscription
    */
   async removeSubscription(userId: string, endpoint: string): Promise<void> {
-    // Load from persistence if not in memory
-    let userSubs = this.subscriptions.get(userId);
-    if (!userSubs) {
-      const persisted = await this.subscriptionStore?.get(userId);
-      userSubs = persisted?.subscriptions || [];
-    }
-
-    const filtered = userSubs.filter((s) => s.endpoint !== endpoint);
-
+    const filtered = (await this.loadSubscriptions(userId)).filter((s) => s.endpoint !== endpoint);
     if (filtered.length > 0) {
       this.subscriptions.set(userId, filtered);
-      this.subscriptionStore?.set(cleanForFirestore(userId), { subscriptions: filtered });
+      await this.subscriptionStore?.setImmediate(userId, { subscriptions: filtered });
     } else {
       this.subscriptions.delete(userId);
       await this.subscriptionStore?.delete(userId);
     }
+    await releaseEndpoint(endpoint, userId);
 
     getLogger().info({ userId }, 'Push subscription removed');
   }
@@ -307,17 +273,8 @@ class PushNotificationsBackendService {
    * Send a push notification to a user
    */
   async sendNotification(userId: string, payload: PushNotificationPayload): Promise<boolean> {
-    // Load from persistence if not in memory
-    let userSubs = this.subscriptions.get(userId);
-    if (!userSubs) {
-      const persisted = await this.subscriptionStore?.get(userId);
-      userSubs = persisted?.subscriptions;
-      if (userSubs) {
-        this.subscriptions.set(userId, userSubs);
-      }
-    }
-
-    if (!userSubs || userSubs.length === 0) {
+    const userSubs = await this.loadSubscriptions(userId);
+    if (userSubs.length === 0) {
       getLogger().debug({ userId }, 'No subscriptions for user');
       return false;
     }
@@ -329,7 +286,9 @@ class PushNotificationsBackendService {
     });
 
     let sent = false;
-    for (const sub of userSubs) {
+    // Never deliver to an endpoint that has since been claimed by someone else.
+    const owners = await Promise.all(userSubs.map((s) => getEndpointOwner(s.endpoint)));
+    for (const sub of userSubs.filter((_, i) => owners[i] === userId)) {
       try {
         if (sub.platform === 'web') {
           await this.sendWebPush(sub, notificationPayload);
@@ -557,8 +516,8 @@ class PushNotificationsBackendService {
   private async sendWebPush(subscription: PushSubscription, payload: string): Promise<void> {
     const wp = await loadWebPush();
     if (!wp) {
-      getLogger().warn('web-push not available, skipping notification');
-      return;
+      // Throw so sendNotification() reports "not sent" instead of a silent success.
+      throw new Error('web-push not available; notification not sent');
     }
     await wp.sendNotification(
       {
@@ -575,7 +534,7 @@ class PushNotificationsBackendService {
   ): Promise<void> {
     // Use the FCM push notification service from outreach/delivery
     try {
-      const { sendPushNotification, isPushNotificationsAvailable, registerPushToken } =
+      const { sendPushNotification, isPushNotificationsAvailable } =
         await import('./outreach/delivery/push-notifications.js');
 
       if (!isPushNotificationsAvailable()) {
@@ -583,20 +542,18 @@ class PushNotificationsBackendService {
         return;
       }
 
-      // The outreach push service uses its own token registry, so we need to ensure
-      // the token is registered there as well
-      registerPushToken(subscription.userId, subscription.endpoint, subscription.platform);
-
-      // Send via FCM
-      const result = await sendPushNotification({
+      // To this subscription's token only (its owner was checked by the caller), never
+      // to the outreach module's in-memory registry, which doesn't know a token moved.
+      const notification = {
         userId: subscription.userId,
         outreachId: `push-${Date.now()}`,
         personaId: payload.personaId || 'ferni',
         title: payload.title,
         body: payload.body,
-        priority: 'high',
+        priority: 'high' as const,
         data: payload.data as Record<string, string> | undefined,
-      });
+      };
+      const result = await sendPushNotification(notification, subscription.endpoint);
 
       const success = result.some((r) => r.success);
       if (!success) {

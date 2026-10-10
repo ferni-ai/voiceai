@@ -43,7 +43,6 @@ higgs-audio/
 *.jks
 key.properties
 .env.signing
-apps/electron/.env.signing
 apps/android/android/key.properties
 apps/android/android/*.keystore
 apps/android/*.keystore
@@ -99,7 +98,6 @@ design-system/storybook-static/
 # These platform copies are created during capacitor sync / build
 apps/ios/ios/App/App/public/design-system/brand/
 apps/android/android/app/src/main/assets/public/design-system/brand/
-apps/electron/web/design-system/brand/
 apps/web/dist/design-system/brand/
 
 # Generated Tailwind config for promo site
@@ -138,7 +136,6 @@ apps/website/ferni-website/.cache/
 # Mobile app build outputs
 apps/android/android/app/build/
 apps/ios/ios/App/Pods/
-apps/electron/dist/
 
 # Marketplace agents (keep registry.json tracked for Docker builds)
 # Full agents are in separate submodules
@@ -193,3 +190,9 @@ test_higgs_output.wav
 # (committed 0b3e276cf); untracked 2026-09-25. See the audit note in ci.yml.
 .env.linkedin
 **/.env.linkedin
+
+# Swift build caches: these captured env vars (incl. API keys) and leaked them in history
+**/.build/
+# Xcode build data: also captured shell env (PERPLEXITY_API_KEY, GEMINI key)
+apps/ios-native/build/
+**/XCBuildData/

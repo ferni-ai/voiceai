@@ -4,43 +4,16 @@
  * Unified cleanup function for all speech-related session state.
  * Call this when a voice session ends to prevent memory leaks.
  *
- * This consolidates cleanup across ALL 35+ session-scoped services:
- * - Audio prosody analyzers
- * - WPM trackers
- * - Backchanneling systems
- * - Cognitive speech state
- * - TTS context
- * - Pronunciation memory
- * - Voice humanization
- * - Human listening pipeline
- * - Enhanced turn prediction
- * - Emotional contagion
- * - Voice tremor detection
- * - Volume dynamics
- * - Energy dynamics
- * - Fluency analysis
- * - Filler analysis
- * - FFT analyzer
- * - Multi-signal laughter
- * - Word timing rhythm
- * - Response anticipation
- * - Ambient awareness
- * - Breath detection
- * - Realtime preemptive processor
- * - Cartesia context
- * - Session voice manager
- * - Environment tracker (ambient reactivity)
- * - Conversation momentum tracker
- * - Mid-response tangent state
- * - Self-awareness feedback loop
- * - Sesame-inspired: anticipatory/conversation prosody, micro-reactions, rich disfluencies
- * - Stage 2 reply audio plan (pending opening breath/sigh + tempo)
+ * This consolidates cleanup across every session-scoped speech service. Each one
+ * is reset by name in cleanupSpeechSession(), grouped by area; that list is the
+ * inventory (a copy here went stale).
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
 
 // Core speech services (using preferred reset* naming)
 import { resetSessionAudioProsodyAnalyzer } from '../audio-prosody.js';
+import { removeCallerProsodyTracker } from '../audio-prosody/caller-prosody.js';
 import { resetSessionBackchannelingSystem } from '../backchanneling.js';
 import { clearSessionContextId } from '../cartesia-context-patch.js';
 import { clearReplyAudioPlan } from '../reply-audio-plan.js';
@@ -264,6 +237,7 @@ export function cleanupSpeechSession(
   // ============================================================================
 
   safeCleanup('audioProsody', () => resetSessionAudioProsodyAnalyzer(sessionId));
+  safeCleanup('callerProsody', () => removeCallerProsodyTracker(sessionId));
   safeCleanup('wpmTracker', () => resetSessionWPMTracker(sessionId));
   safeCleanup('backchanneling', () => resetSessionBackchannelingSystem(sessionId));
   safeCleanup('cognitiveSpeech', () => clearCognitiveSpeechState(sessionId));

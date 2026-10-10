@@ -57,31 +57,38 @@ const RTL_LOCALES: readonly SupportedLocale[] = ['ar', 'he'] as const;
 const DEFAULT_LOCALE: SupportedLocale = 'en-US';
 const STORAGE_KEY = 'ferni_locale';
 
+/** Locale entry whose English-reference name is localized lazily, at render time. */
+function localeInfo(
+  code: SupportedLocale,
+  nameKey: string,
+  nativeName: string,
+  flag: string,
+  direction: TextDirection = 'ltr'
+): LocaleInfo {
+  return {
+    code,
+    nativeName,
+    flag,
+    direction,
+    get name() {
+      return t(nameKey);
+    },
+  };
+}
+
 export const SUPPORTED_LOCALES: readonly LocaleInfo[] = [
-  { code: 'en-US', name: 'English (US)', nativeName: 'English', flag: '🇺🇸', direction: 'ltr' },
-  { code: 'en-GB', name: 'English (UK)', nativeName: 'English', flag: '🇬🇧', direction: 'ltr' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸', direction: 'ltr' },
-  { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷', direction: 'ltr' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪', direction: 'ltr' },
-  { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', direction: 'ltr' },
-  { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷', direction: 'ltr' },
-  {
-    code: 'zh-Hans',
-    name: 'Chinese (Simplified)',
-    nativeName: '简体中文',
-    flag: '🇨🇳',
-    direction: 'ltr',
-  },
-  {
-    code: 'zh-Hant',
-    name: 'Chinese (Traditional)',
-    nativeName: '繁體中文',
-    flag: '🇹🇼',
-    direction: 'ltr',
-  },
-  { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦', direction: 'rtl' },
-  { code: 'he', name: 'Hebrew', nativeName: 'עברית', flag: '🇮🇱', direction: 'rtl' },
-] as const;
+  localeInfo('en-US', 'languageNames.enUS', 'English', '🇺🇸'),
+  localeInfo('en-GB', 'languageNames.enGB', 'English', '🇬🇧'),
+  localeInfo('es', 'languageNames.es', 'Español', '🇪🇸'),
+  localeInfo('fr', 'languageNames.fr', 'Français', '🇫🇷'),
+  localeInfo('de', 'languageNames.de', 'Deutsch', '🇩🇪'),
+  localeInfo('ja', 'languageNames.ja', '日本語', '🇯🇵'),
+  localeInfo('ko', 'languageNames.ko', '한국어', '🇰🇷'),
+  localeInfo('zh-Hans', 'languageNames.zhHans', '简体中文', '🇨🇳'),
+  localeInfo('zh-Hant', 'languageNames.zhHant', '繁體中文', '🇹🇼'),
+  localeInfo('ar', 'languageNames.ar', 'العربية', '🇸🇦', 'rtl'),
+  localeInfo('he', 'languageNames.he', 'עברית', '🇮🇱', 'rtl'),
+];
 
 // Fallback chain for missing translations
 const FALLBACK_CHAIN: Record<SupportedLocale, SupportedLocale[]> = {
@@ -173,12 +180,8 @@ function normalizeLocale(langCode: string): SupportedLocale | null {
  * Get locale from URL parameter (?lang=es)
  */
 function getLocaleFromURL(): SupportedLocale | null {
-  const params = new URLSearchParams(window.location.search);
-  const langParam = params.get('lang');
-  if (langParam) {
-    return normalizeLocale(langParam);
-  }
-  return null;
+  const langParam = new URLSearchParams(window.location.search).get('lang');
+  return langParam ? normalizeLocale(langParam) : null;
 }
 
 /**
@@ -206,10 +209,7 @@ function getLocaleFromBrowser(): SupportedLocale | null {
       if (locale) return locale;
     }
   }
-  if (navigator.language) {
-    return normalizeLocale(navigator.language);
-  }
-  return null;
+  return navigator.language ? normalizeLocale(navigator.language) : null;
 }
 
 /**
@@ -416,12 +416,12 @@ function interpolate(str: string, params?: TranslationParams): string {
 /**
  * Translate a key to the current locale
  *
- * @param key - Dot-notation path to translation (e.g., 'hero.headline')
+ * @param key - Dot-notation path to translation (e.g., 'common.today')
  * @param params - Optional interpolation parameters
  * @returns Translated string, or key if not found
  *
  * @example
- * t('hero.headline') // "Better than"
+ * t('common.today') // "Today"
  * t('time.minutesAgo', { n: 5 }) // "5 minutes ago"
  */
 export function t(
@@ -483,7 +483,7 @@ export function t(
 
   // Return fallback text or key if nothing found
   if (fallback) {
-    return fallback;
+    return interpolate(fallback, params);
   }
   log.warn(`Missing translation: ${key}`);
   return key;

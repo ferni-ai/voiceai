@@ -2,7 +2,7 @@
  * Legacy Fallback Executor
  *
  * Contains tools not yet migrated to modular domain executors.
- * Extracted from json-function-executor.ts for maintainability.
+ * Legacy fallback routes used by the tool dispatcher.
  *
  * @module agents/shared/tool-executors/legacy-fallback-executor
  */

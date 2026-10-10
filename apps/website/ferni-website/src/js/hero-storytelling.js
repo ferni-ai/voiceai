@@ -51,6 +51,7 @@ class FerniHeroStorytelling {
     
     // Check if GSAP is available
     if (typeof gsap === 'undefined') {
+      // eslint-disable-next-line no-console -- report failures in the browser console
       console.warn('[Ferni Hero] GSAP not loaded, showing immediately');
       this.showImmediately();
       return;
@@ -446,7 +447,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Small delay to ensure elements are rendered
   setTimeout(() => {
     new FerniHeroStorytelling();
-    console.log('[Ferni Hero] Animation initialized 🎬');
   }, 100);
 });
 

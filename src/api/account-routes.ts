@@ -10,8 +10,14 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getDefaultStore } from '../memory/index.js';
+import { getStore } from '../memory/store-factory.js';
+import { deleteOAuthLinkStatesFor } from '../servers/token/oauth-link-state.js';
+import { tombstoneTransactionOwnersFor } from '../services/billing/apple-signed-data.js';
+import { eraseMusicalSocialData } from '../services/musical-you/social.js';
+import { eraseSocialChallengesFor } from '../services/social/challenges.js';
+import { eraseSocialStatsFor } from '../services/social/leaderboards.js';
 import { deleteFirebaseUser, getFirebaseUser } from '../services/identity/firebase-auth.js';
+import { erasePushRecordsFor } from '../services/push-endpoint-owners.js';
 import { recordSecurityEvent } from '../services/security-events.js';
 import { createUserProfile } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
@@ -62,7 +68,7 @@ export async function handleAccountRoutes(
 
     // DELETE /api/account - Delete account
     if (pathname === '/api/account' && method === 'DELETE') {
-      return await handleDeleteAccount(req, res, userId);
+      return await handleDeleteAccount(req, res, userId, auth.firebaseUid);
     }
 
     // PUT /api/account/profile - Update profile
@@ -93,7 +99,7 @@ async function handleGetAccount(
   firebaseUid?: string
 ): Promise<boolean> {
   try {
-    const store = getDefaultStore();
+    const store = await getStore();
     const profile = await store.getProfile(userId);
 
     // Get Firebase user info if available
@@ -154,12 +160,44 @@ async function handleGetAccount(
 }
 
 /**
+ * Records about the user kept outside their own documents (keyed by an
+ * endpoint hash, an OAuth state hash, an Apple transaction id, a challenge id
+ * or a leaderboard), so the deleteAllData sweep can't reach them. Challenge
+ * sweeps also free the other party's open-challenge slot.
+ */
+const LINKED_RECORDS: ReadonlyArray<readonly [string, (userId: string) => Promise<unknown>]> = [
+  ['push_subscriptions', erasePushRecordsFor],
+  ['oauth_link_states', deleteOAuthLinkStatesFor],
+  ['apple_transaction_owners', tombstoneTransactionOwnersFor],
+  ['musical_challenges_and_leaderboards', eraseMusicalSocialData],
+  ['social_challenges', eraseSocialChallengesFor],
+  ['social_user_stats', eraseSocialStatsFor],
+];
+
+/** Best effort: every sweep runs; returns the names of those that failed. */
+async function eraseLinkedRecords(userId: string): Promise<string[]> {
+  const results = await Promise.allSettled(LINKED_RECORDS.map(async ([, erase]) => erase(userId)));
+  return LINKED_RECORDS.flatMap(([name], i) => {
+    const result = results[i];
+    if (result?.status !== 'rejected') return [];
+    log.error({ error: String(result.reason), userId, records: name }, 'Records left behind');
+    return [name];
+  });
+}
+
+/**
  * DELETE /api/account - Delete account and all data
+ *
+ * Erases every data store (same sweep as DELETE /api/export/all) and the
+ * records linked to the user elsewhere, then the Firebase sign-in. Success is
+ * reported only when the data sweep and the sign-in deletion happened; linked
+ * records that couldn't be removed are listed in details.failures.
  */
 async function handleDeleteAccount(
   req: IncomingMessage,
   res: ServerResponse,
-  userId: string
+  userId: string,
+  firebaseUid?: string
 ): Promise<boolean> {
   // Extra rate limiting for deletion (expensive operation)
   if (rateLimit(req, res, { maxRequests: 3, windowMs: 3600000, keyPrefix: 'delete-account' })) {
@@ -180,7 +218,6 @@ async function handleDeleteAccount(
 
   log.warn({ userId: `${userId.substring(0, 15)}...` }, 'Account deletion requested');
 
-  // Record this critical event
   await recordSecurityEvent({
     type: 'profile_delete',
     actorId: userId,
@@ -191,51 +228,33 @@ async function handleDeleteAccount(
   });
 
   try {
-    const store = getDefaultStore();
-    await store.initialize();
-
-    // Delete profile and all associated data
-    const profileDeleted = await store.deleteProfile(userId);
-
-    // Delete Firebase user if this looks like a Firebase UID
-    let firebaseDeleted = false;
-    if (!userId.startsWith('device:') && userId.length >= 20) {
-      try {
-        firebaseDeleted = await deleteFirebaseUser(userId);
-        if (firebaseDeleted) {
-          log.info({ userId: `${userId.substring(0, 8)}...` }, 'Firebase user deleted');
-        }
-      } catch (firebaseErr) {
-        log.warn(
-          { error: String(firebaseErr), userId: `${userId.substring(0, 8)}...` },
-          'Firebase user deletion failed (non-fatal)'
-        );
-      }
-    }
-
-    if (profileDeleted || firebaseDeleted) {
-      sendJson(res, {
-        success: true,
-        message: 'Your account and all associated data have been deleted.',
-        deletedAt: new Date().toISOString(),
-        details: {
-          profileDeleted,
-          firebaseDeleted,
-        },
-      });
-    } else {
-      sendJson(res, {
-        success: false,
-        message: 'No account found to delete.',
-      });
-    }
-
-    return true;
+    const { getDataExportService } = await import('../services/data-export.js');
+    await getDataExportService().deleteAllData(userId);
   } catch (error) {
-    log.error({ error, userId }, 'Account deletion failed');
-    sendError(res, 'Failed to delete account. Please contact support.', 500);
+    log.error({ error, userId }, 'Account deletion failed while erasing data');
+    sendError(res, "Couldn't delete your account. Nothing was closed. Try again?", 500);
     return true;
   }
+
+  const failures = await eraseLinkedRecords(userId);
+
+  const firebaseDeleted = firebaseUid ? await deleteFirebaseUser(firebaseUid) : false;
+  if (firebaseUid && !firebaseDeleted) {
+    log.error({ userId }, 'Data erased but Firebase user deletion failed');
+    sendError(res, "Your data was deleted, but we couldn't close your sign-in. Try again?", 500);
+    return true;
+  }
+
+  sendJson(res, {
+    success: true,
+    message:
+      failures.length === 0
+        ? 'Your account and all associated data have been deleted.'
+        : "Your account is deleted, but some records couldn't be removed.",
+    deletedAt: new Date().toISOString(),
+    details: { dataDeleted: true, firebaseDeleted, failures },
+  });
+  return true;
 }
 
 /**
@@ -260,7 +279,7 @@ async function handleUpdateProfile(
   const { name, email, preferences } = body;
 
   try {
-    const store = getDefaultStore();
+    const store = await getStore();
     let profile = await store.getProfile(userId);
 
     if (!profile) {

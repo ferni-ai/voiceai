@@ -433,8 +433,14 @@ export class RelationshipDepth {
       trustVelocity: this.trustVelocity,
       sharedHistoryDensity: this.sharedHistoryDensity,
       emotionalSafetyIndex: this.emotionalSafetyIndex,
-      firstVulnerableShareAt: this.firstVulnerableShareAt?.toISOString(),
-      lastVulnerableShareAt: this.lastVulnerableShareAt?.toISOString(),
+      // Omit (rather than set to `undefined`) when unset: Firestore rejects a
+      // literal `undefined` value anywhere in a document, even nested.
+      ...(this.firstVulnerableShareAt
+        ? { firstVulnerableShareAt: this.firstVulnerableShareAt.toISOString() }
+        : {}),
+      ...(this.lastVulnerableShareAt
+        ? { lastVulnerableShareAt: this.lastVulnerableShareAt.toISOString() }
+        : {}),
       firstTimeVulnerabilityCount: this.firstTimeVulnerabilityCount,
       // Computed fields for convenience in queries
       stage: this.stage,

@@ -12,18 +12,9 @@
  */
 
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import {
-  canPurchase,
-  COSMETICS_CATALOG,
-  equipCosmetic,
-  getEquippedCosmetics,
-  getOwnedCosmetics,
-  onCosmeticsChange,
-  purchaseCosmetic,
-  type CosmeticItem,
-  type CosmeticType,
-} from '../services/cosmetics.service.js';
+import { canPurchase, COSMETICS_CATALOG, equipCosmetic, getCosmeticName, getEquippedCosmetics, getOwnedCosmetics, onCosmeticsChange, purchaseCosmetic, type CosmeticItem, type CosmeticType } from '../services/cosmetics.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
@@ -412,21 +403,21 @@ const SOUND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="2
 
 const VOICE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>`;
 
-const TYPE_LABELS: Record<CosmeticType, string> = {
-  'avatar-skin': 'Style',
-  'ui-theme': 'Theme',
-  'voice-pack': 'Voice',
-  'sound-pack': 'Sounds',
-  emote: 'Expression',
+const TYPE_LABEL_KEYS: Record<CosmeticType, string> = {
+  'avatar-skin': 'personalize.types.avatarSkin',
+  'ui-theme': 'personalize.types.uiTheme',
+  'voice-pack': 'personalize.types.voicePack',
+  'sound-pack': 'personalize.types.soundPack',
+  emote: 'personalize.types.emote',
 };
 
-const CATEGORY_LABELS: Record<CosmeticType | 'all', string> = {
-  all: 'All',
-  'avatar-skin': 'Styles',
-  'ui-theme': 'Themes',
-  'voice-pack': 'Voices',
-  'sound-pack': 'Sounds',
-  emote: 'Expressions',
+const CATEGORY_LABEL_KEYS: Record<CosmeticType | 'all', string> = {
+  all: 'personalize.categories.all',
+  'avatar-skin': 'personalize.categories.avatarSkin',
+  'ui-theme': 'personalize.categories.uiTheme',
+  'voice-pack': 'personalize.categories.voicePack',
+  'sound-pack': 'personalize.categories.soundPack',
+  emote: 'personalize.categories.emote',
 };
 
 // ============================================================================
@@ -486,9 +477,9 @@ function renderHeader(): string {
   return `
     <div class="personalize-header">
       <button class="personalize-close" aria-label="${t('common.close')}">${CLOSE_ICON}</button>
-      <p class="personalize-eyebrow">Make It Yours</p>
-      <h2 class="personalize-title">Personalize</h2>
-      <p class="personalize-subtitle">Choose how Ferni looks and sounds</p>
+      <p class="personalize-eyebrow">${t('personalize.eyebrow')}</p>
+      <h2 class="personalize-title">${t('personalize.title')}</h2>
+      <p class="personalize-subtitle">${t('personalize.subtitle')}</p>
     </div>
   `;
 }
@@ -513,7 +504,7 @@ function renderCategories(): string {
           class="personalize-category-btn ${selectedCategory === cat ? 'active' : ''}"
           data-category="${cat}"
         >
-          ${CATEGORY_LABELS[cat]}
+          ${t(CATEGORY_LABEL_KEYS[cat])}
         </button>
       `
         )
@@ -589,7 +580,7 @@ function renderItems(): string {
   if (items.length === 0) {
     return `
       <div class="personalize-empty">
-        <p>More options coming soon.</p>
+        <p>${t('personalize.comingSoon')}</p>
       </div>
     `;
   }
@@ -608,8 +599,8 @@ function renderItems(): string {
             data-item-id="${item.id}"
           >
             ${renderPreview(item)}
-            <div class="personalize-item-name">${item.name}</div>
-            <div class="personalize-item-type">${TYPE_LABELS[item.type]}</div>
+            <div class="personalize-item-name">${getCosmeticName(item)}</div>
+            <div class="personalize-item-type">${t(TYPE_LABEL_KEYS[item.type])}</div>
             ${renderItemStatus(item, isOwned, isEquipped)}
             ${renderItemAction(item, isOwned, isEquipped, canBuy)}
           </div>
@@ -622,15 +613,15 @@ function renderItems(): string {
 
 function renderItemStatus(item: CosmeticItem, isOwned: boolean, isEquipped: boolean): string {
   if (isEquipped) {
-    return `<div class="personalize-item-status equipped">Active</div>`;
+    return `<div class="personalize-item-status equipped">${t('personalize.status.active')}</div>`;
   }
   if (isOwned) {
-    return `<div class="personalize-item-status owned">Yours</div>`;
+    return `<div class="personalize-item-status owned">${t('personalize.status.owned')}</div>`;
   }
   if (item.priceInSeeds === null) {
-    return `<div class="personalize-item-status available">Default</div>`;
+    return `<div class="personalize-item-status available">${t('personalize.status.default')}</div>`;
   }
-  return `<div class="personalize-item-status available">${item.priceInSeeds} Seeds</div>`;
+  return `<div class="personalize-item-status available">${tp('personalize.status.price', item.priceInSeeds)}</div>`;
 }
 
 function renderItemAction(
@@ -644,33 +635,25 @@ function renderItemAction(
     return '';
   }
 
-  if (isOwned) {
+  if (isOwned || item.priceInSeeds === null) {
     return `
-      <button aria-label="${t('accessibility.useThis')}" class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
-        Use This
-      </button>
-    `;
-  }
-
-  if (item.priceInSeeds === null) {
-    return `
-      <button aria-label="${t('accessibility.useThis')}" class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
-        Use This
+      <button class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
+        ${t('accessibility.useThis')}
       </button>
     `;
   }
 
   if (!canBuy) {
     return `
-      <button aria-label="${t('accessibility.needMoreSeeds')}" class="personalize-item-action" disabled>
-        Need more Seeds
+      <button class="personalize-item-action" disabled>
+        ${t('accessibility.needMoreSeeds')}
       </button>
     `;
   }
 
   return `
-    <button aria-label="${t('accessibility.getThis')}" class="personalize-item-action" data-action="buy" data-item-id="${item.id}">
-      Get This
+    <button class="personalize-item-action" data-action="buy" data-item-id="${item.id}">
+      ${t('accessibility.getThis')}
     </button>
   `;
 }
@@ -710,7 +693,7 @@ function setupEventListeners(overlay: HTMLElement): void {
 function handlePurchase(itemId: string): void {
   const success = purchaseCosmetic(itemId);
   if (success) {
-    toast.success("It's yours!");
+    toast.success(t('personalize.purchased'));
     equipCosmetic(itemId);
   } else {
     toast.error(t('toasts.couldNotComplete'));

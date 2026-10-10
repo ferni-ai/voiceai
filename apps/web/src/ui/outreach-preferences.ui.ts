@@ -15,7 +15,7 @@
  * @module OutreachPreferencesUI
  */
 
-import { t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -53,6 +53,9 @@ const ICONS = {
 // ============================================================================
 // DEFAULT PREFERENCES
 // ============================================================================
+
+// Monday-first (2024-01-01 was a Monday) so day names can be localized via Intl
+const WEEKDAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 const DEFAULT_PREFS: OutreachPreferences = {
   enabled: true,
@@ -578,8 +581,8 @@ class OutreachPreferencesUI {
       <div class="outreach-prefs-card">
         <header class="outreach-prefs-header">
           <div class="outreach-prefs-header-left">
-            <span class="outreach-prefs-eyebrow">Stay in touch</span>
-            <h2 class="outreach-prefs-title">Check-in Settings</h2>
+            <span class="outreach-prefs-eyebrow">${t('outreachPrefs.eyebrow')}</span>
+            <h2 class="outreach-prefs-title">${t('outreachPrefs.title')}</h2>
           </div>
           <button class="outreach-prefs-close" aria-label="${t('common.close')}">
             ${ICONS.close}
@@ -587,11 +590,11 @@ class OutreachPreferencesUI {
         </header>
         <div class="outreach-prefs-content"></div>
         <footer class="outreach-prefs-footer">
-          <button aria-label="${t('accessibility.cancel')}" class="outreach-prefs-btn outreach-prefs-btn--secondary" data-action="cancel">
-            Cancel
+          <button class="outreach-prefs-btn outreach-prefs-btn--secondary" data-action="cancel">
+            ${t('common.cancel')}
           </button>
-          <button aria-label="${t('accessibility.saveChanges')}" class="outreach-prefs-btn outreach-prefs-btn--primary" data-action="save">
-            Save Changes
+          <button class="outreach-prefs-btn outreach-prefs-btn--primary" data-action="save">
+            ${t('accessibility.saveChanges')}
           </button>
         </footer>
       </div>
@@ -627,8 +630,8 @@ class OutreachPreferencesUI {
       <div class="outreach-prefs-section">
         <div class="outreach-prefs-toggle-row" role="button" tabindex="0">
           <div class="outreach-prefs-toggle-info" role="button" tabindex="0">
-            <span class="outreach-prefs-toggle-label" role="button" tabindex="0">Proactive check-ins</span>
-            <span class="outreach-prefs-toggle-desc" role="button" tabindex="0">Let Ferni reach out when something comes to mind</span>
+            <span class="outreach-prefs-toggle-label" role="button" tabindex="0">${t('outreachPrefs.proactive')}</span>
+            <span class="outreach-prefs-toggle-desc" role="button" tabindex="0">${t('outreachPrefs.proactiveDescription')}</span>
           </div>
           <div class="outreach-prefs-toggle ${p.enabled ? 'outreach-prefs-toggle--on' : ''}" role="button" tabindex="0" data-pref="enabled">
             <div class="outreach-prefs-toggle-knob" role="button" tabindex="0"></div>
@@ -638,27 +641,27 @@ class OutreachPreferencesUI {
 
       <!-- Channel Preference -->
       <div class="outreach-prefs-section ${!p.enabled ? 'outreach-prefs-content--disabled' : ''}">
-        <div class="outreach-prefs-section-label">How should I reach you?</div>
+        <div class="outreach-prefs-section-label">${t('outreachPrefs.howReach')}</div>
         <div class="outreach-prefs-channels">
-          ${this.renderChannel('any', 'Any', p.preferredChannel)}
-          ${this.renderChannel('push', 'Push', p.preferredChannel)}
-          ${this.renderChannel('email', 'Email', p.preferredChannel)}
-          ${this.renderChannel('sms', 'Text', p.preferredChannel)}
+          ${this.renderChannel('any', t('outreachPrefs.channelAny'), p.preferredChannel)}
+          ${this.renderChannel('push', t('outreachPrefs.channelPush'), p.preferredChannel)}
+          ${this.renderChannel('email', t('accessibility.email'), p.preferredChannel)}
+          ${this.renderChannel('sms', t('accessibility.text'), p.preferredChannel)}
         </div>
       </div>
 
       <!-- Frequency -->
       <div class="outreach-prefs-section ${!p.enabled ? 'outreach-prefs-content--disabled' : ''}">
-        <div class="outreach-prefs-section-label">How often?</div>
+        <div class="outreach-prefs-section-label">${t('outreachPrefs.howOften')}</div>
         <div class="outreach-prefs-slider-row">
-          <span class="outreach-prefs-slider-label">Per day</span>
+          <span class="outreach-prefs-slider-label">${t('outreachPrefs.perDay')}</span>
           <input type="range" class="outreach-prefs-slider" 
                  min="0" max="5" value="${p.maxPerDay}" 
                  data-pref="maxPerDay">
           <span class="outreach-prefs-slider-value">${p.maxPerDay}</span>
         </div>
         <div class="outreach-prefs-slider-row">
-          <span class="outreach-prefs-slider-label">Per week</span>
+          <span class="outreach-prefs-slider-label">${t('outreachPrefs.perWeek')}</span>
           <input type="range" class="outreach-prefs-slider" 
                  min="0" max="14" value="${p.maxPerWeek}" 
                  data-pref="maxPerWeek">
@@ -668,11 +671,11 @@ class OutreachPreferencesUI {
 
       <!-- Quiet Hours -->
       <div class="outreach-prefs-section ${!p.enabled ? 'outreach-prefs-content--disabled' : ''}">
-        <div class="outreach-prefs-section-label">Quiet hours (no notifications)</div>
+        <div class="outreach-prefs-section-label">${t('outreachPrefs.quietHours')}</div>
         <div class="outreach-prefs-time-row">
           <input type="time" class="outreach-prefs-time-input" 
                  value="${p.quietHoursStart}" data-pref="quietHoursStart">
-          <span class="outreach-prefs-time-label">to</span>
+          <span class="outreach-prefs-time-label">${t('outreachPrefs.to')}</span>
           <input type="time" class="outreach-prefs-time-input" 
                  value="${p.quietHoursEnd}" data-pref="quietHoursEnd">
         </div>
@@ -680,15 +683,9 @@ class OutreachPreferencesUI {
 
       <!-- Quiet Days -->
       <div class="outreach-prefs-section ${!p.enabled ? 'outreach-prefs-content--disabled' : ''}">
-        <div class="outreach-prefs-section-label">Quiet days (no notifications)</div>
+        <div class="outreach-prefs-section-label">${t('outreachPrefs.quietDays')}</div>
         <div class="outreach-prefs-days">
-          ${this.renderDay('monday', 'Mon', p.quietDays)}
-          ${this.renderDay('tuesday', 'Tue', p.quietDays)}
-          ${this.renderDay('wednesday', 'Wed', p.quietDays)}
-          ${this.renderDay('thursday', 'Thu', p.quietDays)}
-          ${this.renderDay('friday', 'Fri', p.quietDays)}
-          ${this.renderDay('saturday', 'Sat', p.quietDays)}
-          ${this.renderDay('sunday', 'Sun', p.quietDays)}
+          ${WEEKDAYS.map((day, i) => this.renderDay(day, formatDate(new Date(2024, 0, 1 + i), { weekday: 'short' }), p.quietDays)).join('')}
         </div>
       </div>
     `;

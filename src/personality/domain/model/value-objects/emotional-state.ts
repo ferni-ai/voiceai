@@ -509,8 +509,8 @@ export class EmotionalState {
       confidence: this.confidence,
       trajectory: this.trajectory,
       sources: this.sources,
-      contradictingEmotion: this.contradictingEmotion,
-      triggerContext: this.triggerContext,
+      ...(this.contradictingEmotion ? { contradictingEmotion: this.contradictingEmotion } : {}),
+      ...(this.triggerContext ? { triggerContext: this.triggerContext } : {}),
       associatedTopics: this.associatedTopics,
       detectedAt: this.detectedAt.toISOString(),
       // Computed fields for convenience

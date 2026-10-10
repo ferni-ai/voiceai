@@ -6,7 +6,7 @@
  */
 
 export type ThemeName = 'midnight' | 'zen';
-export type PersonaId = '_description' | '_textOnDarkNote' | 'ferni' | 'jack' | 'peter' | 'alex' | 'maya' | 'jordan' | 'nayan' | 'joel' | '_marketplace_description' | 'eli' | 'marcus' | 'kenji' | 'carmen' | 'amara' | 'sasha' | 'ray';
+export type PersonaId = '_description' | '_textOnDarkNote' | 'ferni' | 'jack' | 'peter' | 'alex' | 'maya' | 'jordan' | 'nayan' | 'joel' | 'lynch' | 'bogle' | '_marketplace_description' | 'eli' | 'marcus' | 'kenji' | 'carmen' | 'amara' | 'sasha' | 'ray';
 
 export interface ThemeMeta {
   name: string;
@@ -16,8 +16,8 @@ export interface ThemeMeta {
 
 export const THEMES: Record<ThemeName, ThemeMeta> = {
   "midnight": {
-    "name": "Cedar Night",
-    "description": "Warm cedar wood tones - Japanese zen garden under moonlight, open and welcoming",
+    "name": "Night Ink",
+    "description": "Warm near-black field, paper type, sage actions. Dark enough that a hairline reads as light.",
     "mode": "dark"
   },
   "zen": {
@@ -27,7 +27,7 @@ export const THEMES: Record<ThemeName, ThemeMeta> = {
   }
 };
 
-export const PERSONA_IDS: PersonaId[] = ["_description","_textOnDarkNote","ferni","jack","peter","alex","maya","jordan","nayan","joel","_marketplace_description","eli","marcus","kenji","carmen","amara","sasha","ray"];
+export const PERSONA_IDS: PersonaId[] = ["_description","_textOnDarkNote","ferni","jack","peter","alex","maya","jordan","nayan","joel","lynch","bogle","_marketplace_description","eli","marcus","kenji","carmen","amara","sasha","ray"];
 
 // ============================================================================
 // PIXAR ANIMATION CONSTANTS

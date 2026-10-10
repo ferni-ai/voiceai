@@ -63,7 +63,12 @@ const createMockAudioContext = () => ({
 });
 
 // Mock global AudioContext - return fresh instance each time
-vi.stubGlobal('AudioContext', vi.fn().mockImplementation(createMockAudioContext));
+vi.stubGlobal(
+  'AudioContext',
+  vi.fn().mockImplementation(function () {
+    return createMockAudioContext();
+  })
+);
 
 describe('Music Ducking E2E', () => {
   beforeEach(() => {

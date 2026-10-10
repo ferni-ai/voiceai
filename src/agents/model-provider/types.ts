@@ -24,10 +24,6 @@ export type ModelProviderId =
   | 'gemini-native-audio'
   | 'openai-realtime'
   | 'gemini-live'
-  | 'qwen3-omni'
-  | 'qwen3-thinker-local'
-  | 'local-pipeline'
-  | 'omni-pipeline'
   | 'chipchat'
   | 'gemma3n';
 
@@ -104,7 +100,7 @@ export interface PromptModuleConfig {
  * Configuration for creating an LLM model instance
  */
 export interface LLMModelConfig {
-  /** Model identifier (e.g., 'gpt-realtime', 'gemini-2.5-flash') */
+  /** Model identifier (e.g., 'gpt-realtime', 'gemini-3.5-flash') */
   model?: string;
 
   /** System instructions/prompt */
@@ -330,7 +326,6 @@ export interface ModelProvider {
    * Different providers expect tools in different formats:
    * - OpenAI: function definitions with JSON schema
    * - Gemini: functionDeclarations wrapped in tools array
-   * - Qwen: Similar to OpenAI
    *
    * This method enables provider-agnostic tool passing and
    * future-proofs the system for new LLM providers.

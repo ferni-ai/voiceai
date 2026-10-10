@@ -3,19 +3,16 @@
  * (voice-agent-entry) and multi-agent handlers so both paths behave the same.
  *
  * Order matters: the caller's voice for this turn is captured first, so the
- * crisis shadow and adaptive delivery both see this turn's reading rather
- * than the previous one's.
+ * crisis shadow sees this turn's reading rather than the previous one's.
+ * (How the reply should sound is the Speech Director's: its emotion and
+ * prosody levers read the caller. The adaptive-delivery style that used to be
+ * picked here only reached LiveKit's Cartesia plugin, which the TTS gateway
+ * bypasses, so it never changed a reply.)
  *
  * @module agents/shared/final-transcript-observer
  */
 
 import { getSessionAudioProsodyAnalyzer } from '../../speech/audio-prosody/index.js';
-import {
-  deliveryStyleForUserVoice,
-  isAdaptiveDeliveryEnabled,
-  type DeliveryStyle,
-  type UserVoiceReading,
-} from '../../speech/tts/delivery-style.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   observeCrisisTurn,
@@ -33,46 +30,32 @@ const crisisLog = createLogger({ module: 'CrisisShadow' });
 const turnVoiceLog = createLogger({ module: 'TurnVoice' });
 
 export interface FinalTranscriptInput {
-  session: unknown;
   transcript: string;
   userData: Record<string, unknown>;
   sessionId: string;
   crisisMode: CrisisGuardMode;
   /** Defaults to the session's prosody analyzer. */
   analyzer?: TurnProsodyAnalyzer;
-  env?: Record<string, string | undefined>;
 }
 
 export interface FinalTranscriptObservation {
-  style: DeliveryStyle | null;
   crisis: CrisisShadowRecord | null;
 }
 
 /** Run every per-turn observer for one final transcript. Never throws. */
 export function observeFinalTranscript(input: FinalTranscriptInput): FinalTranscriptObservation {
-  const style = applyTurnVoice(input);
-  const crisis = recordCrisisShadow(input);
-  return { style, crisis };
+  captureTurnVoice(input);
+  return { crisis: recordCrisisShadow(input) };
 }
 
-function applyTurnVoice(input: FinalTranscriptInput): DeliveryStyle | null {
-  const { session, userData, sessionId } = input;
+/** Record this turn's voice reading on userData (voiceEmotion) for the crisis guard and others. */
+function captureTurnVoice(input: FinalTranscriptInput): void {
+  const { userData, sessionId } = input;
   try {
     const analyzer = input.analyzer ?? getSessionAudioProsodyAnalyzer(sessionId);
-    const reading = captureTurnVoiceEmotion(analyzer, userData) as UserVoiceReading | null;
-    if (!isAdaptiveDeliveryEnabled(input.env)) return null;
-    const style = deliveryStyleForUserVoice(reading);
-    const tts = (session as { tts?: { setDeliveryStyle?: (s: DeliveryStyle | null) => void } })
-      ?.tts;
-    tts?.setDeliveryStyle?.(style);
-    turnVoiceLog.info(
-      { sessionId, turn: userData.turnCount, voice: reading?.primary ?? null, style },
-      'DELIVERY_STYLE'
-    );
-    return style;
+    captureTurnVoiceEmotion(analyzer, userData);
   } catch (error) {
     turnVoiceLog.error({ sessionId, error: String(error) }, 'Per-turn voice failed');
-    return null;
   }
 }
 
@@ -82,7 +65,10 @@ function recordCrisisShadow(input: FinalTranscriptInput): CrisisShadowRecord | n
     const voiceEmotion = toGuardVoiceEmotion(
       userData.voiceEmotion as ProsodyEmotionLike | undefined
     );
-    const crisis = observeCrisisTurn(transcript, voiceEmotion, crisisMode);
+    const recent = userData.recentTranscripts;
+    const crisis = observeCrisisTurn(transcript, voiceEmotion, crisisMode, {
+      recentMessages: Array.isArray(recent) ? recent.filter((m) => typeof m === 'string') : [],
+    });
     if (crisis && crisis.severity > 0) {
       crisisLog.info({ sessionId, turn: userData.turnCount, ...crisis }, 'CRISIS_SHADOW');
     }

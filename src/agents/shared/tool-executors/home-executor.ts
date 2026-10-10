@@ -76,7 +76,7 @@ const TOOL_ALIASES: Record<string, string> = {
  * Get a helpful message when no smart home is configured
  */
 function getSetupMessage(): string {
-  return "You haven't connected any smart home devices yet. Go to Settings → Your Home to connect your lights, thermostat, or speakers.";
+  return "You haven't connected any smart home devices yet. Open Set the Mood in the app's menu to connect your lights, thermostat, or speakers.";
 }
 
 /**
@@ -166,7 +166,7 @@ async function execute(
     const lights = devices.filter((d) => d.type === 'light');
 
     if (lights.length === 0) {
-      return 'No lights found. Make sure they are connected in Settings → Your Home.';
+      return 'No lights found. Make sure they are connected in Set the Mood.';
     }
 
     const results = await Promise.all(
@@ -346,9 +346,9 @@ async function execute(
       return getSetupMessage();
     }
 
-    // Security systems typically integrate through Home Assistant
-    // For now, return a helpful message
-    return `Security system control requires Home Assistant integration. Connect it in Settings → Your Home.`;
+    // Security systems would integrate through Home Assistant, which the app can't connect yet:
+    // say so, rather than send people to a settings page that doesn't exist
+    return `Security systems aren't something I can control yet.`;
   }
 
   return null;

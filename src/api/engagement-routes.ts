@@ -28,6 +28,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { optionalAuthAsync, rateLimit } from './auth-middleware.js';
 import { API_ERRORS } from './error-messages.js';
 import { getUserId, handleCorsPreflightIfNeeded, sendError } from './helpers.js';
+import { GROUP_TWILIO_CALLBACK_PATHS } from './twilio-callback-signature.js';
 
 // Import modular route handlers
 import { handleAnalyticsRoutes } from './routes/analytics.js';
@@ -65,7 +66,6 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
   '/api/relationship',
   '/api/games',
   '/api/sky-check',
-  '/api/growth',
   '/api/insights', // Pattern insights
   '/api/journal', // Growth journal
   '/api/quiz', // Knowledge quiz
@@ -81,6 +81,9 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
  * Check if a pathname matches an engagement route prefix
  */
 function isEngagementRoute(pathname: string): boolean {
+  // Twilio's conference-call callbacks carry a signature, not a user: the group
+  // router (group-conversation-routes.ts) admits them on that signature alone.
+  if (GROUP_TWILIO_CALLBACK_PATHS.has(pathname)) return false;
   return ENGAGEMENT_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
@@ -110,15 +113,9 @@ export async function handleEngagementRoutes(
     return true; // Rate limited
   }
 
-  // Auth strategy for engagement routes:
-  // 1. Try Firebase auth (preferred) - sets userId to Firebase UID
-  // 2. Fall back to userId from query params or X-User-Id header (legacy device IDs)
-  // This allows users who haven't migrated to Firebase to still use the API
+  // A verified caller is required: getUserId no longer takes ?userId= as one.
+  // The handlers below read the user back with requireUserId / requireAuth.
   const auth = await optionalAuthAsync(req);
-
-  // If we have Firebase auth, we can use the userId from there
-  // Otherwise, individual handlers will get userId from query params/headers
-  // We still need SOME form of user identification
   const userId = auth?.userId || getUserId(req, parsedUrl);
   if (!userId) {
     sendError(res, API_ERRORS.USER_ID_REQUIRED, 401);

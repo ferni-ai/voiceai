@@ -14,11 +14,12 @@ This document lists all environment variables required for the Ferni monetizatio
 
 ### Stripe Configuration
 
-| Variable                      | Description                          | Example                        |
-| ----------------------------- | ------------------------------------ | ------------------------------ |
-| `STRIPE_SECRET_KEY`           | Stripe secret key (server-side)      | `sk_live_...` or `sk_test_...` |
-| `STRIPE_WEBHOOK_SECRET`       | Webhook endpoint signing secret      | `whsec_...`                    |
-| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (client-side) | `pk_live_...` or `pk_test_...` |
+| Variable                             | Description                                                                                 | Example                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------- | ------------------------------ |
+| `STRIPE_SECRET_KEY`                  | Stripe secret key (server-side)                                                             | `sk_live_...` or `sk_test_...` |
+| `STRIPE_WEBHOOK_SECRET`              | Signing secret of the subscription webhook endpoint                                         | `whsec_...`                    |
+| `STRIPE_MONETIZATION_WEBHOOK_SECRET` | Signing secret of the monetization webhook endpoint (falls back to `STRIPE_WEBHOOK_SECRET`) | `whsec_...`                    |
+| `VITE_STRIPE_PUBLISHABLE_KEY`        | Stripe publishable key (client-side)                                                        | `pk_live_...` or `pk_test_...` |
 
 ### Stripe Price IDs (Subscriptions)
 
@@ -67,15 +68,21 @@ stripe prices create --product=prod_yyy --unit-amount=1999 --currency=usd --recu
 
 ### 3. Set Up Webhooks
 
+Ferni uses two Stripe webhook endpoints. Stripe gives each endpoint its own signing secret, and
+both endpoints reject any event whose `stripe-signature` doesn't verify (HTTP 400). Set both
+secrets before deploying, or real Stripe events will be rejected too.
+
 1. Go to Dashboard → Developers → Webhooks
-2. Add endpoint: `https://app.ferni.ai/api/monetization/webhook`
-3. Select events to listen for:
-   - `payment_intent.succeeded`
-   - `payment_intent.payment_failed`
-   - `customer.subscription.created`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-4. Copy the signing secret to `STRIPE_WEBHOOK_SECRET`
+2. Add the subscription endpoint: `https://app.ferni.ai/api/subscription/webhook`
+   - Events: `checkout.session.completed`, `customer.subscription.created`,
+     `customer.subscription.updated`, `customer.subscription.deleted`
+   - Copy its signing secret to `STRIPE_WEBHOOK_SECRET`
+3. Add the monetization endpoint (tips, value capture, Ferni Fund):
+   `https://app.ferni.ai/api/monetization/webhook`
+   - Events: `payment_intent.succeeded`, `payment_intent.payment_failed`
+   - Copy its signing secret to `STRIPE_MONETIZATION_WEBHOOK_SECRET`
+
+If you only configure one endpoint, the monetization route falls back to `STRIPE_WEBHOOK_SECRET`.
 
 ### 4. Test Mode
 
@@ -106,12 +113,14 @@ The monetization system uses the following Firestore collections:
 
 Required for iOS subscriptions via StoreKit.
 
-| Variable            | Description                              | Example                                                       |
-| ------------------- | ---------------------------------------- | ------------------------------------------------------------- |
-| `APPLE_ISSUER_ID`   | App Store Connect Issuer ID              | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`                        |
-| `APPLE_KEY_ID`      | App Store Connect Key ID                 | `XXXXXXXXXX`                                                  |
-| `APPLE_BUNDLE_ID`   | iOS app bundle identifier                | `com.ferni.app`                                               |
-| `APPLE_PRIVATE_KEY` | Private key from App Store Connect (.p8) | `-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----` |
+| Variable             | Description                                                                                                                                        | Example                                                       |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `APPLE_ISSUER_ID`    | App Store Connect Issuer ID                                                                                                                        | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`                        |
+| `APPLE_KEY_ID`       | App Store Connect Key ID                                                                                                                           | `XXXXXXXXXX`                                                  |
+| `APPLE_BUNDLE_ID`    | iOS app bundle identifier (default: the app's, `com.sethdford.ferni`)                                                                              | `com.sethdford.ferni`                                         |
+| `APPLE_PRIVATE_KEY`  | Private key from App Store Connect (.p8)                                                                                                           | `-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----` |
+| `APPLE_APP_APPLE_ID` | The app's Apple ID (App Store Connect → App Information). **Required in production**: without it nothing App Store-signed is accepted              | `6739614203`                                                  |
+| `APPLE_ENVIRONMENT`  | `Production` or `Sandbox`; the server accepts only that environment's purchases and notifications (default: Production when `NODE_ENV=production`) | `Production`                                                  |
 
 **Getting Apple Credentials:**
 
@@ -124,19 +133,26 @@ Required for iOS subscriptions via StoreKit.
 
 Configure these products in App Store Connect:
 
-| Product ID                  | Tier    | Duration | Price   |
-| --------------------------- | ------- | -------- | ------- |
-| `com.ferni.friend.monthly`  | Friend  | Monthly  | $9.99   |
-| `com.ferni.friend.annual`   | Friend  | Annual   | $99.90  |
-| `com.ferni.partner.monthly` | Partner | Monthly  | $19.99  |
-| `com.ferni.partner.annual`  | Partner | Annual   | $199.90 |
+| Product ID                               | Tier    | Duration |
+| ---------------------------------------- | ------- | -------- |
+| `com.ferni.subscription.friend.monthly`  | Friend  | Monthly  |
+| `com.ferni.subscription.friend.yearly`   | Friend  | Annual   |
+| `com.ferni.subscription.partner.monthly` | Partner | Monthly  |
+| `com.ferni.subscription.partner.yearly`  | Partner | Annual   |
+
+These are what the iOS app sells (`apps/ios-native/Ferni.storekit`). The server also maps the
+older names `com.ferni.{friend,partner}.{monthly,annual}`. A product it doesn't map grants nothing.
 
 **Apple Webhook:**
 
 Set up App Store Server Notifications in App Store Connect:
 
-- URL: `https://app.ferni.ai/api/apple/webhook`
+- URL: `https://app.ferni.ai/api/apple/webhook` (not `/api/apple/notifications`, which is Sign in with Apple)
 - Version: V2
+
+The webhook keeps the buyer's profile in step (renewals, upgrades, grace periods, expiry,
+refunds); `/api/apple/verify` grants the tier at purchase. Both only accept data Apple signed
+for `APPLE_BUNDLE_ID`, `APPLE_APP_APPLE_ID` and `APPLE_ENVIRONMENT`.
 
 ## Local Development
 
@@ -146,6 +162,7 @@ Create a `.env.local` file:
 # Stripe (Test Mode)
 STRIPE_SECRET_KEY=sk_test_your_key_here
 STRIPE_WEBHOOK_SECRET=whsec_your_secret_here
+STRIPE_MONETIZATION_WEBHOOK_SECRET=whsec_your_monetization_secret_here
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here
 
 # Stripe Prices (create in test mode)

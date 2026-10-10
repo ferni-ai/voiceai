@@ -49,34 +49,15 @@ export interface CommandsUICallbacks {
 }
 
 // ============================================================================
-// HUMANIZED COPY
+// HUMANIZED COPY (text lives in the commands.* locale keys)
 // ============================================================================
 
-const COMMANDS_COPY = {
-  title: 'Guided Practices',
-  intro: 'Choose a guided conversation to begin',
-  emptyState: {
-    title: 'No practices yet',
-    message: "Guided practices will appear here based on who you're talking to",
-  },
-  loading: 'Finding practices...',
-  error: {
-    title: 'Something went wrong',
-    message: "Couldn't load practices. Try again?",
-    retry: 'Try again',
-  },
-  categories: {
-    'check-in': 'Check-ins',
-    reflection: 'Reflection',
-    action: 'Take Action',
-    review: 'Reviews',
-    planning: 'Planning',
-    default: 'Practices',
-  },
-  buttons: {
-    close: 'Close',
-    start: 'Start',
-  },
+const CATEGORY_KEYS: Record<string, string> = {
+  'check-in': 'commands.categories.checkIn',
+  reflection: 'commands.categories.reflection',
+  action: 'commands.categories.action',
+  review: 'commands.categories.review',
+  planning: 'commands.categories.planning',
 };
 
 // Icon mapping for command categories and icons
@@ -206,7 +187,7 @@ class CommandsPanelUI {
     this.panel = document.createElement('div');
     this.panel.className = 'ferni-commands';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', COMMANDS_COPY.title);
+    this.panel.setAttribute('aria-label', t('commands.title'));
 
     // Backdrop
     const backdrop = document.createElement('div');
@@ -278,13 +259,13 @@ class CommandsPanelUI {
 
     this.wrapper.innerHTML = `
       <header class="ferni-commands__header">
-        <h2>${COMMANDS_COPY.title}</h2>
-        ${renderCloseButton(COMMANDS_COPY.buttons.close)}
+        <h2>${t('commands.title')}</h2>
+        ${renderCloseButton(t('common.close'))}
       </header>
 
       <div class="ferni-commands__loading">
         <div class="ferni-commands__spinner"></div>
-        <p>${COMMANDS_COPY.loading}</p>
+        <p>${t('commands.loading')}</p>
       </div>
     `;
 
@@ -296,15 +277,15 @@ class CommandsPanelUI {
 
     this.wrapper.innerHTML = `
       <header class="ferni-commands__header">
-        <h2>${COMMANDS_COPY.title}</h2>
-        ${renderCloseButton(COMMANDS_COPY.buttons.close)}
+        <h2>${t('commands.title')}</h2>
+        ${renderCloseButton(t('common.close'))}
       </header>
 
       <div class="ferni-commands__error">
-        <h3>${COMMANDS_COPY.error.title}</h3>
-        <p>${COMMANDS_COPY.error.message}</p>
-        <button aria-label="${t('accessibility.copy')}" class="ferni-commands__retry engagement-btn-primary" type="button">
-          ${COMMANDS_COPY.error.retry}
+        <h3>${t('common.error')}</h3>
+        <p>${t('commands.error.message')}</p>
+        <button class="ferni-commands__retry engagement-btn-primary" type="button">
+          ${t('common.retry')}
         </button>
       </div>
     `;
@@ -320,14 +301,14 @@ class CommandsPanelUI {
 
     this.wrapper.innerHTML = `
       <header class="ferni-commands__header">
-        <h2>${COMMANDS_COPY.title}</h2>
-        ${renderCloseButton(COMMANDS_COPY.buttons.close)}
+        <h2>${t('commands.title')}</h2>
+        ${renderCloseButton(t('common.close'))}
       </header>
 
       <div class="ferni-commands__empty">
         <div class="ferni-commands__empty-icon">${ICONS.clock}</div>
-        <h3>${COMMANDS_COPY.emptyState.title}</h3>
-        <p>${COMMANDS_COPY.emptyState.message}</p>
+        <h3>${t('commands.empty.title')}</h3>
+        <p>${t('commands.empty.message')}</p>
       </div>
     `;
 
@@ -342,9 +323,7 @@ class CommandsPanelUI {
 
     let categoriesHtml = '';
     for (const [category, commands] of Object.entries(categories)) {
-      const categoryLabel =
-        COMMANDS_COPY.categories[category as keyof typeof COMMANDS_COPY.categories] ||
-        COMMANDS_COPY.categories.default;
+      const categoryLabel = t(CATEGORY_KEYS[category] ?? 'commands.categories.default');
 
       const commandsHtml = commands
         .map(
@@ -378,11 +357,11 @@ class CommandsPanelUI {
 
     this.wrapper.innerHTML = `
       <header class="ferni-commands__header">
-        <h2>${COMMANDS_COPY.title}</h2>
-        ${renderCloseButton(COMMANDS_COPY.buttons.close)}
+        <h2>${t('commands.title')}</h2>
+        ${renderCloseButton(t('common.close'))}
       </header>
 
-      <p class="ferni-commands__intro">${COMMANDS_COPY.intro}</p>
+      <p class="ferni-commands__intro">${t('commands.intro')}</p>
 
       <div class="ferni-commands__content">
         ${categoriesHtml}

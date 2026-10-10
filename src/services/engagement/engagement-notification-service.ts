@@ -17,6 +17,7 @@
  * Firestore via the unified persistence layer to survive server restarts.
  */
 
+import { getProfileStore } from '../../memory/profile-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
@@ -25,7 +26,6 @@ import { createPersistenceStore, type PersistenceStore } from '../persistence/in
 import { createReminder, type ScheduledReminder } from '../scheduling/reminder-scheduler.js';
 import { getProductivityStore } from '../stores/productivity-store.js';
 import { getGamificationStore } from './gamification-store.js';
-import { getDefaultStore } from '../../memory/index.js';
 import { isUserBusy, getNextOutreachWindow } from '../scheduling/calendar-busy-detection.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
@@ -138,8 +138,8 @@ class MayaNotificationService extends EventEmitter {
       maxPendingChanges: 30,
     });
 
-    // Start the proactive check loop
-    this.startProactiveCheckLoop();
+    // Off unless MAYA_PROACTIVE_CHECKS=on: every call process would scan 100 users and could text them.
+    if (process.env.MAYA_PROACTIVE_CHECKS === 'on') this.startProactiveCheckLoop();
 
     getLogger().info({}, '🌱 Maya Notification Service ready with persistence');
   }
@@ -311,7 +311,7 @@ class MayaNotificationService extends EventEmitter {
     }
 
     // Get user's contact info
-    const store = getDefaultStore();
+    const store = await getProfileStore();
     const profile = await store.getProfile(request.userId);
 
     const deliveryAddress =
@@ -561,7 +561,7 @@ class MayaNotificationService extends EventEmitter {
 
   private async runProactiveChecks(): Promise<void> {
     try {
-      const store = getDefaultStore();
+      const store = await getProfileStore();
       const profiles = await store.listProfiles({ limit: 100 });
 
       for (const profile of profiles) {

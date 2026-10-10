@@ -280,7 +280,9 @@ const isProduction =
   !!process.env.GOOGLE_CLOUD_PROJECT ||
   !!process.env.K_SERVICE;
 
-if (isProduction && !redisAvailable) {
+// Warn only when no Redis is configured. At load time the connection is still in flight
+// (redisAvailable turns true on 'connect'), and connection failures log their own warnings.
+if (isProduction && !redisClient) {
   log.warn(
     'SECURITY: Using in-memory rate limiting in production. ' +
       'Rate limits will reset on server restart. ' +

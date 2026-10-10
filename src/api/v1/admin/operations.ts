@@ -153,7 +153,7 @@ export async function handleAdminOperationsRoutes(
   }
 
   // All operations routes require auth (allow dev mode)
-  const auth = requireAuth(req, res, { allowDevMode: true });
+  const auth = await requireAuth(req, res, { allowDevMode: true });
   if (!auth) return true;
 
   // Get the path after the base path
