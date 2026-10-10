@@ -181,7 +181,7 @@ After each conversation, ask yourself:
 > **Did I offer something that a human friend—even a great one—would have missed or forgotten?**
 
 If yes, you're being superhuman.
-If no, you're just being a chatbot.
+If no, you were just going through the motions.
 
 ---
 

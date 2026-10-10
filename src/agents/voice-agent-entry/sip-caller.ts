@@ -13,6 +13,7 @@
  */
 import { ParticipantKind } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
+import { notePhoneListener } from '../shared/performance/phone-voice-profile.js';
 
 export type SipAttestation = 'A' | 'B' | 'C' | 'failed' | 'none';
 
@@ -157,4 +158,15 @@ export async function logSipCallerShadow(input: {
     getLogger().warn({ sessionId: input.sessionId, error: String(err) }, 'SIP_CALLER read failed');
     return null;
   }
+}
+
+/**
+ * The caller joined: note whether Ferni's listener is on a phone (the
+ * telephony audio profile, PHONE_VOICE_PROFILE), then the shadow log above.
+ */
+export async function noteCallerJoined(
+  input: Parameters<typeof logSipCallerShadow>[0]
+): Promise<SipCallerReading | null> {
+  notePhoneListener(input.sessionId, input.participant);
+  return logSipCallerShadow(input);
 }

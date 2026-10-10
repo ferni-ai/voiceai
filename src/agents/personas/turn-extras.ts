@@ -71,6 +71,8 @@ export interface TurnSignals {
   move: CallerMove;
   /** Venting, bad news or a tender moment: no story of his own, no laugh, no aside. */
   careful: boolean;
+  /** CANDOR=on: hard news earlier in the call, so support still comes first (turn-candor.ts). */
+  supportFirst?: boolean;
   laughed: boolean;
   laughFits: boolean;
   adviceFits: boolean;

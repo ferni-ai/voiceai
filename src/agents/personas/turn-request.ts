@@ -27,8 +27,9 @@ import {
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
-import { modelSignals, PLAIN_SIGNALS, type TurnSignals } from './turn-extras.js';
-import { rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
+import { candorEnabled, supportHeld } from './turn-candor.js';
+import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
+import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
 import {
   understandingFor,
   understandingMode,
@@ -111,7 +112,12 @@ function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): st
   // Seeded per call and words: the preemptive and final requests agree, but
   // the same words on another call (or said again) can get another shape.
   const { signals, source } = signalsFor(session, said);
-  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, signals);
+  const turn = turnShapeFor(
+    said,
+    rngFor(`${callSeed(session)}:${said}`),
+    undefined,
+    withSupportHold(session, said, signals, source)
+  );
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
   log.info(
@@ -134,6 +140,23 @@ export function signalsFor(
   return understood
     ? { signals: modelSignals(understood), source: 'model' }
     : { signals: PLAIN_SIGNALS, source: 'plain' };
+}
+
+/**
+ * CANDOR=on: after hard news, support comes first for the next few turns too
+ * ("Can you just tell me something funny?" after "my dad's in the hospital"
+ * is no moment to set them straight). Off, the signals are passed through.
+ */
+function withSupportHold(
+  session: object,
+  said: string,
+  signals: TurnSignals | undefined,
+  source: 'model' | 'plain' | 'regex'
+): TurnSignals | undefined {
+  if (!candorEnabled()) return signals;
+  const sig = signals ?? regexSignals(said, callerMove(said));
+  // Only the model's reading is sticky: plain (no reading yet) is careful by default.
+  return { ...sig, supportFirst: supportHeld(session, said, source === 'model' && sig.careful) };
 }
 
 const callSeeds = new WeakMap<object, string>();

@@ -9,6 +9,8 @@ on:
       - 'src/services/data-layer/**'
       - 'src/services/seeds/**'
       - 'src/api/seeds-routes.ts'
+      - 'src/services/billing/stripe-subscription.ts'
+      - 'src/api/garden-routes.ts'
       - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'src/intelligence/**'
@@ -22,6 +24,8 @@ on:
       - 'src/services/data-layer/**'
       - 'src/services/seeds/**'
       - 'src/api/seeds-routes.ts'
+      - 'src/services/billing/stripe-subscription.ts'
+      - 'src/api/garden-routes.ts'
       - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'firestore.indexes.json'
@@ -36,7 +40,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
@@ -44,7 +48,7 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Setup Java (required for Firestore emulator)
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -122,7 +126,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
@@ -130,7 +134,7 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Setup Java (required for Firestore emulator)
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -178,7 +182,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
