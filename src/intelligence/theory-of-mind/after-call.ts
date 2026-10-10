@@ -1,10 +1,9 @@
 /**
  * After a call ends, update what Ferni understands about the person.
  *
- * Runs from session-manager's endSession, after the summary is saved: on the
- * cleanup path, never the reply path. Off unless THEORY_OF_MIND=on. Bounded by
- * a timeout and never throws, so a slow model or store can't hold up cleanup
- * for long or fail it.
+ * Started from session-manager's endSession after the summary is saved, and
+ * not awaited there, so teardown never waits on it. Off unless
+ * THEORY_OF_MIND=on. Bounded by its own timeout and never throws.
  *
  * @module intelligence/theory-of-mind/after-call
  */

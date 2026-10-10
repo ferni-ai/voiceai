@@ -1756,10 +1756,15 @@ export async function createSessionServices(
           } // Close turns.length > 0 block
 
           // What Ferni understands about the person, from this call (THEORY_OF_MIND=on).
-          // Bounded and never throws; returns at once when off.
-          const { updateTheoryOfMindAfterCall } =
-            await import('../../intelligence/theory-of-mind/after-call.js');
-          await updateTheoryOfMindAfterCall({ userId: validatedUserId, sessionId, turns, summary });
+          // Not awaited, so teardown never waits on it: it has its own 15 s bound,
+          // never throws, and returns at once when off.
+          void import('../../intelligence/theory-of-mind/after-call.js')
+            .then(({ updateTheoryOfMindAfterCall }) =>
+              updateTheoryOfMindAfterCall({ userId: validatedUserId, sessionId, turns, summary })
+            )
+            .catch((error: unknown) =>
+              getLogger().warn({ sessionId, error: String(error) }, 'Theory of mind not started')
+            );
 
           // FIX BUG #session-20: Finalize learning regardless of turns count
           // Learning engine may have captured session-level insights
