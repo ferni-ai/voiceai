@@ -35,6 +35,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../../services/superhuman/firestore-utils.js';
 import { Timestamp, type DocumentReference } from '@google-cloud/firestore';
 import { TEMP_EXTRACTION, MAX_TOKENS_EXTENDED } from '../../config/gemini-config.js';
+import * as guards from './deep-analysis-guards.js';
 
 const log = createLogger({ module: 'llm-deep-analysis' });
 
@@ -199,7 +200,7 @@ ${analysisGoals.map((g) => `- ${g.replace(/_/g, ' ').toUpperCase()}`).join('\n')
 
 Generate insights, hypotheses, and outreach suggestions based on this data.
 Focus on what a human friend would MISS but you can see.
-Be specific and actionable.
+Be specific and actionable. ${guards.EVIDENCE_RULES}
 
 Return your analysis as valid JSON matching this structure:
 {
@@ -230,7 +231,7 @@ export async function runDeepAnalysis(input: DeepAnalysisInput): Promise<DeepAna
   );
 
   // Skip if not enough data
-  if (input.conversationSummaries.length < 3) {
+  if (!guards.hasEnoughHistory(input.conversationSummaries)) {
     log.debug({ userId }, 'Not enough conversation history for deep analysis');
     return createEmptyResult();
   }
@@ -283,10 +284,10 @@ export async function runDeepAnalysis(input: DeepAnalysisInput): Promise<DeepAna
     const analysisResult: DeepAnalysisResult = {
       analysisId: `deep_${Date.now()}_${userId.slice(0, 8)}`,
       timestamp: new Date(),
-      insights: parsed.insights || [],
-      hypotheses: parsed.hypotheses || [],
+      insights: guards.keepGroundedInsights(parsed.insights || []),
+      hypotheses: guards.keepUnlabelledHypotheses(parsed.hypotheses || []),
       outreachSuggestions: parsed.outreachSuggestions || [],
-      coachingGuidance: parsed.coachingGuidance || [],
+      coachingGuidance: guards.withoutClinicalLabels(parsed.coachingGuidance || [], (g) => g),
       model: getExtractionModel(),
       tokenUsage: {
         input: response.usageMetadata?.promptTokenCount || 0,
@@ -333,9 +334,7 @@ function createEmptyResult(): DeepAnalysisResult {
 // STORAGE
 // ============================================================================
 
-/**
- * Store deep analysis result in Firestore
- */
+/** Store deep analysis result in Firestore */
 async function storeDeepAnalysis(userId: string, result: DeepAnalysisResult): Promise<void> {
   try {
     const firestore = getFirestoreDb();
@@ -405,15 +404,14 @@ export async function getLatestDeepAnalysis(userId: string): Promise<DeepAnalysi
  * The LLM doesn't re-analyze - it uses cached insights.
  */
 export async function getDeepAnalysisContextForTurn(userId: string): Promise<string> {
+  if (!guards.isDeepAnalysisInCallOn()) return '';
   const analysis = await getLatestDeepAnalysis(userId);
   if (!analysis || analysis.insights.length === 0) {
     return '';
   }
 
   // Only include high-confidence insights
-  const relevantInsights = analysis.insights.filter(
-    (i) => i.confidence > 0.6 && i.surfacingContext !== 'crisis_only'
-  );
+  const relevantInsights = analysis.insights.filter(guards.isSurfaceableInsight);
 
   if (relevantInsights.length === 0) return '';
 
