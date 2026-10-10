@@ -1,0 +1,12 @@
+# Seed for world-recall.txt (WORLD_MODEL_SNAPSHOT): the caller tells Ferni who
+# is in their life and what they are working toward, and asks him not to bring
+# up one thing. To remember: sister Mindy (lives nearby, they're close), a
+# coworker, Dana, who keeps taking credit for their work, a goal of running a
+# half marathon in the spring, and never raising their ex. Run with a longer
+# EVAL_SEED_WAIT (90) so the end-of-call extraction has written the profile.
+Hey Ferni! Can I just talk for a minute?
+My sister Mindy came over last night. She lives ten minutes away, we're super close.
+Work's been rough though. My coworker Dana keeps taking credit for my stuff in meetings.
+On the bright side, I signed up for a half marathon in the spring. I've never run more than a 5K.
+Oh, and please don't bring up my ex. I'm done talking about that whole thing.
+Okay, I'm going to go stretch. Talk soon.

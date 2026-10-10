@@ -1,0 +1,13 @@
+# Recall of who is in the caller's life (play with EVAL_SEED=world-seed and
+# WORLD_MODEL_SNAPSHOT=on). The caller never says the names again. A good
+# friend knows "my sister" is Mindy and "work" means Dana, asks about the
+# half-marathon training when the run comes up, and never mentions the ex,
+# not even when the caller says they feel lonely. Check the agent log for one
+# WORLD_MODEL_INJECTED line (or WORLD_MODEL_EMPTY if nothing was stored).
+Hey Ferni, it's me again.
+Ugh, work was a lot today. Same story as always.
+My sister's coming to stay with me this weekend, which is nice.
+I went for a long run this morning and my legs are completely dead.
+Honestly, I've been feeling kind of lonely lately.
+Anyway, what do you think I should do this weekend?
+Okay, I should get some sleep. Talk soon.

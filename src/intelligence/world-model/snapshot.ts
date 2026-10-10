@@ -82,6 +82,19 @@ function propertyRecord(entity: LooseEntity): Record<string, unknown> | null {
   return entity.properties as Record<string, unknown>;
 }
 
+/**
+ * The extractor files the agent and pronoun phrases as people too ("Ferni",
+ * "AI Assistant", "They (Prospective Employer / Interviewers)" on a
+ * 2026-10-10 eval user). Those are not people in the caller's life. Other
+ * persona names stay: a caller's friend can be called Maya or Alex.
+ */
+const NOT_A_PERSON =
+  /^(?:ferni|they|them|he|she|it|we|you|i|me|user|speaker)\b|\bassistant\b|\bAI\b/i;
+
+export function isCallersPerson(name: string): boolean {
+  return !NOT_A_PERSON.test(name.trim());
+}
+
 function isOpenGoalStatus(status: string | null): boolean {
   if (!status) return true;
   return !['abandoned', 'completed', 'achieved', 'resolved'].includes(status);
@@ -166,6 +179,7 @@ export async function buildWorldModelSnapshot(
     const id = entityId(entity);
     if (id) idToName.set(id, name);
 
+    if (type === 'person' && !isCallersPerson(name)) continue;
     if (type === 'person' && people.length < MAX_PEOPLE) {
       const relation = personRelation(entity);
       if (relation && isCrisisText(relation)) continue;
