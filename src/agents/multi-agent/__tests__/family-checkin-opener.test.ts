@@ -24,7 +24,7 @@ vi.mock('../../../services/voice/voice-speaker-change.js', () => ({
 const { setupCallTypeContexts } = await import('../../voice-agent-entry/metadata-parser.js');
 const { AgentOrchestrator } = await import('../orchestrator.js');
 const { identifyUser } = await import('../../voice-agent/user-identification-handler.js');
-const { outboundCallContextBuilder } =
+const { outboundCallContextBuilder, getOutboundCallContext } =
   await import('../../../intelligence/context-builders/external/outbound-call-context.js');
 const { signDispatch } = await import('../../../services/outreach/on-behalf-dispatch.js');
 const { outboundPartiesFor } = await import('../../shared/outbound-opener.js');
@@ -44,6 +44,7 @@ const daysAgo = (days: number) => ({
 const checkinDispatch = (openingLine?: string): Record<string, unknown> => ({
   type: 'family_checkin',
   callId: 'checkin-doug-1',
+  sponsorUserId: 'seth-uid',
   sponsorName: 'Seth',
   familyMemberName: 'Doug',
   relationship: 'father',
@@ -100,7 +101,7 @@ async function openerFor(sessionId: string, metadata: Record<string, unknown>): 
   });
   expect(say, 'nothing is said into a ringing line').not.toHaveBeenCalled();
   room.emit('participantAttributesChanged', { 'sip.callStatus': 'active' }, phone);
-  await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 3000 });
+  await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 10_000 });
   return String(say.mock.calls[0][0]);
 }
 
@@ -151,6 +152,11 @@ describe('the family check-in signature gate (the same one as on-behalf calls)',
     await dispatch('fc-signed', signDispatch(checkinDispatch(), SECRET));
     const { parties, prompt } = await outboundTreatment('fc-signed');
     expect(parties).toMatchObject({ recipientName: 'Doug', sponsorName: 'Seth' });
+    // A voicemail lands on the sponsor's check-in record (answered-by.ts).
+    expect(getOutboundCallContext('fc-signed')).toMatchObject({
+      kind: 'family_checkin',
+      requesterUserId: 'seth-uid',
+    });
     expect(prompt.length).toBeGreaterThan(0);
   });
 

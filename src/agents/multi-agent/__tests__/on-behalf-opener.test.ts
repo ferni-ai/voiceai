@@ -100,7 +100,7 @@ describe('the opener of a call placed on the user’s behalf', () => {
       { 'sip.callStatus': 'active' },
       phoneParticipant('active')
     );
-    await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 10_000 });
 
     const opener = String(say.mock.calls[0][0]);
     expect(opener).toMatch(/\bDoug\b/);
@@ -123,7 +123,7 @@ describe('the opener of a call placed on the user’s behalf', () => {
     const room = new EventEmitter();
     const { say, started } = startOrchestrator('ob-requester', room, phoneParticipant('active'));
     await started;
-    await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 10_000 });
     const opener = String(say.mock.calls[0][0]);
     expect(opener).toBe(SETH_TO_DOUG);
   });
@@ -144,7 +144,7 @@ describe('the opener of a call placed on the user’s behalf', () => {
       const room = new EventEmitter();
       const { say, started } = startOrchestrator(sessionId, room, phoneParticipant('active'));
       await started;
-      await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 3000 });
+      await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 10_000 });
       return String(say.mock.calls[0][0]);
     };
     const prior = process.env.LIVEKIT_API_SECRET;

@@ -327,6 +327,7 @@ async function initiateViaLiveKitSip(
     const dispatch = {
       type: 'family_checkin',
       callId,
+      sponsorUserId: schedule.sponsorUserId,
       sponsorName,
       familyMemberName: schedule.familyMemberName,
       relationship: schedule.relationship,

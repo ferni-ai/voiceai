@@ -72,6 +72,10 @@ describe('a family check-in dispatch', () => {
 
     const raw = (createDispatch.mock.calls[0] as unknown[])[2] as { metadata: string };
     expect(verifyOnBehalfDispatch(raw.metadata, ENV.LIVEKIT_API_SECRET)).toBe(true);
-    expect(JSON.parse(raw.metadata)).toMatchObject({ type: 'family_checkin', sponsorName: 'Seth' });
+    expect(JSON.parse(raw.metadata)).toMatchObject({
+      type: 'family_checkin',
+      sponsorName: 'Seth',
+      sponsorUserId: 'seth-uid',
+    });
   });
 });

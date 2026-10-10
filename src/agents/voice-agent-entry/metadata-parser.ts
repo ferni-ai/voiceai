@@ -236,6 +236,9 @@ export async function setupCallTypeContexts(
       userName,
       originalSessionId: '',
       openingLine: (metadata.openingLine as string) || undefined,
+      // Where a voicemail is recorded (answered-by.ts): the signed sponsor's check-in record.
+      requesterUserId: (metadata.sponsorUserId as string) || undefined,
+      kind: 'family_checkin' as const,
     };
     setOutboundCallContext(sessionId, checkin);
     if (roomName) setOutboundCallContext(roomName, checkin);
