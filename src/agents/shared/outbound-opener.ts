@@ -24,6 +24,8 @@ export interface OutboundParties {
   sponsorName?: string;
   /** A personal call opens by name; a business is greeted without one. */
   personal: boolean;
+  /** The dispatcher's own opening line, used when it says Ferni is an AI. */
+  openingLine?: string;
 }
 
 /** Defaults the metadata and dispatch parsers fill in when a name is missing. */
@@ -35,6 +37,7 @@ const PLACEHOLDER_NAMES = new Set([
   'contact',
   'them',
   'your person',
+  'your family member',
 ]);
 
 function realName(name: string | undefined): string | undefined {
@@ -50,6 +53,7 @@ export function outboundPartiesFor(sessionId: string): OutboundParties | undefin
     recipientName: realName(call.recipientName),
     sponsorName: realName(call.userName),
     personal: call.callType === 'personal',
+    openingLine: call.openingLine,
   };
 }
 
@@ -62,7 +66,8 @@ export function outboundPartiesFor(sessionId: string): OutboundParties | undefin
  * written as directions, "Open by saying ...", not as speakable words.)
  */
 export function outboundOpener(parties: OutboundParties): string {
-  const { recipientName, sponsorName, personal } = parties;
+  const { recipientName, sponsorName, personal, openingLine } = parties;
+  if (openingLine && /\bAI\b/.test(openingLine)) return openingLine;
   if (personal) {
     const hello = recipientName ? `Hi ${recipientName}` : 'Hi';
     return sponsorName
