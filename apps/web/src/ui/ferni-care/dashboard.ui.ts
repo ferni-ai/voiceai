@@ -12,6 +12,7 @@ import { getUserId } from '../../utils/api.js';
 import { createLogger } from '../../utils/logger.js';
 import { formatDate, t } from '../../i18n/index.js';
 import { showIdeasGallery } from './ideas-gallery.ui.js';
+import { calendarTriggerSummary } from './routine-builder-calendar.js';
 
 const log = createLogger('FerniCare');
 
@@ -568,7 +569,7 @@ export class FerniCareDashboard {
         );
       }
       case 'calendar':
-        return t('ferniCare.triggers.calendar');
+        return calendarTriggerSummary(trigger.triggerOn);
       default:
         return t('ferniCare.triggers.event');
     }

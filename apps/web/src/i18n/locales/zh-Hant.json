@@ -8099,6 +8099,12 @@
         "enter": "抵達",
         "exit": "離開",
         "both": "兩者皆可"
+      },
+      "calendar": {
+        "start": "活動開始時",
+        "when": "觸發時機為...",
+        "end": "活動結束時",
+        "reminder": "活動開始前不久"
       }
     },
     "actions": {
@@ -8133,7 +8139,11 @@
       "title": "我該做些什麼呢？"
     },
     "defaultMessage": "早安！準備好開始新的一天了嗎？",
-    "trackHabit": "記錄：{habit}"
+    "trackHabit": "記錄：{habit}",
+    "errors": {
+      "signInRequired": "請登入以儲存你的日常慣例",
+      "saveFailed": "無法儲存。要再試一次嗎？"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -10103,7 +10113,9 @@
       "leave": "當你離開 {name} 時",
       "somewhere": "某個地方",
       "calendar": "在你的行事曆活動之前",
-      "event": "當事情發生時"
+      "event": "當事情發生時",
+      "calendarStart": "在行事曆活動開始時",
+      "calendarEnd": "在行事曆活動結束時"
     },
     "status": {
       "active": "處理中",

@@ -8099,6 +8099,12 @@
         "enter": "도착할 때",
         "exit": "떠날 때",
         "both": "둘 다"
+      },
+      "calendar": {
+        "start": "일정이 시작될 때",
+        "when": "이럴 때 시작해요...",
+        "end": "일정이 끝날 때",
+        "reminder": "일정 직전에"
       }
     },
     "actions": {
@@ -8133,7 +8139,11 @@
       "title": "제가 무엇을 도와드릴까요?"
     },
     "defaultMessage": "좋은 아침이에요! 오늘 하루도 활기차게 시작해 볼까요?",
-    "trackHabit": "기록: {habit}"
+    "trackHabit": "기록: {habit}",
+    "errors": {
+      "signInRequired": "루틴을 저장하려면 로그인해 주세요",
+      "saveFailed": "저장할 수 없었어요. 다시 시도해 보시겠어요?"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -10103,7 +10113,9 @@
       "leave": "{name}을(를) 나설 때",
       "somewhere": "어딘가",
       "calendar": "캘린더 일정 전에",
-      "event": "무슨 일이 생겼을 때"
+      "event": "무슨 일이 생겼을 때",
+      "calendarStart": "캘린더 일정이 시작될 때",
+      "calendarEnd": "캘린더 일정이 끝날 때"
     },
     "status": {
       "active": "잘 챙기고 있어요",

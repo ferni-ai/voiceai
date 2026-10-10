@@ -8099,6 +8099,12 @@
         "enter": "到达",
         "exit": "离开",
         "both": "两者皆可"
+      },
+      "calendar": {
+        "start": "日程开始时",
+        "when": "触发时机……",
+        "end": "日程结束时",
+        "reminder": "日程开始前不久"
       }
     },
     "actions": {
@@ -8133,7 +8139,11 @@
       "title": "我该做点什么呢？"
     },
     "defaultMessage": "早上好！准备好开启新的一天了吗？",
-    "trackHabit": "追踪：{habit}"
+    "trackHabit": "追踪：{habit}",
+    "errors": {
+      "signInRequired": "请登录以保存你的日常",
+      "saveFailed": "无法保存。要再试一次吗？"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -10103,7 +10113,9 @@
       "leave": "当你离开 {name} 时",
       "somewhere": "某个地方",
       "calendar": "在你的日历日程开始前",
-      "event": "当有事情发生时"
+      "event": "当有事情发生时",
+      "calendarStart": "在日历日程开始时",
+      "calendarEnd": "在日历日程结束时"
     },
     "status": {
       "active": "正在为你打理",

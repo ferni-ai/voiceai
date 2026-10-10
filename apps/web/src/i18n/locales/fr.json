@@ -8148,6 +8148,12 @@
         "enter": "J'arrive",
         "exit": "Je pars",
         "both": "L'un ou l'autre"
+      },
+      "calendar": {
+        "start": "Quand un événement commence",
+        "when": "Déclencher...",
+        "end": "Quand un événement se termine",
+        "reminder": "Peu avant un événement"
       }
     },
     "actions": {
@@ -8182,7 +8188,11 @@
       "title": "Que dois-je faire ?"
     },
     "defaultMessage": "Bonjour ! C'est parti pour une nouvelle journée ?",
-    "trackHabit": "Suivre : {habit}"
+    "trackHabit": "Suivre : {habit}",
+    "errors": {
+      "signInRequired": "Connecte-toi pour enregistrer tes routines",
+      "saveFailed": "Impossible d'enregistrer. Tu veux réessayer ?"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -10198,7 +10208,9 @@
       "leave": "Quand tu pars de {name}",
       "somewhere": "quelque part",
       "calendar": "Avant les événements de ton calendrier",
-      "event": "Quand quelque chose se produit"
+      "event": "Quand quelque chose se produit",
+      "calendarStart": "Quand un événement du calendrier commence",
+      "calendarEnd": "Quand un événement du calendrier se termine"
     },
     "status": {
       "active": "Je m'en occupe",

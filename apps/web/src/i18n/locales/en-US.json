@@ -8099,6 +8099,12 @@
         "enter": "Arrive",
         "exit": "Leave",
         "both": "Either"
+      },
+      "calendar": {
+        "start": "When an event starts",
+        "when": "Do this...",
+        "end": "When an event ends",
+        "reminder": "Shortly before an event"
       }
     },
     "actions": {
@@ -8133,7 +8139,11 @@
       "title": "What should I do?"
     },
     "defaultMessage": "Good morning! Ready to start the day?",
-    "trackHabit": "Track: {habit}"
+    "trackHabit": "Track: {habit}",
+    "errors": {
+      "signInRequired": "Sign in to save your routines",
+      "saveFailed": "Couldn't save that. Want to try again?"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -10103,7 +10113,9 @@
       "leave": "When you leave {name}",
       "somewhere": "somewhere",
       "calendar": "Before your calendar events",
-      "event": "When something happens"
+      "event": "When something happens",
+      "calendarStart": "When a calendar event starts",
+      "calendarEnd": "When a calendar event ends"
     },
     "status": {
       "active": "Taking care of it",
