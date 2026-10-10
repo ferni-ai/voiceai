@@ -298,6 +298,55 @@ export async function deleteFirebaseUser(uid: string): Promise<boolean> {
   }
 }
 
+export type AttachPhoneResult =
+  { ok: true; e164: string } | { ok: false; reason: 'invalid-number' | 'in-use' | 'unavailable' };
+
+/** The Firebase Auth calls attachVerifiedPhone makes (admin.auth() in production). */
+export interface PhoneAuthApi {
+  getUserByPhoneNumber(phoneNumber: string): Promise<{ uid: string }>;
+  updateUser(uid: string, update: { phoneNumber: string }): Promise<unknown>;
+}
+
+const NUMBER_IN_USE = new Set(['auth/phone-number-already-exists']);
+
+/**
+ * Put a number the user just proved they hold (SMS code) on their Firebase
+ * account, which is what makes it a verified number (caller-recognition reads
+ * it back). Never takes a number from another account: if one already holds
+ * it, refuses with 'in-use'. Logs the last two digits only.
+ */
+export async function attachVerifiedPhone(
+  uid: string,
+  phone: string,
+  api?: PhoneAuthApi
+): Promise<AttachPhoneResult> {
+  const { isValidPhoneNumber, normalizePhoneNumber } = await import('./user-identification.js');
+  if (!isValidPhoneNumber(phone)) return { ok: false, reason: 'invalid-number' };
+  const e164 = normalizePhoneNumber(phone);
+  const tail = e164.slice(-2);
+  if (!api && !ensureInitialized()) return { ok: false, reason: 'unavailable' };
+  const auth: PhoneAuthApi = api ?? admin.auth();
+  try {
+    const holder = await auth.getUserByPhoneNumber(e164).catch((error: unknown) => {
+      if ((error as { code?: string }).code === 'auth/user-not-found') return null;
+      throw error;
+    });
+    if (holder && holder.uid !== uid) {
+      log.warn({ uid: `${uid.substring(0, 8)}...`, tail }, 'Verified number is on another account');
+      return { ok: false, reason: 'in-use' };
+    }
+    if (!holder) await auth.updateUser(uid, { phoneNumber: e164 });
+    log.info({ uid: `${uid.substring(0, 8)}...`, tail }, 'Verified number on the account');
+    return { ok: true, e164 };
+  } catch (error) {
+    if (NUMBER_IN_USE.has((error as { code?: string }).code ?? '')) {
+      return { ok: false, reason: 'in-use' };
+    }
+    log.error({ error: String(error), tail }, 'Failed to put the verified number on the account');
+    return { ok: false, reason: 'unavailable' };
+  }
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
