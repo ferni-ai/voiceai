@@ -6,6 +6,7 @@
  * - POST /api/seeds/claim-daily - Claim daily bonus
  * - POST /api/seeds/gift - Gift seeds to another user
  * - POST /api/seeds/purchase - Buy a cosmetic (seeds-purchase.ts)
+ * - POST /api/seeds/import-local - One-time import of a browser's seeds (seeds-import.ts)
  * - GET /api/seeds/garden - Get garden/referral stats
  * - POST /api/seeds/referral - Process a referral signup
  * - GET /api/seeds/history - Get seed transaction history
@@ -27,6 +28,7 @@ import {
 } from '../services/seeds/ledger.js';
 import { ownedCosmetics } from '../services/seeds/cosmetics-catalog.js';
 import { purchaseCosmetic } from './seeds-purchase.js';
+import { importLocalSeeds, serverLedgerEnabled } from './seeds-import.js';
 
 const log = createLogger({ module: 'SeedsRoutes' });
 
@@ -275,7 +277,17 @@ export async function handleSeedsRoutes(
         },
         earnedFrom: userSeeds.earnedFrom,
         ownedCosmetics: userSeeds.ownedCosmetics,
+        // The web keeps its own ledger until this is on (SEEDS_SERVER_LEDGER=on)
+        serverLedger: serverLedgerEnabled(),
       });
+      return true;
+    }
+
+    // POST /api/seeds/import-local - Bring a browser's seeds and cosmetics over, once
+    if (pathname === '/api/seeds/import-local' && req.method === 'POST') {
+      const result = await importLocalSeeds(db, userId, await parseBody(req));
+      if (result.status !== 200) sendErrorStatus(res, result.status, result.error);
+      else sendJSON(res, result.body);
       return true;
     }
 
