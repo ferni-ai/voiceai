@@ -543,7 +543,7 @@ function render(): void {
       
       <!-- Advanced Options -->
       <div class="ap-section">
-        <button aria-label="${t('accessibility.expandGarden')}" class="ap-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="ap-advanced-toggle">
+        <button class="ap-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="ap-advanced-toggle">
           ${t('addPerson.addMoreDetails')} ${ICONS.chevronDown}
         </button>
         

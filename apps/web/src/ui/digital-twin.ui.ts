@@ -1155,7 +1155,7 @@ function renderOnboarding(): string {
         </div>
       </div>
 
-      <button aria-label="${t('accessibility.add')}" class="digital-twin-create-btn" data-action="create">
+      <button class="digital-twin-create-btn" data-action="create">
         ${ICONS.plus}
         Create Your Digital Twin
       </button>
@@ -1224,7 +1224,7 @@ function renderTwinsList(): string {
     <div class="digital-twin-list">
       ${twinCards}
     </div>
-    <button aria-label="${t('accessibility.add')}" class="digital-twin-add-btn" data-action="create">
+    <button class="digital-twin-add-btn" data-action="create">
       ${ICONS.plus}
       Create Another Journal
     </button>
@@ -1253,11 +1253,11 @@ function renderAutoCaptureCard(): string {
           breakthroughs, decisions, gratitude - and add them to your journal.
           You're always in control.
         </p>
-        <button aria-label="${t('accessibility.confirm')}" class="digital-twin-consent__btn" data-action="enable-capture">
+        <button class="digital-twin-consent__btn" data-action="enable-capture">
           ${ICONS.check}
           Yes, remember what matters
         </button>
-        <button aria-label="${t('accessibility.maybeLater')}" class="digital-twin-consent__skip" data-action="skip-capture">
+        <button class="digital-twin-consent__skip" data-action="skip-capture">
           ${t('common.maybeLater')}
         </button>
       </div>

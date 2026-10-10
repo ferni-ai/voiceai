@@ -1544,7 +1544,7 @@ function createModal(): void {
       </div>
       <footer class="wellbeing-modal__footer">
         <span class="wellbeing-modal__footer-info" id="wellbeing-footer-info"></span>
-        <button aria-label="${t('accessibility.done')}" class="wellbeing-btn" data-action="close">${t('common.done')}</button>
+        <button class="wellbeing-btn" data-action="close">${t('common.done')}</button>
       </footer>
     </div>
   `;
@@ -1631,7 +1631,7 @@ function renderEmptyState(): string {
       
       <!-- CTA -->
       <div class="wellbeing-empty__cta">
-        <button aria-label="${t('accessibility.startAConversation')}" class="wellbeing-btn" data-action="start-conversation">
+        <button class="wellbeing-btn" data-action="start-conversation">
           ${t('wellbeing.letsBegin')}
         </button>
       </div>

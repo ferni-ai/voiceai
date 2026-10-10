@@ -487,7 +487,7 @@ function render(): string {
               </h3>
             </div>
             <div class="professional-quick-actions" role="button" tabindex="0">
-              <button aria-label="${t('accessibility.brainstorm')}" class="professional-quick-action" data-action="start-task" data-task="brainstorm">
+              <button class="professional-quick-action" data-action="start-task" data-task="brainstorm">
                 <div class="professional-quick-action-icon" role="button" tabindex="0">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/>
@@ -497,7 +497,7 @@ function render(): string {
                 </div>
                 <span class="professional-quick-action-label" role="button" tabindex="0">${t('professionalTasks.brainstorm')}</span>
               </button>
-              <button aria-label="${t('accessibility.reviewWork')}" class="professional-quick-action" data-action="start-task" data-task="review">
+              <button class="professional-quick-action" data-action="start-task" data-task="review">
                 <div class="professional-quick-action-icon" role="button" tabindex="0">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -508,7 +508,7 @@ function render(): string {
                 </div>
                 <span class="professional-quick-action-label" role="button" tabindex="0">${t('professionalTasks.reviewWork')}</span>
               </button>
-              <button aria-label="${t('accessibility.draftContent')}" class="professional-quick-action" data-action="start-task" data-task="draft">
+              <button class="professional-quick-action" data-action="start-task" data-task="draft">
                 <div class="professional-quick-action-icon" role="button" tabindex="0">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -517,7 +517,7 @@ function render(): string {
                 </div>
                 <span class="professional-quick-action-label" role="button" tabindex="0">${t('professionalTasks.draftContent')}</span>
               </button>
-              <button aria-label="${t('accessibility.analyzeData')}" class="professional-quick-action" data-action="start-task" data-task="analyze">
+              <button class="professional-quick-action" data-action="start-task" data-task="analyze">
                 <div class="professional-quick-action-icon" role="button" tabindex="0">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="20" x2="18" y2="10"/>
@@ -540,7 +540,7 @@ function render(): string {
                 </svg>
                 ${t('professionalTasks.skillsExpertise')}
               </h3>
-              <button aria-label="${t('accessibility.addSkill')}" class="professional-add-btn" data-action="add-skill">
+              <button class="professional-add-btn" data-action="add-skill">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -598,7 +598,7 @@ function render(): string {
                 </svg>
                 ${t('professionalTasks.domainKnowledge')}
               </h3>
-              <button aria-label="${t('accessibility.addDomain')}" class="professional-add-btn" data-action="add-domain">
+              <button class="professional-add-btn" data-action="add-domain">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>

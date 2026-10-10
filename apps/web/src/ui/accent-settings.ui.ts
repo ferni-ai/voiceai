@@ -637,7 +637,7 @@ function render(): void {
           <div class="accent-options">
             ${ACCENT_OPTIONS.map(
               (option) => `
-              <button aria-label="${t('accessibility.confirm')}" class="accent-option ${state.currentAccent === option.value ? 'selected' : ''}" 
+              <button class="accent-option ${state.currentAccent === option.value ? 'selected' : ''}" 
                       data-accent="${option.value}">
                 <span class="accent-option-flag">${option.flagSvg}</span>
                 <div class="accent-option-info">

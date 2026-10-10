@@ -286,8 +286,8 @@ export class AgentOrchestrator {
         /* non-fatal */
       }
       agent.say(greeting, { allowInterruptions: false });
-      // Warm the reply model's prompt cache while the greeting plays (cache-warm.ts).
-      void import('../model-provider/cache-warm.js').then((m) => m.warmPromptCache(agent.session));
+      // Prompt-cache warm + STT refresh when the greeting ends (after-greeting.ts).
+      void import('../model-provider/after-greeting.js').then((m) => m.run(agent.session));
 
       // ⚡ FAST-AGENT-JOIN: Wire deferred handlers in background after greeting starts
       // Handlers run in parallel with speech - user hears greeting while handlers wire
