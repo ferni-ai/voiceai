@@ -71,3 +71,21 @@ describe('per-session history store', () => {
     expect(takeCallerHistory('s1')).toBeUndefined();
   });
 });
+
+describe('greetingFacts with a check-in (COACH_FOLLOW_THROUGH)', () => {
+  it('carries what they said they would do, even before the profile loads', () => {
+    const facts = greetingFacts(
+      'evening',
+      'Sam',
+      undefined,
+      "I'm going to send my resume to Dana."
+    );
+    expect(facts['something they said they would do']).toBe("I'm going to send my resume to Dana.");
+  });
+
+  it('leaves it out when there is nothing to check in on', () => {
+    expect(greetingFacts('evening', 'Sam', { calls: 3 })).not.toHaveProperty(
+      'something they said they would do'
+    );
+  });
+});

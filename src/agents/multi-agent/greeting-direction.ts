@@ -5,6 +5,10 @@
  * @module agents/multi-agent/greeting-direction
  */
 
+import {
+  callCheckIns,
+  coachFollowThroughMode,
+} from '../../services/superhuman/commitment-follow-up.js';
 import { callerHour } from '../shared/time-context.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
@@ -14,6 +18,25 @@ import { callerHour } from '../shared/time-context.js';
 // pin "that" to (dev, 2026-10-09): a callback must name the thing.
 export const GREETING_DIRECTION =
   'They just called you. Answer like you would a friend calling: relaxed and low-key, one short sentence, maybe a quick easy question. No exclamation marks, no "so good to hear your voice", no cheer, do not list what you can do or introduce yourself. If they have called before, you may pick up from last time in a few words, the way a friend would, but only if it was light: never open on something painful. Name the actual thing ("how did the interview go?"), never a vague callback ("did you figure that out?"); if you are not told what you talked about, do not refer back.';
+
+/** Added when they told you last time they meant to do something (COACH_FOLLOW_THROUGH). */
+export const CHECK_IN_DIRECTION =
+  ' They told you they meant to do something: you may open by asking how it went, naming it in their words, unless it was painful.';
+
+/** How long the greeting waits for the caller's open commitments before going without. */
+const CHECK_IN_WAIT_MS = 400;
+
+/** The commitment to open on, or undefined (flag off, none open, or too slow). */
+async function checkInFor(userId: string | undefined): Promise<string | undefined> {
+  if (!userId || userId === 'anonymous' || !coachFollowThroughMode()) return undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), CHECK_IN_WAIT_MS);
+  });
+  const open = await Promise.race([callCheckIns(userId), late]);
+  clearTimeout(timer);
+  return open?.[0]?.statement;
+}
 
 /** The "time of day" fact for an hour of the day (0-23). */
 export function partOfDayFor(hour: number): string {
@@ -77,11 +100,13 @@ function lastTalked(days: number): string {
 export function greetingFacts(
   partOfDay: string,
   userName: string | undefined,
-  history: CallerHistory | undefined
+  history: CallerHistory | undefined,
+  checkIn?: string
 ): Record<string, string> {
   // No time zone, no time of day: guessing it wrong is worse than leaving it out.
   const facts: Record<string, string> = partOfDay ? { 'time of day': partOfDay } : {};
   if (userName) facts['their name'] = userName;
+  if (checkIn) facts['something they said they would do'] = checkIn.slice(0, MAX_TOPIC_CHARS);
   if (!history) return facts;
   facts['how well you know each other'] = `${history.calls} calls so far`;
   if (history.daysSince !== undefined)
@@ -107,7 +132,7 @@ export function takeCallerHistory(sessionId: string): CallerHistory | undefined 
 export async function directedGreeting(
   sessionId: string,
   personaId: string,
-  userData: { callerTimezone?: string; userName?: string } | undefined
+  userData: { callerTimezone?: string; userName?: string; userId?: string } | undefined
 ): Promise<string> {
   const { generateWarmGreeting } = await import('../shared/warm-greeting.js');
   // A returning caller's greeting can pick up from last time (agent-setup hands it over).
@@ -121,10 +146,12 @@ export async function directedGreeting(
   const scripted = generateWarmGreeting(personaId, ctx);
   const { directedText } = await import('../../speech/direction/index.js');
   const partOfDay = hour === null ? '' : partOfDayFor(hour);
+  // Not gated on history: the profile behind it can still be loading.
+  const checkIn = await checkInFor(userData?.userId);
   const directed = await directedText(sessionId, {
     moment: 'greeting',
-    direction: GREETING_DIRECTION,
-    facts: greetingFacts(partOfDay, userData?.userName, history),
+    direction: checkIn ? GREETING_DIRECTION + CHECK_IN_DIRECTION : GREETING_DIRECTION,
+    facts: greetingFacts(partOfDay, userData?.userName, history, checkIn),
     fallback: scripted,
     urgency: 'now',
     maxChars: 140,
