@@ -146,6 +146,19 @@ describe('POST /api/monetization/webhook signature verification', () => {
     expect(response.status).toBe(200);
     expect(contribute).toHaveBeenCalledTimes(1);
   });
+
+  it('rejects every event when no webhook secret is configured', async () => {
+    vi.stubEnv('STRIPE_MONETIZATION_WEBHOOK_SECRET', '');
+    vi.stubEnv('STRIPE_WEBHOOK_SECRET', '');
+    const { resetConfig } = await import('../../config/environment.js');
+    resetConfig();
+
+    const response = await post(fundEvent, { 'stripe-signature': sign(fundEvent, SHARED_SECRET) });
+
+    expect(response.status).toBe(400);
+    expect(saveProfile).not.toHaveBeenCalled();
+    expect(contribute).not.toHaveBeenCalled();
+  });
 });
 
 describe('parseMonetizationBody', () => {

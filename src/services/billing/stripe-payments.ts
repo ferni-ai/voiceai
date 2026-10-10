@@ -120,7 +120,7 @@ export async function verifyPaymentWebhook(
   const secret =
     process.env.STRIPE_MONETIZATION_WEBHOOK_SECRET || getConfig().payments.stripeWebhookSecret;
   if (!secret) {
-    throw new Error('STRIPE_MONETIZATION_WEBHOOK_SECRET not configured');
+    throw new Error('Neither STRIPE_MONETIZATION_WEBHOOK_SECRET nor STRIPE_WEBHOOK_SECRET is set');
   }
   const stripe = await getStripe();
   return stripe.webhooks.constructEvent(rawBody, signature, secret);
