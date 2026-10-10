@@ -22,6 +22,7 @@
  */
 import { classifyBackchannelContext } from '../integrations/backchannel-context.js';
 import { mayNeedTool } from '../model-provider/fast-lane.js';
+import { NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import type { CallerMove, Shape } from './turn-shape.js';
 import type { Understanding } from './turn-understanding.js';
 
@@ -131,7 +132,8 @@ export function extrasFor(
   questionAllowed: boolean,
   rng: () => number,
   env: Env = process.env,
-  signals: TurnSignals = regexSignals(userText, move)
+  signals: TurnSignals = regexSignals(userText, move),
+  style: StyleProfile = NEUTRAL_STYLE
 ): Extras {
   const out: Extras = { lines: [], fired: [] };
   if (on(env, 'LAUGH_ALONG') && signals.laughed) {
@@ -181,7 +183,7 @@ export function extrasFor(
   }
   if (on(env, 'HUMAN_TEXTURE')) {
     // Live: 0 fillers per 100 words (people: 1-4), 0% laughter, ~5% opinions.
-    if ((shape === 'answer' || shape === 'full') && rng() < 0.35) {
+    if ((shape === 'answer' || shape === 'full') && rng() < scaled(0.35, style.filler)) {
       out.lines.push(FILLER);
       out.fired.push('filler');
     }
@@ -193,12 +195,12 @@ export function extrasFor(
       !venting &&
       !signals.laughed &&
       shape !== 'full' &&
-      rng() < 0.5
+      rng() < scaled(0.5, style.laugh)
     ) {
       out.lines.push(LAUGH_SPONTANEOUS);
       out.fired.push('laugh_spontaneous');
     }
-    if (move !== 'ack' && !venting && shape !== 'react' && rng() < 0.25) {
+    if (move !== 'ack' && !venting && shape !== 'react' && rng() < scaled(0.25, style.opinion)) {
       out.lines.push(OPINION);
       out.fired.push('opinion');
     }
