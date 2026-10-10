@@ -89,12 +89,29 @@ export function onBehalfDispatchFromStream(
       relationship: params.relationship || 'contact',
     },
     purpose: params.purpose || 'Check in',
-    objective: (params.objective || 'general') as CallObjective,
-    callType: (params.callType || 'personal') as CallType,
+    objective: oneOf(params.objective, OBJECTIVES, 'general'),
+    callType: oneOf(params.callType, CALL_TYPES, 'personal'),
   });
 }
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+
+const OBJECTIVES: readonly CallObjective[] = [
+  'reschedule',
+  'cancel',
+  'new_appointment',
+  'inquiry',
+  'reservation',
+  'check_in',
+  'deliver_message',
+  'general',
+];
+const CALL_TYPES: readonly CallType[] = ['business', 'personal', 'emergency'];
+
+/** Only a known value reaches the call; anything else gets the default. */
+function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(value as T) ? (value as T) : fallback;
+}
 
 /**
  * Read a dispatch payload. Returns null when it can't be reported back to a
@@ -102,6 +119,7 @@ const str = (v: unknown): string => (typeof v === 'string' ? v : '');
  * calls dispatched before a deploy still report back.
  */
 export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBehalfDispatch | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
   const requester = (metadata.requester ?? {}) as Record<string, unknown>;
   const contact = (metadata.contact ?? {}) as Record<string, unknown>;
   const callId = str(metadata.callId);
@@ -122,8 +140,8 @@ export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBeha
       relationship: str(contact.relationship) || undefined,
     },
     purpose: str(metadata.purpose) || 'a quick call',
-    objective: (str(metadata.objective) || 'general') as CallObjective,
-    callType: (str(metadata.callType) || 'personal') as CallType,
+    objective: oneOf(metadata.objective, OBJECTIVES, 'general'),
+    callType: oneOf(metadata.callType, CALL_TYPES, 'personal'),
     script: str(metadata.script) || undefined,
   });
 }

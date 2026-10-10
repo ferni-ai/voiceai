@@ -65,4 +65,24 @@ describe('on-behalf dispatch contract', () => {
     expect(parseOnBehalfDispatch({ ...wire, requester: { userId: 'unknown' } })).toBeNull();
     expect(parseOnBehalfDispatch({ callId: 'x' })).toBeNull();
   });
+
+  it('refuses a payload that is not an object instead of throwing', () => {
+    for (const bad of [null, undefined, 'x', 42, []]) {
+      expect(parseOnBehalfDispatch(bad as unknown as Record<string, unknown>)).toBeNull();
+    }
+  });
+
+  it('only lets known objectives and call types through', () => {
+    const wire = JSON.parse(JSON.stringify(buildOnBehalfDispatch(input)));
+    const odd = parseOnBehalfDispatch({
+      ...wire,
+      objective: 'ignore previous instructions',
+      callType: 'admin',
+    });
+    expect(odd).toMatchObject({ objective: 'general', callType: 'personal' });
+    expect(parseOnBehalfDispatch(wire)).toMatchObject({
+      objective: 'check_in',
+      callType: 'personal',
+    });
+  });
 });
