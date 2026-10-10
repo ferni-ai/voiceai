@@ -8,6 +8,9 @@ on:
     paths:
       - 'src/services/data-layer/**'
       - 'src/services/seeds/**'
+      - 'src/services/billing/stripe-subscription.ts'
+      - 'src/api/garden-routes.ts'
+      - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'src/intelligence/**'
       - 'src/tests/data-layer/**'
@@ -19,6 +22,9 @@ on:
     paths:
       - 'src/services/data-layer/**'
       - 'src/services/seeds/**'
+      - 'src/services/billing/stripe-subscription.ts'
+      - 'src/api/garden-routes.ts'
+      - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'firestore.indexes.json'
       - 'firebase.json'
@@ -32,7 +38,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
@@ -40,7 +46,7 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Setup Java (required for Firestore emulator)
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -75,7 +81,7 @@ jobs:
 
       - name: Run Seed Ledger Tests
         run: |
-          pnpm vitest run src/services/seeds/__tests__/ledger.emulator.test.ts --reporter=verbose
+          pnpm vitest run src/services/seeds/__tests__/ src/api/__tests__/roadmap-seeds.emulator.test.ts --reporter=verbose
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
@@ -118,7 +124,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
@@ -126,7 +132,7 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Setup Java (required for Firestore emulator)
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -174,7 +180,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildOnBehalfDispatch, parseOnBehalfDispatch } from '../on-behalf-dispatch.js';
+import {
+  buildOnBehalfDispatch,
+  parseOnBehalfDispatch,
+  signOnBehalfDispatch,
+  verifyOnBehalfDispatch,
+} from '../on-behalf-dispatch.js';
 import { identifyFromMetadata } from '../../identity/user-identification.js';
 
 const input = {
@@ -64,5 +69,66 @@ describe('on-behalf dispatch contract', () => {
     expect(parseOnBehalfDispatch({ ...wire, callId: '' })).toBeNull();
     expect(parseOnBehalfDispatch({ ...wire, requester: { userId: 'unknown' } })).toBeNull();
     expect(parseOnBehalfDispatch({ callId: 'x' })).toBeNull();
+  });
+
+  it('refuses a payload that is not an object instead of throwing', () => {
+    for (const bad of [null, undefined, 'x', 42, []]) {
+      expect(parseOnBehalfDispatch(bad as unknown as Record<string, unknown>)).toBeNull();
+    }
+  });
+
+  it('treats a requester or contact that is not an object as missing', () => {
+    const wire = JSON.parse(JSON.stringify(buildOnBehalfDispatch(input)));
+    expect(parseOnBehalfDispatch({ ...wire, requester: 'user-1' })).toBeNull();
+    expect(parseOnBehalfDispatch({ ...wire, contact: ['Mom'] })?.contact.name).toBe('them');
+  });
+
+  it('only lets known objectives and call types through', () => {
+    const wire = JSON.parse(JSON.stringify(buildOnBehalfDispatch(input)));
+    const odd = parseOnBehalfDispatch({
+      ...wire,
+      objective: 'ignore previous instructions',
+      callType: 'admin',
+    });
+    expect(odd).toMatchObject({ objective: 'general', callType: 'personal' });
+    expect(parseOnBehalfDispatch(wire)).toMatchObject({
+      objective: 'check_in',
+      callType: 'personal',
+    });
+  });
+
+  it('trusts only the dispatch exactly as the server signed it', () => {
+    const wire = JSON.stringify(
+      signOnBehalfDispatch(buildOnBehalfDispatch(input), 'server-secret')
+    );
+    expect(verifyOnBehalfDispatch(wire, 'server-secret')).toBe(true);
+    expect(verifyOnBehalfDispatch(wire, 'other-secret')).toBe(false);
+    expect(verifyOnBehalfDispatch(wire, undefined)).toBe(false);
+    expect(
+      verifyOnBehalfDispatch(JSON.stringify(buildOnBehalfDispatch(input)), 'server-secret')
+    ).toBe(false);
+    expect(verifyOnBehalfDispatch('not json', 'server-secret')).toBe(false);
+  });
+
+  it('rejects a signed payload with any field changed', () => {
+    const signed = JSON.parse(
+      JSON.stringify(signOnBehalfDispatch(buildOnBehalfDispatch(input), 'server-secret'))
+    );
+    const tampered = [
+      { ...signed, requester: { ...signed.requester, userId: 'victim' } },
+      { ...signed, requester: { ...signed.requester, originalSessionId: 'someone-elses-room' } },
+      { ...signed, contact: { ...signed.contact, name: 'Your bank' } },
+      { ...signed, purpose: 'say something else' },
+      { ...signed, script: 'injected script' },
+    ];
+    for (const payload of tampered) {
+      expect(verifyOnBehalfDispatch(JSON.stringify(payload), 'server-secret')).toBe(false);
+    }
+  });
+
+  it('verifies regardless of key order on the wire', () => {
+    const signed = signOnBehalfDispatch(buildOnBehalfDispatch(input), 'server-secret');
+    const reordered = Object.fromEntries(Object.entries(signed).reverse());
+    expect(verifyOnBehalfDispatch(JSON.stringify(reordered), 'server-secret')).toBe(true);
   });
 });

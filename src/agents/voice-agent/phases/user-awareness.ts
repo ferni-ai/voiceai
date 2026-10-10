@@ -14,12 +14,15 @@
  */
 
 import type { UserProfile } from '../../../types/user-profile.js';
+import { outboundCallerAwareness, outboundPartiesFor } from '../../shared/outbound-opener.js';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 export interface UserAwarenessConfig {
+  /** On a call placed for the user, the profile is the sponsor's, not who answered */
+  sessionId?: string;
   /** User profile from session services */
   userProfile: UserProfile | null;
   /** Whether this is a returning user */
@@ -81,6 +84,14 @@ export function buildUserAwareness(config: UserAwarenessConfig): UserAwarenessRe
   const { userProfile, isReturningUser, userName, sessionStartTime } = config;
 
   const facts: string[] = [];
+
+  const outbound = config.sessionId ? outboundPartiesFor(config.sessionId) : undefined;
+  if (outbound) {
+    facts.push(
+      `You placed a call to ${outbound.recipientName ?? 'someone'} for ${outbound.sponsorName ?? 'the user'}.`
+    );
+    return { facts, instructionsBlock: outboundCallerAwareness(outbound) };
+  }
 
   if (!userProfile) {
     return {

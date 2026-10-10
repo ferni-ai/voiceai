@@ -174,6 +174,7 @@ export async function runMultiAgentMode(
       await import('../../group-conversation/session-roundtable-agents.js');
     const { handoffEvents } = await import('../../../handoff/index.js');
     const { handoffStartMessages } = await import('../../multi-agent/handoff-messages.js');
+    const { offerAgent, withdrawAgent } = await import('../../../tools/handoff/ready-agents.js');
 
     // Initialize multi-agent session
     const multiAgentResult = await initializeMultiAgentSession({
@@ -355,11 +356,18 @@ export async function runMultiAgentMode(
             await publishDataMessage(ctx.room, m);
           }
 
+          // With one session per call the tool hands the next persona to the SDK: it stops
+          // waiting once that persona is built (ready-agents.ts)
+          const handoffTool = { targetId: targetPersonaId, greetingSpoken: false };
           const result = await handleHandoffFromDataChannel(
             multiAgentResult.orchestrator,
             targetPersonaId,
             'LLM requested handoff',
-            services
+            services,
+            (agent) => {
+              offerAgent(String(services.sessionId), targetPersonaId, agent);
+              handoffEvents.emit('handoffHandlerComplete', { ...handoffTool, success: true });
+            }
           );
 
           if (!result.success) {
@@ -382,6 +390,7 @@ export async function runMultiAgentMode(
             error: result.error,
           });
         } finally {
+          withdrawAgent(String(services.sessionId), targetPersonaId); // if the tool never took it
           handoffLock.release();
         }
       })();

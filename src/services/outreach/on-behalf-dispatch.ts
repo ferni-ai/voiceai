@@ -9,9 +9,15 @@
  * the person on the line as our user: their words were saved to the user's
  * memory and the user's profile was loaded into someone else's call.
  *
+ * The agent only reports a call back to the requester when the dispatch it
+ * received carries a valid `requesterSignature` over the whole payload. Dispatch metadata can reach the agent from
+ * paths a caller controls (e.g. the Twilio media-stream bridge), and a forged
+ * payload must not be able to push "call results" to someone else's phone.
+ *
  * @module services/outreach/on-behalf-dispatch
  */
 
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import type {
   CallObjective,
   CallType,
@@ -35,12 +41,63 @@ export interface OnBehalfDispatch {
   callType: CallType;
   script?: string;
   userPreferences?: unknown;
+  /** HMAC from a trusted dispatcher; see signOnBehalfDispatch. */
+  requesterSignature?: string;
 }
 
 export type OnBehalfDispatchInput = Omit<OnBehalfDispatch, 'type' | 'session_id'>;
 
 export function buildOnBehalfDispatch(input: OnBehalfDispatchInput): OnBehalfDispatch {
   return { type: 'on_behalf_call', session_id: `onbehalf:${input.callId}`, ...input };
+}
+
+/** JSON with sorted keys and undefined dropped, so signer and receiver hash the same bytes. */
+function canonical(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'null';
+}
+
+function signatureFor(payload: Record<string, unknown>, secret: string): string {
+  const { requesterSignature: _omit, ...signed } = payload;
+  return createHmac('sha256', secret).update(canonical(signed)).digest('base64url');
+}
+
+/**
+ * Sign a dispatch the server itself created, over every field, so no part of a
+ * signed payload (who hears the result, which room it goes to, what was said
+ * about the call) can be changed. Use the LiveKit API secret.
+ */
+export function signOnBehalfDispatch(d: OnBehalfDispatch, secret: string): OnBehalfDispatch {
+  return { ...d, requesterSignature: signatureFor({ ...d }, secret) };
+}
+
+/**
+ * True only when the job metadata exactly as dispatched (the raw JSON string)
+ * carries a valid signature from a trusted dispatcher using this secret.
+ */
+export function verifyOnBehalfDispatch(
+  rawJobMetadata: string | undefined,
+  secret: string | undefined
+): boolean {
+  if (!secret || !rawJobMetadata) return false;
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rawJobMetadata);
+  } catch {
+    return false;
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
+  const given = (payload as Record<string, unknown>).requesterSignature;
+  if (typeof given !== 'string' || !given) return false;
+  const expected = Buffer.from(signatureFor(payload as Record<string, unknown>, secret));
+  const actual = Buffer.from(given);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
 /** The dispatch for a call the orchestrator places from an on-behalf request. */
@@ -89,12 +146,31 @@ export function onBehalfDispatchFromStream(
       relationship: params.relationship || 'contact',
     },
     purpose: params.purpose || 'Check in',
-    objective: (params.objective || 'general') as CallObjective,
-    callType: (params.callType || 'personal') as CallType,
+    objective: oneOf(params.objective, OBJECTIVES, 'general'),
+    callType: oneOf(params.callType, CALL_TYPES, 'personal'),
   });
 }
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+const asObject = (v: unknown): Record<string, unknown> =>
+  v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+
+const OBJECTIVES: readonly CallObjective[] = [
+  'reschedule',
+  'cancel',
+  'new_appointment',
+  'inquiry',
+  'reservation',
+  'check_in',
+  'deliver_message',
+  'general',
+];
+const CALL_TYPES: readonly CallType[] = ['business', 'personal', 'emergency'];
+
+/** Only a known value reaches the call; anything else gets the default. */
+function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(value as T) ? (value as T) : fallback;
+}
 
 /**
  * Read a dispatch payload. Returns null when it can't be reported back to a
@@ -102,8 +178,9 @@ const str = (v: unknown): string => (typeof v === 'string' ? v : '');
  * calls dispatched before a deploy still report back.
  */
 export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBehalfDispatch | null {
-  const requester = (metadata.requester ?? {}) as Record<string, unknown>;
-  const contact = (metadata.contact ?? {}) as Record<string, unknown>;
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const requester = asObject(metadata.requester);
+  const contact = asObject(metadata.contact);
   const callId = str(metadata.callId);
   const userId = str(requester.userId) || str(metadata.userId);
   if (!callId || !userId || userId === 'unknown') return null;
@@ -122,8 +199,8 @@ export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBeha
       relationship: str(contact.relationship) || undefined,
     },
     purpose: str(metadata.purpose) || 'a quick call',
-    objective: (str(metadata.objective) || 'general') as CallObjective,
-    callType: (str(metadata.callType) || 'personal') as CallType,
+    objective: oneOf(metadata.objective, OBJECTIVES, 'general'),
+    callType: oneOf(metadata.callType, CALL_TYPES, 'personal'),
     script: str(metadata.script) || undefined,
   });
 }
