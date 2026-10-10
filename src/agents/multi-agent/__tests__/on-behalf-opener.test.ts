@@ -31,6 +31,12 @@ const { outboundCallerAwareness, outboundOpener, outboundPartiesFor, waitForCall
 const { outboundCallContextBuilder } =
   await import('../../../intelligence/context-builders/external/outbound-call-context.js');
 
+/** Seth's agreed wording (2026-10-10): the one, light AI disclosure. */
+const SETH_TO_DOUG =
+  "Hi Doug, it's Ferni, Seth's AI friend. Seth asked me to check in on you. Is now an okay time?";
+/** Never said to the person on the line, nor in the prompt that shapes what is said. */
+const BANNED = /assistant|companion|hey,? seth/i;
+
 /** The job metadata the prod call was dispatched with (session AJ_TxGXvpFEKevD). */
 const onBehalfMetadata = (): Record<string, unknown> => ({
   type: 'on_behalf_call',
@@ -76,7 +82,7 @@ function startOrchestrator(sessionId: string, room: EventEmitter, participant: o
 }
 
 describe('the opener of a call placed on the user’s behalf', () => {
-  it('waits for the phone to be answered, then greets Doug as Seth’s friend, an AI', async () => {
+  it('waits for the phone to be answered, then greets Doug as Seth’s AI friend', async () => {
     await onBehalfSession('ob-opener');
     const room = new EventEmitter();
     const { say, started } = startOrchestrator('ob-opener', room, phoneParticipant('ringing'));
@@ -97,9 +103,9 @@ describe('the opener of a call placed on the user’s behalf', () => {
     const opener = String(say.mock.calls[0][0]);
     expect(opener).toMatch(/\bDoug\b/);
     expect(opener).toMatch(/\bAI\b/);
-    expect(opener).toContain("Ferni, Seth's friend");
-    expect(opener).toMatch(/check in on you/);
-    expect(opener).not.toMatch(/assistant/i);
+    expect(opener).toBe(SETH_TO_DOUG);
+    expect(opener).toContain("Ferni, Seth's AI friend");
+    expect(opener).not.toMatch(BANNED);
     expect(opener).not.toMatch(/hey,? seth/i);
     expect(opener.indexOf('Doug')).toBeLessThan(opener.indexOf('Seth'));
   });
@@ -117,9 +123,7 @@ describe('the opener of a call placed on the user’s behalf', () => {
     await started;
     await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 3000 });
     const opener = String(say.mock.calls[0][0]);
-    expect(opener).toBe(
-      "Hi Doug, it's Ferni, Seth's friend. I'm an AI Seth talks with, and Seth asked me to check in on you. Is now an okay time?"
-    );
+    expect(opener).toBe(SETH_TO_DOUG);
   });
 
   it('says nothing when the phone hangs up unanswered', async () => {
@@ -176,17 +180,27 @@ describe('who is on the line on a call placed for the user', () => {
     const awareness = outboundCallerAwareness(outboundPartiesFor('ob-awareness'));
     expect(awareness).toMatch(/Doug is the person on the line/);
     expect(awareness).toMatch(/Never call the person on the line Seth/);
-    expect(awareness).toMatch(/You are Ferni, Seth's friend, and you are an AI/);
+    expect(awareness).toMatch(/You are Ferni, Seth's friend\./);
     expect(outboundCallerAwareness(outboundPartiesFor('no-such-call'))).toBe('');
 
     const injections = await outboundCallContextBuilder.build({
       services: { sessionId: 'ob-awareness' },
     } as never);
-    const prompt = injections.map((i) => i.content).join('\n');
-    expect(prompt).toMatch(/You are Ferni, Seth's friend, and you are an AI/);
+    // Ferni's own prompt text; the dispatcher's complianceScript is passed through as given.
+    const { complianceScript } = onBehalfMetadata();
+    const prompt = injections
+      .map((i) => i.content)
+      .filter((c) => c !== complianceScript)
+      .join('\n');
+    expect(prompt).toMatch(/You are Ferni, Seth's friend\./);
     for (const text of [awareness, prompt]) {
-      expect(text).not.toMatch(/assistant/i);
-      expect(text).not.toMatch(/hey,? seth/i);
+      expect(text).not.toMatch(BANNED);
+      // Honest when sincerely asked; never told to re-announce being an AI.
+      expect(text).toMatch(
+        /sincerely asks whether you're a real person, say plainly that you're an AI/
+      );
+      expect(text).toMatch(/don't bring it up again or add 'as an AI' disclaimers/);
+      expect(text).not.toMatch(/say you are an AI|identify yourself as an AI|you are an AI\./i);
     }
 
     const single = buildUserAwareness({
@@ -207,14 +221,19 @@ describe('openers never present Ferni as an assistant', () => {
     expect(opener).toBe('Hi, this is Ferni, an AI calling for Seth. Do you have a quick minute?');
   });
 
+  it('without a sponsor name, a personal call is still from an AI friend', () => {
+    expect(outboundOpener({ recipientName: 'Doug', personal: true })).toBe(
+      "Hi Doug, it's Ferni, an AI friend, calling to check in on you. Is now an okay time?"
+    );
+  });
+
   it('every shape discloses the AI and none says assistant', () => {
     for (const personal of [true, false]) {
       for (const sponsorName of ['Seth', undefined]) {
         for (const recipientName of ['Doug', undefined]) {
           const opener = outboundOpener({ sponsorName, recipientName, personal });
           expect(opener).toMatch(/\bAI\b/);
-          expect(opener).not.toMatch(/assistant/i);
-          expect(opener).not.toMatch(/hey,? seth/i);
+          expect(opener).not.toMatch(BANNED);
         }
       }
     }

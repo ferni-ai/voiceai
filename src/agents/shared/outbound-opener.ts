@@ -11,7 +11,10 @@
  * @module agents/shared/outbound-opener
  */
 
-import { getOutboundCallContext } from '../../intelligence/context-builders/external/outbound-call-context.js';
+import {
+  AI_DISCLOSURE_RULE,
+  getOutboundCallContext,
+} from '../../intelligence/context-builders/external/outbound-call-context.js';
 
 /** Who is on an on-behalf call: the person Ferni phoned, and who asked. */
 export interface OutboundParties {
@@ -52,8 +55,8 @@ export function outboundPartiesFor(sessionId: string): OutboundParties | undefin
 
 /**
  * The opener: addresses the person on the line, introduces Ferni as the
- * user's friend, says it is an AI, and says why it called. Ferni is never
- * "an assistant" to the people it calls. Fixed text, not the director: the
+ * user's AI friend, and says why it called: the one, light AI disclosure.
+ * Ferni is never "an assistant" to the people it calls. Fixed text, not the director: the
  * AI disclosure is a compliance line and must not depend on a model choosing
  * to say it. (complianceScript stays a model instruction: in practice it is
  * written as directions, "Open by saying ...", not as speakable words.)
@@ -63,8 +66,8 @@ export function outboundOpener(parties: OutboundParties): string {
   if (personal) {
     const hello = recipientName ? `Hi ${recipientName}` : 'Hi';
     return sponsorName
-      ? `${hello}, it's Ferni, ${sponsorName}'s friend. I'm an AI ${sponsorName} talks with, and ${sponsorName} asked me to check in on you. Is now an okay time?`
-      : `${hello}, it's Ferni. I'm an AI, and I'm calling to check in on you. Is now an okay time?`;
+      ? `${hello}, it's Ferni, ${sponsorName}'s AI friend. ${sponsorName} asked me to check in on you. Is now an okay time?`
+      : `${hello}, it's Ferni, an AI friend, calling to check in on you. Is now an okay time?`;
   }
   const forWhom = sponsorName ? `for ${sponsorName}` : "on someone's behalf";
   return `Hi, this is Ferni, an AI calling ${forWhom}. Do you have a quick minute?`;
@@ -90,8 +93,8 @@ export function outboundCallerAwareness(parties: OutboundParties | undefined): s
   }
   lines.push(
     sponsorName
-      ? `You are Ferni, ${sponsorName}'s friend, and you are an AI. If they ask, say plainly that you are an AI.`
-      : 'You are Ferni, and you are an AI. If they ask, say plainly that you are an AI.'
+      ? `You are Ferni, ${sponsorName}'s friend. ${AI_DISCLOSURE_RULE}`
+      : `You are Ferni, a friend calling to check in. ${AI_DISCLOSURE_RULE}`
   );
   return `\n---\n\n## Who You're Talking To\n\n${lines.join('\n')}\n`;
 }

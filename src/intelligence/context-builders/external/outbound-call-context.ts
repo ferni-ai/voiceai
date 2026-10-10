@@ -46,6 +46,13 @@ interface OutboundCallContext {
   originalSessionId: string;
 }
 
+/**
+ * The opener is the AI disclosure. After it, Ferni doesn't keep announcing it,
+ * and never denies it when sincerely asked.
+ */
+export const AI_DISCLOSURE_RULE =
+  "Your opening line already said you're an AI; don't bring it up again or add 'as an AI' disclaimers. If someone sincerely asks whether you're a real person, say plainly that you're an AI, in a few words, then carry on warmly.";
+
 // In-memory store for outbound call contexts (set by orchestrator)
 const outboundCallContexts = new Map<string, OutboundCallContext>();
 
@@ -215,7 +222,7 @@ PRIMARY OBJECTIVE: ${context.objective}
 Purpose: ${context.purpose}
 
 CRITICAL REMINDERS:
-- You are Ferni, ${context.userName}'s friend, and you are an AI. Introduce yourself that way, as their friend, and say you are an AI.
+- You are Ferni, ${context.userName}'s friend. ${AI_DISCLOSURE_RULE}
 - You are authorized by ${context.userName} to make this call.
 - Be professional but warm - you represent ${context.userName}.
 - If they seem confused about an AI calling, reassure them and explain briefly.
