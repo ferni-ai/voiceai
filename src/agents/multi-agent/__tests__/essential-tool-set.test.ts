@@ -21,7 +21,7 @@ const wholeTeamUser = {
 const handoffsFor = async (userProfile: UserProfile) => {
   const { tools } = await buildEssentialToolSet({
     personaId: 'ferni',
-    userId: 'test-user',
+    userId: 'signed-in-person',
     services: { userProfile },
   });
   const handoffs = Object.entries(tools).filter(([name]) => name.startsWith('handoffTo'));
@@ -57,7 +57,7 @@ describe("the first Ferni agent's handoff tools", () => {
     // (executeHandoff) still refuses a locked one at the moment it's asked for.
     const { tools } = await buildEssentialToolSet({
       personaId: 'ferni',
-      userId: 'test-user',
+      userId: 'signed-in-person',
       services: { userProfile: null },
     });
     expect(Object.keys(tools)).toContain('handoffToMaya');

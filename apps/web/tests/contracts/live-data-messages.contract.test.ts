@@ -267,16 +267,19 @@ describe('handoff_progress', () => {
     const progress: string[] = [];
     cleanups.push(handoffService.onHandoffProgress((target) => progress.push(target)));
 
-    // In order and not awaited, as data-message-handlers dispatches them (handoff_started
-    // waits on the handoff sound while the next message is handled)
-    for (const message of handoffStartMessages('maya-santos', 'ferni')) {
-      void handoffService.processDataMessage(message as unknown as DataMessage);
-    }
+    const [started, progressMessage] = handoffStartMessages('maya-santos', 'ferni');
+    // Not awaited, as data-message-handlers dispatches it: it waits on the handoff sound
+    // (a faked timer here) while the next message is handled
+    void handoffService.processDataMessage(started as unknown as DataMessage);
+    expect(await handoffService.processDataMessage(progressMessage as unknown as DataMessage)).toBe(
+      true
+    );
+    expect(progress).toEqual(['maya-santos']);
+
+    // Leave the handoff service idle for whatever runs next
     void handoffService.processDataMessage({
       type: 'handoff_complete',
       target: 'maya-santos',
     } as unknown as DataMessage);
-
-    expect(progress).toEqual(['maya-santos']);
   });
 });
