@@ -5,7 +5,15 @@
  * Needs the signed-in local stack (scripts/e2e/start-signed-in-stack.sh).
  */
 import { expect, test, type Page } from '@playwright/test';
-import { createUser, expectHome, newPanel, openSettingsMenu, shownDialogs, signIn, watchProblems } from './support';
+import {
+  createUser,
+  expectHome,
+  newPanel,
+  openSettingsMenu,
+  shownDialogs,
+  signIn,
+  watchProblems,
+} from './support';
 
 async function openPanel(page: Page, action: string) {
   await openSettingsMenu(page);
@@ -36,7 +44,11 @@ test('notifications: a changed preference is saved and survives a reload', async
   expect(problems.take()).toEqual([]);
 });
 
-test('invite: Copy puts a working invite link on the clipboard', async ({ page, context, browserName }) => {
+test('invite: Copy puts a working invite link on the clipboard', async ({
+  page,
+  context,
+  browserName,
+}) => {
   test.skip(browserName !== 'chromium', 'clipboard permissions are Chromium-only in Playwright');
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const problems = watchProblems(page);
@@ -71,7 +83,9 @@ test('Take Your Story: Export gives you a file with your data in it', async ({ p
   const download = page.waitForEvent('download', { timeout: 30_000 });
   await panel.getByRole('button', { name: 'Export Selected', exact: true }).click();
   const file = await download;
-  const text = await (await file.createReadStream())!.toArray().then((c) => Buffer.concat(c).toString('utf8'));
+  const text = await (await file.createReadStream())!
+    .toArray()
+    .then((c) => Buffer.concat(c).toString('utf8'));
   const data = JSON.parse(text) as Record<string, unknown>;
   expect(Object.keys(data).length, 'the export has content').toBeGreaterThan(0);
   expect(problems.take()).toEqual([]);
@@ -81,30 +95,68 @@ test('quiz: answering a question shows how you did', async ({ page }) => {
   const problems = watchProblems(page);
   const panel = await openPanel(page, 'knowledge-quiz');
   await panel.locator('.knowledge-quiz-option').first().click(); // questions are random; any answer will do
-  await expect(panel.locator('.knowledge-quiz-option--correct, .knowledge-quiz-option--selected').first()).toBeVisible();
+  await expect(
+    panel.locator('.knowledge-quiz-option--correct, .knowledge-quiz-option--selected').first()
+  ).toBeVisible();
   expect(problems.take()).toEqual([]);
 });
 
 test('every control in every panel has a name', async ({ page }) => {
   test.setTimeout(120_000);
   const unnamed: string[] = [];
-  const panels = ['garden', 'gift', 'invite', 'commands', 'calendar-settings', 'notifications', 'journal',
-    'knowledge-quiz', 'music-dashboard', 'play-games', 'vibe-controller', 'contacts', 'family-callers',
-    'all-connections', 'theme', 'billing', 'export', 'whats-growing', 'share-ferni', 'help'];
+  const panels = [
+    'garden',
+    'gift',
+    'invite',
+    'commands',
+    'calendar-settings',
+    'notifications',
+    'journal',
+    'knowledge-quiz',
+    'music-dashboard',
+    'play-games',
+    'vibe-controller',
+    'contacts',
+    'family-callers',
+    'all-connections',
+    'theme',
+    'billing',
+    'export',
+    'whats-growing',
+    'share-ferni',
+    'help',
+  ];
   for (const action of panels) {
     const panel = await openPanel(page, action);
     await page.waitForTimeout(800);
-    const found = await panel.evaluate((d, action) =>
-      [...d.querySelectorAll<HTMLElement>('button, input:not([type="hidden"]), textarea, select, [role="switch"]')]
-        // Shown and reachable: a panel slid away with visibility:hidden can't be focused
-        .filter((e) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden')
-        .filter((e) => {
-          const label = (e as HTMLInputElement).labels?.[0]?.textContent?.trim();
-          const name = e.getAttribute('aria-label') || e.getAttribute('aria-labelledby') || label ||
-            e.innerText?.trim() || e.getAttribute('title') || e.getAttribute('placeholder'); // innerText: hidden text names nothing
-          return !name;
-        })
-        .map((e) => `${action}: ${e.tagName.toLowerCase()} ${e.className.toString().split(' ')[0]}`), action);
+    const found = await panel.evaluate(
+      (d, action) =>
+        [
+          ...d.querySelectorAll<HTMLElement>(
+            'button, input:not([type="hidden"]), textarea, select, [role="switch"]'
+          ),
+        ]
+          // Shown and reachable: a panel slid away with visibility:hidden can't be focused
+          .filter(
+            (e) =>
+              e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden'
+          )
+          .filter((e) => {
+            const label = (e as HTMLInputElement).labels?.[0]?.textContent?.trim();
+            const name =
+              e.getAttribute('aria-label') ||
+              e.getAttribute('aria-labelledby') ||
+              label ||
+              e.innerText?.trim() ||
+              e.getAttribute('title') ||
+              e.getAttribute('placeholder'); // innerText: hidden text names nothing
+            return !name;
+          })
+          .map(
+            (e) => `${action}: ${e.tagName.toLowerCase()} ${e.className.toString().split(' ')[0]}`
+          ),
+      action
+    );
     unnamed.push(...found);
     await page.keyboard.press('Escape');
     await page.waitForTimeout(500);
@@ -115,15 +167,25 @@ test('every control in every panel has a name', async ({ page }) => {
 test('gift: the seed amounts are announced as amounts', async ({ page }) => {
   const panel = await openPanel(page, 'gift');
   for (const amount of ['10', '25', '50']) {
-    await expect(panel.locator(`[data-amount="${amount}"]`)).toHaveAccessibleName(new RegExp(amount));
+    await expect(panel.locator(`[data-amount="${amount}"]`)).toHaveAccessibleName(
+      new RegExp(amount)
+    );
   }
-  await expect(panel.locator('[aria-pressed="true"][data-amount]'), 'the chosen amount is marked').toHaveCount(1);
+  await expect(
+    panel.locator('[aria-pressed="true"][data-amount]'),
+    'the chosen amount is marked'
+  ).toHaveCount(1);
 });
 
 /** A US 555 number no earlier run has used */
 const freshPhone = () => `+1 555 ${String(Date.now() % 10_000_000).padStart(7, '0')}`;
 
-async function addFamilyMember(page: Page, panel: import('@playwright/test').Locator, name: string, phone: string) {
+async function addFamilyMember(
+  page: Page,
+  panel: import('@playwright/test').Locator,
+  name: string,
+  phone: string
+) {
   await panel.locator('[data-action="add"]').click();
   await panel.getByPlaceholder('e.g., Mom').fill(name);
   await panel.getByPlaceholder('+1 555 123 4567').fill(phone);
@@ -131,7 +193,9 @@ async function addFamilyMember(page: Page, panel: import('@playwright/test').Loc
   await panel.locator('[data-action="save-new"]').click();
 }
 
-test('family phone access: a number already set up says so, not just "couldn\'t add"', async ({ page }) => {
+test('family phone access: a number already set up says so, not just "couldn\'t add"', async ({
+  page,
+}) => {
   const phone = freshPhone();
   const panel = await openPanel(page, 'family-callers');
   await addFamilyMember(page, panel, 'Uncle Lee', phone);
@@ -165,7 +229,7 @@ test("people you've told me about: an added person is listed and kept", async ({
   const form = page.getByPlaceholder('e.g., Mom, Sarah Chen, Dr. Rivera');
   await form.fill('Sam Okafor');
   await page.locator('[data-relationship="friend"]').click();
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.getByRole('button', { name: 'Add Person', exact: true }).click();
   await expect(panel).toContainText('Sam Okafor', { timeout: 10_000 });
   await page.keyboard.press('Escape');
 
@@ -180,6 +244,11 @@ test("let's play: each game is announced by its name", async ({ page }) => {
   const panel = await openPanel(page, 'play-games');
   const cards = panel.locator('.game-card');
   expect(await cards.count()).toBeGreaterThan(0);
-  const names = await cards.evaluateAll((els) => els.map((e) => e.getAttribute('aria-label') ?? ''));
-  expect(names.filter((n) => /more information/i.test(n)), 'cards all announced as "More information"').toEqual([]);
+  const names = await cards.evaluateAll((els) =>
+    els.map((e) => e.getAttribute('aria-label') ?? '')
+  );
+  expect(
+    names.filter((n) => /more information/i.test(n)),
+    'cards all announced as "More information"'
+  ).toEqual([]);
 });

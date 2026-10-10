@@ -424,7 +424,7 @@ export class PredictionsUI {
       // Only predictions that carry their metric names can be scored.
       const resolveBtn =
         metrics.length > 0
-          ? `<button aria-label="${t('accessibility.recordActual')}" class="prediction-resolve-btn" data-prediction-id="${escapeHtml(prediction.id)}">${escapeHtml(t('predictionResolution.record'))}</button>`
+          ? `<button class="prediction-resolve-btn" data-prediction-id="${escapeHtml(prediction.id)}">${escapeHtml(t('predictionResolution.record'))}</button>`
           : '';
       resultHtml = `
         <div class="prediction-card__pending">

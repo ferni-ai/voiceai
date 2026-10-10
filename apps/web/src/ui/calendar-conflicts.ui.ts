@@ -280,8 +280,8 @@ class CalendarConflictsUI {
           <button aria-label="${t('calendarConflicts.keepFerni')}" class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="ferni-wins" data-id="${conflict.id}">
             ${t('calendarConflicts.keepFerni')}
           </button>
-          <button aria-label="${t('calendarConflicts.useProvider')}" class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="provider-wins" data-id="${conflict.id}">
-            Keep ${providerName}
+          <button class="calendar-conflicts__resolve-btn" data-action="resolve" data-resolution="provider-wins" data-id="${conflict.id}">
+            ${t('calendarConflicts.keepProvider', { provider: providerName })}
           </button>
           <button aria-label="${t('calendarConflicts.dismiss')}" class="calendar-conflicts__resolve-btn calendar-conflicts__resolve-btn--dismiss" data-action="dismiss" data-id="${conflict.id}">
             ${t('calendarConflicts.dismiss')}

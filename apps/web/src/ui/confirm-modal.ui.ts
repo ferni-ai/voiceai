@@ -239,10 +239,10 @@ function createModal(options: ConfirmModalOptions): HTMLElement {
         <p class="confirm-modal-message" id="confirm-message">${options.message}</p>
       </div>
       <div class="confirm-modal-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.dismiss')}" class="confirm-modal-btn confirm-modal-btn--cancel" data-action="cancel">
+        <button class="confirm-modal-btn confirm-modal-btn--cancel" data-action="cancel">
           ${options.cancelText || t('confirmModal.cancel')}
         </button>
-        <button aria-label="${t('common.confirm')}" class="confirm-modal-btn ${options.destructive ? 'confirm-modal-btn--destructive' : 'confirm-modal-btn--confirm'}" data-action="confirm">
+        <button class="confirm-modal-btn ${options.destructive ? 'confirm-modal-btn--destructive' : 'confirm-modal-btn--confirm'}" data-action="confirm">
           ${options.confirmText || t('confirmModal.confirm')}
         </button>
       </div>
