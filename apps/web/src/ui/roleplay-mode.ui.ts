@@ -757,7 +757,7 @@ function buildRoleplayPrompt(): string {
     prompt += `Setting: ${customScenario}\n\n`;
     prompt += `Please set the scene and begin the roleplay. Stay fully in character as ${currentAgent?.displayName || currentAgent?.name}.`;
   } else {
-    prompt += `Scenario: ${selectedScenario.name}\n`;
+    prompt += `Scenario: ${t(selectedScenario.name)}\n`;
     prompt += `Setting: ${selectedScenario.setting}\n`;
     prompt += `Mood: ${selectedScenario.mood}\n\n`;
     prompt += `Begin the scene with: "${selectedScenario.opening}"\n`;
