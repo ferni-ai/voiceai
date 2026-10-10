@@ -277,7 +277,7 @@ async function initiateCall(
       machineDetection: options.voicemailFallback ? 'DetectMessageEnd' : 'Enable',
       machineDetectionTimeout: 3,
       timeout: 30, // Ring for 30 seconds max
-      statusCallback: `${process.env.APP_URL || 'https://app.ferni.ai'}/api/outreach/call-status`,
+      statusCallback: `${process.env.APP_URL || 'https://app.ferni.ai'}/api/outreach/webhooks/twilio/conversational-call-status`,
       statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
     });
 

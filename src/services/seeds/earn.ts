@@ -9,7 +9,7 @@
  * @module services/seeds/earn
  */
 import type admin from 'firebase-admin';
-import { isValidTimeZone } from '../../agents/shared/time-context.js';
+import { isValidTimeZone } from '../../utils/time-zone.js';
 import { commitSeeds, prepareMoreSeeds, prepareSeeds, type SeedResult } from './ledger.js';
 
 export const DAILY_SEEDS = 5;
