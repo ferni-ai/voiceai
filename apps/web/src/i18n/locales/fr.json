@@ -8378,6 +8378,7 @@
     "autoResolveAll": "Tout résoudre automatiquement",
     "ferniCalendar": "Calendrier Ferni",
     "keepFerni": "Garder Ferni",
+    "keepProvider": "Garder {provider}",
     "dismiss": "Ignorer",
     "resolving": "Résolution..."
   },
@@ -9091,6 +9092,8 @@
     "dontRemind": "Ne pas me rappeler",
     "repeatsYearly": "Se répète chaque année",
     "cancel": "Annuler",
+    "add": "Ajouter",
+    "update": "Mettre à jour",
     "noDateYet": "Pas encore de dates importantes.",
     "noDateDesc": "Ajoute des anniversaires, des commémorations et bien plus.",
     "typeBirthday": "Anniversaire",

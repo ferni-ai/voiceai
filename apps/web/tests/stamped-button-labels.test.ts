@@ -56,6 +56,67 @@ function findStampedLabels(source: string): string[] {
   return hits;
 }
 
+const EN = JSON.parse(readFileSync(join(SRC, 'i18n', 'locales', 'en-US.json'), 'utf8')) as Record<string, unknown>;
+const english = (key: string): string | undefined => {
+  const value = key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], EN);
+  return typeof value === 'string' ? value : undefined;
+};
+const LABELLED_BUTTON = /<button\b[^>]*?\saria-label="\$\{t\('([\w.]+)'\)\}"[^>]*>([\s\S]*?)<\/button>/g;
+
+/**
+ * Every string the button can show: its literal text, each t('key') in its content (both
+ * sides of a `cond ? t('a') : t('b')`), and quoted words in a `?:` or `||` branch. Not
+ * quoted arguments to a call, such as getIcon('close'): that's an icon.
+ */
+function shownStrings(content: string): string[] {
+  const { text, expressions } = splitTemplate(content);
+  const literal = text.replace(/<[^>]*>/g, ' ').replace(/&#?\w+;/g, ' ').replace(/\s+/g, ' ').trim();
+  const shown = /\p{L}{2,}/u.test(literal) ? [literal] : [];
+  for (const expression of expressions) {
+    for (const m of expression.matchAll(/\btp?\('([\w.]+)'/g)) shown.push(english(m[1]) ?? m[1]);
+    for (const m of expression.matchAll(/(?:^|[?:]|\|\|)\s*'([^']*\p{L}{2,}[^']*)'/gu)) shown.push(m[1]);
+  }
+  return shown;
+}
+
+/** `line: key` for each button whose label names none of the things it shows */
+function findMislabelled(source: string): string[] {
+  const hits: string[] = [];
+  const words = (s: string) => s.replace(/\{\w+\}/g, ' ').replace(/[.…]+$/, '').trim().toLowerCase();
+  for (const m of source.matchAll(LABELLED_BUTTON)) {
+    const shown = shownStrings(m[2]).map(words).filter(Boolean);
+    const label = words(english(m[1]) ?? '');
+    if (shown.length && !shown.some((s) => label.includes(s))) {
+      hits.push(`${source.slice(0, m.index).split('\n').length}: ${m[1]}`);
+    }
+  }
+  return hits;
+}
+
+describe('a button is named by what it shows', () => {
+  it('flags a label that names something else, and leaves fitting labels alone (scanner sanity check)', () => {
+    const fixture = [
+      `<button aria-label="\${t('common.save')}">\${saving ? t('common.saving') : t('logMoment.saveMoment')}</button>`,
+      `<button aria-label="\${t('common.delete')}">\${ICONS.trash} \${t('editPerson.removeFromPeople')}</button>`,
+      `<button aria-label="\${t('accessibility.next')}">\${last ? 'Begin' : 'Next step'}</button>`,
+      `<button aria-label="\${t('calendarView.practiceViewWithInsights')}">\${t('calendarView.practice')}</button>`,
+      `<button aria-label="\${t('common.close')}">\${getIcon('close', 18)}</button>`,
+      `<button aria-label="\${t('common.close')}">\${ICONS.close}</button>`,
+    ].join('\n');
+    expect(findMislabelled(fixture)).toEqual(['1: common.save', '2: common.delete', '3: accessibility.next']);
+  });
+
+  it("no button's label names something other than what it shows", () => {
+    const offenders = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
+      .filter((f) => f.endsWith('.ts') && !f.includes('__tests__'))
+      .flatMap((f) => {
+        const file = join(SRC, f);
+        return findMislabelled(readFileSync(file, 'utf8')).map((hit) => `${relative(SRC, file)}:${hit}`);
+      });
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe('stamped button labels', () => {
   it('finds a generic label over visible text, and leaves icon-only buttons alone (scanner sanity check)', () => {
     const fixture = [

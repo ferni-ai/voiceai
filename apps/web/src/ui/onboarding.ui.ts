@@ -222,7 +222,7 @@ class OnboardingUI {
         
         <div class="onboarding__actions">
           ${!isFirst ? `<button class="onboarding__btn onboarding__btn--secondary" data-action="prev">${t('onboarding.buttons.back')}</button>` : `<button class="onboarding__btn onboarding__btn--secondary" data-action="skip">${t('onboarding.buttons.skip')}</button>`}
-          <button aria-label="${t('accessibility.next')}" class="onboarding__btn onboarding__btn--primary" data-action="next">${isLast ? t('onboarding.buttons.begin') : t('onboarding.buttons.next')}</button>
+          <button class="onboarding__btn onboarding__btn--primary" data-action="next">${isLast ? t('onboarding.buttons.begin') : t('onboarding.buttons.next')}</button>
         </div>
       </div>
     `;

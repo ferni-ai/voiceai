@@ -462,7 +462,7 @@ function renderBillingLink(source: SubscriptionStatus['billingSource']): string 
   return `
     <section class="support-ferni-section support-ferni-billing">
       ${apple ? `<p class="support-ferni-tip-desc">${t('manageSubscription.apple.source')}</p>` : ''}
-      <button aria-label="${t('accessibility.edit')}" class="support-ferni-billing-btn" data-action="${apple ? 'apple-manage' : 'billing'}">
+      <button class="support-ferni-billing-btn" data-action="${apple ? 'apple-manage' : 'billing'}">
         ${ICONS.creditCard}
         <span>${apple ? t('manageSubscription.buttons.manageApple') : t('support.manageBilling')}</span>
         ${ICONS.externalLink}

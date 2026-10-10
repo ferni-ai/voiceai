@@ -8329,6 +8329,7 @@
     "autoResolveAll": "自動解決所有衝突",
     "ferniCalendar": "Ferni 行事曆",
     "keepFerni": "保留 Ferni 版本",
+    "keepProvider": "保留 {provider} 版本",
     "dismiss": "忽略",
     "resolving": "正在解決..."
   },
@@ -9021,6 +9022,8 @@
     "dontRemind": "不要提醒",
     "repeatsYearly": "每年重複",
     "cancel": "取消",
+    "add": "新增",
+    "update": "更新",
     "noDateYet": "目前還沒有重要日子。",
     "noDateDesc": "新增生日、紀念日等重要日子。",
     "typeBirthday": "生日",

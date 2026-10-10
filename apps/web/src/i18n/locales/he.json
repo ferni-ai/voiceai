@@ -8377,6 +8377,7 @@
     "autoResolveAll": "לפתור הכל אוטומטית",
     "ferniCalendar": "לוח השנה של Ferni",
     "keepFerni": "לשמור את של Ferni",
+    "keepProvider": "לשמור את {provider}",
     "dismiss": "התעלמות",
     "resolving": "פתרון הקונפליקט..."
   },
@@ -9090,6 +9091,8 @@
     "dontRemind": "לא להזכיר",
     "repeatsYearly": "חוזר מדי שנה",
     "cancel": "ביטול",
+    "add": "הוספה",
+    "update": "עדכון",
     "noDateYet": "אין עדיין תאריכים חשובים.",
     "noDateDesc": "אפשר להוסיף ימי הולדת, ימי נישואין ועוד.",
     "typeBirthday": "יום הולדת",

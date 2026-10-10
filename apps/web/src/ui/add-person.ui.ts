@@ -579,7 +579,7 @@ function render(): void {
     
     <div class="ap-footer">
       <button aria-label="${t('common.cancel')}" class="ap-btn ap-btn-secondary" id="ap-cancel">${t('common.cancel')}</button>
-      <button aria-label="${t('common.save')}" class="ap-btn ap-btn-primary" id="ap-save" ${state.isSubmitting || !state.name.trim() ? 'disabled' : ''}>
+      <button class="ap-btn ap-btn-primary" id="ap-save" ${state.isSubmitting || !state.name.trim() ? 'disabled' : ''}>
         ${state.isSubmitting ? t('addPerson.adding') : t('addPerson.addPerson')}
       </button>
     </div>
