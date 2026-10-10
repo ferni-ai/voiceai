@@ -60,10 +60,11 @@ test('someone you just added is not flagged as needing attention', async ({ page
   await addPerson(page, await openPeople(page));
   await page.reload();
   await expectHome(page);
+  // The nudges arrive separately: wait for them, so their absence means something
+  const nudges = page.waitForResponse((r) => r.url().includes('/api/contacts/nudges'));
   const people = await openPeople(page);
+  expect((await nudges).status()).toBe(200);
   await expect(people.locator('.yp-person', { hasText: PERSON })).toBeVisible();
-  // The nudges arrive separately; give them time to show if they're going to
-  await page.waitForResponse((r) => r.url().includes('/api/contacts/nudges')).catch(() => null);
   await page.waitForTimeout(500);
   await expect(people.locator('.yp-nudge', { hasText: PERSON }), 'added today, so not overdue').toHaveCount(0);
   expect(problems.take()).toEqual([]);
