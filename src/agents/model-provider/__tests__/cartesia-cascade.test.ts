@@ -16,6 +16,7 @@ import {
   buildCascadeSTTOptions,
   buildCascadeKeyterms,
   createProviderSTT,
+  logStreamOpens,
 } from '../cartesia-cascade.js';
 
 const ENV_KEYS = [
@@ -260,5 +261,22 @@ describe('ink-2 turn detection', () => {
   it('runs with the plugin patch applied, so keyterms and thresholds reach ink', async () => {
     const { cartesiaPluginPatched } = await import('../cartesia-cascade.js');
     expect(cartesiaPluginPatched()).toBe(true);
+  });
+});
+
+describe('logStreamOpens', () => {
+  it('passes each stream() call through and counts them', () => {
+    const calls: unknown[][] = [];
+    const stt = {
+      stream: (...args: unknown[]) => {
+        calls.push(args);
+        return `stream-${calls.length}`;
+      },
+    };
+    const wrapped = logStreamOpens(stt);
+    expect(wrapped).toBe(stt);
+    expect(wrapped.stream({ language: 'en' } as never)).toBe('stream-1');
+    expect(wrapped.stream()).toBe('stream-2');
+    expect(calls).toEqual([[{ language: 'en' }], []]);
   });
 });
