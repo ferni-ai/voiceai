@@ -38,6 +38,7 @@ export function selfMemoryEnabled(env: Record<string, string | undefined> = proc
   return env.FERNI_SELF_MEMORY === 'on';
 }
 
+/** A stored fact retract-ledger-facts.ts marked as not his life keeps `retracted: true` and is never recalled. */
 export interface LedgerFact {
   personaId: string;
   fact: string;
@@ -293,8 +294,8 @@ export const firestoreLedgerStore: LedgerStore = {
       .limit(limit * 3)
       .get();
     return snap.docs
-      .map((d) => d.data() as LedgerFact)
-      .filter((f) => f.personaId === personaId)
+      .map((d) => d.data() as LedgerFact & { retracted?: boolean })
+      .filter((f) => f.personaId === personaId && f.retracted !== true)
       .slice(0, limit);
   },
 };
