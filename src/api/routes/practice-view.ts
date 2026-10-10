@@ -31,8 +31,8 @@ import {
 } from './practice-intentions.js';
 import { rateLimit } from '../auth-middleware.js';
 import { localeForRequest, tFor, type SupportedLocale } from '../../i18n/index.js';
+import { loadPracticeStats, type PracticeViewStats } from './practice-view-stats.js';
 import {
-  DEFAULT_PATTERN_KEYS,
   attribute,
   generateEventEmotionalContext,
   generateHabitInsight,
@@ -134,12 +134,7 @@ export interface CrossPersonaInsight {
   context?: string;
 }
 
-export interface PracticeViewStats {
-  followThroughPercent: number;
-  habitsCompletedThisWeek: number;
-  momentumTrend: 'rising' | 'steady' | 'building' | 'declining';
-  streak: number;
-}
+export type { PracticeViewStats };
 
 export interface PracticeViewResponse {
   success: boolean;
@@ -424,24 +419,13 @@ async function generateMayaPatternNotice(
       await import('../../services/superhuman/semantic-intelligence/index.js');
     const semanticCtx = await buildSemanticIntelligenceContext(userId, {});
 
-    if (semanticCtx?.activeCorrelations?.length) {
-      return {
-        message:
-          semanticCtx.activeCorrelations[0] || tFor(locale, 'practiceView.pattern.morningStart'),
-        type: 'observation',
-        confidence: 0.75,
-      };
+    const correlation = semanticCtx?.activeCorrelations?.[0];
+    if (correlation) {
+      return { message: correlation, type: 'observation', confidence: 0.75 };
     }
 
-    // Default patterns
-    return {
-      message: tFor(
-        locale,
-        DEFAULT_PATTERN_KEYS[Math.floor(Math.random() * DEFAULT_PATTERN_KEYS.length)]
-      ),
-      type: 'observation',
-      confidence: 0.6,
-    };
+    // Nothing real matched: say nothing rather than a canned "pattern"
+    return null;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Could not generate Maya pattern notice');
     return null;
@@ -578,41 +562,6 @@ async function loadPendingOutreach(userId: string): Promise<PracticeOutreach[]> 
 }
 
 /**
- * Calculate practice stats
- */
-async function calculatePracticeStats(
-  userId: string,
-  habits: PracticeHabit[],
-  intentions: PracticeTask[]
-): Promise<PracticeViewStats> {
-  // Calculate follow-through from completed intentions
-  const completedIntentions = intentions.filter((i) => i.completed).length;
-  const totalIntentions = intentions.length || 1;
-  const followThroughPercent = Math.round((completedIntentions / totalIntentions) * 100);
-
-  // Count habits completed this week
-  const habitsCompletedThisWeek = habits.filter((h) => h.completedToday).length;
-
-  // Calculate momentum trend
-  let momentumTrend: 'rising' | 'steady' | 'building' | 'declining' = 'steady';
-  const avgStreak = habits.reduce((sum, h) => sum + h.streak, 0) / (habits.length || 1);
-
-  if (avgStreak > 5) momentumTrend = 'rising';
-  else if (avgStreak > 2) momentumTrend = 'building';
-  else if (followThroughPercent < 30) momentumTrend = 'declining';
-
-  // Get max streak
-  const maxStreak = habits.reduce((max, h) => Math.max(max, h.streak), 0);
-
-  return {
-    followThroughPercent,
-    habitsCompletedThisWeek,
-    momentumTrend,
-    streak: maxStreak,
-  };
-}
-
-/**
  * Build the full week data structure
  */
 async function buildWeekData(
@@ -717,7 +666,7 @@ export async function handleGetPracticeView(
       await Promise.all([
         generateMayaPatternNotice(userId, weekData, locale),
         generateCrossPersonaInsights(userId),
-        calculatePracticeStats(userId, habits, intentions),
+        loadPracticeStats(practiceDb, userId),
         loadPredictions(userId),
         loadPendingOutreach(userId),
       ]);

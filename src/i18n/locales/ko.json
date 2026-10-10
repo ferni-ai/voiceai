@@ -642,7 +642,6 @@
       "found": "{persona}의 발견"
     },
     "eventContext": {
-      "family": "당신이 온전히 곁에 있어 줄 때 파트너가 정말 좋아해요",
       "meeting": "참석하기 전에 명확한 의도를 세워보세요",
       "wellness": "스스로를 먼저 돌보는 것",
       "learning": "한계를 넓혀갈 때 성장이 일어나요",
@@ -688,11 +687,7 @@
     "pattern": {
       "busyWeek": "요즘 회의가 정말 많으셨네요. 가장 깊은 생각은 조용한 공간에서 찾아오곤 해요.",
       "packedDay": "{day} 일정이 꽉 차 있네요. 몇 가지 일정을 {otherDay}로 옮겨보는 건 어떨까요?",
-      "packedDayNoAlternative": "{day} 일정이 꽉 차 있네요. 몇 가지 일정을 다른 날로 옮겨보는 건 어떨까요?",
-      "morningStart": "아침을 어떻게 시작하는지가 하루 전체의 흐름을 잡아주곤 해요.",
-      "focusTime": "집중 시간을 따로 확보해 두면, 40%나 더 많은 일을 해내시더라고요.",
-      "creativeAfterWalks": "산책을 하고 난 후에 가장 창의적인 생각이 잘 떠오르시는 것 같아요.",
-      "tuesdayEvenings": "화요일 저녁에 가장 생산적으로 시간을 보내시더라고요."
+      "packedDayNoAlternative": "{day} 일정이 꽉 차 있네요. 몇 가지 일정을 다른 날로 옮겨보는 건 어떨까요?"
     },
     "errors": {
       "loadFailed": "실천 화면을 불러오지 못했어요.",

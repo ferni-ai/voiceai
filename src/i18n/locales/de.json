@@ -647,7 +647,6 @@
       "found": "{persona} hat gefunden"
     },
     "eventContext": {
-      "family": "Dein Herzensmensch liebt es, wenn du ganz präsent bist",
       "meeting": "Setze dir eine klare Absicht, bevor du teilnimmst",
       "wellness": "Sorge zuerst für dich selbst",
       "learning": "Wachstum geschieht, wenn wir über uns hinauswachsen",
@@ -693,11 +692,7 @@
     "pattern": {
       "busyWeek": "Du warst in letzter Zeit in vielen Meetings. Deine besten Gedanken entstehen in den ruhigen Momenten.",
       "packedDay": "{day} sieht ganz schön vollgepackt aus. Vielleicht magst du etwas auf {otherDay} verschieben?",
-      "packedDayNoAlternative": "{day} sieht ganz schön vollgepackt aus. Vielleicht magst du etwas auf einen anderen Tag verschieben?",
-      "morningStart": "Dein Start in den Morgen gibt meistens den Ton für deinen ganzen Tag an.",
-      "focusTime": "Wenn du dir Zeit für Fokus blockst, schaffst du 40 % mehr.",
-      "creativeAfterWalks": "Nach deinen Spaziergängen scheinst du besonders kreativ zu sein.",
-      "tuesdayEvenings": "Dienstagabende waren bisher deine produktivste Zeit."
+      "packedDayNoAlternative": "{day} sieht ganz schön vollgepackt aus. Vielleicht magst du etwas auf einen anderen Tag verschieben?"
     },
     "errors": {
       "loadFailed": "Ich konnte die Übungsansicht leider nicht laden.",
