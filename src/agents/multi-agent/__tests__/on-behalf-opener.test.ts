@@ -126,6 +126,17 @@ describe('the opener of a call placed on the user’s behalf', () => {
     expect(opener).toBe(SETH_TO_DOUG);
   });
 
+  it('names the requester from a hand-written dispatch with no requester id', async () => {
+    // Dev 2026-10-10: a call to Seth's sister said "it's Ferni, an AI friend", without "Seth's".
+    const { userId: _userId, ...handWritten } = onBehalfMetadata();
+    await setupCallTypeContexts(handWritten, 'on_behalf_call', 'ob-no-id', 'room-ob-no-id');
+    const room = new EventEmitter();
+    const { say, started } = startOrchestrator('ob-no-id', room, phoneParticipant('active'));
+    await started;
+    await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    expect(String(say.mock.calls[0][0])).toBe(SETH_TO_DOUG);
+  });
+
   it('says nothing when the phone hangs up unanswered', async () => {
     await onBehalfSession('ob-hangup');
     const room = new EventEmitter();

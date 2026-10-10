@@ -173,7 +173,13 @@ export async function setupCallTypeContexts(
         mustConfirm: (metadata.mustConfirm as string[]) || [],
         mustNotDo: (metadata.mustNotDo as string[]) || [],
         informationToGather: (metadata.informationToGather as string[]) || [],
-        userName: call?.requester.name || 'the user',
+        // A hand-written dispatch may name the requester without an id, which
+        // the parser rejects: still say who Ferni is calling for.
+        userName:
+          call?.requester.name ||
+          ((metadata.requester as Record<string, unknown> | undefined)?.name as string) ||
+          (metadata.userName as string) ||
+          'the user',
         originalSessionId: call?.requester.originalSessionId || '',
       };
       setOutboundCallContext(roomNameForContext, outboundContext);
