@@ -180,74 +180,11 @@ import {
 
 import { markLivekitDisconnected, signalPrewarmComplete } from './shared/worker-readiness.js';
 
-// Initialize crash analytics early for comprehensive crash detection
-import { initCrashAnalytics, getCrashSummary } from './shared/crash-analytics.js';
-initCrashAnalytics();
-log('✅ Crash analytics initialized');
-
-// ============================================================================
-// PHASE 2.5: START ASYNC BACKGROUND WORKERS
-// ============================================================================
-
+// Crash analytics, memory event workers, knowledge capture, orphan cleanups.
+import { getCrashSummary } from './shared/crash-analytics.js';
+import { startProcessRuntime } from './gce/process-runtime.js';
 log('Phase 2.5: Starting async background workers');
-
-// Configure AsyncEvents dependency injection BEFORE starting workers that need it.
-// Previously this was only done in Phase 3 (global-services.ts), which meant the
-// deep extraction worker would start without event listeners.
-import { configureAsyncEvents } from '../memory/dynamic/async-events-config.js';
-import { memoryAsyncEvents } from '../services/async-events/index.js';
-try {
-  configureAsyncEvents(memoryAsyncEvents);
-  log('✅ AsyncEvents configured for memory workers');
-} catch (diError) {
-  log('⚠️ AsyncEvents DI setup failed (deep extraction will be disabled)', {
-    error: String(diError),
-  });
-}
-
-// Start Deep Extraction Worker for LLM-powered memory extraction
-// This processes memory jobs queued by fastCapture() in background
-import { configureSyncService, startDeepExtractionWorker } from '../memory/dynamic/index.js';
-startDeepExtractionWorker();
-log('✅ Deep extraction worker started');
-
-// Knowledge capture must be ready before first turns — avoids captureTurn no-ops
-import { initializeKnowledgeCapture } from '../memory/knowledge-graph/index.js';
-void initializeKnowledgeCapture()
-  .then(() => log('✅ Knowledge capture initialized'))
-  .catch((err) =>
-    log('⚠️ Knowledge capture init failed (entity persistence may be delayed)', {
-      error: String(err),
-    })
-  );
-
-// No Spanner instance exists (gcloud instances list empty, 2026-10). Keep L2 Firestore.
-configureSyncService({ enabled: false });
-log('ℹ️ Spanner L3 removed — Firestore L2 only');
-
-// Start OpenAI health monitor orphan cleanup
-// This cleans up stale sessions that exited without calling stopHealthMonitoring()
-// Runs every 10 minutes to prevent unbounded Map growth
-import { startOrphanCleanup, stopOrphanCleanup } from './shared/openai-health-monitor.js';
-startOrphanCleanup();
-log('✅ OpenAI health monitor orphan cleanup started');
-
-// Start session cleanup registry orphan cleanup
-// This cleans up stale session registries (sessions that crashed without proper cleanup)
-// Runs every 15 minutes with 2-hour TTL to prevent unbounded Map growth
-import { startRegistryOrphanCleanup, stopRegistryOrphanCleanup } from './session/index.js';
-startRegistryOrphanCleanup();
-log('✅ Session cleanup registry orphan cleanup started');
-
-// Start session closing tracker orphan cleanup
-// This cleans up sessions stuck in "closing" state (crashed before cleanup completed)
-// Runs every 2 minutes with 5-minute TTL to prevent unbounded Map growth
-import {
-  startClosingTrackerCleanup,
-  stopClosingTrackerCleanup,
-} from './shared/session-closing-tracker.js';
-startClosingTrackerCleanup();
-log('✅ Session closing tracker orphan cleanup started');
+const processRuntime = startProcessRuntime(log);
 
 const moduleLoadTime = Date.now() - moduleLoadStart;
 log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
@@ -365,26 +302,7 @@ const shutdown = async (signal: string): Promise<void> => {
     // Ignore
   }
 
-  try {
-    stopOrphanCleanup();
-    log('OpenAI health monitor cleanup stopped');
-  } catch {
-    // Ignore
-  }
-
-  try {
-    stopRegistryOrphanCleanup();
-    log('Session cleanup registry stopped');
-  } catch {
-    // Ignore
-  }
-
-  try {
-    stopClosingTrackerCleanup();
-    log('Session closing tracker cleanup stopped');
-  } catch {
-    // Ignore
-  }
+  processRuntime.stop();
 
   // 2. Mark LiveKit as disconnected and stop keepalive
   markLivekitDisconnected();
