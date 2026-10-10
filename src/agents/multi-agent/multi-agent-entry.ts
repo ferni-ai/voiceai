@@ -45,6 +45,8 @@ import type { UserData } from '../shared/types.js';
 import { createAgentOrchestrator, type AgentOrchestrator } from './orchestrator.js';
 import { createPersonaAgentFactory } from './persona-agent-factory.js';
 import { checkHandoffUnlocked } from '../../tools/handoff/handoff-unlock-check.js';
+import { setCurrentAgent } from '../../tools/handoff/state.js';
+import type { AgentId } from '../../services/agent-bus.js';
 
 const log = getLogger();
 
@@ -230,6 +232,9 @@ export async function handleHandoffFromDataChannel(
     userEmotion: services.sessionPriming?.emotionalContext?.lastEmotion,
   });
 
+  // The LLM's handoff tools read the current agent from here: without this, after a tap to
+  // Maya her own handoff back to Ferni was refused as "Already with Ferni"
+  if (result.success) setCurrentAgent(target as AgentId);
   return {
     success: result.success,
     error: result.error,

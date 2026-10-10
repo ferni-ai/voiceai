@@ -126,6 +126,15 @@ describe('a tap on a teammate during a call', () => {
     expect(handoff).not.toHaveBeenCalled();
   });
 
+  it('after a tap, the handoff tools know who the person is talking to now', async () => {
+    const { getCurrentAgent, setCurrentAgent } = await import('../../../tools/handoff/state.js');
+    setCurrentAgent('ferni');
+    const { o } = orchestrator();
+    await handleHandoffFromDataChannel(o, 'maya-santos', 'tap', services(subscriber));
+    // So Maya's own handoff back to Ferni isn't refused as "Already with Ferni"
+    expect(getCurrentAgent()).toBe('maya-santos');
+  });
+
   it('Ferni is always open', async () => {
     const { o, handoff } = orchestrator();
     (o as { getCurrentPersonaId: () => string }).getCurrentPersonaId = () => 'maya-santos';
