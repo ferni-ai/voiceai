@@ -8,6 +8,7 @@
  */
 
 import type { JobContext } from '@livekit/agents';
+import { ParticipantKind } from '@livekit/rtc-node';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -158,6 +159,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       enableFullHandlers,
       deferHandlers, // Wire handlers in background after greeting
       callSession: context.callSession as AgentSetupConfig['callSession'],
+      phoneCaller: context.userParticipant?.kind === ParticipantKind.SIP,
     });
     mark('setup_persona_agent_done');
 
