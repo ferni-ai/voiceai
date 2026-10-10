@@ -11,6 +11,12 @@
 // (lk.transcription text streams), per-turn reply delay, when the user was
 // speaking, and each agent audio track separately (main voice vs. background,
 // so backchannels on a side track can be counted).
+//
+// VOICE_EVAL_PHONE=1 (run.sh phone): the room has no agent, only a SIP participant
+// whose call reaches the agent over the phone network, so its one track is "the
+// agent" (reply voice and background sounds mixed, as a caller hears them). Its
+// audio counts only once the call is answered (sip.callStatus "active"), so
+// ringback is not taken for a greeting.
 import { writeFileSync, readFileSync } from 'node:fs';
 import {
   AudioFrame,
@@ -41,6 +47,8 @@ const tracks = new Map(); // sid -> { name, bufs, voice: [[startT, endT], ...] }
 const userSpeech = []; // [startT, endT] of each scripted utterance
 let mainVoiceLastAt = 0;
 let mainVoiceStartedAt = 0;
+const phone = process.env.VOICE_EVAL_PHONE === '1';
+const answered = (p) => p.attributes?.['sip.callStatus'] === 'active';
 
 room.on(RoomEvent.TrackSubscribed, async (track, pub, participant) => {
   if (track.kind !== TrackKind.KIND_AUDIO) return;
@@ -51,6 +59,7 @@ room.on(RoomEvent.TrackSubscribed, async (track, pub, participant) => {
   let open = null;
   let lastLoud = 0;
   for await (const frame of new AudioStream(track, { sampleRate: 24000, numChannels: 1 })) {
+    if (phone && !answered(participant)) continue;
     const pcm = new Int16Array(frame.data.buffer, frame.data.byteOffset, frame.data.length);
     if (rec.startT === null) rec.startT = now();
     rec.bufs.push(Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength));
@@ -179,6 +188,16 @@ async function overlap(path, mode, atMs, replyStartedAt) {
   };
 }
 
+if (phone) {
+  const start = now();
+  while (![...room.remoteParticipants.values()].some(answered)) {
+    if (now() - start > 90000) {
+      console.error('converse.mjs: the phone call was not answered in 90 s');
+      process.exit(1);
+    }
+    await sleep(100);
+  }
+}
 await waitAgentDone(20000); // greeting
 const results = [];
 let replyStartedAt = 0;
