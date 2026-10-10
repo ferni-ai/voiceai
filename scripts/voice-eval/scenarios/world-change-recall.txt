@@ -6,6 +6,11 @@
 # went early, treats it as done (never "good luck Tuesday"), and doesn't
 # invent how it went. Check the agent log for one WORLD_TEMPORAL_LOADED line
 # with since: ["due"].
+# Counted by recall-facts.mjs (Ferni must say it before the caller does; the
+# caller here never names Mindy, the knee or the surgery). The avoid catches
+# treating the surgery as still ahead.
+#@fact surgery \bmindy\b|surger|\bknee\b|operation|\bhospital\b
+#@avoid still-ahead good luck|hope (it|the surgery|everything) goes|(is|it's) (on )?tuesday|coming up|before (her|the) surgery
 Hey Ferni, it's me again.
 Long couple of days, honestly.
 Yeah, she's okay. She's recovering at my place, and she's already bored out of her mind.
