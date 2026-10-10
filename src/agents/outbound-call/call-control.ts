@@ -35,6 +35,8 @@ interface CallSession {
   roomName: string;
 }
 
+// Both keyed by the agent session, never by the dispatch's callId: a session
+// can only record or read how its own call ended.
 const sessions = new Map<string, CallSession>();
 const dispositions = new Map<string, CallDisposition>();
 
@@ -47,10 +49,10 @@ export function registerOnBehalfCallRoom(
   sessions.set(sessionId, { callId, roomName });
 }
 
-/** How Ferni said the call ended, if it hung up itself. Read once. */
-export function takeCallDisposition(callId: string): CallDisposition | undefined {
-  const disposition = dispositions.get(callId);
-  dispositions.delete(callId);
+/** How Ferni said this session's call ended, if it hung up itself. Read once. */
+export function takeCallDisposition(sessionId: string): CallDisposition | undefined {
+  const disposition = dispositions.get(sessionId);
+  dispositions.delete(sessionId);
   return disposition;
 }
 
@@ -90,7 +92,7 @@ export function createEndCallTool(sessionId: string, hangUp: HangUp = deleteRoom
         ),
     }),
     execute: async ({ outcome }, { ctx }) => {
-      dispositions.set(call.callId, outcome);
+      dispositions.set(sessionId, outcome);
       try {
         await ctx.waitForPlayout();
       } catch {

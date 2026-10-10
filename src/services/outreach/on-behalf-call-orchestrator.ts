@@ -19,7 +19,7 @@ import {
   generateComplianceScript,
 } from '../../tools/domains/telephony/compliance.js';
 import { trackOutboundCall } from './outbound-call-tracker.js';
-import { buildOnBehalfDispatch, signOnBehalfDispatch } from './on-behalf-dispatch.js';
+import { onBehalfDispatchFor, signOnBehalfDispatch } from './on-behalf-dispatch.js';
 import {
   enrichMessage,
   enrichVoicemailMessage,
@@ -351,25 +351,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       await agentDispatch.createDispatch(roomName, agentName, {
         metadata: JSON.stringify(
           signOnBehalfDispatch(
-            buildOnBehalfDispatch({
-              callId,
-              requester: {
-                userId: request.userId,
-                name: request.userName,
-                timezone: request.userTimezone,
-                originalSessionId: request.originalSessionId,
-              },
-              contact: {
-                name: request.resolvedContact?.name ?? request.contactQuery,
-                phone: request.resolvedContact?.phone ?? '',
-                relationship: request.resolvedContact?.relationship,
-              },
-              purpose: request.purpose,
-              objective: request.objective,
-              callType: request.callType,
-              script, // Full script for the agent
-              userPreferences: request.userPreferences,
-            }),
+            onBehalfDispatchFor(callId, request, script),
             this.config.livekitApiSecret
           )
         ),

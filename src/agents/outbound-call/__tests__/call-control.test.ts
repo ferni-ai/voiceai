@@ -47,8 +47,8 @@ describe('endCall', () => {
 
     expect(order).toEqual(['goodbye played', 'hang up onbehalf-call-vm']);
     expect(result).toBe('The call has ended.');
-    expect(takeCallDisposition('call-vm')).toBe('voicemail_left');
-    expect(takeCallDisposition('call-vm')).toBeUndefined(); // read once
+    expect(takeCallDisposition('s-vm')).toBe('voicemail_left');
+    expect(takeCallDisposition('s-vm')).toBeUndefined(); // read once
   });
 
   it('still records the outcome and tells the model to go quiet when the hang-up fails', async () => {
@@ -58,6 +58,20 @@ describe('endCall', () => {
     });
     const result = await run(createEndCallTool('s-fail', hangUp) as EndCallTool, 'completed');
     expect(result).toContain('Stay quiet');
-    expect(takeCallDisposition('call-fail')).toBe('completed');
+    expect(takeCallDisposition('s-fail')).toBe('completed');
+  });
+
+  it('records the outcome against its own session, not the call id it was dispatched with', async () => {
+    registerOnBehalfCallRoom('s-a', 'call-same', 'room-a');
+    registerOnBehalfCallRoom('s-b', 'call-same', 'room-b');
+    await run(
+      createEndCallTool(
+        's-a',
+        vi.fn(async () => undefined)
+      ) as EndCallTool,
+      'wrong_number'
+    );
+    expect(takeCallDisposition('s-b')).toBeUndefined();
+    expect(takeCallDisposition('s-a')).toBe('wrong_number');
   });
 });

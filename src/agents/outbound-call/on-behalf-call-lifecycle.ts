@@ -26,7 +26,7 @@ const log = createLogger({ module: 'on-behalf-call-lifecycle' });
 
 export interface CallLifecyclePorts {
   /** How Ferni said the call ended when it hung up itself (see call-control). */
-  readDisposition: (callId: string) => CallDisposition | undefined;
+  readDisposition: (sessionId: string) => CallDisposition | undefined;
   /** The turns captured so far, or null when capture never started. */
   readTranscript: (callId: string) => CallTranscriptTurn[] | null;
   analyze: (
@@ -171,7 +171,8 @@ const reportedCalls = new Set<string>();
 
 /**
  * Report the finished call to the requester. `trusted` says the dispatch was
- * signed by our server (verifyOnBehalfDispatch); a forged one never reports.
+ * signed by our server (verifyOnBehalfDispatch); a forged one never reports
+ * and never touches state belonging to the callId it names.
  * Safe to call from every session exit path: only the first call for a callId
  * reports. Never throws.
  */
@@ -182,19 +183,24 @@ export async function completeOnBehalfCall(
   trusted: boolean,
   ports?: CallLifecyclePorts
 ): Promise<CallOutcome | null> {
+  // An unsigned dispatch names a callId someone else chose: touch nothing keyed
+  // by it (another call's report guard or transcript), only this session.
+  if (!trusted) {
+    log.warn(
+      { callId: call.callId, requesterUserId: call.requester.userId },
+      'Unsigned on-behalf dispatch; not reporting to the named requester'
+    );
+    const { cleanupOnBehalfCapture } =
+      await import('../integrations/on-behalf-transcript-capture.js');
+    cleanupOnBehalfCapture(sessionId);
+    return null;
+  }
   if (reportedCalls.has(call.callId)) return null;
   reportedCalls.add(call.callId);
 
   try {
-    if (!trusted) {
-      log.warn(
-        { callId: call.callId, requesterUserId: call.requester.userId },
-        'Unsigned on-behalf dispatch; not reporting to the named requester'
-      );
-      return null;
-    }
     const { readDisposition, readTranscript, analyze, report } = ports ?? (await defaultPorts());
-    const disposition = readDisposition(call.callId);
+    const disposition = readDisposition(sessionId);
     const turns = readTranscript(call.callId);
     let analysis: SuperhumanCallResult | null = null;
     const talked = disposition === undefined || disposition === 'completed';

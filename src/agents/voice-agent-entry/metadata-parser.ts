@@ -65,7 +65,8 @@ export async function setupCallTypeContexts(
   metadata: Record<string, unknown>,
   callType: string | undefined,
   sessionId: string,
-  roomName: string | undefined
+  roomName: string | undefined,
+  rawJobMetadata?: string
 ): Promise<void> {
   // =========================================================================
   // INBOUND CALL DETECTION
@@ -179,8 +180,13 @@ export async function setupCallTypeContexts(
       setOutboundCallContext(sessionId, outboundContext);
 
       // Capture the call so its outcome can be reported to the requester at the end
+      // Only a dispatch our server signed gets call state; a forged one could
+      // name another call's id. Its turns are still kept out of memory.
+      const { verifyOnBehalfDispatch } =
+        await import('../../services/outreach/on-behalf-dispatch.js');
+      const trusted = verifyOnBehalfDispatch(rawJobMetadata, process.env.LIVEKIT_API_SECRET);
       const { beginOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
-      if (call) {
+      if (call && trusted) {
         await beginOnBehalfCall(sessionId, call);
         const { registerOnBehalfCallRoom } = await import('../outbound-call/call-control.js');
         registerOnBehalfCallRoom(sessionId, call.callId, roomNameForContext);
