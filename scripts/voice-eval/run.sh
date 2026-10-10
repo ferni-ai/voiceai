@@ -25,6 +25,10 @@
 # EVAL_DRY_RUN=1 prints the plan as JSON (user id, rooms, scenarios) and exits:
 #   no audio, no token, no call.
 # EVAL_TZ sets the caller's timezone (default America/New_York).
+# EVAL_DAYS_LATER=N: the scored call (not the seed) reasons as if N days have
+#   passed since the seed (job metadata eval_days_later). Only a worker started
+#   with VOICE_EVAL_CLOCK=on honours it, for voice-eval- users only (eval-clock.ts);
+#   run it as `run.sh local ...` against such a worker. Dev and prod ignore it.
 # EVAL_CITY / EVAL_REGION: the caller's location, as the token server's geo
 #   lookup would send it (weather and local tools use it).
 # local: a worker started from a checkout on the dev project, e.g.
@@ -104,17 +108,20 @@ prepare_turns() {
 # One call as $uid: converse_call <scenario> <out.json> <role>
 converse_call() {
   local sc=$1 file=$2 role=$3 room tok turns meta
+  local days=
+  if [[ $role == test ]]; then days=${EVAL_DAYS_LATER:-}; fi
   local adir
   adir=$(prepare_turns $sc)
   turns=(${(f)"$(<$adir/turns.list)"})
   room="eval-$sc-$label-$(date +%H%M%S)"
   # Built with JSON.stringify: a quote or backslash in a value must not break it.
   meta=$(node -e '
-    const [uid, tz, city, region] = process.argv.slice(1);
+    const [uid, tz, city, region, days] = process.argv.slice(1);
     const m = { user_id: uid, user_name: "Sam", timezone: tz };
     if (city) Object.assign(m, { city, regionCode: region });
+    if (days) m.eval_days_later = Number(days);
     process.stdout.write(JSON.stringify(m));
-  ' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}")
+  ' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}" "$days")
   tok=$(lk token create --project $project --join --room $room --identity eval-user --name Sam \
     --agent $agent --job-metadata "$meta" --valid-for 20m 2>/dev/null \
     | grep -Eo 'eyJ[A-Za-z0-9._-]+' | head -1)

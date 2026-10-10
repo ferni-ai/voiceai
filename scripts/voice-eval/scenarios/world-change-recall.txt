@@ -1,7 +1,8 @@
 # Recall after the world changed (play with EVAL_SEED=world-change-seed and
 # WORLD_MODEL_TEMPORAL=on). This call must be dated after the surgery: either
 # run it as the seed's user (EVAL_UID=<seed uid>) on or after that Tuesday,
-# or with the eval clock offset once the wiring follow-up lands. The caller
+# or against a local worker started with VOICE_EVAL_CLOCK=on and
+# EVAL_DAYS_LATER=<days to just past Tuesday> (eval-clock.ts). The caller
 # never mentions Mindy or the surgery. A good friend asks how Mindy's surgery
 # went early, treats it as done (never "good luck Tuesday"), and doesn't
 # invent how it went. Check the agent log for one WORLD_TEMPORAL_LOADED line

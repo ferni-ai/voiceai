@@ -60,22 +60,23 @@ function call2(
   env: Record<string, string>,
   followUps: string[] = []
 ) {
-  const calls: Array<{ timeZone?: string }> = [];
+  const calls: Array<{ timeZone?: string; now?: Date }> = [];
   const recall = createMemoryRecall({
     userId: 'u1',
     userName: 'Sam',
     env,
     timeZone: TZ,
+    // Call start as agent-setup computes it (callNow, shifted only by the eval clock).
+    now: CALL2_AT,
     store: {
       facts: async () => [{ entityName: 'Sam', key: 'job', value: 'nurse', confidence: 1 }],
       summaries: async () => [{ followUpItems: followUps }],
     },
     loadTemporalWorld: (userId, options) => {
-      calls.push({ timeZone: options?.timeZone });
+      calls.push({ timeZone: options?.timeZone, now: options?.now });
       return loadTemporalWorld(userId, {
         ...options,
         store,
-        now: CALL2_AT,
         lastCallEndedAt: async () => CALL1_END,
       });
     },
@@ -90,7 +91,7 @@ describe('temporal world on the live recall path', () => {
     const { recall, calls } = call2(store, ON);
     await recall.ready;
 
-    expect(calls).toEqual([{ timeZone: TZ }]);
+    expect(calls).toEqual([{ timeZone: TZ, now: CALL2_AT }]);
     const first = recall.noteFor("Hey, it's me again.") ?? '';
     expect(first).toContain('[SINCE YOU LAST TALKED]');
     expect(first).toContain('Mindy (sister): knee surgery was yesterday. Ask how it went.');

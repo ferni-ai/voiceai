@@ -65,6 +65,8 @@ export interface UserData {
   userName?: string;
   /** The caller's IANA time zone from the web client (see time-context.ts). */
   callerTimezone?: string;
+  /** Eval-only: days to shift "now" for the temporal world (eval-clock.ts). */
+  evalDaysLater?: number;
   /** Active persona ID (e.g., 'ferni', 'peter-john') - used for TTS persona-specific traits */
   personaId?: string;
 

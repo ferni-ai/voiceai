@@ -114,6 +114,8 @@ export interface MemoryRecallDeps {
   loadTemporalWorld?: typeof loadTemporalWorld;
   /** The caller's IANA timezone, for "Tuesday" and "since yesterday". */
   timeZone?: string;
+  /** Call start (shifted only by the eval clock, eval-clock.ts). */
+  now?: Date;
   env?: Record<string, string | undefined>;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
@@ -239,6 +241,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         .then(() =>
           (deps.loadTemporalWorld ?? loadTemporalWorld)(deps.userId, {
             timeZone: deps.timeZone,
+            now: deps.now,
             env: deps.env,
             alreadySaid: snapshot?.followUps ?? [],
           })

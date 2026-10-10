@@ -61,6 +61,7 @@ import { configureModelProvider } from '../../personas/bundles/model-provider-co
 
 // Submodule imports
 import { finishCallTypeContexts, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
+import { evalDaysLater } from '../../intelligence/world-model/temporal/eval-clock.js';
 import { buildSessionPersona } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
 import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
@@ -374,6 +375,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     userData = initResult.userData;
     // The caller's time zone (web client → token → dispatch metadata).
     if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
+    // Eval-only clock shift; ignored unless VOICE_EVAL_CLOCK=on and a voice-eval- user.
+    if (userData) userData.evalDaysLater = evalDaysLater(userId, metadata);
     // The caller's IP-detected city (token → dispatch metadata), on both the
     // multi-agent and single-agent paths: tools read it per call from userData.
     if (userData && typeof metadata.city === 'string' && metadata.city) {
