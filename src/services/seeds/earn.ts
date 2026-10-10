@@ -13,13 +13,24 @@ import { isValidTimeZone } from '../../agents/shared/time-context.js';
 import { commitSeeds, prepareMoreSeeds, prepareSeeds, type SeedResult } from './ledger.js';
 
 export const DAILY_SEEDS = 5;
-export const STREAK_MILESTONES: Readonly<Record<number, number>> = { 7: 25, 14: 50, 30: 100, 60: 200, 100: 500 };
+export const STREAK_MILESTONES: Readonly<Record<number, number>> = {
+  7: 25,
+  14: 50,
+  30: 100,
+  60: 200,
+  100: 500,
+};
 
 /** YYYY-MM-DD in the time zone (UTC when it isn't a valid IANA zone). */
 export function localDate(now: Date, timeZone?: string): string {
   const tz = isValidTimeZone(timeZone) ? timeZone : 'UTC';
   // en-CA formats as YYYY-MM-DD
-  return new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
 }
 
 /** The calendar date `days` before a YYYY-MM-DD date. */
@@ -52,7 +63,8 @@ export async function awardDailyConversation(
   return db.runTransaction(async (tx) => {
     const state = await prepareSeeds(tx, db, uid, dailyKey);
     const account = state.account ?? {};
-    const last = typeof account.lastConversationDate === 'string' ? account.lastConversationDate : null;
+    const last =
+      typeof account.lastConversationDate === 'string' ? account.lastConversationDate : null;
     const previous = Number(account.currentStreak ?? 0);
 
     if (last === today) {
@@ -63,15 +75,22 @@ export async function awardDailyConversation(
     const continues = last === daysBefore(today, 1) && previous > 0;
     const streakDays = continues ? previous + 1 : 1;
     // Accounts from before the ledger have a streak but no start: it began `previous` days ago
-    const started = typeof account.streakStart === 'string' ? account.streakStart : daysBefore(today, previous);
+    const started =
+      typeof account.streakStart === 'string' ? account.streakStart : daysBefore(today, previous);
     const streakStart = continues ? started : today;
     const bonus = STREAK_MILESTONES[streakDays];
     const streakKey = `streak:${streakDays}:${streakStart}`;
     if (bonus) await prepareMoreSeeds(tx, state, [streakKey]);
 
     const daily = commitSeeds(tx, state, { delta: DAILY_SEEDS, reason: 'daily', key: dailyKey });
-    const paid = bonus ? commitSeeds(tx, state, { delta: bonus, reason: 'streaks', key: streakKey }) : null;
-    tx.set(state.accountRef, { currentStreak: streakDays, streakStart, lastConversationDate: today }, { merge: true });
+    const paid = bonus
+      ? commitSeeds(tx, state, { delta: bonus, reason: 'streaks', key: streakKey })
+      : null;
+    tx.set(
+      state.accountRef,
+      { currentStreak: streakDays, streakStart, lastConversationDate: today },
+      { merge: true }
+    );
 
     return {
       daily: { applied: daily.applied, balance: state.balance },

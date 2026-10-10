@@ -42,7 +42,10 @@ describe.skipIf(!emulator)('daily conversation seeds (Firestore emulator)', () =
     const first = await awardDailyConversation(db, uid, day(0));
     const second = await awardDailyConversation(db, uid, day(0));
 
-    expect(first).toMatchObject({ daily: { applied: true, balance: STARTER_SEEDS + 5 }, streakDays: 1 });
+    expect(first).toMatchObject({
+      daily: { applied: true, balance: STARTER_SEEDS + 5 },
+      streakDays: 1,
+    });
     expect(second.daily).toEqual({ applied: false, balance: STARTER_SEEDS + 5 });
   });
 
@@ -66,7 +69,10 @@ describe.skipIf(!emulator)('daily conversation seeds (Firestore emulator)', () =
   });
 
   it('an account from before the ledger keeps its streak (start computed from the count)', async () => {
-    await db.collection('user_seeds').doc(uid).set({ balance: 90, currentStreak: 6, lastConversationDate: '2026-10-06' });
+    await db
+      .collection('user_seeds')
+      .doc(uid)
+      .set({ balance: 90, currentStreak: 6, lastConversationDate: '2026-10-06' });
     const result = await awardDailyConversation(db, uid, day(6)); // 2026-10-07
 
     expect(result).toMatchObject({ streakDays: 7, milestone: { days: 7, seeds: 25 } });
@@ -74,7 +80,10 @@ describe.skipIf(!emulator)('daily conversation seeds (Firestore emulator)', () =
   });
 
   it("doesn't pay again on a day the old claim-daily path already counted", async () => {
-    await db.collection('user_seeds').doc(uid).set({ balance: 40, currentStreak: 2, lastConversationDate: '2026-10-01' });
+    await db
+      .collection('user_seeds')
+      .doc(uid)
+      .set({ balance: 40, currentStreak: 2, lastConversationDate: '2026-10-01' });
     const result = await awardDailyConversation(db, uid, day(0)); // 2026-10-01
 
     expect(result.daily).toEqual({ applied: false, balance: 40 });
@@ -82,7 +91,10 @@ describe.skipIf(!emulator)('daily conversation seeds (Firestore emulator)', () =
   });
 
   it('two sessions ending at once on a new day pay the daily seeds once', async () => {
-    await Promise.all([awardDailyConversation(db, uid, day(0)), awardDailyConversation(db, uid, day(0))]);
+    await Promise.all([
+      awardDailyConversation(db, uid, day(0)),
+      awardDailyConversation(db, uid, day(0)),
+    ]);
     expect((await account()).balance).toBe(STARTER_SEEDS + 5);
   });
 });
