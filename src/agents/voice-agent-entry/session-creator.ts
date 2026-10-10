@@ -27,6 +27,9 @@ import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
 import { modelConfig } from '../../services/model-config.js';
 import { endpointingDelays } from '../shared/turn-patience.js';
 
+/** Listener limit per agent session event (see where the session is created). */
+export const AGENT_SESSION_MAX_LISTENERS = 32;
+
 // ============================================================================
 // VAD CACHING (Worker-Level Singleton)
 // ============================================================================
@@ -448,6 +451,11 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     vad, ...(externalStt && { stt: externalStt }),
     llm, tts, userData, voiceOptions,
   });
+  // About 16 features (backchannels, turn sounds, the director, tool hum, the
+  // reply gateway's per-reply listener, ...) each watch agent_state_changed on
+  // this one session, so Node's default limit of 10 warned on every call.
+  // 32 still flags real growth.
+  session.setMaxListeners(AGENT_SESSION_MAX_LISTENERS);
 
   // Gemini native audio speaks for itself: route scripted say() lines through the
   // model so the call keeps one voice (see agents/shared/native-speech.ts).
