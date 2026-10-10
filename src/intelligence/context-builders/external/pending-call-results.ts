@@ -23,6 +23,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { CALLER_TEXT_GUARD } from '../../../services/outreach/caller-text.js';
 
 const log = createLogger({ module: 'PendingBackgroundResults' });
 
@@ -171,6 +172,8 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
     '## 📞 PENDING CALL UPDATES (Tell the user!)',
     '',
     "While they were away, you made calls on their behalf. Tell them what happened! This is a 'Better Than Human' moment - friends forget to follow up, but you don't.",
+    '',
+    CALLER_TEXT_GUARD,
     '',
   ];
 

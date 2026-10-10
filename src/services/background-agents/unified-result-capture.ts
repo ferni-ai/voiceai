@@ -21,6 +21,7 @@ import type {
   OutcomeStatus,
 } from './result-types.js';
 import { createBackgroundResult, sortResultsForDisplay } from './result-types.js';
+import { CALLER_TEXT_GUARD } from '../outreach/caller-text.js';
 
 const log = createLogger({ module: 'UnifiedResultCapture' });
 
@@ -34,9 +35,7 @@ const resultStore = new Map<string, BackgroundResult[]>();
 // FIRESTORE OPERATIONS
 // ============================================================================
 
-/**
- * Store a background result in Firestore
- */
+/** Store a background result in Firestore */
 async function storeResult(result: BackgroundResult): Promise<void> {
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js').catch(() => ({
@@ -77,9 +76,7 @@ async function storeResult(result: BackgroundResult): Promise<void> {
   }
 }
 
-/**
- * Get pending (undelivered) results for a user
- */
+/** Get pending (undelivered) results for a user */
 export async function getPendingResults(
   userId: string,
   options: {
@@ -555,6 +552,7 @@ export async function buildPendingResultsContext(userId: string): Promise<string
     'Background tasks completed while they were away. Share these updates naturally - like a friend reporting back on errands they ran for you.',
     '',
   ];
+  if (results.some((r) => r.type === 'on_behalf_call')) lines.push(CALLER_TEXT_GUARD, '');
 
   for (const result of results) {
     const icon = getResultIcon(result.type);
