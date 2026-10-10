@@ -238,22 +238,30 @@ export class AgentOrchestrator {
    */
   private async generateInitialGreeting(agent: PersonaAgent): Promise<void> {
     try {
-      // A call Ferni placed (for someone, or to its own user) waits for the phone to be
-      // picked up; one for someone opens with who it is and who it's for, never "hey <user>".
+      // A call Ferni placed waits for the phone to be picked up. One for someone opens
+      // with who it is and who it's for, never the app's "hey <user>" hello.
       const { outboundOpener, outboundPartiesFor, waitForCallAnswered } =
         await import('../shared/outbound-opener.js');
       const parties = outboundPartiesFor(this.sessionId);
-      if (parties || (await isProactiveCall(this.sessionId))) {
-        const answered = await waitForCallAnswered(this.room, this.userParticipant);
-        if (!answered) {
-          log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
-          return;
+      let greeting: string;
+      if (parties) {
+        // Waits for the pickup; with VOICEMAIL_DETECT=on a machine gets one message instead.
+        const { personAnswered } = await import('../shared/line-screen.js');
+        const { room, userParticipant: phone, sessionId } = this;
+        if (!(await personAnswered(room, phone, agent, parties, sessionId))) return;
+        greeting = outboundOpener(parties);
+      } else {
+        // A proactive call to Ferni's own user waits for the pickup too.
+        if (await isProactiveCall(this.sessionId)) {
+          const answered = await waitForCallAnswered(this.room, this.userParticipant);
+          if (!answered) {
+            log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
+            return;
+          }
         }
+        const userData = agent.userData as UserData | undefined;
+        greeting = await directedGreeting(this.sessionId, agent.personaId, userData);
       }
-      const userData = agent.userData as UserData | undefined;
-      const greeting = parties
-        ? outboundOpener(parties)
-        : await directedGreeting(this.sessionId, agent.personaId, userData);
 
       // Greeting awareness: the turn handler tells the LLM on turn 0 what it said.
       if (agent.userData) {
