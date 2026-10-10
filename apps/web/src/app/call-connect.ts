@@ -17,22 +17,43 @@ export interface Connectable {
 
 export type ConnectOutcome = { ok: true } | { ok: false; failure: ConnectFailure };
 
+/** The attempt in progress, so the person can call it off. */
+let current: { cancel: () => void } | null = null;
+
+/** Cancel the connect attempt in progress. Returns false when there is none. */
+export function cancelConnectAttempt(): boolean {
+  if (!current) return false;
+  current.cancel();
+  return true;
+}
+
 export async function connectWithTimeout(
   service: Connectable,
   timeoutMs: number = CONNECT_TIMEOUT_MS
 ): Promise<ConnectOutcome> {
   const controller = new AbortController();
   let timedOut = false;
+  let cancelled = false;
   const timer = setTimeout(() => {
     timedOut = true;
     controller.abort();
   }, timeoutMs);
+  const attempt = {
+    cancel: () => {
+      cancelled = true;
+      controller.abort();
+    },
+  };
+  current = attempt;
 
   try {
-    if (await service.connect({ signal: controller.signal })) return { ok: true };
+    const ok = await service.connect({ signal: controller.signal });
+    if (cancelled) return { ok: false, failure: connectFailure('cancelled') };
+    if (ok) return { ok: true };
     if (timedOut) return { ok: false, failure: connectFailure('timeout') };
     return { ok: false, failure: service.getLastFailure() ?? connectFailure('unknown') };
   } finally {
     clearTimeout(timer);
+    if (current === attempt) current = null;
   }
 }
