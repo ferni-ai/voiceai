@@ -20,6 +20,7 @@ import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
 import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
+import { logSipCallerShadow } from './sip-caller.js';
 import { setupFrontendPublisher } from './handler-frontend-publisher.js';
 
 /** Inputs for handler setup */
@@ -172,6 +173,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   const participant = waitResult.participant;
   if (participant) {
     process.stderr.write(`[voice-agent-entry] 👤 Participant joined: ${participant.identity}\n`);
+    if (ctx.room) void logSipCallerShadow({ participant, room: ctx.room, sessionId });
   }
 
   // Multi-agent mode (skipped when entry already tried early path)
