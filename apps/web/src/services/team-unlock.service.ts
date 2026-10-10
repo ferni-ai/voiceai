@@ -429,17 +429,14 @@ function getMemberUnlockStatus(
 }
 
 function calculateProgress(metrics: EngagementMetrics, threshold: StageThreshold): number {
-  if (threshold.minConversations === 0) return 1;
-
-  const convProgress = Math.min(1, metrics.totalConversations / threshold.minConversations);
-  const daysProgress =
-    threshold.minDays > 0 ? Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays) : 1;
-  const streakProgress =
-    threshold.minStreak > 0
-      ? Math.min(1, Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak)
-      : 1;
-
-  return (convProgress + daysProgress + streakProgress) / 3;
+  // Average only what this member needs: a requirement of zero isn't progress already made
+  // (Maya needs only conversations, and counting her two empty ones showed 67% on day one)
+  const parts: number[] = [];
+  const add = (have: number, need: number) => need > 0 && parts.push(Math.min(1, have / need));
+  add(metrics.totalConversations, threshold.minConversations);
+  add(metrics.daysSinceFirstMeeting, threshold.minDays);
+  add(Math.max(metrics.currentStreak, metrics.longestStreak), threshold.minStreak);
+  return parts.length ? parts.reduce((sum, p) => sum + p, 0) / parts.length : 1;
 }
 
 /** Join short requirement phrases with the active locale's list punctuation. */

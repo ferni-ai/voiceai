@@ -538,23 +538,14 @@ function calculateProgress(
 ): number {
   if (!metrics) return 0;
 
-  // Handle zero thresholds (0/0 = NaN) by treating as already met (100%)
-  const convProgress =
-    threshold.minConversations === 0
-      ? 1
-      : Math.min(1, metrics.totalConversations / threshold.minConversations);
-  const daysProgress =
-    threshold.minDays === 0 ? 1 : Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays);
-  const streakProgress =
-    threshold.minStreak === 0
-      ? 1
-      : Math.min(
-          1,
-          Math.max(metrics.currentStreak ?? 0, metrics.longestStreak ?? 0) / threshold.minStreak
-        );
-
-  // Average all three factors (matches frontend calculation)
-  return (convProgress + daysProgress + streakProgress) / 3;
+  // Average only what this member needs (matches the app): a requirement of zero isn't
+  // progress already made, and counting it put Maya at 67% before any conversation
+  const parts: number[] = [];
+  const add = (have: number, need: number) => need > 0 && parts.push(Math.min(1, have / need));
+  add(metrics.totalConversations, threshold.minConversations);
+  add(metrics.daysSinceFirstMeeting, threshold.minDays);
+  add(Math.max(metrics.currentStreak ?? 0, metrics.longestStreak ?? 0), threshold.minStreak);
+  return parts.length ? parts.reduce((sum, p) => sum + p, 0) / parts.length : 1;
 }
 
 function getUnlockHint(stage: RelationshipStage): string {
