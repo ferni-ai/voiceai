@@ -15,6 +15,7 @@ import { DURATION, EASING, prefersReducedMotion } from '../config/animation-cons
 import { apiGet, apiPost } from '../utils/api.js';
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
+import { asModalDialog } from '../utils/accessibility.js';
 
 const log = createLogger('WearableSettings');
 
@@ -194,8 +195,7 @@ class WearableSettingsUI {
   private createPanel(): void {
     this.panel = document.createElement('div');
     this.panel.className = 'wearable-settings';
-    this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', t('wearableSettings.title'));
+    asModalDialog(this.panel, { label: t('wearableSettings.title') }, () => this.isVisible, () => this.hide()); // Escape had no effect
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'wearable-settings__wrapper';
