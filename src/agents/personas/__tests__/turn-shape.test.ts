@@ -1,9 +1,20 @@
 import { llm } from '@livekit/agents';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { callerMove, pickShape, rngFor, turnShapeFor, turnShapeMode } from '../turn-shape.js';
 import { Director, setDirector } from '../director-notes.js';
 import { withTurnReminder } from '../turn-request.js';
 import { TURN_STYLE_REMINDER } from '../turn-style.js';
+
+// These tests pin the dice draw; model (the default) is tested with an explicit mode.
+let shapeBefore: string | undefined;
+beforeAll(() => {
+  shapeBefore = process.env.TURN_SHAPE;
+  process.env.TURN_SHAPE = 'dice';
+});
+afterAll(() => {
+  if (shapeBefore === undefined) delete process.env.TURN_SHAPE;
+  else process.env.TURN_SHAPE = shapeBefore;
+});
 
 const fixed = (...xs: number[]) => {
   let i = 0;
@@ -197,8 +208,9 @@ describe('withTurnReminder seeding and order', () => {
   describe('TURN_SHAPE=model', () => {
     const big = 'My sister just told me she is pregnant, right on the hiking trail.';
 
-    it('reads the mode from the env, dice by default', () => {
-      expect(turnShapeMode({})).toBe('dice');
+    it('reads the mode from the env, model by default (it won the dev A/B)', () => {
+      expect(turnShapeMode({})).toBe('model');
+      expect(turnShapeMode({ TURN_SHAPE: 'dice' })).toBe('dice');
       expect(turnShapeMode({ TURN_SHAPE: 'model' })).toBe('model');
       expect(turnShapeMode({ TURN_SHAPE: 'off' })).toBe('off');
     });
