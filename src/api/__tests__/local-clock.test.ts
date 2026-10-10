@@ -2,7 +2,7 @@
  * The Sanctuary's clock is the person's: the same instant is morning in one zone and
  * night in another.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { timeOfDay, wallClock } from '../local-clock.js';
 
 // Saturday 2026-10-10, 08:31 UTC: when CI's walk saw "Saturday morning"
@@ -32,6 +32,18 @@ describe('wallClock', () => {
     expect(wallClock(undefined, INSTANT)).toBe(INSTANT);
     expect(wallClock('', INSTANT)).toBe(INSTANT);
     expect(wallClock('Not/AZone', INSTANT)).toBe(INSTANT);
+    expect(wallClock('Europe/London'.padEnd(200, 'x'), INSTANT)).toBe(INSTANT);
+  });
+
+  it('falls back rather than return an Invalid Date when Intl leaves a part out', () => {
+    const spy = vi
+      .spyOn(Intl.DateTimeFormat.prototype, 'formatToParts')
+      .mockReturnValue([{ type: 'hour', value: '9' }]);
+    try {
+      expect(wallClock('Asia/Kolkata', INSTANT)).toBe(INSTANT);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 
@@ -45,7 +57,14 @@ describe('timeOfDay', () => {
   it('keeps the boundaries', () => {
     const at = (h: number) => timeOfDay(new Date(2026, 9, 10, h));
     expect([4, 5, 11, 12, 16, 17, 20, 21].map(at)).toEqual([
-      'night', 'morning', 'morning', 'afternoon', 'afternoon', 'evening', 'evening', 'night',
+      'night',
+      'morning',
+      'morning',
+      'afternoon',
+      'afternoon',
+      'evening',
+      'evening',
+      'night',
     ]);
   });
 });
