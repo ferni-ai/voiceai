@@ -219,7 +219,7 @@ export async function deleteMemory(memoryId: string): Promise<void> {
       { memoryId, status: response.status, error: response.error },
       'Failed to delete memory'
     );
-    toast.error(t('app.couldNotRemoveMemory'));
+    toast.error(t(response.status === 404 ? 'app.memoryNotFound' : 'app.couldNotRemoveMemory'));
   }
   // Re-fetch either way so the list matches what the server actually has.
   await showCognitiveInsights();

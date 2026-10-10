@@ -10184,6 +10184,7 @@
     "nowPlaying": "지금 재생 중: {name}",
     "memoryRemoved": "기억이 삭제되었어요",
     "couldNotRemoveMemory": "기억을 삭제하지 못했어요. 다시 시도해 볼까요?",
+    "memoryNotFound": "해당 기억을 찾지 못했어요. 이미 삭제되었을 수 있어요.",
     "couldNotLoadPredictions": "예측을 불러오지 못했어요. 다시 시도해 볼까요?",
     "noPredictionsYet": "아직 예측이 없어요. Ferni와 함께 만들어 보면 여기에 나타날 거예요.",
     "preparingData": "데이터를 준비하는 중...",

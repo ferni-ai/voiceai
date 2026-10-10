@@ -10279,6 +10279,7 @@
     "nowPlaying": "עכשיו מתנגן: {name}",
     "memoryRemoved": "הזיכרון הוסר",
     "couldNotRemoveMemory": "לא הצלחנו להסיר את הזיכרון הזה. לנסות שוב?",
+    "memoryNotFound": "לא מצאנו את הזיכרון הזה. ייתכן שהוא כבר נמחק.",
     "couldNotLoadPredictions": "לא הצלחנו לטעון את התחזיות. לנסות שוב?",
     "noPredictionsYet": "אין עדיין תחזיות. ברגע שיוצרים אחת עם Ferni, היא תופיע כאן.",
     "preparingData": "מכינים את הנתונים שלך...",

@@ -10280,6 +10280,7 @@
     "nowPlaying": "Reproduciendo ahora: {name}",
     "memoryRemoved": "Recuerdo eliminado",
     "couldNotRemoveMemory": "No se pudo eliminar ese recuerdo. ¿Lo intentamos de nuevo?",
+    "memoryNotFound": "No se encontró ese recuerdo. Puede que ya no esté.",
     "couldNotLoadPredictions": "No se pudieron cargar tus predicciones. ¿Lo intentamos de nuevo?",
     "noPredictionsYet": "Aún no hay predicciones. Haz una con Ferni y aparecerá aquí.",
     "preparingData": "Preparando tus datos...",

@@ -10279,6 +10279,7 @@
     "nowPlaying": "Lecture en cours : {name}",
     "memoryRemoved": "Souvenir retiré",
     "couldNotRemoveMemory": "Impossible de retirer ce souvenir. Réessayer ?",
+    "memoryNotFound": "Impossible de trouver ce souvenir. Il a peut-être déjà disparu.",
     "couldNotLoadPredictions": "Impossible de charger tes prédictions. Réessayer ?",
     "noPredictionsYet": "Pas encore de prédictions. Fais-en une avec Ferni et elle apparaîtra ici.",
     "preparingData": "Préparation de tes données...",

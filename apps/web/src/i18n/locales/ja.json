@@ -10185,6 +10185,7 @@
     "nowPlaying": "再生中: {name}",
     "memoryRemoved": "思い出を削除しました",
     "couldNotRemoveMemory": "その思い出を削除できませんでした。もう一度お試しになりますか？",
+    "memoryNotFound": "その思い出は見つかりませんでした。すでに削除されているかもしれません。",
     "couldNotLoadPredictions": "予測を読み込めませんでした。もう一度お試しになりますか？",
     "noPredictionsYet": "予測はまだありません。Ferniと一緒に作成すると、ここに表示されますよ。",
     "preparingData": "データを準備しています...",

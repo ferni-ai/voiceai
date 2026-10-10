@@ -10561,6 +10561,7 @@
     "nowPlaying": "يشتغل الآن: {name}",
     "memoryRemoved": "تمت إزالة الذكرى",
     "couldNotRemoveMemory": "تعذّر حذف هذه الذكرى. هل تودّ المحاولة مجدداً؟",
+    "memoryNotFound": "لم نعثر على هذه الذكرى. ربما تم حذفها بالفعل.",
     "couldNotLoadPredictions": "تعذّر تحميل التوقعات. هل تودّ المحاولة مجدداً؟",
     "noPredictionsYet": "لا توجد توقعات بعد. شارك توقعاً مع Ferni وسيظهر هنا.",
     "preparingData": "جاري تحضير البيانات...",

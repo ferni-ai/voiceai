@@ -46,7 +46,7 @@ export interface CognitiveMemory {
   content: string;
   confidence: number;
   source: string;
-  learnedAt: string;
+  learnedAt?: string; // omitted by the server when unknown
   personaId?: string;
 }
 
@@ -391,7 +391,8 @@ class CognitiveInsightsUI {
 
   private renderMemory(memory: CognitiveMemory, index: number): string {
     const confidence = Math.round(memory.confidence * 100);
-    const dateStr = formatDate(new Date(memory.learnedAt), { month: 'short', day: 'numeric' });
+    const learned = memory.learnedAt ? new Date(memory.learnedAt) : null;
+    const dateStr = learned ? formatDate(learned, { month: 'short', day: 'numeric' }) : '';
     const delay = index * STAGGER_DELAYS.MICRO;
 
     return `
@@ -399,7 +400,7 @@ class CognitiveInsightsUI {
         <div class="cognitive-insights__memory-content">
           <p>${escapeHtml(memory.content)}</p>
           <div class="cognitive-insights__memory-meta">
-            <span>${dateStr}</span>
+            ${dateStr ? `<span>${dateStr}</span>` : ''}
             <span class="cognitive-insights__memory-confidence">
               ${t('cognitive.percentSure', { percent: confidence })}
             </span>
