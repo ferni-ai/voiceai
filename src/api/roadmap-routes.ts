@@ -19,9 +19,15 @@
 import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
 import { optionalAuthAsync, rateLimit } from './auth-middleware.js';
-import { unvoteWithRefund, voteWithSeeds } from './roadmap-seeds.js';
+import {
+  claimRitualStreakRewards,
+  readSeedSummary,
+  RITUAL_STREAK_REWARDS,
+  suggestWithSeeds,
+  unvoteWithRefund,
+  voteWithSeeds,
+} from './roadmap-seeds.js';
 import { API_ERRORS } from './error-messages.js';
 import {
   getUserId,
@@ -90,23 +96,11 @@ interface SuggestionRequest {
 // CONSTANTS
 // =============================================================================
 
-/** Default seeds for new users */
-const DEFAULT_SEED_BALANCE = 10;
-
-/** Cost to submit a suggestion */
-const SUGGESTION_COST = 5;
-
 /** Max seeds per vote */
 const MAX_SEEDS_PER_VOTE = 10;
 
 /** Min seeds per vote */
 const MIN_SEEDS_PER_VOTE = 1;
-
-/** Streak rewards */
-const STREAK_REWARDS = {
-  7: 5, // 7-day streak: 5 seeds
-  30: 15, // 30-day streak: 15 seeds
-} as const;
 
 // =============================================================================
 // FIRESTORE
@@ -155,154 +149,9 @@ function getFirestore(): admin.firestore.Firestore | null {
 // HELPERS
 // =============================================================================
 
-/**
- * Get or create user seeds document
- */
-async function getOrCreateUserSeeds(
-  db: admin.firestore.Firestore,
-  userId: string
-): Promise<UserSeeds> {
-  const userSeedsRef = db.collection('user_seeds').doc(userId);
-  const doc = await userSeedsRef.get();
-
-  if (doc.exists) {
-    const data = doc.data()!;
-    return {
-      userId,
-      balance: data.balance || 0,
-      lifetimePlanted: data.lifetimePlanted || 0,
-      lifetimeEarned: data.lifetimeEarned || DEFAULT_SEED_BALANCE,
-      featuresUnlocked: data.featuresUnlocked || [],
-      earnedFrom: data.earnedFrom || {
-        conversations: 0,
-        streaks: 0,
-        referrals: 0,
-        feedback: 0,
-        suggestionsAccepted: 0,
-        featuresBloomed: 0,
-      },
-    };
-  }
-
-  // Create new user with default balance
-  const newUserSeeds: Omit<UserSeeds, 'userId'> = {
-    balance: DEFAULT_SEED_BALANCE,
-    lifetimePlanted: 0,
-    lifetimeEarned: DEFAULT_SEED_BALANCE,
-    featuresUnlocked: [],
-    earnedFrom: {
-      conversations: 0,
-      streaks: 0,
-      referrals: 0,
-      feedback: 0,
-      suggestionsAccepted: 0,
-      featuresBloomed: 0,
-    },
-  };
-
-  await userSeedsRef.set(
-    removeUndefined({
-      ...newUserSeeds,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    })
-  );
-
-  log.info({ userId, balance: DEFAULT_SEED_BALANCE }, 'Created new user seeds account');
-
-  return { userId, ...newUserSeeds };
-}
-
-/**
- * Check and award streak bonuses
- * Call this after a conversation completes to check if user reached a streak milestone
- */
-export async function checkStreakReward(
-  userId: string,
-  currentStreak: number
-): Promise<{ awarded: boolean; milestone?: number; seeds?: number }> {
-  const db = getFirestore();
-  if (!db) return { awarded: false };
-
-  try {
-    // Check if user already received this streak milestone reward
-    const userSeedsRef = db.collection('user_seeds').doc(userId);
-    const streakRewardsRef = db.collection('user_streak_rewards').doc(userId);
-
-    return await db.runTransaction(async (transaction) => {
-      const streakRewardsDoc = await transaction.get(streakRewardsRef);
-      const claimedMilestones: number[] = streakRewardsDoc.exists
-        ? streakRewardsDoc.data()?.claimedMilestones || []
-        : [];
-
-      // Check each milestone from highest to lowest
-      const milestones = Object.keys(STREAK_REWARDS)
-        .map(Number)
-        .sort((a, b) => b - a);
-
-      for (const milestone of milestones) {
-        // Check if user reached this milestone and hasn't claimed it yet
-        if (currentStreak >= milestone && !claimedMilestones.includes(milestone)) {
-          const reward = STREAK_REWARDS[milestone as keyof typeof STREAK_REWARDS];
-
-          // Award the seeds
-          const userSeedsDoc = await transaction.get(userSeedsRef);
-
-          if (!userSeedsDoc.exists) {
-            // Create user seeds doc with bonus
-            transaction.set(userSeedsRef, {
-              balance: DEFAULT_SEED_BALANCE + reward,
-              lifetimePlanted: 0,
-              lifetimeEarned: DEFAULT_SEED_BALANCE + reward,
-              featuresUnlocked: [],
-              earnedFrom: {
-                conversations: 0,
-                streaks: reward,
-                referrals: 0,
-                feedback: 0,
-                suggestionsAccepted: 0,
-                featuresBloomed: 0,
-              },
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-          } else {
-            transaction.update(userSeedsRef, {
-              balance: admin.firestore.FieldValue.increment(reward),
-              lifetimeEarned: admin.firestore.FieldValue.increment(reward),
-              'earnedFrom.streaks': admin.firestore.FieldValue.increment(reward),
-            });
-          }
-
-          // Mark milestone as claimed
-          if (!streakRewardsDoc.exists) {
-            transaction.set(streakRewardsRef, {
-              claimedMilestones: [milestone],
-              lastClaimed: admin.firestore.FieldValue.serverTimestamp(),
-            });
-          } else {
-            transaction.update(streakRewardsRef, {
-              claimedMilestones: admin.firestore.FieldValue.arrayUnion(milestone),
-              lastClaimed: admin.firestore.FieldValue.serverTimestamp(),
-            });
-          }
-
-          log.info({ userId, milestone, reward }, 'Streak reward awarded');
-          return { awarded: true, milestone, seeds: reward };
-        }
-      }
-
-      return { awarded: false };
-    });
-  } catch (error) {
-    log.error({ error: String(error), userId, currentStreak }, 'Failed to check streak reward');
-    return { awarded: false };
-  }
-}
-
-/**
- * Get streak rewards that are still available to earn
- */
+/** Ritual streak milestones and their seeds. */
 export function getAvailableStreakRewards(): Array<{ milestone: number; seeds: number }> {
-  return Object.entries(STREAK_REWARDS).map(([milestone, seeds]) => ({
+  return Object.entries(RITUAL_STREAK_REWARDS).map(([milestone, seeds]) => ({
     milestone: Number(milestone),
     seeds,
   }));
@@ -367,8 +216,7 @@ async function handleGetSeeds(
       return;
     }
 
-    const userSeeds = await getOrCreateUserSeeds(db, userId);
-    sendJSON(res, userSeeds);
+    sendJSON(res, await readSeedSummary(db, userId));
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get user seeds');
     sendError(res, 'Failed to get seed balance');
@@ -538,67 +386,7 @@ async function handleSuggest(
       return;
     }
 
-    const result = await db.runTransaction(async (transaction) => {
-      // Check user balance
-      const userSeedsRef = db.collection('user_seeds').doc(userId);
-      const userSeedsDoc = await transaction.get(userSeedsRef);
-
-      let currentBalance = DEFAULT_SEED_BALANCE;
-      if (userSeedsDoc.exists) {
-        currentBalance = userSeedsDoc.data()?.balance || 0;
-      }
-
-      if (currentBalance < SUGGESTION_COST) {
-        return {
-          success: false,
-          error: `Submitting a suggestion costs ${SUGGESTION_COST} seeds. You have ${currentBalance}.`,
-        };
-      }
-
-      // Create suggestion
-      const suggestionRef = db.collection('roadmap_suggestions').doc();
-      transaction.set(suggestionRef, {
-        userId,
-        title,
-        description,
-        category,
-        seedsPlanted: SUGGESTION_COST,
-        communitySeeds: 0,
-        status: 'submitted',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-
-      // Deduct seeds
-      if (userSeedsDoc.exists) {
-        transaction.update(userSeedsRef, {
-          balance: admin.firestore.FieldValue.increment(-SUGGESTION_COST),
-          lifetimePlanted: admin.firestore.FieldValue.increment(SUGGESTION_COST),
-        });
-      } else {
-        transaction.set(userSeedsRef, {
-          balance: DEFAULT_SEED_BALANCE - SUGGESTION_COST,
-          lifetimePlanted: SUGGESTION_COST,
-          lifetimeEarned: DEFAULT_SEED_BALANCE,
-          featuresUnlocked: [],
-          earnedFrom: {
-            conversations: 0,
-            streaks: 0,
-            referrals: 0,
-            feedback: 0,
-            suggestionsAccepted: 0,
-            featuresBloomed: 0,
-          },
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-      }
-
-      return {
-        success: true,
-        suggestionId: suggestionRef.id,
-        newBalance: currentBalance - SUGGESTION_COST,
-      };
-    });
+    const result = await suggestWithSeeds(db, userId, { title, description, category });
 
     if (!result.success) {
       sendError(res, result.error || 'Suggestion failed', 400);
@@ -681,43 +469,35 @@ async function handleGetSuggestions(req: IncomingMessage, res: ServerResponse): 
  * Check and claim streak reward based on current streak
  */
 async function handleStreakReward(
-  req: IncomingMessage,
+  _req: IncomingMessage,
   res: ServerResponse,
   userId: string
 ): Promise<void> {
   try {
-    const body = await parseBody<{ currentStreak: number }>(req);
-    const { currentStreak } = body;
-
-    if (typeof currentStreak !== 'number' || currentStreak < 0) {
-      sendError(res, 'Valid streak count required', 400);
+    const db = getFirestore();
+    if (!db) {
+      sendError(res, 'Database not available', 503);
       return;
     }
+    // The server's own ritual streaks decide; a posted count is ignored (it was forgeable)
+    const { getEngagementStore } = await import('../services/engagement/engagement-store.js');
+    const streaks = await (await getEngagementStore()).getAllStreaks(userId);
+    const longest = Math.max(0, ...streaks.map((s) => s.currentStreak ?? 0));
+    const result = await claimRitualStreakRewards(db, userId, longest);
 
-    const result = await checkStreakReward(userId, currentStreak);
-
-    if (result.awarded) {
-      // Fetch updated balance
-      const db = getFirestore();
-      if (db) {
-        const userSeeds = await getOrCreateUserSeeds(db, userId);
-        sendJSON(res, {
-          success: true,
-          awarded: true,
-          milestone: result.milestone,
-          seedsAwarded: result.seeds,
-          newBalance: userSeeds.balance,
-          message: `🎉 Congratulations! ${result.milestone}-day streak earned you ${result.seeds} seeds!`,
-        });
-        return;
-      }
-    }
-
-    sendJSON(res, {
-      success: true,
-      awarded: false,
-      message: 'No streak milestone reached',
-    });
+    sendJSON(
+      res,
+      result.awarded
+        ? {
+            success: true,
+            awarded: true,
+            milestone: result.milestone,
+            seedsAwarded: result.seeds,
+            newBalance: result.newBalance,
+            message: `🎉 Congratulations! ${result.milestone}-day streak earned you ${result.seeds} seeds!`,
+          }
+        : { success: true, awarded: false, message: 'No streak milestone reached' }
+    );
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to check streak reward');
     sendError(res, 'Failed to check streak reward');

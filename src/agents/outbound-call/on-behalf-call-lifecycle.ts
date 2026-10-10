@@ -25,10 +25,13 @@ import {
 } from '../../services/outreach/on-behalf-dispatch.js';
 import { screenedCallerText } from '../../services/outreach/caller-text.js';
 import { isCallFollowthroughEnabled } from '../../services/outreach/call-retry.js';
+import type { CallDisposition } from './call-control.js';
 
 const log = createLogger({ module: 'on-behalf-call-lifecycle' });
 
 export interface CallLifecyclePorts {
+  /** How Ferni said the call ended when it hung up itself (see call-control). */
+  readDisposition: (sessionId: string) => CallDisposition | undefined;
   /** The turns captured so far, or null when capture never started. */
   readTranscript: (callId: string) => CallTranscriptTurn[] | null;
   analyze: (
@@ -86,9 +89,39 @@ export function buildCallOutcome(
   call: OnBehalfDispatch,
   turns: CallTranscriptTurn[] | null,
   analysis: SuperhumanCallResult | null,
+  disposition?: CallDisposition,
   durationSeconds = Infinity
 ): CallOutcome {
   const name = call.contact.name;
+  // What Ferni knew when it hung up beats what the transcript suggests: a
+  // voicemail greeting is transcribed as the other side talking.
+  if (disposition === 'voicemail_left') {
+    return {
+      callId: call.callId,
+      status: 'voicemail',
+      objectiveAchieved: false,
+      outcome: `I got ${name}'s voicemail and left a message letting them know you were thinking of them.`,
+      callbackRequired: false,
+    };
+  }
+  if (disposition === 'wrong_number') {
+    return {
+      callId: call.callId,
+      status: 'failed',
+      objectiveAchieved: false,
+      outcome: `The number I have for ${name} reached someone else. Can you double-check it?`,
+      callbackRequired: false,
+    };
+  }
+  if (disposition === 'refused') {
+    return {
+      callId: call.callId,
+      status: 'completed',
+      objectiveAchieved: false,
+      outcome: `${name} picked up but didn't want to talk with me. It might be better coming from you.`,
+      callbackRequired: true,
+    };
+  }
   if (turns === null) {
     return {
       callId: call.callId,
@@ -192,9 +225,11 @@ export async function beginOnBehalfCall(sessionId: string, call: OnBehalfDispatc
 async function defaultPorts(): Promise<CallLifecyclePorts> {
   const transcripts = await import('../../services/outreach/call-transcript-intelligence.js');
   const { captureCallResult } = await import('../../services/outreach/call-result-capture.js');
+  const control = await import('./call-control.js');
   const { scheduleCallRetry, recordCallOptOut } =
     await import('../../services/outreach/call-retry.js');
   return {
+    readDisposition: control.takeCallDisposition,
     readTranscript: (callId) => transcripts.getActiveTranscript(callId)?.turns.slice() ?? null,
     analyze: transcripts.analyzeCompletedCall,
     report: captureCallResult,
@@ -239,11 +274,15 @@ export async function completeOnBehalfCall(
   reportedCalls.add(call.callId);
 
   try {
-    const { readTranscript, analyze, report, scheduleRetry, recordOptOut } =
+    const { readDisposition, readTranscript, analyze, report, scheduleRetry, recordOptOut } =
       ports ?? (await defaultPorts());
+    const disposition = readDisposition(sessionId);
     const turns = readTranscript(call.callId);
     const heard = turns?.filter((t) => t.role === 'recipient').map((t) => t.content) ?? [];
+    // Ferni's own read of how the call ended comes first; then, with follow-through,
+    // what the person said (a voicemail greeting, a no, a quick hang-up).
     const talked =
+      (disposition === undefined || disposition === 'completed') &&
       heard.length > 0 &&
       (!isCallFollowthroughEnabled() ||
         classifyAnsweredCall(heard, durationSeconds) === 'answered');
@@ -264,7 +303,7 @@ export async function completeOnBehalfCall(
     }
 
     const request = toOnBehalfCallRequest(call);
-    let outcome = buildCallOutcome(call, turns, analysis, durationSeconds);
+    let outcome = buildCallOutcome(call, turns, analysis, disposition, durationSeconds);
     const followthrough = isCallFollowthroughEnabled();
     if (followthrough && classifyAnsweredCall(heard, durationSeconds) === 'opted_out') {
       await recordOptOut?.(call);
@@ -295,6 +334,8 @@ export async function completeOnBehalfCall(
   } finally {
     const { cleanupOnBehalfCapture } =
       await import('../integrations/on-behalf-transcript-capture.js');
+    const { forgetOnBehalfCallRoom } = await import('./call-control.js');
+    forgetOnBehalfCallRoom(sessionId);
     const transcripts = await import('../../services/outreach/call-transcript-intelligence.js');
     cleanupOnBehalfCapture(sessionId);
     if (transcripts.hasActiveTranscript(call.callId))

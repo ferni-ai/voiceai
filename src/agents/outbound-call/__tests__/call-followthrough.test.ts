@@ -57,8 +57,13 @@ const said = (...lines: string[]): CallTranscriptTurn[] =>
   ]);
 const voicemail = said("Hi, you've reached Mom. Leave a message after the tone.");
 
-function ports(turns: CallTranscriptTurn[], retryAt: Date | null = null) {
+function ports(
+  turns: CallTranscriptTurn[],
+  retryAt: Date | null = null,
+  disposition?: ReturnType<CallLifecyclePorts['readDisposition']>
+) {
   return {
+    readDisposition: vi.fn<CallLifecyclePorts['readDisposition']>(() => disposition),
     readTranscript: vi.fn<CallLifecyclePorts['readTranscript']>(() => turns),
     analyze: vi.fn<CallLifecyclePorts['analyze']>(async () => null),
     report: vi.fn<CallLifecyclePorts['report']>(async () => undefined),
@@ -160,6 +165,28 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
     expect(`${outcome?.outcome} ${outcome?.transcriptSummary}`).not.toMatch(
       /[\n<>#]|ignore all previous instructions/i
     );
+  });
+
+  it('retries when the call ended on a voicemail Ferni left, keeping what the report said', async () => {
+    process.env.CALL_FOLLOWTHROUGH = 'on';
+    const p = ports(voicemail, new Date(), 'voicemail_left');
+    const outcome = await completeOnBehalfCall('s15', makeCall(), 30, true, p);
+    expect(outcome?.status).toBe('voicemail');
+    expect(outcome?.outcome).toMatch(
+      /^I got Mom's voicemail and left a message.*I'll try again tomorrow\.$/
+    );
+    expect(outcome?.callbackRequired).toBe(false);
+    expect(p.scheduleRetry).toHaveBeenCalledTimes(1);
+    expect(p.analyze).not.toHaveBeenCalled();
+  });
+
+  it('never retries a call Ferni ended as refused or a wrong number', async () => {
+    process.env.CALL_FOLLOWTHROUGH = 'on';
+    for (const disposition of ['refused', 'wrong_number'] as const) {
+      const p = ports(said('Who is this?'), new Date(), disposition);
+      await completeOnBehalfCall(`s16-${disposition}`, makeCall(), 30, true, p);
+      expect(p.scheduleRetry).not.toHaveBeenCalled();
+    }
   });
 
   it('never retries a person who declined, and records it when they ask not to be called', async () => {

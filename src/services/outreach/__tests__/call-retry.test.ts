@@ -100,6 +100,7 @@ beforeEach(() => {
   process.env.LIVEKIT_API_SECRET = 'server-secret';
 });
 afterEach(() => {
+  vi.useRealTimers();
   delete process.env.CALL_FOLLOWTHROUGH;
   delete process.env.SIP_TRUNK_ID;
   delete process.env.LIVEKIT_API_SECRET;
@@ -268,7 +269,11 @@ describe('placing the retry', () => {
   it('the scheduled-outreach job places it when due', async () => {
     await schedule();
 
+    // The job places at the wall-clock time, which must be inside calling hours.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-11T17:01:00.000Z'));
     const run = await executeDueScheduledOutreach({ now: new Date('2026-10-11T17:01:00.000Z') });
+    vi.useRealTimers();
 
     expect(run).toMatchObject({ due: 1, executed: 1 });
     expect(initiateCall).toHaveBeenCalledTimes(1);

@@ -1626,7 +1626,6 @@
   "src/tools/domains/social-skills/index.ts": 980,
   "src/tools/domains/stories/index.ts": 562,
   "src/tools/domains/telephony/call-on-behalf.ts": 524,
-  "src/tools/domains/telephony/recurring-calls.ts": 560,
   "src/tools/domains/trauma-support/index.ts": 525,
   "src/tools/domains/travel/travel.ts": 896,
   "src/tools/domains/visual-memory/index.ts": 516,
