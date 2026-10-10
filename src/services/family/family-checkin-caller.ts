@@ -380,20 +380,12 @@ async function initiateViaTwilio(
     const twilioPhone = process.env.TWILIO_PHONE_NUMBER!;
     const webhookBaseUrl = process.env.WEBHOOK_BASE_URL || process.env.APP_URL || '';
 
-    // Build TwiML for the call
-    // Note: This is a simplified version - real implementation would use a webhook
-    // to enable two-way conversation
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Pause length="1"/>
-  <Say voice="Polly.Joanna">${escapeXml(openingLine)}</Say>
-  <Pause length="2"/>
-  <Say voice="Polly.Joanna">How are you doing today?</Say>
-  <Gather input="speech" timeout="5" action="${webhookBaseUrl}/api/family-checkin/response/${callId}">
-    <Say voice="Polly.Joanna">Take your time.</Say>
-  </Gather>
-  <Say voice="Polly.Joanna">I'll let ${schedule.familyMemberName} know I called. Take care!</Say>
-</Response>`;
+    const { checkinTwiml } = await import('./family-checkin-twiml.js');
+    const twiml = checkinTwiml(
+      openingLine,
+      params.context.sponsorName,
+      `${webhookBaseUrl}/api/family-checkin/response/${callId}`
+    );
 
     // Normalize phone number
     const cleanPhone = schedule.phoneNumber.replace(/\D/g, '');
@@ -599,15 +591,6 @@ async function sendUrgentNotificationToSponsor(
   } catch (error) {
     log.error({ sponsorUserId, error: String(error) }, 'Failed to send urgent notification');
   }
-}
-
-function escapeXml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
 }
 
 function sleep(ms: number): Promise<void> {
