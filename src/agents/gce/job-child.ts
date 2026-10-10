@@ -11,6 +11,7 @@ import { performance } from 'node:perf_hooks';
 import { initializeLogger } from '@livekit/agents';
 
 import { getDeepExtractionWorker } from '../../memory/dynamic/index.js';
+import { setCallQualityForwarder } from '../../services/analytics/call-quality-monitor.js';
 import { registerGlobalErrorHandlers } from '../../utils/safe-fire-and-forget.js';
 import { drainBackground } from './drain-background.js';
 import { runJobInProcess, setOnJobLifecycle, setWorkerId, shutdownJob } from './job-executor.js';
@@ -76,6 +77,8 @@ async function runOne(msg: Extract<ToChild, { t: 'job' }>, stop: () => void): Pr
 
 async function main(): Promise<void> {
   registerGlobalErrorHandlers();
+  // The worker's call-quality monitor sees this call and owns its alerts.
+  setCallQualityForwarder((op, args) => send({ t: 'quality', op, args }));
   initializeLogger({
     pretty: true,
     level: (process.env.LOG_LEVEL || 'info') as 'debug' | 'info' | 'warn' | 'error',
