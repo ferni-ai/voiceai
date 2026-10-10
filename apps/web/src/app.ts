@@ -1969,11 +1969,8 @@ class VoiceAIApp {
         // New feature callbacks
         onMemoryLaneClick: () => void openMemoryLane(),
         onPatternInsightsClick: () => {
-          // Show pattern insights in a modal container
-          const container = document.querySelector('.app-shell') as HTMLElement | null;
-          if (container) {
-            void showPatternInsights(container);
-          }
+          // Show pattern insights in the main content area
+          void showPatternInsights(document.getElementById('main-content') ?? document.body);
         },
         onConversationInsightsClick: async () => {
           // Show feedback insights panel (how conversations are resonating)
@@ -2034,10 +2031,7 @@ class VoiceAIApp {
       void showConversationHistory();
     });
     this.addTrackedListener(window, 'ferni:open-patterns', () => {
-      const container = document.querySelector('.app-shell') as HTMLElement | null;
-      if (container) {
-        void showPatternInsights(container);
-      }
+      void showPatternInsights(document.getElementById('main-content') ?? document.body);
     });
     this.addTrackedListener(window, 'ferni:open-quiz', () => {
       void openKnowledgeQuiz();
