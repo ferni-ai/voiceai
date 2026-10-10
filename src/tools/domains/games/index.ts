@@ -16,9 +16,8 @@
  *   - This or That: Choose between two songs
  *   - Mood DJ Challenge: Describe mood, agent picks song
  *
- * AVAILABLE TEXT GAMES:
- *   - Tic-Tac-Toe: Classic 3x3 grid game
- *   - (More coming: 20 Questions, Word Association, Would You Rather)
+ * TEXT GAMES: tic-tac-toe, 20 questions, word association, would-you-rather, story builder...
+ * GAME_STATE=on adds gameState, the per-call scorekeeper for any game (game-state-tool.ts).
  */
 
 import { llm } from '@livekit/agents';
@@ -38,6 +37,7 @@ import {
   broadcastGameStarted,
   broadcastGameState,
 } from './games-frontend.js';
+import { gameStateTools } from './game-state-tool.js';
 
 const log = getLogger();
 
@@ -613,7 +613,7 @@ Use when user says "stop", "quit", "I give up", "end game", or wants to do somet
 // DOMAIN EXPORT
 // ============================================================================
 
-const gamesTools: ToolDefinition[] = createGameToolDefinitions();
+const gamesTools: ToolDefinition[] = [...createGameToolDefinitions(), ...gameStateTools()];
 
 export const { getToolDefinitions, domain, definitions } = createDomainExport('games', gamesTools);
 
