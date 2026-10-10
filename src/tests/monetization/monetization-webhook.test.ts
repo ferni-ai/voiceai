@@ -140,6 +140,8 @@ describe('POST /api/monetization/webhook signature verification', () => {
 
   it('falls back to STRIPE_WEBHOOK_SECRET when no monetization secret is set', async () => {
     vi.stubEnv('STRIPE_MONETIZATION_WEBHOOK_SECRET', '');
+    const { resetConfig } = await import('../../config/environment.js');
+    resetConfig();
 
     const response = await post(fundEvent, { 'stripe-signature': sign(fundEvent, SHARED_SECRET) });
 

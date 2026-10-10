@@ -117,8 +117,8 @@ export async function verifyPaymentWebhook(
   rawBody: string,
   signature: string
 ): Promise<PaymentWebhookEvent> {
-  const secret =
-    process.env.STRIPE_MONETIZATION_WEBHOOK_SECRET || getConfig().payments.stripeWebhookSecret;
+  const { stripeMonetizationWebhookSecret, stripeWebhookSecret } = getConfig().payments;
+  const secret = stripeMonetizationWebhookSecret || stripeWebhookSecret;
   if (!secret) {
     throw new Error('Neither STRIPE_MONETIZATION_WEBHOOK_SECRET nor STRIPE_WEBHOOK_SECRET is set');
   }
