@@ -293,7 +293,7 @@ export function hasCachedAgents(): boolean {
 }
 
 /**
- * /api/agents lists the user's custom agents too, so creating, editing or deleting one
+ * /api/agents lists custom agents too, so creating, editing or deleting one
  * (custom-agent-wizard / custom-agent-editor dispatch these) makes the cached list stale.
  */
 const CUSTOM_AGENT_CHANGE_EVENTS = [
