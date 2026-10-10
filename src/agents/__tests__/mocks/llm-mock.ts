@@ -345,7 +345,7 @@ export function getMockResponseForEmotion(emotion: string, intensity = 0.5): str
 export function setupGoogleGenAIMocks(client?: MockLLMClient): void {
   const mockClient = client || createMockLLMClient();
 
-  vi.mock('@google/genai', () => ({
+  vi.doMock('@google/genai', () => ({
     GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
       getGenerativeModel: vi.fn().mockReturnValue({
         generateContent: vi.fn().mockImplementation(async (prompt) => ({
@@ -367,7 +367,7 @@ export function setupGoogleGenAIMocks(client?: MockLLMClient): void {
 export function setupLiveKitGoogleMocks(client?: MockLLMClient): void {
   const mockClient = client || createMockLLMClient();
 
-  vi.mock('@livekit/agents-plugin-google', () => ({
+  vi.doMock('@livekit/agents-plugin-google', () => ({
     tts: {
       TTS: vi.fn().mockImplementation(() => ({
         synthesize: vi.fn().mockResolvedValue({

@@ -213,7 +213,7 @@ export const createMockTurnContext = (overrides: Partial<TurnContext> = {}): Tur
  */
 export const setupTurnProcessorMocks = () => {
   // Diagnostic logger
-  vi.mock('../../../services/diagnostic-logger.js', () => ({
+  vi.doMock('../../../services/diagnostic-logger.js', () => ({
     diag: {
       user: vi.fn(),
       warn: vi.fn(),
@@ -224,14 +224,14 @@ export const setupTurnProcessorMocks = () => {
   }));
 
   // Handoff tools
-  vi.mock('../../../tools/handoff/index.js', () => ({
+  vi.doMock('../../../tools/handoff/index.js', () => ({
     getAgentContext: vi.fn(() => 'You are Ferni, a warm and supportive life coach.'),
     getCurrentAgent: vi.fn(() => 'ferni'),
     updateUserContextForHandoff: vi.fn(),
   }));
 
   // Conversation engines
-  vi.mock('../../../conversation/index.js', () => ({
+  vi.doMock('../../../conversation/index.js', () => ({
     getConversationHumanizer: vi.fn(() => ({
       getHumanizingGuidance: vi.fn(() => null),
       processUserMessage: vi.fn(() => ({
@@ -289,7 +289,7 @@ export const setupTurnProcessorMocks = () => {
   }));
 
   // Humanizing context
-  vi.mock('../../../intelligence/context-builders/humanizing.js', () => ({
+  vi.doMock('../../../intelligence/context-builders/humanizing.js', () => ({
     buildHumanizingContext: vi.fn(() => ({
       shouldMoodShift: false,
       moodShift: null,
@@ -301,32 +301,32 @@ export const setupTurnProcessorMocks = () => {
     shouldMoodShift: vi.fn(() => false),
   }));
 
-  vi.mock('../../../intelligence/context-builders/humanizing-debug.js', () => ({
+  vi.doMock('../../../intelligence/context-builders/humanizing-debug.js', () => ({
     logHumanizingResult: vi.fn(),
     logValidation: vi.fn(),
   }));
 
-  vi.mock('../../../intelligence/context-builders/conversation-humanizing.js', () => ({
+  vi.doMock('../../../intelligence/context-builders/conversation-humanizing.js', () => ({
     buildConversationHumanizingContext: vi.fn(() => ({})),
     formatConversationHumanizingForPrompt: vi.fn(() => ''),
   }));
 
   // Speech modules
-  vi.mock('../../../speech/response-naturalness.js', () => ({
+  vi.doMock('../../../speech/response-naturalness.js', () => ({
     getResponseEnhancements: vi.fn(() => ({
       acknowledgment: null,
       catchphrase: null,
     })),
   }));
 
-  vi.mock('../../../speech/emotion-matching.js', () => ({
+  vi.doMock('../../../speech/emotion-matching.js', () => ({
     getEmotionGuidance: vi.fn(() => ({
       emotion: 'neutral',
       intensity: 0.5,
     })),
   }));
 
-  vi.mock('../../../speech/text-voice-mismatch.js', () => ({
+  vi.doMock('../../../speech/text-voice-mismatch.js', () => ({
     buildMismatchGuidance: vi.fn(() => ''),
     detectMismatch: vi.fn(() => ({
       hasMismatch: false,
@@ -337,18 +337,18 @@ export const setupTurnProcessorMocks = () => {
     recordMismatchInsight: vi.fn(),
   }));
 
-  vi.mock('../../../speech/adaptive-ssml.js', () => ({
+  vi.doMock('../../../speech/adaptive-ssml.js', () => ({
     detectVocalCues: vi.fn(() => ({})),
   }));
 
   // Cross-persona insights
-  vi.mock('../../../services/cross-persona-insights.js', () => ({
+  vi.doMock('../../../services/cross-persona-insights.js', () => ({
     loadInsights: vi.fn(async () => Promise.resolve([])),
     formatInsightsForPrompt: vi.fn(() => ''),
   }));
 
   // Injection builders
-  vi.mock('../injection-builders.js', () => ({
+  vi.doMock('../injection-builders.js', () => ({
     buildAdvancedHumanizationInjections: vi.fn(() => ({
       injections: [],
       emotionForTTS: null,
@@ -368,34 +368,34 @@ export const setupTurnProcessorMocks = () => {
   }));
 
   // Trust systems
-  vi.mock('../../../services/trust-systems/unified-persistence.js', () => ({
+  vi.doMock('../../../services/trust-systems/unified-persistence.js', () => ({
     recordHealthTrend: vi.fn(),
   }));
 
   // Health awareness
-  vi.mock('../../../services/health-awareness/voice-biometrics.js', () => ({
+  vi.doMock('../../../services/health-awareness/voice-biometrics.js', () => ({
     analyzeVoiceHealth: vi.fn(async () => Promise.resolve({})),
   }));
 
   // Identity
-  vi.mock('../../../services/identity/human-first-2fa.js', () => ({
+  vi.doMock('../../../services/identity/human-first-2fa.js', () => ({
     processUserMessage: vi.fn(async () => Promise.resolve({})),
   }));
 
   // Value capture
-  vi.mock('../../../services/monetization/value-capture.js', () => ({
+  vi.doMock('../../../services/monetization/value-capture.js', () => ({
     valueCapture: {
       capture: vi.fn(async () => Promise.resolve(null)),
     },
   }));
 
   // Session state
-  vi.mock('../../session/session-state.js', () => ({
+  vi.doMock('../../session/session-state.js', () => ({
     extractPersonalThemes: vi.fn(() => []),
   }));
 
   // Outreach
-  vi.mock('../../../services/outreach/conversation-extractor.js', () => ({
+  vi.doMock('../../../services/outreach/conversation-extractor.js', () => ({
     extractAndProcess: vi.fn(async () => Promise.resolve(undefined)),
   }));
 };

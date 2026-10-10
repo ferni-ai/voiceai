@@ -15,6 +15,13 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { perfBudget } from '../perf-budget.js';
 
+// Vitest 5 only accepts vi.mock at the top level. Vitest 4 hoisted these
+// here from inside the suites below, so moving them changes nothing.
+// Mock Firestore as unavailable
+vi.mock('../../utils/firestore-utils.js', () => ({
+  getFirestoreDb: () => null,
+}));
+
 // Check if running with emulator
 const isEmulatorRunning = !!process.env.FIRESTORE_EMULATOR_HOST;
 
@@ -359,11 +366,6 @@ describe('Dynamic Memory (Mocked)', () => {
   });
 
   it('should build empty context when Firestore unavailable', async () => {
-    // Mock Firestore as unavailable
-    vi.mock('../../utils/firestore-utils.js', () => ({
-      getFirestoreDb: () => null,
-    }));
-
     const { buildDynamicMemoryContext } =
       await import('../../intelligence/context-builders/memory/dynamic-memory-context.js');
 
