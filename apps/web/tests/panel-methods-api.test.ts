@@ -108,4 +108,15 @@ describe('panel methods use the authenticated API', () => {
     expect(toast.error).toHaveBeenCalledTimes(1);
     expect(toast.success).not.toHaveBeenCalled();
   });
+
+  it('says the memory could not be found when the server has no such memory', async () => {
+    apiDelete.mockResolvedValueOnce({ ok: false, status: 404, error: 'Memory not found' });
+    apiGet.mockResolvedValueOnce({ ok: true, status: 200, data: { memories: [] } });
+
+    await panels.deleteMemory('gone-1');
+
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/find that memory/i));
+    expect(apiGet).toHaveBeenCalledWith('/api/cognitive/memories');
+  });
 });

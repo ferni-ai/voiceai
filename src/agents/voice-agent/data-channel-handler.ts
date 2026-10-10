@@ -73,6 +73,8 @@ export interface DataChannelContext {
   tts?: {
     switchVoice?: (name: string, voiceId: string, accent?: string) => void;
   };
+  /** Multi-agent calls handle handoff_request / handoff_cancel themselves */
+  skipHandoffs?: boolean;
 }
 
 export interface DataChannelResult {
@@ -97,14 +99,12 @@ const getLogger = () => livekitLog();
  * Returns a cleanup function that should be called on disconnect.
  */
 export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelResult {
-  const { room, session, services, sessionPersona, userId, sessionId, voiceAgentRef } = ctx;
+  const { room } = ctx; // handlers read the rest from ctx per message, so it can be live
 
-  // The actual async handler for data messages
   const dataReceivedHandler = async (data: Uint8Array, participant?: { identity: string }) => {
     const ourIdentity = room.localParticipant?.identity;
     const theirIdentity = participant?.identity;
 
-    // Enhanced debugging for handoff requests
     getLogger().info(
       { ourIdentity, theirIdentity, dataLength: data?.length },
       '📩 Data received from participant'
@@ -131,7 +131,7 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
       );
 
       // Handle different message types
-      if (message.type === 'handoff_request') {
+      if (message.type === 'handoff_request' && !ctx.skipHandoffs) {
         await handleHandoffRequest(message, ctx);
       }
 
@@ -161,7 +161,7 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
         await handleSyntheticText(message, ctx);
       }
 
-      if (message.type === 'handoff_cancel') {
+      if (message.type === 'handoff_cancel' && !ctx.skipHandoffs) {
         await handleHandoffCancel(message, ctx);
       }
 

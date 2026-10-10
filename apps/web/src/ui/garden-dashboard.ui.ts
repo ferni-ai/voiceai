@@ -14,12 +14,7 @@ import { toast } from './whisper.ui.js';
 import { openReferral } from './referral.ui.js';
 import { formatNumber, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
-import {
-  getReferralUrl,
-  getGardenStats,
-  getTotalReferralSeeds,
-  type GardenStats,
-} from '../services/referral.service.js';
+import { loadGarden, type GardenData, type GardenTitle } from '../services/referral.service.js';
 
 const log = createLogger('GardenDashboard');
 
@@ -73,7 +68,7 @@ const ICONS = {
 };
 
 /** Garden title icons */
-const GARDEN_ICONS: Record<GardenStats['gardenTitle'], string> = {
+const GARDEN_ICONS: Record<GardenTitle, string> = {
   'seedling': ICONS.seedling,
   'gardener': ICONS.seedling,
   'grove-keeper': ICONS.tree,
@@ -81,7 +76,7 @@ const GARDEN_ICONS: Record<GardenStats['gardenTitle'], string> = {
 };
 
 /** Garden title labels */
-function gardenLabel(title: GardenStats['gardenTitle']): string {
+function gardenLabel(title: GardenTitle): string {
   return {
     'seedling': t('gardenDashboard.titleSeedling'),
     'gardener': t('gardenDashboard.titleGardener'),
@@ -91,7 +86,7 @@ function gardenLabel(title: GardenStats['gardenTitle']): string {
 }
 
 /** Growth tiers: minimum referrals and their localized requirement text */
-function gardenTiers(): { title: GardenStats['gardenTitle']; min: number; req: string }[] {
+function gardenTiers(): { title: GardenTitle; min: number; req: string }[] {
   return [
     { title: 'seedling', min: 1, req: t('gardenDashboard.tierReqSeedling') },
     { title: 'gardener', min: 3, req: t('gardenDashboard.tierReqGardener') },
@@ -114,12 +109,19 @@ let isOpen = false;
 /**
  * Open the garden dashboard
  */
-export function openGardenDashboard(): void {
+export async function openGardenDashboard(): Promise<void> {
   if (isOpen) return;
+  isOpen = true; // held while the garden loads so a second tap can't open a second modal
+
+  const garden = await loadGarden();
+  if (!garden) {
+    isOpen = false;
+    toast.error(t('gardenDashboard.loadFailed'));
+    return;
+  }
 
   soundUI.play('switch');
-  createModal();
-  isOpen = true;
+  createModal(garden);
 
   log.info('Garden dashboard opened');
 }
@@ -144,7 +146,7 @@ export function closeGardenDashboard(): void {
 // MODAL
 // ============================================================================
 
-function createModal(): void {
+function createModal(garden: GardenData): void {
   document.querySelector('.garden-dashboard-modal')?.remove();
 
   modal = document.createElement('div');
@@ -152,7 +154,7 @@ function createModal(): void {
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-label', t('gardenDashboard.ariaLabel'));
 
-  renderModalContent();
+  renderModalContent(garden);
   injectStyles();
 
   // Event listeners
@@ -172,13 +174,12 @@ function createModal(): void {
   void animateIn(modal);
 }
 
-function renderModalContent(): void {
+function renderModalContent(garden: GardenData): void {
   if (!modal) return;
 
-  const stats = getGardenStats();
-  const totalSeeds = getTotalReferralSeeds();
-  const referralUrl = getReferralUrl();
-  const shortUrl = referralUrl.replace('https://', '');
+  // Everything shown here is what the server reports; nothing is estimated client-side.
+  const totalSeeds = garden.totalEarnedFromReferrals;
+  const shortUrl = garden.referralUrl.replace('https://', '');
 
   modal.innerHTML = `
     <div class="garden-backdrop"></div>
@@ -189,25 +190,17 @@ function renderModalContent(): void {
 
       <div class="garden-header">
         <div class="garden-title-icon">
-          ${GARDEN_ICONS[stats.gardenTitle]}
+          ${GARDEN_ICONS[garden.gardenTitle]}
         </div>
         <h2 class="garden-title">${t('gardenDashboard.title')}</h2>
-        <p class="garden-subtitle">${gardenLabel(stats.gardenTitle)}</p>
+        <p class="garden-subtitle">${gardenLabel(garden.gardenTitle)}</p>
       </div>
 
       <!-- Stats Grid -->
       <div class="garden-stats">
         <div class="garden-stat">
-          <span class="garden-stat-value">${stats.totalReferrals}</span>
+          <span class="garden-stat-value">${garden.totalReferrals}</span>
           <span class="garden-stat-label">${t('gardenDashboard.friendsReferred')}</span>
-        </div>
-        <div class="garden-stat">
-          <span class="garden-stat-value">${stats.activeReferrals}</span>
-          <span class="garden-stat-label">${t('gardenDashboard.activeThisWeek')}</span>
-        </div>
-        <div class="garden-stat garden-stat--highlight">
-          <span class="garden-stat-value">+${stats.weeklyPassiveSeeds}</span>
-          <span class="garden-stat-label">${t('gardenDashboard.seedsPerWeek')}</span>
         </div>
       </div>
 
@@ -223,8 +216,8 @@ function renderModalContent(): void {
       <!-- Growth Tiers -->
       <div class="garden-tiers">
         ${gardenTiers().map((tier) => `
-        <div class="garden-tier ${stats.gardenTitle === tier.title ? 'garden-tier--active' : stats.totalReferrals >= tier.min ? 'garden-tier--complete' : ''}">
-          <span class="garden-tier-icon">${stats.totalReferrals >= tier.min ? ICONS.check : ''}</span>
+        <div class="garden-tier ${garden.gardenTitle === tier.title ? 'garden-tier--active' : garden.totalReferrals >= tier.min ? 'garden-tier--complete' : ''}">
+          <span class="garden-tier-icon">${garden.totalReferrals >= tier.min ? ICONS.check : ''}</span>
           <span class="garden-tier-name">${gardenLabel(tier.title)}</span>
           <span class="garden-tier-req">${tier.req}</span>
         </div>`).join('')}
@@ -248,7 +241,7 @@ function renderModalContent(): void {
       </div>
 
       <!-- Empty State -->
-      ${stats.totalReferrals === 0 ? `
+      ${garden.totalReferrals === 0 ? `
         <div class="garden-empty">
           <p>${t('gardenDashboard.emptyTitle')}</p>
           <p class="garden-empty-sub">${t('gardenDashboard.emptyHint')}</p>
@@ -258,17 +251,16 @@ function renderModalContent(): void {
   `;
 
   // Bind events
-  bindModalEvents();
+  bindModalEvents(garden.referralUrl);
 }
 
-function bindModalEvents(): void {
+function bindModalEvents(url: string): void {
   if (!modal) return;
 
   // Copy link
   const copyBtn = modal.querySelector('[data-action="copy"]');
   if (copyBtn) {
     copyBtn.addEventListener('click', async () => {
-      const url = getReferralUrl();
       try {
         await navigator.clipboard.writeText(url);
         toast.success(t('toasts.linkCopied'));
@@ -454,7 +446,7 @@ function injectStyles(): void {
 
     .garden-stats {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr;
       gap: var(--space-3, 12px);
       margin-bottom: var(--space-5, 20px);
     }
@@ -676,7 +668,7 @@ function injectStyles(): void {
       }
 
       .garden-stats {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: 1fr;
       }
     }
 

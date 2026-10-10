@@ -380,9 +380,9 @@ export const PERSONA_EVOLUTION_STORIES: PersonaEvolutionEvent[] = [
 export const TEAM_HUDDLE_SCRIPTS = {
   weekly: {
     intro: [
-      'The team wanted to share something with you. <break time="300ms"/>Here\'s what they\'re noticing:',
-      'Everyone\'s been thinking about your progress. <break time="200ms"/>Here\'s what they see:',
-      'We gathered some thoughts for you. <break time="300ms"/>Here\'s what the team is seeing:',
+      'The team wanted to check in with you. <break time="300ms"/>Here are a few thoughts:',
+      'Everyone wanted to say hello. <break time="200ms"/>Here\'s what\'s on their minds:',
+      'We gathered some thoughts for you. <break time="300ms"/>Here\'s what the team is thinking:',
     ],
     transitions: [
       '<break time="400ms"/>And...',
@@ -390,40 +390,41 @@ export const TEAM_HUDDLE_SCRIPTS = {
       '<break time="400ms"/>One more thing...',
     ],
     outro: [
-      '<break time="500ms"/>That\'s what they\'re seeing. <break time="200ms"/>What stands out to you?',
+      '<break time="500ms"/>That\'s what\'s on their minds. <break time="200ms"/>What stands out to you?',
       '<break time="500ms"/>Those are their thoughts. <break time="200ms"/>Does any of that resonate?',
       '<break time="500ms"/>That\'s the team\'s perspective. <break time="200ms"/>What do you think?',
     ],
   },
 
+  // Fallback lines: never assert anything measurable about the user, only encourage or ask.
   personaComments: {
     ferni: {
       progress: [
-        "I've watched you grow. The person I'm talking to now has more confidence than a month ago.",
-        "You're asking better questions. That's not nothing.",
-        "I see you showing up consistently. That's the real win.",
+        'What is one thing you want to carry into this week?',
+        "Showing up to talk about it counts. What's on your mind?",
+        'What would make this week feel good to you?',
       ],
       concern: [
-        "I noticed some heaviness lately. Want to talk about what's weighing on you?",
-        "The data shows one thing, but I sense something underneath. What's really going on?",
+        'How are you really doing right now? Take your time.',
+        "Is there something underneath that you haven't said out loud yet?",
       ],
     },
     'alex-chen': {
       productivity: [
-        'Your calendar discipline has improved. I see fewer scattered meetings.',
-        "Email response time is down 30%. That's efficiency gains.",
-        "I notice you're protecting your deep work blocks better.",
+        'What is one thing on your calendar that deserves your best energy this week?',
+        "Is there a meeting you'd happily skip if you could?",
+        'Which task would make the rest of your week easier if it were done?',
       ],
       suggestion: [
         "One thing I'd suggest: batch your communication into two blocks instead of all-day.",
-        'Consider a Sunday planning session. Five minutes that changes the week.',
+        'Consider a Sunday planning session. Five minutes that can set up the week.',
       ],
     },
     'maya-santos': {
       habits: [
-        'Compound and Interest are proud. Your habit consistency is up this week.',
-        "I see the small wins stacking up. That's exactly how change happens.",
-        "The streak is growing. Don't underestimate the power of showing up.",
+        'What is one small habit you would like to try this week?',
+        'Small wins stack up. Which one feels doable today?',
+        'Is there a routine you would like to build on?',
       ],
       encouragement: [
         "Missing a day isn't failure—it's data. What got in the way?",
@@ -432,9 +433,9 @@ export const TEAM_HUDDLE_SCRIPTS = {
     },
     'jordan-taylor': {
       milestones: [
-        "Looking at your life arc—you're in a growth chapter. Lean into it.",
-        "There's a milestone approaching. Let's make sure we celebrate it properly.",
-        'Your trajectory is impressive when you zoom out.',
+        'What milestone would you like to be working toward?',
+        'When you zoom out, what do you want this chapter of your life to be about?',
+        'Is there something coming up that you would like to celebrate?',
       ],
       future: [
         "What's the chapter title for this month of your life?",
@@ -443,9 +444,8 @@ export const TEAM_HUDDLE_SCRIPTS = {
     },
     'nayan-patel': {
       wisdom: [
-        'The stillness in your practice is showing up in how you approach decisions.',
+        'Where could you bring a little more stillness to a decision this week?',
         "Remember: the journey is the destination. You're already there.",
-        'I notice more presence in your conversations. The work is working.',
       ],
       challenge: [
         'Are you sitting with the discomfort or running from it?',
@@ -454,13 +454,13 @@ export const TEAM_HUDDLE_SCRIPTS = {
     },
     'peter-john': {
       patterns: [
-        'The data tells a story: your energy correlates with your morning routine quality.',
-        'I found a pattern—your best days start before 7am.',
-        "Here's what the numbers show: you underestimate yourself by about 20%.",
+        'What do you think shapes your best days? It could be worth paying attention to.',
+        'If you tracked one thing this week, what would you want to learn from it?',
+        'Which part of your routine do you think matters most for your energy?',
       ],
       insight: [
-        'One correlation worth noting: your mood dips on days you skip exercise.',
-        "The pattern suggests: protect Tuesdays. That's your high-output day.",
+        'A question worth sitting with: how does your mood differ on days you move your body?',
+        'Which day of the week feels most productive for you? It may be worth protecting.',
       ],
     },
   },

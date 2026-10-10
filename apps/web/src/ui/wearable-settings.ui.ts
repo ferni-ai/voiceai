@@ -15,6 +15,11 @@ import { DURATION, EASING, prefersReducedMotion } from '../config/animation-cons
 import { apiGet, apiPost } from '../utils/api.js';
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
+import { fetchWearableProviders, type WearableProviderStatus } from '../services/biometrics.service.js';
+import { startOAuthConnect } from '../services/oauth-connect.service.js';
+import { toast } from './whisper.ui.js';
+import { wearableRowState } from './wearable-settings-state.js';
+import { asModalDialog } from '../utils/accessibility.js';
 
 const log = createLogger('WearableSettings');
 
@@ -98,37 +103,14 @@ const ICONS = {
 // PROVIDER INFO
 // ============================================================================
 
-// Providers with backend API support (can actually connect)
-const _IMPLEMENTED_PROVIDERS: WearableProvider[] = ['apple_health', 'oura'];
-
-const PROVIDERS: Array<{
-  id: WearableProvider;
-  icon: string;
-  comingSoon?: boolean;
-}> = [
-  {
-    id: 'apple_health',
-    icon: ICONS.heartPulse,
-  },
-  {
-    id: 'fitbit',
-    icon: ICONS.watch,
-    comingSoon: true, // No backend API yet
-  },
-  {
-    id: 'garmin',
-    icon: ICONS.run,
-    comingSoon: true, // No backend API yet
-  },
-  {
-    id: 'oura',
-    icon: ICONS.ring,
-  },
-  {
-    id: 'whoop',
-    icon: ICONS.chartLine,
-    comingSoon: true, // No backend API yet
-  },
+// Whether a web OAuth provider can be connected is the server's call (/wearables/status
+// `configured`, the same answer the Integrations screen uses), not a flag here.
+const PROVIDERS: Array<{ id: WearableProvider; icon: string }> = [
+  { id: 'apple_health', icon: ICONS.heartPulse },
+  { id: 'fitbit', icon: ICONS.watch },
+  { id: 'garmin', icon: ICONS.run },
+  { id: 'oura', icon: ICONS.ring },
+  { id: 'whoop', icon: ICONS.chartLine },
 ];
 
 // ============================================================================
@@ -142,6 +124,7 @@ class WearableSettingsUI {
   private styleElement: HTMLStyleElement | null = null;
   private isVisible = false;
   private status: WearableStatus | null = null;
+  private serverProviders: WearableProviderStatus[] | null = null;
 
   initialize(): void {
     if (this.panel) return;
@@ -194,8 +177,7 @@ class WearableSettingsUI {
   private createPanel(): void {
     this.panel = document.createElement('div');
     this.panel.className = 'wearable-settings';
-    this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', t('wearableSettings.title'));
+    asModalDialog(this.panel, { label: t('wearableSettings.title') }, () => this.isVisible, () => this.hide()); // Escape had no effect
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'wearable-settings__wrapper';
@@ -210,7 +192,11 @@ class WearableSettingsUI {
 
   private async loadStatus(): Promise<void> {
     try {
-      const response = await apiGet<{ success: boolean } & WearableStatus>('/api/wearable/status');
+      const [response, providers] = await Promise.all([
+        apiGet<{ success: boolean } & WearableStatus>('/api/wearable/status'),
+        fetchWearableProviders(),
+      ]);
+      this.serverProviders = providers;
 
       if (response.data?.success) {
         this.status = response.data;
@@ -256,9 +242,12 @@ class WearableSettingsUI {
     if (!this.wrapper || !this.status) return;
 
     const providersList = PROVIDERS.map((provider) => {
-      const connectionStatus = this.status?.status[provider.id] ?? 'disconnected';
-      const isConnected = connectionStatus === 'connected';
-      const isComingSoon = provider.comingSoon ?? false;
+      const { connected: isConnected, available } = wearableRowState(
+        provider.id,
+        this.status?.status[provider.id],
+        this.serverProviders
+      );
+      const isComingSoon = !available;
 
       return `
         <div class="wearable-settings__provider ${isConnected ? 'wearable-settings__provider--connected' : ''} ${isComingSoon ? 'wearable-settings__provider--coming-soon' : ''}">
@@ -266,13 +255,13 @@ class WearableSettingsUI {
           <div class="wearable-settings__provider-info">
             <span class="wearable-settings__provider-name">
               ${t(`wearableSettings.providers.${provider.id}.name`)}
-              ${isComingSoon ? `<span class="wearable-settings__coming-soon-badge">${t('menu.comingSoon')}</span>` : ''}
+              ${isComingSoon ? `<span class="wearable-settings__coming-soon-badge">${t('wearableSettings.notConfigured')}</span>` : ''}
             </span>
             <span class="wearable-settings__provider-desc">${t(`wearableSettings.providers.${provider.id}.description`)}</span>
           </div>
           ${isComingSoon ? `
             <span class="wearable-settings__provider-btn wearable-settings__provider-btn--disabled" aria-disabled="true">
-              ${t('menu.comingSoon')}
+              ${t('wearableSettings.notConfigured')}
             </span>
           ` : `
             <button
@@ -395,6 +384,12 @@ class WearableSettingsUI {
   }
 
   private async connectProvider(provider: WearableProvider): Promise<void> {
+    if (provider !== 'apple_health') {
+      // Signed-in, one-time-state OAuth start (same helper as the Integrations screen)
+      const result = await startOAuthConnect(provider);
+      if (!result.success && result.error) toast.error(result.error);
+      return;
+    }
     try {
       const response = await apiPost<{ success: boolean; authUrl?: string }>(
         '/api/wearable/connect',
@@ -411,7 +406,9 @@ class WearableSettingsUI {
 
   private async disconnectProvider(provider: WearableProvider): Promise<void> {
     try {
-      await apiPost('/api/wearable/disconnect', { provider });
+      const path = provider === 'apple_health' ? '/api/wearable/disconnect' : `/wearables/${provider}/unlink`;
+      const response = await apiPost(path, { provider });
+      if (!response.ok) toast.error(t('toasts.couldNotDisconnect'));
       await this.loadStatus();
       this.callbacks.onConnectionChange?.(provider, false);
     } catch (error) {

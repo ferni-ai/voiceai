@@ -300,6 +300,7 @@ class VoiceAuthService {
     try {
       await this.fetchApi('/profile', { method: 'DELETE' });
       log.info('Voice profile deleted');
+      window.dispatchEvent(new CustomEvent('ferni:voice-unenrolled'));
       return true;
     } catch (error) {
       log.error('Failed to delete voice profile:', error);
@@ -446,10 +447,8 @@ class VoiceAuthService {
       });
 
       log.info('Enrollment completed', { profile: response.profile });
-      return {
-        success: response.success,
-        profile: response.profile,
-      };
+      if (response.success) window.dispatchEvent(new CustomEvent('ferni:voice-enrolled'));
+      return { success: response.success, profile: response.profile };
     } catch (error) {
       const message = error instanceof Error ? error.message : t('voiceAuth.unknownError');
       log.error('Failed to complete enrollment:', error);

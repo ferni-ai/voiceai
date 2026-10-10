@@ -2438,7 +2438,8 @@
       "devices": "Geräte",
       "features": "Was Ferni sehen kann"
     },
-    "title": "Wearables"
+    "title": "Wearables",
+    "notConfigured": "Noch nicht eingerichtet"
   },
   "transcript": {
     "enabled": "Transkription an",
@@ -3652,6 +3653,7 @@
     },
     "errorClipboard": "Kopieren fehlgeschlagen. Nochmal versuchen?",
     "copyError": "Kopieren hat nicht geklappt. Nochmal versuchen?",
+    "linkUnavailable": "Dein Link konnte gerade nicht geladen werden. Versuch es gleich noch einmal.",
     "bonusAmount": "Ihr bekommt beide {seeds} Samen",
     "bonusWhen": "wenn sie dazukommen!",
     "garden": {
@@ -5931,8 +5933,6 @@
     "reflectAndCelebrate": "Reflektieren & feiern",
     "newBeginning": "Neuanfang",
     "recharge": "Aufladen",
-    "alexNoted": "ALEX HAT SICH NOTIERT",
-    "partnerLovesPresence": "Dein Partner liebt es, wenn du präsent bist",
     "jordanSuggests": "JORDAN SCHLÄGT VOR",
     "setClearIntention": "Setze dir eine klare Intention, bevor du teilnimmst",
     "mayaNoticesLabel": "MAYA BEMERKT",
@@ -5947,9 +5947,6 @@
     "manyMeetingsNotice": "Du hattest in letzter Zeit viele Meetings. Deine besten Gedanken entstehen in den ruhigen Momenten.",
     "busiestDayPacked": "{day} sieht ziemlich voll aus. Vielleicht kannst du etwas auf {lightDay} verschieben?",
     "anotherDay": "einen anderen Tag",
-    "wisdomMornings": "Wie dein Morgen beginnt, bestimmt meist den Ton für den ganzen Tag.",
-    "wisdomFocusTime": "Wenn du dir Fokuszeit blockst, schaffst du 40 % mehr.",
-    "wisdomWalks": "Nach deinen Spaziergängen scheinst du am kreativsten zu sein.",
     "insightBalanced": "Dein Kalender sieht ausgewogen aus.",
     "insightNeedsAttention": "Dein Kalender braucht etwas Aufmerksamkeit.",
     "insightAdjustments": "Ein paar Anpassungen könnten helfen.",
@@ -8099,6 +8096,12 @@
         "enter": "Ankomme",
         "exit": "Gehe",
         "both": "Beides"
+      },
+      "calendar": {
+        "start": "Wenn ein Termin beginnt",
+        "when": "Auslösen...",
+        "end": "Wenn ein Termin endet",
+        "reminder": "Kurz vor einem Termin"
       }
     },
     "actions": {
@@ -8133,7 +8136,11 @@
       "title": "Was soll ich tun?"
     },
     "defaultMessage": "Guten Morgen! Bereit, in den Tag zu starten?",
-    "trackHabit": "Verfolgen: {habit}"
+    "trackHabit": "Verfolgen: {habit}",
+    "errors": {
+      "signInRequired": "Melde dich an, um deine Routinen zu speichern",
+      "saveFailed": "Das konnte nicht gespeichert werden. Nochmal versuchen?"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -9149,6 +9156,7 @@
     "tierReqGardener": "3–5 Freund*innen",
     "tierReqGroveKeeper": "6–10 Freund*innen",
     "tierReqForestGuardian": "11+ Freund*innen",
+    "loadFailed": "Dein Garten konnte gerade nicht geladen werden. Versuch es gleich noch einmal.",
     "inviteFriends": "Freund*innen einladen",
     "emptyTitle": "Dein Garten wartet darauf, zu wachsen!",
     "emptyHint": "Teile Ferni mit Freund*innen und ihr bekommt beide 25 Samen.",
@@ -9359,6 +9367,7 @@
     "eyebrow": "DEINE REISE",
     "title": "Dein Jahr mit Ferni",
     "subtitle": "{conversations}. {minutes}. Unzählige Momente des Wachstums.",
+    "subtitleNoMinutes": "{conversations}. Unzählige Momente des Wachstums.",
     "statConversations": "Gespräche",
     "statTotal": "Gesamt",
     "statCurrentStreak": "Aktuelle Serie",
@@ -10108,7 +10117,9 @@
       "leave": "Wenn du {name} verlässt",
       "somewhere": "irgendwo",
       "calendar": "Vor deinen Kalenderterminen",
-      "event": "Wenn etwas passiert"
+      "event": "Wenn etwas passiert",
+      "calendarStart": "Wenn ein Kalendertermin beginnt",
+      "calendarEnd": "Wenn ein Kalendertermin endet"
     },
     "status": {
       "active": "Ich kümmere mich darum",
@@ -10125,8 +10136,13 @@
     "runNow": "Jetzt ausführen",
     "signInPrompt": "Melde dich an, um zu sehen, was ich für dich tue",
     "loadError": "Deine Routinen konnten nicht geladen werden",
-    "connectionsSoon": "Verbundene Dienste kommen bald...",
-    "whatIDoForYou": "Was ich für dich tue"
+    "whatIDoForYou": "Was ich für dich tue",
+    "connections": {
+      "connected": "Verbunden",
+      "notConnected": "Nicht verbunden",
+      "intro": "Das sind die Dienste, die ich für dich nutzen kann.",
+      "loadError": "Deine verbundenen Dienste konnten nicht geladen werden"
+    }
   },
   "voiceAuth": {
     "unknownError": "Unbekannter Fehler",
@@ -10186,6 +10202,7 @@
     "nowPlaying": "Jetzt läuft: {name}",
     "memoryRemoved": "Erinnerung entfernt",
     "couldNotRemoveMemory": "Diese Erinnerung konnte nicht gelöscht werden. Versuchst du es noch mal?",
+    "memoryNotFound": "Diese Erinnerung wurde nicht gefunden. Vielleicht ist sie schon weg.",
     "couldNotLoadPredictions": "Deine Vorhersagen konnten nicht geladen werden. Versuchst du es noch mal?",
     "noPredictionsYet": "Noch keine Vorhersagen. Triff eine mit Ferni, dann wird sie hier angezeigt.",
     "preparingData": "Deine Daten werden vorbereitet...",
@@ -10413,6 +10430,8 @@
     "switchFailedStaying": "Wechsel fehlgeschlagen. {error}. Du bleibst bei {name}.",
     "switchFailed": "Wechsel fehlgeschlagen. {error}",
     "rateLimited": "Lass dir Zeit – ein Wechsel nach dem anderen",
+    "handoffTimeout": "Der Wechsel dauert länger als gedacht. Ich bin weiterhin für dich da.",
+    "cameoTimeout": "Der Gastauftritt hat zu lange gedauert, deshalb habe ich ihn beendet. Ich bin weiterhin da.",
     "alwaysHere": "Ferni ist immer für dich da",
     "removedFromRoster": "{name} aus der Auswahl entfernt",
     "addToTeam": "Füge {name} deinem Team hinzu",
@@ -11031,5 +11050,9 @@
     "samplePattern": "\"Sonntagabende scheinen schwer für dich zu sein...\"",
     "sampleInsight": "\"Du hast diese Woche 8-mal erwähnt, dass du müde bist. Die Müdigkeit scheint mit Schwierigkeiten beim Grenzenziehen bei der Arbeit zusammenzuhängen.\"",
     "sampleEvidence": "Basierend auf {count} Gesprächen"
+  },
+  "agentAcks": {
+    "gameStartFailed": "Das Spiel hat nicht gestartet. Sag Ferni einfach, dass du es spielen möchtest.",
+    "actionFailed": "Das hat nicht geklappt. Vielleicht wurde es schon erledigt."
   }
 }

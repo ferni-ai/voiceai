@@ -2438,7 +2438,8 @@
       "devices": "裝置",
       "features": "Ferni 可以查看的內容"
     },
-    "title": "穿戴式裝置"
+    "title": "穿戴式裝置",
+    "notConfigured": "尚未設定"
   },
   "transcript": {
     "enabled": "語音轉文字已開啟",
@@ -3652,6 +3653,7 @@
     },
     "errorClipboard": "無法複製。要再試一次嗎？",
     "copyError": "無法複製。要再試一次嗎？",
+    "linkUnavailable": "暫時無法載入你的連結，請稍後再試。",
     "bonusAmount": "你們雙方都將獲得 {seeds} 顆種子",
     "bonusWhen": "在他們加入時！",
     "garden": {
@@ -5931,8 +5933,6 @@
     "reflectAndCelebrate": "反思與慶祝",
     "newBeginning": "新的開始",
     "recharge": "充電",
-    "alexNoted": "Alex 記下了",
-    "partnerLovesPresence": "你的伴侶很喜歡你專注陪伴的時刻",
     "jordanSuggests": "Jordan 建議",
     "setClearIntention": "在加入前設定一個明確的意圖",
     "mayaNoticesLabel": "Maya 注意到",
@@ -5947,9 +5947,6 @@
     "manyMeetingsNotice": "你最近開了好多會。你最棒的靈感往往是在安靜的空間裡產生的。",
     "busiestDayPacked": "{day} 看起來排得很滿。要不要把一些事情移到 {lightDay}？",
     "anotherDay": "改天",
-    "wisdomMornings": "你早晨的開始往往決定了這一整天的基調。",
-    "wisdomFocusTime": "當你預留專注時間，你的效率能提升 40%。",
-    "wisdomWalks": "你 seem 散步後最能激發創意。",
     "insightBalanced": "你的行事曆看起來很均衡。",
     "insightNeedsAttention": "你的行事曆需要留意一下。",
     "insightAdjustments": "做些調整可能會有幫助。",
@@ -8099,6 +8096,12 @@
         "enter": "抵達",
         "exit": "離開",
         "both": "兩者皆可"
+      },
+      "calendar": {
+        "start": "活動開始時",
+        "when": "觸發時機為...",
+        "end": "活動結束時",
+        "reminder": "活動開始前不久"
       }
     },
     "actions": {
@@ -8133,7 +8136,11 @@
       "title": "我該做些什麼呢？"
     },
     "defaultMessage": "早安！準備好開始新的一天了嗎？",
-    "trackHabit": "記錄：{habit}"
+    "trackHabit": "記錄：{habit}",
+    "errors": {
+      "signInRequired": "請登入以儲存你的日常慣例",
+      "saveFailed": "無法儲存。要再試一次嗎？"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -9149,6 +9156,7 @@
     "tierReqGardener": "3-5 位好友",
     "tierReqGroveKeeper": "6-10 位好友",
     "tierReqForestGuardian": "11 位以上好友",
+    "loadFailed": "暫時無法載入你的花園，請稍後再試。",
     "inviteFriends": "邀請好友",
     "emptyTitle": "你的花園正等著茁壯成長！",
     "emptyHint": "與好友分享 Ferni，你們雙方都能獲得 25 顆種子。",
@@ -9359,6 +9367,7 @@
     "eyebrow": "你的旅程",
     "title": "你與 Ferni 的這一年",
     "subtitle": "{conversations}。{minutes}。無數個成長的瞬間。",
+    "subtitleNoMinutes": "{conversations}。無數個成長的瞬間。",
     "statConversations": "對話",
     "statTotal": "總計",
     "statCurrentStreak": "目前連續天數",
@@ -10108,7 +10117,9 @@
       "leave": "當你離開 {name} 時",
       "somewhere": "某個地方",
       "calendar": "在你的行事曆活動之前",
-      "event": "當事情發生時"
+      "event": "當事情發生時",
+      "calendarStart": "在行事曆活動開始時",
+      "calendarEnd": "在行事曆活動結束時"
     },
     "status": {
       "active": "處理中",
@@ -10125,8 +10136,13 @@
     "runNow": "立即執行",
     "signInPrompt": "登入以查看我為你做的事",
     "loadError": "無法載入你的日常慣例",
-    "connectionsSoon": "連結服務即將推出...",
-    "whatIDoForYou": "我為你做的事"
+    "whatIDoForYou": "我為你做的事",
+    "connections": {
+      "connected": "已連結",
+      "notConnected": "未連結",
+      "intro": "這些是我可以為你使用的服務。",
+      "loadError": "無法載入你已連結的服務"
+    }
   },
   "voiceAuth": {
     "unknownError": "未知錯誤",
@@ -10186,6 +10202,7 @@
     "nowPlaying": "正在播放：{name}",
     "memoryRemoved": "已移除回憶",
     "couldNotRemoveMemory": "無法移除該回憶。要再試一次嗎？",
+    "memoryNotFound": "找不到該回憶，它可能已經被移除了。",
     "couldNotLoadPredictions": "無法載入你的預測。要再試一次嗎？",
     "noPredictionsYet": "目前還沒有預測。和 Ferni 一起做個預測，它就會顯示在這裡囉。",
     "preparingData": "正在準備你的資料...",
@@ -10413,6 +10430,8 @@
     "switchFailedStaying": "切換失敗。{error}。繼續與 {name} 對話。",
     "switchFailed": "切換失敗。{error}",
     "rateLimited": "慢慢來，一次切換一個就好",
+    "handoffTimeout": "切換花的時間比預期的長。我一直都在這裡陪著你。",
+    "cameoTimeout": "嘉賓登場的時間太長了，所以我先結束了。我一直都在這裡。",
     "alwaysHere": "Ferni 隨時都在你身邊",
     "removedFromRoster": "已將 {name} 從名單中移除",
     "addToTeam": "將 {name} 新增至你的團隊",
@@ -11031,5 +11050,9 @@
     "samplePattern": "「星期天晚上對你來說似乎特別不容易……」",
     "sampleInsight": "「你這週提到了 8 次感到疲憊。這份疲倦似乎與你在工作上建立界線的挑戰有關。」",
     "sampleEvidence": "基於 {count} 次對話"
+  },
+  "agentAcks": {
+    "gameStartFailed": "遊戲沒能開始。試著直接對 Ferni 說出來吧。",
+    "actionFailed": "沒有成功。可能已經處理過了。"
   }
 }

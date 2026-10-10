@@ -16,16 +16,19 @@ async function opens(page: Page, control: Locator, what: string) {
   return newPanel(page, before, what);
 }
 
-async function openGifts(page: Page) {
+async function openGifts(page: Page, add = false) {
   await openSettingsMenu(page);
   const people = await opens(page, page.locator('.settings-menu [data-action="contacts"]'), 'contacts');
-  if (!(await people.locator('.yp-person', { hasText: PERSON }).count())) {
+  // Add on the first open only. After a reload the list loads late, so a count taken too early
+  // reads 0 and added a second, identical person (CI: "resolved to 2 elements")
+  if (add) {
     await people.locator('[data-action="add-person"]').click();
     const form = page.locator('.add-person-overlay.open');
     await form.getByPlaceholder('e.g., Mom, Sarah Chen, Dr. Rivera').fill(PERSON);
     await form.locator('[data-relationship="friend"]').click();
     await form.getByRole('button', { name: 'Add Person', exact: true }).click();
   }
+  await expect(people.locator('.yp-person', { hasText: PERSON })).toHaveCount(1, { timeout: 10_000 });
   const card = await opens(page, people.locator('.yp-person', { hasText: PERSON }), 'person card');
   await card.locator('.rc-tab[data-tab="gifts"]').click();
   return card;
@@ -38,7 +41,7 @@ test.beforeEach(async ({ page }) => {
 
 test('a recorded gift is saved, listed, and kept after a reload', async ({ page }) => {
   const problems = watchProblems(page);
-  let card = await openGifts(page);
+  let card = await openGifts(page, true);
   const gift = await opens(page, card.locator('[data-action="add-gift"]').first(), 'record a gift');
   await gift.locator('#rg-item').fill(GIFT);
   await gift.locator('#rg-date').fill('2026-09-30');

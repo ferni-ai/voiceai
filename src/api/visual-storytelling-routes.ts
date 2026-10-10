@@ -15,7 +15,8 @@
 
 import type http from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { validateAuth, sendSuccess, sendError, parseRequestBody } from './helpers.js';
+import { sendSuccess, sendError, parseRequestBody } from './helpers.js';
+import { requirePathOwner } from './path-owner.js';
 
 const log = createLogger({ module: 'visual-storytelling-routes' });
 
@@ -205,8 +206,7 @@ async function handleGetVisualStorytellingData(
   res: http.ServerResponse,
   userId: string
 ): Promise<boolean> {
-  const auth = await validateAuth(req, res);
-  if (!auth) return true;
+  if (!(await requirePathOwner(req, res, userId))) return true;
 
   try {
     // Get user's session/relationship data
@@ -315,8 +315,7 @@ async function handleUpdateSleepPattern(
   res: http.ServerResponse,
   userId: string
 ): Promise<boolean> {
-  const auth = await validateAuth(req, res);
-  if (!auth) return true;
+  if (!(await requirePathOwner(req, res, userId))) return true;
 
   try {
     const body = await parseRequestBody<SleepPatternData>(req);
@@ -368,8 +367,7 @@ async function handleCelebrateMilestone(
   userId: string,
   milestoneId: string
 ): Promise<boolean> {
-  const auth = await validateAuth(req, res);
-  if (!auth) return true;
+  if (!(await requirePathOwner(req, res, userId))) return true;
 
   try {
     const { getFirestore } = await import('../memory/firestore-factory.js');
@@ -410,8 +408,7 @@ async function handleInferSleepPattern(
   res: http.ServerResponse,
   userId: string
 ): Promise<boolean> {
-  const auth = await validateAuth(req, res);
-  if (!auth) return true;
+  if (!(await requirePathOwner(req, res, userId))) return true;
 
   try {
     // Get session history to infer sleep patterns

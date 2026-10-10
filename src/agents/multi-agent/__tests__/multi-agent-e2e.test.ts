@@ -455,6 +455,13 @@ describe('Rapid Handoff Stability E2E', () => {
 
   beforeEach(async () => {
     agentIdCounter = 0;
+    // These tests are about state, not speech: each goodbye and greeting otherwise waits
+    // its estimated speaking time for real, which put six handoffs right at the timeout
+    const { AgentOrchestrator } = await import('../orchestrator.js');
+    vi.spyOn(
+      AgentOrchestrator.prototype as unknown as { estimateSpeechDuration: (text: string) => number },
+      'estimateSpeechDuration'
+    ).mockReturnValue(0);
 
     mockConfig = {
       ctx: {} as Parameters<typeof import('../orchestrator.js').createAgentOrchestrator>[0]['ctx'],
@@ -480,6 +487,7 @@ describe('Rapid Handoff Stability E2E', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.restoreAllMocks(); // the speech-duration stub
   });
 
   it('should handle rapid sequential handoffs without crashing', async () => {

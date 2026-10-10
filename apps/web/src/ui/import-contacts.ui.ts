@@ -950,17 +950,5 @@ export function closeImportContacts(): void {
   log.info('Closed import contacts modal');
 }
 
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-
-export function initImportContactsUI(): void {
-  document.addEventListener('ferni:open-import-contacts', () => {
-    openImportContacts();
-  });
-
-  log.debug('Import Contacts UI initialized');
-}
-
 export default { open: openImportContacts, close: closeImportContacts };
 

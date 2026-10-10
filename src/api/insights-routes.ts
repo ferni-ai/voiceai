@@ -10,6 +10,9 @@
 
 import type http from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { requireAuth } from './auth-middleware.js';
+import { sendError } from './helpers.js';
+import { buildRelationship } from './insights-relationship.js';
 
 const log = createLogger({ module: 'insights-routes' });
 
@@ -81,7 +84,15 @@ export async function handleInsightsRoutes(
   // GET /api/insights/:userId - Fetch insights for a user
   const userIdMatch = pathname.match(/^\/api\/insights\/([^/]+)$/);
   if (userIdMatch && req.method === 'GET') {
+    // Insights hold the person's commitments, dreams and energy history: only they
+    // (or an admin) may read them, whatever id the path names.
+    const auth = await requireAuth(req, res);
+    if (!auth) return true;
     const userId = decodeURIComponent(userIdMatch[1]);
+    if (userId !== auth.userId && !auth.isAdmin) {
+      sendError(res, "That isn't yours to see.", 403);
+      return true;
+    }
     return handleGetInsights(req, res, userId);
   }
 
@@ -285,41 +296,15 @@ async function handleGetInsights(
       }
     }
 
-    // Relationship milestone
-    let relationship: InsightsResponse['relationship'] = undefined;
-    if (store) {
-      const profile = await store.getProfile(userId);
-      if (profile) {
-        // Calculate days together from lastEngagementAt (approximate)
-        const daysTogether = profile.lastEngagementAt
-          ? Math.floor(
-              (Date.now() - new Date(profile.lastEngagementAt).getTime()) / (1000 * 60 * 60 * 24)
-            ) + profile.totalRitualDays
-          : profile.totalRitualDays;
-        const conversations = profile.stats.totalSkyChecks + profile.stats.totalPredictions;
-
-        if (daysTogether >= 7 || conversations >= 10) {
-          let milestone: string | undefined;
-          if (conversations >= 100) {
-            milestone = "100+ check-ins! We've built something meaningful.";
-          } else if (daysTogether >= 30) {
-            milestone = 'A month of growth. Thank you for trusting me.';
-          } else if (conversations >= 50) {
-            milestone = "50+ conversations. I see how far you've come.";
-          } else if (daysTogether >= 7) {
-            milestone = 'A week of showing up. That matters.';
-          }
-
-          if (milestone) {
-            relationship = {
-              daysTogether,
-              conversations,
-              milestone,
-            };
-          }
-        }
-      }
-    }
+    // Relationship milestone: the profile's real first-contact date and conversation count
+    const relationship = await import('../memory/store-factory.js')
+      .then(({ getStore }) => getStore())
+      .then((memory) => memory.getProfile(userId))
+      .then((profile) => buildRelationship(profile))
+      .catch((err) => {
+        log.warn({ userId, error: String(err) }, 'Failed to load profile - no relationship card');
+        return undefined;
+      });
 
     // Build response
     const response: InsightsResponse = {

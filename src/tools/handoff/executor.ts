@@ -11,15 +11,9 @@
  */
 
 import {
-  getLockedMemberTeaser,
-  isCoreTeamMember,
-  isTeamMemberUnlocked,
-} from '../../intelligence/context-builders/team/team-availability.js';
-import {
   detectUserMoodFromContext,
   getAliveEntranceForHandoff,
 } from '../../personas/alive-entrances.js';
-import { isCoach } from '../../personas/persona-ids.js';
 import { AgentRegistry } from '../../personas/registry/unified-registry.js';
 import {
   getCanonicalPersonaId,
@@ -27,7 +21,7 @@ import {
   getVoiceId,
 } from '../../personas/voice-registry.js';
 import type { AgentId } from '../../services/agent-bus.js';
-import { isFullTeamUnlocked } from '../../services/team-unlocks.js';
+import { checkHandoffUnlocked } from './handoff-unlock-check.js';
 // FIX BUG #1: Import trust context builder for handoffs
 import { getLogger } from '../../utils/safe-logger.js';
 import {
@@ -412,57 +406,19 @@ export async function executeHandoff(
     };
   }
 
-  // Team unlock validation - check if this persona is available for the user
-  // Skip check for coach (coordinator is always available) or if explicitly skipped
-  // Bypass logic (BYPASS_TEAM_UNLOCKS env var) is handled inside isTeamMemberUnlocked()
-  if (!options.skipUnlockCheck && !isCoach(canonicalTargetId)) {
-    const tier = options.subscriptionTier || 'free';
-    const targetName = getPersonaDisplayName(canonicalTargetId);
-
-    if (isCoreTeamMember(canonicalTargetId)) {
-      // Core team member - check individual unlock status
-      const isUnlocked = isTeamMemberUnlocked(canonicalTargetId, options.userProfile || null, tier);
-
-      if (!isUnlocked) {
-        const teaser = getLockedMemberTeaser(canonicalTargetId);
-
-        getLogger().info(
-          { targetAgent: canonicalTargetId, tier, hasProfile: !!options.userProfile },
-          `🔒 Handoff blocked - ${targetName} is not yet unlocked for this user`
-        );
-
-        return {
-          success: false,
-          error:
-            teaser ||
-            `${targetName} isn't available yet. Keep talking to Ferni to unlock more team members!`,
-          targetAgent: canonicalTargetId,
-          targetAgentName: targetName,
-          previousAgent,
-          greeting: '',
-          locked: true,
-        };
-      }
-    } else {
-      // Marketplace agent - requires full team to be unlocked first
-      const fullTeamUnlocked = isFullTeamUnlocked(options.userProfile || null, tier);
-
-      if (!fullTeamUnlocked) {
-        getLogger().info(
-          { targetAgent: canonicalTargetId, tier, hasProfile: !!options.userProfile },
-          `🔒 Handoff blocked - marketplace agent ${targetName} requires full team to be unlocked`
-        );
-
-        return {
-          success: false,
-          error: `${targetName} is a marketplace advisor. Get to know your core team first - once everyone's unlocked, you can expand your circle!`,
-          targetAgent: canonicalTargetId,
-          targetAgentName: targetName,
-          previousAgent,
-          greeting: '',
-          locked: true,
-        };
-      }
+  // Team unlock validation (bypass via BYPASS_TEAM_UNLOCKS is inside the check)
+  if (!options.skipUnlockCheck) {
+    const unlock = checkHandoffUnlocked(canonicalTargetId, options.userProfile || null, options.subscriptionTier || 'free');
+    if (!unlock.open) {
+      return {
+        success: false,
+        error: unlock.error,
+        targetAgent: canonicalTargetId,
+        targetAgentName: getPersonaDisplayName(canonicalTargetId),
+        previousAgent,
+        greeting: '',
+        locked: true,
+      };
     }
   }
 

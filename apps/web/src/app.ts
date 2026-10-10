@@ -20,7 +20,6 @@ import {
 import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
 import { devPanelMayEnable } from './ui/dev-panel-gate.js';
 import {
-  openCalendarSettings,
   openCalendarView,
   openChronicle,
   openContactSettings,
@@ -110,6 +109,7 @@ import {
   onSpotifyLinkStateChange,
   triggerSpotifyLinkToggle,
 } from './ui/spotify.ui.js';
+import { openEverythingConnected } from './ui/everything-connected.js';
 import { initTeamUI, teamUI } from './ui/team.ui.js';
 import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
 // Group Conversations - Team Roundtables and Conference Calls
@@ -206,7 +206,10 @@ import {
 } from './services/speech-event-dispatcher.js';
 // I18n - Internationalization and localization
 import { initI18n, t } from './i18n/index.js';
+import { createConversationStarter, START_CONVERSATION_EVENTS } from './app/conversation-starter.js';
+import { openPanelFromUrl } from './services/notification-navigation.js';
 import { bindStaticDom } from './i18n/static-dom.js';
+import { bindLocaleRefresh } from './app/locale-refresh.js';
 import { installDialogFocus } from './utils/dialog-focus.js';
 import { tp } from './i18n/plural.js';
 // Mood Context - Time-based persona mood for "Better than Human"
@@ -274,6 +277,7 @@ import { journeyUI } from './ui/journey.ui.js';
 import { growthJourneyService } from './services/growth-journey.service.js';
 // Voice Auth Service
 import { getVoiceAuthService } from './services/voice-auth.service.js';
+import { announceMonthlyGiftPaid } from './services/seed-payment.js';
 // Toast for notifications (legacy - use moments.whisper() for new code)
 import { toast } from './ui/whisper.ui.js';
 import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
@@ -494,6 +498,7 @@ class VoiceAIApp {
 
       await initI18n(); // before any UI renders
       bindStaticDom(); // index.html text marked with data-i18n
+      bindLocaleRefresh(); // a no-reload language change finishes with a reload
       installDialogFocus(); // focus into, around and back out of every modal
       // Require sign-in, like iOS; await it so an existing session is restored
       const authState = await initializeAuth();
@@ -1960,22 +1965,7 @@ class VoiceAIApp {
         onGiftsClick: () => void openYourPeople(), // Gifts now integrated into relationship cards
         // Warm menu callbacks
         onTogetherSessionsClick: () => void showGroupCoaching(), // Combines group coaching + team huddles
-        onAllConnectionsClick: () => {
-          // Open the Connected Life panel (consolidates all integrations)
-          void import('./ui/connected-life.ui.js').then(({ showConnectedLife }) => {
-            void showConnectedLife({
-              onConnectAppleHealth: () => void showAppleHealthSettings(),
-              onConnectOura: () => void showOuraSettings(),
-              onConnectEightSleep: () => void showEightSleepSettings(),
-              onConnectWearables: () => void showWearableSettings(),
-              onConnectCalendar: () => void openCalendarSettings(),
-              onConnectLinkedIn: LINKEDIN_ENABLED ? () => void showLinkedInSettings() : undefined,
-              onConnectSpotify: () => void triggerSpotifyLinkToggle(),
-              onConnectEcobee: () => void showVibeController(), // Ecobee is in Vibe Controller
-              onOpenVibeController: () => void showVibeController(),
-            });
-          });
-        },
+        onAllConnectionsClick: () => openEverythingConnected(), // Connected Life: all integrations
         // New feature callbacks
         onMemoryLaneClick: () => void openMemoryLane(),
         onPatternInsightsClick: () => {
@@ -2090,6 +2080,21 @@ class VoiceAIApp {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     });
 
+    // Hub Talk/persona buttons, Chronicle voice switch, outreach cards: start a call like Connect
+    const startConversation = createConversationStarter({
+      connect: () => this.connect(),
+      selectPersona: (id) => this.selectPersona(id),
+    });
+    for (const name of START_CONVERSATION_EVENTS.window) {
+      this.addTrackedListener(window, name, startConversation);
+    }
+    for (const name of START_CONVERSATION_EVENTS.document) {
+      this.addTrackedListener(document, name, startConversation);
+    }
+
+    // A notification that opened a fresh window lands on /?panel=<name>
+    setTimeout(openPanelFromUrl, 500);
+
     // 🔄 Persona Switch - connects dispatched events to actual handoff
     // Multiple UI components dispatch this event (team-unlock-celebration, command-palette, etc.)
     // but it wasn't triggering the voice agent handoff - this fixes that!
@@ -2107,10 +2112,8 @@ class VoiceAIApp {
       // Show thank you message for successful payment
       // Wait a moment for UI to initialize
       setTimeout(() => {
-        void showFerniFundThankYou({
-          conversationsSponsored: 1,
-          message: t('app.gardenThankYou'),
-        });
+        announceMonthlyGiftPaid();
+        void showFerniFundThankYou({ conversationsSponsored: 1, message: t('app.gardenThankYou') });
         // Clean up the URL without reload
         window.history.replaceState({}, '', '/');
       }, 500);
@@ -2642,7 +2645,7 @@ class VoiceAIApp {
     // This ensures referrer gets credit after new user completes a meaningful conversation
     const convCount = modalCoordinator.getConversationCount();
     if (convCount <= 2) {
-      const referralResult = processPendingReferral();
+      const referralResult = await processPendingReferral();
       if (referralResult.processed) {
         log.info({ bonus: referralResult.bonusAwarded }, 'Referral bonus applied');
         // Show toast after a short delay so it doesn't conflict with conversation end UI

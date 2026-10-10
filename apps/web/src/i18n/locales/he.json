@@ -2457,7 +2457,8 @@
       "devices": "מכשירים",
       "features": "מה ש-Ferni רואה"
     },
-    "title": "מכשירים לבישים"
+    "title": "מכשירים לבישים",
+    "notConfigured": "עדיין לא הוגדר"
   },
   "transcript": {
     "enabled": "תמלול פעיל",
@@ -3675,6 +3676,7 @@
     },
     "errorClipboard": "ההעתקה נכשלה. לנסות שוב?",
     "copyError": "לא הצלחנו להעתיק. לנסות שוב?",
+    "linkUnavailable": "לא הצלחנו לטעון את הקישור שלך כרגע. נסו שוב בעוד רגע.",
     "bonusAmount": "שניכם תקבלו {seeds} זרעים",
     "bonusWhen": "ברגע שהם מצטרפים!",
     "garden": {
@@ -5963,8 +5965,6 @@
     "reflectAndCelebrate": "להתבונן ולחגוג",
     "newBeginning": "התחלה חדשה",
     "recharge": "להטעין מצברים",
-    "alexNoted": "ALEX שם לב",
-    "partnerLovesPresence": "בני הזוג שלך אוהבים את הנוכחות שלך",
     "jordanSuggests": "JORDAN מציע",
     "setClearIntention": "להגדיר כוונה ברורה לפני שמצטרפים",
     "mayaNoticesLabel": "MAYA שמה לב",
@@ -5979,9 +5979,6 @@
     "manyMeetingsNotice": "היו לך הרבה פגישות בזמן האחרון. החשיבה הכי טובה שלך מתרחשת במרחבים השקטים.",
     "busiestDayPacked": "יום {day} נראה עמוס מאוד. אולי כדאי להעביר משהו ליום {lightDay}?",
     "anotherDay": "יום אחר",
-    "wisdomMornings": "האופן שבו הבוקר שלך מתחיל נוטה לקבוע את הטון לכל היום.",
-    "wisdomFocusTime": "כשמפנים זמן מיקוד, מספיקים 40% יותר.",
-    "wisdomWalks": "נראה שהיצירתיות שלך במיטבה אחרי הליכות.",
     "insightBalanced": "לוח השנה שלך נראה מאוזן.",
     "insightNeedsAttention": "לוח השנה שלך דורש תשומת לב.",
     "insightAdjustments": "כמה התאמות קטנות יכולות לעזור.",
@@ -8147,6 +8144,12 @@
         "enter": "מגיעים",
         "exit": "עוזבים",
         "both": "הגעה או עזיבה"
+      },
+      "calendar": {
+        "start": "כשאירוע מתחיל",
+        "when": "להפעיל...",
+        "end": "כשאירוע מסתיים",
+        "reminder": "זמן קצר לפני אירוע"
       }
     },
     "actions": {
@@ -8181,7 +8184,11 @@
       "title": "מה כדאי לעשות?"
     },
     "defaultMessage": "בוקר טוב! מוכנים להתחיל את היום?",
-    "trackHabit": "מעקב: {habit}"
+    "trackHabit": "מעקב: {habit}",
+    "errors": {
+      "signInRequired": "התחברו כדי לשמור את השגרה שלכם",
+      "saveFailed": "לא הצלחתי לשמור. לנסות שוב?"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -9218,6 +9225,7 @@
     "tierReqGardener": "3-5 חברים",
     "tierReqGroveKeeper": "6-10 חברים",
     "tierReqForestGuardian": "11+ חברים",
+    "loadFailed": "לא הצלחנו לטעון את הגינה שלך כרגע. נסו שוב בעוד רגע.",
     "inviteFriends": "להזמין חברים",
     "emptyTitle": "הגינה שלך מחכה לצמוח!",
     "emptyHint": "שיתוף Ferni עם חברים יעניק לכולכם 25 זרעים.",
@@ -9433,6 +9441,7 @@
     "eyebrow": "המסע שלך",
     "title": "השנה שלך עם Ferni",
     "subtitle": "{conversations}. {minutes}. אינספור רגעים של צמיחה.",
+    "subtitleNoMinutes": "{conversations}. אינספור רגעים של צמיחה.",
     "statConversations": "שיחות",
     "statTotal": "סה\"כ",
     "statCurrentStreak": "רצף נוכחי",
@@ -10202,7 +10211,9 @@
       "leave": "כשעוזבים את {name}",
       "somewhere": "מקום כלשהו",
       "calendar": "לפני אירועים בלוח השנה שלכם",
-      "event": "כשמשהו קורה"
+      "event": "כשמשהו קורה",
+      "calendarStart": "כשאירוע בלוח השנה מתחיל",
+      "calendarEnd": "כשאירוע בלוח השנה מסתיים"
     },
     "status": {
       "active": "אני מטפל בזה",
@@ -10219,8 +10230,13 @@
     "runNow": "להפעיל עכשיו",
     "signInPrompt": "כדאי להתחבר כדי לראות מה אני עושה בשבילכם",
     "loadError": "לא הצלחתי לטעון את השגרה שלכם",
-    "connectionsSoon": "שירותים מחוברים יגיעו בקרוב...",
-    "whatIDoForYou": "מה שאני עושה בשבילכם"
+    "whatIDoForYou": "מה שאני עושה בשבילכם",
+    "connections": {
+      "connected": "מחובר",
+      "notConnected": "לא מחובר",
+      "intro": "אלה השירותים שבהם אפשר להשתמש בשבילכם.",
+      "loadError": "לא הצלחתי לטעון את השירותים המחוברים שלכם"
+    }
   },
   "voiceAuth": {
     "unknownError": "שגיאה לא ידועה",
@@ -10280,6 +10296,7 @@
     "nowPlaying": "עכשיו מתנגן: {name}",
     "memoryRemoved": "הזיכרון הוסר",
     "couldNotRemoveMemory": "לא הצלחנו להסיר את הזיכרון הזה. לנסות שוב?",
+    "memoryNotFound": "לא מצאנו את הזיכרון הזה. ייתכן שהוא כבר נמחק.",
     "couldNotLoadPredictions": "לא הצלחנו לטעון את התחזיות. לנסות שוב?",
     "noPredictionsYet": "אין עדיין תחזיות. ברגע שיוצרים אחת עם Ferni, היא תופיע כאן.",
     "preparingData": "מכינים את הנתונים שלך...",
@@ -10518,6 +10535,8 @@
     "switchFailedStaying": "המעבר נכשל. {error}. נשארים עם {name}.",
     "switchFailed": "המעבר נכשל. {error}",
     "rateLimited": "בלי לחץ – מעבר אחד בכל פעם",
+    "handoffTimeout": "המעבר לוקח יותר זמן מהצפוי. אני עדיין כאן איתך.",
+    "cameoTimeout": "הופעת האורח התארכה, אז סיימתי אותה. אני עדיין כאן.",
     "alwaysHere": "Ferni תמיד כאן בשבילך",
     "removedFromRoster": "הסרנו את {name} מהרשימה",
     "addToTeam": "להוסיף את {name} לצוות שלך",
@@ -11156,5 +11175,9 @@
     "samplePattern": "\"נראה שימי ראשון בערב קצת קשים לך...\"",
     "sampleInsight": "\"הזכרת עייפות 8 פעמים השבוע. נראה שהעייפות קשורה לאתגרים בהצבת גבולות בעבודה.\"",
     "sampleEvidence": "על בסיס {count} שיחות"
+  },
+  "agentAcks": {
+    "gameStartFailed": "המשחק לא התחיל. כדאי לבקש מ-Ferni בקול לשחק איתך.",
+    "actionFailed": "זה לא עבר. אולי כבר טיפלו בזה."
   }
 }

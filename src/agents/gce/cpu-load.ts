@@ -16,9 +16,19 @@ import { performance } from 'node:perf_hooks';
 /** Above this load the worker reports itself full (the stock agents default). */
 export const FULL_LOAD_THRESHOLD = 0.7;
 
-/** The worker takes no new calls at 3 jobs or once real CPU load crosses the threshold. */
-export function workerIsFull(activeJobs: number, load: number): boolean {
-  return activeJobs >= 3 || load >= FULL_LOAD_THRESHOLD;
+/**
+ * Calls one worker takes at once. Two calls on one worker starve its shared event loop (dev:
+ * VAD lag p50 0.5 s alone, 8.2 s / max 41 s with two), so one until that's fixed.
+ * AGENT_MAX_JOBS_PER_WORKER raises it without a code change.
+ */
+export function maxJobsPerWorker(env: string | undefined = process.env.AGENT_MAX_JOBS_PER_WORKER): number {
+  const n = Number(env);
+  return Number.isInteger(n) && n >= 1 ? n : 1;
+}
+
+/** The worker takes no new calls at its job cap or once real CPU load crosses the threshold. */
+export function workerIsFull(activeJobs: number, load: number, maxJobs = maxJobsPerWorker()): boolean {
+  return activeJobs >= maxJobs || load >= FULL_LOAD_THRESHOLD;
 }
 
 /** Usable CPUs: NUM_CPUS override, else cgroup v2 `cpu.max` quota/period, else `fallback`. */

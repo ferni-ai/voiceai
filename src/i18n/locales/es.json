@@ -648,7 +648,6 @@
       "found": "{persona} encontró"
     },
     "eventContext": {
-      "family": "A tu pareja le encanta cuando estás presente de verdad",
       "meeting": "Define una intención clara antes de unirte",
       "wellness": "Cuidar de ti en primer lugar",
       "learning": "El crecimiento ocurre cuando nos desafiamos",
@@ -694,11 +693,7 @@
     "pattern": {
       "busyWeek": "Has tenido muchas reuniones últimamente. Tus mejores reflexiones surgen en los espacios de calma.",
       "packedDay": "El {day} se ve muy lleno. ¿Y si mueves algo al {otherDay}?",
-      "packedDayNoAlternative": "El {day} se ve muy lleno. ¿Y si mueves algo a otro día?",
-      "morningStart": "Tu forma de empezar la mañana suele marcar el ritmo de todo el día.",
-      "focusTime": "Cuando reservas tiempo de enfoque, logras un 40% más.",
-      "creativeAfterWalks": "Parece que tienes más creatividad después de tus caminatas.",
-      "tuesdayEvenings": "Los martes por la tarde han sido tus momentos más productivos."
+      "packedDayNoAlternative": "El {day} se ve muy lleno. ¿Y si mueves algo a otro día?"
     },
     "errors": {
       "loadFailed": "No pudimos cargar la vista de práctica",

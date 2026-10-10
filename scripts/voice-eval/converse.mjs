@@ -184,6 +184,16 @@ const results = [];
 let replyStartedAt = 0;
 for (const arg of turns) {
   const [path, mode, at] = arg.split('::');
+  if (mode === 'data') {
+    // A UI action (music_control, approvals): sent the way the web app sends
+    // it, reliable and with no topic, once the agent is quiet.
+    await waitQuiet(30000);
+    const payload = readFileSync(path, 'utf8').trim();
+    await room.localParticipant.publishData(new TextEncoder().encode(payload), { reliable: true });
+    results.push({ turn: path.split('/').pop(), mode, sentAt: now(), payload: JSON.parse(payload) });
+    await sleep(Number(at) || 3000);
+    continue;
+  }
   if (mode) {
     results.push(await overlap(path, mode, Number(at), replyStartedAt));
     if (mode === 'interrupt') {

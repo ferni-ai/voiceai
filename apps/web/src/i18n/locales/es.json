@@ -2457,7 +2457,8 @@
       "devices": "Dispositivos",
       "features": "Lo que Ferni puede ver"
     },
-    "title": "Dispositivos corporales"
+    "title": "Dispositivos corporales",
+    "notConfigured": "Aún no configurado"
   },
   "transcript": {
     "enabled": "Transcripción activada",
@@ -3675,6 +3676,7 @@
     },
     "errorClipboard": "No se pudo copiar. ¿Lo intentas de nuevo?",
     "copyError": "No se pudo copiar. ¿Lo intentas de nuevo?",
+    "linkUnavailable": "No pudimos cargar tu enlace ahora mismo. Inténtalo de nuevo en un momento.",
     "bonusAmount": "Ambos recibirán {seeds} semillas",
     "bonusWhen": "¡cuando se unan!",
     "garden": {
@@ -5964,8 +5966,6 @@
     "reflectAndCelebrate": "Reflexiona y celebra",
     "newBeginning": "Nuevo comienzo",
     "recharge": "Recargar energías",
-    "alexNoted": "ALEX NOTÓ",
-    "partnerLovesPresence": "A tu pareja le encanta cuando estás presente",
     "jordanSuggests": "JORDAN SUGIERE",
     "setClearIntention": "Establece una intención clara antes de unirte",
     "mayaNoticesLabel": "MAYA NOTA",
@@ -5980,9 +5980,6 @@
     "manyMeetingsNotice": "Has tenido muchas reuniones últimamente. Tus mejores ideas surgen en los espacios de tranquilidad.",
     "busiestDayPacked": "El {day} parece muy lleno. ¿Quizás puedas mover algo al {lightDay}?",
     "anotherDay": "otro día",
-    "wisdomMornings": "Tus mañanas suelen marcar el tono de todo el día.",
-    "wisdomFocusTime": "Cuando reservas tiempo de enfoque, logras un 40% más.",
-    "wisdomWalks": "Parece que tienes más creatividad después de tus caminatas.",
     "insightBalanced": "Tu calendario se ve equilibrado.",
     "insightNeedsAttention": "Tu calendario necesita atención.",
     "insightAdjustments": "Algunos ajustes podrían ayudar.",
@@ -8148,6 +8145,12 @@
         "enter": "Llegue",
         "exit": "Salga",
         "both": "Cualquiera de los dos"
+      },
+      "calendar": {
+        "start": "Cuando empieza un evento",
+        "when": "Activar...",
+        "end": "Cuando termina un evento",
+        "reminder": "Poco antes de un evento"
       }
     },
     "actions": {
@@ -8182,7 +8185,11 @@
       "title": "¿Qué debería hacer?"
     },
     "defaultMessage": "¡Buenos días! ¿Todo listo para empezar el día?",
-    "trackHabit": "Seguimiento: {habit}"
+    "trackHabit": "Seguimiento: {habit}",
+    "errors": {
+      "signInRequired": "Inicia sesión para guardar tus rutinas",
+      "saveFailed": "No se pudo guardar. ¿Lo intentas de nuevo?"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -9219,6 +9226,7 @@
     "tierReqGardener": "3-5 amistades",
     "tierReqGroveKeeper": "6-10 amistades",
     "tierReqForestGuardian": "11+ amistades",
+    "loadFailed": "No pudimos cargar tu jardín ahora mismo. Inténtalo de nuevo en un momento.",
     "inviteFriends": "Invita a tus amistades",
     "emptyTitle": "¡Tu jardín está esperando para crecer!",
     "emptyHint": "Comparte Ferni con tus amistades y recibirán 25 semillas cada quien.",
@@ -9434,6 +9442,7 @@
     "eyebrow": "TU CAMINO",
     "title": "Tu año con Ferni",
     "subtitle": "{conversations}. {minutes}. Incontables momentos de crecimiento.",
+    "subtitleNoMinutes": "{conversations}. Incontables momentos de crecimiento.",
     "statConversations": "Conversaciones",
     "statTotal": "Total",
     "statCurrentStreak": "Racha actual",
@@ -10203,7 +10212,9 @@
       "leave": "Cuando te vayas de {name}",
       "somewhere": "algún lugar",
       "calendar": "Antes de tus eventos del calendario",
-      "event": "Cuando pase algo"
+      "event": "Cuando pase algo",
+      "calendarStart": "Cuando empieza un evento del calendario",
+      "calendarEnd": "Cuando termina un evento del calendario"
     },
     "status": {
       "active": "Me estoy encargando",
@@ -10220,8 +10231,13 @@
     "runNow": "Ejecutar ahora",
     "signInPrompt": "Inicia sesión para ver lo que hago por ti",
     "loadError": "No se pudieron cargar tus rutinas",
-    "connectionsSoon": "Próximamente servicios conectados...",
-    "whatIDoForYou": "Lo que hago por ti"
+    "whatIDoForYou": "Lo que hago por ti",
+    "connections": {
+      "connected": "Conectado",
+      "notConnected": "No conectado",
+      "intro": "Estos son los servicios que puedo usar para ayudarte.",
+      "loadError": "No se pudieron cargar tus servicios conectados"
+    }
   },
   "voiceAuth": {
     "unknownError": "Error desconocido",
@@ -10281,6 +10297,7 @@
     "nowPlaying": "Reproduciendo ahora: {name}",
     "memoryRemoved": "Recuerdo eliminado",
     "couldNotRemoveMemory": "No se pudo eliminar ese recuerdo. ¿Lo intentamos de nuevo?",
+    "memoryNotFound": "No se encontró ese recuerdo. Puede que ya no esté.",
     "couldNotLoadPredictions": "No se pudieron cargar tus predicciones. ¿Lo intentamos de nuevo?",
     "noPredictionsYet": "Aún no hay predicciones. Haz una con Ferni y aparecerá aquí.",
     "preparingData": "Preparando tus datos...",
@@ -10519,6 +10536,8 @@
     "switchFailedStaying": "No se pudo cambiar. {error}. Te quedas con {name}.",
     "switchFailed": "No se pudo cambiar. {error}",
     "rateLimited": "Tómate tu tiempo: un cambio a la vez",
+    "handoffTimeout": "Ese cambio está tardando más de lo esperado. Sigo aquí contigo.",
+    "cameoTimeout": "Esa aparición como invitado se alargó, así que le puse fin. Sigo aquí.",
     "alwaysHere": "Ferni siempre está aquí para ti",
     "removedFromRoster": "Se quitó a {name} de la lista",
     "addToTeam": "Añadir a {name} a tu equipo",
@@ -11157,5 +11176,9 @@
     "samplePattern": "\"Las tardes de domingo parecen ser difíciles para ti...\"",
     "sampleInsight": "\"Has mencionado sentir cansancio 8 veces esta semana. Este cansancio parece estar relacionado con la dificultad para poner límites en el trabajo.\"",
     "sampleEvidence": "Según {count} conversaciones"
+  },
+  "agentAcks": {
+    "gameStartFailed": "El juego no arrancó. Pídele a Ferni en voz alta que lo juegue contigo.",
+    "actionFailed": "Eso no salió bien. Puede que ya se haya resuelto."
   }
 }

@@ -38,6 +38,7 @@ import { handleAddMemory, handleListMemories, handleDeleteMemory } from './memor
 import { handleCreateJournalEntry, handleListJournalEntries } from './journal-routes.js';
 
 import { handleGeneratePrompt } from './prompt-routes.js';
+import { handleAgentChat } from './chat-routes.js';
 
 const log = createLogger({ module: 'CustomAgentAPI' });
 
@@ -226,6 +227,11 @@ export async function handleCustomAgentRoutes(
     // POST /api/custom-agents/:agentId/generate-prompt
     if (method === 'POST' && segments.length === 2 && segments[1] === 'generate-prompt') {
       return handleGeneratePrompt(req, res, userId, segments[0]);
+    }
+
+    // POST /api/custom-agents/:agentId/chat - talk with the agent in text
+    if (method === 'POST' && segments.length === 2 && segments[1] === 'chat') {
+      return handleAgentChat(req, res, userId, segments[0]);
     }
 
     // Route not matched

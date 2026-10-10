@@ -274,10 +274,7 @@ function handleSWMessage(event: MessageEvent): void {
   const { type, ...data } = event.data || {};
 
   switch (type) {
-    case 'notification-click':
-      // Dispatch custom event for app to handle
-      window.dispatchEvent(new CustomEvent('ferni:notification-click', { detail: data }));
-      break;
+    // 'notification-click' is handled by push-notifications.service (same message, typed payload)
     case 'notification-dismissed':
       window.dispatchEvent(new CustomEvent('ferni:notification-dismissed', { detail: data }));
       break;

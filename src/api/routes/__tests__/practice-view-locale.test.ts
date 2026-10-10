@@ -42,6 +42,7 @@ vi.mock('../../../services/superhuman/predictive-coaching.js', () => ({
 }));
 
 const { handleGetPracticeView, handleGetPatterns } = await import('../practice-view.js');
+const { getEvents } = await import('../../../services/calendar/index.js');
 const { generateHabitInsight, generateTaskInsight, getTaskInsightPersona } =
   await import('../practice-view-copy.js');
 
@@ -117,9 +118,10 @@ describe('GET /api/practice-view localization', () => {
     });
   });
 
-  it('localizes the whisper and the event note', async () => {
+  it('localizes the event note, and gives no whisper when nothing real matches', async () => {
     const body = await getView('fr');
-    expect(body.mayaNotices.message).toMatch(/^fr\|practiceView\.pattern\./);
+    // Used to be a random canned "pattern" (confidence 0.6) even with no data behind it
+    expect(body.mayaNotices).toBeNull();
     expect(body.todayEvents[0].emotionalContext).toEqual({
       persona: 'fr|practiceView.attribution.suggests',
       insight: 'fr|practiceView.eventContext.meeting',
@@ -177,13 +179,31 @@ describe('GET /api/practice-view localization', () => {
 
 describe('GET /api/practice-view/patterns localization', () => {
   it('returns the pattern whisper in the requested locale', async () => {
+    // 16 meetings in the week: a real busy-week pattern (the default calendar mock has only 1)
+    const meetings = Array.from({ length: 16 }, (_, i) => ({
+      id: `m${i}`,
+      title: `Meeting ${i}`,
+      startTime: new Date(2026, 9, 5 + (i % 5), 9 + (i % 8)),
+      endTime: new Date(2026, 9, 5 + (i % 5), 10 + (i % 8)),
+    }));
+    vi.mocked(getEvents).mockResolvedValueOnce(meetings as never);
     const res = response();
     await handleGetPatterns(
       request('fr'),
       res,
       new URL('http://localhost/api/practice-view/patterns')
     );
-    expect(res.json().patterns[0].message).toMatch(/^fr\|practiceView\.pattern\./);
+    expect(res.json().patterns[0].message).toBe('fr|practiceView.pattern.busyWeek');
+  });
+
+  it('returns no patterns when nothing real matches', async () => {
+    const res = response();
+    await handleGetPatterns(
+      request('fr'),
+      res,
+      new URL('http://localhost/api/practice-view/patterns')
+    );
+    expect(res.json().patterns).toEqual([]);
   });
 });
 

@@ -35,10 +35,11 @@ import { setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/i
 import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { delightService } from '../services/delight.service.js';
-import { engagementService, handoffService, moodService } from '../services/index.js';
+import { connectionService, engagementService, handoffService, moodService } from '../services/index.js';
 import { handleVoiceEventDataMessage } from '../services/voice-events.service.js';
 import { smartPromptTracker } from '../services/roadmap.service.js';
 import { setWrappingUp } from '../state/app.state.js';
+import { handleAgentAckMessage } from './agent-ack-handlers.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
 import { coachUI } from '../ui/coach.ui.js';
@@ -66,7 +67,6 @@ import type { ExpressionId } from '../config/expressions.generated.js';
 import * as luxoExpressions from '../ui/luxo-expressions.ui.js';
 // 🎚️ Music Audio Controller - Real-time ducking
 import { getMusicAudioController } from '../services/music-audio.controller.js';
-import { connectionService } from '../services/index.js';
 // 🚀 Ferni EQ - Superhuman emotional intelligence
 import { ferni } from '../ui/better-than-human.ui.js';
 // 🎧 Now Playing UI - music state visualization
@@ -158,9 +158,9 @@ export function handleDataMessage(message: DataMessage): void {
   }
 
   if (handleGroupDataMessage(message)) return; // group roundtable / call → participant grid
-  // 🌉 Try to process as humanization signal (breakthrough, vulnerability, etc.)
-  // This is the bridge that makes Ferni feel truly human
-  if (humanizationBridge.processMessage(message)) {
+  // 🌉 Try to process as humanization signal (breakthrough, vulnerability, etc.),
+  // or as an agent ack / fallback notice (failed game start, no team mode)
+  if (humanizationBridge.processMessage(message) || handleAgentAckMessage(message)) {
     return;
   }
 

@@ -2514,7 +2514,8 @@
       "devices": "الأجهزة",
       "features": "ما يمكن لـ Ferni رؤيته"
     },
-    "title": "الأجهزة القابلة للارتداء"
+    "title": "الأجهزة القابلة للارتداء",
+    "notConfigured": "لم يُعدّ بعد"
   },
   "transcript": {
     "enabled": "نسخ النص مفعّل",
@@ -3744,6 +3745,7 @@
     },
     "errorClipboard": "تعذر النسخ. المحاولة مجدداً؟",
     "copyError": "تعذر النسخ. هل تودون المحاولة مجددًا؟",
+    "linkUnavailable": "تعذّر تحميل رابطك الآن. حاول مجدداً بعد قليل.",
     "bonusAmount": "سيحصل كِلاكما على {seeds} بذور",
     "bonusWhen": "عند انضمامهم!",
     "garden": {
@@ -6059,8 +6061,6 @@
     "reflectAndCelebrate": "التأمل والاحتفاء",
     "newBeginning": "بداية جديدة",
     "recharge": "شحن الطاقة",
-    "alexNoted": "ملاحظة من ALEX",
-    "partnerLovesPresence": "يسعد الشريك بوجودك وحضورك",
     "jordanSuggests": "اقتراح من JORDAN",
     "setClearIntention": "تحديد نية واضحة قبل الانضمام",
     "mayaNoticesLabel": "ملاحظة من MAYA",
@@ -6075,9 +6075,6 @@
     "manyMeetingsNotice": "لقد قضيت الكثير من الوقت في الاجتماعات مؤخراً. أفضل أفكارك تولد في المساحات الهادئة.",
     "busiestDayPacked": "يبدو يوم {day} مزدحماً للغاية. ما رأيك في نقل بعض المهام إلى يوم {lightDay}؟",
     "anotherDay": "يوم آخر",
-    "wisdomMornings": "بدايات الصباح غالباً ما تحدد طابع اليوم بأكمله.",
-    "wisdomFocusTime": "عند تخصيص وقت للتركيز، تزداد الإنتاجية بنسبة 40%.",
-    "wisdomWalks": "يبدو أن الإبداع يزداد بعد جولات المشي.",
     "insightBalanced": "يبدو التقويم متوازناً.",
     "insightNeedsAttention": "التقويم بحاجة إلى بعض الاهتمام.",
     "insightAdjustments": "بعض التعديلات قد تكون مفيدة.",
@@ -8291,6 +8288,12 @@
         "enter": "الوصول",
         "exit": "المغادرة",
         "both": "كلاهما"
+      },
+      "calendar": {
+        "start": "عند بدء الموعد",
+        "when": "التفعيل...",
+        "end": "عند انتهاء الموعد",
+        "reminder": "قبل الموعد بوقت قصير"
       }
     },
     "actions": {
@@ -8325,7 +8328,11 @@
       "title": "ما الذي يجدر بي فعله؟"
     },
     "defaultMessage": "صباح الخير! هل أنتم مستعدون لبدء اليوم؟",
-    "trackHabit": "تتبّع: {habit}"
+    "trackHabit": "تتبّع: {habit}",
+    "errors": {
+      "signInRequired": "سجلوا الدخول لحفظ روتيناتكم",
+      "saveFailed": "تعذر الحفظ. هل تودون المحاولة مجدداً؟"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -9425,6 +9432,7 @@
     "tierReqGardener": "3-5 أصدقاء",
     "tierReqGroveKeeper": "6-10 أصدقاء",
     "tierReqForestGuardian": "أكثر من 11 صديقاً",
+    "loadFailed": "تعذّر تحميل حديقتك الآن. حاول مجدداً بعد قليل.",
     "inviteFriends": "دعوة الأصدقاء",
     "emptyTitle": "حديقتكم تنتظر أن تنمو وتزدهر!",
     "emptyHint": "شاركونا Ferni مع الأصدقاء وسيحصل كل منكم على 25 بذرة.",
@@ -9655,6 +9663,7 @@
     "eyebrow": "رحلتكم",
     "title": "عامكم مع Ferni",
     "subtitle": "{conversations}. {minutes}. لحظات لا تحصى من النمو.",
+    "subtitleNoMinutes": "{conversations}. لحظات لا تحصى من النمو.",
     "statConversations": "محادثات",
     "statTotal": "الإجمالي",
     "statCurrentStreak": "السلسلة الحالية",
@@ -10484,7 +10493,9 @@
       "leave": "عند مغادرتكم {name}",
       "somewhere": "مكان ما",
       "calendar": "قبل مواعيد تقويمكم",
-      "event": "عند حدوث أمر ما"
+      "event": "عند حدوث أمر ما",
+      "calendarStart": "عند بدء موعد في التقويم",
+      "calendarEnd": "عند انتهاء موعد في التقويم"
     },
     "status": {
       "active": "أهتم بالأمر",
@@ -10501,8 +10512,13 @@
     "runNow": "التشغيل الآن",
     "signInPrompt": "سجلوا الدخول لمعرفة ما يمكنني تقديمه لكم",
     "loadError": "تعذر تحميل الروتينات الخاصة بكم",
-    "connectionsSoon": "الخدمات المتصلة ستتوفر قريباً...",
-    "whatIDoForYou": "ما أقدمه لكم"
+    "whatIDoForYou": "ما أقدمه لكم",
+    "connections": {
+      "connected": "متصل",
+      "notConnected": "غير متصل",
+      "intro": "هذه هي الخدمات التي يمكنني الاستعانة بها فيما أقوم به لأجلكم.",
+      "loadError": "تعذر تحميل خدماتكم المتصلة"
+    }
   },
   "voiceAuth": {
     "unknownError": "خطأ غير معروف",
@@ -10562,6 +10578,7 @@
     "nowPlaying": "يشتغل الآن: {name}",
     "memoryRemoved": "تمت إزالة الذكرى",
     "couldNotRemoveMemory": "تعذّر حذف هذه الذكرى. هل تودّ المحاولة مجدداً؟",
+    "memoryNotFound": "لم نعثر على هذه الذكرى. ربما تم حذفها بالفعل.",
     "couldNotLoadPredictions": "تعذّر تحميل التوقعات. هل تودّ المحاولة مجدداً؟",
     "noPredictionsYet": "لا توجد توقعات بعد. شارك توقعاً مع Ferni وسيظهر هنا.",
     "preparingData": "جاري تحضير البيانات...",
@@ -10833,6 +10850,8 @@
     "switchFailedStaying": "فشل التحويل. {error}. سنبقى مع {name}.",
     "switchFailed": "فشل التحويل. {error}",
     "rateLimited": "تمهّل قليلاً - تحويل واحد في كل مرة",
+    "handoffTimeout": "هذا التحويل يستغرق وقتاً أطول من المتوقع. ما زلت هنا معك.",
+    "cameoTimeout": "طال ظهور الضيف أكثر من اللازم فأنهيته. ما زلت هنا.",
     "alwaysHere": "Ferni هنا دائماً من أجلك",
     "removedFromRoster": "تمت إزالة {name} من القائمة",
     "addToTeam": "إضافة {name} إلى فريقك",
@@ -11531,5 +11550,9 @@
     "samplePattern": "\"تبدو أمسيات الآحاد صعبة عليك...\"",
     "sampleInsight": "\"لقد ذكرت الشعور بالتعب 8 مرات هذا الأسبوع. ويبدو أن هذا التعب مرتبط بتحديات وضع الحدود في العمل.\"",
     "sampleEvidence": "بناءً على {count} من المحادثات"
+  },
+  "agentAcks": {
+    "gameStartFailed": "لم تبدأ اللعبة. جرّبوا أن تطلبوا من Ferni اللعب بصوتٍ عالٍ.",
+    "actionFailed": "لم تتم العملية. ربما تمت معالجتها بالفعل."
   }
 }
