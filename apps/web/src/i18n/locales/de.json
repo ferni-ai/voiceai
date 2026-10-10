@@ -8329,6 +8329,7 @@
     "autoResolveAll": "Alle automatisch lösen",
     "ferniCalendar": "Ferni-Kalender",
     "keepFerni": "Ferni behalten",
+    "keepProvider": "{provider} behalten",
     "dismiss": "Verwerfen",
     "resolving": "Wird gelöst..."
   },
@@ -9021,6 +9022,8 @@
     "dontRemind": "Nicht erinnern",
     "repeatsYearly": "Wiederholt sich jedes Jahr",
     "cancel": "Abbrechen",
+    "add": "Hinzufügen",
+    "update": "Aktualisieren",
     "noDateYet": "Noch keine wichtigen Daten.",
     "noDateDesc": "Füge Geburtstage, Jahrestage und mehr hinzu.",
     "typeBirthday": "Geburtstag",

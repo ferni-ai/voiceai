@@ -24,7 +24,7 @@ async function openGifts(page: Page) {
     const form = page.locator('.add-person-overlay.open');
     await form.getByPlaceholder('e.g., Mom, Sarah Chen, Dr. Rivera').fill(PERSON);
     await form.locator('[data-relationship="friend"]').click();
-    await form.getByRole('button', { name: 'Save', exact: true }).click();
+    await form.getByRole('button', { name: 'Add Person', exact: true }).click();
   }
   const card = await opens(page, people.locator('.yp-person', { hasText: PERSON }), 'person card');
   await card.locator('.rc-tab[data-tab="gifts"]').click();

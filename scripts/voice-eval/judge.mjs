@@ -88,7 +88,10 @@ function gcloud(args) {
   return execFileSync('gcloud', args, { encoding: 'utf8' }).trim();
 }
 
-async function askJudge(prompt, { model, project, token }) {
+// gcloud access tokens last an hour and a long judging run outlives one, so
+// each request gets a fresh token (gcloud serves a cached one until expiry).
+async function askJudge(prompt, { model, project }) {
+  const token = gcloud(['auth', 'print-access-token']);
   const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:generateContent`;
   const res = await fetch(url, {
     method: 'POST',
@@ -174,14 +177,13 @@ async function main() {
     const model = process.env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview';
     const k = Number(process.env.JUDGE_K ?? 3);
     const project = process.env.GCP_PROJECT ?? gcloud(['config', 'get-value', 'project']);
-    const token = gcloud(['auth', 'print-access-token']);
     for (const f of files) {
       const run = JSON.parse(readFileSync(f, 'utf8'));
       const seedFile = f.replace(/\.json$/, '.seed.json');
       const seed = existsSync(seedFile) ? JSON.parse(readFileSync(seedFile, 'utf8')) : null;
       const prompt = promptFor(run, seed);
       const samples = [];
-      for (let i = 0; i < k; i++) samples.push(await askJudge(prompt, { model, project, token }));
+      for (let i = 0; i < k; i++) samples.push(await askJudge(prompt, { model, project }));
       const verdict = { file: f, model, k, seeded: Boolean(seed), ...combine(samples) };
       writeFileSync(f.replace(/\.json$/, '.judge.json'), JSON.stringify(verdict, null, 2));
       verdicts.push(verdict);

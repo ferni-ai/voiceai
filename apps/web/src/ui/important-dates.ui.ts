@@ -575,8 +575,8 @@ function render(): void {
     </div>
     
     <div class="id-footer">
-      <button aria-label="${t('accessibility.submit')}" class="id-footer-btn" id="id-done" ${state.isSubmitting ? 'disabled' : ''}>
-        ${state.isSubmitting ? 'Saving...' : 'Done'}
+      <button class="id-footer-btn" id="id-done" ${state.isSubmitting ? 'disabled' : ''}>
+        ${state.isSubmitting ? t('common.saving') : t('common.done')}
       </button>
     </div>
   `;
@@ -636,8 +636,8 @@ function renderForm(): string {
       
       <div class="id-form-actions" role="button" tabindex="0">
         <button aria-label="${t('importantDates.cancel')}" class="id-form-btn id-form-btn-cancel" id="id-form-cancel">${t('importantDates.cancel')}</button>
-        <button aria-label="${t('accessibility.confirm')}" class="id-form-btn id-form-btn-save" id="id-form-save">
-          ${ICONS.check} ${isEditing ? 'Update' : 'Add'}
+        <button class="id-form-btn id-form-btn-save" id="id-form-save">
+          ${ICONS.check} ${isEditing ? t('importantDates.update') : t('importantDates.add')}
         </button>
       </div>
     </div>

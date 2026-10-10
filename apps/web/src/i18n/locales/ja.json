@@ -8329,6 +8329,7 @@
     "autoResolveAll": "すべて自動解決する",
     "ferniCalendar": "Ferniカレンダー",
     "keepFerni": "Ferniを残す",
+    "keepProvider": "{provider}を残す",
     "dismiss": "閉じる",
     "resolving": "解決しています..."
   },
@@ -9021,6 +9022,8 @@
     "dontRemind": "通知しない",
     "repeatsYearly": "毎年繰り返す",
     "cancel": "キャンセル",
+    "add": "追加",
+    "update": "更新",
     "noDateYet": "大切な記念日はまだ登録されていません。",
     "noDateDesc": "誕生日や記念日などを追加してみましょう。",
     "typeBirthday": "誕生日",

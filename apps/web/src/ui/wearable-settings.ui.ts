@@ -275,7 +275,7 @@ class WearableSettingsUI {
               ${t('menu.comingSoon')}
             </span>
           ` : `
-            <button aria-label="${t('accessibility.settings')}"
+            <button
               class="wearable-settings__provider-btn ${isConnected ? 'wearable-settings__provider-btn--disconnect' : ''}"
               data-provider="${provider.id}"
               data-connected="${isConnected}"

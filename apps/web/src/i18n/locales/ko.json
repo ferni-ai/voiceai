@@ -8329,6 +8329,7 @@
     "autoResolveAll": "모두 자동 해결",
     "ferniCalendar": "Ferni 캘린더",
     "keepFerni": "Ferni 버전 유지",
+    "keepProvider": "{provider} 버전 유지",
     "dismiss": "닫기",
     "resolving": "해결하는 중..."
   },
@@ -9021,6 +9022,8 @@
     "dontRemind": "알림 끄기",
     "repeatsYearly": "매년 반복",
     "cancel": "취소",
+    "add": "추가",
+    "update": "업데이트",
     "noDateYet": "아직 등록된 중요한 날이 없어요.",
     "noDateDesc": "생일이나 기념일 등을 추가해 보세요.",
     "typeBirthday": "생일",
