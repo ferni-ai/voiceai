@@ -166,6 +166,42 @@ describe('turn understanding', () => {
     expect(u.forTurn('anyway he looked so proud of himself')?.result.mood).toBe('funny');
   });
 
+  it('starts on the final words at once instead of waiting for an interim call', async () => {
+    const m = fakeModel(150);
+    const u = new TurnUnderstander(m.fn);
+    u.onTurnText('so my brother called me this morning');
+    await sleep(10);
+    const t0 = Date.now();
+    await u.settle('so my brother called me this morning and he got the job');
+    // The interim call (150 ms) was dropped, not waited for: one model wait (~150), not two (~290).
+    expect(Date.now() - t0).toBeLessThan(240);
+    expect(m.asked.map((a) => a.NOW)).toEqual([
+      'so my brother called me this morning',
+      'so my brother called me this morning and he got the job',
+    ]);
+    expect(u.forTurn('so my brother called me this morning and he got the job')).not.toBeNull();
+    expect(u.status('so my brother called me this morning and he got the job')).toMatchObject({
+      runs: 2,
+      failed: 0,
+      match: 'covered',
+      missing: 0,
+    });
+  });
+
+  it('accepts an answer missing the last quarter of a long turn, not more', async () => {
+    const u = new TurnUnderstander(fakeModel(0).fn);
+    const heard = 'i finally told my manager i am burned out and need'; // 11 words
+    await u.settle(heard);
+    const fourteen = `${heard} some time off`; // 3 missing, allowance ceil(14/4) = 4
+    expect(u.forTurn(fourteen)?.result.mood).toBe('venting');
+    expect(u.status(fourteen)).toMatchObject({ match: 'covered', missing: 3 });
+    const seventeen = `${heard} some time off for a while`; // 6 missing, allowance 5
+    expect(u.forTurn(seventeen)).toBeNull();
+    expect(u.status(seventeen)).toMatchObject({ match: 'behind', missing: 6 });
+    // Short turns keep the two-word floor.
+    expect(u.status(`${heard} now please go`).match).toBe('covered');
+  });
+
   it('gives no answer when the model is too slow', async () => {
     const u = new TurnUnderstander(fakeModel(200).fn, Date.now, 30);
     await u.settle('hello there friend');
