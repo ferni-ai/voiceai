@@ -185,3 +185,40 @@ export async function swapPersona(
   await from.release();
   if (!from.ownsSession) forget(from);
 }
+
+/** The personas built for each call, by id: the one `userData.personaId` names is on now */
+const personasOfCall = new WeakMap<object, Map<string, object>>();
+
+export function rememberPersona(session: object, persona: { id: string }): void {
+  const known = personasOfCall.get(session) ?? new Map<string, object>();
+  known.set(persona.id, persona);
+  personasOfCall.set(session, known);
+}
+
+/**
+ * The persona on the call now, for handlers the call's first persona wired once (transcript,
+ * session state, tool tracking): every read goes to the persona `userData.personaId` names,
+ * so they follow each swap and its rollback, as the voice does. Without single-session
+ * handoffs it is `first` itself.
+ */
+export function personaOnCall<P extends { id: string }>(
+  session: object,
+  userData: { personaId?: string },
+  first: P
+): P {
+  if (!singleSessionHandoffs()) return first;
+  const now = (): P =>
+    (personasOfCall.get(session)?.get(userData.personaId ?? first.id) as P | undefined) ?? first;
+  return new Proxy(first, {
+    get: (_, key) => Reflect.get(now(), key),
+    has: (_, key) => Reflect.has(now(), key),
+    ownKeys: () => Reflect.ownKeys(now()),
+    getOwnPropertyDescriptor: (_, key) => Reflect.getOwnPropertyDescriptor(now(), key),
+  });
+}
+
+/** The Agent on the call now (an Agent can't be wrapped: the SDK's has private fields) */
+export function agentOnCall<A>(session: voice.AgentSession<never>, first: A): () => A {
+  if (!singleSessionHandoffs()) return () => first;
+  return () => (currentAgentOf(session) as A | undefined) ?? first;
+}
