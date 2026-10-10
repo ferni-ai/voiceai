@@ -98,7 +98,7 @@ const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
 import { createFindToolsTool, FIND_TOOLS } from '../../tools/retrieval/find-tools-tool.js';
-import { createEndCallTool, END_CALL } from '../outbound-call/call-control.js';
+import { createEndCallTool, END_CALL, onBehalfCallFor } from '../outbound-call/call-control.js';
 import { toolRetrievalMode as retrievalModeNow } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { initializeFrontendPublisher } from '../realtime/index.js';
@@ -1200,7 +1200,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // FIX (Jan 2026): Skip ping if user is actively speaking
         // This prevents race conditions where ping and user response compete
         const userData = session.userData as { userSpeakingStartTime?: number } | undefined;
-        if (userData?.userSpeakingStartTime) {
+        // A placed phone call isn't pinged: it could speak while the phone rings
+        if (userData?.userSpeakingStartTime || onBehalfCallFor(sessionId)) {
           log.debug({ sessionId }, '🏥 [HEALTH] Skipping ping - user is speaking');
           return true; // Return true to indicate "healthy" without actually pinging
         }

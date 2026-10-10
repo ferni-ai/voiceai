@@ -225,8 +225,6 @@ export class AgentOrchestrator {
       '🎭 Agent confirmed active'
     );
 
-    // Trigger initial greeting - the model will respond based on its system prompt
-    // NOTE: We use minimal instructions to avoid conflicting with function-calling format
     void this.generateInitialGreeting(agent);
 
     return agent;
@@ -243,6 +241,8 @@ export class AgentOrchestrator {
    */
   private async generateInitialGreeting(agent: PersonaAgent): Promise<void> {
     try {
+      const { openIfOnBehalfCall } = await import('../outbound-call/livekit-call-opening.js');
+      if (openIfOnBehalfCall(this.sessionId, agent)) return;
       const { generateWarmGreeting } = await import('../shared/warm-greeting.js');
       // A returning caller's greeting can pick up from last time (agent-setup hands it over).
       const history = takeCallerHistory(this.sessionId);

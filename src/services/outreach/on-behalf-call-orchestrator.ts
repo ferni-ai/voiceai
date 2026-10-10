@@ -426,6 +426,8 @@ class OnBehalfCallOrchestrator extends EventEmitter {
           participantName: contact.name || 'Contact',
           playDialtone: false, // Agent should speak, not dialtone
           hidePhoneNumber: false,
+          ringingTimeout: 45, // long enough for their voicemail to pick up
+          maxCallDuration: 15 * 60,
         }
       );
 
