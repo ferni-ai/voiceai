@@ -220,6 +220,20 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
     });
   });
 
+  it('a verified call can be retried by callId from another path in the job', async () => {
+    process.env.CALL_FOLLOWTHROUGH = 'on';
+    process.env.LIVEKIT_API_SECRET = 'server-secret';
+    rows = [];
+    const call = makeCall();
+    await beginOnBehalfCall('s14', call);
+    const { scheduleCallRetryById } = await import('../../../services/outreach/call-retry.js');
+
+    expect(await scheduleCallRetryById(call.callId)).toBeInstanceOf(Date);
+    expect(rows.find((r) => r.collection === 'scheduled_outreach')?.id).toBe(
+      `retry_${call.callId}`
+    );
+  });
+
   it('an opt-out goes on the do-not-call list and blocks any later retry to that number', async () => {
     process.env.CALL_FOLLOWTHROUGH = 'on';
     process.env.LIVEKIT_API_SECRET = 'server-secret';

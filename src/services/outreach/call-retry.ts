@@ -257,6 +257,33 @@ export async function scheduleCallRetry(
   }
 }
 
+// Verified dispatches of calls running in this process, by callId (kept a day).
+const verifiedCalls = new Map<string, { call: OnBehalfDispatch; at: number }>();
+const VERIFIED_CALL_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** Remember a call's verified dispatch. Call only after the dispatch's signature checked out. */
+export function rememberVerifiedCall(call: OnBehalfDispatch): void {
+  const now = Date.now();
+  for (const [id, entry] of verifiedCalls) {
+    if (now - entry.at > VERIFIED_CALL_TTL_MS) verifiedCalls.delete(id);
+  }
+  verifiedCalls.set(call.callId, { call, at: now });
+}
+
+/**
+ * Schedule the retry of a call this process verified, by callId: for paths
+ * that learn a call was missed (e.g. voicemail detection) but don't hold the
+ * dispatch. Null for a call this process never verified, and with the flag off.
+ */
+export async function scheduleCallRetryById(
+  callId: string,
+  deps: CallRetryDeps = {}
+): Promise<Date | null> {
+  const entry = verifiedCalls.get(callId);
+  if (!isCallFollowthroughEnabled() || !entry) return null;
+  return scheduleCallRetry(entry.call, deps);
+}
+
 /**
  * Place a scheduled retry for the user who owns the scheduled item. Run by the
  * scheduled-outreach job; never throws.

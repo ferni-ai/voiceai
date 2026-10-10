@@ -50,8 +50,15 @@ vi.mock('../scheduled-multi-outreach.js', async (importOriginal) => ({
   updateOutreachStatus,
 }));
 
-const { localTimeAfter, placeCallRetry, recordCallOptOut, safeWindowGuard, scheduleCallRetry } =
-  await import('../call-retry.js');
+const {
+  localTimeAfter,
+  placeCallRetry,
+  recordCallOptOut,
+  rememberVerifiedCall,
+  safeWindowGuard,
+  scheduleCallRetry,
+  scheduleCallRetryById,
+} = await import('../call-retry.js');
 const { executeDueScheduledOutreach } = await import('../scheduled-outreach-executor.js');
 
 // 10:33 in Los Angeles, Saturday 2026-10-10.
@@ -184,6 +191,23 @@ describe('scheduleCallRetry', () => {
     delete process.env.LIVEKIT_API_SECRET;
     expect(await schedule()).toBeNull();
     expect(retries()).toHaveLength(0);
+  });
+});
+
+describe('scheduleCallRetryById (voicemail detection holds only the callId)', () => {
+  it('schedules only for a call this process verified, and only with the flag on', async () => {
+    expect(await scheduleCallRetryById('unknown-call', { now: () => NOW })).toBeNull();
+
+    const verified = call({ callId: 'verified-call' });
+    rememberVerifiedCall(verified);
+    delete process.env.CALL_FOLLOWTHROUGH;
+    expect(await scheduleCallRetryById('verified-call', { now: () => NOW })).toBeNull();
+    process.env.CALL_FOLLOWTHROUGH = 'on';
+
+    const when = await scheduleCallRetryById('verified-call', { now: () => NOW });
+    expect(when?.toISOString()).toBe(FIRST_SAFE_SLOT);
+    expect(retries()).toHaveLength(1);
+    expect(retries()[0].id).toBe('retry_verified-call');
   });
 });
 

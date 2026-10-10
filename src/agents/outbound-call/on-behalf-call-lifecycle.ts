@@ -180,6 +180,10 @@ export async function beginOnBehalfCall(sessionId: string, call: OnBehalfDispatc
     await import('../integrations/on-behalf-transcript-capture.js');
 
   initializeTranscriptCapture(call.callId, call.contact.name, call.contact.relationship);
+  // Only called for a verified dispatch: lets other paths in this job (voicemail
+  // detection) schedule the retry by callId without rebuilding the dispatch.
+  const { rememberVerifiedCall } = await import('../../services/outreach/call-retry.js');
+  rememberVerifiedCall(call);
   if (!initializeOnBehalfCapture(sessionId)) {
     log.warn({ sessionId, callId: call.callId }, 'No outbound context; turns will not be captured');
   }
