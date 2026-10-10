@@ -2438,7 +2438,8 @@
       "devices": "裝置",
       "features": "Ferni 可以查看的內容"
     },
-    "title": "穿戴式裝置"
+    "title": "穿戴式裝置",
+    "notConfigured": "尚未設定"
   },
   "transcript": {
     "enabled": "語音轉文字已開啟",

@@ -2457,7 +2457,8 @@
       "devices": "Appareils",
       "features": "Ce que Ferni peut voir"
     },
-    "title": "Objets connectés"
+    "title": "Objets connectés",
+    "notConfigured": "Pas encore configuré"
   },
   "transcript": {
     "enabled": "Transcription activée",

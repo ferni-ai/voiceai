@@ -2457,7 +2457,8 @@
       "devices": "מכשירים",
       "features": "מה ש-Ferni רואה"
     },
-    "title": "מכשירים לבישים"
+    "title": "מכשירים לבישים",
+    "notConfigured": "עדיין לא הוגדר"
   },
   "transcript": {
     "enabled": "תמלול פעיל",

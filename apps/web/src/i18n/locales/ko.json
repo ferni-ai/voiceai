@@ -2438,7 +2438,8 @@
       "devices": "기기",
       "features": "Ferni가 확인할 수 있는 정보"
     },
-    "title": "웨어러블"
+    "title": "웨어러블",
+    "notConfigured": "아직 준비되지 않았어요"
   },
   "transcript": {
     "enabled": "텍스트 변환 켜짐",
