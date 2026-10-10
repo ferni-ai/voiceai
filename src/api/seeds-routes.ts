@@ -18,7 +18,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { getUserId, parseBody, sendJSON, sendError } from './helpers.js';
 import { removeUndefined } from '../utils/firestore-utils.js';
-import { awardDailyConversation, DAILY_SEEDS } from '../services/seeds/earn.js';
+import { awardDailyConversation, DAILY_SEEDS, dailyStatus } from '../services/seeds/earn.js';
 import {
   commitSeeds,
   ENTRIES_SUBCOLLECTION,
@@ -49,8 +49,8 @@ interface UserSeeds {
   lifetimeEarned: number;
   lifetimePlanted: number;
   currentStreak: number;
-  lastDailyClaimDate: string | null;
   lastConversationDate: string | null;
+  seedTimeZone?: string;
   referralCode: string;
   referredBy: string | null;
   referrals: string[];
@@ -165,8 +165,8 @@ async function getOrCreateUserSeeds(
       lifetimeEarned: data.lifetimeEarned ?? STARTER_SEEDS,
       lifetimePlanted: data.lifetimePlanted ?? 0,
       currentStreak: data.currentStreak ?? 0,
-      lastDailyClaimDate: data.lastDailyClaimDate ?? null,
       lastConversationDate: data.lastConversationDate ?? null,
+      seedTimeZone: data.seedTimeZone,
       referralCode,
       referredBy: data.referredBy ?? null,
       referrals: data.referrals ?? [],
@@ -190,7 +190,6 @@ async function getOrCreateUserSeeds(
     lifetimeEarned: STARTER_SEEDS,
     lifetimePlanted: 0,
     currentStreak: 0,
-    lastDailyClaimDate: null,
     lastConversationDate: null,
     referralCode: generateReferralCode(),
     referredBy: null,
@@ -262,13 +261,14 @@ export async function handleSeedsRoutes(
     // GET /api/seeds - Get user's seed balance and stats
     if (pathname === '/api/seeds' && req.method === 'GET') {
       const userSeeds = await getOrCreateUserSeeds(db, userId);
-      const today = new Date().toISOString().split('T')[0];
+      // The daily earn records lastConversationDate (claim-daily and session end alike)
+      const day = dailyStatus(userSeeds);
 
       sendJSON(res, {
         balance: userSeeds.balance,
         lifetimeEarned: userSeeds.lifetimeEarned,
-        currentStreak: userSeeds.currentStreak,
-        dailyBonusAvailable: userSeeds.lastDailyClaimDate !== today,
+        currentStreak: day.currentStreak,
+        dailyBonusAvailable: day.dailyBonusAvailable,
         referralCode: userSeeds.referralCode,
         referralUrl: `https://ferni.ai/grow/${userSeeds.referralCode}`,
         garden: {

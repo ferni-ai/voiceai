@@ -5,7 +5,7 @@
  */
 import admin from 'firebase-admin';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { awardDailyConversation, localDate } from '../earn.js';
+import { awardDailyConversation, dailyStatus, localDate } from '../earn.js';
 import { STARTER_SEEDS } from '../ledger.js';
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
@@ -34,6 +34,30 @@ describe('localDate', () => {
     expect(localDate(lateEvening, 'America/New_York')).toBe('2026-10-10');
     expect(localDate(lateEvening)).toBe('2026-10-11'); // unknown zone: UTC
     expect(localDate(lateEvening, 'Not/AZone')).toBe('2026-10-11');
+  });
+});
+
+describe('dailyStatus', () => {
+  const now = new Date('2026-10-10T15:00:00Z');
+  it("offers the day's seeds until today's conversation counted, in the account's zone", () => {
+    expect(dailyStatus({}, now)).toEqual({ dailyBonusAvailable: true, currentStreak: 0 });
+    expect(dailyStatus({ lastConversationDate: '2026-10-10', currentStreak: 3 }, now)).toEqual({
+      dailyBonusAvailable: false,
+      currentStreak: 3,
+    });
+    // 05:00 UTC on the 10th is still the 9th in Honolulu, and the 9th already counted there
+    const early = new Date('2026-10-10T05:00:00Z');
+    const hawaii = { seedTimeZone: 'Pacific/Honolulu', lastConversationDate: '2026-10-09' };
+    expect(dailyStatus(hawaii, early).dailyBonusAvailable).toBe(false);
+    expect(dailyStatus({ lastConversationDate: '2026-10-09' }, early).dailyBonusAvailable).toBe(
+      true
+    );
+  });
+
+  it('keeps a streak through yesterday and shows 0 once a day was missed', () => {
+    const streak = (last: string) =>
+      dailyStatus({ lastConversationDate: last, currentStreak: 6 }, now).currentStreak;
+    expect([streak('2026-10-09'), streak('2026-10-08')]).toEqual([6, 0]);
   });
 });
 
