@@ -17,7 +17,8 @@ import type { AddressInfo } from 'node:net';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import twilio from 'twilio';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { verifyPhoneAttestation } from '../../services/identity/phone-attestation.js';
 
 const TOKEN = 'inbound-test-twilio-token';
 const PUBLIC_BASE = 'https://api.ferni.ai';
@@ -161,6 +162,81 @@ describe('POST /api/voice/inbound', () => {
     );
 
     expect([forged.status, tampered.status]).toEqual([403, 403]);
+  });
+});
+
+describe('POST /api/voice/inbound with phone attestation configured', () => {
+  const SECRET = 'attest-test-secret';
+  const SIP_HOST = 'proj.sip.livekit.cloud';
+  const saved = { secret: process.env.PHONE_ATTEST_SECRET, host: process.env.LIVEKIT_SIP_HOST };
+  const restore = (key: 'PHONE_ATTEST_SECRET' | 'LIVEKIT_SIP_HOST', value?: string): void => {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  };
+  const configure = (secret?: string, host?: string): void => {
+    restore('PHONE_ATTEST_SECRET', secret);
+    restore('LIVEKIT_SIP_HOST', host);
+  };
+  afterEach(() => configure(saved.secret, saved.host));
+
+  const withVerstat = (callSid: string): Record<string, string> => ({
+    ...incoming(callSid),
+    StirVerstat: 'TN-Validation-Passed-A',
+  });
+  const signedPost = (form: Record<string, string>) => postForm(INBOUND, form, sign(INBOUND, form));
+  const sipTarget = (twiml: string): string => /<Sip>([^<]*)<\/Sip>/.exec(twiml)?.[1] ?? '';
+
+  it('dials the called number on the LiveKit SIP host with a token the agent can verify', async () => {
+    configure(SECRET, SIP_HOST);
+
+    const res = await signedPost(withVerstat('CA-attested'));
+
+    expect(res.status).toBe(200);
+    const target = sipTarget(res.body);
+    expect(target.startsWith(`sip:+15550000000@${SIP_HOST};transport=tls?X-Ferni-Attest=`)).toBe(
+      true
+    );
+    expect(res.body).toContain(`<Dial callerId="${ROSE}"`);
+    expect(res.body).not.toContain('Hi Rose!');
+
+    const token = target.split('X-Ferni-Attest=')[1];
+    const result = verifyPhoneAttestation(token, { secret: SECRET, phoneNumber: ROSE });
+    expect(result).toMatchObject({
+      status: 'signed',
+      claims: {
+        callSid: 'CA-attested',
+        from: ROSE,
+        to: '+15550000000',
+        verstat: 'TN-Validation-Passed-A',
+      },
+    });
+    expect(verifyPhoneAttestation(token, { secret: 'wrong', phoneNumber: ROSE }).status).toBe(
+      'invalid'
+    );
+  });
+
+  it.each([
+    ['neither set', undefined, undefined],
+    ['only the secret', SECRET, undefined],
+    ['only the host', undefined, SIP_HOST],
+    ['a host carrying URI parameters', SECRET, `${SIP_HOST};maddr=evil.example`],
+  ])("keeps today's TwiML with %s", async (_label, secret, host) => {
+    configure(secret, host);
+
+    const res = await signedPost(withVerstat('CA-plain'));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toContain('Hi Rose! Great to hear from you.');
+    expect(res.body).not.toContain('X-Ferni-Attest');
+  });
+
+  it('still refuses an unsigned request, minting nothing', async () => {
+    configure(SECRET, SIP_HOST);
+
+    const res = await postForm(INBOUND, withVerstat('CA-unsigned-attest'));
+
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('X-Ferni-Attest');
   });
 });
 
