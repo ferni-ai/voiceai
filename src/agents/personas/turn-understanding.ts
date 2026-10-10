@@ -126,6 +126,10 @@ export class TurnUnderstander {
   private running: string | null = null;
   private pending: string | null = null;
   private earlier: string[] = [];
+  /** Bumped per caller turn: an answer for an earlier turn is dropped, not kept as `latest`. */
+  private turn = 0;
+  private inFlight: AbortController | null = null;
+  private stats = { runs: 0, failed: 0, lastMs: 0 };
 
   constructor(
     private readonly understand: UnderstandFn,
@@ -171,27 +175,58 @@ export class TurnUnderstander {
     };
   }
 
-  /** A new caller turn begins: the last one becomes context. */
+  /** Counts for this turn (no text), and how the latest answer lines up with `text`. */
+  status(text: string): {
+    runs: number;
+    failed: number;
+    lastMs: number;
+    inFlight: boolean;
+    match: 'covered' | 'behind' | 'diverged' | 'none';
+  } {
+    let match: 'covered' | 'behind' | 'diverged' | 'none' = 'none';
+    if (this.latest) {
+      const turn = words(text);
+      const seen = words(this.latest.text);
+      const prefix = seen.length <= turn.length && seen.every((w, i) => turn[i] === w);
+      match = !prefix ? 'diverged' : turn.length - seen.length > 2 ? 'behind' : 'covered';
+    }
+    return { ...this.stats, inFlight: this.running !== null, match };
+  }
+
+  /** A new caller turn begins: the last one becomes context, and its call is dropped. */
   newTurn(lastTurn: string): void {
     if (lastTurn.trim()) this.earlier = [...this.earlier, lastTurn.trim()].slice(-3);
+    this.turn++;
+    this.inFlight?.abort();
     this.latest = null;
     this.pending = null;
+    this.stats = { runs: 0, failed: 0, lastMs: 0 };
   }
 
   private async run(text: string): Promise<void> {
     this.running = text;
+    const turn = this.turn;
+    const started = this.now();
     const controller = new globalThis.AbortController();
+    this.inFlight = controller;
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    this.stats.runs++;
     try {
       const input = JSON.stringify({ EARLIER: this.earlier, NOW: text });
       const result = parseUnderstanding(
         await this.understand(UNDERSTANDING_PROMPT, input, controller.signal)
       );
-      if (result) this.latest = { text, result, at: this.now() };
+      if (turn === this.turn) {
+        this.stats.lastMs = this.now() - started;
+        if (result) this.latest = { text, result, at: this.now() };
+        else this.stats.failed++;
+      }
     } catch (error) {
+      if (turn === this.turn) this.stats.failed++;
       log.debug({ error: String(error) }, 'turn understanding failed');
     } finally {
       clearTimeout(timer);
+      if (this.inFlight === controller) this.inFlight = null;
       this.running = null;
     }
     const next = this.pending;
