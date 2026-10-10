@@ -140,6 +140,17 @@ export function proactiveReasonFacts(reason: ProactiveReason): Record<string, st
   return facts;
 }
 
+/**
+ * A call Ferni placed to its own user (PROACTIVE_REASON_OPENER on): its opener
+ * waits for the phone to be picked up, like an on-behalf call's.
+ */
+export async function isProactiveCall(sessionId: string): Promise<boolean> {
+  if (!proactiveReasonOpenerEnabled()) return false;
+  const { isProactiveSession } =
+    await import('../../intelligence/context-builders/external/proactive-session-context.js');
+  return isProactiveSession(sessionId);
+}
+
 /** The understudy for a proactive call: says Ferni called, never guesses why. */
 export function proactiveFallback(userName: string | undefined): string {
   return `Hey${userName ? ` ${userName}` : ''}, it's Ferni, just calling to check in.`;

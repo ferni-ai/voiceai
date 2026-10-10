@@ -47,14 +47,19 @@ function proactiveMetadata(extra: Record<string, unknown> = {}): Record<string, 
   };
 }
 
-/** Starts the real orchestrator with a stub agent and returns the opener it says. */
-async function openerFor(sessionId: string, metadata: Record<string, unknown>): Promise<string> {
+/** Starts the real orchestrator with a stub agent; `say` records what it says. */
+async function startCall(
+  sessionId: string,
+  metadata: Record<string, unknown>,
+  room: EventEmitter = new EventEmitter(),
+  participant: object = { identity: 'app_seth', attributes: {} }
+) {
   await setupCallTypeContexts(metadata, 'proactive_outreach', sessionId, `room-${sessionId}`);
   const say = vi.fn();
   const orchestrator = new AgentOrchestrator({
     ctx: {} as never,
-    room: new EventEmitter() as never,
-    userParticipant: { identity: 'phone_seth', attributes: {} } as never,
+    room: room as never,
+    userParticipant: participant as never,
     createPersonaAgent: async () =>
       ({
         id: 'agent-1',
@@ -67,8 +72,18 @@ async function openerFor(sessionId: string, metadata: Record<string, unknown>): 
     sessionId,
   });
   await orchestrator.start('ferni');
+  return say;
+}
+
+/** The opener said on an app (non-phone) proactive session. */
+async function openerFor(sessionId: string, metadata: Record<string, unknown>): Promise<string> {
+  const say = await startCall(sessionId, metadata);
   await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 3000 });
   return String(say.mock.calls[0][0]);
+}
+
+function phoneSeth(callStatus: string) {
+  return { identity: 'sip_seth', attributes: { 'sip.callStatus': callStatus } };
 }
 
 describe('the opener of a call Ferni places to its own user', () => {
@@ -138,5 +153,45 @@ describe('the opener of a call Ferni places to its own user', () => {
     const prompt = actor.prompts[0];
     expect(prompt).toContain(GREETING_DIRECTION);
     expect(prompt).not.toContain(SETH_ASKED);
+  });
+});
+
+describe('a call Ferni places to its own phone', () => {
+  beforeEach(() => {
+    actor.prompts = [];
+    actor.reply = "Hey Seth, it's Ferni. You wanted to hear how I sound on the phone.";
+    actor.fail = false;
+    vi.stubEnv('PROACTIVE_REASON_OPENER', 'on');
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('says nothing while the phone rings, then opens once Seth picks up', async () => {
+    const room = new EventEmitter();
+    const say = await startCall(
+      'pro-ringing',
+      proactiveMetadata({ triggerReason: SETH_ASKED }),
+      room,
+      phoneSeth('ringing')
+    );
+    await new Promise((r) => {
+      setTimeout(r, 50);
+    });
+    expect(say, 'nothing is said into a ringing line').not.toHaveBeenCalled();
+
+    room.emit('participantAttributesChanged', { 'sip.callStatus': 'active' }, phoneSeth('active'));
+    await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    expect(String(say.mock.calls[0][0])).toBe(actor.reply);
+  });
+
+  it('says nothing when the phone hangs up unanswered', async () => {
+    const room = new EventEmitter();
+    const say = await startCall('pro-hangup', proactiveMetadata(), room, phoneSeth('ringing'));
+    await vi.waitFor(() => expect(room.listenerCount('participantAttributesChanged')).toBe(1));
+    room.emit('participantAttributesChanged', { 'sip.callStatus': 'hangup' }, phoneSeth('hangup'));
+    await new Promise((r) => {
+      setTimeout(r, 50);
+    });
+    expect(say).not.toHaveBeenCalled();
+    expect(room.listenerCount('participantAttributesChanged')).toBe(0);
   });
 });

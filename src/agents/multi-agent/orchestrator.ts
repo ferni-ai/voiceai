@@ -24,7 +24,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
-import { directedGreeting } from './greeting-direction.js';
+import { directedGreeting, isProactiveCall } from './greeting-direction.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 export { calmGreeting } from './greeting-direction.js';
 
@@ -236,23 +236,22 @@ export class AgentOrchestrator {
    */
   private async generateInitialGreeting(agent: PersonaAgent): Promise<void> {
     try {
-      // A call Ferni placed for someone opens with who it is and who it's
-      // for, once the phone is picked up: never the app's "hey <user>" hello.
+      // A call Ferni placed (for someone, or to its own user) waits for the phone to be
+      // picked up; one for someone opens with who it is and who it's for, never "hey <user>".
       const { outboundOpener, outboundPartiesFor, waitForCallAnswered } =
         await import('../shared/outbound-opener.js');
       const parties = outboundPartiesFor(this.sessionId);
-      let greeting: string;
-      if (parties) {
+      if (parties || (await isProactiveCall(this.sessionId))) {
         const answered = await waitForCallAnswered(this.room, this.userParticipant);
         if (!answered) {
           log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
           return;
         }
-        greeting = outboundOpener(parties);
-      } else {
-        const userData = agent.userData as UserData | undefined;
-        greeting = await directedGreeting(this.sessionId, agent.personaId, userData);
       }
+      const userData = agent.userData as UserData | undefined;
+      const greeting = parties
+        ? outboundOpener(parties)
+        : await directedGreeting(this.sessionId, agent.personaId, userData);
 
       // Greeting awareness: the turn handler tells the LLM on turn 0 what it said.
       if (agent.userData) {
