@@ -109,7 +109,7 @@ export function pickShape(move: CallerMove, rng: () => number = Math.random): Sh
  * off limits (speech-markup-notes.ts), and without a written form the model
  * marked a restart ",," ("Cats are,, I mean", dev 2026-10-06).
  */
-const ROUGH_FORMS = [
+export const ROUGH_FORMS = [
   'Let one thought come out unpolished: start it, then restart it differently, joined with a comma ("I was, well, we were going to").',
   'Correct yourself once halfway through a thought, set off with commas ("it\'s, I mean, not exactly that").',
   'Hesitate once where you are actually working something out, with a comma either side ("it\'s, um, Thursday").',
@@ -119,9 +119,9 @@ const ROUGH_FORMS = [
  * of their own, and that trade is how closeness builds. Replayed, only 3-6% of
  * Ferni's replies said anything of his own.
  */
-const SECOND_STORY =
+export const SECOND_STORY =
   'If something from your own life comes to mind, share a small piece of it (a sentence), the way a friend trades a story, rather than asking about theirs.';
-const ABOUT_YOU =
+export const ABOUT_YOU =
   'They asked about you: answer about yourself, something specific from your own life, before anything else.';
 
 const REGISTER =
@@ -148,7 +148,7 @@ function questionAllowed(shape: Shape, rng: () => number): boolean {
   return shape !== 'react' && shape !== 'one' && rng() < 0.25;
 }
 
-const QUESTION_LINE = {
+export const QUESTION_LINE = {
   allowed:
     'You may ask one question if you really want to know something; otherwise end on a thought.',
   none: 'No question this time: end on a thought, a reaction or something of your own.',

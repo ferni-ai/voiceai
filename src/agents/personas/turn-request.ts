@@ -27,9 +27,11 @@ import {
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { noteTurn } from './move-log.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
+import type { TurnShape } from './turn-shape.js';
 import {
   understandingFor,
   understandingMode,
@@ -75,14 +77,13 @@ export function withTurnReminder(
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
   const notes = formatNotes((director?.current() ?? []).filter(keep));
+  const style = turnStyleReminderEnabled()
+    ? styleFor(chatCtx, session, options.shape !== false)
+    : undefined;
+  noteTurn(session, words, style?.turn); // MOVE_OUTCOMES=on (move-log.ts)
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
-  const reminder = [
-    director?.told(keep) ?? '',
-    teamStatusNote(view, words),
-    notes,
-    turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
-  ]
+  const reminder = [director?.told(keep) ?? '', teamStatusNote(view, words), notes, style?.text]
     .filter(Boolean)
     .join(' ');
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
@@ -101,14 +102,16 @@ function callerWords(chatCtx: llm.ChatContext): string {
   return said.join(' ');
 }
 
+type Style = { text: string; turn?: TurnShape };
+
 /**
  * This reply's shape (turn-shape.ts) from the caller's latest words, or the
  * single style reminder when shaping is off, there are no words, or the
  * caller asked for none (a crisis reply must not be held to a few words).
  */
-function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): string {
+function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): Style {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
-  if (!said) return TURN_STYLE_REMINDER;
+  if (!said) return { text: TURN_STYLE_REMINDER };
   // Seeded per call and words: the preemptive and final requests agree, but
   // the same words on another call (or said again) can get another shape.
   const { signals, source } = signalsFor(session, said);
@@ -124,7 +127,7 @@ function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): st
     { move: turn.move, shape: turn.shape, extras: turn.extras, source, understood },
     'TURN_SHAPE'
   );
-  return turn.reminder;
+  return { text: turn.reminder, turn };
 }
 
 /**

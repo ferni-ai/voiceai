@@ -40,6 +40,7 @@ import {
   toGuardVoiceEmotion,
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
+import { noteTurn } from './move-log.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
@@ -238,7 +239,11 @@ export async function gatedReply(
   const { env = process.env } = options;
   const chatCtx = withoutPastLeadIns(request);
   const gate = startCrisisGate(chatCtx, session.userData, options);
-  if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
+  if (gate?.decision.action === 'replace') {
+    // A turn with no moves, so the script isn't counted as the last reply's (move-log.ts).
+    noteTurn(session, callerWords(chatCtx).latest, undefined);
+    return textReply(gate.decision.script);
+  }
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn
   // shape ("six words at most") must never hold it back.
