@@ -5908,6 +5908,7 @@
     "freeTimeHours": "{hours}시간 여유",
     "backToBackMeetings": "연속된 회의",
     "markComplete": "{text} 완료로 표시",
+    "intentionNotSaved": "저장하지 못했어요. 다시 시도해 주세요.",
     "followThrough": "실천율",
     "habitsThisWeek": "이번 주 습관",
     "momentum": "추진력",
