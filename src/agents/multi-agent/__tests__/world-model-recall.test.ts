@@ -60,7 +60,9 @@ const store = {
     { entityName: 'user', key: 'goal', value: 'run a half marathon in the spring', confidence: 1 },
     { entityName: 'Dana', key: 'behavior', value: 'takes credit for my work', confidence: 1 },
   ],
-  summaries: async () => [],
+  summaries: async () => [
+    { followUpItems: ['Ask whether things with her ex settled down', 'Ask how training is going'] },
+  ],
 };
 
 const turns = [
@@ -116,6 +118,7 @@ describe('world model in the live recall hook', () => {
     // Without the world model, recall restates Mindy's relationship and surfaces the ex.
     expect(before.join('\n')).toContain('Mindy: relationship = sister');
     expect(before.join('\n')).toContain('Jake');
+    expect(before.join('\n')).toContain('things with her ex settled down');
   });
 
   it('flag on: one note names the people, the goal and the ex to avoid, once a call', async () => {
@@ -145,6 +148,9 @@ describe('world model in the live recall hook', () => {
     // The goal is in the world note; the recall row that repeats it is left out.
     expect(all).not.toContain('goal = run a half marathon');
     expect(all).toContain('Dana: behavior = takes credit for my work');
+    // A thread from an earlier call about the ex is dropped; the others stay.
+    expect(all).not.toContain('things with her ex');
+    expect(all).toContain('Ask how training is going');
   });
 
   it('flag on with empty stores: logs WORLD_MODEL_EMPTY once and recall is unchanged', async () => {

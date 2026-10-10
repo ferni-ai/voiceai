@@ -116,6 +116,12 @@ function touches(factWords: Set<string>, topic: string): boolean {
   return hits >= Math.min(2, topicWords.length);
 }
 
+/** True when `text` is about a topic they asked not to bring up. */
+export function touchesAvoided(text: string, snapshot: WorldModelSnapshot): boolean {
+  const all = new Set(words(text));
+  return snapshot.negatives.some((n) => touches(all, n.text));
+}
+
 /**
  * Recall facts without what the world note already says: a person's
  * relationship to the caller, a goal it lists, and anything about a topic
@@ -128,10 +134,8 @@ export function withoutWorldDuplicates<T extends FactLike>(
   snapshot: WorldModelSnapshot
 ): T[] {
   const people = new Set(snapshot.people.map((p) => p.name.toLowerCase()));
-  const avoided = (fact: FactLike) => {
-    const all = new Set(words(`${fact.entity} ${fact.key} ${fact.value}`));
-    return snapshot.negatives.some((n) => touches(all, n.text));
-  };
+  const avoided = (fact: FactLike) =>
+    touchesAvoided(`${fact.entity} ${fact.key} ${fact.value}`, snapshot);
   const tainted = new Set(
     facts.filter((f) => !SELF.test(f.entity) && avoided(f)).map((f) => f.entity.toLowerCase())
   );

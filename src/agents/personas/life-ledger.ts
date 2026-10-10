@@ -47,7 +47,7 @@ export type FactExtractor = (personaName: string, lines: string[]) => Promise<st
 
 const MAX_FACTS_PER_CALL = 8;
 const MAX_FACT_WORDS = 20;
-const RECALL_LIMIT = 10;
+export const RECALL_LIMIT = 10;
 const STOP = new Set(
   "that this they them their with what have from about your just like been were when then there some would could should into only also very really honestly actually ferni ferni's peter maya alex jordan nayan".split(
     ' '
@@ -154,10 +154,11 @@ export const firestoreLedgerStore: LedgerStore = {
 export async function loadLedger(
   userId: string,
   personaId = 'ferni',
-  store: LedgerStore = firestoreLedgerStore
+  store: LedgerStore = firestoreLedgerStore,
+  limit = RECALL_LIMIT
 ): Promise<LedgerFact[]> {
   if (!lifeLedgerEnabled()) return [];
-  return store.recent(userId, personaId, RECALL_LIMIT).catch((error: unknown) => {
+  return store.recent(userId, personaId, limit).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Life ledger not loaded');
     return [];
   });
