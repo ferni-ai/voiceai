@@ -444,10 +444,8 @@ export class TeamRoundtable extends EventEmitter {
 
       // Check turn-taking
       const participant = this.agentParticipants.get(next.agentId);
-      if (participant && !this.manager.shouldAgentSpeak(participant.id)) {
-        // Wait for turn
-        await this.waitForTurn(participant.id);
-      }
+      // The queue already chose who answers; only wait while a person is talking
+      if (participant) await this.waitForTurn(participant.id);
 
       // Generate and speak response
       this.currentResponder = next.agentId;
@@ -507,9 +505,9 @@ export class TeamRoundtable extends EventEmitter {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
-      if (this.manager.shouldAgentSpeak(participantId)) {
-        return;
-      }
+      // Never talk over a person; the engine's own pick would stall an addressed persona 5 s
+      const speaker = this.manager.getCurrentSpeaker()?.type;
+      if (speaker !== 'human' && speaker !== 'external') return;
       await this.sleep(100);
     }
 

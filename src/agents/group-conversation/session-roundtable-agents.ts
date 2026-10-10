@@ -153,3 +153,26 @@ export function createSessionRoundtableAgents(deps: {
     };
   };
 }
+
+/**
+ * The factory for a call when ROUNDTABLE_VOICE=on (else undefined: a roundtable start then
+ * answers "Roundtable not configured"). Lines go through whichever persona's session is
+ * on the call at the moment they're spoken.
+ */
+export function roundtableAgentsForCall(
+  activeSession: () => SpeakingSession | undefined,
+  env: Record<string, string | undefined> = process.env
+): TeamRoundtableConfig['createAgent'] | undefined {
+  if (env.ROUNDTABLE_VOICE !== 'on') return undefined;
+  const session: SpeakingSession = {
+    say(text, options) {
+      const live = activeSession();
+      if (!live) throw new Error('No agent on the call to speak the roundtable line');
+      return live.say(text, options);
+    },
+    get userData() {
+      return activeSession()?.userData ?? {};
+    },
+  };
+  return createSessionRoundtableAgents({ session });
+}
