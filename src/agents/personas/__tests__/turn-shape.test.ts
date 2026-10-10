@@ -1,6 +1,6 @@
 import { llm } from '@livekit/agents';
 import { describe, expect, it } from 'vitest';
-import { callerMove, pickShape, rngFor, turnShapeFor } from '../turn-shape.js';
+import { callerMove, pickShape, rngFor, turnShapeFor, turnShapeMode } from '../turn-shape.js';
 import { Director, setDirector } from '../director-notes.js';
 import { withTurnReminder } from '../turn-request.js';
 import { TURN_STYLE_REMINDER } from '../turn-style.js';
@@ -186,9 +186,41 @@ describe('withTurnReminder seeding and order', () => {
 
   it('tells every reply to build only on what was said, and not to offer tasks', () => {
     for (const text of ['Not much, just got home.', 'Oh, and Biscuit chewed my charger.', 'Yeah.']) {
-      const r = turnShapeFor(text, rngFor(text)).reminder;
-      expect(r).toMatch(/Build only on what they actually told you/);
-      expect(r).toMatch(/not an assistant/);
+      for (const mode of ['dice', 'model'] as const) {
+        const r = turnShapeFor(text, rngFor(text), mode).reminder;
+        expect(r).toMatch(/Build only on what they actually told you/);
+        expect(r).toMatch(/not an assistant/);
+      }
     }
+  });
+
+  describe('TURN_SHAPE=model', () => {
+    const big = 'My sister just told me she is pregnant, right on the hiking trail.';
+
+    it('reads the mode from the env, dice by default', () => {
+      expect(turnShapeMode({})).toBe('dice');
+      expect(turnShapeMode({ TURN_SHAPE: 'model' })).toBe('model');
+      expect(turnShapeMode({ TURN_SHAPE: 'off' })).toBe('off');
+    });
+
+    it('never assigns a fixed shape: the model judges it from the moment', () => {
+      const replies = Array.from({ length: 200 }, (_, i) =>
+        turnShapeFor(big, rngFor(`m${i}`), 'model')
+      );
+      for (const r of replies) {
+        expect(r.reminder).not.toMatch(/THIS REPLY/);
+        expect(r.reminder).toMatch(/yours to judge/);
+        expect(r.extras[0]).toBe('model_shape');
+      }
+      // The dice draw a six-word reaction for some of the same news.
+      const dice = Array.from({ length: 200 }, (_, i) => turnShapeFor(big, rngFor(`m${i}`), 'dice'));
+      expect(dice.some((r) => /six words at most/.test(r.reminder))).toBe(true);
+    });
+
+    it('still makes a live question use a tool', () => {
+      const r = turnShapeFor("What's the weather tomorrow?", rngFor('w'), 'model');
+      expect(r.move).toBe('lookup');
+      expect(r.reminder).toMatch(/call the tool for it now/);
+    });
   });
 });

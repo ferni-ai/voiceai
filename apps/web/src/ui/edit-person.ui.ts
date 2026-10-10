@@ -49,6 +49,8 @@ export interface EditPersonOptions {
   onSuccess?: (data: PersonData) => void;
   onClose?: () => void;
   onDelete?: () => void;
+  /** Open on this tab, e.g. 'context' for the notes */
+  initialTab?: EditPersonState['activeTab'];
 }
 
 // ============================================================================
@@ -884,25 +886,20 @@ async function handleSave(): Promise<void> {
   render();
 
   try {
-    const data: Partial<PersonData> = {
+    const list = (text: string) => text.split(',').map((item) => item.trim()).filter(Boolean);
+    // Every field, emptied ones too: sending a field empty is how it gets removed
+    const data = {
       name: state.name.trim(),
       relationship: state.relationship,
+      email: state.email.trim(),
+      phone: state.phone.trim(),
+      howWeMet: state.howWeMet.trim(),
+      notes: state.notes.trim(),
+      preferredChannel: (state.preferredChannel || null) as PersonData['preferredChannel'] | null,
+      bestTimeToReach: state.bestTimeToReach.trim(),
+      interests: list(state.interests),
+      sensitiveTopics: list(state.sensitiveTopics),
     };
-
-    if (state.email.trim()) data.email = state.email.trim();
-    if (state.phone.trim()) data.phone = state.phone.trim();
-    if (state.howWeMet.trim()) data.howWeMet = state.howWeMet.trim();
-    if (state.notes.trim()) data.notes = state.notes.trim();
-    if (state.preferredChannel) data.preferredChannel = state.preferredChannel as PersonData['preferredChannel'];
-    if (state.bestTimeToReach.trim()) data.bestTimeToReach = state.bestTimeToReach.trim();
-
-    // Parse comma-separated fields
-    if (state.interests.trim()) {
-      data.interests = state.interests.split(',').map(i => i.trim()).filter(Boolean);
-    }
-    if (state.sensitiveTopics.trim()) {
-      data.sensitiveTopics = state.sensitiveTopics.split(',').map(t => t.trim()).filter(Boolean);
-    }
 
     const response = await apiFetch(`/api/contacts/${state.person.contactId}`, {
       method: 'PUT',
@@ -994,7 +991,7 @@ export function openEditPerson(options: EditPersonOptions): void {
     preferredChannel: person.preferredChannel || '',
     bestTimeToReach: person.bestTimeToReach || '',
     isSubmitting: false,
-    activeTab: 'basic',
+    activeTab: options.initialTab ?? 'basic',
     showDeleteConfirm: false,
   };
 

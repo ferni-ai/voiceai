@@ -38,6 +38,23 @@ export function stripStockOpener(text: string): { text: string; stripped: boolea
   return { text: tag + rest.charAt(0).toUpperCase() + rest.slice(1), stripped: true };
 }
 
+/** Leading markup (`<emotion/>`, `<break/>`) and cues (`[laughter]`) before the first spoken letter. */
+const LEAD_MARKUP = /^(\s*(?:<[^>]+>\s*|\[[^\]]*\]\s*)*)/;
+
+/**
+ * Capitalise a reply's first spoken letter. The fast model often starts
+ * lowercase ("it's, um, always that scramble", prod 2026-10-10), copying the
+ * mid-sentence examples in the turn prompt; once one lowercase reply is in the
+ * history, later ones follow it. Fixing it here fixes captions, audio and the
+ * saved history at once.
+ */
+export function capitalizeStart(text: string): string {
+  const lead = LEAD_MARKUP.exec(text)?.[1] ?? '';
+  const first = text.charAt(lead.length);
+  if (first < 'a' || first > 'z') return text;
+  return lead + first.toUpperCase() + text.slice(lead.length + 1);
+}
+
 type Chunk = llm.ChatChunk | string | object;
 
 function contentOf(chunk: Chunk): string | undefined {
@@ -60,10 +77,10 @@ export class OpenerGate {
   /** Decide for one reply's opening text. */
   decide(opening: string): string {
     const { text, stripped } = stripStockOpener(opening);
-    if (!stripped) return opening;
+    if (!stripped) return capitalizeStart(opening);
     if (this.repliesSinceKept >= this.every) {
       this.repliesSinceKept = 0;
-      return opening;
+      return capitalizeStart(opening);
     }
     this.repliesSinceKept++;
     return text;
