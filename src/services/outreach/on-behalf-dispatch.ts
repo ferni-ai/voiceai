@@ -41,6 +41,8 @@ export interface OnBehalfDispatch {
   callType: CallType;
   script?: string;
   userPreferences?: unknown;
+  /** The missed call this one retries; a retry is never retried. Signed with the rest. */
+  retryOf?: string;
   /** HMAC from a trusted dispatcher; see signOnBehalfDispatch. */
   requesterSignature?: string;
 }
@@ -124,7 +126,25 @@ export function onBehalfDispatchFor(
     callType: request.callType,
     script,
     userPreferences: request.userPreferences,
+    retryOf: request.retryOf,
   });
+}
+
+/** The on-behalf request a dispatch describes (the inverse of onBehalfDispatchFor). */
+export function onBehalfRequestFromDispatch(call: OnBehalfDispatch): OnBehalfCallRequest {
+  return {
+    contactQuery: call.contact.name,
+    resolvedContact: { ...call.contact },
+    purpose: call.purpose,
+    objective: call.objective,
+    callType: call.callType,
+    originalSessionId: call.requester.originalSessionId,
+    userId: call.requester.userId,
+    userTimezone: call.requester.timezone,
+    userName: call.requester.name,
+    recordingConsent: false,
+    retryOf: call.retryOf,
+  };
 }
 
 /** The dispatch for a call bridged in from a Twilio media stream's parameters. */
@@ -202,5 +222,6 @@ export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBeha
     objective: oneOf(metadata.objective, OBJECTIVES, 'general'),
     callType: oneOf(metadata.callType, CALL_TYPES, 'personal'),
     script: str(metadata.script) || undefined,
+    retryOf: str(metadata.retryOf) || undefined,
   });
 }

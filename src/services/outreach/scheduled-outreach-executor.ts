@@ -99,7 +99,12 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
     }
 
     // Execute based on channel
-    if (channelUsed === 'call' || channelUsed === 'conversation') {
+    if (channelUsed === 'on_behalf_call') {
+      const { placeCallRetry } = await import('./call-retry.js');
+      const result = await placeCallRetry(target.onBehalfDispatch, userId);
+      success = result.success;
+      errorMsg = result.error;
+    } else if (channelUsed === 'call' || channelUsed === 'conversation') {
       if (!target.resolvedPhone) {
         throw new Error(`No phone number for ${target.resolvedContactName}`);
       }
