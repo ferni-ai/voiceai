@@ -2458,7 +2458,8 @@
       "features": "מה ש-Ferni רואה"
     },
     "title": "מכשירים לבישים",
-    "notConfigured": "עדיין לא הוגדר"
+    "notConfigured": "עדיין לא הוגדר",
+    "appleHealthOnIphone": "אפשר להגדיר את Apple Health באפליקציית Ferni באייפון"
   },
   "transcript": {
     "enabled": "תמלול פעיל",
