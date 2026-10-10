@@ -146,6 +146,26 @@ describe('turn understanding', () => {
     expect(u.status('i want to go out tonight with my friends').match).toBe('behind');
   });
 
+  it('recovers when the model ignores the abort and never answers (dev: runs=0 for the rest of the call)', async () => {
+    let calls = 0;
+    const hangsOnce: UnderstandFn = async () => {
+      calls++;
+      // The first call never settles and ignores the abort signal.
+      if (calls === 1)
+        return new Promise<string>(() => {
+          /* hangs */
+        });
+      return reply({ mood: 'funny' });
+    };
+    const u = new TurnUnderstander(hangsOnce, Date.now, 30);
+    void u.settle('my dog stole the sandwich off the counter');
+    await sleep(50);
+    u.newTurn('my dog stole the sandwich off the counter');
+    await u.settle('anyway he looked so proud of himself');
+    expect(calls).toBe(2);
+    expect(u.forTurn('anyway he looked so proud of himself')?.result.mood).toBe('funny');
+  });
+
   it('gives no answer when the model is too slow', async () => {
     const u = new TurnUnderstander(fakeModel(200).fn, Date.now, 30);
     await u.settle('hello there friend');
