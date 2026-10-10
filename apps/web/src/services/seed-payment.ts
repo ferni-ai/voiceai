@@ -26,6 +26,8 @@ import { loadStripe } from './monetization.service.js';
 
 const log = createLogger('SeedPayment');
 
+const MONTHLY_GIFT_KEY = 'ferni_monthly_gift_dollars';
+
 export type { SeedPaymentOutcome };
 
 /** Shows the card form and confirms the payment (ui/seed-payment-form's collectCardPayment). */
@@ -64,7 +66,14 @@ export async function payForSeed(
     return { status: 'not-configured' };
   }
 
-  return collect(stripe, result.clientSecret, amountDollars);
+  const outcome = await collect(stripe, result.clientSecret, amountDollars);
+  // Seeds economy listens for this to award the supporter bonus (see seeds-economy.service)
+  if (outcome.status === 'confirmed') {
+    document.dispatchEvent(
+      new CustomEvent('ferni:contribution-success', { detail: { amountCents: amountDollars * 100 } })
+    );
+  }
+  return outcome;
 }
 
 /** Start a monthly gift of `amountDollars`: on success, go to Stripe Checkout. */
@@ -81,8 +90,34 @@ export async function startMonthlyGift(amountDollars: number): Promise<SeedPayme
   if (!result.success || !result.checkoutUrl) {
     return { status: 'failed', reason: result.error || 'Failed to start subscription' };
   }
+  // Checkout leaves the page; remember the amount so the /garden/success return can pay the bonus
+  try {
+    sessionStorage.setItem(MONTHLY_GIFT_KEY, String(amountDollars));
+  } catch {
+    // Private mode: the thank-you still shows, only the seed bonus is skipped
+  }
   window.location.href = result.checkoutUrl;
   return { status: 'redirected' };
+}
+
+/**
+ * On return from monthly-gift Checkout (/garden/success), announce the payment once so the
+ * seeds economy can award the founding bonus. Only fires for a gift this tab started
+ * (startMonthlyGift), so opening /garden/success by hand does nothing. Gifts under $10
+ * have no founding tier. Returns the tier announced, or null.
+ */
+export function announceMonthlyGiftPaid(): 'founding-member' | 'founding-patron' | null {
+  let dollars = 0;
+  try {
+    dollars = Number(sessionStorage.getItem(MONTHLY_GIFT_KEY));
+    sessionStorage.removeItem(MONTHLY_GIFT_KEY);
+  } catch {
+    return null;
+  }
+  if (!(dollars >= 10)) return null;
+  const tier = dollars >= 20 ? 'founding-patron' : 'founding-member';
+  document.dispatchEvent(new CustomEvent('ferni:subscription-paid', { detail: { tier } }));
+  return tier;
 }
 
 /** The toast for a gift that went wrong, or null when there is nothing to say. */
