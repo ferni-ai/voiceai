@@ -30,7 +30,7 @@ async function addPerson(page: Page, people: Locator) {
   const form = page.locator('.add-person-overlay.open');
   await form.getByPlaceholder('e.g., Mom, Sarah Chen, Dr. Rivera').fill(PERSON);
   await form.locator('[data-relationship="friend"]').click();
-  await form.getByRole('button', { name: 'Save', exact: true }).click();
+  await form.getByRole('button', { name: 'Add Person', exact: true }).click();
   await expect(people.locator('.yp-person', { hasText: PERSON })).toBeVisible({ timeout: 10_000 });
 }
 
@@ -46,7 +46,10 @@ async function opens(page: Page, control: Locator, what: string) {
 const fakeButtons = (scope: Locator) =>
   scope.evaluate((root) =>
     [...root.querySelectorAll<HTMLElement>('[role="button"]')]
-      .filter((el) => el.parentElement?.closest('button, a[href]') || el.querySelector('button, a[href], input'))
+      .filter(
+        (el) =>
+          el.parentElement?.closest('button, a[href]') || el.querySelector('button, a[href], input')
+      )
       .map((el) => el.className)
   );
 
@@ -66,7 +69,10 @@ test('someone you just added is not flagged as needing attention', async ({ page
   expect((await nudges).status()).toBe(200);
   await expect(people.locator('.yp-person', { hasText: PERSON })).toBeVisible();
   await page.waitForTimeout(500);
-  await expect(people.locator('.yp-nudge', { hasText: PERSON }), 'added today, so not overdue').toHaveCount(0);
+  await expect(
+    people.locator('.yp-nudge', { hasText: PERSON }),
+    'added today, so not overdue'
+  ).toHaveCount(0);
   expect(problems.take()).toEqual([]);
 });
 
