@@ -8,7 +8,13 @@
  * with the same light AI disclosure as the opener, and hangs up: it never
  * converses with a recording. While it listens, the LLM does not reply.
  *
- * Off unless VOICEMAIL_DETECT=on; off, the answer wait is exactly as before.
+ * A call screener (Google/Apple: "say your name and why you're calling...
+ * please stay on the line") is neither: with CALL_SCREEN_HANDLING=on Ferni
+ * answers it once, in one line, then waits silently for the person to pick up
+ * (normal opener) or for voicemail. It never converses with the screener.
+ *
+ * Off unless VOICEMAIL_DETECT=on (CALL_SCREEN_HANDLING=on adds the screener
+ * step); off, the answer wait is exactly as before.
  *
  * @module agents/shared/line-screen
  */
@@ -26,8 +32,15 @@ export function isVoicemailDetectOn(): boolean {
   return process.env.VOICEMAIL_DETECT === 'on';
 }
 
+export function isCallScreenHandlingOn(): boolean {
+  return process.env.CALL_SCREEN_HANDLING === 'on';
+}
+
+const SCREENER_PHRASES =
+  /\b(screening|call screen(er)?|(say|state|record) your name|your name and (the )?(reason|why)|reason for (your )?call(ing)?|why you'?re calling|stay on the line|see if (this person|they|he|she) (is |are )?available)\b/i;
+
 const VOICEMAIL_PHRASES =
-  /\b(leave (me )?(a |your )?(message|name|number)|please leave|(not|isn'?t) available|unavailable|can'?t (come to|take|get to) (the |your )?(phone|call)|(after|at) the (tone|beep)|voice ?mail|mail ?box|you'?ve reached|you have reached|record your message|get back to you|the (person|party|number|subscriber) you (are|were|have)|away from (the|my) phone)\b/i;
+  /\b(leave (me )?(a |your )?(message|name|number)|please leave|(not|isn'?t) available|unavailable|can'?t (come to|take|get to) (the |your )?(phone|call)|(after|at) the (tone|beep)|voice ?mail|mail ?box|you'?ve reached|you have reached|record your message|get back to you|away from (the|my) phone)\b/i;
 
 export interface LineEvidence {
   sinceAnswerMs: number;
@@ -41,13 +54,23 @@ export interface LineEvidence {
 
 export type Answerer = 'human' | 'voicemail';
 
-/** A person or a machine, or undefined while it's still unclear. */
-export function classifyLine(e: LineEvidence): Answerer | undefined {
-  if (VOICEMAIL_PHRASES.test(e.text.replace(/’/g, "'"))) return 'voicemail';
+/**
+ * A person, a machine or a call screener, or undefined while it's still
+ * unclear. `afterScreener`: Ferni has answered a screener and silence is
+ * expected while the person decides, so silence alone is not a person.
+ */
+export function classifyLine(
+  e: LineEvidence,
+  afterScreener = false
+): Answerer | 'screener' | undefined {
+  const text = e.text.replace(/’/g, "'");
+  if (isCallScreenHandlingOn() && SCREENER_PHRASES.test(text)) return 'screener';
+  if (VOICEMAIL_PHRASES.test(text)) return 'voicemail';
   const words = e.text ? e.text.split(/\s+/).length : 0;
   // A person answers in a few words; a greeting keeps going.
   if (words >= 9 || e.talkingMs >= 3500) return 'voicemail';
   if (words > 0 && e.silentMs >= 900) return 'human'; // said hello, now waiting for us
+  if (afterScreener) return undefined;
   if (e.sinceAnswerMs >= 4000) return words >= 5 || e.talkingMs >= 2500 ? 'voicemail' : 'human';
   return undefined;
 }
@@ -66,6 +89,13 @@ export function voicemailMessage({
   return sponsorName
     ? `${hi}, it's Ferni, ${sponsorName}'s AI friend. ${sponsorName} asked me to check in, no need to call back, I'll try again another time.`
     : `${hi}, it's Ferni, an AI friend, just calling to check in. ${later}`;
+}
+
+/** The one line a call screener hears: who's calling, and why. */
+export function screenerReply({ recipientName, sponsorName, personal }: OutboundParties): string {
+  if (!personal) return `Hi, this is Ferni, an AI calling for ${sponsorName ?? 'someone'}.`;
+  const who = sponsorName ? `${sponsorName}'s AI friend` : 'an AI friend';
+  return `Hi, it's Ferni, ${who}, calling to check in${recipientName ? ` on ${recipientName}` : ''}.`;
 }
 
 // Sessions screening a call: FerniAgent.onUserTurnCompleted holds the reply.
@@ -162,6 +192,17 @@ async function leaveMessage(
     .catch((error: unknown) => log.warn({ error: String(error) }, 'Hang-up failed'));
 }
 
+async function answerScreener(
+  session: ScreenSession,
+  parties: OutboundParties,
+  ear: ReturnType<typeof listen>,
+  tick: number
+): Promise<void> {
+  // Let the screener finish asking, then say who's calling, once.
+  await poll(() => (ear.evidence().silentMs >= 700 ? true : undefined), tick);
+  await session.say(screenerReply(parties), { allowInterruptions: false }).waitForPlayout();
+}
+
 /** Screen an answered line; on a machine, leave the message and hang up. */
 export async function screenLine(
   session: ScreenSession,
@@ -170,15 +211,35 @@ export async function screenLine(
 ): Promise<Answerer> {
   const now = deps.now ?? Date.now;
   const tick = deps.tickMs ?? 100;
-  const ear = listen(session, now);
+  let ear = listen(session, now);
+  let screener = false;
   screening.add(session);
   try {
-    const answerer = await poll(() => classifyLine(ear.evidence()), tick);
-    if (answerer === 'voicemail') await leaveMessage(session, parties, deps, ear, tick);
-    await deps.record(answerer).catch((error: unknown) => {
-      log.warn({ error: String(error) }, 'Could not record who answered');
-    });
-    return answerer;
+    for (;;) {
+      const heard = await poll(() => {
+        const e = ear.evidence();
+        // A screener that never puts anyone through: give up quietly after a minute.
+        return screener && e.sinceAnswerMs >= 60_000 ? 'gave-up' : classifyLine(e, screener);
+      }, tick);
+      if (heard === 'gave-up') {
+        await deps
+          .hangUp()
+          .catch((error: unknown) => log.warn({ error: String(error) }, 'Hang-up failed'));
+        return 'voicemail';
+      }
+      if (heard !== 'screener') {
+        if (heard === 'voicemail') await leaveMessage(session, parties, deps, ear, tick);
+        await deps.record(heard).catch((error: unknown) => {
+          log.warn({ error: String(error) }, 'Could not record who answered');
+        });
+        return heard;
+      }
+      if (!screener) await answerScreener(session, parties, ear, tick);
+      // Every screener prompt after the first is let pass in silence.
+      ear.stop();
+      ear = listen(session, now);
+      screener = true;
+    }
   } finally {
     ear.stop();
     screening.delete(session);
