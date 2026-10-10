@@ -13,7 +13,7 @@
  * @module memory/spanner-graph/client
  */
 
-import { Spanner, Database } from '@google-cloud/spanner';
+import { Spanner, type Database } from '@google-cloud/spanner';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   SPANNER_CONFIG,
@@ -671,7 +671,8 @@ export async function closeSpanner(): Promise<void> {
     databaseInstance = null;
   }
   if (spannerInstance) {
-    spannerInstance.close();
+    // @google-cloud/spanner 9 made close() async; await it so a failed close rejects here.
+    await spannerInstance.close();
     spannerInstance = null;
   }
   initialized = false;
