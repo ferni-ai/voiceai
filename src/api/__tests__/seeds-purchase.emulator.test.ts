@@ -12,8 +12,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 
 /** The buyer's plan by uid (default partner, which may buy anything); 'throw' fails the lookup. */
 const plans = new Map<string, string>();
+/** The uids whose plan was looked up, in order. */
+const lookups: string[] = [];
 vi.mock('../../services/billing/stripe-subscription.js', () => ({
   getSubscriptionInfo: vi.fn((uid: string) => {
+    lookups.push(uid);
     const tier = plans.get(uid) ?? 'partner';
     if (tier === 'throw') return Promise.reject(new Error('profile store down'));
     return Promise.resolve({ tier });
@@ -198,6 +201,21 @@ describe.skipIf(!emulator)('POST /api/seeds/purchase (Firestore emulator)', () =
         body: { error: 'Requires the partner plan' },
       });
       expect(await account(a)).toMatchObject({ balance: 800, ownedCosmetics: ['theme-forest'] });
+    });
+
+    it('owning wins: after a downgrade, buying an owned item again is 200, no charge', async () => {
+      plans.set(a, 'friend');
+      expect((await buy(a, 'theme-forest')).body).toMatchObject({ charged: true, balance: 800 });
+      plans.set(a, 'free');
+      lookups.length = 0;
+
+      expect(await buy(a, 'theme-forest')).toEqual({
+        status: 200,
+        body: { owned: true, charged: false, itemId: 'theme-forest', balance: 800 },
+      });
+      expect(lookups).toEqual([]); // no plan lookup for an item already owned
+      expect(await account(a)).toMatchObject({ balance: 800, ownedCosmetics: ['theme-forest'] });
+      expect(await purchaseEntries(a)).toHaveLength(1);
     });
 
     it('a partner buyer can buy friend items', async () => {

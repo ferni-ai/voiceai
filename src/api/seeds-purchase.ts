@@ -8,7 +8,8 @@
  *
  * Each item has a lowest plan that may buy it, checked against the stored subscription
  * (never a client header) before anything is charged. If the plan can't be read, the
- * purchase fails closed.
+ * purchase fails closed. Owning wins: an item already owned (say, before a downgrade)
+ * answers "owned, not charged" without looking at the plan.
  *
  * @module api/seeds-purchase
  */
@@ -19,7 +20,13 @@ import {
   isDefaultCosmetic,
   tierAllows,
 } from '../services/seeds/cosmetics-catalog.js';
-import { commitSeeds, InsufficientSeedsError, prepareSeeds } from '../services/seeds/ledger.js';
+import {
+  commitSeeds,
+  InsufficientSeedsError,
+  prepareSeeds,
+  SEEDS_COLLECTION,
+  STARTER_SEEDS,
+} from '../services/seeds/ledger.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SeedsPurchase' });
@@ -39,6 +46,20 @@ export async function purchaseCosmetic(
   }
   const item = cosmeticForSale(itemId);
   if (!item) return { status: 400, error: 'Unknown item' };
+
+  // Already owned: nothing to charge and no plan to check (the transaction re-checks this)
+  const account = (await db.collection(SEEDS_COLLECTION).doc(uid).get()).data();
+  if (((account?.ownedCosmetics as string[] | undefined) ?? []).includes(item.id)) {
+    return {
+      status: 200,
+      body: {
+        owned: true,
+        charged: false,
+        itemId: item.id,
+        balance: Number(account?.balance ?? STARTER_SEEDS),
+      },
+    };
+  }
 
   let plan: unknown;
   try {
