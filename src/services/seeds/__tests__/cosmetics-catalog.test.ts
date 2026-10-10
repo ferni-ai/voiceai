@@ -12,6 +12,7 @@ import {
   DEFAULT_COSMETICS,
   isDefaultCosmetic,
   ownedCosmetics,
+  tierAllows,
 } from '../cosmetics-catalog.js';
 
 const WEB_CATALOG = fileURLToPath(
@@ -19,7 +20,7 @@ const WEB_CATALOG = fileURLToPath(
 );
 
 /** Each `{ id: '...', ... }` item in the web file, up to the next item. */
-function webItems(): Array<{ id: string; type: string; price: number | null }> {
+function webItems(): Array<{ id: string; type: string; price: number | null; tier: string }> {
   const source = readFileSync(WEB_CATALOG, 'utf8');
   return source
     .split(/\n\s*id: '/)
@@ -28,8 +29,11 @@ function webItems(): Array<{ id: string; type: string; price: number | null }> {
       const id = /^([^']+)'/.exec(chunk)?.[1];
       const type = /\btype: '([^']+)'/.exec(chunk)?.[1];
       const price = /\bpriceInSeeds: (null|\d+)/.exec(chunk)?.[1];
-      if (!id || !type || price === undefined) throw new Error(`Unparsed web item: ${chunk}`);
-      return { id, type, price: price === 'null' ? null : Number(price) };
+      const tier = /\brequiredTier: '([^']+)'/.exec(chunk)?.[1];
+      if (!id || !type || price === undefined || !tier) {
+        throw new Error(`Unparsed web item: ${chunk}`);
+      }
+      return { id, type, price: price === 'null' ? null : Number(price), tier };
     });
 }
 
@@ -41,18 +45,19 @@ describe('server cosmetics catalog matches the web catalog', () => {
     expect(web.length).toBeGreaterThan(10);
   });
 
-  it('sells every priced web item at the same price and type, and nothing else', () => {
+  it('sells every priced web item at the same price, type and plan, and nothing else', () => {
     const forSale = web
       .filter((item) => item.price !== null)
-      .map(({ id, type, price }) => ({ id, type, price }));
+      .map(({ id, type, price, tier }) => ({ id, type, price, requiredTier: tier }));
     expect([...COSMETICS_FOR_SALE].sort((a, b) => a.id.localeCompare(b.id))).toEqual(
       forSale.sort((a, b) => a.id.localeCompare(b.id))
     );
   });
 
   it('treats every unpriced web item as a default everyone owns', () => {
-    const defaults = web.filter((item) => item.price === null).map((item) => item.id);
-    expect([...DEFAULT_COSMETICS].sort()).toEqual(defaults.sort());
+    const defaults = web.filter((item) => item.price === null);
+    expect([...DEFAULT_COSMETICS].sort()).toEqual(defaults.map((item) => item.id).sort());
+    expect(defaults.every((item) => item.tier === 'free')).toBe(true);
   });
 
   it('has no free items for sale (price 0 would grant ownership with no ledger entry)', () => {
@@ -78,5 +83,22 @@ describe('catalog lookups', () => {
       ...DEFAULT_COSMETICS,
       'theme-forest',
     ]);
+  });
+});
+
+describe('tierAllows ranks free < friend < partner', () => {
+  it('lets a plan buy at or below its rank only', () => {
+    expect(tierAllows('free', 'friend')).toBe(false);
+    expect(tierAllows('friend', 'friend')).toBe(true);
+    expect(tierAllows('friend', 'partner')).toBe(false);
+    expect(tierAllows('partner', 'friend')).toBe(true);
+    expect(tierAllows('partner', 'partner')).toBe(true);
+    expect(tierAllows('free', 'free')).toBe(true);
+  });
+
+  it('counts an unrecognized plan as free', () => {
+    for (const plan of [undefined, null, '', 'gold', 'toString', '__proto__', 2]) {
+      expect(tierAllows(plan, 'friend'), String(plan)).toBe(false);
+    }
   });
 });

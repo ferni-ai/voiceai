@@ -12,12 +12,15 @@
  */
 
 export type CosmeticType = 'avatar-skin' | 'ui-theme' | 'voice-pack' | 'sound-pack' | 'emote';
+export type CosmeticTier = 'free' | 'friend' | 'partner';
 
 export interface CosmeticForSale {
   id: string;
   type: CosmeticType;
   /** Seeds charged; always a positive whole number (nothing for sale is free). */
   price: number;
+  /** The lowest plan that may buy it. */
+  requiredTier: CosmeticTier;
 }
 
 /** Everyone owns these from the start; they're never sold. */
@@ -28,19 +31,19 @@ export const DEFAULT_COSMETICS: readonly string[] = [
 ];
 
 export const COSMETICS_FOR_SALE: readonly CosmeticForSale[] = [
-  { id: 'skin-cosmic', type: 'avatar-skin', price: 500 },
-  { id: 'skin-sunset', type: 'avatar-skin', price: 300 },
-  { id: 'skin-ocean', type: 'avatar-skin', price: 300 },
-  { id: 'skin-aurora', type: 'avatar-skin', price: 1000 },
-  { id: 'theme-forest', type: 'ui-theme', price: 200 },
-  { id: 'theme-midnight', type: 'ui-theme', price: 300 },
-  { id: 'theme-cozy', type: 'ui-theme', price: 500 },
-  { id: 'sounds-rain', type: 'sound-pack', price: 150 },
-  { id: 'sounds-fireplace', type: 'sound-pack', price: 150 },
-  { id: 'sounds-nature', type: 'sound-pack', price: 250 },
-  { id: 'voice-warm', type: 'voice-pack', price: 200 },
-  { id: 'voice-calm', type: 'voice-pack', price: 300 },
-  { id: 'voice-energetic', type: 'voice-pack', price: 300 },
+  { id: 'skin-cosmic', type: 'avatar-skin', price: 500, requiredTier: 'friend' },
+  { id: 'skin-sunset', type: 'avatar-skin', price: 300, requiredTier: 'friend' },
+  { id: 'skin-ocean', type: 'avatar-skin', price: 300, requiredTier: 'friend' },
+  { id: 'skin-aurora', type: 'avatar-skin', price: 1000, requiredTier: 'partner' },
+  { id: 'theme-forest', type: 'ui-theme', price: 200, requiredTier: 'friend' },
+  { id: 'theme-midnight', type: 'ui-theme', price: 300, requiredTier: 'friend' },
+  { id: 'theme-cozy', type: 'ui-theme', price: 500, requiredTier: 'partner' },
+  { id: 'sounds-rain', type: 'sound-pack', price: 150, requiredTier: 'friend' },
+  { id: 'sounds-fireplace', type: 'sound-pack', price: 150, requiredTier: 'friend' },
+  { id: 'sounds-nature', type: 'sound-pack', price: 250, requiredTier: 'friend' },
+  { id: 'voice-warm', type: 'voice-pack', price: 200, requiredTier: 'friend' },
+  { id: 'voice-calm', type: 'voice-pack', price: 300, requiredTier: 'friend' },
+  { id: 'voice-energetic', type: 'voice-pack', price: 300, requiredTier: 'friend' },
 ];
 
 const BY_ID = new Map(COSMETICS_FOR_SALE.map((item) => [item.id, item]));
@@ -58,4 +61,15 @@ export function isDefaultCosmetic(id: unknown): boolean {
 export function ownedCosmetics(stored: unknown): string[] {
   const bought = Array.isArray(stored) ? stored.filter((id) => typeof id === 'string') : [];
   return [...new Set([...DEFAULT_COSMETICS, ...bought])];
+}
+
+const TIER_RANK: Record<CosmeticTier, number> = { free: 0, friend: 1, partner: 2 };
+
+/** Whether a plan may buy an item; an unrecognized plan counts as free. */
+export function tierAllows(plan: unknown, required: CosmeticTier): boolean {
+  const rank =
+    typeof plan === 'string' && Object.hasOwn(TIER_RANK, plan)
+      ? TIER_RANK[plan as CosmeticTier]
+      : 0;
+  return rank >= TIER_RANK[required];
 }

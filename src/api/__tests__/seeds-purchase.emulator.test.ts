@@ -2,12 +2,23 @@
  * POST /api/seeds/purchase: real HTTP through the real handler, on the Firestore emulator.
  * A purchase charges the server's price once and records ownership in the same write;
  * a repeat, a retry or two racing requests never charge twice, and a failed purchase
- * writes nothing.
+ * writes nothing. Each item needs the buyer's stored plan to reach its requiredTier; the
+ * plan is read through the billing module, mocked here at that module's boundary.
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import admin from 'firebase-admin';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+/** The buyer's plan by uid (default partner, which may buy anything); 'throw' fails the lookup. */
+const plans = new Map<string, string>();
+vi.mock('../../services/billing/stripe-subscription.js', () => ({
+  getSubscriptionInfo: vi.fn((uid: string) => {
+    const tier = plans.get(uid) ?? 'partner';
+    if (tier === 'throw') return Promise.reject(new Error('profile store down'));
+    return Promise.resolve({ tier });
+  }),
+}));
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT ??= 'demo-seed-ledger';
@@ -160,5 +171,51 @@ describe.skipIf(!emulator)('POST /api/seeds/purchase (Firestore emulator)', () =
     const { body } = await call(a, 'GET', '/api/seeds');
     expect(body.ownedCosmetics).toEqual([...DEFAULTS, 'sounds-rain', 'theme-cozy']);
     expect(body.balance).toBe(350);
+  });
+
+  describe('plan required to buy', () => {
+    beforeEach(async () => {
+      await db.collection('user_seeds').doc(a).set({ balance: 1000 });
+    });
+
+    it('a free buyer of a friend item gets 403; nothing is charged or owned', async () => {
+      plans.set(a, 'free');
+      expect(await buy(a, 'theme-forest')).toEqual({
+        status: 403,
+        body: { error: 'Requires the friend plan' },
+      });
+      const after = await account(a);
+      expect(after.balance).toBe(1000);
+      expect(after.ownedCosmetics).toBeUndefined();
+      expect(await purchaseEntries(a)).toEqual([]);
+    });
+
+    it('a friend buyer is charged and owns a friend item, but not a partner item', async () => {
+      plans.set(a, 'friend');
+      expect((await buy(a, 'theme-forest')).body).toMatchObject({ charged: true, balance: 800 });
+      expect(await buy(a, 'skin-aurora')).toEqual({
+        status: 403,
+        body: { error: 'Requires the partner plan' },
+      });
+      expect(await account(a)).toMatchObject({ balance: 800, ownedCosmetics: ['theme-forest'] });
+    });
+
+    it('a partner buyer can buy friend items', async () => {
+      plans.set(a, 'partner');
+      expect((await buy(a, 'voice-warm')).body).toMatchObject({ charged: true, balance: 800 });
+      expect((await account(a)).ownedCosmetics).toEqual(['voice-warm']);
+    });
+
+    it('a plan lookup that fails is a 503 and writes nothing', async () => {
+      plans.set(a, 'throw');
+      expect(await buy(a, 'theme-forest')).toEqual({
+        status: 503,
+        body: { error: 'Could not check your plan' },
+      });
+      const after = await account(a);
+      expect(after.balance).toBe(1000);
+      expect(after.ownedCosmetics).toBeUndefined();
+      expect(await purchaseEntries(a)).toEqual([]);
+    });
   });
 });

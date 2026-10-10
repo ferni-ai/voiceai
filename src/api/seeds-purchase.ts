@@ -6,15 +6,27 @@
  * price, so a retried or doubled request charges once and an item is never owned
  * without being paid for, or paid for without being owned.
  *
+ * Each item has a lowest plan that may buy it, checked against the stored subscription
+ * (never a client header) before anything is charged. If the plan can't be read, the
+ * purchase fails closed.
+ *
  * @module api/seeds-purchase
  */
 import admin from 'firebase-admin';
-import { cosmeticForSale, isDefaultCosmetic } from '../services/seeds/cosmetics-catalog.js';
+import { getSubscriptionInfo } from '../services/billing/stripe-subscription.js';
+import {
+  cosmeticForSale,
+  isDefaultCosmetic,
+  tierAllows,
+} from '../services/seeds/cosmetics-catalog.js';
 import { commitSeeds, InsufficientSeedsError, prepareSeeds } from '../services/seeds/ledger.js';
+import { createLogger } from '../utils/safe-logger.js';
+
+const log = createLogger({ module: 'SeedsPurchase' });
 
 export type PurchaseResult =
   | { status: 200; body: { owned: true; charged: boolean; itemId: string; balance?: number } }
-  | { status: 400; error: string };
+  | { status: 400 | 403 | 503; error: string };
 
 export async function purchaseCosmetic(
   db: admin.firestore.Firestore,
@@ -27,6 +39,17 @@ export async function purchaseCosmetic(
   }
   const item = cosmeticForSale(itemId);
   if (!item) return { status: 400, error: 'Unknown item' };
+
+  let plan: unknown;
+  try {
+    plan = (await getSubscriptionInfo(uid)).tier;
+  } catch (error) {
+    log.warn({ error, uid, itemId: item.id }, 'Plan lookup failed; purchase refused');
+    return { status: 503, error: 'Could not check your plan' };
+  }
+  if (!tierAllows(plan, item.requiredTier)) {
+    return { status: 403, error: `Requires the ${item.requiredTier} plan` };
+  }
 
   const key = `purchase:${item.id}`;
   try {

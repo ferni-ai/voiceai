@@ -294,7 +294,7 @@ export async function handleSeedsRoutes(
     if (pathname === '/api/seeds/purchase' && req.method === 'POST') {
       const { itemId } = ((await parseBody(req)) ?? {}) as { itemId?: unknown };
       const result = await purchaseCosmetic(db, userId, itemId);
-      if (result.status === 400) sendErrorStatus(res, 400, result.error);
+      if (result.status !== 200) sendErrorStatus(res, result.status, result.error);
       else sendJSON(res, result.body);
       return true;
     }
