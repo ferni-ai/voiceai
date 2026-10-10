@@ -525,7 +525,7 @@ export async function buildHandoffTools(
           userData.conversationTopics = [];
           // Note: We preserve lastEmotionAnalysis as it's useful context for the new persona
         }
-        return handoffToolResponse(result, def.agentName);
+        return handoffToolResponse(result, def.agentName, sessionId);
       },
     });
 

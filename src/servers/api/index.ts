@@ -157,6 +157,7 @@ import { handleBuilderMetricsRoutes } from '../../api/routes/builder-metrics.js'
 import { handleMusicAnalyticsRoutes } from '../../api/music-analytics-routes.js';
 import { handleAdminRoutes } from '../../api/admin-routes.js';
 import { handleMonetizationRequest, isMonetizationRoute } from '../../api/monetization-routes.js';
+import { parseMonetizationBody } from '../../api/monetization-webhook.js';
 import { handleAppleRoutes, isAppleRoute } from '../../api/apple-iap-routes.js';
 import { handleV1Routes } from '../../api/v1/index.js';
 import { handleV2Routes } from '../../api/v2/index.js';
@@ -1393,11 +1394,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           // Use parseRawBody to avoid race condition with async auth check
           // Also adds timeout, max size limit, and proper error handling
           const rawBody = await parseRawBody(req, { timeoutMs: 30000, maxBytes: 1024 * 1024 });
-          try {
-            body = rawBody ? JSON.parse(rawBody) : {};
-          } catch {
-            body = {};
-          }
+          body = parseMonetizationBody(pathname, rawBody);
         }
 
         const ctx = {

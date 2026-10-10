@@ -12,6 +12,7 @@ import type { PersonaConfig } from '../../personas/types.js';
 import type { VoiceHumanizationCleanup } from './types.js';
 import { TOOL_HEALTH_CHECK_INTERVAL, MULTI_AGENT_MODE } from './constants.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
+import { outboundOpener, outboundPartiesFor } from '../shared/outbound-opener.js';
 import { isPipelineSwitchingEnabled, selectPipeline, type PipelineSwitchContext } from '../shared/performance/pipeline-switcher.js';
 import { computeDynamicVADDuration } from '../shared/performance/adaptive-timing.js';
 import { finops } from '../../services/observability/finops.js';
@@ -20,7 +21,7 @@ import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
 import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
-import { logSipCallerShadow } from './sip-caller.js';
+import { noteCallerJoined } from './sip-caller.js';
 import { setupFrontendPublisher } from './handler-frontend-publisher.js';
 
 /** Inputs for handler setup */
@@ -173,7 +174,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   const participant = waitResult.participant;
   if (participant) {
     process.stderr.write(`[voice-agent-entry] 👤 Participant joined: ${participant.identity}\n`);
-    if (ctx.room) void logSipCallerShadow({ participant, room: ctx.room, sessionId });
+    if (ctx.room) void noteCallerJoined({ participant, room: ctx.room, sessionId });
   }
 
   // Multi-agent mode (skipped when entry already tried early path)
@@ -659,22 +660,21 @@ async function speakGreeting(
   process.stderr.write(`[voice-agent-entry] 🎤 Speaking greeting...\n`);
   const { generateAndSpeakGreeting } = await import('../voice-agent/greeting-handler.js');
 
+  // A call placed for the user opens with who Ferni is and who it's for (outbound-opener.ts).
+  const outboundParties = outboundPartiesFor(sessionId);
+  let greeting = outboundParties && outboundOpener(outboundParties);
   try {
-    const greetingResult = await generateAndSpeakGreeting({
+    if (greeting) coordinatedSay(sessionId, greeting, { allowInterruptions: false });
+    else greeting = (await generateAndSpeakGreeting({
       sessionPersona, services, userData, sessionId, userId: userId ?? undefined, userName: userName ?? undefined, isReturningUser,
       bundleRuntime: userData._bundleRuntime as import('../../personas/bundles/index.js').BundleRuntimeEngine | undefined,
       utilitiesProactiveOpener: undefined, session,
       tagGreeting: (text: string) => text,
-    });
-    if (greetingResult.greeting) {
-      userData.greetingText = greetingResult.greeting;
-      userData.greetingInjected = false;
-    }
+    })).greeting;
   } catch (greetingErr) {
     process.stderr.write(`[voice-agent-entry] Greeting handler failed, using fallback: ${greetingErr}\n`);
-    const fallbackGreeting = `Hey there! I'm ${sessionPersona.name}. How can I help you today?`;
-    coordinatedSay(sessionId, fallbackGreeting, { allowInterruptions: false });
-    userData.greetingText = fallbackGreeting;
-    userData.greetingInjected = false;
+    greeting = `Hey there! I'm ${sessionPersona.name}. How can I help you today?`;
+    coordinatedSay(sessionId, greeting, { allowInterruptions: false });
   }
+  if (greeting) Object.assign(userData, { greetingText: greeting, greetingInjected: false });
 }

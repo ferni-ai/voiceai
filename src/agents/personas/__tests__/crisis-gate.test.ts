@@ -322,6 +322,25 @@ describe('gatedReply', () => {
     expect(said(ordinary)).not.toContain(guidance);
   });
 
+  it("asks the model without an earlier turn's spoken lead-in", async () => {
+    // Live 2026-10-09: with "Hang on, checking." from the weather turn in the
+    // request, Gemini claimed "I've got that timer set" without calling the
+    // tool on 34 of 40 replays of one request; without it, 0 of 40.
+    const model = modelSaying('ok');
+    const ctx = request(
+      ['user', "What's the weather tomorrow?"],
+      ['assistant', 'Hang on, checking. '],
+      ['assistant', 'Sunny and 94.'],
+      ['user', 'Set a timer for ten minutes.']
+    );
+    await gatedReply(ctx, session, model as never, opener as never, { env: PATTERNS_ONLY });
+    const sent = model.mock.calls[0]![0].items.map(
+      (item) => (item as llm.ChatMessage).textContent ?? ''
+    );
+    expect(sent.some((text) => text.includes('Hang on, checking.'))).toBe(false);
+    expect(sent).toContain('Sunny and 94.');
+  });
+
   it('passes the model reply through the opener gate unless it is off', async () => {
     expect(
       await reply('what should I cook tonight?', modelSaying('ok'), { env: PATTERNS_ONLY })
