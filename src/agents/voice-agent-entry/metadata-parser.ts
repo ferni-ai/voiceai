@@ -177,6 +177,10 @@ export async function setupCallTypeContexts(
       };
       setOutboundCallContext(roomNameForContext, outboundContext);
       setOutboundCallContext(sessionId, outboundContext);
+
+      // Capture the call so its outcome can be reported to the requester at the end
+      const { beginOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
+      if (call) await beginOnBehalfCall(sessionId, call);
       process.stderr.write(
         `[voice-agent-entry] 📞 Outbound call context set for room: ${roomNameForContext}, sessionId: ${sessionId}\n`
       );
@@ -237,4 +241,21 @@ export async function setupCallTypeContexts(
       process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set proactive context: ${error}\n`);
     }
   }
+}
+
+/**
+ * Close out call-type work when the session ends, on every exit path.
+ * On-behalf calls report how the call went to the person who asked for it.
+ */
+export async function finishCallTypeContexts(
+  metadata: Record<string, unknown>,
+  callType: string | undefined,
+  sessionId: string,
+  sessionDurationMs: number
+): Promise<void> {
+  if (callType !== 'on_behalf_call') return;
+  const { parseOnBehalfDispatch } = await import('../../services/outreach/on-behalf-dispatch.js');
+  const { completeOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
+  const call = parseOnBehalfDispatch(metadata);
+  if (call) await completeOnBehalfCall(sessionId, call, Math.round(sessionDurationMs / 1000));
 }

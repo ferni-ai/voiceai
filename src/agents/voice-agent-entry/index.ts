@@ -59,7 +59,7 @@ import { getModelProvider } from '../model-provider/index.js';
 import { configureModelProvider } from '../../personas/bundles/model-provider-config.js';
 
 // Submodule imports
-import { parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
+import { finishCallTypeContexts, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
 import { buildSessionPersona } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
 import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
@@ -191,6 +191,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
   // Forward-declared variables used across phases and in cleanup
   let userId: string | null = null;
+  // Closes out call-type work (e.g. reports an on-behalf call) on any exit path
+  let finishCallType: (() => Promise<void>) | undefined;
   let personaId = 'ferni';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let services: any = null;
@@ -237,6 +239,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const parsed = parseJobMetadata(ctx);
     personaId = parsed.personaId;
     const { publisherId, callType, metadata } = parsed;
+    finishCallType = () =>
+      finishCallTypeContexts(metadata, callType, sessionId, Date.now() - startTime);
 
     // Set up call type-specific contexts (inbound, on-behalf, proactive)
     await setupCallTypeContexts(metadata, callType, sessionId, ctx.job.room?.name);
@@ -354,6 +358,11 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     services = initResult.services;
+    if (callType === 'on_behalf_call') {
+      const { wrapServicesForOnBehalfCapture } =
+        await import('../integrations/on-behalf-transcript-capture.js');
+      wrapServicesForOnBehalfCapture(sessionId, services);
+    }
     isReturningUser = initResult.isReturningUser;
     userData = initResult.userData;
     // The caller's time zone (web client → token → dispatch metadata).
@@ -737,6 +746,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         `[voice-agent-entry] 🎭 Multi-agent session returned — running shared cleanup\n`
       );
       e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
+      await finishCallType();
 
       try {
         const sessionDurationMs = Date.now() - startTime;
@@ -955,6 +965,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
 
+    await finishCallType();
+
     // FinOps end-of-session
     const sessionDurationMs = Date.now() - startTime;
     const sessionDurationMinutes = sessionDurationMs / 60000;
@@ -1003,6 +1015,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   } catch (error) {
     const errObj = error instanceof Error ? error : new Error(String(error));
     e2e.captureError('SESSION', errObj, { jobId, roomName, phase: currentPhase });
+    await finishCallType?.().catch(() => undefined);
     process.stderr.write(`[voice-agent-entry] ERROR in phase ${currentPhase}: ${error}\n`);
 
     recordCrash('uncaught_exception', errObj, sessionId, { roomName, connectionState: currentPhase });
