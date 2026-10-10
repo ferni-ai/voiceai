@@ -99,7 +99,7 @@ function getGameDisplayName(gameType: string): string {
  *
  * NOTE: Always normalizes gameType first to handle variant spellings.
  */
-function transformStateForFrontend(
+export function transformStateForFrontend(
   gameType: string,
   gameData: Record<string, unknown>
 ): Record<string, unknown> {
@@ -159,10 +159,14 @@ function transformStateForFrontend(
     }
 
     case '20-questions': {
-      // Add optional maxQuestions expected by frontend
-      const backendState = gameData as Record<string, unknown>;
+      // The secret stays on the server until the game is over: it was sent to
+      // the app with every state update, so the answer was on screen while the
+      // caller was still guessing.
+      const { secretThing, ...rest } = gameData as Record<string, unknown>;
+      const over = rest.guessedCorrectly != null || Number(rest.questionNumber ?? 0) >= 20;
       return {
-        ...backendState,
+        ...rest,
+        ...(over ? { secretThing } : {}),
         maxQuestions: 20, // Frontend expects this optional field
       };
     }
