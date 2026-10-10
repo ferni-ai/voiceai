@@ -23,7 +23,7 @@ import { RoomServiceClient } from 'livekit-server-sdk';
 import { createLogger } from '../../utils/safe-logger.js';
 import { EventEmitter } from 'events';
 import type { IncomingMessage } from 'http';
-import { validateTwilioSignature } from '../outreach/webhooks/twilio-webhooks.js';
+import { isTwilioSignedHandshake, rejectHandshake } from './twilio-stream-auth.js';
 import { isExperimentalEnabled } from '../../config/feature-flags.js';
 import {
   getTwilioEnhancer,
@@ -33,49 +33,6 @@ import {
 } from './twilio-audio-enhance.js';
 
 const log = createLogger({ module: 'twilio-stream-bridge' });
-
-/**
- * True only when the WebSocket handshake carries a valid X-Twilio-Signature.
- *
- * Every stream's `start` message becomes a live call: its customParameters pick
- * the room and are dispatched to the voice agent. Without this check anyone who
- * can reach the endpoint could open a stream and start a call that names any
- * user. Twilio signs the handshake over the wss:// URL it called (Twilio's
- * security docs note a trailing "/" sometimes has to be added), so the URL is
- * rebuilt behind the proxy and each spelling of it is tried. With no auth token
- * configured the validator refuses everything.
- */
-export function isTwilioSignedHandshake(req: IncomingMessage): boolean {
-  const signature = req.headers['x-twilio-signature'];
-  if (typeof signature !== 'string' || !signature) return false;
-
-  const forwarded = req.headers['x-forwarded-host'];
-  const host =
-    (typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : '') || req.headers.host;
-  const pathAndQuery = req.url || '/';
-  const [path, query] = pathAndQuery.split('?', 2);
-  const suffix = query === undefined ? '' : `?${query}`;
-  const paths = path.endsWith('/') ? [path] : [path, `${path}/`];
-
-  const urls = host
-    ? ['wss', 'https'].flatMap((scheme) => paths.map((p) => `${scheme}://${host}${p}${suffix}`))
-    : [];
-  // The URL our TwiML told Twilio to open is what Twilio signs, whatever host
-  // header the request arrives with behind the proxy.
-  const configured = process.env.TWILIO_STREAM_WEBHOOK_URL;
-  if (configured) urls.push(configured, configured.endsWith('/') ? configured : `${configured}/`);
-
-  return urls.some((url) => validateTwilioSignature(signature, url, {}));
-}
-
-function rejectHandshake(
-  socket: { write: (s: string) => void; destroy: () => void },
-  url?: string
-) {
-  log.warn({ url }, 'Rejected Twilio stream connection without a valid Twilio signature');
-  socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
-  socket.destroy();
-}
 
 // Transcription config - using Google Cloud Speech-to-Text
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || '';
@@ -849,37 +806,10 @@ export class TwilioStreamBridge extends EventEmitter {
   }
 
   /**
-   * Send a mark event to Twilio (for sync/timing)
-   */
-  sendMark(callSid: string, markName: string): void {
-    const session = this.sessions.get(callSid);
-    if (!session || session.status !== 'active') {
-      return;
-    }
-
-    const message = {
-      event: 'mark',
-      streamSid: session.streamSid,
-      mark: {
-        name: markName,
-      },
-    };
-
-    session.twilioWs.send(JSON.stringify(message));
-  }
-
-  /**
    * Get active session info
    */
   getSession(callSid: string): BridgeSession | undefined {
     return this.sessions.get(callSid);
-  }
-
-  /**
-   * Get all active sessions
-   */
-  getAllSessions(): BridgeSession[] {
-    return Array.from(this.sessions.values());
   }
 }
 

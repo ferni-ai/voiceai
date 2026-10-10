@@ -3,7 +3,8 @@ import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
-import { isTwilioSignedHandshake, TwilioStreamBridge } from '../twilio-stream-bridge.js';
+import { TwilioStreamBridge } from '../twilio-stream-bridge.js';
+import { isTwilioSignedHandshake } from '../twilio-stream-auth.js';
 
 const AUTH_TOKEN = 'test-twilio-auth-token';
 
