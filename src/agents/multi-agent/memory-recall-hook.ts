@@ -62,6 +62,11 @@ import {
 } from '../../intelligence/world-model/recall-note.js';
 import { buildWorldModelSnapshot } from '../../intelligence/world-model/snapshot.js';
 import type { WorldModelSnapshot } from '../../intelligence/world-model/types.js';
+import {
+  loadTemporalWorld,
+  type TemporalWorld,
+} from '../../intelligence/world-model/temporal/load.js';
+import { isWorldModelTemporalOn } from '../../intelligence/world-model/temporal/types.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -105,6 +110,10 @@ export interface MemoryRecallDeps {
   lifeUpdates?: LifeUpdateDeps;
   /** Who is in their life, goals, what to avoid (WORLD_MODEL_SNAPSHOT=on). */
   loadWorldModel?: (userId: string) => Promise<WorldModelSnapshot>;
+  /** What is going on in their world now, and since the last call (WORLD_MODEL_TEMPORAL=on). */
+  loadTemporalWorld?: typeof loadTemporalWorld;
+  /** The caller's IANA timezone, for "Tuesday" and "since yesterday". */
+  timeZone?: string;
   env?: Record<string, string | undefined>;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
@@ -220,7 +229,28 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           log.warn({ error: String(error) }, 'World model not loaded');
         })
     : Promise.resolve();
-  const ready = Promise.all([loaded, since, worldLoaded]).then(() => undefined);
+  // Once a call, with the first note: what is current in their world and what
+  // came due or changed since the last call. Loaded after the recall snapshot
+  // so it can leave out threads the note already carries; nothing waits on it.
+  let temporal: TemporalWorld | null = null;
+  const temporalLoaded = isWorldModelTemporalOn(deps.env)
+    ? loaded
+        .catch(() => undefined)
+        .then(() =>
+          (deps.loadTemporalWorld ?? loadTemporalWorld)(deps.userId, {
+            timeZone: deps.timeZone,
+            env: deps.env,
+            alreadySaid: snapshot?.followUps ?? [],
+          })
+        )
+        .then((w) => {
+          temporal = w;
+        })
+        .catch((error: unknown) => {
+          log.warn({ error: String(error) }, 'Temporal world not loaded');
+        })
+    : Promise.resolve();
+  const ready = Promise.all([loaded, since, worldLoaded, temporalLoaded]).then(() => undefined);
 
   return {
     ready,
@@ -265,7 +295,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       // The ledger, like the follow-ups, comes once, with the first note.
       const told = followUpsOffered
         ? null
-        : [ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
+        : [ledgerNote, sinceNote, temporal?.note].filter(Boolean).join('\n') || null;
       const note =
         [
           worldNote,
@@ -277,6 +307,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           .join('\n\n') || null;
       if (!note) return null;
       followUpsOffered = true;
+      if (temporal?.note && told) {
+        log.info({ since: temporal.sinceLastCall.map((i) => i.kind) }, 'WORLD_TEMPORAL_INJECTED');
+      }
       if (world && worldNote) {
         worldOffered = true;
         log.info({ ...world.counts, chars: worldNote.length }, 'WORLD_MODEL_INJECTED');
