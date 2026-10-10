@@ -24,7 +24,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
-import { directedGreeting } from './greeting-direction.js';
+import { directedGreeting, isProactiveCall } from './greeting-direction.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 export { calmGreeting } from './greeting-direction.js';
 
@@ -238,9 +238,10 @@ export class AgentOrchestrator {
    */
   private async generateInitialGreeting(agent: PersonaAgent): Promise<void> {
     try {
-      // A call Ferni placed for someone opens with who it is and who it's
-      // for, once the phone is picked up: never the app's "hey <user>" hello.
-      const { outboundOpener, outboundPartiesFor } = await import('../shared/outbound-opener.js');
+      // A call Ferni placed waits for the phone to be picked up. One for someone opens
+      // with who it is and who it's for, never the app's "hey <user>" hello.
+      const { outboundOpener, outboundPartiesFor, waitForCallAnswered } =
+        await import('../shared/outbound-opener.js');
       const parties = outboundPartiesFor(this.sessionId);
       let greeting: string;
       if (parties) {
@@ -250,6 +251,14 @@ export class AgentOrchestrator {
         if (!(await personAnswered(room, phone, agent, parties, sessionId))) return;
         greeting = outboundOpener(parties);
       } else {
+        // A proactive call to Ferni's own user waits for the pickup too.
+        if (await isProactiveCall(this.sessionId)) {
+          const answered = await waitForCallAnswered(this.room, this.userParticipant);
+          if (!answered) {
+            log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
+            return;
+          }
+        }
         const userData = agent.userData as UserData | undefined;
         greeting = await directedGreeting(this.sessionId, agent.personaId, userData);
       }
