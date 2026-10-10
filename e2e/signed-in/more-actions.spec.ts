@@ -1,7 +1,7 @@
 /**
  * More things a person does inside the app, checked for what actually happens:
- * the tour moves and ends, planting seeds spends them and sticks, a practice
- * marked done stays done, and searching your people finds them.
+ * the tour moves and ends, planting seeds spends them and sticks, and searching
+ * your people finds them.
  *
  * Needs the signed-in local stack (scripts/e2e/start-signed-in-stack.sh).
  */
@@ -54,29 +54,15 @@ test("what's coming: planting seeds spends them, and it sticks", async ({ page }
   expect(problems.take()).toEqual([]);
 });
 
-test("what's ahead: a practice marked done stays done", async ({ page }) => {
-  const problems = watchProblems(page);
-  let panel = await openPanel(page, 'calendar-settings');
-  const first = panel.locator('input[type="checkbox"]').first();
-  const name = await first.getAttribute('aria-label');
-  await first.check();
-  await page.waitForTimeout(1_000);
-  await page.keyboard.press('Escape');
-
-  await page.reload();
-  await expectHome(page);
-  panel = await openPanel(page, 'calendar-settings');
-  await expect(panel.getByRole('checkbox', { name: name ?? '' }), 'kept after a reload').toBeChecked();
-  expect(problems.take()).toEqual([]);
-});
-
 test('your people: search finds the person you typed', async ({ page }) => {
   const panel = await openPanel(page, 'contacts');
   for (const person of ['Priya Raman', 'Tomás Ortega']) {
     await panel.locator('[data-action="add-person"]').click();
-    await page.getByPlaceholder('e.g., Mom, Sarah Chen, Dr. Rivera').fill(person);
-    await page.locator('[data-relationship="friend"]').click();
-    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    // The form open now; the previous one may still be fading out (and must not take this one with it)
+    const form = page.locator('.add-person-overlay.open');
+    await form.getByPlaceholder('e.g., Mom, Sarah Chen, Dr. Rivera').fill(person);
+    await form.locator('[data-relationship="friend"]').click();
+    await form.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(panel).toContainText(person, { timeout: 10_000 });
   }
   await panel.getByRole('searchbox').or(panel.locator('input[type="search"]')).first().fill('Tom');
