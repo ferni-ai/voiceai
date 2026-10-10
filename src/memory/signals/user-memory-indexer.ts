@@ -13,6 +13,7 @@ import { toSafeDate } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { indexConversationSummary } from '../semantic-rag.js';
 import { getFirestore } from '../firestore-factory.js';
+import { readCallSummaries } from '../storage/call-summaries.js';
 
 const log = createLogger({ module: 'UserMemoryIndexer' });
 
@@ -69,13 +70,7 @@ export async function indexUserMemories(
 
   try {
     // 1. Index conversation summaries
-    const summariesSnapshot = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('conversation_summaries')
-      .orderBy('timestamp', 'desc')
-      .limit(maxSummaries)
-      .get();
+    const summariesSnapshot = await readCallSummaries(db, userId, { limit: maxSummaries });
 
     for (const doc of summariesSnapshot.docs) {
       const summary = doc.data();
