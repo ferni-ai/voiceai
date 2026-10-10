@@ -6,9 +6,16 @@ const info = vi.fn();
 const warn = vi.fn();
 vi.mock('../../../utils/safe-logger.js', () => ({ getLogger: () => ({ info, warn }) }));
 
-const { logSipCallerShadow, maskPhoneNumber, parseVerStat, phoneVerifyMode, readSipCaller } =
-  await import('../sip-caller.js');
+const {
+  logSipCallerShadow,
+  maskPhoneNumber,
+  noteCallerJoined,
+  parseVerStat,
+  phoneVerifyMode,
+  readSipCaller,
+} = await import('../sip-caller.js');
 const { mintPhoneAttestation } = await import('../../../services/identity/phone-attestation.js');
+const { isPhoneListener } = await import('../../shared/performance/phone-voice-profile.js');
 type SipParticipantLike = import('../sip-caller.js').SipParticipantLike;
 
 const FULL_NUMBER = '+15551234567';
@@ -326,5 +333,25 @@ describe('signed attestation (ferni.attest)', () => {
       const r = await pending;
       expect(r).toMatchObject({ attestationSource: 'signed', waitedMs: 300 });
     });
+  });
+});
+
+describe('noteCallerJoined', () => {
+  it('marks a SIP caller as a phone listener (telephony audio profile) and not a web user', async () => {
+    expect(isPhoneListener('call-s')).toBe(false);
+    await noteCallerJoined({
+      participant: sipCaller(),
+      room: fakeRoom(),
+      sessionId: 'call-s',
+      env: {},
+    });
+    await noteCallerJoined({
+      participant: { kind: ParticipantKind.STANDARD, identity: 'user-1' },
+      room: fakeRoom(),
+      sessionId: 'app-s',
+      env: {},
+    });
+    expect(isPhoneListener('call-s')).toBe(true);
+    expect(isPhoneListener('app-s')).toBe(false);
   });
 });

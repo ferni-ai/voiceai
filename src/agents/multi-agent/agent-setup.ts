@@ -98,6 +98,7 @@ const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
 import { createFindToolsTool, FIND_TOOLS } from '../../tools/retrieval/find-tools-tool.js';
+import { createEndCallTool, END_CALL } from '../outbound-call/call-control.js';
 import { toolRetrievalMode as retrievalModeNow } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { initializeFrontendPublisher } from '../realtime/index.js';
@@ -311,6 +312,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
   let systemPrompt: string;
   let modelBaseInstructions: string;
+  // The model-level text before this call's date, time and caller are added.
+  let stableBase = '';
   try {
     mark('load_prompts_start');
     // Load both levels of instructions in parallel (imports now hoisted to module level)
@@ -321,6 +324,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     mark('load_prompts_done');
 
     systemPrompt = loadedSystemPrompt;
+    stableBase = baseInstructions;
 
     // =========================================================================
     // DATE/TIME AWARENESS - Critical for grounding agent in reality
@@ -1071,6 +1075,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
     finalTools = { ...finalTools, [FIND_TOOLS]: createFindToolsTool() } as typeof finalTools;
   }
 
+  // On-behalf phone call: Ferni can hang up after a goodbye or a voicemail
+  const endCallTool = createEndCallTool(sessionId);
+  if (endCallTool) {
+    finalTools = { ...finalTools, [END_CALL]: endCallTool } as typeof finalTools;
+  }
+
   // 🚨 CRITICAL WARNING: If tool count is suspiciously low, something is wrong!
   const finalToolNames = Object.keys(finalTools);
   const initialRegisteredToolCount = finalToolNames.length;
@@ -1586,7 +1596,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const agentInstructions = composeAgentInstructions(
     systemPrompt,
     modelBaseInstructions,
-    modelProvider.getPromptModules()
+    modelProvider.getPromptModules(),
+    { stableBase }
   );
 
   const agent = new FerniAgent(agentInstructions, {
