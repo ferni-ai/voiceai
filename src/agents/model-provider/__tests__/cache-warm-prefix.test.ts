@@ -34,6 +34,16 @@ const sleep = (ms: number) =>
   new Promise((r) => {
     setTimeout(r, ms);
   });
+// A warm runs in the background, and the first one in a file pays for loading
+// the Google plugin's request path, which is slow on a loaded CI runner. Wait
+// for the requests themselves rather than a fixed time.
+const warmsLanded = (n: number) =>
+  vi.waitFor(
+    () => {
+      expect(captured).toHaveLength(n);
+    },
+    { timeout: 10_000, interval: 10 }
+  );
 
 beforeEach(() => {
   captured = [];
@@ -124,7 +134,8 @@ describe('prompt cache warm', () => {
     armPromptCacheWarm(session, ON, SETTLE_MS);
     await sleep(5);
     await session.currentAgent.updateTools(toolSet(EXPANDED)); // the expansion, after the greeting
-    await sleep(SETTLE_MS * 4);
+    await warmsLanded(2);
+    await sleep(SETTLE_MS * 4); // no third warm follows
     const warms = [...captured];
 
     expect(warms.map((r) => r.model).sort()).toEqual(['gemini-3.5-flash', 'gemini-3.5-flash-lite']);
@@ -140,13 +151,13 @@ describe('prompt cache warm', () => {
   it('warms again once when the tools change mid-call, and not for the same tools', async () => {
     const session = await cascadeSession();
     armPromptCacheWarm(session, ON, SETTLE_MS);
-    await sleep(SETTLE_MS * 4);
+    await warmsLanded(2); // the warm at arm time
     captured = [];
 
     // A domain load mid-call (tool-updater.ts), applied twice in quick succession.
     await session.currentAgent.updateTools(toolSet(PLAY));
     await session.currentAgent.updateTools(toolSet(PLAY));
-    await sleep(SETTLE_MS * 4);
+    await warmsLanded(2);
     const rewarms = [...captured];
     await session.currentAgent.updateTools(toolSet(PLAY)); // no change
     await sleep(SETTLE_MS * 4);
