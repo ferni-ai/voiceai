@@ -29,6 +29,11 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFinancialStore } from '../stores/financial-store.js';
 import { getProductivityStore } from '../stores/productivity-store.js';
 import { insightsBroadcast } from './insights-broadcast.js';
+import {
+  computeFinancialHealth,
+  emptyFinancialHealth,
+  type FinancialHealth,
+} from './financial-health-status.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 
 // Superhuman service imports for "Better than Human" insights
@@ -119,11 +124,7 @@ export interface TeamStatusSummary {
     totalSaved: number;
   };
   /** Financial health (from Peter) */
-  financialHealth: {
-    budgetUsedPercent: number;
-    recentStressTriggers: number;
-    savingsOnTrack: boolean;
-  };
+  financialHealth: FinancialHealth;
 }
 
 // ============================================================================
@@ -398,11 +399,7 @@ export async function generateTeamStatus(userId: string): Promise<TeamStatusSumm
       nearingCompletion: 0,
       totalSaved: 0,
     },
-    financialHealth: {
-      budgetUsedPercent: 0,
-      recentStressTriggers: 0,
-      savingsOnTrack: false,
-    },
+    financialHealth: emptyFinancialHealth(),
   };
 
   try {
@@ -433,35 +430,7 @@ export async function generateTeamStatus(userId: string): Promise<TeamStatusSumm
     status.goalStatus.totalSaved = goals.reduce((sum, g) => sum + g.currentAmount, 0);
 
     // Financial health (Peter's domain)
-    const budget = financialStore.getMainBudget(userId);
-    if (budget) {
-      status.financialHealth.budgetUsedPercent = Math.round(
-        (budget.spent / budget.monthlyLimit) * 100
-      );
-    }
-
-    const triggers = financialStore.getRecentSpendingTriggers(userId, 14);
-    const stressEmotions = ['stressed', 'anxious', 'bored', 'lonely', 'tired'];
-    status.financialHealth.recentStressTriggers = triggers.filter((t) =>
-      stressEmotions.includes(t.emotion)
-    ).length;
-
-    // Determine if savings are on track
-    const goalsOnTrack = goals.filter((g) => {
-      if (!g.deadline) return true;
-      const progress = g.currentAmount / g.targetAmount;
-      const now = new Date();
-      const deadline = new Date(g.deadline);
-      const daysTotal = Math.ceil(
-        (deadline.getTime() - new Date(g.createdAt || now).getTime()) / (1000 * 60 * 60 * 24)
-      );
-      const daysElapsed = Math.ceil(
-        (now.getTime() - new Date(g.createdAt || now).getTime()) / (1000 * 60 * 60 * 24)
-      );
-      const expectedProgress = daysElapsed / daysTotal;
-      return progress >= expectedProgress * 0.8;
-    });
-    status.financialHealth.savingsOnTrack = goalsOnTrack.length >= goals.length * 0.7;
+    status.financialHealth = computeFinancialHealth(financialStore, userId, goals);
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Could not generate full team status');
   }
@@ -628,7 +597,9 @@ export async function scanForCrossPersonaInsights(userId: string): Promise<void>
         source: 'ferni',
         target: 'all',
         priority: 'low',
-        content: `Things are looking balanced across the board. Habits are on track, spending is mindful. Keep going!`,
+        content: status.financialHealth.hasBudget
+          ? `Things are looking balanced across the board. Habits are on track, spending is mindful. Keep going!`
+          : `Your habits are on track right now. Keep going!`,
         category: 'overall-wellness',
         proactive: false,
         oneTime: true,
@@ -834,7 +805,7 @@ export async function buildInsightBriefingForHandoff(
       `${teamStatus.goalStatus.nearingCompletion} goal(s) close to completion - celebration opportunity`
     );
   }
-  if (!teamStatus.financialHealth.savingsOnTrack) {
+  if (teamStatus.goalStatus.activeGoals > 0 && !teamStatus.financialHealth.savingsOnTrack) {
     proactiveDiscoveries.push('Savings may need attention - some goals falling behind timeline');
   }
 
@@ -865,7 +836,7 @@ export function formatInsightBriefingForPrompt(briefing: InsightBriefing): strin
       `$${teamStatus.goalStatus.totalSaved.toLocaleString()} saved`
   );
   lines.push(
-    `• Budget: ${teamStatus.financialHealth.budgetUsedPercent}% used, ` +
+    `• Budget: ${teamStatus.financialHealth.hasBudget ? `${teamStatus.financialHealth.budgetUsedPercent}% used` : 'none set'}, ` +
       `${teamStatus.financialHealth.recentStressTriggers} stress triggers recently`
   );
 
