@@ -1,0 +1,8 @@
+# UI music buttons on a live call: ask for music, then press pause and resume
+# the way the web app does (data message {type: music_control, action}, no
+# topic). Proof is in the agent log: "Music control request from UI" then
+# "Music paused via UI button", and the music_state messages in `data`.
+Can you put on some quiet jazz for me?
+@data 4000 {"type":"music_control","action":"pause"}
+@data 4000 {"type":"music_control","action":"resume"}
+Thanks, that's nice.
