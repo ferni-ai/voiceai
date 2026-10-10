@@ -139,7 +139,7 @@ import {
   type VoiceHumanizationIntegration,
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
-import { endpointingDelays } from '../shared/turn-patience.js';
+import { endpointingDelays, sessionTurnDetection } from '../shared/turn-patience.js';
 import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
 
 const log = getLogger();
@@ -1191,7 +1191,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       ) as InstanceType<typeof SonataSTT> | undefined);
 
   const session = new voice.AgentSession<UserData>({
-    turnDetection: modelProvider.getSessionTurnDetection(),
+    turnDetection: sessionTurnDetection(modelProvider.getSessionTurnDetection()),
     vad, // Silero VAD for turn detection (required for OpenAI to support allowInterruptions: false)
     ...(externalStt && { stt: externalStt }),
     llm: llmModel,
