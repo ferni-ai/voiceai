@@ -73,7 +73,8 @@ describe('ROADMAP_FEATURES', () => {
       expect(feature.description).toBeTruthy();
       expect(['seed', 'sprout', 'bud', 'bloom']).toContain(feature.stage);
       expect(Array.isArray(feature.superhuman)).toBe(true);
-      expect(feature.estimatedArrival).toBeTruthy();
+      // No arrival dates: the old quarters had all passed
+      expect(feature).not.toHaveProperty('estimatedArrival');
       expect(typeof feature.canVote).toBe('boolean');
       expect(feature.icon).toBeTruthy();
       expect(['connect', 'personalize', 'platform']).toContain(feature.category);
@@ -90,10 +91,17 @@ describe('ROADMAP_FEATURES', () => {
   it('should include expected roadmap features', () => {
     const ids = ROADMAP_FEATURES.map((f) => f.id);
 
-    // These should be on the roadmap
+    // Not built yet, so on the roadmap
     expect(ids).toContain('group-coaching');
     expect(ids).toContain('video-settings');
-    expect(ids).toContain('household');
+    expect(ids).toContain('developer-portal');
+  });
+
+  it('does not ask people to vote for features they already have', () => {
+    const ids = ROADMAP_FEATURES.map((f) => f.id);
+    for (const shipped of ['connections', 'household', 'voice-enrollment', 'personalize', 'marketplace']) {
+      expect(ids).not.toContain(shipped);
+    }
   });
 });
 
@@ -160,13 +168,8 @@ describe('RoadmapService', () => {
       });
     });
 
-    it('should return features in personalize category', () => {
-      const features = roadmapService.getFeaturesByCategory('personalize');
-
-      expect(features.length).toBeGreaterThan(0);
-      features.forEach((f) => {
-        expect(f.category).toBe('personalize');
-      });
+    it('has nothing left in the personalize category (all of it shipped)', () => {
+      expect(roadmapService.getFeaturesByCategory('personalize')).toEqual([]);
     });
 
     it('should return features in platform category', () => {
