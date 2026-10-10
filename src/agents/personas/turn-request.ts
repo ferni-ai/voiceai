@@ -29,7 +29,11 @@ import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { modelSignals, PLAIN_SIGNALS, type TurnSignals } from './turn-extras.js';
 import { rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
-import { understandingFor, understandingMode } from './turn-understanding.js';
+import {
+  understandingFor,
+  understandingMode,
+  understandingStatusFor,
+} from './turn-understanding.js';
 import {
   TURN_STYLE_REMINDER,
   turnStyleReminderEnabled,
@@ -108,7 +112,12 @@ function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): st
   // the same words on another call (or said again) can get another shape.
   const { signals, source } = signalsFor(session, said);
   const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, signals);
-  log.info({ move: turn.move, shape: turn.shape, extras: turn.extras, source }, 'TURN_SHAPE');
+  // At the moment the reply is asked for: what live mode would have had (shadow too).
+  const understood = understandingStatusFor(session, said);
+  log.info(
+    { move: turn.move, shape: turn.shape, extras: turn.extras, source, understood },
+    'TURN_SHAPE'
+  );
   return turn.reminder;
 }
 

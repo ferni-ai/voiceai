@@ -61,6 +61,19 @@ export function understandingFor(session: object, text: string): Understanding |
   return understanders.get(session)?.forTurn(text)?.result ?? null;
 }
 
+/** Whether this session's understanding covers `text` right now (counts only), or null when off. */
+export function understandingStatusFor(
+  session: object,
+  text: string
+): {
+  match: 'covered' | 'behind' | 'diverged' | 'none';
+  missing: number;
+  inFlight: boolean;
+} | null {
+  const st = understanders.get(session)?.status(text);
+  return st ? { match: st.match, missing: st.missing, inFlight: st.inFlight } : null;
+}
+
 export const UNDERSTANDING_PROMPT = `You listen in on a phone call between a caller and their friend Ferni. Read the caller's words (EARLIER is context; judge NOW, which may still be mid-sentence) and return JSON only:
 {"move":"ack"|"lookup"|"request"|"about_ferni"|"share","needsTool":bool,"mood":"venting"|"tender"|"bad_news"|"funny"|"surprise"|"excited"|"neutral","laughed":bool,"laughFits":bool,"adviceFits":bool,"wantsToEnd":bool,"reaction":string|null}
 move: ack = a short acknowledgement ("yeah", "okay", "thanks"); lookup = asks for live facts (weather, news, scores, times, prices); request = asks Ferni to do or explain something; about_ferni = asks about Ferni himself; share = telling something about their own life or thoughts.
@@ -144,6 +157,10 @@ export class TurnUnderstander {
   /** Bumped per caller turn: an answer for an earlier turn is dropped, not kept as `latest`. */
   private turn = 0;
   private inFlight: AbortController | null = null;
+  /** A call dropped because the final transcript replaced its words: not a failure. */
+  private superseded: AbortController | null = null;
+  /** The running call; it awaits whatever was pending behind it. */
+  private chain: Promise<void> = Promise.resolve();
   private stats = { runs: 0, failed: 0, lastMs: 0 };
 
   constructor(
@@ -165,27 +182,50 @@ export class TurnUnderstander {
       this.pending = t; // wait for a couple more words, or for the end of the turn
       return;
     }
-    void this.run(t);
+    this.chain = this.run(t);
   }
 
-  /** The turn ended: understand whatever is still pending. */
+  /**
+   * The turn ended: understand the final words now. A call still running on an
+   * interim is dropped rather than waited for (dev 2026-10-10: every unready
+   * turn was "behind", its final queued behind an interim call of 600-900 ms).
+   */
   async settle(text: string): Promise<void> {
     const t = text.trim();
     if (!t || this.latest?.text === t) return;
     this.pending = t;
-    if (this.running === null) await this.run(t);
+    if (this.running === null) this.chain = this.run(t);
+    else if (this.running !== t && this.inFlight) {
+      this.superseded = this.inFlight;
+      this.inFlight.abort();
+    }
+    await this.chain;
   }
 
-  /** The latest understanding, if it covers these words (all but at most two). */
-  forTurn(text: string): { result: Understanding; covered: number; ageMs: number } | null {
-    if (!this.latest) return null;
+  /** How the latest answer lines up with `text`, and how many of its words it has not heard. */
+  private lineUp(text: string): {
+    match: 'covered' | 'behind' | 'diverged' | 'none';
+    missing: number;
+  } {
+    if (!this.latest) return { match: 'none', missing: 0 };
     const turn = words(text);
     const seen = words(this.latest.text);
-    const covered = seen.length <= turn.length && seen.every((w, i) => turn[i] === w);
-    if (!covered || turn.length - seen.length > 2) return null;
+    if (seen.length > turn.length || !seen.every((w, i) => turn[i] === w))
+      return { match: 'diverged', missing: 0 };
+    const missing = turn.length - seen.length;
+    // The last few words of a long turn rarely change its mood or whether it needs a tool.
+    return {
+      match: missing > Math.max(2, Math.ceil(turn.length / 4)) ? 'behind' : 'covered',
+      missing,
+    };
+  }
+
+  /** The latest understanding, if it covers these words (all but the last quarter, at least two). */
+  forTurn(text: string): { result: Understanding; covered: number; ageMs: number } | null {
+    if (!this.latest || this.lineUp(text).match !== 'covered') return null;
     return {
       result: this.latest.result,
-      covered: seen.length / Math.max(turn.length, 1),
+      covered: words(this.latest.text).length / Math.max(words(text).length, 1),
       ageMs: this.now() - this.latest.at,
     };
   }
@@ -197,15 +237,9 @@ export class TurnUnderstander {
     lastMs: number;
     inFlight: boolean;
     match: 'covered' | 'behind' | 'diverged' | 'none';
+    missing: number;
   } {
-    let match: 'covered' | 'behind' | 'diverged' | 'none' = 'none';
-    if (this.latest) {
-      const turn = words(text);
-      const seen = words(this.latest.text);
-      const prefix = seen.length <= turn.length && seen.every((w, i) => turn[i] === w);
-      match = !prefix ? 'diverged' : turn.length - seen.length > 2 ? 'behind' : 'covered';
-    }
-    return { ...this.stats, inFlight: this.running !== null, match };
+    return { ...this.stats, inFlight: this.running !== null, ...this.lineUp(text) };
   }
 
   /** A new caller turn begins: the last one becomes context, and its call is dropped. */
@@ -250,11 +284,12 @@ export class TurnUnderstander {
         else this.stats.failed++;
       }
     } catch (error) {
-      if (turn === this.turn) this.stats.failed++;
+      if (turn === this.turn && this.superseded !== controller) this.stats.failed++;
       log.debug({ error: String(error) }, 'turn understanding failed');
     } finally {
       clearTimeout(timer);
       if (this.inFlight === controller) this.inFlight = null;
+      if (this.superseded === controller) this.superseded = null;
       this.running = null;
     }
     const next = this.pending;

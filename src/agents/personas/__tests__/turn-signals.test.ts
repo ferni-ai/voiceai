@@ -5,6 +5,7 @@ import { signalsFor } from '../turn-request.js';
 import {
   setTurnUnderstander,
   TurnUnderstander,
+  understandingStatusFor,
   understandingMode,
   type Understanding,
 } from '../turn-understanding.js';
@@ -122,5 +123,23 @@ describe('signalsFor', () => {
     expect(live.signals?.careful).toBe(true);
     setTurnUnderstander(session, null);
     expect(signalsFor(session, 'it has been a long day').source).toBe('plain');
+  });
+  it('reports, without words, whether the understanding was there when the reply was asked for', async () => {
+    const session = {};
+    expect(understandingStatusFor(session, 'it has been a long day')).toBeNull();
+    const u = new TurnUnderstander(async () => JSON.stringify(understood({ mood: 'venting' })));
+    setTurnUnderstander(session, u);
+    expect(understandingStatusFor(session, 'it has been a long day')).toEqual({
+      match: 'none',
+      missing: 0,
+      inFlight: false,
+    });
+    await u.settle('it has been a long day');
+    expect(understandingStatusFor(session, 'it has been a long day and i am wiped out')).toEqual({
+      match: 'behind',
+      missing: 5,
+      inFlight: false,
+    });
+    setTurnUnderstander(session, null);
   });
 });
