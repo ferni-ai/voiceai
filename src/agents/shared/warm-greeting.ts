@@ -97,7 +97,7 @@ const LANDING_SOUNDS = {
   silence: ['<break time="400ms"/>', '<break time="450ms"/>', '<break time="500ms"/>'],
   // Soft landing with settling sound
   withSound: [
-    '<break time="350ms"/><speed ratio="0.9"/>Mm.<break time="200ms"/>',
+    '<break time="350ms"/>[soft breath]<break time="250ms"/>',
     '<break time="400ms"/>',
     '<break time="380ms"/>[soft breath]<break time="150ms"/>',
   ],
@@ -105,7 +105,7 @@ const LANDING_SOUNDS = {
   lateNight: [
     '<break time="550ms"/>',
     '<break time="600ms"/>',
-    '<break time="500ms"/><speed ratio="0.85"/>Mm.<break time="200ms"/>',
+    '<break time="500ms"/>[soft breath]<break time="200ms"/>',
   ],
 };
 
