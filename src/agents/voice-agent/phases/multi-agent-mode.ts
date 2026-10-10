@@ -227,7 +227,6 @@ export async function runMultiAgentMode(
         sessionId,
         userId,
         webhookBaseUrl: process.env.WEBHOOK_BASE_URL ?? 'https://api.ferni.ai',
-        // ROUNDTABLE_VOICE=on: personas speak through the call's session, in their own voices
         createRoundtableAgent: roundtableAgentsForCall(
           () => multiAgentResult.orchestrator.getActiveAgent()?.session as never
         ),
