@@ -402,7 +402,7 @@ function createPanel(): HTMLElement {
             <h2 id="team-insights-title" class="team-insights-title">${t('teamInsights.whatWereThing')}</h2>
           </div>
         </div>
-        <div class="team-insights-header-actions" role="button" tabindex="0">
+        <div class="team-insights-header-actions">
           <button class="team-insights-refresh" aria-label="${t('accessibility.refreshInsights')}">
             ${ICONS.refresh}
           </button>

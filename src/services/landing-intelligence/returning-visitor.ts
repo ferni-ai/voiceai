@@ -8,7 +8,7 @@
  */
 
 import { getFirestore } from 'firebase-admin/firestore';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateJSON } from './gemini-client.js';
 
@@ -136,7 +136,7 @@ async function persistSession(session: VisitorSession): Promise<void> {
         converted: data.converted || session.converted,
       });
     } else {
-      tx.set(cleanForFirestore(visitorRef), {
+      tx.set(visitorRef, {
         visitorId: session.visitorId,
         firstVisit: new Date(),
         lastVisit: new Date(),
