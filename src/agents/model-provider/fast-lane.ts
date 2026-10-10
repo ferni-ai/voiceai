@@ -33,7 +33,7 @@ export function fastLaneEnabled(env: Env = process.env): boolean {
  * (that turn just waits for the main model); too few is not.
  */
 const MAY_NEED_TOOL =
-  /\b(remind(?:er|ers)?|timer|timers|alarm|weather|forecast|rain(?:ing)?|snow(?:ing)?|play|playing|music|song|songs|playlist|spotify|pause|skip|volume|louder|quieter|schedule|calendar|appointment|meeting|call|text|message|email|remember|forget|note|notes|list|add|cancel|delete|look up|search|find|google|news|score|scores|stock|stocks|price|what time|time is it|date|book|order|directions|traffic|translate|convert|calculate|turn on|turn off|lights?|set|minutes?|hours?|tomorrow|tonight|next week|recipe|define|meaning of)\b/i;
+  /\b(remind(?:er|ers)?|timer|timers|alarm|weather|forecast|rain(?:ing)?|snow(?:ing)?|play|playing|music|song|songs|playlist|spotify|pause|skip|volume|louder|quieter|schedule|calendar|appointment|meeting|call|text|message|email|remember|forget|note|notes|list|add|cancel|delete|look up|search|find|google|news|score|scores|stock|stocks|price|what time|time is it|date|book|order|directions|traffic|translate|convert|calculate|turn on|turn off|turn (?:it )?(?:up|down)|put on|throw on|lights?|set|minutes?|hours?|tomorrow|tonight|next week|recipe|define|meaning of)\b/i;
 
 /** Whether these words may ask for something a tool does (a timer, a reminder, music). */
 export function mayNeedTool(text: string): boolean {
