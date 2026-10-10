@@ -65,7 +65,8 @@ export async function setupCallTypeContexts(
   metadata: Record<string, unknown>,
   callType: string | undefined,
   sessionId: string,
-  roomName: string | undefined
+  roomName: string | undefined,
+  rawJobMetadata?: string
 ): Promise<void> {
   // =========================================================================
   // INBOUND CALL DETECTION
@@ -152,15 +153,15 @@ export async function setupCallTypeContexts(
     );
 
     try {
-      const { parseOnBehalfDispatch } = await import('../../services/outreach/on-behalf-dispatch.js');
+      const { parseOnBehalfDispatch } =
+        await import('../../services/outreach/on-behalf-dispatch.js');
       const call = parseOnBehalfDispatch(metadata);
       const { setOutboundCallContext } =
         await import('../../intelligence/context-builders/external/outbound-call-context.js');
       const roomNameForContext = roomName || `call-${metadata.callId}`;
       const outboundContext = {
         callId: metadata.callId as string,
-        recipientName:
-          ((metadata.contact as Record<string, unknown>)?.name as string) || 'Unknown',
+        recipientName: ((metadata.contact as Record<string, unknown>)?.name as string) || 'Unknown',
         recipientPhone: ((metadata.contact as Record<string, unknown>)?.phone as string) || '',
         purpose: (metadata.purpose as string) || 'General call',
         callType:
@@ -177,6 +178,19 @@ export async function setupCallTypeContexts(
       };
       setOutboundCallContext(roomNameForContext, outboundContext);
       setOutboundCallContext(sessionId, outboundContext);
+
+      // Capture the call so its outcome can be reported to the requester at the end
+      // Only a dispatch our server signed gets call state; a forged one could
+      // name another call's id. Its turns are still kept out of memory.
+      const { verifyOnBehalfDispatch } =
+        await import('../../services/outreach/on-behalf-dispatch.js');
+      const trusted = verifyOnBehalfDispatch(rawJobMetadata, process.env.LIVEKIT_API_SECRET);
+      const { beginOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
+      if (call && trusted) {
+        await beginOnBehalfCall(sessionId, call);
+        const { registerOnBehalfCallRoom } = await import('../outbound-call/call-control.js');
+        registerOnBehalfCallRoom(sessionId, call.callId, roomNameForContext);
+      }
       process.stderr.write(
         `[voice-agent-entry] 📞 Outbound call context set for room: ${roomNameForContext}, sessionId: ${sessionId}\n`
       );
@@ -212,11 +226,9 @@ export async function setupCallTypeContexts(
         lastMood: metadata.lastMood as string | undefined,
         lastSessionSummary: metadata.lastSessionSummary as string | undefined,
         relatedDate: metadata.relatedDate as
-          | { type: string; date: Date; description: string }
-          | undefined,
+          { type: string; date: Date; description: string } | undefined,
         relatedCommitment: metadata.relatedCommitment as
-          | { summary: string; madeOn: Date; dueDate?: Date }
-          | undefined,
+          { summary: string; madeOn: Date; dueDate?: Date } | undefined,
         openerStyle:
           (metadata.openerStyle as 'warm' | 'celebratory' | 'gentle' | 'supportive' | 'curious') ||
           'warm',
@@ -237,4 +249,25 @@ export async function setupCallTypeContexts(
       process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set proactive context: ${error}\n`);
     }
   }
+}
+
+/**
+ * Close out call-type work when the session ends, on every exit path.
+ * On-behalf calls report how the call went to the person who asked for it.
+ */
+export async function finishCallTypeContexts(
+  metadata: Record<string, unknown>,
+  callType: string | undefined,
+  sessionId: string,
+  sessionDurationMs: number,
+  rawJobMetadata: string | undefined
+): Promise<void> {
+  if (callType !== 'on_behalf_call') return;
+  const { parseOnBehalfDispatch, verifyOnBehalfDispatch } =
+    await import('../../services/outreach/on-behalf-dispatch.js');
+  const { completeOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
+  const call = parseOnBehalfDispatch(metadata);
+  if (!call) return;
+  const trusted = verifyOnBehalfDispatch(rawJobMetadata, process.env.LIVEKIT_API_SECRET);
+  await completeOnBehalfCall(sessionId, call, Math.round(sessionDurationMs / 1000), trusted);
 }

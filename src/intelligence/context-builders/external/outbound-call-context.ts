@@ -46,6 +46,13 @@ interface OutboundCallContext {
   originalSessionId: string;
 }
 
+/**
+ * The opener is the AI disclosure. After it, Ferni doesn't keep announcing it,
+ * and never denies it when sincerely asked.
+ */
+export const AI_DISCLOSURE_RULE =
+  "Your opening line already said you're an AI; don't bring it up again or add 'as an AI' disclaimers. If someone sincerely asks whether you're a real person, say plainly that you're an AI, in a few words, then carry on warmly.";
+
 // In-memory store for outbound call contexts (set by orchestrator)
 const outboundCallContexts = new Map<string, OutboundCallContext>();
 
@@ -163,7 +170,7 @@ export const outboundCallContextBuilder: ContextBuilder = {
     // 4. Guardrails: Must-Not-Do
     // ---------------------------------------------------------
     if (callContext.mustNotDo.length > 0) {
-      const guardrails = buildGuardrailsInjection(callContext.mustNotDo);
+      const guardrails = buildGuardrailsInjection(callContext.mustNotDo, callContext.userName);
       injections.push(
         createStandardInjection('outbound_call_guardrails', guardrails, {
           category: 'constraints',
@@ -215,7 +222,7 @@ PRIMARY OBJECTIVE: ${context.objective}
 Purpose: ${context.purpose}
 
 CRITICAL REMINDERS:
-- You are Ferni, an AI assistant. You must identify yourself as an AI.
+- You are Ferni, ${context.userName}'s friend. ${AI_DISCLOSURE_RULE}
 - You are authorized by ${context.userName} to make this call.
 - Be professional but warm - you represent ${context.userName}.
 - If they seem confused about an AI calling, reassure them and explain briefly.
@@ -248,12 +255,21 @@ END the conversation when ANY of these occur:
 - They explicitly say "I'm done" or "we're done" → Thank them and end immediately
 
 ### How the Call Ends
-When the conversation is over, simply say your goodbye. The call will end naturally when:
-1. They hang up (most common)
-2. You both say goodbye and there's silence
-3. The system detects the call is complete
+You hang up, the way a person would: say your goodbye, then call the endCall tool
+in the same turn. Your goodbye finishes playing before the line drops.
+- After a normal goodbye → endCall with outcome "completed"
+- They don't want to talk with an AI → thank them, then endCall with "refused"
+- It's not the person you meant to reach → apologize briefly, then endCall with "wrong_number"
+If they hang up first, the call simply ends.
 
 DO NOT keep talking after goodbyes. DO NOT ask "is there anything else?" after wrapping up.
+
+### Voicemail
+If you hear a voicemail greeting ("leave a message", "not available", "after the tone",
+a mailbox name, or a beep), you reached voicemail, not ${context.recipientName}. Wait for
+the beep, then leave ONE short, warm message (under 20 seconds): who you are, that you
+are calling for ${context.userName}, the gist of why, and that ${context.userName} will
+follow up. Do not ask questions to a recording. Then call endCall with "voicemail_left".
 
 ### Detecting Frustration (SUPERHUMAN AWARENESS)
 Watch for these signals and BACK OFF gracefully:
@@ -280,13 +296,13 @@ This information will be automatically captured and reported to ${context.userNa
 `.trim();
 }
 
-function buildGuardrailsInjection(mustNotDo: string[]): string {
+function buildGuardrailsInjection(mustNotDo: string[], userName: string): string {
   return `
 CALL GUARDRAILS - DO NOT VIOLATE
 
 ${mustNotDo.map((item) => `- ${item}`).join('\n')}
 
-These are hard constraints. If you're unsure about something, err on the side of caution and say you'll have ${'{userName}'} follow up directly.
+These are hard constraints. If you're unsure about something, err on the side of caution and say you'll have ${userName} follow up directly.
 `.trim();
 }
 

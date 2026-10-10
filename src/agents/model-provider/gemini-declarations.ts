@@ -13,6 +13,14 @@
  * the plugin's LLM with that cache in front of it; the cascade's primary and
  * backup share one cache, so a hedge reuses the primary's declarations.
  *
+ * Gemini caches a request's prefix, and the plugin sends declarations sorted
+ * by name. A domain loaded mid-call (tool-updater.ts) then lands among them:
+ * on a prod call (2026-10-10) loading "play" added 10 tools and evicted 23,
+ * and the next two replies had 0 of ~10k prompt tokens cached.
+ * PROMPT_STABLE_PREFIX=on sends the essential tools (tool-config.ts) first:
+ * the cap never evicts them, so a domain load usually changes only the
+ * declarations after them.
+ *
  * @module agents/model-provider/gemini-declarations
  */
 
@@ -21,7 +29,9 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { llm } from '@livekit/agents';
 import * as google from '@livekit/agents-plugin-google';
+import { isEssentialTool } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { stablePrefixEnabled } from '../multi-agent/agent-instructions.js';
 
 const log = createLogger({ module: 'GeminiDeclarations' });
 
@@ -79,15 +89,20 @@ export class DeclarationCache {
   }
 
   /** The declarations for this tool set: the same array for as long as the set is cached. */
-  declarationsFor(toolCtx: llm.ToolContext): FunctionDeclaration[] {
-    const key = toolSetSignature(toolCtx);
+  declarationsFor(
+    toolCtx: llm.ToolContext,
+    env: Record<string, string | undefined> = process.env
+  ): FunctionDeclaration[] {
+    const stable = stablePrefixEnabled(env);
+    const key = `${stable ? 'stable:' : ''}${toolSetSignature(toolCtx)}`;
     const cached = this.sets.get(key);
     if (cached) {
       this.sets.delete(key); // most recently used goes last
       this.sets.set(key, cached);
       return cached;
     }
-    const declarations = this.convert(toolCtx);
+    const converted = this.convert(toolCtx);
+    const declarations = stable ? essentialFirst(converted) : converted;
     this.conversions += 1;
     this.sets.set(key, declarations);
     if (this.sets.size > this.maxSets) {
@@ -96,6 +111,12 @@ export class DeclarationCache {
     }
     return declarations;
   }
+}
+
+/** Essential tools first, each group in the plugin's (name) order. */
+export function essentialFirst(declarations: FunctionDeclaration[]): FunctionDeclaration[] {
+  const essential = declarations.filter((d) => isEssentialTool(d.name));
+  return [...essential, ...declarations.filter((d) => !isEssentialTool(d.name))];
 }
 
 let pluginConverter: Promise<DeclarationConverter | null> | undefined;
