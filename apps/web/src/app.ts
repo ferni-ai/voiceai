@@ -20,7 +20,6 @@ import {
 import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
 import { devPanelMayEnable } from './ui/dev-panel-gate.js';
 import {
-  openCalendarSettings,
   openCalendarView,
   openChronicle,
   openContactSettings,
@@ -110,6 +109,7 @@ import {
   onSpotifyLinkStateChange,
   triggerSpotifyLinkToggle,
 } from './ui/spotify.ui.js';
+import { openEverythingConnected } from './ui/everything-connected.js';
 import { initTeamUI, teamUI } from './ui/team.ui.js';
 import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
 // Group Conversations - Team Roundtables and Conference Calls
@@ -1960,22 +1960,7 @@ class VoiceAIApp {
         onGiftsClick: () => void openYourPeople(), // Gifts now integrated into relationship cards
         // Warm menu callbacks
         onTogetherSessionsClick: () => void showGroupCoaching(), // Combines group coaching + team huddles
-        onAllConnectionsClick: () => {
-          // Open the Connected Life panel (consolidates all integrations)
-          void import('./ui/connected-life.ui.js').then(({ showConnectedLife }) => {
-            void showConnectedLife({
-              onConnectAppleHealth: () => void showAppleHealthSettings(),
-              onConnectOura: () => void showOuraSettings(),
-              onConnectEightSleep: () => void showEightSleepSettings(),
-              onConnectWearables: () => void showWearableSettings(),
-              onConnectCalendar: () => void openCalendarSettings(),
-              onConnectLinkedIn: LINKEDIN_ENABLED ? () => void showLinkedInSettings() : undefined,
-              onConnectSpotify: () => void triggerSpotifyLinkToggle(),
-              onConnectEcobee: () => void showVibeController(), // Ecobee is in Vibe Controller
-              onOpenVibeController: () => void showVibeController(),
-            });
-          });
-        },
+        onAllConnectionsClick: () => openEverythingConnected(), // Connected Life: all integrations
         // New feature callbacks
         onMemoryLaneClick: () => void openMemoryLane(),
         onPatternInsightsClick: () => {

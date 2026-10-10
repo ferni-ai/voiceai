@@ -11,6 +11,7 @@ import { getLifeAutomationService, type Workflow } from '../../services/life-aut
 import { getUserId } from '../../utils/api.js';
 import { createLogger } from '../../utils/logger.js';
 import { formatDate, t } from '../../i18n/index.js';
+import { showCareConnections } from './connections-tab.ui.js';
 import { showIdeasGallery } from './ideas-gallery.ui.js';
 
 const log = createLogger('FerniCare');
@@ -647,7 +648,7 @@ export class FerniCareDashboard {
       this.close();
       showIdeasGallery();
     } else if (tab === 'connections') {
-      content.innerHTML = `<div class="ferni-empty"><p>${t('ferniCare.connectionsSoon')}</p></div>`;
+      void showCareConnections(content, () => this.activeTab === 'connections', () => this.close());
     }
   }
 

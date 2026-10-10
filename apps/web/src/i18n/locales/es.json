@@ -10211,8 +10211,13 @@
     "runNow": "Ejecutar ahora",
     "signInPrompt": "Inicia sesión para ver lo que hago por ti",
     "loadError": "No se pudieron cargar tus rutinas",
-    "connectionsSoon": "Próximamente servicios conectados...",
-    "whatIDoForYou": "Lo que hago por ti"
+    "whatIDoForYou": "Lo que hago por ti",
+    "connections": {
+      "connected": "Conectado",
+      "notConnected": "No conectado",
+      "intro": "Estos son los servicios que puedo usar para ayudarte.",
+      "loadError": "No se pudieron cargar tus servicios conectados"
+    }
   },
   "voiceAuth": {
     "unknownError": "Error desconocido",
