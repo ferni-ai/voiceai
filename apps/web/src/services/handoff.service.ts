@@ -23,6 +23,7 @@ import {
 import { SOUND_EFFECTS } from '../config/index.js';
 import { getPersona, getTransitionConfig, normalizeSpeakerId } from '../config/personas.js';
 import { appState, setActivePersona } from '../state/app.state.js';
+import { isMultiAgentUnavailable } from '../state/multi-agent-availability.js';
 import type { DataMessage, HandoffEvent, NormalizedHandoff } from '../types/events.js';
 import {
   isHandoffAcknowledged,
@@ -845,11 +846,7 @@ class HandoffService {
    * Send a handoff request to the backend via data channel.
    * This is the canonical way to initiate a handoff from any UI component.
    *
-   * Features:
-   * - Rate limiting (800ms debounce)
-   * - Persona ID validation
-   * - Retry logic (up to 2 retries)
-   * - Proper error handling with callbacks
+   * Rate limited, validated, retried (x2); refused when team mode is unavailable.
    *
    * @param targetPersonaId - The persona to hand off to
    * @param options - Optional configuration
@@ -865,6 +862,11 @@ class HandoffService {
     }
   ): Promise<boolean> {
     const { skipRateLimit = false, onFailure } = options ?? {};
+
+    if (isMultiAgentUnavailable()) {
+      onFailure?.(new Error('Team mode is unavailable on this call'));
+      return false;
+    }
 
     // Rate limit check
     if (!skipRateLimit) {
@@ -883,8 +885,7 @@ class HandoffService {
       this.recordRequest();
     }
 
-    // FIX BUG: Mutex check - don't start handoff during active cameo
-    // This prevents voice state corruption from overlapping transitions
+    // Mutex: no handoff during an active cameo (overlapping transitions corrupt voice state)
     const { cameoService } = await import('./cameo.service.js');
     if (cameoService.isInCameo()) {
       log.warn('Handoff blocked - cameo in progress', {
@@ -914,7 +915,6 @@ class HandoffService {
       return false;
     }
 
-    // Set transitioning state
     this._isTransitioning = true;
     this._targetPersona = targetPersonaId;
 

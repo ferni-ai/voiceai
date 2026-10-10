@@ -11152,5 +11152,10 @@
     "samplePattern": "\"Les dimanches soir ont l'air difficiles pour toi...\"",
     "sampleInsight": "\"Tu as mentionné ressentir de la fatigue 8 fois cette semaine. Cette fatigue semble liée à des difficultés à poser des limites au travail.\"",
     "sampleEvidence": "D'après {count} conversations"
+  },
+  "agentAcks": {
+    "multiAgentUnavailable": "Le mode équipe n'est pas disponible pendant cet appel : pour l'instant, c'est seulement Ferni.",
+    "gameStartFailed": "Le jeu n'a pas démarré. Demande à Ferni de le lancer à voix haute.",
+    "actionFailed": "Ça n'a pas abouti. C'est peut-être déjà réglé."
   }
 }
