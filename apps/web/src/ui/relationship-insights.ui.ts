@@ -1013,20 +1013,18 @@ export function openRelationshipInsights(options: RelationshipInsightsOptions = 
  * Close the Relationship Insights dashboard
  */
 export function closeRelationshipInsights(): void {
-  if (!modalContainer) return;
-
+  // Let go of this modal now: a timer that read modalContainer when it fired removed the
+  // next one if it opened within the close animation (the honesty test flaked on this)
+  const closing = modalContainer;
+  if (!closing) return;
+  modalContainer = null;
+  const { onClose } = callbacks;
+  callbacks = {};
   releaseEscape?.();
-
-  modalContainer.classList.remove('open');
-
+  closing.classList.remove('open');
   setTimeout(() => {
-    modalContainer?.remove();
-    modalContainer = null;
-
-    if (callbacks.onClose) {
-      callbacks.onClose();
-    }
-    callbacks = {};
+    closing.remove();
+    onClose?.();
   }, DURATION.NORMAL);
 
   state.isOpen = false;
