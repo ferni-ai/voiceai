@@ -16,6 +16,7 @@
  * @module agents/multi-agent/agent-setup
  */
 
+import { callNow } from '../../intelligence/world-model/temporal/eval-clock.js';
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
@@ -1617,7 +1618,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // Interim events count: with STT turn detection the SDK starts preemptive
   // generation from the preflight transcript, which arrives as an interim.
   if (userId && userId !== 'anonymous' && memoryRecallMode() && sessionWithEvents.on) {
-    const recall = createMemoryRecall({ userId, userName: userData.userName });
+    const recall = createMemoryRecall({
+      userId,
+      userName: userData.userName,
+      timeZone: userData.callerTimezone,
+      now: callNow(userData.evalDaysLater),
+    });
     const onRecallTranscript = (event: unknown) => {
       const evt = event as { transcript?: string };
       if (!evt.transcript) return;
