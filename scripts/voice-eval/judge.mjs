@@ -1,0 +1,202 @@
+#!/usr/bin/env node
+// Judge recorded calls on the qualities regexes can't see: understanding,
+// thought, recall, empathy, endearment, quirks and conduct.
+//
+// usage: node scripts/voice-eval/judge.mjs <run.json>...      judge each call
+//        node scripts/voice-eval/judge.mjs --summary <run.json>...  pool saved verdicts
+//
+// Each dimension is scored 1-5 against a human anchor: 3 is a good friend on
+// the phone, 4 better than most friends, 5 better than any friend could be.
+// "Better than human" means a pooled mean above 3 with its interval clear of 3.
+//
+// The judge is Gemini (a different model family from the one tuning Ferni's
+// prompts, so it doesn't grade its own style). It sees the transcript only,
+// not audio. If <scenario>-<label>.seed.json exists, the earlier call is shown
+// too, so recall is checked against what was really said and invented shared
+// history counts against it.
+//
+// Env: JUDGE_MODEL (default gemini-3.1-pro-preview), JUDGE_K (samples per call,
+// default 3, averaged), GCP_PROJECT (default: gcloud config).
+// Output: <run>.judge.json next to each run, and a table on stdout.
+
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { turnsOf } from './humanness.mjs';
+
+export const DIMENSIONS = {
+  understanding:
+    'Gets what the caller means, including what is implied or left unsaid; follows references ("that thing", "her"); never answers a different question than the one asked.',
+  thought:
+    'Thinks like a person: has its own view and says why, works things out aloud, disagrees when it should, says "I don\'t know" instead of covering, and is never generic.',
+  recall:
+    'Uses what was said earlier in this call and in any earlier call, accurately and at the right moment, without being prompted. Inventing shared history, details or events that were never said is the worst failure. Use null if nothing needed recalling.',
+  empathy:
+    'Reads how the caller feels and gives what they need right now (to vent, to be distracted, advice, a laugh). Not therapist-speak, not performed sympathy, not pushing them to talk about feelings.',
+  endearing:
+    'Warm and likeable in a way that would make someone want to call again: humour that lands, delight in the caller, small kindnesses.',
+  quirks:
+    'A distinct, consistent person: its own tastes, small stories, turns of phrase and habits, without repeating the same tic or phrase.',
+  conduct:
+    'Conversational behaviour: reply length that fits, lets the caller lead, doesn\'t interrogate or end every turn on a question, no assistant tells (lists, "great question", offering help, saying it is an AI).',
+};
+
+const ANCHOR = `Score each dimension from 1 to 5 against real people on a casual phone call:
+1 = clearly a machine or a bad conversationalist
+2 = below a typical friend
+3 = a good human friend
+4 = better than most friends would manage
+5 = better than any friend could be (and still natural)
+Be strict: 3 is not the default. A score of 4 or 5 needs a quoted moment that earns it; a score of 2 or less needs a quoted moment that loses it.`;
+
+export function transcriptOf(run) {
+  return turnsOf(run)
+    .map((t, i) => `${i + 1}. ${t.who === 'agent' ? 'FERNI' : 'CALLER'}: ${t.text}`)
+    .join('\n');
+}
+
+export function promptFor(run, seed) {
+  const dims = Object.entries(DIMENSIONS)
+    .map(([k, v]) => `- ${k}: ${v}`)
+    .join('\n');
+  const name = process.env.JUDGE_CALLER_NAME ?? 'Sam';
+  const earlier = seed
+    ? `EARLIER CALL between the same two (days before; Ferni may remember it):\n${transcriptOf(seed)}\n\n`
+    : 'There was no earlier call; anything Ferni claims to remember from before is invented.\n\n';
+  const context = `Ferni knows the caller's name is ${name} from their account, so using it is fine. Ferni is a character with a life of its own; its own stories (trips, neighbours, places it lived) are self-disclosure, not invented history; judge them under quirks for consistency. "Invented history" means claims about earlier conversations with the caller, or about the caller's life, that were never said.\n\n`;
+  return `You are judging how human and how good a friend "Ferni" is on a voice call. Transcripts come from speech recognition and captions, so ignore spelling, casing and small transcription slips.
+
+${ANCHOR}
+
+Dimensions:
+${dims}
+
+${context}${earlier}CALL TO JUDGE (numbered turns):
+${transcriptOf(run)}
+
+Reply with JSON only, no prose:
+{"scores": {${Object.keys(DIMENSIONS)
+    .map((k) => `"${k}": <1-5 or null>`)
+    .join(', ')}},
+ "evidence": {"<dimension>": "<turn number and a short quote that decided the score>"},
+ "inventedHistory": ["<claims about earlier talks with the caller, or the caller's life, that were never said>"],
+ "worstMoment": {"turn": <n>, "quote": "<...>", "why": "<what a real friend would have done instead>"},
+ "bestMoment": {"turn": <n>, "quote": "<...>"},
+ "humanLikelihood": <0-1, chance a blind listener thinks Ferni is a person>}`;
+}
+
+function gcloud(args) {
+  return execFileSync('gcloud', args, { encoding: 'utf8' }).trim();
+}
+
+async function askJudge(prompt, { model, project, token }) {
+  const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:generateContent`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 8192 },
+    }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(`judge ${res.status}: ${JSON.stringify(body.error ?? body).slice(0, 300)}`);
+  const text = (body.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? '').join('');
+  return JSON.parse(text);
+}
+
+const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+const round = (x) => (x === null ? null : Math.round(x * 100) / 100);
+
+/** Mean and a normal-approximation 95% interval; null when fewer than 2 values. */
+export function meanCi(xs) {
+  const m = mean(xs);
+  if (m === null) return { mean: null, lo: null, hi: null, n: 0 };
+  if (xs.length < 2) return { mean: round(m), lo: null, hi: null, n: xs.length };
+  const sd = Math.sqrt(xs.reduce((a, x) => a + (x - m) ** 2, 0) / (xs.length - 1));
+  const half = (1.96 * sd) / Math.sqrt(xs.length);
+  return { mean: round(m), lo: round(m - half), hi: round(m + half), n: xs.length };
+}
+
+/** Average k judge samples of one call into one verdict. */
+export function combine(samples) {
+  const scores = {};
+  for (const k of Object.keys(DIMENSIONS)) {
+    const xs = samples.map((s) => s.scores?.[k]).filter((x) => typeof x === 'number');
+    scores[k] = xs.length ? round(mean(xs)) : null;
+  }
+  const likes = samples.map((s) => s.humanLikelihood).filter((x) => typeof x === 'number');
+  return {
+    scores,
+    humanLikelihood: likes.length ? round(mean(likes)) : null,
+    inventedHistory: [...new Set(samples.flatMap((s) => s.inventedHistory ?? []))],
+    samples,
+  };
+}
+
+/** Pool per-call verdicts: each dimension's mean and interval across calls. */
+export function pool(verdicts) {
+  const out = {};
+  for (const k of [...Object.keys(DIMENSIONS), 'humanLikelihood']) {
+    const xs = verdicts
+      .map((v) => (k === 'humanLikelihood' ? v.humanLikelihood : v.scores[k]))
+      .filter((x) => typeof x === 'number');
+    out[k] = meanCi(xs);
+  }
+  return out;
+}
+
+function printTable(pooled, label) {
+  console.log(`\n${label}`);
+  for (const [k, v] of Object.entries(pooled)) {
+    const ci = v.lo === null ? '' : `  [${v.lo}, ${v.hi}]`;
+    const verdict =
+      k === 'humanLikelihood' || v.lo === null ? '' : v.lo > 3 ? '  better than a friend' : v.hi < 3 ? '  BELOW a friend' : '';
+    console.log(`  ${k.padEnd(16)} ${String(v.mean).padStart(5)}${ci}  n=${v.n}${verdict}`);
+  }
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const summary = args[0] === '--summary';
+  const files = summary ? args.slice(1) : args;
+  if (!files.length) {
+    console.error('usage: judge.mjs [--summary] <run.json>...');
+    process.exit(2);
+  }
+  const verdicts = [];
+  if (summary) {
+    for (const f of files) {
+      const j = f.replace(/\.json$/, '.judge.json');
+      if (existsSync(j)) verdicts.push(JSON.parse(readFileSync(j, 'utf8')));
+      else console.error(`no verdict for ${f} (run without --summary first)`);
+    }
+  } else {
+    const model = process.env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview';
+    const k = Number(process.env.JUDGE_K ?? 3);
+    const project = process.env.GCP_PROJECT ?? gcloud(['config', 'get-value', 'project']);
+    const token = gcloud(['auth', 'print-access-token']);
+    for (const f of files) {
+      const run = JSON.parse(readFileSync(f, 'utf8'));
+      const seedFile = f.replace(/\.json$/, '.seed.json');
+      const seed = existsSync(seedFile) ? JSON.parse(readFileSync(seedFile, 'utf8')) : null;
+      const prompt = promptFor(run, seed);
+      const samples = [];
+      for (let i = 0; i < k; i++) samples.push(await askJudge(prompt, { model, project, token }));
+      const verdict = { file: f, model, k, seeded: Boolean(seed), ...combine(samples) };
+      writeFileSync(f.replace(/\.json$/, '.judge.json'), JSON.stringify(verdict, null, 2));
+      verdicts.push(verdict);
+      const worst = samples[0]?.worstMoment;
+      console.log(`${f}\n  ${JSON.stringify(verdict.scores)} human=${verdict.humanLikelihood}`);
+      if (worst) console.log(`  worst #${worst.turn}: "${worst.quote}" — ${worst.why}`);
+      if (verdict.inventedHistory.length) console.log(`  INVENTED: ${verdict.inventedHistory.join(' | ')}`);
+    }
+  }
+  printTable(pool(verdicts), `pooled over ${verdicts.length} call(s)`);
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((e) => {
+    console.error(e.message);
+    process.exit(1);
+  });
+}
