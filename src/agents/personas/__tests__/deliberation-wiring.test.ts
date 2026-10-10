@@ -14,9 +14,11 @@ vi.mock('../../../config/gemini-config.js', async (importOriginal) => ({
 import { installDirectorNotes } from '../../multi-agent/turn-observers.js';
 import { TURN_CONTEXT_HEADER } from '../../multi-agent/turn-intelligence.js';
 import { getDeliberator } from '../deliberation.js';
+import { ANTICIPATE_SYSTEM, MIND_NOTE_HEADER } from '../deliberation-anticipate.js';
 
 afterEach(() => {
   delete process.env.DELIBERATION;
+  delete process.env.DELIBERATION_MODE;
   generateContent.mockClear();
 });
 
@@ -93,5 +95,50 @@ describe('deliberation on the live call', () => {
       promptTokens: 700,
       thoughtTokens: 600,
     });
+  });
+
+  it('anticipate mode: the simulating prompt, with how they tend to be from the mind note', async () => {
+    process.env.DELIBERATION = 'on';
+    process.env.DELIBERATION_MODE = 'anticipate';
+    const c = call();
+    c.items.unshift({
+      type: 'message',
+      role: 'system',
+      textContent: `${MIND_NOTE_HEADER}\nThey tend to: jokes when anxious, then wants practical help.`,
+    });
+    await install(c);
+    c.fire('speaking');
+    c.fire('listening');
+    await vi.waitFor(() => expect(generateContent).toHaveBeenCalledTimes(1));
+    const req = generateContent.mock.calls[0]![0] as {
+      contents: Array<{ parts: Array<{ text: string }> }>;
+      config: { systemInstruction: string };
+    };
+    expect(req.config.systemInstruction).toBe(ANTICIPATE_SYSTEM);
+    expect(req.contents[0].parts[0].text).toContain(
+      'jokes when anxious, then wants practical help'
+    );
+    c.cleanup.forEach((f) => f());
+  });
+
+  it('reflect mode (the default) leaves the mind note out', async () => {
+    process.env.DELIBERATION = 'on';
+    const c = call();
+    c.items.unshift({
+      type: 'message',
+      role: 'system',
+      textContent: `${MIND_NOTE_HEADER}\nThey tend to: jokes when anxious.`,
+    });
+    await install(c);
+    c.fire('speaking');
+    c.fire('listening');
+    await vi.waitFor(() => expect(generateContent).toHaveBeenCalledTimes(1));
+    const req = generateContent.mock.calls[0]![0] as {
+      contents: Array<{ parts: Array<{ text: string }> }>;
+      config: { systemInstruction: string };
+    };
+    expect(req.config.systemInstruction).not.toBe(ANTICIPATE_SYSTEM);
+    expect(req.contents[0].parts[0].text).not.toContain('jokes when anxious');
+    c.cleanup.forEach((f) => f());
   });
 });
