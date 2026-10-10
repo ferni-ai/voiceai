@@ -1,0 +1,81 @@
+/**
+ * Call start: load the caller's current facts and when the last call ended,
+ * in parallel, and work out what is new or due since then.
+ *
+ * Start it when the call starts, next to the other memory loads; nothing
+ * waits on it. A caller that is not ready yet just gets no block.
+ *
+ * @module intelligence/world-model/temporal/load
+ */
+
+import { getLastSessionSummary } from '../../../services/session-context/session-summary.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import { currentFacts, formatCurrentWorld } from './current.js';
+import { formatSinceLastCall, sinceLastCall, type SinceLastCallItem } from './since-last-call.js';
+import { createFirestoreWorldFactStore, type WorldFactStore } from './store.js';
+import { isWorldModelTemporalOn, type TemporalFact } from './types.js';
+
+const log = createLogger({ module: 'world-model:temporal' });
+
+export interface TemporalWorld {
+  /** Current facts only. */
+  facts: TemporalFact[];
+  /** "Mindy (sister), recovering from knee surgery since Tuesday", ... */
+  lines: string[];
+  sinceLastCall: SinceLastCallItem[];
+  /** The [SINCE YOU LAST TALKED] block, or null. */
+  sinceNote: string | null;
+}
+
+export interface LoadTemporalWorldOptions {
+  now?: Date;
+  timeZone?: string;
+  /** Text the call already carries about the past, to not repeat it. */
+  alreadySaid?: readonly string[];
+  store?: WorldFactStore;
+  lastCallEndedAt?: (userId: string) => Promise<Date | string | null>;
+  env?: Record<string, string | undefined>;
+}
+
+async function defaultLastCallEndedAt(userId: string): Promise<Date | null> {
+  const last = await getLastSessionSummary(userId);
+  const ended = last?.endedAt ? new Date(last.endedAt) : null;
+  return ended && !Number.isNaN(ended.getTime()) ? ended : null;
+}
+
+/** Null when WORLD_MODEL_TEMPORAL is off or the stores could not be read. */
+export async function loadTemporalWorld(
+  userId: string,
+  options: LoadTemporalWorldOptions = {}
+): Promise<TemporalWorld | null> {
+  if (!isWorldModelTemporalOn(options.env) || !userId) return null;
+  const when = { now: options.now ?? new Date(), timeZone: options.timeZone };
+  const store = options.store ?? createFirestoreWorldFactStore();
+  try {
+    const [open, lastCallEndedAt] = await Promise.all([
+      store.listOpen(userId),
+      (options.lastCallEndedAt ?? defaultLastCallEndedAt)(userId),
+    ]);
+    const facts = currentFacts(open, when);
+    const items = sinceLastCall({
+      ...when,
+      facts,
+      lastCallEndedAt,
+      alreadySaid: options.alreadySaid,
+    });
+    const world = {
+      facts,
+      lines: formatCurrentWorld(facts, when),
+      sinceLastCall: items,
+      sinceNote: formatSinceLastCall(items),
+    };
+    log.info(
+      { userId, facts: facts.length, since: items.map((i) => i.kind), firstCall: !lastCallEndedAt },
+      'WORLD_TEMPORAL_LOADED'
+    );
+    return world;
+  } catch (error) {
+    log.warn({ userId, error: String(error) }, 'Temporal world not loaded');
+    return null;
+  }
+}
