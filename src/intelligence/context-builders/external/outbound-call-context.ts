@@ -44,6 +44,8 @@ interface OutboundCallContext {
   informationToGather: string[];
   userName: string;
   originalSessionId: string;
+  /** Words to open with when the dispatcher wrote them (a family check-in's opening line). */
+  openingLine?: string;
 }
 
 /**

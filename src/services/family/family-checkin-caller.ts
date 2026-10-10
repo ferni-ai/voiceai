@@ -177,22 +177,19 @@ export async function initiateCheckinCall(
     // 2. Get recent call records for context
     const recentCalls = await getRecentCallRecords(schedule.sponsorUserId, schedule.id, 5);
 
-    // 3. Get sponsor name from profile
-    const sponsorName = await getSponsorName(schedule.sponsorUserId);
-
-    // 4. Build the check-in context
+    // 3. Build the check-in context (it looks up the sponsor's name)
     const { buildFamilyCheckinContext, generateFamilyCheckinSystemPrompt } =
       await import('../../intelligence/context-builders/family/family-wellbeing-context.js');
 
     const context = await buildFamilyCheckinContext(schedule, identity, recentCalls);
 
-    // 5. Generate the system prompt for the agent
+    // 4. Generate the system prompt for the agent
     const systemPrompt = generateFamilyCheckinSystemPrompt(context);
 
-    // 6. Create a call record
+    // 5. Create a call record
     const callRecord = await createCallRecord(schedule);
 
-    // 7. Initiate the call via LiveKit SIP or Twilio
+    // 6. Initiate the call via LiveKit SIP or Twilio
     const callResult = await initiateOutboundCall({
       callId: callRecord.id,
       schedule,
@@ -288,7 +285,8 @@ async function initiateOutboundCall(
 async function initiateViaLiveKitSip(
   params: InitiateOutboundCallParams
 ): Promise<{ success: boolean; twilioSid?: string; error?: string }> {
-  const { callId, schedule, identity, systemPrompt, openingLine } = params;
+  const { callId, schedule, systemPrompt, openingLine } = params;
+  const sponsorName = params.context.sponsorName; // the agent opens as "<sponsor>'s AI friend"
 
   try {
     const { RoomServiceClient, SipClient } = await import('livekit-server-sdk');
@@ -311,6 +309,7 @@ async function initiateViaLiveKitSip(
         callId,
         scheduleId: schedule.id,
         sponsorUserId: schedule.sponsorUserId,
+        sponsorName,
         familyMemberName: schedule.familyMemberName,
         relationship: schedule.relationship,
         systemPrompt: systemPrompt.slice(0, 1000), // Truncate for metadata size
@@ -327,6 +326,7 @@ async function initiateViaLiveKitSip(
       metadata: JSON.stringify({
         type: 'family_checkin',
         callId,
+        sponsorName,
         familyMemberName: schedule.familyMemberName,
         relationship: schedule.relationship,
         systemPrompt,

@@ -186,6 +186,38 @@ export async function setupCallTypeContexts(
   }
 
   // =========================================================================
+  // FAMILY CHECK-IN: an outbound call placed for the sponsor to someone in
+  // their family. Same path as on-behalf calls: the person on the line is the
+  // family member, Ferni opens as the sponsor's AI friend once they pick up,
+  // and the check-in prompt is the call's script, not the persona prompt.
+  // =========================================================================
+  if (callType === 'family_checkin') {
+    const { setOutboundCallContext } =
+      await import('../../intelligence/context-builders/external/outbound-call-context.js');
+    const recipientName = (metadata.familyMemberName as string) || 'Unknown';
+    const userName = (metadata.sponsorName as string) || 'the user';
+    const checkin = {
+      callId: String(metadata.callId ?? ''),
+      recipientName,
+      recipientPhone: '',
+      purpose: `${userName} asked you to check in on ${recipientName}.`,
+      callType: 'personal' as const,
+      objective: `See how ${recipientName} is doing.`,
+      script: (metadata.systemPrompt as string) || '',
+      complianceScript: '',
+      mustConfirm: [],
+      mustNotDo: [],
+      informationToGather: [],
+      userName,
+      originalSessionId: '',
+      openingLine: (metadata.openingLine as string) || undefined,
+    };
+    setOutboundCallContext(sessionId, checkin);
+    if (roomName) setOutboundCallContext(roomName, checkin);
+    process.stderr.write(`[voice-agent-entry] 📞 Family check-in context set for ${sessionId}\n`);
+  }
+
+  // =========================================================================
   // PROACTIVE OUTREACH CALL DETECTION
   // =========================================================================
   if (callType === 'proactive_outreach') {
@@ -212,11 +244,9 @@ export async function setupCallTypeContexts(
         lastMood: metadata.lastMood as string | undefined,
         lastSessionSummary: metadata.lastSessionSummary as string | undefined,
         relatedDate: metadata.relatedDate as
-          | { type: string; date: Date; description: string }
-          | undefined,
+          { type: string; date: Date; description: string } | undefined,
         relatedCommitment: metadata.relatedCommitment as
-          | { summary: string; madeOn: Date; dueDate?: Date }
-          | undefined,
+          { summary: string; madeOn: Date; dueDate?: Date } | undefined,
         openerStyle:
           (metadata.openerStyle as 'warm' | 'celebratory' | 'gentle' | 'supportive' | 'curious') ||
           'warm',
