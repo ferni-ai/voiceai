@@ -1,0 +1,6 @@
+# Music paused by voice, no UI data message. Diagnostic for the
+# "transformAlgorithm is not a function" burst (#587 follow-up).
+Can you put on some quiet jazz for me?
+Mm, that's nice.
+Okay, can you pause the music for a second?
+Thanks.

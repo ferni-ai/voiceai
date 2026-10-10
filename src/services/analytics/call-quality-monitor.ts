@@ -166,14 +166,27 @@ const lastAlerts = new Map<string, number>();
 let slackService: SlackNotificationService | null = null;
 let isRunning = false;
 
-// ============================================================================
-// EVENT RECORDING
-// ============================================================================
-
 /**
- * Record a call event
+ * A per-call child process sends its call events to the worker, whose monitor
+ * sees every call and owns the alerts (docs/plans/2026-10-10-process-per-job.md).
  */
+export type CallQualityOp =
+  | 'recordCallEvent'
+  | 'startCall'
+  | 'markCallStage'
+  | 'recordBargeInDetected'
+  | 'recordBargeInAgentStopped'
+  | 'endCall';
+let forward: ((op: CallQualityOp, args: unknown[]) => void) | null = null;
+export function setCallQualityForwarder(fn: typeof forward): void {
+  forward = fn;
+}
+
+// --- Event recording ---
+
+/** Record a call event */
 export function recordCallEvent(event: CallEvent): void {
+  if (forward) return forward('recordCallEvent', [event]);
   let session = sessions.get(event.callId);
 
   // Create session if needed
@@ -275,10 +288,9 @@ export function recordCallEvent(event: CallEvent): void {
   }
 }
 
-/**
- * Convenience function to start a call
- */
+/** Convenience function to start a call */
 export function startCall(callId: string, userId?: string, personaId?: string): void {
+  if (forward) return forward('startCall', [callId, userId, personaId]);
   const startTime = Date.now();
   recordCallEvent({
     callId,
@@ -293,10 +305,9 @@ export function startCall(callId: string, userId?: string, personaId?: string): 
   }
 }
 
-/**
- * Record an elapsed timestamp for a named stage in an active call.
- */
+/** Record an elapsed timestamp for a named stage in an active call. */
 export function markCallStage(callId: string, stage: string, atMs: number = Date.now()): void {
+  if (forward) return forward('markCallStage', [callId, stage, atMs]);
   const session = sessions.get(callId);
   if (!session) return;
 
@@ -307,10 +318,9 @@ export function markCallStage(callId: string, stage: string, atMs: number = Date
   };
 }
 
-/**
- * Record the moment a user barge-in is detected while the agent is speaking.
- */
+/** Record the moment a user barge-in is detected while the agent is speaking. */
 export function recordBargeInDetected(callId: string, atMs: number = Date.now()): void {
+  if (forward) return forward('recordBargeInDetected', [callId, atMs]);
   recordCallEvent({
     callId,
     timestamp: atMs,
@@ -324,10 +334,9 @@ export function recordBargeInDetected(callId: string, atMs: number = Date.now())
   }
 }
 
-/**
- * Record when agent speech actually stops after a barge-in.
- */
+/** Record when agent speech actually stops after a barge-in. */
 export function recordBargeInAgentStopped(callId: string, atMs: number = Date.now()): void {
+  if (forward) return forward('recordBargeInAgentStopped', [callId, atMs]);
   const session = sessions.get(callId);
   if (!session || session.pendingBargeInDetectAtMs === undefined) return;
 
@@ -337,13 +346,12 @@ export function recordBargeInAgentStopped(callId: string, atMs: number = Date.no
   recordMetricValue('barge_in_recover_latency', latencyMs);
 }
 
-/**
- * Convenience function to end a call
- */
+/** Convenience function to end a call */
 export function endCall(
   callId: string,
   reason: 'natural' | 'disconnect' | 'error' = 'natural'
 ): void {
+  if (forward) return forward('endCall', [callId, reason]);
   const type =
     reason === 'natural'
       ? 'call_end_natural'
@@ -351,16 +359,10 @@ export function endCall(
         ? 'call_end_disconnect'
         : 'call_end_error';
 
-  recordCallEvent({
-    callId,
-    timestamp: Date.now(),
-    type,
-  });
+  recordCallEvent({ callId, timestamp: Date.now(), type });
 }
 
-// ============================================================================
-// METRICS CALCULATION
-// ============================================================================
+// --- Metrics calculation ---
 
 function percentile(values: number[], p: number): number {
   if (values.length === 0) return 0;
@@ -748,9 +750,7 @@ export function getRecentCalls(limit = 100): CallSession[] {
   return completedSessions.slice(-limit);
 }
 
-/**
- * Clear in-memory call quality state so tests remain isolated.
- */
+/** Clear in-memory call quality state so tests remain isolated. */
 export function resetCallQualityStateForTests(): void {
   stopCallQualityMonitor();
   sessions.clear();
@@ -760,9 +760,7 @@ export function resetCallQualityStateForTests(): void {
   slackService = null;
 }
 
-/**
- * Get call quality monitor interface (for compatibility with other services)
- */
+/** Get call quality monitor interface (for compatibility with other services) */
 export function getCallQualityMonitor(): {
   getStats: () => {
     qualityScore: number;

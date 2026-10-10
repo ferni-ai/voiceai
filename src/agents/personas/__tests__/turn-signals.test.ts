@@ -133,12 +133,15 @@ describe('signalsFor', () => {
       match: 'none',
       missing: 0,
       inFlight: false,
+      labels: null,
     });
     await u.settle('it has been a long day');
     expect(understandingStatusFor(session, 'it has been a long day and i am wiped out')).toEqual({
       match: 'behind',
       missing: 5,
       inFlight: false,
+      // Labels of the answer a few words behind, so its reading can be compared with the full one.
+      labels: { move: 'share', mood: 'venting', needsTool: false, laughFits: false },
     });
     setTurnUnderstander(session, null);
   });
