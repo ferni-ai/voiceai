@@ -1,7 +1,8 @@
 /**
- * A caller recognised by phone alone can't use sensitive account tools: they
- * leave the request and the agent, and a call to one through the SDK's own
- * dispatcher (as agent_activity.js runs it) doesn't execute.
+ * A caller recognised by phone alone gets only allowlisted conversational
+ * tools: everything else, a tool nobody has classified included, leaves the
+ * request and the agent, and a call to one through the SDK's own dispatcher
+ * (as agent_activity.js runs it) doesn't execute.
  */
 import { llm } from '@livekit/agents';
 import { createRequire } from 'node:module';
@@ -13,7 +14,7 @@ import { z } from 'zod';
 import { PersonaVoiceAgent } from '../../personas/ferni-agent.js';
 import { toolsForTurn } from '../../personas/turn-request.js';
 import { rememberCallerRecognition } from '../../voice-agent-entry/caller-recognition.js';
-import { SENSITIVE_TOOLS } from '../sensitive-tools.js';
+import { phoneSafeTool } from '../phone-safe-tools.js';
 
 const ran: string[] = [];
 const tool = (name: string) =>
@@ -27,7 +28,18 @@ const tool = (name: string) =>
     },
   });
 
-const NAMES = ['cancelSubscription', 'forgetMemory', 'getContactInfo', 'payBill', 'getWeather'];
+// Account tools the call starts with, one nobody has classified yet, and safe ones.
+const NAMES = [
+  'cancelSubscription',
+  'forgetMemory',
+  'getBills',
+  'getNotes',
+  'manageContact',
+  'brandNewAccountTool',
+  'getWeather',
+  'quickCrisisResources',
+];
+const SAFE = ['getWeather', 'quickCrisisResources'];
 
 function agentWithTools(): PersonaVoiceAgent {
   return new PersonaVoiceAgent('You are Ferni.', {
@@ -79,18 +91,19 @@ async function dispatch(agent: PersonaVoiceAgent, name: string): Promise<{ isErr
   return { isError: out.output[0]?.toolCallOutput?.isError ?? true };
 }
 
-describe('sensitive account tools for a phone-recognised caller', () => {
-  it('stay locked: out of the request, off the agent, and not executable', async () => {
+describe('tools for a phone-recognised caller', () => {
+  it('are allowlisted: the rest is out of the request, off the agent, and not executable', async () => {
     rememberCallerRecognition('s-known', { status: 'known', attestation: 'A', userId: 'u1' });
     const agent = agentWithTools();
     const update = vi.spyOn(agent, 'updateTools');
 
-    expect(await request(agent, 's-known')).toEqual(['getWeather']);
+    expect(await request(agent, 's-known')).toEqual(SAFE);
     expect(update).toHaveBeenCalledTimes(1);
-    expect(Object.keys(agent.toolCtx.functionTools)).toEqual(['getWeather']);
+    expect(Object.keys(agent.toolCtx.functionTools)).toEqual(SAFE);
 
     ran.length = 0;
     expect((await dispatch(agent, 'cancelSubscription')).isError).toBe(true);
+    expect((await dispatch(agent, 'brandNewAccountTool')).isError).toBe(true);
     expect(ran).toEqual([]);
     expect((await dispatch(agent, 'getWeather')).isError).toBe(false);
     expect(ran).toEqual(['getWeather']);
@@ -105,10 +118,15 @@ describe('sensitive account tools for a phone-recognised caller', () => {
     }
   });
 
-  it('cover billing, deletion and personal records', () => {
-    for (const name of ['cancelSubscription', 'payBill', 'forgetMemory', 'getContactInfo']) {
-      expect(SENSITIVE_TOOLS.has(name)).toBe(true);
+  it('deny by default: a tool not on the allowlist is locked', () => {
+    for (const name of ['brandNewAccountTool', 'getBills', 'payBill', 'getNotes', 'getReminders']) {
+      expect(phoneSafeTool(name)).toBe(false);
     }
-    expect(SENSITIVE_TOOLS.has('getWeather')).toBe(false);
+    for (const name of ['manageContact', 'rememberAboutUser', 'recallFromMemory', 'findBusiness']) {
+      expect(phoneSafeTool(name)).toBe(false);
+    }
+    for (const name of ['playMusic', 'breatheWithMe', 'quickCrisisResources', 'handoffToPeter']) {
+      expect(phoneSafeTool(name)).toBe(true);
+    }
   });
 });

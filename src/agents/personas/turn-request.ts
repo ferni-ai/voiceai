@@ -10,12 +10,8 @@ import type { llm } from '@livekit/agents';
 import { TransformStream, type ReadableStream } from 'node:stream/web';
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { withoutSensitiveTools } from '../shared/sensitive-tools.js';
-import {
-  callerRecognitionFor,
-  maybeCallerNote,
-  phoneOnlyIdentity,
-} from '../voice-agent-entry/caller-recognition.js';
+import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
+import { phoneOnlyIdentity } from '../voice-agent-entry/caller-recognition.js';
 import { getBargeInFastPath } from '../multi-agent/barge-in-fastpath.js';
 import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
 import {
@@ -59,7 +55,7 @@ interface TurnSession {
 /** Per-agent state: the locked-handoff removal is logged once per agent. */
 export interface TurnToolsState {
   loggedLockedHandoffs: boolean;
-  /** The agent itself, so locked account tools can be taken off it (sensitive-tools.ts). */
+  /** The agent, so tools a phone-only caller can't use come off it too (phone-safe-tools.ts). */
   agent?: object;
 }
 
@@ -88,9 +84,6 @@ export function withTurnReminder(
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
-    maybeCallerNote(
-      callerRecognitionFor(sessionIdOf((session as { userData?: unknown }).userData))
-    ),
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     notes,
@@ -195,8 +188,9 @@ export async function toolsForTurn(
 }
 
 /**
- * A caller known only by their phone number: sensitive account tools leave the
- * request and the agent itself, so a call to one can't run (sensitive-tools.ts).
+ * A caller known only by their phone number: every tool not on the phone-safe
+ * allowlist leaves the request and the agent itself, so a call to one can't
+ * run (phone-safe-tools.ts).
  */
 interface ToolHolder {
   readonly toolCtx: llm.ToolContext;
@@ -208,11 +202,11 @@ async function withoutAccountTools(
   state: TurnToolsState
 ): Promise<llm.ToolContext> {
   const agent = state.agent as ToolHolder | undefined;
-  if (agent && withoutSensitiveTools(agent.toolCtx) !== agent.toolCtx) {
-    await agent.updateTools(withoutSensitiveTools(agent.toolCtx));
-    log.info({}, 'Sensitive account tools locked for a phone-recognised caller');
+  if (agent && onlyPhoneSafeTools(agent.toolCtx) !== agent.toolCtx) {
+    await agent.updateTools(onlyPhoneSafeTools(agent.toolCtx));
+    log.info({}, 'Only phone-safe tools open for a phone-recognised caller');
   }
-  return withoutSensitiveTools(toolCtx);
+  return onlyPhoneSafeTools(toolCtx);
 }
 
 /**

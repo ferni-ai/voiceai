@@ -1,19 +1,24 @@
 /**
  * "Ferni knows it's you when you call": map a phone caller's number to their
- * account. CALLER_RECOGNITION=on (default off).
+ * account. CALLER_RECOGNITION=on (default off). Fails closed.
  *
  * The number comes from the SIP participant (`sip.phoneNumber`), normalised to
  * E.164, and counts only against a VERIFIED owner: the Firebase account whose
  * sign-in phone is that number (Firebase sets one only through phone
- * verification, and no two accounts share it). Caller ID can be spoofed, so
- * the match is trusted only with STIR/SHAKEN attestation A (sip-caller.ts):
+ * verification, and no two accounts share it).
  *
- * - known: verified owner + attestation A. The session runs as that user
- *   (name, memory), but sensitive account tools stay locked (sensitive-tools.ts)
- *   until a step-up the phone alone can't give.
- * - maybe: verified owner, attestation B/C/none. No account is loaded; Ferni
- *   asks whether it's them and checks something only they would know.
- * - stranger: no number, or nobody verified it.
+ * Caller ID can be spoofed, and so can every SIP header and attribute while
+ * our trunks accept INVITEs from any source: a raw X-Twilio-VerStat says
+ * nothing. Only a SIGNED attestation counts, minted by our Twilio webhook for
+ * this call and this number (#605's token); anything else, a missing value
+ * included, is unverified.
+ *
+ * - known: verified owner + signed attestation A. The session runs as that
+ *   user (name, memory), but only conversational tools are open
+ *   (phone-safe-tools.ts) until a step-up the phone alone can't give.
+ * - maybe / stranger: everyone else. No account loads, and Ferni greets them
+ *   the same way ("hey, who's this?"): nothing tells the caller whose number
+ *   it is, and nothing from anyone's account is used to check them.
  *
  * Phone numbers never reach the logs, only the outcome and attestation.
  *
@@ -31,13 +36,11 @@ export type CallerStatus = 'known' | 'maybe' | 'stranger';
 
 export interface CallerRecognition {
   status: CallerStatus;
+  /** The signed attestation, or 'none' when there was no valid signed token. */
   attestation: SipAttestation;
-  /** The verified owner's account; set only when status is 'known'. */
+  /** The verified owner's account and first name; set only when status is 'known'. */
   userId?: string;
-  /** The owner's first name ('known' and 'maybe'). */
   name?: string;
-  /** 'maybe' only: something from the owner's last call, for Ferni to check against. Never spoken first. */
-  checkDetail?: string;
 }
 
 export interface PhoneOwner {
@@ -48,8 +51,14 @@ export interface PhoneOwner {
 export interface RecognitionDeps {
   /** The verified owner of an E.164 number, or null. */
   ownerOf: (e164: string) => Promise<PhoneOwner | null>;
-  /** What the owner and Ferni last talked about, for the 'maybe' check. */
-  lastTopicOf: (userId: string) => Promise<string | undefined>;
+  /**
+   * The attestation level from a signed token verified for this caller and
+   * this number, or null when there is none. Never a raw header.
+   */
+  signedAttestation: (
+    participant: SipParticipantLike,
+    e164: string
+  ) => Promise<SipAttestation | null>;
 }
 
 type Env = Record<string, string | undefined>;
@@ -58,13 +67,13 @@ export function callerRecognitionEnabled(env: Env = process.env): boolean {
   return env.CALLER_RECOGNITION === 'on';
 }
 
-/** Only attestation A (the carrier vouches for the caller's right to the number) is a match. */
+/** Only a signed attestation A (the carrier vouches for the caller's right to the number) is a match. */
 export function classifyCaller(
   owner: PhoneOwner | null,
-  attestation: SipAttestation
+  signed: SipAttestation | null
 ): CallerStatus {
   if (!owner) return 'stranger';
-  return attestation === 'A' ? 'known' : 'maybe';
+  return signed === 'A' ? 'known' : 'maybe';
 }
 
 /** E.164 for a SIP caller's number, or null when it isn't a phone number. */
@@ -87,37 +96,36 @@ const firstName = (name: string | undefined): string | undefined =>
 /** Recognise a phone caller. Null for a participant that isn't a SIP caller. */
 export async function recognizeCaller(
   participant: SipParticipantLike,
-  deps: RecognitionDeps,
-  options: { updates?: AttributeUpdates; waitMs?: number } = {}
+  deps: RecognitionDeps
 ): Promise<CallerRecognition | null> {
-  const reading = await readSipCaller(participant, options);
+  // isSip only: the reading's attestation comes from a raw, forgeable header.
+  const reading = await readSipCaller(participant, { waitMs: 0 });
   if (!reading.isSip) return null;
   const e164 = toE164(participant.attributes?.['sip.phoneNumber']);
   const owner = e164 ? await deps.ownerOf(e164).catch(() => null) : null;
-  const status = classifyCaller(owner, reading.attestation);
-  const recognition: CallerRecognition = { status, attestation: reading.attestation };
-  if (owner && status === 'known') recognition.userId = owner.userId;
-  if (owner) recognition.name = firstName(owner.name);
-  if (owner && status === 'maybe') {
-    recognition.checkDetail = await deps.lastTopicOf(owner.userId).catch(() => undefined);
+  const signed =
+    owner && e164 ? await deps.signedAttestation(participant, e164).catch(() => null) : null;
+  const status = classifyCaller(owner, signed);
+  const recognition: CallerRecognition = { status, attestation: signed ?? 'none' };
+  if (owner && status === 'known') {
+    recognition.userId = owner.userId;
+    recognition.name = firstName(owner.name);
   }
   return recognition;
 }
 
-/** Production lookups: Firebase Auth for the owner, their profile for the last topic. */
+/**
+ * Production lookups. The signed attestation arrives with #605 (webhook
+ * token, `ferni.attest`); until it is wired here there is none, so no caller
+ * is 'known': recognition fails closed rather than trusting a header.
+ */
 export const productionRecognitionDeps: RecognitionDeps = {
   async ownerOf(e164) {
     const { getFirebaseUserByPhone } = await import('../../services/identity/firebase-auth.js');
     const user = await getFirebaseUserByPhone(e164);
     return user ? { userId: user.uid, name: user.displayName } : null;
   },
-  async lastTopicOf(userId) {
-    const { getProfileWithCache } = await import('../../services/data-layer/profile-cache.js');
-    const { getGlobalServices } = await import('../../services/global-services.js');
-    const { store } = await getGlobalServices();
-    const profile = await getProfileWithCache(userId, (uid) => store.getProfile(uid));
-    return profile?.lastConversationSummary?.trim().slice(0, 160) || undefined;
-  },
+  signedAttestation: async () => null,
 };
 
 /** The room's first remote participant, waiting up to `waitMs` for one to join. */
@@ -152,7 +160,7 @@ export function rememberCallerRecognition(sessionId: string, r: CallerRecognitio
   bySession.set(sessionId, r);
   if (bySession.size > MAX_SESSIONS) bySession.delete(bySession.keys().next().value as string);
   getLogger().info(
-    { sessionId, status: r.status, attestation: r.attestation, hasCheck: !!r.checkDetail },
+    { sessionId, status: r.status, attestation: r.attestation },
     'CALLER_RECOGNITION'
   );
 }
@@ -161,30 +169,20 @@ export function callerRecognitionFor(sessionId: string | undefined): CallerRecog
   return sessionId ? bySession.get(sessionId) : undefined;
 }
 
-/** A session known only by its phone number: sensitive account tools stay locked. */
+/** A session known only by its phone number: only conversational tools are open. */
 export function phoneOnlyIdentity(sessionId: string | undefined): boolean {
   return callerRecognitionFor(sessionId)?.status === 'known';
 }
 
-/** The greeting for a caller who might be someone Ferni knows. */
-export function maybeCallerGreeting(r: CallerRecognition | undefined): {
-  direction: string;
-  facts: Record<string, string>;
-} | null {
-  if (r?.status !== 'maybe' || !r.name) return null;
-  return {
-    direction: `You don't know for sure who is calling. Greet them warmly without using a name, and ask lightly whether it's ${r.name}. Do not mention anything you know about ${r.name}.`,
-    facts: { 'who it might be': r.name },
-  };
-}
+/**
+ * The hello for a phone caller Ferni hasn't recognised (maybe or stranger,
+ * greeted alike so the greeting can't tell a caller whose number it is).
+ */
+export const UNRECOGNISED_CALLER_DIRECTION =
+  "You don't know who is calling. Greet them warmly and ask who it is, the way you'd answer an unknown number (\"hey, who's this?\"). Don't guess or say any name.";
 
-/** Each turn while a 'maybe' caller is unconfirmed: how to check it's them. */
-export function maybeCallerNote(r: CallerRecognition | undefined): string {
-  if (r?.status !== 'maybe' || !r.name) return '';
-  const check = r.checkDetail
-    ? ` If they say they are, ask them to remind you what you two talked about last time; it should match "${r.checkDetail}". Never say that yourself or hint at it.`
-    : '';
-  return `This caller might be ${r.name}; you have not confirmed it.${check} Until they've confirmed, don't bring up anything you know about ${r.name}.`;
+export function unrecognisedCallerGreeting(r: CallerRecognition | undefined): string | null {
+  return r && r.status !== 'known' ? UNRECOGNISED_CALLER_DIRECTION : null;
 }
 
 /**
@@ -216,12 +214,11 @@ export async function recognizePhoneSession(
 ): Promise<{ userId?: string; userName?: string } | null> {
   const participant = await firstParticipant(room, PARTICIPANT_WAIT_MS);
   if (!participant) return null;
-  const r = await recognizeCaller(participant, deps, { updates: room, waitMs: VERSTAT_WAIT_MS });
+  const r = await recognizeCaller(participant, deps);
   if (!r) return null;
   rememberCallerRecognition(sessionId, r);
   return r.status === 'known' ? { userId: r.userId, userName: r.name } : {};
 }
 
-/** How long to wait for the caller to join, and then for the carrier's attestation header. */
+/** How long to wait for the caller to join. */
 const PARTICIPANT_WAIT_MS = 3000;
-const VERSTAT_WAIT_MS = 1000;
