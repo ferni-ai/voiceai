@@ -1,0 +1,5 @@
+# Music plays for a while and the call simply ends, no pause or stop. If the
+# "transformAlgorithm is not a function" burst still appears, it isn't the stop.
+Can you put on some quiet jazz for me?
+@data 10000 {"type":"noop"}
+Okay, I've got to go. Bye!
