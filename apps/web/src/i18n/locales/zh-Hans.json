@@ -10180,6 +10180,7 @@
     "nowPlaying": "正在播放：{name}",
     "memoryRemoved": "记忆已移除",
     "couldNotRemoveMemory": "无法移除这段记忆。要再试一次吗？",
+    "memoryNotFound": "找不到这段记忆，它可能已经被移除了。",
     "couldNotLoadPredictions": "无法加载你的预测。要再试一次吗？",
     "noPredictionsYet": "还没有预测。和 Ferni 一起做一个，它就会显示在这里。",
     "preparingData": "正在准备你的数据...",

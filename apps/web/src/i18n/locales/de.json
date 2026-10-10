@@ -10181,6 +10181,7 @@
     "nowPlaying": "Jetzt läuft: {name}",
     "memoryRemoved": "Erinnerung entfernt",
     "couldNotRemoveMemory": "Diese Erinnerung konnte nicht gelöscht werden. Versuchst du es noch mal?",
+    "memoryNotFound": "Diese Erinnerung wurde nicht gefunden. Vielleicht ist sie schon weg.",
     "couldNotLoadPredictions": "Deine Vorhersagen konnten nicht geladen werden. Versuchst du es noch mal?",
     "noPredictionsYet": "Noch keine Vorhersagen. Triff eine mit Ferni, dann wird sie hier angezeigt.",
     "preparingData": "Deine Daten werden vorbereitet...",

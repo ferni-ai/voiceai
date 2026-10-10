@@ -10181,6 +10181,7 @@
     "nowPlaying": "正在播放：{name}",
     "memoryRemoved": "已移除回憶",
     "couldNotRemoveMemory": "無法移除該回憶。要再試一次嗎？",
+    "memoryNotFound": "找不到該回憶，它可能已經被移除了。",
     "couldNotLoadPredictions": "無法載入你的預測。要再試一次嗎？",
     "noPredictionsYet": "目前還沒有預測。和 Ferni 一起做個預測，它就會顯示在這裡囉。",
     "preparingData": "正在準備你的資料...",

@@ -10181,6 +10181,7 @@
     "nowPlaying": "Now playing: {name}",
     "memoryRemoved": "Memory removed",
     "couldNotRemoveMemory": "Couldn't remove that memory. Try again?",
+    "memoryNotFound": "Couldn't find that memory. It may already be gone.",
     "couldNotLoadPredictions": "Couldn't load your predictions. Try again?",
     "noPredictionsYet": "No predictions yet. Make one with Ferni and it'll show up here.",
     "preparingData": "Preparing your data...",
