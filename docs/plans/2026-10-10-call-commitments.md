@@ -73,21 +73,25 @@ push, SMS or call). The assistant-honesty work makes reminders and callbacks
 reach phone-only users. This consumer calls that API and does not send
 anything itself.
 
-### Honesty: every Ferni promise is kept or dropped on the record
+### Honesty: reuse the promise keeper (#275), don't build a second ledger
 
-Each Ferni promise becomes `bogle_users/{uid}/ferni_promises/{id}` with
-`{ what, dueDate, sessionId, status: 'scheduled' | 'kept' | 'dropped', reason? }`.
-The id is `sessionId + normalised what`, so a re-run is idempotent.
+*Corrected 2026-10-10 after the first draft.* `services/superhuman/semantic-intelligence/promise-keeper.ts`
+already does this for promises Ferni makes through a tool:
 
-- **scheduled**: the outreach was created; the record keeps its id.
-- **kept**: the delivery job marks the outreach completed, or the caller
-  called first and the topic came up (#680's progress check).
-- **dropped**: the promise can't be kept. The reasons are: no delivery
-  channel, outreach opted out, an unresolvable date, or a failed schedule
-  call. The next call's first recall note then carries one line: *"Last time
-  you said you'd check in about the landlord and didn't get to. Own it in
-  passing if it fits."* Nothing is dropped silently, and the log records the
-  reason.
+- `recordCheckInPromise(userId, { topic, dueBy })` stores an open promise in
+  `ferni_commitments`.
+- It is **kept** when Ferni asks about it in a conversation (follow-through.ts),
+  or when its reminder goes out.
+- It is **missed** when the every-minute deliver-reminders job's
+  `sweepOverduePromises` finds it past due. Ferni then owns a missed promise
+  once, in her next conversation (`getMissesToOwn`).
+
+The gap is only that a promise *spoken* without a tool call ("I'll check in
+Thursday") is never recorded. So the consumer calls `recordCheckInPromise` for
+each Ferni promise, with `dueBy` resolved from its day. Where a timed check-in
+can go out, it also creates the outreach, and the reminder settles the promise
+as kept. There is no new collection: keep, miss and own already work, and
+Trust's "I follow through" counts them.
 
 ### Flag
 
@@ -95,13 +99,39 @@ The id is `sessionId + normalised what`, so a re-run is idempotent.
 `AFTER_CALL_EXTRACTION` (which it requires; with extraction off it does
 nothing and logs that once).
 
+## Part 3: the recap text (`RECAP_TEXT`, built)
+
+After a call that settled something, one SMS in Ferni's voice:
+
+```
+From our call:
+You'll call the landlord tomorrow (555-0134).
+I'll check in Thursday.
+```
+
+It goes only to the verified phone on the user's Firebase account (#675), and
+only when `bogle_users/{uid}/preferences/recap_text` has `optIn: true`.
+
+- **Source.** Part 1's in-call reading, kept by sessionId past the agent's
+  cleanup and taken once by the after-call task. There is no new model pass,
+  and the wording is a template, so nobody is quoted.
+- **When it skips.** No text after hard news, a crisis turn (the crisis gate
+  marks the reading heavy), or a call where nothing was decided.
+- **Quiet hours.** From 9pm to 8am local the text is queued as a pending
+  reminder for 8am, and the reminder delivery job sends it through the same
+  Twilio path. By then "tomorrow" reads "today", and that night's plans are
+  dropped.
+- **Gap.** Until part 2 records Ferni's spoken promises with the promise
+  keeper, the text can restate a promise ("I'll check in Thursday") that
+  nothing yet tracks.
+
 ## Build order (each ≤400 lines, behind the flag)
 
 1. #690/#693/#694 merge (other owners). Ask #693's owner for the `by` field
    and prompt line, or land it as a follow-up on their branch.
 2. `onWorldObservations` hook in the extraction module, plus the
    `world-extraction` registration if #693 hasn't added it.
-3. Consumer: Ferni promises → `ferni_promises` + scheduled check-in through
+3. Consumer: Ferni promises → `recordCheckInPromise` + scheduled check-in through
    the existing path; dueDate written onto caller commitments for #680.
 4. Next-call note for dropped promises (recall hook, next to #680's
    check-in note).
@@ -130,6 +160,6 @@ nothing and logs that once).
    metric) with `WRAP_UP` on and off. The note adds no awaited work, so the
    gap should be within noise.
 3. Part 2, once built: the same call with `CALL_COMMITMENTS=on` and
-   `AFTER_CALL_EXTRACTION=on` gives a `ferni_promises` doc with status
+   `AFTER_CALL_EXTRACTION=on` gives an open `ferni_commitments` check-in with status
    `scheduled` and an outreach dated Thursday. Do not let it deliver to a
    real phone; use a test user.
