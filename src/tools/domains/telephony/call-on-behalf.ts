@@ -466,7 +466,8 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
           purpose,
           objective,
           callType,
-          originalSessionId: ctx.agentId, // Using agentId as session reference
+          // The session to report back into; the agent id is only a last resort
+          originalSessionId: ctx.sessionId || ctx.agentId,
           userId: ctx.userId,
           userTimezone,
           userName,

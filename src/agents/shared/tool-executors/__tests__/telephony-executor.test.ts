@@ -34,6 +34,20 @@ vi.mock('firebase-admin/firestore', () => ({
   })),
 }));
 
+const callTool = vi.hoisted(() => ({
+  ctx: undefined as Record<string, unknown> | undefined,
+  execute: vi.fn(async () => 'Calling now'),
+}));
+vi.mock('../../../../tools/domains/telephony/call-on-behalf.js', () => ({
+  createCallOnBehalfTool: (ctx: Record<string, unknown>) => {
+    callTool.ctx = ctx;
+    return { execute: callTool.execute };
+  },
+}));
+vi.mock('../../../../services/outreach/on-behalf-call-orchestrator.js', () => ({
+  getOnBehalfCallOrchestrator: () => ({}),
+}));
+
 // NOTE: the phone-service mock was removed - telephony-executor.ts imports
 // contact-relationship-service, voice-call and sms-delivery instead.
 describe('TelephonyExecutor', () => {
@@ -121,56 +135,63 @@ describe('TelephonyExecutor', () => {
   });
 
   describe('callOnBehalf', () => {
-    it('should place call on user behalf', async () => {
-      const ctx = createContext();
+    it("hands the chat model's contact/objective to the tool as contactQuery/purpose", async () => {
       const result = await telephonyExecutor.execute(
         'callOnBehalf',
-        {
-          contact: 'Restaurant',
-          purpose: 'Make a reservation',
-        },
-        ctx
+        { contact: 'Restaurant', objective: 'Make a reservation for two at 7' },
+        createContext()
       );
 
-      expect(result).toBeDefined();
+      expect(result).toBe('Calling now');
+      expect(callTool.execute).toHaveBeenCalledWith({
+        contactQuery: 'Restaurant',
+        phoneNumber: undefined,
+        purpose: 'Make a reservation for two at 7',
+        additionalContext: undefined,
+      });
     });
 
-    it('should handle call with script', async () => {
-      const ctx = createContext();
-      const result = await telephonyExecutor.execute(
+    it('accepts the tool schema names directly, and carries the tone and number', async () => {
+      await telephonyExecutor.execute(
         'callOnBehalf',
-        {
-          contact: 'Doctor Office',
-          purpose: 'Schedule appointment',
-          script: 'Request earliest available appointment for annual checkup',
-        },
-        ctx
+        { contactQuery: 'my mom', phoneNumber: '8015550100', purpose: 'Check in', tone: 'warm' },
+        createContext()
       );
-
-      expect(result).toBeDefined();
+      expect(callTool.execute).toHaveBeenCalledWith({
+        contactQuery: 'my mom',
+        phoneNumber: '8015550100',
+        purpose: 'Check in',
+        additionalContext: 'Tone: warm',
+      });
     });
 
-    it('should prompt for contact if missing', async () => {
-      const ctx = createContext();
+    it('reports back into the requesting session, not the persona id', async () => {
+      await telephonyExecutor.execute(
+        'callOnBehalf',
+        { contact: 'Mom', purpose: 'Check in' },
+        createContext()
+      );
+      expect(callTool.ctx).toMatchObject({
+        userId: 'test-user-123',
+        sessionId: 'test-session-456',
+      });
+    });
+
+    it('defaults the purpose instead of failing when none is given', async () => {
+      await telephonyExecutor.execute('callOnBehalf', { contact: 'Mom' }, createContext());
+      expect(callTool.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ contactQuery: 'Mom', purpose: 'Check in with Mom' })
+      );
+    });
+
+    it('asks who to call when there is no contact or number', async () => {
       const result = await telephonyExecutor.execute(
         'callOnBehalf',
         { purpose: 'Make reservation' },
-        ctx
+        createContext()
       );
-
-      expect(result).toContain('Who');
-    });
-
-    it('should handle missing purpose gracefully', async () => {
-      const ctx = createContext();
-      const result = await telephonyExecutor.execute(
-        'callOnBehalf',
-        { contact: 'Restaurant' },
-        ctx
-      );
-
-      // Executor proceeds or prompts for phone number if not saved
-      expect(result).toBeDefined();
+      expect(result).toContain('Who should I call');
+      expect(callTool.execute).not.toHaveBeenCalled();
     });
   });
 
