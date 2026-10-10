@@ -9,7 +9,7 @@ import { fork } from 'node:child_process';
 import { extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { podCpuCount } from './cpu-load.js';
+import { maxJobsPerWorker, podCpuCount } from './cpu-load.js';
 import {
   getActiveJobIds,
   getActiveJobs,
@@ -31,10 +31,14 @@ export function jobExecutorMode(
   return env.AGENT_JOB_EXECUTOR === 'process' ? 'process' : 'inproc';
 }
 
-/** Warmed children kept ready (AGENT_IDLE_PROCESSES, default 1). */
+/**
+ * Warmed children kept ready: AGENT_IDLE_PROCESSES, default the job cap. With one,
+ * a second caller waited ~18 s for a child to warm, and that warmup slowed the
+ * first call's reply to 6.4 s (dev, 2 CPUs, 2026-10-10).
+ */
 export function idleProcesses(env: Record<string, string | undefined> = process.env): number {
   const n = Number(env.AGENT_IDLE_PROCESSES);
-  return Number.isInteger(n) && n >= 0 ? n : 1;
+  return Number.isInteger(n) && n >= 0 ? n : maxJobsPerWorker(env.AGENT_MAX_JOBS_PER_WORKER);
 }
 
 /** A child's warmup is ~10-30 s; past this the job fails rather than leaving the caller waiting. */

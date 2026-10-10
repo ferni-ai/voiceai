@@ -9,9 +9,15 @@
  * the person on the line as our user: their words were saved to the user's
  * memory and the user's profile was loaded into someone else's call.
  *
+ * The agent only reports a call back to the requester when the dispatch it
+ * received carries a valid `requesterSignature` over the whole payload. Dispatch metadata can reach the agent from
+ * paths a caller controls (e.g. the Twilio media-stream bridge), and a forged
+ * payload must not be able to push "call results" to someone else's phone.
+ *
  * @module services/outreach/on-behalf-dispatch
  */
 
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import type {
   CallObjective,
   CallType,
@@ -35,12 +41,63 @@ export interface OnBehalfDispatch {
   callType: CallType;
   script?: string;
   userPreferences?: unknown;
+  /** HMAC from a trusted dispatcher; see signOnBehalfDispatch. */
+  requesterSignature?: string;
 }
 
 export type OnBehalfDispatchInput = Omit<OnBehalfDispatch, 'type' | 'session_id'>;
 
 export function buildOnBehalfDispatch(input: OnBehalfDispatchInput): OnBehalfDispatch {
   return { type: 'on_behalf_call', session_id: `onbehalf:${input.callId}`, ...input };
+}
+
+/** JSON with sorted keys and undefined dropped, so signer and receiver hash the same bytes. */
+function canonical(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'null';
+}
+
+function signatureFor(payload: Record<string, unknown>, secret: string): string {
+  const { requesterSignature: _omit, ...signed } = payload;
+  return createHmac('sha256', secret).update(canonical(signed)).digest('base64url');
+}
+
+/**
+ * Sign a dispatch the server itself created, over every field, so no part of a
+ * signed payload (who hears the result, which room it goes to, what was said
+ * about the call) can be changed. Use the LiveKit API secret.
+ */
+export function signOnBehalfDispatch(d: OnBehalfDispatch, secret: string): OnBehalfDispatch {
+  return { ...d, requesterSignature: signatureFor({ ...d }, secret) };
+}
+
+/**
+ * True only when the job metadata exactly as dispatched (the raw JSON string)
+ * carries a valid signature from a trusted dispatcher using this secret.
+ */
+export function verifyOnBehalfDispatch(
+  rawJobMetadata: string | undefined,
+  secret: string | undefined
+): boolean {
+  if (!secret || !rawJobMetadata) return false;
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rawJobMetadata);
+  } catch {
+    return false;
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
+  const given = (payload as Record<string, unknown>).requesterSignature;
+  if (typeof given !== 'string' || !given) return false;
+  const expected = Buffer.from(signatureFor(payload as Record<string, unknown>, secret));
+  const actual = Buffer.from(given);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
 /** The dispatch for a call the orchestrator places from an on-behalf request. */
