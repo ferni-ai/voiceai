@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { attachReplyGap, type ReplyGapRecord } from '../reply-gap.js';
+import { attachReplyGap, createLoopDelayProbe, type ReplyGapRecord } from '../reply-gap.js';
 
 function rig() {
   const session = new EventEmitter();
@@ -57,5 +57,49 @@ describe('attachReplyGap', () => {
     r.state('thinking', 10_400);
     r.state('speaking', 11_000);
     expect(r.records).toEqual([]);
+  });
+});
+
+describe('event-loop stalls in the gap', () => {
+  it('reports the worst stall since the caller stopped', () => {
+    const session = new EventEmitter();
+    const records: ReplyGapRecord[] = [];
+    let worst = 0;
+    const resets: number[] = [];
+    const probe = {
+      maxMs: () => worst,
+      reset: () => (resets.push(worst), (worst = 0)),
+      close: () => undefined,
+    };
+    attachReplyGap(session, (r) => records.push(r), probe);
+    worst = 900; // a stall from the previous reply must not count
+    session.emit('metrics_collected', {
+      metrics: { type: 'eou_metrics', lastSpeakingTimeMs: 1000 },
+    });
+    worst = 240;
+    session.emit('agent_state_changed', { newState: 'thinking', createdAt: 1400 });
+    session.emit('agent_state_changed', { newState: 'speaking', createdAt: 2300 });
+    expect(resets).toEqual([900]);
+    expect(records[0]?.loopStallMs).toBe(240);
+  });
+
+  it('measures a real blocked loop', async () => {
+    const probe = createLoopDelayProbe();
+    try {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 30);
+      });
+      probe.reset();
+      const until = Date.now() + 120;
+      while (Date.now() < until) {
+        // block the event loop
+      }
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 40);
+      });
+      expect(probe.maxMs()).toBeGreaterThanOrEqual(80);
+    } finally {
+      probe.close();
+    }
   });
 });

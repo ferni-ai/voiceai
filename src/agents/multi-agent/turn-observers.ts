@@ -234,11 +234,15 @@ export async function installTurnListeners(
   input: ToolRetrievalInput
 ): Promise<{ onTranscript(transcript: string, isFinal: boolean): void } | null> {
   // One REPLY_GAP line per caller turn (reply-gap.ts): the wait the caller hears.
-  const { attachReplyGap } = await import('../shared/reply-gap.js');
+  const { attachReplyGap, createLoopDelayProbe } = await import('../shared/reply-gap.js');
+  const loop = createLoopDelayProbe();
   input.cleanupFunctions.push(
-    attachReplyGap(input.session as never, (gap) =>
-      log.info({ sessionId: input.sessionId, ...gap }, 'REPLY_GAP')
-    )
+    attachReplyGap(
+      input.session as never,
+      (gap) => log.info({ sessionId: input.sessionId, ...gap }, 'REPLY_GAP'),
+      loop
+    ),
+    () => loop.close()
   );
   const retrieval = await installToolRetrieval(input);
   const understanding = await installTurnUnderstanding(input.session, input.cleanupFunctions);
