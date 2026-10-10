@@ -13,6 +13,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION } from '../config/animation-constants.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('OutreachScheduleUI');
 
@@ -86,6 +87,7 @@ const CHANNEL_ICONS: Record<string, string> = {
 // ============================================================================
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let isOpen = false;
 let currentTab: 'upcoming' | 'history' = 'upcoming';
 
@@ -585,17 +587,12 @@ function createModal(): void {
   });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => isOpen, closeOutreachSchedule);
 
   document.body.appendChild(modalContainer);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && isOpen) {
-    closeOutreachSchedule();
-    document.removeEventListener('keydown', handleEscapeKey);
-  }
-}
 
 function switchTab(tab: 'upcoming' | 'history'): void {
   currentTab = tab;

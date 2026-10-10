@@ -19,6 +19,7 @@ import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { addMockContact } from '../data/mock-contacts.js';
 import { t } from '../i18n/index.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('AddPersonUI');
 
@@ -80,6 +81,7 @@ let state: AddPersonState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSuccess?: (data: AddPersonData & { id: string }) => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -641,17 +643,13 @@ function bindEvents(): void {
   modalContainer.querySelector('#ap-save')?.addEventListener('click', () => { void handleSave(); });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeAddPerson);
 
   // Focus name input
   nameInput?.focus();
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeAddPerson();
-  }
-}
 
 // ============================================================================
 // SAVE HANDLER
@@ -841,7 +839,7 @@ export function openAddPerson(options?: AddPersonOptions): void {
 export function closeAddPerson(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 
