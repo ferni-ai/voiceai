@@ -21,6 +21,7 @@ import { createStandardInjection, registerContextBuilder } from '../context-buil
 import { createLogger } from '../../utils/safe-logger.js';
 import { getCachedWorldModel, setCachedWorldModel } from './cache.js';
 import { renderWorldModelSection } from './render.js';
+import { isWorldModelSnapshotOn } from './recall-note.js';
 import { buildWorldModelSnapshot } from './snapshot.js';
 import type { WorldModelSources } from './sources.js';
 import { isEmptySnapshot } from './types.js';
@@ -34,10 +35,7 @@ export interface BuildWorldModelContextOptions {
   env?: Record<string, string | undefined>;
 }
 
-/** True when WORLD_MODEL_SNAPSHOT=on. */
-export function isWorldModelSnapshotOn(env: Record<string, string | undefined> = process.env): boolean {
-  return env.WORLD_MODEL_SNAPSHOT === 'on';
-}
+export { isWorldModelSnapshotOn };
 
 export async function buildWorldModelContext(
   input: ContextBuilderInput,

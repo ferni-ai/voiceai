@@ -14,6 +14,7 @@ import {
 } from '../../memory/entity-store/index.js';
 import { getPersistedHumanSignals } from '../../memory/human-signal-persistence.js';
 import { loadUserModel } from '../unified-user-model.js';
+import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'world-model:sources' });
@@ -110,9 +111,54 @@ async function defaultListRelationships(
   return out;
 }
 
+function itemsOf<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+/**
+ * Avoidances and dreams from both places they are written. The live writer
+ * fills bogle_users/{id}/human_memory/profile (unspoken.avoidances,
+ * identity.dreams); the human_signals shards were empty for every voice-eval
+ * user checked on 2026-10-10 (0 of 257) while 33 profiles held avoidances,
+ * so reading the shards alone found nothing to avoid.
+ */
+export function mergeProfileSignals(
+  profile: Record<string, unknown> | undefined,
+  shards: LooseHumanSignals | null
+): LooseHumanSignals {
+  const unspoken = (profile?.unspoken ?? {}) as Record<string, unknown>;
+  const identity = (profile?.identity ?? {}) as Record<string, unknown>;
+  const avoidances = [...itemsOf<LooseAvoidance>(unspoken.avoidances), ...(shards?.avoidances ?? [])];
+  const dreams = [
+    ...itemsOf<{ description?: unknown; title?: unknown }>(identity.dreams),
+    ...(shards?.dreams ?? []),
+  ];
+  const seen = new Set<string>();
+  const once = <T>(list: T[], key: (item: T) => unknown): T[] =>
+    list.filter((item) => {
+      const k = String(key(item) ?? '').trim().toLowerCase();
+      if (!k || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  return {
+    avoidances: once(avoidances, (a) => a?.topic),
+    dreams: once(dreams, (d) => d?.description ?? d?.title),
+    values: shards?.values,
+  };
+}
+
 async function defaultGetHumanSignals(userId: string): Promise<LooseHumanSignals | null> {
   try {
-    return (await getPersistedHumanSignals(userId)) as LooseHumanSignals;
+    const db = getFirestoreDb();
+    const [profileDoc, shards] = await Promise.all([
+      db
+        ? db.collection('bogle_users').doc(userId).collection('human_memory').doc('profile').get()
+        : Promise.resolve(null),
+      getPersistedHumanSignals(userId).catch(() => null),
+    ]);
+    const profile = profileDoc?.exists ? profileDoc.data() : undefined;
+    return mergeProfileSignals(profile, shards as LooseHumanSignals | null);
   } catch (error) {
     log.debug({ userId, error: String(error) }, 'human-signal read failed');
     return null;

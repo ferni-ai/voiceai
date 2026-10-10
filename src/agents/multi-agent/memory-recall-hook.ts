@@ -54,6 +54,14 @@ import {
   type LifeUpdateDeps,
 } from '../personas/life-updates.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  formatWorldNote,
+  isWorldModelSnapshotOn,
+  touchesAvoided,
+  withoutWorldDuplicates,
+} from '../../intelligence/world-model/recall-note.js';
+import { buildWorldModelSnapshot } from '../../intelligence/world-model/snapshot.js';
+import type { WorldModelSnapshot } from '../../intelligence/world-model/types.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -95,6 +103,9 @@ export interface MemoryRecallDeps {
   ledgerStore?: LedgerStore;
   /** What has happened in his life since (life-updates.ts, LIFE_MOVES_ON). */
   lifeUpdates?: LifeUpdateDeps;
+  /** Who is in their life, goals, what to avoid (WORLD_MODEL_SNAPSHOT=on). */
+  loadWorldModel?: (userId: string) => Promise<WorldModelSnapshot>;
+  env?: Record<string, string | undefined>;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
   embed?: RetrievalEmbedder;
@@ -191,13 +202,34 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     .then((updates) => {
       sinceNote = formatLifeUpdates(updates);
     });
-  const ready = Promise.all([loaded, since]).then(() => undefined);
+  // The world model is the single source for people, goals and what to avoid:
+  // its note comes once, and recall then leaves out facts it already covers.
+  let world: { snapshot: WorldModelSnapshot; note: string; counts: object } | null = null;
+  let worldOffered = false;
+  let pool: RecallSnapshot | undefined;
+  const worldLoaded = isWorldModelSnapshotOn(deps.env)
+    ? (deps.loadWorldModel ?? ((userId: string) => buildWorldModelSnapshot({ userId })))(
+        deps.userId
+      )
+        .then((snap) => {
+          const formatted = formatWorldNote(snap);
+          if (formatted) world = { snapshot: snap, ...formatted };
+          else log.info({ userId: deps.userId }, 'WORLD_MODEL_EMPTY');
+        })
+        .catch((error: unknown) => {
+          log.warn({ error: String(error) }, 'World model not loaded');
+        })
+    : Promise.resolve();
+  const ready = Promise.all([loaded, since, worldLoaded]).then(() => undefined);
 
   return {
     ready,
     noteFor(transcript) {
       const text = transcript.trim();
       if (!snapshot || !text) return null;
+      if (world && !pool) {
+        pool = { ...snapshot, facts: withoutWorldDuplicates(snapshot.facts, world.snapshot) };
+      }
       index?.observe(text);
       const semantic = index?.matches() ?? new Map<string, number>();
       const blend = index ? { semantic, now: Date.now() } : undefined;
@@ -205,7 +237,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const ranked =
         budget > 0
           ? recallForTurn(
-              snapshot,
+              pool ?? snapshot,
               text,
               surfaced,
               budget,
@@ -214,6 +246,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
               blend
             )
           : [];
+      const worldNote = world && !worldOffered ? world.note : null;
       // Older threads and stories come back only when the turn is about them.
       const later = [...semantic.keys()].filter(
         (id) => !surfaced.has(id) && (laterFollowUps.has(id) || laterTold.has(id))
@@ -224,16 +257,18 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const factTokens = estimateTokens(facts.map((f) => factText(f)));
       const extras = blend ? withinTokens(later, laterText, tokensLeft - factTokens) : later;
       const extraTold = extras.flatMap((id) => laterTold.get(id) ?? []);
+      // Nothing about a topic they asked to avoid comes back as a thread either.
       const followUps = [
         ...(followUpsOffered ? [] : snapshot.followUps),
         ...extras.flatMap((id) => laterFollowUps.get(id) ?? []),
-      ];
+      ].filter((item) => !world || !touchesAvoided(item, world.snapshot));
       // The ledger, like the follow-ups, comes once, with the first note.
       const told = followUpsOffered
         ? null
         : [ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
       const note =
         [
+          worldNote,
           formatRecall(facts, followUps, deps.userName),
           told,
           extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
@@ -242,6 +277,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           .join('\n\n') || null;
       if (!note) return null;
       followUpsOffered = true;
+      if (world && worldNote) {
+        worldOffered = true;
+        log.info({ ...world.counts, chars: worldNote.length }, 'WORLD_MODEL_INJECTED');
+      }
       tokensLeft -= factTokens + estimateTokens(extras.map(laterText));
       for (const id of extras) surfaced.add(id);
       factsThisTurn += facts.length;
