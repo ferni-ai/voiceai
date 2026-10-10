@@ -110,7 +110,6 @@ const ROUGH_FORMS = [
   'Let one thought come out unpolished: start it, then restart it differently, joined with a comma ("I was, well, we were going to").',
   'Correct yourself once halfway through a thought, set off with commas ("it\'s, I mean, not exactly that").',
   'Hesitate once where you are actually working something out, with a comma either side ("it\'s, um, Thursday").',
-  'Trail off once: stop a thought short with a full stop and move on ("I was going to say. Anyway.").',
 ];
 /**
  * A "second story" (Sacks): people answer something shared with a small thing
