@@ -642,7 +642,7 @@ function renderNotAvailableState(): string {
         ${t('voiceEnrollment.unavailable.message')}
       </p>
       <div class="voice-enrollment-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.gotIt')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
+        <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
           ${t('voiceEnrollment.unavailable.button')}
         </button>
       </div>
@@ -678,10 +678,10 @@ function renderAlreadyEnrolledState(profile: VoiceProfile): string {
       </div>
 
       <div class="voice-enrollment-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.delete')}" class="voice-enrollment-btn voice-enrollment-btn--danger" id="btn-delete">
+        <button class="voice-enrollment-btn voice-enrollment-btn--danger" id="btn-delete">
           ${ICONS.trash} ${t('voiceEnrollment.enrolled.deleteButton')}
         </button>
-        <button aria-label="${t('accessibility.done')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
+        <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
           ${t('voiceEnrollment.enrolled.doneButton')}
         </button>
       </div>
@@ -711,10 +711,10 @@ function renderReadyState(reenroll = false): string {
     </div>
     
     <div class="voice-enrollment-actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.maybeLater')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-cancel">
+      <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-cancel">
         ${t('voiceEnrollment.ready.cancelButton')}
       </button>
-      <button aria-label="${t('accessibility.startEnrollment')}" class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-start">
+      <button class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-start">
         ${t('voiceEnrollment.ready.startButton')}
       </button>
     </div>
@@ -785,7 +785,7 @@ function renderCompleteState(): string {
         ${t('voiceEnrollment.complete.message')}
       </p>
       <div class="voice-enrollment-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.letSTalk')}" class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-done">
+        <button class="voice-enrollment-btn voice-enrollment-btn--primary" id="btn-done">
           ${t('voiceEnrollment.complete.button')}
         </button>
       </div>
@@ -802,10 +802,10 @@ function renderErrorState(message: string): string {
       <h3 class="voice-enrollment-status-title">${t('voiceEnrollment.error.title')}</h3>
       <p class="voice-enrollment-status-message">${message}</p>
       <div class="voice-enrollment-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.tryAgain')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-retry">
+        <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-retry">
           ${t('voiceEnrollment.error.tryAgain')}
         </button>
-        <button aria-label="${t('accessibility.close')}" class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
+        <button class="voice-enrollment-btn voice-enrollment-btn--secondary" id="btn-close">
           ${t('voiceEnrollment.error.close')}
         </button>
       </div>

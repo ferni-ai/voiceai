@@ -607,11 +607,11 @@ function render(): void {
       <!-- Direction Selector -->
       <div class="rg-section">
         <div class="rg-directions">
-          <button aria-label="${t('accessibility.youGave')}" class="rg-direction ${state.direction === 'given' ? 'selected' : ''}" data-direction="given">
+          <button class="rg-direction ${state.direction === 'given' ? 'selected' : ''}" data-direction="given">
             <span class="rg-direction-icon">${ICONS.send}</span>
             <span class="rg-direction-label">${t('recordGift.youGave')}</span>
           </button>
-          <button aria-label="${t('accessibility.youReceived')}" class="rg-direction ${state.direction === 'received' ? 'selected' : ''}" data-direction="received">
+          <button class="rg-direction ${state.direction === 'received' ? 'selected' : ''}" data-direction="received">
             <span class="rg-direction-icon">${ICONS.inbox}</span>
             <span class="rg-direction-label">${t('recordGift.youReceived')}</span>
           </button>
@@ -652,19 +652,19 @@ function render(): void {
         <div class="rg-section">
           <label class="rg-label">${t('recordGift.howDidTheyReact')}</label>
           <div class="rg-reactions" role="button" tabindex="0">
-            <button aria-label="${t('accessibility.lovedIt')}" class="rg-reaction ${state.reaction === 'loved' ? 'selected' : ''}" data-reaction="loved">
+            <button class="rg-reaction ${state.reaction === 'loved' ? 'selected' : ''}" data-reaction="loved">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.heart}</span>
               <span class="rg-reaction-label" role="button" tabindex="0">${t('recordGift.lovedIt')}</span>
             </button>
-            <button aria-label="${t('accessibility.likedIt')}" class="rg-reaction ${state.reaction === 'liked' ? 'selected' : ''}" data-reaction="liked">
+            <button class="rg-reaction ${state.reaction === 'liked' ? 'selected' : ''}" data-reaction="liked">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.thumbsUp}</span>
               <span class="rg-reaction-label" role="button" tabindex="0">${t('recordGift.likedIt')}</span>
             </button>
-            <button aria-label="${t('accessibility.meh')}" class="rg-reaction ${state.reaction === 'neutral' ? 'selected' : ''}" data-reaction="neutral">
+            <button class="rg-reaction ${state.reaction === 'neutral' ? 'selected' : ''}" data-reaction="neutral">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.meh}</span>
               <span class="rg-reaction-label" role="button" tabindex="0">${t('recordGift.meh')}</span>
             </button>
-            <button aria-label="${t('accessibility.nope')}" class="rg-reaction ${state.reaction === 'disliked' ? 'selected' : ''}" data-reaction="disliked">
+            <button class="rg-reaction ${state.reaction === 'disliked' ? 'selected' : ''}" data-reaction="disliked">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.thumbsDown}</span>
               <span class="rg-reaction-label" role="button" tabindex="0">${t('recordGift.nope')}</span>
             </button>
@@ -674,7 +674,7 @@ function render(): void {
       
       <!-- Advanced Options -->
       <div class="rg-section">
-        <button aria-label="${t('accessibility.moveDown')}" class="rg-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="rg-advanced-toggle">
+        <button class="rg-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="rg-advanced-toggle">
           ${t('recordGift.moreDetails')} ${ICONS.chevronDown}
         </button>
 
@@ -693,7 +693,7 @@ function render(): void {
     </div>
 
     <div class="rg-footer">
-      <button aria-label="${t('accessibility.cancel')}" class="rg-btn rg-btn-secondary" id="rg-cancel">${t('recordGift.cancel')}</button>
+      <button class="rg-btn rg-btn-secondary" id="rg-cancel">${t('recordGift.cancel')}</button>
       <button aria-label="${t('accessibility.submit')}" class="rg-btn rg-btn-primary" id="rg-save" ${state.isSubmitting || !state.item.trim() ? 'disabled' : ''}>
         ${state.isSubmitting ? t('common.saving') : t('recordGift.saveGift')}
       </button>
