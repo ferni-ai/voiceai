@@ -1,12 +1,8 @@
 /**
- * One call in its own process (docs/plans/2026-10-10-process-per-job.md).
- *
- * The worker forks this with AGENT_JOB_CHILD=1 and an IPC channel. It starts
- * the per-process runtime, warms up like the worker does, says `ready`, runs
- * exactly one job, lets background memory work finish, and exits. Its CPU
- * share and event-loop utilization go to the worker every 2 s for the
- * worker's load report.
- *
+ * One call in its own process (docs/plans/2026-10-10-process-per-job.md). Forked
+ * by the worker with AGENT_JOB_CHILD=1: starts the per-process runtime, warms
+ * up, says `ready`, runs one job, drains background memory work, and exits.
+ * Reports its CPU share and loop utilization every 2 s for the worker's load.
  * @module agents/gce/job-child
  */
 

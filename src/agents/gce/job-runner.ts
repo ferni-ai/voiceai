@@ -1,9 +1,7 @@
 /**
- * Where the worker runs a call: on its own event loop (default), or in a
- * prewarmed child process per call with AGENT_JOB_EXECUTOR=process
- * (docs/plans/2026-10-10-process-per-job.md). The LiveKit connection talks to
- * this, never to the executors directly.
- *
+ * Where a call runs: on the worker's event loop (default), or in a warmed child
+ * process per call with AGENT_JOB_EXECUTOR=process (docs/plans/2026-10-10-process-per-job.md).
+ * The LiveKit connection talks to this, never to the executors directly.
  * @module agents/gce/job-runner
  */
 
