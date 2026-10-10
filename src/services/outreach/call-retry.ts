@@ -110,11 +110,17 @@ export function localTimeAfter(
   return new Date(guess - offset);
 }
 
-/** The 10-digit North American number, or null for anything else. */
-function nanpNumber(phone: string | undefined): string | null {
+/**
+ * The one normalization for a recipient's number, used for every read and
+ * write of the do-not-call list, for the retry, and for the calling-hours
+ * window: '+1NXXNXXXXXX'. Formatting is stripped and a leading 1 or +1 is
+ * accepted. Anything that isn't a valid North American number is null; it is
+ * never guessed, and callers fail closed on null.
+ */
+export function toE164(phone: string | undefined | null): string | null {
   const digits = (phone ?? '').replace(/\D/g, '');
-  if (digits.length === 11 && digits.startsWith('1')) return digits.slice(1);
-  return digits.length === 10 ? digits : null;
+  const national = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
+  return /^[2-9]\d{2}[2-9]\d{6}$/.test(national) ? `+1${national}` : null;
 }
 
 /**
@@ -122,8 +128,8 @@ function nanpNumber(phone: string | undefined): string | null {
  * American number in those zones. Anything else is refused.
  */
 export const safeWindowGuard: CallTimeGuard = (recipient, at) => {
-  const nanp = nanpNumber(recipient.phone);
-  if (!nanp || OUTSIDE_SAFE_ZONES.has(nanp.slice(0, 3))) return false;
+  const e164 = toE164(recipient.phone);
+  if (!e164 || OUTSIDE_SAFE_ZONES.has(e164.slice(2, 5))) return false;
   return SAFE_ZONES.every((zone) => {
     const [, , , hour, minute] = zoneParts(at, zone);
     const minutes = hour * 60 + minute;
@@ -152,17 +158,12 @@ async function nextAllowedSlot(
 // DO-NOT-CALL LIST
 // ============================================================================
 
-function optOutKey(phone: string): string | null {
-  const digits = phone.replace(/\D/g, '');
-  return digits.length >= 7 ? digits : null;
-}
-
-/** Record that the person at this number asked not to be called again. */
+/** Record that the person at this number asked not to be called again (keyed by toE164). */
 export async function recordCallOptOut(
   phone: string,
   context: { callId: string; requesterUserId: string }
 ): Promise<boolean> {
-  const key = optOutKey(phone);
+  const key = toE164(phone);
   const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
   const db = getFirestoreDb();
   if (!key || !db) return false;
@@ -174,9 +175,12 @@ export async function recordCallOptOut(
   return true;
 }
 
-/** True when the number is on the do-not-call list, or the list can't be read. */
+/**
+ * True when the number is on the do-not-call list, when the list can't be
+ * read, or when the number can't be normalized (looked up by toE164).
+ */
 export async function isCallOptedOut(phone: string): Promise<boolean> {
-  const key = optOutKey(phone);
+  const key = toE164(phone);
   if (!key) return true;
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
@@ -203,8 +207,9 @@ export async function scheduleCallRetry(
   deps: CallRetryDeps = {}
 ): Promise<Date | null> {
   const secret = process.env.LIVEKIT_API_SECRET;
-  if (call.retryOf || !call.contact.phone || !secret) return null;
-  if (await isCallOptedOut(call.contact.phone)) return null;
+  const recipient = toE164(call.contact.phone);
+  if (call.retryOf || !recipient || !secret) return null;
+  if (await isCallOptedOut(recipient)) return null;
 
   const now = deps.now?.() ?? new Date();
   const at = await nextAllowedSlot(call, now, deps.isAllowedCallTime ?? safeWindowGuard);
@@ -239,7 +244,7 @@ export async function scheduleCallRetry(
           channel: 'on_behalf_call',
           resolvedContactId: '',
           resolvedContactName: call.contact.name,
-          resolvedPhone: call.contact.phone,
+          resolvedPhone: recipient,
           onBehalfDispatch: JSON.parse(JSON.stringify(signed)),
         },
       });
@@ -299,7 +304,7 @@ export async function placeCallRetry(
     return { success: false, error: 'Retry is not signed by the server' };
   }
   const call = parseOnBehalfDispatch(signedDispatch as Record<string, unknown>);
-  if (!call?.retryOf || !call.contact.phone || call.requester.userId !== ownerUserId) {
+  if (!call?.retryOf || !toE164(call.contact.phone) || call.requester.userId !== ownerUserId) {
     return { success: false, error: 'Not a retry for this user' };
   }
   // Without the SIP trunk the orchestrator falls back to a one-way Twilio call.

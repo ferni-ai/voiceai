@@ -58,6 +58,8 @@ const {
   safeWindowGuard,
   scheduleCallRetry,
   scheduleCallRetryById,
+  toE164,
+  isCallOptedOut,
 } = await import('../call-retry.js');
 const { executeDueScheduledOutreach } = await import('../scheduled-outreach-executor.js');
 
@@ -134,6 +136,57 @@ describe('safeWindowGuard (fails closed without a calling-hours guard)', () => {
     ['no number', '2026-10-11T17:00:00.000Z', {}, false],
   ])('%s -> %s', (_label, iso, recipient, allowed) => {
     expect(safeWindowGuard(recipient, new Date(iso))).toBe(allowed);
+  });
+});
+
+describe('toE164 (one normalization for every do-not-call read and write)', () => {
+  it.each([
+    ['(801) 828-5260', '+18018285260'],
+    ['+18018285260', '+18018285260'],
+    ['18018285260', '+18018285260'],
+    ['801.828.5260', '+18018285260'],
+    ['+1 801 828 5260', '+18018285260'],
+  ])('%s -> %s', (input, e164) => {
+    expect(toE164(input)).toBe(e164);
+  });
+
+  it.each(['+442071234567', '8285260', '1234567890', '801-828-5260 ext 12', '', undefined])(
+    'rejects %j rather than guess',
+    (input) => {
+      expect(toE164(input)).toBeNull();
+    }
+  );
+});
+
+describe('the do-not-call list matches every format of the same number', () => {
+  const FORMATS = ['(801) 828-5260', '+18018285260', '18018285260', '801.828.5260'];
+
+  it.each(FORMATS)('an opt-out recorded as %j blocks every other format', async (recorded) => {
+    rows = [];
+    expect(await recordCallOptOut(recorded, { callId: 'c0', requesterUserId: 'seth' })).toBe(true);
+    for (const asked of FORMATS) {
+      expect(await isCallOptedOut(asked)).toBe(true);
+      expect(await schedule(call({ contact: { name: 'Doug', phone: asked } }))).toBeNull();
+    }
+    expect(retries()).toHaveLength(0);
+  });
+
+  it('fails closed when a number cannot be normalized', async () => {
+    expect(await isCallOptedOut('+442071234567')).toBe(true);
+    expect(await isCallOptedOut('not a number')).toBe(true);
+    expect(await recordCallOptOut('+442071234567', { callId: 'c0', requesterUserId: 'seth' })).toBe(
+      false
+    );
+  });
+
+  it('a retry placed later is refused for a number opted out in another format', async () => {
+    await schedule(call({ contact: { name: 'Doug', phone: '801.828.5260' } }));
+    const signed = storedDispatch();
+    await recordCallOptOut('(801) 828-5260', { callId: 'c1', requesterUserId: 'seth' });
+    expect(
+      await placeCallRetry(signed, 'seth', { now: () => new Date('2026-10-11T17:01:00.000Z') })
+    ).toMatchObject({ success: false, error: 'Recipient asked not to be called' });
+    expect(initiateCall).not.toHaveBeenCalled();
   });
 });
 

@@ -249,7 +249,7 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
     });
 
     expect(rows.find((r) => r.collection === 'call_opt_outs')).toMatchObject({
-      id: '15555550100',
+      id: '+15555550100',
     });
     expect(await scheduleCallRetry(makeCall())).toBeNull();
     expect(rows.some((r) => r.collection === 'scheduled_outreach')).toBe(false);
