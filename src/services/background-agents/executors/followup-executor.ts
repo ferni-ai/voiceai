@@ -41,7 +41,7 @@ export interface FollowupResult {
   channel: string;
   recipientName: string;
   messageId?: string;
-  deliveryStatus: 'sent' | 'queued' | 'failed';
+  deliveryStatus: 'sent' | 'failed';
   error?: string;
 }
 
@@ -61,7 +61,6 @@ export async function executeFollowup(request: FollowupRequest): Promise<Followu
   const startTime = Date.now();
 
   try {
-    // Simulate sending the follow-up (in production, this would call actual delivery services)
     const result = await sendFollowupMessage(request);
 
     const status: OutcomeStatus = result.sent ? 'success' : 'failed';
@@ -132,58 +131,56 @@ export async function queueFollowup(request: FollowupRequest): Promise<string> {
 }
 
 // ============================================================================
-// DELIVERY (simplified - in production would use actual email/sms services)
+// DELIVERY
 // ============================================================================
 
+/**
+ * Why this follow-up can't be sent, or null when it can. Only email has a
+ * delivery path: a text, or an email with no address or no email service,
+ * used to come back "queued" for a delivery worker that doesn't exist, so the
+ * user was told it would go out and it never did.
+ */
+export async function followupBlocker(request: FollowupRequest): Promise<string | null> {
+  if (request.channel !== 'email') return 'I can only send follow-ups by email right now';
+  if (!request.recipientEmail) return `I need ${request.recipientName}'s email address`;
+  const { isEmailDeliveryAvailable } = await import('../../outreach/delivery/email-delivery.js');
+  if (!isEmailDeliveryAvailable()) return "email sending isn't set up here";
+  return null;
+}
+
 async function sendFollowupMessage(request: FollowupRequest): Promise<FollowupResult> {
-  // Try to use actual delivery services
+  const failed = (error: string): FollowupResult => ({
+    sent: false,
+    channel: request.channel,
+    recipientName: request.recipientName,
+    deliveryStatus: 'failed',
+    error,
+  });
+  const blocked = await followupBlocker(request);
+  if (blocked) return failed(blocked);
+
   try {
-    if (request.channel === 'email' && request.recipientEmail) {
-      const { sendEmail, isEmailDeliveryAvailable } =
-        await import('../../outreach/delivery/email-delivery.js');
-
-      if (isEmailDeliveryAvailable()) {
-        const result = await sendEmail({
-          to: request.recipientEmail,
-          toName: request.recipientName,
-          subject: request.subject,
-          body: request.message,
-          personaId: request.initiatedBy || 'alex',
-          userId: request.userId,
-          outreachId: `followup_${Date.now()}`,
-        });
-
-        return {
-          sent: result.success,
-          channel: 'email',
-          recipientName: request.recipientName,
-          messageId: result.messageId,
-          deliveryStatus: result.success ? 'sent' : 'failed',
-          error: result.error,
-        };
-      }
-    }
-
-    // Fallback: Mark as queued (would be picked up by delivery worker)
-    log.info({ recipient: request.recipientName }, 'Follow-up queued for later delivery');
-
+    const { sendEmail } = await import('../../outreach/delivery/email-delivery.js');
+    const result = await sendEmail({
+      to: request.recipientEmail!,
+      toName: request.recipientName,
+      subject: request.subject,
+      body: request.message,
+      personaId: request.initiatedBy || 'alex',
+      userId: request.userId,
+      outreachId: `followup_${Date.now()}`,
+    });
     return {
-      sent: true,
-      channel: request.channel,
+      sent: result.success,
+      channel: 'email',
       recipientName: request.recipientName,
-      messageId: `queued_${Date.now()}`,
-      deliveryStatus: 'queued',
+      messageId: result.messageId,
+      deliveryStatus: result.success ? 'sent' : 'failed',
+      error: result.error,
     };
   } catch (error) {
-    log.warn({ error: String(error) }, 'Delivery service unavailable, queueing');
-
-    return {
-      sent: true,
-      channel: request.channel,
-      recipientName: request.recipientName,
-      messageId: `queued_${Date.now()}`,
-      deliveryStatus: 'queued',
-    };
+    log.warn({ error: String(error) }, 'Follow-up email failed');
+    return failed(String(error));
   }
 }
 
@@ -194,8 +191,6 @@ async function sendFollowupMessage(request: FollowupRequest): Promise<FollowupRe
 function buildSummary(request: FollowupRequest, result: FollowupResult): string {
   if (result.deliveryStatus === 'sent') {
     return `Follow-up sent to ${request.recipientName} via ${request.channel}`;
-  } else if (result.deliveryStatus === 'queued') {
-    return `Follow-up to ${request.recipientName} queued for delivery`;
   } else {
     return `Couldn't send follow-up to ${request.recipientName}`;
   }

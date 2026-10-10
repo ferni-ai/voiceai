@@ -137,6 +137,21 @@ export async function executeCall(request: CallRequest): Promise<CallResult> {
 }
 
 /**
+ * Why this call can't be placed, or null when it can. Without a number or a
+ * calling service the call used to come back "queued"/"completed" with no
+ * call made, after the tool had already told the user "I'll call them".
+ */
+export async function callBlocker(request: CallRequest): Promise<string | null> {
+  if (!request.contactPhone) return `I need ${request.contactName}'s phone number`;
+  const { isConversationalCallingConfigured } =
+    await import('../../voice/conversational-call-service.js');
+  if (!isConversationalCallingConfigured().configured) {
+    return "calls can't be placed from here yet";
+  }
+  return null;
+}
+
+/**
  * Queue a call for background execution.
  */
 export async function queueCall(request: CallRequest): Promise<string> {
@@ -162,7 +177,7 @@ async function makeConversationalCall(request: CallRequest, callId: string): Pro
     const { makeConversationalCall: makeCall, isConversationalCallingConfigured } =
       await import('../../voice/conversational-call-service.js');
 
-    if (isConversationalCallingConfigured()) {
+    if (isConversationalCallingConfigured().configured) {
       log.info({ contact: request.contactName }, 'Using conversational call service');
 
       // Result type varies by implementation - handle gracefully
@@ -208,18 +223,15 @@ async function makeConversationalCall(request: CallRequest, callId: string): Pro
     log.debug({ error: String(importError) }, 'Conversational call service not available');
   }
 
-  // Fallback: Simulate call queued for later
-  log.info({ contact: request.contactName }, 'Call queued for manual handling');
-
+  // No call was placed: say so rather than "queued" (nothing picks it up).
   return {
-    success: true,
+    success: false,
     callId,
     contactName: request.contactName,
-    status: 'completed',
-    outcome: `Call to ${request.contactName} has been queued. Objective: ${request.objective}`,
+    status: 'failed',
+    outcome: `No call to ${request.contactName} was placed: calling isn't available here.`,
     objectiveAchieved: false,
-    callbackRequired: true,
-    callbackTime: 'when available',
+    callbackRequired: false,
     actionItems: ['Make this call manually', `Discuss: ${request.objective}`],
   };
 }
