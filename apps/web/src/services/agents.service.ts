@@ -292,6 +292,20 @@ export function hasCachedAgents(): boolean {
   return agentsCache !== null && Date.now() - cacheTimestamp < CACHE_TTL_MS;
 }
 
+/**
+ * /api/agents lists the user's custom agents too, so creating, editing or deleting one
+ * (custom-agent-wizard / custom-agent-editor dispatch these) makes the cached list stale.
+ */
+const CUSTOM_AGENT_CHANGE_EVENTS = [
+  'custom-agent:created',
+  'custom-agent:updated',
+  'custom-agent:deleted',
+];
+
+if (typeof document !== 'undefined') {
+  for (const type of CUSTOM_AGENT_CHANGE_EVENTS) document.addEventListener(type, clearAgentsCache);
+}
+
 // ============================================================================
 // SERVICE OBJECT
 // ============================================================================
