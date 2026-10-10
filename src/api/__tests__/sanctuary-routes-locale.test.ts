@@ -45,7 +45,8 @@ function get(path: string, acceptLanguage: string): IncomingMessage {
   return {
     method: 'GET',
     url: path,
-    headers: { host: 'localhost', 'accept-language': acceptLanguage },
+    // x-firebase-uid: the caller as the request-identity layer binds it from their token
+    headers: { host: 'localhost', 'accept-language': acceptLanguage, 'x-firebase-uid': 'u1' },
   } as unknown as IncomingMessage;
 }
 

@@ -44,7 +44,7 @@ const STYLES = `
   .coaching-mode-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-tooltip);
+    z-index: var(--z-modal, 2100); /* the layer every dialog shares: the last opened is on top */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -508,7 +508,7 @@ function renderTopicStep(): string {
       `).join('')}
     </div>
 
-    <div class="coaching-actions" role="button" tabindex="0">
+    <div class="coaching-actions">
       <button class="coaching-btn coaching-btn--secondary" data-action="cancel">${t('coachingMode.cancel')}</button>
       <button class="coaching-btn coaching-btn--primary" data-action="next" ${!sessionData.topic ? 'disabled' : ''}>
         ${t('coachingMode.continue')}
@@ -561,7 +561,7 @@ function renderContextStep(): string {
       >${sessionData.goal}</textarea>
     </div>
 
-    <div class="coaching-actions" role="button" tabindex="0">
+    <div class="coaching-actions">
       <button class="coaching-btn coaching-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
@@ -621,7 +621,7 @@ function renderSessionStep(): string {
       ` : ''}
     </div>
 
-    <div class="coaching-actions" role="button" tabindex="0">
+    <div class="coaching-actions">
       <button class="coaching-btn coaching-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>

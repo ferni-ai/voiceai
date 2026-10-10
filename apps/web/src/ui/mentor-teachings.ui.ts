@@ -26,7 +26,7 @@ const STYLES = `
   .mentor-teachings-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-tooltip);
+    z-index: var(--z-modal, 2100); /* the layer every dialog shares: the last opened is on top */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -404,7 +404,7 @@ function render(): string {
             ` : principles.map((p, i) => `
               <div class="mentor-principle-card" data-index="${i}">
                 <h4 class="mentor-principle-title">${p}</h4>
-                <div class="mentor-card-actions" role="button" tabindex="0">
+                <div class="mentor-card-actions">
                   <button class="mentor-action-btn" data-action="edit-principle" data-index="${i}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     ${t('common.edit')}
@@ -451,7 +451,7 @@ function render(): string {
               <div class="mentor-quote-card" data-index="${i}">
                 <p class="mentor-quote-text">${q.quote}</p>
                 ${q.source ? `<span class="mentor-quote-source">— ${q.source}</span>` : ''}
-                <div class="mentor-card-actions" role="button" tabindex="0">
+                <div class="mentor-card-actions">
                   <button class="mentor-action-btn" data-action="edit-quote" data-index="${i}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     ${t('common.edit')}

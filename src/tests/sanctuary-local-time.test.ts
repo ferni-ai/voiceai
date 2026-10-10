@@ -5,11 +5,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'http';
 
-vi.mock('../services/superhuman/index.js', () => ({ buildSuperhumanContext: vi.fn(async () => ({})) }));
+const { buildSuperhumanContext } = vi.hoisted(() => ({
+  buildSuperhumanContext: vi.fn(async () => ({})),
+}));
+vi.mock('../services/superhuman/index.js', () => ({ buildSuperhumanContext }));
 vi.mock('../services/superhuman/semantic-intelligence/insight-broker.js', () => ({
   getInsightsToSurface: vi.fn(async () => []),
 }));
-vi.mock('../services/superhuman/predictive-coaching.js', () => ({ loadUserPatterns: vi.fn(async () => null) }));
+vi.mock('../services/superhuman/predictive-coaching.js', () => ({
+  loadUserPatterns: vi.fn(async () => null),
+}));
 vi.mock('../services/superhuman/firestore-utils.js', () => ({
   getFirestoreDb: vi.fn(() => null),
   cleanForFirestore: (x: unknown) => x,
@@ -17,8 +22,16 @@ vi.mock('../services/superhuman/firestore-utils.js', () => ({
 
 import { handleSanctuaryRoutes } from '../api/sanctuary-routes.js';
 
-async function sanctuary(query: string): Promise<{ timeContext: string; greeting: string }> {
-  const req = { method: 'GET', url: `/api/sanctuary?${query}`, headers: { host: 'local' } } as unknown as IncomingMessage;
+async function sanctuary(
+  query: string,
+  // The caller as the request-identity layer binds it from their token
+  headers: Record<string, string> = { 'x-firebase-uid': 'u1' }
+): Promise<{ timeContext: string; greeting: string }> {
+  const req = {
+    method: 'GET',
+    url: `/api/sanctuary?${query}`,
+    headers: { host: 'local', ...headers },
+  } as unknown as IncomingMessage;
   let body = '';
   const res = {
     writeHead: vi.fn(),
@@ -38,7 +51,7 @@ describe('GET /api/sanctuary', () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it("is morning in London and night in Los Angeles at the same moment", async () => {
+  it('is morning in London and night in Los Angeles at the same moment', async () => {
     expect((await sanctuary('userId=u1&tz=Europe/London')).timeContext).toBe('morning');
     expect((await sanctuary('userId=u1&tz=America/Los_Angeles')).timeContext).toBe('night');
   });
@@ -46,5 +59,13 @@ describe('GET /api/sanctuary', () => {
   it("greets with the person's weekday", async () => {
     vi.setSystemTime(new Date('2026-10-10T14:00:00Z')); // Saturday in UTC, Sunday 3am in Auckland
     expect((await sanctuary('userId=u1&tz=Pacific/Auckland')).greeting).toMatch(/SUNDAY/i);
+  });
+
+  it('builds the context for the verified caller, not a userId naming someone else', async () => {
+    buildSuperhumanContext.mockClear();
+    await sanctuary('userId=someone-else&tz=Europe/London', { 'x-firebase-uid': 'u1' });
+    const users = buildSuperhumanContext.mock.calls.map((c) => c[0]);
+    expect(users.length).toBeGreaterThan(0);
+    expect(new Set(users)).toEqual(new Set(['u1']));
   });
 });

@@ -143,17 +143,24 @@ async function handleLinkClick(): Promise<void> {
       log.error('Could not unlink Spotify:', e);
     }
   } else {
-    if (isConnecting) return;
-    // A page navigation can't carry the sign-in token, so the server first
-    // binds a one-time state to this account and returns the login URL to visit.
-    isConnecting = true;
-    const result = await startOAuthConnect('spotify', window.location.pathname).finally(() => {
-      isConnecting = false;
-    });
-    if (!result.success) {
-      showSpotifyStatus(result.error ?? 'Could not connect to Spotify', 'error');
-      trackedTimeout(() => hideSpotifyStatus(), 4000);
-    }
+    await connectSpotify();
+  }
+}
+
+/**
+ * Connect Spotify (never unlinks): for buttons that only say "Connect", such as Musical You's.
+ */
+export async function connectSpotify(): Promise<void> {
+  if (isConnecting) return;
+  // A page navigation can't carry the sign-in token, so the server first
+  // binds a one-time state to this account and returns the login URL to visit.
+  isConnecting = true;
+  const result = await startOAuthConnect('spotify', window.location.pathname).finally(() => {
+    isConnecting = false;
+  });
+  if (!result.success) {
+    showSpotifyStatus(result.error ?? 'Could not connect to Spotify', 'error');
+    trackedTimeout(() => hideSpotifyStatus(), 4000);
   }
 }
 

@@ -326,7 +326,7 @@ class MusicDashboardUI {
     this.wrapper
       ?.querySelector('[data-action="connect-spotify"]')
       ?.addEventListener('click', () => {
-        window.dispatchEvent(new CustomEvent('ferni:connect-spotify'));
+        void import('./spotify.ui.js').then((m) => m.connectSpotify()); // no one heard the old event
         this.hide();
       });
 

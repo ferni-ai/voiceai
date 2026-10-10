@@ -26,7 +26,7 @@ const STYLES = `
   .legacy-stories-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-tooltip);
+    z-index: var(--z-modal, 2100); /* the layer every dialog shares: the last opened is on top */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -426,7 +426,7 @@ function render(): string {
               <div class="legacy-wisdom-card" data-index="${i}">
                 <p class="legacy-wisdom-quote">${t('legacyStories.wisdomQuote', { quote: w.quote })}</p>
                 ${w.context ? `<span class="legacy-wisdom-context">${w.context}</span>` : ''}
-                <div class="legacy-card-actions" role="button" tabindex="0">
+                <div class="legacy-card-actions">
                   <button class="legacy-action-btn" data-action="edit-wisdom" data-index="${i}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     ${t('common.edit')}
@@ -473,7 +473,7 @@ function render(): string {
               <div class="legacy-story-card" data-index="${i}">
                 <p class="legacy-story-content">${s.content}</p>
                 ${s.date ? `<span class="legacy-story-meta">${formatDate(new Date(s.date))}</span>` : ''}
-                <div class="legacy-card-actions" role="button" tabindex="0">
+                <div class="legacy-card-actions">
                   <button class="legacy-action-btn" data-action="edit-story" data-index="${i}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     ${t('common.edit')}
