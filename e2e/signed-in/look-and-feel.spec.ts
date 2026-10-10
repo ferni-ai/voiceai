@@ -50,9 +50,13 @@ for (const locale of LOCALES) {
   test(`in ${locale}, the app reads in that language and stays in it`, async ({ page }) => {
     const problems = watchProblems(page);
     const panel = await openLookAndFeel(page);
+    // setLocale reloads the page: on a slow reload <html> briefly shows the default
+    // language again, so both checks wait as long as the post-reload ones below
     await panel.locator(`[data-action="set-language"][data-locale="${locale}"]`).click();
-    await expect(page.locator('html')).toHaveAttribute('lang', locale, { timeout: 10_000 });
-    await expect(page.locator('html')).toHaveAttribute('dir', RTL.has(locale) ? 'rtl' : 'ltr');
+    await expect(page.locator('html')).toHaveAttribute('lang', locale, { timeout: 30_000 });
+    await expect(page.locator('html')).toHaveAttribute('dir', RTL.has(locale) ? 'rtl' : 'ltr', {
+      timeout: 30_000,
+    });
 
     await page.reload();
     await expect(page.locator('html'), 'language survives a reload').toHaveAttribute('lang', locale, {
