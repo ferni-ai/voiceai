@@ -3517,7 +3517,8 @@
       "load": "Impossible de charger ta famille. Réessayer ?",
       "add": "Impossible de les ajouter. Réessayer ?",
       "save": "Impossible d'enregistrer. Réessayer ?",
-      "remove": "Impossible de les retirer. Réessayer ?"
+      "remove": "Impossible de les retirer. Réessayer ?",
+      "phoneInUse": "Ce numéro est déjà enregistré pour quelqu’un d’autre."
     },
     "calls": {
       "one": "{count} appel",

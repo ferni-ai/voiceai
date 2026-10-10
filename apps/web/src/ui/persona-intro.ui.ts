@@ -541,7 +541,7 @@ function renderStep(): void {
         </button>
       `
       }
-      <button aria-label="${t('accessibility.goForward')}" class="persona-intro-btn persona-intro-btn--primary" data-action="next" style="background: ${colors.primary}">
+      <button class="persona-intro-btn persona-intro-btn--primary" data-action="next" style="background: ${colors.primary}">
         ${isLastStep ? ICONS.messageCircle : ''}
         <span>${t(step.buttonTextKey)}</span>
         ${!isLastStep ? ICONS.arrowRight : ''}

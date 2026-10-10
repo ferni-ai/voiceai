@@ -19,6 +19,7 @@ import type {
   FinancialGoal,
 } from '../../types/user-profile.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { queryProfileByLinkedIdentifier } from './firestore-linked-identifier.js';
 import {
   isValidUserProfile,
   isValidConversationSummary,
@@ -180,17 +181,6 @@ export class FirestoreStore extends MemoryStore {
   }
 
   /**
-   * FIX: Helper to get db with explicit null check instead of assertion
-   * Throws a descriptive error if db is null (indicates a bug in initialization flow)
-   */
-  private getDb(): Firestore {
-    if (!this.db) {
-      throw new Error('FirestoreStore.db is null after initialization - this is a bug');
-    }
-    return this.db;
-  }
-
-  /**
    * Get the raw Firestore database instance.
    * Ensures initialization before returning.
    * Use this when you need direct access to Firestore APIs (e.g., for custom collections).
@@ -276,6 +266,11 @@ export class FirestoreStore extends MemoryStore {
       getLogger().error(`hasProfile error: ${error}`);
       return false;
     }
+  }
+
+  async findProfileByLinkedIdentifier(candidates: readonly string[]): Promise<UserProfile | null> {
+    const db = await this.ensureInitialized();
+    return queryProfileByLinkedIdentifier(db, this.USERS_COLLECTION, candidates, (d) => this.hydrateData(d));
   }
 
   async listProfiles(options?: QueryOptions): Promise<UserProfile[]> {

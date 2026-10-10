@@ -1052,7 +1052,7 @@ function createContainer(): HTMLElement {
               placeholder="${t('chronicle.conversationPlaceholder')}"
               rows="1"
             ></textarea>
-            <button class="chronicle-chat-send" id="converse-send">
+            <button class="chronicle-chat-send" id="converse-send" aria-label="${t('accessibility.sendMessage')}">
               ${ICONS.send}
             </button>
           </div>

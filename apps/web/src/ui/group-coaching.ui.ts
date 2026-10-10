@@ -322,7 +322,7 @@ class GroupCoachingUI {
 
     const typeOptions = getSessionTypes().map(
       (type) => `
-      <button aria-label="${t('accessibility.moreInformation')}" class="group-coaching__type" data-type="${type.id}">
+      <button class="group-coaching__type" data-type="${type.id}">
         <div class="group-coaching__type-icon">${type.icon}</div>
         <div class="group-coaching__type-info">
           <span class="group-coaching__type-name">${type.name}</span>

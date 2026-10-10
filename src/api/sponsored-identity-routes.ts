@@ -19,6 +19,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../utils/safe-logger.js';
+import { PhoneInUseError } from '../services/identity/phone-in-use-error.js';
 import { requireAuth } from './auth-middleware.js';
 import {
   createSponsoredIdentity,
@@ -280,8 +281,14 @@ export async function handleSponsoredIdentityRoutes(
     // Route not found
     return false;
   } catch (error) {
+    // A number already in use is the caller's to fix (409, stable code); anything else is
+    // ours, and its message stays in the log rather than going back to the client
+    if (error instanceof PhoneInUseError) {
+      sendError(res, 'phone_in_use', 409);
+      return true;
+    }
     log.error({ error: String(error), route }, 'Sponsored identity route error');
-    sendError(res, (error as Error).message || 'Internal server error', 500);
+    sendError(res, 'Internal server error', 500);
     return true;
   }
 }

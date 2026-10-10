@@ -6,7 +6,7 @@
  *
  * Deployment:
  *   gcloud functions deploy outreachScheduler \
- *     --gen2 --runtime=nodejs20 \
+ *     --gen2 --runtime=nodejs22 \
  *     --trigger-topic=outreach-trigger \
  *     --entry-point outreachScheduler \
  *     --timeout=300s --memory=512MB --region=us-central1

@@ -424,7 +424,7 @@ export async function executeMarketplaceTool(
         // Node.js tools run via Docker for isolation
         result = await executeDockerTool(manifest, parameters, context, {
           ...options,
-          dockerImage: 'node:20-alpine',
+          dockerImage: 'node:22-alpine',
         });
         break;
 

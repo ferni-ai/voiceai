@@ -6,7 +6,7 @@
  *
  * Deploy:
  *   gcloud functions deploy evolutionScheduler \
- *     --runtime nodejs20 \
+ *     --runtime nodejs22 \
  *     --trigger-topic evolution-trigger \
  *     --entry-point evolutionScheduler \
  *     --timeout 540s \

@@ -28,7 +28,7 @@ on:
         type: boolean
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   # Regression threshold - fail if F1 drops more than this
   REGRESSION_THRESHOLD: '0.05'
 
