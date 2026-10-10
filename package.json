@@ -344,7 +344,6 @@
     "deploy:landing": "pnpm ferni deploy landing",
     "deploy:frontend": "pnpm ferni deploy frontend",
     "deploy:joel": "pnpm ferni deploy joel",
-    "deploy:evolution": "pnpm ferni deploy evolution",
     "deploy:all": "pnpm ferni deploy all",
     "deploy:help": "pnpm ferni deploy --help",
     "warmup:agent": "bash scripts/warmup-agent.sh",

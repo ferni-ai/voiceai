@@ -73,18 +73,6 @@ if [ -d "design-system" ] && [ -f "design-system/package.json" ]; then
     cd ..
 fi
 
-# Handle functions if it exists
-if [ -d "functions" ] && [ -f "functions/package.json" ]; then
-    echo ""
-    echo "📦 Installing functions dependencies..."
-    cd functions
-    if [ -f "package-lock.json" ]; then
-        pnpm import 2>/dev/null || true
-    fi
-    pnpm install
-    cd ..
-fi
-
 echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║  ✅ Migration complete!                                       ║"

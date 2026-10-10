@@ -94,7 +94,6 @@ Deploy services to cloud
 | `npm run deploy:all` | `npx tsx scripts/deploy.ts all` |
 | `npm run deploy:brand` | `npx tsx scripts/deploy.ts brand` |
 | `npm run deploy:context` | `bash infrastructure/scripts/deploy-context.sh` |
-| `npm run deploy:evolution` | `npx tsx scripts/deploy.ts evolution` |
 | `npm run deploy:frontend` | `npx tsx scripts/deploy.ts frontend` |
 | `npm run deploy:help` | `npx tsx scripts/deploy.ts --help` |
 | `npm run deploy:joel` | `npx tsx scripts/deploy.ts joel` |
