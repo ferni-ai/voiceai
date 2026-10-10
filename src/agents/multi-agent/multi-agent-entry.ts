@@ -207,9 +207,12 @@ export async function handleHandoffFromDataChannel(
   }
 
   // A tap reaches here straight from the browser: the same unlock check as the LLM's tools
-  const userProfile = await profileWhenLoaded(services);
-  const tier = (userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
-  const unlock = checkHandoffUnlocked(targetPersonaId, userProfile, tier);
+  if (typeof targetPersonaId !== 'string') return { success: false, error: 'No persona given' };
+  const check = (profile: UserProfile | null) =>
+    checkHandoffUnlocked(targetPersonaId, profile, tierOf(profile));
+  let unlock = check(services.userProfile ?? null);
+  // Refused with no profile yet: it may still be loading, so wait for it once and decide again
+  if (!unlock.open && !services.userProfile) unlock = check(await profileWhenLoaded(services));
   if (!unlock.open) return { success: false, error: unlock.error };
   // From here on, only the id the check decided on: never the raw one from the browser
   const target = unlock.target;
@@ -242,10 +245,20 @@ async function profileWhenLoaded(
   services: SessionServices,
   waitMs = 3000
 ): Promise<UserProfile | null> {
+  // Once per call: a profile that didn't arrive in time won't hold up every later tap
+  if (waitedForProfile.has(services)) return services.userProfile ?? null;
+  waitedForProfile.add(services);
   for (let waited = 0; !services.userProfile && services.userId && waited < waitMs; waited += 100) {
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 100);
     });
   }
   return services.userProfile ?? null;
+}
+
+const waitedForProfile = new WeakSet<object>();
+
+function tierOf(profile: UserProfile | null): 'free' | 'friend' | 'partner' {
+  const tier = profile?.subscription?.tier;
+  return tier === 'friend' || tier === 'partner' ? tier : 'free';
 }

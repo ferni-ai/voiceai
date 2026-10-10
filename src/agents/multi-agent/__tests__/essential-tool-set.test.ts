@@ -52,7 +52,7 @@ describe("the first Ferni agent's handoff tools", () => {
   }, 60_000);
 
   it('keeps the teammates for a signed-in person whose profile is still loading', async () => {
-    // Live calls load the profile after the call starts. Treating that null as "a new user"
+    // Live calls load the profile after the call starts. Treating that null as "a new person"
     // dropped every teammate they had unlocked from Ferni's tools; the handoff's own check
     // (executeHandoff) still refuses a locked one at the moment it's asked for.
     const { tools } = await buildEssentialToolSet({
@@ -63,7 +63,7 @@ describe("the first Ferni agent's handoff tools", () => {
     expect(Object.keys(tools)).toContain('handoffToMaya');
   }, 60_000);
 
-  it('gives an anonymous caller with no profile no handoffs: a new user', async () => {
+  it('gives an anonymous caller with no profile no handoffs: a new person', async () => {
     const { tools } = await buildEssentialToolSet({
       personaId: 'ferni',
       userId: null,

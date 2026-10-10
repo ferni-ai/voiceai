@@ -94,6 +94,38 @@ describe('a tap on a teammate during a call', () => {
     );
   });
 
+  it("doesn't wait for a missing profile when the answer is yes anyway (Ferni)", async () => {
+    const { o } = orchestrator();
+    (o as { getCurrentPersonaId: () => string }).getCurrentPersonaId = () => 'maya-santos';
+    const started = Date.now();
+    await handleHandoffFromDataChannel(o, 'ferni', 'tap', services(null));
+    expect(Date.now() - started).toBeLessThan(500);
+  });
+
+  it('waits for a profile that never arrives only once per call', async () => {
+    vi.useFakeTimers();
+    const { o } = orchestrator();
+    const s = services(null);
+    const first = handleHandoffFromDataChannel(o, 'maya-santos', 'tap', s);
+    await vi.advanceTimersByTimeAsync(3100);
+    expect((await first).success).toBe(false);
+    // The second tap decides at once: no timers needed
+    const second = await handleHandoffFromDataChannel(o, 'maya-santos', 'tap', s);
+    expect(second.success).toBe(false);
+  });
+
+  it('refuses a target that is not a string, without throwing', async () => {
+    const { o, handoff } = orchestrator();
+    const result = await handleHandoffFromDataChannel(
+      o,
+      { not: 'a string' } as never,
+      'tap',
+      services(subscriber)
+    );
+    expect(result.success).toBe(false);
+    expect(handoff).not.toHaveBeenCalled();
+  });
+
   it('Ferni is always open', async () => {
     const { o, handoff } = orchestrator();
     (o as { getCurrentPersonaId: () => string }).getCurrentPersonaId = () => 'maya-santos';
