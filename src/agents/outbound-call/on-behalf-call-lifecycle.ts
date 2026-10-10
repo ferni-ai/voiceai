@@ -274,13 +274,11 @@ export async function completeOnBehalfCall(
     if (followthrough && missed && scheduleRetry) {
       const retryAt = await scheduleRetry(call);
       if (retryAt) {
-        const what =
-          outcome.status === 'voicemail'
-            ? `got ${call.contact.name}'s voicemail`
-            : `couldn't reach ${call.contact.name}`;
+        // Keep whatever the report said about the call; the retry replaces only the offer.
+        const said = outcome.outcome.replace(/\s*Want me to try again later\?\s*$/, '');
         outcome = {
           ...outcome,
-          outcome: `I ${what}, so I'll try again tomorrow.`,
+          outcome: `${said} I'll try again tomorrow.`,
           callbackRequired: false,
         };
       }

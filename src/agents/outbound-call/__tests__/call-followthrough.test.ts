@@ -114,7 +114,7 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
     expect(outcome).toMatchObject({
       status: 'voicemail',
       objectiveAchieved: false,
-      outcome: "I got Mom's voicemail, so I'll try again tomorrow.",
+      outcome: "I got Mom's voicemail. I'll try again tomorrow.",
       callbackRequired: false,
     });
     expect(p.analyze).not.toHaveBeenCalled();
@@ -127,7 +127,7 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
     const retried = await completeOnBehalfCall('s2', makeCall(), 40, true, ports([], new Date()));
     expect(retried).toMatchObject({
       status: 'no_answer',
-      outcome: "I couldn't reach Mom, so I'll try again tomorrow.",
+      outcome: "I called Mom but couldn't reach them. I'll try again tomorrow.",
       callbackRequired: false,
     });
 
