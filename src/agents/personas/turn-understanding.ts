@@ -62,6 +62,14 @@ export function understandingFor(session: object, text: string): Understanding |
 }
 
 /** Whether this session's understanding covers `text` right now (counts only), or null when off. */
+/**
+ * The latest answer's labels (no words), whether or not it covers the whole turn:
+ * logged at request time to measure whether an answer a few words behind reads
+ * the caller the same way as the full one (dev 2026-10-10: at request time most
+ * answers were 3-8 words behind).
+ */
+export type EarlyLabels = Pick<Understanding, 'move' | 'mood' | 'needsTool' | 'laughFits'>;
+
 export function understandingStatusFor(
   session: object,
   text: string
@@ -69,9 +77,12 @@ export function understandingStatusFor(
   match: 'covered' | 'behind' | 'diverged' | 'none';
   missing: number;
   inFlight: boolean;
+  labels: EarlyLabels | null;
 } | null {
   const st = understanders.get(session)?.status(text);
-  return st ? { match: st.match, missing: st.missing, inFlight: st.inFlight } : null;
+  return st
+    ? { match: st.match, missing: st.missing, inFlight: st.inFlight, labels: st.labels }
+    : null;
 }
 
 export const UNDERSTANDING_PROMPT = `You listen in on a phone call between a caller and their friend Ferni. Read the caller's words (EARLIER is context; judge NOW, which may still be mid-sentence) and return JSON only:
@@ -238,8 +249,13 @@ export class TurnUnderstander {
     inFlight: boolean;
     match: 'covered' | 'behind' | 'diverged' | 'none';
     missing: number;
+    labels: EarlyLabels | null;
   } {
-    return { ...this.stats, inFlight: this.running !== null, ...this.lineUp(text) };
+    const u = this.latest?.result;
+    const labels = u
+      ? { move: u.move, mood: u.mood, needsTool: u.needsTool, laughFits: u.laughFits }
+      : null;
+    return { ...this.stats, inFlight: this.running !== null, ...this.lineUp(text), labels };
   }
 
   /** A new caller turn begins: the last one becomes context, and its call is dropped. */
