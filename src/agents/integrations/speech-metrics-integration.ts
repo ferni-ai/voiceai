@@ -373,6 +373,7 @@ export function logMetricsSummary(sessionId?: string): void {
       quality: {
         emotionConfidence: snapshot.metrics.quality.avgEmotionConfidence,
         highConfidenceRate: snapshot.metrics.quality.highConfidenceRate,
+        emotionSamples: snapshot.metrics.quality.sampleCount,
       },
       usage: {
         activeSessions: snapshot.metrics.usage.activeSessionCount,
