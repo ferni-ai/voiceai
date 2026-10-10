@@ -21,6 +21,7 @@
  * @module agents/personas/turn-extras
  */
 import { classifyBackchannelContext } from '../integrations/backchannel-context.js';
+import { mayNeedTool } from '../model-provider/fast-lane.js';
 import type { CallerMove, Shape } from './turn-shape.js';
 
 type Env = Record<string, string | undefined>;
@@ -62,7 +63,7 @@ const LAUGH_SPONTANEOUS =
 const OPINION =
   'Have a view of your own here: say what you would do or what you think, even if it is small, rather than staying neutral.';
 const ASK_ADVICE =
-  'If the moment is light, ask their take on something small in your own life (whether to give up on the basil, what to cook tonight) instead of anything about them.';
+  'If the moment is light, ask their take on something small in your own life (what to cook tonight, whether to finally repaint a room) instead of anything about them.';
 
 export interface Extras {
   /** Lines to add before the shape line. */
@@ -120,6 +121,9 @@ export function extrasFor(
   if (
     on(env, 'ASK_ADVICE') &&
     !venting &&
+    // Live, "keep an eye on the time for me" got the timer plus a musing about
+    // his basil: a request wants the thing done, not his dilemma.
+    !mayNeedTool(userText) &&
     (move === 'ack' || move === 'share') &&
     (shape === 'one' || shape === 'answer') &&
     !out.shapeLine

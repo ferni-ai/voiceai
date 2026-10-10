@@ -88,6 +88,12 @@ describe('turn extras', () => {
       []
     );
     expect(extrasFor('yeah', 'ack', 'react', false, () => 0, env).fired).toEqual([]);
+    // Live, both of these got a musing about his basil on top of the tool call.
+    for (const request of [
+      'Ah, the pasta needs 10 minutes. Can you keep an eye on the time for me?',
+      'Remind me to call my mom tomorrow at noon.',
+    ])
+      expect(extrasFor(request, 'share', 'answer', false, () => 0, env).fired, request).toEqual([]);
   });
 
   it('adds fillers, laughter and opinions only with HUMAN_TEXTURE, and none while venting', () => {
