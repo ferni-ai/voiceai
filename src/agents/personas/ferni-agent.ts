@@ -34,6 +34,7 @@ import { getModelProvider } from '../model-provider/index.js';
 import { filterCaptionStream } from './caption-filter.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
+import { isScreeningCall } from '../shared/line-screen.js';
 import { tapSpokenText, toolsForTurn, withTeammateTool } from './turn-request.js';
 
 const log = createLogger({ module: 'FerniAgent' });
@@ -573,10 +574,11 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
     }
   }
 
-  /** Called by the SDK before it generates the reply to a user turn. */
+  /** Before the SDK replies to a user turn; never while a call is screened (line-screen.ts). */
   async onUserTurnCompleted(turnCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
+    if (isScreeningCall(this.session)) throw new voice.StopResponse();
     await stopIfRoundtableTurn(this.session.userData, newMessage.textContent); // roundtable answers
-    if (this.onUserTurn) await this.onUserTurn(turnCtx, newMessage);
+    await this.onUserTurn?.(turnCtx, newMessage);
   }
 
   /** Called when Ferni becomes the active agent: a contextual greeting unless skipGreeting. */

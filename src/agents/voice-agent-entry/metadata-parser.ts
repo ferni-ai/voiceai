@@ -179,6 +179,8 @@ export async function setupCallTypeContexts(
         informationToGather: (metadata.informationToGather as string[]) || [],
         userName: call?.requester.name || 'the user',
         originalSessionId: call?.requester.originalSessionId || '',
+        requesterUserId: call?.requester.userId,
+        kind: 'on_behalf' as const,
       };
       setOutboundCallContext(roomNameForContext, outboundContext);
       setOutboundCallContext(sessionId, outboundContext);

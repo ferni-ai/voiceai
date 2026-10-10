@@ -97,3 +97,63 @@ export function installUnfinishedTurnHold(
   (session as UnfinishedTurnHoldSession).unfinishedTurnHoldMs = unfinishedTurnHoldMs;
   return true;
 }
+
+/**
+ * The other side of the hold: answer a turn that is clearly over sooner.
+ *
+ * In stt turn detection LiveKit commits a turn no sooner than its minimum
+ * endpointing delay after the caller stops (turn-patience.ts: 300 ms), even
+ * when ink-2 has already ended it. On 2026-10-09/10 15% (dev) and 33% (prod)
+ * of turns committed at exactly that floor (eouDelayMs 300-320), i.e. ink was
+ * done earlier and the floor alone held the reply back.
+ *
+ * ENDPOINT_FAST_FINISHED=on lowers the floor to ENDPOINT_FINISHED_MIN_MS (150)
+ * while the caller's latest words read as a finished sentence of three or
+ * more words (ends in . ? or !, no trailing "..."), and puts it back for
+ * anything else. A short "Yeah." or "No." keeps the full wait: people often go
+ * on after one. Ink still decides that the turn has ended; only the floor
+ * after its decision moves. The floor is never changed while Ferni is
+ * speaking (an overlapping caller's endpointing state stays untouched).
+ */
+export const DEFAULT_FINISHED_MIN_MS = 150;
+const MIN_FINISHED_WORDS = 3;
+
+/** The endpointing floor for a turn whose latest words are `transcript`. */
+export function finishedTurnMinDelayMs(transcript: string, baseMs: number, fastMs: number): number {
+  if (unfinishedness(transcript) !== 'finished') return baseMs;
+  const ws = words(transcript);
+  if (ws.length < MIN_FINISHED_WORDS || isBackchannel(ws)) return baseMs;
+  if (!/[.?!]["')\]]*\s*$/.test(transcript.trim())) return baseMs;
+  return Math.min(fastMs, baseMs);
+}
+
+interface EndpointingSession {
+  on(event: string, handler: (ev: unknown) => void): unknown;
+  off(event: string, handler: (ev: unknown) => void): unknown;
+  agentState?: string;
+  updateOptions(options: { turnHandling: { endpointing: { minDelay: number } } }): void;
+}
+
+/** Install the fast floor on a live session. Returns a detach, or null when off. */
+export function installFinishedTurnEndpointing(
+  session: EndpointingSession,
+  baseMs: number,
+  env: Record<string, string | undefined> = process.env,
+  onChange: (minDelayMs: number) => void = () => undefined
+): (() => void) | null {
+  if (env.ENDPOINT_FAST_FINISHED !== 'on') return null;
+  const raw = Number(env.ENDPOINT_FINISHED_MIN_MS ?? DEFAULT_FINISHED_MIN_MS);
+  const fastMs = Number.isFinite(raw) && raw >= 50 ? raw : DEFAULT_FINISHED_MIN_MS;
+  let current = baseMs;
+  const onTranscript = (ev: unknown): void => {
+    const transcript = (ev as { transcript?: string } | undefined)?.transcript ?? '';
+    if (!transcript.trim() || session.agentState === 'speaking') return;
+    const next = finishedTurnMinDelayMs(transcript, baseMs, fastMs);
+    if (next === current) return;
+    current = next;
+    session.updateOptions({ turnHandling: { endpointing: { minDelay: next } } });
+    onChange(next);
+  };
+  session.on('user_input_transcribed', onTranscript);
+  return () => session.off('user_input_transcribed', onTranscript);
+}
