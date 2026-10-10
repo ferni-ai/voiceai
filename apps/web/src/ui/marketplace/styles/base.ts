@@ -182,7 +182,7 @@ export function getBaseStyles(): string {
 
     .marketplace-tab.active {
       background: var(--persona-primary, var(--color-accent-primary));
-      color: var(--persona-text, white);
+      color: var(--persona-on-primary, white); /* --persona-text is the persona colour itself */
       box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.2);
     }
 

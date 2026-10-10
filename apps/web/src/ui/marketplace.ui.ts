@@ -154,7 +154,7 @@ function ensureModalExists(): HTMLElement {
   marketplaceModal.setAttribute('aria-labelledby', 'marketplace-title');
   marketplaceModal.setAttribute('aria-modal', 'true');
   marketplaceModal.innerHTML = `
-    <div class="marketplace-backdrop" data-action="close" role="button" tabindex="0"></div>
+    <div class="marketplace-backdrop" data-action="close"></div>
     <div class="marketplace-container">
       <header class="marketplace-header">
         <div class="marketplace-title-row">

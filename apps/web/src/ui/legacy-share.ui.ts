@@ -26,7 +26,7 @@ const STYLES = `
   .legacy-share-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-tooltip);
+    z-index: var(--z-modal, 2100); /* the layer every dialog shares: the last opened is on top */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -466,7 +466,7 @@ function render(): string {
             <p class="legacy-share-hint">${t('legacyShare.linkHint', { name: agentName })}</p>
           </div>
 
-          <div class="legacy-share-actions" role="button" tabindex="0">
+          <div class="legacy-share-actions">
             <button class="legacy-share-btn legacy-share-btn--secondary" data-action="cancel">
               ${t('common.cancel')}
             </button>

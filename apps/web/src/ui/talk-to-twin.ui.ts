@@ -103,7 +103,7 @@ function ensureModalExists(): HTMLElement {
   twinModal = document.createElement('div');
   twinModal.className = 'talk-twin-overlay';
   twinModal.innerHTML = `
-    <div class="twin-backdrop" data-action="close" role="button" tabindex="0"></div>
+    <div class="twin-backdrop" data-action="close"></div>
     <div class="twin-container" role="dialog" aria-modal="true" aria-labelledby="twin-title">
       <header class="twin-header">
         <div class="twin-identity">

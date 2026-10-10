@@ -83,7 +83,7 @@ function ensureWizardExists(): HTMLElement {
   wizardModal = document.createElement('div');
   wizardModal.className = 'custom-agent-wizard-overlay';
   wizardModal.innerHTML = `
-    <div class="wizard-backdrop" data-action="close" role="button" tabindex="0"></div>
+    <div class="wizard-backdrop" data-action="close"></div>
     <div class="wizard-container" role="dialog" aria-modal="true" aria-labelledby="wizard-title">
       <header class="wizard-header">
         <div class="wizard-progress">
