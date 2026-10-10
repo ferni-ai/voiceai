@@ -199,7 +199,7 @@ describe('TelephonyExecutor', () => {
   // These tools are handled by scheduling-executor, not telephony-executor
 
   describe('scheduleCallback', () => {
-    it('should schedule a callback', async () => {
+    it('says nothing is booked, since nothing stores a callback request', async () => {
       const ctx = createContext();
       const result = await telephonyExecutor.execute(
         'scheduleCallback',
@@ -210,7 +210,8 @@ describe('TelephonyExecutor', () => {
         ctx
       );
 
-      expect(result).toBeDefined();
+      expect(result).toMatch(/nothing is booked/);
+      expect(result).not.toMatch(/I've noted|I'll remind you/);
     });
 
     it('should resolve requestCallback alias', async () => {

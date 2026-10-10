@@ -35,6 +35,13 @@ export interface Alarm {
   updatedAt: number;
 }
 
+/**
+ * Nothing rings a saved alarm yet: no job reads the alarms collection, so
+ * "Alarm set" made people rely on a wake-up that never came. Say so.
+ */
+export const ALARM_CANT_RING =
+  "Heads up, I can't ring you when it goes off yet, so set it on your phone too.";
+
 // In-memory fallback
 const alarmStore = new Map<string, Alarm[]>();
 
@@ -346,11 +353,9 @@ const setAlarmDef: ToolDefinition = {
         const timeDisplay = formatTimeForSpeech(parsedTime);
         const repeatDisplay = formatRepeatForSpeech(alarm);
 
-        if (alarm.repeat === 'once') {
-          return `⏰ Alarm set for **${timeDisplay}**${label ? ` - "${label}"` : ''}`;
-        }
-
-        return `⏰ Alarm set for **${timeDisplay}**, repeating ${repeatDisplay}${label ? ` - "${label}"` : ''}`;
+        const when =
+          alarm.repeat === 'once' ? timeDisplay : `${timeDisplay}, repeating ${repeatDisplay}`;
+        return `Saved an alarm for ${when}${label ? ` ("${label}")` : ''}. ${ALARM_CANT_RING}`;
       },
     });
   },
