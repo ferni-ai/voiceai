@@ -61,4 +61,9 @@ describe('voice-eval judge', () => {
     expect(p).toContain("FERNI'S BACKGROUND");
     expect(ferniBiography('/no/such/file')).toBe('');
   });
+
+  it('tells the judge that fair inferences from what the caller said are not invented', () => {
+    const p = promptFor({ userSpeech: [[0, 1]], events: [] }, null);
+    expect(p).toMatch(/can't be fairly inferred from what they did say/);
+  });
 });
