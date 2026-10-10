@@ -355,9 +355,7 @@ export function getGlobalMetricsSnapshot(): MetricsSnapshot {
   return getSpeechMetricsSnapshot();
 }
 
-/**
- * Log current metrics summary
- */
+/** Log the current metrics summary: latency, voice-reading quality, usage. */
 export function logMetricsSummary(sessionId?: string): void {
   const snapshot = getSpeechMetricsSnapshot();
 
