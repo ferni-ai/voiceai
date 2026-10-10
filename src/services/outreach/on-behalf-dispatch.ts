@@ -71,15 +71,24 @@ function signatureFor(payload: Record<string, unknown>, secret: string): string 
 /**
  * Sign a dispatch the server itself created, over every field, so no part of a
  * signed payload (who hears the result, which room it goes to, what was said
- * about the call) can be changed. Use the LiveKit API secret.
+ * about the call) can be changed. Use the LiveKit API secret. Any outbound
+ * call the server places is signed this way (on-behalf and family check-in).
  */
+export function signDispatch<T extends object>(
+  d: T,
+  secret: string
+): T & { requesterSignature: string } {
+  return { ...d, requesterSignature: signatureFor({ ...d } as Record<string, unknown>, secret) };
+}
+
 export function signOnBehalfDispatch(d: OnBehalfDispatch, secret: string): OnBehalfDispatch {
-  return { ...d, requesterSignature: signatureFor({ ...d }, secret) };
+  return signDispatch(d, secret);
 }
 
 /**
  * True only when the job metadata exactly as dispatched (the raw JSON string)
- * carries a valid signature from a trusted dispatcher using this secret.
+ * carries a valid signature from a trusted dispatcher using this secret. The
+ * one gate for every server-placed outbound call: on-behalf and family check-in.
  */
 export function verifyOnBehalfDispatch(
   rawJobMetadata: string | undefined,

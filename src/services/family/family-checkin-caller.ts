@@ -322,17 +322,20 @@ async function initiateViaLiveKitSip(
     const agentDispatch = new AgentDispatchClient(livekitUrl, livekitApiKey, livekitApiSecret);
     const agentName = process.env.AGENT_NAME || 'voice-agent';
 
+    // Signed like an on-behalf dispatch: the agent refuses an unsigned check-in.
+    const { signDispatch } = await import('../outreach/on-behalf-dispatch.js');
+    const dispatch = {
+      type: 'family_checkin',
+      callId,
+      sponsorName,
+      familyMemberName: schedule.familyMemberName,
+      relationship: schedule.relationship,
+      systemPrompt,
+      openingLine,
+      maxDurationMinutes: schedule.maxDurationMinutes,
+    };
     await agentDispatch.createDispatch(roomName, agentName, {
-      metadata: JSON.stringify({
-        type: 'family_checkin',
-        callId,
-        sponsorName,
-        familyMemberName: schedule.familyMemberName,
-        relationship: schedule.relationship,
-        systemPrompt,
-        openingLine,
-        maxDurationMinutes: schedule.maxDurationMinutes,
-      }),
+      metadata: JSON.stringify(signDispatch(dispatch, livekitApiSecret)),
     });
 
     // 3. Initiate the SIP call to the family member's phone

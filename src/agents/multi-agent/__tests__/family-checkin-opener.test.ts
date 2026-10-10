@@ -6,7 +6,7 @@
  * 'family_checkin' dispatch at all and greeted with the app hello.
  */
 import { EventEmitter } from 'events';
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Room } from '@livekit/rtc-node';
 
 const { identifyFromMetadata } = vi.hoisted(() => ({ identifyFromMetadata: vi.fn() }));
@@ -26,6 +26,8 @@ const { AgentOrchestrator } = await import('../orchestrator.js');
 const { identifyUser } = await import('../../voice-agent/user-identification-handler.js');
 const { outboundCallContextBuilder } =
   await import('../../../intelligence/context-builders/external/outbound-call-context.js');
+const { signDispatch } = await import('../../../services/outreach/on-behalf-dispatch.js');
+const { outboundPartiesFor } = await import('../../shared/outbound-opener.js');
 const { generateOpeningLine } =
   await import('../../../intelligence/context-builders/family/family-wellbeing-context.js');
 
@@ -50,8 +52,31 @@ const checkinDispatch = (openingLine?: string): Record<string, unknown> => ({
   maxDurationMinutes: 10,
 });
 
+// The agent honours a family check-in only when it carries our server's signature.
+const SECRET = 'test-livekit-secret';
+let priorSecret: string | undefined;
+beforeAll(() => {
+  priorSecret = process.env.LIVEKIT_API_SECRET;
+  process.env.LIVEKIT_API_SECRET = SECRET;
+});
+afterAll(() => {
+  process.env.LIVEKIT_API_SECRET = priorSecret;
+});
+
+/** Runs the job metadata exactly as dispatched through the real parser. */
+async function dispatch(sessionId: string, payload: object): Promise<void> {
+  const raw = JSON.stringify(payload);
+  await setupCallTypeContexts(
+    JSON.parse(raw),
+    'family_checkin',
+    sessionId,
+    `room-${sessionId}`,
+    raw
+  );
+}
+
 async function openerFor(sessionId: string, metadata: Record<string, unknown>): Promise<string> {
-  await setupCallTypeContexts(metadata, 'family_checkin', sessionId, `room-${sessionId}`);
+  await dispatch(sessionId, signDispatch(metadata, SECRET));
   const room = new EventEmitter();
   const phone = { identity: 'phone_doug', attributes: { 'sip.callStatus': 'ringing' } };
   const say = vi.fn();
@@ -96,10 +121,11 @@ describe('a family check-in call through the real agent path', () => {
   });
 
   it('knows the person on the line as Doug, with the check-in prompt as the call script', async () => {
-    await setupCallTypeContexts(checkinDispatch(), 'family_checkin', 'fc-who', 'room-fc-who');
+    const signed = signDispatch(checkinDispatch(), SECRET);
+    await dispatch('fc-who', signed);
     identifyFromMetadata.mockResolvedValue({ userId: undefined, source: { type: 'anonymous' } });
     const who = await identifyUser({
-      jobMetadata: JSON.stringify(checkinDispatch()),
+      jobMetadata: JSON.stringify(signed),
       room: {} as Room,
       sessionId: 'fc-who',
     });
@@ -112,6 +138,38 @@ describe('a family check-in call through the real agent path', () => {
     expect(prompt).toMatch(/You are calling: Doug/);
     expect(prompt).toMatch(/You are Ferni, Seth's friend\./);
     expect(prompt).toMatch(/Ask about his garden and his knee/);
+  });
+});
+
+describe('the family check-in signature gate (the same one as on-behalf calls)', () => {
+  const outboundTreatment = async (sessionId: string) => ({
+    parties: outboundPartiesFor(sessionId),
+    prompt: await outboundCallContextBuilder.build({ services: { sessionId } } as never),
+  });
+
+  it('a signed dispatch gets the outbound call context', async () => {
+    await dispatch('fc-signed', signDispatch(checkinDispatch(), SECRET));
+    const { parties, prompt } = await outboundTreatment('fc-signed');
+    expect(parties).toMatchObject({ recipientName: 'Doug', sponsorName: 'Seth' });
+    expect(prompt.length).toBeGreaterThan(0);
+  });
+
+  it('an unsigned dispatch is refused', async () => {
+    await dispatch('fc-unsigned', checkinDispatch());
+    const { parties, prompt } = await outboundTreatment('fc-unsigned');
+    expect(parties).toBeUndefined();
+    expect(prompt).toEqual([]);
+  });
+
+  it('a signed dispatch altered after signing is refused', async () => {
+    const forged = { ...signDispatch(checkinDispatch(), SECRET), sponsorName: 'Mallory' };
+    await dispatch('fc-forged', forged);
+    expect((await outboundTreatment('fc-forged')).parties).toBeUndefined();
+  });
+
+  it('a dispatch signed with another secret is refused', async () => {
+    await dispatch('fc-wrong-key', signDispatch(checkinDispatch(), 'not-our-secret'));
+    expect((await outboundTreatment('fc-wrong-key')).parties).toBeUndefined();
   });
 });
 
