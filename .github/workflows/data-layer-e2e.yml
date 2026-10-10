@@ -8,6 +8,8 @@ on:
     paths:
       - 'src/services/data-layer/**'
       - 'src/services/seeds/**'
+      - 'src/services/billing/stripe-subscription.ts'
+      - 'src/api/garden-routes.ts'
       - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'src/intelligence/**'
@@ -20,6 +22,8 @@ on:
     paths:
       - 'src/services/data-layer/**'
       - 'src/services/seeds/**'
+      - 'src/services/billing/stripe-subscription.ts'
+      - 'src/api/garden-routes.ts'
       - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'firestore.indexes.json'
