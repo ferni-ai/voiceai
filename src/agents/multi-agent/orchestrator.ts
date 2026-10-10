@@ -17,7 +17,7 @@
  * @module agents/multi-agent/orchestrator
  */
 
-import type { JobContext } from '@livekit/agents';
+import type { JobContext, voice } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import type { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -87,6 +87,8 @@ export interface HandoffRequest {
   userName?: string;
   /** User's emotional state */
   userEmotion?: string;
+  /** A handoff the LLM asked for: its tool hands the Agent to the SDK (persona-swap.ts) */
+  onAgentReady?: (agent: voice.Agent<UserData>) => void;
 }
 
 export interface HandoffResult {
@@ -474,7 +476,8 @@ export class AgentOrchestrator {
         previousPersonaId,
         callSession: swap?.session,
       });
-      if (swap) await swapPersona(swap, newAgent, (persona) => this.agents.delete(persona.id));
+      const forget = (persona: { id: string }) => this.agents.delete(persona.id);
+      if (swap) await swapPersona(swap, newAgent, forget, request.onAgentReady);
       log.info(
         {
           newAgentId: newAgent.id,

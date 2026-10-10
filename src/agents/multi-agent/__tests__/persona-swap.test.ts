@@ -8,11 +8,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentOrchestrator, createAgentOrchestrator } from '../orchestrator.js';
 import { swapPersona } from '../persona-swap.js';
 
-type FakeAgent = { name: string; heard?: unknown; updateChatCtx: (ctx: unknown) => Promise<void> };
+type FakeAgent = {
+  name: string;
+  heard?: unknown;
+  chatCtx: { copy: () => unknown };
+  updateChatCtx: (ctx: unknown) => Promise<void>;
+};
 
 const agentFor = (name: string): FakeAgent => {
   const agent: FakeAgent = {
     name,
+    chatCtx: { copy: () => ({ talk: 'so far' }) },
     updateChatCtx: async (ctx) => {
       agent.heard = ctx;
     },
@@ -31,11 +37,14 @@ function callSession(transition: (agent: FakeAgent) => Promise<void> = async () 
     swappedTo: [] as string[],
     closes: 0,
     updateActivityTask: undefined as { result: Promise<void> } | undefined,
+    current: undefined as FakeAgent | undefined,
     get currentAgent() {
-      return { chatCtx: { copy: () => ({ talk: 'so far' }) } };
+      // The SDK switches its agent as soon as updateAgent is called, before the transition
+      return session.current ?? agentFor('none');
     },
     updateAgent(agent: FakeAgent) {
       if (!session.running) return;
+      session.current = agent;
       session.swappedTo.push(agent.name);
       const previous = session.updateActivityTask?.result.catch(() => undefined);
       session.updateActivityTask = {
@@ -97,7 +106,7 @@ function orchestrator(session: Session, failToBuild: string[] = []) {
       if (!context.callSession) userData.personaId = personaId;
       const p = persona(session, personaId, userData, !context.callSession);
       p.callSession = context.callSession;
-      if (!context.callSession) session.live = p.agent; // the first persona starts the session
+      if (!context.callSession) session.live = session.current = p.agent; // it starts the session
       made.push(p);
       return p as never;
     }
@@ -177,6 +186,58 @@ describe('a handoff with one session per call', () => {
   });
 });
 
+describe('a handoff the LLM asked for (its tool hands the persona to the SDK)', () => {
+  beforeEach(() => {
+    process.env['MULTI_AGENT_SINGLE_SESSION'] = 'on';
+  });
+
+  it('Maya is handed over before anything swaps, and the SDK swap completes the handoff', async () => {
+    const session = callSession();
+    const { o, userData } = orchestrator(session);
+    await o.start('ferni');
+    const swappedWhenReady: string[][] = [];
+
+    const result = await o.handoff({
+      targetPersonaId: 'maya-santos',
+      reason: 'test',
+      onAgentReady: (agent) => {
+        swappedWhenReady.push([...session.swappedTo]);
+        // The tool returns llm.handoff({ agent }); the SDK swaps once the tool call is over
+        setTimeout(() => session.updateAgent(agent as never), 5);
+      },
+    });
+
+    expect(swappedWhenReady).toEqual([[]]); // nothing waited on the tool: no swap yet
+    expect(result.success).toBe(true);
+    expect(session.swappedTo).toEqual(['maya-santos']); // swapped by the SDK, once
+    expect(o.getCurrentPersonaId()).toBe('maya-santos');
+    expect(userData.personaId).toBe('maya-santos');
+    expect(session.closes).toBe(0);
+  });
+
+  it("if the tool never hands Maya over, she's let go and Ferni keeps his voice", async () => {
+    const session = callSession();
+    const data = { personaId: 'ferni' };
+    const ferni = persona(session, 'ferni', data, true);
+    const maya = persona(session, 'maya-santos', data, false);
+    const forgotten: string[] = [];
+    await expect(
+      swapPersona(
+        ferni as never,
+        maya,
+        (p) => forgotten.push(p.personaId),
+        () => undefined,
+        50
+      )
+    ).rejects.toThrow(/didn't swap within 50ms/);
+    expect(session.swappedTo).toEqual([]);
+    expect(data.personaId).toBe('ferni');
+    expect(forgotten).toEqual(['maya-santos']);
+    expect(maya.released).toBe(true);
+    expect(ferni.released).toBe(false);
+  });
+});
+
 describe('when the next persona does not come up', () => {
   const userData: { personaId?: string } = {};
   const setup = (transition: (agent: FakeAgent) => Promise<void>) => {
@@ -184,9 +245,15 @@ describe('when the next persona does not come up', () => {
     userData.personaId = 'ferni';
     const ferni = persona(session, 'ferni', userData, true);
     const maya = persona(session, 'maya-santos', userData, false);
-    session.live = ferni.agent;
+    session.live = session.current = ferni.agent;
     const forgotten: string[] = [];
-    const swap = swapPersona(ferni as never, maya, (p) => forgotten.push(p.personaId), 20);
+    const swap = swapPersona(
+      ferni as never,
+      maya,
+      (p) => forgotten.push(p.personaId),
+      undefined,
+      20
+    );
     return { session, ferni, maya, forgotten, swap };
   };
 
@@ -233,7 +300,7 @@ describe('when the next persona does not come up', () => {
 
     // Before Maya's transition settles, the person asks for Peter
     const peter = persona(session, 'peter-john', userData, false);
-    const toPeter = swapPersona(ferni as never, peter, () => undefined, 1000);
+    const toPeter = swapPersona(ferni as never, peter, () => undefined, undefined, 1000);
     await vi.advanceTimersByTimeAsync(100);
     await toPeter;
 
@@ -242,20 +309,20 @@ describe('when the next persona does not come up', () => {
     expect(userData.personaId).toBe('peter-john');
   });
 
-  it('with the call over, nothing is swapped and nobody is let go', async () => {
+  it('with the call over, nothing is swapped: Ferni stays, Maya is let go', async () => {
     const session = callSession();
     session.updateActivityTask = { result: Promise.resolve() }; // an earlier handoff's, finished
     session.running = false;
     const data = { personaId: 'ferni' };
     const ferni = persona(session, 'ferni', data, true);
+    const maya = persona(session, 'maya-santos', data, false);
     const forgotten: string[] = [];
     await expect(
-      swapPersona(ferni as never, persona(session, 'maya-santos', data, false), (p) =>
-        forgotten.push(p.personaId)
-      )
+      swapPersona(ferni as never, maya, (p) => forgotten.push(p.personaId))
     ).rejects.toThrow(/no running session/);
     expect(data.personaId).toBe('ferni');
-    expect(forgotten).toEqual([]);
+    expect(forgotten).toEqual(['maya-santos']);
+    expect(maya.released).toBe(true);
     expect(ferni.released).toBe(false);
   });
 });
