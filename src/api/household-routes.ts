@@ -213,7 +213,8 @@ export async function handleHouseholdRoutes(
   // POST /api/household/:userId/members - Add a member
   const addMemberMatch = pathname.match(/^\/api\/household\/([^/]+)\/members$/);
   if (addMemberMatch && method === 'POST') {
-    const userId = addMemberMatch[1];
+    // SECURITY: Use authenticated userId, ignore URL param to prevent unauthorized access
+    const { userId } = auth;
     try {
       const body = await getBody(req);
       const parsed = parseJson(body);
@@ -265,7 +266,9 @@ export async function handleHouseholdRoutes(
   // DELETE /api/household/:userId/members/:memberId - Remove a member
   const removeMemberMatch = pathname.match(/^\/api\/household\/([^/]+)\/members\/([^/]+)$/);
   if (removeMemberMatch && method === 'DELETE') {
-    const [, userId, memberId] = removeMemberMatch;
+    // SECURITY: the household is the caller's own; the path's user id is ignored
+    const { userId } = auth;
+    const memberId = removeMemberMatch[2];
     try {
       const db = getFirestore();
       const docRef = db.collection('households').doc(userId);
