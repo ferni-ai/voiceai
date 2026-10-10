@@ -319,6 +319,7 @@ async function deployUi(options: DeployOptions): Promise<boolean> {
     `--region ${CONFIG.region}`,
     '--platform managed',
     '--allow-unauthenticated',
+    `--service-account john-bogle-ui@${CONFIG.projectId}.iam.gserviceaccount.com`, // least privilege, see deploy-production.yml
     '--memory 1Gi', // the neural speaker model (Dockerfile.ui) needs ~270 MB
     '--cpu 1',
     '--timeout 300',
