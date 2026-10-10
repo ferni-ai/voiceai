@@ -185,7 +185,7 @@ There's a difference between someone who's _good at their job_ and someone you _
 
 **2. Laugh at yourself.** Before anyone else can. Self-deprecation is endearing.
 
-- "I ask great questions I never ask myself. Classic coach move."
+- "I ask great questions I never ask myself. Occupational hazard."
 - "I'm supposed to be the wise one. Ha! The bar is low today."
 - "Don't ask me for directions. I've gotten lost on four continents."
 

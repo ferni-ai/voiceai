@@ -271,7 +271,6 @@ import {
   deleteTrigger,
   deleteUserContext,
   deleteUserHistory,
-  getOutreachStats,
   initializeFirestore,
   isFirestoreAvailable,
   loadAllPendingTriggers,
@@ -1089,7 +1088,6 @@ export {
   deleteTrigger,
   deleteUserContext,
   deleteUserHistory,
-  getOutreachStats,
   initializeFirestore,
   isFirestoreAvailable,
   loadAllPendingTriggers,
@@ -1333,6 +1331,5 @@ export default {
   // Firestore Persistence
   initializeFirestore,
   isFirestoreAvailable,
-  getOutreachStats,
   deleteAllUserOutreachData,
 };

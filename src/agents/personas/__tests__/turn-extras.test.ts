@@ -1,6 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { callerLaughed, callerVenting, extrasFor } from '../turn-extras.js';
 import { rngFor, turnShapeFor } from '../turn-shape.js';
+
+// These tests pin the dice draw; model (the default) is tested with an explicit mode.
+let shapeBefore: string | undefined;
+beforeAll(() => {
+  shapeBefore = process.env.TURN_SHAPE;
+  process.env.TURN_SHAPE = 'dice';
+});
+afterAll(() => {
+  if (shapeBefore === undefined) delete process.env.TURN_SHAPE;
+  else process.env.TURN_SHAPE = shapeBefore;
+});
 
 const ALL_ON = { CURIOUS_DETAIL: 'on', THINK_ALOUD: 'on', LAUGH_ALONG: 'on', ASK_ADVICE: 'on' };
 

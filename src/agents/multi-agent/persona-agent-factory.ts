@@ -17,8 +17,10 @@ import {
   buildConversationSummary,
   getRecentMessagesForHandoff,
   setupPersonaAgent,
+  type AgentSetupConfig,
 } from './agent-setup.js';
 import type { AgentCreationContext, PersonaAgent } from './orchestrator.js';
+import type { SwapParts } from './persona-swap.js';
 // Speech coordination for centralized speech management
 import { initializeSpeechCoordination } from '../../speech/coordination/index.js';
 // Centralized generateReply gateway - handles session readiness
@@ -155,6 +157,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       conversationManager,
       enableFullHandlers,
       deferHandlers, // Wire handlers in background after greeting
+      callSession: context.callSession as AgentSetupConfig['callSession'],
     });
     mark('setup_persona_agent_done');
 
@@ -168,7 +171,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
     let isMuted = false;
 
     // Build the PersonaAgent interface
-    const personaAgent: PersonaAgent = {
+    const personaAgent: PersonaAgent & SwapParts = {
       id: agentInstanceId,
       personaId,
       isActive: false,
@@ -198,7 +201,12 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       // GREETING AWARENESS: Expose userData so orchestrator can store greeting text
       // This allows the turn-handler to inject what was said on turn 0
       userData,
+      agent: agentSetup.agent,
+      release: agentSetup.release,
+      ownsSession: !context.callSession,
     };
+    // Joining a running call: the orchestrator swaps this persona in (persona-swap.ts)
+    if (context.callSession) return personaAgent;
 
     // Start the session in the room
     // CRITICAL: For handoffs, use record: false to avoid "Only one AgentSession can be primary" error
