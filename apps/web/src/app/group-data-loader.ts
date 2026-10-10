@@ -1,7 +1,7 @@
 /**
  * Group roundtable / call messages are rare, so their handler (group-data-messages.ts) is
  * loaded on the first one instead of riding in the main bundle. Messages that arrive while
- * it loads are handled in arrival order; after that, handling is synchronous.
+ * it loads are queued and handled in arrival order; after that, handling is synchronous.
  *
  * @module app/group-data-loader
  */
@@ -22,10 +22,19 @@ export const GROUP_MESSAGE_TYPES: ReadonlySet<string> = new Set([
 
 let handler: GroupHandler | null = null;
 let loading: Promise<GroupHandler> | null = null;
+/** Messages that arrived while the handler loads, in arrival order. */
+const pending: unknown[] = [];
 
 /** Load the group handler now (the first group message does this on its own). */
 export function loadGroupDataMessages(): Promise<GroupHandler> {
-  loading ??= import('./group-data-messages.js').then((m) => (handler = m.handleGroupDataMessage));
+  loading ??= import('./group-data-messages.js').then((m) => {
+    // Drain what arrived while loading before anything newer can run: a message routed
+    // from another promise chain must not overtake an earlier one (e.g. a speaker change
+    // before the roundtable that starts it).
+    for (const message of pending.splice(0)) m.handleGroupDataMessage(message);
+    handler = m.handleGroupDataMessage;
+    return handler;
+  });
   return loading;
 }
 
@@ -34,6 +43,9 @@ export function routeGroupDataMessage(message: unknown): boolean {
   const type = (message as { type?: unknown } | null)?.type;
   if (typeof type !== 'string' || !GROUP_MESSAGE_TYPES.has(type)) return false;
   if (handler) handler(message);
-  else void loadGroupDataMessages().then((load) => load(message));
+  else {
+    pending.push(message);
+    void loadGroupDataMessages();
+  }
   return true;
 }

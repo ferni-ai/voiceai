@@ -26,7 +26,8 @@ afterEach(() => {
 
 describe('group data loader', () => {
   it('handles messages that arrive while loading, in arrival order', async () => {
-    const { routeGroupDataMessage, loadGroupDataMessages } = await import('../../src/app/group-data-loader.js');
+    const { routeGroupDataMessage, loadGroupDataMessages } =
+      await import('../../src/app/group-data-loader.js');
 
     expect(routeGroupDataMessage({ type: 'group_roundtable_started', n: 1 })).toBe(true);
     expect(routeGroupDataMessage({ type: 'group_speaker_changed', n: 2 })).toBe(true);
@@ -35,15 +36,41 @@ describe('group data loader', () => {
 
     await loadGroupDataMessages();
     await Promise.resolve();
-    expect(handled).toEqual(['group_roundtable_started#1', 'group_speaker_changed#2', 'group_roundtable_ended#3']);
+    expect(handled).toEqual([
+      'group_roundtable_started#1',
+      'group_speaker_changed#2',
+      'group_roundtable_ended#3',
+    ]);
 
     routeGroupDataMessage({ type: 'group_state', n: 4 }); // loaded: handled at once
     expect(handled.at(-1)).toBe('group_state#4');
   });
 
+  it('a message routed from another promise chain right after loading cannot overtake queued ones', async () => {
+    const { routeGroupDataMessage, loadGroupDataMessages } =
+      await import('../../src/app/group-data-loader.js');
+
+    routeGroupDataMessage({ type: 'group_roundtable_started', n: 1 });
+    // A later message whose promise chain settles alongside the module load (not after it)
+    const late = import('../../src/app/group-data-messages.js').then(() =>
+      routeGroupDataMessage({ type: 'group_speaker_changed', n: 2 })
+    );
+    await late;
+    await loadGroupDataMessages();
+    await Promise.resolve();
+
+    expect(handled).toEqual(['group_roundtable_started#1', 'group_speaker_changed#2']);
+  });
+
   it('leaves other messages to the rest of the chain', async () => {
     const { routeGroupDataMessage } = await import('../../src/app/group-data-loader.js');
-    for (const message of [{ type: 'handoff_start' }, { type: 'group_roundtable_start' }, { type: 7 }, null, 'x']) {
+    for (const message of [
+      { type: 'handoff_start' },
+      { type: 'group_roundtable_start' },
+      { type: 7 },
+      null,
+      'x',
+    ]) {
       expect(routeGroupDataMessage(message)).toBe(false);
     }
   });
@@ -53,7 +80,8 @@ describe('the loader and the handler agree on group types', () => {
   it('every listed type is one the real handler takes, and no other group_ type is', async () => {
     vi.doUnmock('../../src/app/group-data-messages.js');
     const { GROUP_MESSAGE_TYPES } = await import('../../src/app/group-data-loader.js');
-    const { handleGroupDataMessage, resetGroupDataMessages } = await import('../../src/app/group-data-messages.js');
+    const { handleGroupDataMessage, resetGroupDataMessages } =
+      await import('../../src/app/group-data-messages.js');
     const source = readFileSync(join(__dirname, '../../src/app/group-data-messages.ts'), 'utf8');
     const inSwitch = [...source.matchAll(/case '(group_[a-z_]+)':/g)].map((m) => m[1]);
 
