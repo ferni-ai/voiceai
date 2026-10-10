@@ -113,6 +113,7 @@ function orchestrator(session: Session, failToBuild: string[] = []) {
 }
 
 beforeEach(() => {
+  instances = 0;
   // Speech timing isn't what this is about
   vi.spyOn(
     AgentOrchestrator.prototype as unknown as { estimateSpeechDuration: (t: string) => number },
@@ -120,6 +121,7 @@ beforeEach(() => {
   ).mockReturnValue(0);
 });
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   delete process.env['MULTI_AGENT_SINGLE_SESSION'];
 });
@@ -199,20 +201,45 @@ describe('when the next persona does not come up', () => {
     expect(forgotten).toEqual(['maya-santos']);
   });
 
+  const slowMaya = async (agent: FakeAgent) => {
+    if (agent.name === 'maya-santos') {
+      await new Promise((r) => {
+        setTimeout(r, 60); // slow, not stuck
+      });
+    }
+  };
+
   it('a swap that is still going when time runs out is swapped back after it finishes', async () => {
-    const { session, maya, swap } = setup(async (agent) => {
-      if (agent.name === 'maya-santos')
-        await new Promise((r) => {
-          setTimeout(r, 60);
-        }); // slow, not stuck
-    });
-    await expect(swap).rejects.toThrow(/didn't start within 20ms/);
+    vi.useFakeTimers();
+    const { session, maya, swap } = setup(slowMaya);
+    const failed = expect(swap).rejects.toThrow(/didn't start within 20ms/);
+    await vi.advanceTimersByTimeAsync(20);
+    await failed;
     expect(userData.personaId).toBe('maya-santos'); // Maya is still coming up: her voice for now
 
-    await vi.waitFor(() => expect(session.swappedTo).toEqual(['maya-santos', 'ferni']));
-    await vi.waitFor(() => expect(session.live?.name).toBe('ferni'));
-    await vi.waitFor(() => expect(userData.personaId).toBe('ferni'));
+    await vi.advanceTimersByTimeAsync(40);
+    expect(session.swappedTo).toEqual(['maya-santos', 'ferni']);
+    expect(session.live?.name).toBe('ferni');
+    expect(userData.personaId).toBe('ferni');
     expect(maya.released).toBe(true);
+  });
+
+  it('a late swap back does not undo a newer handoff', async () => {
+    vi.useFakeTimers();
+    const { session, ferni, swap } = setup(slowMaya);
+    const failed = expect(swap).rejects.toThrow(/didn't start/);
+    await vi.advanceTimersByTimeAsync(20);
+    await failed;
+
+    // Before Maya's transition settles, the person asks for Peter
+    const peter = persona(session, 'peter-john', userData, false);
+    const toPeter = swapPersona(ferni as never, peter, () => undefined, 1000);
+    await vi.advanceTimersByTimeAsync(100);
+    await toPeter;
+
+    expect(session.swappedTo).toEqual(['maya-santos', 'peter-john']);
+    expect(session.live?.name).toBe('peter-john');
+    expect(userData.personaId).toBe('peter-john');
   });
 
   it('with the call over, nothing is swapped and nobody is let go', async () => {

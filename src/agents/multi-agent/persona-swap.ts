@@ -97,6 +97,9 @@ export function isSwappable(persona: object): persona is SwappablePersona {
  * drops a persona from the orchestrator's agents; the session's owner stays, since its
  * cleanup ends the call.
  */
+/** The latest swap per call: a late swap back must not undo a newer one */
+const latestSwap = new WeakMap<object, number>();
+
 export async function swapPersona(
   from: SwappablePersona,
   to: object,
@@ -105,6 +108,8 @@ export async function swapPersona(
 ): Promise<void> {
   if (!isSwappable(to)) throw new Error("The next persona can't join the call's session");
   const session = from.session as voice.AgentSession<UserData>;
+  const swapNumber = (latestSwap.get(session) ?? 0) + 1;
+  latestSwap.set(session, swapNumber);
   await to.agent.updateChatCtx(conversationSoFar(session));
   const transition = beginSwap(session, to.agent);
   if (to.userData) to.userData.personaId = to.personaId;
@@ -115,9 +120,12 @@ export async function swapPersona(
     void transition
       .catch(() => undefined)
       .then(async () => {
-        await within(beginSwap(session, from.agent), timeoutMs);
-        if (from.userData) from.userData.personaId = from.personaId;
         await to.release();
+        if (latestSwap.get(session) !== swapNumber) return; // a newer handoff took over
+        await within(beginSwap(session, from.agent), timeoutMs);
+        if (latestSwap.get(session) === swapNumber && from.userData) {
+          from.userData.personaId = from.personaId;
+        }
       })
       .catch((e: unknown) => log.error({ error: String(e) }, '🎭 Could not swap back'));
     throw error;

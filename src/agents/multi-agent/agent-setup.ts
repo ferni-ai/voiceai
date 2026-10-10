@@ -290,8 +290,11 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
   const cleanupFunctions: Array<() => void | Promise<void>> = [];
   // Listeners bound to this persona's Agent or model, which a swap removes (release())
-  const personaCleanups: Array<() => void> = [];
-  const forPersona = (fn: () => void) => cleanupFunctions.push(fn) && personaCleanups.push(fn);
+  const personaCleanups: Array<() => void | Promise<void>> = [];
+  const forPersona = (fn: () => void | Promise<void>) => {
+    cleanupFunctions.push(fn);
+    personaCleanups.push(fn);
+  };
 
   // =========================================================================
   // BUILD SYSTEM PROMPTS - Two levels for optimal instruction following
@@ -2127,7 +2130,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // ⚡ FAST-AGENT-JOIN: wireHandlers function for deferred wiring
     wireHandlers: deferHandlers && !callSession ? wireHandlersImpl : undefined,
     release: async () => {
-      for (const fn of personaCleanups.splice(0)) fn();
+      for (const fn of personaCleanups.splice(0)) await fn();
     },
     cleanup: async () => {
       const cleanupStart = Date.now();
