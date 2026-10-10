@@ -434,7 +434,7 @@ function buildQuestionGenerationPrompt(
     boundaryLines.push(`Tread carefully around: ${context.sensitiveTopics.join(', ')}`);
   }
 
-  return `You are generating a question for a voice AI life coach.
+  return `You are generating a question for a life coach on a voice call.
 
 PERSONA: ${context.personaId}
 QUESTION TYPE: ${type}
