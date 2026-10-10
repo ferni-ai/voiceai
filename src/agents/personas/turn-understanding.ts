@@ -228,8 +228,21 @@ export class TurnUnderstander {
     this.stats.runs++;
     try {
       const input = JSON.stringify({ EARLIER: this.earlier, NOW: text });
+      // The SDK does not always settle on abort (dev: one hung call left runs=0 for the
+      // rest of the call), so the abort itself ends the wait.
+      const aborted = new Promise<never>((_, reject) => {
+        controller.signal.addEventListener('abort', () => reject(new Error('aborted')), {
+          once: true,
+        });
+      });
+      aborted.catch((error: unknown) =>
+        log.debug({ error: String(error) }, 'understanding aborted')
+      );
       const result = parseUnderstanding(
-        await this.understand(UNDERSTANDING_PROMPT, input, controller.signal)
+        await Promise.race([
+          this.understand(UNDERSTANDING_PROMPT, input, controller.signal),
+          aborted,
+        ])
       );
       if (turn === this.turn) {
         this.stats.lastMs = this.now() - started;
