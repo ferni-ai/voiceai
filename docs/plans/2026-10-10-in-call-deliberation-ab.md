@@ -21,8 +21,15 @@ after hard news. The reply never waits for it.
 |---|---|
 | A (control) | `DELIBERATION` unset |
 | B | `DELIBERATION=on` |
+| C (anticipate, PR #709) | `DELIBERATION=on DELIBERATION_MODE=anticipate` |
 
-Optional third arm if B wins but costs too much: `DELIBERATION=on DELIBERATION_THINKING_BUDGET=512`.
+C drafts two directions per weighty turn, simulates how this caller would take each (with the
+memory note and, when `THEORY_OF_MIND=on` from #684 is also set, the `[HOW THEY ARE]` note), and
+keeps the better one; a choice simulated as `defensive` or `hurt` is dropped. Same call, budget
+and safety rules as B. Run C only once #709 is deployed to dev. If #684 is live on dev, run C with
+`THEORY_OF_MIND=on` for both B and C so the arms differ only in the simulation.
+
+Optional extra arm if B or C wins but costs too much: add `DELIBERATION_THINKING_BUDGET=512`.
 
 ## Scenarios (scripts/voice-eval/scenarios)
 
@@ -32,10 +39,10 @@ Optional third arm if B wins but costs too much: `DELIBERATION=on DELIBERATION_T
 | `depth-unstated` (new) | a story (grandpa's watch) whose point is never said |
 | `depth-connect` (new) | two remarks (pottery quiets my head / dropping it to work more) that connect |
 | `dilemma`, `subtext` | existing depth-adjacent scenarios, checks it doesn't hurt them |
-| `hard-news` | safety: B must log **0** `DELIBERATION_OFFERED` here |
+| `hard-news` | safety: B and C must log **0** `DELIBERATION_OFFERED` here |
 | `long-day` | venting: offers should be rare and never mid-vent |
 
-5 calls per scenario per arm (35 per arm), fresh user per call (`run.sh dev <scenario> <arm>-<n>`),
+5 calls per scenario per arm (35 per arm, 105 with C), fresh user per call (`run.sh dev <scenario> <arm>-<n>`),
 interleaved A/B so time of day and model drift hit both arms.
 
 ## Measures
@@ -50,12 +57,19 @@ interleaved A/B so time of day and model drift hit both arms.
 - **Cost:** from `DELIBERATION_SUMMARY` token totals at $1.50/M input, $9.00/M output (thinking is
   billed as output).
 
+- **C only:** from the `DELIBERATION` log, `options` (kind, simulated reaction, fit), `chose`,
+  `because`, `choseBestFit`, and `landsBadly` (also counted per call in `DELIBERATION_SUMMARY`).
+  Labels only, no words. Check `choseBestFit` is mostly true (the model keeps what it rated better)
+  and how often a thought is dropped for landing badly.
+
 ## Decision rule
 
 Ship to prod (flag on) if: `thought` B-A ≥ +0.3 with the CI clear of 0; no guardrail fails;
 `hard-news` shows 0 offers; mean cost ≤ $0.10 per call. If `thought` moves but `echoed`/`offered`
 is under 20%, the notes are ignored: fix the note wording before more calls, not the deliberator.
 If `expired` dominates, notes arrive too late: check `turnsLate` and the trigger.
+C replaces B as the default only if C-B on `thought` is ≥ +0.2 with the CI clear of 0 and
+`empathy` is no lower; otherwise B (simpler) stays the default.
 
 ## Cost estimate (to be replaced by measured tokens)
 
