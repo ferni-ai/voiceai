@@ -5940,6 +5940,7 @@
     "freeTimeHours": "{hours} שעות זמן פנוי",
     "backToBackMeetings": "פגישות רצופות",
     "markComplete": "לסמן את {text} כהושלם",
+    "intentionNotSaved": "לא ניתן היה לשמור. נסו שוב.",
     "followThrough": "התמדה",
     "habitsThisWeek": "הרגלים השבוע",
     "momentum": "מומנטום",

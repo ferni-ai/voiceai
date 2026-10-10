@@ -5941,6 +5941,7 @@
     "freeTimeHours": "{hours} h de temps libre",
     "backToBackMeetings": "Réunions consécutives",
     "markComplete": "Marquer {text} comme terminé",
+    "intentionNotSaved": "Impossible d'enregistrer. Réessayez.",
     "followThrough": "suivi",
     "habitsThisWeek": "habitudes cette semaine",
     "momentum": "élan",

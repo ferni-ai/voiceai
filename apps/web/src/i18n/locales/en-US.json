@@ -5928,6 +5928,7 @@
       "other": "{count} events"
     },
     "markComplete": "Mark {text} complete",
+    "intentionNotSaved": "Couldn't save that. Try again.",
     "followThrough": "follow-through",
     "habitsThisWeek": "habits this week",
     "momentum": "momentum",

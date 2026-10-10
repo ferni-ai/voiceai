@@ -5908,6 +5908,7 @@
     "freeTimeHours": "{hours} 小时空闲时间",
     "backToBackMeetings": "连轴转会议",
     "markComplete": "将 {text} 标记为完成",
+    "intentionNotSaved": "无法保存，请重试。",
     "followThrough": "执行情况",
     "habitsThisWeek": "本周习惯",
     "momentum": "势头",

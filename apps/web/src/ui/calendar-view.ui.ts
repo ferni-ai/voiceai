@@ -833,10 +833,10 @@ class CalendarViewUI {
               ${intentions.map(intention => `
                 <div class="calendar-view__practice-intention">
                   <div class="calendar-view__practice-intention-check">
-                    <input type="checkbox" ${intention.completed ? 'checked' : ''} aria-label="${t('calendarView.markComplete', { text: intention.text })}">
+                    <input type="checkbox" ${intention.completed ? 'checked' : ''} ${intention.id ? `data-intention-id="${this.escapeHtml(intention.id)}"` : 'disabled'} aria-label="${this.escapeHtml(t('calendarView.markComplete', { text: intention.text }))}">
                   </div>
                   <div class="calendar-view__practice-intention-content">
-                    <span class="calendar-view__practice-intention-text">${intention.text}</span>
+                    <span class="calendar-view__practice-intention-text">${this.escapeHtml(intention.text)}</span>
                     ${intention.insight ? `
                       <div class="calendar-view__practice-intention-insight">
                         <span class="calendar-view__practice-insight-persona">${intention.insightPersona}</span>
@@ -1049,13 +1049,14 @@ class CalendarViewUI {
    * Generate intentions based on user patterns
    */
   private generateIntentions(): Array<{
+    id?: string;
     text: string;
     completed: boolean;
     insight?: string;
     insightPersona?: string;
   }> {
-    // TODO: Get real intentions from user data
-    // For now, generate contextual intentions based on day/events
+    // Shown only when the practice view can't load: nothing here can be saved, and nothing is
+    // claimed about the person (no streaks, nothing already done)
     const today = new Date();
     const isWeekend = today.getDay() === 0 || today.getDay() === 6;
 
@@ -1067,9 +1068,9 @@ class CalendarViewUI {
     }
 
     return [
-      { text: t('calendarView.startWithIntention'), completed: true, insight: t('calendarView.threeDaysInARow'), insightPersona: t('calendarView.mayaTracks') },
+      { text: t('calendarView.startWithIntention'), completed: false },
       { text: t('calendarView.oneThingAtATime'), completed: false },
-      { text: t('calendarView.endDayWithGratitude'), completed: false, insight: t('calendarView.helpedYourMood'), insightPersona: t('calendarView.peterFound') },
+      { text: t('calendarView.endDayWithGratitude'), completed: false },
     ];
   }
 
@@ -1551,25 +1552,18 @@ class CalendarViewUI {
   }
 
   /**
-   * Mark an intention as complete via the API
+   * Save an intention as done (or not done again); if it can't be saved, the box goes back
    */
-  private async markIntentionComplete(intentionId: string): Promise<void> {
-    try {
-      const response = await apiPost(`/api/practice-view/intentions/${intentionId}/complete`, {});
-      if (response?.ok) {
-        // Update local state
-        if (this.practiceViewData?.intentions) {
-          const intention = this.practiceViewData.intentions.find(i => i.id === intentionId);
-          if (intention) {
-            intention.completed = true;
-          }
-        }
-        this.renderContent();
-        log.info('Intention marked complete', { intentionId });
-      }
-    } catch (error) {
-      log.error('Failed to mark intention complete', error);
+  private async markIntentionComplete(intentionId: string, box: HTMLInputElement): Promise<void> {
+    const completed = box.checked;
+    const response = await apiPost(`/api/practice-view/intentions/${encodeURIComponent(intentionId)}/complete`, { completed });
+    if (!response.ok) {
+      box.checked = !completed;
+      toast.error(t('calendarView.intentionNotSaved'));
+      return;
     }
+    const intention = this.practiceViewData?.intentions.find((i) => i.id === intentionId);
+    if (intention) intention.completed = completed;
   }
 
   /**
@@ -1636,6 +1630,10 @@ class CalendarViewUI {
             break;
         }
       });
+    });
+
+    wrapper.querySelectorAll<HTMLInputElement>('input[data-intention-id]').forEach((box) => {
+      box.addEventListener('change', () => void this.markIntentionComplete(box.dataset.intentionId ?? '', box));
     });
 
     // Event click handlers
@@ -1714,7 +1712,8 @@ class CalendarViewUI {
   private escapeHtml(text: string): string {
     const div = document.createElement('div');
     div.textContent = text;
-    return div.innerHTML;
+    // Quotes too: this also goes into attributes
+    return div.innerHTML.replace(/"/g, '&quot;');
   }
 
   // ============================================================================
