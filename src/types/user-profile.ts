@@ -121,6 +121,8 @@ export interface ConversationSummary {
   decisionsReached?: string[];
   questionsRemaining?: string[];
   followUpItems?: string[];
+  /** Bits that were genuinely funny between the caller and Ferni in this call. */
+  insideJokes?: string[];
 
   // Embedding for semantic search
   embedding?: number[];

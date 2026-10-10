@@ -28,9 +28,20 @@ export interface RecallSnapshot {
   facts: RecallFact[];
   /** Open threads from recent sessions ("ask how the vet visit went"). */
   followUps: string[];
+  /** Bits that were genuinely funny between them on recent calls (summaries' insideJokes). */
+  insideJokes?: string[];
 }
 
-export const EMPTY_SNAPSHOT: RecallSnapshot = { facts: [], followUps: [] };
+export const EMPTY_SNAPSHOT: RecallSnapshot = { facts: [], followUps: [], insideJokes: [] };
+
+/**
+ * INSIDE_JOKES=on lets Ferni bring back a bit the two of them really shared
+ * (off by default). Only things the summarizer saw land in a past call qualify,
+ * never stock jokes, so Ferni can't fake a history it doesn't have.
+ */
+export function insideJokesEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return env.INSIDE_JOKES === 'on';
+}
 
 /** The entity the extractor uses for the caller themself. */
 const SELF_ENTITY = /^(speaker|user|me)$/i;
@@ -138,14 +149,22 @@ function age(extractedAt: string | undefined, now: number): string {
   return ` [said ${days} days ago]`;
 }
 
+export interface RecallExtras {
+  /** Shared bits from past calls; shown only with INSIDE_JOKES=on. */
+  insideJokes?: string[];
+  env?: Record<string, string | undefined>;
+}
+
 /** A context note for the LLM, or null when there is nothing to recall. */
 export function formatRecall(
   facts: RecallFact[],
   followUps: string[],
   userName?: string,
-  now: number = Date.now()
+  now: number = Date.now(),
+  extras: RecallExtras = {}
 ): string | null {
-  if (facts.length === 0 && followUps.length === 0) return null;
+  const jokes = insideJokesEnabled(extras.env) ? (extras.insideJokes ?? []) : [];
+  if (facts.length === 0 && followUps.length === 0 && jokes.length === 0) return null;
   const who = userName || 'them';
   const lines: string[] = [`[WHAT YOU REMEMBER ABOUT ${who.toUpperCase()}]`];
   for (const f of facts) {
@@ -155,6 +174,12 @@ export function formatRecall(
   if (followUps.length > 0) {
     lines.push('Open threads from last time:');
     for (const item of followUps) lines.push(`- ${item}`);
+  }
+  if (jokes.length > 0) {
+    lines.push(
+      'Bits you two actually share from past calls. Bring one back only if it fits naturally, at most once this call, and never explain it:'
+    );
+    for (const joke of jokes) lines.push(`- ${joke}`);
   }
   lines.push(
     'These are from past calls, not this one. Use at most one, and only if it fits naturally, the way a friend who remembers would. ' +
@@ -183,6 +208,7 @@ function confidenceOf(raw: unknown): number {
   return 0.5;
 }
 const MAX_FOLLOW_UPS = 3;
+const MAX_INSIDE_JOKES = 3;
 
 /** Load a user's recall snapshot. Never throws; an unreachable store yields an empty snapshot. */
 export async function loadRecallSnapshot(
@@ -216,5 +242,17 @@ export async function loadRecallSnapshot(
     }
     if (followUps.length >= MAX_FOLLOW_UPS) break;
   }
-  return { facts, followUps };
+  // Summaries come newest first, so these are the most recent bits.
+  const insideJokes: string[] = [];
+  for (const s of rawSummaries) {
+    for (const item of Array.isArray(s.insideJokes) ? s.insideJokes : []) {
+      if (typeof item !== 'string') continue;
+      const text = item.trim();
+      const seen = insideJokes.some((j) => j.toLowerCase() === text.toLowerCase());
+      if (text && !seen) insideJokes.push(text);
+      if (insideJokes.length >= MAX_INSIDE_JOKES) break;
+    }
+    if (insideJokes.length >= MAX_INSIDE_JOKES) break;
+  }
+  return { facts, followUps, insideJokes };
 }
