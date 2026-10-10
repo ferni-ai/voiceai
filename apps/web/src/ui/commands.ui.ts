@@ -284,7 +284,7 @@ class CommandsPanelUI {
       <div class="ferni-commands__error">
         <h3>${t('common.error')}</h3>
         <p>${t('commands.error.message')}</p>
-        <button aria-label="${t('accessibility.copy')}" class="ferni-commands__retry engagement-btn-primary" type="button">
+        <button class="ferni-commands__retry engagement-btn-primary" type="button">
           ${t('common.retry')}
         </button>
       </div>

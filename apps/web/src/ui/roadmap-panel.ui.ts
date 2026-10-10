@@ -404,7 +404,7 @@ class RoadmapPanelUI {
     const confidenceIcon = rec.confidence === 'high' ? ICONS.target : rec.confidence === 'medium' ? ICONS.lightbulb : ICONS.seed;
 
     return `
-      <button aria-label="${t('accessibility.close')}" class="roadmap-recommendation" data-feature-id="${rec.featureId}" data-rec-confidence="${rec.confidence}">
+      <button class="roadmap-recommendation" data-feature-id="${rec.featureId}" data-rec-confidence="${rec.confidence}">
         <div class="roadmap-recommendation__badge">${confidenceIcon}</div>
         <div class="roadmap-recommendation__content">
           <div class="roadmap-recommendation__header">
@@ -700,7 +700,7 @@ class RoadmapPanelUI {
               </span>
             </div>
 
-            <button aria-label="${t('accessibility.submit')}"
+            <button
               type="submit"
               class="roadmap-suggestion__submit"
               ${seedBalance < 5 ? 'disabled' : ''}>

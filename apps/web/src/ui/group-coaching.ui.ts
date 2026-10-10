@@ -296,11 +296,11 @@ class GroupCoachingUI {
 
       <div class="group-coaching__content">
         <div class="group-coaching__actions" role="button" tabindex="0">
-          <button aria-label="${t('accessibility.add')}" class="group-coaching__create-btn" data-action="create">
+          <button class="group-coaching__create-btn" data-action="create">
             ${ICONS.plus}
             <span>${t('groupCoaching.newSession')}</span>
           </button>
-          <button aria-label="${t('accessibility.joinWithLink')}" class="group-coaching__join-btn" data-action="join-link">
+          <button class="group-coaching__join-btn" data-action="join-link">
             ${ICONS.link}
             <span>${t('groupCoaching.joinWithLink')}</span>
           </button>
@@ -413,7 +413,7 @@ class GroupCoachingUI {
           ${
             session.status === 'waiting'
               ? `
-            <button aria-label="${t('accessibility.play')}" class="group-coaching__start-btn" data-action="start" data-session-id="${session.id}">
+            <button class="group-coaching__start-btn" data-action="start" data-session-id="${session.id}">
               ${ICONS.play}
               <span>${t('groupCoaching.startSession')}</span>
             </button>
@@ -439,7 +439,7 @@ class GroupCoachingUI {
       </header>
       <div class="group-coaching__error">
         <p>${message}</p>
-        <button aria-label="${t('accessibility.tryAgain')}" class="group-coaching__retry">${t('common.tryAgain')}</button>
+        <button class="group-coaching__retry">${t('common.tryAgain')}</button>
       </div>
     `;
 

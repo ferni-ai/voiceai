@@ -402,10 +402,10 @@ function createModal(item: MarketplaceItem): HTMLElement {
       </div>
 
       <footer class="consent-footer">
-        <button aria-label="${t('accessibility.cancel')}" class="consent-btn consent-btn--secondary" data-action="cancel">
+        <button class="consent-btn consent-btn--secondary" data-action="cancel">
           ${t('common.cancel')}
         </button>
-        <button aria-label="${t('accessibility.add')}" class="consent-btn consent-btn--primary" data-action="confirm">
+        <button class="consent-btn consent-btn--primary" data-action="confirm">
           Add ${item.type === 'agent' ? 'to Team' : 'Tool'}
         </button>
       </footer>

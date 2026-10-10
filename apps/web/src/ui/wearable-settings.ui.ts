@@ -343,7 +343,7 @@ class WearableSettingsUI {
       </header>
       <div class="wearable-settings__error">
         <p>${message}</p>
-        <button aria-label="${t('accessibility.settings')}" class="wearable-settings__retry">${t('wearableSettings.buttons.tryAgain')}</button>
+        <button class="wearable-settings__retry">${t('wearableSettings.buttons.tryAgain')}</button>
       </div>
     `;
 
