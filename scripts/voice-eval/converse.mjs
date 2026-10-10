@@ -33,7 +33,10 @@ if (!url || !token || !outJson || turns.length === 0) {
 const t0 = Date.now();
 const now = () => Date.now() - t0;
 const room = new Room();
-const events = []; // { t, who, text }
+const events = []; // { t, who, from, text }
+// Every data-channel message, any topic: the app routes on JSON `type`
+// (handoff_progress, handoff_complete, ...), sent to the whole room.
+const data = []; // { t, from, topic, payload }
 const tracks = new Map(); // sid -> { name, bufs, voice: [[startT, endT], ...] }
 const userSpeech = []; // [startT, endT] of each scripted utterance
 let mainVoiceLastAt = 0;
@@ -75,7 +78,19 @@ room.on(RoomEvent.TrackSubscribed, async (track, pub, participant) => {
 room.registerTextStreamHandler('lk.transcription', async (reader, info) => {
   const text = await reader.readAll();
   const who = info.identity === room.localParticipant?.identity ? 'user' : 'agent';
-  if (text.trim()) events.push({ t: now(), who, text: text.trim() });
+  // `from` tells which agent participant spoke, so a handoff shows up.
+  if (text.trim()) events.push({ t: now(), who, from: info.identity, text: text.trim() });
+});
+
+room.on(RoomEvent.DataReceived, (payload, participant, _kind, topic) => {
+  const raw = Buffer.from(payload).toString('utf8');
+  let parsed = raw;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // not JSON: keep the text
+  }
+  data.push({ t: now(), from: participant?.identity ?? null, topic: topic ?? null, payload: parsed });
 });
 
 await room.connect(url, token, { autoSubscribe: true, dynacast: false });
@@ -239,7 +254,7 @@ try {
 }
 writeFileSync(
   outJson,
-  JSON.stringify({ meta, wallT0: t0, results, events, userSpeech, tracks: trackSummaries, mic: { file: micFile, startT: micStartT } }, null, 2)
+  JSON.stringify({ meta, wallT0: t0, results, events, data, userSpeech, tracks: trackSummaries, mic: { file: micFile, startT: micStartT } }, null, 2)
 );
 console.log(JSON.stringify(results));
 process.exit(0);
