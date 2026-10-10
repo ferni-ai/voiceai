@@ -15,6 +15,7 @@
 import { createLogger } from '../utils/logger.js';
 import { isDevelopment } from '../utils/environment.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { openPanelForNotificationType } from './notification-navigation.js';
 
 const log = createLogger('PushNotify');
 
@@ -352,21 +353,8 @@ class PushNotificationsService {
     // Trigger click callbacks
     this.triggerCallbacks(notification);
 
-    // Navigate based on notification type
-    switch (notification.type) {
-      case 'ritual_reminder':
-        window.dispatchEvent(new CustomEvent('ferni:open-engagement'));
-        break;
-      case 'prediction_result':
-        window.dispatchEvent(new CustomEvent('ferni:open-predictions'));
-        break;
-      case 'team_huddle':
-        window.dispatchEvent(new CustomEvent('ferni:open-team-huddle'));
-        break;
-      default:
-        // Focus the app
-        window.focus();
-    }
+    // Open the panel this type points at, or just focus the app
+    if (!openPanelForNotificationType(notification.type)) window.focus();
   }
 
   private triggerCallbacks(notification: PushNotification): void {

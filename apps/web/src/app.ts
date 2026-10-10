@@ -206,7 +206,10 @@ import {
 } from './services/speech-event-dispatcher.js';
 // I18n - Internationalization and localization
 import { initI18n, t } from './i18n/index.js';
+import { createConversationStarter, START_CONVERSATION_EVENTS } from './app/conversation-starter.js';
+import { openPanelFromUrl } from './services/notification-navigation.js';
 import { bindStaticDom } from './i18n/static-dom.js';
+import { bindLocaleRefresh } from './app/locale-refresh.js';
 import { installDialogFocus } from './utils/dialog-focus.js';
 import { tp } from './i18n/plural.js';
 // Mood Context - Time-based persona mood for "Better than Human"
@@ -494,6 +497,7 @@ class VoiceAIApp {
 
       await initI18n(); // before any UI renders
       bindStaticDom(); // index.html text marked with data-i18n
+      bindLocaleRefresh(); // a no-reload language change finishes with a reload
       installDialogFocus(); // focus into, around and back out of every modal
       // Require sign-in, like iOS; await it so an existing session is restored
       const authState = await initializeAuth();
@@ -2074,6 +2078,21 @@ class VoiceAIApp {
       // Close any open modal by dispatching escape key event
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     });
+
+    // Hub Talk/persona buttons, Chronicle voice switch, outreach cards: start a call like Connect
+    const startConversation = createConversationStarter({
+      connect: () => this.connect(),
+      selectPersona: (id) => this.selectPersona(id),
+    });
+    for (const name of START_CONVERSATION_EVENTS.window) {
+      this.addTrackedListener(window, name, startConversation);
+    }
+    for (const name of START_CONVERSATION_EVENTS.document) {
+      this.addTrackedListener(document, name, startConversation);
+    }
+
+    // A notification that opened a fresh window lands on /?panel=<name>
+    setTimeout(openPanelFromUrl, 500);
 
     // 🔄 Persona Switch - connects dispatched events to actual handoff
     // Multiple UI components dispatch this event (team-unlock-celebration, command-palette, etc.)
