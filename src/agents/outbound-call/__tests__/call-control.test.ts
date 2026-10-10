@@ -74,4 +74,17 @@ describe('endCall', () => {
     expect(takeCallDisposition('s-b')).toBeUndefined();
     expect(takeCallDisposition('s-a')).toBe('wrong_number');
   });
+
+  it('forgets an unread outcome along with the call', async () => {
+    registerOnBehalfCallRoom('s-forget', 'call-forget', 'room-forget');
+    await run(
+      createEndCallTool(
+        's-forget',
+        vi.fn(async () => undefined)
+      ) as EndCallTool,
+      'refused'
+    );
+    forgetOnBehalfCallRoom('s-forget');
+    expect(takeCallDisposition('s-forget')).toBeUndefined();
+  });
 });
