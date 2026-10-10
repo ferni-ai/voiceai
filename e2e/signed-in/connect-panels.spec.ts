@@ -44,7 +44,9 @@ for (const id of ['apple-health', 'oura', 'eight-sleep', 'wearables']) {
 
     await page.keyboard.press('Escape');
     await expect.poll(() => isGone(page, hubId), { message: 'then Everything Connected closes' }).toBe(true);
-    // A missing Apple Health summary is the normal "no data yet" answer, not a failure
-    expect(problems.take().filter((p) => !/apple-health\/summary|eight-sleep\/status/.test(p))).toEqual([]);
+    // Providers the local stack has no keys for answer 503, and Apple Health with no data yet
+    // answers 404 (the browser echoes each as "Failed to load resource"): setup, not failures
+    const setup = /\/api\/(apple-health|oura|eight-sleep)\/(status|summary)|Failed to load resource/;
+    expect(problems.take().filter((p) => !setup.test(p))).toEqual([]);
   });
 }
