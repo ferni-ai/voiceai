@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { parseInsideJokes, summarizeWithLLM, type ConversationTurn } from '../summarizer.js';
+import { parseInsideJokes } from '../inside-jokes.js';
+import { summarizeWithLLM, type ConversationTurn } from '../summarizer.js';
 
 const turns: ConversationTurn[] = [
   { role: 'user', content: 'I made risotto and it turned into a fungus incident' },

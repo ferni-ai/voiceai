@@ -102,9 +102,7 @@ export interface SharedStory {
   context: string;
 }
 
-/**
- * Conversation summary for long-term memory
- */
+/** Conversation summary for long-term memory */
 export interface ConversationSummary {
   id: string;
   sessionId: string;
