@@ -31,6 +31,7 @@ import {
   partOfDayFor,
   takeCallerHistory,
 } from './greeting-direction.js';
+import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 export { calmGreeting } from './greeting-direction.js';
 
 // Predictive handoff - pre-briefings for specialist personas
@@ -128,6 +129,8 @@ export interface AgentCreationContext {
   isHandoff: boolean;
   /** Previous persona (for handoff context) */
   previousPersonaId?: string;
+  /** The call's running session, to join instead of starting one (persona-swap.ts) */
+  callSession?: unknown;
 }
 
 // ============================================================================
@@ -402,7 +405,8 @@ export class AgentOrchestrator {
         '🎭 [HANDOFF STEP 2/5] Closing old agent...'
       );
       diag.entry(`🎭 Closing ${previousPersonaId}`);
-      await this.removeAgent(currentAgent.id);
+      const swap = singleSessionHandoffs() && isSwappable(currentAgent) ? currentAgent : null;
+      if (!swap) await this.removeAgent(currentAgent.id); // swapped out below instead
       log.info(
         { personaId: previousPersonaId, durationMs: Date.now() - step2Start },
         '🎭 [HANDOFF STEP 2/5] ✅ Old agent closed'
@@ -468,7 +472,9 @@ export class AgentOrchestrator {
         userName: request.userName,
         isHandoff: true,
         previousPersonaId,
+        callSession: swap?.session,
       });
+      if (swap) await swapPersona(swap, newAgent, (persona) => this.agents.delete(persona.id));
       log.info(
         {
           newAgentId: newAgent.id,
@@ -660,16 +666,7 @@ export class AgentOrchestrator {
 
     log.debug({ personaId, agentId: agent.id }, '🎭 [spawnAgent] Adding agent to map...');
 
-    // Add to map and verify
     this.agents.set(agent.id, agent);
-    const verifyAdded = this.agents.get(agent.id);
-    if (!verifyAdded) {
-      log.error(
-        { personaId, agentId: agent.id, mapSize: this.agents.size },
-        '🎭 [spawnAgent] ❌ CRITICAL: Agent was set but cannot be retrieved from map'
-      );
-      throw new Error(`Failed to add agent ${agent.id} to map`);
-    }
 
     log.info(
       {
