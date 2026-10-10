@@ -130,6 +130,23 @@ export function onBehalfDispatchFor(
   });
 }
 
+/** The on-behalf request a dispatch describes (the inverse of onBehalfDispatchFor). */
+export function onBehalfRequestFromDispatch(call: OnBehalfDispatch): OnBehalfCallRequest {
+  return {
+    contactQuery: call.contact.name,
+    resolvedContact: { ...call.contact },
+    purpose: call.purpose,
+    objective: call.objective,
+    callType: call.callType,
+    originalSessionId: call.requester.originalSessionId,
+    userId: call.requester.userId,
+    userTimezone: call.requester.timezone,
+    userName: call.requester.name,
+    recordingConsent: false,
+    retryOf: call.retryOf,
+  };
+}
+
 /** The dispatch for a call bridged in from a Twilio media stream's parameters. */
 export function onBehalfDispatchFromStream(
   params: Record<string, string | undefined>,

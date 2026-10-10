@@ -39,8 +39,8 @@ export interface ScheduledOutreachTarget {
   resolvedPhone?: string;
   /** Resolved email */
   resolvedEmail?: string;
-  /** For 'on_behalf_call': the call request to place again. */
-  onBehalfRequest?: unknown;
+  /** For 'on_behalf_call': the server-signed dispatch of the call to place again. */
+  onBehalfDispatch?: unknown;
 }
 
 /**

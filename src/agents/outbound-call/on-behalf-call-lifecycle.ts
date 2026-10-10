@@ -19,7 +19,10 @@ import type {
   CallTranscriptTurn,
   SuperhumanCallResult,
 } from '../../services/outreach/call-transcript-intelligence.js';
-import type { OnBehalfDispatch } from '../../services/outreach/on-behalf-dispatch.js';
+import {
+  onBehalfRequestFromDispatch,
+  type OnBehalfDispatch,
+} from '../../services/outreach/on-behalf-dispatch.js';
 import { screenedCallerText } from '../../services/outreach/caller-text.js';
 import { isCallFollowthroughEnabled } from '../../services/outreach/call-retry.js';
 
@@ -36,28 +39,21 @@ export interface CallLifecyclePorts {
   ) => Promise<SuperhumanCallResult | null>;
   report: (callId: string, outcome: CallOutcome, request: OnBehalfCallRequest) => Promise<void>;
   /** Schedules the one next-day retry of a missed call (CALL_FOLLOWTHROUGH); null if none. */
-  scheduleRetry?: (callId: string, request: OnBehalfCallRequest) => Promise<Date | null>;
+  scheduleRetry?: (call: OnBehalfDispatch) => Promise<Date | null>;
+  /** Puts the number on the do-not-call list when the person asks not to be called again. */
+  recordOptOut?: (call: OnBehalfDispatch) => Promise<unknown>;
 }
 
-export function toOnBehalfCallRequest(call: OnBehalfDispatch): OnBehalfCallRequest {
-  return {
-    contactQuery: call.contact.name,
-    resolvedContact: { ...call.contact },
-    purpose: call.purpose,
-    objective: call.objective,
-    callType: call.callType,
-    originalSessionId: call.requester.originalSessionId,
-    userId: call.requester.userId,
-    userTimezone: call.requester.timezone,
-    userName: call.requester.name,
-    recordingConsent: false,
-    retryOf: call.retryOf,
-  };
-}
+export const toOnBehalfCallRequest = onBehalfRequestFromDispatch;
 
 /** Phrases from voicemail greetings. */
 const VOICEMAIL_CUES =
   /\b(leave (me )?a message|after the (tone|beep)|voice ?mail|mailbox|record your message|can't come to the phone|not available right now)\b/i;
+/** The person asked not to be called again: never retried, and the number is put on the do-not-call list. */
+const OPT_OUT_CUES =
+  /\b((don'?t|do not|never) (ever )?call (me|us|here|this number)( again)?|stop calling|do not call|(remove|take) (me|us|this number) off)\b/i;
+/** The person said no: never retried. */
+const DECLINE_CUES = /\b(not interested|wrong number|no thank(s| you)|leave me alone)\b/i;
 /** A real conversation has at least two replies from the person and lasts a little while. */
 const MIN_REPLIES = 2;
 const MIN_TALK_SECONDS = 20;
@@ -70,7 +66,10 @@ const MIN_TALK_SECONDS = 20;
 export function classifyAnsweredCall(
   heard: string[],
   durationSeconds: number
-): 'voicemail' | 'hung_up_early' | 'answered' {
+): 'opted_out' | 'declined' | 'voicemail' | 'hung_up_early' | 'answered' {
+  // A person saying no outranks anything that looks like a voicemail greeting.
+  if (heard.some((h) => OPT_OUT_CUES.test(h))) return 'opted_out';
+  if (heard.some((h) => DECLINE_CUES.test(h))) return 'declined';
   if (heard.length <= 2 && heard.some((h) => VOICEMAIL_CUES.test(h))) return 'voicemail';
   if (heard.length < MIN_REPLIES || durationSeconds < MIN_TALK_SECONDS) return 'hung_up_early';
   return 'answered';
@@ -121,6 +120,16 @@ export function buildCallOutcome(
         objectiveAchieved: false,
         outcome: `I got ${name}'s voicemail. Want me to try again later?`,
         callbackRequired: true,
+      };
+    }
+    if (how === 'opted_out' || how === 'declined') {
+      const promise =
+        how === 'opted_out' ? " and asked not to be called again, so I won't call them" : '';
+      return {
+        callId: call.callId,
+        status: 'completed',
+        objectiveAchieved: false,
+        outcome: `I reached ${name}, but they didn't want to talk${promise}.`,
       };
     }
     if (how === 'hung_up_early') {
@@ -179,12 +188,18 @@ export async function beginOnBehalfCall(sessionId: string, call: OnBehalfDispatc
 async function defaultPorts(): Promise<CallLifecyclePorts> {
   const transcripts = await import('../../services/outreach/call-transcript-intelligence.js');
   const { captureCallResult } = await import('../../services/outreach/call-result-capture.js');
-  const { scheduleCallRetry } = await import('../../services/outreach/call-retry.js');
+  const { scheduleCallRetry, recordCallOptOut } =
+    await import('../../services/outreach/call-retry.js');
   return {
     readTranscript: (callId) => transcripts.getActiveTranscript(callId)?.turns.slice() ?? null,
     analyze: transcripts.analyzeCompletedCall,
     report: captureCallResult,
-    scheduleRetry: (callId, request) => scheduleCallRetry(callId, request),
+    scheduleRetry: (call) => scheduleCallRetry(call),
+    recordOptOut: (call) =>
+      recordCallOptOut(call.contact.phone, {
+        callId: call.callId,
+        requesterUserId: call.requester.userId,
+      }),
   };
 }
 
@@ -220,7 +235,8 @@ export async function completeOnBehalfCall(
   reportedCalls.add(call.callId);
 
   try {
-    const { readTranscript, analyze, report, scheduleRetry } = ports ?? (await defaultPorts());
+    const { readTranscript, analyze, report, scheduleRetry, recordOptOut } =
+      ports ?? (await defaultPorts());
     const turns = readTranscript(call.callId);
     const heard = turns?.filter((t) => t.role === 'recipient').map((t) => t.content) ?? [];
     const talked =
@@ -245,9 +261,14 @@ export async function completeOnBehalfCall(
 
     const request = toOnBehalfCallRequest(call);
     let outcome = buildCallOutcome(call, turns, analysis, durationSeconds);
+    const followthrough = isCallFollowthroughEnabled();
+    if (followthrough && classifyAnsweredCall(heard, durationSeconds) === 'opted_out') {
+      await recordOptOut?.(call);
+    }
+    // Only a call nobody answered, or that reached voicemail, is retried.
     const missed = outcome.status === 'no_answer' || outcome.status === 'voicemail';
-    if (isCallFollowthroughEnabled() && missed && scheduleRetry) {
-      const retryAt = await scheduleRetry(call.callId, request);
+    if (followthrough && missed && scheduleRetry) {
+      const retryAt = await scheduleRetry(call);
       if (retryAt) {
         const what =
           outcome.status === 'voicemail'

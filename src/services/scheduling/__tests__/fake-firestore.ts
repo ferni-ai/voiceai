@@ -55,8 +55,16 @@ export function fakeFirestore(rows: Row[]) {
       }),
     }),
   });
+  // Top-level documents (e.g. call_opt_outs/{id}) are rows with an empty userId.
+  const topDoc = (c: string) => (id: string) => ({
+    ...userDoc(id),
+    get: async () => ({ exists: rows.some((r) => r.collection === c && r.id === id && !r.userId) }),
+    set: async (data: Record<string, unknown>) => {
+      rows.push({ id, userId: '', collection: c, data: { ...data } });
+    },
+  });
   return {
-    collection: () => ({ doc: userDoc }),
+    collection: (c: string) => ({ doc: c === 'bogle_users' ? userDoc : topDoc(c) }),
     collectionGroup: (c: string) => query(c),
     runTransaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
       fn({

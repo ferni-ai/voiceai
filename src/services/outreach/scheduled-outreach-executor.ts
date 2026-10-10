@@ -101,7 +101,7 @@ export async function executeScheduledOutreach(outreach: ScheduledOutreach): Pro
     // Execute based on channel
     if (channelUsed === 'on_behalf_call') {
       const { placeCallRetry } = await import('./call-retry.js');
-      const result = await placeCallRetry(target.onBehalfRequest);
+      const result = await placeCallRetry(target.onBehalfDispatch, userId);
       success = result.success;
       errorMsg = result.error;
     } else if (channelUsed === 'call' || channelUsed === 'conversation') {

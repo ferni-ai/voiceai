@@ -63,11 +63,13 @@ function ports(turns: CallTranscriptTurn[], retryAt: Date | null = null) {
     analyze: vi.fn<CallLifecyclePorts['analyze']>(async () => null),
     report: vi.fn<CallLifecyclePorts['report']>(async () => undefined),
     scheduleRetry: vi.fn(async () => retryAt),
+    recordOptOut: vi.fn(async () => true),
   } satisfies CallLifecyclePorts;
 }
 
 afterEach(() => {
   delete process.env.CALL_FOLLOWTHROUGH;
+  delete process.env.LIVEKIT_API_SECRET;
 });
 
 describe('classifyAnsweredCall', () => {
@@ -79,6 +81,15 @@ describe('classifyAnsweredCall', () => {
       'voicemail',
     ],
     ['one reply then gone', ['Who is this?'], 71, 'hung_up_early'],
+    [
+      'a person asking not to be called',
+      ["I'm not available right now, don't call me again"],
+      8,
+      'opted_out',
+    ],
+    ['stop calling', ['Stop calling this number'], 5, 'opted_out'],
+    ['a person saying no', ['Not interested, bye'], 6, 'declined'],
+    ['a wrong number', ['Sorry, wrong number'], 6, 'declined'],
     ['a very short exchange', ['Hey', 'Gotta run'], 12, 'hung_up_early'],
     ['a conversation', ['Oh hi!', 'Doing great', 'Tell him to call me'], 95, 'answered'],
     [
@@ -107,13 +118,7 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
       callbackRequired: false,
     });
     expect(p.analyze).not.toHaveBeenCalled();
-    expect(p.scheduleRetry).toHaveBeenCalledWith(
-      call.callId,
-      expect.objectContaining({
-        userId: 'user-1',
-        resolvedContact: expect.objectContaining({ phone: '+15555550100' }),
-      })
-    );
+    expect(p.scheduleRetry).toHaveBeenCalledWith(call);
     expect(p.report).toHaveBeenCalledWith(call.callId, outcome, expect.anything());
   });
 
@@ -157,6 +162,27 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
     );
   });
 
+  it('never retries a person who declined, and records it when they ask not to be called', async () => {
+    process.env.CALL_FOLLOWTHROUGH = 'on';
+    const optOut = ports(said("I'm not available right now, don't call me again"), new Date());
+    const call = makeCall();
+    const outcome = await completeOnBehalfCall('s10', call, 8, true, optOut);
+    expect(outcome).toMatchObject({
+      status: 'completed',
+      objectiveAchieved: false,
+      outcome:
+        "I reached Mom, but they didn't want to talk and asked not to be called again, so I won't call them.",
+    });
+    expect(optOut.scheduleRetry).not.toHaveBeenCalled();
+    expect(optOut.recordOptOut).toHaveBeenCalledWith(call);
+    expect(optOut.analyze).not.toHaveBeenCalled();
+
+    const declined = ports(said('Not interested, bye'), new Date());
+    await completeOnBehalfCall('s11', makeCall(), 6, true, declined);
+    expect(declined.scheduleRetry).not.toHaveBeenCalled();
+    expect(declined.recordOptOut).not.toHaveBeenCalled();
+  });
+
   it('still summarizes a real conversation and never retries it', async () => {
     process.env.CALL_FOLLOWTHROUGH = 'on';
     const p = ports(said('Oh hi!', 'Doing great', 'Tell him to call me'));
@@ -171,14 +197,12 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
     const call = makeCall({ retryOf: 'call-0' });
     expect(call.retryOf).toBe('call-0');
     await completeOnBehalfCall('s6', call, 40, true, p);
-    expect(p.scheduleRetry).toHaveBeenCalledWith(
-      call.callId,
-      expect.objectContaining({ retryOf: 'call-0' })
-    );
+    expect(p.scheduleRetry).toHaveBeenCalledWith(expect.objectContaining({ retryOf: 'call-0' }));
   });
 
   it('on the live path, stores the result and the one retry for the requester', async () => {
     process.env.CALL_FOLLOWTHROUGH = 'on';
+    process.env.LIVEKIT_API_SECRET = 'server-secret';
     rows = [];
     const call = makeCall();
     await beginOnBehalfCall('s9', call);
@@ -194,6 +218,27 @@ describe('completeOnBehalfCall with CALL_FOLLOWTHROUGH', () => {
       id: `retry_${call.callId}`,
       userId: 'user-1',
     });
+  });
+
+  it('an opt-out goes on the do-not-call list and blocks any later retry to that number', async () => {
+    process.env.CALL_FOLLOWTHROUGH = 'on';
+    process.env.LIVEKIT_API_SECRET = 'server-secret';
+    rows = [];
+    const { recordCallOptOut, scheduleCallRetry } =
+      await import('../../../services/outreach/call-retry.js');
+
+    await completeOnBehalfCall('s13', makeCall(), 8, true, {
+      ...ports(said('Please stop calling me')),
+      scheduleRetry: (c) => scheduleCallRetry(c),
+      recordOptOut: (c) =>
+        recordCallOptOut(c.contact.phone, { callId: c.callId, requesterUserId: 'user-1' }),
+    });
+
+    expect(rows.find((r) => r.collection === 'call_opt_outs')).toMatchObject({
+      id: '15555550100',
+    });
+    expect(await scheduleCallRetry(makeCall())).toBeNull();
+    expect(rows.some((r) => r.collection === 'scheduled_outreach')).toBe(false);
   });
 
   it('changes nothing with the flag off', async () => {
