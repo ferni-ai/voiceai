@@ -193,7 +193,8 @@ export async function installTurnUnderstanding(
         covered: seen ? Math.round(seen.covered * 100) / 100 : null,
         ageMs: seen?.ageMs ?? null,
         words: turn.split(/\s+/).length,
-        model: u ?? null,
+        // Labels only: the model's free-text reaction can echo the caller's words.
+        model: u ? { ...u, reaction: undefined, hasReaction: u.reaction !== null } : null,
         regex,
         agree: u
           ? {
