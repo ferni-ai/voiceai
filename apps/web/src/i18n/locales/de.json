@@ -8096,6 +8096,12 @@
         "enter": "Ankomme",
         "exit": "Gehe",
         "both": "Beides"
+      },
+      "calendar": {
+        "start": "Wenn ein Termin beginnt",
+        "when": "Auslösen...",
+        "end": "Wenn ein Termin endet",
+        "reminder": "Kurz vor einem Termin"
       }
     },
     "actions": {
@@ -8130,7 +8136,11 @@
       "title": "Was soll ich tun?"
     },
     "defaultMessage": "Guten Morgen! Bereit, in den Tag zu starten?",
-    "trackHabit": "Verfolgen: {habit}"
+    "trackHabit": "Verfolgen: {habit}",
+    "errors": {
+      "signInRequired": "Melde dich an, um deine Routinen zu speichern",
+      "saveFailed": "Das konnte nicht gespeichert werden. Nochmal versuchen?"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -10102,7 +10112,9 @@
       "leave": "Wenn du {name} verlässt",
       "somewhere": "irgendwo",
       "calendar": "Vor deinen Kalenderterminen",
-      "event": "Wenn etwas passiert"
+      "event": "Wenn etwas passiert",
+      "calendarStart": "Wenn ein Kalendertermin beginnt",
+      "calendarEnd": "Wenn ein Kalendertermin endet"
     },
     "status": {
       "active": "Ich kümmere mich darum",

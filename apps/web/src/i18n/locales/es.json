@@ -8145,6 +8145,12 @@
         "enter": "Llegue",
         "exit": "Salga",
         "both": "Cualquiera de los dos"
+      },
+      "calendar": {
+        "start": "Cuando empieza un evento",
+        "when": "Activar...",
+        "end": "Cuando termina un evento",
+        "reminder": "Poco antes de un evento"
       }
     },
     "actions": {
@@ -8179,7 +8185,11 @@
       "title": "¿Qué debería hacer?"
     },
     "defaultMessage": "¡Buenos días! ¿Todo listo para empezar el día?",
-    "trackHabit": "Seguimiento: {habit}"
+    "trackHabit": "Seguimiento: {habit}",
+    "errors": {
+      "signInRequired": "Inicia sesión para guardar tus rutinas",
+      "saveFailed": "No se pudo guardar. ¿Lo intentas de nuevo?"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -10197,7 +10207,9 @@
       "leave": "Cuando te vayas de {name}",
       "somewhere": "algún lugar",
       "calendar": "Antes de tus eventos del calendario",
-      "event": "Cuando pase algo"
+      "event": "Cuando pase algo",
+      "calendarStart": "Cuando empieza un evento del calendario",
+      "calendarEnd": "Cuando termina un evento del calendario"
     },
     "status": {
       "active": "Me estoy encargando",

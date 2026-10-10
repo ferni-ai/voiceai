@@ -8096,6 +8096,12 @@
         "enter": "到着したとき",
         "exit": "出発したとき",
         "both": "どちらでも"
+      },
+      "calendar": {
+        "start": "予定が始まるとき",
+        "when": "起動するタイミング…",
+        "end": "予定が終わるとき",
+        "reminder": "予定の少し前"
       }
     },
     "actions": {
@@ -8130,7 +8136,11 @@
       "title": "何をしましょうか？"
     },
     "defaultMessage": "おはようございます！一日を始める準備はできましたか？",
-    "trackHabit": "記録：{habit}"
+    "trackHabit": "記録：{habit}",
+    "errors": {
+      "signInRequired": "ルーティンを保存するにはサインインしてください",
+      "saveFailed": "保存できませんでした。もう一度試してみてくださいね。"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -10102,7 +10112,9 @@
       "leave": "{name}を出発したとき",
       "somewhere": "どこか",
       "calendar": "カレンダーの予定の前に",
-      "event": "何かが起きたとき"
+      "event": "何かが起きたとき",
+      "calendarStart": "カレンダーの予定が始まるとき",
+      "calendarEnd": "カレンダーの予定が終わるとき"
     },
     "status": {
       "active": "お任せください",
