@@ -9,10 +9,13 @@
 //   reply ends on a question, stock reaction-word openers, markup leaking into
 //   captions.
 // Listening: short agent sounds while the user is still talking are
-//   backchannels ("mm-hm"); long ones are interruptions.
+//   backchannels ("mm-hm"); long ones are interruptions. presence: when the
+//   mid-turn clips start relative to the caller's pause, and how many land on
+//   their next phrase.
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { compareToTargets, computeHumanness } from './humanness.mjs';
+import { presenceOfRuns } from './presence.mjs';
 
 const STOCK_OPENER = /^(?:oh+|ugh+|ha(?:ha)*|hah|yeah|yep|hmm+|mm+|ah+|aw+|wow|whoa)\b/i;
 const BACKCHANNEL_MAX_MS = 1500;
@@ -175,6 +178,8 @@ const score = {
   // Turn shape and stance against human conversation (humanness.mjs). Targets:
   // HUMAN_TARGETS, or the research file when present.
   humanness: computeHumanness(runs),
+  // Mid-turn backchannels against the caller's pauses (presence.mjs).
+  presence: presenceOfRuns(runs),
   replyTexts: replies,
 };
 const targetsFile =
