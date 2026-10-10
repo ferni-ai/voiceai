@@ -128,8 +128,18 @@ export async function startBackchannelClips(
 ): Promise<{
   playClip: (text: string, opts?: { pauseStartedAt?: number }) => boolean;
   lastPlayedAt: () => number;
-  /** Take back a clip played moments ago (the caller carried on). True if dropped. */
+  /** Cut a clip played moments ago (the caller carried on). True if cut. */
   cancelFresh: () => boolean;
+  /**
+   * play() to the wire for a clip: measured on the direct track (the last
+   * clip), estimated on the mixer track (~650 ms; ~220 ms with #692's pacing).
+   */
+  wireDelayMs: () => number;
+  /** What live backchanneling needs (live-backchanneling-integration.ts). */
+  live: {
+    playClip: (text: string, opts?: { pauseStartedAt?: number }) => boolean;
+    cancelClip: () => boolean;
+  };
   close: () => Promise<void>;
 } | null> {
   if (process.env.BACKCHANNEL_CLIPS === 'off') return null;
@@ -144,19 +154,24 @@ export async function startBackchannelClips(
   const direct = reactionSidetrackDirect() ? await startDirectClips(room, session) : null;
   const stopPresence = startPresenceSounds(session, player, () => direct?.playing ?? false);
   const stopToolHum = startToolHum(session, player);
+  const playClip = (text: string, opts?: { pauseStartedAt?: number }): boolean => {
+    const pcm = getClip(text, personaId());
+    if (pcm === null) return false;
+    const played = direct
+      ? !player.playing && direct.play(pcm, BACKCHANNEL_VOLUME, text, opts?.pauseStartedAt)
+      : player.play(pcm, BACKCHANNEL_VOLUME);
+    if (!played) return false;
+    lastPlayedAt = Date.now();
+    return true;
+  };
+  const cancelFresh = (): boolean => direct?.cancelIfFresh() ?? false;
   return {
-    playClip: (text, opts) => {
-      const pcm = getClip(text, personaId());
-      if (pcm === null) return false;
-      const played = direct
-        ? !player.playing && direct.play(pcm, BACKCHANNEL_VOLUME, text, opts?.pauseStartedAt)
-        : player.play(pcm, BACKCHANNEL_VOLUME);
-      if (!played) return false;
-      lastPlayedAt = Date.now();
-      return true;
-    },
+    playClip,
     lastPlayedAt: () => lastPlayedAt,
-    cancelFresh: () => direct?.cancelIfFresh() ?? false,
+    cancelFresh,
+    wireDelayMs: () =>
+      direct ? (direct.lastWireMs ?? 60) : process.env.CLIP_TRACK_PACED === 'on' ? 220 : 650,
+    live: { playClip, cancelClip: cancelFresh },
     close: async () => {
       stopPresence();
       stopToolHum();

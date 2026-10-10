@@ -1,14 +1,15 @@
 /**
  * A side track for reaction clips ("mm-hmm", a laugh, the turn-opening "Mm")
- * with no mixer in front of it: 10 ms frames go straight into a 50 ms
- * AudioSource queue, silence when idle, a clip's frames the moment it plays.
+ * with no mixer in front of it: 10 ms frames go straight into an AudioSource
+ * that holds ~50 ms of silence while idle, and a clip's frames the moment it
+ * plays.
  *
  * The BackgroundAudioPlayer path queues ahead of every clip: its AudioMixer
  * works in 100 ms blocks and its AudioSource holds 400 ms. A clip reached the
  * wire 640-688 ms after play() (rtc-node, n=8, 2026-10-10), and in dev evals
  * 82% of mid-turn backchannels started after the caller was talking again.
  * Without the mixer the same measurement is ~56 ms, short enough to land a
- * backchannel inside a 450 ms pause and to take one back when the caller
+ * backchannel inside a 450 ms pause and to cut one short when the caller
  * carries on (cancelIfFresh).
  *
  * The track name contains "background" so the voice-eval harness counts it as
@@ -37,8 +38,11 @@ const FRAME = RATE / 100; // 10 ms
 const FADE_FRAMES = 2;
 
 export const DIRECT_TRACK_NAME = 'background_reactions';
-/** Audio queued in the source: the cushion against event-loop stalls. */
-export const DIRECT_QUEUE_MS = 50;
+/** Source capacity: up to this much of a clip is queued, a cushion against stalls. */
+export const DIRECT_CAPACITY_MS = 400;
+/** Silence kept queued while idle: all a new clip waits behind. */
+export const IDLE_QUEUE_MS = 50;
+const IDLE_POLL_MS = 5;
 /** A clip the caller talks over within this long of play() is taken back. */
 export const CANCEL_WINDOW_MS = 200;
 
@@ -90,13 +94,18 @@ export function clipFrames(pcm: ArrayBuffer, volume = 1): Int16Array[] {
 }
 
 export class DirectClipTrack {
-  private pending: Int16Array[] = [];
+  /** The clip being played, all its frames, and how many went to the source. */
+  private frames: Int16Array[] = [];
+  private sent = 0;
+  /** Wall clock when the last clip frame queued so far finishes playing. */
+  private clipEndsAt = 0;
   private current: {
     label: string;
     playedAt: number;
     pauseStartedAt?: number;
     wired: boolean;
   } | null = null;
+  private lastWire: number | null = null;
   private readonly cleanups: Array<() => void> = [];
   private closed = false;
   private pump: Promise<void> | null = null;
@@ -105,7 +114,8 @@ export class DirectClipTrack {
 
   constructor(
     private readonly onWire: (wire: ClipWire) => void = () => {},
-    private readonly source: AudioSource = new AudioSource(RATE, 1, DIRECT_QUEUE_MS)
+    private readonly source: AudioSource = new AudioSource(RATE, 1, DIRECT_CAPACITY_MS),
+    private readonly idleQueueMs = IDLE_QUEUE_MS
   ) {}
 
   /** Publish the track and start feeding it. */
@@ -123,9 +133,14 @@ export class DirectClipTrack {
     this.pump ??= this.run();
   }
 
-  /** True while a clip still has frames to send. */
+  /** True while a clip has frames left to send or audio still queued to play. */
   get playing(): boolean {
-    return this.pending.length > 0;
+    return this.sent < this.frames.length || Date.now() < this.clipEndsAt;
+  }
+
+  /** The last clip's measured play()-to-wire time, or null before the first. */
+  get lastWireMs(): number | null {
+    return this.lastWire;
   }
 
   /**
@@ -136,7 +151,8 @@ export class DirectClipTrack {
     if (this.closed || this.playing) return false;
     const frames = clipFrames(pcm, volume);
     if (frames.length === 0) return false;
-    this.pending = frames;
+    this.frames = frames;
+    this.sent = 0;
     this.current = { label, playedAt: performance.now(), pauseStartedAt, wired: false };
     return true;
   }
@@ -147,13 +163,18 @@ export class DirectClipTrack {
   }
 
   /**
-   * The caller carried on: drop the rest of a clip played under `windowMs`
-   * ago, after a short fade so the cut does not click. True if dropped.
+   * The caller carried on: cut a clip played under `windowMs` ago. Its start
+   * has usually been heard already, so the queued audio is dropped and the
+   * clip fades out from about where playout is, rather than stopping dead.
+   * True if cut.
    */
   cancelIfFresh(windowMs = CANCEL_WINDOW_MS): boolean {
     if (!this.playing || !this.current) return false;
     if (performance.now() - this.current.playedAt > windowMs) return false;
-    const tail = this.pending.slice(0, FADE_FRAMES).map((f, k) => {
+    const queued = Math.min(this.sent, Math.round(this.source.queuedDuration / 10));
+    const at = this.sent - queued;
+    this.source.clearQueue();
+    const tail = this.frames.slice(at, at + FADE_FRAMES).map((f, k) => {
       const out = new Int16Array(f.length);
       for (let j = 0; j < f.length; j++) {
         const g = 1 - (k * f.length + j) / (FADE_FRAMES * f.length);
@@ -161,24 +182,41 @@ export class DirectClipTrack {
       }
       return out;
     });
-    this.pending = tail;
+    this.frames = tail;
+    this.sent = 0;
+    this.clipEndsAt = 0;
     return true;
   }
 
   stop(): void {
-    this.pending = [];
+    this.frames = [];
+    this.sent = 0;
+    this.clipEndsAt = 0;
   }
 
+  /**
+   * Clip frames go in as fast as the source takes them, up to its 400 ms
+   * capacity, so an event-loop stall mid-clip plays out of the queue instead
+   * of leaving a gap in the "mm-hmm". Idle, silence is topped up only to
+   * `idleQueueMs`, so a new clip waits behind that little and no more.
+   */
   private async run(): Promise<void> {
     const silent = new Int16Array(FRAME);
     while (!this.closed) {
-      const data = this.pending.shift() ?? silent;
+      const clip = this.sent < this.frames.length ? this.frames[this.sent] : undefined;
+      if (clip === undefined && this.source.queuedDuration >= this.idleQueueMs) {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, IDLE_POLL_MS);
+        });
+        continue;
+      }
       const cur = this.current;
-      if (cur && !cur.wired && data !== silent) {
+      if (clip !== undefined && cur && !cur.wired) {
         cur.wired = true;
         const queuedAheadMs = this.source.queuedDuration;
         const playToWireMs = performance.now() - cur.playedAt + queuedAheadMs;
         const wireAt = Date.now() + queuedAheadMs;
+        this.lastWire = playToWireMs;
         this.onWire({
           label: cur.label,
           playToWireMs,
@@ -187,19 +225,20 @@ export class DirectClipTrack {
           pauseToWireMs: cur.pauseStartedAt === undefined ? undefined : wireAt - cur.pauseStartedAt,
         });
       }
+      if (clip !== undefined) this.sent++;
       try {
-        // Resolves once the queue has room: this is what paces the track.
-        await this.source.captureFrame(new AudioFrame(data, RATE, 1, FRAME));
+        await this.source.captureFrame(new AudioFrame(clip ?? silent, RATE, 1, FRAME));
       } catch {
         break;
       }
+      if (clip !== undefined) this.clipEndsAt = Date.now() + this.source.queuedDuration;
     }
   }
 
   /** Never rejects: it runs from session cleanup, often after the room is gone. */
   async close(): Promise<void> {
     this.closed = true;
-    this.pending = [];
+    this.stop();
     for (const fn of this.cleanups.splice(0)) fn();
     await this.pump?.catch(() => undefined);
     try {

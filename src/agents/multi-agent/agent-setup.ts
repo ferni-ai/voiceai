@@ -1843,11 +1843,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
             () => conversationManager?.isAgentSpeaking() ?? false,
             // A native-audio model would turn a scripted "mm-hmm" into a full
             // reply while the user is still talking.
-            {
-              enabled: !getModelProvider().speaksNatively?.(),
-              playClip: clips?.playClip,
-              cancelClip: clips?.cancelFresh,
-            }
+            { enabled: !getModelProvider().speaksNatively?.(), ...clips?.live }
           );
           cleanupFunctions.push(() => liveBackchannel?.cleanup());
           // A user turn ends when the agent takes the floor. Ink finalizes a

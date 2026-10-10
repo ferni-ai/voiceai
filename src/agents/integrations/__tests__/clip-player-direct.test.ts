@@ -43,6 +43,7 @@ vi.mock('../direct-clip-track.js', async (importOriginal) => ({
         return true;
       },
       cancelIfFresh: () => (direct.cancelled++, true),
+      lastWireMs: 57,
       close: async () => {
         direct.closed++;
       },
@@ -71,6 +72,9 @@ describe('clip player with REACTION_SIDETRACK', () => {
     expect(mixerClips()).toBe(1);
     expect(direct.started).toBe(0);
     expect(clips!.cancelFresh()).toBe(false);
+    expect(clips!.wireDelayMs()).toBe(650);
+    vi.stubEnv('CLIP_TRACK_PACED', 'on');
+    expect(clips!.wireDelayMs()).toBe(220);
   });
 
   it('direct: clips go to the direct track with the pause onset, not the mixer', async () => {
@@ -81,8 +85,10 @@ describe('clip player with REACTION_SIDETRACK', () => {
     expect(direct.played).toEqual([{ label: 'Mm-hmm', pauseStartedAt: 123 }]);
     expect(mixerClips()).toBe(0);
     expect(clips!.lastPlayedAt()).toBeGreaterThan(before);
-    expect(clips!.cancelFresh()).toBe(true);
+    expect(clips!.live.cancelClip()).toBe(true);
     expect(direct.cancelled).toBe(1);
+    expect(clips!.wireDelayMs()).toBe(57);
+    expect(clips!.live.playClip).toBe(clips!.playClip);
     await clips!.close();
     expect(direct.closed).toBe(1);
   });
