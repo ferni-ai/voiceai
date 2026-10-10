@@ -1799,8 +1799,8 @@ async function activatePreset(preset: VibePresetUI): Promise<void> {
     if (!result) {
       toast.error(t('vibe.couldNotSetVibe', "Couldn't set that vibe. Try again?"));
     } else if (!result.applied) {
-      // Nothing in the room changed (e.g. no devices connected): say so instead of "set!"
-      toast.info(result.message || t('vibe.connectDevicesFirst', 'Connect your lights or thermostat first'));
+      // Nothing changed in the room: say so in their language, not the server's English message
+      toast.info(t('vibe.connectDevicesFirst', 'Connect your lights or thermostat first'));
     } else {
       currentState.activePreset = preset.id;
       if (result.lights && preset.lights) {
