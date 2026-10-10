@@ -1693,6 +1693,8 @@ function handleAddAction(action: string | null): void {
       state.activeTab = 'timeline';
       render();
       break;
+    case 'edit-notes': // its button opens Edit on the notes
+      return handleQuickAction(action);
     case 'add-gift':
       if (state.person) {
         openRecordGift({
