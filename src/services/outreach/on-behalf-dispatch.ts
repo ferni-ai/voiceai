@@ -9,8 +9,8 @@
  * the person on the line as our user: their words were saved to the user's
  * memory and the user's profile was loaded into someone else's call.
  *
- * The agent only reports a call back to the requester when the payload carries
- * a valid `requesterSignature`. Dispatch metadata can reach the agent from
+ * The agent only reports a call back to the requester when the dispatch it
+ * received carries a valid `requesterSignature` over the whole payload. Dispatch metadata can reach the agent from
  * paths a caller controls (e.g. the Twilio media-stream bridge), and a forged
  * payload must not be able to push "call results" to someone else's phone.
  *
@@ -47,26 +47,53 @@ export function buildOnBehalfDispatch(input: OnBehalfDispatchInput): OnBehalfDis
   return { type: 'on_behalf_call', session_id: `onbehalf:${input.callId}`, ...input };
 }
 
-function signatureFor(d: OnBehalfDispatch, secret: string): string {
-  // Binds who hears the result to the call that was placed
-  const signed = JSON.stringify([d.callId, d.requester.userId, d.contact.phone, d.purpose]);
-  return createHmac('sha256', secret).update(signed).digest('base64url');
+/** JSON with sorted keys and undefined dropped, so signer and receiver hash the same bytes. */
+function canonical(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'null';
 }
 
-/** Sign a dispatch the server itself created. Use the LiveKit API secret. */
+function signatureFor(payload: Record<string, unknown>, secret: string): string {
+  const { requesterSignature: _omit, ...signed } = payload;
+  return createHmac('sha256', secret).update(canonical(signed)).digest('base64url');
+}
+
+/**
+ * Sign a dispatch the server itself created, over every field, so no part of a
+ * signed payload (who hears the result, which room it goes to, what was said
+ * about the call) can be changed. Use the LiveKit API secret.
+ */
 export function signOnBehalfDispatch(d: OnBehalfDispatch, secret: string): OnBehalfDispatch {
-  return { ...d, requesterSignature: signatureFor(d, secret) };
+  return { ...d, requesterSignature: signatureFor({ ...d }, secret) };
 }
 
-/** True only for a payload signed by a trusted dispatcher with this secret. */
-export function isTrustedOnBehalfDispatch(
-  d: OnBehalfDispatch,
+/**
+ * True only when the job metadata exactly as dispatched (the raw JSON string)
+ * carries a valid signature from a trusted dispatcher using this secret.
+ */
+export function verifyOnBehalfDispatch(
+  rawJobMetadata: string | undefined,
   secret: string | undefined
 ): boolean {
-  if (!secret || !d.requesterSignature) return false;
-  const expected = Buffer.from(signatureFor(d, secret));
-  const given = Buffer.from(d.requesterSignature);
-  return expected.length === given.length && timingSafeEqual(expected, given);
+  if (!secret || !rawJobMetadata) return false;
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rawJobMetadata);
+  } catch {
+    return false;
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
+  const given = (payload as Record<string, unknown>).requesterSignature;
+  if (typeof given !== 'string' || !given) return false;
+  const expected = Buffer.from(signatureFor(payload as Record<string, unknown>, secret));
+  const actual = Buffer.from(given);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
@@ -83,7 +110,7 @@ export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBeha
   const userId = str(requester.userId) || str(metadata.userId);
   if (!callId || !userId || userId === 'unknown') return null;
 
-  const dispatch = buildOnBehalfDispatch({
+  return buildOnBehalfDispatch({
     callId,
     requester: {
       userId,
@@ -101,6 +128,4 @@ export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBeha
     callType: (str(metadata.callType) || 'personal') as CallType,
     script: str(metadata.script) || undefined,
   });
-  const signature = str(metadata.requesterSignature);
-  return signature ? { ...dispatch, requesterSignature: signature } : dispatch;
 }

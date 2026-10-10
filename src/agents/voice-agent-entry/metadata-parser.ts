@@ -152,15 +152,15 @@ export async function setupCallTypeContexts(
     );
 
     try {
-      const { parseOnBehalfDispatch } = await import('../../services/outreach/on-behalf-dispatch.js');
+      const { parseOnBehalfDispatch } =
+        await import('../../services/outreach/on-behalf-dispatch.js');
       const call = parseOnBehalfDispatch(metadata);
       const { setOutboundCallContext } =
         await import('../../intelligence/context-builders/external/outbound-call-context.js');
       const roomNameForContext = roomName || `call-${metadata.callId}`;
       const outboundContext = {
         callId: metadata.callId as string,
-        recipientName:
-          ((metadata.contact as Record<string, unknown>)?.name as string) || 'Unknown',
+        recipientName: ((metadata.contact as Record<string, unknown>)?.name as string) || 'Unknown',
         recipientPhone: ((metadata.contact as Record<string, unknown>)?.phone as string) || '',
         purpose: (metadata.purpose as string) || 'General call',
         callType:
@@ -216,11 +216,9 @@ export async function setupCallTypeContexts(
         lastMood: metadata.lastMood as string | undefined,
         lastSessionSummary: metadata.lastSessionSummary as string | undefined,
         relatedDate: metadata.relatedDate as
-          | { type: string; date: Date; description: string }
-          | undefined,
+          { type: string; date: Date; description: string } | undefined,
         relatedCommitment: metadata.relatedCommitment as
-          | { summary: string; madeOn: Date; dueDate?: Date }
-          | undefined,
+          { summary: string; madeOn: Date; dueDate?: Date } | undefined,
         openerStyle:
           (metadata.openerStyle as 'warm' | 'celebratory' | 'gentle' | 'supportive' | 'curious') ||
           'warm',
@@ -251,11 +249,15 @@ export async function finishCallTypeContexts(
   metadata: Record<string, unknown>,
   callType: string | undefined,
   sessionId: string,
-  sessionDurationMs: number
+  sessionDurationMs: number,
+  rawJobMetadata: string | undefined
 ): Promise<void> {
   if (callType !== 'on_behalf_call') return;
-  const { parseOnBehalfDispatch } = await import('../../services/outreach/on-behalf-dispatch.js');
+  const { parseOnBehalfDispatch, verifyOnBehalfDispatch } =
+    await import('../../services/outreach/on-behalf-dispatch.js');
   const { completeOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
   const call = parseOnBehalfDispatch(metadata);
-  if (call) await completeOnBehalfCall(sessionId, call, Math.round(sessionDurationMs / 1000));
+  if (!call) return;
+  const trusted = verifyOnBehalfDispatch(rawJobMetadata, process.env.LIVEKIT_API_SECRET);
+  await completeOnBehalfCall(sessionId, call, Math.round(sessionDurationMs / 1000), trusted);
 }

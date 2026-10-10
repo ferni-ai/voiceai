@@ -71,7 +71,6 @@ function analysis(): SuperhumanCallResult {
 
 function ports(turns: CallTranscriptTurn[] | null, analyze?: CallLifecyclePorts['analyze']) {
   return {
-    isTrusted: vi.fn<CallLifecyclePorts['isTrusted']>(() => true),
     readTranscript: vi.fn<CallLifecyclePorts['readTranscript']>(() => turns),
     analyze: vi.fn<CallLifecyclePorts['analyze']>(analyze ?? (async () => analysis())),
     report: vi.fn<CallLifecyclePorts['report']>(async () => undefined),
@@ -117,7 +116,7 @@ describe('completeOnBehalfCall', () => {
     const call = makeCall('c-report');
     const p = ports(conversation);
 
-    const outcome = await completeOnBehalfCall('s-report', call, 90, p);
+    const outcome = await completeOnBehalfCall('s-report', call, 90, true, p);
 
     expect(p.analyze).toHaveBeenCalledWith('c-report', 90, call.purpose, 'Seth');
     expect(p.report).toHaveBeenCalledTimes(1);
@@ -136,8 +135,8 @@ describe('completeOnBehalfCall', () => {
   it('reports once even when several exit paths finish the same call', async () => {
     const call = makeCall('c-once');
     const p = ports(conversation);
-    await completeOnBehalfCall('s-once', call, 90, p);
-    await expect(completeOnBehalfCall('s-once', call, 91, p)).resolves.toBeNull();
+    await completeOnBehalfCall('s-once', call, 90, true, p);
+    await expect(completeOnBehalfCall('s-once', call, 91, true, p)).resolves.toBeNull();
     expect(p.report).toHaveBeenCalledTimes(1);
   });
 
@@ -145,21 +144,23 @@ describe('completeOnBehalfCall', () => {
     const p = ports(conversation, async () => {
       throw new Error('llm down');
     });
-    const outcome = await completeOnBehalfCall('s-llm', makeCall('c-llm'), 90, p);
+    const outcome = await completeOnBehalfCall('s-llm', makeCall('c-llm'), 90, true, p);
     expect(p.report).toHaveBeenCalledTimes(1);
     expect(outcome?.outcome).toContain('The appointment went really well');
   });
 
   it('never reports a dispatch that no trusted dispatcher signed', async () => {
-    const p = { ...ports(conversation), isTrusted: vi.fn(() => false) };
-    await expect(completeOnBehalfCall('s-forged', makeCall('c-forged'), 90, p)).resolves.toBeNull();
+    const p = ports(conversation);
+    await expect(
+      completeOnBehalfCall('s-forged', makeCall('c-forged'), 90, false, p)
+    ).resolves.toBeNull();
     expect(p.analyze).not.toHaveBeenCalled();
     expect(p.report).not.toHaveBeenCalled();
   });
 
   it('skips the analysis when nobody answered', async () => {
     const p = ports([]);
-    const outcome = await completeOnBehalfCall('s-none', makeCall('c-none'), 30, p);
+    const outcome = await completeOnBehalfCall('s-none', makeCall('c-none'), 30, true, p);
     expect(p.analyze).not.toHaveBeenCalled();
     expect(outcome?.status).toBe('no_answer');
   });
@@ -202,7 +203,7 @@ describe('on-behalf turn capture', () => {
     ]);
 
     // Finishing the call releases the transcript and the session mapping
-    await completeOnBehalfCall(sessionId, call, 60, ports(conversation));
+    await completeOnBehalfCall(sessionId, call, 60, true, ports(conversation));
     expect(hasActiveTranscript(call.callId)).toBe(false);
     expect(isOnBehalfCall(sessionId)).toBe(false);
   });

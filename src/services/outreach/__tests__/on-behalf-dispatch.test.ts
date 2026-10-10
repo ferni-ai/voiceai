@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildOnBehalfDispatch,
-  isTrustedOnBehalfDispatch,
   parseOnBehalfDispatch,
   signOnBehalfDispatch,
+  verifyOnBehalfDispatch,
 } from '../on-behalf-dispatch.js';
 import { identifyFromMetadata } from '../../identity/user-identification.js';
 
@@ -71,25 +71,38 @@ describe('on-behalf dispatch contract', () => {
     expect(parseOnBehalfDispatch({ callId: 'x' })).toBeNull();
   });
 
-  it('trusts only payloads signed with the server secret, after the wire round-trip', () => {
-    const signed = signOnBehalfDispatch(buildOnBehalfDispatch(input), 'server-secret');
-    const received = parseOnBehalfDispatch(JSON.parse(JSON.stringify(signed)));
-    if (!received) throw new Error('signed payload did not parse');
-
-    expect(isTrustedOnBehalfDispatch(received, 'server-secret')).toBe(true);
-    expect(isTrustedOnBehalfDispatch(received, 'other-secret')).toBe(false);
-    expect(isTrustedOnBehalfDispatch(received, undefined)).toBe(false);
+  it('trusts only the dispatch exactly as the server signed it', () => {
+    const wire = JSON.stringify(
+      signOnBehalfDispatch(buildOnBehalfDispatch(input), 'server-secret')
+    );
+    expect(verifyOnBehalfDispatch(wire, 'server-secret')).toBe(true);
+    expect(verifyOnBehalfDispatch(wire, 'other-secret')).toBe(false);
+    expect(verifyOnBehalfDispatch(wire, undefined)).toBe(false);
+    expect(
+      verifyOnBehalfDispatch(JSON.stringify(buildOnBehalfDispatch(input)), 'server-secret')
+    ).toBe(false);
+    expect(verifyOnBehalfDispatch('not json', 'server-secret')).toBe(false);
   });
 
-  it('rejects unsigned payloads and signatures moved onto another requester', () => {
-    const unsigned = parseOnBehalfDispatch(
-      JSON.parse(JSON.stringify(buildOnBehalfDispatch(input)))
+  it('rejects a signed payload with any field changed', () => {
+    const signed = JSON.parse(
+      JSON.stringify(signOnBehalfDispatch(buildOnBehalfDispatch(input), 'server-secret'))
     );
-    if (!unsigned) throw new Error('payload did not parse');
-    expect(isTrustedOnBehalfDispatch(unsigned, 'server-secret')).toBe(false);
+    const tampered = [
+      { ...signed, requester: { ...signed.requester, userId: 'victim' } },
+      { ...signed, requester: { ...signed.requester, originalSessionId: 'someone-elses-room' } },
+      { ...signed, contact: { ...signed.contact, name: 'Your bank' } },
+      { ...signed, purpose: 'say something else' },
+      { ...signed, script: 'injected script' },
+    ];
+    for (const payload of tampered) {
+      expect(verifyOnBehalfDispatch(JSON.stringify(payload), 'server-secret')).toBe(false);
+    }
+  });
 
+  it('verifies regardless of key order on the wire', () => {
     const signed = signOnBehalfDispatch(buildOnBehalfDispatch(input), 'server-secret');
-    const retargeted = { ...signed, requester: { ...signed.requester, userId: 'victim' } };
-    expect(isTrustedOnBehalfDispatch(retargeted, 'server-secret')).toBe(false);
+    const reordered = Object.fromEntries(Object.entries(signed).reverse());
+    expect(verifyOnBehalfDispatch(JSON.stringify(reordered), 'server-secret')).toBe(true);
   });
 });
