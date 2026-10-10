@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error -- plain .mjs script, no types
-import { combine, DIMENSIONS, meanCi, pool, promptFor } from '../../../scripts/voice-eval/judge.mjs';
+import { combine, DIMENSIONS, ferniBiography, meanCi, pool, promptFor } from '../../../scripts/voice-eval/judge.mjs';
 
 const run = (events: Array<[string, string]>) => ({
   userSpeech: [[1000, 2000]],
@@ -52,5 +52,13 @@ describe('voice-eval judge', () => {
     expect(withSeed).toContain('2. FERNI: The Stripe interview?');
     expect(withSeed).toContain('CALLER: I have an interview at Stripe on Monday.');
     expect(promptFor(call, null)).toContain('There was no earlier call');
+  });
+
+  it("gives the judge Ferni's canonical background so its stories are judged against it", () => {
+    expect(ferniBiography()).toMatch(/Wyoming/);
+    expect(ferniBiography()).toMatch(/Japan/);
+    const p = promptFor({ userSpeech: [[0, 1]], events: [] }, null);
+    expect(p).toContain("FERNI'S BACKGROUND");
+    expect(ferniBiography('/no/such/file')).toBe('');
   });
 });
