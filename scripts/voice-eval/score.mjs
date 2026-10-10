@@ -200,6 +200,16 @@ const score = {
         { clips: 0, reached: 0 }
       )
     : null,
+  // Phone runs: each heard gap split into uplink, agent, downlink (phone-merge.mjs).
+  phoneLegsMs: (() => {
+    const turns = runs.flatMap((r) => r.agentRoom?.turns ?? []).filter((t) => t.agentMs !== undefined);
+    if (!turns.length) return null;
+    const leg = (k) => {
+      const xs = turns.map((t) => t[k]).filter((x) => typeof x === 'number');
+      return { p50: pct(xs, 50), p90: pct(xs, 90) };
+    };
+    return { n: turns.length, uplink: leg('uplinkMs'), agent: leg('agentMs'), agentVoice: leg('agentVoiceMs'), downlink: leg('downlinkMs') };
+  })(),
   // Turn shape and stance against human conversation (humanness.mjs). Targets:
   // HUMAN_TARGETS, or the research file when present.
   humanness: computeHumanness(runs),

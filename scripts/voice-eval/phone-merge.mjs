@@ -51,6 +51,38 @@ export function backgroundReach(background, replyVoice, heard) {
   return { clips: alone.length, reached: reached.length };
 }
 
+/**
+ * Each turn's heard gap split into legs, all on the caller's clock:
+ *   uplinkMs   caller stopped (converse) -> caller audio ended at the agent (its SIP track)
+ *   agentMs    -> the agent's first sound of any kind, as published (agentVoiceMs: reply voice)
+ *   downlinkMs -> first agent sound heard back over the phone
+ * so heardGapMs = uplinkMs + agentMs + downlinkMs. agentMs lines up with the
+ * agent's REPLY_GAP log (stopToCommitMs + commitToAudioMs) for the same call.
+ */
+export function turnLegs(results, { caller, reply, background }) {
+  const firstFrom = (segs, t) => Math.min(...segs.filter(([s]) => s >= t).map(([s]) => s));
+  return results
+    .filter((r) => typeof r.replyDelayMs === 'number' && !r.mode)
+    .map((r) => {
+      const ends = caller
+        .map(([, e]) => e)
+        .filter((e) => e >= r.userEndedAt - 500 && e <= r.userEndedAt + 2000);
+      if (!ends.length) return { turn: r.turn, heardGapMs: r.replyDelayMs };
+      const atAgent = Math.max(...ends);
+      const sound = firstFrom([...reply, ...background], atAgent);
+      const voice = firstFrom(reply, atAgent);
+      const heard = r.userEndedAt + r.replyDelayMs;
+      return {
+        turn: r.turn,
+        heardGapMs: r.replyDelayMs,
+        uplinkMs: atAgent - r.userEndedAt,
+        agentMs: Number.isFinite(sound) ? sound - atAgent : null,
+        agentVoiceMs: Number.isFinite(voice) ? voice - atAgent : null,
+        downlinkMs: Number.isFinite(sound) ? heard - sound : null,
+      };
+    });
+}
+
 /** The caller-side run with the agent room's captions and tracks on its clock. */
 export function mergeAgentRoom(run, agentRoom, { readPcm } = {}) {
   const shift = agentRoom.wallT0 - run.wallT0;
@@ -76,6 +108,10 @@ export function mergeAgentRoom(run, agentRoom, { readPcm } = {}) {
     const reply = agentTracks.filter((t) => !/background/.test(t.name)).flatMap(segsOf);
     const heard = run.tracks.flatMap((t) => t.voice);
     merged.agentRoom.backgroundReach = backgroundReach(background, reply, heard);
+    const caller = agentRoom.tracks
+      .filter((t) => /^sip_/.test(t.name) && t.startT !== null)
+      .flatMap(segsOf);
+    merged.agentRoom.turns = turnLegs(run.results, { caller, reply, background });
   }
   return merged;
 }

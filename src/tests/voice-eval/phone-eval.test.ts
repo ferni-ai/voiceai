@@ -10,6 +10,7 @@ import {
 import {
   backgroundReach,
   mergeAgentRoom,
+  turnLegs,
   voiceSegments,
 } from '../../../scripts/voice-eval/phone-merge.mjs';
 
@@ -125,5 +126,37 @@ describe('voice-eval phone merge', () => {
     ];
     expect(backgroundReach(background, reply, heard)).toEqual({ clips: 2, reached: 1 });
     expect(backgroundReach(background, reply, [])).toEqual({ clips: 2, reached: 0 });
+  });
+
+  it('splits each heard gap into uplink, agent and downlink legs', () => {
+    const results = [
+      { turn: 't1.pcm', userEndedAt: 10000, replyDelayMs: 2000 },
+      { turn: 't2.pcm', mode: 'backchannel', userEndedAt: 15000, replyDelayMs: 100 },
+    ];
+    const legs = {
+      caller: [
+        [8000, 9000],
+        [9500, 10400], // the caller's audio stops reaching the agent 400 ms late
+      ],
+      background: [[11000, 11200]], // an opening "mm" before the reply voice
+      reply: [
+        [3000, 4000],
+        [11500, 13000],
+      ],
+    };
+    expect(turnLegs(results, legs)).toEqual([
+      {
+        turn: 't1.pcm',
+        heardGapMs: 2000,
+        uplinkMs: 400,
+        agentMs: 600,
+        agentVoiceMs: 1100,
+        downlinkMs: 1000,
+      },
+    ]);
+    expect(turnLegs(results, { ...legs, background: [] })[0]).toMatchObject({
+      agentMs: 1100,
+      downlinkMs: 500,
+    });
   });
 });
