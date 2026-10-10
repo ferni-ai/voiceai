@@ -1,14 +1,15 @@
 /**
  * Referral Service - Network Effect Seeds System
  *
- * Manages referral codes, tracking, and seed rewards for viral growth.
+ * The server owns referrals (`/api/seeds/*`): it issues each user's referral code,
+ * registers a friend's signup against it, and keeps the counts. This service only
+ * reads that state and reports a friend's signup - it never invents a code, a
+ * count, or a reward of its own.
  *
  * Philosophy: "Seeds grow when shared"
- * - Both parties get seeds when a referral converts
- * - Creates a "garden" of referrals that generates passive income
- * - Rewards meaningful sharing, not spam
  */
 
+import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { addSeeds } from './cosmetics.service.js';
 
@@ -18,124 +19,92 @@ const log = createLogger('ReferralService');
 // CONSTANTS
 // ============================================================================
 
-/** Seeds awarded to referrer when friend signs up */
+/** Seeds the server awards the referrer when a friend joins (seeds-routes.ts) */
 export const REFERRAL_SIGNUP_REWARD = 25;
 
-/** Seeds awarded to new user when they sign up via referral */
+/** Seeds the server awards a new user who joins through a referral (seeds-routes.ts) */
 export const REFERRAL_NEW_USER_BONUS = 25;
 
-/** Seeds awarded when referred friend hits 7-day streak */
-export const REFERRAL_STREAK_7_REWARD = 15;
-
-/** Seeds awarded when referred friend hits 30-day streak */
-export const REFERRAL_STREAK_30_REWARD = 25;
-
-/** Seeds awarded when referred friend becomes subscriber */
-export const REFERRAL_SUBSCRIBER_REWARD = 100;
-
-/** Memorable words for referral codes */
-const REFERRAL_WORDS = [
-  'sunrise', 'garden', 'bloom', 'river', 'forest', 'meadow', 'breeze', 'willow',
-  'cedar', 'sage', 'ember', 'dawn', 'dusk', 'haven', 'grove', 'fern', 'moss',
-  'stream', 'pebble', 'cloud', 'rain', 'leaf', 'root', 'branch', 'seed', 'grow',
-  'earth', 'sky', 'moon', 'star', 'light', 'warmth', 'peace', 'calm', 'joy',
-  'hope', 'dream', 'rest', 'trust', 'care', 'kind', 'gentle', 'soft', 'warm',
-];
+const STATE_KEY = 'ferni_referral_state'; // { referredBy }
+const PENDING_KEY = 'ferni_pending_referral';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-interface ReferralState {
-  /** User's unique referral code */
+export type GardenTitle = 'seedling' | 'gardener' | 'grove-keeper' | 'forest-guardian';
+
+/** What the server knows about this user's garden (GET /api/seeds/garden) */
+export interface GardenData {
   referralCode: string;
-  /** Who referred this user (null if organic) */
-  referredBy: string | null;
-  /** List of user IDs this user has referred */
-  referrals: string[];
-  /** Milestones achieved by referrals (for tracking rewards) */
-  referralMilestones: Record<string, string[]>;
-  /** Total seeds earned from referrals */
-  totalReferralSeeds: number;
-}
-
-export interface GardenStats {
+  referralUrl: string;
+  gardenTitle: GardenTitle;
   totalReferrals: number;
-  activeReferrals: number;
-  weeklyPassiveSeeds: number;
-  gardenTitle: 'seedling' | 'gardener' | 'grove-keeper' | 'forest-guardian';
+  /** Seeds actually credited to this user for referrals */
+  totalEarnedFromReferrals: number;
+}
+
+interface ServerGarden {
+  title?: GardenTitle;
+  totalReferrals?: number;
+  totalEarnedFromReferrals?: number;
+  referralCode?: string;
+  referralUrl?: string;
 }
 
 // ============================================================================
-// STATE
+// SERVER-ISSUED GARDEN + LINK
 // ============================================================================
 
-const STORAGE_KEY = 'ferni_referral_state';
-let state: ReferralState = loadState();
+let garden: GardenData | null = null;
 
-function loadState(): ReferralState {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      return JSON.parse(saved) as ReferralState;
-    }
-  } catch {
-    log.warn('Failed to load referral state');
+/**
+ * Fetch the garden from the server. Null when it can't be loaded: callers must
+ * say so rather than show a made-up link or zeroed counts.
+ */
+export async function loadGarden(): Promise<GardenData | null> {
+  garden = null;
+  const res = await apiGet<ServerGarden>('/api/seeds/garden');
+  const d = res.data;
+  if (!res.ok || !d?.referralCode || !d.referralUrl) {
+    log.warn({ status: res.status, error: res.error }, 'Could not load garden');
+    return null;
   }
-
-  // Generate new referral code for new users
-  return {
-    referralCode: generateReferralCode(),
-    referredBy: null,
-    referrals: [],
-    referralMilestones: {},
-    totalReferralSeeds: 0,
+  garden = {
+    referralCode: d.referralCode,
+    referralUrl: d.referralUrl,
+    gardenTitle: d.title ?? 'seedling',
+    totalReferrals: d.totalReferrals ?? 0,
+    totalEarnedFromReferrals: d.totalEarnedFromReferrals ?? 0,
   };
+  return garden;
 }
 
-function saveState(): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+/** The garden from the last successful `loadGarden()` */
+export function getGarden(): GardenData | null {
+  return garden;
+}
+
+/** The server-issued shareable link, once the garden has loaded */
+export function getReferralUrl(): string | null {
+  return garden?.referralUrl ?? null;
 }
 
 // ============================================================================
-// REFERRAL CODE GENERATION
+// REFERRAL TRACKING (the friend's side)
 // ============================================================================
 
 /**
- * Generate a unique, memorable referral code
- * Format: "abc123-sunrise" (6 chars + word)
+ * Who referred this user (their code), if the server already accepted it
  */
-function generateReferralCode(): string {
-  // Generate 6 random alphanumeric characters
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let prefix = '';
-  for (let i = 0; i < 6; i++) {
-    prefix += chars.charAt(Math.floor(Math.random() * chars.length));
+export function getReferredBy(): string | null {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STATE_KEY) ?? '{}') as { referredBy?: string };
+    return saved.referredBy ?? null;
+  } catch {
+    return null;
   }
-
-  // Pick a random memorable word
-  const word = REFERRAL_WORDS[Math.floor(Math.random() * REFERRAL_WORDS.length)];
-
-  return `${prefix}-${word}`;
 }
-
-/**
- * Get the user's referral code
- */
-export function getReferralCode(): string {
-  return state.referralCode;
-}
-
-/**
- * Get the full shareable referral URL
- */
-export function getReferralUrl(): string {
-  return `https://ferni.ai/grow/${state.referralCode}`;
-}
-
-// ============================================================================
-// REFERRAL TRACKING
-// ============================================================================
 
 /**
  * Check URL for referral code on app load
@@ -143,18 +112,19 @@ export function getReferralUrl(): string {
  */
 export function checkReferralFromUrl(): string | null {
   const url = new URL(window.location.href);
-  
-  // Check multiple possible param names
-  const refCode = url.searchParams.get('ref') ||
-                  url.searchParams.get('referral') ||
-                  url.pathname.match(/\/grow\/([a-z0-9]+-[a-z]+)/)?.[1];
 
-  if (refCode && !state.referredBy) {
-    // Store the referral code but don't award yet
+  // Check multiple possible param names
+  const refCode =
+    url.searchParams.get('ref') ||
+    url.searchParams.get('referral') ||
+    url.pathname.match(/\/grow\/([a-z0-9]+-[a-z]+)/)?.[1];
+
+  if (refCode && !getReferredBy()) {
+    // Store the referral code but don't register it yet
     // Wait for signup/first conversation
-    localStorage.setItem('ferni_pending_referral', refCode);
+    localStorage.setItem(PENDING_KEY, refCode);
     log.info({ refCode }, 'Referral code detected from URL');
-    
+
     // Clean URL (remove ref param)
     url.searchParams.delete('ref');
     url.searchParams.delete('referral');
@@ -162,7 +132,7 @@ export function checkReferralFromUrl(): string | null {
       url.pathname = '/';
     }
     window.history.replaceState({}, '', url.toString());
-    
+
     return refCode;
   }
 
@@ -170,169 +140,50 @@ export function checkReferralFromUrl(): string | null {
 }
 
 /**
- * Process pending referral after user signs up or has first conversation
+ * Register a pending referral with the server after the user's first conversation.
+ * Only what the server confirms is awarded; the referrer's reward is the server's.
  */
-export function processPendingReferral(): { processed: boolean; bonusAwarded?: number } {
-  const pendingRef = localStorage.getItem('ferni_pending_referral');
-  
-  if (!pendingRef || state.referredBy) {
+export async function processPendingReferral(): Promise<{
+  processed: boolean;
+  bonusAwarded?: number;
+}> {
+  const pendingRef = localStorage.getItem(PENDING_KEY);
+  if (!pendingRef || getReferredBy()) {
     return { processed: false };
   }
 
-  // Store who referred us
-  state.referredBy = pendingRef;
-  saveState();
+  const res = await apiPost<{ success?: boolean; newUserBonus?: number; error?: string }>(
+    '/api/seeds/referral',
+    { referralCode: pendingRef }
+  );
 
-  // Award the new user bonus
-  addSeeds(REFERRAL_NEW_USER_BONUS);
+  if (!res.ok) {
+    // A 4xx means this code can never work (unknown, or your own): drop it.
+    // Offline / 5xx / rate-limited: keep it and try again next conversation.
+    const permanent = res.status >= 400 && res.status < 500 && ![408, 429].includes(res.status);
+    if (permanent) localStorage.removeItem(PENDING_KEY);
+    log.warn({ status: res.status, error: res.error, permanent }, 'Referral not registered');
+    return { processed: false };
+  }
 
-  // Dispatch event for referrer to get their bonus
-  // This will be handled by backend or when referrer logs in
+  localStorage.removeItem(PENDING_KEY);
+  if (!res.data?.success) {
+    log.info({ error: res.data?.error }, 'Referral declined by server');
+    return { processed: false };
+  }
+
+  const bonus = res.data.newUserBonus ?? 0;
+  localStorage.setItem(STATE_KEY, JSON.stringify({ referredBy: pendingRef }));
+  addSeeds(bonus);
+
   document.dispatchEvent(
     new CustomEvent('ferni:referral-completed', {
-      detail: {
-        referrerCode: pendingRef,
-        newUserBonus: REFERRAL_NEW_USER_BONUS,
-        referrerBonus: REFERRAL_SIGNUP_REWARD,
-      },
+      detail: { referrerCode: pendingRef, newUserBonus: bonus },
     })
   );
 
-  // Clean up
-  localStorage.removeItem('ferni_pending_referral');
-
-  log.info({ referredBy: pendingRef, bonus: REFERRAL_NEW_USER_BONUS }, 'Referral processed');
-  return { processed: true, bonusAwarded: REFERRAL_NEW_USER_BONUS };
-}
-
-/**
- * Record when you successfully refer someone
- */
-export function recordReferralSuccess(newUserId: string): void {
-  if (!state.referrals.includes(newUserId)) {
-    state.referrals.push(newUserId);
-    state.referralMilestones[newUserId] = ['signup'];
-    state.totalReferralSeeds += REFERRAL_SIGNUP_REWARD;
-    addSeeds(REFERRAL_SIGNUP_REWARD);
-    saveState();
-
-    // Dispatch event for UI
-    document.dispatchEvent(
-      new CustomEvent('ferni:referral-success', {
-        detail: {
-          newUserId,
-          reward: REFERRAL_SIGNUP_REWARD,
-          totalReferrals: state.referrals.length,
-        },
-      })
-    );
-
-    log.info({ newUserId, reward: REFERRAL_SIGNUP_REWARD }, 'Referral success recorded');
-  }
-}
-
-/**
- * Award bonus when a referral hits a milestone
- */
-export function awardReferralMilestone(
-  referralId: string,
-  milestone: 'streak-7' | 'streak-30' | 'subscriber'
-): boolean {
-  if (!state.referrals.includes(referralId)) {
-    return false;
-  }
-
-  const milestones = state.referralMilestones[referralId] || [];
-  if (milestones.includes(milestone)) {
-    return false; // Already awarded
-  }
-
-  let reward = 0;
-  switch (milestone) {
-    case 'streak-7':
-      reward = REFERRAL_STREAK_7_REWARD;
-      break;
-    case 'streak-30':
-      reward = REFERRAL_STREAK_30_REWARD;
-      break;
-    case 'subscriber':
-      reward = REFERRAL_SUBSCRIBER_REWARD;
-      break;
-  }
-
-  milestones.push(milestone);
-  state.referralMilestones[referralId] = milestones;
-  state.totalReferralSeeds += reward;
-  addSeeds(reward);
-  saveState();
-
-  document.dispatchEvent(
-    new CustomEvent('ferni:referral-milestone', {
-      detail: { referralId, milestone, reward },
-    })
-  );
-
-  log.info({ referralId, milestone, reward }, 'Referral milestone awarded');
-  return true;
-}
-
-// ============================================================================
-// GARDEN STATS
-// ============================================================================
-
-/**
- * Get garden statistics for display
- */
-export function getGardenStats(): GardenStats {
-  const totalReferrals = state.referrals.length;
-  
-  // For now, assume all referrals are active
-  // In production, this would check actual activity
-  const activeReferrals = totalReferrals;
-
-  // Calculate weekly passive seeds based on garden size
-  let weeklyRate = 0;
-  if (totalReferrals >= 11) {
-    weeklyRate = 7;
-  } else if (totalReferrals >= 6) {
-    weeklyRate = 5;
-  } else if (totalReferrals >= 3) {
-    weeklyRate = 3;
-  } else if (totalReferrals >= 1) {
-    weeklyRate = 2;
-  }
-  const weeklyPassiveSeeds = activeReferrals * weeklyRate;
-
-  // Determine garden title
-  let gardenTitle: GardenStats['gardenTitle'] = 'seedling';
-  if (totalReferrals >= 11) {
-    gardenTitle = 'forest-guardian';
-  } else if (totalReferrals >= 6) {
-    gardenTitle = 'grove-keeper';
-  } else if (totalReferrals >= 3) {
-    gardenTitle = 'gardener';
-  }
-
-  return {
-    totalReferrals,
-    activeReferrals,
-    weeklyPassiveSeeds,
-    gardenTitle,
-  };
-}
-
-/**
- * Get who referred this user (if anyone)
- */
-export function getReferredBy(): string | null {
-  return state.referredBy;
-}
-
-/**
- * Get total seeds earned from referrals
- */
-export function getTotalReferralSeeds(): number {
-  return state.totalReferralSeeds;
+  log.info({ referredBy: pendingRef, bonus }, 'Referral registered');
+  return { processed: true, bonusAwarded: bonus };
 }
 
 // ============================================================================
@@ -343,20 +194,8 @@ export function getTotalReferralSeeds(): number {
  * Initialize referral service
  */
 export function initReferralService(): void {
-  // Load state
-  state = loadState();
-
-  // Check for referral in URL
   checkReferralFromUrl();
-
-  log.info(
-    {
-      referralCode: state.referralCode,
-      referredBy: state.referredBy,
-      totalReferrals: state.referrals.length,
-    },
-    'Referral service initialized'
-  );
+  log.info({ referredBy: getReferredBy() }, 'Referral service initialized');
 }
 
 // ============================================================================
@@ -365,24 +204,17 @@ export function initReferralService(): void {
 
 export const referralService = {
   init: initReferralService,
-  getCode: getReferralCode,
+  loadGarden,
+  getGarden,
   getUrl: getReferralUrl,
   checkFromUrl: checkReferralFromUrl,
   processPending: processPendingReferral,
-  recordSuccess: recordReferralSuccess,
-  awardMilestone: awardReferralMilestone,
-  getGardenStats,
   getReferredBy,
-  getTotalSeeds: getTotalReferralSeeds,
   // Constants for UI
   REWARDS: {
     signup: REFERRAL_SIGNUP_REWARD,
     newUser: REFERRAL_NEW_USER_BONUS,
-    streak7: REFERRAL_STREAK_7_REWARD,
-    streak30: REFERRAL_STREAK_30_REWARD,
-    subscriber: REFERRAL_SUBSCRIBER_REWARD,
   },
 };
 
 export default referralService;
-

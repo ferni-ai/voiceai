@@ -3652,6 +3652,7 @@
     },
     "errorClipboard": "복사하지 못했어요. 다시 시도해 볼까요?",
     "copyError": "복사하지 못했어요. 다시 시도해 볼까요?",
+    "linkUnavailable": "지금은 링크를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
     "bonusAmount": "두 분 모두에게 씨앗 {seeds}개를 드려요",
     "bonusWhen": "가입할 때 드려요!",
     "garden": {
@@ -9149,6 +9150,7 @@
     "tierReqGardener": "친구 3~5명",
     "tierReqGroveKeeper": "친구 6~10명",
     "tierReqForestGuardian": "친구 11명 이상",
+    "loadFailed": "지금은 정원을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
     "inviteFriends": "친구 초대하기",
     "emptyTitle": "정원이 자라나기를 기다리고 있어요!",
     "emptyHint": "친구에게 Ferni를 공유하면 두 분 모두에게 씨앗 25개를 드려요.",

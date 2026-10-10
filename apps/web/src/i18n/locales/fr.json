@@ -3675,6 +3675,7 @@
     },
     "errorClipboard": "Impossible de copier. Réessayer ?",
     "copyError": "Impossible de copier. Réessayer ?",
+    "linkUnavailable": "Impossible de charger ton lien pour l'instant. Réessaie dans un instant.",
     "bonusAmount": "Vous recevrez {seeds} graines chacun",
     "bonusWhen": "dès leur inscription !",
     "garden": {
@@ -9219,6 +9220,7 @@
     "tierReqGardener": "3-5 amis",
     "tierReqGroveKeeper": "6-10 amis",
     "tierReqForestGuardian": "11+ amis",
+    "loadFailed": "Impossible de charger ton jardin pour l'instant. Réessaie dans un instant.",
     "inviteFriends": "Inviter des amis",
     "emptyTitle": "Ton jardin n'attend que toi pour grandir !",
     "emptyHint": "Partage Ferni avec tes amis et vous recevrez tous les deux 25 graines.",

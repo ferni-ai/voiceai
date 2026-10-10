@@ -216,7 +216,7 @@ export async function openPersonalize(): Promise<void> {
 
 export async function openReferral(): Promise<void> {
   const m = await loadScreen('lazyScreens.screens.sharing', () => import('./referral.ui.js'));
-  m?.referralUI.open();
+  await m?.referralUI.open();
 }
 
 export async function openFutureInsights(): Promise<void> {

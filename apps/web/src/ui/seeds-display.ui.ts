@@ -512,7 +512,7 @@ function bindActionHandlers(): void {
   if (gardenBtn && !gardenBtn.hasAttribute('data-bound')) {
     gardenBtn.setAttribute('data-bound', 'true');
     gardenBtn.addEventListener('click', () => {
-      openGardenDashboard();
+      void openGardenDashboard();
     });
   }
 
@@ -530,7 +530,7 @@ function bindActionHandlers(): void {
   if (inviteBtn && !inviteBtn.hasAttribute('data-bound')) {
     inviteBtn.setAttribute('data-bound', 'true');
     inviteBtn.addEventListener('click', () => {
-      openReferral();
+      void openReferral();
     });
   }
 }

@@ -3652,6 +3652,7 @@
     },
     "errorClipboard": "コピーできませんでした。もう一度お試しください。",
     "copyError": "コピーできませんでした。もう一度試してみますか？",
+    "linkUnavailable": "いまはリンクを読み込めませんでした。少し待ってからもう一度お試しください。",
     "bonusAmount": "お互いにタネを{seeds}個もらえます",
     "bonusWhen": "友達が参加したときに！",
     "garden": {
@@ -9149,6 +9150,7 @@
     "tierReqGardener": "お友達3〜5人",
     "tierReqGroveKeeper": "お友達6〜10人",
     "tierReqForestGuardian": "お友達11人以上",
+    "loadFailed": "いまはお庭を読み込めませんでした。少し待ってからもう一度お試しください。",
     "inviteFriends": "お友達を招待する",
     "emptyTitle": "お庭が育つのを待っています！",
     "emptyHint": "お友達にFerniを紹介すると、お互いにタネを25個もらえます。",

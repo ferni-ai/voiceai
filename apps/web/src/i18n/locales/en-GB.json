@@ -3652,6 +3652,7 @@
     },
     "errorClipboard": "Couldn't copy. Try again?",
     "copyError": "Couldn't copy. Try again?",
+    "linkUnavailable": "Couldn't load your link right now. Try again in a moment.",
     "bonusAmount": "You'll both get {seeds} seeds",
     "bonusWhen": "when they join!",
     "garden": {
@@ -9149,6 +9150,7 @@
     "tierReqGardener": "3-5 friends",
     "tierReqGroveKeeper": "6-10 friends",
     "tierReqForestGuardian": "11+ friends",
+    "loadFailed": "Couldn't load your garden right now. Try again in a moment.",
     "inviteFriends": "Invite Friends",
     "emptyTitle": "Your garden is waiting to grow!",
     "emptyHint": "Share Ferni with friends and you'll both get 25 seeds.",
