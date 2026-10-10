@@ -1693,11 +1693,11 @@ async function cleanupMusic(sessionId: string): Promise<void> {
 
 async function cleanupGames(sessionId: string): Promise<void> {
   try {
-    const { getSessionGameEngine, resetSessionGameEngine } =
-      await import('../../services/games/index.js');
-    const engine = getSessionGameEngine(sessionId);
-    await engine.flushToStorage();
-    resetSessionGameEngine(sessionId);
+    const games = await import('../../services/games/index.js');
+    await games.getSessionGameEngine(sessionId).flushToStorage();
+    games.resetSessionGameEngine(sessionId);
+    // Text games (tic-tac-toe, 20 questions...) were otherwise kept for the process's life.
+    games.resetSessionTextGameEngine(sessionId);
     diag.session('Game engine flushed and reset');
   } catch (e) {
     log().debug({ error: String(e) }, 'Game cleanup failed (non-fatal)');

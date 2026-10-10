@@ -29,6 +29,7 @@ import {
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
@@ -88,6 +89,8 @@ export function withTurnReminder(
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     notes,
+    // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
+    gameTurnNote(session),
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
   ]
     .filter(Boolean)
