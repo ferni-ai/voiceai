@@ -24,7 +24,7 @@ import {
 } from '../../utils/ddos-protection.js';
 import { notifyDDoSAlert } from '../../services/slack-notifications.js';
 import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
-import { rateLimitUid } from '../../api/rate-limit-identity.js';
+import { limitApiRequest } from '../../api/global-rate-limit.js';
 import { bindVerifiedIdentity } from './request-identity.js';
 import { respondOnRejection } from './request-failure.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
@@ -304,9 +304,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   }
 
   if (pathname.startsWith('/api/') && pathname !== '/api/health') {
-    // Global limit: per signed-in person (verified uid), else per IP
-    const uid = rateLimitUid(req);
-    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, ...(uid && { keyGenerator: () => `user:${uid}` }) })) return;
+    // Global limit: per signed-in person (verified uid), else per IP, in its own bucket
+    if (limitApiRequest(req, res)) return;
   }
 
   // ============================================================================
