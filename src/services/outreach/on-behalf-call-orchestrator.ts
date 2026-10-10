@@ -22,6 +22,7 @@ import {
   generateComplianceScript,
 } from '../../tools/domains/telephony/compliance.js';
 import { trackOutboundCall } from './outbound-call-tracker.js';
+import { buildOnBehalfDispatch } from './on-behalf-dispatch.js';
 import {
   enrichMessage,
   enrichVoicemailMessage,
@@ -351,23 +352,27 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       // Dispatch the agent with full call context in metadata
       // The agent will read this metadata and behave as an outbound caller
       await agentDispatch.createDispatch(roomName, agentName, {
-        metadata: JSON.stringify({
-          type: 'on_behalf_call',
-          callId,
-          originalSessionId: request.originalSessionId,
-          userId: request.userId,
-          userName: request.userName,
-          contact: {
-            name: request.resolvedContact?.name,
-            phone: request.resolvedContact?.phone,
-            relationship: request.resolvedContact?.relationship,
-          },
-          purpose: request.purpose,
-          objective: request.objective,
-          callType: request.callType,
-          script, // Full script for the agent
-          userPreferences: request.userPreferences,
-        }),
+        metadata: JSON.stringify(
+          buildOnBehalfDispatch({
+            callId,
+            requester: {
+              userId: request.userId,
+              name: request.userName,
+              timezone: request.userTimezone,
+              originalSessionId: request.originalSessionId,
+            },
+            contact: {
+              name: request.resolvedContact?.name ?? request.contactQuery,
+              phone: request.resolvedContact?.phone ?? '',
+              relationship: request.resolvedContact?.relationship,
+            },
+            purpose: request.purpose,
+            objective: request.objective,
+            callType: request.callType,
+            script, // Full script for the agent
+            userPreferences: request.userPreferences,
+          })
+        ),
       });
 
       log.info({ roomName, callId, agentName }, '✅ On-behalf agent dispatched successfully');
