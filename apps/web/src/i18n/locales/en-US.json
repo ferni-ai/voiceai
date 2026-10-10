@@ -5951,8 +5951,6 @@
     "reflectAndCelebrate": "Reflect & celebrate",
     "newBeginning": "New beginning",
     "recharge": "Recharge",
-    "alexNoted": "ALEX NOTED",
-    "partnerLovesPresence": "Your partner loves when you're present",
     "jordanSuggests": "JORDAN SUGGESTS",
     "setClearIntention": "Set a clear intention before joining",
     "mayaNoticesLabel": "MAYA NOTICES",
@@ -5967,9 +5965,6 @@
     "manyMeetingsNotice": "You've been in a lot of meetings lately. Your best thinking happens in the quiet spaces.",
     "busiestDayPacked": "{day} looks packed. Maybe move something to {lightDay}?",
     "anotherDay": "another day",
-    "wisdomMornings": "Your morning starts tend to set the tone for the whole day.",
-    "wisdomFocusTime": "When you block focus time, you accomplish 40% more.",
-    "wisdomWalks": "You seem most creative after your walks.",
     "insightBalanced": "Your calendar looks balanced.",
     "insightNeedsAttention": "Your calendar needs attention.",
     "insightAdjustments": "Some adjustments could help.",
@@ -9359,6 +9354,7 @@
     "eyebrow": "YOUR JOURNEY",
     "title": "Your Year with Ferni",
     "subtitle": "{conversations}. {minutes}. Countless moments of growth.",
+    "subtitleNoMinutes": "{conversations}. Countless moments of growth.",
     "conversationCount": {
       "one": "{count} conversation",
       "other": "{count} conversations"

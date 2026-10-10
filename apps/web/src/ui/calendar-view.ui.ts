@@ -45,10 +45,10 @@ interface PracticeViewAPIResponse {
     context?: string;
   }[];
   stats: {
-    followThroughPercent: number;
-    habitsCompletedThisWeek: number;
-    momentumTrend: 'rising' | 'steady' | 'building' | 'declining';
-    streak: number;
+    followThroughPercent?: number;
+    habitsCompletedThisWeek?: number;
+    momentumTrend?: 'rising' | 'steady' | 'building' | 'declining';
+    streak?: number;
   };
   lastUpdated: string;
 }
@@ -767,8 +767,9 @@ class CalendarViewUI {
     // Intentions - prefer API, fall back to generated
     const intentions = apiData?.intentions || this.generateIntentions();
     
-    // Maya notices - prefer API, fall back to generated
-    const mayaNotices = apiData?.mayaNotices?.message || this.generateMayaPatternNotice();
+    // Maya notices - the API's answer is final (null = nothing real to say); only an
+    // offline view falls back to what the calendar data itself shows
+    const mayaNotices = apiData ? apiData.mayaNotices?.message : this.generateMayaPatternNotice();
     
     // Stats - only show real API metrics (never fabricate personal numbers)
     const followThrough = apiData?.stats?.followThroughPercent;
@@ -1022,11 +1023,7 @@ class CalendarViewUI {
   private getEventEmotionalContext(event: CalendarEvent): { persona: string; insight: string } | null {
     const title = event.title.toLowerCase();
     
-    // Family/relationship events
-    if (title.includes('dinner') || title.includes('family') || title.includes('partner')) {
-      return { persona: t('calendarView.alexNoted'), insight: t('calendarView.partnerLovesPresence') };
-    }
-    
+    // No note for family/partner events: we don't know anything about the person's relationships
     // Work meetings
     if (title.includes('meeting') || title.includes('sync') || title.includes('1:1')) {
       return { persona: t('calendarView.jordanSuggests'), insight: t('calendarView.setClearIntention') };
@@ -1076,7 +1073,6 @@ class CalendarViewUI {
    * Generate Maya's pattern notice based on calendar data
    */
   private generateMayaPatternNotice(): string | null {
-    // TODO: Get real patterns from user data
     if (!this.weekData) return null;
 
     const totalMeetings = this.weekData.totalMeetings || 0;
@@ -1093,10 +1089,8 @@ class CalendarViewUI {
       });
     }
 
-    // Random wisdom if no pattern detected
-    const wisdomKeys = ['calendarView.wisdomMornings', 'calendarView.wisdomFocusTime', 'calendarView.wisdomWalks'];
-    const wisdomKey = wisdomKeys[Math.floor(Math.random() * wisdomKeys.length)];
-    return wisdomKey ? t(wisdomKey) : null;
+    // No pattern in the calendar data: say nothing rather than invent one
+    return null;
   }
 
   /**
