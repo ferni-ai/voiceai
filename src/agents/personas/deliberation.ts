@@ -16,6 +16,14 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  ANTICIPATE_SYSTEM,
+  anticipationLog,
+  keptAfterSimulation,
+  landsBadly,
+  parseAnticipation,
+  type DeliberationMode,
+} from './deliberation-anticipate.js';
 import type { Line } from './director-notes.js';
 import { hardNews } from './turn-candor.js';
 import { callerVenting } from './turn-extras.js';
@@ -130,7 +138,12 @@ export interface Usage {
   thoughtsTokenCount?: number;
 }
 
-export function buildDeliberationPrompt(lines: Line[], memory: string, userName?: string): string {
+export function buildDeliberationPrompt(
+  lines: Line[],
+  memory: string,
+  userName?: string,
+  mind = ''
+): string {
   const who = userName || 'Them';
   const call = lines
     .slice(-16)
@@ -139,7 +152,10 @@ export function buildDeliberationPrompt(lines: Line[], memory: string, userName?
   const known = memory.trim()
     ? `What Ferni remembers that may bear on it:\n${memory.trim().slice(0, 1200)}\n\n`
     : '';
-  return `${known}The call so far (most recent last):\n${call}\n\nYour one thought, or none:`;
+  const how = mind.trim()
+    ? `How they tend to be, from earlier calls:\n${mind.trim().slice(0, 600)}\n\n`
+    : '';
+  return `${known}${how}The call so far (most recent last):\n${call}\n\nYour one thought, or none:`;
 }
 
 /** The caller's last turn: their lines just before Ferni's latest reply. */
@@ -163,7 +179,7 @@ export class Deliberator {
   private heldUntil = -1;
   private running = false;
   // prettier-ignore
-  private readonly stats = { runs: 0, none: 0, failed: 0, offered: 0, expired: 0, echoed: 0, promptTokens: 0, outputTokens: 0, thoughtTokens: 0 };
+  private readonly stats = { runs: 0, none: 0, failed: 0, offered: 0, expired: 0, echoed: 0, landsBadly: 0, promptTokens: 0, outputTokens: 0, thoughtTokens: 0 };
 
   constructor(
     private readonly opts: {
@@ -171,6 +187,8 @@ export class Deliberator {
       think: ThinkFn;
       userName?: string;
       timeoutMs?: number;
+      /** anticipate: draft two, simulate this caller's reaction to each, keep the better (deliberation-anticipate.ts). */
+      mode?: DeliberationMode;
     }
   ) {}
 
@@ -179,7 +197,12 @@ export class Deliberator {
    * and a weighty caller turn starts a deliberation in the background.
    * Never throws; the reply path never awaits it.
    */
-  async observe(lines: Line[], understanding: Understanding | null, memory = ''): Promise<void> {
+  async observe(
+    lines: Line[],
+    understanding: Understanding | null,
+    memory = '',
+    mind = ''
+  ): Promise<void> {
     this.turn++;
     if (this.offered) {
       const last = lines.at(-1);
@@ -199,7 +222,22 @@ export class Deliberator {
     const ready = this.turn - this.lastOfferedTurn >= SPACING_TURNS - 1;
     if (this.running || this.thought || !ready || this.turn <= this.heldUntil) return;
     if (this.stats.runs >= MAX_RUNS || !carriesWeight(lastCallerTurn(lines), understanding)) return;
-    return this.deliberate(buildDeliberationPrompt(lines, memory, this.opts.userName));
+    return this.deliberate(this.promptFor(lines, memory, mind));
+  }
+
+  /** How they tend to be (theory of mind) only informs the anticipate arm. */
+  private promptFor(lines: Line[], memory: string, mind: string): string {
+    const how = this.opts.mode === 'anticipate' ? mind : '';
+    return buildDeliberationPrompt(lines, memory, this.opts.userName, how);
+  }
+
+  /** The thought in a reply and, in the anticipate arm, what the simulation weighed (labels only). */
+  private read(text: string): { t: Thought | null; labels: Record<string, unknown> } {
+    const t = parseThought(text);
+    if (this.opts.mode !== 'anticipate') return { t, labels: { mode: 'reflect' } };
+    const a = parseAnticipation(text);
+    if (t && a && landsBadly(a)) this.stats.landsBadly++;
+    return { t: keptAfterSimulation(t, a), labels: { mode: 'anticipate', ...anticipationLog(a) } };
   }
 
   private async deliberate(prompt: string): Promise<void> {
@@ -214,15 +252,16 @@ export class Deliberator {
         controller.signal.addEventListener('abort', () => reject(new Error('timeout')));
       });
       aborted.catch(() => undefined);
+      const system = this.opts.mode === 'anticipate' ? ANTICIPATE_SYSTEM : DELIBERATION_SYSTEM;
       const { text, usage } = await Promise.race([
-        this.opts.think(DELIBERATION_SYSTEM, prompt, controller.signal),
+        this.opts.think(system, prompt, controller.signal),
         aborted,
       ]);
       this.stats.promptTokens += usage?.promptTokenCount ?? 0;
       this.stats.outputTokens += usage?.candidatesTokenCount ?? 0;
       this.stats.thoughtTokens += usage?.thoughtsTokenCount ?? 0;
       // One landing during a crisis hold is never offered: it expires before the hold ends.
-      const t = parseThought(text);
+      const { t, labels } = this.read(text);
       if (!t) this.stats.none++;
       else this.thought = { t, readyAt: this.turn };
       log.info(
@@ -233,6 +272,7 @@ export class Deliberator {
           confidence: t?.confidence,
           turnsLate: this.turn - startedTurn,
           usage,
+          ...labels,
         },
         'DELIBERATION'
       );
