@@ -3853,7 +3853,7 @@
       "file": "src/tools/domains/simple-utilities/essentials-tools.ts"
     },
     "tellJoke": {
-      "description": "Tell a joke. Use when user says: \"Tell me a joke\", \"Make me laugh\", \"Say something funny\", \"I need a laugh\".",
+      "description": "Tell a stock joke, pun or riddle from a list. Use ONLY when the caller explicitly asks for a joke, pun or riddle (\"tell me a joke\", \"got any puns?\"). If they want cheering up, a laugh or something funny, don't call this: tell them something funny that happened to you, the way a friend would.",
       "file": "src/tools/domains/simple-utilities/humor-tools.ts"
     },
     "getFunFact": {

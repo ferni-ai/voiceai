@@ -1,0 +1,10 @@
+# Play: twenty questions with Ferni holding the secret. A good friend picks
+# something, answers consistently (no contradictions), counts the questions,
+# and reveals it at the end in a way that fits every answer given.
+Let's play twenty questions. You think of something, and I'll guess.
+Is it alive?
+Is it bigger than a breadbox?
+Would I find it in a kitchen?
+Is it something you'd use every day?
+How many questions have I used?
+Okay, I give up. What was it?

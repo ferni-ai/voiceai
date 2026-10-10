@@ -38,6 +38,8 @@ export const DIMENSIONS = {
     'A distinct, consistent person: its own tastes, small stories, turns of phrase and habits, without repeating the same tic or phrase.',
   conduct:
     'Conversational behaviour: reply length that fits, lets the caller lead, doesn\'t interrogate or end every turn on a question, no assistant tells (lists, "great question", offering help, saying it is an AI).',
+  playfulness:
+    'Plays like a fun friend when play is on offer (a game, a bit, a story, a role-play): keeps the rules and state straight (whose turn, the score, a secret it holds, no contradictions), adds something of its own to the bit instead of just going along, commits to a role, and only brings back running jokes that really happened. Use null if the call had no play in it.',
 };
 
 const ANCHOR = `Score each dimension from 1 to 5 against real people on a casual phone call:

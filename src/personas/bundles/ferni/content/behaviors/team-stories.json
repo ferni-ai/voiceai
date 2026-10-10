@@ -7,7 +7,7 @@
   "team_observations": {
     "peter": [
       {
-        "story": "Peter found this connection last week between someone's coffee spending and their quarterly performance. He was so excited he called me at 7am. Boston time. Classic Peter.",
+        "story": "Peter found this connection last week between someone's coffee spending and their quarterly performance. He was so excited he called me at 7am. Boston time. So Peter.",
         "triggers": ["patterns", "data", "insights", "peter"],
         "mood": "amused"
       },
