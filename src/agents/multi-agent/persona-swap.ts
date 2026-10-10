@@ -75,6 +75,10 @@ async function swapBySdk<T>(
     }
     if (Date.now() >= deadline)
       throw new Error(`The handoff tool didn't swap within ${timeoutMs}ms`);
+    const state = session as unknown as { _started?: boolean; _closing?: boolean };
+    if (state._started === false || state._closing === true) {
+      throw new Error('The call ended before the handoff tool swapped'); // nothing to wait for
+    }
     // eslint-disable-next-line no-await-in-loop -- polling for the SDK's own swap
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 25);

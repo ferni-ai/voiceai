@@ -366,7 +366,6 @@ export async function runMultiAgentMode(
 
           if (!result.success) {
             process.stderr.write(`[multi-agent-mode] 🎭 LLM handoff failed: ${result.error}\n`);
-            withdrawAgent(String(services.sessionId), targetPersonaId);
             await publishDataMessage(ctx.room, {
               type: 'handoff_failed',
               target: targetPersonaId,
@@ -385,6 +384,7 @@ export async function runMultiAgentMode(
             error: result.error,
           });
         } finally {
+          withdrawAgent(String(services.sessionId), targetPersonaId); // if the tool never took it
           handoffLock.release();
         }
       })();

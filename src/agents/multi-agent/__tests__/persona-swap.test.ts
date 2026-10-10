@@ -215,6 +215,26 @@ describe('a handoff the LLM asked for (its tool hands the persona to the SDK)', 
     expect(session.closes).toBe(0);
   });
 
+  it('if the call ends while waiting for the SDK, it stops at once instead of polling on', async () => {
+    const session = callSession();
+    const data = { personaId: 'ferni' };
+    const ferni = persona(session, 'ferni', data, true);
+    const maya = persona(session, 'maya-santos', data, false);
+    Object.assign(session, { _started: false }); // the SDK's flag once a session has closed
+    const started = Date.now();
+    await expect(
+      swapPersona(
+        ferni as never,
+        maya,
+        () => undefined,
+        () => undefined,
+        5_000
+      )
+    ).rejects.toThrow(/call ended/);
+    expect(Date.now() - started).toBeLessThan(1_000);
+    expect(maya.released).toBe(true);
+  });
+
   it("if the tool never hands Maya over, she's let go and Ferni keeps his voice", async () => {
     const session = callSession();
     const data = { personaId: 'ferni' };
