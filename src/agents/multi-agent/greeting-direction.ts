@@ -103,6 +103,48 @@ export function takeCallerHistory(sessionId: string): CallerHistory | undefined 
   return history;
 }
 
+// A call Ferni placed to its own user opened "Hey Seth, how's your week been
+// treating you?" (prod 2026-10-10): GREETING_DIRECTION says "they just called
+// you", and why Ferni called ("Seth asked Ferni to give him a call...") reached
+// only the main model's prompt, never the greeting.
+export const PROACTIVE_GREETING_DIRECTION =
+  'You phoned them and they just picked up. Open the way a friend who called does: hi and their name, then in a few words why you called, in your own words, using only the reason you are given. If the reason is something hard, say it gently and never name how they feel. If no reason is given, just say you were calling to check in; never make one up. Relaxed and low-key, one or two short sentences, no exclamation marks, do not list what you can do.';
+
+/** Why Ferni placed a proactive call, from the outreach job's metadata. */
+export interface ProactiveReason {
+  triggerReason?: string;
+  relatedCommitment?: { summary?: string };
+  lastSessionSummary?: string;
+}
+
+/** The default the metadata parser fills in when the job gave no reason. */
+const PLACEHOLDER_REASONS = new Set(['proactive check-in']);
+
+/** PROACTIVE_REASON_OPENER=on: a proactive call's opener says why Ferni called. */
+export function proactiveReasonOpenerEnabled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return env.PROACTIVE_REASON_OPENER === 'on';
+}
+
+/** The reasons the opener may give, as director facts. Empty when the job gave none. */
+export function proactiveReasonFacts(reason: ProactiveReason): Record<string, string> {
+  const facts: Record<string, string> = {};
+  const why = reason.triggerReason?.trim();
+  if (why && !PLACEHOLDER_REASONS.has(why.toLowerCase()))
+    facts['why you called them'] = why.slice(0, MAX_TOPIC_CHARS);
+  const commitment = reason.relatedCommitment?.summary?.trim();
+  if (commitment) facts['something they said they would do'] = commitment.slice(0, MAX_TOPIC_CHARS);
+  const last = reason.lastSessionSummary?.trim();
+  if (last) facts['what you talked about last time'] = last.slice(0, MAX_TOPIC_CHARS);
+  return facts;
+}
+
+/** The understudy for a proactive call: says Ferni called, never guesses why. */
+export function proactiveFallback(userName: string | undefined): string {
+  return `Hey${userName ? ` ${userName}` : ''}, it's Ferni, just calling to check in.`;
+}
+
 /** The director's hello for this caller and hour, with the scripted greeting as understudy. */
 export async function directedGreeting(
   sessionId: string,
@@ -118,16 +160,34 @@ export async function directedGreeting(
     isReturningUser: history !== undefined,
     relationshipStage: 'friend' as const, // Default for multi-agent
   };
-  const scripted = generateWarmGreeting(personaId, ctx);
   const { directedText } = await import('../../speech/direction/index.js');
   const partOfDay = hour === null ? '' : partOfDayFor(hour);
-  const directed = await directedText(sessionId, {
-    moment: 'greeting',
-    direction: GREETING_DIRECTION,
-    facts: greetingFacts(partOfDay, userData?.userName, history),
-    fallback: scripted,
-    urgency: 'now',
-    maxChars: 140,
-  });
+  const facts = greetingFacts(partOfDay, userData?.userName, history);
+  // A call Ferni placed to its own user (callType proactive_outreach).
+  const proactive = proactiveReasonOpenerEnabled()
+    ? (
+        await import('../../intelligence/context-builders/external/proactive-session-context.js')
+      ).getProactiveSessionContext(sessionId)
+    : undefined;
+  const directed = await directedText(
+    sessionId,
+    proactive
+      ? {
+          moment: 'proactive_greeting',
+          direction: PROACTIVE_GREETING_DIRECTION,
+          facts: { ...facts, ...proactiveReasonFacts(proactive) },
+          fallback: proactiveFallback(userData?.userName),
+          urgency: 'now',
+          maxChars: 180,
+        }
+      : {
+          moment: 'greeting',
+          direction: GREETING_DIRECTION,
+          facts,
+          fallback: generateWarmGreeting(personaId, ctx),
+          urgency: 'now',
+          maxChars: 140,
+        }
+  );
   return calmGreeting(directed.text);
 }
