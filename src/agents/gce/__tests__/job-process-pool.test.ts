@@ -35,6 +35,7 @@ function makePool(
   const events: Array<[string, string]> = [];
   const spawned: number[] = [];
   const handedTo: number[] = [];
+  const quality: unknown[][] = [];
   const pool = new JobProcessPool({
     spawn: () => {
       const proc = fork(FAKE, [], {
@@ -54,10 +55,11 @@ function makePool(
       if (msg === 'Job handed to child process') handedTo.push(data?.pid as number);
     },
     onLifecycle: (jobId, event) => void events.push([jobId, event]),
+    onQuality: (msg) => void quality.push([msg.op, ...msg.args]),
   });
   pools.push(pool);
   pool.start();
-  return { pool, events, spawned, handedTo };
+  return { pool, events, spawned, handedTo, quality };
 }
 
 describe('job process protocol', () => {
@@ -75,8 +77,9 @@ describe('job process protocol', () => {
 
 describe('JobProcessPool', () => {
   it('runs a job in a warmed child, reports its lifecycle, and warms a replacement', async () => {
-    const { pool, events, spawned } = makePool();
+    const { pool, events, spawned, quality } = makePool();
     await pool.run(info('AJ_a'));
+    expect(quality).toEqual([['startCall', 'AJ_a', 'user', 'ferni']]);
     expect(events).toEqual([
       ['AJ_a', 'started'],
       ['AJ_a', 'completed'],

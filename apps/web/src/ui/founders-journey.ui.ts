@@ -516,7 +516,6 @@ function renderFutureSection(): string {
               </div>
               <h5 class="founders-feature-headline">${feature.headline}</h5>
               <p class="founders-feature-desc">${feature.description.slice(0, 80)}...</p>
-              <span class="founders-feature-arrival">${feature.estimatedArrival}</span>
             </button>
           `
             )
