@@ -103,6 +103,7 @@ export class RedisCache {
           maxRetriesPerRequest: this.config.maxRetriesPerRequest,
           enableReadyCheck: this.config.enableReadyCheck,
           lazyConnect: true, // Don't connect immediately, we'll test connection manually
+          protocol: 2, // ioredis 6 defaults to RESP3, which fails outright on Redis < 6
         });
       } else {
         redisClient = new Redis({
@@ -114,6 +115,7 @@ export class RedisCache {
           maxRetriesPerRequest: this.config.maxRetriesPerRequest,
           enableReadyCheck: this.config.enableReadyCheck,
           lazyConnect: true, // Don't connect immediately, we'll test connection manually
+          protocol: 2, // ioredis 6 defaults to RESP3, which fails outright on Redis < 6
         });
       }
 

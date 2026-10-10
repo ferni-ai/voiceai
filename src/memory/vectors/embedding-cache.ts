@@ -123,7 +123,7 @@ export class EmbeddingCache {
         const moduleName = 'ioredis';
         const importFn = new Function('m', 'return import(m)') as (m: string) => Promise<unknown>;
         const redisModule = (await importFn(moduleName).catch(() => null)) as {
-          default?: new (url: string) => unknown;
+          default?: new (url: string, options: { protocol: 2 }) => unknown;
         } | null;
 
         if (!redisModule?.default) {
@@ -132,7 +132,8 @@ export class EmbeddingCache {
         }
 
         const Redis = redisModule.default;
-        this.redisClient = new Redis(this.config.redisUrl!);
+        // ioredis 6 defaults to RESP3, which fails outright on Redis < 6; keep RESP2.
+        this.redisClient = new Redis(this.config.redisUrl!, { protocol: 2 });
 
         // Test connection
         const client = this.redisClient as { ping: () => Promise<string> };

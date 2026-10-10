@@ -93,6 +93,7 @@ export class RedisJobQueue {
           keyPrefix: 'ferni:',
           maxRetriesPerRequest: 3,
           lazyConnect: true,
+          protocol: 2, // ioredis 6 defaults to RESP3, which fails outright on Redis < 6
         });
       } else {
         redisClient = new Redis({
@@ -102,6 +103,7 @@ export class RedisJobQueue {
           keyPrefix: '', // We handle prefixes ourselves in KEYS
           maxRetriesPerRequest: 3,
           lazyConnect: true,
+          protocol: 2, // ioredis 6 defaults to RESP3, which fails outright on Redis < 6
         });
       }
 
