@@ -555,6 +555,19 @@ export class AgentOrchestrator {
         },
         '🎭 [HANDOFF] ❌❌❌ HANDOFF FAILED ❌❌❌'
       );
+      // The old agent closed before the new one failed to start: bring it back, or the call goes silent
+      if (!this.getActiveAgent()) {
+        await this.spawnAgent(previousPersonaId, {
+          room: this.room,
+          userParticipant: this.userParticipant,
+          isHandoff: false,
+          recentMessages: request.recentMessages,
+        })
+          .then((agent) => this.setActiveAgent(agent.id))
+          .catch((e: unknown) =>
+            log.error({ error: String(e) }, '🎭 Could not restore previous agent')
+          );
+      }
       return {
         success: false,
         error: String(error),
@@ -933,10 +946,11 @@ export class AgentOrchestrator {
    * Get a goodbye phrase for the departing agent.
    */
   private getGoodbyePhrase(fromPersonaId: string, toPersonaId: string): string | null {
-    // The departing persona's banter; a plain hand-off line when there's none for this pair.
-    // (This used require() of a module without these functions: in this ES module that
-    // always threw, so every handoff got the fixed fallback lines)
-    return getHandoffBanter(fromPersonaId, toPersonaId) ?? `Let me hand you off to ${getPersonaDisplayName(toPersonaId)}.`;
+    // Banter, or a plain line (a require() of the wrong module always fell back to it)
+    return (
+      getHandoffBanter(fromPersonaId, toPersonaId) ??
+      `Let me hand you off to ${getPersonaDisplayName(toPersonaId)}.`
+    );
   }
 
   /**
