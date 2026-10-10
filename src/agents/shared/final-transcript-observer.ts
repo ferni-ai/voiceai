@@ -13,6 +13,7 @@
  */
 
 import { getSessionAudioProsodyAnalyzer } from '../../speech/audio-prosody/index.js';
+import { trackEmotionDetection } from '../integrations/speech-metrics-integration.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   observeCrisisTurn,
@@ -48,12 +49,21 @@ export function observeFinalTranscript(input: FinalTranscriptInput): FinalTransc
   return { crisis: recordCrisisShadow(input) };
 }
 
-/** Record this turn's voice reading on userData (voiceEmotion) for the crisis guard and others. */
+/**
+ * Record this turn's voice reading on userData (voiceEmotion) for the crisis
+ * guard and others, and in the speech metrics. The metrics used to hear only
+ * the reading taken when the audio stream closed, and in prod none arrived:
+ * all 394 session summaries since 2026-10-01, app and phone, logged
+ * emotionConfidence 0.
+ */
 function captureTurnVoice(input: FinalTranscriptInput): void {
   const { userData, sessionId } = input;
   try {
     const analyzer = input.analyzer ?? getSessionAudioProsodyAnalyzer(sessionId);
-    captureTurnVoiceEmotion(analyzer, userData);
+    const reading = captureTurnVoiceEmotion(analyzer, userData) as { confidence?: unknown } | null;
+    if (typeof reading?.confidence === 'number' && Number.isFinite(reading.confidence)) {
+      trackEmotionDetection(sessionId, reading.confidence);
+    }
   } catch (error) {
     turnVoiceLog.error({ sessionId, error: String(error) }, 'Per-turn voice failed');
   }
