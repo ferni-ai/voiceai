@@ -133,8 +133,7 @@ export async function initializeMultiAgentSession(
 
   // Get conversation manager (required for full handlers including music)
   let conversationManager:
-    | import('../../services/conversation-manager.js').ConversationManager
-    | undefined;
+    import('../../services/conversation-manager.js').ConversationManager | undefined;
   if (enableFullHandlers) {
     try {
       const { getConversationManager } = await import('../../services/conversation-manager.js');
@@ -207,21 +206,22 @@ export async function handleHandoffFromDataChannel(
     return { success: false, error: 'Handoff already in progress' };
   }
 
-  const currentPersona = orchestrator.getCurrentPersonaId();
-  if (currentPersona === targetPersonaId) {
-    return { success: false, error: `Already with ${targetPersonaId}` };
-  }
-
   // A tap reaches here straight from the browser: the same unlock check as the LLM's tools
   const userProfile = await profileWhenLoaded(services);
   const tier = (userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
   const unlock = checkHandoffUnlocked(targetPersonaId, userProfile, tier);
   if (!unlock.open) return { success: false, error: unlock.error };
+  // From here on, only the id the check decided on: never the raw one from the browser
+  const target = unlock.target;
+  const currentPersona = orchestrator.getCurrentPersonaId();
+  if (currentPersona === target) {
+    return { success: false, error: `Already with ${target}` };
+  }
 
-  diag.entry(`🎭 Data channel handoff: ${currentPersona} → ${targetPersonaId}`);
+  diag.entry(`🎭 Data channel handoff: ${currentPersona} → ${target}`);
 
   const result = await orchestrator.handoff({
-    targetPersonaId,
+    targetPersonaId: target,
     reason,
     userName: services.userProfile?.name,
     userEmotion: services.sessionPriming?.emotionalContext?.lastEmotion,
@@ -238,7 +238,10 @@ export async function handleHandoffFromDataChannel(
  * waits briefly for it, so an unlocked teammate isn't refused for want of it. Still none
  * after that: decide without it, which keeps paid teammates closed.
  */
-async function profileWhenLoaded(services: SessionServices, waitMs = 3000): Promise<UserProfile | null> {
+async function profileWhenLoaded(
+  services: SessionServices,
+  waitMs = 3000
+): Promise<UserProfile | null> {
   for (let waited = 0; !services.userProfile && services.userId && waited < waitMs; waited += 100) {
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 100);
@@ -246,4 +249,3 @@ async function profileWhenLoaded(services: SessionServices, waitMs = 3000): Prom
   }
   return services.userProfile ?? null;
 }
-

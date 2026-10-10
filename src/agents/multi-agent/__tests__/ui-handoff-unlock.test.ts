@@ -74,6 +74,26 @@ describe('a tap on a teammate during a call', () => {
     expect(handoff).toHaveBeenCalled();
   });
 
+  it('refuses an id nobody knows, rather than treating it as Ferni, and nothing switches', async () => {
+    const { o, handoff } = orchestrator();
+    const result = await handleHandoffFromDataChannel(
+      o,
+      'not-a-persona-x9',
+      'tap',
+      services(subscriber)
+    );
+    expect(result.success).toBe(false);
+    expect(handoff).not.toHaveBeenCalled();
+  });
+
+  it('hands the orchestrator the id the check decided on, not the one from the browser', async () => {
+    const { o, handoff } = orchestrator();
+    await handleHandoffFromDataChannel(o, '  MAYA-Santos ', 'tap', services(subscriber));
+    expect(handoff).toHaveBeenCalledWith(
+      expect.objectContaining({ targetPersonaId: 'maya-santos' })
+    );
+  });
+
   it('Ferni is always open', async () => {
     const { o, handoff } = orchestrator();
     (o as { getCurrentPersonaId: () => string }).getCurrentPersonaId = () => 'maya-santos';

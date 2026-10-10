@@ -14,12 +14,17 @@ import {
   isTeamMemberUnlocked,
 } from '../../intelligence/context-builders/team/team-availability.js';
 import { isCoach } from '../../personas/persona-ids.js';
-import { getCanonicalPersonaId, getPersonaDisplayName } from '../../personas/voice-registry.js';
+import {
+  getCanonicalPersonaId,
+  getPersonaDisplayName,
+  isKnownPersona,
+} from '../../personas/voice-registry.js';
 import { isFullTeamUnlocked } from '../../services/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
-export type HandoffUnlockResult = { open: true } | { open: false; error: string };
+/** `target` is the canonical id the check decided on: hand THAT to whatever switches */
+export type HandoffUnlockResult = { open: true; target: string } | { open: false; error: string };
 
 export function checkHandoffUnlocked(
   targetPersonaId: string,
@@ -27,11 +32,20 @@ export function checkHandoffUnlocked(
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): HandoffUnlockResult {
   const target = getCanonicalPersonaId(targetPersonaId);
-  if (isCoach(target)) return { open: true };
+  // An id nobody knows canonicalizes to 'ferni' (always open): refuse it, or a check on
+  // "ferni" could wave through a switch the caller resolves to someone else
+  if (
+    target === 'ferni' &&
+    targetPersonaId.toLowerCase().trim() !== 'ferni' &&
+    !isKnownPersona(targetPersonaId)
+  ) {
+    return { open: false, error: `Unknown persona: ${targetPersonaId}` };
+  }
+  if (isCoach(target)) return { open: true, target };
   const name = getPersonaDisplayName(target);
 
   if (isCoreTeamMember(target)) {
-    if (isTeamMemberUnlocked(target, userProfile, tier)) return { open: true };
+    if (isTeamMemberUnlocked(target, userProfile, tier)) return { open: true, target };
     getLogger().info(
       { targetAgent: target, tier, hasProfile: !!userProfile },
       `🔒 Handoff blocked - ${name} is not yet unlocked for this user`
@@ -44,7 +58,7 @@ export function checkHandoffUnlocked(
     };
   }
 
-  if (isFullTeamUnlocked(userProfile, tier)) return { open: true };
+  if (isFullTeamUnlocked(userProfile, tier)) return { open: true, target };
   getLogger().info(
     { targetAgent: target, tier, hasProfile: !!userProfile },
     `🔒 Handoff blocked - marketplace agent ${name} requires full team to be unlocked`
