@@ -38,6 +38,12 @@ export interface WorldObservation {
   /** 0..1 */
   confidence: number;
   source: { kind: 'summary' | 'turn'; sessionId: string; quote?: string };
+  /**
+   * Extraction's hint that this ends an earlier value of the same subject
+   * ("moved", "broke up", "quit"): closes the open facts in that attribute
+   * (only the one with priorValue, when given) without asking the judge.
+   */
+  replaces?: { attribute: string; priorValue?: string };
 }
 
 export interface TemporalFact extends WorldObservation {
@@ -79,8 +85,11 @@ export function subjectKeyOf(obs: Pick<WorldObservation, 'subject' | 'subjectKin
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
+/** A real calendar day as YYYY-MM-DD ("2026-02-31" is not one). */
 export function isDay(value: unknown): value is string {
-  return typeof value === 'string' && DAY.test(value) && !Number.isNaN(Date.parse(value));
+  if (typeof value !== 'string' || !DAY.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 /** A YYYY-MM-DD as noon UTC: the same calendar day from UTC-11 to UTC+11. */
