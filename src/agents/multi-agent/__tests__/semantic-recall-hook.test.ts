@@ -194,4 +194,24 @@ describe('semantic recall across calls', () => {
       'Ask how the pottery class went'
     );
   });
+
+  it('never waits on a slow embedder: the note is keyword recall, at once', async () => {
+    seedCallOne('u-slow');
+    let queries = 0;
+    const hung: RetrievalEmbedder = (_texts, role) => {
+      if (role === 'query') queries++;
+      return new Promise(() => undefined); // never answers
+    };
+    const recall = createMemoryRecall({ userId: 'u-slow', semantic: true, embed: hung });
+    await recall.ready; // the snapshot doesn't wait for the index either
+    recall.noteFor('hey there');
+    recall.newTurn();
+    const started = performance.now();
+    const note = recall.noteFor("how's Biscuit doing these days, anything I ought to get sorted?");
+    const ms = performance.now() - started;
+    expect(queries).toBe(1); // the turn's embedding was started, and is still pending
+    expect(note).toContain('golden retriever'); // keyword recall still works
+    expect(note).not.toContain('book flights'); // semantic-only results just miss this turn
+    expect(ms).toBeLessThan(20);
+  });
 });
