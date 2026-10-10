@@ -11,8 +11,12 @@ describe('job runner', () => {
     expect(runner.jobExecutorMode({ AGENT_JOB_EXECUTOR: 'process' })).toBe('process');
   });
 
-  it('keeps one warmed child by default, any non-negative whole number on request', () => {
+  it('keeps as many warmed children as the job cap by default, any whole number on request', () => {
     expect(runner.idleProcesses({})).toBe(1);
+    expect(runner.idleProcesses({ AGENT_MAX_JOBS_PER_WORKER: '3' })).toBe(3);
+    expect(
+      runner.idleProcesses({ AGENT_MAX_JOBS_PER_WORKER: '3', AGENT_IDLE_PROCESSES: '1' })
+    ).toBe(1);
     expect(runner.idleProcesses({ AGENT_IDLE_PROCESSES: '2' })).toBe(2);
     expect(runner.idleProcesses({ AGENT_IDLE_PROCESSES: '0' })).toBe(0);
     expect(runner.idleProcesses({ AGENT_IDLE_PROCESSES: '-1' })).toBe(1);
