@@ -2014,7 +2014,7 @@ ${result.crisis.suggestedResponse}`,
     // Inject context into LLM (with role: 'user')
     // Note: FTIS V2 tool results are now handled in the semantic routing section above
     // using generateReplyBySessionId with ephemeral instructions (cleaner architecture)
-    injectTurnContext(turnCtx, result);
+    injectTurnContext(turnCtx, result, { sessionId: services.sessionId, turnNumber });
 
     // Mark LLM start (LLM inference happens after this point)
     markTurnCheckpoint(services.sessionId, turnNumber, 'llmStart');
