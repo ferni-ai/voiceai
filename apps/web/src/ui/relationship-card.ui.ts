@@ -1640,9 +1640,10 @@ function handleQuickAction(action: string | null): void {
         },
       });
       break;
+    case 'edit-notes': // the notes live on Edit's Context tab
     case 'edit':
-      // Open the Edit Person modal
       openEditPerson({
+        initialTab: action === 'edit-notes' ? 'context' : undefined,
         person: {
           id: state.person.id,
           contactId: state.person.contactId,
@@ -1765,9 +1766,6 @@ function handleAddAction(action: string | null): void {
           },
         });
       }
-      break;
-    case 'edit-notes':
-      toast.info(t('toasts.editNotesComingSoon'));
       break;
   }
 }
