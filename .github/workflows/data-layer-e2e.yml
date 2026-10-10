@@ -10,6 +10,7 @@ on:
       - 'src/services/seeds/**'
       - 'src/services/billing/stripe-subscription.ts'
       - 'src/api/garden-routes.ts'
+      - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'src/intelligence/**'
       - 'src/tests/data-layer/**'
@@ -23,6 +24,7 @@ on:
       - 'src/services/seeds/**'
       - 'src/services/billing/stripe-subscription.ts'
       - 'src/api/garden-routes.ts'
+      - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'firestore.indexes.json'
       - 'firebase.json'
@@ -79,7 +81,7 @@ jobs:
 
       - name: Run Seed Ledger Tests
         run: |
-          pnpm vitest run src/services/seeds/__tests__/ --reporter=verbose
+          pnpm vitest run src/services/seeds/__tests__/ src/api/__tests__/roadmap-seeds.emulator.test.ts --reporter=verbose
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
