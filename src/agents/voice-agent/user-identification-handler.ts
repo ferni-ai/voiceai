@@ -21,6 +21,7 @@ import {
   type SpeakerChangeEvent,
 } from '../../services/voice/voice-speaker-change.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { prefetchUserCommitments } from '../../services/superhuman/commitment-prefetch.js';
 import { createSpeakerChangePrompter, listenForSpeakerCheckReplies } from './speaker-check.js';
 
@@ -109,8 +110,13 @@ export async function identifyUser(
       // Priority: 1. Profile name (persistent), 2. Metadata name (if real)
       const metadataName = metadata.user_name || metadata.userName;
       const profileName = identification.profile?.name;
+      // On a call placed for the user, the profile and metadata name are the
+      // sponsor's: the person on the line is the one Ferni called.
+      const outbound = outboundPartiesFor(sessionId);
 
-      if (isRealName(profileName)) {
+      if (outbound) {
+        userName = outbound.recipientName;
+      } else if (isRealName(profileName)) {
         userName = profileName;
       } else if (isRealName(metadataName)) {
         userName = metadataName;

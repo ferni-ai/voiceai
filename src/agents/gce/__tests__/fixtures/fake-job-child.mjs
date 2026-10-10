@@ -15,6 +15,7 @@ process.on('message', (m) => {
   if (m.t === 'job') {
     jobId = Job.fromBinary(Buffer.from(m.job, 'base64')).id;
     process.send({ t: 'lifecycle', jobId, event: 'started' });
+    process.send({ t: 'quality', op: 'startCall', args: [jobId, 'user', 'ferni'] });
     if (mode === 'crash') setTimeout(() => process.exit(3), 20);
     else setTimeout(() => finish('completed'), jobMs);
   } else if (m.t === 'shutdown' && m.jobId === jobId) {
