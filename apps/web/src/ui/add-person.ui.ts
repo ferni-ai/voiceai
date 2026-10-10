@@ -839,20 +839,18 @@ export function openAddPerson(options?: AddPersonOptions): void {
  * Close the Add Person modal
  */
 export function closeAddPerson(): void {
-  if (!modalContainer) return;
-
+  // Let go of this modal now: adding another person right away opens a fresh one, and a
+  // timer that read modalContainer when it fired removed that new one and kept this one
+  const closing = modalContainer;
+  if (!closing) return;
+  modalContainer = null;
+  const { onClose } = callbacks;
+  callbacks = {};
   document.removeEventListener('keydown', handleEscapeKey);
-
-  modalContainer.classList.remove('open');
-
+  closing.classList.remove('open');
   setTimeout(() => {
-    modalContainer?.remove();
-    modalContainer = null;
-    
-    if (callbacks.onClose) {
-      callbacks.onClose();
-    }
-    callbacks = {};
+    closing.remove();
+    onClose?.();
   }, DURATION.NORMAL);
 
   state.isOpen = false;
