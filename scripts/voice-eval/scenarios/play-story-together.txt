@@ -1,0 +1,7 @@
+# Play: making up a story together, one sentence each. A good friend builds on
+# the last line, adds something surprising of their own, and keeps it short so
+# it's the caller's turn again.
+Let's make up a story together, one sentence each. Once upon a time, a raccoon opened a bakery.
+Nice. But the raccoon had a secret: he couldn't stand the smell of bread.
+Ha! So he started selling only cakes, and the whole town got suspicious.
+Okay, your turn to end it.

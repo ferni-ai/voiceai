@@ -21,18 +21,28 @@ export const FULL_LOAD_THRESHOLD = 0.7;
  * VAD lag p50 0.5 s alone, 8.2 s / max 41 s with two), so one until that's fixed.
  * AGENT_MAX_JOBS_PER_WORKER raises it without a code change.
  */
-export function maxJobsPerWorker(env: string | undefined = process.env.AGENT_MAX_JOBS_PER_WORKER): number {
+export function maxJobsPerWorker(
+  env: string | undefined = process.env.AGENT_MAX_JOBS_PER_WORKER
+): number {
   const n = Number(env);
   return Number.isInteger(n) && n >= 1 ? n : 1;
 }
 
 /** The worker takes no new calls at its job cap or once real CPU load crosses the threshold. */
-export function workerIsFull(activeJobs: number, load: number, maxJobs = maxJobsPerWorker()): boolean {
+export function workerIsFull(
+  activeJobs: number,
+  load: number,
+  maxJobs = maxJobsPerWorker()
+): boolean {
   return activeJobs >= maxJobs || load >= FULL_LOAD_THRESHOLD;
 }
 
 /** Usable CPUs: NUM_CPUS override, else cgroup v2 `cpu.max` quota/period, else `fallback`. */
-export function parseCpuCount(cpuMax: string | null, numCpusEnv: string | undefined, fallback: number): number {
+export function parseCpuCount(
+  cpuMax: string | null,
+  numCpusEnv: string | undefined,
+  fallback: number
+): number {
   const fromEnv = numCpusEnv === undefined ? NaN : parseFloat(numCpusEnv);
   if (fromEnv > 0) return fromEnv;
   const [quota, period] = (cpuMax ?? '').trim().split(/\s+/);
@@ -87,6 +97,11 @@ function readCpuMax(): string | null {
 let lastElu = performance.eventLoopUtilization();
 
 /** Sampler for this process, sized to the container's CPU quota. */
+/** The pod's usable CPUs (container quota). */
+export function podCpuCount(): number {
+  return parseCpuCount(readCpuMax(), process.env.NUM_CPUS, os.cpus().length);
+}
+
 export function createProcessCpuLoadSampler(): { sample: () => number } {
   return createCpuLoadSampler({
     cpuMicros: () => {
@@ -94,7 +109,7 @@ export function createProcessCpuLoadSampler(): { sample: () => number } {
       return user + system;
     },
     nowMicros: () => Number(process.hrtime.bigint() / 1000n),
-    cpus: parseCpuCount(readCpuMax(), process.env.NUM_CPUS, os.cpus().length),
+    cpus: podCpuCount(),
     eventLoopBusy: () => {
       const now = performance.eventLoopUtilization();
       const delta = performance.eventLoopUtilization(now, lastElu);

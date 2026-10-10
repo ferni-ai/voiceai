@@ -306,7 +306,6 @@ import { initSeedsToast } from './ui/seeds-toast.ui.js';
 // Subscription Badge - subtle status indicator in header
 import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-badge.ui.js';
 // Roadmap Panel - What's Growing feature voting
-import { initRoadmapPanelUI } from './ui/roadmap-panel.ui.js';
 // Structured logger
 import { createLogger } from './utils/logger.js';
 const log = createLogger('App');
@@ -1773,8 +1772,9 @@ class VoiceAIApp {
     // 💚 Support Ferni / Founders Fund - the founders-journey CTA opens it
     this.addTrackedListener(document, 'ferni:open-support', () => void openSupportFerni());
 
-    // 🌱 Roadmap Panel - "What's Growing" feature voting
-    this.safeInit('RoadmapPanelUI', () => initRoadmapPanelUI());
+    // 🌱 Roadmap Panel - "What's Growing" feature voting; loaded when first opened
+    this.addTrackedListener(document, 'ferni:open-roadmap', ((e: CustomEvent<{ featureId?: string }>) =>
+      void import('./ui/roadmap-panel.ui.js').then((m) => m.showRoadmapPanel(e.detail?.featureId))) as EventListener);
 
     // 💰 Subscription Badge - Subtle status indicator in header
     this.safeInit('SubscriptionBadge', () => initSubscriptionBadge());

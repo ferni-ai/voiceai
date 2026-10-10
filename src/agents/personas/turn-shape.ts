@@ -11,8 +11,8 @@
  * picked from the caller's turn, with some randomness so it never settles
  * into a pattern, and the reminder says it plainly for this one reply.
  *
- * TURN_SHAPE=off falls back to the single reminder (turn-style.ts); TURN_SHAPE=model
- * lets the model judge the shape (modelChosenShape).
+ * TURN_SHAPE=off falls back to the single reminder (turn-style.ts); the default,
+ * model, lets the model judge the shape (modelChosenShape); TURN_SHAPE=dice draws it.
  *
  * @module agents/personas/turn-shape
  */
@@ -126,7 +126,11 @@ const ABOUT_YOU =
 
 const REGISTER =
   'Start with the substance, not a stock reaction word like Oh, Ugh, Yeah or Hmm. ' +
-  'Talk like a close friend, not a therapist, coach or host: never ask how something feels or what it\'s like for them, no stock validation ("that sounds exhausting", "I hear you"), no cheerleading or exclamation marks. ' +
+  'Talk like a close friend, not a therapist, coach or host: never ask how something feels or what it\'s like for them, no stock validation ("that sounds exhausting", "I hear you"), no generic cheerleading or exclamation marks. ' +
+  // Read as "no excitement", that line flattened big good news: a sister's
+  // pregnancy got "Tears right on the trail, yeah, that makes sense" in 3 of 3
+  // dev calls (judge.mjs, 2026-10-10).
+  'When they share good news that really matters to them, be genuinely delighted about that specific thing, in your own words, the way a close friend would. ' +
   'Sound spoken, not written, and never the same filler twice in a row. No paragraph breaks. ' +
   // judge.mjs on dev calls (2026-10-10): "that long drive down from the north"
   // to someone who only said they got home; "Classic Biscuit" for a dog just
@@ -248,7 +252,10 @@ export function turnShapeFor(
 export function turnShapeMode(
   env: Record<string, string | undefined> = process.env
 ): TurnShapeMode {
-  return env.TURN_SHAPE === 'off' ? 'off' : env.TURN_SHAPE === 'model' ? 'model' : 'dice';
+  // model by default: it beat the dice on understanding (3.27 vs 2.33), empathy,
+  // conduct, endearing and quirks at the same reply delay (dev A/B, 15 calls per
+  // arm, judge.mjs, 2026-10-10). TURN_SHAPE=dice brings the old draw back.
+  return env.TURN_SHAPE === 'off' ? 'off' : env.TURN_SHAPE === 'dice' ? 'dice' : 'model';
 }
 
 export function turnShapeEnabled(env: Record<string, string | undefined> = process.env): boolean {

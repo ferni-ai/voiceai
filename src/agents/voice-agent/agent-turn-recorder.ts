@@ -3,8 +3,10 @@
  *
  * Unified turn recording that handles:
  * 1. Regular session turn recording (memory persistence)
- * 2. On-behalf call transcript capture (superhuman analysis)
- * 3. Memory attribution tracking (recall quality metrics)
+ * 2. Memory attribution tracking (recall quality metrics)
+ *
+ * On-behalf calls route services.addTurn to the call transcript instead
+ * (see integrations/on-behalf-transcript-capture.ts).
  *
  * Agent turns arrive from agent-reply-recorder for every reply the session
  * commits (LLM, cached, greeting).
@@ -24,17 +26,17 @@ import { recordMemoryAttribution, recordMemoriesInjected } from '../../memory/dy
 const log = createLogger({ module: 'agent-turn-recorder' });
 
 /**
- * Record an agent turn with proper handling for on-behalf calls
+ * Record an agent turn and track which injected memories it used
  *
- * @param sessionId - Session ID for on-behalf lookup
+ * @param sessionId - Session ID for memory attribution
  * @param services - Session services for regular turn recording
  * @param text - The agent's response text
  */
-export async function recordAgentTurn(
+export function recordAgentTurn(
   sessionId: string,
   services: SessionServices | null | undefined,
   text: string
-): Promise<void> {
+): void {
   if (!text) return;
 
   // Record to regular session services (memory persistence)
@@ -94,54 +96,25 @@ export async function recordAgentTurn(
   } catch (error) {
     log.debug({ error: String(error) }, 'Attribution tracking failed (non-critical)');
   }
-
-  // Also capture for on-behalf call analysis
-  try {
-    const { isOnBehalfCall, captureAgentTurn } =
-      await import('../integrations/on-behalf-transcript-capture.js');
-
-    if (isOnBehalfCall(sessionId)) {
-      captureAgentTurn(sessionId, text);
-      log.debug({ sessionId, textLength: text.length }, 'Captured agent turn for on-behalf call');
-    }
-  } catch {
-    // On-behalf capture is non-critical
-  }
 }
 
 /**
- * Record a user turn with proper handling for on-behalf calls
- * (For on-behalf calls, the "user" is actually the recipient)
+ * Record a user turn. In an on-behalf call services.addTurn is routed to the
+ * call transcript, so the "user" here is the person being called.
  *
- * @param sessionId - Session ID for on-behalf lookup
+ * @param _sessionId - Kept for call-site symmetry with recordAgentTurn
  * @param services - Session services for regular turn recording
  * @param text - The user/recipient's speech
  */
-export async function recordUserTurn(
-  sessionId: string,
+export function recordUserTurn(
+  _sessionId: string,
   services: SessionServices | null | undefined,
   text: string
-): Promise<void> {
+): void {
   if (!text) return;
 
   // Record to regular session services (memory persistence)
   if (services && typeof services.addTurn === 'function') {
     services.addTurn('user', text);
-  }
-
-  // Also capture for on-behalf call analysis
-  try {
-    const { isOnBehalfCall, captureRecipientTurn } =
-      await import('../integrations/on-behalf-transcript-capture.js');
-
-    if (isOnBehalfCall(sessionId)) {
-      captureRecipientTurn(sessionId, text);
-      log.debug(
-        { sessionId, textLength: text.length },
-        'Captured recipient turn for on-behalf call'
-      );
-    }
-  } catch {
-    // On-behalf capture is non-critical
   }
 }

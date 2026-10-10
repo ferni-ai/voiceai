@@ -466,7 +466,7 @@ export class HumorCalibrationEngine {
       case 'callbacks':
         return 'Reference a shared moment or earlier joke';
       case 'self_deprecating':
-        return 'Light self-deprecation about being an AI or about the topic';
+        return 'Light self-deprecation about your own small failings or about the topic';
       case 'observational':
         return `Make a relatable observation about ${context}`;
       case 'dry_wit':

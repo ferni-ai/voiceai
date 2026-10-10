@@ -1251,7 +1251,6 @@ export function extractTtsSessionContext(
   agent: voice.Agent,
   defaultPersonaId: string
 ): TtsSessionContext {
-  // Access session userData safely
   const { session } = agent;
   const userData = session?.userData as Record<string, unknown> | undefined;
 
@@ -1260,7 +1259,9 @@ export function extractTtsSessionContext(
   // Previously this was always returning undefined, causing sessionId: 'unknown' in handoffs.
   const services = userData?.services as { sessionId?: string } | undefined;
   const extractedSessionId = services?.sessionId ?? (userData?.sessionId as string | undefined);
-  const personaId = (userData?.personaId as string | undefined) || defaultPersonaId;
+  // A roundtable line sets speakingAs (whose voice); personaId stays who is on the call
+  const voiceOf = userData?.speakingAs ?? userData?.personaId;
+  const personaId = (voiceOf as string | undefined) || defaultPersonaId;
 
   // DIAGNOSTIC: Log when sessionId is missing or 'unknown'
   if (!extractedSessionId || extractedSessionId === 'unknown') {

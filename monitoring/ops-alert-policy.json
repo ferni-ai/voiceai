@@ -1,0 +1,25 @@
+{
+  "displayName": "Ferni ops alert",
+  "documentation": {
+    "content": "An operator alert from src/services/platform/ops-alert.ts (opsAlert key in the log line): memory health, a critical security event (account lockout, profile deletion), or an error notification. Open the log entry for the key and details.",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "A log line carries opsAlert (API on Cloud Run, or the voice agent)",
+      "conditionMatchedLog": {
+        "filter": "(resource.type=\"cloud_run_revision\" AND jsonPayload.opsAlert:*) OR (logName=\"projects/johnb-2025/logs/cloud-agents\" AND textPayload:\"\\\"opsAlert\\\"\")",
+        "labelExtractors": {
+          "key": "EXTRACT(jsonPayload.opsAlert)"
+        }
+      }
+    }
+  ],
+  "alertStrategy": {
+    "notificationRateLimit": { "period": "900s" },
+    "autoClose": "1800s"
+  },
+  "notificationChannels": ["projects/johnb-2025/notificationChannels/497418305396229287"],
+  "enabled": true
+}
