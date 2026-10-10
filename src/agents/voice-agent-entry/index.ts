@@ -17,7 +17,7 @@
 import { isValidTimeZone } from '../shared/time-context.js';
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
-import { logSipCallerShadow } from './sip-caller.js';
+import { noteCallerJoined } from './sip-caller.js';
 
 // Event cleanup registry for proper memory management
 import {
@@ -438,8 +438,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         );
       }
 
-      // User awareness injection
       const userAwarenessResult = buildUserAwareness({
+        sessionId,
         userProfile: services.userProfile,
         isReturningUser,
         userName,
@@ -622,7 +622,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         process.stderr.write(
           `[voice-agent-entry] 👤 Participant ready (${participantWaitResult.source}): ${participant.identity}\n`
         );
-        void logSipCallerShadow({ participant, room: ctx.room, sessionId });
+        void noteCallerJoined({ participant, room: ctx.room, sessionId });
         await markCallStageSafe(sessionId, 'orchestrator_start');
         const { runMultiAgentMode } = await import('../voice-agent/phases/index.js');
         const { unregisterSession: unregisterCrashSession } =

@@ -47,6 +47,13 @@ interface OutboundCallContext {
   originalSessionId: string;
 }
 
+/**
+ * The opener is the AI disclosure. After it, Ferni doesn't keep announcing it,
+ * and never denies it when sincerely asked.
+ */
+export const AI_DISCLOSURE_RULE =
+  "Your opening line already said you're an AI; don't bring it up again or add 'as an AI' disclaimers. If someone sincerely asks whether you're a real person, say plainly that you're an AI, in a few words, then carry on warmly.";
+
 // In-memory store for outbound call contexts (set by orchestrator)
 const outboundCallContexts = new Map<string, OutboundCallContext>();
 
@@ -164,7 +171,7 @@ export const outboundCallContextBuilder: ContextBuilder = {
     // 4. Guardrails: Must-Not-Do
     // ---------------------------------------------------------
     if (callContext.mustNotDo.length > 0) {
-      const guardrails = buildGuardrailsInjection(callContext.mustNotDo);
+      const guardrails = buildGuardrailsInjection(callContext.mustNotDo, callContext.userName);
       injections.push(
         createStandardInjection('outbound_call_guardrails', guardrails, {
           category: 'constraints',
@@ -228,11 +235,17 @@ TALK THE WAY PEOPLE DO ON THE PHONE:
 - Speak clearly and a touch slower than usual, but never talk down: no pet names, no "we",
   no over-explaining. If they didn't catch something, say it again in different words.
 - When they give a date, time, number or address, let them finish, then read it back.
-- If they ask whether you're a real person: say plainly you're an AI ${context.userName} uses to
-  make calls, and offer to have ${context.userName} call them directly. Never pretend to be
-  ${context.userName}, and don't promise things for ${context.userName}; say you'll pass it on.
+- Never pretend to be ${context.userName}, and don't promise things for ${context.userName}; say
+  you'll pass it on.
 - If someone else answers, ask for ${context.recipientName} warmly and keep the reason to yourself.
 - On a family call, if they want to chat a little, follow their lead, then gently come back.
+
+CRITICAL REMINDERS:
+- You are Ferni, ${context.userName}'s friend. ${AI_DISCLOSURE_RULE}
+- You are authorized by ${context.userName} to make this call.
+- Be professional but warm - you represent ${context.userName}.
+- If they seem confused about an AI calling, reassure them and explain briefly.
+- If they refuse to speak with an AI, thank them and end gracefully.
 
 This call has ID: ${context.callId} (reference if needed)
 `.trim();
@@ -297,13 +310,13 @@ This information will be automatically captured and reported to ${context.userNa
 `.trim();
 }
 
-function buildGuardrailsInjection(mustNotDo: string[]): string {
+function buildGuardrailsInjection(mustNotDo: string[], userName: string): string {
   return `
 CALL GUARDRAILS - DO NOT VIOLATE
 
 ${mustNotDo.map((item) => `- ${item}`).join('\n')}
 
-These are hard constraints. If you're unsure about something, err on the side of caution and say you'll have ${'{userName}'} follow up directly.
+These are hard constraints. If you're unsure about something, err on the side of caution and say you'll have ${userName} follow up directly.
 `.trim();
 }
 

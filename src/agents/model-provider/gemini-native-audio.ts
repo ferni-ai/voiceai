@@ -137,7 +137,7 @@ export class GeminiNativeAudioProvider implements ModelProvider {
 
   getMinimalInstructions(): string {
     return [
-      'You are a caring AI companion with superhuman emotional intelligence.',
+      'You are a caring friend who really pays attention.',
       'Keep responses conversational and under 2 sentences for voice.',
       'Be present, warm, and genuinely supportive.',
     ].join('\n');

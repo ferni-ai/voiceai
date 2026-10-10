@@ -28,6 +28,12 @@ import {
   needsUsageReset,
 } from '../../types/subscription.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  awardContributionSeeds,
+  awardFoundingSeeds,
+  type SeedFundInvoice,
+  type SeedFundPaymentIntent,
+} from '../seeds/payment-bonuses.js';
 import { finops } from '../observability/finops.js';
 import { billingSourceOf, type BillingSource } from './billing-source.js';
 import { nextSubscriptionFromStripe } from './paying-twice.js';
@@ -81,8 +87,7 @@ interface StripeBillingPortalSession {
   url: string;
 }
 
-interface StripeInvoice {
-  id: string;
+interface StripeInvoice extends SeedFundInvoice {
   customer: string;
 }
 
@@ -90,7 +95,7 @@ interface StripeEvent {
   id: string;
   type: string;
   data: {
-    object: StripeSubscription | StripeCheckoutSession | StripeInvoice;
+    object: StripeSubscription | StripeCheckoutSession | StripeInvoice | SeedFundPaymentIntent;
   };
 }
 
@@ -258,6 +263,8 @@ export async function createCheckoutSession(params: {
   email?: string;
   name?: string;
   currency?: string; // e.g., 'USD', 'EUR', 'JPY', etc.
+  /** Extra subscription metadata (garden-routes marks Seed Fund gifts) */
+  metadata?: Record<string, string>;
 }): Promise<{ sessionId: string; url: string }> {
   const { userId, tier, successUrl, cancelUrl, email, name, currency } = params;
 
@@ -320,6 +327,7 @@ export async function createCheckoutSession(params: {
         currency: currency || 'USD',
         free_session_minutes: process.env.FREE_SESSION_MINUTES || '7',
         experiment_cohort: process.env.EXPERIMENT_COHORT || 'control',
+        ...params.metadata,
       },
     },
     // Allow promotion codes for beta users
@@ -470,20 +478,9 @@ export async function downgradeToFree(userId: string): Promise<void> {
   log.info({ userId, tier: next.tier, provider: next.provider }, 'Stripe subscription ended');
 }
 
-/**
- * Handle payment failure - marks subscription as past_due (grace period)
- * User keeps access but is warned about payment issues
- */
+/** Payment failed: only logged. Stripe retries; customer.subscription.updated sets status. */
 async function handlePaymentFailure(stripeCustomerId: string): Promise<void> {
-  const store = await getStore();
-
-  // Find user by Stripe customer ID
-  // Note: In a real app, you'd want an index for this lookup
-  // For now, we'll just log and let Stripe handle retries
   log.warn({ stripeCustomerId }, 'Payment failure handling - user in grace period');
-
-  // The subscription status will be updated by customer.subscription.updated webhook
-  // which Stripe sends after payment fails
 }
 
 /**
@@ -711,24 +708,26 @@ export async function handleWebhookEvent(event: StripeEvent): Promise<void> {
     }
 
     case 'invoice.payment_failed': {
+      // Grace period: Stripe retries, then cancels; customer.subscription.updated follows
       const invoice = event.data.object as StripeInvoice;
-      const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer;
-      // Mark subscription as past_due but keep them active (grace period)
-      // Stripe will retry and eventually cancel if all retries fail
-      log.warn({ customerId, invoiceId: invoice.id }, 'Payment failed - entering grace period');
-      // Find user by customerId and update status
-      await handlePaymentFailure(customerId);
+      log.warn({ customerId: invoice.customer, invoiceId: invoice.id }, 'Payment failed');
+      await handlePaymentFailure(invoice.customer);
       break;
     }
 
     case 'invoice.paid': {
       const invoice = event.data.object as StripeInvoice;
       log.info({ invoiceId: invoice.id }, 'Invoice paid successfully');
-      // Reset any past_due status
-      const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer;
-      await handlePaymentSuccess(customerId);
+      await handlePaymentSuccess(invoice.customer);
+      // The first invoice of a Seed Fund monthly gift pays the founding bonus (once, by key)
+      await awardFoundingSeeds(invoice);
       break;
     }
+
+    // Signed, so the Seed Fund bonus is paid here, not by the unsigned /api/monetization/webhook
+    case 'payment_intent.succeeded':
+      await awardContributionSeeds(event.data.object as SeedFundPaymentIntent);
+      break;
 
     case 'customer.subscription.trial_will_end': {
       // Sent 3 days before trial ends - could trigger email reminder

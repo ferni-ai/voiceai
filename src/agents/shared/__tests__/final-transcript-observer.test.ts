@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { getSpeechMetricsSnapshot } from '../../../speech/metrics/index.js';
 import { observeFinalTranscript } from '../final-transcript-observer.js';
 
 const sadReading = { primary: 'sad', confidence: 0.8, stressLevel: 0.3 };
@@ -18,6 +19,32 @@ describe('observeFinalTranscript', () => {
       analyzer: analyzerReturning(sadReading),
     });
     expect(userData.voiceEmotion).toEqual(sadReading);
+  });
+
+  it("counts this turn's voice reading in the speech metrics", () => {
+    const quality = () => getSpeechMetricsSnapshot().metrics.quality;
+    const before = quality().sampleCount;
+    observeFinalTranscript({
+      transcript: 'it has been a rough week',
+      userData: {},
+      sessionId: 's-metrics',
+      crisisMode: 'off',
+      analyzer: analyzerReturning(sadReading),
+    });
+    expect(quality().sampleCount).toBe(before + 1);
+    expect(quality().avgEmotionConfidence).toBeGreaterThan(0);
+  });
+
+  it('counts nothing when the turn had too little voice to read', () => {
+    const before = getSpeechMetricsSnapshot().metrics.quality.sampleCount;
+    observeFinalTranscript({
+      transcript: 'yeah',
+      userData: {},
+      sessionId: 's-metrics',
+      crisisMode: 'off',
+      analyzer: analyzerReturning(null),
+    });
+    expect(getSpeechMetricsSnapshot().metrics.quality.sampleCount).toBe(before);
   });
 
   it('gives the crisis shadow this turn voice, not the previous one', () => {
