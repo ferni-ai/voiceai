@@ -47,6 +47,30 @@ export interface DailyResult {
   milestone?: { days: number; seeds: number };
 }
 
+/** How long an account's day zone holds before a different zone can replace it. */
+export const ZONE_CHANGE_AFTER_DAYS = 7;
+
+/**
+ * The zone that decides "today" for this account. The requested zone comes from the
+ * client, so it can't move the day freely: hopping between UTC-12 and UTC+14 would make
+ * one real day count twice. The first valid zone is kept; a different one is adopted only
+ * once the current one has held for ZONE_CHANGE_AFTER_DAYS (a traveller's day catches up
+ * within a week).
+ */
+function accountZone(
+  account: Record<string, unknown>,
+  requested: string | undefined,
+  now: Date
+): { zone: string; changed: boolean } {
+  const stored = isValidTimeZone(account.seedTimeZone) ? account.seedTimeZone : undefined;
+  const wanted = isValidTimeZone(requested) ? requested : undefined;
+  if (!wanted || wanted === stored) return { zone: stored ?? 'UTC', changed: false };
+  const since =
+    typeof account.seedTimeZoneSince === 'string' ? Date.parse(account.seedTimeZoneSince) : NaN;
+  const settled = !stored || !(now.getTime() - since < ZONE_CHANGE_AFTER_DAYS * 86_400_000);
+  return settled ? { zone: wanted, changed: true } : { zone: stored, changed: false };
+}
+
 /**
  * Credit the day's first conversation, and a streak milestone if today reaches one.
  * Safe to call on every conversation end: a second call on the same day changes nothing.
@@ -57,18 +81,19 @@ export async function awardDailyConversation(
   now: Date = new Date(),
   timeZone?: string
 ): Promise<DailyResult> {
-  const today = localDate(now, timeZone);
-  const dailyKey = `daily:${today}`;
-
   return db.runTransaction(async (tx) => {
-    const state = await prepareSeeds(tx, db, uid, dailyKey);
+    const state = await prepareSeeds(tx, db, uid, []);
     const account = state.account ?? {};
+    const { zone, changed } = accountZone(account, timeZone, now);
+    const today = localDate(now, zone);
+    const dailyKey = `daily:${today}`;
     const last =
       typeof account.lastConversationDate === 'string' ? account.lastConversationDate : null;
     const previous = Number(account.currentStreak ?? 0);
 
-    if (last === today) {
-      // Already counted today: by this ledger, or by the old claim-daily path (no entry)
+    if (last !== null && today <= last) {
+      // Already counted (by this ledger or the old claim-daily path), or a date that moved
+      // backwards (a zone change): never pays
       return { daily: { applied: false, balance: state.balance }, streakDays: previous };
     }
 
@@ -80,7 +105,7 @@ export async function awardDailyConversation(
     const streakStart = continues ? started : today;
     const bonus = STREAK_MILESTONES[streakDays];
     const streakKey = `streak:${streakDays}:${streakStart}`;
-    if (bonus) await prepareMoreSeeds(tx, state, [streakKey]);
+    await prepareMoreSeeds(tx, state, bonus ? [dailyKey, streakKey] : [dailyKey]);
 
     const daily = commitSeeds(tx, state, { delta: DAILY_SEEDS, reason: 'daily', key: dailyKey });
     const paid = bonus
@@ -88,7 +113,12 @@ export async function awardDailyConversation(
       : null;
     tx.set(
       state.accountRef,
-      { currentStreak: streakDays, streakStart, lastConversationDate: today },
+      {
+        currentStreak: streakDays,
+        streakStart,
+        lastConversationDate: today,
+        ...(changed ? { seedTimeZone: zone, seedTimeZoneSince: now.toISOString() } : {}),
+      },
       { merge: true }
     );
 

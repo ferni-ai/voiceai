@@ -97,4 +97,31 @@ describe.skipIf(!emulator)('daily conversation seeds (Firestore emulator)', () =
     ]);
     expect((await account()).balance).toBe(STARTER_SEEDS + 5);
   });
+
+  it("hopping time zones can't make one real day pay twice", async () => {
+    const lateUtc = new Date('2026-10-10T23:00:00Z');
+    const first = await awardDailyConversation(db, uid, lateUtc, 'Pacific/Pago_Pago'); // 12:00 on the 10th
+    // Same instant, a zone where it's already the 11th: the account's zone holds
+    const hop = await awardDailyConversation(db, uid, lateUtc, 'Pacific/Kiritimati');
+
+    expect(first.daily.applied).toBe(true);
+    expect(hop.daily.applied).toBe(false);
+    expect((await account()).seedTimeZone).toBe('Pacific/Pago_Pago');
+  });
+
+  it('a new zone is adopted once the current one has held for a week (a traveller)', async () => {
+    await awardDailyConversation(db, uid, new Date('2026-10-01T15:00:00Z'), 'America/New_York');
+    await awardDailyConversation(db, uid, new Date('2026-10-09T15:00:00Z'), 'Europe/Paris');
+    expect((await account()).seedTimeZone).toBe('Europe/Paris');
+  });
+
+  it('a date that moves backwards never pays', async () => {
+    await db
+      .collection('user_seeds')
+      .doc(uid)
+      .set({ balance: 50, lastConversationDate: '2026-10-05' });
+    const result = await awardDailyConversation(db, uid, day(2)); // 2026-10-03
+    expect(result.daily.applied).toBe(false);
+    expect((await account()).balance).toBe(50);
+  });
 });
