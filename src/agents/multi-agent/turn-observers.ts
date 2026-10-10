@@ -1,6 +1,6 @@
 /**
  * Per-turn observers installed on a live call's AgentSession: pace matching,
- * per-turn tool retrieval and the director's notes. Each returns what the
+ * per-turn tool retrieval, the director's notes and the wrap-up reading. Each returns what the
  * session's transcript handler feeds it.
  *
  * @module agents/multi-agent/turn-observers
@@ -263,10 +263,11 @@ export interface DirectorNotesInput {
 /**
  * The director: after each reply, the record of what Ferni has already told on
  * the call (unless TOLD_THIS_CALL=off) and, with DIRECTOR_NOTES=on, a model's
- * notes that nudge the next reply.
+ * notes that nudge the next reply. Installs the wrap-up reading beside it.
  */
 export async function installDirectorNotes(input: DirectorNotesInput): Promise<void> {
   const { session, sessionId, userName, agent, cleanupFunctions } = input;
+  await installWrapUp(input);
   const { directorNotesEnabled, Director, setDirector, linesFromChat } =
     await import('../personas/director-notes.js');
   const { toldThisCallEnabled } = await import('../personas/told-this-call.js');
@@ -288,6 +289,37 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
     setDirector(session, null);
   });
   log.info({ sessionId, writeNotes, toldThisCall: toldThisCallEnabled() }, 'director notes on');
+}
+
+/**
+ * WRAP_UP=on: after each reply, read what the call has settled so far, for a
+ * goodbye that closes the loop (personas/wrap-up.ts). Off the reply path.
+ */
+export async function installWrapUp(input: {
+  session: Session;
+  agent: ChatAgent | (() => ChatAgent);
+  cleanupFunctions: Cleanup;
+}): Promise<void> {
+  const { session, agent, cleanupFunctions } = input;
+  const { wrapUpEnabled, WrapUp, setWrapUp } = await import('../personas/wrap-up.js');
+  if (!wrapUpEnabled()) return;
+  const { linesFromChat } = await import('../personas/director-notes.js');
+  const wrapUp = new WrapUp();
+  setWrapUp(session, wrapUp);
+  let spoke = false;
+  const onState = (ev: unknown): void => {
+    const state = (ev as { newState?: string }).newState;
+    if (state === 'speaking') spoke = true;
+    if (state !== 'listening' || !spoke) return;
+    spoke = false;
+    void wrapUp.observe(linesFromChat(now(agent).chatCtx.items as never));
+  };
+  session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+  cleanupFunctions.push(() => {
+    session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+    setWrapUp(session, null);
+  });
+  log.info('wrap-up on');
 }
 
 /** Record Ferni's side of the conversation to the thread (user turns are recorded elsewhere). */

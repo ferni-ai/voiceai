@@ -241,8 +241,10 @@ export async function gatedReply(
   if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn
-  // shape ("six words at most") must never hold it back.
-  const plain = (): llm.ChatContext => withTurnReminder(chatCtx, session, { shape: false });
+  // shape ("six words at most") must never hold it back, and no goodbye
+  // closes the loop on a plan (wrap-up.ts).
+  const plain = (): llm.ChatContext =>
+    withTurnReminder(chatCtx, session, { shape: false, closeLoop: false });
   const ctx =
     gate?.decision.action === 'guide'
       ? withTurnStyleReminder(plain(), gate.decision.guidance)
