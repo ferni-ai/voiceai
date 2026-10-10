@@ -610,8 +610,7 @@ export class TeamRoundtable extends EventEmitter {
 
     const closing = "Thanks for bringing us all together. We're here whenever you need us.";
 
-    moderator.say(closing, { allowInterruptions: false });
-    await this.waitForSpeechComplete(closing);
+    await this.spoken(moderator.say(closing, { allowInterruptions: false }), closing);
   }
 }
 
