@@ -40,7 +40,7 @@ beforeAll(async () => {
     void handleIntegrationsRoutes(req, res, url.pathname, url);
   });
   await new Promise<void>((r) => {
-    server.listen(0, r);
+    server.listen(0, '127.0.0.1', r);
   });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
