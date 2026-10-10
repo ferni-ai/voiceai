@@ -50,6 +50,7 @@ import { presenceUI } from '../ui/presence.ui.js';
 import { soundUI } from '../ui/sound.ui.js';
 import { waveformUI } from '../ui/waveform.ui.js';
 import { createLogger } from '../utils/logger.js';
+import { handleGroupDataMessage } from './group-data-messages.js';
 import {
   handleAvatarCue,
   handleCrisisDetected,
@@ -65,7 +66,6 @@ import type { ExpressionId } from '../config/expressions.generated.js';
 import * as luxoExpressions from '../ui/luxo-expressions.ui.js';
 // 🎚️ Music Audio Controller - Real-time ducking
 import { getMusicAudioController } from '../services/music-audio.controller.js';
-// Connection service - for music track expectation
 import { connectionService } from '../services/index.js';
 // 🚀 Ferni EQ - Superhuman emotional intelligence
 import { ferni } from '../ui/better-than-human.ui.js';
@@ -90,7 +90,6 @@ import type { BetterThanHumanSignal, BetterThanHumanSignalType } from '../eq/typ
 import { behaviorSignalService } from '../services/behavior-signal.service.js';
 // 🎭 Persona Intro - Team member unlock modal
 import { personaIntro } from '../ui/persona-intro.ui.js';
-// 🔓 Team unlock service - For marking members as unlocked
 // 🎉 Roster preferences - For adding members to the roster
 import { addMemberToRoster, type TeamMemberId } from '../services/roster-preferences.service.js';
 // 🌟 Winter Solstice - Cinematic holiday experience
@@ -158,6 +157,7 @@ export function handleDataMessage(message: DataMessage): void {
     return;
   }
 
+  if (handleGroupDataMessage(message)) return; // group roundtable / call → participant grid
   // 🌉 Try to process as humanization signal (breakthrough, vulnerability, etc.)
   // This is the bridge that makes Ferni feel truly human
   if (humanizationBridge.processMessage(message)) {

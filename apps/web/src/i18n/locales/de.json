@@ -9845,7 +9845,12 @@
     "topicPlaceholder": "Karriereplanung, Beziehungsratschläge...",
     "startRoundtable": "Roundtable starten",
     "moderator": "Moderation",
-    "expert": "Expert*in"
+    "expert": "Expert*in",
+    "roundtableStarted": "Roundtable gestartet",
+    "roundtableEnded": "Roundtable beendet",
+    "calling": "{name} wird angerufen ...",
+    "callNotConnected": "{name} war nicht erreichbar",
+    "errorGeneric": "Beim Gruppengespräch ist etwas schiefgelaufen. Möchtest du es noch einmal versuchen?"
   },
   "locationPrompt": {
     "weather": {

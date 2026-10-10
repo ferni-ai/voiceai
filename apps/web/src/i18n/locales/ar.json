@@ -10189,7 +10189,12 @@
     "topicPlaceholder": "التخطيط المهني، نصائح العلاقات...",
     "startRoundtable": "بدء الطاولة المستديرة",
     "moderator": "الميسّر",
-    "expert": "الخبير"
+    "expert": "الخبير",
+    "roundtableStarted": "بدأت الطاولة المستديرة",
+    "roundtableEnded": "انتهت الطاولة المستديرة",
+    "calling": "جارٍ الاتصال بـ {name}...",
+    "callNotConnected": "تعذّر الوصول إلى {name}",
+    "errorGeneric": "حدثت مشكلة في المحادثة الجماعية. هل تريد المحاولة مرة أخرى؟"
   },
   "locationPrompt": {
     "weather": {

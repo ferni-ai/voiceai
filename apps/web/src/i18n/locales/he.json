@@ -9931,7 +9931,12 @@
     "topicPlaceholder": "תכנון קריירה, ייעוץ זוגי...",
     "startRoundtable": "להתחיל שולחן עגול",
     "moderator": "מנחה",
-    "expert": "מומחה"
+    "expert": "מומחה",
+    "roundtableStarted": "השולחן העגול התחיל",
+    "roundtableEnded": "השולחן העגול הסתיים",
+    "calling": "מתקשר אל {name}...",
+    "callNotConnected": "לא הצלחנו להשיג את {name}",
+    "errorGeneric": "הייתה בעיה בשיחה הקבוצתית. רוצה לנסות שוב?"
   },
   "locationPrompt": {
     "weather": {
