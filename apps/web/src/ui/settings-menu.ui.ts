@@ -762,7 +762,9 @@ class SettingsMenuUI {
                   t('menu.sections.yourPractices'),
                   expandedSections.has('yourPractices'),
                   `
+            ${this.renderMenuItem('hub', ICONS.hub, t('ui.yourDay'))}
             ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
+            ${this.renderMenuItem('what-i-do-for-you', ICONS.care, t('ferniCare.whatIDoForYou'))}
             ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
             ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.whatsAhead'))}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
@@ -889,15 +891,7 @@ class SettingsMenuUI {
         const action = htmlBtn.dataset.action;
         log.info('Menu item clicked', { action });
         const isLocked = htmlBtn.dataset.locked === 'true';
-        const isRoadmap = htmlBtn.dataset.roadmap === 'true';
         const isToggle = htmlBtn.dataset.toggle === 'true';
-
-        // Roadmap features open the inspiring "What's Growing" panel
-        if (isRoadmap && action) {
-          this.hide();
-          showRoadmapPanel(action);
-          return;
-        }
 
         if (isLocked) {
           // Show a gentle animation indicating it's locked
@@ -1033,6 +1027,7 @@ class SettingsMenuUI {
       'all-connections': { icon: ICONS.link, label: t('menu.items.allConnections') },
       // Core items
       'what-i-do-for-you': { icon: ICONS.care, label: t('ferniCare.whatIDoForYou') },
+      hub: { icon: ICONS.hub, label: t('ui.yourDay') },
       'your-story': { icon: ICONS.heart, label: t('menu.items.yourStory') },
       'your-year': {
         icon: ICONS.sparkles,
@@ -1058,6 +1053,7 @@ class SettingsMenuUI {
       'discover-agents': { icon: ICONS.compass, label: t('menu.items.discoverAgents') },
       journal: { icon: ICONS.journal, label: t('menu.items.journaling') },
       personalize: { icon: ICONS.palette, label: t('menu.items.personalize') },
+      'personal-settings': { icon: ICONS.palette, label: t('menu.items.personalize') },
       'accent-settings': { icon: ICONS.globe, label: t('menu.items.voiceAccent') },
       commands: { icon: ICONS.commands, label: t('menu.items.guidedPractices') },
       ritual: { icon: ICONS.ritual, label: t('menu.items.createPractice') },
@@ -1071,7 +1067,9 @@ class SettingsMenuUI {
       theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
       'support-ferni': { icon: ICONS.heart, label: t('menu.items.supportFerniExpanded') },
       'voice-enrollment': { icon: ICONS.fingerprint, label: t('menu.items.voiceId') },
+      'voice-id-settings': { icon: ICONS.fingerprint, label: t('menu.items.voiceId') },
       household: { icon: ICONS.users, label: t('menu.items.householdMembers') },
+      'household-members': { icon: ICONS.users, label: t('menu.items.householdMembers') },
       'family-callers': { icon: ICONS.phone, label: t('menu.items.familyCallers') },
       'contact-settings': { icon: ICONS.contact, label: t('menu.items.contactInfo') },
       export: { icon: ICONS.download, label: t('menu.items.exportData') },
