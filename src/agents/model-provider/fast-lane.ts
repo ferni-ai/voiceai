@@ -17,7 +17,7 @@
 
 import { llm, type APIConnectOptions } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
-import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
+import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 
 const log = createLogger({ module: 'FastLane' });
 
@@ -34,6 +34,11 @@ export function fastLaneEnabled(env: Env = process.env): boolean {
  */
 const MAY_NEED_TOOL =
   /\b(remind(?:er|ers)?|timer|timers|alarm|weather|forecast|rain(?:ing)?|snow(?:ing)?|play|playing|music|song|songs|playlist|spotify|pause|skip|volume|louder|quieter|schedule|calendar|appointment|meeting|call|text|message|email|remember|forget|note|notes|list|add|cancel|delete|look up|search|find|google|news|score|scores|stock|stocks|price|what time|time is it|date|book|order|directions|traffic|translate|convert|calculate|turn on|turn off|lights?|set|minutes?|hours?|tomorrow|tonight|next week|recipe|define|meaning of)\b/i;
+
+/** Whether these words may ask for something a tool does (a timer, a reminder, music). */
+export function mayNeedTool(text: string): boolean {
+  return MAY_NEED_TOOL.test(text);
+}
 
 /** A question to Ferni about himself ("what are you up to?") needs no tool. */
 const ABOUT_FERNI = /\b(you|your|you're|yourself)\b/i;
@@ -67,7 +72,7 @@ export function callerTurn(items: readonly ItemView[]): string | null {
 /** Whether a reply to these words can go to the fast model. */
 export function chitChat(text: string | null): boolean {
   if (!text) return false;
-  if (MAY_NEED_TOOL.test(text)) return false;
+  if (mayNeedTool(text)) return false;
   if (text.includes('?') && !ABOUT_FERNI.test(text)) return false;
   return true;
 }
