@@ -30,6 +30,19 @@ describe('voice-eval humanness', () => {
     ]);
   });
 
+  it('keeps two caller lines in a row as one turn, not the last one only', () => {
+    const turns = turnsOf(
+      run([
+        ['user', 'Oh, and Bisc'],
+        ['user', 'Oh, and Biscuit chewed up my charger.'],
+        ['user', 'So'],
+        ['user', 'So, that was fun.'],
+        ['agent', 'Classic Biscuit.'],
+      ])
+    );
+    expect(turns[0].text).toBe('Oh, and Biscuit chewed up my charger. So, that was fun.');
+  });
+
   it('measures length, questions, stance, repairs and echo per agent turn', () => {
     const m = computeHumanness([
       run([
