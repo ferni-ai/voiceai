@@ -785,6 +785,16 @@ class DataExportService {
         deletionResults['engagement'] = false;
       }
 
+      // 1b. Revoke the Gmail "send as me" grant at Google while its token can still be read
+      try {
+        const { forgetGmailSendGrant } = await import('../identity/gmail-send-as-user.js');
+        await forgetGmailSendGrant(userId);
+        deletionResults['gmail_send_grant'] = true;
+      } catch (e) {
+        log.warn({ error: String(e), userId }, 'Failed to revoke the Gmail send grant');
+        deletionResults['gmail_send_grant'] = false;
+      }
+
       // 2. Erase bogle_users/{uid} + subcollections. Not caught: if it fails, the erasure failed
       const { eraseUserRecord } = await import('./erase-user-record.js');
       await eraseUserRecord(userId);
