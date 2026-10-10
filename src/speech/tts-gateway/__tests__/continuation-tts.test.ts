@@ -187,11 +187,31 @@ describe('createContinuationTTS', () => {
   // The session emotion is the CALLER's detected mood (turn-handler sets
   // userData.currentEmotion). Ferni answers it; he does not mirror it.
   it.each([
-    ['a sad caller gets a sympathetic Ferni', 'sad', 'That sounds like a really long week.', 'sympathetic'],
-    ['an anxious caller gets a sympathetic Ferni', 'anxious', 'Okay, let us take it one step at a time.', 'sympathetic'],
+    [
+      'a sad caller gets a sympathetic Ferni',
+      'sad',
+      'That sounds like a really long week.',
+      'sympathetic',
+    ],
+    [
+      'an anxious caller gets a sympathetic Ferni',
+      'anxious',
+      'Okay, let us take it one step at a time.',
+      'sympathetic',
+    ],
     ['a happy caller gets a content Ferni', 'happy', 'Tell me everything.', 'content'],
-    ['words veto a mood they contradict', 'happy', "Oh no, I'm so sorry to hear that.", 'sympathetic'],
-    ['an unmapped mood leaves it to the words', 'trust', 'Congratulations, that is amazing!', 'content'],
+    [
+      'words veto a mood they contradict',
+      'happy',
+      "Oh no, I'm so sorry to hear that.",
+      'sympathetic',
+    ],
+    [
+      'an unmapped mood leaves it to the words',
+      'trust',
+      'Congratulations, that is amazing!',
+      'content',
+    ],
   ])('%s', async (_name, callerMood, line, expected) => {
     const reply = new FakeReply([4]);
     const { stream } = run([line], reply, callerMood);
@@ -354,7 +374,10 @@ describe('sentence pause (Ma)', () => {
   });
 
   it('does not pause after an ellipsis, which often runs on mid-sentence', async () => {
-    const pushes = await pushesFor(['The light outside my window... ', 'reminds me of the lake back home. '], 300);
+    const pushes = await pushesFor(
+      ['The light outside my window... ', 'reminds me of the lake back home. '],
+      300
+    );
     expect(pushes.join('')).not.toContain('<break');
   });
 
@@ -371,5 +394,54 @@ describe('sentenceBreakMs', () => {
     expect(sentenceBreakMs({ CASCADE_SENTENCE_BREAK_MS: '450' })).toBe(450);
     expect(sentenceBreakMs({ CASCADE_SENTENCE_BREAK_MS: '9000' })).toBe(2000);
     expect(sentenceBreakMs({ CASCADE_SENTENCE_BREAK_MS: 'soon' })).toBe(0);
+  });
+});
+
+describe('first audio held by an opening sound', () => {
+  function held(holdMs: number, reply: FakeReply) {
+    const order: string[] = [];
+    const onFirstAudio = Object.assign(() => order.push('first-audio'), {
+      hold: async () => {
+        order.push('hold');
+        await new Promise<void>((r) => {
+          setTimeout(r, holdMs);
+        });
+        order.push('released');
+      },
+    });
+    const stream = createContinuationTTS({
+      textStream: textStream(['That sounds like a long one. ']),
+      reply,
+      sanitize: (chunk) => ({ text: chunk.trim(), prosody: {} }),
+      openingTags: prosodyTags,
+      toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
+      onFirstAudio,
+      onError: () => undefined,
+    });
+    return { stream, order };
+  }
+
+  it('waits for the hold before the first frame and the first-audio mark', async () => {
+    const started = Date.now();
+    const { stream, order } = held(60, new FakeReply([10, 20]));
+    const frames = await drain(stream);
+    expect(frames).toHaveLength(2);
+    expect(order).toEqual(['hold', 'released', 'first-audio']);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(55);
+  });
+
+  it('plays nothing when the listener stopped during the hold', async () => {
+    const { stream, order } = held(80, new FakeReply([10, 20]));
+    const reader = stream.getReader();
+    const first = reader.read();
+    await new Promise<void>((r) => {
+      setTimeout(r, 10);
+    });
+    await reader.cancel();
+    expect((await first).done).toBe(true);
+    await new Promise<void>((r) => {
+      setTimeout(r, 100);
+    });
+    expect(order).not.toContain('first-audio');
   });
 });

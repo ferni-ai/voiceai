@@ -40,6 +40,7 @@ import {
   toGuardVoiceEmotion,
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
+import { turnOpenedSince } from '../integrations/turn-opening-sound.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
@@ -232,11 +233,16 @@ export async function gatedReply(
   request: llm.ChatContext,
   session: { userData: unknown },
   model: (ctx: llm.ChatContext) => Promise<ReadableStream<Chunk> | null>,
-  openerGate: { wrap(stream: ReadableStream<Chunk>): ReadableStream<Chunk> },
+  openerGate: {
+    wrap(stream: ReadableStream<Chunk>, openedBySound?: () => boolean): ReadableStream<Chunk>;
+  },
   options: { env?: Record<string, string | undefined>; generate?: CrisisGenerateFn } = {}
 ): Promise<ReadableStream<Chunk> | null> {
   const { env = process.env } = options;
   const chatCtx = withoutPastLeadIns(request);
+  const askedAt = Date.now();
+  // A turn-opening clip played after this request began: the reply follows it.
+  const openedBySound = (): boolean => turnOpenedSince(session, askedAt);
   const gate = startCrisisGate(chatCtx, session.userData, options);
   if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
 
@@ -250,7 +256,7 @@ export async function gatedReply(
   const ask = async (request: llm.ChatContext): Promise<ReadableStream<Chunk> | null> => {
     const stream = tapToolCalls(await model(request), session);
     if (!stream) return stream;
-    const trimmed = env.OPENER_GATE !== 'off' ? openerGate.wrap(stream) : stream;
+    const trimmed = env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, openedBySound) : stream;
     return withToolLeadIn(trimmed, chatCtx, session, env);
   };
   const reply = await ask(ctx);

@@ -109,7 +109,12 @@ export interface ContinuationOptions {
    */
   baseSpeed?: number;
   toFrames(pcm: ArrayBuffer): Iterable<AudioFrame>;
-  onFirstAudio(): void;
+  /**
+   * Called at the reply's first audio. Its `hold`, when present, is awaited
+   * first: an opening sound still playing keeps the reply from starting on
+   * top of it (reply-activity.ts).
+   */
+  onFirstAudio: (() => void) & { hold?: () => Promise<void> };
   /** Pause between sentences in ms; defaults to sentenceBreakMs() (env). */
   sentenceBreakMs?: number;
   /** Override FIRST_CHUNK_WAIT_MS (tests). */
@@ -163,7 +168,9 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
           // The session emotion is the caller's mood: answer it (sad -> sympathetic),
           // and only where the opening words agree (Cartesia honours an emotion
           // only when it fits the transcript).
-          (first && emotion ? decideEmotion({ sessionHint: emotion, openingText: text }).emotion : undefined) ??
+          (first && emotion
+            ? decideEmotion({ sessionHint: emotion, openingText: text }).emotion
+            : undefined) ??
           state.emotion,
       };
       const shiftsEmotion =
@@ -282,6 +289,8 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
             if (pcm.byteLength === 0) continue;
             if (!heardAudio) {
               heardAudio = true;
+              await onFirstAudio.hold?.();
+              if (stopped) break;
               onFirstAudio();
             }
             for (const frame of toFrames(pcm)) controller.enqueue(frame);
