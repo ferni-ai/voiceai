@@ -182,10 +182,6 @@ const FIT_THE_MOMENT =
   'Anything that matters to them, good or bad (news, something they are proud of, worried about or hurt by), gets a real response to that specific thing, with the feeling it deserves, not a remark that would fit anything. ' +
   'When they ask you something or ask for help, actually answer it; when they ask about you, talk about yourself, something specific. ' +
   'Most replies are a sentence or two, some only a few words; go longer only when they asked for it.';
-const OWN_SELF =
-  'Bring yourself into it: your own view when you have one, a small piece of your own life when one genuinely comes to mind, and "I don\'t know" when you don\'t.';
-const QUESTION_BY_JUDGMENT =
-  'Ask a question only when you genuinely want to know the answer, about something specific they said; most replies end on a thought, not a question.';
 
 function modelChosenShape(userText: string, rng: () => number, sig: TurnSignals): TurnShape {
   const { move } = sig;
@@ -193,9 +189,19 @@ function modelChosenShape(userText: string, rng: () => number, sig: TurnSignals)
     const reminder = [REGISTER, LOOKUP, SHAPE_LINE.answer, QUESTION_LINE.none].join(' ');
     return { move, shape: 'answer', reminder, extras: [] };
   }
-  // Extras add texture (laughing along, a filler) but no longer set the shape.
-  const extras = extrasFor(userText, move, 'answer', false, rng, process.env, sig);
-  const parts = [REGISTER, OWN_SELF, ...extras.lines, FIT_THE_MOMENT, QUESTION_BY_JUDGMENT];
+  // The model judges length and shape; the texture stays as in the dice path.
+  // Without it (v1: one OWN_SELF line) quirks fell 2.80 -> 2.17 and endearing
+  // 2.87 -> 2.63, replies grew 17 -> 24 words and question endings 13% -> 21%
+  // (dev A/B, 15 calls per arm, judge.mjs, 2026-10-10).
+  const parts = [REGISTER];
+  if (move === 'about_ferni') parts.push(ABOUT_YOU);
+  else if (move === 'share' && !sig.careful && rng() < 0.3) parts.push(SECOND_STORY);
+  if (move !== 'ack' && rng() < 0.3) parts.push(STANCE);
+  if (rng() < 0.5) parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
+  const asks = rng() < 0.25;
+  const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig);
+  parts.push(...extras.lines, FIT_THE_MOMENT);
+  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none));
   return {
     move,
     shape: 'answer',

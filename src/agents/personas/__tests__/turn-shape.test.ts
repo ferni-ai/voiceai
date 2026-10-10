@@ -217,6 +217,17 @@ describe('withTurnReminder seeding and order', () => {
       expect(dice.some((r) => /six words at most/.test(r.reminder))).toBe(true);
     });
 
+    it('keeps the texture the dice path adds (stories, stance, rough forms) at similar rates', () => {
+      const share = 'We finally drove out to the lake this weekend.';
+      const model = Array.from({ length: 300 }, (_, i) => turnShapeFor(share, rngFor(`t${i}`), 'model').reminder);
+      const rate = (re: RegExp) => model.filter((r) => re.test(r)).length / model.length;
+      expect(rate(/share a small piece of it/)).toBeGreaterThan(0.15);
+      expect(rate(/If you'd see it differently/)).toBeGreaterThan(0.15);
+      expect(rate(/restart it differently|Correct yourself|Hesitate once/)).toBeGreaterThan(0.3);
+      expect(rate(/You may ask one question/)).toBeLessThan(0.4);
+      expect(model.every((r) => !/six words at most/.test(r))).toBe(true);
+    });
+
     it('still makes a live question use a tool', () => {
       const r = turnShapeFor("What's the weather tomorrow?", rngFor('w'), 'model');
       expect(r.move).toBe('lookup');
