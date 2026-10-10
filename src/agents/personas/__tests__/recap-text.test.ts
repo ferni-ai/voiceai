@@ -95,15 +95,24 @@ const run = (sessionId: string, deps: RecapDeps, env: Record<string, string> = O
   runRecapText({ userId: 'u1', sessionId, timezone: DENVER }, deps, env);
 
 describe('composeRecap', () => {
-  it("names what they'll do and what Ferni will do, in two short lines after the opener", () => {
+  it("names what they'll do, with the time and number, after a short opener", () => {
     const items: Decided[] = [
       { who: 'caller', what: 'call the landlord', when: 'tomorrow', detail: '555-0134' },
-      { who: 'ferni', what: 'check in', when: 'Thursday', detail: null },
+      { who: 'caller', what: 'bring the lease', when: null, detail: null },
     ];
     expect(composeRecap(items)).toBe(
-      "From our call:\nYou'll call the landlord tomorrow (555-0134).\nI'll check in Thursday."
+      "From our call:\nYou'll call the landlord tomorrow (555-0134), and bring the lease."
     );
     expect(composeRecap([])).toBeNull();
+  });
+
+  it("leaves out Ferni's own promises until the promise keeper tracks them", () => {
+    const check: Decided = { who: 'ferni', what: 'check in', when: 'Thursday', detail: null };
+    const plan: Decided = { who: 'caller', what: 'call the landlord', when: null, detail: null };
+    expect(composeRecap([plan, check])).not.toContain('check in');
+    expect(composeRecap([plan, check])).not.toContain("I'll");
+    // Only a promise of Ferni's: nothing for them to do, no text.
+    expect(composeRecap([check])).toBeNull();
   });
 
   it('drops plans for that night when it goes out the next morning', () => {
@@ -216,7 +225,7 @@ describe('runRecapText after a call', () => {
       'u1',
       PHONE,
       // Read the next morning: "tomorrow" is today by then.
-      "From our call last night:\nYou'll call the landlord today (555-0134).\nI'll check in Thursday.",
+      "From our call last night:\nYou'll call the landlord today (555-0134).",
       new Date('2026-10-13T14:00:00.000Z')
     );
   });

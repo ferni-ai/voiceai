@@ -1,8 +1,8 @@
 /**
  * The recap text: after a call that settled something, one short SMS to the
- * user's own verified phone, in Ferni's voice. "From our call: you'll call the
- * landlord tomorrow (555-0134). I'll check in Thursday." RECAP_TEXT=on (off by
- * default), and only for a user who opted in.
+ * user's own verified phone, in Ferni's voice. "From our call: You'll call the
+ * landlord tomorrow (555-0134)." RECAP_TEXT=on (off by default), and only for
+ * a user who opted in.
  *
  * What was settled comes from the call's own wrap-up reading (wrap-up.ts),
  * made during the call: no new model pass, and the wording is a template, so
@@ -45,21 +45,21 @@ function phrase(i: Decided, nextDay: boolean): string {
 }
 
 /**
- * The text, or null when the call settled nothing. Two or three short lines.
- * `nextDay`: it goes out the morning after a late call, so "tomorrow" is today
- * and plans for that night are past.
+ * The text, or null when the call settled nothing for them to do. Two short
+ * lines. `nextDay`: it goes out the morning after a late call, so "tomorrow" is
+ * today and plans for that night are past.
+ *
+ * Ferni's own promises ("I'll check in Thursday") stay out until they are
+ * recorded with the promise keeper (docs/plans/2026-10-10-call-commitments.md,
+ * part 2): a written promise that nothing keeps is a false one.
  */
 export function composeRecap(items: readonly Decided[], nextDay = false): string | null {
-  const live = nextDay ? items.filter((i) => !SAME_DAY.test(i.when ?? '')) : items;
-  const of = (who: Decided['who']): string[] =>
-    live.filter((i) => i.who === who).map((i) => phrase(i, nextDay));
-  const theirs = of('caller');
-  const mine = of('ferni');
-  if (!theirs.length && !mine.length) return null;
-  const lines = [nextDay ? 'From our call last night:' : 'From our call:'];
-  if (theirs.length) lines.push(`You'll ${theirs.join(', and ')}.`);
-  if (mine.length) lines.push(`I'll ${mine.join(', and ')}.`);
-  const text = lines.join('\n');
+  const theirs = items
+    .filter((i) => i.who === 'caller' && !(nextDay && SAME_DAY.test(i.when ?? '')))
+    .map((i) => phrase(i, nextDay));
+  if (!theirs.length) return null;
+  const opener = nextDay ? 'From our call last night:' : 'From our call:';
+  const text = `${opener}\nYou'll ${theirs.join(', and ')}.`;
   return text.length > MAX_CHARS ? `${text.slice(0, MAX_CHARS - 3)}...` : text;
 }
 

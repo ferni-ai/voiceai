@@ -106,7 +106,6 @@ After a call that settled something, one SMS in Ferni's voice:
 ```
 From our call:
 You'll call the landlord tomorrow (555-0134).
-I'll check in Thursday.
 ```
 
 It goes only to the verified phone on the user's Firebase account (#675), and
@@ -121,9 +120,9 @@ only when `bogle_users/{uid}/preferences/recap_text` has `optIn: true`.
   reminder for 8am, and the reminder delivery job sends it through the same
   Twilio path. By then "tomorrow" reads "today", and that night's plans are
   dropped.
-- **Gap.** Until part 2 records Ferni's spoken promises with the promise
-  keeper, the text can restate a promise ("I'll check in Thursday") that
-  nothing yet tracks.
+- **Ferni's own promises are left out** ("I'll check in Thursday"). They go
+  back in once part 2 records them through the promise keeper, because a
+  written promise that nothing keeps is a false one.
 
 ## Build order (each ≤400 lines, behind the flag)
 
