@@ -107,7 +107,7 @@ function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): st
   // Seeded per call and words: the preemptive and final requests agree, but
   // the same words on another call (or said again) can get another shape.
   const { signals, source } = signalsFor(session, said);
-  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), signals);
+  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, signals);
   log.info({ move: turn.move, shape: turn.shape, extras: turn.extras, source }, 'TURN_SHAPE');
   return turn.reminder;
 }

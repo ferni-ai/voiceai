@@ -1,5 +1,6 @@
 import type { JobContext } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
+import { forwardCameoReveals } from '../voice-agent/cameo-reveal.js';
 
 export async function setupFrontendPublisher(
   ctx: JobContext,
@@ -12,6 +13,8 @@ export async function setupFrontendPublisher(
       await import('../realtime/index.js');
     const publisher = initializeFrontendPublisher(sessionId, ctx.room);
     cleanupHandlers.push(() => releaseFrontendPublisher(sessionId));
+    // Ferni's introduction of a teammate shows in the app as it finishes
+    cleanupHandlers.push(forwardCameoReveals(ctx.room, sessionId));
 
     const { initFrontendSignal, resetFrontendSignal } =
       await import('../../services/frontend-signal.js');

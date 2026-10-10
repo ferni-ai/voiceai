@@ -261,7 +261,7 @@ function createMemberCard(member: TeamMemberInfo): string {
             <div class="team-member-card__progress-bar">
               <div class="team-member-card__progress-fill" style="width: ${progressPercent}%"></div>
             </div>
-            <span class="team-member-card__hint">${member.unlockHint}</span>
+            <span class="team-member-card__hint">${status.unlockHint ?? member.unlockHint}</span>
           </div>
         `
             : `

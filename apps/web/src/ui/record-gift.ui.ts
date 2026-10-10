@@ -44,6 +44,7 @@ export type GiftReaction = 'loved' | 'liked' | 'neutral' | 'disliked';
 
 export interface RecordGiftData {
   contactId: string;
+  contactName: string;
   direction: 'given' | 'received';
   item: string;
   description?: string;
@@ -794,15 +795,14 @@ async function handleSave(): Promise<void> {
   try {
     const data: RecordGiftData = {
       contactId: state.contactId,
+      contactName: state.contactName,
       direction: state.direction,
       item: state.item.trim(),
       occasion: (state.occasion === 'other' ? state.customOccasion.trim() || 'other' : state.occasion) as GiftOccasion,
       date: state.date,
     };
 
-    if (state.price) {
-      data.price = parseFloat(state.price);
-    }
+    if (state.price) data.price = parseFloat(state.price);
 
     if (state.reaction) {
       data.reaction = state.reaction;
@@ -827,8 +827,7 @@ async function handleSave(): Promise<void> {
       
       closeRecordGift();
     } else {
-      const error = await response.json().catch(() => ({ error: '' }));
-      toast.error(error.error || t('toasts.couldNotSaveGift'));
+      toast.error(t('toasts.couldNotSaveGift')); // not the server's English error text
       state.isSubmitting = false;
       render();
     }

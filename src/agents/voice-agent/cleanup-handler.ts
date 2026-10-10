@@ -33,7 +33,6 @@ import { persistNaturalnessData } from '../../speech/naturalness/index.js';
 // FIX AUDIT: Merged handoff imports to avoid duplicate import warning
 import { getDJController } from '../../audio/dj-controller.js';
 import {
-  cameoUnlockEvents,
   handoffEvents,
   resetHandoffState,
   resetMetPersonas,
@@ -200,6 +199,8 @@ export interface CameoUnlockEventData {
   displayName: string;
   role: string;
   spokenIntro: string;
+  /** The call it belongs to: the emitter is shared by every call in the process */
+  sessionId?: string;
 }
 
 /**
@@ -223,7 +224,6 @@ export interface CleanupContext {
   // NOTE: Handler may be async (returns Promise<void>) as per EventHandlerResult type
   handoffHandler?: (data: HandoffEventPayload) => void | Promise<void>;
   // FIX AUDIT: Properly typed handler instead of `any`
-  cameoUnlockHandler?: (data: CameoUnlockEventData) => void;
   cameoCleanup?: () => void;
   musicCleanup?: () => void | Promise<void>;
   // User data for trial tracking
@@ -324,7 +324,6 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     feedbackCollector,
     dataChannelCleanup,
     handoffHandler,
-    cameoUnlockHandler,
     cameoCleanup,
     musicCleanup,
     userData,
@@ -360,7 +359,6 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
   // ================================================================
   if (dataChannelCleanup) dataChannelCleanup();
   if (handoffHandler) handoffEvents.off('voiceSwitch', handoffHandler);
-  if (cameoUnlockHandler) cameoUnlockEvents.off('memberUnlocked', cameoUnlockHandler);
   if (cameoCleanup) cameoCleanup();
   if (stopPeriodicSync) stopPeriodicSync();
 

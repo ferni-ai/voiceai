@@ -49,14 +49,33 @@ describe('model signals drive the turn', () => {
   it('never laughs, asks advice or tells his own story when the model hears a tender moment', () => {
     const said = 'my sister called and we both just cried for a bit';
     const model = modelSignals(understood({ mood: 'tender', laughFits: false, adviceFits: false }));
-    const shape = turnShapeFor(said, oneThenZero(), model);
+    const shape = turnShapeFor(said, oneThenZero(), 'dice', model);
     expect(shape.shape).toBe('one');
     expect(shape.extras).not.toContain('laugh_spontaneous');
     expect(shape.extras).not.toContain('ask_advice');
     expect(shape.reminder).not.toMatch(/trades a story/);
     // Control: the same turn read as light does get his own story.
-    const light = turnShapeFor(said, oneThenZero(), modelSignals(understood({ mood: 'funny' })));
+    const light = turnShapeFor(
+      said,
+      oneThenZero(),
+      'dice',
+      modelSignals(understood({ mood: 'funny' }))
+    );
     expect(light.reminder).toMatch(/trades a story/);
+  });
+
+  it('lets the model reading pick the move when the model also picks the shape', () => {
+    // No live-topic keyword, so the regex calls this a share; the model hears a look-up.
+    const said = 'is the place on fifth still doing the late menu';
+    expect(turnShapeFor(said, () => 0, 'model').move).toBe('share');
+    const looked = turnShapeFor(
+      said,
+      () => 0,
+      'model',
+      modelSignals(understood({ move: 'lookup' }))
+    );
+    expect(looked.move).toBe('lookup');
+    expect(looked.reminder).toMatch(/call the tool/);
   });
 
   it('is plain when the model has nothing in time: no laugh, no aside', () => {
