@@ -310,6 +310,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
   let systemPrompt: string;
   let modelBaseInstructions: string;
+  // The model-level text before this call's date, time and caller are added.
+  let stableBase = '';
   try {
     mark('load_prompts_start');
     // Load both levels of instructions in parallel (imports now hoisted to module level)
@@ -320,6 +322,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     mark('load_prompts_done');
 
     systemPrompt = loadedSystemPrompt;
+    stableBase = baseInstructions;
 
     // =========================================================================
     // DATE/TIME AWARENESS - Critical for grounding agent in reality
@@ -1586,7 +1589,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const agentInstructions = composeAgentInstructions(
     systemPrompt,
     modelBaseInstructions,
-    modelProvider.getPromptModules()
+    modelProvider.getPromptModules(),
+    { stableBase }
   );
 
   const agent = new FerniAgent(agentInstructions, {
