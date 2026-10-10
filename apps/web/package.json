@@ -43,9 +43,10 @@
     "prepare": "husky || true"
   },
   "dependencies": {
-    "@tsparticles/engine": "^3.9.1",
-    "@tsparticles/slim": "^3.9.1",
-    "firebase": "^10.14.1",
+    "@tsparticles/effect-shadow": "^4.4.0",
+    "@tsparticles/engine": "^4.4.0",
+    "@tsparticles/slim": "^4.4.0",
+    "firebase": "^12.19.0",
     "gsap": "^3.15.0",
     "livekit-client": "^2.22.3",
     "zod": "^4.6.5"
