@@ -9,6 +9,7 @@
 
 import type { JobContext } from '@livekit/agents';
 import type { ParsedMetadata } from './types.js';
+import { parseOnBehalfDispatch } from '../../services/outreach/on-behalf-dispatch.js';
 
 /**
  * Parse job and room metadata from the LiveKit job context.
@@ -153,9 +154,12 @@ export async function setupCallTypeContexts(
     );
 
     try {
-      const { parseOnBehalfDispatch } =
-        await import('../../services/outreach/on-behalf-dispatch.js');
       const call = parseOnBehalfDispatch(metadata);
+      if (!call) {
+        process.stderr.write(
+          `[voice-agent-entry] ⚠️ On-behalf dispatch is missing callId or requester; it can't be reported back\n`
+        );
+      }
       const { setOutboundCallContext } =
         await import('../../intelligence/context-builders/external/outbound-call-context.js');
       const roomNameForContext = roomName || `call-${metadata.callId}`;
@@ -263,8 +267,7 @@ export async function finishCallTypeContexts(
   rawJobMetadata: string | undefined
 ): Promise<void> {
   if (callType !== 'on_behalf_call') return;
-  const { parseOnBehalfDispatch, verifyOnBehalfDispatch } =
-    await import('../../services/outreach/on-behalf-dispatch.js');
+  const { verifyOnBehalfDispatch } = await import('../../services/outreach/on-behalf-dispatch.js');
   const { completeOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
   const call = parseOnBehalfDispatch(metadata);
   if (!call) return;

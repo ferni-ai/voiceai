@@ -24,7 +24,7 @@ export function buildOwnedStackContext(opts: {
   const { sessionPersona, services, extra } = opts;
   const parts: string[] = [];
 
-  parts.push(`You are ${sessionPersona.displayName || sessionPersona.name || sessionPersona.id}, a warm and supportive voice assistant.`);
+  parts.push(`You are ${sessionPersona.displayName || sessionPersona.name || sessionPersona.id}, a warm friend on a voice call.`);
   parts.push('Reply in 1-3 short sentences. Be concise and natural for spoken delivery.');
   parts.push('Do not use markdown, bullet points, or special formatting.');
   parts.push('');
