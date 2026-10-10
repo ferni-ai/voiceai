@@ -36,13 +36,15 @@ export function endpointingDelays(env: Record<string, string | undefined> = proc
 } {
   const min = readMs(env.CASCADE_MIN_ENDPOINTING_MS, DEFAULT_MIN_ENDPOINTING_MS, 100, 2000);
   const max = readMs(env.CASCADE_MAX_ENDPOINTING_MS, DEFAULT_MAX_ENDPOINTING_MS, 300, 6000);
-  const cap = turnDetectorMode(env) === 'local' ? LOCAL_DETECTOR_MAX_ENDPOINTING_MS : Infinity;
+  const cap = turnDetectorMode(env) !== 'off' ? DETECTOR_MAX_ENDPOINTING_MS : Infinity;
   return { minEndpointingDelay: min, maxEndpointingDelay: Math.max(Math.min(max, cap), min) };
 }
 
 /**
- * TURN_DETECTOR=local: LiveKit's audio end-of-turn model (turn-detector-v1-mini,
- * native, in @livekit/local-inference) decides when the caller has finished,
+ * TURN_DETECTOR=cloud|local: LiveKit's audio end-of-turn model decides when the
+ * caller has finished. cloud is the full turn-detector-v1 on LiveKit's inference
+ * gateway (the agent's LIVEKIT_API_KEY/SECRET); local is turn-detector-v1-mini,
+ * native in @livekit/local-inference, and also cloud's fallback. It decides
  * from how they sound as well as what they said. It replaces ink-2's own turn
  * end and the word-list hold in unfinished-turn.ts, which still answered
  * half-sentences after mid-thought pauses (judge.mjs, real-call scenario:
@@ -52,13 +54,15 @@ export function endpointingDelays(env: Record<string, string | undefined> = proc
  * LiveKit registers the runner only in its own Worker class, which our worker
  * doesn't use, so it is registered here.
  */
-export function turnDetectorMode(env: Record<string, string | undefined> = process.env): 'local' | 'off' {
-  return env.TURN_DETECTOR === 'local' ? 'local' : 'off';
+export type TurnDetectorMode = 'cloud' | 'local' | 'off';
+
+export function turnDetectorMode(env: Record<string, string | undefined> = process.env): TurnDetectorMode {
+  return env.TURN_DETECTOR === 'cloud' ? 'cloud' : env.TURN_DETECTOR === 'local' ? 'local' : 'off';
 }
 
 const EOT_METHOD = 'lk_eot_audio';
-/** In local mode the model, not this cap, decides; a long cap only delays the turn keeper's grace. */
-export const LOCAL_DETECTOR_MAX_ENDPOINTING_MS = 2000;
+/** With the model on, it decides, not this cap; a long cap only delays the turn keeper's grace. */
+export const DETECTOR_MAX_ENDPOINTING_MS = 2000;
 
 export function registerLocalEotRunner(
   resolve: (spec: string) => string = (spec) => import.meta.resolve(spec)
@@ -74,12 +78,24 @@ export function registerLocalEotRunner(
   }
 }
 
-/** The session's turn detection: the local audio model when TURN_DETECTOR=local, else `fallback`. */
+/** The session's turn detection: LiveKit's audio model when TURN_DETECTOR is on, else `fallback`. */
 export function sessionTurnDetection<T>(
   fallback: T,
   env: Record<string, string | undefined> = process.env
 ): T | inference.TurnDetector {
-  if (turnDetectorMode(env) !== 'local' || !registerLocalEotRunner()) return fallback;
+  const mode = turnDetectorMode(env);
+  // The local runner is cloud's fallback too, so it is registered either way.
+  if (mode === 'off' || !registerLocalEotRunner()) return fallback;
+  if (mode === 'cloud') {
+    try {
+      const detector = new inference.TurnDetector({ version: 'v1' });
+      log.info({ model: 'turn-detector-v1' }, 'TURN_DETECTOR cloud');
+      return detector;
+    } catch (error) {
+      // v1 throws when the LiveKit credentials are missing.
+      log.warn({ error: String(error) }, 'TURN_DETECTOR cloud unavailable; using the local model');
+    }
+  }
   log.info({ model: 'turn-detector-v1-mini' }, 'TURN_DETECTOR local');
   return new inference.TurnDetector({ version: 'v1-mini' });
 }
