@@ -609,6 +609,8 @@ export async function getRelationshipInsights(userId: string): Promise<ContactIn
 /**
  * Get contacts that need attention
  */
+/** Days without contact before someone needs attention (Your People's "Needs attention" too) */
+export const NEEDS_ATTENTION_AFTER_DAYS = 14;
 export async function getContactsNeedingAttention(
   userId: string,
   limit = 5
@@ -622,14 +624,10 @@ export async function getContactsNeedingAttention(
       (now.getTime() - contact.lastInteraction.getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    let score = 0;
-
+    const followUp = contact.pendingFollowUp;
     // Overdue follow-up = highest priority
-    if (contact.pendingFollowUp && !contact.pendingFollowUp.completed) {
-      if (contact.pendingFollowUp.dueDate < now) {
-        score += 100;
-      }
-    }
+    const overdue = !!followUp && !followUp.completed && followUp.dueDate < now;
+    let score = overdue ? 100 : 0;
 
     // Long time since contact
     score += Math.min(50, daysSinceContact);
@@ -641,11 +639,11 @@ export async function getContactsNeedingAttention(
     // High strength contacts get priority
     score += contact.strengthScore / 5;
 
-    return { contact, score };
+    return { contact, score, due: overdue || daysSinceContact > NEEDS_ATTENTION_AFTER_DAYS };
   });
-
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, limit).map((s) => s.contact);
+  // Ranked among those actually due: someone you talked to this week never needs attention
+  const due = scored.filter((s) => s.due).sort((a, b) => b.score - a.score);
+  return due.slice(0, limit).map((s) => s.contact);
 }
 
 /**

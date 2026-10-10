@@ -254,6 +254,23 @@ export function buildFastLane(
   };
 }
 
+/**
+ * Log each STT stream the session opens. The caller's first turn waits ~1.1 s
+ * for its transcript vs ~0.26 s later (prod, 13 calls, 2026-10-10); if a stream
+ * is reopened just before that turn (an agent restart), its socket is new.
+ */
+export function logStreamOpens<T extends { stream: (...args: never[]) => unknown }>(stt: T): T {
+  const open = stt.stream.bind(stt);
+  const createdAt = Date.now();
+  let opened = 0;
+  stt.stream = ((...args: never[]) => {
+    opened += 1;
+    log.info({ stream: opened, sinceCreatedMs: Date.now() - createdAt }, 'STT_STREAM_OPEN');
+    return open(...args);
+  }) as T['stream'];
+  return stt;
+}
+
 /** STT options for the cascade. ink-2 is Cartesia's English streaming model. */
 export function buildCascadeSTTOptions(env: Env = process.env): CascadeSTTOptions {
   return {
@@ -353,7 +370,7 @@ export class CartesiaCascadeProvider implements ModelProvider {
       },
       'Creating cascade Cartesia STT'
     );
-    return new cartesia.STT(opts);
+    return logStreamOpens(new cartesia.STT(opts));
   }
 
   /**

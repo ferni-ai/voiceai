@@ -1045,9 +1045,7 @@ class CalendarViewUI {
     return null;
   }
 
-  /**
-   * Generate intentions based on user patterns
-   */
+  /** Intentions to show when the practice view can't load */
   private generateIntentions(): Array<{
     id?: string;
     text: string;
@@ -1055,8 +1053,8 @@ class CalendarViewUI {
     insight?: string;
     insightPersona?: string;
   }> {
-    // Shown only when the practice view can't load: nothing here can be saved, and nothing is
-    // claimed about the person (no streaks, nothing already done)
+    // Nothing here can be saved, and nothing is claimed about the person (no streaks,
+    // nothing already done)
     const today = new Date();
     const isWeekend = today.getDay() === 0 || today.getDay() === 6;
 
@@ -1556,7 +1554,9 @@ class CalendarViewUI {
    */
   private async markIntentionComplete(intentionId: string, box: HTMLInputElement): Promise<void> {
     const completed = box.checked;
+    box.disabled = true; // one save at a time, so two quick clicks can't land out of order
     const response = await apiPost(`/api/practice-view/intentions/${encodeURIComponent(intentionId)}/complete`, { completed });
+    box.disabled = false;
     if (!response.ok) {
       box.checked = !completed;
       toast.error(t('calendarView.intentionNotSaved'));

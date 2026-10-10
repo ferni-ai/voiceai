@@ -3,7 +3,7 @@ import { llm } from '@livekit/agents';
 import { TURN_CONTEXT_HEADER } from '../../multi-agent/turn-intelligence.js';
 import { withTurnStyleReminder } from '../../personas/turn-style.js';
 import { buildFastLane, buildCascadeLLMOptions } from '../cartesia-cascade.js';
-import { callerTurn, chitChat, fastLaneEnabled, FastLaneLLM } from '../fast-lane.js';
+import { callerTurn, chitChat, fastLaneEnabled, FastLaneLLM, laneReason } from '../fast-lane.js';
 
 class FakeStream extends llm.LLMStream {
   constructor(
@@ -87,6 +87,14 @@ describe('fast lane', () => {
     const items = withReminder.items as Parameters<typeof callerTurn>[0];
     expect(callerTurn(items)).toBe("it's been a long day");
     expect(chitChat(callerTurn(items))).toBe(true);
+  });
+
+  it('names why a turn stays on the main model', () => {
+    expect(laneReason(null)).toBe('after_tool');
+    expect(laneReason('')).toBe('no_words');
+    expect(laneReason('set a timer for five minutes')).toBe('request');
+    expect(laneReason('who won the game last night?')).toBe('question');
+    expect(laneReason('what have you been up to today?')).toBe('chat');
   });
 
   it('keeps the reply after a tool result on the main model', () => {

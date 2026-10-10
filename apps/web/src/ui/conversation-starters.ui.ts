@@ -15,6 +15,7 @@ import { shouldUseDemoData } from '../utils/environment.js';
 import { getMockConversationStarters } from '../data/mock-contacts.js';
 import { getLocale, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 const log = createLogger('ConversationStartersUI');
 
 // ============================================================================
@@ -68,6 +69,7 @@ let state: ConversationStartersState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSelect?: (starter: ConversationStarter) => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -672,14 +674,10 @@ function bindEvents(): void {
   });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeConversationStarters);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeConversationStarters();
-  }
-}
 
 // ============================================================================
 // ACTIONS
@@ -838,7 +836,7 @@ export function openConversationStarters(options: ConversationStartersOptions): 
 export function closeConversationStarters(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 

@@ -69,12 +69,20 @@ export function callerTurn(items: readonly ItemView[]): string | null {
   return said.join(' ').trim();
 }
 
+export type LaneReason = 'after_tool' | 'no_words' | 'request' | 'question' | 'chat';
+
+/** Why a reply to these words goes where it goes (logged, so a misroute shows). */
+export function laneReason(text: string | null): LaneReason {
+  if (text === null) return 'after_tool';
+  if (!text) return 'no_words';
+  if (mayNeedTool(text)) return 'request';
+  if (text.includes('?') && !ABOUT_FERNI.test(text)) return 'question';
+  return 'chat';
+}
+
 /** Whether a reply to these words can go to the fast model. */
 export function chitChat(text: string | null): boolean {
-  if (!text) return false;
-  if (mayNeedTool(text)) return false;
-  if (text.includes('?') && !ABOUT_FERNI.test(text)) return false;
-  return true;
+  return laneReason(text) === 'chat';
 }
 
 export class FastLaneLLM extends llm.LLM {
@@ -101,8 +109,12 @@ export class FastLaneLLM extends llm.LLM {
   }
 
   chat(opts: ChatOptions): llm.LLMStream {
-    const lane = chitChat(callerTurn(opts.chatCtx.items as readonly ItemView[])) ? 'fast' : 'main';
-    log.info({ lane }, 'FAST_LANE');
+    const items = opts.chatCtx.items as readonly ItemView[];
+    const reason = laneReason(callerTurn(items));
+    const lane = reason === 'chat' ? 'fast' : 'main';
+    // The last few item types show what kept a turn on the main model.
+    const tail = items.slice(-4).map((i) => (i.type === 'message' ? i.role : i.type));
+    log.info({ lane, reason, tail }, 'FAST_LANE');
     return new LaneStream(this, opts, lane === 'fast' ? this.fast : this.main);
   }
 }

@@ -14,6 +14,7 @@ import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 const log = createLogger('ImportContactsUI');
 
 // ============================================================================
@@ -63,6 +64,7 @@ let state: ImportState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: ImportCallbacks = {};
 let previouslyFocusedElement: HTMLElement | null = null;
 
@@ -849,11 +851,6 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen && !state.isImporting) {
-    closeImportContacts();
-  }
-}
 
 // ============================================================================
 // PUBLIC API
@@ -920,7 +917,8 @@ export function openImportContacts(options: ImportCallbacks = {}): void {
   });
 
   // Event listeners
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen && !state.isImporting, closeImportContacts);
   bindEvents();
 
   log.info('Opened import contacts modal');
@@ -932,7 +930,7 @@ export function openImportContacts(options: ImportCallbacks = {}): void {
 export function closeImportContacts(): void {
   if (!state.isOpen || !modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
   
   modalContainer.classList.remove('open');
   

@@ -17,6 +17,7 @@ import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('RecordGiftUI');
 
@@ -103,6 +104,7 @@ let state: RecordGiftState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSuccess?: (data: RecordGiftData) => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -774,14 +776,10 @@ function bindEvents(): void {
   modalContainer.querySelector('#rg-save')?.addEventListener('click', () => { void handleSave(); });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeRecordGift);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeRecordGift();
-  }
-}
 
 // ============================================================================
 // SAVE HANDLER
@@ -916,7 +914,7 @@ export function openRecordGift(options: RecordGiftOptions): void {
 export function closeRecordGift(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 

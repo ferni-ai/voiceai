@@ -17,6 +17,7 @@ import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('LogMomentUI');
 
@@ -100,6 +101,7 @@ let state: LogMomentState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSuccess?: (data: LogMomentData) => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -815,14 +817,10 @@ function bindEvents(): void {
   modalContainer.querySelector('#lm-save')?.addEventListener('click', () => { void handleSave(); });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeLogMoment);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeLogMoment();
-  }
-}
 
 // ============================================================================
 // SAVE HANDLER
@@ -960,7 +958,7 @@ export function openLogMoment(options: LogMomentOptions): void {
 export function closeLogMoment(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 

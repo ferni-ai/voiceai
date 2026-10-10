@@ -27,6 +27,7 @@ import { openConversationStarters } from './conversation-starters.ui.js';
 // To enable demo mode, use localStorage.setItem('ferni:use-demo-data', 'true')
 import { formatCurrency, formatDate as formatLocaleDate, getLocale, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('RelationshipCard');
 
@@ -165,6 +166,7 @@ let state: RelationshipCardState = {
 };
 
 let cardContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let onCloseCallback: (() => void) | null = null;
 
 // ============================================================================
@@ -1125,7 +1127,7 @@ function renderHeader(): string {
         </div>
       </div>
       
-      <div class="rc-quick-actions" role="button" tabindex="0">
+      <div class="rc-quick-actions">
         ${person.phone ? `<button class="rc-quick-action" data-action="call">${ICONS.phone} ${t('relationshipCard.call')}</button>` : ''}
         ${person.phone ? `<button class="rc-quick-action" data-action="text">${ICONS.message} ${t('relationshipCard.text')}</button>` : ''}
         ${person.email ? `<button class="rc-quick-action" data-action="email">${ICONS.mail} ${t('relationshipCard.email')}</button>` : ''}
@@ -1402,7 +1404,7 @@ function renderGiftItem(gift: Gift): string {
           ${gift.price ? ` · ${formatCurrency(gift.price, 'USD')}` : ''}
         </div>
         ${reactionLabel && gift.direction === 'given' ? `
-          <span class="rc-gift-reaction ${gift.reaction}" role="button" tabindex="0">${reactionLabel}</span>
+          <span class="rc-gift-reaction ${gift.reaction}">${reactionLabel}</span>
         ` : ''}
       </div>
     </div>
@@ -1588,14 +1590,11 @@ function bindEvents(): void {
   }
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  const el = cardContainer;
+  if (el) releaseEscape = closeOnEscape(el, () => el.classList.contains('open'), closeRelationshipCard);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape') {
-    closeRelationshipCard();
-  }
-}
 
 function handleQuickAction(action: string | null): void {
   if (!state.person) return;
@@ -2149,7 +2148,7 @@ export async function openRelationshipCard(
 export function closeRelationshipCard(): void {
   if (!cardContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
   
   cardContainer.classList.remove('open');
   
