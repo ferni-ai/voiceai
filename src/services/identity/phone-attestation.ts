@@ -71,12 +71,11 @@ function sameNumber(a: string, b: string): boolean {
 
 function parseClaims(body: string): PhoneAttestationClaims | null {
   try {
-    const c = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as Record<
-      string,
-      unknown
-    >;
+    const parsed: unknown = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const c = parsed as Record<string, unknown>;
     const strings = ['callSid', 'from', 'to', 'verstat'] as const;
-    if (!c || strings.some((k) => typeof c[k] !== 'string')) return null;
+    if (strings.some((k) => typeof c[k] !== 'string')) return null;
     if (typeof c.exp !== 'number' || !Number.isFinite(c.exp)) return null;
     return c as unknown as PhoneAttestationClaims;
   } catch {
