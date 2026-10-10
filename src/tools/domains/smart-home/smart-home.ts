@@ -745,7 +745,7 @@ function getConfigurationHelp(): string {
 
 I don't see any smart home devices. Let me help you connect them!
 
-Go to **Settings → Your Home** in the app to connect:
+Open **Set the Mood** in the app's menu to connect:
 
 • **Philips Hue** - Smart lights
 • **LIFX** - Smart lights  
