@@ -51,6 +51,7 @@ import {
   deleteGroup,
 } from '../services/contacts/contact-groups.js';
 import { buildNudgeContext } from '../services/contacts/outreach-nudges.js';
+import { contactEdits } from './contact-edits.js';
 import { buildRelationshipInsightsView } from '../services/contacts/relationship-insights-view.js';
 
 const log = createLogger({ module: 'ContactsAPI' });
@@ -201,11 +202,9 @@ async function updateContact(
     return;
   }
 
-  const body = await parseBody<Record<string, unknown>>(req);
-  if (body === null || body === undefined) {
-    sendError(res, 'Invalid request body', 400);
-    return;
-  }
+  // Only what a person may edit; an emptied field is removed
+  const edits = contactEdits(await parseBody<unknown>(req).catch(() => null));
+  if (!edits) return sendError(res, 'Invalid request body', 400);
 
   try {
     const existing = await getContact(userId, contactId);
@@ -216,7 +215,7 @@ async function updateContact(
 
     const contact = await upsertContact(userId, {
       ...existing,
-      ...body,
+      ...edits,
       id: existing.id,
       contactId: existing.contactId,
     } as Parameters<typeof upsertContact>[1]);
