@@ -432,9 +432,10 @@ function stopPolling(): void {
 function startHttpFallback(userId: string): void {
   currentUserId = userId;
   lastPollTimestamp = Date.now();
-  // EventSource cannot send Authorization headers; use authenticated polling
-  // (same pattern as journal-sync / cross-team notifications on Firebase Hosting)
-  startPolling();
+  // No poll: the voice agent runs apart from this server, so polling here every
+  // 2s only ever got an empty list. Voice events arrive on the call's data
+  // channel (handleVoiceEventDataMessage).
+  log.debug('Voice events arrive over the call on Firebase Hosting; not polling');
 }
 
 // ============================================================================
