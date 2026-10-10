@@ -55,6 +55,7 @@ export default defineConfig(({ mode }) => {
         'firebase/app',
         'firebase/auth',
         'firebase/firestore',
+        '@tsparticles/effect-shadow',
         '@tsparticles/engine',
         '@tsparticles/slim',
         'uuid',
