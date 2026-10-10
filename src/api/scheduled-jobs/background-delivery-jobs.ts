@@ -39,7 +39,17 @@ export async function handleDeliverScheduledActions(
   await run(res, 'deliver-scheduled-actions', async () => {
     const { deliverDueScheduledActions } =
       await import('../../services/workflows/scheduled-actions.js');
-    return { ...(await deliverDueScheduledActions({ dryRun: isDryRun(req) })) };
+    const actions = await deliverDueScheduledActions({ dryRun: isDryRun(req) });
+    // Proactive check-ins ride this per-minute job (PROACTIVE_CHANNELS=on,
+    // allowlisted users only); a failure there must not hide the actions result.
+    const { runProactiveChannelsTick } =
+      await import('../../services/outreach/proactive-channels/proactive-tick.js');
+    const { defaultProactiveDeps } =
+      await import('../../services/outreach/proactive-channels/default-deps.js');
+    const proactive = await runProactiveChannelsTick(defaultProactiveDeps(), {
+      dryRun: isDryRun(req),
+    }).catch((error: unknown) => ({ enabled: true, error: String(error) }));
+    return { ...actions, ...(proactive.enabled ? { proactive } : {}) };
   });
 }
 
