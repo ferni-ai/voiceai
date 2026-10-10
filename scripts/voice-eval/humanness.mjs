@@ -39,18 +39,36 @@ const words = (t) =>
     .match(/[a-z']+/g) ?? [];
 const contentWords = (t) => new Set(words(t).filter((w) => w.length >= 5 && !STOP.has(w)));
 
+/** A growing or corrected caption of one utterance shares at least half its start. */
+function sameUtterance(prev, next) {
+  const a = prev.toLowerCase();
+  const b = next.toLowerCase();
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  return i > 0 && i >= Math.min(a.length, b.length) / 2;
+}
+
 /** The call as alternating turns: [{ who: 'agent'|'user', text, t }], greeting dropped. */
 export function turnsOf(run) {
   const firstUserAt = run.userSpeech?.[0]?.[0] ?? 0;
   const turns = [];
+  let segs = []; // the current caller turn's separate utterances
   for (const e of run.events ?? []) {
     if (e.who === 'agent' && e.t <= firstUserAt) continue; // greeting
     const last = turns[turns.length - 1];
     if (last && last.who === e.who) {
-      // Caller captions grow in place; agent captions are separate segments.
-      last.text = e.who === 'user' ? e.text : `${last.text} ${e.text}`;
+      if (e.who === 'agent') last.text = `${last.text} ${e.text}`;
+      else {
+        // Caller captions grow in place, but two scripted lines in a row are
+        // two utterances: "So, that was fun." must not erase "Oh, and Biscuit
+        // chewed up my phone charger" (prod 2026-10-10).
+        if (sameUtterance(segs[segs.length - 1], e.text)) segs[segs.length - 1] = e.text;
+        else segs.push(e.text);
+        last.text = segs.join(' ');
+      }
     } else {
       turns.push({ who: e.who, text: e.text, t: e.t });
+      segs = [e.text];
     }
   }
   return turns;
