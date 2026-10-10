@@ -9854,7 +9854,12 @@
     "topicPlaceholder": "커리어 계획, 관계에 대한 조언...",
     "startRoundtable": "라운드테이블 시작하기",
     "moderator": "진행자",
-    "expert": "전문가"
+    "expert": "전문가",
+    "roundtableStarted": "라운드테이블이 시작되었어요",
+    "roundtableEnded": "라운드테이블이 종료되었어요",
+    "calling": "{name}님에게 전화하는 중...",
+    "callNotConnected": "{name}님과 연결되지 않았어요",
+    "errorGeneric": "그룹 대화에 문제가 생겼어요. 다시 시도해 볼까요?"
   },
   "locationPrompt": {
     "weather": {
