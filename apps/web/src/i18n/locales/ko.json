@@ -10425,6 +10425,8 @@
     "switchFailedStaying": "전환에 실패했어요. {error}. {name}님과 대화를 계속할게요.",
     "switchFailed": "전환에 실패했어요. {error}",
     "rateLimited": "천천히 해주세요 - 전환은 한 번에 하나씩만 가능해요",
+    "handoffTimeout": "전환이 예상보다 오래 걸리고 있어요. 저는 계속 여기 있어요.",
+    "cameoTimeout": "게스트 등장이 길어져서 마무리했어요. 저는 계속 여기 있어요.",
     "alwaysHere": "Ferni는 언제나 곁에 있어요",
     "removedFromRoster": "로스터에서 {name}님을 제외했어요",
     "addToTeam": "내 팀에 {name}님 추가하기",

@@ -10845,6 +10845,8 @@
     "switchFailedStaying": "فشل التحويل. {error}. سنبقى مع {name}.",
     "switchFailed": "فشل التحويل. {error}",
     "rateLimited": "تمهّل قليلاً - تحويل واحد في كل مرة",
+    "handoffTimeout": "هذا التحويل يستغرق وقتاً أطول من المتوقع. ما زلت هنا معك.",
+    "cameoTimeout": "طال ظهور الضيف أكثر من اللازم فأنهيته. ما زلت هنا.",
     "alwaysHere": "Ferni هنا دائماً من أجلك",
     "removedFromRoster": "تمت إزالة {name} من القائمة",
     "addToTeam": "إضافة {name} إلى فريقك",

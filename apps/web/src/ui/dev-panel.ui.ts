@@ -5388,13 +5388,6 @@ function setTimeOverride(time: string): void {
     default:
       log.warn({ time }, 'Unknown time setting');
   }
-
-  // Dispatch event so other components can react
-  window.dispatchEvent(
-    new CustomEvent('ferni:time-override', {
-      detail: { hour: timeOverride },
-    })
-  );
 }
 
 function toggleA11ySetting(a11y: string): void {
@@ -5818,10 +5811,7 @@ function setNetworkSimulation(network: string): void {
     })
   );
 
-  // If offline, simulate disconnection
-  if (network === 'offline') {
-    window.dispatchEvent(new CustomEvent('ferni:simulate-disconnect'));
-  }
+  // 'offline' shows as disconnected via ferni:connection-quality (app.ts maps offline -> disconnected)
 
   // Visual feedback
   switch (network) {

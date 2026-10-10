@@ -277,6 +277,7 @@ import { journeyUI } from './ui/journey.ui.js';
 import { growthJourneyService } from './services/growth-journey.service.js';
 // Voice Auth Service
 import { getVoiceAuthService } from './services/voice-auth.service.js';
+import { announceMonthlyGiftPaid } from './services/seed-payment.js';
 // Toast for notifications (legacy - use moments.whisper() for new code)
 import { toast } from './ui/whisper.ui.js';
 import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
@@ -2111,10 +2112,8 @@ class VoiceAIApp {
       // Show thank you message for successful payment
       // Wait a moment for UI to initialize
       setTimeout(() => {
-        void showFerniFundThankYou({
-          conversationsSponsored: 1,
-          message: t('app.gardenThankYou'),
-        });
+        announceMonthlyGiftPaid();
+        void showFerniFundThankYou({ conversationsSponsored: 1, message: t('app.gardenThankYou') });
         // Clean up the URL without reload
         window.history.replaceState({}, '', '/');
       }, 500);

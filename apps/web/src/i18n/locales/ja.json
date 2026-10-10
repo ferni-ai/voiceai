@@ -10425,6 +10425,8 @@
     "switchFailedStaying": "切り替えに失敗しました。{error}。引き続き{name}とお話します。",
     "switchFailed": "切り替えに失敗しました。{error}",
     "rateLimited": "焦らずに、切り替えは一度にひとつずつ行いましょう",
+    "handoffTimeout": "切り替えに思ったより時間がかかっています。私はここにいますよ。",
+    "cameoTimeout": "ゲスト出演が長引いたので、ここで終わりにしました。私はここにいますよ。",
     "alwaysHere": "Ferniはいつでもあなたのそばにいます",
     "removedFromRoster": "{name}をメンバーから外しました",
     "addToTeam": "{name}をチームに追加する",

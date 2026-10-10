@@ -10425,6 +10425,8 @@
     "switchFailedStaying": "Wechsel fehlgeschlagen. {error}. Du bleibst bei {name}.",
     "switchFailed": "Wechsel fehlgeschlagen. {error}",
     "rateLimited": "Lass dir Zeit – ein Wechsel nach dem anderen",
+    "handoffTimeout": "Der Wechsel dauert länger als gedacht. Ich bin weiterhin für dich da.",
+    "cameoTimeout": "Der Gastauftritt hat zu lange gedauert, deshalb habe ich ihn beendet. Ich bin weiterhin da.",
     "alwaysHere": "Ferni ist immer für dich da",
     "removedFromRoster": "{name} aus der Auswahl entfernt",
     "addToTeam": "Füge {name} deinem Team hinzu",
