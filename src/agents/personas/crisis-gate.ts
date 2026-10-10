@@ -40,6 +40,7 @@ import {
   toGuardVoiceEmotion,
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
+import { getDeliberator } from './deliberation.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
@@ -238,6 +239,8 @@ export async function gatedReply(
   const { env = process.env } = options;
   const chatCtx = withoutPastLeadIns(request);
   const gate = startCrisisGate(chatCtx, session.userData, options);
+  // A crisis turn: no background thought now or for the next few turns (deliberation.ts).
+  if (gate && gate.decision.action !== 'pass') getDeliberator(session)?.hold();
   if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn
@@ -256,6 +259,7 @@ export async function gatedReply(
   const reply = await ask(ctx);
   if (!reply || !gate?.escalation) return reply;
   return holdUntilCleared(reply, gate.escalation, async (decision) => {
+    if (decision.action !== 'pass') getDeliberator(session)?.hold();
     if (decision.action === 'replace') return textReply(decision.script);
     if (decision.action === 'pass') return null;
     return ask(withTurnStyleReminder(plain(), decision.guidance));
