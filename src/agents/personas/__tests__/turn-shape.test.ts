@@ -246,4 +246,12 @@ describe('withTurnReminder seeding and order', () => {
       expect(r.reminder).toMatch(/call the tool for it now/);
     });
   });
+
+  it('lets real delight through for good news, while still banning generic cheerleading', () => {
+    for (const mode of ['dice', 'model'] as const) {
+      const r = turnShapeFor('My sister is pregnant!', rngFor('joy'), mode).reminder;
+      expect(r).toMatch(/genuinely delighted about that specific thing/);
+      expect(r).toMatch(/no generic cheerleading/);
+    }
+  });
 });
