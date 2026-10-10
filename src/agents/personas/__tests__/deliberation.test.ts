@@ -9,6 +9,7 @@ import {
   EXPIRY_TURNS,
   estimateTokens,
   formatThought,
+  JUST_SAID_FIRST,
   MAX_NOTE_TOKENS,
   parseThought,
   setDeliberator,
@@ -16,7 +17,7 @@ import {
   type ThinkFn,
   type Thought,
 } from '../deliberation.js';
-import type { Line } from '../director-notes.js';
+import { Director, DIRECTOR_SYSTEM, setDirector, type Line } from '../director-notes.js';
 import type { Understanding } from '../turn-understanding.js';
 
 const WEIGHTY =
@@ -78,7 +79,7 @@ describe('formatThought', () => {
       const line = formatThought(t);
       expect(estimateTokens(line)).toBeLessThanOrEqual(MAX_NOTE_TOKENS);
       expect(line).toContain(t.note);
-      expect(line).toMatch(/never mention having thought it over in the background/);
+      expect(line).toMatch(/never say you thought it over in the background/);
     }
     expect(formatThought(parseThought(THOUGHT_JSON)!)).toContain('Not if they are venting');
   });
@@ -254,6 +255,29 @@ describe('on the live reply path (gatedReply)', () => {
     const second = model();
     await reply('Ha, nice. What did you cook?', session, second);
     expect(sent(second)).not.toContain(NOTE);
+  });
+
+  it("agrees with the director: Ferni never gets the director's no-going-back rule, and both put their new words first", async () => {
+    const session = sessionWith(await withThought());
+    const director = new Director({
+      sessionId: 's',
+      writer: async () => 'Denver came up fast; he sounds proud of the offer.',
+    });
+    await director.observe(exchange(WEIGHTY));
+    setDirector(session, director);
+    const m = model();
+    await reply('Anyway, how was your weekend?', session, m);
+    setDirector(session, null);
+    const text = sent(m);
+    // Both notes reach the same request...
+    expect(text).toContain('[Director: Denver came up fast');
+    expect(text).toContain(NOTE);
+    // ...the director's rule is for the director, not for Ferni...
+    expect(DIRECTOR_SYSTEM).toContain('never send him back to an earlier line');
+    expect(text).not.toMatch(/never send him back|earlier line/);
+    // ...and a connection to an earlier line keeps the director's precedence.
+    expect(DIRECTOR_SYSTEM).toContain('what they say next comes first');
+    expect(text).toContain(JUST_SAID_FIRST);
   });
 
   it('never waits for a deliberation still running', async () => {

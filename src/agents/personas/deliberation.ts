@@ -92,10 +92,12 @@ export function parseThought(reply: string): Thought | null {
   }
 }
 
-/** The note for the request: optional, in his own words, never "I was thinking in the background". */
+/** The note: optional, his own words; their new words first, as the director keeps it (director-notes.ts). */
+export const JUST_SAID_FIRST = 'What they just said comes first.';
+
 export function formatThought(t: Thought): string {
   const line = (skip: string): string =>
-    `[On your mind, if it fits: ${t.note}${skip} Say it your own way, as a friend; never mention having thought it over in the background.]`;
+    `[On your mind, if it fits: ${t.note}${skip} ${JUST_SAID_FIRST} Your own words; never say you thought it over in the background.]`;
   const condition = t.doNotUseIf.replace(/[.\s]+$/, '').slice(0, MAX_CONDITION_CHARS);
   const full = condition ? line(` Not if ${condition}.`) : line('');
   return estimateTokens(full) <= MAX_NOTE_TOKENS ? full : line('');
