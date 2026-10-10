@@ -15,10 +15,15 @@
  * 25 replies were preemptive). The first token's wall-clock time is used
  * instead when the metrics carry it.
  *
+ * loopLagP99Ms / loopLagMaxMs: how late this process's event loop ran from
+ * the turn's commit to its LLM metric (the reply model's leg), so a slow first
+ * reply can be told apart from busy turn-1 work on the same thread.
+ *
  * The record carries no transcript or reply text.
  *
  * @module agents/shared/turn-metrics
  */
+import { monitorEventLoopDelay } from 'node:perf_hooks';
 
 interface EouMetric {
   type: 'eou_metrics';
@@ -69,11 +74,37 @@ export interface TurnMetricsRecord {
   ttsCharacters: number;
   /** The TTS for this reply was cancelled, i.e. the user interrupted it. */
   interrupted: boolean;
+  /** Event-loop delay from the commit to the LLM metric; null when not measured. */
+  loopLagP99Ms: number | null;
+  loopLagMaxMs: number | null;
 }
+
+export interface LoopLag {
+  p99Ms: number;
+  maxMs: number;
+}
+
+/** Starts measuring; the returned function stops and reads (null: no samples). */
+export type LoopLagMeter = () => () => LoopLag | null;
+
+const LAG_RESOLUTION_MS = 10;
+
+/** perf_hooks' event-loop delay histogram over one window, minus its timer period. */
+export const measureLoopLag: LoopLagMeter = () => {
+  const h = monitorEventLoopDelay({ resolution: LAG_RESOLUTION_MS });
+  h.enable();
+  return () => {
+    h.disable();
+    if (h.count === 0) return null;
+    const late = (ns: number): number => Math.max(0, Math.round(ns / 1e6 - LAG_RESOLUTION_MS));
+    return { p99Ms: late(h.percentile(99)), maxMs: late(h.max) };
+  };
+};
 
 interface OpenTurn {
   eou: EouMetric;
   llm?: LlmMetric;
+  lag?: LoopLag | null;
 }
 
 /**
@@ -91,23 +122,33 @@ interface OpenTurn {
  */
 export class TurnMetricsAggregator {
   private open: OpenTurn | null = null;
+  private stopLag: (() => LoopLag | null) | undefined;
+
+  constructor(private readonly meter: LoopLagMeter = measureLoopLag) {}
 
   /** Add one metric. Returns the completed record once a turn has eou, llm and tts. */
   add(metric: AnyMetric): TurnMetricsRecord | null {
     if (metric.type === 'eou_metrics') {
-      const unfinished = this.open?.llm ? toRecord(this.open.eou, this.open.llm) : null;
+      const open = this.open;
+      const unfinished = open?.llm ? toRecord(open.eou, open.llm, undefined, open.lag) : null;
+      this.stopLag?.();
+      this.stopLag = this.meter();
       this.open = { eou: metric as EouMetric };
       return unfinished;
     }
     const turn = this.open;
     if (!turn) return null;
     if (metric.type === 'llm_metrics') {
-      if (!turn.llm) turn.llm = metric as LlmMetric;
+      if (!turn.llm) {
+        turn.llm = metric as LlmMetric;
+        turn.lag = this.stopLag?.() ?? null;
+        this.stopLag = undefined;
+      }
       return null;
     }
     if (metric.type !== 'tts_metrics' || !turn.llm) return null;
     this.open = null;
-    return toRecord(turn.eou, turn.llm, metric as TtsMetric);
+    return toRecord(turn.eou, turn.llm, metric as TtsMetric, turn.lag);
   }
 }
 
@@ -121,7 +162,12 @@ function llmReady(eou: EouMetric, llm: LlmMetric): number {
   return eou.endOfUtteranceDelayMs + llm.ttftMs;
 }
 
-function toRecord(eou: EouMetric, llm: LlmMetric, tts?: TtsMetric): TurnMetricsRecord {
+function toRecord(
+  eou: EouMetric,
+  llm: LlmMetric,
+  tts?: TtsMetric,
+  lag?: LoopLag | null
+): TurnMetricsRecord {
   const llmReadyMs = llmReady(eou, llm);
   return {
     speechId: eou.speechId ?? '',
@@ -136,6 +182,8 @@ function toRecord(eou: EouMetric, llm: LlmMetric, tts?: TtsMetric): TurnMetricsR
     completionTokens: llm.completionTokens,
     ttsCharacters: tts ? tts.charactersCount : 0,
     interrupted: tts ? tts.cancelled : false,
+    loopLagP99Ms: lag?.p99Ms ?? null,
+    loopLagMaxMs: lag?.maxMs ?? null,
   };
 }
 
