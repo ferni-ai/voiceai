@@ -59,6 +59,9 @@ export const CORE_TOOLS = [
   'findTools',
   // Stands in for handoffs to locked teammates (tools/handoff/locked-teammates.ts).
   'askForTeammate',
+  // Hanging up an on-behalf phone call (agents/outbound-call/call-control.ts); a
+  // goodbye's words never point retrieval at it.
+  'endCall',
 ] as const;
 
 export interface TurnToolRetrievalOptions {

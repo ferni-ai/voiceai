@@ -9,6 +9,7 @@
 
 import type { JobContext } from '@livekit/agents';
 import type { ParsedMetadata } from './types.js';
+import { parseOnBehalfDispatch } from '../../services/outreach/on-behalf-dispatch.js';
 
 /**
  * Parse job and room metadata from the LiveKit job context.
@@ -153,9 +154,12 @@ export async function setupCallTypeContexts(
     );
 
     try {
-      const { parseOnBehalfDispatch } =
-        await import('../../services/outreach/on-behalf-dispatch.js');
       const call = parseOnBehalfDispatch(metadata);
+      if (!call) {
+        process.stderr.write(
+          `[voice-agent-entry] ⚠️ On-behalf dispatch is missing callId or requester; it can't be reported back\n`
+        );
+      }
       const trusted = await isTrustedDispatch(rawJobMetadata);
       const { setOutboundCallContext } =
         await import('../../intelligence/context-builders/external/outbound-call-context.js');
@@ -187,7 +191,11 @@ export async function setupCallTypeContexts(
       // Only a dispatch our server signed gets call state; a forged one could
       // name another call's id. Its turns are still kept out of memory.
       const { beginOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
-      if (call && trusted) await beginOnBehalfCall(sessionId, call);
+      if (call && trusted) {
+        await beginOnBehalfCall(sessionId, call);
+        const { registerOnBehalfCallRoom } = await import('../outbound-call/call-control.js');
+        registerOnBehalfCallRoom(sessionId, call.callId, roomNameForContext);
+      }
       process.stderr.write(
         `[voice-agent-entry] 📞 Outbound call context set for room: ${roomNameForContext}, sessionId: ${sessionId}\n`
       );
@@ -296,7 +304,6 @@ export async function finishCallTypeContexts(
   rawJobMetadata: string | undefined
 ): Promise<void> {
   if (callType !== 'on_behalf_call') return;
-  const { parseOnBehalfDispatch } = await import('../../services/outreach/on-behalf-dispatch.js');
   const { completeOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
   const call = parseOnBehalfDispatch(metadata);
   if (!call) return;

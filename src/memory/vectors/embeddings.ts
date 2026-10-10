@@ -6,6 +6,7 @@
  * Protected by circuit breaker to prevent cascading failures.
  */
 
+import { vertexChunks, vertexInstances, vertexVectors } from './vertex-chunks.js';
 import {
   getCircuitBreaker,
   getRedisCircuitBreakerAsync,
@@ -410,7 +411,7 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
     return results[0];
   }
 
-  async embedBatch(texts: string[]): Promise<number[][]> {
+  async embedBatch(texts: string[], taskType?: string): Promise<number[][]> {
     // Track valid text indices for proper result mapping
     const validIndices: number[] = [];
     const validTexts: string[] = [];
@@ -440,12 +441,11 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
       const token = await this.getToken();
       const url = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this._model}:predict`;
 
-      // Vertex AI expects a different format - one request per text for batch
       const validResults: number[][] = [];
 
-      for (const text of validTexts) {
+      for (const chunk of vertexChunks(validTexts, this._model)) {
         const body = JSON.stringify({
-          instances: [{ content: text }],
+          instances: vertexInstances(chunk, taskType),
           parameters: { autoTruncate: true },
         });
         const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
@@ -466,7 +466,7 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
           predictions: Array<{ embeddings: { values: number[] } }>;
         };
 
-        validResults.push(data.predictions[0].embeddings.values);
+        validResults.push(...vertexVectors(data, chunk.length));
       }
 
       // Map results back to original indices, empty arrays for empty texts
