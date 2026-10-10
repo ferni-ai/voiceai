@@ -73,6 +73,7 @@ import {
   memoryRecallMode,
   type RecallAgent,
 } from './memory-recall-hook.js';
+import { attachMindNote, theoryOfMindMode } from './mind-note-hook.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
@@ -1631,6 +1632,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
       sessionWithEvents.off?.('user_input_transcribed', onRecallTranscript);
       sessionWithEvents.off?.('agent_state_changed', onRecallAgentState);
     });
+  }
+
+  // What Ferni understands about the caller from earlier calls (THEORY_OF_MIND=on):
+  // added like recall, in the transcript's tick, never waited on (mind-note-hook.ts).
+  if (userId && userId !== 'anonymous' && theoryOfMindMode() && sessionWithEvents.on) {
+    const mind = attachMindNote(
+      sessionWithEvents as Parameters<typeof attachMindNote>[0],
+      agent as unknown as RecallAgent,
+      { userId }
+    );
+    forPersona(mind.detach);
   }
 
   // Built in the background on each final transcript and pushed between

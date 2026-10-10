@@ -1755,6 +1755,12 @@ export async function createSessionServices(
             }
           } // Close turns.length > 0 block
 
+          // What Ferni understands about the person, from this call (THEORY_OF_MIND=on).
+          // Bounded and never throws; returns at once when off.
+          const { updateTheoryOfMindAfterCall } =
+            await import('../../intelligence/theory-of-mind/after-call.js');
+          await updateTheoryOfMindAfterCall({ userId: validatedUserId, sessionId, turns, summary });
+
           // FIX BUG #session-20: Finalize learning regardless of turns count
           // Learning engine may have captured session-level insights
           const learningData = learningEngine.finalizeSession(userProfile);
