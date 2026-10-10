@@ -243,9 +243,22 @@ describe('TeamUnlockService', () => {
 
       updateUnlockState();
 
-      const mayaStatus = getMemberStatus('maya-santos');
-      expect(mayaStatus.progress).toBeGreaterThan(0);
-      expect(mayaStatus.progress).toBeLessThan(1);
+      // Maya needs 10 conversations and nothing else: 5 of them is halfway, not 83%
+      expect(getMemberStatus('maya-santos').progress).toBeCloseTo(0.5);
+    });
+
+    it('no conversations is no progress, even toward a member with no day or streak needs', () => {
+      mockStageService.getStage.mockReturnValue('first-meeting');
+      mockStageService.getMetrics.mockReturnValue({
+        totalConversations: 0,
+        daysSinceFirstMeeting: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+      });
+
+      updateUnlockState();
+
+      expect(getMemberStatus('maya-santos').progress).toBe(0);
     });
 
     it('should track next unlock info', () => {
@@ -443,6 +456,22 @@ describe('TeamUnlockService', () => {
   });
 
   describe('onAlmostThere', () => {
+    it('does not fire halfway, at 5 of 10 conversations', () => {
+      initTeamUnlockService();
+      const listener = vi.fn();
+      onAlmostThere(listener);
+      mockStageService.getMetrics.mockReturnValue({
+        totalConversations: 5,
+        daysSinceFirstMeeting: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+      });
+
+      updateUnlockState();
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+
     it('should fire when progress crosses 80%', () => {
       initTeamUnlockService();
       const listener = vi.fn();
