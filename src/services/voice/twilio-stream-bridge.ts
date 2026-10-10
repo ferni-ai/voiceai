@@ -22,6 +22,8 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { RoomServiceClient } from 'livekit-server-sdk';
 import { createLogger } from '../../utils/safe-logger.js';
 import { EventEmitter } from 'events';
+import type { IncomingMessage } from 'http';
+import { isTwilioSignedHandshake, rejectHandshake } from './twilio-stream-auth.js';
 import { isExperimentalEnabled } from '../../config/feature-flags.js';
 import {
   getTwilioEnhancer,
@@ -251,7 +253,14 @@ export class TwilioStreamBridge extends EventEmitter {
    * Use this for standalone mode (local testing)
    */
   start(port: number = 8765): void {
-    this.wss = new WebSocketServer({ port });
+    this.wss = new WebSocketServer({
+      port,
+      verifyClient: ({ req }: { req: IncomingMessage }) => {
+        const ok = isTwilioSignedHandshake(req);
+        if (!ok) log.warn({ url: req.url }, 'Rejected unsigned Twilio stream connection');
+        return ok;
+      },
+    });
 
     this.wss.on('connection', (ws, req) => {
       log.info({ url: req.url }, '🔌 New Twilio stream connection');
@@ -283,6 +292,10 @@ export class TwilioStreamBridge extends EventEmitter {
       const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
 
       if (pathname === path || pathname.startsWith(`${path}/`)) {
+        if (!isTwilioSignedHandshake(request)) {
+          rejectHandshake(socket, request.url);
+          return;
+        }
         this.wss?.handleUpgrade(request, socket, head, (ws) => {
           this.wss?.emit('connection', ws, request);
         });
@@ -793,37 +806,10 @@ export class TwilioStreamBridge extends EventEmitter {
   }
 
   /**
-   * Send a mark event to Twilio (for sync/timing)
-   */
-  sendMark(callSid: string, markName: string): void {
-    const session = this.sessions.get(callSid);
-    if (!session || session.status !== 'active') {
-      return;
-    }
-
-    const message = {
-      event: 'mark',
-      streamSid: session.streamSid,
-      mark: {
-        name: markName,
-      },
-    };
-
-    session.twilioWs.send(JSON.stringify(message));
-  }
-
-  /**
    * Get active session info
    */
   getSession(callSid: string): BridgeSession | undefined {
     return this.sessions.get(callSid);
-  }
-
-  /**
-   * Get all active sessions
-   */
-  getAllSessions(): BridgeSession[] {
-    return Array.from(this.sessions.values());
   }
 }
 
