@@ -31,6 +31,10 @@ export function wallClock(timeZone: string | null | undefined, now = new Date())
 }
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
+const MAX_FORMATTERS = 500; // about the number of IANA zones
+
+/** For tests: how many zones have a cached formatter. */
+export const cachedZoneCount = (): number => formatters.size;
 
 function formatterFor(timeZone: string): Intl.DateTimeFormat {
   let formatter = formatters.get(timeZone);
@@ -44,7 +48,9 @@ function formatterFor(timeZone: string): Intl.DateTimeFormat {
       minute: 'numeric',
       hourCycle: 'h23',
     });
-    formatters.set(timeZone, formatter); // only zones Intl accepted reach here
+    // Intl accepts any letter case ("europe/london"), so callers could mint new keys forever
+    if (formatters.size >= MAX_FORMATTERS) formatters.clear();
+    formatters.set(timeZone, formatter);
   }
   return formatter;
 }

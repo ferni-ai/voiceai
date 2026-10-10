@@ -3,7 +3,7 @@
  * night in another.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { timeOfDay, wallClock } from '../local-clock.js';
+import { cachedZoneCount, timeOfDay, wallClock } from '../local-clock.js';
 
 // Saturday 2026-10-10, 08:31 UTC: when CI's walk saw "Saturday morning"
 const INSTANT = new Date('2026-10-10T08:31:00Z');
@@ -43,6 +43,19 @@ describe('wallClock', () => {
       expect(wallClock('Asia/Kolkata', INSTANT)).toBe(INSTANT);
     } finally {
       spy.mockRestore();
+    }
+  });
+});
+
+describe('wallClock cache', () => {
+  it('stays bounded however many spellings of a zone it sees', () => {
+    for (let i = 0; i < 1200; i++) {
+      // Each is a distinct, valid spelling of the same zone: Intl ignores letter case
+      const zone = [...'europe/london']
+        .map((c, j) => ((i >> j) & 1 ? c.toUpperCase() : c))
+        .join('');
+      expect(wallClock(zone, INSTANT).getHours()).toBe(9);
+      expect(cachedZoneCount()).toBeLessThanOrEqual(500);
     }
   });
 });
