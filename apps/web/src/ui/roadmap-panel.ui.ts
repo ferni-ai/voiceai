@@ -577,7 +577,7 @@ class RoadmapPanelUI {
                     <button class="roadmap-detail__slider-btn" data-action="decrease" aria-label="${t('accessibility.decrease')}">−</button>
                     <div class="roadmap-detail__slider-container">
                       <input type="range"
-                             class="roadmap-detail__slider"
+                             class="roadmap-detail__slider" aria-label="${t('roadmap.plantSeeds')}"
                              min="1"
                              max="${Math.min(10, seedBalance)}"
                              value="1"
@@ -594,8 +594,8 @@ class RoadmapPanelUI {
                   <button class="roadmap-detail__plant-btn"
                           data-action="plant-multiple"
                           data-feature="${feature.id}">
-                    <span class="roadmap-detail__plant-btn-icon" role="button" tabindex="0">${ICONS.seed}</span>
-                    <span class="roadmap-detail__plant-btn-text" role="button" tabindex="0">${t('roadmap.plantNow') || 'Plant Now'}</span>
+                    <span class="roadmap-detail__plant-btn-icon">${ICONS.seed}</span>
+                    <span class="roadmap-detail__plant-btn-text">${t('roadmap.plantNow') || 'Plant Now'}</span>
                   </button>
                 </div>
               ` : `

@@ -60,6 +60,8 @@ describe('fast lane', () => {
       "what's the weather like",
       'remind me to call my mom',
       'play something mellow',
+      'Honestly, throw on some jazz while I cook.',
+      'can you put on that podcast',
       'who won the game last night?',
       'remember that my sister is visiting',
       '',

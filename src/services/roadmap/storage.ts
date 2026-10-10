@@ -279,7 +279,7 @@ export async function checkStreakReward(
               lastClaimedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
           } else {
-            transaction.set(cleanForFirestore(streakRewardsRef), {
+            transaction.set(streakRewardsRef, {
               claimedMilestones: [milestone],
               lastClaimedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
@@ -329,7 +329,7 @@ export async function recordVote(
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       } else {
-        transaction.set(cleanForFirestore(voteRef), {
+        transaction.set(voteRef, {
           userId,
           featureId,
           seedsPlanted: seeds,

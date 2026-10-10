@@ -57,3 +57,31 @@ test('importing contacts: each source is announced by name', async ({ page }) =>
   const id = await sheet.getAttribute('data-e2e-dialog');
   expect(await badNames(page, `[data-e2e-dialog="${id}"]`)).toEqual([]);
 });
+
+const ALL_PANELS = ['garden', 'gift', 'invite', 'commands', 'calendar-settings', 'notifications', 'journal',
+  'knowledge-quiz', 'music-dashboard', 'play-games', 'vibe-controller', 'contacts', 'family-callers',
+  'all-connections', 'theme', 'billing', 'export', 'whats-growing', 'share-ferni', 'help'];
+
+/** role="button" elements nested in, or wrapped around, a real control: an extra Tab stop that does nothing */
+const nestedButtons = (page: Page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('[role="button"]')]
+      .filter((el) => el.parentElement?.closest('button, a[href]') || el.querySelector('button, a[href], input, select, textarea'))
+      .map((el) => `${el.tagName.toLowerCase()}.${(el.className?.toString() || '').split(' ')[0]}`)
+  );
+
+test('no fake button sits inside or around a real control', async ({ page }) => {
+  test.setTimeout(240_000);
+  const found = new Set(await nestedButtons(page));
+  for (const action of ALL_PANELS) {
+    await openSettingsMenu(page);
+    await page.locator(`.settings-menu [data-action="${action}"]`).click();
+    await page.waitForTimeout(800);
+    for (const f of await nestedButtons(page)) found.add(`${action}: ${f}`);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+  }
+  expect([...found]).toEqual([]);
+});

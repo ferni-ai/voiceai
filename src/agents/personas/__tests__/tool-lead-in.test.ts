@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ReadableStream } from 'node:stream/web';
-import { LEAD_INS, withToolLeadIn } from '../tool-lead-in.js';
+import { ACKS, LEAD_INS, withToolLeadIn } from '../tool-lead-in.js';
 
 const userTurn = { items: [{ type: 'message', role: 'user' }] };
 const afterTool = {
@@ -42,7 +42,32 @@ describe('withToolLeadIn', () => {
     expect(spoken(out)).toBe('Ooh, let me look.');
   });
 
-  it('adds nothing before instant tools (music, handoffs, memory)', async () => {
+  it('says a short ack before an action the caller asked for (live: 3-6 s of silence)', async () => {
+    const asked = (words: string) => ({
+      items: [
+        { type: 'message', role: 'user', textContent: `${words}\n\n(reminder: keep it short)` },
+      ],
+    });
+    for (const [words, tool] of [
+      ['Can you set a timer for ten minutes?', 'quickTimer'],
+      ['Remind me to call my mom tomorrow at noon.', 'setReminder'],
+      ['Honestly, throw on some jazz while I cook.', 'playMusic'],
+    ] as const) {
+      const out = await run([call(tool)], asked(words));
+      expect(ACKS as readonly string[], words).toContain(spoken(out).trim());
+      expect(out.at(-1)).toEqual(call(tool));
+    }
+    // A tool the model reaches for on its own, mid-chat, gets nothing.
+    expect(await run([call('rememberAboutUser')], asked('my sister just moved to Denver'))).toEqual(
+      [call('rememberAboutUser')]
+    );
+    // And TOOL_ACK=off turns it off.
+    expect(
+      await run([call('quickTimer')], asked('set a timer for ten minutes'), {}, { TOOL_ACK: 'off' })
+    ).toEqual([call('quickTimer')]);
+  });
+
+  it('adds nothing before instant tools when the caller asked for nothing', async () => {
     const names = ['playMusic', 'handoffToMaya', 'rememberAboutMe'];
     const outs = await Promise.all(names.map((name) => run([call(name)], userTurn)));
     expect(outs).toEqual(names.map((name) => [call(name)]));

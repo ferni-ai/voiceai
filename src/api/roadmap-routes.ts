@@ -327,7 +327,7 @@ export async function checkStreakReward(
 
           // Mark milestone as claimed
           if (!streakRewardsDoc.exists) {
-            transaction.set(cleanForFirestore(streakRewardsRef), {
+            transaction.set(streakRewardsRef, {
               claimedMilestones: [milestone],
               lastClaimed: admin.firestore.FieldValue.serverTimestamp(),
             });
@@ -536,7 +536,7 @@ async function handleVote(
       }
 
       // Create new vote (using deterministic ID)
-      transaction.set(cleanForFirestore(existingVoteRef), {
+      transaction.set(existingVoteRef, {
         userId,
         featureId,
         seedsPlanted: seeds,
@@ -776,7 +776,7 @@ async function handleSuggest(
 
       // Create suggestion
       const suggestionRef = db.collection('roadmap_suggestions').doc();
-      transaction.set(cleanForFirestore(suggestionRef), {
+      transaction.set(suggestionRef, {
         userId,
         title,
         description,

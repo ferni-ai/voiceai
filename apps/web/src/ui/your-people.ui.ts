@@ -784,7 +784,7 @@ function renderHeader(): string {
           <div class="yp-eyebrow" id="yp-desc">${t('yourPeople.section')}</div>
           <h2 class="yp-title" id="yp-title">${t('yourPeople.title')}</h2>
         </div>
-        <div class="yp-header-actions" role="button" tabindex="0">
+        <div class="yp-header-actions">
           <button class="yp-action-btn" id="yp-insights-btn" aria-label="${t('accessibility.viewRelationshipInsights')}" title="${t('yourPeople.insights')}">${ICONS.chart}</button>
           <button class="yp-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
         </div>
