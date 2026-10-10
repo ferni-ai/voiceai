@@ -23,6 +23,7 @@ import {
   type PersonaId,
   type TeamStatusSummary,
 } from '../../../services/cross-persona-insights.js';
+import { budgetStatusLabel } from '../../../services/cross-persona/financial-health-status.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   BuilderCategory,
@@ -164,7 +165,7 @@ function analyzeTeamStatusForHandoffs(teamStatus: TeamStatusSummary): HandoffSug
 
   if (
     teamStatus.financialHealth.budgetUsedPercent > 90 ||
-    !teamStatus.financialHealth.savingsOnTrack
+    (teamStatus.goalStatus.activeGoals > 0 && !teamStatus.financialHealth.savingsOnTrack)
   ) {
     suggestions.push({
       targetPersona: 'peter-john',
@@ -444,9 +445,8 @@ function formatBriefingForInjection(briefing: CoordinatorBriefing): string[] {
     sections.push(
       `• Goals: ${ts.goalStatus.activeGoals} active, ${ts.goalStatus.nearingCompletion} almost done`
     );
-    sections.push(
-      `• Budget: ${ts.financialHealth.budgetUsedPercent < 90 && ts.financialHealth.savingsOnTrack ? '✅ On track' : '⚠️ Needs attention'}`
-    );
+    const budgetLine = budgetStatusLabel(ts.financialHealth, ts.goalStatus.activeGoals);
+    if (budgetLine) sections.push(`• Budget: ${budgetLine}`);
   }
 
   // Better Than Human: Calendar awareness
