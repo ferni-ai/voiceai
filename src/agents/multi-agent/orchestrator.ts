@@ -265,11 +265,7 @@ export class AgentOrchestrator {
       });
       const greeting = calmGreeting(directed.text);
 
-      // ================================================================
-      // GREETING AWARENESS: Store greeting so LLM knows what it said
-      // This prevents the LLM from repeating greetings or being confused
-      // The turn-handler injects this on turn 0 as system context
-      // ================================================================
+      // Greeting awareness: the turn handler tells the LLM on turn 0 what it said.
       if (agent.userData) {
         agent.userData.greetingText = greeting;
         agent.userData.greetingInjected = false;
@@ -290,6 +286,8 @@ export class AgentOrchestrator {
         /* non-fatal */
       }
       agent.say(greeting, { allowInterruptions: false });
+      // Warm the reply model's prompt cache while the greeting plays (cache-warm.ts).
+      void import('../model-provider/cache-warm.js').then((m) => m.warmPromptCache(agent.session));
 
       // ⚡ FAST-AGENT-JOIN: Wire deferred handlers in background after greeting starts
       // Handlers run in parallel with speech - user hears greeting while handlers wire
