@@ -240,7 +240,7 @@ function renderModalContent(): void {
       </div>
 
       <!-- Actions -->
-      <div class="garden-actions" role="button" tabindex="0">
+      <div class="garden-actions">
         <button aria-label="${t('accessibility.share')}" class="garden-action garden-action--primary" data-action="invite">
           ${ICONS.share}
           <span>${t('gardenDashboard.inviteFriends')}</span>
