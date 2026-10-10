@@ -296,7 +296,7 @@ async function handleSendGift(): Promise<void> {
       body: JSON.stringify({
         toUserId: recipientId,
         amount: selectedAmount,
-        message: message || undefined,
+        giftId: crypto.randomUUID(), // one per send: a retried request moves seeds once
       }),
     });
 
