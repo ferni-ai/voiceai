@@ -371,14 +371,12 @@ class RoadmapService {
    * Includes menu action IDs that may differ from roadmap feature IDs
    */
   isRoadmapFeature(id: string): boolean {
-    // Map menu action IDs to roadmap feature IDs
+    // Map menu action IDs to roadmap feature IDs. Only still-unbuilt features
+    // belong here: a mapped action is hidden from the menu, so listing a shipped
+    // panel (household, voice ID, personalize, marketplace) made it unreachable.
     const MENU_ACTION_TO_ROADMAP: Record<string, string> = {
       'video-call-settings': 'video-settings',
       'together-sessions': 'group-coaching',
-      'household-members': 'household',
-      'voice-id-settings': 'voice-enrollment',
-      'personal-settings': 'personalize',
-      'discover-agents': 'marketplace',
     };
     
     // Check direct match or mapped match

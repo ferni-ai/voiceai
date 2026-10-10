@@ -2438,7 +2438,8 @@
       "devices": "デバイス",
       "features": "Ferniが確認できるデータ"
     },
-    "title": "ウェアラブル"
+    "title": "ウェアラブル",
+    "notConfigured": "まだ設定されていません"
   },
   "transcript": {
     "enabled": "文字起こし：オン",

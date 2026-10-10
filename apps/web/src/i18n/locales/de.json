@@ -2438,7 +2438,8 @@
       "devices": "Geräte",
       "features": "Was Ferni sehen kann"
     },
-    "title": "Wearables"
+    "title": "Wearables",
+    "notConfigured": "Noch nicht eingerichtet"
   },
   "transcript": {
     "enabled": "Transkription an",

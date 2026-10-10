@@ -2438,7 +2438,8 @@
       "devices": "设备",
       "features": "Ferni 可以读取的数据"
     },
-    "title": "穿戴设备"
+    "title": "穿戴设备",
+    "notConfigured": "尚未设置"
   },
   "transcript": {
     "enabled": "语音转文字已开启",

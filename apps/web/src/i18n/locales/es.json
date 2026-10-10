@@ -2457,7 +2457,8 @@
       "devices": "Dispositivos",
       "features": "Lo que Ferni puede ver"
     },
-    "title": "Dispositivos corporales"
+    "title": "Dispositivos corporales",
+    "notConfigured": "Aún no configurado"
   },
   "transcript": {
     "enabled": "Transcripción activada",

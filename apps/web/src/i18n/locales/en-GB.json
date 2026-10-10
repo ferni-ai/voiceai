@@ -2513,7 +2513,8 @@
       "devices": "Devices",
       "features": "What Ferni can see"
     },
-    "title": "Wearables"
+    "title": "Wearables",
+    "notConfigured": "Not set up yet"
   },
   "transcript": {
     "enabled": "Transcription on",
