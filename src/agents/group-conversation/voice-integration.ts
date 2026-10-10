@@ -243,19 +243,12 @@ export class GroupVoiceIntegration {
 
     diag.entry(`🎙️ Starting team roundtable: ${message.personas.join(', ')}`);
     const { openRoundtable } = await import('./roundtable-start.js'); // dynamic: circular deps
-    const { ctx, room, userParticipant, sessionId, userId, createRoundtableAgent } = this.config;
-    const opened = openRoundtable(
-      {
-        ctx,
-        room,
-        userParticipant,
-        sessionId,
-        userId: userId ?? 'anonymous',
-        createAgent: createRoundtableAgent,
-      },
-      message,
-      (speakerId) => this.broadcastSpeakerChange(speakerId)
-    );
+    const { sessionId } = this.config;
+    const opened = openRoundtable(this.config, message, {
+      speaker: (speakerId) => this.broadcastSpeakerChange(speakerId),
+      // A crisis signal ends the roundtable; the persona answers with its safety rails
+      crisis: () => void this.handleRoundtableEnd({ reason: 'crisis' }),
+    });
     [this.roundtable, this.detachTurns] = [opened.roundtable, opened.detachTurns];
     this.sendResponse({
       type: 'group_roundtable_started',
@@ -284,13 +277,11 @@ export class GroupVoiceIntegration {
     }
 
     this.detachTurns?.(); // idempotent
-    await this.roundtable.end(message.reason);
+    const { roundtable } = this;
     this.roundtable = null;
-
-    this.sendResponse({
-      type: 'group_roundtable_ended',
-      sessionId: this.config.sessionId,
-    });
+    // Tell the web at once; the closing line and the summary can take a while
+    this.sendResponse({ type: 'group_roundtable_ended', sessionId: this.config.sessionId });
+    await roundtable.end(message.reason);
 
     log.info({ reason: message.reason }, '🎙️ Team roundtable ended');
   }

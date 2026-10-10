@@ -2,44 +2,84 @@
  * While a roundtable runs, the person's turns go to it, not to the persona's own reply.
  *
  * The persona agent on the call keeps the session; its onUserTurnCompleted asks
- * takeRoundtableTurn first and, when a roundtable takes the turn, stops its own reply
+ * stopIfRoundtableTurn first and, when a roundtable takes the turn, stops its own reply
  * (voice.StopResponse). Keyed by the call's session id, which stays the same across
  * handoffs. Plan: docs/plans/2026-10-10-roundtable-voice.md.
+ *
+ * Safety first: a turn with a crisis signal is never taken. The roundtable ends and the
+ * persona answers that turn through its full pipeline, where the crisis override and
+ * safety rails live (voice-agent/turn-handler.ts). Same detector, same threshold.
  *
  * @module agents/group-conversation/roundtable-turns
  */
 import { voice } from '@livekit/agents';
+import { hasCrisisSignal } from '../processors/turn-processor/turn-crisis.js';
+import { detectCrisis } from '../safety/crisis-guard.js';
+import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../safety/crisis-shadow.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'RoundtableTurns' });
 
 type TurnHandler = (utterance: string) => Promise<void>;
-const handlers = new Map<string, TurnHandler>();
+interface Attached {
+  handleUserInput: TurnHandler;
+  /** Called when a turn carries a crisis signal; the roundtable should end. */
+  onCrisis: () => void;
+}
+const attached = new Map<string, Attached>();
+
+type TurnUserData = { voiceEmotion?: unknown; recentTranscripts?: string[] };
 
 /** Send this call's turns to a roundtable; returns the function that stops it. */
 export function attachRoundtableTurns(
   sessionId: string,
-  roundtable: { handleUserInput: TurnHandler }
+  roundtable: { handleUserInput: TurnHandler },
+  onCrisis: () => void
 ): () => void {
-  const handler: TurnHandler = (utterance) => roundtable.handleUserInput(utterance);
-  handlers.set(sessionId, handler);
+  const entry: Attached = {
+    handleUserInput: (utterance) => roundtable.handleUserInput(utterance),
+    onCrisis,
+  };
+  attached.set(sessionId, entry);
   return () => {
-    if (handlers.get(sessionId) === handler) handlers.delete(sessionId);
+    if (attached.get(sessionId) === entry) attached.delete(sessionId);
   };
 }
 
-/** True when a roundtable on this call took the turn (the caller then skips its reply). */
+/** The same signal the turn pipeline uses to keep the LLM (and its crisis override) in the loop. */
+function crisisSignal(text: string, userData: TurnUserData | undefined): boolean {
+  const crisis = detectCrisis(
+    text,
+    toGuardVoiceEmotion(userData?.voiceEmotion as ProsodyEmotionLike | undefined),
+    { recentMessages: userData?.recentTranscripts }
+  );
+  return hasCrisisSignal(crisis);
+}
+
+/**
+ * True when a roundtable on this call took the turn (the caller then skips its reply).
+ * Never true for a turn with a crisis signal: that ends the roundtable and returns false.
+ */
 export function takeRoundtableTurn(
   sessionId: string | undefined,
-  utterance: string | undefined
+  utterance: string | undefined,
+  userData?: TurnUserData
 ): boolean {
-  const handler = sessionId ? handlers.get(sessionId) : undefined;
-  if (!handler) return false;
+  const entry = sessionId ? attached.get(sessionId) : undefined;
+  if (!entry || !sessionId) return false;
   const text = utterance?.trim();
+  if (text && crisisSignal(text, userData)) {
+    log.warn({ sessionId }, '🚨 Crisis signal during a roundtable: ending it, the persona answers');
+    attached.delete(sessionId);
+    entry.onCrisis();
+    return false;
+  }
   if (text) {
-    void handler(text).catch((error: unknown) =>
-      log.warn({ sessionId, error: String(error) }, 'Roundtable could not take the turn')
-    );
+    void entry
+      .handleUserInput(text)
+      .catch((error: unknown) =>
+        log.warn({ sessionId, error: String(error) }, 'Roundtable could not take the turn')
+      );
   }
   return true;
 }
@@ -52,5 +92,7 @@ export function callSessionId(userData: unknown): string | undefined {
 
 /** For a persona agent's onUserTurnCompleted: a roundtable takes the turn → stop its own reply. */
 export function stopIfRoundtableTurn(userData: unknown, utterance: string | undefined): void {
-  if (takeRoundtableTurn(callSessionId(userData), utterance)) throw new voice.StopResponse();
+  if (takeRoundtableTurn(callSessionId(userData), utterance, userData as TurnUserData)) {
+    throw new voice.StopResponse();
+  }
 }

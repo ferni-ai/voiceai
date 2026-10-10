@@ -18,7 +18,7 @@ import { createGroupVoiceIntegration } from '../voice-integration.js';
 describe('roundtable turns', () => {
   it("routes this call's turns while attached, and only this call's", async () => {
     const handleUserInput = vi.fn(async () => undefined);
-    const detach = attachRoundtableTurns('call-1', { handleUserInput });
+    const detach = attachRoundtableTurns('call-1', { handleUserInput }, () => undefined);
 
     expect(takeRoundtableTurn('call-1', '  Maya, thoughts?  ')).toBe(true);
     expect(takeRoundtableTurn('call-2', 'hello')).toBe(false);
@@ -30,6 +30,22 @@ describe('roundtable turns', () => {
     detach();
     expect(takeRoundtableTurn('call-1', 'after')).toBe(false);
     expect(() => stopIfRoundtableTurn({ sessionId: 'call-1' }, 'after')).not.toThrow();
+  });
+});
+
+describe('safety first', () => {
+  it('a turn with a crisis signal is never taken: the roundtable ends and the persona answers', () => {
+    const handleUserInput = vi.fn(async () => undefined);
+    const onCrisis = vi.fn();
+    attachRoundtableTurns('call-crisis', { handleUserInput }, onCrisis);
+
+    expect(takeRoundtableTurn('call-crisis', 'honestly I want to kill myself')).toBe(false);
+    expect(() =>
+      stopIfRoundtableTurn({ sessionId: 'call-crisis' }, 'honestly I want to kill myself')
+    ).not.toThrow(); // the persona's reply (with the crisis override) goes ahead
+    expect(onCrisis).toHaveBeenCalledTimes(1);
+    expect(handleUserInput).not.toHaveBeenCalled();
+    expect(takeRoundtableTurn('call-crisis', 'ok')).toBe(false); // detached
   });
 });
 
@@ -102,7 +118,14 @@ describe('a roundtable through the real integration', () => {
     expect(session.userData.speakingAs).toBeUndefined(); // cleared after the line
     expect(session.userData.personaId).toBe('ferni');
 
-    await integration.handleDataChannelMessage({ type: 'group_roundtable_end' });
+    // A crisis signal mid-roundtable: it ends, the web is told, the persona takes the turn
+    expect(takeRoundtableTurn('call-rt', "I don't want to be alive anymore")).toBe(false);
+    await vi.waitFor(() => expect(sent.map((m) => m.type)).toContain('group_roundtable_ended'));
+    await integration.handleDataChannelMessage({ type: 'group_roundtable_end' }); // no-op now
+    // No pleasantry before the crisis response
+    await vi.waitFor(() =>
+      expect(spoken.some((s) => /bringing us all together/.test(s.text))).toBe(false)
+    );
     expect(takeRoundtableTurn('call-rt', 'thanks')).toBe(false); // Ferni answers again
     expect(sent.map((m) => m.type)).toContain('group_roundtable_ended');
     await integration.cleanup();

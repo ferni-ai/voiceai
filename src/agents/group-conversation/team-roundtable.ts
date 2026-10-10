@@ -266,8 +266,8 @@ export class TeamRoundtable extends EventEmitter {
 
     this.isActive = false;
 
-    // Have moderator close the session
-    await this.moderatorCloses(reason);
+    // Have moderator close the session (never a pleasantry before a crisis response)
+    if (reason !== 'crisis') await this.moderatorCloses(reason);
 
     // Cleanup all agents
     for (const agent of this.agents.values()) {

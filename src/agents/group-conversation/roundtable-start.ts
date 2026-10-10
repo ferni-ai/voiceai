@@ -10,12 +10,19 @@ import { TeamRoundtable, type TeamRoundtableConfig } from './team-roundtable.js'
 import type { CollaborationMode } from './types.js';
 
 export function openRoundtable(
-  base: Omit<TeamRoundtableConfig, 'roundtable'>,
+  call: Omit<TeamRoundtableConfig, 'roundtable' | 'createAgent' | 'userId'> & {
+    userId?: string;
+    createRoundtableAgent?: TeamRoundtableConfig['createAgent'];
+  },
   message: { personas: string[]; topic?: string; collaborationMode?: string },
-  onSpeaker: (speakerId: string | null) => void
+  on: { speaker: (speakerId: string | null) => void; crisis: () => void }
 ): { roundtable: TeamRoundtable; detachTurns: () => void } {
+  if (!call.createRoundtableAgent) throw new Error('Roundtable not configured');
+  const { ctx, room, userParticipant, sessionId, userId } = call;
+  const base = { ctx, room, userParticipant, sessionId, userId: userId ?? 'anonymous' };
   const roundtable = new TeamRoundtable({
     ...base,
+    createAgent: call.createRoundtableAgent,
     roundtable: {
       personas: message.personas,
       topic: message.topic,
@@ -24,7 +31,7 @@ export function openRoundtable(
     },
   });
   roundtable.on('speaker_changed', ({ speakerId }: { speakerId: string | null }) =>
-    onSpeaker(speakerId)
+    on.speaker(speakerId)
   );
-  return { roundtable, detachTurns: attachRoundtableTurns(base.sessionId, roundtable) };
+  return { roundtable, detachTurns: attachRoundtableTurns(base.sessionId, roundtable, on.crisis) };
 }
