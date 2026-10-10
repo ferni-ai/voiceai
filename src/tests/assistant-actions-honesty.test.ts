@@ -24,10 +24,8 @@ vi.mock('firebase-admin/firestore', () => {
   return { getFirestore: () => chain };
 });
 
-import {
-  alarmToolDefinitions,
-  ALARM_CANT_RING,
-} from '../tools/domains/simple-utilities/alarm-tools.js';
+import { alarmToolDefinitions } from '../tools/domains/simple-utilities/alarm-tools.js';
+import { ALARM_CANT_RING } from '../tools/domains/simple-utilities/alarm-ring.js';
 import { productivityExecutor } from '../agents/shared/tool-executors/productivity-executor.js';
 import type { ToolContext } from '../tools/registry/types.js';
 

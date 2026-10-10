@@ -12,7 +12,7 @@
  * @module agents/shared/tool-executors/productivity-executor
  */
 
-import { ALARM_CANT_RING } from '../../../tools/domains/simple-utilities/alarm-tools.js';
+import { ALARM_CANT_RING } from '../../../tools/domains/simple-utilities/alarm-ring.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
