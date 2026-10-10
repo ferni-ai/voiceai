@@ -27,8 +27,8 @@ export interface ScheduledOutreachTarget {
   contact: string;
   /** Purpose of the outreach */
   purpose: string;
-  /** Channel preference */
-  channel: 'call' | 'text' | 'email' | 'conversation' | 'auto';
+  /** Channel preference. 'on_behalf_call' is the one retry of a missed call (call-followthrough). */
+  channel: 'call' | 'text' | 'email' | 'conversation' | 'auto' | 'on_behalf_call';
   /** Custom message (optional) */
   message?: string;
   /** Resolved contact ID */
@@ -39,6 +39,8 @@ export interface ScheduledOutreachTarget {
   resolvedPhone?: string;
   /** Resolved email */
   resolvedEmail?: string;
+  /** For 'on_behalf_call': the call request to place again. */
+  onBehalfRequest?: unknown;
 }
 
 /**
@@ -348,7 +350,7 @@ export async function cancelScheduledOutreach(
  */
 export async function cleanupOldOutreach(
   userId: string,
-  olderThanDays: number = 30
+  olderThanDays = 30
 ): Promise<number> {
   const firestore = await getFirestore();
   if (!firestore) return 0;

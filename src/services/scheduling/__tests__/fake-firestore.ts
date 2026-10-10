@@ -45,6 +45,13 @@ export function fakeFirestore(rows: Row[]) {
           if (existing) existing.data = { ...data };
           else rows.push({ id, userId: uid, collection: c, data: { ...data } });
         },
+        // Like Firestore's create(): fails when the document already exists.
+        create: async (data: Record<string, unknown>) => {
+          if (rows.some((r) => r.collection === c && r.id === id && r.userId === uid)) {
+            throw new Error(`ALREADY_EXISTS: ${c}/${id}`);
+          }
+          rows.push({ id, userId: uid, collection: c, data: { ...data } });
+        },
       }),
     }),
   });
