@@ -27,6 +27,7 @@ import {
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { getDeliberator } from './deliberation.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
@@ -75,17 +76,35 @@ export function withTurnReminder(
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
   const notes = formatNotes((director?.current() ?? []).filter(keep));
+  // Never with crisis guidance (shape: false): no thought rides a crisis reply.
+  const thought = options.shape !== false ? thoughtFor(session, words) : '';
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     notes,
+    thought,
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
   ]
     .filter(Boolean)
     .join(' ');
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+}
+
+/**
+ * DELIBERATION=on: a thought from the background deliberator, if one is ready
+ * (deliberation.ts). Never while they are venting or hurting, or while support
+ * still comes first after hard news (turn-candor.ts).
+ */
+function thoughtFor(session: object, said: string): string {
+  const deliberator = getDeliberator(session);
+  if (!deliberator || !said) return '';
+  const { signals, source } = signalsFor(session, said);
+  const sig = signals ?? regexSignals(said, callerMove(said));
+  // supportHeld first: it records hard news (and counts the turns since) even with CANDOR off.
+  const held = supportHeld(session, said, source === 'model' && sig.careful) || sig.careful;
+  return deliberator.noteFor(said, held);
 }
 
 /** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */
