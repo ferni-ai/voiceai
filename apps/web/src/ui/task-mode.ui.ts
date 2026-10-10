@@ -54,7 +54,7 @@ const STYLES = `
   .task-mode-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-tooltip);
+    z-index: var(--z-modal, 2100); /* the layer every dialog shares: the last opened is on top */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -561,7 +561,7 @@ function renderSelectStep(): string {
       `).join('')}
     </div>
 
-    <div class="task-actions" role="button" tabindex="0">
+    <div class="task-actions">
       <button class="task-btn task-btn--secondary" data-action="cancel">${t('common.cancel')}</button>
       <button class="task-btn task-btn--primary" data-action="next" ${!taskData.template ? 'disabled' : ''}>
         ${t('common.continue')}
@@ -619,7 +619,7 @@ function renderConfigureStep(): string {
       </div>
     `).join('')}
 
-    <div class="task-actions" role="button" tabindex="0">
+    <div class="task-actions">
       <button class="task-btn task-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
@@ -671,7 +671,7 @@ function renderExecuteStep(): string {
       </div>
     </div>
 
-    <div class="task-actions" role="button" tabindex="0">
+    <div class="task-actions">
       <button class="task-btn task-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
