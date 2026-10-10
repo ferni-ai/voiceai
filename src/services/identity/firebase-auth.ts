@@ -239,6 +239,23 @@ export async function getFirebaseUser(uid: string): Promise<admin.auth.UserRecor
 }
 
 /**
+ * The Firebase user whose sign-in phone number is `e164`, or null. Firebase
+ * only puts a number on an account through phone verification (or an admin),
+ * and no two accounts share one, so this is a verified owner of the number.
+ */
+export async function getFirebaseUserByPhone(e164: string): Promise<admin.auth.UserRecord | null> {
+  if (!ensureInitialized()) return null;
+  try {
+    return await admin.auth().getUserByPhoneNumber(e164);
+  } catch (error) {
+    if ((error as { code?: string }).code !== 'auth/user-not-found') {
+      log.error({ error: String(error) }, 'Failed to look up Firebase user by phone');
+    }
+    return null;
+  }
+}
+
+/**
  * Set custom claims on a Firebase user.
  * Used for setting admin flag, subscription tier, etc.
  */
