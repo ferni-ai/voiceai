@@ -107,6 +107,7 @@ import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.j
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
 import { createPersonaTTS } from './persona-tts.js';
 import { createCallSession } from './call-session.js';
+import { agentOnCall, personaOnCall, rememberPersona } from './persona-swap.js';
 import { installLiveCallBehaviors, startTurnSounds } from './live-call-behaviors.js';
 import {
   installDirectorNotes,
@@ -1136,6 +1137,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     (await createCallSession({ persona, sessionId, services, userData, llmModel, tts }));
 
   mark('session_created');
+  rememberPersona(session, persona); // personaOnCall: handlers follow the persona on the call
 
   // Match the single-agent conversation humanization bootstrap without adding
   // work to the agent join critical path.
@@ -1663,6 +1665,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // after the greeting is spoken (reduces critical path by ~500ms).
   // =========================================================================
   const wireHandlersImpl = async (): Promise<void> => {
+    // Wired once per call: read the persona and agent on the call now, not the first ones
+    const onCall = personaOnCall(session, userData, persona);
+    const agentNow = agentOnCall(session as never, agent);
     if (!enableFullHandlers) {
       log.debug({ personaId: persona.id }, '🎭 Handlers disabled, skipping wiring');
       return;
@@ -1800,7 +1805,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         const toolRetrieval = await installTurnListeners({
           session,
           sessionId,
-          agent,
+          agent: agentNow,
           dynamicToolLoader,
           cleanupFunctions,
         });
@@ -1808,7 +1813,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           session,
           sessionId,
           userName: userData?.userName,
-          agent,
+          agent: agentNow,
           cleanupFunctions,
         });
         try {
@@ -1816,7 +1821,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
             room,
             session,
             sessionId,
-            personaId: () => persona.id,
+            personaId: () => onCall.id,
             lastUserFinalTranscript: () => lastUserFinalTranscript,
             cleanupFunctions,
           });
@@ -1931,7 +1936,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           room,
           session,
           services,
-          sessionPersona: persona,
+          sessionPersona: onCall,
           conversationManager,
           voiceHumanization,
           userData,
@@ -2009,7 +2014,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // SESSION STATE HANDLERS
         const stateResult = setupSessionStateHandlers({
           session,
-          sessionPersona: persona,
+          sessionPersona: onCall,
           conversationManager,
           userData,
           sessionId,
@@ -2032,7 +2037,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         session,
         userData,
         services,
-        sessionPersona: persona,
+        sessionPersona: onCall,
         sessionId,
         debugEnabled: process.env.DEBUG_VOICE_AGENT === 'true',
         sendDataMessage,
