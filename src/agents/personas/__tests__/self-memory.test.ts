@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
 import {
   biographyCore,
   consistentWithBiography,
@@ -122,5 +125,19 @@ describe('biographyCore', () => {
   it("reads the persona's biography-core.md from the bundle", async () => {
     expect(await biographyCore('ferni')).toContain('Wyoming');
     expect(await biographyCore('no-such-persona')).toBe('');
+  });
+
+  it('finds it in the image layout: /app/dist/personas/bundles, no src/', async () => {
+    const app = mkdtempSync(join(tmpdir(), 'image-'));
+    const dir = join(app, 'dist', 'personas', 'bundles', 'imagetest', 'identity');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'biography-core.md'), 'Wyoming kid. Third of seven siblings.');
+    const cwd = vi.spyOn(process, 'cwd').mockReturnValue(app);
+    try {
+      expect(await biographyCore('imagetest')).toContain('Third of seven');
+      expect(await biographyCore('imagetest-missing')).toBe('');
+    } finally {
+      cwd.mockRestore();
+    }
   });
 });

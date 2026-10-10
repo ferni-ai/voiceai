@@ -25,6 +25,7 @@
 
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'LifeLedger' });
@@ -148,12 +149,25 @@ const CONFLICT_PROMPT = (name: string, biography: string) =>
   `Here is ${name}'s biography, in his voice:\n"""\n${biography.trim()}\n"""\nBelow are numbered facts about ${name}. Which of them conflict with the biography, giving him a different hometown, family, history or life than the one it describes? A fact the biography doesn't mention does not conflict. Reply with the numbers of the conflicting facts separated by commas, or NONE.`;
 
 const biographies = new Map<string, Promise<string>>();
-/** The persona's core biography, or '' when it has none. */
+/**
+ * The persona's core biography, or '' when it has none (warned once). Looked
+ * up where the bundle loader looks, by working directory (src/ locally,
+ * dist/personas/bundles/ in the image), not next to this module: in the
+ * esbuild agent bundle this module lives at dist/agents/, so a path relative
+ * to it would miss.
+ */
 export function biographyCore(personaId: string): Promise<string> {
   let bio = biographies.get(personaId);
   if (!bio) {
-    const file = new URL(`../../personas/bundles/${personaId}/identity/biography-core.md`, import.meta.url);
-    bio = readFile(file, 'utf8').catch(() => '');
+    bio = (async () => {
+      const { getBundleSearchPaths } = await import('../../personas/bundles/loader.js');
+      for (const root of getBundleSearchPaths()) {
+        const text = await readFile(join(root, personaId, 'identity', 'biography-core.md'), 'utf8').catch(() => '');
+        if (text) return text;
+      }
+      log.warn({ personaId }, 'No biography-core.md found; the biography check is skipped');
+      return '';
+    })();
     biographies.set(personaId, bio);
   }
   return bio;
