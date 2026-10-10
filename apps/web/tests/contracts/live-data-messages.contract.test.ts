@@ -28,6 +28,7 @@ import {
   type DataMessageRoom,
 } from '../../../../src/agents/shared/data-message-envelope.js';
 import { FrontendPublisher } from '../../../../src/agents/realtime/frontend-publisher.js';
+import { handoffStartMessages } from '../../../../src/agents/multi-agent/handoff-messages.js';
 import { emitBehaviorSignal } from '../../../../src/agents/realtime/behavior-event-dispatcher.js';
 import { dispatchSpeechStart } from '../../../../src/agents/realtime/speech-state-dispatcher.js';
 import { buildProactiveOutreachPayload } from '../../../../src/agents/voice-agent/proactive-outreach-message.js';
@@ -260,5 +261,22 @@ describe('handoff_progress', () => {
     expect(await handoffService.processDataMessage(message as unknown as DataMessage)).toBe(true);
 
     expect(progress).toEqual([{ target: 'maya-santos', elapsedMs: 420, timeoutMs: 8000 }]);
+  });
+
+  it('a multi-agent call (the production path) starts the handoff indicator too', async () => {
+    const progress: string[] = [];
+    cleanups.push(handoffService.onHandoffProgress((target) => progress.push(target)));
+
+    // In order and not awaited, as data-message-handlers dispatches them (handoff_started
+    // waits on the handoff sound while the next message is handled)
+    for (const message of handoffStartMessages('maya-santos', 'ferni')) {
+      void handoffService.processDataMessage(message as unknown as DataMessage);
+    }
+    void handoffService.processDataMessage({
+      type: 'handoff_complete',
+      target: 'maya-santos',
+    } as unknown as DataMessage);
+
+    expect(progress).toEqual(['maya-santos']);
   });
 });
