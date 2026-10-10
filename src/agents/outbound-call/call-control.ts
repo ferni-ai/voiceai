@@ -58,6 +58,7 @@ export function takeCallDisposition(sessionId: string): CallDisposition | undefi
 
 export function forgetOnBehalfCallRoom(sessionId: string): void {
   sessions.delete(sessionId);
+  dispositions.delete(sessionId); // in case it was never read
 }
 
 export type HangUp = (roomName: string) => Promise<void>;
