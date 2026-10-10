@@ -31,7 +31,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = findProjectRoot();
 
 // Load environment
-dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
+dotenvConfig({ path: join(PROJECT_ROOT, '.env'), quiet: true });
 
 // ============================================================================
 // COLORS & FORMATTING

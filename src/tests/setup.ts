@@ -3,7 +3,7 @@ import * as dotenv from 'dotenv';
 import { initializeLogger } from '@livekit/agents';
 
 // Load test environment variables
-dotenv.config({ path: '.env.test' });
+dotenv.config({ path: '.env.test', quiet: true });
 
 // Never look for a Google metadata server. Modules that load the real
 // firebase-admin (anything not mocked below) otherwise probe for one when

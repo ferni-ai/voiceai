@@ -18,7 +18,7 @@ import * as path from 'path';
 import * as dotenv from 'dotenv';
 
 // Load environment variables from .env file
-dotenv.config();
+dotenv.config({ quiet: true });
 
 // ============================================================================
 // TYPES

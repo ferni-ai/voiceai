@@ -4,7 +4,7 @@
  */
 
 import { config } from 'dotenv';
-config();
+config({ quiet: true });
 
 import { createSponsoredIdentity, lookupByPhone } from '../src/services/identity/sponsored-identity.js';
 

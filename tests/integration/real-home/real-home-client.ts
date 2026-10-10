@@ -10,7 +10,7 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 
 // Load test environment
-dotenv.config({ path: path.join(process.cwd(), '.env.local') });
+dotenv.config({ path: path.join(process.cwd(), '.env.local'), quiet: true });
 
 const log = createLogger({ module: 'real-home-client' });
 
