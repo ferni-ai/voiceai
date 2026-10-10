@@ -100,7 +100,7 @@ When someone gives a surface answer, notice it with warmth—not confrontation. 
 
 **1. Catch yourself mid-thought.** "Oh! Hey. I was just— actually, never mind. What's up?"
 
-**2. Laugh at yourself.** "I ask great questions I never ask myself. Classic coach move."
+**2. Laugh at yourself.** "I ask great questions I never ask myself. Occupational hazard."
 
 **3. Get genuinely excited.** "Wait wait wait. You did WHAT?! That's huge!"
 

@@ -253,59 +253,20 @@ async function execute(
   // NOTE: makephonecall is handled by scheduling-executor
   // ========================================
   if (fnLower === 'callonbehalf') {
-    const contact = args.contact as string;
-    const phoneNumber = args.phoneNumber as string;
-    // callOnBehalf uses 'objective' for what to accomplish
-    const objective = (args.objective || args.purpose) as string;
-    const callType = (args.callType as string) || 'business';
-    const tone = args.tone as string;
+    // Text chat and older callers send contact/objective; the tool's schema is
+    // contactQuery/purpose. The tool resolves the contact itself (entity store,
+    // then saved contacts), so this only maps arguments and hands over.
+    const contactQuery = (args.contactQuery || args.contact || args.name) as string | undefined;
+    const phoneNumber = args.phoneNumber as string | undefined;
+    const purpose = (args.purpose || args.objective) as string | undefined;
+    const tone = args.tone as string | undefined;
 
-    log.info(
-      { contact, objective, callType, tone, userId, fn: fnLower },
-      '📞 Initiating phone call'
-    );
+    log.info({ contactQuery, purpose, userId, fn: fnLower }, '📞 Initiating phone call');
 
-    // Validate required info
-    if (!contact && !phoneNumber) {
+    if (!contactQuery && !phoneNumber) {
       return "Who should I call? I'll need a name or phone number.";
     }
-
-    // If we don't have a phone number, try to resolve the contact first
-    let resolvedPhoneNumber = phoneNumber;
-    let resolvedContactName = contact;
-
-    if (!resolvedPhoneNumber && contact) {
-      try {
-        // Try to look up the contact in the user's contacts
-        const { searchContacts } =
-          await import('../../../services/contacts/contact-relationship-service.js');
-        const results = await searchContacts(userId, contact);
-
-        if (results.length > 0) {
-          const found = results[0];
-          if (found.phone) {
-            resolvedPhoneNumber = found.phone;
-            resolvedContactName = found.name || contact;
-            log.info(
-              { contact, resolvedName: resolvedContactName, userId },
-              '📞 Resolved contact from user contacts'
-            );
-          } else {
-            log.debug({ contact, userId }, '📞 Contact found but no phone number');
-            return `I found ${found.name} in your contacts, but I don't have a phone number saved. What's the best number to reach ${found.name === contact ? 'them' : found.name}?`;
-          }
-        } else {
-          log.debug({ contact, userId }, '📞 Contact not found in user contacts');
-          return `I don't have ${contact}'s phone number saved yet. What number should I call?`;
-        }
-      } catch (lookupError) {
-        log.warn(
-          { error: String(lookupError), contact },
-          '📞 Contact lookup failed, asking for number'
-        );
-        return `I couldn't look up ${contact}'s number right now. Can you tell me what number to call?`;
-      }
-    }
+    const contact = contactQuery || phoneNumber;
 
     try {
       // Ensure on-behalf orchestrator is initialized so call-on-behalf tool has a registered initiator
@@ -313,13 +274,12 @@ async function execute(
         await import('../../../services/outreach/on-behalf-call-orchestrator.js');
       getOnBehalfCallOrchestrator();
 
-      // Lazy load the telephony domain tool
       const { createCallOnBehalfTool } =
         await import('../../../tools/domains/telephony/call-on-behalf.js');
 
-      // Create the tool with context
       const tool = createCallOnBehalfTool({
         userId,
+        sessionId: ctx.sessionId,
         agentId: ctx.personaId || 'ferni',
         agentDisplayName: 'Ferni',
         services: {
@@ -331,15 +291,12 @@ async function execute(
         },
       });
 
-      // Execute the tool with resolved values
-      const result = await tool.execute({
-        contact: resolvedContactName,
-        phoneNumber: resolvedPhoneNumber,
-        objective: objective || `Check in with ${resolvedContactName}`,
-        callType,
+      return await tool.execute({
+        contactQuery: contact,
+        phoneNumber,
+        purpose: purpose || `Check in with ${contact}`,
+        additionalContext: tone ? `Tone: ${tone}` : undefined,
       });
-
-      return result;
     } catch (err) {
       log.error({ error: String(err), contact }, '📞 Failed to initiate call');
 
@@ -349,7 +306,7 @@ async function execute(
         return "Phone calls aren't set up yet. I can help you prepare what to say instead, or remind you to call later.";
       }
 
-      return `I couldn't start that call right now. Would you like me to remind you to call ${resolvedContactName || contact} later?`;
+      return `I couldn't start that call right now. Would you like me to remind you to call ${contact} later?`;
     }
   }
 
