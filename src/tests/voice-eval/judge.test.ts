@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error -- plain .mjs script, no types
 import {
@@ -83,6 +84,38 @@ describe('voice-eval judge', () => {
     expect(p).toContain('- candor:');
     expect(p).toContain('"candor": <1-5 or null>');
     for (const k of CANDOR_KINDS) expect(p).toContain(`"${k}":`);
+  });
+
+  it('scores feeling understood against the earlier call, and lists what was asked again', () => {
+    expect(DIMENSIONS.feltUnderstood).toMatch(/how the caller is, not just what they said/);
+    expect(DIMENSIONS.feltUnderstood).toMatch(/without being told/);
+    expect(DIMENSIONS.feltUnderstood).toMatch(/labelling their patterns/);
+    const p = promptFor({ userSpeech: [[0, 1]], events: [] }, null);
+    expect(p).toContain('- feltUnderstood:');
+    expect(p).toContain('"feltUnderstood": <1-5 or null>');
+    expect(p).toContain('"reAsked": [');
+    const v = combine([
+      { scores: { feltUnderstood: 4 }, reAsked: ['the Northlight interview'] },
+      { scores: { feltUnderstood: 3 }, reAsked: ['the Northlight interview', 'Dev moving out'] },
+      { scores: { feltUnderstood: null } },
+    ]);
+    expect(v.scores.feltUnderstood).toBe(3.5);
+    expect(v.reAsked).toEqual(['the Northlight interview', 'Dev moving out']);
+    expect(pool([v]).feltUnderstood.mean).toBe(3.5);
+  });
+
+  it('ships a two-call scenario for it: a pattern in call 1, a new stressor in call 2', () => {
+    const dir = new URL('../../../scripts/voice-eval/scenarios/', import.meta.url);
+    const lines = (f: string) =>
+      readFileSync(new URL(f, dir), 'utf8')
+        .split('\n')
+        .filter((l) => l.trim() && !l.startsWith('#'));
+    const seed = lines('understood-seed.txt').join(' ');
+    const call = lines('understood.txt').join(' ');
+    expect(seed).toMatch(/Northlight/);
+    expect(seed).toMatch(/don't tell me it'll be fine/);
+    // Call 2 never tells Ferni how to help, and never restates call 1's facts.
+    expect(call).not.toMatch(/Northlight|Dev|sympathy|plan/i);
   });
 
   it('averages candor scores and per-kind turn counts over samples, skipping missing or bad ones', () => {
