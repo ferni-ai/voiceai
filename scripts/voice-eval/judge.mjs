@@ -54,6 +54,19 @@ export function transcriptOf(run) {
     .join('\n');
 }
 
+// Without it the judge called "a tiny apartment in Tokyo" and "dawn in
+// Wyoming" a contradiction (prod 2026-10-10), though Ferni grew up in Wyoming
+// and lived in Japan for a decade.
+const BIO_FILE = new URL('../../src/personas/bundles/ferni/identity/biography-core.md', import.meta.url);
+
+export function ferniBiography(file = process.env.JUDGE_PERSONA_BIO ?? BIO_FILE) {
+  try {
+    return readFileSync(file, 'utf8').trim();
+  } catch {
+    return '';
+  }
+}
+
 export function promptFor(run, seed) {
   const dims = Object.entries(DIMENSIONS)
     .map(([k, v]) => `- ${k}: ${v}`)
@@ -62,7 +75,8 @@ export function promptFor(run, seed) {
   const earlier = seed
     ? `EARLIER CALL between the same two (days before; Ferni may remember it):\n${transcriptOf(seed)}\n\n`
     : 'There was no earlier call; anything Ferni claims to remember from before is invented.\n\n';
-  const context = `Ferni knows the caller's name is ${name} from their account, so using it is fine. Ferni is a character with a life of its own; its own stories (trips, neighbours, places it lived) are self-disclosure, not invented history; judge them under quirks for consistency. "Invented history" means claims about earlier conversations with the caller, or about the caller's life, that were never said.\n\n`;
+  const bio = ferniBiography();
+  const context = `Ferni knows the caller's name is ${name} from their account, so using it is fine. Ferni is a character with a life of its own; its own stories (trips, neighbours, places it lived) are self-disclosure, not invented history; judge them under quirks for consistency with its background below and with what it said earlier in the call. "Invented history" means claims about earlier conversations with the caller, or about the caller's life, that were never said.\n\n${bio ? `FERNI'S BACKGROUND (canonical; stories that fit it are consistent):\n${bio}\n\n` : ''}`;
   return `You are judging how human and how good a friend "Ferni" is on a voice call. Transcripts come from speech recognition and captions, so ignore spelling, casing and small transcription slips.
 
 ${ANCHOR}
