@@ -118,6 +118,35 @@ describe('voice-eval judge', () => {
     expect(call).not.toMatch(/Northlight|Dev|sympathy|plan/i);
   });
 
+  it('marks the understood scenario for recall-facts: what to bring back, what never to say', () => {
+    const text = readFileSync(
+      new URL('../../../scripts/voice-eval/scenarios/understood.txt', import.meta.url),
+      'utf8'
+    );
+    // The #@ line format recall-facts.mjs reads (#682).
+    const checks = text
+      .split('\n')
+      .map((l) => l.match(/^#@(fact|avoid)\s+(\S+)\s+(.+)$/))
+      .filter((m): m is RegExpMatchArray => m !== null)
+      .map((m) => ({ kind: m[1], id: m[2], re: new RegExp(m[3].trim(), 'i') }));
+    const re = (id: string) => checks.find((c) => c.id === id)!.re;
+    expect(checks.map((c) => `${c.kind}:${c.id}`)).toEqual([
+      'fact:northlight',
+      'fact:roommate',
+      'avoid:labels-them',
+      'avoid:sympathy-script',
+    ]);
+    expect(re('northlight').test('How did the Northlight final round go?')).toBe(true);
+    expect(re('roommate').test('And has Dev moved out yet?')).toBe(true);
+    expect(re('roommate').test('Any developments?')).toBe(false);
+    expect(re('labels-them').test('You always joke when things get scary, huh')).toBe(true);
+    expect(re('labels-them').test('Ha, a goat farm. Okay, first call the warranty line.')).toBe(
+      false
+    );
+    expect(re('sympathy-script').test("Hey, it'll be okay.")).toBe(true);
+    expect(re('sympathy-script').test("Two grand, ugh. Let's find a cheaper shop.")).toBe(false);
+  });
+
   it('averages candor scores and per-kind turn counts over samples, skipping missing or bad ones', () => {
     const v = combine([
       { scores: { candor: 4 }, candorTurns: { disagreed: 2, caved: 0, fakedKnowledge: 1 } },
