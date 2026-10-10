@@ -8,6 +8,8 @@
 
 import { Job } from '@livekit/protocol';
 
+import type { CallQualityOp } from '../../services/analytics/call-quality-monitor.js';
+
 import type { JobInfo } from './job-executor.js';
 
 export type JobLifecycle = 'started' | 'completed' | 'failed';
@@ -30,7 +32,9 @@ export type ToParent =
   | { t: 'ready' }
   | { t: 'lifecycle'; jobId: string; event: JobLifecycle }
   /** Since the last report: share of one CPU used, and event-loop utilization. */
-  | { t: 'load'; cpu: number; elu: number };
+  | { t: 'load'; cpu: number; elu: number }
+  /** A call-quality monitor call, replayed in the worker (call-quality-monitor.ts). */
+  | { t: 'quality'; op: CallQualityOp; args: unknown[] };
 
 export function encodeJob(info: JobInfo, workerId?: string): Extract<ToChild, { t: 'job' }> {
   return {
@@ -55,7 +59,9 @@ export function decodeJob(msg: Extract<ToChild, { t: 'job' }>): JobInfo {
 /** A message from the other side, or null if it isn't one of ours. */
 export function asToParent(msg: unknown): ToParent | null {
   const t = (msg as { t?: unknown } | null)?.t;
-  return t === 'ready' || t === 'lifecycle' || t === 'load' ? (msg as ToParent) : null;
+  return t === 'ready' || t === 'lifecycle' || t === 'load' || t === 'quality'
+    ? (msg as ToParent)
+    : null;
 }
 
 export function asToChild(msg: unknown): ToChild | null {

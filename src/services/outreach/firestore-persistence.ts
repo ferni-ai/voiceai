@@ -665,72 +665,6 @@ export async function deleteAllUserOutreachData(userId: string): Promise<void> {
 }
 
 // ============================================================================
-// ANALYTICS QUERIES
-// ============================================================================
-
-/**
- * Get outreach statistics for analytics
- */
-export async function getOutreachStats(
-  userId?: string,
-  days = 30
-): Promise<{
-  totalSent: number;
-  byChannel: Record<string, number>;
-  byTrigger: Record<string, number>;
-  responseRate: number;
-}> {
-  const defaultStats = {
-    totalSent: 0,
-    byChannel: {},
-    byTrigger: {},
-    responseRate: 0,
-  };
-
-  if (!isFirestoreAvailable()) {
-    return defaultStats;
-  }
-
-  try {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-
-    let query = firestoreClient!.collectionGroup('records').where('createdAt', '>=', cutoff);
-
-    if (userId) {
-      query = query.where('userId', '==', userId);
-    }
-
-    const snapshot = await query.limit(1000).get();
-
-    const stats: {
-      totalSent: number;
-      byChannel: Record<string, number>;
-      byTrigger: Record<string, number>;
-      responseRate: number;
-    } = { ...defaultStats };
-
-    snapshot.docs.forEach((doc) => {
-      const data = doc.data() as OutreachHistoryDocument;
-      if (data.decision.decision === 'send') {
-        stats.totalSent++;
-
-        const channel = data.decision.channel || 'unknown';
-        stats.byChannel[channel] = (stats.byChannel[channel] || 0) + 1;
-
-        const trigger = data.decision.trigger.type;
-        stats.byTrigger[trigger] = (stats.byTrigger[trigger] || 0) + 1;
-      }
-    });
-
-    return stats;
-  } catch (error) {
-    log.error({ error }, 'Failed to get outreach stats');
-    return defaultStats;
-  }
-}
-
-// ============================================================================
 // DELIVERY RECORDS PERSISTENCE
 // ============================================================================
 
@@ -1189,6 +1123,4 @@ export default {
   cleanupExpiredPendingMessages,
   // GDPR
   deleteAllUserOutreachData,
-  // Analytics
-  getOutreachStats,
 };
