@@ -316,13 +316,14 @@ async function handlePlantSeed(
 }
 
 /**
- * POST /api/garden/subscribe
- * Start a monthly contribution using Stripe Checkout
+ * POST /api/garden/subscribe: start a monthly contribution with Stripe Checkout.
+ * `verifiedUid` (signed-in callers only) is who the founding seed bonus pays.
  */
 async function handleStartMonthly(
   req: IncomingMessage,
   res: ServerResponse,
-  userId: string
+  userId: string,
+  verifiedUid: string | undefined
 ): Promise<void> {
   try {
     const body = await parseBody<StartMonthlyRequest>(req);
@@ -333,7 +334,6 @@ async function handleStartMonthly(
       return;
     }
 
-    // Check if Stripe is configured
     if (!isStripeConfigured()) {
       log.warn({ userId }, 'Stripe not configured for garden subscription');
       const response: SubscriptionResponse = {
@@ -344,18 +344,17 @@ async function handleStartMonthly(
       return;
     }
 
-    // Get the base URL for success/cancel redirects
     const host = req.headers.host || 'localhost:3002';
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
 
-    // Create checkout session for monthly subscription
-    // Using 'friend' tier as the subscription base - garden-specific prices can be configured later
+    // 'friend' tier pricing for now; the invoice.paid webhook pays the founding bonus
     const checkoutResult = await createCheckoutSession({
       userId,
-      tier: 'friend', // Use friend tier pricing for now
+      tier: 'friend',
       successUrl: `${baseUrl}/garden/success`,
       cancelUrl: `${baseUrl}/garden/cancel`,
+      metadata: { garden_type: 'monthly', ...(verifiedUid ? { seeds_uid: verifiedUid } : {}) },
     });
 
     log.info(
@@ -1241,7 +1240,7 @@ export async function handleGardenRoutes(
 
   // POST /api/garden/subscribe - Start monthly
   if (pathname === '/api/garden/subscribe' && method === 'POST') {
-    await handleStartMonthly(req, res, userId);
+    await handleStartMonthly(req, res, userId, auth?.userId);
     return true;
   }
 

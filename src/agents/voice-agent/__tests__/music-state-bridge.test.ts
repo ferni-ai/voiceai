@@ -47,6 +47,24 @@ describe('music state from the player to the app', () => {
     expect(djCommandFor('playing', jazz, false, controller.getState())).toBeNull();
   });
 
+  it('another recording with the same title is a new track', () => {
+    const { controller, player } = controllerFedByPlayer();
+    player('playing', jazz);
+    const sameTitle = { name: 'Quiet Jazz', artist: 'Someone Else' } as MusicTrack;
+    expect(djCommandFor('playing', sameTitle, false, controller.getState())?.type).toBe(
+      'PLAY_TRACK'
+    );
+  });
+
+  it.each([
+    ['stopped', 'STOP'],
+    ['paused', 'PAUSE'],
+    ['fading', 'TRACK_NEAR_END'],
+  ] as const)('%s reaches the controller as %s', (state, command) => {
+    const { controller } = controllerFedByPlayer();
+    expect(djCommandFor(state, jazz, false, controller.getState())?.type).toBe(command);
+  });
+
   it('a different track is a new track', () => {
     const { controller, player } = controllerFedByPlayer();
     player('playing', jazz);
