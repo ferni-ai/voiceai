@@ -562,8 +562,8 @@ function renderSelectStep(): string {
     </div>
 
     <div class="task-actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.cancel')}" class="task-btn task-btn--secondary" data-action="cancel">${t('common.cancel')}</button>
-      <button aria-label="${t('accessibility.continue')}" class="task-btn task-btn--primary" data-action="next" ${!taskData.template ? 'disabled' : ''}>
+      <button class="task-btn task-btn--secondary" data-action="cancel">${t('common.cancel')}</button>
+      <button class="task-btn task-btn--primary" data-action="next" ${!taskData.template ? 'disabled' : ''}>
         ${t('common.continue')}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
@@ -620,13 +620,13 @@ function renderConfigureStep(): string {
     `).join('')}
 
     <div class="task-actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.back')}" class="task-btn task-btn--secondary" data-action="back">
+      <button class="task-btn task-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
         ${t('common.back')}
       </button>
-      <button aria-label="${t('accessibility.continue')}" class="task-btn task-btn--primary" data-action="next">
+      <button class="task-btn task-btn--primary" data-action="next">
         ${t('common.continue')}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
@@ -672,13 +672,13 @@ function renderExecuteStep(): string {
     </div>
 
     <div class="task-actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.edit')}" class="task-btn task-btn--secondary" data-action="back">
+      <button class="task-btn task-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
         ${t('common.edit')}
       </button>
-      <button aria-label="${t('accessibility.startWorking')}" class="task-btn task-btn--primary" data-action="start-task">
+      <button class="task-btn task-btn--primary" data-action="start-task">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>

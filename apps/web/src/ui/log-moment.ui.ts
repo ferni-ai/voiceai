@@ -669,13 +669,13 @@ function render(): void {
       <div class="lm-section">
         <label class="lm-label">${t('logMoment.whoInitiated')}</label>
         <div class="lm-directions">
-          <button aria-label="${t('accessibility.moveUp')}" class="lm-direction ${state.direction === 'outbound' ? 'selected' : ''}" data-direction="outbound">
+          <button class="lm-direction ${state.direction === 'outbound' ? 'selected' : ''}" data-direction="outbound">
             ${ICONS.arrowUp} ${t('logMoment.youReachedOut')}
           </button>
-          <button aria-label="${t('accessibility.moveDown')}" class="lm-direction ${state.direction === 'inbound' ? 'selected' : ''}" data-direction="inbound">
+          <button class="lm-direction ${state.direction === 'inbound' ? 'selected' : ''}" data-direction="inbound">
             ${ICONS.arrowDown} ${t('logMoment.theyReachedOut')}
           </button>
-          <button aria-label="${t('accessibility.together')}" class="lm-direction ${state.direction === 'mutual' ? 'selected' : ''}" data-direction="mutual">
+          <button class="lm-direction ${state.direction === 'mutual' ? 'selected' : ''}" data-direction="mutual">
             ${ICONS.arrowsUpDown} ${t('logMoment.together')}
           </button>
         </div>
@@ -702,7 +702,7 @@ function render(): void {
       
       <!-- Advanced Options Toggle -->
       <div class="lm-section">
-        <button aria-label="${t('accessibility.moveDown')}" class="lm-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-toggle">
+        <button class="lm-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-toggle">
           ${t('logMoment.moreOptions')} ${ICONS.chevronDown}
         </button>
 
@@ -711,13 +711,13 @@ function render(): void {
           <div style="margin-bottom: var(--space-4, 1rem);">
             <label class="lm-label">${t('logMoment.howDidItFeel')}</label>
             <div class="lm-sentiments">
-              <button aria-label="${t('accessibility.great')}" class="lm-sentiment positive ${state.sentiment === 'positive' ? 'selected' : ''}" data-sentiment="positive">
+              <button class="lm-sentiment positive ${state.sentiment === 'positive' ? 'selected' : ''}" data-sentiment="positive">
                 ${t('logMoment.great')}
               </button>
-              <button aria-label="${t('accessibility.okay')}" class="lm-sentiment neutral ${state.sentiment === 'neutral' ? 'selected' : ''}" data-sentiment="neutral">
+              <button class="lm-sentiment neutral ${state.sentiment === 'neutral' ? 'selected' : ''}" data-sentiment="neutral">
                 ${t('logMoment.okay')}
               </button>
-              <button aria-label="${t('accessibility.tough')}" class="lm-sentiment negative ${state.sentiment === 'negative' ? 'selected' : ''}" data-sentiment="negative">
+              <button class="lm-sentiment negative ${state.sentiment === 'negative' ? 'selected' : ''}" data-sentiment="negative">
                 ${t('logMoment.tough')}
               </button>
             </div>
@@ -739,7 +739,7 @@ function render(): void {
     </div>
 
     <div class="lm-footer">
-      <button aria-label="${t('accessibility.cancel')}" class="lm-btn lm-btn-secondary" id="lm-cancel">${t('logMoment.cancel')}</button>
+      <button class="lm-btn lm-btn-secondary" id="lm-cancel">${t('logMoment.cancel')}</button>
       <button aria-label="${t('accessibility.submit')}" class="lm-btn lm-btn-primary" id="lm-save" ${state.isSubmitting ? 'disabled' : ''}>
         ${state.isSubmitting ? t('common.saving') : t('logMoment.saveMoment')}
       </button>
