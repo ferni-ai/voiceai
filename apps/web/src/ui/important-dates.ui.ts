@@ -566,7 +566,7 @@ function render(): void {
       ${state.showAddForm || state.editingIndex !== null ? renderForm() : ''}
       ${renderDateList()}
       ${!state.showAddForm && state.editingIndex === null ? `
-        <button aria-label="${t('accessibility.add')}" class="id-add-btn" id="id-add-btn">
+        <button class="id-add-btn" id="id-add-btn">
           ${ICONS.plus} Add Important Date
         </button>
       ` : ''}

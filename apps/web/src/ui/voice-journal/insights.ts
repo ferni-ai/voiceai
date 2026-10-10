@@ -174,7 +174,7 @@ export function renderInsights(): void {
         </div>
         <h3 class="insights-empty-title">${t('voiceJournal.moreEntriesNeeded')}</h3>
         <p class="insights-empty-text">${t('voiceJournal.moreEntriesHint')}</p>
-        <button aria-label="${t('accessibility.startJournaling')}" class="insights-cta" data-action="go-to-record">
+        <button class="insights-cta" data-action="go-to-record">
           ${t('accessibility.startJournaling')}
         </button>
       </div>

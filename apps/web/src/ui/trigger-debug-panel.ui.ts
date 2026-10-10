@@ -463,7 +463,7 @@ async function createPanel(): Promise<HTMLElement> {
     <div class="trigger-debug-panel__header" role="button" tabindex="0">
       <div class="trigger-debug-panel__title" role="button" tabindex="0">
         Dynamic Triggers
-        <button aria-label="${t('accessibility.refresh')}" class="trigger-debug-panel__refresh-btn" id="trigger-refresh-btn">
+        <button class="trigger-debug-panel__refresh-btn" id="trigger-refresh-btn">
           Refresh
         </button>
       </div>

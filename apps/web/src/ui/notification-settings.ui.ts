@@ -219,8 +219,8 @@ class NotificationSettingsUI {
 
         ${this.currentTab === 'settings' ? `
           <div class="notif-settings__footer">
-            <button aria-label="${t('accessibility.cancel')}" class="notif-settings__btn notif-settings__btn--secondary" data-action="cancel">${t('notificationSettings.cancel')}</button>
-            <button aria-label="${t('accessibility.save')}" class="notif-settings__btn notif-settings__btn--primary" data-action="save">${t('notificationSettings.saveSettings')}</button>
+            <button class="notif-settings__btn notif-settings__btn--secondary" data-action="cancel">${t('notificationSettings.cancel')}</button>
+            <button class="notif-settings__btn notif-settings__btn--primary" data-action="save">${t('notificationSettings.saveSettings')}</button>
           </div>
         ` : ''}
       </div>

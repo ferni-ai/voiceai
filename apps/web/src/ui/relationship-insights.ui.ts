@@ -669,13 +669,13 @@ function render(): void {
     </div>
     
     <div class="ri-tabs">
-      <button aria-label="${t('accessibility.overview')}" class="ri-tab ${state.activeTab === 'overview' ? 'active' : ''}" data-tab="overview">
+      <button class="ri-tab ${state.activeTab === 'overview' ? 'active' : ''}" data-tab="overview">
         ${ICONS.chart} Overview
       </button>
-      <button aria-label="${t('accessibility.insights')}" class="ri-tab ${state.activeTab === 'insights' ? 'active' : ''}" data-tab="insights">
+      <button class="ri-tab ${state.activeTab === 'insights' ? 'active' : ''}" data-tab="insights">
         ${ICONS.sparkles} Insights
       </button>
-      <button aria-label="${t('accessibility.activity')}" class="ri-tab ${state.activeTab === 'activity' ? 'active' : ''}" data-tab="activity">
+      <button class="ri-tab ${state.activeTab === 'activity' ? 'active' : ''}" data-tab="activity">
         ${ICONS.activity} Activity
       </button>
     </div>

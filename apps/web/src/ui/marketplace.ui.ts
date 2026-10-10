@@ -171,13 +171,13 @@ function ensureModalExists(): HTMLElement {
         <p class="marketplace-subtitle">${t('marketplace.subtitle')}</p>
 
         <div class="marketplace-tabs">
-          <button aria-label="${t('accessibility.discover')}" class="marketplace-tab active" data-tab="browse">
+          <button class="marketplace-tab active" data-tab="browse">
             ${t('marketplace.tabs.discover')}
           </button>
-          <button aria-label="${t('accessibility.yourTeam')}" class="marketplace-tab" data-tab="installed">
+          <button class="marketplace-tab" data-tab="installed">
             ${t('marketplace.tabs.yourTeam')}
           </button>
-          <button aria-label="${t('accessibility.myCreations')}" class="marketplace-tab" data-tab="creations">
+          <button class="marketplace-tab" data-tab="creations">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -617,7 +617,7 @@ async function renderCreationsTab(): Promise<void> {
           <h3 class="creations-title">${t('marketplace.creations.title')}</h3>
           <p class="creations-subtitle">${t('marketplace.creations.subtitle')}</p>
         </div>
-        <button aria-label="${t('accessibility.createAgent')}" class="creations-create-btn" data-action="create-agent">
+        <button class="creations-create-btn" data-action="create-agent">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -637,7 +637,7 @@ async function renderCreationsTab(): Promise<void> {
           </div>
           <h4 class="creations-empty-title">${t('marketplace.creations.empty')}</h4>
           <p class="creations-empty-hint">${t('marketplace.creations.emptyHint')}</p>
-          <button aria-label="${t('accessibility.createYourFirstAgent')}" class="creations-empty-btn" data-action="create-agent">
+          <button class="creations-empty-btn" data-action="create-agent">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -815,15 +815,15 @@ function getAgentTypeButtons(agent: CustomAgent): string {
   switch (agent.type) {
     case 'twin':
       return `
-        <button aria-label="${t('accessibility.profile')}" class="custom-agent-action custom-agent-action--profile" data-action="open-profile" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--profile" data-action="open-profile" data-agent-id="${agent.id}">
           ${icons.profile}
           ${t('marketplace.actions.profile')}
         </button>
-        <button aria-label="${t('accessibility.journal')}" class="custom-agent-action custom-agent-action--journal" data-action="open-journal" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--journal" data-action="open-journal" data-agent-id="${agent.id}">
           ${icons.journal}
           ${t('marketplace.actions.journal')}
         </button>
-        <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-twin" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--talk" data-action="talk-to-twin" data-agent-id="${agent.id}">
           ${icons.talk}
           ${t('marketplace.actions.talk')}
         </button>
@@ -831,19 +831,19 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     case 'legacy':
       return `
-        <button aria-label="${t('accessibility.stories')}" class="custom-agent-action custom-agent-action--stories" data-action="open-stories" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--stories" data-action="open-stories" data-agent-id="${agent.id}">
           ${icons.stories}
           ${t('marketplace.actions.stories')}
         </button>
-        <button aria-label="${t('accessibility.voice')}" class="custom-agent-action custom-agent-action--voice" data-action="record-voice" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--voice" data-action="record-voice" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
           ${t('marketplace.actions.voice')}
         </button>
-        <button aria-label="${t('accessibility.share')}" class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--share" data-action="share-legacy" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           ${t('marketplace.actions.share')}
         </button>
-        <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-legacy" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--talk" data-action="talk-to-legacy" data-agent-id="${agent.id}">
           ${icons.talk}
           ${t('marketplace.actions.talk')}
         </button>
@@ -851,11 +851,11 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     case 'mentor':
       return `
-        <button aria-label="${t('accessibility.teachings')}" class="custom-agent-action custom-agent-action--teachings" data-action="open-teachings" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--teachings" data-action="open-teachings" data-agent-id="${agent.id}">
           ${icons.teachings}
           ${t('marketplace.actions.teachings')}
         </button>
-        <button aria-label="${t('accessibility.coachMe')}" class="custom-agent-action custom-agent-action--coaching" data-action="start-coaching" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--coaching" data-action="start-coaching" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
           ${t('marketplace.actions.coachMe')}
         </button>
@@ -863,11 +863,11 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     case 'fictional':
       return `
-        <button aria-label="${t('accessibility.character')}" class="custom-agent-action custom-agent-action--character" data-action="open-character" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--character" data-action="open-character" data-agent-id="${agent.id}">
           ${icons.character}
           ${t('marketplace.actions.character')}
         </button>
-        <button aria-label="${t('accessibility.play')}" class="custom-agent-action custom-agent-action--roleplay" data-action="start-roleplay" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--roleplay" data-action="start-roleplay" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
           ${t('marketplace.actions.roleplay')}
         </button>
@@ -875,11 +875,11 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     case 'professional':
       return `
-        <button aria-label="${t('accessibility.tasks')}" class="custom-agent-action custom-agent-action--tasks" data-action="open-tasks" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--tasks" data-action="open-tasks" data-agent-id="${agent.id}">
           ${icons.tasks}
           ${t('marketplace.actions.tasks')}
         </button>
-        <button aria-label="${t('accessibility.workMode')}" class="custom-agent-action custom-agent-action--work" data-action="start-task-mode" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--work" data-action="start-task-mode" data-agent-id="${agent.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           ${t('marketplace.actions.workMode')}
         </button>
@@ -887,7 +887,7 @@ function getAgentTypeButtons(agent: CustomAgent): string {
 
     default:
       return `
-        <button aria-label="${t('accessibility.talk')}" class="custom-agent-action custom-agent-action--talk" data-action="talk-to-agent" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--talk" data-action="talk-to-agent" data-agent-id="${agent.id}">
           ${icons.talk}
           ${t('marketplace.actions.talk')}
         </button>
@@ -951,7 +951,7 @@ function renderCustomAgentCard(agent: CustomAgent): string {
       </div>
       <footer class="custom-agent-footer">
         ${getAgentTypeButtons(agent)}
-        <button aria-label="${t('accessibility.edit')}" class="custom-agent-action custom-agent-action--edit" data-agent-id="${agent.id}">
+        <button class="custom-agent-action custom-agent-action--edit" data-agent-id="${agent.id}">
           ${t('marketplace.actions.edit')}
         </button>
         <button class="custom-agent-action custom-agent-action--delete" data-action="delete-agent" data-agent-id="${agent.id}" aria-label="${t('marketplace.customAgent.deleteAria', { name: agent.name })}">
@@ -1510,8 +1510,8 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
         ? `<span class="agent-badge installed">${t('marketplace.agent.installed')}</span>`
         : '';
       const buttonHtml = agent.isInstalled
-        ? `<button aria-label="${t('accessibility.remove')}" class="agent-action uninstall" data-agent-id="${agent.id}">${t('marketplace.agent.remove')}</button>`
-        : `<button aria-label="${t('accessibility.addToTeam')}" class="agent-action install" data-agent-id="${agent.id}">${t('marketplace.agent.addToTeam')}</button>`;
+        ? `<button class="agent-action uninstall" data-agent-id="${agent.id}">${t('marketplace.agent.remove')}</button>`
+        : `<button class="agent-action install" data-agent-id="${agent.id}">${t('marketplace.agent.addToTeam')}</button>`;
 
       // Rating display
       const ratingHtml = agent.rating

@@ -590,10 +590,10 @@ class OutreachPreferencesUI {
         </header>
         <div class="outreach-prefs-content"></div>
         <footer class="outreach-prefs-footer">
-          <button aria-label="${t('accessibility.cancel')}" class="outreach-prefs-btn outreach-prefs-btn--secondary" data-action="cancel">
+          <button class="outreach-prefs-btn outreach-prefs-btn--secondary" data-action="cancel">
             ${t('common.cancel')}
           </button>
-          <button aria-label="${t('accessibility.saveChanges')}" class="outreach-prefs-btn outreach-prefs-btn--primary" data-action="save">
+          <button class="outreach-prefs-btn outreach-prefs-btn--primary" data-action="save">
             ${t('accessibility.saveChanges')}
           </button>
         </footer>

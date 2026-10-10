@@ -180,10 +180,10 @@ function ensureModalExists(): HTMLElement {
       </main>
 
       <footer class="profile-footer">
-        <button aria-label="${t('accessibility.back')}" class="profile-btn profile-btn--secondary" id="btn-back" data-action="back">
+        <button class="profile-btn profile-btn--secondary" id="btn-back" data-action="back">
           ${t('digitalTwinProfile.back')}
         </button>
-        <button aria-label="${t('accessibility.continue')}" class="profile-btn profile-btn--primary" id="btn-next" data-action="next">
+        <button class="profile-btn profile-btn--primary" id="btn-next" data-action="next">
           ${t('digitalTwinProfile.continue')}
         </button>
       </footer>
@@ -430,13 +430,13 @@ function renderBackgroundSection(): string {
                      value="${chapter.years}" data-field="years">
               <textarea class="chapter-desc" placeholder="${t('digitalTwinProfile.background.chapterDescPlaceholder')}"
                         data-field="description">${chapter.description}</textarea>
-              <button aria-label="${t('accessibility.remove')}" class="chapter-remove" data-action="remove-chapter" data-index="${i}">${t('digitalTwinProfile.background.remove')}</button>
+              <button class="chapter-remove" data-action="remove-chapter" data-index="${i}">${t('digitalTwinProfile.background.remove')}</button>
             </div>
           `
             )
             .join('')}
         </div>
-        <button aria-label="${t('accessibility.addALifeChapter')}" class="add-btn" data-action="add-chapter">
+        <button class="add-btn" data-action="add-chapter">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -462,7 +462,7 @@ function renderBackgroundSection(): string {
             )
             .join('')}
         </div>
-        <button aria-label="${t('accessibility.addARelationship')}" class="add-btn" data-action="add-relationship">
+        <button class="add-btn" data-action="add-relationship">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -510,7 +510,7 @@ function renderMannerismsSection(): string {
             )
             .join('')}
         </div>
-        <button aria-label="${t('accessibility.addAPhrase')}" class="add-btn" data-action="add-phrase">
+        <button class="add-btn" data-action="add-phrase">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -674,7 +674,7 @@ function renderValuesSection(): string {
         </div>
         <div class="custom-value-input">
           <input type="text" id="custom-value" placeholder="${t('digitalTwinProfile.values.customValuePlaceholder')}">
-          <button aria-label="${t('accessibility.add')}" class="add-btn add-btn--small" data-action="add-custom-value">${t('digitalTwinProfile.values.add')}</button>
+          <button class="add-btn add-btn--small" data-action="add-custom-value">${t('digitalTwinProfile.values.add')}</button>
         </div>
       </div>
 

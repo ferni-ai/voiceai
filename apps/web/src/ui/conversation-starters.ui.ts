@@ -567,10 +567,10 @@ function render(): void {
     
     ${state.hasGenerated && state.starters.length > 0 ? `
       <div class="cs-footer">
-        <button aria-label="${t('accessibility.refresh')}" class="cs-footer-btn cs-footer-btn-secondary" id="cs-regenerate">
+        <button class="cs-footer-btn cs-footer-btn-secondary" id="cs-regenerate">
           ${ICONS.refresh} ${t('conversationStarters.newIdeas')}
         </button>
-        <button aria-label="${t('accessibility.copy')}" class="cs-footer-btn cs-footer-btn-primary" id="cs-copy" ${!state.selectedStarter ? 'disabled' : ''}>
+        <button class="cs-footer-btn cs-footer-btn-primary" id="cs-copy" ${!state.selectedStarter ? 'disabled' : ''}>
           ${ICONS.copy} ${t('conversationStarters.copyOpener')}
         </button>
       </div>
@@ -594,7 +594,7 @@ function renderContent(): string {
     return `
       <div class="cs-error">
         <p class="cs-error-text">${escapeHtml(state.error)}</p>
-        <button aria-label="${t('accessibility.refresh')}" class="cs-retry-btn" id="cs-retry">
+        <button class="cs-retry-btn" id="cs-retry">
           ${ICONS.refresh} ${t('common.retry')}
         </button>
       </div>
@@ -607,7 +607,7 @@ function renderContent(): string {
         <div class="cs-initial-icon">${ICONS.messageCircle}</div>
         <h3 class="cs-initial-title">${t('conversationStarters.initialTitle')}</h3>
         <p class="cs-initial-text">${t('conversationStarters.initialText')}</p>
-        <button aria-label="${t('accessibility.getIdeas')}" class="cs-generate-btn" id="cs-generate">
+        <button class="cs-generate-btn" id="cs-generate">
           ${ICONS.sparkles} ${t('conversationStarters.getIdeas')}
         </button>
       </div>

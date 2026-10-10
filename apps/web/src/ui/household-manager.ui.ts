@@ -908,7 +908,7 @@ function createModal(): void {
         </div>
       </div>
       <footer class="household-modal__footer">
-        <button aria-label="${t('accessibility.done')}" class="household-btn household-btn--secondary" data-action="close">${t('household.done')}</button>
+        <button class="household-btn household-btn--secondary" data-action="close">${t('household.done')}</button>
       </footer>
     </div>
   `;
@@ -975,7 +975,7 @@ function renderMainView(content: HTMLElement): void {
         <p class="household-empty__text">
           When you share this device with family, I can recognize each person's voice and remember everyone individually.
         </p>
-        <button aria-label="${t('accessibility.createHousehold')}" class="household-btn household-btn--primary" data-action="show-create">
+        <button class="household-btn household-btn--primary" data-action="show-create">
           ${ICONS.home}
           <span>${t('household.createHousehold')}</span>
         </button>
@@ -1021,7 +1021,7 @@ function renderMainView(content: HTMLElement): void {
             <option value="guest">${t('household.guest')}</option>
           </select>
         </div>
-        <button aria-label="${t('accessibility.addToHousehold')}" class="household-btn household-btn--primary" data-action="add-member" style="width: 100%;">
+        <button class="household-btn household-btn--primary" data-action="add-member" style="width: 100%;">
           ${t('household.addToHousehold')}
         </button>
         <p class="household-add-form__hint">
@@ -1098,10 +1098,10 @@ function renderCreateForm(content: HTMLElement): void {
         />
       </div>
       <div class="household-create-form__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.maybeLater')}" class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-create">
+        <button class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-create">
           ${t('household.maybeLater')}
         </button>
-        <button aria-label="${t('accessibility.create')}" class="household-btn household-btn--primary household-btn--flex" data-action="confirm-create">
+        <button class="household-btn household-btn--primary household-btn--flex" data-action="confirm-create">
           ${t('household.create')}
         </button>
       </div>
@@ -1144,10 +1144,10 @@ function renderConfirmRemove(content: HTMLElement): void {
         ${t('household.removeConfirmMessage', { name: escapeHtml(memberToRemove.displayName) })}
       </p>
       <div class="household-confirm__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.keepThem')}" class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-remove">
+        <button class="household-btn household-btn--secondary household-btn--flex" data-action="cancel-remove">
           ${t('household.keepThem')}
         </button>
-        <button aria-label="${t('accessibility.remove')}" class="household-btn household-btn--danger household-btn--flex" data-action="confirm-remove">
+        <button class="household-btn household-btn--danger household-btn--flex" data-action="confirm-remove">
           ${t('household.remove')}
         </button>
       </div>

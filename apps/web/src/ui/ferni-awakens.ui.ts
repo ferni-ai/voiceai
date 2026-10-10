@@ -409,7 +409,7 @@ function getAwakensHTML(): string {
       <p class="awakens-subtext">${t('ferniAwakens.subtext')}</p>
       
       <!-- CTA -->
-      <button aria-label="${t('accessibility.startTalking')}" class="awakens-cta awakens-cta-btn">
+      <button class="awakens-cta awakens-cta-btn">
         ${t('accessibility.startTalking')}
       </button>
     </div>
