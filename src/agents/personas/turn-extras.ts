@@ -23,6 +23,7 @@
 import { classifyBackchannelContext } from '../integrations/backchannel-context.js';
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import type { CallerMove, Shape } from './turn-shape.js';
+import type { Understanding } from './turn-understanding.js';
 
 type Env = Record<string, string | undefined>;
 
@@ -65,6 +66,47 @@ const OPINION =
 const ASK_ADVICE =
   'If the moment is light, ask their take on something small in your own life (what to cook tonight, whether to finally repaint a room) instead of anything about them.';
 
+/** What a turn's shape and asides depend on, from the model or (until it is live) the regexes. */
+export interface TurnSignals {
+  move: CallerMove;
+  /** Venting, bad news or a tender moment: no story of his own, no laugh, no aside. */
+  careful: boolean;
+  laughed: boolean;
+  laughFits: boolean;
+  adviceFits: boolean;
+}
+
+/** The model's understanding as signals. */
+export function modelSignals(u: Understanding): TurnSignals {
+  return {
+    move: u.move,
+    careful: u.mood === 'venting' || u.mood === 'bad_news' || u.mood === 'tender',
+    laughed: u.laughed,
+    laughFits: u.laughFits,
+    adviceFits: u.adviceFits && !u.needsTool,
+  };
+}
+
+/** Live, with no understanding in time: a plain reply, nothing that needs a judgment. */
+export const PLAIN_SIGNALS: TurnSignals = {
+  move: 'share',
+  careful: true,
+  laughed: false,
+  laughFits: false,
+  adviceFits: false,
+};
+
+/** The hand-written rules, used until TURN_UNDERSTANDING=live (then deleted). */
+export function regexSignals(text: string, move: CallerMove): TurnSignals {
+  return {
+    move,
+    careful: callerVenting(text),
+    laughed: callerLaughed(text),
+    laughFits: ['funny', 'surprise'].includes(classifyBackchannelContext(text) ?? ''),
+    adviceFits: !mayNeedTool(text),
+  };
+}
+
 export interface Extras {
   /** Lines to add before the shape line. */
   lines: string[];
@@ -86,14 +128,15 @@ export function extrasFor(
   shape: Shape,
   questionAllowed: boolean,
   rng: () => number,
-  env: Env = process.env
+  env: Env = process.env,
+  signals: TurnSignals = regexSignals(userText, move)
 ): Extras {
   const out: Extras = { lines: [], fired: [] };
-  if (on(env, 'LAUGH_ALONG') && callerLaughed(userText)) {
+  if (on(env, 'LAUGH_ALONG') && signals.laughed) {
     out.lines.push(LAUGH_ALONG);
     out.fired.push('laugh_along');
   }
-  const venting = callerVenting(userText);
+  const venting = signals.careful;
   if (on(env, 'THINK_ALOUD') && shape !== 'react') {
     // Live, request turns are rare: also think aloud on some longer answers.
     const p =
@@ -123,7 +166,7 @@ export function extrasFor(
     !venting &&
     // Live, "keep an eye on the time for me" got the timer plus a musing about
     // his basil: a request wants the thing done, not his dilemma.
-    !mayNeedTool(userText) &&
+    signals.adviceFits &&
     (move === 'ack' || move === 'share') &&
     (shape === 'one' || shape === 'answer') &&
     !out.shapeLine
@@ -142,12 +185,11 @@ export function extrasFor(
     }
     // Live at 25% on any share, he laughed at "a slow week" and at tender news
     // (7 of 20 replies). Only when their words read as funny or a happy surprise.
-    const light = ['funny', 'surprise'].includes(classifyBackchannelContext(userText) ?? '');
     if (
       move === 'share' &&
-      light &&
+      signals.laughFits &&
       !venting &&
-      !callerLaughed(userText) &&
+      !signals.laughed &&
       shape !== 'full' &&
       rng() < 0.5
     ) {

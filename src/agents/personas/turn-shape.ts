@@ -16,7 +16,7 @@
  * @module agents/personas/turn-shape
  */
 
-import { callerVenting, extrasFor } from './turn-extras.js';
+import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -160,8 +160,13 @@ const LOOKUP =
   "Never state a forecast, score, headline, price, opening hour or travel time that you didn't get from a tool on this call; if no tool can get it, say you can't check that right now.";
 
 /** The reminder for one reply to `userText`. */
-export function turnShapeFor(userText: string, rng: () => number = Math.random): TurnShape {
-  const move = callerMove(userText);
+export function turnShapeFor(
+  userText: string,
+  rng: () => number = Math.random,
+  signals?: TurnSignals
+): TurnShape {
+  const sig = signals ?? regexSignals(userText, callerMove(userText));
+  const move = sig.move;
   const shape = pickShape(move, rng);
   if (move === 'lookup') {
     const reminder = [REGISTER, LOOKUP, SHAPE_LINE[shape], QUESTION_LINE.none].join(' ');
@@ -172,13 +177,13 @@ export function turnShapeFor(userText: string, rng: () => number = Math.random):
   const parts = [REGISTER];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
   // Not while they're venting: a friend stays with them instead of telling a story.
-  else if (move === 'share' && shape !== 'react' && !callerVenting(userText) && rng() < 0.3)
+  else if (move === 'share' && shape !== 'react' && !sig.careful && rng() < 0.3)
     parts.push(SECOND_STORY);
   if (move !== 'ack' && rng() < 0.3) parts.push(STANCE);
   if (shape !== 'react' && rng() < 0.5)
     parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
   const asks = questionAllowed(shape, rng);
-  const extras = extrasFor(userText, move, shape, asks, rng);
+  const extras = extrasFor(userText, move, shape, asks, rng, process.env, sig);
   parts.push(...extras.lines);
   parts.push(
     extras.shapeLine ?? SHAPE_LINE[shape],

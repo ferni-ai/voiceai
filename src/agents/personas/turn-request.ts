@@ -27,7 +27,9 @@ import {
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { modelSignals, PLAIN_SIGNALS, type TurnSignals } from './turn-extras.js';
 import { rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
+import { understandingFor, understandingMode } from './turn-understanding.js';
 import {
   TURN_STYLE_REMINDER,
   turnStyleReminderEnabled,
@@ -104,9 +106,25 @@ function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): st
   if (!said) return TURN_STYLE_REMINDER;
   // Seeded per call and words: the preemptive and final requests agree, but
   // the same words on another call (or said again) can get another shape.
-  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`));
-  log.info({ move: turn.move, shape: turn.shape, extras: turn.extras }, 'TURN_SHAPE');
+  const { signals, source } = signalsFor(session, said);
+  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), signals);
+  log.info({ move: turn.move, shape: turn.shape, extras: turn.extras, source }, 'TURN_SHAPE');
   return turn.reminder;
+}
+
+/**
+ * TURN_UNDERSTANDING=live: the model's reading of the caller decides (plain
+ * when it has nothing for these words yet); otherwise the regexes, as before.
+ */
+export function signalsFor(
+  session: object,
+  said: string
+): { signals: TurnSignals | undefined; source: 'model' | 'plain' | 'regex' } {
+  if (understandingMode() !== 'live') return { signals: undefined, source: 'regex' };
+  const understood = understandingFor(session, said);
+  return understood
+    ? { signals: modelSignals(understood), source: 'model' }
+    : { signals: PLAIN_SIGNALS, source: 'plain' };
 }
 
 const callSeeds = new WeakMap<object, string>();
