@@ -12,10 +12,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onCallResultChange, onFollowUpActionChange } from '../data-layer/hooks/misc-hooks.js';
-import type {
-  CallOutcome,
-  OnBehalfCallRequest,
-} from '../../tools/domains/telephony/types.js';
+import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 
 const log = getLogger().child({ service: 'call-result-capture' });
 
@@ -390,6 +387,9 @@ async function createFollowUpActions(
 // MAIN CAPTURE FUNCTION
 // ============================================================================
 
+/** Which of the user-facing notifications to send; all default on. */
+export type CaptureNotifyOptions = { push?: boolean; email?: boolean; calendar?: boolean };
+
 /**
  * Capture the result of an on-behalf call
  *
@@ -403,7 +403,8 @@ async function createFollowUpActions(
 export async function captureCallResult(
   callId: string,
   outcome: CallOutcome,
-  request: OnBehalfCallRequest
+  request: OnBehalfCallRequest,
+  notify: CaptureNotifyOptions = {}
 ): Promise<void> {
   log.info(
     {
@@ -447,15 +448,10 @@ export async function captureCallResult(
       await notifyOriginalSession(request.originalSessionId, callId, outcome);
     }
 
-    // 5. Send push notification (reaches user even if disconnected)
-    // This is sent regardless - push notifications work even if they're in-app
-    await sendCallResultPushNotification(request, outcome, callId);
-
-    // 6. Send email notification (tangible record of the call)
-    await sendCallResultEmail(request, outcome, callId);
-
-    // 7. Create calendar event for callback if needed
-    await createCallbackCalendarEvent(request, outcome, callId);
+    // 5-7. Push (reaches the user even if disconnected), email, callback calendar event
+    if (notify.push !== false) await sendCallResultPushNotification(request, outcome, callId);
+    if (notify.email !== false) await sendCallResultEmail(request, outcome, callId);
+    if (notify.calendar !== false) await createCallbackCalendarEvent(request, outcome, callId);
 
     // 8. Create follow-up actions
     await createFollowUpActions(request.userId, callId, outcome, request);

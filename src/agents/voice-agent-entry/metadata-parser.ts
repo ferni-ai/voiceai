@@ -177,6 +177,9 @@ export async function setupCallTypeContexts(
       };
       setOutboundCallContext(roomNameForContext, outboundContext);
       setOutboundCallContext(sessionId, outboundContext);
+      // Tell the requester how the call went once it ends (CALL_FOLLOWTHROUGH).
+      const { registerCallFollowthrough } = await import('../integrations/call-followthrough-hook.js');
+      registerCallFollowthrough(metadata, sessionId);
       process.stderr.write(
         `[voice-agent-entry] 📞 Outbound call context set for room: ${roomNameForContext}, sessionId: ${sessionId}\n`
       );
