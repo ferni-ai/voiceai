@@ -1,6 +1,6 @@
 /**
- * Call start: load the caller's current facts and when the last call ended,
- * in parallel, and work out what is new or due since then.
+ * Call start: load the caller's current facts and when the last call ended
+ * (last-call.ts), in parallel, and work out what is new or due since then.
  *
  * Start it when the call starts, next to the other memory loads; nothing
  * waits on it. A caller that is not ready yet just gets no block.
@@ -8,9 +8,9 @@
  * @module intelligence/world-model/temporal/load
  */
 
-import { getLastSessionSummary } from '../../../services/session-context/session-summary.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { currentFacts, formatCurrentWorld } from './current.js';
+import { lastCallEndedAt as readLastCallEndedAt } from './last-call.js';
 import { formatSinceLastCall, sinceLastCall, type SinceLastCallItem } from './since-last-call.js';
 import { createFirestoreWorldFactStore, type WorldFactStore } from './store.js';
 import { isWorldModelTemporalOn, type TemporalFact } from './types.js';
@@ -37,12 +37,6 @@ export interface LoadTemporalWorldOptions {
   env?: Record<string, string | undefined>;
 }
 
-async function defaultLastCallEndedAt(userId: string): Promise<Date | null> {
-  const last = await getLastSessionSummary(userId);
-  const ended = last?.endedAt ? new Date(last.endedAt) : null;
-  return ended && !Number.isNaN(ended.getTime()) ? ended : null;
-}
-
 /** Null when WORLD_MODEL_TEMPORAL is off or the stores could not be read. */
 export async function loadTemporalWorld(
   userId: string,
@@ -54,7 +48,8 @@ export async function loadTemporalWorld(
   try {
     const [open, lastCallEndedAt] = await Promise.all([
       store.listOpen(userId),
-      (options.lastCallEndedAt ?? defaultLastCallEndedAt)(userId),
+      // Unknown (null) shows no "since" items; current facts still show.
+      (options.lastCallEndedAt ?? readLastCallEndedAt)(userId).catch(() => null),
     ]);
     const facts = currentFacts(open, when);
     const items = sinceLastCall({
@@ -70,7 +65,12 @@ export async function loadTemporalWorld(
       sinceNote: formatSinceLastCall(items),
     };
     log.info(
-      { userId, facts: facts.length, since: items.map((i) => i.kind), firstCall: !lastCallEndedAt },
+      {
+        userId,
+        facts: facts.length,
+        since: items.map((i) => i.kind),
+        lastCallKnown: Boolean(lastCallEndedAt),
+      },
       'WORLD_TEMPORAL_LOADED'
     );
     return world;
