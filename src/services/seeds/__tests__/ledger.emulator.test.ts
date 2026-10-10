@@ -81,11 +81,28 @@ describe.skipIf(!emulator)('seed ledger (Firestore emulator)', () => {
     const voteRef = db.collection('test_votes').doc(uid);
     await db.runTransaction(async (tx) => {
       const state = await prepareSeeds(tx, db, uid, 'vote:feature-x');
-      commitSeeds(tx, state, { delta: -3, reason: 'vote' });
+      commitSeeds(tx, state, { delta: -3, reason: 'vote', key: 'vote:feature-x' });
       tx.set(voteRef, { seeds: 3 });
     });
     expect(await getSeedBalance(db, uid)).toBe(STARTER_SEEDS - 3);
     expect((await voteRef.get()).data()).toEqual({ seeds: 3 });
+  });
+
+  it('several changes share one transaction with a running balance (daily + streak bonus)', async () => {
+    const results = await db.runTransaction(async (tx) => {
+      const state = await prepareSeeds(tx, db, uid, ['daily:2026-10-12', 'streak:7:2026-10-06']);
+      return [
+        commitSeeds(tx, state, { delta: 5, reason: 'daily', key: 'daily:2026-10-12' }),
+        commitSeeds(tx, state, { delta: 25, reason: 'streaks', key: 'streak:7:2026-10-06' }),
+      ];
+    });
+    expect(results.map((r) => r.balance)).toEqual([30, 55]);
+    expect((await db.collection('user_seeds').doc(uid).get()).data()).toMatchObject({
+      balance: 55,
+      lifetimeEarned: 55,
+      earnedFrom: { daily: 5, streaks: 25 },
+    });
+    expect(await entries()).toEqual(['daily:2026-10-12', 'starter', 'streak:7:2026-10-06']);
   });
 
   it('an account written before the ledger keeps its balance and gains entries', async () => {

@@ -45,14 +45,19 @@ export class InsufficientSeedsError extends Error {
   }
 }
 
-/** What prepareSeeds read inside a transaction; pass it to commitSeeds in the same one. */
+/**
+ * What prepareSeeds read inside a transaction. Pass it to commitSeeds in the same one;
+ * it keeps a running balance, so several changes for one account can share a transaction.
+ */
 export interface LedgerState {
   accountRef: admin.firestore.DocumentReference;
-  entryRef: admin.firestore.DocumentReference;
-  starterRef: admin.firestore.DocumentReference;
+  /** The account as read, or null when it doesn't exist yet. */
   account: Record<string, unknown> | null;
-  /** The balance recorded by the existing entry for this key, if it was applied. */
-  alreadyApplied: { balanceAfter: number } | null;
+  /** Balance after the changes committed so far in this transaction. */
+  balance: number;
+  /** Prepared entries by key: whether each was already applied. */
+  entries: Map<string, { ref: admin.firestore.DocumentReference; applied: boolean }>;
+  created: boolean;
 }
 
 /** Firestore document ids can't contain '/'; keys are built from ids and dates. */
@@ -63,46 +68,59 @@ function entryId(key: string): string {
 
 /**
  * Phase 1, reads: call inside a transaction before any of its writes (Firestore runs all
- * reads first).
+ * reads first). Prepare every key the transaction may apply.
  */
 export async function prepareSeeds(
   tx: admin.firestore.Transaction,
   db: admin.firestore.Firestore,
   uid: string,
-  key: string
+  keys: string | readonly string[]
 ): Promise<LedgerState> {
   const accountRef = db.collection(SEEDS_COLLECTION).doc(uid);
-  const entries = accountRef.collection(ENTRIES_SUBCOLLECTION);
-  const entryRef = entries.doc(entryId(key));
-  const [accountDoc, entryDoc] = await Promise.all([tx.get(accountRef), tx.get(entryRef)]);
-  const entry = entryDoc.exists ? entryDoc.data() : undefined;
-  return {
+  const accountDoc = await tx.get(accountRef);
+  const account = accountDoc.exists ? (accountDoc.data() ?? {}) : null;
+  const state: LedgerState = {
     accountRef,
-    entryRef,
-    starterRef: entries.doc('starter'),
-    account: accountDoc.exists ? (accountDoc.data() ?? {}) : null,
-    alreadyApplied: entry ? { balanceAfter: Number(entry.balanceAfter ?? 0) } : null,
+    account,
+    balance: Number(account?.balance ?? STARTER_SEEDS),
+    entries: new Map(),
+    created: false,
   };
+  await prepareMoreSeeds(tx, state, typeof keys === 'string' ? [keys] : keys);
+  return state;
 }
 
-/** The balance an account has now, starter seeds included for a new one. */
+/** More reads for keys that depend on the account (e.g. a streak milestone). Before any write. */
+export async function prepareMoreSeeds(
+  tx: admin.firestore.Transaction,
+  state: LedgerState,
+  keys: readonly string[]
+): Promise<void> {
+  const refs = keys.map((key) => [key, state.accountRef.collection(ENTRIES_SUBCOLLECTION).doc(entryId(key))] as const);
+  const docs = await Promise.all(refs.map(([, ref]) => tx.get(ref)));
+  refs.forEach(([key, ref], i) => state.entries.set(key, { ref, applied: !!docs[i]?.exists }));
+}
+
+/** The balance an account has now (after this transaction's commits so far). */
 export function balanceOf(state: LedgerState): number {
-  return Number(state.account?.balance ?? STARTER_SEEDS);
+  return state.balance;
 }
 
 /**
- * Phase 2, writes: apply the change read by prepareSeeds. Throws InsufficientSeedsError
- * (writing nothing) when a spend would go below zero.
+ * Phase 2, writes: apply one prepared change. Throws InsufficientSeedsError (writing
+ * nothing) when a spend would go below zero.
  */
 export function commitSeeds(
   tx: admin.firestore.Transaction,
   state: LedgerState,
-  change: Omit<SeedChange, 'key'>
+  change: SeedChange
 ): SeedResult {
-  if (state.alreadyApplied) return { applied: false, balance: balanceOf(state) };
+  const entry = state.entries.get(change.key);
+  if (!entry) throw new Error(`Seed key not prepared: ${change.key}`);
+  if (entry.applied) return { applied: false, balance: state.balance };
   if (!Number.isInteger(change.delta)) throw new Error('Seed delta must be a whole number');
 
-  const before = balanceOf(state);
+  const before = state.balance;
   const after = before + change.delta;
   if (after < 0) throw new InsufficientSeedsError(before, -change.delta);
 
@@ -114,19 +132,23 @@ export function commitSeeds(
       ? { lifetimeEarned: inc(change.delta), earnedFrom: { [change.reason]: inc(change.delta) } }
       : { lifetimeSpent: inc(-change.delta), spentOn: { [change.reason]: inc(-change.delta) } };
 
-  if (!state.account) {
+  if (!state.account && !state.created) {
     // A new account: its starter seeds are an entry like any other
-    tx.set(state.starterRef, { delta: STARTER_SEEDS, reason: 'starter', balanceAfter: STARTER_SEEDS, at: now });
+    const starterRef = state.accountRef.collection(ENTRIES_SUBCOLLECTION).doc('starter');
+    tx.set(starterRef, { delta: STARTER_SEEDS, reason: 'starter', balanceAfter: STARTER_SEEDS, at: now });
     tx.set(state.accountRef, { balance: STARTER_SEEDS, lifetimeEarned: STARTER_SEEDS, createdAt: now });
+    state.created = true;
   }
   tx.set(state.accountRef, { balance: after, updatedAt: now, ...totals }, { merge: true });
-  tx.set(state.entryRef, {
+  tx.set(entry.ref, {
     delta: change.delta,
     reason: change.reason,
     balanceAfter: after,
     at: now,
     ...(change.meta ? { meta: change.meta } : {}),
   });
+  entry.applied = true;
+  state.balance = after;
   return { applied: true, balance: after };
 }
 
