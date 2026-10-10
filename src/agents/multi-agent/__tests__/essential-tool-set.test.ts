@@ -51,6 +51,27 @@ describe("the first Ferni agent's handoff tools", () => {
     expect(Object.keys(tools)).toContain('softTeamIntro'); // the upsell for locked teammates
   }, 60_000);
 
+  it('keeps the teammates for a signed-in person whose profile is still loading', async () => {
+    // Live calls load the profile after the call starts. Treating that null as "a new user"
+    // dropped every teammate they had unlocked from Ferni's tools; the handoff's own check
+    // (executeHandoff) still refuses a locked one at the moment it's asked for.
+    const { tools } = await buildEssentialToolSet({
+      personaId: 'ferni',
+      userId: 'test-user',
+      services: { userProfile: null },
+    });
+    expect(Object.keys(tools)).toContain('handoffToMaya');
+  }, 60_000);
+
+  it('gives an anonymous caller with no profile no handoffs: a new user', async () => {
+    const { tools } = await buildEssentialToolSet({
+      personaId: 'ferni',
+      userId: null,
+      services: { userProfile: null },
+    });
+    expect(Object.keys(tools).filter((name) => name.startsWith('handoffTo'))).toEqual([]);
+  }, 60_000);
+
   it('never offers Ferni a handoff to itself', async () => {
     expect((await handoffsFor(newFreeUser)).names).not.toContain('handoffToFerni');
     expect((await handoffsFor(wholeTeamUser)).names).not.toContain('handoffToFerni');
