@@ -113,8 +113,8 @@ describe('parseDecided', () => {
     );
     expect(parsed).toEqual({
       items: [
-        { who: 'caller', what: 'call the landlord', when: 'tomorrow' },
-        { who: 'ferni', what: 'check in', when: null },
+        { who: 'caller', what: 'call the landlord', when: 'tomorrow', detail: null },
+        { who: 'ferni', what: 'check in', when: null, detail: null },
       ],
       heavy: true,
     });
@@ -133,6 +133,16 @@ describe('wrap-up through the reply path (gatedReply)', () => {
     expect(asked).toContain("they'll call the landlord tomorrow");
     expect(asked).toContain("you said you'd check in Thursday");
     expect(asked).toContain('Not a list, not a recap');
+  });
+
+  it('adds no goodbye note when only the recap text reads the call', async () => {
+    const session = { userData: undefined };
+    const wrapUp = new WrapUp(deciding(LANDLORD), undefined, false);
+    setWrapUp(session, wrapUp);
+    sessions.push(session);
+    await wrapUp.observe(PLAN_CALL);
+    expect(wrapUp.reading().items).toHaveLength(2);
+    expect(await askedFor(session, 'Okay, I gotta go. Bye!')).not.toContain('Wrapping up');
   });
 
   it('adds nothing mid-call, only when they sign off', async () => {
@@ -213,6 +223,7 @@ describe('wrap-up through the reply path (gatedReply)', () => {
 describe('installed on a live call', () => {
   afterEach(() => {
     delete process.env.WRAP_UP;
+    delete process.env.RECAP_TEXT;
     delete process.env.TOLD_THIS_CALL;
   });
 
@@ -237,5 +248,13 @@ describe('installed on a live call', () => {
     expect(getWrapUp(session)).toBeInstanceOf(WrapUp);
     cleanup.forEach((c) => c());
     expect(getWrapUp(session)).toBeUndefined();
+  });
+
+  it('reads the call for the recap text alone, without a goodbye note', async () => {
+    process.env.TOLD_THIS_CALL = 'off';
+    process.env.RECAP_TEXT = 'on';
+    const { session, cleanup } = await install();
+    expect(getWrapUp(session)).toBeInstanceOf(WrapUp);
+    cleanup.forEach((c) => c());
   });
 });

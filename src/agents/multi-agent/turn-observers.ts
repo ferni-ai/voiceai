@@ -293,19 +293,25 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
 
 /**
  * WRAP_UP=on: after each reply, read what the call has settled so far, for a
- * goodbye that closes the loop (personas/wrap-up.ts). Off the reply path.
+ * goodbye that closes the loop (personas/wrap-up.ts). RECAP_TEXT=on reads it
+ * too, for the after-call recap text (personas/recap-text.ts). Off the reply path.
  */
 export async function installWrapUp(input: {
   session: Session;
+  sessionId: string;
   agent: ChatAgent | (() => ChatAgent);
   cleanupFunctions: Cleanup;
 }): Promise<void> {
-  const { session, agent, cleanupFunctions } = input;
-  const { wrapUpEnabled, WrapUp, setWrapUp } = await import('../personas/wrap-up.js');
-  if (!wrapUpEnabled()) return;
+  const { session, sessionId, agent, cleanupFunctions } = input;
+  const { wrapUpEnabled, WrapUp, setWrapUp, rememberReading, callEnded } =
+    await import('../personas/wrap-up.js');
+  const { recapTextEnabled } = await import('../personas/recap-text.js');
+  const speaks = wrapUpEnabled();
+  if (!speaks && !recapTextEnabled()) return;
   const { linesFromChat } = await import('../personas/director-notes.js');
-  const wrapUp = new WrapUp();
+  const wrapUp = new WrapUp(undefined, undefined, speaks);
   setWrapUp(session, wrapUp);
+  rememberReading(sessionId, wrapUp);
   let spoke = false;
   const onState = (ev: unknown): void => {
     const state = (ev as { newState?: string }).newState;
@@ -318,8 +324,9 @@ export async function installWrapUp(input: {
   cleanupFunctions.push(() => {
     session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
     setWrapUp(session, null);
+    callEnded(sessionId);
   });
-  log.info('wrap-up on');
+  log.info({ sessionId, goodbyeNote: speaks }, 'wrap-up reading on');
 }
 
 /** Record Ferni's side of the conversation to the thread (user turns are recorded elsewhere). */

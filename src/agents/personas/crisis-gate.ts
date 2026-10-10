@@ -43,6 +43,7 @@ import {
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
+import { getWrapUp } from './wrap-up.js';
 
 const log = createLogger({ module: 'CrisisGate' });
 
@@ -238,6 +239,8 @@ export async function gatedReply(
   const { env = process.env } = options;
   const chatCtx = withoutPastLeadIns(request);
   const gate = startCrisisGate(chatCtx, session.userData, options);
+  // A crisis turn: no plan-closing goodbye and no recap text (wrap-up.ts).
+  if (gate && gate.decision.action !== 'pass') getWrapUp(session)?.markHeavy();
   if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn
@@ -258,6 +261,7 @@ export async function gatedReply(
   const reply = await ask(ctx);
   if (!reply || !gate?.escalation) return reply;
   return holdUntilCleared(reply, gate.escalation, async (decision) => {
+    if (decision.action !== 'pass') getWrapUp(session)?.markHeavy();
     if (decision.action === 'replace') return textReply(decision.script);
     if (decision.action === 'pass') return null;
     return ask(withTurnStyleReminder(plain(), decision.guidance));

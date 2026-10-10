@@ -34,11 +34,13 @@ export interface Decided {
   /** A short verb phrase: "call the landlord". */
   what: string;
   when: string | null;
+  /** A place, address or number given for it, or null. */
+  detail: string | null;
 }
 
 export const DECIDED_PROMPT = `You read a phone call between a caller and their friend Ferni and list what was concretely decided or promised in it: a plan, a task, a time, something the caller said they will do, or something Ferni said he will do (check in, call back, remind them). Not wishes, maybes, hypotheticals, things already done, or figures of speech ("I'll be honest", "I'll tell you what"). Return JSON only:
-{"items":[{"who":"caller"|"ferni","what":string,"when":string|null}],"heavy":bool}
-what: a short verb phrase in base form, at most 8 words ("call the landlord"). when: the time they gave ("tomorrow", "Thursday"), or null. At most 3 items, most recent first; [] when nothing was decided. Keep PREVIOUSLY FOUND items that still stand. heavy: the call includes hard news, grief, illness, a crisis, or the caller is in real distress.`;
+{"items":[{"who":"caller"|"ferni","what":string,"when":string|null,"detail":string|null}],"heavy":bool}
+what: a short verb phrase in base form, at most 8 words ("call the landlord"). when: the time they gave ("tomorrow", "Thursday"), or null. detail: a place, address or number given for it ("at the Elm St office", "555-0134"), or null; never quote anyone. At most 3 items, most recent first; [] when nothing was decided. Keep PREVIOUSLY FOUND items that still stand. heavy: the call includes hard news, grief, illness, a crisis, or the caller is in real distress.`;
 
 /** A line that could carry a plan: worth asking the model about. Cheap and broad on purpose. */
 const PLAN_CUE =
@@ -56,6 +58,13 @@ export function signingOff(text: string): boolean {
 }
 
 const WHO = new Set(['caller', 'ferni']);
+
+/** A short model string, quotes removed (a recap never quotes anyone), or null. */
+function text(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const t = value.replace(/["“”]/g, '').trim();
+  return t && t.length <= 80 ? t : null;
+}
 
 /** The model's JSON, or null when it isn't usable. */
 export function parseDecided(reply: string): { items: Decided[]; heavy: boolean } | null {
@@ -77,7 +86,8 @@ export function parseDecided(reply: string): { items: Decided[]; heavy: boolean 
       .map((i) => ({
         who: i.who as Decided['who'],
         what: (i.what as string).trim().replace(/[.!]+$/, ''),
-        when: typeof i.when === 'string' && i.when.trim() ? i.when.trim() : null,
+        when: text(i.when),
+        detail: text(i.detail),
       }));
     return { items, heavy: p.heavy === true };
   } catch {
@@ -110,8 +120,20 @@ export class WrapUp {
     private readonly decide: UnderstandFn = geminiUnderstand(
       process.env.WRAP_UP_MODEL || DEFAULT_UNDERSTANDING_MODEL
     ),
-    private readonly timeoutMs = TIMEOUT_MS
+    private readonly timeoutMs = TIMEOUT_MS,
+    /** False when only the after-call recap reads it (RECAP_TEXT without WRAP_UP): no goodbye note. */
+    private readonly speaks = true
   ) {}
+
+  /** What the call settled so far, for the after-call recap (recap-text.ts). */
+  reading(): { items: readonly Decided[]; heavy: boolean } {
+    return { items: this.items, heavy: this.heavy };
+  }
+
+  /** The call took a crisis turn: no goodbye note and no recap. */
+  markHeavy(): void {
+    this.heavy = true;
+  }
 
   /** Ferni finished a reply: read what was decided from the call so far. Never throws. */
   async observe(lines: Line[]): Promise<void> {
@@ -159,7 +181,8 @@ export class WrapUp {
    * news, and the loop hasn't been closed already.
    */
   noteFor(said: string, wantsToEnd = false): string {
-    if (this.closed || this.heavy || !this.items.length || hardNews(said)) return '';
+    if (!this.speaks || this.closed || this.heavy || !this.items.length || hardNews(said))
+      return '';
     if (!wantsToEnd && !signingOff(said)) return '';
     if (!this.offered) log.info({ items: this.items.length }, 'WRAP_UP_NOTE');
     this.offered = true;
@@ -177,4 +200,33 @@ export function setWrapUp(session: object, w: WrapUp | null): void {
 
 export function getWrapUp(session: object | undefined): WrapUp | undefined {
   return session ? wrapUps.get(session) : undefined;
+}
+
+/**
+ * The same readings by sessionId, for the after-call recap: the agent's
+ * cleanup runs before endSession starts after-call tasks, so a finished call's
+ * reading is kept for a while after cleanup and taken once.
+ */
+const bySession = new Map<string, { wrapUp: WrapUp; until: number }>();
+const KEEP_AFTER_CALL_MS = 15 * 60_000;
+
+export function rememberReading(sessionId: string, w: WrapUp, now = Date.now()): void {
+  for (const [id, kept] of bySession) if (kept.until < now) bySession.delete(id);
+  bySession.set(sessionId, { wrapUp: w, until: Number.POSITIVE_INFINITY });
+}
+
+/** The call ended: keep its reading a while for the after-call tasks. */
+export function callEnded(sessionId: string, now = Date.now()): void {
+  const kept = bySession.get(sessionId);
+  if (kept) kept.until = now + KEEP_AFTER_CALL_MS;
+}
+
+/** The call's reading, once; null when there was none or it expired. */
+export function takeReading(
+  sessionId: string,
+  now = Date.now()
+): { items: readonly Decided[]; heavy: boolean } | null {
+  const kept = bySession.get(sessionId);
+  bySession.delete(sessionId);
+  return kept && kept.until >= now ? kept.wrapUp.reading() : null;
 }
