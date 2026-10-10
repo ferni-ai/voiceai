@@ -1,0 +1,126 @@
+import { describe, expect, it } from 'vitest';
+import {
+  biographyCore,
+  consistentWithBiography,
+  createLedgerRecorder,
+  lifeFactsOnly,
+  selfMemoryEnabled,
+  type LedgerFact,
+  type LedgerStore,
+} from '../life-ledger.js';
+
+/** What the extractor saved for one prod caller on 2026-10-10, in order. */
+const PROD_FACTS = [
+  "Ferni's week has been pretty quiet.",
+  "Ferni wouldn't last a day in the ancient tea economy.",
+  'Ferni would probably drink tea currency by mistake.',
+  'Ferni would end up eating his own wallet by Tuesday.',
+  'Ferni plans to ignore the mail until tomorrow and drink coffee.',
+  'Ferni has been staring at a stack of mail three weeks deep.',
+  'Ferni has been reading an old history book about the silk road.',
+  'Ferni got mixed up and confused the tea talk.',
+];
+const HIS_LIFE = [PROD_FACTS[0], PROD_FACTS[4], PROD_FACTS[5], PROD_FACTS[6]];
+
+/** Lines that ground every fact above, so only the self-memory filter can drop any. */
+const LINES = [
+  "Honestly my week has been pretty quiet. I've been staring at a stack of mail three weeks deep.",
+  "I plan to ignore the mail until tomorrow and drink coffee instead. I'm reading an old history book about the silk road.",
+  "I wouldn't last a day in the ancient tea economy. I'd probably drink tea currency by mistake and end up eating my own wallet by Tuesday.",
+  'Sorry, I got mixed up there and confused the tea talk.',
+];
+
+function memoryStore(): LedgerStore & { rows: LedgerFact[] } {
+  const rows: LedgerFact[] = [];
+  return {
+    rows,
+    async save(_u, facts) {
+      rows.push(...facts);
+    },
+    async recent() {
+      return rows;
+    },
+  };
+}
+
+describe('lifeFactsOnly', () => {
+  it("keeps his life and drops the jokes and the remark about the call (prod, 2026-10-10)", () => {
+    expect(lifeFactsOnly(PROD_FACTS)).toEqual(HIS_LIFE);
+  });
+
+  it('keeps a real story that happens to use the same words', () => {
+    const real = [
+      'Ferni got confused by the IKEA instructions for his new bookshelf',
+      "Ferni's wife would rather go to Kyoto than Osaka",
+    ];
+    expect(lifeFactsOnly(real)).toEqual(real);
+  });
+});
+
+describe('createLedgerRecorder with FERNI_SELF_MEMORY', () => {
+  async function saved(
+    env: Record<string, string>,
+    extracted = PROD_FACTS,
+    lines = LINES,
+    ask: (system: string, input: string) => Promise<string> = async () => 'NONE'
+  ): Promise<string[]> {
+    const store = memoryStore();
+    const rec = createLedgerRecorder('u1', { store, extract: async () => extracted, env, ask });
+    for (const line of lines) rec.add('ferni', line);
+    await rec.flush();
+    return store.rows.map((r) => r.fact);
+  }
+
+  it('stores only his life when on, and is unchanged when off', async () => {
+    const off = await saved({});
+    expect(off).toEqual(PROD_FACTS); // all grounded: the filter is the only difference
+    expect(await saved({ FERNI_SELF_MEMORY: 'on' })).toEqual(HIS_LIFE);
+  });
+
+  it("drops what conflicts with his biography, checked against the real biography-core.md", async () => {
+    const extracted = ['Ferni is reading an old history book about the silk road', 'Ferni is an only child'];
+    const lines = ["I'm reading an old history book about the silk road. I'm an only child, actually."];
+    const asked: string[] = [];
+    const ask = async (system: string, input: string) => {
+      asked.push(system, input);
+      return '2';
+    };
+    expect(await saved({}, extracted, lines, ask)).toEqual(extracted); // off: no check
+    expect(asked).toEqual([]);
+    expect(await saved({ FERNI_SELF_MEMORY: 'on' }, extracted, lines, ask)).toEqual([extracted[0]]);
+    expect(asked[0]).toContain('Third of seven siblings');
+    expect(asked[1]).toBe('1. Ferni is reading an old history book about the silk road\n2. Ferni is an only child');
+  });
+
+  it('is off by default', () => {
+    expect(selfMemoryEnabled({})).toBe(false);
+    expect(selfMemoryEnabled({ FERNI_SELF_MEMORY: 'on' })).toBe(true);
+  });
+});
+
+describe('consistentWithBiography', () => {
+  const facts = ['a', 'b', 'c'];
+  it('keeps everything when the check finds no conflict, or there is no biography', async () => {
+    expect(await consistentWithBiography('Ferni', facts, 'bio', async () => 'NONE')).toEqual(facts);
+    const ask = async () => '1,2,3';
+    expect(await consistentWithBiography('Ferni', facts, '', ask)).toEqual(facts);
+  });
+
+  it('keeps the facts when the check fails', async () => {
+    const ask = async (): Promise<string> => {
+      throw new Error('quota');
+    };
+    expect(await consistentWithBiography('Ferni', facts, 'bio', ask)).toEqual(facts);
+  });
+
+  it('drops the numbered conflicts', async () => {
+    expect(await consistentWithBiography('Ferni', facts, 'bio', async () => '1, 3')).toEqual(['b']);
+  });
+});
+
+describe('biographyCore', () => {
+  it("reads the persona's biography-core.md from the bundle", async () => {
+    expect(await biographyCore('ferni')).toContain('Wyoming');
+    expect(await biographyCore('no-such-persona')).toBe('');
+  });
+});
