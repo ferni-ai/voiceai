@@ -6,7 +6,9 @@ describe('stripStockOpener', () => {
   it('drops the reaction words seen on live calls', () => {
     expect(stripStockOpener('Ha! Oh, of course he did.').text).toBe('Of course he did.');
     expect(stripStockOpener('Oh, I hear you, Sam.').text).toBe('I hear you, Sam.');
-    expect(stripStockOpener('Ugh, Friday? That is stressful.').text).toBe('Friday? That is stressful.');
+    expect(stripStockOpener('Ugh, Friday? That is stressful.').text).toBe(
+      'Friday? That is stressful.'
+    );
   });
 
   it('keeps a leading emotion tag', () => {
@@ -28,7 +30,9 @@ describe('stripStockOpener', () => {
 
 describe('capitalizeStart', () => {
   it('capitalises the first spoken letter, past markup and cues', () => {
-    expect(capitalizeStart("it's, um, always that scramble.")).toBe("It's, um, always that scramble.");
+    expect(capitalizeStart("it's, um, always that scramble.")).toBe(
+      "It's, um, always that scramble."
+    );
     expect(capitalizeStart('[laughter] classic Biscuit.')).toBe('[laughter] Classic Biscuit.');
     expect(capitalizeStart('<emotion value="happy"/>little architect at work, huh?')).toBe(
       '<emotion value="happy"/>Little architect at work, huh?'
@@ -75,5 +79,19 @@ describe('OpenerGate', () => {
     const text = out.map((c) => c.delta?.content ?? '').join('');
     expect(text).toBe('I hear you, Sam. It sounds like a long day.');
     expect(out[out.length - 1].delta?.toolCalls).toHaveLength(1);
+  });
+});
+
+describe('OpenerGate after a turn-opening clip', () => {
+  it('drops the reply reaction word even when this reply could keep one', () => {
+    const gate = new OpenerGate(3);
+    // the first reply may keep an opener, but a clip already said "Mm"
+    expect(gate.decide('Mm, that is a lot to carry.', true)).toBe('That is a lot to carry.');
+  });
+
+  it('counts the clip as the kept opener, so the next replies drop theirs', () => {
+    const gate = new OpenerGate(3);
+    gate.decide('Mm, that is a lot to carry.', true);
+    expect(gate.decide('Yeah, Fridays are brutal.')).toBe('Fridays are brutal.');
   });
 });

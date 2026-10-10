@@ -141,7 +141,12 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   else
     session.on(voice.AgentSessionEventTypes.EotPrediction, (ev) =>
       log.info(
-        { probability: ev.probability, threshold: ev.threshold, delayMs: ev.delayMs, inferenceMs: ev.inferenceDurationMs },
+        {
+          probability: ev.probability,
+          threshold: ev.threshold,
+          delayMs: ev.delayMs,
+          inferenceMs: ev.inferenceDurationMs,
+        },
         'EOT_PREDICTION'
       )
     );
@@ -215,18 +220,29 @@ export async function startTurnSounds(input: TurnSoundsInput) {
   );
   if (clips) {
     cleanupFunctions.push(() => void clips.close());
-    const { attachTurnOpeningSound, turnOpeningSoundEnabled } =
+    const { attachTurnOpeningSound, earlyOpeningWaitMs, turnOpeningSoundEnabled } =
       await import('../integrations/turn-opening-sound.js');
-    const { replyAudioSince, clearReplyActivity } =
+    const { replyAudioSince, replyTextSince, holdReplyAudio, clearReplyActivity } =
       await import('../../speech/output-control/reply-activity.js');
     cleanupFunctions.push(() => clearReplyActivity(sessionId));
+    const earlyWaitMs = earlyOpeningWaitMs();
     if (turnOpeningSoundEnabled()) {
       cleanupFunctions.push(
         attachTurnOpeningSound(
           session as unknown as Parameters<typeof attachTurnOpeningSound>[0],
           clips,
           input.lastUserFinalTranscript,
-          (since) => replyAudioSince(sessionId, since)
+          (since) => replyAudioSince(sessionId, since),
+          earlyWaitMs === null
+            ? undefined
+            : {
+                waitMs: earlyWaitMs,
+                replyTextSince: (since) => replyTextSince(sessionId, since),
+                // 24 kHz mono s16le: 48 bytes a millisecond.
+                clipMs: (text) =>
+                  (getCachedAudioForPersona(text, input.personaId())?.byteLength ?? 0) / 48,
+                holdReply: (ms) => holdReplyAudio(sessionId, ms),
+              }
         )
       );
     }
