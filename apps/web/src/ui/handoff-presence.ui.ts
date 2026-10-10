@@ -20,6 +20,7 @@ import '../styles/handoff-presence.css';
 import { getPersona, isKnownPersonaId } from '../config/personas.js';
 import { handoffService } from '../services/handoff.service.js';
 import { createLogger } from '../utils/logger.js';
+import { initHandoffRecovery } from './handoff-recovery.ui.js';
 
 const log = createLogger('HandoffPresence');
 
@@ -115,6 +116,11 @@ function onProgress(targetPersona: string, elapsedMs: number, timeoutMs: number)
   );
 }
 
+function listen(type: string, handler: () => void): () => void {
+  document.addEventListener(type, handler);
+  return () => document.removeEventListener(type, handler);
+}
+
 /**
  * Subscribe the indicator to the handoff service. Returns the cleanup (also safe
  * for HMR: it removes the elements it created).
@@ -129,6 +135,9 @@ export function initHandoffPresence(): () => void {
     handoffService.onHandoffComplete(() => clear()),
     handoffService.onHandoffFailed(() => clear()),
     handoffService.onHandoffCancelled(() => clear()),
+    // A soft-open that never got its handoff_started: drop any indicator and say so
+    listen('ferni:handoff-timeout', clear),
+    initHandoffRecovery(),
   ];
 
   return () => {

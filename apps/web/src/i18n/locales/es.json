@@ -10514,6 +10514,8 @@
     "switchFailedStaying": "No se pudo cambiar. {error}. Te quedas con {name}.",
     "switchFailed": "No se pudo cambiar. {error}",
     "rateLimited": "Tómate tu tiempo: un cambio a la vez",
+    "handoffTimeout": "Ese cambio está tardando más de lo esperado. Sigo aquí contigo.",
+    "cameoTimeout": "Esa aparición como invitado se alargó, así que le puse fin. Sigo aquí.",
     "alwaysHere": "Ferni siempre está aquí para ti",
     "removedFromRoster": "Se quitó a {name} de la lista",
     "addToTeam": "Añadir a {name} a tu equipo",

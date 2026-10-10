@@ -10408,6 +10408,8 @@
     "switchFailedStaying": "Switch failed. {error}. Staying with {name}.",
     "switchFailed": "Switch failed. {error}",
     "rateLimited": "Take your time - one switch at a time",
+    "handoffTimeout": "That switch is taking longer than expected. I'm still right here.",
+    "cameoTimeout": "That guest appearance ran long, so I wrapped it up. I'm still here.",
     "alwaysHere": "Ferni's always here for you",
     "removedFromRoster": "{name} removed from roster",
     "addToTeam": "Add {name} to your team",

@@ -10408,6 +10408,8 @@
     "switchFailedStaying": "切换失败。{error}。继续与 {name} 对话。",
     "switchFailed": "切换失败。{error}",
     "rateLimited": "慢慢来——一次只切换一个",
+    "handoffTimeout": "切换花的时间比预想的长。我一直在这儿陪着你。",
+    "cameoTimeout": "嘉宾登场的时间太长了，所以我先结束了。我一直在这儿。",
     "alwaysHere": "Ferni 一直都在你身边",
     "removedFromRoster": "已将 {name} 从列表中移除",
     "addToTeam": "将 {name} 加入你的团队",

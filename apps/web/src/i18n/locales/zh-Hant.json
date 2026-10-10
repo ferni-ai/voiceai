@@ -10408,6 +10408,8 @@
     "switchFailedStaying": "切換失敗。{error}。繼續與 {name} 對話。",
     "switchFailed": "切換失敗。{error}",
     "rateLimited": "慢慢來，一次切換一個就好",
+    "handoffTimeout": "切換花的時間比預期的長。我一直都在這裡陪著你。",
+    "cameoTimeout": "嘉賓登場的時間太長了，所以我先結束了。我一直都在這裡。",
     "alwaysHere": "Ferni 隨時都在你身邊",
     "removedFromRoster": "已將 {name} 從名單中移除",
     "addToTeam": "將 {name} 新增至你的團隊",

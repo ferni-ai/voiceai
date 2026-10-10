@@ -10514,6 +10514,8 @@
     "switchFailedStaying": "La transition a échoué. {error}. Tu restes avec {name}.",
     "switchFailed": "La transition a échoué. {error}",
     "rateLimited": "Prends ton temps — une transition à la fois",
+    "handoffTimeout": "Ce changement prend plus de temps que prévu. Je suis toujours là.",
+    "cameoTimeout": "Cette apparition d'invité s'est éternisée, alors j'y ai mis fin. Je suis toujours là.",
     "alwaysHere": "Ferni est toujours là pour toi",
     "removedFromRoster": "{name} ne fait plus partie de l'équipe",
     "addToTeam": "Ajouter {name} à ton équipe",

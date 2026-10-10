@@ -10513,6 +10513,8 @@
     "switchFailedStaying": "המעבר נכשל. {error}. נשארים עם {name}.",
     "switchFailed": "המעבר נכשל. {error}",
     "rateLimited": "בלי לחץ – מעבר אחד בכל פעם",
+    "handoffTimeout": "המעבר לוקח יותר זמן מהצפוי. אני עדיין כאן איתך.",
+    "cameoTimeout": "הופעת האורח התארכה, אז סיימתי אותה. אני עדיין כאן.",
     "alwaysHere": "Ferni תמיד כאן בשבילך",
     "removedFromRoster": "הסרנו את {name} מהרשימה",
     "addToTeam": "להוסיף את {name} לצוות שלך",
