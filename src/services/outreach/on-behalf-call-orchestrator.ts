@@ -11,10 +11,7 @@
 import { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { ResolvedContact } from '../../tools/domains/telephony/types.js';
-import type {
-  OnBehalfCallRequest,
-  CallOutcome,
-} from '../../tools/domains/telephony/types.js';
+import type { OnBehalfCallRequest, CallOutcome } from '../../tools/domains/telephony/types.js';
 import { registerOnBehalfCallInitiator } from '../../tools/domains/telephony/call-on-behalf.js';
 import { selectScript, buildCallScript } from '../../tools/domains/telephony/scripts/index.js';
 import {
@@ -22,7 +19,7 @@ import {
   generateComplianceScript,
 } from '../../tools/domains/telephony/compliance.js';
 import { trackOutboundCall } from './outbound-call-tracker.js';
-import { buildOnBehalfDispatch } from './on-behalf-dispatch.js';
+import { buildOnBehalfDispatch, signOnBehalfDispatch } from './on-behalf-dispatch.js';
 import {
   enrichMessage,
   enrichVoicemailMessage,
@@ -353,25 +350,28 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       // The agent will read this metadata and behave as an outbound caller
       await agentDispatch.createDispatch(roomName, agentName, {
         metadata: JSON.stringify(
-          buildOnBehalfDispatch({
-            callId,
-            requester: {
-              userId: request.userId,
-              name: request.userName,
-              timezone: request.userTimezone,
-              originalSessionId: request.originalSessionId,
-            },
-            contact: {
-              name: request.resolvedContact?.name ?? request.contactQuery,
-              phone: request.resolvedContact?.phone ?? '',
-              relationship: request.resolvedContact?.relationship,
-            },
-            purpose: request.purpose,
-            objective: request.objective,
-            callType: request.callType,
-            script, // Full script for the agent
-            userPreferences: request.userPreferences,
-          })
+          signOnBehalfDispatch(
+            buildOnBehalfDispatch({
+              callId,
+              requester: {
+                userId: request.userId,
+                name: request.userName,
+                timezone: request.userTimezone,
+                originalSessionId: request.originalSessionId,
+              },
+              contact: {
+                name: request.resolvedContact?.name ?? request.contactQuery,
+                phone: request.resolvedContact?.phone ?? '',
+                relationship: request.resolvedContact?.relationship,
+              },
+              purpose: request.purpose,
+              objective: request.objective,
+              callType: request.callType,
+              script, // Full script for the agent
+              userPreferences: request.userPreferences,
+            }),
+            this.config.livekitApiSecret
+          )
         ),
       });
 

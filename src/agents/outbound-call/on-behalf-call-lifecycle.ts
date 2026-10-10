@@ -24,6 +24,8 @@ import type { OnBehalfDispatch } from '../../services/outreach/on-behalf-dispatc
 const log = createLogger({ module: 'on-behalf-call-lifecycle' });
 
 export interface CallLifecyclePorts {
+  /** Whether a trusted dispatcher signed this call (forged payloads never report). */
+  isTrusted: (call: OnBehalfDispatch) => boolean;
   /** The turns captured so far, or null when capture never started. */
   readTranscript: (callId: string) => CallTranscriptTurn[] | null;
   analyze: (
@@ -125,7 +127,10 @@ export async function beginOnBehalfCall(sessionId: string, call: OnBehalfDispatc
 async function defaultPorts(): Promise<CallLifecyclePorts> {
   const transcripts = await import('../../services/outreach/call-transcript-intelligence.js');
   const { captureCallResult } = await import('../../services/outreach/call-result-capture.js');
+  const { isTrustedOnBehalfDispatch } =
+    await import('../../services/outreach/on-behalf-dispatch.js');
   return {
+    isTrusted: (call) => isTrustedOnBehalfDispatch(call, process.env.LIVEKIT_API_SECRET),
     readTranscript: (callId) => transcripts.getActiveTranscript(callId)?.turns.slice() ?? null,
     analyze: transcripts.analyzeCompletedCall,
     report: captureCallResult,
@@ -148,7 +153,14 @@ export async function completeOnBehalfCall(
   reportedCalls.add(call.callId);
 
   try {
-    const { readTranscript, analyze, report } = ports ?? (await defaultPorts());
+    const { isTrusted, readTranscript, analyze, report } = ports ?? (await defaultPorts());
+    if (!isTrusted(call)) {
+      log.warn(
+        { callId: call.callId, requesterUserId: call.requester.userId },
+        'Unsigned on-behalf dispatch; not reporting to the named requester'
+      );
+      return null;
+    }
     const turns = readTranscript(call.callId);
     let analysis: SuperhumanCallResult | null = null;
     if (turns?.some((t) => t.role === 'recipient')) {

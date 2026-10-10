@@ -71,6 +71,7 @@ function analysis(): SuperhumanCallResult {
 
 function ports(turns: CallTranscriptTurn[] | null, analyze?: CallLifecyclePorts['analyze']) {
   return {
+    isTrusted: vi.fn<CallLifecyclePorts['isTrusted']>(() => true),
     readTranscript: vi.fn<CallLifecyclePorts['readTranscript']>(() => turns),
     analyze: vi.fn<CallLifecyclePorts['analyze']>(analyze ?? (async () => analysis())),
     report: vi.fn<CallLifecyclePorts['report']>(async () => undefined),
@@ -147,6 +148,13 @@ describe('completeOnBehalfCall', () => {
     const outcome = await completeOnBehalfCall('s-llm', makeCall('c-llm'), 90, p);
     expect(p.report).toHaveBeenCalledTimes(1);
     expect(outcome?.outcome).toContain('The appointment went really well');
+  });
+
+  it('never reports a dispatch that no trusted dispatcher signed', async () => {
+    const p = { ...ports(conversation), isTrusted: vi.fn(() => false) };
+    await expect(completeOnBehalfCall('s-forged', makeCall('c-forged'), 90, p)).resolves.toBeNull();
+    expect(p.analyze).not.toHaveBeenCalled();
+    expect(p.report).not.toHaveBeenCalled();
   });
 
   it('skips the analysis when nobody answered', async () => {

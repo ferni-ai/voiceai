@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildOnBehalfDispatch, parseOnBehalfDispatch } from '../on-behalf-dispatch.js';
+import {
+  buildOnBehalfDispatch,
+  isTrustedOnBehalfDispatch,
+  parseOnBehalfDispatch,
+  signOnBehalfDispatch,
+} from '../on-behalf-dispatch.js';
 import { identifyFromMetadata } from '../../identity/user-identification.js';
 
 const input = {
@@ -64,5 +69,27 @@ describe('on-behalf dispatch contract', () => {
     expect(parseOnBehalfDispatch({ ...wire, callId: '' })).toBeNull();
     expect(parseOnBehalfDispatch({ ...wire, requester: { userId: 'unknown' } })).toBeNull();
     expect(parseOnBehalfDispatch({ callId: 'x' })).toBeNull();
+  });
+
+  it('trusts only payloads signed with the server secret, after the wire round-trip', () => {
+    const signed = signOnBehalfDispatch(buildOnBehalfDispatch(input), 'server-secret');
+    const received = parseOnBehalfDispatch(JSON.parse(JSON.stringify(signed)));
+    if (!received) throw new Error('signed payload did not parse');
+
+    expect(isTrustedOnBehalfDispatch(received, 'server-secret')).toBe(true);
+    expect(isTrustedOnBehalfDispatch(received, 'other-secret')).toBe(false);
+    expect(isTrustedOnBehalfDispatch(received, undefined)).toBe(false);
+  });
+
+  it('rejects unsigned payloads and signatures moved onto another requester', () => {
+    const unsigned = parseOnBehalfDispatch(
+      JSON.parse(JSON.stringify(buildOnBehalfDispatch(input)))
+    );
+    if (!unsigned) throw new Error('payload did not parse');
+    expect(isTrustedOnBehalfDispatch(unsigned, 'server-secret')).toBe(false);
+
+    const signed = signOnBehalfDispatch(buildOnBehalfDispatch(input), 'server-secret');
+    const retargeted = { ...signed, requester: { ...signed.requester, userId: 'victim' } };
+    expect(isTrustedOnBehalfDispatch(retargeted, 'server-secret')).toBe(false);
   });
 });
