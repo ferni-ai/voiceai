@@ -1,0 +1,16 @@
+# Common ground (play with EVAL_SEED=common-ground-seed, COMMON_GROUND=on).
+# The caller never says "goblin", "boss" or "spreadsheet": a friend gets
+# "guess who struck again" from the shorthand they share, and uses it. When
+# sleep comes up again he refers back to what he already suggested instead of
+# giving the same advice as if new.
+# Scored by recall-facts.mjs (#682): a fact counts when Ferni says it before
+# the caller does; an avoid counts every time he says it.
+#@fact goblin \bgoblin\b
+#@fact boss \bboss\b|manager|spreadsheets?|\btabs?\b
+#@fact callback like i (said|mentioned|suggested)|i (mentioned|suggested)|last time|did (that|it|you) (help|work)|have you (been|tried)|still (doing|trying)
+#@avoid told-as-new have i (ever )?told you|let me tell you about|here'?s (a|my) (tip|trick|story)|one thing that (really )?helps
+Hey Ferni, it's me again.
+Ugh. Guess who struck again at work today.
+Yep. Renamed everything. Again. On a Friday.
+And I'm still not sleeping great. What would you do?
+Okay. I've got to run. Thanks for listening.
