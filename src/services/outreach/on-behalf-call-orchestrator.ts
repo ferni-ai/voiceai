@@ -20,6 +20,7 @@ import {
 } from '../../tools/domains/telephony/compliance.js';
 import { trackOutboundCall } from './outbound-call-tracker.js';
 import { onBehalfDispatchFor } from './on-behalf-dispatch.js';
+import { holdForCallHours } from './deferred-calls.js';
 import {
   enrichMessage,
   enrichVoicemailMessage,
@@ -156,6 +157,9 @@ class OnBehalfCallOrchestrator extends EventEmitter {
     }
 
     const contact = request.resolvedContact;
+    const held = { recipientPhone: contact.phone, sponsorUserId: request.userId };
+    const deferral = await holdForCallHours(request.userId, { kind: 'on_behalf', request }, held);
+    if (deferral) return deferral.id;
 
     // ==========================================================================
     // MESSAGE ENRICHMENT - "Better Than Human"
@@ -711,15 +715,6 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       `They wanted to make sure you got this message. ` +
       `Take care, and talk soon.`
     );
-  }
-
-  /**
-   * Sync wrapper for compatibility - fires async enrichment
-   */
-  private generateVoicemailMessage(call: OnBehalfCall): string {
-    // For now, use fallback synchronously
-    // The async version will be used when we refactor the voicemail detection flow
-    return this.generateVoicemailMessageFallback(call);
   }
 
   // =========================================================================
