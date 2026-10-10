@@ -11,11 +11,12 @@
 
 import { EventEmitter } from 'node:events';
 import type { Room } from '@livekit/rtc-node';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createGroupVoiceIntegration } from '../../../../src/agents/group-conversation/voice-integration.js';
 
 import { handleDataMessage } from '../../src/app/data-message-handlers.js';
+import { loadGroupDataMessages } from '../../src/app/group-data-loader.js';
 import { resetGroupDataMessages } from '../../src/app/group-data-messages.js';
 import type { DataMessage } from '../../src/types/events.js';
 import { toast } from '../../src/ui/whisper.ui.js';
@@ -52,6 +53,12 @@ function speaking(): string[] {
     (el) => el.getAttribute('data-id') ?? ''
   );
 }
+
+// The app loads the group handler on the first group message; load it up front so each
+// delivery below is handled synchronously, as it is once a call has seen one.
+beforeAll(async () => {
+  await loadGroupDataMessages();
+});
 
 let success: ReturnType<typeof vi.spyOn>;
 let info: ReturnType<typeof vi.spyOn>;

@@ -51,7 +51,7 @@ import { presenceUI } from '../ui/presence.ui.js';
 import { soundUI } from '../ui/sound.ui.js';
 import { waveformUI } from '../ui/waveform.ui.js';
 import { createLogger } from '../utils/logger.js';
-import { handleGroupDataMessage } from './group-data-messages.js';
+import { routeGroupDataMessage } from './group-data-loader.js';
 import {
   handleAvatarCue,
   handleCrisisDetected,
@@ -157,7 +157,7 @@ export function handleDataMessage(message: DataMessage): void {
     return;
   }
 
-  if (handleGroupDataMessage(message)) return; // group roundtable / call → participant grid
+  if (routeGroupDataMessage(message)) return; // group roundtable / call → participant grid
   // 🌉 Try to process as humanization signal (breakthrough, vulnerability, etc.),
   // or as an agent ack / fallback notice (failed game start, no team mode)
   if (humanizationBridge.processMessage(message) || handleAgentAckMessage(message)) {
