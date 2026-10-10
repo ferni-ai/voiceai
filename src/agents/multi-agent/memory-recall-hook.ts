@@ -25,12 +25,29 @@ import {
   factId,
   formatRecall,
   loadRecallSnapshot,
+  MAX_FOLLOW_UPS,
   recallForTurn,
+  type RecallFact,
   type RecallSnapshot,
   type RecallStore,
 } from '../../memory/recall/session-recall.js';
+import {
+  createSemanticIndex,
+  estimateTokens,
+  RECALL_TOKENS_PER_TURN,
+  semanticRecallEnabled,
+  withinTokens,
+  type RetrievalEmbedder,
+  type SemanticIndex,
+} from '../../memory/recall/semantic-recall.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { formatLedger, loadLedger, type LedgerStore } from '../personas/life-ledger.js';
+import {
+  formatLedger,
+  loadLedger,
+  RECALL_LIMIT,
+  type LedgerFact,
+  type LedgerStore,
+} from '../personas/life-ledger.js';
 import {
   formatLifeUpdates,
   loadLifeUpdates,
@@ -78,6 +95,9 @@ export interface MemoryRecallDeps {
   ledgerStore?: LedgerStore;
   /** What has happened in his life since (life-updates.ts, LIFE_MOVES_ON). */
   lifeUpdates?: LifeUpdateDeps;
+  /** SEMANTIC_RECALL=on; read from the environment when not given. */
+  semantic?: boolean;
+  embed?: RetrievalEmbedder;
 }
 
 export interface MemoryRecall {
@@ -97,6 +117,15 @@ export interface MemoryRecall {
 const FACTS_PER_TURN = 4;
 /** One person or thing can't take the whole turn ("sister" brought 4 pregnancy rows, 2026-10-04). */
 const FACTS_PER_ENTITY = 2;
+/** With semantic recall: open threads and Ferni's own stories kept for later in the call. */
+const FOLLOW_UPS_KEPT = 12;
+const TOLD_KEPT = 40;
+
+/** A fact as one line to embed: "Biscuit breed: golden retriever". */
+function factText(f: RecallFact, userName?: string): string {
+  const subject = /^(speaker|user|me)$/i.test(f.entity) ? userName || 'they' : f.entity;
+  return `${subject} ${f.key.replace(/_/g, ' ')}: ${f.value}`;
+}
 
 export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const started = Date.now();
@@ -104,17 +133,32 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const surfaced = new Set<string>();
   let followUpsOffered = false;
   let factsThisTurn = 0;
+  let tokensLeft = RECALL_TOKENS_PER_TURN;
   const entitiesThisTurn = new Map<string, number>();
 
   let ledgerNote: string | null = null;
   let sinceNote: string | null = null;
-  const ledger = loadLedger(deps.userId, 'ferni', deps.ledgerStore);
+  const semanticOn = deps.semantic ?? semanticRecallEnabled();
+  let index: SemanticIndex | undefined;
+  // Semantic recall only: threads and stories past the first note, by id.
+  const laterFollowUps = new Map<string, string>();
+  const laterTold = new Map<string, LedgerFact>();
+  const ledger = loadLedger(
+    deps.userId,
+    'ferni',
+    deps.ledgerStore,
+    semanticOn ? TOLD_KEPT : RECALL_LIMIT
+  );
   const loaded = Promise.all([
-    loadRecallSnapshot(deps.store ?? firestoreRecallStore, deps.userId),
+    loadRecallSnapshot(
+      deps.store ?? firestoreRecallStore,
+      deps.userId,
+      semanticOn ? FOLLOW_UPS_KEPT : MAX_FOLLOW_UPS
+    ),
     ledger,
   ]).then(([s, told]) => {
-    snapshot = s;
-    ledgerNote = formatLedger(told, deps.userName);
+    snapshot = { ...s, followUps: s.followUps.slice(0, MAX_FOLLOW_UPS) };
+    ledgerNote = formatLedger(told.slice(0, RECALL_LIMIT), deps.userName);
     log.info(
       {
         facts: s.facts.length,
@@ -124,11 +168,26 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       },
       'Recall snapshot loaded'
     );
+    if (!semanticOn) return;
+    for (const t of s.followUps.slice(MAX_FOLLOW_UPS)) laterFollowUps.set(`thread:${t}`, t);
+    for (const f of told.slice(RECALL_LIMIT)) laterTold.set(`told:${f.fact}`, f);
+    const items = [
+      ...s.facts.map((f) => ({ id: factId(f), text: factText(f, deps.userName) })),
+      ...[...laterFollowUps].map(([id, text]) => ({ id, text })),
+      ...[...laterTold].map(([id, f]) => ({ id, text: f.fact })),
+    ];
+    // The snapshot is usable at once; the index joins when it is embedded.
+    const idx = (index = createSemanticIndex(items, deps.embed));
+    void idx.ready.then(() =>
+      log.info({ items: items.length, ms: Date.now() - started }, 'Recall index ready')
+    );
   });
   // Written by a model, so it never holds up the snapshot; it joins the first
   // note only if it is ready by then. Never rejects.
   const since = ledger
-    .then((told) => loadLifeUpdates(deps.userId, told, 'ferni', deps.lifeUpdates))
+    .then((told) =>
+      loadLifeUpdates(deps.userId, told.slice(0, RECALL_LIMIT), 'ferni', deps.lifeUpdates)
+    )
     .then((updates) => {
       sinceNote = formatLifeUpdates(updates);
     });
@@ -139,32 +198,74 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     noteFor(transcript) {
       const text = transcript.trim();
       if (!snapshot || !text) return null;
+      index?.observe(text);
+      const semantic = index?.matches() ?? new Map<string, number>();
+      const blend = index ? { semantic, now: Date.now() } : undefined;
       const budget = FACTS_PER_TURN - factsThisTurn;
-      const facts =
+      const ranked =
         budget > 0
-          ? recallForTurn(snapshot, text, surfaced, budget, FACTS_PER_ENTITY, entitiesThisTurn)
+          ? recallForTurn(
+              snapshot,
+              text,
+              surfaced,
+              budget,
+              FACTS_PER_ENTITY,
+              entitiesThisTurn,
+              blend
+            )
           : [];
-      const followUps = followUpsOffered ? [] : snapshot.followUps;
+      // Older threads and stories come back only when the turn is about them.
+      const later = [...semantic.keys()].filter(
+        (id) => !surfaced.has(id) && (laterFollowUps.has(id) || laterTold.has(id))
+      );
+      // Semantic recall finds more, so it also keeps each turn's recall small.
+      const laterText = (id: string) => laterFollowUps.get(id) ?? laterTold.get(id)?.fact ?? '';
+      const facts = blend ? withinTokens(ranked, (f) => factText(f), tokensLeft) : ranked;
+      const factTokens = estimateTokens(facts.map((f) => factText(f)));
+      const extras = blend ? withinTokens(later, laterText, tokensLeft - factTokens) : later;
+      const extraTold = extras.flatMap((id) => laterTold.get(id) ?? []);
+      const followUps = [
+        ...(followUpsOffered ? [] : snapshot.followUps),
+        ...extras.flatMap((id) => laterFollowUps.get(id) ?? []),
+      ];
       // The ledger, like the follow-ups, comes once, with the first note.
       const told = followUpsOffered
         ? null
         : [ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
       const note =
-        [formatRecall(facts, followUps, deps.userName), told].filter(Boolean).join('\n\n') || null;
+        [
+          formatRecall(facts, followUps, deps.userName),
+          told,
+          extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
+        ]
+          .filter(Boolean)
+          .join('\n\n') || null;
       if (!note) return null;
       followUpsOffered = true;
+      tokensLeft -= factTokens + estimateTokens(extras.map(laterText));
+      for (const id of extras) surfaced.add(id);
       factsThisTurn += facts.length;
       for (const f of facts) {
         surfaced.add(factId(f));
         const key = f.entity.toLowerCase();
         entitiesThisTurn.set(key, (entitiesThisTurn.get(key) ?? 0) + 1);
       }
-      log.info({ facts: facts.length, followUps: followUps.length }, 'Recall added');
+      log.info(
+        {
+          facts: facts.length,
+          followUps: followUps.length,
+          semantic: semantic.size,
+          extras: extras.length,
+        },
+        'Recall added'
+      );
       return note;
     },
     newTurn() {
       factsThisTurn = 0;
+      tokensLeft = RECALL_TOKENS_PER_TURN;
       entitiesThisTurn.clear();
+      index?.newTurn();
     },
   };
 }
