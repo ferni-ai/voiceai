@@ -9854,7 +9854,12 @@
     "topicPlaceholder": "キャリアプラン、人間関係のアドバイスなど…",
     "startRoundtable": "座談会を始める",
     "moderator": "モデレーター",
-    "expert": "エキスパート"
+    "expert": "エキスパート",
+    "roundtableStarted": "座談会を始めました",
+    "roundtableEnded": "座談会を終了しました",
+    "calling": "{name}さんに電話しています...",
+    "callNotConnected": "{name}さんにつながりませんでした",
+    "errorGeneric": "グループ会話で問題が起きました。もう一度試しますか？"
   },
   "locationPrompt": {
     "weather": {

@@ -9854,7 +9854,12 @@
     "topicPlaceholder": "Career planning, relationship advice...",
     "startRoundtable": "Start Roundtable",
     "moderator": "Moderator",
-    "expert": "Expert"
+    "expert": "Expert",
+    "roundtableStarted": "Roundtable started",
+    "roundtableEnded": "Roundtable ended",
+    "calling": "Calling {name}...",
+    "callNotConnected": "Couldn't reach {name}",
+    "errorGeneric": "The group conversation hit a problem. Want to try again?"
   },
   "locationPrompt": {
     "weather": {

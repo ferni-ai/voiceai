@@ -9941,7 +9941,12 @@
     "topicPlaceholder": "Planification de carrière, conseils de couple...",
     "startRoundtable": "Lancer la table ronde",
     "moderator": "Modérateur",
-    "expert": "Expert"
+    "expert": "Expert",
+    "roundtableStarted": "Table ronde lancée",
+    "roundtableEnded": "Table ronde terminée",
+    "calling": "Appel de {name}...",
+    "callNotConnected": "Impossible de joindre {name}",
+    "errorGeneric": "La conversation de groupe a rencontré un problème. Voulez-vous réessayer ?"
   },
   "locationPrompt": {
     "weather": {

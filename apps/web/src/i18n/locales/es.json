@@ -9941,7 +9941,12 @@
     "topicPlaceholder": "Planificación de carrera, consejos de pareja...",
     "startRoundtable": "Iniciar mesa redonda",
     "moderator": "Moderación",
-    "expert": "Especialista"
+    "expert": "Especialista",
+    "roundtableStarted": "Mesa redonda iniciada",
+    "roundtableEnded": "Mesa redonda finalizada",
+    "calling": "Llamando a {name}...",
+    "callNotConnected": "No se pudo contactar a {name}",
+    "errorGeneric": "La conversación en grupo tuvo un problema. ¿Quieres intentarlo de nuevo?"
   },
   "locationPrompt": {
     "weather": {

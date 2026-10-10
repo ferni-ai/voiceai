@@ -51,6 +51,7 @@ import { presenceUI } from '../ui/presence.ui.js';
 import { soundUI } from '../ui/sound.ui.js';
 import { waveformUI } from '../ui/waveform.ui.js';
 import { createLogger } from '../utils/logger.js';
+import { routeGroupDataMessage } from './group-data-loader.js';
 import {
   handleAvatarCue,
   handleCrisisDetected,
@@ -89,7 +90,6 @@ import type { BetterThanHumanSignal, BetterThanHumanSignalType } from '../eq/typ
 import { behaviorSignalService } from '../services/behavior-signal.service.js';
 // 🎭 Persona Intro - Team member unlock modal
 import { personaIntro } from '../ui/persona-intro.ui.js';
-// 🔓 Team unlock service - For marking members as unlocked
 // 🎉 Roster preferences - For adding members to the roster
 import { addMemberToRoster, type TeamMemberId } from '../services/roster-preferences.service.js';
 // 🌟 Winter Solstice - Cinematic holiday experience
@@ -157,6 +157,7 @@ export function handleDataMessage(message: DataMessage): void {
     return;
   }
 
+  if (routeGroupDataMessage(message)) return; // group roundtable / call → participant grid
   // 🌉 Try to process as humanization signal (breakthrough, vulnerability, etc.),
   // or as an agent ack / fallback notice (failed game start, no team mode)
   if (humanizationBridge.processMessage(message) || handleAgentAckMessage(message)) {

@@ -24,6 +24,7 @@ import { getGCPProjectId } from '../../config/environment.js';
 import { getRedisCache } from '../../memory/redis-cache.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { opsAlert } from './ops-alert.js';
 import { registerInterval } from '../../utils/interval-manager.js';
 
 const log = getLogger();
@@ -439,7 +440,6 @@ export async function recordSecurityEvent(params: {
     recentEvents.pop();
   }
 
-  // Log based on severity
   const logContext = {
     eventId: event.id,
     type: event.type,
@@ -449,7 +449,7 @@ export async function recordSecurityEvent(params: {
 
   switch (event.severity) {
     case 'critical':
-      log.error(logContext, `🚨 CRITICAL: ${event.action}`);
+      opsAlert(`security:${event.type}`, `🚨 CRITICAL: ${event.action}`, logContext);
       break;
     case 'high':
       log.warn(logContext, `⚠️ HIGH: ${event.action}`);
