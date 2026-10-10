@@ -18,7 +18,11 @@
  */
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import type { CallObjective, CallType } from '../../tools/domains/telephony/types.js';
+import type {
+  CallObjective,
+  CallType,
+  OnBehalfCallRequest,
+} from '../../tools/domains/telephony/types.js';
 
 export interface OnBehalfDispatch {
   type: 'on_behalf_call';
@@ -94,6 +98,57 @@ export function verifyOnBehalfDispatch(
   const expected = Buffer.from(signatureFor(payload as Record<string, unknown>, secret));
   const actual = Buffer.from(given);
   return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
+/** The dispatch for a call the orchestrator places from an on-behalf request. */
+export function onBehalfDispatchFor(
+  callId: string,
+  request: OnBehalfCallRequest,
+  script?: string
+): OnBehalfDispatch {
+  return buildOnBehalfDispatch({
+    callId,
+    requester: {
+      userId: request.userId,
+      name: request.userName,
+      timezone: request.userTimezone,
+      originalSessionId: request.originalSessionId,
+    },
+    contact: {
+      name: request.resolvedContact?.name ?? request.contactQuery,
+      phone: request.resolvedContact?.phone ?? '',
+      relationship: request.resolvedContact?.relationship,
+    },
+    purpose: request.purpose,
+    objective: request.objective,
+    callType: request.callType,
+    script,
+    userPreferences: request.userPreferences,
+  });
+}
+
+/** The dispatch for a call bridged in from a Twilio media stream's parameters. */
+export function onBehalfDispatchFromStream(
+  params: Record<string, string | undefined>,
+  roomName: string
+): OnBehalfDispatch {
+  return buildOnBehalfDispatch({
+    callId: params.callId || roomName,
+    requester: {
+      userId: params.userId || 'unknown',
+      name: params.userName || 'User',
+      timezone: 'UTC',
+      originalSessionId: params.sessionId || roomName,
+    },
+    contact: {
+      name: params.recipientName || 'Friend',
+      phone: params.phone ?? '',
+      relationship: params.relationship || 'contact',
+    },
+    purpose: params.purpose || 'Check in',
+    objective: (params.objective || 'general') as CallObjective,
+    callType: (params.callType || 'personal') as CallType,
+  });
 }
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
