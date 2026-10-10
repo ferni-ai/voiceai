@@ -17,6 +17,7 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isCallOpeningAmdEnabled } from '../../config/call-opening-flag.js';
 
 const log = createLogger({ module: 'outbound-call-control' });
 
@@ -69,6 +70,15 @@ export function onBehalfCallFor(
   sessionId: string
 ): { callId: string; roomName: string } | undefined {
   return sessions.get(sessionId);
+}
+
+/**
+ * True when this session's on-behalf call opens through answering-machine
+ * detection (CALL_OPENING_AMD on). Such a session is never health-pinged: a
+ * ping could make it speak while the phone rings.
+ */
+export function amdOpensCall(sessionId: string): boolean {
+  return isCallOpeningAmdEnabled() && sessions.has(sessionId);
 }
 
 export type HangUp = (roomName: string) => Promise<void>;

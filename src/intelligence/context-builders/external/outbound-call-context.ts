@@ -23,7 +23,8 @@ import {
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { openingLine } from '../../../services/outreach/opening-line.js';
+import { outboundOpener, partiesOf } from '../../../services/outreach/opening-line.js';
+import { isCallOpeningAmdEnabled } from '../../../config/call-opening-flag.js';
 
 const log = createLogger({ module: 'context:outbound-call' });
 
@@ -210,6 +211,20 @@ export const outboundCallContextBuilder: ContextBuilder = {
 // INJECTION BUILDERS
 // ============================================================================
 
+/**
+ * With CALL_OPENING_AMD on, the person speaks first and Ferni's reply to their
+ * "Hello?" is the opener. With it off, Ferni has already said the opener
+ * itself, so the prompt asks for no second one.
+ */
+function firstReplyRule(context: OutboundCallContext): string {
+  if (!isCallOpeningAmdEnabled()) return '';
+  return `- They speak first. Your FIRST reply after they answer ("Hello?") is exactly this, and only this:
+  "${outboundOpener(partiesOf(context))}"
+  Then stop and let them respond. This replaces only the greeting in the script below; follow
+  everything else in it. Never introduce yourself again after that.
+`;
+}
+
 function buildPurposeInjection(context: OutboundCallContext): string {
   return `
 OUTBOUND CALL ON BEHALF OF USER
@@ -223,13 +238,9 @@ PRIMARY OBJECTIVE: ${context.objective}
 Purpose: ${context.purpose}
 
 TALK THE WAY PEOPLE DO ON THE PHONE:
-- They speak first. Your FIRST reply after they answer ("Hello?") is exactly this, and only this:
-  "${openingLine({ recipientName: context.recipientName, requesterName: context.userName, personal: context.callType === 'personal' })}"
-  Then stop and let them respond. This replaces only the greeting in the script below; follow
-  everything else in it. Never introduce yourself again after that.
-- After they respond: on a personal call, ask once "Is now an okay minute?", then say why you're
-  calling in one or two sentences. Don't open with small talk or ask "how are you" yourself; if
-  they ask how you are, answer in a few words ("Doing well, thanks!") and carry on.
+${firstReplyRule(context)}- After they respond, say why you're calling in one or two sentences. Don't open with small
+  talk or ask "how are you" yourself; if they ask how you are, answer in a few words
+  ("Doing well, thanks!") and carry on.
 - Short turns, one or two sentences, then let them talk. React like a person before moving on
   ("Oh, that's great", "Mm, sorry to hear that").
 - Speak clearly and a touch slower than usual, but never talk down: no pet names, no "we",

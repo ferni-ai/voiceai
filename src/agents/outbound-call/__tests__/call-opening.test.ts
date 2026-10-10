@@ -2,17 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   openOnBehalfCall,
   voicemailInstructions,
-  type CallOpeningFacts,
   type CallOpeningPorts,
   type FirstWords,
 } from '../call-opening.js';
-import { openingLine } from '../../../services/outreach/opening-line.js';
+import { outboundOpener, type OutboundParties } from '../../../services/outreach/opening-line.js';
 
-const mom: CallOpeningFacts = {
-  recipientName: 'Linda Ford',
-  requesterName: 'Seth',
-  personal: true,
-};
+const dad: OutboundParties = { recipientName: 'Doug', sponsorName: 'Seth', personal: true };
 
 function phone(answered: boolean | Error, heard: FirstWords | Error) {
   const order: string[] = [];
@@ -35,63 +30,79 @@ function phone(answered: boolean | Error, heard: FirstWords | Error) {
 describe('opening a call', () => {
   it('says nothing until someone answers, and hangs up if nobody does', async () => {
     const { ports, order } = phone(false, { category: 'human', transcript: 'Hello?' });
-    await expect(openOnBehalfCall(mom, ports)).resolves.toBe('not_answered');
+    await expect(openOnBehalfCall(dad, ports)).resolves.toBe('not_answered');
     expect(ports.hearFirstWords).not.toHaveBeenCalled();
     expect(order).toEqual(['hang up']);
   });
 
-  it('lets the normal reply to "Hello?" be the opening, so only one voice answers', async () => {
+  it('lets the normal reply to "Hello?" be the opener, so only one voice answers', async () => {
     const { ports, order } = phone(true, { category: 'human', transcript: 'Hello?' });
-    await expect(openOnBehalfCall(mom, ports)).resolves.toBe('person');
+    await expect(openOnBehalfCall(dad, ports)).resolves.toBe('person');
     expect(order).toEqual([]);
   });
 
-  it('greets a silent pickup first, then introduces itself', async () => {
+  it('says the one opener to a silent pickup', async () => {
     const { ports, order } = phone(true, { category: 'uncertain', transcript: '' });
-    await expect(openOnBehalfCall(mom, ports)).resolves.toBe('silence');
-    expect(order).toEqual([`say: Hello? ${openingLine(mom)}`]);
+    await expect(openOnBehalfCall(dad, ports)).resolves.toBe('silence');
+    expect(order).toEqual([
+      "say: Hi Doug, it's Ferni, Seth's AI friend. Seth asked me to check in on you. Is now an okay time?",
+    ]);
+    expect(order).toEqual([`say: ${outboundOpener(dad)}`]);
   });
 
   it('treats an unclear answer as a person, never as a machine', async () => {
     const { ports } = phone(true, { category: 'uncertain', transcript: 'yeah hi' });
-    await expect(openOnBehalfCall(mom, ports)).resolves.toBe('person');
+    await expect(openOnBehalfCall(dad, ports)).resolves.toBe('person');
     expect(ports.leaveVoicemail).not.toHaveBeenCalled();
     expect(ports.hangUp).not.toHaveBeenCalled();
   });
 
-  it('leaves a voicemail after the greeting, then hangs up', async () => {
+  it('leaves a voicemail after the greeting, then hangs up as voicemail_left', async () => {
     const { ports, order } = phone(true, { category: 'machine-vm', transcript: 'leave a message' });
-    await expect(openOnBehalfCall(mom, ports)).resolves.toBe('voicemail');
+    await expect(openOnBehalfCall(dad, ports)).resolves.toBe('voicemail');
     expect(order).toEqual(['voicemail', 'hang up (voicemail_left)']);
   });
 
-  it('hangs up quietly on a full mailbox or a phone menu, and says why', async () => {
+  it('hangs up quietly on a full mailbox or a phone menu, as unreachable', async () => {
     for (const category of ['machine-unavailable', 'machine-ivr'] as const) {
       const { ports, order } = phone(true, { category, transcript: 'mailbox is full' });
-      await expect(openOnBehalfCall(mom, ports)).resolves.toBe('unreachable');
+      await expect(openOnBehalfCall(dad, ports)).resolves.toBe('unreachable');
       expect(order).toEqual(['hang up (unreachable)']);
+      expect(ports.say).not.toHaveBeenCalled();
     }
   });
 
   it('never speaks or throws when something breaks; hangs up only if nobody had answered', async () => {
     const beforeAnswer = phone(new Error('room gone'), { category: 'human', transcript: '' });
-    await expect(openOnBehalfCall(mom, beforeAnswer.ports)).resolves.toBe('error');
+    await expect(openOnBehalfCall(dad, beforeAnswer.ports)).resolves.toBe('error');
     expect(beforeAnswer.order).toEqual(['hang up']);
 
     const afterAnswer = phone(true, new Error('detector down'));
-    await expect(openOnBehalfCall(mom, afterAnswer.ports)).resolves.toBe('error');
+    await expect(openOnBehalfCall(dad, afterAnswer.ports)).resolves.toBe('error');
     expect(afterAnswer.order).toEqual([]); // the conversation carries on
+  });
+
+  it('still resolves when the hang-up after a failure fails too', async () => {
+    const { ports } = phone(new Error('room gone'), { category: 'human', transcript: '' });
+    ports.hangUp.mockRejectedValueOnce(new Error('room service down'));
+    await expect(openOnBehalfCall(dad, ports)).resolves.toBe('error');
   });
 });
 
 describe('the voicemail', () => {
-  it('is short, says who and why, points back to the requester, and ends itself', () => {
-    const text = voicemailInstructions(mom, 'see if she is still on for Sunday dinner');
-    expect(text).toContain("Ferni, I'm an AI that helps Seth out");
-    expect(text).toContain('see if she is still on for Sunday dinner');
+  it('opens with the same AI disclosure, says why, points back to Seth, and ends itself', () => {
+    const text = voicemailInstructions(dad, 'see if he is still on for Sunday dinner');
+    expect(text).toContain(`"Hi Doug, it's Ferni, Seth's AI friend."`);
+    expect(text).toContain('see if he is still on for Sunday dinner');
     expect(text).toContain('call or text Seth');
     expect(text).toContain('nothing urgent');
     expect(text).toContain("Don't call endCall");
-    expect(voicemailInstructions({ ...mom, personal: false }, 'x')).not.toContain('nothing urgent');
+    expect(voicemailInstructions({ ...dad, personal: false }, 'x')).not.toContain('nothing urgent');
+  });
+
+  it('names nobody it does not know', () => {
+    const text = voicemailInstructions({ personal: true }, 'say hello');
+    expect(text).toContain(`"Hi, it's Ferni, an AI friend."`);
+    expect(text).not.toMatch(/undefined/);
   });
 });

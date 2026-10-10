@@ -18,6 +18,7 @@ import {
   checkCallCompliance,
   generateComplianceScript,
 } from '../../tools/domains/telephony/compliance.js';
+import { callOpeningDialOptions } from '../../config/call-opening-flag.js';
 import { trackOutboundCall } from './outbound-call-tracker.js';
 import { onBehalfDispatchFor, signOnBehalfDispatch } from './on-behalf-dispatch.js';
 import {
@@ -426,8 +427,7 @@ class OnBehalfCallOrchestrator extends EventEmitter {
           participantName: contact.name || 'Contact',
           playDialtone: false, // Agent should speak, not dialtone
           hidePhoneNumber: false,
-          ringingTimeout: 45, // long enough for their voicemail to pick up
-          maxCallDuration: 15 * 60,
+          ...callOpeningDialOptions(), // CALL_OPENING_AMD: ring until voicemail picks up
         }
       );
 

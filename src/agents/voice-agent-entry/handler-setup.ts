@@ -657,8 +657,9 @@ async function speakGreeting(
   userName: string | null,
   isReturningUser: boolean
 ): Promise<void> {
+  process.stderr.write(`[voice-agent-entry] 🎤 Speaking greeting...\n`);
   const { openIfOnBehalfCall } = await import('../outbound-call/livekit-call-opening.js');
-  if (openIfOnBehalfCall(sessionId, { session, userData })) return; // placing a call: they speak first
+  if (openIfOnBehalfCall(sessionId, { session, userData })) return; // CALL_OPENING_AMD on
   const { generateAndSpeakGreeting } = await import('../voice-agent/greeting-handler.js');
 
   // A call placed for the user opens with who Ferni is and who it's for (outbound-opener.ts).

@@ -1,77 +1,185 @@
+/**
+ * The on-behalf call opening as the agent runs it, with LiveKit's room and
+ * answering-machine detector stubbed: off by default (main's opener path),
+ * and with CALL_OPENING_AMD on, person / silence / voicemail / unreachable /
+ * unanswered each end the way call-opening.ts decides.
+ */
 import { EventEmitter } from 'node:events';
-import { describe, expect, it } from 'vitest';
-import type { Room } from '@livekit/rtc-node';
-import { openIfOnBehalfCall, waitForCallActive } from '../livekit-call-opening.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-/** A room stand-in: the SIP leg's attributes change as the call progresses. */
-function fakeRoom() {
-  const room = Object.assign(new EventEmitter(), {
-    remoteParticipants: new Map<string, { identity: string; attributes: Record<string, string> }>(),
-  });
-  const phone = (status: string) => {
-    const p = { identity: 'phone_c1', attributes: { 'sip.callStatus': status } };
-    room.remoteParticipants.set(p.identity, p);
-    room.emit('participantAttributesChanged', { 'sip.callStatus': status }, p);
-    return p;
+type Verdict = { category: string; transcript: string; delayMs: number };
+
+const stubs = vi.hoisted(() => ({
+  room: undefined as unknown,
+  verdict: { category: 'human', transcript: 'Hello?', delayMs: 300 } as Verdict,
+  amdCreated: 0,
+  hangUpCall: vi.fn(async (_sessionId: string, _disposition?: string) => true),
+}));
+
+vi.mock('@livekit/agents', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@livekit/agents')>();
+  class FakeAMD {
+    constructor() {
+      stubs.amdCreated += 1;
+    }
+    async execute() {
+      return stubs.verdict;
+    }
+    async aclose() {}
+  }
+  return {
+    ...actual,
+    getJobContext: () => ({ room: stubs.room }),
+    voice: { ...actual.voice, AMD: FakeAMD },
   };
-  return { room, phone, asRoom: room as unknown as Room };
+});
+
+vi.mock('../call-control.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../call-control.js')>();
+  return { ...actual, hangUpCall: stubs.hangUpCall };
+});
+
+const { openIfOnBehalfCall } = await import('../livekit-call-opening.js');
+const { registerOnBehalfCallRoom, forgetOnBehalfCallRoom } = await import('../call-control.js');
+const { setOutboundCallContext } =
+  await import('../../../intelligence/context-builders/external/outbound-call-context.js');
+
+const SESSION = 'ob-amd';
+const OPENER =
+  "Hi Doug, it's Ferni, Seth's AI friend. Seth asked me to check in on you. Is now an okay time?";
+
+function phoneRoom(callStatus: string) {
+  const room = Object.assign(new EventEmitter(), {
+    remoteParticipants: new Map([
+      ['phone_c1', { identity: 'phone_c1', attributes: { 'sip.callStatus': callStatus } }],
+    ]),
+  });
+  stubs.room = room;
+  return room;
 }
 
-describe('waitForCallActive', () => {
-  it('waits through dialing and resolves when the call is answered', async () => {
-    const { phone, asRoom } = fakeRoom();
-    const answered = waitForCallActive(asRoom, 'phone_c1', 1_000);
-    phone('dialing');
-    phone('active');
-    await expect(answered).resolves.toBe(true);
-  });
+function callingAgent() {
+  const playout = { waitForPlayout: vi.fn(async () => undefined) };
+  const session = { say: vi.fn(() => playout), generateReply: vi.fn(() => playout) };
+  return {
+    session,
+    say: vi.fn(),
+    userData: {} as { greetingText?: string; greetingInjected?: boolean },
+    wireHandlers: vi.fn(async () => undefined),
+  };
+}
 
-  it('does not treat a ringing phone as answered', async () => {
-    const { phone, asRoom } = fakeRoom();
-    const answered = waitForCallActive(asRoom, 'phone_c1', 30);
-    phone('dialing');
-    await expect(answered).resolves.toBe(false);
-  });
+const savedFlag = process.env.CALL_OPENING_AMD;
 
-  it('resolves at once if the call was already answered', async () => {
-    const { room, asRoom } = fakeRoom();
-    room.remoteParticipants.set('phone_c1', {
-      identity: 'phone_c1',
-      attributes: { 'sip.callStatus': 'active' },
-    });
-    await expect(waitForCallActive(asRoom, 'phone_c1', 1_000)).resolves.toBe(true);
-  });
-
-  it('gives up on a hang-up, a dropped leg, or a timeout', async () => {
-    const a = fakeRoom();
-    const hungUp = waitForCallActive(a.asRoom, 'phone_c1', 1_000);
-    a.phone('hangup');
-    await expect(hungUp).resolves.toBe(false);
-
-    const b = fakeRoom();
-    const dropped = waitForCallActive(b.asRoom, 'phone_c1', 1_000);
-    b.room.emit('participantDisconnected', { identity: 'phone_c1' });
-    await expect(dropped).resolves.toBe(false);
-
-    const c = fakeRoom();
-    await expect(waitForCallActive(c.asRoom, 'phone_c1', 20)).resolves.toBe(false);
-  });
-
-  it('ignores other participants', async () => {
-    const { room, phone, asRoom } = fakeRoom();
-    const answered = waitForCallActive(asRoom, 'phone_c1', 1_000);
-    room.emit(
-      'participantAttributesChanged',
-      {},
-      { identity: 'someone_else', attributes: { 'sip.callStatus': 'active' } }
-    );
-    phone('active');
-    await expect(answered).resolves.toBe(true);
+beforeEach(() => {
+  stubs.amdCreated = 0;
+  stubs.hangUpCall.mockClear();
+  phoneRoom('active');
+  registerOnBehalfCallRoom(SESSION, 'c1', 'room-c1');
+  setOutboundCallContext(SESSION, {
+    callId: 'c1',
+    recipientName: 'Doug',
+    recipientPhone: '+18015550100',
+    purpose: 'check in on Doug',
+    callType: 'personal',
+    objective: 'general',
+    script: '',
+    complianceScript: '',
+    mustConfirm: [],
+    mustNotDo: [],
+    informationToGather: [],
+    userName: 'Seth',
+    originalSessionId: '',
   });
 });
 
-describe('openIfOnBehalfCall', () => {
+afterEach(() => {
+  forgetOnBehalfCallRoom(SESSION);
+  if (savedFlag === undefined) delete process.env.CALL_OPENING_AMD;
+  else process.env.CALL_OPENING_AMD = savedFlag;
+});
+
+describe('with CALL_OPENING_AMD off (the default)', () => {
+  it("leaves an on-behalf call to main's opener and never runs detection", async () => {
+    delete process.env.CALL_OPENING_AMD;
+    const agent = callingAgent();
+    expect(openIfOnBehalfCall(SESSION, agent)).toBe(false);
+    process.env.CALL_OPENING_AMD = 'off';
+    expect(openIfOnBehalfCall(SESSION, agent)).toBe(false);
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
+    expect(stubs.amdCreated).toBe(0);
+    expect(agent.say).not.toHaveBeenCalled();
+  });
+});
+
+describe('with CALL_OPENING_AMD on', () => {
+  beforeEach(() => {
+    process.env.CALL_OPENING_AMD = 'on';
+  });
+
   it('leaves ordinary sessions to their normal greeting', () => {
-    expect(openIfOnBehalfCall('s-ordinary', { session: {} })).toBe(false);
+    expect(openIfOnBehalfCall('s-ordinary', callingAgent())).toBe(false);
+  });
+
+  it('lets a person who said hello hear the reply, not a second opener', async () => {
+    stubs.verdict = { category: 'human', transcript: 'Hello?', delayMs: 300 };
+    const agent = callingAgent();
+    expect(openIfOnBehalfCall(SESSION, agent)).toBe(true);
+    await vi.waitFor(() => expect(agent.wireHandlers).toHaveBeenCalledTimes(1));
+    expect(stubs.amdCreated).toBe(1);
+    expect(agent.say).not.toHaveBeenCalled();
+    expect(stubs.hangUpCall).not.toHaveBeenCalled();
+  });
+
+  it("says main's opener to a silent pickup and remembers it as the greeting", async () => {
+    stubs.verdict = { category: 'uncertain', transcript: '', delayMs: 2500 };
+    const agent = callingAgent();
+    expect(openIfOnBehalfCall(SESSION, agent)).toBe(true);
+    await vi.waitFor(() => expect(agent.say).toHaveBeenCalledTimes(1));
+    expect(agent.say).toHaveBeenCalledWith(OPENER, { allowInterruptions: true });
+    expect(agent.userData).toEqual({ greetingText: OPENER, greetingInjected: false });
+  });
+
+  it('leaves a voicemail in the same words, then hangs up as voicemail_left', async () => {
+    stubs.verdict = { category: 'machine-vm', transcript: 'leave a message', delayMs: 900 };
+    const agent = callingAgent();
+    openIfOnBehalfCall(SESSION, agent);
+    await vi.waitFor(() => expect(stubs.hangUpCall).toHaveBeenCalled());
+    const [{ instructions }] = agent.session.generateReply.mock.calls[0] as unknown as [
+      { instructions: string },
+    ];
+    expect(instructions).toContain(`"Hi Doug, it's Ferni, Seth's AI friend."`);
+    expect(instructions).toContain('check in on Doug');
+    expect(stubs.hangUpCall).toHaveBeenCalledWith(SESSION, 'voicemail_left');
+    expect(agent.say).not.toHaveBeenCalled();
+    expect(agent.wireHandlers).not.toHaveBeenCalled();
+  });
+
+  it('hangs up on a full mailbox as unreachable, saying nothing', async () => {
+    stubs.verdict = { category: 'machine-unavailable', transcript: 'mailbox is full', delayMs: 0 };
+    const agent = callingAgent();
+    openIfOnBehalfCall(SESSION, agent);
+    await vi.waitFor(() => expect(stubs.hangUpCall).toHaveBeenCalledWith(SESSION, 'unreachable'));
+    expect(agent.session.generateReply).not.toHaveBeenCalled();
+    expect(agent.say).not.toHaveBeenCalled();
+  });
+
+  it('hangs up without listening when the phone is never answered', async () => {
+    const room = phoneRoom('dialing');
+    const agent = callingAgent();
+    openIfOnBehalfCall(SESSION, agent);
+    room.emit(
+      'participantAttributesChanged',
+      { 'sip.callStatus': 'hangup' },
+      {
+        identity: 'phone_c1',
+        attributes: { 'sip.callStatus': 'hangup' },
+      }
+    );
+    await vi.waitFor(() => expect(stubs.hangUpCall).toHaveBeenCalledWith(SESSION, undefined));
+    expect(stubs.amdCreated).toBe(0);
+    expect(agent.say).not.toHaveBeenCalled();
   });
 });

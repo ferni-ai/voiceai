@@ -220,8 +220,6 @@ export class AgentOrchestrator {
       '🎭 Agent confirmed active'
     );
 
-    // Trigger initial greeting - the model will respond based on its system prompt
-    // NOTE: We use minimal instructions to avoid conflicting with function-calling format
     void this.generateInitialGreeting(agent);
 
     return agent;
@@ -245,6 +243,8 @@ export class AgentOrchestrator {
       const parties = outboundPartiesFor(this.sessionId);
       let greeting: string;
       if (parties) {
+        const { openIfOnBehalfCall } = await import('../outbound-call/livekit-call-opening.js');
+        if (openIfOnBehalfCall(this.sessionId, agent)) return; // CALL_OPENING_AMD: they speak first
         const answered = await waitForCallAnswered(this.room, this.userParticipant);
         if (!answered) {
           log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
