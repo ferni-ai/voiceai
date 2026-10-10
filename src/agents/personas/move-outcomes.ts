@@ -47,22 +47,25 @@ export interface MoveOutcomeRecord {
   }>;
 }
 
-/** The STYLE_PROFILE (W3) multiplier a move's draw goes through, so W3's learner reads it directly. */
+/**
+ * The STYLE_PROFILE (W3, #718) multiplier a move's draw goes through, so W3's
+ * learner reads it directly. laugh_along and an observed laugh aren't drawn,
+ * so carry no tag; pushback is the candor lines' knob (CANDOR=on).
+ */
 export type W3Knob = 'replyLength' | 'laugh' | 'opinion' | 'filler' | 'pushback';
 export interface Move {
   id: string;
   w3Knob?: W3Knob;
 }
 const W3_KNOB: Record<string, W3Knob> = {
-  laugh_along: 'laugh',
   laugh_spontaneous: 'laugh',
-  laughed: 'laugh',
   opinion: 'opinion',
+  stance: 'opinion',
   filler: 'filler',
+  rough: 'filler',
   candor: 'pushback',
   candor_yes: 'pushback',
   candor_unknowable: 'pushback',
-  stance: 'pushback',
 };
 const tagged = (id: string): Move => (W3_KNOB[id] ? { id, w3Knob: W3_KNOB[id] } : { id });
 

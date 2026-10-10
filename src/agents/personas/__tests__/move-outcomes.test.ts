@@ -149,7 +149,7 @@ describe('move outcomes (MOVE_OUTCOMES)', () => {
     // Tagged with the STYLE_PROFILE knob each one went through; untagged otherwise.
     expect(first.moves).toEqual(
       expect.arrayContaining([
-        { id: 'laugh_along', w3Knob: 'laugh' },
+        { id: 'laugh_along' },
         { id: 'candor', w3Knob: 'pushback' },
         { id: 'asked' },
         { id: 'backchannel' },
@@ -253,6 +253,40 @@ describe('move outcomes (MOVE_OUTCOMES)', () => {
     expect(success([turn(10, { bargedIn: true }), turn(12)])).toBe(0);
     expect(success([turn(10), turn(12, {}, true)])).toBe(0);
     expect(success([turn(10)])).toBeNull();
+  });
+
+  it('tags the moves W3 multiplies with their knob, and only those', () => {
+    const moves = ['laugh_spontaneous', 'laugh_along', 'stance', 'rough', 'candor_yes', 'callback'];
+    const rec = buildMoveOutcomeRecord(
+      {
+        sessionId: 's',
+        startedAt: 0,
+        entries: [
+          {
+            moves,
+            replyLength: 'short',
+            caller: { words: 3, disclosure: false, laughed: false, dropped: false, goodbye: false },
+            replied: true,
+            bargedIn: false,
+            replyWords: 2,
+          },
+        ],
+        last: '',
+        earlier: new Set(),
+        current: new Set(),
+      },
+      0,
+      1000
+    );
+    expect(rec.turns[0].replyLength).toBe('short');
+    expect(rec.turns[0].moves).toEqual([
+      { id: 'laugh_spontaneous', w3Knob: 'laugh' },
+      { id: 'laugh_along' },
+      { id: 'stance', w3Knob: 'opinion' },
+      { id: 'rough', w3Knob: 'filler' },
+      { id: 'candor_yes', w3Knob: 'pushback' },
+      { id: 'callback' },
+    ]);
   });
 
   it('records nothing with the flag off', async () => {
