@@ -11,7 +11,8 @@
  * picked from the caller's turn, with some randomness so it never settles
  * into a pattern, and the reminder says it plainly for this one reply.
  *
- * TURN_SHAPE=off falls back to the single reminder (turn-style.ts).
+ * TURN_SHAPE=off falls back to the single reminder (turn-style.ts); TURN_SHAPE=model
+ * lets the model judge the shape (modelChosenShape).
  *
  * @module agents/personas/turn-shape
  */
@@ -20,6 +21,8 @@ import { callerVenting, extrasFor } from './turn-extras.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
+/** dice: shape drawn per turn (default). model: the model judges the shape. off: turn-style.ts. */
+export type TurnShapeMode = 'dice' | 'model' | 'off';
 
 /**
  * Things only a tool knows: weather, news, scores, travel times, places
@@ -160,8 +163,45 @@ const LOOKUP =
   'They asked about something live that you have to look up: if you have no tool result for it yet, call the tool for it now and answer from what it returns. ' +
   "Never state a forecast, score, headline, price, opening hour or travel time that you didn't get from a tool on this call; if no tool can get it, say you can't check that right now.";
 
+/**
+ * TURN_SHAPE=model: the shape is the model's call, not a dice roll. Drawn at
+ * random, a quarter of everything shared got "just react, six words at most",
+ * so a sister's pregnancy got "No way, right on the trail" and a two-year
+ * reunion "Two years is a really long time." (judge.mjs on prod calls,
+ * 2026-10-10: thought 2.38, below a friend). These say how a friend fits a
+ * reply to the moment and leave the fitting to the model. No example phrases:
+ * the model repeats examples word for word.
+ */
+const FIT_THE_MOMENT =
+  'How long and what kind of reply is yours to judge from what they just did, the way a good friend on the phone would. ' +
+  'A passing remark or a quick yes gets a quick, natural reaction. ' +
+  'Anything that matters to them, good or bad (news, something they are proud of, worried about or hurt by), gets a real response to that specific thing, with the feeling it deserves, not a remark that would fit anything. ' +
+  'When they ask you something or ask for help, actually answer it; when they ask about you, talk about yourself, something specific. ' +
+  'Most replies are a sentence or two, some only a few words; go longer only when they asked for it.';
+const OWN_SELF =
+  'Bring yourself into it: your own view when you have one, a small piece of your own life when one genuinely comes to mind, and "I don\'t know" when you don\'t.';
+const QUESTION_BY_JUDGMENT =
+  'Ask a question only when you genuinely want to know the answer, about something specific they said; most replies end on a thought, not a question.';
+
+function modelChosenShape(userText: string, rng: () => number): TurnShape {
+  const move = callerMove(userText);
+  if (move === 'lookup') {
+    const reminder = [REGISTER, LOOKUP, SHAPE_LINE.answer, QUESTION_LINE.none].join(' ');
+    return { move, shape: 'answer', reminder, extras: [] };
+  }
+  // Extras add texture (laughing along, a filler) but no longer set the shape.
+  const extras = extrasFor(userText, move, 'answer', false, rng);
+  const parts = [REGISTER, OWN_SELF, ...extras.lines, FIT_THE_MOMENT, QUESTION_BY_JUDGMENT];
+  return { move, shape: 'answer', reminder: parts.join(' '), extras: ['model_shape', ...extras.fired] };
+}
+
 /** The reminder for one reply to `userText`. */
-export function turnShapeFor(userText: string, rng: () => number = Math.random): TurnShape {
+export function turnShapeFor(
+  userText: string,
+  rng: () => number = Math.random,
+  mode: TurnShapeMode = turnShapeMode()
+): TurnShape {
+  if (mode === 'model') return modelChosenShape(userText, rng);
   const move = callerMove(userText);
   const shape = pickShape(move, rng);
   if (move === 'lookup') {
@@ -188,8 +228,12 @@ export function turnShapeFor(userText: string, rng: () => number = Math.random):
   return { move, shape, reminder: parts.filter(Boolean).join(' '), extras: extras.fired };
 }
 
+export function turnShapeMode(env: Record<string, string | undefined> = process.env): TurnShapeMode {
+  return env.TURN_SHAPE === 'off' ? 'off' : env.TURN_SHAPE === 'model' ? 'model' : 'dice';
+}
+
 export function turnShapeEnabled(env: Record<string, string | undefined> = process.env): boolean {
-  return env.TURN_SHAPE !== 'off';
+  return turnShapeMode(env) !== 'off';
 }
 
 /**
