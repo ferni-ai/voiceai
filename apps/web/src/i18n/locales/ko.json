@@ -11043,5 +11043,9 @@
     "samplePattern": "\"일요일 저녁을 조금 힘들어하시는 것 같아요...\"",
     "sampleInsight": "\"이번 주에 피곤하다는 말씀을 8번 하셨어요. 이 피로감은 직장에서의 경계 세우기에 어려움을 느끼는 부분과 관련이 있어 보여요.\"",
     "sampleEvidence": "{count}번의 대화 기준"
+  },
+  "agentAcks": {
+    "gameStartFailed": "게임을 시작하지 못했어요. Ferni에게 말로 요청해 보세요.",
+    "actionFailed": "처리되지 않았어요. 이미 완료되었을 수도 있어요."
   }
 }

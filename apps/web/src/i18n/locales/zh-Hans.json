@@ -11043,5 +11043,9 @@
     "samplePattern": "“周日的傍晚对你来说似乎有些难熬……”",
     "sampleInsight": "“这周你提到了 8 次感到疲惫。这种疲惫似乎与你在工作中难以划定界限有关。”",
     "sampleEvidence": "基于 {count} 次对话"
+  },
+  "agentAcks": {
+    "gameStartFailed": "游戏没能开始。试试直接对 Ferni 说出来吧。",
+    "actionFailed": "没有成功。可能已经处理过了。"
   }
 }

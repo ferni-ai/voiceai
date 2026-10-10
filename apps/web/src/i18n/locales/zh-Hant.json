@@ -11043,5 +11043,9 @@
     "samplePattern": "「星期天晚上對你來說似乎特別不容易……」",
     "sampleInsight": "「你這週提到了 8 次感到疲憊。這份疲倦似乎與你在工作上建立界線的挑戰有關。」",
     "sampleEvidence": "基於 {count} 次對話"
+  },
+  "agentAcks": {
+    "gameStartFailed": "遊戲沒能開始。試著直接對 Ferni 說出來吧。",
+    "actionFailed": "沒有成功。可能已經處理過了。"
   }
 }

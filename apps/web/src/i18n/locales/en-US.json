@@ -11043,5 +11043,9 @@
     "samplePattern": "\"Sunday evenings seem hard for you...\"",
     "sampleInsight": "\"You've mentioned feeling tired 8 times this week. The tiredness seems connected to boundary-setting challenges at work.\"",
     "sampleEvidence": "Based on {count} conversations"
+  },
+  "agentAcks": {
+    "gameStartFailed": "That game didn't start. Try asking Ferni to play it out loud.",
+    "actionFailed": "That didn't go through. It may already have been taken care of."
   }
 }

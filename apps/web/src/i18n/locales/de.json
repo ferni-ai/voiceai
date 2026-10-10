@@ -11043,5 +11043,9 @@
     "samplePattern": "\"Sonntagabende scheinen schwer für dich zu sein...\"",
     "sampleInsight": "\"Du hast diese Woche 8-mal erwähnt, dass du müde bist. Die Müdigkeit scheint mit Schwierigkeiten beim Grenzenziehen bei der Arbeit zusammenzuhängen.\"",
     "sampleEvidence": "Basierend auf {count} Gesprächen"
+  },
+  "agentAcks": {
+    "gameStartFailed": "Das Spiel hat nicht gestartet. Sag Ferni einfach, dass du es spielen möchtest.",
+    "actionFailed": "Das hat nicht geklappt. Vielleicht wurde es schon erledigt."
   }
 }
