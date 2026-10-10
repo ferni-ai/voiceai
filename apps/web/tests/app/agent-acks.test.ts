@@ -1,6 +1,6 @@
 /**
  * The app hears the agent's failures: acks with `success: false`, the notice that
- * team mode did not start, and top-level micro expressions.
+ * team mode did not start (which must not block handoffs), and micro expressions.
  *
  * Every message goes through the real handleDataMessage. The payload shapes are
  * the ones the agent sends (src/agents/voice-agent/data-channel-handler.ts,
@@ -23,6 +23,19 @@ vi.mock('../../src/ui/whisper.ui.js', () => ({
   },
 }));
 
+// The room a handoff request is published to.
+const published = vi.hoisted(() => [] as unknown[]);
+vi.mock('../../src/services/connection.service.js', () => ({
+  connectionService: {
+    getRoom: () => ({
+      localParticipant: {
+        publishData: async (bytes: Uint8Array) =>
+          void published.push(JSON.parse(new TextDecoder().decode(bytes))),
+      },
+    }),
+  },
+}));
+
 // Animations run to completion at once, so the board's visible state is readable.
 vi.mock('../../src/utils/gsap-setup.js', () => ({
   gsap: {
@@ -33,7 +46,6 @@ vi.mock('../../src/utils/gsap-setup.js', () => ({
 }));
 
 import { handleDataMessage } from '../../src/app/data-message-handlers.js';
-import { isMultiAgentUnavailable } from '../../src/state/multi-agent-availability.js';
 import { handoffService } from '../../src/services/handoff.service.js';
 import { destroyGameBoard, initGameBoard } from '../../src/ui/game-board.ui.js';
 import { ferniExpressions } from '../../src/ui/ferni-expressions.ui.js';
@@ -63,6 +75,7 @@ const pickerOpensBoard = (gameType: string): void =>
 beforeEach(() => {
   toastCalls.error.length = 0;
   toastCalls.info.length = 0;
+  published.length = 0;
 });
 
 afterEach(() => {
@@ -172,39 +185,24 @@ describe('team mode that did not start', () => {
     fallbackMode: 'single-agent',
   });
 
-  it('tells the user once, even though the agent sends it twice', () => {
-    deliver(unavailable);
-    deliver(unavailable);
-    expect(toastCalls.info).toEqual([
-      "Team mode isn't available on this call, so it's just Ferni for now.",
-    ]);
-  });
+  afterEach(() => handoffService.resetSession());
 
-  it('refuses team handoffs for the rest of the call', async () => {
+  // The agent's single-agent data-channel handler still runs handoffs through the
+  // coordinator, so this notice must not take team switching away.
+  it('does not block a handoff request, and says nothing to the user', async () => {
+    deliver(unavailable);
+    deliver(unavailable);
+
+    expect(toastCalls.info).toEqual([]);
+    expect(toastCalls.error).toEqual([]);
     const onFailure = vi.fn();
-    expect(isMultiAgentUnavailable()).toBe(false);
-
-    deliver(unavailable);
-
-    expect(isMultiAgentUnavailable()).toBe(true);
-    expect(document.documentElement.dataset['multiAgent']).toBe('unavailable');
     await expect(handoffService.sendHandoffRequest('maya-santos', { onFailure })).resolves.toBe(
-      false
+      true
     );
-    expect(onFailure).toHaveBeenCalledWith(
-      expect.objectContaining({ message: expect.stringContaining('unavailable') })
-    );
-    expect(handoffService.isTransitioning).toBe(false);
-  });
-
-  it('starts fresh on the next call', () => {
-    deliver(unavailable);
-    document.dispatchEvent(new CustomEvent('ferni:disconnected'));
-
-    expect(isMultiAgentUnavailable()).toBe(false);
-    expect(document.documentElement.dataset['multiAgent']).toBeUndefined();
-    deliver(unavailable);
-    expect(toastCalls.info).toHaveLength(2);
+    expect(onFailure).not.toHaveBeenCalled();
+    expect(published).toEqual([
+      expect.objectContaining({ type: 'handoff_request', target: 'maya-santos' }),
+    ]);
   });
 });
 

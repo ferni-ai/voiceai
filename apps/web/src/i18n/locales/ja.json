@@ -11028,7 +11028,6 @@
     "sampleEvidence": "{count}回のお話に基づく"
   },
   "agentAcks": {
-    "multiAgentUnavailable": "この通話ではチームモードを使えないため、今はFerniとだけお話しできます。",
     "gameStartFailed": "ゲームを始められませんでした。Ferniに声でお願いしてみてくださいね。",
     "actionFailed": "うまくいきませんでした。すでに処理済みかもしれません。"
   }

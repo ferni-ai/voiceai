@@ -11028,7 +11028,6 @@
     "sampleEvidence": "基于 {count} 次对话"
   },
   "agentAcks": {
-    "multiAgentUnavailable": "这次通话暂时无法使用团队模式，目前只有 Ferni 陪着你。",
     "gameStartFailed": "游戏没能开始。试试直接对 Ferni 说出来吧。",
     "actionFailed": "没有成功。可能已经处理过了。"
   }

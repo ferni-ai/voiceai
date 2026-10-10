@@ -15,7 +15,6 @@
 
 import { playMicroExpression } from '../eq/index.js';
 import { t } from '../i18n/index.js';
-import { markMultiAgentUnavailable } from '../state/multi-agent-availability.js';
 import type { DataMessage } from '../types/events.js';
 import { toast } from '../ui/whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
@@ -54,28 +53,14 @@ function undoGameStart(gameType: unknown): void {
   }
 }
 
-const MULTI_AGENT_STYLE_ID = 'multi-agent-unavailable-styles';
-
-/** Dim the team roster's persona buttons: handoffs are refused for this call. */
-function injectUnavailableStyles(): void {
-  if (document.getElementById(MULTI_AGENT_STYLE_ID)) return;
-  const style = document.createElement('style');
-  style.id = MULTI_AGENT_STYLE_ID;
-  style.textContent =
-    'html[data-multi-agent="unavailable"] #teamRoster .team-member:not(.team-member--marketplace)' +
-    ' { opacity: 0.5; pointer-events: none; }';
-  document.head.appendChild(style);
-}
-
+/**
+ * The agent fell back to a single agent. Handoffs still work there (the agent's
+ * data-channel handler runs them through the coordinator), so the UI stays as is.
+ */
 function handleMultiAgentUnavailable(message: DataMessage): void {
   log.warn('Team mode unavailable, agent fell back to a single agent', {
     reason: message['reason'],
   });
-  // The agent can send this twice for one failure; tell the user once.
-  if (!markMultiAgentUnavailable()) return;
-  injectUnavailableStyles();
-  toast.info(t('agentAcks.multiAgentUnavailable'));
-  document.dispatchEvent(new CustomEvent('ferni:multi-agent-unavailable'));
 }
 
 function handleMicroExpression(message: DataMessage): void {

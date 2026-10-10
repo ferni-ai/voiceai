@@ -11028,7 +11028,6 @@
     "sampleEvidence": "{count}번의 대화 기준"
   },
   "agentAcks": {
-    "multiAgentUnavailable": "이번 통화에서는 팀 모드를 사용할 수 없어서 지금은 Ferni와만 이야기할 수 있어요.",
     "gameStartFailed": "게임을 시작하지 못했어요. Ferni에게 말로 요청해 보세요.",
     "actionFailed": "처리되지 않았어요. 이미 완료되었을 수도 있어요."
   }

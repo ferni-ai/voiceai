@@ -11154,7 +11154,6 @@
     "sampleEvidence": "Según {count} conversaciones"
   },
   "agentAcks": {
-    "multiAgentUnavailable": "El modo equipo no está disponible en esta llamada, así que por ahora solo estás con Ferni.",
     "gameStartFailed": "El juego no arrancó. Pídele a Ferni en voz alta que lo juegue contigo.",
     "actionFailed": "Eso no salió bien. Puede que ya se haya resuelto."
   }

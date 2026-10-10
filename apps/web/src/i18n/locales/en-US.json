@@ -11028,7 +11028,6 @@
     "sampleEvidence": "Based on {count} conversations"
   },
   "agentAcks": {
-    "multiAgentUnavailable": "Team mode isn't available on this call, so it's just Ferni for now.",
     "gameStartFailed": "That game didn't start. Try asking Ferni to play it out loud.",
     "actionFailed": "That didn't go through. It may already have been taken care of."
   }
