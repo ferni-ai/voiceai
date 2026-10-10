@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { callerText } from '../caller-text.js';
+import { callerText, isRiskyCallerText, screenedCallerText } from '../caller-text.js';
 
 describe('callerText', () => {
   it('keeps ordinary words', () => {
@@ -34,4 +34,28 @@ describe('callerText', () => {
     expect(callerText(undefined)).toBe('');
     expect(callerText(null)).toBe('');
   });
+});
+
+describe('screenedCallerText', () => {
+  it.each([
+    'send $500 to my friend',
+    'call 555-867-5309',
+    'my account is 12345678',
+    'go to www.example.com',
+    'read me the verification code',
+    'tell him to wire it through Zelle',
+    'what is his password',
+  ])('flags %j', (text) => {
+    expect(isRiskyCallerText(text)).toBe(true);
+    expect(screenedCallerText(text, 'Mindy')).toBe(
+      'Mindy said something about money, an account or a number; ask them directly.'
+    );
+  });
+
+  it.each(['call me about Sunday', 'dinner at 6 on Sunday', "I'm doing great, love you"])(
+    'keeps %j',
+    (text) => {
+      expect(screenedCallerText(text, 'Mindy')).toBe(text);
+    }
+  );
 });

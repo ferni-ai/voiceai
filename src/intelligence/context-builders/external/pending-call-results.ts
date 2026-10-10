@@ -23,7 +23,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { CALLER_TEXT_GUARD } from '../../../services/outreach/caller-text.js';
+import { CALLER_TEXT_GUARD, reportedFromCall } from '../../../services/outreach/caller-text.js';
 
 const log = createLogger({ module: 'PendingBackgroundResults' });
 
@@ -179,28 +179,29 @@ export async function buildPendingCallResultsContext(userId: string): Promise<st
 
   for (const result of results) {
     lines.push(`### Call to ${result.contactName}`);
+    const body: string[] = [];
 
     if (result.objectiveAchieved) {
-      lines.push(`✅ **SUCCESS**: ${result.outcome}`);
+      body.push(`✅ **SUCCESS**: ${result.outcome}`);
     } else if (result.status === 'voicemail') {
-      lines.push(`📞 **Left voicemail**: ${result.outcome}`);
+      body.push(`📞 **Left voicemail**: ${result.outcome}`);
     } else if (result.status === 'no_answer') {
-      lines.push(`📞 **No answer**: ${result.outcome}`);
+      body.push(`📞 **No answer**: ${result.outcome}`);
     } else if (result.status === 'busy') {
-      lines.push(`📞 **Line busy**: ${result.outcome}`);
+      body.push(`📞 **Line busy**: ${result.outcome}`);
     } else {
-      lines.push(`❌ **Couldn't connect**: ${result.outcome}`);
+      body.push(`❌ **Couldn't connect**: ${result.outcome}`);
     }
 
     if (result.callbackRequired) {
-      lines.push(`⚠️ They want a callback from the user.`);
+      body.push(`⚠️ They want a callback from the user.`);
     }
 
     if (result.actionItems && result.actionItems.length > 0) {
-      lines.push(`📝 Action items: ${result.actionItems.join(', ')}`);
+      body.push(`📝 Action items: ${result.actionItems.join(', ')}`);
     }
 
-    lines.push('');
+    lines.push(...reportedFromCall(result.contactName, body), '');
   }
 
   lines.push('**How to tell them:**');

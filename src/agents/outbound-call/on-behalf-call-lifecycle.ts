@@ -20,7 +20,7 @@ import type {
   SuperhumanCallResult,
 } from '../../services/outreach/call-transcript-intelligence.js';
 import type { OnBehalfDispatch } from '../../services/outreach/on-behalf-dispatch.js';
-import { callerText } from '../../services/outreach/caller-text.js';
+import { screenedCallerText } from '../../services/outreach/caller-text.js';
 
 const log = createLogger({ module: 'on-behalf-call-lifecycle' });
 
@@ -55,8 +55,8 @@ export function toOnBehalfCallRequest(call: OnBehalfDispatch): OnBehalfCallReque
  * What the requester is told. `turns` is the raw transcript (null if capture
  * never started); `analysis` is the LLM's read of it (null if that failed).
  * Everything that came from the call (the other person's words and the model's
- * read of them) is untrusted and goes through callerText before it reaches the
- * requester's prompt, push, email or calendar.
+ * read of them) is untrusted and goes through screenedCallerText before it
+ * reaches the requester's prompt, push, email or calendar.
  */
 export function buildCallOutcome(
   call: OnBehalfDispatch,
@@ -86,19 +86,19 @@ export function buildCallOutcome(
   }
 
   if (!analysis) {
-    const quote = callerText(heard.slice(-2).join(' '), 200);
+    const quote = screenedCallerText(heard.slice(-2).join(' '), name, 200);
     return {
       callId: call.callId,
       status: 'completed',
       objectiveAchieved: false,
       outcome: `I talked with ${name}. I couldn't put together a proper summary, but the last thing they said was: "${quote}"`,
-      transcriptSummary: callerText(heard.join(' '), 600),
+      transcriptSummary: screenedCallerText(heard.join(' '), name, 600),
     };
   }
 
   const { insights, friendlyReport } = analysis;
   const clean = (items: string[] | undefined) =>
-    (items ?? []).map((item) => callerText(item, 200)).filter(Boolean);
+    (items ?? []).map((item) => screenedCallerText(item, name, 200)).filter(Boolean);
   const actionItems = [
     ...clean(insights.messagesForUser).map((m) => `${name} said: ${m}`),
     ...clean(insights.actionItems),
@@ -107,10 +107,10 @@ export function buildCallOutcome(
     callId: call.callId,
     status: 'completed',
     objectiveAchieved: insights.objectiveAchieved,
-    outcome: callerText(friendlyReport || insights.summary, 500),
-    transcriptSummary: callerText(insights.detailedSummary || insights.summary, 600),
+    outcome: screenedCallerText(friendlyReport || insights.summary, name, 500),
+    transcriptSummary: screenedCallerText(insights.detailedSummary || insights.summary, name, 600),
     callbackRequired: insights.callbackRequested,
-    callbackTime: callerText(insights.callbackDetails, 100) || undefined,
+    callbackTime: screenedCallerText(insights.callbackDetails, name, 100) || undefined,
     actionItems: actionItems.length > 0 ? actionItems : undefined,
   };
 }

@@ -21,7 +21,7 @@ import type {
   OutcomeStatus,
 } from './result-types.js';
 import { createBackgroundResult, sortResultsForDisplay } from './result-types.js';
-import { CALLER_TEXT_GUARD } from '../outreach/caller-text.js';
+import { CALLER_TEXT_GUARD, reportedFromCall } from '../outreach/caller-text.js';
 
 const log = createLogger({ module: 'UnifiedResultCapture' });
 
@@ -564,23 +564,21 @@ export async function buildPendingResultsContext(userId: string): Promise<string
           : '';
 
     lines.push(`### ${icon} ${result.type.replace(/_/g, ' ')}${priority}`);
-    lines.push(`**${result.summary}**`);
-
-    if (result.details) {
-      lines.push(result.details);
-    }
-
+    const body = [`**${result.summary}**`];
+    if (result.details) body.push(result.details);
     if (result.requiresCallback) {
-      lines.push(
+      body.push(
         `⚠️ They want a callback${result.callbackTime ? ` around ${result.callbackTime}` : ''}`
       );
     }
-
     if (result.actionItems && result.actionItems.length > 0) {
-      lines.push(`📝 Action items: ${result.actionItems.join(', ')}`);
+      body.push(`📝 Action items: ${result.actionItems.join(', ')}`);
     }
-
-    lines.push('');
+    // A call's result is the other person's words: framed as reported speech, never as directions.
+    lines.push(
+      ...(result.type === 'on_behalf_call' ? reportedFromCall(result.contactName, body) : body),
+      ''
+    );
   }
 
   lines.push('**How to share:**');
