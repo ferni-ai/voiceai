@@ -129,6 +129,7 @@ import {
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
 import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
+import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 
 const log = getLogger();
 
@@ -311,6 +312,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
   let systemPrompt: string;
   let modelBaseInstructions: string;
+  // The model-level text before this call's date, time and caller are added.
+  let stableBase = '';
   try {
     mark('load_prompts_start');
     // Load both levels of instructions in parallel (imports now hoisted to module level)
@@ -321,6 +324,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     mark('load_prompts_done');
 
     systemPrompt = loadedSystemPrompt;
+    stableBase = baseInstructions;
 
     // =========================================================================
     // DATE/TIME AWARENESS - Critical for grounding agent in reality
@@ -331,10 +335,11 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     const dateTimeContext = timeContext(new Date(), userData?.callerTimezone);
 
     // Append date/time to model base instructions (session-specific, not cached)
-    modelBaseInstructions = baseInstructions + dateTimeContext;
+    const outboundAwareness = outboundCallerAwareness(outboundPartiesFor(sessionId));
+    modelBaseInstructions = baseInstructions + dateTimeContext + outboundAwareness;
 
-    // USER AWARENESS: who they're talking to, from the first moment
-    const { userProfile } = services;
+    // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
+    const userProfile = outboundAwareness ? undefined : services.userProfile;
     if (userProfile) {
       rememberCallerHistory(sessionId, callerHistory(userProfile)); // for the greeting
       const userAwareness: string[] = [];
@@ -495,7 +500,6 @@ ${userAwareness.join('\n')}
 Use this awareness naturally. Don't announce what you know - just BE a friend who remembers.
 Reference past context when relevant, but don't force it. Let the conversation flow.
 `;
-        // DETAILED LOGGING: Show exactly what "Better Than Human" context is being injected
         log.info(
           { personaId: persona.id, userAwarenessCount: userAwareness.length },
           `👤 BETTER THAN HUMAN - User awareness injected (${userAwareness.length} facts)`
@@ -569,7 +573,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
               if (calendarAwareness.length > 0) {
                 // Store in userData for use in turn-handler injection (turn 0-1)
                 userData.calendarAwareness = calendarAwareness.join(' ');
-                // DETAILED LOGGING: Show calendar awareness being stored
                 log.info(
                   { personaId: persona.id, calendarInsightsCount: calendarAwareness.length },
                   `📅 BETTER THAN HUMAN - Calendar awareness loaded (${calendarAwareness.length} insights)`
@@ -1588,7 +1591,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const agentInstructions = composeAgentInstructions(
     systemPrompt,
     modelBaseInstructions,
-    modelProvider.getPromptModules()
+    modelProvider.getPromptModules(),
+    { stableBase }
   );
 
   const agent = new FerniAgent(agentInstructions, {

@@ -836,10 +836,15 @@ export async function loadModelBaseInstructions(): Promise<string> {
       );
     }
 
+    // The one rule for when someone sincerely asks if they're talking to an AI.
+    // Appended to every base (character, minimal, full) so no persona or
+    // provider path can lose it; the persona prompts never bring it up.
+    const aiHonesty = await fs.readFile(join(sharedDir, 'ai-honesty.md'), 'utf-8');
+
     // Combine: base content + voice output rules (always appended)
-    const combined = voiceOutputRules
-      ? `${baseContent}\n\n---\n\n${voiceOutputRules}`
-      : baseContent;
+    const combined = [baseContent, voiceOutputRules, aiHonesty]
+      .filter(Boolean)
+      .join('\n\n---\n\n');
 
     // A provider that speaks for itself must not be taught Cartesia markup.
     const adapted =

@@ -81,7 +81,7 @@ The boundaries dissolved. Not metaphorically—actually. The rock, the air, the 
 - "The enlightened way is..."
 - "Let me tell you how to..."
 
-**AI tells:**
+**Stock phrases:**
 - "That's interesting"
 - "I understand"
 - "Let me help you with that"

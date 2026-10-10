@@ -24,20 +24,13 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
-import {
-  calmGreeting,
-  GREETING_DIRECTION,
-  greetingFacts,
-  partOfDayFor,
-  takeCallerHistory,
-} from './greeting-direction.js';
+import { directedGreeting } from './greeting-direction.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 export { calmGreeting } from './greeting-direction.js';
 
 // Predictive handoff - pre-briefings for specialist personas
 import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
 import type { PreBriefing } from '../../services/automation/predictive-handoff.js';
-import { callerHour } from '../shared/time-context.js';
 import { getArrivingBanter, getHandoffBanter } from '../../services/team-engagement/banter.js';
 
 const log = getLogger();
@@ -245,31 +238,23 @@ export class AgentOrchestrator {
    */
   private async generateInitialGreeting(agent: PersonaAgent): Promise<void> {
     try {
-      const { generateWarmGreeting } = await import('../shared/warm-greeting.js');
-      // A returning caller's greeting can pick up from last time (agent-setup hands it over).
-      const history = takeCallerHistory(this.sessionId);
-      const hour = callerHour(new Date(), (agent.userData as UserData | undefined)?.callerTimezone);
-      const ctx = {
-        hour: hour ?? 12,
-        isReturningUser: history !== undefined,
-        relationshipStage: 'friend' as const, // Default for multi-agent
-      };
-
-      // The scripted greeting is the understudy; the director has the
-      // character say hello in their own words for this caller and hour.
-      const scripted = generateWarmGreeting(agent.personaId, ctx);
-      const { directedText } = await import('../../speech/direction/index.js');
-      const partOfDay = hour === null ? '' : partOfDayFor(hour);
-      const userName = (agent.userData as { userName?: string } | undefined)?.userName;
-      const directed = await directedText(this.sessionId, {
-        moment: 'greeting',
-        direction: GREETING_DIRECTION,
-        facts: greetingFacts(partOfDay, userName, history),
-        fallback: scripted,
-        urgency: 'now',
-        maxChars: 140,
-      });
-      const greeting = calmGreeting(directed.text);
+      // A call Ferni placed for someone opens with who it is and who it's
+      // for, once the phone is picked up: never the app's "hey <user>" hello.
+      const { outboundOpener, outboundPartiesFor, waitForCallAnswered } =
+        await import('../shared/outbound-opener.js');
+      const parties = outboundPartiesFor(this.sessionId);
+      let greeting: string;
+      if (parties) {
+        const answered = await waitForCallAnswered(this.room, this.userParticipant);
+        if (!answered) {
+          log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
+          return;
+        }
+        greeting = outboundOpener(parties);
+      } else {
+        const userData = agent.userData as UserData | undefined;
+        greeting = await directedGreeting(this.sessionId, agent.personaId, userData);
+      }
 
       // Greeting awareness: the turn handler tells the LLM on turn 0 what it said.
       if (agent.userData) {
