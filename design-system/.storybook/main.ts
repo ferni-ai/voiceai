@@ -6,19 +6,14 @@ const config: StorybookConfig = {
     '../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)',
     '../stories/react/**/*.stories.@(js|jsx|mjs|ts|tsx)',
   ],
-  addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-a11y',
-    '@storybook/addon-interactions',
-  ],
+  // Storybook 9+ ships controls, actions, backgrounds, viewport and interactions in core;
+  // docs (MDX + autodocs via the `autodocs` story tag) is the separate addon-docs.
+  addons: ['@storybook/addon-docs', '@storybook/addon-a11y'],
   framework: {
     name: '@storybook/html-vite',
     options: {},
   },
   staticDirs: ['../dist', '../assets'],
-  docs: {
-    autodocs: 'tag',
-  },
 };
 
 export default config;
