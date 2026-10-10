@@ -53,6 +53,47 @@ export function beginSwap<T>(
   return task.result;
 }
 
+/**
+ * Offer `agent` with `onReady` and wait for the SDK to swap it in itself: a handoff the LLM
+ * asked for returns it from its tool as `llm.handoff({ agent })`, and the SDK calls
+ * `updateAgent` once the tool call is over. Returns that transition (wrapped: an async
+ * function would otherwise wait for it).
+ */
+async function swapBySdk<T>(
+  session: voice.AgentSession<T>,
+  agent: voice.Agent<T>,
+  onReady: (agent: voice.Agent<T>) => void,
+  timeoutMs: number
+): Promise<{ transition: Promise<unknown> }> {
+  const before = (session as unknown as Transitioning).updateActivityTask;
+  onReady(agent);
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const task = (session as unknown as Transitioning).updateActivityTask;
+    if (task && task !== before && currentAgentOf(session) === agent) {
+      return { transition: task.result };
+    }
+    if (Date.now() >= deadline)
+      throw new Error(`The handoff tool didn't swap within ${timeoutMs}ms`);
+    const state = session as unknown as { _started?: boolean; _closing?: boolean };
+    if (state._started === false || state._closing === true) {
+      throw new Error('The call ended before the handoff tool swapped'); // nothing to wait for
+    }
+    // eslint-disable-next-line no-await-in-loop -- polling for the SDK's own swap
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 25);
+    });
+  }
+}
+
+function currentAgentOf<T>(session: voice.AgentSession<T>): unknown {
+  try {
+    return session.currentAgent;
+  } catch {
+    return undefined; // not running
+  }
+}
+
 /** Rejects if `transition` hasn't finished within `timeoutMs` */
 export async function within(transition: Promise<unknown>, timeoutMs: number): Promise<void> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -90,7 +131,8 @@ export function isSwappable(persona: object): persona is SwappablePersona {
 }
 
 /**
- * Swap `to` in for `from` in the call's session, with the talk so far and `to`'s voice
+ * Swap `to` in for `from` in the call's session (or, with `onReady`, let the handoff tool
+ * hand it to the SDK: swapBySdk), with the talk so far and `to`'s voice
  * (userData.personaId picks the voice for every line spoken). If `to` doesn't come up,
  * `from` is swapped back once the failed transition has settled (the SDK runs them in
  * order, so a swap back can't overtake it), and only then gets its voice back. `forget`
@@ -104,6 +146,7 @@ export async function swapPersona(
   from: SwappablePersona,
   to: object,
   forget: (persona: SwappablePersona) => void,
+  onReady?: (agent: voice.Agent<UserData>) => void,
   timeoutMs = SWAP_TIMEOUT_MS
 ): Promise<void> {
   if (!isSwappable(to)) throw new Error("The next persona can't join the call's session");
@@ -111,7 +154,16 @@ export async function swapPersona(
   const swapNumber = (latestSwap.get(session) ?? 0) + 1;
   latestSwap.set(session, swapNumber);
   await to.agent.updateChatCtx(conversationSoFar(session));
-  const transition = beginSwap(session, to.agent);
+  let transition: Promise<unknown>;
+  try {
+    transition = onReady
+      ? (await swapBySdk(session, to.agent, onReady, timeoutMs)).transition
+      : beginSwap(session, to.agent);
+  } catch (error) {
+    forget(to); // never swapped in: nothing to swap back
+    await to.release();
+    throw error;
+  }
   if (to.userData) to.userData.personaId = to.personaId;
   try {
     await within(transition, timeoutMs);
