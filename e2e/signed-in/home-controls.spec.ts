@@ -80,6 +80,10 @@ test('Connect with no voice server says so and stays usable', async ({ page }) =
 
 async function openPalette(page: Page) {
   await expect(page.locator('.command-palette')).toBeAttached(); // created just after load
+  // Fully closed first, or a palette still fading out counts as "already shown" and the
+  // reopened one never looks new (seen on the slower CI runner)
+  await expect(page.locator('.command-palette--open')).toHaveCount(0);
+  await expect.poll(() => page.locator('.command-palette').evaluate((el) => getComputedStyle(el).opacity)).toBe('0');
   const before = await shownDialogs(page);
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+k' : 'Control+k');
   return newPanel(page, before, 'command palette');
