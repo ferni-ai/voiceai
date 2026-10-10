@@ -41,16 +41,52 @@ export async function* pcmToFrames(pcm: ArrayBuffer): AsyncGenerator<AudioFrame>
   for (const out of resampler.flush()) yield out;
 }
 
+/** How far ahead of real time paced silence runs: a cushion against timer jitter. */
+export const PACED_LEAD_MS = 60;
+
+/** CLIP_TRACK_PACED=on: feed the keep-alive silence in real time (see silence()). */
+export function clipTrackPaced(env: Record<string, string | undefined> = process.env): boolean {
+  return env.CLIP_TRACK_PACED === 'on';
+}
+
 /**
  * Endless silence at mixer rate. The SDK's AudioMixer (rtc-node) ends itself
  * once its last stream is removed, and later play() calls then fail inside a
  * background task while still returning a handle: only the first clip of a
  * session was ever heard (measured 2026-09-28). A silent stream that never
  * ends keeps the mixer open.
+ *
+ * Unpaced, it yields as fast as the mixer takes it, so the player's 400 ms
+ * AudioSource queue sits full of silence and every clip waits behind it:
+ * play() to the wire took 688 ms (rtc-node mixer + source, n=8, 2026-10-10),
+ * and 82% of mid-turn backchannels in dev evals started after the caller was
+ * already talking again. Paced, each 100 ms block is released when it is due
+ * (PACED_LEAD_MS early), so almost nothing is queued ahead of a clip: 219-242
+ * ms to the wire.
+ *
+ * While a clip plays (`busy`), the silence runs unpaced again, so the mixer
+ * fills the source queue with the clip at once: a 60 ms cushion alone would
+ * break a clip up whenever the event loop stalls (VAD lag on dev ran ~470 ms
+ * p50). A clip after that one still reaches the wire in ~200 ms (tested).
  */
-export async function* silence(): AsyncGenerator<AudioFrame> {
+export async function* silence(
+  paced = clipTrackPaced(),
+  busy: () => boolean = () => false
+): AsyncGenerator<AudioFrame> {
   const samples = MIX_RATE / 10; // 100 ms, the mixer's block
-  for (;;) yield new AudioFrame(new Int16Array(samples), MIX_RATE, 1, samples);
+  let due = Date.now();
+  for (;;) {
+    if (paced && !busy()) {
+      const wait = due - PACED_LEAD_MS - Date.now();
+      if (wait > 0) {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, wait);
+        });
+      }
+    }
+    if (paced) due += 100;
+    yield new AudioFrame(new Int16Array(samples), MIX_RATE, 1, samples);
+  }
 }
 
 export class ClipPlayer {
@@ -60,7 +96,7 @@ export class ClipPlayer {
 
   async start(room: Room, session: voice.AgentSession): Promise<void> {
     await this.player.start({ room, agentSession: session });
-    this.player.play({ source: silence() });
+    this.player.play({ source: silence(clipTrackPaced(), () => this.playing) });
     this.started = true;
   }
 
