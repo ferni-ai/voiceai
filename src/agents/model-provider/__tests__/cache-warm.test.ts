@@ -65,6 +65,12 @@ describe('cache warm', () => {
     expect(model.requests).toHaveLength(0);
   });
 
+  it('also warms under FIRST_TURN_FAST=on', async () => {
+    const model = new FakeLLM('main');
+    await warmPromptCache(sessionWith(model), { FIRST_TURN_FAST: 'on' });
+    expect(model.requests).toHaveLength(1);
+  });
+
   it("warms both fast-lane models with the agent's own instructions and tools", async () => {
     const fast = new FakeLLM('fast');
     const main = new FakeLLM('main');
