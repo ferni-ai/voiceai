@@ -26,7 +26,8 @@ import {
   markLivekitDisconnected,
   signalWorkerAcceptingJobs,
 } from '../shared/worker-readiness.js';
-import { runJobInProcess, getActiveJobs, getActiveJobIds, setWorkerId, setOnJobLifecycle, type JobInfo } from './job-executor.js';
+import { setWorkerId, type JobInfo } from './job-executor.js';
+import * as jobRunner from './job-runner.js';
 
 // ============================================================================
 // TYPES
@@ -105,6 +106,23 @@ const cpuLoadSampler = createProcessCpuLoadSampler();
 let lastCpuLoad = 0;
 function getCpuLoad(): number {
   return lastCpuLoad;
+}
+
+/** UpdateWorkerStatus with this load and the running job count; full at the cap or the load threshold. */
+function sendWorkerStatus(
+  load: number,
+  label: string
+): { activeJobs: number; load: number; full: boolean } {
+  const activeJobs = jobRunner.activeJobCount();
+  const full = workerIsFull(activeJobs, load);
+  const status = full ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
+  safeSend(
+    new WorkerMessage({
+      message: { case: 'updateWorker', value: { load, status, jobCount: activeJobs } },
+    }).toBinary(),
+    label
+  );
+  return { activeJobs, load, full };
 }
 
 // ============================================================================
@@ -229,7 +247,11 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       const statusMsg = new WorkerMessage({
         message: {
           case: 'updateWorker',
-          value: { load: 0, status: WorkerStatus.WS_AVAILABLE, jobCount: getActiveJobs() },
+          value: {
+            load: 0,
+            status: WorkerStatus.WS_AVAILABLE,
+            jobCount: jobRunner.activeJobCount(),
+          },
         },
       });
       safeSend(statusMsg.toBinary(), 'worker-status-available');
@@ -238,7 +260,7 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       _log('Worker ready to accept jobs');
 
       // migrateJob: report any active jobs from before reconnect (matches Python SDK behavior)
-      const activeIds = getActiveJobIds();
+      const activeIds = jobRunner.activeJobIds();
       if (activeIds.length > 0) {
         const migrateMsg = new WorkerMessage({
           message: {
@@ -251,7 +273,7 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       }
 
       // Job lifecycle callback: send UpdateJobStatus + UpdateWorkerStatus on every event
-      setOnJobLifecycle((jobId, event) => {
+      jobRunner.setJobLifecycleListener((jobId, event) => {
         if (ws?.readyState !== WebSocket.OPEN) return;
 
         // Map lifecycle event to LiveKit JobStatus
@@ -273,41 +295,19 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
           safeSend(jobStatusMsg.toBinary(), `job-status-${event}`);
         }
 
-        // Send UpdateWorkerStatus with current load + jobCount
-        const jobs = getActiveJobs();
-        const load = getCpuLoad();
-        const workerStatus = workerIsFull(jobs, load) ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
-        const updateMsg = new WorkerMessage({
-          message: {
-            case: 'updateWorker',
-            value: { load, status: workerStatus, jobCount: jobs },
-          },
-        });
-        safeSend(updateMsg.toBinary(), `worker-status-after-${event}`);
-        _log(`Job lifecycle: ${event}`, { jobId, activeJobs: jobs, load, status: workerStatus });
+        const status = sendWorkerStatus(getCpuLoad(), `worker-status-after-${event}`);
+        _log(`Job lifecycle: ${event}`, { jobId, ...status });
       });
 
       startPendingJobsCleanup();
 
-      // RACE CONDITION FIX: Clear any existing status update interval before creating new one
-      if (statusUpdateInterval) {
-        clearInterval(statusUpdateInterval);
-      }
+      // A reconnect re-registers: clear the old status interval before creating a new one.
+      if (statusUpdateInterval) clearInterval(statusUpdateInterval);
 
       // Periodic status updates — 2.5s interval matches official LiveKit SDK
       statusUpdateInterval = setInterval(() => {
-        if (ws?.readyState === WebSocket.OPEN) {
-          const jobs = getActiveJobs();
-          const load = (lastCpuLoad = cpuLoadSampler.sample());
-          const status = workerIsFull(jobs, load) ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
-          const updateMsg = new WorkerMessage({
-            message: {
-              case: 'updateWorker',
-              value: { load, status, jobCount: jobs },
-            },
-          });
-          ws.send(updateMsg.toBinary());
-        }
+        if (ws?.readyState === WebSocket.OPEN)
+          sendWorkerStatus((lastCpuLoad = jobRunner.workerLoad(cpuLoadSampler.sample())), 'status');
       }, 2500);
 
       // FIX: Unref to prevent blocking process exit if closeConnection() isn't called
@@ -324,13 +324,13 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       _log('Job availability request', {
         jobId: job.id,
         roomName,
-        activeJobs: getActiveJobs(),
+        activeJobs: jobRunner.activeJobCount(),
         instanceId: `${_config.agentName}-${process.pid}`,
         hostname: process.env.HOSTNAME || 'local',
       });
 
       // Load-aware: reject if at max capacity to prevent wasted dispatch cycles
-      if (getActiveJobs() >= 3) {
+      if (workerIsFull(jobRunner.activeJobCount(), getCpuLoad())) {
         const rejectResponse = new WorkerMessage({
           message: {
             case: 'availability',
@@ -341,7 +341,10 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
           },
         });
         safeSend(rejectResponse.toBinary(), 'availability-reject-full');
-        _log('Rejected availability — at max capacity', { jobId: job.id, activeJobs: getActiveJobs() });
+        _log('Rejected availability — at max capacity', {
+          jobId: job.id,
+          activeJobs: jobRunner.activeJobCount(),
+        });
         return;
       }
 
@@ -412,7 +415,7 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
         },
       };
 
-      runJobInProcess(jobInfo, _log).catch((error) => {
+      jobRunner.runJob(jobInfo, _log).catch((error) => {
         _log('Job execution failed', { jobId, error: String(error) });
       });
       break;
@@ -428,12 +431,8 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
         timestamp: new Date().toISOString(),
       });
 
-      // Write to stderr for immediate visibility
-      process.stderr.write(
-        `[livekit-connection] 🛑 JOB TERMINATED: ${jobId} ` +
-          `(instance: ${_config.agentName}-${process.pid}, ` +
-          `host: ${process.env.HOSTNAME || 'local'})\n`
-      );
+      if (!jobRunner.terminateJob(jobId, 'livekit_termination'))
+        _log('Terminated job is not running here', { jobId });
       break;
     }
 
@@ -524,7 +523,8 @@ export async function cleanupStaleWorkers(): Promise<void> {
       for (const participant of participants) {
         const identity = participant.identity || '';
         const isOurAgent =
-          identity.startsWith(`${_config.agentName}-`) && identity !== `${_config.agentName}-${process.pid}`;
+          identity.startsWith(`${_config.agentName}-`) &&
+          identity !== `${_config.agentName}-${process.pid}`;
 
         if (isOurAgent) {
           _log('Removing stale agent participant from previous run', {

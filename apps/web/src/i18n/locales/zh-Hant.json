@@ -9854,7 +9854,12 @@
     "topicPlaceholder": "職涯規劃、感情建議……",
     "startRoundtable": "開始圓桌會議",
     "moderator": "主持人",
-    "expert": "專家"
+    "expert": "專家",
+    "roundtableStarted": "圓桌會議已開始",
+    "roundtableEnded": "圓桌會議已結束",
+    "calling": "正在撥打給{name}...",
+    "callNotConnected": "無法聯絡到{name}",
+    "errorGeneric": "群組對話發生問題。要再試一次嗎？"
   },
   "locationPrompt": {
     "weather": {

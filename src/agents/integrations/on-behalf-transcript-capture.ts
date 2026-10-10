@@ -21,6 +21,7 @@ import {
   hasActiveTranscript,
 } from '../../services/outreach/call-transcript-intelligence.js';
 import { getOutboundCallContext } from '../../intelligence/context-builders/external/outbound-call-context.js';
+import { createRepeatTurnGuard } from '../../services/session/turn-dedupe.js';
 
 const log = createLogger({ module: 'on-behalf-transcript-capture' });
 
@@ -104,31 +105,26 @@ export function cleanupOnBehalfCapture(sessionId: string): void {
 }
 
 /**
- * Wrap a SessionServices instance to capture turns for on-behalf calls
+ * Route an on-behalf call's turns to the call transcript instead of memory.
  *
- * This wraps the addTurn function to also capture agent speech for
- * superhuman call analysis.
+ * Call this only for on-behalf call sessions. It fails closed: if capture never
+ * started, turns are dropped rather than written to the session's memory. The
+ * person on the line is not our user, and the transcript (not memory) is what
+ * gets reported back to the requester when the call ends.
  */
 export function wrapServicesForOnBehalfCapture<
-  T extends { addTurn?: (role: string, text: string) => void },
+  T extends { addTurn?: (role: 'user' | 'assistant', text: string, durationMs?: number) => void },
 >(sessionId: string, services: T): T {
-  if (!isOnBehalfCall(sessionId) || !services.addTurn) {
-    return services;
-  }
+  if (!services.addTurn) return services;
 
-  const originalAddTurn = services.addTurn.bind(services);
-
-  services.addTurn = (role: string, text: string) => {
-    // Call original
-    originalAddTurn(role, text);
-
-    // Also capture for on-behalf analysis
-    if (role === 'assistant' && text) {
-      captureAgentTurn(sessionId, text);
-    }
+  const isRepeat = createRepeatTurnGuard(); // two writers record each turn
+  services.addTurn = (role: 'user' | 'assistant', text: string) => {
+    if (!text || isRepeat(role, text)) return;
+    if (role === 'assistant') captureAgentTurn(sessionId, text);
+    else captureRecipientTurn(sessionId, text);
   };
 
-  log.debug({ sessionId }, 'Wrapped services.addTurn for on-behalf capture');
+  log.debug({ sessionId }, 'Routed services.addTurn to the on-behalf call transcript');
   return services;
 }
 

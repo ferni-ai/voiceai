@@ -5,6 +5,8 @@
  * @module agents/multi-agent/greeting-direction
  */
 
+import { callerHour } from '../shared/time-context.js';
+
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
 // sound hyped ("too happy to start the call", founder test, 2026-09-29).
@@ -99,4 +101,33 @@ export function takeCallerHistory(sessionId: string): CallerHistory | undefined 
   const history = pendingHistory.get(sessionId);
   pendingHistory.delete(sessionId);
   return history;
+}
+
+/** The director's hello for this caller and hour, with the scripted greeting as understudy. */
+export async function directedGreeting(
+  sessionId: string,
+  personaId: string,
+  userData: { callerTimezone?: string; userName?: string } | undefined
+): Promise<string> {
+  const { generateWarmGreeting } = await import('../shared/warm-greeting.js');
+  // A returning caller's greeting can pick up from last time (agent-setup hands it over).
+  const history = takeCallerHistory(sessionId);
+  const hour = callerHour(new Date(), userData?.callerTimezone);
+  const ctx = {
+    hour: hour ?? 12,
+    isReturningUser: history !== undefined,
+    relationshipStage: 'friend' as const, // Default for multi-agent
+  };
+  const scripted = generateWarmGreeting(personaId, ctx);
+  const { directedText } = await import('../../speech/direction/index.js');
+  const partOfDay = hour === null ? '' : partOfDayFor(hour);
+  const directed = await directedText(sessionId, {
+    moment: 'greeting',
+    direction: GREETING_DIRECTION,
+    facts: greetingFacts(partOfDay, userData?.userName, history),
+    fallback: scripted,
+    urgency: 'now',
+    maxChars: 140,
+  });
+  return calmGreeting(directed.text);
 }
