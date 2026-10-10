@@ -2,6 +2,7 @@
  * What a call's observations do to the facts on file (pure; ingest.ts stores).
  * - Same subject, attribute and value: heard again (refresh).
  * - One-value attribute (status, job, ...) with a new value: supersedes.
+ * - Extraction's `replaces` hint ("quit", "moved"): closes what it names.
  * - Otherwise, when the subject has open many-value facts (an event, a goal),
  *   an injected judge says which the new fact updates ("recovering from knee
  *   surgery" closes "knee surgery"). Only asked when there is something to judge.
@@ -45,6 +46,16 @@ function sameValue(a: TemporalFact, obs: WorldObservation): boolean {
   );
 }
 
+/** Extraction said `obs` ends `old` ("quit", "moved"); priorValue narrows it. */
+function hinted(obs: WorldObservation, old: TemporalFact): boolean {
+  const hint = obs.replaces;
+  if (!hint || normaliseText(hint.attribute) !== old.attribute) return false;
+  if (!hint.priorValue) return true;
+  const prior = normaliseText(hint.priorValue);
+  const value = normaliseText(old.value);
+  return value.includes(prior) || prior.includes(value);
+}
+
 export async function planResolution(
   existing: readonly TemporalFact[],
   observations: readonly WorldObservation[],
@@ -81,8 +92,13 @@ export async function planResolution(
       validTo: null,
     };
 
-    const replaced = REPLACEABLE_ATTRIBUTES.has(attribute) ? slot : [];
-    const toJudge = mine.filter((f) => !REPLACEABLE_ATTRIBUTES.has(f.attribute));
+    const replaced = [
+      ...(REPLACEABLE_ATTRIBUTES.has(attribute) ? slot : []),
+      ...mine.filter((f) => !slot.includes(f) && hinted(obs, f)),
+    ];
+    const toJudge = mine.filter(
+      (f) => !REPLACEABLE_ATTRIBUTES.has(f.attribute) && !replaced.includes(f)
+    );
     let judged: string[] = [];
     if (toJudge.length > 0 && options.judge) {
       const allowed = new Set(toJudge.map((f) => f.id));

@@ -9,23 +9,15 @@
 
 import { callLLMForJSON } from '../../../services/llm-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { isCrisisText } from '../crisis-filter.js';
 import { planResolution, type SupersedeJudge } from './resolve.js';
 import { createFirestoreWorldFactStore, type WorldFactStore } from './store.js';
-import {
-  isDay,
-  isWorldModelTemporalOn,
-  type SubjectKind,
-  type TemporalFact,
-  type WorldObservation,
-} from './types.js';
+import { isWorldModelTemporalOn, type TemporalFact, type WorldObservation } from './types.js';
+import { validObservation } from './validate.js';
 
 const log = createLogger({ module: 'world-model:temporal' });
 
 /** One call rarely says more; a runaway extractor must not fan out judge calls. */
 export const MAX_OBSERVATIONS_PER_CALL = 24;
-
-const KINDS: ReadonlySet<SubjectKind> = new Set(['person', 'self', 'goal', 'situation']);
 
 export interface IngestDeps {
   store?: WorldFactStore;
@@ -38,38 +30,6 @@ export interface IngestResult {
   created: number;
   closed: number;
   refreshed: number;
-}
-
-function text(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-/** The observation if a writer filled it in well enough to keep, else null. */
-export function validObservation(
-  raw: WorldObservation,
-  sessionId: string
-): WorldObservation | null {
-  const subject = text(raw.subject);
-  const attribute = text(raw.attribute);
-  const value = text(raw.value);
-  if (!subject || !attribute || !value || !KINDS.has(raw.subjectKind)) return null;
-  if (Number.isNaN(Date.parse(raw.observedAt))) return null;
-  if ([subject, value, raw.relation].some((t) => isCrisisText(t))) return null;
-  const confidence = Number.isFinite(raw.confidence)
-    ? Math.min(1, Math.max(0, raw.confidence))
-    : 0.5;
-  return {
-    ...raw,
-    subject,
-    attribute,
-    value,
-    relation: text(raw.relation) ?? undefined,
-    // A date that does not parse is worse than none: it would fire "due" wrongly.
-    eventDate: isDay(raw.eventDate) ? raw.eventDate : undefined,
-    since: isDay(raw.since) ? raw.since : undefined,
-    confidence,
-    source: { ...raw.source, sessionId: raw.source?.sessionId || sessionId },
-  };
 }
 
 /**
@@ -103,7 +63,7 @@ Answer as JSON only: {"replaces": [numbers]}`;
 export async function recordWorldObservations(
   userId: string,
   sessionId: string,
-  observations: readonly WorldObservation[],
+  observations: readonly unknown[],
   deps: IngestDeps = {}
 ): Promise<IngestResult | null> {
   if (!isWorldModelTemporalOn(deps.env) || !userId) return null;

@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { recordWorldObservations, validObservation } from '../ingest.js';
+import { recordWorldObservations } from '../ingest.js';
 import { planResolution, type SupersedeJudge } from '../resolve.js';
 import { createFirestoreWorldFactStore } from '../store.js';
 import { createMemoryWorldFactStore } from './memory-store.js';
@@ -108,18 +108,50 @@ describe('planResolution', () => {
   });
 });
 
-describe('recordWorldObservations input checks', () => {
-  it('drops crisis text, missing fields and bad kinds; drops a date that does not parse', () => {
-    expect(validObservation(o('said she wants to end my life'), 's1')).toBeNull();
-    expect(validObservation(o('  '), 's1')).toBeNull();
-    expect(validObservation({ ...o('fine'), subjectKind: 'pet' as never }, 's1')).toBeNull();
-    const kept = validObservation(
-      o('knee surgery', 'event', undefined, { eventDate: 'Tuesday', confidence: 7 }),
-      ''
-    );
-    expect(kept).toMatchObject({ eventDate: undefined, confidence: 1 });
+describe("extraction's replaces hint", () => {
+  const open = (id: string, attribute: string, value: string): TemporalFact => ({
+    ...o(value, attribute),
+    subject: 'self',
+    subjectKind: 'self',
+    id,
+    subjectKey: 'self',
+    validFrom: '2026-10-01T18:00:00.000Z',
+    validTo: null,
+  });
+  const quit = (replaces: WorldObservation['replaces']) =>
+    o('between jobs', 'thread', '2026-10-14T14:00:00.000Z', {
+      subject: 'self',
+      subjectKind: 'self',
+      replaces,
+    });
+
+  it('closes the named attribute without asking the judge', async () => {
+    const judge = vi.fn<SupersedeJudge>(async () => []);
+    const facts = [
+      open('j1', 'commitment', 'job at Acme'),
+      open('t1', 'thread', 'training for a 10k'),
+    ];
+    const plan = await planResolution(facts, [quit({ attribute: 'commitment' })], {
+      judge,
+      newId: seq(),
+    });
+    expect(plan.close.map((c) => c.id)).toEqual(['j1']);
+    expect(plan.create[0]).toMatchObject({ replaced: 'job at Acme', supersedes: ['j1'] });
+    expect(judge.mock.calls[0][1].map((f) => f.id)).toEqual(['t1']);
   });
 
+  it('priorValue narrows it to the matching fact', async () => {
+    const facts = [open('a', 'goal', 'run a half marathon'), open('b', 'goal', 'learn Spanish')];
+    const plan = await planResolution(
+      facts,
+      [quit({ attribute: 'goal', priorValue: 'half marathon' })],
+      { newId: seq() }
+    );
+    expect(plan.close.map((c) => c.id)).toEqual(['a']);
+  });
+});
+
+describe('recordWorldObservations', () => {
   it('a store failure is logged and reported as null, not thrown', async () => {
     const store = createMemoryWorldFactStore();
     store.listOpen = async () => {
