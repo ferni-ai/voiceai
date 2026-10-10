@@ -48,6 +48,13 @@ export const DIMENSIONS = {
   // without being told, is what makes a caller feel known (THEORY_OF_MIND).
   feltUnderstood:
     'Shows it remembers how the caller is, not just what they said: from the earlier call, picks up how they tend to feel and cope and what kind of support they want (a fix, a listener, a laugh), and adapts to it without being told, even about something new; doesn\'t ask again about what they already shared. 3 is a good friend who knows them. Naming or labelling their patterns back to them ("you always joke when you\'re stressed") counts against it. Use null if there was no earlier call.',
+  // Understood, validated and cared for are the three parts of perceived
+  // partner responsiveness, which is what turns disclosure into closeness,
+  // with chatbots too (Reis; Telari et al. 2026, J. Soc. Pers. Relat.).
+  feltValidated:
+    "Treats the caller's feelings and point of view as making sense: reflects what they feel and why, without correcting, minimizing (\"at least…\", \"it's not that bad\") or rushing past it to a fix. Validation is about the feeling, not the plan: agreeing with a bad idea, praising a choice to please them, or flattering counts against it, and so does empty therapy-speak (\"that's so valid\"). 3 is a good friend who gets why they feel that way. Use null if the caller shared no feeling or view.",
+  feltCaredFor:
+    "Shows it cares about the caller, not just the conversation: notices what they are carrying and does something about it that fits them (thinks ahead to what they'll need, offers a concrete hand, comes back to how they're doing), with warmth that sounds meant, not performed. Stock sympathy, \"I'm here for you\" scripts, or care that ignores what they asked for count against it. 3 is a good friend who clearly has their back. Use null if nothing in the call called for care.",
 };
 
 /** Ferni turns the judge counts for candor, one tally per kind. */

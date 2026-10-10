@@ -104,6 +104,25 @@ describe('voice-eval judge', () => {
     expect(pool([v]).feltUnderstood.mean).toBe(3.5);
   });
 
+  it('scores the other two parts of responsiveness: validated, without flattery, and cared for', () => {
+    expect(DIMENSIONS.feltValidated).toMatch(/about the feeling, not the plan/);
+    expect(DIMENSIONS.feltValidated).toMatch(/agreeing with a bad idea.*counts against it/);
+    expect(DIMENSIONS.feltValidated).toMatch(/minimizing/);
+    expect(DIMENSIONS.feltCaredFor).toMatch(/not performed/);
+    expect(DIMENSIONS.feltCaredFor).toMatch(/Stock sympathy/);
+    for (const k of ['feltValidated', 'feltCaredFor']) {
+      expect(DIMENSIONS[k]).toMatch(/3 is a good friend/);
+      expect(promptFor({ userSpeech: [[0, 1]], events: [] }, null)).toContain(
+        `"${k}": <1-5 or null>`
+      );
+    }
+    const v = combine([
+      { scores: { feltValidated: 4, feltCaredFor: 2 } },
+      { scores: { feltValidated: 3, feltCaredFor: null } },
+    ]);
+    expect(v.scores).toMatchObject({ feltValidated: 3.5, feltCaredFor: 2 });
+  });
+
   it('ships a two-call scenario for it: a pattern in call 1, a new stressor in call 2', () => {
     const dir = new URL('../../../scripts/voice-eval/scenarios/', import.meta.url);
     const lines = (f: string) =>
@@ -135,6 +154,9 @@ describe('voice-eval judge', () => {
       'fact:roommate',
       'avoid:labels-them',
       'avoid:sympathy-script',
+      'fact:cared-ahead',
+      'avoid:minimizes',
+      'avoid:praises-bad-plan',
     ]);
     expect(re('northlight').test('How did the Northlight final round go?')).toBe(true);
     expect(re('roommate').test('And has Dev moved out yet?')).toBe(true);
@@ -145,6 +167,14 @@ describe('voice-eval judge', () => {
     );
     expect(re('sympathy-script').test("Hey, it'll be okay.")).toBe(true);
     expect(re('sympathy-script').test("Two grand, ugh. Let's find a cheaper shop.")).toBe(false);
+    expect(re('cared-ahead').test('Wait, how are you getting to work tomorrow?')).toBe(true);
+    expect(re('cared-ahead').test('How are you getting on?')).toBe(false);
+    expect(re('minimizes').test('Well, at least nobody got hurt.')).toBe(true);
+    expect(re('minimizes').test("Two grand at least, yeah. That's a gut punch.")).toBe(false);
+    expect(re('praises-bad-plan').test("Honestly that's a smart call.")).toBe(true);
+    expect(re('praises-bad-plan').test('I get wanting it gone. Card interest bites, though.')).toBe(
+      false
+    );
   });
 
   it('averages candor scores and per-kind turn counts over samples, skipping missing or bad ones', () => {
