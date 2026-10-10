@@ -96,7 +96,8 @@ test('every control in every panel has a name', async ({ page }) => {
     await page.waitForTimeout(800);
     const found = await panel.evaluate((d, action) =>
       [...d.querySelectorAll<HTMLElement>('button, input:not([type="hidden"]), textarea, select, [role="switch"]')]
-        .filter((e) => e.getBoundingClientRect().width > 0)
+        // Shown and reachable: a panel slid away with visibility:hidden can't be focused
+        .filter((e) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden')
         .filter((e) => {
           const label = (e as HTMLInputElement).labels?.[0]?.textContent?.trim();
           const name = e.getAttribute('aria-label') || e.getAttribute('aria-labelledby') || label ||

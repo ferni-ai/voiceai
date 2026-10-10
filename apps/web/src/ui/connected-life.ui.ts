@@ -260,7 +260,7 @@ class ConnectedLifeUI {
         <button 
           class="connected-life-tab ${this.activeCategory === tab.id ? 'active' : ''}"
           data-tab="${tab.id}"
-          role="tab"
+          role="tab" aria-label="${tab.label}"
           aria-selected="${this.activeCategory === tab.id}"
         >
           <span class="connected-life-tab-icon">${tab.icon}</span>
