@@ -132,12 +132,12 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
-  delete process.env['MULTI_AGENT_SINGLE_SESSION'];
+  vi.unstubAllEnvs();
 });
 
 describe('a handoff with one session per call', () => {
   beforeEach(() => {
-    process.env['MULTI_AGENT_SINGLE_SESSION'] = 'on';
+    vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', 'on');
   });
 
   it("swaps Maya into the call's session, in her voice, with the talk so far", async () => {
@@ -188,7 +188,7 @@ describe('a handoff with one session per call', () => {
 
 describe('a handoff the LLM asked for (its tool hands the persona to the SDK)', () => {
   beforeEach(() => {
-    process.env['MULTI_AGENT_SINGLE_SESSION'] = 'on';
+    vi.stubEnv('MULTI_AGENT_SINGLE_SESSION', 'on');
   });
 
   it('Maya is handed over before anything swaps, and the SDK swap completes the handoff', async () => {
@@ -239,10 +239,9 @@ describe('a handoff the LLM asked for (its tool hands the persona to the SDK)', 
 });
 
 describe('when the next persona does not come up', () => {
-  const userData: { personaId?: string } = {};
   const setup = (transition: (agent: FakeAgent) => Promise<void>) => {
     const session = callSession(transition);
-    userData.personaId = 'ferni';
+    const userData: { personaId?: string } = { personaId: 'ferni' };
     const ferni = persona(session, 'ferni', userData, true);
     const maya = persona(session, 'maya-santos', userData, false);
     session.live = session.current = ferni.agent;
@@ -254,11 +253,11 @@ describe('when the next persona does not come up', () => {
       undefined,
       20
     );
-    return { session, ferni, maya, forgotten, swap };
+    return { session, ferni, maya, forgotten, swap, userData };
   };
 
   it('Ferni is swapped back, in his own voice, after the failed start', async () => {
-    const { session, maya, forgotten, swap } = setup(async (agent) => {
+    const { session, maya, forgotten, swap, userData } = setup(async (agent) => {
       if (agent.name === 'maya-santos') throw new Error('Maya failed to start');
     });
     await expect(swap).rejects.toThrow('Maya failed to start');
@@ -278,7 +277,7 @@ describe('when the next persona does not come up', () => {
 
   it('a swap that is still going when time runs out is swapped back after it finishes', async () => {
     vi.useFakeTimers();
-    const { session, maya, swap } = setup(slowMaya);
+    const { session, maya, swap, userData } = setup(slowMaya);
     const failed = expect(swap).rejects.toThrow(/didn't start within 20ms/);
     await vi.advanceTimersByTimeAsync(20);
     await failed;
@@ -293,7 +292,7 @@ describe('when the next persona does not come up', () => {
 
   it('a late swap back does not undo a newer handoff', async () => {
     vi.useFakeTimers();
-    const { session, ferni, swap } = setup(slowMaya);
+    const { session, ferni, swap, userData } = setup(slowMaya);
     const failed = expect(swap).rejects.toThrow(/didn't start/);
     await vi.advanceTimersByTimeAsync(20);
     await failed;
