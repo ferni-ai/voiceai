@@ -16,6 +16,7 @@ import { apiGet, apiDelete, apiPut } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import { asModalDialog } from '../utils/accessibility.js';
 
 const log = createLogger('EightSleep');
 
@@ -121,6 +122,7 @@ function createSvgIcon(pathD: string, viewBox = '0 0 24 24'): SVGSVGElement {
 // ============================================================================
 
 let container: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: EightSleepSettingsCallbacks = {};
 
 // ============================================================================
@@ -787,14 +789,9 @@ export async function showEightSleepSettings(): Promise<void> {
     }
   });
 
-  // Close on Escape
-  const handleEscape = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      hideEightSleepSettings();
-      document.removeEventListener('keydown', handleEscape);
-    }
-  };
-  document.addEventListener('keydown', handleEscape);
+  const el = container;
+  // One Escape closes it, and only when it's the top dialog (it opens over Everything Connected)
+  releaseEscape = asModalDialog(el, { label: t('menu.items.eightSleep') }, () => el.classList.contains('visible'), hideEightSleepSettings);
 
   document.body.appendChild(container);
 
@@ -811,6 +808,7 @@ export async function showEightSleepSettings(): Promise<void> {
 export function hideEightSleepSettings(): void {
   if (!container) return;
 
+  releaseEscape?.();
   container.classList.remove('visible');
 
   setTimeout(() => {
