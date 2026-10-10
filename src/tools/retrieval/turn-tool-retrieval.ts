@@ -62,6 +62,9 @@ export const CORE_TOOLS = [
   // The game scorekeeper (GAME_STATE=on): a game spans many turns whose words
   // ("is it bigger than a car?") don't point to it.
   'gameState',
+  // Hanging up an on-behalf phone call (agents/outbound-call/call-control.ts); a
+  // goodbye's words never point retrieval at it.
+  'endCall',
 ] as const;
 
 export interface TurnToolRetrievalOptions {

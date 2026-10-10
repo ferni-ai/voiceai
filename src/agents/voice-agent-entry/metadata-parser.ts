@@ -186,7 +186,11 @@ export async function setupCallTypeContexts(
         await import('../../services/outreach/on-behalf-dispatch.js');
       const trusted = verifyOnBehalfDispatch(rawJobMetadata, process.env.LIVEKIT_API_SECRET);
       const { beginOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
-      if (call && trusted) await beginOnBehalfCall(sessionId, call);
+      if (call && trusted) {
+        await beginOnBehalfCall(sessionId, call);
+        const { registerOnBehalfCallRoom } = await import('../outbound-call/call-control.js');
+        registerOnBehalfCallRoom(sessionId, call.callId, roomNameForContext);
+      }
       process.stderr.write(
         `[voice-agent-entry] 📞 Outbound call context set for room: ${roomNameForContext}, sessionId: ${sessionId}\n`
       );

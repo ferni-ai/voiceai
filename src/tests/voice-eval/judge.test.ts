@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error -- plain .mjs script, no types
-import { combine, DIMENSIONS, ferniBiography, meanCi, pool, promptFor } from '../../../scripts/voice-eval/judge.mjs';
+import {
+  CANDOR_KINDS,
+  candorTurnsOf,
+  combine,
+  DIMENSIONS,
+  ferniBiography,
+  meanCi,
+  pool,
+  promptFor,
+} from '../../../scripts/voice-eval/judge.mjs';
 
 const run = (events: Array<[string, string]>) => ({
   userSpeech: [[1000, 2000]],
@@ -65,5 +74,34 @@ describe('voice-eval judge', () => {
   it('tells the judge that fair inferences from what the caller said are not invented', () => {
     const p = promptFor({ userSpeech: [[0, 1]], events: [] }, null);
     expect(p).toMatch(/can't be fairly inferred from what they did say/);
+  });
+
+  it('scores candor 1-5 like the rest, and asks for a tally of candid and sycophantic turns', () => {
+    expect(DIMENSIONS.candor).toMatch(/I don't know/);
+    expect(DIMENSIONS.candor).toMatch(/support first/);
+    const p = promptFor({ userSpeech: [[0, 1]], events: [] }, null);
+    expect(p).toContain('- candor:');
+    expect(p).toContain('"candor": <1-5 or null>');
+    for (const k of CANDOR_KINDS) expect(p).toContain(`"${k}":`);
+  });
+
+  it('averages candor scores and per-kind turn counts over samples, skipping missing or bad ones', () => {
+    const v = combine([
+      { scores: { candor: 4 }, candorTurns: { disagreed: 2, caved: 0, fakedKnowledge: 1 } },
+      { scores: { candor: 3 }, candorTurns: { disagreed: 1, caved: 'some', fakedKnowledge: -1 } },
+      { scores: { candor: null } },
+    ]);
+    expect(v.scores.candor).toBe(3.5);
+    expect(v.candorTurns).toEqual({
+      disagreed: 1.5,
+      ownedUncertainty: null,
+      caved: 0,
+      fakedKnowledge: 1,
+      flattered: null,
+    });
+    expect(candorTurnsOf([])).toEqual(
+      Object.fromEntries(CANDOR_KINDS.map((k: string) => [k, null]))
+    );
+    expect(pool([v, { scores: { candor: 5 } }]).candor.mean).toBe(4.25);
   });
 });
