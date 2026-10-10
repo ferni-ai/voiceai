@@ -37,6 +37,7 @@ export { calmGreeting } from './greeting-direction.js';
 import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
 import type { PreBriefing } from '../../services/automation/predictive-handoff.js';
 import { callerHour } from '../shared/time-context.js';
+import { getArrivingBanter, getHandoffBanter } from '../../services/team-engagement/banter.js';
 
 const log = getLogger();
 
@@ -554,6 +555,19 @@ export class AgentOrchestrator {
         },
         '🎭 [HANDOFF] ❌❌❌ HANDOFF FAILED ❌❌❌'
       );
+      // The old agent closed before the new one failed to start: bring it back, or the call goes silent
+      if (!this.getActiveAgent()) {
+        await this.spawnAgent(previousPersonaId, {
+          room: this.room,
+          userParticipant: this.userParticipant,
+          isHandoff: false,
+          recentMessages: request.recentMessages,
+        })
+          .then((agent) => this.setActiveAgent(agent.id))
+          .catch((e: unknown) =>
+            log.error({ error: String(e) }, '🎭 Could not restore previous agent')
+          );
+      }
       return {
         success: false,
         error: String(error),
@@ -932,17 +946,11 @@ export class AgentOrchestrator {
    * Get a goodbye phrase for the departing agent.
    */
   private getGoodbyePhrase(fromPersonaId: string, toPersonaId: string): string | null {
-    try {
-      // Import dynamically to avoid circular deps
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { getHandoffBanter } = require('../../services/engagement/team-engagement.js');
-      return getHandoffBanter(fromPersonaId, toPersonaId);
-    } catch {
-      // Fallback if module not available (e.g., in tests)
-      // BUG FIX: Use display name instead of persona ID for natural speech
-      const displayName = getPersonaDisplayName(toPersonaId);
-      return `Let me hand you off to ${displayName}.`;
-    }
+    // Banter, or a plain line (a require() of the wrong module always fell back to it)
+    return (
+      getHandoffBanter(fromPersonaId, toPersonaId) ??
+      `Let me hand you off to ${getPersonaDisplayName(toPersonaId)}.`
+    );
   }
 
   /**
@@ -953,15 +961,7 @@ export class AgentOrchestrator {
     fromPersonaId: string,
     _request: HandoffRequest
   ): string | null {
-    try {
-      // Import dynamically to avoid circular deps
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { getArrivingBanter } = require('../../services/engagement/team-engagement.js');
-      return getArrivingBanter(toPersonaId, fromPersonaId);
-    } catch {
-      // Fallback if module not available (e.g., in tests)
-      return "Hey! What's up?";
-    }
+    return getArrivingBanter(toPersonaId, fromPersonaId) ?? "Hey! What's up?";
   }
 }
 
