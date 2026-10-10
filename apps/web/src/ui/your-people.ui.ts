@@ -23,6 +23,7 @@ import { getAllMockContacts, MOCK_NUDGES } from '../data/mock-contacts.ts';
 import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { parseNudgesResponse, type Nudge } from './your-people-nudges.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 const log = createLogger('YourPeopleUI');
 
 // ============================================================================
@@ -83,6 +84,7 @@ let state: YourPeopleState = {
 };
 
 let panelContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let previouslyFocusedElement: HTMLElement | null = null;
 
 // ============================================================================
@@ -930,7 +932,7 @@ function renderPeopleList(): string {
   }
 
   html += `
-    <div class="yp-section yp-action-buttons" role="button" tabindex="0">
+    <div class="yp-section yp-action-buttons">
       <button aria-label="${t('accessibility.add')}" class="yp-add-btn" data-action="add-person">
         ${ICONS.plus} ${t('yourPeople.addSomeone')}
       </button>
@@ -1110,14 +1112,10 @@ function bindEvents(): void {
   });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (panelContainer) releaseEscape = closeOnEscape(panelContainer, () => state.isOpen, closeYourPeople);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeYourPeople();
-  }
-}
 
 function openPersonCard(contactId: string): void {
   // Close this panel and open relationship card
@@ -1297,7 +1295,7 @@ export async function openYourPeople(): Promise<void> {
 export function closeYourPeople(): void {
   if (!state.isOpen || !panelContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
   
   panelContainer.classList.remove('open');
   

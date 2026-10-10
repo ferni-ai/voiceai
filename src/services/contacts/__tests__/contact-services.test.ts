@@ -145,8 +145,33 @@ describe('ContactRelationshipService', () => {
 
       const needsAttention = await getContactsNeedingAttention('user123', 5);
 
-      expect(needsAttention.length).toBeGreaterThan(0);
-      expect(needsAttention[0].name).toBe('Neglected Contact');
+      // Someone you talked to today doesn't need attention, however close you are
+      expect(needsAttention.map((c) => c.name)).toEqual(['Neglected Contact']);
+    });
+
+    it('flags an overdue follow-up even when you talked recently', async () => {
+      const { upsertContact, setFollowUp, getContactsNeedingAttention, clearCache } =
+        await import('../contact-relationship-service.js');
+      clearCache();
+      const day = 24 * 60 * 60 * 1000;
+      await upsertContact('user123', {
+        name: 'Owed a Call',
+        contactId: 'owed@email.com',
+        lastInteraction: new Date(Date.now() - 2 * day),
+      });
+      await setFollowUp('user123', 'owed@email.com', {
+        reason: 'Call back',
+        dueDate: new Date(Date.now() - day),
+        priority: 'medium',
+      });
+      await upsertContact('user123', {
+        name: 'Just Added Friend',
+        contactId: 'new@email.com',
+        relationship: 'friend',
+      });
+
+      const needsAttention = await getContactsNeedingAttention('user123', 5);
+      expect(needsAttention.map((c) => c.name)).toEqual(['Owed a Call']);
     });
   });
 

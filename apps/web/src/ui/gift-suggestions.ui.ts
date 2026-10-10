@@ -15,6 +15,7 @@ import { shouldUseDemoData } from '../utils/environment.js';
 import { getMockGiftSuggestions } from '../data/mock-contacts.js';
 import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 const log = createLogger('GiftSuggestionsUI');
 
 // ============================================================================
@@ -70,6 +71,7 @@ let state: GiftSuggestionsState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSelect?: (suggestion: GiftSuggestion) => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -766,14 +768,10 @@ function bindEvents(): void {
   });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeGiftSuggestions);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeGiftSuggestions();
-  }
-}
 
 // ============================================================================
 // ACTIONS
@@ -897,7 +895,7 @@ export function openGiftSuggestions(options: GiftSuggestionsOptions): void {
 export function closeGiftSuggestions(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 

@@ -12,6 +12,7 @@ import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('EditPersonUI');
 
@@ -91,6 +92,7 @@ let state: EditPersonState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSuccess?: (data: PersonData) => void; onClose?: () => void; onDelete?: () => void } = {};
 
 // ============================================================================
@@ -842,7 +844,8 @@ function bindEvents(): void {
   modalContainer.querySelector('#ep-save')?.addEventListener('click', () => { void handleSave(); });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeEditPerson);
 }
 
 function bindInputs(): void {
@@ -869,11 +872,6 @@ function bindInputs(): void {
   notesInput?.addEventListener('input', (e) => { state.notes = (e.target as HTMLTextAreaElement).value; });
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeEditPerson();
-  }
-}
 
 // ============================================================================
 // SAVE / DELETE HANDLERS
@@ -1030,7 +1028,7 @@ export function openEditPerson(options: EditPersonOptions): void {
 export function closeEditPerson(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 
