@@ -10835,7 +10835,9 @@
         "other": "{count} זרעים"
       }
     },
-    "purchased": "זה שלך!"
+    "purchased": "זה שלך!",
+    "needsPlan": "זה זמין בתוכנית בתשלום.",
+    "needMoreSeeds": "צריך עוד כמה זרעים בשביל זה."
   },
   "capabilityCard": {
     "betterThanHuman": "טוב יותר מאנושי"

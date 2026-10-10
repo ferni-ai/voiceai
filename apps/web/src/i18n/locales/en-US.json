@@ -10718,7 +10718,9 @@
         "other": "{count} Seeds"
       }
     },
-    "purchased": "It's yours!"
+    "purchased": "It's yours!",
+    "needsPlan": "This one comes with a paid plan.",
+    "needMoreSeeds": "You need a few more Seeds for this one."
   },
   "capabilityCard": {
     "betterThanHuman": "Better than Human"

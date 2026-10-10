@@ -10718,7 +10718,9 @@
         "one": "씨앗 {count}개"
       }
     },
-    "purchased": "이제 회원님의 것이에요!"
+    "purchased": "이제 회원님의 것이에요!",
+    "needsPlan": "이 항목은 유료 플랜에서 쓸 수 있어요.",
+    "needMoreSeeds": "이 항목에는 씨앗이 조금 더 필요해요."
   },
   "capabilityCard": {
     "betterThanHuman": "사람보다 더 나은 점"

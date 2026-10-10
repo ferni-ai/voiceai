@@ -12,6 +12,7 @@
 import { t } from '../i18n/index.js';
 import { setTheme, type ThemeName } from '../theme/index.js';
 import { createLogger } from '../utils/logger.js';
+import { getServerBalance, getServerOwned, initSeedLedger, isServerLedgerOn, subscribeSeedLedger } from './seed-ledger-client.js';
 
 const log = createLogger('Cosmetics');
 
@@ -353,6 +354,9 @@ export function initCosmeticsService(): void {
 
   // Apply equipped cosmetics
   applyEquippedCosmetics();
+  // With the server ledger on, balance and ownership are the server's (seed-ledger-client)
+  initSeedLedger(() => ({ balance: userCosmetics.seedBalance, owned: userCosmetics.ownedItems }));
+  subscribeSeedLedger(notifyListeners);
 
   log.info('Cosmetics service initialized');
 }
@@ -379,11 +383,9 @@ export function getCosmeticsByType(type: CosmeticType): CosmeticItem[] {
   return COSMETICS_CATALOG.filter((c) => c.type === type);
 }
 
-/**
- * Get user's owned cosmetics
- */
+/** Get user's owned cosmetics */
 export function getOwnedCosmetics(): CosmeticItem[] {
-  return COSMETICS_CATALOG.filter((c) => userCosmetics.ownedItems.includes(c.id));
+  return COSMETICS_CATALOG.filter((c) => ownsCosmetic(c.id));
 }
 
 /**
@@ -393,11 +395,9 @@ export function getEquippedCosmetics(): UserCosmetics['equipped'] {
   return { ...userCosmetics.equipped };
 }
 
-/**
- * Check if user owns a cosmetic
- */
+/** Check if user owns a cosmetic */
 export function ownsCosmetic(cosmeticId: string): boolean {
-  return userCosmetics.ownedItems.includes(cosmeticId);
+  return (isServerLedgerOn() ? getServerOwned() : userCosmetics.ownedItems).includes(cosmeticId);
 }
 
 /**
@@ -428,7 +428,7 @@ export function canPurchase(cosmeticId: string): { canBuy: boolean; reason?: str
   }
 
   // Check seed balance
-  if (userCosmetics.seedBalance < cosmetic.priceInSeeds) {
+  if (getSeedBalance() < cosmetic.priceInSeeds) {
     return { canBuy: false, reason: 'Need more Seeds' };
   }
 
@@ -439,6 +439,7 @@ export function canPurchase(cosmeticId: string): { canBuy: boolean; reason?: str
  * Purchase a cosmetic
  */
 export function purchaseCosmetic(cosmeticId: string): boolean {
+  if (isServerLedgerOn()) return false; // the shop buys through purchaseOnServer
   const { canBuy, reason } = canPurchase(cosmeticId);
 
   if (!canBuy) {
@@ -502,17 +503,14 @@ export function unequipCosmetic(type: CosmeticType): void {
   log.info({ type }, 'Cosmetic unequipped');
 }
 
-/**
- * Get seed balance
- */
+/** Get seed balance */
 export function getSeedBalance(): number {
-  return userCosmetics.seedBalance;
+  return isServerLedgerOn() ? getServerBalance() : userCosmetics.seedBalance;
 }
 
-/**
- * Add seeds (for purchases, rewards, etc.)
- */
+/** Add seeds to the local ledger; with the server ledger on, the server pays every earn */
 export function addSeeds(amount: number): void {
+  if (isServerLedgerOn()) return;
   userCosmetics.seedBalance += amount;
   saveCosmetics();
   notifyListeners();
@@ -713,7 +711,8 @@ function saveCosmetics(): void {
 }
 
 function notifyListeners(): void {
-  cosmeticsListeners.forEach((listener) => listener({ ...userCosmetics }));
+  const owned = isServerLedgerOn() ? getServerOwned() : userCosmetics.ownedItems;
+  cosmeticsListeners.forEach((listener) => listener({ ...userCosmetics, seedBalance: getSeedBalance(), ownedItems: owned }));
 }
 
 // ============================================================================

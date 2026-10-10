@@ -12,6 +12,7 @@
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { addSeeds } from './cosmetics.service.js';
+import { isServerLedgerOn, refreshSeedLedger } from './seed-ledger-client.js';
 
 const log = createLogger('ReferralService');
 
@@ -174,7 +175,9 @@ export async function processPendingReferral(): Promise<{
 
   const bonus = res.data.newUserBonus ?? 0;
   localStorage.setItem(STATE_KEY, JSON.stringify({ referredBy: pendingRef }));
-  addSeeds(bonus);
+  // The server already paid the bonus; the local ledger only mirrors it while it's in charge
+  if (isServerLedgerOn()) await refreshSeedLedger();
+  else addSeeds(bonus);
 
   document.dispatchEvent(
     new CustomEvent('ferni:referral-completed', {

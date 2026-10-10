@@ -10836,7 +10836,9 @@
         "other": "{count} graines"
       }
     },
-    "purchased": "C'est à toi !"
+    "purchased": "C'est à toi !",
+    "needsPlan": "Celui-ci est inclus dans une formule payante.",
+    "needMoreSeeds": "Il te manque quelques graines pour celui-ci."
   },
   "capabilityCard": {
     "betterThanHuman": "Mieux qu'un humain"

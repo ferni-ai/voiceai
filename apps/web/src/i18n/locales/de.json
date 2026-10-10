@@ -10718,7 +10718,9 @@
         "other": "{count} Samen"
       }
     },
-    "purchased": "Es gehört dir!"
+    "purchased": "Es gehört dir!",
+    "needsPlan": "Das gibt es mit einem bezahlten Plan.",
+    "needMoreSeeds": "Dafür brauchst du noch ein paar Samen."
   },
   "capabilityCard": {
     "betterThanHuman": "Besser als menschlich"

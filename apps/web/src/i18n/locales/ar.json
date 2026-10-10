@@ -11186,7 +11186,9 @@
         "other": "{count} بذرة"
       }
     },
-    "purchased": "إنه لكم!"
+    "purchased": "إنه لكم!",
+    "needsPlan": "هذا متاح مع خطة مدفوعة.",
+    "needMoreSeeds": "تحتاج إلى بذور أكثر قليلاً للحصول على هذا."
   },
   "capabilityCard": {
     "betterThanHuman": "أفضل من البشر"

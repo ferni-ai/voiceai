@@ -10718,7 +10718,9 @@
         "one": "{count} 顆種子"
       }
     },
-    "purchased": "已為你解鎖！"
+    "purchased": "已為你解鎖！",
+    "needsPlan": "這個需要付費方案。",
+    "needMoreSeeds": "還差一些種子才能取得這個。"
   },
   "capabilityCard": {
     "betterThanHuman": "超越人類"

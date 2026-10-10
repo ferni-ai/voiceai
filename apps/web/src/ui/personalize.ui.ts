@@ -15,6 +15,7 @@ import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { canPurchase, COSMETICS_CATALOG, equipCosmetic, getCosmeticName, getEquippedCosmetics, getOwnedCosmetics, onCosmeticsChange, purchaseCosmetic, type CosmeticItem, type CosmeticType } from '../services/cosmetics.service.js';
+import { isServerLedgerOn, purchaseOnServer } from '../services/seed-ledger-client.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
@@ -678,33 +679,31 @@ function setupEventListeners(overlay: HTMLElement): void {
     if (!itemId) return;
 
     if (action === 'buy') {
-      handlePurchase(itemId);
+      void handlePurchase(itemId);
     } else if (action === 'equip') {
       handleEquip(itemId);
     }
   });
 
-  // Subscribe to changes
   cosmeticsUnsubscribe = onCosmeticsChange(() => {
     refreshUI();
   });
 }
 
-function handlePurchase(itemId: string): void {
-  const success = purchaseCosmetic(itemId);
-  if (success) {
+// With the server ledger on, the server charges and records the item (seed-ledger-client)
+const PURCHASE_ERROR_KEYS = { plan: 'personalize.needsPlan', seeds: 'personalize.needMoreSeeds', error: 'toasts.couldNotComplete' } as const;
+async function handlePurchase(itemId: string): Promise<void> {
+  const outcome = isServerLedgerOn() ? await purchaseOnServer(itemId) : purchaseCosmetic(itemId) ? 'ok' : 'error';
+  if (outcome === 'ok') {
     toast.success(t('personalize.purchased'));
     equipCosmetic(itemId);
   } else {
-    toast.error(t('toasts.couldNotComplete'));
+    toast.error(t(PURCHASE_ERROR_KEYS[outcome]));
   }
 }
 
 function handleEquip(itemId: string): void {
-  const success = equipCosmetic(itemId);
-  if (success) {
-    toast.success(t('toasts.updated'));
-  }
+  if (equipCosmetic(itemId)) toast.success(t('toasts.updated'));
 }
 
 function refreshUI(): void {
@@ -716,7 +715,6 @@ function refreshUI(): void {
     btn.classList.toggle('active', cat === selectedCategory);
   });
 
-  // Update items
   const content = container.querySelector('.personalize-content');
   if (content) {
     content.innerHTML = renderItems();
