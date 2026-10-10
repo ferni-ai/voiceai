@@ -192,19 +192,19 @@ class GamePickerUI {
         
         <!-- Category Tabs -->
         <div class="game-picker__tabs">
-          <button aria-label="${t('accessibility.music')}" class="game-picker__tab game-picker__tab--active" data-category="music">
+          <button class="game-picker__tab game-picker__tab--active" data-category="music">
             ${ICONS.music}
             <span>${t('accessibility.music')}</span>
           </button>
-          <button aria-label="${t('accessibility.fun')}" class="game-picker__tab" data-category="text">
+          <button class="game-picker__tab" data-category="text">
             ${ICONS.gamepad}
             <span>${t('accessibility.fun')}</span>
           </button>
-          <button aria-label="${t('accessibility.reflect')}" class="game-picker__tab" data-category="reflection">
+          <button class="game-picker__tab" data-category="reflection">
             ${ICONS.heart}
             <span>${t('accessibility.reflect')}</span>
           </button>
-          <button aria-label="${t('accessibility.yourLibrary')}" class="game-picker__tab" data-category="library">
+          <button class="game-picker__tab" data-category="library">
             ${ICONS.spotify}
             <span>${t('accessibility.yourLibrary')}</span>
           </button>
@@ -241,7 +241,7 @@ class GamePickerUI {
         
         <footer class="game-picker__footer">
           <p>${t('gamePicker.footerHint')}</p>
-          <button class="game-picker__help-btn" aria-label="${t('accessibility.howToPlay')}">
+          <button class="game-picker__help-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>

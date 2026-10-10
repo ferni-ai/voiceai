@@ -637,7 +637,7 @@ function renderItemAction(
 
   if (isOwned || item.priceInSeeds === null) {
     return `
-      <button aria-label="${t('accessibility.useThis')}" class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
+      <button class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
         ${t('accessibility.useThis')}
       </button>
     `;
@@ -645,14 +645,14 @@ function renderItemAction(
 
   if (!canBuy) {
     return `
-      <button aria-label="${t('accessibility.needMoreSeeds')}" class="personalize-item-action" disabled>
+      <button class="personalize-item-action" disabled>
         ${t('accessibility.needMoreSeeds')}
       </button>
     `;
   }
 
   return `
-    <button aria-label="${t('accessibility.getThis')}" class="personalize-item-action" data-action="buy" data-item-id="${item.id}">
+    <button class="personalize-item-action" data-action="buy" data-item-id="${item.id}">
       ${t('accessibility.getThis')}
     </button>
   `;

@@ -244,7 +244,7 @@ function renderContributionForm(gardenStatus: GardenStatus | null): string {
       <div class="ferni-fund-impact-text">seeds you'll plant</div>
     </div>
 
-    <button aria-label="${t('accessibility.plantSeeds')}" class="ferni-fund-submit-btn" disabled>
+    <button class="ferni-fund-submit-btn" disabled>
       ${t('ferniFund.plantSeeds')}
     </button>
 
@@ -542,7 +542,7 @@ function renderUserImpact(
         }
 
         <div class="ferni-fund-actions" role="button" tabindex="0">
-          <button aria-label="${t('accessibility.plantMoreSeeds')}" class="ferni-fund-action-btn ferni-fund-action-btn--secondary" data-action="plant-more">
+          <button class="ferni-fund-action-btn ferni-fund-action-btn--secondary" data-action="plant-more">
             ${SEED_ICON}
             <span>${t('ferniFund.plantMoreSeeds')}</span>
           </button>
@@ -572,7 +572,7 @@ function renderUserImpact(
           }
 
           <div class="ferni-fund-actions" role="button" tabindex="0">
-            <button aria-label="${t('accessibility.plantYourFirstSeed')}" class="ferni-fund-action-btn ferni-fund-action-btn--primary" data-action="plant-first">
+            <button class="ferni-fund-action-btn ferni-fund-action-btn--primary" data-action="plant-first">
               ${SEED_ICON}
               <span>${t('ferniFund.plantYourFirstSeed')}</span>
             </button>

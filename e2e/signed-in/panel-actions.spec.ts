@@ -85,18 +85,23 @@ test('quiz: answering a question shows how you did', async ({ page }) => {
   expect(problems.take()).toEqual([]);
 });
 
-test('every control in these panels has a name', async ({ page }) => {
+test('every control in every panel has a name', async ({ page }) => {
+  test.setTimeout(120_000);
   const unnamed: string[] = [];
-  for (const action of ['journal', 'gift', 'contacts', 'notifications', 'export', 'calendar-settings', 'play-games']) {
+  const panels = ['garden', 'gift', 'invite', 'commands', 'calendar-settings', 'notifications', 'journal',
+    'knowledge-quiz', 'music-dashboard', 'play-games', 'vibe-controller', 'contacts', 'family-callers',
+    'all-connections', 'theme', 'billing', 'export', 'whats-growing', 'share-ferni', 'help'];
+  for (const action of panels) {
     const panel = await openPanel(page, action);
     await page.waitForTimeout(800);
     const found = await panel.evaluate((d, action) =>
       [...d.querySelectorAll<HTMLElement>('button, input:not([type="hidden"]), textarea, select, [role="switch"]')]
-        .filter((e) => e.getBoundingClientRect().width > 0)
+        // Shown and reachable: a panel slid away with visibility:hidden can't be focused
+        .filter((e) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden')
         .filter((e) => {
           const label = (e as HTMLInputElement).labels?.[0]?.textContent?.trim();
           const name = e.getAttribute('aria-label') || e.getAttribute('aria-labelledby') || label ||
-            e.textContent?.trim() || e.getAttribute('title') || e.getAttribute('placeholder');
+            e.innerText?.trim() || e.getAttribute('title') || e.getAttribute('placeholder'); // innerText: hidden text names nothing
           return !name;
         })
         .map((e) => `${action}: ${e.tagName.toLowerCase()} ${e.className.toString().split(' ')[0]}`), action);

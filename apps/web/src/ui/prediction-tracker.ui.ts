@@ -159,7 +159,7 @@ class PredictionTrackerUI {
       ` : ''}
 
       <div class="pred-tracker__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.viewAllPredictions')}" class="pred-tracker__btn pred-tracker__btn--primary">${t('accessibility.viewAllPredictions')}</button>
+        <button class="pred-tracker__btn pred-tracker__btn--primary">${t('accessibility.viewAllPredictions')}</button>
       </div>
     `;
 

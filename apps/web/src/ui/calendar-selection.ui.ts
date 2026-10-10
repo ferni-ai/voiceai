@@ -243,10 +243,10 @@ class CalendarSelectionUI {
           </div>
 
           <div class="calendar-selection__actions" role="button" tabindex="0">
-            <button aria-label="${t('accessibility.cancel')}" class="calendar-selection__btn calendar-selection__btn--secondary" data-action="cancel">
+            <button class="calendar-selection__btn calendar-selection__btn--secondary" data-action="cancel">
               ${t('common.cancel')}
             </button>
-            <button aria-label="${t('accessibility.saveSelection')}" class="calendar-selection__btn calendar-selection__btn--primary" data-action="save">
+            <button class="calendar-selection__btn calendar-selection__btn--primary" data-action="save">
               ${t('calendar.saveSelection')}
             </button>
           </div>

@@ -642,7 +642,7 @@ function render(): void {
     ${state.hasGenerated && state.suggestions.length > 0 ? `
       <div class="gs-footer">
         <span class="gs-footer-hint">${t('gifts.tapGiftToRecord')}</span>
-        <button aria-label="${t('accessibility.refresh')}" class="gs-regenerate-btn" id="gs-regenerate">
+        <button class="gs-regenerate-btn" id="gs-regenerate">
           ${ICONS.refresh} ${t('gifts.newIdeas')}
         </button>
       </div>
@@ -666,7 +666,7 @@ function renderContent(): string {
     return `
       <div class="gs-error">
         <p class="gs-error-text">${escapeHtml(state.error)}</p>
-        <button aria-label="${t('accessibility.refresh')}" class="gs-retry-btn" id="gs-retry">
+        <button class="gs-retry-btn" id="gs-retry">
           ${ICONS.refresh} ${t('common.retry')}
         </button>
       </div>
@@ -679,7 +679,7 @@ function renderContent(): string {
         <div class="gs-initial-icon">${ICONS.gift}</div>
         <h3 class="gs-initial-title">${t('gifts.findPerfect')}</h3>
         <p class="gs-initial-text">${escapeHtml(t('gifts.basedOnInterests', { name: state.contactName }))}</p>
-        <button aria-label="${t('accessibility.generateIdeas')}" class="gs-generate-btn" id="gs-generate">
+        <button class="gs-generate-btn" id="gs-generate">
           ${ICONS.sparkles} ${t('accessibility.generateIdeas')}
         </button>
       </div>

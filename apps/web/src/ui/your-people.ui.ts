@@ -803,13 +803,13 @@ function renderHeader(): string {
       </div>
 
       <div class="yp-filters">
-        <button aria-label="${t('accessibility.all')}" class="yp-filter ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">
+        <button class="yp-filter ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">
           ${t('yourPeople.filterAll')}
         </button>
-        <button aria-label="${t('accessibility.needsAttention')}" class="yp-filter ${state.activeFilter === 'attention' ? 'active' : ''}" data-filter="attention">
+        <button class="yp-filter ${state.activeFilter === 'attention' ? 'active' : ''}" data-filter="attention">
           ${t('yourPeople.filterAttention')}
         </button>
-        <button aria-label="${t('accessibility.recent')}" class="yp-filter ${state.activeFilter === 'recent' ? 'active' : ''}" data-filter="recent">
+        <button class="yp-filter ${state.activeFilter === 'recent' ? 'active' : ''}" data-filter="recent">
           ${t('yourPeople.filterRecent')}
         </button>
       </div>
@@ -899,10 +899,10 @@ function renderPeopleList(): string {
             <div class="yp-empty-title">${t('yourPeople.emptyTitle')}</div>
             <p class="yp-empty-text">${t('yourPeople.emptyDescription')}</p>
           </div>
-          <button aria-label="${t('accessibility.add')}" class="yp-add-btn" data-action="add-person">
+          <button class="yp-add-btn" data-action="add-person">
             ${ICONS.plus} ${t('yourPeople.addSomeone')}
           </button>
-          <button aria-label="${t('accessibility.upload')}" class="yp-add-btn yp-import-btn" data-action="import-contacts" style="margin-top: var(--space-2);">
+          <button class="yp-add-btn yp-import-btn" data-action="import-contacts" style="margin-top: var(--space-2);">
             ${ICONS.upload} ${t('yourPeople.importFromGoogleCsv')}
           </button>
         </div>
@@ -933,10 +933,10 @@ function renderPeopleList(): string {
 
   html += `
     <div class="yp-section yp-action-buttons">
-      <button aria-label="${t('accessibility.add')}" class="yp-add-btn" data-action="add-person">
+      <button class="yp-add-btn" data-action="add-person">
         ${ICONS.plus} ${t('yourPeople.addSomeone')}
       </button>
-      <button aria-label="${t('accessibility.upload')}" class="yp-add-btn yp-secondary-btn" data-action="import-contacts">
+      <button class="yp-add-btn yp-secondary-btn" data-action="import-contacts">
         ${ICONS.upload} ${t('yourPeople.importContacts')}
       </button>
     </div>
@@ -1005,7 +1005,7 @@ function renderError(): string {
     <div class="yp-error">
       <div class="yp-error-icon">${ICONS.alertCircle}</div>
       <div class="yp-error-message">${escapeHtml(state.error ?? t('common.error'))}</div>
-      <button class="yp-error-retry" aria-label="${t('accessibility.retry')}">${t('common.retry')}</button>
+      <button class="yp-error-retry">${t('common.retry')}</button>
     </div>
   `;
 }

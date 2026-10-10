@@ -529,7 +529,7 @@ function renderPreview(): string {
     <div class="ic-preview-section">
       <div class="ic-preview-header">
         <span class="ic-preview-title">${tp('importContacts.selectedCount', state.preview.length, { selected: state.selectedCount })}</span>
-        <button aria-label="${t('accessibility.selectAll')}" class="ic-select-all" id="ic-select-all">${t('importContacts.selectAll')}</button>
+        <button class="ic-select-all" id="ic-select-all">${t('importContacts.selectAll')}</button>
       </div>
       <div class="ic-preview-list">
         ${state.preview.map(contact => `
@@ -898,8 +898,8 @@ export function openImportContacts(options: ImportCallbacks = {}): void {
         ${renderSourceSelection()}
       </div>
       <div class="ic-footer">
-        <button aria-label="${t('accessibility.cancel')}" class="ic-btn ic-btn-secondary">${t('common.cancel')}</button>
-        <button aria-label="${t('accessibility.importSelected')}" class="ic-btn ic-btn-primary" ${state.preview.length === 0 ? 'disabled' : ''}>
+        <button class="ic-btn ic-btn-secondary">${t('common.cancel')}</button>
+        <button class="ic-btn ic-btn-primary" ${state.preview.length === 0 ? 'disabled' : ''}>
           ${t('importContacts.importSelected')}
         </button>
       </div>

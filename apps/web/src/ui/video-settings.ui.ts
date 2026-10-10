@@ -291,7 +291,7 @@ class VideoSettingsUI {
       </header>
       <div class="video-settings__error">
         <p>${message}</p>
-        <button aria-label="${t('accessibility.settings')}" class="video-settings__retry">${t('videoSettings.buttons.retry')}</button>
+        <button class="video-settings__retry">${t('videoSettings.buttons.retry')}</button>
       </div>
     `;
 

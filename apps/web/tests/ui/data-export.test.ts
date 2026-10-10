@@ -549,10 +549,9 @@ describe('Data Export UI', () => {
       const ui = getDataExportUI();
       ui.show(mockExportableData);
 
-      const formatButtons = findFormatButtons();
-      formatButtons.forEach((btn) => {
-        expect(btn.getAttribute('aria-label')).toBeTruthy();
-      });
+      // Named by what they show (a label over the text would hide it)
+      const names = [...findFormatButtons()].map((btn) => btn.getAttribute('aria-label') ?? btn.textContent?.trim());
+      expect(names).toEqual(['JSON', 'CSV']);
     });
   });
 

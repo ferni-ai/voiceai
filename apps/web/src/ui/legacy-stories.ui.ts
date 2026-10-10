@@ -404,7 +404,7 @@ function render(): string {
                 </svg>
                 ${t('legacyStories.theirWisdom')}
               </h3>
-              <button aria-label="${t('accessibility.addSaying')}" class="legacy-add-btn" data-action="add-wisdom">
+              <button class="legacy-add-btn" data-action="add-wisdom">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -427,11 +427,11 @@ function render(): string {
                 <p class="legacy-wisdom-quote">${t('legacyStories.wisdomQuote', { quote: w.quote })}</p>
                 ${w.context ? `<span class="legacy-wisdom-context">${w.context}</span>` : ''}
                 <div class="legacy-card-actions" role="button" tabindex="0">
-                  <button class="legacy-action-btn" data-action="edit-wisdom" data-index="${i}" aria-label="${t('accessibility.editWisdom')}">
+                  <button class="legacy-action-btn" data-action="edit-wisdom" data-index="${i}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     ${t('common.edit')}
                   </button>
-                  <button class="legacy-action-btn legacy-action-btn--delete" data-action="delete-wisdom" data-index="${i}" aria-label="${t('accessibility.deleteWisdom')}">
+                  <button class="legacy-action-btn legacy-action-btn--delete" data-action="delete-wisdom" data-index="${i}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     ${t('common.delete')}
                   </button>
@@ -450,7 +450,7 @@ function render(): string {
                 </svg>
                 ${t('legacyStories.theirStories')}
               </h3>
-              <button aria-label="${t('accessibility.addStory')}" class="legacy-add-btn" data-action="add-story">
+              <button class="legacy-add-btn" data-action="add-story">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -474,11 +474,11 @@ function render(): string {
                 <p class="legacy-story-content">${s.content}</p>
                 ${s.date ? `<span class="legacy-story-meta">${formatDate(new Date(s.date))}</span>` : ''}
                 <div class="legacy-card-actions" role="button" tabindex="0">
-                  <button class="legacy-action-btn" data-action="edit-story" data-index="${i}" aria-label="${t('accessibility.editStory')}">
+                  <button class="legacy-action-btn" data-action="edit-story" data-index="${i}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     ${t('common.edit')}
                   </button>
-                  <button class="legacy-action-btn legacy-action-btn--delete" data-action="delete-story" data-index="${i}" aria-label="${t('accessibility.deleteStory')}">
+                  <button class="legacy-action-btn legacy-action-btn--delete" data-action="delete-story" data-index="${i}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     ${t('common.delete')}
                   </button>

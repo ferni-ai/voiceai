@@ -1128,11 +1128,11 @@ function renderHeader(): string {
       </div>
       
       <div class="rc-quick-actions">
-        ${person.phone ? `<button aria-label="${t('accessibility.call')}" class="rc-quick-action" data-action="call">${ICONS.phone} ${t('relationshipCard.call')}</button>` : ''}
-        ${person.phone ? `<button aria-label="${t('accessibility.text')}" class="rc-quick-action" data-action="text">${ICONS.message} ${t('relationshipCard.text')}</button>` : ''}
-        ${person.email ? `<button aria-label="${t('accessibility.email')}" class="rc-quick-action" data-action="email">${ICONS.mail} ${t('relationshipCard.email')}</button>` : ''}
-        <button aria-label="${t('accessibility.add')}" class="rc-quick-action" data-action="record">${ICONS.plus} ${t('relationshipCard.logMoment')}</button>
-        <button aria-label="${t('accessibility.edit')}" class="rc-quick-action" data-action="edit">${ICONS.edit} ${t('common.edit')}</button>
+        ${person.phone ? `<button class="rc-quick-action" data-action="call">${ICONS.phone} ${t('relationshipCard.call')}</button>` : ''}
+        ${person.phone ? `<button class="rc-quick-action" data-action="text">${ICONS.message} ${t('relationshipCard.text')}</button>` : ''}
+        ${person.email ? `<button class="rc-quick-action" data-action="email">${ICONS.mail} ${t('relationshipCard.email')}</button>` : ''}
+        <button class="rc-quick-action" data-action="record">${ICONS.plus} ${t('relationshipCard.logMoment')}</button>
+        <button class="rc-quick-action" data-action="edit">${ICONS.edit} ${t('common.edit')}</button>
       </div>
     </div>
   `;
@@ -1232,7 +1232,7 @@ function renderOverviewTab(): string {
           `;
         }).join('')}
         ${upcomingMeetings.length > 3 ? `
-          <button aria-label="${t('accessibility.viewAllScheduledMeetings')}" class="rc-add-btn" data-action="view-all-events" style="margin-top: var(--space-2, 0.5rem);">
+          <button class="rc-add-btn" data-action="view-all-events" style="margin-top: var(--space-2, 0.5rem);">
             ${tp('relationshipCard.viewAllMeetings', upcomingMeetings.length)}
           </button>
         ` : ''}
@@ -1266,7 +1266,7 @@ function renderOverviewTab(): string {
         </div>`
       }
       ${state.timeline.length > 5 ? `
-        <button aria-label="${t('accessibility.viewAllMoments')}" class="rc-add-btn" data-action="view-all-timeline">
+        <button class="rc-add-btn" data-action="view-all-timeline">
           ${tp('relationshipCard.viewAllMoments', state.timeline.length)}
         </button>
       ` : ''}
@@ -1297,7 +1297,7 @@ function renderTimelineTab(): string {
         <div class="rc-empty-title">${t('relationshipCard.noMomentsRecorded')}</div>
         <p class="rc-empty-text">${t('relationshipCard.everyCallBecomesPart')}</p>
       </div>
-      <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-interaction">
+      <button class="rc-add-btn" data-action="add-interaction">
         ${ICONS.plus} ${t('relationshipCard.logAMoment')}
       </button>
     `;
@@ -1312,7 +1312,7 @@ function renderTimelineTab(): string {
       ${items.map(item => renderTimelineItem(item)).join('')}
     </div>
   `).join('') + `
-    <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-interaction">
+    <button class="rc-add-btn" data-action="add-interaction">
       ${ICONS.plus} ${t('relationshipCard.logAMoment')}
     </button>
   `;
@@ -1361,7 +1361,7 @@ function renderGiftsTab(): string {
         <div class="rc-empty-title">${t('relationshipCard.noGiftsRecorded')}</div>
         <p class="rc-empty-text">${t('relationshipCard.trackWhatYouGive')}</p>
       </div>
-      <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-gift">
+      <button class="rc-add-btn" data-action="add-gift">
         ${ICONS.plus} ${t('relationshipCard.recordAGift')}
       </button>
     `;
@@ -1382,7 +1382,7 @@ function renderGiftsTab(): string {
       </div>
     ` : ''}
     
-    <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-gift">
+    <button class="rc-add-btn" data-action="add-gift">
       ${ICONS.plus} ${t('relationshipCard.recordAGift')}
     </button>
   `;
@@ -1443,7 +1443,7 @@ function renderEventsTab(): string {
       ` : `
         <p class="rc-empty-inline">${t('relationshipCard.noImportantDates')}</p>
       `}
-      <button aria-label="${t('accessibility.edit')}" class="rc-add-btn" data-action="manage-dates">
+      <button class="rc-add-btn" data-action="manage-dates">
         ${ICONS.edit} ${t(importantDates.length > 0 ? 'relationshipCard.manageDates' : 'relationshipCard.addDates')}
       </button>
     </div>
@@ -1533,7 +1533,7 @@ function renderNotesTab(): string {
       </div>
     ` : ''}
     
-    <button aria-label="${t('accessibility.edit')}" class="rc-add-btn" data-action="edit-notes">
+    <button class="rc-add-btn" data-action="edit-notes">
       ${ICONS.edit} ${t(person.notes ? 'relationshipCard.editNotes' : 'relationshipCard.addNotes')}
     </button>
   `;

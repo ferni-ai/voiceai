@@ -326,10 +326,10 @@ function createPanel(): HTMLElement {
       </div>
       
       <div class="insights-debug-panel__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.refresh')}" class="insights-debug-panel__btn insights-debug-panel__btn--primary" id="insights-refresh-btn">
+        <button class="insights-debug-panel__btn insights-debug-panel__btn--primary" id="insights-refresh-btn">
           Refresh
         </button>
-        <button aria-label="${t('accessibility.clearCache')}" class="insights-debug-panel__btn insights-debug-panel__btn--secondary" id="insights-clear-btn">
+        <button class="insights-debug-panel__btn insights-debug-panel__btn--secondary" id="insights-clear-btn">
           Clear Cache
         </button>
       </div>

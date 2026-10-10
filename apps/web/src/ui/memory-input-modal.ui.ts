@@ -497,10 +497,10 @@ function createModal(initialType?: MemoryType): HTMLElement {
         ${renderForm()}
       </div>
       <footer class="memory-input-footer">
-        <button aria-label="${t('accessibility.cancel')}" class="memory-input-btn memory-input-btn--cancel" data-action="cancel" type="button">
+        <button class="memory-input-btn memory-input-btn--cancel" data-action="cancel" type="button">
           ${t('memoryInputModal.cancel')}
         </button>
-        <button aria-label="${t('accessibility.addMemory')}" class="memory-input-btn memory-input-btn--save" data-action="save" type="button" ${!selectedType ? 'disabled' : ''}>
+        <button class="memory-input-btn memory-input-btn--save" data-action="save" type="button" ${!selectedType ? 'disabled' : ''}>
           ${t('memoryInputModal.addMemory')}
         </button>
       </footer>
