@@ -183,6 +183,7 @@ import { markLivekitDisconnected, signalPrewarmComplete } from './shared/worker-
 // Crash analytics, memory event workers, knowledge capture, orphan cleanups.
 import { getCrashSummary } from './shared/crash-analytics.js';
 import { startProcessRuntime } from './gce/process-runtime.js';
+import { jobExecutorMode, startJobRunner, stopJobRunner } from './gce/job-runner.js';
 log('Phase 2.5: Starting async background workers');
 const processRuntime = startProcessRuntime(log);
 
@@ -210,13 +211,18 @@ initLiveKitConnection(
 // ============================================================================
 
 async function main(): Promise<void> {
-  // Phase 3: Warmup resources
-  log('Phase 3: Warming resources');
-  const warmupResult = await warmupResources(log);
-  if (warmupResult.durationMs > 15000) {
-    log('⚠️ Warmup verification: warmup took >15s - check for broken or slow modules', {
-      durationMs: warmupResult.durationMs,
-    });
+  // Phase 3: Warm call resources here, or, with one process per call, start the
+  // pool so its children warm them (docs/plans/2026-10-10-process-per-job.md).
+  if (jobExecutorMode() === 'process') {
+    startJobRunner(log);
+  } else {
+    log('Phase 3: Warming resources');
+    const warmupResult = await warmupResources(log);
+    if (warmupResult.durationMs > 15000) {
+      log('⚠️ Warmup verification: warmup took >15s - check for broken or slow modules', {
+        durationMs: warmupResult.durationMs,
+      });
+    }
   }
 
   // Phase 4: Clean up stale workers from previous crashes, then connect
@@ -303,6 +309,7 @@ const shutdown = async (signal: string): Promise<void> => {
   }
 
   processRuntime.stop();
+  stopJobRunner();
 
   // 2. Mark LiveKit as disconnected and stop keepalive
   markLivekitDisconnected();
