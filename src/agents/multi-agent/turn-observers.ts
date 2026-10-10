@@ -157,7 +157,7 @@ export async function installTurnUnderstanding(
   session: Session,
   cleanupFunctions: Cleanup
 ): Promise<{ onTranscript(transcript: string, isFinal: boolean): void } | null> {
-  const { understandingMode, TurnUnderstander, geminiUnderstand } =
+  const { understandingMode, TurnUnderstander, geminiUnderstand, setTurnUnderstander } =
     await import('../personas/turn-understanding.js');
   if (understandingMode() === 'off') return null;
   const [
@@ -172,6 +172,7 @@ export async function installTurnUnderstanding(
     import('../integrations/backchannel-context.js'),
   ]);
   const understander = new TurnUnderstander(geminiUnderstand());
+  setTurnUnderstander(session, understander);
   const finals: string[] = [];
   const onState = (ev: unknown): void => {
     if ((ev as { newState?: string }).newState !== 'speaking') return;
@@ -212,7 +213,10 @@ export async function installTurnUnderstanding(
     understander.newTurn(turn);
   };
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
-  cleanupFunctions.push(() => session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState));
+  cleanupFunctions.push(() => {
+    session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+    setTurnUnderstander(session, null);
+  });
   log.info({ mode: understandingMode() }, 'turn understanding on');
   return {
     onTranscript(transcript, isFinal) {

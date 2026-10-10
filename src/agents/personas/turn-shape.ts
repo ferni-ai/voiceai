@@ -17,7 +17,7 @@
  * @module agents/personas/turn-shape
  */
 
-import { callerVenting, extrasFor } from './turn-extras.js';
+import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -187,26 +187,33 @@ const OWN_SELF =
 const QUESTION_BY_JUDGMENT =
   'Ask a question only when you genuinely want to know the answer, about something specific they said; most replies end on a thought, not a question.';
 
-function modelChosenShape(userText: string, rng: () => number): TurnShape {
-  const move = callerMove(userText);
+function modelChosenShape(userText: string, rng: () => number, sig: TurnSignals): TurnShape {
+  const { move } = sig;
   if (move === 'lookup') {
     const reminder = [REGISTER, LOOKUP, SHAPE_LINE.answer, QUESTION_LINE.none].join(' ');
     return { move, shape: 'answer', reminder, extras: [] };
   }
   // Extras add texture (laughing along, a filler) but no longer set the shape.
-  const extras = extrasFor(userText, move, 'answer', false, rng);
+  const extras = extrasFor(userText, move, 'answer', false, rng, process.env, sig);
   const parts = [REGISTER, OWN_SELF, ...extras.lines, FIT_THE_MOMENT, QUESTION_BY_JUDGMENT];
-  return { move, shape: 'answer', reminder: parts.join(' '), extras: ['model_shape', ...extras.fired] };
+  return {
+    move,
+    shape: 'answer',
+    reminder: parts.join(' '),
+    extras: ['model_shape', ...extras.fired],
+  };
 }
 
 /** The reminder for one reply to `userText`. */
 export function turnShapeFor(
   userText: string,
   rng: () => number = Math.random,
-  mode: TurnShapeMode = turnShapeMode()
+  mode: TurnShapeMode = turnShapeMode(),
+  signals?: TurnSignals
 ): TurnShape {
-  if (mode === 'model') return modelChosenShape(userText, rng);
-  const move = callerMove(userText);
+  const sig = signals ?? regexSignals(userText, callerMove(userText));
+  if (mode === 'model') return modelChosenShape(userText, rng, sig);
+  const move = sig.move;
   const shape = pickShape(move, rng);
   if (move === 'lookup') {
     const reminder = [REGISTER, LOOKUP, SHAPE_LINE[shape], QUESTION_LINE.none].join(' ');
@@ -217,13 +224,13 @@ export function turnShapeFor(
   const parts = [REGISTER];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
   // Not while they're venting: a friend stays with them instead of telling a story.
-  else if (move === 'share' && shape !== 'react' && !callerVenting(userText) && rng() < 0.3)
+  else if (move === 'share' && shape !== 'react' && !sig.careful && rng() < 0.3)
     parts.push(SECOND_STORY);
   if (move !== 'ack' && rng() < 0.3) parts.push(STANCE);
   if (shape !== 'react' && rng() < 0.5)
     parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
   const asks = questionAllowed(shape, rng);
-  const extras = extrasFor(userText, move, shape, asks, rng);
+  const extras = extrasFor(userText, move, shape, asks, rng, process.env, sig);
   parts.push(...extras.lines);
   parts.push(
     extras.shapeLine ?? SHAPE_LINE[shape],
@@ -232,7 +239,9 @@ export function turnShapeFor(
   return { move, shape, reminder: parts.filter(Boolean).join(' '), extras: extras.fired };
 }
 
-export function turnShapeMode(env: Record<string, string | undefined> = process.env): TurnShapeMode {
+export function turnShapeMode(
+  env: Record<string, string | undefined> = process.env
+): TurnShapeMode {
   return env.TURN_SHAPE === 'off' ? 'off' : env.TURN_SHAPE === 'model' ? 'model' : 'dice';
 }
 

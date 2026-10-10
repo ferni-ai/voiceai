@@ -40,10 +40,25 @@ export interface Understanding {
   reaction: string | null;
 }
 
+/** off (default) | shadow (log only) | live (Ferni's turn shape and asides follow it). */
 export function understandingMode(
   env: Record<string, string | undefined> = process.env
-): 'off' | 'shadow' {
-  return env.TURN_UNDERSTANDING === 'shadow' ? 'shadow' : 'off';
+): 'off' | 'shadow' | 'live' {
+  const mode = env.TURN_UNDERSTANDING;
+  return mode === 'shadow' || mode === 'live' ? mode : 'off';
+}
+
+/** Each call's understander, so the reply path can read what it understood. */
+const understanders = new WeakMap<object, TurnUnderstander>();
+
+export function setTurnUnderstander(session: object, understander: TurnUnderstander | null): void {
+  if (understander) understanders.set(session, understander);
+  else understanders.delete(session);
+}
+
+/** What the model understood of these words, or null when it has nothing for them yet. */
+export function understandingFor(session: object, text: string): Understanding | null {
+  return understanders.get(session)?.forTurn(text)?.result ?? null;
 }
 
 export const UNDERSTANDING_PROMPT = `You listen in on a phone call between a caller and their friend Ferni. Read the caller's words (EARLIER is context; judge NOW, which may still be mid-sentence) and return JSON only:
