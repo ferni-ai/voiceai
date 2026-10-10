@@ -38,6 +38,7 @@ import {
 } from '../../services/session/constants.js';
 import { runFirestoreQuery } from '../../utils/firestore-query.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { opsAlert } from '../../services/platform/ops-alert.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
 
 const log = getLogger();
@@ -657,8 +658,6 @@ function findDuplicatesWithLSH(
 export interface HealthCheckJobConfig extends BaseJobConfig {
   /** Whether to send alerts (default: true) */
   sendAlerts: boolean;
-  /** Alert webhook URL (optional) */
-  alertWebhookUrl?: string;
 }
 
 export interface HealthCheckJobResult extends Record<string, unknown> {
@@ -739,32 +738,11 @@ export class MemoryHealthCheckJob extends ScheduledJob<HealthCheckJobConfig, Hea
     return Math.max(0, score);
   }
 
-  private async sendAlerts(alerts: MetricAlert[], config: HealthCheckJobConfig): Promise<void> {
-    if (!config.alertWebhookUrl) {
-      log.warn({ alertCount: alerts.length }, 'Critical alerts detected but no webhook configured');
-      return;
-    }
-
-    try {
-      await fetch(config.alertWebhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          source: 'MemoryHealthCheckJob',
-          timestamp: new Date().toISOString(),
-          alerts: alerts.map((a) => ({
-            metric: a.metric,
-            severity: a.severity,
-            message: a.message,
-            value: a.currentValue,
-            threshold: a.threshold,
-          })),
-        }),
-      });
-      log.info({ alertCount: alerts.length }, 'Sent memory health alerts');
-    } catch (error) {
-      log.error({ error }, 'Failed to send memory health alerts');
-    }
+  /** Critical findings reach the operator through the ops-alert email policy. */
+  private async sendAlerts(alerts: MetricAlert[], _config: HealthCheckJobConfig): Promise<void> {
+    opsAlert('memory-health', `🚨 ${alerts.length} critical memory health alert(s)`, {
+      alerts: alerts.map((a) => ({ metric: a.metric, message: a.message, value: a.currentValue, threshold: a.threshold })),
+    });
   }
 }
 
