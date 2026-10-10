@@ -7,4 +7,4 @@
  *
  * @module agents/after-call-register
  */
-export {};
+import '../intelligence/theory-of-mind/register.js';

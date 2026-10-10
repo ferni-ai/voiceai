@@ -1,8 +1,8 @@
 /**
  * After a call ends, update what Ferni understands about the person.
  *
- * Started from session-manager's endSession after the summary is saved, and
- * not awaited there, so teardown never waits on it. Off unless
+ * Runs as the 'theory-of-mind' after-call task (register.ts): endSession starts
+ * it once the summary is saved and never waits on it. Off unless
  * THEORY_OF_MIND=on. Bounded by its own timeout and never throws.
  *
  * @module intelligence/theory-of-mind/after-call
