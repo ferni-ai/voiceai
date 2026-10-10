@@ -23,6 +23,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { createEmptyState } from './components/empty-state.js';
+import { toast } from './whisper.ui.js';
 
 // Import types and icons from modular structure
 import type {
@@ -882,11 +883,7 @@ class MusicDashboardUI {
 
       if (!tokenResult.success || !tokenResult.developerToken) {
         log.warn('Apple Music not configured on server');
-        window.dispatchEvent(
-          new CustomEvent('ferni:toast', {
-            detail: { message: t('musicDashboard.appleMusic.notAvailable'), type: 'info' },
-          })
-        );
+        toast.info(t('musicDashboard.appleMusic.notAvailable'));
         return;
       }
 
@@ -917,11 +914,7 @@ class MusicDashboardUI {
         const connectResult = connectResponse.ok && connectResponse.data ? connectResponse.data : { success: false };
 
         if (connectResult.success) {
-          window.dispatchEvent(
-            new CustomEvent('ferni:toast', {
-              detail: { message: t('musicDashboard.appleMusic.connected'), type: 'success' },
-            })
-          );
+          toast.success(t('musicDashboard.appleMusic.connected'));
           // Refresh the dashboard
           this.show();
         } else {
@@ -929,19 +922,11 @@ class MusicDashboardUI {
         }
       } else {
         // MusicKit not loaded - show message
-        window.dispatchEvent(
-          new CustomEvent('ferni:toast', {
-            detail: { message: t('musicDashboard.appleMusic.requirement'), type: 'info' },
-          })
-        );
+        toast.info(t('musicDashboard.appleMusic.requirement'));
       }
     } catch (error) {
       log.error('Failed to connect Apple Music', error);
-      window.dispatchEvent(
-        new CustomEvent('ferni:toast', {
-          detail: { message: t('musicDashboard.appleMusic.connectFailed'), type: 'error' },
-        })
-      );
+      toast.error(t('musicDashboard.appleMusic.connectFailed'));
     }
   }
 
