@@ -18,7 +18,7 @@ export function djCommandFor(
   switch (state) {
     case 'playing': {
       if (!track) return null;
-      const sameTrack = controller.currentTrack?.name === track.name;
+      const sameTrack = isSameTrack(controller.currentTrack, track);
       if (sameTrack && controller.state === 'paused') return { type: 'RESUME' };
       // The same track coming back up after a duck is not a new track: forwarding it
       // made track_started, then DJ speech, then a duck, in a loop
@@ -34,4 +34,9 @@ export function djCommandFor(
     default:
       return null;
   }
+}
+
+/** Same recording: a DJ queue can hold several tracks with one title ("Quiet Jazz" x4) */
+function isSameTrack(a: MusicTrack | null, b: MusicTrack): boolean {
+  return !!a && a.name === b.name && a.artist === b.artist && a.previewUrl === b.previewUrl;
 }
