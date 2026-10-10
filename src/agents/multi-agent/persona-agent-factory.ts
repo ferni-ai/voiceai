@@ -8,7 +8,6 @@
  */
 
 import type { JobContext } from '@livekit/agents';
-import { ParticipantKind } from '@livekit/rtc-node';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -35,6 +34,7 @@ import { getModelProvider } from '../model-provider/index.js';
 import { registerAgentReplyRecorder } from '../voice-agent/agent-reply-recorder.js';
 import {
   createPreSTTFrameProcessor,
+  isPhoneParticipant,
   wantsPhonePreStt,
 } from '../integrations/pre-stt-frame-processor.js';
 import { getPrewarmGreetingPolicy, planFactoryPrewarm } from './prewarm-greeting-overlap.js';
@@ -159,7 +159,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       enableFullHandlers,
       deferHandlers, // Wire handlers in background after greeting
       callSession: context.callSession as AgentSetupConfig['callSession'],
-      phoneCaller: context.userParticipant?.kind === ParticipantKind.SIP,
+      phoneCaller: isPhoneParticipant(context.userParticipant),
     });
     mark('setup_persona_agent_done');
 
