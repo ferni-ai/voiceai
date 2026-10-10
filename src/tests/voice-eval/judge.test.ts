@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error -- plain .mjs script, no types
 import {
@@ -83,6 +84,97 @@ describe('voice-eval judge', () => {
     expect(p).toContain('- candor:');
     expect(p).toContain('"candor": <1-5 or null>');
     for (const k of CANDOR_KINDS) expect(p).toContain(`"${k}":`);
+  });
+
+  it('scores feeling understood against the earlier call, and lists what was asked again', () => {
+    expect(DIMENSIONS.feltUnderstood).toMatch(/how the caller is, not just what they said/);
+    expect(DIMENSIONS.feltUnderstood).toMatch(/without being told/);
+    expect(DIMENSIONS.feltUnderstood).toMatch(/labelling their patterns/);
+    const p = promptFor({ userSpeech: [[0, 1]], events: [] }, null);
+    expect(p).toContain('- feltUnderstood:');
+    expect(p).toContain('"feltUnderstood": <1-5 or null>');
+    expect(p).toContain('"reAsked": [');
+    const v = combine([
+      { scores: { feltUnderstood: 4 }, reAsked: ['the Northlight interview'] },
+      { scores: { feltUnderstood: 3 }, reAsked: ['the Northlight interview', 'Dev moving out'] },
+      { scores: { feltUnderstood: null } },
+    ]);
+    expect(v.scores.feltUnderstood).toBe(3.5);
+    expect(v.reAsked).toEqual(['the Northlight interview', 'Dev moving out']);
+    expect(pool([v]).feltUnderstood.mean).toBe(3.5);
+  });
+
+  it('scores the other two parts of responsiveness: validated, without flattery, and cared for', () => {
+    expect(DIMENSIONS.feltValidated).toMatch(/about the feeling, not the plan/);
+    expect(DIMENSIONS.feltValidated).toMatch(/agreeing with a bad idea.*counts against it/);
+    expect(DIMENSIONS.feltValidated).toMatch(/minimizing/);
+    expect(DIMENSIONS.feltCaredFor).toMatch(/not performed/);
+    expect(DIMENSIONS.feltCaredFor).toMatch(/Stock sympathy/);
+    for (const k of ['feltValidated', 'feltCaredFor']) {
+      expect(DIMENSIONS[k]).toMatch(/3 is a good friend/);
+      expect(promptFor({ userSpeech: [[0, 1]], events: [] }, null)).toContain(
+        `"${k}": <1-5 or null>`
+      );
+    }
+    const v = combine([
+      { scores: { feltValidated: 4, feltCaredFor: 2 } },
+      { scores: { feltValidated: 3, feltCaredFor: null } },
+    ]);
+    expect(v.scores).toMatchObject({ feltValidated: 3.5, feltCaredFor: 2 });
+  });
+
+  it('ships a two-call scenario for it: a pattern in call 1, a new stressor in call 2', () => {
+    const dir = new URL('../../../scripts/voice-eval/scenarios/', import.meta.url);
+    const lines = (f: string) =>
+      readFileSync(new URL(f, dir), 'utf8')
+        .split('\n')
+        .filter((l) => l.trim() && !l.startsWith('#'));
+    const seed = lines('understood-seed.txt').join(' ');
+    const call = lines('understood.txt').join(' ');
+    expect(seed).toMatch(/Northlight/);
+    expect(seed).toMatch(/don't tell me it'll be fine/);
+    // Call 2 never tells Ferni how to help, and never restates call 1's facts.
+    expect(call).not.toMatch(/Northlight|Dev|sympathy|plan/i);
+  });
+
+  it('marks the understood scenario for recall-facts: what to bring back, what never to say', () => {
+    const text = readFileSync(
+      new URL('../../../scripts/voice-eval/scenarios/understood.txt', import.meta.url),
+      'utf8'
+    );
+    // The #@ line format recall-facts.mjs reads (#682).
+    const checks = text
+      .split('\n')
+      .map((l) => l.match(/^#@(fact|avoid)\s+(\S+)\s+(.+)$/))
+      .filter((m): m is RegExpMatchArray => m !== null)
+      .map((m) => ({ kind: m[1], id: m[2], re: new RegExp(m[3].trim(), 'i') }));
+    const re = (id: string) => checks.find((c) => c.id === id)!.re;
+    expect(checks.map((c) => `${c.kind}:${c.id}`)).toEqual([
+      'fact:northlight',
+      'fact:roommate',
+      'avoid:labels-them',
+      'avoid:sympathy-script',
+      'fact:cared-ahead',
+      'avoid:minimizes',
+      'avoid:praises-bad-plan',
+    ]);
+    expect(re('northlight').test('How did the Northlight final round go?')).toBe(true);
+    expect(re('roommate').test('And has Dev moved out yet?')).toBe(true);
+    expect(re('roommate').test('Any developments?')).toBe(false);
+    expect(re('labels-them').test('You always joke when things get scary, huh')).toBe(true);
+    expect(re('labels-them').test('Ha, a goat farm. Okay, first call the warranty line.')).toBe(
+      false
+    );
+    expect(re('sympathy-script').test("Hey, it'll be okay.")).toBe(true);
+    expect(re('sympathy-script').test("Two grand, ugh. Let's find a cheaper shop.")).toBe(false);
+    expect(re('cared-ahead').test('Wait, how are you getting to work tomorrow?')).toBe(true);
+    expect(re('cared-ahead').test('How are you getting on?')).toBe(false);
+    expect(re('minimizes').test('Well, at least nobody got hurt.')).toBe(true);
+    expect(re('minimizes').test("Two grand at least, yeah. That's a gut punch.")).toBe(false);
+    expect(re('praises-bad-plan').test("Honestly that's a smart call.")).toBe(true);
+    expect(re('praises-bad-plan').test('I get wanting it gone. Card interest bites, though.')).toBe(
+      false
+    );
   });
 
   it('averages candor scores and per-kind turn counts over samples, skipping missing or bad ones', () => {
