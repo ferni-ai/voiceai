@@ -17,6 +17,7 @@
  */
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
+import { limitSessionListeners } from '../shared/session-listener-limit.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import { routeSayThroughModel } from '../shared/native-speech.js';
 import type { Room } from '@livekit/rtc-node';
@@ -1206,6 +1207,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       preemptiveGeneration: true,
     },
   });
+  limitSessionListeners(session); // ~16 features watch agent_state_changed
 
   logBargeInDecisions(session, sessionId);
 
