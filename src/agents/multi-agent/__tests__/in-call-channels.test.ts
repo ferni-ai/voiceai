@@ -53,8 +53,6 @@ const parts = (r: ReturnType<typeof room>) => ({
   sessionPersona: { id: 'ferni', name: 'Ferni' },
 });
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
-
 afterEach(() => {
   resolvePendingAction.mockClear();
   getSessionAdapter.mockClear();
@@ -65,8 +63,7 @@ describe('in-call controls in a multi-agent call', () => {
     const r = room();
     const stop = startInCallChannels(parts(r), agents());
     r.send({ type: 'action_response', actionId: 'a-1', approved: true });
-    await settle();
-    expect(resolvePendingAction).toHaveBeenCalledWith('u1', 'a-1', true);
+    await vi.waitFor(() => expect(resolvePendingAction).toHaveBeenCalledWith('u1', 'a-1', true));
     stop();
   });
 
@@ -75,7 +72,9 @@ describe('in-call controls in a multi-agent call', () => {
     const stop = startInCallChannels(parts(r), agents());
     r.send({ type: 'handoff_request', target: 'maya-santos' });
     r.send({ type: 'handoff_cancel' });
-    await settle();
+    // A message sent after them has been handled, so they have been too
+    r.send({ type: 'action_response', actionId: 'after', approved: true });
+    await vi.waitFor(() => expect(resolvePendingAction).toHaveBeenCalled());
     expect(getSessionAdapter).not.toHaveBeenCalled();
     stop();
   });
@@ -83,8 +82,8 @@ describe('in-call controls in a multi-agent call', () => {
   it('nothing is handled once the call has stopped them', async () => {
     const r = room();
     startInCallChannels(parts(r), agents())();
+    expect(r.listenerCount('dataReceived')).toBe(0);
     r.send({ type: 'action_response', actionId: 'a-2', approved: false });
-    await settle();
     expect(resolvePendingAction).not.toHaveBeenCalled();
   });
 

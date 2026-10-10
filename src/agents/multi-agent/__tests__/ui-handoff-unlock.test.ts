@@ -68,8 +68,12 @@ describe('a tap on a teammate during a call', () => {
   it('waits for a profile still loading, rather than refusing a subscriber', async () => {
     const { o, handoff } = orchestrator();
     const s = services(null);
-    setTimeout(() => ((s as { userProfile: unknown }).userProfile = subscriber), 300);
-    const result = await handleHandoffFromDataChannel(o, 'maya-santos', 'tap', s);
+    vi.useFakeTimers();
+    const pending = handleHandoffFromDataChannel(o, 'maya-santos', 'tap', s);
+    await vi.advanceTimersByTimeAsync(300);
+    (s as { userProfile: unknown }).userProfile = subscriber; // arrives 300ms into the call
+    await vi.advanceTimersByTimeAsync(100);
+    const result = await pending;
     expect(result.success).toBe(true);
     expect(handoff).toHaveBeenCalled();
   });

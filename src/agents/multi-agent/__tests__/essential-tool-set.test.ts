@@ -1,10 +1,10 @@
 /**
  * The handoffs the first (Ferni) agent is built with, from the real builders:
- * buildHandoffTools for this user plus the essential domains.
+ * buildHandoffTools for this person plus the essential domains.
  *
- * The essential domains include a "handoff" domain built with no user. Spread
+ * The essential domains include a "handoff" domain built for no one. Spread
  * over the session's handoffs it put back handoffToFerni (Ferni handing off to
- * itself) and every teammate the user hadn't unlocked, and its handoffToPeter
+ * itself) and every teammate the person hadn't unlocked, and its handoffToPeter
  * (built last for Peter Lynch) replaced the session's Peter John.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -43,7 +43,7 @@ describe("the first Ferni agent's handoff tools", () => {
     if (saved !== undefined) process.env['BYPASS_TEAM_UNLOCKS'] = saved;
   });
 
-  it('gives a new free user no handoffs (every teammate is still locked), but keeps the domain tools', async () => {
+  it('gives a new free person no handoffs (every teammate is still locked), but keeps the domain tools', async () => {
     const { tools, names } = await handoffsFor(newFreeUser);
     expect(names).toEqual([]);
     expect(Object.keys(tools)).toContain('playMusic');
@@ -77,7 +77,7 @@ describe("the first Ferni agent's handoff tools", () => {
     expect((await handoffsFor(wholeTeamUser)).names).not.toContain('handoffToFerni');
   }, 60_000);
 
-  it('gives a user with the whole team unlocked every teammate, Peter going to Peter John', async () => {
+  it('gives a person with the whole team unlocked every teammate, Peter going to Peter John', async () => {
     const { names, description } = await handoffsFor(wholeTeamUser);
     expect(names).toEqual([
       'handoffToAlex',

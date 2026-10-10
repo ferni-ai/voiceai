@@ -13,16 +13,18 @@ type Phrases = {
   getGreetingPhrase(to: string, from: string, request: object): string | null;
 };
 
-const orchestrator = new AgentOrchestrator({
-  ctx: {} as never,
-  room: {} as never,
-  userParticipant: {} as never,
-  createPersonaAgent: async () => ({}) as never,
-  sessionId: 'banter-test',
-}) as unknown as Phrases;
+const newOrchestrator = (): Phrases =>
+  new AgentOrchestrator({
+    ctx: {} as never,
+    room: {} as never,
+    userParticipant: {} as never,
+    createPersonaAgent: async () => ({}) as never,
+    sessionId: 'banter-test',
+  }) as unknown as Phrases;
 
 describe('handoff banter in a multi-agent call', () => {
   it("Ferni's goodbye and Maya's greeting are the written banter", () => {
+    const orchestrator = newOrchestrator();
     const goodbye = getHandoffBanter('ferni', 'maya-santos');
     const greeting = getArrivingBanter('maya-santos', 'ferni');
     expect(goodbye, 'there is banter for this pair').toBeTruthy();
