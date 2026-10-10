@@ -2439,7 +2439,8 @@
       "features": "Ferniが確認できるデータ"
     },
     "title": "ウェアラブル",
-    "notConfigured": "まだ設定されていません"
+    "notConfigured": "まだ設定されていません",
+    "appleHealthOnIphone": "Apple Health は iPhone の Ferni アプリで設定してください"
   },
   "transcript": {
     "enabled": "文字起こし：オン",

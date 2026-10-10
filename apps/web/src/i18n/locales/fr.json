@@ -2458,7 +2458,8 @@
       "features": "Ce que Ferni peut voir"
     },
     "title": "Objets connectés",
-    "notConfigured": "Pas encore configuré"
+    "notConfigured": "Pas encore configuré",
+    "appleHealthOnIphone": "Configure Apple Health dans l'app Ferni sur ton iPhone"
   },
   "transcript": {
     "enabled": "Transcription activée",

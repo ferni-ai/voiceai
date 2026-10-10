@@ -2514,7 +2514,8 @@
       "features": "What Ferni can see"
     },
     "title": "Wearables",
-    "notConfigured": "Not set up yet"
+    "notConfigured": "Not set up yet",
+    "appleHealthOnIphone": "Set up Apple Health in the Ferni iPhone app"
   },
   "transcript": {
     "enabled": "Transcription on",
