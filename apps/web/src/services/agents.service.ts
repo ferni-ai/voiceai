@@ -303,7 +303,8 @@ const CUSTOM_AGENT_CHANGE_EVENTS = [
 ];
 
 if (typeof document !== 'undefined') {
-  for (const type of CUSTOM_AGENT_CHANGE_EVENTS) document.addEventListener(type, clearAgentsCache);
+  // Wrapped so the DOM Event never lands in clearAgentsCache's parameters
+  for (const type of CUSTOM_AGENT_CHANGE_EVENTS) document.addEventListener(type, () => clearAgentsCache());
 }
 
 // ============================================================================
