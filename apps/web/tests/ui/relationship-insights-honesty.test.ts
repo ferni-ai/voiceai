@@ -90,4 +90,22 @@ describe('Relationship Insights', () => {
     expect(text).not.toContain('Sarah');
     expect(document.querySelectorAll('.ri-stat-value')).toHaveLength(0);
   });
+
+  it('reopened right after closing, it stays open', async () => {
+    apiFetch.mockResolvedValue(new Response(JSON.stringify(serverBody), { status: 200 }));
+    openRelationshipInsights();
+    vi.useFakeTimers();
+    try {
+      const closed = document.querySelector('.relationship-insights-overlay');
+      closeRelationshipInsights();
+      openRelationshipInsights(); // within the close animation
+      const reopened = [...document.querySelectorAll('.relationship-insights-overlay')].at(-1);
+      vi.advanceTimersByTime(1000); // the first one's removal timer fires
+      // It removed the one it closed, not the one just opened
+      expect(reopened?.isConnected, 'the reopened modal is still on the page').toBe(true);
+      expect(closed?.isConnected, 'the closed one is gone').toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
