@@ -62,6 +62,8 @@ Changes made:
 
 ### Background Summarization: `functions/summarization-scheduler.ts`
 
+> Note (2026-10): the `functions/` package was never deployed and has been deleted.
+
 Cloud Functions added:
 
 | Function | Trigger | Description |

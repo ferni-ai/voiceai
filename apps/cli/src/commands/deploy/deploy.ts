@@ -702,104 +702,6 @@ async function deployLanding(options: DeployOptions): Promise<boolean> {
   return true;
 }
 
-async function deployEvolution(options: DeployOptions): Promise<boolean> {
-  log.step('DEPLOYING EVOLUTION SCHEDULER');
-
-  if (options.dryRun) {
-    log.info('Would deploy evolution scheduler Cloud Function');
-    return true;
-  }
-
-  const functionsDir = join(PROJECT_ROOT, 'functions');
-
-  if (!existsSync(functionsDir)) {
-    log.error('Functions directory not found');
-    return false;
-  }
-
-  // Install and build
-  log.info('Installing dependencies...');
-  exec('npm install', { cwd: functionsDir });
-
-  log.info('Building TypeScript...');
-  exec('npm run build', { cwd: functionsDir });
-
-  // Create Pub/Sub topic
-  log.info('Creating Pub/Sub topic...');
-  exec(
-    `gcloud pubsub topics create evolution-trigger --project=${CONFIG.projectId} 2>/dev/null || true`,
-    { silent: true }
-  );
-
-  // Deploy Pub/Sub triggered function
-  log.info('Deploying Cloud Function (Pub/Sub trigger)...');
-  exec(
-    [
-      'gcloud functions deploy evolutionScheduler',
-      '--runtime=nodejs22',
-      '--trigger-topic=evolution-trigger',
-      '--entry-point=evolutionScheduler',
-      '--timeout=540s',
-      '--memory=1GB',
-      `--region=${CONFIG.region}`,
-      `--project=${CONFIG.projectId}`,
-      `--set-env-vars="GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}"`,
-      '--quiet',
-    ].join(' \\\n  '),
-    { cwd: functionsDir }
-  );
-
-  // Deploy HTTP triggered function
-  log.info('Deploying Cloud Function (HTTP trigger)...');
-  exec(
-    [
-      'gcloud functions deploy evolutionSchedulerHttp',
-      '--runtime=nodejs22',
-      '--trigger-http',
-      '--entry-point=evolutionSchedulerHttp',
-      '--timeout=540s',
-      '--memory=1GB',
-      `--region=${CONFIG.region}`,
-      `--project=${CONFIG.projectId}`,
-      '--allow-unauthenticated',
-      `--set-env-vars="GOOGLE_CLOUD_PROJECT=${CONFIG.projectId}"`,
-      '--quiet',
-    ].join(' \\\n  '),
-    { cwd: functionsDir }
-  );
-
-  // Create Cloud Scheduler job
-  log.info('Creating Cloud Scheduler job...');
-  exec(
-    `gcloud scheduler jobs delete daily-evolution --location=${CONFIG.region} --quiet 2>/dev/null || true`,
-    { silent: true }
-  );
-  exec(
-    [
-      'gcloud scheduler jobs create pubsub daily-evolution',
-      '--schedule="0 3 * * *"',
-      '--topic=evolution-trigger',
-      '--message-body="{}"',
-      '--time-zone="America/New_York"',
-      `--location=${CONFIG.region}`,
-      `--project=${CONFIG.projectId}`,
-    ].join(' \\\n  ')
-  );
-
-  log.success('Evolution scheduler deployed');
-  console.log(`
-The system will now automatically:
-  • Run daily at 3:00 AM ET
-  • Process learning signals from all conversations
-  • Make all personas smarter over time
-
-Manual trigger:
-  curl -X POST https://${CONFIG.region}-${CONFIG.projectId}.cloudfunctions.net/evolutionSchedulerHttp
-`);
-
-  return true;
-}
-
 async function deployAsync(options: DeployOptions): Promise<boolean> {
   log.step('DEPLOYING ASYNC WORKERS (Outreach Processing)');
 
@@ -1103,7 +1005,6 @@ ${colors.bold}Targets:${colors.reset}
   ${colors.green}agent${colors.reset}      Deploy voice agent to LiveKit Cloud (dev agent; --prod for production)
   ${colors.green}brand${colors.reset}      Deploy brand assets to Cloud Storage
   ${colors.green}landing${colors.reset}    Deploy landing page (Firebase/Cloud Storage)
-  ${colors.green}evolution${colors.reset}  Deploy evolution scheduler Cloud Function
   ${colors.green}workers${colors.reset}    Deploy async workers to Cloud Run (outreach processing)
   ${colors.green}all${colors.reset}        Deploy ui, frontend, landing (and the production agent with --prod)
 
@@ -1198,10 +1099,6 @@ ${colors.cyan}╚═════════════════════
 
     case 'frontend':
       success = await deployFrontend(options);
-      break;
-
-    case 'evolution':
-      success = await deployEvolution(options);
       break;
 
     case 'async':

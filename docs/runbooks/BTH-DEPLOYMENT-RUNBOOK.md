@@ -31,34 +31,10 @@ ferni logs agent --grep "Learning Engine"
 
 ## Phase 2: Proactive Outreach Activation
 
-Deploy the outreach Cloud Function and Cloud Scheduler job.
-
-**Deploy Command:**
-```bash
-ferni deploy outreach
-```
-
-**What This Does:**
-1. Creates `outreach-trigger` Pub/Sub topic
-2. Deploys `outreachScheduler` Cloud Function
-3. Creates `outreach-check` Cloud Scheduler job (runs every 15 min)
-
-**Verification:**
-```bash
-# Check Cloud Function status
-gcloud functions describe outreachScheduler --gen2 --region=us-central1
-
-# Check Scheduler job
-gcloud scheduler jobs describe outreach-check --location=us-central1
-
-# Check Pub/Sub topic
-gcloud pubsub topics describe outreach-trigger
-```
-
-**Files:**
-- `functions/outreach-scheduler.ts`
-- `apps/cli/src/commands/deploy/deploy-outreach.ts`
-- `src/services/trust-systems/outreach-integration.ts` - Now persists to Firestore
+> Removed 2026-10: the `outreachScheduler` Cloud Function lived in the undeployed
+> `functions/` package, which has been deleted (it was never deployed and the
+> `ferni deploy outreach` target did not exist). Proactive outreach runs via the
+> async workers (`ferni deploy workers`) and `ferni exec outreach`.
 
 ## Phase 3: Memory Lifecycle Activation
 
