@@ -63,20 +63,28 @@ export function clipTrackPaced(env: Record<string, string | undefined> = process
  * already talking again. Paced, each 100 ms block is released when it is due
  * (PACED_LEAD_MS early), so almost nothing is queued ahead of a clip: 219-242
  * ms to the wire.
+ *
+ * While a clip plays (`busy`), the silence runs unpaced again, so the mixer
+ * fills the source queue with the clip at once: a 60 ms cushion alone would
+ * break a clip up whenever the event loop stalls (VAD lag on dev ran ~470 ms
+ * p50). A clip after that one still reaches the wire in ~200 ms (tested).
  */
-export async function* silence(paced = clipTrackPaced()): AsyncGenerator<AudioFrame> {
+export async function* silence(
+  paced = clipTrackPaced(),
+  busy: () => boolean = () => false
+): AsyncGenerator<AudioFrame> {
   const samples = MIX_RATE / 10; // 100 ms, the mixer's block
   let due = Date.now();
   for (;;) {
-    if (paced) {
+    if (paced && !busy()) {
       const wait = due - PACED_LEAD_MS - Date.now();
       if (wait > 0) {
         await new Promise<void>((resolve) => {
           setTimeout(resolve, wait);
         });
       }
-      due += 100;
     }
+    if (paced) due += 100;
     yield new AudioFrame(new Int16Array(samples), MIX_RATE, 1, samples);
   }
 }
@@ -88,7 +96,7 @@ export class ClipPlayer {
 
   async start(room: Room, session: voice.AgentSession): Promise<void> {
     await this.player.start({ room, agentSession: session });
-    this.player.play({ source: silence() });
+    this.player.play({ source: silence(clipTrackPaced(), () => this.playing) });
     this.started = true;
   }
 

@@ -110,3 +110,46 @@ describe('side-track lag (CLIP_TRACK_PACED)', () => {
     expect(await clipToWireMs(true)).toBeLessThan(350);
   }, 10_000);
 });
+
+describe('paced silence while a clip plays', () => {
+  it('fills the queue during a clip (stall cushion), then drains back for the next clip', async () => {
+    const source = new AudioSource(48000, 1, 400);
+    const mixer = new AudioMixer(48000, 1, { blocksize: 4800, capacity: 1, streamTimeoutMs: 2000 });
+    let busy = false;
+    mixer.addStream(silence(true, () => busy) as never);
+    let playedAt: number | null = null;
+    const lags: number[] = [];
+    let peakQueued = 0;
+    const pump = (async () => {
+      for await (const frame of mixer) {
+        if (busy) peakQueued = Math.max(peakQueued, source.queuedDuration);
+        if (playedAt !== null && frame.data.some((x) => x !== 0)) {
+          lags.push(Date.now() - playedAt + source.queuedDuration);
+          playedAt = null;
+        }
+        await source.captureFrame(frame);
+      }
+    })();
+    const sleep = (ms: number) =>
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, ms);
+      });
+    const play = () => {
+      playedAt = Date.now();
+      mixer.addStream(pcmToFrames(new Int16Array(12000).fill(8000).buffer) as never); // 500 ms
+    };
+    await sleep(800);
+    busy = true;
+    play();
+    await sleep(600);
+    busy = false;
+    await sleep(1500); // the queue drains back to the cushion
+    play();
+    await sleep(600);
+    await mixer.aclose();
+    await pump.catch(() => undefined);
+    await source.close();
+    expect(peakQueued).toBeGreaterThan(250);
+    expect(lags[1]!).toBeLessThan(350);
+  }, 10_000);
+});
