@@ -27,7 +27,6 @@ apps/website/
 # NOTE: apps/cli/ is intentionally NOT excluded (needed for Dockerfile.agent build)
 ferni-speaker-build/
 promo/
-functions/
 # Design system - only keep dist/ and essential brand assets
 design-system/.storybook/
 design-system/assets/
