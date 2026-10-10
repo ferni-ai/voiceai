@@ -1674,12 +1674,12 @@ async function pairHueBridge(): Promise<void> {
 
       // Save to backend
       const userId = getUserId();
-      await apiPost('/api/smart-home/hue/save', {
+      const saved = await apiPost('/api/smart-home/hue/save', {
         userId,
         bridgeIp: hueBridgeIp,
         username: hueUsername,
       });
-
+      if (!saved.ok) throw new Error(saved.error ?? 'Failed to save Hue bridge');
       toast.success(t('toasts.hueConnected'));
       callbacks.onConnected?.('hue');
       setupStep = 2;
@@ -1720,11 +1720,11 @@ async function connectLifx(token: string): Promise<void> {
 
     // Save to backend
     const userId = getUserId();
-    await apiPost('/api/smart-home/lifx/save', {
+    const saved = await apiPost('/api/smart-home/lifx/save', {
       userId,
       token,
     });
-
+    if (!saved.ok) throw new Error(saved.error ?? 'Failed to save LIFX token');
     toast.success(tp('smarthome.lightsFound', lights.length));
     callbacks.onConnected?.('lifx');
     currentSetupFlow = null;
@@ -1767,11 +1767,11 @@ async function disconnectIntegration(integration: string): Promise<void> {
     const userId = getUserId();
 
     // Ecobee uses a different route
-    if (integration === 'ecobee') {
-      await apiDelete(`/api/ecobee/disconnect?userId=${userId}`);
-    } else {
-      await apiDelete(`/api/smart-home/${integration}/disconnect?userId=${userId}`);
-    }
+    const response =
+      integration === 'ecobee'
+        ? await apiDelete(`/api/ecobee/disconnect?userId=${userId}`)
+        : await apiDelete(`/api/smart-home/${integration}/disconnect?userId=${userId}`);
+    if (!response.ok) throw new Error(response.error ?? 'Disconnect failed');
 
     toast.success(t('toasts.disconnected'));
     callbacks.onDisconnected?.(integration);
