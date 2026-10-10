@@ -77,6 +77,12 @@ describe('on-behalf dispatch contract', () => {
     }
   });
 
+  it('treats a requester or contact that is not an object as missing', () => {
+    const wire = JSON.parse(JSON.stringify(buildOnBehalfDispatch(input)));
+    expect(parseOnBehalfDispatch({ ...wire, requester: 'user-1' })).toBeNull();
+    expect(parseOnBehalfDispatch({ ...wire, contact: ['Mom'] })?.contact.name).toBe('them');
+  });
+
   it('only lets known objectives and call types through', () => {
     const wire = JSON.parse(JSON.stringify(buildOnBehalfDispatch(input)));
     const odd = parseOnBehalfDispatch({

@@ -152,6 +152,8 @@ export function onBehalfDispatchFromStream(
 }
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+const asObject = (v: unknown): Record<string, unknown> =>
+  v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 
 const OBJECTIVES: readonly CallObjective[] = [
   'reschedule',
@@ -177,8 +179,8 @@ function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback
  */
 export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBehalfDispatch | null {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
-  const requester = (metadata.requester ?? {}) as Record<string, unknown>;
-  const contact = (metadata.contact ?? {}) as Record<string, unknown>;
+  const requester = asObject(metadata.requester);
+  const contact = asObject(metadata.contact);
   const callId = str(metadata.callId);
   const userId = str(requester.userId) || str(metadata.userId);
   if (!callId || !userId || userId === 'unknown') return null;
