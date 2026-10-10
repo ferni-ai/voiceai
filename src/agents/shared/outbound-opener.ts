@@ -51,21 +51,23 @@ export function outboundPartiesFor(sessionId: string): OutboundParties | undefin
 }
 
 /**
- * The opener: addresses the person on the line, says Ferni is an AI, and says
- * who it is calling for. Fixed text, not the director: the disclosure is a
- * compliance line and must not depend on a model choosing to say it.
+ * The opener: addresses the person on the line, introduces Ferni as the
+ * user's friend, says it is an AI, and says why it called. Ferni is never
+ * "an assistant" to the people it calls. Fixed text, not the director: the
+ * AI disclosure is a compliance line and must not depend on a model choosing
+ * to say it. (complianceScript stays a model instruction: in practice it is
+ * written as directions, "Open by saying ...", not as speakable words.)
  */
 export function outboundOpener(parties: OutboundParties): string {
   const { recipientName, sponsorName, personal } = parties;
   if (personal) {
     const hello = recipientName ? `Hi ${recipientName}` : 'Hi';
-    const forWhom = sponsorName
-      ? ` calling for ${sponsorName}. ${sponsorName} asked me to give you a call.`
-      : '.';
-    return `${hello}, this is Ferni, an AI companion${forWhom} Is now an okay time?`;
+    return sponsorName
+      ? `${hello}, it's Ferni, ${sponsorName}'s friend. I'm an AI ${sponsorName} talks with, and ${sponsorName} asked me to check in on you. Is now an okay time?`
+      : `${hello}, it's Ferni. I'm an AI, and I'm calling to check in on you. Is now an okay time?`;
   }
-  const forWhom = sponsorName ? ` calling on behalf of ${sponsorName}` : '';
-  return `Hi, this is Ferni, an AI assistant${forWhom}. Do you have a quick minute?`;
+  const forWhom = sponsorName ? `for ${sponsorName}` : "on someone's behalf";
+  return `Hi, this is Ferni, an AI calling ${forWhom}. Do you have a quick minute?`;
 }
 
 /**
@@ -86,7 +88,11 @@ export function outboundCallerAwareness(parties: OutboundParties | undefined): s
       `You are calling on behalf of ${sponsorName}, who is not on this call. Never call the person on the line ${sponsorName}.`
     );
   }
-  lines.push('You are an AI. If they ask, say so plainly.');
+  lines.push(
+    sponsorName
+      ? `You are Ferni, ${sponsorName}'s friend, and you are an AI. If they ask, say plainly that you are an AI.`
+      : 'You are Ferni, and you are an AI. If they ask, say plainly that you are an AI.'
+  );
   return `\n---\n\n## Who You're Talking To\n\n${lines.join('\n')}\n`;
 }
 

@@ -26,8 +26,10 @@ const { setupCallTypeContexts } = await import('../../voice-agent-entry/metadata
 const { AgentOrchestrator } = await import('../orchestrator.js');
 const { identifyUser } = await import('../../voice-agent/user-identification-handler.js');
 const { buildUserAwareness } = await import('../../voice-agent/phases/user-awareness.js');
-const { outboundCallerAwareness, outboundPartiesFor, waitForCallAnswered } =
+const { outboundCallerAwareness, outboundOpener, outboundPartiesFor, waitForCallAnswered } =
   await import('../../shared/outbound-opener.js');
+const { outboundCallContextBuilder } =
+  await import('../../../intelligence/context-builders/external/outbound-call-context.js');
 
 /** The job metadata the prod call was dispatched with (session AJ_TxGXvpFEKevD). */
 const onBehalfMetadata = (): Record<string, unknown> => ({
@@ -74,7 +76,7 @@ function startOrchestrator(sessionId: string, room: EventEmitter, participant: o
 }
 
 describe('the opener of a call placed on the user’s behalf', () => {
-  it('waits for the phone to be answered, then greets Doug as an AI calling for Seth', async () => {
+  it('waits for the phone to be answered, then greets Doug as Seth’s friend, an AI', async () => {
     await onBehalfSession('ob-opener');
     const room = new EventEmitter();
     const { say, started } = startOrchestrator('ob-opener', room, phoneParticipant('ringing'));
@@ -95,7 +97,9 @@ describe('the opener of a call placed on the user’s behalf', () => {
     const opener = String(say.mock.calls[0][0]);
     expect(opener).toMatch(/\bDoug\b/);
     expect(opener).toMatch(/\bAI\b/);
-    expect(opener).toMatch(/calling for Seth/);
+    expect(opener).toContain("Ferni, Seth's friend");
+    expect(opener).toMatch(/check in on you/);
+    expect(opener).not.toMatch(/assistant/i);
     expect(opener).not.toMatch(/hey,? seth/i);
     expect(opener.indexOf('Doug')).toBeLessThan(opener.indexOf('Seth'));
   });
@@ -113,7 +117,9 @@ describe('the opener of a call placed on the user’s behalf', () => {
     await started;
     await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 3000 });
     const opener = String(say.mock.calls[0][0]);
-    expect(opener).toMatch(/^Hi Doug, this is Ferni, an AI companion calling for Seth\./);
+    expect(opener).toBe(
+      "Hi Doug, it's Ferni, Seth's friend. I'm an AI Seth talks with, and Seth asked me to check in on you. Is now an okay time?"
+    );
   });
 
   it('says nothing when the phone hangs up unanswered', async () => {
@@ -170,7 +176,18 @@ describe('who is on the line on a call placed for the user', () => {
     const awareness = outboundCallerAwareness(outboundPartiesFor('ob-awareness'));
     expect(awareness).toMatch(/Doug is the person on the line/);
     expect(awareness).toMatch(/Never call the person on the line Seth/);
+    expect(awareness).toMatch(/You are Ferni, Seth's friend, and you are an AI/);
     expect(outboundCallerAwareness(outboundPartiesFor('no-such-call'))).toBe('');
+
+    const injections = await outboundCallContextBuilder.build({
+      services: { sessionId: 'ob-awareness' },
+    } as never);
+    const prompt = injections.map((i) => i.content).join('\n');
+    expect(prompt).toMatch(/You are Ferni, Seth's friend, and you are an AI/);
+    for (const text of [awareness, prompt]) {
+      expect(text).not.toMatch(/assistant/i);
+      expect(text).not.toMatch(/hey,? seth/i);
+    }
 
     const single = buildUserAwareness({
       sessionId: 'ob-awareness',
@@ -181,6 +198,26 @@ describe('who is on the line on a call placed for the user', () => {
     });
     expect(single.instructionsBlock).not.toMatch(/talking to Seth/);
     expect(single.instructionsBlock).toMatch(/Doug/);
+  });
+});
+
+describe('openers never present Ferni as an assistant', () => {
+  it('a business call says Ferni is an AI calling for Seth', () => {
+    const opener = outboundOpener({ sponsorName: 'Seth', recipientName: 'Acme', personal: false });
+    expect(opener).toBe('Hi, this is Ferni, an AI calling for Seth. Do you have a quick minute?');
+  });
+
+  it('every shape discloses the AI and none says assistant', () => {
+    for (const personal of [true, false]) {
+      for (const sponsorName of ['Seth', undefined]) {
+        for (const recipientName of ['Doug', undefined]) {
+          const opener = outboundOpener({ sponsorName, recipientName, personal });
+          expect(opener).toMatch(/\bAI\b/);
+          expect(opener).not.toMatch(/assistant/i);
+          expect(opener).not.toMatch(/hey,? seth/i);
+        }
+      }
+    }
   });
 });
 
