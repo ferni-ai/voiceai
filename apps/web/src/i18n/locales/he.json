@@ -3676,6 +3676,7 @@
     },
     "errorClipboard": "ההעתקה נכשלה. לנסות שוב?",
     "copyError": "לא הצלחנו להעתיק. לנסות שוב?",
+    "linkUnavailable": "לא הצלחנו לטעון את הקישור שלך כרגע. נסו שוב בעוד רגע.",
     "bonusAmount": "שניכם תקבלו {seeds} זרעים",
     "bonusWhen": "ברגע שהם מצטרפים!",
     "garden": {
@@ -9214,6 +9215,7 @@
     "tierReqGardener": "3-5 חברים",
     "tierReqGroveKeeper": "6-10 חברים",
     "tierReqForestGuardian": "11+ חברים",
+    "loadFailed": "לא הצלחנו לטעון את הגינה שלך כרגע. נסו שוב בעוד רגע.",
     "inviteFriends": "להזמין חברים",
     "emptyTitle": "הגינה שלך מחכה לצמוח!",
     "emptyHint": "שיתוף Ferni עם חברים יעניק לכולכם 25 זרעים.",

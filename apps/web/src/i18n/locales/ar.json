@@ -3745,6 +3745,7 @@
     },
     "errorClipboard": "تعذر النسخ. المحاولة مجدداً؟",
     "copyError": "تعذر النسخ. هل تودون المحاولة مجددًا؟",
+    "linkUnavailable": "تعذّر تحميل رابطك الآن. حاول مجدداً بعد قليل.",
     "bonusAmount": "سيحصل كِلاكما على {seeds} بذور",
     "bonusWhen": "عند انضمامهم!",
     "garden": {
@@ -9421,6 +9422,7 @@
     "tierReqGardener": "3-5 أصدقاء",
     "tierReqGroveKeeper": "6-10 أصدقاء",
     "tierReqForestGuardian": "أكثر من 11 صديقاً",
+    "loadFailed": "تعذّر تحميل حديقتك الآن. حاول مجدداً بعد قليل.",
     "inviteFriends": "دعوة الأصدقاء",
     "emptyTitle": "حديقتكم تنتظر أن تنمو وتزدهر!",
     "emptyHint": "شاركونا Ferni مع الأصدقاء وسيحصل كل منكم على 25 بذرة.",

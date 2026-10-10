@@ -3653,6 +3653,7 @@
     },
     "errorClipboard": "無法複製。要再試一次嗎？",
     "copyError": "無法複製。要再試一次嗎？",
+    "linkUnavailable": "暫時無法載入你的連結，請稍後再試。",
     "bonusAmount": "你們雙方都將獲得 {seeds} 顆種子",
     "bonusWhen": "在他們加入時！",
     "garden": {
@@ -9145,6 +9146,7 @@
     "tierReqGardener": "3-5 位好友",
     "tierReqGroveKeeper": "6-10 位好友",
     "tierReqForestGuardian": "11 位以上好友",
+    "loadFailed": "暫時無法載入你的花園，請稍後再試。",
     "inviteFriends": "邀請好友",
     "emptyTitle": "你的花園正等著茁壯成長！",
     "emptyHint": "與好友分享 Ferni，你們雙方都能獲得 25 顆種子。",

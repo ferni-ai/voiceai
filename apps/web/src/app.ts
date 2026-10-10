@@ -2627,7 +2627,7 @@ class VoiceAIApp {
     // This ensures referrer gets credit after new user completes a meaningful conversation
     const convCount = modalCoordinator.getConversationCount();
     if (convCount <= 2) {
-      const referralResult = processPendingReferral();
+      const referralResult = await processPendingReferral();
       if (referralResult.processed) {
         log.info({ bonus: referralResult.bonusAwarded }, 'Referral bonus applied');
         // Show toast after a short delay so it doesn't conflict with conversation end UI

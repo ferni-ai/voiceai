@@ -3676,6 +3676,7 @@
     },
     "errorClipboard": "No se pudo copiar. ¿Lo intentas de nuevo?",
     "copyError": "No se pudo copiar. ¿Lo intentas de nuevo?",
+    "linkUnavailable": "No pudimos cargar tu enlace ahora mismo. Inténtalo de nuevo en un momento.",
     "bonusAmount": "Ambos recibirán {seeds} semillas",
     "bonusWhen": "¡cuando se unan!",
     "garden": {
@@ -9215,6 +9216,7 @@
     "tierReqGardener": "3-5 amistades",
     "tierReqGroveKeeper": "6-10 amistades",
     "tierReqForestGuardian": "11+ amistades",
+    "loadFailed": "No pudimos cargar tu jardín ahora mismo. Inténtalo de nuevo en un momento.",
     "inviteFriends": "Invita a tus amistades",
     "emptyTitle": "¡Tu jardín está esperando para crecer!",
     "emptyHint": "Comparte Ferni con tus amistades y recibirán 25 semillas cada quien.",

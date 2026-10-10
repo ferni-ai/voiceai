@@ -34,14 +34,6 @@ const GIFT_MULTIPLIERS: Record<number, number> = {
   50: 1.4, // 50 → 70 (+40%)
 };
 
-/** Garden passive income rates */
-const GARDEN_RATES: Record<string, number> = {
-  seedling: 2,
-  gardener: 3,
-  'grove-keeper': 5,
-  'forest-guardian': 7,
-};
-
 /** Streak rewards */
 const STREAK_REWARDS: Record<number, number> = {
   7: 25,
@@ -160,6 +152,16 @@ async function getOrCreateUserSeeds(
 
   if (doc.exists) {
     const data = doc.data()!;
+    // Other seed paths create this doc without a code; persist one, or the link we hand out is never registered.
+    const referralCode: string =
+      data.referralCode ??
+      (await db.runTransaction(async (tx) => {
+        const existing = (await tx.get(userSeedsRef)).data()?.referralCode as string | undefined;
+        if (existing) return existing;
+        const code = generateReferralCode();
+        tx.set(userSeedsRef, { referralCode: code }, { merge: true });
+        return code;
+      }));
     return {
       userId,
       balance: data.balance ?? STARTER_SEEDS,
@@ -168,7 +170,7 @@ async function getOrCreateUserSeeds(
       currentStreak: data.currentStreak ?? 0,
       lastDailyClaimDate: data.lastDailyClaimDate ?? null,
       lastConversationDate: data.lastConversationDate ?? null,
-      referralCode: data.referralCode ?? generateReferralCode(),
+      referralCode,
       referredBy: data.referredBy ?? null,
       referrals: data.referrals ?? [],
       gardenTitle: data.gardenTitle ?? 'seedling',
@@ -265,8 +267,6 @@ export async function handleSeedsRoutes(
     if (pathname === '/api/seeds' && req.method === 'GET') {
       const userSeeds = await getOrCreateUserSeeds(db, userId);
       const today = new Date().toISOString().split('T')[0];
-      const activeReferrals = userSeeds.referrals.length;
-      const weeklyRate = GARDEN_RATES[userSeeds.gardenTitle] || 2;
 
       sendJSON(res, {
         balance: userSeeds.balance,
@@ -278,8 +278,6 @@ export async function handleSeedsRoutes(
         garden: {
           title: userSeeds.gardenTitle,
           totalReferrals: userSeeds.referrals.length,
-          activeReferrals,
-          weeklyPassiveSeeds: activeReferrals * weeklyRate,
         },
         earnedFrom: userSeeds.earnedFrom,
       });
@@ -436,14 +434,10 @@ export async function handleSeedsRoutes(
     // GET /api/seeds/garden - Get garden stats
     if (pathname === '/api/seeds/garden' && req.method === 'GET') {
       const userSeeds = await getOrCreateUserSeeds(db, userId);
-      const activeReferrals = userSeeds.referrals.length;
-      const weeklyRate = GARDEN_RATES[userSeeds.gardenTitle] || 2;
 
       sendJSON(res, {
         title: userSeeds.gardenTitle,
         totalReferrals: userSeeds.referrals.length,
-        activeReferrals,
-        weeklyPassiveSeeds: activeReferrals * weeklyRate,
         totalEarnedFromReferrals: userSeeds.earnedFrom.referrals,
         referralCode: userSeeds.referralCode,
         referralUrl: `https://ferni.ai/grow/${userSeeds.referralCode}`,

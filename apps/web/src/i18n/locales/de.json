@@ -3653,6 +3653,7 @@
     },
     "errorClipboard": "Kopieren fehlgeschlagen. Nochmal versuchen?",
     "copyError": "Kopieren hat nicht geklappt. Nochmal versuchen?",
+    "linkUnavailable": "Dein Link konnte gerade nicht geladen werden. Versuch es gleich noch einmal.",
     "bonusAmount": "Ihr bekommt beide {seeds} Samen",
     "bonusWhen": "wenn sie dazukommen!",
     "garden": {
@@ -9145,6 +9146,7 @@
     "tierReqGardener": "3–5 Freund*innen",
     "tierReqGroveKeeper": "6–10 Freund*innen",
     "tierReqForestGuardian": "11+ Freund*innen",
+    "loadFailed": "Dein Garten konnte gerade nicht geladen werden. Versuch es gleich noch einmal.",
     "inviteFriends": "Freund*innen einladen",
     "emptyTitle": "Dein Garten wartet darauf, zu wachsen!",
     "emptyHint": "Teile Ferni mit Freund*innen und ihr bekommt beide 25 Samen.",
