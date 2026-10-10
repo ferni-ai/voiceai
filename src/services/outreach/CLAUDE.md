@@ -64,7 +64,6 @@ The outreach module handles Ferni's ability to reach out to people proactively:
 |------|---------|
 | `superhuman-outreach-bridge.ts` | Bridges to superhuman insights |
 | `superhuman-outreach-integration.ts` | Superhuman integration |
-| `superhuman-call-scheduler.ts` | Superhuman-triggered calls |
 | `trust-outreach-bridge.ts` | Trust system integration |
 | `relationship-adapter.ts` | Relationship data adapter |
 | `relationship-health-tracker.ts` | Relationship health tracking |
