@@ -127,7 +127,7 @@ async function execute(
   // Capabilities/Help - FTIS essentials category
   if (fnLower === 'essentials_help' || fnLower === 'essentials_capabilities') {
     log.info({ toolId: fn }, '❓ Capabilities requested');
-    return "I'm Ferni, your AI life coach. I can help with calendar management, habits, reminders, music, weather, calling and texting contacts, smart home control, and much more. What would you like to do?";
+    return "Oh, plenty. Your calendar, habits, reminders, music, the weather, calling and texting people, the lights at home, that kind of thing.";
   }
 
   // General news search - handle both domain IDs and semantic IDs
