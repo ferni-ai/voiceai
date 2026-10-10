@@ -10215,8 +10215,13 @@
     "runNow": "Lancer maintenant",
     "signInPrompt": "Connecte-toi pour voir ce que je fais pour toi",
     "loadError": "Impossible de charger tes routines",
-    "connectionsSoon": "Les services connectés arrivent bientôt...",
-    "whatIDoForYou": "Ce que je fais pour toi"
+    "whatIDoForYou": "Ce que je fais pour toi",
+    "connections": {
+      "connected": "Connecté",
+      "notConnected": "Non connecté",
+      "intro": "Voici les services que je peux utiliser pour toi.",
+      "loadError": "Impossible de charger tes services connectés"
+    }
   },
   "voiceAuth": {
     "unknownError": "Erreur inconnue",

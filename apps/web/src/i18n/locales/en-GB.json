@@ -10120,8 +10120,13 @@
     "runNow": "Run now",
     "signInPrompt": "Sign in to see what I do for you",
     "loadError": "Couldn't load your routines",
-    "connectionsSoon": "Connected services coming soon...",
-    "whatIDoForYou": "What I Do For You"
+    "whatIDoForYou": "What I Do For You",
+    "connections": {
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "intro": "These are the services I can use in what I do for you.",
+      "loadError": "Couldn't load your connected services"
+    }
   },
   "voiceAuth": {
     "unknownError": "Unknown error",

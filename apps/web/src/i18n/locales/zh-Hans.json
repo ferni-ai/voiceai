@@ -10120,8 +10120,13 @@
     "runNow": "立即运行",
     "signInPrompt": "登录看看我能为你做些什么吧",
     "loadError": "没能加载你的日常习惯",
-    "connectionsSoon": "已连接服务即将推出...",
-    "whatIDoForYou": "我能为你做些什么"
+    "whatIDoForYou": "我能为你做些什么",
+    "connections": {
+      "connected": "已连接",
+      "notConnected": "未连接",
+      "intro": "这些是我可以为你使用的服务。",
+      "loadError": "无法加载你已连接的服务"
+    }
   },
   "voiceAuth": {
     "unknownError": "未知错误",

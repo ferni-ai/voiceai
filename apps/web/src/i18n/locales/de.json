@@ -10120,8 +10120,13 @@
     "runNow": "Jetzt ausführen",
     "signInPrompt": "Melde dich an, um zu sehen, was ich für dich tue",
     "loadError": "Deine Routinen konnten nicht geladen werden",
-    "connectionsSoon": "Verbundene Dienste kommen bald...",
-    "whatIDoForYou": "Was ich für dich tue"
+    "whatIDoForYou": "Was ich für dich tue",
+    "connections": {
+      "connected": "Verbunden",
+      "notConnected": "Nicht verbunden",
+      "intro": "Das sind die Dienste, die ich für dich nutzen kann.",
+      "loadError": "Deine verbundenen Dienste konnten nicht geladen werden"
+    }
   },
   "voiceAuth": {
     "unknownError": "Unbekannter Fehler",

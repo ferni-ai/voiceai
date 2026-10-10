@@ -10120,8 +10120,13 @@
     "runNow": "今すぐ実行",
     "signInPrompt": "サインインして、私があなたのために何をしているか見てみましょう。",
     "loadError": "ルーティンを読み込めませんでした。",
-    "connectionsSoon": "連携サービスはもうすぐ登場します...",
-    "whatIDoForYou": "あなたのために私がすること"
+    "whatIDoForYou": "あなたのために私がすること",
+    "connections": {
+      "connected": "連携済み",
+      "notConnected": "未連携",
+      "intro": "あなたのために私が使えるサービスです。",
+      "loadError": "連携サービスを読み込めませんでした。"
+    }
   },
   "voiceAuth": {
     "unknownError": "不明なエラー",

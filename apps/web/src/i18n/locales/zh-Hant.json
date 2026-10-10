@@ -10120,8 +10120,13 @@
     "runNow": "立即執行",
     "signInPrompt": "登入以查看我為你做的事",
     "loadError": "無法載入你的日常慣例",
-    "connectionsSoon": "連結服務即將推出...",
-    "whatIDoForYou": "我為你做的事"
+    "whatIDoForYou": "我為你做的事",
+    "connections": {
+      "connected": "已連結",
+      "notConnected": "未連結",
+      "intro": "這些是我可以為你使用的服務。",
+      "loadError": "無法載入你已連結的服務"
+    }
   },
   "voiceAuth": {
     "unknownError": "未知錯誤",
