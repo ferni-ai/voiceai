@@ -5,6 +5,7 @@
  * - GET /api/seeds - Get user's seed balance and stats
  * - POST /api/seeds/claim-daily - Claim daily bonus
  * - POST /api/seeds/gift - Gift seeds to another user
+ * - POST /api/seeds/purchase - Buy a cosmetic (seeds-purchase.ts)
  * - GET /api/seeds/garden - Get garden/referral stats
  * - POST /api/seeds/referral - Process a referral signup
  * - GET /api/seeds/history - Get seed transaction history
@@ -24,6 +25,8 @@ import {
   prepareSeeds,
   STARTER_SEEDS,
 } from '../services/seeds/ledger.js';
+import { ownedCosmetics } from '../services/seeds/cosmetics-catalog.js';
+import { purchaseCosmetic } from './seeds-purchase.js';
 
 const log = createLogger({ module: 'SeedsRoutes' });
 
@@ -49,6 +52,7 @@ interface UserSeeds {
   referralCode: string;
   referredBy: string | null;
   referrals: string[];
+  ownedCosmetics: string[];
   gardenTitle: 'seedling' | 'gardener' | 'grove-keeper' | 'forest-guardian';
   earnedFrom: {
     daily: number;
@@ -164,6 +168,7 @@ async function getOrCreateUserSeeds(
       referralCode,
       referredBy: data.referredBy ?? null,
       referrals: data.referrals ?? [],
+      ownedCosmetics: ownedCosmetics(data.ownedCosmetics),
       gardenTitle: data.gardenTitle ?? 'seedling',
       earnedFrom: data.earnedFrom ?? {
         daily: 0,
@@ -178,7 +183,7 @@ async function getOrCreateUserSeeds(
 
   // Create new user
   const now = admin.firestore.Timestamp.now();
-  const newUser: Omit<UserSeeds, 'userId'> = {
+  const newUser: Omit<UserSeeds, 'userId' | 'ownedCosmetics'> = {
     balance: STARTER_SEEDS,
     lifetimeEarned: STARTER_SEEDS,
     lifetimePlanted: 0,
@@ -211,7 +216,7 @@ async function getOrCreateUserSeeds(
   await batch.commit();
   log.info({ userId, balance: STARTER_SEEDS }, 'Created new user seeds account');
 
-  return { userId, ...newUser };
+  return { userId, ...newUser, ownedCosmetics: ownedCosmetics([]) };
 }
 
 // parseBody, sendJSON, sendError imported from './helpers.js'
@@ -280,7 +285,17 @@ export async function handleSeedsRoutes(
           totalReferrals: userSeeds.referrals.length,
         },
         earnedFrom: userSeeds.earnedFrom,
+        ownedCosmetics: userSeeds.ownedCosmetics,
       });
+      return true;
+    }
+
+    // POST /api/seeds/purchase - Buy a cosmetic at the server's price; owned once, charged once
+    if (pathname === '/api/seeds/purchase' && req.method === 'POST') {
+      const { itemId } = ((await parseBody(req)) ?? {}) as { itemId?: unknown };
+      const result = await purchaseCosmetic(db, userId, itemId);
+      if (result.status === 400) sendErrorStatus(res, 400, result.error);
+      else sendJSON(res, result.body);
       return true;
     }
 
