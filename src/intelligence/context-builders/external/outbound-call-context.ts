@@ -44,6 +44,9 @@ interface OutboundCallContext {
   informationToGather: string[];
   userName: string;
   originalSessionId: string;
+  /** The user the call is for, and which kind of call: where its outcome is recorded. */
+  requesterUserId?: string;
+  kind?: 'on_behalf' | 'family_checkin';
 }
 
 /**

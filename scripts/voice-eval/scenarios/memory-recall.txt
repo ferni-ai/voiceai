@@ -1,0 +1,12 @@
+# Recall by meaning, and Ferni's own story (play with EVAL_SEED=memory-seed).
+# The caller never repeats the seed's words: "the pup" for Pepper, "anything I
+# should get done before the weekend" for the boxes before mom's visit, "what
+# you were into" for his book. A good friend connects each one, gets the
+# details right, picks his own story back up the way he told it, and never
+# invents what was never said.
+Hey Ferni, it's me again.
+So the pup is finally healing up. She's still sulking about it though.
+What do I have going on, remind me? My head's all over the place.
+Anything I ought to get sorted before the weekend?
+Oh hey, what was that thing you were into last time? Did you ever finish it?
+Okay, I've got to run. Thanks for keeping track of all that.
