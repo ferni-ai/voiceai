@@ -11,25 +11,48 @@
  * read in their zone. The server's own clock when the zone is missing or unknown.
  */
 export function wallClock(timeZone: string | null | undefined, now = new Date()): Date {
-  if (!timeZone) return now;
+  // IANA names are short ("America/Argentina/ComodRivadavia" is among the longest)
+  if (!timeZone || timeZone.length > 64) return now;
   try {
     const parts = Object.fromEntries(
-      new Intl.DateTimeFormat('en-US', {
-        timeZone,
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        hourCycle: 'h23',
-      })
+      formatterFor(timeZone)
         .formatToParts(now)
         .map((p) => [p.type, p.value])
     );
-    return new Date(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute);
+    const [year, month, day, hour, minute] = ['year', 'month', 'day', 'hour', 'minute'].map((k) =>
+      Number(parts[k])
+    );
+    const local = new Date(year, month - 1, day, hour, minute);
+    // A missing or odd part would make an Invalid Date, which reads NaN hours and throws on formatting
+    return Number.isNaN(local.getTime()) ? now : local;
   } catch {
     return now; // not a time zone Intl knows
   }
+}
+
+const formatters = new Map<string, Intl.DateTimeFormat>();
+const MAX_FORMATTERS = 500; // about the number of IANA zones
+
+/** For tests: how many zones have a cached formatter. */
+export const cachedZoneCount = (): number => formatters.size;
+
+function formatterFor(timeZone: string): Intl.DateTimeFormat {
+  let formatter = formatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      hourCycle: 'h23',
+    });
+    // Intl accepts any letter case ("europe/london"), so callers could mint new keys forever
+    if (formatters.size >= MAX_FORMATTERS) formatters.clear();
+    formatters.set(timeZone, formatter);
+  }
+  return formatter;
 }
 
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';

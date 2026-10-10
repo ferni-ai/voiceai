@@ -22,7 +22,7 @@ import {
   INSIGHT_SOURCE_TITLE_KEYS,
   INSPIRATIONS,
 } from './sanctuary-content.js';
-import { parseBody, sendJSON } from './helpers.js';
+import { getUserId, parseBody, sendJSON } from './helpers.js';
 import { requireAuth } from './auth-middleware.js';
 import { buildSuperhumanContext, type SuperhumanContext } from '../services/superhuman/index.js';
 import { loadUserPatterns } from '../services/superhuman/predictive-coaching.js';
@@ -433,7 +433,7 @@ export async function handleSanctuaryRoutes(
     // GET /api/sanctuary - Get full Sanctuary data
     if (method === 'GET' && pathname === '/api/sanctuary') {
       const url = new URL(req.url || '', `http://${req.headers.host}`);
-      const userId = url.searchParams.get('userId');
+      const userId = getUserId(req, url); // the verified caller first, then ?userId=
 
       if (!userId) {
         sendJson(res, 400, { error: 'Missing userId parameter' });
@@ -473,7 +473,7 @@ export async function handleSanctuaryRoutes(
     // GET /api/sanctuary/insights - Get insights only
     if (method === 'GET' && pathname === '/api/sanctuary/insights') {
       const url = new URL(req.url || '', `http://${req.headers.host}`);
-      const userId = url.searchParams.get('userId');
+      const userId = getUserId(req, url); // the verified caller first, then ?userId=
 
       if (!userId) {
         sendJson(res, 400, { error: 'Missing userId parameter' });
@@ -489,7 +489,7 @@ export async function handleSanctuaryRoutes(
     // GET /api/sanctuary/practices - Get practices only
     if (method === 'GET' && pathname === '/api/sanctuary/practices') {
       const url = new URL(req.url || '', `http://${req.headers.host}`);
-      const userId = url.searchParams.get('userId');
+      const userId = getUserId(req, url); // the verified caller first, then ?userId=
 
       const locale = await localeForRequest(req.headers['accept-language']);
       const now = wallClock(url.searchParams.get('tz'));
