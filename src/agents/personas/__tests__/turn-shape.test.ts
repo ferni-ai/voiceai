@@ -184,6 +184,16 @@ describe('withTurnReminder seeding and order', () => {
     expect(light.some((r) => /share a small piece of it/.test(r))).toBe(true);
   });
 
+  it('tells every reply to build only on what was said, and not to offer tasks', () => {
+    for (const text of ['Not much, just got home.', 'Oh, and Biscuit chewed my charger.', 'Yeah.']) {
+      for (const mode of ['dice', 'model'] as const) {
+        const r = turnShapeFor(text, rngFor(text), mode).reminder;
+        expect(r).toMatch(/Build only on what they actually told you/);
+        expect(r).toMatch(/not an assistant/);
+      }
+    }
+  });
+
   describe('TURN_SHAPE=model', () => {
     const big = 'My sister just told me she is pregnant, right on the hiking trail.';
 
