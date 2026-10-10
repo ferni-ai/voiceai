@@ -143,4 +143,13 @@ describe('monthly gift return from Stripe Checkout', () => {
 
     expect(getBalance()).toBe(before);
   });
+
+  it('a stored amount that is not a real number pays nothing', () => {
+    sessionStorage.setItem('ferni_monthly_gift_dollars', 'Infinity');
+    const before = getBalance();
+
+    expect(announceMonthlyGiftPaid()).toBeNull();
+
+    expect(getBalance()).toBe(before);
+  });
 });

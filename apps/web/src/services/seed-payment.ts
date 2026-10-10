@@ -69,9 +69,7 @@ export async function payForSeed(
   const outcome = await collect(stripe, result.clientSecret, amountDollars);
   // Seeds economy listens for this to award the supporter bonus (see seeds-economy.service)
   if (outcome.status === 'confirmed') {
-    document.dispatchEvent(
-      new CustomEvent('ferni:contribution-success', { detail: { amountCents: amountDollars * 100 } })
-    );
+    announce('ferni:contribution-success', { amountCents: amountDollars * 100 });
   }
   return outcome;
 }
@@ -114,10 +112,16 @@ export function announceMonthlyGiftPaid(): 'founding-member' | 'founding-patron'
   } catch {
     return null;
   }
-  if (!(dollars >= 10)) return null;
+  if (!Number.isFinite(dollars) || dollars < 10) return null;
   const tier = dollars >= 20 ? 'founding-patron' : 'founding-member';
-  document.dispatchEvent(new CustomEvent('ferni:subscription-paid', { detail: { tier } }));
+  announce('ferni:subscription-paid', { tier });
   return tier;
+}
+
+/** Tell the seeds economy (a client-side ledger; nothing server-side is granted). No-op off the page. */
+function announce(name: string, detail: object): void {
+  if (typeof document === 'undefined') return;
+  document.dispatchEvent(new CustomEvent(name, { detail }));
 }
 
 /** The toast for a gift that went wrong, or null when there is nothing to say. */
