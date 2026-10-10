@@ -19,8 +19,9 @@
 import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { optionalAuthAsync, rateLimit } from './auth-middleware.js';
+import { unvoteWithRefund, voteWithSeeds } from './roadmap-seeds.js';
 import { API_ERRORS } from './error-messages.js';
 import {
   getUserId,
@@ -94,9 +95,6 @@ const DEFAULT_SEED_BALANCE = 10;
 
 /** Cost to submit a suggestion */
 const SUGGESTION_COST = 5;
-
-/** Refund percentage when unvoting */
-const UNVOTE_REFUND_PERCENT = 0.5;
 
 /** Max seeds per vote */
 const MAX_SEEDS_PER_VOTE = 10;
@@ -457,136 +455,11 @@ async function handleVote(
       return;
     }
 
-    // Transaction to check balance and create vote
-    const result = await db.runTransaction(async (transaction) => {
-      // Get user seeds
-      const userSeedsRef = db.collection('user_seeds').doc(userId);
-      const userSeedsDoc = await transaction.get(userSeedsRef);
-
-      let currentBalance = DEFAULT_SEED_BALANCE;
-      if (userSeedsDoc.exists) {
-        currentBalance = userSeedsDoc.data()?.balance || 0;
-      }
-
-      if (currentBalance < seeds) {
-        return { success: false, error: 'Insufficient seeds', balance: currentBalance };
-      }
-
-      // Check if user already voted on this feature (using deterministic ID)
-      const voteId = `${userId}_${featureId}`;
-      const existingVoteRef = db.collection('feature_votes').doc(voteId);
-      const existingVoteDoc = await transaction.get(existingVoteRef);
-
-      if (existingVoteDoc.exists) {
-        // Update existing vote
-        const existingSeeds = existingVoteDoc.data()?.seedsPlanted || 0;
-        const additionalSeeds = seeds;
-
-        if (currentBalance < additionalSeeds) {
-          return { success: false, error: 'Insufficient seeds', balance: currentBalance };
-        }
-
-        transaction.update(existingVoteRef, {
-          seedsPlanted: admin.firestore.FieldValue.increment(additionalSeeds),
-          reason: reason || existingVoteDoc.data()?.reason,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-
-        // Update user balance
-        if (userSeedsDoc.exists) {
-          transaction.update(userSeedsRef, {
-            balance: admin.firestore.FieldValue.increment(-additionalSeeds),
-            lifetimePlanted: admin.firestore.FieldValue.increment(additionalSeeds),
-          });
-        } else {
-          transaction.set(userSeedsRef, {
-            balance: DEFAULT_SEED_BALANCE - additionalSeeds,
-            lifetimePlanted: additionalSeeds,
-            lifetimeEarned: DEFAULT_SEED_BALANCE,
-            featuresUnlocked: [],
-            earnedFrom: {
-              conversations: 0,
-              streaks: 0,
-              referrals: 0,
-              feedback: 0,
-              suggestionsAccepted: 0,
-              featuresBloomed: 0,
-            },
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-        }
-
-        // Update feature stats
-        const featureStatsRef = db.collection('roadmap_feature_stats').doc(featureId);
-        transaction.set(
-          featureStatsRef,
-          cleanForFirestore({
-            totalSeeds: admin.firestore.FieldValue.increment(additionalSeeds),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          }),
-          { merge: true }
-        );
-
-        return {
-          success: true,
-          voteId,
-          totalSeedsPlanted: existingSeeds + additionalSeeds,
-          newBalance: currentBalance - additionalSeeds,
-        };
-      }
-
-      // Create new vote (using deterministic ID)
-      transaction.set(existingVoteRef, {
-        userId,
-        featureId,
-        seedsPlanted: seeds,
-        reason: reason || null,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-
-      // Update user balance
-      if (userSeedsDoc.exists) {
-        transaction.update(userSeedsRef, {
-          balance: admin.firestore.FieldValue.increment(-seeds),
-          lifetimePlanted: admin.firestore.FieldValue.increment(seeds),
-        });
-      } else {
-        transaction.set(userSeedsRef, {
-          balance: DEFAULT_SEED_BALANCE - seeds,
-          lifetimePlanted: seeds,
-          lifetimeEarned: DEFAULT_SEED_BALANCE,
-          featuresUnlocked: [],
-          earnedFrom: {
-            conversations: 0,
-            streaks: 0,
-            referrals: 0,
-            feedback: 0,
-            suggestionsAccepted: 0,
-            featuresBloomed: 0,
-          },
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-      }
-
-      // Update feature stats
-      const featureStatsRef = db.collection('roadmap_feature_stats').doc(featureId);
-      transaction.set(
-        featureStatsRef,
-        cleanForFirestore({
-          totalSeeds: admin.firestore.FieldValue.increment(seeds),
-          uniqueVoters: admin.firestore.FieldValue.increment(1),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        }),
-        { merge: true }
-      );
-
-      return {
-        success: true,
-        voteId,
-        totalSeedsPlanted: seeds,
-        newBalance: currentBalance - seeds,
-      };
+    const result = await voteWithSeeds(db, userId, {
+      featureId,
+      seeds,
+      reason,
+      requestId: (body as { requestId?: unknown }).requestId,
     });
 
     if (!result.success) {
@@ -619,48 +492,7 @@ async function handleUnvote(
       return;
     }
 
-    const result = await db.runTransaction(async (transaction) => {
-      // Find user's vote for this feature (using deterministic ID)
-      const voteId = `${userId}_${featureId}`;
-      const voteRef = db.collection('feature_votes').doc(voteId);
-      const voteDoc = await transaction.get(voteRef);
-
-      if (!voteDoc.exists) {
-        return { success: false, error: 'Vote not found' };
-      }
-
-      const seedsPlanted = voteDoc.data()?.seedsPlanted || 0;
-      const refund = Math.floor(seedsPlanted * UNVOTE_REFUND_PERCENT);
-
-      // Delete vote
-      transaction.delete(voteRef);
-
-      // Refund seeds
-      const userSeedsRef = db.collection('user_seeds').doc(userId);
-      transaction.update(
-        userSeedsRef,
-        cleanForFirestore({
-          balance: admin.firestore.FieldValue.increment(refund),
-        })
-      );
-
-      // Update feature stats
-      const featureStatsRef = db.collection('roadmap_feature_stats').doc(featureId);
-      transaction.update(
-        featureStatsRef,
-        cleanForFirestore({
-          totalSeeds: admin.firestore.FieldValue.increment(-seedsPlanted),
-          uniqueVoters: admin.firestore.FieldValue.increment(-1),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        })
-      );
-
-      return {
-        success: true,
-        seedsRefunded: refund,
-        seedsLost: seedsPlanted - refund,
-      };
-    });
+    const result = await unvoteWithRefund(db, userId, featureId);
 
     if (!result.success) {
       sendError(res, result.error || 'Unvote failed', 400);
