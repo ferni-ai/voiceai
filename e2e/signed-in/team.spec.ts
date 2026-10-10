@@ -15,7 +15,13 @@ async function openTeam(page: Page) {
     await menuTrigger(page).click();
     await page.locator('.mobile-bottom-sheet [data-action="team"]').click();
   } else {
-    await page.keyboard.press('2');
+    // Shortcuts start a moment after the home screen: press until the panel opens
+    await expect
+      .poll(async () => {
+        await page.keyboard.press('2');
+        return (await shownDialogs(page)).some((id) => !before.includes(id));
+      })
+      .toBe(true);
   }
   return newPanel(page, before, 'team');
 }
@@ -38,7 +44,10 @@ test('Meet Your Team: no progress before any conversation, and the real requirem
   expect(problems.take()).toEqual([]);
 });
 
-test('the marketplace shows no progress toward Maya before any conversation', async ({ page }) => {
+test('the marketplace shows no progress toward Maya before any conversation', async ({ page }, info) => {
+  // Phones hide the team bar and its marketplace button; they reach the marketplace from
+  // settings once the whole team is unlocked, and before that it only says "meet your team"
+  test.skip(info.project.name === 'mobile', 'no marketplace button on phones');
   const before = await shownDialogs(page);
   await page.locator('#marketplaceBtn').click();
   const market = await newPanel(page, before, 'marketplace');
