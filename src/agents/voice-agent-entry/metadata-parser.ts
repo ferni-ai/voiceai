@@ -152,6 +152,8 @@ export async function setupCallTypeContexts(
     );
 
     try {
+      const { parseOnBehalfDispatch } = await import('../../services/outreach/on-behalf-dispatch.js');
+      const call = parseOnBehalfDispatch(metadata);
       const { setOutboundCallContext } =
         await import('../../intelligence/context-builders/external/outbound-call-context.js');
       const roomNameForContext = roomName || `call-${metadata.callId}`;
@@ -170,8 +172,8 @@ export async function setupCallTypeContexts(
         mustConfirm: (metadata.mustConfirm as string[]) || [],
         mustNotDo: (metadata.mustNotDo as string[]) || [],
         informationToGather: (metadata.informationToGather as string[]) || [],
-        userName: (metadata.userName as string) || 'the user',
-        originalSessionId: (metadata.originalSessionId as string) || '',
+        userName: call?.requester.name || 'the user',
+        originalSessionId: call?.requester.originalSessionId || '',
       };
       setOutboundCallContext(roomNameForContext, outboundContext);
       setOutboundCallContext(sessionId, outboundContext);

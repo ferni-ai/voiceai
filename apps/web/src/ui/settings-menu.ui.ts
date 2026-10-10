@@ -26,7 +26,6 @@ import { isFullTeamUnlocked } from '../services/team-unlock.service.js';
 import { signOutOfThisBrowser } from './sign-out.js';
 // Roadmap service - for "What's Growing" experience
 import { roadmapService } from '../services/roadmap.service.js';
-import { showRoadmapPanel } from './roadmap-panel.ui.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -1417,7 +1416,7 @@ class SettingsMenuUI {
         break;
       case 'whats-growing':
         // Open roadmap panel with overview (no specific feature)
-        showRoadmapPanel();
+        void import('./roadmap-panel.ui.js').then((m) => m.showRoadmapPanel());
         break;
       // Warm menu actions
       case 'together-sessions':

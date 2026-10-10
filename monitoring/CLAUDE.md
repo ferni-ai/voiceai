@@ -10,6 +10,7 @@
 | `alerts.yaml` | Additional alert configurations |
 | `observability-config.yaml` | Observability settings |
 | `pubsub-dashboard.json` | Pub/Sub monitoring dashboard |
+| `ops-alert-policy.json` | Emails the operator for any `opsAlert(...)` log line (API and voice agent), rate-limited to one per 15 min. Live in johnb-2025 as "Ferni ops alert"; apply changes with `gcloud alpha monitoring policies update <name> --policy-from-file=...` |
 
 ## Alert Categories
 

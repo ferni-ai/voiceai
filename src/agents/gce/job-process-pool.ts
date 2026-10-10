@@ -13,7 +13,13 @@
 import type { ChildProcess } from 'node:child_process';
 
 import type { JobInfo } from './job-executor.js';
-import { asToParent, encodeJob, type JobLifecycle, type ToChild } from './job-process-protocol.js';
+import {
+  asToParent,
+  encodeJob,
+  type JobLifecycle,
+  type ToChild,
+  type ToParent,
+} from './job-process-protocol.js';
 
 type LogFn = (msg: string, data?: Record<string, unknown>) => void;
 
@@ -26,6 +32,8 @@ export interface JobProcessPoolOptions {
   readyTimeoutMs: number;
   log: LogFn;
   onLifecycle: (jobId: string, event: JobLifecycle) => void;
+  /** A child's call-quality event, for the worker's monitor. */
+  onQuality?: (msg: Extract<ToParent, { t: 'quality' }>) => void;
 }
 
 interface Child {
@@ -121,6 +129,8 @@ export class JobProcessPool {
         for (const wake of child.readyWaiters.splice(0)) wake();
       } else if (msg.t === 'load') {
         child.load = { cpu: msg.cpu, elu: msg.elu };
+      } else if (msg.t === 'quality') {
+        this.opts.onQuality?.(msg);
       } else if (msg.t === 'lifecycle') {
         this.opts.onLifecycle(msg.jobId, msg.event);
         if (msg.event !== 'started') this.finish(child);
