@@ -7,6 +7,8 @@ on:
   pull_request:
     paths:
       - 'src/services/data-layer/**'
+      - 'src/services/seeds/**'
+      - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'src/intelligence/**'
       - 'src/tests/data-layer/**'
@@ -17,6 +19,8 @@ on:
     branches: [main]
     paths:
       - 'src/services/data-layer/**'
+      - 'src/services/seeds/**'
+      - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'firestore.indexes.json'
       - 'firebase.json'
@@ -70,6 +74,13 @@ jobs:
           # Disable Google API for tests (no real embeddings)
           GOOGLE_API_KEY: ''
           SKIP_EMBEDDING: 'true'
+
+      - name: Run Seed Ledger Tests
+        run: |
+          pnpm vitest run src/services/seeds/__tests__/ src/api/__tests__/roadmap-seeds.emulator.test.ts --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          NODE_ENV: test
 
       - name: Run Service Wiring Integration Tests
         run: |

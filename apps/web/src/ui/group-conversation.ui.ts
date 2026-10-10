@@ -13,6 +13,7 @@
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { toast } from './whisper.ui.js';
+import { escapeHtml } from './trust-dashboard-data.js';
 import { t } from '../i18n/index.js';
 
 const log = createLogger('GroupConversationUI');
@@ -204,13 +205,10 @@ export class GroupConversationUI {
    * Hide the participant grid
    */
   hideParticipantGrid(): void {
-    if (this.participantGrid) {
-      this.participantGrid.classList.remove('visible');
-      setTimeout(() => {
-        this.participantGrid?.remove();
-        this.participantGrid = null;
-      }, DURATION.SLOW);
-    }
+    const grid = this.participantGrid;
+    this.participantGrid = null; // a grid shown before the fade ends must not be removed with it
+    grid?.classList.remove('visible');
+    if (grid) setTimeout(() => grid.remove(), DURATION.SLOW);
     this.isActive = false;
   }
 
@@ -405,13 +403,13 @@ export class GroupConversationUI {
           .map(
             (p) => `
           <div class="participant ${p.isSpeaking ? 'speaking' : ''}" 
-               data-id="${p.id}"
+               data-id="${escapeHtml(p.id)}"
                style="--participant-color: ${this.getParticipantColor(p)}">
             <div class="avatar">
-              <span class="initial">${p.name[0]}</span>
+              <span class="initial">${escapeHtml(p.name[0])}</span>
               ${p.isSpeaking ? '<div class="speaking-indicator"></div>' : ''}
             </div>
-            <span class="name">${p.name}</span>
+            <span class="name">${escapeHtml(p.name)}</span>
             <span class="role">${this.getRoleLabel(p)}</span>
           </div>
         `

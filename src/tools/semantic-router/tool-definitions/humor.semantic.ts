@@ -25,49 +25,42 @@ export const tellJokeTool: SemanticToolDefinition = {
 
   triggers: {
     phrases: [
+      // Only explicit asks for a joke. "Make me laugh" / "tell me something
+      // funny" got stock riddles ("why don't scientists trust atoms?") when a
+      // friend tells something funny that happened to them (judge.mjs,
+      // hard-news, 3/3 dev calls, 2026-10-10).
       'tell me a joke',
-      'make me laugh',
-      'say something funny',
       'got any jokes',
       'give me a joke',
-      'need a laugh',
-      'cheer me up',
-      'tell me something funny',
       'dad joke',
       'pun',
     ],
     patterns: [
       /^tell\s+(?:me\s+)?(?:a\s+)?joke/i,
-      /^(?:make|get)\s+me\s+(?:to\s+)?laugh/i,
-      /^(?:say|tell)\s+(?:me\s+)?something\s+funny/i,
       /^(?:got|have|know)\s+any\s+jokes?/i,
-      /^(?:I\s+)?need\s+(?:a\s+)?laugh/i,
-      /^(?:cheer|brighten)\s+me\s+up/i,
       /^(?:give|hit)\s+me\s+(?:with\s+)?(?:a\s+)?(?:joke|pun)/i,
     ],
     keywords: [
       { word: 'joke', weight: 1.0 },
-      { word: 'laugh', weight: 0.9 },
-      { word: 'funny', weight: 0.9 },
+      { word: 'laugh', weight: 0.3 },
+      { word: 'funny', weight: 0.3 },
       { word: 'pun', weight: 0.9 },
       { word: 'humor', weight: 0.8 },
       { word: 'dad joke', weight: 1.0 },
-      { word: 'cheer', weight: 0.7 },
     ],
     antiKeywords: ['serious', 'help', 'important'],
   },
 
   examples: [
     'Tell me a joke',
-    'Make me laugh',
     'Got any good puns?',
-    'I need a laugh',
     'Cheer me up with a joke',
     'Hit me with a dad joke',
-    'Say something funny',
   ],
 
   counterExamples: [
+    'Can you just tell me something funny?',
+    'Make me laugh, I need it today',
     "This isn't a joke",
     'Stop joking around',
     'I need serious help',

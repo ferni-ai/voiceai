@@ -447,7 +447,6 @@ class RoadmapPanelUI {
           </span>
         </div>
         <h4 class="roadmap-card__headline">${feature.headline}</h4>
-        <p class="roadmap-card__arrival">${feature.estimatedArrival}</p>
         ${
           feature.canVote
             ? `
@@ -515,12 +514,6 @@ class RoadmapPanelUI {
 
           <!-- Description -->
           <p class="roadmap-detail__description">${feature.description}</p>
-
-          <!-- Timeline -->
-          <div class="roadmap-detail__timeline">
-            <span class="roadmap-detail__timeline-label">${t('roadmap.expectedArrival')}</span>
-            <span class="roadmap-detail__timeline-value">${feature.estimatedArrival}</span>
-          </div>
 
           <!-- Superhuman Promises -->
           <div class="roadmap-detail__section">
@@ -3287,17 +3280,6 @@ export function showRoadmapPanel(featureId?: string): void {
 
 export function hideRoadmapPanel(): void {
   getRoadmapPanelUI().hide();
-}
-
-/**
- * Initialize roadmap panel event listeners
- */
-export function initRoadmapPanelUI(): void {
-  // Listen for events to open roadmap panel (from founders journey, etc.)
-  document.addEventListener('ferni:open-roadmap', ((e: CustomEvent) => {
-    const featureId = e.detail?.featureId;
-    void showRoadmapPanel(featureId);
-  }) as EventListener);
 }
 
 export default RoadmapPanelUI;
