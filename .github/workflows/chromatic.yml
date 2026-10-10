@@ -23,7 +23,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # Required for Chromatic to detect changes
 
@@ -40,7 +40,7 @@ jobs:
 
       # Run Chromatic (requires CHROMATIC_PROJECT_TOKEN secret to be configured)
       - name: Run Chromatic
-        uses: chromaui/action@v11
+        uses: chromaui/action@v18
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           workingDir: design-system
