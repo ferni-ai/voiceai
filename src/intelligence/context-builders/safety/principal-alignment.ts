@@ -117,7 +117,7 @@ Do NOT try to "handle" this yourself. You are not a replacement for professional
               'principal_referral_high',
               `[⚠️ CONSIDER PROFESSIONAL REFERRAL]
 Reason: ${reason}
-${suggestedFraming || 'This may be beyond what an AI coach can appropriately support.'}
+${suggestedFraming || 'This may be more than you can properly support on a call.'}
 
 Gently suggest they consider talking to a professional. Don't be preachy, but be honest about your limitations.`,
               { category: 'principal_referral' }

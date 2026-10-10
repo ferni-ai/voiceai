@@ -19,7 +19,7 @@ import {
   generateComplianceScript,
 } from '../../tools/domains/telephony/compliance.js';
 import { trackOutboundCall } from './outbound-call-tracker.js';
-import { onBehalfDispatchFor } from './on-behalf-dispatch.js';
+import { onBehalfDispatchFor, signOnBehalfDispatch } from './on-behalf-dispatch.js';
 import { holdForCallHours } from './deferred-calls.js';
 import {
   enrichMessage,
@@ -353,7 +353,12 @@ class OnBehalfCallOrchestrator extends EventEmitter {
       // Dispatch the agent with full call context in metadata
       // The agent will read this metadata and behave as an outbound caller
       await agentDispatch.createDispatch(roomName, agentName, {
-        metadata: JSON.stringify(onBehalfDispatchFor(callId, request, script)),
+        metadata: JSON.stringify(
+          signOnBehalfDispatch(
+            onBehalfDispatchFor(callId, request, script),
+            this.config.livekitApiSecret
+          )
+        ),
       });
 
       log.info({ roomName, callId, agentName }, '✅ On-behalf agent dispatched successfully');
