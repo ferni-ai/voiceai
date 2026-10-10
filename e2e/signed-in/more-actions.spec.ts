@@ -6,7 +6,15 @@
  * Needs the signed-in local stack (scripts/e2e/start-signed-in-stack.sh).
  */
 import { expect, test, type Page } from '@playwright/test';
-import { createUser, expectHome, newPanel, openSettingsMenu, shownDialogs, signIn, watchProblems } from './support';
+import {
+  createUser,
+  expectHome,
+  newPanel,
+  openSettingsMenu,
+  shownDialogs,
+  signIn,
+  watchProblems,
+} from './support';
 
 async function openPanel(page: Page, action: string) {
   await openSettingsMenu(page);
@@ -38,19 +46,26 @@ test('the tour: Next moves on, Back returns, Skip ends it for good', async ({ pa
 test("what's coming: planting seeds spends them, and it sticks", async ({ page }) => {
   const problems = watchProblems(page);
   let panel = await openPanel(page, 'whats-growing');
-  const balance = () => panel.locator('.roadmap-panel__seed-count, [class*="seed-balance"]').first().textContent();
+  const balance = () =>
+    panel.locator('.roadmap-panel__seed-count, [class*="seed-balance"]').first().textContent();
   const before = Number((await balance())?.match(/\d+/)?.[0]);
   expect(before, 'a new account starts with seeds').toBeGreaterThan(0);
 
   await panel.locator('[data-feature-id]').first().click();
   await panel.locator('[data-action="plant-multiple"]').click();
-  await expect.poll(async () => Number((await balance())?.match(/\d+/)?.[0]), { timeout: 10_000 }).toBe(before - 1);
+  await expect
+    .poll(async () => Number((await balance())?.match(/\d+/)?.[0]), { timeout: 10_000 })
+    .toBe(before - 1);
   await page.keyboard.press('Escape');
 
   await page.reload();
   await expectHome(page);
   panel = await openPanel(page, 'whats-growing');
-  await expect.poll(async () => Number((await balance())?.match(/\d+/)?.[0]), { message: 'kept after a reload' }).toBe(before - 1);
+  await expect
+    .poll(async () => Number((await balance())?.match(/\d+/)?.[0]), {
+      message: 'kept after a reload',
+    })
+    .toBe(before - 1);
   expect(problems.take()).toEqual([]);
 });
 
@@ -62,7 +77,7 @@ test('your people: search finds the person you typed', async ({ page }) => {
     const form = page.locator('.add-person-overlay.open');
     await form.getByPlaceholder('e.g., Mom, Sarah Chen, Dr. Rivera').fill(person);
     await form.locator('[data-relationship="friend"]').click();
-    await form.getByRole('button', { name: 'Save', exact: true }).click();
+    await form.getByRole('button', { name: 'Add Person', exact: true }).click();
     await expect(panel).toContainText(person, { timeout: 10_000 });
   }
   await panel.getByRole('searchbox').or(panel.locator('input[type="search"]')).first().fill('Tom');

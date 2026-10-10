@@ -41,7 +41,7 @@ const STYLES = `
   .roleplay-mode-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-tooltip);
+    z-index: var(--z-modal, 2100); /* the layer every dialog shares: the last opened is on top */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -504,7 +504,7 @@ function render(): string {
             </div>
           ` : ''}
 
-          <div class="roleplay-actions" role="button" tabindex="0">
+          <div class="roleplay-actions">
             <button class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
               ${t('roleplayMode.cancelButton')}
             </button>
@@ -695,7 +695,7 @@ function renderContent(): string {
       </div>
     ` : ''}
 
-    <div class="roleplay-actions" role="button" tabindex="0">
+    <div class="roleplay-actions">
       <button class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
         ${t('roleplayMode.cancelButton')}
       </button>

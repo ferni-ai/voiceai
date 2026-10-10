@@ -57,7 +57,7 @@ function ensureModalExists(): HTMLElement {
   editorModal = document.createElement('div');
   editorModal.className = 'agent-editor-overlay';
   editorModal.innerHTML = `
-    <div class="editor-backdrop" data-action="close" role="button" tabindex="0"></div>
+    <div class="editor-backdrop" data-action="close"></div>
     <div class="editor-container" role="dialog" aria-modal="true" aria-labelledby="editor-title">
       <header class="editor-header">
         <div class="editor-header-content">
@@ -67,7 +67,7 @@ function ensureModalExists(): HTMLElement {
             <span class="editor-subtitle" id="editor-subtitle"></span>
           </div>
         </div>
-        <div class="editor-header-actions" role="button" tabindex="0">
+        <div class="editor-header-actions">
           <span class="editor-status" id="editor-status"></span>
           <button class="editor-close" data-action="close" aria-label="${t('accessibility.closeEditor')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -125,7 +125,7 @@ function ensureModalExists(): HTMLElement {
           </svg>
           ${t('customAgentEditor.deleteAgent')}
         </button>
-        <div class="editor-footer-actions" role="button" tabindex="0">
+        <div class="editor-footer-actions">
           <button class="editor-btn editor-btn--secondary" data-action="cancel">
             ${t('customAgentEditor.cancel')}
           </button>
@@ -334,7 +334,7 @@ function renderInfoTab(): string {
 
       <div class="editor-section">
         <h3 class="editor-section-title">${t('customAgentEditor.fieldStatus')}</h3>
-        <div class="editor-status-toggle" role="button" tabindex="0">
+        <div class="editor-status-toggle">
           <button
             class="status-option ${currentAgent.status === 'draft' ? 'status-option--active' : ''}"
             data-status="draft"

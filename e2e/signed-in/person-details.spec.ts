@@ -5,7 +5,15 @@
  * Needs the signed-in local stack (scripts/e2e/start-signed-in-stack.sh).
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { createUser, expectHome, newPanel, openSettingsMenu, shownDialogs, signIn, watchProblems } from './support';
+import {
+  createUser,
+  expectHome,
+  newPanel,
+  openSettingsMenu,
+  shownDialogs,
+  signIn,
+  watchProblems,
+} from './support';
 
 const PERSON = 'Priya Raman';
 
@@ -17,13 +25,17 @@ async function opens(page: Page, control: Locator, what: string) {
 
 async function openCard(page: Page) {
   await openSettingsMenu(page);
-  const people = await opens(page, page.locator('.settings-menu [data-action="contacts"]'), 'contacts');
+  const people = await opens(
+    page,
+    page.locator('.settings-menu [data-action="contacts"]'),
+    'contacts'
+  );
   if (!(await people.locator('.yp-person', { hasText: PERSON }).count())) {
     await people.locator('[data-action="add-person"]').click();
     const form = page.locator('.add-person-overlay.open');
     await form.getByPlaceholder('e.g., Mom, Sarah Chen, Dr. Rivera').fill(PERSON);
     await form.locator('[data-relationship="friend"]').click();
-    await form.getByRole('button', { name: 'Save', exact: true }).click();
+    await form.getByRole('button', { name: 'Add Person', exact: true }).click();
   }
   return opens(page, people.locator('.yp-person', { hasText: PERSON }), 'person card');
 }
@@ -34,7 +46,9 @@ async function editDetails(page: Page, card: Locator, phone: string, notes: stri
   await edit.locator('#ep-phone').fill(phone);
   await edit.locator('.ep-tab[data-tab="context"]').click();
   await edit.locator('#ep-notes').fill(notes);
-  const saved = page.waitForResponse((r) => r.request().method() === 'PUT' && r.url().includes('/api/contacts/'));
+  const saved = page.waitForResponse(
+    (r) => r.request().method() === 'PUT' && r.url().includes('/api/contacts/')
+  );
   await edit.locator('#ep-save').click();
   expect((await saved).status()).toBe(200);
 }
@@ -57,7 +71,10 @@ test.beforeEach(async ({ page }) => {
 test('a phone and a note are kept, and once cleared they stay cleared', async ({ page }) => {
   const problems = watchProblems(page);
   await editDetails(page, await openCard(page), '+15555550123', 'Met at the climbing gym');
-  expect(await savedDetails(page)).toEqual({ phone: '+15555550123', notes: 'Met at the climbing gym' });
+  expect(await savedDetails(page)).toEqual({
+    phone: '+15555550123',
+    notes: 'Met at the climbing gym',
+  });
 
   await page.reload();
   await expectHome(page);

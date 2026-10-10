@@ -740,7 +740,7 @@ function render(): void {
 
     <div class="lm-footer">
       <button class="lm-btn lm-btn-secondary" id="lm-cancel">${t('logMoment.cancel')}</button>
-      <button aria-label="${t('accessibility.submit')}" class="lm-btn lm-btn-primary" id="lm-save" ${state.isSubmitting ? 'disabled' : ''}>
+      <button class="lm-btn lm-btn-primary" id="lm-save" ${state.isSubmitting ? 'disabled' : ''}>
         ${state.isSubmitting ? t('common.saving') : t('logMoment.saveMoment')}
       </button>
     </div>

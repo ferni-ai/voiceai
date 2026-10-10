@@ -661,7 +661,7 @@ function render(): void {
     
     <div class="ep-footer">
       <button aria-label="${t('common.cancel')}" class="ep-btn ep-btn-secondary" id="ep-cancel">${t('common.cancel')}</button>
-      <button aria-label="${t('common.save')}" class="ep-btn ep-btn-primary" id="ep-save" ${state.isSubmitting ? 'disabled' : ''}>
+      <button class="ep-btn ep-btn-primary" id="ep-save" ${state.isSubmitting ? 'disabled' : ''}>
         ${state.isSubmitting ? t('editPerson.saving') : t('editPerson.saveChanges')}
       </button>
     </div>
@@ -728,7 +728,7 @@ function renderBasicTab(): string {
     
     <!-- Danger Zone -->
     <div class="ep-danger-zone">
-      <button aria-label="${t('common.delete')}" class="ep-danger-btn" id="ep-delete-btn">
+      <button class="ep-danger-btn" id="ep-delete-btn">
         ${ICONS.trash} ${t('editPerson.removeFromPeople')}
       </button>
       ${state.showDeleteConfirm ? `

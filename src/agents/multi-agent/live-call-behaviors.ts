@@ -137,7 +137,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). With the
   // end-of-turn model on, the model decides and a second hold would only stack delay.
-  if (turnDetectorMode() !== 'local') installUnfinishedTurnHold(session);
+  if (turnDetectorMode() === 'off') installUnfinishedTurnHold(session);
   else
     session.on(voice.AgentSessionEventTypes.EotPrediction, (ev) =>
       log.info(

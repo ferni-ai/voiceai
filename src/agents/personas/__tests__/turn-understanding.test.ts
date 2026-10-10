@@ -19,6 +19,11 @@ const reply = (over: Record<string, unknown> = {}) =>
     ...over,
   });
 
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
 /** A model that answers after `ms`, recording what it was asked. */
 function fakeModel(ms = 0, answer = () => reply()) {
   const asked: Array<{ NOW: string; EARLIER: string[] }> = [];
@@ -64,7 +69,7 @@ describe('turn understanding', () => {
     u.onTurnText('ugh');
     u.onTurnText('ugh it has');
     u.onTurnText('ugh it has been a long day');
-    await new Promise((r) => setTimeout(r, 80));
+    await sleep(80);
     expect(m.maxInFlight()).toBe(1);
     expect(m.asked.map((a) => a.NOW)).toEqual(['ugh', 'ugh it has been a long day']);
     expect(u.forTurn('ugh it has been a long day')?.result.mood).toBe('venting');
@@ -74,9 +79,9 @@ describe('turn understanding', () => {
     const m = fakeModel(0);
     const u = new TurnUnderstander(m.fn);
     u.onTurnText('my cat');
-    await new Promise((r) => setTimeout(r, 10));
+    await sleep(10);
     u.onTurnText('my cat just');
-    await new Promise((r) => setTimeout(r, 10));
+    await sleep(10);
     expect(m.asked).toHaveLength(1);
     await u.settle('my cat just');
     expect(m.asked.map((a) => a.NOW)).toEqual(['my cat', 'my cat just']);
@@ -99,6 +104,46 @@ describe('turn understanding', () => {
     expect(u.forTurn('set a timer for ten minutes')).toBeNull();
     await u.settle('thanks');
     expect(m.asked.at(-1)).toEqual({ EARLIER: ['set a timer for ten minutes'], NOW: 'thanks' });
+  });
+
+  it('drops an answer that lands after the turn ended (dev: 11 of 15 turns unready)', async () => {
+    const m = fakeModel(20);
+    const u = new TurnUnderstander(m.fn);
+    // The final's call is still running when Ferni starts to speak.
+    const late = u.settle(
+      'my sister finally moved out to denver last weekend and the house feels weird'
+    );
+    u.newTurn('my sister finally moved out to denver last weekend and the house feels weird');
+    await late;
+    // Its answer must not count for the next turn, nor hold the next turn's calls back.
+    expect(u.forTurn('honestly so tired')).toBeNull();
+    u.onTurnText('honestly so tired');
+    await sleep(40);
+    expect(m.asked.at(-1)?.NOW).toBe('honestly so tired');
+    expect(u.forTurn('honestly so tired')?.result.mood).toBe('venting');
+  });
+
+  it('still asks about words heard while the last turn was being dropped', async () => {
+    const m = fakeModel(20);
+    const u = new TurnUnderstander(m.fn);
+    void u.settle('it rained all weekend so we stayed in and watched movies');
+    u.newTurn('it rained all weekend so we stayed in and watched movies');
+    u.onTurnText('anyway what should i cook tonight');
+    await sleep(60);
+    expect(m.asked.at(-1)?.NOW).toBe('anyway what should i cook tonight');
+    expect(u.status('anyway what should i cook tonight')).toMatchObject({
+      match: 'covered',
+      runs: 1,
+      failed: 0,
+    });
+  });
+
+  it('reports why there is no answer, without the words', async () => {
+    const u = new TurnUnderstander(fakeModel(0).fn);
+    expect(u.status('hi')).toMatchObject({ match: 'none', runs: 0, inFlight: false });
+    await u.settle('i want to go');
+    expect(u.status('i wanted to go').match).toBe('diverged');
+    expect(u.status('i want to go out tonight with my friends').match).toBe('behind');
   });
 
   it('gives no answer when the model is too slow', async () => {

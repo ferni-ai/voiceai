@@ -697,7 +697,7 @@ function render(): void {
 
     <div class="rg-footer">
       <button class="rg-btn rg-btn-secondary" id="rg-cancel">${t('recordGift.cancel')}</button>
-      <button aria-label="${t('accessibility.submit')}" class="rg-btn rg-btn-primary" id="rg-save" ${state.isSubmitting || !state.item.trim() ? 'disabled' : ''}>
+      <button class="rg-btn rg-btn-primary" id="rg-save" ${state.isSubmitting || !state.item.trim() ? 'disabled' : ''}>
         ${state.isSubmitting ? t('common.saving') : t('recordGift.saveGift')}
       </button>
     </div>

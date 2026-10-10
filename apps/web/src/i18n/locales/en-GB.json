@@ -8329,6 +8329,7 @@
     "autoResolveAll": "Auto-resolve All",
     "ferniCalendar": "Ferni Calendar",
     "keepFerni": "Keep Ferni",
+    "keepProvider": "Keep {provider}",
     "dismiss": "Dismiss",
     "resolving": "Resolving..."
   },
@@ -9021,6 +9022,8 @@
     "dontRemind": "Don't remind",
     "repeatsYearly": "Repeats every year",
     "cancel": "Cancel",
+    "add": "Add",
+    "update": "Update",
     "noDateYet": "No important dates yet.",
     "noDateDesc": "Add birthdays, anniversaries, and more.",
     "typeBirthday": "Birthday",

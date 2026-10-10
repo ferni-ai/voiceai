@@ -8521,6 +8521,7 @@
     "autoResolveAll": "حل الكل تلقائياً",
     "ferniCalendar": "تقويم Ferni",
     "keepFerni": "الاحتفاظ بـ Ferni",
+    "keepProvider": "الاحتفاظ بـ {provider}",
     "dismiss": "تجاهل",
     "resolving": "جاري الحل..."
   },
@@ -9297,6 +9298,8 @@
     "dontRemind": "لا تذكّرني",
     "repeatsYearly": "يتكرر كل عام",
     "cancel": "إلغاء",
+    "add": "إضافة",
+    "update": "تحديث",
     "noDateYet": "لا توجد تواريخ مهمة بعد.",
     "noDateDesc": "أضف أعياد الميلاد، والذكرى السنوية، والمزيد.",
     "typeBirthday": "عيد ميلاد",

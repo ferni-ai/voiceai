@@ -40,10 +40,25 @@ export interface Understanding {
   reaction: string | null;
 }
 
+/** off (default) | shadow (log only) | live (Ferni's turn shape and asides follow it). */
 export function understandingMode(
   env: Record<string, string | undefined> = process.env
-): 'off' | 'shadow' {
-  return env.TURN_UNDERSTANDING === 'shadow' ? 'shadow' : 'off';
+): 'off' | 'shadow' | 'live' {
+  const mode = env.TURN_UNDERSTANDING;
+  return mode === 'shadow' || mode === 'live' ? mode : 'off';
+}
+
+/** Each call's understander, so the reply path can read what it understood. */
+const understanders = new WeakMap<object, TurnUnderstander>();
+
+export function setTurnUnderstander(session: object, understander: TurnUnderstander | null): void {
+  if (understander) understanders.set(session, understander);
+  else understanders.delete(session);
+}
+
+/** What the model understood of these words, or null when it has nothing for them yet. */
+export function understandingFor(session: object, text: string): Understanding | null {
+  return understanders.get(session)?.forTurn(text)?.result ?? null;
 }
 
 export const UNDERSTANDING_PROMPT = `You listen in on a phone call between a caller and their friend Ferni. Read the caller's words (EARLIER is context; judge NOW, which may still be mid-sentence) and return JSON only:
@@ -126,6 +141,10 @@ export class TurnUnderstander {
   private running: string | null = null;
   private pending: string | null = null;
   private earlier: string[] = [];
+  /** Bumped per caller turn: an answer for an earlier turn is dropped, not kept as `latest`. */
+  private turn = 0;
+  private inFlight: AbortController | null = null;
+  private stats = { runs: 0, failed: 0, lastMs: 0 };
 
   constructor(
     private readonly understand: UnderstandFn,
@@ -171,27 +190,58 @@ export class TurnUnderstander {
     };
   }
 
-  /** A new caller turn begins: the last one becomes context. */
+  /** Counts for this turn (no text), and how the latest answer lines up with `text`. */
+  status(text: string): {
+    runs: number;
+    failed: number;
+    lastMs: number;
+    inFlight: boolean;
+    match: 'covered' | 'behind' | 'diverged' | 'none';
+  } {
+    let match: 'covered' | 'behind' | 'diverged' | 'none' = 'none';
+    if (this.latest) {
+      const turn = words(text);
+      const seen = words(this.latest.text);
+      const prefix = seen.length <= turn.length && seen.every((w, i) => turn[i] === w);
+      match = !prefix ? 'diverged' : turn.length - seen.length > 2 ? 'behind' : 'covered';
+    }
+    return { ...this.stats, inFlight: this.running !== null, match };
+  }
+
+  /** A new caller turn begins: the last one becomes context, and its call is dropped. */
   newTurn(lastTurn: string): void {
     if (lastTurn.trim()) this.earlier = [...this.earlier, lastTurn.trim()].slice(-3);
+    this.turn++;
+    this.inFlight?.abort();
     this.latest = null;
     this.pending = null;
+    this.stats = { runs: 0, failed: 0, lastMs: 0 };
   }
 
   private async run(text: string): Promise<void> {
     this.running = text;
+    const turn = this.turn;
+    const started = this.now();
     const controller = new globalThis.AbortController();
+    this.inFlight = controller;
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    this.stats.runs++;
     try {
       const input = JSON.stringify({ EARLIER: this.earlier, NOW: text });
       const result = parseUnderstanding(
         await this.understand(UNDERSTANDING_PROMPT, input, controller.signal)
       );
-      if (result) this.latest = { text, result, at: this.now() };
+      if (turn === this.turn) {
+        this.stats.lastMs = this.now() - started;
+        if (result) this.latest = { text, result, at: this.now() };
+        else this.stats.failed++;
+      }
     } catch (error) {
+      if (turn === this.turn) this.stats.failed++;
       log.debug({ error: String(error) }, 'turn understanding failed');
     } finally {
       clearTimeout(timer);
+      if (this.inFlight === controller) this.inFlight = null;
       this.running = null;
     }
     const next = this.pending;
