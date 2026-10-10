@@ -665,9 +665,10 @@ const backgroundCallDef: ToolDefinition = {
         log.info({ userId, contactName, objective }, 'Queueing background call');
 
         try {
-          const { queueCall, callBlocker } =
+          const { queueCall } =
             await import('../../../services/background-agents/executors/call-executor.js');
-          const request = {
+
+          const taskId = await queueCall({
             userId,
             sessionId: ctx.sessionId,
             contactName,
@@ -676,14 +677,7 @@ const backgroundCallDef: ToolDefinition = {
             context,
             script,
             initiatedBy: 'ferni',
-          };
-          // Say so up front when the call can't go out, rather than "scheduled".
-          const blocked = await callBlocker(request);
-          if (blocked) {
-            return `I can't call ${contactName}: ${blocked}. No call was made. Want help with talking points so you can call yourself?`;
-          }
-
-          const taskId = await queueCall(request);
+          });
 
           return `**Call Scheduled** 📞\n\nI'll call ${contactName} on your behalf.\n\n**Objective:** ${objective}\n${context ? `**Context:** ${context}\n` : ''}**Task ID:** ${taskId.slice(0, 8)}...\n\nI'll keep working on this even if you disconnect. When I'm done, I'll tell you exactly what happened! 💚`;
         } catch (error) {
