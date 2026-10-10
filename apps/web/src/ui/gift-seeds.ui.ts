@@ -216,7 +216,7 @@ function renderModalContent(): void {
       </div>
 
       <!-- Send Button -->
-      <button aria-label="${t('accessibility.sendGift')}" 
+      <button 
         class="gift-seeds-send ${!canAfford || !recipientId ? 'gift-seeds-send--disabled' : ''}"
         ${!canAfford || !recipientId ? 'disabled' : ''}
       >

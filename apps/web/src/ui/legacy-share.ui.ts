@@ -455,7 +455,7 @@ function render(): string {
                 readonly 
                 id="share-link"
               />
-              <button aria-label="${t('accessibility.copy')}" class="legacy-share-copy-btn" data-action="copy-link">
+              <button class="legacy-share-copy-btn" data-action="copy-link">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -467,10 +467,10 @@ function render(): string {
           </div>
 
           <div class="legacy-share-actions" role="button" tabindex="0">
-            <button aria-label="${t('accessibility.cancel')}" class="legacy-share-btn legacy-share-btn--secondary" data-action="cancel">
+            <button class="legacy-share-btn legacy-share-btn--secondary" data-action="cancel">
               ${t('common.cancel')}
             </button>
-            <button aria-label="${t('accessibility.sendInvite')}" class="legacy-share-btn legacy-share-btn--primary" data-action="send-invite">
+            <button class="legacy-share-btn legacy-share-btn--primary" data-action="send-invite">
               ${t('accessibility.sendInvite')}
             </button>
           </div>

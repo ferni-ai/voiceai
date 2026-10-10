@@ -835,7 +835,7 @@ class WinterSolsticeMomentUI {
         <p class="subtitle">${content.subtitle}</p>
         <p class="reflection">${content.reflection}</p>
         <p class="promise">${content.promise}</p>
-        <button aria-label="${t('accessibility.close')}" class="solstice-close-static">${t('common.close')}</button>
+        <button class="solstice-close-static">${t('common.close')}</button>
       </div>
     `;
 

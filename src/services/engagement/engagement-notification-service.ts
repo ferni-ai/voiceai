@@ -138,8 +138,8 @@ class MayaNotificationService extends EventEmitter {
       maxPendingChanges: 30,
     });
 
-    // Start the proactive check loop
-    this.startProactiveCheckLoop();
+    // Off unless MAYA_PROACTIVE_CHECKS=on: every call process would scan 100 users and could text them.
+    if (process.env.MAYA_PROACTIVE_CHECKS === 'on') this.startProactiveCheckLoop();
 
     getLogger().info({}, '🌱 Maya Notification Service ready with persistence');
   }

@@ -192,10 +192,10 @@ function createNotificationElement(data: ProactiveOutreachData): HTMLElement {
       </svg>
     </button>
     <div class="proactive-outreach__actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.letSTalk')}" class="proactive-outreach__action proactive-outreach__action--respond" type="button">
+      <button class="proactive-outreach__action proactive-outreach__action--respond" type="button">
         ${t('proactiveOutreach.letsTalk')}
       </button>
-      <button aria-label="${t('accessibility.later')}" class="proactive-outreach__action proactive-outreach__action--later" type="button">
+      <button class="proactive-outreach__action proactive-outreach__action--later" type="button">
         ${t('accessibility.later')}
       </button>
     </div>

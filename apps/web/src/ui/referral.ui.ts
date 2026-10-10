@@ -182,19 +182,19 @@ function createModal(): void {
       </div>
 
       <div class="referral-actions">
-        <button aria-label="${t('accessibility.share')}" class="referral-btn referral-btn--primary" data-action="share">
+        <button class="referral-btn referral-btn--primary" data-action="share">
           ${ICONS.share}
           <span>${t('referral.buttons.share', 'Share')}</span>
         </button>
-        <button aria-label="${t('accessibility.copy')}" class="referral-btn" data-action="copy">
+        <button class="referral-btn" data-action="copy">
           ${ICONS.copy}
           <span>${t('referral.buttons.copyLink', 'Copy Link')}</span>
         </button>
-        <button aria-label="${t('accessibility.email')}" class="referral-btn" data-action="email">
+        <button class="referral-btn" data-action="email">
           ${ICONS.mail}
           <span>${t('referral.buttons.email', 'Email')}</span>
         </button>
-        <button aria-label="${t('accessibility.text')}" class="referral-btn" data-action="sms">
+        <button class="referral-btn" data-action="sms">
           ${ICONS.message}
           <span>${t('referral.buttons.text', 'Text')}</span>
         </button>

@@ -112,14 +112,14 @@ function ensureModalExists(): HTMLElement {
 
       <!-- Tabs -->
       <nav class="journal-tabs" role="tablist">
-        <button aria-label="${t('accessibility.record')}" class="journal-tab journal-tab--active" data-tab="record" role="tab" aria-selected="true">
+        <button class="journal-tab journal-tab--active" data-tab="record" role="tab" aria-selected="true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
           </svg>
           ${t('accessibility.record')}
         </button>
-        <button aria-label="${t('accessibility.history')}" class="journal-tab" data-tab="history" role="tab" aria-selected="false">
+        <button class="journal-tab" data-tab="history" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -128,7 +128,7 @@ function ensureModalExists(): HTMLElement {
           </svg>
           ${t('accessibility.history')}
         </button>
-        <button aria-label="${t('accessibility.insights')}" class="journal-tab" data-tab="insights" role="tab" aria-selected="false">
+        <button class="journal-tab" data-tab="insights" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
@@ -152,7 +152,7 @@ function ensureModalExists(): HTMLElement {
             </div>
             
             <div class="recorder-controls">
-              <button aria-label="${t('accessibility.startRecording')}" class="recorder-btn" id="record-btn">
+              <button class="recorder-btn" id="record-btn">
                 <svg class="record-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>

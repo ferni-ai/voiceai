@@ -452,7 +452,7 @@ function createModal(): void {
 
       <footer class="journey-footer">
         <p>${t('journey.motivation')}</p>
-        <button class="journey-share" aria-label="${t('accessibility.shareJourney')}">
+        <button class="journey-share">
           ${ICONS.share}
           <span>${t('journey.share')}</span>
         </button>
@@ -552,7 +552,7 @@ function renderConnectionBanner(state: ConnectionState): string {
             <span class="journey-connection__text">${t('journey.connectionError')}</span>
             <p class="journey-connection__subtext">${t('journey.connectionErrorMessage')}</p>
           </div>
-          <button aria-label="${t('accessibility.reconnect')}" class="journey-connect-btn journey-connect-btn--retry">
+          <button class="journey-connect-btn journey-connect-btn--retry">
             ${ICONS.phone}
             <span>${t('journey.connectionReconnect')}</span>
           </button>
@@ -569,7 +569,7 @@ function renderConnectionBanner(state: ConnectionState): string {
             <span class="journey-connection__text">${t('journey.connectionDisconnected')}</span>
             <p class="journey-connection__subtext">${t('journey.connectionDisconnectedMessage')}</p>
           </div>
-          <button aria-label="${t('accessibility.startTalking')}" class="journey-connect-btn">
+          <button class="journey-connect-btn">
             ${ICONS.phone}
             <span>${t('journey.connectionStartTalking')}</span>
           </button>

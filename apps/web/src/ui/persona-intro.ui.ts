@@ -531,12 +531,12 @@ function renderStep(): void {
       ${
         !isFirstStep
           ? `
-        <button aria-label="${t('accessibility.back')}" class="persona-intro-btn persona-intro-btn--secondary" data-action="prev">
+        <button class="persona-intro-btn persona-intro-btn--secondary" data-action="prev">
           ${t('common.back')}
         </button>
       `
           : `
-        <button aria-label="${t('accessibility.skipIntro')}" class="persona-intro-btn persona-intro-btn--secondary" data-action="skip">
+        <button class="persona-intro-btn persona-intro-btn--secondary" data-action="skip">
           ${t('personaIntro.skipIntro')}
         </button>
       `
