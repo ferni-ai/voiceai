@@ -24,7 +24,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { verifyFirebaseToken } from '../services/identity/firebase-auth.js';
+import { claimsFirebaseIssuer, verifyFirebaseToken } from '../services/identity/firebase-auth.js';
 import { rateLimiter } from '../services/rate-limiter.js';
 import {
   detectAnomalies,
@@ -209,8 +209,8 @@ async function tryFirebaseAuth(req: IncomingMessage): Promise<AuthContext | null
   try {
     const verified = await verifyFirebaseToken(token);
     if (!verified) {
-      // Truly invalid token (malformed, revoked, etc.) -- track as failed auth
-      void trackFailedAuth(`firebase:${ip}`, ip, 'firebase_token_invalid').catch((e) =>
+      // A failed Firebase token counts toward lockout; a Google service token (Scheduler's OIDC) doesn't
+      if (claimsFirebaseIssuer(token)) void trackFailedAuth(`firebase:${ip}`, ip, 'firebase_token_invalid').catch((e) =>
         log.error({ error: String(e) }, 'Failed to track auth failure')
       );
       return null;

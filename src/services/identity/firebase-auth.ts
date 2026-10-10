@@ -72,6 +72,23 @@ let isInitialized = false;
  * Initialize Firebase Admin SDK if not already initialized.
  * Uses application default credentials (ADC) in production.
  */
+/**
+ * Whether a bearer token claims to be a Firebase ID token, read from its payload without
+ * verifying anything. Google service tokens (Cloud Scheduler's OIDC token, issuer
+ * accounts.google.com) fail Firebase verification by design, and the route that receives them
+ * verifies them itself, so that failure isn't a failed sign-in. A token we can't read counts.
+ */
+export function claimsFirebaseIssuer(token: string): boolean {
+  try {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString('utf8')) as {
+      iss?: unknown;
+    };
+    return typeof payload.iss !== 'string' || payload.iss.startsWith('https://securetoken.google.com/');
+  } catch {
+    return true;
+  }
+}
+
 export function ensureFirebaseAdmin(): boolean {
   return ensureInitialized();
 }
