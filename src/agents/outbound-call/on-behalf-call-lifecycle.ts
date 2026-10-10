@@ -21,6 +21,7 @@ import type {
 } from '../../services/outreach/call-transcript-intelligence.js';
 import type { OnBehalfDispatch } from '../../services/outreach/on-behalf-dispatch.js';
 import { screenedCallerText } from '../../services/outreach/caller-text.js';
+import { isCallFollowthroughEnabled } from '../../services/outreach/call-retry.js';
 
 const log = createLogger({ module: 'on-behalf-call-lifecycle' });
 
@@ -34,6 +35,8 @@ export interface CallLifecyclePorts {
     userName: string
   ) => Promise<SuperhumanCallResult | null>;
   report: (callId: string, outcome: CallOutcome, request: OnBehalfCallRequest) => Promise<void>;
+  /** Schedules the one next-day retry of a missed call (CALL_FOLLOWTHROUGH); null if none. */
+  scheduleRetry?: (callId: string, request: OnBehalfCallRequest) => Promise<Date | null>;
 }
 
 export function toOnBehalfCallRequest(call: OnBehalfDispatch): OnBehalfCallRequest {
@@ -48,7 +51,29 @@ export function toOnBehalfCallRequest(call: OnBehalfDispatch): OnBehalfCallReque
     userTimezone: call.requester.timezone,
     userName: call.requester.name,
     recordingConsent: false,
+    retryOf: call.retryOf,
   };
+}
+
+/** Phrases from voicemail greetings. */
+const VOICEMAIL_CUES =
+  /\b(leave (me )?a message|after the (tone|beep)|voice ?mail|mailbox|record your message|can't come to the phone|not available right now)\b/i;
+/** A real conversation has at least two replies from the person and lasts a little while. */
+const MIN_REPLIES = 2;
+const MIN_TALK_SECONDS = 20;
+
+/**
+ * How a call the person picked up went, from what they said. A voicemail
+ * greeting is one or two "replies"; fewer than two replies, or a very short
+ * call, means they hung up before Ferni really got to talk with them.
+ */
+export function classifyAnsweredCall(
+  heard: string[],
+  durationSeconds: number
+): 'voicemail' | 'hung_up_early' | 'answered' {
+  if (heard.length <= 2 && heard.some((h) => VOICEMAIL_CUES.test(h))) return 'voicemail';
+  if (heard.length < MIN_REPLIES || durationSeconds < MIN_TALK_SECONDS) return 'hung_up_early';
+  return 'answered';
 }
 
 /**
@@ -61,7 +86,8 @@ export function toOnBehalfCallRequest(call: OnBehalfDispatch): OnBehalfCallReque
 export function buildCallOutcome(
   call: OnBehalfDispatch,
   turns: CallTranscriptTurn[] | null,
-  analysis: SuperhumanCallResult | null
+  analysis: SuperhumanCallResult | null,
+  durationSeconds = Infinity
 ): CallOutcome {
   const name = call.contact.name;
   if (turns === null) {
@@ -85,8 +111,30 @@ export function buildCallOutcome(
     };
   }
 
+  const quote = screenedCallerText(heard.slice(-2).join(' '), name, 200);
+  if (isCallFollowthroughEnabled()) {
+    const how = classifyAnsweredCall(heard, durationSeconds);
+    if (how === 'voicemail') {
+      return {
+        callId: call.callId,
+        status: 'voicemail',
+        objectiveAchieved: false,
+        outcome: `I got ${name}'s voicemail. Want me to try again later?`,
+        callbackRequired: true,
+      };
+    }
+    if (how === 'hung_up_early') {
+      return {
+        callId: call.callId,
+        status: 'completed',
+        objectiveAchieved: false,
+        outcome: `I reached ${name}, but they had to go before we really got to talk. They said: "${quote}"`,
+        transcriptSummary: screenedCallerText(heard.join(' '), name, 600),
+      };
+    }
+  }
+
   if (!analysis) {
-    const quote = screenedCallerText(heard.slice(-2).join(' '), name, 200);
     return {
       callId: call.callId,
       status: 'completed',
@@ -131,10 +179,12 @@ export async function beginOnBehalfCall(sessionId: string, call: OnBehalfDispatc
 async function defaultPorts(): Promise<CallLifecyclePorts> {
   const transcripts = await import('../../services/outreach/call-transcript-intelligence.js');
   const { captureCallResult } = await import('../../services/outreach/call-result-capture.js');
+  const { scheduleCallRetry } = await import('../../services/outreach/call-retry.js');
   return {
     readTranscript: (callId) => transcripts.getActiveTranscript(callId)?.turns.slice() ?? null,
     analyze: transcripts.analyzeCompletedCall,
     report: captureCallResult,
+    scheduleRetry: (callId, request) => scheduleCallRetry(callId, request),
   };
 }
 
@@ -170,10 +220,15 @@ export async function completeOnBehalfCall(
   reportedCalls.add(call.callId);
 
   try {
-    const { readTranscript, analyze, report } = ports ?? (await defaultPorts());
+    const { readTranscript, analyze, report, scheduleRetry } = ports ?? (await defaultPorts());
     const turns = readTranscript(call.callId);
+    const heard = turns?.filter((t) => t.role === 'recipient').map((t) => t.content) ?? [];
+    const talked =
+      heard.length > 0 &&
+      (!isCallFollowthroughEnabled() ||
+        classifyAnsweredCall(heard, durationSeconds) === 'answered');
     let analysis: SuperhumanCallResult | null = null;
-    if (turns?.some((t) => t.role === 'recipient')) {
+    if (talked) {
       analysis = await analyze(
         call.callId,
         durationSeconds,
@@ -188,8 +243,24 @@ export async function completeOnBehalfCall(
       });
     }
 
-    const outcome = buildCallOutcome(call, turns, analysis);
-    await report(call.callId, outcome, toOnBehalfCallRequest(call));
+    const request = toOnBehalfCallRequest(call);
+    let outcome = buildCallOutcome(call, turns, analysis, durationSeconds);
+    const missed = outcome.status === 'no_answer' || outcome.status === 'voicemail';
+    if (isCallFollowthroughEnabled() && missed && scheduleRetry) {
+      const retryAt = await scheduleRetry(call.callId, request);
+      if (retryAt) {
+        const what =
+          outcome.status === 'voicemail'
+            ? `got ${call.contact.name}'s voicemail`
+            : `couldn't reach ${call.contact.name}`;
+        outcome = {
+          ...outcome,
+          outcome: `I ${what}, so I'll try again tomorrow.`,
+          callbackRequired: false,
+        };
+      }
+    }
+    await report(call.callId, outcome, request);
     log.info(
       { callId: call.callId, status: outcome.status, objectiveAchieved: outcome.objectiveAchieved },
       'On-behalf call reported to requester'

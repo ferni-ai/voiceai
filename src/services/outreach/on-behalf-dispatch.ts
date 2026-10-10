@@ -41,6 +41,8 @@ export interface OnBehalfDispatch {
   callType: CallType;
   script?: string;
   userPreferences?: unknown;
+  /** The missed call this one retries; a retry is never retried. Signed with the rest. */
+  retryOf?: string;
   /** HMAC from a trusted dispatcher; see signOnBehalfDispatch. */
   requesterSignature?: string;
 }
@@ -124,6 +126,7 @@ export function onBehalfDispatchFor(
     callType: request.callType,
     script,
     userPreferences: request.userPreferences,
+    retryOf: request.retryOf,
   });
 }
 
@@ -182,5 +185,6 @@ export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBeha
     objective: (str(metadata.objective) || 'general') as CallObjective,
     callType: (str(metadata.callType) || 'personal') as CallType,
     script: str(metadata.script) || undefined,
+    retryOf: str(metadata.retryOf) || undefined,
   });
 }
