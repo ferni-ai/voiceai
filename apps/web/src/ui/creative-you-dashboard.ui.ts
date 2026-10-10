@@ -288,31 +288,28 @@ export class CreativeYouDashboard {
   }
 
   private async loadData(): Promise<void> {
-    const baseUrl = window.location.origin;
-
     try {
       // If we have user topics, use the intelligent endpoint for personalized recommendations
       if (this.userTopics.length > 0) {
-        await this.loadIntelligentRecommendations(baseUrl);
+        await this.loadIntelligentRecommendations();
       } else {
         // Fall back to daily picks
-        await this.loadDailyPicks(baseUrl);
+        await this.loadDailyPicks();
       }
 
       // Load DNA and tracks in parallel
       // DNA is per signed-in user (auth header), and null until there's something real
       const [dnaRes, tracksRes] = await Promise.all([
         apiGet<{ dna: CreativeDNA | null }>('/api/creative/dna'),
-        fetch(`${baseUrl}/api/creative/tracks`),
+        apiGet<{ tracks?: LearningTrack[] }>('/api/creative/tracks'),
       ]);
 
       // Empty card on no profile or a failed load, never a skeleton stuck loading
       this.creativeDNA = dnaRes.ok ? (dnaRes.data?.dna ?? null) : null;
       this.renderCreativeDNA();
 
-      if (tracksRes.ok) {
-        const data = await tracksRes.json();
-        this.learningTracks = data.tracks;
+      if (tracksRes.ok && tracksRes.data?.tracks) {
+        this.learningTracks = tracksRes.data.tracks;
         this.renderLearningTracks();
       }
     } catch (error) {
@@ -344,7 +341,7 @@ export class CreativeYouDashboard {
   /**
    * Load intelligent recommendations based on user's conversation topics
    */
-  private async loadIntelligentRecommendations(baseUrl: string): Promise<void> {
+  private async loadIntelligentRecommendations(): Promise<void> {
     const topicsParam = encodeURIComponent(this.userTopics.join(','));
     const url = `/api/creative/intelligent?userId=${this.userId}&topics=${topicsParam}&count=4`;
 
@@ -352,7 +349,7 @@ export class CreativeYouDashboard {
       const res = await apiGet<{ recommendations?: IntelligentRecommendation[] }>(url);
       if (!res.ok || !res.data) {
         log.warn('Intelligent recommendations failed, falling back to daily picks');
-        await this.loadDailyPicks(baseUrl);
+        await this.loadDailyPicks();
         return;
       }
 
@@ -385,7 +382,7 @@ export class CreativeYouDashboard {
 
       // If we didn't get both, load the missing ones from daily picks
       if (!videoRec || !podcastRec) {
-        await this.loadDailyPicks(baseUrl, !videoRec, !podcastRec);
+        await this.loadDailyPicks(!videoRec, !podcastRec);
       }
 
       log.debug('Loaded intelligent recommendations', {
@@ -395,42 +392,28 @@ export class CreativeYouDashboard {
       });
     } catch (error) {
       log.error('Failed to load intelligent recommendations:', error);
-      await this.loadDailyPicks(baseUrl);
+      await this.loadDailyPicks();
     }
   }
 
   /**
-   * Load daily picks (fallback or supplement)
+   * Load daily picks (fallback or supplement). Authenticated: in production the
+   * server replaces ?userId= with the verified uid, and drops it without a token.
    */
-  private async loadDailyPicks(baseUrl: string, loadVideo = true, loadPodcast = true): Promise<void> {
-    const requests: Promise<Response>[] = [];
+  private async loadDailyPicks(loadVideo = true, loadPodcast = true): Promise<void> {
+    const params = { userId: this.userId };
+    const [videoRes, podcastRes] = await Promise.all([
+      loadVideo ? apiGet<{ dailyPick?: VideoRecommendation }>('/api/creative/videos/daily', params) : null,
+      loadPodcast ? apiGet<{ dailyPick?: PodcastRecommendation }>('/api/creative/podcasts/daily', params) : null,
+    ]);
 
-    if (loadVideo) {
-      requests.push(fetch(`${baseUrl}/api/creative/videos/daily?userId=${this.userId}`));
+    if (videoRes?.ok) {
+      this.dailyVideo = videoRes.data?.dailyPick ?? null;
+      this.renderVideoPick();
     }
-    if (loadPodcast) {
-      requests.push(fetch(`${baseUrl}/api/creative/podcasts/daily?userId=${this.userId}`));
-    }
-
-    const responses = await Promise.all(requests);
-    let idx = 0;
-
-    if (loadVideo) {
-      const videoRes = responses[idx++];
-      if (videoRes?.ok) {
-        const data = await videoRes.json();
-        this.dailyVideo = data.dailyPick;
-        this.renderVideoPick();
-      }
-    }
-
-    if (loadPodcast) {
-      const podcastRes = responses[idx];
-      if (podcastRes?.ok) {
-        const data = await podcastRes.json();
-        this.dailyPodcast = data.dailyPick;
-        this.renderPodcastPick();
-      }
+    if (podcastRes?.ok) {
+      this.dailyPodcast = podcastRes.data?.dailyPick ?? null;
+      this.renderPodcastPick();
     }
   }
 
