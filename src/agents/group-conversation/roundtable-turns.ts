@@ -13,9 +13,7 @@
  * @module agents/group-conversation/roundtable-turns
  */
 import { voice } from '@livekit/agents';
-import { hasCrisisSignal } from '../processors/turn-processor/turn-crisis.js';
-import { detectCrisis } from '../safety/crisis-guard.js';
-import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../safety/crisis-shadow.js';
+import { hasCrisisSignal, startTurnCrisis } from '../processors/turn-processor/turn-crisis.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'RoundtableTurns' });
@@ -28,7 +26,11 @@ interface Attached {
 }
 const attached = new Map<string, Attached>();
 
-type TurnUserData = { voiceEmotion?: unknown; recentTranscripts?: string[] };
+type TurnUserData = {
+  voiceEmotion?: unknown;
+  recentTranscripts?: string[];
+  lastAgentResponse?: string;
+};
 
 /** Send this call's turns to a roundtable; returns the function that stops it. */
 export function attachRoundtableTurns(
@@ -46,29 +48,27 @@ export function attachRoundtableTurns(
   };
 }
 
-/** The same signal the turn pipeline uses to keep the LLM (and its crisis override) in the loop. */
-function crisisSignal(text: string, userData: TurnUserData | undefined): boolean {
-  const crisis = detectCrisis(
-    text,
-    toGuardVoiceEmotion(userData?.voiceEmotion as ProsodyEmotionLike | undefined),
-    { recentMessages: userData?.recentTranscripts }
-  );
-  return hasCrisisSignal(crisis);
+/**
+ * The same verdict the turn pipeline acts on: pattern detection with voice emotion and the
+ * recent transcript, plus the live classifier when it is on (startTurnCrisis).
+ */
+async function crisisSignal(text: string, userData: TurnUserData | undefined): Promise<boolean> {
+  return hasCrisisSignal(await startTurnCrisis(text, userData).resolve());
 }
 
 /**
  * True when a roundtable on this call took the turn (the caller then skips its reply).
  * Never true for a turn with a crisis signal: that ends the roundtable and returns false.
  */
-export function takeRoundtableTurn(
+export async function takeRoundtableTurn(
   sessionId: string | undefined,
   utterance: string | undefined,
   userData?: TurnUserData
-): boolean {
+): Promise<boolean> {
   const entry = sessionId ? attached.get(sessionId) : undefined;
   if (!entry || !sessionId) return false;
   const text = utterance?.trim();
-  if (text && crisisSignal(text, userData)) {
+  if (text && (await crisisSignal(text, userData))) {
     log.warn({ sessionId }, '🚨 Crisis signal during a roundtable: ending it, the persona answers');
     attached.delete(sessionId);
     entry.onCrisis();
@@ -91,8 +91,11 @@ export function callSessionId(userData: unknown): string | undefined {
 }
 
 /** For a persona agent's onUserTurnCompleted: a roundtable takes the turn → stop its own reply. */
-export function stopIfRoundtableTurn(userData: unknown, utterance: string | undefined): void {
-  if (takeRoundtableTurn(callSessionId(userData), utterance, userData as TurnUserData)) {
+export async function stopIfRoundtableTurn(
+  userData: unknown,
+  utterance: string | undefined
+): Promise<void> {
+  if (await takeRoundtableTurn(callSessionId(userData), utterance, userData as TurnUserData)) {
     throw new voice.StopResponse();
   }
 }

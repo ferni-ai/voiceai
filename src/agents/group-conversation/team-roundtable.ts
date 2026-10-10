@@ -265,9 +265,10 @@ export class TeamRoundtable extends EventEmitter {
     if (!this.isActive) return;
 
     this.isActive = false;
-
-    // Have moderator close the session (never a pleasantry before a crisis response)
-    if (reason !== 'crisis') await this.moderatorCloses(reason);
+    this.responseQueue.length = 0;
+    // A crisis: nobody else speaks (no closing pleasantry) before the crisis response
+    if (reason === 'crisis') for (const agent of this.agents.values()) agent.setMuted(true);
+    else await this.moderatorCloses(reason);
 
     // Cleanup all agents
     for (const agent of this.agents.values()) {
@@ -435,7 +436,8 @@ export class TeamRoundtable extends EventEmitter {
    * Process the response queue - have agents respond in order
    */
   private async processResponseQueue(lastUtterance: string): Promise<void> {
-    while (this.responseQueue.length > 0) {
+    // Ending (or a crisis) stops the queue at once, even mid-line
+    while (this.isActive && this.responseQueue.length > 0) {
       const next = this.responseQueue.shift();
       if (!next) break;
 
@@ -452,6 +454,7 @@ export class TeamRoundtable extends EventEmitter {
 
       const context = this.buildResponseContext(next.agentId, lastUtterance, next.priority >= 10);
       const response = await agent.generateResponse(context);
+      if (!this.isActive) break; // ended while the line was being written
 
       // Record utterance
       if (participant) {

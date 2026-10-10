@@ -575,7 +575,7 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
 
   /** Called by the SDK before it generates the reply to a user turn. */
   async onUserTurnCompleted(turnCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
-    stopIfRoundtableTurn(this.session.userData, newMessage.textContent); // the roundtable answers
+    await stopIfRoundtableTurn(this.session.userData, newMessage.textContent); // roundtable answers
     if (this.onUserTurn) await this.onUserTurn(turnCtx, newMessage);
   }
 

@@ -27,6 +27,8 @@ export interface SpeakingSession {
     text: string,
     options?: { allowInterruptions?: boolean }
   ): { waitForPlayout(): Promise<void> };
+  /** Cut off the line playing now (a crisis must not wait for it). */
+  interrupt?(): void;
   userData: Record<string, unknown>;
 }
 
@@ -146,6 +148,8 @@ export function createSessionRoundtableAgents(deps: {
       },
       setMuted(value) {
         muted = value;
+        // Muting mid-line (a crisis) cuts this persona's line off now
+        if (value && session.userData.speakingAs === personaId) session.interrupt?.();
       },
       async cleanup() {
         if (session.userData.speakingAs === personaId) delete session.userData.speakingAs;
@@ -169,6 +173,9 @@ export function roundtableAgentsForCall(
       const live = activeSession();
       if (!live) throw new Error('No agent on the call to speak the roundtable line');
       return live.say(text, options);
+    },
+    interrupt() {
+      activeSession()?.interrupt?.();
     },
     get userData() {
       return activeSession()?.userData ?? {};
