@@ -3,6 +3,10 @@
 # topic). Proof is in the agent log: "Music control request from UI" then
 # "Music paused via UI button", and the music_state messages in `data`.
 Can you put on some quiet jazz for me?
-@data 4000 {"type":"music_control","action":"pause"}
-@data 4000 {"type":"music_control","action":"resume"}
+# "@data <ms>" sends once the agent is quiet, then waits <ms>. Ferni goes quiet
+# just BEFORE the track starts, so a pause sent then never meets playing music.
+# The no-op lets the track play first, so pause and resume land mid-track.
+@data 12000 {"type":"noop"}
+@data 8000 {"type":"music_control","action":"pause"}
+@data 8000 {"type":"music_control","action":"resume"}
 Thanks, that's nice.
