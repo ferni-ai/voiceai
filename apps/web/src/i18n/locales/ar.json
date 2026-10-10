@@ -6036,6 +6036,7 @@
     "freeTimeHours": "{hours} ساعة وقت فراغ",
     "backToBackMeetings": "اجتماعات متتالية",
     "markComplete": "تحديد {text} كمكتمل",
+    "intentionNotSaved": "تعذّر الحفظ. حاول مرة أخرى.",
     "followThrough": "المتابعة والاستمرار",
     "habitsThisWeek": "عادات هذا الأسبوع",
     "momentum": "الزخم",

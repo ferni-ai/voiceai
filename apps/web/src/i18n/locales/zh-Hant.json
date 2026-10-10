@@ -5908,6 +5908,7 @@
     "freeTimeHours": "{hours} 小時空閒時間",
     "backToBackMeetings": "緊湊相連的會議",
     "markComplete": "將 {text} 標記為完成",
+    "intentionNotSaved": "無法儲存，請再試一次。",
     "followThrough": "貫徹執行",
     "habitsThisWeek": "本週習慣",
     "momentum": "動力",

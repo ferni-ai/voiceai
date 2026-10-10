@@ -5908,6 +5908,7 @@
     "freeTimeHours": "空き時間 {hours}時間",
     "backToBackMeetings": "連続する会議",
     "markComplete": "{text}を完了にする",
+    "intentionNotSaved": "保存できませんでした。もう一度お試しください。",
     "followThrough": "やり遂げたこと",
     "habitsThisWeek": "今週の習慣",
     "momentum": "モメンタム",

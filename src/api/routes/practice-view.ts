@@ -16,7 +16,19 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
-import { requireUserId, handleCorsPreflightIfNeeded, sendJSON, sendError } from '../helpers.js';
+import {
+  requireUserId,
+  handleCorsPreflightIfNeeded,
+  sendJSON,
+  sendError,
+  parseBody,
+} from '../helpers.js';
+import {
+  isDoneToday,
+  markStartersDoneToday,
+  setIntentionCompleted,
+  IntentionNotFoundError,
+} from './practice-intentions.js';
 import { rateLimit } from '../auth-middleware.js';
 import { localeForRequest, tFor, type SupportedLocale } from '../../i18n/index.js';
 import {
@@ -283,11 +295,7 @@ async function loadIntentions(userId: string, locale: SupportedLocale): Promise<
   const intentions: PracticeTask[] = [];
 
   try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-    });
+    const db = await practiceDb();
 
     // Load from tasks collection
     const tasksSnapshot = await db
@@ -321,7 +329,7 @@ async function loadIntentions(userId: string, locale: SupportedLocale): Promise<
 
     for (const doc of practicesSnapshot.docs) {
       const data = doc.data();
-      if (data.name && !data.completedToday) {
+      if (data.name && !isDoneToday(data)) {
         intentions.push({
           id: `practice_${doc.id}`,
           text: data.name,
@@ -358,8 +366,10 @@ async function loadIntentions(userId: string, locale: SupportedLocale): Promise<
         insightPersona: attribute(locale, 'peter', 'found'),
       }
     );
+    await markStartersDoneToday(await practiceDb(), userId, intentions).catch((error) =>
+      log.warn({ error: String(error), userId }, 'Could not load starter intentions')
+    );
   }
-
   return intentions;
 }
 
@@ -757,42 +767,31 @@ export async function handleCompleteIntention(
   const userId = requireUserId(req, res, parsedUrl);
   if (!userId) return;
   const locale = await localeForRequest(req.headers['accept-language']);
-
   try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-    });
-
-    // Handle practice completions
-    if (intentionId.startsWith('practice_')) {
-      const practiceId = intentionId.replace('practice_', '');
-      const { FieldValue } = await import('@google-cloud/firestore');
-      await db
-        .collection('users')
-        .doc(userId)
-        .collection('practices')
-        .doc(practiceId)
-        .update({
-          completedToday: true,
-          lastCompletedAt: new Date().toISOString(),
-          streak: FieldValue.increment(1),
-        });
-    } else {
-      // Handle task completions
-      await db.collection('bogle_users').doc(userId).collection('tasks').doc(intentionId).update({
-        completed: true,
-        completedAt: new Date().toISOString(),
-      });
-    }
-
-    sendJSON(res, { success: true, intentionId });
-    log.info({ userId, intentionId }, 'Intention completed');
+    // { completed: false } undoes it; anything else marks it done
+    const body = await parseBody<{ completed?: unknown }>(req).catch(() => ({
+      completed: undefined,
+    }));
+    const completed = body.completed !== false;
+    await setIntentionCompleted(await practiceDb(), userId, intentionId, completed);
+    sendJSON(res, { success: true, intentionId, completed });
+    log.info({ userId, intentionId, completed }, 'Intention saved');
   } catch (error) {
-    log.error({ error: String(error), userId, intentionId }, 'Failed to complete intention');
-    sendError(res, tFor(locale, 'practiceView.errors.completeFailed'), 500);
+    const notFound = error instanceof IntentionNotFoundError;
+    log[notFound ? 'warn' : 'error'](
+      { error: String(error), userId, intentionId },
+      'Failed to save intention'
+    );
+    sendError(res, tFor(locale, 'practiceView.errors.completeFailed'), notFound ? 404 : 500);
   }
+}
+
+async function practiceDb() {
+  const { Firestore } = await import('@google-cloud/firestore');
+  return new Firestore({
+    projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+    databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+  });
 }
 
 /**
