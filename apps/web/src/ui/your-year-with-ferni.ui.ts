@@ -62,7 +62,7 @@ export interface EmotionalMoment {
 export interface TeamUnlock {
   personaId: string;
   personaName: string;
-  unlockedAt: Date;
+  unlockedAt?: Date;
   primaryColor: string;
 }
 
@@ -100,7 +100,7 @@ export interface RelationshipGrowth {
 
 export interface YearStats {
   totalConversations: number;
-  totalMinutes: number;
+  totalMinutes?: number;
   longestStreak: number;
   currentStreak: number;
   averageConversationsPerWeek: number;
@@ -250,7 +250,7 @@ export class YourYearWithFerni {
           })) ?? [],
           teamUnlocks: data.teamUnlocks?.map((t) => ({
             ...t,
-            unlockedAt: new Date(t.unlockedAt),
+            unlockedAt: t.unlockedAt ? new Date(t.unlockedAt) : undefined,
           })) ?? [],
           dreams: data.dreams?.map((d) => ({
             ...d,
@@ -320,7 +320,7 @@ export class YourYearWithFerni {
           </div>
           <span class="your-year-eyebrow">${t('yourYearWithFerni.eyebrow')}</span>
           <h2 id="your-year-title" class="your-year-title">${t('yourYearWithFerni.title')}</h2>
-          <p class="your-year-subtitle">${t('yourYearWithFerni.subtitle', { conversations: tp('yourYearWithFerni.conversationCount', this.data.stats.totalConversations), minutes: tp('yourYearWithFerni.minuteCount', this.data.stats.totalMinutes) })}</p>
+          <p class="your-year-subtitle">${typeof this.data.stats.totalMinutes === 'number' ? t('yourYearWithFerni.subtitle', { conversations: tp('yourYearWithFerni.conversationCount', this.data.stats.totalConversations), minutes: tp('yourYearWithFerni.minuteCount', this.data.stats.totalMinutes) }) : t('yourYearWithFerni.subtitleNoMinutes', { conversations: tp('yourYearWithFerni.conversationCount', this.data.stats.totalConversations) })}</p>
         </header>
 
         <div class="your-year-content">
@@ -480,8 +480,7 @@ export class YourYearWithFerni {
 
     return this.data.teamUnlocks
       .map((member) => {
-        const unlockDate =
-          member.unlockedAt instanceof Date ? member.unlockedAt : new Date(member.unlockedAt);
+        const unlockDate = member.unlockedAt && new Date(member.unlockedAt);
         const personaId = member.personaId.toLowerCase();
         const gradient = personaGradients[personaId] ?? {
           light: member.primaryColor,
@@ -518,7 +517,7 @@ export class YourYearWithFerni {
           </svg>
         </div>
         <div class="team-name">${displayName}</div>
-        <div class="team-unlocked">${t('yourYearWithFerni.unlockedOn', { date: formatDate(unlockDate, { month: 'short', year: 'numeric' }) })}</div>
+        ${unlockDate ? `<div class="team-unlocked">${t('yourYearWithFerni.unlockedOn', { date: formatDate(unlockDate, { month: 'short', year: 'numeric' }) })}</div>` : ''}
       </div>
     `;
       })
