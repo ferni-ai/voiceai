@@ -158,6 +158,17 @@ describe('completeOnBehalfCall', () => {
     expect(p.report).not.toHaveBeenCalled();
   });
 
+  it("a forged session naming a real call's id cannot suppress that call's report", async () => {
+    const real = makeCall('c-shared');
+    const forged = ports(conversation);
+    await completeOnBehalfCall('s-forged-2', real, 5, false, forged);
+    expect(forged.report).not.toHaveBeenCalled();
+
+    const genuine = ports(conversation);
+    await completeOnBehalfCall('s-real', real, 90, true, genuine);
+    expect(genuine.report).toHaveBeenCalledTimes(1);
+  });
+
   it('skips the analysis when nobody answered', async () => {
     const p = ports([]);
     const outcome = await completeOnBehalfCall('s-none', makeCall('c-none'), 30, true, p);

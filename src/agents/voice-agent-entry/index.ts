@@ -243,7 +243,13 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       finishCallTypeContexts(metadata, callType, sessionId, Date.now() - startTime, ctx.job.metadata);
 
     // Set up call type-specific contexts (inbound, on-behalf, proactive)
-    await setupCallTypeContexts(metadata, callType, sessionId, ctx.job.room?.name);
+    await setupCallTypeContexts(
+      metadata,
+      callType,
+      sessionId,
+      ctx.job.room?.name,
+      ctx.job.metadata
+    );
 
     // Build persona with defaults and load prompts
     const personaResult = await buildSessionPersona(personaId, e2e);

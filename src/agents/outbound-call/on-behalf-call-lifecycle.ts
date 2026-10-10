@@ -136,7 +136,8 @@ const reportedCalls = new Set<string>();
 
 /**
  * Report the finished call to the requester. `trusted` says the dispatch was
- * signed by our server (verifyOnBehalfDispatch); a forged one never reports.
+ * signed by our server (verifyOnBehalfDispatch); a forged one never reports
+ * and never touches state belonging to the callId it names.
  * Safe to call from every session exit path: only the first call for a callId
  * reports. Never throws.
  */
@@ -147,17 +148,22 @@ export async function completeOnBehalfCall(
   trusted: boolean,
   ports?: CallLifecyclePorts
 ): Promise<CallOutcome | null> {
+  // An unsigned dispatch names a callId someone else chose: touch nothing keyed
+  // by it (another call's report guard or transcript), only this session.
+  if (!trusted) {
+    log.warn(
+      { callId: call.callId, requesterUserId: call.requester.userId },
+      'Unsigned on-behalf dispatch; not reporting to the named requester'
+    );
+    const { cleanupOnBehalfCapture } =
+      await import('../integrations/on-behalf-transcript-capture.js');
+    cleanupOnBehalfCapture(sessionId);
+    return null;
+  }
   if (reportedCalls.has(call.callId)) return null;
   reportedCalls.add(call.callId);
 
   try {
-    if (!trusted) {
-      log.warn(
-        { callId: call.callId, requesterUserId: call.requester.userId },
-        'Unsigned on-behalf dispatch; not reporting to the named requester'
-      );
-      return null;
-    }
     const { readTranscript, analyze, report } = ports ?? (await defaultPorts());
     const turns = readTranscript(call.callId);
     let analysis: SuperhumanCallResult | null = null;
