@@ -116,6 +116,27 @@ describe('createMemoryRecall', () => {
     expect(recall.noteFor('Biscuit is great')).toBeNull();
   });
 
+  it('offers shared inside jokes once per call, only with INSIDE_JOKES=on', async () => {
+    const withJokes = {
+      facts: store.facts,
+      summaries: async () => [{ insideJokes: ['the mushroom thing'] }],
+    };
+    vi.stubEnv('INSIDE_JOKES', 'on');
+    try {
+      const recall = createMemoryRecall({ userId: 'u1', store: withJokes });
+      await recall.ready;
+      expect(recall.noteFor('Hey, how are you?')).toContain('- the mushroom thing');
+      expect(recall.noteFor('Biscuit chewed my shoes again')).not.toContain('mushroom');
+
+      vi.stubEnv('INSIDE_JOKES', 'off');
+      const off = createMemoryRecall({ userId: 'u1', store: withJokes });
+      await off.ready;
+      expect(off.noteFor('Hey, how are you?')).toBeNull();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('is on by default and turns off with MEMORY_RECALL=off', () => {
     expect(memoryRecallMode({})).toBe(true);
     expect(memoryRecallMode({ MEMORY_RECALL: 'off' })).toBe(false);

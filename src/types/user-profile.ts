@@ -102,9 +102,7 @@ export interface SharedStory {
   context: string;
 }
 
-/**
- * Conversation summary for long-term memory
- */
+/** Conversation summary for long-term memory */
 export interface ConversationSummary {
   id: string;
   sessionId: string;
@@ -121,6 +119,8 @@ export interface ConversationSummary {
   decisionsReached?: string[];
   questionsRemaining?: string[];
   followUpItems?: string[];
+  /** Bits that were genuinely funny between the caller and Ferni in this call. */
+  insideJokes?: string[];
 
   // Embedding for semantic search
   embedding?: number[];

@@ -8,23 +8,20 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { ConversationSummary } from '../../types/user-profile.js';
 import { embed } from '../embeddings.js';
+import { INSIDE_JOKES_PROMPT_TAIL, parseInsideJokes } from './inside-jokes.js';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-/**
- * A single turn in a conversation
- */
+/** A single turn in a conversation */
 export interface ConversationTurn {
   role: 'user' | 'assistant';
   content: string;
   timestamp?: Date;
 }
 
-/**
- * Options for summarization
- */
+/** Options for summarization */
 export interface SummarizationOptions {
   maxLength?: number;
   includeEmotionalArc?: boolean;
@@ -303,9 +300,7 @@ export async function summarizeConversation(
 // LLM-ENHANCED SUMMARIZATION
 // ============================================================================
 
-/**
- * LLM-based summarization result
- */
+/** LLM-based summarization result */
 interface LLMSummaryResult {
   mainTopics: string[];
   keyPoints: string[];
@@ -314,6 +309,7 @@ interface LLMSummaryResult {
   followUps: string[];
   userConcerns: string[];
   relationshipProgress: string;
+  insideJokes?: unknown;
 }
 
 /**
@@ -360,8 +356,8 @@ Respond with ONLY valid JSON (no markdown, no explanation):
   "openThreads": ["topic that wasn't fully resolved"],
   "followUps": ["thing to check on next time"],
   "userConcerns": ["worry or concern user expressed"],
-  "relationshipProgress": "brief note on how relationship deepened"
-}`;
+  "relationshipProgress": "brief note on how relationship deepened",
+${INSIDE_JOKES_PROMPT_TAIL}`;
 
   try {
     const response = await llmCall(prompt);
@@ -399,6 +395,9 @@ Respond with ONLY valid JSON (no markdown, no explanation):
       questionsRemaining: llmResult.openThreads,
       followUpItems: llmResult.followUps,
     };
+    // Only written when there is one, so summaries without jokes look as before.
+    const insideJokes = parseInsideJokes(llmResult.insideJokes);
+    if (insideJokes.length > 0) summary.insideJokes = insideJokes;
 
     // Generate embedding
     if (opts.generateEmbedding) {
