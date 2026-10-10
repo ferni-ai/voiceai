@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   biographyCore,
   consistentWithBiography,
+  notTheCallers,
   createLedgerRecorder,
   lifeFactsOnly,
   selfMemoryEnabled,
@@ -65,10 +66,17 @@ describe('createLedgerRecorder with FERNI_SELF_MEMORY', () => {
     env: Record<string, string>,
     extracted = PROD_FACTS,
     lines = LINES,
-    ask: (system: string, input: string) => Promise<string> = async () => 'NONE'
+    ask: (system: string, input: string) => Promise<string> = async () => 'NONE',
+    callers: string[] = []
   ): Promise<string[]> {
     const store = memoryStore();
-    const rec = createLedgerRecorder('u1', { store, extract: async () => extracted, env, ask });
+    const rec = createLedgerRecorder('u1', {
+      store,
+      extract: async () => extracted,
+      env,
+      ask,
+      callerNames: async () => callers,
+    });
     for (const line of lines) rec.add('ferni', line);
     await rec.flush();
     return store.rows.map((r) => r.fact);
@@ -86,13 +94,21 @@ describe('createLedgerRecorder with FERNI_SELF_MEMORY', () => {
     const asked: string[] = [];
     const ask = async (system: string, input: string) => {
       asked.push(system, input);
-      return '2';
+      return '2 | Third of seven siblings.';
     };
     expect(await saved({}, extracted, lines, ask)).toEqual(extracted); // off: no check
     expect(asked).toEqual([]);
     expect(await saved({ FERNI_SELF_MEMORY: 'on' }, extracted, lines, ask)).toEqual([extracted[0]]);
     expect(asked[0]).toContain('Third of seven siblings');
     expect(asked[1]).toBe('1. Ferni is reading an old history book about the silk road\n2. Ferni is an only child');
+  });
+
+  it("drops the caller's own pet when on, from the caller's entities", async () => {
+    const extracted = ['Ferni has a pet named Biscuit', 'Ferni is reading an old history book'];
+    const lines = ["Classic Biscuit! Me, I'm reading an old history book. Biscuit sounds like a pet named trouble."];
+    const none = async () => 'NONE';
+    expect(await saved({}, extracted, lines, none, ['Biscuit'])).toEqual(extracted);
+    expect(await saved({ FERNI_SELF_MEMORY: 'on' }, extracted, lines, none, ['Biscuit'])).toEqual([extracted[1]]);
   });
 
   it('is off by default', () => {
@@ -116,8 +132,44 @@ describe('consistentWithBiography', () => {
     expect(await consistentWithBiography('Ferni', facts, 'bio', ask)).toEqual(facts);
   });
 
-  it('drops the numbered conflicts', async () => {
-    expect(await consistentWithBiography('Ferni', facts, 'bio', async () => '1, 3')).toEqual(['b']);
+  const bio = 'Wyoming kid. Third of seven siblings. Coffee (my wife says it is an addiction)';
+
+  it('drops a fact only when both answers rule it out', async () => {
+    const replies = ['1 | Third of seven siblings.\n2 | Wyoming kid', '1 | Third of seven siblings.'];
+    const ask = async () => replies.shift() ?? 'NONE';
+    expect(await consistentWithBiography('Ferni', facts, bio, ask)).toEqual(['b', 'c']);
+  });
+
+  it('drops a fact only with a quote that is really in the biography', async () => {
+    const reply = '1 | Third of seven siblings.\n3 | "Wyoming kid"';
+    expect(await consistentWithBiography('Ferni', facts, bio, async () => reply)).toEqual(['b']);
+  });
+
+  it('keeps a fact flagged without a quote, with a made-up quote, or with one word', async () => {
+    const reply = '1, 3\n2 | grew up in Ohio\n3 | Wyoming';
+    expect(await consistentWithBiography('Ferni', facts, bio, async () => reply)).toEqual(facts);
+  });
+});
+
+describe('notTheCallers', () => {
+  it("drops facts that give him the caller's own named pet (13 prod facts, 2026-10-10)", () => {
+    const facts = [
+      'Ferni has a pet named Biscuit.',
+      "Ferni's pet, Biscuit, saved the best for breakfast.",
+      'Ferni is reading an old history book about the silk road.',
+    ];
+    expect(notTheCallers(facts, ['Biscuit', 'manager'], 'Ferni')).toEqual([facts[2]]);
+  });
+
+  it('ignores kin words, pronouns, the caller and Ferni himself', () => {
+    const facts = [
+      "Ferni's brother dropped news out of nowhere while they were pumping gas.",
+      "Ferni's own mom used to call him every Saturday morning.",
+      'Ferni had a cat growing up.',
+      'Fernie loves the first quiet hour of morning.',
+    ];
+    const callers = ['They', 'She', 'Brother', 'Mom', 'Cat', 'User', 'Speaker', 'Fernie', 'sister'];
+    expect(notTheCallers(facts, callers, 'Ferni')).toEqual(facts);
   });
 });
 
