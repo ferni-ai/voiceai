@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ReadableStream } from 'node:stream/web';
-import { OpenerGate, stripStockOpener } from '../opener-gate.js';
+import { OpenerGate, capitalizeStart, stripStockOpener } from '../opener-gate.js';
 
 describe('stripStockOpener', () => {
   it('drops the reaction words seen on live calls', () => {
@@ -26,7 +26,27 @@ describe('stripStockOpener', () => {
   });
 });
 
+describe('capitalizeStart', () => {
+  it('capitalises the first spoken letter, past markup and cues', () => {
+    expect(capitalizeStart("it's, um, always that scramble.")).toBe("It's, um, always that scramble.");
+    expect(capitalizeStart('[laughter] classic Biscuit.')).toBe('[laughter] Classic Biscuit.');
+    expect(capitalizeStart('<emotion value="happy"/>little architect at work, huh?')).toBe(
+      '<emotion value="happy"/>Little architect at work, huh?'
+    );
+  });
+
+  it('leaves replies that already start well alone', () => {
+    expect(capitalizeStart('Of course he did.')).toBe('Of course he did.');
+    expect(capitalizeStart('"Wait," she said.')).toBe('"Wait," she said.');
+    expect(capitalizeStart('')).toBe('');
+  });
+});
+
 describe('OpenerGate', () => {
+  it('capitalises a lowercase reply that has no reaction word', () => {
+    expect(new OpenerGate(3).decide('classic Biscuit.')).toBe('Classic Biscuit.');
+  });
+
   it('keeps a reaction word at most once every three replies', () => {
     const gate = new OpenerGate(3);
     const out = ['Oh, a.', 'Oh, b.', 'Oh, c.', 'Oh, d.', 'Oh, e.'].map((t) => gate.decide(t));

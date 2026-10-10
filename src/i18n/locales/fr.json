@@ -643,7 +643,6 @@
       "found": "Trouvé par {persona}"
     },
     "eventContext": {
-      "family": "Ton ou ta partenaire adore quand tu es pleinement là",
       "meeting": "Définis une intention claire avant de commencer",
       "wellness": "Prendre soin de toi d'abord",
       "learning": "C'est en se dépassant que l'on grandit",
@@ -689,11 +688,7 @@
     "pattern": {
       "busyWeek": "Tu as enchaîné pas mal de réunions ces derniers temps. C'est dans le calme que tes plus belles réflexions prennent vie.",
       "packedDay": "{day} s'annonce très chargé. Et si tu déplaçais quelque chose au {otherDay} ?",
-      "packedDayNoAlternative": "{day} s'annonce très chargé. Et si tu reportais quelque chose à un autre jour ?",
-      "morningStart": "Ta façon de commencer la matinée a tendance à donner le ton pour toute la journée.",
-      "focusTime": "Quand tu te réserves un temps de concentration, tu accomplis 40 % de choses en plus.",
-      "creativeAfterWalks": "Tu sembles déborder de créativité après tes promenades.",
-      "tuesdayEvenings": "C'est le mardi soir que ta productivité est au top."
+      "packedDayNoAlternative": "{day} s'annonce très chargé. Et si tu reportais quelque chose à un autre jour ?"
     },
     "errors": {
       "loadFailed": "Je n'ai pas réussi à charger la vue de la pratique.",

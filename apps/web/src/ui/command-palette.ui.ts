@@ -266,6 +266,7 @@ function moveSelection(next: number): void {
 }
 
 function handlePaletteKeydown(e: KeyboardEvent): void {
+  if (!isOpen) return; // closed, it must not swallow keys meant for whatever is open now
   switch (e.key) {
     case 'ArrowDown':
       e.preventDefault();
@@ -343,6 +344,7 @@ export function initCommandPalette(opts: CommandPaletteOptions = {}): void {
   maxResults = opts.maxResults ?? DEFAULT_MAX_RESULTS;
 
   palette = createPalette();
+  palette.inert = true; // closed: out of the tab order, and it can't keep focus
   document.body.appendChild(palette);
   searchInput = palette.querySelector('.command-palette__input');
   resultsContainer = palette.querySelector('.command-palette__results');
@@ -370,6 +372,7 @@ export function open(): void {
   filteredCommands = searchCommands('');
   selectedIndex = 0;
   renderResults();
+  palette.inert = false;
   palette.classList.add(OPEN_CLASS);
 
   const card = palette.querySelector<HTMLElement>('.command-palette__card');
@@ -383,6 +386,9 @@ export function close(): void {
   if (!palette || !isOpen) return;
 
   isOpen = false;
+  // Inert also pulls focus out: body.focus() below can't, so after running a command the
+  // search box kept focus and swallowed the Escape meant for the panel the command opened
+  palette.inert = true;
   palette.classList.remove(OPEN_CLASS);
   focusTrapCleanup?.();
   focusTrapCleanup = null;

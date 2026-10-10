@@ -47,16 +47,6 @@ export async function extractLearnedMemories(_userIdOrProfile: string | unknown)
   return { memories: [], patterns: [] };
 }
 
-import type { UserProfile } from '../../types/user-profile.js';
-
-export function deleteMemoryFromProfile(
-  profile: UserProfile,
-  _memoryId: string
-): { success: boolean; profile: UserProfile; deletedType?: string } {
-  // Stub - returns success with unchanged profile
-  return { success: true, profile, deletedType: 'stub' };
-}
-
 export function getLearnedMemoriesService(): null {
   return null;
 }

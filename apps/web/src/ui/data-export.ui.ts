@@ -127,14 +127,14 @@ class DataExportUI {
       <div class="data-export__format">
         <label>${t('dataExport.exportFormat')}</label>
         <div class="data-export__format-options">
-          <button aria-label="${t('accessibility.json')}" class="data-export__format-btn data-export__format-btn--active" data-format="json">JSON</button>
-          <button aria-label="${t('accessibility.csv')}" class="data-export__format-btn" data-format="csv">CSV</button>
+          <button class="data-export__format-btn data-export__format-btn--active" data-format="json">JSON</button>
+          <button class="data-export__format-btn" data-format="csv">CSV</button>
         </div>
       </div>
 
-      <div class="data-export__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.delete')}" class="data-export__btn data-export__btn--danger">${t('dataExport.deleteAll')}</button>
-        <button aria-label="${t('accessibility.exportSelected')}" class="data-export__btn data-export__btn--primary">${t('accessibility.exportSelected')}</button>
+      <div class="data-export__actions">
+        <button class="data-export__btn data-export__btn--danger">${t('dataExport.deleteAll')}</button>
+        <button class="data-export__btn data-export__btn--primary">${t('accessibility.exportSelected')}</button>
       </div>
 
       <div class="data-export__footer">

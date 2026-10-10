@@ -341,14 +341,14 @@ class CalendarSettingsUI {
               : ''
           }
           <div class="calendar-settings__provider-actions" role="button" tabindex="0">
-            <button aria-label="${t('accessibility.refresh')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync">
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync">
               ${ICONS.refresh}
               <span>${t('calendarSettings.sync')}</span>
             </button>
             <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-google" title="${t('forms.chooseCalendars')}">
               ${ICONS.settings}
             </button>
-            <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect">
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect">
               <span>${t('calendarSettings.disconnect')}</span>
             </button>
           </div>
@@ -365,7 +365,7 @@ class CalendarSettingsUI {
               <span class="calendar-settings__provider-status">${t('calendarSettings.syncYourEvents')}</span>
             </div>
           </div>
-          <button aria-label="${t('accessibility.connect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect">
+          <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect">
             ${ICONS.link}
             <span>${t('calendarSettings.connect')}</span>
           </button>
@@ -389,14 +389,14 @@ class CalendarSettingsUI {
             <div class="calendar-settings__provider-badge calendar-settings__provider-badge--synced">${t('calendarSettings.synced')}</div>
           </div>
           <div class="calendar-settings__provider-actions" role="button" tabindex="0">
-            <button aria-label="${t('accessibility.refresh')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync-apple">
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync-apple">
               ${ICONS.refresh}
               <span>${t('calendarSettings.sync')}</span>
             </button>
             <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-apple" title="${t('forms.chooseCalendars')}">
               ${ICONS.settings}
             </button>
-            <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-apple">
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-apple">
               <span>${t('calendarSettings.disconnect')}</span>
             </button>
           </div>
@@ -413,7 +413,7 @@ class CalendarSettingsUI {
               <span class="calendar-settings__provider-status">${t('calendarSettings.appleStatus')}</span>
             </div>
           </div>
-          <button aria-label="${t('accessibility.connect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-apple">
+          <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-apple">
             ${ICONS.link}
             <span>${t('calendarSettings.connect')}</span>
           </button>
@@ -437,14 +437,14 @@ class CalendarSettingsUI {
             <div class="calendar-settings__provider-badge calendar-settings__provider-badge--synced">${t('calendarSettings.synced')}</div>
           </div>
           <div class="calendar-settings__provider-actions" role="button" tabindex="0">
-            <button aria-label="${t('accessibility.refresh')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync-outlook">
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync-outlook">
               ${ICONS.refresh}
               <span>${t('calendarSettings.sync')}</span>
             </button>
             <button aria-label="${t('accessibility.settings')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-outlook" title="${t('forms.chooseCalendars')}">
               ${ICONS.settings}
             </button>
-            <button aria-label="${t('accessibility.disconnect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-outlook">
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-outlook">
               <span>${t('calendarSettings.disconnect')}</span>
             </button>
           </div>
@@ -462,7 +462,7 @@ class CalendarSettingsUI {
               <span class="calendar-settings__provider-status">${t('calendarSettings.outlookStatus')}</span>
             </div>
           </div>
-          <button aria-label="${t('accessibility.connect')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-outlook">
+          <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-outlook">
             ${ICONS.link}
             <span>${t('calendarSettings.connect')}</span>
           </button>
@@ -539,7 +539,7 @@ class CalendarSettingsUI {
           </div>
         </div>
         <div class="calendar-settings__conflicts-section">
-          <button aria-label="${t('accessibility.viewSyncConflicts')}" class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost calendar-settings__btn--full" data-action="show-conflicts">
+          <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost calendar-settings__btn--full" data-action="show-conflicts">
             ${ICONS.alert}
             <span>${t('calendarSettings.viewSyncConflicts')}</span>
           </button>
@@ -569,7 +569,7 @@ class CalendarSettingsUI {
       </header>
       <div class="calendar-settings__error">
         <p>${this.escapeHtml(message)}</p>
-        <button aria-label="${t('accessibility.tryAgain')}" class="calendar-settings__btn calendar-settings__btn--secondary" data-action="retry">
+        <button class="calendar-settings__btn calendar-settings__btn--secondary" data-action="retry">
           ${t('calendarSettings.tryAgain')}
         </button>
       </div>
@@ -837,10 +837,10 @@ class CalendarSettingsUI {
               <small>${t('calendarSettings.passwordWarning')}</small>
             </div>
             <div class="calendar-settings__apple-actions" role="button" tabindex="0">
-              <button aria-label="${t('accessibility.cancel')}" type="button" class="calendar-settings__btn calendar-settings__btn--secondary" data-action="cancel-apple">
+              <button type="button" class="calendar-settings__btn calendar-settings__btn--secondary" data-action="cancel-apple">
                 ${t('calendarSettings.cancel')}
               </button>
-              <button aria-label="${t('accessibility.connect')}" type="submit" class="calendar-settings__btn calendar-settings__btn--primary" id="apple-connect-btn">
+              <button type="submit" class="calendar-settings__btn calendar-settings__btn--primary" id="apple-connect-btn">
                 ${t('calendarSettings.connect')}
               </button>
             </div>

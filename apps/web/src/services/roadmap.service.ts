@@ -102,8 +102,6 @@ export interface RoadmapFeature {
   superhuman: string[];
   /** What's already implemented (partial features) */
   existing?: string[];
-  /** Estimated arrival (quarter/year) */
-  estimatedArrival: string;
   /** Can users vote/express interest */
   canVote: boolean;
   /** Total seeds planted by community */
@@ -120,13 +118,12 @@ export interface RoadmapFeature {
 interface RoadmapFeatureDef
   extends Omit<
     RoadmapFeature,
-    'headline' | 'description' | 'superhuman' | 'existing' | 'estimatedArrival' | 'totalSeeds' | 'uniqueVoters'
+    'headline' | 'description' | 'superhuman' | 'existing' | 'totalSeeds' | 'uniqueVoters'
   > {
   /** i18n namespace: headline, description, superhuman1-4, existing1-N */
   ns: string;
   /** Number of existing1..N entries (partial features) */
   existingCount?: number;
-  arrival: { quarter: number; year: number };
 }
 
 export interface UserSeeds {
@@ -197,6 +194,9 @@ export const STAGE_INFO: Record<RoadmapStage, ReturnType<typeof stageInfo>> = {
 // ROADMAP FEATURES (Static definitions - stats come from API)
 // ============================================================================
 
+// Only features that are not built yet. Shipped ones (connections, household, voice ID,
+// personalize, marketplace) have their own panels; listing them here asked people to vote
+// for what they already had. No arrival dates: the old quarters had all passed.
 const ROADMAP_FEATURE_DEFS: RoadmapFeatureDef[] = [
   // -------------------------------------------------------------------------
   // CONNECT CATEGORY
@@ -205,7 +205,6 @@ const ROADMAP_FEATURE_DEFS: RoadmapFeatureDef[] = [
     id: 'group-coaching',
     ns: 'groupCoaching',
     stage: 'sprout',
-    arrival: { quarter: 2, year: 2025 },
     canVote: true,
     icon: 'users',
     category: 'connect',
@@ -214,7 +213,6 @@ const ROADMAP_FEATURE_DEFS: RoadmapFeatureDef[] = [
     id: 'video-settings',
     ns: 'videoSettings',
     stage: 'bud',
-    arrival: { quarter: 1, year: 2025 },
     canVote: true,
     icon: 'video',
     category: 'connect',
@@ -223,63 +221,14 @@ const ROADMAP_FEATURE_DEFS: RoadmapFeatureDef[] = [
   // -------------------------------------------------------------------------
   // PERSONALIZE CATEGORY
   // -------------------------------------------------------------------------
-  {
-    id: 'connections',
-    ns: 'connections',
-    stage: 'sprout',
-    arrival: { quarter: 1, year: 2025 },
-    existingCount: 3,
-    canVote: true,
-    icon: 'link',
-    category: 'personalize',
-  },
-  {
-    id: 'household',
-    ns: 'household',
-    stage: 'seed',
-    arrival: { quarter: 2, year: 2025 },
-    canVote: true,
-    icon: 'household',
-    category: 'personalize',
-  },
-  {
-    id: 'voice-enrollment',
-    ns: 'voiceEnrollment',
-    stage: 'sprout',
-    arrival: { quarter: 1, year: 2025 },
-    existingCount: 2,
-    canVote: true,
-    icon: 'fingerprint',
-    category: 'personalize',
-  },
-  {
-    id: 'personalize',
-    ns: 'personalize',
-    stage: 'sprout',
-    arrival: { quarter: 1, year: 2025 },
-    existingCount: 2,
-    canVote: true,
-    icon: 'palette',
-    category: 'personalize',
-  },
 
   // -------------------------------------------------------------------------
   // PLATFORM CATEGORY
   // -------------------------------------------------------------------------
   {
-    id: 'marketplace',
-    ns: 'marketplace',
-    stage: 'seed',
-    arrival: { quarter: 2, year: 2025 },
-    canVote: true,
-    icon: 'sparkles',
-    category: 'platform',
-  },
-  {
     id: 'developer-portal',
     ns: 'developerPortal',
     stage: 'seed',
-    arrival: { quarter: 3, year: 2025 },
     canVote: false,
     icon: 'commands',
     category: 'platform',
@@ -288,7 +237,7 @@ const ROADMAP_FEATURE_DEFS: RoadmapFeatureDef[] = [
 
 /** Text resolves in the active locale each time it is read; stats come from the API. */
 function toFeature(def: RoadmapFeatureDef): RoadmapFeature {
-  const { ns, existingCount = 0, arrival, ...base } = def;
+  const { ns, existingCount = 0, ...base } = def;
   const text = (leaf: string): string => t(`roadmapFeatures.${ns}.${leaf}`);
   const list = (leaf: string, count: number): string[] =>
     Array.from({ length: count }, (_, i) => text(`${leaf}${i + 1}`));
@@ -306,9 +255,6 @@ function toFeature(def: RoadmapFeatureDef): RoadmapFeature {
     },
     get existing() {
       return existingCount > 0 ? list('existing', existingCount) : undefined;
-    },
-    get estimatedArrival() {
-      return t('roadmapFeatures.arrival', arrival);
     },
   };
 }
@@ -371,14 +317,12 @@ class RoadmapService {
    * Includes menu action IDs that may differ from roadmap feature IDs
    */
   isRoadmapFeature(id: string): boolean {
-    // Map menu action IDs to roadmap feature IDs
+    // Map menu action IDs to roadmap feature IDs. Only still-unbuilt features
+    // belong here: a mapped action is hidden from the menu, so listing a shipped
+    // panel (household, voice ID, personalize, marketplace) made it unreachable.
     const MENU_ACTION_TO_ROADMAP: Record<string, string> = {
       'video-call-settings': 'video-settings',
       'together-sessions': 'group-coaching',
-      'household-members': 'household',
-      'voice-id-settings': 'voice-enrollment',
-      'personal-settings': 'personalize',
-      'discover-agents': 'marketplace',
     };
     
     // Check direct match or mapped match

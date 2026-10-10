@@ -2513,7 +2513,8 @@
       "devices": "Devices",
       "features": "What Ferni can see"
     },
-    "title": "Wearables"
+    "title": "Wearables",
+    "notConfigured": "Not set up yet"
   },
   "transcript": {
     "enabled": "Transcription on",
@@ -3018,7 +3019,8 @@
     "noEmailTitle": "We need an email address",
     "noEmailMessage": "This account has no email address. Sign in with an account that has one.",
     "checkFailedTitle": "We couldn't check your access",
-    "checkFailedMessage": "Something went wrong on our side. Give it a moment and try again."
+    "checkFailedMessage": "Something went wrong on our side. Give it a moment and try again.",
+    "signOutFailed": "Couldn't sign you out. Try again."
   },
   "visualizations": {
     "lifeSeasons": "Your Life Seasons",
@@ -3494,7 +3496,8 @@
       "load": "Couldn't load your family. Try again?",
       "add": "Couldn't add them. Try again?",
       "save": "Couldn't save that. Try again?",
-      "remove": "Couldn't remove them. Try again?"
+      "remove": "Couldn't remove them. Try again?",
+      "phoneInUse": "That number is already set up for someone else."
     },
     "calls": {
       "one": "{count} call",
@@ -3650,6 +3653,7 @@
     },
     "errorClipboard": "Couldn't copy. Try again?",
     "copyError": "Couldn't copy. Try again?",
+    "linkUnavailable": "Couldn't load your link right now. Try again in a moment.",
     "bonusAmount": "You'll both get {seeds} seeds",
     "bonusWhen": "when they join!",
     "garden": {
@@ -5906,6 +5910,7 @@
     "freeTimeHours": "{hours}h free time",
     "backToBackMeetings": "Back-to-back meetings",
     "markComplete": "Mark {text} complete",
+    "intentionNotSaved": "Couldn't save that. Try again.",
     "followThrough": "follow-through",
     "habitsThisWeek": "habits this week",
     "momentum": "momentum",
@@ -5928,8 +5933,6 @@
     "reflectAndCelebrate": "Reflect & celebrate",
     "newBeginning": "New beginning",
     "recharge": "Recharge",
-    "alexNoted": "ALEX NOTED",
-    "partnerLovesPresence": "Your partner loves when you're present",
     "jordanSuggests": "JORDAN SUGGESTS",
     "setClearIntention": "Set a clear intention before joining",
     "mayaNoticesLabel": "MAYA NOTICES",
@@ -5944,9 +5947,6 @@
     "manyMeetingsNotice": "You've been in a lot of meetings lately. Your best thinking happens in the quiet spaces.",
     "busiestDayPacked": "{day} looks packed. Maybe move something to {lightDay}?",
     "anotherDay": "another day",
-    "wisdomMornings": "Your morning starts tend to set the tone for the whole day.",
-    "wisdomFocusTime": "When you block focus time, you accomplish 40% more.",
-    "wisdomWalks": "You seem most creative after your walks.",
     "insightBalanced": "Your calendar looks balanced.",
     "insightNeedsAttention": "Your calendar needs attention.",
     "insightAdjustments": "Some adjustments could help.",
@@ -8096,6 +8096,12 @@
         "enter": "Arrive",
         "exit": "Leave",
         "both": "Either"
+      },
+      "calendar": {
+        "start": "When an event starts",
+        "when": "Do this...",
+        "end": "When an event ends",
+        "reminder": "Shortly before an event"
       }
     },
     "actions": {
@@ -8130,7 +8136,11 @@
       "title": "What should I do?"
     },
     "defaultMessage": "Good morning! Ready to start the day?",
-    "trackHabit": "Track: {habit}"
+    "trackHabit": "Track: {habit}",
+    "errors": {
+      "signInRequired": "Sign in to save your routines",
+      "saveFailed": "Couldn't save that. Want to try again?"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -8326,6 +8336,7 @@
     "autoResolveAll": "Auto-resolve All",
     "ferniCalendar": "Ferni Calendar",
     "keepFerni": "Keep Ferni",
+    "keepProvider": "Keep {provider}",
     "dismiss": "Dismiss",
     "resolving": "Resolving..."
   },
@@ -9018,6 +9029,8 @@
     "dontRemind": "Don't remind",
     "repeatsYearly": "Repeats every year",
     "cancel": "Cancel",
+    "add": "Add",
+    "update": "Update",
     "noDateYet": "No important dates yet.",
     "noDateDesc": "Add birthdays, anniversaries, and more.",
     "typeBirthday": "Birthday",
@@ -9143,6 +9156,7 @@
     "tierReqGardener": "3-5 friends",
     "tierReqGroveKeeper": "6-10 friends",
     "tierReqForestGuardian": "11+ friends",
+    "loadFailed": "Couldn't load your garden right now. Try again in a moment.",
     "inviteFriends": "Invite Friends",
     "emptyTitle": "Your garden is waiting to grow!",
     "emptyHint": "Share Ferni with friends and you'll both get 25 seeds.",
@@ -9353,6 +9367,7 @@
     "eyebrow": "YOUR JOURNEY",
     "title": "Your Year with Ferni",
     "subtitle": "{conversations}. {minutes}. Countless moments of growth.",
+    "subtitleNoMinutes": "{conversations}. Countless moments of growth.",
     "statConversations": "Conversations",
     "statTotal": "Total",
     "statCurrentStreak": "Current Streak",
@@ -9839,7 +9854,12 @@
     "topicPlaceholder": "Career planning, relationship advice...",
     "startRoundtable": "Start Roundtable",
     "moderator": "Moderator",
-    "expert": "Expert"
+    "expert": "Expert",
+    "roundtableStarted": "Roundtable started",
+    "roundtableEnded": "Roundtable ended",
+    "calling": "Calling {name}...",
+    "callNotConnected": "Couldn't reach {name}",
+    "errorGeneric": "The group conversation hit a problem. Want to try again?"
   },
   "locationPrompt": {
     "weather": {
@@ -10097,7 +10117,9 @@
       "leave": "When you leave {name}",
       "somewhere": "somewhere",
       "calendar": "Before your calendar events",
-      "event": "When something happens"
+      "event": "When something happens",
+      "calendarStart": "When a calendar event starts",
+      "calendarEnd": "When a calendar event ends"
     },
     "status": {
       "active": "Taking care of it",
@@ -10114,8 +10136,13 @@
     "runNow": "Run now",
     "signInPrompt": "Sign in to see what I do for you",
     "loadError": "Couldn't load your routines",
-    "connectionsSoon": "Connected services coming soon...",
-    "whatIDoForYou": "What I Do For You"
+    "whatIDoForYou": "What I Do For You",
+    "connections": {
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "intro": "These are the services I can use in what I do for you.",
+      "loadError": "Couldn't load your connected services"
+    }
   },
   "voiceAuth": {
     "unknownError": "Unknown error",
@@ -10175,6 +10202,7 @@
     "nowPlaying": "Now playing: {name}",
     "memoryRemoved": "Memory removed",
     "couldNotRemoveMemory": "Couldn't remove that memory. Try again?",
+    "memoryNotFound": "Couldn't find that memory. It may already be gone.",
     "couldNotLoadPredictions": "Couldn't load your predictions. Try again?",
     "noPredictionsYet": "No predictions yet. Make one with Ferni and it'll show up here.",
     "preparingData": "Preparing your data...",
@@ -10402,6 +10430,8 @@
     "switchFailedStaying": "Switch failed. {error}. Staying with {name}.",
     "switchFailed": "Switch failed. {error}",
     "rateLimited": "Take your time - one switch at a time",
+    "handoffTimeout": "That switch is taking longer than expected. I'm still right here.",
+    "cameoTimeout": "That guest appearance ran long, so I wrapped it up. I'm still here.",
     "alwaysHere": "Ferni's always here for you",
     "removedFromRoster": "{name} removed from roster",
     "addToTeam": "Add {name} to your team",
@@ -11020,5 +11050,9 @@
     "samplePattern": "\"Sunday evenings seem hard for you...\"",
     "sampleInsight": "\"You've mentioned feeling tired 8 times this week. The tiredness seems connected to boundary-setting challenges at work.\"",
     "sampleEvidence": "Based on {count} conversations"
+  },
+  "agentAcks": {
+    "gameStartFailed": "That game didn't start. Try asking Ferni to play it out loud.",
+    "actionFailed": "That didn't go through. It may already have been taken care of."
   }
 }

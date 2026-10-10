@@ -274,7 +274,9 @@ export function getAllFerniKeys(): string[] {
 
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && (key.startsWith('ferni_') || key.startsWith('voiceai_'))) {
+    // Keys use all three ferni separators; matching only ferni_ left ferni:onboarding:complete,
+    // ferni-milestones, ferni:notification-prefs and more behind on export, sign-out and deletion
+    if (key && /^(ferni[_:-]|voiceai_)/.test(key)) {
       keys.push(key);
     }
   }
@@ -296,23 +298,29 @@ export function exportLocalStorage(): Record<string, string | null> {
   return data;
 }
 
+/** This device's settings, not anyone's data: they outlive sign-out and account deletion. */
+const DEVICE_SETTING_KEYS = new Set<string>([
+  PREFERENCE_KEYS.THEME,
+  PREFERENCE_KEYS.LOCALE,
+  'ferni-haptics-disabled',
+  'ferni:log-level',
+  'ferni:log-namespaces',
+  'ferni:debug-mode',
+  'ferni:use-demo-data',
+]);
+
 /**
- * Clear all Ferni-related localStorage data.
- * Preserves admin keys and dev mode for debugging.
+ * Clear everything Ferni kept about a person in this browser. Keeps this device's
+ * settings, and (unless preserveDevSettings is false) admin keys and dev mode.
  */
 export function clearAllUserData(preserveDevSettings = true): void {
-  const keys = getAllFerniKeys();
-
-  for (const key of keys) {
-    // Optionally preserve dev/admin settings
-    if (preserveDevSettings) {
-      if (
-        key === IDENTITY_KEYS.ADMIN_ID ||
-        key === IDENTITY_KEYS.ADMIN_KEY ||
-        key === UI_STATE_KEYS.DEV_MODE
-      ) {
-        continue;
-      }
+  for (const key of getAllFerniKeys()) {
+    if (DEVICE_SETTING_KEYS.has(key)) continue;
+    if (
+      preserveDevSettings &&
+      (key === IDENTITY_KEYS.ADMIN_ID || key === IDENTITY_KEYS.ADMIN_KEY || key === UI_STATE_KEYS.DEV_MODE)
+    ) {
+      continue;
     }
     localStorage.removeItem(key);
   }

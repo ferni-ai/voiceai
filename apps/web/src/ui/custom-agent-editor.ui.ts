@@ -57,7 +57,7 @@ function ensureModalExists(): HTMLElement {
   editorModal = document.createElement('div');
   editorModal.className = 'agent-editor-overlay';
   editorModal.innerHTML = `
-    <div class="editor-backdrop" data-action="close" role="button" tabindex="0"></div>
+    <div class="editor-backdrop" data-action="close"></div>
     <div class="editor-container" role="dialog" aria-modal="true" aria-labelledby="editor-title">
       <header class="editor-header">
         <div class="editor-header-content">
@@ -67,7 +67,7 @@ function ensureModalExists(): HTMLElement {
             <span class="editor-subtitle" id="editor-subtitle"></span>
           </div>
         </div>
-        <div class="editor-header-actions" role="button" tabindex="0">
+        <div class="editor-header-actions">
           <span class="editor-status" id="editor-status"></span>
           <button class="editor-close" data-action="close" aria-label="${t('accessibility.closeEditor')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -79,7 +79,7 @@ function ensureModalExists(): HTMLElement {
       </header>
 
       <nav class="editor-tabs" role="tablist">
-        <button aria-label="${t('accessibility.moreInformation')}" class="editor-tab active" data-tab="info" role="tab" aria-selected="true">
+        <button class="editor-tab active" data-tab="info" role="tab" aria-selected="true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="16" x2="12" y2="12"/>
@@ -87,7 +87,7 @@ function ensureModalExists(): HTMLElement {
           </svg>
           ${t('customAgentEditor.tabInfo')}
         </button>
-        <button aria-label="${t('accessibility.personality')}" class="editor-tab" data-tab="personality" role="tab" aria-selected="false">
+        <button class="editor-tab" data-tab="personality" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"/>
             <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
@@ -96,14 +96,14 @@ function ensureModalExists(): HTMLElement {
           </svg>
           ${t('customAgentEditor.tabPersonality')}
         </button>
-        <button aria-label="${t('accessibility.voice')}" class="editor-tab" data-tab="voice" role="tab" aria-selected="false">
+        <button class="editor-tab" data-tab="voice" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
           </svg>
           ${t('customAgentEditor.tabVoice')}
         </button>
-        <button aria-label="${t('accessibility.memories')}" class="editor-tab" data-tab="memories" role="tab" aria-selected="false">
+        <button class="editor-tab" data-tab="memories" role="tab" aria-selected="false">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
@@ -117,7 +117,7 @@ function ensureModalExists(): HTMLElement {
       </main>
 
       <footer class="editor-footer">
-        <button aria-label="${t('accessibility.deleteMemory')}" class="editor-btn editor-btn--danger" data-action="delete">
+        <button class="editor-btn editor-btn--danger" data-action="delete">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 6h18"/>
             <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -125,11 +125,11 @@ function ensureModalExists(): HTMLElement {
           </svg>
           ${t('customAgentEditor.deleteAgent')}
         </button>
-        <div class="editor-footer-actions" role="button" tabindex="0">
-          <button aria-label="${t('accessibility.cancel')}" class="editor-btn editor-btn--secondary" data-action="cancel">
+        <div class="editor-footer-actions">
+          <button class="editor-btn editor-btn--secondary" data-action="cancel">
             ${t('customAgentEditor.cancel')}
           </button>
-          <button aria-label="${t('accessibility.saveChanges')}" class="editor-btn editor-btn--primary" data-action="save" id="save-btn">
+          <button class="editor-btn editor-btn--primary" data-action="save" id="save-btn">
             ${t('customAgentEditor.saveChanges')}
           </button>
         </div>
@@ -334,22 +334,22 @@ function renderInfoTab(): string {
 
       <div class="editor-section">
         <h3 class="editor-section-title">${t('customAgentEditor.fieldStatus')}</h3>
-        <div class="editor-status-toggle" role="button" tabindex="0">
-          <button aria-label="${t('accessibility.draft')}"
+        <div class="editor-status-toggle">
+          <button
             class="status-option ${currentAgent.status === 'draft' ? 'status-option--active' : ''}"
             data-status="draft"
           >
             <span class="status-dot status-dot--draft"></span>
             ${t('customAgentEditor.statusDraft')}
           </button>
-          <button aria-label="${t('accessibility.active')}"
+          <button
             class="status-option ${currentAgent.status === 'active' ? 'status-option--active' : ''}"
             data-status="active"
           >
             <span class="status-dot status-dot--active"></span>
             ${t('customAgentEditor.statusActive')}
           </button>
-          <button aria-label="${t('accessibility.pause')}"
+          <button
             class="status-option ${currentAgent.status === 'paused' ? 'status-option--active' : ''}"
             data-status="paused"
           >
@@ -400,7 +400,7 @@ function renderPersonalityTab(): string {
       <div class="editor-section">
         <h3 class="editor-section-title">${t('customAgentEditor.cognitiveStyle')}</h3>
         <div class="editor-profiles">
-          <button aria-label="${t('accessibility.empathetic')}"
+          <button
             class="editor-profile ${personality.cognitiveProfile === 'empathetic' ? 'editor-profile--selected' : ''}"
             data-profile="empathetic"
           >
@@ -411,7 +411,7 @@ function renderPersonalityTab(): string {
             </span>
             <span class="profile-name">${t('customAgentEditor.empathetic')}</span>
           </button>
-          <button aria-label="${t('accessibility.analytical')}"
+          <button
             class="editor-profile ${personality.cognitiveProfile === 'analytical' ? 'editor-profile--selected' : ''}"
             data-profile="analytical"
           >
@@ -424,7 +424,7 @@ function renderPersonalityTab(): string {
             </span>
             <span class="profile-name">${t('customAgentEditor.analytical')}</span>
           </button>
-          <button aria-label="${t('accessibility.balanced')}"
+          <button
             class="editor-profile ${personality.cognitiveProfile === 'balanced' ? 'editor-profile--selected' : ''}"
             data-profile="balanced"
           >
@@ -494,7 +494,7 @@ function renderVoiceTab(): string {
         <p class="editor-hint">${t('customAgentEditor.voiceLibraryHint')}</p>
         <div class="editor-voice-grid">
           ${voices.map((v) => `
-            <button aria-label="${t('accessibility.moreInformation')}" 
+            <button 
               class="editor-voice-card ${voice.voiceId === v.id ? 'editor-voice-card--selected' : ''}"
               data-voice-id="${v.id}"
             >
@@ -538,7 +538,7 @@ function renderMemoriesTab(): string {
       <div class="editor-section">
         <div class="editor-section-header">
           <h3 class="editor-section-title">Memories (${allMemories.length})</h3>
-          <button aria-label="${t('accessibility.addMemory')}" class="editor-add-btn" data-action="add-memory">
+          <button class="editor-add-btn" data-action="add-memory">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>

@@ -44,7 +44,7 @@ const STYLES = `
   .coaching-mode-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-tooltip);
+    z-index: var(--z-modal, 2100); /* the layer every dialog shares: the last opened is on top */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -508,9 +508,9 @@ function renderTopicStep(): string {
       `).join('')}
     </div>
 
-    <div class="coaching-actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.cancel')}" class="coaching-btn coaching-btn--secondary" data-action="cancel">${t('coachingMode.cancel')}</button>
-      <button aria-label="${t('accessibility.continue')}" class="coaching-btn coaching-btn--primary" data-action="next" ${!sessionData.topic ? 'disabled' : ''}>
+    <div class="coaching-actions">
+      <button class="coaching-btn coaching-btn--secondary" data-action="cancel">${t('coachingMode.cancel')}</button>
+      <button class="coaching-btn coaching-btn--primary" data-action="next" ${!sessionData.topic ? 'disabled' : ''}>
         ${t('coachingMode.continue')}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
@@ -561,14 +561,14 @@ function renderContextStep(): string {
       >${sessionData.goal}</textarea>
     </div>
 
-    <div class="coaching-actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.back')}" class="coaching-btn coaching-btn--secondary" data-action="back">
+    <div class="coaching-actions">
+      <button class="coaching-btn coaching-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
         ${t('coachingMode.back')}
       </button>
-      <button aria-label="${t('accessibility.continue')}" class="coaching-btn coaching-btn--primary" data-action="next">
+      <button class="coaching-btn coaching-btn--primary" data-action="next">
         ${t('coachingMode.continue')}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
@@ -621,14 +621,14 @@ function renderSessionStep(): string {
       ` : ''}
     </div>
 
-    <div class="coaching-actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.edit')}" class="coaching-btn coaching-btn--secondary" data-action="back">
+    <div class="coaching-actions">
+      <button class="coaching-btn coaching-btn--secondary" data-action="back">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
         ${t('coachingMode.edit')}
       </button>
-      <button aria-label="${t('accessibility.startSession')}" class="coaching-btn coaching-btn--primary" data-action="start-session">
+      <button class="coaching-btn coaching-btn--primary" data-action="start-session">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>

@@ -2438,7 +2438,8 @@
       "devices": "デバイス",
       "features": "Ferniが確認できるデータ"
     },
-    "title": "ウェアラブル"
+    "title": "ウェアラブル",
+    "notConfigured": "まだ設定されていません"
   },
   "transcript": {
     "enabled": "文字起こし：オン",
@@ -2975,7 +2976,8 @@
     "noEmailTitle": "メールアドレスが必要です",
     "noEmailMessage": "このアカウントにはメールアドレスが登録されていないようです。メールアドレスが登録されているアカウントでサインインしてみてくださいね。",
     "checkFailedTitle": "うまく確認できませんでした",
-    "checkFailedMessage": "システムで少し問題が発生してしまったようです。少し時間をおいてから、もう一度試してみてくださいね。"
+    "checkFailedMessage": "システムで少し問題が発生してしまったようです。少し時間をおいてから、もう一度試してみてくださいね。",
+    "signOutFailed": "サインアウトできませんでした。もう一度お試しください。"
   },
   "visualizations": {
     "lifeSeasons": "あなたの人生の季節",
@@ -3494,7 +3496,8 @@
       "load": "ファミリーを読み込めませんでした。もう一度お試しください。",
       "add": "追加できませんでした。もう一度お試しください。",
       "save": "保存できませんでした。もう一度お試しください。",
-      "remove": "削除できませんでした。もう一度お試しください。"
+      "remove": "削除できませんでした。もう一度お試しください。",
+      "phoneInUse": "その番号はすでに別の人に登録されています。"
     },
     "calls": {
       "other": "{count}回の通話",
@@ -3650,6 +3653,7 @@
     },
     "errorClipboard": "コピーできませんでした。もう一度お試しください。",
     "copyError": "コピーできませんでした。もう一度試してみますか？",
+    "linkUnavailable": "いまはリンクを読み込めませんでした。少し待ってからもう一度お試しください。",
     "bonusAmount": "お互いにタネを{seeds}個もらえます",
     "bonusWhen": "友達が参加したときに！",
     "garden": {
@@ -5906,6 +5910,7 @@
     "freeTimeHours": "空き時間 {hours}時間",
     "backToBackMeetings": "連続する会議",
     "markComplete": "{text}を完了にする",
+    "intentionNotSaved": "保存できませんでした。もう一度お試しください。",
     "followThrough": "やり遂げたこと",
     "habitsThisWeek": "今週の習慣",
     "momentum": "モメンタム",
@@ -5928,8 +5933,6 @@
     "reflectAndCelebrate": "振り返りとお祝い",
     "newBeginning": "新しい始まり",
     "recharge": "リチャージ",
-    "alexNoted": "Alexのメモ",
-    "partnerLovesPresence": "パートナーは、あなたが今ここにいてくれるのが大好きなようです",
     "jordanSuggests": "Jordanの提案",
     "setClearIntention": "参加する前に、クリアな意図をセットしてみましょう",
     "mayaNoticesLabel": "Mayaの気づき",
@@ -5944,9 +5947,6 @@
     "manyMeetingsNotice": "最近、会議がとても多いですね。あなたの素晴らしいアイデアは、静かな時間から生まれます。",
     "busiestDayPacked": "{day}は予定が詰まっているようです。何かを{lightDay}に移してみませんか？",
     "anotherDay": "別の日",
-    "wisdomMornings": "朝のスタートの仕方が、その日一日のトーンを決めることが多いようです。",
-    "wisdomFocusTime": "フォーカス時間を確保すると、達成率が40%アップします。",
-    "wisdomWalks": "散歩のあとに、一番クリエイティブになれるようですね。",
     "insightBalanced": "カレンダーのバランスがとても良いですね。",
     "insightNeedsAttention": "カレンダーの調整が必要かもしれません。",
     "insightAdjustments": "少し調整すると、もっと良くなりそうです。",
@@ -8096,6 +8096,12 @@
         "enter": "到着したとき",
         "exit": "出発したとき",
         "both": "どちらでも"
+      },
+      "calendar": {
+        "start": "予定が始まるとき",
+        "when": "起動するタイミング…",
+        "end": "予定が終わるとき",
+        "reminder": "予定の少し前"
       }
     },
     "actions": {
@@ -8130,7 +8136,11 @@
       "title": "何をしましょうか？"
     },
     "defaultMessage": "おはようございます！一日を始める準備はできましたか？",
-    "trackHabit": "記録：{habit}"
+    "trackHabit": "記録：{habit}",
+    "errors": {
+      "signInRequired": "ルーティンを保存するにはサインインしてください",
+      "saveFailed": "保存できませんでした。もう一度試してみてくださいね。"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -8326,6 +8336,7 @@
     "autoResolveAll": "すべて自動解決する",
     "ferniCalendar": "Ferniカレンダー",
     "keepFerni": "Ferniを残す",
+    "keepProvider": "{provider}を残す",
     "dismiss": "閉じる",
     "resolving": "解決しています..."
   },
@@ -9018,6 +9029,8 @@
     "dontRemind": "通知しない",
     "repeatsYearly": "毎年繰り返す",
     "cancel": "キャンセル",
+    "add": "追加",
+    "update": "更新",
     "noDateYet": "大切な記念日はまだ登録されていません。",
     "noDateDesc": "誕生日や記念日などを追加してみましょう。",
     "typeBirthday": "誕生日",
@@ -9143,6 +9156,7 @@
     "tierReqGardener": "お友達3〜5人",
     "tierReqGroveKeeper": "お友達6〜10人",
     "tierReqForestGuardian": "お友達11人以上",
+    "loadFailed": "いまはお庭を読み込めませんでした。少し待ってからもう一度お試しください。",
     "inviteFriends": "お友達を招待する",
     "emptyTitle": "お庭が育つのを待っています！",
     "emptyHint": "お友達にFerniを紹介すると、お互いにタネを25個もらえます。",
@@ -9353,6 +9367,7 @@
     "eyebrow": "あなたの道のり",
     "title": "Ferniと過ごしたあなたの1年",
     "subtitle": "{conversations}。{minutes}。数え切れないほどの成長の瞬間。",
+    "subtitleNoMinutes": "{conversations}。数え切れないほどの成長の瞬間。",
     "statConversations": "お話",
     "statTotal": "合計",
     "statCurrentStreak": "現在のストリーク",
@@ -9839,7 +9854,12 @@
     "topicPlaceholder": "キャリアプラン、人間関係のアドバイスなど…",
     "startRoundtable": "座談会を始める",
     "moderator": "モデレーター",
-    "expert": "エキスパート"
+    "expert": "エキスパート",
+    "roundtableStarted": "座談会を始めました",
+    "roundtableEnded": "座談会を終了しました",
+    "calling": "{name}さんに電話しています...",
+    "callNotConnected": "{name}さんにつながりませんでした",
+    "errorGeneric": "グループ会話で問題が起きました。もう一度試しますか？"
   },
   "locationPrompt": {
     "weather": {
@@ -10097,7 +10117,9 @@
       "leave": "{name}を出発したとき",
       "somewhere": "どこか",
       "calendar": "カレンダーの予定の前に",
-      "event": "何かが起きたとき"
+      "event": "何かが起きたとき",
+      "calendarStart": "カレンダーの予定が始まるとき",
+      "calendarEnd": "カレンダーの予定が終わるとき"
     },
     "status": {
       "active": "お任せください",
@@ -10114,8 +10136,13 @@
     "runNow": "今すぐ実行",
     "signInPrompt": "サインインして、私があなたのために何をしているか見てみましょう。",
     "loadError": "ルーティンを読み込めませんでした。",
-    "connectionsSoon": "連携サービスはもうすぐ登場します...",
-    "whatIDoForYou": "あなたのために私がすること"
+    "whatIDoForYou": "あなたのために私がすること",
+    "connections": {
+      "connected": "連携済み",
+      "notConnected": "未連携",
+      "intro": "あなたのために私が使えるサービスです。",
+      "loadError": "連携サービスを読み込めませんでした。"
+    }
   },
   "voiceAuth": {
     "unknownError": "不明なエラー",
@@ -10175,6 +10202,7 @@
     "nowPlaying": "再生中: {name}",
     "memoryRemoved": "思い出を削除しました",
     "couldNotRemoveMemory": "その思い出を削除できませんでした。もう一度お試しになりますか？",
+    "memoryNotFound": "その思い出は見つかりませんでした。すでに削除されているかもしれません。",
     "couldNotLoadPredictions": "予測を読み込めませんでした。もう一度お試しになりますか？",
     "noPredictionsYet": "予測はまだありません。Ferniと一緒に作成すると、ここに表示されますよ。",
     "preparingData": "データを準備しています...",
@@ -10402,6 +10430,8 @@
     "switchFailedStaying": "切り替えに失敗しました。{error}。引き続き{name}とお話します。",
     "switchFailed": "切り替えに失敗しました。{error}",
     "rateLimited": "焦らずに、切り替えは一度にひとつずつ行いましょう",
+    "handoffTimeout": "切り替えに思ったより時間がかかっています。私はここにいますよ。",
+    "cameoTimeout": "ゲスト出演が長引いたので、ここで終わりにしました。私はここにいますよ。",
     "alwaysHere": "Ferniはいつでもあなたのそばにいます",
     "removedFromRoster": "{name}をメンバーから外しました",
     "addToTeam": "{name}をチームに追加する",
@@ -11020,5 +11050,9 @@
     "samplePattern": "「日曜日の夜は、少し心が重くなるようですね…」",
     "sampleInsight": "「今週は『疲れた』とお話しされたのが8回ありました。その疲れは、仕事での境界線（バウンダリー）の引き方に悩んでいることと関係しているかもしれません」",
     "sampleEvidence": "{count}回のお話に基づく"
+  },
+  "agentAcks": {
+    "gameStartFailed": "ゲームを始められませんでした。Ferniに声でお願いしてみてくださいね。",
+    "actionFailed": "うまくいきませんでした。すでに処理済みかもしれません。"
   }
 }

@@ -592,11 +592,11 @@ function renderCelebration(
         inputmode="decimal"
       />
 
-      <button aria-label="${t('accessibility.share')}" class="value-capture-submit-btn" disabled>
+      <button class="value-capture-submit-btn" disabled>
         ${t('valueCapture.shareTheWin')}
       </button>
 
-      <button aria-label="${t('accessibility.justCelebrateThisMoment')}" class="value-capture-skip-btn">
+      <button class="value-capture-skip-btn">
         ${t('valueCapture.justCelebrate')}
       </button>
 

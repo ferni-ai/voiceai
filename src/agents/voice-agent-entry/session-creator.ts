@@ -26,6 +26,8 @@ import { getToolGateway } from '../../tools/gateway/index.js';
 import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
 import { modelConfig } from '../../services/model-config.js';
 import { endpointingDelays } from '../shared/turn-patience.js';
+import { limitSessionListeners } from '../shared/session-listener-limit.js';
+
 
 // ============================================================================
 // VAD CACHING (Worker-Level Singleton)
@@ -271,16 +273,6 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
 
   userData.userLocation = userLocation;
 
-  // Set current active session for native tool location fallback
-  const { setCurrentActiveSession } =
-    await import('../../tools/domains/information/location-preference.js');
-  const formattedLocation = userLocation?.city
-    ? userLocation.regionCode
-      ? `${userLocation.city}, ${userLocation.regionCode}`
-      : userLocation.city
-    : undefined;
-  setCurrentActiveSession({ sessionId, userId: userId || 'anonymous', location: formattedLocation });
-
   // Get tools
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let sessionTools: Record<string, any>;
@@ -458,6 +450,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     vad, ...(externalStt && { stt: externalStt }),
     llm, tts, userData, voiceOptions,
   });
+  limitSessionListeners(session); // see session-listener-limit.ts
 
   // Gemini native audio speaks for itself: route scripted say() lines through the
   // model so the call keeps one voice (see agents/shared/native-speech.ts).

@@ -11,6 +11,7 @@ import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('SendMessageUI');
 
@@ -61,6 +62,7 @@ let state: SendMessageState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSent?: () => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -481,17 +483,17 @@ function renderChannelSelector(): string {
 
   return `
     <div class="sm-channels">
-      <button aria-label="${t('accessibility.moreInformation')}" class="sm-channel ${state.channel === 'call' ? 'selected' : ''}" data-channel="call" ${!hasPhone ? 'disabled' : ''}>
+      <button class="sm-channel ${state.channel === 'call' ? 'selected' : ''}" data-channel="call" ${!hasPhone ? 'disabled' : ''}>
         <span class="sm-channel-icon">${ICONS.phone}</span>
         <span class="sm-channel-label">${t('activity.actionCall')}</span>
         ${!hasPhone ? `<span class="sm-no-info">${t('sendMessage.noPhone')}</span>` : ''}
       </button>
-      <button aria-label="${t('accessibility.moreInformation')}" class="sm-channel ${state.channel === 'text' ? 'selected' : ''}" data-channel="text" ${!hasPhone ? 'disabled' : ''}>
+      <button class="sm-channel ${state.channel === 'text' ? 'selected' : ''}" data-channel="text" ${!hasPhone ? 'disabled' : ''}>
         <span class="sm-channel-icon">${ICONS.message}</span>
         <span class="sm-channel-label">${t('activity.actionText')}</span>
         ${!hasPhone ? `<span class="sm-no-info">${t('sendMessage.noPhone')}</span>` : ''}
       </button>
-      <button aria-label="${t('accessibility.moreInformation')}" class="sm-channel ${state.channel === 'email' ? 'selected' : ''}" data-channel="email" ${!hasEmail ? 'disabled' : ''}>
+      <button class="sm-channel ${state.channel === 'email' ? 'selected' : ''}" data-channel="email" ${!hasEmail ? 'disabled' : ''}>
         <span class="sm-channel-icon">${ICONS.mail}</span>
         <span class="sm-channel-label">${t('activity.actionEmail')}</span>
         ${!hasEmail ? `<span class="sm-no-info">${t('sendMessage.noEmail')}</span>` : ''}
@@ -606,14 +608,10 @@ function bindEvents(): void {
   modalContainer.querySelector('#sm-send')?.addEventListener('click', handleSend);
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeSendMessage);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeSendMessage();
-  }
-}
 
 function updateCharCount(): void {
   if (!modalContainer) return;
@@ -786,7 +784,7 @@ export function openSendMessage(options: SendMessageOptions): void {
 export function closeSendMessage(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 

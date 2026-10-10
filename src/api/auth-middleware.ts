@@ -24,7 +24,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { verifyFirebaseToken } from '../services/identity/firebase-auth.js';
+import { claimsFirebaseIssuer, verifyFirebaseToken } from '../services/identity/firebase-auth.js';
 import { rateLimiter } from '../services/rate-limiter.js';
 import {
   detectAnomalies,
@@ -100,16 +100,8 @@ function getHeader(req: IncomingMessage, name: string): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-/**
- * Extract IP address from request (handles proxies)
- */
-function getClientIP(req: IncomingMessage): string {
-  return (
-    getHeader(req, 'X-Forwarded-For')?.split(',')[0]?.trim() ||
-    req.socket.remoteAddress ||
-    'unknown'
-  );
-}
+/** Client IP for auth-failure tracking: same trusted-proxy rule as rate limiting. */
+const getClientIP = getClientIp;
 
 // ============================================================================
 // AUTHENTICATION FUNCTIONS
@@ -217,8 +209,8 @@ async function tryFirebaseAuth(req: IncomingMessage): Promise<AuthContext | null
   try {
     const verified = await verifyFirebaseToken(token);
     if (!verified) {
-      // Truly invalid token (malformed, revoked, etc.) -- track as failed auth
-      void trackFailedAuth(`firebase:${ip}`, ip, 'firebase_token_invalid').catch((e) =>
+      // A failed Firebase token counts toward lockout; a Google service token (Scheduler's OIDC) doesn't
+      if (claimsFirebaseIssuer(token)) void trackFailedAuth(`firebase:${ip}`, ip, 'firebase_token_invalid').catch((e) =>
         log.error({ error: String(e) }, 'Failed to track auth failure')
       );
       return null;
@@ -549,7 +541,7 @@ export function rateLimit(
   const auth = authenticate(req);
   const defaultTier = getRateLimitTier(auth);
 
-  // SECURITY: key by a verified user id (sync auth, else the uid the server verified at the
+  // SECURITY: key by a verified person's id (sync auth, else the uid verified at the
   // door), else getClientIp, never the raw X-Forwarded-For a caller can spoof
   const uid = auth?.userId ?? rateLimitUid(req);
   const {

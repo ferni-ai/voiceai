@@ -14,6 +14,9 @@
   },
   "overrides": {
     "markdown-it": "^14.3.1",
-    "linkify-it": "^5.0.2"
+    "linkify-it": "^5.0.2",
+    "js-yaml@3": {
+      "argparse": "2.0.1"
+    }
   }
 }

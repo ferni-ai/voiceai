@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeLoad, createCpuLoadSampler, FULL_LOAD_THRESHOLD, parseCpuCount, workerIsFull } from '../cpu-load.js';
+import { computeLoad, createCpuLoadSampler, FULL_LOAD_THRESHOLD, maxJobsPerWorker, parseCpuCount, workerIsFull } from '../cpu-load.js';
 
 describe('parseCpuCount', () => {
   it('uses the cgroup v2 quota, not the host core count', () => {
@@ -93,10 +93,23 @@ describe('workerIsFull', () => {
   });
 
   it('accepts calls while load is below the threshold and under the job cap', () => {
-    expect(workerIsFull(2, 0.4)).toBe(false);
+    expect(workerIsFull(2, 0.4, 3)).toBe(false);
   });
 
-  it('keeps the 3-job cap even when CPU is idle', () => {
-    expect(workerIsFull(3, 0)).toBe(true);
+  it('keeps the job cap even when CPU is idle', () => {
+    expect(workerIsFull(3, 0, 3)).toBe(true);
+  });
+
+  it('takes one call per worker by default: a second call would starve the first', () => {
+    expect(workerIsFull(0, 0)).toBe(false);
+    expect(workerIsFull(1, 0)).toBe(true);
+  });
+});
+
+describe('maxJobsPerWorker', () => {
+  it('is 1 unless AGENT_MAX_JOBS_PER_WORKER sets a positive whole number', () => {
+    expect(maxJobsPerWorker(undefined)).toBe(1);
+    expect(maxJobsPerWorker('3')).toBe(3);
+    for (const bad of ['', '0', '-2', '1.5', 'two']) expect(maxJobsPerWorker(bad)).toBe(1);
   });
 });

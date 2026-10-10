@@ -18,6 +18,7 @@ import type { RemoteParticipant, Room } from '@livekit/rtc-node';
 import type { SessionServices } from '../../../services/types.js';
 import type { Persona } from '../../../personas/types.js';
 import type { UserData } from '../types.js';
+import { startInCallChannels } from '../../multi-agent/live-data-context.js';
 
 // ============================================================================
 // TYPES
@@ -170,6 +171,7 @@ export async function runMultiAgentMode(
     const { createGroupVoiceIntegration } =
       await import('../../group-conversation/voice-integration.js');
     const { handoffEvents } = await import('../../../handoff/index.js');
+    const { handoffStartMessages } = await import('../../multi-agent/handoff-messages.js');
 
     // Initialize multi-agent session
     const multiAgentResult = await initializeMultiAgentSession({
@@ -276,14 +278,9 @@ export async function runMultiAgentMode(
                 timestamp: Date.now(),
               });
 
-              // Send handoff_started
-              await publishDataMessage(ctx.room, {
-                type: 'handoff_started',
-                target: message.target,
-                newAgent: message.target,
-                previousAgent: currentPersonaId,
-                timestamp: Date.now(),
-              });
+              for (const m of handoffStartMessages(message.target!, currentPersonaId)) {
+                await publishDataMessage(ctx.room, m);
+              }
 
               const result = await handleHandoffFromDataChannel(
                 multiAgentResult.orchestrator,
@@ -348,14 +345,9 @@ export async function runMultiAgentMode(
             `[multi-agent-mode] 🎭 LLM-triggered handoff via voiceSwitch: ${currentPersonaId || 'unknown'} → ${targetPersonaId}\n`
           );
 
-          // Send handoff_started
-          await publishDataMessage(ctx.room, {
-            type: 'handoff_started',
-            target: targetPersonaId,
-            newAgent: targetPersonaId,
-            previousAgent: currentPersonaId,
-            timestamp: Date.now(),
-          });
+          for (const m of handoffStartMessages(targetPersonaId, currentPersonaId)) {
+            await publishDataMessage(ctx.room, m);
+          }
 
           const result = await handleHandoffFromDataChannel(
             multiAgentResult.orchestrator,
@@ -390,6 +382,9 @@ export async function runMultiAgentMode(
     };
 
     handoffEvents.on('voiceSwitch', voiceSwitchHandler);
+    // In-call controls and Ferni's teammate introductions, for the agent speaking now
+    const callParts = { room: ctx.room, ctx, services, userId, sessionId, sessionPersona };
+    const stopInCallChannels = startInCallChannels(callParts, multiAgentResult.orchestrator);
     process.stderr.write(
       `[multi-agent-mode] 🎭 voiceSwitch handler registered for LLM-triggered handoffs\n`
     );
@@ -442,6 +437,8 @@ export async function runMultiAgentMode(
 
     // Cleanup
     handoffEvents.off('voiceSwitch', voiceSwitchHandler);
+    stopInCallChannels();
+    ctx.room?.off('dataReceived', dataHandler);
     if (groupConversationIntegration) {
       await groupConversationIntegration.cleanup();
       process.stderr.write(`[multi-agent-mode] 🎙️ Group conversation cleaned up\n`);

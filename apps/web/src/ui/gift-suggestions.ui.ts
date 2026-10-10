@@ -15,6 +15,7 @@ import { shouldUseDemoData } from '../utils/environment.js';
 import { getMockGiftSuggestions } from '../data/mock-contacts.js';
 import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 const log = createLogger('GiftSuggestionsUI');
 
 // ============================================================================
@@ -70,6 +71,7 @@ let state: GiftSuggestionsState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSelect?: (suggestion: GiftSuggestion) => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -640,7 +642,7 @@ function render(): void {
     ${state.hasGenerated && state.suggestions.length > 0 ? `
       <div class="gs-footer">
         <span class="gs-footer-hint">${t('gifts.tapGiftToRecord')}</span>
-        <button aria-label="${t('accessibility.refresh')}" class="gs-regenerate-btn" id="gs-regenerate">
+        <button class="gs-regenerate-btn" id="gs-regenerate">
           ${ICONS.refresh} ${t('gifts.newIdeas')}
         </button>
       </div>
@@ -664,7 +666,7 @@ function renderContent(): string {
     return `
       <div class="gs-error">
         <p class="gs-error-text">${escapeHtml(state.error)}</p>
-        <button aria-label="${t('accessibility.refresh')}" class="gs-retry-btn" id="gs-retry">
+        <button class="gs-retry-btn" id="gs-retry">
           ${ICONS.refresh} ${t('common.retry')}
         </button>
       </div>
@@ -677,7 +679,7 @@ function renderContent(): string {
         <div class="gs-initial-icon">${ICONS.gift}</div>
         <h3 class="gs-initial-title">${t('gifts.findPerfect')}</h3>
         <p class="gs-initial-text">${escapeHtml(t('gifts.basedOnInterests', { name: state.contactName }))}</p>
-        <button aria-label="${t('accessibility.generateIdeas')}" class="gs-generate-btn" id="gs-generate">
+        <button class="gs-generate-btn" id="gs-generate">
           ${ICONS.sparkles} ${t('accessibility.generateIdeas')}
         </button>
       </div>
@@ -766,14 +768,10 @@ function bindEvents(): void {
   });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeGiftSuggestions);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeGiftSuggestions();
-  }
-}
 
 // ============================================================================
 // ACTIONS
@@ -897,7 +895,7 @@ export function openGiftSuggestions(options: GiftSuggestionsOptions): void {
 export function closeGiftSuggestions(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 

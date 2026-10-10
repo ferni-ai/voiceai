@@ -12,6 +12,7 @@ import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('ImportantDatesUI');
 
@@ -77,6 +78,7 @@ let state: ImportantDatesState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSuccess?: (dates: ImportantDate[]) => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -566,15 +568,15 @@ function render(): void {
       ${state.showAddForm || state.editingIndex !== null ? renderForm() : ''}
       ${renderDateList()}
       ${!state.showAddForm && state.editingIndex === null ? `
-        <button aria-label="${t('accessibility.add')}" class="id-add-btn" id="id-add-btn">
+        <button class="id-add-btn" id="id-add-btn">
           ${ICONS.plus} Add Important Date
         </button>
       ` : ''}
     </div>
     
     <div class="id-footer">
-      <button aria-label="${t('accessibility.submit')}" class="id-footer-btn" id="id-done" ${state.isSubmitting ? 'disabled' : ''}>
-        ${state.isSubmitting ? 'Saving...' : 'Done'}
+      <button class="id-footer-btn" id="id-done" ${state.isSubmitting ? 'disabled' : ''}>
+        ${state.isSubmitting ? t('common.saving') : t('common.done')}
       </button>
     </div>
   `;
@@ -634,8 +636,8 @@ function renderForm(): string {
       
       <div class="id-form-actions" role="button" tabindex="0">
         <button aria-label="${t('importantDates.cancel')}" class="id-form-btn id-form-btn-cancel" id="id-form-cancel">${t('importantDates.cancel')}</button>
-        <button aria-label="${t('accessibility.confirm')}" class="id-form-btn id-form-btn-save" id="id-form-save">
-          ${ICONS.check} ${isEditing ? 'Update' : 'Add'}
+        <button class="id-form-btn id-form-btn-save" id="id-form-save">
+          ${ICONS.check} ${isEditing ? t('importantDates.update') : t('importantDates.add')}
         </button>
       </div>
     </div>
@@ -744,14 +746,10 @@ function bindEvents(): void {
   modalContainer.querySelector('#id-done')?.addEventListener('click', handleDone);
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeImportantDates);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeImportantDates();
-  }
-}
 
 // ============================================================================
 // ACTIONS
@@ -930,7 +928,7 @@ export function openImportantDates(options: ImportantDatesOptions): void {
 export function closeImportantDates(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 

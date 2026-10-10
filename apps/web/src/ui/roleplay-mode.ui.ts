@@ -41,7 +41,7 @@ const STYLES = `
   .roleplay-mode-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-tooltip);
+    z-index: var(--z-modal, 2100); /* the layer every dialog shares: the last opened is on top */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -478,7 +478,7 @@ function render(): string {
           
           <div class="roleplay-scenarios-grid">
             ${SCENARIO_TEMPLATES.map(scenario => `
-              <button aria-label="${t('accessibility.play')}" class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
+              <button class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
                 <div class="roleplay-scenario-icon">${scenario.icon}</div>
                 <p class="roleplay-scenario-name">${t(scenario.name)}</p>
                 <p class="roleplay-scenario-setting">${scenario.setting}</p>
@@ -504,11 +504,11 @@ function render(): string {
             </div>
           ` : ''}
 
-          <div class="roleplay-actions" role="button" tabindex="0">
-            <button aria-label="${t('accessibility.cancel')}" class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
+          <div class="roleplay-actions">
+            <button class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
               ${t('roleplayMode.cancelButton')}
             </button>
-            <button aria-label="${t('accessibility.beginScene')}"
+            <button
               class="roleplay-btn roleplay-btn--primary"
               data-action="start-roleplay"
               ${!selectedScenario || (selectedScenario.id === 'custom' && !customScenario) ? 'disabled' : ''}
@@ -669,7 +669,7 @@ function renderContent(): string {
 
     <div class="roleplay-scenarios-grid">
       ${SCENARIO_TEMPLATES.map(scenario => `
-        <button aria-label="${t('accessibility.play')}" class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
+        <button class="roleplay-scenario-card ${selectedScenario?.id === scenario.id ? 'selected' : ''}" data-scenario="${scenario.id}">
           <div class="roleplay-scenario-icon">${scenario.icon}</div>
           <p class="roleplay-scenario-name">${t(scenario.name)}</p>
           <p class="roleplay-scenario-setting">${scenario.setting}</p>
@@ -695,11 +695,11 @@ function renderContent(): string {
       </div>
     ` : ''}
 
-    <div class="roleplay-actions" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.cancel')}" class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
+    <div class="roleplay-actions">
+      <button class="roleplay-btn roleplay-btn--secondary" data-action="cancel">
         ${t('roleplayMode.cancelButton')}
       </button>
-      <button aria-label="${t('accessibility.beginScene')}"
+      <button
         class="roleplay-btn roleplay-btn--primary"
         data-action="start-roleplay"
         ${!selectedScenario || (selectedScenario.id === 'custom' && !customScenario) ? 'disabled' : ''}
@@ -757,7 +757,7 @@ function buildRoleplayPrompt(): string {
     prompt += `Setting: ${customScenario}\n\n`;
     prompt += `Please set the scene and begin the roleplay. Stay fully in character as ${currentAgent?.displayName || currentAgent?.name}.`;
   } else {
-    prompt += `Scenario: ${selectedScenario.name}\n`;
+    prompt += `Scenario: ${t(selectedScenario.name)}\n`;
     prompt += `Setting: ${selectedScenario.setting}\n`;
     prompt += `Mood: ${selectedScenario.mood}\n\n`;
     prompt += `Begin the scene with: "${selectedScenario.opening}"\n`;

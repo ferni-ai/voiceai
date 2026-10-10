@@ -16,15 +16,11 @@ on:
         description: 'Branch to deploy'
         required: false
         type: string
-      cleanup:
-        description: 'Cleanup old staging deployments'
-        type: boolean
-        default: false
 
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   # ============================================================================
@@ -38,6 +34,7 @@ jobs:
       short_sha: ${{ steps.branch.outputs.short_sha }}
       is_pr: ${{ steps.branch.outputs.is_pr }}
       env_name: ${{ steps.branch.outputs.env_name }}
+      service_name: ${{ steps.branch.outputs.service_name }}
     
     steps:
       - name: Checkout
@@ -50,6 +47,7 @@ jobs:
         env:
           HEAD_REF: ${{ github.head_ref }}
           REQUESTED_BRANCH: ${{ inputs.branch || github.ref_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             BRANCH="$HEAD_REF"
@@ -66,6 +64,15 @@ jobs:
           echo "name=$BRANCH" >> $GITHUB_OUTPUT
           echo "safe_name=$SAFE_BRANCH" >> $GITHUB_OUTPUT
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          # One preview service per PR: each push adds a revision instead of a new
+          # service, and closing the PR deletes it. (Naming by GITHUB_SHA, the
+          # merge commit, left 539 public services behind: the close step looked
+          # for the head SHA and never matched.)
+          if [[ "$IS_PR" == "true" ]]; then
+            echo "service_name=staging-pr-$PR_NUMBER" >> $GITHUB_OUTPUT
+          else
+            echo "service_name=staging-$SHORT_SHA" >> $GITHUB_OUTPUT
+          fi
           echo "is_pr=$IS_PR" >> $GITHUB_OUTPUT
           echo "env_name=staging-$SAFE_BRANCH" >> $GITHUB_OUTPUT
           
@@ -129,6 +136,9 @@ jobs:
       # only other build of this image, is skipped there. So a Dockerfile.ui that cannot
       # build (#392: an npm lockfile out of sync) merged and failed every UI deploy from
       # main. Build the production image here. No push, no credentials.
+      - name: Pull Docker Hub images through a mirror
+        uses: ./.github/actions/docker-hub-mirror
+
       - name: Build UI image (no push)
         run: |
           docker build -f docker/Dockerfile.ui -t john-bogle-ui:merge-check .
@@ -202,6 +212,9 @@ jobs:
           docker system prune -af || true
           df -h /
 
+      - name: Pull Docker Hub images through a mirror
+        uses: ./.github/actions/docker-hub-mirror
+
       - name: Build staging image
         run: |
           docker build \
@@ -217,13 +230,14 @@ jobs:
       - name: Deploy to staging
         id: deploy
         run: |
-          SERVICE_NAME="staging-${{ needs.context.outputs.short_sha }}"
+          SERVICE_NAME="${{ needs.context.outputs.service_name }}"
           
           gcloud run deploy $SERVICE_NAME \
             --image gcr.io/${{ env.GCP_PROJECT_ID }}/john-bogle-ui:staging-${{ needs.context.outputs.short_sha }} \
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated \
+            --service-account staging-preview@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --memory 1Gi \
             --cpu 1 \
             --timeout 300 \
@@ -233,6 +247,9 @@ jobs:
             --set-env-vars "NODE_ENV=staging,BUILD_SHA=${{ github.sha }},LIVEKIT_URL=wss://dev-8sm1ba0z.livekit.cloud,AGENT_NAME=voice-agent-dev" \
             --set-secrets "LIVEKIT_API_KEY=livekit-dev-api-key:latest,LIVEKIT_API_SECRET=livekit-dev-api-secret:latest"
           # 1Gi, as in production: the neural speaker model adds ~200-270 MB RSS.
+          # Previews are public, so they run as staging-preview, a service account
+          # with no project roles (only the two dev LiveKit secrets). The default
+          # compute account they used before has Editor on the production project.
           # Previews talk to the DEV LiveKit project, never production. Without
           # LiveKit settings the server exits at startup ("Missing required
           # environment variables"), so every preview deploy failed.
@@ -337,65 +354,3 @@ jobs:
           # Test a few API endpoints
           curl -sf "$URL/api/agents" > /dev/null && echo "✅ /api/agents" || echo "❌ /api/agents failed"
           curl -sf "$URL/api/flags" > /dev/null && echo "✅ /api/flags" || echo "❌ /api/flags failed"
-
-  # ============================================================================
-  # CLEANUP OLD STAGING
-  # ============================================================================
-  cleanup:
-    name: Cleanup Old Staging
-    # GitHub-hosted on purpose: this job holds GCP_SA_KEY, and the self-hosted CI
-    # runner runs PR code with docker (root) access. See ci.yml.
-    runs-on: ubuntu-latest
-    if: ${{ inputs.cleanup || (github.event_name == 'pull_request' && github.event.action == 'closed') }}
-    
-    steps:
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v3
-        with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
-
-      - name: Delete staging services older than 7 days
-        run: |
-          # List all staging services
-          SERVICES=$(gcloud run services list \
-            --region=${{ env.GCP_REGION }} \
-            --format="value(name)" \
-            --filter="name~^staging-")
-          
-          for SERVICE in $SERVICES; do
-            # Check creation time
-            CREATED=$(gcloud run services describe $SERVICE \
-              --region=${{ env.GCP_REGION }} \
-              --format="value(metadata.creationTimestamp)")
-            
-            CREATED_EPOCH=$(date -d "$CREATED" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%S" "${CREATED%Z}" +%s)
-            NOW_EPOCH=$(date +%s)
-            AGE_DAYS=$(( (NOW_EPOCH - CREATED_EPOCH) / 86400 ))
-            
-            if [ $AGE_DAYS -gt 7 ]; then
-              echo "Deleting $SERVICE (${AGE_DAYS} days old)"
-              gcloud run services delete $SERVICE \
-                --region=${{ env.GCP_REGION }} \
-                --quiet || true
-            else
-              echo "Keeping $SERVICE (${AGE_DAYS} days old)"
-            fi
-          done
-
-      - name: Delete PR-specific staging
-        if: github.event_name == 'pull_request' && github.event.action == 'closed'
-        run: |
-          SHORT_SHA="${{ github.event.pull_request.head.sha }}"
-          SHORT_SHA="${SHORT_SHA::8}"
-          SERVICE_NAME="staging-$SHORT_SHA"
-          
-          echo "Cleaning up PR staging: $SERVICE_NAME"
-          gcloud run services delete $SERVICE_NAME \
-            --region=${{ env.GCP_REGION }} \
-            --quiet || echo "Service $SERVICE_NAME not found"
-

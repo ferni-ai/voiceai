@@ -220,9 +220,9 @@ class OnboardingUI {
           ${this.steps.map((_, i) => `<span class="onboarding__dot ${i === this.currentStep ? 'onboarding__dot--active' : ''}"></span>`).join('')}
         </div>
         
-        <div class="onboarding__actions" role="button" tabindex="0">
+        <div class="onboarding__actions">
           ${!isFirst ? `<button class="onboarding__btn onboarding__btn--secondary" data-action="prev">${t('onboarding.buttons.back')}</button>` : `<button class="onboarding__btn onboarding__btn--secondary" data-action="skip">${t('onboarding.buttons.skip')}</button>`}
-          <button aria-label="${t('accessibility.next')}" class="onboarding__btn onboarding__btn--primary" data-action="next">${isLast ? t('onboarding.buttons.begin') : t('onboarding.buttons.next')}</button>
+          <button class="onboarding__btn onboarding__btn--primary" data-action="next">${isLast ? t('onboarding.buttons.begin') : t('onboarding.buttons.next')}</button>
         </div>
       </div>
     `;

@@ -12,6 +12,7 @@ import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('EditPersonUI');
 
@@ -48,6 +49,8 @@ export interface EditPersonOptions {
   onSuccess?: (data: PersonData) => void;
   onClose?: () => void;
   onDelete?: () => void;
+  /** Open on this tab, e.g. 'context' for the notes */
+  initialTab?: EditPersonState['activeTab'];
 }
 
 // ============================================================================
@@ -91,6 +94,7 @@ let state: EditPersonState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSuccess?: (data: PersonData) => void; onClose?: () => void; onDelete?: () => void } = {};
 
 // ============================================================================
@@ -657,7 +661,7 @@ function render(): void {
     
     <div class="ep-footer">
       <button aria-label="${t('common.cancel')}" class="ep-btn ep-btn-secondary" id="ep-cancel">${t('common.cancel')}</button>
-      <button aria-label="${t('common.save')}" class="ep-btn ep-btn-primary" id="ep-save" ${state.isSubmitting ? 'disabled' : ''}>
+      <button class="ep-btn ep-btn-primary" id="ep-save" ${state.isSubmitting ? 'disabled' : ''}>
         ${state.isSubmitting ? t('editPerson.saving') : t('editPerson.saveChanges')}
       </button>
     </div>
@@ -724,7 +728,7 @@ function renderBasicTab(): string {
     
     <!-- Danger Zone -->
     <div class="ep-danger-zone">
-      <button aria-label="${t('common.delete')}" class="ep-danger-btn" id="ep-delete-btn">
+      <button class="ep-danger-btn" id="ep-delete-btn">
         ${ICONS.trash} ${t('editPerson.removeFromPeople')}
       </button>
       ${state.showDeleteConfirm ? `
@@ -842,7 +846,8 @@ function bindEvents(): void {
   modalContainer.querySelector('#ep-save')?.addEventListener('click', () => { void handleSave(); });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeEditPerson);
 }
 
 function bindInputs(): void {
@@ -869,11 +874,6 @@ function bindInputs(): void {
   notesInput?.addEventListener('input', (e) => { state.notes = (e.target as HTMLTextAreaElement).value; });
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeEditPerson();
-  }
-}
 
 // ============================================================================
 // SAVE / DELETE HANDLERS
@@ -886,25 +886,20 @@ async function handleSave(): Promise<void> {
   render();
 
   try {
-    const data: Partial<PersonData> = {
+    const list = (text: string) => text.split(',').map((item) => item.trim()).filter(Boolean);
+    // Every field, emptied ones too: sending a field empty is how it gets removed
+    const data = {
       name: state.name.trim(),
       relationship: state.relationship,
+      email: state.email.trim(),
+      phone: state.phone.trim(),
+      howWeMet: state.howWeMet.trim(),
+      notes: state.notes.trim(),
+      preferredChannel: (state.preferredChannel || null) as PersonData['preferredChannel'] | null,
+      bestTimeToReach: state.bestTimeToReach.trim(),
+      interests: list(state.interests),
+      sensitiveTopics: list(state.sensitiveTopics),
     };
-
-    if (state.email.trim()) data.email = state.email.trim();
-    if (state.phone.trim()) data.phone = state.phone.trim();
-    if (state.howWeMet.trim()) data.howWeMet = state.howWeMet.trim();
-    if (state.notes.trim()) data.notes = state.notes.trim();
-    if (state.preferredChannel) data.preferredChannel = state.preferredChannel as PersonData['preferredChannel'];
-    if (state.bestTimeToReach.trim()) data.bestTimeToReach = state.bestTimeToReach.trim();
-
-    // Parse comma-separated fields
-    if (state.interests.trim()) {
-      data.interests = state.interests.split(',').map(i => i.trim()).filter(Boolean);
-    }
-    if (state.sensitiveTopics.trim()) {
-      data.sensitiveTopics = state.sensitiveTopics.split(',').map(t => t.trim()).filter(Boolean);
-    }
 
     const response = await apiFetch(`/api/contacts/${state.person.contactId}`, {
       method: 'PUT',
@@ -996,7 +991,7 @@ export function openEditPerson(options: EditPersonOptions): void {
     preferredChannel: person.preferredChannel || '',
     bestTimeToReach: person.bestTimeToReach || '',
     isSubmitting: false,
-    activeTab: 'basic',
+    activeTab: options.initialTab ?? 'basic',
     showDeleteConfirm: false,
   };
 
@@ -1030,7 +1025,7 @@ export function openEditPerson(options: EditPersonOptions): void {
 export function closeEditPerson(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 

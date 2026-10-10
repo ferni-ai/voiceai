@@ -1,0 +1,315 @@
+/**
+ * Turn understanding: one small model reads what the caller is saying.
+ *
+ * Ferni's per-turn decisions (which model answers, whether the caller is
+ * venting, whether a laugh or an aside fits, what to say back mid-sentence)
+ * were made by hand-written regexes and keyword lists. This asks
+ * gemini-3.5-flash-lite once for all of them, in JSON. It runs on the interim
+ * transcript while the caller is still talking (re-run as words arrive, one call
+ * at a time), so an answer for the whole turn is usually ready when they stop.
+ *
+ * TURN_UNDERSTANDING=shadow: understand every turn and log it next to what the
+ * regexes decided (TURN_UNDERSTANDING record), so agreement and readiness can
+ * be measured from real calls; nothing uses it yet. Off by default.
+ *
+ * @module agents/personas/turn-understanding
+ */
+
+import { createLogger } from '../../utils/safe-logger.js';
+import type { CallerMove } from './turn-shape.js';
+
+const log = createLogger({ module: 'TurnUnderstanding' });
+
+export type Mood = 'venting' | 'tender' | 'bad_news' | 'funny' | 'surprise' | 'excited' | 'neutral';
+
+export interface Understanding {
+  /** What the caller's turn does, in the turn-shape's terms. */
+  move: CallerMove;
+  /** Answering it well needs a tool (a timer, a reminder, music, a look-up, saving something). */
+  needsTool: boolean;
+  mood: Mood;
+  /** The caller laughed or is clearly joking. */
+  laughed: boolean;
+  /** A friend would laugh at this. */
+  laughFits: boolean;
+  /** Light enough that Ferni could ask their take on something small in his own life. */
+  adviceFits: boolean;
+  /** They are wrapping up the call. */
+  wantsToEnd: boolean;
+  /** A one-to-three word reaction a friend might make while listening, or null. */
+  reaction: string | null;
+}
+
+/** off (default) | shadow (log only) | live (Ferni's turn shape and asides follow it). */
+export function understandingMode(
+  env: Record<string, string | undefined> = process.env
+): 'off' | 'shadow' | 'live' {
+  const mode = env.TURN_UNDERSTANDING;
+  return mode === 'shadow' || mode === 'live' ? mode : 'off';
+}
+
+/** Each call's understander, so the reply path can read what it understood. */
+const understanders = new WeakMap<object, TurnUnderstander>();
+
+export function setTurnUnderstander(session: object, understander: TurnUnderstander | null): void {
+  if (understander) understanders.set(session, understander);
+  else understanders.delete(session);
+}
+
+/** What the model understood of these words, or null when it has nothing for them yet. */
+export function understandingFor(session: object, text: string): Understanding | null {
+  return understanders.get(session)?.forTurn(text)?.result ?? null;
+}
+
+/** Whether this session's understanding covers `text` right now (counts only), or null when off. */
+/**
+ * The latest answer's labels (no words), whether or not it covers the whole turn:
+ * logged at request time to measure whether an answer a few words behind reads
+ * the caller the same way as the full one (dev 2026-10-10: at request time most
+ * answers were 3-8 words behind).
+ */
+export type EarlyLabels = Pick<Understanding, 'move' | 'mood' | 'needsTool' | 'laughFits'>;
+
+export function understandingStatusFor(
+  session: object,
+  text: string
+): {
+  match: 'covered' | 'behind' | 'diverged' | 'none';
+  missing: number;
+  inFlight: boolean;
+  labels: EarlyLabels | null;
+} | null {
+  const st = understanders.get(session)?.status(text);
+  return st
+    ? { match: st.match, missing: st.missing, inFlight: st.inFlight, labels: st.labels }
+    : null;
+}
+
+export const UNDERSTANDING_PROMPT = `You listen in on a phone call between a caller and their friend Ferni. Read the caller's words (EARLIER is context; judge NOW, which may still be mid-sentence) and return JSON only:
+{"move":"ack"|"lookup"|"request"|"about_ferni"|"share","needsTool":bool,"mood":"venting"|"tender"|"bad_news"|"funny"|"surprise"|"excited"|"neutral","laughed":bool,"laughFits":bool,"adviceFits":bool,"wantsToEnd":bool,"reaction":string|null}
+move: ack = a short acknowledgement ("yeah", "okay", "thanks"); lookup = asks for live facts (weather, news, scores, times, prices); request = asks Ferni to do or explain something; about_ferni = asks about Ferni himself; share = telling something about their own life or thoughts.
+needsTool: true if answering well means doing something (timer, alarm, reminder, music, calendar, note, remembering a fact they asked to keep) or looking something up.
+mood: venting = frustrated, tired, stressed or upset; tender = moved, emotional in a warm way; bad_news = something went wrong or someone is hurt or sick; funny = amusing; surprise = big or unexpected news; excited = happy and energized.
+laughed: they laughed or are joking. laughFits: a good friend would genuinely laugh here (never at bad news, grief, tenderness or venting). adviceFits: the moment is light and nothing is asked of Ferni right now.
+reaction: what a close friend might murmur while still listening to something they are telling ("Oh no", "Ha", "Aw", "Whoa", "No way", "Oof", "Mm"), or null when silence is better. Always null when they ask Ferni something or ask him to do something: that gets a reply, not a murmur.`;
+
+const MOVES = new Set(['ack', 'lookup', 'request', 'about_ferni', 'share']);
+const MOODS = new Set(['venting', 'tender', 'bad_news', 'funny', 'surprise', 'excited', 'neutral']);
+
+/** The model's JSON, or null when it is not a usable understanding. */
+export function parseUnderstanding(reply: string): Understanding | null {
+  const json = reply.match(/\{[\s\S]*\}/)?.[0];
+  if (!json) return null;
+  try {
+    const p = JSON.parse(json) as Record<string, unknown>;
+    if (!MOVES.has(p.move as string) || !MOODS.has(p.mood as string)) return null;
+    const reaction =
+      typeof p.reaction === 'string' && p.reaction.trim() && p.reaction.split(/\s+/).length <= 3
+        ? p.reaction.trim()
+        : null;
+    return {
+      move: p.move as CallerMove,
+      needsTool: p.needsTool === true,
+      mood: p.mood as Mood,
+      laughed: p.laughed === true,
+      laughFits: p.laughFits === true,
+      adviceFits: p.adviceFits === true,
+      wantsToEnd: p.wantsToEnd === true,
+      reaction,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Sends the prompt and input to a model and returns its raw text. */
+export type UnderstandFn = (system: string, input: string, signal: AbortSignal) => Promise<string>;
+
+export const DEFAULT_UNDERSTANDING_MODEL = 'gemini-3.5-flash-lite';
+const TIMEOUT_MS = 1500;
+
+/** Gemini-backed call; '' when Gemini is not configured. */
+export function geminiUnderstand(
+  model: string = process.env.TURN_UNDERSTANDING_MODEL || DEFAULT_UNDERSTANDING_MODEL
+): UnderstandFn {
+  return async (system, input, signal) => {
+    const { getGeminiClient } = await import('../../config/gemini-config.js');
+    const client = (await getGeminiClient()) as {
+      models: { generateContent: (req: unknown) => Promise<{ text?: string }> };
+    } | null;
+    if (!client) return '';
+    const response = await client.models.generateContent({
+      model,
+      contents: [{ role: 'user', parts: [{ text: input }] }],
+      config: {
+        systemInstruction: system,
+        temperature: 0,
+        maxOutputTokens: 120,
+        responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 },
+        abortSignal: signal,
+      },
+    });
+    return response.text ?? '';
+  };
+}
+
+const words = (t: string): string[] => t.toLowerCase().match(/[a-z0-9']+/g) ?? [];
+
+/**
+ * Understands one call's turns as they are spoken. Feed it each transcript
+ * update; read the latest understanding for the words it covers.
+ */
+export class TurnUnderstander {
+  private latest: { text: string; result: Understanding; at: number } | null = null;
+  private running: string | null = null;
+  private pending: string | null = null;
+  private earlier: string[] = [];
+  /** Bumped per caller turn: an answer for an earlier turn is dropped, not kept as `latest`. */
+  private turn = 0;
+  private inFlight: AbortController | null = null;
+  /** A call dropped because the final transcript replaced its words: not a failure. */
+  private superseded: AbortController | null = null;
+  /** The running call; it awaits whatever was pending behind it. */
+  private chain: Promise<void> = Promise.resolve();
+  private stats = { runs: 0, failed: 0, lastMs: 0 };
+
+  constructor(
+    private readonly understand: UnderstandFn,
+    private readonly now: () => number = Date.now,
+    private readonly timeoutMs = TIMEOUT_MS
+  ) {}
+
+  /** The whole turn so far (finals plus the current interim). */
+  onTurnText(text: string): void {
+    const t = text.trim();
+    if (!t || t === this.latest?.text) return;
+    if (this.running !== null) {
+      this.pending = t;
+      return;
+    }
+    const covered = this.latest ? words(this.latest.text).length : 0;
+    if (this.latest && words(t).length - covered < 2) {
+      this.pending = t; // wait for a couple more words, or for the end of the turn
+      return;
+    }
+    this.chain = this.run(t);
+  }
+
+  /**
+   * The turn ended: understand the final words now. A call still running on an
+   * interim is dropped rather than waited for (dev 2026-10-10: every unready
+   * turn was "behind", its final queued behind an interim call of 600-900 ms).
+   */
+  async settle(text: string): Promise<void> {
+    const t = text.trim();
+    if (!t || this.latest?.text === t) return;
+    this.pending = t;
+    if (this.running === null) this.chain = this.run(t);
+    else if (this.running !== t && this.inFlight) {
+      this.superseded = this.inFlight;
+      this.inFlight.abort();
+    }
+    await this.chain;
+  }
+
+  /** How the latest answer lines up with `text`, and how many of its words it has not heard. */
+  private lineUp(text: string): {
+    match: 'covered' | 'behind' | 'diverged' | 'none';
+    missing: number;
+  } {
+    if (!this.latest) return { match: 'none', missing: 0 };
+    const turn = words(text);
+    const seen = words(this.latest.text);
+    if (seen.length > turn.length || !seen.every((w, i) => turn[i] === w))
+      return { match: 'diverged', missing: 0 };
+    const missing = turn.length - seen.length;
+    // The last few words of a long turn rarely change its mood or whether it needs a tool.
+    return {
+      match: missing > Math.max(2, Math.ceil(turn.length / 4)) ? 'behind' : 'covered',
+      missing,
+    };
+  }
+
+  /** The latest understanding, if it covers these words (all but the last quarter, at least two). */
+  forTurn(text: string): { result: Understanding; covered: number; ageMs: number } | null {
+    if (!this.latest || this.lineUp(text).match !== 'covered') return null;
+    return {
+      result: this.latest.result,
+      covered: words(this.latest.text).length / Math.max(words(text).length, 1),
+      ageMs: this.now() - this.latest.at,
+    };
+  }
+
+  /** Counts for this turn (no text), and how the latest answer lines up with `text`. */
+  status(text: string): {
+    runs: number;
+    failed: number;
+    lastMs: number;
+    inFlight: boolean;
+    match: 'covered' | 'behind' | 'diverged' | 'none';
+    missing: number;
+    labels: EarlyLabels | null;
+  } {
+    const u = this.latest?.result;
+    const labels = u
+      ? { move: u.move, mood: u.mood, needsTool: u.needsTool, laughFits: u.laughFits }
+      : null;
+    return { ...this.stats, inFlight: this.running !== null, ...this.lineUp(text), labels };
+  }
+
+  /** A new caller turn begins: the last one becomes context, and its call is dropped. */
+  newTurn(lastTurn: string): void {
+    if (lastTurn.trim()) this.earlier = [...this.earlier, lastTurn.trim()].slice(-3);
+    this.turn++;
+    this.inFlight?.abort();
+    this.latest = null;
+    this.pending = null;
+    this.stats = { runs: 0, failed: 0, lastMs: 0 };
+  }
+
+  private async run(text: string): Promise<void> {
+    this.running = text;
+    const turn = this.turn;
+    const started = this.now();
+    const controller = new globalThis.AbortController();
+    this.inFlight = controller;
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    this.stats.runs++;
+    try {
+      const input = JSON.stringify({ EARLIER: this.earlier, NOW: text });
+      // The SDK does not always settle on abort (dev: one hung call left runs=0 for the
+      // rest of the call), so the abort itself ends the wait.
+      const aborted = new Promise<never>((_, reject) => {
+        controller.signal.addEventListener('abort', () => reject(new Error('aborted')), {
+          once: true,
+        });
+      });
+      aborted.catch((error: unknown) =>
+        log.debug({ error: String(error) }, 'understanding aborted')
+      );
+      const result = parseUnderstanding(
+        await Promise.race([
+          this.understand(UNDERSTANDING_PROMPT, input, controller.signal),
+          aborted,
+        ])
+      );
+      if (turn === this.turn) {
+        this.stats.lastMs = this.now() - started;
+        if (result) this.latest = { text, result, at: this.now() };
+        else this.stats.failed++;
+      }
+    } catch (error) {
+      if (turn === this.turn && this.superseded !== controller) this.stats.failed++;
+      log.debug({ error: String(error) }, 'turn understanding failed');
+    } finally {
+      clearTimeout(timer);
+      if (this.inFlight === controller) this.inFlight = null;
+      if (this.superseded === controller) this.superseded = null;
+      this.running = null;
+    }
+    const next = this.pending;
+    this.pending = null;
+    if (next && next !== text) await this.run(next);
+  }
+}

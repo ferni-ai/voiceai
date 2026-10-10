@@ -476,7 +476,7 @@ export async function activateVibe(
     result.success = false;
     result.message = `Couldn't set the ${preset.name} vibe. ${result.errors[0]}`;
   } else {
-    result.message = `${preset.name} vibe ready! Connect your devices in Settings → Your Home to activate.`;
+    result.message = `${preset.name} vibe ready! Connect your lights or thermostat in Set the Mood to activate.`;
   }
 
   return result;
@@ -520,7 +520,7 @@ export async function controlMusic(
   if (!credentials.sonos) {
     return {
       success: false,
-      message: 'Sonos not connected. Go to Settings → Your Home to connect.',
+      message: 'Sonos not connected. Connect it from Set the Mood in the app.',
     };
   }
 

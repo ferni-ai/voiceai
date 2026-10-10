@@ -219,8 +219,8 @@ class NotificationSettingsUI {
 
         ${this.currentTab === 'settings' ? `
           <div class="notif-settings__footer">
-            <button aria-label="${t('accessibility.cancel')}" class="notif-settings__btn notif-settings__btn--secondary" data-action="cancel">${t('notificationSettings.cancel')}</button>
-            <button aria-label="${t('accessibility.save')}" class="notif-settings__btn notif-settings__btn--primary" data-action="save">${t('notificationSettings.saveSettings')}</button>
+            <button class="notif-settings__btn notif-settings__btn--secondary" data-action="cancel">${t('notificationSettings.cancel')}</button>
+            <button class="notif-settings__btn notif-settings__btn--primary" data-action="save">${t('notificationSettings.saveSettings')}</button>
           </div>
         ` : ''}
       </div>
@@ -263,7 +263,7 @@ class NotificationSettingsUI {
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-pref="enabled" ${this.localPrefs.enabled ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" role="switch" tabindex="0"></span>
+            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
         </div>
       </div>
@@ -292,7 +292,7 @@ class NotificationSettingsUI {
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-pref="ferniCheckins" ${this.localPrefs.ferniCheckins ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" role="switch" tabindex="0"></span>
+            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
         </div>
 
@@ -309,7 +309,7 @@ class NotificationSettingsUI {
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-pref="ritualReminders" ${this.localPrefs.ritualReminders ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" role="switch" tabindex="0"></span>
+            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
         </div>
 
@@ -325,7 +325,7 @@ class NotificationSettingsUI {
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-pref="streakMilestones" ${this.localPrefs.streakMilestones ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" role="switch" tabindex="0"></span>
+            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
         </div>
 
@@ -342,7 +342,7 @@ class NotificationSettingsUI {
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-pref="predictionResults" ${this.localPrefs.predictionResults ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" role="switch" tabindex="0"></span>
+            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
         </div>
 
@@ -359,7 +359,7 @@ class NotificationSettingsUI {
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-pref="teamHuddles" ${this.localPrefs.teamHuddles ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" role="switch" tabindex="0"></span>
+            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
         </div>
       </div>
@@ -412,7 +412,7 @@ class NotificationSettingsUI {
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-outreach="emailEnabled" ${this.outreachPrefs?.emailEnabled ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" role="switch" tabindex="0"></span>
+            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
         </div>
 
@@ -426,7 +426,7 @@ class NotificationSettingsUI {
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-outreach="smsEnabled" ${this.outreachPrefs?.smsEnabled ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" role="switch" tabindex="0"></span>
+            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
         </div>
 
@@ -440,7 +440,7 @@ class NotificationSettingsUI {
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-outreach="milestoneNotifications" ${this.outreachPrefs?.milestoneNotifications ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" role="switch" tabindex="0"></span>
+            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
         </div>
 
@@ -456,7 +456,7 @@ class NotificationSettingsUI {
           </div>
           <label class="notif-settings__toggle">
             <input type="checkbox" data-outreach="weeklyRecap" ${this.outreachPrefs?.weeklyRecap ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" role="switch" tabindex="0"></span>
+            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
           </label>
         </div>
       </div>
@@ -710,7 +710,13 @@ class NotificationSettingsUI {
       });
     });
 
-    // Preference changes
+    // Each toggle is a real checkbox: make it the switch, named by its row's label
+    this.panel.querySelectorAll<HTMLInputElement>('.notif-settings__toggle input').forEach((input) => {
+      input.setAttribute('role', 'switch');
+      const row = input.closest('.notif-settings__capability-row, .notif-settings__row');
+      const label = row?.querySelector('.notif-settings__label');
+      if (label?.textContent) input.setAttribute('aria-label', label.textContent.trim());
+    });
     this.panel.querySelectorAll('[data-pref]').forEach((input) => {
       input.addEventListener('change', () => this.handlePrefChange(input as HTMLInputElement));
     });
@@ -719,7 +725,6 @@ class NotificationSettingsUI {
       input.addEventListener('change', () => this.handleOutreachChange(input as HTMLInputElement));
     });
 
-    // Footer buttons
     this.panel.querySelector('[data-action="cancel"]')?.addEventListener('click', () => this.hide());
     this.panel.querySelector('[data-action="save"]')?.addEventListener('click', () => this.save());
 
@@ -1110,6 +1115,7 @@ class NotificationSettingsUI {
       .notif-settings__toggle-track {
         position: absolute;
         inset: 0;
+        pointer-events: none; /* drawing only: clicks land on the switch underneath */
         background: var(--color-background-tertiary, #ebe6df);
         border-radius: var(--radius-full, 9999px);
         transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -1128,6 +1134,7 @@ class NotificationSettingsUI {
         transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
       }
 
+      .notif-settings__toggle input:focus-visible + .notif-settings__toggle-track { outline: 2px solid var(--color-ferni, #4a6741); outline-offset: 2px; }
       .notif-settings__toggle input:checked + .notif-settings__toggle-track {
         background: var(--color-accent-primary, #2d5a3d);
       }

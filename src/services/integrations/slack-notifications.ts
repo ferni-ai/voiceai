@@ -18,6 +18,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { opsAlert } from '../platform/ops-alert.js';
 
 const log = createLogger({ module: 'SlackNotifications' });
 
@@ -163,11 +164,10 @@ export class SlackNotificationService {
     const message = this.buildMessage(context, emoji, color);
     const webhook = this.getWebhookForType(context.type);
 
-    // Always log the notification
     log.info({ type: context.type, title: context.title }, `${emoji} ${context.title}`);
 
     if (!webhook) {
-      log.debug('No webhook configured, notification logged only');
+      if (context.severity === 'error') opsAlert(`notify:${context.type}`, `🚨 ${context.title}`, { message: context.message });
       return false;
     }
 

@@ -11,7 +11,9 @@ import { getLifeAutomationService, type Workflow } from '../../services/life-aut
 import { getUserId } from '../../utils/api.js';
 import { createLogger } from '../../utils/logger.js';
 import { formatDate, t } from '../../i18n/index.js';
+import { showCareConnections } from './connections-tab.ui.js';
 import { showIdeasGallery } from './ideas-gallery.ui.js';
+import { calendarTriggerSummary } from './routine-builder-calendar.js';
 
 const log = createLogger('FerniCare');
 
@@ -568,7 +570,7 @@ export class FerniCareDashboard {
         );
       }
       case 'calendar':
-        return t('ferniCare.triggers.calendar');
+        return calendarTriggerSummary(trigger.triggerOn);
       default:
         return t('ferniCare.triggers.event');
     }
@@ -647,7 +649,7 @@ export class FerniCareDashboard {
       this.close();
       showIdeasGallery();
     } else if (tab === 'connections') {
-      content.innerHTML = `<div class="ferni-empty"><p>${t('ferniCare.connectionsSoon')}</p></div>`;
+      void showCareConnections(content, () => this.activeTab === 'connections', () => this.close());
     }
   }
 

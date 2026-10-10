@@ -27,6 +27,7 @@ import { openConversationStarters } from './conversation-starters.ui.js';
 // To enable demo mode, use localStorage.setItem('ferni:use-demo-data', 'true')
 import { formatCurrency, formatDate as formatLocaleDate, getLocale, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('RelationshipCard');
 
@@ -165,6 +166,7 @@ let state: RelationshipCardState = {
 };
 
 let cardContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let onCloseCallback: (() => void) | null = null;
 
 // ============================================================================
@@ -1125,12 +1127,12 @@ function renderHeader(): string {
         </div>
       </div>
       
-      <div class="rc-quick-actions" role="button" tabindex="0">
-        ${person.phone ? `<button aria-label="${t('accessibility.call')}" class="rc-quick-action" data-action="call">${ICONS.phone} ${t('relationshipCard.call')}</button>` : ''}
-        ${person.phone ? `<button aria-label="${t('accessibility.text')}" class="rc-quick-action" data-action="text">${ICONS.message} ${t('relationshipCard.text')}</button>` : ''}
-        ${person.email ? `<button aria-label="${t('accessibility.email')}" class="rc-quick-action" data-action="email">${ICONS.mail} ${t('relationshipCard.email')}</button>` : ''}
-        <button aria-label="${t('accessibility.add')}" class="rc-quick-action" data-action="record">${ICONS.plus} ${t('relationshipCard.logMoment')}</button>
-        <button aria-label="${t('accessibility.edit')}" class="rc-quick-action" data-action="edit">${ICONS.edit} ${t('common.edit')}</button>
+      <div class="rc-quick-actions">
+        ${person.phone ? `<button class="rc-quick-action" data-action="call">${ICONS.phone} ${t('relationshipCard.call')}</button>` : ''}
+        ${person.phone ? `<button class="rc-quick-action" data-action="text">${ICONS.message} ${t('relationshipCard.text')}</button>` : ''}
+        ${person.email ? `<button class="rc-quick-action" data-action="email">${ICONS.mail} ${t('relationshipCard.email')}</button>` : ''}
+        <button class="rc-quick-action" data-action="record">${ICONS.plus} ${t('relationshipCard.logMoment')}</button>
+        <button class="rc-quick-action" data-action="edit">${ICONS.edit} ${t('common.edit')}</button>
       </div>
     </div>
   `;
@@ -1230,7 +1232,7 @@ function renderOverviewTab(): string {
           `;
         }).join('')}
         ${upcomingMeetings.length > 3 ? `
-          <button aria-label="${t('accessibility.viewAllScheduledMeetings')}" class="rc-add-btn" data-action="view-all-events" style="margin-top: var(--space-2, 0.5rem);">
+          <button class="rc-add-btn" data-action="view-all-events" style="margin-top: var(--space-2, 0.5rem);">
             ${tp('relationshipCard.viewAllMeetings', upcomingMeetings.length)}
           </button>
         ` : ''}
@@ -1264,7 +1266,7 @@ function renderOverviewTab(): string {
         </div>`
       }
       ${state.timeline.length > 5 ? `
-        <button aria-label="${t('accessibility.viewAllMoments')}" class="rc-add-btn" data-action="view-all-timeline">
+        <button class="rc-add-btn" data-action="view-all-timeline">
           ${tp('relationshipCard.viewAllMoments', state.timeline.length)}
         </button>
       ` : ''}
@@ -1295,7 +1297,7 @@ function renderTimelineTab(): string {
         <div class="rc-empty-title">${t('relationshipCard.noMomentsRecorded')}</div>
         <p class="rc-empty-text">${t('relationshipCard.everyCallBecomesPart')}</p>
       </div>
-      <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-interaction">
+      <button class="rc-add-btn" data-action="add-interaction">
         ${ICONS.plus} ${t('relationshipCard.logAMoment')}
       </button>
     `;
@@ -1310,7 +1312,7 @@ function renderTimelineTab(): string {
       ${items.map(item => renderTimelineItem(item)).join('')}
     </div>
   `).join('') + `
-    <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-interaction">
+    <button class="rc-add-btn" data-action="add-interaction">
       ${ICONS.plus} ${t('relationshipCard.logAMoment')}
     </button>
   `;
@@ -1359,7 +1361,7 @@ function renderGiftsTab(): string {
         <div class="rc-empty-title">${t('relationshipCard.noGiftsRecorded')}</div>
         <p class="rc-empty-text">${t('relationshipCard.trackWhatYouGive')}</p>
       </div>
-      <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-gift">
+      <button class="rc-add-btn" data-action="add-gift">
         ${ICONS.plus} ${t('relationshipCard.recordAGift')}
       </button>
     `;
@@ -1380,7 +1382,7 @@ function renderGiftsTab(): string {
       </div>
     ` : ''}
     
-    <button aria-label="${t('accessibility.add')}" class="rc-add-btn" data-action="add-gift">
+    <button class="rc-add-btn" data-action="add-gift">
       ${ICONS.plus} ${t('relationshipCard.recordAGift')}
     </button>
   `;
@@ -1402,7 +1404,7 @@ function renderGiftItem(gift: Gift): string {
           ${gift.price ? ` · ${formatCurrency(gift.price, 'USD')}` : ''}
         </div>
         ${reactionLabel && gift.direction === 'given' ? `
-          <span class="rc-gift-reaction ${gift.reaction}" role="button" tabindex="0">${reactionLabel}</span>
+          <span class="rc-gift-reaction ${gift.reaction}">${reactionLabel}</span>
         ` : ''}
       </div>
     </div>
@@ -1441,7 +1443,7 @@ function renderEventsTab(): string {
       ` : `
         <p class="rc-empty-inline">${t('relationshipCard.noImportantDates')}</p>
       `}
-      <button aria-label="${t('accessibility.edit')}" class="rc-add-btn" data-action="manage-dates">
+      <button class="rc-add-btn" data-action="manage-dates">
         ${ICONS.edit} ${t(importantDates.length > 0 ? 'relationshipCard.manageDates' : 'relationshipCard.addDates')}
       </button>
     </div>
@@ -1531,7 +1533,7 @@ function renderNotesTab(): string {
       </div>
     ` : ''}
     
-    <button aria-label="${t('accessibility.edit')}" class="rc-add-btn" data-action="edit-notes">
+    <button class="rc-add-btn" data-action="edit-notes">
       ${ICONS.edit} ${t(person.notes ? 'relationshipCard.editNotes' : 'relationshipCard.addNotes')}
     </button>
   `;
@@ -1588,14 +1590,11 @@ function bindEvents(): void {
   }
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  const el = cardContainer;
+  if (el) releaseEscape = closeOnEscape(el, () => el.classList.contains('open'), closeRelationshipCard);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape') {
-    closeRelationshipCard();
-  }
-}
 
 function handleQuickAction(action: string | null): void {
   if (!state.person) return;
@@ -1641,9 +1640,10 @@ function handleQuickAction(action: string | null): void {
         },
       });
       break;
+    case 'edit-notes': // the notes live on Edit's Context tab
     case 'edit':
-      // Open the Edit Person modal
       openEditPerson({
+        initialTab: action === 'edit-notes' ? 'context' : undefined,
         person: {
           id: state.person.id,
           contactId: state.person.contactId,
@@ -1693,6 +1693,8 @@ function handleAddAction(action: string | null): void {
       state.activeTab = 'timeline';
       render();
       break;
+    case 'edit-notes': // its button opens Edit on the notes
+      return handleQuickAction(action);
     case 'add-gift':
       if (state.person) {
         openRecordGift({
@@ -1766,9 +1768,6 @@ function handleAddAction(action: string | null): void {
           },
         });
       }
-      break;
-    case 'edit-notes':
-      toast.info(t('toasts.editNotesComingSoon'));
       break;
   }
 }
@@ -2149,7 +2148,7 @@ export async function openRelationshipCard(
 export function closeRelationshipCard(): void {
   if (!cardContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
   
   cardContainer.classList.remove('open');
   

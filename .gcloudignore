@@ -70,10 +70,6 @@ ferni-speaker-build/
 
 promo/
 
-# Firebase functions (106MB) - separate deployment
-
-functions/
-
 # Design system (105MB total) - only keep dist/ (196KB)
 
 # Explicitly exclude each subdir except dist

@@ -14,6 +14,7 @@ import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 const log = createLogger('ImportContactsUI');
 
 // ============================================================================
@@ -63,6 +64,7 @@ let state: ImportState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: ImportCallbacks = {};
 let previouslyFocusedElement: HTMLElement | null = null;
 
@@ -468,7 +470,7 @@ function render(): void {
 function renderSourceSelection(): string {
   return `
     <div class="ic-sources">
-      <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'google' ? 'selected' : ''}" data-source="google">
+      <button class="ic-source-btn ${state.source === 'google' ? 'selected' : ''}" data-source="google">
         <div class="ic-source-icon">${ICONS.google}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">${t('importContacts.googleContacts')}</div>
@@ -476,7 +478,7 @@ function renderSourceSelection(): string {
         </div>
       </button>
 
-      <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'csv' ? 'selected' : ''}" data-source="csv">
+      <button class="ic-source-btn ${state.source === 'csv' ? 'selected' : ''}" data-source="csv">
         <div class="ic-source-icon">${ICONS.csv}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">${t('importContacts.csvFile')}</div>
@@ -484,7 +486,7 @@ function renderSourceSelection(): string {
         </div>
       </button>
 
-      <button aria-label="${t('accessibility.moreInformation')}" class="ic-source-btn ${state.source === 'vcard' ? 'selected' : ''}" data-source="vcard">
+      <button class="ic-source-btn ${state.source === 'vcard' ? 'selected' : ''}" data-source="vcard">
         <div class="ic-source-icon">${ICONS.vcard}</div>
         <div class="ic-source-info">
           <div class="ic-source-name">${t('importContacts.vcfFile')}</div>
@@ -527,7 +529,7 @@ function renderPreview(): string {
     <div class="ic-preview-section">
       <div class="ic-preview-header">
         <span class="ic-preview-title">${tp('importContacts.selectedCount', state.preview.length, { selected: state.selectedCount })}</span>
-        <button aria-label="${t('accessibility.selectAll')}" class="ic-select-all" id="ic-select-all">${t('importContacts.selectAll')}</button>
+        <button class="ic-select-all" id="ic-select-all">${t('importContacts.selectAll')}</button>
       </div>
       <div class="ic-preview-list">
         ${state.preview.map(contact => `
@@ -849,11 +851,6 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen && !state.isImporting) {
-    closeImportContacts();
-  }
-}
 
 // ============================================================================
 // PUBLIC API
@@ -901,8 +898,8 @@ export function openImportContacts(options: ImportCallbacks = {}): void {
         ${renderSourceSelection()}
       </div>
       <div class="ic-footer">
-        <button aria-label="${t('accessibility.cancel')}" class="ic-btn ic-btn-secondary">${t('common.cancel')}</button>
-        <button aria-label="${t('accessibility.importSelected')}" class="ic-btn ic-btn-primary" ${state.preview.length === 0 ? 'disabled' : ''}>
+        <button class="ic-btn ic-btn-secondary">${t('common.cancel')}</button>
+        <button class="ic-btn ic-btn-primary" ${state.preview.length === 0 ? 'disabled' : ''}>
           ${t('importContacts.importSelected')}
         </button>
       </div>
@@ -920,7 +917,8 @@ export function openImportContacts(options: ImportCallbacks = {}): void {
   });
 
   // Event listeners
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen && !state.isImporting, closeImportContacts);
   bindEvents();
 
   log.info('Opened import contacts modal');
@@ -932,7 +930,7 @@ export function openImportContacts(options: ImportCallbacks = {}): void {
 export function closeImportContacts(): void {
   if (!state.isOpen || !modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
   
   modalContainer.classList.remove('open');
   
@@ -950,18 +948,6 @@ export function closeImportContacts(): void {
 
   state.isOpen = false;
   log.info('Closed import contacts modal');
-}
-
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-
-export function initImportContactsUI(): void {
-  document.addEventListener('ferni:open-import-contacts', () => {
-    openImportContacts();
-  });
-
-  log.debug('Import Contacts UI initialized');
 }
 
 export default { open: openImportContacts, close: closeImportContacts };

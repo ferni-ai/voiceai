@@ -82,6 +82,12 @@ prepare_turns() {
       mode=${${line%% *}#@}; rest=${line#* }; at=${rest%% *}; line=${rest#* }
     fi
     pcm=$adir/t$i.pcm
+    # "@data 0 {json}": publish that JSON to the room as the app would, no speech.
+    if [[ $mode == data ]]; then
+      print -r -- "$line" > $adir/t$i.json
+      print -r -- "$adir/t$i.json::data::$at"
+      continue
+    fi
     if [[ ! -s $pcm || $HERE/scenarios/$sc.txt -nt $pcm ]]; then
       if [[ $caller == cartesia:* ]]; then
         node $HERE/caller-tts.mjs ${caller#cartesia:} $pcm "$line"

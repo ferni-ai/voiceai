@@ -487,7 +487,7 @@ function formatPhone(phone: string): string {
 /** The api helpers resolve (not throw) on HTTP errors, so check `ok` explicitly. */
 function reportFailure(messageKey: string, response: { ok: boolean; status?: number }): void {
   log.error(`Family identities request failed: ${messageKey}`, { status: response.status });
-  toast.error(t(messageKey));
+  toast.error(t(response.status === 409 ? 'familyIdentities.errors.phoneInUse' : messageKey)); // 409: number taken
 }
 
 async function loadIdentities(): Promise<void> {

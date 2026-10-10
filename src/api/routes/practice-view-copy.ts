@@ -42,12 +42,6 @@ const EVENT_CONTEXT_RULES: ReadonlyArray<{
   key: string;
 }> = [
   {
-    words: ['dinner', 'family', 'partner', 'date'],
-    persona: 'alex',
-    verb: 'notes',
-    key: 'practiceView.eventContext.family',
-  },
-  {
     words: ['meeting', 'sync', '1:1', 'standup'],
     persona: 'jordan',
     verb: 'suggests',
@@ -93,13 +87,6 @@ const WEEKDAY_INSIGHT: Record<number, { key: string; persona?: PersonaId }> = {
   4: { key: 'practiceView.dayInsight.almostThere', persona: 'jordan' },
   5: { key: 'practiceView.dayInsight.windDown', persona: 'maya' },
 };
-
-export const DEFAULT_PATTERN_KEYS = [
-  'practiceView.pattern.morningStart',
-  'practiceView.pattern.focusTime',
-  'practiceView.pattern.creativeAfterWalks',
-  'practiceView.pattern.tuesdayEvenings',
-];
 
 export function weekdayName(locale: SupportedLocale, date: Date, width: 'long' | 'short'): string {
   return new Intl.DateTimeFormat(locale, { weekday: width }).format(date);

@@ -83,7 +83,7 @@ function ensureWizardExists(): HTMLElement {
   wizardModal = document.createElement('div');
   wizardModal.className = 'custom-agent-wizard-overlay';
   wizardModal.innerHTML = `
-    <div class="wizard-backdrop" data-action="close" role="button" tabindex="0"></div>
+    <div class="wizard-backdrop" data-action="close"></div>
     <div class="wizard-container" role="dialog" aria-modal="true" aria-labelledby="wizard-title">
       <header class="wizard-header">
         <div class="wizard-progress">
@@ -112,14 +112,14 @@ function ensureWizardExists(): HTMLElement {
       </main>
 
       <footer class="wizard-footer">
-        <button aria-label="${t('accessibility.back')}" class="wizard-btn wizard-btn--secondary" data-action="back" disabled>
+        <button class="wizard-btn wizard-btn--secondary" data-action="back" disabled>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
           ${t('common.back')}
         </button>
-        <button aria-label="${t('accessibility.continue')}" class="wizard-btn wizard-btn--primary" data-action="next">
+        <button class="wizard-btn wizard-btn--primary" data-action="next">
           ${t('common.continue')}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -462,7 +462,7 @@ function renderVoiceStep(): string {
       </div>
       
       <div class="voice-options">
-        <button aria-label="${t('accessibility.upload')}"
+        <button
           class="voice-option ${voiceOption === 'clone' ? 'voice-option--selected' : ''}"
           data-voice-option="clone"
         >
@@ -542,7 +542,7 @@ function renderVoiceCloneUI(): string {
         </div>
         
         <div class="recording-controls">
-          <button aria-label="${t('accessibility.stop')}" class="recording-btn ${isRecording ? 'recording-btn--stop' : ''}" id="record-btn">
+          <button class="recording-btn ${isRecording ? 'recording-btn--stop' : ''}" id="record-btn">
             ${isRecording ? t('ui.customagentwizard.stopRecording') : t('customAgentWizard.voiceClone.startRecording')}
           </button>
           <p class="recording-hint">${t('customAgentWizard.voiceClone.recordingHint')}</p>
@@ -553,7 +553,7 @@ function renderVoiceCloneUI(): string {
             ? `
           <div class="recorded-preview">
             <audio id="recorded-audio" controls src="${URL.createObjectURL(recordedAudioBlob)}"></audio>
-            <button aria-label="${t('accessibility.clearReRecord')}" class="preview-action" id="clear-recording">${t('customAgentWizard.voiceClone.clearAndRerecord')}</button>
+            <button class="preview-action" id="clear-recording">${t('customAgentWizard.voiceClone.clearAndRerecord')}</button>
           </div>
         `
             : ''
@@ -586,7 +586,7 @@ function renderVoiceLibraryUI(voices: ReturnType<typeof getVoiceLibrary>): strin
         ${voices
           .map(
             (voice) => `
-          <button aria-label="${t('accessibility.moreInformation')}" 
+          <button 
             class="voice-card ${draft.selectedVoiceId === voice.id ? 'voice-card--selected' : ''}" 
             data-voice-id="${voice.id}"
           >
@@ -603,7 +603,7 @@ function renderVoiceLibraryUI(voices: ReturnType<typeof getVoiceLibrary>): strin
                 ${voice.tags.map((tag) => `<span class="voice-tag">${t(`voiceLibrary.tags.${tag}`, tag)}</span>`).join('')}
               </div>
             </div>
-            <button class="voice-preview-btn" data-preview="${voice.previewUrl}" aria-label="${t('accessibility.moreInformation')}">
+            <button class="voice-preview-btn" data-preview="${voice.previewUrl}" aria-label="${t('accessibility.preview')}">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
@@ -752,7 +752,7 @@ function renderPersonalityStep(): string {
               <span class="profile-name">${t('customAgentWizard.cognitiveProfile.empathetic')}</span>
               <span class="profile-desc">${t('customAgentWizard.cognitiveProfile.empatheticDescription')}</span>
             </button>
-            <button aria-label="${t('accessibility.analyticalFocusesOnLogicAndProblemSolving')}"
+            <button
               type="button"
               class="profile-option ${personality.cognitiveProfile === 'analytical' ? 'profile-option--selected' : ''}"
               data-profile="analytical"
@@ -772,7 +772,7 @@ function renderPersonalityStep(): string {
               <span class="profile-name">${t('customAgentWizard.cognitiveProfile.analytical')}</span>
               <span class="profile-desc">${t('customAgentWizard.cognitiveProfile.analyticalDescription')}</span>
             </button>
-            <button aria-label="${t('accessibility.balancedAdaptsApproachToTheSituation')}"
+            <button
               type="button"
               class="profile-option ${(personality.cognitiveProfile || 'balanced') === 'balanced' ? 'profile-option--selected' : ''}"
               data-profile="balanced"
@@ -818,7 +818,7 @@ function renderMemoriesStep(): string {
           <div class="journal-prompt">
             <p class="journal-hint">${t('customAgentWizard.memoriesStep.journalHint')}</p>
             <div class="recording-area" id="memory-recording-area">
-              <button aria-label="${t('accessibility.recordJournalEntry')}" class="recording-btn large-btn" id="journal-record-btn">
+              <button class="recording-btn large-btn" id="journal-record-btn">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
@@ -830,14 +830,14 @@ function renderMemoriesStep(): string {
         `
             : `
           <div class="memory-types">
-            <button aria-label="${t('accessibility.addStory')}" class="memory-type-btn" data-memory-type="story">
+            <button class="memory-type-btn" data-memory-type="story">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
               </svg>
               ${t('accessibility.addStory')}
             </button>
-            <button aria-label="${t('accessibility.addWisdom')}" class="memory-type-btn" data-memory-type="wisdom">
+            <button class="memory-type-btn" data-memory-type="wisdom">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -845,7 +845,7 @@ function renderMemoriesStep(): string {
               </svg>
               ${t('accessibility.addWisdom')}
             </button>
-            <button aria-label="${t('accessibility.addMoment')}" class="memory-type-btn" data-memory-type="sharedMoment">
+            <button class="memory-type-btn" data-memory-type="sharedMoment">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>

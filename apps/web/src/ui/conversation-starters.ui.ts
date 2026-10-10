@@ -15,6 +15,7 @@ import { shouldUseDemoData } from '../utils/environment.js';
 import { getMockConversationStarters } from '../data/mock-contacts.js';
 import { getLocale, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 const log = createLogger('ConversationStartersUI');
 
 // ============================================================================
@@ -68,6 +69,7 @@ let state: ConversationStartersState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSelect?: (starter: ConversationStarter) => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -567,10 +569,10 @@ function render(): void {
     
     ${state.hasGenerated && state.starters.length > 0 ? `
       <div class="cs-footer">
-        <button aria-label="${t('accessibility.refresh')}" class="cs-footer-btn cs-footer-btn-secondary" id="cs-regenerate">
+        <button class="cs-footer-btn cs-footer-btn-secondary" id="cs-regenerate">
           ${ICONS.refresh} ${t('conversationStarters.newIdeas')}
         </button>
-        <button aria-label="${t('accessibility.copy')}" class="cs-footer-btn cs-footer-btn-primary" id="cs-copy" ${!state.selectedStarter ? 'disabled' : ''}>
+        <button class="cs-footer-btn cs-footer-btn-primary" id="cs-copy" ${!state.selectedStarter ? 'disabled' : ''}>
           ${ICONS.copy} ${t('conversationStarters.copyOpener')}
         </button>
       </div>
@@ -594,7 +596,7 @@ function renderContent(): string {
     return `
       <div class="cs-error">
         <p class="cs-error-text">${escapeHtml(state.error)}</p>
-        <button aria-label="${t('accessibility.refresh')}" class="cs-retry-btn" id="cs-retry">
+        <button class="cs-retry-btn" id="cs-retry">
           ${ICONS.refresh} ${t('common.retry')}
         </button>
       </div>
@@ -607,7 +609,7 @@ function renderContent(): string {
         <div class="cs-initial-icon">${ICONS.messageCircle}</div>
         <h3 class="cs-initial-title">${t('conversationStarters.initialTitle')}</h3>
         <p class="cs-initial-text">${t('conversationStarters.initialText')}</p>
-        <button aria-label="${t('accessibility.getIdeas')}" class="cs-generate-btn" id="cs-generate">
+        <button class="cs-generate-btn" id="cs-generate">
           ${ICONS.sparkles} ${t('conversationStarters.getIdeas')}
         </button>
       </div>
@@ -672,14 +674,10 @@ function bindEvents(): void {
   });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeConversationStarters);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeConversationStarters();
-  }
-}
 
 // ============================================================================
 // ACTIONS
@@ -838,7 +836,7 @@ export function openConversationStarters(options: ConversationStartersOptions): 
 export function closeConversationStarters(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 

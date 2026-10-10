@@ -80,6 +80,10 @@ test('Connect with no voice server says so and stays usable', async ({ page }) =
 
 async function openPalette(page: Page) {
   await expect(page.locator('.command-palette')).toBeAttached(); // created just after load
+  // Fully closed first, or a palette still fading out counts as "already shown" and the
+  // reopened one never looks new (seen on the slower CI runner)
+  await expect(page.locator('.command-palette--open')).toHaveCount(0);
+  await expect.poll(() => page.locator('.command-palette').evaluate((el) => getComputedStyle(el).opacity)).toBe('0');
   const before = await shownDialogs(page);
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+k' : 'Control+k');
   return newPanel(page, before, 'command palette');
@@ -101,8 +105,9 @@ test('command palette: named, filters as you type, runs a command, closes', asyn
   await expect(options.first()).toContainText(/settings/i);
 
   await page.keyboard.press('Enter');
-  await expect(page.locator('.settings-menu')).toBeVisible();
+  await expect(page.locator('.settings-menu--visible')).toBeVisible(); // the command runs just after the palette closes
   await page.keyboard.press('Escape');
+  await expect(page.locator('.settings-menu--visible')).toHaveCount(0);
 
   const again = await openPalette(page);
   const id = (await again.getAttribute('data-e2e-dialog')) as string;
@@ -130,4 +135,17 @@ test('nothing the keyboard can reach is invisible', async ({ page }) => {
     return out;
   });
   expect(unseen, 'focusable but invisible (hidden UI should be inert)').toEqual([]);
+});
+
+test('? opens the keyboard shortcuts, and Escape closes them', async ({ page }) => {
+  const problems = watchProblems(page);
+  await page.waitForTimeout(1_000); // shortcuts are bound just after load
+  const before = await shownDialogs(page);
+  await page.keyboard.press('Shift+Slash'); // "?" on a US layout
+  const panel = await newPanel(page, before, 'keyboard shortcuts');
+  await expect(panel).toHaveAccessibleName(/\S/);
+  const id = (await panel.getAttribute('data-e2e-dialog')) as string;
+  await page.keyboard.press('Escape');
+  await expect.poll(() => isGone(page, id), { message: 'shortcuts did not close on Escape', timeout: 5_000 }).toBe(true);
+  expect(problems.take()).toEqual([]);
 });

@@ -23,6 +23,7 @@ import { getAllMockContacts, MOCK_NUDGES } from '../data/mock-contacts.ts';
 import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { parseNudgesResponse, type Nudge } from './your-people-nudges.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 const log = createLogger('YourPeopleUI');
 
 // ============================================================================
@@ -83,6 +84,7 @@ let state: YourPeopleState = {
 };
 
 let panelContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let previouslyFocusedElement: HTMLElement | null = null;
 
 // ============================================================================
@@ -782,7 +784,7 @@ function renderHeader(): string {
           <div class="yp-eyebrow" id="yp-desc">${t('yourPeople.section')}</div>
           <h2 class="yp-title" id="yp-title">${t('yourPeople.title')}</h2>
         </div>
-        <div class="yp-header-actions" role="button" tabindex="0">
+        <div class="yp-header-actions">
           <button class="yp-action-btn" id="yp-insights-btn" aria-label="${t('accessibility.viewRelationshipInsights')}" title="${t('yourPeople.insights')}">${ICONS.chart}</button>
           <button class="yp-close" aria-label="${t('accessibility.close')}">${ICONS.close}</button>
         </div>
@@ -801,13 +803,13 @@ function renderHeader(): string {
       </div>
 
       <div class="yp-filters">
-        <button aria-label="${t('accessibility.all')}" class="yp-filter ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">
+        <button class="yp-filter ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">
           ${t('yourPeople.filterAll')}
         </button>
-        <button aria-label="${t('accessibility.needsAttention')}" class="yp-filter ${state.activeFilter === 'attention' ? 'active' : ''}" data-filter="attention">
+        <button class="yp-filter ${state.activeFilter === 'attention' ? 'active' : ''}" data-filter="attention">
           ${t('yourPeople.filterAttention')}
         </button>
-        <button aria-label="${t('accessibility.recent')}" class="yp-filter ${state.activeFilter === 'recent' ? 'active' : ''}" data-filter="recent">
+        <button class="yp-filter ${state.activeFilter === 'recent' ? 'active' : ''}" data-filter="recent">
           ${t('yourPeople.filterRecent')}
         </button>
       </div>
@@ -897,10 +899,10 @@ function renderPeopleList(): string {
             <div class="yp-empty-title">${t('yourPeople.emptyTitle')}</div>
             <p class="yp-empty-text">${t('yourPeople.emptyDescription')}</p>
           </div>
-          <button aria-label="${t('accessibility.add')}" class="yp-add-btn" data-action="add-person">
+          <button class="yp-add-btn" data-action="add-person">
             ${ICONS.plus} ${t('yourPeople.addSomeone')}
           </button>
-          <button aria-label="${t('accessibility.upload')}" class="yp-add-btn yp-import-btn" data-action="import-contacts" style="margin-top: var(--space-2);">
+          <button class="yp-add-btn yp-import-btn" data-action="import-contacts" style="margin-top: var(--space-2);">
             ${ICONS.upload} ${t('yourPeople.importFromGoogleCsv')}
           </button>
         </div>
@@ -930,11 +932,11 @@ function renderPeopleList(): string {
   }
 
   html += `
-    <div class="yp-section yp-action-buttons" role="button" tabindex="0">
-      <button aria-label="${t('accessibility.add')}" class="yp-add-btn" data-action="add-person">
+    <div class="yp-section yp-action-buttons">
+      <button class="yp-add-btn" data-action="add-person">
         ${ICONS.plus} ${t('yourPeople.addSomeone')}
       </button>
-      <button aria-label="${t('accessibility.upload')}" class="yp-add-btn yp-secondary-btn" data-action="import-contacts">
+      <button class="yp-add-btn yp-secondary-btn" data-action="import-contacts">
         ${ICONS.upload} ${t('yourPeople.importContacts')}
       </button>
     </div>
@@ -1003,7 +1005,7 @@ function renderError(): string {
     <div class="yp-error">
       <div class="yp-error-icon">${ICONS.alertCircle}</div>
       <div class="yp-error-message">${escapeHtml(state.error ?? t('common.error'))}</div>
-      <button class="yp-error-retry" aria-label="${t('accessibility.retry')}">${t('common.retry')}</button>
+      <button class="yp-error-retry">${t('common.retry')}</button>
     </div>
   `;
 }
@@ -1110,14 +1112,10 @@ function bindEvents(): void {
   });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (panelContainer) releaseEscape = closeOnEscape(panelContainer, () => state.isOpen, closeYourPeople);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeYourPeople();
-  }
-}
 
 function openPersonCard(contactId: string): void {
   // Close this panel and open relationship card
@@ -1297,7 +1295,7 @@ export async function openYourPeople(): Promise<void> {
 export function closeYourPeople(): void {
   if (!state.isOpen || !panelContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
   
   panelContainer.classList.remove('open');
   
@@ -1325,12 +1323,7 @@ function cleanupOrphanedPanels(): void {
 // ============================================================================
 
 export function initYourPeopleUI(): void {
-  // Listen for open events
-  document.addEventListener('ferni:open-your-people', () => {
-    openYourPeople();
-  });
-
-  // Also support old event name for backward compatibility
+  // ferni:open-contacts is the one open event (voice show_view 'contacts', app.ts, command palette)
   document.addEventListener('ferni:open-contacts', () => {
     openYourPeople();
   });

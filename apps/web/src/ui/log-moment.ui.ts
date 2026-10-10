@@ -17,6 +17,7 @@ import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('LogMomentUI');
 
@@ -100,6 +101,7 @@ let state: LogMomentState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSuccess?: (data: LogMomentData) => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -667,13 +669,13 @@ function render(): void {
       <div class="lm-section">
         <label class="lm-label">${t('logMoment.whoInitiated')}</label>
         <div class="lm-directions">
-          <button aria-label="${t('accessibility.moveUp')}" class="lm-direction ${state.direction === 'outbound' ? 'selected' : ''}" data-direction="outbound">
+          <button class="lm-direction ${state.direction === 'outbound' ? 'selected' : ''}" data-direction="outbound">
             ${ICONS.arrowUp} ${t('logMoment.youReachedOut')}
           </button>
-          <button aria-label="${t('accessibility.moveDown')}" class="lm-direction ${state.direction === 'inbound' ? 'selected' : ''}" data-direction="inbound">
+          <button class="lm-direction ${state.direction === 'inbound' ? 'selected' : ''}" data-direction="inbound">
             ${ICONS.arrowDown} ${t('logMoment.theyReachedOut')}
           </button>
-          <button aria-label="${t('accessibility.together')}" class="lm-direction ${state.direction === 'mutual' ? 'selected' : ''}" data-direction="mutual">
+          <button class="lm-direction ${state.direction === 'mutual' ? 'selected' : ''}" data-direction="mutual">
             ${ICONS.arrowsUpDown} ${t('logMoment.together')}
           </button>
         </div>
@@ -700,7 +702,7 @@ function render(): void {
       
       <!-- Advanced Options Toggle -->
       <div class="lm-section">
-        <button aria-label="${t('accessibility.moveDown')}" class="lm-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-toggle">
+        <button class="lm-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="lm-advanced-toggle">
           ${t('logMoment.moreOptions')} ${ICONS.chevronDown}
         </button>
 
@@ -709,13 +711,13 @@ function render(): void {
           <div style="margin-bottom: var(--space-4, 1rem);">
             <label class="lm-label">${t('logMoment.howDidItFeel')}</label>
             <div class="lm-sentiments">
-              <button aria-label="${t('accessibility.great')}" class="lm-sentiment positive ${state.sentiment === 'positive' ? 'selected' : ''}" data-sentiment="positive">
+              <button class="lm-sentiment positive ${state.sentiment === 'positive' ? 'selected' : ''}" data-sentiment="positive">
                 ${t('logMoment.great')}
               </button>
-              <button aria-label="${t('accessibility.okay')}" class="lm-sentiment neutral ${state.sentiment === 'neutral' ? 'selected' : ''}" data-sentiment="neutral">
+              <button class="lm-sentiment neutral ${state.sentiment === 'neutral' ? 'selected' : ''}" data-sentiment="neutral">
                 ${t('logMoment.okay')}
               </button>
-              <button aria-label="${t('accessibility.tough')}" class="lm-sentiment negative ${state.sentiment === 'negative' ? 'selected' : ''}" data-sentiment="negative">
+              <button class="lm-sentiment negative ${state.sentiment === 'negative' ? 'selected' : ''}" data-sentiment="negative">
                 ${t('logMoment.tough')}
               </button>
             </div>
@@ -737,8 +739,8 @@ function render(): void {
     </div>
 
     <div class="lm-footer">
-      <button aria-label="${t('accessibility.cancel')}" class="lm-btn lm-btn-secondary" id="lm-cancel">${t('logMoment.cancel')}</button>
-      <button aria-label="${t('accessibility.submit')}" class="lm-btn lm-btn-primary" id="lm-save" ${state.isSubmitting ? 'disabled' : ''}>
+      <button class="lm-btn lm-btn-secondary" id="lm-cancel">${t('logMoment.cancel')}</button>
+      <button class="lm-btn lm-btn-primary" id="lm-save" ${state.isSubmitting ? 'disabled' : ''}>
         ${state.isSubmitting ? t('common.saving') : t('logMoment.saveMoment')}
       </button>
     </div>
@@ -815,14 +817,10 @@ function bindEvents(): void {
   modalContainer.querySelector('#lm-save')?.addEventListener('click', () => { void handleSave(); });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeLogMoment);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeLogMoment();
-  }
-}
 
 // ============================================================================
 // SAVE HANDLER
@@ -960,7 +958,7 @@ export function openLogMoment(options: LogMomentOptions): void {
 export function closeLogMoment(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 

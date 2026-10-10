@@ -417,15 +417,15 @@ export function renderSeedsSettingsCard(): string {
       }
 
       <div class="seeds-actions" role="group" tabindex="0">
-        <button aria-label="${t('accessibility.myGarden')}" class="seeds-action-btn seeds-action-btn--primary" data-action="garden">
+        <button class="seeds-action-btn seeds-action-btn--primary" data-action="garden">
           ${ICONS.seedling}
           <span>${t('seedsDisplay.myGarden')}</span>
         </button>
-        <button aria-label="${t('accessibility.shareSeedsWithFriends')}" class="seeds-action-btn" data-action="gift">
+        <button class="seeds-action-btn" data-action="gift">
           ${ICONS.gift}
           <span>${t('common.share')}</span>
         </button>
-        <button aria-label="${t('accessibility.bringAFriendToFerni')}" class="seeds-action-btn" data-action="invite">
+        <button class="seeds-action-btn" data-action="invite">
           ${ICONS.share}
           <span>${t('seedsDisplay.bringAFriend')}</span>
         </button>
@@ -512,7 +512,7 @@ function bindActionHandlers(): void {
   if (gardenBtn && !gardenBtn.hasAttribute('data-bound')) {
     gardenBtn.setAttribute('data-bound', 'true');
     gardenBtn.addEventListener('click', () => {
-      openGardenDashboard();
+      void openGardenDashboard();
     });
   }
 
@@ -530,7 +530,7 @@ function bindActionHandlers(): void {
   if (inviteBtn && !inviteBtn.hasAttribute('data-bound')) {
     inviteBtn.setAttribute('data-bound', 'true');
     inviteBtn.addEventListener('click', () => {
-      openReferral();
+      void openReferral();
     });
   }
 }

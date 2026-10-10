@@ -21,6 +21,7 @@ import {
 } from './barge-in-fastpath.js';
 import { createTurnKeeper } from './turn-keeper.js';
 import { installUnfinishedTurnHold } from './unfinished-turn.js';
+import { turnDetectorMode } from '../shared/turn-patience.js';
 
 const log = getLogger();
 
@@ -134,8 +135,16 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     cleanupFunctions.push(() => keeper.stop());
   }
 
-  // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off).
-  installUnfinishedTurnHold(session);
+  // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). With the
+  // end-of-turn model on, the model decides and a second hold would only stack delay.
+  if (turnDetectorMode() === 'off') installUnfinishedTurnHold(session);
+  else
+    session.on(voice.AgentSessionEventTypes.EotPrediction, (ev) =>
+      log.info(
+        { probability: ev.probability, threshold: ev.threshold, delayMs: ev.delayMs, inferenceMs: ev.inferenceDurationMs },
+        'EOT_PREDICTION'
+      )
+    );
   // One backchannel list for the patched LiveKit and the barge-in fast path.
   installBackchannelHook();
 

@@ -253,8 +253,7 @@ export class GoogleEmbeddings extends EmbeddingProvider {
     // Derive dimensions from the configured model rather than hardcoding the
     // default model's 3072: text-embedding-004/005 and gecko are 768-d, and
     // returning 3072 for them broke dimension validation downstream.
-    this._dimensions =
-      config?.dimensions ?? getModelDimensions(this._model) ?? 3072;
+    this._dimensions = config?.dimensions ?? getModelDimensions(this._model) ?? 3072;
     // Use explicit apiKey if provided (even empty string), otherwise fall back to env var
     this.apiKey = config?.apiKey !== undefined ? config.apiKey : process.env.GOOGLE_API_KEY || '';
 
@@ -445,30 +444,26 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
       const validResults: number[][] = [];
 
       for (const text of validTexts) {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            instances: [{ content: text }],
-            parameters: { autoTruncate: true },
-          }),
+        const body = JSON.stringify({
+          instances: [{ content: text }],
+          parameters: { autoTruncate: true },
         });
-
+        const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+        let response = await fetch(url, { method: 'POST', headers, body });
+        // 429 is the per-minute quota (dev, 2026-10-10: one per eval run): back off twice.
+        for (let wait = 500; response.status === 429 && wait <= 1000; wait *= 2) {
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, wait);
+          });
+          response = await fetch(url, { method: 'POST', headers, body });
+        }
         if (!response.ok) {
           const error = await response.text();
           throw new Error(`Vertex AI API error: ${response.status} - ${error}`);
         }
 
         const data = (await response.json()) as {
-          predictions: Array<{
-            embeddings: {
-              values: number[];
-              statistics: { truncated: boolean; token_count: number };
-            };
-          }>;
+          predictions: Array<{ embeddings: { values: number[] } }>;
         };
 
         validResults.push(data.predictions[0].embeddings.values);

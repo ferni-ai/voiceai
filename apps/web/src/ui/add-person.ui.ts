@@ -19,6 +19,7 @@ import { apiFetch } from '../utils/api-helpers.js';
 import { shouldUseDemoData } from '../utils/environment.js';
 import { addMockContact } from '../data/mock-contacts.js';
 import { t } from '../i18n/index.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('AddPersonUI');
 
@@ -80,6 +81,7 @@ let state: AddPersonState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSuccess?: (data: AddPersonData & { id: string }) => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -541,7 +543,7 @@ function render(): void {
       
       <!-- Advanced Options -->
       <div class="ap-section">
-        <button aria-label="${t('accessibility.expandGarden')}" class="ap-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="ap-advanced-toggle">
+        <button class="ap-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="ap-advanced-toggle">
           ${t('addPerson.addMoreDetails')} ${ICONS.chevronDown}
         </button>
         
@@ -577,7 +579,7 @@ function render(): void {
     
     <div class="ap-footer">
       <button aria-label="${t('common.cancel')}" class="ap-btn ap-btn-secondary" id="ap-cancel">${t('common.cancel')}</button>
-      <button aria-label="${t('common.save')}" class="ap-btn ap-btn-primary" id="ap-save" ${state.isSubmitting || !state.name.trim() ? 'disabled' : ''}>
+      <button class="ap-btn ap-btn-primary" id="ap-save" ${state.isSubmitting || !state.name.trim() ? 'disabled' : ''}>
         ${state.isSubmitting ? t('addPerson.adding') : t('addPerson.addPerson')}
       </button>
     </div>
@@ -641,17 +643,13 @@ function bindEvents(): void {
   modalContainer.querySelector('#ap-save')?.addEventListener('click', () => { void handleSave(); });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeAddPerson);
 
   // Focus name input
   nameInput?.focus();
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeAddPerson();
-  }
-}
 
 // ============================================================================
 // SAVE HANDLER
@@ -839,20 +837,18 @@ export function openAddPerson(options?: AddPersonOptions): void {
  * Close the Add Person modal
  */
 export function closeAddPerson(): void {
-  if (!modalContainer) return;
-
-  document.removeEventListener('keydown', handleEscapeKey);
-
-  modalContainer.classList.remove('open');
-
+  // Let go of this modal now: adding another person right away opens a fresh one, and a
+  // timer that read modalContainer when it fired removed that new one and kept this one
+  const closing = modalContainer;
+  if (!closing) return;
+  modalContainer = null;
+  const { onClose } = callbacks;
+  callbacks = {};
+  releaseEscape?.();
+  closing.classList.remove('open');
   setTimeout(() => {
-    modalContainer?.remove();
-    modalContainer = null;
-    
-    if (callbacks.onClose) {
-      callbacks.onClose();
-    }
-    callbacks = {};
+    closing.remove();
+    onClose?.();
   }, DURATION.NORMAL);
 
   state.isOpen = false;

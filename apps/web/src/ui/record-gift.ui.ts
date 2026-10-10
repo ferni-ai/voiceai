@@ -17,6 +17,7 @@ import { toast } from './whisper.ui.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('RecordGiftUI');
 
@@ -43,6 +44,7 @@ export type GiftReaction = 'loved' | 'liked' | 'neutral' | 'disliked';
 
 export interface RecordGiftData {
   contactId: string;
+  contactName: string;
   direction: 'given' | 'received';
   item: string;
   description?: string;
@@ -103,6 +105,7 @@ let state: RecordGiftState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: { onSuccess?: (data: RecordGiftData) => void; onClose?: () => void } = {};
 
 // ============================================================================
@@ -607,11 +610,11 @@ function render(): void {
       <!-- Direction Selector -->
       <div class="rg-section">
         <div class="rg-directions">
-          <button aria-label="${t('accessibility.youGave')}" class="rg-direction ${state.direction === 'given' ? 'selected' : ''}" data-direction="given">
+          <button class="rg-direction ${state.direction === 'given' ? 'selected' : ''}" data-direction="given">
             <span class="rg-direction-icon">${ICONS.send}</span>
             <span class="rg-direction-label">${t('recordGift.youGave')}</span>
           </button>
-          <button aria-label="${t('accessibility.youReceived')}" class="rg-direction ${state.direction === 'received' ? 'selected' : ''}" data-direction="received">
+          <button class="rg-direction ${state.direction === 'received' ? 'selected' : ''}" data-direction="received">
             <span class="rg-direction-icon">${ICONS.inbox}</span>
             <span class="rg-direction-label">${t('recordGift.youReceived')}</span>
           </button>
@@ -652,19 +655,19 @@ function render(): void {
         <div class="rg-section">
           <label class="rg-label">${t('recordGift.howDidTheyReact')}</label>
           <div class="rg-reactions" role="button" tabindex="0">
-            <button aria-label="${t('accessibility.lovedIt')}" class="rg-reaction ${state.reaction === 'loved' ? 'selected' : ''}" data-reaction="loved">
+            <button class="rg-reaction ${state.reaction === 'loved' ? 'selected' : ''}" data-reaction="loved">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.heart}</span>
               <span class="rg-reaction-label" role="button" tabindex="0">${t('recordGift.lovedIt')}</span>
             </button>
-            <button aria-label="${t('accessibility.likedIt')}" class="rg-reaction ${state.reaction === 'liked' ? 'selected' : ''}" data-reaction="liked">
+            <button class="rg-reaction ${state.reaction === 'liked' ? 'selected' : ''}" data-reaction="liked">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.thumbsUp}</span>
               <span class="rg-reaction-label" role="button" tabindex="0">${t('recordGift.likedIt')}</span>
             </button>
-            <button aria-label="${t('accessibility.meh')}" class="rg-reaction ${state.reaction === 'neutral' ? 'selected' : ''}" data-reaction="neutral">
+            <button class="rg-reaction ${state.reaction === 'neutral' ? 'selected' : ''}" data-reaction="neutral">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.meh}</span>
               <span class="rg-reaction-label" role="button" tabindex="0">${t('recordGift.meh')}</span>
             </button>
-            <button aria-label="${t('accessibility.nope')}" class="rg-reaction ${state.reaction === 'disliked' ? 'selected' : ''}" data-reaction="disliked">
+            <button class="rg-reaction ${state.reaction === 'disliked' ? 'selected' : ''}" data-reaction="disliked">
               <span class="rg-reaction-icon" role="button" tabindex="0">${ICONS.thumbsDown}</span>
               <span class="rg-reaction-label" role="button" tabindex="0">${t('recordGift.nope')}</span>
             </button>
@@ -674,7 +677,7 @@ function render(): void {
       
       <!-- Advanced Options -->
       <div class="rg-section">
-        <button aria-label="${t('accessibility.moveDown')}" class="rg-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="rg-advanced-toggle">
+        <button class="rg-advanced-toggle ${state.showAdvanced ? 'open' : ''}" id="rg-advanced-toggle">
           ${t('recordGift.moreDetails')} ${ICONS.chevronDown}
         </button>
 
@@ -693,8 +696,8 @@ function render(): void {
     </div>
 
     <div class="rg-footer">
-      <button aria-label="${t('accessibility.cancel')}" class="rg-btn rg-btn-secondary" id="rg-cancel">${t('recordGift.cancel')}</button>
-      <button aria-label="${t('accessibility.submit')}" class="rg-btn rg-btn-primary" id="rg-save" ${state.isSubmitting || !state.item.trim() ? 'disabled' : ''}>
+      <button class="rg-btn rg-btn-secondary" id="rg-cancel">${t('recordGift.cancel')}</button>
+      <button class="rg-btn rg-btn-primary" id="rg-save" ${state.isSubmitting || !state.item.trim() ? 'disabled' : ''}>
         ${state.isSubmitting ? t('common.saving') : t('recordGift.saveGift')}
       </button>
     </div>
@@ -774,14 +777,10 @@ function bindEvents(): void {
   modalContainer.querySelector('#rg-save')?.addEventListener('click', () => { void handleSave(); });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeRecordGift);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeRecordGift();
-  }
-}
 
 // ============================================================================
 // SAVE HANDLER
@@ -796,15 +795,14 @@ async function handleSave(): Promise<void> {
   try {
     const data: RecordGiftData = {
       contactId: state.contactId,
+      contactName: state.contactName,
       direction: state.direction,
       item: state.item.trim(),
       occasion: (state.occasion === 'other' ? state.customOccasion.trim() || 'other' : state.occasion) as GiftOccasion,
       date: state.date,
     };
 
-    if (state.price) {
-      data.price = parseFloat(state.price);
-    }
+    if (state.price) data.price = parseFloat(state.price);
 
     if (state.reaction) {
       data.reaction = state.reaction;
@@ -829,8 +827,7 @@ async function handleSave(): Promise<void> {
       
       closeRecordGift();
     } else {
-      const error = await response.json().catch(() => ({ error: '' }));
-      toast.error(error.error || t('toasts.couldNotSaveGift'));
+      toast.error(t('toasts.couldNotSaveGift')); // not the server's English error text
       state.isSubmitting = false;
       render();
     }
@@ -916,7 +913,7 @@ export function openRecordGift(options: RecordGiftOptions): void {
 export function closeRecordGift(): void {
   if (!modalContainer) return;
 
-  document.removeEventListener('keydown', handleEscapeKey);
+  releaseEscape?.();
 
   modalContainer.classList.remove('open');
 

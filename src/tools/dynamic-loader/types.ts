@@ -15,7 +15,13 @@ export interface DynamicLoaderConfig {
   essentialDomains: ToolDomain[];
   /** How long (ms) before unloading inactive domains */
   unloadAfterMs: number;
-  /** Maximum domains to have loaded at once (excluding essential) */
+  /**
+   * Maximum domains loaded at once, essential ones included. With 12 essential
+   * domains and the default of 10, each topic load evicts the previous topic
+   * domain. That is what lets a topic raised again reload and re-offer its
+   * tools after later domains pushed them out of the agent's capped tool set;
+   * counting only topic domains would leave it "loaded" with its tools gone.
+   */
   maxLoadedDomains: number;
   /** Enable automatic unloading */
   enableAutoUnload: boolean;

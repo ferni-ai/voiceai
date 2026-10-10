@@ -186,7 +186,7 @@ function renderModalContent(): void {
         <label class="gift-seeds-label">${t('giftSeeds.amount', 'Amount')}</label>
         <div class="gift-seeds-tiers">
           ${GIFT_TIERS.map(tier => `
-            <button aria-label="${t('accessibility.goForward')}" 
+            <button aria-label="${t('giftSeeds.exchange', { sent: tier.amount, received: tier.receive })}" aria-pressed="${tier.amount === selectedAmount}" 
               class="gift-seeds-tier ${tier.amount === selectedAmount ? 'gift-seeds-tier--selected' : ''} ${balance < tier.amount ? 'gift-seeds-tier--disabled' : ''}"
               data-amount="${tier.amount}"
               ${balance < tier.amount ? 'disabled' : ''}
@@ -216,7 +216,7 @@ function renderModalContent(): void {
       </div>
 
       <!-- Send Button -->
-      <button aria-label="${t('accessibility.sendGift')}" 
+      <button 
         class="gift-seeds-send ${!canAfford || !recipientId ? 'gift-seeds-send--disabled' : ''}"
         ${!canAfford || !recipientId ? 'disabled' : ''}
       >

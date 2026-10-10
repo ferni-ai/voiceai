@@ -25,6 +25,7 @@ import {
   type CustomAgent,
 } from '../services/custom-agent.service.js';
 import { apiPost } from '../utils/api.js';
+import { applyChatFraming, replyFromAgent, talksAsPastSelf } from '../services/custom-agent-chat.js';
 
 const log = createLogger('TalkToTwinUI');
 
@@ -89,6 +90,7 @@ let currentAgent: CustomAgent | null = null;
 let messages: Message[] = [];
 let isThinking = false;
 let twinContext: TwinContext | null = null;
+let scene = ''; // roleplay, coaching or task context for an agent that isn't a twin
 
 // ============================================================================
 // INITIALIZATION
@@ -103,7 +105,7 @@ function ensureModalExists(): HTMLElement {
   twinModal = document.createElement('div');
   twinModal.className = 'talk-twin-overlay';
   twinModal.innerHTML = `
-    <div class="twin-backdrop" data-action="close" role="button" tabindex="0"></div>
+    <div class="twin-backdrop" data-action="close"></div>
     <div class="twin-container" role="dialog" aria-modal="true" aria-labelledby="twin-title">
       <header class="twin-header">
         <div class="twin-identity">
@@ -183,12 +185,13 @@ export async function openTalkToTwin(agentId: string, initialPrompt?: string): P
 
     currentAgent = agent;
     messages = [];
+    applyChatFraming(modal, agent);
+    scene = talksAsPastSelf(agent) ? '' : (initialPrompt ?? '');
 
     // Build context from profile and journals
     await buildTwinContext(agent);
 
-    // Add welcome message from twin
-    addTwinWelcome();
+    if (talksAsPastSelf(agent)) addTwinWelcome(); // another agent opens its scene itself, below
 
     renderMessages();
 
@@ -201,8 +204,9 @@ export async function openTalkToTwin(agentId: string, initialPrompt?: string): P
 
     soundUI.play('switch');
 
-    // If an initial prompt was provided (from coaching/roleplay/task mode), send it
-    if (initialPrompt) {
+    if (scene) void sendMessage(''); // the agent opens the scene; it isn't the person's message
+    // A twin gets the initial prompt (coaching, roleplay, task mode) as a message
+    if (initialPrompt && talksAsPastSelf(agent)) {
       // Small delay to let the UI settle
       setTimeout(() => {
         const input = twinModal?.querySelector('#twin-input') as HTMLTextAreaElement;
@@ -354,27 +358,26 @@ function addMessage(role: Message['role'], content: string, idOffset = 0): void 
 }
 
 async function handleSendMessage(): Promise<void> {
-  if (isThinking || !currentAgent || !twinContext) return;
-
   const input = twinModal?.querySelector('#twin-input') as HTMLTextAreaElement;
   const userMessage = input?.value.trim();
-
-  if (!userMessage) return;
-
-  // Add user message
-  addMessage('user', userMessage);
-
-  // Clear input
+  if (!userMessage || isThinking) return;
   input.value = '';
   input.style.height = 'auto';
+  await sendMessage(userMessage);
+}
 
-  // Show thinking state
+/** Send what the person said ('' only asks an agent to open its scene) and add the reply */
+async function sendMessage(userMessage: string): Promise<void> {
+  if (isThinking || !currentAgent || !twinContext) return;
+  const earlier = [...messages];
+  if (userMessage) addMessage('user', userMessage);
   isThinking = true;
   renderMessages();
 
   try {
-    // Generate twin response
-    const response = await generateTwinResponse(userMessage, twinContext);
+    const response = talksAsPastSelf(currentAgent)
+      ? await generateTwinResponse(userMessage, twinContext)
+      : await replyFromAgent(currentAgent.id, earlier, userMessage, scene);
 
     // Add twin response
     addMessage('twin', response, 1);
@@ -398,9 +401,6 @@ async function handleSendMessage(): Promise<void> {
 async function generateTwinResponse(userMessage: string, context: TwinContext): Promise<string> {
   // Build system prompt from profile
   const { profile, recentJournals, keyThemes } = context;
-
-  // For now, we'll use a local generation approach
-  // In production, this would call an LLM API
 
   // Find relevant journal entries
   const relevantJournals = findRelevantJournals(userMessage, recentJournals);

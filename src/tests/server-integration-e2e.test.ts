@@ -391,10 +391,8 @@ describe('UI Server Integration', () => {
         return;
       }
 
-      // No /calendar/events route, so 404 once past the identity check. That check
-      // still takes ?userId as identity on GET (helpers.getUserId); once it stops,
-      // this is 401. Never 200.
-      expect([401, 404]).toContain(response.status);
+      // No token: the ?userId= names someone, but that is not an identity.
+      expect(response.status).toBe(401);
     });
   });
 
@@ -694,10 +692,9 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      // KNOWN GAP: login is not bound to a verified caller the way #219 bound
-      // Google, so anyone can link a Spotify account to any device_id. This should
-      // be 401 (start at POST /auth/oauth/start). 503 when Spotify is not configured.
-      expect([302, 503]).toContain(response.status);
+      // A link must start at POST /auth/oauth/start (bound state); a bare
+      // device_id is refused. 503 when Spotify isn't configured.
+      expect([401, 503]).toContain(response.status);
     });
 
     it('should handle /spotify/token', async () => {
@@ -708,9 +705,8 @@ describe('Token Server Integration', () => {
         return;
       }
 
-      // KNOWN GAP: with no device_id this hands the server's own Spotify access token
-      // to any caller (200), or 500 when that token cannot be refreshed. Should be 401.
-      expect([200, 500]).toContain(response.status);
+      // The server's own Spotify token: admins only, never an anonymous caller.
+      expect([401]).toContain(response.status);
     });
   });
 

@@ -8,8 +8,10 @@
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
 // sound hyped ("too happy to start the call", founder test, 2026-09-29).
+// "Did you end up figuring that out?" opened a returning call with nothing to
+// pin "that" to (dev, 2026-10-09): a callback must name the thing.
 export const GREETING_DIRECTION =
-  'They just called you. Answer like you would a friend calling: relaxed and low-key, one short sentence, maybe a quick easy question. No exclamation marks, no "so good to hear your voice", no cheer, do not list what you can do or introduce yourself. If they have called before, you may pick up from last time in a few words, the way a friend would, but only if it was light: never open on something painful.';
+  'They just called you. Answer like you would a friend calling: relaxed and low-key, one short sentence, maybe a quick easy question. No exclamation marks, no "so good to hear your voice", no cheer, do not list what you can do or introduce yourself. If they have called before, you may pick up from last time in a few words, the way a friend would, but only if it was light: never open on something painful. Name the actual thing ("how did the interview go?"), never a vague callback ("did you figure that out?"); if you are not told what you talked about, do not refer back.';
 
 /** The "time of day" fact for an hour of the day (0-23). */
 export function partOfDayFor(hour: number): string {

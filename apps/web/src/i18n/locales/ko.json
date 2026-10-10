@@ -2438,7 +2438,8 @@
       "devices": "기기",
       "features": "Ferni가 확인할 수 있는 정보"
     },
-    "title": "웨어러블"
+    "title": "웨어러블",
+    "notConfigured": "아직 준비되지 않았어요"
   },
   "transcript": {
     "enabled": "텍스트 변환 켜짐",
@@ -2975,7 +2976,8 @@
     "noEmailTitle": "이메일 주소가 필요해요",
     "noEmailMessage": "이 계정에는 등록된 이메일 주소가 없어요. 이메일 주소가 있는 계정으로 로그인해 주세요.",
     "checkFailedTitle": "접속 권한을 확인하지 못했어요",
-    "checkFailedMessage": "저희 쪽에 잠시 문제가 생긴 것 같아요. 잠시 후 다시 시도해 주세요."
+    "checkFailedMessage": "저희 쪽에 잠시 문제가 생긴 것 같아요. 잠시 후 다시 시도해 주세요.",
+    "signOutFailed": "로그아웃하지 못했어요. 다시 시도해 주세요."
   },
   "visualizations": {
     "lifeSeasons": "당신의 인생 계절",
@@ -3494,7 +3496,8 @@
       "load": "가족 정보를 불러오지 못했어요. 다시 시도해 볼까요?",
       "add": "추가하지 못했어요. 다시 시도해 볼까요?",
       "save": "저장하지 못했어요. 다시 시도해 볼까요?",
-      "remove": "삭제하지 못했어요. 다시 시도해 볼까요?"
+      "remove": "삭제하지 못했어요. 다시 시도해 볼까요?",
+      "phoneInUse": "이 번호는 이미 다른 사람에게 등록되어 있어요."
     },
     "calls": {
       "other": "통화 {count}회",
@@ -3650,6 +3653,7 @@
     },
     "errorClipboard": "복사하지 못했어요. 다시 시도해 볼까요?",
     "copyError": "복사하지 못했어요. 다시 시도해 볼까요?",
+    "linkUnavailable": "지금은 링크를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
     "bonusAmount": "두 분 모두에게 씨앗 {seeds}개를 드려요",
     "bonusWhen": "가입할 때 드려요!",
     "garden": {
@@ -5906,6 +5910,7 @@
     "freeTimeHours": "{hours}시간 여유",
     "backToBackMeetings": "연속된 회의",
     "markComplete": "{text} 완료로 표시",
+    "intentionNotSaved": "저장하지 못했어요. 다시 시도해 주세요.",
     "followThrough": "실천율",
     "habitsThisWeek": "이번 주 습관",
     "momentum": "추진력",
@@ -5928,8 +5933,6 @@
     "reflectAndCelebrate": "돌아보고 축하하기",
     "newBeginning": "새로운 시작",
     "recharge": "충전하기",
-    "alexNoted": "Alex의 메모",
-    "partnerLovesPresence": "파트너분은 당신이 온전히 곁에 있어 줄 때 정말 좋아해요",
     "jordanSuggests": "Jordan의 제안",
     "setClearIntention": "참석하기 전에 명확한 의도를 세워보세요",
     "mayaNoticesLabel": "Maya의 발견",
@@ -5944,9 +5947,6 @@
     "manyMeetingsNotice": "요즘 회의가 정말 많으셨네요. 가장 멋진 생각은 조용한 공간에서 피어난답니다.",
     "busiestDayPacked": "{day} 일정이 꽉 차 보여요. 몇 가지는 {lightDay}(으)로 옮겨보면 어떨까요?",
     "anotherDay": "다른 날",
-    "wisdomMornings": "아침을 어떻게 시작하느냐가 하루 전체의 분위기를 좌우하곤 해요.",
-    "wisdomFocusTime": "집중 시간을 미리 확보해 두면, 할 수 있는 일이 40%나 늘어나요.",
-    "wisdomWalks": "산책을 하고 난 후에 창의력이 가장 샘솟는 것 같아요.",
     "insightBalanced": "캘린더가 균형 있게 잘 짜여 있어요.",
     "insightNeedsAttention": "캘린더를 한번 살펴볼 필요가 있겠어요.",
     "insightAdjustments": "일정을 조금 조정해 보면 도움이 될 거예요.",
@@ -8096,6 +8096,12 @@
         "enter": "도착할 때",
         "exit": "떠날 때",
         "both": "둘 다"
+      },
+      "calendar": {
+        "start": "일정이 시작될 때",
+        "when": "이럴 때 시작해요...",
+        "end": "일정이 끝날 때",
+        "reminder": "일정 직전에"
       }
     },
     "actions": {
@@ -8130,7 +8136,11 @@
       "title": "제가 무엇을 도와드릴까요?"
     },
     "defaultMessage": "좋은 아침이에요! 오늘 하루도 활기차게 시작해 볼까요?",
-    "trackHabit": "기록: {habit}"
+    "trackHabit": "기록: {habit}",
+    "errors": {
+      "signInRequired": "루틴을 저장하려면 로그인해 주세요",
+      "saveFailed": "저장할 수 없었어요. 다시 시도해 보시겠어요?"
+    }
   },
   "easterEggs": {
     "achievements": {
@@ -8326,6 +8336,7 @@
     "autoResolveAll": "모두 자동 해결",
     "ferniCalendar": "Ferni 캘린더",
     "keepFerni": "Ferni 버전 유지",
+    "keepProvider": "{provider} 버전 유지",
     "dismiss": "닫기",
     "resolving": "해결하는 중..."
   },
@@ -9018,6 +9029,8 @@
     "dontRemind": "알림 끄기",
     "repeatsYearly": "매년 반복",
     "cancel": "취소",
+    "add": "추가",
+    "update": "업데이트",
     "noDateYet": "아직 등록된 중요한 날이 없어요.",
     "noDateDesc": "생일이나 기념일 등을 추가해 보세요.",
     "typeBirthday": "생일",
@@ -9143,6 +9156,7 @@
     "tierReqGardener": "친구 3~5명",
     "tierReqGroveKeeper": "친구 6~10명",
     "tierReqForestGuardian": "친구 11명 이상",
+    "loadFailed": "지금은 정원을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
     "inviteFriends": "친구 초대하기",
     "emptyTitle": "정원이 자라나기를 기다리고 있어요!",
     "emptyHint": "친구에게 Ferni를 공유하면 두 분 모두에게 씨앗 25개를 드려요.",
@@ -9353,6 +9367,7 @@
     "eyebrow": "당신의 여정",
     "title": "Ferni와 함께한 1년",
     "subtitle": "{conversations}. {minutes}. 수많은 성장의 순간들.",
+    "subtitleNoMinutes": "{conversations}. 수많은 성장의 순간들.",
     "statConversations": "대화",
     "statTotal": "총합",
     "statCurrentStreak": "현재 연속 기록",
@@ -9839,7 +9854,12 @@
     "topicPlaceholder": "커리어 계획, 관계에 대한 조언...",
     "startRoundtable": "라운드테이블 시작하기",
     "moderator": "진행자",
-    "expert": "전문가"
+    "expert": "전문가",
+    "roundtableStarted": "라운드테이블이 시작되었어요",
+    "roundtableEnded": "라운드테이블이 종료되었어요",
+    "calling": "{name}님에게 전화하는 중...",
+    "callNotConnected": "{name}님과 연결되지 않았어요",
+    "errorGeneric": "그룹 대화에 문제가 생겼어요. 다시 시도해 볼까요?"
   },
   "locationPrompt": {
     "weather": {
@@ -10097,7 +10117,9 @@
       "leave": "{name}을(를) 나설 때",
       "somewhere": "어딘가",
       "calendar": "캘린더 일정 전에",
-      "event": "무슨 일이 생겼을 때"
+      "event": "무슨 일이 생겼을 때",
+      "calendarStart": "캘린더 일정이 시작될 때",
+      "calendarEnd": "캘린더 일정이 끝날 때"
     },
     "status": {
       "active": "잘 챙기고 있어요",
@@ -10114,8 +10136,13 @@
     "runNow": "지금 실행",
     "signInPrompt": "로그인해서 제가 무엇을 도와드릴 수 있는지 확인해 보세요",
     "loadError": "루틴을 불러오지 못했어요",
-    "connectionsSoon": "연결된 서비스 기능이 곧 찾아옵니다...",
-    "whatIDoForYou": "제가 도와드릴 수 있는 일들"
+    "whatIDoForYou": "제가 도와드릴 수 있는 일들",
+    "connections": {
+      "connected": "연결됨",
+      "notConnected": "연결 안 됨",
+      "intro": "제가 도와드릴 때 활용할 수 있는 서비스예요.",
+      "loadError": "연결된 서비스를 불러오지 못했어요."
+    }
   },
   "voiceAuth": {
     "unknownError": "알 수 없는 오류",
@@ -10174,6 +10201,7 @@
     "nowPlaying": "지금 재생 중: {name}",
     "memoryRemoved": "기억이 삭제되었어요",
     "couldNotRemoveMemory": "기억을 삭제하지 못했어요. 다시 시도해 볼까요?",
+    "memoryNotFound": "해당 기억을 찾지 못했어요. 이미 삭제되었을 수 있어요.",
     "couldNotLoadPredictions": "예측을 불러오지 못했어요. 다시 시도해 볼까요?",
     "noPredictionsYet": "아직 예측이 없어요. Ferni와 함께 만들어 보면 여기에 나타날 거예요.",
     "preparingData": "데이터를 준비하는 중...",
@@ -10402,6 +10430,8 @@
     "switchFailedStaying": "전환에 실패했어요. {error}. {name}님과 대화를 계속할게요.",
     "switchFailed": "전환에 실패했어요. {error}",
     "rateLimited": "천천히 해주세요 - 전환은 한 번에 하나씩만 가능해요",
+    "handoffTimeout": "전환이 예상보다 오래 걸리고 있어요. 저는 계속 여기 있어요.",
+    "cameoTimeout": "게스트 등장이 길어져서 마무리했어요. 저는 계속 여기 있어요.",
     "alwaysHere": "Ferni는 언제나 곁에 있어요",
     "removedFromRoster": "로스터에서 {name}님을 제외했어요",
     "addToTeam": "내 팀에 {name}님 추가하기",
@@ -11020,5 +11050,9 @@
     "samplePattern": "\"일요일 저녁을 조금 힘들어하시는 것 같아요...\"",
     "sampleInsight": "\"이번 주에 피곤하다는 말씀을 8번 하셨어요. 이 피로감은 직장에서의 경계 세우기에 어려움을 느끼는 부분과 관련이 있어 보여요.\"",
     "sampleEvidence": "{count}번의 대화 기준"
+  },
+  "agentAcks": {
+    "gameStartFailed": "게임을 시작하지 못했어요. Ferni에게 말로 요청해 보세요.",
+    "actionFailed": "처리되지 않았어요. 이미 완료되었을 수도 있어요."
   }
 }

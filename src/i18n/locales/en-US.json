@@ -647,7 +647,6 @@
       "found": "{persona} found"
     },
     "eventContext": {
-      "family": "Your partner loves when you're fully present",
       "meeting": "Set a clear intention before joining",
       "wellness": "Taking care of yourself first",
       "learning": "Growth happens in the stretching",
@@ -693,11 +692,7 @@
     "pattern": {
       "busyWeek": "You've been in a lot of meetings lately. Your best thinking happens in the quiet spaces.",
       "packedDay": "{day} looks packed. Maybe move something to {otherDay}?",
-      "packedDayNoAlternative": "{day} looks packed. Maybe move something to another day?",
-      "morningStart": "Your morning starts tend to set the tone for the whole day.",
-      "focusTime": "When you block focus time, you accomplish 40% more.",
-      "creativeAfterWalks": "You seem most creative after your walks.",
-      "tuesdayEvenings": "Tuesday evenings have been your most productive."
+      "packedDayNoAlternative": "{day} looks packed. Maybe move something to another day?"
     },
     "errors": {
       "loadFailed": "Could not load practice view",

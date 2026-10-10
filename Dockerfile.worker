@@ -8,7 +8,7 @@
 # docker/Dockerfile.ui does (it used `npm ci` against a stale package-lock.json
 # and could never build).
 
-FROM node:20-slim
+FROM node:22-slim
 
 # curl for the healthcheck, git for git dependencies, pnpm via corepack
 RUN apt-get update && apt-get install -y --no-install-recommends curl git \

@@ -16,6 +16,7 @@ import { checkRateLimit } from '../../services/voice/voice-rate-limit.js';
 import { getRedisCache } from '../../memory/redis-cache.js';
 import { parseBody as parseBodyHelper } from '../helpers.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { isVerifiedAdmin } from '../rate-limit-identity.js';
 import {
   SECURITY_CONFIG,
   DEFAULT_SAMPLE_RATE,
@@ -212,14 +213,15 @@ export function sendJson(res: ServerResponse, status: number, data: unknown): vo
 }
 
 /**
- * Get user ID from request headers.
+ * The user a request acts for: the verified caller (x-firebase-uid, set only
+ * by bindVerifiedIdentity), or the user a verified admin names in x-user-id.
+ * A raw x-user-id is a claim; the door only rewrites it outside development.
  */
 export function getUserId(req: IncomingMessage): string | null {
-  const firebaseUid = req.headers['x-firebase-uid'] as string;
-  if (firebaseUid) {
-    return firebaseUid;
-  }
-  return (req.headers['x-user-id'] as string) || null;
+  const firebaseUid = req.headers['x-firebase-uid'];
+  if (typeof firebaseUid === 'string' && firebaseUid) return firebaseUid;
+  const named = req.headers['x-user-id'];
+  return typeof named === 'string' && named && isVerifiedAdmin(req) ? named : null;
 }
 
 /**

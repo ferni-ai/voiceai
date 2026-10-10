@@ -24,9 +24,16 @@ import {
   withoutLockedTeammateNotes,
   withTeammateAsk,
 } from '../../tools/handoff/locked-teammates.js';
+import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { modelSignals, PLAIN_SIGNALS, type TurnSignals } from './turn-extras.js';
 import { rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
+import {
+  understandingFor,
+  understandingMode,
+  understandingStatusFor,
+} from './turn-understanding.js';
 import {
   TURN_STYLE_REMINDER,
   turnStyleReminderEnabled,
@@ -103,9 +110,30 @@ function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): st
   if (!said) return TURN_STYLE_REMINDER;
   // Seeded per call and words: the preemptive and final requests agree, but
   // the same words on another call (or said again) can get another shape.
-  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`));
-  log.info({ move: turn.move, shape: turn.shape, extras: turn.extras }, 'TURN_SHAPE');
+  const { signals, source } = signalsFor(session, said);
+  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, signals);
+  // At the moment the reply is asked for: what live mode would have had (shadow too).
+  const understood = understandingStatusFor(session, said);
+  log.info(
+    { move: turn.move, shape: turn.shape, extras: turn.extras, source, understood },
+    'TURN_SHAPE'
+  );
   return turn.reminder;
+}
+
+/**
+ * TURN_UNDERSTANDING=live: the model's reading of the caller decides (plain
+ * when it has nothing for these words yet); otherwise the regexes, as before.
+ */
+export function signalsFor(
+  session: object,
+  said: string
+): { signals: TurnSignals | undefined; source: 'model' | 'plain' | 'regex' } {
+  if (understandingMode() !== 'live') return { signals: undefined, source: 'regex' };
+  const understood = understandingFor(session, said);
+  return understood
+    ? { signals: modelSignals(understood), source: 'model' }
+    : { signals: PLAIN_SIGNALS, source: 'plain' };
 }
 
 const callSeeds = new WeakMap<object, string>();
@@ -192,4 +220,34 @@ export function tapSpokenText(
       },
     })
   );
+}
+
+/**
+ * The LLM reply, reporting its first tool call to the empty-response watchdog
+ * so a tool lookup isn't mistaken for a turn with no reply (empty-response-watchdog.ts).
+ */
+export function tapToolCalls<T>(
+  reply: ReadableStream<T> | null,
+  session: object
+): ReadableStream<T> | null {
+  if (!reply) return reply;
+  let signalled = false;
+  return reply.pipeThrough(
+    new TransformStream<T, T>({
+      transform(chunk, controller) {
+        if (!signalled && hasToolCalls(chunk)) {
+          signalled = true;
+          signalToolCallRequested(session);
+        }
+        controller.enqueue(chunk);
+      },
+    })
+  );
+}
+
+/** LiveKit runs only `function_call` entries (generation.js), so only those count. */
+function hasToolCalls(chunk: unknown): boolean {
+  if (typeof chunk !== 'object') return false;
+  const delta = (chunk as { delta?: { toolCalls?: Array<{ type?: string }> } } | null)?.delta;
+  return delta?.toolCalls?.some((call) => call.type === 'function_call') ?? false;
 }

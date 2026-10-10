@@ -1,0 +1,22 @@
+name: 'Pull Docker Hub images through a mirror'
+description: >
+  Points the runner's Docker daemon at mirror.gcr.io (Google's cache of Docker Hub)
+  for docker.io pulls. Docker Hub rate-limits anonymous pulls, and a busy merge queue
+  hit it: "429 Too Many Requests" on node:20-slim bounced green PRs out of the queue.
+  Docker falls back to Docker Hub for anything the mirror lacks. GitHub-hosted runners
+  only: the self-hosted runner has no sudo and keeps its own daemon config.
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        if [ "${RUNNER_ENVIRONMENT:-}" != "github-hosted" ]; then
+          echo "Not a GitHub-hosted runner: leaving its Docker daemon as it is"
+          exit 0
+        fi
+        cfg=/etc/docker/daemon.json
+        current=$(sudo cat "$cfg" 2>/dev/null || echo '{}')
+        echo "$current" | jq '. + {"registry-mirrors": ["https://mirror.gcr.io"]}' | sudo tee "$cfg" >/dev/null
+        sudo systemctl restart docker
+        echo "Docker Hub mirror: $(docker info --format '{{json .RegistryConfig.Mirrors}}')"

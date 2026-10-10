@@ -34,6 +34,7 @@ import {
   cleanupBridgeSession,
 } from '../services/voice/livekit-phone-bridge.js';
 import { startOutboundAgent } from '../services/voice/outbound-call-agent.js';
+import { onBehalfDispatchFromStream } from '../services/outreach/on-behalf-dispatch.js';
 
 const log = createLogger({ module: 'twilio-routes' });
 
@@ -323,21 +324,7 @@ function registerBridgeHandlers(bridge: TwilioStreamBridge): void {
 
           // Dispatch with on_behalf_call metadata so the agent knows this is an outbound call
           await agentDispatch.createDispatch(roomName, agentName, {
-            metadata: JSON.stringify({
-              type: 'on_behalf_call',
-              callId: params.callId || roomName,
-              originalSessionId: params.sessionId || roomName,
-              userId: params.userId || 'unknown',
-              userName: params.userName || 'User',
-              contact: {
-                name: params.recipientName || 'Friend',
-                phone: params.phone,
-                relationship: params.relationship || 'contact',
-              },
-              purpose: params.purpose || 'Check in',
-              objective: params.objective || 'Have a conversation',
-              callType: params.callType || 'personal',
-            }),
+            metadata: JSON.stringify(onBehalfDispatchFromStream(params, roomName)),
           });
 
           log.info({ roomName, callSid, agentName }, '✅ Voice agent dispatched for outbound call');

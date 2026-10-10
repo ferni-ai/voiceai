@@ -514,34 +514,34 @@ function renderStep(): void {
     <h2 id="persona-intro-title" class="persona-intro-title">${t(step.titleKey)}</h2>
     <p class="persona-intro-body">${t(step.bodyKey)}</p>
     
-    <!-- Fun fact on first step -->
+    <!-- A fun fact first; on the last step, the question they'll open with -->
     ${
-      isFirstStep
+      isFirstStep || isLastStep
         ? `
       <div class="persona-intro-funfact" style="background: ${colors.tint}; border-color: ${colors.primary}">
-        <span class="funfact-icon">${ICONS.sparkles}</span>
-        <p>${t(currentIntroData.funFactKey)}</p>
+        <span class="funfact-icon">${isFirstStep ? ICONS.sparkles : ICONS.messageCircle}</span>
+        <p>${t(isFirstStep ? currentIntroData.funFactKey : currentIntroData.firstConversationPromptKey)}</p>
       </div>
     `
         : ''
     }
     
     <!-- Actions -->
-    <div class="persona-intro-actions" role="button" tabindex="0">
+    <div class="persona-intro-actions">
       ${
         !isFirstStep
           ? `
-        <button aria-label="${t('accessibility.back')}" class="persona-intro-btn persona-intro-btn--secondary" data-action="prev">
+        <button class="persona-intro-btn persona-intro-btn--secondary" data-action="prev">
           ${t('common.back')}
         </button>
       `
           : `
-        <button aria-label="${t('accessibility.skipIntro')}" class="persona-intro-btn persona-intro-btn--secondary" data-action="skip">
+        <button class="persona-intro-btn persona-intro-btn--secondary" data-action="skip">
           ${t('personaIntro.skipIntro')}
         </button>
       `
       }
-      <button aria-label="${t('accessibility.goForward')}" class="persona-intro-btn persona-intro-btn--primary" data-action="next" style="background: ${colors.primary}">
+      <button class="persona-intro-btn persona-intro-btn--primary" data-action="next" style="background: ${colors.primary}">
         ${isLastStep ? ICONS.messageCircle : ''}
         <span>${t(step.buttonTextKey)}</span>
         ${!isLastStep ? ICONS.arrowRight : ''}

@@ -114,3 +114,40 @@ describe('calendar connect buttons', () => {
     expectStarted('microsoft_calendar', '/auth/microsoft/login?state=m2');
   });
 });
+
+describe('Spotify link button', () => {
+  // The button used to navigate to /spotify/login?device_id=…, and the server
+  // saved the Spotify tokens under whatever device_id the URL named.
+  // Server side: src/servers/api/__tests__/spotify-link-identity.test.ts
+  it('starts through the start endpoint, not /spotify/login?device_id=…', async () => {
+    vi.doMock('../../src/state/app.state.js', () => ({ getDeviceId: () => 'device-1' }));
+    const { triggerSpotifyLinkToggle } = await import('../../src/ui/spotify.ui.js');
+    Object.assign(mockLocation, { pathname: '/music' });
+
+    serverReturns('/spotify/login?state=sp');
+    await triggerSpotifyLinkToggle();
+
+    expect(api.apiPost).toHaveBeenCalledWith(
+      START,
+      { provider: 'spotify', returnUrl: '/music' },
+      { maxRetries: 0 }
+    );
+    expect(mockLocation.href).toBe('/spotify/login?state=sp');
+    expect(mockLocation.href).not.toMatch(/device_id/);
+  });
+
+  it('a second click while the first start is pending asks the server only once', async () => {
+    vi.doMock('../../src/state/app.state.js', () => ({ getDeviceId: () => 'device-1' }));
+    const { triggerSpotifyLinkToggle } = await import('../../src/ui/spotify.ui.js');
+
+    let answer: (value: unknown) => void = () => undefined;
+    api.apiPost.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    const first = triggerSpotifyLinkToggle();
+    await triggerSpotifyLinkToggle();
+    answer({ ok: true, status: 200, data: { url: '/spotify/login?state=once' } });
+    await first;
+
+    expect(api.apiPost).toHaveBeenCalledTimes(1);
+    expect(mockLocation.href).toBe('/spotify/login?state=once');
+  });
+});

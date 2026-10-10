@@ -8,23 +8,19 @@
  */
 
 import { t } from '../../i18n/index.js';
-import { createLogger } from '../../utils/logger.js';
-import {
-  getLifeAutomationService,
-  type WorkflowTemplate,
-  type Workflow,
-  type WorkflowAction,
-  type WorkflowTrigger,
+import type {
+  WorkflowTemplate,
+  Workflow,
+  WorkflowAction,
 } from '../../services/life-automation.service.js';
-import { getUserId } from '../../utils/api.js';
 import { showFerniCareDashboard } from './dashboard.ui.js';
+import { renderCalendarTriggerFields } from './routine-builder-calendar.js';
+import { saveRoutine } from './routine-builder-save.js';
 import {
   ANALYTICS_ICONS,
   GROWTH_ICONS,
   QUIZ_ICONS,
 } from '../icons/shared-icons.js';
-
-const log = createLogger('RoutineBuilder');
 
 // ============================================================================
 // HUMANIZED COPY
@@ -717,6 +713,9 @@ export class RoutineBuilder {
           </div>
         `;
         break;
+      case 'calendar':
+        fields = renderCalendarTriggerFields(this.triggerConfig.triggerOn);
+        break;
       default:
         fields = `<p style="color: var(--color-text-muted); font-size: 13px;">${t('routineBuilder.empty.message')}</p>`;
     }
@@ -819,6 +818,8 @@ export class RoutineBuilder {
         this.actions.splice(parseInt(removeIndex, 10), 1);
         this.updateContent();
       } else if (triggerType) {
+        // triggerOn means different things per trigger (enter/exit vs event_*): don't carry it over
+        if (triggerType !== this.triggerType) delete this.triggerConfig.triggerOn;
         this.triggerType = triggerType;
         this.updateContent();
       } else if (addActionType) {
@@ -838,7 +839,7 @@ export class RoutineBuilder {
         this.triggerConfig.phrases = [target.value];
       } else if (target.id === 'rb-location-name') {
         this.triggerConfig.locationName = target.value;
-      } else if (target.id === 'rb-location-trigger') {
+      } else if (target.id === 'rb-location-trigger' || target.id === 'rb-calendar-trigger') {
         this.triggerConfig.triggerOn = target.value;
       } else if (target.id.startsWith('rb-var-')) {
         const varName = target.id.replace('rb-var-', '');
@@ -914,42 +915,19 @@ export class RoutineBuilder {
   }
 
   private async save(): Promise<void> {
-    const userId = getUserId();
-    if (!userId) {
-      log.error('No user ID');
-      return;
-    }
+    const saved = await saveRoutine({
+      editing: this.editingWorkflow,
+      template: this.template,
+      name: this.name,
+      triggerType: this.triggerType,
+      triggerConfig: this.triggerConfig,
+      actions: this.actions,
+      variables: this.variables,
+    });
+    if (!saved) return;
 
-    const service = getLifeAutomationService();
-
-    try {
-      const trigger: WorkflowTrigger = {
-        type: this.triggerType as WorkflowTrigger['type'],
-        ...this.triggerConfig,
-      };
-
-      if (this.editingWorkflow) {
-        await service.updateWorkflow(this.editingWorkflow.id, userId, {
-          name: this.name,
-          trigger,
-          actions: this.actions,
-          variables: this.variables,
-        });
-      } else if (this.template) {
-        await service.createFromTemplate(this.template.id, userId, this.variables);
-      } else {
-        await service.createWorkflow(userId, {
-          name: this.name,
-          trigger,
-          actions: this.actions,
-        });
-      }
-
-      this.close();
-      showFerniCareDashboard();
-    } catch (error) {
-      log.error('Failed to save routine', error);
-    }
+    this.close();
+    showFerniCareDashboard();
   }
 
   private escapeHtml(text: string): string {

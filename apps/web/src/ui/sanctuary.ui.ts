@@ -235,12 +235,12 @@ class SanctuaryUI {
    * Close the Sanctuary
    */
   async close(): Promise<void> {
-    if (!this.isOpen || !this.container) return;
-
+    const container = this.container;
+    if (!this.isOpen || !container) return;
+    this.isOpen = false; // before the await, so an overlapping close() bails out
     await this.animateOut();
-    this.container.remove();
-    this.container = null;
-    this.isOpen = false;
+    container.remove();
+    if (this.container === container) this.container = null;
   }
 
   // ============================================================================
@@ -285,7 +285,7 @@ class SanctuaryUI {
           quote: string;
           source: string;
         };
-      }>(`/api/sanctuary?userId=${userId}`);
+      }>(`/api/sanctuary?userId=${encodeURIComponent(userId)}&tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`); // your time of day, not the server's
 
       if (sanctuaryResult.ok && sanctuaryResult.data) {
         const data = sanctuaryResult.data;

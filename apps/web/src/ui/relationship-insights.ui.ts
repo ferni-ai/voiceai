@@ -11,6 +11,7 @@ import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { t } from '../i18n/index.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('RelationshipInsightsUI');
 
@@ -72,6 +73,7 @@ let state: RelationshipInsightsState = {
 };
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let callbacks: RelationshipInsightsOptions = {};
 
 // ============================================================================
@@ -669,13 +671,13 @@ function render(): void {
     </div>
     
     <div class="ri-tabs">
-      <button aria-label="${t('accessibility.overview')}" class="ri-tab ${state.activeTab === 'overview' ? 'active' : ''}" data-tab="overview">
+      <button class="ri-tab ${state.activeTab === 'overview' ? 'active' : ''}" data-tab="overview">
         ${ICONS.chart} Overview
       </button>
-      <button aria-label="${t('accessibility.insights')}" class="ri-tab ${state.activeTab === 'insights' ? 'active' : ''}" data-tab="insights">
+      <button class="ri-tab ${state.activeTab === 'insights' ? 'active' : ''}" data-tab="insights">
         ${ICONS.sparkles} Insights
       </button>
-      <button aria-label="${t('accessibility.activity')}" class="ri-tab ${state.activeTab === 'activity' ? 'active' : ''}" data-tab="activity">
+      <button class="ri-tab ${state.activeTab === 'activity' ? 'active' : ''}" data-tab="activity">
         ${ICONS.activity} Activity
       </button>
     </div>
@@ -924,14 +926,10 @@ function bindEvents(): void {
   });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => state.isOpen, closeRelationshipInsights);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && state.isOpen) {
-    closeRelationshipInsights();
-  }
-}
 
 // ============================================================================
 // DATA LOADING
@@ -1015,20 +1013,18 @@ export function openRelationshipInsights(options: RelationshipInsightsOptions = 
  * Close the Relationship Insights dashboard
  */
 export function closeRelationshipInsights(): void {
-  if (!modalContainer) return;
-
-  document.removeEventListener('keydown', handleEscapeKey);
-
-  modalContainer.classList.remove('open');
-
+  // Let go of this modal now: a timer that read modalContainer when it fired removed the
+  // next one if it opened within the close animation (the honesty test flaked on this)
+  const closing = modalContainer;
+  if (!closing) return;
+  modalContainer = null;
+  const { onClose } = callbacks;
+  callbacks = {};
+  releaseEscape?.();
+  closing.classList.remove('open');
   setTimeout(() => {
-    modalContainer?.remove();
-    modalContainer = null;
-
-    if (callbacks.onClose) {
-      callbacks.onClose();
-    }
-    callbacks = {};
+    closing.remove();
+    onClose?.();
   }, DURATION.NORMAL);
 
   state.isOpen = false;

@@ -794,10 +794,10 @@ function render(): void {
     </div>
     
     <div class="contact-settings-actions">
-      <button aria-label="${t('accessibility.maybeLater')}" class="contact-settings-btn contact-settings-btn--secondary" id="cancel-btn">
+      <button class="contact-settings-btn contact-settings-btn--secondary" id="cancel-btn">
         ${t('common.maybeLater', 'Later')}
       </button>
-      <button aria-label="${t('accessibility.save')}" class="contact-settings-btn contact-settings-btn--primary" id="save-btn" ${state.isSaving ? 'disabled' : ''}>
+      <button class="contact-settings-btn contact-settings-btn--primary" id="save-btn" ${state.isSaving ? 'disabled' : ''}>
         ${state.isSaving ? t('common.saving') : t('common.save', 'Save')}
       </button>
     </div>

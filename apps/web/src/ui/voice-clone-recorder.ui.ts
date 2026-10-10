@@ -797,14 +797,14 @@ function render(): string {
 
           <!-- Navigation -->
           <div class="vcr-nav">
-            <button aria-label="${t('accessibility.previous')}" class="vcr-nav-btn vcr-nav-btn--secondary" data-action="prev-prompt" ${currentPromptIndex === 0 ? 'disabled' : ''}>
+            <button class="vcr-nav-btn vcr-nav-btn--secondary" data-action="prev-prompt" ${currentPromptIndex === 0 ? 'disabled' : ''}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
               ${t('accessibility.previous')}
             </button>
-            <button aria-label="${t('accessibility.skip')}" class="vcr-nav-btn vcr-nav-btn--secondary" data-action="skip-prompt">
+            <button class="vcr-nav-btn vcr-nav-btn--secondary" data-action="skip-prompt">
               ${t('accessibility.skip')}
             </button>
-            <button aria-label="${t('accessibility.next')}" class="vcr-nav-btn vcr-nav-btn--primary" data-action="next-prompt" ${currentPromptIndex >= RECORDING_PROMPTS.length - 1 ? 'disabled' : ''}>
+            <button class="vcr-nav-btn vcr-nav-btn--primary" data-action="next-prompt" ${currentPromptIndex >= RECORDING_PROMPTS.length - 1 ? 'disabled' : ''}>
               ${t('accessibility.next')}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
@@ -844,10 +844,10 @@ function render(): string {
         </div>
 
         <footer class="vcr-footer">
-          <button aria-label="${t('accessibility.cancel')}" class="vcr-footer-btn vcr-footer-btn--secondary" data-action="close">
+          <button class="vcr-footer-btn vcr-footer-btn--secondary" data-action="close">
             ${t('accessibility.cancel')}
           </button>
-          <button aria-label="${t('accessibility.saveVoiceSamples')}" class="vcr-footer-btn vcr-footer-btn--primary" data-action="save" ${!hasEnoughSamples ? 'disabled' : ''}>
+          <button class="vcr-footer-btn vcr-footer-btn--primary" data-action="save" ${!hasEnoughSamples ? 'disabled' : ''}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
             ${t('accessibility.saveVoiceSamples')}
           </button>

@@ -10,7 +10,7 @@
  *
  * Deployment:
  *   gcloud functions deploy memoryMaintenanceWorker \
- *     --gen2 --runtime=nodejs20 \
+ *     --gen2 --runtime=nodejs22 \
  *     --trigger-topic=memory-maintenance-trigger \
  *     --entry-point memoryMaintenanceWorker \
  *     --timeout=540s --memory=1GB --region=us-central1

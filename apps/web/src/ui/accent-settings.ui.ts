@@ -637,7 +637,7 @@ function render(): void {
           <div class="accent-options">
             ${ACCENT_OPTIONS.map(
               (option) => `
-              <button aria-label="${t('accessibility.confirm')}" class="accent-option ${state.currentAccent === option.value ? 'selected' : ''}" 
+              <button class="accent-option ${state.currentAccent === option.value ? 'selected' : ''}" 
                       data-accent="${option.value}">
                 <span class="accent-option-flag">${option.flagSvg}</span>
                 <div class="accent-option-info">
@@ -663,7 +663,7 @@ function render(): void {
           ${state.error ? `<div class="accent-message error">${state.error}</div>` : ''}
           ${state.success ? `<div class="accent-message success">${state.success}</div>` : ''}
 
-          <button aria-label="${t('accessibility.save')}" class="accent-save-btn" ${state.isSaving ? 'disabled' : ''}>
+          <button class="accent-save-btn" ${state.isSaving ? 'disabled' : ''}>
             ${state.isSaving ? t('common.saving') : t('buttons.savePreference')}
           </button>
         </div>

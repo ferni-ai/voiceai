@@ -13,6 +13,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION } from '../config/animation-constants.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
+import { closeOnEscape } from '../utils/accessibility.js';
 
 const log = createLogger('OutreachScheduleUI');
 
@@ -86,6 +87,7 @@ const CHANNEL_ICONS: Record<string, string> = {
 // ============================================================================
 
 let modalContainer: HTMLElement | null = null;
+let releaseEscape: (() => void) | null = null;
 let isOpen = false;
 let currentTab: 'upcoming' | 'history' = 'upcoming';
 
@@ -521,7 +523,7 @@ export async function openOutreachSchedule(): Promise<void> {
  */
 export function closeOutreachSchedule(): void {
   if (!isOpen || !modalContainer) return;
-
+  releaseEscape?.();
   modalContainer.classList.remove('open');
 
   trackedTimeout(() => {
@@ -553,11 +555,11 @@ function createModal(): void {
           </button>
         </div>
         <div class="outreach-schedule-tabs">
-          <button aria-label="${t('accessibility.upcoming')}" class="outreach-schedule-tab active" data-tab="upcoming">
+          <button class="outreach-schedule-tab active" data-tab="upcoming">
             ${ICONS.calendar}
             ${t('accessibility.upcoming')}
           </button>
-          <button aria-label="${t('accessibility.history')}" class="outreach-schedule-tab" data-tab="history">
+          <button class="outreach-schedule-tab" data-tab="history">
             ${ICONS.history}
             ${t('accessibility.history')}
           </button>
@@ -585,17 +587,12 @@ function createModal(): void {
   });
 
   // Escape key
-  document.addEventListener('keydown', handleEscapeKey);
+  // One Escape closes one dialog: the top one, not every dialog stacked under it
+  if (modalContainer) releaseEscape = closeOnEscape(modalContainer, () => isOpen, closeOutreachSchedule);
 
   document.body.appendChild(modalContainer);
 }
 
-function handleEscapeKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape' && isOpen) {
-    closeOutreachSchedule();
-    document.removeEventListener('keydown', handleEscapeKey);
-  }
-}
 
 function switchTab(tab: 'upcoming' | 'history'): void {
   currentTab = tab;
@@ -711,16 +708,16 @@ function renderUpcomingItem(item: ScheduledOutreach): string {
       <p class="outreach-item-preview">${item.preview.body}</p>
       <p class="outreach-item-reason">"${item.reason}"</p>
       <div class="outreach-item-actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.preview')}" class="outreach-item-btn outreach-item-btn--preview" data-action="preview" data-id="${item.id}">
+        <button class="outreach-item-btn outreach-item-btn--preview" data-action="preview" data-id="${item.id}">
           ${ICONS.eye} ${t('accessibility.preview')}
         </button>
         ${item.canReschedule ? `
-          <button aria-label="${t('accessibility.edit')}" class="outreach-item-btn outreach-item-btn--reschedule" data-action="reschedule" data-id="${item.id}">
+          <button class="outreach-item-btn outreach-item-btn--reschedule" data-action="reschedule" data-id="${item.id}">
             ${ICONS.edit} ${t('outreachSchedule.reschedule')}
           </button>
         ` : ''}
         ${item.canCancel ? `
-          <button aria-label="${t('accessibility.delete')}" class="outreach-item-btn outreach-item-btn--cancel" data-action="cancel" data-id="${item.id}">
+          <button class="outreach-item-btn outreach-item-btn--cancel" data-action="cancel" data-id="${item.id}">
             ${ICONS.trash} ${t('common.cancel')}
           </button>
         ` : ''}

@@ -130,13 +130,16 @@ describe('teammates the caller has not unlocked (only Ferni and Peter)', () => {
 
   it('names a locked teammate only on the turn the caller names one', () => {
     const asked = reminderFor('ferni', 'Transfer me to Maya.');
-    expect(asked).toContain("Maya isn't on this caller's team yet, so you can't bring Maya in.");
+    expect(asked).toContain('Maya is on your team but not available to this caller yet, so you can\'t bring Maya in.');
+    // Heard as "isn't on the team" it became "Maya's not on our crew" (dev, 2026-10-10).
+    expect(asked).toContain("Never say Maya isn't on your team.");
+    expect(asked).not.toMatch(/isn't on this caller's team/);
     expect(asked).toMatch(/never offer, promise or start a transfer/);
     expect(asked).not.toMatch(/Alex|Jordan|Nayan/);
     // Any other turn names no locked teammate, and says not to bring them up.
     const other = reminderFor('ferni', 'I really want to work on my morning habits.');
     expect(other).toContain(
-      "Of your teammates, only Peter is on this caller's team; don't bring up the others."
+      "Of your teammates, only Peter is available to this caller; don't bring up the others."
     );
     expect(other).not.toMatch(/Maya|Alex|Jordan|Nayan/);
     // Whole names only: "Mayan ruins" names no one.
@@ -154,7 +157,7 @@ describe('teammates the caller has not unlocked (only Ferni and Peter)', () => {
     chat.addMessage({ role: 'user', content: 'Transfer me to Maya.' });
     const asked = sentText(chat, session);
     expect(asked).toContain('Maya');
-    expect(asked).toMatch(/team yet/);
+    expect(asked).toMatch(/not available to this caller yet/);
 
     // The call the model made, run by the SDK, and the decline it spoke.
     const decline = await dispatch(agent, 'askForTeammate', { name: 'Maya' });
@@ -188,7 +191,7 @@ describe('teammates the caller has not unlocked (only Ferni and Peter)', () => {
     setDirector(session, null);
     expect(next).toContain('what would you suggest I start with?');
     expect(next).not.toContain('Maya'); // ...and doesn't reach the follow-up
-    expect(next).not.toContain("isn't on this caller's team");
+    expect(next).not.toContain('not available to this caller yet');
     expect(next).not.toContain('[Director:');
   }, 60_000);
 
@@ -207,7 +210,7 @@ describe('teammates the caller has not unlocked (only Ferni and Peter)', () => {
     const result = await dispatch(await agentFor(), 'askForTeammate', { name: 'Maya' });
     expect(result.output).not.toContain('Unknown function');
     expect(result.isError).toBe(false);
-    expect(result.output).toContain("Maya isn't on this caller's team yet");
+    expect(result.output).toContain("Maya is your teammate but isn't available to this caller yet");
     expect(result.output).toContain('nobody is being connected');
     expect(result.output).toContain('offer to help with it yourself');
     // The runtime check refuses the transfer itself too.
@@ -238,10 +241,10 @@ describe('teammates the caller has not unlocked (only Ferni and Peter)', () => {
     expect(tools.functionTools['handoffToFerni']).toBeDefined();
     expect(tools.functionTools['handoffToPeter']).toBeUndefined();
     expect(reminderFor('peter-john', 'Hi there.')).toContain(
-      "Of your teammates, only Ferni is on this caller's team"
+      "Of your teammates, only Ferni is available to this caller"
     );
     const result = await dispatch(agent, 'askForTeammate', { name: 'Maya' }, 'peter-john');
-    expect(result.output).toContain("Maya isn't on this caller's team yet");
+    expect(result.output).toContain("Maya is your teammate but isn't available to this caller yet");
   }, 60_000);
 
   it("keeps askForTeammate executable through the tool cap's must-keep set", async () => {

@@ -23,9 +23,9 @@ import {
 } from '../services/relationship-stage.service.js';
 // Team unlock service - for gating marketplace behind full team unlock
 import { isFullTeamUnlocked } from '../services/team-unlock.service.js';
+import { signOutOfThisBrowser } from './sign-out.js';
 // Roadmap service - for "What's Growing" experience
 import { roadmapService } from '../services/roadmap.service.js';
-import { showRoadmapPanel } from './roadmap-panel.ui.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -243,6 +243,7 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>',
 
   // Help & Support
+  signOut: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
   help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>',
   commands:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>',
@@ -571,27 +572,21 @@ class SettingsMenuUI {
     return t('menu.greeting.night');
   }
 
-  /**
-   * Check if a feature is locked based on relationship stage
-   */
+  /** Check if a feature is locked based on relationship stage */
   private isFeatureLocked(action: string): boolean {
     const featureId = FEATURE_LOCK_MAP[action];
     if (!featureId) return false; // Not a lockable feature
     return !relationshipStageService.isFeatureUnlocked(featureId);
   }
 
-  /**
-   * Get the required stage for a locked feature
-   */
+  /** Get the required stage for a locked feature */
   private getRequiredStage(action: string): RelationshipStage | null {
     const featureId = FEATURE_LOCK_MAP[action];
     if (!featureId) return null;
     return UNLOCKABLE_FEATURES[featureId] || null;
   }
 
-  /**
-   * Get unlock progress hint for a feature
-   */
+  /** Get unlock progress hint for a feature */
   private getUnlockHint(action: string): string {
     const featureId = FEATURE_LOCK_MAP[action];
     if (!featureId) return '';
@@ -599,9 +594,7 @@ class SettingsMenuUI {
     return progress.hint || t('menu.keepChatting');
   }
 
-  /**
-   * Check if a section should be visible based on relationship stage
-   */
+  /** Check if a section should be visible based on relationship stage */
   private isSectionVisible(sectionId: string): boolean {
     const requiredStage = SECTION_VISIBILITY[sectionId];
     if (!requiredStage) return true;
@@ -768,7 +761,9 @@ class SettingsMenuUI {
                   t('menu.sections.yourPractices'),
                   expandedSections.has('yourPractices'),
                   `
+            ${this.renderMenuItem('hub', ICONS.hub, t('ui.yourDay'))}
             ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
+            ${this.renderMenuItem('what-i-do-for-you', ICONS.care, t('ferniCare.whatIDoForYou'))}
             ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
             ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.whatsAhead'))}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
@@ -861,6 +856,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('whats-growing', ICONS.seedling, t('menu.items.whatsGrowing'))}
             ${this.renderMenuItem('share-ferni', ICONS.share, t('menu.items.shareFerni'))}
             ${this.renderMenuItem('help', ICONS.help, t('menu.items.takeTour'))}
+            ${this.renderMenuItem('sign-out', ICONS.signOut, t('buttons.signOut'))}
           </div>
         </nav>
       </div>
@@ -894,15 +890,7 @@ class SettingsMenuUI {
         const action = htmlBtn.dataset.action;
         log.info('Menu item clicked', { action });
         const isLocked = htmlBtn.dataset.locked === 'true';
-        const isRoadmap = htmlBtn.dataset.roadmap === 'true';
         const isToggle = htmlBtn.dataset.toggle === 'true';
-
-        // Roadmap features open the inspiring "What's Growing" panel
-        if (isRoadmap && action) {
-          this.hide();
-          showRoadmapPanel(action);
-          return;
-        }
 
         if (isLocked) {
           // Show a gentle animation indicating it's locked
@@ -1038,6 +1026,7 @@ class SettingsMenuUI {
       'all-connections': { icon: ICONS.link, label: t('menu.items.allConnections') },
       // Core items
       'what-i-do-for-you': { icon: ICONS.care, label: t('ferniCare.whatIDoForYou') },
+      hub: { icon: ICONS.hub, label: t('ui.yourDay') },
       'your-story': { icon: ICONS.heart, label: t('menu.items.yourStory') },
       'your-year': {
         icon: ICONS.sparkles,
@@ -1063,6 +1052,7 @@ class SettingsMenuUI {
       'discover-agents': { icon: ICONS.compass, label: t('menu.items.discoverAgents') },
       journal: { icon: ICONS.journal, label: t('menu.items.journaling') },
       personalize: { icon: ICONS.palette, label: t('menu.items.personalize') },
+      'personal-settings': { icon: ICONS.palette, label: t('menu.items.personalize') },
       'accent-settings': { icon: ICONS.globe, label: t('menu.items.voiceAccent') },
       commands: { icon: ICONS.commands, label: t('menu.items.guidedPractices') },
       ritual: { icon: ICONS.ritual, label: t('menu.items.createPractice') },
@@ -1076,7 +1066,9 @@ class SettingsMenuUI {
       theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
       'support-ferni': { icon: ICONS.heart, label: t('menu.items.supportFerniExpanded') },
       'voice-enrollment': { icon: ICONS.fingerprint, label: t('menu.items.voiceId') },
+      'voice-id-settings': { icon: ICONS.fingerprint, label: t('menu.items.voiceId') },
       household: { icon: ICONS.users, label: t('menu.items.householdMembers') },
+      'household-members': { icon: ICONS.users, label: t('menu.items.householdMembers') },
       'family-callers': { icon: ICONS.phone, label: t('menu.items.familyCallers') },
       'contact-settings': { icon: ICONS.contact, label: t('menu.items.contactInfo') },
       export: { icon: ICONS.download, label: t('menu.items.exportData') },
@@ -1268,6 +1260,10 @@ class SettingsMenuUI {
       case 'help':
         this.callbacks.onOnboardingClick?.();
         break;
+      case 'sign-out':
+        this.hide();
+        void signOutOfThisBrowser();
+        break;
       case 'theme':
         this.callbacks.onThemeToggle?.();
         break;
@@ -1420,7 +1416,7 @@ class SettingsMenuUI {
         break;
       case 'whats-growing':
         // Open roadmap panel with overview (no specific feature)
-        showRoadmapPanel();
+        void import('./roadmap-panel.ui.js').then((m) => m.showRoadmapPanel());
         break;
       // Warm menu actions
       case 'together-sessions':

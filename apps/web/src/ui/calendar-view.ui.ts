@@ -45,10 +45,10 @@ interface PracticeViewAPIResponse {
     context?: string;
   }[];
   stats: {
-    followThroughPercent: number;
-    habitsCompletedThisWeek: number;
-    momentumTrend: 'rising' | 'steady' | 'building' | 'declining';
-    streak: number;
+    followThroughPercent?: number;
+    habitsCompletedThisWeek?: number;
+    momentumTrend?: 'rising' | 'steady' | 'building' | 'declining';
+    streak?: number;
   };
   lastUpdated: string;
 }
@@ -475,23 +475,23 @@ class CalendarViewUI {
         <p>${t('calendarView.connectDescription')}</p>
         
         <div class="calendar-view__providers">
-          <button aria-label="${t('accessibility.googleCalendar')}" class="calendar-view__provider-btn" data-action="connect-google">
+          <button class="calendar-view__provider-btn" data-action="connect-google">
             <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
             <span>${t('calendarView.googleCalendar')}</span>
           </button>
           
-          <button aria-label="${t('accessibility.appleCalendar')}" class="calendar-view__provider-btn" data-action="connect-apple">
+          <button class="calendar-view__provider-btn" data-action="connect-apple">
             <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#555" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
             <span>${t('calendarView.appleCalendar')}</span>
           </button>
           
-          <button aria-label="${t('accessibility.outlook')}" class="calendar-view__provider-btn" data-action="connect-outlook">
+          <button class="calendar-view__provider-btn" data-action="connect-outlook">
             <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#0078d4" d="M7.88 12.04q0 .45-.11.87-.1.41-.33.74-.22.33-.58.52-.37.2-.87.2t-.85-.2q-.35-.21-.57-.55-.22-.33-.33-.75-.1-.42-.1-.86t.1-.87q.1-.43.34-.76.22-.34.59-.54.36-.2.87-.2t.86.2q.35.21.57.55.22.34.31.77.1.43.1.88zM24 12v9.38q0 .46-.33.8-.33.32-.8.32H7.13q-.46 0-.8-.33-.32-.33-.32-.8V18H1q-.41 0-.7-.3-.3-.29-.3-.7V7q0-.41.3-.7Q.58 6 1 6h6.13V2.55q0-.44.3-.75.3-.3.7-.3H22.88q.46 0 .79.33.33.34.33.8z"/></svg>
             <span>Outlook</span>
           </button>
         </div>
         
-        <button aria-label="${t('accessibility.settings')}" class="calendar-view__settings-link" data-action="open-settings">
+        <button class="calendar-view__settings-link" data-action="open-settings">
           ${ICONS.settings}
           <span>${t('calendarView.calendarSettings')}</span>
         </button>
@@ -525,19 +525,19 @@ class CalendarViewUI {
           ${ICONS.heart}
           ${t('calendarView.practice')}
         </button>
-        <button aria-label="${t('accessibility.today')}" class="calendar-view__tab ${this.viewMode === 'today' ? 'calendar-view__tab--active' : ''}" data-view="today">
+        <button class="calendar-view__tab ${this.viewMode === 'today' ? 'calendar-view__tab--active' : ''}" data-view="today">
           ${ICONS.sun}
           ${t('common.today')}
         </button>
-        <button aria-label="${t('accessibility.week')}" class="calendar-view__tab ${this.viewMode === 'week' ? 'calendar-view__tab--active' : ''}" data-view="week">
+        <button class="calendar-view__tab ${this.viewMode === 'week' ? 'calendar-view__tab--active' : ''}" data-view="week">
           ${ICONS.clock}
           ${t('accessibility.week')}
         </button>
-        <button aria-label="${t('accessibility.month')}" class="calendar-view__tab ${this.viewMode === 'month' ? 'calendar-view__tab--active' : ''}" data-view="month">
+        <button class="calendar-view__tab ${this.viewMode === 'month' ? 'calendar-view__tab--active' : ''}" data-view="month">
           ${ICONS.calendar}
           ${t('accessibility.month')}
         </button>
-        <button aria-label="${t('accessibility.insights')}" class="calendar-view__tab ${this.viewMode === 'insights' ? 'calendar-view__tab--active' : ''}" data-view="insights">
+        <button class="calendar-view__tab ${this.viewMode === 'insights' ? 'calendar-view__tab--active' : ''}" data-view="insights">
           ${ICONS.chart}
           ${t('accessibility.insights')}
         </button>
@@ -584,7 +584,7 @@ class CalendarViewUI {
         <div class="calendar-view__sync-info">
           <span class="calendar-view__sync-hint">${t('calendarView.syncYourCalendarToSeeEvents')}</span>
         </div>
-        <button aria-label="${t('accessibility.connect')}" class="calendar-view__sync-btn" data-action="connect-google">
+        <button class="calendar-view__sync-btn" data-action="connect-google">
           ${ICONS.link}
           <span>${t('common.connect')}</span>
         </button>
@@ -767,8 +767,9 @@ class CalendarViewUI {
     // Intentions - prefer API, fall back to generated
     const intentions = apiData?.intentions || this.generateIntentions();
     
-    // Maya notices - prefer API, fall back to generated
-    const mayaNotices = apiData?.mayaNotices?.message || this.generateMayaPatternNotice();
+    // Maya notices - the API's answer is final (null = nothing real to say); only an
+    // offline view falls back to what the calendar data itself shows
+    const mayaNotices = apiData ? apiData.mayaNotices?.message : this.generateMayaPatternNotice();
     
     // Stats - only show real API metrics (never fabricate personal numbers)
     const followThrough = apiData?.stats?.followThroughPercent;
@@ -833,10 +834,10 @@ class CalendarViewUI {
               ${intentions.map(intention => `
                 <div class="calendar-view__practice-intention">
                   <div class="calendar-view__practice-intention-check">
-                    <input type="checkbox" ${intention.completed ? 'checked' : ''} aria-label="${t('calendarView.markComplete', { text: intention.text })}">
+                    <input type="checkbox" ${intention.completed ? 'checked' : ''} ${intention.id ? `data-intention-id="${this.escapeHtml(intention.id)}"` : 'disabled'} aria-label="${this.escapeHtml(t('calendarView.markComplete', { text: intention.text }))}">
                   </div>
                   <div class="calendar-view__practice-intention-content">
-                    <span class="calendar-view__practice-intention-text">${intention.text}</span>
+                    <span class="calendar-view__practice-intention-text">${this.escapeHtml(intention.text)}</span>
                     ${intention.insight ? `
                       <div class="calendar-view__practice-intention-insight">
                         <span class="calendar-view__practice-insight-persona">${intention.insightPersona}</span>
@@ -1022,11 +1023,7 @@ class CalendarViewUI {
   private getEventEmotionalContext(event: CalendarEvent): { persona: string; insight: string } | null {
     const title = event.title.toLowerCase();
     
-    // Family/relationship events
-    if (title.includes('dinner') || title.includes('family') || title.includes('partner')) {
-      return { persona: t('calendarView.alexNoted'), insight: t('calendarView.partnerLovesPresence') };
-    }
-    
+    // No note for family/partner events: we don't know anything about the person's relationships
     // Work meetings
     if (title.includes('meeting') || title.includes('sync') || title.includes('1:1')) {
       return { persona: t('calendarView.jordanSuggests'), insight: t('calendarView.setClearIntention') };
@@ -1045,17 +1042,16 @@ class CalendarViewUI {
     return null;
   }
 
-  /**
-   * Generate intentions based on user patterns
-   */
+  /** Intentions to show when the practice view can't load */
   private generateIntentions(): Array<{
+    id?: string;
     text: string;
     completed: boolean;
     insight?: string;
     insightPersona?: string;
   }> {
-    // TODO: Get real intentions from user data
-    // For now, generate contextual intentions based on day/events
+    // Nothing here can be saved, and nothing is claimed about the person (no streaks,
+    // nothing already done)
     const today = new Date();
     const isWeekend = today.getDay() === 0 || today.getDay() === 6;
 
@@ -1067,9 +1063,9 @@ class CalendarViewUI {
     }
 
     return [
-      { text: t('calendarView.startWithIntention'), completed: true, insight: t('calendarView.threeDaysInARow'), insightPersona: t('calendarView.mayaTracks') },
+      { text: t('calendarView.startWithIntention'), completed: false },
       { text: t('calendarView.oneThingAtATime'), completed: false },
-      { text: t('calendarView.endDayWithGratitude'), completed: false, insight: t('calendarView.helpedYourMood'), insightPersona: t('calendarView.peterFound') },
+      { text: t('calendarView.endDayWithGratitude'), completed: false },
     ];
   }
 
@@ -1077,7 +1073,6 @@ class CalendarViewUI {
    * Generate Maya's pattern notice based on calendar data
    */
   private generateMayaPatternNotice(): string | null {
-    // TODO: Get real patterns from user data
     if (!this.weekData) return null;
 
     const totalMeetings = this.weekData.totalMeetings || 0;
@@ -1094,10 +1089,8 @@ class CalendarViewUI {
       });
     }
 
-    // Random wisdom if no pattern detected
-    const wisdomKeys = ['calendarView.wisdomMornings', 'calendarView.wisdomFocusTime', 'calendarView.wisdomWalks'];
-    const wisdomKey = wisdomKeys[Math.floor(Math.random() * wisdomKeys.length)];
-    return wisdomKey ? t(wisdomKey) : null;
+    // No pattern in the calendar data: say nothing rather than invent one
+    return null;
   }
 
   /**
@@ -1170,14 +1163,14 @@ class CalendarViewUI {
     return `
       <div class="calendar-view__month">
         <div class="calendar-view__month-nav">
-          <button aria-label="${t('accessibility.goBack')}" class="calendar-view__month-btn" data-action="prev-month">
+          <button aria-label="${t('accessibility.previousMonth')}" class="calendar-view__month-btn" data-action="prev-month">
             ${ICONS.chevronLeft}
           </button>
           <div class="calendar-view__month-label">
             <span class="calendar-view__month-name">${monthName}</span>
             <span class="calendar-view__month-year">${year}</span>
           </div>
-          <button aria-label="${t('accessibility.goForward')}" class="calendar-view__month-btn" data-action="next-month">
+          <button aria-label="${t('accessibility.nextMonth')}" class="calendar-view__month-btn" data-action="next-month">
             ${ICONS.chevronRight}
           </button>
         </div>
@@ -1191,7 +1184,7 @@ class CalendarViewUI {
         </div>
         
         <div class="calendar-view__month-footer">
-          <button aria-label="${t('accessibility.today')}" class="calendar-view__today-btn" data-action="go-today">
+          <button class="calendar-view__today-btn" data-action="go-today">
             ${t('common.today')}
           </button>
         </div>
@@ -1487,7 +1480,7 @@ class CalendarViewUI {
       </header>
       <div class="calendar-view__error">
         <p>${message}</p>
-        <button aria-label="${t('accessibility.tryAgain')}" class="calendar-view__btn calendar-view__btn--secondary" data-action="retry">
+        <button class="calendar-view__btn calendar-view__btn--secondary" data-action="retry">
           ${t('calendarView.tryAgain')}
         </button>
       </div>
@@ -1551,25 +1544,20 @@ class CalendarViewUI {
   }
 
   /**
-   * Mark an intention as complete via the API
+   * Save an intention as done (or not done again); if it can't be saved, the box goes back
    */
-  private async markIntentionComplete(intentionId: string): Promise<void> {
-    try {
-      const response = await apiPost(`/api/practice-view/intentions/${intentionId}/complete`, {});
-      if (response?.ok) {
-        // Update local state
-        if (this.practiceViewData?.intentions) {
-          const intention = this.practiceViewData.intentions.find(i => i.id === intentionId);
-          if (intention) {
-            intention.completed = true;
-          }
-        }
-        this.renderContent();
-        log.info('Intention marked complete', { intentionId });
-      }
-    } catch (error) {
-      log.error('Failed to mark intention complete', error);
+  private async markIntentionComplete(intentionId: string, box: HTMLInputElement): Promise<void> {
+    const completed = box.checked;
+    box.disabled = true; // one save at a time, so two quick clicks can't land out of order
+    const response = await apiPost(`/api/practice-view/intentions/${encodeURIComponent(intentionId)}/complete`, { completed });
+    box.disabled = false;
+    if (!response.ok) {
+      box.checked = !completed;
+      toast.error(t('calendarView.intentionNotSaved'));
+      return;
     }
+    const intention = this.practiceViewData?.intentions.find((i) => i.id === intentionId);
+    if (intention) intention.completed = completed;
   }
 
   /**
@@ -1636,6 +1624,10 @@ class CalendarViewUI {
             break;
         }
       });
+    });
+
+    wrapper.querySelectorAll<HTMLInputElement>('input[data-intention-id]').forEach((box) => {
+      box.addEventListener('change', () => void this.markIntentionComplete(box.dataset.intentionId ?? '', box));
     });
 
     // Event click handlers
@@ -1714,7 +1706,8 @@ class CalendarViewUI {
   private escapeHtml(text: string): string {
     const div = document.createElement('div');
     div.textContent = text;
-    return div.innerHTML;
+    // Quotes too: this also goes into attributes
+    return div.innerHTML.replace(/"/g, '&quot;');
   }
 
   // ============================================================================

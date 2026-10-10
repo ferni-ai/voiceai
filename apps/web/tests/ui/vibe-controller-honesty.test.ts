@@ -90,9 +90,9 @@ describe('vibe controller honesty', () => {
 
     expect(mockApiPost).toHaveBeenCalledWith('/api/vibe/activate', { presetId: 'focus' });
     expect(toast.success).not.toHaveBeenCalled();
-    expect(toast.info).toHaveBeenLastCalledWith(
-      'Focus vibe ready! Connect your devices in Settings → Your Home to activate.'
-    );
+    // The app's own translated message: the server's is English and named a place that doesn't exist
+    expect(toast.info).toHaveBeenLastCalledWith('Connect your lights or thermostat first');
+    expect(toast.info).not.toHaveBeenCalledWith(expect.stringContaining('Your Home'));
   });
 
   it('play outside a call does not pretend to play or call a missing /api/spotify route', async () => {

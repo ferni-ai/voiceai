@@ -124,16 +124,19 @@ export function teamStatusNote(view: UnlockView, callerWords = ''): string {
   if (asked.length > 0) {
     const names = nameList(asked);
     return (
-      `${names} ${asked.length > 1 ? "aren't" : "isn't"} on this caller's team yet, so you can't bring ${asked.length > 1 ? 'them' : names} in. ` +
-      'Say so warmly and briefly, help them yourself, and never offer, promise or start a transfer.'
+      // "isn't on this caller's team" was heard as "isn't on the team": Ferni
+      // answered "Maya's not on our crew" (dev, 2026-10-10).
+      `${names} ${asked.length > 1 ? 'are' : 'is'} on your team but not available to this caller yet, so you can't bring ${asked.length > 1 ? 'them' : names} in. ` +
+      `Never say ${asked.length > 1 ? 'they' : names} ${asked.length > 1 ? "aren't" : "isn't"} on your team. ` +
+      `Say warmly and briefly that ${names} ${asked.length > 1 ? "aren't" : "isn't"} available to them yet, help them yourself, and never offer, promise or start a transfer.`
     );
   }
   const open = TEAM_MEMBERS.filter(
     (m) => !isSpeaker(m.memberId, view) && isOpen(m.memberId, view)
   ).map((m) => m.displayName);
   return open.length > 0
-    ? `Of your teammates, only ${nameList(open)} ${open.length > 1 ? 'are' : 'is'} on this caller's team; don't bring up the others.`
-    : "None of your teammates are on this caller's team yet; don't bring them up.";
+    ? `Of your teammates, only ${nameList(open)} ${open.length > 1 ? 'are' : 'is'} available to this caller; don't bring up the others.`
+    : "None of your teammates are available to this caller yet; don't bring them up.";
 }
 
 /**
@@ -193,7 +196,7 @@ export async function answerTeammateRequest(
     unavailable: true,
     teammate: displayName,
     instruction:
-      `${displayName} isn't on this caller's team yet, so nobody is being connected. ` +
+      `${displayName} is your teammate but isn't available to this caller yet, so nobody is being connected; never say ${displayName} isn't on your team. ` +
       `Tell them that warmly in a sentence, without saying you're getting or connecting ${displayName}, ` +
       'and offer to help with it yourself right now. Say how they would meet ' +
       `${displayName} only if they ask; no pushing. ` +
@@ -203,7 +206,7 @@ export async function answerTeammateRequest(
 }
 
 export const ASK_FOR_TEAMMATE_DESCRIPTION =
-  "Call when the caller asks by name to talk to, or be transferred to, a teammate who has no handoff tool here because they aren't on the caller's team yet. " +
+  "Call when the caller asks by name to talk to, or be transferred to, a teammate who has no handoff tool here because they aren't available to the caller yet. " +
   "It never connects anyone; it says how to answer. Never bring those teammates up yourself, and don't call this unless the caller named one.";
 
 /**

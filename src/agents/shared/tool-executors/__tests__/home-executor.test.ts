@@ -74,8 +74,7 @@ describe('homeExecutor', () => {
 
       const result = await homeExecutor.execute('setLights', {}, createMockContext('test-user'));
 
-      expect(result).toContain('Settings');
-      expect(result).toContain('Your Home');
+      expect(result).toContain('Set the Mood'); // where devices are connected, a place that exists
     });
 
     it('should return setup message for getHomeStatus when no smart home', async () => {

@@ -702,7 +702,7 @@ function createLimitModal(prompt: string, resetDate?: string): HTMLElement {
           ${ICONS.heart}
           <span>${t('subscription.becomeFoundingMember')}</span>
         </button>
-        <button aria-label="${t('accessibility.next')}" class="limit-button limit-button--secondary" data-action="close">
+        <button class="limit-button limit-button--secondary" data-action="close">
           See you next time
         </button>
       </div>

@@ -23,6 +23,7 @@ import {
 } from '../../config/gemini-config.js';
 import { CircuitOpenError, getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { vertexText, type VertexTextModel } from './vertex-text.js';
 
 // Check if Vertex AI is explicitly enabled
 const USE_VERTEX_AI = process.env.USE_VERTEX_AI !== 'false';
@@ -60,16 +61,7 @@ export interface LLMCallOptions {
 // ============================================================================
 
 interface VertexAIClient {
-  getGenerativeModel: (config: { model: string }) => {
-    generateContent: (params: {
-      contents: Array<{ role: string; parts: Array<{ text: string }> }>;
-      generationConfig?: { maxOutputTokens?: number; temperature?: number };
-    }) => Promise<{
-      response: {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-      };
-    }>;
-  };
+  getGenerativeModel: (config: { model: string }) => VertexTextModel;
 }
 
 let vertexAIClient: VertexAIClient | null = null;
@@ -165,19 +157,8 @@ async function callVertexAI(prompt: string, options: LLMCallOptions = {}): Promi
           // Use Vertex AI SDK - extraction model for supplementary analysis
           // NOTE: Do NOT use getDefaultModel() as it may return a realtime-only model
           // that doesn't work with generateContent API
-          const model = client.getGenerativeModel({ model: getExtractionModel() });
-          const result = await model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: {
-              maxOutputTokens: maxTokens,
-              temperature,
-            },
-          });
-
-          // Extract text from Vertex AI response
-          const candidate = result.response?.candidates?.[0];
-          const text = candidate?.content?.parts?.[0]?.text;
-          return text?.trim() || null;
+          const name = getExtractionModel();
+          return vertexText(client.getGenerativeModel({ model: name }), name, prompt, maxTokens, temperature);
         });
 
         clearTimeout(timeoutId);

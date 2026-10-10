@@ -23,6 +23,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { createEmptyState } from './components/empty-state.js';
+import { toast } from './whisper.ui.js';
 
 // Import types and icons from modular structure
 import type {
@@ -165,7 +166,7 @@ class MusicDashboardUI {
         <div class="music-dashboard__error-icon">${ICONS.music}</div>
         <p class="music-dashboard__error-title">${message}</p>
         <p class="music-dashboard__error-hint">${t('musicDashboard.error.hint')}</p>
-        <button aria-label="${t('accessibility.play')}" class="music-dashboard__cta">${t('musicDashboard.buttons.startPlaying')}</button>
+        <button class="music-dashboard__cta">${t('musicDashboard.buttons.startPlaying')}</button>
       </div>
     `;
 
@@ -245,7 +246,7 @@ class MusicDashboardUI {
           <p class="music-dashboard__empty-hint">
             ${t('musicDashboard.empty.hint', { count: insights.gamesNeededForFullInsights })}
           </p>
-          <button aria-label="${t('accessibility.play')}" class="music-dashboard__cta">${t('musicDashboard.buttons.playGame')}</button>
+          <button class="music-dashboard__cta">${t('musicDashboard.buttons.playGame')}</button>
         </div>
       </div>
     `;
@@ -273,11 +274,11 @@ class MusicDashboardUI {
 
     const spotifyStatus = sources?.spotify?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${t('common.connected')}</span>`
-      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} ${t('common.connect')}</button>`;
+      : `<button class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} ${t('common.connect')}</button>`;
 
     const appleMusicStatus = sources?.appleMusic?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${t('common.connected')}</span>`
-      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} ${t('common.connect')}</button>`;
+      : `<button class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} ${t('common.connect')}</button>`;
 
     return `
       <section class="music-sources music-sources--compact">
@@ -326,7 +327,7 @@ class MusicDashboardUI {
     this.wrapper
       ?.querySelector('[data-action="connect-spotify"]')
       ?.addEventListener('click', () => {
-        window.dispatchEvent(new CustomEvent('ferni:connect-spotify'));
+        void import('./spotify.ui.js').then((m) => m.connectSpotify()); // no one heard the old event
         this.hide();
       });
 
@@ -419,11 +420,11 @@ class MusicDashboardUI {
 
     const spotifyStatus = sources?.spotify?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${tp('musicDashboard.sources.tracks', sources.spotify.trackCount || 0)}</span>`
-      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} ${t('common.connect')}</button>`;
+      : `<button class="music-sources__connect-btn" data-action="connect-spotify">${ICONS.link} ${t('common.connect')}</button>`;
 
     const appleMusicStatus = sources?.appleMusic?.connected
       ? `<span class="music-sources__status music-sources__status--connected">${ICONS.check} ${tp('musicDashboard.sources.tracks', sources.appleMusic.trackCount || 0)}</span>`
-      : `<button aria-label="${t('accessibility.connect')}" class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} ${t('common.connect')}</button>`;
+      : `<button class="music-sources__connect-btn" data-action="connect-apple-music">${ICONS.link} ${t('common.connect')}</button>`;
 
     return `
       <section class="music-dashboard__section music-sources">
@@ -712,7 +713,7 @@ class MusicDashboardUI {
             <span>${t('musicDashboard.dailyChallenge.completion', { percent: Math.round(challenge.completionRate * 100) })}</span>
             <span>${t('musicDashboard.dailyChallenge.playing', { count: challenge.participantCount })}</span>
           </div>
-          <button aria-label="${t('accessibility.play')}" class="music-dashboard__challenge-btn" data-challenge-id="${challenge.id}">
+          <button class="music-dashboard__challenge-btn" data-challenge-id="${challenge.id}">
             ${ICONS.play} ${t('musicDashboard.dailyChallenge.start')}
           </button>
         </div>
@@ -811,7 +812,7 @@ class MusicDashboardUI {
             <span class="music-dashboard__social-label">${t('musicDashboard.socialStats.received')}</span>
           </div>
         </div>
-        <button aria-label="${t('accessibility.viewLeaderboard')}" class="music-dashboard__leaderboard-btn">
+        <button class="music-dashboard__leaderboard-btn">
           ${ICONS.trophy} ${t('musicDashboard.socialStats.viewLeaderboard')}
         </button>
       </section>
@@ -827,10 +828,10 @@ class MusicDashboardUI {
         </h3>
         <p class="music-dashboard__share-intro">${t('musicDashboard.share.description')}</p>
         <div class="music-dashboard__share-buttons" role="button" tabindex="0">
-          <button aria-label="${t('accessibility.musicalDnaCard')}" class="music-dashboard__share-btn" data-card-type="musical-dna">
+          <button class="music-dashboard__share-btn" data-card-type="musical-dna">
             ${ICONS.sparkles} ${t('accessibility.musicalDnaCard')}
           </button>
-          <button aria-label="${t('accessibility.desertIslandCard')}" class="music-dashboard__share-btn" data-card-type="desert-island">
+          <button class="music-dashboard__share-btn" data-card-type="desert-island">
             ${ICONS.heart} ${t('accessibility.desertIslandCard')}
           </button>
         </div>
@@ -882,11 +883,7 @@ class MusicDashboardUI {
 
       if (!tokenResult.success || !tokenResult.developerToken) {
         log.warn('Apple Music not configured on server');
-        window.dispatchEvent(
-          new CustomEvent('ferni:toast', {
-            detail: { message: t('musicDashboard.appleMusic.notAvailable'), type: 'info' },
-          })
-        );
+        toast.info(t('musicDashboard.appleMusic.notAvailable'));
         return;
       }
 
@@ -917,11 +914,7 @@ class MusicDashboardUI {
         const connectResult = connectResponse.ok && connectResponse.data ? connectResponse.data : { success: false };
 
         if (connectResult.success) {
-          window.dispatchEvent(
-            new CustomEvent('ferni:toast', {
-              detail: { message: t('musicDashboard.appleMusic.connected'), type: 'success' },
-            })
-          );
+          toast.success(t('musicDashboard.appleMusic.connected'));
           // Refresh the dashboard
           this.show();
         } else {
@@ -929,19 +922,11 @@ class MusicDashboardUI {
         }
       } else {
         // MusicKit not loaded - show message
-        window.dispatchEvent(
-          new CustomEvent('ferni:toast', {
-            detail: { message: t('musicDashboard.appleMusic.requirement'), type: 'info' },
-          })
-        );
+        toast.info(t('musicDashboard.appleMusic.requirement'));
       }
     } catch (error) {
       log.error('Failed to connect Apple Music', error);
-      window.dispatchEvent(
-        new CustomEvent('ferni:toast', {
-          detail: { message: t('musicDashboard.appleMusic.connectFailed'), type: 'error' },
-        })
-      );
+      toast.error(t('musicDashboard.appleMusic.connectFailed'));
     }
   }
 
