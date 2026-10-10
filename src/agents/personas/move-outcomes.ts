@@ -11,7 +11,7 @@
  */
 import type { AfterCallContext, AfterCallTask } from '../../services/session/after-call-tasks.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { moveOutcomesEnabled, takeMoveLog, type MoveLog } from './move-log.js';
+import { moveOutcomesEnabled, takeMoveLog, type MoveLog, type ReplyLength } from './move-log.js';
 
 const log = createLogger({ module: 'move-outcomes' });
 
@@ -37,12 +37,34 @@ export interface MoveOutcomeRecord {
     calledBackWithin7d: boolean | null;
   };
   turns: Array<{
-    moves: string[];
+    moves: Move[];
+    replyLength: ReplyLength;
     replyWords: number;
     bargeIn: 0 | 1;
     next: NextTurn | null; // null: the call ended before they spoke again
+    /** MOVE_LEARNING's success bit: they went on as long or opened up, no barge-in or drop. */
+    success: 0 | 1 | null;
   }>;
 }
+
+/** The STYLE_PROFILE (W3) multiplier a move's draw goes through, so W3's learner reads it directly. */
+export type W3Knob = 'replyLength' | 'laugh' | 'opinion' | 'filler' | 'pushback';
+export interface Move {
+  id: string;
+  w3Knob?: W3Knob;
+}
+const W3_KNOB: Record<string, W3Knob> = {
+  laugh_along: 'laugh',
+  laugh_spontaneous: 'laugh',
+  laughed: 'laugh',
+  opinion: 'opinion',
+  filler: 'filler',
+  candor: 'pushback',
+  candor_yes: 'pushback',
+  candor_unknowable: 'pushback',
+  stance: 'pushback',
+};
+const tagged = (id: string): Move => (W3_KNOB[id] ? { id, w3Knob: W3_KNOB[id] } : { id });
 
 export const EARLY_HANGUP_SEC = 90;
 const MAX_TURNS = 400; // about a two-hour call: a record stays small
@@ -65,9 +87,13 @@ export function buildMoveOutcomeRecord(
     const after = i + 1 < entries.length ? entries[i + 1].caller : undefined;
     const usual = Math.max(1, median(entries.slice(0, i + 1).map((e) => e.caller.words)));
     return {
-      moves: entry.moves,
+      moves: entry.moves.map(tagged),
+      replyLength: entry.replyLength,
       replyWords: entry.replyWords,
       bargeIn: bit(entry.bargedIn),
+      success: after
+        ? bit((after.words >= usual || after.disclosure) && !entry.bargedIn && !after.dropped)
+        : null,
       next: after
         ? {
             lenRatio: Math.round((after.words / usual) * 100) / 100,

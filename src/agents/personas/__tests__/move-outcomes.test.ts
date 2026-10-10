@@ -9,9 +9,11 @@ import {
   registeredAfterCallTasks,
   runAfterCallTasks,
 } from '../../../services/session/after-call-tasks.js';
-import { installMoveLog, noteMove, takeMoveLog } from '../move-log.js';
+import { installMoveLog, noteMove, noteTurn, takeMoveLog, type ReplyEntry } from '../move-log.js';
+import type { TurnShape } from '../turn-shape.js';
 import { gatedReply } from '../crisis-gate.js';
 import {
+  buildMoveOutcomeRecord,
   moveOutcomesTask,
   type MoveOutcomeRecord,
   type MoveOutcomeStore,
@@ -45,7 +47,9 @@ function fakeSession() {
     say(text: string, interrupted = false) {
       for (const l of listeners)
         if (l.event === 'conversation_item_added')
-          l.handler({ item: { type: 'message', role: 'assistant', textContent: text, interrupted } });
+          l.handler({
+            item: { type: 'message', role: 'assistant', textContent: text, interrupted },
+          });
     },
   };
   return session;
@@ -113,7 +117,10 @@ async function call(sessionId: string, store: MoveOutcomeStore): Promise<void> {
   reply(session, 'That is a lot of quiet. Does Biscuit at least get you out walking?', true);
   await ask(session, 'yeah he does, okay I have to go, bye');
   reply(session, 'Bye, talk soon.');
-  registerAfterCallTask('move-outcomes', moveOutcomesTask(store, () => Date.now()));
+  registerAfterCallTask(
+    'move-outcomes',
+    moveOutcomesTask(store, () => Date.now())
+  );
   runAfterCallTasks({
     userId: 'u1',
     sessionId,
@@ -134,16 +141,30 @@ describe('move outcomes (MOVE_OUTCOMES)', () => {
     const rec = store.saved[0];
     expect(rec.turns).toHaveLength(3);
     const [first, second, last] = rec.turns;
+    const ids = (t: (typeof rec.turns)[number]) => t.moves.map((m) => m.id);
     // Asked for by the reminder (laugh along), and seen in what he said.
-    expect(first.moves).toEqual(
+    expect(ids(first)).toEqual(
       expect.arrayContaining(['laugh_along', 'laughed', 'asked', 'backchannel'])
     );
+    // Tagged with the STYLE_PROFILE knob each one went through; untagged otherwise.
+    expect(first.moves).toEqual(
+      expect.arrayContaining([
+        { id: 'laugh_along', w3Knob: 'laugh' },
+        { id: 'candor', w3Knob: 'pushback' },
+        { id: 'asked' },
+        { id: 'backchannel' },
+      ])
+    );
+    // TURN_SHAPE=model (the default): the model picks the length.
+    expect(rec.turns.map((t) => t.replyLength)).toEqual(['default', 'default', 'default']);
+    // Went on longer and opened up; cut off; the call ended.
+    expect(rec.turns.map((t) => t.success)).toEqual([1, 0, null]);
     expect(first.bargeIn).toBe(0);
     expect(first.next).toMatchObject({ disclosure: 1, laughed: 0, dropped: 0 });
     expect(first.next!.lenRatio).toBeGreaterThan(2);
     // Biscuit came back from an earlier turn; the caller cut this reply off.
-    expect(second.moves).toContain('callback');
-    expect(first.moves).not.toContain('callback');
+    expect(ids(second)).toContain('callback');
+    expect(ids(first)).not.toContain('callback');
     expect(second.bargeIn).toBe(1);
     expect(second.next!.lenRatio).toBeLessThan(1);
     expect(last.next).toBeNull();
@@ -160,7 +181,11 @@ describe('move outcomes (MOVE_OUTCOMES)', () => {
     process.env.MOVE_OUTCOMES = 'on';
     const store = storeSpy();
     await call('s-words', store);
-    const stored = new Set(JSON.stringify(store.saved[0]).toLowerCase().match(/[a-z]+/g));
+    const stored = new Set(
+      JSON.stringify(store.saved[0])
+        .toLowerCase()
+        .match(/[a-z]+/g)
+    );
     expect(callerWords.size).toBeGreaterThan(15);
     expect([...callerWords].filter((w) => stored.has(w))).toEqual([]);
   });
@@ -179,6 +204,55 @@ describe('move outcomes (MOVE_OUTCOMES)', () => {
     expect(moveLog.entries[0].replyWords).toBe(2);
     expect(moveLog.entries[0].moves).not.toContain('asked');
     expect(moveLog.entries[1].moves).toEqual(['asked']);
+  });
+
+  it('logs the reply length the shape drew', () => {
+    process.env.MOVE_OUTCOMES = 'on';
+    const session = fakeSession();
+    installMoveLog(session, 's-len', session, []);
+    const shaped = (shape: TurnShape['shape']): TurnShape =>
+      ({ move: 'share', shape, reminder: '', extras: [] }) as TurnShape;
+    const turns: Array<TurnShape | undefined> = [
+      shaped('react'),
+      shaped('one'),
+      shaped('answer'),
+      shaped('full'),
+      undefined,
+    ];
+    turns.forEach((turn, i) => {
+      noteTurn(session, `turn ${i}`, turn);
+      session.say('ok');
+    });
+    expect(takeMoveLog('s-len')!.entries.map((e) => e.replyLength)).toEqual([
+      'short',
+      'short',
+      'default',
+      'long',
+      'default',
+    ]);
+  });
+
+  it('counts a reply a success only when they went on, with no barge-in or drop', () => {
+    const turn = (words: number, extra: Partial<ReplyEntry> = {}, dropped = false): ReplyEntry => ({
+      moves: [],
+      replyLength: 'default',
+      caller: { words, disclosure: false, laughed: false, dropped, goodbye: false },
+      replied: true,
+      bargedIn: false,
+      replyWords: 5,
+      ...extra,
+    });
+    const success = (entries: ReplyEntry[]) =>
+      buildMoveOutcomeRecord(
+        { sessionId: 's', startedAt: 0, entries, last: '', earlier: new Set(), current: new Set() },
+        0,
+        1000
+      ).turns[0].success;
+    expect(success([turn(10), turn(12)])).toBe(1);
+    expect(success([turn(10), turn(6)])).toBe(0);
+    expect(success([turn(10, { bargedIn: true }), turn(12)])).toBe(0);
+    expect(success([turn(10), turn(12, {}, true)])).toBe(0);
+    expect(success([turn(10)])).toBeNull();
   });
 
   it('records nothing with the flag off', async () => {

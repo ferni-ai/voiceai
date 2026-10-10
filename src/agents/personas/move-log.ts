@@ -41,9 +41,14 @@ export interface CallerTurn {
   goodbye: boolean;
 }
 
+/** The reply length drawn (turn-shape.ts); under TURN_SHAPE=model the model picks, so 'default'. */
+export type ReplyLength = 'short' | 'default' | 'long';
+const LENGTH: Record<string, ReplyLength> = { react: 'short', one: 'short', full: 'long' };
+
 /** One reply: the moves in it, and the caller turn it answers. */
 export interface ReplyEntry {
   moves: string[];
+  replyLength: ReplyLength;
   caller: CallerTurn;
   replied: boolean;
   bargedIn: boolean;
@@ -140,15 +145,18 @@ export function noteTurn(session: object, said: string, turn: TurnShape | undefi
   const t = said.trim();
   if (!moveLog || !t) return;
   const moves = turn ? movesFor(turn) : [];
+  const replyLength = (turn && LENGTH[turn.shape]) ?? 'default';
   const entry = moveLog.entries.at(-1);
   const sameTurn = entry && !entry.replied && (t === moveLog.last || t.startsWith(moveLog.last));
   if (sameTurn) {
     entry.moves = [...moves, ...entry.moves.filter((m) => m === 'backchannel')];
     entry.caller = callerTurn(t);
+    entry.replyLength = replyLength;
   } else {
     for (const name of moveLog.current) moveLog.earlier.add(name);
     moveLog.entries.push({
       moves,
+      replyLength,
       caller: callerTurn(t),
       replied: false,
       bargedIn: false,
