@@ -1323,12 +1323,7 @@ function cleanupOrphanedPanels(): void {
 // ============================================================================
 
 export function initYourPeopleUI(): void {
-  // Listen for open events
-  document.addEventListener('ferni:open-your-people', () => {
-    openYourPeople();
-  });
-
-  // Also support old event name for backward compatibility
+  // ferni:open-contacts is the one open event (voice show_view 'contacts', app.ts, command palette)
   document.addEventListener('ferni:open-contacts', () => {
     openYourPeople();
   });
