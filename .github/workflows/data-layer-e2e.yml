@@ -8,6 +8,7 @@ on:
     paths:
       - 'src/services/data-layer/**'
       - 'src/services/seeds/**'
+      - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'src/intelligence/**'
       - 'src/tests/data-layer/**'
@@ -19,6 +20,7 @@ on:
     paths:
       - 'src/services/data-layer/**'
       - 'src/services/seeds/**'
+      - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'firestore.indexes.json'
       - 'firebase.json'
@@ -75,7 +77,7 @@ jobs:
 
       - name: Run Seed Ledger Tests
         run: |
-          pnpm vitest run src/services/seeds/__tests__/ledger.emulator.test.ts --reporter=verbose
+          pnpm vitest run src/services/seeds/__tests__/ src/api/__tests__/roadmap-seeds.emulator.test.ts --reporter=verbose
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
