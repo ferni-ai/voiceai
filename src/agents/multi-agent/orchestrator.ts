@@ -37,6 +37,7 @@ export { calmGreeting } from './greeting-direction.js';
 import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
 import type { PreBriefing } from '../../services/automation/predictive-handoff.js';
 import { callerHour } from '../shared/time-context.js';
+import { getArrivingBanter, getHandoffBanter } from '../../services/team-engagement/banter.js';
 
 const log = getLogger();
 
@@ -932,17 +933,10 @@ export class AgentOrchestrator {
    * Get a goodbye phrase for the departing agent.
    */
   private getGoodbyePhrase(fromPersonaId: string, toPersonaId: string): string | null {
-    try {
-      // Import dynamically to avoid circular deps
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { getHandoffBanter } = require('../../services/engagement/team-engagement.js');
-      return getHandoffBanter(fromPersonaId, toPersonaId);
-    } catch {
-      // Fallback if module not available (e.g., in tests)
-      // BUG FIX: Use display name instead of persona ID for natural speech
-      const displayName = getPersonaDisplayName(toPersonaId);
-      return `Let me hand you off to ${displayName}.`;
-    }
+    // The departing persona's banter; a plain hand-off line when there's none for this pair.
+    // (This used require() of a module without these functions: in this ES module that
+    // always threw, so every handoff got the fixed fallback lines)
+    return getHandoffBanter(fromPersonaId, toPersonaId) ?? `Let me hand you off to ${getPersonaDisplayName(toPersonaId)}.`;
   }
 
   /**
@@ -953,15 +947,7 @@ export class AgentOrchestrator {
     fromPersonaId: string,
     _request: HandoffRequest
   ): string | null {
-    try {
-      // Import dynamically to avoid circular deps
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { getArrivingBanter } = require('../../services/engagement/team-engagement.js');
-      return getArrivingBanter(toPersonaId, fromPersonaId);
-    } catch {
-      // Fallback if module not available (e.g., in tests)
-      return "Hey! What's up?";
-    }
+    return getArrivingBanter(toPersonaId, fromPersonaId) ?? "Hey! What's up?";
   }
 }
 

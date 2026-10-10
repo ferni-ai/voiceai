@@ -40,9 +40,11 @@ import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/types.js';
+import type { UserProfile } from '../../types/user-profile.js';
 import type { UserData } from '../shared/types.js';
 import { createAgentOrchestrator, type AgentOrchestrator } from './orchestrator.js';
 import { createPersonaAgentFactory } from './persona-agent-factory.js';
+import { checkHandoffUnlocked } from '../../tools/handoff/handoff-unlock-check.js';
 
 const log = getLogger();
 
@@ -210,6 +212,12 @@ export async function handleHandoffFromDataChannel(
     return { success: false, error: `Already with ${targetPersonaId}` };
   }
 
+  // A tap reaches here straight from the browser: the same unlock check as the LLM's tools
+  const userProfile = await profileWhenLoaded(services);
+  const tier = (userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
+  const unlock = checkHandoffUnlocked(targetPersonaId, userProfile, tier);
+  if (!unlock.open) return { success: false, error: unlock.error };
+
   diag.entry(`🎭 Data channel handoff: ${currentPersona} → ${targetPersonaId}`);
 
   const result = await orchestrator.handoff({
@@ -224,3 +232,18 @@ export async function handleHandoffFromDataChannel(
     error: result.error,
   };
 }
+
+/**
+ * The profile loads after the call starts (deferred startup); a tap in the first moments
+ * waits briefly for it, so an unlocked teammate isn't refused for want of it. Still none
+ * after that: decide without it, which keeps paid teammates closed.
+ */
+async function profileWhenLoaded(services: SessionServices, waitMs = 3000): Promise<UserProfile | null> {
+  for (let waited = 0; !services.userProfile && services.userId && waited < waitMs; waited += 100) {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 100);
+    });
+  }
+  return services.userProfile ?? null;
+}
+

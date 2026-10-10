@@ -18,6 +18,7 @@ import type { RemoteParticipant, Room } from '@livekit/rtc-node';
 import type { SessionServices } from '../../../services/types.js';
 import type { Persona } from '../../../personas/types.js';
 import type { UserData } from '../types.js';
+import { forwardCameoReveals } from '../cameo-reveal.js';
 
 // ============================================================================
 // TYPES
@@ -390,6 +391,9 @@ export async function runMultiAgentMode(
     };
 
     handoffEvents.on('voiceSwitch', voiceSwitchHandler);
+    // Ferni's introduction of a teammate shows in the app (setupFrontendPublisher, which
+    // does this for single-agent calls, doesn't run here)
+    const stopCameoReveals = forwardCameoReveals(ctx.room ?? undefined, sessionId);
     process.stderr.write(
       `[multi-agent-mode] 🎭 voiceSwitch handler registered for LLM-triggered handoffs\n`
     );
@@ -442,6 +446,8 @@ export async function runMultiAgentMode(
 
     // Cleanup
     handoffEvents.off('voiceSwitch', voiceSwitchHandler);
+    stopCameoReveals();
+    ctx.room?.off('dataReceived', dataHandler);
     if (groupConversationIntegration) {
       await groupConversationIntegration.cleanup();
       process.stderr.write(`[multi-agent-mode] 🎙️ Group conversation cleaned up\n`);
