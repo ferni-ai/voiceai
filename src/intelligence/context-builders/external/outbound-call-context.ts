@@ -163,7 +163,7 @@ export const outboundCallContextBuilder: ContextBuilder = {
     // 4. Guardrails: Must-Not-Do
     // ---------------------------------------------------------
     if (callContext.mustNotDo.length > 0) {
-      const guardrails = buildGuardrailsInjection(callContext.mustNotDo);
+      const guardrails = buildGuardrailsInjection(callContext.mustNotDo, callContext.userName);
       injections.push(
         createStandardInjection('outbound_call_guardrails', guardrails, {
           category: 'constraints',
@@ -280,13 +280,13 @@ This information will be automatically captured and reported to ${context.userNa
 `.trim();
 }
 
-function buildGuardrailsInjection(mustNotDo: string[]): string {
+function buildGuardrailsInjection(mustNotDo: string[], userName: string): string {
   return `
 CALL GUARDRAILS - DO NOT VIOLATE
 
 ${mustNotDo.map((item) => `- ${item}`).join('\n')}
 
-These are hard constraints. If you're unsure about something, err on the side of caution and say you'll have ${'{userName}'} follow up directly.
+These are hard constraints. If you're unsure about something, err on the side of caution and say you'll have ${userName} follow up directly.
 `.trim();
 }
 
