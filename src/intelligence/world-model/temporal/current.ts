@@ -40,6 +40,10 @@ function describeFact(fact: TemporalFact, today: string, timeZone?: string): str
       ? `${fact.value} (was ${day})`
       : `${fact.value} ${day === 'today' ? 'today' : `on ${day}`}`;
   }
+  // Only a change gets a start day: the first time we hear of a job is not
+  // when it began ("works at Acme since Saturday" would be wrong).
+  const isChange = Boolean(fact.since) || (fact.supersedes?.length ?? 0) > 0;
+  if (!isChange) return fact.value;
   const from = localDay(fact.validFrom, timeZone);
   const age = daysBetween(from, today);
   return age > 0 && age <= RECENT_CHANGE_DAYS

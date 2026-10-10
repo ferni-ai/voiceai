@@ -25,6 +25,20 @@ export interface TemporalWorld {
   sinceLastCall: SinceLastCallItem[];
   /** The [SINCE YOU LAST TALKED] block, or null. */
   sinceNote: string | null;
+  /** Both blocks, for the first recall note of the call; null when empty. */
+  note: string | null;
+}
+
+/** What is going on now, then what came due or changed since the last call. */
+export function formatTemporalNote(
+  lines: readonly string[],
+  sinceNote: string | null
+): string | null {
+  const now =
+    lines.length > 0
+      ? ['[GOING ON IN THEIR WORLD NOW]', ...lines.map((l) => `- ${l}`)].join('\n')
+      : null;
+  return [now, sinceNote].filter(Boolean).join('\n') || null;
 }
 
 export interface LoadTemporalWorldOptions {
@@ -58,11 +72,14 @@ export async function loadTemporalWorld(
       lastCallEndedAt,
       alreadySaid: options.alreadySaid,
     });
+    const lines = formatCurrentWorld(facts, when);
+    const sinceNote = formatSinceLastCall(items);
     const world = {
       facts,
-      lines: formatCurrentWorld(facts, when),
+      lines,
       sinceLastCall: items,
-      sinceNote: formatSinceLastCall(items),
+      sinceNote,
+      note: formatTemporalNote(lines, sinceNote),
     };
     log.info(
       {

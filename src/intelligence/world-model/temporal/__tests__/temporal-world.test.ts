@@ -110,6 +110,15 @@ describe('temporal world: after-call → store → next call', () => {
       'Mindy (sister): knee surgery was yesterday. Ask how it went.',
     ]);
     expect(after?.sinceNote).toContain('[SINCE YOU LAST TALKED]');
+    expect(after?.note).toBe(
+      [
+        '[GOING ON IN THEIR WORLD NOW]',
+        '- Mindy (sister), knee surgery (was yesterday)',
+        // First heard Saturday is not "since Saturday": only changes get a start day.
+        '- Them, works at Acme',
+        after?.sinceNote,
+      ].join('\n')
+    );
   });
 
   it('an update supersedes the old fact; only current facts render, with the change marked', async () => {
@@ -175,6 +184,7 @@ describe('temporal world: after-call → store → next call', () => {
     const first = await load(store, CALL2_AT, null);
     expect(first?.sinceLastCall).toEqual([]);
     expect(first?.sinceNote).toBeNull();
+    expect(first?.note).toContain('[GOING ON IN THEIR WORLD NOW]');
   });
 
   it('something heard outside a call since the last one shows as a change', async () => {
