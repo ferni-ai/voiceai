@@ -23,20 +23,23 @@ async function opens(page: Page, control: Locator, what: string) {
   return newPanel(page, before, what);
 }
 
-async function openCard(page: Page) {
+async function openCard(page: Page, add = false) {
   await openSettingsMenu(page);
   const people = await opens(
     page,
     page.locator('.settings-menu [data-action="contacts"]'),
     'contacts'
   );
-  if (!(await people.locator('.yp-person', { hasText: PERSON }).count())) {
+  // Add on the first open only. After a reload the list loads late, so a count taken too early
+  // reads 0 and added a second, identical person (CI: "resolved to 2 elements")
+  if (add) {
     await people.locator('[data-action="add-person"]').click();
     const form = page.locator('.add-person-overlay.open');
     await form.getByPlaceholder('e.g., Mom, Sarah Chen, Dr. Rivera').fill(PERSON);
     await form.locator('[data-relationship="friend"]').click();
     await form.getByRole('button', { name: 'Add Person', exact: true }).click();
   }
+  await expect(people.locator('.yp-person', { hasText: PERSON })).toHaveCount(1, { timeout: 10_000 });
   return opens(page, people.locator('.yp-person', { hasText: PERSON }), 'person card');
 }
 
@@ -70,7 +73,7 @@ test.beforeEach(async ({ page }) => {
 
 test('a phone and a note are kept, and once cleared they stay cleared', async ({ page }) => {
   const problems = watchProblems(page);
-  await editDetails(page, await openCard(page), '+15555550123', 'Met at the climbing gym');
+  await editDetails(page, await openCard(page, true), '+15555550123', 'Met at the climbing gym');
   expect(await savedDetails(page)).toEqual({
     phone: '+15555550123',
     notes: 'Met at the climbing gym',
@@ -84,7 +87,7 @@ test('a phone and a note are kept, and once cleared they stay cleared', async ({
 });
 
 test('Add Notes opens the notes', async ({ page }) => {
-  const card = await openCard(page);
+  const card = await openCard(page, true);
   await card.locator('.rc-tab[data-tab="notes"], .rc-tab', { hasText: 'Notes' }).first().click();
   const edit = await opens(page, card.locator('[data-action="edit-notes"]'), 'edit notes');
   await expect(edit.locator('#ep-notes')).toBeVisible();
