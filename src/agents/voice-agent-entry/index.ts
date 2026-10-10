@@ -438,8 +438,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         );
       }
 
-      // User awareness injection
       const userAwarenessResult = buildUserAwareness({
+        sessionId,
         userProfile: services.userProfile,
         isReturningUser,
         userName,
