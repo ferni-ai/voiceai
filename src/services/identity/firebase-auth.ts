@@ -14,6 +14,7 @@
  */
 
 import admin from 'firebase-admin';
+import { getAuth } from 'firebase-admin/auth';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'FirebaseAuth' });
@@ -301,7 +302,7 @@ export async function deleteFirebaseUser(uid: string): Promise<boolean> {
 export type AttachPhoneResult =
   { ok: true; e164: string } | { ok: false; reason: 'invalid-number' | 'in-use' | 'unavailable' };
 
-/** The Firebase Auth calls attachVerifiedPhone makes (admin.auth() in production). */
+/** The Firebase Auth calls attachVerifiedPhone makes (modular getAuth() in production). */
 export interface PhoneAuthApi {
   getUserByPhoneNumber(phoneNumber: string): Promise<{ uid: string }>;
   updateUser(uid: string, update: { phoneNumber: string }): Promise<unknown>;
@@ -325,7 +326,7 @@ export async function attachVerifiedPhone(
   const e164 = normalizePhoneNumber(phone);
   const tail = e164.slice(-2);
   if (!api && !ensureInitialized()) return { ok: false, reason: 'unavailable' };
-  const auth: PhoneAuthApi = api ?? admin.auth();
+  const auth: PhoneAuthApi = api ?? getAuth();
   try {
     const holder = await auth.getUserByPhoneNumber(e164).catch((error: unknown) => {
       if ((error as { code?: string }).code === 'auth/user-not-found') return null;
