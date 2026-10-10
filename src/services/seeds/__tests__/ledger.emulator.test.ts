@@ -33,11 +33,17 @@ beforeEach(() => {
 });
 
 const entries = async () =>
-  (await db.collection('user_seeds').doc(uid).collection('entries').get()).docs.map((d) => d.id).sort();
+  (await db.collection('user_seeds').doc(uid).collection('entries').get()).docs
+    .map((d) => d.id)
+    .sort();
 
 describe.skipIf(!emulator)('seed ledger (Firestore emulator)', () => {
   it('a new account starts with 25 seeds, recorded as an entry', async () => {
-    const result = await applySeeds(db, uid, { delta: 5, reason: 'daily', key: 'daily:2026-10-10' });
+    const result = await applySeeds(db, uid, {
+      delta: 5,
+      reason: 'daily',
+      key: 'daily:2026-10-10',
+    });
 
     expect(result).toEqual({ applied: true, balance: STARTER_SEEDS + 5 });
     const account = (await db.collection('user_seeds').doc(uid).get()).data();
@@ -47,7 +53,11 @@ describe.skipIf(!emulator)('seed ledger (Firestore emulator)', () => {
 
   it('the same key applies once: a retry or replayed webhook changes nothing', async () => {
     await applySeeds(db, uid, { delta: 75, reason: 'contribution', key: 'stripe:pi_1' });
-    const again = await applySeeds(db, uid, { delta: 75, reason: 'contribution', key: 'stripe:pi_1' });
+    const again = await applySeeds(db, uid, {
+      delta: 75,
+      reason: 'contribution',
+      key: 'stripe:pi_1',
+    });
 
     expect(again).toEqual({ applied: false, balance: 100 });
     expect(await getSeedBalance(db, uid)).toBe(100);
@@ -69,10 +79,14 @@ describe.skipIf(!emulator)('seed ledger (Firestore emulator)', () => {
   it('concurrent earns with different keys all land; with one key, only once', async () => {
     await applySeeds(db, uid, { delta: 1, reason: 'test', key: 'warm' }); // account exists
     await Promise.all(
-      Array.from({ length: 8 }, (_, i) => applySeeds(db, uid, { delta: 10, reason: 'test', key: `k${i}` }))
+      Array.from({ length: 8 }, (_, i) =>
+        applySeeds(db, uid, { delta: 10, reason: 'test', key: `k${i}` })
+      )
     );
     await Promise.all(
-      Array.from({ length: 8 }, () => applySeeds(db, uid, { delta: 100, reason: 'test', key: 'same' }))
+      Array.from({ length: 8 }, () =>
+        applySeeds(db, uid, { delta: 100, reason: 'test', key: 'same' })
+      )
     );
     expect(await getSeedBalance(db, uid)).toBe(STARTER_SEEDS + 1 + 80 + 100);
   });
@@ -107,10 +121,16 @@ describe.skipIf(!emulator)('seed ledger (Firestore emulator)', () => {
 
   it('an account written before the ledger keeps its balance and gains entries', async () => {
     await db.collection('user_seeds').doc(uid).set({ balance: 140, referralCode: 'abc-fern' });
-    const result = await applySeeds(db, uid, { delta: 5, reason: 'daily', key: 'daily:2026-10-11' });
+    const result = await applySeeds(db, uid, {
+      delta: 5,
+      reason: 'daily',
+      key: 'daily:2026-10-11',
+    });
 
     expect(result.balance).toBe(145);
-    expect((await db.collection('user_seeds').doc(uid).get()).data()).toMatchObject({ referralCode: 'abc-fern' });
+    expect((await db.collection('user_seeds').doc(uid).get()).data()).toMatchObject({
+      referralCode: 'abc-fern',
+    });
     expect(await entries()).toEqual(['daily:2026-10-11']); // no starter for an existing account
   });
 });

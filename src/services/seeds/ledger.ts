@@ -96,7 +96,9 @@ export async function prepareMoreSeeds(
   state: LedgerState,
   keys: readonly string[]
 ): Promise<void> {
-  const refs = keys.map((key) => [key, state.accountRef.collection(ENTRIES_SUBCOLLECTION).doc(entryId(key))] as const);
+  const refs = keys.map(
+    (key) => [key, state.accountRef.collection(ENTRIES_SUBCOLLECTION).doc(entryId(key))] as const
+  );
   const docs = await Promise.all(refs.map(([, ref]) => tx.get(ref)));
   refs.forEach(([key, ref], i) => state.entries.set(key, { ref, applied: !!docs[i]?.exists }));
 }
@@ -135,8 +137,17 @@ export function commitSeeds(
   if (!state.account && !state.created) {
     // A new account: its starter seeds are an entry like any other
     const starterRef = state.accountRef.collection(ENTRIES_SUBCOLLECTION).doc('starter');
-    tx.set(starterRef, { delta: STARTER_SEEDS, reason: 'starter', balanceAfter: STARTER_SEEDS, at: now });
-    tx.set(state.accountRef, { balance: STARTER_SEEDS, lifetimeEarned: STARTER_SEEDS, createdAt: now });
+    tx.set(starterRef, {
+      delta: STARTER_SEEDS,
+      reason: 'starter',
+      balanceAfter: STARTER_SEEDS,
+      at: now,
+    });
+    tx.set(state.accountRef, {
+      balance: STARTER_SEEDS,
+      lifetimeEarned: STARTER_SEEDS,
+      createdAt: now,
+    });
     state.created = true;
   }
   tx.set(state.accountRef, { balance: after, updatedAt: now, ...totals }, { merge: true });
