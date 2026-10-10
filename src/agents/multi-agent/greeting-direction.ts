@@ -6,6 +6,10 @@
  */
 
 import { callerHour } from '../shared/time-context.js';
+import {
+  callerRecognitionFor,
+  maybeCallerGreeting,
+} from '../voice-agent-entry/caller-recognition.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -121,10 +125,12 @@ export async function directedGreeting(
   const scripted = generateWarmGreeting(personaId, ctx);
   const { directedText } = await import('../../speech/direction/index.js');
   const partOfDay = hour === null ? '' : partOfDayFor(hour);
+  // A phone caller who might be someone Ferni knows (caller-recognition.ts).
+  const maybe = maybeCallerGreeting(callerRecognitionFor(sessionId));
   const directed = await directedText(sessionId, {
     moment: 'greeting',
-    direction: GREETING_DIRECTION,
-    facts: greetingFacts(partOfDay, userData?.userName, history),
+    direction: maybe ? `${GREETING_DIRECTION} ${maybe.direction}` : GREETING_DIRECTION,
+    facts: { ...greetingFacts(partOfDay, userData?.userName, history), ...maybe?.facts },
     fallback: scripted,
     urgency: 'now',
     maxChars: 140,
