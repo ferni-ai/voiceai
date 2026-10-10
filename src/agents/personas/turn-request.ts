@@ -35,6 +35,7 @@ import {
   understandingMode,
   understandingStatusFor,
 } from './turn-understanding.js';
+import { getWrapUp } from './wrap-up.js';
 import {
   TURN_STYLE_REMINDER,
   turnStyleReminderEnabled,
@@ -65,7 +66,7 @@ export interface TurnToolsState {
 export function withTurnReminder(
   request: llm.ChatContext,
   session: object,
-  options: { shape?: boolean } = {}
+  options: { shape?: boolean; closeLoop?: boolean } = {}
 ): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
   const director = getDirector(session);
@@ -81,11 +82,22 @@ export function withTurnReminder(
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     notes,
+    options.closeLoop === false ? '' : closeLoopNote(session, words),
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
   ]
     .filter(Boolean)
     .join(' ');
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+}
+
+/**
+ * WRAP_UP=on: the caller is signing off after something was settled, so the
+ * goodbye closes the loop (wrap-up.ts). Read in code, nothing awaited.
+ */
+function closeLoopNote(session: object, words: string): string {
+  const wrapUp = getWrapUp(session);
+  if (!wrapUp || !words) return '';
+  return wrapUp.noteFor(words, understandingFor(session, words)?.wantsToEnd === true);
 }
 
 /** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */
