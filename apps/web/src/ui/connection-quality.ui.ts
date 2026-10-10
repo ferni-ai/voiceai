@@ -380,6 +380,7 @@ function createIndicator(): HTMLElement {
   el.className = `connection-quality connection-quality--${options.position} connection-quality--${options.size}`;
   el.setAttribute('role', 'status');
   el.setAttribute('aria-live', 'polite');
+  el.setAttribute('aria-hidden', 'true');
   el.setAttribute('aria-label', t('connectionQuality.ariaLabel'));
 
   el.innerHTML = `
@@ -456,9 +457,9 @@ function updateIndicator(): void {
 
   // Auto-hide if excellent and option enabled
   if (options.autoHide && currentQuality === 'excellent') {
-    indicator.classList.remove('connection-quality--visible');
+    setVisible(false);
   } else if (currentQuality !== 'disconnected') {
-    indicator.classList.add('connection-quality--visible');
+    setVisible(true);
   }
 
   // Update aria-label for screen readers
@@ -527,9 +528,7 @@ export function startAutoUpdate(getStats: () => ConnectionStats): void {
   log.debug('Auto-update started');
 }
 
-/**
- * Stop automatic updates
- */
+/** Stop automatic updates */
 export function stopAutoUpdate(): void {
   if (updateTimer) {
     clearInterval(updateTimer);
@@ -539,23 +538,24 @@ export function stopAutoUpdate(): void {
   log.debug('Auto-update stopped');
 }
 
-/**
- * Show the indicator
- */
+/** Toggle visibility; hidden (opacity 0) means hidden from assistive tech too. */
+function setVisible(visible: boolean): void {
+  indicator?.classList.toggle('connection-quality--visible', visible);
+  if (visible) indicator?.removeAttribute('aria-hidden');
+  else indicator?.setAttribute('aria-hidden', 'true');
+}
+
+/** Show the indicator */
 export function show(): void {
-  indicator?.classList.add('connection-quality--visible');
+  setVisible(true);
 }
 
-/**
- * Hide the indicator
- */
+/** Hide the indicator */
 export function hide(): void {
-  indicator?.classList.remove('connection-quality--visible');
+  setVisible(false);
 }
 
-/**
- * Get current quality
- */
+/** Get current quality */
 export function getCurrentQuality(): ConnectionQuality {
   return currentQuality;
 }

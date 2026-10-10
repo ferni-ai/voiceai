@@ -157,7 +157,7 @@ export function show(message?: string): void {
   
   // Add thinking class to coach - triggers ring glow + shows float
   coachElement.classList.add('is-thinking');
-  
+  floatElement?.removeAttribute('aria-hidden');
   // 🎬 Start Pixar curious tilt animation
   startCuriousTilt();
   
@@ -174,7 +174,6 @@ export function show(message?: string): void {
  */
 export function hide(): void {
   if (!coachElement) return;
-  
   // Stop message cycling
   stopMessageCycle();
   
@@ -183,6 +182,7 @@ export function hide(): void {
   
   // Remove thinking class - CSS handles the exit animation
   coachElement.classList.remove('is-thinking');
+  floatElement?.setAttribute('aria-hidden', 'true');
 }
 
 /**
