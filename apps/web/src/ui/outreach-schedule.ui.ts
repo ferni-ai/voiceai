@@ -523,7 +523,7 @@ export async function openOutreachSchedule(): Promise<void> {
  */
 export function closeOutreachSchedule(): void {
   if (!isOpen || !modalContainer) return;
-
+  releaseEscape?.();
   modalContainer.classList.remove('open');
 
   trackedTimeout(() => {
