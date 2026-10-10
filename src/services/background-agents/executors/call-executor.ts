@@ -151,6 +151,14 @@ export async function callBlocker(request: CallRequest): Promise<string | null> 
   return null;
 }
 
+/** What to tell the user when this call can't go out, or null when it can. */
+export async function cantCallReply(request: CallRequest): Promise<string | null> {
+  const blocked = await callBlocker(request);
+  return blocked
+    ? `I can't call ${request.contactName}: ${blocked}. No call was made. Want help with talking points so you can call yourself?`
+    : null;
+}
+
 /**
  * Queue a call for background execution.
  */
