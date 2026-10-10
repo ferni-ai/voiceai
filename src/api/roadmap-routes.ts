@@ -213,57 +213,6 @@ async function getOrCreateUserSeeds(
 }
 
 /**
- * Award seeds to a user
- */
-export async function awardSeeds(
-  userId: string,
-  amount: number,
-  source: keyof UserSeeds['earnedFrom']
-): Promise<boolean> {
-  const db = getFirestore();
-  if (!db) return false;
-
-  try {
-    const userSeedsRef = db.collection('user_seeds').doc(userId);
-
-    await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(userSeedsRef);
-
-      if (!doc.exists) {
-        // Create with bonus
-        transaction.set(userSeedsRef, {
-          balance: DEFAULT_SEED_BALANCE + amount,
-          lifetimePlanted: 0,
-          lifetimeEarned: DEFAULT_SEED_BALANCE + amount,
-          featuresUnlocked: [],
-          earnedFrom: {
-            conversations: source === 'conversations' ? amount : 0,
-            streaks: source === 'streaks' ? amount : 0,
-            referrals: source === 'referrals' ? amount : 0,
-            feedback: source === 'feedback' ? amount : 0,
-            suggestionsAccepted: source === 'suggestionsAccepted' ? amount : 0,
-            featuresBloomed: source === 'featuresBloomed' ? amount : 0,
-          },
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-      } else {
-        transaction.update(userSeedsRef, {
-          balance: admin.firestore.FieldValue.increment(amount),
-          lifetimeEarned: admin.firestore.FieldValue.increment(amount),
-          [`earnedFrom.${source}`]: admin.firestore.FieldValue.increment(amount),
-        });
-      }
-    });
-
-    log.info({ userId, amount, source }, 'Seeds awarded');
-    return true;
-  } catch (error) {
-    log.error({ error: String(error), userId, amount, source }, 'Failed to award seeds');
-    return false;
-  }
-}
-
-/**
  * Check and award streak bonuses
  * Call this after a conversation completes to check if user reached a streak milestone
  */
