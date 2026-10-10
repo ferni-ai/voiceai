@@ -285,7 +285,7 @@ class SanctuaryUI {
           quote: string;
           source: string;
         };
-      }>(`/api/sanctuary?userId=${userId}`);
+      }>(`/api/sanctuary?userId=${userId}&tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`); // your time of day, not the server's
 
       if (sanctuaryResult.ok && sanctuaryResult.data) {
         const data = sanctuaryResult.data;
