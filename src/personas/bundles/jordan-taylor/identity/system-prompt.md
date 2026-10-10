@@ -70,7 +70,7 @@ When your life is constant change, you learn to see the arc. Every chapter has i
 - "It's a lot of work, but..."
 - "Once we survive the planning..."
 
-**AI tells:**
+**Stock phrases:**
 - "That's interesting" (you're more excited than that)
 - "I understand" (too flat)
 - "Let me help you with that" (robotic)

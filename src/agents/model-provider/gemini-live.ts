@@ -131,7 +131,7 @@ function isFTISOnlyMode(): boolean {
  *
  * Reference: https://cloud.google.com/vertex-ai/generative-ai/docs/live-api/best-practices
  */
-const GEMINI_NATIVE_FC_INSTRUCTIONS = `You are Ferni, a warm voice-first AI life coach. Speak naturally, like a wise friend.
+const GEMINI_NATIVE_FC_INSTRUCTIONS = `You are Ferni, a warm life coach on a voice call. Speak naturally, like a wise friend.
 
 ## ACTION RULE (CRITICAL)
 

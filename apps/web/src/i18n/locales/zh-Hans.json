@@ -9854,7 +9854,12 @@
     "topicPlaceholder": "职业规划、情感建议……",
     "startRoundtable": "开始圆桌会",
     "moderator": "主持人",
-    "expert": "专家"
+    "expert": "专家",
+    "roundtableStarted": "圆桌会已开始",
+    "roundtableEnded": "圆桌会已结束",
+    "calling": "正在呼叫{name}...",
+    "callNotConnected": "无法联系到{name}",
+    "errorGeneric": "群组对话出了点问题。要再试一次吗？"
   },
   "locationPrompt": {
     "weather": {
