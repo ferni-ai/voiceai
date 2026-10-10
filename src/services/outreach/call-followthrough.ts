@@ -5,7 +5,8 @@
  * voicemail, no answer, or they hung up early), writes a short report in
  * Ferni's voice with any message for the user, and stores it through the
  * normal call-result capture. From there the user hears about it when their
- * next session opens and gets an in-app notification.
+ * next session opens and gets an in-app notification. A missed call gets one
+ * retry the next day (see call-retry.ts).
  *
  * Off unless CALL_FOLLOWTHROUGH=on.
  *
@@ -15,6 +16,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 import { parseOnBehalfDispatch } from './on-behalf-dispatch.js';
+import { scheduleCallRetry, type CallRetryDeps } from './call-retry.js';
 
 const log = getLogger().child({ service: 'call-followthrough' });
 
@@ -36,7 +38,7 @@ export interface CallReport {
   messageForUser?: string | null;
 }
 
-export interface FollowthroughDeps {
+export interface FollowthroughDeps extends CallRetryDeps {
   summarize?: (prompt: string) => Promise<CallReport | null>;
 }
 
@@ -44,6 +46,7 @@ export interface FollowthroughResult {
   outcome: FollowthroughOutcome;
   summary: string;
   messageForUser: string | null;
+  retryScheduledFor: string | null;
 }
 
 export function isCallFollowthroughEnabled(): boolean {
@@ -183,6 +186,7 @@ export function followthroughCallFromDispatch(
       userTimezone: requester.timezone,
       userName: requester.name,
       recordingConsent: false,
+      retryOf: dispatch.retryOf,
     },
   };
 }
@@ -207,20 +211,23 @@ export async function recordCallFollowthrough(
       deps.summarize ?? defaultSummarize
     );
     const missed = outcome === 'no_answer' || outcome === 'voicemail';
+    const retryAt = missed ? await scheduleCallRetry(call.callId, call.request, deps) : null;
+    const text = retryAt ? `${summary} I'll try ${name} again tomorrow.` : summary;
     const message = messageForUser ? `Message from ${name}: ${messageForUser}` : null;
 
     const result: FollowthroughResult = {
       outcome,
-      summary,
+      summary: text,
       messageForUser,
+      retryScheduledFor: retryAt?.toISOString() ?? null,
     };
     const callOutcome: CallOutcome & { followthrough: FollowthroughResult } = {
       callId: call.callId,
       status: STATUS[outcome],
       objectiveAchieved: outcome === 'answered',
-      outcome: summary,
+      outcome: text,
       // Shown under the headline when the user's next session opens.
-      transcriptSummary: [missed ? summary : null, message].filter(Boolean).join(' ') || undefined,
+      transcriptSummary: [missed ? text : null, message].filter(Boolean).join(' ') || undefined,
       callbackRequired: false,
       followthrough: result,
     };
@@ -232,7 +239,7 @@ export async function recordCallFollowthrough(
       email: false,
       calendar: false,
     });
-    log.info({ callId: call.callId, outcome }, 'Call follow-through recorded');
+    log.info({ callId: call.callId, outcome, retry: !!retryAt }, 'Call follow-through recorded');
     return result;
   } catch (error) {
     log.error({ error: String(error), callId: call.callId }, 'Call follow-through failed');

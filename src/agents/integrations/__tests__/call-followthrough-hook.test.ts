@@ -62,6 +62,9 @@ describe('call follow-through at the end of an on-behalf call session', () => {
     const stored = rows.find((r) => r.collection === 'on_behalf_calls');
     expect(stored).toMatchObject({ id: 'call-1', userId: 'seth' });
     expect(stored?.data.outcome).toMatchObject({ status: 'no_answer' });
+    expect(rows.some((r) => r.id === 'retry_call-1' && r.collection === 'scheduled_outreach')).toBe(
+      true
+    );
     expect(captureBackgroundResult).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'seth', contactName: 'Mindy' })
     );

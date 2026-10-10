@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildOnBehalfDispatch, parseOnBehalfDispatch } from '../on-behalf-dispatch.js';
+import {
+  buildOnBehalfDispatch,
+  onBehalfDispatchFor,
+  parseOnBehalfDispatch,
+} from '../on-behalf-dispatch.js';
 import { identifyFromMetadata } from '../../identity/user-identification.js';
 
 const input = {
@@ -26,6 +30,25 @@ describe('on-behalf dispatch contract', () => {
       contact: input.contact,
       objective: 'check_in',
     });
+  });
+
+  it('carries the missed call a retry is for, so the retry is not retried', () => {
+    const request = {
+      contactQuery: 'Mom',
+      resolvedContact: input.contact,
+      purpose: input.purpose,
+      objective: input.objective,
+      callType: input.callType,
+      originalSessionId: 'session-orig',
+      userId: 'user-1',
+      userTimezone: 'America/New_York',
+      userName: 'Seth',
+      recordingConsent: false,
+    };
+    const wire = (r: typeof request & { retryOf?: string }) =>
+      JSON.parse(JSON.stringify(onBehalfDispatchFor('call-2', r)));
+    expect(parseOnBehalfDispatch(wire({ ...request, retryOf: 'call-1' }))?.retryOf).toBe('call-1');
+    expect(parseOnBehalfDispatch(wire(request))?.retryOf).toBeUndefined();
   });
 
   it('does not give the call session the requester as its user', async () => {

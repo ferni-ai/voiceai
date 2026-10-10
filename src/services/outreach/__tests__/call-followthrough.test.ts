@@ -128,7 +128,9 @@ describe('recordCallFollowthrough (real capture path)', () => {
       objectiveAchieved: false,
     });
     expect(captureBackgroundResult).toHaveBeenCalledWith(
-      expect.objectContaining({ details: "I tried Doug, but they didn't pick up." })
+      expect.objectContaining({
+        details: "I tried Doug, but they didn't pick up. I'll try Doug again tomorrow.",
+      })
     );
   });
 
