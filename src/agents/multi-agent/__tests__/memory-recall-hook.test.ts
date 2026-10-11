@@ -38,10 +38,14 @@ import {
 describe('firestoreRecallStore.facts', () => {
   it('loads the newest facts first, not an arbitrary 300', async () => {
     fake.calls.length = 0;
-    fake.setOrdered([{ entityName: 'Biscuit', key: 'age', value: 'three', extractedAt: '2026-10-04' }]);
+    fake.setOrdered([
+      { entityName: 'Biscuit', key: 'age', value: 'three', extractedAt: '2026-10-04' },
+    ]);
     const facts = await firestoreRecallStore.facts('u1');
     expect(fake.calls).toContain('orderBy:extractedAt:desc');
-    expect(facts).toEqual([{ entityName: 'Biscuit', key: 'age', value: 'three', extractedAt: '2026-10-04' }]);
+    expect(facts).toEqual([
+      { entityName: 'Biscuit', key: 'age', value: 'three', extractedAt: '2026-10-04' },
+    ]);
   });
 
   it('falls back to the plain query when no fact has a date', async () => {
@@ -92,7 +96,11 @@ describe('createMemoryRecall', () => {
       (note?.match(new RegExp(`^- ${who}:`, 'gm')) ?? []).length;
     let biscuit = 0;
     let all = 0;
-    for (const interim of ['Biscuit and Mochi', 'Biscuit and Mochi did', 'Biscuit and Mochi did it']) {
+    for (const interim of [
+      'Biscuit and Mochi',
+      'Biscuit and Mochi did',
+      'Biscuit and Mochi did it',
+    ]) {
       const note = recall.noteFor(interim);
       biscuit += count(note);
       all += count(note) + count(note, 'Mochi');
@@ -102,6 +110,35 @@ describe('createMemoryRecall', () => {
 
     recall.newTurn();
     expect(count(recall.noteFor('Biscuit again'))).toBe(2);
+  });
+
+  it('leads the first note with what they said they would do, once', async () => {
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      store,
+      checkIns: async () => [
+        {
+          id: 'c1',
+          statement: "I'm going to send my resume to Dana by Thursday.",
+          createdAt: Date.now() - 3 * 86_400_000,
+          followUpAfter: Date.now(),
+          followUpCount: 0,
+        },
+      ],
+    });
+    await recall.ready;
+
+    const first = recall.noteFor('Hey, how are you?');
+    expect(first?.startsWith('[THINGS THEY SAID THEY WOULD DO]')).toBe(true);
+    expect(first).toContain('send my resume to Dana by Thursday');
+    expect(first).toContain('they said this 3 days ago');
+    expect(recall.noteFor('Biscuit chewed my shoes again')).not.toContain('resume');
+  });
+
+  it('brings no check-ins with COACH_FOLLOW_THROUGH unset', async () => {
+    const recall = createMemoryRecall({ userId: 'u1', store });
+    await recall.ready;
+    expect(recall.noteFor('Hey, how are you?')).not.toContain('THINGS THEY SAID');
   });
 
   it('returns null instead of waiting while memory is still loading', () => {
@@ -127,7 +164,10 @@ describe('addRecallNote', () => {
     const agent = new voice.Agent({ instructions: 'You are Ferni.' });
     const before = agent.chatCtx.items.length;
 
-    addRecallNote(agent as unknown as RecallAgent, '[WHAT YOU REMEMBER] Biscuit is a golden retriever');
+    addRecallNote(
+      agent as unknown as RecallAgent,
+      '[WHAT YOU REMEMBER] Biscuit is a golden retriever'
+    );
 
     // Synchronous: preemptive generation copies the context in the same tick.
     const items = agent.chatCtx.items;

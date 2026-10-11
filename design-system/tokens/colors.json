@@ -270,9 +270,10 @@
         "error": "#b5453a",
         "errorGlow": "rgba(181, 69, 58, 0.18)",
         "errorTint": "rgba(181, 69, 58, 0.08)",
-        "warning": "#a67c35",
-        "warningGlow": "rgba(166, 124, 53, 0.18)",
-        "warningTint": "rgba(166, 124, 53, 0.08)",
+        "warning": "#87652a",
+        "warningGlow": "rgba(135, 101, 42, 0.18)",
+        "warningTint": "rgba(135, 101, 42, 0.08)",
+        "_warningNote": "#87652a: 5.05:1 with #faf8f5 text on a warning fill, and as warning text on the zen background (WCAG AA). #a67c35 was 3.57:1.",
         "info": "#3a6b9c",
         "infoGlow": "rgba(58, 107, 156, 0.18)",
         "infoTint": "rgba(58, 107, 156, 0.08)"
@@ -319,6 +320,7 @@
     "_textOnDarkNote": "textOnDark variants provide WCAG AA (4.5:1+) contrast on the Night Ink float surface (#352e28). Same hue family, lighter for readability.",
     "ferni": {
       "primary": "#4a6741",
+      "onPrimary": "#ffffff",
       "secondary": "#3d5a35",
       "text": "#ffffff",
       "textOnDark": "#a5c99a",
@@ -332,6 +334,7 @@
     },
     "jack": {
       "primary": "#9a7b5a",
+      "onPrimary": "#14110e",
       "secondary": "#7d6348",
       "text": "#ffffff",
       "textOnLight": "#80664b",
@@ -342,6 +345,7 @@
     },
     "peter": {
       "primary": "#3a6b73",
+      "onPrimary": "#ffffff",
       "secondary": "#2d5359",
       "text": "#ffffff",
       "textOnDark": "#8bc4cf",
@@ -354,6 +358,7 @@
     },
     "alex": {
       "primary": "#5a6b8a",
+      "onPrimary": "#ffffff",
       "secondary": "#4a5a73",
       "text": "#ffffff",
       "textOnDark": "#a8b8d8",
@@ -366,6 +371,7 @@
     },
     "maya": {
       "primary": "#a67a6a",
+      "onPrimary": "#14110e",
       "secondary": "#8a635a",
       "text": "#ffffff",
       "textOnLight": "#8a6153",
@@ -379,6 +385,7 @@
     },
     "jordan": {
       "primary": "#c4856a",
+      "onPrimary": "#14110e",
       "secondary": "#a86d55",
       "text": "#ffffff",
       "textOnLight": "#9c5a3e",
@@ -392,6 +399,7 @@
     },
     "nayan": {
       "primary": "#b8956a",
+      "onPrimary": "#14110e",
       "secondary": "#9a7a52",
       "text": "#ffffff",
       "textOnLight": "#85653f",
@@ -405,6 +413,7 @@
     },
     "joel": {
       "primary": "#9A0718",
+      "onPrimary": "#ffffff",
       "secondary": "#7A0514",
       "text": "#ffffff",
       "textOnDark": "#f0a8a8",
@@ -417,6 +426,7 @@
     },
     "lynch": {
       "primary": "#1a5f2a",
+      "onPrimary": "#ffffff",
       "secondary": "#154c22",
       "text": "#ffffff",
       "textOnDark": "#dde7df",
@@ -429,6 +439,7 @@
     },
     "bogle": {
       "primary": "#8b0000",
+      "onPrimary": "#ffffff",
       "secondary": "#6f0000",
       "text": "#ffffff",
       "textOnDark": "#f3e6e6",
@@ -443,6 +454,7 @@
     "_marketplace_description": "Marketplace agent colors - specialized support personas",
     "eli": {
       "primary": "#6B5B95",
+      "onPrimary": "#ffffff",
       "secondary": "#4A4063",
       "text": "#ffffff",
       "textOnDark": "#b8a8d8",
@@ -452,6 +464,7 @@
     },
     "marcus": {
       "primary": "#2D5A4A",
+      "onPrimary": "#ffffff",
       "secondary": "#1E3D32",
       "text": "#ffffff",
       "textOnDark": "#88c4a8",
@@ -461,6 +474,7 @@
     },
     "kenji": {
       "primary": "#2C3E50",
+      "onPrimary": "#ffffff",
       "secondary": "#1A252F",
       "text": "#ffffff",
       "textOnDark": "#90b0c8",
@@ -470,6 +484,7 @@
     },
     "carmen": {
       "primary": "#D4A373",
+      "onPrimary": "#14110e",
       "secondary": "#A67B5B",
       "text": "#ffffff",
       "textOnLight": "#935f2d",
@@ -480,6 +495,7 @@
     },
     "amara": {
       "primary": "#7B6BA8",
+      "onPrimary": "#ffffff",
       "secondary": "#5A4D80",
       "text": "#ffffff",
       "textOnLight": "#7261a2",
@@ -490,6 +506,7 @@
     },
     "sasha": {
       "primary": "#E07B53",
+      "onPrimary": "#14110e",
       "secondary": "#B85C3C",
       "text": "#ffffff",
       "textOnLight": "#b44a20",
@@ -500,6 +517,7 @@
     },
     "ray": {
       "primary": "#4A5568",
+      "onPrimary": "#ffffff",
       "secondary": "#2D3748",
       "text": "#ffffff",
       "textOnDark": "#a0b0c0",

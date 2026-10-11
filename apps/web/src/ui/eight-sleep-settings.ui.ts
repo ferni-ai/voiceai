@@ -671,25 +671,25 @@ async function startAuthFlow(): Promise<void> {
 }
 
 async function setTemperature(level: number): Promise<void> {
-  try {
-    await apiPut('/api/eight-sleep/temperature', { level });
+  const response = await apiPut('/api/eight-sleep/temperature', { level });
+  if (response.ok) {
     toast.success(t('toasts.bedSetToLevel', { level }));
-  } catch (error) {
-    log.error('Failed to set temperature:', error);
+  } else {
+    log.error('Failed to set temperature:', response.error);
     toast.error(t('eightSleepSettings.temperatureError'));
   }
 }
 
 async function disconnect(): Promise<void> {
-  try {
-    await apiDelete('/api/eight-sleep/disconnect');
-    toast.success(t('toasts.eightSleepDisconnected'));
-    callbacks.onDisconnected?.();
-    render({ connected: false });
-  } catch (error) {
-    log.error('Failed to disconnect Eight Sleep:', error);
+  const response = await apiDelete('/api/eight-sleep/disconnect');
+  if (!response.ok) {
+    log.error('Failed to disconnect Eight Sleep:', response.error);
     toast.error(t('toasts.couldNotDisconnect'));
+    return;
   }
+  toast.success(t('toasts.eightSleepDisconnected'));
+  callbacks.onDisconnected?.();
+  render({ connected: false });
 }
 
 // ============================================================================

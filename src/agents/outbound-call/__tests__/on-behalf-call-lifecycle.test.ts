@@ -131,6 +131,13 @@ describe('buildCallOutcome with how Ferni ended the call', () => {
     });
   });
 
+  it('reports an unreachable mailbox as no answer, not as a conversation', () => {
+    const mailboxFull: CallTranscriptTurn[] = [
+      { role: 'recipient', content: 'The mailbox is full.' },
+    ];
+    expect(buildCallOutcome(call, mailboxFull, null, 'unreachable').status).toBe('no_answer');
+  });
+
   it('reports a wrong number as a failure and a refusal as unachieved', () => {
     expect(buildCallOutcome(call, conversation, null, 'wrong_number').status).toBe('failed');
     expect(buildCallOutcome(call, conversation, null, 'refused')).toMatchObject({
