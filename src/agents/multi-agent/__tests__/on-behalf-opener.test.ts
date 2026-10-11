@@ -22,6 +22,20 @@ vi.mock('../../../services/voice/voice-speaker-change.js', () => ({
   getSpeakerChangeDetector: () => ({ on: vi.fn(), start: vi.fn() }),
 }));
 
+// The real AMD opening by default; a test can make it take the call.
+const amdOpening = vi.hoisted(() => ({ takesCall: false }));
+vi.mock('../../outbound-call/livekit-call-opening.js', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../../outbound-call/livekit-call-opening.js')>();
+  return {
+    ...actual,
+    openIfOnBehalfCall: vi.fn(
+      (...args: Parameters<typeof actual.openIfOnBehalfCall>) =>
+        amdOpening.takesCall || actual.openIfOnBehalfCall(...args)
+    ),
+  };
+});
+
 const { setupCallTypeContexts } = await import('../../voice-agent-entry/metadata-parser.js');
 const { AgentOrchestrator } = await import('../orchestrator.js');
 const { identifyUser } = await import('../../voice-agent/user-identification-handler.js');
@@ -90,9 +104,8 @@ describe('the opener of a call placed on the user’s behalf', () => {
     const { say, started } = startOrchestrator('ob-opener', room, phoneParticipant('ringing'));
     await started;
 
-    await new Promise((r) => {
-      setTimeout(r, 50);
-    });
+    // The orchestrator is listening for the answer, and has said nothing into the ringing line.
+    await vi.waitFor(() => expect(room.listenerCount('participantAttributesChanged')).toBe(1));
     expect(say, 'nothing is said into a ringing line').not.toHaveBeenCalled();
 
     room.emit(
@@ -127,6 +140,32 @@ describe('the opener of a call placed on the user’s behalf', () => {
     const opener = String(say.mock.calls[0][0]);
     expect(opener).toBe(SETH_TO_DOUG);
   });
+
+  it('with CALL_OPENING_AMD on, leaves the opening to answering-machine detection', async () => {
+    await onBehalfSession('ob-amd');
+    amdOpening.takesCall = true;
+    try {
+      const room = new EventEmitter();
+      const { say, started } = startOrchestrator('ob-amd', room, phoneParticipant('ringing'));
+      await started;
+      const { openIfOnBehalfCall } = await import('../../outbound-call/livekit-call-opening.js');
+      await vi.waitFor(() =>
+        expect(openIfOnBehalfCall).toHaveBeenCalledWith('ob-amd', expect.anything())
+      );
+      room.emit(
+        'participantAttributesChanged',
+        { 'sip.callStatus': 'active' },
+        phoneParticipant('active')
+      );
+      await new Promise((r) => {
+        setTimeout(r, 50);
+      });
+      expect(say, "main's opener is not said on top of the AMD opening").not.toHaveBeenCalled();
+      expect(room.listenerCount('participantAttributesChanged')).toBe(0);
+    } finally {
+      amdOpening.takesCall = false;
+      }
+    });
 
   it('names the requester from a signed dispatch with no requester id, for display only', async () => {
     // Dev 2026-10-10: a call to Seth's sister said "it's Ferni, an AI friend", without "Seth's".
@@ -165,6 +204,7 @@ describe('the opener of a call placed on the user’s behalf', () => {
     const room = new EventEmitter();
     const { say, started } = startOrchestrator('ob-hangup', room, phoneParticipant('ringing'));
     await started;
+    await vi.waitFor(() => expect(room.listenerCount('participantAttributesChanged')).toBe(1));
     room.emit(
       'participantAttributesChanged',
       { 'sip.callStatus': 'hangup' },
@@ -249,6 +289,37 @@ describe('who is on the line on a call placed for the user', () => {
   });
 });
 
+describe('the first-reply rule in the on-behalf prompt', () => {
+  const promptFor = async (sessionId: string) => {
+    await onBehalfSession(sessionId);
+    const injections = await outboundCallContextBuilder.build({ services: { sessionId } } as never);
+    return injections.map((i) => i.content).join('\n');
+  };
+  const saved = process.env.CALL_OPENING_AMD;
+  const restore = () => {
+    if (saved === undefined) delete process.env.CALL_OPENING_AMD;
+    else process.env.CALL_OPENING_AMD = saved;
+  };
+
+  it('with CALL_OPENING_AMD off, asks for no second opener: Ferni already said it', async () => {
+    delete process.env.CALL_OPENING_AMD;
+    const prompt = await promptFor('ob-prompt-off');
+    expect(prompt).not.toMatch(/They speak first/);
+    expect(prompt).not.toContain(SETH_TO_DOUG);
+  });
+
+  it('with CALL_OPENING_AMD on, makes the reply to "Hello?" the one opener', async () => {
+    process.env.CALL_OPENING_AMD = 'on';
+    try {
+      const prompt = await promptFor('ob-prompt-on');
+      expect(prompt).toMatch(/They speak first/);
+      expect(prompt).toContain(`"${SETH_TO_DOUG}"`);
+    } finally {
+      restore();
+    }
+  });
+});
+
 describe('openers never present Ferni as an assistant', () => {
   it('a business call says Ferni is an AI calling for Seth', () => {
     const opener = outboundOpener({ sponsorName: 'Seth', recipientName: 'Acme', personal: false });
@@ -283,6 +354,18 @@ describe('waitForCallAnswered', () => {
     await expect(
       waitForCallAnswered(roomLike(room), { identity: 'web-user', attributes: {} }, 1000, 0)
     ).resolves.toBe(true);
+  });
+
+  it('gives up when the phone leg leaves, and ignores other participants', async () => {
+    const room = new EventEmitter();
+    const answered = waitForCallAnswered(roomLike(room), phoneParticipant('dialing'), 1000, 0);
+    room.emit(
+      'participantAttributesChanged',
+      { 'sip.callStatus': 'active' },
+      { identity: 'someone_else', attributes: { 'sip.callStatus': 'active' } }
+    );
+    room.emit('participantDisconnected', { identity: 'phone_doug' });
+    await expect(answered).resolves.toBe(false);
   });
 
   it('gives up when the phone never answers', async () => {
