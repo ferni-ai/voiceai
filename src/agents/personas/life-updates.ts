@@ -24,7 +24,7 @@
 
 import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import { contentWords, type LedgerFact } from './life-ledger.js';
+import { contentWords, personaDisplayName, type LedgerFact } from './life-ledger.js';
 
 const log = createLogger({ module: 'LifeUpdates' });
 
@@ -205,7 +205,7 @@ export async function loadLifeUpdates(
       const days = Math.floor((now - Date.parse(f.saidAt)) / DAY_MS);
       return `- ${f.fact} (${days < 1 ? 'today' : `${days} days ago`})`;
     });
-    const name = personaId === 'ferni' ? 'Ferni' : personaId.split('-')[0];
+    const name = personaDisplayName(personaId);
     const raw = await withTimeout(
       (deps.write ?? defaultWriter)(name, dated),
       deps.timeoutMs ?? TIMEOUT_MS

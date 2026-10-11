@@ -293,7 +293,7 @@ export function render(): string {
         justify-content: center;
         box-shadow: 0 0 40px var(--color-ferni-glow, rgba(74, 103, 65, 0.5));
         transition: transform var(--duration-slow, 0.6s) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)), box-shadow var(--duration-slow, 0.5s) ease;
-        z-index: var(--z-raised, 2);
+        z-index: var(--z-raised);
       }
 
       .soul-preview-avatar.protective {

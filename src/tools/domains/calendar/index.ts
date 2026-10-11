@@ -253,7 +253,7 @@ function getDeliveryToolDefinitions(): ToolDefinition[] {
       id: 'foodDelivery',
       name: 'Food Delivery',
       description:
-        'Order food for delivery - search restaurants, start orders, add items, checkout.',
+        'Food delivery cart links - search restaurants, build a cart, link they check out themselves.',
       domain: 'calendar',
       tags: ['calendar', 'delivery', 'food', 'order', 'doordash', 'ubereats'],
       create: (_ctx: ToolContext) =>

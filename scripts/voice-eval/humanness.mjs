@@ -48,13 +48,19 @@ function sameUtterance(prev, next) {
   return i > 0 && i >= Math.min(a.length, b.length) / 2;
 }
 
-/** The call as alternating turns: [{ who: 'agent'|'user', text, t }], greeting dropped. */
-export function turnsOf(run) {
+/**
+ * The call as alternating turns: [{ who: 'agent'|'user', text, t }].
+ * What Ferni says before the caller speaks is dropped, since it would skew the
+ * per-turn numbers; pass { greeting: true } to keep it as a turn marked
+ * greeting (the judge needs it: COACH_FOLLOW_THROUGH asks its question there).
+ */
+export function turnsOf(run, { greeting = false } = {}) {
   const firstUserAt = run.userSpeech?.[0]?.[0] ?? 0;
   const turns = [];
   let segs = []; // the current caller turn's separate utterances
   for (const e of run.events ?? []) {
-    if (e.who === 'agent' && e.t <= firstUserAt) continue; // greeting
+    const isGreeting = e.who === 'agent' && e.t <= firstUserAt;
+    if (isGreeting && !greeting) continue;
     const last = turns[turns.length - 1];
     if (last && last.who === e.who) {
       if (e.who === 'agent') last.text = `${last.text} ${e.text}`;
@@ -67,7 +73,11 @@ export function turnsOf(run) {
         last.text = segs.join(' ');
       }
     } else {
-      turns.push({ who: e.who, text: e.text, t: e.t });
+      turns.push(
+        isGreeting
+          ? { who: e.who, text: e.text, t: e.t, greeting: true }
+          : { who: e.who, text: e.text, t: e.t }
+      );
       segs = [e.text];
     }
   }
