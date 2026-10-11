@@ -26,6 +26,7 @@ import { prefetchUserCommitments } from '../../services/superhuman/commitment-pr
 import { createSpeakerChangePrompter, listenForSpeakerCheckReplies } from './speaker-check.js';
 import {
   accountNamedByDispatch,
+  rememberDispatchIdentity,
   callerRecognitionEnabled,
   recognizePhoneSession,
 } from '../voice-agent-entry/caller-recognition.js';
@@ -184,6 +185,7 @@ export async function identifyUser(
   // Detect and set user's preferred English accent for TTS
   // ===============================================
   userAccent = await detectUserAccent(jobMetadata);
+  rememberDispatchIdentity(sessionId, identificationSource, jobMetadata);
 
   return {
     userId,
