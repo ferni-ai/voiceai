@@ -24,7 +24,7 @@ import {
   outreachConfirmListeners,
 } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
-import { callerRecognitionFor } from '../voice-agent-entry/caller-recognition.js';
+import { sessionIsVerifiedOwner } from '../voice-agent-entry/caller-recognition.js';
 import { createTurnKeeper } from './turn-keeper.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
 import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
@@ -202,8 +202,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
 /** Whether the person on the line is the account owner, whose yes may confirm a send. */
 export function speakerIsAccountOwner(sessionId: string): boolean {
-  if (outboundPartiesFor(sessionId)) return false;
-  return (callerRecognitionFor(sessionId)?.status ?? 'known') === 'known';
+  return !outboundPartiesFor(sessionId) && sessionIsVerifiedOwner(sessionId);
 }
 
 /** What the barge-in model decided about each overlap (see interruption-config.ts). */

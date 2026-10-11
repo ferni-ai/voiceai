@@ -1,19 +1,20 @@
 /**
  * Server-enforced confirmation for reachOut (and quickText/quickEmail, which
- * hand off to it), multiOutreach and sendBatchMessages, which otherwise send
- * at once with model-written text. With OUTREACH_CONFIRM=on (off by default):
- * - The first call sends nothing. It fixes what would be sent (the exact words
- *   and channel; see outreach-confirm-specs.ts), stores it for this session
- *   and user for 5 minutes, and returns the read-back.
+ * hand off to it), which otherwise sends at once with model-written text.
+ * With OUTREACH_CONFIRM=on (off by default):
+ * - The first call sends nothing. It fixes the words, channel, contact and
+ *   address (outreach-confirm-specs.ts), stores them for this session and
+ *   user for 5 minutes, and returns the read-back.
  * - The next call sends that stored action once, only if the caller's first
  *   speech-to-text turn after the preview is a plain yes with no other tool
  *   output in between. Tool output and model text are never read.
  * - Anything else (a no, a question, another tool's output, expiry, no live
- *   call, a speaker who isn't the account owner) sends nothing.
+ *   call, a speaker not proven to be the account owner) sends nothing.
  *
- * NOT covered yet: calls by callOnBehalf and callAndConverse (telephony) dial
- * with no confirmation; that is a follow-up, and the flag stays off until then.
- * In-app chat has no transcript, so these tools send nothing there.
+ * NOT covered yet: multiOutreach and sendBatchMessages send nothing under the
+ * flag (their confirmation is a follow-up); calls by callOnBehalf and
+ * callAndConverse dial unconfirmed (a follow-up; the flag stays off until
+ * then). In-app chat has no transcript, so these tools send nothing there.
  *
  * @module tools/domains/communication/outreach/outreach-confirm
  */
@@ -28,6 +29,13 @@ const MAX_EVENTS = 50;
 
 /** Arguments marker: run the tool's planning only and return the plan (reachOut). */
 export const PLAN_ONLY = Symbol('outreach-plan-only');
+/** Arguments marker on a confirmed send: send to exactly this, as read back (reachOut). */
+export const PLANNED = Symbol('outreach-planned');
+export interface Planned {
+  contactId: string;
+  to: string;
+  channel: string;
+}
 
 export function isOutreachConfirmOn(): boolean {
   return process.env.OUTREACH_CONFIRM === 'on';
@@ -44,7 +52,6 @@ interface PendingAction {
   callId: string;
   createdSeq: number;
   expiresAt: number;
-  binding: readonly unknown[]; // spec.binding() at preview time
 }
 
 interface SessionLog {
@@ -165,12 +172,6 @@ export interface ConfirmSpec {
     userId: string,
     plan: (args: Record<string, unknown>) => Promise<unknown>
   ) => Promise<{ args: Record<string, unknown>; readBack: string } | string>;
-  /** State the send reads besides its args; a yes holds only if it is unchanged (by reference). */
-  binding?: (userId: string) => readonly unknown[];
-}
-
-function sameBinding(a: readonly unknown[], b: readonly unknown[]): boolean {
-  return a.length === b.length && a.every((item, i) => item === b[i]);
 }
 
 /** Wrap an outreach tool so that, with OUTREACH_CONFIRM=on, it acts only on a caller's yes. */
@@ -199,8 +200,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
         if (
           pending?.toolId === def.id &&
           pending.userId === ctx.userId &&
-          confirmationState(pending, entry.events, Date.now()) === 'confirmed' &&
-          sameBinding(pending.binding, spec.binding?.(ctx.userId) ?? [])
+          confirmationState(pending, entry.events, Date.now()) === 'confirmed'
         ) {
           entry.pending = undefined; // taken before sending, so a second call can't repeat it
           log.info({ toolId: def.id }, 'OUTREACH_CONFIRM: caller said yes, sending');
@@ -218,7 +218,6 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           callId,
           createdSeq: entry.seq,
           expiresAt: Date.now() + CONFIRM_WINDOW_MS,
-          binding: spec.binding?.(ctx.userId) ?? [],
         };
         log.info({ toolId: def.id }, 'OUTREACH_CONFIRM: preview stored, waiting for caller');
         return (

@@ -81,7 +81,7 @@ interface BatchResult {
 }
 
 // Store pending batch previews for approval
-export const pendingBatches = new Map<
+const pendingBatches = new Map<
   string,
   {
     userId: string;
@@ -370,7 +370,6 @@ export function createSendBatchTool(ctx: ToolContext): Tool {
         return "I don't have any messages queued up. Preview messages first with 'send holiday wishes to family'.";
       }
 
-      pendingBatches.delete(latestBatch.id); // taken now, so a concurrent send can't repeat it
       const { previews, occasion } = latestBatch.data;
       const personaId = ctx.agentId || 'ferni';
       const results: BatchResult = {
@@ -438,6 +437,9 @@ export function createSendBatchTool(ctx: ToolContext): Tool {
           });
         }
       }
+
+      // Clean up
+      pendingBatches.delete(latestBatch.id);
 
       // Format response
       let response = `✅ **Batch complete!**\n`;
