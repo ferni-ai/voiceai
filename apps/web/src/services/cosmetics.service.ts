@@ -297,14 +297,22 @@ const PREMIUM_VOICE_PACKS: CosmeticItem[] = [
 // ALL COSMETICS CATALOG
 // ============================================================================
 
+/**
+ * Off: nothing on the agent applies a voice pack (getVoicePackModifiers has no
+ * caller) and the web never reaches the room to send one, so a bought pack
+ * changed nothing. Kept out of the catalog, and so out of the store and
+ * purchases, until the agent applies them. Owned items and balances are untouched.
+ */
+const VOICE_PACKS_AVAILABLE = false;
+
 export const COSMETICS_CATALOG: CosmeticItem[] = [
   ...DEFAULT_AVATAR_SKINS,
   ...DEFAULT_UI_THEMES,
-  ...DEFAULT_VOICE_PACKS,
+  ...(VOICE_PACKS_AVAILABLE ? DEFAULT_VOICE_PACKS : []),
   ...PREMIUM_AVATAR_SKINS,
   ...PREMIUM_UI_THEMES,
   ...PREMIUM_SOUND_PACKS,
-  ...PREMIUM_VOICE_PACKS,
+  ...(VOICE_PACKS_AVAILABLE ? PREMIUM_VOICE_PACKS : []),
 ];
 
 const STARTER_SEEDS = 25; // Starter seeds for new users

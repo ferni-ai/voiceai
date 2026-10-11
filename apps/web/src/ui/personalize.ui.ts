@@ -498,6 +498,7 @@ function renderCategories(): string {
   return `
     <div class="personalize-categories">
       ${categories
+        .filter((cat) => cat === 'all' || COSMETICS_CATALOG.some((item) => item.type === cat))
         .map(
           (cat) => `
         <button 
