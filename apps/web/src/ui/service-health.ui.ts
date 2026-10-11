@@ -1,8 +1,9 @@
 /**
- * Service Health Status UI
+ * Service Health Status UI (admins only)
  *
- * Shows users when services are degraded in a non-intrusive way.
- * "Better than human" means being transparent about limitations.
+ * Reports the UI server's internal HTTP clients, not the voice agent, so it is
+ * shown only in an admin session (the `ferni_admin_id` key the settings menu
+ * already uses). Started once, from app.ts; there is no auto-start.
  *
  * Features:
  * - Subtle status indicator in corner
@@ -14,14 +15,12 @@
 import { formatDate, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
-import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet } from '../utils/api.js';
+import { getString } from '../utils/storage.js';
+import { IDENTITY_KEYS } from '../config/storage-keys.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 
 const log = createLogger('ServiceHealth');
-
-// FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -469,6 +468,9 @@ export function initServiceHealthUI(): void {
   // Clean up any existing instance
   cleanupServiceHealthUI();
 
+  // Internal service status is for admins: no pill and no polling for anyone else
+  if (!getString(IDENTITY_KEYS.ADMIN_ID)) return;
+
   // Inject styles
   if (!document.getElementById('service-health-styles')) {
     const styleEl = document.createElement('style');
@@ -538,20 +540,3 @@ export function getServiceHealthStatus(): ServiceHealthData | null {
 export function hasServiceIssues(): boolean {
   return state.data?.status !== 'healthy';
 }
-
-// ============================================================================
-// AUTO-INITIALIZATION
-// ============================================================================
-
-// Initialize when DOM is ready (if not already initialized)
-if (typeof document !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      // Delay slightly to not compete with main app initialization
-      trackedTimeout(initServiceHealthUI, 2000);
-    });
-  } else {
-    trackedTimeout(initServiceHealthUI, 2000);
-  }
-}
-

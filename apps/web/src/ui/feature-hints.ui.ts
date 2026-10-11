@@ -25,6 +25,7 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
+import { requestAttention } from '../services/attention-queue.js';
 import {
   relationshipStageService,
   type RelationshipStage,
@@ -331,15 +332,14 @@ function checkForHintOpportunities(): void {
     if (hint.showAfterDelay) {
       trackedTimeout(() => {
         if (!activeHints.has(hint.id) && !dismissedHints.has(hint.id)) {
-          displayHint(hint);
+          requestAttention('feature-hint', () => displayHint(hint));
         }
       }, hint.showAfterDelay);
     } else {
-      displayHint(hint);
+      requestAttention('feature-hint', () => displayHint(hint));
     }
 
-    // Only show one hint per check cycle
-    break;
+    break; // one hint per check cycle
   }
 }
 

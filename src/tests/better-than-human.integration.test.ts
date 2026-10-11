@@ -12,6 +12,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { perfBudget } from './perf-budget.js';
 
+// Vitest 5 only accepts vi.mock at the top level. Vitest 4 hoisted these
+// here from inside the suites below, so moving them changes nothing.
+// Mock the internal functions that get called
+vi.mock('../services/trust-systems/small-wins.js', () => ({
+  detectSmallWin: vi.fn(() => ({
+    type: 'progress',
+    description: 'Made progress on goal',
+  })),
+  detectIntention: vi.fn(() => null),
+  recordCelebrationResponse: vi.fn(),
+}));
+
 /**
  * Replaces the embedding provider with a local fake and returns a spy on it.
  *
@@ -294,16 +306,6 @@ describe('Trust Moment Write-Through', () => {
   });
 
   it('recordConversationTurn detects and records small wins', async () => {
-    // Mock the internal functions that get called
-    vi.mock('../services/trust-systems/small-wins.js', () => ({
-      detectSmallWin: vi.fn(() => ({
-        type: 'progress',
-        description: 'Made progress on goal',
-      })),
-      detectIntention: vi.fn(() => null),
-      recordCelebrationResponse: vi.fn(),
-    }));
-
     const { recordConversationTurn } =
       await import('../services/trust-systems/unified-recorder.js');
 

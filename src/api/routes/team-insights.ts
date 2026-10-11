@@ -8,6 +8,8 @@
  * - GET /api/team-insights - Get current insights and team status
  * - POST /api/team-insights/acknowledge/:id - Mark insight as acknowledged
  * - POST /api/team-insights/scan - Trigger a new insight scan
+ * - GET /api/team-insights/performance - Debug-panel stats (admin only)
+ * - POST /api/team-insights/performance/clear - Clear process-wide caches (admin only)
  *
  * @module api/routes/team-insights
  */
@@ -22,6 +24,7 @@ import {
   type PersonaId,
   type CrossPersonaInsight,
 } from '../../services/cross-persona-insights.js';
+import { isHiddenFromUser } from '../../services/cross-persona/insight-visibility.js';
 import {
   getPerformanceStats,
   clearPerformanceLog,
@@ -29,6 +32,7 @@ import {
 } from '../../intelligence/context-builders/superhuman/superhuman-integration.js';
 import { getUserId, sendJSON, sendError, handleCorsPreflightIfNeeded } from '../helpers.js';
 import { API_ERRORS } from '../error-messages.js';
+import { isVerifiedAdmin } from '../rate-limit-identity.js';
 
 const log = createLogger({ module: 'api:team-insights' });
 
@@ -66,18 +70,18 @@ async function getTeamInsights(
     const teamStatus = await generateTeamStatus(userId);
 
     // Format insights for frontend
-    const formattedInsights: FormattedInsight[] = briefing.incomingInsights.map(
-      (insight: CrossPersonaInsight) => ({
-        id: insight.id,
-        source: insight.source,
-        category: insight.category,
-        summary: insight.content.substring(0, 100), // Use first 100 chars as summary
-        content: insight.content,
-        priority: insight.priority,
-        createdAt: insight.createdAt,
-        isNew: insight.oneTime,
-      })
-    );
+    // Acknowledged insights stay with the team but no longer show in the app.
+    const visible = briefing.incomingInsights.filter((insight) => !isHiddenFromUser(insight));
+    const formattedInsights: FormattedInsight[] = visible.map((insight: CrossPersonaInsight) => ({
+      id: insight.id,
+      source: insight.source,
+      category: insight.category,
+      summary: insight.content.substring(0, 100), // Use first 100 chars as summary
+      content: insight.content,
+      priority: insight.priority,
+      createdAt: insight.createdAt,
+      isNew: insight.oneTime,
+    }));
 
     sendJSON(res, {
       insights: formattedInsights,
@@ -242,13 +246,24 @@ export async function handleTeamInsightsRoutes(
       return true;
     }
 
-    // GET /api/team-insights/performance (debug panel)
+    // Debug-panel endpoints read and clear process-wide state shared by every
+    // user, so only an admin verified at the door (request-identity.ts) may use them.
+    const isPerformanceRoute =
+      (pathname === '/api/team-insights/performance' && method === 'GET') ||
+      (pathname === '/api/team-insights/performance/clear' && method === 'POST');
+    if (isPerformanceRoute && !isVerifiedAdmin(req)) {
+      log.warn({ userId, pathname, method }, 'Non-admin denied team-insights performance route');
+      sendError(res, 'Admin access required', 403);
+      return true;
+    }
+
+    // GET /api/team-insights/performance (debug panel, admin only)
     if (pathname === '/api/team-insights/performance' && method === 'GET') {
       getPerformance(res);
       return true;
     }
 
-    // POST /api/team-insights/performance/clear (debug panel)
+    // POST /api/team-insights/performance/clear (debug panel, admin only)
     if (pathname === '/api/team-insights/performance/clear' && method === 'POST') {
       clearPerformance(res);
       return true;
