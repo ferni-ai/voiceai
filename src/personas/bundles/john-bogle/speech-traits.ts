@@ -1,8 +1,8 @@
 /**
- * John Bogle Speech Traits
+ * Henry Caldwell Speech Traits
  *
  * Defines voice pacing, pauses, and timing characteristics
- * for the John Bogle persona.
+ * for the Henry Caldwell persona (id: john-bogle).
  *
  * Voice style: Warm, grandfatherly, unhurried, wise
  */
@@ -41,10 +41,10 @@ export const johnBogleSpeechTraits = {
     /** Phrases that slow down for impact */
     slowPhrases: [
       'stay the course',
-      'time is your friend',
+      'time is on your side',
       'costs matter',
-      "you get what you don't pay for",
-      'the greatest enemy of a good plan',
+      'every dollar in fees',
+      'a good plan you keep',
     ],
   },
 

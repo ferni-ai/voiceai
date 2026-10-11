@@ -81,8 +81,8 @@ describe("the first Ferni agent's handoff tools", () => {
     const { names, description } = await handoffsFor(wholeTeamUser);
     expect(names).toEqual([
       'handoffToAlex',
+      'handoffToHenry',
       'handoffToJoel',
-      'handoffToJohn',
       'handoffToJordan',
       'handoffToMaya',
       'handoffToNayan',
@@ -91,5 +91,6 @@ describe("the first Ferni agent's handoff tools", () => {
     ]);
     expect(description('handoffToPeter')).toMatch(/^Transfer conversation to Peter John, /);
     expect(description('handoffToPeterLynch')).toMatch(/^Transfer conversation to Peter Lynch, /);
+    expect(description('handoffToHenry')).toMatch(/^Transfer conversation to Henry Caldwell, /);
   }, 60_000);
 });
