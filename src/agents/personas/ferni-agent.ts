@@ -159,6 +159,7 @@ import { definitions as wellnessToolDefs } from '../../tools/domains/wellness/in
 import { definitions as connectionToolDefs } from '../../tools/domains/connection/index.js';
 
 import { getToolDescription } from '../../tools/utils/tool-descriptions.js';
+import { stopIfRoundtableTurn } from '../group-conversation/roundtable-turns.js';
 // ============================================================================
 // TOOL BUILDING HELPERS
 // ============================================================================
@@ -576,13 +577,11 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
   /** Before the SDK replies to a user turn; never while a call is screened (line-screen.ts). */
   async onUserTurnCompleted(turnCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
     if (isScreeningCall(this.session)) throw new voice.StopResponse();
+    await stopIfRoundtableTurn(this.session.userData, newMessage.textContent); // roundtable answers
     await this.onUserTurn?.(turnCtx, newMessage);
   }
 
-  /**
-   * Called when Ferni becomes the active agent.
-   * Generates a contextual greeting unless skipGreeting is set.
-   */
+  /** Called when Ferni becomes the active agent: a contextual greeting unless skipGreeting. */
   async onEnter(): Promise<void> {
     if (this.skipGreeting) {
       // Greeting handled externally (by generateAndSpeakGreeting)

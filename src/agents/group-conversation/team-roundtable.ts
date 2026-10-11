@@ -265,9 +265,10 @@ export class TeamRoundtable extends EventEmitter {
     if (!this.isActive) return;
 
     this.isActive = false;
-
-    // Have moderator close the session
-    await this.moderatorCloses(reason);
+    this.responseQueue.length = 0;
+    // A crisis: nobody else speaks (no closing pleasantry) before the crisis response
+    if (reason === 'crisis') for (const agent of this.agents.values()) agent.setMuted(true);
+    else await this.moderatorCloses(reason);
 
     // Cleanup all agents
     for (const agent of this.agents.values()) {
@@ -435,7 +436,8 @@ export class TeamRoundtable extends EventEmitter {
    * Process the response queue - have agents respond in order
    */
   private async processResponseQueue(lastUtterance: string): Promise<void> {
-    while (this.responseQueue.length > 0) {
+    // Ending (or a crisis) stops the queue at once, even mid-line
+    while (this.isActive && this.responseQueue.length > 0) {
       const next = this.responseQueue.shift();
       if (!next) break;
 
@@ -444,16 +446,15 @@ export class TeamRoundtable extends EventEmitter {
 
       // Check turn-taking
       const participant = this.agentParticipants.get(next.agentId);
-      if (participant && !this.manager.shouldAgentSpeak(participant.id)) {
-        // Wait for turn
-        await this.waitForTurn(participant.id);
-      }
+      // The queue already chose who answers; only wait while a person is talking
+      if (participant) await this.waitForTurn(participant.id);
 
       // Generate and speak response
       this.currentResponder = next.agentId;
 
       const context = this.buildResponseContext(next.agentId, lastUtterance, next.priority >= 10);
       const response = await agent.generateResponse(context);
+      if (!this.isActive) break; // ended while the line was being written
 
       // Record utterance
       if (participant) {
@@ -507,9 +508,9 @@ export class TeamRoundtable extends EventEmitter {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
-      if (this.manager.shouldAgentSpeak(participantId)) {
-        return;
-      }
+      // Never talk over a person; the engine's own pick would stall an addressed persona 5 s
+      const speaker = this.manager.getCurrentSpeaker()?.type;
+      if (speaker !== 'human' && speaker !== 'external') return;
       await this.sleep(100);
     }
 
@@ -612,8 +613,7 @@ export class TeamRoundtable extends EventEmitter {
 
     const closing = "Thanks for bringing us all together. We're here whenever you need us.";
 
-    moderator.say(closing, { allowInterruptions: false });
-    await this.waitForSpeechComplete(closing);
+    await this.spoken(moderator.say(closing, { allowInterruptions: false }), closing);
   }
 }
 
