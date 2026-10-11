@@ -139,7 +139,7 @@ export type {
 // DOMAIN-SPECIFIC TASKS
 // ============================================================================
 
-// Finance Tasks (Nayan/Jack Bogle domain)
+// Finance Tasks (Nayan/index-investing domain)
 export {
   FinancialGoalTask,
   InvestmentWisdomTask,
@@ -592,7 +592,7 @@ export function getTaskDocumentation(): string {
 
 ## Domain-Specific Tasks
 
-### Finance Tasks (5) - Nayan/Jack Bogle
+### Finance Tasks (5) - Nayan/index investing
 - InvestmentWisdomTask: Share investment principles
 - MarketPanicTask: Address market panic
 - RebalancingTask: Portfolio rebalancing guidance
@@ -646,7 +646,7 @@ Total: 52 tasks + 7 flows + transitions system
 
 Domain task breakdown:
 - General: 28 tasks (work with any persona)
-- Finance: 5 tasks (Nayan/Jack Bogle)
+- Finance: 5 tasks (Nayan/index investing)
 - Habits: 4 tasks (Maya Santos)
 - Research: 4 tasks (Peter John)
 - Communications: 4 tasks (Alex Chen)
