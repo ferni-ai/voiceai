@@ -151,8 +151,15 @@ describe('toPonderSummary', () => {
 });
 
 describe('ponderUser', () => {
-  function fakeDb(summaries: Array<{ id: string; data: Record<string, unknown> }>) {
+  function fakeDb(
+    summaries: Array<{ id: string; data: Record<string, unknown> }>,
+    stored: Record<string, Record<string, unknown>> = {}
+  ) {
     const set = vi.fn(async () => undefined);
+    const doc = (name: string) => ({
+      set,
+      get: async () => ({ exists: name in stored, get: (field: string) => stored[name]?.[field] }),
+    });
     const get = vi.fn(async () => ({
       docs: summaries.map((s) => ({ id: s.id, data: () => s.data })),
     }));
@@ -160,7 +167,7 @@ describe('ponderUser', () => {
     const db = {
       collection: () => ({
         doc: () => ({
-          collection: (name: string) => (name === 'summaries' ? chain : { doc: () => ({ set }) }),
+          collection: (name: string) => (name === 'summaries' ? chain : { doc }),
         }),
       }),
     };
@@ -212,5 +219,70 @@ describe('ponderUser', () => {
       generatedAt: now.toISOString(),
       basedOn: ['a', 'b'],
     });
+  });
+});
+
+describe('ponderUser after the caller put an item down', () => {
+  const summaries = ['a', 'b'].map((id) => ({
+    id,
+    data: {
+      timestamp: '2026-10-09T12:00:00Z',
+      mainTopics: ['family'],
+      keyPoints: ['Sister moving to Denver', 'Stripe interview Friday'],
+    },
+  }));
+  function db(stored: Record<string, Record<string, unknown>>) {
+    const set = vi.fn(async () => undefined);
+    const chain = {
+      select: () => chain,
+      orderBy: () => chain,
+      limit: () => chain,
+      get: async () => ({ docs: summaries.map((s) => ({ id: s.id, data: () => s.data })) }),
+    };
+    const doc = (name: string) => ({
+      set,
+      get: async () => ({ exists: name in stored, get: (f: string) => stored[name]?.[f] }),
+    });
+    const fake = {
+      collection: () => ({
+        doc: () => ({ collection: (n: string) => (n === 'summaries' ? chain : { doc }) }),
+      }),
+    };
+    return { db: fake as unknown as Firestore, set };
+  }
+  const llm = async () =>
+    reply({
+      followUps: [
+        { text: 'How did the Stripe interview go?', when: '2026-10-10', basis: 'a' },
+        { text: 'Is the Denver move still on for November?', basis: 'b' },
+      ],
+      thinkingOf: [],
+    });
+  const opts = { now: new Date('2026-10-10T12:00:00Z'), env: { PONDERING: 'on' } };
+
+  it('never brings back an item from a call they dismissed, and keeps the dismissal', async () => {
+    const { db: fake, set } = db({ pondering: { dismissed: ['a'] } });
+    await ponderUser(fake, 'u1', llm, opts);
+    expect(set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        followUps: [{ text: 'Is the Denver move still on for November?', basis: 'b' }],
+        dismissed: ['a'],
+      })
+    );
+  });
+
+  it('leaves out anything about a topic they asked Ferni to forget', async () => {
+    const { db: fake, set } = db({ forgotten: { topics: ['stripe interview'] } });
+    await ponderUser(fake, 'u1', llm, opts);
+    const written = (set.mock.calls[0] as unknown as [{ followUps: Array<{ text: string }> }])[0];
+    expect(written.followUps.map((f) => f.text)).toEqual([
+      'Is the Denver move still on for November?',
+    ]);
+  });
+
+  it('writes nothing when everything left was put down', async () => {
+    const { db: fake, set } = db({ pondering: { dismissed: ['a', 'b'] } });
+    expect((await ponderUser(fake, 'u1', llm, opts)).status).toBe('nothing');
+    expect(set).not.toHaveBeenCalled();
   });
 });

@@ -71,7 +71,8 @@ export interface KnownView {
   thinkingAbout?: KnownItem[];
 }
 
-export type StoredPondering = Pondering & { generatedAt?: string };
+/** The pondering document; dismissed: calls the caller put an item from down (actions.ts). */
+export type StoredPondering = Pondering & { generatedAt?: string; dismissed?: string[] };
 
 /** The slices of the caller's record the view reads; each only ever for one uid. */
 export interface KnownStore {

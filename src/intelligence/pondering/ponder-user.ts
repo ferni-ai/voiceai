@@ -7,6 +7,7 @@
  * @module intelligence/pondering/ponder-user
  */
 import type { Firestore } from 'firebase-admin/firestore';
+import { isForgotten } from '../../memory/recall/forget.js';
 import {
   isPonderingOn,
   ponder,
@@ -47,6 +48,21 @@ export function toPonderSummary(id: string, data: Record<string, unknown>): Pond
   };
 }
 
+/**
+ * Leaves out what the caller has put down: items from a call they dismissed
+ * a pondering item from (memory-view/actions.ts), and anything about a topic
+ * they asked Ferni to forget.
+ */
+export function withoutDismissed(
+  p: Pondering,
+  dismissed: ReadonlySet<string>,
+  topics: readonly string[]
+): Pondering {
+  const keep = (i: { text: string; basis: string }): boolean =>
+    !dismissed.has(i.basis) && !isForgotten(i.text, topics);
+  return { followUps: p.followUps.filter(keep), thinkingOf: p.thinkingOf.filter(keep) };
+}
+
 export interface PonderOutcome {
   status: 'off' | 'nothing' | 'stored';
   pondering?: Pondering;
@@ -71,16 +87,25 @@ export async function ponderUser(
     .get();
   const summaries = snap.docs.map((d) => toPonderSummary(d.id, d.data()));
   const today = now.toISOString().slice(0, 10);
-  const pondering = await ponder(summaries, today, llm);
+  const ref = user.collection('predictive_intelligence').doc('pondering');
+  const [previous, forgotten] = await Promise.all([
+    ref.get(),
+    user.collection('memory_state').doc('forgotten').get(),
+  ]);
+  const dismissedBases = strings(previous.exists ? previous.get('dismissed') : undefined);
+  const topics = strings(forgotten.exists ? forgotten.get('topics') : undefined);
+  const pondering = withoutDismissed(
+    await ponder(summaries, today, llm),
+    new Set(dismissedBases),
+    topics
+  );
   if (pondering.followUps.length === 0 && pondering.thinkingOf.length === 0)
     return { status: 'nothing' };
-  await user
-    .collection('predictive_intelligence')
-    .doc('pondering')
-    .set({
-      ...pondering,
-      generatedAt: now.toISOString(),
-      basedOn: summaries.map((s) => s.id),
-    });
+  await ref.set({
+    ...pondering,
+    generatedAt: now.toISOString(),
+    basedOn: summaries.map((s) => s.id),
+    ...(dismissedBases.length > 0 && { dismissed: dismissedBases }),
+  });
   return { status: 'stored', pondering };
 }

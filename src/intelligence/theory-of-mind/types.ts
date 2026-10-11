@@ -67,6 +67,8 @@ export interface MindModel {
   patterns: Pattern[];
   current?: CurrentContext;
   sensitivities: Sensitivity[];
+  /** Readings the caller said are wrong (memory-view/actions.ts): never noted again. */
+  rejected?: Array<{ key: string; statement: string }>;
   updatedAt: string;
 }
 
