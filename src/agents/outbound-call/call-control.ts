@@ -49,6 +49,11 @@ export function registerOnBehalfCallRoom(
   sessions.set(sessionId, { callId, roomName });
 }
 
+/** The room of this session's on-behalf call, or undefined for any other session. */
+export function onBehalfCallRoom(sessionId: string): string | undefined {
+  return sessions.get(sessionId)?.roomName;
+}
+
 /** How Ferni said this session's call ended, if it hung up itself. Read once. */
 export function takeCallDisposition(sessionId: string): CallDisposition | undefined {
   const disposition = dispositions.get(sessionId);
@@ -63,7 +68,7 @@ export function forgetOnBehalfCallRoom(sessionId: string): void {
 
 export type HangUp = (roomName: string) => Promise<void>;
 
-async function deleteRoom(roomName: string): Promise<void> {
+export async function deleteRoom(roomName: string): Promise<void> {
   const { RoomServiceClient } = await import('livekit-server-sdk');
   const url = process.env.LIVEKIT_URL;
   const key = process.env.LIVEKIT_API_KEY;
