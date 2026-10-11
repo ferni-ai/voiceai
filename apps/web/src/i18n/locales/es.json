@@ -7901,6 +7901,8 @@
       "waitingTip": "Consejo: Busca 'My Apps' → 'Add Application' en ecobee.com"
     },
     "hueSetup": {
+      "webUnavailableTitle": "Aún no disponible en la web",
+      "webUnavailableText": "Tu navegador no puede llegar a un Hue Bridge de tu red de casa desde esta página segura, así que todavía no se puede conectar Hue aquí.",
       "findTitle": "Busca tu Hue Bridge",
       "findText": "Vamos a buscar tu Hue Bridge en tu red. Asegúrate de estar en la misma red WiFi que tu bridge.",
       "ipLabel": "Dirección IP del Bridge",

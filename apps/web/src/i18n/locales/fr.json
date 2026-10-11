@@ -7901,6 +7901,8 @@
       "waitingTip": "Astuce : cherche « My Apps » → « Add Application » sur ecobee.com"
     },
     "hueSetup": {
+      "webUnavailableTitle": "Pas encore disponible sur le web",
+      "webUnavailableText": "Ton navigateur ne peut pas joindre un Hue Bridge sur ton réseau domestique depuis cette page sécurisée. Hue ne peut donc pas encore être connecté ici.",
       "findTitle": "Trouve ton Pont Hue",
       "ipLabel": "Adresse IP du pont",
       "ipPlaceholder": "ex. : 192.168.1.100",

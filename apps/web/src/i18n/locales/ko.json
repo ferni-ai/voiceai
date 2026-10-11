@@ -7854,6 +7854,8 @@
       "waitingTip": "팁: ecobee.com에서 'My Apps' → 'Add Application'을 찾아보세요"
     },
     "hueSetup": {
+      "webUnavailableTitle": "아직 웹에서는 사용할 수 없어요",
+      "webUnavailableText": "이 보안 페이지에서는 브라우저가 집 네트워크의 Hue 브릿지에 연결할 수 없어요. 그래서 아직 여기서는 Hue를 연결할 수 없어요.",
       "findTitle": "Hue 브릿지 찾기",
       "findText": "네트워크에서 Hue 브릿지를 찾아볼게요. 브릿지와 동일한 WiFi에 연결되어 있는지 확인해 주세요.",
       "ipLabel": "브릿지 IP 주소",

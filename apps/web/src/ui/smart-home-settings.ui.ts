@@ -1,6 +1,7 @@
 /** Smart home settings: Ecobee, Hue, LIFX, Sonos, HomeKit, Siri Shortcuts. */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { canPairHueLocally, renderHueWebUnavailable } from './hue-web-pairing.js';
 import { formatNumber, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { appState } from '../state/index.js';
@@ -1142,6 +1143,7 @@ function renderEcobeeSetup(container: HTMLElement): void {
 }
 
 function renderHueSetup(container: HTMLElement): void {
+  if (!canPairHueLocally()) return renderHueWebUnavailable(container);
   const totalSteps = 3;
 
   // Step indicator
@@ -1173,8 +1175,7 @@ function renderHueSetup(container: HTMLElement): void {
     content.appendChild(
       createElement('p', {
         className: 'smart-home-settings__step-description',
-        textContent:
-          t('smarthome.hueSetup.findText'),
+        textContent: t('smarthome.hueSetup.findText'),
       })
     );
 
@@ -1194,8 +1195,7 @@ function renderHueSetup(container: HTMLElement): void {
 
     const hint = createElement('p', {
       className: 'smart-home-settings__hint',
-      textContent:
-        t('smarthome.hueSetup.ipHint'),
+      textContent: t('smarthome.hueSetup.ipHint'),
     });
     inputGroup.appendChild(hint);
     content.appendChild(inputGroup);
@@ -1246,8 +1246,7 @@ function renderHueSetup(container: HTMLElement): void {
     content.appendChild(
       createElement('p', {
         className: 'smart-home-settings__step-description',
-        textContent:
-          t('smarthome.hueSetup.pressText'),
+        textContent: t('smarthome.hueSetup.pressText'),
       })
     );
 
@@ -1262,8 +1261,7 @@ function renderHueSetup(container: HTMLElement): void {
 
     const hint = createElement('p', {
       className: 'smart-home-settings__hint',
-      textContent:
-        t('smarthome.hueSetup.pressHint'),
+      textContent: t('smarthome.hueSetup.pressHint'),
     });
     content.appendChild(hint);
   } else if (setupStep === 2) {

@@ -8038,6 +8038,8 @@
       "waitingTip": "نصيحة: ابحثوا عن 'تطبيقاتي' ← 'إضافة تطبيق' على ecobee.com"
     },
     "hueSetup": {
+      "webUnavailableTitle": "غير متاح على الويب بعد",
+      "webUnavailableText": "لا يستطيع المتصفح الوصول إلى Hue Bridge على شبكتكم المنزلية من هذه الصفحة الآمنة، لذلك لا يمكن ربط Hue من هنا بعد.",
       "findTitle": "البحث عن Hue Bridge الخاص بكم",
       "findText": "لنبحث عن Hue Bridge الخاص بكم على الشبكة. يرجى التأكد من الاتصال بشبكة WiFi نفسها المتصل بها الجهاز.",
       "ipLabel": "عنوان IP الخاص بـ Bridge",
