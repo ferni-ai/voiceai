@@ -3,9 +3,8 @@
  * has watched it: each of the top candidates goes to Gemini (a video as its
  * public YouTube URL, a book as its title and description), which says whether
  * it fits this person and this need, whether it is evidence-based or hype, and
- * why in one sentence. The best that fits wins; if none fits, there is no pick
- * rather than a bad one. If the checks fail (timeout, quota), the top search
- * result comes back marked unchecked.
+ * why in one sentence. The best that fits wins; if none fits, or no check
+ * came back (timeout, quota), there is no pick: never an unvetted one.
  *
  * Videos are checked on their first 150 seconds at low resolution and half a
  * frame per second, which keeps a check to a few thousand tokens.
@@ -47,8 +46,7 @@ export interface Verdict {
 
 export interface Pick {
   candidate: Candidate;
-  verdict: Verdict | null;
-  checked: boolean;
+  verdict: Verdict;
 }
 
 /** Candidates checked per pick. */
@@ -136,9 +134,8 @@ async function check(c: Candidate, topic: string, fit: string): Promise<Verdict 
 }
 
 /**
- * The best of the first MAX_CHECKED candidates after checking each, the top
- * one unchecked when no check came back, or null when there are none or every
- * checked one was a poor fit or hype.
+ * The best of the first MAX_CHECKED candidates after checking each, or null
+ * when there are none, no check came back, or every one was a poor fit or hype.
  */
 export async function checkedPick(
   candidates: Candidate[],
@@ -148,8 +145,6 @@ export async function checkedPick(
   const top = candidates.slice(0, MAX_CHECKED);
   if (top.length === 0) return null;
   const verdicts = await Promise.all(top.map(async (c) => check(c, topic, fit)));
-  if (verdicts.every((v) => v === null))
-    return { candidate: top[0], verdict: null, checked: false };
   const best = top
     .map((candidate, i) => ({ candidate, verdict: verdicts[i] }))
     .filter((p): p is { candidate: Candidate; verdict: Verdict } =>
@@ -160,5 +155,5 @@ export async function checkedPick(
     { checked: verdicts.filter(Boolean).length, picked: Boolean(best) },
     'coach-media: checked pick'
   );
-  return best ? { ...best, checked: true } : null;
+  return best ?? null;
 }
