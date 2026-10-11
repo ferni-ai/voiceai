@@ -41,7 +41,7 @@ jobs:
   signed-in-e2e:
     name: Signed-in walk (desktop + phone)
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
-    timeout-minutes: 30
+    timeout-minutes: 45 # 206 tests on one worker (shared emulator) now take ~30 min
 
     steps:
       - name: Checkout
