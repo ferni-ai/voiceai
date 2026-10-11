@@ -26,6 +26,7 @@ jobs:
   # Dependency vulnerability scan
   dependency-audit:
     name: Dependency Audit
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
 
     steps:

@@ -23,6 +23,7 @@ env:
 jobs:
   lighthouse:
     name: Lighthouse Audit
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
     # The repo's default token is read-only; the "Comment on PR" step needs write.
     permissions:

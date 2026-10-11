@@ -19,6 +19,7 @@ on:
 jobs:
   build:
     name: Build Design System
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
     outputs:
       artifact-name: design-system-dist-${{ github.sha }}

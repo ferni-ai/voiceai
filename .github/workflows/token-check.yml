@@ -26,7 +26,8 @@ on:
 jobs:
   token-drift-check:
     name: Check Token Drift
-    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -70,7 +71,7 @@ jobs:
 
   animation-constants-check:
     name: Check Animation Constants
-    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -100,7 +101,7 @@ jobs:
 
   tailwind-config-check:
     name: Check Tailwind Config
-    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code

@@ -39,7 +39,8 @@ on:
 jobs:
   firestore-e2e:
     name: Firestore Emulator E2E
-    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
@@ -125,7 +126,7 @@ jobs:
   # paths here meaningless.
   entity-resolver-emulator:
     name: Entity Resolver Emulator
-    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
@@ -181,7 +182,7 @@ jobs:
   # Quick unit tests (no emulator required)
   unit-tests:
     name: Data Layer Unit Tests
-    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:

@@ -28,7 +28,8 @@ jobs:
   # ============================================================================
   test:
     name: Test Rust Crates
-    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -87,8 +88,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux x86_64 (production - GCE); follows CI_RUNNER on push, hosted otherwise
-          - os: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
+          # Linux x86_64 (production - GCE)
+          - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             node_arch: linux-x64
 
@@ -187,7 +188,7 @@ jobs:
   verify:
     name: Verify Node.js Integration
     needs: build
-    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7

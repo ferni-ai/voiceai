@@ -35,6 +35,7 @@ env:
 jobs:
   benchmark:
     name: BTH Capability Benchmark
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
     # The repo's default token is read-only; this job's PR comment step needs write.
     permissions:

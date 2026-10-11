@@ -25,7 +25,8 @@ env:
 jobs:
   stage-direction-tests:
     name: Stage Direction Sanitization Tests
-    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
