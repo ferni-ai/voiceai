@@ -85,6 +85,16 @@ describe('voice-eval judge', () => {
     for (const k of CANDOR_KINDS) expect(p).toContain(`"${k}":`);
   });
 
+  it('scores follow-through on an earlier commitment, null when there was none', () => {
+    expect(DIMENSIONS.followThrough).toMatch(/without being prompted/);
+    expect(DIMENSIONS.followThrough).toMatch(
+      /Use null if the earlier call held no such commitment/
+    );
+    expect(promptFor({ userSpeech: [[0, 1]], events: [] }, null)).toContain(
+      '"followThrough": <1-5 or null>'
+    );
+  });
+
   it('averages candor scores and per-kind turn counts over samples, skipping missing or bad ones', () => {
     const v = combine([
       { scores: { candor: 4 }, candorTurns: { disagreed: 2, caved: 0, fakedKnowledge: 1 } },
