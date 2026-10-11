@@ -150,7 +150,9 @@ describe('voice-eval judge', () => {
     ]);
     const withSeed = promptFor(call, seed);
     for (const k of Object.keys(DIMENSIONS)) expect(withSeed).toContain(`- ${k}:`);
-    expect(withSeed).toContain('2. FERNI: The Stripe interview?');
+    // The greeting is turn 1 (#789), so the reply to the caller is turn 3.
+    expect(withSeed).toContain('1. FERNI (answering the call): Hey Sam.');
+    expect(withSeed).toContain('3. FERNI: The Stripe interview?');
     expect(withSeed).toContain('CALLER: I have an interview at Stripe on Monday.');
     expect(promptFor(call, null)).toContain('There was no earlier call');
   });

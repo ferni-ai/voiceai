@@ -31,6 +31,7 @@ concurrency:
 jobs:
   # Dependency vulnerability scan
   dependency-audit:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Dependency Audit
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
@@ -122,7 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     # ~15 runner-minutes, and on a PR its findings go nowhere (no upload, see the
     # analyze step), so it runs on the nightly schedule and on demand only.
-    if: github.event_name != 'pull_request'
+    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event_name != 'pull_request') }}
     # The analyze action reads this workflow run (a 403 "Resource not accessible
     # by integration" without it); the default token is read-only.
     permissions:
@@ -174,6 +175,7 @@ jobs:
 
   # Secret scanning (check for accidentally committed secrets)
   secret-scan:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Secret Scan
     runs-on: ubuntu-latest
 
