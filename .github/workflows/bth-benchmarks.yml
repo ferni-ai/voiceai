@@ -40,6 +40,7 @@ concurrency:
 
 jobs:
   benchmark:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: BTH Capability Benchmark
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
@@ -197,7 +198,7 @@ jobs:
     name: Notify Results
     needs: benchmark
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.notify_on_success == 'true')
+    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.notify_on_success == 'true')) }}
 
     steps:
       - name: Send Slack Notification (Regression)
@@ -326,7 +327,7 @@ jobs:
     name: Store Benchmark History
     needs: benchmark
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' && needs.benchmark.outputs.has_regressions != 'true'
+    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event_name == 'schedule' && needs.benchmark.outputs.has_regressions != 'true') }}
 
     steps:
       - name: Checkout
