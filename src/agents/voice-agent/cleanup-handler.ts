@@ -56,7 +56,7 @@ import { getInsightsForPersona } from '../../services/cross-persona-insights.js'
 import type {
   EmotionalMoment,
   SessionInsight,
-} from '../../services/session-context/session-summary.js';
+} from '../../services/session/session-summary.js';
 import { commitmentKeeper } from '../../services/superhuman/commitment-keeper.js';
 
 // NEW: Unified Intelligence System (Levels 2-5) cleanup
@@ -849,7 +849,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       ? (async () => {
           try {
             const { storeSessionSummary } =
-              await import('../../services/session-context/session-summary.js');
+              await import('../../services/session/session-summary.js');
             const turnCount = finalConvState?.flow.turnCount || userData?.turnCount || 0;
             const startTime = services?.sessionStartTime
               ? new Date(services.sessionStartTime)
@@ -1693,11 +1693,11 @@ async function cleanupMusic(sessionId: string): Promise<void> {
 
 async function cleanupGames(sessionId: string): Promise<void> {
   try {
-    const { getSessionGameEngine, resetSessionGameEngine } =
-      await import('../../services/games/index.js');
-    const engine = getSessionGameEngine(sessionId);
-    await engine.flushToStorage();
-    resetSessionGameEngine(sessionId);
+    const games = await import('../../services/games/index.js');
+    await games.getSessionGameEngine(sessionId).flushToStorage();
+    games.resetSessionGameEngine(sessionId);
+    // Text games (tic-tac-toe, 20 questions...) were otherwise kept for the process's life.
+    games.resetSessionTextGameEngine(sessionId);
     diag.session('Game engine flushed and reset');
   } catch (e) {
     log().debug({ error: String(e) }, 'Game cleanup failed (non-fatal)');

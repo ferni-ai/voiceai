@@ -10,6 +10,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { isOutreachConfirmOn } from '../../../tools/domains/communication/outreach/outreach-confirm.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'TelephonyExecutor' });
@@ -70,6 +71,11 @@ async function execute(
   // Auto-selects best channel (call, text, email, conversation)
   // based on purpose, contact preferences, and relationship
   // ========================================
+  // This path has no live call to hear the caller's yes (outreach-confirm.ts), so it sends nothing.
+  if ((fnLower === 'reachout' || fnLower === 'multioutreach') && isOutreachConfirmOn()) {
+    return 'Nothing was sent: I can only send this after the caller says yes on a call.';
+  }
+
   if (fnLower === 'reachout') {
     const contact = args.contact as string;
     const purpose = args.purpose as string;
@@ -324,8 +330,8 @@ async function execute(
       return 'Who should call you back?';
     }
 
-    // For now, return a helpful message since callbacks aren't fully implemented
-    return `I've noted that you'd like a callback from ${contact}${when ? ` around ${when}` : ''}. I'll remind you to follow up if we don't hear from them.`;
+    // Nothing stores or tracks a callback request, so don't say it's noted.
+    return `I can't line up a callback from ${contact} for you yet, so nothing is booked. Want me to set a reminder to follow up with them${when ? ` around ${when}` : ''}?`;
   }
 
   // ========================================

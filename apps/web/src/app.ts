@@ -19,6 +19,7 @@ import {
 // Theme & Language Settings panel
 import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
 import { devPanelMayEnable } from './ui/dev-panel-gate.js';
+import { holdUntilFirstCall } from './app/calm-boot.js';
 import {
   openCalendarView,
   openChronicle,
@@ -281,7 +282,7 @@ import { announceMonthlyGiftPaid } from './services/seed-payment.js';
 // Toast for notifications (legacy - use moments.whisper() for new code)
 import { toast } from './ui/whisper.ui.js';
 import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
-import { connectWithTimeout } from './app/call-connect.js';
+import { cancelConnectAttempt, connectWithTimeout } from './app/call-connect.js';
 import { connectFailure } from './services/connect-failure.js';
 import { buildConversationUsageBody } from './services/call-payloads.js';
 import { connectGate, type ConnectGate } from './services/paywall.service.js';
@@ -299,6 +300,7 @@ import {
 import { initCosmeticsService } from './services/cosmetics.service.js';
 // Seeds Economy - earn seeds through engagement
 import { initSeedsEconomy } from './services/seeds-economy.service.js';
+import { watchServerSeeds } from './services/seeds-ledger.service.js';
 // Referral Service - network effect seeds system
 import { initReferralService, processPendingReferral } from './services/referral.service.js';
 // Seeds UI - display balance and toast notifications
@@ -473,10 +475,24 @@ class VoiceAIApp {
       return;
     }
 
+    // Pages opened from a text link that replace the app (/a/:id)
+    const { openStandalonePage } = await import('./app/standalone-pages.js');
+    if (await openStandalonePage(window.location.pathname)) return;
+
     // Check for CLI authentication route
     if (window.location.pathname === '/cli-auth') {
       initCLIAuth();
       return;
+    }
+
+    // Approval page for a pending action, opened from a text link: /p/:id
+    if (window.location.pathname.startsWith('/p/')) {
+      const { pendingActionIdFromPath, initApprovePage } = await import('./ui/approve-page.ui.js');
+      const actionId = pendingActionIdFromPath(window.location.pathname);
+      if (actionId) {
+        await initApprovePage(actionId);
+        return;
+      }
     }
 
     // DISABLED: No skeleton loading - everything visible immediately
@@ -493,10 +509,13 @@ class VoiceAIApp {
       void initPlatform();
       log.info('Running on:', platform());
 
-      // Initialize theme system first (affects all UI)
+      // Before the theme: the circadian theme names its period with t(), and
+      // index.html already applied the stored theme, so there is no flash.
+      await initI18n(); // before any UI renders
+
+      // Initialize theme system (affects all UI)
       this.initializeTheme();
 
-      await initI18n(); // before any UI renders
       bindStaticDom(); // index.html text marked with data-i18n
       bindLocaleRefresh(); // a no-reload language change finishes with a reload
       installDialogFocus(); // focus into, around and back out of every modal
@@ -613,9 +632,6 @@ class VoiceAIApp {
       }, 3000);
     }
 
-    // Show immediate feedback - user tapped the button
-    messageUI.show(t('app.gettingReady'), 'info', 30000);
-
     // iOS CRITICAL: Create and resume AudioContext FIRST in user gesture
     // This must happen synchronously at the start of the click handler
     try {
@@ -637,9 +653,7 @@ class VoiceAIApp {
       log.debug('Sound play failed (OK on iOS):', e);
     }
 
-    // Show thinking indicator with connection progress
-    thinkingUI.show(t('app.connecting'));
-    thinkingUI.showProgress(0); // Step 0: Authenticating
+    // One connecting status: the button says it (and cancels); the avatar waits
     waveformUI.setThinking(true);
 
     // Resume audio context (required after user interaction)
@@ -649,13 +663,7 @@ class VoiceAIApp {
       log.debug('Audio resume failed:', e);
     }
 
-    // Step 1: Joining room
-    thinkingUI.showProgress(1);
-
-    // Step 2: Connecting audio. Resolves once the agent is in the room;
-    // a 30s limit really cancels the attempt.
-    thinkingUI.showProgress(2);
-    messageUI.show(t('app.almostThere'), 'info', 30000);
+    // Resolves once the agent is in the room; a 30s limit (or a tap) cancels it
     clearCallNotice();
     const outcome = await connectWithTimeout(connectionService);
 
@@ -668,8 +676,8 @@ class VoiceAIApp {
       if (outcome.failure.kind === 'cancelled') return;
 
       // One explanation with the action that fixes it (retry, sign in, allow mic)
+      // No failure sound: it isn't the person's fault
       showCallNotice(outcome.failure, { onRetry: () => void this.connect() });
-      soundUI.play('disconnect');
 
       // Error recovery animation - shake the connect button
       const connectBtn = document.getElementById('connectBtn');
@@ -682,12 +690,7 @@ class VoiceAIApp {
       return;
     }
 
-    // Step 3: Ready! Hide thinking indicator
-    thinkingUI.showProgress(3);
-    setTimeout(() => {
-      thinkingUI.hideProgress();
-      thinkingUI.hide();
-    }, 300);
+    thinkingUI.hide();
     waveformUI.setThinking(false);
 
     // Start waveform and set persona
@@ -818,14 +821,13 @@ class VoiceAIApp {
     // Step 8: Now perform the actual disconnect (gracefully)
     await this.performStandardDisconnect(true); // true = skip disconnect sound
 
-    // Step 9: 💰 Show conversation cost transparency ("tip jar")
-    // Give the user a moment to settle, then show the cost card
+    // Step 9: After a moment, the after-call card (flag on) or the cost card (flag off)
     setTimeout(async () => {
       try {
-        const { showConversationCost } = await import('./ui/conversation-cost.ui.js');
-        await showConversationCost();
+        const { showPostCallCard } = await import('./ui/after-call/post-call.js');
+        await showPostCallCard();
       } catch (e) {
-        log.debug('Cost display skipped', { error: String(e) });
+        log.debug('Post-call card skipped', { error: String(e) });
       }
     }, 800);
 
@@ -855,7 +857,6 @@ class VoiceAIApp {
     presenceUI.setConnected(false);
     presenceUI.setSpeaking(false);
     presenceUI.setListening(false);
-    // keyboardUI.setConnected(false);
     connectionQualityUI.hide();
     transcriptUI.hide();
     engagementTriggerUI.hide();
@@ -1207,11 +1208,10 @@ class VoiceAIApp {
    * Use for non-critical features that can load after the UI is visible.
    */
   private deferredInit(name: string, delayMs: number, initFn: () => Promise<void>): void {
-    setTimeout(() => {
-      initFn().catch((error) => {
-        log.error(`Failed to initialize ${name} (deferred):`, error);
-      });
-    }, delayMs);
+    const run = (): void => {
+      initFn().catch((error) => log.error(`Failed to initialize ${name} (deferred):`, error));
+    };
+    if (!holdUntilFirstCall(name, run)) setTimeout(run, delayMs);
   }
 
   /**
@@ -1245,6 +1245,7 @@ class VoiceAIApp {
         onConnect: () => {
           void this.connect();
         },
+        onCancelConnect: () => void cancelConnectAttempt(),
         onDisconnect: () => {
           void this.disconnect();
         },
@@ -1271,6 +1272,7 @@ class VoiceAIApp {
     });
     this.deferredInit('ThinkingUI', 100, async () => {
       initThinkingUI();
+      (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
       initConnectionQualityUI();
@@ -1786,6 +1788,9 @@ class VoiceAIApp {
     // 🌱 Seeds Economy - Earn seeds through natural engagement
     this.safeInit('SeedsEconomy', () => initSeedsEconomy());
 
+    // 🌱 Server seed ledger - one balance from the server once it keeps seeds
+    this.safeInit('SeedsLedger', () => watchServerSeeds());
+
     // 🤝 Referral Service - Network effect seeds (check URL for ?ref= param)
     this.safeInit('ReferralService', () => initReferralService());
 
@@ -1851,7 +1856,7 @@ class VoiceAIApp {
     // 👥 Speaker Change Indicator - Gentle verification when voice changes
     this.safeInit('SpeakerChangeIndicator', () => initSpeakerChangeIndicator());
 
-    // 🏥 Service Health - Show degradation status to users
+    // 🏥 Service Health - internal status pill, admin sessions only
     this.safeInit('ServiceHealthUI', () => initServiceHealthUI());
 
     // 📋 Settings Menu - Central navigation hub
@@ -1906,8 +1911,7 @@ class VoiceAIApp {
           import('./ui/your-year-with-ferni.ui.js')
             .then(({ openYourYearWithFerni }) => {
               log.debug('YourYear module loaded, opening');
-              const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
-              return openYourYearWithFerni(userId);
+              return openYourYearWithFerni();
             })
             .then(() => {
               log.debug('YourYear opened successfully');
@@ -1970,11 +1974,8 @@ class VoiceAIApp {
         // New feature callbacks
         onMemoryLaneClick: () => void openMemoryLane(),
         onPatternInsightsClick: () => {
-          // Show pattern insights in a modal container
-          const container = document.querySelector('.app-shell') as HTMLElement | null;
-          if (container) {
-            void showPatternInsights(container);
-          }
+          // Show pattern insights in the main content area
+          void showPatternInsights(document.getElementById('main-content') ?? document.body);
         },
         onConversationInsightsClick: async () => {
           // Show feedback insights panel (how conversations are resonating)
@@ -2035,10 +2036,7 @@ class VoiceAIApp {
       void showConversationHistory();
     });
     this.addTrackedListener(window, 'ferni:open-patterns', () => {
-      const container = document.querySelector('.app-shell') as HTMLElement | null;
-      if (container) {
-        void showPatternInsights(container);
-      }
+      void showPatternInsights(document.getElementById('main-content') ?? document.body);
     });
     this.addTrackedListener(window, 'ferni:open-quiz', () => {
       void openKnowledgeQuiz();
@@ -2053,10 +2051,7 @@ class VoiceAIApp {
     });
     this.addTrackedListener(window, 'ferni:open-year-with-ferni', () => {
       import('./ui/your-year-with-ferni.ui.js')
-        .then(({ openYourYearWithFerni }) => {
-          const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
-          return openYourYearWithFerni(userId);
-        })
+        .then(({ openYourYearWithFerni }) => openYourYearWithFerni())
         .catch((err) => {
           log.error({ error: String(err) }, 'Failed to open Your Year with Ferni');
         });
@@ -2750,7 +2745,6 @@ class VoiceAIApp {
       onStateChange: (state) => {
         // Update presence and waveform based on connection state
         if (state === 'connecting') {
-          thinkingUI.show(t('app.connecting'));
           waveformUI.setThinking(true);
           // 🚀 Ferni EQ: Dispatch thinking state
           dispatchThinking(true);

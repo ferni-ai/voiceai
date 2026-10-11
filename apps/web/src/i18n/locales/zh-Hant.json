@@ -2439,7 +2439,8 @@
       "features": "Ferni 可以查看的內容"
     },
     "title": "穿戴式裝置",
-    "notConfigured": "尚未設定"
+    "notConfigured": "尚未設定",
+    "appleHealthOnIphone": "請在 iPhone 上的 Ferni 應用程式中設定 Apple Health"
   },
   "transcript": {
     "enabled": "語音轉文字已開啟",
@@ -3299,8 +3300,8 @@
     "categorySweet": "甜蜜瞬間",
     "connectionConnected": "我們已連線",
     "connectionConnecting": "連線中...",
-    "connectionDisconnected": "連線中斷",
-    "connectionDisconnectedMessage": "出了點狀況，不過我們可以再試一次。",
+    "connectionIdle": "隨時準備好了",
+    "connectionIdleMessage": "想聊的時候，我一直都在。",
     "connectionError": "連線中斷",
     "connectionErrorMessage": "出了點狀況，不過我們可以再試一次。",
     "connectionReconnect": "重新連線",
@@ -7854,6 +7855,8 @@
       "waitingTip": "提示：在 ecobee.com 上尋找「My Apps」→「Add Application」"
     },
     "hueSetup": {
+      "webUnavailableTitle": "網頁版暫不支援",
+      "webUnavailableText": "瀏覽器無法從這個安全頁面連到你家中網路的 Hue Bridge，所以暫時還無法在這裡連結 Hue。",
       "findTitle": "尋找你的 Hue Bridge",
       "findText": "讓我們在網路中尋找你的 Hue Bridge。請確保你與橋接器連結到同一個 Wi-Fi。",
       "ipLabel": "橋接器 IP 位址",
@@ -9497,6 +9500,14 @@
     "cta": "想幫忙讓 Ferni 保持免費嗎？",
     "dismiss": "能聊天就很開心了"
   },
+  "afterCall": {
+    "ariaLabel": "通話之後",
+    "rememberTitle": "{name}會記住",
+    "rememberEmpty": "這次沒有需要記住的新內容。謝謝你的陪伴。",
+    "nextStepTitle": "溫和的下一步",
+    "invitation": "隨時回來，我會在這裡。",
+    "close": "關閉"
+  },
   "moments": {
     "teamUnlockTitle": "認識 {name}",
     "niceWork": "做得好",
@@ -10099,7 +10110,12 @@
     "getIdeas": "獲取靈感",
     "emptyTitle": "目前還沒有建議",
     "emptyText": "試著多分享一些關於你們關係的細節吧。",
-    "generateError": "無法產生靈感。要再試一次嗎？"
+    "generateError": "無法產生靈感。要再試一次嗎？",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "我為你做的事",
@@ -10587,6 +10603,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "關係進度",
+    "emptyInvite": "我們的故事從你的第一次對話開始。",
     "progress": "進度",
     "next": "下一步：{stage}",
     "stages": {
@@ -10795,7 +10812,8 @@
   "entrance": {
     "helper": "你的貼心嚮導",
     "connectToTalk": "聊聊",
-    "endTalk": "掛斷"
+    "endTalk": "掛斷",
+    "connectingCancel": "正在連線。輕點即可取消"
   },
   "teamHuddle": {
     "typeWeekly": "每週自我檢視",
@@ -11054,5 +11072,45 @@
   "agentAcks": {
     "gameStartFailed": "遊戲沒能開始。試著直接對 Ferni 說出來吧。",
     "actionFailed": "沒有成功。可能已經處理過了。"
+  },
+  "speakerCues": {
+    "ferniSpeaking": "Ferni 正在說話",
+    "youSpeaking": "你正在說話",
+    "ferniThinking": "Ferni 正在思考",
+    "tapToInterrupt": "輕點以打斷"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

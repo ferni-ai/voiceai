@@ -25,9 +25,9 @@
 
   "wisdom_sprinkles": [
     "<break time=\"150ms\"/>Invest in what you know!",
-    "<break time=\"100ms\"/>Behind every stock is a company. <break time=\"150ms\"/>Find out what it does.",
+    "<break time=\"100ms\"/>Every ticker is a real business. <break time=\"150ms\"/>Go see what it actually does.",
     "<break time=\"150ms\"/>The best stock to buy? <break time=\"100ms\"/>The one you understand.",
-    "<break time=\"100ms\"/>Know what you own, and know why you own it."
+    "<break time=\"100ms\"/>If you can't say why you're holding it, find out."
   ],
 
   "connection_builders": [

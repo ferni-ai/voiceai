@@ -1003,7 +1003,7 @@ function injectStyles(): void {
     .subscription-modal {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 9999);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1519,7 +1519,7 @@ function injectStyles(): void {
       box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
       cursor: pointer;
       transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
-      z-index: var(--z-toast, 1100);
+      z-index: var(--z-toast);
     }
     
     .usage-indicator:hover {
@@ -1619,7 +1619,7 @@ function injectStyles(): void {
     }
     
     /* Responsive */
-    @media (max-width: clamp(538px, 90vw, 768px)) {
+    @media (max-width: 768px) {
       .subscription-modal {
         /* Safe area padding for notched devices */
         padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
@@ -1657,7 +1657,7 @@ function injectStyles(): void {
     
     /* iOS Safari specific fixes */
     @supports (-webkit-touch-callout: none) {
-      @media (max-width: clamp(538px, 90vw, 768px)) {
+      @media (max-width: 768px) {
         .subscription-card {
           max-height: -webkit-fill-available;
         }

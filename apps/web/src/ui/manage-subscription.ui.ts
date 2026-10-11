@@ -331,7 +331,7 @@ class ManageSubscriptionUI {
       .manage-sub {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;

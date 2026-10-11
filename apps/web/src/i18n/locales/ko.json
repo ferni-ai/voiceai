@@ -2439,7 +2439,8 @@
       "features": "Ferni가 확인할 수 있는 정보"
     },
     "title": "웨어러블",
-    "notConfigured": "아직 준비되지 않았어요"
+    "notConfigured": "아직 준비되지 않았어요",
+    "appleHealthOnIphone": "Apple Health는 iPhone의 Ferni 앱에서 설정해 주세요"
   },
   "transcript": {
     "enabled": "텍스트 변환 켜짐",
@@ -3299,8 +3300,8 @@
     "categorySweet": "달콤한 순간들",
     "connectionConnected": "연결되었어요",
     "connectionConnecting": "연결 중...",
-    "connectionDisconnected": "연결이 끊어졌어요",
-    "connectionDisconnectedMessage": "문제가 발생했지만, 다시 시도해볼 수 있어요.",
+    "connectionIdle": "준비되면 언제든지요",
+    "connectionIdleMessage": "이야기하고 싶을 때 언제든 여기 있을게요.",
     "connectionError": "연결이 끊김",
     "connectionErrorMessage": "문제가 발생했지만, 다시 시도해볼 수 있어요.",
     "connectionReconnect": "다시 연결하기",
@@ -7854,6 +7855,8 @@
       "waitingTip": "팁: ecobee.com에서 'My Apps' → 'Add Application'을 찾아보세요"
     },
     "hueSetup": {
+      "webUnavailableTitle": "아직 웹에서는 사용할 수 없어요",
+      "webUnavailableText": "이 보안 페이지에서는 브라우저가 집 네트워크의 Hue 브릿지에 연결할 수 없어요. 그래서 아직 여기서는 Hue를 연결할 수 없어요.",
       "findTitle": "Hue 브릿지 찾기",
       "findText": "네트워크에서 Hue 브릿지를 찾아볼게요. 브릿지와 동일한 WiFi에 연결되어 있는지 확인해 주세요.",
       "ipLabel": "브릿지 IP 주소",
@@ -9497,6 +9500,14 @@
     "cta": "Ferni가 계속 무료로 운영되도록 돕고 싶으신가요?",
     "dismiss": "그냥 대화하는 것만으로도 좋아요"
   },
+  "afterCall": {
+    "ariaLabel": "통화를 마치고",
+    "rememberTitle": "{name}이(가) 기억할 것",
+    "rememberEmpty": "이번에는 새로 기억할 것이 없어요. 함께해 줘서 고마워요.",
+    "nextStepTitle": "부드러운 다음 걸음",
+    "invitation": "언제든 다시 와요. 여기 있을게요.",
+    "close": "닫기"
+  },
   "moments": {
     "teamUnlockTitle": "{name} 님 만나기",
     "niceWork": "멋져요",
@@ -10099,7 +10110,12 @@
     "getIdeas": "아이디어 얻기",
     "emptyTitle": "아직 제안할 내용이 없어요",
     "emptyText": "서로의 관계에 대해 조금 더 이야기해 주세요.",
-    "generateError": "아이디어를 만들지 못했어요. 다시 시도해 볼까요?"
+    "generateError": "아이디어를 만들지 못했어요. 다시 시도해 볼까요?",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "당신을 위해 준비한 것들",
@@ -10587,6 +10603,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "관계 진행 상황",
+    "emptyInvite": "우리 이야기는 첫 대화에서 시작돼요.",
     "progress": "진행도",
     "next": "다음 단계: {stage}",
     "stages": {
@@ -10795,7 +10812,8 @@
   "entrance": {
     "helper": "나만을 위한 다정한 가이드",
     "connectToTalk": "대화해요",
-    "endTalk": "대화 종료"
+    "endTalk": "대화 종료",
+    "connectingCancel": "연결 중입니다. 탭하여 취소"
   },
   "teamHuddle": {
     "typeWeekly": "주간 체크인",
@@ -11054,5 +11072,45 @@
   "agentAcks": {
     "gameStartFailed": "게임을 시작하지 못했어요. Ferni에게 말로 요청해 보세요.",
     "actionFailed": "처리되지 않았어요. 이미 완료되었을 수도 있어요."
+  },
+  "speakerCues": {
+    "ferniSpeaking": "Ferni가 말하고 있어요",
+    "youSpeaking": "내가 말하고 있어요",
+    "ferniThinking": "Ferni가 생각하고 있어요",
+    "tapToInterrupt": "탭해서 끼어들기"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

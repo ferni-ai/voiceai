@@ -2439,7 +2439,8 @@
       "features": "Was Ferni sehen kann"
     },
     "title": "Wearables",
-    "notConfigured": "Noch nicht eingerichtet"
+    "notConfigured": "Noch nicht eingerichtet",
+    "appleHealthOnIphone": "Richte Apple Health in der Ferni-App auf deinem iPhone ein"
   },
   "transcript": {
     "enabled": "Transkription an",
@@ -3299,8 +3300,8 @@
     "categorySweet": "Süße Momente",
     "connectionConnected": "Wir sind verbunden",
     "connectionConnecting": "Verbindung wird hergestellt...",
-    "connectionDisconnected": "Wir sind nicht verbunden",
-    "connectionDisconnectedMessage": "Etwas ist schiefgelaufen, aber wir können es noch einmal versuchen.",
+    "connectionIdle": "Bereit, wann immer du bist",
+    "connectionIdleMessage": "Wann immer du reden willst, bin ich da.",
     "connectionError": "Verbindung verloren",
     "connectionErrorMessage": "Etwas ist schiefgelaufen, aber wir können es noch einmal versuchen.",
     "connectionReconnect": "Erneut verbinden",
@@ -7854,6 +7855,8 @@
       "waitingTip": "Tipp: Suche nach „My Apps“ → „Add Application“ auf ecobee.com"
     },
     "hueSetup": {
+      "webUnavailableTitle": "Im Web noch nicht verfügbar",
+      "webUnavailableText": "Dein Browser kann von dieser sicheren Seite aus keine Hue Bridge in deinem Heimnetz erreichen. Deshalb lässt sich Hue hier noch nicht verbinden.",
       "findTitle": "Finde deine Hue Bridge",
       "findText": "Lass uns deine Hue Bridge in deinem Netzwerk suchen. Stelle sicher, dass du mit demselben WLAN wie deine Bridge verbunden bist.",
       "ipLabel": "IP-Adresse der Bridge",
@@ -9497,6 +9500,14 @@
     "cta": "Möchtest du helfen, Ferni kostenlos zu halten?",
     "dismiss": "Einfach froh zu plaudern"
   },
+  "afterCall": {
+    "ariaLabel": "Nach deinem Anruf",
+    "rememberTitle": "{name} wird sich merken",
+    "rememberEmpty": "Diesmal gibt es nichts Neues festzuhalten. Danke für deine Gesellschaft.",
+    "nextStepTitle": "Ein sanfter nächster Schritt",
+    "invitation": "Komm wieder, wann immer du magst. Ich bin da.",
+    "close": "Schließen"
+  },
   "moments": {
     "teamUnlockTitle": "Lerne {name} kennen",
     "niceWork": "Schön gemacht",
@@ -10099,7 +10110,12 @@
     "getIdeas": "Ideen holen",
     "emptyTitle": "Noch keine Vorschläge",
     "emptyText": "Versuche, mehr Kontext über eure Beziehung hinzuzufügen.",
-    "generateError": "Ideen konnten nicht geladen werden. Erneut versuchen?"
+    "generateError": "Ideen konnten nicht geladen werden. Erneut versuchen?",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "WAS ICH FÜR DICH TUE",
@@ -10587,6 +10603,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "Beziehungsfortschritt",
+    "emptyInvite": "Unsere Geschichte beginnt mit deinem ersten Gespräch.",
     "progress": "Fortschritt",
     "next": "Nächstes: {stage}",
     "stages": {
@@ -10795,7 +10812,8 @@
   "entrance": {
     "helper": "Dein persönlicher Wegbegleiter",
     "connectToTalk": "Verbinden",
-    "endTalk": "Auflegen"
+    "endTalk": "Auflegen",
+    "connectingCancel": "Verbindung wird hergestellt. Zum Abbrechen tippen"
   },
   "teamHuddle": {
     "typeWeekly": "Wöchentlicher Check-in",
@@ -11054,5 +11072,45 @@
   "agentAcks": {
     "gameStartFailed": "Das Spiel hat nicht gestartet. Sag Ferni einfach, dass du es spielen möchtest.",
     "actionFailed": "Das hat nicht geklappt. Vielleicht wurde es schon erledigt."
+  },
+  "speakerCues": {
+    "ferniSpeaking": "Ferni spricht",
+    "youSpeaking": "Du sprichst",
+    "ferniThinking": "Ferni denkt nach",
+    "tapToInterrupt": "Tippen zum Unterbrechen"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

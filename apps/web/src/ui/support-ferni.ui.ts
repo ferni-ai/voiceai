@@ -623,7 +623,7 @@ function injectStyles(): void {
     .support-ferni-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 9999);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1319,7 +1319,7 @@ function injectStyles(): void {
     }
 
     /* Responsive */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .support-ferni-card {
         padding: var(--space-5, 20px);
         max-height: 85vh;

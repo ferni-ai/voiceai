@@ -5,6 +5,7 @@
  */
 
 import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
+import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
 import http from 'http';
 import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -24,7 +25,7 @@ import {
 } from '../../utils/ddos-protection.js';
 import { notifyDDoSAlert } from '../../services/slack-notifications.js';
 import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
-import { rateLimitUid } from '../../api/rate-limit-identity.js';
+import { limitApiRequest } from '../../api/global-rate-limit.js';
 import { bindVerifiedIdentity } from './request-identity.js';
 import { respondOnRejection } from './request-failure.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
@@ -37,6 +38,7 @@ import {
   handleHealthRoutes,
   handleTokenRoutes,
   handleGoogleCalendarRoutes,
+  handleGmailSendRoutes,
   handleAppleCalendarRoutes,
   handleMicrosoftCalendarRoutes,
   handleOAuthStartRoute,
@@ -99,8 +101,11 @@ import { handleFTISRoutes } from '../../services/observability/routing-metrics.j
 import { handleToolsAnalyticsRoutes } from '../../api/tools-analytics-routes.js';
 import { handleChatRoutes } from '../../api/chat-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
+import { handlePasskeyRoutes } from '../../api/passkey-routes.js';
 import { handleOutreachRoutes } from '../../api/outreach.routes.js';
+import { handlePendingActionRoutes } from '../../api/pending-action-routes.js';
 import { handleBackgroundResultsRoutes } from '../../api/background-results-routes.js';
+import { handleAnswerCardRoutes } from '../../api/answer-card-routes.js';
 import { handleGDPRRoutes } from '../../api/gdpr-routes.js';
 import { handleTrustExportRoutes } from '../../api/trust-export-routes.js';
 import { handleTrustJourneyRoutes } from '../../api/trust-journey-routes.js';
@@ -153,7 +158,6 @@ import { handleStoryRoutes } from '../../api/story-routes.js';
 import { handleUserEventsRoutes } from '../../api/user-events-routes.js';
 import { handleSubscriptionRequest, isSubscriptionRoute } from '../../api/subscription-routes.js';
 import { handleAnalyticsRoutes } from '../../api/user-analytics-routes.js';
-import { handleBuilderMetricsRoutes } from '../../api/routes/builder-metrics.js';
 import { handleMusicAnalyticsRoutes } from '../../api/music-analytics-routes.js';
 import { handleAdminRoutes } from '../../api/admin-routes.js';
 import { handleMonetizationRequest, isMonetizationRoute } from '../../api/monetization-routes.js';
@@ -239,6 +243,7 @@ import {
 
 // Orphaned routes (previously not registered but frontend calls them)
 import { handleRitualsRoutes } from '../../api/routes/rituals.js';
+import { handleSyncedItemsRoutes } from '../../api/routes/synced-items.js';
 import { handleSkyCheckRoutes } from '../../api/routes/sky-check.js';
 import { handleTwinProfileRoutes } from './routes/twin-profile.js';
 
@@ -304,9 +309,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   }
 
   if (pathname.startsWith('/api/') && pathname !== '/api/health') {
-    // Global limit: per signed-in person (verified uid), else per IP
-    const uid = rateLimitUid(req);
-    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, ...(uid && { keyGenerator: () => `user:${uid}` }) })) return;
+    // Global limit: per signed-in person (verified uid), else per IP, in its own bucket
+    if (limitApiRequest(req, res)) return;
   }
 
   // ============================================================================
@@ -337,6 +341,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   // OAuth connect: authenticated start, then Google / Apple / Microsoft calendar
   if (pathname.startsWith('/auth/')) {
     if (await handleOAuthStartRoute(req, res, pathname)) return;
+    // Before the calendar routes: it takes /auth/google/callback for gmail_send states only.
+    if (await handleGmailSendRoutes(req, res, pathname, parsedUrl)) return;
     if (await handleGoogleCalendarRoutes(req, res, pathname, parsedUrl)) return;
     if (await handleAppleCalendarRoutes(req, res, pathname, parsedUrl)) return;
     if (await handleMicrosoftCalendarRoutes(req, res, pathname, parsedUrl)) return;
@@ -515,7 +521,6 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const handled = await handleGamesRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
-
   } catch (err) {
     log.error({ error: String(err) }, 'Share route error');
     if (!res.writableEnded) {
@@ -831,17 +836,26 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (handled) return;
     }
 
+    // Passkeys for approvals (APPROVALS_PAGE + APPROVALS_PASSKEYS)
+    if (await handlePasskeyRoutes(req, res, pathname)) return;
+
     // Outreach routes
     if (pathname.startsWith('/api/outreach')) {
       const handled = await handleOutreachRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 
+    // Pending actions approved on the /p/:id page (APPROVALS_PAGE)
+    if (await handlePendingActionRoutes(req, res, pathname)) return;
+
     // Background results routes (While You Were Away)
     if (pathname.startsWith('/api/background-results')) {
       const handled = await handleBackgroundResultsRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
+
+    // Answer cards (the /a/:id page; APPROVALS_PAGE)
+    if (await handleAnswerCardRoutes(req, res, pathname)) return;
 
     // Feature flags routes
     if (pathname.startsWith('/api/flags')) {
@@ -1088,6 +1102,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (handled) return;
     }
 
+    // The caller's synced copies of web-kept items (custom rituals, marketplace installs)
+    if (pathname.startsWith('/api/synced/')) {
+      const handled = await handleSyncedItemsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
     // Rituals routes (daily rituals & streaks)
     if (pathname.startsWith('/api/rituals')) {
       const handled = await handleRitualsRoutes(req, res, pathname, parsedUrl);
@@ -1277,12 +1297,6 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // Analytics routes
     if (pathname.startsWith('/api/analytics')) {
       const handled = await handleAnalyticsRoutes(req, res, pathname);
-      if (handled) return;
-    }
-
-    // Builder metrics routes
-    if (pathname.startsWith('/api/admin/builder-metrics')) {
-      const handled = await handleBuilderMetricsRoutes(req, res, pathname);
       if (handled) return;
     }
 
