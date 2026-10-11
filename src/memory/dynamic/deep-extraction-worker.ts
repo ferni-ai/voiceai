@@ -23,7 +23,7 @@ import {
   recordVectorPersistWarn,
 } from '../operations/memory-extraction-telemetry.js';
 import { createDeepExtractionBatcher } from './deep-extraction-batch.js';
-import { callMomentLine, callerTimeZoneFor } from '../operations/call-moment.js';
+import { extractionMoment } from './extraction-moment.js';
 import type { DeepExtractionBatchOptions } from './deep-extraction-batch.js';
 
 // ============================================================================
@@ -321,8 +321,8 @@ export class DeepExtractionWorker {
     // 1. LLM Entity Extraction
     const entities = await this.extractEntities(job.transcript, job.fastCaptureHints);
 
-    // 2. LLM Fact Extraction, dated: "tomorrow" becomes a day (call-moment.ts)
-    const moment = callMomentLine(new Date(job.timestamp), callerTimeZoneFor(job.sessionId));
+    // 2. LLM Fact Extraction, dated and with the call so far (extraction-moment.ts)
+    const moment = extractionMoment(job);
     const facts = await this.extractFacts(job.transcript, entities, moment);
 
     // 3. LLM Relationship Extraction
