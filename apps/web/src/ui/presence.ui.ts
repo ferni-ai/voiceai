@@ -27,6 +27,8 @@
 
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { breathingComposite, isAvatarCompositorEnabled } from './avatar-motion/compositor.js';
+import { speakingSystem } from './speaking-system.ui.js';
 
 const log = createLogger('PresenceUI');
 
@@ -158,10 +160,8 @@ export function initPresenceUI(): void {
   startMicroIdleMovements();
   
   // 🔊 NEW: Initialize three-layer speaking system (body, halo, lid)
-  import('./speaking-system.ui.js').then(m => {
-    m.speakingSystem.init();
-    log.debug('🔊 Three-layer speaking system initialized');
-  });
+  speakingSystem.init();
+  log.debug('🔊 Three-layer speaking system initialized');
   
   // 🚀 Ferni EQ: Listen for breath sync events
   document.addEventListener('ferni:breath-sync', handleBreathSync as EventListener);
@@ -285,7 +285,7 @@ function startBreathingAnimation(): void {
     duration,
     iterations: Infinity,
     easing: EASING.STANDARD, // Smooth ease-in-out
-    fill: 'both',
+    fill: 'both', composite: breathingComposite(), // 'add' under ferni:avatar-compositor
   });
   
   // Start secondary glow animation (slightly out of phase)
@@ -662,7 +662,7 @@ function stopMicroIdleMovements(): void {
  */
 function startVoicePulse(): void {
   if (voicePulseFrame !== null) return; // Already running
-  if (!voicePulseEnabled) return;
+  if (!voicePulseEnabled || isAvatarCompositorEnabled()) return; // speaking-system owns the body pulse
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   
   log.debug('🔊 Starting voice pulse animation');
@@ -722,8 +722,8 @@ function stopVoicePulse(): void {
     voicePulseFrame = null;
   }
   
-  // Reset to neutral with smooth transition
-  if (avatarContainer) {
+  // Reset to neutral with smooth transition (no replace-mode fill under ferni:avatar-compositor)
+  if (avatarContainer && !isAvatarCompositorEnabled()) {
     avatarContainer.style.setProperty('--voice-scale-x', '1');
     avatarContainer.style.setProperty('--voice-scale-y', '1');
     
@@ -761,7 +761,7 @@ export function setVoiceVolume(volume: number): void {
   // 🔊 NEW: Update unified speaking system with volume
   // This drives the three-layer animation (body, halo, lid)
   if (isSpeaking) {
-    import('./speaking-system.ui.js').then(m => m.speakingSystem.updateVolume(currentVoiceVolume));
+    speakingSystem.updateVolume(currentVoiceVolume);
   }
 }
 
@@ -891,11 +891,11 @@ export function setSpeaking(speaking: boolean): void {
     if (speaking) {
       startVoicePulse();
       // 🔊 NEW: Start unified speaking system (body + halo + lid)
-      import('./speaking-system.ui.js').then(m => m.speakingSystem.start());
+      speakingSystem.start();
     } else {
       stopVoicePulse();
       // 🔊 NEW: Stop unified speaking system
-      import('./speaking-system.ui.js').then(m => m.speakingSystem.stop());
+      speakingSystem.stop();
     }
     
     // 🎬 Zen blink when stopping speaking (natural pause moment)
