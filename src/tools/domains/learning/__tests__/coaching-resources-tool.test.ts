@@ -33,11 +33,15 @@ describe('runFindCoachingResources', () => {
   });
 
   it('makes no paid lookup for a caller with no account', async () => {
-    const out = await runFindCoachingResources({ topic: 'shin splints' }, {}, 'anonymous');
+    const out = await runFindCoachingResources(
+      { topic: 'shin splints' },
+      { userData: {} },
+      'anonymous'
+    );
     expect(takeDailyBudget).not.toHaveBeenCalled();
     expect(groundedAnswer).not.toHaveBeenCalled();
     expect(out).toContain('once signed in');
-    await runFindCoachingResources({ topic: 'shin splints' }, {}, undefined);
+    await runFindCoachingResources({ topic: 'shin splints' }, { userData: {} }, undefined);
     expect(groundedAnswer).not.toHaveBeenCalled();
   });
 
