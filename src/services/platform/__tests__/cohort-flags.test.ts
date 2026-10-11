@@ -56,6 +56,17 @@ describe('resolveCallerFlags', () => {
     });
     expect(await resolveCallerFlags('u', s)).toEqual({ CANDOR: 'on' });
   });
+
+  it('drops keys outside the allowlist even when the value is on or off', async () => {
+    const s = store(
+      { u: [{ id: 'c', enabled: true, flags: { COHORT_FLAGS: 'off', MULTI_AGENT_MODE: 'off' } }] },
+      { u: { AGENT_JOB_EXECUTOR: 'on', CANDOR: 'on' } }
+    );
+    expect(await resolveCallerFlags('u', s)).toEqual({ CANDOR: 'on' });
+    const env: NodeJS.ProcessEnv = { COHORT_FLAGS: 'on' };
+    expect(applyFlags({ COHORT_FLAGS: 'off', NODE_OPTIONS: 'on' }, env)).toEqual([]);
+    expect(env).toEqual({ COHORT_FLAGS: 'on' });
+  });
 });
 
 describe('applyFlags', () => {

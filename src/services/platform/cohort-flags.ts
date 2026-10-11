@@ -15,7 +15,8 @@
  * process serves one call at a time (AGENT_MAX_JOBS_PER_WORKER=1, the
  * default, or a process per call); otherwise nothing is applied. The next
  * call's start puts the previous caller's flags back to the agent's own
- * values first, so a call's after-call work runs with its caller's flags.
+ * values first. After-call work that is still running when the next call
+ * starts sees the next caller's flags, so it should not read these switches.
  *
  * Only flags in COHORT_FLAGS can be set this way: behaviour switches, never
  * infrastructure or secrets. Reading cohorts never holds a call up for more
