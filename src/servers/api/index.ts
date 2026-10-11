@@ -37,6 +37,7 @@ import {
   handleHealthRoutes,
   handleTokenRoutes,
   handleGoogleCalendarRoutes,
+  handleGmailSendRoutes,
   handleAppleCalendarRoutes,
   handleMicrosoftCalendarRoutes,
   handleOAuthStartRoute,
@@ -337,6 +338,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   // OAuth connect: authenticated start, then Google / Apple / Microsoft calendar
   if (pathname.startsWith('/auth/')) {
     if (await handleOAuthStartRoute(req, res, pathname)) return;
+    // Before the calendar routes: it takes /auth/google/callback for gmail_send states only.
+    if (await handleGmailSendRoutes(req, res, pathname, parsedUrl)) return;
     if (await handleGoogleCalendarRoutes(req, res, pathname, parsedUrl)) return;
     if (await handleAppleCalendarRoutes(req, res, pathname, parsedUrl)) return;
     if (await handleMicrosoftCalendarRoutes(req, res, pathname, parsedUrl)) return;
