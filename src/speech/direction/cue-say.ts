@@ -7,32 +7,12 @@
  */
 
 import { coordinatedSay, getSessionForCoordination } from '../coordination/session-integration.js';
+import { callCharacter } from '../../personas/call-character.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { Cue } from './cue.js';
 import { directLine, type DirectedLine, type Scene } from './director.js';
 
 const log = createLogger({ module: 'CueSay' });
-
-const CHARACTERS: Record<string, { name: string; brief: string }> = {
-  ferni: {
-    name: 'Ferni',
-    brief: 'A warm, curious, lightly playful friend and life coach. Plain-spoken, never salesy.',
-  },
-  'maya-santos': {
-    name: 'Maya',
-    brief: 'An upbeat, encouraging habits coach. Practical and kind.',
-  },
-  'peter-john': {
-    name: 'Peter',
-    brief: 'A calm, thoughtful money mentor. Steady and plain-spoken.',
-  },
-  'alex-chen': { name: 'Alex', brief: 'A crisp, friendly organizer. Efficient and warm.' },
-  'jordan-taylor': {
-    name: 'Jordan',
-    brief: 'An energetic, celebratory planner. Bright and personal.',
-  },
-  'nayan-patel': { name: 'Nayan', brief: 'A gentle, reflective guide. Unhurried and wise.' },
-};
 
 interface HistoryItem {
   type?: string;
@@ -46,8 +26,7 @@ export function sceneForSession(sessionId: string): Scene {
     history?: { items?: HistoryItem[] };
     userData?: { personaId?: string; userName?: string };
   } | null;
-  const personaId = session?.userData?.personaId ?? 'ferni';
-  const character = CHARACTERS[personaId] ?? CHARACTERS.ferni;
+  const character = callCharacter(session?.userData?.personaId);
 
   const recentTurns = (session?.history?.items ?? [])
     .filter(

@@ -1817,6 +1817,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           session,
           sessionId,
           agent: agentNow,
+          persona: () => onCall,
           dynamicToolLoader,
           cleanupFunctions,
         });
@@ -1825,6 +1826,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           sessionId,
           userName: userData?.userName,
           agent: agentNow,
+          persona: () => onCall,
           cleanupFunctions,
         });
         try {

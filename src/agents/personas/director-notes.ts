@@ -23,6 +23,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
+import { FERNI_CHARACTER, teamLine, type CallCharacter } from '../../personas/call-character.js';
 import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
@@ -34,6 +35,7 @@ export function directorNotesEnabled(
 }
 
 export interface Line {
+  /** 'ferni' is whichever persona is on the call (labelled with its name in prompts). */
   speaker: 'user' | 'ferni';
   text: string;
 }
@@ -41,28 +43,39 @@ export interface Line {
 /** Writes notes from a prompt; injectable so tests need no model. */
 export type NoteWriter = (system: string, prompt: string) => Promise<string | undefined>;
 
-const DIRECTOR_ROLE =
-  'You are the director of a live, unscripted phone call between Ferni (warm, dry, curious; grew up in Wyoming, lived in Japan, a life coach who talks like a friend) and someone he cares about. Ferni improvises every word. Between his turns you whisper at most two private notes for his next reply.';
-const DIRECTOR_RULES = [
-  "Never tell him to acknowledge, validate, support or ask about feelings: that's what a therapist does and he's a friend. Never write lines for him to say.",
-  "Pauses, short answers and unanswered questions are normal in conversation: never tell him to call them out, ask again or check they're still there. Prefer an observation to an instruction to ask something.",
-  "Don't guess at hidden motives or moods (that they're dodging, ignoring him, testing him, stuck, distant, escaping) and never tell him to talk about their tone, mood or reasons instead of what they said. When they ask something, the next reply answers it.",
-  'If the conversation is flowing and Ferni is doing fine, reply NONE. Reply with only the notes, one per line, no numbering, or exactly NONE.',
-];
+/** The director's prompt for whoever is on the call: their name, pronouns, sketch and team. */
+function directorSystem(c: CallCharacter, lookingBack: boolean): string {
+  const { name: n } = c;
+  const { he, him, his, himself, hes } = c.pronoun;
+  const cares = he === 'they' ? 'care' : 'cares';
+  const role = `You are the director of a live, unscripted phone call between ${n} (${c.sketch}) and someone ${he} ${cares} about. ${n} improvises every word. Between ${his} turns you whisper at most two private notes for ${his} next reply.`;
+  const habit = `a habit of ${n}'s to drop (too many questions, fixing too early, sounding upbeat, repeating ${himself})`;
+  const pointAt = lookingBack
+    ? `Every note must point at something that actually happened in this call, naming the words or detail: what they hinted at but didn't say, a pattern across what they've said, something from earlier worth coming back to, the energy they're bringing, or ${habit}. Give the nudge and its reason in under 20 words.`
+    : `Every note must point at something that actually happened in this call, naming the detail: what they hinted at but didn't say, a pattern across what they've said, the mood or energy they're bringing, or ${habit}. Give the nudge and its reason in under 20 words.`;
+  return [
+    role,
+    teamLine(c),
+    pointAt,
+    ...(lookingBack
+      ? []
+      : [
+          `${n} reads your notes only after they have spoken again, and what they say next comes first. So never send ${him} back to an earlier line: no connecting to, coming back to or following up on something they said. Say what you notice about them instead.`,
+        ]),
+    `Never tell ${him} to acknowledge, validate, support or ask about feelings: that's what a therapist does and ${hes} a friend. Never write lines for ${him} to say.`,
+    `Pauses, short answers and unanswered questions are normal in conversation: never tell ${him} to call them out, ask again or check they're still there. Prefer an observation to an instruction to ask something.`,
+    `Don't guess at hidden motives or moods (that they're dodging, ignoring ${him}, testing ${him}, stuck, distant, escaping) and never tell ${him} to talk about their tone, mood or reasons instead of what they said. When they ask something, the next reply answers it.`,
+    `If the conversation is flowing and ${n} is doing fine, reply NONE. Reply with only the notes, one per line, no numbering, or exactly NONE.`,
+  ].join('\n');
+}
 
-export const DIRECTOR_SYSTEM = [
-  DIRECTOR_ROLE,
-  "Every note must point at something that actually happened in this call, naming the detail: what they hinted at but didn't say, a pattern across what they've said, the mood or energy they're bringing, or a habit of Ferni's to drop (too many questions, fixing too early, sounding upbeat, repeating himself). Give the nudge and its reason in under 20 words.",
-  'Ferni reads your notes only after they have spoken again, and what they say next comes first. So never send him back to an earlier line: no connecting to, coming back to or following up on something they said. Say what you notice about them instead.',
-  ...DIRECTOR_RULES,
-].join('\n');
+/** The director's prompt on a Ferni call. */
+export const DIRECTOR_SYSTEM = directorSystem(FERNI_CHARACTER, false);
 
-/** The prompt before 2026-10-03, which invited notes that send Ferni back to an earlier line. */
-const LOOKING_BACK_SYSTEM = [
-  DIRECTOR_ROLE,
-  "Every note must point at something that actually happened in this call, naming the words or detail: what they hinted at but didn't say, a pattern across what they've said, something from earlier worth coming back to, the energy they're bringing, or a habit of Ferni's to drop (too many questions, fixing too early, sounding upbeat, repeating himself). Give the nudge and its reason in under 20 words.",
-  ...DIRECTOR_RULES,
-].join('\n');
+/** The director's prompt for the character on the call (DIRECTOR_LOOK_BACK=on: the pre-2026-10-03 prompt). */
+export function directorSystemFor(c: CallCharacter = FERNI_CHARACTER): string {
+  return directorSystem(c, directorLooksBack());
+}
 
 /**
  * DIRECTOR_LOOK_BACK=on restores the director that may send Ferni back to an
@@ -72,13 +85,17 @@ export function directorLooksBack(env: Record<string, string | undefined> = proc
   return env.DIRECTOR_LOOK_BACK === 'on';
 }
 
-export function buildDirectorPrompt(lines: Line[], userName?: string): string {
+export function buildDirectorPrompt(
+  lines: Line[],
+  userName?: string,
+  c: CallCharacter = FERNI_CHARACTER
+): string {
   const who = userName || 'Them';
   const transcript = lines
     .slice(-12)
-    .map((l) => `${l.speaker === 'ferni' ? 'Ferni' : who}: ${l.text}`)
+    .map((l) => `${l.speaker === 'ferni' ? c.name : who}: ${l.text}`)
     .join('\n');
-  return `The call so far:\n${transcript}\n\nYour notes for Ferni's next reply:`;
+  return `The call so far:\n${transcript}\n\nYour notes for ${c.name}'s next reply:`;
 }
 
 const GENERIC =
@@ -94,7 +111,7 @@ const PUSHY =
  * notice you went from sounding pretty excited to... a bit distant".
  */
 const MIND_READING =
-  /\b(dodging|deflecting|avoiding|ignoring) (your|the|his|her|their)\b|\btesting (you|him|ferni)\b|\bescape to\b|\b(shift|change|drop) in (his|her|their) (tone|mood|energy)\b|\b(talk|ask) about (his|her|their) (tone|mood|energy|feelings)\b|\b(talk|ask) about why (they|he|she)\b/i;
+  /\b(dodging|deflecting|avoiding|ignoring) (your|the|his|her|their)\b|\btesting (you|him|her|ferni)\b|\bescape to\b|\b(shift|change|drop) in (his|her|their) (tone|mood|energy)\b|\b(talk|ask) about (his|her|their) (tone|mood|energy|feelings)\b|\b(talk|ask) about why (they|he|she)\b/i;
 /**
  * Sending Ferni back to an earlier line. Notes are read on the caller's next
  * turn, so this one steers away from whatever they just said. Dev call
@@ -161,6 +178,8 @@ export class Director {
       budgetMs?: number;
       /** Ask the model for notes (DIRECTOR_NOTES=on); false keeps only the told-this-call record. */
       writeNotes?: boolean;
+      /** Who is on the call now (read every turn: a handoff changes it); Ferni when absent. */
+      character?: () => CallCharacter;
     }
   ) {}
 
@@ -168,7 +187,10 @@ export class Director {
   observe(lines: Line[]): Promise<void> {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
-    this.toldRecord = toldThisCallEnabled() ? toldThisCall(lines, this.opts.userName) : null;
+    const character = this.opts.character?.() ?? FERNI_CHARACTER;
+    this.toldRecord = toldThisCallEnabled()
+      ? toldThisCall(lines, this.opts.userName, character.name)
+      : null;
     if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
     const started = Date.now();
@@ -176,8 +198,8 @@ export class Director {
       try {
         const reply = await withTimeout(
           writer(
-            directorLooksBack() ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM,
-            buildDirectorPrompt(lines, this.opts.userName)
+            directorSystemFor(character),
+            buildDirectorPrompt(lines, this.opts.userName, character)
           ),
           this.opts.budgetMs ?? 4000
         );

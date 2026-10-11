@@ -9,6 +9,7 @@ import { voice } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { TurnToolRetrieval } from '../../tools/retrieval/turn-tool-retrieval.js';
 import type { PersonaId } from '../../personas/types.js';
+import type { CallCharacter } from '../../personas/call-character.js';
 import { assistantTranscriptHandler } from './assistant-transcript.js';
 
 const log = getLogger();
@@ -16,6 +17,18 @@ const log = getLogger();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Session = voice.AgentSession<any>;
 type Cleanup = Array<() => void>;
+type OnCallPersona = { id: string; name?: string };
+
+/** Who the prompts describing the call should name, read when used so it follows a handoff. */
+async function characterOf(
+  persona: (() => OnCallPersona) | undefined
+): Promise<() => CallCharacter> {
+  const { callCharacter } = await import('../../personas/call-character.js');
+  return () => {
+    const p = persona?.();
+    return callCharacter(p?.id, p?.name);
+  };
+}
 
 /**
  * Pace matching: a turn's words over its speaking time, recorded when the next
@@ -61,6 +74,8 @@ export interface ToolRetrievalInput {
   sessionId: string;
   /** The agent, or a getter for the one on the call now (persona-swap.ts agentOnCall) */
   agent: unknown;
+  /** The persona on the call now (persona-swap.ts personaOnCall); Ferni when absent. */
+  persona?: () => OnCallPersona;
   dynamicToolLoader: {
     loadAllDomains(): Promise<number>;
     getCurrentTools(): Record<string, unknown>;
@@ -156,10 +171,16 @@ export async function installToolRetrieval(
  */
 export async function installTurnUnderstanding(
   session: Session,
-  cleanupFunctions: Cleanup
+  cleanupFunctions: Cleanup,
+  persona?: () => OnCallPersona
 ): Promise<{ onTranscript(transcript: string, isFinal: boolean): void } | null> {
-  const { understandingMode, TurnUnderstander, geminiUnderstand, setTurnUnderstander } =
-    await import('../personas/turn-understanding.js');
+  const {
+    understandingMode,
+    TurnUnderstander,
+    geminiUnderstand,
+    setTurnUnderstander,
+    understandingPrompt,
+  } = await import('../personas/turn-understanding.js');
   if (understandingMode() === 'off') return null;
   const [
     { callerMove },
@@ -172,7 +193,10 @@ export async function installTurnUnderstanding(
     import('../model-provider/fast-lane.js'),
     import('../integrations/backchannel-context.js'),
   ]);
-  const understander = new TurnUnderstander(geminiUnderstand());
+  const character = await characterOf(persona);
+  const understander = new TurnUnderstander(geminiUnderstand(), Date.now, undefined, () =>
+    understandingPrompt(character())
+  );
   setTurnUnderstander(session, understander);
   const finals: string[] = [];
   const onState = (ev: unknown): void => {
@@ -246,7 +270,11 @@ export async function installTurnListeners(
     () => loop.close()
   );
   const retrieval = await installToolRetrieval(input);
-  const understanding = await installTurnUnderstanding(input.session, input.cleanupFunctions);
+  const understanding = await installTurnUnderstanding(
+    input.session,
+    input.cleanupFunctions,
+    input.persona
+  );
   if (!retrieval && !understanding) return null;
   return {
     onTranscript(transcript, isFinal) {
@@ -268,6 +296,8 @@ export interface DirectorNotesInput {
   sessionId: string;
   userName: string | undefined;
   agent: ChatAgent | (() => ChatAgent);
+  /** The persona on the call now (persona-swap.ts personaOnCall); Ferni when absent. */
+  persona?: () => OnCallPersona;
   cleanupFunctions: Cleanup;
 }
 
@@ -277,13 +307,14 @@ export interface DirectorNotesInput {
  * notes that nudge the next reply.
  */
 export async function installDirectorNotes(input: DirectorNotesInput): Promise<void> {
-  const { session, sessionId, userName, agent, cleanupFunctions } = input;
+  const { session, sessionId, userName, agent, persona, cleanupFunctions } = input;
   const { directorNotesEnabled, Director, setDirector, linesFromChat } =
     await import('../personas/director-notes.js');
   const { toldThisCallEnabled } = await import('../personas/told-this-call.js');
   const writeNotes = directorNotesEnabled();
   if (!writeNotes && !toldThisCallEnabled()) return;
-  const director = new Director({ sessionId, userName, writeNotes });
+  const character = await characterOf(persona);
+  const director = new Director({ sessionId, userName, writeNotes, character });
   setDirector(session, director);
   let spoke = false;
   const directorHandler = (ev: unknown): void => {

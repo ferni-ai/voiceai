@@ -117,8 +117,11 @@ function quote(sentence: string): string {
     : sentence;
 }
 
-/** The record for a call so far, from its spoken lines (oldest first). */
-export function toldThisCall(lines: Line[], userName?: string): Told {
+/**
+ * The record for a call so far, from its spoken lines (oldest first).
+ * `selfName` is the persona on the call: saying its own name isn't bringing someone up.
+ */
+export function toldThisCall(lines: Line[], userName?: string, selfName = 'Ferni'): Told {
   const userWords = new Set(
     lines
       .filter((l) => l.speaker === 'user')
@@ -132,6 +135,7 @@ export function toldThisCall(lines: Line[], userName?: string): Told {
     const inReply = new Set(
       reply.flat().filter(
         (n) =>
+          n !== selfName &&
           !n
             .toLowerCase()
             .split(' ')

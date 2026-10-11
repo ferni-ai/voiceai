@@ -16,6 +16,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { FERNI_CHARACTER, type CallCharacter } from '../../personas/call-character.js';
 import type { CallerMove } from './turn-shape.js';
 
 const log = createLogger({ module: 'TurnUnderstanding' });
@@ -85,13 +86,23 @@ export function understandingStatusFor(
     : null;
 }
 
-export const UNDERSTANDING_PROMPT = `You listen in on a phone call between a caller and their friend Ferni. Read the caller's words (EARLIER is context; judge NOW, which may still be mid-sentence) and return JSON only:
+/**
+ * The prompt for the persona on the call. The "about_ferni" label stays as is
+ * (it is the turn shape's move name) whoever is on the call.
+ */
+export function understandingPrompt(c: CallCharacter = FERNI_CHARACTER): string {
+  const { name: n } = c;
+  const { him, himself } = c.pronoun;
+  return `You listen in on a phone call between a caller and their friend ${n}. Read the caller's words (EARLIER is context; judge NOW, which may still be mid-sentence) and return JSON only:
 {"move":"ack"|"lookup"|"request"|"about_ferni"|"share","needsTool":bool,"mood":"venting"|"tender"|"bad_news"|"funny"|"surprise"|"excited"|"neutral","laughed":bool,"laughFits":bool,"adviceFits":bool,"wantsToEnd":bool,"reaction":string|null}
-move: ack = a short acknowledgement ("yeah", "okay", "thanks"); lookup = asks for live facts (weather, news, scores, times, prices); request = asks Ferni to do or explain something; about_ferni = asks about Ferni himself; share = telling something about their own life or thoughts.
+move: ack = a short acknowledgement ("yeah", "okay", "thanks"); lookup = asks for live facts (weather, news, scores, times, prices); request = asks ${n} to do or explain something; about_ferni = asks about ${n} ${himself}; share = telling something about their own life or thoughts.
 needsTool: true if answering well means doing something (timer, alarm, reminder, music, calendar, note, remembering a fact they asked to keep) or looking something up.
 mood: venting = frustrated, tired, stressed or upset; tender = moved, emotional in a warm way; bad_news = something went wrong or someone is hurt or sick; funny = amusing; surprise = big or unexpected news; excited = happy and energized.
-laughed: they laughed or are joking. laughFits: a good friend would genuinely laugh here (never at bad news, grief, tenderness or venting). adviceFits: the moment is light and nothing is asked of Ferni right now.
-reaction: what a close friend might murmur while still listening to something they are telling ("Oh no", "Ha", "Aw", "Whoa", "No way", "Oof", "Mm"), or null when silence is better. Always null when they ask Ferni something or ask him to do something: that gets a reply, not a murmur.`;
+laughed: they laughed or are joking. laughFits: a good friend would genuinely laugh here (never at bad news, grief, tenderness or venting). adviceFits: the moment is light and nothing is asked of ${n} right now.
+reaction: what a close friend might murmur while still listening to something they are telling ("Oh no", "Ha", "Aw", "Whoa", "No way", "Oof", "Mm"), or null when silence is better. Always null when they ask ${n} something or ask ${him} to do something: that gets a reply, not a murmur.`;
+}
+
+export const UNDERSTANDING_PROMPT = understandingPrompt();
 
 const MOVES = new Set(['ack', 'lookup', 'request', 'about_ferni', 'share']);
 const MOODS = new Set(['venting', 'tender', 'bad_news', 'funny', 'surprise', 'excited', 'neutral']);
@@ -177,7 +188,9 @@ export class TurnUnderstander {
   constructor(
     private readonly understand: UnderstandFn,
     private readonly now: () => number = Date.now,
-    private readonly timeoutMs = TIMEOUT_MS
+    private readonly timeoutMs = TIMEOUT_MS,
+    /** The prompt for whoever is on the call now (read per call: a handoff changes it). */
+    private readonly prompt: () => string = () => UNDERSTANDING_PROMPT
   ) {}
 
   /** The whole turn so far (finals plus the current interim). */
@@ -289,10 +302,7 @@ export class TurnUnderstander {
         log.debug({ error: String(error) }, 'understanding aborted')
       );
       const result = parseUnderstanding(
-        await Promise.race([
-          this.understand(UNDERSTANDING_PROMPT, input, controller.signal),
-          aborted,
-        ])
+        await Promise.race([this.understand(this.prompt(), input, controller.signal), aborted])
       );
       if (turn === this.turn) {
         this.stats.lastMs = this.now() - started;
