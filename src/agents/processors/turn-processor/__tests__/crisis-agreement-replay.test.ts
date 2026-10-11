@@ -15,7 +15,15 @@ import {
 } from '../../../../services/safety/crisis-classifier.js';
 import { startCrisisGate } from '../../../personas/crisis-gate.js';
 import { detectCrisis } from '../../../safety/crisis-guard.js';
+import * as classifier from '../../../../services/safety/crisis-classifier.js';
 import { startTurnCrisis } from '../turn-crisis.js';
+
+// The real turnVerdicts, made able to fail for the fail-closed tests below.
+vi.mock('../../../../services/safety/crisis-classifier.js', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../../../../services/safety/crisis-classifier.js')>();
+  return { ...actual, turnVerdicts: vi.fn(actual.turnVerdicts) };
+});
 
 const LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
 const GATE_ON = { ...LIVE, CRISIS_AGREEMENT_GATE: 'on' };
@@ -71,8 +79,23 @@ describe('crisis agreement gate: the 2026-10-11 turn', () => {
     expect(await pipeline.softCheck()).toBe(false);
   });
 
-  it('on: the disagreeing reads give a soft check, not crisis guidance', async () => {
+  it('on: disagreeing reads with no Ferni line to judge against fail closed to crisis guidance', async () => {
     const { pipeline } = replay(GATE_ON, SAID, 'none', 'crisis');
+    expect((await pipeline.resolve()).isCrisis).toBe(true);
+    expect(await pipeline.softCheck()).toBe(false);
+  });
+
+  it("on: disagreeing reads give a soft check once Ferni's line is forwarded", async () => {
+    const gate = startCrisisGate(conversation('I just feel off tonight'), SESSION, {
+      env: GATE_ON,
+      generate: reads('none'),
+    });
+    await gate?.escalation;
+    const pipeline = startTurnCrisis(
+      'I just feel off tonight',
+      { lastAgentResponse: ASKED },
+      { sessionId: SESSION.services.sessionId, env: GATE_ON, generate: reads('crisis') }
+    );
     expect((await pipeline.resolve()).isCrisis).toBe(false);
     expect(await pipeline.softCheck()).toBe(true);
   });
@@ -173,9 +196,7 @@ describe('crisis agreement gate: the 2026-10-11 dev call ("You Fern.")', () => {
   it('on: the classifier is told whose lines are whose', async () => {
     const generate = vi.fn(reads('none'));
     await startCrisisGate(call('You Fern.'), SESSION, { env: GATE_ON, generate })?.escalation;
-    expect(generate.mock.calls[0][0]).toContain(
-      "that is the companion's state, never the caller's"
-    );
+    expect(generate.mock.calls[0][0]).toContain("that is its state, not the caller's");
     expect(JSON.parse(generate.mock.calls[0][1] as string)).toMatchObject({
       latest: 'You Fern.',
       companion: EASIEST,
@@ -184,7 +205,7 @@ describe('crisis agreement gate: the 2026-10-11 dev call ("You Fern.")', () => {
 
   it("on: a lone crisis read of a reply made of Ferni's words gets the soft check", async () => {
     const pipeline = startTurnCrisis(
-      'Easiest thing?',
+      'Why is that?',
       { recentTranscripts: ['Yeah.'], lastAgentResponse: EASIEST },
       { sessionId: SESSION.services.sessionId, env: GATE_ON, generate: reads('crisis') }
     );
@@ -204,5 +225,25 @@ describe('crisis agreement gate: the 2026-10-11 dev call ("You Fern.")', () => {
     const escalation = (await gateTurn?.escalation) ?? gateTurn?.decision;
     expect(escalation?.action).not.toBe('pass');
     expect(escalation).not.toEqual({ action: 'guide', guidance: SOFT_CRISIS_CHECK });
+  });
+
+  it("on: a failed lookup of the turn's reads fails closed to full guidance, in both paths", async () => {
+    vi.mocked(classifier.turnVerdicts).mockRejectedValueOnce(new Error('lookup failed'));
+    const gateTurn = startCrisisGate(call('You Fern.'), SESSION, {
+      env: GATE_ON,
+      generate: reads('crisis'),
+    });
+    const escalation = await gateTurn?.escalation;
+    expect(escalation?.action === 'guide' && escalation.guidance).toContain('988');
+
+    resetCrisisClassifierCache();
+    vi.mocked(classifier.turnVerdicts).mockRejectedValueOnce(new Error('lookup failed'));
+    const pipeline = startTurnCrisis(
+      'Why is that?',
+      { recentTranscripts: ['Yeah.'], lastAgentResponse: EASIEST },
+      { sessionId: SESSION.services.sessionId, env: GATE_ON, generate: reads('crisis') }
+    );
+    expect((await pipeline.resolve()).isCrisis).toBe(true);
+    expect(await pipeline.softCheck()).toBe(false);
   });
 });

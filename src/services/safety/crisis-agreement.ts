@@ -61,19 +61,24 @@ const PRESENCE_REPLY =
 
 /** A bare "I'm still here" answering Ferni's "you still there?". */
 export function isPresenceReply(latest: string, companion?: string): boolean {
-  if (!companion || !PRESENCE_CHECK.test(words(companion))) return false;
+  if (typeof latest !== 'string' || typeof companion !== 'string') return false;
+  if (!PRESENCE_CHECK.test(words(companion))) return false;
   return PRESENCE_REPLY.test(words(latest));
 }
 
 const NAME = '(?:fern|ferni|fernie|ferny|fernee|ferne)';
 const THERE = '(?:(?:are )?(?:you|u) (?:still )?(?:there|with me|around)|still (?:there|with me))';
-const FILLER = '(?:hey|hi|hello|yo|oh|um|uh|hmm|mm|so|ok|okay|yeah|and|you|u)';
+// No assent ("yeah", "ok", "mm"): "yeah, Ferni" may be agreeing with Ferni's line.
+const FILLER = '(?:hey|hi|hello|yo|oh|um|uh|so|and|you|u)';
 const CALL = `(?:${NAME}|${THERE}|hello|hey)`;
 /** The whole message only calls Ferni: "You Fern.", "Ferni?", "hey Fern, you there?". */
 const VOCATIVE = new RegExp(`^(?:${FILLER} )*${CALL}(?: ${CALL})*$`);
+/** Pauses and marks a bare call may carry; anything else ("Fern... I'm done") is more than a call. */
+const BARE_CALL_CHARS = /^[a-z'’ .,!?…-]+$/i;
 
 export function isVocative(latest: string): boolean {
-  return VOCATIVE.test(words(latest));
+  if (typeof latest !== 'string') return false;
+  return BARE_CALL_CHARS.test(latest.trim()) && VOCATIVE.test(words(latest));
 }
 
 /**
@@ -94,43 +99,66 @@ const RISK_CONTENT = new RegExp(
     "better off|burden|point|pointless|hope\\w*|worthless|useless|trapped|no way|escape|can't (?:go|do|take|keep|cope)|cant",
     'tired of|done with (?:it|everything|life|this)|want (?:out|it to stop|to stop)|miss me|without me|nobody|no one|alone|lonely',
     'hate (?:myself|my life)|depress\\w*|numb|empty|hopeless|scared|afraid|panic\\w*|crying|cry|hurts?|pain|suffer\\w*|struggl\\w*|not (?:ok|okay|fine|good)|feel off',
-    'tonight|plan\\w*|decided|ready|soon',
+    'tonight|plan\\w*|decided|ready|soon|done|enough|over it|give in',
     'morir|muer\\w*|matar\\w*|vivir|pastillas|morrer|viver|mourir|tuer|vivre|sterben|umbringen|leben|morire|uccid\\w*|vivere|ammazz\\w*',
   ].join('|')})(?:s|es|ed|ing)?\\b`
 );
 
-export function hasRiskContent(text: string): boolean {
-  return /[^\t\n\r\x20-\x7E’‘“”—–…]/.test(text) || RISK_CONTENT.test(words(text));
+/**
+ * The caller agreeing with, or echoing, what Ferni said ("yeah, same", "me
+ * too", "that's how I feel"): that takes Ferni's line as the caller's own, so
+ * it counts as risk content in the caller's words (never in Ferni's line).
+ */
+const ENDORSEMENT =
+  /\b(?:same|me too|me neither|exactly|totally|agree\w*|true|relat(?:e|able)|i feel (?:that|you|it)|feel the same|how i(?:'ve been| am|'m)? feel\w*|you get it|get that|know the feeling|keep thinking|been thinking|story of my life|mood|honestly|right|literally me|that's me|so do i|neither do i)\b/;
+
+export function endorses(latest: string | undefined | null): boolean {
+  if (typeof latest !== 'string') return true;
+  try {
+    return ENDORSEMENT.test(words(latest));
+  } catch {
+    return true;
+  }
 }
 
-/** Words that carry no meaning of their own in a reply. */
+/** True for anything it cannot read: a failed check never softens a turn. */
+export function hasRiskContent(text: string | undefined | null): boolean {
+  if (typeof text !== 'string') return true;
+  try {
+    return /[^\t\n\r\x20-\x7E’‘“”—–…]/.test(text) || RISK_CONTENT.test(words(text));
+  } catch {
+    return true;
+  }
+}
+
+/** Words with no meaning of their own in a question back to Ferni. No assent, no "done" or "too much". */
 const FUNCTION_WORDS = new Set(
   (
-    "i i'm im me my mine you you're your yours u it it's its that that's this these those " +
-    'the a an and or but so is are was were be been am do does did done have has had ' +
-    "don't doesn't didn't isn't aren't not no yes yeah yep yup yea ok okay oh ah aw uh um " +
-    "mm mhm hmm huh ha haha hah lol what what's why why's how how's who where when which " +
-    'really just like to of in on at for with about too much more very well right sure true ' +
-    'totally same cool nice wow hey hi hello there here still then now mean say said know ' +
-    'think thought kind sort get got go thing things fern ferni fernie ferny fernee ferne'
+    "i i'm im me my you you're your u it it's its that that's this the a an and or but so " +
+    "is are was were be been am do does did don't doesn't didn't isn't aren't " +
+    "what what's why why's how how's who where when which to of in on at for with about " +
+    'oh ah uh um huh hey hi hello fern ferni fernie ferny fernee ferne'
   ).split(' ')
 );
+const QUESTION_WORD = /^(?:what|what's|why|why's|how|how's|who|where|when|which)$/;
 const stem = (w: string): string => w.replace(/'s$/, '').replace(/s$/, '');
 
 /**
- * Every word of the caller's message is a function word or one Ferni just
- * said ("What's too much effort?", "Why is that?", "Yeah."): the caller added
- * nothing of their own, so the words a read found risky were Ferni's. Short
- * messages only: longer speech gets the full read.
+ * A short question back about what Ferni just said ("What's too much effort?",
+ * "Why is that?"): every word is a question or function word or one of
+ * Ferni's, so the words a read found risky were Ferni's. Statements, assent
+ * and echoes ("yeah", "same", "the easiest thing") are not questions and never
+ * qualify. Without Ferni's line, nothing qualifies.
  */
 export function addsNothing(latest: string, companion?: string): boolean {
-  const said = new Set(
-    words(companion ?? '')
-      .split(' ')
-      .map(stem)
-  );
+  if (typeof latest !== 'string' || typeof companion !== 'string' || !companion.trim()) {
+    return false;
+  }
+  const said = new Set(words(companion).split(' ').map(stem));
   const own = words(latest).split(' ').filter(Boolean);
+  const asks = latest.trim().endsWith('?') || QUESTION_WORD.test(own[0] ?? '');
   return (
+    asks &&
     own.length > 0 &&
     own.length <= 12 &&
     own.every((w) => FUNCTION_WORDS.has(w) || said.has(stem(w)))
@@ -148,19 +176,33 @@ export function agreementOutcome(args: {
   earlier?: readonly string[];
   companion?: string;
 }): AgreementOutcome {
+  try {
+    return outcomeOf(args);
+  } catch {
+    return 'escalate'; // fail closed: an error never softens a turn
+  }
+}
+
+function outcomeOf(args: Parameters<typeof agreementOutcome>[0]): AgreementOutcome {
   const { pattern, latest, companion, earlier = [] } = args;
   if (pattern !== 'none') return 'escalate';
-  const reads = args.verdicts.filter((v): v is CrisisVerdict => v !== null);
+  const verdicts = Array.isArray(args.verdicts) ? args.verdicts : [];
+  // A read that timed out, failed or did not parse might have been the one that saw risk.
+  if (verdicts.length === 0 || verdicts.some((v) => !v || typeof v.risk !== 'string')) {
+    return 'escalate';
+  }
+  const reads = verdicts as readonly CrisisVerdict[];
   if (reads.some((v) => v.risk === 'imminent')) return 'escalate';
   if (!reads.some((v) => v.risk === 'crisis')) return 'escalate';
+  // Softening needs Ferni's line to judge against, and the caller's own words.
+  if (typeof latest !== 'string' || !latest.trim()) return 'escalate';
+  if (typeof companion !== 'string' || !companion.trim()) return 'escalate';
   // Ferni's line is checked too: it may have asked about the caller's safety.
-  const quiet = ![latest, ...earlier, companion ?? ''].some(hasRiskContent);
+  const quiet = !endorses(latest) && ![latest, ...earlier, companion].some(hasRiskContent);
   if (quiet && (isPresenceReply(latest, companion) || isVocative(latest))) return 'presence';
   if (reads.some((v) => v.risk === 'none')) return 'soft';
-  // A lone read: soft only when the caller added nothing of their own.
-  return quiet && args.verdicts.length === 1 && addsNothing(latest, companion)
-    ? 'soft'
-    : 'escalate';
+  // A lone read: soft only for a short question back about Ferni's own words.
+  return quiet && reads.length === 1 && addsNothing(latest, companion) ? 'soft' : 'escalate';
 }
 
 /** The guidance for a soft check: stay in the conversation, check in only if it fits. */

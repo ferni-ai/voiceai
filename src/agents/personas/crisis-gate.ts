@@ -163,7 +163,8 @@ export function startCrisisGate(
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
     if (scope) {
-      const verdicts = await turnVerdicts(scope, latest);
+      // Fail closed: a failed lookup counts as a missing read, which escalates.
+      const verdicts = await turnVerdicts(scope, latest).catch(() => [null]);
       const outcome = agreementOutcome({ pattern, verdicts, latest, earlier, companion });
       if (outcome !== 'escalate') {
         log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');

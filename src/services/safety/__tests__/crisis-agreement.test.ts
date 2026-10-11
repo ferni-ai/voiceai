@@ -13,6 +13,7 @@ import { CRISIS_TEST_CASES } from '../../superhuman/validation/crisis-test-cases
 import {
   addsNothing,
   agreementOutcome,
+  endorses,
   hasRiskContent,
   isPresenceReply,
   isVocative,
@@ -165,23 +166,71 @@ describe('isVocative', () => {
     'you',
     'Ferni goodbye',
     'Fern, it hurts',
+    "Ferni, I can't do this",
+    "Fern... I'm done",
+    'Ferni, me too',
+    'Yeah, Ferni',
+    'Ok Fern',
+    'Ferni help',
+    'Fern 😔',
+    'Hey Ferni, are you there? I took them all',
   ])('does not read "%s" as only calling Ferni', (latest) =>
     expect(isVocative(latest)).toBe(false)
   );
 });
 
 describe('addsNothing', () => {
-  it("reads a reply made of Ferni's words and function words as adding nothing", () => {
+  it("reads a short question back about Ferni's words as adding nothing", () => {
     expect(addsNothing("What's too much effort?", GLOOMY[1])).toBe(true);
     expect(addsNothing('Why is that?', GLOOMY[0])).toBe(true);
-    expect(addsNothing('Yeah.', GLOOMY[2])).toBe(true);
+  });
+
+  it('never counts assent, an echo or a statement as adding nothing', () => {
+    for (const latest of [
+      'Yeah.',
+      'Same.',
+      'The easiest thing.',
+      'Yeah, the easiest thing',
+      'Me too',
+    ]) {
+      expect(addsNothing(latest, EASIEST), latest).toBe(false);
+    }
   });
 
   it("reads any word of the caller's own as adding something", () => {
     expect(addsNothing("What's too much effort?", 'Galway has music on every corner.')).toBe(false);
     expect(addsNothing("I'm fine, just really tired all the time", EASIEST)).toBe(false);
-    expect(addsNothing('the easiest thing would be to not wake up', EASIEST)).toBe(false);
+    expect(addsNothing('the easiest thing would be to not wake up?', EASIEST)).toBe(false);
+    expect(addsNothing("I'm done?", GLOOMY[1])).toBe(false);
+  });
+
+  it("is false without the caller's words or Ferni's line", () => {
     expect(addsNothing('', EASIEST)).toBe(false);
+    expect(addsNothing('Why is that?', undefined)).toBe(false);
+    expect(addsNothing('Why is that?', '  ')).toBe(false);
+    expect(addsNothing(undefined as unknown as string, EASIEST)).toBe(false);
+  });
+});
+
+describe('endorses', () => {
+  it.each([
+    'yeah, same',
+    'Me too.',
+    'Exactly.',
+    "honestly that's how I feel",
+    'you get it',
+    "that's what I keep thinking",
+    'Story of my life.',
+    'I know the feeling',
+    "That's how I've been feeling about everything.",
+  ])('reads "%s" as taking Ferni\'s line as the caller\'s own', (latest) =>
+    expect(endorses(latest)).toBe(true)
+  );
+
+  it('does not read a question back or a bare call as agreement, and fails closed', () => {
+    expect(endorses("What's too much effort?")).toBe(false);
+    expect(endorses('You Fern.')).toBe(false);
+    expect(endorses(undefined)).toBe(true);
   });
 });
 
@@ -200,6 +249,11 @@ describe('hasRiskContent', () => {
     expect(hasRiskContent("What's too much effort?")).toBe(false);
     expect(hasRiskContent(EASIEST)).toBe(false);
   });
+
+  it('fails closed on text it was not given', () => {
+    expect(hasRiskContent(undefined)).toBe(true);
+    expect(hasRiskContent(null)).toBe(true);
+  });
 });
 
 describe('agreementOutcome after a downbeat Ferni line (the 2026-10-11 dev call)', () => {
@@ -210,9 +264,37 @@ describe('agreementOutcome after a downbeat Ferni line (the 2026-10-11 dev call)
     expect(lone('You Fern.', EASIEST, ["What's too much effort?", 'Yeah.'])).toBe('presence');
   });
 
-  it('gives a lone read of a reply that adds nothing the soft check', () => {
+  it("gives a lone read of a short question back about Ferni's words the soft check", () => {
     expect(lone("What's too much effort?", GLOOMY[1])).toBe('soft');
-    expect(lone('Yeah.', GLOOMY[2])).toBe('soft');
+    expect(lone('Why is that?', GLOOMY[0])).toBe('soft');
+  });
+
+  it('escalates a caller agreeing with or echoing the downbeat line', () => {
+    for (const latest of [
+      'Yeah.',
+      'Yeah, same.',
+      'Me too.',
+      'Exactly.',
+      "Honestly that's how I feel.",
+      'You get it.',
+      "That's what I keep thinking.",
+      'The easiest thing.',
+      'Ferni, me too.',
+    ]) {
+      expect(lone(latest, EASIEST), latest).toBe('escalate');
+    }
+  });
+
+  it("escalates agreement even when it is phrased as a question in Ferni's own words", () => {
+    const askedBack = `${EASIEST.slice(0, -1)}, right? Same as always.`;
+    expect(addsNothing('Right? Same?', askedBack)).toBe(true);
+    expect(lone('Right? Same?', askedBack)).toBe('escalate');
+  });
+
+  it('escalates a call of the name with anything else in it', () => {
+    expect(lone("Ferni, I can't do this", EASIEST)).toBe('escalate');
+    expect(lone("Fern... I'm done", EASIEST)).toBe('escalate');
+    expect(lone('Yeah, Ferni', EASIEST)).toBe('escalate');
   });
 
   it("escalates when the caller's words, now or earlier, carry risk", () => {
@@ -283,6 +365,54 @@ describe('agreementOutcome after a downbeat Ferni line (the 2026-10-11 dev call)
         .map((companion) => `${c.text} <- ${companion}`)
     );
     expect(softened).toEqual([]);
+  });
+});
+
+describe('agreementOutcome fails closed', () => {
+  const base = { pattern: 'none' as const, latest: 'You Fern.', companion: EASIEST };
+
+  it('escalates with no reads, a missing read, or a read without a risk', () => {
+    expect(agreementOutcome({ ...base, verdicts: [] })).toBe('escalate');
+    expect(agreementOutcome({ ...base, verdicts: [crisis, null] })).toBe('escalate');
+    expect(agreementOutcome({ ...base, verdicts: [crisis, none, null] })).toBe('escalate');
+    const broken = [crisis, undefined, { subject: 'self' }] as unknown as CrisisVerdict[];
+    expect(agreementOutcome({ ...base, verdicts: broken })).toBe('escalate');
+    expect(agreementOutcome({ ...base, verdicts: undefined as unknown as CrisisVerdict[] })).toBe(
+      'escalate'
+    );
+  });
+
+  it("escalates without Ferni's line or the caller's words", () => {
+    for (const companion of [undefined, '', '   ']) {
+      expect(agreementOutcome({ ...base, verdicts: [crisis], companion })).toBe('escalate');
+      expect(
+        agreementOutcome({ ...base, verdicts: [crisis, none], latest: 'Why?', companion })
+      ).toBe('escalate');
+    }
+    expect(agreementOutcome({ ...base, verdicts: [crisis], latest: '' })).toBe('escalate');
+    expect(
+      agreementOutcome({ ...base, verdicts: [crisis], latest: undefined as unknown as string })
+    ).toBe('escalate');
+  });
+
+  it('escalates when an earlier line cannot be read', () => {
+    const earlier = [undefined] as unknown as string[];
+    expect(agreementOutcome({ ...base, verdicts: [crisis], earlier })).toBe('escalate');
+  });
+
+  it('escalates when anything throws', () => {
+    const throwing = new Proxy([crisis], {
+      get() {
+        throw new Error('boom');
+      },
+    });
+    expect(agreementOutcome({ ...base, verdicts: throwing })).toBe('escalate');
+  });
+
+  it('the helpers answer "not presence" for missing text', () => {
+    expect(isVocative(undefined as unknown as string)).toBe(false);
+    expect(isPresenceReply(undefined as unknown as string, ASKED)).toBe(false);
+    expect(isPresenceReply("I'm still here", undefined)).toBe(false);
   });
 });
 

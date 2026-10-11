@@ -104,7 +104,7 @@ subject is "third_party" only when the person at risk is someone other than the 
  * the read was crisis.
  */
 export const CRISIS_ATTRIBUTION_RULES = `
-COMPANION is the app's companion character, not the caller. Keep using it, as above, to work out what LATEST is about. The companion also talks about its own day and moods; that is the companion's state, never the caller's. A downbeat companion line ("I've been avoiding the bills", "cooking is too much effort", "sometimes the easiest thing is the only thing that makes sense") is not risk and does not make a reply to it risky: a greeting, the companion's name ("you Fern", "Ferni?", "hey Fern, you there?"), a short acknowledgement ("yeah") or a question about what the companion said is risk "none", unless the caller's own words carry risk or answer the companion's question about the caller's safety. When the caller takes the mood as their own ("me too, I don't want to be here either") or adds risk of their own, judge it as above.`;
+COMPANION is the app's companion character, not the caller; keep using it, as above, to work out what LATEST is about. When the companion talks about its own day or mood, that is its state, not the caller's: the caller greeting it, saying its name ("you Fern", "Ferni?", "hey Fern, you there?") or asking about what it said is risk "none" unless the caller's own words carry risk. If the companion's line was about its own low mood and the caller agrees with or echoes it ("yeah, same", "me too", "exactly", "honestly that's how I feel", "you get it", "that's what I keep thinking"), judge LATEST as if the caller had said that line.`;
 
 /** The rules go right after the prompt's paragraphs on COMPANION and LATEST. */
 const ATTRIBUTED_PROMPT = CRISIS_CLASSIFIER_PROMPT.replace(

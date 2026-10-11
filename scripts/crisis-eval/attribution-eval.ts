@@ -119,6 +119,7 @@ const sets: Record<string, Case[]> = {
   devcall: gloomy.filter((c) => c.kind === 'devcall_2026_10_11'),
   gloomyNeg: gloomy.filter((c) => c.kind === 'gloomy_ferni_vocative'),
   gloomyPos: gloomy.filter((c) => c.kind === 'gloomy_ferni_caller_risk'),
+  gloomyEndorse: gloomy.filter((c) => c.kind === 'gloomy_ferni_endorse'),
 };
 
 const ARMS = ['before', 'rules only', 'prompt only', 'after'] as const;
@@ -158,7 +159,9 @@ for (const [name, set] of Object.entries(sets)) {
     });
     if (positive && !arms[3]) notes.push(`  MISS after [${c.kind}] ${c.text}`);
     if (!positive && arms[3])
-      notes.push(`  FA after [${c.kind}] read=${attributed?.risk}: ${c.text}`);
+      notes.push(
+        `  FA after${arms[0] ? '' : ' (NEW)'} [${c.kind}] read=${attributed?.risk} base=${base?.risk}: ${c.text}`
+      );
     if (positive && arms[0] !== arms[3])
       notes.push(`  ${arms[3] ? 'GAINED' : 'LOST'} positive [${c.kind}] ${c.text}`);
   }
