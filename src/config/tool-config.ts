@@ -108,7 +108,6 @@ const DEFAULT_ESSENTIAL_TOOLS = [
   'groundingExercise',
   'breatheWithMe',
   'groundingForTrauma',
-  // Memory
   'rememberAboutUser',
   'recallFromMemory',
   'recallPreviousConversation',
@@ -296,7 +295,63 @@ export function getMaxTools(): number {
  * caches a request's prefix). See tool-updater.ts and gemini-declarations.ts.
  */
 export function appendOnlyToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.CASCADE_APPEND_ONLY_TOOLS === 'on';
+  return env.CASCADE_APPEND_ONLY_TOOLS === 'on' || staticCoreToolsEnabled(env);
+}
+
+/**
+ * TOOL_CORE_STATIC=on: every request in a call carries the same tools
+ * (STATIC_CORE_TOOLS, then the user's teammate tools). Topic loads add nothing;
+ * what findTools finds is appended, so the cached declarations prefix stays.
+ */
+export function staticCoreToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.TOOL_CORE_STATIC === 'on';
+}
+
+/**
+ * The static core, in request order: one tool per lookalike group, covering
+ * every prod tool call of 2026-10-04..11 plus calendar, reminders and calling.
+ */
+export const STATIC_CORE_TOOLS: readonly string[] = [
+  'getCurrentContext',
+  'provideCrisisResources',
+  'quickCrisisResources',
+  'createSafetyPlan',
+  'deEscalateAnxiety',
+  'evaluateHumanTransfer',
+  'connectToHumanExpert',
+  'groundingExercise',
+  'breatheWithMe',
+  'groundingForTrauma',
+  // Memory
+  'rememberAboutUser',
+  'recallFromMemory',
+  'rememberImportantFact',
+  'recallPreviousConversation',
+  'playMusic',
+  'musicControl',
+  'quickTimer',
+  'setReminder',
+  'getReminders',
+  'getCalendarToday',
+  'createCalendarEvent',
+  'getWeatherForecast',
+  'searchWeb',
+  'tellJoke',
+  'getFunFact',
+  'callOnBehalf',
+  'gameState',
+  'endCall',
+  'findTools',
+];
+
+/** Teammate tools: they differ per user, so they go after the fixed core. */
+const TEAMMATE_TOOLS = ['askForTeammate', 'introduceMember', 'meetTheTeam'];
+export function isTeammateTool(name: string): boolean {
+  return name.startsWith('handoffTo') || TEAMMATE_TOOLS.includes(name);
+}
+
+export function isStaticCoreTool(name: string): boolean {
+  return STATIC_CORE_TOOLS.includes(name) || isTeammateTool(name);
 }
 
 /**
