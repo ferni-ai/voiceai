@@ -134,7 +134,8 @@ describe('paired arms', () => {
     expect(interimOf('Which hospital did I work at before my current one?')).toBe(
       'Which hospital did I work at'
     );
-    expect(interimOf('Where do I work?')).toBeNull();
+    expect(interimOf("What's my daughter's name?")).toBe("What's my daughter's");
+    expect(interimOf('Where am I?')).toBeNull();
   });
 });
 

@@ -230,11 +230,12 @@ export function formatReport(results: readonly CaseResult[]): string {
 
 /**
  * The interim transcript live recall sees before the final one: the opening
- * words while the caller is still talking. Short questions get none.
+ * words while the caller is still talking (at least 3, the fewest semantic
+ * recall searches with). Live, even a short question arrives in interims.
  */
 export function interimOf(ask: string): string | null {
   const words = ask.trim().split(/\s+/);
-  if (words.length < 5) return null;
+  if (words.length <= 3) return null;
   return words.slice(0, Math.max(3, Math.ceil(words.length * 0.6))).join(' ');
 }
 
