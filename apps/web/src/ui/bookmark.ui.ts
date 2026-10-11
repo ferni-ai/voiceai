@@ -389,7 +389,7 @@ function injectStyles(): void {
     .bookmark-floater {
       position: fixed;
       pointer-events: none;
-      z-index: var(--z-notification, 3000);
+      z-index: var(--z-notification);
       color: var(--color-accent-primary, #4a6741);
       animation: bookmarkFloat 1s ${EASING.EXPO_OUT} forwards;
       filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));

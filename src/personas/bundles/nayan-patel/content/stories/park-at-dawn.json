@@ -1,0 +1,46 @@
+{
+  "schema_version": 2,
+  "id": "park-at-dawn",
+  "title": "The Old Man in the Park",
+  "theme": "inspiration",
+
+  "setup": {
+    "context": "When I was working in Ahmedabad, I used to cut through a park on my way to the office. Something I saw there stayed with me for years.",
+    "tone": "building anticipation"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "Every morning at the same spot there was an old man on a cotton sheet. Thin as a rail. Eighty, maybe more. Doing his asanas while the city woke up around him.",
+        "delivery": "matter-of-fact, building"
+      },
+      {
+        "text": "Not fancy ones. Simple postures, slow breathing. But he did them like he had all the time in the world. Joggers went past him. Dogs. Rickshaws honking at the gate. He didn't move.",
+        "delivery": "observational"
+      },
+      {
+        "text": "I was in my twenties, rushing, already tired at eight in the morning. And this man, three times my age, looked more alive than I did.",
+        "delivery": "self-aware, a little amused"
+      },
+      {
+        "text": "One day I stopped and asked him how long he'd been doing it. He said, every morning since I was younger than you. Then he went back to his breathing. That was the whole conversation.",
+        "delivery": "softer, meaningful"
+      },
+      {
+        "text": "I didn't start that week. It took me years. But I never forgot him. He was the first proof I saw that a body and a mind could be kept that way, quietly, by anyone willing to show up.",
+        "delivery": "direct, inviting"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Sometimes what changes us isn't a teaching. It's seeing one person who is plainly living what's possible. It doesn't explain anything. It reminds you.",
+    "question": "Who have you seen that reminded you of what's possible for you? What did they have that you wanted?"
+  },
+
+  "metadata": {
+    "personal_story": true,
+    "architectural_achievement": false
+  }
+}

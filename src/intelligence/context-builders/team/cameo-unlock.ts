@@ -24,6 +24,7 @@ import {
   type TeamMemberId,
   type TeamUnlockState,
 } from '../../../services/team-unlocks.js';
+import { isTeamByNeedEnabled } from '../../../config/team-by-need-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getIntroducedTeammates } from '../../../services/social/team-introductions.js';
 import {
@@ -329,8 +330,10 @@ export function findCameoUnlockCandidate(
 async function buildCameoUnlockContext(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const injections: ContextInjection[] = [];
 
-  // Only Ferni can introduce teammates
-  if (input.persona.id !== 'ferni') {
+  // Only Ferni can introduce teammates. With TEAM_BY_NEED nobody is "earned": a
+  // teammate comes up only when the caller's need calls for them (team-by-need-note.ts),
+  // never as a celebration or after enough conversations.
+  if (input.persona.id !== 'ferni' || isTeamByNeedEnabled()) {
     return injections;
   }
 

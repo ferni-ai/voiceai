@@ -19,7 +19,7 @@
 
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
 
 const log = createLogger('FerniLogo');
 
@@ -474,7 +474,7 @@ export function createFerniLogo(options: FerniLogoOptions = {}): FerniLogoInstan
 
     const keyframes = reactions[type];
     if (keyframes) {
-      svg.animate(keyframes, {
+      safeAnimate(svg, keyframes, {
         duration: DURATION.CELEBRATION,
         easing: EASING.SPRING,
       });

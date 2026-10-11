@@ -352,7 +352,7 @@ function injectStyles(): void {
       max-width: 400px;
       background: var(--color-bg-secondary, #2C2520);
       border-left: 1px solid var(--glass-border, rgba(44, 37, 32, 0.2));
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       flex-direction: column;
       transform: translateX(100%);
