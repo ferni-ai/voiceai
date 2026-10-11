@@ -25,11 +25,13 @@
  * @module speech/adaptive-ssml/persona-speech-traits-loader
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
 import {
-  quickHumanizeSync,
-  preloadAllSpeechProfiles,
-} from '../humanization/index.js';
+  ALL_CANONICAL_IDS,
+  isCanonicalId,
+  type CanonicalPersonaId,
+} from '../../personas/persona-ids.js';
+import { getLogger } from '../../utils/safe-logger.js';
+import { quickHumanizeSync, preloadAllSpeechProfiles } from '../humanization/index.js';
 
 const log = getLogger().child({ module: 'PersonaSpeechTraits' });
 
@@ -87,86 +89,107 @@ export interface PersonaSpeechTraitConfig {
  */
 const traitRegistry = new Map<string, PersonaSpeechTraitConfig>();
 
+/** The pacing data the financial legends' bundles carry (words per minute, pauses, slow phrases). */
+interface PacingTraits {
+  baseRate: number;
+  pauses: { micro: number };
+  emphasis: { slowPhrases: readonly string[] };
+  storytellingMode: { rateMultiplier: number };
+}
+
+/** Conversational pace the speed ratio is measured against. */
+const CONVERSATIONAL_WPM = 150;
+
+/**
+ * Turn a legend's pacing data into a processor: their pace as the base speed, and
+ * their signature phrases ("stay the course") slowed and set off by a short pause.
+ */
+export function pacingTraitsToConfig(traits: PacingTraits): PersonaSpeechTraitConfig {
+  const baseSpeed = Math.round((traits.baseRate / CONVERSATIONAL_WPM) * 100) / 100;
+  const slow = Math.round(baseSpeed * traits.storytellingMode.rateMultiplier * 100) / 100;
+  const phrases = traits.emphasis.slowPhrases.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = new RegExp(`\\b(${phrases.join('|')})\\b`, 'gi');
+  return {
+    baseSpeed,
+    apply: (text) =>
+      text.replace(
+        pattern,
+        (m) =>
+          `<break time="${traits.pauses.micro}ms"/><speed ratio="${slow}"/>${m}<speed ratio="${baseSpeed}"/>`
+      ),
+  };
+}
+
+/**
+ * One loader per canonical persona. Keyed by CanonicalPersonaId so the compiler
+ * refuses a persona without speech traits (John Bogle and Peter Lynch had none).
+ */
+const TRAIT_LOADERS: Record<CanonicalPersonaId, () => Promise<PersonaSpeechTraitConfig>> = {
+  ferni: async () => {
+    const m = await import('../../personas/bundles/ferni/speech-traits.js');
+    return { baseSpeed: m.FERNI_SPEECH_CONFIG.baseSpeed, apply: m.applyFerniSpeechTraits };
+  },
+  'peter-john': async () => {
+    const m = await import('../../personas/bundles/peter-john/speech-traits.js');
+    return { baseSpeed: m.PETER_JOHN_SPEECH_CONFIG.baseSpeed, apply: m.applyPeterJohnSpeechTraits };
+  },
+  'maya-santos': async () => {
+    const m = await import('../../personas/bundles/maya-santos/speech-traits.js');
+    return {
+      baseSpeed: m.MAYA_SANTOS_SPEECH_CONFIG.baseSpeed,
+      apply: m.applyMayaSantosSpeechTraits,
+    };
+  },
+  'alex-chen': async () => {
+    const m = await import('../../personas/bundles/alex-chen/speech-traits.js');
+    return { baseSpeed: m.ALEX_CHEN_SPEECH_CONFIG.baseSpeed, apply: m.applyAlexChenSpeechTraits };
+  },
+  'jordan-taylor': async () => {
+    const m = await import('../../personas/bundles/jordan-taylor/speech-traits.js');
+    return {
+      baseSpeed: m.JORDAN_TAYLOR_SPEECH_CONFIG.baseSpeed,
+      apply: m.applyJordanTaylorSpeechTraits,
+    };
+  },
+  'nayan-patel': async () => {
+    const m = await import('../../personas/bundles/nayan-patel/speech-traits.js');
+    return {
+      baseSpeed: m.NAYAN_PATEL_SPEECH_CONFIG.baseSpeed,
+      apply: m.applyNayanPatelSpeechTraits,
+    };
+  },
+  'joel-dickson': async () => {
+    const m = await import('../../personas/bundles/joel-dickson/speech-traits.js');
+    return {
+      baseSpeed: m.JOEL_DICKSON_SPEECH_CONFIG.baseSpeed,
+      apply: m.applyJoelDicksonSpeechTraits,
+    };
+  },
+  'john-bogle': async () =>
+    pacingTraitsToConfig(
+      (await import('../../personas/bundles/john-bogle/speech-traits.js')).johnBogleSpeechTraits
+    ),
+  'peter-lynch': async () =>
+    pacingTraitsToConfig(
+      (await import('../../personas/bundles/peter-lynch/speech-traits.js')).peterLynchSpeechTraits
+    ),
+};
+
 /**
  * Load speech traits for a persona.
  * Uses dynamic import to avoid circular dependencies and bundle all traits.
  */
 async function loadPersonaTraits(personaId: string): Promise<PersonaSpeechTraitConfig | null> {
-  // Check cache first
-  if (traitRegistry.has(personaId)) {
-    return traitRegistry.get(personaId)!;
-  }
+  const cached = traitRegistry.get(personaId);
+  if (cached) return cached;
+
+  const loader = isCanonicalId(personaId) ? TRAIT_LOADERS[personaId] : undefined;
+  if (!loader) return null; // Unknown persona - no custom traits
 
   try {
-    let config: PersonaSpeechTraitConfig | null = null;
-
-    switch (personaId) {
-      case 'ferni': {
-        const module = await import('../../personas/bundles/ferni/speech-traits.js');
-        config = {
-          baseSpeed: module.FERNI_SPEECH_CONFIG.baseSpeed,
-          apply: module.applyFerniSpeechTraits,
-        };
-        break;
-      }
-      case 'peter-john': {
-        const module = await import('../../personas/bundles/peter-john/speech-traits.js');
-        config = {
-          baseSpeed: module.PETER_JOHN_SPEECH_CONFIG.baseSpeed,
-          apply: module.applyPeterJohnSpeechTraits,
-        };
-        break;
-      }
-      case 'maya-santos': {
-        const module = await import('../../personas/bundles/maya-santos/speech-traits.js');
-        config = {
-          baseSpeed: module.MAYA_SANTOS_SPEECH_CONFIG.baseSpeed,
-          apply: module.applyMayaSantosSpeechTraits,
-        };
-        break;
-      }
-      case 'alex-chen': {
-        const module = await import('../../personas/bundles/alex-chen/speech-traits.js');
-        config = {
-          baseSpeed: module.ALEX_CHEN_SPEECH_CONFIG.baseSpeed,
-          apply: module.applyAlexChenSpeechTraits,
-        };
-        break;
-      }
-      case 'jordan-taylor': {
-        const module = await import('../../personas/bundles/jordan-taylor/speech-traits.js');
-        config = {
-          baseSpeed: module.JORDAN_TAYLOR_SPEECH_CONFIG.baseSpeed,
-          apply: module.applyJordanTaylorSpeechTraits,
-        };
-        break;
-      }
-      case 'nayan-patel': {
-        const module = await import('../../personas/bundles/nayan-patel/speech-traits.js');
-        config = {
-          baseSpeed: module.NAYAN_PATEL_SPEECH_CONFIG.baseSpeed,
-          apply: module.applyNayanPatelSpeechTraits,
-        };
-        break;
-      }
-      case 'joel-dickson': {
-        const module = await import('../../personas/bundles/joel-dickson/speech-traits.js');
-        config = {
-          baseSpeed: module.JOEL_DICKSON_SPEECH_CONFIG.baseSpeed,
-          apply: module.applyJoelDicksonSpeechTraits,
-        };
-        break;
-      }
-      default:
-        // Unknown persona - no custom traits
-        return null;
-    }
-
-    if (config) {
-      traitRegistry.set(personaId, config);
-      log.debug({ personaId }, 'Loaded persona speech traits');
-    }
-
+    const config = await loader();
+    traitRegistry.set(personaId, config);
+    log.debug({ personaId }, 'Loaded persona speech traits');
     return config;
   } catch (error) {
     log.warn({ personaId, error }, 'Failed to load persona speech traits');
@@ -195,15 +218,7 @@ let preloaded = false;
 export async function preloadAllTraits(): Promise<void> {
   if (preloaded) return;
 
-  const personas = [
-    'ferni',
-    'peter-john',
-    'maya-santos',
-    'alex-chen',
-    'jordan-taylor',
-    'nayan-patel',
-    'joel-dickson',
-  ];
+  const personas = ALL_CANONICAL_IDS;
 
   // Preload both layers in parallel
   await Promise.all([
@@ -301,23 +316,14 @@ export function applyPersonaSpeechTraitsSync(
  * Check if a persona has custom speech traits.
  */
 export function hasCustomSpeechTraits(personaId: string): boolean {
-  const withTraits = [
-    'ferni',
-    'peter-john',
-    'maya-santos',
-    'alex-chen',
-    'jordan-taylor',
-    'nayan-patel',
-    'joel-dickson',
-  ];
-  return withTraits.includes(personaId);
+  return isCanonicalId(personaId);
 }
 
 /**
  * Get list of personas with custom speech traits.
  */
 export function getPersonasWithSpeechTraits(): string[] {
-  return ['ferni', 'peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel', 'joel-dickson'];
+  return [...ALL_CANONICAL_IDS];
 }
 
 /**

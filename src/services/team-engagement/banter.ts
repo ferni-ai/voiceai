@@ -7,6 +7,7 @@
  * @module team-engagement/banter
  */
 
+import type { CanonicalPersonaId } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'banter' });
@@ -467,7 +468,26 @@ export const ARRIVING_BANTER: Record<string, Record<string, string[]>> = {
     'jordan-taylor': ['Hey! Peter here.', 'Hey there! Good to connect.', "Hey! I'm here to help."],
     'nayan-patel': ['Hey! Peter here.', 'Hey there! Good to meet you.', "Hey! I'm here."],
   },
-};
+
+  // The financial legends hand off among themselves; '*' is any previous persona.
+  'joel-dickson': {
+    '*': ['Hey! Joel here.', "Hey there! <break time='150ms'/> Good to see you.", "Hey! I'm here."],
+  },
+  'john-bogle': {
+    '*': [
+      "Hello, friend. <break time='250ms'/> Jack Bogle here.",
+      "Well, hello. <break time='250ms'/> Take your time.",
+      "Hello there. <break time='250ms'/> Jack here.",
+    ],
+  },
+  'peter-lynch': {
+    '*': [
+      'Hey! Peter Lynch here.',
+      "Hey there! <break time='150ms'/> Lynch here.",
+      'Hey! Good to meet you.',
+    ],
+  },
+} satisfies Record<CanonicalPersonaId, Record<string, string[]>>;
 
 /**
  * Get arriving banter when a persona takes over (WARM WELCOME - spoken AFTER voice switch)
@@ -483,7 +503,7 @@ export function getArrivingBanter(toPersonaId: string, fromPersonaId: string): s
     return null;
   }
 
-  const banterOptions = toBanter[fromPersonaId];
+  const banterOptions = toBanter[fromPersonaId] ?? toBanter['*'];
   if (!banterOptions || banterOptions.length === 0) {
     log.debug(
       { toPersonaId, fromPersonaId, available: Object.keys(toBanter) },

@@ -12,6 +12,7 @@ import {
   hasCustomSpeechTraits,
   preloadAllTraits,
 } from '../persona-speech-traits-loader.js';
+import { ALL_CANONICAL_IDS } from '../../../personas/persona-ids.js';
 
 describe('Persona Speech Traits Loader', () => {
   beforeEach(() => {
@@ -44,7 +45,7 @@ describe('Persona Speech Traits Loader', () => {
       expect(personas).toContain('jordan-taylor');
       expect(personas).toContain('nayan-patel');
       expect(personas).toContain('joel-dickson');
-      expect(personas).toHaveLength(7);
+      expect(personas).toHaveLength(ALL_CANONICAL_IDS.length);
     });
   });
 

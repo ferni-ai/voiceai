@@ -15,12 +15,19 @@
   "voice": {
     "provider": "cartesia",
     "voice_id": "9c10dc48-8799-42f9-a72a-0c7dfe13a06d",
-    "settings": {
-      "stability": 0.7,
-      "similarity_boost": 0.75,
-      "style": 0.3,
-      "speed": 0.95
-    }
+    "model": "sonic-3-latest",
+    "default_rate": "slow",
+    "default_emotion": "affectionate",
+    "emotion_range": ["affectionate", "calm", "content", "sympathetic", "grateful", "contemplative", "nostalgic", "confident"],
+    "default_speed": 0.95,
+    "default_volume": 1.0,
+    "laughter_frequency": 0.1
+  },
+  "speech_characteristics": {
+    "base_speed_multiplier": 0.87,
+    "pause_multiplier": 1.4,
+    "thinking_sound_frequency": 0.35,
+    "emphasis_style": "subtle"
   },
   "personality": {
     "warmth": 0.85,

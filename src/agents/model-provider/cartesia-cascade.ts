@@ -26,6 +26,7 @@ import { dirname, join } from 'node:path';
 import { ThinkingLevel } from '@google/genai';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import * as google from '@livekit/agents-plugin-google';
+import { ALL_CANONICAL_IDS, DISPLAY_NAMES } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
 import { FastLaneLLM, fastLaneEnabled } from './fast-lane.js';
@@ -147,8 +148,12 @@ function withEndOverride(profile: InkTurnDetection, raw: string | undefined): In
   return profile;
 }
 
-/** First names of the team: made-up or uncommon names a general model has no prior for. */
-const TEAM_NAMES = ['Ferni', 'Maya', 'Peter', 'Alex', 'Jordan', 'Nayan'];
+/**
+ * Every word of every persona's name (Ferni, Maya, ... Joel, Bogle, Lynch): made-up
+ * or uncommon names a general model has no prior for. Built from the canonical
+ * persona list so a new persona is heard by name without editing this file.
+ */
+const TEAM_NAMES = [...new Set(ALL_CANONICAL_IDS.flatMap((id) => DISPLAY_NAMES[id].split(/\s+/)))];
 const MAX_KEYTERMS = 100;
 const MAX_KEYTERM_CHARS = 1200;
 
