@@ -7,6 +7,7 @@ personaSecondary: "#1E3D32"
 ---
 
 {% from "partials/icons.njk" import play, plus, starFilled, star, verified, check %}
+{% from "partials/pricing.njk" import priced, priceBadge with context %}
 
 <!-- Hero -->
 <section class="persona-detail-hero" style="--persona-color: #2D5A4A; --persona-secondary: #1E3D32;">
@@ -40,10 +41,10 @@ personaSecondary: "#1E3D32"
           <span>by Recovery Path Inc</span>
         </div>
         <div class="persona-detail-actions">
-          <button class="btn btn-add-team btn-lg">
+          <a href="{{ site.appUrl }}" class="btn btn-add-team btn-lg">
             {{ plus(20) }}
-            Add to Team - $14.99/mo
-          </button>
+            {{ priced('Add to Team - $14.99/mo', 'Add to Team') }}
+          </a>
           <button class="btn btn-preview-voice">
             {{ play(20) }}
             Preview Voice
@@ -262,11 +263,11 @@ personaSecondary: "#1E3D32"
         <div style="background: linear-gradient(135deg, #2D5A4A, #1E3D32); border-radius: var(--radius-2xl); padding: var(--space-6); color: white; text-align: center;">
           <h3 style="margin-bottom: var(--space-2); color: white;">Ready to get started?</h3>
           <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
-            Start your free trial today
+            {{ priced('Start your free trial today', 'Free to add to your team') }}
           </p>
-          <button class="btn" style="background: white; color: #2D5A4A; width: 100%;">
-            Add to Team - $14.99/mo
-          </button>
+          <a href="{{ site.appUrl }}" class="btn" style="background: white; color: #2D5A4A; width: 100%;">
+            {{ priced('Add to Team - $14.99/mo', 'Add to Team') }}
+          </a>
         </div>
       </div>
 
@@ -300,7 +301,7 @@ personaSecondary: "#1E3D32"
               </span>
               <span class="persona-rating-count">4.9</span>
             </div>
-            <span class="persona-price">$9.99/mo</span>
+            {{ priceBadge('$9.99/mo') }}
           </div>
         </div>
       </a>
@@ -322,7 +323,7 @@ personaSecondary: "#1E3D32"
               </span>
               <span class="persona-rating-count">4.7</span>
             </div>
-            <span class="persona-price free">Free+</span>
+            {{ priceBadge('Free+') }}
           </div>
         </div>
       </a>
@@ -344,7 +345,7 @@ personaSecondary: "#1E3D32"
               </span>
               <span class="persona-rating-count">4.92</span>
             </div>
-            <span class="persona-price">$9.99/mo</span>
+            {{ priceBadge('$9.99/mo') }}
           </div>
         </div>
       </a>
