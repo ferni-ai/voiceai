@@ -231,6 +231,7 @@ vi.mock('../utils/safe-logger.js', () => {
       return error;
     }),
     isFullLoggingEnabled: vi.fn(() => false),
+    setErrorLogSink: vi.fn(),
     truncateForLog: vi.fn((value: unknown, maxLength?: number) =>
       typeof value === 'string' && maxLength ? value.slice(0, maxLength) : value
     ),

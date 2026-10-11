@@ -14,7 +14,7 @@
  * @module custom-agent-wizard.ui
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { t } from '../i18n/index.js';
@@ -267,7 +267,7 @@ function renderStep(): void {
   }
 
   // Animate in
-  content.animate(
+  safeAnimate(content,
     [
       { opacity: 0, transform: 'translateY(10px)' },
       { opacity: 1, transform: 'translateY(0)' },
@@ -1470,7 +1470,7 @@ function getWizardStyles(): string {
     .custom-agent-wizard-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2357,7 +2357,7 @@ function getWizardStyles(): string {
     }
     
     /* Responsive */
-    @media (max-width: clamp(448px, 90vw, 640px)) {
+    @media (max-width: 640px) {
       .wizard-container {
         width: 100vw;
         height: 100vh;
