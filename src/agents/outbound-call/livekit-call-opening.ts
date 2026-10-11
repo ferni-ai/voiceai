@@ -1,7 +1,8 @@
 /**
  * LiveKit side of the on-behalf call opening (see call-opening.ts), used when
  * CALL_OPENING_AMD is on: waits for the phone to be answered, runs LiveKit's
- * answering-machine detection on the first words, and speaks or hangs up.
+ * answering-machine detection on the first words, and speaks or hangs up (or
+ * answers a call screener once and waits for the person, call-screener.ts).
  *
  * @module agents/outbound-call/livekit-call-opening
  */
@@ -53,18 +54,24 @@ export function openIfOnBehalfCall(sessionId: string, agent: CallingAgent): bool
       };
       return waitForCallAnswered(room, { identity, attributes }, ANSWER_WAIT_MS, 0);
     },
-    hearFirstWords: async (): Promise<FirstWords> => {
+    hearFirstWords: async (options): Promise<FirstWords> => {
       const detector = new voice.AMD(session, {
         participantIdentity: identity,
         humanSilenceThresholdMs: 500, // answer "Hello?" within about half a second
-        noSpeechTimeoutMs: 2_500, // a silent pickup gets the opener after ~2.5 s
+        // A silent pickup gets the opener after ~2.5 s; after a screener, silence is just waiting.
+        noSpeechTimeoutMs: options?.afterScreener ? 10_000 : 2_500,
         waitUntilFinished: true, // let a voicemail greeting finish before speaking
         interruptOnMachine: true,
       });
       try {
         const verdict = await detector.execute();
         log.info(
-          { callId: call.callId, category: verdict.category, delayMs: verdict.delayMs },
+          {
+            callId: call.callId,
+            category: verdict.category,
+            delayMs: verdict.delayMs,
+            afterScreener: options?.afterScreener === true,
+          },
           'Call answered'
         );
         return { category: verdict.category, transcript: verdict.transcript };
@@ -79,6 +86,9 @@ export function openIfOnBehalfCall(sessionId: string, agent: CallingAgent): bool
       }
       if (agent.say) agent.say(text, { allowInterruptions: true });
       else await session.say(text, { allowInterruptions: true }).waitForPlayout();
+    },
+    answerScreener: async (text) => {
+      await session.say(text, { allowInterruptions: false }).waitForPlayout();
     },
     leaveVoicemail: () =>
       session
