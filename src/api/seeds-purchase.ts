@@ -90,11 +90,7 @@ export async function purchaseCosmetic(
         key,
         meta: { itemId: item.id },
       });
-      tx.set(
-        state.accountRef,
-        { ownedCosmetics: FieldValue.arrayUnion(item.id) },
-        { merge: true }
-      );
+      tx.set(state.accountRef, { ownedCosmetics: FieldValue.arrayUnion(item.id) }, { merge: true });
       return {
         status: 200 as const,
         body: {
