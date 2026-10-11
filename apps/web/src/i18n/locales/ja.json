@@ -4620,7 +4620,8 @@
     "sourceInferred": "私が気づいたこと",
     "correctButton": "修正する",
     "memoriesCount": "{count}個の思い出",
-    "confidence": "確信度 {confidence}%"
+    "confidence": "確信度 {confidence}%",
+    "earlier": "以前"
   },
   "memoryCorrection": {
     "modalTitle": "思い出を修正する",
@@ -10236,7 +10237,9 @@
     "seedsEarned": {
       "other": "タネを{count}個獲得しました！",
       "one": "タネを{count}個獲得しました！"
-    }
+    },
+    "couldNotLoadMemories": "覚えていることを読み込めませんでした。もう一度試しますか？",
+    "memoryCorrected": "わかりました。そのように覚えておきます。"
   },
   "trustSignals": {
     "prefix": {

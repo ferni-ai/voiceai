@@ -4620,7 +4620,8 @@
     "sourceInferred": "I noticed",
     "correctButton": "Correct",
     "memoriesCount": "{count} memories",
-    "confidence": "{confidence}% confident"
+    "confidence": "{confidence}% confident",
+    "earlier": "earlier"
   },
   "memoryCorrection": {
     "modalTitle": "Correct This Memory",
@@ -10236,7 +10237,9 @@
     "seedsEarned": {
       "one": "You earned {count} seed!",
       "other": "You earned {count} seeds!"
-    }
+    },
+    "couldNotLoadMemories": "Couldn't load what I remember. Try again?",
+    "memoryCorrected": "Got it. I'll remember it that way."
   },
   "trustSignals": {
     "prefix": {

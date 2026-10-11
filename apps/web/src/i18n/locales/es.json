@@ -4652,7 +4652,8 @@
     "sourceInferred": "Me di cuenta",
     "correctButton": "Corregir",
     "memoriesCount": "{count} recuerdos",
-    "confidence": "{confidence}% de seguridad"
+    "confidence": "{confidence}% de seguridad",
+    "earlier": "antes"
   },
   "memoryCorrection": {
     "modalTitle": "Corregir este recuerdo",
@@ -10334,7 +10335,9 @@
       "one": "¡Has ganado {count} semilla!",
       "many": "¡Has ganado {count} semillas!",
       "other": "¡Has ganado {count} semillas!"
-    }
+    },
+    "couldNotLoadMemories": "No pude cargar lo que recuerdo. ¿Lo intentamos de nuevo?",
+    "memoryCorrected": "Entendido. Lo recordaré así."
   },
   "trustSignals": {
     "prefix": {

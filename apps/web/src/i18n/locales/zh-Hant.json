@@ -4620,7 +4620,8 @@
     "sourceInferred": "我注意到的",
     "correctButton": "修正",
     "memoriesCount": "{count} 個回憶",
-    "confidence": "信心度 {confidence}%"
+    "confidence": "信心度 {confidence}%",
+    "earlier": "以前"
   },
   "memoryCorrection": {
     "modalTitle": "修正這個回憶",
@@ -10236,7 +10237,9 @@
     "seedsEarned": {
       "other": "你獲得了 {count} 顆種子！",
       "one": "你獲得了 {count} 顆種子！"
-    }
+    },
+    "couldNotLoadMemories": "沒能載入我記得的內容。再試一次？",
+    "memoryCorrected": "明白了，我會這樣記住。"
   },
   "trustSignals": {
     "prefix": {

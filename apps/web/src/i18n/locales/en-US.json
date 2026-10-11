@@ -4631,7 +4631,8 @@
     "sourceInferred": "I noticed",
     "correctButton": "Correct",
     "memoriesCount": "{count} memories",
-    "confidence": "{confidence}% confident"
+    "confidence": "{confidence}% confident",
+    "earlier": "earlier"
   },
   "memoryCorrection": {
     "modalTitle": "Correct This Memory",
@@ -10247,7 +10248,9 @@
     "deletingAccount": "Deleting your account...",
     "accountDeleted": "Your account is deleted. Take care.",
     "couldNotStartHuddle": "Couldn't start a team huddle. Try again?",
-    "defaultHuddleTopic": "Weekly check-in on your progress"
+    "defaultHuddleTopic": "Weekly check-in on your progress",
+    "couldNotLoadMemories": "Couldn't load what I remember. Try again?",
+    "memoryCorrected": "Got it. I'll remember it that way."
   },
   "trustSignals": {
     "prefix": {

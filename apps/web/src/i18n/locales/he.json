@@ -4651,7 +4651,8 @@
     "sourceInferred": "שמתי לב",
     "correctButton": "תיקון",
     "memoriesCount": "{count} זיכרונות",
-    "confidence": "{confidence}% ביטחון"
+    "confidence": "{confidence}% ביטחון",
+    "earlier": "קודם"
   },
   "memoryCorrection": {
     "modalTitle": "תיקון הזיכרון הזה",
@@ -10333,7 +10334,9 @@
       "one": "התקבל זרע אחד ({count})!",
       "two": "התקבלו {count} זרעים!",
       "other": "התקבלו {count} זרעים!"
-    }
+    },
+    "couldNotLoadMemories": "לא הצלחתי לטעון את מה שאני זוכר. לנסות שוב?",
+    "memoryCorrected": "הבנתי. אזכור את זה כך."
   },
   "trustSignals": {
     "prefix": {
