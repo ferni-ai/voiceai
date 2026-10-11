@@ -29,7 +29,6 @@ config/
 ├── index.ts                    # Main exports
 ├── environment.ts              # Environment variable parsing
 ├── feature-flags.ts            # Feature flag definitions
-├── unified-flags.ts            # Unified flag management
 ├── timeouts.ts                 # Timeout constants
 ├── handoff-timing.ts           # Handoff timing config
 ├── voice-ids.ts                # Voice ID mappings
