@@ -33,6 +33,8 @@ export interface PickRecord {
   /** The follow-up's answer as the generic reader saw it; 'unanswered' once asked and the window closed. */
   outcome: 'done' | 'not_done' | 'deflected' | 'unanswered' | null;
   helped: Helped | null;
+  /** When the follow-up was settled; the scorecard dates tried/helped by it. */
+  answeredAt?: string;
 }
 
 /** Picks read for taste. */
@@ -92,7 +94,7 @@ export async function markAnswered(
   id: string,
   answer: { outcome: PickRecord['outcome']; helped: Helped | null }
 ): Promise<void> {
-  await write(userId, id, answer);
+  await write(userId, id, { ...answer, answeredAt: new Date().toISOString() });
 }
 
 /** The user's most recent picks, newest first. */

@@ -91,7 +91,9 @@ function webFinds(...ids: string[]) {
             },
           ],
         }
-      : { text: '{"fits":true,"safe":true,"quality":4,"evidence":"solid","why":"Clear and gentle."}' }
+      : {
+          text: '{"fits":true,"safe":true,"quality":4,"evidence":"solid","why":"Clear and gentle."}',
+        }
   );
 }
 
@@ -117,7 +119,11 @@ describe('taste loop', () => {
     expect(store.get(logged[0][0])?.sentVia).toBe('text');
 
     await recordFollowUpAnswer('u1', { ...commitment, outcome: 'done' }, 'it really helped');
-    expect(store.get(logged[0][0])).toMatchObject({ outcome: 'done', helped: 'yes' });
+    expect(store.get(logged[0][0])).toMatchObject({
+      outcome: 'done',
+      helped: 'yes',
+      answeredAt: expect.any(String),
+    });
 
     // Another day, another topic: equal quality, the liked creator's short video wins.
     webFinds('vidLecture1', 'vidPatCalf1');
