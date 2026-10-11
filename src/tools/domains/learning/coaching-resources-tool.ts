@@ -1,16 +1,10 @@
 /**
- * findCoachingResources: the web's best answer on a coaching topic, with the
- * pages it came from, so Ferni can point to one good video, book or article
- * instead of generic advice (recommendResource only lists where to look).
- * For a video, short or book it returns ONE pick, checked by Gemini against
- * what fits this person (services/coach-media/checked-pick.ts).
- *
- * Only the topic leaves the call: the caller's name, numbers, emails and links
- * are scrubbed from the query (services/coach-media/topic-query.ts). What comes
- * back is web text, returned as quoted data; this tool loads no tools and
- * sends nothing.
- *
- * Behind COACH_MEDIA=on; off, the learning domain does not include it.
+ * findCoachingResources: the web's best answer on a coaching topic with its
+ * sources, so Ferni can point to one good resource instead of generic advice
+ * (recommendResource only lists where to look). Only a scrubbed topic leaves
+ * the call (topic-query.ts); results come back as data, and this tool loads
+ * no tools and sends nothing. For a video, short or book it returns ONE pick,
+ * checked against what fits this person (checked-pick.ts). Behind COACH_MEDIA=on.
  *
  * @module tools/domains/learning/coaching-resources-tool
  */
