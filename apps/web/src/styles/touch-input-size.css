@@ -1,0 +1,34 @@
+/*
+ * Touch input size: keeps text fields at 16px or larger on touch screens.
+ *
+ * iOS Safari zooms the page into any focused field whose font size is under
+ * 16px. With pinch zoom enabled (as WCAG asks), that zoom stays put and the
+ * layout is left half off screen. Many component styles size their fields with
+ * --text-sm, --text-base (15px on phones) or 0.9rem, so this sets a floor of
+ * 16px for every text field on a coarse pointer. Desktop sizes are unchanged.
+ *
+ * !important is needed because component styles are injected later with class
+ * selectors. Fields that are deliberately larger than 16px are listed in the
+ * :not() so the floor never shrinks them (tests/touch-input-size.test.ts keeps
+ * that list complete).
+ */
+@media (pointer: coarse) {
+  input:not(
+    [type='checkbox'],
+    [type='radio'],
+    [type='range'],
+    [type='color'],
+    [type='file'],
+    [type='button'],
+    [type='submit'],
+    [type='reset'],
+    [type='image'],
+    [type='hidden'],
+    .contact-settings-code-input,
+    .rb-input--lg
+  ),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}

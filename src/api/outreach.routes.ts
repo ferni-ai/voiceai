@@ -49,11 +49,7 @@ const OUTREACH_PREFIX = '/api/outreach';
 /** A client-named user in a request body; checked against the caller by claimedUserFor. */
 type Named = { userId?: unknown };
 
-// Import persistent verification store
-import {
-  createVerificationCode,
-  verifyCode,
-} from '../services/trust-and-identity/verification-store.js';
+import { handleVerifyPhone } from './verify-phone-routes.js';
 
 // Helper to get persona display name
 function getPersonaName(personaId: string): string {
@@ -706,78 +702,9 @@ export async function handleOutreachRoutes(
     // TEST ENDPOINTS (dev only)
     // ========================================================================
 
-    // POST /api/outreach/verify-phone - Send verification code
-    if (route === '/verify-phone' && method === 'POST') {
-      const body = await parseRequestBody(req);
-      const { phone } = body as { phone: string };
-
-      if (!phone) {
-        sendJsonResponse(res, 400, { success: false, error: 'phone is required' });
-        return true;
-      }
-
-      // Keyed by the verified user when the client names one, else by phone
-      const named = claimedUserFor(auth, (body as Named).userId, res);
-      if (!named) return true;
-      const identifier = (body as Named).userId ? named : `phone:${phone}`;
-
-      try {
-        // Create verification code in persistent store
-        const { code, expiresAt } = await createVerificationCode(identifier, phone);
-
-        // Send via Twilio
-        const { textUser } = await import('../tools/domains/proactive/outreach/index.js');
-        await textUser(
-          phone,
-          `Your Ferni code is ${code}. Just making sure it's really you! 💚`,
-          'ferni'
-        );
-
-        log.info({ phone: phone.slice(-4), expiresAt }, 'Sent verification code');
-        sendJsonResponse(res, 200, { success: true, message: 'Verification code sent' });
-      } catch (error) {
-        log.error({ error, phone: phone.slice(-4) }, 'Failed to send verification code');
-        sendJsonResponse(res, 500, { success: false, error: 'Failed to send code' });
-      }
-      return true;
-    }
-
-    // POST /api/outreach/verify-phone/confirm - Verify the code
-    if (route === '/verify-phone/confirm' && method === 'POST') {
-      const body = await parseRequestBody(req);
-      const { phone, code } = body as { phone: string; code: string };
-
-      if (!phone || !code) {
-        sendJsonResponse(res, 400, { success: false, error: 'phone and code are required' });
-        return true;
-      }
-
-      const named = claimedUserFor(auth, (body as Named).userId, res); // same key as when creating
-      if (!named) return true;
-      const identifier = (body as Named).userId ? named : `phone:${phone}`;
-
-      try {
-        // Verify using persistent store
-        const result = await verifyCode(identifier, code);
-
-        if (result.valid) {
-          log.info({ phone: phone.slice(-4) }, 'Phone verified');
-          sendJsonResponse(res, 200, { success: true, message: 'Phone verified' });
-        } else {
-          // Map reason to user-friendly message
-          const errorMessages: Record<string, string> = {
-            expired: 'Code expired. Please request a new one.',
-            invalid: 'Invalid code. Please check and try again.',
-            max_attempts: 'Too many attempts. Please request a new code.',
-            not_found: 'No verification pending for this number.',
-          };
-          const errorMessage = errorMessages[result.reason] || 'Verification failed';
-          sendJsonResponse(res, 400, { success: false, error: errorMessage });
-        }
-      } catch (error) {
-        log.error({ error, phone: phone.slice(-4) }, 'Verification error');
-        sendJsonResponse(res, 500, { success: false, error: 'Verification failed' });
-      }
+    // POST /api/outreach/verify-phone and /verify-phone/confirm (verify-phone-routes.ts)
+    if ((route === '/verify-phone' || route === '/verify-phone/confirm') && method === 'POST') {
+      await handleVerifyPhone(req, res, route, auth);
       return true;
     }
 

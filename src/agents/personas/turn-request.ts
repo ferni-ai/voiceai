@@ -10,6 +10,8 @@ import type { llm } from '@livekit/agents';
 import { TransformStream, type ReadableStream } from 'node:stream/web';
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
+import { phoneOnlyIdentity } from '../voice-agent-entry/caller-recognition.js';
 import { getBargeInFastPath } from '../multi-agent/barge-in-fastpath.js';
 import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
 import {
@@ -27,6 +29,7 @@ import {
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { noteTurn } from './move-log.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
@@ -56,7 +59,12 @@ interface TurnSession {
 /** Per-agent state: the locked-handoff removal is logged once per agent. */
 export interface TurnToolsState {
   loggedLockedHandoffs: boolean;
+  /** The agent, so tools a phone-only caller can't use come off it too (phone-safe-tools.ts). */
+  agent?: object;
 }
+
+const sessionIdOf = (userData: unknown): string | undefined =>
+  (userData as { services?: { sessionId?: string } } | undefined)?.services?.sessionId;
 
 /**
  * A copy of the context with the turn reminder, plus what Ferni has already
@@ -83,7 +91,14 @@ export function withTurnReminder(
   noteTurn(session, words, style?.turn); // MOVE_OUTCOMES=on (move-log.ts)
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
-  const reminder = [director?.told(keep) ?? '', teamStatusNote(view, words), notes, style?.text]
+  const reminder = [
+    director?.told(keep) ?? '',
+    teamStatusNote(view, words),
+    notes,
+    // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
+    gameTurnNote(session),
+    style?.text,
+  ]
     .filter(Boolean)
     .join(' ');
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
@@ -187,20 +202,45 @@ export async function toolsForTurn(
   state: TurnToolsState
 ): Promise<llm.ToolContext> {
   const view = unlockViewFor(session.userData);
-  const unlocked = await withoutLockedHandoffs(toolCtx, view).catch((error: unknown) => {
+  const allowed = phoneOnlyIdentity(sessionIdOf(session.userData))
+    ? await withoutAccountTools(toolCtx, state)
+    : toolCtx;
+  const unlocked = await withoutLockedHandoffs(allowed, view).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
-    return toolCtx;
+    return allowed;
   });
-  if (unlocked !== toolCtx && !state.loggedLockedHandoffs) {
+  if (unlocked !== allowed && !state.loggedLockedHandoffs) {
     state.loggedLockedHandoffs = true;
     log.info(
       {
-        removed: Object.keys(toolCtx.functionTools).filter((n) => !(n in unlocked.functionTools)),
+        removed: Object.keys(allowed.functionTools).filter((n) => !(n in unlocked.functionTools)),
       },
       'Handoffs to locked teammates kept out of the request'
     );
   }
   return retrievedTools(session, chatCtx, withTeammateAsk(unlocked, view));
+}
+
+/**
+ * A caller known only by their phone number: every tool not on the phone-safe
+ * allowlist leaves the request and the agent itself, so a call to one can't
+ * run (phone-safe-tools.ts).
+ */
+interface ToolHolder {
+  readonly toolCtx: llm.ToolContext;
+  updateTools(tools: llm.ToolContext): Promise<void>;
+}
+
+async function withoutAccountTools(
+  toolCtx: llm.ToolContext,
+  state: TurnToolsState
+): Promise<llm.ToolContext> {
+  const agent = state.agent as ToolHolder | undefined;
+  if (agent && onlyPhoneSafeTools(agent.toolCtx) !== agent.toolCtx) {
+    await agent.updateTools(onlyPhoneSafeTools(agent.toolCtx));
+    log.info({}, 'Only phone-safe tools open for a phone-recognised caller');
+  }
+  return onlyPhoneSafeTools(toolCtx);
 }
 
 /**
