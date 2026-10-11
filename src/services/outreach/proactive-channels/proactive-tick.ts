@@ -5,7 +5,8 @@
  * deliver-scheduled-actions job.
  *
  * The channel (a note in the app or a text) comes from channel-policy.ts: the
- * user's opt-ins, verified phone, quiet hours, daily caps and back-off.
+ * user's opt-ins, verified phone, quiet hours, daily caps and back-off. The
+ * words come from outreach-text.ts.
  *
  * Off unless PROACTIVE_CHANNELS=on, and then only for the user ids in
  * PROACTIVE_CHANNELS_USERS (comma separated). At most one check-in per user
@@ -20,7 +21,8 @@ import { lastTalkedAt } from '../outreach-cadence.js';
 import { isValidTimezone, localMinutes } from '../call-hours-guard.js';
 import { collectTriggers } from './triggers.js';
 import { chooseChannel } from './channel-policy.js';
-import { alreadySent, recentOutreach, writeOutreachLog } from './outreach-log.js';
+import { alreadySent, lastTextOf, recentOutreach, writeOutreachLog } from './outreach-log.js';
+import { writeOutreachText } from './outreach-text.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
 
 const log = createLogger({ module: 'ProactiveChannels' });
@@ -121,6 +123,7 @@ async function runForUser(
   const trigger = await nextTrigger(userId, user, now);
   if (!trigger) return { userId, status: 'idle' };
   const verifiedPhone = await deps.verifiedPhone(userId);
+  const recent = await recentOutreach(userId, new Date(now.getTime() - HISTORY_MS));
   const choice = chooseChannel({
     trigger,
     now,
@@ -128,14 +131,26 @@ async function runForUser(
     timezone: timezoneOf(user),
     verifiedPhone,
     lastTalkedAt: lastTalkedAt(user),
-    recent: await recentOutreach(userId, new Date(now.getTime() - HISTORY_MS)),
+    recent,
     canCall: false,
   });
   const base = { userId, sourceId: trigger.sourceId, why: choice.why };
   if (!choice.channel) return { ...base, status: choice.stop ? 'skipped' : 'held' };
   if (dryRun) return { ...base, channel: choice.channel, status: 'dry_run' };
 
-  const sent = await deliver(userId, trigger, choice.channel, verifiedPhone, deps);
+  const written = await writeOutreachText({
+    trigger,
+    channel: choice.channel,
+    lastText: lastTextOf(recent),
+    rotation: recent.length,
+  });
+  const sent = await deliver(
+    userId,
+    { ...trigger, text: written.text },
+    choice.channel,
+    verifiedPhone,
+    deps
+  );
   await writeOutreachLog(userId, {
     sourceId: trigger.sourceId,
     kind: trigger.kind,
@@ -144,6 +159,8 @@ async function runForUser(
     why: choice.why,
     at: now.toISOString(),
     outcome: sent.ok ? 'sent' : 'failed',
+    text: written.text,
+    textSource: written.source,
     ...(sent.fallbackFrom && { fallbackFrom: sent.fallbackFrom }),
   });
   log.info(

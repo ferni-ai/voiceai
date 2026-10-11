@@ -13,8 +13,9 @@
  * - Backing off: two texts in a row with no conversation since means no more
  *   texts until they talk to Ferni again; a call that wasn't picked up (or was
  *   a "not now") means no calls for three days; a snooze holds everything.
- * - outreachPreferences.proactiveFrequency: 'gentle' (the default) or 'normal'
- *   sets the daily caps; 'off' stops proactive check-ins.
+ * - outreachPreferences.proactiveFrequency: 'normal', 'gentle' (the default)
+ *   or 'light' sets the daily caps (light: one a day, no calls); 'off' stops
+ *   proactive check-ins.
  *
  * @module services/outreach/proactive-channels/channel-policy
  */
@@ -32,7 +33,9 @@ const CALL_BACKOFF_MS = 3 * DAY_MS;
 const MAX_UNANSWERED_TEXTS = 2;
 const DEFAULT_QUIET = { startMin: 21 * 60, endMin: 8 * 60 };
 
-export type ProactiveFrequency = 'gentle' | 'normal' | 'off';
+export type ProactiveFrequency = 'normal' | 'gentle' | 'light' | 'off';
+
+const FREQUENCIES: readonly ProactiveFrequency[] = ['normal', 'gentle', 'light', 'off'];
 
 /** Per rolling 24 hours. */
 const CAPS: Record<
@@ -41,6 +44,7 @@ const CAPS: Record<
 > = {
   gentle: { total: 3, sms: 2, call: 1 },
   normal: { total: 6, sms: 4, call: 1 },
+  light: { total: 1, sms: 1, call: 0 },
 };
 
 const CALL_MISSED: ReadonlySet<OutreachLogEntry['outcome']> = new Set([
@@ -57,7 +61,7 @@ interface ProactivePrefs {
 
 export function frequencyOf(prefs: unknown): ProactiveFrequency {
   const f = (prefs as ProactivePrefs | undefined)?.proactiveFrequency;
-  return f === 'normal' || f === 'off' ? f : 'gentle';
+  return FREQUENCIES.includes(f as ProactiveFrequency) ? (f as ProactiveFrequency) : 'gentle';
 }
 
 function quietWindow(prefs: unknown): { startMin: number; endMin: number } {

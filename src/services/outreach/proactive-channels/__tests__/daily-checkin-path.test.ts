@@ -37,6 +37,9 @@ vi.mock('../../llm-content-generator.js', () => ({
   })),
 }));
 
+let modelReply: string | null = null;
+vi.mock('../../../llm/llm-utils.js', () => ({ callLLM: vi.fn(async () => modelReply) }));
+
 const { runDailyOutreach } = await import('../../automated-scheduler.js');
 
 const SETH = 'seth-uid';
@@ -66,6 +69,7 @@ const logOf = (uid: string) =>
 
 beforeEach(() => {
   docs.clear();
+  modelReply = null;
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW);
   process.env.PROACTIVE_CHANNELS = 'on';
@@ -146,5 +150,33 @@ describe('daily outreach for allowlisted users', () => {
       expect.objectContaining({ userId: OTHER, status: 'sent', channel: 'email' }),
     ]);
     expect(logOf(OTHER)).toHaveLength(0);
+  });
+
+  it("writes the daily words fresh and never repeats yesterday's line", async () => {
+    seedUser(SETH);
+    const yesterday = "Hey, it's Ferni. Been thinking about you. How's your day going?";
+    docs.set(`bogle_users/${SETH}/proactive_outreach_log/daily:2026-10-11`, {
+      sourceId: 'daily:2026-10-11',
+      channel: 'in_app',
+      at: new Date(NOW.getTime() - DAY).toISOString(),
+      outcome: 'sent',
+      text: yesterday,
+    });
+    modelReply = yesterday;
+    await runDailyOutreach();
+    const [today] = logOf(SETH).filter((e) => e.sourceId === 'daily:2026-10-12');
+    expect(today.text).toEqual(expect.any(String));
+    expect(today.text).not.toBe(yesterday);
+    expect(today.textSource).toBe('fallback');
+    const [note] = notesOf(SETH).map(([, d]) => d);
+    expect(note.text).toBe(today.text);
+
+    modelReply = "Hey, it's Ferni. How's your Monday shaping up?";
+    docs.delete(`bogle_users/${SETH}/proactive_outreach_log/daily:2026-10-12`);
+    const user = docs.get(`bogle_users/${SETH}`) ?? {};
+    delete user.lastOutreachDate;
+    await runDailyOutreach();
+    const [again] = logOf(SETH).filter((e) => e.sourceId === 'daily:2026-10-12');
+    expect(again).toMatchObject({ text: modelReply, textSource: 'llm' });
   });
 });

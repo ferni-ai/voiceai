@@ -11,6 +11,9 @@ const docs = new Map<string, Record<string, unknown>>();
 const authUsers = new Map<string, { phoneNumber?: string }>();
 const texts: Array<{ to: string; body: string }> = [];
 let twilioDown = false;
+/** What the model writes; null means it is unavailable. */
+let modelReply: string | null | Error = null;
+const prompts: string[] = [];
 
 vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -30,6 +33,14 @@ vi.mock('../../../communication-service.js', () => ({
     if (twilioDown) throw new Error('Twilio error: 503');
     texts.push({ to, body });
     return 'sent';
+  }),
+}));
+
+vi.mock('../../../llm/llm-utils.js', () => ({
+  callLLM: vi.fn(async (prompt: string) => {
+    prompts.push(prompt);
+    if (modelReply instanceof Error) throw modelReply;
+    return modelReply;
   }),
 }));
 
@@ -91,6 +102,8 @@ beforeEach(() => {
   authUsers.clear();
   texts.length = 0;
   twilioDown = false;
+  modelReply = null;
+  prompts.length = 0;
   authUsers.set(SETH, { phoneNumber: PHONE });
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW);
@@ -243,5 +256,57 @@ describe('proactive check-in channel', () => {
     vi.setSystemTime(new Date(NOW.getTime() + 3 * HOUR));
     await runHandler();
     expect(texts).toHaveLength(1);
+  });
+});
+
+describe('proactive check-in words', () => {
+  it('Gemini writes the text from the reason, and the log says so', async () => {
+    modelReply = "Hey, it's Ferni. How's the move coming along?";
+    seedUser();
+    seedPromise('p1');
+    await runHandler();
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toContain("Why you're reaching out: I said I'd check in about the move.");
+    expect(texts.map((t) => t.body)).toEqual(["Hey, it's Ferni. How's the move coming along?"]);
+    expect(logOf('promise:p1')).toMatchObject({
+      text: "Hey, it's Ferni. How's the move coming along?",
+      textSource: 'llm',
+    });
+  });
+
+  it('a reply that calls Ferni an assistant is not sent; the promise line goes instead', async () => {
+    modelReply = 'Hi! As your AI assistant, I wanted to check in about the move.';
+    seedUser();
+    seedPromise('p1');
+    await runHandler();
+    expect(texts.map((t) => t.body)).toEqual([
+      "Hey, it's Ferni. I said I'd check in about the move. How's it going?",
+    ]);
+    expect(logOf('promise:p1')).toMatchObject({ textSource: 'template' });
+  });
+
+  it('when the model call throws, the promise line goes out', async () => {
+    modelReply = new Error('Vertex 503');
+    seedUser();
+    seedPromise('p1');
+    await runHandler();
+    expect(texts).toHaveLength(1);
+    expect(logOf('promise:p1')).toMatchObject({ textSource: 'template' });
+  });
+
+  it('never sends the same words twice in a row', async () => {
+    const last = "Hey, it's Ferni. I said I'd check in about the move. How's it going?";
+    seedUser();
+    seedLog('earlier', {
+      channel: 'in_app',
+      at: new Date(NOW.getTime() - 26 * HOUR).toISOString(),
+      text: last,
+    });
+    modelReply = last;
+    seedPromise('p1');
+    await runHandler();
+    expect(texts).toHaveLength(1);
+    expect(texts[0].body).not.toBe(last);
+    expect(logOf('promise:p1')).toMatchObject({ textSource: 'fallback' });
   });
 });
