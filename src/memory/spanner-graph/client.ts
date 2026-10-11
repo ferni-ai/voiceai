@@ -662,16 +662,13 @@ export async function markAnchorRecalled(userId: string, anchorId: string): Prom
 // CLEANUP
 // ============================================================================
 
-/**
- * Close Spanner connections
- */
+/** Close Spanner connections. Spanner 9's close() is async, so a failed close rejects here. */
 export async function closeSpanner(): Promise<void> {
   if (databaseInstance) {
     await databaseInstance.close();
     databaseInstance = null;
   }
   if (spannerInstance) {
-    // @google-cloud/spanner 9 made close() async; await it so a failed close rejects here.
     await spannerInstance.close();
     spannerInstance = null;
   }
