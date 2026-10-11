@@ -10,6 +10,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { TurnToolRetrieval } from '../../tools/retrieval/turn-tool-retrieval.js';
 import type { PersonaId } from '../../personas/types.js';
 import { assistantTranscriptHandler } from './assistant-transcript.js';
+import { TURN_CONTEXT_HEADER } from './turn-context-header.js';
 
 const log = getLogger();
 
@@ -59,6 +60,7 @@ export async function installPaceMatching(
 export interface ToolRetrievalInput {
   session: Session;
   sessionId: string;
+  /** The agent, or a getter for the one on the call now (persona-swap.ts agentOnCall) */
   agent: unknown;
   dynamicToolLoader: {
     loadAllDomains(): Promise<number>;
@@ -118,7 +120,8 @@ export async function installToolRetrieval(
   // catalog in the background (the first call in a process also imports every
   // domain, ~2 s) and hand it over once a reply has started, so the change
   // can't void LiveKit's preemptive reply.
-  if (toolRetrievalMode() === 'live') {
+  const { staticCoreToolsEnabled } = await import('../../config/tool-config.js');
+  if (toolRetrievalMode() === 'live' && !staticCoreToolsEnabled()) {
     const catalogStarted = Date.now();
     void dynamicToolLoader
       .loadAllDomains()
@@ -131,7 +134,7 @@ export async function installToolRetrieval(
           'TOOL_CATALOG_LOADED'
         );
         applyAfterReplyStarts(session as never, async () => {
-          await updateAgentTools(agent as never, tools as never, { silentMerge: true });
+          await updateAgentTools(now(agent) as never, tools as never, { silentMerge: true });
         });
       })
       .catch((error: unknown) =>
@@ -233,6 +236,17 @@ export async function installTurnUnderstanding(
 export async function installTurnListeners(
   input: ToolRetrievalInput
 ): Promise<{ onTranscript(transcript: string, isFinal: boolean): void } | null> {
+  // One REPLY_GAP line per caller turn (reply-gap.ts): the wait the caller hears.
+  const { attachReplyGap, createLoopDelayProbe } = await import('../shared/reply-gap.js');
+  const loop = createLoopDelayProbe();
+  input.cleanupFunctions.push(
+    attachReplyGap(
+      input.session as never,
+      (gap) => log.info({ sessionId: input.sessionId, ...gap }, 'REPLY_GAP'),
+      loop
+    ),
+    () => loop.close()
+  );
   const retrieval = await installToolRetrieval(input);
   const understanding = await installTurnUnderstanding(input.session, input.cleanupFunctions);
   if (!retrieval && !understanding) return null;
@@ -244,11 +258,18 @@ export async function installTurnListeners(
   };
 }
 
+type ChatAgent = { chatCtx: { items: unknown[] } };
+
+/** An agent, or a getter for the agent on the call now: read when used, so it follows swaps */
+function now<A>(agent: A | (() => A)): A {
+  return typeof agent === 'function' ? (agent as () => A)() : agent;
+}
+
 export interface DirectorNotesInput {
   session: Session;
   sessionId: string;
   userName: string | undefined;
-  agent: { chatCtx: { items: unknown[] } };
+  agent: ChatAgent | (() => ChatAgent);
   cleanupFunctions: Cleanup;
 }
 
@@ -259,6 +280,8 @@ export interface DirectorNotesInput {
  */
 export async function installDirectorNotes(input: DirectorNotesInput): Promise<void> {
   const { session, sessionId, userName, agent, cleanupFunctions } = input;
+  // The deliberator reads the call at the same moment the director does.
+  await installDeliberation(input);
   const { directorNotesEnabled, Director, setDirector, linesFromChat } =
     await import('../personas/director-notes.js');
   const { toldThisCallEnabled } = await import('../personas/told-this-call.js');
@@ -272,7 +295,7 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
     if (state === 'speaking') spoke = true;
     if (state !== 'listening' || !spoke) return;
     spoke = false;
-    void director.observe(linesFromChat(agent.chatCtx.items as never));
+    void director.observe(linesFromChat(now(agent).chatCtx.items as never));
   };
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, directorHandler);
   cleanupFunctions.push(() => {
@@ -280,6 +303,46 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
     setDirector(session, null);
   });
   log.info({ sessionId, writeNotes, toldThisCall: toldThisCallEnabled() }, 'director notes on');
+}
+
+/**
+ * DELIBERATION=on: after each exchange, think a weighty caller turn over in the
+ * background (personas/deliberation.ts), with the turn's memory note
+ * (turn-intelligence.ts); a DELIBERATION_SUMMARY (counts, tokens) at the end.
+ */
+async function installDeliberation(input: DirectorNotesInput): Promise<void> {
+  const { session, sessionId, userName, agent, cleanupFunctions } = input;
+  const { deliberationEnabled, Deliberator, geminiThink, setDeliberator } =
+    await import('../personas/deliberation.js');
+  if (!deliberationEnabled()) return;
+  const [{ linesFromChat }, { understandingOfLastTurn }] = await Promise.all([
+    import('../personas/director-notes.js'),
+    import('../personas/turn-understanding.js'),
+  ]);
+  const deliberator = new Deliberator({ sessionId, userName, think: geminiThink() });
+  setDeliberator(session, deliberator);
+  let spoke = false;
+  const onState = (ev: unknown): void => {
+    const state = (ev as { newState?: string }).newState;
+    if (state === 'speaking') spoke = true;
+    if (state !== 'listening' || !spoke) return;
+    spoke = false;
+    const items = now(agent).chatCtx.items as Array<{ type?: string; textContent?: string }>;
+    const note = [...items].reverse().find((i) => i.textContent?.startsWith(TURN_CONTEXT_HEADER));
+    const memory = note?.textContent?.slice(TURN_CONTEXT_HEADER.length) ?? '';
+    void deliberator.observe(
+      linesFromChat(items as never),
+      understandingOfLastTurn(session),
+      memory
+    );
+  };
+  session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+  cleanupFunctions.push(() => {
+    session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+    setDeliberator(session, null);
+    log.info({ sessionId, ...deliberator.summary() }, 'DELIBERATION_SUMMARY');
+  });
+  log.info({ sessionId }, 'deliberation on');
 }
 
 /** Record Ferni's side of the conversation to the thread (user turns are recorded elsewhere). */

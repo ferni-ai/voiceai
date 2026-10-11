@@ -12,7 +12,8 @@ import { describe, it, expect, vi } from 'vitest';
 // below happens to have a real sponsored identity. Stub the lookup so the test
 // is hermetic and actually tests the path it names.
 vi.mock('../services/identity/sponsored-identity.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../services/identity/sponsored-identity.js')>();
+  const actual =
+    await importOriginal<typeof import('../services/identity/sponsored-identity.js')>();
   return {
     ...actual,
     lookupByPhone: vi.fn(async () => ({ found: false })),
@@ -27,6 +28,7 @@ import {
   identifyByWebAuth,
   identifyFromMetadata,
 } from '../services/identity/user-identification.js';
+import { signOnBehalfDispatch } from '../services/outreach/on-behalf-dispatch.js';
 
 describe('User Identification Service', () => {
   describe('Phone Number Normalization', () => {
@@ -109,6 +111,12 @@ describe('User Identification Service', () => {
   });
 
   describe('Metadata-Based Identification', () => {
+    const SECRET = 'test-livekit-secret';
+    process.env.LIVEKIT_API_SECRET = SECRET;
+    /** Metadata as a dispatch our server signed (the on-behalf dispatch HMAC). */
+    const signed = (m: Record<string, unknown>) =>
+      signOnBehalfDispatch(m as never, SECRET) as unknown as Record<string, unknown>;
+
     it('should identify from explicit user_id', async () => {
       const result = await identifyFromMetadata({
         user_id: 'explicit-user-123',
@@ -119,22 +127,35 @@ describe('User Identification Service', () => {
       expect(result.source.type).toBe('web_auth');
     });
 
-    it('should identify from phone number in caller_id', async () => {
-      const result = await identifyFromMetadata({
-        caller_id: '+15551234567',
-      });
+    it('should identify from phone number in caller_id on a dispatch our server signed', async () => {
+      const result = await identifyFromMetadata(signed({ caller_id: '+15551234567' }));
 
       expect(result.userId).toBe('phone:+15551234567');
       expect(result.source.type).toBe('phone');
     });
 
-    it('should identify from phone number in "from" field', async () => {
-      const result = await identifyFromMetadata({
-        from: '555-867-5309',
-      });
+    it('should identify from phone number in "from" field on a signed dispatch', async () => {
+      const result = await identifyFromMetadata(signed({ from: '555-867-5309' }));
 
       expect(result.userId).toBe('phone:+15558675309');
       expect(result.source.type).toBe('phone');
+    });
+
+    // A spoofable caller ID must never load an account from unsigned metadata.
+    it.each([
+      ['caller_id', { caller_id: '+15551234567' }],
+      ['phone', { phone: '+15551234567' }],
+      ['from', { from: '+15551234567' }],
+      ['a forged signature', { caller_id: '+15551234567', requesterSignature: 'forged' }],
+      [
+        'a signed dispatch with the number swapped',
+        { ...signed({ caller_id: '+15550000000' }), caller_id: '+15551234567' },
+      ],
+    ])('stays anonymous for a number in unsigned metadata (%s)', async (_label, metadata) => {
+      const result = await identifyFromMetadata(metadata);
+
+      expect(result.source.type).toBe('anonymous');
+      expect(String(result.userId)).not.toContain('5551234567');
     });
 
     it('should identify from device_id', async () => {

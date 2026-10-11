@@ -1,12 +1,15 @@
 /**
  * Rituals Service
  *
- * Manages user-created rituals with localStorage persistence and backend sync.
+ * Manages user-created rituals: localStorage for instant reads, and a server copy
+ * (/api/synced/rituals) so they follow the person to a new device. Init merges the
+ * server's list in (newer copy wins) and sends up what only this browser has.
  * Handles CRUD operations for custom practices.
  */
 
 import { createLogger } from '../utils/logger.js';
 import { apiPost, apiDelete, getUserId } from '../utils/api.js';
+import { deleteSynced, pullAndMerge, saveSynced } from './synced-items.js';
 import type { CustomRitual } from '../ui/ritual-builder.ui.js';
 
 const log = createLogger('Rituals');
@@ -56,6 +59,16 @@ class RitualsService {
     this.loadFromStorage();
     this.initialized = true;
     log.info('Rituals service initialized', { count: this.rituals.size });
+    void this.pullFromServer();
+  }
+
+  /** Merge in rituals saved on other devices; send up the ones only this one has. */
+  async pullFromServer(): Promise<void> {
+    const merged = await pullAndMerge('rituals', this.rituals, (r) => r.updatedAt);
+    if (!merged) return;
+    this.rituals = merged;
+    this.saveToStorage();
+    log.info('Rituals merged with the server copy', { count: merged.size });
   }
 
   /**
@@ -360,42 +373,14 @@ class RitualsService {
   // BACKEND SYNC
   // ============================================================================
 
+  // POST /api/rituals never stored the ritual (it registered a new engagement ritual id on
+  // every call); the synced copy is the ritual itself.
   private async syncToBackend(ritual: SavedRitual): Promise<void> {
-    const userId = getUserId();
-    if (!userId) {
-      log.debug('No user ID, skipping backend sync');
-      return;
-    }
-
-    try {
-      const result = await apiPost('/api/rituals', { ritual });
-
-      if (!result.ok) {
-        throw new Error(result.error || 'Sync failed');
-      }
-
-      log.debug('Ritual synced to backend', { id: ritual.id });
-    } catch (err) {
-      // Silent fail - localStorage is the source of truth
-      log.debug('Backend sync failed (non-critical)', err);
-    }
+    await saveSynced('rituals', ritual.id, ritual, ritual.updatedAt);
   }
 
   private async deleteFromBackend(ritualId: string): Promise<void> {
-    const userId = getUserId();
-    if (!userId) return;
-
-    try {
-      const result = await apiDelete(`/api/rituals/${ritualId}`);
-
-      if (!result.ok) {
-        throw new Error(result.error || 'Delete failed');
-      }
-
-      log.debug('Ritual deleted from backend', { id: ritualId });
-    } catch (err) {
-      log.debug('Backend delete failed (non-critical)', err);
-    }
+    await deleteSynced('rituals', ritualId);
   }
 
   /**

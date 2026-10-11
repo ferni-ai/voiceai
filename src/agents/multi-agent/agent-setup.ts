@@ -17,6 +17,7 @@
  */
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
+import { attachTurnReceipts } from '../shared/turn-receipt.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig, PersonaId } from '../../personas/types.js';
@@ -30,7 +31,7 @@ import { getRealtimeModel } from '../../config/gemini-config.js';
 import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
 import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
 // Centralized tool configuration (Jan 2026)
-import { capToolsToLimit, getMaxTools } from '../../config/tool-config.js';
+import { capToolsToLimit, getMaxTools, staticCoreToolsEnabled } from '../../config/tool-config.js';
 
 // Model provider abstraction - centralizes all model-specific behavior
 import { getModelProvider, isUsingOpenAI } from '../model-provider/index.js';
@@ -97,8 +98,13 @@ import { composeAgentInstructions } from './agent-instructions.js';
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
-import { createFindToolsTool, FIND_TOOLS } from '../../tools/retrieval/find-tools-tool.js';
-import { createEndCallTool, END_CALL } from '../outbound-call/call-control.js';
+import {
+  createFindToolsTool,
+  FIND_TOOLS,
+  setToolPinner,
+} from '../../tools/retrieval/find-tools-tool.js';
+import { createToolPinner, staticCoreTools } from '../shared/static-core-tools.js';
+import { amdOpensCall, createEndCallTool, END_CALL } from '../outbound-call/call-control.js';
 import { toolRetrievalMode as retrievalModeNow } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { initializeFrontendPublisher } from '../realtime/index.js';
@@ -108,6 +114,7 @@ import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.j
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
 import { createPersonaTTS } from './persona-tts.js';
 import { createCallSession } from './call-session.js';
+import { agentOnCall, personaOnCall, rememberPersona } from './persona-swap.js';
 import { installLiveCallBehaviors, startTurnSounds } from './live-call-behaviors.js';
 import {
   installDirectorNotes,
@@ -115,6 +122,7 @@ import {
   installTurnListeners,
   recordAssistantTurns,
 } from './turn-observers.js';
+import { localClockContext, localClockEnabled } from '../shared/local-clock.js';
 import { timeContext } from '../shared/time-context.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
@@ -199,6 +207,7 @@ export interface AgentSetupConfig {
    * Only this persona's Agent and its own listeners are built; the session stays the call's.
    */
   callSession?: voice.AgentSession<UserData>;
+  phoneCaller?: boolean; // a phone (LiveKit SIP) caller: see PHONE_AUDIO_MODE
 }
 
 /**
@@ -332,10 +341,18 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // the date/time from the VERY FIRST MOMENT (including greeting)
     // =========================================================================
     // The caller's local time and part of day (time-context.ts); never the server's UTC clock.
-    const dateTimeContext = timeContext(new Date(), userData?.callerTimezone);
-
     // Append date/time to model base instructions (session-specific, not cached)
     const outboundAwareness = outboundCallerAwareness(outboundPartiesFor(sessionId));
+    // FERNI_LOCAL_CLOCK=on: Ferni's own mountain-time clock, plus the caller's
+    // (browser zone, else the profile zone: a phone call may carry no browser zone).
+    const dateTimeContext =
+      localClockEnabled() && persona.id === 'ferni'
+        ? localClockContext(
+            new Date(),
+            userData?.callerTimezone ??
+              (outboundAwareness ? undefined : services.userProfile?.contactInfo?.timezone)
+          )
+        : timeContext(new Date(), userData?.callerTimezone);
     modelBaseInstructions = baseInstructions + dateTimeContext + outboundAwareness;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
@@ -1037,7 +1054,19 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // Every provider gets a cap: the essential domains alone are ~340 tools.
   const effectiveLimit = resolveInitialToolLimit(configuredLimit);
 
-  if (effectiveLimit > 0 && toolCount > effectiveLimit) {
+  const endCallTool = createEndCallTool(sessionId);
+  const coreCtx = {
+    userId: userId || 'anonymous',
+    sessionId,
+    agentId: persona.id,
+    agentDisplayName: persona.name || persona.id,
+  };
+  if (staticCoreToolsEnabled()) {
+    // TOOL_CORE_STATIC: one set for the whole call, findTools for the rest.
+    const have = { ...orchestratorTools, [FIND_TOOLS]: createFindToolsTool() };
+    if (endCallTool) Object.assign(have, { [END_CALL]: endCallTool });
+    finalTools = (await staticCoreTools(have, coreCtx)) as typeof finalTools;
+  } else if (effectiveLimit > 0 && toolCount > effectiveLimit) {
     // Use centralized tool capping which handles essential tool prioritization
     finalTools = capToolsToLimit(orchestratorTools, effectiveLimit);
     const cappedCount = Object.keys(finalTools).length;
@@ -1071,13 +1100,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   // Live tool retrieval sends each request only the tools its words point to;
   // findTools lets the model reach one retrieval ranked too low.
-  if (retrievalModeNow() === 'live') {
+  if (retrievalModeNow() === 'live' && !staticCoreToolsEnabled()) {
     finalTools = { ...finalTools, [FIND_TOOLS]: createFindToolsTool() } as typeof finalTools;
   }
 
   // On-behalf phone call: Ferni can hang up after a goodbye or a voicemail
-  const endCallTool = createEndCallTool(sessionId);
-  if (endCallTool) {
+  if (endCallTool && !staticCoreToolsEnabled()) {
     finalTools = { ...finalTools, [END_CALL]: endCallTool } as typeof finalTools;
   }
 
@@ -1141,11 +1169,11 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   mark('session_create_start');
   // A persona swapped into a running call joins its session (persona-swap.ts)
-  const session =
-    callSession ??
-    (await createCallSession({ persona, sessionId, services, userData, llmModel, tts }));
+  const parts = { persona, sessionId, services, userData, llmModel, tts };
+  const session = callSession ?? (await createCallSession({ ...parts, phone: config.phoneCaller }));
 
   mark('session_created');
+  rememberPersona(session, persona); // personaOnCall: handlers follow the persona on the call
 
   // Match the single-agent conversation humanization bootstrap without adding
   // work to the agent join critical path.
@@ -1203,7 +1231,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // FIX (Jan 2026): Skip ping if user is actively speaking
         // This prevents race conditions where ping and user response compete
         const userData = session.userData as { userSpeakingStartTime?: number } | undefined;
-        if (userData?.userSpeakingStartTime) {
+        if (userData?.userSpeakingStartTime || amdOpensCall(sessionId)) {
           log.debug({ sessionId }, '🏥 [HEALTH] Skipping ping - user is speaking');
           return true; // Return true to indicate "healthy" without actually pinging
         }
@@ -1394,6 +1422,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
       event: TURN_METRICS_EVENT,
       handler: turnMetricsHandler as (...args: unknown[]) => void,
     });
+    // One TURN_RECEIPT line per caller turn: what the model was given and did, no words.
+    cleanupFunctions.push(
+      attachTurnReceipts(session as never, {
+        sessionId,
+        userId,
+        persona: () => userData.personaId ?? persona.id,
+      })
+    );
 
     // 🔊 COMPREHENSIVE SESSION DEBUG: Track ALL session events during startup
     // This helps us understand what's happening during prewarm
@@ -1615,7 +1651,11 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // Interim events count: with STT turn detection the SDK starts preemptive
   // generation from the preflight transcript, which arrives as an interim.
   if (userId && userId !== 'anonymous' && memoryRecallMode() && sessionWithEvents.on) {
-    const recall = createMemoryRecall({ userId, userName: userData.userName });
+    const recall = createMemoryRecall({
+      userId,
+      userName: userData.userName,
+      personaId: persona.id,
+    });
     const onRecallTranscript = (event: unknown) => {
       const evt = event as { transcript?: string };
       if (!evt.transcript) return;
@@ -1674,6 +1714,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // after the greeting is spoken (reduces critical path by ~500ms).
   // =========================================================================
   const wireHandlersImpl = async (): Promise<void> => {
+    // Wired once per call: read the persona and agent on the call now, not the first ones
+    const onCall = personaOnCall(session, userData, persona);
+    const agentNow = agentOnCall(session as never, agent);
     if (!enableFullHandlers) {
       log.debug({ personaId: persona.id }, '🎭 Handlers disabled, skipping wiring');
       return;
@@ -1811,15 +1854,20 @@ Reference past context when relevant, but don't force it. Let the conversation f
         const toolRetrieval = await installTurnListeners({
           session,
           sessionId,
-          agent,
+          agent: agentNow,
           dynamicToolLoader,
           cleanupFunctions,
         });
+        if (staticCoreToolsEnabled()) {
+          // findTools appends what it finds to the agent on the call now.
+          setToolPinner(session, createToolPinner(agentNow, coreCtx));
+          cleanupFunctions.push(() => setToolPinner(session, null));
+        }
         await installDirectorNotes({
           session,
           sessionId,
           userName: userData?.userName,
-          agent,
+          agent: agentNow,
           cleanupFunctions,
         });
         try {
@@ -1827,7 +1875,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
             room,
             session,
             sessionId,
-            personaId: () => persona.id,
+            personaId: () => onCall.id,
             lastUserFinalTranscript: () => lastUserFinalTranscript,
             cleanupFunctions,
           });
@@ -1838,7 +1886,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
             () => conversationManager?.isAgentSpeaking() ?? false,
             // A native-audio model would turn a scripted "mm-hmm" into a full
             // reply while the user is still talking.
-            { enabled: !getModelProvider().speaksNatively?.(), playClip: clips?.playClip }
+            { enabled: !getModelProvider().speaksNatively?.(), ...clips?.live }
           );
           cleanupFunctions.push(() => liveBackchannel?.cleanup());
           // A user turn ends when the agent takes the floor. Ink finalizes a
@@ -1942,7 +1990,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           room,
           session,
           services,
-          sessionPersona: persona,
+          sessionPersona: onCall,
           conversationManager,
           voiceHumanization,
           userData,
@@ -2020,7 +2068,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // SESSION STATE HANDLERS
         const stateResult = setupSessionStateHandlers({
           session,
-          sessionPersona: persona,
+          sessionPersona: onCall,
           conversationManager,
           userData,
           sessionId,
@@ -2043,7 +2091,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         session,
         userData,
         services,
-        sessionPersona: persona,
+        sessionPersona: onCall,
         sessionId,
         debugEnabled: process.env.DEBUG_VOICE_AGENT === 'true',
         sendDataMessage,

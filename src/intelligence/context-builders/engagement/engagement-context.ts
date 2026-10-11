@@ -11,6 +11,7 @@
  * This is the "brain" that decides what engagement opportunities to surface.
  */
 
+import { isTeamByNeedEnabled } from '../../../config/team-by-need-flag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { UserProfile } from '../../../types/user-profile.js';
 import { getDailyRitualsService, PERSONA_RITUALS } from '../../../services/daily-rituals.js';
@@ -158,8 +159,8 @@ export async function buildEngagementContext(
     }
   }
 
-  // 7. Check for streak-at-risk alerts
-  if (includeRituals) {
+  // 7. Check for streak-at-risk alerts (none under TEAM_BY_NEED: no streak nudges)
+  if (includeRituals && !isTeamByNeedEnabled()) {
     const streakAlert = checkStreakAtRisk(userId, personaId);
     if (streakAlert) {
       opportunities.push(streakAlert);

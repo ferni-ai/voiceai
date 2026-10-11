@@ -75,7 +75,7 @@ export interface ConversationMemoryCallbacks {
 // DEMO MODE - Mock data when no real data exists
 // ============================================================================
 
-const DEMO_CONVERSATIONS: Conversation[] = [
+const demoConversations = (): Conversation[] => [
   {
     id: 'demo_001',
     startedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
@@ -118,7 +118,7 @@ const DEMO_CONVERSATIONS: Conversation[] = [
   },
 ];
 
-const DEMO_MEMORY: ConversationMemory = {
+const demoMemory = (): ConversationMemory => ({
   hasMemory: true,
   totalConversations: 5,
   totalDuration: 73, // minutes
@@ -131,14 +131,14 @@ const DEMO_MEMORY: ConversationMemory = {
     t('conversationMemory.demo.detail4', 'Your friend Sarah is someone you value deeply'),
     t('conversationMemory.demo.detail5', 'Weekends are your recharge time'),
   ],
-};
+});
 
-const DEMO_CONTEXT: ConversationContext = {
+const demoContext = (): ConversationContext => ({
   recentTopics: ['morning routine', 'exercise', 'goals'],
   unfinishedThreads: ['Your morning routine experiment'],
-  rememberedDetails: DEMO_MEMORY.rememberedDetails || [],
+  rememberedDetails: demoMemory().rememberedDetails || [],
   suggestedFollowUps: [t('conversationMemory.demo.followUp1', 'How is the early wake-up going?'), t('conversationMemory.demo.followUp2', 'Did you try the exercise habit?')],
-};
+});
 
 /**
  * Check if demo mode should be active
@@ -1073,9 +1073,9 @@ async function loadData(): Promise<void> {
     // If no real data, check if we should show demo mode
     if (!hasError && shouldShowDemoMode()) {
       isDemoMode = true;
-      memory = DEMO_MEMORY;
-      conversations = DEMO_CONVERSATIONS;
-      context = DEMO_CONTEXT;
+      memory = demoMemory();
+      conversations = demoConversations();
+      context = demoContext();
       log.debug('Using demo mode - showing mock data');
     }
 
@@ -1089,9 +1089,9 @@ async function loadData(): Promise<void> {
     // On error, try demo mode instead of showing error
     if (shouldShowDemoMode()) {
       isDemoMode = true;
-      memory = DEMO_MEMORY;
-      conversations = DEMO_CONVERSATIONS;
-      context = DEMO_CONTEXT;
+      memory = demoMemory();
+      conversations = demoConversations();
+      context = demoContext();
       hasError = false;
       log.debug('Using demo mode after fetch error');
     } else {

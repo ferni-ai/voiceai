@@ -16,6 +16,7 @@
  */
 
 import type { Room } from '@livekit/rtc-node';
+import { applyCallerFlags } from '../../services/platform/cohort-flags.js';
 import {
   getSpeakerChangeDetector,
   type SpeakerChangeEvent,
@@ -24,6 +25,12 @@ import { diag } from '../../services/diagnostic-logger.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { prefetchUserCommitments } from '../../services/superhuman/commitment-prefetch.js';
 import { createSpeakerChangePrompter, listenForSpeakerCheckReplies } from './speaker-check.js';
+import {
+  accountNamedByDispatch,
+  rememberDispatchIdentity,
+  callerRecognitionEnabled,
+  recognizePhoneSession,
+} from '../voice-agent-entry/caller-recognition.js';
 
 // ============================================================================
 // TYPES
@@ -151,6 +158,19 @@ export async function identifyUser(
     diag.warn('User identification failed', { error: String(e) });
   }
 
+  // A phone caller is who their verified number says, or nobody (caller-recognition.ts).
+  if (callerRecognitionEnabled() && !accountNamedByDispatch(identificationSource, jobMetadata)) {
+    const phone = await recognizePhoneSession(room, sessionId).catch((e: unknown) => {
+      diag.warn('Caller recognition failed', { error: String(e) });
+      return null;
+    });
+    // Known: their account. Otherwise drop an id that came from the number alone.
+    if (phone?.userId) ({ userId, userName } = phone);
+    else if (phone && identificationSource !== 'anonymous' && identificationSource !== 'device')
+      userId = userName = undefined;
+    if (phone) identificationSource = 'phone';
+  }
+
   // Configure music playback mode for phone calls
   if (identificationSource === 'phone') {
     try {
@@ -166,6 +186,10 @@ export async function identifyUser(
   // Detect and set user's preferred English accent for TTS
   // ===============================================
   userAccent = await detectUserAccent(jobMetadata);
+  rememberDispatchIdentity(sessionId, identificationSource, jobMetadata);
+
+  // Friends-and-family flags for this caller, before anything reads a flag (cohort-flags.ts).
+  await applyCallerFlags(userId);
 
   return {
     userId,

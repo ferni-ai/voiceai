@@ -19,8 +19,8 @@
   },
   "dependencies": {
     "@google-cloud/firestore": "^8.0.0",
-    "@google-cloud/pubsub": "^4.10.0",
-    "@google-cloud/tasks": "^6.2.1",
+    "@google-cloud/pubsub": "^6.2.0",
+    "@google-cloud/tasks": "^7.2.1",
     "express": "5.2.1",
     "firebase-admin": "^13.6.0",
     "pino": "10.4.0",
@@ -33,7 +33,7 @@
     "esbuild": "^0.28.2",
     "tsx": "^4.23.15",
     "typescript": "^5.8.3",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.3"
   },
   "engines": {
     "node": ">=20.0.0"

@@ -20,6 +20,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { COACH_LOCAL_TOOLS, isCoachLocalEnabled } from './coach-local-flag.js';
 
 const log = createLogger({ module: 'ToolConfig' });
 
@@ -108,7 +109,6 @@ const DEFAULT_ESSENTIAL_TOOLS = [
   'groundingExercise',
   'breatheWithMe',
   'groundingForTrauma',
-  // Memory
   'rememberAboutUser',
   'recallFromMemory',
   'recallPreviousConversation',
@@ -152,6 +152,11 @@ const DEFAULT_ESSENTIAL_TOOLS = [
   // Fun
   'tellJoke',
   'getFunFact',
+  // The game scorekeeper; only exists with GAME_STATE=on (games/game-state-tool.ts).
+  // Without this the first agent's 64-slot cap dropped every games tool.
+  'gameState',
+  // Coaching resources from the web; only exists with COACH_MEDIA=on (learning/coaching-resources-tool.ts).
+  'findCoachingResources',
   // End call
   'endCall',
 ];
@@ -215,9 +220,12 @@ export function loadToolConfig(): ToolConfiguration {
       env.META_TOOL_CATALOG_IN_PROMPT,
       DEFAULT_CONFIG.metaToolCatalogInPrompt
     ),
-    useFtis: parseBool(env.FTIS_ENABLED, parseBool(env.USE_FTIS, DEFAULT_CONFIG.useFtis)),
+    useFtis: parseBool(env.FTIS_ENABLED, DEFAULT_CONFIG.useFtis),
     ftisThreshold: parseNum(env.FTIS_THRESHOLD, DEFAULT_CONFIG.ftisThreshold * 100) / 100,
-    essentialTools: DEFAULT_CONFIG.essentialTools,
+    // COACH_LOCAL=on: its tools are there from the first turn, like quickTimer.
+    essentialTools: isCoachLocalEnabled()
+      ? [...DEFAULT_CONFIG.essentialTools, ...COACH_LOCAL_TOOLS]
+      : DEFAULT_CONFIG.essentialTools,
   };
 
   // Log configuration on first load
@@ -263,7 +271,11 @@ export function isMetaToolEnabled(): boolean {
 }
 
 /**
- * Check if FTIS hierarchical classifier is enabled
+ * Whether FTIS (the two-stage ONNX tool classifier) routes tools:
+ * FTIS_ENABLED=true. Off by default; dev and prod log useFtis=false. This is
+ * the only FTIS switch: config/tool-routing-config.ts and
+ * agents/processors/tool-routing-integration.ts each had their own
+ * isFTISEnabled, and USE_FTIS was a second name for the same thing.
  */
 export function isFtisEnabled(): boolean {
   return getToolConfig().useFtis;
@@ -282,6 +294,80 @@ export function getFtisThreshold(): number {
 export function getMaxTools(): number {
   return getToolConfig().maxTools;
 }
+
+/**
+ * CASCADE_APPEND_ONLY_TOOLS=on: a call's tools only grow, in the order they
+ * arrived, so the declarations a request starts with stay the same (Gemini
+ * caches a request's prefix). See tool-updater.ts and gemini-declarations.ts.
+ */
+export function appendOnlyToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.CASCADE_APPEND_ONLY_TOOLS === 'on' || staticCoreToolsEnabled(env);
+}
+
+/**
+ * TOOL_CORE_STATIC=on: every request in a call carries the same tools
+ * (STATIC_CORE_TOOLS, then the user's teammate tools). Topic loads add nothing;
+ * what findTools finds is appended, so the cached declarations prefix stays.
+ */
+export function staticCoreToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.TOOL_CORE_STATIC === 'on';
+}
+
+/**
+ * The static core, in request order: one tool per lookalike group, covering
+ * every prod tool call of 2026-10-04..11 plus calendar, reminders and calling.
+ */
+export const STATIC_CORE_TOOLS: readonly string[] = [
+  'getCurrentContext',
+  'provideCrisisResources',
+  'quickCrisisResources',
+  'createSafetyPlan',
+  'deEscalateAnxiety',
+  'evaluateHumanTransfer',
+  'connectToHumanExpert',
+  'groundingExercise',
+  'breatheWithMe',
+  'groundingForTrauma',
+  // Memory
+  'rememberAboutUser',
+  'recallFromMemory',
+  'rememberImportantFact',
+  'recallPreviousConversation',
+  'playMusic',
+  'musicControl',
+  'quickTimer',
+  'setReminder',
+  'getReminders',
+  'getCalendarToday',
+  'createCalendarEvent',
+  'getWeatherForecast',
+  'searchWeb',
+  'tellJoke',
+  'getFunFact',
+  'callOnBehalf',
+  'gameState',
+  'endCall',
+  'findTools',
+];
+
+/** Teammate tools: they differ per user, so they go after the fixed core. */
+const TEAMMATE_TOOLS = ['askForTeammate', 'introduceMember', 'meetTheTeam'];
+export function isTeammateTool(name: string): boolean {
+  return name.startsWith('handoffTo') || TEAMMATE_TOOLS.includes(name);
+}
+
+export function isStaticCoreTool(name: string): boolean {
+  return STATIC_CORE_TOOLS.includes(name) || isTeammateTool(name);
+}
+
+/**
+ * The most tools an append-only call holds. Union of a call's tools under
+ * append-only, from 611 calls' tool updates (2026-10-03..10): p50 88, p90 131,
+ * prod-only p95 123. Past it, the oldest non-essential tools go as one block
+ * of APPEND_ONLY_EVICT_BLOCK, so the prefix breaks rarely, not every load.
+ */
+export const APPEND_ONLY_TOOL_CAP = 128;
+export const APPEND_ONLY_EVICT_BLOCK = 32;
 
 /**
  * Check if a tool is in the essential tools list

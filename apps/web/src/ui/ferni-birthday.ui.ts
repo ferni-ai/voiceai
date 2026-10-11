@@ -20,6 +20,7 @@ import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
 import { soundUI } from './sound.ui.js';
 import { t } from '../i18n/index.js';
+import { requestAttention } from '../services/attention-queue.js';
 
 const log = createLogger('FerniBirthday');
 
@@ -63,7 +64,7 @@ export function initFerniBirthdayUI(): void {
   // Check if it's Ferni's birthday
   if (isFerniBirthday() && !hasCelebratedToday()) {
     // Celebrate after a short delay to let the app load
-    setTimeout(() => celebrate(), 2000);
+    setTimeout(() => requestAttention('ferni-birthday', celebrate), 2000);
   }
 
   isInitialized = true;
@@ -275,7 +276,7 @@ function injectStyles(): void {
     .ferni-birthday-floater {
       position: fixed;
       pointer-events: none;
-      z-index: var(--z-notification, 3000);
+      z-index: var(--z-notification);
       color: var(--color-semantic-warning, #f59e0b);
       animation: cakeFloat 2s ${EASING.EXPO_OUT} forwards;
       filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));

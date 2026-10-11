@@ -19,8 +19,10 @@
  * 5. Deep Partnership → +Nayan (the sage, earned through commitment)
  */
 
+import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { withUpgradePath } from '../billing/paywall.js';
 
 const log = createLogger({ module: 'TeamUnlocks' });
 
@@ -36,6 +38,8 @@ const log = createLogger({ module: 'TeamUnlocks' });
  * - "1", "2", "3", etc. → Unlock first N team members (after Ferni)
  * - "maya"              → Unlock specific member by first name
  * - "maya,peter,alex"   → Comma-separated list of members
+ * - "off", "false", "0", "none" or empty → no bypass (dev had "off", which was
+ *   read as a member name and logged "Unknown team member" on every parse)
  *
  * @returns Set of member IDs to bypass, or null if no bypass
  */
@@ -46,13 +50,16 @@ let cachedBypassConfig: { value: Set<TeamMemberId> | 'all' | null; parsed: boole
   parsed: false,
 };
 
+const BYPASS_OFF = new Set(['off', 'false', '0', 'none']);
+
 export function parseBypassConfig(): Set<TeamMemberId> | 'all' | null {
   // Return cached value if already parsed
   if (cachedBypassConfig.parsed) {
     return cachedBypassConfig.value;
   }
 
-  const bypassValue = process.env['BYPASS_TEAM_UNLOCKS'];
+  const raw = process.env['BYPASS_TEAM_UNLOCKS'];
+  const bypassValue = raw && !BYPASS_OFF.has(raw.trim().toLowerCase()) ? raw : undefined;
 
   // Log ONCE during parsing (cached result prevents duplicate logs)
   if (bypassValue) {
@@ -249,19 +256,10 @@ export function calculateStreaks(profile: UserProfile | null): {
 // ============================================================================
 
 export type RelationshipStage =
-  | 'first-meeting'
-  | 'getting-started'
-  | 'building-trust'
-  | 'established'
-  | 'deep-partnership';
+  'first-meeting' | 'getting-started' | 'building-trust' | 'established' | 'deep-partnership';
 
 export type TeamMemberId =
-  | 'ferni'
-  | 'maya-santos'
-  | 'peter-john'
-  | 'alex-chen'
-  | 'jordan-taylor'
-  | 'nayan-patel';
+  'ferni' | 'maya-santos' | 'peter-john' | 'alex-chen' | 'jordan-taylor' | 'nayan-patel';
 
 export interface TeamMemberUnlock {
   memberId: TeamMemberId;
@@ -493,14 +491,16 @@ export function getTeamMemberUnlockStatus(
   // Nayan requires either deep-partnership OR partner tier
   if (tier === 'friend' || tier === 'partner') {
     if (member.premium && tier !== 'partner') {
-      // Nayan requires partner tier OR relationship
       if (!stageAtOrBeyond(stage, member.unlocksAt)) {
         return {
           unlocked: false,
           lockReason: 'The sage speaks only to those who have proven their commitment.',
-          unlockHint: 'Reach deep partnership stage or upgrade to Partner tier.',
+          unlockHint: `${withUpgradePath('Reach deep partnership stage', ' or upgrade to Partner tier')}.`,
           progress: calculateProgress(metrics, STAGE_THRESHOLDS[member.unlocksAt]),
-          requirement: `${STAGE_THRESHOLDS[member.unlocksAt].minConversations} conversations or Partner tier`,
+          requirement: withUpgradePath(
+            `${STAGE_THRESHOLDS[member.unlocksAt].minConversations} conversations`,
+            ' or Partner tier'
+          ),
         };
       }
     }
@@ -559,7 +559,10 @@ function getUnlockHint(stage: RelationshipStage): string {
     case 'established':
       return `${threshold.minConversations} conversations, ${threshold.minDays} days of friendship`;
     case 'deep-partnership':
-      return `${threshold.minConversations} conversations, ${threshold.minDays} days together, or become a Partner`;
+      return withUpgradePath(
+        `${threshold.minConversations} conversations, ${threshold.minDays} days together`,
+        ', or become a Partner'
+      );
     default:
       return 'Keep talking to me!';
   }
@@ -578,7 +581,8 @@ export function getTeamUnlockState(
 ): TeamUnlockState {
   // BYPASS: Check for flexible team unlock bypass (for testing/demo)
   // Supports: "all", "true", "1", "2", "3", "maya", "maya,peter", etc.
-  const bypass = parseBypassConfig();
+  const byNeed = isTeamByNeedEnabled(); // the whole team: a partial bypass can't close part of it
+  const bypass = byNeed ? null : parseBypassConfig();
 
   if (bypass === 'all') {
     // Full bypass - all members unlocked (logged once in parseBypassConfig)
@@ -632,6 +636,8 @@ export function getTeamUnlockState(
     : { totalConversations: 0, daysSinceFirstMeeting: 0, currentStreak: 0, longestStreak: 0 };
 
   const stage = calculateRelationshipStage(metrics);
+  // TEAM_BY_NEED: everyone from the first call, introduced by need (team-by-need-note.ts)
+  if (byNeed) return { stage, tier, unlockedMembers: TEAM_MEMBERS.map((m) => m.memberId) };
 
   // Determine unlocked members
   const unlockedMembers: TeamMemberId[] = [];
@@ -687,12 +693,7 @@ export function isFullTeamUnlocked(
   profile: UserProfile | null,
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): boolean {
-  // BYPASS: When env var is set to "all" or "true", full team is considered unlocked
-  const bypass = parseBypassConfig();
-  if (bypass === 'all') {
-    return true;
-  }
-
+  // BYPASS_TEAM_UNLOCKS=all and TEAM_BY_NEED both unlock everyone in getTeamUnlockState
   const state = getTeamUnlockState(profile, tier);
 
   // Check that all team members are unlocked

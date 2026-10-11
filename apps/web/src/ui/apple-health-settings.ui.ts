@@ -186,7 +186,7 @@ function injectStyles(): void {
     .apple-health-settings {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1088,12 +1088,12 @@ async function handleDisconnect(): Promise<void> {
   renderLoading();
 
   try {
-    await apiDelete('/api/apple-health/disconnect');
+    if (!(await apiDelete('/api/apple-health/disconnect')).ok) throw new Error('Disconnect failed');
     toast.success(t('toasts.appleHealthDisconnected'));
     callbacks.onDisconnected?.();
     renderNotConnected();
   } catch {
-    toast.error("Couldn't disconnect. Try again?");
+    toast.error(t('toasts.couldNotDisconnect'));
     await loadStatus();
   } finally {
     _isLoading = false;

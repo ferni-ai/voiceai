@@ -15,6 +15,9 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { isCallHoursGuardOn } from './call-hours-guard.js';
+import { holdForCallHours } from './deferred-calls.js';
+import { callQuietHours } from './quiet-hours.js';
 
 const log = createLogger({ module: 'ConversationalCalls' });
 
@@ -170,16 +173,19 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
       return { success: false, error: 'Invalid phone number format' };
     }
 
-    // Check quiet hours
-    const inQuietHours = await isInQuietHours(userId);
-    if (inQuietHours) {
+    // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
+    const held = { recipientPhone: normalizedPhone, recipientUserId: userId };
+    const call = { kind: 'proactive' as const, request: { ...request, scheduledFor: undefined } };
+    const deferral = scheduledFor <= new Date() && (await holdForCallHours(userId, call, held));
+    if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
+    // The guard covers quiet hours, in the user's own time zone. Only a call due
+    // now is checked: the rescheduled one is in the future, so this can't loop.
+    const now = new Date();
+    const quiet =
+      !isCallHoursGuardOn() && scheduledFor <= now && (await callQuietHours(userId, now));
+    if (quiet && quiet.quiet) {
       log.info({ userId, callId }, 'Call delayed due to quiet hours');
-      // Reschedule for next available window
-      const nextWindow = await getNextAvailableWindow(userId);
-      return scheduleProactiveCall({
-        ...request,
-        scheduledFor: nextWindow,
-      });
+      return scheduleProactiveCall({ ...request, scheduledFor: quiet.until });
     }
 
     // Enhance SSML for natural delivery
@@ -437,76 +443,6 @@ function normalizePhoneNumber(phone: string): string | null {
   return null;
 }
 
-async function isInQuietHours(userId: string): Promise<boolean> {
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const db = getFirestoreDb();
-    if (!db) return false;
-
-    const doc = await db.collection('bogle_users').doc(userId).get();
-    if (!doc.exists) return false;
-
-    const data = doc.data();
-    const preferences = data?.outreachPreferences;
-    if (!preferences?.quietHours?.enabled) return false;
-
-    // Parse quiet hours (e.g., "22:00" to "08:00")
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTime = currentHour * 60 + currentMinute;
-
-    const startParts = preferences.quietHours.start.split(':').map(Number);
-    const endParts = preferences.quietHours.end.split(':').map(Number);
-    const startTime = startParts[0] * 60 + startParts[1];
-    const endTime = endParts[0] * 60 + endParts[1];
-
-    // Handle overnight quiet hours (e.g., 22:00 to 08:00)
-    if (startTime > endTime) {
-      return currentTime >= startTime || currentTime < endTime;
-    }
-
-    return currentTime >= startTime && currentTime < endTime;
-  } catch {
-    return false;
-  }
-}
-
-async function getNextAvailableWindow(userId: string): Promise<Date> {
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const db = getFirestoreDb();
-    if (!db) {
-      // Default: 9 AM tomorrow
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(9, 0, 0, 0);
-      return tomorrow;
-    }
-
-    const doc = await db.collection('bogle_users').doc(userId).get();
-    const preferences = doc.exists ? doc.data()?.outreachPreferences : null;
-
-    // Default quiet hours end at 8 AM
-    const endHour = preferences?.quietHours?.end
-      ? parseInt(preferences.quietHours.end.split(':')[0], 10)
-      : 8;
-
-    const next = new Date();
-    if (next.getHours() >= endHour) {
-      next.setDate(next.getDate() + 1);
-    }
-    next.setHours(endHour, 0, 0, 0);
-
-    return next;
-  } catch {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(9, 0, 0, 0);
-    return tomorrow;
-  }
-}
-
 // ============================================================================
 // CALL STATUS WEBHOOK HANDLER
 // ============================================================================
@@ -674,7 +610,7 @@ let serviceInstance: ConversationalCallService | null = null;
 
 /**
  * Get the conversational call service instance
- * @deprecated Use conversationalCalls.scheduleProactiveCall directly
+ * @deprecated Use scheduleProactiveCall directly
  */
 // In-memory store for active calls (for development/testing)
 const activeCalls = new Map<string, CallResult>();
@@ -774,7 +710,7 @@ export function isConversationalCallsConfigured(): boolean {
 
 /**
  * Make a conversational call (legacy API)
- * @deprecated Use conversationalCalls.scheduleProactiveCall directly
+ * @deprecated Use scheduleProactiveCall directly
  */
 export async function makeConversationalCall(context: OutboundCallContext): Promise<CallResult> {
   // Extract values with fallbacks
@@ -805,17 +741,3 @@ export function formatReferralConversationsForContext(_userId?: string): string 
   // Stub for backward compatibility
   return '';
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export const conversationalCalls = {
-  scheduleProactiveCall,
-  handleCallStatusUpdate,
-  enhanceSSMLForCall,
-  isConfigured: isConversationalCallsConfigured,
-  makeCall: makeConversationalCall,
-};
-
-export default conversationalCalls;

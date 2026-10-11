@@ -35,7 +35,6 @@ The outreach module handles Ferni's ability to reach out to people proactively:
 | `call-transcript-intelligence.ts` | Analyzes call transcripts |
 | `conversational-calls.ts` | Conversational call management |
 | `on-behalf-call-orchestrator.ts` | On-behalf call orchestration |
-| `smart-callback-queue.ts` | Smart callback queue management |
 
 ### Content & Messaging
 | File | Purpose |
@@ -56,21 +55,16 @@ The outreach module handles Ferni's ability to reach out to people proactively:
 | `analytics.ts` | General analytics |
 | `engagement-tracking.ts` | Engagement tracking |
 | `outreach-history.ts` | Outreach history tracking |
-| `outreach-admin.ts` | Admin operations |
-| `graph-timing-intelligence.ts` | Graph-based timing intelligence |
 
 ### Integration & Bridges
 | File | Purpose |
 |------|---------|
 | `superhuman-outreach-bridge.ts` | Bridges to superhuman insights |
 | `superhuman-outreach-integration.ts` | Superhuman integration |
-| `superhuman-call-scheduler.ts` | Superhuman-triggered calls |
 | `trust-outreach-bridge.ts` | Trust system integration |
 | `relationship-adapter.ts` | Relationship data adapter |
 | `relationship-health-tracker.ts` | Relationship health tracking |
-| `goal-outreach-integration.ts` | Goal-based outreach triggers |
 | `pattern-outreach-integration.ts` | Pattern-based outreach |
-| `domain-outreach-triggers.ts` | Domain-specific triggers |
 | `session-integration.ts` | Session integration |
 | `context-aggregator.ts` | Context aggregation |
 | `conversation-context-bridge.ts` | Conversation context bridge |

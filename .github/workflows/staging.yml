@@ -17,6 +17,12 @@ on:
         required: false
         type: string
 
+# A new push to a PR supersedes its running build and preview deploy. Merge-queue
+# runs always finish (cancelling one drops the queue entry).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
@@ -28,17 +34,26 @@ jobs:
   # ============================================================================
   context:
     name: Determine Context
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     outputs:
       branch: ${{ steps.branch.outputs.name }}
       short_sha: ${{ steps.branch.outputs.short_sha }}
       is_pr: ${{ steps.branch.outputs.is_pr }}
       env_name: ${{ steps.branch.outputs.env_name }}
       service_name: ${{ steps.branch.outputs.service_name }}
-    
+      # 'false' only on a PR that touches nothing but docs (see ci.yml's changes job)
+      code: ${{ steps.code.outputs.matched }}
+      # A preview is for clicking through the web app, so a PR gets one only when it
+      # changes what the UI server image serves, or carries the `preview` label
+      # (read when the PR is pushed: add the label, then push). Never in the queue.
+      preview: ${{ github.event_name != 'pull_request' || steps.ui.outputs.matched == 'true' || contains(github.event.pull_request.labels.*.name, 'preview') }}
+    permissions:
+      contents: read
+      pull-requests: read
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Determine branch
         id: branch
@@ -80,20 +95,33 @@ jobs:
           echo "Safe name: $SAFE_BRANCH"
           echo "Environment: staging-$SAFE_BRANCH"
 
+      - id: code
+        uses: ./.github/actions/pr-changes
+        with:
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$'
+
+      - id: ui
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(apps/web/|src/servers/|src/api/|design-system/|docker/Dockerfile\.ui$|\.github/workflows/staging\.yml$)'
+
   # ============================================================================
   # BUILD & TEST
   # ============================================================================
   build:
     name: Build & Test
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: context
+    # Required check: skipped (which reports success) on a docs-only PR, never
+    # filtered out by `paths:`, which would leave it pending forever.
+    if: needs.context.outputs.code != 'false'
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -104,11 +132,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Run tests
-        run: pnpm test -- --reporter=dot
-        env:
-          NODE_ENV: test
-        continue-on-error: true
+      # No test run here: it took 11-17 minutes per PR and per queue entry under
+      # continue-on-error, so its result never decided anything. CI's Unit Tests
+      # and Integration Tests are the blocking test checks.
 
       - name: Build backend
         run: pnpm build
@@ -139,10 +165,15 @@ jobs:
       - name: Pull Docker Hub images through a mirror
         uses: ./.github/actions/docker-hub-mirror
 
+      # One tag per run attempt: the 8 runners on a VM share one Docker daemon, so two
+      # queue entries building at once collided on a fixed tag ("already exists",
+      # 2026-10-11), and a cancelled run left its tag behind for the next one.
       - name: Build UI image (no push)
+        env:
+          IMAGE: john-bogle-ui:merge-check-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          docker build -f docker/Dockerfile.ui -t john-bogle-ui:merge-check .
-          docker image rm john-bogle-ui:merge-check
+          trap 'docker image rm "$IMAGE" >/dev/null 2>&1 || echo "::warning::could not remove $IMAGE"' EXIT
+          docker build -f docker/Dockerfile.ui -t "$IMAGE" .
 
   # ============================================================================
   # DEPLOY STAGING
@@ -163,6 +194,7 @@ jobs:
     if: >-
       github.actor != 'dependabot[bot]' &&
       github.event_name != 'merge_group' &&
+      needs.context.outputs.preview == 'true' &&
       (github.event_name != 'pull_request' ||
        github.event.pull_request.head.repo.full_name == github.repository)
     environment:
@@ -173,7 +205,7 @@ jobs:
     
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
@@ -189,7 +221,7 @@ jobs:
         run: gcloud auth configure-docker gcr.io
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js for design-system
         uses: actions/setup-node@v7
@@ -321,7 +353,7 @@ jobs:
   # ============================================================================
   smoke-tests:
     name: Smoke Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: [context, deploy-staging]
     
     steps:

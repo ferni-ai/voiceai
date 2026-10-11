@@ -25,15 +25,23 @@ on:
         type: boolean
         default: false
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # ============================================================================
   # Token Validation
   # ============================================================================
   validate-tokens:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Validate Design Tokens
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
@@ -58,11 +66,12 @@ jobs:
   # Build Packages
   # ============================================================================
   build:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Build All Packages
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     needs: validate-tokens
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
@@ -109,11 +118,12 @@ jobs:
   # Storybook Build
   # ============================================================================
   storybook:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Build Storybook
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
@@ -144,11 +154,13 @@ jobs:
     # runner runs PR code with docker (root) access. See ci.yml.
     runs-on: ubuntu-latest
     needs: [build, storybook]
-    if: |
+    if: >-
+      ${{ vars.OPTIONAL_CI != 'off' && (
       (github.event_name == 'workflow_dispatch' && inputs.publish) ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish]'))
+      ) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
@@ -172,13 +184,11 @@ jobs:
   # ============================================================================
   publish-vscode:
     name: Publish VS Code Extension
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     needs: build
-    if: |
-      (github.event_name == 'workflow_dispatch' && inputs.publish) ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-vscode]'))
+    if: ${{ vars.OPTIONAL_CI != 'off' && ((github.event_name == 'workflow_dispatch' && inputs.publish) || (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-vscode]'))) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm

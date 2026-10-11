@@ -8,6 +8,11 @@ on:
     paths:
       - 'src/services/data-layer/**'
       - 'src/services/seeds/**'
+      - 'src/api/seeds-routes.ts'
+      - 'src/api/seeds-purchase.ts'
+      - 'apps/web/src/services/cosmetics.service.ts'
+      - 'src/services/billing/stripe-subscription.ts'
+      - 'src/api/garden-routes.ts'
       - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'src/intelligence/**'
@@ -20,21 +25,34 @@ on:
     paths:
       - 'src/services/data-layer/**'
       - 'src/services/seeds/**'
+      - 'src/api/seeds-routes.ts'
+      - 'src/api/seeds-purchase.ts'
+      - 'apps/web/src/services/cosmetics.service.ts'
+      - 'src/services/billing/stripe-subscription.ts'
+      - 'src/api/garden-routes.ts'
       - 'src/api/roadmap-*.ts'
       - 'src/memory/**'
       - 'firestore.indexes.json'
       - 'firebase.json'
   workflow_dispatch:
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   firestore-e2e:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Firestore Emulator E2E
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
@@ -42,7 +60,7 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Setup Java (required for Firestore emulator)
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -77,7 +95,7 @@ jobs:
 
       - name: Run Seed Ledger Tests
         run: |
-          pnpm vitest run src/services/seeds/__tests__/ src/api/__tests__/roadmap-seeds.emulator.test.ts --reporter=verbose
+          pnpm vitest run src/services/seeds/__tests__/ src/api/__tests__/seeds-routes-ledger.emulator.test.ts src/api/__tests__/seeds-purchase.emulator.test.ts src/api/__tests__/seeds-import.emulator.test.ts src/api/__tests__/roadmap-seeds.emulator.test.ts --reporter=verbose
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
@@ -114,13 +132,14 @@ jobs:
   # firestore-e2e job sets SKIP_EMBEDDING, which would make create/resolve
   # paths here meaningless.
   entity-resolver-emulator:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Entity Resolver Emulator
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
@@ -128,7 +147,7 @@ jobs:
           frozen-lockfile: 'false'
 
       - name: Setup Java (required for Firestore emulator)
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -170,13 +189,14 @@ jobs:
 
   # Quick unit tests (no emulator required)
   unit-tests:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Data Layer Unit Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm

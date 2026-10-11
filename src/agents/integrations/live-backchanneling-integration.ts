@@ -37,6 +37,7 @@ import {
 } from './backchannel-policy.js';
 import { backchannelContextEnabled, pickContextualBackchannel } from './backchannel-context.js';
 import { backchannelsEnabled } from '../../config/voice-humanization-flags.js';
+import { ferniEnergyFor } from '../../speech/tts-gateway/director/ferni-energy.js';
 
 const log = getLogger().child({ module: 'LiveBackchannelingIntegration' });
 
@@ -56,7 +57,12 @@ export interface LiveBackchannelConfig {
    * could not. When set, backchannels are clips on a side track and follow
    * backchannel-policy.ts instead of being spoken as agent turns.
    */
-  playClip?: (text: string) => boolean;
+  playClip?: (text: string, opts?: { pauseStartedAt?: number }) => boolean;
+  /**
+   * Take back a clip played moments ago (REACTION_SIDETRACK=direct); true if
+   * it was dropped. Called when the caller resumes in the pause we reacted to.
+   */
+  cancelClip?: () => boolean;
 }
 
 /** A pause must last this long before it counts: gaps inside words are shorter. */
@@ -160,7 +166,16 @@ export function initializeLiveBackchanneling<T>(
   let lastClip: string | null = null;
   let lastLaughTurn: number | null = null;
 
-  const considerClip = (playClip: (text: string) => boolean): void => {
+  let clipThisPause = false;
+
+  const considerClip = (
+    playClip: (text: string, opts?: { pauseStartedAt?: number }) => boolean
+  ): void => {
+    if (clipThisPause && breathDetector.isUserSpeaking()) {
+      clipThisPause = false;
+      // The caller carried on before the clip was heard: take it back.
+      if (cfg.cancelClip?.()) log.info({ by: 'pause_ended' }, 'CLIP_CANCELLED');
+    }
     const agentSpeaking = isAgentSpeakingFn();
     if (agentWasSpeaking && !agentSpeaking) agentStoppedAt = Date.now();
     agentWasSpeaking = agentSpeaking;
@@ -170,6 +185,7 @@ export function initializeLiveBackchanneling<T>(
     }
     if (decidedThisPause || breathDetector.getCurrentPauseDuration() < CLIP_PAUSE_MIN_MS) return;
     decidedThisPause = true;
+    const at = { pauseStartedAt: Date.now() - breathDetector.getCurrentPauseDuration() };
     const emotional =
       (state.currentEmotion?.distressLevel ?? 0) > 0.4 ||
       (state.currentEmotion?.intensity ?? 0) > 0.7;
@@ -183,7 +199,8 @@ export function initializeLiveBackchanneling<T>(
         lastLaughTurn,
       })
     ) {
-      if (playClip(LAUGH_CLIP)) {
+      if (playClip(LAUGH_CLIP, at)) {
+        clipThisPause = true;
         lastLaughTurn = state.turnCount;
         state.lastBackchannelAt = now;
         log.info({}, 'LAUGH_ALONG clip played');
@@ -208,13 +225,16 @@ export function initializeLiveBackchanneling<T>(
     const fitting = backchannelContextEnabled()
       ? pickContextualBackchannel(state.partialTranscript ?? '', emotional, lastClip)
       : null;
-    let text = fitting ?? pickBackchannel(emotional, lastClip);
-    let played = playClip(text);
+    // FERNI_STATE: a worn-out Ferni listens with soft "mm"s, not "yeah" or "right".
+    const soft = emotional || ferniEnergyFor(sessionId) === 'low';
+    let text = fitting ?? pickBackchannel(soft, lastClip);
+    let played = playClip(text, at);
     if (!played && fitting !== null) {
-      text = pickBackchannel(emotional, lastClip);
-      played = playClip(text);
+      text = pickBackchannel(soft, lastClip);
+      played = playClip(text, at);
     }
     if (!played) return;
+    clipThisPause = true;
     lastClip = text;
     state.lastBackchannelAt = now;
     trackBackchannelEvent(sessionId, {

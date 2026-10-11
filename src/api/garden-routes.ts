@@ -37,7 +37,8 @@ import {
   type SubscriptionResponse,
 } from '../types/seed-fund.types.js';
 import { createPaymentIntent, isStripeConfigured } from '../services/stripe-payments.js';
-import { createCheckoutSession, createPortalSession } from '../services/stripe-subscription.js';
+import { createPortalSession } from '../services/stripe-subscription.js';
+import * as seedFund from '../services/billing/seed-fund-checkout.js';
 
 const log = createLogger({ module: 'GardenAPI' });
 
@@ -316,24 +317,24 @@ async function handlePlantSeed(
 }
 
 /**
- * POST /api/garden/subscribe
- * Start a monthly contribution using Stripe Checkout
+ * POST /api/garden/subscribe: start a monthly contribution with Stripe Checkout.
+ * `verifiedUid` (signed-in callers only) is who the founding seed bonus pays.
  */
 async function handleStartMonthly(
   req: IncomingMessage,
   res: ServerResponse,
-  userId: string
+  userId: string,
+  verifiedUid: string | undefined
 ): Promise<void> {
   try {
     const body = await parseBody<StartMonthlyRequest>(req);
-    const { amount } = body;
-
-    if (!amount || amount < 5) {
-      sendError(res, 'Monthly amount must be at least $5', 400);
+    const amountCents = seedFund.monthlyGiftCents(body.amount);
+    if (amountCents === null) {
+      sendError(res, seedFund.GIFT_AMOUNT_ERROR, 400);
       return;
     }
+    const { amount } = body;
 
-    // Check if Stripe is configured
     if (!isStripeConfigured()) {
       log.warn({ userId }, 'Stripe not configured for garden subscription');
       const response: SubscriptionResponse = {
@@ -344,16 +345,15 @@ async function handleStartMonthly(
       return;
     }
 
-    // Get the base URL for success/cancel redirects
     const host = req.headers.host || 'localhost:3002';
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
 
-    // Create checkout session for monthly subscription
-    // Using 'friend' tier as the subscription base - garden-specific prices can be configured later
-    const checkoutResult = await createCheckoutSession({
+    // The chosen amount, monthly, as a gift (not the Friend plan); invoice.paid pays the bonus
+    const checkoutResult = await seedFund.createSeedFundCheckout({
       userId,
-      tier: 'friend', // Use friend tier pricing for now
+      seedsUid: verifiedUid,
+      amountCents,
       successUrl: `${baseUrl}/garden/success`,
       cancelUrl: `${baseUrl}/garden/cancel`,
     });
@@ -812,6 +812,19 @@ async function seedFoundersData(): Promise<{
 }
 
 /**
+ * The seed data is made up (MOCK_FOUNDERS, MOCK_STORIES), and without the
+ * emulator getFirestore() reaches the real project even on a laptop, so only a
+ * non-production process pointed at the emulator may seed.
+ */
+function canSeedFounders(): boolean {
+  return (
+    !!process.env.FIRESTORE_EMULATOR_HOST &&
+    process.env.NODE_ENV !== 'production' &&
+    !process.env.K_SERVICE
+  );
+}
+
+/**
  * Admin endpoint to seed founders data
  * POST /api/garden/admin/seed
  */
@@ -826,6 +839,12 @@ async function handleSeedFoundersData(req: IncomingMessage, res: ServerResponse)
 
   if (!isAdmin) {
     sendError(res, 'Unauthorized', 401);
+    return;
+  }
+
+  if (!canSeedFounders()) {
+    log.warn('Refused to seed made-up founders outside the Firestore emulator');
+    sendError(res, 'Seeding only runs against the Firestore emulator', 403);
     return;
   }
 
@@ -1241,7 +1260,7 @@ export async function handleGardenRoutes(
 
   // POST /api/garden/subscribe - Start monthly
   if (pathname === '/api/garden/subscribe' && method === 'POST') {
-    await handleStartMonthly(req, res, userId);
+    await handleStartMonthly(req, res, userId, auth?.userId);
     return true;
   }
 

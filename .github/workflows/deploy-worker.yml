@@ -66,8 +66,8 @@ jobs:
           - name: outreach
             dockerfile: docker/Dockerfile.outreach
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       - name: Build
         run: docker buildx build -f ${{ matrix.dockerfile }} -t ferni-${{ matrix.name }}:ci --load .
       - name: Smoke-test the worker image
@@ -92,7 +92,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The same key every other production deploy uses (deploy-production.yml).
       - uses: google-github-actions/auth@v3

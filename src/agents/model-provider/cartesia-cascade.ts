@@ -64,6 +64,22 @@ export interface CascadeSTTOptions {
   baseUrl?: string;
   keyterms?: string[];
   turnDetection?: InkTurnDetection;
+  /** Rate the audio is sent to ink at (the plugin resamples to it; default 16 kHz). */
+  sampleRate?: number;
+}
+
+/** Who is on the line, for STT settings that differ by channel. */
+export interface CascadeSTTCaller {
+  /** A phone (LiveKit SIP) caller: 8 kHz narrowband audio, whatever rate the track carries. */
+  phone?: boolean;
+}
+
+/**
+ * PHONE_AUDIO_MODE=on sends a phone caller's audio to ink at 8 kHz, its real
+ * bandwidth, instead of upsampled to 16 kHz. Off by default.
+ */
+export function phoneAudioMode(env: Env = process.env): boolean {
+  return env.PHONE_AUDIO_MODE === 'on';
 }
 
 /**
@@ -287,13 +303,24 @@ export function refreshSttStream(stt: unknown): boolean {
   return typeof stream?.refresh === 'function' ? stream.refresh() : false;
 }
 
-/** STT options for the cascade. ink-2 is Cartesia's English streaming model. */
-export function buildCascadeSTTOptions(env: Env = process.env): CascadeSTTOptions {
+/**
+ * STT options for the cascade. ink-2 is Cartesia's English streaming model.
+ * A phone caller under PHONE_AUDIO_MODE=on is sent at 8 kHz. Measured on ink-2
+ * with mu-law phone audio after the SIP AGC + high-pass, word errors at 16 kHz
+ * vs 8 kHz (126 utterances, 3 noise seeds, scripts/audio-eval/stt-accuracy.ts,
+ * 2026-10-10): clean line 4.6% vs 4.4%, 15 dB noise 8.0% vs 6.4%, soft
+ * (-12 dB) 5.3% vs 5.2%.
+ */
+export function buildCascadeSTTOptions(
+  env: Env = process.env,
+  caller: CascadeSTTCaller = {}
+): CascadeSTTOptions {
   return {
     model: env.CASCADE_STT_MODEL || 'ink-2',
     language: env.CASCADE_STT_LANGUAGE || 'en',
     ...(env.CASCADE_STT_BASE_URL && { baseUrl: env.CASCADE_STT_BASE_URL }),
     turnDetection: inkTurnProfile(env),
+    ...(caller.phone && phoneAudioMode(env) && { sampleRate: 8000 }),
   };
 }
 
@@ -373,13 +400,15 @@ export class CartesiaCascadeProvider implements ModelProvider {
     return new FastLaneLLM(new HedgedLLM(gemini(fast.options), main, fast.hedgeAfterMs), main);
   }
 
-  createSTT(keyterms: string[] = []): unknown {
-    const opts = { ...buildCascadeSTTOptions(), keyterms };
+  createSTT(keyterms: string[] = [], caller: CascadeSTTCaller = {}): unknown {
+    const opts = { ...buildCascadeSTTOptions(process.env, caller), keyterms };
     log.info(
       {
         model: opts.model,
         language: opts.language,
         keyterms: keyterms.length,
+        phone: caller.phone === true,
+        sampleRate: opts.sampleRate ?? 16000,
         turnDetection: opts.turnDetection,
         // Keyterms and turn thresholds only reach ink if our plugin patch applied.
         pluginPatched: cartesiaPluginPatched(),
@@ -414,8 +443,14 @@ export class CartesiaCascadeProvider implements ModelProvider {
  * providers (their model transcribes internally). Used by both session
  * builders (voice-agent-entry and multi-agent) so a handoff keeps its STT.
  */
-export function createProviderSTT(provider: { id: string }, keyterms: string[] = []): unknown {
-  return provider instanceof CartesiaCascadeProvider ? provider.createSTT(keyterms) : undefined;
+export function createProviderSTT(
+  provider: { id: string },
+  keyterms: string[] = [],
+  caller: CascadeSTTCaller = {}
+): unknown {
+  return provider instanceof CartesiaCascadeProvider
+    ? provider.createSTT(keyterms, caller)
+    : undefined;
 }
 
 let pluginPatchedCache: boolean | undefined;

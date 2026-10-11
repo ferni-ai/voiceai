@@ -19,9 +19,15 @@ import {
   installBackchannelHook,
   setBargeInFastPath,
 } from './barge-in-fastpath.js';
+import {
+  isOutreachConfirmOn,
+  outreachConfirmListeners,
+} from '../../tools/domains/communication/outreach/outreach-confirm.js';
+import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { sessionIsVerifiedOwner } from '../voice-agent-entry/caller-recognition.js';
 import { createTurnKeeper } from './turn-keeper.js';
-import { installUnfinishedTurnHold } from './unfinished-turn.js';
-import { turnDetectorMode } from '../shared/turn-patience.js';
+import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
+import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
 
 const log = getLogger();
 
@@ -137,11 +143,25 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). With the
   // end-of-turn model on, the model decides and a second hold would only stack delay.
-  if (turnDetectorMode() === 'off') installUnfinishedTurnHold(session);
-  else
+  if (turnDetectorMode() === 'off') {
+    installUnfinishedTurnHold(session);
+    // ...and answer a clearly finished sentence sooner (ENDPOINT_FAST_FINISHED=on).
+    const detach = installFinishedTurnEndpointing(
+      session as unknown as Parameters<typeof installFinishedTurnEndpointing>[0],
+      endpointingDelays().minEndpointingDelay,
+      process.env,
+      (minDelayMs) => log.info({ sessionId, minDelayMs }, 'ENDPOINT_FLOOR')
+    );
+    if (detach) cleanupFunctions.push(detach);
+  } else
     session.on(voice.AgentSessionEventTypes.EotPrediction, (ev) =>
       log.info(
-        { probability: ev.probability, threshold: ev.threshold, delayMs: ev.delayMs, inferenceMs: ev.inferenceDurationMs },
+        {
+          probability: ev.probability,
+          threshold: ev.threshold,
+          delayMs: ev.delayMs,
+          inferenceMs: ev.inferenceDurationMs,
+        },
         'EOT_PREDICTION'
       )
     );
@@ -167,6 +187,22 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     sessionEventHandlers.push(...handlers);
     cleanupFunctions.push(registerBargeInJudge(sessionId, judge));
   }
+
+  // Texts, calls and emails wait for the caller's own yes (outreach-confirm.ts).
+  if (isOutreachConfirmOn()) {
+    const confirm = outreachConfirmListeners(session, () => speakerIsAccountOwner(sessionId));
+    const handlers = [
+      { event: 'user_input_transcribed', handler: confirm.onTranscript },
+      { event: 'function_tools_executed', handler: confirm.onToolsExecuted },
+    ];
+    for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
+    sessionEventHandlers.push(...handlers);
+  }
+}
+
+/** Whether the person on the line is the account owner, whose yes may confirm a send. */
+export function speakerIsAccountOwner(sessionId: string): boolean {
+  return !outboundPartiesFor(sessionId) && sessionIsVerifiedOwner(sessionId);
 }
 
 /** What the barge-in model decided about each overlap (see interruption-config.ts). */
@@ -215,18 +251,29 @@ export async function startTurnSounds(input: TurnSoundsInput) {
   );
   if (clips) {
     cleanupFunctions.push(() => void clips.close());
-    const { attachTurnOpeningSound, turnOpeningSoundEnabled } =
+    const { attachTurnOpeningSound, earlyOpeningWaitMs, turnOpeningSoundEnabled } =
       await import('../integrations/turn-opening-sound.js');
-    const { replyAudioSince, clearReplyActivity } =
+    const { replyAudioSince, replyTextSince, holdReplyAudio, clearReplyActivity } =
       await import('../../speech/output-control/reply-activity.js');
     cleanupFunctions.push(() => clearReplyActivity(sessionId));
+    const earlyWaitMs = earlyOpeningWaitMs();
     if (turnOpeningSoundEnabled()) {
       cleanupFunctions.push(
         attachTurnOpeningSound(
           session as unknown as Parameters<typeof attachTurnOpeningSound>[0],
           clips,
           input.lastUserFinalTranscript,
-          (since) => replyAudioSince(sessionId, since)
+          (since) => replyAudioSince(sessionId, since),
+          earlyWaitMs === null
+            ? undefined
+            : {
+                waitMs: earlyWaitMs,
+                replyTextSince: (since) => replyTextSince(sessionId, since),
+                // 24 kHz mono s16le: 48 bytes a millisecond.
+                clipMs: (text) =>
+                  (getCachedAudioForPersona(text, input.personaId())?.byteLength ?? 0) / 48,
+                holdReply: (ms) => holdReplyAudio(sessionId, ms),
+              }
         )
       );
     }
