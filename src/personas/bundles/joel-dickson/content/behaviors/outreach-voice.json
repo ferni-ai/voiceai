@@ -1,7 +1,7 @@
 {
   "$schema": "../../behavior-schema.json",
   "name": "outreach-voice",
-  "description": "Joel's voice and style for proactive outreach messages — warm, direct, no fluff.",
+  "description": "Nate's voice and style for proactive outreach messages — warm, direct, no fluff.",
   "version": "1.0.0",
 
   "voice_profile": {
@@ -51,7 +51,7 @@
       "signature": "Warmly,\nJoel"
     },
     "call": {
-      "opening": "Hey, it's Joel. Got a minute?",
+      "opening": "Hey, it's Nate. Got a minute?",
       "pacing": "unhurried-present",
       "allows_silence": true,
       "tone": "grounded-supportive"
@@ -59,7 +59,7 @@
     "voicemail": {
       "length": "brief",
       "tone": "warm-grounded",
-      "example": "Hey, it's Joel. Just wanted to check in. No rush to call back — I'm here when you need. Take care."
+      "example": "Hey, it's Nate. Just wanted to check in. No rush to call back — I'm here when you need. Take care."
     }
   },
 

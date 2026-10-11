@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { updateAcknowledgmentPreferences } from './acknowledgment-persistence.js';
 
 const log = createLogger({ module: 'persona-acknowledgments' });
 
@@ -432,24 +433,20 @@ export function recordAcknowledgmentFeedback(
     prefs.lengthPreference = 'medium';
   }
 
-  // Persist updates (debounced)
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { updateAcknowledgmentPreferences } = require('./acknowledgment-persistence.js') as {
-      updateAcknowledgmentPreferences: (
-        userId: string,
-        updates: Partial<UserAcknowledgmentPreferences>
-      ) => void;
-    };
-    updateAcknowledgmentPreferences(userId, {
-      preferredCategories: prefs.preferredCategories,
-      preferredPhrases: prefs.preferredPhrases,
-      dislikedPhrases: prefs.dislikedPhrases,
-      lengthPreference: prefs.lengthPreference,
-      sampleCount: prefs.sampleCount,
-    });
-  } catch {
-    // Non-critical
+  // Persist updates (debounced). The old bare require() threw under ESM, so this
+  // has never written to Firestore; the write waits behind REQUIRE_FIX_VOICE.
+  if (process.env.REQUIRE_FIX_VOICE === 'true') {
+    try {
+      updateAcknowledgmentPreferences(userId, {
+        preferredCategories: prefs.preferredCategories,
+        preferredPhrases: prefs.preferredPhrases,
+        dislikedPhrases: prefs.dislikedPhrases,
+        lengthPreference: prefs.lengthPreference,
+        sampleCount: prefs.sampleCount,
+      });
+    } catch {
+      // Non-critical
+    }
   }
 
   log.debug(

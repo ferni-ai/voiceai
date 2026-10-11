@@ -1267,14 +1267,14 @@ function injectStyles(): void {
     /* Lid paths - use theme-aware background color */
     .lid-top, .lid-bottom {
       transition: d 0.3s ease;
-      /* Match the page background for the "eyelid" effect */
-      fill: var(--color-bg-primary, var(--color-background-primary, #1a1612));
+      /* A shade of the face: a page-colored lid cut a crescent out of the avatar */
+      fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520));
     }
     
     /* Light theme support */
     [data-theme="light"] .lid-top,
     [data-theme="light"] .lid-bottom {
-      fill: var(--color-bg-primary, #faf6f0);
+      fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520));
     }
     
     /* Dimples - subtle shadow indents for warm expressions */

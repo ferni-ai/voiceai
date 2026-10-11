@@ -308,23 +308,37 @@ body {
   --transition-slow: 350ms var(--ease-out-expo);
   --transition-slower: 500ms var(--ease-out-expo);
 
-  /* Z-Index Scale (per CLAUDE.md) */
+  /* Z-index scale: the ONLY place a --z-* value is defined for the web app.
+     Call sites use var(--z-*) with no fallback (tests/z-index-scale.test.ts).
+     The generated public/design-system/tokens.css carries an older scale;
+     every name here overrides it, so the app never reads those values. It
+     lives here, not there, because tokens.css is stale-while-revalidate in
+     the service worker and this file ships inside the hashed bundle. */
+  --z-hide: -1;
+  --z-auto: auto;
   --z-base: 0;              /* Default stacking */
   --z-raised: 1;            /* Within-component layering */
   --z-content: 10;          /* Content elements (waveforms) */
+  --z-docked: 10;           /* Docked in-page chrome */
+  --z-elevated: 10;         /* Legacy alias of --z-content */
   --z-floating: 20;         /* Floating elements */
-  --z-overlay: 30;          /* Local overlays */
+  --z-overlay: 30;          /* Local overlays inside a component */
   --z-sticky: 100;          /* Sticky headers, nav */
-  --z-dropdown: 1000;       /* Dropdowns, tooltips */
+  --z-dropdown: 1000;       /* Dropdowns, coach marks */
+  --z-banner: 1200;         /* App banners */
+  --z-fixed: 1200;          /* Fixed app chrome (settings trigger) */
+  --z-panel: 1300;          /* Side panels (settings menu) */
+  --z-popover: 1500;        /* Popovers */
+  --z-skip-link: 1600;      /* Skip link */
+  --z-tooltip: 1800;        /* Tooltips */
   --z-modal-backdrop: 2000; /* Modal backdrop */
   --z-modal: 2100;          /* Modal content */
   --z-modal-elevated: 2200; /* Above modals (close buttons) */
   --z-notification: 3000;   /* Toast notifications */
+  --z-toast: 3000;          /* Alias of --z-notification */
   --z-loading: 4000;        /* Loading overlays */
+  --z-celebration: 9999;    /* Full-screen celebration canvas */
   --z-system: 9999;         /* Critical system UI (splash) */
-  /* Legacy aliases for backwards compatibility */
-  --z-elevated: 10;
-  --z-toast: 3000;
 
   /* Backdrop overlays */
   --backdrop-light: rgba(20, 16, 14, 0.4);
@@ -2441,7 +2455,7 @@ html.theme-transitioning *::after {
 }
 
 /* Mobile adjustments */
-@media (max-width: clamp(364px, 90vw, 520px)) {
+@media (max-width: 520px) {
   .landing-content-card {
     padding: 32px 24px;
     border-radius: 20px;
@@ -3818,7 +3832,7 @@ body {
 
 .avatar-lid-overlay .lid-top,
 .avatar-lid-overlay .lid-bottom {
-  fill: var(--color-background-primary, #1a1612);
+  fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520)); /* a shade of the face, not the page: a page-colored lid cut a crescent out of the avatar */
   transition: d 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -3858,7 +3872,7 @@ body {
 [data-theme='dark'] .avatar-lid-overlay .lid-bottom,
 [data-theme='dark'] .avatar-lid-overlay .brow-left,
 [data-theme='dark'] .avatar-lid-overlay .brow-right {
-  fill: var(--color-background-primary, #352e28);
+  fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520));
 }
 
 /* Reduced motion - disable lid transitions */
@@ -5106,6 +5120,16 @@ body {
 
 #waveformContainer.active {
   opacity: 1;
+}
+
+/* Before a call the bars are frozen: waveform.ui.ts only animates them
+   between start() (call connected, app.ts) and stop() (hang-up), so
+   pre-connect they sat as an unexplained row of nine dots above Connect.
+   Hide them until the waveform is live; the container keeps its height so
+   nothing shifts when a call starts. */
+#waveformContainer:not(.active) .waveform-bars {
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 /* Transitioning state - shimmer effect during handoffs */
@@ -7173,6 +7197,79 @@ body {
   border-color: rgba(44, 37, 32, 0.2) !important;
 }
 
+/* ========================================================================
+       TEAM MEMBER STATES - one look per state, so the bar answers
+       "who can I talk to right now?" at a glance.
+       Class contract (applied by team.ui.ts / the handoff work):
+         .team-member--in-team    on your team, tap to talk
+         .team-member--addable    unlocked, not on your team yet: an empty slot
+         .team-member--locked     not available yet (styled above, silhouette)
+         .team-member--switching  a handoff to this member is in progress
+       ======================================================================== */
+
+.team-member--in-team .team-avatar-ring {
+  border-style: solid;
+}
+
+/* Addable read as a dimmer teammate: the dashed ring used a white-on-light
+   border token at opacity 0 and vanished, the initial was hidden by the avatar's
+   color: transparent rule, and the whole card (badge included) sat at 0.6.
+   Mute the avatar and name instead, keep the + badge crisp, and draw a ring
+   from the text colour so it shows on light and dark themes. */
+.team-member--addable {
+  opacity: 1;
+}
+
+.team-member--addable .team-avatar-ring--addable,
+[data-theme='zen'] .team-member--addable .team-avatar-ring--addable {
+  opacity: 1; /* the base ring is hidden until hover/active */
+  border-width: 2px;
+  border-color: color-mix(in srgb, currentColor 35%, transparent) !important;
+}
+
+.team-member--addable .team-avatar--addable {
+  opacity: 0.55;
+  filter: saturate(0.6);
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+}
+
+.team-member--addable .team-name {
+  opacity: 0.65;
+}
+
+.team-member--addable:hover .team-avatar--addable,
+.team-member--addable:focus-visible .team-avatar--addable {
+  opacity: 1;
+  filter: none;
+}
+
+.team-member--addable:hover .team-name,
+.team-member--addable:focus-visible .team-name {
+  opacity: 1;
+}
+
+/* Switching: same anticipation glow as the existing .switching-to class. */
+.team-member--switching .team-avatar {
+  transform: scale(1.08);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.25),
+    0 0 30px -5px var(--member-color);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.team-member--switching .team-avatar-ring {
+  opacity: 1;
+  animation: switchingPulse 0.6s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-member--switching .team-avatar-ring {
+    animation: none;
+  }
+}
+
 [data-theme='zen'] .team-member--addable:hover .team-avatar-ring--addable {
   border-color: var(--persona-primary, #4a6741) !important;
 }
@@ -7468,7 +7565,7 @@ body {
        ======================================================================== */
 
 /* Tablet Portrait (max 768px) - md breakpoint */
-@media (max-width: clamp(538px, 90vw, 768px)) {
+@media (max-width: 768px) {
   :root {
     /* Layout tokens */
     --panel-width: min(340px, 100%);
@@ -7508,7 +7605,7 @@ body {
 }
 
 /* Mobile Landscape / Large phones (481px - 767px) - sm-md gap */
-@media (max-width: clamp(537px, 90vw, 767px)) and (min-width: clamp(337px, 90vw, 481px)) {
+@media (max-width: 767px) and (min-width: 481px) {
   :root {
     /* Layout tokens */
     --panel-width: min(320px, 100%);
@@ -7547,7 +7644,7 @@ body {
 }
 
 /* Mobile Portrait (max 480px) - xs-sm gap */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   :root {
     /* Layout tokens - panels go full-width on mobile */
     --panel-width: 100vw;
@@ -7590,7 +7687,7 @@ body {
 }
 
 /* Small Mobile (max 375px) - xs breakpoint */
-@media (max-width: min(375px, 100%)) {
+@media (max-width: 375px) {
   :root {
     /* Layout tokens - full-width panels */
     --panel-width: 100vw;
@@ -7633,7 +7730,7 @@ body {
 }
 
 /* Very Small (max 320px) - smallest phones */
-@media (max-width: min(320px, 100%)) {
+@media (max-width: 320px) {
   :root {
     /* Layout tokens - full-width, minimal spacing */
     --panel-width: 100vw;
@@ -7754,7 +7851,7 @@ body {
 
 /* iPad Landscape (height 701px+, width < 1366px, TOUCH DEVICES ONLY)
    NOTE: Added (pointer: coarse) to prevent matching desktop browsers */
-@media (min-height: 701px) and (max-width: min(1366px, 100%)) and (orientation: landscape) and (pointer: coarse) {
+@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) and (pointer: coarse) {
   :root {
     /* Layout tokens */
     --panel-width: min(360px, 100%);
@@ -7789,7 +7886,7 @@ body {
 }
 
 /* Tablet (769px - 1199px) - lg breakpoint */
-@media (max-width: min(1199px, 100%)) and (min-width: clamp(538px, 90vw, 769px)) {
+@media (max-width: 1199px) and (min-width: 769px) {
   :root {
     /* Layout tokens */
     --panel-width: min(360px, 100%);
@@ -7830,7 +7927,7 @@ body {
 }
 
 /* Large Desktop (1200px+) - xl breakpoint */
-@media (min-width: min(1200px, 100%)) {
+@media (min-width: 1200px) {
   :root {
     /* Layout tokens - generous desktop sizing */
     --panel-width: min(400px, 100%);
@@ -7883,7 +7980,7 @@ body {
        ======================================================================== */
 
 /* Large Desktop (1200px+) - Match 768px to prevent layout overflow */
-@media (min-width: min(1200px, 100%)) {
+@media (min-width: 1200px) {
   /* Match 768px exactly - larger fonts/avatars cause helper text to disappear */
 
   .app {
@@ -7992,7 +8089,7 @@ body {
 
 /* Tablet (768px - 1199px) - Balanced */
 /* MUST match 768px styles to prevent layout breakage */
-@media (max-width: min(1199px, 100%)) and (min-width: clamp(538px, 90vw, 769px)) {
+@media (max-width: 1199px) and (min-width: 769px) {
   /* Team roster tokens defined in consolidated section above */
 
   .app {
@@ -8085,7 +8182,7 @@ body {
 
 /* Tablet portrait and below (768px) */
 /* Tablet portrait and below (768px) - Transition to mobile-first layout */
-@media (max-width: clamp(538px, 90vw, 768px)) {
+@media (max-width: 768px) {
   .app {
     padding: var(--space-md);
   }
@@ -8194,7 +8291,7 @@ body {
 }
 
 /* Mobile landscape / Large phones (480px - 767px) */
-@media (max-width: clamp(537px, 90vw, 767px)) and (min-width: clamp(337px, 90vw, 481px)) {
+@media (max-width: 767px) and (min-width: 481px) {
   .app {
     min-height: 100dvh;
     padding: var(--space-sm);
@@ -8303,7 +8400,7 @@ body {
 /* Mobile portrait (max 480px) - HERO AVATAR FOCUSED
        The avatar becomes the central, prominent element on mobile.
        Instead of shrinking, we make it LARGER for better presence. */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   :root {
     --text-4xl: 1.75rem;
     --text-3xl: 1.375rem;
@@ -8488,7 +8585,7 @@ body {
 /* iPhone Pro / Modern large phones (390px - 430px)
        iPhone 15 Pro: 393px, iPhone 15 Pro Max: 430px
        HERO AVATAR: These phones get premium treatment with large, centered avatar */
-@media (min-width: min(390px, 100%)) and (max-width: clamp(301px, 90vw, 430px)) {
+@media (min-width: 390px) and (max-width: 430px) {
   .header {
     /* Margin-top ensures avatar ring isn't clipped by #app overflow:hidden */
     padding: var(--space-xs) var(--space-sm) var(--space-xs);
@@ -8600,7 +8697,7 @@ body {
 }
 
 /* iPhone Pro Max / Extra large phones (431px - 480px) */
-@media (min-width: clamp(302px, 90vw, 431px)) and (max-width: clamp(336px, 90vw, 480px)) {
+@media (min-width: 431px) and (max-width: 480px) {
   .avatar-container {
     /* HERO AVATAR: 180px - largest mobile avatar
            Pro Max phones have the real estate for commanding presence */
@@ -8713,7 +8810,7 @@ body {
 
 /* Small mobile (max 375px) - iPhone SE, etc 
        Even small phones get a HERO AVATAR - just slightly smaller */
-@media (max-width: min(375px, 100%)) {
+@media (max-width: 375px) {
   :root {
     --text-4xl: 1.5rem;
     --text-3xl: 1.25rem;
@@ -8840,7 +8937,7 @@ body {
 }
 
 /* Very small screens (max 320px) - HERO AVATAR (smaller but still prominent) */
-@media (max-width: min(320px, 100%)) {
+@media (max-width: 320px) {
   .app {
     padding: var(--space-xs);
   }
@@ -9197,7 +9294,7 @@ body {
 
 /* iPad landscape - larger tablets in horizontal orientation
    NOTE: Added (pointer: coarse) to only match touch devices, not desktop browsers */
-@media (min-height: 701px) and (max-width: min(1366px, 100%)) and (orientation: landscape) and (pointer: coarse) {
+@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) and (pointer: coarse) {
   .header {
     flex-direction: row;
     align-items: center;
@@ -10347,7 +10444,7 @@ body {
   /* Sized so avatar head fits inside the hat */
   width: min(150px, 100%);
   height: 90px;
-  z-index: var(--z-content, 10);
+  z-index: var(--z-content);
   pointer-events: none;
   filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.18));
   transform-origin: 50% 100%; /* Pivot from bottom for natural wobble */
@@ -11480,7 +11577,7 @@ body.ambient-aurora {
 }
 
 /* Responsive connection quality */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   .connection-quality {
     top: var(--space-sm);
     inset-inline-end: var(--space-sm);
@@ -11654,7 +11751,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    DESKTOP LARGE (≥1200px) - Full experience with generous spacing
    ------------------------------------------------------------------------ */
-@media (min-width: min(1200px, 100%)) {
+@media (min-width: 1200px) {
   .main {
     gap: var(--space-sm);
     padding: var(--space-sm);
@@ -11706,7 +11803,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    DESKTOP / TABLET LANDSCAPE (1025px - 1199px)
    ------------------------------------------------------------------------ */
-@media (min-width: min(1025px, 100%)) and (max-width: min(1199px, 100%)) {
+@media (min-width: 1025px) and (max-width: 1199px) {
   .avatar-container {
     /* Desktop smaller screens */
     width: min(120px, 100%);
@@ -11751,7 +11848,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    TABLET PORTRAIT (768px - 1024px) - Show team roster, hide garden
    ------------------------------------------------------------------------ */
-@media (min-width: clamp(538px, 90vw, 768px)) and (max-width: min(1024px, 100%)) {
+@media (min-width: 768px) and (max-width: 1024px) {
   /* Hide garden widget on tablet - access via menu */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -11812,7 +11909,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    LARGE PHONES / SMALL TABLETS (481px - 767px)
    ------------------------------------------------------------------------ */
-@media (min-width: clamp(337px, 90vw, 481px)) and (max-width: clamp(537px, 90vw, 767px)) {
+@media (min-width: 481px) and (max-width: 767px) {
   /* Hide garden widget */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -11872,7 +11969,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    iPHONE PRO MAX (431px - 480px) - Premium large phone experience
    ------------------------------------------------------------------------ */
-@media (min-width: clamp(302px, 90vw, 431px)) and (max-width: clamp(336px, 90vw, 480px)) {
+@media (min-width: 431px) and (max-width: 480px) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -11944,7 +12041,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    iPHONE PRO (390px - 430px) - Hero avatar, premium feel
    ------------------------------------------------------------------------ */
-@media (min-width: min(390px, 100%)) and (max-width: clamp(301px, 90vw, 430px)) {
+@media (min-width: 390px) and (max-width: 430px) {
   /* Hide secondary elements for focused experience */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -12018,7 +12115,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    STANDARD MOBILE (376px - 389px) - Budget Androids, older phones
    ------------------------------------------------------------------------ */
-@media (min-width: min(376px, 100%)) and (max-width: min(389px, 100%)) {
+@media (min-width: 376px) and (max-width: 389px) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -12087,7 +12184,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    SMALL PHONES (321px - 375px) - iPhone SE 2/3, iPhone 8
    ------------------------------------------------------------------------ */
-@media (min-width: min(321px, 100%)) and (max-width: min(375px, 100%)) {
+@media (min-width: 321px) and (max-width: 375px) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -12157,7 +12254,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    VERY SMALL PHONES (≤320px) - iPhone SE 1st gen, older devices
    ------------------------------------------------------------------------ */
-@media (max-width: min(320px, 100%)) {
+@media (max-width: 320px) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -12569,7 +12666,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    COMMON MOBILE STYLES (≤480px) - Shared optimizations
    ------------------------------------------------------------------------ */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   /* Compact header for mobile */
   .header {
     gap: var(--space-sm);
@@ -12790,7 +12887,7 @@ body.ambient-aurora {
    MOBILE ADJUSTMENT - Only for very small screens
    Just reduce padding, keep all component sizes the same
    --------------------------------------------------------------------- */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   :root {
     --ferni-container-padding: var(--space-sm, 0.75rem);
   }
@@ -12852,7 +12949,7 @@ body.ambient-aurora {
     bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px)) !important;
     inset-inline-end: var(--space-md) !important;
     top: auto !important;
-    z-index: var(--z-floating, 20) !important;
+    z-index: var(--z-floating) !important;
   }
 
   /* =========================

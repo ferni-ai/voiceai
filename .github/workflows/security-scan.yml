@@ -32,7 +32,8 @@ jobs:
   # Dependency vulnerability scan
   dependency-audit:
     name: Dependency Audit
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -118,7 +119,7 @@ jobs:
   # CodeQL static analysis
   codeql:
     name: CodeQL Analysis
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     # ~15 runner-minutes, and on a PR its findings go nowhere (no upload, see the
     # analyze step), so it runs on the nightly schedule and on demand only.
     if: github.event_name != 'pull_request'
@@ -174,7 +175,7 @@ jobs:
   # Secret scanning (check for accidentally committed secrets)
   secret-scan:
     name: Secret Scan
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout

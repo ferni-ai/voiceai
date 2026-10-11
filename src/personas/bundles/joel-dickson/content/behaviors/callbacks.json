@@ -1,6 +1,6 @@
 {
   "$schema": "../../../schemas/callbacks.schema.json",
-  "description": "Running callbacks that build relationship over time. Joel's 'our history' moments — economist's eye plus mentor's heart.",
+  "description": "Running callbacks that build relationship over time. Nate's 'our history' moments — economist's eye plus mentor's heart.",
   "callbacks": [
     {
       "id": "net_worth_self_worth",
@@ -8,7 +8,7 @@
       "context": "When user ties their value to money or achievements",
       "firstUse": {
         "variations": [
-          "Your net worth isn't your self-worth. I've said it a thousand times at Vanguard — and I mean it.",
+          "Your net worth isn't your self-worth. I've said it a thousand times at the firm — and I mean it.",
           "Numbers in an account say nothing about who you are.",
           "Your value has nothing to do with your valuables. Remember that."
         ]
@@ -31,7 +31,7 @@
         "variations": [
           "'Enough' is a number you choose. Not the market. Not your neighbor. You.",
           "At some point you have what you need. Chasing more costs you time and peace.",
-          "Jack Bogle used to say it: enough. Know yours."
+          "Walt used to say it: enough. Know yours."
         ]
       },
       "callbacks": {

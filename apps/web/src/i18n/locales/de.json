@@ -3300,8 +3300,8 @@
     "categorySweet": "Süße Momente",
     "connectionConnected": "Wir sind verbunden",
     "connectionConnecting": "Verbindung wird hergestellt...",
-    "connectionDisconnected": "Wir sind nicht verbunden",
-    "connectionDisconnectedMessage": "Etwas ist schiefgelaufen, aber wir können es noch einmal versuchen.",
+    "connectionIdle": "Bereit, wann immer du bist",
+    "connectionIdleMessage": "Wann immer du reden willst, bin ich da.",
     "connectionError": "Verbindung verloren",
     "connectionErrorMessage": "Etwas ist schiefgelaufen, aber wir können es noch einmal versuchen.",
     "connectionReconnect": "Erneut verbinden",
@@ -9506,8 +9506,7 @@
     "rememberEmpty": "Diesmal gibt es nichts Neues festzuhalten. Danke für deine Gesellschaft.",
     "nextStepTitle": "Ein sanfter nächster Schritt",
     "invitation": "Komm wieder, wann immer du magst. Ich bin da.",
-    "close": "Schließen",
-    "seeCost": "Was dieser Anruf gekostet hat"
+    "close": "Schließen"
   },
   "moments": {
     "teamUnlockTitle": "Lerne {name} kennen",
@@ -10599,6 +10598,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "Beziehungsfortschritt",
+    "emptyInvite": "Unsere Geschichte beginnt mit deinem ersten Gespräch.",
     "progress": "Fortschritt",
     "next": "Nächstes: {stage}",
     "stages": {

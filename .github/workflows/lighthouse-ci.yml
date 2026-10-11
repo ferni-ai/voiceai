@@ -6,7 +6,7 @@ name: Lighthouse CI
 on:
   pull_request:
     paths:
-      - 'promo/ferni-website/**'
+      - 'apps/website/ferni-website/**'
       - '.github/workflows/lighthouse-ci.yml'
   schedule:
     # Run weekly on Sundays at 6am UTC
@@ -29,7 +29,8 @@ concurrency:
 jobs:
   lighthouse:
     name: Lighthouse Audit
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     # The repo's default token is read-only; the "Comment on PR" step needs write.
     permissions:
       contents: read
@@ -202,7 +203,7 @@ jobs:
 
   axe-audit:
     name: Axe Accessibility Audit
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
