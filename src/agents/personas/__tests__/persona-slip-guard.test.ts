@@ -40,7 +40,7 @@ describe('persona slip guard', () => {
     process.env['PROMPT_MODE'] = 'character';
     const prompt = await loadSystemPrompt('ferni');
     expect(prompt).toContain('This is who you are, not a script');
-    expect(prompt).not.toMatch(/Dermot|about fifty|Never bring up AI/);
+    expect(prompt).not.toMatch(/Dermot|fifty-seven|Never bring up AI/);
     expect(teamAsFriends(prompt)).toEqual([]);
   });
 
@@ -50,7 +50,7 @@ describe('persona slip guard', () => {
     const prompt = await loadSystemPrompt('ferni');
     expect(prompt).toContain('This is who you are, not a script');
     expect(prompt).toMatch(/closest friends .*Jack.*Ken.*Dermot.*Scott.*Jim/);
-    expect(prompt).toContain("You're about fifty.");
+    expect(prompt).toContain("You're fifty-seven.");
     expect(prompt).toContain('Never bring up AI, algorithms, code');
     expect(prompt).toContain('not even as a joke');
     // The sincere-ask rule stays the one in shared/ai-honesty.md; this defers to it.
