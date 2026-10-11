@@ -20,6 +20,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { COACH_LOCAL_TOOLS, isCoachLocalEnabled } from './coach-local-flag.js';
 
 const log = createLogger({ module: 'ToolConfig' });
 
@@ -220,7 +221,10 @@ export function loadToolConfig(): ToolConfiguration {
     ),
     useFtis: parseBool(env.FTIS_ENABLED, parseBool(env.USE_FTIS, DEFAULT_CONFIG.useFtis)),
     ftisThreshold: parseNum(env.FTIS_THRESHOLD, DEFAULT_CONFIG.ftisThreshold * 100) / 100,
-    essentialTools: DEFAULT_CONFIG.essentialTools,
+    // COACH_LOCAL=on: its tools are there from the first turn, like quickTimer.
+    essentialTools: isCoachLocalEnabled()
+      ? [...DEFAULT_CONFIG.essentialTools, ...COACH_LOCAL_TOOLS]
+      : DEFAULT_CONFIG.essentialTools,
   };
 
   // Log configuration on first load
