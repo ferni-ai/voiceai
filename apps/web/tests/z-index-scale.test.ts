@@ -16,6 +16,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, it, expect } from 'vitest';
+import { MOMENT_Z_INDEX } from '../src/ui/moments/constants.js';
 
 const WEB_ROOT = join(__dirname, '..');
 const SCALE_FILE = join(WEB_ROOT, 'src', 'styles', 'inline-styles.css');
@@ -46,14 +47,20 @@ function references(file: string): { where: string; name: string; fallback: stri
     .split('\n')
     .forEach((line, i) => {
       for (const m of line.matchAll(/var\(\s*--z-([a-z0-9-]+)\s*(?:,\s*([^()]*?))?\)/g)) {
-        out.push({ where: `${relative(WEB_ROOT, file)}:${i + 1}`, name: m[1], fallback: m[2] ?? null });
+        out.push({
+          where: `${relative(WEB_ROOT, file)}:${i + 1}`,
+          name: m[1],
+          fallback: m[2] ?? null,
+        });
       }
     });
   return out;
 }
 
 const scale = scaleDefinitions(readFileSync(SCALE_FILE, 'utf8'));
-const refs = sourceFiles().flatMap(references).filter((r) => !NOT_LAYERS.has(r.name));
+const refs = sourceFiles()
+  .flatMap(references)
+  .filter((r) => !NOT_LAYERS.has(r.name));
 const layer = (name: string): number => Number(scale.get(name));
 
 describe('z-index scale', () => {
@@ -76,13 +83,17 @@ describe('z-index scale', () => {
   });
 
   it('every --z-* name used in src/ is defined by the scale', () => {
-    const undefinedNames = refs.filter((r) => !scale.has(r.name)).map((r) => `${r.where} --z-${r.name}`);
+    const undefinedNames = refs
+      .filter((r) => !scale.has(r.name))
+      .map((r) => `${r.where} --z-${r.name}`);
     expect(undefinedNames).toEqual([]);
   });
 
   it('no call site carries its own fallback number', () => {
     // Example of what this rejects: z-index: var(--z-modal, 2100);
-    const withFallback = refs.filter((r) => r.fallback !== null).map((r) => `${r.where} --z-${r.name}`);
+    const withFallback = refs
+      .filter((r) => r.fallback !== null)
+      .map((r) => `${r.where} --z-${r.name}`);
     expect(withFallback).toEqual([]);
   });
 
@@ -105,5 +116,31 @@ describe('z-index scale', () => {
     expect(tiers.every((v) => Number.isFinite(v))).toBe(true);
     expect([...tiers].sort((a, b) => a - b)).toEqual(tiers);
     expect(layer('toast')).toBe(layer('notification'));
+  });
+
+  it('puts Moments toasts above panels and modals, on the scale', () => {
+    // A literal 1000 hid every "Saved" pill behind full-width panels on phones.
+    const tokenOf = (value: string | number): string =>
+      String(value).match(/^var\(--z-([a-z0-9-]+)\)$/)?.[1] ?? `literal ${value}`;
+    const names = Object.values(MOMENT_Z_INDEX).map(tokenOf);
+    expect(names.filter((n) => !scale.has(n))).toEqual([]);
+    expect(layer(tokenOf(MOMENT_Z_INDEX.whisper))).toBeGreaterThan(layer('panel'));
+    expect(layer(tokenOf(MOMENT_Z_INDEX.whisper))).toBeGreaterThan(layer('modal'));
+  });
+
+  it('Moments style templates carry no literal z-index', () => {
+    // The templates interpolate TS values, which the var() scan above can't see.
+    const dir = join(WEB_ROOT, 'src', 'ui', 'moments');
+    const literals = readdirSync(dir)
+      .filter((f) => f.endsWith('.ts'))
+      .flatMap((f) =>
+        [...readFileSync(join(dir, f), 'utf8').matchAll(/z-index:\s*([^;]+);/g)]
+          .map((m) => m[1].trim())
+          .filter(
+            (v) => !/^var\(--z-[a-z0-9-]+\)$/.test(v) && !/^\$\{MOMENT_Z_INDEX\.\w+\}$/.test(v)
+          )
+          .map((v) => `${f}: z-index: ${v}`)
+      );
+    expect(literals).toEqual([]);
   });
 });
