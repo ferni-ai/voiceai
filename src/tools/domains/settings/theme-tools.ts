@@ -17,6 +17,7 @@ import { llm } from '@livekit/agents';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { callSessionId } from '../../utils/call-session.js';
 
 const log = getLogger();
 
@@ -106,7 +107,7 @@ The theme parameter should be what the user said (e.g., "dark mode", "lighter", 
             'The theme the user requested. Can be natural language like "darker", "night mode", "system theme"'
           ),
       }),
-      execute: async ({ theme }) => {
+      execute: async ({ theme }, run) => {
         try {
           const normalizedTheme = parseTheme(theme);
 
@@ -116,10 +117,12 @@ The theme parameter should be what the user said (e.g., "dark mode", "lighter", 
 
           // Broadcast theme change to UI
           if (ctx.userId) {
-            await broadcastUserEvent(ctx.userId, 'theme_change', {
-              theme: normalizedTheme,
-              source: 'voice',
-            });
+            await broadcastUserEvent(
+              ctx.userId,
+              'theme_change',
+              { theme: normalizedTheme, source: 'voice' },
+              { sessionId: callSessionId(run, ctx) }
+            );
 
             // Persist preference
             await persistThemePreference(ctx.userId, normalizedTheme);

@@ -48,10 +48,12 @@ vi.mock('@google-cloud/firestore', () => ({
 describe('Monetization E2E', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv('PAYWALL', 'on'); // these flows exist only while the paywall is on
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   describe('Tip Jar Flow', () => {
