@@ -14,11 +14,12 @@ This document lists all environment variables required for the Ferni monetizatio
 
 ### Stripe Configuration
 
-| Variable                      | Description                          | Example                        |
-| ----------------------------- | ------------------------------------ | ------------------------------ |
-| `STRIPE_SECRET_KEY`           | Stripe secret key (server-side)      | `sk_live_...` or `sk_test_...` |
-| `STRIPE_WEBHOOK_SECRET`       | Webhook endpoint signing secret      | `whsec_...`                    |
-| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (client-side) | `pk_live_...` or `pk_test_...` |
+| Variable                             | Description                                                                                 | Example                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------- | ------------------------------ |
+| `STRIPE_SECRET_KEY`                  | Stripe secret key (server-side)                                                             | `sk_live_...` or `sk_test_...` |
+| `STRIPE_WEBHOOK_SECRET`              | Signing secret of the subscription webhook endpoint                                         | `whsec_...`                    |
+| `STRIPE_MONETIZATION_WEBHOOK_SECRET` | Signing secret of the monetization webhook endpoint (falls back to `STRIPE_WEBHOOK_SECRET`) | `whsec_...`                    |
+| `VITE_STRIPE_PUBLISHABLE_KEY`        | Stripe publishable key (client-side)                                                        | `pk_live_...` or `pk_test_...` |
 
 ### Stripe Price IDs (Subscriptions)
 
@@ -67,15 +68,21 @@ stripe prices create --product=prod_yyy --unit-amount=1999 --currency=usd --recu
 
 ### 3. Set Up Webhooks
 
+Ferni uses two Stripe webhook endpoints. Stripe gives each endpoint its own signing secret, and
+both endpoints reject any event whose `stripe-signature` doesn't verify (HTTP 400). Set both
+secrets before deploying, or real Stripe events will be rejected too.
+
 1. Go to Dashboard → Developers → Webhooks
-2. Add endpoint: `https://app.ferni.ai/api/monetization/webhook`
-3. Select events to listen for:
-   - `payment_intent.succeeded`
-   - `payment_intent.payment_failed`
-   - `customer.subscription.created`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-4. Copy the signing secret to `STRIPE_WEBHOOK_SECRET`
+2. Add the subscription endpoint: `https://app.ferni.ai/api/subscription/webhook`
+   - Events: `checkout.session.completed`, `customer.subscription.created`,
+     `customer.subscription.updated`, `customer.subscription.deleted`
+   - Copy its signing secret to `STRIPE_WEBHOOK_SECRET`
+3. Add the monetization endpoint (tips, value capture, Ferni Fund):
+   `https://app.ferni.ai/api/monetization/webhook`
+   - Events: `payment_intent.succeeded`, `payment_intent.payment_failed`
+   - Copy its signing secret to `STRIPE_MONETIZATION_WEBHOOK_SECRET`
+
+If you only configure one endpoint, the monetization route falls back to `STRIPE_WEBHOOK_SECRET`.
 
 ### 4. Test Mode
 
@@ -155,6 +162,7 @@ Create a `.env.local` file:
 # Stripe (Test Mode)
 STRIPE_SECRET_KEY=sk_test_your_key_here
 STRIPE_WEBHOOK_SECRET=whsec_your_secret_here
+STRIPE_MONETIZATION_WEBHOOK_SECRET=whsec_your_monetization_secret_here
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here
 
 # Stripe Prices (create in test mode)

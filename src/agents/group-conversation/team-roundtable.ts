@@ -19,6 +19,7 @@ import {
   type GroupConversationConfig,
 } from './group-conversation-manager.js';
 import { createAgentParticipant } from './participant-registry.js';
+import { personaName } from './session-roundtable-agents.js';
 import type {
   GroupParticipant,
   RoundtableConfig,
@@ -71,7 +72,8 @@ export interface AgentCreationContext {
 export interface RoundtableAgent {
   id: string;
   personaId: string;
-  say: (text: string, options?: { allowInterruptions?: boolean }) => void;
+  /** May return the line's playout; the roundtable then waits for it instead of estimating. */
+  say: (text: string, options?: { allowInterruptions?: boolean }) => void | Promise<void>;
   setMuted: (muted: boolean) => void;
   cleanup: () => Promise<void>;
   generateResponse: (context: ResponseContext) => Promise<string>;
@@ -110,19 +112,6 @@ export interface TeamRoundtableResult {
   /** Cleanup function */
   cleanup: () => Promise<void>;
 }
-
-// ============================================================================
-// PERSONA NAME MAPPING
-// ============================================================================
-
-const PERSONA_NAMES: Record<string, string> = {
-  ferni: 'Ferni',
-  'peter-john': 'Peter',
-  'maya-habits': 'Maya',
-  'alex-chen': 'Alex',
-  'jordan-taylor': 'Jordan',
-  'nayan-sharma': 'Nayan',
-};
 
 // ============================================================================
 // TEAM ROUNDTABLE
@@ -322,7 +311,7 @@ export class TeamRoundtable extends EventEmitter {
    */
   private async spawnAgent(personaId: string): Promise<void> {
     const isModerator = personaId === this.config.roundtable.moderator;
-    const name = PERSONA_NAMES[personaId] ?? personaId;
+    const name = personaName(personaId);
 
     // Create the agent
     const agent = await this.config.createAgent(personaId, {
@@ -355,10 +344,10 @@ export class TeamRoundtable extends EventEmitter {
     const addressed: string[] = [];
     const lowerUtterance = utterance.toLowerCase();
 
-    for (const [personaId, name] of Object.entries(PERSONA_NAMES)) {
-      if (this.agents.has(personaId) && lowerUtterance.includes(name.toLowerCase())) {
+    // Whole words: "Peter" must not match inside "competer"
+    for (const personaId of this.agents.keys()) {
+      if (new RegExp(`\\b${personaName(personaId)}\\b`, 'i').test(utterance))
         addressed.push(personaId);
-      }
     }
 
     // Check for "everyone" or "all" or "team"
@@ -472,11 +461,8 @@ export class TeamRoundtable extends EventEmitter {
         this.manager.onSpeakingStart(participant.id);
       }
 
-      // Speak
-      agent.say(response, { allowInterruptions: true });
-
-      // Wait for speech to complete
-      await this.waitForSpeechComplete(response);
+      // Speak, and wait for the playout (an estimate when the agent can't report it)
+      await this.spoken(agent.say(response, { allowInterruptions: true }), response);
 
       if (participant) {
         this.manager.onSpeakingEnd(participant.id);
@@ -533,6 +519,13 @@ export class TeamRoundtable extends EventEmitter {
   /**
    * Wait for speech to complete
    */
+  private async spoken(playout: void | Promise<void>, text: string): Promise<void> {
+    if (!playout) return this.waitForSpeechComplete(text);
+    await playout.catch((error: unknown) =>
+      log.warn({ error: String(error) }, 'Roundtable line failed')
+    );
+  }
+
   private async waitForSpeechComplete(text: string): Promise<void> {
     const durationMs = this.estimateSpeechDuration(text);
     await this.sleep(durationMs);
@@ -589,8 +582,7 @@ export class TeamRoundtable extends EventEmitter {
       this.manager.onSpeakingStart(participant.id);
     }
 
-    moderator.say(greeting, { allowInterruptions: true });
-    await this.waitForSpeechComplete(greeting);
+    await this.spoken(moderator.say(greeting, { allowInterruptions: true }), greeting);
 
     if (participant) {
       this.manager.onSpeakingEnd(participant.id);

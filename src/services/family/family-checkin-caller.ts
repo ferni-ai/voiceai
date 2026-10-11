@@ -24,6 +24,7 @@ import {
 import { analyzeCheckinCall, generateUrgentNotification } from './family-checkin-summary.js';
 import { getSponsoredIdentity } from '../identity/sponsored-identity.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
+import { deferredOutsideCallHours } from './checkin-call-hours.js';
 
 const log = createLogger({ module: 'FamilyCheckinCaller' });
 
@@ -85,10 +86,9 @@ export async function runFamilyCheckinJob(): Promise<FamilyCheckinJobResult> {
       return result;
     }
 
-    // Process each schedule
     for (const schedule of dueSchedules) {
       result.schedulesProcessed++;
-
+      if (await deferredOutsideCallHours(schedule, result)) continue;
       try {
         const callResult = await initiateCheckinCall(schedule);
 
