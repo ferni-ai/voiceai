@@ -23,7 +23,12 @@ import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import type { UserData } from '../shared/types.js';
 import type { TurnHandlerContext } from '../voice-agent/turn-handler.js';
 import { getUserResponseGapMs } from '../voice-agent/user-response-gap.js';
-import { TURN_CONTEXT_HEADER } from './turn-context-header.js';
+import {
+  startRevivedIntelligence,
+  type RevivedStore,
+} from '../../intelligence/revived/revived-intelligence.js';
+import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { MAX_PUSHED_CONTEXT_CHARS, TURN_CONTEXT_HEADER } from './turn-context-header.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
 
@@ -44,11 +49,26 @@ export interface TurnIntelligenceDeps {
   room?: TurnHandlerContext['room'];
   /** Injected for tests; defaults to the real turn handler. */
   handle?: (ctx: TurnHandlerContext) => Promise<void>;
+  /** Injected for tests; defaults to Firestore. */
+  revivedStore?: RevivedStore;
 }
 
 export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurnHook {
   // Frontend signals are best-effort; a dropped one must not affect the turn.
   const sendDataMessage = createDataMessageSender(deps.room);
+  // What Ferni knows from earlier calls, loaded now so no turn waits for it
+  // (REVIVED_INTELLIGENCE). Never on a call placed for the user to someone else.
+  const { sessionId, userId, userProfile: profile } = deps.services;
+  if (!outboundPartiesFor(sessionId)) {
+    void startRevivedIntelligence({
+      sessionId,
+      userId,
+      userName: profile?.preferredName || profile?.name || deps.userData.userName,
+      lastContact: profile?.lastContact,
+      lastConversationSummary: profile?.lastConversationSummary,
+      store: deps.revivedStore,
+    });
+  }
 
   return async (turnCtx, newMessage) => {
     const userText = newMessage.textContent?.trim();
@@ -237,9 +257,6 @@ function afterTheirWords(
   }
   return undefined;
 }
-
-/** Keeps a pushed context note from growing the session's context unboundedly. */
-const MAX_PUSHED_CONTEXT_CHARS = 2000;
 
 interface ContextAgent {
   readonly chatCtx: {
