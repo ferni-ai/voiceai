@@ -7,4 +7,6 @@
  *
  * @module agents/after-call-register
  */
+import './fact-supersession-register.js';
+
 export {};
