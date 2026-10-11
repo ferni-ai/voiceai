@@ -38,6 +38,10 @@ import { z } from 'zod';
 import { teamMemberIdOf } from '../../intelligence/context-builders/team/team-availability.js';
 import { ALIAS_TO_CANONICAL, isCoach } from '../../personas/persona-ids.js';
 import {
+  personaSlipGuardEnabled,
+  TEAMMATES_ARE_COLLEAGUES,
+} from '../../personas/persona-slip-guard.js';
+import {
   getTeamMemberUnlockStatus,
   getTeamUnlockState,
   TEAM_MEMBERS,
@@ -134,9 +138,12 @@ export function teamStatusNote(view: UnlockView, callerWords = ''): string {
   const open = TEAM_MEMBERS.filter(
     (m) => !isSpeaker(m.memberId, view) && isOpen(m.memberId, view)
   ).map((m) => m.displayName);
-  return open.length > 0
-    ? `Of your teammates, only ${nameList(open)} ${open.length > 1 ? 'are' : 'is'} available to this caller; don't bring up the others.`
-    : "None of your teammates are available to this caller yet; don't bring them up.";
+  if (open.length === 0)
+    return "None of your teammates are available to this caller yet; don't bring them up.";
+  const line = `Of your teammates, only ${nameList(open)} ${open.length > 1 ? 'are' : 'is'} available to this caller; don't bring up the others.`;
+  // Asked whether he had friends, Ferni named the teammates on this line
+  // (prod call, 2026-10-11; persona-slip-guard.ts).
+  return personaSlipGuardEnabled() ? `${line} ${TEAMMATES_ARE_COLLEAGUES}` : line;
 }
 
 /**
