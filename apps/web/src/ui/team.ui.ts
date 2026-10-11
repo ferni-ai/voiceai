@@ -1713,7 +1713,7 @@ function celebrateMemberUnlock(personaId: PersonaId): void {
     box-shadow: 0 4px 20px rgba(74, 103, 65, 0.2), 0 2px 8px rgba(0, 0, 0, 0.2);
     font-size: 12px;
     font-weight: 500;
-    z-index: var(--z-toast, 1700);
+    z-index: var(--z-toast);
     opacity: 0;
     transition: opacity 0.2s ease, transform 0.2s ease;
     display: flex;

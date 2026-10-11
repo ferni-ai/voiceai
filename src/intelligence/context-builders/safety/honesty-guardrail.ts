@@ -251,7 +251,7 @@ export function getSessionActionSummary(sessionId: string): string {
  */
 registerContextBuilder({
   name: 'honesty-guardrail',
-  description: 'Prevents Ferni from implying actions she did not take. Core trust promise.',
+  description: 'Prevents Ferni from implying actions he did not take. Core trust promise.',
   priority: 5, // Very high - runs before most safety builders
   category: BuilderCategory.SAFETY,
   build: async (input: ContextBuilderInput): Promise<ContextInjection[]> => {

@@ -24,20 +24,9 @@
  *
  * Performance Target: <1ms per 20ms frame (real-time safe)
  *
- * ============================================================================
- * HUMANIZATION FEATURES - "Better Than Human" Audio
- * ============================================================================
- * The following features add human-like imperfections to make TTS more natural:
- *
- * ✅ POST_TTS_MICRO_PITCH: SOLA-based pitch modulation (artifact-free via SOLA)
- * ✅ POST_TTS_VOCAL_FRY: Irregular glottal pulses with diploponia (rewrote Dec 2024)
- * ✅ POST_TTS_LIP_SMACKS: Formant-based synthesis with oral cavity resonances (rewrote Dec 2024)
- * ✅ POST_TTS_TEMPO_VARIATION: SOLA time-stretching with cross-correlation (rewrote Dec 2024)
- * ✅ POST_TTS_ADAPTIVE_PACING: Content complexity analysis for pacing (added Dec 2024)
- *
- * Enable via environment variables: POST_TTS_VOCAL_FRY=true, etc.
- * Use analyzeContentComplexity(text) for adaptive pacing.
- * ============================================================================
+ * Live calls no longer run the DSP chain: applyPostTTSEnhancement passes audio
+ * to Stage 2 and the phone profile only. The chain lost a loudness-matched blind
+ * A/B on 2026-10-04, and its POST_TTS_* switches were removed.
  *
  * @module agents/shared/performance/post-tts-transform
  */
@@ -50,13 +39,11 @@ import {
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { applyPhoneVoiceProfile } from './phone-voice-profile.js';
-import { postTtsChainEnabled } from './post-tts-env-overrides.js';
 import { applyReplyAudioStage } from './reply-audio-stage.js';
 
 const log = createLogger({ module: 'PostTTSTransform' });
 
 // Moved to their own modules; re-exported so existing importers keep working.
-export { POST_TTS_ENV_SWITCHES, postTtsEnvOverrides } from './post-tts-env-overrides.js';
 export {
   analyzeContentComplexity,
   getRecommendedPacingFromComplexity,
@@ -492,36 +479,14 @@ export interface PostTTSConfig {
 }
 
 // ============================================================================
-// ENVIRONMENT VARIABLE HELPERS
+// DEFAULT CONFIG
 // ============================================================================
 
-/**
- * Check if an env var is explicitly set to 'true' or '1'
- * Used for features that are OFF by default (opt-in)
- */
-function envEnabled(key: string): boolean {
-  const val = process.env[key];
-  return val === 'true' || val === '1';
-}
-
-// Default config - CONSERVATIVE settings after production issues (January 2026)
-//
-// LESSONS LEARNED: The original "Better Than Human" config had 13+ DSP effects
-// enabled by default, causing cumulative audio degradation in production.
-// The new default is MINIMAL - only soft edges for clean transitions.
-//
-// Features can be controlled via .env (opt-in only):
-//   POST_TTS_WARMTH=true              - Enable warmth filter
-//   POST_TTS_COMPRESSION=true         - Enable compression
-//   POST_TTS_PRESENCE=true            - Enable presence boost
-//   POST_TTS_MICRO_PITCH=true         - Enable micro pitch modulation
-//   POST_TTS_BREATH=true              - Enable breath injection
-//   POST_TTS_JITTER=true              - Enable cycle-to-cycle pitch variation
-//   POST_TTS_SHIMMER=true             - Enable cycle-to-cycle amplitude variation
-//   ... etc (all humanization features are opt-in)
-//
-// WARNING: Do NOT enable many features at once without testing!
-// Each feature should be tested individually before combining.
+// Default config - CONSERVATIVE settings after production issues (January 2026):
+// the original "Better Than Human" config had 13+ DSP effects enabled by default,
+// causing cumulative audio degradation in production. The POST_TTS_* switches that
+// turned single effects back on were never set and are gone, and the chain itself
+// no longer runs on live calls (see applyPostTTSEnhancement).
 export const DEFAULT_CONFIG: Required<PostTTSConfig> = {
   sampleRate: 24000, // Cartesia output rate
   // =========================================================================
@@ -530,17 +495,17 @@ export const DEFAULT_CONFIG: Required<PostTTSConfig> = {
   enableSoftEdges: true,
   softEdgeMs: 10, // 10ms attack/release for clean transitions
   // Warmth, compression, presence: OFF by default (opt-in)
-  enableBreath: envEnabled('POST_TTS_BREATH'),
+  enableBreath: false,
   breathProbability: 0.15,
-  enableWarmth: envEnabled('POST_TTS_WARMTH'),
+  enableWarmth: false,
   warmthAmount: 0.25, // Reduced from 0.35
   enableDeEsser: true, // always on until 2026-09-29, when it became switchable
-  enableCompression: envEnabled('POST_TTS_COMPRESSION'),
+  enableCompression: false,
   compressionRatio: 1.5, // Reduced from 2.0
   compressionThresholdDb: -20, // Raised from -18 (less aggressive)
   // Note: the Rust compressor also applies +2 dB makeup gain (comp_makeup_db,
   // not exposed here); the limiter keeps peaks at about -1 dBFS.
-  enablePresence: envEnabled('POST_TTS_PRESENCE'),
+  enablePresence: false,
   presenceBoostDb: 1.5, // Reduced from 2.0
   sessionId: 'unknown',
   personaId: 'ferni',
@@ -549,55 +514,55 @@ export const DEFAULT_CONFIG: Required<PostTTSConfig> = {
   // HUMANIZATION - ALL OFF by default (opt-in only)
   // These features caused audio quality issues when enabled together
   // =========================================================================
-  enableAmplitudeJitter: envEnabled('POST_TTS_AMPLITUDE_JITTER'),
+  enableAmplitudeJitter: false,
   amplitudeJitterDepth: 0.01, // Reduced from 0.015
-  enablePitchDrift: envEnabled('POST_TTS_PITCH_DRIFT'),
+  enablePitchDrift: false,
   pitchDriftCents: 3, // Reduced from 5
-  enableNoiseFloor: envEnabled('POST_TTS_NOISE_FLOOR'),
+  enableNoiseFloor: false,
   noiseFloorDb: -60, // Reduced from -55 (quieter)
   // SOLA & Emotion prosody: OFF by default
-  useSolaPitch: envEnabled('POST_TTS_SOLA_PITCH'),
-  enableEmotionProsody: envEnabled('POST_TTS_EMOTION_PROSODY'),
+  useSolaPitch: false,
+  enableEmotionProsody: false,
   emotion: 0,
   contentComplexity: 0.5,
   // Micro-pitch: OFF by default
-  enableMicroPitch: envEnabled('POST_TTS_MICRO_PITCH'),
+  enableMicroPitch: false,
   pitchModulationCents: 5, // Reduced from 8
   // =========================================================================
   // ADVANCED HUMANIZATION - ALL OFF by default (experimental)
   // These had known issues documented in the code
   // =========================================================================
-  enableAdaptivePacing: envEnabled('POST_TTS_ADAPTIVE_PACING'),
-  enableVocalFry: envEnabled('POST_TTS_VOCAL_FRY'),
+  enableAdaptivePacing: false,
+  enableVocalFry: false,
   vocalFryDepth: 0.3, // Reduced from 0.4
   vocalFryDurationMs: 150, // Reduced from 200
-  enableLipSmacks: envEnabled('POST_TTS_LIP_SMACKS'),
+  enableLipSmacks: false,
   lipSmackProbability: 0.2, // Reduced from 0.3
-  enableTempoVariation: envEnabled('POST_TTS_TEMPO_VARIATION'),
+  enableTempoVariation: false,
   tempoVariationDepth: 0.02, // Reduced from 0.03
-  enableOnsetSoftening: envEnabled('POST_TTS_ONSET_SOFTENING'),
+  enableOnsetSoftening: false,
   // =========================================================================
   // STATE-OF-THE-ART HUMANIZATION - ALL OFF by default
   // These were the primary cause of production audio issues
   // =========================================================================
-  enableJitter: envEnabled('POST_TTS_JITTER'),
+  enableJitter: false,
   jitterAmount: 0.01, // Reduced from 0.015
-  enableShimmer: envEnabled('POST_TTS_SHIMMER'),
+  enableShimmer: false,
   shimmerAmount: 0.03, // Reduced from 0.05
-  enableHnrModulation: envEnabled('POST_TTS_HNR_MODULATION'),
+  enableHnrModulation: false,
   hnrBreathiness: 0.1, // Reduced from 0.15
-  enableSubglottalResonance: envEnabled('POST_TTS_SUBGLOTTAL'),
+  enableSubglottalResonance: false,
   subglottalStrength: 0.15, // Reduced from 0.2
-  enableSmileFormants: envEnabled('POST_TTS_SMILE_FORMANTS'),
+  enableSmileFormants: false,
   smileAmount: 0.2, // Reduced from 0.3
-  enableGlottalization: envEnabled('POST_TTS_GLOTTALIZATION'),
+  enableGlottalization: false,
   glottalizationStrength: 0.3, // Reduced from 0.4
-  enableHesitationSounds: envEnabled('POST_TTS_HESITATION'),
+  enableHesitationSounds: false,
   hesitationProbability: 0.05, // Reduced from 0.1
-  enableLombardEffect: envEnabled('POST_TTS_LOMBARD'),
-  enableRegisterTransitions: envEnabled('POST_TTS_REGISTER'),
+  enableLombardEffect: false,
+  enableRegisterTransitions: false,
   targetRegister: 0,
-  enablePharyngealConstriction: envEnabled('POST_TTS_PHARYNGEAL'),
+  enablePharyngealConstriction: false,
   pharyngealAmount: 0.2, // Reduced from 0.3
 };
 
@@ -1345,12 +1310,12 @@ export async function applyPostTTSEnhancement(
   config: PostTTSConfig = {},
   replyId?: string
 ): Promise<NodeReadableStream<AudioFrame>> {
-  const mastered = postTtsChainEnabled()
-    ? audioStream.pipeThrough(
-        createPostTTSTransform(config) as unknown as NodeTransformStream<AudioFrame, AudioFrame>
-      )
-    : audioStream; // then Stage 2 (opening breath/sigh, tempo) and the phone profile, both gated off by default:
-  const staged = await applyReplyAudioStage(mastered, config.sessionId, replyId, config.sampleRate);
+  // The mastering chain (createPostTTSTransform) is not applied: it re-masters
+  // audio Cartesia already masters, and in a loudness-matched blind A/B on
+  // Ferni's voice (2026-10-04) it was never preferred (raw 2 of 6, can't tell
+  // 4 of 6). POST_TTS_ENHANCEMENT_ENABLED, its opt-in, was false on dev and prod.
+  // Stage 2 (opening breath/sigh, tempo) and the phone profile, both gated off by default:
+  const staged = await applyReplyAudioStage(audioStream, config.sessionId, replyId, config.sampleRate);
   return applyPhoneVoiceProfile(staged, config.sessionId);
 }
 

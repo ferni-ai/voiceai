@@ -236,6 +236,9 @@ const ALMOST_THERE_THRESHOLD = 0.8; // 80%
  */
 let bypassMode: null | 'all' | TeamMemberId[] = null;
 
+/** Server TEAM_BY_NEED (teamByNeed from the endpoint): the whole team, nobody locked or "unlocked". */
+let teamByNeed = false;
+
 /**
  * Track if we've synced with backend at least once
  */
@@ -355,6 +358,7 @@ async function syncWithBackend(userIdOverride?: string): Promise<void> {
     const url = `${TEAM_UNLOCK_API}?userId=${userId}`;
     const response = await apiGet<{
       bypassMode?: string;
+      teamByNeed?: boolean;
       tier?: string;
       unlockedMembers?: string[];
       members?: Array<{ id?: string; unlocked?: boolean; teaserMessage?: string | null }>;
@@ -374,6 +378,8 @@ async function syncWithBackend(userIdOverride?: string): Promise<void> {
         log.info('🔓 Backend bypass mode active:', bypassMode);
       }
     }
+
+    if (typeof data.teamByNeed === 'boolean') teamByNeed = data.teamByNeed;
 
     // Update subscription tier from backend
     if (data.tier) {
@@ -416,6 +422,7 @@ async function syncWithBackend(userIdOverride?: string): Promise<void> {
  * FIX: Check if a member is bypassed via backend BYPASS_TEAM_UNLOCKS env var
  */
 function isMemberBypassed(memberId: TeamMemberId): boolean {
+  if (teamByNeed) return true;
   if (bypassMode === null) return false;
   if (bypassMode === 'all') return true;
   return bypassMode.includes(memberId);
@@ -600,8 +607,8 @@ export function updateUnlockState(): TeamUnlockState {
     if (status.unlocked) {
       unlockedMembers.add(member.id);
 
-      // Check if newly unlocked
-      if (!previousUnlocked.has(member.id) && member.id !== 'ferni') {
+      // Check if newly unlocked (by need, nobody is "unlocked": they were always there)
+      if (!previousUnlocked.has(member.id) && member.id !== 'ferni' && !teamByNeed) {
         newlyUnlocked = member.id;
       }
     } else if (!nextUnlock) {
@@ -693,29 +700,18 @@ export function isTeamMemberUnlocked(memberId: TeamMemberId): boolean {
  * Used to gate features like the marketplace that require the full team experience.
  */
 export function isFullTeamUnlocked(): boolean {
+  if (teamByNeed) return true;
   // Subscribers get all non-premium members immediately
-  if (subscriptionTier === 'friend' || subscriptionTier === 'partner') {
-    return true;
-  }
-  
-  // If state isn't ready yet, check persisted state
-  if (!currentState) {
-    const persisted = loadPersistedState();
-    if (persisted) {
-      // Subscribers (from persisted state) get all non-premium members
-      if (persisted.tier === 'friend' || persisted.tier === 'partner') {
-        return true;
-      }
-      // Check if all core team members are in the persisted unlocked list
-      const coreTeamIds = TEAM_MEMBERS.filter((m) => !m.premium).map((m) => m.id);
-      return coreTeamIds.every((id) => persisted.unlockedMembers.includes(id));
-    }
-    return false;
-  }
-  
+  if (subscriptionTier === 'friend' || subscriptionTier === 'partner') return true;
   // Core team = all non-premium members (Ferni, Maya, Peter, Alex, Jordan)
-  const coreTeam = TEAM_MEMBERS.filter((m) => !m.premium);
-  return coreTeam.every((member) => currentState!.unlockedMembers.has(member.id));
+  const coreTeamIds = TEAM_MEMBERS.filter((m) => !m.premium).map((m) => m.id);
+  const state = currentState;
+  if (state) return coreTeamIds.every((id) => state.unlockedMembers.has(id));
+  // State isn't ready yet: the persisted state, where subscribers get the core team too
+  const persisted = loadPersistedState();
+  if (!persisted) return false;
+  if (persisted.tier === 'friend' || persisted.tier === 'partner') return true;
+  return coreTeamIds.every((id) => persisted.unlockedMembers.includes(id));
 }
 
 /**
@@ -885,6 +881,7 @@ export function getBypassMode(): null | 'all' | TeamMemberId[] {
 export function _resetForTesting(): void {
   currentState = null;
   bypassMode = null;
+  teamByNeed = false;
   subscriptionTier = 'free';
   _hasSyncedWithBackend = false;
   server = null;

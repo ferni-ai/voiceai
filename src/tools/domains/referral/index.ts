@@ -5,7 +5,7 @@
  *
  * DOMAIN: referral
  * TOOLS:
- *   - inviteFriendByCall: Have Ferni call and introduce herself to a friend
+ *   - inviteFriendByCall: Have Ferni call and introduce himself to a friend
  *   - sendSupportCall: Send a supportive intro to someone going through hard times
  */
 
@@ -21,7 +21,7 @@ const inviteFriendByCallDef: ToolDefinition = {
   id: 'inviteFriendByCall',
   name: 'Invite Friend by Call',
   description:
-    'Have Ferni personally call a friend to introduce herself. Creates a warm, memorable first impression.',
+    'Have Ferni personally call a friend to introduce himself. Creates a warm, memorable first impression.',
   domain: 'referral',
   tags: ['referral', 'viral', 'call', 'invite', 'growth'],
   requiredServices: ['twilio'],

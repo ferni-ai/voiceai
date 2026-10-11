@@ -34,8 +34,12 @@ on:
 
 # A new push to a PR supersedes its running checks. Merge-queue entries and pushes to
 # main always finish: cancelling one drops the queue entry or main's only verdict.
+# Pushes share one group per branch, so a running main build finishes but only the
+# newest waiting one is kept: its verdict covers every commit before it. Before this,
+# each merge queued its own full run and 87 waited at once, holding the runners the
+# merge queue needed (2026-10-11).
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || (github.event_name == 'push' && github.ref) || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -50,7 +54,13 @@ jobs:
   # to ubuntu-latest when it is unset (the default). Setting it to
   # ["self-hosted","Linux","X64","gce"] moves CI to the github-runner VM, an
   # emergency fallback for when hosted runners are unavailable. If that VM is
-  # stopped, UNSET the variable: a job waiting
+  # While CI_RUNNER is set, pull_request jobs use CI_PR_RUNNER instead when it is
+  # set (["self-hosted","Linux","X64","gce","pr"]). Only half the runners carry
+  # the "pr" label, so PR checks can never take every runner and merge-queue runs,
+  # which ask only for CI_RUNNER's labels, always have runners free. Without it,
+  # PR runs filled all 16 and queue checks waited past the queue's timeout
+  # (2026-10-11). Unsetting CI_RUNNER alone returns every job to hosted runners.
+  # If that VM is stopped, UNSET the variable: a job waiting
   # for a runner is not covered by timeout-minutes, so with no runner online every
   # run sits in GitHub's 24h queue and is cancelled with no verdict (2026-07).
   # Deploys never run on it: deploy-gce.yml is GitHub-hosted, because PR code on
@@ -64,7 +74,7 @@ jobs:
   # the exception, see test-integration.
   setup:
     name: Setup & Cache Dependencies
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     permissions:
       contents: read
@@ -126,7 +136,7 @@ jobs:
   # ============================================================================
   lint:
     name: Lint & Type Check
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     if: needs.setup.outputs.code != 'false'
@@ -177,7 +187,7 @@ jobs:
   # ============================================================================
   test-unit:
     name: Unit Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     # 20 -> 35: the first run compiles the rust-perf binding from scratch on top of
     # an ~8 min test run. Cached cargo brings later runs back near the old budget.
     timeout-minutes: 35
@@ -300,7 +310,7 @@ jobs:
   # ============================================================================
   test-integration:
     name: Integration Tests (${{ matrix.shard }}/3)
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
     # No job-level `if:`: a skipped matrix job reports one check named
@@ -438,7 +448,7 @@ jobs:
   # ============================================================================
   test-agi-features:
     name: AGI Feature Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
     if: needs.setup.outputs.code != 'false'
@@ -489,7 +499,7 @@ jobs:
   # ============================================================================
   build:
     name: Build
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: [setup, lint, test-unit, test-integration, test-agi-features]
     steps:
@@ -547,7 +557,7 @@ jobs:
   # ============================================================================
   security:
     name: Security Scan
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     # Runs on every PR (the secret scan covers docs too); dependency steps skip
@@ -625,7 +635,7 @@ jobs:
   # ============================================================================
   code-quality:
     name: Code Quality Metrics
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     if: needs.setup.outputs.code != 'false'
@@ -670,7 +680,7 @@ jobs:
   # ============================================================================
   quality-gates:
     name: Quality Gates (Blocking)
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     if: needs.setup.outputs.code != 'false'
@@ -713,6 +723,10 @@ jobs:
       - name: Quality ratchet
         run: pnpm tsx apps/cli/src/commands/quality/ratchet.ts
 
+      # Blocking ratchet: a new import edge breaking architecture-layers.ts fails. ~5 s; scoreboard in job summary.
+      - name: Architecture gate
+        run: pnpm quality:arch
+
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
 
@@ -721,7 +735,7 @@ jobs:
   # ============================================================================
   validation:
     name: Validation Checks
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     if: needs.setup.outputs.code != 'false'
@@ -768,7 +782,7 @@ jobs:
   # ============================================================================
   e2e-validation:
     name: E2E Validation
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
     if: needs.setup.outputs.code != 'false'
@@ -841,7 +855,7 @@ jobs:
   # ============================================================================
   frontend-quality:
     name: Frontend Quality
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
     if: needs.setup.outputs.code != 'false'
@@ -921,7 +935,7 @@ jobs:
   # ============================================================================
   dependencies:
     name: Dependency Check
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 10
     needs: setup
     if: needs.setup.outputs.code != 'false'

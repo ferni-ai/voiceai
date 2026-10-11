@@ -30,8 +30,9 @@ describe('semantic router domain bridge', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it('maps every safety intent to a real tool, and does not regress elsewhere', async () => {
-    // Load switchable tools too (LinkedIn is off by default): a mapping to a
-    // switched-off tool is not a mapping to a missing one.
+    // Load switchable tools too (LinkedIn and the developer tools are off by
+    // default): a mapping to a switched-off tool is not a mapping to a missing one.
+    vi.stubEnv('FERNI_DEVELOPER_TOOLS', 'on');
     vi.stubEnv('LINKEDIN_ENABLED', 'true');
     vi.stubEnv('LINKEDIN_CLIENT_ID', 'li-id');
     vi.stubEnv('LINKEDIN_CLIENT_SECRET', 'li-secret');

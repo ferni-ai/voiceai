@@ -108,6 +108,48 @@ describe('planResolution', () => {
   });
 });
 
+describe('owner (by)', () => {
+  const self = { subject: 'self', subjectKind: 'self' as const };
+  const promise = (by?: 'caller' | 'ferni', at?: string) =>
+    o('call Friday', 'commitment', at, { ...self, ...(by ? { by } : {}) });
+
+  it("Ferni's promise and the caller's same plan are two facts; the owner is stored", async () => {
+    const plan = await planResolution([], [promise('ferni'), promise()], { newId: seq() });
+    expect(plan.create.map((f) => [f.value, f.by ?? 'caller'])).toEqual([
+      ['call Friday', 'ferni'],
+      ['call Friday', 'caller'],
+    ]);
+    expect(plan.refresh).toEqual([]);
+  });
+
+  it("a caller's fact never closes Ferni's, by hint or by judge; by:'caller' is the default", async () => {
+    const kept: TemporalFact = {
+      ...promise('ferni'),
+      id: 'p1',
+      subjectKey: 'self',
+      validFrom: '2026-10-10T18:00:00.000Z',
+      validTo: null,
+    };
+    const judge = vi.fn<SupersedeJudge>(async (_obs, open) => open.map((f) => f.id));
+    const plan = await planResolution(
+      [kept],
+      [
+        o('called on Friday', 'commitment', '2026-10-12T18:00:00.000Z', {
+          ...self,
+          replaces: { attribute: 'commitment' },
+        }),
+      ],
+      { judge, newId: seq() }
+    );
+    expect(plan.close).toEqual([]);
+    expect(judge).not.toHaveBeenCalled();
+    // Heard again from Ferni: the same fact, refreshed.
+    const again = await planResolution([kept], [promise('ferni', '2026-10-12T18:00:00.000Z')]);
+    expect(again.create).toEqual([]);
+    expect(again.refresh.map((r) => r.id)).toEqual(['p1']);
+  });
+});
+
 describe("extraction's replaces hint", () => {
   const open = (id: string, attribute: string, value: string): TemporalFact => ({
     ...o(value, attribute),
