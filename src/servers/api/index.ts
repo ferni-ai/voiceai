@@ -102,6 +102,7 @@ import { handleChatRoutes } from '../../api/chat-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
 import { handleOutreachRoutes } from '../../api/outreach.routes.js';
 import { handleBackgroundResultsRoutes } from '../../api/background-results-routes.js';
+import { handleAnswerCardRoutes } from '../../api/answer-card-routes.js';
 import { handleGDPRRoutes } from '../../api/gdpr-routes.js';
 import { handleTrustExportRoutes } from '../../api/trust-export-routes.js';
 import { handleTrustJourneyRoutes } from '../../api/trust-journey-routes.js';
@@ -844,6 +845,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const handled = await handleBackgroundResultsRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
+
+    // Answer cards (the /a/:id page; APPROVALS_PAGE)
+    if (await handleAnswerCardRoutes(req, res, pathname)) return;
 
     // Feature flags routes
     if (pathname.startsWith('/api/flags')) {

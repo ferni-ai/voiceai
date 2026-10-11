@@ -164,6 +164,12 @@ export function handleStaticRoutes(
     return true;
   }
 
+  // Answer card page: /a/:id (SPA handles routing)
+  if (pathname.startsWith('/a/')) {
+    serveStaticFile('index.html', res, req);
+    return true;
+  }
+
   // Serve developer portal
   if (pathname === '/developers' || pathname === '/dev') {
     const devPortalPath = path.join(process.cwd(), 'docs', 'developer-portal.html');
