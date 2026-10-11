@@ -30,6 +30,7 @@ concurrency:
 
 jobs:
   stage-direction-tests:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Stage Direction Sanitization Tests
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
