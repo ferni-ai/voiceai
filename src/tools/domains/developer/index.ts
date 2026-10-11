@@ -20,7 +20,7 @@
  */
 
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
-import { createDomainExport } from '../../registry/loader.js';
+import { gatedDeveloperDomain } from './access.js';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
@@ -843,7 +843,7 @@ const searchFilesDef: ToolDefinition = {
 // EXPORTS
 // ============================================================================
 
-export const developerToolDefinitions: ToolDefinition[] = [
+const developerToolDefinitions: ToolDefinition[] = [
   // Git tools
   gitStatusDef,
   gitDiffDef,
@@ -860,20 +860,6 @@ export const developerToolDefinitions: ToolDefinition[] = [
   searchFilesDef,
 ];
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport(
-  'developer',
-  developerToolDefinitions
-);
-
-export {
-  gitStatusDef,
-  gitDiffDef,
-  gitCommitDef,
-  gitLogDef,
-  runFerniCommandDef,
-  checkJobDef,
-  readFileDef,
-  editFileDef,
-  runBashDef,
-  searchFilesDef,
-};
+// Gated: no tools unless FERNI_DEVELOPER_TOOLS=on outside production, owners only (see access.ts)
+export const { getToolDefinitions, domain, definitions } =
+  gatedDeveloperDomain(developerToolDefinitions);

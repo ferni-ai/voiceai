@@ -99,15 +99,6 @@ User Text
 | `domain-data-collectors.ts` | Collectors for each persona domain (sleep, calendar, finance, goals, relationships, habits) |
 | `life-context-aggregator.ts` | Aggregate domain data, compute stress/wellbeing scores, detect patterns |
 | `synthesis-trigger-generator.ts` | Root synthesis generator |
-| `synthesis-trigger-generator/` | **Directory** with specialized generators: |
-| `synthesis-trigger-generator/generator.ts` | Core trigger generation logic |
-| `synthesis-trigger-generator/support-triggers.ts` | Support-category triggers |
-| `synthesis-trigger-generator/warning-triggers.ts` | Warning-category triggers |
-| `synthesis-trigger-generator/celebration-triggers.ts` | Celebration triggers |
-| `synthesis-trigger-generator/nuanced-triggers.ts` | Nuanced cross-domain triggers |
-| `synthesis-trigger-generator/analytics.ts` | Synthesis analytics |
-| `synthesis-trigger-generator/types.ts` | Synthesis types |
-| `synthesis-trigger-generator/index.ts` | Re-exports |
 
 ### Additional Files
 

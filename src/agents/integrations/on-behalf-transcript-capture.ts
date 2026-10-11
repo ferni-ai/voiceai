@@ -22,7 +22,7 @@ import {
 } from '../../services/outreach/call-transcript-intelligence.js';
 import { getOutboundCallContext } from '../../intelligence/context-builders/external/outbound-call-context.js';
 import { createRepeatTurnGuard } from '../../services/session/turn-dedupe.js';
-import { noteFarEndSpoke } from '../outbound-call/silent-line.js';
+import { noteFarEndSpoke, noteFerniSpoke } from '../outbound-call/silent-line.js';
 
 const log = createLogger({ module: 'on-behalf-transcript-capture' });
 
@@ -121,9 +121,13 @@ export function wrapServicesForOnBehalfCapture<
   const isRepeat = createRepeatTurnGuard(); // two writers record each turn
   services.addTurn = (role: 'user' | 'assistant', text: string) => {
     if (!text || isRepeat(role, text)) return;
-    if (role === 'assistant') return captureAgentTurn(sessionId, text);
-    noteFarEndSpoke(sessionId);
-    captureRecipientTurn(sessionId, text);
+    if (role === 'assistant') {
+      noteFerniSpoke(sessionId, text);
+      captureAgentTurn(sessionId, text);
+    } else {
+      noteFarEndSpoke(sessionId);
+      captureRecipientTurn(sessionId, text);
+    }
   };
 
   log.debug({ sessionId }, 'Routed services.addTurn to the on-behalf call transcript');

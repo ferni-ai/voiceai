@@ -260,7 +260,7 @@ export class MemoryFeedbackManager {
         gap: 12px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.15);
         opacity: 0;
-        z-index: var(--z-notification, 3000);
+        z-index: var(--z-notification);
         transition: 
           opacity ${DURATION.FAST}ms ${EASING.STANDARD},
           transform ${DURATION.FAST}ms ${EASING.STANDARD};

@@ -141,6 +141,10 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy('robots.txt');
   eleventyConfig.addPassthroughCopy('sitemap.xml');
 
+  // UCP agent profile (Shopify catalog search), served at /.well-known/ucp/agent-profile.json
+  // by a firebase.json rewrite: hosting's ignore list drops dotfiles like .well-known/.
+  eleventyConfig.addPassthroughCopy('ucp/agent-profile.json');
+
   // PWA files
   eleventyConfig.addPassthroughCopy('manifest.json');
   eleventyConfig.addPassthroughCopy('sw.js');

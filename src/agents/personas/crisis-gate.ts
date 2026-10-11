@@ -23,7 +23,13 @@ import type { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 
 import {
+  agreementOutcome,
+  resolveCrisisAgreementGate,
+  SOFT_CRISIS_CHECK,
+} from '../../services/safety/crisis-agreement.js';
+import {
   startCrisisClassifier,
+  turnVerdicts,
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -41,6 +47,7 @@ import {
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
 import { turnOpenedSince } from '../integrations/turn-opening-sound.js';
+import { getDeliberator } from './deliberation.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
@@ -97,6 +104,14 @@ function callerWords(chatCtx: llm.ChatContext): {
   return { latest: latest.join(' '), earlier: said, companion };
 }
 
+/** The call's session id, which the reply gate and the turn pipeline share. */
+function sessionScope(userData: unknown): string | undefined {
+  return (
+    (userData as { services?: { sessionId?: string } } | undefined)?.services?.sessionId ||
+    undefined
+  );
+}
+
 export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
     return { action: 'replace', script: crisis.suggestedResponse };
@@ -134,14 +149,27 @@ export function startCrisisGate(
 
   const pattern =
     decision.action === 'replace' ? 'block' : decision.action === 'guide' ? 'crisis' : 'none';
-  const run = startCrisisClassifier({ latest, earlier, companion }, { pattern, env, generate });
+  // The agreement gate weighs this read against the turn pipeline's (crisis-agreement.ts).
+  const scope = resolveCrisisAgreementGate(env) ? sessionScope(userData) : undefined;
+  const run = startCrisisClassifier(
+    { latest, earlier, companion },
+    { pattern, env, generate, scope }
+  );
   if (run?.mode !== 'live' || decision.action === 'replace') return { decision, escalation: null };
 
-  const escalation = run.verdict.then((verdict): CrisisGateDecision | null => {
+  const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
     const merged = applyClassifierVerdict(detection, verdict);
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
+    if (scope) {
+      const verdicts = await turnVerdicts(scope, latest);
+      const outcome = agreementOutcome({ pattern, verdicts, latest, companion });
+      if (outcome !== 'escalate') {
+        log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');
+        return outcome === 'soft' ? { action: 'guide', guidance: SOFT_CRISIS_CHECK } : null;
+      }
+    }
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'
@@ -244,6 +272,8 @@ export async function gatedReply(
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => turnOpenedSince(session, askedAt);
   const gate = startCrisisGate(chatCtx, session.userData, options);
+  // A crisis turn: no background thought now or for the next few turns (deliberation.ts).
+  if (gate && gate.decision.action !== 'pass') getDeliberator(session)?.hold();
   if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn
@@ -262,6 +292,7 @@ export async function gatedReply(
   const reply = await ask(ctx);
   if (!reply || !gate?.escalation) return reply;
   return holdUntilCleared(reply, gate.escalation, async (decision) => {
+    if (decision.action !== 'pass') getDeliberator(session)?.hold();
     if (decision.action === 'replace') return textReply(decision.script);
     if (decision.action === 'pass') return null;
     return ask(withTurnStyleReminder(plain(), decision.guidance));

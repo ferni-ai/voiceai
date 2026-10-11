@@ -299,6 +299,7 @@ import {
 import { initCosmeticsService } from './services/cosmetics.service.js';
 // Seeds Economy - earn seeds through engagement
 import { initSeedsEconomy } from './services/seeds-economy.service.js';
+import { watchServerSeeds } from './services/seeds-ledger.service.js';
 // Referral Service - network effect seeds system
 import { initReferralService, processPendingReferral } from './services/referral.service.js';
 // Seeds UI - display balance and toast notifications
@@ -473,10 +474,24 @@ class VoiceAIApp {
       return;
     }
 
+    // Pages opened from a text link that replace the app (/a/:id)
+    const { openStandalonePage } = await import('./app/standalone-pages.js');
+    if (await openStandalonePage(window.location.pathname)) return;
+
     // Check for CLI authentication route
     if (window.location.pathname === '/cli-auth') {
       initCLIAuth();
       return;
+    }
+
+    // Approval page for a pending action, opened from a text link: /p/:id
+    if (window.location.pathname.startsWith('/p/')) {
+      const { pendingActionIdFromPath, initApprovePage } = await import('./ui/approve-page.ui.js');
+      const actionId = pendingActionIdFromPath(window.location.pathname);
+      if (actionId) {
+        await initApprovePage(actionId);
+        return;
+      }
     }
 
     // DISABLED: No skeleton loading - everything visible immediately
@@ -493,10 +508,13 @@ class VoiceAIApp {
       void initPlatform();
       log.info('Running on:', platform());
 
-      // Initialize theme system first (affects all UI)
+      // Before the theme: the circadian theme names its period with t(), and
+      // index.html already applied the stored theme, so there is no flash.
+      await initI18n(); // before any UI renders
+
+      // Initialize theme system (affects all UI)
       this.initializeTheme();
 
-      await initI18n(); // before any UI renders
       bindStaticDom(); // index.html text marked with data-i18n
       bindLocaleRefresh(); // a no-reload language change finishes with a reload
       installDialogFocus(); // focus into, around and back out of every modal
@@ -1768,6 +1786,9 @@ class VoiceAIApp {
 
     // 🌱 Seeds Economy - Earn seeds through natural engagement
     this.safeInit('SeedsEconomy', () => initSeedsEconomy());
+
+    // 🌱 Server seed ledger - one balance from the server once it keeps seeds
+    this.safeInit('SeedsLedger', () => watchServerSeeds());
 
     // 🤝 Referral Service - Network effect seeds (check URL for ?ref= param)
     this.safeInit('ReferralService', () => initReferralService());

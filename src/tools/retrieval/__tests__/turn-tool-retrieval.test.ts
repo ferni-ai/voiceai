@@ -340,13 +340,14 @@ describe('helpers', () => {
     expect(r.isCore('getCurrentContext')).toBe(true);
   });
 
-  it('defaults to shadow, to off under tests, and never to live', () => {
-    expect(toolRetrievalMode({})).toBe('shadow');
+  it('defaults to off everywhere; shadow and live are opt-in', () => {
+    expect(toolRetrievalMode({})).toBe('off');
+    expect(toolRetrievalMode({ NODE_ENV: 'production' })).toBe('off');
     expect(toolRetrievalMode({ VITEST: 'true' })).toBe('off');
-    expect(toolRetrievalMode({ NODE_ENV: 'test' })).toBe('off');
     expect(toolRetrievalMode({ TOOL_RETRIEVAL: 'off' })).toBe('off');
+    expect(toolRetrievalMode({ TOOL_RETRIEVAL: 'yes' })).toBe('off');
+    expect(toolRetrievalMode({ TOOL_RETRIEVAL: ' Shadow ' })).toBe('shadow');
     expect(toolRetrievalMode({ TOOL_RETRIEVAL: ' Live ', VITEST: 'true' })).toBe('live');
-    expect(toolRetrievalMode({ TOOL_RETRIEVAL: 'yes' })).toBe('shadow');
   });
 
   it('findTools pins the best matches the agent has for the next request', async () => {
@@ -369,6 +370,9 @@ describe('helpers', () => {
     r.select(partial, (await r.pick('will it rain today'))!);
     const found = await r.find('set a timer for ten minutes', 3);
     expect(found.map((f) => f.name)).not.toContain('setTimer');
+    // TOOL_CORE_STATIC: the whole catalog; the caller adds what it found.
+    const any = await r.find('set a timer for ten minutes', 3, { anyTool: true });
+    expect(any.map((f) => f.name)).toContain('setTimer');
   });
 
   it('without a pick, sends a small set whole but only core and recent tools from the catalog', async () => {
