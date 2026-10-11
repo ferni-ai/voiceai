@@ -19,6 +19,7 @@ import type {
   FinancialGoal,
 } from '../../types/user-profile.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { readConversationDays, streakFromSummariesEnabled } from './conversation-days.js';
 import { queryProfileByLinkedIdentifier } from './firestore-linked-identifier.js';
 import {
   isValidUserProfile,
@@ -198,7 +199,11 @@ export class FirestoreStore extends MemoryStore {
 
     try {
       const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
-      const doc = await docRef.get();
+      // The streak days (conversation-days.ts) are read alongside, not after: no added wait
+      const [doc, conversationDays] = await Promise.all([
+        docRef.get(),
+        this.conversationDaysOf(db, userId),
+      ]);
 
       if (!doc.exists) return null;
 
@@ -206,6 +211,7 @@ export class FirestoreStore extends MemoryStore {
       if (!data) return null;
 
       const hydrated = this.hydrateData(data);
+      if (conversationDays) hydrated.conversationDays = conversationDays;
       if (!isValidUserProfile(hydrated)) {
         // FIX: Enhanced logging with data sample for debugging data corruption
         getLogger().error(
@@ -232,7 +238,9 @@ export class FirestoreStore extends MemoryStore {
 
     try {
       const docRef = db.collection(this.USERS_COLLECTION).doc(profile.id);
-      const serialized = this.serializeForFirestore(profile);
+      // Read from the summaries on every load (getProfile); never stored on the profile
+      const { conversationDays: _days, ...stored } = profile;
+      const serialized = this.serializeForFirestore(stored);
 
       await docRef.set(cleanForFirestore(serialized), { merge: true });
       getLogger().debug(`Saved profile: ${profile.id}`);
@@ -691,6 +699,19 @@ export class FirestoreStore extends MemoryStore {
   // ============================================================================
   // PRIVATE HELPERS
   // ============================================================================
+
+  /** The days this user talked, for unlock streaks; undefined when off or unreadable. */
+  private async conversationDaysOf(db: Firestore, userId: string): Promise<string[] | undefined> {
+    if (!streakFromSummariesEnabled()) return undefined;
+    try {
+      // The client is firebase-admin's; the local Firestore interface just doesn't declare select()
+      const admin = db as unknown as Parameters<typeof readConversationDays>[0];
+      return await readConversationDays(admin, this.USERS_COLLECTION, userId);
+    } catch (error) {
+      getLogger().warn({ userId, error: String(error) }, 'Conversation days unreadable');
+      return undefined;
+    }
+  }
 
   private serializeForFirestore(data: unknown): Record<string, unknown> {
     const serialized = JSON.parse(
