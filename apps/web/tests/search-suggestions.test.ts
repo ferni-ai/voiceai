@@ -65,6 +65,19 @@ describe('sanitizeSearchSuggestions', () => {
     }
   });
 
+  it('keeps only links to Google Search, in anchors', () => {
+    const dirty =
+      '<a class="chip" href="https://evil.example/search?q=x">phish</a>' +
+      '<svg><a xlink:href="https://evil.example/"><text>svg</text></a><use href="https://evil.example/x.svg#a"></use></svg>' +
+      `<a class="chip" href="${CHIP_HREF}">ok</a>`;
+    const doc = parse(sanitizeSearchSuggestions(dirty));
+    const hrefs = [...doc.querySelectorAll('[href], [*|href]')].map(
+      (n) => n.getAttribute('href') ?? n.getAttribute('xlink:href')
+    );
+    expect(hrefs).toEqual([CHIP_HREF]);
+    expect(doc.querySelector('use')).toBeNull();
+  });
+
   it('returns nothing for empty input', () => {
     expect(sanitizeSearchSuggestions('   ')).toBe('');
     expect(buildSuggestionsDocument('')).toBe('');
@@ -82,6 +95,7 @@ describe('buildSuggestionsDocument', () => {
       ?.getAttribute('content');
     expect(csp).toContain("default-src 'none'");
     expect(csp).not.toContain('script-src');
+    expect(csp).not.toContain('https:'); // no network fetches, so no view-tracking pixels
     expect(doc.querySelector('base')?.getAttribute('target')).toBe('_blank');
     expect(doc.querySelectorAll('script')).toHaveLength(0);
     expect(doc.querySelector('a.chip')?.getAttribute('href')).toBe(CHIP_HREF);
