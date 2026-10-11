@@ -75,11 +75,13 @@ export interface UserTickResult {
   why?: string;
 }
 
-/** Their own time zone: the profile's, then the outreach setting's; undefined if neither is valid. */
+/** Their own time zone: the outreach setting's, then the profile's (as quiet-hours.ts, #802). */
 export function timezoneOf(user: Record<string, unknown>): string | undefined {
   const prefs = (user.outreachPreferences ?? {}) as { timezone?: unknown };
-  const tz = (user.contactInfo as { timezone?: unknown } | undefined)?.timezone ?? prefs.timezone;
-  return typeof tz === 'string' && isValidTimezone(tz) ? tz : undefined;
+  const contact = (user.contactInfo ?? {}) as { timezone?: unknown };
+  return [prefs.timezone, contact.timezone].find(
+    (tz): tz is string => typeof tz === 'string' && isValidTimezone(tz)
+  );
 }
 
 /** The user's local hour, or undefined without a valid time zone on their profile. */
