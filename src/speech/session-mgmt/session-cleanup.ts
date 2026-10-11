@@ -14,6 +14,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 // Core speech services (using preferred reset* naming)
 import { resetSessionAudioProsodyAnalyzer } from '../audio-prosody.js';
 import { removeCallerProsodyTracker } from '../audio-prosody/caller-prosody.js';
+import { clearFerniEnergy } from '../tts-gateway/director/ferni-energy.js';
 import { resetSessionBackchannelingSystem } from '../backchanneling.js';
 import { clearSessionContextId } from '../cartesia-context-patch.js';
 import { clearReplyAudioPlan } from '../reply-audio-plan.js';
@@ -238,6 +239,7 @@ export function cleanupSpeechSession(
 
   safeCleanup('audioProsody', () => resetSessionAudioProsodyAnalyzer(sessionId));
   safeCleanup('callerProsody', () => removeCallerProsodyTracker(sessionId));
+  safeCleanup('ferniEnergy', () => clearFerniEnergy(sessionId));
   safeCleanup('wpmTracker', () => resetSessionWPMTracker(sessionId));
   safeCleanup('backchanneling', () => resetSessionBackchannelingSystem(sessionId));
   safeCleanup('cognitiveSpeech', () => clearCognitiveSpeechState(sessionId));

@@ -13,4 +13,4 @@ I'd like to explore:
 2. What would "enough" mean for you in that chapter—money, time, purpose?
 3. Is there a gap between where you're heading now and that picture?
 
-Jack used to say: stay the course. But the course has to be yours. Let's make sure you're on one you actually want.
+Stay the course, people say. But the course has to be yours. Let's make sure you're on one you actually want.
