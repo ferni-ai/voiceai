@@ -1,5 +1,5 @@
 /**
- * One worker process hosts several calls (USE_SINGLE_PROCESS=true).
+ * One worker process can host several calls.
  * Each call now gets its own publisher keyed by session ID; when it can't
  * tell which call a message belongs to and more than one is live, it sends
  * nothing.

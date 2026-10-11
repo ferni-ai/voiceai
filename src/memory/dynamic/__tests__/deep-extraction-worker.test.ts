@@ -50,7 +50,7 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 
 // Mock async-events-config
 vi.mock('../async-events-config.js', () => ({
-  safeOnEvent: vi.fn(() => true),
+  safeOnEvent: vi.fn(() => () => {}),
   safeEmitEvent: vi.fn(() => true),
   configureAsyncEvents: vi.fn(),
   resetAsyncEventsConfig: vi.fn(),
@@ -188,6 +188,17 @@ describe('DeepExtractionWorker Lifecycle', () => {
       expect(worker.isRunning()).toBe(false);
     });
 
+    it('removes its event listener on stop', () => {
+      const unsubscribe = vi.fn();
+      (asyncEventsConfig.safeOnEvent as Mock).mockReturnValueOnce(unsubscribe);
+      worker.start();
+      expect(unsubscribe).not.toHaveBeenCalled();
+
+      worker.stop();
+
+      expect(unsubscribe).toHaveBeenCalledTimes(1);
+    });
+
     it('should be safe to call stop multiple times', () => {
       worker.start();
       worker.stop();
@@ -263,7 +274,7 @@ describe('DeepExtractionWorker Queue Management', () => {
     // Capture the event handler when start() is called
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
       eventHandler = handler;
-      return true;
+      return () => {};
     });
 
     worker.start();
@@ -371,7 +382,7 @@ describe('DeepExtractionWorker Job Processing', () => {
 
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
       eventHandler = handler;
-      return true;
+      return () => {};
     });
 
     worker.start();
@@ -514,7 +525,7 @@ describe('DeepExtractionWorker Fallback Extraction', () => {
 
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
       eventHandler = handler;
-      return true;
+      return () => {};
     });
 
     worker.start();
@@ -588,7 +599,7 @@ describe('DeepExtractionWorker Statistics', () => {
 
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
       eventHandler = handler;
-      return true;
+      return () => {};
     });
 
     worker.start();
@@ -704,7 +715,7 @@ describe('DeepExtractionWorker AsyncEvents Integration', () => {
   });
 
   it('should handle missing AsyncEvents configuration gracefully', () => {
-    (asyncEventsConfig.safeOnEvent as Mock).mockReturnValue(false);
+    (asyncEventsConfig.safeOnEvent as Mock).mockReturnValue(null);
 
     const worker = new DeepExtractionWorker({ batchTurns: 1 });
     worker.start();
@@ -716,7 +727,7 @@ describe('DeepExtractionWorker AsyncEvents Integration', () => {
   });
 
   it('should register correct event name', () => {
-    (asyncEventsConfig.safeOnEvent as Mock).mockReturnValue(true);
+    (asyncEventsConfig.safeOnEvent as Mock).mockReturnValue(() => {});
 
     const worker = new DeepExtractionWorker({ batchTurns: 1 });
     worker.start();
@@ -730,7 +741,7 @@ describe('DeepExtractionWorker AsyncEvents Integration', () => {
   });
 
   it('should only register event listener once when started multiple times', () => {
-    (asyncEventsConfig.safeOnEvent as Mock).mockReturnValue(true);
+    (asyncEventsConfig.safeOnEvent as Mock).mockReturnValue(() => {});
 
     const worker = new DeepExtractionWorker({ batchTurns: 1 });
     worker.start();
@@ -762,7 +773,7 @@ describe('DeepExtractionWorker Job Data Handling', () => {
 
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
       eventHandler = handler;
-      return true;
+      return () => {};
     });
 
     worker.start();
@@ -856,7 +867,7 @@ describe('DeepExtractionWorker Concurrent Processing', () => {
 
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
       eventHandler = handler;
-      return true;
+      return () => {};
     });
 
     worker.start();
@@ -910,7 +921,7 @@ describe('DeepExtractionWorker Edge Cases', () => {
 
     (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
       eventHandler = handler;
-      return true;
+      return () => {};
     });
 
     worker.start();

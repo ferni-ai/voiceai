@@ -23,6 +23,7 @@
  *
  * @module agents/outbound-call/silent-line
  */
+import { coordinatedSay } from '../../speech/coordination/session-integration.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isAgentSpeaking } from '../shared/response-orchestrator.js';
 import { deleteRoom, onBehalfCallRoom, type HangUp } from './call-control.js';
@@ -37,6 +38,22 @@ export const QUIET_BEFORE_HANG_UP_MS = 6_000;
 export const RECHECK_MS = 2_000;
 /** Re-checks before hanging up anyway, so a looping monologue can't hold the line open. */
 export const MAX_RECHECKS = 30;
+/** After "hold on" or "one sec", the wait a person gives before giving up. */
+export const HOLD_HANGUP_SEC = 120;
+/**
+ * Said before hanging up when Ferni has not already said goodbye: a person
+ * on a dead line checks once, signs off, then hangs up. Fixed words, so no
+ * model call on this path. Voice rules: commas and full stops only.
+ */
+export const SIGN_OFF = "Hello? Hmm, seems like a bad line. I'll try you another time. Bye!";
+
+/** Ferni's line already ended the call ("bye", "take care", "I'll try you another time"). */
+const GOODBYE =
+  /\b(?:bye|goodbye|take care|talk (?:to you )?(?:soon|later|another time)|i'?ll (?:let you go|try you|check (?:back|in) (?:with you )?(?:later|another time)|call (?:you )?back))\b/i;
+
+export function saidGoodbye(line: string | undefined): boolean {
+  return GOODBYE.test(line ?? '');
+}
 
 export function isSilentLineHangupOn(
   env: Record<string, string | undefined> = process.env
@@ -51,6 +68,8 @@ export interface SilentLineDeps {
   hangUp: HangUp;
   /** True while Ferni is speaking. */
   agentSpeaking: (sessionId: string) => boolean;
+  /** Speaks fixed words on the call. */
+  say: (sessionId: string, text: string) => void;
   setTimer: (fn: () => void, ms: number) => unknown;
   clearTimer: (timer: unknown) => void;
   env?: Record<string, string | undefined>;
@@ -60,6 +79,7 @@ export const defaultSilentLineDeps: SilentLineDeps = {
   callRoom: onBehalfCallRoom,
   hangUp: deleteRoom,
   agentSpeaking: isAgentSpeaking,
+  say: (sessionId, text) => coordinatedSay(sessionId, text, { allowInterruptions: true }),
   setTimer: (fn, ms) => setTimeout(fn, ms),
   clearTimer: (timer) => clearTimeout(timer as ReturnType<typeof setTimeout>),
 };
@@ -71,12 +91,19 @@ interface Line {
 }
 
 const lines = new Map<string, Line>();
+const lastFerniLine = new Map<string, string>();
+
+/** What Ferni last said on the call, to tell whether he already said goodbye. */
+export function noteFerniSpoke(sessionId: string, text: string): void {
+  lastFerniLine.set(sessionId, text);
+}
 
 /** Forget a session. Each call runs in its own job process, so only tests need this. */
 export function forgetSilentLine(sessionId: string): void {
   const line = lines.get(sessionId);
   if (line?.timer !== undefined) line.deps.clearTimer(line.timer);
   lines.delete(sessionId);
+  lastFerniLine.delete(sessionId);
 }
 
 /** The other end said something: the line is live, so stand the timer down. */
@@ -101,6 +128,14 @@ function hangUpWhenQuiet(sessionId: string, line: Line, quietMs: number, recheck
     );
     return;
   }
+  // The sign-off ends in "Bye!", so once said it counts as the goodbye.
+  if (!saidGoodbye(lastFerniLine.get(sessionId))) {
+    deps.say(sessionId, SIGN_OFF);
+    noteFerniSpoke(sessionId, SIGN_OFF);
+    // Let the sign-off play out, then the same quiet wait before hanging up.
+    line.timer = deps.setTimer(() => hangUpWhenQuiet(sessionId, line, 0, 0), RECHECK_MS);
+    return;
+  }
   line.ended = true;
   log.info({ sessionId }, 'Ending a placed call: the other end is silent');
   deps.hangUp(roomName).catch((error: unknown) => {
@@ -110,14 +145,16 @@ function hangUpWhenQuiet(sessionId: string, line: Line, quietMs: number, recheck
 
 /**
  * Called when the other end of a call goes quiet ("away"). On a placed call,
- * arms the hang-up for SILENT_LINE_HANGUP_SEC after they last spoke. Returns
- * true once the call is being ended, so no more silence remarks are made;
- * false otherwise, including for every session that is not a placed call.
+ * arms the hang-up for SILENT_LINE_HANGUP_SEC after they last spoke, or
+ * HOLD_HANGUP_SEC when they asked Ferni to wait. Returns true once the call
+ * is being ended, so no more silence remarks are made; false otherwise,
+ * including for every session that is not a placed call.
  */
 export function armSilentLine(
   sessionId: string,
   silenceSec: number,
-  deps: SilentLineDeps = defaultSilentLineDeps
+  deps: SilentLineDeps = defaultSilentLineDeps,
+  { hold = false }: { hold?: boolean } = {}
 ): boolean {
   if (!isSilentLineHangupOn(deps.env) || !deps.callRoom(sessionId)) return false;
   const line = lines.get(sessionId) ?? { ended: false, deps };
@@ -125,7 +162,8 @@ export function armSilentLine(
   if (line.ended) return true;
   if (line.timer !== undefined) line.deps.clearTimer(line.timer);
   line.deps = deps;
-  const waitMs = Math.max(0, (SILENT_LINE_HANGUP_SEC - silenceSec) * 1000);
+  const limit = hold ? HOLD_HANGUP_SEC : SILENT_LINE_HANGUP_SEC;
+  const waitMs = Math.max(0, (limit - silenceSec) * 1000);
   line.timer = deps.setTimer(() => hangUpWhenQuiet(sessionId, line, 0, 0), waitMs);
   return false;
 }
