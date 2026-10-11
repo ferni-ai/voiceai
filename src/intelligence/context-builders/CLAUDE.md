@@ -252,7 +252,7 @@ These specialized builders provide deep insights when entering a persona. Most a
 | `personas/jordan-milestone-insights/` | Jordan | 8 files | Milestone planning, life stage intelligence |
 | `personas/alex-communication-insights/` | Alex | 11 files | Communication coaching, calendar density |
 | `personas/nayan-wisdom-insights/` | Nayan | 15 files | Life wisdom synthesis, values alignment |
-| `personas/joel-dickson-insights/` | Joel | 1 file | Joel Dickson financial insights |
+| `personas/joel-dickson-insights/` | Nate | 1 file | Nate Holloway financial insights |
 | `personas/ferni-coordinator-insights.ts` | Ferni | Standalone | Smart handoff suggestions |
 
 The `personas/` directory also contains 20+ standalone builder files for persona-specific context (backstory, catchphrases, humor, vulnerability, voice DNA, etc.).
