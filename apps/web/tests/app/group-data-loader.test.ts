@@ -62,6 +62,29 @@ describe('group data loader', () => {
     expect(handled).toEqual(['group_roundtable_started#1', 'group_speaker_changed#2']);
   });
 
+  it('a failed load is retried on the next group message, keeping what arrived meanwhile', async () => {
+    vi.doMock('../../src/app/group-data-messages.js', () => {
+      throw new Error('chunk failed');
+    });
+    const { routeGroupDataMessage, loadGroupDataMessages } =
+      await import('../../src/app/group-data-loader.js');
+    routeGroupDataMessage({ type: 'group_roundtable_started', n: 1 });
+    await expect(loadGroupDataMessages()).rejects.toThrow(); // the chunk failed to load
+    expect(handled).toEqual([]);
+
+    vi.doMock('../../src/app/group-data-messages.js', () => ({
+      handleGroupDataMessage: (message: { type: string; n?: number }) => {
+        handled.push(`${message.type}#${message.n ?? ''}`);
+        return true;
+      },
+    }));
+    routeGroupDataMessage({ type: 'group_state', n: 2 }); // triggers the retry
+    await loadGroupDataMessages();
+    await Promise.resolve();
+    expect(handled).toEqual(['group_roundtable_started#1', 'group_state#2']);
+    vi.doUnmock('../../src/app/group-data-messages.js');
+  });
+
   it('leaves other messages to the rest of the chain', async () => {
     const { routeGroupDataMessage } = await import('../../src/app/group-data-loader.js');
     for (const message of [

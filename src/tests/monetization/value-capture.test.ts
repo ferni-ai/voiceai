@@ -2,12 +2,16 @@
  * Value Capture Service Tests
  *
  * Tests for detecting and capturing value events (outcome-based contributions).
+ * Value capture exists only while the paywall is on (see services/billing/paywall.ts).
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { valueCapture } from '../../services/monetization/value-capture.js';
 
 describe('Value Capture Service', () => {
+  beforeAll(() => vi.stubEnv('PAYWALL', 'on'));
+  afterAll(() => vi.unstubAllEnvs());
+
   describe('detect', () => {
     it('should detect financial gain events', async () => {
       const event = await valueCapture.detect({

@@ -220,8 +220,6 @@ export class AgentOrchestrator {
       '🎭 Agent confirmed active'
     );
 
-    // Trigger initial greeting - the model will respond based on its system prompt
-    // NOTE: We use minimal instructions to avoid conflicting with function-calling format
     void this.generateInitialGreeting(agent);
 
     return agent;
@@ -240,16 +238,16 @@ export class AgentOrchestrator {
     try {
       // A call Ferni placed for someone opens with who it is and who it's
       // for, once the phone is picked up: never the app's "hey <user>" hello.
-      const { outboundOpener, outboundPartiesFor, waitForCallAnswered } =
-        await import('../shared/outbound-opener.js');
+      const { outboundOpener, outboundPartiesFor } = await import('../shared/outbound-opener.js');
       const parties = outboundPartiesFor(this.sessionId);
       let greeting: string;
       if (parties) {
-        const answered = await waitForCallAnswered(this.room, this.userParticipant);
-        if (!answered) {
-          log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
-          return;
-        }
+        const { openIfOnBehalfCall } = await import('../outbound-call/livekit-call-opening.js');
+        if (openIfOnBehalfCall(this.sessionId, agent)) return; // CALL_OPENING_AMD: they speak first
+        // Waits for the pickup; with VOICEMAIL_DETECT=on a machine gets one message instead.
+        const { personAnswered } = await import('../shared/line-screen.js');
+        const { room, userParticipant: phone, sessionId } = this;
+        if (!(await personAnswered(room, phone, agent, parties, sessionId))) return;
         greeting = outboundOpener(parties);
       } else {
         const userData = agent.userData as UserData | undefined;

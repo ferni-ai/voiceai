@@ -21,7 +21,7 @@ import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
 import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
-import { logSipCallerShadow } from './sip-caller.js';
+import { noteCallerJoined } from './sip-caller.js';
 import { setupFrontendPublisher } from './handler-frontend-publisher.js';
 
 /** Inputs for handler setup */
@@ -174,7 +174,7 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   const participant = waitResult.participant;
   if (participant) {
     process.stderr.write(`[voice-agent-entry] 👤 Participant joined: ${participant.identity}\n`);
-    if (ctx.room) void logSipCallerShadow({ participant, room: ctx.room, sessionId });
+    if (ctx.room) void noteCallerJoined({ participant, room: ctx.room, sessionId });
   }
 
   // Multi-agent mode (skipped when entry already tried early path)
@@ -658,6 +658,8 @@ async function speakGreeting(
   isReturningUser: boolean
 ): Promise<void> {
   process.stderr.write(`[voice-agent-entry] 🎤 Speaking greeting...\n`);
+  const { openIfOnBehalfCall } = await import('../outbound-call/livekit-call-opening.js');
+  if (openIfOnBehalfCall(sessionId, { session, userData })) return; // CALL_OPENING_AMD on
   const { generateAndSpeakGreeting } = await import('../voice-agent/greeting-handler.js');
 
   // A call placed for the user opens with who Ferni is and who it's for (outbound-opener.ts).

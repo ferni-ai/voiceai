@@ -40,7 +40,7 @@ import {
   toGuardVoiceEmotion,
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
-import { withToolLeadIn } from './tool-lead-in.js';
+import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
 
@@ -225,16 +225,18 @@ export function holdUntilCleared(
  * or the model asked with the turn reminder (plus crisis guidance when the
  * patterns call for it) and held until the classifier clears it. The opener
  * gate trims the model's words only, never a crisis script; a look-up the
- * model called without a word gets a short spoken lead-in (tool-lead-in.ts).
+ * model called without a word gets a short spoken lead-in (tool-lead-in.ts),
+ * and the model never sees an earlier turn's lead-in.
  */
 export async function gatedReply(
-  chatCtx: llm.ChatContext,
+  request: llm.ChatContext,
   session: { userData: unknown },
   model: (ctx: llm.ChatContext) => Promise<ReadableStream<Chunk> | null>,
   openerGate: { wrap(stream: ReadableStream<Chunk>): ReadableStream<Chunk> },
   options: { env?: Record<string, string | undefined>; generate?: CrisisGenerateFn } = {}
 ): Promise<ReadableStream<Chunk> | null> {
   const { env = process.env } = options;
+  const chatCtx = withoutPastLeadIns(request);
   const gate = startCrisisGate(chatCtx, session.userData, options);
   if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
 

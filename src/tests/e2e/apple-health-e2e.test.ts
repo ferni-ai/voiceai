@@ -8,6 +8,19 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Vitest 5 only accepts vi.mock at the top level. Vitest 4 hoisted these
+// here from inside the suites below, so moving them changes nothing.
+// Mock user preferences - sharing disabled
+vi.mock('../../services/health/health-data-store.js', async () => {
+  const actual = await vi.importActual('../../services/health/health-data-store.js');
+  return {
+    ...actual,
+    getHealthPreferences: vi.fn().mockResolvedValue({
+      enabled: false, // User disabled health sharing
+    }),
+  };
+});
+
 // Mock Firestore
 vi.mock('../../services/superhuman/firestore-utils.js', () => ({
   getFirestoreDb: vi.fn().mockReturnValue({
@@ -374,17 +387,6 @@ describe('Apple Health → Outreach Integration', () => {
 describe.skip('Apple Health Data Privacy', () => {
   it('should respect user preferences for health data sharing', async () => {
     const { handleHealthSync } = await import('../../services/health/health-data-store.js');
-
-    // Mock user preferences - sharing disabled
-    vi.mock('../../services/health/health-data-store.js', async () => {
-      const actual = await vi.importActual('../../services/health/health-data-store.js');
-      return {
-        ...actual,
-        getHealthPreferences: vi.fn().mockResolvedValue({
-          enabled: false, // User disabled health sharing
-        }),
-      };
-    });
 
     // When sharing is disabled, sync should fail gracefully
     const result = await handleHealthSync({

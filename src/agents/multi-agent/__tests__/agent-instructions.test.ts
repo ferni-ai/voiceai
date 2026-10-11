@@ -28,4 +28,26 @@ describe('composeAgentInstructions', () => {
       composeAgentInstructions(PERSONA, PERSONA, { modelInstructionsInAgentPrompt: true })
     ).toBe(PERSONA);
   });
+
+  describe('PROMPT_STABLE_PREFIX', () => {
+    const STABLE = '## Honesty Rules\nNever invent memories.\n';
+    const modules = { modelInstructionsInAgentPrompt: true };
+    const on = { stableBase: STABLE, env: { PROMPT_STABLE_PREFIX: 'on' } };
+
+    it('puts the call-specific date and caller after the persona prompt', () => {
+      const out = composeAgentInstructions(PERSONA, BASE, modules, on);
+      expect(out.startsWith(`${STABLE.trim()}\n\n---\n\n${PERSONA}`)).toBe(true);
+      expect(out.endsWith('## Current Date & Time\nToday is Sunday.')).toBe(true);
+    });
+
+    it('keeps the old order when off, or when the base does not start with the stable text', () => {
+      const old = composeAgentInstructions(PERSONA, BASE, modules);
+      expect(
+        composeAgentInstructions(PERSONA, BASE, modules, { stableBase: STABLE, env: {} })
+      ).toBe(old);
+      expect(
+        composeAgentInstructions(PERSONA, BASE, modules, { ...on, stableBase: 'Other text' })
+      ).toBe(old);
+    });
+  });
 });

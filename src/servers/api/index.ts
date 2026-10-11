@@ -24,7 +24,7 @@ import {
 } from '../../utils/ddos-protection.js';
 import { notifyDDoSAlert } from '../../services/slack-notifications.js';
 import { rateLimit, optionalAuthAsync } from '../../api/auth-middleware.js';
-import { rateLimitUid } from '../../api/rate-limit-identity.js';
+import { limitApiRequest } from '../../api/global-rate-limit.js';
 import { bindVerifiedIdentity } from './request-identity.js';
 import { respondOnRejection } from './request-failure.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
@@ -37,6 +37,7 @@ import {
   handleHealthRoutes,
   handleTokenRoutes,
   handleGoogleCalendarRoutes,
+  handleGmailSendRoutes,
   handleAppleCalendarRoutes,
   handleMicrosoftCalendarRoutes,
   handleOAuthStartRoute,
@@ -157,6 +158,7 @@ import { handleBuilderMetricsRoutes } from '../../api/routes/builder-metrics.js'
 import { handleMusicAnalyticsRoutes } from '../../api/music-analytics-routes.js';
 import { handleAdminRoutes } from '../../api/admin-routes.js';
 import { handleMonetizationRequest, isMonetizationRoute } from '../../api/monetization-routes.js';
+import { parseMonetizationBody } from '../../api/monetization-webhook.js';
 import { handleAppleRoutes, isAppleRoute } from '../../api/apple-iap-routes.js';
 import { handleV1Routes } from '../../api/v1/index.js';
 import { handleV2Routes } from '../../api/v2/index.js';
@@ -303,9 +305,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   }
 
   if (pathname.startsWith('/api/') && pathname !== '/api/health') {
-    // Global limit: per signed-in person (verified uid), else per IP
-    const uid = rateLimitUid(req);
-    if (rateLimit(req, res, { maxRequests: 100, windowMs: 60000, ...(uid && { keyGenerator: () => `user:${uid}` }) })) return;
+    // Global limit: per signed-in person (verified uid), else per IP, in its own bucket
+    if (limitApiRequest(req, res)) return;
   }
 
   // ============================================================================
@@ -336,6 +337,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   // OAuth connect: authenticated start, then Google / Apple / Microsoft calendar
   if (pathname.startsWith('/auth/')) {
     if (await handleOAuthStartRoute(req, res, pathname)) return;
+    // Before the calendar routes: it takes /auth/google/callback for gmail_send states only.
+    if (await handleGmailSendRoutes(req, res, pathname, parsedUrl)) return;
     if (await handleGoogleCalendarRoutes(req, res, pathname, parsedUrl)) return;
     if (await handleAppleCalendarRoutes(req, res, pathname, parsedUrl)) return;
     if (await handleMicrosoftCalendarRoutes(req, res, pathname, parsedUrl)) return;
@@ -1393,11 +1396,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
           // Use parseRawBody to avoid race condition with async auth check
           // Also adds timeout, max size limit, and proper error handling
           const rawBody = await parseRawBody(req, { timeoutMs: 30000, maxBytes: 1024 * 1024 });
-          try {
-            body = rawBody ? JSON.parse(rawBody) : {};
-          } catch {
-            body = {};
-          }
+          body = parseMonetizationBody(pathname, rawBody);
         }
 
         const ctx = {

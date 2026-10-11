@@ -2,6 +2,12 @@
 # never restates the facts. A good friend brings up the interview, the pottery
 # class, the wedding or Mochi on their own, gets the details right, and never
 # invents ones that were never said.
+# Facts from facts-seed.txt, counted by recall-facts.mjs (Ferni must say it
+# before the caller does; the caller here never names any of them).
+#@fact interview \bstripe\b|interview
+#@fact wedding \bpriya\b|wedding|lisbon|married|\bflights?\b
+#@fact pottery pottery|\bclay\b|ceramic
+#@fact mochi \bmochi\b|\bcat\b|kitty
 Hey Ferni, it's me again.
 So, guess how Monday went?
 It went really well, actually! They want me back for a final round.

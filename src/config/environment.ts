@@ -94,6 +94,8 @@ export interface AppConfig {
   payments: {
     stripeSecretKey?: string;
     stripeWebhookSecret?: string;
+    /** Signing secret of the /api/monetization/webhook endpoint (each endpoint has its own) */
+    stripeMonetizationWebhookSecret?: string;
     stripePublishableKey?: string;
     // Seed Fund one-time contribution prices
     seedFundPrices: {
@@ -212,6 +214,7 @@ export function loadConfig(): AppConfig {
     payments: {
       stripeSecretKey: process.env.STRIPE_SECRET_KEY,
       stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+      stripeMonetizationWebhookSecret: process.env.STRIPE_MONETIZATION_WEBHOOK_SECRET,
       stripePublishableKey:
         process.env.STRIPE_PUBLISHABLE_KEY || process.env.VITE_STRIPE_PUBLISHABLE_KEY,
       seedFundPrices: {
