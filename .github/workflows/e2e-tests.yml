@@ -19,6 +19,12 @@ env:
   # Default test URL
   TEST_URL: ${{ inputs.url || 'https://ferni-prod.web.app' }}
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   e2e:
     name: Playwright Tests

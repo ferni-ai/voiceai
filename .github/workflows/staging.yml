@@ -17,6 +17,12 @@ on:
         required: false
         type: string
 
+# A new push to a PR supersedes its running build and preview deploy. Merge-queue
+# runs always finish (cancelling one drops the queue entry).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
@@ -35,7 +41,16 @@ jobs:
       is_pr: ${{ steps.branch.outputs.is_pr }}
       env_name: ${{ steps.branch.outputs.env_name }}
       service_name: ${{ steps.branch.outputs.service_name }}
-    
+      # 'false' only on a PR that touches nothing but docs (see ci.yml's changes job)
+      code: ${{ steps.code.outputs.matched }}
+      # A preview is for clicking through the web app, so a PR gets one only when it
+      # changes what the UI server image serves, or carries the `preview` label
+      # (read when the PR is pushed: add the label, then push). Never in the queue.
+      preview: ${{ github.event_name != 'pull_request' || steps.ui.outputs.matched == 'true' || contains(github.event.pull_request.labels.*.name, 'preview') }}
+    permissions:
+      contents: read
+      pull-requests: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -80,6 +95,16 @@ jobs:
           echo "Safe name: $SAFE_BRANCH"
           echo "Environment: staging-$SAFE_BRANCH"
 
+      - id: code
+        uses: ./.github/actions/pr-changes
+        with:
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$'
+
+      - id: ui
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(apps/web/|src/servers/|src/api/|design-system/|docker/Dockerfile\.ui$|\.github/workflows/staging\.yml$)'
+
   # ============================================================================
   # BUILD & TEST
   # ============================================================================
@@ -87,6 +112,9 @@ jobs:
     name: Build & Test
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: context
+    # Required check: skipped (which reports success) on a docs-only PR, never
+    # filtered out by `paths:`, which would leave it pending forever.
+    if: needs.context.outputs.code != 'false'
     
     steps:
       - name: Checkout
@@ -104,11 +132,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Run tests
-        run: pnpm test -- --reporter=dot
-        env:
-          NODE_ENV: test
-        continue-on-error: true
+      # No test run here: it took 11-17 minutes per PR and per queue entry under
+      # continue-on-error, so its result never decided anything. CI's Unit Tests
+      # and Integration Tests are the blocking test checks.
 
       - name: Build backend
         run: pnpm build
@@ -163,6 +189,7 @@ jobs:
     if: >-
       github.actor != 'dependabot[bot]' &&
       github.event_name != 'merge_group' &&
+      needs.context.outputs.preview == 'true' &&
       (github.event_name != 'pull_request' ||
        github.event.pull_request.head.repo.full_name == github.repository)
     environment:

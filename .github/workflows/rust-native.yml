@@ -22,6 +22,12 @@ env:
   RUST_VERSION: 'stable'
   NODE_VERSION: '22'
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # ============================================================================
   # RUST TESTS (Fast - runs on Linux only)
