@@ -75,6 +75,43 @@ export function dedupeFacts(facts: RecallFact[]): RecallFact[] {
   return [...best.values()];
 }
 
+/** Words that say nothing about what to forget: "forget what I said about that". */
+const FORGET_FILLER = new Set(
+  'forget forgot forgotten remember said say saying told tell talked talk mentioned thing things stuff part bit please user speaker'.split(
+    ' '
+  )
+);
+
+/**
+ * The words of a forget request or a memory, for matching one to the other:
+ * lower case, two letters or more ("my ex"), plural "s" dropped, stopwords
+ * and filler left out, and a number written with spaces or dashes kept as
+ * one ("555-123-4567" = "5551234567").
+ */
+export function forgetTokens(text: string): string[] {
+  const joined = text.toLowerCase().replace(/(\d)[\s().-]+(?=\d)/g, '$1');
+  const words = joined.match(/[a-z0-9][a-z0-9']*/g) ?? [];
+  const out = words
+    .map((w) => w.replace(/'s$/, ''))
+    .filter((w) => w.length >= 2 && !STOPWORDS.has(w) && !FORGET_FILLER.has(w))
+    .map((w) => (w.length > 3 && /[^s]s$/.test(w) ? w.slice(0, -1) : w));
+  return [...new Set(out)];
+}
+
+/**
+ * True when `text` is about a topic the caller asked to forget (forget.ts):
+ * every word of the topic appears in it as a whole word. Erring toward
+ * leaving a memory out is the right side for a privacy request.
+ */
+export function isForgotten(text: string, topics: readonly string[]): boolean {
+  if (topics.length === 0) return false;
+  const words = new Set(forgetTokens(text));
+  return topics.some((t) => {
+    const want = forgetTokens(t);
+    return want.length > 0 && want.every((w) => words.has(w));
+  });
+}
+
 export function factId(f: RecallFact): string {
   return `${f.entity}|${f.key}|${f.value}`.toLowerCase();
 }
@@ -194,6 +231,8 @@ export function formatRecall(
 export interface RecallStore {
   facts(userId: string): Promise<Array<Record<string, unknown>>>;
   summaries(userId: string): Promise<Array<Record<string, unknown>>>;
+  /** Topics the caller asked to forget (forget.ts); nothing about them is recalled. */
+  forgotten?(userId: string): Promise<string[]>;
 }
 
 const MAX_FACTS = 300;
@@ -215,12 +254,15 @@ export async function loadRecallSnapshot(
   userId: string,
   maxFollowUps = MAX_FOLLOW_UPS
 ): Promise<RecallSnapshot> {
-  const [rawFacts, rawSummaries] = await Promise.all([
+  const [rawFacts, rawSummaries, forgotten] = await Promise.all([
     store.facts(userId).catch(() => []),
     store.summaries(userId).catch(() => []),
+    store.forgotten ? store.forgotten(userId).catch(() => []) : Promise.resolve([]),
   ]);
   const facts = dedupeFacts(
     rawFacts
+      // Marked by forget.ts: left in storage (recoverable), out of recall.
+      .filter((d) => typeof d.forgottenAt !== 'string')
       .slice(0, MAX_FACTS)
       .map(
         (d): RecallFact => ({
@@ -232,12 +274,13 @@ export async function loadRecallSnapshot(
         })
       )
       .filter((f) => f.confidence >= MIN_RECALL_CONFIDENCE)
+      .filter((f) => !isForgotten(`${f.entity} ${f.key} ${f.value}`, forgotten))
   );
   const followUps: string[] = [];
   for (const s of rawSummaries) {
     for (const item of Array.isArray(s.followUpItems) ? s.followUpItems : []) {
       const text = String(item).trim();
-      if (text && !followUps.includes(text)) followUps.push(text);
+      if (text && !followUps.includes(text) && !isForgotten(text, forgotten)) followUps.push(text);
       if (followUps.length >= maxFollowUps) break;
     }
     if (followUps.length >= maxFollowUps) break;
