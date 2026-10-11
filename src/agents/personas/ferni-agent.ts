@@ -37,6 +37,7 @@ import { OpenerGate } from './opener-gate.js';
 import { isScreeningCall } from '../shared/line-screen.js';
 import { tapSpokenText, toolsForTurn, withTeammateTool } from './turn-request.js';
 import { tapSpokenBursts } from './vocal-bursts.js';
+import { noteRequest } from '../shared/turn-receipt.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -700,7 +701,10 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
-    const model = async (ctx: llm.ChatContext) => super.llmNode(ctx, tools, modelSettings) as never;
+    const model = async (ctx: llm.ChatContext) => {
+      noteRequest(this.session, ctx, tools); // the request as sent, for its TURN_RECEIPT
+      return super.llmNode(ctx, tools, modelSettings) as never;
+    };
     return gatedReply(chatCtx, this.session, model, this.openerGate as never) as never;
   }
 

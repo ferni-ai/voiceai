@@ -489,7 +489,7 @@ class CommandsPanelUI {
       .ferni-commands {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         justify-content: flex-end;
         opacity: 0;
@@ -833,7 +833,7 @@ class CommandsPanelUI {
       /* ========================================
          MOBILE RESPONSIVE
          ======================================== */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .ferni-commands__wrapper {
           max-width: 100%;
         }

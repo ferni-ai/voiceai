@@ -1043,7 +1043,7 @@ export const DOMAIN_METADATA = {
   referral: {
     name: 'Voice Referrals',
     description:
-      'Viral growth via voice calls - Ferni personally calls friends to introduce herself',
+      'Viral growth via voice calls - Ferni personally calls friends to introduce himself',
     icon: '📞',
     status: 'active',
   },

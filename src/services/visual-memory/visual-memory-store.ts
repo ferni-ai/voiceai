@@ -76,26 +76,20 @@ interface StorageBucket {
   };
 }
 
+/*
+ * Persistence is off. These reached firebase-admin through a bare require(),
+ * which throws in the production ESM build, so this store has never written
+ * anything. It must stay off until two things change: uploads land in Cloud
+ * Storage (visual-memories/{userId}/...), which account deletion
+ * (eraseUserRecord) does not remove, and uploadVisualMemory() makes each
+ * image public.
+ */
 function getFirestoreDb(): FirestoreDb | null {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const admin = require('firebase-admin');
-    return admin.firestore();
-  } catch {
-    log.debug('Firestore not available');
-    return null;
-  }
+  return null;
 }
 
 function getStorageBucket(): StorageBucket | null {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const admin = require('firebase-admin');
-    return admin.storage().bucket();
-  } catch {
-    log.debug('Storage not available');
-    return null;
-  }
+  return null;
 }
 
 function generateId(): string {

@@ -124,13 +124,21 @@ describe('burstAllowed', () => {
 describe('OpenerGate with bursts', () => {
   it('keeps an invited burst in the spelling that renders', () => {
     const gate = new OpenerGate(3, false);
-    expect(gate.decide('Awww, that is so sweet.', true)).toBe('Aww, that is so sweet.');
+    expect(gate.decide('Awww, that is so sweet.', false, true)).toBe('Aww, that is so sweet.');
     // ...and it counts as the opener kept: the next stock word goes.
-    expect(gate.decide('Oh, nice.', undefined)).toBe('Nice.');
+    expect(gate.decide('Oh, nice.')).toBe('Nice.');
   });
 
   it('drops a burst that was not invited, even one the stock list misses', () => {
-    expect(new OpenerGate(3, false).decide("Eek, that's rough.", false)).toBe("That's rough.");
+    expect(new OpenerGate(3, false).decide("Eek, that's rough.", false, false)).toBe(
+      "That's rough."
+    );
+  });
+
+  it('drops an invited burst when a turn-opening clip already reacted', () => {
+    expect(new OpenerGate(3, false).decide('Awww, that is so sweet.', true, true)).toBe(
+      'That is so sweet.'
+    );
   });
 
   it('is unchanged with the flag off', () => {

@@ -22,11 +22,18 @@ permissions:
   # upload failed with "Resource not accessible by integration".
   actions: read
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Dependency vulnerability scan
   dependency-audit:
     name: Dependency Audit
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -112,7 +119,10 @@ jobs:
   # CodeQL static analysis
   codeql:
     name: CodeQL Analysis
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
+    # ~15 runner-minutes, and on a PR its findings go nowhere (no upload, see the
+    # analyze step), so it runs on the nightly schedule and on demand only.
+    if: github.event_name != 'pull_request'
     # The analyze action reads this workflow run (a 403 "Resource not accessible
     # by integration" without it); the default token is read-only.
     permissions:
@@ -165,7 +175,7 @@ jobs:
   # Secret scanning (check for accidentally committed secrets)
   secret-scan:
     name: Secret Scan
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout

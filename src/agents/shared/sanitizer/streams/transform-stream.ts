@@ -22,7 +22,7 @@ import {
 } from '../executors/deduplication.js';
 import type { SanitizerStreamOptions } from '../types.js';
 import { recordFTISV2JsonBypass } from '../../../../services/observability/routing-metrics.js';
-import { isFTISEnabled } from '../../../processors/tool-routing-integration.js';
+import { isFtisEnabled } from '../../../../config/tool-config.js';
 import { analyzeResponseAlignment } from '../../../../intelligence/feedback/injection-tracker.js';
 import {
   detectVulnerabilityWithContext,
@@ -75,7 +75,7 @@ export function createSanitizerTransformStream(): AnyTransformStream {
 export function createSanitizerWithMusicFallback(
   options: SanitizerStreamOptions = {}
 ): AnyTransformStream {
-  if (isFTISEnabled()) {
+  if (isFtisEnabled()) {
     recordFTISV2JsonBypass();
     log.info(
       { sessionId: options.sessionId, trace: 'FTIS_V2_BYPASS' },
