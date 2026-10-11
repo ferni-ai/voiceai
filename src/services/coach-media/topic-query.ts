@@ -1,17 +1,12 @@
 /**
  * What a coaching-resource search may send out: the topic, never the person.
- *
- * The model is told to pass a topic ("beginner shin splint stretches"), but it
- * hears names, numbers and emails all call long, so the query is scrubbed here
- * before it leaves: every name the session knows (the caller's first and last
- * name, family members, their city), quoted strings, emails, links and digit
- * runs (phone, account or card numbers) are removed, and so is a capitalized
- * word after "at", "in", "with" and the like ("at Mayo", "with Dana"), which
- * is how places, employers and people the session doesn't know show up. The
- * query is lowercased and capped at 12 words. Health details can't be told
- * apart from a topic by pattern; the tool description asks for a generic topic.
- *
- * Behind COACH_MEDIA=on.
+ * Best effort: the model writes the topic and hears names all call long, so
+ * before the query leaves, every name the session knows, every other
+ * capitalized word (people, places and employers it doesn't know) except
+ * languages and a few things people learn, the word after "named"/"called",
+ * quoted strings, emails, links, dates and digit runs are removed; it is then
+ * lowercased and capped at 12 words. Health details can't be told from a topic
+ * by pattern, so the tool description also asks for a generic, lowercase topic.
  *
  * @module services/coach-media/topic-query
  */
@@ -26,20 +21,22 @@ export const MAX_QUERY_WORDS = 12;
 
 const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g;
 const LINK = /\bhttps?:\/\/\S+|\bwww\.\S+/gi;
+const DATE = /\b\d{1,4}[/.-]\d{1,2}[/.-]\d{1,4}\b/g;
 // Five or more digits, allowing separators: phone, account, card or member numbers.
-const DIGIT_RUN = /\+?\d(?:[\s().-]*\d){4,}/g;
-
+const DIGIT_RUN = /\+?\d(?:[\s()/.-]*\d){4,}/g;
 const QUOTED = /"[^"]*"|“[^”]*”|‘[^’]*’/g;
-// A Titlecase word after a preposition: a place, employer or person ("at Mayo",
-// "with Dana"). Language and nationality words ("in Spanish") are kept, and so
-// are a few common tools people learn ("in Python").
-const PROPER_AFTER_PREPOSITION =
-  /\b(at|in|from|with|near|for|by)\s+(?!\p{Lu}\p{Ll}*(?:ish|ese|ian|an|ic|ch)\b)(\p{Lu}\p{Ll}+)(?:'s)?/gu;
+// "a friend named mike": the name may be lowercase.
+const NAMED = /\b(named|called)\s+[\p{L}'-]+/giu;
+// Capitalized words are dropped unless they are one of these.
 const KEPT_PROPER = new Set(
-  'python javascript java excel sql react swift kotlin rust photoshop figma canva notion linux windows bible yoga pilates'.split(
-    ' '
-  )
+  (
+    'spanish french german italian portuguese japanese chinese mandarin cantonese korean arabic ' +
+    'hindi russian english latin greek hebrew dutch swedish polish turkish vietnamese thai asl ' +
+    'python javascript java excel sql react swift kotlin rust photoshop figma canva notion linux ' +
+    'windows bible yoga pilates adhd cbt dbt hiit ibs ptsd ocd acl tmj'
+  ).split(' ')
 );
+const CAPITALIZED = /(?<![\p{L}\p{N}])\p{Lu}[\p{L}'’-]*/gu;
 
 /** Every name the session knows for this caller: theirs, their family's, their city. */
 export function sessionIdentifiers(userData: Record<string, unknown>): string[] {
@@ -79,9 +76,11 @@ export function topicOnlyQuery(
     .replace(QUOTED, ' ')
     .replace(EMAIL, ' ')
     .replace(LINK, ' ')
-    .replace(DIGIT_RUN, ' ');
+    .replace(DATE, ' ')
+    .replace(DIGIT_RUN, ' ')
+    .replace(NAMED, ' ');
   const words = identifiers
-    .flatMap((id) => (id ?? '').split(/[\s,]+/))
+    .flatMap((id) => (id ?? '').normalize('NFKC').split(/[\s,]+/))
     .map((w) => w.replace(/[^\p{L}\p{N}'-]/gu, ''))
     .filter((w) => w.length >= 2);
   for (const word of words) {
@@ -91,8 +90,8 @@ export function topicOnlyQuery(
     );
   }
   query = query
-    .replace(PROPER_AFTER_PREPOSITION, (whole: string, prep: string, word: string) =>
-      KEPT_PROPER.has(word.toLowerCase()) ? whole : prep
+    .replace(CAPITALIZED, (w: string) =>
+      KEPT_PROPER.has(w.replace(/['’]s$/, '').toLowerCase()) ? w : ' '
     )
     .replace(/["“”‘’<>`{}[\]\\|]/g, ' ')
     .toLowerCase()
