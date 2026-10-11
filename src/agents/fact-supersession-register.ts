@@ -6,7 +6,7 @@
  * @module agents/fact-supersession-register
  */
 import { registerAfterCallTask } from '../services/session/after-call-tasks.js';
-import { callLLM } from '../services/llm/llm-utils.js';
+import { callLLM } from '../services/llm-utils.js';
 import { factSupersessionEnabled, supersedeNewFacts } from '../memory/dynamic/fact-supersession.js';
 
 registerAfterCallTask(

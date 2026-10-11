@@ -7,6 +7,5 @@
  *
  * @module agents/after-call-register
  */
+import '../intelligence/world-model/extraction/register.js';
 import './fact-supersession-register.js';
-
-export {};

@@ -77,12 +77,14 @@ export function buildPonderingPrompt(summaries: readonly PonderSummary[], today:
   return `You are Ferni, thinking about a friend between phone calls. Today is ${today}. Below are short summaries of your recent calls with them, newest first, each with an id in brackets.
 
 Write down, as a friend would:
-- followUps: up to ${MAX_FOLLOW_UPS} things worth asking about next time. Be specific ("ask how the interview at Stripe went"), not generic ("ask about work"). If a summary says when something happens, set "when" to the day it is worth asking (YYYY-MM-DD, on or after the event); otherwise leave it out.
+- followUps: up to ${MAX_FOLLOW_UPS} things worth asking about next time, each written as the question itself, said straight to them ("How did the Stripe interview go?"), never "Ask how..." and never "they". Be specific, not generic ("How's work?"). Only what a close friend would ask about: a plan, an event, a worry, a person. Never routine daily life (sleep, meals, chores, a run, the weather). If a summary says when something happens, set "when" to the day it is worth asking (YYYY-MM-DD, on or after the event); otherwise leave it out. Never ask how something went unless you know it has happened by "when": an event with no date gets a question about it coming up ("Is the all-hands still on for next month?"), or nothing.
 - thinkingOf: up to ${MAX_NOTES} warm, specific things you'd bring up because THEY told you about them ("your sister's move to Denver"). Take these only from the "Said" lines: Topics can include things you talked about yourself (your own stories and reading), which are not theirs. Never your own guesses about how they feel.
 
 Rules:
 - Every item cites the id of the summary it comes from in "basis". Nothing that isn't in a summary.
 - Never attribute your own stories to them.
+- Talk to them as "you". The summaries may call them by name; never refer to them in the third person.
+- A loss, setback or disappointment is never a thinkingOf note; it is a gentle follow-up or nothing.
 - No diagnoses, no psychological labels, nothing about why they really feel something.
 - Skip anything they asked you not to bring up, and anything about a crisis.
 - Plain words, the way you'd say it. Fewer items is better than weak ones; return empty lists if nothing is worth it.
@@ -91,6 +93,19 @@ Return JSON only: {"followUps":[{"text":"...","when":"YYYY-MM-DD","basis":"id"}]
 
 CALLS:
 ${calls}`;
+}
+
+/** "Ask how..." / "Check if..." is a note to self, not something you'd say to a friend. */
+const NOTE_TO_SELF = /^(?:ask|check|see if|find out|inquire|follow up|remind)\b/i;
+/** Routine daily life a friend wouldn't make a point of asking about. */
+const ROUTINE = /\b(?:sleep|slept|bed early|go to bed|get to bed|laundry|the weather)\b/i;
+/** "How did X go?": only once X has happened, which takes a date. */
+const HOW_DID_IT_GO = /\bhow (?:did|was)\b.*\b(?:go|went)\b|^how was\b/i;
+
+/** The follow-up a friend would actually say, or false for a note-to-self, trivia or a premature "how did it go". */
+export function friendWorthy(f: { text: string; when?: string }): boolean {
+  if (NOTE_TO_SELF.test(f.text) || ROUTINE.test(f.text)) return false;
+  return !HOW_DID_IT_GO.test(f.text) || f.when !== undefined;
 }
 
 function text(x: unknown): string | undefined {
@@ -137,7 +152,8 @@ export function parsePondering(
     const basis = grounded(i);
     if (!t || !basis) continue;
     const when = validWhen(i.when, today);
-    followUps.push(when ? { text: t, when, basis } : { text: t, basis });
+    const item = when ? { text: t, when, basis } : { text: t, basis };
+    if (friendWorthy(item)) followUps.push(item);
   }
   const thinkingOf: PonderNote[] = [];
   for (const i of items(r.thinkingOf)) {
@@ -145,9 +161,13 @@ export function parsePondering(
     const basis = grounded(i);
     if (t && basis) thinkingOf.push({ text: t, basis });
   }
+  const kept = followUps.slice(0, MAX_FOLLOW_UPS);
+  // A friend asks about a thing or mentions it, not both: a note drawn from the
+  // same call as a follow-up is the same thought said twice.
+  const asked = new Set(kept.map((f) => f.basis));
   return {
-    followUps: followUps.slice(0, MAX_FOLLOW_UPS),
-    thinkingOf: thinkingOf.slice(0, MAX_NOTES),
+    followUps: kept,
+    thinkingOf: thinkingOf.filter((n) => !asked.has(n.basis)).slice(0, MAX_NOTES),
   };
 }
 

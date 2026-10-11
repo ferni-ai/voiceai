@@ -33,7 +33,7 @@ function getStyles(): string {
     .trust-journey-panel {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 9999);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -802,7 +802,7 @@ function getStyles(): string {
     /* ========================================================================
        RESPONSIVE
        ======================================================================== */
-    @media (max-width: clamp(448px, 90vw, 640px)) {
+    @media (max-width: 640px) {
       .trust-journey-card {
         max-height: calc(100vh - var(--space-4, 16px));
         border-radius: var(--radius-xl, 20px);
