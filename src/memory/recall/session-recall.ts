@@ -28,6 +28,8 @@ export interface RecallSnapshot {
   facts: RecallFact[];
   /** Open threads from recent sessions ("ask how the vet visit went"). */
   followUps: string[];
+  /** With RECALL_RARE_WORDS=on: how much a shared word counts (rareWordWeights). */
+  wordWeights?: ReadonlyMap<string, number>;
 }
 
 export const EMPTY_SNAPSHOT: RecallSnapshot = { facts: [], followUps: [] };
@@ -73,6 +75,35 @@ export function dedupeFacts(facts: RecallFact[]): RecallFact[] {
     }
   }
   return [...best.values()];
+}
+
+/** RECALL_RARE_WORDS=on: shared words count by how rare they are among the caller's facts. */
+export function rareWordsEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return env.RECALL_RARE_WORDS === 'on';
+}
+
+/** Too few facts to say which words are common. */
+const MIN_FACTS_FOR_WEIGHTS = 5;
+/** A fact matched only by words this common (and not named or meant) is left out. */
+const MIN_WEIGHTED_OVERLAP = 0.35;
+
+/**
+ * BM25-style rarity of each word across the caller's facts, scaled so a
+ * word found in one fact counts 1, as every word did before. "work" in five
+ * of fourteen facts counted as much as "hospital" in none, and brought
+ * "works long shifts" to a question about a previous employer (memory
+ * benchmark, 2026-10-11).
+ */
+export function rareWordWeights(facts: readonly RecallFact[]): Map<string, number> | undefined {
+  const n = facts.length;
+  if (n < MIN_FACTS_FOR_WEIGHTS) return undefined;
+  const df = new Map<string, number>();
+  for (const f of facts) {
+    for (const w of contentWords(`${f.entity} ${f.key} ${f.value}`)) df.set(w, (df.get(w) ?? 0) + 1);
+  }
+  const idf = (d: number) => Math.log(1 + (n - d + 0.5) / (d + 0.5));
+  const unique = idf(1);
+  return new Map([...df].map(([w, d]) => [w, Math.min(1, idf(d) / unique)]));
 }
 
 export function factId(f: RecallFact): string {
@@ -124,8 +155,9 @@ export function recallForTurn(
     const named = !SELF_ENTITY.test(fact.entity) && mentions(userText, fact.entity);
     let overlap = 0;
     for (const w of contentWords(`${fact.entity} ${fact.key} ${fact.value}`)) {
-      if (words.has(w)) overlap++;
+      if (words.has(w)) overlap += snapshot.wordWeights?.get(w) ?? 1;
     }
+    if (snapshot.wordWeights && overlap < MIN_WEIGHTED_OVERLAP) overlap = 0;
     const margin = blend?.semantic.get(id) ?? 0;
     if (!named && overlap === 0 && margin === 0) continue;
     let score = (named ? 2 : 0) + overlap * 0.5 + fact.confidence * 0.5;
@@ -242,5 +274,5 @@ export async function loadRecallSnapshot(
     }
     if (followUps.length >= maxFollowUps) break;
   }
-  return { facts, followUps };
+  return { facts, followUps, ...(rareWordsEnabled() && { wordWeights: rareWordWeights(facts) }) };
 }

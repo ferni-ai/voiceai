@@ -5,8 +5,11 @@ import {
   formatRecall,
   loadRecallSnapshot,
   mentions,
+  rareWordWeights,
+  rareWordsEnabled,
   recallForTurn,
   type RecallSnapshot,
+  type RecallFact,
 } from '../session-recall.js';
 
 // Shapes as written by deep extraction (bogle_users/{id}/dynamic_facts), 2026-09-27.
@@ -187,5 +190,54 @@ describe('memory with manners', () => {
       { entity: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 0.9, extractedAt: daysAgo(2) },
       { entity: 'Biscuit', key: 'age', value: 'three', confidence: 0.5 },
     ]);
+  });
+});
+
+describe('rare words (RECALL_RARE_WORDS)', () => {
+  const fact = (entity: string, key: string, value: string): RecallFact => ({
+    entity,
+    key,
+    value,
+    confidence: 0.9,
+  });
+  // Maya's memory in the benchmark: "work" is everywhere, the old hospital once.
+  const facts = [
+    fact('Speaker', 'work schedule', 'Works long shifts'),
+    fact('Neighbor', 'walks pet', "Walks the speaker's pet during the speaker's long work shifts"),
+    fact('commute', 'length', 'forty minutes to work'),
+    fact('Dana', 'relation', 'a friend from work'),
+    fact('Speaker', 'previous hospital', "St. Mary's"),
+    fact('Biscuit', 'breed', 'golden retriever'),
+  ];
+
+  it('counts a word in one fact as 1 and a word in many as less', () => {
+    const weights = rareWordWeights(facts)!;
+    expect(weights.get('hospital')).toBe(1);
+    expect(weights.get('work')!).toBeLessThan(0.35);
+    expect(rareWordWeights(facts.slice(0, 3))).toBeUndefined(); // too few to tell
+  });
+
+  it('a common word alone no longer brings a fact; a rare one still does', () => {
+    const plain: RecallSnapshot = { facts, followUps: [] };
+    const weighted: RecallSnapshot = { ...plain, wordWeights: rareWordWeights(facts) };
+    const ask = 'which hospital did I work at before';
+    const before = recallForTurn(plain, ask).map((f) => f.value);
+    const after = recallForTurn(weighted, ask).map((f) => f.value);
+    expect(before).toContain('Works long shifts');
+    expect(after).toEqual(["St. Mary's"]);
+  });
+
+  it('is off unless RECALL_RARE_WORDS=on', async () => {
+    const store = { facts: async () => facts.map((f) => ({ entityName: f.entity, key: f.key, value: f.value, confidence: 0.9 })), summaries: async () => [] };
+    expect(rareWordsEnabled({})).toBe(false);
+    const prev = process.env.RECALL_RARE_WORDS;
+    process.env.RECALL_RARE_WORDS = 'on';
+    try {
+      expect((await loadRecallSnapshot(store, 'u')).wordWeights?.get('hospital')).toBe(1);
+    } finally {
+      if (prev === undefined) delete process.env.RECALL_RARE_WORDS;
+      else process.env.RECALL_RARE_WORDS = prev;
+    }
+    expect((await loadRecallSnapshot(store, 'u')).wordWeights).toBeUndefined();
   });
 });
