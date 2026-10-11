@@ -196,28 +196,10 @@ struct InteractiveMoodWidgetView: View {
                 }
             }
 
+            // No streak badge: the brand doesn't count streaks. `streakDays` is
+            // still read from the App Group so old data loads; it's never shown.
             Spacer()
-
-            if entry.streakDays > 0 {
-                streakBadge
-            }
         }
-    }
-
-    private var streakBadge: some View {
-        HStack(spacing: 3) {
-            Image(systemName: "flame.fill")
-                .font(.caption2)
-                .foregroundColor(.orange)
-            Text("\(entry.streakDays)")
-                .font(.caption2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
-        .background(Color.white.opacity(0.2))
-        .cornerRadius(10)
     }
 
     private var checkedInView: some View {

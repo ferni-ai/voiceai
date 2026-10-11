@@ -191,17 +191,7 @@ struct MoodCheckInView: View {
                     Spacer()
 
                     HStack {
-                        // Streak badge
-                        if entry.streakDays > 0 {
-                            HStack(spacing: 4) {
-                                Image(systemName: "flame.fill")
-                                    .foregroundColor(.orange)
-                                Text("\(entry.streakDays) day streak")
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.8))
-                            }
-                        }
-
+                        // No streak badge (the brand doesn't count streaks).
                         Spacer()
 
                         // Last check-in
