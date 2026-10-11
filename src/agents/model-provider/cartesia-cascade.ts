@@ -149,7 +149,7 @@ function withEndOverride(profile: InkTurnDetection, raw: string | undefined): In
 }
 
 /**
- * Every word of every persona's name (Ferni, Maya, ... Joel, Bogle, Lynch): made-up
+ * Every word of every persona's name (Ferni, Maya, ... Nate, Henry Caldwell, Tom Brannigan): made-up
  * or uncommon names a general model has no prior for. Built from the canonical
  * persona list so a new persona is heard by name without editing this file.
  */

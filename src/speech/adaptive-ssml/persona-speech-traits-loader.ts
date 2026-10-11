@@ -16,7 +16,7 @@
  * - Backchannels (mm-hmm, I see)
  *
  * Each persona has unique speech patterns:
- * - **Peter John (Jack Bogle)**: Grandfatherly warmth, financial wisdom, elderly pauses
+ * - **Peter John**: Curious, quick, pattern-spotting research voice
  * - **Maya Santos**: Habit vocabulary, encouragement warmth, practical wisdom
  * - **Alex Chen**: Efficiency emphasis, clear instructions, hidden warmth
  * - **Jordan Taylor**: Life arc language, celebration energy, forward-looking
@@ -122,7 +122,7 @@ export function pacingTraitsToConfig(traits: PacingTraits): PersonaSpeechTraitCo
 
 /**
  * One loader per canonical persona. Keyed by CanonicalPersonaId so the compiler
- * refuses a persona without speech traits (John Bogle and Peter Lynch had none).
+ * refuses a persona without speech traits (the john-bogle and peter-lynch legends had none).
  */
 const TRAIT_LOADERS: Record<CanonicalPersonaId, () => Promise<PersonaSpeechTraitConfig>> = {
   ferni: async () => {

@@ -471,19 +471,19 @@ export const ARRIVING_BANTER: Record<string, Record<string, string[]>> = {
 
   // The financial legends hand off among themselves; '*' is any previous persona.
   'joel-dickson': {
-    '*': ['Hey! Joel here.', "Hey there! <break time='150ms'/> Good to see you.", "Hey! I'm here."],
+    '*': ['Hey! Nate here.', "Hey there! <break time='150ms'/> Good to see you.", "Hey! I'm here."],
   },
   'john-bogle': {
     '*': [
-      "Hello, friend. <break time='250ms'/> Jack Bogle here.",
+      "Hello, friend. <break time='250ms'/> Henry Caldwell here.",
       "Well, hello. <break time='250ms'/> Take your time.",
-      "Hello there. <break time='250ms'/> Jack here.",
+      "Hello there. <break time='250ms'/> Henry here.",
     ],
   },
   'peter-lynch': {
     '*': [
-      'Hey! Peter Lynch here.',
-      "Hey there! <break time='150ms'/> Lynch here.",
+      'Hey! Tom Brannigan here.',
+      "Hey there! <break time='150ms'/> Tom here.",
       'Hey! Good to meet you.',
     ],
   },

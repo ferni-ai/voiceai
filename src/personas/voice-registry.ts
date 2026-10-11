@@ -48,7 +48,7 @@ export { VOICE_IDS, isValidVoiceId };
 
 // Every canonical persona gets its own voice, from the canonical ID list rather than
 // a hand list: the registry is never built from bundles on the call path, so a persona
-// missing here spoke in Ferni's voice (John Bogle and Peter Lynch did).
+// missing here spoke in Ferni's voice (the john-bogle and peter-lynch legends did).
 const FALLBACK_VOICE_IDS: Record<string, string> = {
   ...Object.fromEntries(ALL_CANONICAL_IDS.map((id) => [id, getVoiceIdForPersona(id)])),
   'jack-b': getVoiceIdForPersona('jack-b'),

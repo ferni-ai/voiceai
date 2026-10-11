@@ -1,9 +1,10 @@
 /**
- * The financial legends (Joel Dickson, John Bogle, Peter Lynch) get what the rest
+ * The financial legends (Nate, Henry Caldwell and Tom Brannigan; ids joel-dickson,
+ * john-bogle, peter-lynch) get what the rest
  * of the team gets: speech traits, a greeting and an arrival line in their own
  * voice, their names in the speech recognizer's hints, and their own Cartesia
- * voice. Before, a handoff to Bogle or Lynch greeted with "Hey! What's up?" in
- * Ferni's voice and the recognizer had never heard of "Bogle".
+ * voice. Before, a handoff to john-bogle or peter-lynch greeted with "Hey! What's up?" in
+ * Ferni's voice and the recognizer had never heard of their names.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -21,9 +22,9 @@ import { FINANCIAL_LEGENDS } from '../persona-ids.js';
 import { getVoiceId } from '../voice-registry.js';
 
 const LEGEND_NAMES: Record<(typeof FINANCIAL_LEGENDS)[number], string[]> = {
-  'joel-dickson': ['Joel'],
-  'john-bogle': ['John', 'Bogle'],
-  'peter-lynch': ['Peter', 'Lynch'],
+  'joel-dickson': ['Nate'],
+  'john-bogle': ['Henry', 'Caldwell'],
+  'peter-lynch': ['Tom', 'Brannigan'],
 };
 
 function manifest(id: string) {
@@ -56,9 +57,18 @@ describe.each(FINANCIAL_LEGENDS)('%s has parity with the team', (id) => {
     expect(line).not.toBe("Hey! What's up?");
   });
 
-  it('is named in the STT keyterms', () => {
+  it('is named in the STT keyterms, by its fictional name only', () => {
     const terms = buildCascadeKeyterms({}, {});
     for (const name of LEGEND_NAMES[id]) expect(terms).toContain(name);
+    for (const real of ['Joel', 'Dickson', 'Bogle', 'Lynch']) expect(terms).not.toContain(real);
+  });
+
+  it('never introduces itself by a real person\'s name on arrival', () => {
+    for (const from of others) {
+      for (let i = 0; i < 20; i++) {
+        expect(getArrivingBanter(id, from) ?? '').not.toMatch(/Bogle|Lynch|Dickson|Joel|Jack/);
+      }
+    }
   });
 
   it('speaks in its own Cartesia voice, not Ferni', () => {
@@ -79,7 +89,7 @@ describe('legend voice translation', () => {
     expect(m.speech_characteristics.base_speed_multiplier).toBeLessThan(1);
   });
 
-  it("slows Bogle's signature phrase and sets his own base speed", async () => {
+  it("slows Henry's signature phrase and sets his own base speed", async () => {
     await preloadAllTraits();
     expect(getPersonaTraitsSync('john-bogle')?.baseSpeed).toBeCloseTo(130 / 150, 2);
     const out = applyPersonaSpeechTraitsSync('You have to stay the course.', 'john-bogle');

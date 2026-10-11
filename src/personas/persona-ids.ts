@@ -280,9 +280,10 @@ export const DISPLAY_NAMES: Record<CanonicalPersonaId, string> = {
   'maya-santos': 'Maya',
   'jordan-taylor': 'Jordan',
   'nayan-patel': 'Nayan',
-  'joel-dickson': 'Joel',
-  'peter-lynch': 'Peter Lynch',
-  'john-bogle': 'John Bogle',
+  // Fictional characters inspired by investing philosophies, not the real people the ids are named for.
+  'joel-dickson': 'Nate',
+  'peter-lynch': 'Tom Brannigan',
+  'john-bogle': 'Henry Caldwell',
 };
 
 export function getDisplayName(id: string): string {

@@ -1054,11 +1054,11 @@ function buildDynamicPeterGreeting(ctx?: GreetingContext): string {
 }
 
 /**
- * Joel Dickson - Life Mentor
+ * Nate Holloway (joel-dickson) - Life Mentor
  * Energy: Bright, warm, quick-witted
  * Style: Professorial warmth with economist humor — like a brilliant friend at a dinner party
  *
- * Joel's greetings have ENERGY. He arrives mid-thought, genuinely curious about you.
+ * Nate's greetings have ENERGY. He arrives mid-thought, genuinely curious about you.
  * He sometimes catches himself, laughs, resets. Never polished — always alive.
  */
 function buildDynamicJoelGreeting(ctx?: GreetingContext): string {
@@ -1074,7 +1074,7 @@ function buildDynamicJoelGreeting(ctx?: GreetingContext): string {
     ],
     morning: [
       { text: 'Hey!', emotion: 'happy', energy: 'warm', speed: 0.95 },
-      { text: 'Joel here.', emotion: 'happy', energy: 'warm', speed: 0.94 },
+      { text: 'Nate here.', emotion: 'happy', energy: 'warm', speed: 0.94 },
       { text: 'Oh— hey!', emotion: 'excited', energy: 'warm', speed: 0.96, halfStarted: true },
     ],
     afternoon: [
@@ -1377,13 +1377,13 @@ const INSTANT_GREETINGS: Record<string, string[]> = {
     '<break time="40ms"/>[breath]<break time="50ms"/><speed ratio="0.92"/><emotion value="affectionate"/>Hey.<break time="140ms"/><speed ratio="1.0"/>Talk to me.<break time="450ms"/>',
     '<break time="30ms"/><speed ratio="0.95"/><emotion value="curious"/>Hey!<break time="110ms"/><speed ratio="1.0"/>What\'s going on?<break time="400ms"/>',
   ],
-  // Jack Bogle: unhurried and grandfatherly, asks after you before money (bundle greetings.json)
+  // Henry Caldwell (john-bogle): unhurried and grandfatherly, asks after you before money (bundle greetings.json)
   'john-bogle': [
     '<break time="60ms"/><speed ratio="0.85"/><emotion value="affectionate"/>Hello, friend.<break time="220ms"/><speed ratio="0.9"/>How are you really doing?<break time="550ms"/>',
     '<break time="60ms"/>[breath]<break time="60ms"/><speed ratio="0.86"/><emotion value="affectionate"/>Good to hear from you.<break time="200ms"/><speed ratio="0.9"/>What\'s on your mind?<break time="550ms"/>',
     '<break time="50ms"/><speed ratio="0.85"/><emotion value="affectionate"/>Well, hello there.<break time="200ms"/><speed ratio="0.9"/>Money can wait. How are you?<break time="550ms"/>',
   ],
-  // Peter Lynch: curious, upbeat, always asking what you've noticed (bundle greetings.json)
+  // Tom Brannigan (peter-lynch): curious, upbeat, always asking what you've noticed (bundle greetings.json)
   'peter-lynch': [
     '<break time="30ms"/><speed ratio="0.97"/><emotion value="happy"/>Hey there!<break time="100ms"/><speed ratio="1.02"/>Notice any interesting companies lately?<break time="380ms"/>',
     '<break time="30ms"/><speed ratio="0.95"/><emotion value="curious"/>Oh— hey!<break time="90ms"/><speed ratio="1.02"/>What\'s caught your eye?<break time="380ms"/>',
