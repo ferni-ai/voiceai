@@ -15,7 +15,6 @@
 
 import { DURATION, prefersReducedMotion } from '../../config/animation-constants.js';
 import { t } from '../../i18n/index.js';
-import { tp } from '../../i18n/plural.js';
 import { getHapticsService } from '../../services/haptics.service.js';
 import { createLogger } from '../../utils/logger.js';
 import { createTimeoutTracker } from '../../utils/tracked-timeout.js';
@@ -30,7 +29,8 @@ import {
 import { injectMomentStyles, removeMomentStyles } from './styles.js';
 import { MOMENT_ICONS, getIcon } from './icons.js';
 import { isOverlayHostEnabled } from '../overlay/overlay-flag.js';
-import { dismissAllToasts, dismissToast, showToast, type ToastTone } from '../overlay/toast-region.js';
+import { dismissAllToasts, dismissToast, showToast } from '../overlay/toast-region.js';
+import { NOTICE_TONES, celebrationCopy } from './toast-copy.js';
 import type {
   MomentLevel,
   MomentState,
@@ -58,16 +58,6 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // ============================================================================
 // MOMENTS MANAGER CLASS
 // ============================================================================
-
-/** Toast tone for each notice type when the overlay host renders notices. */
-const NOTICE_TONES: Record<NoticeType, ToastTone> = {
-  info: 'info',
-  checkin: 'info',
-  secret: 'info',
-  seeds: 'success',
-  badge: 'success',
-  streak: 'success',
-};
 
 class MomentsManager {
   private container: HTMLElement | null = null;
@@ -373,7 +363,7 @@ class MomentsManager {
     if (isOverlayHostEnabled()) {
       this.emit('celebration:started', { type });
       // An achievement toast instead of the centred card over the call controls.
-      const { title, subtitle } = this.celebrationCopy({ type, ...data });
+      const { title, subtitle } = celebrationCopy({ type, ...data });
       this.playHaptic('success');
       this.triggerAvatarCelebration();
       showToast(
@@ -402,25 +392,6 @@ class MomentsManager {
     this.emit('celebration:completed', { type });
   }
 
-  private celebrationCopy(config: CelebrationConfig): { title: string; subtitle?: string } {
-    const title =
-      config.title ??
-      (config.type === 'streak'
-        ? tp('moments.streakTitle', config.count ?? 0)
-        : config.type === 'team_unlock'
-          ? t('moments.teamUnlockTitle', { name: config.personaName ?? '' })
-          : t('moments.niceWork'));
-
-    const subtitle =
-      config.subtitle ??
-      (config.type === 'streak'
-        ? t('moments.streakSubtitle')
-        : config.type === 'team_unlock'
-          ? t('celebration.teamUnlockSubtitle')
-          : undefined);
-    return { title, subtitle };
-  }
-
   private async playCelebrationSequence(config: CelebrationConfig): Promise<void> {
     // Create celebration element
     const element = document.createElement('div');
@@ -433,7 +404,7 @@ class MomentsManager {
     if (config.type === 'team_unlock') iconName = 'users';
     if (config.type === 'secret') iconName = 'star';
 
-    const { title, subtitle } = this.celebrationCopy(config);
+    const { title, subtitle } = celebrationCopy(config);
 
     element.innerHTML = `
       <div class="moment-celebration__icon">${getIcon(iconName, 48)}</div>
