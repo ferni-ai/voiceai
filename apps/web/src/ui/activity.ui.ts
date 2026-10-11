@@ -71,21 +71,21 @@ const ACTION_ICONS: Record<ActionType, string> = {
   reminder: 'bell',
 };
 
-const ACTION_LABELS: Record<ActionType, string> = {
+const actionLabels = (): Record<ActionType, string> => ({
   call: t('activity.actionCall'),
   text: t('activity.actionText'),
   email: t('activity.actionEmail'),
   calendar: t('activity.actionCalendar'),
   reminder: t('activity.actionReminder'),
-};
+});
 
-const STATUS_LABELS: Record<ActionStatus, string> = {
+const statusLabels = (): Record<ActionStatus, string> => ({
   requested: t('activity.statusPending'),
   in_progress: t('activity.statusInProgress'),
   completed: t('activity.statusCompleted'),
   failed: t('activity.statusFailed'),
   cancelled: t('activity.statusCancelled'),
-};
+});
 
 // ============================================================================
 // STYLES
@@ -664,7 +664,7 @@ class ActivityUI {
     // Type-specific filters
     const types: ActionType[] = ['call', 'text', 'email', 'calendar', 'reminder'];
     for (const type of types) {
-      const btn = this.createFilterButton(type, ACTION_LABELS[type]);
+      const btn = this.createFilterButton(type, actionLabels()[type]);
       filters.appendChild(btn);
     }
 
@@ -831,7 +831,7 @@ class ActivityUI {
     status.appendChild(statusDot);
 
     const statusText = document.createElement('span');
-    statusText.textContent = STATUS_LABELS[action.status];
+    statusText.textContent = statusLabels()[action.status];
     status.appendChild(statusText);
 
     card.appendChild(status);
@@ -869,7 +869,7 @@ class ActivityUI {
     text.textContent =
       this.activeFilter === 'all'
         ? "No activity yet. Ask Ferni to call someone or send a message!"
-        : `No ${ACTION_LABELS[this.activeFilter as ActionType].toLowerCase()} activity yet.`;
+        : `No ${actionLabels()[this.activeFilter as ActionType].toLowerCase()} activity yet.`;
     empty.appendChild(text);
 
     this.content.appendChild(empty);
@@ -897,7 +897,7 @@ class ActivityUI {
   }
 
   private formatTypeLabel(action: FerniAction): string {
-    const baseLabel = ACTION_LABELS[action.type];
+    const baseLabel = actionLabels()[action.type];
     if (action.request.target) {
       return `${baseLabel} to ${action.request.target}`;
     }
