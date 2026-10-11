@@ -52,9 +52,13 @@ export function isInstructionLike(sentence: string): boolean {
 
 /** `text` as flat data: instruction-like sentences dropped, numbers removed, truncated. */
 export function webData(text: string | undefined, max: number): { text: string; dropped: number } {
-  const flat = callerText(text, 2000).replace(PHONE_LIKE, '');
-  // Sentences end at punctuation followed by a space, so "rtings.com" stays whole.
-  const sentences = flat.split(/(?<=[.!?])\s+/).filter(Boolean);
+  // Fragments end at sentence punctuation plus a space ("rtings.com" stays whole), a
+  // line break, ";", a dash: an order with no full stop is still checked on its own.
+  const sentences = (text ?? '')
+    .slice(0, 2000)
+    .split(/(?<=[.!?])\s+|[\r\n]+|;|—|–|\s-\s/)
+    .map((f) => callerText(f, 2000).replace(PHONE_LIKE, '').trim())
+    .filter(Boolean);
   // "[removed]" marks a cut instruction phrase; the rest of its sentence goes too.
   const kept = sentences.filter((s) => !isInstructionLike(s) && !s.includes('[removed]'));
   const joined = kept.join(' ').replace(/\s+/g, ' ').trim();

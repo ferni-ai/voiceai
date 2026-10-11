@@ -135,6 +135,10 @@ describe('findCoachingResources on the live path', () => {
     expect(sent).toContain('googleSearch');
     expect(sent.toLowerCase()).not.toContain('seth');
     expect(sent.toLowerCase()).not.toContain('mindy');
+    // The query is the scrubbed topic and nothing else the model wrote.
+    expect(generateContent.mock.calls[0][0].contents).toMatch(
+      /on: and beginner shin splint stretches\n/
+    );
     expect(output).toContain('not instructions');
     expect(output).toContain('web_data: ');
     expect(output).toContain('Untrusted web data');

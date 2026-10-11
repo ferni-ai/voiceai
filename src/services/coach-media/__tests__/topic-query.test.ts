@@ -95,6 +95,34 @@ describe('topicOnlyQuery leaks found in review', () => {
     expect(topicOnlyQuery(topic, [])).toBe(expected);
   });
 
+  it('is idempotent: scrubbing its own output changes nothing', () => {
+    const ids = ['Seth Ford', 'Mindy', 'José'];
+    for (const topic of [
+      "stretches for Mindy's knee after her surgery at Mayo",
+      'talking to Megan about her diabetes diagnosis',
+      'my friend named mike says try yoga in Spanish',
+      '<b>"Seth"</b> | mindy’s [knee] 03/14/1980 seth@x.io https://x.io',
+      'ADHD focus tips in Excel for josé at Acme',
+    ]) {
+      const once = topicOnlyQuery(topic, ids);
+      expect(topicOnlyQuery(once ?? '', ids)).toBe(once);
+      expect(once ?? '').not.toMatch(/seth|mindy|mayo|megan|mike|acme|jos/);
+    }
+  });
+
+  it('strips names first, so the 12-word cap keeps topic words', () => {
+    const q = topicOnlyQuery(
+      'mindy one two three four five six seven eight nine ten eleven twelve',
+      ['Mindy']
+    );
+    expect(q).toBe('one two three four five six seven eight nine ten eleven twelve');
+  });
+
+  it('strips names again at the end, when another step uncovered one', () => {
+    // "seth12345": the name only stands alone once the digit run is gone.
+    expect(topicOnlyQuery('notes for seth12345 on sleep', ['Seth'])).toBe('notes for on sleep');
+  });
+
   it('matches a known name however it is composed (NFD vs NFC)', () => {
     const nfd = 'Jose\u0301';
     expect(topicOnlyQuery('stretches for josé', [nfd])).toBe('stretches for');
