@@ -378,6 +378,76 @@ describe('toast region during a voice call', () => {
   });
 });
 
+describe('toast region under the status island (phone)', () => {
+  /** jsdom has no layout: give the island the box it would have. */
+  function island(box: { bottom: number; height: number }): HTMLElement {
+    const el = document.createElement('div');
+    el.className = 'status-island';
+    el.getBoundingClientRect = () =>
+      ({ ...box, top: box.bottom - box.height, width: box.height ? 200 : 0 }) as DOMRect;
+    document.body.appendChild(el);
+    return el;
+  }
+  const regionTop = () =>
+    document.querySelector<HTMLElement>('.ferni-toast-region')?.style.top ?? null;
+
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    resetToastRegion();
+    mediaMatches(PHONE);
+  });
+
+  afterEach(() => resetToastRegion());
+
+  it('starts below the island while the island shows a pill', () => {
+    island({ bottom: 60, height: 40 });
+    showToast({ message: 'Saved' });
+    expect(regionTop()).toBe('calc(60px + var(--overlay-gap, 0.5rem))');
+  });
+
+  it('keeps the normal offset while the island is empty', () => {
+    island({ bottom: 0, height: 0 });
+    showToast({ message: 'Saved' });
+    expect(regionTop()).toBe('');
+  });
+
+  it('keeps the normal offset on desktop', () => {
+    mediaMatches();
+    island({ bottom: 60, height: 40 });
+    showToast({ message: 'Saved' });
+    expect(regionTop()).toBe('');
+  });
+
+  it('moves when the island grows while a toast is up', () => {
+    let resized: () => void = () => undefined;
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          resized = callback;
+        }
+        observe = vi.fn();
+        disconnect = vi.fn();
+      }
+    );
+    const el = island({ bottom: 0, height: 0 });
+    showToast({ message: 'Saved' });
+    expect(regionTop()).toBe('');
+    el.getBoundingClientRect = () => ({ bottom: 60, height: 40, width: 200, top: 20 }) as DOMRect;
+    resized();
+    expect(regionTop()).toBe('calc(60px + var(--overlay-gap, 0.5rem))');
+    vi.unstubAllGlobals();
+  });
+
+  it('follows the island when it empties before the next toast', () => {
+    const el = island({ bottom: 60, height: 40 });
+    dismissToast(showToast({ message: 'One' }));
+    el.getBoundingClientRect = () => ({ bottom: 0, height: 0, width: 0, top: 0 }) as DOMRect;
+    showToast({ message: 'Two' });
+    expect(regionTop()).toBe('');
+  });
+});
+
 describe('app call signal', () => {
   afterEach(() => setConnectionState('disconnected'));
 

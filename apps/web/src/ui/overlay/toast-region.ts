@@ -16,7 +16,7 @@
  * - Neutral surface; the tone shows only in the icon and the leading stripe.
  * - During a voice call only errors and system toasts render; the rest go to
  *   the transcript or wait for the call to end (toast-call-gate.ts).
- * - F6 focuses the region, Escape returns (toast-region-keys.ts).
+ * - F6 focuses it (toast-region-keys.ts); phones keep it under the status island.
  *
  * @module ui/overlay/toast-region
  */
@@ -30,6 +30,7 @@ import {
   type CallSignal,
   type ToastTone,
 } from './toast-call-gate.js';
+import { followStatusIsland, placeBelowIsland } from './toast-region-island.js';
 import { installRegionHotkey } from './toast-region-keys.js';
 import { injectToastRegionStyles } from './toast-region.styles.js';
 
@@ -158,7 +159,7 @@ class ToastRegion {
   /** Held while a call is live; released when it ends. */
   private deferred: Entry[] = [];
   private readonly stopCallWatch: () => void;
-  private stopHotkey: (() => void) | null = null;
+  private stops: (() => void)[] = []; // hotkey and island watchers
 
   constructor(private readonly call: CallSignal) {
     this.stopCallWatch = call.onCallEnd(() => this.releaseDeferred());
@@ -297,7 +298,7 @@ class ToastRegion {
     this.queue = [];
     this.deferred = [];
     this.stopCallWatch();
-    this.stopHotkey?.();
+    this.stops.splice(0).forEach((stop) => stop());
     this.root?.remove();
     this.polite?.remove();
     this.assertive?.remove();
@@ -313,6 +314,7 @@ class ToastRegion {
 
   private mount(entry: Entry): void {
     this.ensureRoot();
+    if (this.root) placeBelowIsland(this.root);
     const el = this.build(entry, true);
     entry.element = el;
     this.list?.appendChild(el);
@@ -422,7 +424,10 @@ class ToastRegion {
     root.addEventListener('pointerleave', () => this.resume());
     root.addEventListener('focusin', () => this.pause());
     root.addEventListener('focusout', () => this.resume());
-    this.stopHotkey = installRegionHotkey(root, () => this.visible.length > 0);
+    this.stops.push(
+      installRegionHotkey(root, () => this.visible.length > 0),
+      followStatusIsland(root)
+    );
 
     // Live regions stay outside the popover so they exist before any text lands.
     const polite = document.createElement('div');
