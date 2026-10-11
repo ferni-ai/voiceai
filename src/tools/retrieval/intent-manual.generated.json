@@ -12526,6 +12526,23 @@
       ],
       "descriptionHash": "3911d499eb"
     },
+    "pickRestaurant": {
+      "domain": "local-search",
+      "description": "Recommend ONE place to eat, fitted to what you know about them (diet, likes, dislikes, allergies, budget), with the reasons and a DoorDash link they can tap. Use when they ask where to eat or what to get for dinner. You never order food.",
+      "queries": [
+        "where should I eat tonight",
+        "can you recommend a good restaurant around here",
+        "I'm starving, what should I get for dinner",
+        "pick a place for lunch for me",
+        "where's somewhere good to grab tacos",
+        "what's a good vegetarian spot nearby",
+        "I want sushi but nothing too expensive, where should I go",
+        "just tell me one place to order from tonight",
+        "what's the best ramen place near me",
+        "I don't know what to eat, help me pick somewhere"
+      ],
+      "descriptionHash": "a316f3dfc2"
+    },
     "planCareerTransition": {
       "domain": "career",
       "description": "Help user plan and navigate a career transition.",
