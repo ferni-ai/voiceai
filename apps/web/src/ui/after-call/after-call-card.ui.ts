@@ -69,7 +69,7 @@ function injectStyles(): void {
     }
     .${CARD_CLASS} h2 {
       margin: 0 0 var(--space-xs);
-      font-size: var(--font-size-sm);
+      font-size: var(--text-sm);
       font-weight: var(--font-weight-semibold);
       color: var(--color-text-secondary);
     }
@@ -77,8 +77,8 @@ function injectStyles(): void {
     .${CARD_CLASS} ul { margin: 0; padding-left: var(--space-md); }
     .${CARD_CLASS} li, .${CARD_CLASS} p {
       margin: 0;
-      font-size: var(--font-size-base);
-      line-height: var(--line-height-normal);
+      font-size: var(--text-base);
+      line-height: var(--leading-normal);
     }
     .${CARD_CLASS} .after-call-close {
       position: absolute;
@@ -98,7 +98,7 @@ function injectStyles(): void {
       background: transparent;
       border: none;
       padding: 0;
-      font-size: var(--font-size-xs);
+      font-size: var(--text-xs);
       color: var(--color-text-secondary);
       text-decoration: underline;
       text-underline-offset: 2px;
