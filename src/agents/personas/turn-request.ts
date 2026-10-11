@@ -29,6 +29,7 @@ import {
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { ferniStateNote } from './ferni-state.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
@@ -95,6 +96,8 @@ export function withTurnReminder(
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
+    // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
+    ferniStateNote(chatCtx, session, { careful: options.shape === false }),
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
   ]
     .filter(Boolean)
