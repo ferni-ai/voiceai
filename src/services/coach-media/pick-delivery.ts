@@ -26,6 +26,7 @@ import { saveCommitment } from '../trust-systems/commitment-tracking.js';
 import { storeUserPreferences } from '../user-preferences-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { pickCard } from './answer-card.js';
+import { safeHttpsUrl } from './grounded-search.js';
 import type { Candidate } from './checked-pick.js';
 import { COACH_MEDIA_COMMITMENT_PREFIX } from './feedback.js';
 import { markSent } from './pick-log.js';
@@ -53,6 +54,41 @@ export function rememberPick(session: object | undefined, pick: SentPick): void 
 /** Whether this call already had a pick. */
 export function hasPick(session: object | undefined): boolean {
   return session ? lastPicks.has(session) : false;
+}
+
+/** Hosts a sent link may point to, besides the pick's own grounded sources. */
+export const SMS_LINK_HOSTS = ['youtube.com', 'youtu.be', 'books.google.com'];
+const hostOf = (url: string): string => new URL(url).hostname.replace(/^(www|m)\./, '');
+
+/** The pick's link if it is https on an allowed host or one of its grounded sources, else null. */
+export function sendableLink(c: Candidate): string | null {
+  const url = safeHttpsUrl(c.url);
+  if (!url) return null;
+  const grounded = (c.grounding?.sources ?? []).flatMap((s) => {
+    const u = safeHttpsUrl(s.url);
+    return u ? [hostOf(u)] : [];
+  });
+  return [...SMS_LINK_HOSTS, ...grounded].includes(hostOf(url)) ? url : null;
+}
+
+/**
+ * The text a pick goes out as: a fixed template, the title as plain words
+ * (no links, domains or phone-like numbers, one line, 60 chars) and exactly one
+ * checked link. Titles come from YouTube or the web; nothing else of theirs is sent.
+ */
+export function smsBody(c: Candidate, link: string): string {
+  const title = callerText(c.title, 300)
+    .replace(/\bhttps?:\/\/\S+|\bwww\.\S+/gi, ' ')
+    .replace(/\b[a-z0-9-]+(?:\.[a-z0-9-]+)+\b/gi, ' ')
+    .replace(/\+?\d(?:[\s().-]*\d){2,}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const short = title.length > 60 ? `${title.slice(0, 59).trimEnd()}…` : title;
+  // Length is ours (spokenLength or a page count), but only its known shape goes out.
+  const length = /^\d+(\.\d)? (seconds|minutes|hours|pages)$/.test(c.length ?? '')
+    ? ` (${c.length})`
+    : '';
+  return `From Ferni, the ${c.kind === 'product' ? 'pick' : c.kind} we talked about: "${short || 'this one'}"${length} ${link}`;
 }
 
 /** What the follow-up asks about: "try the video 'Shin Splint Rehab'". */
@@ -99,7 +135,9 @@ export async function deliverPick(
   if (!userId || userId === 'anonymous')
     return "Can't send it: this call isn't tied to an account.";
   const c = sent.candidate;
-  const body = `The ${c.kind} we talked about: ${callerText(c.title, 100)}${c.length ? ` (${c.length})` : ''} ${c.url}`;
+  const link = sendableLink(c);
+  if (!link) return "That link isn't one Ferni can send; describe it instead.";
+  const body = smsBody(c, link);
   const log = getLogger();
   // The app copy carries the card (sources, Search suggestions) either way: a
   // grounded pick's sources must be visible somewhere the user can see.
@@ -112,21 +150,26 @@ export async function deliverPick(
   };
 
   if (how === 'text') {
+    // Take a slot before the first await: parallel send_text calls in one model
+    // step would otherwise all pass the check. Given back if nothing is sent.
     const count = textsSent.get(session!) ?? 0;
     if (count >= MAX_TEXTS_PER_CALL)
       return 'Already texted them twice this call; offer the app instead.';
+    textsSent.set(session!, count + 1);
+    const release = (): void => void textsSent.set(session!, (textsSent.get(session!) ?? 1) - 1);
     const reach = await userReach(userId, 'sms', { standingOptIn: false }).catch(() => null);
     if (!reach?.phone) {
+      release();
       return "There's no verified number on their account, so it can't be texted. Offer to put it in the app.";
     }
     try {
       await sendSMS(reach.phone, body);
-      textsSent.set(session!, count + 1);
-      await saveInAppMessage(userId, inApp);
     } catch (error) {
+      release();
       log.warn({ error: String(error) }, 'coach-media: text failed');
       return "The text didn't go through. Offer to put it in the app.";
     }
+    await saveInAppMessage(userId, inApp);
   } else {
     const saved = await saveInAppMessage(userId, inApp);
     if (!saved.success) return "Couldn't save it to the app just now.";

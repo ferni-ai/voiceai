@@ -1,23 +1,11 @@
 /**
- * A short answer from the web with the pages it came from, using Gemini's
- * Google Search grounding through the shared client (Vertex on the agent, so
- * no new key). The DuckDuckGo instant-answer API behind searchWeb returns
- * nothing for most coaching asks ("beginner shin splint stretches"); grounding
- * returns an answer and its sources.
- *
- * Grounding is its own request, made from inside the tool: Vertex does not
- * combine Search grounding with function calling on the conversation's request.
- * Its system instruction asks for neutral facts only, never instructions or
- * text addressed to an assistant; result-text.ts still treats the reply as
- * untrusted web data.
- *
- * On Vertex the source links are redirects (vertexaisearch.cloud.google.com);
- * each is resolved to the page it points to with one request that does not
- * follow the redirect, so the user gets a link they can keep.
- *
- * Google's grounding terms ask that the sources and the Search suggestions
- * (searchEntryPoint.renderedContent) be shown to the user: they are returned
- * here for the card the user can open, never put in the model's text.
+ * A short web answer with its sources, from Gemini's Google Search grounding
+ * on the shared client (Vertex, no new key): DuckDuckGo instant answers
+ * (searchWeb) come back empty for most coaching asks. Grounding is its own
+ * request because Vertex won't combine it with function calling. Vertex source
+ * links are redirects, resolved without following them so the user gets a
+ * link that lasts. Google's terms ask that sources and Search suggestions be
+ * shown to the user, so they're returned for the card, never the model's text.
  *
  * @module services/coach-media/grounded-search
  */

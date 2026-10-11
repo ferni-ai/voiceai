@@ -175,6 +175,7 @@ describe('findCoachingResources on the live path', () => {
                   },
                   contentDetails: { duration: 'PT7M30S' },
                   statistics: { viewCount: '1', likeCount: '1' },
+                  status: { privacyStatus: 'public', embeddable: true },
                 },
               ],
             };
@@ -197,7 +198,7 @@ describe('findCoachingResources on the live path', () => {
             ],
           }
         : {
-            text: '{"fits":true,"quality":5,"evidence":"solid","why":"Seven minutes, made for beginners."}',
+            text: '{"fits":true,"safe":true,"quality":5,"evidence":"solid","why":"Seven minutes, made for beginners."}',
           }
     );
 

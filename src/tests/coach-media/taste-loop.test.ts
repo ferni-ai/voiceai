@@ -54,7 +54,7 @@ vi.mock('../../services/video/youtube-search.js', () => ({
   searchVideos: vi.fn(async () => ({ found: false, videos: [] })),
   getVideoDetails: async (id: string) => ({
     found: true,
-    video: { id, title: `Title ${id}`, ...VIDEOS[id] },
+    video: { id, title: `Title ${id}`, privacyStatus: 'public', ...VIDEOS[id] },
   }),
 }));
 vi.mock('../../services/user-preferences-store.js', () => ({
@@ -91,7 +91,7 @@ function webFinds(...ids: string[]) {
             },
           ],
         }
-      : { text: '{"fits":true,"quality":4,"evidence":"solid","why":"Clear and gentle."}' }
+      : { text: '{"fits":true,"safe":true,"quality":4,"evidence":"solid","why":"Clear and gentle."}' }
   );
 }
 

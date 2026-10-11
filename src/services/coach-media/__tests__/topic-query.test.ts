@@ -24,6 +24,11 @@ describe('topicOnlyQuery', () => {
     expect(q).toBe('stretches for knee after her surgery at');
   });
 
+  it('keeps common tools people learn after a preposition', () => {
+    expect(topicOnlyQuery('getting started in Python', [])).toBe('getting started in python');
+    expect(topicOnlyQuery('budget sheet in Excel at Acme', [])).toBe('budget sheet in excel at');
+  });
+
   it('keeps language words after a preposition', () => {
     expect(topicOnlyQuery('conversation practice in Spanish', [])).toBe(
       'conversation practice in spanish'
