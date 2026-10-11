@@ -1240,7 +1240,6 @@
   "src/services/self-healing/health-monitors.ts": 927,
   "src/services/self-healing/resilient-http.ts": 640,
   "src/services/semantic/embedding-matcher.ts": 819,
-  "src/services/session-context/session-summary.ts": 647,
   "src/services/session-manager/end-session.ts": 667,
   "src/services/session-manager/pre-session-briefing.ts": 556,
   "src/services/session-manager/session-data-manager.ts": 641,
