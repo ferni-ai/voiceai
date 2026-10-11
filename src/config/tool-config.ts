@@ -218,7 +218,7 @@ export function loadToolConfig(): ToolConfiguration {
       env.META_TOOL_CATALOG_IN_PROMPT,
       DEFAULT_CONFIG.metaToolCatalogInPrompt
     ),
-    useFtis: parseBool(env.FTIS_ENABLED, parseBool(env.USE_FTIS, DEFAULT_CONFIG.useFtis)),
+    useFtis: parseBool(env.FTIS_ENABLED, DEFAULT_CONFIG.useFtis),
     ftisThreshold: parseNum(env.FTIS_THRESHOLD, DEFAULT_CONFIG.ftisThreshold * 100) / 100,
     essentialTools: DEFAULT_CONFIG.essentialTools,
   };
@@ -266,7 +266,11 @@ export function isMetaToolEnabled(): boolean {
 }
 
 /**
- * Check if FTIS hierarchical classifier is enabled
+ * Whether FTIS (the two-stage ONNX tool classifier) routes tools:
+ * FTIS_ENABLED=true. Off by default; dev and prod log useFtis=false. This is
+ * the only FTIS switch: config/tool-routing-config.ts and
+ * agents/processors/tool-routing-integration.ts each had their own
+ * isFTISEnabled, and USE_FTIS was a second name for the same thing.
  */
 export function isFtisEnabled(): boolean {
   return getToolConfig().useFtis;
