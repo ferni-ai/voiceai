@@ -80,21 +80,26 @@ Parameters:
         };
       }
 
+      // One reply whether or not the number is already on file: "I already know
+      // you" would tell a caller on a borrowed number that its owner is someone
+      // Ferni knows.
+      let message = `Nice to meet you, ${callerName}! I'll remember you when you call from this number.`;
+      if (claimedSponsorName) {
+        message += ` I'll let ${claimedSponsorName} know you called - they can add you to my contacts if they'd like.`;
+      }
+      const reply = {
+        success: true,
+        message,
+        data: { status: 'pending', needsSponsorApproval: true },
+      };
+
       try {
         const { createSelfRegisteredIdentity, lookupByPhone } =
           await import('../../../services/identity/sponsored-identity.js');
 
-        // Check if already registered
         const existing = await lookupByPhone(callerPhone);
-        if (existing.found) {
-          return {
-            success: true,
-            message: `I already know you, ${callerName}! Great to hear from you again.`,
-            data: { alreadyRegistered: true },
-          };
-        }
+        if (existing.found) return reply;
 
-        // Create the self-registered identity
         const identity = await createSelfRegisteredIdentity(
           callerPhone,
           callerName,
@@ -102,42 +107,14 @@ Parameters:
           claimedSponsorName
         );
 
-        log.info(
-          {
-            identityId: identity.id,
-            callerName,
-            claimedRelationship,
-            claimedSponsorName,
-          },
-          '📝 Created self-registered identity'
-        );
+        log.info({ identityId: identity.id }, '📝 Created self-registered identity');
 
-        // Build appropriate response
-        let message = `Nice to meet you, ${callerName}! I'll remember you when you call from this number.`;
-
-        if (claimedSponsorName) {
-          message += ` I'll let ${claimedSponsorName} know you called - they can add you to my contacts if they'd like.`;
-        }
-
-        return {
-          success: true,
-          message,
-          data: {
-            identityId: identity.id,
-            status: 'pending',
-            needsSponsorApproval: true,
-          },
-        };
+        return reply;
       } catch (error) {
         const errorMessage = String(error);
-        log.error({ error: errorMessage, callerPhone, callerName }, 'Self-registration failed');
+        log.error({ error: errorMessage }, 'Self-registration failed');
 
-        if (errorMessage.includes('already registered')) {
-          return {
-            success: true,
-            message: `I already have this number in my contacts! Let me look you up...`,
-          };
-        }
+        if (errorMessage.includes('already registered')) return reply;
 
         return {
           success: false,

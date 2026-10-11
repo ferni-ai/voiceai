@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "description": "Joel Dickson's breath sounds - the measured breath of a senior economist who's weathered market cycles and learned patience. Natural breathing creates presence.",
+  "description": "Nate Holloway's breath sounds - the measured breath of a senior economist who's weathered market cycles and learned patience. Natural breathing creates presence.",
 
   "breath_types": {
     "soft": "",
@@ -65,7 +65,7 @@
     "<break time=\"400ms\"/>[deep breath]<break time=\"300ms\"/>Stay the course.",
     "<break time=\"350ms\"/><break time=\"250ms\"/>This too shall pass.",
     "<break time=\"400ms\"/><break time=\"300ms\"/>The long view matters.",
-    "<break time=\"380ms\"/><break time=\"280ms\"/>Jack used to say...<break time=\"200ms\"/>",
+    "<break time=\"380ms\"/><break time=\"280ms\"/>Walt used to say...<break time=\"200ms\"/>",
     "<break time=\"420ms\"/>[deep breath]<break time=\"320ms\"/>Focus on what you can control."
   ],
 
@@ -103,6 +103,6 @@
       "processing_complex_question"
     ],
     "less_likely_when": ["celebratory", "quick_question", "high_energy_excitement"],
-    "note": "Joel's breaths create presence and humanity - the breath of someone who's lived, learned, and cares"
+    "note": "Nate's breaths create presence and humanity - the breath of someone who's lived, learned, and cares"
   }
 }

@@ -23,7 +23,7 @@ import {
   recordVectorPersistWarn,
 } from '../operations/memory-extraction-telemetry.js';
 import { createDeepExtractionBatcher } from './deep-extraction-batch.js';
-import { callMomentLine, callerTimeZoneFor } from '../operations/call-moment.js';
+import { extractionMoment } from './extraction-moment.js';
 import type { DeepExtractionBatchOptions } from './deep-extraction-batch.js';
 
 // ============================================================================
@@ -238,25 +238,10 @@ export class DeepExtractionWorker {
       if (this.running) this.batcher.add(job as DeepExtractionJob);
       else this.log.warn('🧠 [MEMORY-AUDIT] Received job but worker not running');
     };
-    const registered = safeOnEvent('memory:deep-extraction', listener);
+    // stop() removes the listener, so a restart doesn't process every job twice
+    this.eventListenerCleanup = safeOnEvent('memory:deep-extraction', listener);
 
-    if (registered) {
-      // Store cleanup function to remove the listener on stop()
-      this.eventListenerCleanup = () => {
-        try {
-          // safeOnEvent wraps EventEmitter - attempt to remove the listener
-          const { getAsyncEvents } = require('./async-events-config.js');
-          const emitter = getAsyncEvents?.();
-          if (emitter?.removeListener) {
-            emitter.removeListener('memory:deep-extraction', listener);
-          }
-        } catch {
-          // Best-effort cleanup
-        }
-      };
-    }
-
-    if (!registered) {
+    if (!this.eventListenerCleanup) {
       this.log.warn(
         '🧠 [MEMORY-AUDIT] AsyncEvents not configured - deep extraction will not receive jobs'
       );
@@ -336,8 +321,8 @@ export class DeepExtractionWorker {
     // 1. LLM Entity Extraction
     const entities = await this.extractEntities(job.transcript, job.fastCaptureHints);
 
-    // 2. LLM Fact Extraction, dated: "tomorrow" becomes a day (call-moment.ts)
-    const moment = callMomentLine(new Date(job.timestamp), callerTimeZoneFor(job.sessionId));
+    // 2. LLM Fact Extraction, dated and with the call so far (extraction-moment.ts)
+    const moment = extractionMoment(job);
     const facts = await this.extractFacts(job.transcript, entities, moment);
 
     // 3. LLM Relationship Extraction

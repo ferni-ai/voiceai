@@ -7,4 +7,5 @@
  *
  * @module agents/after-call-register
  */
+import '../intelligence/world-model/extraction/register.js';
 import './personas/move-outcomes-register.js';
