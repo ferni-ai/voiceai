@@ -240,6 +240,48 @@ export function prefersReducedMotion(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
 }
 
+/** Keyframe keys that are not motion: they still play under reduced motion. */
+const NON_MOTION_KEYS = new Set(['opacity', 'offset', 'easing', 'composite']);
+
+/**
+ * Reduced-motion version of a keyframe list: every motion property (transform,
+ * scale, position, glow...) is pinned to its final value, so the element lands
+ * exactly where the full animation would leave it; only opacity still changes.
+ */
+export function toReducedMotionKeyframes(keyframes: Keyframe[]): Keyframe[] {
+  const last = keyframes[keyframes.length - 1] ?? {};
+  const settled: Keyframe = {};
+  for (const [key, value] of Object.entries(last)) {
+    if (!NON_MOTION_KEYS.has(key)) settled[key] = value;
+  }
+  const frames = keyframes.map((frame) => {
+    const kept: Keyframe = { ...settled };
+    for (const key of NON_MOTION_KEYS) if (key in frame) kept[key] = frame[key];
+    return kept;
+  });
+  return frames.length > 1 ? frames : [settled, settled];
+}
+
+/**
+ * element.animate() that respects prefers-reduced-motion. With reduced motion
+ * the animation plays once as an opacity-only fade (or instantly, when it has
+ * no opacity) and ends in the same state the full animation would.
+ */
+export function safeAnimate(
+  element: Element,
+  keyframes: Keyframe[],
+  options?: number | KeyframeAnimationOptions
+): Animation {
+  if (!prefersReducedMotion()) return element.animate(keyframes, options);
+  const timing: KeyframeAnimationOptions = typeof options === 'number' ? { duration: options } : { ...options };
+  const fades = keyframes.some((frame) => 'opacity' in frame);
+  return element.animate(toReducedMotionKeyframes(keyframes), {
+    ...timing,
+    duration: fades ? timing.duration : 0,
+    iterations: 1,
+  });
+}
+
 /**
  * Get reduced motion fallback duration (instant).
  */

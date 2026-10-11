@@ -1,7 +1,7 @@
 /**
- * Joel Dickson Insights - Type Definitions
+ * Nate Holloway (joel-dickson) Insights - Type Definitions
  *
- * Types for Joel's life-mentorship intelligence: financial behavioral context,
+ * Types for Nate's life-mentorship intelligence: financial behavioral context,
  * career crossroads, and life wisdom pattern recognition.
  *
  * @module intelligence/context-builders/personas/joel-dickson-insights/types
@@ -87,6 +87,6 @@ export interface ConversationContext {
   isFinanceTopic: boolean;
   isCareerTopic: boolean;
   isLifeWisdomTopic: boolean;
-  isVanguardTopic: boolean;
+  isIndexInvestingTopic: boolean;
   emotionalTone: 'stressed' | 'curious' | 'excited' | 'reflective' | 'neutral';
 }

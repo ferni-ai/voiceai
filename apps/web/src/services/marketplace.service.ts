@@ -31,6 +31,7 @@ import { ALL_PERSONA_IDS, type PersonaConfig, type PersonaId } from '../types/pe
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { isFullTeamUnlocked } from './team-unlock.service.js';
+import { deleteSynced, pullAndMerge, saveSynced } from './synced-items.js';
 
 const log = createLogger('Marketplace');
 
@@ -565,9 +566,7 @@ export function isMarketplaceUnlocked(): boolean {
   return isFullTeamUnlocked();
 }
 
-/**
- * Install an agent from the marketplace
- */
+/** Install an agent from the marketplace */
 export async function installAgent(agentId: string): Promise<boolean> {
   // Marketplace requires full team to be unlocked
   if (!isFullTeamUnlocked()) {
@@ -598,14 +597,12 @@ export async function installAgent(agentId: string): Promise<boolean> {
   const installed = loadInstalledAgents();
   installed.set(agentId, installedAgent);
   saveInstalledAgents(installed);
-
+  void saveSynced('marketplace-installs', agentId, installedAgent, installedAgent.installed_at);
   log.info(`Installed agent ${agentId}`);
   return true;
 }
 
-/**
- * Uninstall an agent
- */
+/** Uninstall an agent */
 export function uninstallAgent(agentId: string): boolean {
   const installed = loadInstalledAgents();
 
@@ -616,41 +613,38 @@ export function uninstallAgent(agentId: string): boolean {
 
   installed.delete(agentId);
   saveInstalledAgents(installed);
-
+  void deleteSynced('marketplace-installs', agentId);
   log.info(`Uninstalled agent ${agentId}`);
   return true;
 }
 
-/**
- * Check if an agent is installed
- */
+/** Check if an agent is installed */
 export function isAgentInstalled(agentId: string): boolean {
   const installed = loadInstalledAgents();
   return installed.has(agentId);
 }
 
-/**
- * Get all installed agents
- */
+/** Get all installed agents */
 export function getInstalledAgents(): InstalledAgent[] {
   const installed = loadInstalledAgents();
   return Array.from(installed.values());
 }
 
-/**
- * Get installed agent IDs as a Set
- */
+/** Get installed agent IDs as a Set */
 export function getInstalledAgentIds(): Set<string> {
   const installed = loadInstalledAgents();
   return new Set(installed.keys());
 }
 
-/**
- * Get an installed agent by ID
- */
+/** Get an installed agent by ID */
 export function getInstalledAgent(agentId: string): InstalledAgent | null {
-  const installed = loadInstalledAgents();
-  return installed.get(agentId) ?? null;
+  return loadInstalledAgents().get(agentId) ?? null;
+}
+
+/** Bring in agents installed on other devices (/api/synced); send up this device's */
+export async function syncInstalledAgents(): Promise<void> {
+  const merged = await pullAndMerge('marketplace-installs', loadInstalledAgents(), (a) => a.installed_at);
+  if (merged) saveInstalledAgents(merged);
 }
 
 // ============================================================================
@@ -799,6 +793,7 @@ export const marketplaceService = {
   getInstalledAgents,
   getInstalledAgentIds,
   getInstalledAgent,
+  syncInstalledAgents,
 
   // Conversion
   marketplaceAgentToPersonaConfig,

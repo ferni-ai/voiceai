@@ -18,6 +18,7 @@
  * @module agents/shared/handoff/session-state
  */
 
+import { getHandoffQueueState, setProgressInterval } from '../../../handoff/unified-state.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { HandoffEventPayload } from './types.js';
 
@@ -66,7 +67,6 @@ const log = getLogger();
  * @deprecated Use getHandoffQueueState instead
  */
 export function hasPendingHandoffs(sessionId: string): boolean {
-  const { getHandoffQueueState } = require('../../../handoff/index.js');
   const state = getHandoffQueueState(sessionId);
   return state.pendingHandoffs.length > 0;
 }
@@ -75,7 +75,6 @@ export function hasPendingHandoffs(sessionId: string): boolean {
  * @deprecated Use getHandoffQueueState instead
  */
 export function getPendingHandoffCount(sessionId: string): number {
-  const { getHandoffQueueState } = require('../../../handoff/index.js');
   const state = getHandoffQueueState(sessionId);
   return state.pendingHandoffs.length;
 }
@@ -99,7 +98,6 @@ export function getHandoffStateSummary(sessionId: string): {
   previousPersonaId: string | null;
   messageSeq: number;
 } {
-  const { getHandoffQueueState } = require('../../../handoff/index.js');
   const state = getHandoffQueueState(sessionId);
   return {
     isInProgress: state.isHandoffInProgress,
@@ -133,7 +131,6 @@ export function startProgressHeartbeat(
   callback: () => void,
   intervalMs = 2000
 ): void {
-  const { setProgressInterval } = require('../../../handoff/index.js');
   const interval = setInterval(callback, intervalMs);
   setProgressInterval(sessionId, interval);
 }
@@ -153,7 +150,6 @@ export function getHandoffPersonaInfo(sessionId: string): {
   targetPersonaId: string | null;
   previousPersonaId: string | null;
 } {
-  const { getHandoffQueueState } = require('../../../handoff/index.js');
   const state = getHandoffQueueState(sessionId);
   return {
     targetPersonaId: state.targetPersonaId,

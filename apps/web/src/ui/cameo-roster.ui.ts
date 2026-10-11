@@ -572,7 +572,7 @@ function createWelcomeSparkles(element: HTMLElement): void {
       top: ${centerY}px;
       transform: translate(-50%, -50%);
       pointer-events: none;
-      z-index: var(--z-dropdown, 1000);
+      z-index: var(--z-dropdown);
       box-shadow: 0 0 6px var(--color-sparkle, white), 0 0 12px var(--color-glow-white, rgba(255, 255, 255, 0.6));
     `;
 
@@ -612,7 +612,7 @@ function injectCameoRosterStyles(): void {
     /* Cameo team member in roster - OVERRIDE entrance animation opacity */
     .team-member--cameo {
       position: relative;
-      z-index: var(--z-docked, 10);
+      z-index: var(--z-docked);
       /* Override entrance-roster opacity: 0 rule */
       animation: none !important;
     }
@@ -687,7 +687,7 @@ function injectCameoRosterStyles(): void {
     }
 
     /* Mobile: ensure cameo is visible */
-    @media (max-width: clamp(537px, 90vw, 767px)) {
+    @media (max-width: 767px) {
       .team-member--cameo {
         /* Ensure visible on mobile too */
         display: flex !important;
@@ -701,7 +701,7 @@ function injectCameoRosterStyles(): void {
     }
     
     /* Even on tiny screens, show the cameo name */
-    @media (max-width: min(380px, 100%)) {
+    @media (max-width: 380px) {
       .team-member--cameo .team-name {
         display: block !important;
         font-size: 8px;

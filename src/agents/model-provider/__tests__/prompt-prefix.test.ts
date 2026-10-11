@@ -43,6 +43,9 @@ const saved = { ...process.env };
 
 beforeEach(() => {
   captured = [];
+  // The per-call seed (turn-request.ts callSeed) picks the turn's shape, and
+  // with it the reminder's length; pin it so the shared-prefix ratio is stable.
+  vi.spyOn(Math, 'random').mockReturnValue(0.5);
   process.env.GOOGLE_CLOUD_PROJECT ||= 'test-project';
   process.env.CASCADE_LLM_HEDGE_MS = 'off';
   delete process.env.CASCADE_FAST_LANE;

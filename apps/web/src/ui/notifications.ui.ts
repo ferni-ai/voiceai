@@ -282,7 +282,7 @@ class NotificationsUI {
         position: fixed;
         top: var(--ma-rest);
         right: var(--ma-rest);
-        z-index: var(--z-notification, 1500);
+        z-index: var(--z-notification);
         display: flex;
         flex-direction: column;
         gap: var(--ma-pause);
@@ -478,7 +478,7 @@ class NotificationsUI {
       /* ========================================
          RESPONSIVE
          ======================================== */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .notifications-container {
           right: var(--ma-pause);
           left: var(--ma-pause);
