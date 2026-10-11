@@ -4,7 +4,7 @@
  * it (outreach-log.ts). Cloud Scheduler runs it every minute with the
  * deliver-scheduled-actions job.
  *
- * The channel (a note in the app or a text) comes from channel-policy.ts: the
+ * The channel (a note in the app, a text or a call) comes from channel-policy.ts: the
  * user's opt-ins, verified phone, quiet hours, daily caps and back-off. The
  * words come from outreach-text.ts.
  *
@@ -21,8 +21,15 @@ import { lastTalkedAt } from '../outreach-cadence.js';
 import { isValidTimezone, localMinutes } from '../call-hours-guard.js';
 import type { WorldDueItem } from './more-triggers.js';
 import { collectTriggers } from './triggers.js';
-import { chooseChannel } from './channel-policy.js';
-import { alreadySent, lastTextOf, recentOutreach, writeOutreachLog } from './outreach-log.js';
+import { chooseChannel, type ChannelChoice } from './channel-policy.js';
+import {
+  alreadySent,
+  lastTextOf,
+  recentOutreach,
+  writeOutreachLog,
+  type OutreachLogEntry,
+} from './outreach-log.js';
+import type { CallOutcome } from './self-call.js';
 import { writeOutreachText } from './outreach-text.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
 
@@ -54,6 +61,9 @@ export interface ProactiveDeps {
   sendSms: (phone: string, text: string) => Promise<boolean>;
   /** What comes due today in their world; absent when the server has no world model. */
   worldDue?: (userId: string, timeZone?: string) => Promise<WorldDueItem[]>;
+  /** Rings their verified phone (self-call.ts); absent or false canCall: no calls. */
+  placeCall?: (userId: string, phone: string, trigger: ProactiveTrigger) => Promise<CallOutcome>;
+  canCall?: () => boolean;
 }
 
 export interface UserTickResult {
@@ -106,6 +116,14 @@ async function nextTrigger(
   return undefined;
 }
 
+interface Delivered {
+  channel: ProactiveChannel;
+  ok: boolean;
+  fallbackFrom?: ProactiveChannel;
+  /** How a call ended. */
+  outcome?: CallOutcome;
+}
+
 /** Send on the chosen channel; a text that doesn't go out becomes a note in the app. */
 async function deliver(
   userId: string,
@@ -113,7 +131,7 @@ async function deliver(
   channel: ProactiveChannel,
   phone: string | undefined,
   deps: ProactiveDeps
-): Promise<{ channel: ProactiveChannel; ok: boolean; fallbackFrom?: ProactiveChannel }> {
+): Promise<Delivered> {
   if (channel === 'sms' && phone) {
     const sent = await deps.sendSms(phone, trigger.text).catch((error: unknown) => {
       log.warn({ error: String(error), userId }, 'Proactive text failed');
@@ -123,6 +141,75 @@ async function deliver(
     return { channel: 'in_app', ok: await deps.sendInApp(userId, trigger), fallbackFrom: channel };
   }
   return { channel: 'in_app', ok: await deps.sendInApp(userId, trigger) };
+}
+
+/**
+ * Ring them. Logged before dialing (ringing takes up to a minute and the next
+ * run must not ring again). A missed call leaves the words as a note in the
+ * app; a call that couldn't be placed goes out as a text instead.
+ */
+async function call(
+  userId: string,
+  trigger: ProactiveTrigger,
+  phone: string,
+  entry: OutreachLogEntry,
+  deps: ProactiveDeps
+): Promise<Delivered> {
+  await writeOutreachLog(userId, { ...entry, channel: 'voice_call', outcome: 'sent' });
+  const outcome = deps.placeCall
+    ? await deps.placeCall(userId, phone, trigger).catch((): CallOutcome => 'failed')
+    : 'failed';
+  if (outcome === 'failed') {
+    return { ...(await deliver(userId, trigger, 'sms', phone, deps)), fallbackFrom: 'voice_call' };
+  }
+  if (outcome !== 'answered') await deps.sendInApp(userId, trigger);
+  return { channel: 'voice_call', ok: true, outcome };
+}
+
+/** Write it, send it on the chosen channel, log it. */
+async function send(
+  userId: string,
+  trigger: ProactiveTrigger,
+  choice: ChannelChoice & { channel: ProactiveChannel },
+  ctx: { now: Date; recent: OutreachLogEntry[]; verifiedPhone?: string },
+  deps: ProactiveDeps
+): Promise<Delivered> {
+  const written = await writeOutreachText({
+    trigger,
+    channel: choice.channel,
+    lastText: lastTextOf(ctx.recent),
+    rotation: ctx.recent.length,
+  });
+  const entry: OutreachLogEntry = {
+    sourceId: trigger.sourceId,
+    kind: trigger.kind,
+    channel: choice.channel,
+    reason: trigger.reason,
+    why: choice.why,
+    at: ctx.now.toISOString(),
+    outcome: 'sent',
+    text: written.text,
+    textSource: written.source,
+  };
+  const toSend = { ...trigger, text: written.text };
+  const phone = ctx.verifiedPhone;
+  const sent =
+    choice.channel === 'voice_call' && phone
+      ? await call(userId, toSend, phone, entry, deps)
+      : await deliver(userId, toSend, choice.channel, phone, deps);
+  await writeOutreachLog(userId, {
+    ...entry,
+    channel: sent.channel,
+    outcome: sent.outcome ?? (sent.ok ? 'sent' : 'failed'),
+    ...(sent.outcome && { outcomeAt: new Date().toISOString() }),
+    ...(sent.fallbackFrom && { fallbackFrom: sent.fallbackFrom }),
+  });
+  if (sent.ok) {
+    await trigger.afterSend?.().catch((error: unknown) => {
+      log.warn({ error: String(error), userId, sourceId: trigger.sourceId }, 'After-send failed');
+    });
+  }
+  return sent;
 }
 
 async function runForUser(
@@ -140,6 +227,10 @@ async function runForUser(
   if (!trigger) return { userId, status: 'idle' };
   const verifiedPhone = await deps.verifiedPhone(userId);
   const recent = await recentOutreach(userId, new Date(now.getTime() - HISTORY_MS));
+  const canCall = deps.canCall?.() === true && deps.placeCall !== undefined;
+  if (trigger.weight === 'meaningful' && !canCall) {
+    log.info({ userId, sourceId: trigger.sourceId }, 'No SIP trunk here, so no call');
+  }
   const choice = chooseChannel({
     trigger,
     now,
@@ -148,42 +239,20 @@ async function runForUser(
     verifiedPhone,
     lastTalkedAt: lastTalkedAt(user),
     recent,
-    canCall: false,
+    canCall,
   });
   const base = { userId, sourceId: trigger.sourceId, why: choice.why };
-  if (!choice.channel) return { ...base, status: choice.stop ? 'skipped' : 'held' };
-  if (dryRun) return { ...base, channel: choice.channel, status: 'dry_run' };
+  const { channel } = choice;
+  if (!channel) return { ...base, status: choice.stop ? 'skipped' : 'held' };
+  if (dryRun) return { ...base, channel, status: 'dry_run' };
 
-  const written = await writeOutreachText({
-    trigger,
-    channel: choice.channel,
-    lastText: lastTextOf(recent),
-    rotation: recent.length,
-  });
-  const sent = await deliver(
+  const sent = await send(
     userId,
-    { ...trigger, text: written.text },
-    choice.channel,
-    verifiedPhone,
+    trigger,
+    { ...choice, channel },
+    { now, recent, verifiedPhone },
     deps
   );
-  await writeOutreachLog(userId, {
-    sourceId: trigger.sourceId,
-    kind: trigger.kind,
-    channel: sent.channel,
-    reason: trigger.reason,
-    why: choice.why,
-    at: now.toISOString(),
-    outcome: sent.ok ? 'sent' : 'failed',
-    text: written.text,
-    textSource: written.source,
-    ...(sent.fallbackFrom && { fallbackFrom: sent.fallbackFrom }),
-  });
-  if (sent.ok) {
-    await trigger.afterSend?.().catch((error: unknown) => {
-      log.warn({ error: String(error), userId, sourceId: trigger.sourceId }, 'After-send failed');
-    });
-  }
   log.info(
     { ...base, channel: sent.channel, ok: sent.ok, kind: trigger.kind },
     'Proactive check-in sent'
