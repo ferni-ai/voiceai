@@ -170,8 +170,11 @@ export async function runMultiAgentMode(
       await import('../../multi-agent/multi-agent-entry.js');
     const { createGroupVoiceIntegration } =
       await import('../../group-conversation/voice-integration.js');
+    const { roundtableAgentsForCall } =
+      await import('../../group-conversation/session-roundtable-agents.js');
     const { handoffEvents } = await import('../../../handoff/index.js');
     const { handoffStartMessages } = await import('../../multi-agent/handoff-messages.js');
+    const { offerAgent, withdrawAgent } = await import('../../../tools/handoff/ready-agents.js');
 
     // Initialize multi-agent session
     const multiAgentResult = await initializeMultiAgentSession({
@@ -224,6 +227,9 @@ export async function runMultiAgentMode(
         sessionId,
         userId,
         webhookBaseUrl: process.env.WEBHOOK_BASE_URL ?? 'https://api.ferni.ai',
+        createRoundtableAgent: roundtableAgentsForCall(
+          () => multiAgentResult.orchestrator.getActiveAgent()?.session as never
+        ),
       });
       process.stderr.write(`[multi-agent-mode] 🎙️ Group conversation integration initialized\n`);
     }
@@ -349,11 +355,18 @@ export async function runMultiAgentMode(
             await publishDataMessage(ctx.room, m);
           }
 
+          // With one session per call the tool hands the next persona to the SDK: it stops
+          // waiting once that persona is built (ready-agents.ts)
+          const handoffTool = { targetId: targetPersonaId, greetingSpoken: false };
           const result = await handleHandoffFromDataChannel(
             multiAgentResult.orchestrator,
             targetPersonaId,
             'LLM requested handoff',
-            services
+            services,
+            (agent) => {
+              offerAgent(String(services.sessionId), targetPersonaId, agent);
+              handoffEvents.emit('handoffHandlerComplete', { ...handoffTool, success: true });
+            }
           );
 
           if (!result.success) {
@@ -376,6 +389,7 @@ export async function runMultiAgentMode(
             error: result.error,
           });
         } finally {
+          withdrawAgent(String(services.sessionId), targetPersonaId); // if the tool never took it
           handoffLock.release();
         }
       })();

@@ -34,9 +34,12 @@ import { getModelProvider } from '../model-provider/index.js';
 import { registerAgentReplyRecorder } from '../voice-agent/agent-reply-recorder.js';
 import {
   createPreSTTFrameProcessor,
+  isPhoneParticipant,
   wantsPhonePreStt,
 } from '../integrations/pre-stt-frame-processor.js';
 import { getPrewarmGreetingPolicy, planFactoryPrewarm } from './prewarm-greeting-overlap.js';
+import { attachPhoneHangUp } from '../shared/phone-goodbye.js';
+import { outboundPartiesFor } from '../shared/outbound-opener.js';
 
 const log = getLogger();
 
@@ -158,8 +161,17 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       enableFullHandlers,
       deferHandlers, // Wire handlers in background after greeting
       callSession: context.callSession as AgentSetupConfig['callSession'],
+      phoneCaller: isPhoneParticipant(context.userParticipant),
     });
     mark('setup_persona_agent_done');
+    // A phone caller: Ferni hangs up after a real goodbye (PHONE_GOODBYE, phone-goodbye.ts).
+    await attachPhoneHangUp(agentSetup.agent, {
+      roomName: context.room.name ?? '',
+      participant: context.userParticipant,
+      onBehalf: outboundPartiesFor(sessionId) !== undefined,
+    }).catch((error: unknown) =>
+      log.warn({ error: String(error), sessionId }, 'endCall not added')
+    );
 
     // Record committed replies from the start: with deferred wiring the greeting
     // is spoken before wireHandlers() runs, and would otherwise go unrecorded.

@@ -33,11 +33,11 @@ import { valueCapture } from '../services/monetization/value-capture.js';
 import {
   createPaymentIntent,
   getUserMonetizationData,
-  handlePaymentSucceeded,
   isStripeConfigured,
   verifyPayment,
 } from '../services/stripe-payments.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { handleMonetizationWebhook } from './monetization-webhook.js';
 
 // Initialize persistence on module load
 initMonetizationPersistence();
@@ -975,83 +975,6 @@ async function celebrateMilestone(ctx: RequestContext): Promise<ResponseContext>
   }
 }
 
-// ============================================================================
-// STRIPE WEBHOOK ENDPOINT
-// ============================================================================
-
-/**
- * POST /api/monetization/webhook
- * Handle Stripe webhook events for payment confirmation
- */
-async function handleStripeWebhook(ctx: RequestContext): Promise<ResponseContext> {
-  const signature = ctx.headers['stripe-signature'] as string;
-
-  if (!signature) {
-    log.warn('Webhook received without signature');
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Missing stripe-signature header' },
-    };
-  }
-
-  try {
-    // Get raw body for signature verification
-    const rawBody = ctx.body as unknown;
-
-    // In a real implementation, you would verify the webhook signature here
-    // using stripe.webhooks.constructEvent(rawBody, signature, webhookSecret)
-    // For now, we'll trust the payload if it has the right structure
-
-    const event = rawBody as {
-      type: string;
-      data: {
-        object: {
-          id: string;
-          amount: number;
-          metadata: Record<string, string>;
-        };
-      };
-    };
-
-    log.info({ eventType: event.type }, 'Stripe webhook received');
-
-    switch (event.type) {
-      case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object;
-        await handlePaymentSucceeded({
-          id: paymentIntent.id,
-          amount: paymentIntent.amount,
-          metadata: paymentIntent.metadata,
-        });
-        break;
-      }
-
-      case 'payment_intent.payment_failed': {
-        const paymentIntent = event.data.object;
-        log.warn({ paymentIntentId: paymentIntent.id }, 'Payment failed');
-        break;
-      }
-
-      default:
-        log.debug({ eventType: event.type }, 'Unhandled webhook event type');
-    }
-
-    return {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: { received: true },
-    };
-  } catch (error) {
-    log.error({ error: String(error) }, 'Webhook processing failed');
-    return {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Webhook processing failed' },
-    };
-  }
-}
-
 const routes: Record<string, Record<string, RouteHandler>> = {
   GET: {
     // Tip Jar
@@ -1098,7 +1021,7 @@ const routes: Record<string, Record<string, RouteHandler>> = {
     '/api/monetization/journey/celebrate': celebrateMilestone,
 
     // Stripe Webhook
-    '/api/monetization/webhook': handleStripeWebhook,
+    '/api/monetization/webhook': handleMonetizationWebhook,
   },
 };
 

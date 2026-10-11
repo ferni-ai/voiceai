@@ -4,9 +4,12 @@
  * @module tools/handoff/handoff-tool-response
  */
 
+import { llm, type voice } from '@livekit/agents';
 import type { HandoffResult } from './executor.js';
+import { takeOfferedAgent } from './ready-agents.js';
 
 export type HandoffToolResponse =
+  | ReturnType<typeof llm.handoff>
   | { unavailable: true; message?: string; instruction: string }
   | { error?: string; rateLimited?: boolean }
   | {
@@ -18,8 +21,17 @@ export type HandoffToolResponse =
       voice_id?: string;
     };
 
-/** The tool result for a handoff to `agentName` that ended with `result`. */
-export function handoffToolResponse(result: HandoffResult, agentName: string): HandoffToolResponse {
+/**
+ * The tool result for a handoff to `agentName` that ended with `result`. With single-session
+ * handoffs the next persona's Agent is waiting (ready-agents.ts): the tool returns it as an
+ * SDK handoff, and the SDK swaps once the tool call is over. With no `returns`, the outgoing
+ * persona says nothing more.
+ */
+export function handoffToolResponse(
+  result: HandoffResult,
+  agentName: string,
+  sessionId?: string
+): HandoffToolResponse {
   if (!result.success) {
     if (result.locked) {
       // Without a clear "stop", the model apologised and tried the same
@@ -32,6 +44,9 @@ export function handoffToolResponse(result: HandoffResult, agentName: string): H
     }
     return { error: result.error, rateLimited: result.rateLimited };
   }
+
+  const agent = sessionId ? takeOfferedAgent(sessionId, result.targetAgent) : undefined;
+  if (agent) return llm.handoff({ agent: agent as voice.Agent });
 
   // FIX: The executor now waits for handler completion, so we use actual result values.
   // The handler calls session.say(greeting) before the tool result returns.

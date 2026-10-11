@@ -147,6 +147,7 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   // Maya Santos (Habits Coach)
   'maya-santos': 'maya-santos',
   maya: 'maya-santos',
+  'maya-habits': 'maya-santos', // Group conversation / roundtable ID
   santos: 'maya-santos', // Last name alias
   'spend-save': 'maya-santos',
   spend: 'maya-santos',
@@ -175,6 +176,7 @@ export const ALIAS_TO_CANONICAL: Record<string, CanonicalPersonaId> = {
   // Nayan Patel (Sage / Lifetime Advisor)
   'nayan-patel': 'nayan-patel',
   nayan: 'nayan-patel',
+  'nayan-sharma': 'nayan-patel', // Group conversation / roundtable ID
   patel: 'nayan-patel',
   sage: 'nayan-patel',
   'sage-mentor': 'nayan-patel', // Legacy role ID

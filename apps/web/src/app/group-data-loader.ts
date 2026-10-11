@@ -6,7 +6,13 @@
  * @module app/group-data-loader
  */
 
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('GroupDataLoader');
+
 type GroupHandler = (message: unknown) => boolean;
+/** Messages kept while the handler loads; past this the oldest are dropped. */
+const MAX_PENDING = 50;
 
 /** Every type group-data-messages.ts handles (a test keeps the two in step). */
 export const GROUP_MESSAGE_TYPES: ReadonlySet<string> = new Set([
@@ -27,14 +33,22 @@ const pending: unknown[] = [];
 
 /** Load the group handler now (the first group message does this on its own). */
 export function loadGroupDataMessages(): Promise<GroupHandler> {
-  loading ??= import('./group-data-messages.js').then((m) => {
-    // Drain what arrived while loading before anything newer can run: a message routed
-    // from another promise chain must not overtake an earlier one (e.g. a speaker change
-    // before the roundtable that starts it).
-    for (const message of pending.splice(0)) m.handleGroupDataMessage(message);
-    handler = m.handleGroupDataMessage;
-    return handler;
-  });
+  loading ??= import('./group-data-messages.js')
+    .then((m) => {
+      // Drain what arrived while loading before anything newer can run: a message routed
+      // from another promise chain must not overtake an earlier one (e.g. a speaker change
+      // before the roundtable that starts it).
+      for (const message of pending.splice(0)) m.handleGroupDataMessage(message);
+      handler = m.handleGroupDataMessage;
+      return handler;
+    })
+    .catch((error: unknown) => {
+      // A failed chunk load (e.g. a deploy changed its hash) must not stick: the next group
+      // message tries again, and the queue keeps what arrived meanwhile
+      loading = null;
+      log.warn('Group message handler failed to load', { error: String(error) });
+      throw error;
+    });
   return loading;
 }
 
@@ -45,7 +59,8 @@ export function routeGroupDataMessage(message: unknown): boolean {
   if (handler) handler(message);
   else {
     pending.push(message);
-    void loadGroupDataMessages();
+    if (pending.length > MAX_PENDING) pending.shift();
+    loadGroupDataMessages().catch(() => undefined); // logged above; retried on the next message
   }
   return true;
 }

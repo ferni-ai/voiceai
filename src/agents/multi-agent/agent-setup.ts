@@ -98,6 +98,7 @@ const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
 import { createFindToolsTool, FIND_TOOLS } from '../../tools/retrieval/find-tools-tool.js';
+import { amdOpensCall, createEndCallTool, END_CALL } from '../outbound-call/call-control.js';
 import { toolRetrievalMode as retrievalModeNow } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { initializeFrontendPublisher } from '../realtime/index.js';
@@ -107,6 +108,7 @@ import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.j
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
 import { createPersonaTTS } from './persona-tts.js';
 import { createCallSession } from './call-session.js';
+import { agentOnCall, personaOnCall, rememberPersona } from './persona-swap.js';
 import { installLiveCallBehaviors, startTurnSounds } from './live-call-behaviors.js';
 import {
   installDirectorNotes,
@@ -198,6 +200,7 @@ export interface AgentSetupConfig {
    * Only this persona's Agent and its own listeners are built; the session stays the call's.
    */
   callSession?: voice.AgentSession<UserData>;
+  phoneCaller?: boolean; // a phone (LiveKit SIP) caller: see PHONE_AUDIO_MODE
 }
 
 /**
@@ -311,6 +314,8 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
   let systemPrompt: string;
   let modelBaseInstructions: string;
+  // The model-level text before this call's date, time and caller are added.
+  let stableBase = '';
   try {
     mark('load_prompts_start');
     // Load both levels of instructions in parallel (imports now hoisted to module level)
@@ -321,6 +326,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     mark('load_prompts_done');
 
     systemPrompt = loadedSystemPrompt;
+    stableBase = baseInstructions;
 
     // =========================================================================
     // DATE/TIME AWARENESS - Critical for grounding agent in reality
@@ -1071,6 +1077,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
     finalTools = { ...finalTools, [FIND_TOOLS]: createFindToolsTool() } as typeof finalTools;
   }
 
+  // On-behalf phone call: Ferni can hang up after a goodbye or a voicemail
+  const endCallTool = createEndCallTool(sessionId);
+  if (endCallTool) {
+    finalTools = { ...finalTools, [END_CALL]: endCallTool } as typeof finalTools;
+  }
+
   // 🚨 CRITICAL WARNING: If tool count is suspiciously low, something is wrong!
   const finalToolNames = Object.keys(finalTools);
   const initialRegisteredToolCount = finalToolNames.length;
@@ -1131,11 +1143,11 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   mark('session_create_start');
   // A persona swapped into a running call joins its session (persona-swap.ts)
-  const session =
-    callSession ??
-    (await createCallSession({ persona, sessionId, services, userData, llmModel, tts }));
+  const parts = { persona, sessionId, services, userData, llmModel, tts };
+  const session = callSession ?? (await createCallSession({ ...parts, phone: config.phoneCaller }));
 
   mark('session_created');
+  rememberPersona(session, persona); // personaOnCall: handlers follow the persona on the call
 
   // Match the single-agent conversation humanization bootstrap without adding
   // work to the agent join critical path.
@@ -1193,7 +1205,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // FIX (Jan 2026): Skip ping if user is actively speaking
         // This prevents race conditions where ping and user response compete
         const userData = session.userData as { userSpeakingStartTime?: number } | undefined;
-        if (userData?.userSpeakingStartTime) {
+        if (userData?.userSpeakingStartTime || amdOpensCall(sessionId)) {
           log.debug({ sessionId }, '🏥 [HEALTH] Skipping ping - user is speaking');
           return true; // Return true to indicate "healthy" without actually pinging
         }
@@ -1586,7 +1598,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const agentInstructions = composeAgentInstructions(
     systemPrompt,
     modelBaseInstructions,
-    modelProvider.getPromptModules()
+    modelProvider.getPromptModules(),
+    { stableBase }
   );
 
   const agent = new FerniAgent(agentInstructions, {
@@ -1663,6 +1676,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // after the greeting is spoken (reduces critical path by ~500ms).
   // =========================================================================
   const wireHandlersImpl = async (): Promise<void> => {
+    // Wired once per call: read the persona and agent on the call now, not the first ones
+    const onCall = personaOnCall(session, userData, persona);
+    const agentNow = agentOnCall(session as never, agent);
     if (!enableFullHandlers) {
       log.debug({ personaId: persona.id }, '🎭 Handlers disabled, skipping wiring');
       return;
@@ -1800,7 +1816,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         const toolRetrieval = await installTurnListeners({
           session,
           sessionId,
-          agent,
+          agent: agentNow,
           dynamicToolLoader,
           cleanupFunctions,
         });
@@ -1808,7 +1824,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           session,
           sessionId,
           userName: userData?.userName,
-          agent,
+          agent: agentNow,
           cleanupFunctions,
         });
         try {
@@ -1816,7 +1832,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
             room,
             session,
             sessionId,
-            personaId: () => persona.id,
+            personaId: () => onCall.id,
             lastUserFinalTranscript: () => lastUserFinalTranscript,
             cleanupFunctions,
           });
@@ -1827,7 +1843,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
             () => conversationManager?.isAgentSpeaking() ?? false,
             // A native-audio model would turn a scripted "mm-hmm" into a full
             // reply while the user is still talking.
-            { enabled: !getModelProvider().speaksNatively?.(), playClip: clips?.playClip }
+            { enabled: !getModelProvider().speaksNatively?.(), ...clips?.live }
           );
           cleanupFunctions.push(() => liveBackchannel?.cleanup());
           // A user turn ends when the agent takes the floor. Ink finalizes a
@@ -1931,7 +1947,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           room,
           session,
           services,
-          sessionPersona: persona,
+          sessionPersona: onCall,
           conversationManager,
           voiceHumanization,
           userData,
@@ -2009,7 +2025,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // SESSION STATE HANDLERS
         const stateResult = setupSessionStateHandlers({
           session,
-          sessionPersona: persona,
+          sessionPersona: onCall,
           conversationManager,
           userData,
           sessionId,
@@ -2032,7 +2048,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         session,
         userData,
         services,
-        sessionPersona: persona,
+        sessionPersona: onCall,
         sessionId,
         debugEnabled: process.env.DEBUG_VOICE_AGENT === 'true',
         sendDataMessage,

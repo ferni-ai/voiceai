@@ -49,6 +49,16 @@ interface StripeClient {
     }) => Promise<StripePaymentIntent>;
     retrieve: (id: string) => Promise<StripePaymentIntent>;
   };
+  webhooks: {
+    constructEvent: (payload: string, header: string, secret: string) => PaymentWebhookEvent;
+  };
+}
+
+/** The slice of a verified Stripe event the monetization webhook reads */
+export interface PaymentWebhookEvent {
+  id: string;
+  type: string;
+  data: { object: { id: string; amount: number; metadata: Record<string, string> } };
 }
 
 // Factory function type for dynamic loading
@@ -94,6 +104,26 @@ async function getStripe(): Promise<StripeClient> {
 
 export function isStripeConfigured(): boolean {
   return !!getConfig().payments.stripeSecretKey;
+}
+
+/**
+ * Verify a POST to /api/monetization/webhook. Throws on a bad or missing signature.
+ *
+ * Each Stripe webhook endpoint has its own signing secret, so this endpoint reads
+ * STRIPE_MONETIZATION_WEBHOOK_SECRET first and falls back to the shared
+ * STRIPE_WEBHOOK_SECRET (for setups that only have one endpoint).
+ */
+export async function verifyPaymentWebhook(
+  rawBody: string,
+  signature: string
+): Promise<PaymentWebhookEvent> {
+  const { stripeMonetizationWebhookSecret, stripeWebhookSecret } = getConfig().payments;
+  const secret = stripeMonetizationWebhookSecret || stripeWebhookSecret;
+  if (!secret) {
+    throw new Error('Neither STRIPE_MONETIZATION_WEBHOOK_SECRET nor STRIPE_WEBHOOK_SECRET is set');
+  }
+  const stripe = await getStripe();
+  return stripe.webhooks.constructEvent(rawBody, signature, secret);
 }
 
 // ============================================================================

@@ -49,6 +49,7 @@ import {
 } from 'node:stream/web';
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { applyPhoneVoiceProfile } from './phone-voice-profile.js';
 import { postTtsChainEnabled } from './post-tts-env-overrides.js';
 import { applyReplyAudioStage } from './reply-audio-stage.js';
 
@@ -501,15 +502,6 @@ export interface PostTTSConfig {
 function envEnabled(key: string): boolean {
   const val = process.env[key];
   return val === 'true' || val === '1';
-}
-
-/**
- * Check if an env var is explicitly set to 'false' or '0'
- * Used for features that are ON by default (opt-out)
- */
-function envDisabled(key: string): boolean {
-  const val = process.env[key];
-  return val === 'false' || val === '0';
 }
 
 // Default config - CONSERVATIVE settings after production issues (January 2026)
@@ -1074,7 +1066,10 @@ export function createPostTTSTransform(
       // on its first frame; formats do not change mid-stream) passes through
       // untouched rather than being processed and mislabelled, which would
       // play it at the wrong speed and pitch.
-      if (frameCount === 1 && (frame.sampleRate !== fullConfig.sampleRate || frame.channels !== 1)) {
+      if (
+        frameCount === 1 &&
+        (frame.sampleRate !== fullConfig.sampleRate || frame.channels !== 1)
+      ) {
         passThroughFormat = true;
         log.warn(
           {
@@ -1350,13 +1345,13 @@ export async function applyPostTTSEnhancement(
   config: PostTTSConfig = {},
   replyId?: string
 ): Promise<NodeReadableStream<AudioFrame>> {
-  if (!postTtsChainEnabled()) {
-    return applyReplyAudioStage(audioStream, config.sessionId, replyId, config.sampleRate);
-  }
-  const enhanced = audioStream.pipeThrough(
-    createPostTTSTransform(config) as unknown as NodeTransformStream<AudioFrame, AudioFrame>
-  ); // then Stage 2 (opening breath/sigh, tempo), gated off by default:
-  return applyReplyAudioStage(enhanced, config.sessionId, replyId, config.sampleRate);
+  const mastered = postTtsChainEnabled()
+    ? audioStream.pipeThrough(
+        createPostTTSTransform(config) as unknown as NodeTransformStream<AudioFrame, AudioFrame>
+      )
+    : audioStream; // then Stage 2 (opening breath/sigh, tempo) and the phone profile, both gated off by default:
+  const staged = await applyReplyAudioStage(mastered, config.sessionId, replyId, config.sampleRate);
+  return applyPhoneVoiceProfile(staged, config.sessionId);
 }
 
 /**

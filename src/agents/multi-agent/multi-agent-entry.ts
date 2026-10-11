@@ -42,7 +42,11 @@ import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import type { UserData } from '../shared/types.js';
-import { createAgentOrchestrator, type AgentOrchestrator } from './orchestrator.js';
+import {
+  createAgentOrchestrator,
+  type AgentOrchestrator,
+  type HandoffRequest,
+} from './orchestrator.js';
 import { createPersonaAgentFactory } from './persona-agent-factory.js';
 import { checkHandoffUnlocked } from '../../tools/handoff/handoff-unlock-check.js';
 import { setCurrentAgent } from '../../tools/handoff/state.js';
@@ -202,7 +206,8 @@ export async function handleHandoffFromDataChannel(
   orchestrator: AgentOrchestrator,
   targetPersonaId: string,
   reason: string,
-  services: SessionServices
+  services: SessionServices,
+  onAgentReady?: HandoffRequest['onAgentReady']
 ): Promise<{ success: boolean; error?: string }> {
   if (orchestrator.isHandoffInProgress()) {
     return { success: false, error: 'Handoff already in progress' };
@@ -230,6 +235,7 @@ export async function handleHandoffFromDataChannel(
     reason,
     userName: services.userProfile?.name,
     userEmotion: services.sessionPriming?.emotionalContext?.lastEmotion,
+    onAgentReady,
   });
 
   // The LLM's handoff tools read the current agent from here: without this, after a tap to

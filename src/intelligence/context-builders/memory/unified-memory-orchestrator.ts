@@ -51,6 +51,8 @@ import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../c
 // Side-effect import: Register the dynamic memory context builder
 // This builder retrieves LLM-extracted entities, facts, and relationships
 import './dynamic-memory-context.js';
+// Side-effect import: Register the compact world-model snapshot (live voice path)
+import '../../world-model/index.js';
 
 const log = createLogger({ module: 'context:unified-memory-orchestrator' });
 
