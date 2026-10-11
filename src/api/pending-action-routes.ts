@@ -40,6 +40,11 @@ const OUTCOME: Record<DecisionOutcome, { status: number; message: string; code?:
   already_decided: { status: 409, message: 'You already answered that.', code: 'DECIDED' },
   hash_mismatch: { status: 409, message: 'That changed. Reload?', code: 'ACTION_CHANGED' },
   passkey_required: { status: 403, message: 'This one needs a passkey.', code: 'PASSKEY_REQUIRED' },
+  passkey_failed: {
+    status: 403,
+    message: "That passkey didn't check out.",
+    code: 'PASSKEY_FAILED',
+  },
 };
 
 /** When userId last signed in (ms), from their own non-anonymous bearer token re-verified. */
@@ -87,15 +92,8 @@ async function decide(
     });
     return;
   }
-  // No WebAuthn yet, so no passkey can be verified: money-moving actions stay unapprovable.
-  const outcome = await decidePendingAction({
-    id,
-    userId,
-    decision,
-    actionHash,
-    authTime,
-    passkeyVerified: false,
-  });
+  // No passkey check is wired yet (#887 follow-up), so money-moving actions stay unapprovable.
+  const outcome = await decidePendingAction({ id, userId, decision, actionHash, authTime });
   const shown = OUTCOME[outcome];
   if (shown.status === 200) sendJSON(res, { status: outcome });
   else sendApiError(res, shown);

@@ -5,14 +5,13 @@
  * - actionHash (sha256 of kind, owner, payload) is recorded with an approval,
  *   which then only satisfies an action with that hash: A never satisfies B.
  * - Actions expire 5 minutes after creation; an approval is used once.
- * - Money-moving kinds are never confirmable by voice and need a passkey on
- *   the page. There is no WebAuthn support yet, so they fail closed.
+ * - Money-moving kinds: never by voice; on the page only with a passkey (PasskeyCheck).
  *
  * @module services/approvals/pending-actions
  */
 
 import { createHash, randomBytes } from 'node:crypto';
-import type { Firestore } from '@google-cloud/firestore';
+import type { Firestore, Transaction } from '@google-cloud/firestore';
 import { APP_URL } from '../../config/api-urls.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 
@@ -56,7 +55,11 @@ export type DecisionOutcome =
   | 'expired'
   | 'already_decided'
   | 'hash_mismatch'
-  | 'passkey_required';
+  | 'passkey_required'
+  | 'passkey_failed';
+
+/** Runs INSIDE the decision's transaction, after its state checks and before the write. */
+export type PasskeyCheck = (tx: Transaction) => Promise<boolean>;
 
 const MAX_FIELDS = 12;
 const MAX_VALUE_CHARS = 1000;
@@ -185,7 +188,8 @@ export async function decidePendingAction(
     decision: 'approve' | 'decline';
     actionHash: string;
     authTime: number;
-    passkeyVerified: boolean;
+    passkeyRequired?: boolean;
+    passkeyCheck?: PasskeyCheck;
   },
   now = Date.now(),
   db: Firestore | null = getFirestoreDb()
@@ -199,8 +203,10 @@ export async function decidePendingAction(
     if (action.status !== 'pending') return 'already_decided';
     if (now > action.expiresAt) return 'expired';
     if (!intact(action) || input.actionHash !== action.actionHash) return 'hash_mismatch';
-    if (input.decision === 'approve' && action.moneyMoving && !input.passkeyVerified)
-      return 'passkey_required';
+    if (input.decision === 'approve' && (action.moneyMoving || input.passkeyRequired)) {
+      if (!input.passkeyCheck) return 'passkey_required';
+      if (!(await input.passkeyCheck(tx))) return 'passkey_failed';
+    }
     const decision = {
       decision: input.decision,
       actionHash: action.actionHash,
@@ -213,9 +219,8 @@ export async function decidePendingAction(
 }
 
 /**
- * Use a page approval once: true only when id was approved by userId, in the
- * last 2 minutes, for exactly this kind and payload (the hash is recomputed
- * from what the caller is about to run), and was not used before.
+ * Use a page approval once: true only when userId approved id in the last 2
+ * minutes for exactly this kind and payload (hash recomputed here), unused.
  */
 export async function consumePageApproval(
   id: string,

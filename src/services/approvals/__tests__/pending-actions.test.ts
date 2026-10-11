@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import type { Transaction } from '@google-cloud/firestore';
+import { describe, expect, it, vi } from 'vitest';
 import {
   APPROVAL_USE_MS,
   PENDING_ACTION_TTL_MS,
@@ -31,7 +32,7 @@ function approve(
   now = T0 + 1000
 ) {
   return decidePendingAction(
-    { id, userId: 'alice', decision: 'approve', actionHash, authTime: T0, passkeyVerified: false },
+    { id, userId: 'alice', decision: 'approve', actionHash, authTime: T0 },
     now,
     db
   );
@@ -121,7 +122,7 @@ describe('expiry and single use', () => {
   it("can't be decided twice, or by someone else", async () => {
     const { db, id, actionHash } = await setup();
     const bob = await decidePendingAction(
-      { id, userId: 'bob', decision: 'approve', actionHash, authTime: T0, passkeyVerified: false },
+      { id, userId: 'bob', decision: 'approve', actionHash, authTime: T0 },
       T0 + 1000,
       db
     );
@@ -139,7 +140,6 @@ describe('expiry and single use', () => {
         decision: 'decline',
         actionHash,
         authTime: T0,
-        passkeyVerified: false,
       },
       T0 + 1000,
       db
@@ -163,15 +163,67 @@ describe('money-moving actions', () => {
     expect(voiceMayConfirm('place_call')).toBe(true);
   });
 
-  it('need a passkey on the page; without one they cannot be approved', async () => {
-    const { db, id, actionHash } = await setup('purchase', PURCHASE);
-    expect(await approve(db, id, actionHash)).toBe('passkey_required');
-    const withPasskey = await decidePendingAction(
-      { id, userId: 'alice', decision: 'approve', actionHash, authTime: T0, passkeyVerified: true },
+  const decideWith = (
+    db: ReturnType<typeof fakeFirestore>['db'],
+    id: string,
+    actionHash: string,
+    extra: Partial<Parameters<typeof decidePendingAction>[0]>
+  ) =>
+    decidePendingAction(
+      { id, userId: 'alice', decision: 'approve', actionHash, authTime: T0, ...extra },
       T0 + 1000,
       db
     );
-    expect(withPasskey).toBe('approved');
+
+  it('need a passkey on the page; without one they cannot be approved', async () => {
+    const { db, docs, id, actionHash } = await setup('purchase', PURCHASE);
+    expect(await approve(db, id, actionHash)).toBe('passkey_required');
+    const failing = vi.fn(async () => false);
+    expect(await decideWith(db, id, actionHash, { passkeyCheck: failing })).toBe('passkey_failed');
+    expect(docs.get(`pending_actions/${id}`)?.status).toBe('pending');
+    expect(await decideWith(db, id, actionHash, { passkeyCheck: async () => true })).toBe(
+      'approved'
+    );
+  });
+
+  it('check the passkey only after the action is still pending, unexpired and matching', async () => {
+    const { db, id, actionHash } = await setup('purchase', PURCHASE);
+    const check = vi.fn(async () => true);
+    expect(await decideWith(db, id, 'f'.repeat(64), { passkeyCheck: check })).toBe('hash_mismatch');
+    expect(check).not.toHaveBeenCalled();
+  });
+
+  it('verify the passkey and write the decision in one transaction: one challenge, one approval', async () => {
+    const { db, docs, id, actionHash } = await setup('purchase', PURCHASE);
+    await db.collection('webauthn_challenges').doc('alice_approve').set({ challenge: 'c' });
+    // Like verifyApprovalAssertion: take the single-use challenge inside the decision's transaction.
+    const takeChallenge = async (tx: Transaction) => {
+      const ref = db.collection('webauthn_challenges').doc('alice_approve');
+      const snap = await tx.get(ref);
+      if (!snap.exists) return false;
+      tx.delete(ref);
+      return true;
+    };
+    const results = await Promise.all([
+      decideWith(db, id, actionHash, { passkeyCheck: takeChallenge }),
+      decideWith(db, id, actionHash, { passkeyCheck: takeChallenge }),
+    ]);
+    expect(results.filter((r) => r === 'approved')).toHaveLength(1);
+    expect(docs.has('webauthn_challenges/alice_approve')).toBe(false);
+    expect(docs.get(`pending_actions/${id}`)?.status).toBe('approved');
+  });
+
+  it('every approval needs the passkey once the account has one', async () => {
+    const { db, id, actionHash } = await setup();
+    expect(await decideWith(db, id, actionHash, { passkeyRequired: true })).toBe(
+      'passkey_required'
+    );
+    expect(
+      await decideWith(db, id, actionHash, {
+        passkeyRequired: true,
+        passkeyCheck: async () => true,
+      })
+    ).toBe('approved');
   });
 });
 
