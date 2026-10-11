@@ -31,6 +31,7 @@ import {
   type RecallSnapshot,
   type RecallStore,
 } from '../../memory/recall/session-recall.js';
+import { formatPeople, peopleOf, recallPeopleEnabled } from '../../memory/recall/people.js';
 import {
   createSemanticIndex,
   estimateTokens,
@@ -105,6 +106,8 @@ export interface MemoryRecallDeps {
   checkIns?: () => Promise<OpenCommitment[]>;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
+  /** RECALL_PEOPLE=on (people.ts); read from the environment when not given. */
+  people?: boolean;
   embed?: RetrievalEmbedder;
 }
 
@@ -145,6 +148,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const entitiesThisTurn = new Map<string, number>();
 
   let ledgerNote: string | null = null;
+  let peopleNote: string | null = null;
   let sinceNote: string | null = null;
   let checkInNote: string | null = null;
   let checkInOffered = false;
@@ -169,6 +173,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   ]).then(([s, told]) => {
     snapshot = { ...s, followUps: s.followUps.slice(0, MAX_FOLLOW_UPS) };
     ledgerNote = formatLedger(told.slice(0, RECALL_LIMIT), deps.userName);
+    if (deps.people ?? recallPeopleEnabled()) peopleNote = formatPeople(peopleOf(s.facts));
     log.info(
       {
         facts: s.facts.length,
@@ -249,7 +254,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       // The ledger, like the follow-ups, comes once, with the first note.
       const told = followUpsOffered
         ? null
-        : [ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
+        : [peopleNote, ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
       const checkIn = checkInOffered ? null : checkInNote;
       const note =
         [
