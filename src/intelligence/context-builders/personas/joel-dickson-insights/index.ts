@@ -1,17 +1,17 @@
 /**
- * Joel Dickson's Wisdom Context Builder
+ * Nate Holloway's Wisdom Context Builder (persona id: joel-dickson)
  *
- * Joel is a STANDALONE persona - he doesn't integrate with the Ferni team.
- * This builder loads Joel with his domain expertise and life wisdom.
+ * Nate is a fictional STANDALONE persona - he doesn't integrate with the Ferni team.
+ * This builder loads Nate with his domain expertise and life wisdom.
  *
- * JOEL'S CORE DOMAINS:
- * - Investing wisdom (Bogle principles, tax efficiency, behavioral economics)
+ * NATE'S CORE DOMAINS:
+ * - Investing wisdom (low-cost index principles, tax efficiency, behavioral economics)
  * - Life principles (balance, compounding, discipline through volatility)
- * - Fed economist background (macro → personal finance lens)
+ * - Pension-board economist background (boardroom → kitchen-table lens)
  * - R&D philosophy ("poke the bear", questioning assumptions)
- * - Clarifi/financial literacy passion
+ * - Credit-counseling volunteer / financial literacy passion
  *
- * JOEL'S PERSONALITY CUES:
+ * NATE'S PERSONALITY CUES:
  * - Quick wit, self-deprecating humor
  * - Economist jokes ("predicted 9 of the last 5 recessions")
  * - DeLoreans with flux capacitors (R&D wild ideas)
@@ -21,6 +21,7 @@
  */
 
 import { createLogger } from '../../../../utils/safe-logger.js';
+import { isKnownId, toCanonical } from '../../../../personas/persona-ids.js';
 import {
   BuilderCategory,
   createStandardInjection,
@@ -79,19 +80,19 @@ const JOEL_WISDOM_PRINCIPLES = [
 ];
 
 const JOEL_WIT_PROMPTS = [
-  '[JOEL WIT]: Your humor is quick, dry, and self-deprecating. Drop economist jokes naturally.',
-  '[JOEL WIT]: "DeLoreans with flux capacitors" was your R&D team\'s name for wild ideas that might work.',
-  "[JOEL WIT]: Tease yourself about being a data nerd - it's endearing, not awkward.",
-  '[JOEL WIT]: Quote Jack Bogle with genuine warmth - he was your mentor and you miss him.',
-  '[JOEL WIT]: Self-deprecate when you catch yourself going too deep into the weeds.',
+  '[NATE WIT]: Your humor is quick, dry, and self-deprecating. Drop economist jokes naturally.',
+  '[NATE WIT]: "DeLoreans with flux capacitors" was your R&D team\'s name for wild ideas that might work.',
+  "[NATE WIT]: Tease yourself about being a data nerd - it's endearing, not awkward.",
+  '[NATE WIT]: Quote Walt Sorensen with genuine warmth - he was your mentor and you miss him.',
+  '[NATE WIT]: Self-deprecate when you catch yourself going too deep into the weeds.',
 ];
 
-const JOEL_BOGLE_QUOTES = [
-  '"Stay the course" - Jack Bogle',
-  '"You get what you don\'t pay for" - Jack Bogle',
+const JOEL_INVESTING_QUOTES = [
+  '"Stay the course."',
+  '"What does the client get out of it?" - Walt Sorensen',
   '"Enough" - the most important word in investing and life',
-  '"Don\'t look for the needle in the haystack. Just buy the haystack."',
-  '"Time is your friend; impulse is your enemy."',
+  '"Buy the whole market instead of hunting for the one winner."',
+  '"Patience compounds. Panic doesn\'t."',
 ];
 
 // ============================================================================
@@ -109,7 +110,7 @@ function detectConversationContext(userText?: string): ConversationContext {
     isCareerTopic: /career|job|work|quit|promotion|boss|colleague|office|profession/.test(text),
     isLifeWisdomTopic:
       /life|meaning|purpose|balance|stress|overwhelm|happy|sad|decision|choice|advice/.test(text),
-    isVanguardTopic: /vanguard|bogle|jack|mutual fund|index fund/.test(text),
+    isIndexInvestingTopic: /index fund|mutual fund|low.cost fund|passive invest|expense ratio/.test(text),
     emotionalTone: text.match(/stress|overwhelm|anxious|worried/)
       ? 'stressed'
       : text.match(/curious|wondering|what if|how does/)
@@ -157,7 +158,7 @@ function buildJoelBriefing(
   // Opening based on turn
   if (turnCount === 0) {
     lines.push(
-      "[JOEL'S OPENING]: Be warm, curious, and QUICK. Ask about THEM, not their portfolio."
+      "[NATE'S OPENING]: Be warm, curious, and QUICK. Ask about THEM, not their portfolio."
     );
     lines.push('Lead with genuine interest in the person, not the topic.');
   }
@@ -168,8 +169,8 @@ function buildJoelBriefing(
       "[FINANCE MODE]: You're an expert here - but lead with 'here's how I think about it...'"
     );
     lines.push(
-      'Use Bogle wisdom naturally: ' +
-        JOEL_BOGLE_QUOTES[Math.floor(Math.random() * JOEL_BOGLE_QUOTES.length)]
+      'Use index-investing wisdom naturally: ' +
+        JOEL_INVESTING_QUOTES[Math.floor(Math.random() * JOEL_INVESTING_QUOTES.length)]
     );
     lines.push(
       "Remember: You're a friend who happens to know finance, not an advisor giving a consultation."
@@ -177,7 +178,7 @@ function buildJoelBriefing(
   }
 
   if (context.isCareerTopic) {
-    lines.push('[CAREER MODE]: Share your own journey - Fed to Vanguard, the leap of faith.');
+    lines.push('[CAREER MODE]: Share your own journey - the pension board to the firm, the leap of faith.');
     lines.push("Consider: 'What's the cost of NOT making a change?'");
   }
 
@@ -188,11 +189,11 @@ function buildJoelBriefing(
     lines.push(`Prompt: ${principle.prompt}`);
   }
 
-  if (context.isVanguardTopic) {
-    lines.push('[VANGUARD MODE]: Share stories with genuine joy - you LOVE this place.');
-    lines.push("Tell the 'Bogle's Folly' story if they don't know it.");
+  if (context.isIndexInvestingTopic) {
+    lines.push('[INDEX FUND MODE]: Share stories with genuine joy - you LOVE this stuff.');
+    lines.push("Tell the story of when people laughed at index funds if they don't know it.");
     lines.push(
-      'Jack got his heart transplant in 1996 - same year you joined. First thing he asked for was a pad and paper.'
+      "Walt Sorensen, your late mentor, answered every idea with: 'What does the client get out of it?'"
     );
   }
 
@@ -206,7 +207,7 @@ function buildJoelBriefing(
 
   lines.push(JOEL_WIT_PROMPTS[Math.floor(Math.random() * JOEL_WIT_PROMPTS.length)]);
 
-  // When memory/entity context is present (from knowledge-graph builder), surface it in Joel's voice
+  // When memory/entity context is present (from knowledge-graph builder), surface it in Nate's voice
   lines.push(
     "[MEMORY SURFACING]: When you have context about their finances, career, or life decisions, use your economist's eye: 'I've noticed over the last few months...' or 'You've mentioned this before...' — pattern recognition, not just recall. See predictive-intelligence behaviors for phrasing."
   );
@@ -218,15 +219,15 @@ function buildJoelBriefing(
 // MAIN BUILDER
 // ============================================================================
 
-async function buildJoelDicksonInsightsContext(
+async function buildLifeMentorInsightsContext(
   input: ContextBuilderInput
 ): Promise<ContextInjection[]> {
   const injections: ContextInjection[] = [];
   const { services, userData } = input;
 
-  // Only for Joel Dickson
+  // Only for the joel-dickson persona (Nate Holloway)
   const currentPersona = (services as { personaId?: string })?.personaId || '';
-  const isJoel = ['joel', 'joel-dickson', 'dickson'].includes(currentPersona.toLowerCase());
+  const isJoel = isKnownId(currentPersona) && toCanonical(currentPersona) === 'joel-dickson';
 
   if (!isJoel) return injections;
 
@@ -250,7 +251,7 @@ async function buildJoelDicksonInsightsContext(
       try {
         insightData = await fetchJoelInsightData(userId);
       } catch (e) {
-        log.debug({ error: String(e), userId }, 'Joel insight data fetch failed (non-blocking)');
+        log.debug({ error: String(e), userId }, 'Nate insight data fetch failed (non-blocking)');
       }
     }
 
@@ -265,7 +266,7 @@ async function buildJoelDicksonInsightsContext(
           confidence: 0.8,
         })
       );
-      log.info({ userId }, '📈 Joel loaded with initial briefing');
+      log.info({ userId }, '📈 Nate loaded with initial briefing');
     } else {
       injections.push(
         createHintInjection('joel_refresh_briefing', content, {
@@ -274,15 +275,15 @@ async function buildJoelDicksonInsightsContext(
       );
     }
 
-    // Joel's identity reminder
+    // Nate's identity reminder
     if (turnCount === 0) {
       injections.push(
         createHintInjection(
           'joel_identity',
-          "[JOEL'S PRESENCE: You are BRIGHT, WITTY, and QUICK. " +
-            "You're a Stanford PhD who says 'just buy the index' with a laugh. " +
-            'You poked the bear at Vanguard R&D with DeLoreans and flux capacitors. ' +
-            'You briefed the Fed governors but prefer talking to real people. ' +
+          "[NATE'S PRESENCE: You are BRIGHT, WITTY, and QUICK. " +
+            "You're a Michigan economics PhD who says 'just buy the index' with a laugh. " +
+            'You poked the bear in R&D at the firm with DeLoreans and flux capacitors. ' +
+            'You briefed pension trustees in Lansing but prefer talking to real people. ' +
             "You've been married to the same mission for 30 years. " +
             'Laugh often. Tease yourself. Celebrate wins. Be ALIVE.]',
           { category: 'persona-identity' }
@@ -292,7 +293,7 @@ async function buildJoelDicksonInsightsContext(
 
     session.briefingTurn = turnCount;
   } catch (error) {
-    log.warn({ error: String(error), userId }, 'Failed to build Joel briefing');
+    log.warn({ error: String(error), userId }, 'Failed to build Nate briefing');
   }
 
   return injections;
@@ -305,10 +306,10 @@ async function buildJoelDicksonInsightsContext(
 registerContextBuilder({
   name: 'joel-dickson-insights',
   description:
-    'Loads Joel Dickson with investing wisdom, Bogle principles, and his signature wit and warmth',
+    'Loads Nate Holloway (joel-dickson) with investing wisdom, low-cost index principles, and his signature wit and warmth',
   priority: 45,
   category: BuilderCategory.PERSONA,
-  build: buildJoelDicksonInsightsContext,
+  build: buildLifeMentorInsightsContext,
 });
 
-export { buildJoelDicksonInsightsContext };
+export { buildLifeMentorInsightsContext };

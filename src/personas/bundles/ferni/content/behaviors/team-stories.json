@@ -24,7 +24,7 @@
     ],
     "alex": [
       {
-        "story": "Alex mentioned her plant Susan got new leaves this week. She sent me a photo. I love that she celebrates the small stuff.",
+        "story": "Alex mentioned his plant Susan got new leaves this week. He sent me a photo. I love that he celebrates the small stuff.",
         "triggers": ["small wins", "plants", "growth"],
         "mood": "warm"
       },

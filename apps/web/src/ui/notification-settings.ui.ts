@@ -20,6 +20,7 @@ import { createLogger } from '../utils/logger.js';
 import { asModalDialog } from '../utils/accessibility.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
+import { getUserTimezone } from '../services/timezone.service.js';
 
 const log = createLogger('NotifySettings');
 const TIME_FORMAT: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
@@ -89,6 +90,7 @@ class NotificationSettingsUI {
   private currentTab: 'settings' | 'upcoming' = 'settings';
   private upcomingItems: ScheduledOutreach[] = [];
   private isLoadingUpcoming = false;
+  private quietHoursEdited = false;
 
   initialize(): void {
     if (this.panel) return;
@@ -128,6 +130,45 @@ class NotificationSettingsUI {
 
     // Pre-load upcoming data in background
     void this.loadUpcomingData();
+    this.quietHoursEdited = false;
+    void this.loadServerQuietHours();
+  }
+
+  /**
+   * Quiet hours live on the server too: texts, calls and check-ins are sent
+   * from there, so the saved window is what the user set, not this browser's copy.
+   */
+  private async loadServerQuietHours(): Promise<void> {
+    try {
+      const response = await apiGet<{
+        success?: boolean;
+        preferences?: { quietHoursStart?: string; quietHoursEnd?: string };
+      }>('/api/user/preferences');
+      const prefs = response.ok && response.data?.success ? response.data.preferences : undefined;
+      if (!prefs?.quietHoursStart || !prefs.quietHoursEnd || !this.localPrefs) return;
+      if (this.quietHoursEdited) return; // don't overwrite what the user is typing
+      this.localPrefs.quietHoursStart = prefs.quietHoursStart;
+      this.localPrefs.quietHoursEnd = prefs.quietHoursEnd;
+      const start = this.panel?.querySelector<HTMLInputElement>('#quiet-start');
+      const end = this.panel?.querySelector<HTMLInputElement>('#quiet-end');
+      if (start) start.value = prefs.quietHoursStart;
+      if (end) end.value = prefs.quietHoursEnd;
+    } catch (error) {
+      log.warn({ error }, 'Failed to load quiet hours from server');
+    }
+  }
+
+  private async saveServerQuietHours(start: string, end: string): Promise<void> {
+    try {
+      const response = await apiPost('/api/user/preferences', {
+        timezone: getUserTimezone(),
+        quietHoursStart: start,
+        quietHoursEnd: end,
+      });
+      if (!response.ok) log.warn({ error: response.error }, 'Failed to save quiet hours to server');
+    } catch (error) {
+      log.warn({ error }, 'Failed to save quiet hours to server');
+    }
   }
 
   hide(): void {
@@ -364,8 +405,8 @@ class NotificationSettingsUI {
         </div>
       </div>
 
-      <!-- Quiet Hours: Guardian Respects Boundaries -->
-      <div class="notif-settings__group" data-requires="enabled">
+      <!-- Quiet Hours: Guardian Respects Boundaries (texts and calls too, so not tied to push) -->
+      <div class="notif-settings__group">
         <div class="notif-settings__section-header">
           <h3>${t('notificationSettings.quietHours')}</h3>
         </div>
@@ -768,6 +809,7 @@ class NotificationSettingsUI {
       (this.localPrefs as unknown as Record<string, unknown>)[pref] = input.checked;
     } else {
       (this.localPrefs as unknown as Record<string, unknown>)[pref] = input.value;
+      if (pref === 'quietHoursStart' || pref === 'quietHoursEnd') this.quietHoursEdited = true;
     }
 
     // Update dependent sections if main toggle changed
@@ -904,6 +946,12 @@ class NotificationSettingsUI {
     // Enabling subscribes this browser on the server; disabling removes it.
     void applyPushPreference(this.localPrefs.enabled);
 
+    // Texts, calls and check-ins are sent by the server, in the user's own time zone.
+    void this.saveServerQuietHours(
+      this.localPrefs.quietHoursStart || '22:00',
+      this.localPrefs.quietHoursEnd || '08:00'
+    );
+
     // Save outreach preferences
     if (this.outreachPrefs) {
       void outreachService.updatePreferences(this.outreachPrefs);
@@ -923,7 +971,7 @@ class NotificationSettingsUI {
       .notif-settings {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1911,7 +1959,7 @@ class NotificationSettingsUI {
       .notif-settings__dialog-overlay {
         position: fixed;
         inset: 0;
-        z-index: calc(var(--z-modal, 1400) + 10);
+        z-index: calc(var(--z-modal) + 10);
         display: flex;
         align-items: center;
         justify-content: center;

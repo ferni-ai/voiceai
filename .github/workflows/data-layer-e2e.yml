@@ -36,10 +36,18 @@ on:
       - 'firebase.json'
   workflow_dispatch:
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   firestore-e2e:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Firestore Emulator E2E
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
@@ -87,7 +95,7 @@ jobs:
 
       - name: Run Seed Ledger Tests
         run: |
-          pnpm vitest run src/services/seeds/__tests__/ src/api/__tests__/seeds-routes-ledger.emulator.test.ts src/api/__tests__/seeds-purchase.emulator.test.ts src/api/__tests__/roadmap-seeds.emulator.test.ts --reporter=verbose
+          pnpm vitest run src/services/seeds/__tests__/ src/api/__tests__/seeds-routes-ledger.emulator.test.ts src/api/__tests__/seeds-purchase.emulator.test.ts src/api/__tests__/seeds-import.emulator.test.ts src/api/__tests__/roadmap-seeds.emulator.test.ts --reporter=verbose
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
@@ -124,8 +132,9 @@ jobs:
   # firestore-e2e job sets SKIP_EMBEDDING, which would make create/resolve
   # paths here meaningless.
   entity-resolver-emulator:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Entity Resolver Emulator
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
@@ -180,8 +189,9 @@ jobs:
 
   # Quick unit tests (no emulator required)
   unit-tests:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Data Layer Unit Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
