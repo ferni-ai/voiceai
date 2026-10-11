@@ -4,7 +4,17 @@
  * call path depended on domain load order. Telephony now owns the id: the
  * real call path behind TOOLS_REAL_CALL_USER=on, the honest stub otherwise.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const outreach = vi.hoisted(() => ({
+  userReach: vi.fn(),
+  scheduleProactiveCall: vi.fn(),
+}));
+vi.mock('../../../../services/outreach/user-reach.js', () => ({ userReach: outreach.userReach }));
+vi.mock('../../../../services/outreach/conversational-calls.js', () => ({
+  scheduleProactiveCall: outreach.scheduleProactiveCall,
+}));
+
 import { getToolDefinitions as getProactiveDefinitions } from '../../proactive/index.js';
 import { getTelephonyToolDefinitions } from '../index.js';
 import { CANT_CALL_NOW } from '../telephony.js';
@@ -19,13 +29,14 @@ function callUserFrom(definitions: ToolDefinition[]): ToolDefinition[] {
   return definitions.filter((d) => d.id === 'callUser');
 }
 
-async function runCallUser(definition: ToolDefinition): Promise<string> {
-  const tool = definition.create(ctx) as unknown as Executable;
+async function runCallUser(definition: ToolDefinition, as: ToolContext = ctx): Promise<string> {
+  const tool = definition.create(as) as unknown as Executable;
   return tool.execute({ reason: 'check in', message: 'hi' }, opts);
 }
 
 const original = process.env.TOOLS_REAL_CALL_USER;
 afterEach(() => {
+  vi.clearAllMocks();
   if (original === undefined) delete process.env.TOOLS_REAL_CALL_USER;
   else process.env.TOOLS_REAL_CALL_USER = original;
 });
@@ -55,5 +66,31 @@ describe('callUser has one definition', () => {
     const result = await runCallUser(def);
     expect(result).not.toBe(CANT_CALL_NOW);
     expect(result).toBe("I'd need to know who you are to call you.");
+  });
+
+  describe('flag on: who gets called', () => {
+    const user = { ...ctx, userId: 'u1' } as ToolContext;
+
+    it('without a verified phone, no call is placed and it says so', async () => {
+      process.env.TOOLS_REAL_CALL_USER = 'on';
+      outreach.userReach.mockResolvedValue({ reason: 'no_verified_phone' });
+      const [def] = callUserFrom(getTelephonyToolDefinitions());
+      const reply = await runCallUser(def, user);
+      expect(outreach.userReach).toHaveBeenCalledWith('u1', 'voice_call', { standingOptIn: false });
+      expect(outreach.scheduleProactiveCall).not.toHaveBeenCalled();
+      expect(reply).toMatch(/no call is coming/);
+    });
+
+    it('rings only the verified phone, through the calling-hours path', async () => {
+      process.env.TOOLS_REAL_CALL_USER = 'on';
+      outreach.userReach.mockResolvedValue({ phone: '+15551230000' });
+      outreach.scheduleProactiveCall.mockResolvedValue({ success: true, status: 'scheduled' });
+      const [def] = callUserFrom(getTelephonyToolDefinitions());
+      const reply = await runCallUser(def, user);
+      expect(outreach.scheduleProactiveCall).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'u1', phoneNumber: '+15551230000', message: 'hi' })
+      );
+      expect(reply).toMatch(/outside your calling hours/);
+    });
   });
 });

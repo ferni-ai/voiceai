@@ -29,6 +29,8 @@ import {
 import { recordReminderPromise } from '../../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 import { sendEmail, sendSMS } from '../../../../services/communication-service.js';
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
+import { scheduleProactiveCall } from '../../../../services/outreach/conversational-calls.js';
+import { userReach } from '../../../../services/outreach/user-reach.js';
 import {
   getPersonaDisplayName,
   getCanonicalPersonaId,
@@ -394,6 +396,10 @@ Use when you need to reach them right now outside of the conversation.`,
 /**
  * Call the user. Registered by the telephony domain (behind
  * TOOLS_REAL_CALL_USER), not here, so there is one callUser.
+ *
+ * It only rings the verified phone on the account (userReach), never the
+ * model-written contactInfo.phone, and goes through scheduleProactiveCall so
+ * calling hours and quiet hours decide when it rings.
  */
 export const callUserDef: ToolDefinition = {
   id: 'callUser',
@@ -414,18 +420,28 @@ Use for important check-ins or when a phone call is more personal than text.`,
           return "I'd need to know who you are to call you.";
         }
 
-        const contactInfo = await getUserContactInfo(ctx.userId);
-        if (!contactInfo?.phone) {
-          return "I don't have a phone number for you. Share it first?";
+        // They asked for this call, so a verified phone is enough; no standing opt-in.
+        const reach = await userReach(ctx.userId, 'voice_call', { standingOptIn: false });
+        if (!reach.phone) {
+          return "I can't call you yet: there's no verified phone number on your account, so no call is coming.";
         }
 
-        const personaId = getCanonicalPersonaId(ctx.agentId || 'ferni');
-        const result = await makePhoneCall(contactInfo.phone, message, personaId);
+        const result = await scheduleProactiveCall({
+          userId: ctx.userId,
+          phoneNumber: reach.phone,
+          message,
+          ssml: message,
+          personaId: getCanonicalPersonaId(ctx.agentId || 'ferni'),
+          reason: 'user_requested_call',
+        });
 
-        if (result.success) {
-          return '📞 Calling you now...';
+        if (!result.success) {
+          return `I couldn't place the call, so no call is coming: ${result.error ?? 'unknown error'}`;
         }
-        return `I couldn't connect the call: ${result.error}`;
+        if (result.status === 'scheduled') {
+          return "It's outside your calling hours right now, so I'll call you once they open.";
+        }
+        return 'Calling you now.';
       },
     });
   },
