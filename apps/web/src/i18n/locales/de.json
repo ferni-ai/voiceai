@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "Wechsle zu {language}",
+    "seeYou": "Bis zum nächsten Mal!",
+    "callVoicemail": "Ich hab {name} auf die Mailbox gesprochen",
+    "callNoAnswer": "Ich hab {name} nicht erreicht. Soll ich's später noch mal versuchen?",
+    "callFailed": "Der Anruf bei {name} hat nicht geklappt",
+    "callBack": "{name} möchte, dass du zurückrufst",
+    "followUp": "{name} wartet auf deine Antwort"
+  },
   "accessibility": {
     "accountMenu": "Konto-Menü",
     "accountSettings": "Konto-Einstellungen",

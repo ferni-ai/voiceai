@@ -274,16 +274,11 @@ function checkStreakMilestones(): void {
       const reward = SEED_REWARDS[rewardKey];
 
       if (reward) {
+        // awardSeeds' ferni:seeds-earned (type 'streak', streak reason) is the one
+        // notice; a second ferni:streak-milestone here announced the same award twice.
         awardSeeds(reward);
         state.awardedMilestones.push(milestoneId);
         saveState();
-
-        // Dispatch streak celebration event
-        document.dispatchEvent(
-          new CustomEvent('ferni:streak-milestone', {
-            detail: { days, reward: reward.amount },
-          })
-        );
       }
     }
   }

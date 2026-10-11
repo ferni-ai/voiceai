@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "Switching to {language}",
+    "seeYou": "See you next time!",
+    "callVoicemail": "Left {name} a voicemail",
+    "callNoAnswer": "Couldn't reach {name}. Want me to try again later?",
+    "callFailed": "The call to {name} didn't go through",
+    "callBack": "{name} wants you to ring back",
+    "followUp": "{name} wants to hear back from you"
+  },
   "accessibility": {
     "accountMenu": "Account menu",
     "accountSettings": "Account settings",

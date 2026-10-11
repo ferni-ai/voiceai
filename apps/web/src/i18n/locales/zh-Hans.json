@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "正在切换到{language}",
+    "seeYou": "下次见！",
+    "callVoicemail": "已给{name}留了语音信息",
+    "callNoAnswer": "没联系上{name}。要我晚点再试吗？",
+    "callFailed": "没能拨通{name}的电话",
+    "callBack": "{name}希望你回个电话",
+    "followUp": "{name}在等你的消息"
+  },
   "accessibility": {
     "accountMenu": "账户菜单",
     "accountSettings": "账户设置",

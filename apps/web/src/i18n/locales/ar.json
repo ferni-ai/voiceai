@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "جارٍ التبديل إلى {language}",
+    "seeYou": "إلى اللقاء في المرة القادمة!",
+    "callVoicemail": "تركتُ رسالة صوتية لـ{name}",
+    "callNoAnswer": "لم أتمكن من الوصول إلى {name}. هل أحاول لاحقاً؟",
+    "callFailed": "لم تنجح المكالمة مع {name}",
+    "callBack": "{name} بانتظار اتصالكم",
+    "followUp": "{name} بانتظار ردّكم"
+  },
   "accessibility": {
     "accountMenu": "قائمة الحساب",
     "accountSettings": "إعدادات الحساب",

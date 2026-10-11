@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "{language}に切り替えます",
+    "seeYou": "またね！",
+    "callVoicemail": "{name}さんに留守電を残しました",
+    "callNoAnswer": "{name}さんにつながりませんでした。あとでかけ直しましょうか？",
+    "callFailed": "{name}さんへの発信がうまくいきませんでした",
+    "callBack": "{name}さんが折り返しの電話を待っています",
+    "followUp": "{name}さんが連絡を待っています"
+  },
   "accessibility": {
     "accountMenu": "アカウントメニュー",
     "accountSettings": "アカウント設定",
