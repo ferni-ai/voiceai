@@ -30,6 +30,8 @@ import {
 } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { showToast } from './overlay/toast-region.js';
 
 const log = createLogger('TrustSignals');
 
@@ -227,11 +229,37 @@ export function showTrustSignal(signal: Omit<TrustSignal, 'id' | 'timestamp'>): 
     return;
   }
 
+  if (isOverlayHostEnabled()) {
+    showSignalToast(fullSignal, signalKey);
+    log.info('Trust signal shown', { type: signal.type, title: signal.title });
+    return;
+  }
+
   // Add to queue
   signalQueue.push(fullSignal);
   processQueue();
 
   log.info('Trust signal shown', { type: signal.type, title: signal.title });
+}
+
+/**
+ * Overlay host on: the signal becomes a toast in the shared region. Phones
+ * still skip it (too intrusive on small screens, as the card's CSS decided),
+ * and closing it remembers the signal so it doesn't come back.
+ */
+function showSignalToast(signal: TrustSignal, signalKey: string): void {
+  if (window.matchMedia?.('(max-width: 768px)').matches) return;
+  showToast({
+    title: signal.title,
+    message: signal.message,
+    duration: config.autoHideAfter,
+    dismissible: true,
+    onDismiss: (reason) => {
+      if (reason !== 'user') return;
+      dismissedSignals.add(signalKey);
+      saveDismissedSignals();
+    },
+  });
 }
 
 /**
