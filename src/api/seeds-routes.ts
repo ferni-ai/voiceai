@@ -18,7 +18,12 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { getUserId, parseBody, sendJSON, sendError } from './helpers.js';
 import { removeUndefined } from '../utils/firestore-utils.js';
-import { awardDailyConversation, DAILY_SEEDS, dailyStatus } from '../services/seeds/earn.js';
+import {
+  awardDailyConversation,
+  DAILY_SEEDS,
+  dailyEarnsSeeds,
+  dailyStatus,
+} from '../services/seeds/earn.js';
 import {
   commitSeeds,
   ENTRIES_SUBCOLLECTION,
@@ -268,7 +273,7 @@ export async function handleSeedsRoutes(
         balance: userSeeds.balance,
         lifetimeEarned: userSeeds.lifetimeEarned,
         currentStreak: day.currentStreak,
-        dailyBonusAvailable: day.dailyBonusAvailable,
+        dailyBonusAvailable: day.dailyBonusAvailable && dailyEarnsSeeds(),
         referralCode: userSeeds.referralCode,
         referralUrl: `https://ferni.ai/grow/${userSeeds.referralCode}`,
         garden: {
@@ -313,7 +318,10 @@ export async function handleSeedsRoutes(
               amount: DAILY_SEEDS + (result.milestone?.seeds ?? 0),
               newBalance: result.daily.balance,
             }
-          : { claimed: false, reason: 'Already claimed today' }
+          : {
+              claimed: false,
+              reason: dailyEarnsSeeds() ? 'Already claimed today' : 'No daily seeds',
+            }
       );
       return true;
     }

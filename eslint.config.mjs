@@ -161,7 +161,12 @@ export default [
       '@typescript-eslint/await-thenable': 'error',
       '@typescript-eslint/require-await': 'warn',
       '@typescript-eslint/promise-function-async': 'warn',
-      
+
+      // The agent runs as plain Node ESM, where a bare require() throws ReferenceError
+      // (guarded by src/utils/__tests__/no-bare-require.test.ts). Use import,
+      // await import(), or createRequire for CJS-only JSON or packages.
+      '@typescript-eslint/no-require-imports': 'error',
+
       // Type assertion safety (warn instead of error for flexibility)
       '@typescript-eslint/consistent-type-assertions': ['warn', {
         assertionStyle: 'as',

@@ -1,7 +1,7 @@
 /**
- * Joel Dickson Insights - Session State Management
+ * Nate Holloway (joel-dickson) Insights - Session State Management
  *
- * Manages per-session state for Joel's life-mentorship conversations.
+ * Manages per-session state for Nate's life-mentorship conversations.
  *
  * @module intelligence/context-builders/personas/joel-dickson-insights/session
  */

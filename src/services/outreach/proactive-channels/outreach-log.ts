@@ -32,6 +32,8 @@ export interface OutreachLogEntry {
   at: string;
   outcome: OutreachOutcome;
   outcomeAt?: string;
+  /** The channel the policy chose when delivery fell back from it (a text that failed). */
+  fallbackFrom?: ProactiveChannel;
 }
 
 function logOf(userId: string): FirebaseFirestore.CollectionReference {
@@ -51,4 +53,10 @@ export async function alreadySent(userId: string, sourceId: string): Promise<boo
 
 export async function writeOutreachLog(userId: string, entry: OutreachLogEntry): Promise<void> {
   await logOf(userId).doc(logId(entry.sourceId)).set(entry);
+}
+
+/** Their log since `since` (ISO), for the daily caps and back-off. */
+export async function recentOutreach(userId: string, since: Date): Promise<OutreachLogEntry[]> {
+  const snap = await logOf(userId).where('at', '>=', since.toISOString()).get();
+  return snap.docs.map((d) => d.data() as OutreachLogEntry);
 }
