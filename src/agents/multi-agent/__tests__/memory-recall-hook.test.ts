@@ -160,6 +160,7 @@ describe('createMemoryRecall', () => {
       facts: async () => [
         { entityName: 'Joan', key: 'sister of speaker', value: "The speaker's sister is named Joan", confidence: 0.9 },
         { entityName: 'Walt', key: 'spouse of', value: 'User', confidence: 0.9 },
+        { entityName: 'Walt', key: 'pet owned', value: 'Pepper (cat)', confidence: 0.9 },
       ],
       summaries: async () => [{ followUpItems: ["Ask how Joan's Thanksgiving visit went"] }],
     };
@@ -167,6 +168,7 @@ describe('createMemoryRecall', () => {
     await on.ready;
     const first = on.noteFor("What's my daughter's name?");
     expect(first).toContain('People in their life: Joan (sister), Walt (spouse).');
+    expect(first).toContain("Animals: Pepper (Walt's cat).");
     expect(first).toMatch(/never guess how someone is related/i);
     expect(on.noteFor('And how is Walt?')).not.toContain('People in their life'); // once a call
 
