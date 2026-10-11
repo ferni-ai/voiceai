@@ -112,8 +112,8 @@ describe('deliverPick', () => {
     vi.setSystemTime(new Date(Date.now() + 3 * DAY + 1000));
     const due = (await processCommitments('user-1', 'hey')).followUpsDue;
     expect(due).toHaveLength(1);
-    // The title carried an instruction, so none of it comes back in a later prompt.
-    expect(due[0].content).toBe('try the video Ferni sent');
+    // The title's planted line is dropped; only the plain title comes back later.
+    expect(due[0].content).toBe("try the video 'Shin Splint Rehab'");
     expect(due[0].content).not.toMatch(/ignore previous instructions/i);
     expect(asksAbout(`You were going to ${due[0].content}. Did it help?`, due[0].content)).toBe(
       true
