@@ -9,6 +9,7 @@
  * channel it can't arrive after handoff_complete and bring the indicator back.
  */
 import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
+import { getCanonicalPersonaId, isKnownPersona } from '../../personas/voice-registry.js';
 
 export function handoffStartMessages(
   target: string,
@@ -53,12 +54,40 @@ export function handoffFailedMessage(
   return {
     message: {
       type: 'handoff_failed',
-      target,
+      // The tap's target came from the browser: send back only an id we know
+      target: knownHandoffTarget(target) ?? 'unknown',
       error: refusal.error,
       ...(decline ? { userMessage: decline } : {}),
       rollbackTo,
       timestamp: Date.now(),
     },
     ...(decline ? { say: decline } : {}),
+  };
+}
+
+/**
+ * The canonical persona id a tap's target names, or null. The target is whatever the
+ * browser sent: nothing of it goes into a reply, a spoken line or a UI message unless
+ * it maps to a persona we know.
+ */
+export function knownHandoffTarget(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !isKnownPersona(raw.trim())) return null;
+  return getCanonicalPersonaId(raw.trim());
+}
+
+/** Shown (never said) when a tap names no persona we know; fixed words, nothing echoed. */
+export const UNKNOWN_TARGET_MESSAGE = "Couldn't tell who that was. Try tapping them again?";
+
+/** The handoff_failed for a tap whose target is no persona we know. */
+export function unknownTargetFailedMessage(
+  rollbackTo: string | null | undefined
+): Record<string, unknown> {
+  return {
+    type: 'handoff_failed',
+    target: 'unknown',
+    error: 'Unknown persona',
+    userMessage: UNKNOWN_TARGET_MESSAGE,
+    rollbackTo,
+    timestamp: Date.now(),
   };
 }

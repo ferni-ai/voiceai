@@ -220,8 +220,11 @@ export async function handleHandoffFromDataChannel(
   let unlock = check(services.userProfile ?? null);
   // Refused with no profile yet: it may still be loading, so wait for it once and decide again
   if (!unlock.open && !services.userProfile) unlock = check(await profileWhenLoaded(services));
-  // Not unlocked: the error is the warm decline the caller should hear and see (declined)
-  if (!unlock.open) return { success: false, error: unlock.error, declined: true };
+  // Locked: the error is a warm decline from persona data, for the caller to hear and see.
+  // Anything else (an id that maps to no persona) stays technical: never said or shown.
+  if (!unlock.open) {
+    return { success: false, error: unlock.error, ...(unlock.locked ? { declined: true } : {}) };
+  }
   // From here on, only the id the check decided on: never the raw one from the browser
   const target = unlock.target;
   const currentPersona = orchestrator.getCurrentPersonaId();

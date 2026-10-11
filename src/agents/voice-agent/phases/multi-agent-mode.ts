@@ -173,9 +173,12 @@ export async function runMultiAgentMode(
     const { roundtableAgentsForCall } =
       await import('../../group-conversation/session-roundtable-agents.js');
     const { handoffEvents } = await import('../../../handoff/index.js');
-    const { handoffFailedMessage, handoffStartMessages } = await import(
-      '../../multi-agent/handoff-messages.js'
-    );
+    const {
+      handoffFailedMessage,
+      handoffStartMessages,
+      knownHandoffTarget,
+      unknownTargetFailedMessage,
+    } = await import('../../multi-agent/handoff-messages.js');
     const { offerAgent, withdrawAgent } = await import('../../../tools/handoff/ready-agents.js');
 
     // Initialize multi-agent session
@@ -278,28 +281,35 @@ export async function runMultiAgentMode(
 
               const currentPersonaId = multiAgentResult.orchestrator.getCurrentPersonaId();
 
+              // The browser's target goes no further unless it is a persona we know
+              const target = knownHandoffTarget(message.target);
+              if (!target) {
+                await publishDataMessage(ctx.room, unknownTargetFailedMessage(currentPersonaId));
+                return;
+              }
+
               // Send handoff_acknowledged
               await publishDataMessage(ctx.room, {
                 type: 'handoff_acknowledged',
-                target: message.target,
+                target,
                 success: true,
                 timestamp: Date.now(),
               });
 
-              for (const m of handoffStartMessages(message.target!, currentPersonaId)) {
+              for (const m of handoffStartMessages(target, currentPersonaId)) {
                 await publishDataMessage(ctx.room, m);
               }
 
               const result = await handleHandoffFromDataChannel(
                 multiAgentResult.orchestrator,
-                message.target!,
-                message.reason || 'User requested via UI',
+                target,
+                'User requested via UI',
                 services
               );
 
               if (!result.success) {
                 process.stderr.write(`[multi-agent-mode] 🎭 Handoff failed: ${result.error}\n`);
-                const failed = handoffFailedMessage(message.target!, result, currentPersonaId);
+                const failed = handoffFailedMessage(target, result, currentPersonaId);
                 await publishDataMessage(ctx.room, failed.message);
                 // A locked teammate: the agent on the call says the decline out loud too
                 if (failed.say) multiAgentResult.orchestrator.getActiveAgent()?.say(failed.say);
