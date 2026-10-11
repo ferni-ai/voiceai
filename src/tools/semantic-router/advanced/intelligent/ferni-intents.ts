@@ -13,7 +13,7 @@
  * @module semantic-router/advanced/intelligent/ferni-intents
  */
 
-import type { Intent } from './intent-classifier.js';
+import { getIntentClassifier, type Intent } from './intent-classifier.js';
 
 // ============================================================================
 // PERSONA HANDOFFS
@@ -826,7 +826,6 @@ export function getIntentsForPersona(personaId: string): Intent[] {
  * Initialize the intent classifier with Ferni intents
  */
 export function registerFerniIntents(): void {
-  const { getIntentClassifier } = require('./intent-classifier.js');
   const classifier = getIntentClassifier();
   classifier.registerIntents(FERNI_INTENTS);
 }

@@ -114,7 +114,7 @@ function injectStyles(): void {
 
     .connection-quality {
       position: fixed;
-      z-index: var(--z-notification, 3000);
+      z-index: var(--z-notification);
       display: flex;
       align-items: center;
       gap: var(--space-2, 8px);
