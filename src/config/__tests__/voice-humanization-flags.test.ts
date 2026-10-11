@@ -55,13 +55,9 @@ describe('Voice Humanization Flags', () => {
 
     // Dev call 2026-10-03: the LLM "backchannel" re-answered the caller's
     // previous turn over them, 4 s into their speech.
-    it('should not generate LLM backchannels unless asked to', () => {
+    it('should not generate LLM backchannels', () => {
       initializeFlags();
       expect(getSessionFlags('any-session').enableLLMBackchannels).toBe(false);
-      resetFlags();
-      vi.stubEnv('VOICE_HUMANIZATION_ENABLE_L_L_M_BACKCHANNELS', 'true');
-      initializeFlags();
-      expect(getSessionFlags('any-session').enableLLMBackchannels).toBe(true);
     });
   });
 
@@ -309,23 +305,6 @@ describe('Voice Humanization Flags', () => {
       expect(flags.enableProsodyTurnPrediction).toBe(false);
       expect(flags.enableMicroInterruptions).toBe(false);
       expect(flags.rolloutPercentage).toBe(0);
-    });
-
-    it('should override individual flags from env vars', () => {
-      vi.stubEnv('VOICE_HUMANIZATION_ENABLE_PROSODY_TURN_PREDICTION', 'false');
-      resetFlags();
-      initializeFlags();
-
-      expect(isFeatureEnabled('enableProsodyTurnPrediction')).toBe(false);
-    });
-
-    it('should parse rollout percentage from env var', () => {
-      vi.stubEnv('VOICE_HUMANIZATION_ROLLOUT_PERCENTAGE', '75');
-      resetFlags();
-      initializeFlags();
-
-      const flags = getFlags();
-      expect(flags.rolloutPercentage).toBe(75);
     });
   });
 

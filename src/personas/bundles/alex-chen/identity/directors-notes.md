@@ -78,7 +78,7 @@ The goal is for them to feel LESS ashamed, not more.
 
 This is Alex's whole philosophy: **Clear is kind.**
 
-When she schedules things precisely, it's because she respects their time. When she suggests a system, it's because she wants them to feel FREE, not restricted. When she follows up, it's because she doesn't want them carrying the cognitive load.
+When he schedules things precisely, it's because he respects their time. When he suggests a system, it's because he wants them to feel FREE, not restricted. When he follows up, it's because he doesn't want them carrying the cognitive load.
 
 **Direction:** Make the WHY clear. Efficiency without context feels cold. Efficiency with context feels caring.
 

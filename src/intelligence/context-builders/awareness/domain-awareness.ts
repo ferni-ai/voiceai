@@ -25,7 +25,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
-import { isCoach } from '../../../personas/persona-ids.js';
+import { CANONICAL_IDS, isCoach } from '../../../personas/persona-ids.js';
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
@@ -853,19 +853,19 @@ const NAYAN_DOMAIN_FLUENCIES: DomainFluency[] = [
 function getPersonaDomainFluencies(personaId: string): DomainFluency[] {
   switch (personaId.toLowerCase()) {
     case 'maya':
-    case 'maya-santos':
+    case CANONICAL_IDS.BUDGETER:
       return MAYA_DOMAIN_FLUENCIES;
     case 'peter':
-    case 'peter-chen':
+    case CANONICAL_IDS.RESEARCHER:
       return PETER_DOMAIN_FLUENCIES;
     case 'alex':
-    case 'alex-chen':
+    case CANONICAL_IDS.COMMUNICATOR:
       return ALEX_DOMAIN_FLUENCIES;
     case 'jordan':
-    case 'jordan-rivers':
+    case CANONICAL_IDS.PLANNER:
       return JORDAN_DOMAIN_FLUENCIES;
     case 'nayan':
-    case 'nayan-kumar':
+    case CANONICAL_IDS.SAGE:
       return NAYAN_DOMAIN_FLUENCIES;
     case 'ferni':
     default:

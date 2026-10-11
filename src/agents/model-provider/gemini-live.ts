@@ -46,7 +46,7 @@ interface GeminiFunctionDeclaration {
 
 import { REALTIME_MODEL } from '../../config/gemini-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { isFTISEnabled } from '../processors/tool-routing-integration.js';
+import { isFtisEnabled } from '../../config/tool-config.js';
 import {
   getGeminiFCConfig,
   isNativeFCEnabled,
@@ -83,7 +83,7 @@ const GEMINI_TOKEN_LIMIT = 30000;
  */
 function getGeminiFCMode(): GeminiFCMode {
   // FTIS mode disables all Gemini native tool knowledge
-  if (isFTISEnabled()) {
+  if (isFtisEnabled()) {
     return 'NONE';
   }
 
@@ -101,7 +101,7 @@ function getGeminiFCMode(): GeminiFCMode {
  * When true, Gemini has NO tool knowledge - FTIS handles everything.
  */
 function isFTISOnlyMode(): boolean {
-  return isFTISEnabled();
+  return isFtisEnabled();
 }
 
 // ============================================================================

@@ -63,7 +63,13 @@ export interface LLMCallOptions {
   maxTokens?: number;
   temperature?: number;
   timeout?: number;
+  /** Retry a Vertex 429 three times (0.5s, 1s, 2s). Default: LLM_RETRY_429=on. */
+  retry429?: boolean;
 }
+
+const is429 = (error: unknown): boolean => /429|RESOURCE_EXHAUSTED/.test(String(error));
+const retries429 = (o: LLMCallOptions): number =>
+  (o.retry429 ?? process.env.LLM_RETRY_429 === 'on') ? 3 : 0;
 
 // ============================================================================
 // VERTEX AI (Primary) - Enterprise tier with higher quotas
@@ -120,7 +126,11 @@ async function initializeVertexAIClient(): Promise<VertexAIClient | null> {
  * Call Vertex AI (Gemini) for supplementary analysis
  * Uses enterprise tier with much higher quotas than consumer API
  */
-async function callVertexAI(prompt: string, options: LLMCallOptions = {}): Promise<string | null> {
+async function callVertexAI(
+  prompt: string,
+  options: LLMCallOptions = {},
+  attempt = 0
+): Promise<string | null> {
   // Check circuit breaker first
   if (!vertexAICircuitBreaker.canRequest()) {
     getLogger().warn('Vertex AI circuit breaker is open, skipping request');
@@ -151,7 +161,13 @@ async function callVertexAI(prompt: string, options: LLMCallOptions = {}): Promi
         // NOTE: Do NOT use getDefaultModel() as it may return a realtime-only model
         // that doesn't work with generateContent API
         const name = getExtractionModel();
-        return vertexText(client.getGenerativeModel({ model: name }), name, prompt, maxTokens, temperature);
+        return vertexText(
+          client.getGenerativeModel({ model: name }),
+          name,
+          prompt,
+          maxTokens,
+          temperature
+        );
       });
 
       clearTimeout(timeoutId);
@@ -169,6 +185,14 @@ async function callVertexAI(prompt: string, options: LLMCallOptions = {}): Promi
       throw error;
     }
   } catch (error) {
+    if (is429(error) && attempt < retries429(options)) {
+      const delayMs = 500 * 2 ** attempt;
+      getLogger().debug({ attempt: attempt + 1, delayMs }, 'Vertex AI 429, retrying with backoff');
+      await new Promise((resolve) => {
+        setTimeout(resolve, delayMs);
+      });
+      return callVertexAI(prompt, options, attempt + 1);
+    }
     getLogger().warn({ error: String(error) }, 'Vertex AI call failed');
     return null;
   }
@@ -451,48 +475,9 @@ export function createSummarizationLLMCaller(): (prompt: string) => Promise<stri
   };
 }
 
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-
-let initialized = false;
-
-/**
- * Initialize LLM utilities
- * Checks for available clients and initializes them
- */
-export async function initializeLLMUtils(): Promise<{
-  vertexAI: boolean;
-  openAI: boolean;
-}> {
-  if (initialized) {
-    return {
-      vertexAI: vertexAIClient !== null,
-      openAI: openAIClient !== null,
-    };
-  }
-
-  const vertexAI = (await getVertexAIClient()) !== null;
-  const openAI = (await getOpenAIClient()) !== null;
-
-  initialized = true;
-
-  getLogger().info(
-    {
-      vertexAI,
-      openAI,
-      anyAvailable: vertexAI || openAI,
-    },
-    'LLM utilities initialized (using Vertex AI enterprise tier)'
-  );
-
-  return { vertexAI, openAI };
-}
-
 export default {
   callLLM,
   callLLMForJSON,
   createEmotionLLMCaller,
   createSummarizationLLMCaller,
-  initializeLLMUtils,
 };

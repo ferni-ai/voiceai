@@ -188,7 +188,7 @@ class StreakCelebrationsUI {
       width: 100vw;
       height: 100vh;
       pointer-events: none;
-      z-index: var(--z-celebration, 9999);
+      z-index: var(--z-celebration);
     `;
     document.body.appendChild(this.canvas);
 
