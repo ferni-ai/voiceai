@@ -178,21 +178,25 @@ function trackedEmbedder() {
   return { embed, settled, queryMs, failures: () => failures };
 }
 
-/** A local model through Ollama, for a judge of another family. Yes/no only, so no thinking. */
+/**
+ * A local model through Ollama, for a judge of another family. Qwen3 ignores
+ * think:false and reasons in its answer, so it thinks in the separate
+ * thinking field and only the answer is read.
+ */
 async function askLocal(model: string, prompt: string): Promise<string> {
-  const res = await fetch('http://127.0.0.1:11434/api/generate', {
+  const res = await fetch('http://127.0.0.1:11434/api/chat', {
     method: 'POST',
     body: JSON.stringify({
       model,
-      prompt,
+      messages: [{ role: 'user', content: prompt }],
       stream: false,
-      think: false,
-      options: { temperature: 0, num_predict: 16 },
+      think: true,
+      options: { temperature: 0, num_predict: 2000 },
     }),
   });
   if (!res.ok) throw new Error(`ollama ${model}: HTTP ${res.status}`);
-  const body = (await res.json()) as { response?: string };
-  return (body.response ?? '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+  const body = (await res.json()) as { message?: { content?: string } };
+  return (body.message?.content ?? '').trim();
 }
 
 async function ask(prompt: string, temperature: number): Promise<string> {
