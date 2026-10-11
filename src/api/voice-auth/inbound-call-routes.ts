@@ -32,7 +32,7 @@ const log = getLogger().child({ module: 'InboundCallRoutes' });
 // ============================================================================
 
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
-const SIP_TRUNK_ID = process.env.SIP_TRUNK_ID || '';
+// SIP_TRUNK_ID is the outbound trunk (calls Ferni places); only the inbound trunk decides inbound routing.
 const SIP_INBOUND_TRUNK_ID = process.env.SIP_INBOUND_TRUNK_ID || '';
 const FERNI_PHONE_NUMBER = process.env.FERNI_PHONE_NUMBER || process.env.TWILIO_PHONE_NUMBER || '';
 
@@ -317,7 +317,7 @@ function generateInboundTwiml(options: InboundTwimlOptions): string {
   const contextHeader = Buffer.from(JSON.stringify(context)).toString('base64');
 
   // Check if LiveKit SIP is configured
-  if (LIVEKIT_URL && (SIP_TRUNK_ID || SIP_INBOUND_TRUNK_ID)) {
+  if (LIVEKIT_URL && SIP_INBOUND_TRUNK_ID) {
     // Extract LiveKit hostname for SIP URI
     const livekitHost = new URL(LIVEKIT_URL).hostname;
 

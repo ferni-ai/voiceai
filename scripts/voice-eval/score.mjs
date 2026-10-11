@@ -12,7 +12,10 @@
 //   backchannels ("mm-hm"); long ones are interruptions.
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { compareToTargets, computeHumanness } from './humanness.mjs';
+import { checksFor } from './transcript-checks.mjs';
 
 const STOCK_OPENER = /^(?:oh+|ugh+|ha(?:ha)*|hah|yeah|yep|hmm+|mm+|ah+|aw+|wow|whoa)\b/i;
 const BACKCHANNEL_MAX_MS = 1500;
@@ -55,10 +58,22 @@ const overlaps = []; // caller talking over the agent (converse.mjs @backchannel
 const users = new Set();
 
 const runs = [];
+// How well the agent heard the scripted caller, and whether it heard itself.
+const stt = { edits: 0, refWords: 0 };
+const echo = { phantomCallerCaptions: 0, selfInterruptions: 0, phantoms: [] };
+const scenarioDir = join(dirname(fileURLToPath(import.meta.url)), 'scenarios');
 for (const file of process.argv.slice(2)) {
   const run = JSON.parse(readFileSync(file, 'utf8'));
   runs.push(run);
   if (run.meta?.uid) users.add(run.meta.uid);
+  const checks = checksFor(run, scenarioDir);
+  if (checks) {
+    stt.edits += checks.stt.edits;
+    stt.refWords += checks.stt.refWords;
+    echo.phantomCallerCaptions += checks.echo.phantomCallerCaptions;
+    echo.selfInterruptions += checks.echo.selfInterruptions;
+    echo.phantoms.push(...checks.echo.phantoms);
+  }
   for (const r of run.results) if (typeof r.replyDelayMs === 'number') delays.push(r.replyDelayMs);
   for (const r of run.results) if (r.mode) overlaps.push(r);
 
@@ -172,6 +187,29 @@ const score = {
   repeatedPhrases: repeatedPhrases.slice(0, 10),
   greetingUtterances,
   greeting,
+  // Word error rate of the agent's captions of the caller against the script.
+  stt: { ...stt, wer: stt.refWords ? round(stt.edits / stt.refWords, 3) : null },
+  echo,
+  // Phone runs (run.sh phone): background clips heard over the phone line.
+  backgroundReach: runs.some((r) => r.agentRoom?.backgroundReach)
+    ? runs.reduce(
+        (acc, r) => ({
+          clips: acc.clips + (r.agentRoom?.backgroundReach?.clips ?? 0),
+          reached: acc.reached + (r.agentRoom?.backgroundReach?.reached ?? 0),
+        }),
+        { clips: 0, reached: 0 }
+      )
+    : null,
+  // Phone runs: each heard gap split into uplink, agent, downlink (phone-merge.mjs).
+  phoneLegsMs: (() => {
+    const turns = runs.flatMap((r) => r.agentRoom?.turns ?? []).filter((t) => t.agentMs !== undefined);
+    if (!turns.length) return null;
+    const leg = (k) => {
+      const xs = turns.map((t) => t[k]).filter((x) => typeof x === 'number');
+      return { p50: pct(xs, 50), p90: pct(xs, 90) };
+    };
+    return { n: turns.length, uplink: leg('uplinkMs'), agent: leg('agentMs'), agentVoice: leg('agentVoiceMs'), downlink: leg('downlinkMs') };
+  })(),
   // Turn shape and stance against human conversation (humanness.mjs). Targets:
   // HUMAN_TARGETS, or the research file when present.
   humanness: computeHumanness(runs),
