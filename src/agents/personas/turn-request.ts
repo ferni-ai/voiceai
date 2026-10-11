@@ -89,6 +89,8 @@ export function withTurnReminder(
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     notes,
+    // LISTEN_FIRST=on: "drop it" notes and his repeated topics, as rules (director-limits.ts).
+    director?.limits() ?? '',
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',

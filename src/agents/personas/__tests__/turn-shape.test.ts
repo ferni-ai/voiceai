@@ -160,6 +160,7 @@ describe('withTurnReminder seeding and order', () => {
     setDirector(session, {
       current: () => ['Drop the trivia; it makes the call feel like a lecture.'],
       told: () => 'You already told them about Wyoming.',
+      limits: () => '',
     } as unknown as Director);
     const text = last(withTurnReminder(ctx('My cat did it again.'), session));
     setDirector(session, null);

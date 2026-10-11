@@ -24,6 +24,12 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
 import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
+import {
+  directorLimitsEnabled,
+  formatLimits,
+  repeatedOwnTopics,
+  ReplyLimits,
+} from './director-limits.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
 
@@ -152,6 +158,9 @@ export class Director {
   private notes: string[] = [];
   private toldRecord: Told | null = null;
   private generation = 0;
+  /** LISTEN_FIRST=on: "drop it" notes kept for a few replies, and his repeated topics (director-limits.ts). */
+  private readonly replyLimits = new ReplyLimits();
+  private ownTopics: string[] = [];
 
   constructor(
     private readonly opts: {
@@ -169,6 +178,7 @@ export class Director {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
     this.toldRecord = toldThisCallEnabled() ? toldThisCall(lines, this.opts.userName) : null;
+    this.ownTopics = directorLimitsEnabled() ? repeatedOwnTopics(lines, this.opts.userName) : [];
     if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
     const started = Date.now();
@@ -191,6 +201,7 @@ export class Director {
           return;
         }
         this.notes = parseNotes(reply, lines.slice(-12));
+        if (directorLimitsEnabled()) this.replyLimits.add(this.notes, gen);
         log.info(
           { sessionId: this.opts.sessionId, ms: Date.now() - started, notes: this.notes },
           'DIRECTOR_NOTES'
@@ -210,6 +221,12 @@ export class Director {
    */
   current(): string[] {
     return this.notes;
+  }
+
+  /** LISTEN_FIRST=on: the limits the next reply must keep, as its note, or ''. */
+  limits(): string {
+    if (!directorLimitsEnabled()) return '';
+    return formatLimits(this.replyLimits.active(this.generation), this.ownTopics);
   }
 
   /**
