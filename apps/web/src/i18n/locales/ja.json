@@ -11073,5 +11073,17 @@
     "youSpeaking": "あなたが話しています",
     "ferniThinking": "Ferniが考えています",
     "tapToInterrupt": "タップして割り込む"
+  },
+  "venmoChipIn": {
+    "eyebrow": "応援する",
+    "title": "1ドルで、会話が続きます",
+    "body": "Ferniは今のところ無料です。話して役に立ったら、Venmoで1ドル送れます。それ以上も歓迎ですが、求めてはいません。",
+    "qrAlt": "@{handle} のVenmo QRコード",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "openVenmo": "Venmoを開く",
+    "helper": "スマホのカメラで読み取るか、「Venmoを開く」をタップしてください。金額は変更できます。",
+    "maybeLater": "また今度",
+    "close": "閉じる"
   }
 }

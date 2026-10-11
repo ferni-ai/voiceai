@@ -11073,5 +11073,17 @@
     "youSpeaking": "你正在说话",
     "ferniThinking": "Ferni 正在思考",
     "tapToInterrupt": "轻点以打断"
+  },
+  "venmoChipIn": {
+    "eyebrow": "出份力",
+    "title": "一美元，让对话继续",
+    "body": "Ferni 目前免费。如果某次聊天帮到了你，可以通过 Venmo 寄一美元。多给也欢迎，但从不强求。",
+    "qrAlt": "@{handle} 的 Venmo 二维码",
+    "copy": "复制",
+    "copied": "已复制",
+    "openVenmo": "打开 Venmo",
+    "helper": "用手机相机扫一扫，或点按“打开 Venmo”。金额可以修改。",
+    "maybeLater": "以后再说",
+    "close": "关闭"
   }
 }
