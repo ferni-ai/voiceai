@@ -1,11 +1,7 @@
 /**
- * The daily outreach run (automated-scheduler.ts) for users on the proactive
- * dogfood allowlist: its channel comes from the same policy as the rest of
- * their check-ins, and it goes in the same log, so one set of caps, quiet
- * hours and back-off covers everything Ferni sends them unprompted.
- *
- * A daily check-in has no specific reason behind it, so it is never worth a
- * text or a call: the policy keeps it in the app, holds it, or drops it.
+ * The daily outreach run (automated-scheduler.ts) for allowlisted users: the
+ * same channel policy and log as their other check-ins. With no specific
+ * reason behind it, it is never a text or a call.
  *
  * @module services/outreach/proactive-channels/daily-checkin
  */

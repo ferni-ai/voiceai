@@ -7,9 +7,9 @@
  * - A call is for something meaningful (a promised call) when they turned calls
  *   on: at most one a day, inside the call window (call-hours-guard), never in
  *   their quiet hours.
- * - Quiet hours are the user's own (outreachPreferences.quietHours) or 21:00 to
- *   08:00, in their own time zone. Nothing goes out then. Without a time zone
- *   on the profile there are no texts or calls: we can't tell when they sleep.
+ * - Quiet hours (nothing goes out): the same rules as quiet-hours.ts (#802,
+ *   QUIET_HOURS_UNIFIED); swap inQuietHours for its isUserQuiet once that is
+ *   on main. Without a time zone there are no texts or calls.
  * - Backing off: two texts in a row with no conversation since means no more
  *   texts until they talk to Ferni again; a call that wasn't picked up (or was
  *   a "not now") means no calls for three days; a snooze holds everything.
@@ -19,40 +19,41 @@
  * @module services/outreach/proactive-channels/channel-policy
  */
 
-import { isValidTimezone, localMinutes, nextCallableTime } from '../call-hours-guard.js';
+import {
+  isValidTimezone,
+  localMinutes,
+  nextCallableTime,
+  parseQuietWindow,
+  type QuietWindow,
+} from '../call-hours-guard.js';
 import { consentFromPrefs } from '../outreach-consent.js';
 import type { OutreachLogEntry } from './outreach-log.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
 
-const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * HOUR_MS;
+const DAY_MS = 24 * 60 * 60 * 1000;
 /** A missed or declined call: no more calls for this long. */
 const CALL_BACKOFF_MS = 3 * DAY_MS;
 /** Texts in a row without a conversation since, before texts stop. */
 const MAX_UNANSWERED_TEXTS = 2;
-const DEFAULT_QUIET = { startMin: 21 * 60, endMin: 8 * 60 };
+const DEFAULT_QUIET: QuietWindow = { startMin: 22 * 60, endMin: 8 * 60 };
 
 export type ProactiveFrequency = 'gentle' | 'normal' | 'off';
 
+type Caps = { total: number; sms: number; call: number };
 /** Per rolling 24 hours. */
-const CAPS: Record<
-  Exclude<ProactiveFrequency, 'off'>,
-  { total: number; sms: number; call: number }
-> = {
+const CAPS: Record<Exclude<ProactiveFrequency, 'off'>, Caps> = {
   gentle: { total: 3, sms: 2, call: 1 },
   normal: { total: 6, sms: 4, call: 1 },
 };
 
-const CALL_MISSED: ReadonlySet<OutreachLogEntry['outcome']> = new Set([
-  'no_answer',
-  'busy',
-  'declined',
-]);
+const CALL_MISSED = new Set<string>(['no_answer', 'busy', 'declined']);
 
 interface ProactivePrefs {
   proactiveFrequency?: unknown;
   proactiveSnoozeUntil?: unknown;
   quietHours?: { enabled?: unknown; start?: unknown; end?: unknown };
+  quietHoursStart?: unknown;
+  quietHoursEnd?: unknown;
 }
 
 export function frequencyOf(prefs: unknown): ProactiveFrequency {
@@ -60,23 +61,27 @@ export function frequencyOf(prefs: unknown): ProactiveFrequency {
   return f === 'normal' || f === 'off' ? f : 'gentle';
 }
 
-function quietWindow(prefs: unknown): { startMin: number; endMin: number } {
-  const q = (prefs as ProactivePrefs | undefined)?.quietHours;
-  const toMin = (s: unknown): number | undefined => {
-    const m = /^(\d{1,2}):(\d{2})$/.exec(typeof s === 'string' ? s : '');
-    return m ? Number(m[1]) * 60 + Number(m[2]) : undefined;
-  };
-  const startMin = toMin(q?.start);
-  const endMin = toMin(q?.end);
-  if (q?.enabled === false || startMin === undefined || endMin === undefined) return DEFAULT_QUIET;
-  return { startMin, endMin };
+/** Their quiet window, or null when they turned quiet hours off. */
+function quietWindow(prefs: unknown): QuietWindow | null {
+  const p = prefs as ProactivePrefs | undefined;
+  const q = p?.quietHours;
+  if (q?.enabled === false) return null;
+  const own =
+    q && Boolean(q.enabled) ? parseQuietWindow(String(q.start), String(q.end)) : undefined;
+  const { quietHoursStart: hs, quietHoursEnd: he } = p ?? {};
+  const hours =
+    Number.isInteger(hs) && Number.isInteger(he) && hs !== he
+      ? { startMin: Number(hs) * 60, endMin: Number(he) * 60 }
+      : undefined;
+  return own ?? hours ?? DEFAULT_QUIET;
 }
 
 /** True during the user's quiet hours in their own time zone. */
 export function inQuietHours(prefs: unknown, timezone: string, now: Date): boolean {
-  const { startMin, endMin } = quietWindow(prefs);
-  const min = localMinutes(now, timezone);
-  return startMin <= endMin ? min >= startMin && min < endMin : min >= startMin || min < endMin;
+  const w = quietWindow(prefs);
+  if (!w) return false;
+  const [min, s, e] = [localMinutes(now, timezone), w.startMin, w.endMin];
+  return s <= e ? min >= s && min < e : min >= s || min < e;
 }
 
 export interface PolicyInput {
@@ -108,15 +113,13 @@ function callBlocked(
   maxCalls: number
 ): string | null {
   const now = input.now.getTime();
-  const calls = input.recent.filter((e) => e.channel === 'voice_call');
-  if (sentToday.filter((e) => e.channel === 'voice_call').length >= maxCalls) {
-    return 'already called today';
-  }
-  const missed = calls.find(
-    (e) => CALL_MISSED.has(e.outcome) && now - Date.parse(e.outcomeAt ?? e.at) < CALL_BACKOFF_MS
-  );
+  const callsToday = sentToday.filter((e) => e.channel === 'voice_call').length;
+  if (callsToday >= maxCalls) return 'already called today';
+  const missed = input.recent
+    .filter((e) => e.channel === 'voice_call' && CALL_MISSED.has(e.outcome))
+    .find((e) => now - Date.parse(e.outcomeAt ?? e.at) < CALL_BACKOFF_MS);
   if (missed) return `backing off calls after a ${missed.outcome.replace('_', ' ')}`;
-  const quiet = [quietWindow(input.prefs)];
+  const quiet = [quietWindow(input.prefs)].filter((w): w is QuietWindow => w !== null);
   if (nextCallableTime(input.now, [tz], quiet).getTime() !== now) return 'outside call hours';
   return null;
 }
@@ -128,8 +131,6 @@ function unansweredTexts(input: PolicyInput): number {
     (e) => e.channel === 'sms' && Date.parse(e.at) > since && e.outcome !== 'replied'
   ).length;
 }
-
-type Caps = (typeof CAPS)[keyof typeof CAPS];
 
 /** Off, snoozed or capped for the day: why nothing goes out now. Otherwise, the caps for today. */
 function gate(input: PolicyInput, sentToday: OutreachLogEntry[]): ChannelChoice | Caps {
@@ -152,11 +153,8 @@ function tryCall(
   sentToday: OutreachLogEntry[],
   caps: Caps
 ): ChannelChoice | null {
-  const consent = consentFromPrefs(input.prefs);
-  if (input.trigger.weight !== 'meaningful' || !consent.channels.includes('voice_call')) {
-    return null;
-  }
-  if (!input.canCall) return null;
+  const callsOn = consentFromPrefs(input.prefs).channels.includes('voice_call');
+  if (input.trigger.weight !== 'meaningful' || !callsOn || !input.canCall) return null;
   const blocked = callBlocked(input, tz, sentToday, caps.call);
   if (!blocked) {
     return {
