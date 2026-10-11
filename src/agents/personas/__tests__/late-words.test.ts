@@ -1,9 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { llm, stt } from '@livekit/agents';
 import { AudioFrame } from '@livekit/rtc-node';
 import { ReadableStream } from 'node:stream/web';
+import {
+  resetCrisisClassifierCache,
+  type CrisisGenerateFn,
+} from '../../../services/safety/crisis-classifier.js';
 import { FirstTurnGate, sttWithFirstTurnFast } from '../first-turn-fast.js';
-import { isMergeableTail, lateWordsMerger, MAX_LATE_WORDS } from '../late-words.js';
+import { isMergeableTail, lateWordsMerger, MAX_LATE_WORDS, negativeVoice } from '../late-words.js';
 
 const T = stt.SpeechEventType;
 type Event = stt.SpeechEvent | string;
@@ -40,7 +44,7 @@ const userTexts = (agent: ReturnType<typeof makeAgent>) =>
     .map((i) => (i as llm.ChatMessage).textContent);
 
 /** Turn 1 ended early by FIRST_TURN_FAST on SAID; returns the gate and what it emitted. */
-function earlyEnd(lateWords?: FirstTurnGate['lateWords']) {
+function earlyEnd(lateWords?: FirstTurnGate['lateWords'], said = SAID) {
   let t = 0;
   const out: Event[] = [];
   const gate = new FirstTurnGate(() => t);
@@ -54,9 +58,9 @@ function earlyEnd(lateWords?: FirstTurnGate['lateWords']) {
   frames(1000, 30);
   out.push(...gate.onEvent({ type: T.START_OF_SPEECH }));
   frames(2000, 3000);
-  out.push(...gate.onEvent(transcript(T.INTERIM_TRANSCRIPT, SAID)));
+  out.push(...gate.onEvent(transcript(T.INTERIM_TRANSCRIPT, said)));
   frames(1500, 30);
-  expect(texts(out).slice(-2)).toEqual([`${T.FINAL_TRANSCRIPT}:${SAID}`, `${T.END_OF_SPEECH}:`]);
+  expect(texts(out).slice(-2)).toEqual([`${T.FINAL_TRANSCRIPT}:${said}`, `${T.END_OF_SPEECH}:`]);
   const ink = (ev: stt.SpeechEvent) => {
     const before = out.length;
     out.push(...gate.onEvent(ev));
@@ -72,6 +76,14 @@ describe('isMergeableTail', () => {
     expect(isMergeableTail(['not', 'really'], SAID)).toBe(false);
     expect(isMergeableTail(['kill', 'myself'], 'Honestly I want to')).toBe(false);
     expect(isMergeableTail(Array(MAX_LATE_WORDS + 1).fill('word'), SAID)).toBe(false);
+  });
+
+  it('refuses a tail when the turn carries distress, in its words or the caller’s voice', () => {
+    expect(isMergeableTail(['stop.'], 'I just want it to')).toBe(false);
+    expect(isMergeableTail(['today.'], 'honestly I am just tired of it all')).toBe(false);
+    expect(negativeVoice({ primary: 'sad', confidence: 0.8 })).toBe(true);
+    expect(negativeVoice({ primary: 'neutral', stressLevel: 0.7 })).toBe(true);
+    expect(negativeVoice({ primary: 'neutral', valence: 0.2, stressLevel: 0.1 })).toBe(false);
   });
 });
 
@@ -143,6 +155,86 @@ describe('late words of turn 1 with EOT_CONTINUED_MERGE', () => {
       ]);
       expect(agent.updateChatCtx).not.toHaveBeenCalled();
     }
+  });
+});
+
+describe('a merged turn is crisis-gated again on the whole sentence', () => {
+  const LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
+  const verdict =
+    (reply: string): CrisisGenerateFn =>
+    async () =>
+      reply;
+  const callSession = (voiceEmotion?: unknown) => ({
+    agentState: 'thinking',
+    userData: { voiceEmotion },
+    interrupt: vi.fn(),
+    say: vi.fn(),
+    generateReply: vi.fn(),
+  });
+  const SAID_DONE = "I'm just done";
+
+  beforeEach(() => resetCrisisClassifierCache());
+
+  it('a crisis only the classifier sees, completed by the tail: the reply in flight gives way to the crisis script', async () => {
+    expect(isMergeableTail(['with', 'everything.'], SAID_DONE)).toBe(true); // the patterns miss it
+    const agent = makeAgent(['user', SAID_DONE]);
+    const session = callSession();
+    const merger = lateWordsMerger(agent, session, {
+      env: LIVE,
+      generate: verdict('{"risk":"imminent","subject":"self"}'),
+    });
+    const { ink } = earlyEnd(merger, SAID_DONE);
+    expect(ink(transcript(T.FINAL_TRANSCRIPT, `${SAID_DONE} with everything.`))).toEqual([]);
+    expect(ink({ type: T.END_OF_SPEECH })).toEqual([]);
+    expect(userTexts(agent)).toEqual([`${SAID_DONE} with everything.`]);
+
+    await vi.waitFor(() => expect(session.say).toHaveBeenCalledTimes(1));
+    expect(String(session.say.mock.calls[0][0])).toContain('911');
+    expect(session.interrupt).toHaveBeenCalledTimes(1);
+    expect(session.interrupt.mock.invocationCallOrder[0]).toBeLessThan(
+      session.say.mock.invocationCallOrder[0]!
+    );
+  });
+
+  it('a classifier crisis that calls for guidance regenerates the reply with it', async () => {
+    const agent = makeAgent(['user', SAID_DONE]);
+    const session = callSession();
+    const merger = lateWordsMerger(agent, session, {
+      env: LIVE,
+      generate: verdict('{"risk":"crisis","subject":"self"}'),
+    });
+    const { ink } = earlyEnd(merger, SAID_DONE);
+    ink(transcript(T.FINAL_TRANSCRIPT, `${SAID_DONE} with everything.`));
+    ink({ type: T.END_OF_SPEECH });
+    await vi.waitFor(() => expect(session.generateReply).toHaveBeenCalledTimes(1));
+    expect(session.interrupt).toHaveBeenCalledTimes(1);
+    expect(session.generateReply.mock.calls[0][0].instructions).toMatch(/988|crisis|safe/i);
+  });
+
+  it('leaves the reply in flight alone when the classifier passes the whole sentence', async () => {
+    const agent = makeAgent(['user', SAID]);
+    const session = callSession();
+    const generate = vi.fn(verdict('{"risk":"none","subject":"self"}'));
+    const { ink } = earlyEnd(lateWordsMerger(agent, session, { env: LIVE, generate }));
+    ink(transcript(T.FINAL_TRANSCRIPT, `${SAID} day.`));
+    ink({ type: T.END_OF_SPEECH });
+    await vi.waitFor(() => expect(generate).toHaveBeenCalledTimes(1));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 20);
+    });
+    expect(session.interrupt).not.toHaveBeenCalled();
+    expect(session.say).not.toHaveBeenCalled();
+  });
+
+  it('never holds the late words when the caller sounds distressed: a new turn, gated as one', () => {
+    const agent = makeAgent(['user', SAID]);
+    const session = callSession({ primary: 'sad', confidence: 0.8 });
+    const { ink } = earlyEnd(lateWordsMerger(agent, session, { env: LIVE }));
+    expect(ink(transcript(T.FINAL_TRANSCRIPT, `${SAID} day.`))).toEqual([
+      `${T.START_OF_SPEECH}:`,
+      `${T.FINAL_TRANSCRIPT}:day.`,
+    ]);
+    expect(userTexts(agent)).toEqual([SAID]);
   });
 });
 

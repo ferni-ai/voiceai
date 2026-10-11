@@ -29,12 +29,7 @@ import { stt } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { ReadableStream, TransformStream } from 'node:stream/web';
 import { createLogger } from '../../utils/safe-logger.js';
-import {
-  eotContinuedMergeEnabled,
-  isMergeableTail,
-  lateWordsMerger,
-  type LateWordsMerger,
-} from './late-words.js';
+import { eotContinuedMergeEnabled, lateWordsMerger, type LateWordsMerger } from './late-words.js';
 
 const log = createLogger({ module: 'FirstTurnFast' });
 
@@ -183,7 +178,7 @@ export class FirstTurnGate {
     if (!alt) return [ev]; // usage reports
     const extra = words(alt.text).slice(this.committed);
     if (!extra.length) return [];
-    if (!this.continued && this.lateWords?.open() && isMergeableTail(extra, this.said)) {
+    if (!this.continued && this.lateWords?.mergeable(extra, this.said)) {
       this.held = { tail: extra, alt };
       return [];
     }
@@ -217,6 +212,10 @@ export class FirstTurnGate {
 interface SessionLike {
   readonly userData?: unknown;
   readonly agentState?: string;
+  interrupt?(): unknown;
+  say?(text: string): unknown;
+  generateReply?(options: { instructions: string }): unknown;
+  emit?(event: string, ...args: unknown[]): unknown;
   /** The agent running this STT stream; late words of turn 1 may join its chat context. */
   readonly currentAgent?: Parameters<typeof lateWordsMerger>[0];
 }
@@ -239,7 +238,7 @@ export async function sttWithFirstTurnFast(
   if (eotContinuedMergeEnabled(env)) {
     try {
       const agent = session.currentAgent; // throws when the session is not running
-      if (agent) gate.lateWords = lateWordsMerger(agent, session);
+      if (agent) gate.lateWords = lateWordsMerger(agent, session, { env });
     } catch (error) {
       log.warn({ error: String(error) }, 'late words merge unavailable');
     }
