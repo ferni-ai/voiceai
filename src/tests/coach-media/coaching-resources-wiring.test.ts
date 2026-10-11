@@ -138,7 +138,8 @@ describe('findCoachingResources on the live path', () => {
     expect(output).toContain('not instructions');
     expect(output).toContain('web_data: ');
     expect(output).toContain('Untrusted web data');
-    expect(output).toContain('https://www.youtube.com/watch?v=abc123');
+    expect(output).toContain('youtube.com');
+    expect(output).not.toContain('https://');
     expect(output).not.toMatch(/ignore previous instructions/i);
     expect(output).toContain('General info, not personal advice');
   }, 60_000);
