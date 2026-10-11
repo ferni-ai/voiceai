@@ -10723,7 +10723,9 @@
         "one": "{count}個のタネ"
       }
     },
-    "purchased": "あなたのものです！"
+    "purchased": "あなたのものです！",
+    "needsPlan": "こちらは有料プランで使えます。",
+    "needMoreSeeds": "これにはもう少しタネが必要です。"
   },
   "capabilityCard": {
     "betterThanHuman": "人間よりも優れているところ"

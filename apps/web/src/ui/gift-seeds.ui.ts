@@ -13,6 +13,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { getSeedBalance } from '../services/cosmetics.service.js';
+import { isServerLedgerOn, refreshSeedLedger } from '../services/seed-ledger-client.js';
 import { createLogger } from '../utils/logger.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { toast } from './whisper.ui.js';
@@ -295,7 +296,7 @@ async function handleSendGift(): Promise<void> {
       body: JSON.stringify({
         toUserId: recipientId,
         amount: selectedAmount,
-        message: message || undefined,
+        giftId: crypto.randomUUID(), // one per send: a retried request moves seeds once
       }),
     });
 
@@ -305,8 +306,7 @@ async function handleSendGift(): Promise<void> {
       const tier = GIFT_TIERS.find(t => t.amount === selectedAmount);
       soundUI.play('celebrate');
       toast.success(t('giftSeeds.sentSuccess', { sent: selectedAmount, received: tier?.receive || selectedAmount }, "Sent {sent} seeds! They'll get {received}"));
-      
-      // Dispatch event for balance update
+      if (isServerLedgerOn()) await refreshSeedLedger(); // the server took the seeds; show its balance
       document.dispatchEvent(new CustomEvent('ferni:seeds-spent', {
         detail: { amount: selectedAmount, reason: 'gift' }
       }));

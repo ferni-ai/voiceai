@@ -10723,7 +10723,9 @@
         "one": "{count} 颗种子"
       }
     },
-    "purchased": "属于你啦！"
+    "purchased": "属于你啦！",
+    "needsPlan": "这个需要付费方案。",
+    "needMoreSeeds": "还差一些种子才能获得这个。"
   },
   "capabilityCard": {
     "betterThanHuman": "比人类更懂你"

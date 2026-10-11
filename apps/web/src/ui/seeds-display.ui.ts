@@ -9,6 +9,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { getSeedBalance } from '../services/cosmetics.service.js';
+import { claimDailyOnServer, isServerLedgerOn } from '../services/seed-ledger-client.js';
 import { formatNumber, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import {
@@ -472,11 +473,10 @@ export function animateSeedsAdded(amount: number): void {
 /**
  * Handle daily bonus click - claim seeds immediately
  */
-function handleDailyBonusClick(e: Event): void {
+async function handleDailyBonusClick(e: Event): Promise<void> {
   e.preventDefault();
   e.stopPropagation();
-
-  const result = claimDailyBonus();
+  const result = isServerLedgerOn() ? await claimDailyOnServer() : claimDailyBonus();
   if (result.claimed) {
     moments.whisper(tp('toasts.seedsEarned', result.amount ?? 0), { type: 'success' });
     updateSeedsDisplay();
@@ -493,13 +493,13 @@ function handleDailyBonusClick(e: Event): void {
   }
 }
 
-/**
- * Bind click handler to daily bonus button
- */
+// One stable listener: re-binding on every DOM change must not stack claims
+const onDailyBonusClick = (e: Event): void => void handleDailyBonusClick(e);
+/** Bind click handler to daily bonus button */
 function bindDailyBonusHandler(): void {
   const dailyBonusBtn = document.querySelector('[data-daily-bonus]');
   if (dailyBonusBtn) {
-    dailyBonusBtn.addEventListener('click', handleDailyBonusClick);
+    dailyBonusBtn.addEventListener('click', onDailyBonusClick);
   }
 }
 

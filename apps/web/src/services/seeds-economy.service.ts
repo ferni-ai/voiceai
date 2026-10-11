@@ -18,6 +18,7 @@ import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
 import { addSeeds, getSeedBalance } from './cosmetics.service.js';
+import { getServerStreak, isServerDailyBonusAvailable, isServerLedgerOn } from './seed-ledger-client.js';
 
 const log = createLogger('SeedsEconomy');
 
@@ -197,6 +198,7 @@ function describeReward({ descriptionKey, count }: SeedReward): string {
  * Award seeds for an action and show notification
  */
 function awardSeeds(reward: SeedReward, showToast = true): void {
+  if (isServerLedgerOn()) return; // the server pays every earn (src/services/seeds/earn.ts)
   addSeeds(reward.amount);
   state.totalEarned += reward.amount;
   saveState();
@@ -415,8 +417,8 @@ export function getBalance(): number {
  * Get current streak
  */
 export function getCurrentStreak(): number {
-  // Check if streak is still active
-  const today = getToday();
+  if (isServerLedgerOn()) return getServerStreak();
+  const today = getToday(); // a local streak counts while its last day is today or yesterday
   if (
     state.lastConversationDate &&
     (isSameDay(state.lastConversationDate, today) || isYesterday(state.lastConversationDate))
@@ -437,7 +439,7 @@ export function getTotalEarned(): number {
  * Check if daily bonus is available
  */
 export function isDailyBonusAvailable(): boolean {
-  return !isSameDay(state.lastDailyClaimDate, getToday());
+  return isServerLedgerOn() ? isServerDailyBonusAvailable() : !isSameDay(state.lastDailyClaimDate, getToday());
 }
 
 /**
@@ -500,33 +502,29 @@ export function initSeedsEconomy(): void {
   // Load state
   state = loadState();
 
-  // Listen for conversation end events
+  // With the server ledger on, earns are the server's: these listeners stand down
   window.addEventListener('ferni:conversation-end', () => {
-    recordConversation();
+    if (!isServerLedgerOn()) recordConversation();
   });
-
-  // Listen for goal achieved events
   document.addEventListener('ferni:goal-achieved', ((e: CustomEvent) => {
     const { goalId } = e.detail as { goalId: string };
-    recordGoalAchieved(goalId);
+    if (!isServerLedgerOn()) recordGoalAchieved(goalId);
   }) as EventListener);
 
-  // Listen for referral events
   document.addEventListener('ferni:referral-completed', ((e: CustomEvent) => {
     const { code } = e.detail as { code: string };
-    recordReferral(code);
+    if (!isServerLedgerOn()) recordReferral(code);
   }) as EventListener);
 
-  // Listen for contribution events (Seed Fund payments)
+  // Seed Fund payments: the Stripe webhook pays these on the server
   document.addEventListener('ferni:contribution-success', ((e: CustomEvent) => {
     const { amountCents } = e.detail as { amountCents: number };
-    recordContribution(amountCents);
+    if (!isServerLedgerOn()) recordContribution(amountCents);
   }) as EventListener);
 
-  // Listen for subscription payment events
   document.addEventListener('ferni:subscription-paid', ((e: CustomEvent) => {
     const { tier } = e.detail as { tier: 'founding-member' | 'founding-patron' };
-    recordMonthlySubscriptionBonus(tier);
+    if (!isServerLedgerOn()) recordMonthlySubscriptionBonus(tier);
   }) as EventListener);
 
   log.info(

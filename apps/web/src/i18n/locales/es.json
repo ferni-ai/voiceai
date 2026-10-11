@@ -10841,7 +10841,9 @@
         "other": "{count} semillas"
       }
     },
-    "purchased": "¡Ya es tuyo!"
+    "purchased": "¡Ya es tuyo!",
+    "needsPlan": "Este viene con un plan de pago.",
+    "needMoreSeeds": "Te faltan algunas semillas para este."
   },
   "capabilityCard": {
     "betterThanHuman": "Mejor que un humano"
