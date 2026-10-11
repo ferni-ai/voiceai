@@ -767,6 +767,8 @@ class SettingsMenuUI {
             ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
             ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.whatsAhead'))}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
+            ${this.renderMenuItem('outreach-schedule', ICONS.calendar, t('menu.items.outreachSchedule'))}
+            ${this.renderMenuItem('contact-settings', ICONS.contact, t('menu.items.contactInfo'))}
           `
                 )
               : ''
@@ -1063,6 +1065,7 @@ class SettingsMenuUI {
         label: t('menu.items.whatsAhead'),
       },
       notifications: { icon: ICONS.bell, label: t('menu.items.notifications') },
+      'outreach-schedule': { icon: ICONS.calendar, label: t('menu.items.outreachSchedule') },
       theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
       'support-ferni': { icon: ICONS.heart, label: t('menu.items.supportFerniExpanded') },
       'voice-enrollment': { icon: ICONS.fingerprint, label: t('menu.items.voiceId') },
