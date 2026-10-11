@@ -27,4 +27,20 @@ describe('memoryAsyncEvents', () => {
     await vi.waitFor(() => expect(received).toHaveLength(1));
     expect(received[0]).toEqual(job);
   });
+
+  it('stops delivering to a memory-layer listener once it unsubscribes', async () => {
+    configureAsyncEvents(memoryAsyncEvents);
+    const received: unknown[] = [];
+    const unsubscribe = safeOnEvent('memory:deep-extraction', (job) => received.push(job));
+    expect(unsubscribe).toBeTypeOf('function');
+
+    safeEmitEvent('memory:deep-extraction', { jobId: 'before' });
+    await vi.waitFor(() => expect(received).toHaveLength(1));
+
+    unsubscribe?.();
+    safeEmitEvent('memory:deep-extraction', { jobId: 'after' });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(received).toEqual([{ jobId: 'before' }]);
+  });
 });
