@@ -4,6 +4,7 @@
  * then the next proactive run obeys them. Firestore is in memory; Firebase
  * Auth (number → account) is stubbed at the SDK boundary.
  */
+import { createHmac } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pathFirestore } from './path-firestore.js';
 
@@ -112,5 +113,45 @@ describe('replies to a proactive text', () => {
     process.env.PROACTIVE_CHANNELS_USERS = 'someone-else';
     await inbound('less');
     expect(prefs().proactiveFrequency).toBeUndefined();
+  });
+
+  describe('only from Twilio (X-Twilio-Signature checked before anything changes)', () => {
+    const URL = 'https://app.ferni.ai/api/outreach/webhooks/twilio/sms-inbound';
+    const payload = {
+      MessageSid: 'SM1',
+      Body: 'stop',
+      From: PHONE,
+      To: '+15555550000',
+      NumMedia: '0',
+      AccountSid: 'AC1',
+    };
+    const sign = (token: string) =>
+      createHmac('sha1', token)
+        .update(
+          URL +
+            Object.keys(payload)
+              .sort()
+              .map((k) => k + payload[k as keyof typeof payload])
+              .join('')
+        )
+        .digest('base64');
+
+    beforeEach(() => {
+      delete process.env.SKIP_TWILIO_VALIDATION;
+      process.env.TWILIO_AUTH_TOKEN = 'tw-token';
+    });
+    afterEach(() => delete process.env.TWILIO_AUTH_TOKEN);
+
+    it('unsigned or wrongly signed: refused, settings untouched', async () => {
+      expect(await handleInboundSMSWebhook(payload as never)).toEqual({ success: false });
+      const forged = await handleInboundSMSWebhook(payload as never, sign('not-ours'), URL);
+      expect(forged).toEqual({ success: false });
+      expect(prefs().proactiveFrequency).toBeUndefined();
+    });
+
+    it('signed by Twilio: handled', async () => {
+      await handleInboundSMSWebhook(payload as never, sign('tw-token'), URL);
+      expect(prefs().proactiveFrequency).toBe('off');
+    });
   });
 });

@@ -145,7 +145,7 @@ describe('Ferni calls the user', () => {
   it('logs the call before it rings, so the next run cannot ring again', async () => {
     seedPromisedCall('p1');
     await runHandler();
-    expect(logWhileRinging).toMatchObject({ channel: 'voice_call', outcome: 'sent' });
+    expect(logWhileRinging).toMatchObject({ channel: 'voice_call', outcome: 'pending' });
   });
 
   it('no answer: logged, the words left in the app, and calls back off', async () => {
@@ -174,12 +174,81 @@ describe('Ferni calls the user', () => {
     expect(logOf('promise:p1')).toMatchObject({ outcome: 'busy' });
   });
 
-  it('a call that cannot be placed goes out as a text instead', async () => {
+  it('a call that cannot be placed goes out as a text instead, and still counts as the call', async () => {
     phoneDoes = 503;
     seedPromisedCall('p1');
     await runHandler();
     expect(texts).toHaveLength(1);
-    expect(logOf('promise:p1')).toMatchObject({ channel: 'sms', fallbackFrom: 'voice_call' });
+    expect(logOf('promise:p1')).toMatchObject({
+      channel: 'voice_call',
+      outcome: 'failed',
+      fallbackChannel: 'sms',
+    });
+
+    // Later the same day, another promised call: no second call today.
+    vi.setSystemTime(new Date(NOW.getTime() + 2 * HOUR));
+    seedPromisedCall('p2', 'the interview');
+    await runHandler();
+    expect(dials).toHaveLength(1);
+    expect(logOf('promise:p2')).toMatchObject({ channel: 'sms' });
+  });
+
+  it("a failed call's stand-in text counts toward the day's texts", async () => {
+    phoneDoes = 503;
+    docs.set(`bogle_users/${SETH}/proactive_outreach_log/t1`, {
+      sourceId: 't1',
+      channel: 'sms',
+      at: new Date(NOW.getTime() - HOUR).toISOString(),
+      outcome: 'replied',
+    });
+    seedPromisedCall('p1');
+    await runHandler();
+    expect(texts).toHaveLength(1);
+
+    // A light check-in later today: two texts already (one stood in for the call).
+    vi.setSystemTime(new Date(NOW.getTime() + HOUR));
+    docs.set(`bogle_users/${SETH}/ferni_commitments/p2`, {
+      type: 'check_in',
+      relatedTopic: 'the interview',
+      madeAt: new Date(NOW.getTime() - 20 * HOUR).toISOString(),
+      outcome: 'open',
+    });
+    await runHandler();
+    expect(texts).toHaveLength(1);
+    expect(logOf('promise:p2')).toMatchObject({
+      channel: 'in_app',
+      why: 'text limit reached today',
+    });
+  });
+
+  it('the fallback for a failed call obeys the text opt-in: calls only means a note', async () => {
+    phoneDoes = 503;
+    docs.set(`bogle_users/${SETH}`, {
+      ...docs.get(`bogle_users/${SETH}`),
+      outreachPreferences: { channels: ['voice_call'] },
+    });
+    seedPromisedCall('p1');
+    await runHandler();
+    expect(dials).toHaveLength(1);
+    expect(texts).toHaveLength(0);
+    expect(notes()).toHaveLength(1);
+    expect(logOf('promise:p1')).toMatchObject({ outcome: 'failed', fallbackChannel: 'in_app' });
+  });
+
+  it('the fallback for a failed call obeys the daily text cap', async () => {
+    phoneDoes = 503;
+    for (const id of ['t1', 't2']) {
+      docs.set(`bogle_users/${SETH}/proactive_outreach_log/${id}`, {
+        sourceId: id,
+        channel: 'sms',
+        at: new Date(NOW.getTime() - HOUR).toISOString(),
+        outcome: 'replied',
+      });
+    }
+    seedPromisedCall('p1');
+    await runHandler();
+    expect(texts).toHaveLength(0);
+    expect(logOf('promise:p1')).toMatchObject({ outcome: 'failed', fallbackChannel: 'in_app' });
   });
 
   it('without SIP_TRUNK_ID nothing is dialed; it is a text', async () => {

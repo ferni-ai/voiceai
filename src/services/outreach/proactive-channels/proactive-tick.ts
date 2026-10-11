@@ -21,11 +21,11 @@ import { lastTalkedAt } from '../outreach-cadence.js';
 import { isValidTimezone, localMinutes } from '../call-hours-guard.js';
 import type { WorldDueItem } from './more-triggers.js';
 import { collectTriggers } from './triggers.js';
-import { chooseChannel, type ChannelChoice } from './channel-policy.js';
+import { chooseChannel, type ChannelChoice, type PolicyInput } from './channel-policy.js';
 import {
   alreadySent,
+  claimOutreach,
   lastTextOf,
-  recentOutreach,
   writeOutreachLog,
   type OutreachLogEntry,
 } from './outreach-log.js';
@@ -122,6 +122,8 @@ interface Delivered {
   channel: ProactiveChannel;
   ok: boolean;
   fallbackFrom?: ProactiveChannel;
+  /** A call that couldn't be placed: where its words went instead. */
+  fallbackChannel?: ProactiveChannel;
   /** How a call ended. */
   outcome?: CallOutcome;
 }
@@ -146,23 +148,26 @@ async function deliver(
 }
 
 /**
- * Ring them. Logged before dialing (ringing takes up to a minute and the next
- * run must not ring again). A missed call leaves the words as a note in the
- * app; a call that couldn't be placed goes out as a text instead.
+ * Ring them (the claim already logged it, so an overlapping run can't ring
+ * again). A missed call leaves the words as a note in the app. A call that
+ * couldn't be placed goes out the way the policy would pick without calls:
+ * a text only if texts are on and under their caps, else a note in the app.
+ * It still counts as today's call.
  */
 async function call(
   userId: string,
   trigger: ProactiveTrigger,
   phone: string,
-  entry: OutreachLogEntry,
+  policy: PolicyInput,
   deps: ProactiveDeps
 ): Promise<Delivered> {
-  await writeOutreachLog(userId, { ...entry, channel: 'voice_call', outcome: 'sent' });
   const outcome = deps.placeCall
     ? await deps.placeCall(userId, phone, trigger).catch((): CallOutcome => 'failed')
     : 'failed';
   if (outcome === 'failed') {
-    return { ...(await deliver(userId, trigger, 'sms', phone, deps)), fallbackFrom: 'voice_call' };
+    const instead = chooseChannel({ ...policy, canCall: false }).channel;
+    const sent = await deliver(userId, trigger, instead === 'sms' ? 'sms' : 'in_app', phone, deps);
+    return { channel: 'voice_call', ok: sent.ok, outcome, fallbackChannel: sent.channel };
   }
   if (outcome !== 'answered') await deps.sendInApp(userId, trigger);
   return { channel: 'voice_call', ok: true, outcome };
@@ -173,38 +178,30 @@ async function send(
   userId: string,
   trigger: ProactiveTrigger,
   choice: ChannelChoice & { channel: ProactiveChannel },
-  ctx: { now: Date; recent: OutreachLogEntry[]; verifiedPhone?: string },
+  policy: PolicyInput,
   deps: ProactiveDeps
 ): Promise<Delivered> {
   const written = await writeOutreachText({
     trigger,
     channel: choice.channel,
-    lastText: lastTextOf(ctx.recent),
-    rotation: ctx.recent.length,
+    lastText: lastTextOf(policy.recent),
+    rotation: policy.recent.length,
   });
-  const entry: OutreachLogEntry = {
-    sourceId: trigger.sourceId,
-    kind: trigger.kind,
-    channel: choice.channel,
-    reason: trigger.reason,
-    why: choice.why,
-    at: ctx.now.toISOString(),
-    outcome: 'sent',
-    text: written.text,
-    textSource: written.source,
-  };
   const toSend = { ...trigger, text: written.text };
-  const phone = ctx.verifiedPhone;
+  const phone = policy.verifiedPhone;
   const sent =
     choice.channel === 'voice_call' && phone
-      ? await call(userId, toSend, phone, entry, deps)
+      ? await call(userId, toSend, phone, policy, deps)
       : await deliver(userId, toSend, choice.channel, phone, deps);
   await writeOutreachLog(userId, {
-    ...entry,
+    ...claimFor(trigger, choice, policy.now),
     channel: sent.channel,
     outcome: sent.outcome ?? (sent.ok ? 'sent' : 'failed'),
+    text: written.text,
+    textSource: written.source,
     ...(sent.outcome && { outcomeAt: new Date().toISOString() }),
     ...(sent.fallbackFrom && { fallbackFrom: sent.fallbackFrom }),
+    ...(sent.fallbackChannel && { fallbackChannel: sent.fallbackChannel }),
   });
   if (sent.ok) {
     await trigger.afterSend?.().catch((error: unknown) => {
@@ -212,6 +209,18 @@ async function send(
     });
   }
   return sent;
+}
+
+function claimFor(trigger: ProactiveTrigger, choice: ChannelChoice, now: Date): OutreachLogEntry {
+  return {
+    sourceId: trigger.sourceId,
+    kind: trigger.kind,
+    channel: choice.channel ?? 'in_app',
+    reason: trigger.reason,
+    why: choice.why,
+    at: now.toISOString(),
+    outcome: 'pending',
+  };
 }
 
 async function runForUser(
@@ -228,33 +237,33 @@ async function runForUser(
   const trigger = await nextTrigger(userId, user, now, deps);
   if (!trigger) return { userId, status: 'idle' };
   const verifiedPhone = await deps.verifiedPhone(userId);
-  const recent = await recentOutreach(userId, new Date(now.getTime() - HISTORY_MS));
   const canCall = deps.canCall?.() === true && deps.placeCall !== undefined;
   if (trigger.weight === 'meaningful' && !canCall) {
     log.info({ userId, sourceId: trigger.sourceId }, 'No SIP trunk here, so no call');
   }
-  const choice = chooseChannel({
+  const input = {
     trigger,
     now,
     prefs: user.outreachPreferences,
     timezone: timezoneOf(user),
     verifiedPhone,
     lastTalkedAt: lastTalkedAt(user),
-    recent,
     canCall,
+  };
+  const since = new Date(now.getTime() - HISTORY_MS);
+  const decided = await claimOutreach(userId, trigger.sourceId, since, (recent) => {
+    const choice = chooseChannel({ ...input, recent });
+    const claim = choice.channel && !dryRun ? claimFor(trigger, choice, now) : undefined;
+    return { result: { choice, policy: { ...input, recent } }, claim };
   });
+  if (decided === 'claimed') return { userId, status: 'idle', why: 'another run has it' };
+  const { choice, policy } = decided;
   const base = { userId, sourceId: trigger.sourceId, why: choice.why };
   const { channel } = choice;
   if (!channel) return { ...base, status: choice.stop ? 'skipped' : 'held' };
   if (dryRun) return { ...base, channel, status: 'dry_run' };
 
-  const sent = await send(
-    userId,
-    trigger,
-    { ...choice, channel },
-    { now, recent, verifiedPhone },
-    deps
-  );
+  const sent = await send(userId, trigger, { ...choice, channel }, policy, deps);
   log.info(
     { ...base, channel: sent.channel, ok: sent.ok, kind: trigger.kind },
     'Proactive check-in sent'
