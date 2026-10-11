@@ -163,6 +163,27 @@ describe('proactive check-in channel', () => {
     expect(texts).toHaveLength(1);
   });
 
+  it('same quiet-hours rules as quiet-hours.ts (#802)', async () => {
+    // 22:30 New York, 19:30 Los Angeles.
+    const late = new Date('2026-10-13T02:30:00Z');
+    const cases: Array<[Record<string, unknown>, Record<string, unknown>, boolean]> = [
+      [{ quietHours: { enabled: false } }, {}, true], // turned off: no quiet hours
+      [{ timezone: 'America/Los_Angeles' }, {}, true], // the setting's zone beats the profile's
+      [{ quietHoursStart: 23, quietHoursEnd: 7 }, {}, true], // hour fields are honoured
+      [{}, {}, false], // default 22:00-08:00
+    ];
+    for (const [prefs, extra, sends] of cases) {
+      docs.clear();
+      texts.length = 0;
+      vi.setSystemTime(late);
+      seedUser({ outreachPreferences: { ...TEXTS_AND_CALLS, ...prefs }, ...extra });
+      seedPromise('p1');
+      // eslint-disable-next-line no-await-in-loop
+      await runHandler();
+      expect([prefs, texts.length]).toEqual([prefs, sends ? 1 : 0]);
+    }
+  });
+
   it('their own quiet hours win over the default', async () => {
     // 11:00 New York, inside a 10:00-12:00 quiet window they set.
     seedUser({
