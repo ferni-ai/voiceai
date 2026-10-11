@@ -20,8 +20,8 @@ import {
   setBargeInFastPath,
 } from './barge-in-fastpath.js';
 import { createTurnKeeper } from './turn-keeper.js';
-import { installUnfinishedTurnHold } from './unfinished-turn.js';
-import { turnDetectorMode } from '../shared/turn-patience.js';
+import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
+import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
 
 const log = getLogger();
 
@@ -137,11 +137,25 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). With the
   // end-of-turn model on, the model decides and a second hold would only stack delay.
-  if (turnDetectorMode() === 'off') installUnfinishedTurnHold(session);
-  else
+  if (turnDetectorMode() === 'off') {
+    installUnfinishedTurnHold(session);
+    // ...and answer a clearly finished sentence sooner (ENDPOINT_FAST_FINISHED=on).
+    const detach = installFinishedTurnEndpointing(
+      session as unknown as Parameters<typeof installFinishedTurnEndpointing>[0],
+      endpointingDelays().minEndpointingDelay,
+      process.env,
+      (minDelayMs) => log.info({ sessionId, minDelayMs }, 'ENDPOINT_FLOOR')
+    );
+    if (detach) cleanupFunctions.push(detach);
+  } else
     session.on(voice.AgentSessionEventTypes.EotPrediction, (ev) =>
       log.info(
-        { probability: ev.probability, threshold: ev.threshold, delayMs: ev.delayMs, inferenceMs: ev.inferenceDurationMs },
+        {
+          probability: ev.probability,
+          threshold: ev.threshold,
+          delayMs: ev.delayMs,
+          inferenceMs: ev.inferenceDurationMs,
+        },
         'EOT_PREDICTION'
       )
     );

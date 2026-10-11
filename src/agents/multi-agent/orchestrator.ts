@@ -17,7 +17,7 @@
  * @module agents/multi-agent/orchestrator
  */
 
-import type { JobContext } from '@livekit/agents';
+import type { JobContext, voice } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import type { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -80,6 +80,8 @@ export interface HandoffRequest {
   userName?: string;
   /** User's emotional state */
   userEmotion?: string;
+  /** A handoff the LLM asked for: its tool hands the Agent to the SDK (persona-swap.ts) */
+  onAgentReady?: (agent: voice.Agent<UserData>) => void;
 }
 
 export interface HandoffResult {
@@ -238,16 +240,14 @@ export class AgentOrchestrator {
     try {
       // A call Ferni placed for someone opens with who it is and who it's
       // for, once the phone is picked up: never the app's "hey <user>" hello.
-      const { outboundOpener, outboundPartiesFor, waitForCallAnswered } =
-        await import('../shared/outbound-opener.js');
+      const { outboundOpener, outboundPartiesFor } = await import('../shared/outbound-opener.js');
       const parties = outboundPartiesFor(this.sessionId);
       let greeting: string;
       if (parties) {
-        const answered = await waitForCallAnswered(this.room, this.userParticipant);
-        if (!answered) {
-          log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
-          return;
-        }
+        // Waits for the pickup; with VOICEMAIL_DETECT=on a machine gets one message instead.
+        const { personAnswered } = await import('../shared/line-screen.js');
+        const { room, userParticipant: phone, sessionId } = this;
+        if (!(await personAnswered(room, phone, agent, parties, sessionId))) return;
         greeting = outboundOpener(parties);
       } else {
         const userData = agent.userData as UserData | undefined;
@@ -459,7 +459,8 @@ export class AgentOrchestrator {
         previousPersonaId,
         callSession: swap?.session,
       });
-      if (swap) await swapPersona(swap, newAgent, (persona) => this.agents.delete(persona.id));
+      const forget = (persona: { id: string }) => this.agents.delete(persona.id);
+      if (swap) await swapPersona(swap, newAgent, forget, request.onAgentReady);
       log.info(
         {
           newAgentId: newAgent.id,
