@@ -134,25 +134,25 @@ const WHISPER_TYPE_STYLES: Record<string, { color: string; bgColor: string; bord
   {
     success: {
       // White text on green tinted glass - works in both themes
-      color: 'var(--color-text-primary, #faf6f0)',
+      color: 'var(--persona-on-primary, #ffffff)',
       bgColor: 'var(--persona-primary, #4a6741)',
       borderColor: 'var(--persona-secondary, #3d5a35)',
     },
     error: {
-      // White text on warm error color
-      color: 'var(--color-text-primary, #faf6f0)',
+      // Inverse text flips with the theme, as the semantic colors do
+      color: 'var(--color-text-inverse, #faf8f5)',
       bgColor: 'var(--color-semantic-error, #a65a52)',
       borderColor: 'rgba(166, 90, 82, 0.8)',
     },
     warning: {
-      // White text on amber warning color
-      color: 'var(--color-text-primary, #faf6f0)',
+      // Inverse text flips with the theme, as the semantic colors do
+      color: 'var(--color-text-inverse, #faf8f5)',
       bgColor: 'var(--color-semantic-warning, #a6854a)',
       borderColor: 'rgba(166, 133, 74, 0.8)',
     },
     info: {
       // White text on persona green - matches the avatar
-      color: 'var(--color-text-primary, #faf6f0)',
+      color: 'var(--persona-on-primary, #ffffff)',
       bgColor: 'var(--persona-primary, #4a6741)',
       borderColor: 'var(--persona-secondary, #3d5a35)',
     },
@@ -189,10 +189,10 @@ function createStatusWhisperElement(): void {
     border: 1px solid var(--persona-secondary, #3d5a35);
     border-radius: var(--radius-full, 9999px);
     font-family: var(--font-body, 'Inter', -apple-system, sans-serif);
-    font-size: 11px;
+    font-size: var(--text-sm, 13px);
     font-weight: 500;
     letter-spacing: 0.01em;
-    color: var(--color-text-primary, #faf6f0);
+    color: var(--persona-on-primary, #ffffff);
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;

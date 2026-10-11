@@ -15,6 +15,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { readCallSummaries } from '../../memory/storage/call-summaries.js';
 
 const log = createLogger({ module: 'CrossDomainSynthesis' });
 
@@ -32,12 +33,7 @@ export interface LifeDomain {
 }
 
 export type DomainName =
-  | 'health'
-  | 'career'
-  | 'relationships'
-  | 'finances'
-  | 'personal_growth'
-  | 'emotional_wellbeing';
+  'health' | 'career' | 'relationships' | 'finances' | 'personal_growth' | 'emotional_wellbeing';
 
 export interface DomainMetric {
   name: string;
@@ -168,9 +164,7 @@ export interface OpportunityWindow {
 // Data Gathering
 // ============================================================================
 
-/**
- * Gather cross-domain data for synthesis
- */
+/** Gather cross-domain data for synthesis; call summaries come from readCallSummaries. */
 async function gatherSynthesisData(userId: string): Promise<{
   health: unknown[];
   career: unknown[];
@@ -216,7 +210,7 @@ async function gatherSynthesisData(userId: string): Promise<{
       userRef.collection('growth_activities').orderBy('timestamp', 'desc').limit(30).get(),
       userRef.collection('moods').where('timestamp', '>=', thirtyDaysAgo).get(),
       userRef.collection('habits').get(),
-      userRef.collection('conversation_summaries').orderBy('timestamp', 'desc').limit(50).get(),
+      readCallSummaries(db, userId, { limit: 50 }),
     ]);
 
     return {
