@@ -75,7 +75,6 @@ import { initializeIntelligence } from '../integrations/unified-intelligence-int
 import { initMemorySession } from '../../intelligence/memory-intelligence/turn-processor-integration.js';
 
 // Context builder prewarming - load intelligence builders before first turn
-import { prewarmBuildersInBackground } from '../../intelligence/context-builders/core/loader.js';
 
 // Redis session warmup - pre-warm caches for fast first-turn response
 import { warmSessionCaches, warmHandoffCaches } from '../../services/session-warmup.js';
@@ -273,13 +272,6 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
 
   resetCatchphraseTracking();
   resetAllConversationState();
-
-  // ================================================================
-  // ⚡ PREWARM CONTEXT BUILDERS (Non-blocking!)
-  // Load intelligence builders in background before first user turn.
-  // This eliminates ~100-200ms from the first response latency.
-  // ================================================================
-  prewarmBuildersInBackground();
 
   // ================================================================
   // ⚡ REDIS CACHE PRE-WARMING (Non-blocking!)

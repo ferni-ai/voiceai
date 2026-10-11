@@ -28,7 +28,8 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFinancialStore } from '../stores/financial-store.js';
 import { getProductivityStore } from '../stores/productivity-store.js';
-import { insightsBroadcast } from './insights-broadcast.js';
+import { getInsightsBroadcast } from '../communication/insights-broadcast.js';
+import { hideFromUser } from './insight-visibility.js';
 import {
   computeFinancialHealth,
   emptyFinancialHealth,
@@ -261,7 +262,7 @@ export function addCrossPersonaInsight(
   // 🔔 Broadcast to connected WebSocket clients for real-time notifications
   // Only broadcast high-priority or proactive insights to avoid noise
   if (insight.priority === 'high' || insight.priority === 'critical' || insight.proactive) {
-    insightsBroadcast.publishInsight(userId, fullInsight);
+    getInsightsBroadcast().publishInsight(userId, fullInsight);
   }
 
   return fullInsight;
@@ -1007,15 +1008,13 @@ export function getInsightsToSurface(
   }));
 }
 
-/**
- * Acknowledge an insight (legacy API - returns Promise)
- */
+/** Acknowledge an insight: the app hides it, and the insight itself is kept (legacy API). */
 export async function acknowledgeInsight(
   userId: string,
   insightId: string,
   _personaId?: string
 ): Promise<void> {
-  consumeInsight(userId, insightId);
+  if (hideFromUser(getInsightsForUser(userId), insightId)) persistInsights(userId);
   return Promise.resolve();
 }
 

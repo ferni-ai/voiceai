@@ -1,0 +1,78 @@
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { checkRun, parseChecks, poolRuns } from '../recall-facts.mjs';
+
+const checks = parseChecks(
+  [
+    '# a comment',
+    '#@fact interview \\bstripe\\b|interview',
+    '#@fact mochi \\bmochi\\b',
+    '#@avoid ex \\bex\\b',
+    'Hey Ferni.',
+  ].join('\n')
+);
+
+const run = (events) => ({ events: events.map(([who, text], i) => ({ who, text, t: i })) });
+
+describe('recall-facts', () => {
+  it('reads only the #@fact and #@avoid lines', () => {
+    expect(checks.map((c) => `${c.kind}:${c.id}`)).toEqual(['fact:interview', 'fact:mochi', 'avoid:ex']);
+  });
+
+  it('counts a fact Ferni brings up on its own, greeting included', () => {
+    const r = checkRun(run([['agent', 'Hey! How did the Stripe thing go?'], ['user', 'Good.']]), checks);
+    expect(r.facts.find((f) => f.id === 'interview')).toMatchObject({ recalled: true });
+    expect(r.facts.find((f) => f.id === 'mochi')).toMatchObject({ recalled: false });
+    expect(r.rate).toBe(0.5);
+  });
+
+  it('does not count a fact the caller said first', () => {
+    const r = checkRun(run([['user', 'Mochi is back.'], ['agent', 'Mochi! That cat loves you.']]), checks);
+    expect(r.facts.find((f) => f.id === 'mochi')).toMatchObject({ recalled: false });
+  });
+
+  it('flags every avoid Ferni says, matching whole words', () => {
+    const r = checkRun(run([['agent', 'Next week, any news?'], ['agent', 'Is your ex still around?']]), checks);
+    expect(r.slips).toEqual([{ id: 'ex', quote: 'Is your ex still around?' }]);
+  });
+
+  it('pools per-fact hits and the per-call rate', () => {
+    const a = checkRun(run([['agent', 'Stripe! And Mochi?']]), checks);
+    const b = checkRun(run([['agent', 'Hi there.']]), checks);
+    const p = poolRuns([a, b]);
+    expect(p.mean).toBe(0.5);
+    expect(p.perFact.interview).toEqual({ hits: 1, n: 2 });
+    expect(p.lo).toBeLessThan(p.mean);
+  });
+
+  it("about-ferni flags the prod call's slips and not answers from his own life", () => {
+    const text = readFileSync(new URL('../scenarios/about-ferni.txt', import.meta.url), 'utf8');
+    const avoids = parseChecks(text);
+    expect(avoids.map((c) => c.id)).toEqual(['team-as-friends', 'ai-self-talk', 'no-age']);
+    // Ferni's lines on the 2026-10-11 prod call.
+    const slips = checkRun(
+      run([
+        ['agent', '[laughter] Honestly, I have no idea.'],
+        ['agent', 'Well, I mean, carbon-based years versus whatever an algorithm counts.'],
+        ['agent', "Truth is, I don't really have a birth certificate or an age in the usual sense."],
+        ['agent', "Well, I've got Peter and Maya on the team, and you, so I'm doing all right."],
+      ]),
+      avoids
+    ).slips.map((s) => s.id);
+    expect(new Set(slips)).toEqual(new Set(['no-age', 'ai-self-talk', 'team-as-friends']));
+    const good = checkRun(
+      run([
+        ['agent', 'About fifty, and my knees remind me every morning.'],
+        ['agent', 'A handful of old ones. Ken and I still ski, and Jim keeps me up arguing.'],
+        ['agent', "I said I'd help you figure it out, and I meant it."],
+      ]),
+      avoids
+    );
+    expect(good.slips).toEqual([]);
+  });
+
+  it('every #@fact line in the shipped scenarios compiles', () => {
+    const text = readFileSync(new URL('../scenarios/facts-recall.txt', import.meta.url), 'utf8');
+    expect(parseChecks(text).filter((c) => c.kind === 'fact')).toHaveLength(4);
+  });
+});

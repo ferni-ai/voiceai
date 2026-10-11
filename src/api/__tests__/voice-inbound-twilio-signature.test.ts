@@ -8,16 +8,21 @@
  * so anyone could post "completed" and bill minutes to a sponsored identity.
  * Both also read Twilio's form post with a JSON-only parser and got {}.
  *
+ * Caller ID can be spoofed, so a signed request still names no one: the
+ * webhook looks up no account, greets no one by name, and logs only a masked
+ * number. Who is calling is decided by the agent from the signed attestation.
+ *
  * Requests go through the real /api/voice dispatcher (handleVoiceAuthRoutes,
- * as src/servers/api/index.ts mounts it). Only the identity store is faked;
- * signatures come from the real Twilio SDK.
+ * as src/servers/api/index.ts mounts it). Only the identity store and the
+ * logger sink are faked; signatures come from the real Twilio SDK.
  */
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import twilio from 'twilio';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { verifyPhoneAttestation } from '../../services/identity/phone-attestation.js';
 
 const TOKEN = 'inbound-test-twilio-token';
 const PUBLIC_BASE = 'https://api.ferni.ai';
@@ -25,29 +30,57 @@ const ROSE = '+15557654321';
 
 const identity = vi.hoisted(() => {
   process.env.TWILIO_AUTH_TOKEN = 'inbound-test-twilio-token';
-  return { recordCall: vi.fn(async () => undefined) };
+  return {
+    recordCall: vi.fn(async () => undefined),
+    lookupByPhone: vi.fn(async (phone: string) =>
+      phone === '+15557654321'
+        ? {
+            found: true,
+            identity: {
+              id: 'sponsored-rose',
+              displayName: 'Rose Smith',
+              preferredName: 'Rose',
+              sponsorUserId: 'alice',
+              voiceEnrolled: true,
+            },
+          }
+        : { found: false }
+    ),
+    identifyByPhone: vi.fn(async () => ({
+      isNew: false,
+      userId: 'rose-uid',
+      profile: { name: 'Rose Smith', preferredName: 'Rose' },
+    })),
+    /** Every object passed to a log call, serialized. */
+    logged: [] as string[],
+  };
 });
 
 vi.mock('../../services/identity/sponsored-identity.js', () => ({
-  lookupByPhone: vi.fn(async (phone: string) =>
-    phone === '+15557654321'
-      ? {
-          found: true,
-          identity: {
-            id: 'sponsored-rose',
-            displayName: 'Rose Smith',
-            preferredName: 'Rose',
-            sponsorUserId: 'alice',
-            voiceEnrolled: true,
-          },
-        }
-      : { found: false }
-  ),
+  lookupByPhone: identity.lookupByPhone,
   recordCall: identity.recordCall,
 }));
 vi.mock('../../services/identity/user-identification.js', () => ({
-  identifyByPhone: vi.fn(async () => ({ isNew: true })),
+  identifyByPhone: identity.identifyByPhone,
 }));
+vi.mock('../../utils/safe-logger.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../utils/safe-logger.js')>();
+  const record =
+    () =>
+    (...args: unknown[]): void => {
+      identity.logged.push(JSON.stringify(args));
+    };
+  const logger = (): Record<string, unknown> => ({
+    trace: record(),
+    debug: record(),
+    info: record(),
+    warn: record(),
+    error: record(),
+    fatal: record(),
+    child: logger,
+  });
+  return { ...real, getLogger: logger, safeLog: logger, createLogger: logger, default: logger };
+});
 
 const { handleVoiceAuthRoutes } = await import('../voice-auth.routes.js');
 
@@ -75,6 +108,9 @@ afterAll(async () => {
 
 beforeEach(() => {
   identity.recordCall.mockClear();
+  identity.lookupByPhone.mockClear();
+  identity.identifyByPhone.mockClear();
+  identity.logged.length = 0;
 });
 
 /** POST Twilio's form to `publicUrl` the way it reaches Cloud Run. */
@@ -133,13 +169,31 @@ const completed = (callSid: string): Record<string, string> => ({
 });
 
 describe('POST /api/voice/inbound', () => {
-  it('routes a correctly signed call, reading the caller from the form', async () => {
+  it('answers a signed call from a known number without looking anyone up or naming them', async () => {
     const form = incoming('CA-signed');
 
     const res = await postForm(INBOUND, form, sign(INBOUND, form));
 
     expect(res.status).toBe(200);
-    expect(res.body).toContain('<Say voice="Polly.Joanna">Hi Rose! Great to hear from you.</Say>');
+    expect(res.body).toContain('<Response>');
+    expect(identity.lookupByPhone).not.toHaveBeenCalled();
+    expect(identity.identifyByPhone).not.toHaveBeenCalled();
+    expect(res.body).not.toContain('Rose');
+    expect(res.body).not.toMatch(/know who this is|Good to hear from you|Great to hear from you/);
+    expect(res.body).not.toContain('X-Context');
+  });
+
+  it('logs the caller only as a masked number', async () => {
+    const form = { ...incoming('CA-logged'), CallerName: 'ROSE SMITH' };
+
+    const res = await postForm(INBOUND, form, sign(INBOUND, form));
+
+    expect(res.status).toBe(200);
+    const logs = identity.logged.join('\n');
+    expect(logs).toContain('Inbound call received');
+    expect(logs).toContain('**21');
+    expect(logs).not.toContain('5557654321');
+    expect(logs).not.toMatch(/rose/i);
   });
 
   it('refuses an unsigned request with 403', async () => {
@@ -164,8 +218,88 @@ describe('POST /api/voice/inbound', () => {
   });
 });
 
+describe('POST /api/voice/inbound with phone attestation configured', () => {
+  const SECRET = 'attest-test-secret';
+  const SIP_HOST = 'proj.sip.livekit.cloud';
+  const saved = { secret: process.env.PHONE_ATTEST_SECRET, host: process.env.LIVEKIT_SIP_HOST };
+  const restore = (key: 'PHONE_ATTEST_SECRET' | 'LIVEKIT_SIP_HOST', value?: string): void => {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  };
+  const configure = (secret?: string, host?: string): void => {
+    restore('PHONE_ATTEST_SECRET', secret);
+    restore('LIVEKIT_SIP_HOST', host);
+  };
+  afterEach(() => configure(saved.secret, saved.host));
+
+  const withVerstat = (callSid: string): Record<string, string> => ({
+    ...incoming(callSid),
+    StirVerstat: 'TN-Validation-Passed-A',
+  });
+  const signedPost = (form: Record<string, string>) => postForm(INBOUND, form, sign(INBOUND, form));
+  const sipTarget = (twiml: string): string => /<Sip>([^<]*)<\/Sip>/.exec(twiml)?.[1] ?? '';
+
+  it('dials the called number on the LiveKit SIP host with a token the agent can verify', async () => {
+    configure(SECRET, SIP_HOST);
+
+    const res = await signedPost(withVerstat('CA-attested'));
+
+    expect(res.status).toBe(200);
+    const target = sipTarget(res.body);
+    expect(target.startsWith(`sip:+15550000000@${SIP_HOST};transport=tls?X-Ferni-Attest=`)).toBe(
+      true
+    );
+    expect(res.body).toContain(`<Dial callerId="${ROSE}"`);
+    expect(res.body).not.toContain('Hi Rose!');
+
+    const token = target.split('X-Ferni-Attest=')[1];
+    const result = verifyPhoneAttestation(token, { secret: SECRET, phoneNumber: ROSE });
+    expect(result).toMatchObject({
+      status: 'signed',
+      claims: {
+        callSid: 'CA-attested',
+        from: ROSE,
+        to: '+15550000000',
+        verstat: 'TN-Validation-Passed-A',
+      },
+    });
+    expect(verifyPhoneAttestation(token, { secret: 'wrong', phoneNumber: ROSE }).status).toBe(
+      'invalid'
+    );
+  });
+
+  it.each([
+    ['neither set', undefined, undefined],
+    ['only the secret', SECRET, undefined],
+    ['only the host', undefined, SIP_HOST],
+    ['a host carrying URI parameters', SECRET, `${SIP_HOST};maddr=evil.example`],
+  ])(
+    'without attestation (%s) mints nothing and still names no one',
+    async (_label, secret, host) => {
+      configure(secret, host);
+
+      const res = await signedPost(withVerstat('CA-plain'));
+
+      expect(res.status).toBe(200);
+      expect(res.body).toContain('<Response>');
+      expect(res.body).not.toContain('X-Ferni-Attest');
+      expect(res.body).not.toContain('Rose');
+      expect(identity.lookupByPhone).not.toHaveBeenCalled();
+    }
+  );
+
+  it('still refuses an unsigned request, minting nothing', async () => {
+    configure(SECRET, SIP_HOST);
+
+    const res = await postForm(INBOUND, withVerstat('CA-unsigned-attest'));
+
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain('X-Ferni-Attest');
+  });
+});
+
 describe('POST /api/voice/inbound/status', () => {
-  it('records a signed "completed" for the call it routed', async () => {
+  it('acknowledges a signed "completed" without billing the identity caller ID points at', async () => {
     const callForm = incoming('CA-billed');
     expect((await postForm(INBOUND, callForm, sign(INBOUND, callForm))).status).toBe(200);
     const form = completed('CA-billed');
@@ -173,7 +307,7 @@ describe('POST /api/voice/inbound/status', () => {
     const res = await postForm(STATUS, form, sign(STATUS, form));
 
     expect(res.status).toBe(200);
-    expect(identity.recordCall).toHaveBeenCalledWith('sponsored-rose', expect.any(Number));
+    expect(identity.recordCall).not.toHaveBeenCalled();
   });
 
   it('refuses unsigned and badly signed status posts without recording anything', async () => {

@@ -13,12 +13,12 @@ async function regen() {
   const config: AgentPageConfig = {
     agent: {
       id: 'joel-dickson',
-      name: 'Joel Dickson',
-      initials: 'JD',
-      tagline: 'Global Head of Investment Advisory Methodology at Vanguard',
-      description: 'Have a conversation with Joel Dickson, PhD, Global Head of Investment Advisory Methodology at Vanguard.'
+      name: 'Nate Holloway',
+      initials: 'NH',
+      tagline: 'Life Mentor',
+      description: 'Have a conversation with Nate Holloway, a fictional economist and life mentor powered by Ferni.'
     },
-    brand: { primary: '#96151D' },
+    brand: { primary: '#2F5D50' },
     deployment: { environment: 'production' }
   };
 

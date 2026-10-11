@@ -18,6 +18,7 @@
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import { requestAttention } from '../services/attention-queue.js';
 
 const log = createLogger('ProactiveMessagesUI');
 
@@ -84,7 +85,7 @@ export function initProactiveMessages(): void {
     position: fixed;
     bottom: var(--space-20, 80px);
     right: var(--space-6, 24px);
-    z-index: var(--z-toast, 999);
+    z-index: var(--z-toast);
     opacity: 0;
     visibility: hidden;
     transition: opacity var(--duration-normal, 200ms) var(--ease-standard, ease-out),
@@ -93,7 +94,6 @@ export function initProactiveMessages(): void {
   `;
   document.body.appendChild(indicator);
 
-  // Add indicator styles
   const style = document.createElement('style');
   style.textContent = `
     .indicator-btn {
@@ -139,7 +139,7 @@ export function initProactiveMessages(): void {
       position: fixed;
       bottom: var(--space-20, 80px);
       right: var(--space-6, 24px);
-      z-index: var(--z-toast, 1000);
+      z-index: var(--z-toast);
       max-width: 380px;
       width: calc(100vw - 48px);
       opacity: 0;
@@ -359,7 +359,7 @@ async function loadMessages(): Promise<void> {
     state.messages = response.data.messages || [];
     state.hasUnread = state.messages.length > 0;
 
-    updateIndicator();
+    requestAttention('proactive-messages', updateIndicator, state.hasUnread);
 
     if (state.hasUnread) {
       log.info({ count: state.messages.length }, 'Loaded pending messages');

@@ -1837,7 +1837,7 @@ export function injectAdminStyles(): void {
       margin-bottom: 1rem;
     }
 
-    @media (max-width: clamp(538px, 90vw, 768px)) {
+    @media (max-width: 768px) {
       .admin-tts-grid {
         grid-template-columns: repeat(2, 1fr);
       }
@@ -2178,7 +2178,7 @@ export function injectAdminStyles(): void {
       grid-column: span 2;
     }
 
-    @media (max-width: clamp(448px, 90vw, 640px)) {
+    @media (max-width: 640px) {
       .admin-soul-card--wide {
         grid-column: span 1;
       }
