@@ -14,10 +14,10 @@
  * @module agents/voice-agent-entry
  */
 
-import { isValidTimeZone } from '../shared/time-context.js';
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 import { noteCallerJoined } from './sip-caller.js';
+import { settleCallerZone } from './phone-parity.js';
 
 // Event cleanup registry for proper memory management
 import {
@@ -67,7 +67,6 @@ import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
 import { resolveSessionPath } from './session-path.js';
 import { devStage, MULTI_AGENT_MODE } from './constants.js';
 import type { FinOpsTier, SessionPhase } from './types.js';
-import { rememberCallerTimeZone } from '../../memory/operations/call-moment.js';
 
 // ============================================================================
 // MODULE-LEVEL SIDE EFFECTS (executed once at import)
@@ -373,8 +372,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
     isReturningUser = initResult.isReturningUser;
     userData = initResult.userData;
-    if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
-    rememberCallerTimeZone(metadata.timezone, sessionId, services?.realtimeConversationId);
+    // The browser's zone, else a verified phone owner's profile zone (PHONE_PARITY).
+    settleCallerZone(sessionId, metadata.timezone, services, userData);
     // IP-detected city (token → dispatch metadata), both paths: tools read it from userData.
     if (userData && typeof metadata.city === 'string' && metadata.city) {
       userData.userLocation = {
