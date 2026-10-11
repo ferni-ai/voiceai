@@ -38,13 +38,23 @@ export function youtubeId(link: string): string | null {
   }
 }
 
-async function groundedVideoIds(query: string, shorts: boolean): Promise<string[]> {
+async function groundedVideoIds(
+  query: string,
+  shorts: boolean
+): Promise<{ ids: string[]; grounding?: Candidate['grounding'] }> {
   const kind = shorts ? 'YouTube Shorts' : 'YouTube videos';
   const found = await groundedSearch(
     `Find the best ${kind} on: ${query}. Name each video, its channel and its YouTube link.`
   );
   const ids = (found?.sources ?? []).flatMap((s) => youtubeId(s.url) ?? []);
-  return [...new Set(ids)];
+  const grounding = found
+    ? {
+        sources: found.sources,
+        searchSuggestionsHtml: found.searchSuggestionsHtml,
+        webSearchQueries: found.webSearchQueries,
+      }
+    : undefined;
+  return { ids: [...new Set(ids)], grounding };
 }
 
 async function searchedVideoIds(query: string, shorts: boolean): Promise<string[]> {
@@ -76,12 +86,15 @@ function videoCandidate(v: YouTubeVideo): Candidate {
 /** Up to MAX_CHECKED videos for `query`, with their lengths. */
 export async function videoCandidates(query: string, shorts: boolean): Promise<Candidate[]> {
   return cachedFor(`video:${shorts ? 'short' : 'any'}:${query}`, async () => {
-    let ids = await groundedVideoIds(query, shorts);
-    if (ids.length === 0) ids = await searchedVideoIds(query, shorts);
+    const found = await groundedVideoIds(query, shorts);
+    const grounding = found.ids.length > 0 ? found.grounding : undefined;
+    const ids = found.ids.length > 0 ? found.ids : await searchedVideoIds(query, shorts);
     const details = await Promise.all(
       ids.slice(0, MAX_CHECKED).map(async (id) => getVideoDetails(id))
     );
-    return details.flatMap((d) => (d.found && d.video ? [videoCandidate(d.video)] : []));
+    return details.flatMap((d) =>
+      d.found && d.video ? [{ ...videoCandidate(d.video), grounding }] : []
+    );
   });
 }
 

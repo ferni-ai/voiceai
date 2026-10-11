@@ -111,7 +111,7 @@ export async function runFindCoachingResources(
     const fit = await fitContext(userId, args.fit, names);
     const pick = await checkedPick(candidates, topic, fit);
     if (pick) {
-      rememberPick(call.session, { topic, candidate: pick.candidate });
+      rememberPick(call.session, { topic, candidate: pick.candidate, why: pick.verdict?.why });
       return pickResultText(topic, pick, sensitive);
     }
     if (candidates.length > 0) return NONE_FIT;

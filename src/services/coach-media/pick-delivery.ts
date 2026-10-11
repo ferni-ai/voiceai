@@ -6,7 +6,8 @@
  *   model never supplies a link, so web text can't get a link sent.
  * - A text goes only to the verified number on the account (userReach), only
  *   because they asked for it, at most MAX_TEXTS_PER_CALL per call. The app
- *   copy goes to the in-app inbox (saveInAppMessage), read by the web client.
+ *   copy goes to the in-app inbox (saveInAppMessage) with its card
+ *   (answer-card.ts) either way.
  * - Sending saves a trust-systems commitment due in a few days, so the
  *   follow-up builder (commitment-follow-up.ts) has Ferni ask once how it went.
  * - Their answer is stored as a coaching_media preference, which fit.ts reads
@@ -24,12 +25,16 @@ import { userReach } from '../outreach/user-reach.js';
 import { saveCommitment } from '../trust-systems/commitment-tracking.js';
 import { storeUserPreferences } from '../user-preferences-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { pickCard } from './answer-card.js';
 import type { Candidate } from './checked-pick.js';
+import { COACH_MEDIA_COMMITMENT_PREFIX } from './feedback.js';
 import { topicOnlyQuery } from './topic-query.js';
 
 export interface SentPick {
   topic: string;
   candidate: Candidate;
+  /** The check's one sentence on why it suits them. */
+  why?: string;
 }
 
 export const MAX_TEXTS_PER_CALL = 2;
@@ -50,7 +55,7 @@ export function commitmentText(c: Candidate): string {
 async function followUpLater(userId: string, sent: SentPick): Promise<void> {
   const now = new Date();
   await saveCommitment({
-    id: `coach-media-${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `${COACH_MEDIA_COMMITMENT_PREFIX}${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
     userId,
     content: commitmentText(sent.candidate),
     type: 'task',
@@ -86,6 +91,15 @@ export async function deliverPick(
   const c = sent.candidate;
   const body = `The ${c.kind} we talked about: ${callerText(c.title, 100)}${c.length ? ` (${c.length})` : ''} ${c.url}`;
   const log = getLogger();
+  // The app copy carries the card (sources, Search suggestions) either way: a
+  // grounded pick's sources must be visible somewhere the user can see.
+  const inApp = {
+    type: 'coaching_resource',
+    personaId,
+    text: body,
+    reason: 'coach-media pick',
+    card: { ...pickCard(sent.topic, c, sent.why, personaId) },
+  };
 
   if (how === 'text') {
     const count = textsSent.get(session!) ?? 0;
@@ -98,17 +112,13 @@ export async function deliverPick(
     try {
       await sendSMS(reach.phone, body);
       textsSent.set(session!, count + 1);
+      await saveInAppMessage(userId, inApp);
     } catch (error) {
       log.warn({ error: String(error) }, 'coach-media: text failed');
       return "The text didn't go through. Offer to put it in the app.";
     }
   } else {
-    const saved = await saveInAppMessage(userId, {
-      type: 'coaching_resource',
-      personaId,
-      text: body,
-      reason: 'coach-media pick',
-    });
+    const saved = await saveInAppMessage(userId, inApp);
     if (!saved.success) return "Couldn't save it to the app just now.";
   }
 
