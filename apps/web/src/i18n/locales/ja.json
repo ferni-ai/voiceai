@@ -3300,8 +3300,8 @@
     "categorySweet": "心温まる瞬間",
     "connectionConnected": "つながっています",
     "connectionConnecting": "接続中...",
-    "connectionDisconnected": "接続されていません",
-    "connectionDisconnectedMessage": "何か問題が発生したようです。もう一度お試しください。",
+    "connectionIdle": "いつでもどうぞ",
+    "connectionIdleMessage": "話したくなったら、いつでもここにいます。",
     "connectionError": "接続が切れました",
     "connectionErrorMessage": "何か問題が発生したようです。もう一度お試しください。",
     "connectionReconnect": "再接続する",
@@ -9507,8 +9507,7 @@
     "rememberEmpty": "今回は新しく覚えておくことはありません。一緒に過ごしてくれてありがとう。",
     "nextStepTitle": "次のやさしい一歩",
     "invitation": "いつでも戻ってきてください。ここで待っています。",
-    "close": "閉じる",
-    "seeCost": "この通話の費用"
+    "close": "閉じる"
   },
   "moments": {
     "teamUnlockTitle": "{name}をご紹介します",
@@ -10112,7 +10111,12 @@
     "getIdeas": "アイデアをもらう",
     "emptyTitle": "提案はまだありません",
     "emptyText": "お互いの関係について、もう少し詳しく教えてみてください。",
-    "generateError": "アイデアを作成できませんでした。もう一度お試しになりますか？"
+    "generateError": "アイデアを作成できませんでした。もう一度お試しになりますか？",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "あなたのためにできること",
@@ -10600,6 +10604,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "関係の進捗",
+    "emptyInvite": "私たちの物語は、最初の会話から始まります。",
     "progress": "進捗",
     "next": "次：{stage}",
     "stages": {
@@ -11074,5 +11079,39 @@
     "youSpeaking": "あなたが話しています",
     "ferniThinking": "Ferniが考えています",
     "tapToInterrupt": "タップして割り込む"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

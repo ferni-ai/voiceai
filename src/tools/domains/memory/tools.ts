@@ -11,6 +11,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -484,7 +485,7 @@ export const forgetMemoryDef: ToolDefinition = {
       }),
       execute: async ({ whatToForget, confirmDeletion }, { ctx: toolCtx }) => {
         getLogger().info(
-          { agentId: ctx.agentId, whatToForget, confirmDeletion },
+          { agentId: ctx.agentId, confirmDeletion }, // never log what to forget
           'Forgetting memory'
         );
 
@@ -494,13 +495,11 @@ export const forgetMemoryDef: ToolDefinition = {
 
         const userData = toolCtx.userData as UserData;
         const { services } = userData;
-
-        // Remove from session memory
-        if (userData.keyMoments) {
-          userData.keyMoments = userData.keyMoments.filter(
-            (m) => !m.toLowerCase().includes(whatToForget.toLowerCase())
-          );
-        }
+        const forget = whatToForget.toLowerCase();
+        userData.keyMoments = userData.keyMoments?.filter((m) => !m.toLowerCase().includes(forget));
+        // And from stored memory, so no later call recalls it (forget.ts).
+        const forgot = await forgetForCaller(userData.userId, whatToForget);
+        if (forgot.kind !== 'forgotten') return forgetProblem(forgot);
 
         // Log the deletion for audit purposes (but don't persist the deleted content)
         if (services?.captureInsight) {

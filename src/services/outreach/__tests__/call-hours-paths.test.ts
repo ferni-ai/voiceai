@@ -169,4 +169,19 @@ describe('proactive call to the user', () => {
     expect(deferred()).toHaveLength(0);
     expect(placed()).toHaveLength(1);
   });
+  it('QUIET_HOURS_UNIFIED, guard off: at 11pm their time it waits for 8:00 there, once', async () => {
+    delete process.env.CALL_HOURS_GUARD;
+    process.env.QUIET_HOURS_UNIFIED = 'on';
+    docs['bogle_users/u1'] = { outreachPreferences: { timezone: 'America/Los_Angeles' } };
+    vi.setSystemTime(ELEVEN_PM_LA);
+    try {
+      const result = await scheduleProactiveCall(request);
+      expect(result).toMatchObject({ success: true });
+      expect(placed()).toHaveLength(1);
+      const due = new Date(placed()[0].data.scheduledFor as string | Date).toISOString();
+      expect(due).toBe('2026-10-14T15:00:00.000Z'); // Wed 08:00 in Los Angeles
+    } finally {
+      delete process.env.QUIET_HOURS_UNIFIED;
+    }
+  });
 });

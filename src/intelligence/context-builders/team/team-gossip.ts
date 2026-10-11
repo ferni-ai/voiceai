@@ -415,7 +415,7 @@ const PROTECTIVE_TEMPLATES: GossipTemplate[] = [
     fromPersona: 'maya-santos',
     aboutPersona: 'ferni',
     message:
-      "I mentioned to Ferni that you seem tired. She said she noticed too. We're both keeping an eye on you, just so you know.",
+      "I mentioned to Ferni that you seem tired. He said he noticed too. We're both keeping an eye on you, just so you know.",
   },
   {
     trigger: 'hard',

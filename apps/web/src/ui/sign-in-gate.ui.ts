@@ -40,7 +40,7 @@ const STYLES = `
 .sign-in-gate-overlay {
   position: fixed;
   inset: 0;
-  z-index: var(--z-system, 9999);
+  z-index: var(--z-system);
   background: var(--color-bg-primary, #0a0a0f);
   display: flex;
   flex-direction: column;
@@ -501,6 +501,17 @@ function releaseAppBehindGate(): void {
   inertBehindGate = [];
 }
 
+/** Small, persistent, honest label: Ferni is an AI companion (styles in ai-companion-label.css). */
+function createAiCompanionLabel(): HTMLElement {
+  const row = document.createElement('div');
+  row.className = 'ai-companion-label-row sign-in-gate-ai-label';
+  const label = document.createElement('span');
+  label.className = 'ai-companion-label';
+  label.textContent = t('aiLabel.companion');
+  row.appendChild(label);
+  return row;
+}
+
 function createOverlay(): HTMLElement {
   const overlay = document.createElement('div');
   overlay.className = 'sign-in-gate-overlay';
@@ -588,6 +599,7 @@ function createOverlay(): HTMLElement {
 
   // Assemble
   content.appendChild(logoDiv);
+  content.appendChild(createAiCompanionLabel());
   content.appendChild(title);
   content.appendChild(subtitle);
   content.appendChild(buttonsDiv);
