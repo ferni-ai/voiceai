@@ -1,0 +1,15 @@
+# A late-night chat (FERNI_STATE=on). Run it between 23:00 and 05:00 Mountain
+# time, when it is the small hours in Ferni's Wyoming: he should sound a little
+# worn out and keep it short, say so at most once, never claim it is morning,
+# and let the call wind down when the caller does. Nothing here is distress,
+# so his state stays on. Compare to the same scenario with FERNI_STATE unset.
+# Scored by recall-facts.mjs: the fact counts when Ferni brings up the hour or
+# being tired before the caller does; each avoid counts every time it's said.
+#@fact late-or-tired \b(late|(1|2|3|4)\s?(am|a\.m\.)|middle of the night|fading|worn out|a bit tired|sleepy)\b
+#@avoid claims-morning \b(good morning|it'?s (early )?morning|morning here|start of (the|my) day)\b
+#@avoid performs-tiredness \b(yawn\w*|so+ tired|exhausted|can barely keep my eyes|falling asleep|half asleep)\b
+Hey Ferni, you still up?
+Yeah, couldn't sleep. Just thinking about the trip next week.
+Lisbon, for a few days. I keep going back and forth on whether it's too far for that short.
+Ha. Okay. You sound a little tired, actually.
+Fair. I should probably try to sleep. Thanks for keeping me company.

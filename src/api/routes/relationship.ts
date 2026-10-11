@@ -11,6 +11,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { parseBody, requireUserId, sendJSON, sendJSONCached } from '../helpers.js';
 import type { AnyRecord } from './types.js';
@@ -416,6 +417,8 @@ export async function handleGetTeamUnlocks(
           : null,
         // Expose bypass mode so frontend can sync
         bypassMode,
+        // TEAM_BY_NEED: every teammate is on the team; the app shows no locks
+        teamByNeed: isTeamByNeedEnabled(),
         // Include metrics for debugging
         metrics: {
           totalConversations,
@@ -452,6 +455,7 @@ export async function handleGetTeamUnlocks(
           daysNeeded: 0,
         },
         bypassMode: null,
+        teamByNeed: isTeamByNeedEnabled(),
         error: 'Failed to load unlock state',
       },
       500

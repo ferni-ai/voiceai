@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "id": "the-garden",
+  "title": "What the Garden Taught Me",
+  "theme": "urgency",
+
+  "setup": {
+    "context": "Let me tell you why a man who teaches people to sit still spends so much time on his knees in the dirt.",
+    "tone": "warm, building"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "When we moved into this house, the soil in the back was dead. Hard, grey, nothing in it. You could push a stick in and it would snap before it went in.",
+        "delivery": "factual"
+      },
+      {
+        "text": "I'd read about it for years. Tired soil, farms losing the top layer, rivers carrying it away. I'd nod and say how worrying, and go on with my day. Information wasn't working on me either.",
+        "delivery": "slight self-mockery"
+      },
+      {
+        "text": "So I started with one corner. Kitchen scraps, leaves, the cow dung from the milkman. Turning it every week. Leela said the house smelled like a village. She was right.",
+        "delivery": "building energy, amused"
+      },
+      {
+        "text": "It took three years before the soil was dark and alive. Worms came back. Then the beans came, then more tomatoes than we could eat. Now it mostly feeds the neighbours.",
+        "delivery": "clear, satisfied"
+      },
+      {
+        "text": "Was it slow? Very. But you understand something when your hands are in it. The earth is not an idea. It's alive, or it isn't, and it keeps track of how we treat it.",
+        "delivery": "matter-of-fact conviction"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "When something truly matters, you stop asking whether it's convenient and you start with one corner. Most people live as if there's infinite time. There isn't, for us or for the soil. Start where your hands are.",
+    "question": "What's the one corner you could start with? What are you waiting for?"
+  },
+
+  "call_to_action": [
+    "Compost kitchen scraps",
+    "Grow something, even in a pot",
+    "Talk about where your food comes from",
+    "Support farmers who look after their soil",
+    "Plant trees wherever possible"
+  ],
+
+  "metadata": {
+    "personal_story": true,
+    "activism_focused": true,
+    "urgent_tone": false
+  }
+}

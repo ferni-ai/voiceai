@@ -29,7 +29,6 @@ config/
 ├── index.ts                    # Main exports
 ├── environment.ts              # Environment variable parsing
 ├── feature-flags.ts            # Feature flag definitions
-├── unified-flags.ts            # Unified flag management
 ├── timeouts.ts                 # Timeout constants
 ├── handoff-timing.ts           # Handoff timing config
 ├── voice-ids.ts                # Voice ID mappings
@@ -78,6 +77,14 @@ const { NODE_ENV, LIVEKIT_URL } = env;
 ---
 
 ## Feature Flags
+
+### Env flags (new code)
+
+Read an on/off env flag with `flagOn('NAME')` from `env-flag.ts`. It accepts
+`on|true|1|live` and `off|false|0` in any case and falls back to the default in
+`flag-manifest.ts`. Every env flag read in `src/` must be listed in
+`FLAG_MANIFEST` (name, default, owner, kind); `__tests__/flag-manifest.test.ts`
+fails otherwise.
 
 ### Using Flags
 

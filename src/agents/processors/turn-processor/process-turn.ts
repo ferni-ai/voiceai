@@ -49,7 +49,6 @@ import {
 import {
   buildFTISToolHint,
   convertToSemanticRoutingResult,
-  isFTISEnabled,
   runFTISRouting,
 } from '../tool-routing-integration.js';
 
@@ -139,6 +138,7 @@ import {
 import { enrichEmotionWithVoice } from './voice-biomarker.js';
 import { recordTeamHuddleObservation } from './team-huddle-helpers.js';
 import { buildContextInjections } from './context-injections.js';
+import { isFtisEnabled } from '../../../config/tool-config.js';
 
 /**
  * Process a complete user turn
@@ -190,7 +190,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // SAFETY FIRST: Crisis detection runs BEFORE anything else
   // The classifier's verdict is awaited (turn-crisis.ts) before any LLM bypass and the result.
-  const turnCrisis = startTurnCrisis(userText, userData);
+  const turnCrisis = startTurnCrisis(userText, userData, { sessionId: services.sessionId });
   const crisisResult = turnCrisis.patterns;
 
   if (hasCrisisSignal(crisisResult)) {
@@ -680,7 +680,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // ============================================================================
   // PARALLEL PROCESSING: Tool routing
   // ============================================================================
-  const isFTISMode = !ctx.contextOnly && isFTISEnabled();
+  const isFTISMode = !ctx.contextOnly && isFtisEnabled();
 
   let semanticRoutingPromise: Promise<TurnRouterResult> | null = null;
   let ftisRoutingPromise: ReturnType<typeof runFTISRouting> | null = null;
@@ -1510,7 +1510,7 @@ If they're just conversing, respond naturally without a tool call.`,
     easterEgg,
     valueCapture: valueCaptureResult,
     advancedHumanization,
-    crisis: crisisSummary(finalCrisis),
+    crisis: crisisSummary(finalCrisis, await turnCrisis.softCheck()),
     trustContext: trustContextSummary,
     semanticRouting,
     resonanceCheck,

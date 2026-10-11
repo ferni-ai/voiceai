@@ -122,7 +122,7 @@ function injectStyles(): void {
     .conversation-starters-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -508,7 +508,7 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .conversation-starters-modal {
         width: 100%;
         max-width: none;
@@ -683,6 +683,34 @@ function bindEvents(): void {
 // ACTIONS
 // ============================================================================
 
+/** A topic as GET /api/contacts/:id/topics returns it (getTopicsToDiscuss). */
+interface ContactTopic {
+  topic: string;
+  sentiment?: string;
+  suggestion?: string;
+}
+
+/**
+ * Turn a topic they keep coming back to into something to say. The server's
+ * `suggestion` is advice to the user ("Ask how it's going!"), so it becomes the
+ * context line, and the opener is written to the contact.
+ */
+function toStarter(topic: ContactTopic, index: number): ConversationStarter {
+  const tone: ConversationStarter['tone'] =
+    topic.sentiment === 'negative'
+      ? 'supportive'
+      : topic.sentiment === 'positive'
+        ? 'celebratory'
+        : 'curious';
+  return {
+    id: `topic-${index}`,
+    topic: topic.topic,
+    opener: t(`conversationStarters.openers.${tone}`, { topic: topic.topic }),
+    context: topic.suggestion ?? '',
+    tone,
+  };
+}
+
 async function generateStarters(): Promise<void> {
   state.isLoading = true;
   state.error = null;
@@ -690,17 +718,14 @@ async function generateStarters(): Promise<void> {
   render();
 
   try {
-    const response = await apiFetch(`/api/contacts/${state.contactId}/conversation-starters`, {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
+    const response = await apiFetch(`/api/contacts/${encodeURIComponent(state.contactId)}/topics`);
 
     if (!response.ok) {
       throw new Error('Failed to generate starters');
     }
 
-    const data = await response.json();
-    state.starters = data.starters || [];
+    const data = (await response.json()) as { topics?: ContactTopic[] };
+    state.starters = (data.topics ?? []).map(toStarter);
     state.hasGenerated = true;
     state.isLoading = false;
     

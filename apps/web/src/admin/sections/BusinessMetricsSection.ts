@@ -338,7 +338,7 @@ export function render(): string {
         gap: var(--space-lg);
       }
 
-      @media (max-width: clamp(538px, 90vw, 768px)) {
+      @media (max-width: 768px) {
         .two-column {
           grid-template-columns: 1fr;
         }
