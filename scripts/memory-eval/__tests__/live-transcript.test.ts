@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { agentLines, repliesAfter, type EvalRun } from '../live/transcript.js';
-import { PERSONAS } from '../live/personas.js';
+import { PERSONAS } from '../fixtures/live-personas.js';
 
 // The shape of a real run (out/ponder-quiet-3): captions grow word by word.
 const run: EvalRun = {

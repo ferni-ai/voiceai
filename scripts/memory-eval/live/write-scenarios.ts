@@ -3,11 +3,11 @@
  * Writes the live memory eval's calls as voice-eval scenarios:
  * scenarios/memlive-<persona>-<n>.txt for each history call and
  * scenarios/memlive-<persona>-quiz.txt for the quiz (with a goodbye that
- * isn't graded). Rerun after editing personas.ts.
+ * isn't graded). Rerun after editing fixtures/live-personas.ts.
  */
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { PERSONAS } from './personas.js';
+import { PERSONAS } from '../fixtures/live-personas.js';
 
 const dir = join(import.meta.dirname, '../../voice-eval/scenarios');
 const header = (what: string) =>

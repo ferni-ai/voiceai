@@ -20,7 +20,7 @@ import {
   parseYesNo,
   type CaseResult,
 } from '../longmem-lib.js';
-import { PERSONAS } from './personas.js';
+import { PERSONAS } from '../fixtures/live-personas.js';
 import { agentLines, repliesAfter, type EvalRun } from './transcript.js';
 
 const OUT = join(import.meta.dirname, '../../voice-eval/out');
