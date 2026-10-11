@@ -76,7 +76,6 @@ import {
 } from './memory-recall-hook.js';
 import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { rememberForPacket } from '../personas/context-packet/turn-packet.js';
-import { loadWorldFactsForCall } from '../../intelligence/world-model/temporal/in-call-load.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
@@ -733,7 +732,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
     const fastStart = Date.now();
     try {
-      // getToolsForAgent now hoisted to module level
       const subscriptionTier =
         (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
 
@@ -828,7 +826,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
     const gatewayTools = loadToolsFromGateway();
     if (gatewayTools) return gatewayTools;
 
-    // Tool orchestrator imports now hoisted to module level
     mark('tools_orchestrator_check');
 
     // Initialize orchestrator if needed
@@ -962,7 +959,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
       // ✅ SUCCESS: Full tools loaded. SYNCHRONOUSLY warmup session cache!
       // This ensures handoff tools are ready BEFORE any handoff request
-      // warmupHandoffToolsForSession now hoisted to module level
       try {
         const cacheStart = Date.now();
         const tier =
@@ -1172,7 +1168,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   mark('session_create_start');
   // A persona swapped into a running call joins its session (persona-swap.ts)
-  const parts = { persona, sessionId, services, userData, llmModel, tts };
+  const parts = { persona, sessionId, services, userData, userId, llmModel, tts };
   const session = callSession ?? (await createCallSession({ ...parts, phone: config.phoneCaller }));
 
   mark('session_created');
@@ -1622,9 +1618,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   log.info({ personaId: persona.id }, '🔍 Enhanced error logging attached to LLM and session');
 
   // Create agent wrapper WITH TOOLS using FerniAgent (has ttsNode override for JSON sanitizer)
-  // FIX: Previously used voice.Agent which BYPASSED the JSON function call sanitizer!
   // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
-  // FerniAgent now hoisted to module level for faster startup
   // Per-turn intelligence (context builders, memory retrieval, emotional
   // guidance). On unless TURN_INTELLIGENCE=off; see turn-intelligence.ts.
   const turnContextHook =
@@ -1678,10 +1672,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
       sessionWithEvents.off?.('agent_state_changed', onRecallAgentState);
     });
   }
-
-  // WORLD_FACTS_IN_CALL=on: what's current in their life (the new job, the
-  // interview Thursday), read once for the call; each turn's note picks from it.
-  if (!callSession) void loadWorldFactsForCall(userData, userId);
 
   // Built in the background on each final transcript and pushed between
   // turns for the next reply: never in onUserTurnCompleted, where changing the

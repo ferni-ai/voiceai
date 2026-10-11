@@ -10,6 +10,7 @@ vi.mock('../../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => n
 
 import { BUDGET_TOKENS, MAX_LINES, WORLD_FACTS_RULE, worldFactLines } from '../in-call.js';
 import {
+  forgetForCallerAndCall,
   forgetWorldFactsInCall,
   loadWorldFactsForCall,
   worldFactLinesFor,
@@ -198,6 +199,23 @@ describe('loadWorldFactsForCall', () => {
     expect(worldFactsNoteFor(call, opts())).not.toContain('Beta');
     expect(worldFactsNoteFor(call, opts())).toContain('Stripe');
     forgetWorldFactsInCall(call, 'the Stripe interview');
+    expect(worldFactsNoteFor(call, opts())).not.toContain('Stripe');
+  });
+
+  it('forgetMemory drops the topic from the call when the stored forget went through', async () => {
+    const call = {};
+    await loadWorldFactsForCall(call, 'u1', {
+      store: await seeded(),
+      forgotten: noTopics,
+      env: ON,
+    });
+    expect(worldFactsNoteFor(call, opts())).toContain('Stripe');
+    // No caller account: nothing was forgotten, so nothing changes on the call either.
+    expect((await forgetForCallerAndCall(call, 'anonymous', 'Stripe')).kind).toBe('failed');
+    expect(worldFactsNoteFor(call, opts())).toContain('Stripe');
+    expect((await forgetForCallerAndCall(call, 'u1', 'the Stripe interview')).kind).toBe(
+      'forgotten'
+    );
     expect(worldFactsNoteFor(call, opts())).not.toContain('Stripe');
   });
 

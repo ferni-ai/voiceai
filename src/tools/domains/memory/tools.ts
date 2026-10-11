@@ -11,8 +11,8 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
-import { forgetWorldFactsInCall } from '../../../intelligence/world-model/temporal/in-call-load.js';
+import { forgetProblem } from '../../../memory/recall/forget.js';
+import { forgetForCallerAndCall } from '../../../intelligence/world-model/temporal/in-call-load.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -498,10 +498,8 @@ export const forgetMemoryDef: ToolDefinition = {
         const { services } = userData;
         const forget = whatToForget.toLowerCase();
         userData.keyMoments = userData.keyMoments?.filter((m) => !m.toLowerCase().includes(forget));
-        // And from stored memory, so no later call recalls it (forget.ts).
-        const forgot = await forgetForCaller(userData.userId, whatToForget);
+        const forgot = await forgetForCallerAndCall(userData, userData.userId, whatToForget);
         if (forgot.kind !== 'forgotten') return forgetProblem(forgot);
-        forgetWorldFactsInCall(userData, whatToForget); // and from this call's world facts
 
         // Log the deletion for audit purposes (but don't persist the deleted content)
         if (services?.captureInsight) {
