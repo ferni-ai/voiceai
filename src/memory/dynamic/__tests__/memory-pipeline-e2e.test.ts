@@ -37,7 +37,7 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 
 // Mock async-events-config
 vi.mock('../async-events-config.js', () => ({
-  safeOnEvent: vi.fn(() => true),
+  safeOnEvent: vi.fn(() => () => {}),
   safeEmitEvent: vi.fn(() => true),
   configureAsyncEvents: vi.fn(),
   resetAsyncEventsConfig: vi.fn(),
@@ -237,7 +237,7 @@ describe('Memory Pipeline E2E Integration', () => {
       // Capture event handler
       (asyncEventsConfig.safeOnEvent as Mock).mockImplementation((_event, handler) => {
         eventHandler = handler;
-        return true;
+        return () => {};
       });
 
       worker.start();

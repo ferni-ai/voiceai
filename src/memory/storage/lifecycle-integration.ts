@@ -18,6 +18,7 @@ import type { MemoryItem } from '../interfaces/index.js';
 import { getMemoryConsolidator, type ConsolidatedMemory } from '../memory-consolidator.js';
 import { getMemoryDecayManager } from '../memory-decay.js';
 import { getMemoryGraph, type MemoryLink } from '../memory-graph.js';
+import { getProtectionEngine } from '../operations/protection-engine.js';
 
 const log = createLogger({ module: 'LifecycleIntegration' });
 
@@ -313,6 +314,26 @@ export async function saveConsolidatedMemory(
  * Run full lifecycle maintenance for a user
  * This is the deep integration that actually affects storage
  */
+/**
+ * Memories the Protection Engine protected (core identity, milestones,
+ * "remember this"). If they can't be read, every memory counts as protected,
+ * so a failed read archives nothing instead of archiving a protected memory.
+ */
+async function loadEngineProtectedIds(
+  userId: string,
+  memories: MemoryItem[]
+): Promise<ReadonlySet<string>> {
+  try {
+    return await getProtectionEngine().getProtectedMemoryIds(userId);
+  } catch (error) {
+    log.warn(
+      { error: String(error), userId },
+      'Could not load memory protections; skipping archival this run'
+    );
+    return new Set(memories.map((m) => m.id));
+  }
+}
+
 export async function runLifecycleMaintenance(userId: string): Promise<LifecycleResult> {
   const startTime = Date.now();
   const result: LifecycleResult = {
@@ -348,10 +369,11 @@ export async function runLifecycleMaintenance(userId: string): Promise<Lifecycle
       }
     }
 
-    // 3. Apply decay
+    // 3. Apply decay (never archiving what the Protection Engine protected)
     const decayManager = getMemoryDecayManager();
     const decayingMemories = memories.map((m) => decayManager.initializeDecay(m));
-    const pruneResult = decayManager.pruneWeakMemories(decayingMemories);
+    const engineProtectedIds = await loadEngineProtectedIds(userId, memories);
+    const pruneResult = decayManager.pruneWeakMemories(decayingMemories, engineProtectedIds);
 
     result.decay.memoriesArchived = pruneResult.archived.length;
     result.decay.memoriesProtected =

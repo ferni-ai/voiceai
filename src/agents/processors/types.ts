@@ -228,6 +228,8 @@ export interface CrisisDetection {
   suggestedResponse?: string;
   /** Whether to override LLM response entirely */
   shouldOverrideLLM: boolean;
+  /** A soft check-in instead of crisis guidance (CRISIS_AGREEMENT_GATE, turn-crisis.ts) */
+  softCheck?: boolean;
   /** Who is at risk: the caller, or someone they are worried about */
   subject?: CrisisSubject;
   /** 'es' when the crisis language was Spanish */
