@@ -191,6 +191,39 @@ describe('moment chip text', () => {
     expect(continueAfterLabel('I went running')).toBe('I went running');
   });
 
+  const chipAt = (width: number): HTMLLIElement => {
+    const chip = renderChip({
+      key: 'k',
+      label: "I'll remember:",
+      shortLabel: 'Noted:',
+      text: 'you started martial arts on Tuesdays',
+    });
+    // Fake layout: every character is 10px wide.
+    Object.defineProperty(chip, 'scrollWidth', { get: () => (chip.textContent ?? '').length * 10 });
+    fitOneLine(chip, width);
+    return chip;
+  };
+  const parts = (chip: HTMLElement): [string | undefined, string | undefined] => [
+    chip.querySelector('.ferni-moment__label')?.textContent ?? undefined,
+    chip.querySelector('.ferni-moment__text')?.textContent ?? undefined,
+  ];
+
+  it('gives way label first: the short label keeps the whole fact', () => {
+    const chip = chipAt(430); // full 500px, "Noted:" 420px
+    expect(parts(chip)).toEqual(['Noted:', 'you started martial arts on Tuesdays']);
+    expect(chip.getAttribute('aria-label')).toBe(
+      "I'll remember: you started martial arts on Tuesdays"
+    );
+  });
+
+  it('then drops the label (dot stays) before cutting any of the fact', () => {
+    const chip = chipAt(400); // "Noted:" still 420px; no label 360px
+    expect(parts(chip)).toEqual([undefined, 'you started martial arts on Tuesdays']);
+    expect(chip.getAttribute('aria-label')).toBe(
+      "I'll remember: you started martial arts on Tuesdays"
+    );
+  });
+
   it('keeps a chip to one line by dropping whole words, with the full text as its name', () => {
     const chip = renderChip({
       key: 'k',

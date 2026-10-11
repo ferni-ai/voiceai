@@ -88,7 +88,9 @@
     "sheetTitle": "The conversation so far",
     "close": "Close",
     "momentRemember": "I'll remember:",
+    "momentRememberShort": "Noted:",
     "momentNoticed": "I noticed:",
+    "momentNoticedShort": "Noticed:",
     "momentWin": "Nice:"
   },
   "placeholders": {

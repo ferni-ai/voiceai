@@ -23,15 +23,17 @@ export interface Moment {
   key: string;
   text: string;
   label?: string;
+  /** A shorter label for narrow rows ("Noted:"). */
+  shortLabel?: string;
 }
 
 const MAX_CHIPS = 1; // one moment at a time: the newest, never a pile
 const CHIP_MS = 9000;
 /** Trust signals worth a chip, labelled in Ferni's voice (i18n keys). */
-const TRUST_LABELS: Record<string, string> = {
-  callback: 'transcript.momentRemember', // "I'll remember:"
-  growth: 'transcript.momentNoticed', // "I noticed:"
-  small_win: 'transcript.momentWin', // "Nice:"
+const TRUST_LABELS: Record<string, [string, string]> = {
+  callback: ['transcript.momentRemember', 'transcript.momentRememberShort'], // "I'll remember:" / "Noted:"
+  growth: ['transcript.momentNoticed', 'transcript.momentNoticedShort'], // "I noticed:" / "Noticed:"
+  small_win: ['transcript.momentWin', 'transcript.momentWin'], // "Nice:"
 };
 /** Words a shortened chip should not end on. */
 const DANGLING = /^(a|an|the|and|or|but|on|in|at|to|for|of|with|from|by|my|your|our)$/i;
@@ -46,9 +48,14 @@ export function momentFromTrustSignal(detail: unknown): Moment | null {
   const d = (detail ?? {}) as Record<string, unknown>;
   const type = text(d['type']);
   const message = text(d['message']);
-  const label = TRUST_LABELS[type];
-  if (!label || !message) return null;
-  return { key: `trust:${type}`, label: t(label), text: continueAfterLabel(message) };
+  const labels = TRUST_LABELS[type];
+  if (!labels || !message) return null;
+  return {
+    key: `trust:${type}`,
+    label: t(labels[0]),
+    shortLabel: t(labels[1]),
+    text: continueAfterLabel(message),
+  };
 }
 
 /** A chip for in-call feedback ({message, tone, key}) or a generic moment. */
@@ -76,6 +83,7 @@ export function renderChip(moment: Moment): HTMLLIElement {
     const label = document.createElement('span');
     label.className = 'ferni-moment__label';
     label.textContent = moment.label;
+    if (moment.shortLabel) label.dataset.short = moment.shortLabel;
     chip.append(label);
   }
   const body = document.createElement('span');
@@ -86,15 +94,21 @@ export function renderChip(moment: Moment): HTMLLIElement {
 }
 
 /**
- * Keep a chip to one line (a two-line chip reads like a toast): drop whole
- * words from the end until it fits, end with "…", and keep the full moment
- * as the chip's accessible text. Skipped when the row has no width yet.
+ * Keep a chip to one line (a two-line chip reads like a toast). The fact
+ * matters more than the label, so give way in this order: the short label
+ * ("Noted:"), then no label (the dot stays), and only then whole words from
+ * the end of the fact, with "…". Whatever gives way stays in the chip's
+ * accessible name. Skipped when the row has no width yet.
  */
 export function fitOneLine(chip: HTMLElement, width: number): void {
   const body = chip.querySelector<HTMLElement>('.ferni-moment__text');
   if (!body || width <= 0 || chip.scrollWidth <= width) return;
-  const label = chip.querySelector('.ferni-moment__label')?.textContent;
-  const full = [label, body.textContent].filter(Boolean).join(' ');
+  const label = chip.querySelector<HTMLElement>('.ferni-moment__label');
+  const full = [label?.textContent, body.textContent].filter(Boolean).join(' ');
+  chip.setAttribute('aria-label', full);
+  chip.title = full;
+  if (label?.dataset.short) label.textContent = label.dataset.short;
+  if (chip.scrollWidth > width) label?.remove();
   const words = (body.textContent ?? '').split(' ');
   while (words.length > 1 && chip.scrollWidth > width) {
     words.pop();
@@ -102,8 +116,6 @@ export function fitOneLine(chip: HTMLElement, width: number): void {
     while (words.length > 1 && DANGLING.test(words[words.length - 1] ?? '')) words.pop();
     body.textContent = `${words.join(' ').replace(/[\s,;:.]+$/, '')}…`;
   }
-  chip.setAttribute('aria-label', full);
-  chip.title = full;
 }
 
 export class MomentChips {
