@@ -445,3 +445,39 @@ describe('first audio held by an opening sound', () => {
     expect(order).not.toContain('first-audio');
   });
 });
+
+describe('leading silence (CASCADE_TRIM_LEAD_SILENCE)', () => {
+  /** A reply whose first chunk is 110 ms of quiet then a loud tone, as Sonic sends it. */
+  class SonicLikeReply extends FakeReply {
+    async *[Symbol.asyncIterator]() {
+      const a = new Int16Array(24 * 154);
+      for (let i = 24 * 110; i < a.length; i++) a[i] = 8000;
+      yield a.buffer;
+      yield new Int16Array(24 * 20).fill(8000).buffer;
+    }
+  }
+
+  async function firstReplyBytes(trimLeadSilence: boolean) {
+    let trimmedMs: number | undefined;
+    const stream = createContinuationTTS({
+      textStream: textStream(['That sounds like a long one. ']),
+      reply: new SonicLikeReply(),
+      sanitize: (chunk) => ({ text: chunk.trim(), prosody: {} }),
+      openingTags: prosodyTags,
+      toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
+      onFirstAudio: Object.assign(() => undefined, { trimmed: (ms: number) => (trimmedMs = ms) }),
+      onError: () => undefined,
+      trimLeadSilence,
+    });
+    const frames = (await drain(stream)) as unknown as Array<{ bytes: number }>;
+    return { first: frames[0]!.bytes, trimmedMs };
+  }
+
+  it('starts the reply at its first sound, 10 ms before it', async () => {
+    const off = await firstReplyBytes(false);
+    const on = await firstReplyBytes(true);
+    expect(off).toEqual({ first: 24 * 154 * 2, trimmedMs: undefined });
+    expect(on.trimmedMs).toBe(100);
+    expect(on.first).toBe(24 * (154 - 100) * 2);
+  });
+});

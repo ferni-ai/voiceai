@@ -496,10 +496,10 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 
         // Step 6: Initiate the call
         const callId = await initiateOnBehalfCall(request);
-
+        const { deferredCallReply } = await import('../../../services/outreach/deferred-calls.js');
+        const deferred = deferredCallReply(callId, contact.name, purpose);
+        if (deferred) return deferred;
         log.info({ callId, contactName: contact.name, purpose }, 'Call initiated successfully');
-
-        // Step 7: Return confirmation
         const callTypeLabel = callType === 'personal' ? '' : ` (${callType})`;
         return (
           `Got it! I'm calling ${contact.name}${callTypeLabel} now to ${purpose}. ` +

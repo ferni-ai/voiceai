@@ -21,6 +21,8 @@ export type FirstAudioObserver = (() => void) & {
   stage(stage: 'text' | 'push'): void;
   /** Resolves once an opening sound no longer holds this session's reply audio. */
   hold(): Promise<void>;
+  /** Sonic's leading silence dropped before the first audio (lead-silence.ts). */
+  trimmed(ms: number): void;
 };
 
 interface FirstAudioObserverOptions {
@@ -33,7 +35,7 @@ export function createFirstAudioObserver({
   startTime,
 }: FirstAudioObserverOptions): FirstAudioObserver {
   let hasMarkedFirstAudio = false;
-  const stages: { textMs?: number; pushMs?: number } = {};
+  const stages: { textMs?: number; pushMs?: number; leadTrimMs?: number } = {};
 
   const observe = (): void => {
     if (hasMarkedFirstAudio) return;
@@ -57,6 +59,9 @@ export function createFirstAudioObserver({
     }
   };
   return Object.assign(observe, {
+    trimmed(ms: number): void {
+      stages.leadTrimMs ??= ms;
+    },
     stage(stage: 'text' | 'push'): void {
       const key = stage === 'text' ? 'textMs' : 'pushMs';
       if (stage === 'text' && stages.textMs === undefined && sessionId) noteReplyText(sessionId);

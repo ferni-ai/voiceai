@@ -5765,7 +5765,7 @@ body {
 /* Connecting state - button shows progress inline */
 .btn-connecting {
   position: relative;
-  pointer-events: none;
+  cursor: pointer; /* tap to cancel */
   /* Subtle width expansion to accommodate spinner */
   min-width: min(160px, 100%);
   transition: min-width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -5778,7 +5778,7 @@ body {
 
 /* Connecting state overlay with spinner + text */
 .btn-connecting::after {
-  content: 'Connecting';
+  content: attr(data-status);
   position: absolute;
   inset: 0;
   display: flex;
