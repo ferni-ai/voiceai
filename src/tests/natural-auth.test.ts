@@ -12,7 +12,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // below happens to have a real sponsored identity. Stub the lookup so the test
 // is hermetic and actually tests the path it names.
 vi.mock('../services/identity/sponsored-identity.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../services/identity/sponsored-identity.js')>();
+  const actual =
+    await importOriginal<typeof import('../services/identity/sponsored-identity.js')>();
   return {
     ...actual,
     lookupByPhone: vi.fn(async () => ({ found: false })),
@@ -27,6 +28,7 @@ import {
   verifyIdentity,
   type AuthContext,
 } from '../services/identity/natural-auth.js';
+import { signOnBehalfDispatch } from '../services/outreach/on-behalf-dispatch.js';
 
 describe('Natural Authentication', () => {
   describe('authenticateNaturally', () => {
@@ -52,14 +54,21 @@ describe('Natural Authentication', () => {
       expect(result.isNewUser).toBe(true);
     });
 
-    it('should identify user by phone number', async () => {
-      const result = await authenticateNaturally({
-        metadata: {
-          caller_id: '+15551234567',
-        },
-      });
+    it('should identify user by phone number on a dispatch our server signed', async () => {
+      process.env.LIVEKIT_API_SECRET = 'test-livekit-secret';
+      const metadata = signOnBehalfDispatch(
+        { caller_id: '+15551234567' } as never,
+        'test-livekit-secret'
+      ) as unknown as Record<string, unknown>;
+      const result = await authenticateNaturally({ metadata });
 
       expect(result.userId).toContain('phone');
+    });
+
+    it('should not identify anyone by an unsigned caller_id (caller ID is spoofable)', async () => {
+      const result = await authenticateNaturally({ metadata: { caller_id: '+15551234567' } });
+
+      expect(String(result.userId ?? '')).not.toContain('5551234567');
     });
 
     it('should handle explicit user_id', async () => {
