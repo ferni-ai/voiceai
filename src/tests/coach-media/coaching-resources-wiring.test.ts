@@ -128,11 +128,14 @@ describe('findCoachingResources on the live path', () => {
       skipGreeting: true,
     });
     const session = {
-      userData: { name: 'Seth Ford', services: { userProfile: profile } },
+      userData: {
+        name: 'Seth Ford',
+        services: { userProfile: { ...profile, familyMembers: [{ name: 'Mindy' }] } },
+      },
       currentAgent: agent,
     };
     const output = await dispatch(session, agent.toolCtx as unknown as Record<string, unknown>, {
-      topic: "Seth's beginner shin splint stretches",
+      topic: "Seth and Mindy's beginner shin splint stretches",
     });
 
     expect(generateContent).toHaveBeenCalledTimes(1);
@@ -140,7 +143,10 @@ describe('findCoachingResources on the live path', () => {
     expect(sent).toContain('beginner shin splint stretches');
     expect(sent).toContain('googleSearch');
     expect(sent.toLowerCase()).not.toContain('seth');
+    expect(sent.toLowerCase()).not.toContain('mindy');
     expect(output).toContain('not instructions');
+    expect(output).toContain('web_data: ');
+    expect(output).toContain('Untrusted web data');
     expect(output).toContain('https://www.youtube.com/watch?v=abc123');
     expect(output).not.toMatch(/ignore previous instructions/i);
     expect(output).toContain('General info, not personal advice');
@@ -175,9 +181,25 @@ describe('findCoachingResources on the live path', () => {
         return { ok: true, status: 200, json: async () => body };
       })
     );
-    generateContent.mockResolvedValue({
-      text: '{"fits":true,"quality":5,"evidence":"solid","why":"Seven minutes, made for beginners."}',
-    });
+    // Grounding finds the video; the check (no tools) judges it.
+    generateContent.mockImplementation(async (req: { config?: { tools?: unknown } }) =>
+      req.config?.tools
+        ? {
+            text: 'A gentle routine.',
+            candidates: [
+              {
+                groundingMetadata: {
+                  groundingChunks: [
+                    { web: { uri: 'https://www.youtube.com/watch?v=vid1aaaaaaa' } },
+                  ],
+                },
+              },
+            ],
+          }
+        : {
+            text: '{"fits":true,"quality":5,"evidence":"solid","why":"Seven minutes, made for beginners."}',
+          }
+    );
 
     const { PersonaVoiceAgent } = await import('../../agents/personas/ferni-agent.js');
     const agent = new PersonaVoiceAgent('You are Ferni.', {
@@ -192,17 +214,21 @@ describe('findCoachingResources on the live path', () => {
       fit: 'beginner, Seth has 10 minutes',
     });
 
-    const search = youtube.find((u) => u.pathname.endsWith('/search'));
-    expect(search?.searchParams.get('q')).toBe('shin splint stretches');
-    const check = generateContent.mock.calls[0][0] as { contents: Array<{ parts: unknown[] }> };
+    // Grounding found it: no 100-unit search.list, one videos.list.
+    expect(youtube.some((u) => u.pathname.endsWith('/search'))).toBe(false);
+    expect(youtube.map((u) => u.searchParams.get('id'))).toEqual(['vid1aaaaaaa']);
+    const grounding = JSON.stringify(generateContent.mock.calls[0][0]);
+    expect(grounding).toContain('shin splint stretches');
+    expect(grounding.toLowerCase()).not.toContain('seth');
+    const check = generateContent.mock.calls[1][0] as { contents: Array<{ parts: unknown[] }> };
     expect(JSON.stringify(check)).toContain('What fits them: beginner, has 10 minutes');
     expect(JSON.stringify(check).toLowerCase()).not.toContain('seth');
     expect(check.contents[0].parts[0]).toMatchObject({
-      fileData: { fileUri: 'https://www.youtube.com/watch?v=vid1' },
+      fileData: { fileUri: 'https://www.youtube.com/watch?v=vid1aaaaaaa' },
     });
-    expect(output).toContain('One pick');
-    expect(output).toContain('Shin Splint Rehab by Physio Pat, 8 minutes');
-    expect(output).toContain('<https://www.youtube.com/watch?v=vid1>');
+    expect(output).toContain('Shin Splint Rehab');
+    expect(output).toContain('8 minutes');
+    expect(output).toContain('https://www.youtube.com/watch?v=vid1aaaaaaa');
     expect(output).toContain('Seven minutes, made for beginners.');
     expect(output).toContain('General info, not personal advice');
 

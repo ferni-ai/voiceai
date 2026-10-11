@@ -4,7 +4,8 @@ const generateContent = vi.fn();
 const getGeminiClient = vi.fn(async () => ({ models: { generateContent } }));
 vi.mock('../../../config/gemini-config.js', () => ({ getGeminiClient }));
 
-const { groundedAnswer, resolveSourceUrl, safeHttpsUrl } = await import('../grounded-search.js');
+const { groundedAnswer, GROUNDING_SYSTEM_INSTRUCTION, resolveSourceUrl, safeHttpsUrl } =
+  await import('../grounded-search.js');
 
 const REDIRECT = 'https://vertexaisearch.cloud.google.com/grounding-api-redirect/abc';
 
@@ -37,6 +38,12 @@ describe('groundedAnswer', () => {
               chunk('javascript:alert(1)', 'bad'),
               {},
             ],
+            groundingSupports: [
+              { segment: { text: 'Heel drops help.' }, groundingChunkIndices: [2] },
+              { segment: { text: 'Calf raises help.' }, groundingChunkIndices: [0, 2] },
+            ],
+            searchEntryPoint: { renderedContent: '<div>chips</div>' },
+            webSearchQueries: ['shin splint stretches'],
           },
         },
       ],
@@ -46,13 +53,24 @@ describe('groundedAnswer', () => {
 
     const req = generateContent.mock.calls[0][0];
     expect(req.config.tools).toEqual([{ googleSearch: {} }]);
+    expect(req.config.systemInstruction).toBe(GROUNDING_SYSTEM_INSTRUCTION);
     expect(req.contents).toContain('beginner shin splint stretches');
     expect(result).toEqual({
       answer: 'Calf raises and eccentric heel drops help.',
       sources: [
-        { title: 'youtube.com', url: 'https://www.youtube.com/watch?v=abc123' },
-        { title: 'nhs.uk', url: 'https://www.nhs.uk/conditions/shin-splints/' },
+        {
+          title: 'youtube.com',
+          url: 'https://www.youtube.com/watch?v=abc123',
+          summary: 'Calf raises help.',
+        },
+        {
+          title: 'nhs.uk',
+          url: 'https://www.nhs.uk/conditions/shin-splints/',
+          summary: 'Heel drops help.',
+        },
       ],
+      searchSuggestionsHtml: '<div>chips</div>',
+      webSearchQueries: ['shin splint stretches'],
     });
     // One HEAD for the redirect, none for the direct link.
     expect(fetchMock).toHaveBeenCalledTimes(1);

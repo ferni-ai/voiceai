@@ -25,9 +25,17 @@ import {
   recordPickFeedback,
   rememberPick,
 } from '../../../services/coach-media/pick-delivery.js';
+import {
+  GROUNDING_PER_USER_PER_DAY,
+  takeDailyBudget,
+} from '../../../services/coach-media/quota.js';
 import { groundedAnswer } from '../../../services/coach-media/grounded-search.js';
 import { groundedResultText, pickResultText } from '../../../services/coach-media/result-text.js';
-import { coachMediaEnabled, topicOnlyQuery } from '../../../services/coach-media/topic-query.js';
+import {
+  coachMediaEnabled,
+  sessionIdentifiers,
+  topicOnlyQuery,
+} from '../../../services/coach-media/topic-query.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
@@ -37,11 +45,16 @@ const DESCRIPTION =
   'Look up what actually helps with something they are working on (a stretch routine, a ' +
   'money habit, a hard conversation, a skill) and the best video, book or article on it, ' +
   'checked against the web. Use when they want a resource or real-world advice beyond what ' +
-  'you know. Pass the TOPIC ONLY, in general words: never their name, a phone number, ' +
-  'an email, an account or a personal health detail.';
+  'you know. Pass a GENERIC topic only (e.g. "beginner shin splint stretches"): never a ' +
+  "name (theirs or anyone's), a place, an employer, a number, an email, an account or a " +
+  'personal health detail.';
 
 const parameters = z.object({
-  topic: z.string().describe('General topic words only, e.g. "beginner shin splint stretches"'),
+  topic: z
+    .string()
+    .describe(
+      'A generic topic in a few words, e.g. "beginner shin splint stretches"; no names, places or personal details'
+    ),
   format: z
     .enum(['any', 'video', 'short', 'book', 'article'])
     .optional()
@@ -59,6 +72,9 @@ const parameters = z.object({
 const NONE_FIT =
   'Checked the top results and none was a good fit or well grounded. Say so honestly rather than recommend a weak one.';
 
+const OVER_DAILY_CAP =
+  "That's a lot of lookups today; share what you know instead and offer to look it up tomorrow.";
+
 const NOTHING =
   "Couldn't find a solid resource on that just now. Say so plainly rather than guessing a title or link.";
 
@@ -73,19 +89,17 @@ function callOf(run: unknown): Call {
   return { session: ctx?.session, userData: (ctx?.userData ?? {}) as Record<string, unknown> };
 }
 
-const namesOf = (userData: Record<string, unknown>): Array<string | undefined> =>
-  [userData.name, userData.userName, userData.preferredName].map((n) =>
-    typeof n === 'string' ? n : undefined
-  );
-
 export async function runFindCoachingResources(
   args: z.infer<typeof parameters>,
   call: Call,
   userId?: string
 ): Promise<string> {
-  const names = namesOf(call.userData);
+  const names = sessionIdentifiers(call.userData);
   const topic = topicOnlyQuery(args.topic, names);
   if (!topic) return 'Ask what topic they want help with, in a few general words.';
+  if (!(await takeDailyBudget(`grounding:${userId ?? 'anonymous'}`, GROUNDING_PER_USER_PER_DAY))) {
+    return OVER_DAILY_CAP;
+  }
   const sensitive = args.healthOrMoney === true;
   const format = args.format ?? 'any';
   getLogger().info({ format }, 'coach-media: finding resources');
@@ -149,7 +163,7 @@ export async function runCoachingPick(
     return recordPickFeedback(
       userId,
       { helped: args.helped, whatMattered: args.whatMattered },
-      namesOf(call.userData)
+      sessionIdentifiers(call.userData)
     );
   }
   return deliverPick(call.session, userId, args.action === 'send_text' ? 'text' : 'app', personaId);
