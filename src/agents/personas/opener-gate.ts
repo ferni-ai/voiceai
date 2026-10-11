@@ -38,6 +38,30 @@ export function stripStockOpener(text: string): { text: string; stripped: boolea
   return { text: tag + rest.charAt(0).toUpperCase() + rest.slice(1), stripped: true };
 }
 
+/** A whole first word: letters/digits followed by something that ends it. */
+const WHOLE_WORD = /^([A-Za-z0-9']+)(?=[^A-Za-z0-9'])/;
+
+/**
+ * Whether enough of the reply has arrived to decide its opener, without
+ * waiting for DECIDE_AFTER characters: the first word is whole and is not a
+ * reaction word, or every reaction word so far is followed by a whole real
+ * word. Gemini's first chunk is 2-6 characters and the next ~20 take 150-310
+ * ms on gemini-3.5-flash (2026-10-10, n=6): waiting for 24 characters held
+ * every reply's first words that long. The decision is the same text either
+ * way; only when it is made moves.
+ */
+export function openingDecidable(text: string): boolean {
+  let rest = text.replace(TAG_PREFIX, '');
+  if (rest.length >= DECIDE_AFTER) return true;
+  for (;;) {
+    rest = rest.replace(/^[\s,.!?…-]+/, '');
+    const word = WHOLE_WORD.exec(rest);
+    if (!word) return false; // the next word (or markup) isn't whole yet
+    if (!INTERJECTION.test(rest)) return true; // a real word: nothing left to strip
+    rest = rest.slice(word[1].length);
+  }
+}
+
 /** Leading markup (`<emotion/>`, `<break/>`) and cues (`[laughter]`) before the first spoken letter. */
 const LEAD_MARKUP = /^(\s*(?:<[^>]+>\s*|\[[^\]]*\]\s*)*)/;
 
@@ -70,7 +94,14 @@ function contentOf(chunk: Chunk): string | undefined {
 export class OpenerGate {
   private repliesSinceKept: number;
 
-  constructor(private readonly every: number = OPENER_EVERY) {
+  /**
+   * `early`: decide as soon as the opening is decidable (openingDecidable)
+   * instead of after DECIDE_AFTER characters. OPENER_GATE_EARLY=on.
+   */
+  constructor(
+    private readonly every: number = OPENER_EVERY,
+    private readonly early: boolean = process.env.OPENER_GATE_EARLY === 'on'
+  ) {
     this.repliesSinceKept = every; // the first reply may keep one
   }
 
@@ -89,6 +120,7 @@ export class OpenerGate {
   /** Wrap one reply's LLM stream. */
   wrap(input: ReadableStream<Chunk>): ReadableStream<Chunk> {
     const decide = (opening: string): string => this.decide(opening);
+    const early = this.early;
     let buffered = '';
     let template: Chunk | null = null;
     let decided = false;
@@ -99,7 +131,10 @@ export class OpenerGate {
       if (typeof template === 'string' || template === null) controller.enqueue(text);
       else {
         const c = template as llm.ChatChunk;
-        controller.enqueue({ ...c, delta: { ...c.delta, role: c.delta?.role ?? 'assistant', content: text } });
+        controller.enqueue({
+          ...c,
+          delta: { ...c.delta, role: c.delta?.role ?? 'assistant', content: text },
+        });
       }
       buffered = '';
     };
@@ -115,7 +150,10 @@ export class OpenerGate {
             }
             buffered += content;
             template = chunk;
-            if (buffered.replace(TAG_PREFIX, '').length >= DECIDE_AFTER) release(controller);
+            const ready = early
+              ? openingDecidable(buffered)
+              : buffered.replace(TAG_PREFIX, '').length >= DECIDE_AFTER;
+            if (ready) release(controller);
           }
           if (!decided) release(controller);
           controller.close();

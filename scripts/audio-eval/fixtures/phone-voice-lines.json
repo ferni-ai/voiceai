@@ -1,0 +1,42 @@
+[
+  {
+    "text": "Oh, that's such good news. Honestly, I've been hoping you'd call and say exactly that.",
+    "userText": "I got the job, they called me this morning and I start on Monday!",
+    "caller": "excited"
+  },
+  {
+    "text": "*sighs* Yeah. That's a lot to carry, and you don't have to sort it all out tonight.",
+    "userText": "my dad's back in the hospital and I just don't know what to do anymore",
+    "caller": "low"
+  },
+  {
+    "text": "Okay, so here is what I would do if I were standing where you are right now: call her first, before anything else.",
+    "userText": "I can't decide if I should call my sister or just text her about the money thing",
+    "caller": "steady"
+  },
+  {
+    "text": "Hmm. Wait, slow down for me a second. What did he actually say?",
+    "userText": "he said something at the meeting today in front of everyone and now the whole team is mad at me and I have to fix it right now before Monday",
+    "caller": "tense"
+  },
+  {
+    "text": "Ha, no, you didn't. You did not leave the cake in the car.",
+    "userText": "so I drove all the way there and then realised I left the birthday cake in the car for two hours",
+    "caller": "excited"
+  },
+  {
+    "text": "Mm, I remember you saying the mornings are the hardest part. Is today one of those?",
+    "userText": "I didn't really sleep and it's just one of those mornings I guess",
+    "caller": "low"
+  },
+  {
+    "text": "Sure. Thursday at four works, and I'll remind you the night before.",
+    "userText": "can we do the call on Thursday afternoon, maybe around four o clock",
+    "caller": "steady"
+  },
+  {
+    "text": "That's fair. I'd probably feel the same way, to be honest with you.",
+    "userText": "I'm just tired of always being the one who has to apologise first, you know",
+    "caller": "steady"
+  }
+]
