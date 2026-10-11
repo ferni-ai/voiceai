@@ -61,6 +61,7 @@ describe('Subscription Routes', () => {
 
   afterEach(() => {
     vi.resetAllMocks();
+    vi.unstubAllEnvs();
   });
 
   // ============================================================================
@@ -162,7 +163,8 @@ describe('Subscription Routes', () => {
       });
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual(mockInfo);
+      // PAYWALL is off by default: no upgrade offered, and the client is told so.
+      expect(response.body).toEqual({ ...mockInfo, canUpgrade: false, paywall: false });
       expect(mockedGetSubscriptionInfo).toHaveBeenCalledWith('user-123');
     });
 
@@ -255,6 +257,7 @@ describe('Subscription Routes', () => {
 
   describe('GET /api/subscription/config', () => {
     it('should return tier configuration', async () => {
+      vi.stubEnv('PAYWALL', 'on');
       const response = await handleSubscriptionRequest({
         method: 'GET',
         pathname: '/api/subscription/config',
@@ -266,6 +269,19 @@ describe('Subscription Routes', () => {
       expect(response.body).toHaveProperty('enabled', true);
       expect(response.body).toHaveProperty('tiers');
       expect((response.body as { tiers: unknown[] }).tiers).toHaveLength(3);
+    });
+
+    it('should turn payment UI off while the paywall is off', async () => {
+      const response = await handleSubscriptionRequest({
+        method: 'GET',
+        pathname: '/api/subscription/config',
+        query: {},
+        headers: {},
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('enabled', false);
+      expect(response.body).toHaveProperty('paywall', false);
     });
 
     it('should indicate when Stripe is not configured', async () => {

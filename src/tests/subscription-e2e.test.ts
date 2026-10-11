@@ -43,6 +43,7 @@ describe('Subscription E2E Integration', () => {
 
   afterEach(() => {
     vi.resetAllMocks();
+    vi.unstubAllEnvs();
   });
 
   // ============================================================================
@@ -141,7 +142,8 @@ describe('Subscription E2E Integration', () => {
       expect(body.tier).toBe('free');
       // NEW MODEL: Ferni is free forever - unlimited conversations
       expect(body.usage.conversationsRemaining).toBeNull(); // Unlimited
-      expect(body.canUpgrade).toBe(true);
+      // While Ferni is free (PAYWALL off) nobody is offered an upgrade.
+      expect(body.canUpgrade).toBe(false);
     });
 
     it('should track conversation usage for free tier (unlimited model)', async () => {
