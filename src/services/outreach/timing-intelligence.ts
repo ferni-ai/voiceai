@@ -20,6 +20,12 @@ import type { OutreachPriority } from './decision-engine.js';
 import { loadOutreachProfile, saveOutreachProfile } from './firestore-persistence.js';
 import type { OutreachChannel } from './persona-voice-generator.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import {
+  isQuietBetween,
+  isQuietHoursUnified,
+  quietBetweenEndsAt,
+  serverTimezone,
+} from './quiet-hours.js';
 
 // ============================================================================
 // TIMEZONE UTILITIES
@@ -94,6 +100,8 @@ function isWithinQuietHours(
   quietHoursStart: string, // "22:00"
   quietHoursEnd: string // "07:00"
 ): boolean {
+  if (isQuietHoursUnified())
+    return isQuietBetween(utcTime, quietHoursStart, quietHoursEnd, timezone);
   const localHour = getLocalHour(utcTime, timezone);
   const startHour = parseInt(quietHoursStart.split(':')[0], 10);
   const endHour = parseInt(quietHoursEnd.split(':')[0], 10);
@@ -867,9 +875,7 @@ function isTimeBlocked(time: Date, profile: TimingProfile, context: TimingContex
 
   // Check quiet hours (skip for urgent)
   if (context.trigger.priority !== 'urgent') {
-    if (
-      isInQuietHours(time, profile.preferences.quietHoursStart, profile.preferences.quietHoursEnd)
-    ) {
+    if (isInQuietHours(time, profile.preferences)) {
       return true;
     }
   }
@@ -910,22 +916,10 @@ function isTimeBlocked(time: Date, profile: TimingProfile, context: TimingContex
   return false;
 }
 
-function isInQuietHours(time: Date, startStr: string, endStr: string): boolean {
-  const hour = time.getHours();
-  const minute = time.getMinutes();
-  const timeMinutes = hour * 60 + minute;
-
-  const [startHour, startMin] = startStr.split(':').map(Number);
-  const [endHour, endMin] = endStr.split(':').map(Number);
-  const startMinutes = startHour * 60 + startMin;
-  const endMinutes = endHour * 60 + endMin;
-
-  // Handle overnight quiet hours (e.g., 22:00 - 07:00)
-  if (startMinutes > endMinutes) {
-    return timeMinutes >= startMinutes || timeMinutes < endMinutes;
-  }
-
-  return timeMinutes >= startMinutes && timeMinutes < endMinutes;
+/** Off: on the server clock. */
+function isInQuietHours(time: Date, prefs: TimingProfile['preferences']): boolean {
+  const tz = isQuietHoursUnified() ? prefs.timezone : serverTimezone();
+  return isQuietBetween(time, prefs.quietHoursStart, prefs.quietHoursEnd, tz);
 }
 
 function isInTimePeriod(time: Date, period: TimePeriod): boolean {
@@ -988,6 +982,9 @@ function generateCandidateTimes(from: Date, windowMs: number, profile: TimingPro
 }
 
 function getFirstAvailableTime(from: Date, profile: TimingProfile): Date {
+  const p = profile.preferences;
+  if (isQuietHoursUnified())
+    return quietBetweenEndsAt(from, p.quietHoursStart, p.quietHoursEnd, p.timezone);
   const result = new Date(from);
 
   // Move past quiet hours
