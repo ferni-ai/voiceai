@@ -34,7 +34,7 @@ const BANNER_STYLES = `
     top: 0;
     left: 0;
     right: 0;
-    z-index: var(--z-notification, 3000);
+    z-index: var(--z-notification);
     
     display: flex;
     align-items: center;

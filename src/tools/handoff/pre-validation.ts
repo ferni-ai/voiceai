@@ -220,7 +220,6 @@ export async function validateHandoffPreconditions(
           isUnlocked,
           hasProfile: !!userProfile,
           profileTier: userProfile?.subscription?.tier,
-          bypassEnv: process.env['BYPASS_TEAM_UNLOCKS'],
         },
         '🔓 Team unlock check'
       );

@@ -11,7 +11,7 @@
  * @module @ferni/eq/capabilities/active-listening
  */
 
-import { EASING } from '../../config/animation-constants.js';
+import { EASING, safeAnimate } from '../../config/animation-constants.js';
 import { ferniExpressions } from '../../ui/ferni-expressions.ui.js';
 import { createLogger } from '../../utils/logger.js';
 import { createTimeoutTracker } from '../../utils/tracked-timeout.js';
@@ -71,7 +71,8 @@ function performMicroNod(intensity: NodIntensity = 'micro'): void {
   const params = scales[intensity];
 
   // Micro-nod animation - composite with existing animations
-  avatarContainer.animate(
+  safeAnimate(
+    avatarContainer,
     [
       { transform: 'translateY(0) rotate(0deg)' },
       { transform: `translateY(${params.y}px) rotate(${params.rotate}deg)` },
@@ -93,7 +94,8 @@ function performMicroNod(intensity: NodIntensity = 'micro'): void {
 function performListeningLean(): void {
   if (!avatarContainer) return;
 
-  avatarContainer.animate(
+  safeAnimate(
+    avatarContainer,
     [
       { transform: 'translateY(0) scale(1, 1)' },
       { transform: 'translateY(-3px) scale(0.998, 1.002)' },
@@ -109,7 +111,9 @@ function performListeningLean(): void {
 
   // Return to neutral after a bit
   trackedTimeout(() => {
-    avatarContainer?.animate(
+    if (!avatarContainer) return;
+    safeAnimate(
+      avatarContainer,
       [{ transform: 'translateY(-2px)' }, { transform: 'translateY(0)' }],
       {
         duration: 600,

@@ -320,8 +320,8 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
     // When FTIS_ENABLED is not set, skip the ~50s ONNX load for faster startup.
     tasks.push(
       (async () => {
-        const { isFTISEnabled } = await import('../../config/tool-routing-config.js');
-        if (!isFTISEnabled()) {
+        const { isFtisEnabled } = await import('../../config/tool-config.js');
+        if (!isFtisEnabled()) {
           log('⏭️ FTIS disabled — skipping ONNX classifier load');
           return;
         }
@@ -443,7 +443,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
               // Just importing establishes the SDK connection pool
               log('✅ Gemini SDK loaded', { durationMs: Date.now() - llmWarmupStart });
             }),
-            // Also pre-warm OpenAI if enabled (for USE_OPENAI_REALTIME mode)
+            // Also pre-warm OpenAI if enabled (for VOICE_PIPELINE=openai-realtime)
             process.env.OPENAI_API_KEY
               ? import('@livekit/agents-plugin-openai').then(() => {
                   log('✅ OpenAI SDK loaded', { durationMs: Date.now() - llmWarmupStart });

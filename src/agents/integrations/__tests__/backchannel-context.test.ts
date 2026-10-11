@@ -5,7 +5,7 @@ import {
   pickContextualBackchannel,
   REACTIONS,
 } from '../backchannel-context.js';
-import { BACKCHANNELS } from '../../shared/conversational-audio-cache.js';
+import { REACTION_CLIPS } from '../../shared/reaction-clips.js';
 
 const first = (): number => 0;
 
@@ -93,8 +93,8 @@ describe('pickContextualBackchannel', () => {
     expect(draws).toBe(0);
   });
 
-  it('only returns phrases that are pre-rendered for ferni', () => {
-    const cached = new Set(BACKCHANNELS.ferni);
+  it('only returns phrases every persona pre-renders', () => {
+    const cached = new Set(REACTION_CLIPS);
     const missing = Object.values(REACTIONS)
       .flat()
       .filter((p) => !cached.has(p));
