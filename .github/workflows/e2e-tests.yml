@@ -22,7 +22,7 @@ env:
 jobs:
   e2e:
     name: Playwright Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     # The repo's default token is read-only; this job's PR comment step needs write.
     permissions:
       contents: read

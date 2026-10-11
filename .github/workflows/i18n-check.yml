@@ -25,7 +25,7 @@ on:
 jobs:
   i18n-validation:
     name: 🌐 Translation Validation
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
 
     steps:
       - name: Checkout code

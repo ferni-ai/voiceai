@@ -23,7 +23,7 @@ env:
 jobs:
   lighthouse:
     name: Lighthouse Audit
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     # The repo's default token is read-only; the "Comment on PR" step needs write.
     permissions:
       contents: read
@@ -196,7 +196,7 @@ jobs:
 
   axe-audit:
     name: Axe Accessibility Audit
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout

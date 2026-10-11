@@ -31,7 +31,7 @@ jobs:
   # ============================================================================
   validate-tokens:
     name: Validate Design Tokens
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -59,7 +59,7 @@ jobs:
   # ============================================================================
   build:
     name: Build All Packages
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
     needs: validate-tokens
     steps:
       - uses: actions/checkout@v7
@@ -110,7 +110,7 @@ jobs:
   # ============================================================================
   storybook:
     name: Build Storybook
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
     needs: build
     steps:
       - uses: actions/checkout@v7
@@ -172,7 +172,7 @@ jobs:
   # ============================================================================
   publish-vscode:
     name: Publish VS Code Extension
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
     needs: build
     if: |
       (github.event_name == 'workflow_dispatch' && inputs.publish) ||

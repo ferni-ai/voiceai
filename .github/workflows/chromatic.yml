@@ -17,7 +17,7 @@ on:
 jobs:
   chromatic:
     name: Visual Regression Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
     # The repo's default token is read-only; this job's PR comment step needs write.
     permissions:
       contents: read

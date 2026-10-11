@@ -25,7 +25,7 @@ env:
 jobs:
   stage-direction-tests:
     name: Stage Direction Sanitization Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7

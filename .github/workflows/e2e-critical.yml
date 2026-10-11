@@ -40,7 +40,7 @@ env:
 jobs:
   e2e-critical:
     name: Tools + Handoff + Superhuman E2E
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
     timeout-minutes: 15
 
     steps:

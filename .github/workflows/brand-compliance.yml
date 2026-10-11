@@ -22,7 +22,7 @@ on:
 jobs:
   lint-brand:
     name: Brand Compliance Check
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
     # The report is posted as a PR comment; the default token is read-only.
     permissions:
       contents: read
@@ -142,7 +142,7 @@ jobs:
 
   lint-tokens:
     name: Token Validation
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
 
     steps:
       - name: Checkout
@@ -168,7 +168,7 @@ jobs:
 
   visual-regression:
     name: Visual Regression
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
     if: github.event_name == 'pull_request'
 
     steps:
@@ -208,7 +208,7 @@ jobs:
 
   accessibility:
     name: Accessibility Audit
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ github.event_name == 'push' && fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') || 'ubuntu-latest' }}
     if: github.event_name == 'pull_request'
 
     steps:
