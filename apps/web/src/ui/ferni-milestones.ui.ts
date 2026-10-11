@@ -13,6 +13,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { outreachService } from '../services/outreach.service.js';
 import { showNotification } from '../services/push-notifications.service.js';
 import { createLogger } from '../utils/logger.js';
@@ -706,9 +707,8 @@ function updateStreaks(): void {
   progress.currentStreak = streak;
   progress.longestStreak = Math.max(progress.longestStreak, streak);
 
-  // Check streak achievements
-  if (streak >= 7) checkAndCelebrate('streak-7');
-  if (streak >= 30) checkAndCelebrate('streak-30');
+  if (!isNoStreaksOn() && streak >= 7) checkAndCelebrate('streak-7'); // off under VITE_NO_STREAKS
+  if (!isNoStreaksOn() && streak >= 30) checkAndCelebrate('streak-30');
 
   // Check total days - tracking every milestone of our relationship
   const totalDays = progress.conversationDays.length;
