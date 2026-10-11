@@ -11,6 +11,7 @@
  */
 
 import { storeUserPreferences } from '../user-preferences-store.js';
+import { markAnswered } from './pick-log.js';
 
 /** Ids of the commitments pick-delivery.ts saves. */
 export const COACH_MEDIA_COMMITMENT_PREFIX = 'coach-media-';
@@ -45,8 +46,16 @@ export async function recordFollowUpAnswer(
 ): Promise<Helpfulness | null> {
   if (!answer.id.startsWith(COACH_MEDIA_COMMITMENT_PREFIX)) return null;
   const helped =
-    classifyHelpfulness(userText) ??
-    (answer.outcome === 'done' ? 'yes' : answer.outcome === 'not_done' ? 'no' : null);
+    answer.outcome === 'unanswered'
+      ? null
+      : (classifyHelpfulness(userText) ??
+        (answer.outcome === 'done' ? 'yes' : answer.outcome === 'not_done' ? 'no' : null));
+  // The pick log learns the fate either way: an unanswered follow-up is a skip (taste.ts).
+  const pickId = answer.id.slice(COACH_MEDIA_COMMITMENT_PREFIX.length);
+  await markAnswered(userId, pickId, {
+    outcome: answer.outcome as 'done' | 'not_done' | 'deflected' | 'unanswered',
+    helped,
+  });
   if (!helped) return null;
   const value = subjectOf(answer.content);
   await storeUserPreferences(userId, [
