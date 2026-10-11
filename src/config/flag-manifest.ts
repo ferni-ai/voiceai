@@ -274,6 +274,8 @@ export const FLAG_MANIFEST = {
   USE_VERTEX_AI: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   VITEST: { default: 'off', owner: 'tools', kind: 'experiment' },
   VOICEMAIL_DETECT: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // the reply's pace, loudness and tone answer the caller's mood (director/attune.ts)
+  VOICE_ATTUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
   VOICE_HUMANIZATION_DISABLED: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   WAITLIST_GATE: { default: 'off', owner: 'platform', kind: 'kill-switch' },
