@@ -36,10 +36,8 @@ describe('topicOnlyQuery', () => {
   });
 
   it('removes a name only as a whole word', () => {
-    expect(topicOnlyQuery('Mark: stock market basics', ['Mark'])).toBe(': stock market basics');
-    expect(topicOnlyQuery('alexander technique for posture', ['Al'])).toBe(
-      'alexander technique for posture'
-    );
+    expect(topicOnlyQuery('Mark: stock market basics', ['Mark'])).toBe('stock market basics');
+    expect(topicOnlyQuery('algebra basics', ['Al'])).toBe('algebra basics');
   });
 
   it('removes quoted strings, emails, links and phone, account or card numbers', () => {
@@ -84,8 +82,8 @@ describe('topicOnlyQuery leaks found in review', () => {
     ['help with Jordan at work', 'help with at work'],
     ['talking to Megan about her diabetes diagnosis', 'talking to about her diabetes diagnosis'],
     ['helping Ryan with homework', 'helping with homework'],
-    ['my friend named mike says try yoga', 'my friend says try yoga'],
-    ['a dog called biscuit', 'a dog'],
+    ['my friend named mike says try yoga', 'my friend named says try yoga'],
+    ['a dog called biscuit', 'a dog called'],
     ['born 03/14/1980 sleep tips', 'born sleep tips'],
     ['since 3-14-1980 and 2024.05.01', 'since and'],
     ['on 3/4/80 back pain', 'on back pain'],
@@ -93,6 +91,51 @@ describe('topicOnlyQuery leaks found in review', () => {
     ['what "dana whitfield" said about budgets', 'what said about budgets'],
   ])('%s → %s', (topic, expected) => {
     expect(topicOnlyQuery(topic, [])).toBe(expected);
+  });
+
+  // Round-2 review: each must come out without the name, place or identifier.
+  it.each([
+    ['my son jake failing math', /jake/],
+    ['with sarah at work conflict', /sarah/],
+    ['for dad bob retirement', /bob/],
+    ['my wife maria cancer diagnosis', /maria/],
+    ['dr. smith knee surgery', /smith/],
+    ['lives at 123 main st apt 4b tampa', /123|main st|4b|tampa/],
+    ['march 3rd 2026 sleep schedule', /march|3rd|2026/],
+    ['since 12/25 no sleep', /12|25/],
+    ['jake age 14 study habits', /jake/],
+    ['ask @jakeford99 about lifting', /jakeford|99|@/],
+    ['tips from evil.com/x', /evil|com/],
+    ['email seth(at)ferni.ai about it', /seth|ferni|\(at\)/],
+    ['notes for se\u200bth on sleep', /se.?th/],
+  ])('%s', (topic, leak) => {
+    expect(topicOnlyQuery(topic, ['Seth']) ?? '').not.toMatch(leak);
+  });
+
+  it.each([
+    'beginner shin splint stretches',
+    'budgeting for retirement',
+    'mindfulness for anxiety',
+    'couch to 5k week 3',
+    'foam rolling for runners',
+    'spanish lessons for kids',
+    'sleep hygiene for shift workers',
+  ])('leaves a generic topic alone: %s', (topic) => {
+    expect(topicOnlyQuery(topic, ['Seth'])).toBe(topic);
+  });
+
+  it.each([
+    ['write jake.ford(at)gmail(dot)com about it', [], 'write about it'],
+    ['my boss kowalczyk micromanages', [], 'my boss micromanages'],
+    ['notes for kowal\u200bczyk on sleep', ['Kowalczyk'], 'notes for on sleep'],
+    ['nunez cooking class', ['Núñez'], 'cooking class'],
+  ])('%s → %s', (topic, ids, expected) => {
+    expect(topicOnlyQuery(topic, ids as string[])).toBe(expected);
+  });
+
+  it('matches profile names with or without accents', () => {
+    expect(topicOnlyQuery('stretches for jose', ['José'])).toBe('stretches for');
+    expect(topicOnlyQuery('stretches for josé', ['Jose'])).toBe('stretches for');
   });
 
   it('is idempotent: scrubbing its own output changes nothing', () => {
