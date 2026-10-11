@@ -186,6 +186,24 @@ describe('life ledger pronouns', () => {
     expect(systems[0]).not.toMatch(/\b(she|her)\b/);
   });
 
+  it('describes Alex as he/him', async () => {
+    const { systems, ask } = capture();
+    await consistentWithBiography('Alex', ['Alex grew up in Oakland'], bio, ask);
+    expect(systems[0]).toContain("Alex's biography, in his voice");
+    expect(systems[0]).toContain('country he grew up in');
+    expect(systems[0]).not.toMatch(/\b(she|her|herself)\b/);
+  });
+
+  it("extracts Alex's facts with his pronouns when a call ends", async () => {
+    prompts.length = 0;
+    const rec = createLedgerRecorder('u1', { store: memoryStore() });
+    rec.add('alex-chen', 'My neighbor teases me about my coffee every single morning.');
+    await rec.flush();
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toContain('"alex\'s neighbor teases him about his coffee"');
+    expect(prompts[0]).not.toMatch(/\b(she|her)\b/);
+  });
+
   it('uses they/their for a persona it does not know', async () => {
     const { systems, ask } = capture();
     await consistentWithBiography('Quinn', ['Quinn grew up in Leeds'], bio, ask);

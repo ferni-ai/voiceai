@@ -22,14 +22,14 @@ const SHE: PersonaPronouns = { subject: 'she', object: 'her', possessive: 'her' 
 const THEY: PersonaPronouns = { subject: 'they', object: 'them', possessive: 'their' };
 
 /**
- * As each persona's own bundle refers to them: Ferni's wife (character.md),
- * Maya's and Jordan's "her own", Nayan's late wife Vijji, Joel's "my wife".
- * Alex is left out: the bundle says "her" and the voice tables say male, so
- * Alex gets they/them until that's settled.
+ * Ferni and Alex are he/him (Seth, 2026-10-11). The rest follow their own
+ * bundles: Maya's and Jordan's "her own", Nayan's late wife Vijji, Joel's "my
+ * wife".
  */
 const PERSONA_PRONOUNS: Partial<Record<CanonicalPersonaId, PersonaPronouns>> = {
   ferni: HE,
   'peter-john': HE,
+  'alex-chen': HE,
   'maya-santos': SHE,
   'jordan-taylor': SHE,
   'nayan-patel': HE,
