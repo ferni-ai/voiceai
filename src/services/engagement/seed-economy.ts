@@ -10,7 +10,7 @@
 
 import admin from 'firebase-admin';
 import { getLogger } from '../../utils/safe-logger.js';
-import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { awardDailyConversation } from '../seeds/earn.js';
 
 /**
  * Get Firestore instance, returns null if not initialized.
@@ -56,73 +56,23 @@ export interface SeedAwardResult {
 // ============================================================================
 
 /**
- * Award seeds to a user for completing a conversation.
- * Called from the voice agent cleanup handler.
+ * Credit a finished conversation: the day's first one earns the daily seeds, and a streak
+ * milestone pays on the day it's reached (services/seeds/earn.ts). Called from the voice
+ * agent's cleanup handler on every session end; later sessions that day change nothing.
  *
- * @param userId - User to award seeds to
- * @param seedsToAward - Number of seeds to award (default: 1)
- * @param source - Source of seed earning (for analytics)
+ * @param timeZone - the caller's IANA zone, so "today" is their day (UTC when unknown)
  */
-export async function awardSeedsForConversation(
-  userId: string,
-  seedsToAward = 1,
-  source: 'conversation' | 'streak' | 'referral' = 'conversation'
-): Promise<SeedAwardResult> {
-  if (!userId) {
-    return { success: false, error: 'User ID required' };
+export async function awardSeedsForConversation(userId: string, timeZone?: string): Promise<SeedAwardResult> {
+  if (!userId) return { success: false, error: 'User ID required' };
+  const db = getFirestore();
+  if (!db) {
+    log.warn({ userId }, 'Firestore not initialized, skipping seed award');
+    return { success: false, error: 'Database not available' };
   }
-
   try {
-    const db = getFirestore();
-    if (!db) {
-      log.warn({ userId }, 'Firestore not initialized, skipping seed award');
-      return { success: false, error: 'Database not available' };
-    }
-    const userSeedsRef = db.collection('user_seeds').doc(userId);
-
-    let newBalance = 0;
-
-    await db.runTransaction(async (transaction) => {
-      const userSeedsDoc = await transaction.get(userSeedsRef);
-      const userSeeds = userSeedsDoc.exists
-        ? (userSeedsDoc.data() as UserSeeds)
-        : {
-            userId,
-            balance: 10, // New users start with 10 seeds
-            lifetimePlanted: 0,
-            lifetimeEarned: 10,
-            featuresUnlocked: [],
-            earnedFrom: {
-              conversations: 0,
-              streaks: 0,
-              referrals: 0,
-              feedback: 0,
-              suggestionsAccepted: 0,
-              featuresBloomed: 0,
-            },
-          };
-
-      // Update balance and tracking
-      userSeeds.balance += seedsToAward;
-      userSeeds.lifetimeEarned += seedsToAward;
-
-      // Track source of earning
-      if (source === 'conversation') {
-        userSeeds.earnedFrom.conversations += seedsToAward;
-      } else if (source === 'streak') {
-        userSeeds.earnedFrom.streaks += seedsToAward;
-      } else if (source === 'referral') {
-        userSeeds.earnedFrom.referrals += seedsToAward;
-      }
-
-      newBalance = userSeeds.balance;
-
-      transaction.set(userSeedsRef, userSeeds, { merge: true });
-    });
-
-    log.info({ userId, seedsToAward, source, newBalance }, 'Seeds awarded');
-
-    return { success: true, newBalance };
+    const result = await awardDailyConversation(db, userId, new Date(), timeZone);
+    log.info({ userId, ...result }, 'Conversation seeds');
+    return { success: true, newBalance: result.daily.balance };
   } catch (error) {
     log.error({ error, userId }, 'Failed to award seeds');
     return { success: false, error: 'Database error' };

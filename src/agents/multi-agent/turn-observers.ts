@@ -59,6 +59,7 @@ export async function installPaceMatching(
 export interface ToolRetrievalInput {
   session: Session;
   sessionId: string;
+  /** The agent, or a getter for the one on the call now (persona-swap.ts agentOnCall) */
   agent: unknown;
   dynamicToolLoader: {
     loadAllDomains(): Promise<number>;
@@ -131,7 +132,7 @@ export async function installToolRetrieval(
           'TOOL_CATALOG_LOADED'
         );
         applyAfterReplyStarts(session as never, async () => {
-          await updateAgentTools(agent as never, tools as never, { silentMerge: true });
+          await updateAgentTools(now(agent) as never, tools as never, { silentMerge: true });
         });
       })
       .catch((error: unknown) =>
@@ -233,6 +234,17 @@ export async function installTurnUnderstanding(
 export async function installTurnListeners(
   input: ToolRetrievalInput
 ): Promise<{ onTranscript(transcript: string, isFinal: boolean): void } | null> {
+  // One REPLY_GAP line per caller turn (reply-gap.ts): the wait the caller hears.
+  const { attachReplyGap, createLoopDelayProbe } = await import('../shared/reply-gap.js');
+  const loop = createLoopDelayProbe();
+  input.cleanupFunctions.push(
+    attachReplyGap(
+      input.session as never,
+      (gap) => log.info({ sessionId: input.sessionId, ...gap }, 'REPLY_GAP'),
+      loop
+    ),
+    () => loop.close()
+  );
   const retrieval = await installToolRetrieval(input);
   const understanding = await installTurnUnderstanding(input.session, input.cleanupFunctions);
   if (!retrieval && !understanding) return null;
@@ -244,11 +256,18 @@ export async function installTurnListeners(
   };
 }
 
+type ChatAgent = { chatCtx: { items: unknown[] } };
+
+/** An agent, or a getter for the agent on the call now: read when used, so it follows swaps */
+function now<A>(agent: A | (() => A)): A {
+  return typeof agent === 'function' ? (agent as () => A)() : agent;
+}
+
 export interface DirectorNotesInput {
   session: Session;
   sessionId: string;
   userName: string | undefined;
-  agent: { chatCtx: { items: unknown[] } };
+  agent: ChatAgent | (() => ChatAgent);
   cleanupFunctions: Cleanup;
 }
 
@@ -272,7 +291,7 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
     if (state === 'speaking') spoke = true;
     if (state !== 'listening' || !spoke) return;
     spoke = false;
-    void director.observe(linesFromChat(agent.chatCtx.items as never));
+    void director.observe(linesFromChat(now(agent).chatCtx.items as never));
   };
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, directorHandler);
   cleanupFunctions.push(() => {

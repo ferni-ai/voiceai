@@ -10,6 +10,10 @@ import {
   coachFollowThroughMode,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { callerHour } from '../shared/time-context.js';
+import {
+  callerRecognitionFor,
+  unrecognisedCallerGreeting,
+} from '../voice-agent-entry/caller-recognition.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -148,9 +152,13 @@ export async function directedGreeting(
   const partOfDay = hour === null ? '' : partOfDayFor(hour);
   // Not gated on history: the profile behind it can still be loading.
   const checkIn = await checkInFor(userData?.userId);
+  // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
+  const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
+  const direction =
+    GREETING_DIRECTION + (checkIn ? CHECK_IN_DIRECTION : '') + (unknown ? ` ${unknown}` : '');
   const directed = await directedText(sessionId, {
     moment: 'greeting',
-    direction: checkIn ? GREETING_DIRECTION + CHECK_IN_DIRECTION : GREETING_DIRECTION,
+    direction,
     facts: greetingFacts(partOfDay, userData?.userName, history, checkIn),
     fallback: scripted,
     urgency: 'now',

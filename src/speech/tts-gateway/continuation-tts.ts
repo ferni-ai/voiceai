@@ -17,6 +17,7 @@ import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { ReadableStream } from 'node:stream/web';
 
 import { findChunkEnd, findFirstChunkEnd, findFirstWordEnd } from './chunk-boundary.js';
+import { leadSilenceTrimEnabled, trimLeadingSilence } from './lead-silence.js';
 import { decideEmotion, STABLE_EMOTIONS } from './director/emotion.js';
 import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type { SSMLProsodyConfig } from './types.js';
@@ -109,7 +110,10 @@ export interface ContinuationOptions {
    */
   baseSpeed?: number;
   toFrames(pcm: ArrayBuffer): Iterable<AudioFrame>;
-  onFirstAudio(): void;
+  /** Called at the reply's first audio; `trimmed` gets the leading silence dropped (lead-silence.ts). */
+  onFirstAudio: (() => void) & { trimmed?: (ms: number) => void };
+  /** Drop Sonic's leading silence (default: CASCADE_TRIM_LEAD_SILENCE). */
+  trimLeadSilence?: boolean;
   /** Pause between sentences in ms; defaults to sentenceBreakMs() (env). */
   sentenceBreakMs?: number;
   /** Override FIRST_CHUNK_WAIT_MS (tests). */
@@ -122,6 +126,7 @@ export interface ContinuationOptions {
 export function createContinuationTTS(opts: ContinuationOptions): NodeReadableStream<AudioFrame> {
   const { textStream, reply, sanitize, openingTags, emotion, toFrames, onFirstAudio, onError } =
     opts;
+  const trimLead = opts.trimLeadSilence ?? leadSilenceTrimEnabled();
   const reader = textStream.getReader();
   let stopped = false;
   // Contexts in play order; the feed writes to the last one.
@@ -163,7 +168,9 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
           // The session emotion is the caller's mood: answer it (sad -> sympathetic),
           // and only where the opening words agree (Cartesia honours an emotion
           // only when it fits the transcript).
-          (first && emotion ? decideEmotion({ sessionHint: emotion, openingText: text }).emotion : undefined) ??
+          (first && emotion
+            ? decideEmotion({ sessionHint: emotion, openingText: text }).emotion
+            : undefined) ??
           state.emotion,
       };
       const shiftsEmotion =
@@ -277,7 +284,9 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
             });
           }
           if (i >= replies.length) break;
-          for await (const pcm of replies[i]) {
+          for await (const pcm of i === 0 && trimLead
+            ? trimLeadingSilence(replies[i], 24000, onFirstAudio.trimmed)
+            : replies[i]) {
             if (stopped) break;
             if (pcm.byteLength === 0) continue;
             if (!heardAudio) {
