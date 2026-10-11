@@ -15,7 +15,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import type { Firestore } from '@google-cloud/firestore';
+import type { DocumentReference, Firestore, Transaction } from '@google-cloud/firestore';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -68,13 +68,13 @@ export function relyingParty(env: Record<string, string | undefined> = process.e
   return { rpID: env.WEBAUTHN_RP_ID || new URL(origins[0] ?? APP_URL).hostname, origins };
 }
 
-const passkeysOf = (db: Firestore, uid: string) =>
+export const passkeysOf = (db: Firestore, uid: string) =>
   db.collection('bogle_users').doc(uid).collection('passkeys');
 
-const challengeRef = (db: Firestore, uid: string, purpose: ChallengePurpose) =>
+export const challengeRef = (db: Firestore, uid: string, purpose: ChallengePurpose) =>
   db.collection(CHALLENGES_COLLECTION).doc(`${uid}_${purpose}`);
 
-function requireDb(db: Firestore | null): Firestore {
+export function requireDb(db: Firestore | null): Firestore {
   if (!db) throw new Error('passkeys need Firestore');
   return db;
 }
@@ -94,14 +94,15 @@ export async function issueChallenge(
   challenge: string,
   binding = '',
   now = Date.now(),
-  db: Firestore | null = getFirestoreDb()
+  db: Firestore | null = getFirestoreDb(),
+  ttlMs = CHALLENGE_TTL_MS
 ): Promise<void> {
   const stored: StoredChallenge = {
     challenge,
     purpose,
     binding,
-    expiresAt: now + CHALLENGE_TTL_MS,
-    deleteAt: new Date(now + CHALLENGE_TTL_MS),
+    expiresAt: now + ttlMs,
+    deleteAt: new Date(now + ttlMs),
   };
   await challengeRef(requireDb(db), uid, purpose).set(stored);
 }
@@ -119,15 +120,24 @@ export async function takeChallenge(
 ): Promise<string | null> {
   const store = requireDb(db);
   const ref = challengeRef(store, uid, purpose);
-  return store.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists) return null;
-    tx.delete(ref);
-    const stored = snap.data() as StoredChallenge;
-    const usable =
-      stored.purpose === purpose && stored.binding === binding && now <= stored.expiresAt;
-    return usable ? stored.challenge : null;
-  });
+  return store.runTransaction(async (tx) => takeChallengeIn(tx, ref, purpose, binding, now));
+}
+
+/** takeChallenge inside the caller's transaction: read, delete, and judge it. */
+export async function takeChallengeIn(
+  tx: Transaction,
+  ref: DocumentReference,
+  purpose: ChallengePurpose,
+  binding: string,
+  now: number
+): Promise<string | null> {
+  const snap = await tx.get(ref);
+  if (!snap.exists) return null;
+  tx.delete(ref);
+  const stored = snap.data() as StoredChallenge;
+  const usable =
+    stored.purpose === purpose && stored.binding === binding && now <= stored.expiresAt;
+  return usable ? stored.challenge : null;
 }
 
 /** An opaque, stable WebAuthn user handle for uid (never the uid or email itself). */
