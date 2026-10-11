@@ -10914,7 +10914,8 @@
   "entrance": {
     "helper": "ליווי אישי צמוד",
     "connectToTalk": "להתחבר",
-    "endTalk": "ניתוק"
+    "endTalk": "ניתוק",
+    "connectingCancel": "מתחבר. הקש לביטול"
   },
   "teamHuddle": {
     "typeWeekly": "צ'ק-אין שבועי",

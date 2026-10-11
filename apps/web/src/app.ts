@@ -281,7 +281,7 @@ import { announceMonthlyGiftPaid } from './services/seed-payment.js';
 // Toast for notifications (legacy - use moments.whisper() for new code)
 import { toast } from './ui/whisper.ui.js';
 import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
-import { connectWithTimeout } from './app/call-connect.js';
+import { cancelConnectAttempt, connectWithTimeout } from './app/call-connect.js';
 import { connectFailure } from './services/connect-failure.js';
 import { buildConversationUsageBody } from './services/call-payloads.js';
 // Moments System - Unified feedback system (whisper, notice, celebration, milestone)
@@ -612,9 +612,6 @@ class VoiceAIApp {
       }, 3000);
     }
 
-    // Show immediate feedback - user tapped the button
-    messageUI.show(t('app.gettingReady'), 'info', 30000);
-
     // iOS CRITICAL: Create and resume AudioContext FIRST in user gesture
     // This must happen synchronously at the start of the click handler
     try {
@@ -636,9 +633,7 @@ class VoiceAIApp {
       log.debug('Sound play failed (OK on iOS):', e);
     }
 
-    // Show thinking indicator with connection progress
-    thinkingUI.show(t('app.connecting'));
-    thinkingUI.showProgress(0); // Step 0: Authenticating
+    // One connecting status: the button says it (and cancels); the avatar waits
     waveformUI.setThinking(true);
 
     // Resume audio context (required after user interaction)
@@ -648,13 +643,7 @@ class VoiceAIApp {
       log.debug('Audio resume failed:', e);
     }
 
-    // Step 1: Joining room
-    thinkingUI.showProgress(1);
-
-    // Step 2: Connecting audio. Resolves once the agent is in the room;
-    // a 30s limit really cancels the attempt.
-    thinkingUI.showProgress(2);
-    messageUI.show(t('app.almostThere'), 'info', 30000);
+    // Resolves once the agent is in the room; a 30s limit (or a tap) cancels it
     clearCallNotice();
     const outcome = await connectWithTimeout(connectionService);
 
@@ -667,8 +656,8 @@ class VoiceAIApp {
       if (outcome.failure.kind === 'cancelled') return;
 
       // One explanation with the action that fixes it (retry, sign in, allow mic)
+      // No failure sound: it isn't the person's fault
       showCallNotice(outcome.failure, { onRetry: () => void this.connect() });
-      soundUI.play('disconnect');
 
       // Error recovery animation - shake the connect button
       const connectBtn = document.getElementById('connectBtn');
@@ -681,12 +670,7 @@ class VoiceAIApp {
       return;
     }
 
-    // Step 3: Ready! Hide thinking indicator
-    thinkingUI.showProgress(3);
-    setTimeout(() => {
-      thinkingUI.hideProgress();
-      thinkingUI.hide();
-    }, 300);
+    thinkingUI.hide();
     waveformUI.setThinking(false);
 
     // Start waveform and set persona
@@ -1243,6 +1227,7 @@ class VoiceAIApp {
         onConnect: () => {
           void this.connect();
         },
+        onCancelConnect: () => void cancelConnectAttempt(),
         onDisconnect: () => {
           void this.disconnect();
         },
@@ -2780,7 +2765,6 @@ class VoiceAIApp {
       onStateChange: (state) => {
         // Update presence and waveform based on connection state
         if (state === 'connecting') {
-          thinkingUI.show(t('app.connecting'));
           waveformUI.setThinking(true);
           // 🚀 Ferni EQ: Dispatch thinking state
           dispatchThinking(true);

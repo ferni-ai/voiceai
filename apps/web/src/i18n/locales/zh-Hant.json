@@ -10795,7 +10795,8 @@
   "entrance": {
     "helper": "你的貼心嚮導",
     "connectToTalk": "聊聊",
-    "endTalk": "掛斷"
+    "endTalk": "掛斷",
+    "connectingCancel": "正在連線。輕點即可取消"
   },
   "teamHuddle": {
     "typeWeekly": "每週自我檢視",

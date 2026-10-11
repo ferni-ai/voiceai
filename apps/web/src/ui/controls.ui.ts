@@ -26,6 +26,8 @@ const log = createLogger('ControlsUI');
 
 export interface ControlCallbacks {
   onConnect: () => void;
+  /** Call off the connect attempt in progress (the connecting button's tap) */
+  onCancelConnect?: () => void;
   onDisconnect: () => void;
   onMuteToggle: () => void;
 }
@@ -87,8 +89,10 @@ function setupClickHandlers(): void {
 
   // Simple click handlers - matches working frontend
   // iOS handles click events on buttons correctly
+  // While connecting, the same button calls the attempt off
   const connectCleanup = addListener(elements.connectBtn, 'click', () => {
-    callbacks?.onConnect();
+    if (appState.get('connection') === 'connecting') callbacks?.onCancelConnect?.();
+    else callbacks?.onConnect();
   });
   cleanupFunctions.push(connectCleanup);
 
@@ -155,9 +159,7 @@ function updateButtonVisibility(state: ConnectionState): void {
     case 'disconnected':
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
-      elements.connectBtn.disabled = false;
-      // Reset connecting state
-      removeClass(elements.connectBtn, 'btn-connecting');
+      showConnectingStatus(elements.connectBtn, false);
       // Reset disconnect button to default styling
       removeClass(elements.disconnectBtn, 'btn-primary');
       removeClass(elements.disconnectBtn, 'btn-magnetic');
@@ -168,14 +170,12 @@ function updateButtonVisibility(state: ConnectionState): void {
     case 'reconnecting':
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
-      elements.connectBtn.disabled = true;
-      // Apple-style: button shows connecting state inline
-      addClass(elements.connectBtn, 'btn-connecting');
+      // A first connect can be called off from the button; a reconnect cannot
+      showConnectingStatus(elements.connectBtn, true, state === 'connecting');
       break;
 
     case 'connected':
-      // Remove connecting state before hiding
-      removeClass(elements.connectBtn, 'btn-connecting');
+      showConnectingStatus(elements.connectBtn, false);
       hide(elements.connectBtn);
       show(elements.disconnectBtn, 'flex');
       elements.disconnectBtn.disabled = false;
@@ -188,10 +188,23 @@ function updateButtonVisibility(state: ConnectionState): void {
     case 'error':
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
-      elements.connectBtn.disabled = false;
-      // Reset connecting state on error
-      removeClass(elements.connectBtn, 'btn-connecting');
+      showConnectingStatus(elements.connectBtn, false);
       break;
+  }
+}
+
+/** Show (or clear) the button's one connecting status, tappable to cancel. */
+function showConnectingStatus(btn: HTMLButtonElement, on: boolean, cancellable = false): void {
+  btn.disabled = on && !cancellable;
+  btn.setAttribute('aria-busy', String(on));
+  if (on) {
+    addClass(btn, 'btn-connecting');
+    btn.dataset.status = cancellable ? t('entrance.connectingCancel') : t('app.connecting');
+    btn.setAttribute('aria-label', btn.dataset.status);
+  } else {
+    removeClass(btn, 'btn-connecting');
+    delete btn.dataset.status;
+    btn.removeAttribute('aria-label');
   }
 }
 
