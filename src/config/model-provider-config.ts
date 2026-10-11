@@ -17,6 +17,23 @@ export type ModelProviderIdSync =
   'cartesia-cascade' | 'gemini-native-audio' | 'openai-realtime' | 'gemini-live';
 
 /**
+ * VOICE_PIPELINE picks the voice pipeline: `openai-realtime`, `gemini-live` or
+ * `gemini-native-audio`. Unset or anything else is the Cartesia cascade, which
+ * dev and prod run. This is the only place it is read; the factory, the
+ * session label and the Gemini configs all ask here. USE_OPENAI_REALTIME=true
+ * used to pick OpenAI Realtime through a second, separate check; it is no
+ * longer read (use VOICE_PIPELINE=openai-realtime).
+ */
+export function voicePipeline(
+  env: Readonly<Record<string, string | undefined>> = process.env
+): ModelProviderIdSync {
+  const value = env.VOICE_PIPELINE;
+  return value === 'openai-realtime' || value === 'gemini-live' || value === 'gemini-native-audio'
+    ? value
+    : 'cartesia-cascade';
+}
+
+/**
  * Get the active provider ID from environment only (no singleton, no agent code).
  *
  * Use from domain layers when you only need to know which provider is configured.
@@ -24,10 +41,7 @@ export type ModelProviderIdSync =
 export function getProviderIdSync(
   env: Record<string, string | undefined> = process.env
 ): ModelProviderIdSync {
-  if (env.USE_OPENAI_REALTIME === 'true') return 'openai-realtime';
-  // Keep in step with agents/model-provider/factory.ts getProviderIdSync.
-  if (env.VOICE_PIPELINE === 'gemini-native-audio') return 'gemini-native-audio';
-  return env.VOICE_PIPELINE === 'gemini-live' ? 'gemini-live' : 'cartesia-cascade';
+  return voicePipeline(env);
 }
 
 /**

@@ -14,7 +14,7 @@
  * @module personality/infrastructure/legacy-bridge
  */
 
-import { PersonalityService, createPersonalityService } from '../v2/index.js';
+import { type PersonalityService, createPersonalityService } from '../v2/index.js';
 import {
   TimingCalculator,
   type TimingAnalysis,
@@ -23,11 +23,12 @@ import {
 } from '../domain/services/timing-calculator.js';
 import { VulnerabilityScorer } from '../domain/services/vulnerability-scorer.js';
 import { AnticipationEngine } from '../domain/services/anticipation-engine.js';
-import type {
-  RelationshipStage,
-  ShareDepth,
+import {
+  RelationshipDepth,
+  type RelationshipStage,
+  type ShareDepth,
 } from '../domain/model/value-objects/relationship-depth.js';
-import type { PrimaryEmotion } from '../domain/model/value-objects/emotional-state.js';
+import { EmotionalState, type PrimaryEmotion } from '../domain/model/value-objects/emotional-state.js';
 import { getFirestorePersonalityRepository } from './firestore-personality-repository.js';
 import { getVoiceAnalyzerAdapter } from './adapters/voice-analyzer-adapter.js';
 import { getEmotionDetectorAdapter } from './adapters/emotion-detector-adapter.js';
@@ -100,9 +101,6 @@ export function shouldSharePersonalMoment(
   relationshipStage: RelationshipStage
 ): { should: boolean; reason: string } {
   // Create temporary state objects for the new API
-  const { RelationshipDepth } = require('../domain/model/value-objects/relationship-depth.js');
-  const { EmotionalState } = require('../domain/model/value-objects/emotional-state.js');
-
   const stageToScores: Record<RelationshipStage, { vulnerability: number; safety: number }> = {
     stranger: { vulnerability: 0, safety: 30 },
     acquaintance: { vulnerability: 15, safety: 45 },

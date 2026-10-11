@@ -18,6 +18,7 @@
 import type { llm } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { SessionServices } from '../../services/index.js';
+import { resolveCrisisAgreementGate } from '../../services/safety/crisis-agreement.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import type { UserData } from '../shared/types.js';
@@ -100,6 +101,14 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
           speechRateWPM: getAverageSpeechRate(deps.services.sessionId),
           totalConversations: state?.user?.totalConversations,
           sharedVulnerabilities: state?.user?.sharedVulnerabilities,
+          // Without these the turn's crisis read saw the caller's words alone,
+          // while the reply's gate saw them with Ferni's line (crisis-agreement.ts).
+          ...(resolveCrisisAgreementGate()
+            ? {
+                recentTranscripts: userData.recentTranscripts?.slice(),
+                lastAgentResponse: userData.lastAgentResponse,
+              }
+            : {}),
         },
         voiceEmotion: userData.voiceEmotion
           ? {
