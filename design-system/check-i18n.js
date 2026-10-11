@@ -380,6 +380,11 @@ function checkPlaceholderConsistency(config, system) {
       const localeValue = getNestedValue(locale, key);
 
       if (typeof sourceValue !== 'string' || typeof localeValue !== 'string') continue;
+      // Untranslated slots: i18n-sync writes "" and the runtime
+      // (apps/web/src/i18n/index.ts isUsableTranslation) treats "" and
+      // "[NEEDS_TRANSLATION]..." as missing and falls back to en-US, so they
+      // render the source string with its placeholders. Not a mismatch.
+      if (localeValue === '' || localeValue.startsWith('[NEEDS_TRANSLATION]')) continue;
 
       let sourcePH = extractPlaceholders(sourceValue);
       const localePH = extractPlaceholders(localeValue);

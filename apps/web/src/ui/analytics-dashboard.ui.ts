@@ -770,7 +770,7 @@ class AnalyticsDashboardUI {
       .analytics {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -859,7 +859,7 @@ class AnalyticsDashboardUI {
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
       }
 
-      @media (max-width: clamp(420px, 90vw, 600px)) {
+      @media (max-width: 600px) {
         .analytics__overview {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -907,7 +907,7 @@ class AnalyticsDashboardUI {
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
       }
 
-      @media (max-width: clamp(420px, 90vw, 600px)) {
+      @media (max-width: 600px) {
         .analytics__charts {
           grid-template-columns: 1fr;
         }
@@ -1376,7 +1376,7 @@ class AnalyticsDashboardUI {
       /* ========================================================================
          MOBILE RESPONSIVE - Small Screens
          ======================================================================== */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .analytics__wrapper {
           max-height: 95vh;
           border-radius: var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0;
@@ -1420,7 +1420,7 @@ class AnalyticsDashboardUI {
       }
 
       /* Very small screens (320px) */
-      @media (max-width: min(375px, 100%)) {
+      @media (max-width: 375px) {
         .analytics__wrapper {
           max-height: 100vh;
           border-radius: 0;

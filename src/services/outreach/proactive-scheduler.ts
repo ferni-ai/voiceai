@@ -72,6 +72,9 @@ export interface SchedulerConfig {
   maxRetries: number;
 }
 
+/** Marks our scheduled_outreach docs; scheduled-multi-outreach's go to contacts, not the user. */
+export const PROACTIVE_OUTREACH_SOURCE = 'proactive-scheduler';
+
 const DEFAULT_CONFIG: SchedulerConfig = {
   checkIntervalMs: 60 * 1000, // Check every minute
   maxBatchSize: 10,
@@ -218,6 +221,17 @@ async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
   try {
     const prefs = userPreferences.get(outreach.userId);
     const method = prefs?.preferredMethod ?? 'push';
+    const push = async (): Promise<void> => {
+      const { sendPushNotification } = await import('./delivery/push-notifications.js');
+      await sendPushNotification({
+        userId: outreach.userId,
+        outreachId: outreach.id,
+        personaId: 'ferni',
+        title: 'Ferni',
+        body: outreach.message,
+        data: { type: outreach.type },
+      });
+    };
 
     log.info(
       {
@@ -229,18 +243,9 @@ async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
       '📤 Delivering proactive outreach'
     );
 
-    // Import delivery service dynamically
     switch (method) {
       case 'push': {
-        const { sendPushNotification } = await import('./delivery/push-notifications.js');
-        await sendPushNotification({
-          userId: outreach.userId,
-          outreachId: outreach.id,
-          personaId: 'ferni',
-          title: 'Ferni',
-          body: outreach.message,
-          data: { type: outreach.type },
-        });
+        await push();
         break;
       }
       case 'text': {
@@ -263,15 +268,7 @@ async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
               { userId: outreach.userId },
               'No phone number for SMS delivery, falling back to push'
             );
-            const { sendPushNotification } = await import('./delivery/push-notifications.js');
-            await sendPushNotification({
-              userId: outreach.userId,
-              outreachId: outreach.id,
-              personaId: 'ferni',
-              title: 'Ferni',
-              body: outreach.message,
-              data: { type: outreach.type },
-            });
+            await push();
           }
         } catch (err) {
           log.warn(
@@ -369,7 +366,6 @@ async function processScheduledOutreach(config: SchedulerConfig): Promise<void> 
       outreach.status = 'sent';
       recordSentOutreach(outreach.userId);
     } else {
-      // Could add retry logic here
       outreach.status = 'failed';
     }
   }
@@ -429,6 +425,7 @@ async function persistOutreach(outreach: ScheduledOutreach): Promise<void> {
       .set(
         cleanForFirestore({
           ...outreach,
+          source: PROACTIVE_OUTREACH_SOURCE,
           scheduledFor: outreach.scheduledFor.toISOString(),
           createdAt: outreach.createdAt.toISOString(),
         })
@@ -468,7 +465,9 @@ export async function loadPendingOutreach(): Promise<void> {
       .where('status', '==', 'pending')
       .get();
 
-    for (const doc of snapshot.docs) {
+    // Filtered here: a collection-group query on `source` would need a new index.
+    const docs = snapshot.docs.filter((d) => d.data().source === PROACTIVE_OUTREACH_SOURCE);
+    for (const doc of docs) {
       const data = doc.data();
       const outreach: ScheduledOutreach = {
         ...data,
@@ -479,7 +478,8 @@ export async function loadPendingOutreach(): Promise<void> {
       pendingOutreach.set(outreach.id, outreach);
     }
 
-    log.info({ count: snapshot.size }, '📥 Loaded pending outreach from Firestore');
+    const skipped = snapshot.size - docs.length;
+    log.info({ count: docs.length, skipped }, '📥 Loaded pending outreach from Firestore');
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to load pending outreach');
   }
