@@ -1180,7 +1180,41 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   nameSpan.textContent = displayName;
   element.appendChild(nameSpan);
 
+  if (!agent.isCoordinator) applyLockState(element, agent.id as UnlockTeamMemberId, isLocked);
+  else addClass(element, 'team-member--in-team');
+
   return element;
+}
+
+/**
+ * The state classes the caretaker styles (--in-team, --locked; --addable and --switching
+ * are set where those happen), from the unlock service, which follows the server. A
+ * locked teammate carries the server's reason as its tooltip and accessible description,
+ * and a click shows it (showLockedMemberFeedback) instead of sending a handoff_request.
+ */
+export function applyLockState(element: HTMLElement, id: UnlockTeamMemberId, isLocked: boolean): void {
+  element.classList.toggle('team-member--locked', isLocked);
+  element.classList.toggle('team-member--in-team', !isLocked);
+  const reasonId = `team-lock-reason-${id}`;
+  element.querySelector(`#${reasonId}`)?.remove();
+  const reason = isLocked ? lockReasonFor(id) : undefined;
+  if (!reason) {
+    element.removeAttribute('title');
+    element.removeAttribute('aria-describedby');
+    return;
+  }
+  const described = document.createElement('span');
+  described.id = reasonId;
+  described.className = 'sr-only';
+  described.textContent = reason;
+  element.appendChild(described);
+  element.setAttribute('title', reason);
+  element.setAttribute('aria-describedby', reasonId);
+}
+
+/** Why a teammate is locked: the server's words when it has said, else the shipped teaser. */
+function lockReasonFor(id: UnlockTeamMemberId): string | undefined {
+  return getMemberStatus(id).lockReason || getTeamMember(id)?.teaserMessage;
 }
 
 /**
@@ -1530,8 +1564,9 @@ function showLockedMemberFeedback(
 
   // Get the teaser message or fallback
   const name = memberConfig?.displayName || personaId;
+  // The server's reason (what the agent would say), then the shipped teaser
   const message =
-    memberConfig?.teaserMessage || t('teamRoster.notAvailableYet', { name });
+    status.lockReason || memberConfig?.teaserMessage || t('teamRoster.notAvailableYet', { name });
 
   // Announce to screen readers
   announceToScreenReader(message);
@@ -1575,6 +1610,7 @@ function updateTeamMemberLockStates(state: ReturnType<typeof teamUnlockService.g
 
     // Update data attribute
     element.setAttribute('data-locked', isLocked.toString());
+    if (personaId !== 'ferni') applyLockState(element, personaId as UnlockTeamMemberId, isLocked);
 
     // Update aria-label
     const memberConfig = getTeamMember(personaId as UnlockTeamMemberId);
@@ -1714,6 +1750,7 @@ function clearSwitchingFeedback(targetPersonaId: SpeakerId): void {
   const targetElement = teamMemberElements.get(targetPersonaId);
   if (targetElement) {
     removeClass(targetElement, 'switching-to');
+    removeClass(targetElement, 'team-member--switching');
     removeClass(targetElement, 'send-failed');
   }
 
@@ -1747,6 +1784,7 @@ function showSwitchingFeedback(fromId: SpeakerId, toId: PersonaId): void {
   // Highlight the target persona with a subtle glow
   if (toElement) {
     addClass(toElement, 'switching-to');
+    addClass(toElement, 'team-member--switching');
   }
 
   // 🎬 Energy transfer animation - magical pulse travels from one to the other
