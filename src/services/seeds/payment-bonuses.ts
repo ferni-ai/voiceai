@@ -11,8 +11,7 @@
  *
  * @module services/seeds/payment-bonuses
  */
-import type { Firestore } from 'firebase-admin/firestore';
-import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
+import admin from 'firebase-admin';
 import { createLogger } from '../../utils/safe-logger.js';
 import { applySeeds, type SeedResult } from './ledger.js';
 
@@ -73,7 +72,7 @@ export interface SeedFundInvoice {
  */
 export async function awardContributionSeeds(
   intent: SeedFundPaymentIntent,
-  db?: Firestore
+  db?: admin.firestore.Firestore
 ): Promise<SeedResult | null> {
   const meta = intent.metadata ?? {};
   const uid = meta.ferni_user_id;
@@ -83,7 +82,7 @@ export async function awardContributionSeeds(
   const seeds = contributionSeeds(amountCents);
   if (seeds <= 0) return null;
 
-  const result = await applySeeds(db ?? getAdminFirestore(), uid, {
+  const result = await applySeeds(db ?? admin.firestore(), uid, {
     delta: seeds,
     reason: 'contribution',
     key: `stripe:${intent.id}`,
@@ -100,7 +99,7 @@ export async function awardContributionSeeds(
  */
 export async function awardFoundingSeeds(
   invoice: SeedFundInvoice,
-  db?: Firestore
+  db?: admin.firestore.Firestore
 ): Promise<SeedResult | null> {
   const meta = invoice.subscription_details?.metadata ?? {};
   const uid = meta.seeds_uid;
@@ -115,7 +114,7 @@ export async function awardFoundingSeeds(
   const seeds = foundingSeeds(amountCents);
   if (seeds <= 0) return null;
 
-  const result = await applySeeds(db ?? getAdminFirestore(), uid, {
+  const result = await applySeeds(db ?? admin.firestore(), uid, {
     delta: seeds,
     reason: 'subscription',
     key: `stripe-sub:${subscriptionId}:founding`,
