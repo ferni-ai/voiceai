@@ -19,6 +19,10 @@ import {
   installBackchannelHook,
   setBargeInFastPath,
 } from './barge-in-fastpath.js';
+import {
+  isOutreachConfirmOn,
+  outreachConfirmListeners,
+} from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { createTurnKeeper } from './turn-keeper.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
 import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
@@ -180,6 +184,17 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
     sessionEventHandlers.push(...handlers);
     cleanupFunctions.push(registerBargeInJudge(sessionId, judge));
+  }
+
+  // Texts, calls and emails wait for the caller's own yes (outreach-confirm.ts).
+  if (isOutreachConfirmOn()) {
+    const confirm = outreachConfirmListeners(session);
+    const handlers = [
+      { event: 'user_input_transcribed', handler: confirm.onTranscript },
+      { event: 'function_tools_executed', handler: confirm.onToolsExecuted },
+    ];
+    for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
+    sessionEventHandlers.push(...handlers);
   }
 }
 

@@ -467,14 +467,14 @@ const quickCallDef: ToolDefinition = {
         contact: z.string().describe('Who to call - name, relationship, or phone number'),
         message: z.string().optional().describe("Message to leave if they don't answer"),
       }),
-      execute: async ({ contact, message }) => {
+      execute: async ({ contact, message }, opts) => {
         log.info({ userId: ctx.userId, contact, message }, 'Quick call shortcut');
 
         trackCapabilityUsage(ctx.userId || 'anon', 'quickCall');
 
         try {
           const purpose = message ? `Pass on this message: ${message}` : `Check in with ${contact}`;
-          const result = await handOff('quickCall', ctx, contact, {
+          const result = await handOff('quickCall', ctx, contact, opts, {
             contactQuery: contact,
             purpose,
           });
@@ -509,7 +509,7 @@ const quickTextDef: ToolDefinition = {
         contact: z.string().describe('Who to text - name, relationship, or phone number'),
         message: z.string().describe('The message to send'),
       }),
-      execute: async ({ contact, message }) => {
+      execute: async ({ contact, message }, opts) => {
         log.info(
           { userId: ctx.userId, contact, message: message.substring(0, 20) },
           'Quick text shortcut'
@@ -518,7 +518,7 @@ const quickTextDef: ToolDefinition = {
         trackCapabilityUsage(ctx.userId || 'anon', 'quickText');
 
         try {
-          const result = await handOff('quickText', ctx, contact, {
+          const result = await handOff('quickText', ctx, contact, opts, {
             contact,
             purpose: message,
             preferredChannel: 'text',
@@ -556,13 +556,13 @@ const quickEmailDef: ToolDefinition = {
         subject: z.string().optional().describe('Email subject'),
         body: z.string().describe('Email body/message'),
       }),
-      execute: async ({ recipient, subject, body }) => {
+      execute: async ({ recipient, subject, body }, opts) => {
         log.info({ userId: ctx.userId, recipient, subject }, 'Quick email shortcut');
 
         trackCapabilityUsage(ctx.userId || 'anon', 'quickEmail');
 
         try {
-          const result = await handOff('quickEmail', ctx, recipient, {
+          const result = await handOff('quickEmail', ctx, recipient, opts, {
             contact: recipient,
             purpose: subject || body,
             preferredChannel: 'email',
