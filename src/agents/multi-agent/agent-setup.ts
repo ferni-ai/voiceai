@@ -99,7 +99,7 @@ const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
 import { createFindToolsTool, FIND_TOOLS } from '../../tools/retrieval/find-tools-tool.js';
-import { createEndCallTool, END_CALL } from '../outbound-call/call-control.js';
+import { amdOpensCall, createEndCallTool, END_CALL } from '../outbound-call/call-control.js';
 import { toolRetrievalMode as retrievalModeNow } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { initializeFrontendPublisher } from '../realtime/index.js';
@@ -201,6 +201,7 @@ export interface AgentSetupConfig {
    * Only this persona's Agent and its own listeners are built; the session stays the call's.
    */
   callSession?: voice.AgentSession<UserData>;
+  phoneCaller?: boolean; // a phone (LiveKit SIP) caller: see PHONE_AUDIO_MODE
 }
 
 /**
@@ -1143,9 +1144,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   mark('session_create_start');
   // A persona swapped into a running call joins its session (persona-swap.ts)
-  const session =
-    callSession ??
-    (await createCallSession({ persona, sessionId, services, userData, llmModel, tts }));
+  const parts = { persona, sessionId, services, userData, llmModel, tts };
+  const session = callSession ?? (await createCallSession({ ...parts, phone: config.phoneCaller }));
 
   mark('session_created');
   rememberPersona(session, persona); // personaOnCall: handlers follow the persona on the call
@@ -1206,7 +1206,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         // FIX (Jan 2026): Skip ping if user is actively speaking
         // This prevents race conditions where ping and user response compete
         const userData = session.userData as { userSpeakingStartTime?: number } | undefined;
-        if (userData?.userSpeakingStartTime) {
+        if (userData?.userSpeakingStartTime || amdOpensCall(sessionId)) {
           log.debug({ sessionId }, '🏥 [HEALTH] Skipping ping - user is speaking');
           return true; // Return true to indicate "healthy" without actually pinging
         }
@@ -1849,7 +1849,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
             () => conversationManager?.isAgentSpeaking() ?? false,
             // A native-audio model would turn a scripted "mm-hmm" into a full
             // reply while the user is still talking.
-            { enabled: !getModelProvider().speaksNatively?.(), playClip: clips?.playClip }
+            { enabled: !getModelProvider().speaksNatively?.(), ...clips?.live }
           );
           cleanupFunctions.push(() => liveBackchannel?.cleanup());
           // A user turn ends when the agent takes the floor. Ink finalizes a

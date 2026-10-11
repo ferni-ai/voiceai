@@ -53,6 +53,12 @@ import {
   loadLifeUpdates,
   type LifeUpdateDeps,
 } from '../personas/life-updates.js';
+import {
+  callCheckIns,
+  coachFollowThroughMode,
+  formatCheckIn,
+  type OpenCommitment,
+} from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   formatWorldNote,
@@ -117,6 +123,8 @@ export interface MemoryRecallDeps {
   /** Call start (shifted only by the eval clock, eval-clock.ts). */
   now?: Date;
   env?: Record<string, string | undefined>;
+  /** What they said they'd do, asked about early (COACH_FOLLOW_THROUGH). */
+  checkIns?: () => Promise<OpenCommitment[]>;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
   embed?: RetrievalEmbedder;
@@ -160,6 +168,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
 
   let ledgerNote: string | null = null;
   let sinceNote: string | null = null;
+  let checkInNote: string | null = null;
+  let checkInOffered = false;
   const semanticOn = deps.semantic ?? semanticRecallEnabled();
   let index: SemanticIndex | undefined;
   // Semantic recall only: threads and stories past the first note, by id.
@@ -213,6 +223,14 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     .then((updates) => {
       sinceNote = formatLifeUpdates(updates);
     });
+  // Also never holds up the snapshot; joins the first note once it is ready.
+  const checkIns =
+    deps.checkIns ?? (coachFollowThroughMode() ? () => callCheckIns(deps.userId) : undefined);
+  const checkedIn = (checkIns ? checkIns() : Promise.resolve([]))
+    .then((open) => {
+      checkInNote = formatCheckIn(open, Date.now());
+    })
+    .catch((error: unknown) => log.warn({ error: String(error) }, 'Check-ins not loaded'));
   // The world model is the single source for people, goals and what to avoid:
   // its note comes once, and recall then leaves out facts it already covers.
   let world: { snapshot: WorldModelSnapshot; note: string; counts: object } | null = null;
@@ -253,7 +271,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           log.warn({ error: String(error) }, 'Temporal world not loaded');
         })
     : Promise.resolve();
-  const ready = Promise.all([loaded, since, worldLoaded, temporalLoaded]).then(() => undefined);
+  const ready = Promise.all([loaded, since, checkedIn, worldLoaded, temporalLoaded]).then(
+    () => undefined
+  );
 
   return {
     ready,
@@ -299,8 +319,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const told = followUpsOffered
         ? null
         : [ledgerNote, sinceNote, temporal?.note].filter(Boolean).join('\n') || null;
+      const checkIn = checkInOffered ? null : checkInNote;
       const note =
         [
+          checkIn,
           worldNote,
           formatRecall(facts, followUps, deps.userName),
           told,
@@ -317,6 +339,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         worldOffered = true;
         log.info({ ...world.counts, chars: worldNote.length }, 'WORLD_MODEL_INJECTED');
       }
+      if (checkIn) checkInOffered = true;
       tokensLeft -= factTokens + estimateTokens(extras.map(laterText));
       for (const id of extras) surfaced.add(id);
       factsThisTurn += facts.length;

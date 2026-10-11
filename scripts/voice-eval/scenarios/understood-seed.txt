@@ -1,0 +1,12 @@
+# Seed for understood.txt. Call 1 shows how the caller copes: twice they joke
+# right when something scares them, and they wave off sympathy and ask for a
+# practical next step. They also share facts Ferni should not ask again as if
+# new: a final-round interview Thursday at Northlight, a design studio, and
+# their roommate Dev moving out at the end of the month.
+# Run with THEORY_OF_MIND=on: EVAL_SEED=understood-seed EVAL_SEED_WAIT=90 run.sh dev understood tom
+# (the wait lets the after-call update land before call 2 starts).
+Hey Ferni. So, I have a final round interview Thursday at Northlight, the design studio. Ha, if I bomb it I'm becoming a goat farmer.
+Yeah, I'm honestly pretty nervous. Anyway. Please don't tell me it'll be fine. What should I actually do to prep tonight?
+Okay, that helps. Oh, and my roommate Dev is moving out at the end of the month, so I'll need to cover his half of the rent. Cool cool cool. I'll just sell a kidney.
+No, I'm fine, really. I just need a plan. What's the first thing I should do about the rent?
+Got it. Okay, I'm gonna go make that list. Thanks, Ferni.

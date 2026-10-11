@@ -55,6 +55,35 @@ vi.mock('../../memory/index.js', () => ({
   },
 }));
 
+// Smart-home services for the Health → Smart Home suite. These used to sit in
+// that suite's beforeEach; Vitest hoisted them here anyway, and Vitest 5
+// rejects vi.mock outside the top level.
+vi.mock('../../services/self-healing/index.js', () => ({
+  getHomeAssistantClient: vi.fn(() => ({
+    isHealthy: () => true,
+    get: vi.fn(() => Promise.resolve({ data: [], error: null })),
+    post: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+  })),
+  getHueClient: vi.fn(() => ({
+    isHealthy: () => true,
+    get: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+    put: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+  })),
+  getLifxClient: vi.fn(() => ({
+    isHealthy: () => true,
+    get: vi.fn(() => Promise.resolve({ data: [], error: null })),
+    put: vi.fn(() => Promise.resolve({ data: {}, error: null })),
+  })),
+}));
+
+vi.mock('../../services/smart-home/home-assistant.js', () => ({
+  getHomeAssistantService: vi.fn(() => null),
+}));
+
+vi.mock('../../services/identity/ecobee-api.js', () => ({
+  getEcobeeApi: vi.fn(() => null),
+}));
+
 // ============================================================================
 // IMPORTS
 // ============================================================================
@@ -792,35 +821,7 @@ describe('E2E Health → Smart Home Cross-Domain', () => {
     vi.clearAllMocks();
     ctx = createMockContext('ferni');
 
-    // Mock smart home services
-    vi.mock('../../services/self-healing/index.js', () => ({
-      getHomeAssistantClient: vi.fn(() => ({
-        isHealthy: () => true,
-        get: vi.fn(() => Promise.resolve({ data: [], error: null })),
-        post: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-      })),
-      getHueClient: vi.fn(() => ({
-        isHealthy: () => true,
-        get: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-        put: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-      })),
-      getLifxClient: vi.fn(() => ({
-        isHealthy: () => true,
-        get: vi.fn(() => Promise.resolve({ data: [], error: null })),
-        put: vi.fn(() => Promise.resolve({ data: {}, error: null })),
-      })),
-    }));
-
-    // Mock Home Assistant service
-    vi.mock('../../services/smart-home/home-assistant.js', () => ({
-      getHomeAssistantService: vi.fn(() => null),
-    }));
-
-    // Mock Ecobee API
-    vi.mock('../../services/identity/ecobee-api.js', () => ({
-      getEcobeeApi: vi.fn(() => null),
-    }));
-
+    // Smart-home service mocks are at the top of the file.
     const healthModule = await import('../domains/health/index.js');
     healthTools = await healthModule.getToolDefinitions();
 

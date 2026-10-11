@@ -14,6 +14,7 @@ const {
   phoneVerifyMode,
   readSipCaller,
 } = await import('../sip-caller.js');
+const { mintPhoneAttestation } = await import('../../../services/identity/phone-attestation.js');
 const { isPhoneListener } = await import('../../shared/performance/phone-voice-profile.js');
 type SipParticipantLike = import('../sip-caller.js').SipParticipantLike;
 
@@ -172,6 +173,8 @@ describe('readSipCaller', () => {
       isSip: false,
       phoneNumberMasked: null,
       attestation: 'none',
+      attestationSource: 'none',
+      signedStatus: 'unsigned',
       attributeKeys: ['foo'],
       waitedMs: 0,
     });
@@ -234,6 +237,102 @@ describe('logSipCallerShadow', () => {
     });
     expect(JSON.stringify(fields)).not.toContain(FULL_NUMBER);
     expect(JSON.stringify(fields)).not.toContain('TN-Validation');
+  });
+});
+
+describe('signed attestation (ferni.attest)', () => {
+  const SECRET = 'agent-attest-secret';
+  const env = { PHONE_ATTEST_SECRET: SECRET };
+  const token = (from = FULL_NUMBER, verstat = 'TN-Validation-Passed-A', secret = SECRET): string =>
+    mintPhoneAttestation({ callSid: 'CA1', from, to: '+18885983952', verstat }, secret);
+
+  it('takes the attestation from a token that verifies for this caller', async () => {
+    const r = await readSipCaller(sipCaller({ 'ferni.attest': token() }), { env });
+    expect(r).toMatchObject({
+      attestation: 'A',
+      attestationSource: 'signed',
+      signedStatus: 'signed',
+    });
+  });
+
+  it('prefers the signed verstat over a forged raw header', async () => {
+    const r = await readSipCaller(
+      sipCaller({
+        'ferni.attest': token(FULL_NUMBER, 'TN-Validation-Passed-C'),
+        'sip.h.X-Twilio-VerStat': 'TN-Validation-Passed-A',
+      }),
+      { env }
+    );
+    expect(r).toMatchObject({ attestation: 'C', attestationSource: 'signed' });
+  });
+
+  it.each([
+    ['another caller number', () => token('+15559999999'), env, 'number-mismatch'],
+    [
+      'another secret',
+      () => token(FULL_NUMBER, 'TN-Validation-Passed-A', 'other'),
+      env,
+      'bad-signature',
+    ],
+    ['no secret on the agent', () => token(), {}, 'no-secret'],
+  ] as const)('never reports signed for a token minted for %s', async (_l, make, e, reason) => {
+    const r = await readSipCaller(
+      sipCaller({ 'ferni.attest': make(), 'sip.h.X-Twilio-VerStat': 'TN-Validation-Passed-A' }),
+      { env: e }
+    );
+    expect(r).toMatchObject({
+      attestation: 'A',
+      attestationSource: 'header',
+      signedStatus: 'invalid',
+      signedReason: reason,
+    });
+  });
+
+  it('reports the raw header as unsigned when no token was sent', async () => {
+    const r = await readSipCaller(
+      sipCaller({ 'sip.h.X-Twilio-VerStat': 'TN-Validation-Passed-A' }),
+      {
+        env,
+      }
+    );
+    expect(r).toMatchObject({ attestationSource: 'header', signedStatus: 'unsigned' });
+  });
+
+  it('reads the token from a trunk that maps all headers (sip.h.X-Ferni-Attest)', async () => {
+    const r = await readSipCaller(sipCaller({ 'sip.h.X-Ferni-Attest': token() }), { env });
+    expect(r.attestationSource).toBe('signed');
+  });
+
+  it('logs neither the token nor the full number', async () => {
+    info.mockClear();
+    const t = token();
+    await logSipCallerShadow({
+      participant: sipCaller({ 'ferni.attest': t }),
+      room: fakeRoom(),
+      sessionId: 's-signed',
+      env: { ...env, PHONE_VERIFY: 'shadow' },
+    });
+    const [fields] = info.mock.calls[0] as [Record<string, unknown>, string];
+    expect(fields).toMatchObject({ attestationSource: 'signed', attestation: 'A' });
+    const logged = JSON.stringify(fields);
+    expect(logged).not.toContain(t.split('.')[1]);
+    expect(logged).not.toContain(t.split('.')[0]);
+    expect(logged).not.toContain(FULL_NUMBER);
+  });
+
+  describe('with fake timers', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it('stops waiting when the token arrives in a later update', async () => {
+      const room = fakeRoom();
+      const caller = sipCaller();
+      const pending = readSipCaller(caller, { updates: room, waitMs: 1500, env });
+      await vi.advanceTimersByTimeAsync(300);
+      room.emit('participantAttributesChanged', { 'ferni.attest': token() }, caller);
+      const r = await pending;
+      expect(r).toMatchObject({ attestationSource: 'signed', waitedMs: 300 });
+    });
   });
 });
 
