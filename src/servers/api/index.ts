@@ -102,6 +102,7 @@ import { handleToolsAnalyticsRoutes } from '../../api/tools-analytics-routes.js'
 import { handleChatRoutes } from '../../api/chat-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
 import { handleOutreachRoutes } from '../../api/outreach.routes.js';
+import { handlePendingActionRoutes } from '../../api/pending-action-routes.js';
 import { handleBackgroundResultsRoutes } from '../../api/background-results-routes.js';
 import { handleAnswerCardRoutes } from '../../api/answer-card-routes.js';
 import { handleGDPRRoutes } from '../../api/gdpr-routes.js';
@@ -838,6 +839,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const handled = await handleOutreachRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
+
+    // Pending actions approved on the /p/:id page (APPROVALS_PAGE)
+    if (await handlePendingActionRoutes(req, res, pathname)) return;
 
     // Background results routes (While You Were Away)
     if (pathname.startsWith('/api/background-results')) {
