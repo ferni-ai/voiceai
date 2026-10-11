@@ -1,9 +1,4 @@
-/**
- * APPROVALS_PAGE: the signed-in approvals and sources pages (/a/:id, /p/:id)
- * and their APIs. Off unless exactly "on".
- *
- * @module services/approvals/flag
- */
+/** APPROVALS_PAGE: the /a/:id and /p/:id pages and their APIs. Off unless exactly "on". */
 export function isApprovalsPageEnabled(
   env: Record<string, string | undefined> = process.env
 ): boolean {

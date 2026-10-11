@@ -8,7 +8,6 @@
  * revocation checked), the hash of the action the page showed, and CSRF
  * safety: JSON body, allowed Origin when sent, bearer token (no cookies).
  * Everything is 404 unless APPROVALS_PAGE=on.
- *
  * @module PendingActionRoutes
  */
 
@@ -43,14 +42,14 @@ const OUTCOME: Record<DecisionOutcome, { status: number; message: string; code?:
   passkey_required: { status: 403, message: 'This one needs a passkey.', code: 'PASSKEY_REQUIRED' },
 };
 
-/** When the bearer token's user last actually signed in (ms), or null if unknown/anonymous. */
-async function signInTime(req: IncomingMessage): Promise<number | null> {
+/** When userId last signed in (ms), from their own non-anonymous bearer token re-verified. */
+async function signInTime(req: IncomingMessage, userId: string): Promise<number | null> {
   const header = req.headers.authorization;
   if (typeof header !== 'string' || !header.startsWith('Bearer ')) return null;
   const verified = await verifyFirebaseToken(header.slice(7), true);
   if (!verified || 'expired' in verified || verified.isAnonymous) return null;
   const authTime = verified.claims.auth_time;
-  return typeof authTime === 'number' ? authTime * 1000 : null;
+  return verified.uid === userId && typeof authTime === 'number' ? authTime * 1000 : null;
 }
 
 function isCsrfSafe(req: IncomingMessage): boolean {
@@ -69,15 +68,6 @@ async function decide(
     sendApiError(res, { status: 403, message: "Couldn't do that from here.", code: 'CSRF' });
     return;
   }
-  const authTime = await signInTime(req);
-  if (authTime === null || Date.now() - authTime > FRESH_SIGN_IN_MS) {
-    sendApiError(res, {
-      status: 401,
-      message: 'Sign in again to approve.',
-      code: 'REAUTH_REQUIRED',
-    });
-    return;
-  }
   const body = await parseJsonBodySafe<{ decision?: unknown; actionHash?: unknown }>(req, res, {
     maxSize: 2048,
   });
@@ -85,6 +75,16 @@ async function decide(
   const { decision, actionHash } = body;
   if ((decision !== 'approve' && decision !== 'decline') || typeof actionHash !== 'string') {
     sendApiError(res, { status: 400, message: "Couldn't read that answer.", code: 'BAD_REQUEST' });
+    return;
+  }
+  // Approving needs a sign-in from the last 5 minutes; declining is always safe.
+  const authTime = (await signInTime(req, userId)) ?? 0;
+  if (decision === 'approve' && Date.now() - authTime > FRESH_SIGN_IN_MS) {
+    sendApiError(res, {
+      status: 401,
+      message: 'Sign in again to approve.',
+      code: 'REAUTH_REQUIRED',
+    });
     return;
   }
   // No WebAuthn yet, so no passkey can be verified: money-moving actions stay unapprovable.
@@ -118,6 +118,11 @@ export async function handlePendingActionRoutes(
     return true;
   const auth = await requireAuth(req, res);
   if (!auth) return true;
+  // Only a person's own Firebase sign-in, never a service API key or dev header.
+  if (auth.authMethod !== 'firebase') {
+    sendApiError(res, NOT_FOUND);
+    return true;
+  }
 
   try {
     const action = await getPendingActionForUser(id, auth.userId);
@@ -126,7 +131,7 @@ export async function handlePendingActionRoutes(
       return true;
     }
     if (isRead) {
-      const { userId: _owner, decision: _decision, ...shown } = action;
+      const { userId: _owner, decision: _decision, deleteAt: _deleteAt, ...shown } = action;
       sendJSON(res, { action: shown });
       return true;
     }

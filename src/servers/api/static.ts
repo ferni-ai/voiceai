@@ -158,12 +158,6 @@ export function handleStaticRoutes(
     return true;
   }
 
-  // Approval page: /p/:id (SPA handles routing)
-  if (pathname.startsWith('/p/')) {
-    serveStaticFile('index.html', res, req);
-    return true;
-  }
-
   // Serve garden payment result pages (SPA handles routing)
   if (pathname === '/garden/success' || pathname === '/garden/cancel') {
     serveStaticFile('index.html', res, req);

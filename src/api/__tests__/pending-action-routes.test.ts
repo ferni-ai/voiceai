@@ -11,12 +11,16 @@ import type { AddressInfo } from 'node:net';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeFirestore } from '../../services/approvals/__tests__/fake-firestore.js';
 
-/** token → [uid, auth_time seconds-ago, anonymous] */
-const TOKENS: Record<string, [string, number, boolean]> = {
+/** token → [uid, auth_time seconds-ago, anonymous, uid inside the bearer token, auth method] */
+type Entry = [string, number, boolean, string?, ('firebase' | 'api_key')?];
+const TOKENS: Record<string, Entry> = {
   'alice-fresh': ['alice', 30, false],
   'alice-stale': ['alice', 6 * 60, false],
   'alice-anon': ['alice', 30, true],
   'bob-fresh': ['bob', 30, false],
+  // requireAuth resolved alice some other way, but the bearer token is bob's
+  'alice-with-bobs-token': ['alice', 30, false, 'bob'],
+  'service-key': ['alice', 30, false, undefined, 'api_key'],
 };
 
 const tokenOf = (req: http.IncomingMessage) =>
@@ -27,7 +31,7 @@ vi.mock('../auth-middleware.js', async (importOriginal) => {
   const verify = async (req: http.IncomingMessage) => {
     const entry = TOKENS[tokenOf(req)];
     return entry
-      ? { userId: entry[0], isAdmin: false, isDevMode: false, authMethod: 'firebase' as const }
+      ? { userId: entry[0], isAdmin: false, isDevMode: false, authMethod: entry[4] ?? 'firebase' }
       : null;
   };
   return {
@@ -47,7 +51,8 @@ vi.mock('../../services/identity/firebase-auth.js', () => ({
     const entry = TOKENS[token];
     if (!entry) return null;
     const authTime = Math.floor(Date.now() / 1000) - entry[1];
-    return { uid: entry[0], isAnonymous: entry[2], claims: { admin: false, auth_time: authTime } };
+    const uid = entry[3] ?? entry[0];
+    return { uid, isAnonymous: entry[2], claims: { admin: false, auth_time: authTime } };
   }),
 }));
 
@@ -166,6 +171,27 @@ describe('POST /api/pending-actions/:id/decision', () => {
       expect(((await res.json()) as { code: string }).code).toBe('REAUTH_REQUIRED');
     }
     expect(statusOf(id)).toBe('pending');
+  });
+
+  it('never takes a bearer token that belongs to someone else as the fresh sign-in', async () => {
+    const { id, actionHash } = await aliceAction();
+    const res = await decide(id, 'alice-with-bobs-token', { decision: 'approve', actionHash });
+    expect(res.status).toBe(401);
+    expect(statusOf(id)).toBe('pending');
+  });
+
+  it('answers 404 to a service API key, which is never a person', async () => {
+    const { id, actionHash } = await aliceAction();
+    expect((await read(id, 'service-key')).status).toBe(404);
+    expect((await decide(id, 'service-key', { decision: 'approve', actionHash })).status).toBe(404);
+    expect(statusOf(id)).toBe('pending');
+  });
+
+  it('lets the owner decline without signing in again', async () => {
+    const { id, actionHash } = await aliceAction();
+    const res = await decide(id, 'alice-stale', { decision: 'decline', actionHash });
+    expect(res.status).toBe(200);
+    expect(statusOf(id)).toBe('declined');
   });
 
   it('refuses a hash for a different action', async () => {

@@ -18,6 +18,10 @@ import { getFirestoreDb } from '../../utils/firestore-utils.js';
 
 export const PENDING_ACTIONS_COLLECTION = 'pending_actions';
 export const PENDING_ACTION_TTL_MS = 5 * 60 * 1000;
+/** How long after the approval the action may run. */
+export const APPROVAL_USE_MS = 2 * 60 * 1000;
+/** Firestore TTL field: the stored recipient and text are deleted a day later. */
+const KEEP_MS = 24 * 60 * 60 * 1000;
 
 export type PendingActionKind = 'send_text' | 'place_call' | 'purchase';
 const KINDS: readonly PendingActionKind[] = ['send_text', 'place_call', 'purchase'];
@@ -35,6 +39,7 @@ export interface PendingAction {
   moneyMoving: boolean;
   createdAt: number;
   expiresAt: number;
+  deleteAt: Date;
   status: 'pending' | 'approved' | 'declined' | 'used';
   decision?: {
     decision: 'approve' | 'decline';
@@ -57,7 +62,11 @@ const MAX_FIELDS = 12;
 const MAX_VALUE_CHARS = 1000;
 const ID = /^[A-Za-z0-9_-]{43}$/;
 /** Words in a field name that mean it would carry card or account secrets. */
-const SECRET_WORDS = new Set(['card', 'pan', 'cvc', 'cvv', 'iban', 'password', 'secret', 'token']);
+const SECRET_WORDS = new Set(
+  'card cardnumber cc ccnum pan cvc cvv iban pin ssn routing password passcode secret token apikey'.split(
+    ' '
+  )
+);
 
 /** By whole word ("cardNumber", "card_cvc"), so "company" or "discard" never match. */
 function isSecretKey(key: string): boolean {
@@ -67,13 +76,15 @@ function isSecretKey(key: string): boolean {
     .split(/[^a-z0-9]+/);
   return (
     words.some((w) => SECRET_WORDS.has(w)) ||
-    (words.includes('account') && words.includes('number'))
+    (words.includes('account') && words.includes('number')) ||
+    (words.includes('api') && words.includes('key'))
   );
 }
 
-/** True for 13-19 digit runs that pass the Luhn check (a card number). */
+/** True for a 13-19 digit run (single space . / - between digits allowed) passing Luhn. */
 function looksLikeCardNumber(value: string): boolean {
-  for (const run of value.replace(/[ -]/g, '').match(/\d{13,19}/g) ?? []) {
+  const runs = (value.match(/\d(?:[ ./-]?\d)*/g) ?? []).map((r) => r.replace(/\D/g, ''));
+  for (const run of runs.filter((r) => r.length >= 13 && r.length <= 19)) {
     let sum = 0;
     for (let i = 0; i < run.length; i++) {
       let d = Number(run[run.length - 1 - i]);
@@ -90,12 +101,11 @@ export function assertStorablePayload(payload: ActionPayload): void {
   const entries = Object.entries(payload);
   if (entries.length === 0 || entries.length > MAX_FIELDS) throw new Error('payload size');
   for (const [key, value] of entries) {
-    if (typeof value !== 'string' && typeof value !== 'number')
+    if (typeof value !== 'string' && !(typeof value === 'number' && Number.isFinite(value)))
       throw new Error(`payload ${key} not flat`);
     if (isSecretKey(key)) throw new Error(`payload ${key} looks secret`);
     if (String(value).length > MAX_VALUE_CHARS) throw new Error(`payload ${key} too long`);
-    if (typeof value === 'string' && looksLikeCardNumber(value))
-      throw new Error(`payload ${key} has a card number`);
+    if (looksLikeCardNumber(String(value))) throw new Error(`payload ${key} has a card number`);
   }
 }
 
@@ -139,15 +149,12 @@ export async function createPendingAction(
     moneyMoving: MONEY_MOVING.has(kind),
     createdAt: now,
     expiresAt: now + PENDING_ACTION_TTL_MS,
+    deleteAt: new Date(now + KEEP_MS),
     status: 'pending',
   };
   await db.collection(PENDING_ACTIONS_COLLECTION).doc(id).set(action);
-  return {
-    id,
-    url: `${APP_URL}/p/${id}`,
-    actionHash: action.actionHash,
-    expiresAt: action.expiresAt,
-  };
+  const { actionHash, expiresAt } = action;
+  return { id, url: `${APP_URL}/p/${id}`, actionHash, expiresAt };
 }
 
 /** The action when userId owns it; null when missing, malformed or someone else's. */
@@ -206,13 +213,15 @@ export async function decidePendingAction(
 }
 
 /**
- * Use a page approval once: true only when id was approved by userId for an
- * action with exactly this hash and has not expired or been used.
+ * Use a page approval once: true only when id was approved by userId, in the
+ * last 2 minutes, for exactly this kind and payload (the hash is recomputed
+ * from what the caller is about to run), and was not used before.
  */
 export async function consumePageApproval(
   id: string,
   userId: string,
-  actionHash: string,
+  kind: PendingActionKind,
+  payload: ActionPayload,
   now = Date.now(),
   db: Firestore | null = getFirestoreDb()
 ): Promise<boolean> {
@@ -225,9 +234,9 @@ export async function consumePageApproval(
       action !== null &&
       action.userId === userId &&
       action.status === 'approved' &&
-      now <= action.expiresAt &&
+      now <= (action.decision?.decidedAt ?? 0) + APPROVAL_USE_MS &&
       intact(action) &&
-      action.decision?.actionHash === actionHash;
+      action.decision?.actionHash === hashAction(kind, userId, payload);
     if (ok) tx.update(ref, { status: 'used' });
     return ok;
   });
