@@ -25,7 +25,7 @@
  */
 import { monitorEventLoopDelay } from 'node:perf_hooks';
 
-interface EouMetric {
+export interface EouMetric {
   type: 'eou_metrics';
   speechId?: string;
   endOfUtteranceDelayMs: number;
@@ -34,7 +34,7 @@ interface EouMetric {
   lastSpeakingTimeMs?: number;
 }
 
-interface LlmMetric {
+export interface LlmMetric {
   type: 'llm_metrics';
   speechId?: string;
   ttftMs: number;
@@ -153,7 +153,7 @@ export class TurnMetricsAggregator {
 }
 
 /** When the first tokens existed, from the end of the caller's speech; never before the commit. */
-function llmReady(eou: EouMetric, llm: LlmMetric): number {
+export function llmReady(eou: EouMetric, llm: LlmMetric): number {
   const stoppedAt = eou.lastSpeakingTimeMs ?? 0;
   if (stoppedAt > 0 && llm.timestamp && llm.durationMs !== undefined && llm.ttftMs >= 0) {
     const firstTokenAt = llm.timestamp - llm.durationMs + llm.ttftMs;

@@ -9,6 +9,8 @@
  * @module services/health/health-data-store
  */
 
+import { isRequireFixMemoryEnabled } from '../../config/require-fix-memory-flag.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onHealthSummaryChange } from '../data-layer/hooks/index.js';
@@ -57,11 +59,10 @@ interface FirestoreDb {
 }
 
 function getFirestoreDb(): FirestoreDb | null {
+  // In memory only until REQUIRE_FIX_MEMORY is on
+  if (!isRequireFixMemoryEnabled()) return null;
   try {
-    // Dynamic import to avoid issues when Firestore not available
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const admin = require('firebase-admin');
-    return admin.firestore();
+    return getAdminFirestore() as unknown as FirestoreDb;
   } catch {
     log.debug('Firestore not available');
     return null;

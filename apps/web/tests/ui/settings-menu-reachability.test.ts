@@ -35,6 +35,8 @@ const callbacks = {
   onDiscoverAgentsClick: vi.fn(),
   onHubClick: vi.fn(),
   onWhatIDoForYouClick: vi.fn(),
+  onOutreachScheduleClick: vi.fn(),
+  onContactSettingsClick: vi.fn(),
 };
 
 describe('settings menu: shipped panels are reachable', () => {
@@ -73,6 +75,9 @@ describe('settings menu: shipped panels are reachable', () => {
       ['discover-agents', 'onDiscoverAgentsClick'],
       ['hub', 'onHubClick'],
       ['what-i-do-for-you', 'onWhatIDoForYouClick'],
+      // the phone number for "Text me" is added and verified here
+      ['contact-settings', 'onContactSettingsClick'],
+      ['outreach-schedule', 'onOutreachScheduleClick'],
     ];
     for (const [action] of rows) {
       expect(menuButton(action), `${action} row`).not.toBeNull();

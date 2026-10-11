@@ -171,7 +171,7 @@ export async function render(): Promise<string> {
         color: var(--admin-text-primary, #faf6f0);
       }
 
-      @media (max-width: min(1024px, 100%)) {
+      @media (max-width: 1024px) {
         .dashboard-section {
           grid-template-columns: 1fr;
         }
@@ -181,7 +181,7 @@ export async function render(): Promise<string> {
         grid-column: span 2;
       }
 
-      @media (max-width: min(1024px, 100%)) {
+      @media (max-width: 1024px) {
         .dashboard-health {
           grid-column: span 1;
         }
@@ -304,7 +304,7 @@ export async function render(): Promise<string> {
         grid-column: span 2;
       }
 
-      @media (max-width: min(1024px, 100%)) {
+      @media (max-width: 1024px) {
         .dashboard-stats {
           grid-column: span 1;
         }
