@@ -533,6 +533,7 @@ function injectStyles(): void {
 export async function showVoiceEnrollmentModal(opts: VoiceEnrollmentOptions = {}): Promise<void> {
   options = opts;
   cleanupOrphanedElements();
+  injectStyles(); // the cleanup above also removes the styles init() injected
 
   currentState = 'checking';
   modal = createModal();
