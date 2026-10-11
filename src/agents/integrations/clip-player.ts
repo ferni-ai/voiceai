@@ -22,6 +22,7 @@ import {
   presenceSoundsEnabled,
 } from './presence-watcher.js';
 import { startToolHum } from './tool-hum.js';
+import { reactionSidetrackDirect, startDirectClips } from './direct-clip-track.js';
 
 const log = createLogger({ module: 'ClipPlayer' });
 
@@ -149,6 +150,11 @@ const BACKCHANNEL_VOLUME = 0.75;
  * Start a clip player for a session's backchannels. Returns the `playClip`
  * callback for live backchanneling, or null when BACKCHANNEL_CLIPS=off or the
  * track could not be published (callers fall back to spoken backchannels).
+ *
+ * REACTION_SIDETRACK=direct: backchannel, laugh and opening clips play on a
+ * mixer-free track (direct-clip-track.ts, ~56 ms to the wire instead of
+ * ~650); presence sounds and the tool hum stay on the mixer track. One clip
+ * at a time across both, and one lastPlayedAt for all of them.
  */
 export async function startBackchannelClips(
   room: Room,
@@ -156,8 +162,20 @@ export async function startBackchannelClips(
   personaId: () => string,
   getClip: (text: string, personaId: string) => ArrayBuffer | null
 ): Promise<{
-  playClip: (text: string) => boolean;
+  playClip: (text: string, opts?: { pauseStartedAt?: number }) => boolean;
   lastPlayedAt: () => number;
+  /** Cut a clip played moments ago (the caller carried on). True if cut. */
+  cancelFresh: () => boolean;
+  /**
+   * play() to the wire for a clip: measured on the direct track (the last
+   * clip), estimated on the mixer track (~650 ms; ~220 ms with #692's pacing).
+   */
+  wireDelayMs: () => number;
+  /** What live backchanneling needs (live-backchanneling-integration.ts). */
+  live: {
+    playClip: (text: string, opts?: { pauseStartedAt?: number }) => boolean;
+    cancelClip: () => boolean;
+  };
   close: () => Promise<void>;
 } | null> {
   if (process.env.BACKCHANNEL_CLIPS === 'off') return null;
@@ -169,19 +187,31 @@ export async function startBackchannelClips(
     return null;
   }
   let lastPlayedAt = 0;
-  const stopPresence = startPresenceSounds(session, player);
+  const direct = reactionSidetrackDirect() ? await startDirectClips(room, session) : null;
+  const stopPresence = startPresenceSounds(session, player, () => direct?.playing ?? false);
   const stopToolHum = startToolHum(session, player);
+  const playClip = (text: string, opts?: { pauseStartedAt?: number }): boolean => {
+    const pcm = getClip(text, personaId());
+    if (pcm === null) return false;
+    const played = direct
+      ? !player.playing && direct.play(pcm, BACKCHANNEL_VOLUME, text, opts?.pauseStartedAt)
+      : player.play(pcm, BACKCHANNEL_VOLUME);
+    if (!played) return false;
+    lastPlayedAt = Date.now();
+    return true;
+  };
+  const cancelFresh = (): boolean => direct?.cancelIfFresh() ?? false;
   return {
-    playClip: (text) => {
-      const pcm = getClip(text, personaId());
-      if (pcm === null || !player.play(pcm, BACKCHANNEL_VOLUME)) return false;
-      lastPlayedAt = Date.now();
-      return true;
-    },
+    playClip,
     lastPlayedAt: () => lastPlayedAt,
+    cancelFresh,
+    wireDelayMs: () =>
+      direct ? (direct.lastWireMs ?? 60) : process.env.CLIP_TRACK_PACED === 'on' ? 220 : 650,
+    live: { playClip, cancelClip: cancelFresh },
     close: async () => {
       stopPresence();
       stopToolHum();
+      await direct?.close();
       await player.close();
     },
   };
@@ -196,13 +226,17 @@ const WHISTLE_VOLUME = 0.5;
  * easy pause, and with PRESENCE_SNORE a mock snore in a long quiet. Returns
  * the cleanup; a no-op unless PRESENCE_SOUNDS=on.
  */
-function startPresenceSounds(session: voice.AgentSession, player: ClipPlayer): () => void {
+function startPresenceSounds(
+  session: voice.AgentSession,
+  player: ClipPlayer,
+  otherTrackBusy: () => boolean = () => false
+): () => void {
   if (!presenceSoundsEnabled()) return () => {};
   const mood = () =>
     (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
       ?.primary;
   const playing = (kind: string, pcm: ArrayBuffer): boolean => {
-    const ok = player.play(pcm, WHISTLE_VOLUME);
+    const ok = !otherTrackBusy() && player.play(pcm, WHISTLE_VOLUME);
     if (ok) log.info({ kind }, `PRESENCE_SOUND ${kind}`);
     return ok;
   };
