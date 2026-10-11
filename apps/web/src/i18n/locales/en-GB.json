@@ -11081,5 +11081,36 @@
     "youSpeaking": "You're talking",
     "ferniThinking": "Ferni is thinking",
     "tapToInterrupt": "Tap to interrupt"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }
