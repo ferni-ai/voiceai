@@ -38,10 +38,6 @@ describe('groundedAnswer', () => {
               chunk('javascript:alert(1)', 'bad'),
               {},
             ],
-            groundingSupports: [
-              { segment: { text: 'Heel drops help.' }, groundingChunkIndices: [2] },
-              { segment: { text: 'Calf raises help.' }, groundingChunkIndices: [0, 2] },
-            ],
             searchEntryPoint: { renderedContent: '<div>chips</div>' },
             webSearchQueries: ['shin splint stretches'],
           },
@@ -61,12 +57,10 @@ describe('groundedAnswer', () => {
         {
           title: 'youtube.com',
           url: 'https://www.youtube.com/watch?v=abc123',
-          summary: 'Calf raises help.',
         },
         {
           title: 'nhs.uk',
           url: 'https://www.nhs.uk/conditions/shin-splints/',
-          summary: 'Heel drops help.',
         },
       ],
       searchSuggestionsHtml: '<div>chips</div>',
