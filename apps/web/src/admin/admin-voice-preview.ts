@@ -41,7 +41,12 @@ export async function previewAgentVoice(agentId: string): Promise<void> {
       URL.revokeObjectURL(audioUrl);
       toast.error("Couldn't play voice preview");
     };
-    await audio.play();
+    try {
+      await audio.play();
+    } catch (playError) {
+      URL.revokeObjectURL(audioUrl);
+      throw playError;
+    }
   } catch (error) {
     log.error({ error, agentId }, 'Voice preview failed');
     toast.error('Voice not available for this agent');

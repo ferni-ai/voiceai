@@ -131,6 +131,28 @@ describe('Preview voice', () => {
     expect(server).toContain(`pathname === '${VOICE_PREVIEW_ROUTE}'`);
   });
 
+  it('releases the audio when the browser blocks playback', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(new Blob(['mp3']), { status: 200 }));
+    vi.stubGlobal(
+      'Audio',
+      class {
+        play = vi.fn(async () => {
+          throw new DOMException('blocked', 'NotAllowedError');
+        });
+        onended: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+      }
+    );
+    URL.createObjectURL = vi.fn(() => 'blob:blocked');
+    const revoke = vi.fn();
+    URL.revokeObjectURL = revoke;
+    const { previewAgentVoice } = await import('../../src/admin/admin-voice-preview.js');
+
+    await previewAgentVoice('peter-john');
+
+    expect(revoke).toHaveBeenCalledWith('blob:blocked');
+  });
+
   it('admin-events no longer calls the missing voice-sample or tts-preview routes', () => {
     const src = readFileSync(resolve(__dirname, '../../src/admin/admin-events.ts'), 'utf8');
     expect(src).not.toContain('/voice-sample');
