@@ -28,6 +28,7 @@ import {
   withTeammateAsk,
 } from '../../tools/handoff/locked-teammates.js';
 import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
+import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
@@ -102,6 +103,8 @@ export function withTurnReminder(
     gameTurnNote(session),
     // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
     ferniStateNote(chatCtx, session, { careful: options.shape === false }),
+    // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
+    teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
   ]
     .filter(Boolean)

@@ -3300,8 +3300,8 @@
     "categorySweet": "甜蜜瞬间",
     "connectionConnected": "我们已联结",
     "connectionConnecting": "正在连接...",
-    "connectionDisconnected": "连接已断开",
-    "connectionDisconnectedMessage": "出了点小状况，不过我们可以再试一次。",
+    "connectionIdle": "随时准备好了",
+    "connectionIdleMessage": "想聊的时候，我一直都在。",
     "connectionError": "连接已断开",
     "connectionErrorMessage": "出了点小状况，不过我们可以再试一次。",
     "connectionReconnect": "重新连接",
@@ -9507,8 +9507,7 @@
     "rememberEmpty": "这次没有需要记住的新内容。谢谢你的陪伴。",
     "nextStepTitle": "温和的下一步",
     "invitation": "随时回来，我会在这里。",
-    "close": "关闭",
-    "seeCost": "这次通话的费用"
+    "close": "关闭"
   },
   "moments": {
     "teamUnlockTitle": "认识 {name}",
@@ -10112,7 +10111,12 @@
     "getIdeas": "获取灵感",
     "emptyTitle": "暂无建议",
     "emptyText": "试着添加更多关于你们关系的背景信息吧。",
-    "generateError": "无法生成灵感。要再试一次吗？"
+    "generateError": "无法生成灵感。要再试一次吗？",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "我能为你做些什么",
@@ -10602,6 +10606,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "关系进展",
+    "emptyInvite": "我们的故事从你的第一次对话开始。",
     "progress": "进度",
     "next": "下一步：{stage}",
     "stages": {
@@ -11076,5 +11081,39 @@
     "youSpeaking": "你正在说话",
     "ferniThinking": "Ferni 正在思考",
     "tapToInterrupt": "轻点以打断"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

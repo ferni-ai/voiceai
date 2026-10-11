@@ -80,22 +80,29 @@ z-index: 9999;
 
 ### Z-Index Scale (REQUIRED)
 
-Use semantic z-index tokens instead of arbitrary values:
+The scale is defined once, on `:root` in `src/styles/inline-styles.css`. Use the
+token with **no fallback** (`z-index: var(--z-modal);`), and add a name to the
+scale before using it. `tests/z-index-scale.test.ts` fails on fallbacks, on
+names the scale does not define, and on a second definition.
 
 ```css
 --z-base: 0;              /* Default stacking */
 --z-raised: 1;            /* Within-component layering */
---z-content: 10;          /* Content elements (waveforms) */
+--z-content: 10;          /* Content elements (waveforms); --z-docked, --z-elevated alias it */
 --z-floating: 20;         /* Floating elements */
---z-overlay: 30;          /* Local overlays */
+--z-overlay: 30;          /* Local overlays inside a component */
 --z-sticky: 100;          /* Sticky headers, nav */
---z-dropdown: 1000;       /* Dropdowns, tooltips */
+--z-dropdown: 1000;       /* Dropdowns, coach marks */
+--z-banner: 1200;         /* App banners; --z-fixed (fixed app chrome) */
+--z-panel: 1300;          /* Side panels */
+--z-popover: 1500;        /* Popovers */
+--z-tooltip: 1800;        /* Tooltips */
 --z-modal-backdrop: 2000; /* Modal backdrop */
 --z-modal: 2100;          /* Modal content */
 --z-modal-elevated: 2200; /* Above modals (close buttons) */
---z-notification: 3000;   /* Toast notifications */
+--z-notification: 3000;   /* Toast notifications; --z-toast aliases it */
 --z-loading: 4000;        /* Loading overlays */
---z-system: 9999;         /* Critical system UI (splash) */
+--z-system: 9999;         /* Critical system UI (splash); --z-celebration */
 ```
 
 ### Color Tokens

@@ -3300,8 +3300,8 @@
     "categorySweet": "Süße Momente",
     "connectionConnected": "Wir sind verbunden",
     "connectionConnecting": "Verbindung wird hergestellt...",
-    "connectionDisconnected": "Wir sind nicht verbunden",
-    "connectionDisconnectedMessage": "Etwas ist schiefgelaufen, aber wir können es noch einmal versuchen.",
+    "connectionIdle": "Bereit, wann immer du bist",
+    "connectionIdleMessage": "Wann immer du reden willst, bin ich da.",
     "connectionError": "Verbindung verloren",
     "connectionErrorMessage": "Etwas ist schiefgelaufen, aber wir können es noch einmal versuchen.",
     "connectionReconnect": "Erneut verbinden",
@@ -9507,8 +9507,7 @@
     "rememberEmpty": "Diesmal gibt es nichts Neues festzuhalten. Danke für deine Gesellschaft.",
     "nextStepTitle": "Ein sanfter nächster Schritt",
     "invitation": "Komm wieder, wann immer du magst. Ich bin da.",
-    "close": "Schließen",
-    "seeCost": "Was dieser Anruf gekostet hat"
+    "close": "Schließen"
   },
   "moments": {
     "teamUnlockTitle": "Lerne {name} kennen",
@@ -10112,7 +10111,12 @@
     "getIdeas": "Ideen holen",
     "emptyTitle": "Noch keine Vorschläge",
     "emptyText": "Versuche, mehr Kontext über eure Beziehung hinzuzufügen.",
-    "generateError": "Ideen konnten nicht geladen werden. Erneut versuchen?"
+    "generateError": "Ideen konnten nicht geladen werden. Erneut versuchen?",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "WAS ICH FÜR DICH TUE",
@@ -10602,6 +10606,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "Beziehungsfortschritt",
+    "emptyInvite": "Unsere Geschichte beginnt mit deinem ersten Gespräch.",
     "progress": "Fortschritt",
     "next": "Nächstes: {stage}",
     "stages": {
@@ -11076,5 +11081,39 @@
     "youSpeaking": "Du sprichst",
     "ferniThinking": "Ferni denkt nach",
     "tapToInterrupt": "Tippen zum Unterbrechen"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

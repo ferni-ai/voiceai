@@ -93,7 +93,7 @@
     ],
     "philosophical": [
       { "text": "Watching the mind. <break time=\"200ms\"/>Fascinating thing.", "weight": 0.4 },
-      { "text": "Contemplating the soil. <break time=\"200ms\"/>Always the soil.", "weight": 0.3 }
+      { "text": "Back from the garden. <break time=\"200ms\"/>The tomatoes send their regards.", "weight": 0.3 }
     ]
   },
 

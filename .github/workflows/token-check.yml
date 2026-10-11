@@ -31,8 +31,10 @@ concurrency:
 
 jobs:
   token-drift-check:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Check Token Drift
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -75,8 +77,9 @@ jobs:
         run: echo "✅ All tokens in sync!"
 
   animation-constants-check:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Check Animation Constants
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -105,8 +108,9 @@ jobs:
           fi
 
   tailwind-config-check:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Check Tailwind Config
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code

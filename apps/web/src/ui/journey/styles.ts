@@ -30,7 +30,7 @@ function getJourneyStyles(): string {
     .journey-modal {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 10000);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -341,7 +341,22 @@ function getJourneyStyles(): string {
       
       .journey-map__connector {
         margin-top: 11px;
-        min-width: 12px;
+        min-width: 6px;
+      }
+
+      /* All five stages fit at 390px: stages may shrink and labels wrap */
+      .journey-map__path {
+        padding: var(--space-2, 8px) 0;
+      }
+
+      .journey-map__stage {
+        flex-shrink: 1;
+        min-width: 0;
+        padding: var(--space-1, 4px) 0;
+      }
+
+      .journey-map__here {
+        white-space: nowrap;
       }
     }
 
@@ -1079,13 +1094,6 @@ function getJourneyStyles(): string {
       ));
       border: 1px solid var(--connection-border-connected, color-mix(in srgb, var(--persona-primary, #4a6741) 25%, transparent));
     }
-    
-    @supports not (background: color-mix(in srgb, red 50%, blue)) {
-      .journey-connection--connected {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.12) 0%, rgba(74, 103, 65, 0.04) 100%);
-        border-color: rgba(74, 103, 65, 0.25);
-      }
-    }
 
     .journey-connection--connected .journey-connection__icon {
       color: var(--persona-primary, #4a6741);
@@ -1103,13 +1111,6 @@ function getJourneyStyles(): string {
       ));
       border: 1px solid var(--connection-border-connecting, color-mix(in srgb, var(--color-warning, #d4a574) 25%, transparent));
     }
-    
-    @supports not (background: color-mix(in srgb, red 50%, blue)) {
-      .journey-connection--connecting {
-        background: linear-gradient(135deg, rgba(212, 165, 116, 0.12) 0%, rgba(212, 165, 116, 0.04) 100%);
-        border-color: rgba(212, 165, 116, 0.25);
-      }
-    }
 
     .journey-connection--connecting .journey-connection__icon {
       color: var(--color-warning, #d4a574);
@@ -1119,24 +1120,29 @@ function getJourneyStyles(): string {
       color: var(--color-warning-dark, #b8864e);
     }
 
-    /* Disconnected state - muted gray */
-    .journey-connection--disconnected {
+    /* Idle state - calm resting state, ready to talk */
+    .journey-connection--idle {
       background: var(--connection-bg-disconnected, linear-gradient(135deg,
         color-mix(in srgb, var(--color-text-muted, #352e28) 8%, transparent) 0%,
         color-mix(in srgb, var(--color-text-muted, #352e28) 2%, transparent) 100%
       ));
       border: 1px solid var(--connection-border-disconnected, color-mix(in srgb, var(--color-text-muted, #352e28) 15%, transparent));
     }
-    
-    @supports not (background: color-mix(in srgb, red 50%, blue)) {
-      .journey-connection--disconnected {
-        background: linear-gradient(135deg, rgba(112, 96, 90, 0.08) 0%, rgba(112, 96, 90, 0.02) 100%);
-        border-color: rgba(112, 96, 90, 0.15);
-      }
+
+    .journey-connection--idle .journey-connection__icon {
+      color: var(--persona-primary, #4a6741);
     }
 
-    .journey-connection--disconnected .journey-connection__icon {
-      color: var(--color-text-muted, #9a8a82);
+    /* Narrow screens: the button gets its own row instead of squeezing the copy */
+    @media (max-width: 480px) {
+      .journey-connection {
+        flex-wrap: wrap;
+      }
+
+      .journey-connection .journey-connect-btn {
+        flex-basis: 100%;
+        justify-content: center;
+      }
     }
 
     /* Error state - red, but not alarming */
@@ -1146,13 +1152,6 @@ function getJourneyStyles(): string {
         color-mix(in srgb, var(--color-error, #c44b4b) 2%, transparent) 100%
       ));
       border: 1px solid var(--connection-border-error, color-mix(in srgb, var(--color-error, #c44b4b) 20%, transparent));
-    }
-    
-    @supports not (background: color-mix(in srgb, red 50%, blue)) {
-      .journey-connection--error {
-        background: linear-gradient(135deg, rgba(196, 75, 75, 0.08) 0%, rgba(196, 75, 75, 0.02) 100%);
-        border-color: rgba(196, 75, 75, 0.2);
-      }
     }
 
     .journey-connection--error .journey-connection__icon {
@@ -1538,7 +1537,7 @@ function getJourneyStyles(): string {
       color: var(--persona-primary, #6b8f5e);
     }
 
-    [data-theme="midnight"] .journey-connection--disconnected {
+    [data-theme="midnight"] .journey-connection--idle {
       background: linear-gradient(135deg, rgba(122, 122, 122, 0.1) 0%, rgba(122, 122, 122, 0.02) 100%);
       border-color: rgba(122, 122, 122, 0.2);
     }

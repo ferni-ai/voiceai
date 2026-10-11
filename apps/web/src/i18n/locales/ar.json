@@ -3388,8 +3388,8 @@
     "categorySweet": "لحظات لطيفة",
     "connectionConnected": "متصلون",
     "connectionConnecting": "جاري الاتصال...",
-    "connectionDisconnected": "غير متصلين",
-    "connectionDisconnectedMessage": "حدث خطأ ما، ولكن يمكن المحاولة مجددًا.",
+    "connectionIdle": "نحن جاهزون متى شئت",
+    "connectionIdleMessage": "كلما أردت الحديث، أنا هنا.",
     "connectionError": "انقطع الاتصال",
     "connectionErrorMessage": "حدث خطأ ما، ولكن يمكن المحاولة مجددًا.",
     "connectionReconnect": "إعادة الاتصال",
@@ -9827,8 +9827,7 @@
     "rememberEmpty": "لا شيء جديد نحتفظ به هذه المرة. شكرًا على الصحبة.",
     "nextStepTitle": "خطوة تالية لطيفة",
     "invitation": "عد متى شئت. سأكون هنا.",
-    "close": "إغلاق",
-    "seeCost": "تكلفة هذه المكالمة"
+    "close": "إغلاق"
   },
   "moments": {
     "teamUnlockTitle": "تعرف على {name}",
@@ -10488,7 +10487,12 @@
     "getIdeas": "الحصول على أفكار",
     "emptyTitle": "لا توجد اقتراحات بعد",
     "emptyText": "جرّبوا إضافة المزيد من التفاصيل عن علاقتكم.",
-    "generateError": "تعذر ابتكار أفكار. هل تودون المحاولة مجدداً؟"
+    "generateError": "تعذر ابتكار أفكار. هل تودون المحاولة مجدداً؟",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "ما أقدمه لكم",
@@ -11046,6 +11050,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "تقدم العلاقة",
+    "emptyInvite": "قصتنا تبدأ مع أول محادثة بيننا.",
     "progress": "التقدم",
     "next": "التالي: {stage}",
     "stages": {
@@ -11576,5 +11581,39 @@
     "youSpeaking": "أنت تتحدث",
     "ferniThinking": "فيرني يفكر",
     "tapToInterrupt": "انقر للمقاطعة"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

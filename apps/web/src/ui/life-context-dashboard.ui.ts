@@ -129,7 +129,7 @@ const styles = `
   .life-context-modal-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-modal-backdrop, 2000);
+    z-index: var(--z-modal-backdrop);
     display: flex;
     align-items: center;
     justify-content: center;

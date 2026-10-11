@@ -2,6 +2,7 @@
  * Dynamic Tool Loader - the tool domains pre-loaded for every session.
  */
 
+import { coachMediaEnabled } from '../../services/coach-media/topic-query.js';
 import type { ToolDomain } from '../registry/types.js';
 
 /**
@@ -27,6 +28,9 @@ export const DEFAULT_ESSENTIAL_DOMAINS: ToolDomain[] = essentialDomainsFromEnv()
   // (35), habits (31). With all 338 tools on every request gemini-3.5-flash
   // took p50 7.7 s to its first word; at 120 tools ~1.0 s, at 200 ~2 s
   // (10 calls each, full prompt, 2026-09-28).
+  // findCoachingResources (COACH_MEDIA=on) lives in learning. The domain's
+  // other tools fall to the initial cap; the tool count stays the same.
+  ...(coachMediaEnabled() ? (['learning'] as ToolDomain[]) : []),
 ];
 
 /** ESSENTIAL_TOOL_DOMAINS=memory,handoff,... overrides the list (e.g. to roll back). */

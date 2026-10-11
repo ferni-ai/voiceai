@@ -16,6 +16,7 @@
  */
 
 import type { Room } from '@livekit/rtc-node';
+import { applyCallerFlags } from '../../services/platform/cohort-flags.js';
 import {
   getSpeakerChangeDetector,
   type SpeakerChangeEvent,
@@ -186,6 +187,9 @@ export async function identifyUser(
   // ===============================================
   userAccent = await detectUserAccent(jobMetadata);
   rememberDispatchIdentity(sessionId, identificationSource, jobMetadata);
+
+  // Friends-and-family flags for this caller, before anything reads a flag (cohort-flags.ts).
+  await applyCallerFlags(userId);
 
   return {
     userId,
