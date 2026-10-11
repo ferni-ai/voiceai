@@ -33,7 +33,11 @@ export const REPLY_WINDOW_MS = 72 * 60 * 60 * 1000;
 const COLLECTION = 'feature_checkins';
 const OPTOUTS = 'feature_checkin_optouts';
 const HASH_PURPOSE = 'after-call-checkin/phone/v1';
-const OPT_OUT = /\b(stop|stopall|unsubscribe|cancel|end|quit)\b|\bstop\s+texting\b/i;
+// Same rule as the inbound webhook and carriers: a keyword counts only as the whole message,
+// so "in the end it felt real" is a reply, not an opt-out. Plain asks to stop count anywhere.
+const OPT_OUT_WORDS = new Set(['stop', 'stopall', 'unsubscribe', 'cancel', 'end', 'quit']);
+const OPT_OUT_PHRASE = /\b(stop texting|don'?t text|do not text)\b/i;
+const keyword = (body: string): string => body.trim().toLowerCase().replace(/[.!\s]+$/, '');
 
 type Env = Record<string, string | undefined>;
 export type SkipReason =
@@ -64,6 +68,7 @@ export interface CheckinStore {
   sponsoredPhone: (userId: string) => Promise<string | undefined>;
   isOptedOut: (phoneHash: string) => Promise<boolean>;
   addOptOut: (phoneHash: string, optOut: { at: string; via: 'reply' }) => Promise<void>;
+  removeOptOut: (phoneHash: string) => Promise<void>;
 }
 
 export interface CheckinDeps {
@@ -158,7 +163,10 @@ export function phoneHash(raw: string, env: Env = process.env): string | null {
 }
 
 /** Whole-word, case-insensitive, so "unstoppable" is not an opt-out. */
-export const isOptOut = (body: string): boolean => OPT_OUT.test(body);
+export const isOptOut = (body: string): boolean =>
+  OPT_OUT_WORDS.has(keyword(body)) || OPT_OUT_PHRASE.test(body);
+/** START undoes an opt-out, as the webhook's own reply to STOP promises. */
+export const isOptIn = (body: string): boolean => keyword(body) === 'start';
 
 const last4 = (phone: string): string => phone.replace(/\D/g, '').slice(-4);
 /** Twilio errors can quote the number (21211: "The 'To' number +1555... is not valid"). */
@@ -274,6 +282,7 @@ export async function recordCheckinReply(
     await deps.store.addReply(match.id, { body, receivedAt: now.toISOString() });
     const optOut = isOptOut(body);
     if (optOut) await deps.store.addOptOut(hash, { at: now.toISOString(), via: 'reply' });
+    else if (isOptIn(body)) await deps.store.removeOptOut(hash);
     log.info({ checkinId: match.id, phoneLast4: last4(from), optOut }, 'Check-in reply recorded');
     return match.id;
   } catch (error) {
@@ -319,6 +328,9 @@ export const firestoreCheckinStore: CheckinStore = {
   },
   async addOptOut(hash, optOut) {
     await db().collection(OPTOUTS).doc(hash).set(optOut);
+  },
+  async removeOptOut(hash) {
+    await db().collection(OPTOUTS).doc(hash).delete();
   },
 };
 

@@ -69,6 +69,9 @@ function makeStore(existing: StoredCheckin[] = [], optedOut: string[] = []) {
     addOptOut: vi.fn(async (hash: string, o: { via: string }) => {
       optOuts.push({ hash, via: o.via });
     }),
+    removeOptOut: vi.fn(async (hash: string) => {
+      optOuts.push({ hash, via: 'removed' });
+    }),
   };
   return { store, added, replies, optOuts };
 }
@@ -310,14 +313,22 @@ describe('opt-outs', () => {
     'STOP',
     'stop.',
     'Unsubscribe',
-    'please cancel',
     'END',
     'quit',
     'StopAll',
     'Stop texting me',
+    "please don't text me again",
   ])('treats %j as an opt-out', (body) => expect(isOptOut(body)).toBe(true));
 
-  it.each(['that was unstoppable', 'felt real', 'endless fun', 'stopped by later'])(
+  it.each([
+    'that was unstoppable',
+    'felt real',
+    'endless fun',
+    'stopped by later',
+    'in the end it felt real',
+    "couldn't stop smiling",
+    'please cancel my dentist thing',
+  ])(
     'does not treat %j as an opt-out',
     (body) => expect(isOptOut(body)).toBe(false)
   );
@@ -334,6 +345,14 @@ describe('opt-outs', () => {
     expect(await recordCheckinReply('+15551234567', 'honestly unstoppable', d)).toBe('c9');
     expect(optOuts).toEqual([]);
     expect(replies).toHaveLength(1);
+  });
+
+  it('START lifts an opt-out, and an ordinary reply leaves it alone', async () => {
+    const { d, optOuts } = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
+    await recordCheckinReply('+15551234567', 'in the end it felt real', d);
+    expect(optOuts).toEqual([]);
+    await recordCheckinReply('+15551234567', 'Start', d);
+    expect(optOuts).toEqual([{ hash: HASH, via: 'removed' }]);
   });
 });
 
