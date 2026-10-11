@@ -5,7 +5,7 @@
  * the server once an insight has been shown so it is not shown again.
  */
 
-import type { TeamInsight } from '../ui/team-insights.ui.js';
+import type { TeamInsight } from '../types/team-insight.js';
 import { apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 

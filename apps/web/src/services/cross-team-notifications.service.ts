@@ -15,7 +15,7 @@ import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { apiGet } from '../utils/api.js';
 import { openAuthedWebSocket } from './authed-websocket.service.js';
 import { createLogger } from '../utils/logger.js';
-import type { TeamInsight } from '../ui/team-insights.ui.js';
+import type { TeamInsight } from '../types/team-insight.js';
 import { acknowledgeTeamInsight, toCrossTeamInsight, type CrossTeamInsight, type CrossTeamPriority } from './cross-team-insight-mapper.js';
 
 const log = createLogger('CrossTeamNotifications');
