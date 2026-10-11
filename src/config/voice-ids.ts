@@ -36,9 +36,9 @@ export const CARTESIA_MODEL = pinCartesiaModel(process.env.CARTESIA_MODEL);
  * which sonic read as "NIGH-in"), built from COMMON_DIFFICULT_NAMES in
  * speech/pronunciation-memory/constants.ts. Spread into every TTS request.
  */
-export function cartesiaPronunciation(
-  env: Record<string, string | undefined> = process.env
-): { pronunciation_dict_id?: string } {
+export function cartesiaPronunciation(env: Record<string, string | undefined> = process.env): {
+  pronunciation_dict_id?: string;
+} {
   const id = env.CARTESIA_PRONUNCIATION_DICT_ID?.trim();
   return id ? { pronunciation_dict_id: id } : {};
 }
@@ -88,12 +88,14 @@ export const VOICE_IDS = {
   // Nayan Patel (lifetime advisor / sage) - Updated Dec 2024
   NAYAN_PATEL: '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3',
 
-  // Joel Dickson (Vanguard life mentor) - Added Jan 2025
-  JOEL_DICKSON: '3ebcd114-d280-4eed-a238-b9323a6b8e52',
-
-  // Financial Legends team - Added Jan 2026
-  PETER_LYNCH: '85680374-8d94-43a1-bb15-5eea7a8bdbb8',
-  JOHN_BOGLE: '9c10dc48-8799-42f9-a72a-0c7dfe13a06d',
+  // Financial Legends: fictional characters on stock Cartesia library voices
+  // (2026-10-11). The constant names are the persona ids, which predate them.
+  // Nate Holloway (joel-dickson): "Ben - Helpful Man", warm, slightly raspy, middle-aged
+  JOEL_DICKSON: 'bbee10a8-4f08-4c5c-8282-e69299115055',
+  // Tom Brannigan (peter-lynch): "Hugh - Confident Veteran", seasoned, lively
+  PETER_LYNCH: '4cf80313-54dc-4ca9-a17c-3e5b8f68a78c',
+  // Henry Caldwell (john-bogle): "Carl - Steady Storyteller", mature, calm, measured
+  JOHN_BOGLE: 'ed82c17b-4704-4d34-be43-5d19065acdf1',
 
   // Generic advisor fallback
   GENERIC: '79a125e8-cd45-4c13-8a67-188112f4dd22',
@@ -110,6 +112,18 @@ export const LEGACY_FERNI_IVC_VOICE_ID = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
 
 /** Lester Nare (Pro) V3, Ferni's voice 2026-10-03 to 10-04: a PVC that ignores <emotion>/<speed>. */
 export const LESTER_PRO_V3_VOICE_ID = 'ebaf7477-b6ae-417e-be54-19e6176777ea';
+
+/**
+ * Private voice clones the legends used to speak in, cloned from the real people
+ * the persona ids are named for. No persona may speak in them, so an environment
+ * override that names one is ignored (the clones stay in the Cartesia account;
+ * nothing here deletes them).
+ */
+export const RETIRED_CLONE_VOICE_IDS: ReadonlySet<string> = new Set([
+  '3ebcd114-d280-4eed-a238-b9323a6b8e52', // "joel"
+  '85680374-8d94-43a1-bb15-5eea7a8bdbb8', // "Peter"
+  '9c10dc48-8799-42f9-a72a-0c7dfe13a06d', // "john 2" (bogle)
+]);
 
 /**
  * Alias for backwards compatibility with cartesia-core.ts
@@ -147,7 +161,7 @@ export function getVoiceIdForPersona(personaId: string): string {
   };
 
   const envOverride = envOverrides[normalized];
-  if (envOverride) {
+  if (envOverride && !RETIRED_CLONE_VOICE_IDS.has(envOverride)) {
     return envOverride;
   }
 

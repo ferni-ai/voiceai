@@ -14,7 +14,7 @@
   },
   "voice": {
     "provider": "cartesia",
-    "voice_id": "9c10dc48-8799-42f9-a72a-0c7dfe13a06d",
+    "voice_id": "ed82c17b-4704-4d34-be43-5d19065acdf1",
     "model": "sonic-3-latest",
     "default_rate": "slow",
     "default_emotion": "affectionate",

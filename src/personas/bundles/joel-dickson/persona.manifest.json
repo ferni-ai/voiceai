@@ -34,7 +34,7 @@
 
   "voice": {
     "provider": "cartesia",
-    "voice_id": "3ebcd114-d280-4eed-a238-b9323a6b8e52",
+    "voice_id": "bbee10a8-4f08-4c5c-8282-e69299115055",
     "default_rate": "medium",
     "emotion_range": ["excited", "curious", "happy", "affectionate", "sympathetic", "proud", "contemplative", "confident", "nostalgic"],
     "default_speed": 0.95,
