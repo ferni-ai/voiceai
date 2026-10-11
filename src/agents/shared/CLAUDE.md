@@ -112,7 +112,6 @@ const sanitizer = createToolCallSanitizer({
 | `session-metrics.ts`          | Session telemetry                   |
 | `session-closing-tracker.ts`  | Track session close reasons         |
 | `session-health-monitor.ts`   | Monitor session health in real-time |
-| `startup-health.ts`           | Startup validation                  |
 | `shutdown-handler.ts`         | Graceful shutdown                   |
 | `worker-readiness.ts`         | Worker initialization signals       |
 
@@ -137,7 +136,6 @@ const sanitizer = createToolCallSanitizer({
 | `function-call-telemetry.ts`  | Tool call telemetry tracking        |
 | `parallel-tool-executor.ts`   | Parallel tool execution             |
 | `tool-updater.ts`             | Dynamic tool list updates           |
-| `turn-tool-optimizer.ts`      | Per-turn tool selection optimization|
 | `gemini-fc-config.ts`         | Gemini function calling configuration|
 
 ### Diagnostics & Monitoring
@@ -154,11 +152,7 @@ const sanitizer = createToolCallSanitizer({
 
 | File                          | Purpose                             |
 | ----------------------------- | ----------------------------------- |
-| `room-event-handlers.ts`      | LiveKit room events                 |
 | `livekit-keepalive.ts`        | Connection keep-alive               |
-| `resource-server.ts`          | Resource server for agent assets    |
-| `vad-preloader.ts`            | Voice Activity Detection preloading |
-| `vad-worker.ts`               | VAD worker process                  |
 
 ### Context & Conversation
 
@@ -168,7 +162,6 @@ const sanitizer = createToolCallSanitizer({
 | `context-helpers.ts`          | Context building utilities          |
 | `conversation-priming.ts`     | Initial conversation setup          |
 | `helpers.ts`                  | General utilities                   |
-| `lazy-loader.ts`              | Lazy module loading                 |
 | `cameo-handler.ts`            | Cameo appearance handler            |
 
 ### Additional Utilities
@@ -177,7 +170,6 @@ const sanitizer = createToolCallSanitizer({
 | ----------------------------- | ----------------------------------- |
 | `action-approval-handler.ts`  | User approval for actions           |
 | `action-history.ts`           | Action execution history            |
-| `adaptive-endpointing-integration.ts` | Adaptive speech endpoint integration |
 | `cache-reader.ts`             | Cache reading utilities             |
 | `lightweight-resilience.ts`   | Lightweight resilience patterns     |
 | `native-json-parser.ts`       | Native JSON parsing for tool calls  |

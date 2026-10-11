@@ -33,8 +33,10 @@ jobs:
   # RUST TESTS (Fast - runs on Linux only)
   # ============================================================================
   test:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Test Rust Crates
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -86,6 +88,7 @@ jobs:
   # BUILD NATIVE MODULES (Multi-platform matrix)
   # ============================================================================
   build:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Build ${{ matrix.target }}
     needs: test
     runs-on: ${{ matrix.os }}
@@ -93,8 +96,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux x86_64 (production - GCE); follows CI_RUNNER like the other CI jobs
-          - os: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+          # Linux x86_64 (production - GCE)
+          - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             node_arch: linux-x64
 
@@ -191,9 +194,10 @@ jobs:
   # VERIFY INTEGRATION (Test that bindings work in Node.js)
   # ============================================================================
   verify:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Verify Node.js Integration
     needs: build
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7

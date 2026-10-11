@@ -335,7 +335,7 @@ export function injectModalStyles(): void {
     .ferni-modal-wrapper {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 1000);
+      z-index: var(--z-modal);
     }
 
     .ferni-modal {

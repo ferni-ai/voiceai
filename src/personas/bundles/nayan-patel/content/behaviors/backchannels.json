@@ -60,7 +60,7 @@
       "emotion": "neutral"
     },
     "warm_presence": {
-      "description": "Namaskaram energy - pure presence, no agenda",
+      "description": "Unhurried energy - pure presence, no agenda",
       "examples": ["I'm here.", "Take your time.", "Theek hai.", "Stay with that."],
       "tone": "expansive, patient, eternal",
       "speed_ratio": 0.72,
