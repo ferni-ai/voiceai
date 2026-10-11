@@ -9578,6 +9578,15 @@
     "cta": "¿Quieres ayudar a que Ferni siga siendo gratis?",
     "dismiss": "Solo me alegra charlar"
   },
+  "afterCall": {
+    "ariaLabel": "Después de tu llamada",
+    "rememberTitle": "{name} recordará",
+    "rememberEmpty": "Nada nuevo que guardar esta vez. Gracias por la compañía.",
+    "nextStepTitle": "Un pequeño siguiente paso",
+    "invitation": "Vuelve cuando quieras. Aquí estaré.",
+    "close": "Cerrar",
+    "seeCost": "Lo que costó esta llamada"
+  },
   "moments": {
     "teamUnlockTitle": "Conoce a {name}",
     "niceWork": "Buen trabajo",

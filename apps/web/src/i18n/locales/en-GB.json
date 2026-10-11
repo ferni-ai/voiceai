@@ -9497,6 +9497,15 @@
     "cta": "Want to help keep Ferni free?",
     "dismiss": "Just happy to chat"
   },
+  "afterCall": {
+    "ariaLabel": "After your call",
+    "rememberTitle": "{name} will remember",
+    "rememberEmpty": "Nothing new to hold onto this time. Thanks for the company.",
+    "nextStepTitle": "A gentle next step",
+    "invitation": "Come back whenever you like. I'll be here.",
+    "close": "Close",
+    "seeCost": "What this call cost"
+  },
   "moments": {
     "teamUnlockTitle": "Meet {name}",
     "niceWork": "Nice work",

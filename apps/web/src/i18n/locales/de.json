@@ -9497,6 +9497,15 @@
     "cta": "Möchtest du helfen, Ferni kostenlos zu halten?",
     "dismiss": "Einfach froh zu plaudern"
   },
+  "afterCall": {
+    "ariaLabel": "Nach deinem Anruf",
+    "rememberTitle": "{name} wird sich merken",
+    "rememberEmpty": "Diesmal gibt es nichts Neues festzuhalten. Danke für deine Gesellschaft.",
+    "nextStepTitle": "Ein sanfter nächster Schritt",
+    "invitation": "Komm wieder, wann immer du magst. Ich bin da.",
+    "close": "Schließen",
+    "seeCost": "Was dieser Anruf gekostet hat"
+  },
   "moments": {
     "teamUnlockTitle": "Lerne {name} kennen",
     "niceWork": "Schön gemacht",

@@ -9497,6 +9497,15 @@
     "cta": "Ferniを無料で続けるためにお手伝いいただけますか？",
     "dismiss": "お話できるだけで十分です"
   },
+  "afterCall": {
+    "ariaLabel": "通話のあとに",
+    "rememberTitle": "{name}が覚えておくこと",
+    "rememberEmpty": "今回は新しく覚えておくことはありません。一緒に過ごしてくれてありがとう。",
+    "nextStepTitle": "次のやさしい一歩",
+    "invitation": "いつでも戻ってきてください。ここで待っています。",
+    "close": "閉じる",
+    "seeCost": "この通話の費用"
+  },
   "moments": {
     "teamUnlockTitle": "{name}をご紹介します",
     "niceWork": "よく頑張りましたね",
