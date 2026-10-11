@@ -64,6 +64,7 @@ export const CORE_TOOLS = [
   'gameState',
   // Coaching resources (COACH_MEDIA=on): not in the generated intent index.
   'findCoachingResources',
+  'coachingPick',
   // Hanging up an on-behalf phone call (agents/outbound-call/call-control.ts); a
   // goodbye's words never point retrieval at it.
   'endCall',

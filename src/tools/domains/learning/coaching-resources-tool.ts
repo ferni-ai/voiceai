@@ -20,6 +20,11 @@ import { z } from 'zod';
 import { bookCandidates, videoCandidates } from '../../../services/coach-media/candidates.js';
 import { checkedPick } from '../../../services/coach-media/checked-pick.js';
 import { fitContext } from '../../../services/coach-media/fit.js';
+import {
+  deliverPick,
+  recordPickFeedback,
+  rememberPick,
+} from '../../../services/coach-media/pick-delivery.js';
 import { groundedAnswer } from '../../../services/coach-media/grounded-search.js';
 import { groundedResultText, pickResultText } from '../../../services/coach-media/result-text.js';
 import { coachMediaEnabled, topicOnlyQuery } from '../../../services/coach-media/topic-query.js';
@@ -57,14 +62,28 @@ const NONE_FIT =
 const NOTHING =
   "Couldn't find a solid resource on that just now. Say so plainly rather than guessing a title or link.";
 
-export async function runFindCoachingResources(
-  args: z.infer<typeof parameters>,
-  userData: Record<string, unknown>,
-  userId?: string
-): Promise<string> {
-  const names = [userData.name, userData.userName, userData.preferredName].map((n) =>
+/** The call a tool runs on: its session object (keys this call's pick) and userData. */
+interface Call {
+  session?: object;
+  userData: Record<string, unknown>;
+}
+
+function callOf(run: unknown): Call {
+  const ctx = (run as { ctx?: { session?: object; userData?: unknown } } | undefined)?.ctx;
+  return { session: ctx?.session, userData: (ctx?.userData ?? {}) as Record<string, unknown> };
+}
+
+const namesOf = (userData: Record<string, unknown>): Array<string | undefined> =>
+  [userData.name, userData.userName, userData.preferredName].map((n) =>
     typeof n === 'string' ? n : undefined
   );
+
+export async function runFindCoachingResources(
+  args: z.infer<typeof parameters>,
+  call: Call,
+  userId?: string
+): Promise<string> {
+  const names = namesOf(call.userData);
   const topic = topicOnlyQuery(args.topic, names);
   if (!topic) return 'Ask what topic they want help with, in a few general words.';
   const sensitive = args.healthOrMoney === true;
@@ -77,7 +96,10 @@ export async function runFindCoachingResources(
         : await videoCandidates(topic, format === 'short');
     const fit = await fitContext(userId, args.fit, names);
     const pick = await checkedPick(candidates, topic, fit);
-    if (pick) return pickResultText(topic, pick, sensitive);
+    if (pick) {
+      rememberPick(call.session, { topic, candidate: pick.candidate });
+      return pickResultText(topic, pick, sensitive);
+    }
     if (candidates.length > 0) return NONE_FIT;
   }
   const query = format === 'article' ? `${topic} article` : topic;
@@ -95,22 +117,61 @@ const findCoachingResourcesDefinition: ToolDefinition = {
     llm.tool({
       description: DESCRIPTION,
       parameters,
-      // The session's userData: the caller's name, so it can be kept out of the query.
-      execute: async (args, run) =>
-        runFindCoachingResources(
-          args,
-          ((run as Partial<typeof run> | undefined)?.ctx?.userData ?? {}) as Record<
-            string,
-            unknown
-          >,
-          ctx.userId
-        ),
+      execute: async (args, run) => runFindCoachingResources(args, callOf(run), ctx.userId),
     }),
 };
 
-/** The learning domain's share: findCoachingResources with COACH_MEDIA=on, nothing otherwise. */
+export const COACHING_PICK = 'coachingPick';
+
+const PICK_DESCRIPTION =
+  'After findCoachingResources gave one pick on this call: send it, only when they asked ' +
+  'or said yes (send_text to their verified number, send_app to their app messages); a ' +
+  'follow-up to ask whether it helped is set for a few days later. Also: feedback, when ' +
+  'they tell you whether something you sent helped.';
+
+const pickParameters = z.object({
+  action: z.enum(['send_text', 'send_app', 'feedback']),
+  helped: z.enum(['yes', 'somewhat', 'no']).optional().describe('feedback: did it help'),
+  whatMattered: z
+    .string()
+    .optional()
+    .describe('feedback: what made it work or not, no names (e.g. "short follow-along videos")'),
+});
+
+export async function runCoachingPick(
+  args: z.infer<typeof pickParameters>,
+  call: Call,
+  userId: string | undefined,
+  personaId: string
+): Promise<string> {
+  if (args.action === 'feedback') {
+    if (!args.helped) return 'Ask whether it helped first.';
+    return recordPickFeedback(
+      userId,
+      { helped: args.helped, whatMattered: args.whatMattered },
+      namesOf(call.userData)
+    );
+  }
+  return deliverPick(call.session, userId, args.action === 'send_text' ? 'text' : 'app', personaId);
+}
+
+const coachingPickDefinition: ToolDefinition = {
+  id: COACHING_PICK,
+  name: 'Coaching Pick',
+  description: PICK_DESCRIPTION,
+  domain: 'learning',
+  tags: ['learning', 'resources', 'coaching', 'text', 'follow-up'],
+  create: (ctx: ToolContext) =>
+    llm.tool({
+      description: PICK_DESCRIPTION,
+      parameters: pickParameters,
+      execute: async (args, run) => runCoachingPick(args, callOf(run), ctx.userId, ctx.agentId),
+    }),
+};
+
+/** The learning domain's share with COACH_MEDIA=on (nothing otherwise). */
 export function coachingResourceTools(
   env: Record<string, string | undefined> = process.env
 ): ToolDefinition[] {
-  return coachMediaEnabled(env) ? [findCoachingResourcesDefinition] : [];
+  return coachMediaEnabled(env) ? [findCoachingResourcesDefinition, coachingPickDefinition] : [];
 }

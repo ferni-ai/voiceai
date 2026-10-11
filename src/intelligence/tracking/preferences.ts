@@ -49,6 +49,8 @@ export type PreferenceCategory =
   // Learning preferences
   | 'learning_goal'
   | 'skill_building'
+  // Whether a coaching video or book Ferni sent helped (services/coach-media)
+  | 'coaching_media'
   // Social preferences
   | 'communication_preference'
   | 'social_style'
