@@ -12,7 +12,7 @@
  * - Energy transfer animation on handoff
  */
 
-import { ANIMATION_PRESET, DURATION, EASING } from '../config/animation-constants.js';
+import { ANIMATION_PRESET, DURATION, EASING, STAGGER } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { HANDOFF_TIMING } from '../config/index.js';
 import { getPersonaColorConfig } from '../config/persona-colors.js';
@@ -2073,17 +2073,12 @@ export function setActiveTeamMember(personaId: SpeakerId): void {
     }
   }
 
-  // 🎬 Pixar animations for persona transition
+  // 🎬 Persona transition: step back, step forward and cheer overlap, so the
+  // roster settles within DURATION.MODERATE instead of chaining timeouts.
   if (previousActiveId && previousActiveId !== personaId) {
-    // Step back the previous persona
     playStepBack(previousActiveId);
-
-    // Step forward the new persona with slight delay
-    trackedTimeout(() => {
-      playStepForward(personaId);
-      // Team cheer after the new persona steps forward
-      trackedTimeout(() => playTeamCheer(personaId), DURATION.NORMAL);
-    }, DURATION.FAST_RELEASE);
+    playStepForward(personaId);
+    playTeamCheer(personaId);
   }
 }
 
@@ -2270,7 +2265,7 @@ export function playStepForward(personaId: SpeakerId): void {
       { transform: 'scale(1) translateY(0)', offset: 1 },
     ],
     {
-      duration: ANIMATION_PRESET.TEAM_SELECT.duration + DURATION.FAST,
+      duration: ANIMATION_PRESET.TEAM_SELECT.duration,
       easing: EASING.SPRING,
       fill: 'forwards',
     }
@@ -2296,14 +2291,10 @@ export function playStepBack(personaId: SpeakerId): void {
     return;
   }
 
-  // Get current transform
-  const computedStyle = getComputedStyle(element);
-  const currentTransform = computedStyle.transform || 'none';
-
-  // Step back to line
+  // Step back to line. The first keyframe is implicit (starts from the current
+  // transform), which avoids a forced style recalc from getComputedStyle.
   const animation = element.animate(
     [
-      { transform: currentTransform, offset: 0 },
       { transform: 'scale(1.02) translateY(-4px)', offset: 0.3 },
       { transform: 'scale(0.98) translateY(1px)', offset: 0.6 },
       { transform: 'scale(1) translateY(0)', offset: 1 },
@@ -2330,9 +2321,10 @@ export function playTeamCheer(selectedId: SpeakerId): void {
     return;
   }
 
-  // Animate all other team members with staggered timing
+  // Animate all other team members with a stagger capped so the last cheer
+  // starts within DURATION.FAST_RELEASE however long the roster is
   let delay = 0;
-  const staggerMs = 80;
+  const staggerMs = Math.min(STAGGER.TIGHT, DURATION.FAST_RELEASE / Math.max(1, teamMemberElements.size - 2));
 
   for (const [id, element] of teamMemberElements.entries()) {
     if (id === selectedId) continue;
@@ -2347,7 +2339,7 @@ export function playTeamCheer(selectedId: SpeakerId): void {
           { transform: 'scale(1) translateY(0)', offset: 1 },
         ],
         {
-          duration: DURATION.SLOW,
+          duration: DURATION.STANDARD,
           easing: EASING.SPRING,
         }
       );

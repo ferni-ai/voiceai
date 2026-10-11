@@ -228,11 +228,11 @@ function startBreathingAnimation(): void {
  * Different intensity based on persona personality.
  * Brand: warm, grounded, present.
  */
-function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy'): void {
+function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy', maxDuration = Infinity): void {
   if (!elements) return;
-  
+
   const profile = getAnimationProfile();
-  
+
   let keyframes: Keyframe[];
   let duration: number;
   
@@ -284,11 +284,14 @@ function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy'): void {
   }
   
   safeAnimate(elements.avatar, keyframes, {
-    duration,
+    duration: Math.min(duration, maxDuration),
     easing: profile.easing,
     fill: 'forwards',
   });
 }
+
+/** Upper bound for the persona-swap entrance (bounce, name, subtitle, ring). */
+export const PERSONA_SWAP_MAX_MS = 350;
 
 /**
  * Update the displayed persona with their unique colors.
@@ -300,26 +303,19 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
   // Update current persona ID for animation profile
   currentPersonaId = persona.id;
 
-  // Trigger transition animation
+  // Ring sparkle (CSS) and the persona's entrance bounce, both starting now
   addClass(elements.container, 'persona-transitioning');
-  
-  // Play persona-specific entrance bounce
-  const profile = getAnimationProfile();
-  trackedTimeout(() => {
-    playReaction('bounce');
-  }, profile.reactionDelay);
-  
-  // Remove transition class after animation completes
+  playReaction('bounce', PERSONA_SWAP_MAX_MS);
   trackedTimeout(() => {
     elements?.container && removeClass(elements.container, 'persona-transitioning');
-  }, 600);
+  }, PERSONA_SWAP_MAX_MS);
 
   // Note: avatarText is hidden by CSS - all personas now show eyes instead of initials
   // setText(elements.avatarText, persona.initials);
 
   // 🔤 Animate name change with kinetic typography
   if (elements.name && elements.name.textContent !== persona.name) {
-    void animateNameHandoff(elements.name, persona.name, { duration: 500 });
+    void animateNameHandoff(elements.name, persona.name, { duration: PERSONA_SWAP_MAX_MS - 100 });
   } else {
     setText(elements.name, persona.name);
   }
@@ -329,11 +325,14 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
     ? relationshipStageService.getSubtitle()
     : persona.subtitle;
   
-  // 🔤 Scramble reveal subtitle
-  if (elements.subtitle && elements.subtitle.textContent !== subtitle) {
-    scrambleReveal(elements.subtitle, subtitle, { duration: 400 });
-  } else {
-    setText(elements.subtitle, subtitle);
+  // Fade, not scramble: a scramble rewrites the text (and re-runs layout) every frame
+  const subtitleChanged = elements.subtitle.textContent !== subtitle;
+  setText(elements.subtitle, subtitle);
+  if (subtitleChanged) {
+    safeAnimate(elements.subtitle, [{ opacity: 0 }, { opacity: 1 }], {
+      duration: PERSONA_SWAP_MAX_MS - 100,
+      easing: getAnimationProfile().easing,
+    });
   }
 
   // Update theme class
