@@ -22,6 +22,11 @@ env:
   GCP_REGION: us-central1
   NODE_VERSION: '22'
 
+# A newer push to the same PR supersedes this run; queue and main runs always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # ============================================================================
   # DETERMINE CONTEXT

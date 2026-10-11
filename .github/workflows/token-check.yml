@@ -23,6 +23,11 @@ on:
       - 'design-system/tokens/**'
       - 'design-system/*.js'
 
+# A newer push to the same PR supersedes this run; queue and main runs always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   token-drift-check:
     name: Check Token Drift

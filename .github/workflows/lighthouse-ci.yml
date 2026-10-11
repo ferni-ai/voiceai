@@ -20,6 +20,11 @@ env:
   BEST_PRACTICES_BUDGET: 85
   SEO_BUDGET: 90
 
+# A newer push to the same PR supersedes this run; queue and main runs always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   lighthouse:
     name: Lighthouse Audit

@@ -36,6 +36,11 @@ on:
       - 'firebase.json'
   workflow_dispatch:
 
+# A newer push to the same PR supersedes this run; queue and main runs always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   firestore-e2e:
     name: Firestore Emulator E2E

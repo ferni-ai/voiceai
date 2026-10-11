@@ -64,6 +64,11 @@ env:
   # logged "Vertex AI enabled but GOOGLE_CLOUD_PROJECT not set".
   USE_VERTEX_AI: 'false'
 
+# A newer push to the same PR supersedes this run; queue and main runs always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # ============================================================================
   # PR CHECKS - Run on every pull request
