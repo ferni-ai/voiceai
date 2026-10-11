@@ -10506,6 +10506,12 @@
       "fair": "Regular",
       "poor": "Conexión débil",
       "disconnected": "Sin conexión"
+    },
+    "island": {
+      "offline": "No tienes conexión. Me reconecto en cuanto vuelvas.",
+      "reconnecting": "Reconectando…",
+      "weak": "Conexión débil",
+      "backOnline": "De nuevo en línea"
     }
   },
   "ideasGallery": {

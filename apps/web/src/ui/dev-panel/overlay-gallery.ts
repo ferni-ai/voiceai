@@ -102,6 +102,22 @@ async function offlineBanner(): Promise<void> {
   banner.show();
 }
 
+/** A call that dropped and is coming back (status island with the flag on). */
+async function reconnecting(): Promise<void> {
+  (await import('../status-island-connection.js')).initStatusIslandConnection();
+  window.dispatchEvent(new CustomEvent('ferni:connection-state', { detail: { state: 'reconnecting' } }));
+}
+
+/** A call on a poor link; the island shows it after its 3 s debounce. */
+async function weakConnection(): Promise<void> {
+  (await import('../status-island-connection.js')).initStatusIslandConnection();
+  const cq = await import('../connection-quality.ui.js');
+  window.dispatchEvent(new CustomEvent('ferni:connection-state', { detail: { state: 'connected' } }));
+  cq.setQuality('poor');
+  cq.show();
+  await wait(3200);
+}
+
 /** Every bottom/top-right transient at once: what a busy first minute looks like. */
 async function collision(): Promise<void> {
   await twoToasts();
@@ -208,6 +224,8 @@ export const SCENES: Readonly<Record<string, Scene>> = {
   'notification-card': notificationCard,
   outreach,
   'offline-banner': offlineBanner,
+  reconnecting,
+  'weak-connection': weakConnection,
   collision,
   modal,
   sheet,

@@ -10505,6 +10505,12 @@
       "fair": "בינוני",
       "poor": "חיבור חלש",
       "disconnected": "מנותק"
+    },
+    "island": {
+      "offline": "אין חיבור לאינטרנט. אתחבר מחדש כשתחזור.",
+      "reconnecting": "מתחבר מחדש…",
+      "weak": "חיבור חלש",
+      "backOnline": "שוב מחובר"
     }
   },
   "ideasGallery": {

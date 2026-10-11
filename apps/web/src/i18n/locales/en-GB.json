@@ -10408,6 +10408,12 @@
       "fair": "Fair",
       "poor": "Poor connection",
       "disconnected": "Disconnected"
+    },
+    "island": {
+      "offline": "You're offline. I'll reconnect when you're back.",
+      "reconnecting": "Reconnecting…",
+      "weak": "Weak connection",
+      "backOnline": "Back online"
     }
   },
   "ideasGallery": {

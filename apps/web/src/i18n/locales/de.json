@@ -10400,6 +10400,12 @@
       "fair": "Akzeptabel",
       "poor": "Schlechte Verbindung",
       "disconnected": "Getrennt"
+    },
+    "island": {
+      "offline": "Du bist offline. Ich verbinde mich wieder, sobald du zurück bist.",
+      "reconnecting": "Verbinde neu…",
+      "weak": "Schwache Verbindung",
+      "backOnline": "Wieder online"
     }
   },
   "ideasGallery": {

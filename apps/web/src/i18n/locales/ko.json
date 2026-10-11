@@ -10400,6 +10400,12 @@
       "fair": "보통",
       "poor": "연결 불안정",
       "disconnected": "연결 끊김"
+    },
+    "island": {
+      "offline": "인터넷에 연결되어 있지 않아요. 다시 연결되면 바로 이어갈게요.",
+      "reconnecting": "다시 연결하는 중…",
+      "weak": "연결이 약해요",
+      "backOnline": "다시 연결됐어요"
     }
   },
   "ideasGallery": {
