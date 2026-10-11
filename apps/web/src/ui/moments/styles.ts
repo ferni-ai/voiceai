@@ -98,13 +98,13 @@ const MOMENT_STYLES = `
 
 .moment-whisper--warning {
   background: color-mix(in srgb, var(--color-semantic-warning, #a67c35) 80%, black);
-  color: white;
+  color: var(--color-semantic-on-warning);
   border: 1px solid var(--color-semantic-warning-border, rgba(184, 149, 106, 0.8));
 }
 
 .moment-whisper--error {
   background: var(--color-semantic-error, #a65a52);
-  color: white;
+  color: var(--color-semantic-on-error);
   border: 1px solid var(--color-semantic-error-border, rgba(166, 90, 82, 0.8));
 }
 
@@ -458,7 +458,7 @@ const MOMENT_STYLES = `
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--persona-primary, #4a6741);
+  color: var(--persona-text, #4a6741);
   margin-bottom: var(--space-2, 8px);
   opacity: 0;
 }
