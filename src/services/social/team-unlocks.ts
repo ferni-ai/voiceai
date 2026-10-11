@@ -21,6 +21,7 @@
 
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { withUpgradePath } from '../billing/paywall.js';
 
 const log = createLogger({ module: 'TeamUnlocks' });
 
@@ -249,19 +250,10 @@ export function calculateStreaks(profile: UserProfile | null): {
 // ============================================================================
 
 export type RelationshipStage =
-  | 'first-meeting'
-  | 'getting-started'
-  | 'building-trust'
-  | 'established'
-  | 'deep-partnership';
+  'first-meeting' | 'getting-started' | 'building-trust' | 'established' | 'deep-partnership';
 
 export type TeamMemberId =
-  | 'ferni'
-  | 'maya-santos'
-  | 'peter-john'
-  | 'alex-chen'
-  | 'jordan-taylor'
-  | 'nayan-patel';
+  'ferni' | 'maya-santos' | 'peter-john' | 'alex-chen' | 'jordan-taylor' | 'nayan-patel';
 
 export interface TeamMemberUnlock {
   memberId: TeamMemberId;
@@ -493,14 +485,16 @@ export function getTeamMemberUnlockStatus(
   // Nayan requires either deep-partnership OR partner tier
   if (tier === 'friend' || tier === 'partner') {
     if (member.premium && tier !== 'partner') {
-      // Nayan requires partner tier OR relationship
       if (!stageAtOrBeyond(stage, member.unlocksAt)) {
         return {
           unlocked: false,
           lockReason: 'The sage speaks only to those who have proven their commitment.',
-          unlockHint: 'Reach deep partnership stage or upgrade to Partner tier.',
+          unlockHint: `${withUpgradePath('Reach deep partnership stage', ' or upgrade to Partner tier')}.`,
           progress: calculateProgress(metrics, STAGE_THRESHOLDS[member.unlocksAt]),
-          requirement: `${STAGE_THRESHOLDS[member.unlocksAt].minConversations} conversations or Partner tier`,
+          requirement: withUpgradePath(
+            `${STAGE_THRESHOLDS[member.unlocksAt].minConversations} conversations`,
+            ' or Partner tier'
+          ),
         };
       }
     }
@@ -559,7 +553,10 @@ function getUnlockHint(stage: RelationshipStage): string {
     case 'established':
       return `${threshold.minConversations} conversations, ${threshold.minDays} days of friendship`;
     case 'deep-partnership':
-      return `${threshold.minConversations} conversations, ${threshold.minDays} days together, or become a Partner`;
+      return withUpgradePath(
+        `${threshold.minConversations} conversations, ${threshold.minDays} days together`,
+        ', or become a Partner'
+      );
     default:
       return 'Keep talking to me!';
   }

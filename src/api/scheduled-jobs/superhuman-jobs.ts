@@ -54,12 +54,31 @@ export async function handleBetterThanHumanOutreach(res: ServerResponse): Promis
       const now = new Date();
       const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-      const commitmentsSnap = await db
-        .collectionGroup('commitments')
-        .where('status', '==', 'active')
-        .where('dueDate', '<=', tomorrow.toISOString())
-        .limit(100)
-        .get();
+      // COACH_FOLLOW_THROUGH=on: the fields commitments are written with (commitment-push.ts).
+      const { coachFollowThroughMode } =
+        await import('../../services/superhuman/commitment-follow-up.js');
+      if (coachFollowThroughMode()) {
+        const { sendCommitmentPushes } = await import('./commitment-push.js');
+        const { getOutreachOrchestrator } =
+          await import('../../services/outreach/outreach-orchestrator.js');
+        stats.commitmentFollowUpsSent += await sendCommitmentPushes({
+          send: async (userId, message, commitmentId) =>
+            (await getOutreachOrchestrator().sendPushNotification(userId, message, {
+              trigger: 'commitment_followup',
+              personaId: 'ferni',
+              metadata: { commitmentId },
+            })) !== null,
+        });
+      }
+
+      const commitmentsSnap = coachFollowThroughMode()
+        ? { docs: [] }
+        : await db
+            .collectionGroup('commitments')
+            .where('status', '==', 'active')
+            .where('dueDate', '<=', tomorrow.toISOString())
+            .limit(100)
+            .get();
 
       for (const doc of commitmentsSnap.docs) {
         try {

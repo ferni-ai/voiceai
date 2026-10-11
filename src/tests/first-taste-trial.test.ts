@@ -7,7 +7,7 @@
  * - Time tracking across sessions
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   checkTrialStatus,
   createDefaultTrialState,
@@ -26,6 +26,10 @@ vi.mock('../memory/store-factory.js', () => ({
 }));
 
 describe('First Taste Trial', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -83,6 +87,7 @@ describe('First Taste Trial', () => {
     });
 
     it('should show transition when trial ends', async () => {
+      vi.stubEnv('PAYWALL', 'on'); // the wrap-up lines exist only while the paywall is on
       const { getStore } = await import('../memory/store-factory.js');
       const mockStore = await getStore();
       (mockStore.getProfile as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
@@ -102,6 +107,27 @@ describe('First Taste Trial', () => {
       expect(result.trialEnded).toBe(true);
       expect(result.showTransition).toBe(true);
       expect(result.transitionPrompt).toBeTruthy();
+    });
+
+    it('should not announce the trial ending while ferni is free', async () => {
+      const { getStore } = await import('../memory/store-factory.js');
+      const mockStore = await getStore();
+      (mockStore.getProfile as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        trialState: {
+          trialStarted: true,
+          trialStartedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+          trialTimeUsedMs: TRIAL_DURATION_MS,
+          trialCompleted: false,
+          trialCompletedAt: null,
+          convertedDuringTrial: false,
+        } as TrialState,
+      });
+
+      const result = await checkTrialStatus('trial-user', 0);
+
+      expect(result.trialEnded).toBe(true);
+      expect(result.showTransition).toBe(false);
+      expect(result.transitionPrompt).toBeNull();
     });
   });
 
