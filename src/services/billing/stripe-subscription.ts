@@ -163,7 +163,7 @@ async function loadStripe(): Promise<void> {
 /**
  * Get or create Stripe client
  */
-async function getStripe(): Promise<StripeClient> {
+export async function getStripe(): Promise<StripeClient> {
   if (!stripeClient) {
     await loadStripe();
     const secretKey = process.env.STRIPE_SECRET_KEY;

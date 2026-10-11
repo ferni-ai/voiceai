@@ -64,7 +64,8 @@ export function fakeFirestore(rows: Row[]) {
     },
   });
   return {
-    collection: (c: string) => ({ doc: c === 'bogle_users' ? userDoc : topDoc(c) }),
+    // No name: the user docs, as callers written before top-level docs existed expect.
+    collection: (c?: string) => ({ doc: !c || c === 'bogle_users' ? userDoc : topDoc(c) }),
     collectionGroup: (c: string) => query(c),
     runTransaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
       fn({
