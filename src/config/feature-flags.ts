@@ -94,8 +94,6 @@ export interface FeatureFlags {
     /** Native Rust audio processing (zero-allocation, lower GC pressure) */
     nativeAudioProcessing: boolean;
     /** Native Rust embedding operations (SIMD-accelerated cosine similarity) */
-    /** Pre-warm context builders at session start for faster first turn */
-    contextBuilderPrewarm: boolean;
     /** Use worker threads for embedding operations */
     embeddingWorkerIntegration: boolean;
     /** Batch summarization in SummarizationWorker */
@@ -269,8 +267,6 @@ const DEFAULT_FLAGS: FeatureFlags = {
     crossSessionThreading: true,
     proactiveInsights: true,
     nativeAudioProcessing: process.env.USE_NATIVE_AUDIO !== 'false', // Enabled by default, disable with USE_NATIVE_AUDIO=false
-    /** Pre-warm context builders at session start for faster first turn */
-    contextBuilderPrewarm: process.env.DISABLE_CONTEXT_PREWARM !== 'true', // Enabled by default
     /**
      * Use worker threads for embedding operations. Opt-in: a mistyped flag path
      * kept this off everywhere until 2026-09, so it has never run in production.

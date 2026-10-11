@@ -154,7 +154,6 @@ import { handleStoryRoutes } from '../../api/story-routes.js';
 import { handleUserEventsRoutes } from '../../api/user-events-routes.js';
 import { handleSubscriptionRequest, isSubscriptionRoute } from '../../api/subscription-routes.js';
 import { handleAnalyticsRoutes } from '../../api/user-analytics-routes.js';
-import { handleBuilderMetricsRoutes } from '../../api/routes/builder-metrics.js';
 import { handleMusicAnalyticsRoutes } from '../../api/music-analytics-routes.js';
 import { handleAdminRoutes } from '../../api/admin-routes.js';
 import { handleMonetizationRequest, isMonetizationRoute } from '../../api/monetization-routes.js';
@@ -1279,12 +1278,6 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // Analytics routes
     if (pathname.startsWith('/api/analytics')) {
       const handled = await handleAnalyticsRoutes(req, res, pathname);
-      if (handled) return;
-    }
-
-    // Builder metrics routes
-    if (pathname.startsWith('/api/admin/builder-metrics')) {
-      const handled = await handleBuilderMetricsRoutes(req, res, pathname);
       if (handled) return;
     }
 
