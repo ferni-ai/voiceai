@@ -30,7 +30,7 @@ import {
 import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
-import type { Caption } from './caption-filter.js';
+import { filterCaptionStream, type Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { ferniStateNote } from './ferni-state.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
@@ -48,7 +48,7 @@ import {
   turnStyleReminderEnabled,
   withTurnStyleReminder,
 } from './turn-style.js';
-import { burstLine, clearBurstOffer } from './vocal-bursts.js';
+import { burstLine, clearBurstOffer, tapSpokenBursts } from './vocal-bursts.js';
 
 /** Live tool retrieval waits this long for the pick before falling back (see toolsForTurn). */
 const LIVE_PICK_WAIT_MS = 150;
@@ -319,6 +319,18 @@ async function retrievedTools(
 }
 
 /** Captions, reporting what Ferni is saying to the barge-in echo guard (barge-in-fastpath.ts). */
+/**
+ * The captions the app shows from a reply's transcription. Bursts are read first,
+ * because the caption filter drops [laughter] (vocal-bursts.ts); the spoken text
+ * then feeds the barge-in fast path.
+ */
+export function spokenCaptions(
+  text: ReadableStream<Caption> | AsyncIterable<Caption>,
+  session: object
+): ReadableStream<Caption> {
+  return tapSpokenText(filterCaptionStream(tapSpokenBursts(text, session)), session);
+}
+
 export function tapSpokenText(
   captions: ReadableStream<Caption>,
   session: object
