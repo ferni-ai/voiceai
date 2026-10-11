@@ -21,7 +21,7 @@
  *
  * @module api/seeds-import
  */
-import { FieldValue, type Firestore } from 'firebase-admin/firestore';
+import admin from 'firebase-admin';
 import { getSubscriptionInfo } from '../services/billing/stripe-subscription.js';
 import { getFirebaseUser } from '../services/identity/firebase-auth.js';
 import { cosmeticForSale, tierAllows } from '../services/seeds/cosmetics-catalog.js';
@@ -79,7 +79,7 @@ export type ImportResult =
   { status: 200; body: ImportBody } | { status: 400 | 404 | 503; error: string };
 
 export async function importLocalSeeds(
-  db: Firestore,
+  db: admin.firestore.Firestore,
   uid: string,
   body: unknown
 ): Promise<ImportResult> {
@@ -139,7 +139,7 @@ export async function importLocalSeeds(
     if (granted.length) {
       tx.set(
         state.accountRef,
-        { ownedCosmetics: FieldValue.arrayUnion(...granted) },
+        { ownedCosmetics: admin.firestore.FieldValue.arrayUnion(...granted) },
         { merge: true }
       );
     }
