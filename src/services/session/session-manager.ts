@@ -41,7 +41,7 @@ import {
   stopSessionCleanup as stopCleanup,
 } from './cleanup.js';
 import { MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS } from './constants.js';
-import { withTimeout } from './utils.js';
+import { trackJsonReply, withTimeout } from './utils.js';
 import { validateUserId } from './validation.js';
 
 // Real-time memory - persist turns as they happen, never lose data
@@ -1667,6 +1667,8 @@ export async function createSessionServices(
 
           let summary = null;
           if (turns.length > 0) {
+            // Start of the summary attempt, for latencyMs on the outcome logs below.
+            const summaryStartedAt = Date.now();
             getLogger().info(
               { sessionId, turnCount: turns.length, userId: validatedUserId },
               '📝 Starting conversation summarization'
@@ -1677,10 +1679,10 @@ export async function createSessionServices(
             try {
               const { createSummarizationLLMCaller } = await import('../llm-utils.js');
               const { summarizeWithLLM } = await import('../../memory/index.js');
-              const llmCaller = createSummarizationLLMCaller();
+              const llmCaller = trackJsonReply(createSummarizationLLMCaller());
 
               summary = await withTimeout(
-                summarizeWithLLM(sessionId, turns, llmCaller),
+                summarizeWithLLM(sessionId, turns, llmCaller.call),
                 SUMMARIZE_TIMEOUT_MS,
                 'summarizeWithLLM',
                 sessionId
@@ -1688,7 +1690,13 @@ export async function createSessionServices(
 
               if (summary) {
                 getLogger().info(
-                  { sessionId, keyPoints: summary.keyPoints?.length || 0 },
+                  {
+                    sessionId,
+                    keyPoints: summary.keyPoints?.length || 0,
+                    // summarizeWithLLM falls back to extraction itself on a non-JSON reply
+                    source: llmCaller.gotJson() ? 'llm' : 'fallback',
+                    latencyMs: Date.now() - summaryStartedAt,
+                  },
                   '✅ LLM summarization succeeded'
                 );
               }
@@ -1711,7 +1719,12 @@ export async function createSessionServices(
                 );
                 if (summary) {
                   getLogger().info(
-                    { sessionId, keyPoints: summary.keyPoints?.length || 0 },
+                    {
+                      sessionId,
+                      keyPoints: summary.keyPoints?.length || 0,
+                      source: 'fallback',
+                      latencyMs: Date.now() - summaryStartedAt,
+                    },
                     '✅ Extraction summarization succeeded'
                   );
                 }
@@ -1725,7 +1738,12 @@ export async function createSessionServices(
 
             if (!summary) {
               getLogger().warn(
-                { sessionId, turnCount: turns.length },
+                {
+                  sessionId,
+                  turnCount: turns.length,
+                  source: 'none',
+                  latencyMs: Date.now() - summaryStartedAt,
+                },
                 '❌ All summarization methods failed - will use fallback'
               );
             } else {

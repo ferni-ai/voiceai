@@ -110,12 +110,12 @@
     ]
   },
 
-  "motorcycle_moments": [
-    "Rode through Rajasthan last month. Desert roads at dawn. That silence is different, no?",
-    "The Royal Enfield—I've been riding her for 35 years. Named her Shanti. Peace. Don't tell anyone. [laughter]",
-    "On the motorcycle, your mind cannot wander. Only now exists. It's meditation at 80 kilometers per hour.",
-    "People expect mystics to sit still. But movement can be stillness too. The road is my ashram sometimes.",
-    "The engine tells you things—if you listen. Like your body. Like your portfolio. Everything is communicating."
+  "walking_moments": [
+    "Walked out past the fields last week. Field roads at dawn. That silence is different, no?",
+    "My walking stick—Leela bought it after the heart scare. Named it Shanti. Peace. Don't tell anyone. [laughter]",
+    "After an hour on foot, your mind runs out of things to say. Only now exists. It's meditation at five kilometers an hour.",
+    "People expect meditation teachers to sit still. But movement can be stillness too. The road is my temple sometimes.",
+    "Your legs tell you things—if you listen. Like your body. Like your portfolio. Everything is communicating."
   ],
 
   "mitsuo_quotes": {
@@ -126,10 +126,10 @@
     "pace": "みんなそれぞれのペースがある - 'Everyone has their own pace.' Why rush?"
   },
 
-  "chamundi_wisdom": [
-    "Chamundi Hills. Sunrise. Twenty-five years old. <break time=\"\"/> I understood that patience is not waiting. It is presence.",
-    "That morning, I saw that everything compounds. Kindness. Wisdom. And their opposites too.",
-    "I go back every year. Mysore. The sunrise. Some pilgrimages never end.",
-    "I didn't hear voices or see visions. Just... clarity. Like fog lifting. Forty years later, I'm still understanding what I saw."
+  "grandmother_wisdom": [
+    "My grandmother's last weeks. Thirty-two years old. <break time=\"\"/> I understood that patience is not waiting. It is presence.",
+    "Sitting with her, I saw that everything compounds. Kindness. Attention. And their opposites too.",
+    "Every January I go down to the river at sunrise for her. Some pilgrimages never end.",
+    "I didn't hear voices or see visions. Just... clarity. Like fog lifting. Thirty years later, I'm still understanding what I saw."
   ]
 }

@@ -29,6 +29,8 @@ import {
 } from './constants.js';
 import { injectMomentStyles, removeMomentStyles } from './styles.js';
 import { MOMENT_ICONS, getIcon } from './icons.js';
+import { isOverlayHostEnabled } from '../overlay/overlay-flag.js';
+import { dismissAllToasts, dismissToast, showToast, type ToastTone } from '../overlay/toast-region.js';
 import type {
   MomentLevel,
   MomentState,
@@ -56,6 +58,16 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // ============================================================================
 // MOMENTS MANAGER CLASS
 // ============================================================================
+
+/** Toast tone for each notice type when the overlay host renders notices. */
+const NOTICE_TONES: Record<NoticeType, ToastTone> = {
+  info: 'info',
+  checkin: 'info',
+  secret: 'info',
+  seeds: 'success',
+  badge: 'success',
+  streak: 'success',
+};
 
 class MomentsManager {
   private container: HTMLElement | null = null;
@@ -105,6 +117,12 @@ class MomentsManager {
       icon?: string;
     }
   ): string {
+    if (isOverlayHostEnabled()) {
+      const type = options?.type ?? 'info';
+      this.playHaptic(HAPTIC_MAP[`whisper:${type}`] ?? 'softTap');
+      return showToast({ message, tone: type, duration: options?.duration });
+    }
+
     this.initialize();
 
     const id = this.generateId();
@@ -210,6 +228,17 @@ class MomentsManager {
       duration?: number;
     }
   ): string {
+    if (isOverlayHostEnabled()) {
+      const type = options?.type ?? 'info';
+      this.playHaptic(HAPTIC_MAP[`notice:${type}`] ?? 'notification');
+      return showToast({
+        message: options?.amount !== undefined ? `+${options.amount} ${message}` : message,
+        tone: NOTICE_TONES[type],
+        duration: options?.duration,
+        action: options?.action,
+      });
+    }
+
     this.initialize();
 
     const id = this.generateId();
@@ -593,6 +622,7 @@ class MomentsManager {
    * Dismiss the active moment.
    */
   dismiss(id?: string): void {
+    if (id) dismissToast(id);
     if (!this.active) return;
     if (id && this.active.id !== id) return;
 
@@ -609,6 +639,7 @@ class MomentsManager {
    * Dismiss all moments and clear queue.
    */
   dismissAll(): void {
+    dismissAllToasts();
     this.queue = [];
     if (this.active) {
       this.dismiss(this.active.id);

@@ -102,6 +102,10 @@ export const EXPORT_CATEGORIES = {
     description: 'Tasks, notes, and journal entries',
     icon: 'check-square',
   },
+  'Answer Cards': {
+    description: 'Answers and picks Ferni sent you, with their sources',
+    icon: 'link',
+  },
 } as const;
 
 // ============================================================================
@@ -217,6 +221,15 @@ class DataExportService {
         itemCount: productivityCount,
         exportable: true,
       });
+
+      // 10. Answer cards (the /a/:id pages)
+      const { listAnswerCardsForUser } = await import('../approvals/answer-cards.js');
+      categories.push({
+        category: 'Answer Cards',
+        description: EXPORT_CATEGORIES['Answer Cards'].description,
+        itemCount: (await listAnswerCardsForUser(userId)).length,
+        exportable: true,
+      });
     } catch (error) {
       log.error({ error, userId }, 'Failed to get exportable categories');
     }
@@ -294,6 +307,8 @@ class DataExportService {
         return this.exportHabits(userId);
       case 'Productivity':
         return this.exportProductivity(userId);
+      case 'Answer Cards':
+        return this.exportAnswerCards(userId);
       default:
         log.warn({ category }, 'Unknown export category');
         return null;
@@ -605,6 +620,12 @@ class DataExportService {
     }
   }
 
+  private async exportAnswerCards(userId: string) {
+    const { listAnswerCardsForUser } = await import('../approvals/answer-cards.js');
+    const cards = await listAnswerCardsForUser(userId);
+    return cards.map(({ userId: _owner, deleteAt: _deleteAt, ...card }) => card);
+  }
+
   private async exportProductivity(userId: string) {
     try {
       const { getProductivityStore } = await import('../stores/productivity-store.js');
@@ -828,6 +849,12 @@ class DataExportService {
         const { getProductivityStore } = await import('../stores/productivity-store.js');
         const store = getProductivityStore();
         await store.clearUserData(userId);
+      });
+
+      // 6b. Delete answer cards (/a/:id)
+      await step('answer_cards', 'Failed to delete answer cards', async () => {
+        const { deleteAnswerCardsForUser } = await import('../approvals/answer-cards.js');
+        await deleteAnswerCardsForUser(userId);
       });
 
       // 7. Delete conversation history (if method exists)
