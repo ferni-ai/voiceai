@@ -10110,7 +10110,12 @@
     "getIdeas": "アイデアをもらう",
     "emptyTitle": "提案はまだありません",
     "emptyText": "お互いの関係について、もう少し詳しく教えてみてください。",
-    "generateError": "アイデアを作成できませんでした。もう一度お試しになりますか？"
+    "generateError": "アイデアを作成できませんでした。もう一度お試しになりますか？",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "あなたのためにできること",
@@ -11079,5 +11084,39 @@
     "youSpeaking": "あなたが話しています",
     "ferniThinking": "Ferniが考えています",
     "tapToInterrupt": "タップして割り込む"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }
