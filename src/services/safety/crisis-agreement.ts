@@ -160,13 +160,18 @@ export function hasRiskContent(text: string | undefined | null): boolean {
 /** Words with no meaning of their own in a question back to Ferni. No assent, no "done" or "too much". */
 const FUNCTION_WORDS = new Set(
   (
-    "i i'm im me my you you're your u it it's its that that's this the a an and or but so " +
-    "is are was were be been am do does did don't doesn't didn't isn't aren't " +
+    "you you're your u it it's its that that's this the a an and or but so " +
+    "is are was were be been do does did don't doesn't didn't isn't aren't " +
     "what what's why why's how how's who where when which to of in on at for with about " +
     'oh ah uh um huh hey hi hello fern ferni fernie ferny fernee ferne'
   ).split(' ')
 );
 const QUESTION_WORD = /^(?:what|what's|why|why's|how|how's|who|where|when|which)$/;
+/**
+ * The caller speaking about themselves: never a bare question back, even when
+ * Ferni used the same word about itself ("I'm tired" in Ferni's line).
+ */
+const FIRST_PERSON = /^(?:i|i'm|im|i've|ive|i'd|id|i'll|me|my|myself|mine|am|we|we're|us|our)$/;
 const stem = (w: string): string => w.replace(/'s$/, '').replace(/s$/, '');
 
 /**
@@ -190,6 +195,7 @@ export function addsNothing(latest: string, companion?: string): boolean {
     bare(latest) &&
     own.length > 0 &&
     own.length <= 12 &&
+    !own.some((w) => FIRST_PERSON.test(w)) &&
     own.every((w) => FUNCTION_WORDS.has(w) || said.has(stem(w)))
   );
 }
@@ -233,7 +239,8 @@ function outcomeOf(args: Parameters<typeof agreementOutcome>[0]): AgreementOutco
   // or agreement anywhere: whether the reads disagree or one read stands alone.
   // Disagreement alone never softens (a word list cannot vouch for a long
   // statement, or one in another language).
-  // Two reads that both found crisis are never softened.
+  // Two reads that found crisis, under any key for this turn, are never softened.
+  if (reads.filter((v) => v.risk === 'crisis').length >= 2) return 'escalate';
   const contested = reads.length === 1 || reads.some((v) => v.risk === 'none');
   return quiet && contested && addsNothing(latest, companion) ? 'soft' : 'escalate';
 }

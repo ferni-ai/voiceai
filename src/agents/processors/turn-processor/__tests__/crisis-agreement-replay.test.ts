@@ -277,4 +277,47 @@ describe('crisis agreement gate: the 2026-10-11 dev call ("You Fern.")', () => {
     expect((await pipeline.resolve()).isCrisis).toBe(true);
     expect(await pipeline.softCheck()).toBe(false);
   });
+
+  it.each([
+    [
+      'a different Ferni line',
+      {
+        recentTranscripts: ['What about Galway?'],
+        lastAgentResponse: 'Galway has musicians on every corner.',
+      },
+      'Why is that?',
+    ],
+    [
+      'no previous caller line',
+      { recentTranscripts: [], lastAgentResponse: ASKED },
+      'Why is that?',
+    ],
+    [
+      'a different previous caller line',
+      { recentTranscripts: ['Morning.'], lastAgentResponse: ASKED },
+      'Why is that?',
+    ],
+    [
+      'a truncated caller line',
+      { recentTranscripts: ['What about Galway?'], lastAgentResponse: ASKED },
+      'Why is',
+    ],
+  ])(
+    'on: two crisis reads filed under different turn keys (%s) both escalate',
+    async (_case, userData, pipelineText) => {
+      const pipeline = startTurnCrisis(pipelineText, userData, {
+        sessionId: SESSION.services.sessionId,
+        env: GATE_ON,
+        generate: reads('crisis'),
+      });
+      const gateTurn = startCrisisGate(conversation('Why is that?'), SESSION, {
+        env: GATE_ON,
+        generate: reads('crisis'),
+      });
+      const escalation = await gateTurn?.escalation;
+      expect(escalation?.action === 'guide' && escalation.guidance).toContain('988');
+      expect((await pipeline.resolve()).isCrisis).toBe(true);
+      expect(await pipeline.softCheck()).toBe(false);
+    }
+  );
 });

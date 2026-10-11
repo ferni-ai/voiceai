@@ -292,12 +292,53 @@ function turnKey(scope: string, input: CrisisClassifierInput): string {
   return JSON.stringify([scope, latest.toLowerCase(), companion ?? '', earlier.at(-1) ?? '']);
 }
 
+/**
+ * The same session's reads under a loose key: the caller's words alone,
+ * letters and digits only, and matching when one contains the other (one
+ * path may hold a truncated line). The gate and the pipeline can build
+ * different strict keys for one turn (a different Ferni line or previous
+ * line); their crisis reads must still count together, or each would look
+ * like a lone read.
+ */
+const looseReads = new Map<
+  string,
+  Array<{ at: number; text: string; verdict: Promise<CrisisVerdict | null> }>
+>();
+
+const looseText = (latest: string): string =>
+  latest
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+function rememberLoose(
+  scope: string,
+  latest: string,
+  now: number,
+  verdict: Promise<CrisisVerdict | null>
+): void {
+  for (const [k, v] of looseReads) {
+    const fresh = v.filter((read) => now - read.at <= RECENT_RUN_TTL_MS);
+    if (fresh.length) looseReads.set(k, fresh);
+    else looseReads.delete(k);
+  }
+  const reads = looseReads.get(scope) ?? [];
+  if (!looseReads.has(scope) && looseReads.size >= RECENT_RUN_MAX) {
+    const oldest = looseReads.keys().next().value;
+    if (oldest !== undefined) looseReads.delete(oldest);
+  }
+  reads.push({ at: now, text: looseText(latest), verdict });
+  looseReads.set(scope, reads.slice(-RECENT_RUN_MAX));
+}
+
 function rememberRead(
   scope: string,
   input: CrisisClassifierInput,
   now: number,
   verdict: Promise<CrisisVerdict | null>
 ): void {
+  rememberLoose(scope, normalizeInput(input).latest, now, verdict);
   for (const [k, v] of turnReads) if (now - v.at > RECENT_RUN_TTL_MS) turnReads.delete(k);
   const key = turnKey(scope, input);
   const reads = turnReads.get(key);
@@ -312,19 +353,34 @@ function rememberRead(
   turnReads.set(key, { at: now, verdicts: new Set([verdict]) });
 }
 
-/** All reads of this turn started so far in this call, each bounded by the classifier timeout. */
-export function turnVerdicts(
+/**
+ * All reads of this turn started so far in this call, each bounded by the
+ * classifier timeout: every read under the strict key, plus any other read of
+ * the same caller words (loose key) that was not a clear none. A none counts
+ * only under the strict key; a crisis or missing read counts under either.
+ */
+export async function turnVerdicts(
   scope: string,
   input: CrisisClassifierInput
 ): Promise<Array<CrisisVerdict | null>> {
-  const reads = turnReads.get(turnKey(scope, input));
-  return Promise.all(reads ? [...reads.verdicts] : []);
+  const strict = turnReads.get(turnKey(scope, input))?.verdicts ?? new Set();
+  const text = looseText(normalizeInput(input).latest);
+  const loose = (looseReads.get(scope) ?? [])
+    .filter((read) => text && read.text && (read.text.includes(text) || text.includes(read.text)))
+    .map((read) => read.verdict)
+    .filter((verdict) => !strict.has(verdict));
+  const [strictVerdicts, looseVerdicts] = await Promise.all([
+    Promise.all([...strict]),
+    Promise.all([...new Set(loose)]),
+  ]);
+  return [...strictVerdicts, ...looseVerdicts.filter((v) => v === null || v.risk !== 'none')];
 }
 
 /** For tests: forget shared runs. */
 export function resetCrisisClassifierCache(): void {
   recentRuns.clear();
   turnReads.clear();
+  looseReads.clear();
 }
 
 export function verdictOutcome(verdict: CrisisVerdict): PatternOutcome {

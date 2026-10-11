@@ -186,7 +186,7 @@ describe("Ferni's lines are Ferni's (CRISIS_AGREEMENT_GATE)", () => {
 describe('turnVerdicts (security review finding 2)', () => {
   beforeEach(() => resetCrisisClassifierCache());
 
-  it('never combines reads of the same words on different turns', async () => {
+  it("never lets another turn's none soften a read; another turn's crisis still counts", async () => {
     const env = { CRISIS_CLASSIFIER_MODE: 'live', CRISIS_AGREEMENT_GATE: 'on' };
     const scope = 'session-turns';
     const pasta = { latest: 'same.', earlier: [], companion: 'I made pasta again' };
@@ -204,7 +204,11 @@ describe('turnVerdicts (security review finding 2)', () => {
       generate: replying('{"risk":"crisis","subject":"self"}'),
     })?.verdict;
     expect(await turnVerdicts(scope, point)).toEqual([{ risk: 'crisis', subject: 'self' }]);
-    expect(await turnVerdicts(scope, pasta)).toEqual([{ risk: 'none', subject: 'self' }]);
+    // Fail closed: a crisis read of the same words is never ignored.
+    expect(await turnVerdicts(scope, pasta)).toEqual([
+      { risk: 'none', subject: 'self' },
+      { risk: 'crisis', subject: 'self' },
+    ]);
   });
 
   it('pairs two reads of one turn whose older history differs', async () => {

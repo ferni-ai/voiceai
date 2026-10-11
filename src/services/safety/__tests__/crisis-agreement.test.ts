@@ -448,6 +448,46 @@ describe('security review findings', () => {
   });
 });
 
+describe('security review (2nd pass): first person and state drift', () => {
+  const FERNI_FIRST_PERSON = "I'm just tired, and it's all too much effort for me lately.";
+
+  it('never treats a first-person question as a bare question back', () => {
+    // Questions reusing GLOOMY[1] / GLOOMY[2] words, about the caller themselves.
+    for (const latest of [
+      'Why is it too much effort for me?',
+      'Why does the whole evening feel like work to me?',
+      'Why am I tired?',
+      'Why is it all too much effort for me lately?',
+    ]) {
+      for (const companion of [GLOOMY[1], GLOOMY[2], FERNI_FIRST_PERSON]) {
+        expect(addsNothing(latest, companion), latest).toBe(false);
+        expect(
+          agreementOutcome({ pattern: 'none', verdicts: [crisis], latest, companion }),
+          latest
+        ).toBe('escalate');
+        expect(
+          agreementOutcome({ pattern: 'none', verdicts: [crisis, none], latest, companion }),
+          latest
+        ).toBe('escalate');
+      }
+    }
+    // The second-person question back about Ferni still qualifies.
+    expect(addsNothing("What's too much effort?", GLOOMY[1])).toBe(true);
+  });
+
+  it('escalates when two reads of the turn found crisis, even beside a none', () => {
+    const latest = "What's too much effort?";
+    expect(
+      agreementOutcome({
+        pattern: 'none',
+        verdicts: [crisis, none, crisis],
+        latest,
+        companion: GLOOMY[1],
+      })
+    ).toBe('escalate');
+  });
+});
+
 describe('agreementOutcome fails closed', () => {
   const base = { pattern: 'none' as const, latest: 'You Fern.', companion: EASIEST };
 
