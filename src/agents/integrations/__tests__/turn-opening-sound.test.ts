@@ -2,6 +2,9 @@ import { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   attachTurnOpeningSound,
+  earlyOpeningClip,
+  earlyOpeningWaitMs,
+  turnOpenedSince,
   turnOpeningClip,
   turnOpeningSoundEnabled,
 } from '../turn-opening-sound.js';
@@ -139,5 +142,134 @@ describe('attachTurnOpeningSound with reply audio', () => {
     replyAudioAt = Date.now(); // TTS produced the first frame at 600 ms
     vi.advanceTimersByTime(100);
     expect(played).toEqual([]);
+  });
+});
+
+describe('early mode (TURN_OPENING_SOUND=early)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('is on only when asked, with a 120 ms default wait', () => {
+    expect(earlyOpeningWaitMs({})).toBeNull();
+    expect(earlyOpeningWaitMs({ TURN_OPENING_SOUND: 'on' })).toBeNull();
+    expect(earlyOpeningWaitMs({ TURN_OPENING_SOUND: 'early' })).toBe(120);
+    expect(earlyOpeningWaitMs({ TURN_OPENING_SOUND: 'early', TURN_OPENING_EARLY_MS: '80' })).toBe(
+      80
+    );
+    expect(turnOpeningSoundEnabled({ TURN_OPENING_SOUND: 'early' })).toBe(true);
+  });
+
+  it('picks the clip from what the caller said', () => {
+    expect(earlyOpeningClip('My grandmother died last night.', null)).toBe('Mm');
+    expect(earlyOpeningClip('Guess what, I got the job!', null)).toBe('Oh');
+    expect(earlyOpeningClip('Work was rough, I am exhausted.', null)).toBe('Oof');
+    expect(earlyOpeningClip('Should I push back on my manager about it?', null)).toBe('Hmm');
+    expect(earlyOpeningClip('We went hiking on Saturday.', null)).toBe('Mm');
+  });
+
+  it('stays quiet for a laugh, a short turn, a quick question, or a repeat of the last clip', () => {
+    expect(earlyOpeningClip('haha that is so you', null)).toBeNull();
+    expect(earlyOpeningClip('Okay.', null)).toBeNull();
+    expect(earlyOpeningClip('How are you?', null)).toBeNull();
+    expect(earlyOpeningClip('My grandmother died last night.', 'Mm')).toBeNull();
+    // "unhappy"-style substrings never read as a category word
+    expect(earlyOpeningClip('We sadly missed the train today.', null)).toBe('Mm');
+    expect(earlyOpeningClip('We went hiking on Saturday.', 'Mm')).toBe('Yeah');
+  });
+
+  interface Rig {
+    session: EventEmitter;
+    played: string[];
+    holds: number[];
+    setReplyTextAt(t: number): void;
+    say(text: string): void;
+  }
+
+  function rig(): Rig {
+    vi.useFakeTimers({ now: 10_000 });
+    const session = new EventEmitter();
+    const played: string[] = [];
+    const holds: number[] = [];
+    let replyTextAt = 0;
+    let transcript = 'Work was rough, I am exhausted.';
+    attachTurnOpeningSound(
+      session,
+      { playClip: (t) => (played.push(t), true), lastPlayedAt: () => 0 },
+      () => transcript,
+      () => false,
+      {
+        waitMs: 120,
+        replyTextSince: (since) => replyTextAt >= since,
+        clipMs: () => 450,
+        holdReply: (ms) => holds.push(ms),
+      }
+    );
+    return {
+      session,
+      played,
+      holds,
+      setReplyTextAt: (t) => (replyTextAt = t),
+      say: (text) => {
+        transcript = text;
+        session.emit('user_state_changed', { newState: 'speaking' });
+        vi.advanceTimersByTime(1500);
+        session.emit('user_state_changed', { newState: 'listening' });
+        vi.advanceTimersByTime(400);
+      },
+    };
+  }
+
+  it('plays 120 ms after the commit and holds the reply until the clip ends', () => {
+    const r = rig();
+    r.say('Work was rough, I am exhausted.');
+    r.session.emit('agent_state_changed', { newState: 'thinking' });
+    vi.advanceTimersByTime(110);
+    expect(r.played).toEqual([]);
+    vi.advanceTimersByTime(20);
+    expect(r.played).toEqual(['Oof']);
+    expect(r.holds).toEqual([450]);
+    expect(turnOpenedSince(r.session, 10_000)).toBe(true);
+  });
+
+  it('stays quiet when the reply words already reached TTS', () => {
+    const r = rig();
+    r.say('Work was rough, I am exhausted.');
+    r.session.emit('agent_state_changed', { newState: 'thinking' });
+    r.setReplyTextAt(Date.now() + 50);
+    vi.advanceTimersByTime(200);
+    expect(r.played).toEqual([]);
+    expect(r.holds).toEqual([]);
+  });
+
+  it('never on two caller turns in a row, nor twice in one turn', () => {
+    const r = rig();
+    const turns = [
+      'Work was rough, I am exhausted.',
+      'We went hiking on Saturday.',
+      'We went hiking on Sunday too.',
+    ];
+    for (const text of turns) {
+      r.say(text);
+      r.session.emit('agent_state_changed', { newState: 'thinking' });
+      vi.advanceTimersByTime(200);
+      r.session.emit('agent_state_changed', { newState: 'speaking' });
+      // a tool call puts the agent back to thinking in the same turn
+      r.session.emit('agent_state_changed', { newState: 'thinking' });
+      vi.advanceTimersByTime(200);
+      r.session.emit('agent_state_changed', { newState: 'speaking' });
+    }
+    expect(r.played).toEqual(['Oof', 'Mm']);
+  });
+
+  it('never over the caller: they carried on after the commit', () => {
+    const r = rig();
+    r.say('Work was rough, I am exhausted.');
+    r.session.emit('agent_state_changed', { newState: 'thinking' });
+    vi.advanceTimersByTime(60);
+    r.session.emit('user_state_changed', { newState: 'speaking' });
+    vi.advanceTimersByTime(500);
+    expect(r.played).toEqual([]);
   });
 });
