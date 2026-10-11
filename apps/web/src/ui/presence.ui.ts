@@ -175,6 +175,7 @@ export function initPresenceUI(): void {
 function handleMouseMove(e: MouseEvent): void {
   lastMouseX = e.clientX;
   lastMouseY = e.clientY;
+  startEyeTracking(); // the loop stops itself once the gaze settles
 }
 
 // ============================================================================
@@ -790,18 +791,13 @@ export function isVoicePulseEnabled(): boolean {
 // ============================================================================
 
 /**
- * Start WALL-E style eye tracking.
- * 
- * Like WALL-E examining something interesting:
- * - Smooth, curious following
- * - Slight "lag" that feels organic
- * - Gentle return to center when mouse is far
+ * WALL-E style eye tracking: smooth, slightly lagging, eases back to centre.
+ * Runs only until the gaze settles; mousemove restarts it. It used to run every
+ * frame forever, and its getBoundingClientRect forced a style + layout pass each time.
  */
 function startEyeTracking(): void {
-  if (eyeTrackingFrame !== null) return;
-  
+  if (eyeTrackingFrame !== null || !avatarElement) return;
   let lastTime = performance.now();
-  
   const trackEyes = (currentTime: number) => {
     const deltaTime = Math.min(currentTime - lastTime, 50);
     lastTime = currentTime;
@@ -842,8 +838,11 @@ function startEyeTracking(): void {
       // Apply via CSS custom properties (for CSS to use if needed)
       avatarContainer.style.setProperty('--eye-offset-x', `${currentOffsetX.toFixed(2)}px`);
       avatarContainer.style.setProperty('--eye-offset-y', `${currentOffsetY.toFixed(2)}px`);
+      if (Math.abs(targetOffsetX - currentOffsetX) + Math.abs(targetOffsetY - currentOffsetY) < 0.02) {
+        eyeTrackingFrame = null;
+        return;
+      }
     }
-    
     eyeTrackingFrame = requestAnimationFrame(trackEyes);
   };
   
