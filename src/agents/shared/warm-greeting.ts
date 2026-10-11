@@ -28,6 +28,7 @@
 
 // Type-only: erased at build, so the prewarm path stays dependency-free.
 import type { CanonicalPersonaId } from '../../personas/persona-ids.js';
+import { LEGEND_INSTANT_GREETINGS } from './legend-greetings.js';
 
 // Lightweight logging (zero dependencies - don't import safe-logger!)
 const _log = (level: string, msg: string, data?: Record<string, unknown>) => {
@@ -1377,18 +1378,7 @@ const INSTANT_GREETINGS: Record<string, string[]> = {
     '<break time="40ms"/>[breath]<break time="50ms"/><speed ratio="0.92"/><emotion value="affectionate"/>Hey.<break time="140ms"/><speed ratio="1.0"/>Talk to me.<break time="450ms"/>',
     '<break time="30ms"/><speed ratio="0.95"/><emotion value="curious"/>Hey!<break time="110ms"/><speed ratio="1.0"/>What\'s going on?<break time="400ms"/>',
   ],
-  // Henry Caldwell (john-bogle): unhurried and grandfatherly, asks after you before money (bundle greetings.json)
-  'john-bogle': [
-    '<break time="60ms"/><speed ratio="0.85"/><emotion value="affectionate"/>Hello, friend.<break time="220ms"/><speed ratio="0.9"/>How are you really doing?<break time="550ms"/>',
-    '<break time="60ms"/>[breath]<break time="60ms"/><speed ratio="0.86"/><emotion value="affectionate"/>Good to hear from you.<break time="200ms"/><speed ratio="0.9"/>What\'s on your mind?<break time="550ms"/>',
-    '<break time="50ms"/><speed ratio="0.85"/><emotion value="affectionate"/>Well, hello there.<break time="200ms"/><speed ratio="0.9"/>Money can wait. How are you?<break time="550ms"/>',
-  ],
-  // Tom Brannigan (peter-lynch): curious, upbeat, always asking what you've noticed (bundle greetings.json)
-  'peter-lynch': [
-    '<break time="30ms"/><speed ratio="0.97"/><emotion value="happy"/>Hey there!<break time="100ms"/><speed ratio="1.02"/>Notice any interesting companies lately?<break time="380ms"/>',
-    '<break time="30ms"/><speed ratio="0.95"/><emotion value="curious"/>Oh— hey!<break time="90ms"/><speed ratio="1.02"/>What\'s caught your eye?<break time="380ms"/>',
-    '<break time="40ms"/><speed ratio="0.96"/><emotion value="happy"/>Hey, good to see you.<break time="110ms"/><speed ratio="1.0"/>What have you been noticing?<break time="400ms"/>',
-  ],
+  ...LEGEND_INSTANT_GREETINGS, // john-bogle, peter-lynch
 } satisfies Record<CanonicalPersonaId, string[]>;
 
 // Humanized defaults - used when persona isn't recognized
