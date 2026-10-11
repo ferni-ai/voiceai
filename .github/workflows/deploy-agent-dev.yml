@@ -96,6 +96,7 @@ jobs:
           pnpm typecheck
 
       - name: Wait for ferni-dev to have no rooms
+        if: github.event_name == 'push' || inputs.deploy || inputs.secrets != ''
         run: |
           for i in $(seq 1 "$ROOM_WAIT_TRIES"); do
             # A failed listing fails the step here, never reads as "no rooms".
