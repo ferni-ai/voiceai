@@ -10795,7 +10795,8 @@
   "entrance": {
     "helper": "Your personal guide",
     "connectToTalk": "Connect",
-    "endTalk": "Disconnect"
+    "endTalk": "Disconnect",
+    "connectingCancel": "Connecting. Tap to cancel"
   },
   "teamHuddle": {
     "typeWeekly": "Weekly Check-in",

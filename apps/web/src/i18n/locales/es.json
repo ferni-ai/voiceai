@@ -10915,7 +10915,8 @@
   "entrance": {
     "helper": "Tu guía personal",
     "connectToTalk": "Hablar",
-    "endTalk": "Desconectar"
+    "endTalk": "Desconectar",
+    "connectingCancel": "Conectando. Toca para cancelar"
   },
   "teamHuddle": {
     "typeWeekly": "Registro semanal",

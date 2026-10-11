@@ -10915,7 +10915,8 @@
   "entrance": {
     "helper": "Ton guide personnel",
     "connectToTalk": "Discuter",
-    "endTalk": "Raccrocher"
+    "endTalk": "Raccrocher",
+    "connectingCancel": "Connexion en cours. Touchez pour annuler"
   },
   "teamHuddle": {
     "typeWeekly": "Check-in hebdomadaire",

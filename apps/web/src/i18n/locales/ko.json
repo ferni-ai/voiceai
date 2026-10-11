@@ -10795,7 +10795,8 @@
   "entrance": {
     "helper": "나만을 위한 다정한 가이드",
     "connectToTalk": "대화해요",
-    "endTalk": "대화 종료"
+    "endTalk": "대화 종료",
+    "connectingCancel": "연결 중입니다. 탭하여 취소"
   },
   "teamHuddle": {
     "typeWeekly": "주간 체크인",

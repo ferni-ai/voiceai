@@ -11271,7 +11271,8 @@
   "entrance": {
     "helper": "المرشد الشخصي",
     "connectToTalk": "تواصل",
-    "endTalk": "إنهاء"
+    "endTalk": "إنهاء",
+    "connectingCancel": "جارٍ الاتصال. اضغط للإلغاء"
   },
   "teamHuddle": {
     "typeWeekly": "اطمئنان أسبوعي",

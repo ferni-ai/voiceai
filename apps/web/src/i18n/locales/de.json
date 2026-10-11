@@ -10795,7 +10795,8 @@
   "entrance": {
     "helper": "Dein persönlicher Wegbegleiter",
     "connectToTalk": "Verbinden",
-    "endTalk": "Auflegen"
+    "endTalk": "Auflegen",
+    "connectingCancel": "Verbindung wird hergestellt. Zum Abbrechen tippen"
   },
   "teamHuddle": {
     "typeWeekly": "Wöchentlicher Check-in",

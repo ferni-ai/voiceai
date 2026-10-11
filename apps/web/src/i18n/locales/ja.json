@@ -10795,7 +10795,8 @@
   "entrance": {
     "helper": "あなた専属のガイド",
     "connectToTalk": "お話する",
-    "endTalk": "終了"
+    "endTalk": "終了",
+    "connectingCancel": "接続中です。タップしてキャンセル"
   },
   "teamHuddle": {
     "typeWeekly": "週に一度のチェックイン",
