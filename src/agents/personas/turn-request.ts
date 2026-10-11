@@ -9,6 +9,7 @@
 import type { llm } from '@livekit/agents';
 import { TransformStream, type ReadableStream } from 'node:stream/web';
 
+import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
@@ -30,6 +31,7 @@ import {
 import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
+import { packetLogFields, turnPacket, type TurnParts } from './context-packet/turn-packet.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { ferniStateNote } from './ferni-state.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
@@ -77,7 +79,7 @@ const sessionIdOf = (userData: unknown): string | undefined =>
 export function withTurnReminder(
   request: llm.ChatContext,
   session: object,
-  options: { shape?: boolean } = {}
+  options: { shape?: boolean; safety?: string } = {}
 ): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
   const director = getDirector(session);
@@ -86,27 +88,75 @@ export function withTurnReminder(
   // Nothing steers back to a locked teammate the caller didn't just name.
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
-  const notes = formatNotes((director?.current() ?? []).filter(keep));
+  const directorNotes = (director?.current() ?? []).filter(keep);
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
+  // Each part read once, in this order (thought, state and style keep per-call state).
+  const parts = {
+    told: director?.told(keep) ?? '',
+    team: teamStatusNote(view, words),
+    // "Naya" in the transcript is Nayan (teammate-names.ts)
+    heard: heardTeammateNote(words),
+    // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
+    game: gameTurnNote(session),
+    // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
+    state: ferniStateNote(chatCtx, session, { careful: options.shape === false }),
+    style: turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
+  };
+  if (contextPacketEnabled()) {
+    const packet = packetFor(session, {
+      words,
+      directorNotes,
+      thought,
+      told: parts.told,
+      team: [parts.team, parts.heard].filter(Boolean).join(' '),
+      game: parts.game,
+      state: parts.state,
+      shape: parts.style,
+      safety: options.safety,
+    });
+    return withTurnStyleReminder(chatCtx, packet);
+  }
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
-    director?.told(keep) ?? '',
-    teamStatusNote(view, words),
-    // "Naya" in the transcript is Nayan (teammate-names.ts)
-    heardTeammateNote(words),
-    notes,
+    parts.told,
+    parts.team,
+    parts.heard,
+    formatNotes(directorNotes),
     thought,
-    // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
-    gameTurnNote(session),
-    // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
-    ferniStateNote(chatCtx, session, { careful: options.shape === false }),
-    turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
+    parts.game,
+    parts.state,
+    parts.style,
   ]
     .filter(Boolean)
     .join(' ');
-  return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+  const ctx = reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
+  // Crisis guidance (crisis-gate.ts) rides after the reminder, nearest the reply.
+  return options.safety ? withTurnStyleReminder(ctx, options.safety) : ctx;
+}
+
+/**
+ * CONTEXT_PACKET=on: the director's notes, the deliberator's thought,
+ * told-this-call, the team, game and state lines, recall, crisis guidance and
+ * the reply's shape as one labelled, budgeted packet (context-packet/).
+ * Logged as counts only (packetLogFields): no text, ids or names.
+ */
+function packetFor(
+  session: object,
+  turn: Omit<TurnParts, 'personaId' | 'userName' | 'timeZone' | 'now'>
+): string {
+  const userData = (session as { userData?: unknown }).userData as
+    { personaId?: string; userName?: string; callerTimezone?: string } | undefined;
+  const { text, accounting } = turnPacket(session, {
+    ...turn,
+    personaId: userData?.personaId,
+    userName: userData?.userName,
+    timeZone: userData?.callerTimezone,
+    now: Date.now(),
+  });
+  log.info(packetLogFields(accounting), 'CONTEXT_PACKET'); // counts only, never text
+  return text;
 }
 
 /**

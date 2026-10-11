@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assembleContextPacket,
+  MEMORY_RULE,
   PACKET_HEADER,
   SECTION_BUDGETS,
   type KnownFact,
@@ -26,6 +27,12 @@ const sectionOf = (a: PacketAccounting, name: string): SectionAccount => {
   if (!found) throw new Error(`no section ${name}`);
   return found;
 };
+/** What I remember, past its rule line (which must lead it). */
+const remembered = (text: string): string[] => {
+  const lines = section(text, '## What I remember');
+  if (lines.length) expect(lines[0]).toBe(MEMORY_RULE);
+  return lines.slice(1);
+};
 const note = (id: string, kind: GuidanceNote['kind'], text: string): GuidanceNote => ({
   id,
   kind,
@@ -35,6 +42,7 @@ const note = (id: string, kind: GuidanceNote['kind'], text: string): GuidanceNot
 
 describe('the "how do you know X" fixture', () => {
   const upLate: KnownFact = {
+    learnedBy: 'Ferni',
     id: 'f1',
     text: 'was up late finishing the investor deck',
     source: 'caller-said',
@@ -43,7 +51,7 @@ describe('the "how do you know X" fixture', () => {
 
   it('labels the memory line with its source and date, so the model can say where it came from', () => {
     const { text } = assembleContextPacket(base({ memories: [upLate] }));
-    const lines = section(text, '## What I remember');
+    const lines = remembered(text);
     expect(lines).toEqual(['- (you told me on Oct 10) was up late finishing the investor deck']);
     expect(text.startsWith(PACKET_HEADER)).toBe(true);
     expect(PACKET_HEADER).toMatch(/say where it came from/);
@@ -65,7 +73,7 @@ describe('the "how do you know X" fixture', () => {
         ],
       })
     );
-    expect(section(text, '## What I remember')).toEqual([
+    expect(remembered(text)).toEqual([
       '- (you told Maya on Oct 10) was up late finishing the investor deck',
       '- (unconfirmed, from Oct 1) might be moving in spring',
       '- (I noticed on Oct 9) sounded tired',
@@ -76,8 +84,8 @@ describe('the "how do you know X" fixture', () => {
   it('dates in the caller timezone: 23:40Z on Oct 10 is Oct 10 in New York, Oct 11 in Tokyo', () => {
     const ny = assembleContextPacket(base({ memories: [upLate], timeZone: 'America/New_York' }));
     const tokyo = assembleContextPacket(base({ memories: [upLate], timeZone: 'Asia/Tokyo' }));
-    expect(section(ny.text, '## What I remember')[0]).toContain('on Oct 10');
-    expect(section(tokyo.text, '## What I remember')[0]).toContain('on Oct 11');
+    expect(remembered(ny.text)[0]).toContain('on Oct 10');
+    expect(remembered(tokyo.text)[0]).toContain('on Oct 11');
   });
 
   it('leaves superseded facts out and records them', () => {
@@ -99,6 +107,60 @@ describe('the "how do you know X" fixture', () => {
   });
 });
 
+describe('news and shape', () => {
+  it('labels news from my own life as not told yet, and puts the shape last, outside the cap', () => {
+    const notes = ['a', 'b', 'c', 'd'].map((id) => note(id, 'director', `note ${id}`));
+    const { text } = assembleContextPacket(
+      base({
+        memories: [{ text: 'the basil died', source: 'my-news' }],
+        guidance: notes,
+        shape: 'Most replies are a sentence or two.',
+      })
+    );
+    expect(remembered(text)).toEqual([
+      "- (new for me since we last talked; share only if they ask how I've been) the basil died",
+    ]);
+    expect(section(text, '## This turn')).toEqual([
+      '- note a',
+      '- note b',
+      '- note c',
+      '- Most replies are a sentence or two.',
+    ]);
+  });
+});
+
+describe('provenance nobody recorded', () => {
+  it('says "you said", never "you told me", when no one recorded who heard it', () => {
+    const { text } = assembleContextPacket(
+      base({
+        memories: [
+          { text: 'up late again', source: 'caller-said', at: '2026-10-10T12:00:00Z' },
+          { text: 'ask how the vet visit went', source: 'thread' },
+        ],
+      })
+    );
+    expect(remembered(text)).toEqual([
+      '- (you said on Oct 10) up late again',
+      '- (open from a past call) ask how the vet visit went',
+    ]);
+    expect(text).not.toContain('you told me');
+  });
+
+  it('keeps room for the shape even when long notes would fill the section', () => {
+    const long = (id: string): GuidanceNote => note(id, 'director', `${id} ${'word '.repeat(220)}`);
+    const shape = `Most replies are a sentence or two. ${'Be specific. '.repeat(150)}`;
+    const { text, accounting } = assembleContextPacket(
+      base({ guidance: [long('a'), long('b'), long('c')], shape })
+    );
+    const turn = section(text, '## This turn');
+    expect(turn.at(-1)).toMatch(/^- Most replies are a sentence or two\./);
+    expect(sectionOf(accounting, 'this_turn').tokensEst).toBeLessThanOrEqual(
+      SECTION_BUDGETS.this_turn
+    );
+    expect(accounting.guidanceDropped.some((d) => d.reason === 'budget')).toBe(true);
+  });
+});
+
 describe('section budgets', () => {
   it('keeps the head of the memory list within its budget and records what it cut', () => {
     const memories: KnownFact[] = Array.from({ length: 40 }, (_, i) => ({
@@ -111,7 +173,7 @@ describe('section budgets', () => {
     expect(mem.tokensEst).toBeLessThanOrEqual(SECTION_BUDGETS.what_i_remember);
     expect(mem.lines).toBeGreaterThan(0);
     expect(mem.lines).toBeLessThan(40);
-    expect(mem.droppedLines).toBe(40 - mem.lines);
+    expect(mem.droppedLines).toBe(40 - (mem.lines - 1)); // the rule line leads
     expect(text).toContain('fact number 0 '); // most relevant first is kept
     expect(text).not.toContain('fact number 39 ');
     const cut = accounting.dropped.filter((d) => d.section === 'what_i_remember');

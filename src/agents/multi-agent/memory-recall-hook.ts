@@ -51,8 +51,10 @@ import {
 import {
   formatLifeUpdates,
   loadLifeUpdates,
+  type LifeUpdate,
   type LifeUpdateDeps,
 } from '../personas/life-updates.js';
+import type { RecallPick } from '../personas/context-packet/turn-packet.js';
 import {
   callCheckIns,
   coachFollowThroughMode,
@@ -123,6 +125,8 @@ export interface MemoryRecall {
   noteFor(transcript: string): string | null;
   /** The agent started replying: the next transcript belongs to a new user turn. */
   newTurn(): void;
+  /** What the last note held, typed, for the context packet (CONTEXT_PACKET); null before any. */
+  lastPick(): RecallPick | null;
 }
 
 /**
@@ -156,6 +160,11 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let sinceNote: string | null = null;
   let checkInNote: string | null = null;
   let checkInOffered = false;
+  // The same, typed, for the context packet.
+  let ledgerFacts: LedgerFact[] = [];
+  let sinceUpdates: LifeUpdate[] = [];
+  let openCheckIns: OpenCommitment[] = [];
+  let lastPick: RecallPick | null = null;
   const semanticOn = deps.semantic ?? semanticRecallEnabled();
   let index: SemanticIndex | undefined;
   // Semantic recall only: threads and stories past the first note, by id.
@@ -177,7 +186,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     ledger,
   ]).then(([s, told]) => {
     snapshot = { ...s, followUps: s.followUps.slice(0, MAX_FOLLOW_UPS) };
-    ledgerNote = formatLedger(told.slice(0, RECALL_LIMIT), deps.userName);
+    ledgerFacts = told.slice(0, RECALL_LIMIT);
+    ledgerNote = formatLedger(ledgerFacts, deps.userName);
     log.info(
       {
         facts: s.facts.length,
@@ -209,6 +219,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       loadLifeUpdates(deps.userId, told.slice(0, RECALL_LIMIT), personaId, deps.lifeUpdates)
     )
     .then((updates) => {
+      sinceUpdates = updates;
       sinceNote = formatLifeUpdates(updates);
     });
   // Also never holds up the snapshot; joins the first note once it is ready.
@@ -216,6 +227,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     deps.checkIns ?? (coachFollowThroughMode() ? () => callCheckIns(deps.userId) : undefined);
   const checkedIn = (checkIns ? checkIns() : Promise.resolve([]))
     .then((open) => {
+      openCheckIns = open;
       checkInNote = formatCheckIn(open, Date.now());
     })
     .catch((error: unknown) => log.warn({ error: String(error) }, 'Check-ins not loaded'));
@@ -273,6 +285,13 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           .filter(Boolean)
           .join('\n\n') || null;
       if (!note) return null;
+      lastPick = {
+        facts,
+        followUps,
+        told: [...(told ? ledgerFacts : []), ...extraTold],
+        since: told && sinceNote ? sinceUpdates : [],
+        checkIns: checkIn ? openCheckIns : [],
+      };
       followUpsOffered = true;
       if (checkIn) checkInOffered = true;
       tokensLeft -= factTokens + estimateTokens(extras.map(laterText));
@@ -294,6 +313,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       );
       return note;
     },
+    lastPick: () => lastPick,
     newTurn() {
       factsThisTurn = 0;
       tokensLeft = RECALL_TOKENS_PER_TURN;

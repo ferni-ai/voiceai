@@ -50,7 +50,6 @@ import { turnOpenedSince } from '../integrations/turn-opening-sound.js';
 import { getDeliberator } from './deliberation.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
-import { withTurnStyleReminder } from './turn-style.js';
 
 const log = createLogger({ module: 'CrisisGate' });
 
@@ -278,10 +277,11 @@ export async function gatedReply(
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn
   // shape ("six words at most") must never hold it back.
-  const plain = (): llm.ChatContext => withTurnReminder(chatCtx, session, { shape: false });
+  const guided = (safety: string): llm.ChatContext =>
+    withTurnReminder(chatCtx, session, { shape: false, safety });
   const ctx =
     gate?.decision.action === 'guide'
-      ? withTurnStyleReminder(plain(), gate.decision.guidance)
+      ? guided(gate.decision.guidance)
       : withTurnReminder(chatCtx, session);
   const ask = async (request: llm.ChatContext): Promise<ReadableStream<Chunk> | null> => {
     const stream = tapToolCalls(await model(request), session);
@@ -295,6 +295,6 @@ export async function gatedReply(
     if (decision.action !== 'pass') getDeliberator(session)?.hold();
     if (decision.action === 'replace') return textReply(decision.script);
     if (decision.action === 'pass') return null;
-    return ask(withTurnStyleReminder(plain(), decision.guidance));
+    return ask(guided(decision.guidance));
   });
 }
