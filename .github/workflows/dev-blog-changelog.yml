@@ -117,12 +117,37 @@ jobs:
       - name: Post to Slack
         if: env.INPUT_DRY_RUN != 'true' && success()
         uses: slackapi/slack-github-action@v4.0.0
+        # v2+ dropped the channel-id input and the SLACK_BOT_TOKEN env; a bot post is
+        # method + token, and the channel goes in the payload. VERSION is validated
+        # semver (step "version"), so it is safe to interpolate here.
         with:
-          channel-id: 'dev-announcements'
-          payload-file-path: '.github/slack-changelog-payload.json'
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          VERSION: ${{ steps.version.outputs.VERSION }}
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          payload: |
+            channel: dev-announcements
+            text: "New developer blog post: What's New in ${{ steps.version.outputs.VERSION }}"
+            blocks:
+              - type: header
+                text:
+                  type: plain_text
+                  text: "📝 New Developer Blog Post"
+              - type: section
+                text:
+                  type: mrkdwn
+                  text: "*What's New in ${{ steps.version.outputs.VERSION }}*\nA new changelog post has been published to the developer blog."
+              - type: actions
+                elements:
+                  - type: button
+                    text:
+                      type: plain_text
+                      text: View Blog Post
+                    url: https://developers.ferni.ai/developers/blog/
+                    style: primary
+                  - type: button
+                    text:
+                      type: plain_text
+                      text: View Release
+                    url: "${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.VERSION }}"
         continue-on-error: true
 
       - name: Summary
