@@ -244,7 +244,7 @@ export async function render(): Promise<string> {
         grid-template-columns: repeat(4, 1fr);
       }
 
-      @media (max-width: min(1024px, 100%)) {
+      @media (max-width: 1024px) {
         .listening-stats {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -292,7 +292,7 @@ export async function render(): Promise<string> {
         gap: var(--space-3, 0.75rem);
       }
 
-      @media (max-width: min(1024px, 100%)) {
+      @media (max-width: 1024px) {
         .detection-grid {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -451,7 +451,7 @@ export async function render(): Promise<string> {
         gap: var(--space-3, 0.75rem);
       }
 
-      @media (max-width: min(1024px, 100%)) {
+      @media (max-width: 1024px) {
         .features-grid {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -539,7 +539,7 @@ export async function render(): Promise<string> {
         margin-bottom: var(--space-4, 1rem);
       }
 
-      @media (max-width: min(1024px, 100%)) {
+      @media (max-width: 1024px) {
         .soul-response-grid {
           grid-template-columns: repeat(2, 1fr);
         }

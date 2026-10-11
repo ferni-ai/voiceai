@@ -428,7 +428,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   };
 
   const pathLabel =
-    process.env.USE_OPENAI_REALTIME === 'true'
+    modelProvider.id === 'openai-realtime'
       ? 'openai_cartesia'
       : modelProvider.id === 'cartesia-cascade'
         ? 'cartesia_cascade'

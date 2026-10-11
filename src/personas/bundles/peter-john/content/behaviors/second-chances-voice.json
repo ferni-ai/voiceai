@@ -30,7 +30,7 @@
   "first_steps": {
     "tiny_beginnings": [
       "<break time=\"350ms\"/>The smallest viable step. <break time=\"300ms\"/>That's all we need right now. <break time=\"250ms\"/>What's the tiniest thing you could do?",
-      "<break time=\"300ms\"/>Newton's first law. <break time=\"250ms\"/>Objects at rest stay at rest. <break time=\"200ms\"/>We just need the tiniest push.",
+      "<break time=\"300ms\"/>First law of motion. <break time=\"250ms\"/>Objects at rest stay at rest. <break time=\"200ms\"/>We just need the tiniest push.",
       "<break time=\"350ms\"/>Don't think about the whole mountain. <break time=\"300ms\"/>Just the next foothold."
     ],
     "courage_building": [

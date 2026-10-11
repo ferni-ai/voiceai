@@ -623,7 +623,7 @@ function injectStyles(): void {
     .marketplace-admin-panel {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       opacity: 0;
       pointer-events: none;
@@ -1027,7 +1027,7 @@ function injectStyles(): void {
       margin-top: var(--space-1, 4px);
     }
 
-    @media (max-width: clamp(538px, 90vw, 768px)) {
+    @media (max-width: 768px) {
       .admin-panel {
         margin: 0;
         border-radius: 0;

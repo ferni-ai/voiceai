@@ -7,10 +7,9 @@
  * the next request, including the model's next step in this same reply, and
  * the model calls the one that fits.
  *
- * TOOL_CORE_STATIC: the request carries a fixed core, so findTools searches
- * the whole catalog and the session's pinner (setToolPinner) adds the matches
- * to the agent for the rest of the call. The model's next step in this reply
- * carries them too (agents/personas/turn-request.ts), one extra LLM step.
+ * TOOL_CORE_STATIC: it searches the whole catalog's findable domains and the
+ * session's pinner adds the matches to the agent for the rest of the call,
+ * this reply's next step included (turn-request.ts).
  *
  * @module tools/retrieval/find-tools-tool
  */
@@ -22,13 +21,10 @@ import { getTurnToolRetrieval } from './turn-tool-retrieval.js';
 
 export const FIND_TOOLS = 'findTools';
 
-export interface FoundTool {
-  name: string;
-  description: string;
-}
+export type FoundTool = { name: string; description: string };
 
-/** Adds the named tools to the session's agent; returns the ones it now has. */
-export type ToolPinner = (names: readonly string[]) => Promise<FoundTool[]>;
+/** Adds the named tools to the session's agent; returns the ones it now has. `need` is for the audit log. */
+export type ToolPinner = (names: readonly string[], need: string) => Promise<FoundTool[]>;
 
 // Keyed by the AgentSession, like the retrieval itself.
 const pinners = new WeakMap<object, ToolPinner>();
@@ -56,7 +52,13 @@ export function createFindToolsTool() {
         const pin = pinners.get(ctx.session);
         if (!pin) return UNAVAILABLE;
         const matches = await retrieval.find(need, 5, { anyTool: true });
-        found = matches.length > 0 ? await pin(matches.map((m) => m.name)) : [];
+        found =
+          matches.length > 0
+            ? await pin(
+                matches.map((m) => m.name),
+                need
+              )
+            : [];
       } else {
         found = await retrieval.find(need);
       }

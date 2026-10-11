@@ -20,6 +20,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { COACH_LOCAL_TOOLS, isCoachLocalEnabled } from './coach-local-flag.js';
 
 const log = createLogger({ module: 'ToolConfig' });
 
@@ -108,7 +109,6 @@ const DEFAULT_ESSENTIAL_TOOLS = [
   'groundingExercise',
   'breatheWithMe',
   'groundingForTrauma',
-  // Memory
   'rememberAboutUser',
   'recallFromMemory',
   'recallPreviousConversation',
@@ -155,6 +155,8 @@ const DEFAULT_ESSENTIAL_TOOLS = [
   // The game scorekeeper; only exists with GAME_STATE=on (games/game-state-tool.ts).
   // Without this the first agent's 64-slot cap dropped every games tool.
   'gameState',
+  // Coaching resources from the web; only exists with COACH_MEDIA=on (learning/coaching-resources-tool.ts).
+  'findCoachingResources',
   // End call
   'endCall',
 ];
@@ -218,9 +220,12 @@ export function loadToolConfig(): ToolConfiguration {
       env.META_TOOL_CATALOG_IN_PROMPT,
       DEFAULT_CONFIG.metaToolCatalogInPrompt
     ),
-    useFtis: parseBool(env.FTIS_ENABLED, parseBool(env.USE_FTIS, DEFAULT_CONFIG.useFtis)),
+    useFtis: parseBool(env.FTIS_ENABLED, DEFAULT_CONFIG.useFtis),
     ftisThreshold: parseNum(env.FTIS_THRESHOLD, DEFAULT_CONFIG.ftisThreshold * 100) / 100,
-    essentialTools: DEFAULT_CONFIG.essentialTools,
+    // COACH_LOCAL=on: its tools are there from the first turn, like quickTimer.
+    essentialTools: isCoachLocalEnabled()
+      ? [...DEFAULT_CONFIG.essentialTools, ...COACH_LOCAL_TOOLS]
+      : DEFAULT_CONFIG.essentialTools,
   };
 
   // Log configuration on first load
@@ -266,7 +271,11 @@ export function isMetaToolEnabled(): boolean {
 }
 
 /**
- * Check if FTIS hierarchical classifier is enabled
+ * Whether FTIS (the two-stage ONNX tool classifier) routes tools:
+ * FTIS_ENABLED=true. Off by default; dev and prod log useFtis=false. This is
+ * the only FTIS switch: config/tool-routing-config.ts and
+ * agents/processors/tool-routing-integration.ts each had their own
+ * isFTISEnabled, and USE_FTIS was a second name for the same thing.
  */
 export function isFtisEnabled(): boolean {
   return getToolConfig().useFtis;
@@ -296,33 +305,20 @@ export function appendOnlyToolsEnabled(env: NodeJS.ProcessEnv = process.env): bo
 }
 
 /**
- * TOOL_CORE_STATIC=on: every request in a call carries the same tools, the
- * STATIC_CORE_TOOLS the agent has plus the user's teammate tools, in this
- * order. Mid-call topic loads add nothing; findTools reaches the rest and
- * what it finds is appended for the rest of the call (append-only order, so
- * the declarations prefix Gemini cached stays the same).
- *
- * Why (prod + dev logs 2026-10-04..11): requests carried 88 tools (~5.3k of
- * ~10.9k prompt tokens) but prod called 3 distinct tools in 223 turns and 20
- * were called across prod and dev; 68 of the 88 were never called. TTFT is
- * flat below ~100 tools and tracks prompt-cache hits instead, and turns whose
- * tool set changed cached worse (dev median cached share 0.78 vs 0.89).
+ * TOOL_CORE_STATIC=on: every request in a call carries the same tools
+ * (STATIC_CORE_TOOLS, then the user's teammate tools). Topic loads add nothing;
+ * what findTools finds is appended, so the cached declarations prefix stays.
  */
 export function staticCoreToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.TOOL_CORE_STATIC === 'on';
 }
 
 /**
- * The static core, in request order. One tool per lookalike group
- * (quickTimer, not setTimer/quickAlarm; getWeatherForecast, not
- * getWeather/quickWeather). It covers every prod tool call of that week and
- * ~92% of dev's; calendar, reminders and on-behalf calling are kept although
- * one week of calls undercounts them. Tools a call can't have (gameState
- * without GAME_STATE, endCall off an on-behalf call) are skipped.
+ * The static core, in request order: one tool per lookalike group, covering
+ * every prod tool call of 2026-10-04..11 plus calendar, reminders and calling.
  */
 export const STATIC_CORE_TOOLS: readonly string[] = [
   'getCurrentContext',
-  // Safety: kept whatever their use
   'provideCrisisResources',
   'quickCrisisResources',
   'createSafetyPlan',
@@ -337,7 +333,6 @@ export const STATIC_CORE_TOOLS: readonly string[] = [
   'recallFromMemory',
   'rememberImportantFact',
   'recallPreviousConversation',
-  // The calls people make
   'playMusic',
   'musicControl',
   'quickTimer',
@@ -350,20 +345,15 @@ export const STATIC_CORE_TOOLS: readonly string[] = [
   'tellJoke',
   'getFunFact',
   'callOnBehalf',
-  // Call control
   'gameState',
   'endCall',
   'findTools',
 ];
 
 /** Teammate tools: they differ per user, so they go after the fixed core. */
+const TEAMMATE_TOOLS = ['askForTeammate', 'introduceMember', 'meetTheTeam'];
 export function isTeammateTool(name: string): boolean {
-  return (
-    name.startsWith('handoffTo') ||
-    name === 'askForTeammate' ||
-    name === 'introduceMember' ||
-    name === 'meetTheTeam'
-  );
+  return name.startsWith('handoffTo') || TEAMMATE_TOOLS.includes(name);
 }
 
 export function isStaticCoreTool(name: string): boolean {

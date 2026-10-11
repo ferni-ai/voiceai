@@ -427,7 +427,7 @@ export async function render(): Promise<string> {
         margin: 0;
       }
 
-      @media (max-width: clamp(538px, 90vw, 768px)) {
+      @media (max-width: 768px) {
         .experiments-summary {
           grid-template-columns: repeat(2, 1fr);
         }
