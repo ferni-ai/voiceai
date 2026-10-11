@@ -17,7 +17,7 @@
 import { isValidTimeZone } from '../shared/time-context.js';
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
-import { logSipCallerShadow } from './sip-caller.js';
+import { noteCallerJoined } from './sip-caller.js';
 
 // Event cleanup registry for proper memory management
 import {
@@ -67,6 +67,7 @@ import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
 import { resolveSessionPath } from './session-path.js';
 import { devStage, MULTI_AGENT_MODE } from './constants.js';
 import type { FinOpsTier, SessionPhase } from './types.js';
+import { rememberCallerTimeZone } from '../../memory/operations/call-moment.js';
 
 // ============================================================================
 // MODULE-LEVEL SIDE EFFECTS (executed once at import)
@@ -372,10 +373,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
     isReturningUser = initResult.isReturningUser;
     userData = initResult.userData;
-    // The caller's time zone (web client → token → dispatch metadata).
     if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
-    // The caller's IP-detected city (token → dispatch metadata), on both the
-    // multi-agent and single-agent paths: tools read it per call from userData.
+    rememberCallerTimeZone(metadata.timezone, sessionId, services?.realtimeConversationId);
+    // IP-detected city (token → dispatch metadata), both paths: tools read it from userData.
     if (userData && typeof metadata.city === 'string' && metadata.city) {
       userData.userLocation = {
         city: metadata.city,
@@ -622,7 +622,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         process.stderr.write(
           `[voice-agent-entry] 👤 Participant ready (${participantWaitResult.source}): ${participant.identity}\n`
         );
-        void logSipCallerShadow({ participant, room: ctx.room, sessionId });
+        void noteCallerJoined({ participant, room: ctx.room, sessionId });
         await markCallStageSafe(sessionId, 'orchestrator_start');
         const { runMultiAgentMode } = await import('../voice-agent/phases/index.js');
         const { unregisterSession: unregisterCrashSession } =

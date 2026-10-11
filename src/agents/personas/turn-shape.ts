@@ -13,10 +13,12 @@
  *
  * TURN_SHAPE=off falls back to the single reminder (turn-style.ts); the default,
  * model, lets the model judge the shape (modelChosenShape); TURN_SHAPE=dice draws it.
+ * CANDOR=on fits the stance line to the moment instead of drawing it (turn-candor.ts).
  *
  * @module agents/personas/turn-shape
  */
 
+import { stanceFor } from './turn-candor.js';
 import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
@@ -101,8 +103,6 @@ export function pickShape(move: CallerMove, rng: () => number = Math.random): Sh
   return SHAPE_ODDS[move][SHAPE_ODDS[move].length - 1][0];
 }
 
-const STANCE =
-  'If you\'d see it differently, say so; if you don\'t know, say "I don\'t know" or "hm, no idea" instead of covering.';
 /**
  * Spoken roughness, one form per reply so it never settles into a tic ("just, uh," every time).
  * Each says how to write it with commas and full stops: dashes and ellipses are
@@ -200,7 +200,8 @@ function modelChosenShape(userText: string, rng: () => number, sig: TurnSignals)
   const parts = [REGISTER];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
   else if (move === 'share' && !sig.careful && rng() < 0.3) parts.push(SECOND_STORY);
-  if (move !== 'ack' && rng() < 0.3) parts.push(STANCE);
+  const stance = stanceFor(userText, move, sig, move !== 'ack' && rng() < 0.3);
+  parts.push(...stance.lines);
   if (rng() < 0.5) parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
   const asks = rng() < 0.25;
   const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig);
@@ -210,7 +211,7 @@ function modelChosenShape(userText: string, rng: () => number, sig: TurnSignals)
     move,
     shape: 'answer',
     reminder: parts.join(' '),
-    extras: ['model_shape', ...extras.fired],
+    extras: ['model_shape', ...stance.fired, ...extras.fired],
   };
 }
 
@@ -236,7 +237,8 @@ export function turnShapeFor(
   // Not while they're venting: a friend stays with them instead of telling a story.
   else if (move === 'share' && shape !== 'react' && !sig.careful && rng() < 0.3)
     parts.push(SECOND_STORY);
-  if (move !== 'ack' && rng() < 0.3) parts.push(STANCE);
+  const stance = stanceFor(userText, move, sig, move !== 'ack' && rng() < 0.3);
+  parts.push(...stance.lines);
   if (shape !== 'react' && rng() < 0.5)
     parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
   const asks = questionAllowed(shape, rng);
@@ -246,7 +248,12 @@ export function turnShapeFor(
     extras.shapeLine ?? SHAPE_LINE[shape],
     extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none)
   );
-  return { move, shape, reminder: parts.filter(Boolean).join(' '), extras: extras.fired };
+  return {
+    move,
+    shape,
+    reminder: parts.filter(Boolean).join(' '),
+    extras: [...stance.fired, ...extras.fired],
+  };
 }
 
 export function turnShapeMode(

@@ -1,7 +1,8 @@
 /**
  * What runs once a call's greeting starts playing.
  *
- * - The reply model's prompt cache warm (cache-warm.ts, CASCADE_CACHE_WARM).
+ * - The reply model's prompt cache warm, once the tools settle and again when
+ *   they change (cache-warm.ts, CASCADE_CACHE_WARM).
  * - STT_REFRESH_AFTER_GREETING=on: when the greeting finishes, reopen the
  *   Cartesia socket. Ink-2 ends a stream's first turn later the longer the
  *   socket has been open (~0.6 s at 2-9 s old vs ~0.94 s at 20 s), and a call's
@@ -14,7 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { warmPromptCache } from './cache-warm.js';
+import { armPromptCacheWarm } from './cache-warm.js';
 import { refreshSttStream } from './cartesia-cascade.js';
 
 const log = createLogger({ module: 'AfterGreeting' });
@@ -60,5 +61,5 @@ export function run(session: unknown, env: Record<string, string | undefined> = 
   } catch (error) {
     log.warn({ error: String(error) }, 'stt refresh not armed');
   }
-  void warmPromptCache(session, env);
+  armPromptCacheWarm(session, env);
 }

@@ -117,6 +117,7 @@ export class GroupVoiceIntegration {
   private readonly config: VoiceIntegrationConfig;
   private manager: GroupConversationManager | null = null;
   private roundtable: TeamRoundtable | null = null;
+  private detachTurns: (() => void) | null = null; // roundtable-turns.ts
   private conferenceCall: ConferenceCallManager | null = null;
 
   constructor(config: VoiceIntegrationConfig) {
@@ -199,6 +200,7 @@ export class GroupVoiceIntegration {
    * Cleanup resources
    */
   async cleanup(): Promise<void> {
+    this.detachTurns?.();
     if (this.roundtable) {
       await this.roundtable.cleanup();
       this.roundtable = null;
@@ -240,38 +242,28 @@ export class GroupVoiceIntegration {
     }
 
     diag.entry(`🎙️ Starting team roundtable: ${message.personas.join(', ')}`);
-
-    // Import dynamically to avoid circular deps
-    const { createTeamRoundtable } = await import('./team-roundtable.js');
-
-    const result = await createTeamRoundtable({
-      ctx: this.config.ctx,
-      room: this.config.room,
-      userParticipant: this.config.userParticipant,
-      sessionId: this.config.sessionId,
-      userId: this.config.userId ?? 'anonymous',
-      roundtable: {
-        personas: message.personas,
-        topic: message.topic,
-        collaborationMode: (message.collaborationMode as CollaborationMode) ?? 'discussion',
-        moderator: 'ferni',
-      },
-      createAgent: this.config.createRoundtableAgent,
+    const { openRoundtable } = await import('./roundtable-start.js'); // dynamic: circular deps
+    const { sessionId } = this.config;
+    const opened = openRoundtable(this.config, message, {
+      speaker: (speakerId) => this.broadcastSpeakerChange(speakerId),
+      // A crisis signal ends the roundtable; the persona answers with its safety rails
+      crisis: () => void this.handleRoundtableEnd({ reason: 'crisis' }),
     });
-
-    this.roundtable = result.roundtable;
-
-    // Wire up events
-    this.roundtable.on('speaker_changed', ({ speakerId }) => {
-      this.broadcastSpeakerChange(speakerId);
-    });
-
+    [this.roundtable, this.detachTurns] = [opened.roundtable, opened.detachTurns];
     this.sendResponse({
       type: 'group_roundtable_started',
-      sessionId: this.config.sessionId,
+      sessionId,
       personas: message.personas,
       topic: message.topic,
     });
+    try {
+      await opened.roundtable.start(); // the moderator opens while the web shows the grid
+    } catch (error) {
+      log.error({ error: String(error) }, '🎙️ Team roundtable failed to start');
+      await this.handleRoundtableEnd({ reason: 'start_failed' });
+      this.sendResponse({ type: 'group_error', error: 'Roundtable failed to start' });
+      return;
+    }
 
     log.info({ personas: message.personas, topic: message.topic }, '🎙️ Team roundtable started');
   }
@@ -284,13 +276,12 @@ export class GroupVoiceIntegration {
       return;
     }
 
-    await this.roundtable.end(message.reason);
+    this.detachTurns?.(); // idempotent
+    const { roundtable } = this;
     this.roundtable = null;
-
-    this.sendResponse({
-      type: 'group_roundtable_ended',
-      sessionId: this.config.sessionId,
-    });
+    // Tell the web at once; the closing line and the summary can take a while
+    this.sendResponse({ type: 'group_roundtable_ended', sessionId: this.config.sessionId });
+    await roundtable.end(message.reason);
 
     log.info({ reason: message.reason }, '🎙️ Team roundtable ended');
   }

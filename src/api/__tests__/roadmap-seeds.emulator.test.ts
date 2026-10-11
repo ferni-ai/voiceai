@@ -1,9 +1,15 @@
 /**
- * Roadmap voting spends and unvoting refunds through the seed ledger, on the Firestore
- * emulator.
+ * Roadmap voting, suggesting and ritual streak rewards spend and pay through the seed
+ * ledger, on the Firestore emulator. The streak reward reads the server's own ritual
+ * streaks: the count the browser posts is ignored (it could be any number).
  */
 import admin from 'firebase-admin';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const streaks = vi.hoisted(() => ({ list: [] as Array<{ currentStreak: number }> }));
+vi.mock('../../services/engagement/engagement-store.js', () => ({
+  getEngagementStore: async () => ({ getAllStreaks: async () => streaks.list }),
+}));
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 process.env.GCLOUD_PROJECT ??= 'demo-seed-ledger';
@@ -20,6 +26,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   uid = `u-${Math.random().toString(36).slice(2)}`;
+  streaks.list = [];
 });
 
 const balance = async () => (await db.collection('user_seeds').doc(uid).get()).data()?.balance;
@@ -73,5 +80,79 @@ describe.skipIf(!emulator)('roadmap seeds (Firestore emulator)', () => {
       error: 'Vote not found',
     });
     expect(await balance()).toBe(20);
+  });
+
+  it('a suggestion costs 5, and is refused below that with nothing written', async () => {
+    const ok = await mod.suggestWithSeeds(db, uid, {
+      title: 'Hello',
+      description: 'x'.repeat(20),
+      category: 'connect',
+    });
+    expect(ok).toMatchObject({ success: true, newBalance: 20 });
+
+    const poor = `p-${uid}`;
+    await db.collection('user_seeds').doc(poor).set({ balance: 4 });
+    const refused = await mod.suggestWithSeeds(db, poor, {
+      title: 'Hello',
+      description: 'x'.repeat(20),
+      category: 'connect',
+    });
+    expect(refused).toMatchObject({ success: false });
+    expect((await db.collection('user_seeds').doc(poor).get()).data()?.balance).toBe(4);
+  });
+
+  it('ritual streak rewards pay from the server streak, once per milestone', async () => {
+    expect(await mod.claimRitualStreakRewards(db, uid, 6)).toEqual({ awarded: false });
+    expect(await mod.claimRitualStreakRewards(db, uid, 7)).toMatchObject({
+      awarded: true,
+      milestone: 7,
+      seeds: 5,
+    });
+    expect(await mod.claimRitualStreakRewards(db, uid, 9)).toEqual({ awarded: false });
+    expect(await mod.claimRitualStreakRewards(db, uid, 31)).toMatchObject({
+      awarded: true,
+      milestone: 30,
+      seeds: 15,
+    });
+    expect(await balance()).toBe(25 + 5 + 15);
+  });
+
+  it("milestones claimed before the ledger aren't paid again", async () => {
+    await db
+      .collection('user_streak_rewards')
+      .doc(uid)
+      .set({ claimedMilestones: [7] });
+    expect(await mod.claimRitualStreakRewards(db, uid, 30)).toMatchObject({
+      milestone: 30,
+      seeds: 15,
+    });
+  });
+
+  it('the streak-reward route ignores the count the browser posts', async () => {
+    const { handleRoadmapRoutes } = await import('../roadmap-routes.js');
+    const { createServer } = await import('node:http');
+    const server = createServer((req, res) => {
+      const url = new URL(req.url ?? '/', 'http://x');
+      void handleRoadmapRoutes(req, res, url.pathname, url);
+    });
+    await new Promise<void>((resolve) => {
+      server.listen(0, '127.0.0.1', resolve);
+    });
+    const { port } = server.address() as { port: number };
+    const post = async () =>
+      (await fetch(`http://127.0.0.1:${port}/api/roadmap/streak-reward`, {
+        method: 'POST',
+        headers: { 'x-firebase-uid': uid, 'content-type': 'application/json' },
+        body: JSON.stringify({ currentStreak: 100 }),
+      }).then((r) => r.json())) as Record<string, unknown>;
+
+    try {
+      streaks.list = [{ currentStreak: 0 }];
+      expect(await post()).toMatchObject({ awarded: false });
+      streaks.list = [{ currentStreak: 3 }, { currentStreak: 8 }];
+      expect(await post()).toMatchObject({ awarded: true, milestone: 7, seedsAwarded: 5 });
+    } finally {
+      server.close();
+    }
   });
 });
