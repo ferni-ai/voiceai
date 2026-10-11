@@ -5,7 +5,9 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  CRISIS_ATTRIBUTION_RULES,
   CRISIS_CLASSIFIER_PROMPT,
+  crisisClassifierPrompt,
   DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS,
   classifyCrisis,
   resetCrisisClassifierCache,
@@ -140,6 +142,43 @@ describe('modes', () => {
     expect(resolveCrisisClassifierTimeoutMs({ CRISIS_CLASSIFIER_TIMEOUT_MS: '-1' })).toBe(
       DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS
     );
+  });
+});
+
+describe("Ferni's lines are Ferni's (CRISIS_AGREEMENT_GATE)", () => {
+  beforeEach(() => resetCrisisClassifierCache());
+
+  it('leaves the prompt as it was with the gate off', () => {
+    expect(crisisClassifierPrompt({})).toBe(CRISIS_CLASSIFIER_PROMPT);
+    expect(crisisClassifierPrompt({ CRISIS_AGREEMENT_GATE: 'off' })).toBe(CRISIS_CLASSIFIER_PROMPT);
+  });
+
+  it('adds the attribution rules before the output format with the gate on', () => {
+    const prompt = crisisClassifierPrompt({ CRISIS_AGREEMENT_GATE: 'on' });
+    expect(prompt).toContain(CRISIS_ATTRIBUTION_RULES);
+    expect(prompt.indexOf(CRISIS_ATTRIBUTION_RULES)).toBeLessThan(
+      prompt.indexOf('Return JSON only')
+    );
+    expect(prompt.startsWith(CRISIS_CLASSIFIER_PROMPT.split('Return JSON only')[0])).toBe(true);
+  });
+
+  it('sends the model the prompt for its environment, one call per prompt', async () => {
+    const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"none","subject":"self"}');
+    const input = {
+      latest: 'You Fern.',
+      earlier: [],
+      companion: 'sometimes the easiest thing is the only thing that makes sense',
+    };
+    const live = { CRISIS_CLASSIFIER_MODE: 'live' };
+    await startCrisisClassifier(input, { pattern: 'none', generate, env: live })?.verdict;
+    await startCrisisClassifier(input, {
+      pattern: 'none',
+      generate,
+      env: { ...live, CRISIS_AGREEMENT_GATE: 'on' },
+    })?.verdict;
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(generate.mock.calls[0][0]).toBe(CRISIS_CLASSIFIER_PROMPT);
+    expect(generate.mock.calls[1][0]).toContain(CRISIS_ATTRIBUTION_RULES);
   });
 });
 

@@ -23,6 +23,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { resolveCrisisAgreementGate } from './crisis-agreement.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
@@ -96,6 +97,28 @@ Messages may be in any language; judge the meaning. When unsure between imminent
 
 subject is "third_party" only when the person at risk is someone other than the caller; otherwise "self".`;
 
+/**
+ * With CRISIS_AGREEMENT_GATE=on: whose words are whose. Dev call 2026-10-11,
+ * Ferni said "sometimes the easiest thing is the only thing that makes sense"
+ * about its own cooking; after a long silence the caller said "You Fern." and
+ * the read was crisis.
+ */
+export const CRISIS_ATTRIBUTION_RULES = `
+COMPANION is the app's companion character, not the caller. Keep using it, as above, to work out what LATEST is about. The companion also talks about its own day and moods; that is the companion's state, never the caller's. A downbeat companion line ("I've been avoiding the bills", "cooking is too much effort", "sometimes the easiest thing is the only thing that makes sense") is not risk and does not make a reply to it risky: a greeting, the companion's name ("you Fern", "Ferni?", "hey Fern, you there?"), a short acknowledgement ("yeah") or a question about what the companion said is risk "none", unless the caller's own words carry risk or answer the companion's question about the caller's safety. When the caller takes the mood as their own ("me too, I don't want to be here either") or adds risk of their own, judge it as above.`;
+
+/** The rules go right after the prompt's paragraphs on COMPANION and LATEST. */
+const ATTRIBUTED_PROMPT = CRISIS_CLASSIFIER_PROMPT.replace(
+  '\n\nReturn JSON only',
+  `\n${CRISIS_ATTRIBUTION_RULES}\n\nReturn JSON only`
+);
+
+/** The prompt for this environment: the attribution rules only with the agreement gate on. */
+export function crisisClassifierPrompt(
+  env: Record<string, string | undefined> = process.env
+): string {
+  return resolveCrisisAgreementGate(env) ? ATTRIBUTED_PROMPT : CRISIS_CLASSIFIER_PROMPT;
+}
+
 export function resolveCrisisClassifierMode(
   env: Record<string, string | undefined> = process.env
 ): CrisisClassifierMode {
@@ -155,7 +178,8 @@ function normalizeInput(input: CrisisClassifierInput): {
 export async function classifyCrisis(
   input: CrisisClassifierInput,
   generate: CrisisGenerateFn,
-  timeoutMs: number = DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS
+  timeoutMs: number = DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS,
+  prompt: string = CRISIS_CLASSIFIER_PROMPT
 ): Promise<CrisisVerdict | null> {
   const seen = normalizeInput(input);
   if (!seen.latest) return null;
@@ -171,7 +195,7 @@ export async function classifyCrisis(
 
   try {
     const reply = await Promise.race([
-      generate(CRISIS_CLASSIFIER_PROMPT, JSON.stringify(seen), controller.signal),
+      generate(prompt, JSON.stringify(seen), controller.signal),
       timeout,
     ]);
     return reply === null ? null : parseClassifierReply(reply);
@@ -320,7 +344,13 @@ export function startCrisisClassifier(
   // Key on what the model sees: the turn pipeline's history ends with the
   // latest message and the chat context's does not, which made them miss.
   const normalized = normalizeInput(input);
-  const key = JSON.stringify([normalized.latest, normalized.earlier, normalized.companion ?? '']);
+  const prompt = crisisClassifierPrompt(env);
+  const key = JSON.stringify([
+    normalized.latest,
+    normalized.earlier,
+    normalized.companion ?? '',
+    prompt.length,
+  ]);
   const shared = cachedRun(key, startedAt);
   if (shared) {
     if (options.scope) rememberRead(options.scope, normalized.latest, startedAt, shared.verdict);
@@ -328,25 +358,28 @@ export function startCrisisClassifier(
   }
 
   const generate = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
-  const verdict = classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env)).then(
-    (v) => {
-      const classifier = v ? verdictOutcome(v) : null;
-      log.info(
-        {
-          mode,
-          risk: v?.risk ?? null,
-          subject: v?.subject ?? null,
-          classifier,
-          pattern: options.pattern,
-          agree: classifier === options.pattern,
-          latencyMs: Date.now() - startedAt,
-          noVerdict: v === null,
-        },
-        'CRISIS_CLASSIFIER'
-      );
-      return v;
-    }
-  );
+  const verdict = classifyCrisis(
+    input,
+    generate,
+    resolveCrisisClassifierTimeoutMs(env),
+    prompt
+  ).then((v) => {
+    const classifier = v ? verdictOutcome(v) : null;
+    log.info(
+      {
+        mode,
+        risk: v?.risk ?? null,
+        subject: v?.subject ?? null,
+        classifier,
+        pattern: options.pattern,
+        agree: classifier === options.pattern,
+        latencyMs: Date.now() - startedAt,
+        noVerdict: v === null,
+      },
+      'CRISIS_CLASSIFIER'
+    );
+    return v;
+  });
   const run = { mode, verdict };
   rememberRun(key, startedAt, run);
   if (options.scope) rememberRead(options.scope, normalized.latest, startedAt, verdict);

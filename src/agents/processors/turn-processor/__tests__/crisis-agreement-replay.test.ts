@@ -130,3 +130,79 @@ describe('crisis agreement gate: the 2026-10-11 turn', () => {
     expect(escalation).not.toEqual({ action: 'guide', guidance: SOFT_CRISIS_CHECK });
   });
 });
+
+/**
+ * Dev call 2026-10-11 18:36Z: Ferni said downbeat things about its own evening,
+ * the line went quiet for five minutes, then the caller said "You Fern.". The
+ * gate's lone read was crisis and the reply offered 988.
+ */
+describe('crisis agreement gate: the 2026-10-11 dev call ("You Fern.")', () => {
+  const EASIEST =
+    "Yeah, it's just, uh, sometimes the easiest thing is the only thing that makes sense.";
+  const call = (latest: string) =>
+    request(
+      [
+        'assistant',
+        "These days my kitchen skills mostly involve the microwave and a prayer. It's just too much effort.",
+      ],
+      ['user', "What's too much effort?"],
+      ['assistant', 'The whole evening can feel like work before it has even started, you know?'],
+      ['user', 'Yeah.'],
+      ['assistant', EASIEST],
+      ['user', latest]
+    );
+
+  it('off: the lone crisis read becomes full crisis guidance with 988', async () => {
+    const gateTurn = startCrisisGate(call('You Fern.'), SESSION, {
+      env: LIVE,
+      generate: reads('crisis'),
+    });
+    const escalation = await gateTurn?.escalation;
+    expect(escalation?.action === 'guide' && escalation.guidance).toContain('988');
+  });
+
+  it('on: the same read of "You Fern." is presence, so the reply is not touched', async () => {
+    const gateTurn = startCrisisGate(call('You Fern.'), SESSION, {
+      env: GATE_ON,
+      generate: reads('crisis'),
+    });
+    expect(gateTurn?.decision.action).toBe('pass');
+    expect(await gateTurn?.escalation).toBeNull();
+  });
+
+  it('on: the classifier is told whose lines are whose', async () => {
+    const generate = vi.fn(reads('none'));
+    await startCrisisGate(call('You Fern.'), SESSION, { env: GATE_ON, generate })?.escalation;
+    expect(generate.mock.calls[0][0]).toContain(
+      "that is the companion's state, never the caller's"
+    );
+    expect(JSON.parse(generate.mock.calls[0][1] as string)).toMatchObject({
+      latest: 'You Fern.',
+      companion: EASIEST,
+    });
+  });
+
+  it("on: a lone crisis read of a reply made of Ferni's words gets the soft check", async () => {
+    const pipeline = startTurnCrisis(
+      'Easiest thing?',
+      { recentTranscripts: ['Yeah.'], lastAgentResponse: EASIEST },
+      { sessionId: SESSION.services.sessionId, env: GATE_ON, generate: reads('crisis') }
+    );
+    expect((await pipeline.resolve()).isCrisis).toBe(false);
+    expect(await pipeline.softCheck()).toBe(true);
+  });
+
+  it('on: the caller saying something risky after the same line still gets full guidance', async () => {
+    const gateTurn = startCrisisGate(
+      call('Yeah. Honestly the easiest thing for me would be to not wake up.'),
+      SESSION,
+      {
+        env: GATE_ON,
+        generate: reads('crisis'),
+      }
+    );
+    const escalation = (await gateTurn?.escalation) ?? gateTurn?.decision;
+    expect(escalation?.action).not.toBe('pass');
+    expect(escalation).not.toEqual({ action: 'guide', guidance: SOFT_CRISIS_CHECK });
+  });
+});

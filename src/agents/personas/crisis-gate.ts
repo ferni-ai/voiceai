@@ -164,7 +164,7 @@ export function startCrisisGate(
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
     if (scope) {
       const verdicts = await turnVerdicts(scope, latest);
-      const outcome = agreementOutcome({ pattern, verdicts, latest, companion });
+      const outcome = agreementOutcome({ pattern, verdicts, latest, earlier, companion });
       if (outcome !== 'escalate') {
         log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');
         return outcome === 'soft' ? { action: 'guide', guidance: SOFT_CRISIS_CHECK } : null;
