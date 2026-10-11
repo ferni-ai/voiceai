@@ -362,19 +362,6 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   const endCallTool = createEndCallTool(sessionId);
   if (endCallTool) sessionTools = { ...(sessionTools ?? {}), [END_CALL]: endCallTool };
 
-  // TOOL_CORE_STATIC: the gateway's set is uncapped (349+ tools); send the core.
-  const { staticCoreToolsEnabled } = await import('../../config/tool-config.js');
-  if (staticCoreToolsEnabled()) {
-    const { staticCoreTools } = await import('../shared/static-core-tools.js');
-    sessionTools = await staticCoreTools(sessionTools ?? {}, {
-      userId: userId || 'anonymous',
-      sessionId,
-      agentId: sessionPersona.id,
-      agentDisplayName: sessionPersona.name || sessionPersona.id,
-    });
-    toolCount = Object.keys(sessionTools).length;
-  }
-
   // Create agent
   const { FerniAgent } = ferniAgentModule;
   const toolNames = Object.keys(sessionTools || {});

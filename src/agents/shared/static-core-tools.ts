@@ -1,18 +1,15 @@
 /**
- * TOOL_CORE_STATIC: the one tool set a call keeps from its first request to
- * its last (tool-config.ts STATIC_CORE_TOOLS, then the user's teammate tools).
- *
- * The agent is built from the essential domains, which lack some core tools
- * (quickTimer and tellJoke live in simple-utilities, getWeatherForecast and
- * searchWeb in information). Those are built here by name, so the whole core
- * is on the first request and the set never has to change mid-call.
+ * TOOL_CORE_STATIC: the one tool set a call keeps (tool-config.ts). Core tools
+ * the essential domains lack (quickTimer, getWeatherForecast...) are built by
+ * name, so the whole core is on the first request.
  *
  * @module agents/shared/static-core-tools
  */
 
 import { createHash } from 'node:crypto';
 import type { voice } from '@livekit/agents';
-import { STATIC_CORE_TOOLS, isFindableDomain, isTeammateTool } from '../../config/tool-config.js';
+import { STATIC_CORE_TOOLS, isTeammateTool } from '../../config/tool-config.js';
+import { isFindableDomain } from '../../tools/dynamic-loader/findable-domains.js';
 import type { FoundTool, ToolPinner } from '../../tools/retrieval/find-tools-tool.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { updateAgentTools } from './tool-updater.js';
@@ -34,10 +31,8 @@ export type BuildToolsByName = (
 
 /**
  * Build tools by name from the registry, registering their domains first.
- * Only tools of a findable domain are built (tool-config.ts FINDABLE_DOMAINS),
- * checked on both the intent manual's domain and the registry definition's:
- * the catalog also holds runBash, webhooks and settings tools no caller may
- * reach. Unknown names and tools whose service is missing are left out.
+ * Only findable domains (findable-domains.ts), checked on both the intent
+ * manual's and the registry definition's domain; the rest go in `forbidden`.
  */
 export const buildToolsByName: BuildToolsByName = async (names, ctx) => {
   if (names.length === 0) return {};
@@ -97,15 +92,8 @@ export async function staticCoreTools(
   for (const [name, tool] of Object.entries(have)) {
     if (isTeammateTool(name)) core[name] = tool;
   }
-  log.info(
-    {
-      offered: Object.keys(have).length,
-      core: Object.keys(core).length,
-      built: Object.keys(built).filter((name) => name in core),
-      unavailable: STATIC_CORE_TOOLS.filter((name) => !(name in core)),
-    },
-    'TOOL_CORE_STATIC set'
-  );
+  const unavailable = STATIC_CORE_TOOLS.filter((name) => !(name in core));
+  log.info({ core: Object.keys(core).length, unavailable }, 'TOOL_CORE_STATIC set');
   return core;
 }
 
@@ -129,12 +117,9 @@ const needHash = (need: string): string =>
   createHash('sha256').update(need).digest('hex').slice(0, 12);
 
 /**
- * findTools under TOOL_CORE_STATIC: build the tools it found and append them
- * to the agent on the call now (`agent` is a getter: a handoff swaps it), so
- * they stay for the rest of the call. Returns the ones the agent then has.
- * Names outside the findable domains never reach `build` (which refuses them
- * too). Each pin is logged for audit: who, which call, a hash of the need,
- * which tools.
+ * findTools under TOOL_CORE_STATIC: build what it found (findable domains only)
+ * and append it to the agent on the call now, for the rest of the call. Each
+ * pin writes an audit line: user, call, a hash of the need, the tools.
  */
 export function createToolPinner(
   agent: () => unknown,

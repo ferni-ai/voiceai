@@ -7,10 +7,9 @@
  * the next request, including the model's next step in this same reply, and
  * the model calls the one that fits.
  *
- * TOOL_CORE_STATIC: the request carries a fixed core, so findTools searches
- * the whole catalog and the session's pinner (setToolPinner) adds the matches
- * to the agent for the rest of the call. The model's next step in this reply
- * carries them too (agents/personas/turn-request.ts), one extra LLM step.
+ * TOOL_CORE_STATIC: it searches the whole catalog's findable domains and the
+ * session's pinner adds the matches to the agent for the rest of the call,
+ * this reply's next step included (turn-request.ts).
  *
  * @module tools/retrieval/find-tools-tool
  */

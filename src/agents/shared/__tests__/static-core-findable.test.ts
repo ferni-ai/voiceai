@@ -17,7 +17,8 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
   },
 }));
 
-const { FINDABLE_DOMAINS, NEVER_FINDABLE_DOMAINS } = await import('../../../config/tool-config.js');
+const { isFindableDomain, NEVER_FINDABLE_DOMAINS } =
+  await import('../../../tools/dynamic-loader/findable-domains.js');
 const { DEFAULT_ESSENTIAL_DOMAINS, TOPIC_TO_DOMAINS } =
   await import('../../../tools/dynamic-loader/index.js');
 const { DenseToolIndex } = await import('../../../tools/retrieval/dense-index.js');
@@ -100,9 +101,11 @@ async function call() {
 
 describe('findable domains', () => {
   it('are the essential and topic-loadable domains, never developer, webhooks or settings', () => {
-    const live = new Set([...DEFAULT_ESSENTIAL_DOMAINS, ...Object.values(TOPIC_TO_DOMAINS).flat()]);
-    expect([...FINDABLE_DOMAINS].sort()).toEqual([...live].sort());
-    for (const d of NEVER_FINDABLE_DOMAINS) expect(FINDABLE_DOMAINS).not.toContain(d);
+    const live = [...DEFAULT_ESSENTIAL_DOMAINS, ...Object.values(TOPIC_TO_DOMAINS).flat()];
+    for (const d of live) expect(isFindableDomain(d)).toBe(!NEVER_FINDABLE_DOMAINS.includes(d));
+    for (const d of [...NEVER_FINDABLE_DOMAINS, 'smart-home', 'travel', undefined]) {
+      expect(isFindableDomain(d)).toBe(false);
+    }
   });
 });
 
@@ -177,4 +180,16 @@ describe('TOOL_CORE_STATIC findTools fence', () => {
       ])
     );
   }, 60_000);
+});
+
+// Last: it resets the module graph.
+describe('findable domains under an override', () => {
+  it('stays closed to developer even when the essential domains are overridden to include it', async () => {
+    process.env.ESSENTIAL_TOOL_DOMAINS = 'memory,developer,webhooks';
+    vi.resetModules();
+    const fresh = await import('../../../tools/dynamic-loader/findable-domains.js');
+    expect(fresh.isFindableDomain('memory')).toBe(true);
+    expect(fresh.isFindableDomain('developer')).toBe(false);
+    expect(fresh.isFindableDomain('webhooks')).toBe(false);
+  });
 });

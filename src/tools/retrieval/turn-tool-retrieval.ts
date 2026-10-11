@@ -18,7 +18,7 @@
  */
 
 import { llm } from '@livekit/agents';
-import { isFindableDomain } from '../../config/tool-config.js';
+import { isFindableDomain } from '../dynamic-loader/findable-domains.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { DenseToolIndex, Embedder } from './dense-index.js';
 import { RetrievalStats, isLiveCovered } from './retrieval-stats.js';
@@ -379,7 +379,7 @@ export class TurnToolRetrieval {
    * make the best matches the agent has part of every request for the next
    * few turns, starting with the model's next step in this same reply.
    * `anyTool` (TOOL_CORE_STATIC) searches the whole catalog's findable
-   * domains (tool-config.ts), loaded or not: the caller adds what it finds.
+   * domains (findable-domains.ts), loaded or not: the caller adds what it finds.
    */
   async find(
     need: string,

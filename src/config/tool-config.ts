@@ -296,29 +296,17 @@ export function appendOnlyToolsEnabled(env: NodeJS.ProcessEnv = process.env): bo
 }
 
 /**
- * TOOL_CORE_STATIC=on: every request in a call carries the same tools, the
- * STATIC_CORE_TOOLS the agent has plus the user's teammate tools, in this
- * order. Mid-call topic loads add nothing; findTools reaches the rest and
- * what it finds is appended for the rest of the call (append-only order, so
- * the declarations prefix Gemini cached stays the same).
- *
- * Why (prod + dev logs 2026-10-04..11): requests carried 88 tools (~5.3k of
- * ~10.9k prompt tokens) but prod called 3 distinct tools in 223 turns and 20
- * were called across prod and dev; 68 of the 88 were never called. TTFT is
- * flat below ~100 tools and tracks prompt-cache hits instead, and turns whose
- * tool set changed cached worse (dev median cached share 0.78 vs 0.89).
+ * TOOL_CORE_STATIC=on: every request in a call carries the same tools
+ * (STATIC_CORE_TOOLS, then the user's teammate tools). Topic loads add nothing;
+ * what findTools finds is appended, so the cached declarations prefix stays.
  */
 export function staticCoreToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.TOOL_CORE_STATIC === 'on';
 }
 
 /**
- * The static core, in request order. One tool per lookalike group
- * (quickTimer, not setTimer/quickAlarm; getWeatherForecast, not
- * getWeather/quickWeather). It covers every prod tool call of that week and
- * ~92% of dev's; calendar, reminders and on-behalf calling are kept although
- * one week of calls undercounts them. Tools a call can't have (gameState
- * without GAME_STATE, endCall off an on-behalf call) are skipped.
+ * The static core, in request order: one tool per lookalike group, covering
+ * every prod tool call of 2026-10-04..11 plus calendar, reminders and calling.
  */
 export const STATIC_CORE_TOOLS: readonly string[] = [
   'getCurrentContext',
@@ -355,72 +343,6 @@ export const STATIC_CORE_TOOLS: readonly string[] = [
   'endCall',
   'findTools',
 ];
-
-/**
- * The domains findTools may reach under TOOL_CORE_STATIC: the essential
- * domains (dynamic-loader/essential-domains.ts) and the ones the topic loader
- * can load mid-call (topic-mappings.ts), so findTools reaches no tool a call
- * can't already get. Pinned to those lists by static-core-tools.test.ts. The
- * catalog also holds tools no caller may reach this way: runBash and the rest
- * of developer, webhooks, settings, voice enrollment, commerce.
- */
-export const FINDABLE_DOMAINS: readonly string[] = [
-  // essential
-  'memory',
-  'handoff',
-  'awareness',
-  'entertainment',
-  'telephony',
-  'calendar',
-  'productivity',
-  'games',
-  'presence',
-  'trauma-support',
-  'crisis',
-  'human-transfer',
-  // topic-loadable
-  'books',
-  'communication',
-  'curiosity',
-  'dreams',
-  'finance',
-  'grief',
-  'habits',
-  'information',
-  'learning',
-  'life-planning',
-  'local-search',
-  'meaning',
-  'play',
-  'podcasts',
-  'relationships',
-  'research',
-  'scheduling',
-  'self-compassion',
-  'simple-utilities',
-  'video',
-  'vulnerability',
-  'wellness',
-  'wisdom',
-];
-
-/** Never findable, even if a topic mapping or the list above ever names them. */
-export const NEVER_FINDABLE_DOMAINS: readonly string[] = [
-  'developer',
-  'developer-custom',
-  'webhooks',
-  'voice-enrollment',
-  'settings',
-  'commerce',
-];
-
-export function isFindableDomain(domain: string | undefined): boolean {
-  return (
-    domain !== undefined &&
-    FINDABLE_DOMAINS.includes(domain) &&
-    !NEVER_FINDABLE_DOMAINS.includes(domain)
-  );
-}
 
 /** Teammate tools: they differ per user, so they go after the fixed core. */
 export function isTeammateTool(name: string): boolean {
