@@ -7,6 +7,7 @@
 
 import { isRequireFixMemoryEnabled } from '../../../../config/require-fix-memory-flag.js';
 import { getAdminFirestore } from '../../../../utils/firebase-admin-app.js';
+import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import type {
   UserInfoPreferences,
@@ -131,7 +132,11 @@ export async function saveUserPreferences(
   const firestore = getFirestoreDb();
   if (firestore) {
     try {
-      await firestore.collection(getPreferencesPath(userId)).doc('current').set(updated);
+      // Firestore rejects undefined fields, and the defaults have some (homeLocation)
+      await firestore
+        .collection(getPreferencesPath(userId))
+        .doc('current')
+        .set(cleanForFirestore(updated));
       log.info({ userId }, '📋 Preferences saved to Firestore');
       return true;
     } catch (error) {
