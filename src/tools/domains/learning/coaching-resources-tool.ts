@@ -46,6 +46,8 @@ const parameters = z.object({
     .describe('True for health, fitness, injury, mental health, money or investing topics'),
 });
 
+const FORMAT_WORD = { any: '', video: ' video', book: ' book', article: ' article' } as const;
+
 const NOTHING =
   "Couldn't find a solid resource on that just now. Say so plainly rather than guessing a title or link.";
 
@@ -55,7 +57,8 @@ export async function runFindCoachingResources(
 ): Promise<string> {
   const topic = topicOnlyQuery(args.topic, sessionIdentifiers(userData));
   if (!topic) return 'Ask what topic they want help with, in a few general words.';
-  const query = args.format && args.format !== 'any' ? `${topic} ${args.format}` : topic;
+  // Only the scrubbed topic and a fixed word go to search; no model text, no fit.
+  const query = `${topic}${FORMAT_WORD[args.format ?? 'any']}`;
   getLogger().info({ format: args.format ?? 'any' }, 'coach-media: finding resources');
   const result = await groundedAnswer(query);
   return result ? groundedResultText(topic, result, args.healthOrMoney === true) : NOTHING;
