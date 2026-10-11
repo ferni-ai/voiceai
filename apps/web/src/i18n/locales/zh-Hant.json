@@ -10119,7 +10119,12 @@
     "getIdeas": "獲取靈感",
     "emptyTitle": "目前還沒有建議",
     "emptyText": "試著多分享一些關於你們關係的細節吧。",
-    "generateError": "無法產生靈感。要再試一次嗎？"
+    "generateError": "無法產生靈感。要再試一次嗎？",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "我為你做的事",
@@ -11082,5 +11087,39 @@
     "youSpeaking": "你正在說話",
     "ferniThinking": "Ferni 正在思考",
     "tapToInterrupt": "輕點以打斷"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

@@ -10214,7 +10214,12 @@
     "getIdeas": "Ver ideas",
     "emptyTitle": "Aún no hay sugerencias",
     "emptyText": "Prueba a añadir más contexto sobre tu relación.",
-    "generateError": "No se pudieron generar ideas. ¿Quieres volver a intentarlo?"
+    "generateError": "No se pudieron generar ideas. ¿Quieres volver a intentarlo?",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "LO QUE HAGO POR TI",
@@ -11208,5 +11213,39 @@
     "youSpeaking": "Estás hablando",
     "ferniThinking": "Ferni está pensando",
     "tapToInterrupt": "Toca para interrumpir"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

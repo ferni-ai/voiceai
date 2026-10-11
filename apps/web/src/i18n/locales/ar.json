@@ -10495,7 +10495,12 @@
     "getIdeas": "الحصول على أفكار",
     "emptyTitle": "لا توجد اقتراحات بعد",
     "emptyText": "جرّبوا إضافة المزيد من التفاصيل عن علاقتكم.",
-    "generateError": "تعذر ابتكار أفكار. هل تودون المحاولة مجدداً؟"
+    "generateError": "تعذر ابتكار أفكار. هل تودون المحاولة مجدداً؟",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "ما أقدمه لكم",
@@ -11582,5 +11587,39 @@
     "youSpeaking": "أنت تتحدث",
     "ferniThinking": "فيرني يفكر",
     "tapToInterrupt": "انقر للمقاطعة"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

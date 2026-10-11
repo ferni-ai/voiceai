@@ -10119,7 +10119,12 @@
     "getIdeas": "获取灵感",
     "emptyTitle": "暂无建议",
     "emptyText": "试着添加更多关于你们关系的背景信息吧。",
-    "generateError": "无法生成灵感。要再试一次吗？"
+    "generateError": "无法生成灵感。要再试一次吗？",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "我能为你做些什么",
@@ -11082,5 +11087,39 @@
     "youSpeaking": "你正在说话",
     "ferniThinking": "Ferni 正在思考",
     "tapToInterrupt": "轻点以打断"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }
