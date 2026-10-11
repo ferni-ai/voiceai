@@ -13,9 +13,12 @@ import {
   captionsLayout,
   currentTurn,
   initLiveCaptions,
+  revealWords,
   renderLine,
   type CaptionEntry,
 } from '@/ui/captions/live-captions.js';
+import { captionsOn, mountCaptionsToggle } from '@/ui/captions/captions-toggle.js';
+import { PREFERENCE_KEYS } from '@/config/storage-keys.js';
 
 const say = (type: string, text: string, isFinal?: boolean): void => {
   window.dispatchEvent(new CustomEvent('ferni:transcript', { detail: { type, text, isFinal } }));
@@ -128,41 +131,101 @@ describe('renderLine', () => {
   });
 });
 
+describe('revealWords', () => {
+  it('appends only the newly spoken words, so just they fade in', () => {
+    const line = document.createElement('p');
+    revealWords(line, '', 'That makes');
+    revealWords(line, 'That makes', 'That makes a lot of sense');
+    const spans = [...line.querySelectorAll('.ferni-caption-words')].map((w) => w.textContent);
+    expect(spans).toEqual(['That makes', ' a lot of sense']);
+    expect(line.textContent).toBe('That makes a lot of sense');
+  });
+
+  it('replaces the text when speech is corrected rather than extended', () => {
+    const line = document.createElement('p');
+    revealWords(line, '', 'I think I rush');
+    revealWords(line, 'I think I rush', 'I think I rushed it');
+    revealWords(line, 'I think I rushed it', 'I thought I rushed it');
+    expect([...line.querySelectorAll('.ferni-caption-words')]).toHaveLength(1);
+    expect(line.textContent).toBe('I thought I rushed it');
+  });
+});
+
+describe('captions toggle', () => {
+  afterEach(() => localStorage.removeItem(PREFERENCE_KEYS.SHOW_TRANSCRIPTION));
+
+  it('is off until someone chooses captions; the old desktop default does not count', () => {
+    expect(captionsOn()).toBe(false);
+    localStorage.setItem(PREFERENCE_KEYS.SHOW_TRANSCRIPTION, 'false');
+    expect(captionsOn()).toBe(false);
+    localStorage.setItem(PREFERENCE_KEYS.SHOW_TRANSCRIPTION, 'true');
+    expect(captionsOn()).toBe(true);
+  });
+
+  it('joins the in-call quick actions and flips captions with one tap', () => {
+    const row = document.createElement('div');
+    row.className = 'engagement-triggers';
+    document.body.append(row);
+    const onChange = vi.fn();
+    mountCaptionsToggle(onChange);
+    const button = row.querySelector<HTMLButtonElement>('.ferni-captions-toggle');
+    expect(button?.getAttribute('aria-pressed')).toBe('false');
+    button?.click();
+    expect(captionsOn()).toBe(true);
+    expect(button?.getAttribute('aria-pressed')).toBe('true');
+    expect(onChange).toHaveBeenCalledTimes(1);
+    button?.click();
+    expect(captionsOn()).toBe(false);
+  });
+});
+
 describe('live captions region', () => {
   let enabled = true;
   const captions = initLiveCaptions(() => enabled);
+  const lines = (): string[] =>
+    [...document.querySelectorAll('.ferni-captions .ferni-caption-line')].map(
+      (l) => l.textContent ?? ''
+    );
 
   beforeEach(() => {
     enabled = true;
     captions.reset();
   });
 
-  it('renders transcript events in their own region, not the status pill', () => {
+  it('renders the current turn as plain words in their own region, no panel or labels', () => {
     say('user', 'I rushed it because he kept checking his watch', true);
     say('agent', 'That makes a lot of sense', false);
     const region = document.querySelector('.ferni-captions');
     expect(region?.classList.contains('ferni-captions--visible')).toBe(true);
     expect(region?.closest('#statusIsland')).toBeNull();
-    // Only the current turn shows, under its speaker's name; the user's turn
-    // is kept in the history rather than left under "Ferni".
-    const lines = [...document.querySelectorAll('.ferni-captions .ferni-caption-line')];
-    expect(lines.map((l) => l.textContent)).toEqual(['That makes a lot of sense']);
-    expect(document.querySelector('.ferni-captions__header')?.textContent).toContain('Ferni');
+    expect(lines()).toEqual(['That makes a lot of sense']);
+    expect(document.querySelector('.ferni-captions .ferni-caption-line__name')).toBeNull();
     expect(captions.history().map((e) => e.speaker)).toEqual(['user', 'agent']);
+  });
+
+  it('grows the live line word by word instead of redrawing it', () => {
+    say('agent', 'That makes', false);
+    const line = document.querySelector('.ferni-captions .ferni-caption-line');
+    say('agent', 'That makes a lot of sense', false);
+    expect(document.querySelector('.ferni-captions .ferni-caption-line')).toBe(line);
+    expect(line?.querySelectorAll('.ferni-caption-words')).toHaveLength(2);
   });
 
   it('keeps only the last three utterances on screen and the rest in history', () => {
     for (let i = 0; i < 5; i++) say('agent', `line ${i}`, true);
-    expect(document.querySelectorAll('.ferni-captions .ferni-caption-line')).toHaveLength(3);
+    expect(lines()).toHaveLength(3);
     expect(captions.history()).toHaveLength(5);
   });
 
-  it('hides while the transcription setting is off', () => {
-    say('agent', 'Hello', true);
+  it('hides while captions are off, and shows the turn in progress when switched on', () => {
     enabled = false;
-    say('agent', 'Still talking', true);
+    say('agent', 'Still talking', false);
     const region = document.querySelector('.ferni-captions');
     expect(region?.classList.contains('ferni-captions--visible') ?? false).toBe(false);
+    enabled = true;
+    captions.refresh();
+    expect(document.querySelector('.ferni-captions--visible')).not.toBeNull();
+    expect(lines()).toEqual(['Still talking']);
   });
 
   it('forgets the conversation when the call disconnects', () => {
@@ -171,20 +234,19 @@ describe('live captions region', () => {
       new CustomEvent('ferni:connection-state', { detail: { state: 'disconnected' } })
     );
     expect(captions.history()).toHaveLength(0);
-    expect(document.querySelectorAll('.ferni-captions .ferni-caption-line')).toHaveLength(0);
+    expect(lines()).toHaveLength(0);
   });
 
-  it('shows in-call feedback as a quiet note, without taking the speaker header', () => {
+  it('shows in-call feedback as a quiet note in the current turn', () => {
     say('agent', 'Saving that for you', true);
     window.dispatchEvent(
       new CustomEvent('ferni:inline-feedback', {
         detail: { message: 'Reminder set for 7:30', tone: 'success', key: 'reminder' },
       })
     );
-    const note = document.querySelector('.ferni-captions .ferni-caption-note');
-    expect(note?.textContent).toBe('Reminder set for 7:30');
-    expect(note?.querySelector('.ferni-caption-line__name')).toBeNull();
-    expect(document.querySelector('.ferni-captions__header')?.textContent).toContain('Ferni');
+    expect(document.querySelector('.ferni-captions .ferni-caption-note')?.textContent).toBe(
+      'Reminder set for 7:30'
+    );
   });
 
   it('retires the status-island pill once captions v2 is on', () => {
@@ -192,21 +254,18 @@ describe('live captions region', () => {
     expect(css).toMatch(/#transcriptContainer\s*\{\s*display:\s*none/);
   });
 
-  it('opens every turn in the transcript sheet from the expand button', () => {
+  it('opens the conversation so far from the words, by tap or keyboard', () => {
     const showModal = vi.fn(function (this: HTMLDialogElement) {
       this.setAttribute('open', '');
     });
     HTMLDialogElement.prototype.showModal = showModal;
     say('user', 'First thing', true);
     say('agent', 'Second thing', true);
-    // The live region shows only Ferni's turn; the sheet keeps both.
-    expect(document.querySelectorAll('.ferni-captions .ferni-caption-line')).toHaveLength(1);
-    document.querySelector<HTMLButtonElement>('.ferni-captions__expand')?.click();
+    const words = document.querySelector<HTMLElement>('.ferni-captions__viewport');
+    expect(words?.getAttribute('role')).toBe('button');
+    words?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(showModal).toHaveBeenCalledTimes(1);
     const items = [...document.querySelectorAll('.ferni-transcript-sheet li')];
     expect(items.map((li) => li.textContent)).toEqual(['YouFirst thing', 'FerniSecond thing']);
-    expect(document.querySelector('.ferni-transcript-sheet')?.getAttribute('aria-labelledby')).toBe(
-      'ferni-transcript-sheet-title'
-    );
   });
 });

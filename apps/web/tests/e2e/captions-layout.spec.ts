@@ -78,3 +78,19 @@ for (const vp of VIEWPORTS) {
     await context.close();
   });
 }
+
+test('captions start off on a call and one tap on the captions button shows them', async ({
+  page,
+}) => {
+  await page.addInitScript(() => localStorage.setItem('ferni:flag:captions-v2', 'true'));
+  await page.goto('/?e2e=1&gallery=overlays&scene=captions');
+  await page.waitForFunction(
+    () => (window as unknown as { __overlayGallery?: { ready: boolean } }).__overlayGallery?.ready
+  );
+  await expect(page.locator('.ferni-captions--visible')).toHaveCount(0);
+  const toggle = page.locator('.ferni-captions-toggle');
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.ferni-captions.ferni-captions--visible')).toBeVisible();
+});

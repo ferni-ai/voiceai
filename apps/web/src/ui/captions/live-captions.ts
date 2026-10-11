@@ -1,22 +1,21 @@
 /**
  * Live captions (behind the captions-v2 flag, see captions-flag.ts).
  *
- * Modelled on iOS Live Captions and FaceTime Live Captions:
- * - Captions live in their own region, bottom-anchored just above the call
- *   controls, never over the avatar: the region's height is capped by the
- *   space between the avatar and the controls (captionsLayout).
- * - At most three lines show. Text wraps; it is never cut with an ellipsis.
- *   When an utterance runs longer, earlier lines scroll up and fade out under
- *   a top mask, the way Live Captions does.
- * - The newest line is full strength; earlier lines step down to the
- *   secondary text colour. The current speaker shows as a small dot and name
- *   above the text (as in FaceTime). Only the current turn shows, so text
- *   never sits under the wrong name; the history keeps every turn.
- * - Tapping the captions (or the expand button) opens every turn so far in a
- *   bottom sheet (transcript-sheet.ts).
+ * Words, not a window. Modelled on iOS Live Captions, but with no panel:
+ * - Ferni's words sit in the open space between the persona and the call
+ *   controls, never over the avatar, controls or anything else: the region
+ *   is capped by that space (captionsLayout) and holds whole lines only.
+ * - Only the last line or two of the current turn. New words fade in as
+ *   they are spoken; earlier text scrolls up under a soft fade. Nothing is
+ *   ever ellipsized.
+ * - Ferni speaks in the primary voice (larger, full strength); your words
+ *   use a quieter register, so the speaker shows without labels.
+ * - Tap the words for the conversation so far (transcript-sheet.ts).
+ * - Off by default on a voice call; the captions button in the controls
+ *   turns them on (captions-toggle.ts).
  *
  * Reads the same `ferni:transcript` window events transcriptUI does, so the
- * transport is unchanged; it also honours transcriptUI's on/off setting.
+ * transport and transcriptUI's screen-reader live region are unchanged.
  *
  * @module ui/captions/live-captions
  */
@@ -24,12 +23,8 @@
 import { t } from '../../i18n/index.js';
 import { appState } from '../../state/app.state.js';
 import { injectCaptionStyles } from './live-captions.styles.js';
-import { transcriptUI } from '../transcript.ui.js';
-import {
-  EXPAND_ICON,
-  injectTranscriptSheetStyles,
-  openTranscriptSheet,
-} from './transcript-sheet.js';
+import { captionsOn, mountCaptionsToggle } from './captions-toggle.js';
+import { injectTranscriptSheetStyles, openTranscriptSheet } from './transcript-sheet.js';
 
 /** 'note' is quiet in-call feedback (ferni:inline-feedback), not speech. */
 export type CaptionSpeaker = 'user' | 'agent' | 'note';
@@ -42,7 +37,7 @@ export interface CaptionEntry {
 
 const HISTORY_LIMIT = 200; // utterances kept in the history
 const RENDERED = 3; // utterances rendered in the live region
-const MAX_LINES = 3; // Apple's Live Captions show two to three lines, never more
+const MAX_LINES = 2; // the last line or two; the sheet keeps the rest
 const IDLE_MS = 6000; // captions fade after this long without speech
 
 /**
@@ -99,7 +94,7 @@ export function captionsLayout(
 
 function speakerName(speaker: CaptionSpeaker): string {
   if (speaker === 'note') return '';
-  return speaker === 'user' ? t('transcript.you') : appState.get('activePersona').name;
+  return speaker === 'user' ? t('common.you') : appState.get('activePersona').name;
 }
 
 /** One utterance as a paragraph, optionally led by its speaker's name. */
@@ -118,9 +113,27 @@ export function renderLine(entry: CaptionEntry, showName: boolean): HTMLParagrap
   return line;
 }
 
+/**
+ * Grow `line` from `before` to `after`. Speech arrives as the text so far, so
+ * when it only adds words, those words fade in on their own, as they are
+ * spoken; anything else (a correction) replaces the text quietly.
+ */
+export function revealWords(line: HTMLElement, before: string, after: string): void {
+  const words = document.createElement('span');
+  words.className = 'ferni-caption-words';
+  if (before && after.startsWith(before)) {
+    if (after.length === before.length) return;
+    words.textContent = after.slice(before.length);
+    line.append(words);
+  } else {
+    words.textContent = after;
+    line.replaceChildren(words);
+  }
+  line.dataset.text = after;
+}
+
 class LiveCaptions {
   private root: HTMLElement | null = null;
-  private speaker: HTMLElement | null = null;
   private viewport: HTMLElement | null = null;
   private entries: CaptionEntry[] = [];
   private idle: ReturnType<typeof setTimeout> | null = null;
@@ -129,12 +142,23 @@ class LiveCaptions {
   constructor(private readonly isEnabled: () => boolean) {}
 
   push(speaker: CaptionSpeaker, text: string, final: boolean): void {
-    this.entries = applyTranscript(this.entries, speaker, text, final);
+    const before = this.entries;
+    this.entries = applyTranscript(before, speaker, text, final);
+    if (this.entries === before) return;
     if (!this.isEnabled()) return this.hide();
-    if (this.entries.length === 0) return;
-    this.render();
+    // Same length and same second-to-last entry: the open utterance grew.
+    const grew =
+      this.entries.length === before.length &&
+      this.entries[this.entries.length - 2] === before[before.length - 2];
+    this.render(grew);
     if (this.idle) clearTimeout(this.idle);
     this.idle = setTimeout(() => this.hide(), IDLE_MS);
+  }
+
+  /** Captions were switched on or off mid-call. */
+  refresh(): void {
+    if (this.isEnabled() && this.entries.length > 0) this.render(false);
+    else this.hide();
   }
 
   hide(): void {
@@ -162,25 +186,22 @@ class LiveCaptions {
     const root = document.createElement('section');
     root.className = 'ferni-captions';
     root.setAttribute('aria-label', t('transcript.captionsLabel'));
-    // Header: who is speaking now (FaceTime puts the name above the caption),
-    // and the control that opens the full transcript.
-    const header = document.createElement('div');
-    header.className = 'ferni-captions__header';
-    const speaker = document.createElement('span');
-    speaker.className = 'ferni-caption-line__name';
-    const expand = document.createElement('button');
-    expand.type = 'button';
-    expand.className = 'ferni-captions__expand';
-    expand.setAttribute('aria-label', t('transcript.showAll'));
-    expand.innerHTML = EXPAND_ICON;
-    header.append(speaker, expand);
+    // No panel, no labels: the words sit in the open space between Ferni and
+    // the controls. Tapping them (or Enter) opens the conversation so far.
     const viewport = document.createElement('div');
     viewport.className = 'ferni-captions__viewport';
+    viewport.tabIndex = 0;
+    viewport.setAttribute('role', 'button');
+    viewport.setAttribute('aria-label', t('transcript.showAll'));
     const open = (): void =>
       openTranscriptSheet(this.entries, (e) => renderLine(e, e.speaker !== 'note'));
-    expand.addEventListener('click', open);
     viewport.addEventListener('click', open);
-    root.append(header, viewport);
+    viewport.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      open();
+    });
+    root.append(viewport);
     document.body.append(root);
     window.addEventListener('resize', () => this.schedule());
     // The avatar grows and the controls move when a call connects; follow them.
@@ -191,19 +212,30 @@ class LiveCaptions {
       }
     }
     this.root = root;
-    this.speaker = speaker;
     this.viewport = viewport;
     return root;
   }
 
-  private render(): void {
+  /** `grew`: the newest utterance only gained words, so reveal just those. */
+  private render(grew: boolean): void {
     const root = this.mount();
+    const viewport = this.viewport;
+    if (!viewport) return;
     const shown = currentTurn(this.entries);
-    this.viewport?.replaceChildren(...shown.map((entry) => renderLine(entry, false)));
-    const newest = shown.filter((e) => e.speaker !== 'note').pop();
-    if (newest && this.speaker) {
-      this.speaker.textContent = speakerName(newest.speaker);
-      this.speaker.dataset.speaker = newest.speaker;
+    const last = viewport.lastElementChild as HTMLElement | null;
+    const newest = shown[shown.length - 1];
+    if (grew && last && newest && viewport.childElementCount === shown.length) {
+      revealWords(last, last.dataset.text ?? '', newest.text);
+    } else {
+      viewport.replaceChildren(
+        ...shown.map((entry, i) => {
+          const line = renderLine({ ...entry, text: '' }, false);
+          // Earlier lines arrive settled; the newest one reveals its words.
+          if (i < shown.length - 1) line.classList.add('ferni-caption-line--settled');
+          revealWords(line, '', entry.text);
+          return line;
+        })
+      );
     }
     root.classList.add('ferni-captions--visible');
     this.schedule();
@@ -243,14 +275,11 @@ class LiveCaptions {
     );
   }
 
-  /** Whole caption lines (max three) that fit in `room` px with the header. */
+  /** Whole caption lines (at most MAX_LINES) that fit in `room` px. */
   private fit(room: number): number {
     if (!this.root || !this.viewport) return 0;
     const style = getComputedStyle(this.root);
-    const chrome =
-      (this.speaker?.parentElement?.offsetHeight ?? 0) +
-      parseFloat(style.paddingTop) +
-      parseFloat(style.paddingBottom);
+    const chrome = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
     const line = parseFloat(getComputedStyle(this.viewport).lineHeight) || 1;
     return Math.min(MAX_LINES, Math.floor((room - chrome) / line));
   }
@@ -259,12 +288,13 @@ class LiveCaptions {
 let instance: LiveCaptions | null = null;
 
 /** Start listening for transcript events. Idempotent. */
-export function initLiveCaptions(isEnabled: () => boolean = transcriptUI.isEnabled): LiveCaptions {
+export function initLiveCaptions(isEnabled: () => boolean = captionsOn): LiveCaptions {
   if (instance) return instance;
   // Styles first: they also retire the status-island pill this replaces.
   injectCaptionStyles();
   injectTranscriptSheetStyles();
   const captions = new LiveCaptions(isEnabled);
+  mountCaptionsToggle(() => captions.refresh());
   window.addEventListener('ferni:transcript', ((e: CustomEvent) => {
     const { type, text, isFinal } = e.detail as { type: string; text: string; isFinal?: boolean };
     if (type !== 'user' && type !== 'agent') return;
