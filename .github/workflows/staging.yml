@@ -28,7 +28,7 @@ jobs:
   # ============================================================================
   context:
     name: Determine Context
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     outputs:
       branch: ${{ steps.branch.outputs.name }}
       short_sha: ${{ steps.branch.outputs.short_sha }}
@@ -85,7 +85,7 @@ jobs:
   # ============================================================================
   build:
     name: Build & Test
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: context
     
     steps:
@@ -321,7 +321,7 @@ jobs:
   # ============================================================================
   smoke-tests:
     name: Smoke Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: [context, deploy-staging]
     
     steps:

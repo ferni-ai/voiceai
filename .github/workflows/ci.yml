@@ -52,12 +52,17 @@ jobs:
   # stopped, UNSET the variable: a job waiting
   # for a runner is not covered by timeout-minutes, so with no runner online every
   # run sits in GitHub's 24h queue and is cancelled with no verdict (2026-07).
+  # Merge-queue runs take the QUEUE_RUNNER variable instead when it is set (a
+  # larger GitHub-hosted runner reserved for the queue, so PR runs can't starve
+  # it), as do PRs from the ci/queue-lane branch that introduced it. The variable
+  # is chosen before fromJSON, so an unset QUEUE_RUNNER falls back to CI_RUNNER
+  # and fromJSON never sees an empty string. Same expression in staging.yml.
   # Deploys never run on it: deploy-gce.yml is GitHub-hosted, because PR code on
   # that VM has docker (root) access and must not share a host with deploy
   # credentials. The VM's identity is github-runner-ci (log/metric write only).
   setup:
     name: Setup & Cache Dependencies
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     outputs:
       cache-key: ${{ steps.cache-key.outputs.key }}
@@ -96,7 +101,7 @@ jobs:
   # ============================================================================
   lint:
     name: Lint & Type Check
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -146,7 +151,7 @@ jobs:
   # ============================================================================
   test-unit:
     name: Unit Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     # 20 -> 35: the first run compiles the rust-perf binding from scratch on top of
     # an ~8 min test run. Cached cargo brings later runs back near the old budget.
     timeout-minutes: 35
@@ -268,7 +273,7 @@ jobs:
   # ============================================================================
   test-integration:
     name: Integration Tests (${{ matrix.shard }}/3)
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
     # Since the repo went private (2026-09-27) its runners are smaller: the
@@ -391,7 +396,7 @@ jobs:
   # ============================================================================
   test-agi-features:
     name: AGI Feature Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
     steps:
@@ -441,7 +446,7 @@ jobs:
   # ============================================================================
   build:
     name: Build
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: [setup, lint, test-unit, test-integration, test-agi-features]
     steps:
@@ -499,7 +504,7 @@ jobs:
   # ============================================================================
   security:
     name: Security Scan
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -573,7 +578,7 @@ jobs:
   # ============================================================================
   code-quality:
     name: Code Quality Metrics
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -617,7 +622,7 @@ jobs:
   # ============================================================================
   quality-gates:
     name: Quality Gates (Blocking)
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -667,7 +672,7 @@ jobs:
   # ============================================================================
   validation:
     name: Validation Checks
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
     steps:
@@ -713,7 +718,7 @@ jobs:
   # ============================================================================
   e2e-validation:
     name: E2E Validation
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
     steps:
@@ -785,7 +790,7 @@ jobs:
   # ============================================================================
   frontend-quality:
     name: Frontend Quality
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
     steps:
@@ -864,7 +869,7 @@ jobs:
   # ============================================================================
   dependencies:
     name: Dependency Check
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((github.event_name == 'merge_group' || github.head_ref == 'ci/queue-lane') && vars.QUEUE_RUNNER || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 10
     needs: setup
     steps:
