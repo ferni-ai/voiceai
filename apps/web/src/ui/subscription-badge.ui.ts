@@ -14,6 +14,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
+import { isPaywallOn } from '../services/paywall.service.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -180,17 +181,16 @@ async function refreshStatus(): Promise<void> {
       badgeElement.style.display = '';
     }
 
-    // First check trial status (for new users)
+    // Status first: it carries the paywall flag the trial countdown depends on
+    const status = await loadSubscriptionStatus();
     await refreshTrialStatus();
 
-    // If in trial, show trial timer instead of subscription badge
-    if (currentTrialStatus?.inTrial) {
+    // A trial counts down only while there is a paywall (services/paywall.service.ts)
+    if (currentTrialStatus?.inTrial && isPaywallOn()) {
       updateTrialDisplay();
       return;
     }
 
-    // Otherwise show regular subscription status
-    const status = await loadSubscriptionStatus();
     updateBadgeDisplay(status);
   } catch (error) {
     log.warn('Failed to refresh subscription status:', error);
@@ -203,7 +203,7 @@ async function refreshStatus(): Promise<void> {
  */
 async function refreshTrialStatus(): Promise<void> {
   const deviceId = appState.getState().deviceId;
-  if (!deviceId) return;
+  if (!deviceId || !isPaywallOn()) return; // no trial clock while Ferni is free
 
   try {
     const sessionTimeMs = sessionStartTime ? Date.now() - sessionStartTime : 0;
@@ -276,7 +276,7 @@ function formatTrialTime(ms: number): string {
  * Update badge to show trial countdown
  */
 function updateTrialDisplay(): void {
-  if (!badgeElement || !currentTrialStatus) return;
+  if (!badgeElement || !currentTrialStatus || !isPaywallOn()) return;
 
   // Calculate remaining time
   const sessionTimeMs = sessionStartTime ? Date.now() - sessionStartTime : 0;

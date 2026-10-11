@@ -27,6 +27,7 @@
 import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
+import { isPaywallOn, recordPaywallFlag } from '../services/paywall.service.js';
 import { teamUnlockService } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
 import { apiGet, apiPost } from '../utils/api.js';
@@ -39,7 +40,6 @@ import { toast } from './whisper.ui.js';
 
 const log = createLogger('SubscriptionUI');
 
-// FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
@@ -216,7 +216,6 @@ function handleUpgradeRedirect(): void {
   const tier = params.get('tier') || sessionStorage.getItem('ferni_upgrade_tier') || 'friend';
   const sessionId = params.get('session_id');
 
-  // Clear session storage
   sessionStorage.removeItem('ferni_upgrade_tier');
 
   if (!upgradeStatus) return;
@@ -244,7 +243,6 @@ function handleUpgradeRedirect(): void {
 async function verifyPaymentAndCelebrate(tier: string, sessionId: string | null): Promise<void> {
   const deviceId = appState.getState().deviceId;
 
-  // Show loading state
   toast.info(t('toasts.justAMoment'));
 
   // Try to verify payment (with polling for webhook processing)
@@ -436,6 +434,7 @@ async function loadConfig(): Promise<void> {
     const response = await apiGet<typeof config>('/subscription/config');
     if (response.ok && response.data) {
       config = response.data;
+      recordPaywallFlag(response.data);
       log.debug('Subscription config loaded:', config);
     }
   } catch (error) {
@@ -463,7 +462,6 @@ export async function loadStatus(): Promise<SubscriptionStatus | null> {
   // Check for admin bypass
   if (shouldBypassSubscription(deviceId)) {
     log.info('Subscription bypass active - unlimited access');
-    // Return a "bypassed" status that allows everything
     status = {
       tier: 'partner',
       tierName: 'Admin Bypass',
@@ -489,6 +487,7 @@ export async function loadStatus(): Promise<SubscriptionStatus | null> {
     );
     if (response.ok && response.data) {
       status = response.data;
+      recordPaywallFlag(response.data);
       log.debug('Subscription status loaded:', status);
 
       // FIX: Sync subscription tier to team unlock service
@@ -518,7 +517,7 @@ export function setOnUpgrade(callback: (tier: string) => void): void {
 // ============================================================================
 
 export function showUpgradeModal(prompt?: string): void {
-  // Use modal coordinator for upgrade prompts (medium priority - can be queued)
+  if (!isPaywallOn()) return; // Ferni is free: no upsell (services/paywall.service.ts)
   modalCoordinator.request('subscription-upgrade', 'medium', () => {
     showUpgradeModalInternal(prompt);
   });
@@ -566,8 +565,8 @@ export function hideModal(): void {
 }
 
 export function showLimitReachedModal(upgradePrompt: string, resetDate?: string): void {
-  // CRITICAL: Limit reached must show even during conversation
-  // Uses requestCriticalModal to bypass most checks
+  if (!isPaywallOn()) return; // no limits without a paywall
+  // Critical: shows even during a conversation (bypasses most modal checks)
   modalCoordinator.requestCriticalModal('subscription-limit', () => {
     showLimitReachedModalInternal(upgradePrompt, resetDate);
   });
@@ -835,6 +834,7 @@ function getDefaultTiers(): SubscriptionTier[] {
 // ============================================================================
 
 async function handleUpgrade(tier: string): Promise<void> {
+  if (!isPaywallOn()) return; // never start a checkout without a paywall
   const deviceId = appState.getState().deviceId;
   if (!deviceId) {
     log.error('No device ID for upgrade');
@@ -1691,7 +1691,7 @@ function injectStyles(): void {
 // ============================================================================
 
 export function showUsageIndicator(): void {
-  if (!status || status.tier !== 'free') return;
+  if (!status || status.tier !== 'free' || !isPaywallOn()) return;
 
   const existing = document.querySelector('.usage-indicator');
   if (existing) existing.remove();

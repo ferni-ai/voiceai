@@ -31,9 +31,8 @@ import { roadmapService } from '../services/roadmap.service.js';
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // Seeds display for personalization economy
 import { renderSeedsSettingsCard } from './seeds-display.ui.js';
-// Transcript UI - for toggling live transcription
 import { transcriptUI } from './transcript.ui.js';
-// Sound effects service for UI feedback sounds
+import { isPaywallOn } from '../services/paywall.service.js';
 import { soundUI } from './sound.ui.js';
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
@@ -1077,6 +1076,7 @@ class SettingsMenuUI {
       billing: { icon: ICONS.creditCard, label: t('menu.items.billingPortal') },
     };
     if (!LINKEDIN_ENABLED) delete menuItems['linkedin-settings']; // config/linkedin.ts
+    if (!isPaywallOn()) delete menuItems['support-ferni']; // no paid shortcut while Ferni is free
 
     const pinnedItemsHtml = [...this.pinnedItems]
       .filter((action) => menuItems[action] && !this.isFeatureLocked(action))

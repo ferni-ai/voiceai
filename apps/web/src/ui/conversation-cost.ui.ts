@@ -17,6 +17,7 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { formatCurrency, formatNumber, t } from '../i18n/index.js';
+import { isPaywallOn } from '../services/paywall.service.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 
@@ -295,6 +296,8 @@ function handleTipClick(_amount: string): void {
  * Fetch and show the conversation cost card
  */
 export async function showConversationCost(): Promise<void> {
+  // Ferni is free: no tip card after a call unless the server has a paywall on
+  if (!isPaywallOn()) return;
   injectStyles();
   cleanupExisting();
 
