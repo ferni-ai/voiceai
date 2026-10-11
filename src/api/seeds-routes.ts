@@ -10,11 +10,20 @@
  * - GET /api/seeds/history - Get seed transaction history
  */
 
+import { randomUUID } from 'node:crypto';
 import admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { parseBody, sendJSON, sendError } from './helpers.js';
+import { getUserId, parseBody, sendJSON, sendError } from './helpers.js';
 import { removeUndefined } from '../utils/firestore-utils.js';
+import { awardDailyConversation, DAILY_SEEDS } from '../services/seeds/earn.js';
+import {
+  commitSeeds,
+  ENTRIES_SUBCOLLECTION,
+  InsufficientSeedsError,
+  prepareSeeds,
+  STARTER_SEEDS,
+} from '../services/seeds/ledger.js';
 
 const log = createLogger({ module: 'SeedsRoutes' });
 
@@ -22,26 +31,8 @@ const log = createLogger({ module: 'SeedsRoutes' });
 // CONSTANTS - Aligned with Frontend
 // =============================================================================
 
-const STARTER_SEEDS = 25;
-const DAILY_BONUS = 5;
 const REFERRAL_SIGNUP_REWARD = 25;
 const REFERRAL_NEW_USER_BONUS = 25;
-
-/** Gift multipliers - "Love multiplies" */
-const GIFT_MULTIPLIERS: Record<number, number> = {
-  10: 1.2, // 10 → 12 (+20%)
-  25: 1.28, // 25 → 32 (+28%)
-  50: 1.4, // 50 → 70 (+40%)
-};
-
-/** Streak rewards */
-const STREAK_REWARDS: Record<number, number> = {
-  7: 25,
-  14: 50,
-  30: 100,
-  60: 200,
-  100: 500,
-};
 
 // =============================================================================
 // TYPES
@@ -208,26 +199,22 @@ async function getOrCreateUserSeeds(
     },
   };
 
-  await userSeedsRef.set(removeUndefined({ ...newUser, createdAt: now, updatedAt: now }));
+  // Like a ledger-created account, its starter seeds are an entry (create: never twice)
+  const batch = db.batch();
+  batch.create(userSeedsRef, removeUndefined({ ...newUser, createdAt: now, updatedAt: now }));
+  batch.create(userSeedsRef.collection(ENTRIES_SUBCOLLECTION).doc('starter'), {
+    delta: STARTER_SEEDS,
+    reason: 'starter',
+    balanceAfter: STARTER_SEEDS,
+    at: now,
+  });
+  await batch.commit();
   log.info({ userId, balance: STARTER_SEEDS }, 'Created new user seeds account');
 
   return { userId, ...newUser };
 }
 
 // parseBody, sendJSON, sendError imported from './helpers.js'
-
-/**
- * Get user ID from request headers
- * SECURITY: Prioritizes Firebase auth (x-firebase-uid) over deprecated x-user-id
- */
-function getUserId(req: IncomingMessage): string | null {
-  // SECURITY: Prioritize Firebase auth
-  const firebaseUid = req.headers['x-firebase-uid'] as string | undefined;
-  if (firebaseUid) return firebaseUid;
-
-  // Legacy headers (deprecated - will be removed)
-  return (req.headers['x-user-id'] as string) || (req.headers['x-device-id'] as string) || null;
-}
 
 /** Wrapper for sendError with (status, message) signature used in this file */
 function sendErrorStatus(res: ServerResponse, status: number, message: string): void {
@@ -250,7 +237,9 @@ export async function handleSeedsRoutes(
     return false;
   }
 
-  const userId = getUserId(req);
+  // Only the verified caller (or an admin's named user): the old fallback to the x-user-id /
+  // x-device-id headers let an unauthenticated request act as anyone
+  const userId = getUserId(req, new URL(req.url || '/', 'http://local'));
   if (!userId) {
     sendErrorStatus(res, 401, 'Unauthorized');
     return true;
@@ -284,148 +273,86 @@ export async function handleSeedsRoutes(
       return true;
     }
 
-    // POST /api/seeds/claim-daily - Claim daily bonus
+    // POST /api/seeds/claim-daily - Claim daily bonus: the same once-a-day credit as the
+    // day's first conversation (one entry per date), on the caller's date when ?tz= is given
     if (pathname === '/api/seeds/claim-daily' && req.method === 'POST') {
-      const today = new Date().toISOString().split('T')[0];
-      const userSeedsRef = db.collection('user_seeds').doc(userId);
-
-      const result = await db.runTransaction(async (transaction) => {
-        const doc = await transaction.get(userSeedsRef);
-        const data = doc.exists ? doc.data()! : null;
-
-        if (data?.lastDailyClaimDate === today) {
-          return { claimed: false, reason: 'Already claimed today' };
-        }
-
-        const newBalance = (data?.balance ?? STARTER_SEEDS) + DAILY_BONUS;
-        const updates: Record<string, unknown> = {
-          balance: newBalance,
-          lastDailyClaimDate: today,
-          lifetimeEarned: admin.firestore.FieldValue.increment(DAILY_BONUS),
-          'earnedFrom.daily': admin.firestore.FieldValue.increment(DAILY_BONUS),
-          updatedAt: admin.firestore.Timestamp.now(),
-        };
-
-        if (!doc.exists) {
-          transaction.set(userSeedsRef, {
-            ...updates,
-            referralCode: generateReferralCode(),
-            referredBy: null,
-            referrals: [],
-            gardenTitle: 'seedling',
-            currentStreak: 1,
-            lastConversationDate: today,
-            createdAt: admin.firestore.Timestamp.now(),
-          });
-        } else if (data) {
-          // Update streak
-          const yesterday = new Date();
-          yesterday.setDate(yesterday.getDate() - 1);
-          const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-          if (data.lastConversationDate === yesterdayStr) {
-            updates.currentStreak = (data.currentStreak || 0) + 1;
-          } else if (data.lastConversationDate !== today) {
-            updates.currentStreak = 1;
-          }
-          updates.lastConversationDate = today;
-
-          transaction.update(userSeedsRef, updates);
-        }
-
-        return { claimed: true, amount: DAILY_BONUS, newBalance };
-      });
-
-      sendJSON(res, result);
+      const tz = new URL(req.url || '/', 'http://local').searchParams.get('tz') ?? undefined;
+      const result = await awardDailyConversation(db, userId, new Date(), tz);
+      sendJSON(
+        res,
+        result.daily.applied
+          ? {
+              claimed: true,
+              amount: DAILY_SEEDS + (result.milestone?.seeds ?? 0),
+              newBalance: result.daily.balance,
+            }
+          : { claimed: false, reason: 'Already claimed today' }
+      );
       return true;
     }
 
-    // POST /api/seeds/gift - Gift seeds to another user
+    // POST /api/seeds/gift - Gift seeds to another user. Both sides are ledger entries in
+    // one transaction (giftId makes a retry free); the recipient must already have an account.
     if (pathname === '/api/seeds/gift' && req.method === 'POST') {
-      const body = (await parseBody(req)) as { toUserId: string; amount: number; message?: string };
-      const { toUserId, amount, message } = body;
+      const body = (await parseBody(req)) as { toUserId: string; amount: number; giftId?: string };
+      const { toUserId, amount } = body;
 
       if (!toUserId || !amount) {
         sendErrorStatus(res, 400, 'Missing toUserId or amount');
         return true;
       }
-
       if (toUserId === userId) {
         sendErrorStatus(res, 400, "Can't gift to yourself");
         return true;
       }
-
-      if (amount < 10 || amount > 50) {
+      if (!Number.isInteger(amount) || amount < 10 || amount > 50) {
         sendErrorStatus(res, 400, 'Gift amount must be between 10 and 50 seeds');
         return true;
       }
 
-      let multiplier = 1.2;
-      if (amount >= 50) multiplier = 1.4;
-      else if (amount >= 25) multiplier = 1.28;
-      const bonusAmount = Math.round(amount * multiplier) - amount;
-      const totalReceived = amount + bonusAmount;
+      const multiplier = amount >= 50 ? 1.4 : amount >= 25 ? 1.28 : 1.2;
+      const totalReceived = Math.round(amount * multiplier);
+      const giftId = /^[A-Za-z0-9_-]{8,64}$/.test(body.giftId ?? '') ? body.giftId! : randomUUID();
+      // The recipient's key names the sender, so another sender's giftId can't collide with it
+      const [outKey, inKey] = [`gift:${giftId}:out`, `gift:${userId}:${giftId}:in`];
 
-      const senderRef = db.collection('user_seeds').doc(userId);
-      const receiverRef = db.collection('user_seeds').doc(toUserId);
-
-      const result = await db.runTransaction(async (transaction) => {
-        const senderDoc = await transaction.get(senderRef);
-        const receiverDoc = await transaction.get(receiverRef);
-
-        if (!senderDoc.exists) {
-          return { success: false, error: 'Sender not found' };
-        }
-
-        const senderBalance = senderDoc.data()!.balance || 0;
-        if (senderBalance < amount) {
-          return { success: false, error: 'Insufficient seeds' };
-        }
-
-        transaction.update(senderRef, {
-          balance: admin.firestore.FieldValue.increment(-amount),
-          lifetimePlanted: admin.firestore.FieldValue.increment(amount),
-          updatedAt: admin.firestore.Timestamp.now(),
+      const result = await db
+        .runTransaction(async (tx) => {
+          const sender = await prepareSeeds(tx, db, userId, outKey);
+          const receiver = await prepareSeeds(tx, db, toUserId, inKey);
+          if (!receiver.account) return { success: false, error: 'Recipient not found' };
+          const sent = commitSeeds(tx, sender, {
+            delta: -amount,
+            reason: 'gift',
+            key: outKey,
+            meta: { to: toUserId },
+          });
+          // A reused giftId debits nothing, so it must credit nothing (or it would mint seeds)
+          if (!sent.applied) return { success: false, error: 'Gift already sent' };
+          commitSeeds(tx, receiver, {
+            delta: totalReceived,
+            reason: 'gifts',
+            key: inKey,
+            meta: { from: userId },
+          });
+          tx.set(
+            sender.accountRef,
+            { lifetimePlanted: admin.firestore.FieldValue.increment(amount) },
+            { merge: true }
+          );
+          return {
+            success: true,
+            amountSent: amount,
+            bonusAmount: totalReceived - amount,
+            totalReceived,
+            newBalance: sent.balance,
+          };
+        })
+        .catch((error: unknown) => {
+          if (error instanceof InsufficientSeedsError)
+            return { success: false, error: 'Insufficient seeds' };
+          throw error;
         });
-
-        if (!receiverDoc.exists) {
-          transaction.set(receiverRef, {
-            balance: STARTER_SEEDS + totalReceived,
-            lifetimeEarned: STARTER_SEEDS + totalReceived,
-            lifetimePlanted: 0,
-            currentStreak: 0,
-            referralCode: generateReferralCode(),
-            referredBy: null,
-            referrals: [],
-            gardenTitle: 'seedling',
-            earnedFrom: {
-              daily: 0,
-              streaks: 0,
-              conversations: 0,
-              referrals: 0,
-              gifts: totalReceived,
-              milestones: 0,
-            },
-            createdAt: admin.firestore.Timestamp.now(),
-            updatedAt: admin.firestore.Timestamp.now(),
-          });
-        } else {
-          transaction.update(receiverRef, {
-            balance: admin.firestore.FieldValue.increment(totalReceived),
-            lifetimeEarned: admin.firestore.FieldValue.increment(totalReceived),
-            'earnedFrom.gifts': admin.firestore.FieldValue.increment(totalReceived),
-            updatedAt: admin.firestore.Timestamp.now(),
-          });
-        }
-
-        return {
-          success: true,
-          amountSent: amount,
-          bonusAmount,
-          totalReceived,
-          newBalance: senderBalance - amount,
-        };
-      });
 
       sendJSON(res, result);
       return true;
@@ -466,68 +393,35 @@ export async function handleSeedsRoutes(
         return true;
       }
 
-      const referrerDoc = referrersQuery.docs[0];
-      const referrerId = referrerDoc.id;
-
+      const referrerId = referrersQuery.docs[0]!.id;
       if (referrerId === userId) {
         sendErrorStatus(res, 400, "Can't refer yourself");
         return true;
       }
 
-      const userSeedsRef = db.collection('user_seeds').doc(userId);
-      const referrerRef = db.collection('user_seeds').doc(referrerId);
-
-      const result = await db.runTransaction(async (transaction) => {
-        const userDoc = await transaction.get(userSeedsRef);
-
-        if (userDoc.exists && userDoc.data()?.referredBy) {
+      // Both bonuses are ledger entries with one key, so a retried signup pays once
+      const key = `referral:${referrerId}:${userId}`;
+      const result = await db.runTransaction(async (tx) => {
+        const newUser = await prepareSeeds(tx, db, userId, key);
+        const referrer = await prepareSeeds(tx, db, referrerId, key);
+        if (newUser.account?.referredBy)
           return { success: false, error: 'Already referred by someone' };
-        }
 
-        if (!userDoc.exists) {
-          transaction.set(userSeedsRef, {
-            balance: STARTER_SEEDS + REFERRAL_NEW_USER_BONUS,
-            lifetimeEarned: STARTER_SEEDS + REFERRAL_NEW_USER_BONUS,
-            lifetimePlanted: 0,
-            currentStreak: 0,
-            referralCode: generateReferralCode(),
-            referredBy: referrerId,
-            referrals: [],
-            gardenTitle: 'seedling',
-            earnedFrom: {
-              daily: 0,
-              streaks: 0,
-              conversations: 0,
-              referrals: REFERRAL_NEW_USER_BONUS,
-              gifts: 0,
-              milestones: 0,
-            },
-            createdAt: admin.firestore.Timestamp.now(),
-            updatedAt: admin.firestore.Timestamp.now(),
-          });
-        } else {
-          transaction.update(userSeedsRef, {
-            balance: admin.firestore.FieldValue.increment(REFERRAL_NEW_USER_BONUS),
-            lifetimeEarned: admin.firestore.FieldValue.increment(REFERRAL_NEW_USER_BONUS),
-            referredBy: referrerId,
-            'earnedFrom.referrals': admin.firestore.FieldValue.increment(REFERRAL_NEW_USER_BONUS),
-            updatedAt: admin.firestore.Timestamp.now(),
-          });
-        }
-
-        const referrerData = referrerDoc.data()!;
-        const newReferrals = [...(referrerData.referrals || []), userId];
-        const newGardenTitle = getGardenTitle(newReferrals.length);
-
-        transaction.update(referrerRef, {
-          balance: admin.firestore.FieldValue.increment(REFERRAL_SIGNUP_REWARD),
-          lifetimeEarned: admin.firestore.FieldValue.increment(REFERRAL_SIGNUP_REWARD),
-          referrals: admin.firestore.FieldValue.arrayUnion(userId),
-          gardenTitle: newGardenTitle,
-          'earnedFrom.referrals': admin.firestore.FieldValue.increment(REFERRAL_SIGNUP_REWARD),
-          updatedAt: admin.firestore.Timestamp.now(),
-        });
-
+        const referrals = [
+          ...((referrer.account?.referrals as string[] | undefined) ?? []),
+          userId,
+        ];
+        commitSeeds(tx, newUser, { delta: REFERRAL_NEW_USER_BONUS, reason: 'referrals', key });
+        commitSeeds(tx, referrer, { delta: REFERRAL_SIGNUP_REWARD, reason: 'referrals', key });
+        tx.set(newUser.accountRef, { referredBy: referrerId }, { merge: true });
+        tx.set(
+          referrer.accountRef,
+          {
+            referrals: admin.firestore.FieldValue.arrayUnion(userId),
+            gardenTitle: getGardenTitle(new Set(referrals).size),
+          },
+          { merge: true }
+        );
         return {
           success: true,
           newUserBonus: REFERRAL_NEW_USER_BONUS,

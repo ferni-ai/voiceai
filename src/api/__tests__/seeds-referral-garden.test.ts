@@ -9,7 +9,9 @@
  * The garden also reported `activeReferrals` / `weeklyPassiveSeeds` that nothing
  * tracks or pays.
  *
- * Real HTTP through the real handler; only Firestore is faked (in memory).
+ * Real HTTP through the real handler; only Firestore is faked (in memory). Referral
+ * payouts and the garden counts they move run on the emulator instead, because they go
+ * through the seed ledger: seeds-routes-ledger.emulator.test.ts.
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -141,39 +143,8 @@ describe('garden: the shared link is the registered one', () => {
     expect(fs.docs.get('alice')?.referralCode).toBe(first.referralCode); // persisted, not just returned
   });
 
-  it('a friend using the shown link registers, and the garden counts move', async () => {
-    seedAwardOnlyUser('alice');
-    const before = await garden('alice');
-    expect(before.totalReferrals).toBe(0);
-    expect(before.totalEarnedFromReferrals).toBe(0);
-
-    const res = await refer('bob', before.referralCode);
-
-    expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ success: true, newUserBonus: 25, referrerBonus: 25 });
-    const after = await garden('alice');
-    expect(after.totalReferrals).toBe(1);
-    expect(after.totalEarnedFromReferrals).toBe(25);
-    expect(after.referralCode).toBe(before.referralCode);
-  });
-
   it('a code the server never issued is rejected', async () => {
     const res = await refer('bob', 'zzzzzz-meadow');
     expect(res.status).toBe(404);
-  });
-
-  it('does not report counters nothing tracks or pays', async () => {
-    seedAwardOnlyUser('alice');
-    await refer('bob', (await garden('alice')).referralCode);
-
-    const g = await garden('alice');
-    expect(g).not.toHaveProperty('activeReferrals');
-    expect(g).not.toHaveProperty('weeklyPassiveSeeds');
-
-    const summary = (await (
-      await fetch(`${base}/api/seeds`, { headers: { 'x-firebase-uid': 'alice' } })
-    ).json()) as { garden: Record<string, unknown>; referralCode: string };
-    expect(summary.referralCode).toBe(g.referralCode);
-    expect(summary.garden).toEqual({ title: 'seedling', totalReferrals: 1 });
   });
 });
