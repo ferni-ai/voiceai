@@ -28,6 +28,7 @@ import {
 import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js';
 import {
   channelsFromSettings,
+  proactiveSettingsFrom,
   readOutreachConsent,
   settingsFromChannels,
   writeOutreachConsent,
@@ -175,6 +176,7 @@ export async function handleOutreachRoutes(
         channels: Array.isArray(preferences?.allowedChannels)
           ? channelsFromSettings(preferences.allowedChannels)
           : undefined,
+        ...proactiveSettingsFrom(preferences),
       });
       updateOutreachPreferences(authenticatedUserId, preferences);
       sendJsonResponse(res, 200, { success: true, message: 'Preferences updated' });

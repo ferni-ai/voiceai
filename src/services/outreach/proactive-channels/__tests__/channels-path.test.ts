@@ -1,0 +1,247 @@
+/**
+ * Which channel a proactive check-in takes, end to end: the per-minute
+ * scheduler handler → the run → the channel policy → the text or in-app
+ * adapter → the outreach log. Firestore is in memory; Firebase Auth (the
+ * verified phone) and the Twilio send are stubbed at the SDK boundary.
+ */
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { pathFirestore } from './path-firestore.js';
+
+const docs = new Map<string, Record<string, unknown>>();
+const authUsers = new Map<string, { phoneNumber?: string }>();
+const texts: Array<{ to: string; body: string }> = [];
+let twilioDown = false;
+
+vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => pathFirestore(docs),
+}));
+vi.mock('../../../workflows/scheduled-actions.js', () => ({
+  deliverDueScheduledActions: vi.fn(async () => ({ due: 0, delivered: 0 })),
+}));
+vi.mock('../../../data-layer/hooks/superhuman-hooks.js', () => ({
+  onCommitmentKeeperChange: vi.fn(async () => undefined),
+}));
+vi.mock('../../../identity/firebase-auth.js', () => ({
+  getFirebaseUser: vi.fn(async (uid: string) => authUsers.get(uid) ?? null),
+}));
+vi.mock('../../../communication-service.js', () => ({
+  sendSMS: vi.fn(async (to: string, body: string) => {
+    if (twilioDown) throw new Error('Twilio error: 503');
+    texts.push({ to, body });
+    return 'sent';
+  }),
+}));
+
+const { handleDeliverScheduledActions } =
+  await import('../../../../api/scheduled-jobs/background-delivery-jobs.js');
+
+const SETH = 'seth-uid';
+const PHONE = '+15555550123';
+const HOUR = 3600_000;
+// 11:00 in New York, 08:00 in Los Angeles.
+const NOW = new Date('2026-10-12T15:00:00Z');
+const TEXTS_AND_CALLS = { channels: ['sms', 'voice_call'] };
+
+function seedUser(extra: Record<string, unknown> = {}) {
+  docs.set(`bogle_users/${SETH}`, {
+    contactInfo: { timezone: 'America/New_York' },
+    lastContact: new Date(NOW.getTime() - 30 * HOUR).toISOString(),
+    outreachPreferences: TEXTS_AND_CALLS,
+    ...extra,
+  });
+}
+function seedPromise(id: string, topic = 'the move') {
+  docs.set(`bogle_users/${SETH}/ferni_commitments/${id}`, {
+    type: 'check_in',
+    commitment: `I'll check in about ${topic}`,
+    relatedTopic: topic,
+    madeAt: new Date(NOW.getTime() - 20 * HOUR).toISOString(),
+    outcome: 'open',
+  });
+}
+function seedLog(id: string, entry: Record<string, unknown>) {
+  docs.set(`bogle_users/${SETH}/proactive_outreach_log/${id}`, {
+    sourceId: id,
+    kind: 'promise',
+    reason: 'earlier',
+    why: 'timely',
+    outcome: 'sent',
+    ...entry,
+  });
+}
+const under = (prefix: string) =>
+  [...docs.entries()].filter(([p]) => p.startsWith(prefix)).map(([, d]) => d);
+const notes = () => under(`bogle_users/${SETH}/pending_messages/`);
+const logOf = (id: string) => docs.get(`bogle_users/${SETH}/proactive_outreach_log/${id}`);
+
+async function runHandler(): Promise<{ status: string; channel?: string; why?: string }> {
+  let body = '';
+  const res = { writeHead: () => res, setHeader: () => undefined, end: (b: string) => (body = b) };
+  await handleDeliverScheduledActions(
+    { url: '/api/jobs/deliver-scheduled-actions' } as never,
+    res as never
+  );
+  return (JSON.parse(body) as { proactive: { users: Array<{ status: string }> } }).proactive
+    .users[0];
+}
+
+beforeEach(() => {
+  docs.clear();
+  authUsers.clear();
+  texts.length = 0;
+  twilioDown = false;
+  authUsers.set(SETH, { phoneNumber: PHONE });
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(NOW);
+  process.env.PROACTIVE_CHANNELS = 'on';
+  process.env.PROACTIVE_CHANNELS_USERS = SETH;
+});
+afterEach(() => {
+  vi.useRealTimers();
+  delete process.env.PROACTIVE_CHANNELS;
+  delete process.env.PROACTIVE_CHANNELS_USERS;
+});
+
+describe('proactive check-in channel', () => {
+  it('texts a timely promise to the verified phone and logs the text', async () => {
+    seedUser();
+    seedPromise('p1');
+    expect(texts).toHaveLength(0);
+
+    const result = await runHandler();
+    expect(texts).toEqual([
+      { to: PHONE, body: "Hey, it's Ferni. I said I'd check in about the move. How's it going?" },
+    ]);
+    expect(notes()).toHaveLength(0);
+    expect(logOf('promise:p1')).toMatchObject({ channel: 'sms', outcome: 'sent', why: 'timely' });
+    expect(result).toMatchObject({ status: 'sent', channel: 'sms' });
+  });
+
+  it('never texts a number that is not on the Firebase account', async () => {
+    authUsers.delete(SETH);
+    seedUser({ phone: PHONE, contactInfo: { timezone: 'America/New_York', phone: PHONE } });
+    seedPromise('p1');
+    await runHandler();
+    expect(texts).toHaveLength(0);
+    expect(notes()).toHaveLength(1);
+    expect(logOf('promise:p1')).toMatchObject({ channel: 'in_app', why: 'no verified phone' });
+  });
+
+  it('without texts turned on, it is a note in the app', async () => {
+    seedUser({ outreachPreferences: {} });
+    seedPromise('p1');
+    await runHandler();
+    expect(texts).toHaveLength(0);
+    expect(logOf('promise:p1')).toMatchObject({ channel: 'in_app', why: 'texts not turned on' });
+  });
+
+  it('holds during quiet hours in their own time zone, then sends after', async () => {
+    // 22:30 in New York is quiet; it would be 19:30 on the old Los Angeles default.
+    vi.setSystemTime(new Date('2026-10-13T02:30:00Z'));
+    seedUser();
+    seedPromise('p1');
+    expect(await runHandler()).toMatchObject({ status: 'held', why: 'quiet hours' });
+    expect(texts).toHaveLength(0);
+    expect(logOf('promise:p1')).toBeUndefined();
+
+    vi.setSystemTime(new Date('2026-10-13T12:30:00Z')); // 08:30 New York
+    await runHandler();
+    expect(texts).toHaveLength(1);
+  });
+
+  it('their own quiet hours win over the default', async () => {
+    // 11:00 New York, inside a 10:00-12:00 quiet window they set.
+    seedUser({
+      outreachPreferences: {
+        ...TEXTS_AND_CALLS,
+        quietHours: { enabled: true, start: '10:00', end: '12:00' },
+      },
+    });
+    seedPromise('p1');
+    expect(await runHandler()).toMatchObject({ status: 'held', why: 'quiet hours' });
+    expect(texts).toHaveLength(0);
+  });
+
+  it('gentle: the third text of the day becomes a note in the app', async () => {
+    seedUser();
+    seedLog('a', {
+      channel: 'sms',
+      at: new Date(NOW.getTime() - 3 * HOUR).toISOString(),
+      outcome: 'replied',
+    });
+    seedLog('b', {
+      channel: 'sms',
+      at: new Date(NOW.getTime() - 2 * HOUR).toISOString(),
+      outcome: 'replied',
+    });
+    seedPromise('p1');
+    await runHandler();
+    expect(texts).toHaveLength(0);
+    expect(logOf('promise:p1')).toMatchObject({
+      channel: 'in_app',
+      why: 'text limit reached today',
+    });
+  });
+
+  it('normal frequency allows that third text', async () => {
+    seedUser({ outreachPreferences: { ...TEXTS_AND_CALLS, proactiveFrequency: 'normal' } });
+    seedLog('a', {
+      channel: 'sms',
+      at: new Date(NOW.getTime() - 3 * HOUR).toISOString(),
+      outcome: 'replied',
+    });
+    seedLog('b', {
+      channel: 'sms',
+      at: new Date(NOW.getTime() - 2 * HOUR).toISOString(),
+      outcome: 'replied',
+    });
+    seedPromise('p1');
+    await runHandler();
+    expect(texts).toHaveLength(1);
+  });
+
+  it('backs off texts after two went unanswered since they last talked', async () => {
+    seedUser({ lastContact: new Date(NOW.getTime() - 60 * HOUR).toISOString() });
+    seedLog('a', { channel: 'sms', at: new Date(NOW.getTime() - 50 * HOUR).toISOString() });
+    seedLog('b', { channel: 'sms', at: new Date(NOW.getTime() - 26 * HOUR).toISOString() });
+    seedPromise('p1');
+    await runHandler();
+    expect(texts).toHaveLength(0);
+    expect(logOf('promise:p1')).toMatchObject({
+      channel: 'in_app',
+      why: 'last texts went unanswered',
+    });
+  });
+
+  it('a text that fails goes to the app instead and the log says so', async () => {
+    twilioDown = true;
+    seedUser();
+    seedPromise('p1');
+    await runHandler();
+    expect(notes()).toHaveLength(1);
+    expect(logOf('promise:p1')).toMatchObject({
+      channel: 'in_app',
+      fallbackFrom: 'sms',
+      outcome: 'sent',
+    });
+  });
+
+  it('"stop" (frequency off) sends nothing on any channel', async () => {
+    seedUser({ outreachPreferences: { ...TEXTS_AND_CALLS, proactiveFrequency: 'off' } });
+    seedPromise('p1');
+    expect(await runHandler()).toMatchObject({ status: 'skipped' });
+    expect(texts).toHaveLength(0);
+    expect(notes()).toHaveLength(0);
+  });
+
+  it('a snooze holds everything until it ends', async () => {
+    const until = new Date(NOW.getTime() + 2 * HOUR).toISOString();
+    seedUser({ outreachPreferences: { ...TEXTS_AND_CALLS, proactiveSnoozeUntil: until } });
+    seedPromise('p1');
+    expect(await runHandler()).toMatchObject({ status: 'held', why: 'snoozed' });
+    vi.setSystemTime(new Date(NOW.getTime() + 3 * HOUR));
+    await runHandler();
+    expect(texts).toHaveLength(1);
+  });
+});
