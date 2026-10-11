@@ -35,6 +35,7 @@ import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { avatarSidekicks } from './avatar-sidekicks.ui.js';
+import { requestAttention } from '../services/attention-queue.js';
 import { morphIconToText, morphTextToIcon, setExpression } from './ferni-expressions.ui.js';
 
 const log = createLogger('FerniMoments');
@@ -1120,11 +1121,10 @@ function startTimeAwareness(): void {
       lastTimeCheck = timeSlot;
       // Only auto-play on significant transitions
       if (timeSlot === 'morning' || timeSlot === 'evening' || timeSlot === 'lateNight') {
-        // Use sidekicks for a subtle, non-intrusive moment beside the avatar
-        // instead of the dramatic center morph animation
+        // A subtle sidekick beside the avatar (not the center morph), after a short delay
         trackedTimeout(() => {
-          avatarSidekicks.timeOfDay();
-        }, 2000); // Delay so it doesn't feel jarring
+          requestAttention('time-of-day', () => avatarSidekicks.timeOfDay());
+        }, 2000);
       }
     }
   };

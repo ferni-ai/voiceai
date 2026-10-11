@@ -19,6 +19,7 @@ import {
 // Theme & Language Settings panel
 import { showThemeLanguageSettings } from './ui/theme-language-settings.ui.js';
 import { devPanelMayEnable } from './ui/dev-panel-gate.js';
+import { holdUntilFirstCall } from './app/calm-boot.js';
 import {
   openCalendarView,
   openChronicle,
@@ -1206,11 +1207,10 @@ class VoiceAIApp {
    * Use for non-critical features that can load after the UI is visible.
    */
   private deferredInit(name: string, delayMs: number, initFn: () => Promise<void>): void {
-    setTimeout(() => {
-      initFn().catch((error) => {
-        log.error(`Failed to initialize ${name} (deferred):`, error);
-      });
-    }, delayMs);
+    const run = (): void => {
+      initFn().catch((error) => log.error(`Failed to initialize ${name} (deferred):`, error));
+    };
+    if (!holdUntilFirstCall(name, run)) setTimeout(run, delayMs);
   }
 
   /**
