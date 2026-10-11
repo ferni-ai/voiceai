@@ -72,6 +72,13 @@ export interface SchedulerConfig {
   maxRetries: number;
 }
 
+/**
+ * Marks the scheduled_outreach docs this scheduler owns. The subcollection is
+ * shared with scheduled-multi-outreach.ts, whose docs are messages to the
+ * user's contacts; delivering one of those here would send it to the user.
+ */
+export const PROACTIVE_OUTREACH_SOURCE = 'proactive-scheduler';
+
 const DEFAULT_CONFIG: SchedulerConfig = {
   checkIntervalMs: 60 * 1000, // Check every minute
   maxBatchSize: 10,
@@ -429,6 +436,7 @@ async function persistOutreach(outreach: ScheduledOutreach): Promise<void> {
       .set(
         cleanForFirestore({
           ...outreach,
+          source: PROACTIVE_OUTREACH_SOURCE,
           scheduledFor: outreach.scheduledFor.toISOString(),
           createdAt: outreach.createdAt.toISOString(),
         })
@@ -468,8 +476,12 @@ export async function loadPendingOutreach(): Promise<void> {
       .where('status', '==', 'pending')
       .get();
 
+    let loaded = 0;
     for (const doc of snapshot.docs) {
       const data = doc.data();
+      // Filtered here, not in the query: a collection-group equality on
+      // `source` would need a new index, and without it the query fails.
+      if (data.source !== PROACTIVE_OUTREACH_SOURCE) continue;
       const outreach: ScheduledOutreach = {
         ...data,
         scheduledFor: new Date(data.scheduledFor),
@@ -477,9 +489,13 @@ export async function loadPendingOutreach(): Promise<void> {
       } as ScheduledOutreach;
 
       pendingOutreach.set(outreach.id, outreach);
+      loaded++;
     }
 
-    log.info({ count: snapshot.size }, '📥 Loaded pending outreach from Firestore');
+    log.info(
+      { count: loaded, skipped: snapshot.size - loaded },
+      '📥 Loaded pending outreach from Firestore'
+    );
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to load pending outreach');
   }
