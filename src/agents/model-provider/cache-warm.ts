@@ -17,7 +17,8 @@
  * turn would (toolsForTurn), and warms again after each later change to them,
  * once per distinct tool set.
  *
- * Both fast-lane models are warmed. CASCADE_CACHE_WARM=on turns it on.
+ * Both fast-lane models are warmed. CASCADE_CACHE_WARM=on (or FIRST_TURN_FAST=on)
+ * turns it on.
  *
  * @module agents/model-provider/cache-warm
  */
@@ -35,7 +36,8 @@ export const WARM_SETTLE_MS = 750;
 const MAX_WARMS = 6;
 
 export function cacheWarmEnabled(env: Record<string, string | undefined> = process.env): boolean {
-  return env.CASCADE_CACHE_WARM === 'on';
+  // FIRST_TURN_FAST covers every part of the first reply that is slow because it is first.
+  return env.CASCADE_CACHE_WARM === 'on' || env.FIRST_TURN_FAST === 'on';
 }
 
 interface AgentView {

@@ -11,7 +11,7 @@
  * @see https://docs.livekit.io/agents/build/agents-handoffs
  */
 
-import { llm, stt, voice } from '@livekit/agents';
+import { llm, type stt, voice } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { processAudioStream } from '../voice-agent/audio-processor.js';
@@ -29,9 +29,9 @@ import {
 import { generateReply } from '../shared/generate-reply-gateway.js';
 // Safe fire-and-forget for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
-// Model provider abstraction
 import { getModelProvider } from '../model-provider/index.js';
 import { filterCaptionStream } from './caption-filter.js';
+import { sttWithFirstTurnFast } from './first-turn-fast.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
 import { isScreeningCall } from '../shared/line-screen.js';
@@ -634,7 +634,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
    * Override sttNode to tap user audio for parallel biomarker analysis.
    *
    * The audio stream is tee'd into two branches:
-   * - audioForStt: goes to the default STT (transcription, unchanged)
+   * - audioForStt: goes to the STT (FIRST_TURN_FAST may end turn 1 early: first-turn-fast.ts)
    * - audioForProcessor: goes to processAudioStream (prosody, biomarkers, voice emotion)
    *
    * This populates userData.voiceEmotion and userData.voiceBiomarkers, which
@@ -675,7 +675,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
       sendDataMessage,
     }).catch((e) => log.debug({ error: String(e) }, 'Audio processor (non-critical)'));
 
-    return voice.Agent.default.sttNode(this, audioForStt, modelSettings);
+    return sttWithFirstTurnFast(this.session, audioForStt, (a) => super.sttNode(a, modelSettings));
   }
 
   /** Captions are what the app shows: drop speech markup the TTS consumes. See caption-filter.ts. */
