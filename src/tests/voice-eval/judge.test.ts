@@ -6,8 +6,9 @@ import {
   candorTurnsOf,
   combine,
   DIMENSIONS,
-  ferniBiography,
   meanCi,
+  personaOf,
+  personaProfile,
   pool,
   promptFor,
 } from '../../../scripts/voice-eval/judge.mjs';
@@ -65,11 +66,39 @@ describe('voice-eval judge', () => {
   });
 
   it("gives the judge Ferni's canonical background so its stories are judged against it", () => {
-    expect(ferniBiography()).toMatch(/Wyoming/);
-    expect(ferniBiography()).toMatch(/Japan/);
+    expect(personaProfile('ferni').bio).toMatch(/Wyoming/);
+    expect(personaProfile('ferni').bio).toMatch(/Japan/);
     const p = promptFor({ userSpeech: [[0, 1]], events: [] }, null);
     expect(p).toContain("FERNI'S BACKGROUND");
-    expect(ferniBiography('/no/such/file')).toBe('');
+    expect(personaProfile('no-such-persona')).toEqual({
+      id: 'no-such-persona',
+      name: 'no-such-persona',
+      bio: '',
+    });
+  });
+
+  it("judges a teammate call as that teammate, with their background and none of Ferni's", () => {
+    const maya = {
+      ...run([
+        ['user', 'I said I would go to the gym and I have not gone once.'],
+        ['agent', 'Okay, no shame. What time does your alarm go off?'],
+      ]),
+      meta: { persona: 'maya-santos' },
+    };
+    expect(personaOf(maya)).toBe('maya-santos');
+    const p = promptFor(maya, null);
+    expect(p).toContain('how good a friend "Maya" is');
+    expect(p).toContain('2. MAYA: Okay, no shame.');
+    expect(p).toContain("MAYA'S BACKGROUND");
+    // No biography-core.md for Maya yet: the bundle's own summary stands in.
+    expect(p).toMatch(/habits coach/i);
+    for (const ferniMarker of [/ferni/i, /Wyoming/, /Japan/, /kintsugi/i, /tsunami/i])
+      expect(p).not.toMatch(ferniMarker);
+  });
+
+  it('judges a run with no persona as Ferni', () => {
+    expect(personaOf({ meta: { uid: 'voice-eval-x' } })).toBe('ferni');
+    expect(personaOf({})).toBe('ferni');
   });
 
   it('tells the judge that fair inferences from what the caller said are not invented', () => {
