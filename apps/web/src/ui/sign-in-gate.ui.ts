@@ -123,13 +123,11 @@ const STYLES = `
   min-height: 52px;
 }
 
-.sign-in-gate-btn:hover {
-  transform: translateY(-1px);
-}
-
-.sign-in-gate-btn:active {
-  transform: translateY(0);
-}
+.sign-in-gate-btn:hover { transform: translateY(-1px); }
+.sign-in-gate-btn:active { transform: translateY(0); }
+/* Ring drawn inside the button, so the focused one doesn't look wider than its sibling */
+.sign-in-gate-btn:focus-visible { outline: 2px solid currentColor; outline-offset: -5px;
+  box-shadow: none; border-radius: var(--radius-lg, 12px); }
 
 .sign-in-gate-btn:disabled {
   opacity: 0.6;
@@ -546,6 +544,7 @@ function createOverlay(): HTMLElement {
   const googleBtn = document.createElement('button');
   googleBtn.className = 'sign-in-gate-btn sign-in-gate-btn--google';
   googleBtn.dataset.provider = 'google';
+  googleBtn.dataset.focusRing = 'inset'; // no outward pulse: the focused button would look wider
   googleBtn.appendChild(createGoogleIcon());
   const googleText = document.createElement('span');
   googleText.textContent = t('auth.continueWithGoogle');
@@ -555,6 +554,7 @@ function createOverlay(): HTMLElement {
   const appleBtn = document.createElement('button');
   appleBtn.className = 'sign-in-gate-btn sign-in-gate-btn--apple';
   appleBtn.dataset.provider = 'apple';
+  appleBtn.dataset.focusRing = 'inset';
   appleBtn.appendChild(createAppleIcon());
   const appleText = document.createElement('span');
   appleText.textContent = t('auth.continueWithApple');

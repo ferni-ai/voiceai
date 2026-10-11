@@ -1319,7 +1319,7 @@
         "calendar": "캘린더",
         "history": "지난 대화",
         "people": "소중한 사람들",
-        "insights": "요즘 나의 상태"
+        "insights": "내가 알게 된 것들"
       }
     },
     "ariaLabel": "설정 메뉴",
@@ -8790,6 +8790,7 @@
     }
   },
   "conversationHistory": {
+    "title": "지난 대화",
     "loadError": "데이터를 불러오지 못했어요.",
     "tryAgain": "다시 시도해 볼까요?",
     "ariaLabel": "대화 기록",

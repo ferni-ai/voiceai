@@ -1319,7 +1319,7 @@
         "calendar": "行事曆",
         "history": "過去的對話",
         "people": "你身邊的人",
-        "insights": "你的近況"
+        "insights": "我的收穫"
       }
     },
     "ariaLabel": "設定選單",
@@ -8790,6 +8790,7 @@
     }
   },
   "conversationHistory": {
+    "title": "過去的對話",
     "loadError": "無法載入資料。",
     "tryAgain": "要再試一次嗎？",
     "ariaLabel": "對話紀錄",

@@ -682,7 +682,7 @@ class CognitiveInsightsUI {
       .cognitive-insights__card {
         position: relative;
         width: 100%;
-        max-width: clamp(308px, 90vw, 440px);
+        max-width: var(--modal-width, clamp(336px, 90vw, 480px));
         max-height: 80vh;
         background: var(--color-bg-elevated, #FFFDFB);
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));

@@ -1319,7 +1319,7 @@
         "calendar": "Kalender",
         "history": "Bisherige Gespräche",
         "people": "Deine Leute",
-        "insights": "Wie es dir geht"
+        "insights": "Was ich gelernt habe"
       }
     },
     "ariaLabel": "Einstellungen-Menü",
@@ -8790,6 +8790,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Bisherige Gespräche",
     "loadError": "Daten konnten nicht geladen werden.",
     "tryAgain": "Nochmal versuchen?",
     "ariaLabel": "Gesprächsverlauf",

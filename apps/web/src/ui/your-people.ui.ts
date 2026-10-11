@@ -234,8 +234,8 @@ function injectStyles(): void {
     }
 
     .yp-close {
-      width: var(--space-10, 2.5rem);
-      height: var(--space-10, 2.5rem);
+      width: var(--space-11, 2.75rem);
+      height: var(--space-11, 2.75rem);
       border: none;
       background: transparent;
       border-radius: var(--radius-full, 50%);
