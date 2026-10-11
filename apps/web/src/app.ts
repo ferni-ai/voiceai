@@ -1850,7 +1850,7 @@ class VoiceAIApp {
     // 👥 Speaker Change Indicator - Gentle verification when voice changes
     this.safeInit('SpeakerChangeIndicator', () => initSpeakerChangeIndicator());
 
-    // 🏥 Service Health - Show degradation status to users
+    // 🏥 Service Health - internal status pill, admin sessions only
     this.safeInit('ServiceHealthUI', () => initServiceHealthUI());
 
     // 📋 Settings Menu - Central navigation hub
