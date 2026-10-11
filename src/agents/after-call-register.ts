@@ -8,3 +8,4 @@
  * @module agents/after-call-register
  */
 import '../intelligence/theory-of-mind/register.js';
+import '../intelligence/world-model/extraction/register.js';

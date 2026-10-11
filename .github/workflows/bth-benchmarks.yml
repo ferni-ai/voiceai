@@ -32,10 +32,17 @@ env:
   # Regression threshold - fail if F1 drops more than this
   REGRESSION_THRESHOLD: '0.05'
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   benchmark:
     name: BTH Capability Benchmark
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     # The repo's default token is read-only; this job's PR comment step needs write.
     permissions:
       contents: read
@@ -189,7 +196,7 @@ jobs:
   notify:
     name: Notify Results
     needs: benchmark
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.notify_on_success == 'true')
 
     steps:
@@ -318,7 +325,7 @@ jobs:
   store-history:
     name: Store Benchmark History
     needs: benchmark
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     if: github.event_name == 'schedule' && needs.benchmark.outputs.has_regressions != 'true'
 
     steps:

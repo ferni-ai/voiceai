@@ -4,6 +4,7 @@ import { ponderUser, toPonderSummary } from '../ponder-user.js';
 import {
   buildPonderingPrompt,
   isSubstantive,
+  friendWorthy,
   parsePondering,
   ponder,
   validWhen,
@@ -38,6 +39,10 @@ describe('buildPonderingPrompt', () => {
     expect(p).toContain('Today is 2026-10-10');
     expect(p).toContain('[s1] 2026-10-09');
     expect(p).toContain('Never attribute your own stories to them');
+    expect(p).toContain('never refer to them in the third person');
+    expect(p).toMatch(/setback or disappointment is never a thinkingOf note/);
+    expect(p).toMatch(/Never routine daily life/);
+    expect(p).toMatch(/Never ask how something went unless you know it has happened/);
   });
 });
 
@@ -51,19 +56,35 @@ describe('validWhen', () => {
   });
 });
 
+describe('friendWorthy', () => {
+  it('keeps what a friend would say', () => {
+    expect(friendWorthy({ text: "How's the sourdough coming along?" })).toBe(true);
+    expect(friendWorthy({ text: 'How did the bake sale go?', when: '2026-10-17' })).toBe(true);
+    expect(friendWorthy({ text: 'Is the all-hands still on for next month?' })).toBe(true);
+  });
+
+  it('drops notes to self, routine trivia and "how did it go" before the event', () => {
+    expect(friendWorthy({ text: 'Ask how the bake sale went', when: '2026-10-17' })).toBe(false);
+    expect(friendWorthy({ text: 'Check if they used the banneton' })).toBe(false);
+    expect(friendWorthy({ text: 'Did you get to bed early like you planned?' })).toBe(false);
+    expect(friendWorthy({ text: 'How did the all-hands presentation go?' })).toBe(false);
+    expect(friendWorthy({ text: 'How was the trip?' })).toBe(false);
+  });
+});
+
 describe('parsePondering', () => {
-  const ids = new Set(['s1']);
+  const ids = new Set(['s1', 's2']);
 
   it('drops anything that does not cite a summary it was given', () => {
     const p = parsePondering(
       reply({
         followUps: [
-          { text: 'Ask how the surgery went', when: '2026-10-14', basis: 's1' },
-          { text: 'Ask about the promotion', basis: 'made-up' },
+          { text: 'How did the surgery go?', when: '2026-10-14', basis: 's1' },
+          { text: 'How is the promotion going?', basis: 'made-up' },
           { text: 'No basis at all' },
         ],
         thinkingOf: [
-          { text: 'your mom', basis: 's1' },
+          { text: 'your mom', basis: 's2' },
           { text: 'invented', basis: 'x' },
         ],
       }),
@@ -71,23 +92,56 @@ describe('parsePondering', () => {
       today
     );
     expect(p.followUps).toEqual([
-      { text: 'Ask how the surgery went', when: '2026-10-14', basis: 's1' },
+      { text: 'How did the surgery go?', when: '2026-10-14', basis: 's1' },
     ]);
-    expect(p.thinkingOf).toEqual([{ text: 'your mom', basis: 's1' }]);
+    expect(p.thinkingOf).toEqual([{ text: 'your mom', basis: 's2' }]);
+  });
+
+  it('drops a note drawn from the same call as a follow-up: one thought, not two', () => {
+    const p = parsePondering(
+      reply({
+        followUps: [{ text: 'Did skipping the snooze button stick?', basis: 's1' }],
+        thinkingOf: [
+          { text: 'your chaotic mornings and the snooze button', basis: 's1' },
+          { text: "your grandmother's bread", basis: 's2' },
+        ],
+      }),
+      ids,
+      today
+    );
+    expect(p.followUps).toHaveLength(1);
+    expect(p.thinkingOf).toEqual([{ text: "your grandmother's bread", basis: 's2' }]);
   });
 
   it('keeps a follow-up but drops a date in the past', () => {
     const p = parsePondering(
-      reply({ followUps: [{ text: 'Ask', when: '2026-01-01', basis: 's1' }] }),
+      reply({ followUps: [{ text: 'How is your mom?', when: '2026-01-01', basis: 's1' }] }),
       ids,
       today
     );
-    expect(p.followUps).toEqual([{ text: 'Ask', basis: 's1' }]);
+    expect(p.followUps).toEqual([{ text: 'How is your mom?', basis: 's1' }]);
+  });
+
+  it('keeps only follow-ups a friend would say', () => {
+    const p = parsePondering(
+      reply({
+        followUps: [
+          { text: 'Ask how the late-night run went', basis: 's1' },
+          { text: 'Did you get to bed early?', basis: 's1' },
+          { text: 'How did the all-hands go?', basis: 's2' },
+          { text: "How's your dad feeling after the surgery?", when: '2026-10-14', basis: 's2' },
+        ],
+      }),
+      ids,
+      today
+    );
+    expect(p.followUps.map((f) => f.text)).toEqual(["How's your dad feeling after the surgery?"]);
   });
 
   it('caps follow-ups at 3 and notes at 2', () => {
-    const many = Array.from({ length: 6 }, (_, i) => ({ text: `item ${i}`, basis: 's1' }));
-    const p = parsePondering(reply({ followUps: many, thinkingOf: many }), ids, today);
+    const many = (basis: string) =>
+      Array.from({ length: 6 }, (_, i) => ({ text: `item ${i}`, basis }));
+    const p = parsePondering(reply({ followUps: many('s1'), thinkingOf: many('s2') }), ids, today);
     expect(p.followUps).toHaveLength(3);
     expect(p.thinkingOf).toHaveLength(2);
   });
@@ -110,7 +164,7 @@ describe('ponder', () => {
     const llm = vi.fn().mockResolvedValue(
       reply({
         followUps: [
-          { text: 'Ask about mom', basis: 'a' },
+          { text: 'How is your mom doing?', basis: 'a' },
           { text: 'x', basis: 'junk' },
         ],
         thinkingOf: [],
@@ -121,7 +175,7 @@ describe('ponder', () => {
       today,
       llm
     );
-    expect(out.followUps).toEqual([{ text: 'Ask about mom', basis: 'a' }]);
+    expect(out.followUps).toEqual([{ text: 'How is your mom doing?', basis: 'a' }]);
     expect(llm.mock.calls[0]?.[0]).not.toContain('[junk]');
   });
 });
@@ -200,14 +254,14 @@ describe('ponderUser', () => {
       'u1',
       async () =>
         reply({
-          followUps: [{ text: 'Ask about mom', when: '2026-10-14', basis: 'a' }],
+          followUps: [{ text: 'How is your mom doing?', when: '2026-10-14', basis: 'a' }],
           thinkingOf: [],
         }),
       { now, env: { PONDERING: 'on' } }
     );
     expect(out.status).toBe('stored');
     expect(set).toHaveBeenCalledWith({
-      followUps: [{ text: 'Ask about mom', when: '2026-10-14', basis: 'a' }],
+      followUps: [{ text: 'How is your mom doing?', when: '2026-10-14', basis: 'a' }],
       thinkingOf: [],
       generatedAt: now.toISOString(),
       basedOn: ['a', 'b'],

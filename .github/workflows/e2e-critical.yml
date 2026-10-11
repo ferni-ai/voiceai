@@ -30,9 +30,11 @@ on:
       - 'src/tests/superhuman/**'
       - 'docs/plans/E2E-BETTER-THAN-HUMAN-MASTER-PLAN.md'
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
 concurrency:
-  group: e2e-critical-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NODE_VERSION: '22'
@@ -40,7 +42,8 @@ env:
 jobs:
   e2e-critical:
     name: Tools + Handoff + Superhuman E2E
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
