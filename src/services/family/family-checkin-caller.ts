@@ -177,22 +177,19 @@ export async function initiateCheckinCall(
     // 2. Get recent call records for context
     const recentCalls = await getRecentCallRecords(schedule.sponsorUserId, schedule.id, 5);
 
-    // 3. Get sponsor name from profile
-    const sponsorName = await getSponsorName(schedule.sponsorUserId);
-
-    // 4. Build the check-in context
+    // 3. Build the check-in context (it looks up the sponsor's name)
     const { buildFamilyCheckinContext, generateFamilyCheckinSystemPrompt } =
       await import('../../intelligence/context-builders/family/family-wellbeing-context.js');
 
     const context = await buildFamilyCheckinContext(schedule, identity, recentCalls);
 
-    // 5. Generate the system prompt for the agent
+    // 4. Generate the system prompt for the agent
     const systemPrompt = generateFamilyCheckinSystemPrompt(context);
 
-    // 6. Create a call record
+    // 5. Create a call record
     const callRecord = await createCallRecord(schedule);
 
-    // 7. Initiate the call via LiveKit SIP or Twilio
+    // 6. Initiate the call via LiveKit SIP or Twilio
     const callResult = await initiateOutboundCall({
       callId: callRecord.id,
       schedule,
@@ -288,7 +285,8 @@ async function initiateOutboundCall(
 async function initiateViaLiveKitSip(
   params: InitiateOutboundCallParams
 ): Promise<{ success: boolean; twilioSid?: string; error?: string }> {
-  const { callId, schedule, identity, systemPrompt, openingLine } = params;
+  const { callId, schedule, systemPrompt, openingLine } = params;
+  const sponsorName = params.context.sponsorName; // the agent opens as "<sponsor>'s AI friend"
 
   try {
     const { RoomServiceClient, SipClient } = await import('livekit-server-sdk');
@@ -311,6 +309,7 @@ async function initiateViaLiveKitSip(
         callId,
         scheduleId: schedule.id,
         sponsorUserId: schedule.sponsorUserId,
+        sponsorName,
         familyMemberName: schedule.familyMemberName,
         relationship: schedule.relationship,
         systemPrompt: systemPrompt.slice(0, 1000), // Truncate for metadata size
@@ -323,16 +322,21 @@ async function initiateViaLiveKitSip(
     const agentDispatch = new AgentDispatchClient(livekitUrl, livekitApiKey, livekitApiSecret);
     const agentName = process.env.AGENT_NAME || 'voice-agent';
 
+    // Signed like an on-behalf dispatch: the agent refuses an unsigned check-in.
+    const { signDispatch } = await import('../outreach/on-behalf-dispatch.js');
+    const dispatch = {
+      type: 'family_checkin',
+      callId,
+      sponsorUserId: schedule.sponsorUserId,
+      sponsorName,
+      familyMemberName: schedule.familyMemberName,
+      relationship: schedule.relationship,
+      systemPrompt,
+      openingLine,
+      maxDurationMinutes: schedule.maxDurationMinutes,
+    };
     await agentDispatch.createDispatch(roomName, agentName, {
-      metadata: JSON.stringify({
-        type: 'family_checkin',
-        callId,
-        familyMemberName: schedule.familyMemberName,
-        relationship: schedule.relationship,
-        systemPrompt,
-        openingLine,
-        maxDurationMinutes: schedule.maxDurationMinutes,
-      }),
+      metadata: JSON.stringify(signDispatch(dispatch, livekitApiSecret)),
     });
 
     // 3. Initiate the SIP call to the family member's phone
@@ -380,20 +384,12 @@ async function initiateViaTwilio(
     const twilioPhone = process.env.TWILIO_PHONE_NUMBER!;
     const webhookBaseUrl = process.env.WEBHOOK_BASE_URL || process.env.APP_URL || '';
 
-    // Build TwiML for the call
-    // Note: This is a simplified version - real implementation would use a webhook
-    // to enable two-way conversation
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Pause length="1"/>
-  <Say voice="Polly.Joanna">${escapeXml(openingLine)}</Say>
-  <Pause length="2"/>
-  <Say voice="Polly.Joanna">How are you doing today?</Say>
-  <Gather input="speech" timeout="5" action="${webhookBaseUrl}/api/family-checkin/response/${callId}">
-    <Say voice="Polly.Joanna">Take your time.</Say>
-  </Gather>
-  <Say voice="Polly.Joanna">I'll let ${schedule.familyMemberName} know I called. Take care!</Say>
-</Response>`;
+    const { checkinTwiml } = await import('./family-checkin-twiml.js');
+    const twiml = checkinTwiml(
+      openingLine,
+      params.context.sponsorName,
+      `${webhookBaseUrl}/api/family-checkin/response/${callId}`
+    );
 
     // Normalize phone number
     const cleanPhone = schedule.phoneNumber.replace(/\D/g, '');
@@ -599,15 +595,6 @@ async function sendUrgentNotificationToSponsor(
   } catch (error) {
     log.error({ sponsorUserId, error: String(error) }, 'Failed to send urgent notification');
   }
-}
-
-function escapeXml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
 }
 
 function sleep(ms: number): Promise<void> {

@@ -10,7 +10,10 @@
  *   secrets.env must contain CARTESIA_API_KEY (read, never printed)
  *   arm: a pre-STT stage selection compared with raw audio, e.g.
  *        'agc={"enableAgc":true}' (stages not named are off). Default: all
- *        stages on, as the live phone bridge configures it.
+ *        stages on, as the live phone bridge configures it. An arm whose
+ *        name ends in 8k is sent to ink at 8 kHz.
+ *   CONDITIONS=sip-ulaw,... limits the conditions; INK8K=1 adds an arm sending
+ *   the untouched 8 kHz phone signal at sample_rate=8000; SEED picks the noise.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -123,6 +126,20 @@ const up16 = (x: Int16Array): Int16Array => {
   return out;
 };
 
+/** G.711 mu-law round trip: the companding a PCMU phone call (Twilio SIP) applies. */
+function ulaw(x: Int16Array): Int16Array {
+  return x.map((v) => {
+    const sign = v < 0 ? 0x80 : 0;
+    let m = Math.min(32635, Math.abs(v)) + 0x84;
+    let exp = 7;
+    for (let mask = 0x4000; (m & mask) === 0 && exp > 0; mask >>= 1) exp--;
+    const byte = ~(sign | (exp << 4) | ((m >> (exp + 3)) & 0x0f)) & 0xff;
+    const e = (~byte >> 4) & 0x07;
+    m = ((((~byte & 0x0f) << 3) + 0x84) << e) - 0x84;
+    return ~byte & 0x80 ? -m : m;
+  });
+}
+
 // ---------------------------------------------------------------- pre-STT
 type PreStt = { processFrame(samples: Float32Array, isSpeech: boolean): Float32Array };
 const audio = (await import('@ferni/audio')) as unknown as {
@@ -171,9 +188,8 @@ function preStt(x: Int16Array, phone: boolean, stages: Record<string, boolean>):
 }
 
 // ---------------------------------------------------------------- Ink-2
-async function transcribe(pcm: Int16Array): Promise<string> {
-  const url =
-    'wss://api.cartesia.ai/stt/turns/websocket?model=ink-2&sample_rate=16000&encoding=pcm_s16le';
+async function transcribe(pcm: Int16Array, rate = 16000): Promise<string> {
+  const url = `wss://api.cartesia.ai/stt/turns/websocket?model=ink-2&sample_rate=${rate}&encoding=pcm_s16le`;
   const ws = new WebSocket(url, {
     headers: { 'X-API-Key': apiKey!, 'Cartesia-Version': '2026-03-01' },
   });
@@ -201,12 +217,13 @@ async function transcribe(pcm: Int16Array): Promise<string> {
     ws.once('error', j);
   });
   // 20 ms chunks at 4x real time, then a second of silence so the turn ends.
-  const tail = new Int16Array(16000);
+  const tail = new Int16Array(rate);
   const all = Int16Array.from([...pcm, ...tail]);
-  for (let i = 0; i < all.length; i += 320) {
-    const c = all.slice(i, i + 320);
+  const chunk = rate / 50;
+  for (let i = 0; i < all.length; i += chunk) {
+    const c = all.slice(i, i + chunk);
     ws.send(Buffer.from(c.buffer));
-    if ((i / 320) % 4 === 0) await new Promise((r) => setTimeout(r, 20));
+    if ((i / chunk) % 4 === 0) await new Promise((r) => setTimeout(r, 20));
   }
   await new Promise((r) => setTimeout(r, 1500));
   ws.send(JSON.stringify({ type: 'close' }));
@@ -263,7 +280,10 @@ const clean = lines.map((t, i) => tts(t, i));
 const babbleSrc = Int16Array.from(clean.slice(0, 6).flatMap((x) => Array.from(x)));
 const conditions: Record<
   string,
-  (x: Int16Array, i: number) => { raw: Int16Array; input: Int16Array; phone: boolean }
+  (
+    x: Int16Array,
+    i: number
+  ) => { raw: Int16Array; input: Int16Array; phone: boolean; narrow?: Int16Array }
 > = {
   clean: (x) => ({ raw: x, input: x, phone: false }),
   'noise-20dB': (x, i) => {
@@ -305,7 +325,26 @@ const conditions: Record<
     const p = up16(to8k(withNoise(x, 10, babbleSrc.subarray((i * 7919) % 20000))));
     return { raw: p, input: p, phone: false };
   },
+  // A PCMU (mu-law) call as Twilio's SIP trunk carries it; `narrow` is the
+  // 8 kHz signal itself, for the ink8k arm (ink told the audio is 8 kHz).
+  'sip-ulaw': (x) => {
+    const n = ulaw(to8k(x));
+    const p = up16(n);
+    return { raw: p, input: p, phone: false, narrow: n };
+  },
+  'sip-ulaw-noise-15dB': (x, i) => {
+    const n = ulaw(to8k(withNoise(x, 15, babbleSrc.subarray((i * 7919) % 20000))));
+    const p = up16(n);
+    return { raw: p, input: p, phone: false, narrow: n };
+  },
+  'sip-ulaw-soft-12dB': (x) => {
+    const n = ulaw(to8k(quiet(x, -12)));
+    const p = up16(n);
+    return { raw: p, input: p, phone: false, narrow: n };
+  },
 };
+// INK8K=1 adds an arm sending the 8 kHz signal at sample_rate=8000 (conditions with `narrow`).
+const ink8k = process.env.INK8K === '1';
 // CONDITIONS=sip,sip-quiet-22dB runs only those.
 const only = process.env.CONDITIONS?.split(',').map((c) => c.trim());
 if (only) for (const k of Object.keys(conditions)) if (!only.includes(k)) delete conditions[k];
@@ -314,19 +353,27 @@ type Tally = { e: number; w: number };
 const results: Record<string, Record<string, Tally> & { samples?: never }> = {};
 const samples: Record<string, string[]> = {};
 const jobs: Array<() => Promise<void>> = [];
-const armNames = ['raw', ...ARMS.map(([n]) => n)];
+const armNames = ['raw', ...ARMS.map(([n]) => n), ...(ink8k ? ['ink8k'] : [])];
 for (const [name, make] of Object.entries(conditions)) {
   results[name] = Object.fromEntries(armNames.map((a) => [a, { e: 0, w: 0 }]));
   samples[name] = [];
   clean.forEach((x, i) => {
-    const { raw, input, phone } = make(x, i);
-    const arms: Array<[string, Int16Array]> = [
-      ['raw', raw],
-      ...ARMS.map(([n, st]): [string, Int16Array] => [n, preStt(input, phone, st)]),
+    const { raw, input, phone, narrow } = make(x, i);
+    const arms: Array<[string, Int16Array, number]> = [
+      ['raw', raw, 16000],
+      // An arm named *8k sends its output to ink at 8 kHz, as PHONE_AUDIO_MODE=on does for a phone caller.
+      ...ARMS.map(([n, st]): [string, Int16Array, number] =>
+        n.endsWith('8k')
+          ? [n, to8k(preStt(input, phone, st)), 8000]
+          : [n, preStt(input, phone, st), 16000]
+      ),
+      ...(ink8k
+        ? [['ink8k', narrow ?? raw, narrow ? 8000 : 16000] as [string, Int16Array, number]]
+        : []),
     ];
-    for (const [arm, pcm] of arms) {
+    for (const [arm, pcm, rate] of arms) {
       jobs.push(async () => {
-        const hyp = await transcribe(pcm);
+        const hyp = await transcribe(pcm, rate);
         const { errors, words: n } = wer(lines[i], hyp);
         results[name][arm].e += errors;
         results[name][arm].w += n;
