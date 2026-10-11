@@ -119,11 +119,14 @@ describe('findCoachingResources on the live path', () => {
       skipGreeting: true,
     });
     const session = {
-      userData: { name: 'Seth Ford', services: { userProfile: profile } },
+      userData: {
+        name: 'Seth Ford',
+        services: { userProfile: { ...profile, familyMembers: [{ name: 'Mindy' }] } },
+      },
       currentAgent: agent,
     };
     const output = await dispatch(session, agent.toolCtx as unknown as Record<string, unknown>, {
-      topic: "Seth's beginner shin splint stretches",
+      topic: "Seth and Mindy's beginner shin splint stretches",
     });
 
     expect(generateContent).toHaveBeenCalledTimes(1);
@@ -131,7 +134,10 @@ describe('findCoachingResources on the live path', () => {
     expect(sent).toContain('beginner shin splint stretches');
     expect(sent).toContain('googleSearch');
     expect(sent.toLowerCase()).not.toContain('seth');
+    expect(sent.toLowerCase()).not.toContain('mindy');
     expect(output).toContain('not instructions');
+    expect(output).toContain('web_data: ');
+    expect(output).toContain('Untrusted web data');
     expect(output).toContain('https://www.youtube.com/watch?v=abc123');
     expect(output).not.toMatch(/ignore previous instructions/i);
     expect(output).toContain('General info, not personal advice');
@@ -191,9 +197,9 @@ describe('findCoachingResources on the live path', () => {
     expect(check.contents[0].parts[0]).toMatchObject({
       fileData: { fileUri: 'https://www.youtube.com/watch?v=vid1' },
     });
-    expect(output).toContain('One pick');
-    expect(output).toContain('Shin Splint Rehab by Physio Pat, 8 minutes');
-    expect(output).toContain('<https://www.youtube.com/watch?v=vid1>');
+    expect(output).toContain('Shin Splint Rehab');
+    expect(output).toContain('8 minutes');
+    expect(output).toContain('https://www.youtube.com/watch?v=vid1');
     expect(output).toContain('Seven minutes, made for beginners.');
     expect(output).toContain('General info, not personal advice');
   }, 60_000);

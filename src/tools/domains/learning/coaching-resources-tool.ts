@@ -22,7 +22,11 @@ import { checkedPick } from '../../../services/coach-media/checked-pick.js';
 import { fitContext } from '../../../services/coach-media/fit.js';
 import { groundedAnswer } from '../../../services/coach-media/grounded-search.js';
 import { groundedResultText, pickResultText } from '../../../services/coach-media/result-text.js';
-import { coachMediaEnabled, topicOnlyQuery } from '../../../services/coach-media/topic-query.js';
+import {
+  coachMediaEnabled,
+  sessionIdentifiers,
+  topicOnlyQuery,
+} from '../../../services/coach-media/topic-query.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
@@ -32,11 +36,16 @@ const DESCRIPTION =
   'Look up what actually helps with something they are working on (a stretch routine, a ' +
   'money habit, a hard conversation, a skill) and the best video, book or article on it, ' +
   'checked against the web. Use when they want a resource or real-world advice beyond what ' +
-  'you know. Pass the TOPIC ONLY, in general words: never their name, a phone number, ' +
-  'an email, an account or a personal health detail.';
+  'you know. Pass a GENERIC topic only (e.g. "beginner shin splint stretches"): never a ' +
+  "name (theirs or anyone's), a place, an employer, a number, an email, an account or a " +
+  'personal health detail.';
 
 const parameters = z.object({
-  topic: z.string().describe('General topic words only, e.g. "beginner shin splint stretches"'),
+  topic: z
+    .string()
+    .describe(
+      'A generic topic in a few words, e.g. "beginner shin splint stretches"; no names, places or personal details'
+    ),
   format: z
     .enum(['any', 'video', 'short', 'book', 'article'])
     .optional()
@@ -62,9 +71,7 @@ export async function runFindCoachingResources(
   userData: Record<string, unknown>,
   userId?: string
 ): Promise<string> {
-  const names = [userData.name, userData.userName, userData.preferredName].map((n) =>
-    typeof n === 'string' ? n : undefined
-  );
+  const names = sessionIdentifiers(userData);
   const topic = topicOnlyQuery(args.topic, names);
   if (!topic) return 'Ask what topic they want help with, in a few general words.';
   const sensitive = args.healthOrMoney === true;
