@@ -1851,27 +1851,21 @@ Reference past context when relevant, but don't force it. Let the conversation f
         let liveBackchannel: LiveBackchannelIntegration | null = null;
         let lastUserFinalTranscript = '';
         const pace = await installPaceMatching(session, sessionId, cleanupFunctions);
-        const toolRetrieval = await installTurnListeners({
+        // What the turn listeners and the director both read: the call, and who's on it now.
+        const onTurn = {
           session,
           sessionId,
           agent: agentNow,
           persona: () => onCall,
-          dynamicToolLoader,
           cleanupFunctions,
-        });
+        };
+        const toolRetrieval = await installTurnListeners({ ...onTurn, dynamicToolLoader });
         if (staticCoreToolsEnabled()) {
           // findTools appends what it finds to the agent on the call now.
           setToolPinner(session, createToolPinner(agentNow, coreCtx));
           cleanupFunctions.push(() => setToolPinner(session, null));
         }
-        await installDirectorNotes({
-          session,
-          sessionId,
-          userName: userData?.userName,
-          agent: agentNow,
-          persona: () => onCall,
-          cleanupFunctions,
-        });
+        await installDirectorNotes({ ...onTurn, userName: userData?.userName });
         try {
           const clips = await startTurnSounds({
             room,
