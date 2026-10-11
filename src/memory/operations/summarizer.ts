@@ -349,6 +349,7 @@ ${callMomentLine(turns[0]?.timestamp ?? now, opts.timeZone ?? callerTimeZoneFor(
 CONVERSATION:
 ${transcript}
 
+followUps: only what a close friend would ask about next time (a plan, an event, a worry, a person). Never routine daily life (sleep, meals, chores, a run). Use [] when nothing qualifies.
 Respond with ONLY valid JSON (no markdown, no explanation):
 {
   "mainTopics": ["topic1", "topic2"],

@@ -374,7 +374,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     isReturningUser = initResult.isReturningUser;
     userData = initResult.userData;
     if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
-    rememberCallerTimeZone(sessionId, metadata.timezone); // web → token → dispatch; dates memory
+    rememberCallerTimeZone(metadata.timezone, sessionId, services?.realtimeConversationId);
     // IP-detected city (token → dispatch metadata), both paths: tools read it from userData.
     if (userData && typeof metadata.city === 'string' && metadata.city) {
       userData.userLocation = {

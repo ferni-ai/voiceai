@@ -1001,7 +1001,7 @@ describe('DeepExtractionWorker Edge Cases', () => {
 describe('fact extraction is dated', () => {
   it('gives the fact prompt the call date in the caller zone, so "tomorrow" can become a day', async () => {
     const { rememberCallerTimeZone } = await import('../../operations/call-moment.js');
-    rememberCallerTimeZone('s-dated', 'America/Denver');
+    rememberCallerTimeZone('America/Denver', 's-dated');
     const prompts: string[] = [];
     const model = {
       generateContent: async (p: string) => {
@@ -1037,7 +1037,7 @@ describe('fact extraction is dated', () => {
       })
       .catch(() => undefined); // persistence is mocked away; only the prompt matters here
     const factPrompt = prompts.find((p) => p.includes('Extract facts'));
-    expect(factPrompt).toContain('Saturday, 2026-10-10 (America/Denver)');
+    expect(factPrompt).toContain('Saturday, 2026-10-10, in the evening (20:00 America/Denver)');
     expect(factPrompt).toContain('tomorrow 2026-10-11');
   });
 });

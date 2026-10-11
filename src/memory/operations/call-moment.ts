@@ -24,6 +24,30 @@ function validZone(timeZone: string | undefined): string | undefined {
   }
 }
 
+/** Morning, afternoon, evening or night for a local hour (0-23). */
+export function partOfDay(hour: number): string {
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 22) return 'evening';
+  return 'night';
+}
+
+function dayPart(hour: number): string {
+  const part = partOfDay(hour);
+  return part === 'night' ? 'at night' : `in the ${part}`;
+}
+
+/** Local HH:MM (24 h) of an instant in a zone. */
+function localTime(at: Date, timeZone: string): { hhmm: string; hour: number } {
+  const hhmm = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(at);
+  return { hhmm, hour: Number(hhmm.slice(0, 2)) };
+}
+
 /** YYYY-MM-DD and weekday of an instant in a zone. */
 function localDay(at: Date, timeZone: string): { ymd: string; weekday: string } {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -52,12 +76,15 @@ function addDays(ymd: string, days: number): { ymd: string; weekday: string } {
 export function callMomentLine(at: Date, timeZone?: string): string {
   const zone = validZone(timeZone);
   const today = localDay(at, zone ?? 'UTC');
+  const time = localTime(at, zone ?? 'UTC');
   const ahead = Array.from({ length: WEEK }, (_, i) => {
     const d = addDays(today.ymd, i + 1);
     return `${i === 0 ? 'tomorrow' : d.weekday} ${d.ymd}`;
   });
   return (
-    `This call took place on ${today.weekday}, ${today.ymd} (${zone ?? 'UTC, caller time zone unknown'}). ` +
+    `This call took place on ${today.weekday}, ${today.ymd}, ${dayPart(time.hour)} ` +
+    `(${time.hhmm} ${zone ?? 'UTC, caller time zone unknown'}). Use that local time of day; ` +
+    `never describe the call's time in UTC. ` +
     `Write every plan, event or time reference as an absolute date (YYYY-MM-DD), never as "tomorrow", ` +
     `"next week" or a bare weekday. Next seven days: ${ahead.join(', ')}.`
   );
@@ -70,12 +97,16 @@ export function callMomentLine(at: Date, timeZone?: string): string {
 const MAX_SESSIONS = 200;
 const zones = new Map<string, string>();
 
-export function rememberCallerTimeZone(sessionId: string, timeZone: unknown): void {
+/** Records the zone under each id a memory writer may key the call by. */
+export function rememberCallerTimeZone(timeZone: unknown, ...ids: unknown[]): void {
   const zone = validZone(typeof timeZone === 'string' ? timeZone : undefined);
   if (!zone) return;
-  zones.delete(sessionId);
-  zones.set(sessionId, zone);
-  if (zones.size > MAX_SESSIONS) zones.delete(zones.keys().next().value as string);
+  for (const id of ids) {
+    if (typeof id !== 'string' || !id) continue;
+    zones.delete(id);
+    zones.set(id, zone);
+  }
+  while (zones.size > MAX_SESSIONS) zones.delete(zones.keys().next().value as string);
 }
 
 export function callerTimeZoneFor(sessionId: string): string | undefined {
