@@ -66,8 +66,8 @@ describe('ModelProviderFactory', () => {
       expect(provider).toBeInstanceOf(GeminiLiveProvider);
     });
 
-    it('should return OpenAIRealtimeProvider when USE_OPENAI_REALTIME=true', () => {
-      process.env.USE_OPENAI_REALTIME = 'true';
+    it('should return OpenAIRealtimeProvider when VOICE_PIPELINE=openai-realtime', () => {
+      process.env.VOICE_PIPELINE = 'openai-realtime';
       const provider = getModelProvider();
       expect(provider.id).toBe('openai-realtime');
       expect(provider).toBeInstanceOf(OpenAIRealtimeProvider);
@@ -79,13 +79,13 @@ describe('ModelProviderFactory', () => {
       expect(provider1).toBe(provider2);
     });
 
-    it('should respect USE_OPENAI_REALTIME only on first call (singleton)', () => {
+    it('should respect VOICE_PIPELINE only on first call (singleton)', () => {
       // First call with default
       const provider1 = getModelProvider();
       expect(provider1.id).toBe('cartesia-cascade');
 
       // Change env var
-      process.env.USE_OPENAI_REALTIME = 'true';
+      process.env.VOICE_PIPELINE = 'openai-realtime';
 
       // Should still return cached provider
       const provider2 = getModelProvider();
@@ -106,7 +106,7 @@ describe('ModelProviderFactory', () => {
     });
 
     it('should return correct values for OpenAI', () => {
-      process.env.USE_OPENAI_REALTIME = 'true';
+      process.env.VOICE_PIPELINE = 'openai-realtime';
       expect(isUsingOpenAI()).toBe(true);
       expect(isUsingGemini()).toBe(false);
     });
@@ -150,7 +150,7 @@ describe('ModelProviderFactory', () => {
       clearModelProvider();
 
       // Next call should create new provider
-      process.env.USE_OPENAI_REALTIME = 'true';
+      process.env.VOICE_PIPELINE = 'openai-realtime';
       const provider = getModelProvider();
       expect(provider.id).toBe('openai-realtime');
       expect(isTestInjectedProvider()).toBe(false);

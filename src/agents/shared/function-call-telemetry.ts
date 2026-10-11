@@ -620,7 +620,7 @@ export function getFunctionCallHealthDashboard(): {
   }
   if (health.status === 'poor') {
     recommendations.push(
-      'Consider switching to OpenAI Realtime (USE_OPENAI_REALTIME=true) for more reliable function calling.'
+      'Consider switching to OpenAI Realtime (VOICE_PIPELINE=openai-realtime) for more reliable function calling.'
     );
   }
 
@@ -750,7 +750,7 @@ export function getGeminiHealthMetrics(): GeminiHealthMetrics {
   } else {
     status = 'unhealthy';
     recommendation =
-      'High leakage rate. Consider switching to OpenAI Realtime (USE_OPENAI_REALTIME=true) or investigate Gemini prompt issues.';
+      'High leakage rate. Consider switching to OpenAI Realtime (VOICE_PIPELINE=openai-realtime) or investigate Gemini prompt issues.';
   }
 
   return {

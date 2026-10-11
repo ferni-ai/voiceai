@@ -443,7 +443,7 @@ export async function warmupResources(log: LogFn): Promise<WarmupResult> {
               // Just importing establishes the SDK connection pool
               log('✅ Gemini SDK loaded', { durationMs: Date.now() - llmWarmupStart });
             }),
-            // Also pre-warm OpenAI if enabled (for USE_OPENAI_REALTIME mode)
+            // Also pre-warm OpenAI if enabled (for VOICE_PIPELINE=openai-realtime)
             process.env.OPENAI_API_KEY
               ? import('@livekit/agents-plugin-openai').then(() => {
                   log('✅ OpenAI SDK loaded', { durationMs: Date.now() - llmWarmupStart });
