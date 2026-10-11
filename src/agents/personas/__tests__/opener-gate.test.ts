@@ -82,6 +82,20 @@ describe('OpenerGate', () => {
   });
 });
 
+describe('OpenerGate after a turn-opening clip', () => {
+  it('drops the reply reaction word even when this reply could keep one', () => {
+    const gate = new OpenerGate(3);
+    // the first reply may keep an opener, but a clip already said "Mm"
+    expect(gate.decide('Mm, that is a lot to carry.', true)).toBe('That is a lot to carry.');
+  });
+
+  it('counts the clip as the kept opener, so the next replies drop theirs', () => {
+    const gate = new OpenerGate(3);
+    gate.decide('Mm, that is a lot to carry.', true);
+    expect(gate.decide('Yeah, Fridays are brutal.')).toBe('Fridays are brutal.');
+  });
+});
+
 describe('openingDecidable', () => {
   it('decides once the first whole word is not a reaction word', () => {
     expect(openingDecidable('It')).toBe(false);
