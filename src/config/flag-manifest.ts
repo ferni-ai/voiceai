@@ -273,6 +273,7 @@ export const FLAG_MANIFEST = {
   // readers disagree: on in memory and Gemini config, off in Gemini Live and Gemma
   USE_VERTEX_AI: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   VITEST: { default: 'off', owner: 'tools', kind: 'experiment' },
+  VOICED_PRESENCE: { default: 'off', owner: 'voice', kind: 'experiment' },
   VOICEMAIL_DETECT: { default: 'off', owner: 'voice', kind: 'experiment' },
   VOICE_HUMANIZATION_DISABLED: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
