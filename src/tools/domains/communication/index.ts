@@ -316,10 +316,9 @@ const backgroundFollowUpDef: ToolDefinition = {
         log.info({ userId, recipientName, channel }, 'Queueing background follow-up');
 
         try {
-          const { queueFollowup } =
+          const { queueFollowup, followupBlocker } =
             await import('../../../services/background-agents/executors/followup-executor.js');
-
-          const taskId = await queueFollowup({
+          const request = {
             userId,
             sessionId: ctx.sessionId,
             recipientName,
@@ -329,7 +328,14 @@ const backgroundFollowUpDef: ToolDefinition = {
             channel,
             context,
             initiatedBy: 'alex',
-          });
+          };
+          // Say so up front when it can't go out, rather than "scheduled" and nothing sent.
+          const blocked = await followupBlocker(request);
+          if (blocked) {
+            return `I can't send that follow-up to ${recipientName}: ${blocked}. Nothing was sent. Want me to help you draft it so you can send it yourself?`;
+          }
+
+          const taskId = await queueFollowup(request);
 
           return `**Follow-Up Scheduled** 📧\n\nI'll send this follow-up to ${recipientName} in the background.\n\n**Subject:** ${subject}\n**Channel:** ${channel}\n**Task ID:** ${taskId.slice(0, 8)}...\n\nI'll keep working on this even if you disconnect. I'll let you know once it's sent! ✉️`;
         } catch (error) {

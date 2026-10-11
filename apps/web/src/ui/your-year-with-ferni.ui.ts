@@ -22,7 +22,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { formatDate, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
-import { apiGet } from '../utils/api.js';
+import { apiGet, getUserId } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { createEmptyState } from './components/empty-state.js';
 
@@ -130,14 +130,14 @@ export class YourYearWithFerni {
   /**
    * Open the visualization.
    */
-  async open(userId: string): Promise<void> {
+  async open(userId: string | null): Promise<void> {
     if (this.isOpen) return;
 
     this.isOpen = true;
     log.debug({ userId }, 'Opening Your Year with Ferni');
 
-    // Load data
-    this.data = await this.loadYearData(userId);
+    // Load data (nobody signed in: no request, the empty state shows)
+    this.data = userId ? await this.loadYearData(userId) : null;
 
     // Check if user has meaningful data (more than 0 conversations)
     const hasData = this.data && this.data.stats && this.data.stats.totalConversations > 0;
@@ -1067,7 +1067,7 @@ export function getYourYearWithFerni(): YourYearWithFerni {
   return instance;
 }
 
-export function openYourYearWithFerni(userId: string): Promise<void> {
+export function openYourYearWithFerni(userId: string | null = getUserId()): Promise<void> {
   return getYourYearWithFerni().open(userId);
 }
 

@@ -1,13 +1,7 @@
 /**
- * Deep Extraction Worker - Async LLM-powered memory extraction
- *
- * Implements state-of-the-art memory extraction patterns:
- * - Mem0: Entity + relationship extraction
- * - ProMem: Self-questioning refinement
- * - HiMem: Hierarchical categorization
- *
- * Runs in background, never blocks conversation.
- *
+ * Deep Extraction Worker: async LLM memory extraction in the background, never
+ * blocking the conversation (Mem0 entities + relationships, ProMem
+ * self-questioning, HiMem hierarchical categories).
  * @see docs/architecture/DYNAMIC-MEMORY-ARCHITECTURE.md
  */
 
@@ -29,6 +23,7 @@ import {
   recordVectorPersistWarn,
 } from '../operations/memory-extraction-telemetry.js';
 import { createDeepExtractionBatcher } from './deep-extraction-batch.js';
+import { callMomentLine, callerTimeZoneFor } from '../operations/call-moment.js';
 import type { DeepExtractionBatchOptions } from './deep-extraction-batch.js';
 
 // ============================================================================
@@ -341,8 +336,9 @@ export class DeepExtractionWorker {
     // 1. LLM Entity Extraction
     const entities = await this.extractEntities(job.transcript, job.fastCaptureHints);
 
-    // 2. LLM Fact Extraction
-    const facts = await this.extractFacts(job.transcript, entities);
+    // 2. LLM Fact Extraction, dated: "tomorrow" becomes a day (call-moment.ts)
+    const moment = callMomentLine(new Date(job.timestamp), callerTimeZoneFor(job.sessionId));
+    const facts = await this.extractFacts(job.transcript, entities, moment);
 
     // 3. LLM Relationship Extraction
     const relationships = await this.extractRelationships(job.transcript, entities);
@@ -443,7 +439,8 @@ Extract entities as JSON array:`;
 
   private async extractFacts(
     transcript: string,
-    entities: ExtractedEntity[]
+    entities: ExtractedEntity[],
+    moment: string
   ): Promise<ExtractedFact[]> {
     if (entities.length === 0) {
       return [];
@@ -458,6 +455,7 @@ Extract entities as JSON array:`;
       const entityList = entities.map((e) => `${e.name} (${e.type})`).join('\n');
 
       const prompt = `${FACT_EXTRACTION_PROMPT}
+${moment}
 
 Entities found:
 ${entityList}

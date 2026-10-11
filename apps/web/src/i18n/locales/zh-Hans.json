@@ -2439,7 +2439,8 @@
       "features": "Ferni 可以读取的数据"
     },
     "title": "穿戴设备",
-    "notConfigured": "尚未设置"
+    "notConfigured": "尚未设置",
+    "appleHealthOnIphone": "请在 iPhone 上的 Ferni 应用中设置 Apple Health"
   },
   "transcript": {
     "enabled": "语音转文字已开启",
@@ -7854,6 +7855,8 @@
       "waitingTip": "提示：在 ecobee.com 上寻找 “My Apps” → “Add Application”"
     },
     "hueSetup": {
+      "webUnavailableTitle": "网页版暂不支持",
+      "webUnavailableText": "浏览器无法从这个安全页面访问你家庭网络中的 Hue 桥接器，所以暂时还不能在这里连接 Hue。",
       "findTitle": "寻找你的 Hue 桥接器",
       "findText": "让我们在网络中寻找你的 Hue 桥接器。请确保你与桥接器连接在同一个 Wi-Fi 下。",
       "ipLabel": "桥接器 IP 地址",
@@ -9497,6 +9500,15 @@
     "cta": "想帮我们让 Ferni 保持免费吗？",
     "dismiss": "能聊天就很开心啦"
   },
+  "afterCall": {
+    "ariaLabel": "通话之后",
+    "rememberTitle": "{name}会记住",
+    "rememberEmpty": "这次没有需要记住的新内容。谢谢你的陪伴。",
+    "nextStepTitle": "温和的下一步",
+    "invitation": "随时回来，我会在这里。",
+    "close": "关闭",
+    "seeCost": "这次通话的费用"
+  },
   "moments": {
     "teamUnlockTitle": "认识 {name}",
     "niceWork": "做得真棒",
@@ -10797,7 +10809,8 @@
   "entrance": {
     "helper": "你的专属向导",
     "connectToTalk": "连线",
-    "endTalk": "挂断"
+    "endTalk": "挂断",
+    "connectingCancel": "正在连接。点按即可取消"
   },
   "teamHuddle": {
     "typeWeekly": "每周记录",
@@ -11056,5 +11069,11 @@
   "agentAcks": {
     "gameStartFailed": "游戏没能开始。试试直接对 Ferni 说出来吧。",
     "actionFailed": "没有成功。可能已经处理过了。"
+  },
+  "speakerCues": {
+    "ferniSpeaking": "Ferni 正在说话",
+    "youSpeaking": "你正在说话",
+    "ferniThinking": "Ferni 正在思考",
+    "tapToInterrupt": "轻点以打断"
   }
 }

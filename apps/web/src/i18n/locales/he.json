@@ -2458,7 +2458,8 @@
       "features": "מה ש-Ferni רואה"
     },
     "title": "מכשירים לבישים",
-    "notConfigured": "עדיין לא הוגדר"
+    "notConfigured": "עדיין לא הוגדר",
+    "appleHealthOnIphone": "אפשר להגדיר את Apple Health באפליקציית Ferni באייפון"
   },
   "transcript": {
     "enabled": "תמלול פעיל",
@@ -7900,6 +7901,8 @@
       "waitingTip": "טיפ: כדאי לחפש את 'My Apps' ← 'Add Application' באתר ecobee.com"
     },
     "hueSetup": {
+      "webUnavailableTitle": "עדיין לא זמין באתר",
+      "webUnavailableText": "הדפדפן לא יכול להגיע ל-Hue Bridge ברשת הביתית מהדף המאובטח הזה, ולכן עדיין אי אפשר לחבר את Hue מכאן.",
       "findTitle": "חיפוש ה-Hue Bridge",
       "findText": "בואו נמצא את ה-Hue Bridge ברשת שלכם. יש לוודא חיבור לאותה רשת WiFi שאליה מחובר ה-bridge.",
       "ipLabel": "כתובת ה-IP של ה-Bridge",
@@ -9577,6 +9580,15 @@
     "cta": "רוצים לעזור לשמור על Ferni חינמי?",
     "dismiss": "פשוט כיף לשוחח"
   },
+  "afterCall": {
+    "ariaLabel": "אחרי השיחה",
+    "rememberTitle": "{name} יזכור",
+    "rememberEmpty": "אין משהו חדש לשמור הפעם. תודה על החברה.",
+    "nextStepTitle": "צעד הבא עדין",
+    "invitation": "חזור מתי שתרצה. אני כאן.",
+    "close": "סגור",
+    "seeCost": "כמה עלתה השיחה הזו"
+  },
   "moments": {
     "teamUnlockTitle": "להכיר את {name}",
     "niceWork": "עבודה יפה",
@@ -10916,7 +10928,8 @@
   "entrance": {
     "helper": "ליווי אישי צמוד",
     "connectToTalk": "להתחבר",
-    "endTalk": "ניתוק"
+    "endTalk": "ניתוק",
+    "connectingCancel": "מתחבר. הקש לביטול"
   },
   "teamHuddle": {
     "typeWeekly": "צ'ק-אין שבועי",
@@ -11181,5 +11194,11 @@
   "agentAcks": {
     "gameStartFailed": "המשחק לא התחיל. כדאי לבקש מ-Ferni בקול לשחק איתך.",
     "actionFailed": "זה לא עבר. אולי כבר טיפלו בזה."
+  },
+  "speakerCues": {
+    "ferniSpeaking": "פרני מדבר",
+    "youSpeaking": "את/ה מדבר/ת",
+    "ferniThinking": "פרני חושב",
+    "tapToInterrupt": "הקש כדי להפריע"
   }
 }

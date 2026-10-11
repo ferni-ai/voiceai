@@ -2514,7 +2514,8 @@
       "features": "What Ferni can see"
     },
     "title": "Wearables",
-    "notConfigured": "Not set up yet"
+    "notConfigured": "Not set up yet",
+    "appleHealthOnIphone": "Set up Apple Health in the Ferni iPhone app"
   },
   "transcript": {
     "enabled": "Transcription on",
@@ -7854,6 +7855,8 @@
       "waitingTip": "Tip: Look for 'My Apps' → 'Add Application' on ecobee.com"
     },
     "hueSetup": {
+      "webUnavailableTitle": "Not available on the web yet",
+      "webUnavailableText": "Your browser can't reach a Hue Bridge on your home network from this secure page, so Hue can't be connected here yet.",
       "findTitle": "Find your Hue Bridge",
       "findText": "Let's find your Hue Bridge on your network. Make sure you're connected to the same WiFi as your bridge.",
       "ipLabel": "Bridge IP Address",
@@ -9497,6 +9500,15 @@
     "cta": "Want to help keep Ferni free?",
     "dismiss": "Just happy to chat"
   },
+  "afterCall": {
+    "ariaLabel": "After your call",
+    "rememberTitle": "{name} will remember",
+    "rememberEmpty": "Nothing new to hold onto this time. Thanks for the company.",
+    "nextStepTitle": "A gentle next step",
+    "invitation": "Come back whenever you like. I'll be here.",
+    "close": "Close",
+    "seeCost": "What this call cost"
+  },
   "moments": {
     "teamUnlockTitle": "Meet {name}",
     "niceWork": "Nice work",
@@ -10797,7 +10809,8 @@
   "entrance": {
     "helper": "Your personal guide",
     "connectToTalk": "Connect",
-    "endTalk": "Disconnect"
+    "endTalk": "Disconnect",
+    "connectingCancel": "Connecting. Tap to cancel"
   },
   "teamHuddle": {
     "typeWeekly": "Weekly Check-in",
@@ -11056,5 +11069,11 @@
   "agentAcks": {
     "gameStartFailed": "That game didn't start. Try asking Ferni to play it out loud.",
     "actionFailed": "That didn't go through. It may already have been taken care of."
+  },
+  "speakerCues": {
+    "ferniSpeaking": "Ferni is talking",
+    "youSpeaking": "You're talking",
+    "ferniThinking": "Ferni is thinking",
+    "tapToInterrupt": "Tap to interrupt"
   }
 }
