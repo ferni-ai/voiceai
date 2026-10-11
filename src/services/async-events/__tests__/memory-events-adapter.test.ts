@@ -39,7 +39,9 @@ describe('memoryAsyncEvents', () => {
 
     unsubscribe?.();
     safeEmitEvent('memory:deep-extraction', { jobId: 'after' });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 20);
+    });
 
     expect(received).toEqual([{ jobId: 'before' }]);
   });
