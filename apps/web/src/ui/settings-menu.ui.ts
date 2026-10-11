@@ -2873,7 +2873,7 @@ class SettingsMenuUI {
          ======================================================================== */
       
       /* Tablet (769px - 1024px) - Wider panel for more content */
-      @media (min-width: clamp(538px, 90vw, 769px)) and (max-width: min(1024px, 100%)) {
+      @media (min-width: 769px) and (max-width: 1024px) {
         .settings-menu__card {
           width: min(380px, 100%);
           max-width: 50vw;
@@ -2881,7 +2881,7 @@ class SettingsMenuUI {
       }
       
       /* Large phones / Small tablets (481px - 768px) */
-      @media (min-width: clamp(337px, 90vw, 481px)) and (max-width: clamp(538px, 90vw, 768px)) {
+      @media (min-width: 481px) and (max-width: 768px) {
         .settings-menu__card {
           width: min(340px, 100%);
           max-width: 65vw;
@@ -2896,7 +2896,7 @@ class SettingsMenuUI {
       }
       
       /* Mobile (max 480px) - Full width panel */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .settings-trigger {
           /* Position respecting safe areas on notched devices */
           top: calc(var(--ma-breath, 13px) + env(safe-area-inset-top, 0px));
@@ -2960,7 +2960,7 @@ class SettingsMenuUI {
       }
       
       /* iPhone Pro specific (390-430px) - Same as mobile */
-      @media (min-width: min(390px, 100%)) and (max-width: clamp(301px, 90vw, 430px)) {
+      @media (min-width: 390px) and (max-width: 430px) {
         .settings-menu__card {
           width: 100%;
           max-width: none;
@@ -2969,7 +2969,7 @@ class SettingsMenuUI {
       
       /* iOS Safari specific fixes using @supports */
       @supports (-webkit-touch-callout: none) {
-        @media (max-width: clamp(336px, 90vw, 480px)) {
+        @media (max-width: 480px) {
           /* iOS Safari only on mobile */
           .settings-menu__card {
             /* Use -webkit-fill-available for iOS Safari */

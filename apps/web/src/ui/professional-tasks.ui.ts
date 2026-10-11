@@ -384,7 +384,7 @@ const STYLES = `
   }
 
   /* Mobile Responsiveness */
-  @media (max-width: clamp(448px, 90vw, 640px)) {
+  @media (max-width: 640px) {
     .professional-tasks-overlay {
       padding: 0;
     }

@@ -1075,7 +1075,7 @@ function injectStyles(): void {
     /* ========================================================================
        RESPONSIVE - Mobile-first adjustments
        ======================================================================== */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .celebration-card,
       .journey-card {
         margin: var(--space-4, 16px);

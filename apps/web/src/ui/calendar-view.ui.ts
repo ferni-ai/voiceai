@@ -3126,7 +3126,7 @@ class CalendarViewUI {
         gap: var(--space-3, 12px);
       }
 
-      @media (min-width: clamp(336px, 90vw, 480px)) {
+      @media (min-width: 480px) {
         .calendar-view__metrics-grid {
           grid-template-columns: repeat(4, 1fr);
         }
@@ -3538,7 +3538,7 @@ class CalendarViewUI {
       /* ========================================================================
          RESPONSIVE
          ======================================================================== */
-      @media (max-width: clamp(448px, 90vw, 640px)) {
+      @media (max-width: 640px) {
         .calendar-view__week {
           grid-template-columns: repeat(7, 1fr);
           gap: 4px;

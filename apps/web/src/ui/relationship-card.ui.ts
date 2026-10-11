@@ -1007,7 +1007,7 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: clamp(448px, 90vw, 640px)) {
+    @media (max-width: 640px) {
       .relationship-card {
         width: 100%;
         max-width: none;

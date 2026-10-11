@@ -854,7 +854,7 @@ class ConversationHistoryUI {
       /* ========================================================================
          RESPONSIVE
          ======================================================================== */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .history {
           padding: var(--space-4, 16px);
         }

@@ -1080,7 +1080,7 @@ class GroupCoachingUI {
         background: var(--color-background-secondary, #1e1a16);
       }
 
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .group-coaching__wrapper {
           max-width: 100%;
           border-radius: var(--radius-xl) var(--radius-xl) 0 0;

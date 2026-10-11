@@ -390,7 +390,7 @@ function ensureStylesExist(): void {
     }
     
     /* Responsive */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .memory-type-grid {
         grid-template-columns: 1fr;
       }

@@ -1330,7 +1330,7 @@ function injectMilestoneStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .ferni-milestone {
         bottom: 80px;
         left: var(--space-4, 16px);

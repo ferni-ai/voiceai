@@ -325,7 +325,7 @@ const STYLES = `
   }
 
   /* Mobile Responsiveness */
-  @media (max-width: clamp(448px, 90vw, 640px)) {
+  @media (max-width: 640px) {
     .legacy-stories-overlay {
       padding: 0;
     }

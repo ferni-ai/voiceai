@@ -959,7 +959,7 @@ function injectStyles(): void {
     /* ========================================================================
        MOBILE
        ======================================================================== */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .feature-hint--card .hint-content,
       .feature-hint--spotlight-card .hint-content {
         max-width: calc(100vw - var(--space-8, 32px));

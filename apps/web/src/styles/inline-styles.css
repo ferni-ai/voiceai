@@ -2441,7 +2441,7 @@ html.theme-transitioning *::after {
 }
 
 /* Mobile adjustments */
-@media (max-width: clamp(364px, 90vw, 520px)) {
+@media (max-width: 520px) {
   .landing-content-card {
     padding: 32px 24px;
     border-radius: 20px;
@@ -7468,7 +7468,7 @@ body {
        ======================================================================== */
 
 /* Tablet Portrait (max 768px) - md breakpoint */
-@media (max-width: clamp(538px, 90vw, 768px)) {
+@media (max-width: 768px) {
   :root {
     /* Layout tokens */
     --panel-width: min(340px, 100%);
@@ -7508,7 +7508,7 @@ body {
 }
 
 /* Mobile Landscape / Large phones (481px - 767px) - sm-md gap */
-@media (max-width: clamp(537px, 90vw, 767px)) and (min-width: clamp(337px, 90vw, 481px)) {
+@media (max-width: 767px) and (min-width: 481px) {
   :root {
     /* Layout tokens */
     --panel-width: min(320px, 100%);
@@ -7547,7 +7547,7 @@ body {
 }
 
 /* Mobile Portrait (max 480px) - xs-sm gap */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   :root {
     /* Layout tokens - panels go full-width on mobile */
     --panel-width: 100vw;
@@ -7590,7 +7590,7 @@ body {
 }
 
 /* Small Mobile (max 375px) - xs breakpoint */
-@media (max-width: min(375px, 100%)) {
+@media (max-width: 375px) {
   :root {
     /* Layout tokens - full-width panels */
     --panel-width: 100vw;
@@ -7633,7 +7633,7 @@ body {
 }
 
 /* Very Small (max 320px) - smallest phones */
-@media (max-width: min(320px, 100%)) {
+@media (max-width: 320px) {
   :root {
     /* Layout tokens - full-width, minimal spacing */
     --panel-width: 100vw;
@@ -7754,7 +7754,7 @@ body {
 
 /* iPad Landscape (height 701px+, width < 1366px, TOUCH DEVICES ONLY)
    NOTE: Added (pointer: coarse) to prevent matching desktop browsers */
-@media (min-height: 701px) and (max-width: min(1366px, 100%)) and (orientation: landscape) and (pointer: coarse) {
+@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) and (pointer: coarse) {
   :root {
     /* Layout tokens */
     --panel-width: min(360px, 100%);
@@ -7789,7 +7789,7 @@ body {
 }
 
 /* Tablet (769px - 1199px) - lg breakpoint */
-@media (max-width: min(1199px, 100%)) and (min-width: clamp(538px, 90vw, 769px)) {
+@media (max-width: 1199px) and (min-width: 769px) {
   :root {
     /* Layout tokens */
     --panel-width: min(360px, 100%);
@@ -7830,7 +7830,7 @@ body {
 }
 
 /* Large Desktop (1200px+) - xl breakpoint */
-@media (min-width: min(1200px, 100%)) {
+@media (min-width: 1200px) {
   :root {
     /* Layout tokens - generous desktop sizing */
     --panel-width: min(400px, 100%);
@@ -7883,7 +7883,7 @@ body {
        ======================================================================== */
 
 /* Large Desktop (1200px+) - Match 768px to prevent layout overflow */
-@media (min-width: min(1200px, 100%)) {
+@media (min-width: 1200px) {
   /* Match 768px exactly - larger fonts/avatars cause helper text to disappear */
 
   .app {
@@ -7992,7 +7992,7 @@ body {
 
 /* Tablet (768px - 1199px) - Balanced */
 /* MUST match 768px styles to prevent layout breakage */
-@media (max-width: min(1199px, 100%)) and (min-width: clamp(538px, 90vw, 769px)) {
+@media (max-width: 1199px) and (min-width: 769px) {
   /* Team roster tokens defined in consolidated section above */
 
   .app {
@@ -8085,7 +8085,7 @@ body {
 
 /* Tablet portrait and below (768px) */
 /* Tablet portrait and below (768px) - Transition to mobile-first layout */
-@media (max-width: clamp(538px, 90vw, 768px)) {
+@media (max-width: 768px) {
   .app {
     padding: var(--space-md);
   }
@@ -8194,7 +8194,7 @@ body {
 }
 
 /* Mobile landscape / Large phones (480px - 767px) */
-@media (max-width: clamp(537px, 90vw, 767px)) and (min-width: clamp(337px, 90vw, 481px)) {
+@media (max-width: 767px) and (min-width: 481px) {
   .app {
     min-height: 100dvh;
     padding: var(--space-sm);
@@ -8303,7 +8303,7 @@ body {
 /* Mobile portrait (max 480px) - HERO AVATAR FOCUSED
        The avatar becomes the central, prominent element on mobile.
        Instead of shrinking, we make it LARGER for better presence. */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   :root {
     --text-4xl: 1.75rem;
     --text-3xl: 1.375rem;
@@ -8488,7 +8488,7 @@ body {
 /* iPhone Pro / Modern large phones (390px - 430px)
        iPhone 15 Pro: 393px, iPhone 15 Pro Max: 430px
        HERO AVATAR: These phones get premium treatment with large, centered avatar */
-@media (min-width: min(390px, 100%)) and (max-width: clamp(301px, 90vw, 430px)) {
+@media (min-width: 390px) and (max-width: 430px) {
   .header {
     /* Margin-top ensures avatar ring isn't clipped by #app overflow:hidden */
     padding: var(--space-xs) var(--space-sm) var(--space-xs);
@@ -8600,7 +8600,7 @@ body {
 }
 
 /* iPhone Pro Max / Extra large phones (431px - 480px) */
-@media (min-width: clamp(302px, 90vw, 431px)) and (max-width: clamp(336px, 90vw, 480px)) {
+@media (min-width: 431px) and (max-width: 480px) {
   .avatar-container {
     /* HERO AVATAR: 180px - largest mobile avatar
            Pro Max phones have the real estate for commanding presence */
@@ -8713,7 +8713,7 @@ body {
 
 /* Small mobile (max 375px) - iPhone SE, etc 
        Even small phones get a HERO AVATAR - just slightly smaller */
-@media (max-width: min(375px, 100%)) {
+@media (max-width: 375px) {
   :root {
     --text-4xl: 1.5rem;
     --text-3xl: 1.25rem;
@@ -8840,7 +8840,7 @@ body {
 }
 
 /* Very small screens (max 320px) - HERO AVATAR (smaller but still prominent) */
-@media (max-width: min(320px, 100%)) {
+@media (max-width: 320px) {
   .app {
     padding: var(--space-xs);
   }
@@ -9197,7 +9197,7 @@ body {
 
 /* iPad landscape - larger tablets in horizontal orientation
    NOTE: Added (pointer: coarse) to only match touch devices, not desktop browsers */
-@media (min-height: 701px) and (max-width: min(1366px, 100%)) and (orientation: landscape) and (pointer: coarse) {
+@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) and (pointer: coarse) {
   .header {
     flex-direction: row;
     align-items: center;
@@ -11480,7 +11480,7 @@ body.ambient-aurora {
 }
 
 /* Responsive connection quality */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   .connection-quality {
     top: var(--space-sm);
     inset-inline-end: var(--space-sm);
@@ -11654,7 +11654,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    DESKTOP LARGE (≥1200px) - Full experience with generous spacing
    ------------------------------------------------------------------------ */
-@media (min-width: min(1200px, 100%)) {
+@media (min-width: 1200px) {
   .main {
     gap: var(--space-sm);
     padding: var(--space-sm);
@@ -11706,7 +11706,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    DESKTOP / TABLET LANDSCAPE (1025px - 1199px)
    ------------------------------------------------------------------------ */
-@media (min-width: min(1025px, 100%)) and (max-width: min(1199px, 100%)) {
+@media (min-width: 1025px) and (max-width: 1199px) {
   .avatar-container {
     /* Desktop smaller screens */
     width: min(120px, 100%);
@@ -11751,7 +11751,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    TABLET PORTRAIT (768px - 1024px) - Show team roster, hide garden
    ------------------------------------------------------------------------ */
-@media (min-width: clamp(538px, 90vw, 768px)) and (max-width: min(1024px, 100%)) {
+@media (min-width: 768px) and (max-width: 1024px) {
   /* Hide garden widget on tablet - access via menu */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -11812,7 +11812,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    LARGE PHONES / SMALL TABLETS (481px - 767px)
    ------------------------------------------------------------------------ */
-@media (min-width: clamp(337px, 90vw, 481px)) and (max-width: clamp(537px, 90vw, 767px)) {
+@media (min-width: 481px) and (max-width: 767px) {
   /* Hide garden widget */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -11872,7 +11872,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    iPHONE PRO MAX (431px - 480px) - Premium large phone experience
    ------------------------------------------------------------------------ */
-@media (min-width: clamp(302px, 90vw, 431px)) and (max-width: clamp(336px, 90vw, 480px)) {
+@media (min-width: 431px) and (max-width: 480px) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -11944,7 +11944,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    iPHONE PRO (390px - 430px) - Hero avatar, premium feel
    ------------------------------------------------------------------------ */
-@media (min-width: min(390px, 100%)) and (max-width: clamp(301px, 90vw, 430px)) {
+@media (min-width: 390px) and (max-width: 430px) {
   /* Hide secondary elements for focused experience */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -12018,7 +12018,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    STANDARD MOBILE (376px - 389px) - Budget Androids, older phones
    ------------------------------------------------------------------------ */
-@media (min-width: min(376px, 100%)) and (max-width: min(389px, 100%)) {
+@media (min-width: 376px) and (max-width: 389px) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -12087,7 +12087,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    SMALL PHONES (321px - 375px) - iPhone SE 2/3, iPhone 8
    ------------------------------------------------------------------------ */
-@media (min-width: min(321px, 100%)) and (max-width: min(375px, 100%)) {
+@media (min-width: 321px) and (max-width: 375px) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -12157,7 +12157,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    VERY SMALL PHONES (≤320px) - iPhone SE 1st gen, older devices
    ------------------------------------------------------------------------ */
-@media (max-width: min(320px, 100%)) {
+@media (max-width: 320px) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -12569,7 +12569,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    COMMON MOBILE STYLES (≤480px) - Shared optimizations
    ------------------------------------------------------------------------ */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   /* Compact header for mobile */
   .header {
     gap: var(--space-sm);
@@ -12790,7 +12790,7 @@ body.ambient-aurora {
    MOBILE ADJUSTMENT - Only for very small screens
    Just reduce padding, keep all component sizes the same
    --------------------------------------------------------------------- */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   :root {
     --ferni-container-padding: var(--space-sm, 0.75rem);
   }

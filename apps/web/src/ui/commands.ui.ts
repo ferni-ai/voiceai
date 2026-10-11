@@ -833,7 +833,7 @@ class CommandsPanelUI {
       /* ========================================
          MOBILE RESPONSIVE
          ======================================== */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .ferni-commands__wrapper {
           max-width: 100%;
         }
