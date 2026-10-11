@@ -50,7 +50,11 @@ vi.mock('../../processors/index.js', async (importOriginal) => ({
     const { env, gate, pipeline, unforwarded } = state.scenario as Scenario;
     // The reply gate's read of the same words, with Ferni's line as context.
     startCrisisClassifier(
-      { latest: ctx.userText, earlier: [], companion: 'How was the drive back?' },
+      {
+        latest: ctx.userText,
+        earlier: ['Hi.', 'Long drive.'],
+        companion: 'How was the drive back?',
+      },
       { pattern: 'none', env, generate: reads(gate), scope: SESSION }
     );
     const turnCrisis = startTurnCrisis(
@@ -106,8 +110,18 @@ async function runTurn(userText: string, scenario: Scenario) {
 beforeEach(() => resetCrisisClassifierCache());
 
 describe('turn handler: crisis agreement gate', () => {
-  it('gives disagreeing reads with no pattern the soft check-in, not crisis guidance', async () => {
+  it('keeps crisis guidance when reads disagree on words with distress in them', async () => {
     const turn = await runTurn('I just feel off tonight', {
+      env: GATE_ON,
+      gate: 'none',
+      pipeline: 'crisis',
+    });
+    expect(turn.soft).toEqual([]);
+    expect(turn.crisis).toHaveLength(1);
+  });
+
+  it('gives disagreeing reads of quiet words the soft check-in, not crisis guidance', async () => {
+    const turn = await runTurn('Why is that?', {
       env: GATE_ON,
       gate: 'none',
       pipeline: 'crisis',

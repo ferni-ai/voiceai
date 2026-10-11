@@ -120,6 +120,7 @@ const sets: Record<string, Case[]> = {
   gloomyNeg: gloomy.filter((c) => c.kind === 'gloomy_ferni_vocative'),
   gloomyPos: gloomy.filter((c) => c.kind === 'gloomy_ferni_caller_risk'),
   gloomyEndorse: gloomy.filter((c) => c.kind === 'gloomy_ferni_endorse'),
+  quotedAsFerni: gloomy.filter((c) => c.kind === 'quoted_as_ferni'),
 };
 
 const ARMS = ['before', 'rules only', 'prompt only', 'after'] as const;

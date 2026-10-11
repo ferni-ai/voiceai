@@ -15,6 +15,7 @@ import {
   resolveCrisisClassifierMode,
   resolveCrisisClassifierTimeoutMs,
   startCrisisClassifier,
+  turnVerdicts,
   verdictOutcome,
   type CrisisGenerateFn,
 } from '../crisis-classifier.js';
@@ -179,6 +180,68 @@ describe("Ferni's lines are Ferni's (CRISIS_AGREEMENT_GATE)", () => {
     expect(generate).toHaveBeenCalledTimes(2);
     expect(generate.mock.calls[0][0]).toBe(CRISIS_CLASSIFIER_PROMPT);
     expect(generate.mock.calls[1][0]).toContain(CRISIS_ATTRIBUTION_RULES);
+  });
+});
+
+describe('turnVerdicts (security review finding 2)', () => {
+  beforeEach(() => resetCrisisClassifierCache());
+
+  it('never combines reads of the same words on different turns', async () => {
+    const env = { CRISIS_CLASSIFIER_MODE: 'live', CRISIS_AGREEMENT_GATE: 'on' };
+    const scope = 'session-turns';
+    const pasta = { latest: 'same.', earlier: [], companion: 'I made pasta again' };
+    const point = { latest: 'same.', earlier: [], companion: "some days I don't see the point" };
+    await startCrisisClassifier(pasta, {
+      pattern: 'none',
+      env,
+      scope,
+      generate: replying('{"risk":"none","subject":"self"}'),
+    })?.verdict;
+    await startCrisisClassifier(point, {
+      pattern: 'none',
+      env,
+      scope,
+      generate: replying('{"risk":"crisis","subject":"self"}'),
+    })?.verdict;
+    expect(await turnVerdicts(scope, point)).toEqual([{ risk: 'crisis', subject: 'self' }]);
+    expect(await turnVerdicts(scope, pasta)).toEqual([{ risk: 'none', subject: 'self' }]);
+  });
+
+  it('pairs two reads of one turn whose older history differs', async () => {
+    const env = { CRISIS_CLASSIFIER_MODE: 'live', CRISIS_AGREEMENT_GATE: 'on' };
+    const scope = 'session-one-turn';
+    const gate = {
+      latest: 'Why is that?',
+      earlier: ['Hi.', 'Long drive.'],
+      companion: 'How was it?',
+    };
+    const pipeline = { ...gate, earlier: ['Long drive.', 'Why is that?'] };
+    await startCrisisClassifier(gate, {
+      pattern: 'none',
+      env,
+      scope,
+      generate: replying('{"risk":"none","subject":"self"}'),
+    })?.verdict;
+    await startCrisisClassifier(pipeline, {
+      pattern: 'none',
+      env,
+      scope,
+      generate: replying('{"risk":"crisis","subject":"self"}'),
+    })?.verdict;
+    expect(await turnVerdicts(scope, gate)).toHaveLength(2);
+  });
+
+  it('finds no reads, so nothing to soften, for a turn it never saw', async () => {
+    expect(await turnVerdicts('session-none', { latest: 'same.', earlier: [] })).toEqual([]);
+  });
+});
+
+describe('the attribution rules (security review finding 4)', () => {
+  it("count anything in the caller's turn as the caller's words, quotes included", () => {
+    expect(CRISIS_ATTRIBUTION_RULES).toMatch(
+      /everything in LATEST and EARLIER is the caller's own words/
+    );
+    expect(CRISIS_ATTRIBUTION_RULES).toMatch(/Ferni said/);
   });
 });
 

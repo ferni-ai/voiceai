@@ -78,7 +78,7 @@ export function startTurnCrisis(
             const crisis = applyClassifierVerdict(patterns, verdict);
             if (!scope || crisis === patterns) return { crisis, soft: false };
             // Fail closed: a failed lookup counts as a missing read, which escalates.
-            const verdicts = await turnVerdicts(scope, userText).catch(() => [null]);
+            const verdicts = await turnVerdicts(scope, input).catch(() => [null]);
             const outcome = agreementOutcome({ pattern, verdicts, ...input });
             if (outcome === 'escalate') return { crisis, soft: false };
             log.info({ outcome, reads: verdicts.length }, 'CRISIS_AGREEMENT');

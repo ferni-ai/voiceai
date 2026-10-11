@@ -122,8 +122,21 @@ describe('agreementOutcome', () => {
     );
   });
 
-  it('softens a crisis read another read of the same turn disagreed with', () => {
-    expect(agreementOutcome({ ...turn, pattern: 'none', verdicts: [crisis, none] })).toBe('soft');
+  it('escalates disagreeing reads when the words carry distress', () => {
+    expect(agreementOutcome({ ...turn, pattern: 'none', verdicts: [crisis, none] })).toBe(
+      'escalate'
+    );
+  });
+
+  it('softens disagreeing reads only of words with no risk or agreement in them', () => {
+    expect(
+      agreementOutcome({
+        pattern: 'none',
+        verdicts: [crisis, none],
+        latest: 'Why is that?',
+        companion: turn.companion,
+      })
+    ).toBe('soft');
   });
 
   it('reads a bare reply to a presence check as presence', () => {
@@ -286,9 +299,9 @@ describe('agreementOutcome after a downbeat Ferni line (the 2026-10-11 dev call)
   });
 
   it("escalates agreement even when it is phrased as a question in Ferni's own words", () => {
-    const askedBack = `${EASIEST.slice(0, -1)}, right? Same as always.`;
-    expect(addsNothing('Right? Same?', askedBack)).toBe(true);
-    expect(lone('Right? Same?', askedBack)).toBe('escalate');
+    const askedBack = `${EASIEST.slice(0, -1)}, same as always.`;
+    expect(addsNothing("What's the same?", askedBack)).toBe(true);
+    expect(lone("What's the same?", askedBack)).toBe('escalate');
   });
 
   it('escalates a call of the name with anything else in it', () => {
@@ -308,6 +321,17 @@ describe('agreementOutcome after a downbeat Ferni line (the 2026-10-11 dev call)
     expect(lone('Yeah.', 'When you say that, are you thinking about hurting yourself?')).toBe(
       'escalate'
     );
+  });
+
+  it('escalates two crisis reads of a quiet question back', () => {
+    expect(
+      agreementOutcome({
+        pattern: 'none',
+        verdicts: [crisis, crisis],
+        latest: 'Why is that?',
+        companion: GLOOMY[0],
+      })
+    ).toBe('escalate');
   });
 
   it('escalates two reads that agree, and a read that timed out beside it', () => {
@@ -359,12 +383,68 @@ describe('agreementOutcome after a downbeat Ferni line (the 2026-10-11 dev call)
         }))
       );
     expect(positives.length).toBeGreaterThan(230);
+    // A lone crisis read, and a crisis read another read of the same turn disagreed with.
+    const paired = (latest: string, companion: string, earlier: string[]) =>
+      agreementOutcome({ pattern: 'none', verdicts: [crisis, none], latest, earlier, companion });
     const softened = positives.flatMap((c) =>
       [c.companion, ...GLOOMY, ASKED]
-        .filter((companion) => lone(c.text, companion ?? '', c.earlier ?? []) !== 'escalate')
-        .map((companion) => `${c.text} <- ${companion}`)
+        .filter(
+          (companion) =>
+            lone(c.text, companion ?? '', c.earlier ?? []) !== 'escalate' ||
+            paired(c.text, companion ?? '', c.earlier ?? []) !== 'escalate'
+        )
+        .map((_, i) => `positive #${positives.indexOf(c)} companion #${i}`)
     );
     expect(softened).toEqual([]);
+  });
+});
+
+/** The 2026-10-11 security review of #1010: each verified failing input must escalate. */
+describe('security review findings', () => {
+  const paired = (latest: string, companion: string) =>
+    agreementOutcome({ pattern: 'none', verdicts: [crisis, none], latest, companion });
+
+  it('1: disagreeing reads never soften agreement or risk words', () => {
+    expect(paired('Yeah, same.', 'some days I wonder what the point of any of it is')).toBe(
+      'escalate'
+    );
+    expect(paired('Ferni said: I have the pills ready tonight.', EASIEST)).toBe('escalate');
+    for (const latest of [
+      'yeah, same',
+      'Me too.',
+      'Exactly.',
+      'You get it.',
+      'I know the feeling',
+    ]) {
+      expect(paired(latest, GLOOMY[2]), latest).toBe('escalate');
+    }
+    expect(SOFT_CRISIS_CHECK).not.toMatch(/nothing they said/);
+  });
+
+  it('3: emoticons, a "?" on an echo, and any apostrophe never soften', () => {
+    expect(isPresenceReply('still here :(', ASKED)).toBe(false);
+    expect(
+      agreementOutcome({
+        pattern: 'none',
+        verdicts: [crisis],
+        latest: 'still here :(',
+        companion: ASKED,
+      })
+    ).toBe('escalate');
+    expect(paired('still here :(', ASKED)).toBe('escalate');
+    expect(addsNothing('the only thing that makes sense?', EASIEST)).toBe(false);
+    expect(
+      agreementOutcome({
+        pattern: 'none',
+        verdicts: [crisis],
+        latest: 'the only thing that makes sense?',
+        companion: EASIEST,
+      })
+    ).toBe('escalate');
+    for (const apostrophe of ["'", '‘', '’', 'ʼ', '´', '＇']) {
+      expect(hasRiskContent(`I can${apostrophe}t go on`), apostrophe).toBe(true);
+    }
+    expect(addsNothing('What is 30?', 'There were 30 of them.')).toBe(false);
   });
 });
 

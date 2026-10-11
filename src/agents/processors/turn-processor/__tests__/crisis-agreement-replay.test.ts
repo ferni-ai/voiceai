@@ -85,7 +85,24 @@ describe('crisis agreement gate: the 2026-10-11 turn', () => {
     expect(await pipeline.softCheck()).toBe(false);
   });
 
-  it("on: disagreeing reads give a soft check once Ferni's line is forwarded", async () => {
+  it("on: disagreeing reads of quiet words give a soft check once Ferni's line is forwarded", async () => {
+    const gate = startCrisisGate(conversation('Why is that?'), SESSION, {
+      env: GATE_ON,
+      generate: reads('none'),
+    });
+    await gate?.escalation;
+    // Older history differs (a separate read), the turn is the same: same words,
+    // same Ferni line, same caller line before them.
+    const pipeline = startTurnCrisis(
+      'Why is that?',
+      { recentTranscripts: ['Morning.', 'What about Galway?'], lastAgentResponse: ASKED },
+      { sessionId: SESSION.services.sessionId, env: GATE_ON, generate: reads('crisis') }
+    );
+    expect((await pipeline.resolve()).isCrisis).toBe(false);
+    expect(await pipeline.softCheck()).toBe(true);
+  });
+
+  it('on: disagreeing reads of words with distress in them still escalate', async () => {
     const gate = startCrisisGate(conversation('I just feel off tonight'), SESSION, {
       env: GATE_ON,
       generate: reads('none'),
@@ -93,11 +110,11 @@ describe('crisis agreement gate: the 2026-10-11 turn', () => {
     await gate?.escalation;
     const pipeline = startTurnCrisis(
       'I just feel off tonight',
-      { lastAgentResponse: ASKED },
+      { recentTranscripts: ['Morning.', 'What about Galway?'], lastAgentResponse: ASKED },
       { sessionId: SESSION.services.sessionId, env: GATE_ON, generate: reads('crisis') }
     );
-    expect((await pipeline.resolve()).isCrisis).toBe(false);
-    expect(await pipeline.softCheck()).toBe(true);
+    expect((await pipeline.resolve()).isCrisis).toBe(true);
+    expect(await pipeline.softCheck()).toBe(false);
   });
 
   it("on: the pipeline given Ferni's question shares the gate's read", async () => {
@@ -140,9 +157,23 @@ describe('crisis agreement gate: the 2026-10-11 turn', () => {
     expect(gateTurn?.decision.action).not.toBe('pass');
   });
 
-  it('on: the reply gate swaps crisis guidance for the soft check when reads disagree', async () => {
-    const { gateTurn } = replay(GATE_ON, 'I just feel off tonight', 'crisis', 'none');
+  it('on: the reply gate swaps crisis guidance for the soft check when reads of quiet words disagree', async () => {
+    startTurnCrisis(
+      'Why is that?',
+      { recentTranscripts: ['Morning.', 'What about Galway?'], lastAgentResponse: ASKED },
+      { sessionId: SESSION.services.sessionId, env: GATE_ON, generate: reads('none') }
+    );
+    const gateTurn = startCrisisGate(conversation('Why is that?'), SESSION, {
+      env: GATE_ON,
+      generate: reads('crisis'),
+    });
     expect(await gateTurn?.escalation).toEqual({ action: 'guide', guidance: SOFT_CRISIS_CHECK });
+  });
+
+  it('on: the reply gate keeps full guidance when reads of words with distress disagree', async () => {
+    const { gateTurn } = replay(GATE_ON, 'I just feel off tonight', 'crisis', 'none');
+    const escalation = await gateTurn?.escalation;
+    expect(escalation?.action === 'guide' && escalation.guidance).toContain('988');
   });
 
   it('off: the reply gate escalates the same turn to full crisis guidance', async () => {

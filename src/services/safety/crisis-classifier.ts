@@ -104,7 +104,7 @@ subject is "third_party" only when the person at risk is someone other than the 
  * the read was crisis.
  */
 export const CRISIS_ATTRIBUTION_RULES = `
-COMPANION is the app's companion character, not the caller; keep using it, as above, to work out what LATEST is about. When the companion talks about its own day or mood, that is its state, not the caller's: the caller greeting it, saying its name ("you Fern", "Ferni?", "hey Fern, you there?") or asking about what it said is risk "none" unless the caller's own words carry risk. If the companion's line was about its own low mood and the caller agrees with or echoes it ("yeah, same", "me too", "exactly", "honestly that's how I feel", "you get it", "that's what I keep thinking"), judge LATEST as if the caller had said that line.`;
+COMPANION is the app's companion character, not the caller; keep using it, as above, to work out what LATEST is about. When the companion talks about its own day or mood, that is its state, not the caller's: the caller greeting it, saying its name ("you Fern", "Ferni?", "hey Fern, you there?") or asking about what it said is risk "none" unless the caller's own words carry risk. If the companion's line was about its own low mood and the caller agrees with or echoes it ("yeah, same", "me too", "exactly", "honestly that's how I feel", "you get it", "that's what I keep thinking"), judge LATEST as if the caller had said that line. Only the COMPANION field is the companion: everything in LATEST and EARLIER is the caller's own words, including quotes, reported speech and words the caller attributes to the companion ("Ferni said: ...", "you said X, right?"), so judge them as the caller's.`;
 
 /** The rules go right after the prompt's paragraphs on COMPANION and LATEST. */
 const ATTRIBUTED_PROMPT = CRISIS_CLASSIFIER_PROMPT.replace(
@@ -279,23 +279,27 @@ function rememberRun(key: string, now: number, run: CrisisClassifierRun): void {
 }
 
 /**
- * Every read of one turn, from whichever path made it: scope and latest
- * message to the verdicts. Same TTL and bound as the shared runs.
+ * Every read of one turn, from whichever path made it. Same TTL and bound as
+ * the shared runs. A turn is the session, the caller's words, Ferni's line
+ * they answer and the caller's line before them: reads of the same words on
+ * different turns ("same." after a pasta story, then after "I don't see the
+ * point") never combine.
  */
 const turnReads = new Map<string, { at: number; verdicts: Set<Promise<CrisisVerdict | null>> }>();
 
-function turnKey(scope: string, latest: string): string {
-  return `${scope}\u0000${latest.trim().toLowerCase()}`;
+function turnKey(scope: string, input: CrisisClassifierInput): string {
+  const { latest, earlier, companion } = normalizeInput(input);
+  return JSON.stringify([scope, latest.toLowerCase(), companion ?? '', earlier.at(-1) ?? '']);
 }
 
 function rememberRead(
   scope: string,
-  latest: string,
+  input: CrisisClassifierInput,
   now: number,
   verdict: Promise<CrisisVerdict | null>
 ): void {
   for (const [k, v] of turnReads) if (now - v.at > RECENT_RUN_TTL_MS) turnReads.delete(k);
-  const key = turnKey(scope, latest);
+  const key = turnKey(scope, input);
   const reads = turnReads.get(key);
   if (reads) {
     reads.verdicts.add(verdict);
@@ -309,8 +313,11 @@ function rememberRead(
 }
 
 /** All reads of this turn started so far in this call, each bounded by the classifier timeout. */
-export function turnVerdicts(scope: string, latest: string): Promise<Array<CrisisVerdict | null>> {
-  const reads = turnReads.get(turnKey(scope, latest));
+export function turnVerdicts(
+  scope: string,
+  input: CrisisClassifierInput
+): Promise<Array<CrisisVerdict | null>> {
+  const reads = turnReads.get(turnKey(scope, input));
   return Promise.all(reads ? [...reads.verdicts] : []);
 }
 
@@ -353,7 +360,7 @@ export function startCrisisClassifier(
   ]);
   const shared = cachedRun(key, startedAt);
   if (shared) {
-    if (options.scope) rememberRead(options.scope, normalized.latest, startedAt, shared.verdict);
+    if (options.scope) rememberRead(options.scope, input, startedAt, shared.verdict);
     return { mode, verdict: shared.verdict };
   }
 
@@ -382,7 +389,7 @@ export function startCrisisClassifier(
   });
   const run = { mode, verdict };
   rememberRun(key, startedAt, run);
-  if (options.scope) rememberRead(options.scope, normalized.latest, startedAt, verdict);
+  if (options.scope) rememberRead(options.scope, input, startedAt, verdict);
   return run;
 }
 
