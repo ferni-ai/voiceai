@@ -12,10 +12,8 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import {
-  getAnswerCardForUser,
-  isApprovalsPageEnabled,
-} from '../services/approvals/answer-cards.js';
+import { getAnswerCardForUser } from '../services/approvals/answer-cards.js';
+import { isApprovalsPageEnabled } from '../services/approvals/flag.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { sendError, sendJSON } from './helpers.js';
@@ -41,6 +39,11 @@ export async function handleAnswerCardRoutes(
 
   const auth = await requireAuth(req, res);
   if (!auth) return true;
+  // Only a person's own Firebase sign-in, never a service API key or dev header.
+  if (auth.authMethod !== 'firebase') {
+    sendError(res, NOT_FOUND, 404);
+    return true;
+  }
 
   const id = pathname.slice(PREFIX.length);
   try {
@@ -49,7 +52,7 @@ export async function handleAnswerCardRoutes(
       sendError(res, NOT_FOUND, 404);
       return true;
     }
-    const { userId: _owner, ...shown } = card;
+    const { userId: _owner, deleteAt: _deleteAt, ...shown } = card;
     sendJSON(res, { card: shown });
   } catch (error) {
     log.error({ error: String(error) }, 'Answer card read failed');

@@ -10,6 +10,9 @@ import type { AddressInfo } from 'node:net';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const TOKENS: Record<string, string> = { 'token-alice': 'alice', 'token-bob': 'bob' };
+/** A service API key that (wrongly) resolves to alice's uid must still get nothing. */
+const SERVICE_TOKENS = new Set(['service-key-as-alice']);
+TOKENS['service-key-as-alice'] = 'alice';
 
 vi.mock('../auth-middleware.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../auth-middleware.js')>();
@@ -17,7 +20,12 @@ vi.mock('../auth-middleware.js', async (importOriginal) => {
     const token = (req.headers.authorization ?? '').replace(/^Bearer /, '');
     const userId = TOKENS[token];
     return userId
-      ? { userId, isAdmin: false, isDevMode: false, authMethod: 'firebase' as const }
+      ? {
+          userId,
+          isAdmin: false,
+          isDevMode: false,
+          authMethod: SERVICE_TOKENS.has(token) ? ('api_key' as const) : ('firebase' as const),
+        }
       : null;
   };
   return {
@@ -112,6 +120,7 @@ describe('GET /api/answer-cards/:id', () => {
     });
     expect(typeof card.createdAt).toBe('number');
     expect(card).not.toHaveProperty('userId');
+    expect(card).not.toHaveProperty('deleteAt');
   });
 
   it("answers another user's card exactly like a missing one", async () => {
@@ -121,6 +130,11 @@ describe('GET /api/answer-cards/:id', () => {
     expect(byBob.status).toBe(404);
     expect(missing.status).toBe(404);
     expect(await byBob.json()).toEqual(await missing.json());
+  });
+
+  it('gives nothing to a service API key, only a person signed in with Firebase', async () => {
+    const id = await aliceCard();
+    expect((await get(`/api/answer-cards/${id}`, 'service-key-as-alice')).status).toBe(404);
   });
 
   it('needs a signed-in user', async () => {
