@@ -7,7 +7,7 @@
  * @module @ferni/celebration
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { getFerniAudioEngine } from '../services/ferni-audio.service.js';
@@ -372,7 +372,7 @@ export class CelebrationUI {
 
   private async animateCardIn(card: HTMLElement): Promise<void> {
     return new Promise((resolve) => {
-      card.animate(
+      safeAnimate(card,
         [
           { opacity: 0, transform: 'translate(-50%, -50%) scale(0.8)' },
           { opacity: 1, transform: 'translate(-50%, -50%) scale(1)' },
@@ -388,7 +388,7 @@ export class CelebrationUI {
 
   private async animateCardOut(card: HTMLElement): Promise<void> {
     return new Promise((resolve) => {
-      card.animate(
+      safeAnimate(card,
         [
           { opacity: 1, transform: 'translate(-50%, -50%) scale(1)' },
           { opacity: 0, transform: 'translate(-50%, -50%) scale(0.95) translateY(-20px)' },
