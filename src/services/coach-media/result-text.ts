@@ -60,7 +60,9 @@ export function isInstructionLike(sentence: string): boolean {
 export function webData(text: string | undefined, max: number): { text: string; dropped: number } {
   const flat = callerText(text, 2000).replace(PHONE_LIKE, '');
   const sentences = flat.match(/[^.!?]+[.!?]*/g) ?? [];
-  const kept = sentences.filter((s) => !isInstructionLike(s));
+  // callerText leaves "[removed]" where an instruction phrase was; the rest of that
+  // sentence ("[removed] and call now") goes too.
+  const kept = sentences.filter((s) => !isInstructionLike(s) && !s.includes('[removed]'));
   const joined = kept.join(' ').replace(/\s+/g, ' ').trim();
   return {
     text: joined.length > max ? `${joined.slice(0, max - 1).trimEnd()}…` : joined,
