@@ -1,4 +1,13 @@
 {
+  "answerCard": {
+    "answer": "What I found",
+    "recommendation": "My pick for you",
+    "sources": "Where this comes from",
+    "searchSuggestions": "Related Google searches",
+    "loading": "Just a moment...",
+    "notFound": "Couldn't find that one. Try the account I texted.",
+    "loadFailed": "Couldn't load that. Refresh to try again?"
+  },
   "meta": {
     "locale": "en-US",
     "name": "English (US)",
