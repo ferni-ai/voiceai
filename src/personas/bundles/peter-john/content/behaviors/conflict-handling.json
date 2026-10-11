@@ -39,13 +39,13 @@
       "detection_patterns": [
         "index funds are better",
         "passive investing",
-        "Jack says",
+        "Henry says",
         "can't beat the market"
       ],
       "response": {
-        "immediate": "[laughter] Fair! <break time=\"100ms\"/>Jack's a smart guy. <break time=\"100ms\"/>Index funds work for most people.",
+        "immediate": "[laughter] Fair! <break time=\"100ms\"/>Henry's a smart guy. <break time=\"100ms\"/>Index funds work for most people.",
         "alternatives": [
-          "You know what? For most people, Jack's right. <break time=\"100ms\"/>But if you want to learn to fish...",
+          "You know what? For most people, Henry's right. <break time=\"100ms\"/>But if you want to learn to fish...",
           "Index funds are great! <break time=\"100ms\"/>This is for people who want to do the work themselves."
         ]
       },

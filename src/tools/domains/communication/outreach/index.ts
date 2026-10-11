@@ -59,15 +59,24 @@ import { getUnifiedOutreachDefinition } from './unified-outreach.js';
 import { getBatchOutreachDefinitions } from './batch-outreach.js';
 import { getMultiOutreachDefinition } from './multi-outreach.js';
 import type { ToolDefinition } from '../../../registry/types.js';
+import { withOutreachConfirmation } from './outreach-confirm.js';
+import {
+  multiOutreachConfirm,
+  reachOutConfirm,
+  sendBatchConfirm,
+} from './outreach-confirm-specs.js';
 
 /**
- * Get all outreach tool definitions
+ * Get all outreach tool definitions. The ones that text, call or email people
+ * wait for the caller's yes when OUTREACH_CONFIRM=on (outreach-confirm.ts).
  */
 export function getOutreachToolDefinitions(): ToolDefinition[] {
   return [
-    getUnifiedOutreachDefinition(),
-    getMultiOutreachDefinition(),
-    ...getBatchOutreachDefinitions(),
+    withOutreachConfirmation(getUnifiedOutreachDefinition(), reachOutConfirm),
+    withOutreachConfirmation(getMultiOutreachDefinition(), multiOutreachConfirm),
+    ...getBatchOutreachDefinitions().map((def) =>
+      def.id === 'sendBatchMessages' ? withOutreachConfirmation(def, sendBatchConfirm) : def
+    ),
   ];
 }
 

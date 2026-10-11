@@ -305,7 +305,8 @@ export async function openMarketplace(): Promise<void> {
   const firstFocusable = modal.querySelector('button, input, select') as HTMLElement;
   firstFocusable?.focus();
 
-  // Load content
+  // Load content, with agents installed on the person's other devices
+  await marketplaceService.syncInstalledAgents();
   await refreshContent();
 }
 

@@ -68,15 +68,6 @@ export {
   handleSkyCheckRoutes,
 } from './sky-check.js';
 
-// Builder metrics routes (admin/monitoring)
-export {
-  handleBuilderMetricsRoutes,
-  handleGetBuilderAlerts,
-  handleGetBuilderMetrics,
-  handleGetBuilderWarnings,
-  handleGetSessionBuilderMetrics,
-} from './builder-metrics.js';
-
 // Growth visibility routes (user progress insights)
 export { handleGrowthRoutes } from './growth.js';
 

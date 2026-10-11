@@ -16,7 +16,6 @@ import type { ToolDomain } from './registry/types.js';
 
 // Team handler registry (new generic system)
 import { teamHandlerRegistry } from '../services/team-handler-registry/index.js';
-import { initializeTeamHandlerRegistry } from '../services/team-handler-registry/loader.js';
 
 // ============================================================================
 // TOOL REGISTRY INITIALIZATION
@@ -86,75 +85,19 @@ export function isToolRegistryInitialized(): boolean {
 // ============================================================================
 
 /**
- * Initialize team integration handlers
- * Call this during app startup to enable cross-agent communication
- *
- * Supports two modes:
- * - Legacy: Uses individual *-team-handlers.ts files (default)
- * - New: Uses the team handler registry system
+ * Start the proactive scheduler, the one part of team-handler startup still
+ * running. The team handler registry was behind USE_NEW_TEAM_HANDLERS, which
+ * was never set in any environment (flag audit 2026-10-11), and the default
+ * path logged "Legacy team handlers have been removed. Enable
+ * USE_NEW_TEAM_HANDLERS=true" on every prod boot. Both are gone.
  */
-export async function initializeTeamHandlers(options?: {
-  /** Use new registry-based system instead of legacy handlers */
-  useNewSystem?: boolean;
-}): Promise<void> {
-  const useNewSystem = options?.useNewSystem ?? process.env.USE_NEW_TEAM_HANDLERS === 'true';
-
-  if (useNewSystem) {
-    // NEW: Use the team handler registry
-    try {
-      const result = await initializeTeamHandlerRegistry({
-        loadLegacy: true,
-        loadManifests: true,
-      });
-
-      getLogger().info(
-        {
-          legacyAgents: result.legacy.loaded,
-          manifestAgents: result.manifests.loaded,
-        },
-        '🤝 Team handler registry initialized'
-      );
-
-      // Also start the proactive scheduler
-      const { getProactiveScheduler } =
-        await import('../services/scheduling/proactive-scheduler.js');
-      const scheduler = getProactiveScheduler();
-      scheduler.start();
-      getLogger().info('⏰ Proactive scheduler started');
-    } catch (error) {
-      getLogger().warn(
-        { error },
-        'Error initializing team handler registry, falling back to legacy'
-      );
-      await initializeLegacyTeamHandlers();
-    }
-  } else {
-    // LEGACY: Use individual team handler files
-    await initializeLegacyTeamHandlers();
-  }
-}
-
-/**
- * Initialize team handlers using legacy system
- * @internal
- * @deprecated Legacy team handlers have been removed. Use USE_NEW_TEAM_HANDLERS=true instead.
- */
-async function initializeLegacyTeamHandlers(): Promise<void> {
+export async function initializeTeamHandlers(): Promise<void> {
   try {
-    // Legacy team handlers have been migrated to the team-handler-registry system.
-    // This function now just starts the proactive scheduler.
     const { getProactiveScheduler } = await import('../services/scheduling/proactive-scheduler.js');
-
-    // Start the proactive scheduler for background notifications
-    const scheduler = getProactiveScheduler();
-    scheduler.start();
-
+    getProactiveScheduler().start();
     getLogger().info('⏰ Proactive scheduler started');
-    getLogger().warn(
-      '⚠️ Legacy team handlers have been removed. Enable USE_NEW_TEAM_HANDLERS=true for the new system.'
-    );
   } catch (error) {
-    getLogger().warn({ error }, 'Error initializing team handlers');
+    getLogger().warn({ error }, 'Error starting the proactive scheduler');
   }
 }
 
