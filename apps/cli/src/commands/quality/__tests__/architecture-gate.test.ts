@@ -1,0 +1,208 @@
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  buildGraph,
+  check,
+  compare,
+  placementOf,
+  scoreboard,
+  toBaseline,
+  type Violation,
+} from '../architecture-gate.js';
+import { LAYER_MAP } from '../architecture-layers.js';
+
+/** A tiny layered repo: one dir per layer, two L3 contexts. */
+const MAP: Record<string, string> = {
+  'src/app': 'L5',
+  'src/pipeline': 'L4',
+  'src/memory': 'L3:memory',
+  'src/affect': 'L3:affect',
+  'src/kernel': 'L2',
+  'src/adapters': 'L1',
+  'src/misc': 'unassigned',
+};
+
+let root: string;
+function repo(files: Record<string, string>): string {
+  root = mkdtempSync(join(tmpdir(), 'arch-gate-'));
+  for (const [path, text] of Object.entries(files)) {
+    mkdirSync(dirname(join(root, path)), { recursive: true });
+    writeFileSync(join(root, path), text);
+  }
+  return root;
+}
+const violations = (files: Record<string, string>): Violation[] => check(buildGraph(repo(files)), MAP);
+const rules = (vs: Violation[]): string[] => vs.map((v) => `${v.rule} ${v.from} -> ${v.to}`).sort();
+
+afterEach(() => {
+  if (root) rmSync(root, { recursive: true, force: true });
+});
+
+describe('architecture gate: what the graph sees', () => {
+  it('catches an upward static import, with its line', () => {
+    const vs = violations({
+      'src/memory/store.ts': "export const a = 1;\nimport { run } from '../pipeline/turn.js';\n",
+      'src/pipeline/turn.ts': 'export const run = 1;\n',
+    });
+    expect(rules(vs)).toEqual(['upward src/memory/store.ts -> src/pipeline/turn.ts']);
+    expect(vs[0]!.line).toBe(2);
+  });
+
+  it('catches a multi-line import the old line regex missed', () => {
+    const vs = violations({
+      'src/kernel/user.ts': "import {\n  run,\n  stop,\n} from '../app/main.js';\n",
+      'src/app/main.ts': 'export const run = 1, stop = 2;\n',
+    });
+    expect(rules(vs)).toEqual(['upward src/kernel/user.ts -> src/app/main.ts']);
+  });
+
+  it('catches await import() and require() inside functions', () => {
+    const vs = violations({
+      'src/memory/a.ts': "export async function f() { return await import('../pipeline/turn.js'); }\n",
+      'src/affect/b.ts': "export function g() { return require('../app/main'); }\n",
+      'src/pipeline/turn.ts': 'export {};\n',
+      'src/app/main.ts': 'export {};\n',
+    });
+    expect(rules(vs)).toEqual([
+      'upward src/affect/b.ts -> src/app/main.ts',
+      'upward src/memory/a.ts -> src/pipeline/turn.ts',
+    ]);
+  });
+
+  it('holds type-only imports to the same rules under type-* keys, and allows them into L2', () => {
+    const vs = violations({
+      'src/memory/a.ts': [
+        "import type { T } from '../pipeline/turn.js';",
+        "import { type U } from '../adapters/db.js';",
+        "import type { K } from '../kernel/user.js';",
+        "export type V = import('../affect/internal.js').X;",
+      ].join('\n'),
+      'src/pipeline/turn.ts': 'export type T = 1;\n',
+      'src/adapters/db.ts': 'export type U = 1;\n',
+      'src/kernel/user.ts': 'export type K = 1;\n',
+      'src/affect/internal.ts': 'export type X = 1;\n',
+    });
+    expect(rules(vs)).toEqual([
+      'type-context-internal src/memory/a.ts -> src/affect/internal.ts',
+      'type-core-to-platform src/memory/a.ts -> src/adapters/db.ts',
+      'type-upward src/memory/a.ts -> src/pipeline/turn.ts',
+    ]);
+  });
+
+  it('catches L2 and L3 importing an L1 adapter at runtime', () => {
+    const vs = violations({
+      'src/memory/a.ts': "import { db } from '../adapters/db.js';\n",
+      'src/kernel/k.ts': "import { db } from '../adapters/db.js';\n",
+      'src/adapters/db.ts': 'export const db = 1;\n',
+    });
+    expect(rules(vs)).toEqual([
+      'core-to-platform src/kernel/k.ts -> src/adapters/db.ts',
+      'core-to-platform src/memory/a.ts -> src/adapters/db.ts',
+    ]);
+  });
+
+  it("allows another context's index.ts but catches its internals", () => {
+    const vs = violations({
+      'src/memory/a.ts': "import { x } from '../affect/index.js';\nimport { y } from '../affect/deep/y.js';\n",
+      'src/affect/index.ts': "export const x = 1;\n",
+      'src/affect/deep/y.ts': 'export const y = 1;\n',
+    });
+    expect(rules(vs)).toEqual(['context-internal src/memory/a.ts -> src/affect/deep/y.ts']);
+  });
+
+  it('lets L1 implement L3 ports and outer layers wire adapters, but keeps L1 below L4', () => {
+    const vs = violations({
+      'src/adapters/db.ts': "import type { Port } from '../memory/port.js';\nimport { flag } from '../pipeline/flags.js';\n",
+      'src/memory/port.ts': 'export interface Port {}\n',
+      'src/pipeline/flags.ts': "import { db } from '../adapters/db.js';\nexport const flag = db;\n",
+      'src/app/main.ts': "import { db } from '../adapters/db.js';\n",
+    });
+    expect(rules(vs)).toContain('upward src/adapters/db.ts -> src/pipeline/flags.ts');
+    expect(rules(vs).filter((r) => !r.startsWith('cycle'))).toHaveLength(1);
+  });
+
+  it('reports every static cycle, even inside one layer, but not cycles closed by lazy imports', () => {
+    const vs = violations({
+      'src/memory/a.ts': "import { b } from './b.js';\nexport const a = b;\n",
+      'src/memory/b.ts': "import { a } from './a.js';\nexport const b = 1;\n",
+      'src/affect/c.ts': "import { d } from './d.js';\nexport const c = d;\n",
+      'src/affect/d.ts': "export async function d() { return import('./c.js'); }\n",
+    });
+    expect(rules(vs)).toEqual(['cycle src/memory/a.ts -> src/memory/b.ts', 'cycle src/memory/b.ts -> src/memory/a.ts']);
+  });
+
+  it('skips test files and unassigned dirs', () => {
+    const vs = violations({
+      'src/memory/__tests__/a.test.ts': "import { x } from '../../app/main.js';\n",
+      'src/misc/loose.ts': "import { x } from '../app/main.js';\n",
+      'src/app/main.ts': 'export const x = 1;\n',
+    });
+    expect(vs).toEqual([]);
+  });
+});
+
+describe('architecture gate: ratchet', () => {
+  const v = (from: string, to: string, rule: Violation['rule'] = 'upward'): Violation => ({ rule, from, to, line: 1 });
+  const base = toBaseline([v('src/a.ts', 'src/b.ts'), v('src/c.ts', 'src/d.ts', 'cycle')]);
+
+  it('passes when nothing changed', () => {
+    const r = compare(base, [v('src/a.ts', 'src/b.ts'), v('src/c.ts', 'src/d.ts', 'cycle')]);
+    expect(r.added).toEqual([]);
+    expect(r.fixed).toBe(0);
+  });
+
+  it('passes when an edge goes away, and lowers the baseline without adding anything', () => {
+    const r = compare(base, [v('src/a.ts', 'src/b.ts')]);
+    expect(r.added).toEqual([]);
+    expect(r.fixed).toBe(1);
+    expect(r.lowered.cycle).toEqual([]);
+    expect(r.lowered.upward).toEqual(['src/a.ts -> src/b.ts']);
+  });
+
+  it('fails on a new edge, even when the total went down', () => {
+    const r = compare(base, [v('src/x.ts', 'src/b.ts')]);
+    expect(r.added.map((a) => `${a.from} -> ${a.to}`)).toEqual(['src/x.ts -> src/b.ts']);
+    expect(r.fixed).toBe(2);
+  });
+
+  it('treats the same edge under a different rule as new', () => {
+    expect(compare(base, [v('src/a.ts', 'src/b.ts', 'cycle')]).added).toHaveLength(1);
+  });
+});
+
+describe('architecture gate: the real layer map', () => {
+  it('uses the longest prefix and keeps entrypoints in L5', () => {
+    expect(placementOf('src/agents/voice-agent/turn-handler.ts')?.layer).toBe('L4');
+    expect(placementOf('src/agents/model-provider/factory.ts')?.layer).toBe('L1');
+    expect(placementOf('src/agents/gce/job-runner.ts')?.layer).toBe('L5');
+    expect(placementOf('src/speech/tts-gateway/index.ts')?.layer).toBe('L1');
+    expect(placementOf('src/speech/ssml-tagger.ts')).toMatchObject({ layer: 'L3', context: 'expression' });
+    expect(placementOf('src/services/superhuman/dream-keeper.ts')).toMatchObject({ layer: 'L3', context: 'growth' });
+    expect(placementOf('src/services/some-loose-file.ts')).toBeNull();
+  });
+
+  it('names only paths that exist, so a moved dir has to update the map', () => {
+    const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '../../../../../..');
+    expect(Object.keys(LAYER_MAP).filter((key) => !existsSync(join(repoRoot, key)))).toEqual([]);
+  });
+
+  it('only uses known layers and contexts', () => {
+    for (const value of Object.values(LAYER_MAP)) {
+      expect(value).toMatch(
+        /^(unassigned|L[1245]|L3:(identity|perception|memory|understanding|affect|judgment|expression|relationship|agency|growth))$/
+      );
+    }
+  });
+
+  it('prints a scoreboard per layer pair and per context', () => {
+    const graph = buildGraph(
+      repo({ 'src/memory/a.ts': "import '../pipeline/b.js';\n", 'src/pipeline/b.ts': 'export {};\n' })
+    );
+    const board = scoreboard(graph.files, graph.edges, check(graph, MAP), MAP);
+    expect(board).toMatch(/\| L3 → L4 \| 1 \| 0 \|/);
+    expect(board).toMatch(/Cycles: 0 static import cycles/);
+  });
+});
