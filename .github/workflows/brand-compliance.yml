@@ -31,6 +31,7 @@ jobs:
   # output fails closed). Overlay visual + contrast checks live in ci.yml
   # (overlay-gallery): the self-hosted runner only accepts CI workflows.
   changes:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Detect UI Changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -49,6 +50,7 @@ jobs:
           include: '^(apps/web/|design-system/|brand/|\.github/workflows/brand-compliance\.yml$)'
 
   lint-brand:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Brand Compliance Check
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
@@ -173,7 +175,7 @@ jobs:
     name: Token Validation
     runs-on: ubuntu-latest
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.ui != 'false' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' && (!cancelled() && needs.changes.outputs.ui != 'false') }}
 
     steps:
       - name: Checkout

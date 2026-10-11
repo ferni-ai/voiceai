@@ -2073,7 +2073,7 @@ ${result.crisis.suggestedResponse}`,
       // ================================================================
       // GREETING AWARENESS (Turn 0 only)
       // CRITICAL: The LLM needs to know what greeting was already spoken
-      // Without this, Ferni will re-introduce herself or repeat the greeting
+      // Without this, Ferni will re-introduce himself or repeat the greeting
       // ================================================================
       if (userData.greetingText && !userData.greetingInjected && (userData.turnCount ?? 0) === 0) {
         // Strip SSML tags for cleaner context (LLM doesn't need to see <break> tags)
