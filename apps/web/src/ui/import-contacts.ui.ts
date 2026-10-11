@@ -467,9 +467,16 @@ function render(): void {
   bindEvents();
 }
 
+/**
+ * Off: the server has no handler for POST /api/contacts/import/google/start, so
+ * the button could only fail. Turn on once the OAuth import route exists.
+ */
+const GOOGLE_IMPORT_AVAILABLE = false;
+
 function renderSourceSelection(): string {
   return `
     <div class="ic-sources">
+      ${GOOGLE_IMPORT_AVAILABLE ? `
       <button class="ic-source-btn ${state.source === 'google' ? 'selected' : ''}" data-source="google">
         <div class="ic-source-icon">${ICONS.google}</div>
         <div class="ic-source-info">
@@ -477,6 +484,7 @@ function renderSourceSelection(): string {
           <div class="ic-source-desc">${t('importContacts.googleDescription')}</div>
         </div>
       </button>
+      ` : ''}
 
       <button class="ic-source-btn ${state.source === 'csv' ? 'selected' : ''}" data-source="csv">
         <div class="ic-source-icon">${ICONS.csv}</div>

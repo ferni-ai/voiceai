@@ -10111,6 +10111,11 @@
       "celebratory": "Celebratory",
       "curious": "Curious"
     },
+    "openers": {
+      "supportive": "Hey, I've been thinking about you. How are things going with {topic}?",
+      "celebratory": "How's {topic} going? Last time you sounded so excited about it!",
+      "curious": "Hey! How's {topic} going these days?"
+    },
     "eyebrow": "Conversation Starters",
     "lastTalked": "Last talked {when}",
     "overAYearAgo": "over a year ago",
