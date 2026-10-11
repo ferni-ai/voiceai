@@ -17,6 +17,7 @@ import {
   getNextStreakMilestone,
   isDailyBonusAvailable,
 } from '../services/seeds-economy.service.js';
+import { claimDailyOnServer, serverSeeds } from '../services/seeds-ledger.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { moments } from './moments/index.js';
@@ -469,14 +470,9 @@ export function animateSeedsAdded(amount: number): void {
 // INITIALIZATION
 // ============================================================================
 
-/**
- * Handle daily bonus click - claim seeds immediately
- */
-function handleDailyBonusClick(e: Event): void {
-  e.preventDefault();
-  e.stopPropagation();
-
-  const result = claimDailyBonus();
+/** Claim the daily bonus: on the server once it keeps seeds, else in this browser */
+async function handleDailyBonusClick(): Promise<void> {
+  const result = serverSeeds() ? await claimDailyOnServer() : claimDailyBonus();
   if (result.claimed) {
     moments.whisper(tp('toasts.seedsEarned', result.amount ?? 0), { type: 'success' });
     updateSeedsDisplay();
@@ -493,19 +489,22 @@ function handleDailyBonusClick(e: Event): void {
   }
 }
 
-/**
- * Bind click handler to daily bonus button
- */
+/** One listener reference, so re-binding on every DOM change adds it only once */
+function onDailyBonusClick(e: Event): void {
+  e.preventDefault();
+  e.stopPropagation();
+  void handleDailyBonusClick();
+}
+
+/** Bind click handler to daily bonus button */
 function bindDailyBonusHandler(): void {
   const dailyBonusBtn = document.querySelector('[data-daily-bonus]');
   if (dailyBonusBtn) {
-    dailyBonusBtn.addEventListener('click', handleDailyBonusClick);
+    dailyBonusBtn.addEventListener('click', onDailyBonusClick);
   }
 }
 
-/**
- * Bind click handlers to action buttons
- */
+/** Bind click handlers to action buttons */
 function bindActionHandlers(): void {
   // Garden button
   const gardenBtn = document.querySelector('[data-action="garden"]');

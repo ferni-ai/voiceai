@@ -11,9 +11,6 @@
 // MODEL PROVIDERS (local / pipeline servers)
 // ============================================================================
 
-/** ChipChat-compatible server URL (e.g. Pipecat) */
-export const CHIPCHAT_URL = process.env.CHIPCHAT_URL || 'http://127.0.0.1:8765';
-
 /** Ollama API URL (local Gemma 3n) */
 export const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 
