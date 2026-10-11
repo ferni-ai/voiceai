@@ -17,6 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { readCallSummaries } from '../../memory/storage/call-summaries.js';
 
 const log = createLogger({ module: 'LifeTrajectoryEngine' });
 
@@ -253,9 +254,7 @@ interface TrajectoryData {
 // Data Gathering
 // ============================================================================
 
-/**
- * Gather all data needed for trajectory synthesis
- */
+/** Gather all data needed for trajectory synthesis; call summaries come from readCallSummaries. */
 async function gatherTrajectoryData(userId: string): Promise<TrajectoryData> {
   const db = getFirestoreDb();
   if (!db) {
@@ -291,7 +290,7 @@ async function gatherTrajectoryData(userId: string): Promise<TrajectoryData> {
       userRef.collection('habits').limit(100).get(),
       userRef.collection('relationships').limit(100).get(),
       userRef.collection('values').limit(50).get(),
-      userRef.collection('conversation_summaries').orderBy('timestamp', 'desc').limit(50).get(),
+      readCallSummaries(db, userId, { limit: 50 }),
       userRef.collection('predictive_insights').orderBy('createdAt', 'desc').limit(50).get(),
       userRef.collection('milestones').limit(100).get(),
       userRef.collection('moods').orderBy('timestamp', 'desc').limit(30).get(),

@@ -143,6 +143,10 @@ class HedgedLLMStream extends llm.LLMStream {
         const pending: Array<Promise<Step>> = racing.map(async (c) => c.next);
         if (!backupStarted) pending.push(hedgeSignal);
         const step = await Promise.race(pending);
+        // Closed by the caller (another lane won, or the turn was dropped): the
+        // children end empty because they were closed. Starting the backup now
+        // would send a request nobody reads, and "no output" would blame them.
+        if (this.cancelled) return;
         if (step.kind === 'hedge') {
           backupStarted = true;
           racing.push(this.start('backup'));

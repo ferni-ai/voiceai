@@ -109,8 +109,15 @@ async function fetchVisualStorytellingData(userId: string): Promise<VisualStoryt
  */
 async function updateSleepPatternAPI(userId: string, pattern: SleepPatternData): Promise<boolean> {
   try {
-    await apiPut(`/api/visual-storytelling/${userId}/sleep-pattern`, pattern);
-    
+    const response = await apiPut(`/api/visual-storytelling/${userId}/sleep-pattern`, pattern);
+    if (!response.ok) {
+      log.error(
+        { error: response.error, status: response.status, userId },
+        'Failed to update sleep pattern'
+      );
+      return false;
+    }
+
     // Update cache
     if (cachedData) {
       cachedData.sleepPattern = pattern;
@@ -128,8 +135,18 @@ async function updateSleepPatternAPI(userId: string, pattern: SleepPatternData):
  */
 async function celebrateMilestoneAPI(userId: string, milestoneId: string): Promise<boolean> {
   try {
-    await apiPost(`/api/visual-storytelling/${userId}/milestone/${milestoneId}/celebrate`, {});
-    
+    const response = await apiPost(
+      `/api/visual-storytelling/${userId}/milestone/${milestoneId}/celebrate`,
+      {}
+    );
+    if (!response.ok) {
+      log.error(
+        { error: response.error, status: response.status, userId, milestoneId },
+        'Failed to celebrate milestone'
+      );
+      return false;
+    }
+
     // Update cache
     if (cachedData) {
       const milestone = cachedData.milestones.find(m => m.id === milestoneId);

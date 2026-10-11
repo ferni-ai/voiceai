@@ -84,7 +84,7 @@ describe('route rate limits', () => {
     // ran first it would see no one and quietly key everyone by IP again.
     const server = readFileSync(resolve(__dirname, '../../servers/api/index.ts'), 'utf8');
     const bound = server.indexOf('await bindVerifiedIdentity(req)');
-    const limited = server.indexOf('rateLimitUid(req)');
+    const limited = server.indexOf('limitApiRequest(req, res)');
     const firstRoute = server.search(/await handle\w+Routes\(/);
     expect(bound).toBeGreaterThan(-1);
     expect(limited).toBeGreaterThan(bound);
