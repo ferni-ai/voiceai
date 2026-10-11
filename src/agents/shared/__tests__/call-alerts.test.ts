@@ -8,8 +8,7 @@ function fakeSession() {
     agentState: 'speaking',
     userState: 'listening',
     generateReply: vi.fn(),
-    on: (e: string, fn: (ev: unknown) => void) =>
-      listeners.set(e, (listeners.get(e) ?? new Set()).add(fn)),
+    on: (e: string, fn: (ev: unknown) => void) => listeners.set(e, (listeners.get(e) ?? new Set()).add(fn)),
     off: (e: string, fn: (ev: unknown) => void) => listeners.get(e)?.delete(fn),
     emit: (e: string) => [...(listeners.get(e) ?? [])].forEach((fn) => fn({})),
   };

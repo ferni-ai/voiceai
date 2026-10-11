@@ -40,8 +40,7 @@ describe('limitSessionListeners', () => {
 
   it('still flags runaway growth past the limit', async () => {
     const tooMany = (e: EventEmitter) => {
-      for (let i = 0; i <= AGENT_SESSION_MAX_LISTENERS; i++)
-        e.on('agent_state_changed', () => undefined);
+      for (let i = 0; i <= AGENT_SESSION_MAX_LISTENERS; i++) e.on('agent_state_changed', () => undefined);
     };
     expect(await listenerWarnings(tooMany, true)).toBe(1);
   });
@@ -51,8 +50,7 @@ describe('every AgentSession gets the limit', () => {
   function tsFiles(dir: string): string[] {
     return readdirSync(dir).flatMap((name) => {
       const path = join(dir, name);
-      if (statSync(path).isDirectory())
-        return name === '__tests__' || name === 'node_modules' ? [] : tsFiles(path);
+      if (statSync(path).isDirectory()) return name === '__tests__' || name === 'node_modules' ? [] : tsFiles(path);
       return name.endsWith('.ts') && !name.endsWith('.test.ts') ? [path] : [];
     });
   }

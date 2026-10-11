@@ -9,9 +9,7 @@ import { routeSayThroughModel, sayExactlyInstruction } from '../native-speech.js
 
 function fakeSession() {
   const say = vi.fn((_text: unknown, _options?: unknown) => 'say-handle');
-  const generateReply = vi.fn(
-    (_options: { instructions: string; allowInterruptions?: boolean }) => 'reply-handle'
-  );
+  const generateReply = vi.fn((_options: { instructions: string; allowInterruptions?: boolean }) => 'reply-handle');
   return { say, generateReply, originalSay: say };
 }
 

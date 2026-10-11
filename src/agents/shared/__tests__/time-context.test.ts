@@ -29,12 +29,6 @@ describe('time context', () => {
   it('validates zones and names the part of the day', () => {
     expect(isValidTimeZone('Europe/London')).toBe(true);
     expect(isValidTimeZone('not a zone')).toBe(false);
-    expect([5, 12, 17, 21, 2].map(partOfDay)).toEqual([
-      'morning',
-      'afternoon',
-      'evening',
-      'night',
-      'night',
-    ]);
+    expect([5, 12, 17, 21, 2].map(partOfDay)).toEqual(['morning', 'afternoon', 'evening', 'night', 'night']);
   });
 });

@@ -37,11 +37,7 @@ describe('TURN_DETECTOR=local', () => {
   });
 
   it('falls back when the package cannot be resolved', () => {
-    expect(
-      registerLocalEotRunner(() => {
-        throw new Error('nope');
-      })
-    ).toBe(false);
+    expect(registerLocalEotRunner(() => { throw new Error('nope'); })).toBe(false);
   });
 
   it('caps the endpointing wait so the model, not a long timer, decides', () => {
@@ -59,19 +55,13 @@ describe('TURN_DETECTOR=local', () => {
     try {
       process.env.LIVEKIT_API_KEY = 'key';
       process.env.LIVEKIT_API_SECRET = 'secret';
-      const cloud = sessionTurnDetection('stt', {
-        TURN_DETECTOR: 'cloud',
-      }) as inference.TurnDetector;
+      const cloud = sessionTurnDetection('stt', { TURN_DETECTOR: 'cloud' }) as inference.TurnDetector;
       expect(cloud.model).toBe('turn-detector-v1');
       delete process.env.LIVEKIT_API_KEY;
       delete process.env.LIVEKIT_API_SECRET;
-      const fallback = sessionTurnDetection('stt', {
-        TURN_DETECTOR: 'cloud',
-      }) as inference.TurnDetector;
+      const fallback = sessionTurnDetection('stt', { TURN_DETECTOR: 'cloud' }) as inference.TurnDetector;
       expect(fallback.model).toBe('turn-detector-v1-mini');
-      const local = sessionTurnDetection('stt', {
-        TURN_DETECTOR: 'local',
-      }) as inference.TurnDetector;
+      const local = sessionTurnDetection('stt', { TURN_DETECTOR: 'local' }) as inference.TurnDetector;
       expect(local.model).toBe('turn-detector-v1-mini');
     } finally {
       if (saved.k === undefined) delete process.env.LIVEKIT_API_KEY;
