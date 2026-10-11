@@ -1,7 +1,7 @@
 /**
  * One frontend publisher per call.
  *
- * A worker process hosts several calls (USE_SINGLE_PROCESS=true). The
+ * A worker process can host several calls. The
  * publisher used to be a process singleton that every new call re-pointed
  * with setRoom, so call A's app messages (emotion, music, games, tool
  * actions) went to call B's room once B started. Each call now gets its own

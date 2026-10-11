@@ -3,6 +3,7 @@ import {
   dedupeFacts,
   factId,
   formatRecall,
+  insideJokesEnabled,
   loadRecallSnapshot,
   mentions,
   recallForTurn,
@@ -118,7 +119,7 @@ describe('loadRecallSnapshot', () => {
       },
       'u1'
     );
-    expect(snap).toEqual({ facts: [], followUps: [] });
+    expect(snap).toEqual({ facts: [], followUps: [], insideJokes: [] });
   });
 });
 
@@ -187,5 +188,66 @@ describe('memory with manners', () => {
       { entity: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 0.9, extractedAt: daysAgo(2) },
       { entity: 'Biscuit', key: 'age', value: 'three', confidence: 0.5 },
     ]);
+  });
+});
+
+// Inside jokes (INSIDE_JOKES=on): bits the summarizer saw land between the
+// caller and Ferni on past calls. Ferni once said "Classic Biscuit" about a dog
+// first mentioned seconds earlier; shared history has to be real.
+describe('inside jokes', () => {
+  const ON = { INSIDE_JOKES: 'on' };
+  const jokes = ['the mushroom thing: Sam calls the risotto "the fungus incident"'];
+
+  it('is off unless INSIDE_JOKES=on', () => {
+    expect(insideJokesEnabled({})).toBe(false);
+    expect(insideJokesEnabled({ INSIDE_JOKES: 'off' })).toBe(false);
+    expect(insideJokesEnabled(ON)).toBe(true);
+  });
+
+  it('collects up to 3 recent jokes from summaries, newest first, deduped', async () => {
+    const snap = await loadRecallSnapshot(
+      {
+        facts: async () => [],
+        summaries: async () => [
+          { insideJokes: ['the mushroom thing', '  '] },
+          {},
+          { insideJokes: ['The Mushroom Thing', 'Biscuit vs the vacuum', 42] },
+          { insideJokes: ['the "accountant voice" bit', 'the parking-lot saga'] },
+        ],
+      },
+      'u1'
+    );
+    expect(snap.insideJokes).toEqual([
+      'the mushroom thing',
+      'Biscuit vs the vacuum',
+      'the "accountant voice" bit',
+    ]);
+  });
+
+  it('adds the shared-bits section only with the flag on', () => {
+    const off = formatRecall([biscuitBreed], [], 'Sam', Date.now(), { insideJokes: jokes, env: {} })!;
+    expect(off).not.toContain('fungus incident');
+    expect(off).not.toContain('Bits you two actually share');
+
+    const on = formatRecall([biscuitBreed], [], 'Sam', Date.now(), { insideJokes: jokes, env: ON })!;
+    expect(on).toContain('Bits you two actually share from past calls');
+    expect(on).toContain('- the mushroom thing: Sam calls the risotto "the fungus incident"');
+  });
+
+  it('tells Ferni to use one at most once a call and never explain it', () => {
+    const note = formatRecall([], [], 'Sam', Date.now(), { insideJokes: jokes, env: ON })!;
+    expect(note).toContain('at most once this call');
+    expect(note).toContain('never explain it');
+    expect(note).toContain('only if it fits naturally');
+  });
+
+  it('adds nothing when there are no jokes, even with the flag on', () => {
+    expect(formatRecall([], [], 'Sam', Date.now(), { insideJokes: [], env: ON })).toBeNull();
+    const note = formatRecall([biscuitBreed], [], 'Sam', Date.now(), { env: ON })!;
+    expect(note).not.toContain('Bits you two actually share');
+  });
+
+  it('does not make a note from jokes alone when the flag is off', () => {
+    expect(formatRecall([], [], 'Sam', Date.now(), { insideJokes: jokes, env: {} })).toBeNull();
   });
 });

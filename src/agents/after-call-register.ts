@@ -7,4 +7,4 @@
  *
  * @module agents/after-call-register
  */
-export {};
+import '../intelligence/world-model/extraction/register.js';

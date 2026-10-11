@@ -1,0 +1,18 @@
+# Natural recall (play with EVAL_SEED=facts-seed). Unlike facts-recall.txt,
+# the caller never hints at anything from the earlier call: no "guess how it
+# went", no "you know my life". Each line leaves a natural opening where a
+# friend would bring one fact back on their own (a busy week, family, a new
+# hobby, a pet in the house). judge.mjs scores callbackTact: one thing at a
+# time, in passing, never a recited list or exact days read back.
+#@fact interview \bstripe\b|interview|final round|system design
+#@fact wedding \bpriya\b|wedding|lisbon|married|\bflights?\b
+#@fact pottery pottery|\bclay\b|ceramic|\bwheel\b
+#@fact mochi \bmochi\b|\bcat\b|kitty
+#@avoid listdump \bstripe\b.*\b(priya|pottery|mochi)\b|\b(priya|pottery|mochi)\b.*\bstripe\b
+Hey Ferni, it's me.
+Not much, just a slow morning. Coffee's finally kicking in.
+This week's been a lot, honestly. I'm wiped.
+My family's been texting nonstop about plans, you know how it is.
+I did finally make something with my own hands this week, which felt good.
+Anyway, something keeps scratching at my back door. Probably nothing.
+Okay, I should get going. Talk later.
