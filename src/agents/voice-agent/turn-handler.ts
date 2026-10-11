@@ -23,6 +23,7 @@ import { getGracefulErrorResponse } from '../../intelligence/conversation-qualit
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { SOFT_CRISIS_CHECK } from '../../services/safety/crisis-agreement.js';
 import { buildCrisisGuidance } from '../safety/crisis-guard.js';
 import type { SessionServices } from '../../services/index.js';
 import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
@@ -216,6 +217,9 @@ export interface TurnHandlerContext {
     sharedVulnerabilities?: number;
     relationshipStage?: string;
     lastEmotionAnalysis?: { primary: string; intensity: number; distressLevel?: number };
+    /** The caller's recent lines and Ferni's last reply: the crisis read's context (turn-crisis.ts) */
+    recentTranscripts?: string[];
+    lastAgentResponse?: string;
     /** Current emotion for cache-aware TTS lookup (set during turn processing) */
     currentEmotion?: string;
     // macOS context from menubar app (sent via data channel)
@@ -1371,6 +1375,12 @@ ${result.crisis.suggestedResponse}`,
       result.context.injections.unshift({
         category: 'crisis_response',
         content: buildCrisisGuidance(result.crisis),
+        priority: 100,
+      });
+    } else if (result.crisis?.softCheck) {
+      result.context.injections.unshift({
+        category: 'safety_soft_check',
+        content: SOFT_CRISIS_CHECK,
         priority: 100,
       });
     }
