@@ -81,6 +81,7 @@ export async function runFindCoachingResources(
     if (pick) return pickResultText(topic, pick, sensitive);
     if (candidates.length > 0) return NONE_FIT;
   }
+  // Only the scrubbed topic and a fixed word go to search; no model text, no fit.
   const query = format === 'article' ? `${topic} article` : topic;
   const result = await groundedAnswer(query);
   return result ? groundedResultText(topic, result, sensitive) : NOTHING;
