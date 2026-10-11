@@ -60,6 +60,7 @@ import {
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { OPENER_FOLLOW_UP_LINE, openerFollowUpEnabled } from '../../memory/recall/opener.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -106,6 +107,8 @@ export interface MemoryRecallDeps {
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
   embed?: RetrievalEmbedder;
+  /** OPENER_FOLLOW_UP=on (opener.ts); read from the environment when not given. */
+  opener?: boolean;
 }
 
 export interface MemoryRecall {
@@ -251,10 +254,17 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         ? null
         : [ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
       const checkIn = checkInOffered ? null : checkInNote;
+      const opener =
+        !followUpsOffered &&
+        snapshot.followUps.length > 0 &&
+        (deps.opener ?? openerFollowUpEnabled())
+          ? OPENER_FOLLOW_UP_LINE
+          : null;
       const note =
         [
           checkIn,
           formatRecall(facts, followUps, deps.userName),
+          opener,
           told,
           extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
         ]

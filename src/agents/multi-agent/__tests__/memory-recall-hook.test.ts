@@ -153,6 +153,27 @@ describe('createMemoryRecall', () => {
     expect(recall.noteFor('Biscuit is great')).toBeNull();
   });
 
+  it('with OPENER_FOLLOW_UP, the first note asks Ferni to follow up on a thread, once', async () => {
+    const on = createMemoryRecall({ userId: 'u1', userName: 'Maya', store, opener: true });
+    await on.ready;
+    const first = on.noteFor("Hey Ferni, it's me!");
+    expect(first).toContain('Ask how Biscuit is settling in');
+    expect(first).toMatch(/start of the call\. After saying hello, ask about the one open thread/);
+    expect(on.noteFor('Biscuit chewed my shoes again')).not.toMatch(/start of the call/);
+
+    const off = createMemoryRecall({ userId: 'u1', userName: 'Maya', store, opener: false });
+    await off.ready;
+    expect(off.noteFor("Hey Ferni, it's me!")).not.toMatch(/start of the call/);
+
+    const noThreads = createMemoryRecall({
+      userId: 'u1',
+      store: { ...store, summaries: async () => [] },
+      opener: true,
+    });
+    await noThreads.ready;
+    expect(noThreads.noteFor('Biscuit is asleep')).not.toMatch(/start of the call/);
+  });
+
   it('is on by default and turns off with MEMORY_RECALL=off', () => {
     expect(memoryRecallMode({})).toBe(true);
     expect(memoryRecallMode({ MEMORY_RECALL: 'off' })).toBe(false);
