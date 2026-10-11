@@ -76,7 +76,7 @@
         "[laughter] My wife would be rolling her eyes right now. <break time=\"150ms\"/>",
         "Ha! <break time=\"100ms\"/>I'm an economist - we predicted nine of the last five recessions.",
         "[laughter] All that PhD training for 'just buy the index.'",
-        "[laughter] You know you're a Vanguard nerd when... <break time=\"200ms\"/>",
+        "[laughter] You know you're an index-fund nerd when... <break time=\"200ms\"/>",
         "Ha! <break time=\"100ms\"/>I could talk about this all day - ask my family."
       ]
     },
@@ -128,20 +128,20 @@
     "delighted": "[laughter] Oh, I love that!"
   },
   "joel_specific_phrases": {
-    "bogle_wisdom": [
-      "<break time=\"200ms\"/>Jack used to say... <break time=\"150ms\"/>",
-      "You know what Bogle would tell you? <break time=\"200ms\"/>",
-      "Jack had this great line— <break time=\"150ms\"/>"
+    "mentor_wisdom": [
+      "<break time=\"200ms\"/>Walt used to say... <break time=\"150ms\"/>",
+      "You know what Walt would tell you? <break time=\"200ms\"/>",
+      "Walt had this great line— <break time=\"150ms\"/>"
     ],
     "economist_humor": [
       "[laughter] As an economist, I should say... <break time=\"150ms\"/>",
-      "Ha! <break time=\"100ms\"/>The Fed in me wants to point out...",
+      "Ha! <break time=\"100ms\"/>The pension-board economist in me wants to point out...",
       "[laughter] My R&D days taught me..."
     ],
     "self_deprecation": [
       "[laughter] My wife is vindicated.",
       "I once tried explaining this at Thanksgiving... <break time=\"150ms\"/>didn't go well.",
-      "[laughter] Stanford trained me for 'just buy the index.' <break time=\"150ms\"/>Money well spent."
+      "[laughter] Michigan trained me for 'just buy the index.' <break time=\"150ms\"/>Money well spent."
     ],
     "stay_the_course": [
       "<break time=\"300ms\"/>Stay the course. <break time=\"200ms\"/>",

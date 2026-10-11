@@ -61,7 +61,7 @@ const STYLES = `
   opacity: 0;
   visibility: hidden;
   transition: opacity var(--duration-slow, 0.3s) ease, visibility var(--duration-slow, 0.3s) ease;
-  z-index: var(--z-modal-backdrop, 2000);
+  z-index: var(--z-modal-backdrop);
   touch-action: none;
 }
 
@@ -79,7 +79,7 @@ const STYLES = `
   border-radius: 20px 20px 0 0;
   transform: translateY(100%);
   transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
-  z-index: var(--z-modal, 2100);
+  z-index: var(--z-modal);
   max-height: 70vh;
   overflow: hidden;
   box-shadow: var(--shadow-lg, 0 -4px 32px rgba(0, 0, 0, 0.3));
@@ -221,7 +221,7 @@ const STYLES = `
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: var(--z-floating, 20);
+  z-index: var(--z-floating);
   transition: transform var(--duration-fast, 0.2s) ease, box-shadow var(--duration-fast, 0.2s) ease;
   -webkit-tap-highlight-color: transparent;
 }

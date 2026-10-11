@@ -22,13 +22,20 @@ env:
   RUST_VERSION: 'stable'
   NODE_VERSION: '22'
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # ============================================================================
   # RUST TESTS (Fast - runs on Linux only)
   # ============================================================================
   test:
     name: Test Rust Crates
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -87,8 +94,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux x86_64 (production - GCE); follows CI_RUNNER like the other CI jobs
-          - os: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+          # Linux x86_64 (production - GCE)
+          - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             node_arch: linux-x64
 
@@ -187,7 +194,7 @@ jobs:
   verify:
     name: Verify Node.js Integration
     needs: build
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
