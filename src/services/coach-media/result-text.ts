@@ -11,6 +11,7 @@
  */
 
 import { callerText } from '../outreach/caller-text.js';
+import type { Pick } from './checked-pick.js';
 import type { GroundedAnswer } from './grounded-search.js';
 
 export const WEB_DATA_GUARD =
@@ -49,6 +50,36 @@ export function groundedResultText(
   if (sensitive || isSensitiveTopic(topic)) lines.push(GENERAL_INFO_NOTE);
   lines.push(
     'Pick the one that fits them best and say why in a sentence; no affiliate links, nothing to buy.'
+  );
+  return lines.join('\n');
+}
+
+const EVIDENCE_WORDS: Record<string, string> = {
+  solid: 'evidence-based',
+  mixed: 'partly evidence-based',
+  unknown: 'evidence unclear',
+  hype: 'hype',
+};
+
+/** The tool result for one checked pick: guarded, quoted, with length and why it fits. */
+export function pickResultText(topic: string, pick: Pick, sensitive = false): string {
+  const c = pick.candidate;
+  const length = c.length ? `, ${c.length}` : '';
+  const lines = [
+    WEB_DATA_GUARD,
+    `One pick for "${callerText(topic, 120)}":`,
+    `> ${c.kind}: ${callerText(c.title, 120)} by ${callerText(c.by, 80)}${length} <${c.url}>`,
+  ];
+  if (pick.verdict) {
+    const why = callerText(pick.verdict.why, 240);
+    lines.push(`> checked (${EVIDENCE_WORDS[pick.verdict.evidence]}): ${why}`);
+  } else {
+    lines.push('> not checked: the check did not come back, so say you have not vetted it.');
+  }
+  lines.push('(end of web results)');
+  if (sensitive || isSensitiveTopic(topic)) lines.push(GENERAL_INFO_NOTE);
+  lines.push(
+    'Offer just this one, with its length and one sentence on why it suits them; no affiliate links, nothing to buy.'
   );
   return lines.join('\n');
 }
