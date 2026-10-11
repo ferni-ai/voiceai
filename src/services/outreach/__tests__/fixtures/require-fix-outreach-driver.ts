@@ -4,14 +4,11 @@
  * prod. Vitest injects `require` into every module, so it cannot reproduce
  * the bug. Prints one RESULT line of JSON for the test to parse.
  */
-import { getUserContext } from '../../../services/outreach/context-aggregator.js';
-import { getOutreachDecisionEngine } from '../../../services/outreach/decision-engine.js';
-import {
-  generateOutreach,
-  type OutreachContext,
-} from '../../../services/outreach/engagement/personalization-engine.js';
-import { shouldSharePersonalMoment } from '../../../personality/infrastructure/legacy-bridge.js';
-import { createDomainServices } from '../../../personality/v2/index.js';
+import { getUserContext } from '../../context-aggregator.js';
+import { getOutreachDecisionEngine } from '../../decision-engine.js';
+import { generateOutreach, type OutreachContext } from '../../engagement/personalization-engine.js';
+import { shouldSharePersonalMoment } from '../../../../personality/infrastructure/legacy-bridge.js';
+import { createDomainServices } from '../../../../personality/v2/index.js';
 
 type Outcome = { ok: true; value: unknown } | { ok: false; error: string };
 
@@ -29,7 +26,7 @@ getUserContext(userId).personal.preferredName = 'Sam';
 const outreachContext: OutreachContext = {
   userId,
   userName: 'Sam',
-  relationshipStage: 'friend',
+  relationshipStage: 'established',
   trigger: { type: 'thinking_of_you', reason: 'Just checking in', urgency: 'low' },
   context: { recentTopics: ['the marathon'] },
 };
