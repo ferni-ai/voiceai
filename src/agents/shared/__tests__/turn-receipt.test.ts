@@ -5,13 +5,16 @@
 import { EventEmitter } from 'node:events';
 import { llm } from '@livekit/agents';
 import { describe, expect, it } from 'vitest';
+import { TURN_CONTEXT_HEADER } from '../../multi-agent/turn-context-header.js';
 import {
   attachTurnReceipts,
+  noteReminder,
   noteRequest,
   sentenceCount,
   userKindOf,
   type TurnReceipt,
 } from '../turn-receipt.js';
+import { promptSections } from '../prompt-sections.js';
 
 const INSTRUCTIONS = 'You are Ferni, a warm friend on a call.';
 const RECALL = '[WHAT YOU REMEMBER ABOUT JANE]\n- Jane Doe: phone = +1 555 867 5309';
@@ -36,6 +39,7 @@ function request(): llm.ChatContext {
   ctx.addMessage({ role: 'system', content: INSTRUCTIONS, id: 'lk.agent_task.instructions' });
   ctx.addMessage({ role: 'system', content: RECALL, id: 'recall_1' });
   ctx.addMessage({ role: 'user', content: 'hi there' });
+  ctx.addMessage({ role: 'user', content: `${TURN_CONTEXT_HEADER}\nJane sounds tired.` });
   ctx.insert(
     llm.FunctionCall.create({ callId: 'c1', name: 'getWeather', args: '{"city":"Jane town"}' })
   );
@@ -54,6 +58,50 @@ function request(): llm.ChatContext {
   });
   return ctx;
 }
+
+describe('promptSections', () => {
+  it('accounts for every character of the request, by source', () => {
+    const items = request().items;
+    const sections = promptSections(items as never, {
+      reminder: REMINDER,
+      directorNotes: DIRECTOR,
+      offered: 2,
+      droppedIdx: [1],
+    });
+    const by = Object.fromEntries(sections.map((s) => [s.name, s]));
+    expect(by.instructions.chars).toBe(INSTRUCTIONS.length);
+    expect(by.instructions.source).toBe('agent-instructions.ts');
+    expect(by.memory_recall.chars).toBe(RECALL.length);
+    expect(by.turn_context.items).toBe(1);
+    expect(by.history_user.chars).toBe('hi there'.length);
+    expect(by.history_assistant.chars).toBe('hey you'.length);
+    expect(by.tool_io.chars).toBe(
+      'getWeather'.length + '{"city":"Jane town"}'.length + 'sunny'.length
+    );
+    expect(by.caller_turn.chars).toBe(CALLER.length);
+    expect(by.director_notes.chars).toBe(DIRECTOR.length);
+    expect(by.turn_reminder.chars).toBe(`\n\n(${REMINDER})`.length - DIRECTOR.length);
+    expect(by.crisis_guidance.chars).toBe('\n\n(Crisis: be gentle.)'.length);
+
+    // Sums: sections cover the whole request, and each estimate is chars/4.
+    const allText = items.reduce((n, item) => {
+      if (item.type === 'message')
+        return n + item.content.reduce((m, c) => m + (typeof c === 'string' ? c.length : 0), 0);
+      if (item.type === 'function_call') return n + item.name.length + item.args.length;
+      if (item.type === 'function_call_output') return n + item.output.length;
+      return n;
+    }, 0);
+    expect(sections.reduce((n, s) => n + s.chars, 0)).toBe(allText);
+    for (const s of sections) expect(s.tokensEst).toBe(Math.ceil(s.chars / 4));
+  });
+
+  it('without a reminder note, the appended reminder counts as guidance, never as caller words', () => {
+    const sections = promptSections(request().items as never);
+    const by = Object.fromEntries(sections.map((s) => [s.name, s]));
+    expect(by.caller_turn.chars).toBe(CALLER.length);
+    expect(by.director_notes).toBeUndefined();
+  });
+});
 
 describe('helpers', () => {
   it('buckets the caller without exposing them', () => {
@@ -101,6 +149,12 @@ function call(opts: { userId?: string } = {}) {
     });
     item('user', CALLER);
     state('thinking');
+    noteReminder(session, {
+      reminder: REMINDER,
+      directorNotes: DIRECTOR,
+      offered: 2,
+      droppedIdx: [1],
+    });
     noteRequest(session, request(), {
       functionTools: { getWeather: {}, handoffToMaya: {}, endCall: {} },
     });
@@ -173,6 +227,7 @@ describe('attachTurnReceipts', () => {
         replyDoneMs: 2500,
       },
       tokens: { prompt: 4000, promptCached: 3000, completion: 20 },
+      director: { offered: 2, kept: 1, droppedIdx: [1] },
       tools: {
         offered: 3,
         called: ['getWeather', 'handoffToMaya'],
@@ -189,7 +244,10 @@ describe('attachTurnReceipts', () => {
     });
     // First token: request start (timestamp - duration) + TTFT, from the end of speech.
     expect(r.timing.llmReadyMs).toBe(750);
-    expect(r.prompt).toEqual({ requests: 1, lane: null });
+    expect(r.prompt.estimate).toBe('chars/4');
+    expect(r.prompt.requests).toBe(1);
+    expect(r.prompt.totalTokensEst).toBe(r.prompt.sections.reduce((n, s) => n + s.tokensEst, 0));
+    expect(r.prompt.totalTokensEst).toBeGreaterThan(0);
   });
 
   it('carries no transcript, reply, tool argument, note, name, number or uid', () => {
@@ -243,7 +301,10 @@ describe('attachTurnReceipts', () => {
     expect(c.receipts).toHaveLength(2);
   });
 
-  it('needs a recorder: a request on a session without one does nothing', () => {
+  it('needs a recorder: notes on a session without one do nothing', () => {
     expect(() => noteRequest({}, request(), {})).not.toThrow();
+    expect(() =>
+      noteReminder({}, { reminder: '', directorNotes: '', offered: 0, droppedIdx: [] })
+    ).not.toThrow();
   });
 });

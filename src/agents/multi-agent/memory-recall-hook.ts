@@ -60,6 +60,7 @@ import {
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { RECALL_NOTE_ID_PREFIX } from './turn-context-header.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -291,10 +292,13 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   };
 }
 
+/** Recall notes added so far, for their ids (RECALL_NOTE_ID_PREFIX). */
+let recallNotes = 0;
+
 /** The slice of the SDK Agent this needs. */
 export interface RecallAgent {
   readonly chatCtx: {
-    copy(): { addMessage(msg: { role: 'system'; content: string }): unknown };
+    copy(): { addMessage(msg: { role: 'system'; content: string; id?: string }): unknown };
   };
   updateChatCtx(chatCtx: unknown): Promise<void>;
 }
@@ -306,7 +310,7 @@ export interface RecallAgent {
  */
 export function addRecallNote(agent: RecallAgent, note: string): void {
   const ctx = agent.chatCtx.copy();
-  ctx.addMessage({ role: 'system', content: note });
+  ctx.addMessage({ role: 'system', content: note, id: `${RECALL_NOTE_ID_PREFIX}${++recallNotes}` });
   agent.updateChatCtx(ctx).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Recall note not added');
   });

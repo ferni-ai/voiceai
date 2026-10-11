@@ -29,6 +29,7 @@ import {
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { noteReminder } from '../shared/turn-receipt.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
@@ -82,7 +83,8 @@ export function withTurnReminder(
   // Nothing steers back to a locked teammate the caller didn't just name.
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
-  const notes = formatNotes((director?.current() ?? []).filter(keep));
+  const offered = director?.current() ?? [];
+  const notes = formatNotes(offered.filter(keep));
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
@@ -95,6 +97,13 @@ export function withTurnReminder(
   ]
     .filter(Boolean)
     .join(' ');
+  // What this request carries, for its TURN_RECEIPT (turn-receipt.ts): sizes and counts only.
+  noteReminder(session, {
+    reminder,
+    directorNotes: notes,
+    offered: offered.length,
+    droppedIdx: offered.flatMap((note, i) => (keep(note) ? [] : [i])),
+  });
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
 }
 
