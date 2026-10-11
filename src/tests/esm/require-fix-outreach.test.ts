@@ -18,10 +18,11 @@ type Results = Record<
   Outcome
 >;
 
-function runDriver(flag: string | undefined): Results {
+function runDriver(flags: Record<string, string>): Results {
   const env: NodeJS.ProcessEnv = { ...process.env, LOG_LEVEL: 'silent' };
   delete env.REQUIRE_FIX_OUTREACH;
-  if (flag !== undefined) env.REQUIRE_FIX_OUTREACH = flag;
+  delete env.REQUIRE_FIX_OUTREACH_NAME;
+  Object.assign(env, flags);
   const stdout = execFileSync(process.execPath, ['--import', 'tsx', driver], {
     env,
     encoding: 'utf8',
@@ -33,11 +34,12 @@ function runDriver(flag: string | undefined): Results {
 }
 
 describe('former bare-require sites under plain Node ESM', () => {
-  const off = runDriver(undefined);
-  const on = runDriver('on');
+  const off = runDriver({});
+  const nameOn = runDriver({ REQUIRE_FIX_OUTREACH_NAME: 'on' });
+  const callsOn = runDriver({ REQUIRE_FIX_OUTREACH: 'on' });
 
   it('no site fails with "require is not defined"', () => {
-    for (const results of [off, on]) {
+    for (const results of [off, nameOn, callsOn]) {
       for (const outcome of Object.values(results)) {
         if (!outcome.ok) expect(outcome.error).not.toMatch(/require is not defined/);
       }
@@ -60,23 +62,36 @@ describe('former bare-require sites under plain Node ESM', () => {
     });
   });
 
-  describe('REQUIRE_FIX_OUTREACH=on', () => {
+  describe('REQUIRE_FIX_OUTREACH_NAME=on', () => {
     it('uses the name from the context aggregator', () => {
-      expect(on.userName).toEqual({ ok: true, value: 'Sam' });
+      expect(nameOn.userName).toEqual({ ok: true, value: 'Sam' });
     });
 
+    it('does not turn on call or voice_message outreach', () => {
+      expect(nameOn.call.ok).toBe(false);
+      expect(nameOn.voiceMessage.ok).toBe(false);
+    });
+  });
+
+  describe('REQUIRE_FIX_OUTREACH=on', () => {
     it('generates a call opening and a voicemail', () => {
-      expect(on.call.ok).toBe(true);
-      if (on.call.ok) {
-        const value = on.call.value as { message: string; voicemailMessage?: string };
+      expect(callsOn.call.ok).toBe(true);
+      if (callsOn.call.ok) {
+        const value = callsOn.call.value as { message: string; voicemailMessage?: string };
         expect(value.message.length).toBeGreaterThan(0);
         expect(value.voicemailMessage?.length ?? 0).toBeGreaterThan(0);
       }
     });
 
     it('generates a voice message', () => {
-      expect(on.voiceMessage.ok).toBe(true);
-      if (on.voiceMessage.ok) expect(String(on.voiceMessage.value).length).toBeGreaterThan(0);
+      expect(callsOn.voiceMessage.ok).toBe(true);
+      if (callsOn.voiceMessage.ok) {
+        expect(String(callsOn.voiceMessage.value).length).toBeGreaterThan(0);
+      }
+    });
+
+    it('does not change the greeting name', () => {
+      expect(callsOn.userName).toEqual({ ok: true, value: 'there' });
     });
   });
 

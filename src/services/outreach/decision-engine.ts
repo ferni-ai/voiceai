@@ -42,7 +42,7 @@ import {
   clearHistory as clearHistoryFromMetrics,
 } from './analytics/engagement-metrics.js';
 import { getUserContext } from './context-aggregator.js';
-import { isRequireFixOutreachOn } from './engagement/personalization-engine.js';
+import { isRequireFixOutreachNameOn } from './engagement/personalization-engine.js';
 import {
   getPendingCheckIns,
   recordCheckInSent,
@@ -925,8 +925,8 @@ class OutreachDecisionEngine extends EventEmitter {
   private getUserNameFromContext(userId: string, state: UserOutreachState): string {
     // The lookup used a bare require(), which throws under ESM, so prod has
     // always greeted with "there". Using the real name changes what outreach
-    // says, so it waits for REQUIRE_FIX_OUTREACH=on.
-    if (isRequireFixOutreachOn()) {
+    // says, so it waits for REQUIRE_FIX_OUTREACH_NAME=on.
+    if (isRequireFixOutreachNameOn()) {
       try {
         const context = getUserContext(userId);
         if (context.personal.preferredName) {

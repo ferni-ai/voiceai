@@ -393,6 +393,11 @@ export function isRequireFixOutreachOn(): boolean {
   return process.env.REQUIRE_FIX_OUTREACH === 'on';
 }
 
+/** Greeting outreach by name instead of "there"; separate from the call gate. */
+export function isRequireFixOutreachNameOn(): boolean {
+  return process.env.REQUIRE_FIX_OUTREACH_NAME === 'on';
+}
+
 function assertVoiceOutreachOn(channel: OutreachChannel): void {
   if (!isRequireFixOutreachOn()) {
     throw new Error(`${channel} outreach generation is off (REQUIRE_FIX_OUTREACH)`);
