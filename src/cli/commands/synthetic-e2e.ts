@@ -30,6 +30,7 @@ import { GoogleGenAI } from '@google/genai';
 import { VertexAI, type FunctionDeclaration } from '@google-cloud/vertexai';
 import { vertexOptions } from '../../config/gemini-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { useVertexAI } from '../../config/vertex-flag.js';
 
 const log = createLogger({ module: 'SyntheticE2E' });
 
@@ -50,7 +51,7 @@ const log = createLogger({ module: 'SyntheticE2E' });
  *   2. Set USE_VERTEX_AI=true in .env
  *   3. Set GOOGLE_CLOUD_PROJECT (and optionally GEMINI_LOCATION, default global) in .env
  */
-const USE_VERTEX_AI = process.env.USE_VERTEX_AI === 'true';
+const USE_VERTEX_AI = useVertexAI();
 const VERTEX_AI_API_KEY = process.env.VERTEX_AI_API_KEY;
 const VERTEX_PROJECT =
   process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT_ID || 'johnb-2025';

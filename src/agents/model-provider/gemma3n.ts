@@ -18,7 +18,7 @@
  * Environment: USE_GEMMA3N=true
  *   GEMMA3N_OLLAMA_URL - If set, use local Ollama (model: GEMMA3N_MODEL or gemma3n:e4b). Unset = cloud (Vertex/Gemini API).
  *   GEMMA3N_MODEL     - Model id: cloud default gemma-3n-4b-it; local default gemma3n:e4b
- *   GEMMA3N_USE_VERTEX_AI - Use Vertex AI when using cloud (default: false)
+ *   USE_VERTEX_AI     - Vertex AI when using cloud unless "false" (config/vertex-flag.ts)
  *   GOOGLE_GENAI_*    - API key / project for Gemini/Vertex (cloud only)
  *
  * @module agents/model-provider/gemma3n
@@ -34,6 +34,7 @@ import type {
   PromptModuleConfig,
 } from './types.js';
 import { getContextualTemperature, TEMPERATURE_DEFAULTS } from './types.js';
+import { useVertexAI } from '../../config/vertex-flag.js';
 
 const log = createLogger({ module: 'gemma3n-provider' });
 
@@ -56,14 +57,6 @@ function getGemma3nModel(useOllama: boolean): string {
   return (
     process.env.GEMMA3N_MODEL ||
     (useOllama ? GEMMA3N_DEFAULTS.modelOllama : GEMMA3N_DEFAULTS.model)
-  );
-}
-
-function useVertexAI(): boolean {
-  return (
-    process.env.GEMMA3N_USE_VERTEX_AI === 'true' ||
-    process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true' ||
-    process.env.USE_VERTEX_AI === 'true'
   );
 }
 

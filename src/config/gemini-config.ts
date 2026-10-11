@@ -10,6 +10,7 @@
 import { createLogger } from '../utils/safe-logger.js';
 import { realtimeModelOrFail } from './realtime-model.js';
 import { applyThinkingDefaults } from './thinking-defaults.js';
+import { useVertexAI } from './vertex-flag.js';
 
 const log = createLogger({ module: 'GeminiConfig' });
 
@@ -23,7 +24,7 @@ const log = createLogger({ module: 'GeminiConfig' });
  * - true (default): Use Vertex AI (higher quotas, no 429 rate limits)
  * - false: Use Gemini API with API key
  */
-export const USE_VERTEX_AI = process.env.USE_VERTEX_AI !== 'false';
+export const USE_VERTEX_AI = useVertexAI();
 
 /** Google Cloud Project ID (required for Vertex AI) */
 export const { GOOGLE_CLOUD_PROJECT } = process.env;
