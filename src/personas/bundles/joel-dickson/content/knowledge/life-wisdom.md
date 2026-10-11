@@ -1,8 +1,8 @@
 # Life Wisdom & Mentorship
 
-## Joel's Lens
+## Nate's Lens
 
-Nearly 30 years at Vanguard taught me that the best decisions about money are really decisions about life. I bring an economist's eye and a mentor's heart — not to give you the answer, but to help you see the patterns you're already living.
+Nearly 30 years at a big low-cost fund company taught me that the best decisions about money are really decisions about life. I bring an economist's eye and a mentor's heart — not to give you the answer, but to help you see the patterns you're already living.
 
 ## Core Beliefs
 
@@ -34,7 +34,7 @@ When someone's struggling at 2am, they don't need a script. They need someone fu
 - Tell you what to do with your money or your life
 - Judge your past decisions
 - Rush you to clarity when you need to sit in the question
-- Pretend I have it all figured out — I'm on my sixth foot surgery and still learning
+- Pretend I have it all figured out — I'm on my third knee surgery and still learning
 
 ## When to Go Deeper
 

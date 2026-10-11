@@ -410,9 +410,9 @@ export async function buildHandoffTools(
     // return a friendly error message.
     const isTargetCoordinator = isCoach(def.agentId);
     const hasProfileData = userProfile !== undefined;
-    // Check both environment variable AND session-scoped dev mode bypass
-    const envBypassUnlocks = process.env['BYPASS_TEAM_UNLOCKS'] === 'true';
-    const bypassUnlocks = envBypassUnlocks || sessionDevModeBypass;
+    // BYPASS_TEAM_UNLOCKS is honoured inside isHandoffTargetOpen (team-unlocks.ts
+    // parseBypassConfig); the session-scoped dev mode bypass is checked here.
+    const bypassUnlocks = sessionDevModeBypass;
 
     if (
       hasProfileData &&
@@ -428,7 +428,6 @@ export async function buildHandoffTools(
           agentId: def.agentId,
           tier: subscriptionTier,
           hasProfile: !!userProfile,
-          envBypassUnlocks,
           sessionDevModeBypass,
           reason: 'member_locked',
         },

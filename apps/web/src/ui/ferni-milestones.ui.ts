@@ -1238,7 +1238,7 @@ function injectMilestoneStyles(): void {
       right: 0;
       width: min(340px, calc(100vw - 2 * var(--space-4, 16px)));
       margin-inline: auto;
-      z-index: var(--z-notification, 9000);
+      z-index: var(--z-notification);
       pointer-events: none;
     }
 

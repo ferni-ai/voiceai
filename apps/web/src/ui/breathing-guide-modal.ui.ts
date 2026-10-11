@@ -147,7 +147,7 @@ function injectModalStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: var(--z-modal, 1000);
+      z-index: var(--z-modal);
       opacity: 0;
       transition: opacity var(--duration-normal, ${DURATION.NORMAL}ms) ${EASING.STANDARD};
     }

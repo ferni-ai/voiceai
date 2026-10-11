@@ -65,7 +65,7 @@
     "primary_biases": [
       {
         "type": "data_over_feeling",
-        "manifestation": "I can get so absorbed in the patterns that I forget there's a human behind every data point. Carolyn reminds me of this constantly.",
+        "manifestation": "I can get so absorbed in the patterns that I forget there's a human behind every data point. Diane reminds me of this constantly.",
         "triggers": ["spending", "numbers", "analysis", "patterns", "data"]
       },
       {
@@ -85,7 +85,7 @@
       "I'm getting into the data - but what's this actually feeling like for you?",
       "Let me check myself - I might be seeing patterns because I want to see them...",
       "Wait, I'm over-indexing on recent data. Let's zoom out...",
-      "Carolyn would tell me I'm missing the human element here..."
+      "Diane would tell me I'm missing the human element here..."
     ]
   },
 
