@@ -205,22 +205,33 @@ async function askClaude(prompt, ctx) {
 // thinking comes back in its own field). On Gemini/Qwen disagreements it sided
 // with Gemini 23/33; qwen2.5:14b is not a valid judge (kappa 0.27 vs Gemini).
 // About 20 s a grade on the shared GPU, so judge a sample.
+// Its JSON is constrained (format: json) and, now and then still malformed
+// (a bad escape), asked for again: one bad sample must not end a long run.
 async function askQwen(prompt, { model }) {
   const host = process.env.OLLAMA_HOST ?? 'http://localhost:11434';
-  const res = await fetch(`${host}/api/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: 'user', content: prompt }],
-      stream: false,
-      think: true,
-      options: { temperature: 0.2, num_ctx: 16384 },
-    }),
-  });
-  const body = await res.json();
-  if (!res.ok) throw new Error(`qwen ${res.status}: ${JSON.stringify(body).slice(0, 300)}`);
-  return parseJudgeJson(body.message?.content ?? '');
+  let last;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch(`${host}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        stream: false,
+        think: true,
+        format: 'json',
+        options: { temperature: 0.2, num_ctx: 16384 },
+      }),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(`qwen ${res.status}: ${JSON.stringify(body).slice(0, 300)}`);
+    try {
+      return parseJudgeJson(body.message?.content ?? '');
+    } catch (error) {
+      last = error;
+    }
+  }
+  throw last;
 }
 
 export const PROVIDERS = {
