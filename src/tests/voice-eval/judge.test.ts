@@ -96,6 +96,14 @@ describe('voice-eval judge', () => {
     );
   });
 
+  it('scores whether a callback to an earlier call feels natural or watched', () => {
+    expect(DIMENSIONS.callbackTact).toMatch(/feels like being watched/);
+    expect(DIMENSIONS.callbackTact).toMatch(/Use null if Ferni brought nothing back/);
+    expect(promptFor({ userSpeech: [[0, 1]], events: [] }, null)).toContain(
+      '"callbackTact": <1-5 or null>'
+    );
+  });
+
   it('scores feeling understood against the earlier call, and lists what was asked again', () => {
     expect(DIMENSIONS.feltUnderstood).toMatch(/how the caller is, not just what they said/);
     expect(DIMENSIONS.feltUnderstood).toMatch(/without being told/);
