@@ -23,6 +23,7 @@
 //     human: { value, range?, source } | null   (null: no published baseline),
 //     target: { value, why },
 //     current: { prodReal: { value, n } | null, devEval: { value, n } | null },
+//       (followThrough adds due: promises that fell due, settled or not)
 //     trend: [{ date, prodReal, devEval }]       (one row per day with data)
 //   } } }
 // value is the median (or rate) over calls in the window; n is how many calls
@@ -37,6 +38,7 @@ const EVIDENCE = process.env.VOICE_EVIDENCE ?? join(homedir(), 'Documents/voicea
 const OWNER = process.env.REVIEW_OWNER_UID ?? 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
 const PROJECT = process.env.GCP_PROJECT ?? 'johnb-2025';
 const SCENARIOS = new URL('./scenarios/', import.meta.url);
+const MIN_CALLER_TURNS = 4;
 const FELT = ['feltUnderstood', 'feltValidated', 'feltCaredFor'];
 const ANCHOR = {
   value: 3,
@@ -126,6 +128,8 @@ const summarize = (xs) => {
 /** One reviewed call's value per dimension (call-reviews calls.json record). */
 export function reviewedValues(call) {
   const m = call.metrics;
+  // An app opened and closed without a conversation says nothing about Ferni.
+  if ((m.callerTurns ?? 0) < MIN_CALLER_TURNS) return {};
   const f = m.fallbacks ?? {};
   const felt = Object.fromEntries(FELT.map((k) => [k, call.judge?.scores?.[k] ?? null]));
   return {
@@ -169,7 +173,8 @@ export function followThroughOf(promises, since, until) {
     { kept: 0, missed: 0 }
   );
   return {
-    overall: all.kept + all.missed ? { value: rate(all), n: all.kept + all.missed } : null,
+    // value null with due 0: nothing fell due, which is not the same as not measured
+    overall: { value: rate(all), n: all.kept + all.missed, due: due.length },
     byDate: Object.fromEntries(Object.entries(byDate).map(([k, d]) => [k, rate(d)])),
   };
 }

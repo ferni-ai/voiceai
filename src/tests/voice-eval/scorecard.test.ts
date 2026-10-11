@@ -12,6 +12,7 @@ const call = (over: Record<string, unknown> = {}) => ({
   env: 'prod',
   userKind: 'owner',
   metrics: {
+    callerTurns: 40,
     replyGapMs: { p50: 1082, source: 'reply-gap' },
     callerTalkShare: 0.16,
     unbackedActionClaims: 1,
@@ -31,6 +32,10 @@ describe('scorecard values', () => {
       honesty: 3,
       fallbacks: 2, // hedged backup wins are not a fallback the caller hears
     });
+  });
+
+  it('skips a session with no real conversation in it', () => {
+    expect(reviewedValues(call({ metrics: { ...call().metrics, callerTurns: 0 } }))).toEqual({});
   });
 
   it('leaves speed out when the gap was only estimated', () => {
@@ -71,7 +76,8 @@ describe('scorecard follow-through', () => {
       '2026-09-27T00:00:00Z',
       '2026-10-11T00:00:00Z'
     );
-    expect(r.overall).toEqual({ value: 0.67, n: 3 });
+    expect(r.overall).toEqual({ value: 0.67, n: 3, due: 4 });
+    expect(followThroughOf([], 'a', 'z').overall).toEqual({ value: null, n: 0, due: 0 });
     expect(r.byDate).toEqual({ '2026-10-05': 0.5, '2026-10-06': 1 });
   });
 });
