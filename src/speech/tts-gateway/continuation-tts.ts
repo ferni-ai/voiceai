@@ -110,8 +110,13 @@ export interface ContinuationOptions {
    */
   baseSpeed?: number;
   toFrames(pcm: ArrayBuffer): Iterable<AudioFrame>;
-  /** Called at the reply's first audio; `trimmed` gets the leading silence dropped (lead-silence.ts). */
-  onFirstAudio: (() => void) & { trimmed?: (ms: number) => void };
+  /**
+   * Called at the reply's first audio. Its `hold`, when present, is awaited
+   * first: an opening sound still playing keeps the reply from starting on
+   * top of it (reply-activity.ts). `trimmed` gets the leading silence dropped
+   * (lead-silence.ts).
+   */
+  onFirstAudio: (() => void) & { hold?: () => Promise<void>; trimmed?: (ms: number) => void };
   /** Drop Sonic's leading silence (default: CASCADE_TRIM_LEAD_SILENCE). */
   trimLeadSilence?: boolean;
   /** Pause between sentences in ms; defaults to sentenceBreakMs() (env). */
@@ -291,6 +296,8 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
             if (pcm.byteLength === 0) continue;
             if (!heardAudio) {
               heardAudio = true;
+              await onFirstAudio.hold?.();
+              if (stopped) break;
               onFirstAudio();
             }
             for (const frame of toFrames(pcm)) controller.enqueue(frame);

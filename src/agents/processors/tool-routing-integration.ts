@@ -13,7 +13,7 @@
  * @module agents/processors/tool-routing-integration
  */
 
-import { isFTISEnabled as getConfigFTISEnabled } from '../../config/tool-routing-config.js';
+import { isFtisEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { SemanticRoutingResult } from './types.js';
 
@@ -23,20 +23,6 @@ const log = createLogger({ module: 'ftis-routing' });
 // CONFIGURATION
 // ============================================================================
 
-/**
- * Check if FTIS is enabled.
- * Delegates to the centralized config for single source of truth.
- */
-export function isFTISEnabled(): boolean {
-  return getConfigFTISEnabled();
-}
-
-/**
- * @deprecated Use isFTISEnabled() instead. Kept for backward compatibility.
- */
-export function isFTISV2OnlyMode(): boolean {
-  return getConfigFTISEnabled();
-}
 
 // ============================================================================
 // TYPES
@@ -101,7 +87,7 @@ export async function runFTISRouting(
   const startTime = Date.now();
 
   // Skip if FTIS is disabled
-  if (!isFTISEnabled()) {
+  if (!isFtisEnabled()) {
     log.debug('FTIS disabled - using LLM native function calling');
     return {
       attempted: false,

@@ -1,0 +1,51 @@
+{
+  "schema_version": 2,
+  "id": "teaching-years",
+  "title": "The Years I Gave Too Much",
+  "theme": "dedication",
+
+  "setup": {
+    "context": "Let me tell you about the years I spent building my classes. It's not really a teaching story. It's a story about what it costs to give yourself to something.",
+    "tone": "serious, building intensity"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "When I started teaching, it was one rented room above a sweet shop. Twelve mats. The whole place smelled of sugar and ghee. Five people came the first week.",
+        "delivery": "explanatory, a little fond"
+      },
+      {
+        "text": "I wanted it to work. Not to be famous. I wanted the people who came to leave with something they could actually use on a bad Tuesday.",
+        "delivery": "building weight"
+      },
+      {
+        "text": "So I said yes to everything. A class at five in the morning, another at seven, one at lunch for office workers, two in the evening. Weekends in other towns. Years of that. Sleeping too little, eating on trains.",
+        "delivery": "intense, deliberate"
+      },
+      {
+        "text": "Leela watched it nervously. She'd say, you teach people to slow down and you never sit still. She was right. But I couldn't stop. It felt bigger than me.",
+        "delivery": "matter-of-fact about sacrifice"
+      },
+      {
+        "text": "Eventually the body sent the bill. I'll tell you about that another time. I had to learn to teach fewer classes and teach them better.",
+        "delivery": "quiet, reflective"
+      },
+      {
+        "text": "But some of those people still sit every morning, twenty, thirty years later. Some of them teach now. That room above the sweet shop is a phone shop now. What happened in it is still going.",
+        "delivery": "settled"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "The things that last usually ask a lot of us. Give yourself to them, yes. But I'd tell my younger self: give fully, not foolishly. A tool you break can't do the work.",
+    "question": "Have you ever given yourself completely to something? What did it cost, and was it worth it?"
+  },
+
+  "metadata": {
+    "personal_story": true,
+    "vulnerability_level": "high",
+    "minimum_relationship": "friend"
+  }
+}

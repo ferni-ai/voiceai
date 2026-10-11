@@ -218,35 +218,6 @@ export interface BehavioralSignals {
 }
 
 // ============================================================================
-// BUILDER INTERFACE
-// ============================================================================
-
-import type { ContextBuilderInput } from '../core/types.js';
-
-/**
- * A behavioral builder analyzes context and emits behavioral signals.
- *
- * Unlike the old ContextBuilder that emitted string injections,
- * this emits structured signals that can't leak.
- */
-export interface BehavioralBuilder {
-  /** Unique name */
-  name: string;
-
-  /** Human-readable description */
-  description: string;
-
-  /** Priority (0-100, lower runs first) */
-  priority: number;
-
-  /** Category for organization */
-  category: string;
-
-  /** The build function - returns behavioral signals */
-  build: (input: ContextBuilderInput) => Promise<BehavioralSignals>;
-}
-
-// ============================================================================
 // FACTORY HELPERS
 // ============================================================================
 

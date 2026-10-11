@@ -508,7 +508,7 @@ class IntegrationsSettingsUI {
       .integrations-settings {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 2100);
+        z-index: var(--z-modal);
         pointer-events: none;
         visibility: hidden;
       }
@@ -1158,7 +1158,7 @@ class IntegrationsSettingsUI {
       /* ========================================================================
          RESPONSIVE
          ======================================================================== */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .integrations-settings__card {
           width: 100%;
           max-width: none;
