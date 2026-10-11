@@ -1139,7 +1139,7 @@ function showAchievementNotification(achievement: Achievement): void {
   const achievementName = t(achievement.nameKey);
   const achievementDesc = t(achievement.descriptionKey);
   notification.innerHTML = `
-    <div class="achievement-icon" style="font-size: 24px; font-weight: 600; color: var(--persona-text, #ffffff);">★</div>
+    <div class="achievement-icon" style="font-size: 24px; font-weight: 600;">★</div>
     <div class="achievement-content">
       <div class="achievement-title">${achievementName}</div>
       <div class="achievement-desc">${achievementDesc}</div>
@@ -1150,7 +1150,10 @@ function showAchievementNotification(achievement: Achievement): void {
     bottom: 20px;
     right: 20px;
     background: linear-gradient(135deg, var(--persona-primary, #4a6741) 0%, var(--persona-secondary, #3d5a35) 100%);
-    color: var(--persona-text, #ffffff);
+    /* White, like every other persona-gradient surface. --persona-text is the
+       persona colour for text on LIGHT backgrounds, so it painted this text the
+       same green as the card and the white fallback never applied. */
+    color: white;
     padding: 16px 20px;
     border-radius: 12px;
     display: flex;
