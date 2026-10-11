@@ -30,6 +30,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
 import { FastLaneLLM, fastLaneEnabled } from './fast-lane.js';
 import { HedgedLLM } from './hedged-llm.js';
+import { installVertexKeepAlive } from './vertex-keepalive.js';
 import type {
   AgentSessionTurnDetection,
   LLMModelConfig,
@@ -371,6 +372,8 @@ export class CartesiaCascadeProvider implements ModelProvider {
   async createLLMModel(config: LLMModelConfig): Promise<unknown> {
     const opts = buildCascadeLLMOptions(process.env, config.temperature);
     const hedge = buildCascadeHedge(process.env);
+    // VERTEX_KEEPALIVE=on: reply requests reuse a warm socket (vertex-keepalive.ts).
+    installVertexKeepAlive();
     log.info(
       {
         model: opts.model,
