@@ -1,13 +1,13 @@
 /**
- * Joel Dickson Speech Traits
+ * Nate Holloway Speech Traits
  *
- * Character-specific SSML processing functions that define Joel's unique
- * voice personality: quick wit, economist humor, Vanguard pride,
- * Bogle wisdom, and the warmth of a brilliant friend who genuinely cares.
+ * Character-specific SSML processing functions that define Nate's unique
+ * voice personality: quick wit, economist humor, pride in the firm,
+ * Walt's mentor wisdom, and the warmth of a brilliant friend who genuinely cares.
  *
- * Joel is quick-minded, funny, and gets genuinely excited about data
- * and research. He's a Stanford PhD who makes self-deprecating jokes,
- * quotes Jack Bogle with love, and brings infectious energy to every
+ * Nate is quick-minded, funny, and gets genuinely excited about data
+ * and research. He's a Michigan PhD who makes self-deprecating jokes,
+ * quotes his mentor Walt with love, and brings infectious energy to every
  * conversation. Think brilliant friend at a dinner party, not lecturer.
  *
  * VOICE DYNAMICS PHILOSOPHY:
@@ -21,43 +21,42 @@
  */
 
 // =============================================================================
-// VANGUARD PRIDE & BOGLE WISDOM
+// FIRM PRIDE & MENTOR WISDOM
 // =============================================================================
 
 /**
- * Add weight and emotion to Vanguard references and Bogle quotes.
- * These are Joel's sacred ground — spoken with love and reverence.
+ * Add weight and emotion to references to the firm and to Walt's sayings.
+ * These are Nate's sacred ground — spoken with love and reverence.
  */
-export function addVanguardPride(text: string, _emotion: string): string {
+export function addFirmPride(text: string, _emotion: string): string {
   let result = text;
 
-  const vanguardPhrases = [
-    // Bogle quotes — nostalgic slowdown, these mean everything to Joel
-    { pattern: /\bstay the course\b/gi, gravitas: 'bogle' },
-    { pattern: /\byou get what you don['']t pay for\b/gi, gravitas: 'bogle' },
-    { pattern: /\btime is your friend;?\s*impulse is your enemy\b/gi, gravitas: 'bogle' },
-    { pattern: /\bjust buy the haystack\b/gi, gravitas: 'bogle' },
-    { pattern: /\bdon['']t peek\b/gi, gravitas: 'bogle' },
-    { pattern: /\benough\b(?=[\.\!\,\—])/gi, gravitas: 'bogle' },
-    // Vanguard stories — proud energy
-    { pattern: /\bbogle['']s folly\b/gi, gravitas: 'story' },
-    { pattern: /\bhms vanguard\b/gi, gravitas: 'story' },
-    { pattern: /\bmutual ownership\b/gi, gravitas: 'proud' },
-    { pattern: /\bthe vanguard (way|mission|structure)\b/gi, gravitas: 'proud' },
-    // Vanguard research — confident expertise
-    { pattern: /\badvisor['']s alpha\b/gi, gravitas: 'research' },
+  const firmPhrases = [
+    // Mentor sayings — nostalgic slowdown, these mean everything to Nate
+    { pattern: /\bstay the course\b/gi, gravitas: 'mentor' },
+    { pattern: /\bwhat does the client get out of it\b/gi, gravitas: 'mentor' },
+    { pattern: /\byou keep what you don['']t pay\b/gi, gravitas: 'mentor' },
+    { pattern: /\bbuy the whole market\b/gi, gravitas: 'mentor' },
+    { pattern: /\benough\b(?=[\.\!\,\—])/gi, gravitas: 'mentor' },
+    // Stories from the firm — proud energy
+    { pattern: /\bindex fund skeptics\b/gi, gravitas: 'story' },
+    { pattern: /\bwalt['']s (yellow )?legal pad\b/gi, gravitas: 'story' },
+    { pattern: /\bclient-first\b/gi, gravitas: 'proud' },
+    { pattern: /\bthe firm['']s (way|mission|structure)\b/gi, gravitas: 'proud' },
+    // The advice math — confident expertise
+    { pattern: /\bthe advice math\b/gi, gravitas: 'research' },
     { pattern: /\bhow america (saves|invests)\b/gi, gravitas: 'research' },
     { pattern: /\bfour pillars\b/gi, gravitas: 'research' },
     { pattern: /\bgoals,?\s*balance,?\s*cost,?\s*discipline\b/gi, gravitas: 'research' },
   ];
 
-  vanguardPhrases.forEach(({ pattern, gravitas }) => {
+  firmPhrases.forEach(({ pattern, gravitas }) => {
     result = result.replace(pattern, (match) => {
-      if (gravitas === 'bogle') {
-        // Bogle quotes — reverent slowdown, like quoting a mentor you miss
+      if (gravitas === 'mentor') {
+        // Mentor sayings — reverent slowdown, like quoting a mentor you miss
         return `<break time="400ms"/><speed ratio="0.82"/><emotion value="nostalgic"/><volume ratio="0.94"/>${match}<volume ratio="1.0"/><break time="350ms"/><speed ratio="1.0"/>`;
       } else if (gravitas === 'story') {
-        // Vanguard stories — proud and excited, love telling these
+        // Stories from the firm — proud and excited, love telling these
         return `<break time="300ms"/><emotion value="proud"/><speed ratio="0.88"/>${match}<break time="200ms"/><speed ratio="1.0"/>`;
       } else if (gravitas === 'proud') {
         // Institutional pride — warm confidence with slight volume lift
@@ -77,7 +76,7 @@ export function addVanguardPride(text: string, _emotion: string): string {
 // =============================================================================
 
 /**
- * Add energy and timing to Joel's humor.
+ * Add energy and timing to Nate's humor.
  * He's quick-witted, self-deprecating, and genuinely funny.
  * Uses [laughter] nonverbalism for authentic humor moments.
  */
@@ -92,7 +91,7 @@ export function addEconomistWit(text: string, emotion: string): string {
   const humorPatterns = [
     // Self-deprecating economist jokes — speed up delivery, pause for laugh
     { pattern: /\bpredicted nine of the last five recessions\b/gi, style: 'punchline' },
-    { pattern: /\bstanford wants their tuition back\b/gi, style: 'punchline' },
+    { pattern: /\bmichigan wants their tuition back\b/gi, style: 'punchline' },
     { pattern: /\bmy (wife|family) would (be )?(rolling|tell|say|change)\b/gi, style: 'self-deprecating' },
     { pattern: /\bexpense ratios at (dinner|thanksgiving)\b/gi, style: 'self-deprecating' },
     { pattern: /\bdeloreans? with flux capacitors?\b/gi, style: 'callback' },
@@ -142,14 +141,14 @@ export function addEconomistWit(text: string, emotion: string): string {
 
 /**
  * Add gravitas to key financial concepts.
- * Joel makes complex ideas feel simple and important.
+ * Nate makes complex ideas feel simple and important.
  * Core principles get the most weight — these are his life's work.
  */
 export function addFinancialWisdom(text: string, _emotion: string): string {
   let result = text;
 
   const wisdomPhrases = [
-    // Core principles — slow and authoritative, these are Joel's deepest convictions
+    // Core principles — slow and authoritative, these are Nate's deepest convictions
     { pattern: /\bcosts matter\b/gi, weight: 'high' },
     { pattern: /\bcompounding (returns|costs|interest)\b/gi, weight: 'high' },
     { pattern: /\bbehavioral coaching\b/gi, weight: 'high' },
@@ -158,12 +157,12 @@ export function addFinancialWisdom(text: string, _emotion: string): string {
     { pattern: /\basset (allocation|location)\b/gi, weight: 'medium' },
     { pattern: /\btarget[- ]date fund\b/gi, weight: 'medium' },
     { pattern: /\bdollar[- ]cost averaging\b/gi, weight: 'medium' },
-    // Behavioral finance — curious, exploring human nature (Joel's favorite topic)
+    // Behavioral finance — curious, exploring human nature (Nate's favorite topic)
     { pattern: /\bloss aversion\b/gi, weight: 'curious' },
     { pattern: /\brecency bias\b/gi, weight: 'curious' },
     { pattern: /\bbehavioral (economics|finance|bias)\b/gi, weight: 'curious' },
     { pattern: /\brisk (tolerance|capacity)\b/gi, weight: 'curious' },
-    // Numbers and data — Joel gets precise and engaged
+    // Numbers and data — Nate gets precise and engaged
     { pattern: /\b\d+\s*percent\b/gi, weight: 'data' },
     { pattern: /\bbasis points?\b/gi, weight: 'data' },
   ];
@@ -194,28 +193,28 @@ export function addFinancialWisdom(text: string, _emotion: string): string {
 // =============================================================================
 
 /**
- * Add warmth to Joel's personal history references.
+ * Add warmth to Nate's personal history references.
  * His stories are lived, not rehearsed — each name carries weight.
  */
 export function addPersonalHistory(text: string, _emotion: string): string {
   let result = text;
 
   const historyTriggers = [
-    // Jack Bogle — deep fondness, catch in his voice, almost reverent
-    { pattern: /\bjack (bogle|said|taught|would|used to)\b/gi, emotion: 'nostalgic', pause: 350, speed: 0.84, volume: 0.93 },
-    { pattern: /\bbogle\b/gi, emotion: 'nostalgic', pause: 250, speed: 0.88, volume: 0.95 },
-    // Stanford — proud but self-deprecating
-    { pattern: /\bstanford\b/gi, emotion: 'proud', pause: 150, speed: 0.92, volume: 1.0 },
-    // The Fed — formative years, weight of responsibility
-    { pattern: /\b(the fed|federal reserve|greenspan)\b/gi, emotion: 'contemplative', pause: 250, speed: 0.88, volume: 0.96 },
-    { pattern: /\bboard of governors\b/gi, emotion: 'contemplative', pause: 200, speed: 0.90, volume: 0.96 },
-    // Vanguard campus — pure warmth and joy
-    { pattern: /\bmalvern\b/gi, emotion: 'affectionate', pause: 200, speed: 0.90, volume: 1.0 },
-    { pattern: /\bvanguard campus\b/gi, emotion: 'affectionate', pause: 180, speed: 0.92, volume: 1.0 },
+    // Walt Sorensen — deep fondness, catch in his voice, almost reverent
+    { pattern: /\bwalt (sorensen|said|taught|would|used to)\b/gi, emotion: 'nostalgic', pause: 350, speed: 0.84, volume: 0.93 },
+    { pattern: /\bwalt\b/gi, emotion: 'nostalgic', pause: 250, speed: 0.88, volume: 0.95 },
+    // Michigan — proud but self-deprecating
+    { pattern: /\b(michigan|augustana)\b/gi, emotion: 'proud', pause: 150, speed: 0.92, volume: 1.0 },
+    // The pension board — formative years, weight of responsibility
+    { pattern: /\b(the pension board|lansing)\b/gi, emotion: 'contemplative', pause: 250, speed: 0.88, volume: 0.96 },
+    { pattern: /\bthe trustees\b/gi, emotion: 'contemplative', pause: 200, speed: 0.90, volume: 0.96 },
+    // Home town — pure warmth and joy
+    { pattern: /\bsioux falls\b/gi, emotion: 'affectionate', pause: 200, speed: 0.90, volume: 1.0 },
+    { pattern: /\bthe old campus\b/gi, emotion: 'affectionate', pause: 180, speed: 0.92, volume: 1.0 },
     // Family moments — voice softens with love
     { pattern: /\bmy (wife|kids?|family|son|daughter)\b/gi, emotion: 'affectionate', pause: 180, speed: 0.88, volume: 0.92 },
-    // Clarifi / nonprofit — quiet pride
-    { pattern: /\bclarifi\b/gi, emotion: 'grateful', pause: 150, speed: 0.92, volume: 0.96 },
+    // Credit-counseling nonprofit — quiet pride
+    { pattern: /\bcredit[- ]counseling\b/gi, emotion: 'grateful', pause: 150, speed: 0.92, volume: 0.96 },
     // R&D days — eyes light up
     { pattern: /\b(r&d|research and development)\b/gi, emotion: 'enthusiastic', pause: 120, speed: 0.96, volume: 1.04 },
     { pattern: /\bpoke the bear\b/gi, emotion: 'happy', pause: 150, speed: 1.02, volume: 1.04 },
@@ -237,15 +236,15 @@ export function addPersonalHistory(text: string, _emotion: string): string {
 // =============================================================================
 
 /**
- * Add Joel's natural thinking rhythm.
+ * Add Nate's natural thinking rhythm.
  * He thinks out loud with energy and intention — not hesitation, not rushing.
- * These are the moments where Joel gathers his thoughts before delivering.
+ * These are the moments where Nate gathers his thoughts before delivering.
  */
 export function addThinkingSounds(text: string, _emotion: string): string {
   let result = text;
 
   const thinkingPatterns = [
-    // Joel's signature thinking openings — slower to signal "pay attention"
+    // Nate's signature thinking openings — slower to signal "pay attention"
     { pattern: /\b(here['']s the thing)\b/gi, pauseAfter: 280, speed: 0.90, emotion: 'contemplative' },
     { pattern: /\b(you know what['']s interesting)\b/gi, pauseAfter: 250, speed: 0.92, emotion: 'curious' },
     { pattern: /\b(here['']s (what|how) i think about (it|this|that))\b/gi, pauseAfter: 280, speed: 0.90, emotion: 'contemplative' },
@@ -273,7 +272,7 @@ export function addThinkingSounds(text: string, _emotion: string): string {
 // =============================================================================
 
 /**
- * Add weight to Joel's broader life philosophy.
+ * Add weight to Nate's broader life philosophy.
  * He's a mentor for all of life, not just money.
  * Wisdom intros create space, conclusions land with warmth.
  */
@@ -292,7 +291,7 @@ export function addLifeWisdom(text: string, _emotion: string): string {
 
   wisdomIntros.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
-      // Long pause before, slow delivery — Joel is about to say something that matters
+      // Long pause before, slow delivery — Nate is about to say something that matters
       return `<break time="400ms"/><speed ratio="0.86"/><emotion value="contemplative"/><volume ratio="0.96"/>${match}<volume ratio="1.0"/><break time="250ms"/>`;
     });
   });
@@ -322,7 +321,7 @@ export function addLifeWisdom(text: string, _emotion: string): string {
 // =============================================================================
 
 /**
- * Add warmth when Joel is being emotionally present.
+ * Add warmth when Nate is being emotionally present.
  * He slows down and gets quiet for the hard stuff.
  */
 export function addEmotionalPresence(text: string, emotion: string): string {
@@ -356,7 +355,7 @@ export function addEmotionalPresence(text: string, emotion: string): string {
 
   acknowledgments.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
-      // Quiet and slow — Joel is sitting with you, not performing
+      // Quiet and slow — Nate is sitting with you, not performing
       return `<break time="250ms"/><emotion value="sympathetic"/><speed ratio="0.84"/><volume ratio="0.88"/>${match}<volume ratio="1.0"/><speed ratio="1.0"/><break time="200ms"/>`;
     });
   });
@@ -375,7 +374,7 @@ export function addEmotionalPresence(text: string, emotion: string): string {
     });
   });
 
-  // Sitting with someone — the quietest Joel gets
+  // Sitting with someone — the quietest Nate gets
   const sittingWith = [
     /\b(you don['']t have to)\b/gi,
     /\b(take your time)\b/gi,
@@ -398,7 +397,7 @@ export function addEmotionalPresence(text: string, emotion: string): string {
 // =============================================================================
 
 /**
- * Add energy to Joel's celebrations.
+ * Add energy to Nate's celebrations.
  * He genuinely lights up when someone has a breakthrough.
  */
 export function addCelebrationEnergy(text: string, emotion: string): string {
@@ -408,7 +407,7 @@ export function addCelebrationEnergy(text: string, emotion: string): string {
     return result;
   }
 
-  // Big wins — Joel's eyes light up, voice lifts
+  // Big wins — Nate's eyes light up, voice lifts
   const bigCelebrations = [
     /\b(that['']s (wonderful|brilliant|fantastic|huge|amazing))\b/gi,
     /\b(i['']m (so )?(proud|happy|excited) (for|of) you)\b/gi,
@@ -418,12 +417,12 @@ export function addCelebrationEnergy(text: string, emotion: string): string {
 
   bigCelebrations.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
-      // Energetic but genuine — Joel's delight is infectious
+      // Energetic but genuine — Nate's delight is infectious
       return `<emotion value="excited"/><speed ratio="1.08"/><volume ratio="1.10"/>${match}<break time="200ms"/><volume ratio="1.0"/><speed ratio="1.0"/>`;
     });
   });
 
-  // Playful delight — when Joel is genuinely tickled
+  // Playful delight — when Nate is genuinely tickled
   const playfulDelight = [
     /\b(ha!?\s*i love (this|that|it))\b/gi,
     /\b(now (you['']re|we['']re) (getting|talking))\b/gi,
@@ -432,7 +431,7 @@ export function addCelebrationEnergy(text: string, emotion: string): string {
 
   playfulDelight.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
-      // [laughter] before playful moments — Joel can't help himself
+      // [laughter] before playful moments — Nate can't help himself
       const useLaughter = Math.random() < 0.4;
       const prefix = useLaughter ? '[laughter] ' : '';
       return `${prefix}<emotion value="happy"/><speed ratio="1.10"/><volume ratio="1.08"/>${match}<break time="150ms"/><volume ratio="1.0"/><speed ratio="1.0"/>`;
@@ -448,7 +447,7 @@ export function addCelebrationEnergy(text: string, emotion: string): string {
 
   quietPride.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
-      // Slower, warmer — this is Joel being a proud mentor
+      // Slower, warmer — this is Nate being a proud mentor
       return `<break time="250ms"/><emotion value="content"/><speed ratio="0.90"/><volume ratio="0.96"/>${match}<volume ratio="1.0"/><speed ratio="1.0"/><break time="200ms"/>`;
     });
   });
@@ -461,13 +460,13 @@ export function addCelebrationEnergy(text: string, emotion: string): string {
 // =============================================================================
 
 /**
- * Add genuine curiosity to Joel's questions.
+ * Add genuine curiosity to Nate's questions.
  * He asks because he truly wants to understand the whole person.
  */
 export function addCuriousQuestions(text: string, _emotion: string): string {
   let result = text;
 
-  // Deep questions — Joel leans in, slows down, really wants to know
+  // Deep questions — Nate leans in, slows down, really wants to know
   const deepQuestions = [
     /\b(what (does that|would that) (look|feel|mean) like)\b/gi,
     /\b(what are you (really )?trying to)\b/gi,
@@ -476,7 +475,7 @@ export function addCuriousQuestions(text: string, _emotion: string): string {
 
   deepQuestions.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
-      // Pause before — Joel is choosing his words carefully
+      // Pause before — Nate is choosing his words carefully
       return `<break time="300ms"/><emotion value="curious"/><speed ratio="0.88"/><volume ratio="0.94"/>${match}<volume ratio="1.0"/><speed ratio="1.0"/>`;
     });
   });
@@ -495,7 +494,7 @@ export function addCuriousQuestions(text: string, _emotion: string): string {
     });
   });
 
-  // Follow-up probes — Joel digs deeper with care
+  // Follow-up probes — Nate digs deeper with care
   const followUpProbes = [
     /\b(and (how|what|why) (did|does|do) that)\b/gi,
     /\b(say more about that)\b/gi,
@@ -517,7 +516,7 @@ export function addCuriousQuestions(text: string, _emotion: string): string {
 // =============================================================================
 
 /**
- * Add Joel's active listening sounds.
+ * Add Nate's active listening sounds.
  * Quick, engaged acknowledgments — not slow, ponderous nods.
  */
 export function addActiveListening(text: string, emotion: string): string {
@@ -527,7 +526,7 @@ export function addActiveListening(text: string, emotion: string): string {
     return result;
   }
 
-  // Quick verbal nods — Joel's engaged, not robotic
+  // Quick verbal nods — Nate's engaged, not robotic
   const acknowledgmentPatterns = [/\b(i understand|that makes sense|i hear you|i get it)\b/gi];
 
   acknowledgmentPatterns.forEach((pattern) => {
@@ -549,7 +548,7 @@ export function addActiveListening(text: string, emotion: string): string {
     });
   });
 
-  // Reflective echoing — Joel mirrors back what he heard (shows deep listening)
+  // Reflective echoing — Nate mirrors back what he heard (shows deep listening)
   const reflectivePatterns = [
     /\b(so what (you['']re saying|i['']m hearing) is)\b/gi,
     /\b(it sounds like)\b/gi,
@@ -570,13 +569,13 @@ export function addActiveListening(text: string, emotion: string): string {
 // =============================================================================
 
 /**
- * Add natural flow to Joel's transitions.
+ * Add natural flow to Nate's transitions.
  * He guides conversations with energy, not labored segues.
  */
 export function addTransitionPhrases(text: string, _emotion: string): string {
   let result = text;
 
-  // Topic shifts — Joel takes a breath, resets energy
+  // Topic shifts — Nate takes a breath, resets energy
   const topicShifts = [
     /\b(so,?\s*(here['']s|let['']s|what|tell me))\b/gi,
     /\b(okay,?\s*(so|here['']s|let['']s))\b/gi,
@@ -591,7 +590,7 @@ export function addTransitionPhrases(text: string, _emotion: string): string {
     });
   });
 
-  // Pivots — when Joel is steering the conversation somewhere new
+  // Pivots — when Nate is steering the conversation somewhere new
   const pivots = [
     /\b(but here['']s (the thing|what['']s interesting|the key))\b/gi,
     /\b(and (this|that|here)['']s (where|why|what))\b/gi,
@@ -601,7 +600,7 @@ export function addTransitionPhrases(text: string, _emotion: string): string {
 
   pivots.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
-      // Dramatic pause + slightly slower — Joel is building to something
+      // Dramatic pause + slightly slower — Nate is building to something
       return `<break time="350ms"/><emotion value="determined"/><speed ratio="0.90"/><volume ratio="1.04"/>${match}<volume ratio="1.0"/><speed ratio="1.0"/>`;
     });
   });
@@ -627,13 +626,13 @@ export function addTransitionPhrases(text: string, _emotion: string): string {
 // =============================================================================
 
 /**
- * Apply all Joel Dickson speech traits to text.
+ * Apply all Nate Holloway speech traits to text.
  *
  * Processing order:
  * 1. Emotional presence (check for heavy moments first)
- * 2. Vanguard pride & Bogle wisdom (sacred ground)
+ * 2. Firm pride & mentor wisdom (sacred ground)
  * 3. Thinking sounds & transitions (natural flow)
- * 4. Economist wit & humor (Joel's signature energy)
+ * 4. Economist wit & humor (Nate's signature energy)
  * 5. Financial wisdom delivery (expert confidence)
  * 6. Personal history (stories that shaped him)
  * 7. Life wisdom (beyond finance)
@@ -644,7 +643,7 @@ export function addTransitionPhrases(text: string, _emotion: string): string {
  * @param emotion - The detected emotion
  * @param _baseSpeed - The base speech speed
  * @param _laughterCount - Number of laughter instances detected
- * @returns Text with Joel's speech traits applied
+ * @returns Text with Nate's speech traits applied
  */
 export function applyJoelDicksonSpeechTraits(
   text: string,
@@ -660,14 +659,14 @@ export function applyJoelDicksonSpeechTraits(
     processedText = addEmotionalPresence(processedText, emotion);
   }
 
-  // TIER 1: SACRED GROUND — Vanguard & Bogle
-  processedText = addVanguardPride(processedText, emotion);
+  // TIER 1: SACRED GROUND — the firm & Walt
+  processedText = addFirmPride(processedText, emotion);
 
   // TIER 2: THINKING & FLOW
   processedText = addThinkingSounds(processedText, emotion);
   processedText = addTransitionPhrases(processedText, emotion);
 
-  // TIER 3: WIT & PERSONALITY (Joel's signature)
+  // TIER 3: WIT & PERSONALITY (Nate's signature)
   processedText = addEconomistWit(processedText, emotion);
   processedText = addPersonalHistory(processedText, emotion);
 
@@ -684,13 +683,13 @@ export function applyJoelDicksonSpeechTraits(
 }
 
 /**
- * Configuration for Joel Dickson's speech traits
+ * Configuration for Nate Holloway's speech traits
  */
 export const JOEL_DICKSON_SPEECH_CONFIG = {
-  /** Base speech speed — slightly under 1.0 so Joel doesn't rush */
+  /** Base speech speed — slightly under 1.0 so Nate doesn't rush */
   baseSpeed: 0.95,
-  /** Whether to enable Vanguard/Bogle pride moments */
-  enableVanguardPride: true,
+  /** Whether to enable firm/mentor pride moments */
+  enableFirmPride: true,
   /** Whether to enable economist wit */
   enableEconomistWit: true,
   /** Whether to enable financial wisdom emphasis */
@@ -703,7 +702,7 @@ export const JOEL_DICKSON_SPEECH_CONFIG = {
   activeListeningProbability: 0.35,
   /** Whether to enable thinking sounds */
   enableThinkingSounds: true,
-  /** Thinking sound frequency — Joel thinks before he speaks */
+  /** Thinking sound frequency — Nate thinks before he speaks */
   thinkingSoundProbability: 0.4,
   /** Speed range — the contrast is what makes him dynamic */
   speedRange: { min: 0.82, max: 1.12 },

@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { handOff } from './shortcut-handoff.js';
 
 const log = getLogger();
 
@@ -329,6 +330,22 @@ const quickMusicDef: ToolDefinition = {
 // QUICK CALENDAR - Shortcut to calendar domain
 // ============================================================================
 
+/**
+ * The calendar tool quickCalendar runs. It used to look up getCalendarEvents
+ * and listCalendar, which don't exist, so every check said the calendar
+ * wasn't connected.
+ */
+export function quickCalendarTarget(
+  action: 'check' | 'add' | 'list',
+  date?: string
+): 'createCalendarEvent' | 'getCalendarToday' | 'getCalendarWeek' {
+  if (action === 'add') return 'createCalendarEvent';
+  return !date || date.trim().toLowerCase() === 'today' ? 'getCalendarToday' : 'getCalendarWeek';
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const HH_MM = /^\d{1,2}:\d{2}$/;
+
 const quickCalendarDef: ToolDefinition = {
   id: 'quickCalendar',
   name: 'Quick Calendar',
@@ -343,9 +360,12 @@ const quickCalendarDef: ToolDefinition = {
         'Check your calendar or add events. Say "what\'s on my calendar today?" or "add lunch with Sarah at 1pm".',
       parameters: z.object({
         action: z.enum(['check', 'add', 'list']).describe('What to do with calendar'),
-        date: z.string().optional().describe('Date like "today", "tomorrow", "next monday"'),
-        event: z.string().optional().describe('Event details for adding'),
-        time: z.string().optional().describe('Time for the event'),
+        date: z
+          .string()
+          .optional()
+          .describe('Date like "today" or "this week"; for adding, YYYY-MM-DD'),
+        event: z.string().optional().describe('Event title for adding'),
+        time: z.string().optional().describe('Start time for adding, HH:MM (24-hour)'),
       }),
       execute: async ({ action, date, event, time }) => {
         log.info({ userId: ctx.userId, action, date, event, time }, 'Quick calendar shortcut');
@@ -353,22 +373,22 @@ const quickCalendarDef: ToolDefinition = {
         trackCapabilityUsage(ctx.userId || 'anon', 'quickCalendar');
 
         try {
-          const { getToolDefinitions } = await import('../calendar/index.js');
-          const calendarTools = await getToolDefinitions();
-
-          const toolId = action === 'add' ? 'createCalendarEvent' : 'getCalendarEvents';
-          const tool = calendarTools.find((t) => t.id === toolId || t.id === 'listCalendar');
-
-          if (!tool) {
-            return `Calendar isn't connected. Would you like to connect Google Calendar?`;
+          const toolId = quickCalendarTarget(action, date);
+          const isAdd = toolId === 'createCalendarEvent';
+          if (isAdd && !(event && ISO_DATE.test(date ?? '') && HH_MM.test(time ?? ''))) {
+            return 'Nothing was added. I need the event title, the date as YYYY-MM-DD and the start time as HH:MM.';
           }
 
-          const createdTool = tool.create(ctx);
-          const result = await createdTool.execute({
-            date: date || 'today',
-            eventTitle: event,
-            startTime: time,
-          });
+          const { getToolDefinitions } = await import('../calendar/index.js');
+          const tool = (await getToolDefinitions()).find((t) => t.id === toolId);
+          if (!tool) {
+            return `I couldn't reach your calendar just now.`;
+          }
+
+          const args = isAdd ? { title: event, date, startTime: time } : {};
+          const result = await tool
+            .create(ctx)
+            .execute(args, { toolCallId: 'quickCalendar-handoff', ctx: {} });
 
           void persistAnalytics(ctx.userId || 'anon');
           return result;
@@ -466,28 +486,17 @@ const quickCallDef: ToolDefinition = {
         contact: z.string().describe('Who to call - name, relationship, or phone number'),
         message: z.string().optional().describe("Message to leave if they don't answer"),
       }),
-      execute: async ({ contact, message }) => {
+      execute: async ({ contact, message }, opts) => {
         log.info({ userId: ctx.userId, contact, message }, 'Quick call shortcut');
 
         trackCapabilityUsage(ctx.userId || 'anon', 'quickCall');
 
         try {
-          const { getToolDefinitions } = await import('../telephony/index.js');
-          const telephonyTools = await getToolDefinitions();
-          const callTool = telephonyTools.find(
-            (t) => t.id === 'makePhoneCall' || t.id === 'callContact'
-          );
-
-          if (!callTool) {
-            return `Calling isn't set up yet. Would you like to connect your phone?`;
-          }
-
-          const tool = callTool.create(ctx);
-          const result = await tool.execute({
-            contact,
-            message,
+          const purpose = message ? `Pass on this message: ${message}` : `Check in with ${contact}`;
+          const result = await handOff('quickCall', ctx, contact, opts, {
+            contactQuery: contact,
+            purpose,
           });
-
           void persistAnalytics(ctx.userId || 'anon');
           return result;
         } catch (error) {
@@ -519,7 +528,7 @@ const quickTextDef: ToolDefinition = {
         contact: z.string().describe('Who to text - name, relationship, or phone number'),
         message: z.string().describe('The message to send'),
       }),
-      execute: async ({ contact, message }) => {
+      execute: async ({ contact, message }, opts) => {
         log.info(
           { userId: ctx.userId, contact, message: message.substring(0, 20) },
           'Quick text shortcut'
@@ -528,22 +537,12 @@ const quickTextDef: ToolDefinition = {
         trackCapabilityUsage(ctx.userId || 'anon', 'quickText');
 
         try {
-          const { getToolDefinitions } = await import('../communication/index.js');
-          const commTools = await getToolDefinitions();
-          const textTool = commTools.find(
-            (t) => t.id === 'sendText' || t.id === 'sendSMS' || t.id === 'sendMessage'
-          );
-
-          if (!textTool) {
-            return `Texting isn't set up yet. Would you like to connect your phone?`;
-          }
-
-          const tool = textTool.create(ctx);
-          const result = await tool.execute({
-            recipient: contact,
-            message,
+          const result = await handOff('quickText', ctx, contact, opts, {
+            contact,
+            purpose: message,
+            preferredChannel: 'text',
+            customMessage: message,
           });
-
           void persistAnalytics(ctx.userId || 'anon');
           return result;
         } catch (error) {
@@ -576,27 +575,18 @@ const quickEmailDef: ToolDefinition = {
         subject: z.string().optional().describe('Email subject'),
         body: z.string().describe('Email body/message'),
       }),
-      execute: async ({ recipient, subject, body }) => {
+      execute: async ({ recipient, subject, body }, opts) => {
         log.info({ userId: ctx.userId, recipient, subject }, 'Quick email shortcut');
 
         trackCapabilityUsage(ctx.userId || 'anon', 'quickEmail');
 
         try {
-          const { getToolDefinitions } = await import('../communication/index.js');
-          const commTools = await getToolDefinitions();
-          const emailTool = commTools.find((t) => t.id === 'sendEmail' || t.id === 'composeEmail');
-
-          if (!emailTool) {
-            return `Email isn't set up yet. Would you like to connect your email?`;
-          }
-
-          const tool = emailTool.create(ctx);
-          const result = await tool.execute({
-            recipient,
-            subject: subject || 'Message from Ferni',
-            body,
+          const result = await handOff('quickEmail', ctx, recipient, opts, {
+            contact: recipient,
+            purpose: subject || body,
+            preferredChannel: 'email',
+            customMessage: body,
           });
-
           void persistAnalytics(ctx.userId || 'anon');
           return result;
         } catch (error) {

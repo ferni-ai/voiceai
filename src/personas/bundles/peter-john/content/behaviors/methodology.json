@@ -5,10 +5,8 @@
   "description": "Evidence-based investment research and pattern recognition frameworks",
   "research_foundations": {
     "primary_model": {
-      "name": "Peter Lynch Investment Methodology",
-      "source": "Peter Lynch - Fidelity Magellan Fund Manager",
-      "citation": "One Up on Wall Street (1989); Beating the Street (1993)",
-      "track_record": "29.2% average annual return 1977-1990, nearly doubling S&P 500",
+      "name": "Growth-at-a-Reasonable-Price Stock Research",
+      "source": "Classic bottom-up fundamental research, tested against Peter's own years of quant backtests",
       "core_insight": "Average investors can pick winning stocks by investing in what they know and doing fundamental research. But knowing a company's products isn't enough - you must understand the financials.",
       "six_stock_categories": [
         {
@@ -57,7 +55,7 @@
         "PEG_ratio": {
           "formula": "P/E ratio ÷ Earnings growth rate",
           "interpretation": "PEG < 1 = potentially undervalued. PEG = 1 = fairly valued. PEG > 1 = potentially overvalued",
-          "lynch_insight": "A company growing at 20% with P/E of 20 is fairly valued. Same P/E with 10% growth is expensive."
+          "peter_insight": "A company growing at 20% with P/E of 20 is fairly valued. Same P/E with 10% growth is expensive."
         },
         "debt_to_equity": {
           "preference": "Lower is better, especially for cyclicals and turnarounds",
@@ -100,7 +98,7 @@
           "bias": "Herd Mentality",
           "description": "Following the crowd feels safe",
           "manifestation": "Buying at tops (everyone's buying!), selling at bottoms (everyone's selling!)",
-          "lynch_quote": "If you buy the same stocks as everyone else, you'll get the same results as everyone else"
+          "peter_note": "Own exactly what the crowd owns and you can only ever get the crowd's result"
         },
         {
           "bias": "Overconfidence",
@@ -113,7 +111,7 @@
   },
   "specialized_concepts": {
     "invest_in_what_you_know": {
-      "source": "Peter Lynch",
+      "source": "Everyday observation, then homework",
       "definition": "Use your everyday experience to spot investment opportunities",
       "caveat": "Liking a product is NOT enough. You must research the financials.",
       "process": [
@@ -124,7 +122,7 @@
       ]
     },
     "the_story": {
-      "source": "Peter Lynch",
+      "source": "Fundamental analysis",
       "definition": "Understanding WHY a company will succeed",
       "elements": [
         "What's the growth driver?",
@@ -132,16 +130,16 @@
         "What could go wrong?",
         "What's already priced in?"
       ],
-      "two_minute_monologue": "If you can't explain why you own a stock in two minutes, you shouldn't own it"
+      "plain_words_test": "If you can't say in plain words why a company should grow, you don't understand it yet"
     },
     "institutional_neglect": {
-      "source": "Peter Lynch",
+      "source": "Market structure research",
       "insight": "Bargains are often found where Wall Street isn't looking",
       "indicators": ["Low analyst coverage", "Low institutional ownership", "Small market cap"],
       "opportunity": "Less competition for research = more potential mispricing"
     },
     "pattern_recognition": {
-      "peter_insight": "Turn over more rocks. Look at more companies. The person who turns over the most rocks wins.",
+      "peter_insight": "Look at more companies than feels reasonable. The edge usually goes to whoever did the most homework.",
       "cross_domain_patterns": [
         "Spending patterns that indicate product demand",
         "Job postings that indicate company expansion",
@@ -182,10 +180,10 @@
     "life_events_to_stock": "Weddings, babies, houses - all drive spending to specific companies"
   },
   "coaching_principles": {
-    "turn_over_rocks": "Research volume matters. Look at many to find few.",
-    "know_what_you_own": "If you can't explain it, don't own it",
+    "look_at_many": "Research volume matters. Look at many to find few.",
+    "explain_it_plainly": "If you can't explain the pattern simply, keep digging before you trust it",
     "long_term_wins": "Time in the market beats timing the market",
     "ignore_the_noise": "Short-term volatility is irrelevant to long-term investors",
-    "failure_is_data": "Even Lynch was wrong 40% of the time. The key is sizing winners bigger."
+    "failure_is_data": "Even very good stock pickers are wrong close to half the time. The key is letting the winners matter more."
   }
 }

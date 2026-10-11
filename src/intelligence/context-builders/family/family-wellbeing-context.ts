@@ -131,6 +131,9 @@ export async function buildFamilyCheckinContext(
 // SPONSOR INFO
 // ============================================================================
 
+/** The sponsor's name when their profile has none. */
+const UNKNOWN_SPONSOR = 'your family member';
+
 interface SponsorInfo {
   name: string;
   nickname?: string;
@@ -147,10 +150,7 @@ async function getSponsorInfo(sponsorUserId: string): Promise<SponsorInfo> {
     if (profile) {
       // Use preferredName first, then name from onboarding, then name field
       const name =
-        profile.preferredName ||
-        profile.onboarding?.userName ||
-        profile.name ||
-        'your family member';
+        profile.preferredName || profile.onboarding?.userName || profile.name || UNKNOWN_SPONSOR;
 
       return {
         name,
@@ -166,7 +166,7 @@ async function getSponsorInfo(sponsorUserId: string): Promise<SponsorInfo> {
 
   // Fallback to sensible default
   return {
-    name: 'your family member',
+    name: UNKNOWN_SPONSOR,
     relationship: 'sponsor',
   };
 }
@@ -399,58 +399,53 @@ async function getRecentFamilyEvents(sponsorUserId: string, identityId: string):
 // ============================================================================
 
 /**
- * Generate a warm, personalized opening line for the call
+ * The first words of a check-in call. Every call, first or repeat, says Ferni
+ * is the sponsor's AI friend: the one, light AI disclosure (the same rule as
+ * on-behalf calls, agents/shared/outbound-opener.ts). No exclamation marks:
+ * the Twilio fallback reads this line aloud as written.
  */
 function generateOpeningLine(
-  schedule: FamilyCheckinSchedule,
-  identity: SponsoredIdentity,
+  schedule: Pick<FamilyCheckinSchedule, 'timezone'>,
+  identity: Pick<SponsoredIdentity, 'preferredName' | 'displayName'>,
   sponsorInfo: SponsorInfo,
-  recentCalls: CheckinCallRecord[]
+  recentCalls: Pick<CheckinCallRecord, 'callStartedAt'>[],
+  now: Date = new Date()
 ): string {
   const name = identity.preferredName || identity.displayName;
-  const sponsorName = sponsorInfo.nickname || sponsorInfo.name;
-  const sponsorTerm = getSponsorRelationshipTerm(identity.relationship, sponsorName);
+  const sponsor = sponsorInfo.nickname || sponsorInfo.name;
+  const known = sponsor && sponsor !== UNKNOWN_SPONSOR;
+  const ferni = known ? `it's Ferni, ${sponsor}'s AI friend` : "it's Ferni, an AI friend";
+  const hello = `${localGreeting(schedule.timezone, now)} ${name}, ${ferni}`;
 
-  // Time-based greeting
-  const hour = new Date().getHours();
-  let greeting = 'Hello';
-  if (hour < 12) {
-    greeting = 'Good morning';
-  } else if (hour < 17) {
-    greeting = 'Good afternoon';
-  } else {
-    greeting = 'Good evening';
+  const lastCall = recentCalls[0];
+  if (!lastCall) {
+    const asked = known
+      ? `${sponsor} asked me to check in on you.`
+      : 'I wanted to check in on you.';
+    return `${hello}. ${asked} Is now an okay time?`;
   }
+  const days = Math.floor(
+    (now.getTime() - new Date(lastCall.callStartedAt).getTime()) / 86_400_000
+  );
+  if (days <= 7) return `${hello} again. How have you been since we talked?`;
+  if (days <= 14)
+    return `${hello}. It's been about a week, so I wanted to see how things are going.`;
+  return `${hello}. It's been a little while since we talked. How have you been?`;
+}
 
-  // Determine context
-  const isFirstCall = recentCalls.length === 0;
-  const hasRecentCall = recentCalls.length > 0;
-
-  if (isFirstCall) {
-    // First call ever - introduce ourselves
-    return `${greeting}, ${name}! This is Ferni, ${sponsorTerm}'s AI friend. ${sponsorName} asked me to give you a call to check in and see how you're doing. Is this a good time to chat for a few minutes?`;
-  }
-
-  if (hasRecentCall) {
-    const lastCall = recentCalls[0];
-    const daysSinceLastCall = Math.floor(
-      (Date.now() - new Date(lastCall.callStartedAt).getTime()) / (1000 * 60 * 60 * 24)
+/** "Good morning" in the family member's own time zone; "Hi" when it can't be read. */
+function localGreeting(timeZone: string, now: Date): string {
+  try {
+    const hour = Number(
+      new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone }).format(now)
     );
-
-    if (daysSinceLastCall <= 7) {
-      // Recent call - reference it
-      return `${greeting}, ${name}! It's Ferni again. I've been thinking about our last conversation. How have you been since we talked?`;
-    } else if (daysSinceLastCall <= 14) {
-      // Week or two ago
-      return `${greeting}, ${name}! It's Ferni. It's been about a week - I wanted to check in and see how things are going with you.`;
-    } else {
-      // Been a while
-      return `${greeting}, ${name}! It's Ferni calling. It's been a little while since we chatted - ${sponsorName} wanted me to check in. How have you been?`;
-    }
+    if (hour >= 5 && hour < 12) return 'Good morning';
+    if (hour >= 12 && hour < 17) return 'Good afternoon';
+    if (hour >= 17 && hour < 22) return 'Good evening';
+  } catch {
+    /* unknown time zone */
   }
-
-  // Default fallback
-  return `${greeting}, ${name}! This is Ferni. ${sponsorName} wanted me to give you a call to check in. How are you doing today?`;
+  return 'Hi';
 }
 
 // ============================================================================

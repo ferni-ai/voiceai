@@ -2458,7 +2458,8 @@
       "features": "Ce que Ferni peut voir"
     },
     "title": "Objets connectés",
-    "notConfigured": "Pas encore configuré"
+    "notConfigured": "Pas encore configuré",
+    "appleHealthOnIphone": "Configure Apple Health dans l'app Ferni sur ton iPhone"
   },
   "transcript": {
     "enabled": "Transcription activée",
@@ -3321,8 +3322,8 @@
     "categorySweet": "Doux moments",
     "connectionConnected": "On est connectés",
     "connectionConnecting": "Connexion en cours...",
-    "connectionDisconnected": "Nous ne sommes pas connectés",
-    "connectionDisconnectedMessage": "Un petit souci est survenu, mais on peut réessayer.",
+    "connectionIdle": "Prêt quand tu l'es",
+    "connectionIdleMessage": "Quand tu as envie de parler, je suis là.",
     "connectionError": "Connexion perdue",
     "connectionErrorMessage": "Un petit souci est survenu, mais on peut réessayer.",
     "connectionReconnect": "Se reconnecter",
@@ -7901,6 +7902,8 @@
       "waitingTip": "Astuce : cherche « My Apps » → « Add Application » sur ecobee.com"
     },
     "hueSetup": {
+      "webUnavailableTitle": "Pas encore disponible sur le web",
+      "webUnavailableText": "Ton navigateur ne peut pas joindre un Hue Bridge sur ton réseau domestique depuis cette page sécurisée. Hue ne peut donc pas encore être connecté ici.",
       "findTitle": "Trouve ton Pont Hue",
       "ipLabel": "Adresse IP du pont",
       "ipPlaceholder": "ex. : 192.168.1.100",
@@ -9578,6 +9581,14 @@
     "cta": "Tu veux m'aider à garder Ferni gratuit ?",
     "dismiss": "Juste le plaisir de discuter"
   },
+  "afterCall": {
+    "ariaLabel": "Après votre appel",
+    "rememberTitle": "{name} se souviendra",
+    "rememberEmpty": "Rien de nouveau à retenir cette fois. Merci pour ce moment.",
+    "nextStepTitle": "Une prochaine étape en douceur",
+    "invitation": "Revenez quand vous voulez. Je serai là.",
+    "close": "Fermer"
+  },
   "moments": {
     "teamUnlockTitle": "Fais la connaissance de {name}",
     "niceWork": "Beau travail",
@@ -10194,7 +10205,12 @@
     "getIdeas": "Trouver des idées",
     "emptyTitle": "Pas encore de suggestions",
     "emptyText": "Essaie d'ajouter un peu plus de contexte sur votre relation.",
-    "generateError": "Impossible de générer des idées. Réessayer ?"
+    "generateError": "Impossible de générer des idées. Réessayer ?",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "CE QUE JE FAIS POUR TOI",
@@ -10699,6 +10715,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "Progression de la relation",
+    "emptyInvite": "Notre histoire commence avec ta première conversation.",
     "progress": "progression",
     "next": "Étape suivante : {stage}",
     "stages": {
@@ -10915,7 +10932,8 @@
   "entrance": {
     "helper": "Ton guide personnel",
     "connectToTalk": "Discuter",
-    "endTalk": "Raccrocher"
+    "endTalk": "Raccrocher",
+    "connectingCancel": "Connexion en cours. Touchez pour annuler"
   },
   "teamHuddle": {
     "typeWeekly": "Check-in hebdomadaire",
@@ -11180,5 +11198,45 @@
   "agentAcks": {
     "gameStartFailed": "Le jeu n'a pas démarré. Demande à Ferni de le lancer à voix haute.",
     "actionFailed": "Ça n'a pas abouti. C'est peut-être déjà réglé."
+  },
+  "speakerCues": {
+    "ferniSpeaking": "Ferni parle",
+    "youSpeaking": "Tu parles",
+    "ferniThinking": "Ferni réfléchit",
+    "tapToInterrupt": "Touche pour interrompre"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

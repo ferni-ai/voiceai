@@ -26,9 +26,20 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { getDisplayName, isKnownId } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'LifeLedger' });
+
+/**
+ * The name a persona goes by ("Peter", not "peter" from "peter-john"). Facts
+ * are extracted and written in the third person under this name.
+ */
+export function personaDisplayName(personaId: string): string {
+  if (isKnownId(personaId)) return getDisplayName(personaId);
+  const first = personaId.split('-')[0] ?? personaId;
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
 
 export function lifeLedgerEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return env.LIFE_LEDGER !== 'off';
@@ -38,6 +49,7 @@ export function selfMemoryEnabled(env: Record<string, string | undefined> = proc
   return env.FERNI_SELF_MEMORY === 'on';
 }
 
+/** A stored fact retract-ledger-facts.ts marked as not his life keeps `retracted: true` and is never recalled. */
 export interface LedgerFact {
   personaId: string;
   fact: string;
@@ -56,7 +68,7 @@ export type FactExtractor = (personaName: string, lines: string[]) => Promise<st
 
 const MAX_FACTS_PER_CALL = 8;
 const MAX_FACT_WORDS = 20;
-const RECALL_LIMIT = 10;
+export const RECALL_LIMIT = 10;
 const STOP = new Set(
   "that this they them their with what have from about your just like been were when then there some would could should into only also very really honestly actually ferni ferni's peter maya alex jordan nayan".split(
     ' '
@@ -293,8 +305,8 @@ export const firestoreLedgerStore: LedgerStore = {
       .limit(limit * 3)
       .get();
     return snap.docs
-      .map((d) => d.data() as LedgerFact)
-      .filter((f) => f.personaId === personaId)
+      .map((d) => d.data() as LedgerFact & { retracted?: boolean })
+      .filter((f) => f.personaId === personaId && f.retracted !== true)
       .slice(0, limit);
   },
 };
@@ -303,10 +315,11 @@ export const firestoreLedgerStore: LedgerStore = {
 export async function loadLedger(
   userId: string,
   personaId = 'ferni',
-  store: LedgerStore = firestoreLedgerStore
+  store: LedgerStore = firestoreLedgerStore,
+  limit = RECALL_LIMIT
 ): Promise<LedgerFact[]> {
   if (!lifeLedgerEnabled()) return [];
-  return store.recent(userId, personaId, RECALL_LIMIT).catch((error: unknown) => {
+  return store.recent(userId, personaId, limit).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Life ledger not loaded');
     return [];
   });
@@ -341,7 +354,7 @@ export function createLedgerRecorder(
       let saved = 0;
       for (const [personaId, said] of lines) {
         try {
-          const name = personaId === 'ferni' ? 'Ferni' : personaId.split('-')[0];
+          const name = personaDisplayName(personaId);
           const raw = await (deps.extract ?? defaultExtractor)(name, said);
           const strict = selfMemoryEnabled(deps.env);
           const grounded = groundedFacts(strict ? lifeFactsOnly(raw) : raw, said);

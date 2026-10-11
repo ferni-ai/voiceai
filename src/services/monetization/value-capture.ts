@@ -16,6 +16,7 @@ import {
   type ValueType,
 } from '../../types/monetization.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isPaywallOn } from '../billing/paywall.js';
 import { getUserValueCapture, saveValueEvent, type ValueCaptureRecord } from './persistence.js';
 
 const log = createLogger({ module: 'ValueCapture' });
@@ -141,6 +142,7 @@ export async function detect(params: {
   conversationId: string;
 }): Promise<ValueEvent | null> {
   const { userId, message, conversationId } = params;
+  if (!isPaywallOn()) return null; // value capture only exists to suggest a contribution
 
   // Check each value type for matches
   for (const [type, patterns] of Object.entries(VALUE_DETECTION_PATTERNS) as Array<

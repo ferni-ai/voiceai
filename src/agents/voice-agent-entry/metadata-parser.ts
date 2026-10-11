@@ -10,6 +10,24 @@
 import type { JobContext } from '@livekit/agents';
 import type { ParsedMetadata } from './types.js';
 import { parseOnBehalfDispatch } from '../../services/outreach/on-behalf-dispatch.js';
+import { maskPhoneNumber } from '../../services/identity/phone-attestation.js';
+
+/** What an inbound dispatch says about the caller's account; honoured only when signed. */
+const INBOUND_ACCOUNT_FIELDS = [
+  'callerPhone',
+  'userId',
+  'user_id',
+  'familyUserId',
+  'sponsoredIdentityId',
+  'sponsorUserId',
+  'isKnownCaller',
+  'isVoiceEnrolled',
+  'callerName',
+  'relationship',
+  'notes',
+  'accessLevel',
+  'allowedPersonas',
+] as const;
 
 /**
  * Parse job and room metadata from the LiveKit job context.
@@ -73,16 +91,25 @@ export async function setupCallTypeContexts(
   // INBOUND CALL DETECTION
   // =========================================================================
   if (callType === 'inbound_call') {
+    // Who the caller is came from caller ID, which can be spoofed: the number
+    // and account fields count only on a dispatch our server signed, the same
+    // gate as on-behalf calls. Unsigned, the caller is a stranger.
+    if (!(await isTrustedDispatch(rawJobMetadata))) {
+      for (const field of INBOUND_ACCOUNT_FIELDS) delete metadata[field];
+      process.stderr.write(
+        `[voice-agent-entry] ⚠️ Unsigned inbound dispatch: caller treated as a stranger\n`
+      );
+    }
     process.stderr.write(
       `[voice-agent-entry] 📞 INBOUND CALL DETECTED - setting up caller context\n`
     );
     process.stderr.write(
       `[voice-agent-entry] 📞 Caller context: ${JSON.stringify({
         callSid: metadata.callSid,
-        callerPhone: metadata.callerPhone
-          ? `${String(metadata.callerPhone).slice(0, 4)}****`
-          : 'unknown',
-        callerName: metadata.callerName,
+        callerPhone:
+          maskPhoneNumber(
+            typeof metadata.callerPhone === 'string' ? metadata.callerPhone : undefined
+          ) ?? 'unknown',
         isKnownCaller: metadata.isKnownCaller,
         isSponsored: !!metadata.sponsoredIdentityId,
       })}\n`
@@ -120,14 +147,10 @@ export async function setupCallTypeContexts(
       if (metadata.sponsoredIdentityId) {
         if (metadata.familyUserId) {
           metadata.user_id = metadata.familyUserId as string;
-          process.stderr.write(
-            `[voice-agent-entry] 📞 Using familyUserId for memory: ${metadata.familyUserId}\n`
-          );
+          process.stderr.write(`[voice-agent-entry] 📞 Using familyUserId for memory\n`);
         } else {
           metadata.user_id = `family_${metadata.sponsoredIdentityId}`;
-          process.stderr.write(
-            `[voice-agent-entry] 📞 Using generated familyUserId: family_${metadata.sponsoredIdentityId}\n`
-          );
+          process.stderr.write(`[voice-agent-entry] 📞 Using generated familyUserId for memory\n`);
         }
       } else if (metadata.userId) {
         metadata.user_id = metadata.userId;
@@ -160,6 +183,7 @@ export async function setupCallTypeContexts(
           `[voice-agent-entry] ⚠️ On-behalf dispatch is missing callId or requester; it can't be reported back\n`
         );
       }
+      const trusted = await isTrustedDispatch(rawJobMetadata);
       const { setOutboundCallContext } =
         await import('../../intelligence/context-builders/external/outbound-call-context.js');
       const roomNameForContext = roomName || `call-${metadata.callId}`;
@@ -177,7 +201,10 @@ export async function setupCallTypeContexts(
         mustConfirm: (metadata.mustConfirm as string[]) || [],
         mustNotDo: (metadata.mustNotDo as string[]) || [],
         informationToGather: (metadata.informationToGather as string[]) || [],
-        userName: call?.requester.name || 'the user',
+        // A signed dispatch may name the requester without an id, which the parser
+        // rejects: still say who Ferni is calling for. Display only, and never
+        // from an unsigned dispatch (it must not put a name in Ferni's mouth).
+        userName: call?.requester.name || (trusted && requesterNameOf(metadata)) || 'the user',
         originalSessionId: call?.requester.originalSessionId || '',
         requesterUserId: call?.requester.userId,
         kind: 'on_behalf' as const,
@@ -188,9 +215,6 @@ export async function setupCallTypeContexts(
       // Capture the call so its outcome can be reported to the requester at the end
       // Only a dispatch our server signed gets call state; a forged one could
       // name another call's id. Its turns are still kept out of memory.
-      const { verifyOnBehalfDispatch } =
-        await import('../../services/outreach/on-behalf-dispatch.js');
-      const trusted = verifyOnBehalfDispatch(rawJobMetadata, process.env.LIVEKIT_API_SECRET);
       const { beginOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
       if (call && trusted) {
         await beginOnBehalfCall(sessionId, call);
@@ -206,9 +230,52 @@ export async function setupCallTypeContexts(
   }
 
   // =========================================================================
+  // FAMILY CHECK-IN: an outbound call placed for the sponsor to someone in
+  // their family. Same path as on-behalf calls: the person on the line is the
+  // family member, Ferni opens as the sponsor's AI friend once they pick up,
+  // and the check-in prompt is the call's script, not the persona prompt.
+  // =========================================================================
+  // Only our server places these, so only a signed dispatch is honoured: an
+  // unsigned or altered one would put its own prompt and names into the call.
+  if (callType === 'family_checkin' && !(await isTrustedDispatch(rawJobMetadata))) {
+    process.stderr.write(`[voice-agent-entry] ⚠️ Unsigned family check-in dispatch refused\n`);
+  } else if (callType === 'family_checkin') {
+    const { setOutboundCallContext } =
+      await import('../../intelligence/context-builders/external/outbound-call-context.js');
+    const recipientName = (metadata.familyMemberName as string) || 'Unknown';
+    const userName = (metadata.sponsorName as string) || 'the user';
+    const checkin = {
+      callId: String(metadata.callId ?? ''),
+      recipientName,
+      recipientPhone: '',
+      purpose: `${userName} asked you to check in on ${recipientName}.`,
+      callType: 'personal' as const,
+      objective: `See how ${recipientName} is doing.`,
+      script: (metadata.systemPrompt as string) || '',
+      complianceScript: '',
+      mustConfirm: [],
+      mustNotDo: [],
+      informationToGather: [],
+      userName,
+      originalSessionId: '',
+      openingLine: (metadata.openingLine as string) || undefined,
+      // Where a voicemail is recorded (answered-by.ts): the signed sponsor's check-in record.
+      requesterUserId: (metadata.sponsorUserId as string) || undefined,
+      kind: 'family_checkin' as const,
+    };
+    setOutboundCallContext(sessionId, checkin);
+    if (roomName) setOutboundCallContext(roomName, checkin);
+    process.stderr.write(`[voice-agent-entry] 📞 Family check-in context set for ${sessionId}\n`);
+  }
+
+  // =========================================================================
   // PROACTIVE OUTREACH CALL DETECTION
   // =========================================================================
-  if (callType === 'proactive_outreach') {
+  // Only our server places these, so only a signed dispatch is honoured: an
+  // unsigned one would put its own reason and opener into Ferni's mouth.
+  if (callType === 'proactive_outreach' && !(await isTrustedDispatch(rawJobMetadata))) {
+    process.stderr.write(`[voice-agent-entry] ⚠️ Unsigned proactive outreach dispatch refused\n`);
+  } else if (callType === 'proactive_outreach') {
     process.stderr.write(
       `[voice-agent-entry] 📞 PROACTIVE OUTREACH DETECTED - setting up check-in context\n`
     );
@@ -269,10 +336,26 @@ export async function finishCallTypeContexts(
   rawJobMetadata: string | undefined
 ): Promise<void> {
   if (callType !== 'on_behalf_call') return;
-  const { verifyOnBehalfDispatch } = await import('../../services/outreach/on-behalf-dispatch.js');
   const { completeOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
   const call = parseOnBehalfDispatch(metadata);
   if (!call) return;
-  const trusted = verifyOnBehalfDispatch(rawJobMetadata, process.env.LIVEKIT_API_SECRET);
+  const trusted = await isTrustedDispatch(rawJobMetadata);
   await completeOnBehalfCall(sessionId, call, Math.round(sessionDurationMs / 1000), trusted);
+}
+
+/**
+ * The one gate for outbound calls our server places (on-behalf, family
+ * check-in, proactive outreach): the job metadata exactly as dispatched
+ * carries a valid signature.
+ */
+async function isTrustedDispatch(rawJobMetadata: string | undefined): Promise<boolean> {
+  const { verifyOnBehalfDispatch } = await import('../../services/outreach/on-behalf-dispatch.js');
+  return verifyOnBehalfDispatch(rawJobMetadata, process.env.LIVEKIT_API_SECRET);
+}
+
+/** The requester's name as dispatched: under `requester`, or the older top-level `userName`. */
+function requesterNameOf(metadata: Record<string, unknown>): string | undefined {
+  const requester = metadata.requester as Record<string, unknown> | undefined;
+  const name = requester?.name || metadata.userName;
+  return typeof name === 'string' && name ? name : undefined;
 }

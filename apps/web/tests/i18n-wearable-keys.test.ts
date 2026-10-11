@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 const LOCALES_DIR = join(__dirname, '..', 'src', 'i18n', 'locales');
 const LOCALES = readdirSync(LOCALES_DIR).filter((f) => f.endsWith('.json'));
 
-const KEYS = ['wearableSettings.notConfigured', 'menu.items.allConnections', 'menu.items.appleHealth'];
+const KEYS = ['wearableSettings.notConfigured', 'wearableSettings.appleHealthOnIphone', 'menu.items.allConnections', 'menu.items.appleHealth'];
 
 function valueOf(locale: unknown, key: string): unknown {
   return key.split('.').reduce<unknown>((node, part) => {

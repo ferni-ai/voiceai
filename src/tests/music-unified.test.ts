@@ -11,6 +11,16 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// Vitest 5 only accepts vi.mock at the top level. Vitest 4 hoisted these
+// here from inside the suites below, so moving them changes nothing.
+// Mock fs for token file operations
+vi.mock('fs', () => ({
+  existsSync: vi.fn().mockReturnValue(false),
+  readFileSync: vi.fn(),
+  writeFileSync: vi.fn(),
+  unlinkSync: vi.fn(),
+}));
+
 // Mock external dependencies
 vi.mock('../utils/safe-logger.js', () => ({
   getLogger: () => ({
@@ -405,14 +415,6 @@ describe('Sonos Music Service', () => {
 // ============================================================================
 
 describe('Spotify Token Management', () => {
-  // Mock fs for token file operations
-  vi.mock('fs', () => ({
-    existsSync: vi.fn().mockReturnValue(false),
-    readFileSync: vi.fn(),
-    writeFileSync: vi.fn(),
-    unlinkSync: vi.fn(),
-  }));
-
   describe('Token Status', () => {
     it('should report invalid status when no tokens', async () => {
       const { getSpotifyTokenStatus } = await import('../services/identity/spotify-auth.js');
