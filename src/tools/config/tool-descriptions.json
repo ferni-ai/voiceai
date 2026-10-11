@@ -462,7 +462,7 @@
       "_original": "Find a contact and prepare to call them. Use when: -"
     },
     "callUser": {
-      "description": "Make an outbound phone call to the user. Use this when: - User asks you to call them about something - You need to deliver important market alerts - You want to check in with the user - Peter wants to talk to them about a stock IMPORTANT: Only use this if the user has given you their phone number.",
+      "description": "Use when the user asks you to call their phone. Relay the result exactly: if it says no call is coming, tell them so and offer the alternative it gives.",
       "file": "src/tools/telephony.ts"
     },
     "cancelAppointment": {
@@ -3591,7 +3591,7 @@
       "file": "src/tools/communication-tools.ts"
     },
     "scheduleCallback": {
-      "description": "Schedule Jack to call the user back at a specific time. Use when: - User says.",
+      "description": "Use when the user asks you to call their phone at a later time. Relay the result exactly: if it says nothing is booked, tell them so and offer the alternative it gives.",
       "file": "src/tools/telephony.ts",
       "_original": "Schedule Jack to call the user back at a specific time. Use when: - User says"
     },
