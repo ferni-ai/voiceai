@@ -112,6 +112,9 @@ export function withTurnReminder(
       : '',
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
     state.last,
+    // DIRECTOR_ESCALATE=on: a note the director had to give twice, as a rule
+    // for this reply, last of all; never with crisis guidance.
+    options.shape !== false ? (director?.hardRule?.() ?? '') : '',
   ]
     .filter(Boolean)
     .join(' ');
