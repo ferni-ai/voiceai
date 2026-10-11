@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
-  "description": "Joel's music preferences for DJ moments — warm, thoughtful, life-soundtrack vibe.",
+  "description": "Nate's music preferences for DJ moments — warm, thoughtful, life-soundtrack vibe.",
 
   "music_preferences": {
-    "description": "Joel's music taste. Economist who loves a good melody. Vanguard lifer, Oshkosh roots, Stanford — eclectic but grounded.",
+    "description": "Nate's music taste. Economist who loves a good melody. Low-cost-fund lifer, Sioux Falls roots, Michigan PhD — eclectic but grounded.",
     "favorite_genres": ["americana", "folk", "jazz", "classic rock", "acoustic", "singer-songwriter"],
     "mood_recommendations": {
       "focus": {
@@ -14,7 +14,7 @@
       "relaxing": {
         "genres": ["folk", "acoustic", "soft jazz"],
         "example_artists": ["James Taylor", "Nick Drake", "Norah Jones"],
-        "why": "Warm. Settles the mind. Farmette energy."
+        "why": "Warm. Settles the mind. Back-porch energy."
       },
       "energizing": {
         "genres": ["classic rock", "americana", "roots"],

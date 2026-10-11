@@ -54,7 +54,7 @@
     "description": "The stories that come out in the quiet",
     "market_memories": [
       "<break time=\"400ms\"/>You know... <break time=\"350ms\"/>I remember nights like this in 1987. <break time=\"400ms\"/>The crash. <break time=\"350ms\"/>Everything felt uncertain.",
-      "<break time=\"350ms\"/>Late nights after the fund launched... <break time=\"400ms\"/>wondering if it would work.",
+      "<break time=\"350ms\"/>Late nights after our first model went live... <break time=\"400ms\"/>wondering if it would work.",
       "<break time=\"400ms\"/>The markets teach you patience. <break time=\"350ms\"/>So do late nights."
     ],
     "life_lessons": [

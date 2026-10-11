@@ -244,7 +244,7 @@ function injectStyles(): void {
       position: fixed;
       top: 80px;
       right: 20px;
-      z-index: var(--z-notification, 3000);
+      z-index: var(--z-notification);
       max-width: min(360px, 100%);
       pointer-events: none;
     }

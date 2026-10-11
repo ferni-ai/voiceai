@@ -1,9 +1,10 @@
 /**
  * After-call card tests.
  *
- * - Flag off: the goodbye still ends with the conversation cost card.
- * - Flag on: the after-call card shows what was saved during this call and a
- *   commitment from it, or a warm fallback when nothing was saved.
+ * - Default: the goodbye ends with the after-call recap (what was saved during
+ *   this call and a commitment from it), or a short warm close when nothing
+ *   was saved. Never the cost card. Support Ferni is a quiet link on it.
+ * - Flag off (env or localStorage): the conversation cost card, as before.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -16,8 +17,10 @@ vi.mock('../../src/utils/api.js', () => ({
   getApiHeaders: vi.fn(() => ({})),
 }));
 
+const mockSupportOpen = vi.fn(() => Promise.resolve());
+
 vi.mock('../../src/ui/support-ferni.ui.js', () => ({
-  supportFerniUI: { open: vi.fn(() => Promise.resolve()) },
+  supportFerniUI: { open: mockSupportOpen },
 }));
 
 const FLAG_KEY = 'ferni:flag:after-call-card';
@@ -75,18 +78,21 @@ describe('after-call card', () => {
     document.body.innerHTML = '';
     localStorage.clear();
     mockApiGet.mockReset();
+    mockSupportOpen.mockClear();
     await startCall();
   });
 
   afterEach(async () => {
+    vi.unstubAllEnvs();
     const { hideAfterCallCard } = await import('../../src/ui/after-call/after-call-card.ui.js');
     hideAfterCallCard(true);
     const { hide } = await import('../../src/ui/conversation-cost.ui.js');
     hide();
   });
 
-  describe('flag off (default)', () => {
-    it('shows the conversation cost card after the call, as before', async () => {
+  describe('flag off', () => {
+    it('shows the conversation cost card after the call when the build turns it off', async () => {
+      vi.stubEnv('VITE_AFTER_CALL_CARD', 'false');
       routeApi({ memories: [{ content: 'Likes tea', learnedAt: inCall(1000) }] });
 
       await runPostCall();
@@ -95,12 +101,19 @@ describe('after-call card', () => {
       expect(afterCallCard()).toBeNull();
       expect(mockApiGet).not.toHaveBeenCalledWith('/api/cognitive/memories');
     });
+
+    it('shows the cost card when one browser turns it off', async () => {
+      localStorage.setItem(FLAG_KEY, 'false');
+      routeApi({});
+
+      await runPostCall();
+
+      expect(costCard()).not.toBeNull();
+      expect(afterCallCard()).toBeNull();
+    });
   });
 
-  describe('flag on', () => {
-    beforeEach(() => {
-      localStorage.setItem(FLAG_KEY, 'true');
-    });
+  describe('default build', () => {
 
     it('shows memories saved during this call and a commitment from it, not the cost card', async () => {
       routeApi({
@@ -131,7 +144,7 @@ describe('after-call card', () => {
       expect(card!.querySelector('.after-call-empty')).toBeNull();
     });
 
-    it('shows the warm fallback, not invented content, when nothing was saved this call', async () => {
+    it('shows only a short warm close, not invented content or the cost card, when nothing was saved this call', async () => {
       routeApi({
         memories: [{ content: 'Old fact from last spring', learnedAt: LONG_AGO }],
         commitments: [],
@@ -141,37 +154,62 @@ describe('after-call card', () => {
 
       const card = afterCallCard();
       expect(card).not.toBeNull();
-      expect(card!.querySelectorAll('li')).toHaveLength(0);
-      expect(card!.querySelector('.after-call-empty')?.textContent).toBe(
-        'Nothing new to hold onto this time. Thanks for the company.'
-      );
-      expect(card!.querySelector('.after-call-commitment')).toBeNull();
-      expect(card!.querySelector('.after-call-invitation')?.textContent).toBe(
+      expect(costCard()).toBeNull();
+      expect(card!.querySelector('.after-call-close-line')?.textContent).toBe(
         "Come back whenever you like. I'll be here."
       );
+      expect(card!.querySelectorAll('h2, li')).toHaveLength(0);
+      expect(card!.textContent).not.toContain('Old fact from last spring');
     });
 
-    it('falls back when the memory and commitment requests fail', async () => {
+    it('shows the warm close when the memory and commitment requests fail', async () => {
       mockApiGet.mockResolvedValue({ ok: false, status: 500 });
 
       await runPostCall();
 
       const card = afterCallCard();
-      expect(card!.querySelector('.after-call-empty')).not.toBeNull();
-      expect(card!.querySelector('.after-call-invitation')).not.toBeNull();
-      expect(card!.querySelector('.after-call-cost')).toBeNull();
+      expect(card!.querySelector('.after-call-close-line')).not.toBeNull();
+      expect(costCard()).toBeNull();
     });
 
-    it('keeps the call cost one tap away', async () => {
-      routeApi({});
+    it('offers Support Ferni as a quiet link that opens only when tapped', async () => {
+      routeApi({ memories: [{ content: 'Likes tea', learnedAt: inCall(1000) }] });
 
       await runPostCall();
-      afterCallCard()!.querySelector<HTMLButtonElement>('.after-call-cost')!.click();
-      await vi.waitFor(() => expect(costCard()).not.toBeNull());
+      const link = afterCallCard()!.querySelector<HTMLButtonElement>('.after-call-support');
+      expect(link?.textContent).toBe('Support Ferni');
+      // It comes after the recap, not in place of it.
+      expect(afterCallCard()!.lastElementChild).toBe(link);
+      expect(afterCallCard()!.querySelector('li')?.textContent).toBe('Likes tea');
+      expect(mockSupportOpen).not.toHaveBeenCalled();
+      expect(costCard()).toBeNull();
+
+      link!.click();
+      await vi.waitFor(() => expect(mockSupportOpen).toHaveBeenCalledTimes(1));
       const { isAfterCallCardShowing } =
         await import('../../src/ui/after-call/after-call-card.ui.js');
       expect(isAfterCallCardShowing()).toBe(false);
-      expect(afterCallCard()?.classList.contains('visible') ?? false).toBe(false);
+      expect(costCard()).toBeNull();
+    });
+
+    it('sits in the page flow after the call controls, so it never covers Connect', async () => {
+      document.body.innerHTML = `
+        <main class="main">
+          <div class="controls-row"><div class="controls"><button id="connectBtn">Connect</button></div></div>
+          <p id="helperText">Your personal guide</p>
+        </main>`;
+      routeApi({});
+
+      await runPostCall();
+
+      const card = afterCallCard()!;
+      const controls = document.querySelector('.controls-row')!;
+      expect(controls.nextElementSibling).toBe(card);
+      expect(card.contains(document.getElementById('connectBtn'))).toBe(false);
+      const position = getComputedStyle(card).position;
+      expect(position).not.toBe('fixed');
+      expect(position).not.toBe('absolute');
+      expect(card.querySelector('.after-call-support')).not.toBeNull();
     });
 
     it('closes when the next call connects', async () => {
