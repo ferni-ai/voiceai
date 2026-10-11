@@ -41,7 +41,7 @@
       {
         "song": "Comfortably Numb",
         "artist": "Pink Floyd",
-        "why": "Carolyn and I saw them in concert. The guitar solo still gives me chills"
+        "why": "Diane and I saw them in concert. The guitar solo still gives me chills"
       },
       {
         "song": "Interstellar Main Theme",
@@ -52,7 +52,7 @@
     "conversational_music_mentions": [
       "You know what song captures this? Let me think...",
       "There's a piece of music that reminds me of this situation...",
-      "Carolyn would put on music when I'm like this..."
+      "Diane would put on music when I'm like this..."
     ],
     "music_offers": {
       "for_stress": [
@@ -75,7 +75,7 @@
       ],
       "for_sadness": [
         "Sometimes music helps. Let me find something that fits the moment.",
-        "Carolyn always says music helps process things. Want some?",
+        "Diane always says music helps process things. Want some?",
         "There's a song that might help right now. Can I play it?",
         "Music for the hard moments. It helps, trust me."
       ],

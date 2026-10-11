@@ -794,15 +794,15 @@ export function formatRestaurantForSpeech(restaurant: DeliveryRestaurant): strin
  */
 export function formatOrderForSpeech(order: DeliveryOrder): string {
   if (order.items.length === 0) {
-    return `Your order from ${order.restaurant.name} is empty.`;
+    return `Your cart for ${order.restaurant.name} is empty.`;
   }
 
   const itemsList = order.items.map((item) => `${item.quantity}x ${item.menuItem.name}`).join(', ');
 
   return (
-    `Your order from ${order.restaurant.name}: ${itemsList}. ` +
+    `Your cart for ${order.restaurant.name} (not ordered yet): ${itemsList}. ` +
     `Subtotal $${order.subtotal.toFixed(2)}, ` +
-    `with fees and tax your total is $${order.total.toFixed(2)}.`
+    `with fees and tax it comes to about $${order.total.toFixed(2)}.`
   );
 }
 
@@ -818,8 +818,8 @@ export function getOrderCompletionMessage(order: DeliveryOrder): string {
   }[order.platform];
 
   return (
-    `Ready to order from ${order.restaurant.name}! ` +
-    `Here's your ${platformName} link to complete the order: ${order.checkoutUrl || order.deepLink}`
+    `Your ${order.restaurant.name} cart is ready to check out yourself. ` +
+    `Open it on ${platformName} to review and pay: ${order.checkoutUrl || order.deepLink}`
   );
 }
 

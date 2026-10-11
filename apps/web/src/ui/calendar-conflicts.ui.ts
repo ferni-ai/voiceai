@@ -503,7 +503,7 @@ class CalendarConflictsUI {
       .calendar-conflicts {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -894,7 +894,7 @@ class CalendarConflictsUI {
         color: var(--color-text-primary, #faf6f0);
       }
 
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .calendar-conflicts__wrapper {
           max-width: 100%;
           max-height: 90vh;

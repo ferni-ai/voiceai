@@ -554,9 +554,8 @@ export const memoryAsyncEvents = {
   emit: (event: string, data: unknown): void => {
     AsyncEvents.emit(event as EventType, data as Record<string, unknown>);
   },
-  on: (event: string, handler: (data: unknown) => void): void => {
-    AsyncEvents.on(event as EventType, (payload) => handler(payload.data));
-  },
+  on: (event: string, handler: (data: unknown) => void): (() => void) =>
+    AsyncEvents.on(event as EventType, (payload) => handler(payload.data)),
 };
 
 export default AsyncEvents;

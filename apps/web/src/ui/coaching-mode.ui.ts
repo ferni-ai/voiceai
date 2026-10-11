@@ -44,7 +44,7 @@ const STYLES = `
   .coaching-mode-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-modal, 2100); /* the layer every dialog shares: the last opened is on top */
+    z-index: var(--z-modal); /* the layer every dialog shares: the last opened is on top */
     display: flex;
     align-items: center;
     justify-content: center;

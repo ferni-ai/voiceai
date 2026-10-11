@@ -8,7 +8,7 @@ vi.mock('../../../utils/safe-logger.js', () => {
     error: vi.fn(),
     child: vi.fn(() => logger),
   };
-  return { createLogger: () => logger };
+  return { createLogger: () => logger, getLogger: () => logger };
 });
 
 import { createMemoryRecall } from '../../multi-agent/memory-recall-hook.js';
