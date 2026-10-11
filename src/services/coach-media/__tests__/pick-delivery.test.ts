@@ -234,6 +234,9 @@ describe('texting safely', () => {
     expect(
       sendableLink({ ...off, url: 'https://www.nhs.uk/a', grounding: PICK.candidate.grounding })
     ).toBe('https://www.nhs.uk/a');
+    // coach-local's restaurant and product links.
+    expect(sendableLink({ ...off, url: 'https://www.doordash.com/store/x' })).not.toBeNull();
+    expect(sendableLink({ ...off, url: 'https://www.amazon.com/s?k=x' })).not.toBeNull();
     expect(sendableLink({ ...off, url: 'https://books.google.com/books?id=b2' })).toBe(
       'https://books.google.com/books?id=b2'
     );
