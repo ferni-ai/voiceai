@@ -173,7 +173,9 @@ export async function runMultiAgentMode(
     const { roundtableAgentsForCall } =
       await import('../../group-conversation/session-roundtable-agents.js');
     const { handoffEvents } = await import('../../../handoff/index.js');
-    const { handoffStartMessages } = await import('../../multi-agent/handoff-messages.js');
+    const { handoffFailedMessage, handoffStartMessages } = await import(
+      '../../multi-agent/handoff-messages.js'
+    );
     const { offerAgent, withdrawAgent } = await import('../../../tools/handoff/ready-agents.js');
 
     // Initialize multi-agent session
@@ -297,13 +299,10 @@ export async function runMultiAgentMode(
 
               if (!result.success) {
                 process.stderr.write(`[multi-agent-mode] 🎭 Handoff failed: ${result.error}\n`);
-                await publishDataMessage(ctx.room, {
-                  type: 'handoff_failed',
-                  target: message.target,
-                  error: result.error,
-                  rollbackTo: currentPersonaId,
-                  timestamp: Date.now(),
-                });
+                const failed = handoffFailedMessage(message.target!, result, currentPersonaId);
+                await publishDataMessage(ctx.room, failed.message);
+                // A locked teammate: the agent on the call says the decline out loud too
+                if (failed.say) multiAgentResult.orchestrator.getActiveAgent()?.say(failed.say);
               }
             } finally {
               handoffLock.release();

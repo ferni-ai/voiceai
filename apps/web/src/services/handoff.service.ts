@@ -75,7 +75,9 @@ export type HandoffCompleteCallback = (toPersona: SpeakerId) => void;
 export type HandoffFailedCallback = (
   error: string,
   targetPersona: SpeakerId,
-  rollbackTo?: SpeakerId
+  rollbackTo?: SpeakerId,
+  /** The backend's words for the caller (a locked teammate's warm decline); show these */
+  userMessage?: string
 ) => void;
 /** FIX BUG #17: Callback for when backend acknowledges receiving handoff request */
 export type HandoffAcknowledgedCallback = (
@@ -556,6 +558,8 @@ class HandoffService {
       // FIX AUDIT GAP #1: Extract rollbackTo for UI state recovery
       const rollbackTo = (event as HandoffEvent & { rollbackTo?: string }).rollbackTo;
       const rollbackPersona = rollbackTo ? normalizeSpeakerId(rollbackTo) : undefined;
+      const { userMessage } = event;
+      const shown = typeof userMessage === 'string' && userMessage.trim() ? userMessage : undefined;
 
       log.error('Handoff failed:', { errorMsg, rollbackTo: rollbackPersona });
 
@@ -586,7 +590,7 @@ class HandoffService {
       // Notify failure callbacks (now includes rollbackTo)
       for (const callback of this.failedCallbacks) {
         try {
-          callback(errorMsg, toPersona, rollbackPersona);
+          callback(errorMsg, toPersona, rollbackPersona, shown);
         } catch (error) {
           log.error('Handoff failed callback error:', error);
         }

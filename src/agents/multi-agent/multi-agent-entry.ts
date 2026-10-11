@@ -208,7 +208,7 @@ export async function handleHandoffFromDataChannel(
   reason: string,
   services: SessionServices,
   onAgentReady?: HandoffRequest['onAgentReady']
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; declined?: boolean }> {
   if (orchestrator.isHandoffInProgress()) {
     return { success: false, error: 'Handoff already in progress' };
   }
@@ -220,7 +220,8 @@ export async function handleHandoffFromDataChannel(
   let unlock = check(services.userProfile ?? null);
   // Refused with no profile yet: it may still be loading, so wait for it once and decide again
   if (!unlock.open && !services.userProfile) unlock = check(await profileWhenLoaded(services));
-  if (!unlock.open) return { success: false, error: unlock.error };
+  // Not unlocked: the error is the warm decline the caller should hear and see (declined)
+  if (!unlock.open) return { success: false, error: unlock.error, declined: true };
   // From here on, only the id the check decided on: never the raw one from the browser
   const target = unlock.target;
   const currentPersona = orchestrator.getCurrentPersonaId();

@@ -36,7 +36,15 @@ describe('a tap on a teammate during a call', () => {
     const result = await handleHandoffFromDataChannel(o, 'maya-santos', 'tap', services(newcomer));
     expect(result.success).toBe(false);
     expect(result.error).toBeTruthy();
+    // A decline the caller is told about, not a technical failure
+    expect(result.declined).toBe(true);
     expect(handoff).not.toHaveBeenCalled();
+  });
+
+  it('is not a decline when the caller is already with that persona', async () => {
+    const { o } = orchestrator();
+    const result = await handleHandoffFromDataChannel(o, 'ferni', 'tap', services(subscriber));
+    expect(result).toEqual({ success: false, error: 'Already with ferni' });
   });
 
   it('is refused for paid-only Nayan without the Partner tier, even for a subscriber', async () => {
