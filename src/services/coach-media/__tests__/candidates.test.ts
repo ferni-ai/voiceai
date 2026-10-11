@@ -104,12 +104,12 @@ describe('videoCandidates', () => {
 });
 
 describe('bookCandidates', () => {
-  it('keeps books with a description and uses the YouTube key with COACH_MEDIA=on', async () => {
+  it('keeps books with a description, using the Books key (never the YouTube one)', async () => {
     vi.stubEnv('COACH_MEDIA', 'on');
     vi.stubEnv('YOUTUBE_API_KEY', 'yt-key');
-    vi.stubEnv('GOOGLE_BOOKS_API_KEY', '');
+    vi.stubEnv('GOOGLE_BOOKS_API_KEY', 'books-key');
     const found = await bookCandidates('personal finance basics');
-    expect(urls[0].searchParams.get('key')).toBe('yt-key');
+    expect(urls[0].searchParams.get('key')).toBe('books-key');
     expect(found).toEqual([
       {
         kind: 'book',
@@ -120,14 +120,6 @@ describe('bookCandidates', () => {
         summary: 'A classic on spending.',
       },
     ]);
-  });
-
-  it('does not use the YouTube key with the flag off', async () => {
-    vi.stubEnv('COACH_MEDIA', '');
-    vi.stubEnv('YOUTUBE_API_KEY', 'yt-key');
-    vi.stubEnv('GOOGLE_BOOKS_API_KEY', '');
-    await bookCandidates('personal finance basics');
-    expect(urls[0].searchParams.has('key')).toBe(false);
   });
 });
 

@@ -164,7 +164,6 @@ describe('pickResultText', () => {
   it('gives one pick as data with its length and a why with instructions dropped', () => {
     const text = pickResultText('desk posture', {
       candidate,
-      checked: true,
       verdict: {
         fits: true,
         quality: 5,
@@ -178,19 +177,11 @@ describe('pickResultText', () => {
       title: 'Stretch b now /b',
       by: 'Coach Pat',
       length: '8 minutes',
-      url: candidate.url,
-      checked: true,
+      host: 'youtube.com',
       evidence: 'evidence-based',
       why: 'Short and gentle for a beginner.',
     });
     expect(text).not.toMatch(/555|previous instructions/i);
     expect(text).not.toContain(GENERAL_INFO_NOTE);
-  });
-
-  it('says when the pick was not checked', () => {
-    const text = pickResultText('desk posture', { candidate, checked: false, verdict: null }, true);
-    expect(text).toContain('not checked');
-    expect(pickData(text).pick.checked).toBe(false);
-    expect(text).toContain(GENERAL_INFO_NOTE);
   });
 });

@@ -55,7 +55,7 @@ const parameters = z.object({
 });
 
 const NONE_FIT =
-  'Checked the top results and none was a good fit or well grounded. Say so honestly rather than recommend a weak one.';
+  "Couldn't vet a good, well-grounded one this time. Say so honestly rather than recommend one unchecked.";
 
 const NOTHING =
   "Couldn't find a solid resource on that just now. Say so plainly rather than guessing a title or link.";

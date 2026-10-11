@@ -200,7 +200,7 @@ describe('findCoachingResources on the live path', () => {
     });
     expect(output).toContain('Shin Splint Rehab');
     expect(output).toContain('8 minutes');
-    expect(output).toContain('https://www.youtube.com/watch?v=vid1');
+    expect(output).not.toContain('https://');
     expect(output).toContain('Seven minutes, made for beginners.');
     expect(output).toContain('General info, not personal advice');
   }, 60_000);
