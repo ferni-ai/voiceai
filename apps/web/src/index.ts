@@ -11,6 +11,16 @@ import './utils/gsap-setup.js';
 // Import and auto-initialize the app
 export { app } from './app.js';
 
+// Dev server only: ?e2e=1&gallery=overlays opens one of each overlay kind for
+// screenshot review. Production builds set import.meta.env.DEV to false, so
+// this branch and the gallery chunk are dropped.
+if (import.meta.env.DEV) {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('e2e') === '1' && params.get('gallery') === 'overlays') {
+    void import('./ui/dev-panel/overlay-gallery.js').then((m) => m.mountOverlayGallery());
+  }
+}
+
 // Re-export types for external use
 export * from './types/index.js';
 
