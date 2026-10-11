@@ -486,9 +486,7 @@ export interface DayContext {
   season: 'spring' | 'summer' | 'fall' | 'winter';
 }
 
-/**
- * Get current day context
- */
+/** Get current day context */
 export function getDayContext(): DayContext {
   const now = new Date();
   const hour = now.getHours();
