@@ -19,6 +19,7 @@
  * 5. Deep Partnership → +Nayan (the sage, earned through commitment)
  */
 
+import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { withUpgradePath } from '../billing/paywall.js';
@@ -580,7 +581,8 @@ export function getTeamUnlockState(
 ): TeamUnlockState {
   // BYPASS: Check for flexible team unlock bypass (for testing/demo)
   // Supports: "all", "true", "1", "2", "3", "maya", "maya,peter", etc.
-  const bypass = parseBypassConfig();
+  const byNeed = isTeamByNeedEnabled(); // the whole team: a partial bypass can't close part of it
+  const bypass = byNeed ? null : parseBypassConfig();
 
   if (bypass === 'all') {
     // Full bypass - all members unlocked (logged once in parseBypassConfig)
@@ -634,6 +636,8 @@ export function getTeamUnlockState(
     : { totalConversations: 0, daysSinceFirstMeeting: 0, currentStreak: 0, longestStreak: 0 };
 
   const stage = calculateRelationshipStage(metrics);
+  // TEAM_BY_NEED: everyone from the first call, introduced by need (team-by-need-note.ts)
+  if (byNeed) return { stage, tier, unlockedMembers: TEAM_MEMBERS.map((m) => m.memberId) };
 
   // Determine unlocked members
   const unlockedMembers: TeamMemberId[] = [];
@@ -689,12 +693,7 @@ export function isFullTeamUnlocked(
   profile: UserProfile | null,
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): boolean {
-  // BYPASS: When env var is set to "all" or "true", full team is considered unlocked
-  const bypass = parseBypassConfig();
-  if (bypass === 'all') {
-    return true;
-  }
-
+  // BYPASS_TEAM_UNLOCKS=all and TEAM_BY_NEED both unlock everyone in getTeamUnlockState
   const state = getTeamUnlockState(profile, tier);
 
   // Check that all team members are unlocked
