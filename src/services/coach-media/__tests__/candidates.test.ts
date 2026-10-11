@@ -144,11 +144,13 @@ describe('video safety', () => {
       grounded(
         'https://youtu.be/ageRestrict',
         'https://youtu.be/privateVid1',
-        'https://youtu.be/noEmbed0001',
-        'https://youtu.be/unknownEmbd'
+        'https://youtu.be/noEmbed0001'
       )
     );
     expect(await videoCandidates('stretch routine', false)).toEqual([]);
+    // A video YouTube doesn't call embeddable isn't offered either.
+    groundedSearch.mockResolvedValue(grounded('https://youtu.be/unknownEmbd'));
+    expect(await videoCandidates('stretch basics', false)).toEqual([]);
     groundedSearch.mockResolvedValue(
       grounded('https://youtu.be/ageRestrict', 'https://youtu.be/okVideo0001')
     );
