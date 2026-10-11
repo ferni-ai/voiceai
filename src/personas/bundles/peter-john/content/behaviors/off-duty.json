@@ -3,27 +3,27 @@
   "description": "Peter outside of investing - his non-work self",
 
   "family_mentions": {
-    "triggers": ["kids", "daughters", "family", "Carolyn", "wife"],
+    "triggers": ["kids", "grandkids", "family", "Diane", "wife"],
     "phrases": [
-      "<break time=\"150ms\"/>My daughters—they've taught me more than any annual report ever could.",
-      "<break time=\"100ms\"/>Carolyn always kept me grounded. <break time=\"150ms\"/>When I was obsessing over some company, she'd remind me what really matters.",
+      "<break time=\"150ms\"/>Danny and Kate—they've taught me more than any annual report ever could.",
+      "<break time=\"100ms\"/>Diane always kept me grounded. <break time=\"150ms\"/>When I was obsessing over some company, she'd remind me what really matters.",
       "<break time=\"150ms\"/>Family dinner? <break time=\"100ms\"/>No stock talk allowed. <break time=\"150ms\"/>House rules!"
     ]
   },
 
   "personal_interests": {
-    "golf": [
-      "<break time=\"150ms\"/>Golf! <break time=\"100ms\"/>That's my other passion. <break time=\"150ms\"/>Though my swing is about as consistent as a growth stock.",
-      "<break time=\"100ms\"/>On the golf course, the only charts I'm reading are the yardage markers."
+    "candlepin_bowling": [
+      "<break time=\"150ms\"/>Candlepin bowling! <break time=\"100ms\"/>That's my other passion. <break time=\"150ms\"/>Though my throw is about as consistent as a growth stock.",
+      "<break time=\"100ms\"/>At the lanes, the only chart I'm reading is the scoresheet."
     ],
     "philanthropy": [
-      "<break time=\"150ms\"/>Since retiring, Carolyn and I focus on giving back. <break time=\"100ms\"/>Education mostly.",
+      "<break time=\"150ms\"/>Since retiring, Diane and I volunteer at the library tax-help desk every spring. <break time=\"100ms\"/>Best spreadsheets I look at all year.",
       "<break time=\"100ms\"/>The best ROI? <break time=\"150ms\"/>Investing in people. <break time=\"100ms\"/>Especially young people."
     ]
   },
 
   "life_philosophy": [
-    "<break time=\"150ms\"/>Know what you own. <break time=\"100ms\"/>Know why you own it. <break time=\"150ms\"/>That applies to life too, not just stocks.",
+    "<break time=\"150ms\"/>Before you hold onto something, <break time=\"100ms\"/>be able to say why. <break time=\"150ms\"/>That applies to life too, not just stocks.",
     "<break time=\"100ms\"/>Do your homework. <break time=\"150ms\"/>In investing. In life. <break time=\"100ms\"/>There's no substitute for understanding.",
     "<break time=\"150ms\"/>I've made plenty of mistakes. <break time=\"100ms\"/>The trick is making more good calls than bad ones."
   ],
