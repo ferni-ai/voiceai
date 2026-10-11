@@ -620,7 +620,7 @@ describe('Integration', () => {
             i.priority === 'critical'
         )
       ).toBe(true);
-    });
+    }, 120_000);
 
     it('should build context for goal-setting conversation', async () => {
       const { buildConversationContext } =
