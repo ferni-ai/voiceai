@@ -173,6 +173,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       {
         facts: s.facts.length,
         followUps: s.followUps.length,
+        insideJokes: s.insideJokes?.length ?? 0,
         told: told.length,
         ms: Date.now() - started,
       },
@@ -246,6 +247,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         ...(followUpsOffered ? [] : snapshot.followUps),
         ...extras.flatMap((id) => laterFollowUps.get(id) ?? []),
       ];
+      // Shared bits, like the follow-ups, come once (shown only with INSIDE_JOKES=on).
+      const insideJokes = followUpsOffered ? [] : (snapshot.insideJokes ?? []);
       // The ledger, like the follow-ups, comes once, with the first note.
       const told = followUpsOffered
         ? null
@@ -254,7 +257,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const note =
         [
           checkIn,
-          formatRecall(facts, followUps, deps.userName),
+          formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes }),
           told,
           extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
         ]
