@@ -7,4 +7,5 @@
  *
  * @module agents/after-call-register
  */
+import './fact-sweep-register.js';
 import '../intelligence/world-model/extraction/register.js';
