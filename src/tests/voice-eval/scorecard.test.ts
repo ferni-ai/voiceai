@@ -134,6 +134,23 @@ describe('scorecard human panel', () => {
     ]);
   });
 
+  it('scores the real-person clip as the human baseline, not as Ferni', () => {
+    const r = report('r4', 3, ['3.00', '4.00']);
+    r.rows.push({
+      version: 'human',
+      'what changed': 'HUMAN_REFERENCE=ami-meeting-corpus',
+      'human score': '4.60',
+    });
+    const p = panelOf([{ date: '2026-10-19', report: r }]);
+    expect(p.current).toEqual({ value: 3.5, n: 3, round: 'r4' });
+    expect(p.human).toEqual({
+      value: 4.6,
+      source: 'panel round r4: real-person clip (ami-meeting-corpus)',
+    });
+    const card = assemble([], { overall: null, byDate: {} }, {}, p);
+    expect(card.dimensions.humanPanel.human).toEqual(p.human);
+  });
+
   it('puts the panel first and leaves it null until someone listens', () => {
     const card = assemble([], { overall: null, byDate: {} }, {}, panelOf([]));
     expect(Object.keys(card.dimensions)[0]).toBe('humanPanel');

@@ -57,7 +57,7 @@ export const DIMENSIONS = {
     label: 'Blind listeners: sounds like a real person (1 robotic, 4 mostly real, 5 a real friend)',
     unit: 'score 1-5',
     better: 'higher',
-    human: null, // no round has a real-person reference clip yet
+    human: null, // measured from the round's real-person clip when it has one (panelOf)
     target: { value: 4, why: "the panel's own scale: 4 = mostly real" },
   },
   speed: {
@@ -210,19 +210,34 @@ export function followThroughOf(promises, since, until) {
  * a report with no listeners is not a measurement.
  */
 export function panelOf(reports) {
+  // build_round.py's real-person clip is the arm whose flags read HUMAN_REFERENCE=<source>.
+  const isPerson = (r) => String(r['what changed'] ?? '').startsWith('HUMAN_REFERENCE');
+  const score = (rows) =>
+    rows.length
+      ? Math.round(mean(rows.map((r) => Number.parseFloat(r['human score']))) * 100) / 100
+      : null;
   const scored = reports
-    .filter(({ report }) => report.listeners > 0 && report.rows?.length)
+    .filter(({ report }) => report.listeners > 0 && report.rows?.some((r) => !isPerson(r)))
     .map(({ date, report }) => ({
       date,
       round: report.round,
       listeners: report.listeners,
-      value:
-        Math.round(mean(report.rows.map((r) => Number.parseFloat(r['human score']))) * 100) / 100,
+      value: score(report.rows.filter((r) => !isPerson(r))),
+      person: score(report.rows.filter(isPerson)),
+      source: report.rows.find(isPerson)?.['what changed'].split('=')[1],
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
   const last = scored.at(-1);
   return {
     current: last ? { value: last.value, n: last.listeners, round: last.round } : null,
+    // The same listeners scoring a real person in the same round: a measured baseline.
+    human:
+      last?.person != null
+        ? {
+            value: last.person,
+            source: `panel round ${last.round}: real-person clip (${last.source})`,
+          }
+        : null,
     trend: scored.map((x) => ({ date: x.date, prodReal: null, devEval: x.value })),
   };
 }
@@ -244,6 +259,8 @@ export function assemble(rows, followThrough, meta, panel = { current: null, tre
     if (name === 'humanPanel') {
       current = { prodReal: null, devEval: panel.current };
       trend = panel.trend;
+      dims[name] = { ...def, human: panel.human ?? null, current, trend };
+      continue;
     }
     if (name === 'followThrough') {
       current = { prodReal: followThrough.overall, devEval: null };
