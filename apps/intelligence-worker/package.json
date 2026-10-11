@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@google-cloud/firestore": "^8.0.0",
-    "@google-cloud/pubsub": "^4.10.0",
+    "@google-cloud/pubsub": "^6.2.0",
     "express": "5.2.1",
     "firebase-admin": "^13.6.0",
     "pino": "10.4.0",

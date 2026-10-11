@@ -397,6 +397,55 @@ describe('sentenceBreakMs', () => {
   });
 });
 
+describe('first audio held by an opening sound', () => {
+  function held(holdMs: number, reply: FakeReply) {
+    const order: string[] = [];
+    const onFirstAudio = Object.assign(() => order.push('first-audio'), {
+      hold: async () => {
+        order.push('hold');
+        await new Promise<void>((r) => {
+          setTimeout(r, holdMs);
+        });
+        order.push('released');
+      },
+    });
+    const stream = createContinuationTTS({
+      textStream: textStream(['That sounds like a long one. ']),
+      reply,
+      sanitize: (chunk) => ({ text: chunk.trim(), prosody: {} }),
+      openingTags: prosodyTags,
+      toFrames: (pcm) => [{ bytes: pcm.byteLength } as unknown as AudioFrame],
+      onFirstAudio,
+      onError: () => undefined,
+    });
+    return { stream, order };
+  }
+
+  it('waits for the hold before the first frame and the first-audio mark', async () => {
+    const started = Date.now();
+    const { stream, order } = held(60, new FakeReply([10, 20]));
+    const frames = await drain(stream);
+    expect(frames).toHaveLength(2);
+    expect(order).toEqual(['hold', 'released', 'first-audio']);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(55);
+  });
+
+  it('plays nothing when the listener stopped during the hold', async () => {
+    const { stream, order } = held(80, new FakeReply([10, 20]));
+    const reader = stream.getReader();
+    const first = reader.read();
+    await new Promise<void>((r) => {
+      setTimeout(r, 10);
+    });
+    await reader.cancel();
+    expect((await first).done).toBe(true);
+    await new Promise<void>((r) => {
+      setTimeout(r, 100);
+    });
+    expect(order).not.toContain('first-audio');
+  });
+});
+
 describe('leading silence (CASCADE_TRIM_LEAD_SILENCE)', () => {
   /** A reply whose first chunk is 110 ms of quiet then a loud tone, as Sonic sends it. */
   class SonicLikeReply extends FakeReply {
