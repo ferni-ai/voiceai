@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { adminFetch } from '../admin-fetch.js';
 import {
   ICON_ACTIVITY,
   ICON_INFO,
@@ -104,10 +105,8 @@ interface DashboardData {
 
 async function fetchDashboardData(): Promise<DashboardData> {
   try {
-    const response = await fetch('/api/speech-metrics/dashboard');
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
+    const response = await adminFetch('/api/speech-metrics/dashboard');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const result = await response.json();
     return result.data;
   } catch (error) {

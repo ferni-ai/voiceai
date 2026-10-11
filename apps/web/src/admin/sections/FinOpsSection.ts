@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { finopsFetch } from '../admin-fetch.js';
 import { ICONS } from '../icons.js';
 
 const log = createLogger('FinOpsSection');
@@ -108,64 +109,35 @@ let isLoading = false;
 // API
 // ============================================================================
 
-/**
- * Get admin key for API requests.
- * 
- * SECURITY: Only falls back to 'dev-mode' in development environment.
- * In production, requires a real admin key to be stored.
- */
-function getAdminKey(): string {
-  // Check localStorage for stored admin key (set during admin login)
-  const storedKey = localStorage.getItem('admin_key') ?? localStorage.getItem('ferni_admin_key');
-  if (storedKey) return storedKey;
-  
-  // In development only, allow dev-mode fallback
-  // SECURITY: import.meta.env.DEV is false in production builds
-  if (import.meta.env.DEV) {
-    return 'dev-mode';
-  }
-  
-  // In production, return empty string (will fail auth - as expected)
-  return '';
-}
-
 async function fetchSnapshot(): Promise<FinOpsSnapshot> {
-  const adminKey = getAdminKey();
-  const response = await fetch(`/api/finops/snapshot?admin_key=${adminKey}`);
+  const response = await finopsFetch('/api/finops/snapshot');
   if (!response.ok) throw new Error('Failed to fetch FinOps data');
   return response.json();
 }
 
 async function fetchThresholds(): Promise<Thresholds> {
-  const adminKey = getAdminKey();
-  const response = await fetch(`/api/finops/thresholds?admin_key=${adminKey}`);
+  const response = await finopsFetch('/api/finops/thresholds');
   if (!response.ok) throw new Error('Failed to fetch thresholds');
   return response.json();
 }
 
 async function _updateThreshold(key: string, value: number): Promise<void> {
-  const adminKey = getAdminKey();
-  await fetch(`/api/finops/thresholds?admin_key=${adminKey}`, {
+  await finopsFetch('/api/finops/thresholds', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ [key]: value }),
   });
 }
 
 async function setMRR(mrr: number): Promise<void> {
-  const adminKey = getAdminKey();
-  await fetch(`/api/finops/revenue?admin_key=${adminKey}`, {
+  await finopsFetch('/api/finops/revenue', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mrr }),
   });
 }
 
 async function setCash(amount: number): Promise<void> {
-  const adminKey = getAdminKey();
-  await fetch(`/api/finops/cash?admin_key=${adminKey}`, {
+  await finopsFetch('/api/finops/cash', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ amount }),
   });
 }
@@ -175,23 +147,19 @@ async function syncMRRFromStripe(): Promise<{
   subscriptionCount: number;
   success: boolean;
 }> {
-  const adminKey = getAdminKey();
-  const response = await fetch(`/api/finops/sync-mrr?admin_key=${adminKey}`, {
+  const response = await finopsFetch('/api/finops/sync-mrr', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
   });
   return response.json();
 }
 
 async function setLTVCACConfig(cac?: number, churnRate?: number): Promise<void> {
-  const adminKey = getAdminKey();
   const body: Record<string, number> = {};
   if (cac !== undefined) body.cac = cac;
   if (churnRate !== undefined) body.churnRate = churnRate / 100; // Convert % to decimal
 
-  await fetch(`/api/finops/ltv-cac?admin_key=${adminKey}`, {
+  await finopsFetch('/api/finops/ltv-cac', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
 }

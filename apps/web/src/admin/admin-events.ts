@@ -10,24 +10,12 @@
 import { createLogger } from '../utils/logger.js';
 import { toast } from '../ui/whisper.ui.js';
 import { getAdminHeadersAsync } from './admin-api.js';
+import { adminFetch } from './admin-fetch.js';
+import { previewAgentVoice } from './admin-voice-preview.js';
+
+export { previewAgentVoice };
 
 const log = createLogger('AdminEvents');
-
-// API helper with admin auth
-async function adminFetch(
-  url: string,
-  options: RequestInit = {}
-): Promise<Response> {
-  const adminHeaders = await getAdminHeadersAsync();
-  return fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...adminHeaders,
-      ...options.headers,
-    },
-  });
-}
 
 // ============================================================================
 // FLAG HANDLERS
@@ -258,65 +246,6 @@ export async function editAgent(agentId: string): Promise<void> {
   } catch (error) {
     log.error({ error, agentId }, 'Failed to edit agent');
     toast.error("Couldn't open editor");
-  }
-}
-
-export async function previewAgentVoice(agentId: string): Promise<void> {
-  log.debug({ agentId }, 'Previewing agent voice');
-  toast.info(`Playing ${agentId}'s voice...`);
-
-  try {
-    // Fetch voice sample from API
-    const response = await adminFetch(`/api/v1/admin/agents/${agentId}/voice-sample`, {
-      method: 'GET',
-    });
-
-    if (!response.ok) {
-      // Fallback: Generate TTS sample
-      const ttsResponse = await adminFetch(`/api/v1/admin/agents/${agentId}/tts-preview`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: `Hi there! I'm ${agentId}. How can I help you today?`,
-        }),
-      });
-
-      if (!ttsResponse.ok) {
-        throw new Error('Voice preview not available');
-      }
-
-      const audioBlob = await ttsResponse.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        toast.success('Preview done');
-      };
-
-      audio.onerror = () => {
-        URL.revokeObjectURL(audioUrl);
-        toast.error("Couldn't play voice preview");
-      };
-
-      await audio.play();
-      return;
-    }
-
-    // Play existing voice sample
-    const audioBlob = await response.blob();
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-
-    audio.onended = () => {
-      URL.revokeObjectURL(audioUrl);
-      toast.success('Preview done');
-    };
-
-    await audio.play();
-  } catch (error) {
-    log.error({ error, agentId }, 'Voice preview failed');
-    toast.error('Voice not available for this agent');
   }
 }
 
