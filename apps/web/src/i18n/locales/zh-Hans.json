@@ -2439,7 +2439,8 @@
       "features": "Ferni 可以读取的数据"
     },
     "title": "穿戴设备",
-    "notConfigured": "尚未设置"
+    "notConfigured": "尚未设置",
+    "appleHealthOnIphone": "请在 iPhone 上的 Ferni 应用中设置 Apple Health"
   },
   "transcript": {
     "enabled": "语音转文字已开启",

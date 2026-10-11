@@ -1352,7 +1352,8 @@
         "description": "Recovery and strain tracking"
       }
     },
-    "notConfigured": "Not set up yet"
+    "notConfigured": "Not set up yet",
+    "appleHealthOnIphone": "Set up Apple Health in the Ferni iPhone app"
   },
   "contactSettings": {
     "eyebrow": "Stay Connected",

@@ -2458,7 +2458,8 @@
       "features": "Lo que Ferni puede ver"
     },
     "title": "Dispositivos corporales",
-    "notConfigured": "Aún no configurado"
+    "notConfigured": "Aún no configurado",
+    "appleHealthOnIphone": "Configura Apple Health en la app de Ferni para iPhone"
   },
   "transcript": {
     "enabled": "Transcripción activada",
