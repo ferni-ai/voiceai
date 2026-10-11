@@ -30,6 +30,8 @@ import {
   getMaxTools,
   isEssentialTool,
   isMetaToolEnabled,
+  isStaticCoreTool,
+  staticCoreToolsEnabled,
 } from '../../config/tool-config.js';
 import { withoutSharedHandoffs } from '../../tools/handoff/handoff-availability.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -83,6 +85,9 @@ let warnedMetaTool = false;
  * keeps must-keep tools first. Handoff tools in `newTools` are ignored: the
  * shared catalogs passed here carry a handoff to every persona, while the
  * agent's own came from its per-user build (see handoff-availability.ts).
+ * TOOL_CORE_STATIC: the call's tools only gain the core tools it lacks, or
+ * the tools findTools found (`pin`), appended uncapped below
+ * APPEND_ONLY_TOOL_CAP; other offers (topic domains, the catalog) are ignored.
  *
  * @param agent - The voice agent instance
  * @param offeredTools - New tools to add (merged with existing)
@@ -99,12 +104,19 @@ export async function updateAgentTools(
     silentMerge?: boolean;
     /** Re-apply the tools even if none are new */
     forceSync?: boolean;
+    /** Tools findTools found: added even when TOOL_CORE_STATIC holds the set */
+    pin?: boolean;
   } = {}
 ): Promise<boolean> {
   const provider = getModelProvider();
-  const { domains = [], silentMerge = false, forceSync = false } = options;
+  const { domains = [], silentMerge = false, forceSync = false, pin = false } = options;
   const target = asToolCapable(agent);
-  const newTools = withoutSharedHandoffs(offeredTools);
+  const staticCore = staticCoreToolsEnabled();
+  const offered = withoutSharedHandoffs(offeredTools);
+  const newTools =
+    staticCore && !pin
+      ? Object.fromEntries(Object.entries(offered).filter(([name]) => isStaticCoreTool(name)))
+      : offered;
 
   try {
     const existing = currentToolRecord(target);
@@ -133,7 +145,11 @@ export async function updateAgentTools(
     const limit =
       resolveInitialToolLimit(getMaxTools()) + Math.min(topicToolCount, resolveTopicToolHeadroom());
     const capped = capToolsToLimit({ ...newTools, ...existing, ...newTools }, limit);
-    const merged = appendOnlyToolsEnabled() ? appendOnly(existing, capped) : capped;
+    const merged = staticCore
+      ? appendOnly(existing, newTools)
+      : appendOnlyToolsEnabled()
+        ? appendOnly(existing, capped)
+        : capped;
 
     await target.updateTools(merged);
 

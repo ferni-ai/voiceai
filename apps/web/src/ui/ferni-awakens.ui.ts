@@ -527,7 +527,7 @@ function injectStyles(): void {
       transform: scale(0.98);
     }
     
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .awakens-logo {
         width: min(100px, 100%);
         height: 100px;

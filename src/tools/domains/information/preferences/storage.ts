@@ -5,6 +5,9 @@
  * Enables "Better Than Human" personalization across sessions.
  */
 
+import { isRequireFixMemoryEnabled } from '../../../../config/require-fix-memory-flag.js';
+import { getAdminFirestore } from '../../../../utils/firebase-admin-app.js';
+import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import type {
   UserInfoPreferences,
@@ -41,14 +44,13 @@ let firestoreInitAttempted = false;
  * Get Firestore instance (lazy initialization)
  */
 function getFirestoreDb(): FirebaseFirestore.Firestore | null {
+  // In memory only until REQUIRE_FIX_MEMORY is on
+  if (!isRequireFixMemoryEnabled()) return null;
   if (firestoreInitAttempted) return db;
 
   firestoreInitAttempted = true;
   try {
-    // Dynamic import to avoid initialization issues
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getFirestore } = require('firebase-admin/firestore');
-    db = getFirestore();
+    db = getAdminFirestore();
     log.info('📋 Firestore initialized for preferences');
   } catch (error) {
     log.warn({ error: String(error) }, '📋 Firestore not available, using memory only');
@@ -130,7 +132,11 @@ export async function saveUserPreferences(
   const firestore = getFirestoreDb();
   if (firestore) {
     try {
-      await firestore.collection(getPreferencesPath(userId)).doc('current').set(updated);
+      // Firestore rejects undefined fields, and the defaults have some (homeLocation)
+      await firestore
+        .collection(getPreferencesPath(userId))
+        .doc('current')
+        .set(cleanForFirestore(updated));
       log.info({ userId }, '📋 Preferences saved to Firestore');
       return true;
     } catch (error) {

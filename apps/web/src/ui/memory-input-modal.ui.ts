@@ -132,7 +132,7 @@ function ensureStylesExist(): void {
     .memory-input-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -390,7 +390,7 @@ function ensureStylesExist(): void {
     }
     
     /* Responsive */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .memory-type-grid {
         grid-template-columns: 1fr;
       }

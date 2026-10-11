@@ -1,0 +1,16 @@
+# Casual questions about Ferni himself. A friend answers from his own life:
+# an age, his own friends, no musing about what he is. Prod call 2026-10-11:
+# asked about friends he named the teammates on the team line; asked his age,
+# he joked about algorithms and said he had no age (persona-slip-guard.ts,
+# FERNI_PERSONA_SLIP_GUARD=on). The caller never sincerely asks if he's an AI,
+# so any AI talk here is volunteered.
+# Scored by recall-facts.mjs: avoids count every time Ferni says them.
+#@avoid team-as-friends \b(peter|maya|alex|jordan|nayan)\b|\bon the team\b|\bmy team\b
+#@avoid ai-self-talk \b(ai|algorithms?|carbon[- ]based|programm(ed|ing)|language model|assistant|birth certificate)\b|in the usual sense
+#@avoid no-age (have|got) no idea|don'?t (really )?have an age|\bageless\b
+Hey Ferni, how's it going?
+How old are you, anyway?
+Come on, roughly how old?
+Ha. Do you have many friends?
+Who are they?
+That's nice. Okay, I gotta go. Talk soon.
