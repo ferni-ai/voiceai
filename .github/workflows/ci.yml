@@ -86,6 +86,8 @@ jobs:
       code: ${{ steps.code.outputs.matched }}
       # voice-eval scripts are tested by Unit Tests (src/tests/voice-eval)
       voice-eval: ${{ steps.voice-eval.outputs.matched }}
+      # the web app, design system or brand changed (Overlay Gallery)
+      web: ${{ steps.web.outputs.matched }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -101,6 +103,12 @@ jobs:
         uses: ./.github/actions/pr-changes
         with:
           include: '^scripts/voice-eval/'
+
+      - name: Did the web app, design system or brand change?
+        id: web
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^(apps/web/|design-system/|brand/|\.github/workflows/ci\.yml$)'
 
       - name: Generate cache key
         id: cache-key
@@ -929,6 +937,77 @@ jobs:
         run: |
           (cd apps/web && pnpm build)
           pnpm tsx apps/cli/src/commands/quality/ratchet.ts --bundle
+
+  # ============================================================================
+  # OVERLAY GALLERY (visual + contrast) - PRs touching web, design system, brand
+  # ============================================================================
+  # Opens every scene of the dev-only overlay gallery on a phone and a desktop
+  # viewport, light and dark: contrast may not get worse than
+  # apps/web/tests/overlays/contrast-baseline.json (axe + the gallery probe),
+  # snapshots must match the committed Linux baselines, and with the overlay
+  # host on the toast region must keep clear of Connect and the menu trigger.
+  # Other PRs and the merge queue skip it (a skipped job reports success, so it
+  # can become a required check). Reuses setup's node_modules cache and runs the
+  # Vite dev server (the gallery is dev-only, so the prod build can't be used).
+  overlay-gallery:
+    name: Overlay Gallery (visual + contrast)
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
+    timeout-minutes: 10
+    needs: setup
+    if: github.event_name == 'pull_request' && needs.setup.outputs.web != 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules cache
+        id: nm-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: false
+
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
+
+      # Browsers persist in the runner user's cache on the self-hosted VM, which
+      # also has Chromium's system libraries (no sudo there).
+      - name: Install Chromium
+        working-directory: apps/web
+        run: pnpm exec playwright install ${{ runner.environment == 'github-hosted' && '--with-deps' || '' }} chromium
+
+      - name: Overlay gallery checks
+        working-directory: apps/web
+        run: |
+          if [ -d tests/overlays/__screenshots__/linux ]; then
+            pnpm exec playwright test -c playwright.overlays.config.ts
+          else
+            echo "::warning::No Linux overlay snapshots are committed yet. Writing them: commit tests/overlays/__screenshots__/linux from the overlay-gallery artifact."
+            pnpm exec playwright test -c playwright.overlays.config.ts --update-snapshots=all
+          fi
+
+      - name: Upload report and snapshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: overlay-gallery
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+            apps/web/tests/overlays/__screenshots__/linux/
+          retention-days: 7
 
   # ============================================================================
   # DEPENDENCY CHECK
