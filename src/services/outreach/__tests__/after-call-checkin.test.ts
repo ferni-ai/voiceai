@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import {
   CHECKIN_QUESTION,
   decideCheckin,
+  firestoreCheckinStore,
   isOptOut,
   lastSentAt,
   matchCheckin,
@@ -12,12 +14,15 @@ import {
   redactNumbers,
   resolveCheckinPhone,
   runAfterCallCheckin,
+  smsTurnedOff,
   type CheckinDeps,
   type CheckinRecord,
   type CheckinStore,
   type StoredCheckin,
 } from '../after-call-checkin.js';
 import type { AfterCallContext } from '../../session/after-call-tasks.js';
+
+vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: vi.fn(() => null) }));
 
 const NOW = new Date('2026-10-11T18:00:00Z');
 const HOUR = 60 * 60 * 1000;
@@ -54,6 +59,7 @@ function makeStore(existing: StoredCheckin[] = [], optedOut: string[] = []) {
   const added: CheckinRecord[] = [];
   const optOuts: Array<{ hash: string; via: string }> = [];
   const replies: Array<{ id: string; body: string }> = [];
+  const replyIds: Array<string | undefined> = [];
   const store: CheckinStore = {
     forUser: vi.fn(async (userId: string) => existing.filter((r) => r.userId === userId)),
     forPhoneHash: vi.fn(async (h: string) => existing.filter((r) => r.phoneHash === h)),
@@ -61,8 +67,9 @@ function makeStore(existing: StoredCheckin[] = [], optedOut: string[] = []) {
       added.push(r);
       return `new${added.length}`;
     }),
-    addReply: vi.fn(async (id: string, reply: { body: string }) => {
+    addReply: vi.fn(async (id: string, replyId: string | undefined, reply: { body: string }) => {
       replies.push({ id, body: reply.body });
+      replyIds.push(replyId);
     }),
     sponsoredPhone: vi.fn(async () => '+15559990000'),
     isOptedOut: vi.fn(async (h: string) => optedOut.includes(h)),
@@ -72,8 +79,10 @@ function makeStore(existing: StoredCheckin[] = [], optedOut: string[] = []) {
     removeOptOut: vi.fn(async (hash: string) => {
       optOuts.push({ hash, via: 'removed' });
     }),
+    userDoc: vi.fn(async (): Promise<Record<string, unknown> | undefined> => undefined),
+    legacySmsChannels: vi.fn(async (): Promise<unknown> => undefined),
   };
-  return { store, added, replies, optOuts };
+  return { store, added, replies, replyIds, optOuts };
 }
 
 function deps(
@@ -86,7 +95,7 @@ function deps(
     env: ENV,
     resolveFlags: vi.fn(async () => ({ POST_CALL_CHECKIN: 'on' })),
     store: s.store,
-    contactPhone: vi.fn(async () => '+15551234567'),
+    authPhone: vi.fn(async (): Promise<string | undefined> => '+15551234567'),
     send: vi.fn(async () => ({ success: true, messageSid: 'SM1' })),
     now: () => NOW,
     ...over,
@@ -137,7 +146,7 @@ describe('decideCheckin', () => {
   it('skips when no phone number is known', () => {
     expect(decideCheckin({ ...base, phone: undefined })).toEqual({
       send: false,
-      reason: 'no-phone',
+      reason: 'no-verified-phone',
     });
   });
 });
@@ -157,22 +166,36 @@ describe('lastSentAt (rate-limit input)', () => {
 describe('resolveCheckinPhone', () => {
   it('takes the number from a phone: userId without any lookup', async () => {
     const { d } = deps();
-    expect(await resolveCheckinPhone('phone:+15550001111', d)).toBe('+15550001111');
-    expect(d.contactPhone).not.toHaveBeenCalled();
+    expect(await resolveCheckinPhone('phone:+15550001111', undefined, d)).toBe('+15550001111');
+    expect(d.authPhone).not.toHaveBeenCalled();
     expect(d.store.sponsoredPhone).not.toHaveBeenCalled();
+  });
+
+  it('never looks up a malformed phone: id as a Firebase uid', async () => {
+    const { d } = deps();
+    expect(await resolveCheckinPhone('phone:5550001111', undefined, d)).toBeUndefined();
+    expect(d.authPhone).not.toHaveBeenCalled();
   });
 
   it('reads sponsored_identities for a sponsored_ userId', async () => {
     const { d } = deps();
-    expect(await resolveCheckinPhone('sponsored_42', d)).toBe('+15559990000');
+    expect(await resolveCheckinPhone('sponsored_42', undefined, d)).toBe('+15559990000');
     expect(d.store.sponsoredPhone).toHaveBeenCalledWith('sponsored_42');
-    expect(d.contactPhone).not.toHaveBeenCalled();
+    expect(d.authPhone).not.toHaveBeenCalled();
   });
 
-  it('uses the profile contact info for any other userId', async () => {
+  it('prefers a verified phone linked to the account', async () => {
     const { d } = deps();
-    expect(await resolveCheckinPhone('uid-123', d)).toBe('+15551234567');
-    expect(d.contactPhone).toHaveBeenCalledWith('uid-123');
+    const doc = { linkedIdentifiers: ['email:a@b.c', 'phone:+15550002222'] };
+    expect(await resolveCheckinPhone('uid-123', doc, d)).toBe('+15550002222');
+    expect(d.authPhone).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the Firebase Auth phone, never profile contact info', async () => {
+    const { d } = deps({ authPhone: vi.fn(async () => undefined) });
+    const doc = { contactInfo: { phone: '+15559998888' }, linkedIdentifiers: [] };
+    expect(await resolveCheckinPhone('uid-123', doc, d)).toBeUndefined();
+    expect(d.authPhone).toHaveBeenCalledWith('uid-123');
   });
 });
 
@@ -202,7 +225,7 @@ describe('runAfterCallCheckin', () => {
     expect(await runAfterCallCheckin(ctx(), d)).toEqual({ sent: false, reason: 'gate-off' });
     expect(d.resolveFlags).not.toHaveBeenCalled();
     expect(d.store.forUser).not.toHaveBeenCalled();
-    expect(d.contactPhone).not.toHaveBeenCalled();
+    expect(d.authPhone).not.toHaveBeenCalled();
     expect(d.send).not.toHaveBeenCalled();
     expect(added).toEqual([]);
   });
@@ -225,8 +248,27 @@ describe('runAfterCallCheckin', () => {
   });
 
   it('does not let another person’s recent check-in block this one', async () => {
-    const { d } = deps({}, [stored({ userId: 'someone-else', sentAt: ago(1) })]);
+    const other = stored({ userId: 'someone-else', phoneHash: 'other-phone', sentAt: ago(1) });
+    const { d } = deps({}, [other]);
     expect((await runAfterCallCheckin(ctx(), d)).sent).toBe(true);
+  });
+
+  it('skips with no-verified-phone when the account has none', async () => {
+    const { d, added } = deps({ authPhone: vi.fn(async () => undefined) });
+    d.store.userDoc = vi.fn(async () => ({ contactInfo: { phone: '+15559998888' } }));
+    expect(await runAfterCallCheckin(ctx(), d)).toEqual({
+      sent: false,
+      reason: 'no-verified-phone',
+    });
+    expect(d.send).not.toHaveBeenCalled();
+    expect(added).toEqual([]);
+  });
+
+  it('skips with sms-off when the member turned texts off', async () => {
+    const { d } = deps();
+    d.store.userDoc = vi.fn(async () => ({ outreachPreferences: { channels: ['email'] } }));
+    expect(await runAfterCallCheckin(ctx(), d)).toEqual({ sent: false, reason: 'sms-off' });
+    expect(d.send).not.toHaveBeenCalled();
   });
 
   it('skips third-party calls before reading anything', async () => {
@@ -278,6 +320,17 @@ describe('runAfterCallCheckin', () => {
     });
     expect(await runAfterCallCheckin(ctx(), d)).toEqual({ sent: false, reason: 'send-failed' });
     expect(added).toEqual([expect.objectContaining({ status: 'failed' })]);
+  });
+});
+
+describe('smsTurnedOff', () => {
+  it('is true only for an explicit off', () => {
+    expect(smsTurnedOff(undefined, undefined)).toBe(false);
+    expect(smsTurnedOff({ outreachPreferences: {} }, ['email', 'sms'])).toBe(false);
+    expect(smsTurnedOff({ outreachPreferences: { channels: ['sms'] } }, undefined)).toBe(false);
+    expect(smsTurnedOff({ outreachPreferences: { enabled: false } }, undefined)).toBe(true);
+    expect(smsTurnedOff({ outreachPreferences: { channels: ['push'] } }, undefined)).toBe(true);
+    expect(smsTurnedOff(undefined, ['email'])).toBe(true);
   });
 });
 
@@ -333,30 +386,59 @@ describe('opt-outs', () => {
     'in the end it felt real',
     'please cancel my dentist thing tomorrow',
     'it felt like you really knew me',
-  ])(
-    'does not treat %j as an opt-out',
-    (body) => expect(isOptOut(body)).toBe(false)
-  );
+  ])('does not treat %j as an opt-out', (body) => expect(isOptOut(body)).toBe(false));
+
+  it('reads an iOS curly apostrophe like a straight one', () => {
+    expect(isOptOut('please don\u2019t text me again')).toBe(true);
+    expect(isOptOut('don\u2018t text me')).toBe(true);
+  });
+
+  it('records an opt-out from a phone with no recent check-in', async () => {
+    const { d, replies, optOuts } = deps({}, [stored({ sentAt: ago(100) })]);
+    expect(await recordCheckinReply('+15551234567', 'STOP', undefined, d)).toBeNull();
+    expect(optOuts).toEqual([{ hash: HASH, via: 'reply' }]);
+    expect(replies).toEqual([]);
+  });
+
+  it('records the opt-out even when saving the reply fails', async () => {
+    const { d, optOuts } = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
+    d.store.addReply = vi.fn(async () => {
+      throw new Error('boom');
+    });
+    expect(await recordCheckinReply('+15551234567', 'stop', undefined, d)).toBeNull();
+    expect(optOuts).toEqual([{ hash: HASH, via: 'reply' }]);
+  });
+
+  it('still saves the reply when the opt-out write fails', async () => {
+    const { d, replies } = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
+    d.store.addOptOut = vi.fn(async () => {
+      throw new Error('boom');
+    });
+    expect(await recordCheckinReply('+15551234567', 'STOP', undefined, d)).toBe('c9');
+    expect(replies).toEqual([{ id: 'c9', body: 'STOP' }]);
+  });
 
   it('records an opt-out reply under that phone hash, and keeps the reply', async () => {
     const { d, replies, optOuts } = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
-    expect(await recordCheckinReply('+15551234567', 'STOP', d)).toBe('c9');
+    expect(await recordCheckinReply('+15551234567', 'STOP', undefined, d)).toBe('c9');
     expect(optOuts).toEqual([{ hash: HASH, via: 'reply' }]);
     expect(replies).toEqual([{ id: 'c9', body: 'STOP' }]);
   });
 
   it('does not record "unstoppable" as an opt-out', async () => {
     const { d, replies, optOuts } = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
-    expect(await recordCheckinReply('+15551234567', 'honestly unstoppable', d)).toBe('c9');
+    expect(await recordCheckinReply('+15551234567', 'honestly unstoppable', undefined, d)).toBe(
+      'c9'
+    );
     expect(optOuts).toEqual([]);
     expect(replies).toHaveLength(1);
   });
 
   it('START lifts an opt-out, and an ordinary reply leaves it alone', async () => {
     const { d, optOuts } = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
-    await recordCheckinReply('+15551234567', 'in the end it felt real', d);
+    await recordCheckinReply('+15551234567', 'in the end it felt real', undefined, d);
     expect(optOuts).toEqual([]);
-    await recordCheckinReply('+15551234567', 'Start', d);
+    await recordCheckinReply('+15551234567', 'Start', undefined, d);
     expect(optOuts).toEqual([{ hash: HASH, via: 'removed' }]);
   });
 });
@@ -364,11 +446,11 @@ describe('opt-outs', () => {
 describe('replies', () => {
   it('match only when the sending and receiving sides share the secret', async () => {
     const same = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
-    expect(await recordCheckinReply('+15551234567', 'ok', same.d)).toBe('c9');
+    expect(await recordCheckinReply('+15551234567', 'ok', undefined, same.d)).toBe('c9');
     const other = deps({ env: { LOG_HASH_SECRET: 'rotated' } }, [stored({ id: 'c9' })]);
-    expect(await recordCheckinReply('+15551234567', 'ok', other.d)).toBeNull();
+    expect(await recordCheckinReply('+15551234567', 'ok', undefined, other.d)).toBeNull();
     const none = deps({ env: {} }, [stored({ id: 'c9' })]);
-    expect(await recordCheckinReply('+15551234567', 'STOP', none.d)).toBeNull();
+    expect(await recordCheckinReply('+15551234567', 'STOP', undefined, none.d)).toBeNull();
     expect(none.optOuts).toEqual([]);
   });
 
@@ -385,13 +467,42 @@ describe('replies', () => {
 
   it('stores a reply under the matching check-in, whatever the number format', async () => {
     const { d, replies } = deps({}, [stored({ id: 'c9', sentAt: ago(30) })]);
-    expect(await recordCheckinReply('(555) 123-4567', 'felt good', d)).toBe('c9');
+    expect(await recordCheckinReply('(555) 123-4567', 'felt good', undefined, d)).toBe('c9');
     expect(replies).toEqual([{ id: 'c9', body: 'felt good' }]);
+  });
+
+  it('keys a reply by a valid MessageSid, and by an auto id otherwise', async () => {
+    const { d, replyIds } = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
+    await recordCheckinReply('+15551234567', 'ok', 'SM0123456789abcdef', d);
+    await recordCheckinReply('+15551234567', 'ok', 'SM../../x', d);
+    await recordCheckinReply('+15551234567', 'ok', 'SMshort', d);
+    expect(replyIds).toEqual(['SM0123456789abcdef', undefined, undefined]);
+  });
+
+  it('stores a replayed MessageSid once: ALREADY_EXISTS counts as saved', async () => {
+    const create = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(Object.assign(new Error('exists'), { code: 6 }))
+      .mockRejectedValueOnce(Object.assign(new Error('down'), { code: 14 }));
+    const doc = vi.fn(() => ({ create }));
+    const fakeDb = { collection: () => ({ doc: () => ({ collection: () => ({ doc }) }) }) };
+    vi.mocked(getFirestoreDb).mockReturnValue(
+      fakeDb as unknown as ReturnType<typeof getFirestoreDb>
+    );
+    const reply = { body: 'ok', receivedAt: NOW.toISOString() };
+    await firestoreCheckinStore.addReply('c9', 'SM0123456789abcdef', reply);
+    await firestoreCheckinStore.addReply('c9', 'SM0123456789abcdef', reply);
+    await expect(firestoreCheckinStore.addReply('c9', 'SM0123456789abcdef', reply)).rejects.toThrow(
+      'down'
+    );
+    expect(doc).toHaveBeenCalledWith('SM0123456789abcdef');
+    vi.mocked(getFirestoreDb).mockReturnValue(null);
   });
 
   it('ignores a reply from a phone with no recent check-in', async () => {
     const { d, replies } = deps({}, [stored({ sentAt: ago(1) })]);
-    expect(await recordCheckinReply('+15550000000', 'hello', d)).toBeNull();
+    expect(await recordCheckinReply('+15550000000', 'hello', undefined, d)).toBeNull();
     expect(replies).toEqual([]);
   });
 
@@ -400,6 +511,6 @@ describe('replies', () => {
     d.store.forPhoneHash = vi.fn(async () => {
       throw new Error('boom');
     });
-    expect(await recordCheckinReply('+15551234567', 'x', d)).toBeNull();
+    expect(await recordCheckinReply('+15551234567', 'x', undefined, d)).toBeNull();
   });
 });

@@ -178,7 +178,7 @@ export async function handleOutreachWebhookRoutes(
         fullUrl
       );
       // success is false only when the Twilio signature failed; never throws.
-      if (result.success) await recordCheckinReply(body.From, body.Body);
+      if (result.success) await recordCheckinReply(body.From, body.Body, body.MessageSid);
 
       if (result.twiml) {
         sendTwiML(res, result.twiml);

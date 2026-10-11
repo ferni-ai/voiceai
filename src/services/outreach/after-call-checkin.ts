@@ -19,9 +19,11 @@
 import { createHmac } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { getFirebaseUser } from '../identity/firebase-auth.js';
 import { cohortFlagsEnabled, resolveCallerFlags } from '../platform/cohort-flags.js';
 import type { AfterCallContext } from '../session/after-call-tasks.js';
 import type { SMSDeliveryResult, SMSMessage } from './delivery/sms-delivery.js';
+import { verifiedPhoneOf } from './user-reach.js';
 
 const log = createLogger({ module: 'after-call-checkin' });
 
@@ -37,14 +39,27 @@ const HASH_PURPOSE = 'after-call-checkin/phone/v1';
 // opting out. Unambiguous words count anywhere; stop/cancel/quit/end count in a short message
 // ("please stop", "cancel please"); explicit asks count anywhere. A long reply that merely
 // contains "end" ("in the end it felt real") stays a reply.
-const OPT_OUT_ANYWHERE = /\b(unsubscribe|stopall)\b|\b(stop|quit) (texting|messaging)\b|\b(don'?t|do not) (text|message)\b|\bno more (texts|messages)\b/i;
+const OPT_OUT_ANYWHERE =
+  /\b(unsubscribe|stopall)\b|\b(stop|quit) (texting|messaging)\b|\b(don'?t|do not) (text|message)\b|\bno more (texts|messages)\b/i;
 const OPT_OUT_SHORT = /\b(stop|cancel|quit|end)\b/i;
 const SHORT_WORDS = 4;
-const keyword = (body: string): string => body.trim().toLowerCase().replace(/[.!\s]+$/, '');
+const MESSAGE_SID = /^[A-Za-z0-9]{10,64}$/;
+const ALREADY_EXISTS = 6; // Firestore/gRPC status for create() on an existing doc
+const keyword = (body: string): string =>
+  body
+    .trim()
+    .toLowerCase()
+    .replace(/[.!\s]+$/, '');
 
 type Env = Record<string, string | undefined>;
 export type SkipReason =
-  'not-member-call' | 'short-call' | 'recently-sent' | 'no-phone' | 'opted-out';
+  | 'not-member-call'
+  | 'short-call'
+  | 'recently-sent'
+  | 'no-verified-phone'
+  | 'no-phone'
+  | 'sms-off'
+  | 'opted-out';
 export type CheckinDecision = { send: true; phone: string } | { send: false; reason: SkipReason };
 
 export interface CheckinRecord {
@@ -67,8 +82,16 @@ export interface CheckinStore {
   forUser: (userId: string) => Promise<StoredCheckin[]>;
   forPhoneHash: (phoneHash: string) => Promise<StoredCheckin[]>;
   add: (record: CheckinRecord) => Promise<string>;
-  addReply: (checkinId: string, reply: { body: string; receivedAt: string }) => Promise<void>;
+  /** replyId (Twilio's MessageSid) makes a retried webhook a no-op; without it, an auto id. */
+  addReply: (
+    checkinId: string,
+    replyId: string | undefined,
+    reply: { body: string; receivedAt: string }
+  ) => Promise<void>;
   sponsoredPhone: (userId: string) => Promise<string | undefined>;
+  userDoc: (userId: string) => Promise<Record<string, unknown> | undefined>;
+  /** outreach_profiles/{userId}.state.allowedChannels, where the webhook's global STOP lands. */
+  legacySmsChannels: (userId: string) => Promise<unknown>;
   isOptedOut: (phoneHash: string) => Promise<boolean>;
   addOptOut: (phoneHash: string, optOut: { at: string; via: 'reply' }) => Promise<void>;
   removeOptOut: (phoneHash: string) => Promise<void>;
@@ -78,7 +101,8 @@ export interface CheckinDeps {
   env: Env;
   resolveFlags: (userId: string) => Promise<Record<string, string>>;
   store: CheckinStore;
-  contactPhone: (userId: string) => Promise<string | undefined>;
+  /** The Firebase Auth phoneNumber, which only phone verification sets. */
+  authPhone: (uid: string) => Promise<string | undefined>;
   send: (message: SMSMessage) => Promise<SMSDeliveryResult>;
   now: () => Date;
 }
@@ -111,12 +135,13 @@ export function decideCheckin(input: {
 }): CheckinDecision {
   const early = callerSkipReason(input.userId, input.userTurns);
   if (early) return { send: false, reason: early };
-  if (input.lastSentAt && input.now.getTime() - input.lastSentAt.getTime() < RATE_LIMIT_MS) {
-    return { send: false, reason: 'recently-sent' };
-  }
-  if (!input.phone) return { send: false, reason: 'no-phone' };
+  if (sentRecently(input.lastSentAt, input.now)) return { send: false, reason: 'recently-sent' };
+  if (!input.phone) return { send: false, reason: 'no-verified-phone' };
   return { send: true, phone: input.phone };
 }
+
+const sentRecently = (at: Date | null, now: Date): boolean =>
+  at !== null && now.getTime() - at.getTime() < RATE_LIMIT_MS;
 
 /** The most recent check-in actually sent to this person, if any. */
 export function lastSentAt(records: readonly CheckinRecord[]): Date | null {
@@ -128,14 +153,23 @@ export function lastSentAt(records: readonly CheckinRecord[]): Date | null {
   return latest === null ? null : new Date(latest);
 }
 
+/**
+ * A number known to be the member's: the one their sponsor confirmed, the verified phone on
+ * the account (user-reach), else Firebase Auth's. Never profile.contactInfo.phone, which can
+ * be overwritten without verification.
+ */
 export async function resolveCheckinPhone(
   userId: string,
-  deps: Pick<CheckinDeps, 'store' | 'contactPhone'>
+  userDoc: Record<string, unknown> | undefined,
+  deps: Pick<CheckinDeps, 'store' | 'authPhone'>
 ): Promise<string | undefined> {
   let phone: string | undefined;
-  if (userId.startsWith('phone:')) phone = userId.slice('phone:'.length);
-  else if (userId.startsWith('sponsored_')) phone = await deps.store.sponsoredPhone(userId);
-  else phone = await deps.contactPhone(userId);
+  if (userId.startsWith('sponsored_')) phone = await deps.store.sponsoredPhone(userId);
+  else phone = verifiedPhoneOf(userId, userDoc);
+  // A phone: id that isn't E.164 is not a Firebase uid; don't look it up (and log it) as one.
+  if (!phone && !userId.startsWith('sponsored_') && !userId.startsWith('phone:')) {
+    phone = await deps.authPhone(userId);
+  }
   const trimmed = phone?.trim();
   return trimmed ? trimmed : undefined;
 }
@@ -165,10 +199,24 @@ export function phoneHash(raw: string, env: Env = process.env): string | null {
   return n && key ? createHmac('sha256', key).update(`+${n}`).digest('hex') : null;
 }
 
-/** Whole-word, case-insensitive, so "unstoppable" is not an opt-out. */
-export const isOptOut = (body: string): boolean =>
-  OPT_OUT_ANYWHERE.test(body) ||
-  (keyword(body).split(/\s+/).length <= SHORT_WORDS && OPT_OUT_SHORT.test(body));
+/** Whole-word, case-insensitive, so "unstoppable" is not an opt-out. iOS sends curly quotes. */
+export const isOptOut = (raw: string): boolean => {
+  const body = raw.replace(/[\u2018\u2019]/g, "'");
+  return (
+    OPT_OUT_ANYWHERE.test(body) ||
+    (keyword(body).split(/\s+/).length <= SHORT_WORDS && OPT_OUT_SHORT.test(body))
+  );
+};
+
+/** The member explicitly turned texts off, in outreach settings or by a STOP to the webhook. */
+export function smsTurnedOff(
+  userDoc: Record<string, unknown> | undefined,
+  legacyChannels: unknown
+): boolean {
+  const prefs = (userDoc?.outreachPreferences ?? {}) as { enabled?: unknown; channels?: unknown };
+  const withoutSms = (c: unknown): boolean => Array.isArray(c) && !c.includes('sms');
+  return prefs.enabled === false || withoutSms(prefs.channels) || withoutSms(legacyChannels);
+}
 /** START undoes an opt-out, as the webhook's own reply to STOP promises. */
 export const isOptIn = (body: string): boolean => keyword(body) === 'start';
 
@@ -202,10 +250,13 @@ export async function runAfterCallCheckin(
   if (!phoneHashKey(deps.env)) return { sent: false, reason: 'no-hash-secret' };
 
   const storedId = recordUserId(ctx.userId, deps.env);
-  const [records, phone] = await Promise.all([
+  const sponsored = ctx.userId.startsWith('sponsored_');
+  const [records, userDoc, legacyChannels] = await Promise.all([
     deps.store.forUser(storedId),
-    resolveCheckinPhone(ctx.userId, deps),
+    sponsored ? undefined : deps.store.userDoc(ctx.userId),
+    deps.store.legacySmsChannels(ctx.userId),
   ]);
+  const phone = await resolveCheckinPhone(ctx.userId, userDoc, deps);
   const now = deps.now();
   const decision = decideCheckin({
     userId: ctx.userId,
@@ -220,6 +271,7 @@ export async function runAfterCallCheckin(
     return { sent: false, reason };
   };
   if (!decision.send) return skip(decision.reason);
+  if (smsTurnedOff(userDoc, legacyChannels)) return skip('sms-off');
 
   const hash = phoneHash(decision.phone, deps.env);
   const phoneLast4 = last4(decision.phone);
@@ -270,6 +322,7 @@ export function matchCheckin(records: readonly StoredCheckin[], now: Date): Stor
 export async function recordCheckinReply(
   from: unknown,
   body: unknown,
+  messageSid: unknown,
   deps: Pick<CheckinDeps, 'store' | 'now' | 'env'> = {
     store: firestoreCheckinStore,
     now: () => new Date(),
@@ -279,19 +332,41 @@ export async function recordCheckinReply(
   if (typeof from !== 'string' || typeof body !== 'string') return null;
   const hash = phoneHash(from, deps.env);
   if (!hash) return null;
+  const now = deps.now();
+  await recordOptChoice(deps.store, hash, body, now, last4(from));
+  const replyId =
+    typeof messageSid === 'string' && MESSAGE_SID.test(messageSid) ? messageSid : undefined;
   try {
-    const now = deps.now();
     const match = matchCheckin(await deps.store.forPhoneHash(hash), now);
     if (!match) return null;
-    await deps.store.addReply(match.id, { body, receivedAt: now.toISOString() });
-    const optOut = isOptOut(body);
-    if (optOut) await deps.store.addOptOut(hash, { at: now.toISOString(), via: 'reply' });
-    else if (isOptIn(body)) await deps.store.removeOptOut(hash);
-    log.info({ checkinId: match.id, phoneLast4: last4(from), optOut }, 'Check-in reply recorded');
+    await deps.store.addReply(match.id, replyId, { body, receivedAt: now.toISOString() });
+    log.info({ checkinId: match.id, phoneLast4: last4(from) }, 'Check-in reply recorded');
     return match.id;
   } catch (error) {
     log.warn({ error: String(error), phoneLast4: last4(from) }, 'Check-in reply not recorded');
     return null;
+  }
+}
+
+/**
+ * Any STOP or START to our number sets or clears the opt-out first, whether or not it
+ * answers a recent check-in, and on its own try so a failed reply write can't skip it.
+ */
+async function recordOptChoice(
+  store: CheckinStore,
+  hash: string,
+  body: string,
+  now: Date,
+  phoneLast4: string
+): Promise<void> {
+  const optOut = isOptOut(body);
+  if (!optOut && !isOptIn(body)) return;
+  try {
+    if (optOut) await store.addOptOut(hash, { at: now.toISOString(), via: 'reply' });
+    else await store.removeOptOut(hash);
+    log.info({ phoneLast4, optOut }, 'Check-in opt-out updated');
+  } catch (error) {
+    log.error({ error: String(error), phoneLast4, optOut }, 'Check-in opt-out not saved');
   }
 }
 
@@ -319,8 +394,27 @@ export const firestoreCheckinStore: CheckinStore = {
   async add(record) {
     return (await db().collection(COLLECTION).add(record)).id;
   },
-  async addReply(checkinId, reply) {
-    await db().collection(COLLECTION).doc(checkinId).collection('replies').add(reply);
+  async addReply(checkinId, replyId, reply) {
+    const replies = db().collection(COLLECTION).doc(checkinId).collection('replies');
+    if (!replyId) {
+      await replies.add(reply);
+      return;
+    }
+    try {
+      await replies.doc(replyId).create(reply);
+    } catch (error) {
+      if ((error as { code?: unknown }).code !== ALREADY_EXISTS) throw error;
+    }
+  },
+  async userDoc(userId) {
+    const doc = await db().collection('bogle_users').doc(userId).get();
+    return doc.exists ? (doc.data() as Record<string, unknown>) : undefined;
+  },
+  async legacySmsChannels(userId) {
+    const doc = await db().collection('outreach_profiles').doc(userId).get();
+    const state = (doc.exists ? doc.data()?.state : undefined) as
+      { allowedChannels?: unknown } | undefined;
+    return state?.allowedChannels;
   },
   async sponsoredPhone(userId) {
     const doc = await db().collection('sponsored_identities').doc(userId).get();
@@ -365,10 +459,7 @@ function defaultDeps(): CheckinDeps {
     env: process.env,
     resolveFlags: async (userId) => resolveCallerFlags(userId),
     store: firestoreCheckinStore,
-    contactPhone: async (userId) => {
-      const { getUserContactInfo } = await import('./user-contact.js');
-      return (await getUserContactInfo(userId))?.phone;
-    },
+    authPhone: async (uid) => (await getFirebaseUser(uid))?.phoneNumber ?? undefined,
     send: sendCheckinSms,
     now: () => new Date(),
   };
