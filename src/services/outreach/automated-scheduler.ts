@@ -36,6 +36,7 @@ import {
   lastTalkedAt,
   unansweredCount,
 } from './outreach-cadence.js';
+import { dailyCheckInChannel, logDailyCheckIn } from './proactive-channels/daily-checkin.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
 
@@ -192,8 +193,13 @@ async function processCandidate(
     return { sent: false, reason: 'Outreach disabled by user' };
   }
 
+  // Proactive dogfood users (PROACTIVE_CHANNELS): channel, quiet hours (in
+  // their own time zone) and caps come from the proactive channel policy.
+  const now = new Date();
+  const proactive = await dailyCheckInChannel(userId, now);
+
   // Check quiet hours
-  if (config.respectQuietHours && isInQuietHours(candidate)) {
+  if (!proactive && config.respectQuietHours && isInQuietHours(candidate)) {
     return { sent: false, reason: 'In quiet hours' };
   }
 
@@ -204,9 +210,9 @@ async function processCandidate(
   }
 
   // Determine best channel
-  const channel = await determineBestChannel(candidate);
+  const channel = proactive ? proactive.channel : await determineBestChannel(candidate);
   if (!channel) {
-    return { sent: false, reason: 'No available channel' };
+    return { sent: false, reason: proactive?.why ?? 'No available channel' };
   }
 
   // Check if we have contact info for the channel
@@ -245,6 +251,10 @@ async function processCandidate(
     phone,
     outreachType,
   });
+
+  if (proactive) {
+    await logDailyCheckIn(userId, now, proactive, outreachType, deliveryResult.success);
+  }
 
   if (deliveryResult.success) {
     // Record that we sent outreach
@@ -484,11 +494,6 @@ async function recordOutreachSent(
 // ============================================================================
 
 /**
- * Handler for Cloud Scheduler HTTP trigger
- *
- * Called by: Cloud Scheduler job hitting /api/outreach/scheduler/daily
- */
-/**
  * The scheduled daily run. Callers must have authenticated the request
  * (outreach.routes.ts accepts Cloud Scheduler's OIDC token or an admin); a
  * header check here was spoofable.
@@ -502,14 +507,3 @@ export async function handleSchedulerTrigger(
     dryRun: opts.dryRun === true,
   });
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export const automatedScheduler = {
-  runDaily: runDailyOutreach,
-  handleTrigger: handleSchedulerTrigger,
-};
-
-export default automatedScheduler;
