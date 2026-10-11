@@ -30,6 +30,7 @@ concurrency:
 
 jobs:
   i18n-validation:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: 🌐 Translation Validation
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
