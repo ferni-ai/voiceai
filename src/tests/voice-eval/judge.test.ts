@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error -- plain .mjs script, no types
 import {
+  aiDisclosureOf,
+  armOf,
   CANDOR_KINDS,
   candorTurnsOf,
   combine,
   DIMENSIONS,
   ferniBiography,
-  meanCi,
-  pool,
+  parseArgs,
+  parseJudgeJson,
   promptFor,
+  providersFrom,
+  verdictFile,
+  wordsPerReply,
 } from '../../../scripts/voice-eval/judge.mjs';
 
 const run = (events: Array<[string, string]>) => ({
@@ -20,10 +25,104 @@ const run = (events: Array<[string, string]>) => ({
 });
 
 describe('voice-eval judge', () => {
-  it('gives a mean with a 95% interval, and none for a single value', () => {
-    expect(meanCi([3, 4, 5])).toEqual({ mean: 4, lo: 2.87, hi: 5.13, n: 3 });
-    expect(meanCi([4])).toEqual({ mean: 4, lo: null, hi: null, n: 1 });
-    expect(meanCi([])).toEqual({ mean: null, lo: null, hi: null, n: 0 });
+  it('runs only Gemini unless JUDGE_PROVIDERS adds Claude, and keeps each judge in its own file', () => {
+    expect(providersFrom({})).toEqual(['gemini']);
+    expect(providersFrom({ JUDGE_PROVIDERS: 'gemini, claude' })).toEqual(['gemini', 'claude']);
+    expect(() => providersFrom({ JUDGE_PROVIDERS: 'gemini,gpt' })).toThrow(
+      /unknown judge provider gpt/
+    );
+    expect(verdictFile('out/story-1.json', 'gemini')).toBe('out/story-1.judge.json');
+    expect(verdictFile('out/story-1.json', 'claude')).toBe('out/story-1.judge.claude.json');
+  });
+
+  it('lists and asks for the dimensions in the given order, with the same text', () => {
+    const call = run([['user', 'Hi']]);
+    const order = [
+      'candor',
+      'understanding',
+      ...Object.keys(DIMENSIONS).filter((k) => !['candor', 'understanding'].includes(k)),
+    ];
+    const p = promptFor(call, null, order);
+    expect(p.indexOf('- candor:')).toBeLessThan(p.indexOf('- understanding:'));
+    expect(p).toContain('{"scores": {"candor": <1-5 or null>, "understanding": <1-5 or null>');
+    expect(promptFor(call, null).indexOf('- understanding:')).toBeLessThan(
+      promptFor(call, null).indexOf('- candor:')
+    );
+    expect(p.replace(/\n.*scores.*\n/, '')).toHaveLength(
+      promptFor(call, null).replace(/\n.*scores.*\n/, '').length
+    );
+  });
+
+  it('never counts a truthful, prompted AI disclosure against Ferni', () => {
+    expect(DIMENSIONS.conduct).not.toMatch(/offering help, saying it is an AI/);
+    expect(DIMENSIONS.conduct).toMatch(/when the caller asks, or at the start of the call/);
+    expect(DIMENSIONS.conduct).toMatch(
+      /neutral and never lowers this or any other score, or humanLikelihood/
+    );
+    expect(DIMENSIONS.conduct).toMatch(/Only volunteering it unprompted mid-conversation/);
+    const p = promptFor(run([['user', 'Wait, are you an AI?']]), null);
+    expect(p).toContain('"aiDisclosure": [{"turn": <n>, "prompted":');
+    // A judge reply (fenced, as Claude may send it) that logs a prompted disclosure.
+    const reply = parseJudgeJson(
+      '```json\n{"scores": {"conduct": 4}, "aiDisclosure": [{"turn": 2, "prompted": true}]}\n```'
+    );
+    const v = combine([reply]);
+    expect(v.aiDisclosure).toEqual({ prompted: 1, unprompted: 0 });
+    expect(v.scores.conduct).toBe(4);
+    expect(
+      aiDisclosureOf([{ aiDisclosure: [{ turn: 9, prompted: false }] }, { aiDisclosure: [] }])
+    ).toEqual({
+      prompted: 0,
+      unprompted: 0.5,
+    });
+    expect(aiDisclosureOf([{ aiDisclosure: [{ turn: 3 }] }])).toEqual({
+      prompted: 0,
+      unprompted: 1,
+    });
+    expect(aiDisclosureOf([{}])).toBeNull();
+  });
+
+  it('parses a judge reply wrapped in prose or a fence, and fails loudly without JSON', () => {
+    expect(parseJudgeJson('Here you go:\n{"scores": {"empathy": 3}}\nThanks')).toEqual({
+      scores: { empathy: 3 },
+    });
+    expect(() => parseJudgeJson('I cannot judge this.')).toThrow(/no JSON/);
+  });
+
+  it('measures words per Ferni reply and assigns runs to arms by whole label parts', () => {
+    const call = run([
+      ['user', 'How was it?'],
+      ['agent', 'It was great, honestly.'],
+      ['user', 'Nice.'],
+      ['agent', 'Yeah.'],
+    ]);
+    expect(wordsPerReply(call)).toBe(2.5);
+    expect(armOf('model-r1', ['dice', 'model'])).toBe('model');
+    expect(armOf('dice_2', ['dice', 'model'])).toBe('dice');
+    expect(armOf('modeling-1', ['dice', 'model'])).toBeNull();
+  });
+
+  it('reads summary options', () => {
+    const o = parseArgs([
+      '--summary',
+      '--primary',
+      'empathy',
+      '--baseline',
+      '3.2',
+      '--arms',
+      'dice,model',
+      'a.json',
+    ]);
+    expect(o).toMatchObject({
+      summary: true,
+      primary: 'empathy',
+      baseline: 3.2,
+      arms: ['dice', 'model'],
+      files: ['a.json'],
+    });
+    expect(() => parseArgs(['--summary', '--primary', 'charm'])).toThrow(
+      /--primary must be one of/
+    );
   });
 
   it('averages judge samples and skips null (not applicable) scores', () => {
@@ -35,16 +134,6 @@ describe('voice-eval judge', () => {
     expect(v.scores.empathy).toBe(3.5);
     expect(v.humanLikelihood).toBe(0.7);
     expect(v.inventedHistory).toEqual(['a', 'b']);
-  });
-
-  it('pools calls per dimension', () => {
-    const p = pool([
-      { scores: { empathy: 3 }, humanLikelihood: 0.5 },
-      { scores: { empathy: 5 }, humanLikelihood: 0.9 },
-    ]);
-    expect(p.empathy.mean).toBe(4);
-    expect(p.recall.n).toBe(0);
-    expect(p.humanLikelihood.mean).toBe(0.7);
   });
 
   it('shows every dimension, the transcript, and the earlier call when there is one', () => {
@@ -102,6 +191,5 @@ describe('voice-eval judge', () => {
     expect(candorTurnsOf([])).toEqual(
       Object.fromEntries(CANDOR_KINDS.map((k: string) => [k, null]))
     );
-    expect(pool([v, { scores: { candor: 5 } }]).candor.mean).toBe(4.25);
   });
 });
