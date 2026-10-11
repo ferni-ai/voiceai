@@ -1,11 +1,8 @@
 /**
  * Unified Outreach Tool - "Better than Human" Communication
  *
- * THE ONE tool for reaching out to contacts. Replaces:
- * - sendMessage, sendEmail, sendSMS
- * - sendPersonalizedMessage
- * - makePhoneCall, callAndConverse
- * - sendVoiceMessage
+ * THE ONE tool for reaching out to contacts (replaced sendMessage, sendEmail, sendSMS,
+ * sendPersonalizedMessage, makePhoneCall, callAndConverse, sendVoiceMessage).
  *
  * "Better than Human" because:
  * 1. REMEMBERS EVERYTHING - Pulls full relationship context
@@ -14,9 +11,8 @@
  * 4. CHANNEL SMART - Picks best channel based on purpose + preferences
  * 5. REAL CONVERSATIONS - Can have actual dialogue, not just voicemail
  *
- * User says: "Reach out to Mom and wish her happy birthday"
- * We: Look up Mom, pull her topics/history, craft a personal message
- *     referencing things only we'd remember, send via her preferred channel
+ * "Reach out to Mom and wish her happy birthday": look up Mom and her history, craft a
+ * message only we'd write, and send it on her preferred channel.
  */
 
 import { llm } from '@livekit/agents';
@@ -47,6 +43,7 @@ import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 
 // Message crafting
 import { craftPersonalizedMessage } from './message-crafting.js';
+import { PLAN_ONLY } from './outreach-confirm.js';
 
 const log = createLogger({ module: 'unified-outreach' });
 
@@ -100,6 +97,7 @@ export interface OutreachResult {
   message: string;
   contactName: string;
   error?: string;
+  to?: string; // where it would go; set only on a PLAN_ONLY preview, which sends nothing
 }
 
 // ============================================================================
@@ -299,7 +297,8 @@ async function gatherOutreachContext(
 async function executeOutreach(
   ctx: OutreachContext,
   decision: OutreachDecision,
-  customMessage?: string
+  customMessage?: string,
+  planOnly = false
 ): Promise<OutreachResult> {
   const { contact, userId, personaId, purpose, intent } = ctx;
   const { channel } = decision;
@@ -318,6 +317,8 @@ async function executeOutreach(
       pendingFollowUp: ctx.pendingFollowUp,
       personaId,
     }));
+  const to = channel === 'email' ? contact.email : contact.phone;
+  if (planOnly) return { success: true, channel, message, contactName: contact.name, to };
 
   log.info(
     {
@@ -652,7 +653,6 @@ Just tell me WHO and WHY. I'll handle the rest.`,
 
       // Step 1: Resolve the contact
       let contactInfo: ContactRelationship | null = null;
-
       try {
         const matches = await searchContacts(userId, contact);
         if (matches.length > 0) {
@@ -718,14 +718,13 @@ Just tell me WHO and WHY. I'll handle the rest.`,
         decision = selectOptimalChannel(outreachCtx);
       }
 
-      // Step 4: Execute outreach
-      const result = await executeOutreach(outreachCtx, decision, customMessage);
+      // Step 4: Execute outreach, or with PLAN_ONLY only decide it (outreach-confirm.ts)
+      const planOnly = PLAN_ONLY in params;
+      const result = await executeOutreach(outreachCtx, decision, customMessage, planOnly);
+      if (planOnly) return result;
 
-      if (result.success) {
-        return result.message;
-      } else {
-        return result.error || `I couldn't reach ${contactInfo.name}. Want to try another way?`;
-      }
+      if (result.success) return result.message;
+      return result.error || `I couldn't reach ${contactInfo.name}. Want to try another way?`;
     },
   });
 }

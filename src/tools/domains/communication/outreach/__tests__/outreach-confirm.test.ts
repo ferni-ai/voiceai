@@ -23,11 +23,16 @@ vi.mock('../../../../../services/voice/voice-call.js', () => ({ callWithPersonaV
 vi.mock('../../../../../services/outreach/conversational-calls.js', () => ({
   makeConversationalCall: vi.fn(),
 }));
+vi.mock('../message-crafting.js', () => ({
+  craftPersonalizedMessage: vi.fn(async () => 'Thinking of you, call me soon'),
+}));
 vi.mock('../../../../../services/calendar/natural-date-parser.js', () => ({
   parseNaturalDate: vi.fn(() => null),
 }));
 
 import { searchContacts } from '../../../../../services/contacts/contact-relationship-service.js';
+import { craftPersonalizedMessage } from '../message-crafting.js';
+import { quickTextDef } from '../../../simple-utilities/shortcuts-tools.js';
 import { getGroups } from '../../../../../services/contacts/contact-groups.js';
 import { sendSMS } from '../../../../../services/outreach/delivery/sms-delivery.js';
 import { telephonyExecutor } from '../../../../../agents/shared/tool-executors/telephony-executor.js';
@@ -47,10 +52,11 @@ const TO_MOM = {
 };
 const TO_DAD = { targets: [{ contact: 'Dad', channel: 'text', message: 'Call me' }] };
 
-function liveCall() {
+function liveCall(speakerIsOwner?: () => boolean) {
   const session = { agentState: 'listening' };
-  const listeners = outreachConfirmListeners(session);
+  const listeners = outreachConfirmListeners(session, speakerIsOwner);
   const tool = (id: string) => {
+    if (id === 'quickText') return quickTextDef.create(ctx);
     const def = getOutreachToolDefinitions().find((d) => d.id === id);
     if (!def) throw new Error(`no ${id}`);
     return def.create(ctx);
@@ -76,6 +82,13 @@ function liveCall() {
       listeners.onToolsExecuted({ functionCalls: [{ callId }], functionCallOutputs: [{ output }] }),
   };
 }
+
+const batchOf = (text: string) => ({
+  groupOrContacts: 'Mom',
+  occasion: 'custom',
+  customMessage: text,
+  channel: 'text',
+});
 
 function textsSent(): Array<[string, string]> {
   return vi.mocked(sendSMS).mock.calls.map(([sms]) => [sms.to, sms.body]);
@@ -124,6 +137,7 @@ describe('outreach waits for the caller', () => {
     const call = liveCall();
     await call.call('multiOutreach', TO_MOM, 'c1');
     await call.call('multiOutreach', TO_MOM, 'c2');
+    await call.call('previewBatchMessages', batchOf('Batch A'), 'p1');
     const batch = await call.call('sendBatchMessages', { confirm: true }, 'c3');
     const batchAgain = await call.call('sendBatchMessages', { confirm: true }, 'c4');
 
@@ -154,13 +168,6 @@ describe('outreach waits for the caller', () => {
     ]);
 
     expect(textsSent()).toEqual([['+15551230001', 'Running late, love you']]);
-  });
-
-  const batchOf = (text: string) => ({
-    groupOrContacts: 'Mom',
-    occasion: 'custom',
-    customMessage: text,
-    channel: 'text',
   });
 
   it('a yes to a previewed batch sends that batch once', async () => {
@@ -258,6 +265,148 @@ describe('outreach waits for the caller', () => {
     expect(textsSent()).toEqual([]);
   });
 
+  it('the batch read-back lists who gets what, word for word', async () => {
+    const call = liveCall();
+    await call.call('previewBatchMessages', batchOf('Happy holidays!'), 'p1');
+
+    const out = await call.call('sendBatchMessages', { confirm: true }, 's1');
+
+    expect(out).toContain('a text to Mom at +15551230001, saying "Happy holidays!"');
+  });
+
+  it('with two batches previewed, the read-back and the send are both the newest one', async () => {
+    vi.useFakeTimers();
+    const call = liveCall();
+    await call.call('previewBatchMessages', batchOf('Older batch'), 'p1');
+    vi.advanceTimersByTime(1000);
+    await call.call('previewBatchMessages', batchOf('Newer batch'), 'p2');
+
+    const out = await call.call('sendBatchMessages', { confirm: true }, 's1');
+    call.caller('yes');
+    await call.call('sendBatchMessages', { confirm: true }, 's2');
+
+    expect(out).toContain('"Newer batch"');
+    expect(out).not.toContain('Older batch');
+    expect(textsSent()).toEqual([['+15551230001', 'Newer batch']]);
+  });
+
+  it('the batch is taken before it is sent, so two racing sends send it once (flag off too)', async () => {
+    vi.stubEnv('OUTREACH_CONFIRM', '');
+    const call = liveCall();
+    await call.call('previewBatchMessages', batchOf('Only once'), 'p1');
+
+    await call.step(
+      [
+        ['sendBatchMessages', { confirm: true }, 's1'],
+        ['sendBatchMessages', { confirm: true }, 's2'],
+      ],
+      true
+    );
+
+    expect(textsSent()).toEqual([['+15551230001', 'Only once']]);
+  });
+
+  it('a batch too old to outlive the confirm window is not offered', async () => {
+    vi.useFakeTimers();
+    const call = liveCall();
+    await call.call('previewBatchMessages', batchOf('Batch A'), 'p1');
+    vi.advanceTimersByTime(11 * 60 * 1000);
+
+    const out = await call.call('sendBatchMessages', { confirm: true }, 's1');
+    call.caller('yes');
+    await call.call('sendBatchMessages', { confirm: true }, 's2');
+
+    expect(out).toContain('no recent batch');
+    expect(textsSent()).toEqual([]);
+  });
+
+  it("a newer batch from the same user's other session voids the yes", async () => {
+    const call = liveCall();
+    const other = liveCall();
+    await call.call('previewBatchMessages', batchOf('Batch A'), 'p1');
+    await call.call('sendBatchMessages', { confirm: true }, 's1');
+    await other.call('previewBatchMessages', batchOf('Batch B'), 'o1');
+    call.caller('yes');
+
+    await call.call('sendBatchMessages', { confirm: true }, 's2');
+
+    expect(textsSent()).toEqual([]);
+  });
+
+  it('reachOut writes the message and picks the channel in the preview, and sends exactly that', async () => {
+    const call = liveCall();
+    const out = await call.call('reachOut', { contact: 'Mom', purpose: 'check in' }, 'r1');
+    expect(textsSent()).toEqual([]);
+    expect(out).toContain('at +15551230001, saying "Thinking of you, call me soon"');
+    call.caller('yes');
+    vi.mocked(craftPersonalizedMessage).mockResolvedValueOnce('Something else entirely');
+
+    await call.call(
+      'reachOut',
+      { contact: 'Dad', purpose: 'say hi', preferredChannel: 'email' },
+      'r2'
+    );
+
+    expect(textsSent()).toEqual([['+15551230001', 'Thinking of you, call me soon']]);
+    expect(craftPersonalizedMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it("quickText's dictated words are read back and sent unchanged", async () => {
+    vi.stubEnv('ASSISTANT_ACTIONS_REAL', 'on');
+    const call = liveCall();
+    const out = await call.call('quickText', { contact: 'Mom', message: "I'm on my way" }, 'q1');
+    expect(out).toContain(`saying "I'm on my way"`);
+    call.caller('Yes please.');
+
+    await call.call('quickText', { contact: 'Mom', message: 'changed words' }, 'q2');
+
+    expect(textsSent()).toEqual([['+15551230001', "I'm on my way"]]);
+    expect(craftPersonalizedMessage).not.toHaveBeenCalled();
+  });
+
+  it('multiOutreach without exact words and a channel for each person stores nothing', async () => {
+    const call = liveCall();
+    const out = await call.call('multiOutreach', { targets: [{ contact: 'Mom' }] }, 'c1');
+    call.caller('yes');
+    await call.call('multiOutreach', { targets: [{ contact: 'Mom' }] }, 'c2');
+
+    expect(out).toContain('Nothing was sent');
+    expect(out).not.toContain('NOT SENT YET');
+    expect(textsSent()).toEqual([]);
+  });
+
+  it('questions and partial yeses send nothing', async () => {
+    for (const answer of ['Sure, to Bob', 'okay what does it say', 'yes?', 'which one, yes']) {
+      const call = liveCall();
+      await call.call('multiOutreach', TO_MOM, 'c1');
+      call.caller(answer);
+      await call.call('multiOutreach', TO_MOM, 'c2');
+    }
+
+    expect(textsSent()).toEqual([]);
+  });
+
+  it('a call with no tool call id stores nothing, so a later yes sends nothing', async () => {
+    const call = liveCall();
+    const def = getOutreachToolDefinitions().find((d) => d.id === 'multiOutreach');
+    const out = await def?.create(ctx).execute(TO_MOM, { ctx: { session: call.session } });
+    call.toolOutput(undefined as unknown as string, ''); // its output, also with no id
+    call.caller('yes');
+    await call.call('multiOutreach', TO_MOM, 'c2');
+
+    expect(String(out)).toContain('Nothing was sent');
+    expect(textsSent()).toEqual([]);
+  });
+
+  it("when the person on the line isn't the account owner, their yes sends nothing", async () => {
+    const call = liveCall(() => false);
+    await call.call('multiOutreach', TO_MOM, 'c1');
+    call.caller('yes');
+    await call.call('multiOutreach', TO_MOM, 'c2');
+
+    expect(textsSent()).toEqual([]);
+  });
+
   it('with no live call to hear the caller, nothing is sent', async () => {
     const def = getOutreachToolDefinitions().find((d) => d.id === 'multiOutreach');
     await def?.create(ctx).execute(TO_MOM, { toolCallId: 'x', ctx: {} });
@@ -275,7 +424,10 @@ describe('isClearYes', () => {
     for (const yes of ['yes', 'Yeah.', 'yep go ahead', 'sure', 'okay send it', "that's right"]) {
       expect(isClearYes(yes), yes).toBe(true);
     }
-    for (const notYes of ['yesterday', 'no', 'yes but wait', 'not yet', 'maybe', '']) {
+    for (const yes of ['Yes please, thank you', 'yes, thanks', 'yeah yeah send it']) {
+      expect(isClearYes(yes), yes).toBe(true);
+    }
+    for (const notYes of ['yesterday', 'no', 'yes but wait', 'not yet', 'maybe', '', 'thanks']) {
       expect(isClearYes(notYes), notYes).toBe(false);
     }
   });

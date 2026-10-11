@@ -23,6 +23,8 @@ import {
   isOutreachConfirmOn,
   outreachConfirmListeners,
 } from '../../tools/domains/communication/outreach/outreach-confirm.js';
+import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { callerRecognitionFor } from '../voice-agent-entry/caller-recognition.js';
 import { createTurnKeeper } from './turn-keeper.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
 import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
@@ -188,7 +190,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // Texts, calls and emails wait for the caller's own yes (outreach-confirm.ts).
   if (isOutreachConfirmOn()) {
-    const confirm = outreachConfirmListeners(session);
+    const confirm = outreachConfirmListeners(session, () => speakerIsAccountOwner(sessionId));
     const handlers = [
       { event: 'user_input_transcribed', handler: confirm.onTranscript },
       { event: 'function_tools_executed', handler: confirm.onToolsExecuted },
@@ -196,6 +198,12 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
     sessionEventHandlers.push(...handlers);
   }
+}
+
+/** Whether the person on the line is the account owner, whose yes may confirm a send. */
+export function speakerIsAccountOwner(sessionId: string): boolean {
+  if (outboundPartiesFor(sessionId)) return false;
+  return (callerRecognitionFor(sessionId)?.status ?? 'known') === 'known';
 }
 
 /** What the barge-in model decided about each overlap (see interruption-config.ts). */
