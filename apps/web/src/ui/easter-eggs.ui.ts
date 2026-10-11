@@ -1148,8 +1148,8 @@ function showAchievementNotification(achievement: Achievement): void {
   `;
   notification.style.cssText = `
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    top: calc(env(safe-area-inset-top, 0px) + 4.5rem); /* below the status island, clear of the controls band */
+    right: 1rem; max-width: calc(100vw - 2rem);
     background: linear-gradient(135deg, var(--persona-primary, #4a6741) 0%, var(--persona-secondary, #3d5a35) 100%);
     /* White, like every other persona-gradient surface. --persona-text is the
        persona colour for text on LIGHT backgrounds, so it painted this text the
