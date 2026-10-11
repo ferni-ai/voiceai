@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2026-10-06T18:06:30.473Z
+ * Build: 2026-10-11T00:27:37.722Z
  */
 
 /* ========================================
@@ -240,9 +240,9 @@
   --color-semantic-error: #b5453a;
   --color-semantic-error-glow: rgba(181, 69, 58, 0.18);
   --color-semantic-error-tint: rgba(181, 69, 58, 0.08);
-  --color-semantic-warning: #a67c35;
-  --color-semantic-warning-glow: rgba(166, 124, 53, 0.18);
-  --color-semantic-warning-tint: rgba(166, 124, 53, 0.08);
+  --color-semantic-warning: #87652a;
+  --color-semantic-warning-glow: rgba(135, 101, 42, 0.18);
+  --color-semantic-warning-tint: rgba(135, 101, 42, 0.08);
   --color-semantic-info: #3a6b9c;
   --color-semantic-info-glow: rgba(58, 107, 156, 0.18);
   --color-semantic-info-tint: rgba(58, 107, 156, 0.08);
@@ -413,7 +413,7 @@
   --persona-primary: #9a7b5a;
   --persona-secondary: #7d6348;
   --persona-text: #80664b;
-  --persona-on-primary: #ffffff;
+  --persona-on-primary: #14110e;
   --persona-glow: rgba(154, 123, 90, 0.28);
   --persona-tint: rgba(154, 123, 90, 0.06);
 }
@@ -455,7 +455,7 @@
   --persona-primary: #a67a6a;
   --persona-secondary: #8a635a;
   --persona-text: #8a6153;
-  --persona-on-primary: #ffffff;
+  --persona-on-primary: #14110e;
   --persona-glow: rgba(166, 122, 106, 0.28);
   --persona-tint: rgba(166, 122, 106, 0.06);
 }
@@ -469,7 +469,7 @@
   --persona-primary: #c4856a;
   --persona-secondary: #a86d55;
   --persona-text: #9c5a3e;
-  --persona-on-primary: #ffffff;
+  --persona-on-primary: #14110e;
   --persona-glow: rgba(196, 133, 106, 0.28);
   --persona-tint: rgba(196, 133, 106, 0.06);
 }
@@ -483,7 +483,7 @@
   --persona-primary: #b8956a;
   --persona-secondary: #9a7a52;
   --persona-text: #85653f;
-  --persona-on-primary: #ffffff;
+  --persona-on-primary: #14110e;
   --persona-glow: rgba(184, 149, 106, 0.28);
   --persona-tint: rgba(184, 149, 106, 0.06);
 }
@@ -581,7 +581,7 @@
   --persona-primary: #D4A373;
   --persona-secondary: #A67B5B;
   --persona-text: #935f2d;
-  --persona-on-primary: #ffffff;
+  --persona-on-primary: #14110e;
   --persona-glow: rgba(212, 163, 115, 0.28);
   --persona-tint: rgba(212, 163, 115, 0.06);
 }
@@ -609,7 +609,7 @@
   --persona-primary: #E07B53;
   --persona-secondary: #B85C3C;
   --persona-text: #b44a20;
-  --persona-on-primary: #ffffff;
+  --persona-on-primary: #14110e;
   --persona-glow: rgba(224, 123, 83, 0.28);
   --persona-tint: rgba(224, 123, 83, 0.06);
 }
@@ -828,7 +828,7 @@
   --viz-moods-anxious: #b5453a;
   --viz-moods-tired: #756a5e;
   --viz-moods-focused: #3a6b73;
-  --viz-moods-reflective: #7a6a8a;
+  --viz-moods-reflective: #5a6b8a;
   --viz-moods-stressed: #a54545;
   --viz-moods-energized: #4a7a52;
   --viz-moods-peaceful: #5a8a73;
@@ -851,7 +851,7 @@
   --viz-chapters-challenge: #b5453a;
   --viz-chapters-transition: #c4956a;
   --viz-chapters-celebration: #4a7a52;
-  --viz-chapters-reflection: #7a6a8a;
+  --viz-chapters-reflection: #5a6b8a;
 }
 
 /* ========================================
