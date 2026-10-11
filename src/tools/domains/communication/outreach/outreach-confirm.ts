@@ -43,6 +43,8 @@ interface PendingAction {
   callId: string;
   createdSeq: number;
   expiresAt: number;
+  /** What the send depends on beyond its args, as it stood at preview time. */
+  binding: readonly unknown[];
 }
 
 interface SessionLog {
@@ -189,6 +191,16 @@ export interface ConfirmSpec {
   describe: (args: Record<string, unknown>) => string;
   /** The arguments the real tool runs with once the caller said yes. */
   confirmedArgs?: (args: Record<string, unknown>) => Record<string, unknown>;
+  /**
+   * State the send reads besides its args (sendBatchMessages sends the user's
+   * latest previewed batch). If it changed after the preview, the yes was for
+   * something else, so it doesn't count. Compared item by item, by reference.
+   */
+  binding?: (userId: string) => readonly unknown[];
+}
+
+function sameBinding(a: readonly unknown[], b: readonly unknown[]): boolean {
+  return a.length === b.length && a.every((item, i) => item === b[i]);
 }
 
 /** Wrap an outreach tool so that, with OUTREACH_CONFIRM=on, it acts only on a caller's yes. */
@@ -212,7 +224,8 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
         if (
           pending?.toolId === def.id &&
           pending.userId === ctx.userId &&
-          confirmationState(pending, entry.events, Date.now()) === 'confirmed'
+          confirmationState(pending, entry.events, Date.now()) === 'confirmed' &&
+          sameBinding(pending.binding, spec.binding?.(ctx.userId) ?? [])
         ) {
           entry.pending = undefined; // taken before sending, so a second call can't repeat it
           log.info({ toolId: def.id }, 'OUTREACH_CONFIRM: caller said yes, sending');
@@ -226,6 +239,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           callId: run?.toolCallId ?? '',
           createdSeq: entry.seq,
           expiresAt: Date.now() + CONFIRM_WINDOW_MS,
+          binding: spec.binding?.(ctx.userId) ?? [],
         };
         log.info({ toolId: def.id }, 'OUTREACH_CONFIRM: preview stored, waiting for caller');
         return (

@@ -81,7 +81,7 @@ interface BatchResult {
 }
 
 // Store pending batch previews for approval
-const pendingBatches = new Map<
+export const pendingBatches = new Map<
   string,
   {
     userId: string;

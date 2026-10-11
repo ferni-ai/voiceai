@@ -56,7 +56,7 @@ export {
 
 // Combined tool definitions for easy registration
 import { getUnifiedOutreachDefinition } from './unified-outreach.js';
-import { getBatchOutreachDefinitions } from './batch-outreach.js';
+import { getBatchOutreachDefinitions, pendingBatches } from './batch-outreach.js';
 import { getMultiOutreachDefinition } from './multi-outreach.js';
 import type { ToolDefinition } from '../../../registry/types.js';
 import { withOutreachConfirmation } from './outreach-confirm.js';
@@ -86,6 +86,8 @@ export function getOutreachToolDefinitions(): ToolDefinition[] {
       ? withOutreachConfirmation(def, {
           describe: () => 'send every message in the batch you just previewed',
           confirmedArgs: (args) => ({ ...args, confirm: true }),
+          // The send picks the user's latest batch, so the yes covers only the batches seen then.
+          binding: (userId) => [...pendingBatches.values()].filter((b) => b.userId === userId),
         })
       : def
   );

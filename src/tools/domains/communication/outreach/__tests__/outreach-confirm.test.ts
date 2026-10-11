@@ -32,6 +32,7 @@ import { getGroups } from '../../../../../services/contacts/contact-groups.js';
 import { sendSMS } from '../../../../../services/outreach/delivery/sms-delivery.js';
 import { telephonyExecutor } from '../../../../../agents/shared/tool-executors/telephony-executor.js';
 import type { ToolContext } from '../../../../registry/types.js';
+import { pendingBatches } from '../batch-outreach.js';
 import { getOutreachToolDefinitions } from '../index.js';
 import { CONFIRM_WINDOW_MS, isClearYes, outreachConfirmListeners } from '../outreach-confirm.js';
 
@@ -62,13 +63,21 @@ function liveCall() {
       listeners.onToolsExecuted({ functionCalls: [{ callId }], functionCallOutputs: [] });
       return String(out);
     },
+    /** Several calls in one model step: their outputs reach the model together, afterwards. */
+    step: async (calls: Array<[string, Record<string, unknown>, string]>, parallel = false) => {
+      const run = ([id, args, callId]: [string, Record<string, unknown>, string]) =>
+        tool(id).execute(args, { ctx: { session }, toolCallId: callId });
+      if (parallel) await Promise.all(calls.map(run));
+      else for (const c of calls) await run(c);
+      listeners.onToolsExecuted({ functionCalls: calls.map(([, , callId]) => ({ callId })) });
+    },
     caller: (text: string) => listeners.onTranscript({ transcript: text, isFinal: true }),
     toolOutput: (callId: string, output: string) =>
       listeners.onToolsExecuted({ functionCalls: [{ callId }], functionCallOutputs: [{ output }] }),
   };
 }
 
-function textsSent(): unknown[] {
+function textsSent(): Array<[string, string]> {
   return vi.mocked(sendSMS).mock.calls.map(([sms]) => [sms.to, sms.body]);
 }
 
@@ -82,6 +91,7 @@ describe('outreach waits for the caller', () => {
     });
     vi.mocked(getGroups).mockResolvedValue([]);
     vi.mocked(sendSMS).mockResolvedValue({ success: true });
+    pendingBatches.clear();
   });
 
   afterEach(() => {
@@ -144,6 +154,47 @@ describe('outreach waits for the caller', () => {
     ]);
 
     expect(textsSent()).toEqual([['+15551230001', 'Running late, love you']]);
+  });
+
+  const batchOf = (text: string) => ({
+    groupOrContacts: 'Mom',
+    occasion: 'custom',
+    customMessage: text,
+    channel: 'text',
+  });
+
+  it('a yes to a previewed batch sends that batch once', async () => {
+    const call = liveCall();
+    await call.call('previewBatchMessages', batchOf('Batch A'), 'p1');
+    await call.call('sendBatchMessages', { confirm: true }, 's1');
+    call.caller('yes');
+
+    await call.call('sendBatchMessages', { confirm: true }, 's2');
+
+    expect(textsSent()).toEqual([['+15551230001', 'Batch A']]);
+  });
+
+  it('a new batch previewed after the yes, in the same step as the send, is not sent', async () => {
+    for (const parallel of [false, true]) {
+      pendingBatches.clear();
+      const call = liveCall();
+      await call.call('previewBatchMessages', batchOf('Batch A'), 'p1');
+      await call.call('sendBatchMessages', { confirm: true }, 's1');
+      call.caller('yes');
+
+      await call.step(
+        [
+          ['previewBatchMessages', batchOf('Batch B'), 'p2'],
+          ['sendBatchMessages', { confirm: true }, 's2'],
+        ],
+        parallel
+      );
+    }
+
+    // Sequentially the send would pick B, which the caller never heard; it must not.
+    // In parallel the send runs before B exists, so A (what they heard) may go out.
+    expect(textsSent().filter(([, body]) => body === 'Batch B')).toEqual([]);
+    expect(textsSent().length).toBeLessThanOrEqual(1);
   });
 
   it('a no, or a hedged yes, sends nothing', async () => {
