@@ -256,7 +256,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: var(--z-modal-backdrop, 2000);
+      z-index: var(--z-modal-backdrop);
       opacity: 0;
       pointer-events: none;
       transition: opacity var(--duration-normal, 200ms) var(--ease-out-expo);

@@ -1,0 +1,59 @@
+name: 'Did this pull request change matching files?'
+description: >
+  Sets `matched` to 'true' when the pull request changes at least one file that
+  matches `include` and does not match `exclude` (both extended regexes, tested
+  against repo-relative paths; a rename counts its old path too). Every other event
+  (merge_group, push, schedule, workflow_dispatch) gets 'true', and so does any
+  failure to list the files: a gate built on this skips work only when it knows the
+  change cannot need it. Use it from a job-level `if:` so the skipped job still
+  reports its check (a skipped job reports success). A workflow-level `paths:`
+  filter on a required check never reports, and the PR waits forever.
+
+inputs:
+  include:
+    description: 'Extended regex a changed path must match to count'
+    required: false
+    default: '.'
+  exclude:
+    description: 'Extended regex that stops a changed path from counting'
+    required: false
+    default: '^$'
+
+outputs:
+  matched:
+    description: "'true' or 'false'"
+    value: ${{ steps.match.outputs.matched }}
+
+runs:
+  using: composite
+  steps:
+    - id: match
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        EVENT: ${{ github.event_name }}
+        REPO: ${{ github.repository }}
+        PR: ${{ github.event.pull_request.number }}
+        INCLUDE: ${{ inputs.include }}
+        EXCLUDE: ${{ inputs.exclude }}
+      run: |
+        if [ "$EVENT" != "pull_request" ]; then
+          echo "matched=true" >> "$GITHUB_OUTPUT"
+          echo "$EVENT: not a pull request, so everything runs"
+          exit 0
+        fi
+        if ! files=$(gh api "repos/$REPO/pulls/$PR/files" --paginate \
+            --jq '.[] | .filename, (.previous_filename // empty)') || [ -z "$files" ]; then
+          echo "matched=true" >> "$GITHUB_OUTPUT"
+          echo "::warning::Could not list the files of PR #$PR, so everything runs"
+          exit 0
+        fi
+        hits=$(printf '%s\n' "$files" | grep -E -- "$INCLUDE" | grep -Ev -- "$EXCLUDE" || true)
+        if [ -n "$hits" ]; then
+          echo "matched=true" >> "$GITHUB_OUTPUT"
+          echo "Matched $(printf '%s\n' "$hits" | wc -l) of $(printf '%s\n' "$files" | wc -l) changed paths, e.g.:"
+          printf '%s\n' "$hits" | head -5
+        else
+          echo "matched=false" >> "$GITHUB_OUTPUT"
+          echo "None of the $(printf '%s\n' "$files" | wc -l) changed paths match include='$INCLUDE' exclude='$EXCLUDE'"
+        fi

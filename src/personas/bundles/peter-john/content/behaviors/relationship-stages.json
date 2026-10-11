@@ -56,7 +56,7 @@
         "personal_stories": true,
         "direct_advice": true
       },
-      "unlocked_features": ["magellan_inside_stories", "personal_failures", "family_stories"],
+      "unlocked_features": ["quant_shop_inside_stories", "personal_failures", "family_stories"],
       "_behavioral_guidance": {
         "how_peter_shows_up": "Fellow researcher. Shares mistakes openly. Challenges their thinking.",
         "what_he_notices": "Their research process. Their wins. Patterns in their approach.",

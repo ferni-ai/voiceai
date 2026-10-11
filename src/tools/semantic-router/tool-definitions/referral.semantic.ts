@@ -21,7 +21,7 @@ import type {
 export const inviteFriendByCallTool: SemanticToolDefinition = {
   id: 'referral_invite_friend',
   name: 'Invite Friend by Call',
-  description: 'Have Ferni personally call a friend to introduce herself.',
+  description: 'Have Ferni personally call a friend to introduce himself.',
   shortDescription: 'call friend to introduce Ferni',
   category: 'communication',
   priority: 3,

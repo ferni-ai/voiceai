@@ -21,7 +21,7 @@
 | `deploy-cloud-scheduler.ts` | Deploy scheduled jobs |
 | `deploy-semantic-store.ts` | Deploy semantic store |
 | `deploy-marketplace-scheduler.sh` | Marketplace jobs |
-| `deploy-joel-page.mts` | Deploy Joel landing page |
+| `deploy-joel-page.mts` | Deploy the joel-dickson persona (Nate Holloway) landing page |
 
 ### Testing
 | Script | Purpose |
