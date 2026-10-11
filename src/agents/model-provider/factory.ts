@@ -13,6 +13,7 @@ import { OpenAIRealtimeProvider } from './openai-realtime.js';
 import { CartesiaCascadeProvider } from './cartesia-cascade.js';
 import { GeminiNativeAudioProvider } from './gemini-native-audio.js';
 import { GeminiLiveProvider } from './gemini-live.js';
+import { voicePipeline } from '../../config/model-provider-config.js';
 
 const log = createLogger({ module: 'ModelProviderFactory' });
 
@@ -37,7 +38,7 @@ let isTestInjection = false;
 /**
  * Get the current model provider.
  *
- * Returns a singleton instance based on the USE_OPENAI_REALTIME environment variable.
+ * Returns a singleton instance for VOICE_PIPELINE (config/model-provider-config.ts).
  * The provider is cached after first creation for consistent behavior.
  *
  * @example
@@ -55,21 +56,21 @@ let isTestInjection = false;
  */
 export function getModelProvider(): ModelProvider {
   if (!cachedProvider) {
-    const useOpenAI = process.env.USE_OPENAI_REALTIME === 'true';
+    const pipeline = voicePipeline();
 
-    if (useOpenAI) {
+    if (pipeline === 'openai-realtime') {
       cachedProvider = new OpenAIRealtimeProvider();
       log.info(
         { providerId: cachedProvider.id },
         `${cachedProvider.getLogPrefix()} Model provider initialized: ${cachedProvider.displayName}`
       );
-    } else if (process.env.VOICE_PIPELINE === 'gemini-native-audio') {
+    } else if (pipeline === 'gemini-native-audio') {
       cachedProvider = new GeminiNativeAudioProvider();
       log.info(
         { providerId: cachedProvider.id },
         `${cachedProvider.getLogPrefix()} Model provider initialized: ${cachedProvider.displayName}`
       );
-    } else if (process.env.VOICE_PIPELINE === 'gemini-live') {
+    } else if (pipeline === 'gemini-live') {
       // Legacy opt-in only: the Gemini Live text-output model Ferni used is retired.
       cachedProvider = new GeminiLiveProvider();
       log.info(
@@ -97,9 +98,7 @@ export function getProviderIdSync(): ModelProviderId {
   if (cachedProvider) {
     return cachedProvider.id;
   }
-  if (process.env.USE_OPENAI_REALTIME === 'true') return 'openai-realtime';
-  if (process.env.VOICE_PIPELINE === 'gemini-native-audio') return 'gemini-native-audio';
-  return process.env.VOICE_PIPELINE === 'gemini-live' ? 'gemini-live' : 'cartesia-cascade';
+  return voicePipeline();
 }
 
 /**

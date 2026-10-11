@@ -38,7 +38,7 @@ const PANEL_STYLES = `
     background: var(--color-bg-elevated, #1a1a2e);
     border-radius: var(--radius-lg, 12px);
     box-shadow: var(--shadow-xl, 0 20px 40px rgba(0,0,0,0.3));
-    z-index: var(--z-modal, 2100);
+    z-index: var(--z-modal);
     overflow: hidden;
     font-family: var(--font-body, 'Inter', sans-serif);
     color: var(--color-text-primary, #faf6f0);

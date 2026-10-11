@@ -139,7 +139,12 @@ interface SessionEvents {
  */
 export function attachTurnOpeningSound(
   session: SessionEvents,
-  clips: { playClip: (text: string) => boolean; lastPlayedAt: () => number },
+  clips: {
+    playClip: (text: string) => boolean;
+    lastPlayedAt: () => number;
+    /** play() to the wire for a clip (clip-player.ts); early mode holds the reply for it too. */
+    wireDelayMs?: () => number;
+  },
   lastUserTranscript: () => string,
   /** Whether reply audio was produced at or after this time (TTS first frame). */
   replyAudioSince: (since: number) => boolean = () => false,
@@ -172,8 +177,14 @@ export function attachTurnOpeningSound(
     lastClip = text;
     openedAt.set(session, Date.now());
     const clipMs = early.clipMs(text);
-    early.holdReply(clipMs);
-    log.info({ text, afterCommitMs: Date.now() - thinkingAt, clipMs }, 'TURN_OPENING_EARLY');
+    // The clip is heard only once it reaches the wire: hold the reply until it
+    // has finished there, not just until play() has fed it.
+    const wireMs = clips.wireDelayMs?.() ?? 0;
+    early.holdReply(clipMs + wireMs);
+    log.info(
+      { text, afterCommitMs: Date.now() - thinkingAt, clipMs, wireMs },
+      'TURN_OPENING_EARLY'
+    );
   };
   const onState = (ev: unknown): void => {
     cancel();

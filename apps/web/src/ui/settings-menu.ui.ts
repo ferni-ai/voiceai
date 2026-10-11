@@ -767,6 +767,8 @@ class SettingsMenuUI {
             ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
             ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.whatsAhead'))}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
+            ${this.renderMenuItem('outreach-schedule', ICONS.calendar, t('menu.items.outreachSchedule'))}
+            ${this.renderMenuItem('contact-settings', ICONS.contact, t('menu.items.contactInfo'))}
           `
                 )
               : ''
@@ -1063,6 +1065,7 @@ class SettingsMenuUI {
         label: t('menu.items.whatsAhead'),
       },
       notifications: { icon: ICONS.bell, label: t('menu.items.notifications') },
+      'outreach-schedule': { icon: ICONS.calendar, label: t('menu.items.outreachSchedule') },
       theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
       'support-ferni': { icon: ICONS.heart, label: t('menu.items.supportFerniExpanded') },
       'voice-enrollment': { icon: ICONS.fingerprint, label: t('menu.items.voiceId') },
@@ -1486,7 +1489,7 @@ class SettingsMenuUI {
         right: var(--ma-rest, 21px);
         width: 44px;
         height: 44px;
-        z-index: var(--z-fixed, 1200);
+        z-index: var(--z-fixed);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1523,7 +1526,7 @@ class SettingsMenuUI {
       .settings-menu {
         position: fixed;
         inset: 0;
-        z-index: var(--z-panel, 1300);
+        z-index: var(--z-panel);
         pointer-events: none;
         visibility: hidden;
       }
@@ -2873,7 +2876,7 @@ class SettingsMenuUI {
          ======================================================================== */
       
       /* Tablet (769px - 1024px) - Wider panel for more content */
-      @media (min-width: clamp(538px, 90vw, 769px)) and (max-width: min(1024px, 100%)) {
+      @media (min-width: 769px) and (max-width: 1024px) {
         .settings-menu__card {
           width: min(380px, 100%);
           max-width: 50vw;
@@ -2881,7 +2884,7 @@ class SettingsMenuUI {
       }
       
       /* Large phones / Small tablets (481px - 768px) */
-      @media (min-width: clamp(337px, 90vw, 481px)) and (max-width: clamp(538px, 90vw, 768px)) {
+      @media (min-width: 481px) and (max-width: 768px) {
         .settings-menu__card {
           width: min(340px, 100%);
           max-width: 65vw;
@@ -2896,7 +2899,7 @@ class SettingsMenuUI {
       }
       
       /* Mobile (max 480px) - Full width panel */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .settings-trigger {
           /* Position respecting safe areas on notched devices */
           top: calc(var(--ma-breath, 13px) + env(safe-area-inset-top, 0px));
@@ -2960,7 +2963,7 @@ class SettingsMenuUI {
       }
       
       /* iPhone Pro specific (390-430px) - Same as mobile */
-      @media (min-width: min(390px, 100%)) and (max-width: clamp(301px, 90vw, 430px)) {
+      @media (min-width: 390px) and (max-width: 430px) {
         .settings-menu__card {
           width: 100%;
           max-width: none;
@@ -2969,7 +2972,7 @@ class SettingsMenuUI {
       
       /* iOS Safari specific fixes using @supports */
       @supports (-webkit-touch-callout: none) {
-        @media (max-width: clamp(336px, 90vw, 480px)) {
+        @media (max-width: 480px) {
           /* iOS Safari only on mobile */
           .settings-menu__card {
             /* Use -webkit-fill-available for iOS Safari */

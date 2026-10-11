@@ -117,8 +117,8 @@ describe('calendar-awareness context builder', () => {
 
   describe('persona filtering', () => {
     it('should NOT activate for non-calendar-aware personas', async () => {
-      // maya-santos is NOT in CALENDAR_AWARE_PERSONAS
-      const result = await buildCalendarAwarenessContext('user-123', 'maya-santos');
+      // joel-dickson (standalone) is NOT in CALENDAR_AWARE_PERSONAS
+      const result = await buildCalendarAwarenessContext('user-123', 'joel-dickson');
 
       expect(result.isConnected).toBe(false);
       expect(result.contextInjection).toBeNull();
