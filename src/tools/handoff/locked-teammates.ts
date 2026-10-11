@@ -51,6 +51,7 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { isHandoffTargetOpen } from './handoff-availability.js';
 import { createHandoffTools } from './handoff-factory.js';
 import type { UnlockView } from './locked-handoffs.js';
+import { teammateHeardAs } from './teammate-names.js';
 
 export const ASK_FOR_TEAMMATE = 'askForTeammate';
 
@@ -82,7 +83,8 @@ function personaIdOf(name: string): string | null {
   for (const candidate of [key, key.replace(/\s+/g, '-')]) {
     if (Object.hasOwn(ALIAS_TO_CANONICAL, candidate)) return ALIAS_TO_CANONICAL[candidate];
   }
-  return null;
+  // As speech-to-text wrote it: "Naya" is Nayan (teammate-names.ts)
+  return teammateHeardAs(key);
 }
 
 const isOpen = (id: string, view: UnlockView): boolean =>
@@ -107,10 +109,15 @@ function nameList(names: string[]): string {
     : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
-/** The teammates in `members` the caller's words name ("Maya", "maya santos"): whole words only. */
+/**
+ * The teammates in `members` the caller's words name ("Maya", "maya santos"), or name
+ * as speech-to-text spells them ("Naya" for Nayan): whole words only.
+ */
 export function teammatesNamedIn(text: string, members: TeamMemberUnlock[]): TeamMemberUnlock[] {
-  const words = new Set(text.toLowerCase().match(/[a-z]+/g) ?? []);
-  return members.filter((m) => words.has(m.displayName.toLowerCase()));
+  const named = new Set(
+    (text.toLowerCase().match(/[a-z]+/g) ?? []).map(teammateHeardAs).filter(Boolean)
+  );
+  return members.filter((m) => named.has(m.memberId));
 }
 
 /**
