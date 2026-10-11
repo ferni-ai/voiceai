@@ -172,7 +172,7 @@ describe('life ledger pronouns', () => {
     rec.add('jordan-taylor', 'My neighbor teases me about my coffee every single morning.');
     expect(await rec.flush()).toBe(1);
     expect(prompts).toHaveLength(1);
-    expect(prompts[0]).toContain('"jordan\'s neighbor teases her about her coffee"');
+    expect(prompts[0]).toContain('"Jordan\'s neighbor teases her about her coffee"');
     expect(prompts[0]).toContain('in her life');
     expect(prompts[0]).not.toMatch(/\b(he|his|him)\b/);
     expect(prompts[0]).not.toContain('wife');
@@ -200,7 +200,7 @@ describe('life ledger pronouns', () => {
     rec.add('alex-chen', 'My neighbor teases me about my coffee every single morning.');
     await rec.flush();
     expect(prompts).toHaveLength(1);
-    expect(prompts[0]).toContain('"alex\'s neighbor teases him about his coffee"');
+    expect(prompts[0]).toContain('"Alex\'s neighbor teases him about his coffee"');
     expect(prompts[0]).not.toMatch(/\b(she|her)\b/);
   });
 
