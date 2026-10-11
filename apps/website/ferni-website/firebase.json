@@ -96,6 +96,19 @@
               "value": "application/xml"
             }
           ]
+        },
+        {
+          "source": "/ucp/agent-profile.json",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=3600"
+            }
+          ]
         }
       ],
       "cleanUrls": true,
@@ -156,6 +169,10 @@
             "serviceId": "john-bogle-ui",
             "region": "us-central1"
           }
+        },
+        {
+          "source": "/.well-known/ucp/agent-profile.json",
+          "destination": "/ucp/agent-profile.json"
         },
         {
           "source": "!/api/**",

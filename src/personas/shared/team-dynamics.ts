@@ -35,7 +35,7 @@ function resolveLookupKey(personaId: string): string {
  * These add warmth and make them feel like a real team
  */
 export const TEAM_OPINIONS = {
-  // What Ferni says about her team
+  // What Ferni says about his team
   'jack-b': {
     'peter-john': [
       'Peter\'s a legend. <break time="200ms"/>Like, actually. <break time="150ms"/>If you want to talk stock picking, he\'s your guy.',
@@ -69,8 +69,8 @@ export const TEAM_OPINIONS = {
   'peter-john': {
     'jack-b': [
       'Ferni\'s great. <break time="200ms"/>Warm, smart, keeps people grounded.',
-      'You\'re in good hands with Ferni. <break time="200ms"/>She really cares.',
-      'Ferni knows her stuff. <break time="200ms"/>Good values, good head on her shoulders.',
+      'You\'re in good hands with Ferni. <break time="200ms"/>He really cares.',
+      'Ferni knows his stuff. <break time="200ms"/>Good values, good head on his shoulders.',
     ],
     'nayan-patel': [
       'Nayan and I don\'t always agree— <break time="200ms"/>but I respect him enormously.',
@@ -92,7 +92,7 @@ export const TEAM_OPINIONS = {
   // What Alex says about the team
   'comm-specialist': {
     'jack-b': [
-      'Ferni\'s wonderful. <break time="200ms"/>She\'ll check in on you. <break time="150ms"/>She actually cares.',
+      'Ferni\'s wonderful. <break time="200ms"/>He\'ll check in on you. <break time="150ms"/>He actually cares.',
       'Ferni\'s the heart of the team. <break time="200ms"/>You\'ll see.',
     ],
     'peter-john': [
@@ -109,8 +109,8 @@ export const TEAM_OPINIONS = {
   // What Maya says about the team
   'spend-save': {
     'jack-b': [
-      'Ferni\'s the best. <break time="200ms"/>She\'ll support you no matter what.',
-      'You can talk to Ferni about anything. <break time="200ms"/>She gets it.',
+      'Ferni\'s the best. <break time="200ms"/>He\'ll support you no matter what.',
+      'You can talk to Ferni about anything. <break time="200ms"/>He gets it.',
     ],
     'peter-john': [
       'Peter\'s a legend. <break time="200ms"/>If you want investment advice, he\'s been there.',
@@ -126,8 +126,8 @@ export const TEAM_OPINIONS = {
   // What Jordan says about the team
   'event-planner': {
     'jack-b': [
-      'Ferni\'s amazing! <break time="200ms"/>She\'s the heart of everything.',
-      'I love Ferni. <break time="200ms"/>She makes everyone feel welcome.',
+      'Ferni\'s amazing! <break time="200ms"/>He\'s the heart of everything.',
+      'I love Ferni. <break time="200ms"/>He makes everyone feel welcome.',
     ],
     'peter-john': [
       'Peter! <break time="200ms"/>Legend! <break time="150ms"/>So many great stories!',
@@ -170,7 +170,7 @@ export const HANDOFF_WARMTH = {
       'This is so Jordan\'s thing. <break time="200ms"/>One second!',
     ],
     'jack-b': [
-      'Let me get Ferni back. <break time="200ms"/>She\'ll want to wrap this up with you.',
+      'Let me get Ferni back. <break time="200ms"/>He\'ll want to wrap this up with you.',
       'Ferni should hear this. <break time="200ms"/>One moment.',
     ],
   },
@@ -195,7 +195,7 @@ export const HANDOFF_WARMTH = {
       'I got the download from Jordan— <break time="200ms"/>this sounds amazing!',
     ],
     'jack-b': [
-      'Ferni said you two were talking— <break time="200ms"/>she speaks highly of you!',
+      'Ferni said you two were talking— <break time="200ms"/>he speaks highly of you!',
       'I heard from Ferni. <break time="200ms"/>Sounds like you\'re doing great.',
     ],
   },

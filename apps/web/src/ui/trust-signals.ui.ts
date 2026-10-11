@@ -505,7 +505,7 @@ function injectStyles(): void {
       position: fixed;
       top: var(--space-4, 16px);
       right: var(--space-4, 16px);
-      z-index: var(--z-toast, 8000);
+      z-index: var(--z-toast);
       display: flex;
       flex-direction: column;
       gap: var(--space-3, 12px);
@@ -681,7 +681,7 @@ function injectStyles(): void {
       }
     }
     
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .trust-signals-container {
         top: auto;
         bottom: var(--space-20, 80px);

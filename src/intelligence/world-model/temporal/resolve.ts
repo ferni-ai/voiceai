@@ -1,5 +1,6 @@
 /**
  * What a call's observations do to the facts on file (pure; ingest.ts stores).
+ * Facts are matched only against facts with the same owner (`by`).
  * - Same subject, attribute and value: heard again (refresh).
  * - One-value attribute (status, job, ...) with a new value: supersedes.
  * - Extraction's `replaces` hint ("quit", "moved"): closes what it names.
@@ -71,7 +72,10 @@ export async function planResolution(
   for (const obs of ordered) {
     const subjectKey = subjectKeyOf(obs);
     const attribute = normaliseText(obs.attribute);
-    const mine = open.filter((f) => f.subjectKey === subjectKey);
+    // Whose it is is part of what it is: Ferni's promise to call Friday and the
+    // caller's own plan to call Friday are two facts, and neither closes the other.
+    const owner = obs.by ?? 'caller';
+    const mine = open.filter((f) => f.subjectKey === subjectKey && (f.by ?? 'caller') === owner);
     const slot = mine.filter((f) => f.attribute === attribute);
 
     const heard = slot.find((f) => sameValue(f, obs));
