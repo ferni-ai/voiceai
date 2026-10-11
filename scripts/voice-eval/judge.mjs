@@ -27,7 +27,8 @@
 // <scenario>-<label>.seed.json exists, the earlier call is shown too, so recall
 // is checked against what was really said and invented history counts against it.
 //
-// Env: JUDGE_PROVIDERS (default gemini), JUDGE_MODEL (default gemini-3.1-pro-preview),
+// Env: JUDGE_PROVIDERS (default gemini; gemini,qwen for the local cross-family
+// judge, JUDGE_QWEN_MODEL default qwen3:30b-a3b, OLLAMA_HOST), JUDGE_MODEL (default gemini-3.1-pro-preview),
 // JUDGE_CLAUDE_MODEL (default claude-opus-5-5; Vertex Model Garden in the same
 // project, else ANTHROPIC_API_KEY), JUDGE_CLAUDE_REGION (default global),
 // JUDGE_CLAUDE_EFFORT (default medium), JUDGE_K (samples per call, default 3,
@@ -200,9 +201,32 @@ async function askClaude(prompt, ctx) {
   return parseJudgeJson((msg.content ?? []).map((b) => (b.type === 'text' ? b.text : '')).join(''));
 }
 
+// The local cross-family judge: qwen3:30b-a3b on Ollama, thinking on (the
+// thinking comes back in its own field). On Gemini/Qwen disagreements it sided
+// with Gemini 23/33; qwen2.5:14b is not a valid judge (kappa 0.27 vs Gemini).
+// About 20 s a grade on the shared GPU, so judge a sample.
+async function askQwen(prompt, { model }) {
+  const host = process.env.OLLAMA_HOST ?? 'http://localhost:11434';
+  const res = await fetch(`${host}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      stream: false,
+      think: true,
+      options: { temperature: 0.2, num_ctx: 16384 },
+    }),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(`qwen ${res.status}: ${JSON.stringify(body).slice(0, 300)}`);
+  return parseJudgeJson(body.message?.content ?? '');
+}
+
 export const PROVIDERS = {
   gemini: { model: (env) => env.JUDGE_MODEL ?? 'gemini-3.1-pro-preview', ask: askGemini },
   claude: { model: (env) => env.JUDGE_CLAUDE_MODEL ?? 'claude-opus-5-5', ask: askClaude },
+  qwen: { model: (env) => env.JUDGE_QWEN_MODEL ?? 'qwen3:30b-a3b', ask: askQwen },
 };
 
 /** Judges named in JUDGE_PROVIDERS (default gemini only). */
