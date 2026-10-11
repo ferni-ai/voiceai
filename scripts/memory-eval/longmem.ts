@@ -18,6 +18,12 @@
  * The written memory is saved; --memory reuses it, so a recall change can be
  * measured against the same memory without extracting again.
  *
+ * The answerer and the judge are one model family. --judge2 <ollama model>
+ * grades every answer again with a local model of another family (e.g.
+ * qwen3:30b-a3b) and reports how far the two judges agree. --cases <file>
+ * replaces the seeded histories with ones kept outside the repo, such as
+ * real calls; nothing from them is sent anywhere but the models already used.
+ *
  *   GOOGLE_CLOUD_PROJECT=johnb-2025 pnpm tsx scripts/memory-eval/longmem.ts \
  *     [--only maya] [--date YYYY-MM-DD] [--arms off,on] [--memory file.json]
  *
@@ -49,13 +55,17 @@ import {
   RunDays,
   answerPrompt,
   evidencePrompt,
+  formatAgreement,
   formatPaired,
   formatReport,
+  hasEvidence,
   interimOf,
   judgePrompt,
   paired,
+  parseCaseFile,
   parseYesNo,
   type CaseResult,
+  type SecondOpinion,
   type MemoryHistory,
 } from './longmem-lib.js';
 
@@ -168,6 +178,23 @@ function trackedEmbedder() {
   return { embed, settled, queryMs, failures: () => failures };
 }
 
+/** A local model through Ollama, for a judge of another family. Yes/no only, so no thinking. */
+async function askLocal(model: string, prompt: string): Promise<string> {
+  const res = await fetch('http://127.0.0.1:11434/api/generate', {
+    method: 'POST',
+    body: JSON.stringify({
+      model,
+      prompt,
+      stream: false,
+      think: false,
+      options: { temperature: 0, num_predict: 16 },
+    }),
+  });
+  if (!res.ok) throw new Error(`ollama ${model}: HTTP ${res.status}`);
+  const body = (await res.json()) as { response?: string };
+  return (body.response ?? '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+}
+
 async function ask(prompt: string, temperature: number): Promise<string> {
   return (await callLLM(prompt, { temperature, maxTokens: 300 })) ?? '';
 }
@@ -195,14 +222,23 @@ async function main(): Promise<void> {
     ? (JSON.parse(readFileSync(memoryFile, 'utf8')) as SavedMemory)
     : undefined;
   // Saved memory holds dates relative to its own run date.
-  const runDate = saved?.runDate ?? flag('--date') ?? new Date().toISOString().slice(0, 10);
+  const casesFile = flag('--cases');
+  const external = casesFile
+    ? parseCaseFile(JSON.parse(readFileSync(casesFile, 'utf8')))
+    : undefined;
+  const allHistories = external?.histories ?? HISTORIES;
+  const allCases = external?.cases ?? CASES;
+  const judge2 = flag('--judge2');
+  const runDate =
+    saved?.runDate ?? external?.runDate ?? flag('--date') ?? new Date().toISOString().slice(0, 10);
   const arms = (flag('--arms') ?? 'off,on').split(',') as Arm[];
   if (arms.some((a) => a !== 'off' && a !== 'on')) throw new Error(`bad --arms: ${arms.join(',')}`);
   const days = new RunDays(runDate);
-  const histories = HISTORIES.filter((h) => !only || h.id === only);
+  const histories = allHistories.filter((h) => !only || h.id === only);
   const tracker = trackedEmbedder();
 
-  const results: Record<Arm, CaseResult[]> = { off: [], on: [] };
+  type Judged = CaseResult & { second?: SecondOpinion };
+  const results: Record<Arm, Judged[]> = { off: [], on: [] };
   const written: Record<string, { facts: number; summaries: number }> = {};
   const stored: Record<string, string[]> = {};
   const toSave: SavedMemory = { runDate, histories: {} };
@@ -217,7 +253,7 @@ async function main(): Promise<void> {
       (f) => `${String(f.entityName)} | ${String(f.key)} = ${String(f.value)}`
     );
     const store = storeOf(memory);
-    for (const c of CASES.filter((x) => x.history === history.id)) {
+    for (const c of allCases.filter((x) => x.history === history.id)) {
       const gold = c.gold(days);
       for (const arm of arms) {
         const recall = createMemoryRecall({
@@ -235,13 +271,27 @@ async function main(): Promise<void> {
         const early = interim ? recall.noteFor(interim) : null;
         await tracker.settled();
         const note = [early, recall.noteFor(c.ask)].filter(Boolean).join('\n\n') || null;
-        const response = await ask(answerPrompt(history.name, days.today(), note, c.ask), 0.3);
+        const response = await ask(
+          answerPrompt(history.name, days.today(), note, c.ask, c.category),
+          0.3
+        );
         const correct = parseYesNo(await ask(judgePrompt(c.category, c.ask, gold, response), 0));
-        const retrieved =
-          c.category === 'abstention'
-            ? null
-            : parseYesNo(await ask(evidencePrompt(c.ask, gold, note), 0));
+        const retrieved = !hasEvidence(c.category)
+          ? null
+          : parseYesNo(await ask(evidencePrompt(c.ask, gold, note), 0));
+        const second: SecondOpinion | undefined = judge2
+          ? {
+              judge: judge2,
+              correct: parseYesNo(
+                await askLocal(judge2, judgePrompt(c.category, c.ask, gold, response))
+              ),
+              retrieved: !hasEvidence(c.category)
+                ? null
+                : parseYesNo(await askLocal(judge2, evidencePrompt(c.ask, gold, note))),
+            }
+          : undefined;
         results[arm].push({
+          ...(second && { second }),
           history: history.id,
           category: c.category,
           ask: c.ask,
@@ -269,7 +319,11 @@ async function main(): Promise<void> {
   const memoryOut = memoryFile ?? join(dir, `memory-${stamp}.json`);
   if (!memoryFile) writeFileSync(memoryOut, JSON.stringify(toSave));
   writeFileSync(file, JSON.stringify({ runDate, arms, written, stored, results }, null, 2));
-  const sections = arms.map((arm) => `== recall ${arm}\n${formatReport(results[arm])}`);
+  const sections = arms.map((arm) =>
+    [`== recall ${arm}`, formatReport(results[arm]), formatAgreement(results[arm])]
+      .filter(Boolean)
+      .join('\n')
+  );
   if (arms.length === 2)
     sections.push(formatPaired(arms[0]!, arms[1]!, paired(results[arms[0]!], results[arms[1]!])));
   if (tracker.queryMs.length > 0) {
