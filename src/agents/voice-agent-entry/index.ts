@@ -337,7 +337,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     });
     userId = identifiedUserId ?? null;
 
-    // Update crash analytics with user context
     updateSessionState(sessionId, { state: 'active' });
     registerSession(sessionId, {
       sessionId,
@@ -348,7 +347,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     const servicesInitStartedAt = Date.now();
 
-    // Initialize session services
     const initResult = await initializeSession({
       sessionId,
       userId: userId ?? undefined,
@@ -376,7 +374,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     userData = initResult.userData;
     if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
     rememberCallerTimeZone(metadata.timezone, sessionId, services?.realtimeConversationId);
-    // Eval-only: Ferni's clock for his state; ignored unless VOICE_EVAL_CLOCK=on and a voice-eval- user.
     if (userData) userData.evalLocalTime = evalLocalTime(userId, metadata);
     // IP-detected city (token → dispatch metadata), both paths: tools read it from userData.
     if (userData && typeof metadata.city === 'string' && metadata.city) {
