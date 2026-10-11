@@ -28,6 +28,7 @@ import {
 } from '../../tools/handoff/locked-teammates.js';
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
+import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
@@ -83,12 +84,15 @@ export function withTurnReminder(
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
   const notes = formatNotes((director?.current() ?? []).filter(keep));
+  // REPAIR_MODE=on: own a correction, and keep earlier ones; none with crisis guidance.
+  const corrected = options.shape !== false ? correctionNotesFor(chatCtx, session) : '';
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     notes,
+    corrected,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
