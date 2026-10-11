@@ -397,9 +397,8 @@ ${INSIDE_JOKES_PROMPT_TAIL}`;
       questionsRemaining: llmResult.openThreads,
       followUpItems: llmResult.followUps,
     };
-    // Only written when there is one, so summaries without jokes look as before.
     const insideJokes = parseInsideJokes(llmResult.insideJokes);
-    if (insideJokes.length > 0) summary.insideJokes = insideJokes;
+    if (insideJokes.length > 0) summary.insideJokes = insideJokes; // none: summary as before
 
     // Generate embedding
     if (opts.generateEmbedding) {
