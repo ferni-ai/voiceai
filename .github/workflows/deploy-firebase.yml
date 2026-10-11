@@ -198,15 +198,17 @@ jobs:
         with:
           frozen-lockfile: 'false'
 
+      # The site lives in apps/website/ferni-website (its old promo folder is gone),
+      # the folder `ferni deploy landing` builds. It is not a pnpm workspace package
+      # and has its own package-lock.json, so npm installs it. build:prod is the
+      # production build (minified) that `ferni deploy landing` runs.
       - name: Install landing dependencies
-        run: |
-          cd promo/ferni-website
-          pnpm install --no-frozen-lockfile
+        working-directory: apps/website/ferni-website
+        run: npm ci --no-audit --no-fund
 
       - name: Build landing page
-        run: |
-          cd promo/ferni-website
-          pnpm build
+        working-directory: apps/website/ferni-website
+        run: npm run build:prod
 
       - name: Deploy landing to Firebase
         id: deploy-landing
@@ -217,7 +219,7 @@ jobs:
           projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
           channelId: live
           target: ferni-landing
-          entryPoint: ./promo/ferni-website
+          entryPoint: ./apps/website/ferni-website
 
       - name: Health check landing page
         id: health
@@ -244,7 +246,7 @@ jobs:
         run: |
           echo "⚠️ Health check failed - initiating rollback"
           npm install -g firebase-tools
-          cd promo/ferni-website
+          cd apps/website/ferni-website
           firebase hosting:rollback --site ferni-landing --confirm || echo "Rollback failed"
           exit 1
         env:

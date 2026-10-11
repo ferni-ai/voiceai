@@ -363,7 +363,7 @@ function injectStyles(): void {
     .garden-dashboard-modal {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 10000);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -654,7 +654,7 @@ function injectStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .garden-dashboard-modal {
         padding: 0;
         align-items: flex-end;
