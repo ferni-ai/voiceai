@@ -118,7 +118,11 @@ import { getAnticipationPipeline } from '../../speech/anticipation/index.js';
 // Speech Orchestrator integration for micro-reactions
 import { isOrchestratorEnabled } from '../integrations/speech-orchestrator-integration.js';
 // Speech coordination for centralized speech management
-import { coordinatedSay } from '../../speech/coordination/index.js';
+import {
+  coordinatedSay,
+  getAdaptiveEchoWindow,
+  recordEchoDetected,
+} from '../../speech/coordination/index.js';
 // Session closing tracker to prevent errors during shutdown
 // Tool updater for mid-session tool updates (OpenAI Realtime)
 import { createLogger } from '../../utils/safe-logger.js';
@@ -188,8 +192,8 @@ export interface TranscriptHandlerContext {
  * echo → transcribes "how are you" → matches cached response → says "I'm doing
  * well, thanks for asking!").
  *
- * NEW: Uses adaptive echo window from SpeechCoordinator when available.
- * Falls back to 2000ms if coordination system unavailable.
+ * With REQUIRE_FIX_VOICE=true, uses the adaptive echo window from
+ * SpeechCoordinator; otherwise the fixed 2000ms below.
  *
  * Legacy 2 seconds accounts for:
  * - Audio buffer flush (~200-500ms)
@@ -208,35 +212,35 @@ const ECHO_PREVENTION_COOLDOWN_MS_DEFAULT = 2000;
  * @param lastUtteranceDurationMs - Duration of last agent utterance
  * @param userTranscript - The user's transcript for content-aware detection
  */
-function getEchoPreventioncooldownMs(
+export function getEchoPreventionCooldownMs(
   lastUtteranceDurationMs?: number,
   userTranscript?: string
 ): number {
+  // The adaptive window used to be loaded with a bare require(), which throws
+  // under ESM, so every call has run on the fixed 2000ms default. Turning the
+  // adaptive window on changes call timing, so it waits behind its own flag.
+  if (!isAdaptiveEchoWindowEnabled()) return ECHO_PREVENTION_COOLDOWN_MS_DEFAULT;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getAdaptiveEchoWindow } = require('../../speech/coordination/index.js') as {
-      getAdaptiveEchoWindow: (duration?: number, transcript?: string) => number;
-    };
     return getAdaptiveEchoWindow(lastUtteranceDurationMs, userTranscript);
   } catch {
-    // Fall back to default if coordination module unavailable
     return ECHO_PREVENTION_COOLDOWN_MS_DEFAULT;
   }
+}
+
+function isAdaptiveEchoWindowEnabled(): boolean {
+  return process.env.REQUIRE_FIX_VOICE === 'true';
 }
 
 /**
  * Record echo detection for adaptive learning.
  * Call this when we detect what appears to be agent echo being picked up.
  */
-function recordEchoDetectionForLearning(sessionId: string, delayMs: number): void {
+export function recordEchoDetectionForLearning(sessionId: string, delayMs: number): void {
+  if (!isAdaptiveEchoWindowEnabled()) return;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { recordEchoDetected } = require('../../speech/coordination/index.js') as {
-      recordEchoDetected: (sessionId: string, delayMs: number) => void;
-    };
     recordEchoDetected(sessionId, delayMs);
   } catch {
-    // Ignore if coordination module unavailable
+    // Learning is best-effort
   }
 }
 
@@ -1026,7 +1030,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       // NOTE: lastAgentSpeechEnd and timeSinceAgentSpoke already calculated above
       // CRITICAL FIX: Use content-aware echo window that checks transcript content
       // This prevents blocking legitimate user requests like "Could you check the news?"
-      const adaptiveEchoCooldown = getEchoPreventioncooldownMs(
+      const adaptiveEchoCooldown = getEchoPreventionCooldownMs(
         userData.lastAgentUtteranceDurationMs,
         event.transcript // Pass transcript for content-aware detection
       );
@@ -1335,9 +1339,9 @@ async function processFinalTranscript(
     try {
       const { runFTISRouting, buildToolResponseInstructions } =
         await import('../processors/tool-routing-integration.js');
-      const { isFTISEnabled } = await import('../../config/tool-routing-config.js');
+      const { isFtisEnabled } = await import('../../config/tool-config.js');
 
-      if (isFTISEnabled() && userId) {
+      if (isFtisEnabled() && userId) {
         const ftisResult = await runFTISRouting(event.transcript, {
           userId,
           sessionId,

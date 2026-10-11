@@ -10,6 +10,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { isOutreachConfirmOn } from '../../../tools/domains/communication/outreach/outreach-confirm.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
 
 const log = createLogger({ module: 'TelephonyExecutor' });
@@ -70,6 +71,11 @@ async function execute(
   // Auto-selects best channel (call, text, email, conversation)
   // based on purpose, contact preferences, and relationship
   // ========================================
+  // This path has no live call to hear the caller's yes (outreach-confirm.ts), so it sends nothing.
+  if ((fnLower === 'reachout' || fnLower === 'multioutreach') && isOutreachConfirmOn()) {
+    return 'Nothing was sent: I can only send this after the caller says yes on a call.';
+  }
+
   if (fnLower === 'reachout') {
     const contact = args.contact as string;
     const purpose = args.purpose as string;
