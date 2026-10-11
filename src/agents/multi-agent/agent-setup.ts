@@ -1643,7 +1643,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
       attachTurnContextPusher(
         turnContextHook,
         agent as unknown as Parameters<typeof attachTurnContextPusher>[1],
-        sessionWithEvents
+        sessionWithEvents,
+        { userData }
       )
     );
   }

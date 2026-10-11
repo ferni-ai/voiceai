@@ -5,26 +5,45 @@
  * turn 1 it is cold: the context builders' modules load, the Vertex client,
  * memory stores and BetterThanHuman orchestrator initialise, the semantic
  * context build takes >1 s and hybrid search runs past its budget. Dev,
- * 2026-10-11, eval calls: turn 1 ran it twice (FIRST_TURN_FAST's early end,
- * then Ink's own end), 2.2-3.2 s each, beside the reply; the event loop stalled
- * up to 300-381 ms on turn 1 (loopLagMaxMs) against 48-81 ms after.
+ * 2026-10-11 08:13-08:18Z, eval calls: turn 1 ran it twice (FIRST_TURN_FAST's
+ * early end, then Ink's own end), 2.2-3.2 s each, beside the reply; the event
+ * loop stalled up to 300-381 ms on turn 1 (loopLagMaxMs) against 48-81 ms after.
  *
  * Nothing in turn 1's reply request comes from that work: its note can only
  * reach the chat context while Ferni is listening, after a build that takes
  * longer than the reply takes to start (createTurnContextPusher), and the
  * request path (llmNode: turn-request.ts, crisis-gate.ts, director-notes.ts,
- * fast-lane.ts) reads no other output of it. (Its incrementTurn moves the
- * session turnCount that ttsNode reads for isFirstTurn; deferred, turn 1 keeps
- * its turn-1 count.) So on turn 1 the work waits
- * until Ferni starts speaking, which is after the reply's first token; only
- * the latest segment of the turn is built, and its note reaches turn 2 as
- * before. MAX_DEFER_MS bounds the wait when turn 1 gets no spoken reply.
- * Turns 2+ are never deferred.
+ * fast-lane.ts) reads no other output of it. The reply's crisis decision is
+ * CrisisGate's own, from the request's words and the caller's voice reading.
+ * (Its incrementTurn moves the session turnCount that ttsNode reads for
+ * isFirstTurn; deferred, turn 1 keeps its turn-1 count.) So on turn 1 the
+ * work waits until Ferni starts speaking, which is after the reply's first
+ * token, and its note reaches turn 2 as before. MAX_DEFER_MS bounds the wait
+ * when turn 1 gets no spoken reply. Turns 2+ are never deferred.
+ *
+ * Safety work is never deferred. The same build also runs crisis detection
+ * and sends its signals (the crisis override note, `crisis_detected` to the
+ * app, the outreach crisis signal, the emotional state cache), so the hold
+ * is lifted for it:
+ * - when the crisis guard's patterns find any signal in a turn-1 segment, with
+ *   the caller's voice reading (the check CrisisGate makes), turn 1 runs at
+ *   once, exactly as with the flag off;
+ * - when CrisisGate decides anything but 'pass' (CRISIS_GATE_SIGNAL), which
+ *   covers what only the classifier catches, it runs then: the gate holds the
+ *   reply until that verdict, so before the crisis reply is spoken.
+ * Every turn-1 segment is built, none dropped. With CRISIS_GUARD_MODE off or
+ * shadow there is no live CrisisGate decision to lean on, so nothing is deferred.
  *
  * @module agents/multi-agent/first-turn-defer
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { detectCrisis } from '../safety/crisis-guard.js';
+import {
+  resolveCrisisGuardMode,
+  toGuardVoiceEmotion,
+  type ProsodyEmotionLike,
+} from '../safety/crisis-shadow.js';
 import type { UserTurnHook } from './turn-intelligence.js';
 
 const log = createLogger({ module: 'FirstTurnDefer' });
@@ -32,24 +51,37 @@ const log = createLogger({ module: 'FirstTurnDefer' });
 /** The longest turn 1's context waits for Ferni to speak. */
 export const MAX_DEFER_MS = 6000;
 
+/** On by flag, and only while CrisisGate decides each reply's crisis handling live. */
 export function firstTurnDeferEnabled(
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return env.FIRST_TURN_DEFER_BACKGROUND === 'on';
+  return env.FIRST_TURN_DEFER_BACKGROUND === 'on' && resolveCrisisGuardMode(env) === 'live';
+}
+
+/** Any crisis-guard signal at all in these words, with the caller's voice reading. */
+export function hasSafetySignal(text: string, voiceEmotion?: unknown): boolean {
+  const crisis = detectCrisis(text, toGuardVoiceEmotion(voiceEmotion as ProsodyEmotionLike));
+  return crisis.isCrisis || crisis.severity > 0 || crisis.indicators.length > 0;
 }
 
 export interface FirstTurnDeferral {
   /** The hook to give createTurnContextPusher. */
   hook: UserTurnHook;
   /** Feed each non-empty final transcript as it arrives, before the pusher sees it. */
-  onFinalTranscript: () => void;
+  onFinalTranscript: (transcript: string) => void;
   /** Feed every agent state change; 'speaking' after turn 1 began releases it. */
   onAgentState: (newState: string | undefined) => void;
+  /** Feed CrisisGate's decisions; anything but 'pass' releases turn 1 at once. */
+  onCrisisDecision: (action: string | undefined) => void;
   /** Clears the timer when the session ends. */
   dispose: () => void;
 }
 
-export function deferFirstTurn(hook: UserTurnHook, maxDeferMs = MAX_DEFER_MS): FirstTurnDeferral {
+export function deferFirstTurn(
+  hook: UserTurnHook,
+  options: { maxDeferMs?: number; voiceEmotion?: () => unknown } = {}
+): FirstTurnDeferral {
+  const { maxDeferMs = MAX_DEFER_MS, voiceEmotion = () => undefined } = options;
   let released = false;
   let armedAt = 0;
   let calls = 0;
@@ -64,29 +96,31 @@ export function deferFirstTurn(hook: UserTurnHook, maxDeferMs = MAX_DEFER_MS): F
     if (released) return;
     released = true;
     if (timer) clearTimeout(timer);
-    log.info({ reason, waitedMs: Date.now() - armedAt }, 'FIRST_TURN_DEFER released');
+    log.info({ reason, waitedMs: armedAt ? Date.now() - armedAt : 0 }, 'FIRST_TURN_DEFER released');
     release();
   };
 
   return {
     // The pusher calls this once per final transcript, in order.
     hook: async (turnCtx, newMessage) => {
-      const call = ++calls;
-      if (call > firstTurnSegments) return hook(turnCtx, newMessage);
+      if (++calls > firstTurnSegments) return hook(turnCtx, newMessage);
       await gate;
-      // The last segment of turn 1 carries the whole turn; build only that one.
-      if (call !== firstTurnSegments) return;
       return hook(turnCtx, newMessage);
     },
-    onFinalTranscript() {
+    onFinalTranscript(transcript) {
       if (released) return;
       firstTurnSegments++;
-      if (armedAt) return;
-      armedAt = Date.now();
-      timer = setTimeout(() => open('timeout'), maxDeferMs);
+      if (!armedAt) {
+        armedAt = Date.now();
+        timer = setTimeout(() => open('timeout'), maxDeferMs);
+      }
+      if (hasSafetySignal(transcript, voiceEmotion())) open('safety');
     },
     onAgentState(newState) {
       if (armedAt && newState === 'speaking') open('speaking');
+    },
+    onCrisisDecision(action) {
+      if (action && action !== 'pass') open('crisis_gate');
     },
     dispose() {
       if (timer) clearTimeout(timer);

@@ -23,6 +23,7 @@ import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import type { UserData } from '../shared/types.js';
 import type { TurnHandlerContext } from '../voice-agent/turn-handler.js';
 import { getUserResponseGapMs } from '../voice-agent/user-response-gap.js';
+import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
 import { deferFirstTurn, firstTurnDeferEnabled } from './first-turn-defer.js';
 import { TURN_CONTEXT_HEADER } from './turn-context-header.js';
 
@@ -359,21 +360,27 @@ interface SessionEvents {
 
 /**
  * Feeds a pusher from the session's events; returns the function that detaches it.
- * FIRST_TURN_DEFER_BACKGROUND=on holds turn 1's build until Ferni speaks (first-turn-defer.ts).
+ * FIRST_TURN_DEFER_BACKGROUND=on holds turn 1's build until Ferni speaks, never
+ * on a turn with a crisis signal (first-turn-defer.ts).
  */
 export function attachTurnContextPusher(
   hook: UserTurnHook,
   agent: ContextAgent,
   session: SessionEvents,
-  env: Record<string, string | undefined> = process.env
+  options: { env?: Record<string, string | undefined>; userData?: unknown } = {}
 ): () => void {
-  const deferral = firstTurnDeferEnabled(env) ? deferFirstTurn(hook) : undefined;
+  const { env = process.env, userData } = options;
+  const deferral = firstTurnDeferEnabled(env)
+    ? deferFirstTurn(hook, {
+        voiceEmotion: () => (userData as { voiceEmotion?: unknown } | undefined)?.voiceEmotion,
+      })
+    : undefined;
   const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent);
   const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');
   const onTranscript = (event: unknown) => {
     const evt = event as { transcript?: string; isFinal?: boolean };
     if (!evt.isFinal || !evt.transcript?.trim()) return;
-    deferral?.onFinalTranscript();
+    deferral?.onFinalTranscript(evt.transcript);
     pusher.onFinalTranscript(evt.transcript).catch(failed);
   };
   const onAgentState = (event: unknown) => {
@@ -384,13 +391,18 @@ export function attachTurnContextPusher(
   const onUserState = (event: unknown) => {
     pusher.onUserState((event as { newState?: string }).newState).catch(failed);
   };
+  const onCrisis = (event: unknown) => {
+    deferral?.onCrisisDecision((event as { action?: string } | undefined)?.action);
+  };
   session.on?.('user_input_transcribed', onTranscript);
   session.on?.('agent_state_changed', onAgentState);
   session.on?.('user_state_changed', onUserState);
+  if (deferral) session.on?.(CRISIS_GATE_SIGNAL, onCrisis);
   return () => {
     session.off?.('user_input_transcribed', onTranscript);
     session.off?.('agent_state_changed', onAgentState);
     session.off?.('user_state_changed', onUserState);
+    if (deferral) session.off?.(CRISIS_GATE_SIGNAL, onCrisis);
     deferral?.dispose();
   };
 }

@@ -27,7 +27,7 @@ import {
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
+import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -40,6 +40,7 @@ import {
   toGuardVoiceEmotion,
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
+import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
@@ -238,6 +239,10 @@ export async function gatedReply(
   const { env = process.env } = options;
   const chatCtx = withoutPastLeadIns(request);
   const gate = startCrisisGate(chatCtx, session.userData, options);
+  signalCrisisDecision(session, gate?.decision.action);
+  gate?.escalation
+    ?.then((decision) => signalCrisisDecision(session, decision?.action))
+    .catch(() => undefined);
   if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn
