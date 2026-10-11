@@ -44,39 +44,6 @@ env:
 
 jobs:
   # ============================================================================
-  # CHANGES - what a PR touched. Docs-only PRs skip the heavy jobs; the merge
-  # queue and pushes always run everything.
-  # ============================================================================
-  # A required job is skipped with a job-level `if:` (a skipped job reports
-  # success), never a `paths:` filter (its check never reports, and the PR waits
-  # forever). The matrix job is the exception, see test-integration.
-  changes:
-    name: Detect Changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      # Anything but docs/, scripts/voice-eval/ and markdown outside the code
-      # trees (persona bundles load .md at runtime, so src/**/*.md is code)
-      code: ${{ steps.code.outputs.matched }}
-      # voice-eval scripts are tested by Unit Tests (src/tests/voice-eval)
-      voice-eval: ${{ steps.voice-eval.outputs.matched }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          sparse-checkout: .github/actions
-      - id: code
-        uses: ./.github/actions/pr-changes
-        with:
-          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$'
-      - id: voice-eval
-        uses: ./.github/actions/pr-changes
-        with:
-          include: '^scripts/voice-eval/'
-
-  # ============================================================================
   # SETUP - Shared dependency installation and caching
   # ============================================================================
   # runs-on comes from the CI_RUNNER repo variable (a JSON label list), falling back
@@ -89,29 +56,54 @@ jobs:
   # Deploys never run on it: deploy-gce.yml is GitHub-hosted, because PR code on
   # that VM has docker (root) access and must not share a host with deploy
   # credentials. The VM's identity is github-runner-ci (log/metric write only).
+  #
+  # Setup also decides what a PR touched. Docs-only PRs skip the heavy jobs; the
+  # merge queue and pushes always run everything. A required job is skipped with
+  # a job-level `if:` (a skipped job reports success), never a `paths:` filter
+  # (its check never reports and the PR waits forever). The integration matrix is
+  # the exception, see test-integration.
   setup:
     name: Setup & Cache Dependencies
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
-    needs: changes
-    # Fails closed: if Detect Changes fails, its outputs are empty and everything runs.
-    if: ${{ !cancelled() && (needs.changes.outputs.code != 'false' || needs.changes.outputs.voice-eval == 'true') }}
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       cache-key: ${{ steps.cache-key.outputs.key }}
+      # 'false' only when a PR touches nothing but docs/, scripts/voice-eval/ and
+      # markdown outside the code trees (persona bundles load src/**/*.md at runtime)
+      code: ${{ steps.code.outputs.matched }}
+      # voice-eval scripts are tested by Unit Tests (src/tests/voice-eval)
+      voice-eval: ${{ steps.voice-eval.outputs.matched }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Did code change?
+        id: code
+        uses: ./.github/actions/pr-changes
+        with:
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$'
+
+      - name: Did voice-eval scripts change?
+        id: voice-eval
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^scripts/voice-eval/'
 
       - name: Generate cache key
         id: cache-key
         run: echo "key=node-modules-${{ hashFiles('pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js and pnpm
+        if: steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true'
         uses: ./.github/actions/setup-node-pnpm
         with:
           frozen-lockfile: 'false'
 
       - name: Verify installation success
+        if: steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true'
         run: |
           if [ ! -d "node_modules" ]; then
             echo "❌ node_modules not found - install failed"
@@ -120,6 +112,7 @@ jobs:
           echo "✅ node_modules verified"
 
       - name: Save node_modules cache
+        if: steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true'
         uses: actions/cache/save@v6
         with:
           path: |
@@ -135,8 +128,8 @@ jobs:
     name: Lint & Type Check
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
-    needs: [changes, setup]
-    if: ${{ !cancelled() && needs.setup.result == 'success' && needs.changes.outputs.code != 'false' }}
+    needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -188,8 +181,8 @@ jobs:
     # 20 -> 35: the first run compiles the rust-perf binding from scratch on top of
     # an ~8 min test run. Cached cargo brings later runs back near the old budget.
     timeout-minutes: 35
-    needs: [changes, setup]
-    if: ${{ !cancelled() && needs.setup.result == 'success' }}
+    needs: setup
+    if: needs.setup.outputs.code != 'false' || needs.setup.outputs.voice-eval == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -309,11 +302,10 @@ jobs:
     name: Integration Tests (${{ matrix.shard }}/3)
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
-    needs: [changes, setup]
-    # Never skipped as a job: a skipped matrix job reports one check named
-    # "Integration Tests (${{ matrix.shard }}/3)", so the three required
-    # checks would never report. It runs, and its steps skip on a docs-only PR.
-    if: ${{ !cancelled() && needs.setup.result != 'failure' }}
+    needs: setup
+    # No job-level `if:`: a skipped matrix job reports one check named
+    # "Integration Tests (${{ matrix.shard }}/3)", so the three required checks
+    # would never report. It always runs; its steps skip on a docs-only PR.
     # Since the repo went private (2026-09-27) its runners are smaller: the
     # suite ran at ~1 worker and passed 30 minutes, where it took ~11 before.
     # Three shards in parallel cost about the same minutes and finish sooner.
@@ -323,21 +315,21 @@ jobs:
         shard: [1, 2, 3]
     steps:
       - name: Checkout
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         uses: actions/checkout@v7
 
       - name: Setup pnpm
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         id: nm-cache
         uses: actions/cache/restore@v6
         with:
@@ -352,17 +344,17 @@ jobs:
       # and cache eviction (10 GB repo limit) both leave it missing; install
       # instead of failing a job that has nothing wrong with it.
       - name: Install dependencies (node_modules cache miss)
-        if: needs.changes.outputs.code != 'false' && (steps.nm-cache.outputs.cache-hit != 'true')
+        if: needs.setup.outputs.code != 'false' && (steps.nm-cache.outputs.cache-hit != 'true')
         run: pnpm install --no-frozen-lockfile
 
       # memory-persistence loads the native vector accelerator (loadRustPerf
       # throws without it); see the same steps in Unit Tests for why.
       - name: Setup Rust (for the @ferni/perf native binding)
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable @ 2026-09-25
 
       - name: Cache cargo + native targets
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         uses: actions/cache@v6
         with:
           path: |
@@ -376,34 +368,34 @@ jobs:
             ${{ runner.os }}-native-
 
       - name: Build @ferni/perf native binding
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         working-directory: apps/rust-perf
         run: |
           pnpm install
           pnpm exec napi build --platform
 
       - name: Check @ferni/perf loads
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         run: node -e "require('./apps/rust-perf')"
 
       # speech-modules runs the audio-prosody analyzer, which needs this binding
       # (no JS fallback). The repo only has the darwin-arm64 build, so on Linux
       # it failed with "Cannot find module '@ferni/audio-linux-x64-gnu'".
       - name: Build @ferni/audio native binding
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         working-directory: apps/rust-audio
         run: |
           pnpm install
           pnpm exec napi build --platform
 
       - name: Check @ferni/audio loads
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         run: node -e "require('./apps/rust-audio')"
 
       # Blocking. It ran with continue-on-error, so 13 tests could fail on every
       # run of main and the job still showed green.
       - name: Run integration tests
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         # No `--`: pnpm would pass it through and vitest ignores every flag after it.
         run: pnpm test:integration --shard=${{ matrix.shard }}/3 --reporter=verbose
         env:
@@ -420,7 +412,7 @@ jobs:
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Check coverage threshold
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         run: |
           # Extract coverage percentage from coverage summary
           COVERAGE=$(cat coverage/coverage-summary.json 2>/dev/null | grep -o '"pct":[0-9.]*' | head -1 | grep -o '[0-9.]*' || echo "0")
@@ -434,7 +426,7 @@ jobs:
 
       - name: Upload integration coverage
         uses: codecov/codecov-action@v7
-        if: always() && needs.changes.outputs.code != 'false'
+        if: always() && needs.setup.outputs.code != 'false'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
@@ -448,8 +440,8 @@ jobs:
     name: AGI Feature Tests
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
-    needs: [changes, setup]
-    if: ${{ !cancelled() && needs.setup.result == 'success' && needs.changes.outputs.code != 'false' }}
+    needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -557,10 +549,9 @@ jobs:
     name: Security Scan
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
-    needs: [changes, setup]
+    needs: setup
     # Runs on every PR (the secret scan covers docs too); dependency steps skip
     # when no code changed, since the lockfile is then main's.
-    if: ${{ !cancelled() && needs.setup.result != 'failure' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -574,7 +565,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         id: nm-cache
         uses: actions/cache/restore@v6
         with:
@@ -589,11 +580,11 @@ jobs:
       # and cache eviction (10 GB repo limit) both leave it missing; install
       # instead of failing a job that has nothing wrong with it.
       - name: Install dependencies (node_modules cache miss)
-        if: needs.changes.outputs.code != 'false' && (steps.nm-cache.outputs.cache-hit != 'true')
+        if: needs.setup.outputs.code != 'false' && (steps.nm-cache.outputs.cache-hit != 'true')
         run: pnpm install --no-frozen-lockfile
 
       - name: Run pnpm audit
-        if: needs.changes.outputs.code != 'false'
+        if: needs.setup.outputs.code != 'false'
         run: pnpm audit --audit-level=high || echo "⚠️ Security vulnerabilities found - review required"
 
       # trufflehog is pinned to an immutable commit SHA, not @main: a mutable ref
@@ -636,8 +627,8 @@ jobs:
     name: Code Quality Metrics
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
-    needs: [changes, setup]
-    if: ${{ !cancelled() && needs.setup.result == 'success' && needs.changes.outputs.code != 'false' }}
+    needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -681,8 +672,8 @@ jobs:
     name: Quality Gates (Blocking)
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
-    needs: [changes, setup]
-    if: ${{ !cancelled() && needs.setup.result == 'success' && needs.changes.outputs.code != 'false' }}
+    needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -732,8 +723,8 @@ jobs:
     name: Validation Checks
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
-    needs: [changes, setup]
-    if: ${{ !cancelled() && needs.setup.result == 'success' && needs.changes.outputs.code != 'false' }}
+    needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -779,8 +770,8 @@ jobs:
     name: E2E Validation
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
-    needs: [changes, setup]
-    if: ${{ !cancelled() && needs.setup.result == 'success' && needs.changes.outputs.code != 'false' }}
+    needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -852,8 +843,8 @@ jobs:
     name: Frontend Quality
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
-    needs: [changes, setup]
-    if: ${{ !cancelled() && needs.setup.result == 'success' && needs.changes.outputs.code != 'false' }}
+    needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -932,8 +923,8 @@ jobs:
     name: Dependency Check
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 10
-    needs: [changes, setup]
-    if: ${{ !cancelled() && needs.setup.result == 'success' && needs.changes.outputs.code != 'false' }}
+    needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
