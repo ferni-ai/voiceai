@@ -337,131 +337,10 @@ const DEFAULT_FLAGS: FeatureFlags = {
 };
 
 // ============================================================================
-// ENVIRONMENT VARIABLE MAPPING
-// ============================================================================
-
-/**
- * Map environment variables to feature flag paths
- */
-const ENV_MAPPINGS: Record<string, string> = {
-  // Debug flags
-  DEBUG_AGENT: 'debug.agent',
-  DEBUG_HUMANIZING: 'debug.humanizing',
-  DEBUG_MEMORY: 'debug.memory',
-  DEBUG_TOOLS: 'debug.tools',
-  DEBUG_HANDOFF: 'debug.handoff',
-  DEBUG_AUDIO: 'debug.audio',
-  DEBUG_MUSIC: 'debug.music',
-  DEBUG_ITUNES: 'debug.itunes',
-
-  // Humanization
-  HUMANIZATION_ENABLED: 'humanization.enabled',
-  ENABLE_DISFLUENCIES: 'humanization.disfluencies',
-  ENABLE_BACKCHANNELS: 'humanization.backchannels',
-  ENABLE_EMOTION_MATCHING: 'humanization.emotionMatching',
-
-  // Experimental
-  EXPERIMENTAL_SESSION_CONTEXT: 'experimental.sessionContext',
-  ENABLE_AB_TESTING: 'experimental.abTesting',
-  ENABLE_VOICE_EMOTION: 'experimental.voiceEmotionDetection',
-  ENABLE_GEMINI_EMOTION: 'experimental.geminiEmotionAnalysis',
-  USE_PRE_STT_PROCESSING: 'experimental.preSTTAudioProcessing',
-
-  // Audio
-  ENABLE_MUSIC: 'audio.musicEnabled',
-  ENABLE_AMBIENT: 'audio.ambientSounds',
-
-  // Integrations
-  ENABLE_SPOTIFY: 'integrations.spotify',
-  ENABLE_GOOGLE_CALENDAR: 'integrations.googleCalendar',
-  ENABLE_EMAIL: 'integrations.email',
-  ENABLE_PUSH_NOTIFICATIONS: 'integrations.pushNotifications',
-
-  // EvalOps
-  EVALOPS_ENABLED: 'evalops.enabled',
-  EVALOPS_AUTO_SAMPLING: 'evalops.autoSampling',
-  EVALOPS_VOICE_CHECKS: 'evalops.voiceChecks',
-  EVALOPS_LLM_EVALUATION: 'evalops.llmEvaluation',
-  EVALOPS_SCHEDULED_SUITES: 'evalops.scheduledSuites',
-  EVALOPS_ALERTING: 'evalops.alerting',
-  EVALOPS_SAMPLE_RATE: 'evalops.sampleRate',
-
-  // Personal Journey Awareness
-  PERSONAL_JOURNEY_ENABLED: 'personalJourney.enabled',
-  PERSONAL_JOURNEY_RHYTHM: 'personalJourney.rhythmAwareness',
-  PERSONAL_JOURNEY_SEASONAL: 'personalJourney.seasonalMemory',
-  PERSONAL_JOURNEY_CHAPTERS: 'personalJourney.chapterDetection',
-  PERSONAL_JOURNEY_WISDOM: 'personalJourney.communityWisdom',
-  PERSONAL_JOURNEY_GREETINGS: 'personalJourney.greetingEnhancement',
-  PERSONAL_JOURNEY_ROLLOUT: 'personalJourney.rolloutPercent',
-
-  // Life Coach Domains
-  LIFE_COACH_DOMAINS_ENABLED: 'lifeCoachDomains.enabled',
-  LIFE_COACH_CRISIS: 'lifeCoachDomains.crisis',
-  LIFE_COACH_HEALTH: 'lifeCoachDomains.health',
-  LIFE_COACH_CAREER: 'lifeCoachDomains.career',
-  LIFE_COACH_DECISIONS: 'lifeCoachDomains.decisions',
-  LIFE_COACH_FAMILY: 'lifeCoachDomains.family',
-  LIFE_COACH_HOME: 'lifeCoachDomains.home',
-  LIFE_COACH_LEARNING: 'lifeCoachDomains.learning',
-  LIFE_COACH_CREATIVITY: 'lifeCoachDomains.creativity',
-  LIFE_COACH_COMMUNITY: 'lifeCoachDomains.community',
-  LIFE_COACH_LEGAL_ADMIN: 'lifeCoachDomains.legalAdmin',
-  LIFE_COACH_ANALYTICS: 'lifeCoachDomains.analytics',
-
-  // Outreach
-  OUTREACH_ENABLED: 'outreach.enabled',
-  OUTREACH_TRIGGER_CREATION: 'outreach.triggerCreation',
-  OUTREACH_SYSTEM_INIT: 'outreach.systemInitialization',
-  OUTREACH_TRIGGER_PROCESSING: 'outreach.triggerProcessing',
-  OUTREACH_DELIVERY: 'outreach.delivery',
-
-  // Easter Eggs
-  EASTER_EGGS_ENABLED: 'easterEggs.enabled',
-  EASTER_EGGS_HOLIDAYS: 'easterEggs.holidayGreetings',
-  EASTER_EGGS_SEASONAL: 'easterEggs.seasonalMessages',
-  EASTER_EGGS_ACHIEVEMENTS: 'easterEggs.achievements',
-  EASTER_EGGS_RANDOM: 'easterEggs.randomMoments',
-};
-
-// ============================================================================
 // IMPLEMENTATION
 // ============================================================================
 
 let cachedFlags: FeatureFlags | null = null;
-
-/**
- * Parse a string value to boolean
- */
-function parseBoolean(value: string | undefined): boolean | undefined {
-  if (value === undefined || value === '') return undefined;
-  const lower = value.toLowerCase();
-  if (lower === 'true' || lower === '1' || lower === 'yes') return true;
-  if (lower === 'false' || lower === '0' || lower === 'no') return false;
-  return undefined;
-}
-
-/**
- * Set a nested value in an object using dot notation path
- */
-function setNestedValue(obj: Record<string, any>, path: string, value: boolean): void {
-  const parts = path.split('.');
-  let current = obj;
-
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-    if (!part) continue; // Guard for noUncheckedIndexedAccess
-    if (!(part in current)) {
-      current[part] = {};
-    }
-    current = current[part];
-  }
-
-  const lastPart = parts[parts.length - 1];
-  if (lastPart) {
-    current[lastPart] = value;
-  }
-}
 
 /**
  * Get a nested value from an object using dot notation path
@@ -479,29 +358,13 @@ function getNestedValue(obj: Record<string, any>, path: string): boolean | undef
 }
 
 /**
- * Load feature flags from defaults and environment
+ * The flags are the defaults above. They used to be overridable by 58 env vars
+ * (DEBUG_AGENT, ENABLE_MUSIC, OUTREACH_DELIVERY, ...) that were never set in
+ * any environment (flag audit 2026-10-11), so they are constants now. Change a
+ * default here, or use setFeatureFlagsForTesting in tests.
  */
 function loadFeatureFlags(): FeatureFlags {
-  // Start with defaults
-  const flags: FeatureFlags = structuredClone(DEFAULT_FLAGS);
-
-  // Override from environment variables
-  let overrideCount = 0;
-  for (const [envVar, path] of Object.entries(ENV_MAPPINGS)) {
-    const envValue = process.env[envVar];
-    const boolValue = parseBoolean(envValue);
-
-    if (boolValue !== undefined) {
-      setNestedValue(flags as Record<string, any>, path, boolValue);
-      overrideCount++;
-    }
-  }
-
-  if (overrideCount > 0) {
-    getLogger().debug({ overrideCount }, 'Feature flags loaded with environment overrides');
-  }
-
-  return flags;
+  return structuredClone(DEFAULT_FLAGS);
 }
 
 /**
@@ -558,8 +421,7 @@ export function isExperimentalEnabled(feature: keyof FeatureFlags['experimental'
 }
 
 /**
- * Force reload feature flags from environment
- * Useful for testing or when environment changes
+ * Drop runtime overrides and start again from the defaults
  */
 export function reloadFeatureFlags(): FeatureFlags {
   cachedFlags = null;
@@ -807,10 +669,7 @@ export function emergencyDisablePersonalJourney(reason: string): void {
 // ============================================================================
 
 export type OutreachFeature =
-  | 'triggerCreation'
-  | 'systemInitialization'
-  | 'triggerProcessing'
-  | 'delivery';
+  'triggerCreation' | 'systemInitialization' | 'triggerProcessing' | 'delivery';
 
 /**
  * Check if outreach system is enabled
@@ -854,10 +713,7 @@ export function isOutreachSystemInitEnabled(): boolean {
 // ============================================================================
 
 export type EasterEggFeature =
-  | 'holidayGreetings'
-  | 'seasonalMessages'
-  | 'achievements'
-  | 'randomMoments';
+  'holidayGreetings' | 'seasonalMessages' | 'achievements' | 'randomMoments';
 
 /**
  * Check if easter eggs are enabled
