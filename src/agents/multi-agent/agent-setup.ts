@@ -74,6 +74,8 @@ import {
   memoryRecallMode,
   type RecallAgent,
 } from './memory-recall-hook.js';
+import { contextPacketEnabled } from '../../config/context-packet-flag.js';
+import { rememberForPacket } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
@@ -1660,7 +1662,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
       const evt = event as { transcript?: string };
       if (!evt.transcript) return;
       const note = recall.noteFor(evt.transcript);
-      if (note) addRecallNote(agent as unknown as RecallAgent, note);
+      const pick = note && contextPacketEnabled() ? recall.lastPick() : null;
+      // CONTEXT_PACKET=on: kept typed for the turn's packet (turn-request.ts), not added to the chat.
+      if (pick) rememberForPacket(session, pick, userData.userName);
+      else if (note) addRecallNote(agent as unknown as RecallAgent, note);
     };
     const onRecallAgentState = (event: unknown) => {
       if ((event as { newState?: string }).newState === 'speaking') recall.newTurn();

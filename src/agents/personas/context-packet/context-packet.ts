@@ -36,14 +36,23 @@ export const SECTION_BUDGETS: Readonly<Record<SectionName, number>> = {
   what_ive_promised: 100,
   // The per-turn shape reminder alone is ~575 tokens (turn-shape.ts) and must fit.
   this_turn: 800,
-  team: 100,
+  // The team-by-need roster alone is ~100 tokens, ~140 with the investing legends.
+  team: 200,
   data: 400,
 };
 
 export const PACKET_HEADER =
   '[Context for this reply, assembled by the app, not said by the caller. Sources are labelled: when they ask how you know something, say where it came from.]';
 
-export type Source = 'caller-said' | 'noticed' | 'unconfirmed' | 'i-said';
+/** 'thread': open from a past call; 'my-news': the persona's news since then (life-updates.ts). */
+export type Source = 'caller-said' | 'noticed' | 'unconfirmed' | 'i-said' | 'thread' | 'my-news';
+
+/** How to use what's remembered: the rules each recall note carried (session-recall.ts, life-ledger.ts). */
+export const MEMORY_RULE =
+  "How to use these: they're from past calls, not this one; use at most one, only if it fits. Dates inside a memory are as of when it was said; anything that could have changed, check instead of asserting. Never bring up health, pregnancy, money or relationships unless they do. Never list these, say you looked them up, or make up a different event in your own life.";
+/** The coach's rule for what they said they'd do (commitment-follow-up.ts). */
+export const PROMISE_RULE =
+  "Early in the call, unless you already asked or they're not up for it, ask how one went, by name, once, like a friend rooting for them; skip anything that sounded offhand.";
 
 export interface KnownFact {
   id?: string;
@@ -83,8 +92,10 @@ export interface PacketInput {
   memories?: KnownFact[];
   commitments?: Commitment[];
   guidance?: GuidanceNote[];
-  /** The team-by-need line; shown only when relevant. */
-  team?: { note: string; relevant: boolean };
+  /** This reply's shape (turn-shape.ts): the last line of This turn, outside the 3-note cap. */
+  shape?: string;
+  /** The team lines (who's available, misheard names, who helps with what); only when relevant. */
+  team?: { note: string | readonly string[]; relevant: boolean };
   untrusted?: UntrustedItem[];
   /** For dates: now, and the caller's IANA timezone (UTC when unknown). */
   now: number;
@@ -136,7 +147,7 @@ export function formatDate(iso: string | undefined, now: number, timeZone = 'UTC
   });
 }
 
-/** "(you told me on Oct 10)", "(Maya noticed on Oct 9)", "(unconfirmed)", "(I told you on Oct 1)". */
+/** "(you told me/Maya on Oct 10)" when who heard it is known, else "(you said on Oct 10)". */
 export function provenanceLabel(
   fact: KnownFact,
   persona: string,
@@ -148,11 +159,15 @@ export function provenanceLabel(
   const byOther = fact.learnedBy && fact.learnedBy !== persona ? fact.learnedBy : null;
   switch (fact.source) {
     case 'caller-said':
-      return `(you told ${byOther ?? 'me'}${on})`;
+      return fact.learnedBy ? `(you told ${byOther ?? 'me'}${on})` : `(you said${on})`;
     case 'noticed':
       return `(${byOther ?? 'I'} noticed${on})`;
+    case 'thread':
+      return `(open from a past call${date ? `, ${date}` : ''})`;
     case 'i-said':
       return `(${byOther ?? 'I'} told you${on})`;
+    case 'my-news':
+      return "(new for me since we last talked; share only if they ask how I've been)";
     default:
       return `(unconfirmed${date ? `, from ${date}` : ''})`;
   }
@@ -164,9 +179,14 @@ interface Built {
   dropped: number;
 }
 
-/** Keep lines in order while they fit the section's budget. */
-function fit(name: SectionName, lines: Line[], dropped: PacketAccounting['dropped']): Built {
-  let left = SECTION_BUDGETS[name] * 4 - HEADINGS[name].length;
+/** Keep lines in order while they fit the section's budget, less `reserve` chars kept for later. */
+function fit(
+  name: SectionName,
+  lines: Line[],
+  dropped: PacketAccounting['dropped'],
+  reserve = 0
+): Built {
+  let left = SECTION_BUDGETS[name] * 4 - HEADINGS[name].length - reserve;
   const kept: string[] = [];
   let lost = 0;
   for (const line of lines) {
@@ -184,6 +204,9 @@ function fit(name: SectionName, lines: Line[], dropped: PacketAccounting['droppe
 }
 
 const bullet = (text: string): string => `- ${text}`;
+/** A section's rule leads it, so the budget keeps it; no lines, no rule. */
+const withRule = (rule: string, lines: Line[]): Line[] =>
+  lines.length ? [{ text: rule }, ...lines] : [];
 interface Line {
   text: string;
   id?: string;
@@ -207,7 +230,9 @@ export function assembleContextPacket(input: PacketInput): ContextPacket {
   const at = input.rightNow ?? {};
   const ranked = rankGuidance(input.guidance ?? []);
   const { team } = input;
-  if (team?.note && !team.relevant) dropped.push({ section: 'team', reason: 'irrelevant' });
+  const teamLines = [team?.note ?? []].flat().filter(Boolean);
+  if (teamLines.length > 0 && !team?.relevant)
+    dropped.push({ section: 'team', reason: 'irrelevant' });
   const facts = (list: KnownFact[] | undefined, section: SectionName): Line[] =>
     live(list, section).map((f) => ({ text: bullet(label(f)), id: f.id }));
   const promise = (c: Commitment): Line => {
@@ -231,16 +256,22 @@ export function assembleContextPacket(input: PacketInput): ContextPacket {
       ...opt(at.turnInCall !== undefined && `Turn ${at.turnInCall} of this call${minutes}`),
       ...(at.justHappened ?? []).flatMap((t) => opt(t)),
     ],
-    what_i_remember: facts(input.memories, 'what_i_remember'),
-    what_ive_promised: (input.commitments ?? []).map(promise),
+    what_i_remember: withRule(MEMORY_RULE, facts(input.memories, 'what_i_remember')),
+    what_ive_promised: withRule(PROMISE_RULE, (input.commitments ?? []).map(promise)),
     this_turn: ranked.kept.map((n) => ({ text: bullet(n.text), id: n.id })),
-    team: team?.note && team.relevant ? [{ text: team.note }] : [],
+    team: team?.relevant ? teamLines.map((text) => ({ text })) : [],
   };
-  const built = (Object.keys(HEADINGS) as SectionName[]).map((name) =>
-    name === 'data'
-      ? dataSection(input.untrusted ?? [], dropped)
-      : fit(name, content[name], dropped)
-  );
+  // The reply's shape closes This turn, outside the note cap, its room kept first.
+  const shape = opt(input.shape && oneLine(input.shape)).map((l) => ({ ...l, id: 'shape' }));
+  const room = shape.length ? shape[0].text.length + 1 : 0;
+  const built = (Object.keys(HEADINGS) as SectionName[]).map((name) => {
+    if (name === 'data') return dataSection(input.untrusted ?? [], dropped);
+    if (name !== 'this_turn') return fit(name, content[name], dropped);
+    const notes = fit(name, content.this_turn, dropped, room);
+    const used = notes.lines.reduce((n, l) => n + l.length + 1, 0);
+    const last = fit(name, shape, dropped, used);
+    return { name, lines: [...notes.lines, ...last.lines], dropped: notes.dropped + last.dropped };
+  });
 
   // A guidance note the budget cut is a dropped note too.
   const guidanceDropped = [...ranked.dropped];
