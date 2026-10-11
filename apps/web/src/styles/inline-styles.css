@@ -3832,7 +3832,9 @@ body {
 
 .avatar-lid-overlay .lid-top,
 .avatar-lid-overlay .lid-bottom {
-  fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520)); /* a shade of the face, not the page: a page-colored lid cut a crescent out of the avatar */
+  /* The lids take the page colour on purpose: the light lid dropping over the eyes is the
+     "cap" that carries the expression (Seth, 2026-10-11). Don't recolour it to the face. */
+  fill: var(--color-background-primary, #1a1612);
   transition: d 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -3872,7 +3874,7 @@ body {
 [data-theme='dark'] .avatar-lid-overlay .lid-bottom,
 [data-theme='dark'] .avatar-lid-overlay .brow-left,
 [data-theme='dark'] .avatar-lid-overlay .brow-right {
-  fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520));
+  fill: var(--color-background-primary, #352e28);
 }
 
 /* Reduced motion - disable lid transitions */
