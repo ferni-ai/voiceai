@@ -574,9 +574,10 @@ describe('E2E Insight Flow', () => {
     expect(insight.id).toBeDefined();
     expect(insight.priority).toBe('high');
 
-    // Verify broadcast was triggered (may or may not have events depending on monitoring state)
-    // The important thing is that the function doesn't throw
-    expect(Array.isArray(broadcastEvents)).toBe(true);
+    // The publisher and the websocket share one broadcast, so the event arrives.
+    expect(broadcastEvents).toContainEqual(
+      expect.objectContaining({ type: 'new_insight', userId, insight: insight })
+    );
 
     unsubscribe();
   });

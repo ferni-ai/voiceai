@@ -1,0 +1,13 @@
+# Transfers by voice to every teammate, a Partner caller (run with EVAL_TIER=partner,
+# so the whole team is open). Ferni → Maya, teammate → teammate along the team, then
+# back to Ferni. Recorded with converse.mjs's `data` (handoff_started / _complete /
+# _failed) and `from` on captions. A pass: each ask is followed by handoff_complete to
+# that teammate and the next reply comes from them; no handoff_failed. Names come as a
+# caller says them, "Naya" included (STT drops Nayan's last n).
+Hey Ferni. Can I talk to Maya about my mornings?
+Hi Maya. Quick one: can you put Peter on? I have a question about a stock.
+Hey Peter. Actually, could you hand me over to Alex? I need help with an email.
+Hi Alex. Thanks. Can I talk to Jordan now? I'm planning a birthday.
+Hey Jordan. Okay, last one. Can I talk to Naya?
+Hi Nayan. That's all I needed. Can you take me back to Ferni?
+Thanks Ferni. That's everyone. Bye for now.

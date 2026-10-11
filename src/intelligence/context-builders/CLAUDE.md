@@ -72,53 +72,9 @@ Context builders inject guidance into each conversation turn. They analyze the c
 
 ---
 
-## Quick Start: Creating a BEHAVIORAL Builder (Preferred)
+## Behavioral Builders (none run today)
 
-The behavioral system is architecturally superior - it can't leak. **Use this for new builders.**
-
-```typescript
-// behavioral/builders/my-feature.behavioral.ts
-import type { ContextBuilderInput } from '../../core/types.js';
-import type { BehavioralSignals } from '../signals.js';
-import { registerBehavioralBuilder } from '../orchestrator.js';
-
-async function buildMyFeatureBehavior(input: ContextBuilderInput): Promise<BehavioralSignals> {
-  const { userText, analysis, userData, persona } = input;
-
-  // Analyze context...
-  // Return BEHAVIORAL signals, NOT facts about the user
-
-  return {
-    source: 'my-feature',
-    confidence: 0.8,
-    priority: 50,
-
-    // ✅ GOOD: Behavioral guidance
-    tone: 'warm',
-    style: 'exploratory',
-    
-    // ✅ GOOD: Behavioral hints (no raw facts)
-    callbacks: [{
-      type: 'pattern',
-      hint: 'They seem interested in exploring this further.',
-      strength: 'natural',
-    }],
-
-    // ❌ BAD: This would leak raw facts
-    // callbacks: [{ hint: 'User mentioned divorce on Dec 15th' }],
-  };
-}
-
-registerBehavioralBuilder({
-  name: 'my-feature',
-  description: 'What this builder does',
-  priority: 50, // 0=runs first, 100=runs last
-  category: 'category-name',
-  build: buildMyFeatureBehavior,
-});
-```
-
-**Key Rule:** Return signals about **HOW to behave**, never facts about the user.
+The ten `behavioral/builders/*.behavioral.ts` files were never imported on the live path, so they were deleted with the builder registry (2026-10). `buildIntegratedContext` emits the default style directive plus awareness facts and tool guidance. See `behavioral/README.md` before adding behavioral signals: it changes prompt text, so it needs a flag and a voice eval.
 
 ---
 
