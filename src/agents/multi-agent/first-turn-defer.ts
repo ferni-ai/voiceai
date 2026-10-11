@@ -38,7 +38,7 @@
  */
 
 import { setImmediate } from 'node:timers';
-import { isUsingOpenAI } from '../../config/model-provider-config.js';
+import { getProviderIdSync } from '../../config/model-provider-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
 import {
@@ -58,16 +58,16 @@ export const SESSION_END_WAIT_MS = 3000;
 
 /**
  * On by flag, only while CrisisGate decides each reply's crisis handling live,
- * which needs the llmNode path: the OpenAI Realtime model replies without it.
+ * which needs the cascade's llmNode path: the realtime models (OpenAI
+ * Realtime, Gemini Live, Gemini native audio) reply without it.
  */
 export function firstTurnDeferEnabled(
-  env: Record<string, string | undefined> = process.env,
-  usingOpenAI: () => boolean = isUsingOpenAI
+  env: Record<string, string | undefined> = process.env
 ): boolean {
   return (
     env.FIRST_TURN_DEFER_BACKGROUND === 'on' &&
     resolveCrisisGuardMode(env) === 'live' &&
-    !usingOpenAI()
+    getProviderIdSync(env) === 'cartesia-cascade'
   );
 }
 

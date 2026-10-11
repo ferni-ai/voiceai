@@ -14,21 +14,20 @@
  * Supported model provider identifiers (must stay in sync with agents/model-provider/types.ts)
  */
 export type ModelProviderIdSync =
-  | 'cartesia-cascade'
-  | 'gemini-native-audio'
-  | 'openai-realtime'
-  | 'gemini-live';
+  'cartesia-cascade' | 'gemini-native-audio' | 'openai-realtime' | 'gemini-live';
 
 /**
  * Get the active provider ID from environment only (no singleton, no agent code).
  *
  * Use from domain layers when you only need to know which provider is configured.
  */
-export function getProviderIdSync(): ModelProviderIdSync {
-  if (process.env.USE_OPENAI_REALTIME === 'true') return 'openai-realtime';
+export function getProviderIdSync(
+  env: Record<string, string | undefined> = process.env
+): ModelProviderIdSync {
+  if (env.USE_OPENAI_REALTIME === 'true') return 'openai-realtime';
   // Keep in step with agents/model-provider/factory.ts getProviderIdSync.
-  if (process.env.VOICE_PIPELINE === 'gemini-native-audio') return 'gemini-native-audio';
-  return process.env.VOICE_PIPELINE === 'gemini-live' ? 'gemini-live' : 'cartesia-cascade';
+  if (env.VOICE_PIPELINE === 'gemini-native-audio') return 'gemini-native-audio';
+  return env.VOICE_PIPELINE === 'gemini-live' ? 'gemini-live' : 'cartesia-cascade';
 }
 
 /**

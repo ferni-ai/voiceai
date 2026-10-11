@@ -62,9 +62,11 @@ describe('firstTurnDeferEnabled', () => {
     expect(firstTurnDeferEnabled({ ...ON, CRISIS_GUARD_MODE: 'off' })).toBe(false);
   });
 
-  it('is off on the OpenAI Realtime path, which replies without llmNode and CrisisGate', () => {
-    expect(firstTurnDeferEnabled(ON, () => false)).toBe(true);
-    expect(firstTurnDeferEnabled(ON, () => true)).toBe(false);
+  it('is on only on the cascade path: the realtime models skip llmNode and CrisisGate', () => {
+    expect(firstTurnDeferEnabled({ ...ON, VOICE_PIPELINE: 'cartesia-cascade' })).toBe(true);
+    expect(firstTurnDeferEnabled({ ...ON, USE_OPENAI_REALTIME: 'true' })).toBe(false);
+    expect(firstTurnDeferEnabled({ ...ON, VOICE_PIPELINE: 'gemini-live' })).toBe(false);
+    expect(firstTurnDeferEnabled({ ...ON, VOICE_PIPELINE: 'gemini-native-audio' })).toBe(false);
   });
 });
 
