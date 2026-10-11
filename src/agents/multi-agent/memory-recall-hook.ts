@@ -60,6 +60,7 @@ import {
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { forgottenTopics } from '../../memory/recall/forget.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -69,6 +70,7 @@ export function memoryRecallMode(env: Record<string, string | undefined> = proce
 
 /** Reads the collections the live pipeline writes. Plain queries: no composite index needed. */
 export const firestoreRecallStore: RecallStore = {
+  forgotten: (userId) => forgottenTopics(userId),
   async facts(userId) {
     const db = getFirestoreDb();
     if (!db) return [];
