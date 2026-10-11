@@ -34,7 +34,7 @@ jobs:
   # ============================================================================
   context:
     name: Determine Context
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     outputs:
       branch: ${{ steps.branch.outputs.name }}
       short_sha: ${{ steps.branch.outputs.short_sha }}
@@ -110,7 +110,7 @@ jobs:
   # ============================================================================
   build:
     name: Build & Test
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: context
     # Required check: skipped (which reports success) on a docs-only PR, never
     # filtered out by `paths:`, which would leave it pending forever.
@@ -353,7 +353,7 @@ jobs:
   # ============================================================================
   smoke-tests:
     name: Smoke Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: [context, deploy-staging]
     
     steps:
