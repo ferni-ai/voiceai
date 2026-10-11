@@ -8,3 +8,4 @@
  * @module agents/after-call-register
  */
 import '../intelligence/world-model/extraction/register.js';
+import '../services/outreach/after-call-checkin-register.js';
