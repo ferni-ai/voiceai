@@ -40,8 +40,10 @@ concurrency:
 
 jobs:
   benchmark:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: BTH Capability Benchmark
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     # The repo's default token is read-only; this job's PR comment step needs write.
     permissions:
       contents: read
@@ -195,8 +197,8 @@ jobs:
   notify:
     name: Notify Results
     needs: benchmark
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.notify_on_success == 'true')
+    runs-on: ubuntu-latest
+    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.notify_on_success == 'true')) }}
 
     steps:
       - name: Send Slack Notification (Regression)
@@ -324,8 +326,8 @@ jobs:
   store-history:
     name: Store Benchmark History
     needs: benchmark
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
-    if: github.event_name == 'schedule' && needs.benchmark.outputs.has_regressions != 'true'
+    runs-on: ubuntu-latest
+    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event_name == 'schedule' && needs.benchmark.outputs.has_regressions != 'true') }}
 
     steps:
       - name: Checkout
