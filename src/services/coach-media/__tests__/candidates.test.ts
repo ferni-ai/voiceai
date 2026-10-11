@@ -7,6 +7,7 @@ const UNSAFE: Record<string, object> = {
   ageRestrict: { ageRestricted: true },
   privateVid1: { privacyStatus: 'private' },
   noEmbed0001: { embeddable: false },
+  unknownEmbd: { embeddable: undefined },
 };
 const searchVideos = vi.fn(async (_q: string, _o: Record<string, unknown>) => ({
   found: true,
@@ -147,6 +148,9 @@ describe('video safety', () => {
       )
     );
     expect(await videoCandidates('stretch routine', false)).toEqual([]);
+    // A video YouTube doesn't call embeddable isn't offered either.
+    groundedSearch.mockResolvedValue(grounded('https://youtu.be/unknownEmbd'));
+    expect(await videoCandidates('stretch basics', false)).toEqual([]);
     groundedSearch.mockResolvedValue(
       grounded('https://youtu.be/ageRestrict', 'https://youtu.be/okVideo0001')
     );
@@ -164,12 +168,12 @@ describe('youtubeId', () => {
 });
 
 describe('bookCandidates', () => {
-  it('keeps books with a description and uses the YouTube key with COACH_MEDIA=on', async () => {
+  it('keeps books with a description, using the Books key (never the YouTube one)', async () => {
     vi.stubEnv('COACH_MEDIA', 'on');
     vi.stubEnv('YOUTUBE_API_KEY', 'yt-key');
-    vi.stubEnv('GOOGLE_BOOKS_API_KEY', '');
+    vi.stubEnv('GOOGLE_BOOKS_API_KEY', 'books-key');
     const found = await bookCandidates('personal finance basics');
-    expect(urls[0].searchParams.get('key')).toBe('yt-key');
+    expect(urls[0].searchParams.get('key')).toBe('books-key');
     expect(found).toEqual([
       {
         kind: 'book',
@@ -180,14 +184,6 @@ describe('bookCandidates', () => {
         summary: 'A classic on spending.',
       },
     ]);
-  });
-
-  it('does not use the YouTube key with the flag off', async () => {
-    vi.stubEnv('COACH_MEDIA', '');
-    vi.stubEnv('YOUTUBE_API_KEY', 'yt-key');
-    vi.stubEnv('GOOGLE_BOOKS_API_KEY', '');
-    await bookCandidates('personal finance basics, again');
-    expect(urls[0].searchParams.has('key')).toBe(false);
   });
 });
 

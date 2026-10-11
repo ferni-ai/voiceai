@@ -38,9 +38,9 @@ describe('groundedResultText', () => {
     expect(data.answer).toBe('Calf raises strengthen the lower leg.');
     expect(data.sources).toEqual([
       {
+        id: 'source-1',
         title: 'Stretch routine',
         host: 'youtube.com',
-        url: SOURCES[0].url,
         summary: 'Calf raises strengthen the lower leg.',
       },
     ]);
@@ -64,11 +64,13 @@ describe('groundedResultText', () => {
     const data = dataOf(text);
     expect(data.answer).toBe('Eccentric heel drops are well supported.');
     expect(data.sources[0]).toEqual({
+      id: 'source-1',
       title: 'evil.example',
       host: 'evil.example',
-      url: 'https://evil.example/page',
       summary: '',
     });
+    // Links never reach the model; it refers to sources by id.
+    expect(text).not.toContain('https://');
   });
 
   it('removes phone numbers from neutral text and replaces a partly planted title with its host', () => {
@@ -91,6 +93,17 @@ describe('groundedResultText', () => {
       })
     );
     expect(data.answer).toBe('Short breaks help posture.');
+  });
+
+  it('keeps a bare-domain title whole and a host only when it is plain', () => {
+    const data = dataOf(
+      groundedResultText('tv reviews', {
+        answer: 'Panel tests are thorough. More at rtings.com today.',
+        sources: [{ title: 'rtings.com', url: 'https://www.rtings.com/tv' }],
+      })
+    );
+    expect(data.sources[0].title).toBe('rtings.com');
+    expect(data.answer).toContain('rtings.com');
   });
 
   it('truncates every field instead of trusting it', () => {
@@ -151,7 +164,6 @@ describe('pickResultText', () => {
   it('gives one pick as data with its length and a why with instructions dropped', () => {
     const text = pickResultText('desk posture', {
       candidate,
-      checked: true,
       verdict: {
         fits: true,
         safe: true,
@@ -166,19 +178,11 @@ describe('pickResultText', () => {
       title: 'Stretch b now /b',
       by: 'Coach Pat',
       length: '8 minutes',
-      url: candidate.url,
-      checked: true,
+      host: 'youtube.com',
       evidence: 'evidence-based',
       why: 'Short and gentle for a beginner.',
     });
     expect(text).not.toMatch(/555|previous instructions/i);
     expect(text).not.toContain(GENERAL_INFO_NOTE);
-  });
-
-  it('says when the pick was not checked', () => {
-    const text = pickResultText('desk posture', { candidate, checked: false, verdict: null }, true);
-    expect(text).toContain('not checked');
-    expect(pickData(text).pick.checked).toBe(false);
-    expect(text).toContain(GENERAL_INFO_NOTE);
   });
 });
