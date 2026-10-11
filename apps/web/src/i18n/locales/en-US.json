@@ -11054,5 +11054,11 @@
   "agentAcks": {
     "gameStartFailed": "That game didn't start. Try asking Ferni to play it out loud.",
     "actionFailed": "That didn't go through. It may already have been taken care of."
+  },
+  "speakerCues": {
+    "ferniSpeaking": "Ferni is talking",
+    "youSpeaking": "You're talking",
+    "ferniThinking": "Ferni is thinking",
+    "tapToInterrupt": "Tap to interrupt"
   }
 }

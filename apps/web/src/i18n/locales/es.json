@@ -11180,5 +11180,11 @@
   "agentAcks": {
     "gameStartFailed": "El juego no arrancó. Pídele a Ferni en voz alta que lo juegue contigo.",
     "actionFailed": "Eso no salió bien. Puede que ya se haya resuelto."
+  },
+  "speakerCues": {
+    "ferniSpeaking": "Ferni está hablando",
+    "youSpeaking": "Estás hablando",
+    "ferniThinking": "Ferni está pensando",
+    "tapToInterrupt": "Toca para interrumpir"
   }
 }

@@ -11054,5 +11054,11 @@
   "agentAcks": {
     "gameStartFailed": "Das Spiel hat nicht gestartet. Sag Ferni einfach, dass du es spielen möchtest.",
     "actionFailed": "Das hat nicht geklappt. Vielleicht wurde es schon erledigt."
+  },
+  "speakerCues": {
+    "ferniSpeaking": "Ferni spricht",
+    "youSpeaking": "Du sprichst",
+    "ferniThinking": "Ferni denkt nach",
+    "tapToInterrupt": "Tippen zum Unterbrechen"
   }
 }
