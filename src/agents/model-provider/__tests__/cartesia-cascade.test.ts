@@ -109,6 +109,20 @@ describe('buildCascadeSTTOptions', () => {
   it('honours CASCADE_STT_MODEL', () => {
     expect(buildCascadeSTTOptions({ CASCADE_STT_MODEL: 'ink-whisper' }).model).toBe('ink-whisper');
   });
+
+  it('sends a phone caller to ink at 8 kHz under PHONE_AUDIO_MODE=on', () => {
+    expect(buildCascadeSTTOptions({}, { phone: true }).sampleRate).toBeUndefined();
+    expect(buildCascadeSTTOptions({ PHONE_AUDIO_MODE: 'on' }, { phone: true }).sampleRate).toBe(
+      8000
+    );
+  });
+
+  it('leaves app callers at the plugin rate whatever PHONE_AUDIO_MODE says', () => {
+    expect(buildCascadeSTTOptions({ PHONE_AUDIO_MODE: 'on' }).sampleRate).toBeUndefined();
+    expect(
+      buildCascadeSTTOptions({ PHONE_AUDIO_MODE: 'on' }, { phone: false }).sampleRate
+    ).toBeUndefined();
+  });
 });
 
 describe('buildCascadeKeyterms', () => {
