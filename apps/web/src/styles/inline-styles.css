@@ -651,8 +651,9 @@ body {
 /* Zen header styling - clean, extends to top */
 [data-theme='zen'] .header {
   background: transparent;
-  /* Subtle border at bottom of frosted glass area */
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  /* No bottom border: the frosted panel below fades out instead. A hard
+     1px line plus a white-to-beige step cut the page in two at the end of
+     the header (2026-10-11 audit). */
   /* Padding at top instead of margin so frosted glass covers full area */
   margin-top: 0;
   padding-top: calc(32px + env(safe-area-inset-top, 0px));
@@ -670,6 +671,9 @@ body {
   backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   z-index: -1;
+  /* Fade the panel's bottom edge into the page instead of ending it on a line. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
 }
 
 /* Zen avatar styling: the face carries the persona color. The eyes are
