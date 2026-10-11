@@ -16,6 +16,7 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 import { clearUserCache, warmWorldCache, type UserInterests } from './index.js';
+import { loadSavedInterests } from './saved-interests.js';
 
 const log = createLogger({ module: 'WorldAwarenessSession' });
 
@@ -175,9 +176,15 @@ export async function initWorldAwareness(
     interests.timezone = customData.timezone;
   }
 
+  // Teams and topics the caller saved ("add the Eagles to my teams"), when SAVED_INTERESTS=on
+  const saved = await loadSavedInterests(userId);
+  if (saved.topics.length > 0) interests.topics = saved.topics;
+
   // Get favorite teams if stored
   if (customData?.favoriteTeams && Array.isArray(customData.favoriteTeams)) {
     interests.favoriteTeams = customData.favoriteTeams as string[];
+  } else if (saved.favoriteTeams.length > 0) {
+    interests.favoriteTeams = saved.favoriteTeams;
   } else if (ipLocation?.city || ipLocation?.regionCode) {
     // Suggest local teams based on IP location (TikTok-style)
     const localTeams = getLocalTeams(ipLocation.city, ipLocation.regionCode);
