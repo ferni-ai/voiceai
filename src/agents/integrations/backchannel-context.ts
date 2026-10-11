@@ -7,8 +7,9 @@
  * draws from a neutral pool; this picks from the pool that fits the caller's
  * latest words, or returns null so the caller falls back to that neutral pick.
  *
- * Every phrase here must be pre-rendered for the persona (BACKCHANNELS in
- * conversational-audio-cache.ts): a clip plays only if its exact text is cached.
+ * Every phrase here must be in REACTION_CLIPS (conversational-audio-cache.ts),
+ * which every persona renders in its own voice: a clip plays only if its exact
+ * text is cached for whoever is on the call.
  *
  * @module agents/integrations/backchannel-context
  */
@@ -173,7 +174,7 @@ const NEGATORS = new Set([
 /** Only the caller's latest words count: the start of a long turn has moved on. */
 const WINDOW_WORDS = 12;
 
-/** What each category says back. Every phrase must be in ferni's BACKCHANNELS. */
+/** What each category says back. Every phrase must be in REACTION_CLIPS (every persona's). */
 export const REACTIONS: Readonly<Record<BackchannelContext, readonly string[]>> = {
   bad_news: ['Oh no', 'Oof', 'Mm'],
   tender: ['Aw', 'Mm'],

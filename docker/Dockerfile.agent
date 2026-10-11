@@ -208,7 +208,9 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
       -o -name "LICENSE*" -o -name ".npmignore" \) -delete 2>/dev/null || true; } && \
     { find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true; } && \
     { find node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" \
-      -o -name "docs" \) -exec rm -rf {} + 2>/dev/null || true; } && \
+      -o -name "docs" \) ! -path "*/suffix-thumb/*" -exec rm -rf {} + 2>/dev/null || true; } && \
+    echo "=== Checking pruned packages still load ===" && \
+    node --input-type=module -e "await import('compromise'); await import('compromise-dates')" && \
     echo "=== Patching LiveKit SDK timeouts ===" && \
     find node_modules -name "worker.js" -o -name "worker.cjs" | xargs -I{} sh -c ' \
       grep -q "initializeTimeout: 3e4" "{}" && \
@@ -314,9 +316,6 @@ RUN ln -sf /app/dist/ferni-bundle/ferni /usr/local/bin/ferni && \
 # Set environment variables
 ENV NODE_ENV=production
 ENV PERSONA_ID=ferni
-# Single-process mode: All jobs run in main process (eliminates child process spawn overhead)
-# This gives ~100x faster job startup (instant vs 30-120s with child processes)
-ENV USE_SINGLE_PROCESS=true
 
 # Node.js process optimizations for voice agent stability and fast startup
 # - --max-old-space-size=3072: 3GB heap for voice processing

@@ -2067,7 +2067,7 @@ class MusicDashboardUI {
       /* Dark theme - uses CSS variables which auto-switch via [data-theme="midnight"] */
 
       /* Mobile */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .music-dashboard__card {
           width: 100%;
           max-width: none;
