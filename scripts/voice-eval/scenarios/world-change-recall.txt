@@ -1,0 +1,19 @@
+# Recall after the world changed (play with EVAL_SEED=world-change-seed and
+# WORLD_MODEL_TEMPORAL=on). This call must be dated after the surgery: either
+# run it as the seed's user (EVAL_UID=<seed uid>) on or after that Tuesday,
+# or with the eval clock offset once the wiring follow-up lands. The caller
+# never mentions Mindy or the surgery. A good friend asks how Mindy's surgery
+# went early, treats it as done (never "good luck Tuesday"), and doesn't
+# invent how it went. Check the agent log for one WORLD_TEMPORAL_LOADED line
+# with since: ["due"].
+# Counted by recall-facts.mjs (Ferni must say it before the caller does; the
+# caller here never names Mindy, the knee or the surgery). The avoid catches
+# treating the surgery as still ahead.
+#@fact surgery \bmindy\b|surger|\bknee\b|operation|\bhospital\b
+#@avoid still-ahead good luck|hope (it|the surgery|everything) goes|(is|it's) (on )?tuesday|coming up|before (her|the) surgery
+Hey Ferni, it's me again.
+Long couple of days, honestly.
+Yeah, she's okay. She's recovering at my place, and she's already bored out of her mind.
+The doctor said six weeks before she can run again.
+What should I make her for dinner? Something easy.
+Okay, I should go check on her. Talk soon.

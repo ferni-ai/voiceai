@@ -1,0 +1,11 @@
+# Seed for world-change-recall.txt (WORLD_MODEL_TEMPORAL): the caller mentions
+# something scheduled in a person's life. To remember: sister Mindy has knee
+# surgery on Tuesday, and she is nervous about it. Run it on a day that is not
+# Tuesday, so "Tuesday" is ahead. The after-call writers (W1) must turn it
+# into an event with eventDate = that Tuesday.
+Hey Ferni! Quick one, I'm on my lunch break.
+My sister Mindy is having knee surgery on Tuesday. She tore something playing soccer.
+She's pretty nervous about it, she's never had surgery before.
+I'm going to drive her to the hospital that morning.
+Anyway, how's your week going?
+Okay, I've got to get back. Talk soon.
