@@ -83,6 +83,9 @@
     "enabled": "Transcription on",
     "disabled": "Transcription off",
     "captionsLabel": "Live captions",
+    "showAll": "Show full transcript",
+    "sheetTitle": "Transcript",
+    "close": "Close transcript",
     "you": "You"
   },
   "placeholders": {
