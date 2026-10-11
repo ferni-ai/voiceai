@@ -324,8 +324,8 @@ async function execute(
       return 'Who should call you back?';
     }
 
-    // For now, return a helpful message since callbacks aren't fully implemented
-    return `I've noted that you'd like a callback from ${contact}${when ? ` around ${when}` : ''}. I'll remind you to follow up if we don't hear from them.`;
+    // Nothing stores or tracks a callback request, so don't say it's noted.
+    return `I can't line up a callback from ${contact} for you yet, so nothing is booked. Want me to set a reminder to follow up with them${when ? ` around ${when}` : ''}?`;
   }
 
   // ========================================

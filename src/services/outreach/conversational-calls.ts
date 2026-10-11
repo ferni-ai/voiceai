@@ -15,6 +15,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { isCallHoursGuardOn } from './call-hours-guard.js';
+import { holdForCallHours } from './deferred-calls.js';
 
 const log = createLogger({ module: 'ConversationalCalls' });
 
@@ -170,8 +172,13 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
       return { success: false, error: 'Invalid phone number format' };
     }
 
-    // Check quiet hours
-    const inQuietHours = await isInQuietHours(userId);
+    // Outside the user's calling hours (CALL_HOURS_GUARD=on) the call waits for them.
+    const held = { recipientPhone: normalizedPhone, recipientUserId: userId };
+    const call = { kind: 'proactive' as const, request: { ...request, scheduledFor: undefined } };
+    const deferral = scheduledFor <= new Date() && (await holdForCallHours(userId, call, held));
+    if (deferral) return { success: true, callId: deferral.id, status: 'scheduled' };
+    // The guard covers quiet hours, in the user's own time zone.
+    const inQuietHours = !isCallHoursGuardOn() && (await isInQuietHours(userId));
     if (inQuietHours) {
       log.info({ userId, callId }, 'Call delayed due to quiet hours');
       // Reschedule for next available window
@@ -674,7 +681,7 @@ let serviceInstance: ConversationalCallService | null = null;
 
 /**
  * Get the conversational call service instance
- * @deprecated Use conversationalCalls.scheduleProactiveCall directly
+ * @deprecated Use scheduleProactiveCall directly
  */
 // In-memory store for active calls (for development/testing)
 const activeCalls = new Map<string, CallResult>();
@@ -774,7 +781,7 @@ export function isConversationalCallsConfigured(): boolean {
 
 /**
  * Make a conversational call (legacy API)
- * @deprecated Use conversationalCalls.scheduleProactiveCall directly
+ * @deprecated Use scheduleProactiveCall directly
  */
 export async function makeConversationalCall(context: OutboundCallContext): Promise<CallResult> {
   // Extract values with fallbacks
@@ -805,17 +812,3 @@ export function formatReferralConversationsForContext(_userId?: string): string 
   // Stub for backward compatibility
   return '';
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export const conversationalCalls = {
-  scheduleProactiveCall,
-  handleCallStatusUpdate,
-  enhanceSSMLForCall,
-  isConfigured: isConversationalCallsConfigured,
-  makeCall: makeConversationalCall,
-};
-
-export default conversationalCalls;

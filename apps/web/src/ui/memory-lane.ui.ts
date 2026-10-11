@@ -26,6 +26,7 @@ import { getAuthState } from '../services/firebase-auth.service.js';
 import { getMemoryMoodIcon, ANALYTICS_ICONS } from './icons/shared-icons.js';
 import { createEmptyState } from './components/empty-state.js';
 import { t } from '../i18n/index.js';
+import { requestAttention } from '../services/attention-queue.js';
 
 const log = createLogger('MemoryLane');
 
@@ -140,7 +141,9 @@ async function checkForTodayMemories(): Promise<void> {
       onThisDayCache = response.data.memories;
       const firstMemory = onThisDayCache[0];
       if (firstMemory) {
-        showAnniversaryNotification(firstMemory, onThisDayCache.length);
+        requestAttention('memory-lane', () =>
+          showAnniversaryNotification(firstMemory, onThisDayCache.length)
+        );
       }
     }
   } catch (err) {
@@ -155,7 +158,6 @@ function showAnniversaryNotification(memory: Memory, totalCount: number): void {
   // Don't show if Memory Lane is already open
   if (isModalOpen) return;
 
-  // Create notification element
   const notification = document.createElement('div');
   notification.className = 'memory-lane-anniversary-notification';
   notification.setAttribute('role', 'button');
@@ -165,10 +167,8 @@ function showAnniversaryNotification(memory: Memory, totalCount: number): void {
   const yearsText = memory.yearAgo === 1 ? 'year' : 'years';
   const moreText = totalCount > 1 ? ` and ${totalCount - 1} more` : '';
 
-  // Truncate content for preview
-  const previewContent = memory.content.length > 80
-    ? memory.content.slice(0, 77) + '...'
-    : memory.content;
+  const previewContent =
+    memory.content.length > 80 ? memory.content.slice(0, 77) + '...' : memory.content;
 
   notification.innerHTML = `
     <div class="anniversary-notification-icon">
