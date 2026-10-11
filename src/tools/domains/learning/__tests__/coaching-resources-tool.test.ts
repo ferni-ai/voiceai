@@ -29,7 +29,7 @@ describe('runFindCoachingResources', () => {
     );
     expect(videoCandidates).toHaveBeenCalledWith('shin splints', false);
     expect(groundedAnswer).toHaveBeenCalledWith('shin splints');
-    expect(out).toContain('Heel drops are well supported.');
+    expect(out).toContain('nhs.uk');
   });
 
   it('makes no paid lookup for a caller with no account', async () => {
