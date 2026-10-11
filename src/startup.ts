@@ -303,7 +303,7 @@ export async function startup(): Promise<AppConfig> {
 
   // Outreach: voice agent is PRODUCER only (Pub/Sub + Firestore).
   // Trigger processing / scheduled drain runs in apps/async — never load 300k triggers here.
-  // Enable processing on the agent only when OUTREACH_TRIGGER_PROCESSING=true (dev/debug).
+  // outreach.triggerProcessing is off in config/feature-flags.ts, so this branch is off.
   try {
     const { isOutreachFeatureEnabled } = await import('./config/feature-flags.js');
     if (isOutreachFeatureEnabled('triggerProcessing')) {

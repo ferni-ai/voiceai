@@ -47,7 +47,7 @@ import {
   VOICE_GLOW_TRANSITIONS,
 } from '@design-system/tokens';
 
-import { DURATION, EASING, ANIMATION_PRESET } from '../config/animation-constants.js';
+import { DURATION, EASING, ANIMATION_PRESET, safeAnimate } from '../config/animation-constants.js';
 
 // ============================================================================
 // TIMING CONSTANTS (derived from design system)
@@ -281,7 +281,7 @@ function startBreathingAnimation(): void {
     },
   ];
   
-  breathingAnimation = avatarContainer.animate(keyframes, {
+  breathingAnimation = safeAnimate(avatarContainer, keyframes, {
     duration,
     iterations: Infinity,
     easing: EASING.STANDARD, // Smooth ease-in-out
@@ -329,7 +329,7 @@ function startGlowAnimation(breathDuration: number): void {
     },
   ];
   
-  glowAnimation = avatarElement.animate(glowKeyframes, {
+  glowAnimation = safeAnimate(avatarElement, glowKeyframes, {
     duration: glowDuration,
     iterations: Infinity,
     easing: EASING.GENTLE,

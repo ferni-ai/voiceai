@@ -206,7 +206,7 @@ function createModalElement(): void {
     justify-content: center;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(var(--glass-blur-subtle));
-    z-index: var(--z-modal, 2000);
+    z-index: var(--z-modal);
     opacity: 0;
     transition: opacity var(--duration-normal);
   `;

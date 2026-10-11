@@ -6,7 +6,7 @@
  * @module services/twin-profile.service
  */
 
-import { apiGet, apiPost, apiDelete } from '../utils/api.js';
+import { apiGet, apiPost, apiPatch, apiDelete } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
 
@@ -149,9 +149,8 @@ export async function updateProfileSection(
   data: Partial<TwinProfile>
 ): Promise<{ success: boolean; profile: TwinProfile }> {
   try {
-    // Note: Using POST since apiPost doesn't support PATCH method override
-    // The API endpoint handles both POST and PATCH for profile updates
-    const response = await apiPost<{ success: boolean; profile: TwinProfile }>(
+    // The server only routes PATCH for /api/twin/profile/:section (twin-profile.ts)
+    const response = await apiPatch<{ success: boolean; profile: TwinProfile }>(
       `/api/twin/profile/${section}`,
       data
     );

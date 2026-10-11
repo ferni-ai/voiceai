@@ -18,7 +18,7 @@ import type { PersonaConfig } from '../types/persona.js';
 import type { ConnectionState, AudioState, VoiceEmotion } from '../types/events.js';
 import { appState } from '../state/app.state.js';
 import { getElementById, setText, setClasses, addClass, removeClass } from '../utils/dom.js';
-// 🔤 Kinetic Typography for name animations
+import { safeAnimate } from '../config/animation-constants.js';
 import { animateNameHandoff, scrambleReveal } from './kinetic-typography.ui.js';
 import {
   getPersonaAnimationProfile,
@@ -284,7 +284,7 @@ function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy'): void {
       break;
   }
   
-  elements.avatar.animate(keyframes, {
+  safeAnimate(elements.avatar, keyframes, {
     duration,
     easing: profile.easing,
     fill: 'forwards',

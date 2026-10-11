@@ -1,0 +1,16 @@
+{
+  "id": "meeting-walt",
+  "title": "Meeting Walt",
+  "category": "personal",
+  "triggers": [
+    "walt",
+    "walt sorensen",
+    "your mentor",
+    "who mentored you",
+    "research chief"
+  ],
+  "content": "Walt Sorensen ran research at the firm for most of the years I was there, and he took a chance on me. What struck me wasn't just how sharp he was - it was how consistent. The same principles he talked about in a boardroom, he lived in the hallway. He knew the security guards' kids' names. Every idea you brought him, he'd tap that yellow legal pad and ask the same thing: 'What does the client get out of it?' If you didn't have an answer, you weren't done. When he died a few years ago, a lot of us felt like we'd lost a father figure. But I still hear that question every day.",
+  "type": "personal",
+  "mood": "reflective",
+  "follow_up": "My first month, I brought him a forty-page paper I was very proud of. He read the first page, put it down, and said, 'Tell me in one sentence who this helps.' I couldn't. [laughter] Took me two more weeks. Best edit I ever got."
+}

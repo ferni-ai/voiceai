@@ -276,6 +276,7 @@ function renderExpanded(
   if (!indicator) return;
   
   const circumference = 2 * Math.PI * 36; // radius = 36 (reduced from 40 for better proportion)
+  const isEmpty = metrics.totalConversations === 0; // no talks yet: invite, don't show a percentage
   const strokeDashoffset = circumference - (circumference * progressPercent / 100);
   
   indicator.innerHTML = `
@@ -287,7 +288,6 @@ function renderExpanded(
         </button>
       </div>
       
-      <!-- Progress ring -->
       <div class="progress-ring-large">
         <svg width="88" height="88" viewBox="0 0 88 88">
           <circle class="progress-ring-bg" cx="44" cy="44" r="36" />
@@ -295,8 +295,8 @@ function renderExpanded(
                   style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${strokeDashoffset}" />
         </svg>
         <div class="progress-ring-center">
-          ${isMaxStage ? `
-            <span class="progress-ring-icon-large">${ICONS.sparkles}</span>
+          ${isMaxStage || isEmpty ? `
+            <span class="progress-ring-icon-large">${isMaxStage ? ICONS.sparkles : ICONS.heart}</span>
           ` : `
             <span class="progress-ring-value">${progressPercent}%</span>
             <span class="progress-ring-label">${t('progressIndicator.progress')}</span>
@@ -307,11 +307,10 @@ function renderExpanded(
       <!-- Stage info -->
       <div class="progress-stage">
         <h3 class="progress-stage-title">${stageName}</h3>
-        <p class="progress-stage-desc">${t(stageDesc.currentKey)}</p>
+        <p class="progress-stage-desc">${isEmpty ? t('progressIndicator.emptyInvite') : t(stageDesc.currentKey)}</p>
       </div>
       
-      <!-- Metrics -->
-      <div class="progress-metrics">
+      ${isEmpty ? '' : `<div class="progress-metrics">
         <div class="progress-metric">
           <span class="metric-icon">${ICONS.messageCircle}</span>
           <span class="metric-value">${metrics.totalConversations}</span>
@@ -327,7 +326,7 @@ function renderExpanded(
           <span class="metric-value">${metrics.currentStreak}</span>
           <span class="metric-label">${t('yourStory.stats.dayStreak')}</span>
         </div>
-      </div>
+      </div>`}
       
       <!-- Next stage -->
       ${!isMaxStage && progress.nextStage ? `
@@ -386,7 +385,7 @@ function injectStyles(): void {
       position: fixed;
       bottom: var(--space-4, 16px);
       left: var(--space-4, 16px);
-      z-index: var(--z-sticky, 6000);
+      z-index: var(--z-sticky);
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-xl, 16px);
       box-shadow: 

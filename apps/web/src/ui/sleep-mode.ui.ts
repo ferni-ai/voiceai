@@ -433,7 +433,7 @@ function injectStyles(): void {
       opacity: 0;
       transition: opacity ${DURATION.SLOW}ms;
       overflow: visible;
-      z-index: var(--z-floating, 20);
+      z-index: var(--z-floating);
     }
 
     .sleep-mode-overlay--visible {

@@ -17,6 +17,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getUserTimezone } from '../services/timezone.service.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { outreachService } from '../services/outreach.service.js';
 
 const log = createLogger('ContactSettingsUI');
 
@@ -1021,10 +1022,10 @@ async function handleSendVerification(): Promise<void> {
   render();
 
   try {
-    const response = await apiPost('/api/outreach/verify-phone', { phone });
+    const result = await outreachService.sendVerificationCode(phone);
 
-    if (!response.ok) {
-      throw new Error('Failed to send verification');
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to send verification');
     }
 
     log.info({ phone }, 'Verification code sent');
@@ -1039,12 +1040,9 @@ async function handleSendVerification(): Promise<void> {
 
 async function handleVerifyCode(code: string): Promise<void> {
   try {
-    const response = await apiPost('/api/outreach/verify-phone/confirm', {
-      phone: state.pendingPhone,
-      code,
-    });
+    const result = await outreachService.verifyPhone(state.pendingPhone, code);
 
-    if (response.ok) {
+    if (result.success) {
       state.contactInfo.phone = state.pendingPhone;
       state.contactInfo.phoneVerified = true;
       state.isVerifying = false;

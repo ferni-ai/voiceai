@@ -6,6 +6,8 @@
  * @module agents/gce/job-child
  */
 
+import '../../instrument.js'; // error reporting first; a no-op without SENTRY_DSN
+
 import { performance } from 'node:perf_hooks';
 
 import { initializeLogger } from '@livekit/agents';
