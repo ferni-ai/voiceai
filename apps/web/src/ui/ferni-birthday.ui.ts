@@ -276,7 +276,7 @@ function injectStyles(): void {
     .ferni-birthday-floater {
       position: fixed;
       pointer-events: none;
-      z-index: var(--z-notification, 3000);
+      z-index: var(--z-notification);
       color: var(--color-semantic-warning, #f59e0b);
       animation: cakeFloat 2s ${EASING.EXPO_OUT} forwards;
       filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));

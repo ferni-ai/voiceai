@@ -7,14 +7,35 @@
  * the next request, including the model's next step in this same reply, and
  * the model calls the one that fits.
  *
+ * TOOL_CORE_STATIC: it searches the whole catalog's findable domains and the
+ * session's pinner adds the matches to the agent for the rest of the call,
+ * this reply's next step included (turn-request.ts).
+ *
  * @module tools/retrieval/find-tools-tool
  */
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { getTurnToolRetrieval } from './turn-tool-retrieval.js';
 
 export const FIND_TOOLS = 'findTools';
+
+export type FoundTool = { name: string; description: string };
+
+/** Adds the named tools to the session's agent; returns the ones it now has. `need` is for the audit log. */
+export type ToolPinner = (names: readonly string[], need: string) => Promise<FoundTool[]>;
+
+// Keyed by the AgentSession, like the retrieval itself.
+const pinners = new WeakMap<object, ToolPinner>();
+
+export function setToolPinner(session: object, pinner: ToolPinner | null): void {
+  if (pinner) pinners.set(session, pinner);
+  else pinners.delete(session);
+}
+
+const UNAVAILABLE = 'Tool lookup is unavailable right now; use the tools you have.';
+const NO_MATCH = "No tool matches that. Tell the user plainly that you can't do it yet.";
 
 export function createFindToolsTool() {
   return llm.tool({
@@ -25,11 +46,23 @@ export function createFindToolsTool() {
     }),
     execute: async ({ need }, { ctx }) => {
       const retrieval = getTurnToolRetrieval(ctx.session);
-      if (!retrieval) return 'Tool lookup is unavailable right now; use the tools you have.';
-      const found = await retrieval.find(need);
-      if (found.length === 0) {
-        return "No tool matches that. Tell the user plainly that you can't do it yet.";
+      if (!retrieval) return UNAVAILABLE;
+      let found: FoundTool[];
+      if (staticCoreToolsEnabled()) {
+        const pin = pinners.get(ctx.session);
+        if (!pin) return UNAVAILABLE;
+        const matches = await retrieval.find(need, 5, { anyTool: true });
+        found =
+          matches.length > 0
+            ? await pin(
+                matches.map((m) => m.name),
+                need
+              )
+            : [];
+      } else {
+        found = await retrieval.find(need);
       }
+      if (found.length === 0) return NO_MATCH;
       return `These tools are now available; call the one that fits: ${found
         .map((f) => (f.description ? `${f.name} (${f.description})` : f.name))
         .join('; ')}`;

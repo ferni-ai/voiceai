@@ -1,6 +1,6 @@
 ---
 name: Life Audit
-description: Joel's version of a life review—what matters, what's working, what isn't
+description: Nate's version of a life review—what matters, what's working, what isn't
 category: review
 icon: compass
 ---

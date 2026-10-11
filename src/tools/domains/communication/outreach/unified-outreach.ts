@@ -1,11 +1,8 @@
 /**
  * Unified Outreach Tool - "Better than Human" Communication
  *
- * THE ONE tool for reaching out to contacts. Replaces:
- * - sendMessage, sendEmail, sendSMS
- * - sendPersonalizedMessage
- * - makePhoneCall, callAndConverse
- * - sendVoiceMessage
+ * THE ONE tool for reaching out to contacts (replaced sendMessage, sendEmail, sendSMS,
+ * sendPersonalizedMessage, makePhoneCall, callAndConverse, sendVoiceMessage).
  *
  * "Better than Human" because:
  * 1. REMEMBERS EVERYTHING - Pulls full relationship context
@@ -14,9 +11,8 @@
  * 4. CHANNEL SMART - Picks best channel based on purpose + preferences
  * 5. REAL CONVERSATIONS - Can have actual dialogue, not just voicemail
  *
- * User says: "Reach out to Mom and wish her happy birthday"
- * We: Look up Mom, pull her topics/history, craft a personal message
- *     referencing things only we'd remember, send via her preferred channel
+ * "Reach out to Mom and wish her happy birthday": look up Mom and her history, craft a
+ * message only we'd write, and send it on her preferred channel.
  */
 
 import { llm } from '@livekit/agents';
@@ -47,6 +43,7 @@ import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 
 // Message crafting
 import { craftPersonalizedMessage } from './message-crafting.js';
+import { PLAN_ONLY, PLANNED, type Planned } from './outreach-confirm.js';
 
 const log = createLogger({ module: 'unified-outreach' });
 
@@ -100,6 +97,8 @@ export interface OutreachResult {
   message: string;
   contactName: string;
   error?: string;
+  to?: string; // where it would go, and who: set only on a PLAN_ONLY preview (sends nothing)
+  contactId?: string;
 }
 
 // ============================================================================
@@ -109,7 +108,6 @@ export interface OutreachResult {
 function detectIntent(purpose: string): OutreachIntent {
   const p = purpose.toLowerCase();
 
-  // Wish well patterns
   if (
     /\b(happy birthday|birthday|congratulat|good (morning|afternoon|evening)|wish(ing)?|great day|best wishes|get well|feel better|thinking of you)\b/.test(
       p
@@ -118,32 +116,23 @@ function detectIntent(purpose: string): OutreachIntent {
     return 'wish_well';
   }
 
-  // Thank you
   if (/\b(thank|grateful|appreciate|gratitude)\b/.test(p)) return 'thank_you';
 
-  // Apology
   if (/\b(sorry|apologize|apology|forgive)\b/.test(p)) return 'apology';
 
-  // Important/urgent
   if (/\b(urgent|important|emergency|asap|need to|must)\b/.test(p)) return 'important';
 
-  // Question
   if (/\b(ask|question|wondering|know if|find out)\b/.test(p)) return 'ask_question';
 
-  // Follow up
   if (/\b(follow up|following up|check(ing)? (back|in)|how did|how was)\b/.test(p))
     return 'follow_up';
 
-  // Schedule
   if (/\b(schedule|plan|set up|arrange|meet|appointment|calendar)\b/.test(p)) return 'schedule';
 
-  // Share
   if (/\b(share|tell|let .* know|update|news)\b/.test(p)) return 'share_news';
 
-  // Reminder
   if (/\b(remind|reminder|don't forget|remember)\b/.test(p)) return 'reminder';
 
-  // Check in
   if (/\b(check in|checking in|see how|how (are|is)|doing)\b/.test(p)) return 'check_in';
 
   return 'just_because';
@@ -299,7 +288,8 @@ async function gatherOutreachContext(
 async function executeOutreach(
   ctx: OutreachContext,
   decision: OutreachDecision,
-  customMessage?: string
+  customMessage?: string,
+  planOnly = false
 ): Promise<OutreachResult> {
   const { contact, userId, personaId, purpose, intent } = ctx;
   const { channel } = decision;
@@ -318,6 +308,9 @@ async function executeOutreach(
       pendingFollowUp: ctx.pendingFollowUp,
       personaId,
     }));
+  const to = channel === 'email' ? contact.email : contact.phone;
+  const plan = { contactName: contact.name, contactId: contact.id, to };
+  if (planOnly) return { success: true, channel, message, ...plan };
 
   log.info(
     {
@@ -652,7 +645,6 @@ Just tell me WHO and WHY. I'll handle the rest.`,
 
       // Step 1: Resolve the contact
       let contactInfo: ContactRelationship | null = null;
-
       try {
         const matches = await searchContacts(userId, contact);
         if (matches.length > 0) {
@@ -701,6 +693,13 @@ Just tell me WHO and WHY. I'll handle the rest.`,
         );
       }
 
+      // A confirmed send goes where the caller heard, to the same contact (outreach-confirm.ts)
+      const planned = (params as { [PLANNED]?: Planned })[PLANNED];
+      const same = planned?.contactId === contactInfo.id || planned?.contactId.startsWith('temp_');
+      if (planned && !same) return `Nothing was sent: ${contact} isn't the contact you confirmed.`;
+      const at = planned?.channel === 'email' ? 'email' : 'phone';
+      if (planned) contactInfo = { ...contactInfo, [at]: planned.to };
+
       // Step 2: Gather rich context
       const outreachCtx = await gatherOutreachContext(userId, contactInfo, purpose, personaId);
 
@@ -718,14 +717,13 @@ Just tell me WHO and WHY. I'll handle the rest.`,
         decision = selectOptimalChannel(outreachCtx);
       }
 
-      // Step 4: Execute outreach
-      const result = await executeOutreach(outreachCtx, decision, customMessage);
+      // Step 4: Execute outreach, or with PLAN_ONLY only decide it (outreach-confirm.ts)
+      const planOnly = PLAN_ONLY in params;
+      const result = await executeOutreach(outreachCtx, decision, customMessage, planOnly);
+      if (planOnly) return result;
 
-      if (result.success) {
-        return result.message;
-      } else {
-        return result.error || `I couldn't reach ${contactInfo.name}. Want to try another way?`;
-      }
+      if (result.success) return result.message;
+      return result.error || `I couldn't reach ${contactInfo.name}. Want to try another way?`;
     },
   });
 }

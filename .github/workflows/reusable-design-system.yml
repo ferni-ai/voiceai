@@ -19,7 +19,8 @@ on:
 jobs:
   build:
     name: Build Design System
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     outputs:
       artifact-name: design-system-dist-${{ github.sha }}
 

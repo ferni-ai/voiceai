@@ -559,7 +559,7 @@ function injectStyles(): void {
     }
 
     /* Responsive */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .accent-settings-modal {
         max-width: 100%;
         max-height: 100%;
