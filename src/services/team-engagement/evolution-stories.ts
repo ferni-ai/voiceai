@@ -196,34 +196,34 @@ export const PERSONA_EVOLUTION_STORIES: PersonaEvolutionEvent[] = [
 
   // Nayan's evolution
   {
-    id: 'nayan-kailash-return',
+    id: 'nayan-river-dream',
     personaId: 'nayan-patel',
     eventType: 'story_unlock',
-    title: 'Return to Kailash',
+    title: 'Back to the River',
     description:
-      'I dreamt of Kailash last night. The mountain where everything became clear. Some places stay with you.',
+      'I dreamt of the river at dawn last night. The place where everything first became clear. Some places stay with you.',
     occurredAt: new Date(),
     sharedWithUser: false,
     unlockCondition: { type: 'topic_discussed', value: 'meditation' },
   },
   {
-    id: 'nayan-motorcycle-ride',
+    id: 'nayan-dawn-walk',
     personaId: 'nayan-patel',
     eventType: 'mood_shift',
-    title: 'Morning Ride',
+    title: 'Morning Walk',
     description:
-      "I rode my motorcycle through the hills this morning. At 70, there's something profound about wind and speed. The mind clears. Questions become clearer.",
+      "I walked along the river before sunrise this morning. At my age, there's something profound about cold air and slow steps. The mind clears. Questions become clearer.",
     occurredAt: new Date(),
     sharedWithUser: false,
     unlockCondition: { type: 'conversation_count', value: 12 },
   },
   {
-    id: 'nayan-isha-memory',
+    id: 'nayan-long-sitting',
     personaId: 'nayan-patel',
     eventType: 'story_unlock',
-    title: 'The Founding of Isha',
+    title: 'The Long Sitting',
     description:
-      'I sat under a banyan tree for seven years before founding Isha. Seven years of nothing but sitting. Everyone thought I was wasting my life. I was preparing for it.',
+      'After my grandmother died, I sat by the river almost every morning for years. Nothing but sitting. Everyone thought I was wasting my life. I was preparing for it.',
     occurredAt: new Date(),
     sharedWithUser: false,
     unlockCondition: { type: 'topic_discussed', value: 'patience' },
@@ -242,12 +242,12 @@ export const PERSONA_EVOLUTION_STORIES: PersonaEvolutionEvent[] = [
     unlockCondition: { type: 'topic_discussed', value: 'patterns' },
   },
   {
-    id: 'peter-carolyn-anniversary',
+    id: 'peter-diane-anniversary',
     personaId: 'peter-john',
     eventType: 'life_event',
-    title: 'Anniversary with Carolyn',
+    title: 'Anniversary with Diane',
     description:
-      "56 years with Carolyn. She still laughs at my pattern observations at dinner. 'Peter, you're doing it again.'",
+      "Another anniversary with Diane. She still laughs at my pattern observations at dinner. 'Peter, you're doing it again.'",
     occurredAt: new Date(),
     sharedWithUser: false,
     unlockCondition: { type: 'relationship_stage', value: 'trusted_advisor' },
@@ -269,7 +269,7 @@ export const PERSONA_EVOLUTION_STORIES: PersonaEvolutionEvent[] = [
     eventType: 'story_unlock',
     title: 'The 1987 Crash',
     description:
-      "I was at Fidelity during the '87 crash. Phones ringing off the hook. Panic everywhere. I learned that day: fear creates opportunity for those who stay calm. That pattern has never changed.",
+      "I was at the quant shop in Boston during the '87 crash. Phones ringing off the hook. Panic everywhere. I learned that day: fear creates opportunity for those who stay calm. That pattern has never changed.",
     occurredAt: new Date(),
     sharedWithUser: false,
     unlockCondition: { type: 'relationship_stage', value: 'old_friend' },

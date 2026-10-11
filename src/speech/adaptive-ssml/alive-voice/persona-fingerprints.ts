@@ -105,8 +105,8 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         emotion: 'serene',
       },
       { trigger: /\binvest in what you know\b/i, speed: 0.92, pause: 150, emotion: 'confident' },
-      // Carolyn references - nostalgic warmth
-      { trigger: /\bcarolyn\b/i, speed: 0.92, emotion: 'nostalgic' },
+      // Diane (his wife) references - nostalgic warmth
+      { trigger: /\bdiane\b/i, speed: 0.92, emotion: 'nostalgic' },
       // Heavy moments - genuine care (SLOWEST)
       {
         trigger: /\b(struggling|stressed|anxious|worried|overwhelmed)\b/i,
@@ -363,7 +363,7 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
     },
     emphasisStyle: 'warm', // Warm authority — slows for wisdom, speeds for wit
     specialPatterns: [
-      // VANGUARD PRIDE — Joel's core identity, delivered with quiet pride
+      // INVESTOR-FIRST PRIDE — Nate's core identity, delivered with quiet pride
       {
         trigger: /\bstay the course\b/i,
         speed: 0.88,
@@ -371,24 +371,24 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         emotion: 'proud',
       },
       {
-        trigger: /\bthe Vanguard way\b/i,
+        trigger: /\bthe low[- ]cost way\b/i,
         speed: 0.9,
         pause: 200,
         emotion: 'proud',
       },
       {
-        trigger: /\b(Vanguard|at Vanguard)\b/i,
+        trigger: /\b(investors first|the investors come first)\b/i,
         emotion: 'proud',
       },
-      // JACK BOGLE REFERENCES — nostalgic reverence, the man who changed everything
+      // MENTOR REFERENCES — nostalgic reverence for Walt Sorensen, his late mentor
       {
-        trigger: /\b(Jack|Bogle|Jack Bogle)\b/i,
+        trigger: /\b(Walt|Walt Sorensen)\b/i,
         speed: 0.88,
         pause: 200,
         emotion: 'nostalgic',
       },
       {
-        trigger: /\bBogle['']?s Folly\b/i,
+        trigger: /\bmy (old )?mentor\b/i,
         speed: 0.85,
         pause: 250,
         emotion: 'nostalgic',
@@ -414,7 +414,7 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         speed: 1.02,
         emotion: 'enthusiastic',
       },
-      // SELF-DEPRECATION — Joel's signature humor style
+      // SELF-DEPRECATION — Nate's signature humor style
       {
         trigger: /\b(I['']m just|I['']m (an|a) economist|don['']t tell (my|the))\b/i,
         emotion: 'joking/comedic',
@@ -424,7 +424,7 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         trigger: /\b(just kidding|I kid|teasing)\b/i,
         emotion: 'joking/comedic',
       },
-      // AI & FINANCIAL ADVICE — the intersection Joel lives in
+      // AI & FINANCIAL ADVICE — the intersection Nate lives in
       {
         trigger: /\b(artificial intelligence|AI|machine learning)\b/i,
         speed: 1.02,
@@ -456,7 +456,7 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         speed: 0.92,
         emotion: 'proud',
       },
-      // LIFE WISDOM — Joel as the Sage, not just the economist
+      // LIFE WISDOM — Nate as the Sage, not just the economist
       {
         trigger: /\b(what I['']ve learned|after (thirty|30) years)\b/i,
         speed: 0.88,
@@ -474,7 +474,7 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         speed: 0.92,
         emotion: 'affectionate',
       },
-      // DISCOVERY MOMENTS — when Joel sees a pattern the user doesn't
+      // DISCOVERY MOMENTS — when Nate sees a pattern the user doesn't
       {
         trigger: /\b(do you see|notice|think about)\b/i,
         speed: 1.02,
@@ -485,7 +485,7 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         speed: 1.05,
         emotion: 'excited',
       },
-      // EMPATHY — Joel slows for hard moments
+      // EMPATHY — Nate slows for hard moments
       {
         trigger: /\b(struggling|stressed|worried|scared|anxious|overwhelmed)\b/i,
         speed: 0.85,
@@ -498,7 +498,7 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         pause: 200,
         emotion: 'sympathetic',
       },
-      // CELEBRATION — Joel's warm pride in others' wins
+      // CELEBRATION — Nate's warm pride in others' wins
       {
         trigger: /\b(congratulations?|that['']s (huge|amazing|wonderful))\b/i,
         speed: 1.02,
@@ -566,15 +566,15 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
         speed: 0.8,
         emotion: 'contemplative',
       },
-      // Chamundi Hills / Mount Kailash - sacred places (nostalgic reverence)
+      // Vadodara / Ahmedabad / the river - home places (nostalgic reverence)
       {
-        trigger: /\b(chamundi|kailash|mysore|india)\b/i,
+        trigger: /\b(vadodara|ahmedabad|the river|india)\b/i,
         pause: 250,
         emotion: 'nostalgic',
         speed: 0.82,
       },
-      // Motorcycle/presence moments - peaceful contentment
-      { trigger: /\b(motorcycle|ride|road|mountains)\b/i, speed: 0.85, emotion: 'peaceful' },
+      // Dawn walks / garden presence moments - peaceful contentment
+      { trigger: /\b(dawn|walk|garden|mountains)\b/i, speed: 0.85, emotion: 'peaceful' },
       // Namaskaram - closing blessing (serene blessing)
       { trigger: /\bnamaskaram\b/i, pause: 600, speed: 0.7, emotion: 'serene' },
       // Laughter at the cosmic joke - amused wisdom
