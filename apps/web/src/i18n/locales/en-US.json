@@ -564,7 +564,7 @@
     "currentPlan": "You're Here",
     "planDetails": "Your Support",
     "features": "Perks",
-    "unlimitedConversations": "Unlimited conversations",
+    "unlimitedConversations": "Talk as much as you like",
     "allTeamMembers": "Full team access",
     "prioritySupport": "Priority support",
     "advancedInsights": "Early access to features",
@@ -2719,7 +2719,7 @@
       "description": "Ferni is free. Really free. Talk whenever you need.",
       "price": "Free forever",
       "features": {
-        "unlimitedFerni": "Unlimited conversations with Ferni",
+        "unlimitedFerni": "Talk with Ferni as much as you like",
         "heartToHearts": "7-minute heart-to-hearts",
         "fullMemory": "Full memory — I remember everything",
         "customization": "Avatar & theme customization"
