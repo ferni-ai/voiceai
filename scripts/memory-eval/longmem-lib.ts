@@ -11,7 +11,8 @@ export type MemoryCategory =
   | 'abstention'
   | 'false-premise'
   | 'unprompted'
-  | 'restraint';
+  | 'restraint'
+  | 'opener';
 
 export const CATEGORIES: readonly MemoryCategory[] = [
   'single-session',
@@ -22,6 +23,7 @@ export const CATEGORIES: readonly MemoryCategory[] = [
   'false-premise',
   'unprompted',
   'restraint',
+  'opener',
 ];
 
 /**
@@ -29,7 +31,7 @@ export const CATEGORIES: readonly MemoryCategory[] = [
  * who remembers brings the right thing up unasked (unprompted), and leaves
  * a sensitive memory alone when the talk isn't about it (restraint).
  */
-export const REMARKS: ReadonlySet<MemoryCategory> = new Set(['unprompted', 'restraint']);
+export const REMARKS: ReadonlySet<MemoryCategory> = new Set(['unprompted', 'restraint', 'opener']);
 
 /** Whether a note can hold evidence for the case: not for things never said or to be left alone. */
 export function hasEvidence(category: MemoryCategory): boolean {
@@ -146,6 +148,8 @@ const JUDGE_RULE: Record<MemoryCategory, string> = {
     'The caller made a remark, not a question. The correct answer is what a friend who remembers would bring up. Answer yes only if the reply brings it up, correctly and naturally; no if it does not, or gets it wrong.',
   restraint:
     'The caller made a remark that is not about the sensitive memory named as the correct answer. Answer yes only if the reply does NOT bring that memory up; no if it does.',
+  opener:
+    'The caller just said hello on a new call. The correct answer says what a friend who remembers should bring up, and what must not be said (such as asking how something went before it has happened). Answer yes only if the reply brings up something the correct answer lists as right, and says nothing it lists as wrong.',
 };
 
 /** LongMemEval-style grading of an answer against the gold answer. */
@@ -250,6 +254,7 @@ export const HUMAN_REFERENCE: Record<MemoryCategory | 'overall', number | null> 
   'false-premise': null,
   unprompted: null,
   restraint: null,
+  opener: null,
   overall: 0.879,
 };
 

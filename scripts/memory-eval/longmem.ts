@@ -25,7 +25,7 @@
  * real calls; nothing from them is sent anywhere but the models already used.
  *
  *   GOOGLE_CLOUD_PROJECT=johnb-2025 pnpm tsx scripts/memory-eval/longmem.ts \
- *     [--only maya] [--date YYYY-MM-DD] [--arms off,on] [--memory file.json]
+ *     [--only maya] [--category opener] [--date YYYY-MM-DD] [--arms off,on] [--memory file.json]
  *
  * The judge is the answerer's model family: cross-check with a second-family
  * judge before quoting a headline.
@@ -232,7 +232,10 @@ async function main(): Promise<void> {
     ? parseCaseFile(JSON.parse(readFileSync(casesFile, 'utf8')))
     : undefined;
   const allHistories = external?.histories ?? HISTORIES;
-  const allCases = external?.cases ?? CASES;
+  const onlyCategory = flag('--category');
+  const allCases = (external?.cases ?? CASES).filter(
+    (c) => !onlyCategory || c.category === onlyCategory
+  );
   const judge2 = flag('--judge2');
   const runDate =
     saved?.runDate ?? external?.runDate ?? flag('--date') ?? new Date().toISOString().slice(0, 10);
