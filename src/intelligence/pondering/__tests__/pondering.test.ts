@@ -52,7 +52,7 @@ describe('validWhen', () => {
 });
 
 describe('parsePondering', () => {
-  const ids = new Set(['s1']);
+  const ids = new Set(['s1', 's2']);
 
   it('drops anything that does not cite a summary it was given', () => {
     const p = parsePondering(
@@ -63,7 +63,7 @@ describe('parsePondering', () => {
           { text: 'No basis at all' },
         ],
         thinkingOf: [
-          { text: 'your mom', basis: 's1' },
+          { text: 'your mom', basis: 's2' },
           { text: 'invented', basis: 'x' },
         ],
       }),
@@ -73,7 +73,23 @@ describe('parsePondering', () => {
     expect(p.followUps).toEqual([
       { text: 'Ask how the surgery went', when: '2026-10-14', basis: 's1' },
     ]);
-    expect(p.thinkingOf).toEqual([{ text: 'your mom', basis: 's1' }]);
+    expect(p.thinkingOf).toEqual([{ text: 'your mom', basis: 's2' }]);
+  });
+
+  it('drops a note drawn from the same call as a follow-up: one thought, not two', () => {
+    const p = parsePondering(
+      reply({
+        followUps: [{ text: 'How did it go with the snooze button?', basis: 's1' }],
+        thinkingOf: [
+          { text: 'your chaotic mornings and the snooze button', basis: 's1' },
+          { text: "your grandmother's bread", basis: 's2' },
+        ],
+      }),
+      ids,
+      today
+    );
+    expect(p.followUps).toHaveLength(1);
+    expect(p.thinkingOf).toEqual([{ text: "your grandmother's bread", basis: 's2' }]);
   });
 
   it('keeps a follow-up but drops a date in the past', () => {
@@ -86,8 +102,9 @@ describe('parsePondering', () => {
   });
 
   it('caps follow-ups at 3 and notes at 2', () => {
-    const many = Array.from({ length: 6 }, (_, i) => ({ text: `item ${i}`, basis: 's1' }));
-    const p = parsePondering(reply({ followUps: many, thinkingOf: many }), ids, today);
+    const many = (basis: string) =>
+      Array.from({ length: 6 }, (_, i) => ({ text: `item ${i}`, basis }));
+    const p = parsePondering(reply({ followUps: many('s1'), thinkingOf: many('s2') }), ids, today);
     expect(p.followUps).toHaveLength(3);
     expect(p.thinkingOf).toHaveLength(2);
   });

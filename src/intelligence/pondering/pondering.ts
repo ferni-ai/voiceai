@@ -145,9 +145,13 @@ export function parsePondering(
     const basis = grounded(i);
     if (t && basis) thinkingOf.push({ text: t, basis });
   }
+  const kept = followUps.slice(0, MAX_FOLLOW_UPS);
+  // A friend asks about a thing or mentions it, not both: a note drawn from the
+  // same call as a follow-up is the same thought said twice.
+  const asked = new Set(kept.map((f) => f.basis));
   return {
-    followUps: followUps.slice(0, MAX_FOLLOW_UPS),
-    thinkingOf: thinkingOf.slice(0, MAX_NOTES),
+    followUps: kept,
+    thinkingOf: thinkingOf.filter((n) => !asked.has(n.basis)).slice(0, MAX_NOTES),
   };
 }
 
