@@ -76,8 +76,17 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Install lk
+        # From livekit/livekit-cli's GitHub release, checked against its checksums.
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          curl -sSL https://get.livekit.io/cli | bash
+          tag=$(gh release view --repo livekit/livekit-cli --json tagName --jq .tagName)
+          tarball="lk_${tag#v}_linux_amd64.tar.gz"
+          gh release download "$tag" --repo livekit/livekit-cli --pattern "$tarball" --pattern checksums.txt
+          grep " $tarball\$" checksums.txt | sha256sum -c -
+          tar -xzf "$tarball" lk
+          sudo install lk /usr/local/bin/lk
+          rm -f "$tarball" checksums.txt lk
           lk --version
 
       - name: Install and typecheck
@@ -108,9 +117,15 @@ jobs:
           cp docker/Dockerfile.agent ./Dockerfile
           set +e
           lk agent deploy --url "$LIVEKIT_URL" --config "$PWD/livekit.toml" -y . > deploy.log 2>&1
+          status=$?
           rm -f Dockerfile
           set -e
           tail -n 40 deploy.log
+          # A non-zero exit fails, except the harmless log-streaming error at the end.
+          if [ "$status" != 0 ] && ! grep -q "bufio.Scanner: token too long" deploy.log; then
+            echo "::error::lk agent deploy exited $status"
+            exit 1
+          fi
           # Real error lines only: the build log echoes minified code with "ERROR:" mid-line.
           if grep -qE "error TS[0-9]{4}|^(#[0-9]+ )?ERROR:|[Bb]uild failed|✘ \[ERROR\]" deploy.log; then
             echo "::error::lk agent deploy failed"
