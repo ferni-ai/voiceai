@@ -81,6 +81,13 @@ describe('Voice Agent Entry - Module Structure', () => {
     expect(content).toContain('initFrontendSignal');
   });
 
+  it('ends the multi-agent job after its cleanup handlers run', async () => {
+    const content = await readAllEntryFiles();
+
+    // session-end.test.ts covers the behaviour; this pins the call site in the entry
+    expect(content).toContain('await cleanupThenEndJob(ctx, sessionEndReason, cleanupHandlers);');
+  });
+
   it('should have cleanup handler integration', async () => {
     const content = await readAllEntryFiles();
 

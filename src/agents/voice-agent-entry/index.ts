@@ -17,6 +17,7 @@
 import { isValidTimeZone } from '../shared/time-context.js';
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
+import { cleanupThenEndJob } from '../voice-agent/phases/session-end.js';
 import { noteCallerJoined } from './sip-caller.js';
 
 // Event cleanup registry for proper memory management
@@ -807,13 +808,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         }
       }
 
-      for (const cleanup of cleanupHandlers) {
-        try {
-          await cleanup();
-        } catch {
-          /* ignore */
-        }
-      }
+      // Last: end the job, so the agent leaves the room rather than staying in it silent
+      await cleanupThenEndJob(ctx, sessionEndReason, cleanupHandlers);
 
       process.stderr.write(`[voice-agent-entry] Session ended cleanly (multi-agent).\n`);
       unregisterSession(sessionId, 'multi_agent_exit');

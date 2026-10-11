@@ -34,7 +34,14 @@
  * @module agents/multi-agent/multi-agent-entry
  */
 
-import { initializeFrontendPublisher } from '../realtime/frontend-publisher.js';
+import {
+  getFrontendPublisher,
+  initializeFrontendPublisher,
+} from '../realtime/frontend-publisher.js';
+import {
+  initFrontendSignal,
+  resetFrontendSignal,
+} from '../../services/communication/frontend-signal.js';
 import type { JobContext } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -131,6 +138,12 @@ export async function initializeMultiAgentSession(
   // This call's own frontend publisher, bound to its session before
   // anything else starts, so app messages can't reach another caller's room.
   initializeFrontendPublisher(sessionId, room);
+  // conversation_end and the other client signals (end_conversation tool, idle and
+  // graceful exits) look the call up by session: without this they were dropped
+  initFrontendSignal(sessionId, async (type, data) => {
+    const publisher = getFrontendPublisher(sessionId);
+    if (publisher.isConnected()) await publisher.sendData(type, data ?? {});
+  });
 
   // Warm the TTS socket while the session sets up, before the greeting needs it.
   void import('../../speech/tts-gateway/index.js')
@@ -193,6 +206,7 @@ export async function initializeMultiAgentSession(
     cleanup: async () => {
       log.info({ sessionId }, '🎭 Cleaning up multi-agent session');
       await orchestrator.shutdown();
+      resetFrontendSignal(sessionId);
     },
   };
 }

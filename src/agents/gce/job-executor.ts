@@ -317,7 +317,8 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
 
     // Wait for graceful close
     await new Promise<void>((resolve) => {
-      if (!ctx.room.isConnected) {
+      // The entry already ended the job (ctx.shutdown): its 'close' fired before this listener
+      if (!ctx.room.isConnected || shutdown) {
         resolve();
         return;
       }
