@@ -73,13 +73,13 @@ let state: QuizState = {
 // CONSTANTS
 // ============================================================================
 
-const CATEGORY_LABELS: Record<string, string> = {
+const categoryLabels = (): Record<string, string> => ({
   preferences: t('knowledgeQuiz.categoryPreferences'),
   memories: t('knowledgeQuiz.categoryMemories'),
   goals: t('knowledgeQuiz.categoryGoals'),
   personality: t('knowledgeQuiz.categoryPersonality'),
   fun_facts: t('knowledgeQuiz.categoryFunFacts'),
-};
+});
 
 // ============================================================================
 // INITIALIZATION
@@ -301,7 +301,7 @@ function renderCurrentQuestion(): void {
   categoryIcon.setAttribute('aria-hidden', 'true');
 
   const categoryLabel = document.createElement('span');
-  categoryLabel.textContent = CATEGORY_LABELS[question.category] || t('knowledgeQuiz.defaultCategory');
+  categoryLabel.textContent = categoryLabels()[question.category] || t('knowledgeQuiz.defaultCategory');
 
   category.appendChild(categoryIcon);
   category.appendChild(categoryLabel);

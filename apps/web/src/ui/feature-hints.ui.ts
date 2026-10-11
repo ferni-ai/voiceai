@@ -79,7 +79,7 @@ const ICONS = {
 // PREDEFINED HINTS
 // ============================================================================
 
-export const FEATURE_HINTS: FeatureHint[] = [
+export const getFeatureHints = (): FeatureHint[] => [
   // Team Huddle hint - unlocks at building-trust
   {
     id: 'team-huddle-intro',
@@ -168,7 +168,8 @@ let styleElement: HTMLStyleElement | null = null;
 let isInitialized = false;
 const activeHints: Map<string, ActiveHint> = new Map();
 let dismissedHints: Set<string> = new Set();
-const registeredHints: FeatureHint[] = [...FEATURE_HINTS];
+let hintRegistry: FeatureHint[] | null = null; // built on first use, after initI18n
+const registeredHints = (): FeatureHint[] => (hintRegistry ??= getFeatureHints());
 let checkInterval: ReturnType<typeof setInterval> | null = null;
 
 // ============================================================================
@@ -223,9 +224,9 @@ function createContainer(): void {
  * Register a custom hint.
  */
 export function registerHint(hint: FeatureHint): void {
-  const exists = registeredHints.some((h) => h.id === hint.id);
+  const exists = registeredHints().some((h) => h.id === hint.id);
   if (!exists) {
-    registeredHints.push(hint);
+    registeredHints().push(hint);
     log.debug('Hint registered', { id: hint.id });
   }
 }
@@ -234,7 +235,7 @@ export function registerHint(hint: FeatureHint): void {
  * Show a specific hint by ID.
  */
 export function showHint(hintId: string): void {
-  const hint = registeredHints.find((h) => h.id === hintId);
+  const hint = registeredHints().find((h) => h.id === hintId);
   if (!hint) {
     log.warn('Hint not found', { hintId });
     return;
@@ -264,7 +265,7 @@ export function dismissHint(hintId: string): void {
     activeHints.delete(hintId);
 
     // Mark as dismissed if showOnce
-    const hint = registeredHints.find((h) => h.id === hintId);
+    const hint = registeredHints().find((h) => h.id === hintId);
     if (hint?.showOnce) {
       dismissedHints.add(hintId);
       saveDismissedHints();
@@ -306,7 +307,7 @@ function checkForHintOpportunities(): void {
   const currentStage = relationshipStageService.getStage();
 
   // Find hints that should be shown
-  for (const hint of registeredHints) {
+  for (const hint of registeredHints()) {
     // Skip if already showing or dismissed
     if (activeHints.has(hint.id) || dismissedHints.has(hint.id)) {
       continue;

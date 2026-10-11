@@ -85,7 +85,7 @@ export interface RitualBuilderUICallbacks {
 // HUMANIZED COPY
 // ============================================================================
 
-const BUILDER_COPY = {
+const builderCopy = () => ({
   title: t('rituals.title', 'Create Custom Practice'),
   templateIntro: t('rituals.templateIntro', 'Choose a starting point or build from scratch'),
   customizeTitle: t('rituals.customizeTitle', 'Make it yours'),
@@ -128,7 +128,7 @@ const BUILDER_COPY = {
     created: t('rituals.confirmation.created', "Your practice is ready. You've got this."),
     withCalendar: t('rituals.confirmation.withCalendar', "Your practice is scheduled. I'll remind you!"),
   },
-};
+});
 
 // ============================================================================
 // RITUAL TEMPLATES - Powered by Behavioral Science
@@ -153,7 +153,7 @@ interface RitualTemplate {
   mayaGuidance: string; // Maya's coaching voice
 }
 
-const RITUAL_TEMPLATES: RitualTemplate[] = [
+const ritualTemplates = (): RitualTemplate[] => [
   {
     name: t('rituals.templates.morningCheckin.name', 'Morning Check-in'),
     humanName: t('rituals.templates.morningCheckin.humanName', 'Morning moment'),
@@ -353,7 +353,7 @@ class RitualBuilderUI {
     this.panel = document.createElement('div');
     this.panel.className = 'ritual-builder';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', BUILDER_COPY.title);
+    this.panel.setAttribute('aria-label', builderCopy().title);
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'ritual-builder__wrapper';
@@ -397,7 +397,7 @@ class RitualBuilderUI {
     if (!this.wrapper) return;
 
     // Build rich template cards with behavioral science context
-    const templatesHtml = RITUAL_TEMPLATES.map(
+    const templatesHtml = ritualTemplates().map(
       (tmpl, i) => `
       <button class="ritual-builder__template-card" data-index="${i}" aria-label="${t('rituals.aria.chooseTemplate', { name: tmpl.humanName }, 'Choose {name}')}">
         <div class="ritual-builder__template-header">
@@ -444,8 +444,8 @@ class RitualBuilderUI {
 
     this.wrapper.innerHTML = `
       <header class="ritual-builder__header">
-        <h2>${BUILDER_COPY.title}</h2>
-        ${renderCloseButton(BUILDER_COPY.buttons.close)}
+        <h2>${builderCopy().title}</h2>
+        ${renderCloseButton(builderCopy().buttons.close)}
       </header>
 
       <!-- Maya's Guidance -->
@@ -485,7 +485,7 @@ class RitualBuilderUI {
     this.wrapper.querySelectorAll('.ritual-builder__template-card').forEach((btn) => {
       btn.addEventListener('click', () => {
         const index = parseInt((btn as HTMLElement).dataset.index || '0', 10);
-        const template = RITUAL_TEMPLATES[index];
+        const template = ritualTemplates()[index];
         if (template) {
           this.selectedTemplate = template;
           this.ritual = {
@@ -533,36 +533,36 @@ class RitualBuilderUI {
 
     this.wrapper.innerHTML = `
       <header class="ritual-builder__header">
-        ${renderBackButton(BUILDER_COPY.buttons.back)}
-        <h2>${BUILDER_COPY.customizeTitle}</h2>
-        ${renderCloseButton(BUILDER_COPY.buttons.close)}
+        ${renderBackButton(builderCopy().buttons.back)}
+        <h2>${builderCopy().customizeTitle}</h2>
+        ${renderCloseButton(builderCopy().buttons.close)}
       </header>
 
       <div class="ritual-builder__form">
         <div class="ritual-builder__field">
-          <label for="ritual-name">${BUILDER_COPY.fieldLabels.name}</label>
+          <label for="ritual-name">${builderCopy().fieldLabels.name}</label>
           <input 
             type="text" 
             id="ritual-name" 
             class="engagement-input"
             value="${escapeAttr(this.ritual.name)}" 
-            placeholder="${escapeAttr(BUILDER_COPY.placeholders.name)}" 
+            placeholder="${escapeAttr(builderCopy().placeholders.name)}" 
           />
         </div>
 
         <div class="ritual-builder__field">
-          <label for="ritual-desc">${BUILDER_COPY.fieldLabels.description}</label>
+          <label for="ritual-desc">${builderCopy().fieldLabels.description}</label>
           <textarea 
             id="ritual-desc" 
             class="engagement-textarea"
             rows="2" 
-            placeholder="${escapeAttr(BUILDER_COPY.placeholders.description)}"
+            placeholder="${escapeAttr(builderCopy().placeholders.description)}"
           >${escapeHtml(this.ritual.description)}</textarea>
         </div>
 
         <div class="ritual-builder__row">
           <div class="ritual-builder__field">
-            <label>${BUILDER_COPY.fieldLabels.duration}</label>
+            <label>${builderCopy().fieldLabels.duration}</label>
             <select id="ritual-duration" class="engagement-select">
               ${durationOptions
                 .map(
@@ -575,7 +575,7 @@ class RitualBuilderUI {
           </div>
 
           <div class="ritual-builder__field">
-            <label>${BUILDER_COPY.fieldLabels.frequency}</label>
+            <label>${builderCopy().fieldLabels.frequency}</label>
             <select id="ritual-frequency" class="engagement-select">
               ${frequencyOptions
                 .map(
@@ -589,7 +589,7 @@ class RitualBuilderUI {
         </div>
 
         <div class="ritual-builder__field">
-          <label>${BUILDER_COPY.fieldLabels.time}</label>
+          <label>${builderCopy().fieldLabels.time}</label>
           <div class="ritual-builder__time-options">
             ${timeOptions
               .map(
@@ -609,7 +609,7 @@ class RitualBuilderUI {
       </div>
 
       <div class="ritual-builder__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.preview}</button>
+        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${builderCopy().buttons.preview}</button>
       </div>
     `;
 
@@ -680,9 +680,9 @@ class RitualBuilderUI {
 
     this.wrapper.innerHTML = `
       <header class="ritual-builder__header">
-        ${renderBackButton(BUILDER_COPY.buttons.back)}
-        <h2>${BUILDER_COPY.calendarTitle}</h2>
-        ${renderCloseButton(BUILDER_COPY.buttons.close)}
+        ${renderBackButton(builderCopy().buttons.back)}
+        <h2>${builderCopy().calendarTitle}</h2>
+        ${renderCloseButton(builderCopy().buttons.close)}
       </header>
 
       <div class="ritual-builder__form">
@@ -690,16 +690,16 @@ class RitualBuilderUI {
           <label class="ritual-builder__toggle-container">
             <input type="checkbox" id="schedule-toggle" ${this.ritual.scheduleInCalendar ? 'checked' : ''} />
             <span class="ritual-builder__toggle-slider" role="button" tabindex="0"></span>
-            <span class="ritual-builder__toggle-label" role="button" tabindex="0">${BUILDER_COPY.fieldLabels.scheduleInCalendar}</span>
+            <span class="ritual-builder__toggle-label" role="button" tabindex="0">${builderCopy().fieldLabels.scheduleInCalendar}</span>
           </label>
           <p class="ritual-builder__toggle-hint">
-            ${this.ritual.scheduleInCalendar ? BUILDER_COPY.calendar.enabled : BUILDER_COPY.calendar.disabled}
+            ${this.ritual.scheduleInCalendar ? builderCopy().calendar.enabled : builderCopy().calendar.disabled}
           </p>
         </div>
 
         <div class="ritual-builder__calendar-options ${this.ritual.scheduleInCalendar ? '' : 'ritual-builder__calendar-options--hidden'}">
           <div class="ritual-builder__field">
-            <label>${BUILDER_COPY.fieldLabels.specificTime}</label>
+            <label>${builderCopy().fieldLabels.specificTime}</label>
             <div class="ritual-builder__time-picker">
               <input 
                 type="time" 
@@ -709,16 +709,16 @@ class RitualBuilderUI {
               />
               <button aria-label="${t('accessibility.copy')}" type="button" class="engagement-btn-secondary ritual-builder__suggest-btn">
                 ${ICONS.clock}
-                ${BUILDER_COPY.buttons.suggestTimes}
+                ${builderCopy().buttons.suggestTimes}
               </button>
             </div>
           </div>
 
           <div class="ritual-builder__suggestions ${this.timeSuggestions.length > 0 || this.loadingSuggestions ? '' : 'ritual-builder__suggestions--hidden'}">
             ${this.loadingSuggestions ? `
-              <div class="ritual-builder__loading">${BUILDER_COPY.calendar.loadingSuggestions}</div>
+              <div class="ritual-builder__loading">${builderCopy().calendar.loadingSuggestions}</div>
             ` : this.timeSuggestions.length > 0 ? `
-              <p class="ritual-builder__suggestion-hint">${BUILDER_COPY.calendar.suggestion}</p>
+              <p class="ritual-builder__suggestion-hint">${builderCopy().calendar.suggestion}</p>
               <div class="ritual-builder__suggestion-list">
                 ${this.timeSuggestions.slice(0, 3).map((s, i) => `
                   <button type="button" class="ritual-builder__suggestion-item" data-hour="${s.hour}" data-minute="${s.minute}" data-index="${i}">
@@ -732,7 +732,7 @@ class RitualBuilderUI {
           </div>
 
           <div class="ritual-builder__field">
-            <label>${BUILDER_COPY.fieldLabels.reminders}</label>
+            <label>${builderCopy().fieldLabels.reminders}</label>
             <div class="ritual-builder__reminder-options">
               ${reminderOptions.map(opt => `
                 <label class="ritual-builder__reminder-option">
@@ -750,8 +750,8 @@ class RitualBuilderUI {
       </div>
 
       <div class="ritual-builder__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-secondary" type="button">${BUILDER_COPY.buttons.skipCalendar}</button>
-        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.preview}</button>
+        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-secondary" type="button">${builderCopy().buttons.skipCalendar}</button>
+        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${builderCopy().buttons.preview}</button>
       </div>
     `;
 
@@ -990,9 +990,9 @@ class RitualBuilderUI {
 
     this.wrapper.innerHTML = `
       <header class="ritual-builder__header">
-        ${renderBackButton(BUILDER_COPY.buttons.back)}
-        <h2>${BUILDER_COPY.previewTitle}</h2>
-        ${renderCloseButton(BUILDER_COPY.buttons.close)}
+        ${renderBackButton(builderCopy().buttons.back)}
+        <h2>${builderCopy().previewTitle}</h2>
+        ${renderCloseButton(builderCopy().buttons.close)}
       </header>
 
       <div class="ritual-builder__preview">
@@ -1038,8 +1038,8 @@ class RitualBuilderUI {
       </div>
 
       <div class="ritual-builder__actions" role="button" tabindex="0">
-        <button aria-label="${t('accessibility.edit')}" class="engagement-btn-secondary" type="button">${BUILDER_COPY.buttons.edit}</button>
-        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${BUILDER_COPY.buttons.save}</button>
+        <button aria-label="${t('accessibility.edit')}" class="engagement-btn-secondary" type="button">${builderCopy().buttons.edit}</button>
+        <button aria-label="${t('accessibility.copy')}" class="engagement-btn-primary" type="button">${builderCopy().buttons.save}</button>
       </div>
     `;
 

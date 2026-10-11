@@ -507,10 +507,13 @@ class VoiceAIApp {
       void initPlatform();
       log.info('Running on:', platform());
 
-      // Initialize theme system first (affects all UI)
+      // Before the theme: the circadian theme names its period with t(), and
+      // index.html already applied the stored theme, so there is no flash.
+      await initI18n(); // before any UI renders
+
+      // Initialize theme system (affects all UI)
       this.initializeTheme();
 
-      await initI18n(); // before any UI renders
       bindStaticDom(); // index.html text marked with data-i18n
       bindLocaleRefresh(); // a no-reload language change finishes with a reload
       installDialogFocus(); // focus into, around and back out of every modal
