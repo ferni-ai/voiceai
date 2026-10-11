@@ -17,6 +17,8 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiPost } from '../utils/api.js';
 import { connectionService } from '../services/connection.service.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { openDialog, type DialogHandle } from './overlay/dialog.js';
 
 const log = createLogger('ActionConfirmation');
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -131,6 +133,9 @@ let container: HTMLElement | null = null;
 let pendingActions: PendingAction[] = [];
 let callbacks: ActionConfirmationCallbacks = {};
 let countdownIntervals: Map<string, number> = new Map();
+/** Overlay host: the action in front of the reader, and the ones waiting behind it. */
+let current: { id: string; dialog: DialogHandle } | null = null;
+let waiting: PendingAction[] = [];
 
 // ============================================================================
 // API & DATA CHANNEL
@@ -198,19 +203,20 @@ async function rejectAction(actionId: string): Promise<boolean> {
 // UI CREATION
 // ============================================================================
 
+function ensureStyles(): void {
+  if (document.getElementById('action-confirmation-styles')) return;
+  const styles = document.createElement('style');
+  styles.id = 'action-confirmation-styles';
+  styles.textContent = getStyles();
+  document.head.appendChild(styles);
+}
+
 function createContainer(): HTMLElement {
   const el = document.createElement('div');
   el.className = 'action-confirmation-container';
   el.setAttribute('role', 'region');
   el.setAttribute('aria-label', t('actionConfirmation.pendingActions'));
-
-  // Add styles if not present
-  if (!document.getElementById('action-confirmation-styles')) {
-    const styles = document.createElement('style');
-    styles.id = 'action-confirmation-styles';
-    styles.textContent = getStyles();
-    document.head.appendChild(styles);
-  }
+  ensureStyles();
 
   document.body.appendChild(el);
   return el;
@@ -351,6 +357,11 @@ function startCountdown(actionId: string, seconds: number): void {
 }
 
 function dismissAction(actionId: string): void {
+  if (current?.id === actionId) {
+    current.dialog.close(); // onClose runs the rest of the cleanup
+    return;
+  }
+  waiting = waiting.filter((a) => a.id !== actionId);
   // Stop countdown
   const interval = countdownIntervals.get(actionId);
   if (interval) {
@@ -401,6 +412,17 @@ function getStyles(): string {
       transform: translateY(0);
       pointer-events: auto;
     }
+
+    /* Overlay host: the card is the dialog's content, not a card of its own. */
+    .ferni-dialog.action-confirmation-dialog .ferni-dialog__surface { padding: 0; }
+    .ferni-dialog.action-confirmation-dialog .action-card {
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: transparent;
+      animation: none;
+    }
+    .ferni-dialog.action-confirmation-dialog .action-btn { white-space: nowrap; }
 
     .action-card {
       background: var(--color-bg-elevated, #FFFDFB);
@@ -701,6 +723,14 @@ function getStyles(): string {
  * Show a pending action for user approval
  */
 export function showActionConfirmation(action: PendingAction): void {
+  if (isOverlayHostEnabled()) {
+    if (pendingActions.some((a) => a.id === action.id)) return;
+    pendingActions.push(action);
+    if (current) waiting.push(action);
+    else openActionDialog(action);
+    log.info({ actionId: action.id, type: action.actionType }, 'Showing action confirmation');
+    return;
+  }
   if (!container) {
     container = createContainer();
   }
@@ -716,6 +746,35 @@ export function showActionConfirmation(action: PendingAction): void {
   container.classList.add('visible');
 
   log.info({ actionId: action.id, type: action.actionType }, 'Showing action confirmation');
+}
+
+/**
+ * Overlay host on: one consent at a time, in a native alert dialog (top layer,
+ * so nothing renders over it, and never on top of the call controls the way
+ * the bottom-right card did). Escape or the backdrop count as dismissing it,
+ * which is what the card's close button did; it is not a rejection.
+ */
+function openActionDialog(action: PendingAction): void {
+  ensureStyles();
+  const card = createActionCard(action);
+  card.removeAttribute('role'); // the <dialog> carries the semantics
+  const dialog = openDialog(card, {
+    size: 'md',
+    role: 'alertdialog',
+    labelledBy: `action-title-${action.id}`,
+    className: 'action-confirmation-dialog',
+    onClose: () => {
+      const interval = countdownIntervals.get(action.id);
+      if (interval) clearInterval(interval);
+      countdownIntervals.delete(action.id);
+      pendingActions = pendingActions.filter((a) => a.id !== action.id);
+      current = null;
+      const next = waiting.shift();
+      if (next) openActionDialog(next);
+    },
+  });
+  current = { id: action.id, dialog };
+  card.querySelector<HTMLElement>('[data-action="reject"]')?.focus();
 }
 
 /**
@@ -740,6 +799,9 @@ export function cleanupActionConfirmations(): void {
   countdownIntervals.forEach((interval) => clearInterval(interval));
   countdownIntervals.clear();
   pendingActions = [];
+  waiting = [];
+  current?.dialog.close();
+  current = null;
   container?.remove();
   container = null;
 }

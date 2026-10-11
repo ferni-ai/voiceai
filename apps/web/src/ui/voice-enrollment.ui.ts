@@ -24,6 +24,8 @@ import {
   type EnrollmentProgress,
   type VoiceProfile,
 } from '../services/voice-auth.service.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { openDialog, type DialogHandle } from './overlay/dialog.js';
 
 const log = createLogger('VoiceEnrollmentUI');
 
@@ -75,6 +77,8 @@ const ICONS = {
 // ============================================================================
 
 let modal: HTMLElement | null = null;
+/** The native dialog holding `modal` while the overlay host renders it. */
+let enrollmentDialog: DialogHandle | null = null;
 let styleElement: HTMLStyleElement | null = null;
 let currentState: EnrollmentState = 'idle';
 let progress: EnrollmentProgress | null = null;
@@ -152,6 +156,19 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       background: rgba(44, 37, 32, 0.75);
+    }
+
+    /* Overlay host: the dialog is the card. */
+    .ferni-dialog.voice-enrollment-dialog .ferni-dialog__surface { padding: 0; }
+    .ferni-dialog.voice-enrollment-dialog .voice-enrollment-card {
+      width: auto;
+      max-width: none;
+      max-height: none;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: transparent;
+      transform: none;
     }
 
     .voice-enrollment-card {
@@ -536,6 +553,26 @@ export async function showVoiceEnrollmentModal(opts: VoiceEnrollmentOptions = {}
 
   currentState = 'checking';
   modal = createModal();
+  if (isOverlayHostEnabled()) {
+    injectStyles(); // cleanupOrphanedElements() above also removed the styles
+    // The card in a native <dialog>: top layer instead of z 1800 under every
+    // modal, Escape (the old overlay had none), inert page, a sheet on phones.
+    const body = document.createElement('div');
+    const card = modal.querySelector('.voice-enrollment-card');
+    if (card) body.appendChild(card);
+    modal = body;
+    enrollmentDialog = openDialog(body, {
+      size: 'md',
+      detent: 'large', // the start button sits below the fold at medium
+      labelledBy: 'voice-enrollment-title',
+      className: 'voice-enrollment-dialog',
+      onClose: () => {
+        if (enrollmentDialog) handleCancel(); // Escape, backdrop or drag
+      },
+    });
+    await checkStatusAndProfile();
+    return;
+  }
   document.body.appendChild(modal);
 
   // Animate in
@@ -560,6 +597,16 @@ export function hideVoiceEnrollmentModal(): void {
   if (animationFrame) {
     cancelAnimationFrame(animationFrame);
     animationFrame = null;
+  }
+
+  if (enrollmentDialog) {
+    const dialog = enrollmentDialog;
+    enrollmentDialog = null;
+    dialog.close();
+    modal = null;
+    currentState = 'idle';
+    progress = null;
+    return;
   }
 
   modal.classList.remove('voice-enrollment-modal--visible');
