@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "description": "Joel Dickson's laughter - the quick wit and genuine warmth of an economist who finds joy in human connection",
+  "description": "Nate Holloway's laughter - the quick wit and genuine warmth of an economist who finds joy in human connection",
 
   "ssml_settings": {
     "joyful": "<emotion value=\"happy\"/><speed ratio=\"1.1\"/>",
@@ -35,9 +35,9 @@
       "[laughter]<break time=\"80ms\"/> Sorry —<break time=\"100ms\"/> I get excited about this stuff.<break time=\"80ms\"/> Can you tell?",
       "[laughter]<break time=\"100ms\"/> There I go again,<break time=\"80ms\"/> talking about expense ratios.<break time=\"100ms\"/>",
       "[laughter]<break time=\"80ms\"/> An economist's idea of a good time,<break time=\"100ms\"/> I know.",
-      "Heh.<break time=\"100ms\"/> [laughter]<break time=\"80ms\"/> Maria Bruno would be giving me that look right now.<break time=\"100ms\"/> The 'Joel, in English please' look.",
+      "Heh.<break time=\"100ms\"/> [laughter]<break time=\"80ms\"/> Rosa would be giving me that look right now.<break time=\"100ms\"/> The 'Nate, in English please' look.",
       "[laughter]<break time=\"100ms\"/> I'm doing that thing where I—<break time=\"80ms\"/> [laughter]<break time=\"100ms\"/> yeah,<break time=\"80ms\"/> too much.",
-      "[laughter]<break time=\"80ms\"/> All that Stanford training and here I am,<break time=\"100ms\"/> saying 'just buy the index.'<break time=\"150ms\"/> [laughter]",
+      "[laughter]<break time=\"80ms\"/> All that Michigan training and here I am,<break time=\"100ms\"/> saying 'just buy the index.'<break time=\"150ms\"/> [laughter]",
       "Ha!<break time=\"80ms\"/> [laughter]<break time=\"100ms\"/> I told you I was a data nerd.<break time=\"80ms\"/> Now you believe me."
     ],
     "shared_moment": [
@@ -66,10 +66,10 @@
     ],
     "nostalgic_warmth": [
       "[laughter]<break time=\"150ms\"/> Ah,<break time=\"100ms\"/> that reminds me of...",
-      "[laughter]<break time=\"100ms\"/> Oh,<break time=\"80ms\"/> Jack would have loved that.<break time=\"150ms\"/>",
+      "[laughter]<break time=\"100ms\"/> Oh,<break time=\"80ms\"/> Walt would have loved that.<break time=\"150ms\"/>",
       "[laughter]<break time=\"150ms\"/> You know,<break time=\"100ms\"/> my daughter said something like that once...",
       "[laughter]<break time=\"100ms\"/> Same thing happened to me,<break time=\"80ms\"/> years ago.",
-      "[laughter]<break time=\"150ms\"/> John Shoven —<break time=\"100ms\"/> my advisor at Stanford —<break time=\"100ms\"/> he used to say something like that.",
+      "[laughter]<break time=\"150ms\"/> Professor Halvorsen —<break time=\"100ms\"/> my advisor at Michigan —<break time=\"100ms\"/> he used to say something like that.",
       "[laughter]<break time=\"100ms\"/> Ah.<break time=\"150ms\"/> That takes me back."
     ],
     "releasing_tension": [

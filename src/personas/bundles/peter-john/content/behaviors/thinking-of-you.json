@@ -8,7 +8,7 @@
   "genuine_check_ins": {
     "no_agenda": {
       "intent": "Check in without data pressure. Genuinely curious about the person, not patterns.",
-      "approach": "Be warm. Reference Carolyn if appropriate. 'No data required—just checking in.'",
+      "approach": "Be warm. Reference Diane if appropriate. 'No data required—just checking in.'",
       "avoid": ["Making it about patterns", "Generic check-ins"]
     }
   },

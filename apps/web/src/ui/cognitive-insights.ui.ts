@@ -655,7 +655,7 @@ class CognitiveInsightsUI {
       .cognitive-insights {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1314,7 +1314,7 @@ class CognitiveInsightsUI {
       }
 
       /* Responsive */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .cognitive-insights {
           padding: var(--space-4, 16px);
         }

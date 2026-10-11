@@ -24,6 +24,7 @@ import {
   type UserContext,
   type OutreachType,
 } from './llm-content-generator.js';
+import { callQuietHours } from './quiet-hours.js';
 
 const log = createLogger({ module: 'ProactiveCallScheduler' });
 
@@ -130,15 +131,12 @@ export async function scheduleProactiveCall(
       return { success: false, error: 'Calls not configured' };
     }
 
-    // Check quiet hours
-    const inQuietHours = await isInQuietHours(userId);
-    if (inQuietHours) {
-      const nextWindow = await getNextAvailableWindow(userId);
-      log.info({ userId, nextWindow }, 'Call delayed due to quiet hours');
-      return scheduleProactiveCall({
-        ...request,
-        scheduledFor: nextWindow,
-      });
+    // Check quiet hours. Only for a call due now: the rescheduled one is in the future.
+    const now = new Date();
+    const quiet = scheduledFor <= now && (await callQuietHours(userId, now));
+    if (quiet && quiet.quiet) {
+      log.info({ userId, nextWindow: quiet.until }, 'Call delayed due to quiet hours');
+      return scheduleProactiveCall({ ...request, scheduledFor: quiet.until });
     }
 
     // Generate personalized content using LLM
@@ -237,70 +235,6 @@ function getToneForOutreachType(type: OutreachType): OutreachTone {
   return toneMap[type] || 'casual';
 }
 
-async function isInQuietHours(userId: string): Promise<boolean> {
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const db = getFirestoreDb();
-    if (!db) return false;
-
-    const doc = await db.collection('bogle_users').doc(userId).get();
-    if (!doc.exists) return false;
-
-    const data = doc.data();
-    const preferences = data?.outreachPreferences;
-    if (!preferences?.quietHours?.enabled) return false;
-
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTime = currentHour * 60 + currentMinute;
-
-    const startParts = preferences.quietHours.start.split(':').map(Number);
-    const endParts = preferences.quietHours.end.split(':').map(Number);
-    const startTime = startParts[0] * 60 + startParts[1];
-    const endTime = endParts[0] * 60 + endParts[1];
-
-    if (startTime > endTime) {
-      return currentTime >= startTime || currentTime < endTime;
-    }
-    return currentTime >= startTime && currentTime < endTime;
-  } catch {
-    return false;
-  }
-}
-
-async function getNextAvailableWindow(userId: string): Promise<Date> {
-  try {
-    const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
-    const db = getFirestoreDb();
-    if (!db) {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(9, 0, 0, 0);
-      return tomorrow;
-    }
-
-    const doc = await db.collection('bogle_users').doc(userId).get();
-    const preferences = doc.exists ? doc.data()?.outreachPreferences : null;
-
-    const endHour = preferences?.quietHours?.end
-      ? parseInt(preferences.quietHours.end.split(':')[0], 10)
-      : 8;
-
-    const next = new Date();
-    if (next.getHours() >= endHour) {
-      next.setDate(next.getDate() + 1);
-    }
-    next.setHours(endHour, 0, 0, 0);
-    return next;
-  } catch {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(9, 0, 0, 0);
-    return tomorrow;
-  }
-}
-
 async function saveScheduledCall(callData: {
   userId: string;
   phoneNumber: string;
@@ -335,7 +269,6 @@ async function saveScheduledCall(callData: {
 export const proactiveCallScheduler = {
   scheduleCall: scheduleProactiveCall,
   enhanceSSML: enhanceSSMLForCall,
-  isInQuietHours,
 };
 
 export default proactiveCallScheduler;

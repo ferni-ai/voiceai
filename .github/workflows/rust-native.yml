@@ -34,7 +34,8 @@ jobs:
   # ============================================================================
   test:
     name: Test Rust Crates
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -93,8 +94,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux x86_64 (production - GCE); follows CI_RUNNER like the other CI jobs
-          - os: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+          # Linux x86_64 (production - GCE)
+          - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             node_arch: linux-x64
 
@@ -193,7 +194,7 @@ jobs:
   verify:
     name: Verify Node.js Integration
     needs: build
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
