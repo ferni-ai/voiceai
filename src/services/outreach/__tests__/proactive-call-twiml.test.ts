@@ -117,7 +117,7 @@ describe('a call asked for during quiet hours', () => {
     const result = await scheduleProactiveCall(request('u2', '<speak>hi</speak>'));
     expect(result).toMatchObject({ success: true, status: 'scheduled' });
     expect(create).not.toHaveBeenCalled();
-    // One quiet-hours read and one next-window read.
-    expect(reads['bogle_users/u2']).toBe(2);
+    // callQuietHours reads the user once and returns the window, so this stays one step.
+    expect(reads['bogle_users/u2']).toBe(1);
   });
 });

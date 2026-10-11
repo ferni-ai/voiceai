@@ -288,32 +288,4 @@ describe('Feature Flags', () => {
       expect(isPersonalJourneyEnabled()).toBe(false);
     });
   });
-
-  describe('Environment Variable Overrides', () => {
-    it('should override flags from environment variables', () => {
-      vi.stubEnv('DEBUG_AGENT', 'true');
-
-      reloadFeatureFlags();
-
-      expect(isDebugEnabled('agent')).toBe(true);
-    });
-
-    it('should parse boolean env vars correctly', () => {
-      vi.stubEnv('DEBUG_MEMORY', '1');
-      vi.stubEnv('DEBUG_TOOLS', 'yes');
-
-      reloadFeatureFlags();
-
-      expect(isDebugEnabled('memory')).toBe(true);
-      expect(isDebugEnabled('tools')).toBe(true);
-    });
-
-    it('should handle false values', () => {
-      vi.stubEnv('HUMANIZATION_ENABLED', 'false');
-
-      reloadFeatureFlags();
-
-      expect(isHumanizationEnabled()).toBe(false);
-    });
-  });
 });

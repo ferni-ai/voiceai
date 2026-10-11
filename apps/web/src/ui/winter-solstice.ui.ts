@@ -1116,7 +1116,7 @@ class WinterSolsticeMomentUI {
       }
 
       /* Responsive */
-      @media (max-width: clamp(538px, 90vw, 768px)) {
+      @media (max-width: 768px) {
         .solstice-team-gathering {
           gap: var(--space-2);
         }

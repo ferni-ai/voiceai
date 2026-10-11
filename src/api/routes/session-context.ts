@@ -18,7 +18,7 @@ import {
   recordAppScreenView,
   recordAppInteraction,
   formatContextForApp,
-} from '../../services/session-context/session-summary.js';
+} from '../../services/session/session-summary.js';
 
 const log = createLogger({ module: 'SessionContextRoutes' });
 
