@@ -18,6 +18,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { initSpringBody } from './avatar-motion/spring-body.js';
 
 const log = createLogger('SpeakingSystem');
 
@@ -101,6 +102,7 @@ export function initSpeakingSystem(): void {
   
   isInitialized = true;
   log.info('🔊 Speaking system initialized (3-layer: body, halo, lid)');
+  initSpringBody();
 }
 
 /**
