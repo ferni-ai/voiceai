@@ -15,27 +15,29 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
+// Vitest 5 only accepts vi.mock at the top level. Vitest 4 hoisted these
+// here from inside the suites below, so moving them changes nothing.
+// Mock dependencies
+vi.mock('../utils/safe-logger.js', () => {
+  const mockLogger = {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    child: () => mockLogger,
+  };
+  return {
+    getLogger: () => mockLogger,
+    createLogger: () => mockLogger,
+    safeLog: () => mockLogger,
+  };
+});
+
 // ============================================================================
 // EMOTION MATCHING TESTS
 // ============================================================================
 
 describe('emotion-matching', () => {
-  // Mock dependencies
-  vi.mock('../utils/safe-logger.js', () => {
-    const mockLogger = {
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-      child: () => mockLogger,
-    };
-    return {
-      getLogger: () => mockLogger,
-      createLogger: () => mockLogger,
-      safeLog: () => mockLogger,
-    };
-  });
-
   let emotionMatching: typeof import('../speech/emotion-matching.js');
 
   beforeEach(async () => {

@@ -16,6 +16,10 @@ import { sanitizeReturnUrl } from '../../token/validation.js';
 import { parseBodySafe } from '../../../utils/ddos-protection.js';
 import { isLinkedInEnabled, LINKEDIN_OAUTH_PROVIDER } from '../../../config/linkedin-flag.js';
 import {
+  GMAIL_SEND_OAUTH_PROVIDER,
+  isGmailSendAsUserEnabled,
+} from '../../../config/gmail-send-flag.js';
+import {
   LINKEDIN_CONNECT_PATH,
   LINKEDIN_PROVIDER,
   isLinkedInConfigured,
@@ -31,6 +35,7 @@ function isSpotifyConfigured(): boolean {
 /** Provider → the login route that redirects on to the provider. */
 const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
   ['google_calendar', '/auth/google/login'],
+  [GMAIL_SEND_OAUTH_PROVIDER, '/auth/google/gmail-send/login'],
   ['microsoft_calendar', '/auth/microsoft/login'],
   ['apple_calendar', '/auth/apple/login'],
   ['fitbit', '/wearables/fitbit/login'],
@@ -48,6 +53,10 @@ const LOGIN_PATHS: ReadonlyMap<string, string> = new Map([
 const AVAILABILITY: ReadonlyMap<string, { name: string; isConfigured: () => boolean }> = new Map([
   [LINKEDIN_PROVIDER, { name: 'LinkedIn', isConfigured: isLinkedInConfigured }],
   ['spotify', { name: 'Spotify', isConfigured: isSpotifyConfigured }],
+  [
+    GMAIL_SEND_OAUTH_PROVIDER,
+    { name: 'Sending from Gmail', isConfigured: isGmailSendAsUserEnabled },
+  ],
 ]);
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {

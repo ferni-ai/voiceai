@@ -9,6 +9,7 @@
 
 import type { ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { readCallSummaries } from '../../memory/storage/call-summaries.js';
 import { sendJson } from './helpers.js';
 
 const log = createLogger({ module: 'IntelligenceJobs' });
@@ -51,13 +52,7 @@ export async function handleRunDeepAnalysis(res: ServerResponse): Promise<void> 
           }
         }
 
-        const summariesSnap = await db
-          .collection('bogle_users')
-          .doc(userId)
-          .collection('conversation_summaries')
-          .orderBy('timestamp', 'desc')
-          .limit(10)
-          .get();
+        const summariesSnap = await readCallSummaries(db, userId, { limit: 10 });
 
         if (summariesSnap.docs.length < 3) {
           skipped++;
