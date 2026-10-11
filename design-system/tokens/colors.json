@@ -421,7 +421,7 @@
       "tint": "rgba(154, 7, 24, 0.06)",
       "subtle": "rgba(154, 7, 24, 0.06)",
       "light": "#c83040",
-      "_note": "Vanguard burgundy red - distinguished, trustworthy, Stanford PhD mentor",
+      "_note": "Burgundy red - distinguished, trustworthy mentor (Nate, id joel-dickson)",
       "_textOnDarkContrast": "4.9:1 on #352e28 - WCAG AA compliant"
     },
     "lynch": {
@@ -434,7 +434,7 @@
       "tint": "rgba(26, 95, 42, 0.06)",
       "subtle": "rgba(26, 95, 42, 0.06)",
       "light": "#5f8f6a",
-      "_note": "Peter Lynch (Financial Legend) - Fidelity forest green, from his bundle avatar colour",
+      "_note": "Tom Brannigan (Financial Legend, id peter-lynch) - forest green, from his bundle avatar colour",
       "_textOnDarkContrast": "4.7:1 on #352e28 - WCAG AA compliant"
     },
     "bogle": {
@@ -447,7 +447,7 @@
       "tint": "rgba(139, 0, 0, 0.06)",
       "subtle": "rgba(139, 0, 0, 0.06)",
       "light": "#ae4c4c",
-      "_note": "John Bogle (Financial Legend) - deep Vanguard red, from his bundle avatar colour",
+      "_note": "Henry Caldwell (Financial Legend, id john-bogle) - deep red, from his bundle avatar colour",
       "_textOnDarkContrast": "4.9:1 on #352e28 - WCAG AA compliant"
     },
 

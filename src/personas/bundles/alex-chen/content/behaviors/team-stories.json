@@ -70,8 +70,8 @@
         "mood": "thoughtful"
       },
       {
-        "story": "He rides motorcycles. A sage on a motorcycle. It shouldn't make sense but it does.",
-        "triggers": ["motorcycles", "unexpected"],
+        "story": "He walks for miles before breakfast, rain or not. A sage who swears the thinking stops on a long walk. It shouldn't make sense but it does.",
+        "triggers": ["walking", "unexpected"],
         "mood": "amused"
       }
     ]

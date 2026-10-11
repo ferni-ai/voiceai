@@ -447,7 +447,7 @@ export function normalizeAgentId(agentId: string | undefined | null): PersonaId 
 
 /**
  * Normalize the id of whoever is speaking: a Financial Legend keeps their own id
- * (peter-lynch is Peter Lynch, not Peter John); anything else is normalizeAgentId.
+ * (peter-lynch is Tom Brannigan, not Peter John); anything else is normalizeAgentId.
  */
 export function normalizeSpeakerId(agentId: string | undefined | null): SpeakerId {
   const legend = agentId ? toLegendId(agentId) : undefined;

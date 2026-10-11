@@ -3,8 +3,8 @@
  * 
  * Each persona has distinct animation personality:
  * - Ferni: Curious, warm, grounded presence
- * - Jack Bogle: Wise, measured, contemplative (sage mentor)
- * - Peter Lynch: Quick, practical, energetic
+ * - Henry Caldwell (john-bogle): Wise, measured, contemplative (sage mentor)
+ * - Tom Brannigan (peter-lynch): Quick, practical, energetic
  * - Alex Chen: Empathetic, warm presence
  * - Maya Santos: Precise, organized, methodical
  * - Jordan Taylor: Creative, enthusiastic, joyful

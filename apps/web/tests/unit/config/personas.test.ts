@@ -174,7 +174,7 @@ describe('Personas Config', () => {
       expect(normalizeAgentId('event-planner')).toBe('jordan-taylor');
     });
 
-    it('does not turn Peter Lynch into Peter John', () => {
+    it('does not turn the stock-picking legend (peter-lynch) into Peter John', () => {
       // A Financial Legend is not on the team: no team id stands in for him
       expect(normalizeAgentId('peter-lynch')).not.toBe('peter-john');
       expect(normalizeAgentId('lynch')).not.toBe('peter-john');
@@ -230,12 +230,12 @@ describe('Personas Config', () => {
 
     it('getPersona returns the Legend, with their own colour', () => {
       const lynch = getPersona('peter-lynch');
-      expect(lynch.name).toBe('Peter Lynch');
-      expect(lynch.initials).toBe('PL');
+      expect(lynch.name).toBe('Tom Brannigan');
+      expect(lynch.initials).toBe('TB');
       expect(lynch.colors.primary).toBe(getPersonaColors('lynch').primary);
       expect(lynch.colors.primary).not.toBe(getPersona('peter-john').colors.primary);
-      expect(getPersona('john-bogle').name).toBe('John Bogle');
-      expect(getPersona('joel-dickson').name).toBe('Joel Dickson');
+      expect(getPersona('john-bogle').name).toBe('Henry Caldwell');
+      expect(getPersona('joel-dickson').name).toBe('Nate Holloway');
     });
   });
 });
