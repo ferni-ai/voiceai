@@ -20,6 +20,7 @@ import { TransformStream, type ReadableStream as NodeReadableStream } from 'node
 
 import { voiceHonorsProsodyTags } from '../../../config/voice-capabilities.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { recordQuirk } from '../../../services/session/quirk-log.js';
 import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
@@ -372,8 +373,24 @@ class DirectedReply implements ReplyStream {
         ...engine.nonverbalCarry(),
       });
     }
+    this.recordNonverbals(cancelled);
     if (opts.onPlan) opts.onPlan(summary, engine.plan);
     else log.info(summary, 'Speech director plan');
+  }
+
+  /** The laugh and opening breath/sigh added (live levers), for the quirk log: never in the history. */
+  private recordNonverbals(cancelled: boolean): void {
+    const { engine, opts } = this;
+    if (this.mode !== 'live') return;
+    const at = { source: 'director' as const, personaId: opts.personaId };
+    const opening = engine.opening.opening;
+    if (opening && this.modes.nonverbal === 'live') {
+      recordQuirk(opts.sessionId, { ...at, kind: opening.kind }, opts.env);
+    }
+    const laugh = engine.laughter;
+    if (laugh && this.modes.laughter === 'live' && !(cancelled && laugh === 'after')) {
+      recordQuirk(opts.sessionId, { ...at, kind: 'laugh', where: laugh }, opts.env);
+    }
   }
 }
 

@@ -30,6 +30,7 @@ import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
+import { quirkTurnNote } from './quirk-note.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
@@ -91,6 +92,8 @@ export function withTurnReminder(
     notes,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
+    // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
+    quirkTurnNote(sessionIdOf((session as { userData?: unknown }).userData), chatCtx, words),
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
   ]
     .filter(Boolean)
