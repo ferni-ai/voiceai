@@ -12,6 +12,7 @@ import { DURATION, EASING } from '../../config/animation-constants.js';
 import { t } from '../../i18n/index.js';
 import { createLogger } from '../../utils/logger.js';
 import type { AfterCallData } from './after-call-data.js';
+import { anchorAboveControls, anchoredCardCss } from './anchor-above-controls.js';
 
 const log = createLogger('AfterCallCard');
 
@@ -30,6 +31,7 @@ export interface AfterCallCardOptions {
 let card: HTMLElement | null = null;
 let dismissTimer: ReturnType<typeof setTimeout> | null = null;
 let returnFocusTo: HTMLElement | null = null;
+let stopAnchor: (() => void) | null = null;
 
 function prefersReducedMotion(): boolean {
   return typeof window.matchMedia === 'function'
@@ -43,7 +45,6 @@ function injectStyles(): void {
   style.textContent = `
     .${CARD_CLASS} {
       position: fixed;
-      bottom: 120px;
       left: 50%;
       width: min(340px, calc(100% - 2 * var(--space-md)));
       transform: translateX(-50%) translateY(12px);
@@ -98,6 +99,7 @@ function injectStyles(): void {
       text-decoration: underline;
       cursor: pointer;
     }
+    ${anchoredCardCss(`.${CARD_CLASS}`)}
     @media (prefers-reduced-motion: reduce) {
       .${CARD_CLASS}, .${CARD_CLASS}.visible { transition: none; transform: translateX(-50%); }
     }
@@ -201,6 +203,7 @@ export function showAfterCallCard(data: AfterCallData, options: AfterCallCardOpt
   returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   card = buildCard(data, options);
   document.body.appendChild(card);
+  stopAnchor = anchorAboveControls(card);
   document.addEventListener('keydown', onDocumentKeydown);
 
   const shown = card;
@@ -224,6 +227,8 @@ export function showAfterCallCard(data: AfterCallData, options: AfterCallCardOpt
 export function hideAfterCallCard(immediate = false): void {
   clearDismissTimer();
   document.removeEventListener('keydown', onDocumentKeydown);
+  stopAnchor?.();
+  stopAnchor = null;
   if (!card) return;
 
   const closing = card;

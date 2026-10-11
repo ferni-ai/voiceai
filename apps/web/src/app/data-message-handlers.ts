@@ -60,7 +60,7 @@ import {
   type AvatarCueEvent,
   type TrustSignalEvent,
 } from './live-signal-handlers.js';
-// 🎬 Ferni Expressions - Character-level avatar expressions
+import { WRAP_UP_EXPRESSION_HOLD_MS } from './call-end.js';
 import { ferniExpressions, type EmotionalExpression } from '../ui/ferni-expressions.ui.js';
 // 🎭 Luxo Expressions - 100+ expression system from design tokens
 import type { ExpressionId } from '../config/expressions.generated.js';
@@ -2276,8 +2276,8 @@ export function handleWrapUp(event: WrapUpEvent): void {
   presenceUI.farewell();
 
   // 🎬 Pixar: Show appropriate emotional expression for farewell
-  // Warm farewell with soft, happy expression that lingers
-  ferniExpressions.setExpression('happy', 400, 0); // Hold until conversation ends
+  // Warm farewell smile that lingers, then settles (a hold of 0 would keep it, and the lid overlay, forever)
+  ferniExpressions.setExpression('happy', 400, WRAP_UP_EXPRESSION_HOLD_MS);
 
   // Warm visual feedback based on sentiment
   switch (event.sentiment) {
@@ -2296,7 +2296,7 @@ export function handleWrapUp(event: WrapUpEvent): void {
     case 'thoughtful':
       presenceUI.setVoiceEmotion('thoughtful');
       // 🎬 Gentle thinking expression (like "I'm here if you need me")
-      ferniExpressions.setExpression('empathetic', 400, 0);
+      ferniExpressions.setExpression('empathetic', 400, WRAP_UP_EXPRESSION_HOLD_MS);
       break;
     case 'caring':
       presenceUI.setVoiceEmotion('empathetic');
