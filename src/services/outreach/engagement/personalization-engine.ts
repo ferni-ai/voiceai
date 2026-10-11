@@ -10,6 +10,7 @@
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { AgentId } from '../../agent-bus.js';
 import { autoFixViolations, quickValidate } from '../../brand/index.js';
+import { generateCallOpening, generateVoicemailMessage } from './voice-adapter.js';
 
 // ============================================================================
 // TYPES
@@ -382,6 +383,22 @@ export function generateEmailMessage(
 // MAIN OUTREACH GENERATOR
 // ============================================================================
 
+/**
+ * The call and voice_message branches used a bare require(), which throws
+ * under ESM, so in prod they have never produced a message: every such
+ * decision threw. Until REQUIRE_FIX_OUTREACH=on they still throw, so no call
+ * or voicemail outreach can start being sent just because this now works.
+ */
+export function isRequireFixOutreachOn(): boolean {
+  return process.env.REQUIRE_FIX_OUTREACH === 'on';
+}
+
+function assertVoiceOutreachOn(channel: OutreachChannel): void {
+  if (!isRequireFixOutreachOn()) {
+    throw new Error(`${channel} outreach generation is off (REQUIRE_FIX_OUTREACH)`);
+  }
+}
+
 /** Generate complete outreach package for a channel */
 export function generateOutreach(
   personaId: string,
@@ -389,7 +406,6 @@ export function generateOutreach(
   channel: OutreachChannel,
   tone: OutreachTone = 'casual'
 ): GeneratedOutreach {
-  // Import voice adapter lazily to avoid circular deps
   let voicemailMessage: string | undefined;
   let message = '';
   let subject: string | undefined;
@@ -405,14 +421,13 @@ export function generateOutreach(
       break;
     }
     case 'call': {
-      // Lazy import to avoid circular dependency with voice-adapter
-      const { generateCallOpening, generateVoicemailMessage } = require('./voice-adapter.js');
+      assertVoiceOutreachOn(channel);
       message = generateCallOpening(personaId, context);
       voicemailMessage = generateVoicemailMessage(personaId, context, tone);
       break;
     }
     case 'voice_message': {
-      const { generateVoicemailMessage } = require('./voice-adapter.js');
+      assertVoiceOutreachOn(channel);
       message = generateVoicemailMessage(personaId, context, tone);
       break;
     }
