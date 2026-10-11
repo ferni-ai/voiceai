@@ -44,7 +44,7 @@ function openTag(name: string, rawAttrs: string, selfClosing: boolean): string {
   const kept: string[] = [];
   for (const [, key, dq, sq] of rawAttrs.matchAll(ATTR)) {
     const value = dq ?? sq ?? '';
-    if (allowed[key]?.test(value)) kept.push(` ${key}="${value}"`);
+    if (Object.hasOwn(allowed, key) && allowed[key].test(value)) kept.push(` ${key}="${value}"`);
   }
   return `<${name}${kept.join('')}${selfClosing ? '/' : ''}>`;
 }
@@ -59,7 +59,7 @@ export function toTwilioSsml(ssml: string): string {
     last = (m.index ?? 0) + m[0].length;
     const [, closing, rawName, rawAttrs, selfClosing] = m;
     const name = rawName.toLowerCase();
-    if (!(name in ATTRS)) continue;
+    if (!Object.hasOwn(ATTRS, name)) continue;
     if (name === 'break') {
       if (!closing) out.push(openTag(name, rawAttrs, true));
     } else if (closing) {

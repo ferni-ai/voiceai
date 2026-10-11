@@ -74,6 +74,13 @@ describe('toTwilioSsml', () => {
     );
   });
 
+  it('drops tags named after Object.prototype keys', () => {
+    expect(toTwilioSsml('<constructor>hi</constructor>')).toBe('hi');
+    expect(toTwilioSsml('<prosody constructor="x" toString="y">hi</prosody>')).toBe(
+      '<prosody>hi</prosody>'
+    );
+  });
+
   it('escapes stray markup characters', () => {
     expect(toTwilioSsml('a < b & "c"')).toBe('a &lt; b &amp; &quot;c&quot;');
   });
