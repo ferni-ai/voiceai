@@ -11,7 +11,7 @@
  */
 
 import { storeUserPreferences } from '../user-preferences-store.js';
-import { markAnswered } from './pick-log.js';
+import { markAnswered, markAsked } from './pick-log.js';
 
 /** Ids of the commitments pick-delivery.ts saves. */
 export const COACH_MEDIA_COMMITMENT_PREFIX = 'coach-media-';
@@ -68,4 +68,14 @@ export async function recordFollowUpAnswer(
     },
   ]);
   return helped;
+}
+
+/** Notes in the pick log when Ferni asked a coaching follow-up. */
+export async function recordFollowUpAsked(
+  userId: string,
+  commitmentId: string,
+  at: string
+): Promise<void> {
+  if (!commitmentId.startsWith(COACH_MEDIA_COMMITMENT_PREFIX)) return;
+  await markAsked(userId, commitmentId.slice(COACH_MEDIA_COMMITMENT_PREFIX.length), at);
 }

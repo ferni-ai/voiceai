@@ -34,6 +34,8 @@ export interface PickRecord {
   /** The follow-up's answer as the generic reader saw it; 'unanswered' once asked and the window closed. */
   outcome: 'done' | 'not_done' | 'deflected' | 'unanswered' | null;
   helped: Helped | null;
+  /** When Ferni asked the follow-up; the scorecard checks it against followUpDueAt. */
+  followUpAskedAt?: string;
   /** When the follow-up was settled; the scorecard dates tried/helped by it. */
   answeredAt?: string;
 }
@@ -88,6 +90,10 @@ export async function markSent(
     sentAt: new Date().toISOString(),
     followUpDueAt: followUpDueAt.toISOString(),
   });
+}
+
+export async function markAsked(userId: string, id: string, at: string): Promise<void> {
+  await write(userId, id, { followUpAskedAt: at });
 }
 
 export async function markAnswered(
