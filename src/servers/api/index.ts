@@ -240,6 +240,7 @@ import {
 
 // Orphaned routes (previously not registered but frontend calls them)
 import { handleRitualsRoutes } from '../../api/routes/rituals.js';
+import { handleSyncedItemsRoutes } from '../../api/routes/synced-items.js';
 import { handleSkyCheckRoutes } from '../../api/routes/sky-check.js';
 import { handleTwinProfileRoutes } from './routes/twin-profile.js';
 
@@ -1087,6 +1088,12 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // Wellbeing routes
     if (pathname.startsWith('/api/wellbeing')) {
       const handled = await handleWellbeingRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // The caller's synced copies of web-kept items (custom rituals, marketplace installs)
+    if (pathname.startsWith('/api/synced/')) {
+      const handled = await handleSyncedItemsRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 
