@@ -53,7 +53,7 @@ const MAX_PAUSE_PATTERNS = 20;
  * Perform a micro-nod - barely perceptible acknowledgment.
  * Like a good listener's tiny nods during conversation.
  */
-function performMicroNod(intensity: NodIntensity = 'micro'): void {
+export function performMicroNod(intensity: NodIntensity = 'micro'): void {
   if (!avatarContainer) return;
 
   const now = Date.now();
