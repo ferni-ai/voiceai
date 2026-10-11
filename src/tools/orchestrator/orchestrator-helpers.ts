@@ -8,6 +8,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { getContextCarrier } from '../context-carrier.js';
 import { toolRegistry } from '../registry/index.js';
 import type { Tool, ToolDomain } from '../registry/types.js';
 import type { ToolSelectionRequest, ToolSelectionResult } from './orchestrator-types.js';
@@ -90,14 +91,10 @@ export function buildCacheKey(request: ToolSelectionRequest): string {
  * Get recent tools used in the session from context carrier.
  */
 export function getRecentToolsFromSession(sessionId: string): string[] {
-  try {
-    const { getContextCarrier } = require('../context-carrier.js');
-    const carrier = getContextCarrier();
-    const sessionContext = carrier.getSessionContext(sessionId);
-    return sessionContext?.toolsUsed?.slice(-10) || [];
-  } catch {
-    return [];
-  }
+  return getContextCarrier()
+    .getToolsUsed(sessionId)
+    .slice(-10)
+    .map((usage) => usage.toolId);
 }
 
 // ============================================================================

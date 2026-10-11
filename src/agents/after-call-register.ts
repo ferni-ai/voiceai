@@ -8,3 +8,4 @@
  * @module agents/after-call-register
  */
 import './personas/common-ground-register.js';
+import '../intelligence/world-model/extraction/register.js';

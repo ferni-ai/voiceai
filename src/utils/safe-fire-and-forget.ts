@@ -18,6 +18,7 @@
  * @module utils/safe-fire-and-forget
  */
 
+import { reportError } from './error-reporting.js';
 import { createLogger } from './safe-logger.js';
 
 const log = createLogger({ module: 'SafeFireAndForget' });
@@ -429,6 +430,7 @@ export function registerGlobalErrorHandlers(): void {
       },
       '⚠️ Unhandled promise rejection caught by global handler (NOT crashing)'
     );
+    reportError(reason, { source: 'unhandledRejection' });
 
     // Track in metrics
     metrics.failureCount++;

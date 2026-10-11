@@ -18,7 +18,7 @@ import { canTriggerProactive } from '../shared/response-orchestrator.js';
  * later. Word-bounded phrases only (substring-classifier-pitfalls).
  */
 const STEPPED_AWAY =
-  /\b(?:give me (?:a|one) (?:sec|second|minute|moment)|(?:one|just a|wait a) (?:sec|second|minute|moment)|hold on|hang on|be right back|brb|bear with me|back in a (?:sec|second|minute|moment|bit))\b/i;
+  /\b(?:give me (?:a|one) (?:sec|second|minute|moment)|(?:one|just a|wait a) (?:sec|second|minute|moment)|hold on|hang on|let me (?:grab|get|check|find)|be right back|brb|bear with me|back in a (?:sec|second|minute|moment|bit))\b/i;
 /** How long a promise to wait holds before a check-in is natural again. */
 const STEP_AWAY_GRACE_SEC = 120;
 
@@ -46,7 +46,7 @@ export function silenceResponseBlocked(
     });
   }
   // A placed call whose other end stays quiet gets hung up (silent-line.ts).
-  const silentLine = !steppedAway && armSilentLine(sessionId, silenceDurationSec);
+  const silentLine = armSilentLine(sessionId, silenceDurationSec, undefined, { hold: steppedAway });
 
   // FIX: Skip silence response if tools are actively executing (e.g., music search)
   // This prevents gateway timeouts when LLM is busy processing tool calls

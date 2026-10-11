@@ -24,9 +24,13 @@ const log = createLogger({ module: 'AsyncEventsConfig' });
 export type AsyncEventEmitter = (event: string, data: unknown) => void;
 
 /**
- * Event listener function type - matches AsyncEvents.on signature
+ * Event listener function type - matches AsyncEvents.on signature, which
+ * returns a function that removes the listener
  */
-export type AsyncEventListener = (event: string, handler: (data: unknown) => void) => void;
+export type AsyncEventListener = (
+  event: string,
+  handler: (data: unknown) => void
+) => (() => void) | void;
 
 /**
  * Configuration interface for AsyncEvents dependency injection
@@ -119,18 +123,23 @@ export function safeEmitEvent(event: string, data: unknown): boolean {
 /**
  * Safely register an event listener. No-op if not configured.
  * Use this instead of direct AsyncEvents.on to avoid layer violations.
+ *
+ * @returns a function that removes the listener, or null if it wasn't registered
  */
-export function safeOnEvent(event: string, handler: (data: unknown) => void): boolean {
+export function safeOnEvent(
+  event: string,
+  handler: (data: unknown) => void
+): (() => void) | null {
   if (!asyncEventsConfig) {
     log.warn({ event }, 'AsyncEvents not configured, cannot register listener');
-    return false;
+    return null;
   }
 
   try {
-    asyncEventsConfig.on(event, handler);
-    return true;
+    const unsubscribe = asyncEventsConfig.on(event, handler);
+    return typeof unsubscribe === 'function' ? unsubscribe : () => {};
   } catch (error) {
     log.error({ error: String(error), event }, 'Failed to register event listener');
-    return false;
+    return null;
   }
 }
