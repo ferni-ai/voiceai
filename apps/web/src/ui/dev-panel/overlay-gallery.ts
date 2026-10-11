@@ -197,6 +197,25 @@ async function coachMark(): Promise<void> {
   hints.showHint('gallery-hint');
 }
 
+/** In-call captions with a long user line and a long Ferni line still streaming. */
+async function captions(): Promise<void> {
+  const { setConnectionState } = await import('../../state/app.state.js');
+  setConnectionState('connected');
+  const say = (type: string, text: string, isFinal: boolean): boolean =>
+    window.dispatchEvent(new CustomEvent('ferni:transcript', { detail: { type, text, isFinal } }));
+  say(
+    'user',
+    'Yeah I think I rushed it because he was already checking his watch and I just wanted to get to the migration project I led last spring',
+    true
+  );
+  say(
+    'agent',
+    'That makes a lot of sense. When you said the interview went sideways after the second question, I wonder if it was less about your answer and more about how fast you were trying to get to the end of it. Want to walk through it together?',
+    false
+  );
+  await wait(400);
+}
+
 export const SCENES: Readonly<Record<string, Scene>> = {
   'toast-pair': twoToasts,
   'toast-error': toastError,
@@ -217,6 +236,7 @@ export const SCENES: Readonly<Record<string, Scene>> = {
   'call-notice': callNotice,
   'command-palette': commandPalette,
   'coach-mark': coachMark,
+  captions,
 };
 
 // Probe: measurements of every visible fixed overlay, for the screenshot report.

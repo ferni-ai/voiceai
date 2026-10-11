@@ -81,7 +81,9 @@
   },
   "transcript": {
     "enabled": "Transcription on",
-    "disabled": "Transcription off"
+    "disabled": "Transcription off",
+    "captionsLabel": "Live captions",
+    "you": "You"
   },
   "placeholders": {
     "customAmount": "Custom amount",
