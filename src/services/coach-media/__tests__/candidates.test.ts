@@ -3,13 +3,26 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const groundedSearch = vi.fn();
 vi.mock('../grounded-search.js', () => ({ groundedSearch }));
 vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
+const UNSAFE: Record<string, object> = {
+  ageRestrict: { ageRestricted: true },
+  privateVid1: { privacyStatus: 'private' },
+  noEmbed0001: { embeddable: false },
+};
 const searchVideos = vi.fn(async (_q: string, _o: Record<string, unknown>) => ({
   found: true,
   videos: [{ id: 'srchA00000a' }, { id: 'srchB00000b' }],
 }));
 const getVideoDetails = vi.fn(async (id: string) => ({
   found: true,
-  video: { id, title: `Title ${id}`, channelTitle: 'Coach Channel', durationSeconds: 512 },
+  video: {
+    id,
+    title: `Title ${id}`,
+    channelTitle: 'Coach Channel',
+    durationSeconds: 512,
+    privacyStatus: 'public',
+    embeddable: true,
+    ...UNSAFE[id],
+  },
 }));
 vi.mock('../../video/youtube-search.js', () => ({ searchVideos, getVideoDetails }));
 
@@ -44,11 +57,21 @@ beforeEach(() => {
         items: [
           { id: 'b1', volumeInfo: { title: 'No description', authors: ['X'] } },
           {
+            id: 'b3',
+            volumeInfo: {
+              title: 'Adult',
+              authors: ['Y'],
+              description: 'd',
+              maturityRating: 'MATURE',
+            },
+          },
+          {
             id: 'b2',
             volumeInfo: {
               title: 'Your Money or Your Life',
               authors: ['Vicki Robin'],
               description: 'A classic on spending.',
+              maturityRating: 'NOT_MATURE',
               pageCount: 352,
             },
           },
@@ -111,6 +134,24 @@ describe('videoCandidates', () => {
     expect(searchVideos).toHaveBeenCalledTimes(SEARCH_BUDGET_PER_DAY);
     expect(await videoCandidates('one more topic', false)).toEqual([]);
     expect(searchVideos).toHaveBeenCalledTimes(SEARCH_BUDGET_PER_DAY);
+  });
+});
+
+describe('video safety', () => {
+  it('never offers an age-restricted, private or non-embeddable video found by grounding', async () => {
+    groundedSearch.mockResolvedValue(
+      grounded(
+        'https://youtu.be/ageRestrict',
+        'https://youtu.be/privateVid1',
+        'https://youtu.be/noEmbed0001'
+      )
+    );
+    expect(await videoCandidates('stretch routine', false)).toEqual([]);
+    groundedSearch.mockResolvedValue(
+      grounded('https://youtu.be/ageRestrict', 'https://youtu.be/okVideo0001')
+    );
+    const found = await videoCandidates('another routine', false);
+    expect(found.map((c) => c.url)).toEqual(['https://www.youtube.com/watch?v=okVideo0001']);
   });
 });
 

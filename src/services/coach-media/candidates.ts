@@ -63,6 +63,14 @@ export function spokenLength(seconds: number): string {
   return `${Math.round(seconds / 360) / 10} hours`;
 }
 
+/**
+ * Grounding has no safeSearch, so videos.list's own signals gate every video:
+ * never age-restricted, only public, and embeddable when YouTube says.
+ */
+export function isSafeVideo(v: YouTubeVideo): boolean {
+  return !v.ageRestricted && v.privacyStatus === 'public' && v.embeddable !== false;
+}
+
 function videoCandidate(v: YouTubeVideo): Candidate {
   return {
     kind: 'video',
@@ -81,7 +89,9 @@ export async function videoCandidates(query: string, shorts: boolean): Promise<C
     const details = await Promise.all(
       ids.slice(0, MAX_CHECKED).map(async (id) => getVideoDetails(id))
     );
-    return details.flatMap((d) => (d.found && d.video ? [videoCandidate(d.video)] : []));
+    return details.flatMap((d) =>
+      d.found && d.video && isSafeVideo(d.video) ? [videoCandidate(d.video)] : []
+    );
   });
 }
 
@@ -102,7 +112,7 @@ export async function bookCandidates(query: string): Promise<Candidate[]> {
     const found = await searchBooks(query, { limit: 10, langRestrict: 'en' });
     if (!found.found) return [];
     return found.books
-      .filter((b) => Boolean(b.description))
+      .filter((b) => Boolean(b.description) && b.maturityRating === 'NOT_MATURE')
       .slice(0, MAX_CHECKED)
       .map(bookCandidate);
   });
