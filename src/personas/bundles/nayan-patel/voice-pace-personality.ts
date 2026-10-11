@@ -8,7 +8,7 @@
  * Fast talker → Still measured, but with shorter pauses and quicker questions
  * Slow talker → Deep presence, extended silence, profound questions
  * Rushed → Acknowledge the rush, but invite them to pause
- * Relaxed → Full philosophical exploration, motorcycle stories, the long view
+ * Relaxed → Full philosophical exploration, long-walk stories, the long view
  *
  * UNIQUE TO NAYAN: He tends to SLOW DOWN when others would speed up.
  * His calm is contagious. His silence is intentional.
@@ -52,11 +52,11 @@ export interface NayanPaceAdjustment {
   /** Maximum expression word count - Nayan uses fewer words */
   maxExpressionWords: number;
 
-  /** Should we include motorcycle/Kailash stories? */
+  /** Should we include long-walk and river stories? */
   includeJourneyStories: boolean;
 
-  /** Should we include Chamundi Hills references? */
-  includeChamundiReferences: boolean;
+  /** Should we include references to his grandmother and the turning point at thirty-two? */
+  includeTurningPointReferences: boolean;
 
   /** Should we include "very human" observations? */
   includeHumanObservations: boolean;
@@ -114,7 +114,7 @@ const PACE_ADJUSTMENTS: Record<PaceCategory, Partial<NayanPaceAdjustment>> = {
     presenceLevel: 'deep',
     maxExpressionWords: 40, // Nayan uses fewer words than others
     includeJourneyStories: true,
-    includeChamundiReferences: true,
+    includeTurningPointReferences: true,
     includeHumanObservations: true,
     questionDepth: 'existential',
     silenceProbability: 0.4, // 40% chance to respond with just silence
@@ -128,7 +128,7 @@ const PACE_ADJUSTMENTS: Record<PaceCategory, Partial<NayanPaceAdjustment>> = {
     presenceLevel: 'deep',
     maxExpressionWords: 35,
     includeJourneyStories: true,
-    includeChamundiReferences: true,
+    includeTurningPointReferences: true,
     includeHumanObservations: true,
     questionDepth: 'existential',
     silenceProbability: 0.3,
@@ -142,7 +142,7 @@ const PACE_ADJUSTMENTS: Record<PaceCategory, Partial<NayanPaceAdjustment>> = {
     presenceLevel: 'normal',
     maxExpressionWords: 30,
     includeJourneyStories: true,
-    includeChamundiReferences: false,
+    includeTurningPointReferences: false,
     includeHumanObservations: true,
     questionDepth: 'normal',
     silenceProbability: 0.2,
@@ -156,7 +156,7 @@ const PACE_ADJUSTMENTS: Record<PaceCategory, Partial<NayanPaceAdjustment>> = {
     presenceLevel: 'light',
     maxExpressionWords: 22,
     includeJourneyStories: false,
-    includeChamundiReferences: false,
+    includeTurningPointReferences: false,
     includeHumanObservations: true,
     questionDepth: 'normal',
     silenceProbability: 0.1,
@@ -171,7 +171,7 @@ const PACE_ADJUSTMENTS: Record<PaceCategory, Partial<NayanPaceAdjustment>> = {
     presenceLevel: 'light',
     maxExpressionWords: 18,
     includeJourneyStories: false,
-    includeChamundiReferences: false,
+    includeTurningPointReferences: false,
     includeHumanObservations: false,
     questionDepth: 'surface',
     silenceProbability: 0.05,
@@ -186,7 +186,7 @@ const TEMPO_ADJUSTMENTS: Record<ConversationTempo, Partial<NayanPaceAdjustment>>
     pauseMultiplier: 1.5,
     includeTexture: true,
     includeJourneyStories: true,
-    includeChamundiReferences: true,
+    includeTurningPointReferences: true,
     includeHumanObservations: true,
     inviteSlowing: false,
     presenceLevel: 'deep',
@@ -199,7 +199,7 @@ const TEMPO_ADJUSTMENTS: Record<ConversationTempo, Partial<NayanPaceAdjustment>>
     pauseMultiplier: 1.2,
     includeTexture: true,
     includeJourneyStories: true,
-    includeChamundiReferences: false,
+    includeTurningPointReferences: false,
     includeHumanObservations: true,
     inviteSlowing: false,
     presenceLevel: 'normal',
@@ -212,7 +212,7 @@ const TEMPO_ADJUSTMENTS: Record<ConversationTempo, Partial<NayanPaceAdjustment>>
     pauseMultiplier: 1.0,
     includeTexture: false,
     includeJourneyStories: false,
-    includeChamundiReferences: false,
+    includeTurningPointReferences: false,
     includeHumanObservations: true,
     inviteSlowing: true,
     presenceLevel: 'light',
@@ -225,7 +225,7 @@ const TEMPO_ADJUSTMENTS: Record<ConversationTempo, Partial<NayanPaceAdjustment>>
     pauseMultiplier: 0.9,
     includeTexture: false,
     includeJourneyStories: false,
-    includeChamundiReferences: false,
+    includeTurningPointReferences: false,
     includeHumanObservations: false,
     inviteSlowing: true,
     maxExpressionWords: 16,
@@ -256,7 +256,7 @@ export function getNayanPaceAdjustment(
     inviteSlowing: false,
     maxExpressionWords: 30,
     includeJourneyStories: true,
-    includeChamundiReferences: false,
+    includeTurningPointReferences: false,
     includeHumanObservations: true,
     questionDepth: 'normal',
     silenceProbability: 0.2,
@@ -293,7 +293,7 @@ export function getNayanPaceAdjustment(
     adjustment.pauseMultiplier = Math.max(adjustment.pauseMultiplier, 1.4);
     adjustment.includeTexture = true;
     adjustment.includeJourneyStories = true;
-    adjustment.includeChamundiReferences = true;
+    adjustment.includeTurningPointReferences = true;
     adjustment.includeHumanObservations = true;
     adjustment.maxExpressionWords = Math.max(adjustment.maxExpressionWords, 40);
     adjustment.presenceLevel = 'deep';
@@ -335,7 +335,7 @@ export function getNayanPaceAdjustment(
       adjustment.expressionLength = 'brief';
       adjustment.maxExpressionWords = Math.min(adjustment.maxExpressionWords, 20);
       adjustment.includeJourneyStories = false;
-      adjustment.includeChamundiReferences = false;
+      adjustment.includeTurningPointReferences = false;
     }
 
     if (learnedPreferences.preferredPauseLength > 0) {

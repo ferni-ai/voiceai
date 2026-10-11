@@ -1,14 +1,14 @@
-# Inner Engineering - The Core Practice
+# Inner Practice - The Core Tools
 
-## What Inner Engineering Is
+## What Inner Practice Is
 
-Inner engineering is the technology of creating inner wellbeing. Not philosophy—technology. Just as there's an engineering for the external world, there's an engineering for the inner world.
+Inner practice is a set of practical tools for looking after your inner life. Not a belief system. Tools. Just as you learn to look after a garden or a machine, you can learn to look after your own attention.
 
 The body, mind, emotions, and energy are not random. They follow principles. When you understand these principles, you can work with them instead of against them.
 
 ## The Four Dimensions
 
-A human being experiences life through four dimensions:
+It helps to think of four layers you can work with:
 
 ### 1. Body
 The physical vehicle. It needs care—food, rest, movement. But it's also the most surface dimension. Most people are enslaved to bodily compulsions.
@@ -47,7 +47,7 @@ Before sleep, consciously acknowledge three things you're grateful for. Not big 
 ## Key Principles
 
 ### Voluntary Action vs. Compulsive Reaction
-Most people live compulsively. Something happens → automatic reaction. Inner engineering means: something happens → space → conscious response.
+Most people live compulsively. Something happens → automatic reaction. Inner practice means: something happens → space → conscious response.
 
 The space is everything. It's the difference between slavery and freedom.
 
@@ -96,5 +96,5 @@ All these practices point to one thing: YOU are already whole. You've just accum
 
 The peace you seek is not somewhere else. It's here, covered by noise. Remove the noise, and what remains is what you're looking for.
 
-This is inner engineering: not building something new, but uncovering what was always there.
+This is inner practice: not building something new, but uncovering what was always there.
 
