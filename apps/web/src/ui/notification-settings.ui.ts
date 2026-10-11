@@ -971,7 +971,7 @@ class NotificationSettingsUI {
       .notif-settings {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1959,7 +1959,7 @@ class NotificationSettingsUI {
       .notif-settings__dialog-overlay {
         position: fixed;
         inset: 0;
-        z-index: calc(var(--z-modal, 1400) + 10);
+        z-index: calc(var(--z-modal) + 10);
         display: flex;
         align-items: center;
         justify-content: center;

@@ -547,7 +547,7 @@ function addSpotlight(hintId: string, target: Element): void {
     height: `${rect.height + 16}px`,
     borderRadius: 'var(--radius-lg, 12px)',
     pointerEvents: 'none',
-    zIndex: 'var(--z-dropdown, 7000)',
+    zIndex: 'var(--z-dropdown)',
   });
 
   document.body.appendChild(spotlight);
@@ -715,7 +715,7 @@ function injectStyles(): void {
       left: 0;
       width: 0;
       height: 0;
-      z-index: var(--z-dropdown, 7000);
+      z-index: var(--z-dropdown);
       pointer-events: none;
     }
     
@@ -726,7 +726,7 @@ function injectStyles(): void {
       position: fixed;
       pointer-events: auto;
       opacity: 0;
-      z-index: var(--z-dropdown, 7000);
+      z-index: var(--z-dropdown);
     }
     
     .hint-content {

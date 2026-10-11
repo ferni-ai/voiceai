@@ -3311,8 +3311,8 @@
     "categorySweet": "Sweet Moments",
     "connectionConnected": "We're connected",
     "connectionConnecting": "Connecting...",
-    "connectionDisconnected": "We're not connected",
-    "connectionDisconnectedMessage": "Something went wrong, but we can try again.",
+    "connectionIdle": "Ready when you are",
+    "connectionIdleMessage": "Whenever you want to talk, I'm here.",
     "connectionError": "Connection lost",
     "connectionErrorMessage": "Something went wrong, but we can try again.",
     "connectionReconnect": "Reconnect",
@@ -9511,14 +9511,16 @@
     "cta": "Want to help keep Ferni free?",
     "dismiss": "Just happy to chat"
   },
+  "aiLabel": {
+    "companion": "AI companion"
+  },
   "afterCall": {
     "ariaLabel": "After your call",
     "rememberTitle": "{name} will remember",
     "rememberEmpty": "Nothing new to hold onto this time. Thanks for the company.",
     "nextStepTitle": "A gentle next step",
     "invitation": "Come back whenever you like. I'll be here.",
-    "close": "Close",
-    "seeCost": "What this call cost"
+    "close": "Close"
   },
   "moments": {
     "streakTitle": {
@@ -10111,6 +10113,11 @@
       "celebratory": "Celebratory",
       "curious": "Curious"
     },
+    "openers": {
+      "supportive": "Hey, I've been thinking about you. How are things going with {topic}?",
+      "celebratory": "How's {topic} going? Last time you sounded so excited about it!",
+      "curious": "Hey! How's {topic} going these days?"
+    },
     "eyebrow": "Conversation Starters",
     "lastTalked": "Last talked {when}",
     "overAYearAgo": "over a year ago",
@@ -10610,6 +10617,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "Relationship progress",
+    "emptyInvite": "Our story starts with your first conversation.",
     "progress": "progress",
     "next": "Next: {stage}",
     "stages": {

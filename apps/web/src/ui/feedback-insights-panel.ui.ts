@@ -126,7 +126,7 @@ function injectStyles(): void {
       background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
       backdrop-filter: blur(var(--glass-blur-subtle, 8px));
       -webkit-backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-      z-index: var(--z-modal-backdrop, 90);
+      z-index: var(--z-modal-backdrop);
       opacity: 0;
       transition: opacity var(--duration-slow, 300ms) var(--ease-out-expo);
     }
@@ -145,7 +145,7 @@ function injectStyles(): void {
       background: var(--color-background-elevated, #fffdfb);
       border-radius: var(--radius-2xl, 24px);
       box-shadow: var(--shadow-2xl, 0 25px 50px rgba(0, 0, 0, 0.15));
-      z-index: var(--z-modal, 100);
+      z-index: var(--z-modal);
       opacity: 0;
       overflow: hidden;
       transition:

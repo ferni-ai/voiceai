@@ -16,7 +16,7 @@
  */
 
 import { t } from '../i18n/index.js';
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { toast } from './whisper.ui.js';
@@ -316,7 +316,7 @@ async function animateIn(modalEl: HTMLElement): Promise<void> {
   const content = modalEl.querySelector('.referral-content') as HTMLElement;
 
   if (backdrop) {
-    backdrop.animate([{ opacity: '0' }, { opacity: '1' }], {
+    safeAnimate(backdrop, [{ opacity: '0' }, { opacity: '1' }], {
       duration: DURATION.SLOW,
       easing: 'ease-out',
       fill: 'forwards',
@@ -324,7 +324,7 @@ async function animateIn(modalEl: HTMLElement): Promise<void> {
   }
 
   if (content) {
-    content.animate(
+    safeAnimate(content,
       [
         { opacity: '0', transform: 'scale(0.95) translateY(20px)' },
         { opacity: '1', transform: 'scale(1) translateY(0)' },
@@ -346,7 +346,7 @@ async function animateOut(modalEl: HTMLElement): Promise<void> {
 
   if (backdrop) {
     animations.push(
-      backdrop.animate([{ opacity: '1' }, { opacity: '0' }], {
+      safeAnimate(backdrop, [{ opacity: '1' }, { opacity: '0' }], {
         duration: DURATION.NORMAL,
         easing: 'ease-out',
         fill: 'forwards',
@@ -356,7 +356,7 @@ async function animateOut(modalEl: HTMLElement): Promise<void> {
 
   if (content) {
     animations.push(
-      content.animate(
+      safeAnimate(content,
         [
           { opacity: '1', transform: 'scale(1) translateY(0)' },
           { opacity: '0', transform: 'scale(0.98) translateY(-10px)' },
@@ -386,7 +386,7 @@ function injectStyles(): void {
     .referral-modal {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 10000);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;

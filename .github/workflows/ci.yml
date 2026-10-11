@@ -34,8 +34,12 @@ on:
 
 # A new push to a PR supersedes its running checks. Merge-queue entries and pushes to
 # main always finish: cancelling one drops the queue entry or main's only verdict.
+# Pushes share one group per branch, so a running main build finishes but only the
+# newest waiting one is kept: its verdict covers every commit before it. Before this,
+# each merge queued its own full run and 87 waited at once, holding the runners the
+# merge queue needed (2026-10-11).
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || (github.event_name == 'push' && github.ref) || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -718,6 +722,10 @@ jobs:
       # so growth reached main three times in a week (#343, #340, #388).
       - name: Quality ratchet
         run: pnpm tsx apps/cli/src/commands/quality/ratchet.ts
+
+      # Blocking ratchet: a new import edge breaking architecture-layers.ts fails. ~5 s; scoreboard in job summary.
+      - name: Architecture gate
+        run: pnpm quality:arch
 
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates

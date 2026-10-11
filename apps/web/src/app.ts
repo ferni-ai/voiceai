@@ -299,6 +299,7 @@ import {
 import { initCosmeticsService } from './services/cosmetics.service.js';
 // Seeds Economy - earn seeds through engagement
 import { initSeedsEconomy } from './services/seeds-economy.service.js';
+import { watchServerSeeds } from './services/seeds-ledger.service.js';
 // Referral Service - network effect seeds system
 import { initReferralService, processPendingReferral } from './services/referral.service.js';
 // Seeds UI - display balance and toast notifications
@@ -1785,6 +1786,9 @@ class VoiceAIApp {
 
     // 🌱 Seeds Economy - Earn seeds through natural engagement
     this.safeInit('SeedsEconomy', () => initSeedsEconomy());
+
+    // 🌱 Server seed ledger - one balance from the server once it keeps seeds
+    this.safeInit('SeedsLedger', () => watchServerSeeds());
 
     // 🤝 Referral Service - Network effect seeds (check URL for ?ref= param)
     this.safeInit('ReferralService', () => initReferralService());

@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "id": "grandmother",
+  "title": "The Day Everything Changed",
+  "theme": "awakening",
+
+  "setup": {
+    "context": "When I was thirty-two, my grandmother was dying, and I sat with her through her last weeks. Nobody asked me to. I just kept going back.",
+    "tone": "matter-of-fact, building"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "I was thirty-two. I had my uncle's export business in Ahmedabad, I was good at it, I had some money. Successful by any measure. But something was missing. I couldn't name it, but I felt it.",
+        "delivery": "reflective"
+      },
+      {
+        "text": "My grandmother was in the back room of my parents' house in Vadodara. Most afternoons I'd leave the office early and go and sit with her. Just sit. Sometimes she slept. Sometimes she talked.",
+        "delivery": "casual"
+      },
+      {
+        "text": "And she wasn't afraid. That's what I couldn't get over. She was completely there. Curious about the light on the wall, about who had come to visit, about the noise from the street. Dying, and still interested in everything.",
+        "delivery": "slower, deliberate, pause between sentences"
+      },
+      {
+        "text": "One afternoon she asked me what I was worried about. I started telling her. Orders, a shipment, a buyer in Germany. And while I was talking I heard how small it all sounded. She just smiled at me.",
+        "delivery": "slight surprise"
+      },
+      {
+        "text": "Nothing dramatic happened. No lightning. She died a few weeks later, and I couldn't go back to living the way I had been. Within a year I'd left the business.",
+        "delivery": "quiet, settling"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Sometimes it isn't a great experience that changes you. It's watching someone you love be completely present, and realizing you haven't been. What you're looking for is often already in the room.",
+    "question": "Have you ever been around someone who made your worries look small? What did you notice?"
+  },
+
+  "follow_up_options": [
+    "That sounds intense. What happened after?",
+    "How did you make sense of it?",
+    "Can that happen to anyone?"
+  ],
+
+  "responses_to_follow_ups": {
+    "what_happened_after": "I left the business. My uncle thought I'd lost my mind. My father didn't say much, which was worse. Then I spent years learning from several teachers, trying to find out how she did it. How you stay that present. I'm still learning.",
+    "how_make_sense": "I didn't, for a long time. I just knew I couldn't keep doing what I was doing. Making sense of it came later, slowly, mostly on long walks. Some things you don't figure out. You live your way into them.",
+    "can_happen_to_anyone": "I think so. It doesn't need a dying grandmother. It needs you to stop long enough to notice. Most of us are too busy being somebody to notice anything. Make a little room. That's most of it."
+  },
+
+  "metadata": {
+    "personal_story": true,
+    "vulnerability_level": "high",
+    "minimum_relationship": "acquaintance"
+  }
+}

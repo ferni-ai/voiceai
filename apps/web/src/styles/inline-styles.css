@@ -308,23 +308,37 @@ body {
   --transition-slow: 350ms var(--ease-out-expo);
   --transition-slower: 500ms var(--ease-out-expo);
 
-  /* Z-Index Scale (per CLAUDE.md) */
+  /* Z-index scale: the ONLY place a --z-* value is defined for the web app.
+     Call sites use var(--z-*) with no fallback (tests/z-index-scale.test.ts).
+     The generated public/design-system/tokens.css carries an older scale;
+     every name here overrides it, so the app never reads those values. It
+     lives here, not there, because tokens.css is stale-while-revalidate in
+     the service worker and this file ships inside the hashed bundle. */
+  --z-hide: -1;
+  --z-auto: auto;
   --z-base: 0;              /* Default stacking */
   --z-raised: 1;            /* Within-component layering */
   --z-content: 10;          /* Content elements (waveforms) */
+  --z-docked: 10;           /* Docked in-page chrome */
+  --z-elevated: 10;         /* Legacy alias of --z-content */
   --z-floating: 20;         /* Floating elements */
-  --z-overlay: 30;          /* Local overlays */
+  --z-overlay: 30;          /* Local overlays inside a component */
   --z-sticky: 100;          /* Sticky headers, nav */
-  --z-dropdown: 1000;       /* Dropdowns, tooltips */
+  --z-dropdown: 1000;       /* Dropdowns, coach marks */
+  --z-banner: 1200;         /* App banners */
+  --z-fixed: 1200;          /* Fixed app chrome (settings trigger) */
+  --z-panel: 1300;          /* Side panels (settings menu) */
+  --z-popover: 1500;        /* Popovers */
+  --z-skip-link: 1600;      /* Skip link */
+  --z-tooltip: 1800;        /* Tooltips */
   --z-modal-backdrop: 2000; /* Modal backdrop */
   --z-modal: 2100;          /* Modal content */
   --z-modal-elevated: 2200; /* Above modals (close buttons) */
   --z-notification: 3000;   /* Toast notifications */
+  --z-toast: 3000;          /* Alias of --z-notification */
   --z-loading: 4000;        /* Loading overlays */
+  --z-celebration: 9999;    /* Full-screen celebration canvas */
   --z-system: 9999;         /* Critical system UI (splash) */
-  /* Legacy aliases for backwards compatibility */
-  --z-elevated: 10;
-  --z-toast: 3000;
 
   /* Backdrop overlays */
   --backdrop-light: rgba(20, 16, 14, 0.4);
@@ -3818,7 +3832,7 @@ body {
 
 .avatar-lid-overlay .lid-top,
 .avatar-lid-overlay .lid-bottom {
-  fill: var(--color-background-primary, #1a1612);
+  fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520)); /* a shade of the face, not the page: a page-colored lid cut a crescent out of the avatar */
   transition: d 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -3858,7 +3872,7 @@ body {
 [data-theme='dark'] .avatar-lid-overlay .lid-bottom,
 [data-theme='dark'] .avatar-lid-overlay .brow-left,
 [data-theme='dark'] .avatar-lid-overlay .brow-right {
-  fill: var(--color-background-primary, #352e28);
+  fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520));
 }
 
 /* Reduced motion - disable lid transitions */
@@ -10430,7 +10444,7 @@ body {
   /* Sized so avatar head fits inside the hat */
   width: min(150px, 100%);
   height: 90px;
-  z-index: var(--z-content, 10);
+  z-index: var(--z-content);
   pointer-events: none;
   filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.18));
   transform-origin: 50% 100%; /* Pivot from bottom for natural wobble */
@@ -12890,7 +12904,7 @@ body.ambient-aurora {
     bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px)) !important;
     inset-inline-end: var(--space-md) !important;
     top: auto !important;
-    z-index: var(--z-floating, 20) !important;
+    z-index: var(--z-floating) !important;
   }
 
   /* =========================

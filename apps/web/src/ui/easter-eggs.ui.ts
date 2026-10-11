@@ -21,6 +21,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { celebrationsUI } from './celebrations.ui.js';
 import { soundUI } from './sound.ui.js';
+import { watchMorningCalls } from './morning-call.js';
 
 // Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -196,8 +197,8 @@ export function initEasterEggsUI(): void {
   checkSleepyMode();
   sleepyCheckInterval = setInterval(checkSleepyMode, 60000); // Check every minute
 
-  // 🌅 Check for morning stretch (first interaction of day)
-  checkMorningStretch();
+  // 🌅 Morning stretch: earned by finishing a call that started in the morning
+  stopWatchingMorningCalls = watchMorningCalls(triggerMorningStretch);
 
   // 💭 Start idle/daydreaming detection
   startIdleDetection();
@@ -1493,33 +1494,20 @@ function triggerSleepyBehavior(): void {
 }
 
 // ============================================================================
-// 🌅 MORNING STRETCH - First interaction of day
+// 🌅 MORNING STRETCH - After a call that started in the morning
 // ============================================================================
 
-function checkMorningStretch(): void {
-  const today = new Date().toDateString();
-  const storedDate = localStorage.getItem('ferni-last-interaction-date');
-
-  if (storedDate !== today) {
-    // First interaction of the day!
-    localStorage.setItem('ferni-last-interaction-date', today);
-
-    // Small delay to let app initialize
-    trackedTimeout(() => {
-      triggerMorningStretch();
-    }, 1500);
-  }
-}
+let stopWatchingMorningCalls: (() => void) | null = null;
 
 function triggerMorningStretch(): void {
   const avatar = document.querySelector('.avatar-container');
+  unlockAchievement('early-bird');
+
   if (!avatar || !(avatar instanceof HTMLElement)) return;
 
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     return;
   }
-
-  unlockAchievement('early-bird');
 
   // Wake-up stretch animation
   avatar.animate(
@@ -1822,6 +1810,9 @@ export function dispose(): void {
   document.removeEventListener('click', recordActivity);
   document.removeEventListener('touchstart', recordActivity);
   document.removeEventListener('keydown', recordActivity);
+
+  stopWatchingMorningCalls?.();
+  stopWatchingMorningCalls = null;
 
   // Remove speech event listeners
   window.removeEventListener(
