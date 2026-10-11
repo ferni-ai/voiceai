@@ -29,6 +29,12 @@ import { stt } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import { ReadableStream, TransformStream } from 'node:stream/web';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  eotContinuedMergeEnabled,
+  isMergeableTail,
+  lateWordsMerger,
+  type LateWordsMerger,
+} from './late-words.js';
 
 const log = createLogger({ module: 'FirstTurnFast' });
 
@@ -102,7 +108,12 @@ export class FirstTurnGate {
   private committed = 0;
   private continued = false;
   private endedAt = 0;
+  private said = '';
+  /** Late words held back while they may still join turn 1 (EOT_CONTINUED_MERGE). */
+  private held: { tail: string[]; alt: stt.SpeechData } | null = null;
   readonly voice = new VoiceClock();
+  /** Set when EOT_CONTINUED_MERGE=on: late words may join turn 1 (late-words.ts). */
+  lateWords: LateWordsMerger | undefined;
 
   constructor(private readonly now: () => number = Date.now) {}
 
@@ -122,6 +133,7 @@ export class FirstTurnGate {
     }
     this.state = 'ahead';
     this.committed = words(text).length;
+    this.said = text;
     this.endedAt = this.now();
     log.info(
       { silenceMs: Math.round(this.voice.silenceMs), words: this.committed },
@@ -160,9 +172,10 @@ export class FirstTurnGate {
     if (ev.type === T.END_OF_SPEECH) {
       this.state = 'done';
       log.info(
-        { inkLaterMs: this.now() - this.endedAt, continued: this.continued },
+        { inkLaterMs: this.now() - this.endedAt, continued: this.continued || !!this.held },
         'FIRST_TURN_FAST ink end'
       );
+      if (this.held) return this.settleHeld(ev);
       return this.continued ? [ev] : [];
     }
     if (ev.type === T.START_OF_SPEECH) return [];
@@ -170,18 +183,42 @@ export class FirstTurnGate {
     if (!alt) return [ev]; // usage reports
     const extra = words(alt.text).slice(this.committed);
     if (!extra.length) return [];
+    if (!this.continued && this.lateWords?.open() && isMergeableTail(extra, this.said)) {
+      this.held = { tail: extra, alt };
+      return [];
+    }
     const out: Event[] = [];
     if (!this.continued) {
       this.continued = true;
+      this.held = null;
       out.push({ type: T.START_OF_SPEECH });
     }
     out.push({ ...ev, alternatives: [{ ...alt, text: extra.join(' ') }] });
     return out;
   }
+
+  /** At Ink's end: join the held words to turn 1, or pass them on as a new turn. */
+  private settleHeld(end: stt.SpeechEvent): Event[] {
+    const { tail, alt } = this.held!;
+    this.held = null;
+    const text = tail.join(' ');
+    if (this.lateWords?.merge(text, this.said)) return [];
+    this.continued = true;
+    log.info({ words: tail.length }, 'EOT_CONTINUED_MERGE fell back to a new turn');
+    const T = stt.SpeechEventType;
+    return [
+      { type: T.START_OF_SPEECH },
+      { type: T.FINAL_TRANSCRIPT, alternatives: [{ ...alt, text }] },
+      end,
+    ];
+  }
 }
 
 interface SessionLike {
   readonly userData?: unknown;
+  readonly agentState?: string;
+  /** The agent running this STT stream; late words of turn 1 may join its chat context. */
+  readonly currentAgent?: Parameters<typeof lateWordsMerger>[0];
 }
 
 const used = new WeakSet<object>();
@@ -199,6 +236,14 @@ export async function sttWithFirstTurnFast(
 ): Promise<ReadableStream<Event> | null> {
   if (!firstTurnFastEnabled(env) || !session || used.has(session)) return sttNode(audio);
   used.add(session);
+  if (eotContinuedMergeEnabled(env)) {
+    try {
+      const agent = session.currentAgent; // throws when the session is not running
+      if (agent) gate.lateWords = lateWordsMerger(agent, session);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'late words merge unavailable');
+    }
+  }
 
   let emit: (events: Event[]) => void = () => undefined;
   const observed = audio.pipeThrough(
