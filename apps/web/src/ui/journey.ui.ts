@@ -22,7 +22,7 @@
  */
 
 import { t } from '../i18n/index.js';
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
 import { 
   relationshipStageService, 
   getTranslatedStageName,
@@ -1092,7 +1092,7 @@ async function animateIn(modal: HTMLElement): Promise<void> {
 
   if (backdrop) {
     backdrop.style.opacity = '0';
-    backdrop.animate([{ opacity: '0' }, { opacity: '1' }], {
+    safeAnimate(backdrop, [{ opacity: '0' }, { opacity: '1' }], {
       duration: DURATION.SLOW,
       easing: 'ease-out',
       fill: 'forwards',
@@ -1105,7 +1105,7 @@ async function animateIn(modal: HTMLElement): Promise<void> {
     if (isMobile) {
       content.style.opacity = '0';
       content.style.transform = 'translateY(100%)';
-      content.animate(
+      safeAnimate(content,
         [
           { opacity: '0', transform: 'translateY(100%)' },
           { opacity: '1', transform: 'translateY(0)' },
@@ -1119,7 +1119,7 @@ async function animateIn(modal: HTMLElement): Promise<void> {
     } else {
       content.style.opacity = '0';
       content.style.transform = 'scale(0.95) translateY(20px)';
-      content.animate(
+      safeAnimate(content,
         [
           { opacity: '0', transform: 'scale(0.95) translateY(20px)' },
           { opacity: '1', transform: 'scale(1) translateY(0)' },
@@ -1143,7 +1143,7 @@ async function animateOut(modal: HTMLElement): Promise<void> {
 
   if (backdrop) {
     animations.push(
-      backdrop.animate([{ opacity: '1' }, { opacity: '0' }], {
+      safeAnimate(backdrop, [{ opacity: '1' }, { opacity: '0' }], {
         duration: DURATION.NORMAL,
         easing: 'ease-out',
         fill: 'forwards',
@@ -1156,7 +1156,7 @@ async function animateOut(modal: HTMLElement): Promise<void> {
     // Desktop: scale + fade out
     if (isMobile) {
       animations.push(
-        content.animate(
+        safeAnimate(content,
           [
             { opacity: '1', transform: 'translateY(0)' },
             { opacity: '0', transform: 'translateY(100%)' },
@@ -1170,7 +1170,7 @@ async function animateOut(modal: HTMLElement): Promise<void> {
       );
     } else {
       animations.push(
-        content.animate(
+        safeAnimate(content,
           [
             { opacity: '1', transform: 'scale(1) translateY(0)' },
             { opacity: '0', transform: 'scale(0.98) translateY(-10px)' },
