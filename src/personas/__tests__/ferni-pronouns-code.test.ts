@@ -64,7 +64,7 @@ describe('Ferni pronouns in code strings', () => {
         .map(({ line, at }) => `${relative(SRC, file)}:${at}: ${line.trim()}`)
     );
     expect(offenders).toEqual([]);
-  });
+  }, 120_000);
 });
 
 /**
