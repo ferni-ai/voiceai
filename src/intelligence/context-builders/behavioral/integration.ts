@@ -127,9 +127,8 @@ export async function buildIntegratedContext(
     log.info('🎯 High emotion mode activated: Focused support');
   }
 
-  // Run all three systems in parallel
-  const [behavioralResult, awarenessFacts, availableTools] = await Promise.all([
-    buildBehavioralContext(input),
+  const behavioralResult = buildBehavioralContext();
+  const [awarenessFacts, availableTools] = await Promise.all([
     buildAwarenessFacts(input),
     getAvailableTools(input),
   ]);
@@ -146,7 +145,6 @@ export async function buildIntegratedContext(
 
   log.debug(
     {
-      buildersRun: behavioralResult.metrics.buildersRun,
       toolsAvailable: availableTools.length,
       toolSuggestions: toolSuggestions.length,
       highEmotionMode,
@@ -164,7 +162,7 @@ export async function buildIntegratedContext(
     behavioralResult,
     metrics: {
       mode: 'behavioral',
-      behavioralBuildersRun: behavioralResult.metrics.buildersRun,
+      behavioralBuildersRun: 0,
       totalDurationMs: duration,
     },
   };

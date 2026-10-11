@@ -240,7 +240,7 @@ function injectStyles(): void {
       position: fixed;
       inset: 0;
       pointer-events: none;
-      z-index: var(--z-base, 0);
+      z-index: var(--z-base);
       background: var(--mood-tint, transparent);
       transition: background ${DURATION.SLOW}ms ease-out;
     }

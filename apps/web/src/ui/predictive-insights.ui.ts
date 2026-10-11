@@ -526,7 +526,7 @@ class PredictiveInsightsUI {
       }
 
       /* Mobile adjustments */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .predictive-insights-container {
           top: auto;
           bottom: calc(var(--space-4) + 80px);
