@@ -17,6 +17,7 @@ import { getDefaultStore, type MemoryStore } from '../../memory/index.js';
 import { createUserId, type UserId } from '../../types/branded.js';
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { phoneFromSignedDispatch } from './dispatch-phone.js';
 import {
   authenticateNaturally,
   generateContextForLLM,
@@ -435,9 +436,8 @@ export async function identifyFromMetadata(
     };
   }
 
-  // Priority 3: Phone number (from SIP/telephony)
-  const phoneNumber = metadata.caller_id || metadata.phone || metadata.from;
-  if (phoneNumber && typeof phoneNumber === 'string' && isValidPhoneNumber(phoneNumber)) {
+  const phoneNumber = phoneFromSignedDispatch(metadata); // Priority 3: phone, signed dispatch only
+  if (phoneNumber && isValidPhoneNumber(phoneNumber)) {
     return identifyByPhone(phoneNumber);
   }
 
