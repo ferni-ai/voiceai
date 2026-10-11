@@ -50,26 +50,14 @@ export function rememberPick(session: object | undefined, pick: SentPick): void 
   if (session) lastPicks.set(session, pick);
 }
 
-/** Hosts a sent link may point to, besides the pick's own grounded sources. */
-// doordash.com and amazon.com: coach-local's restaurant and product picks.
-export const SMS_LINK_HOSTS = [
-  'youtube.com',
-  'youtu.be',
-  'books.google.com',
-  'doordash.com',
-  'amazon.com',
-];
+/** Hosts a sent link may point to: where checked videos and books come from. */
+export const SMS_LINK_HOSTS = ['youtube.com', 'youtu.be', 'books.google.com'];
 const hostOf = (url: string): string => new URL(url).hostname.replace(/^(www|m)\./, '');
 
-/** The pick's link if it is https on an allowed host or one of its grounded sources, else null. */
+/** The pick's link if it is https on an allowed host, else null. */
 export function sendableLink(c: Candidate): string | null {
   const url = safeHttpsUrl(c.url);
-  if (!url) return null;
-  const grounded = (c.grounding?.sources ?? []).flatMap((s) => {
-    const u = safeHttpsUrl(s.url);
-    return u ? [hostOf(u)] : [];
-  });
-  return [...SMS_LINK_HOSTS, ...grounded].includes(hostOf(url)) ? url : null;
+  return url && SMS_LINK_HOSTS.includes(hostOf(url)) ? url : null;
 }
 
 /**
@@ -183,7 +171,11 @@ export async function deliverPick(
       log.warn({ error: String(error) }, 'coach-media: text failed');
       return "The text didn't go through. Offer to put it in the app.";
     }
-    await saveInAppMessage(userId, inApp);
+    // The card copy saved with a text counts against the app cap too.
+    if (counts.app < MAX_TEXTS_PER_CALL) {
+      counts.app += 1;
+      await saveInAppMessage(userId, inApp);
+    }
   } else {
     const saved = await saveInAppMessage(userId, inApp);
     if (!saved.success) {
