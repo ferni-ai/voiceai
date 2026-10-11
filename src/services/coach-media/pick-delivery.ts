@@ -6,7 +6,8 @@
  *   model never supplies a link, so web text can't get a link sent.
  * - A text goes only to the verified number on the account (userReach), only
  *   because they asked for it, at most MAX_TEXTS_PER_CALL per call. The app
- *   copy goes to the in-app inbox (saveInAppMessage), read by the web client.
+ *   copy goes to the in-app inbox (saveInAppMessage) with its card
+ *   (answer-card.ts) either way.
  * - Sending saves a trust-systems commitment due in a few days, so the
  *   follow-up builder (commitment-follow-up.ts) has Ferni ask once how it went.
  * - Their answer is stored as a coaching_media preference, which fit.ts reads
@@ -24,13 +25,17 @@ import { userReach } from '../outreach/user-reach.js';
 import { saveCommitment } from '../trust-systems/commitment-tracking.js';
 import { storeUserPreferences } from '../user-preferences-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { pickCard } from './answer-card.js';
 import { safeHttpsUrl } from './grounded-search.js';
 import type { Candidate } from './checked-pick.js';
+import { COACH_MEDIA_COMMITMENT_PREFIX } from './feedback.js';
 import { topicOnlyQuery } from './topic-query.js';
 
 export interface SentPick {
   topic: string;
   candidate: Candidate;
+  /** The check's one sentence on why it suits them. */
+  why?: string;
 }
 
 export const MAX_TEXTS_PER_CALL = 2;
@@ -43,14 +48,19 @@ export function rememberPick(session: object | undefined, pick: SentPick): void 
   if (session) lastPicks.set(session, pick);
 }
 
-/** Hosts a sent link may point to: where checked picks come from. */
+/** Hosts a sent link may point to, besides the pick's own grounded sources. */
 export const SMS_LINK_HOSTS = ['youtube.com', 'youtu.be', 'books.google.com'];
 const hostOf = (url: string): string => new URL(url).hostname.replace(/^(www|m)\./, '');
 
-/** The pick's link if it is https on an allowed host, else null. */
+/** The pick's link if it is https on an allowed host or one of its grounded sources, else null. */
 export function sendableLink(c: Candidate): string | null {
   const url = safeHttpsUrl(c.url);
-  return url && SMS_LINK_HOSTS.includes(hostOf(url)) ? url : null;
+  if (!url) return null;
+  const grounded = (c.grounding?.sources ?? []).flatMap((s) => {
+    const u = safeHttpsUrl(s.url);
+    return u ? [hostOf(u)] : [];
+  });
+  return [...SMS_LINK_HOSTS, ...grounded].includes(hostOf(url)) ? url : null;
 }
 
 /**
@@ -70,7 +80,7 @@ export function smsBody(c: Candidate, link: string): string {
   const length = /^\d+(\.\d)? (seconds|minutes|hours|pages)$/.test(c.length ?? '')
     ? ` (${c.length})`
     : '';
-  return `From Ferni, the ${c.kind === 'book' ? 'book' : 'video'} we talked about: "${short || 'this one'}"${length} ${link}`;
+  return `From Ferni, the ${c.kind === 'product' ? 'pick' : c.kind} we talked about: "${short || 'this one'}"${length} ${link}`;
 }
 
 /** What the follow-up asks about: "try the video 'Shin Splint Rehab'". */
@@ -81,7 +91,7 @@ export function commitmentText(c: Candidate): string {
 async function followUpLater(userId: string, sent: SentPick): Promise<void> {
   const now = new Date();
   await saveCommitment({
-    id: `coach-media-${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `${COACH_MEDIA_COMMITMENT_PREFIX}${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
     userId,
     content: commitmentText(sent.candidate),
     type: 'task',
@@ -119,6 +129,15 @@ export async function deliverPick(
   if (!link) return "That link isn't one Ferni can send; describe it instead.";
   const body = smsBody(c, link);
   const log = getLogger();
+  // The app copy carries the card (sources, Search suggestions) either way: a
+  // grounded pick's sources must be visible somewhere the user can see.
+  const inApp = {
+    type: 'coaching_resource',
+    personaId,
+    text: body,
+    reason: 'coach-media pick',
+    card: { ...pickCard(sent.topic, c, sent.why, personaId) },
+  };
 
   if (how === 'text') {
     // Take a slot before the first await: parallel send_text calls in one model
@@ -140,13 +159,9 @@ export async function deliverPick(
       log.warn({ error: String(error) }, 'coach-media: text failed');
       return "The text didn't go through. Offer to put it in the app.";
     }
+    await saveInAppMessage(userId, inApp);
   } else {
-    const saved = await saveInAppMessage(userId, {
-      type: 'coaching_resource',
-      personaId,
-      text: body,
-      reason: 'coach-media pick',
-    });
+    const saved = await saveInAppMessage(userId, inApp);
     if (!saved.success) return "Couldn't save it to the app just now.";
   }
 

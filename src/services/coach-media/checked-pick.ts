@@ -15,9 +15,10 @@
 
 import { getGeminiClient } from '../../config/gemini-config.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import type { GroundedAnswer } from './grounded-search.js';
 
 export interface Candidate {
-  kind: 'video' | 'book';
+  kind: 'video' | 'book' | 'place' | 'product';
   title: string;
   /** Channel or authors. */
   by: string;
@@ -26,6 +27,12 @@ export interface Candidate {
   length?: string;
   /** Book description; untrusted text from the listing. */
   summary?: string;
+  /** The grounded search that found it, for the user-facing sources card. */
+  grounding?: {
+    sources: GroundedAnswer['sources'];
+    searchSuggestionsHtml?: string;
+    webSearchQueries?: string[];
+  };
 }
 
 export interface Verdict {

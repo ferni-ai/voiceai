@@ -39,6 +39,7 @@ function respond(body: unknown) {
 const grounded = (...links: string[]) => ({
   answer: 'a',
   sources: links.map((url) => ({ title: 't', url })),
+  searchSuggestionsHtml: '<div>chips</div>',
 });
 
 beforeEach(() => {
@@ -110,6 +111,9 @@ describe('videoCandidates', () => {
       by: 'Coach Channel',
       length: '9 minutes',
     });
+    // Kept for the sources card the user sees.
+    expect(found[0].grounding?.searchSuggestionsHtml).toBe('<div>chips</div>');
+    expect(found[0].grounding?.sources).toHaveLength(5);
   });
 
   it('serves a repeated topic from the cache with no grounding or API call', async () => {
