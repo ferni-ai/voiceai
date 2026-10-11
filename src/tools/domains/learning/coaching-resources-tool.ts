@@ -42,7 +42,7 @@ const parameters = z.object({
   topic: z
     .string()
     .describe(
-      'A generic topic in a few words, e.g. "beginner shin splint stretches"; no names, places or personal details'
+      'A generic lowercase topic in a few words, e.g. "beginner shin splint stretches"; no names, places or personal details'
     ),
   format: z
     .enum(['any', 'video', 'short', 'book', 'article'])
@@ -59,7 +59,10 @@ const parameters = z.object({
 });
 
 const NONE_FIT =
-  'Checked the top results and none was a good fit or well grounded. Say so honestly rather than recommend a weak one.';
+  "Couldn't vet a good, well-grounded one this time. Say so honestly rather than recommend one unchecked.";
+
+const NO_ACCOUNT =
+  "Can't look that up on this call; share what you know and suggest they ask again once signed in.";
 
 const OVER_DAILY_CAP =
   "That's a lot of lookups today; share what you know instead and offer to look it up tomorrow.";
@@ -75,7 +78,9 @@ export async function runFindCoachingResources(
   const names = sessionIdentifiers(userData);
   const topic = topicOnlyQuery(args.topic, names);
   if (!topic) return 'Ask what topic they want help with, in a few general words.';
-  if (!(await takeDailyBudget(`grounding:${userId ?? 'anonymous'}`, GROUNDING_PER_USER_PER_DAY))) {
+  // No account, no per-user cap to hold it to: no paid lookups.
+  if (!userId || userId === 'anonymous') return NO_ACCOUNT;
+  if (!(await takeDailyBudget(`grounding:${userId}`, GROUNDING_PER_USER_PER_DAY))) {
     return OVER_DAILY_CAP;
   }
   const sensitive = args.healthOrMoney === true;

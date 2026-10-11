@@ -32,6 +32,15 @@ describe('runFindCoachingResources', () => {
     expect(out).toContain('Heel drops are well supported.');
   });
 
+  it('makes no paid lookup for a caller with no account', async () => {
+    const out = await runFindCoachingResources({ topic: 'shin splints' }, {}, 'anonymous');
+    expect(takeDailyBudget).not.toHaveBeenCalled();
+    expect(groundedAnswer).not.toHaveBeenCalled();
+    expect(out).toContain('once signed in');
+    await runFindCoachingResources({ topic: 'shin splints' }, {}, undefined);
+    expect(groundedAnswer).not.toHaveBeenCalled();
+  });
+
   it("stops at the caller's daily grounding cap before any lookup", async () => {
     takeDailyBudget.mockResolvedValueOnce(false);
     const out = await runFindCoachingResources({ topic: 'shin splints' }, {}, 'u1');

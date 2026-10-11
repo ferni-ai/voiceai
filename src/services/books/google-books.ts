@@ -126,10 +126,8 @@ export type BookGenre =
 
 const GOOGLE_BOOKS_API_BASE = 'https://www.googleapis.com/books/v1';
 
-// The YouTube key (GCP secret youtube-api-key) is also enabled for Books; coaching picks use it.
 function getApiKey(): string | undefined {
-  const coachMedia = process.env.COACH_MEDIA?.trim().toLowerCase() === 'on';
-  return process.env.GOOGLE_BOOKS_API_KEY || (coachMedia ? process.env.YOUTUBE_API_KEY : undefined);
+  return process.env.GOOGLE_BOOKS_API_KEY;
 }
 
 /**

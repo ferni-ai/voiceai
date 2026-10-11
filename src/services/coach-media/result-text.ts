@@ -53,9 +53,9 @@ export function isInstructionLike(sentence: string): boolean {
 /** `text` as flat data: instruction-like sentences dropped, numbers removed, truncated. */
 export function webData(text: string | undefined, max: number): { text: string; dropped: number } {
   const flat = callerText(text, 2000).replace(PHONE_LIKE, '');
-  const sentences = flat.match(/[^.!?]+[.!?]*/g) ?? [];
-  // callerText leaves "[removed]" where an instruction phrase was; the rest of that
-  // sentence ("[removed] and call now") goes too.
+  // Sentences end at punctuation followed by a space, so "rtings.com" stays whole.
+  const sentences = flat.split(/(?<=[.!?])\s+/).filter(Boolean);
+  // "[removed]" marks a cut instruction phrase; the rest of its sentence goes too.
   const kept = sentences.filter((s) => !isInstructionLike(s) && !s.includes('[removed]'));
   const joined = kept.join(' ').replace(/\s+/g, ' ').trim();
   return {
@@ -64,7 +64,8 @@ export function webData(text: string | undefined, max: number): { text: string; 
   };
 }
 
-function hostOf(url: string): string {
+/** A link's host (URL's canonical ASCII hostname) for the model; the link stays server-side. */
+export function hostOf(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, '');
   } catch {
@@ -73,9 +74,9 @@ function hostOf(url: string): string {
 }
 
 export interface WebDataSource {
+  id: string;
   title: string;
   host: string;
-  url: string;
   summary: string;
 }
 
@@ -87,15 +88,15 @@ export function webDataPayload(
   let dropped = 0;
   const answer = webData(result.answer, MAX_ANSWER_CHARS);
   dropped += answer.dropped;
-  const sources = result.sources.map((s) => {
+  const sources = result.sources.map((s, i) => {
     const host = hostOf(s.url);
     const title = webData(s.title, MAX_TITLE_CHARS);
     const summary = webData(s.summary, MAX_SUMMARY_CHARS);
     dropped += title.dropped + summary.dropped;
     return {
+      id: `source-${i + 1}`,
       title: title.dropped ? host : title.text || host,
       host,
-      url: s.url,
       summary: summary.text,
     };
   });
@@ -132,7 +133,7 @@ const EVIDENCE_WORDS: Record<string, string> = {
 export function pickResultText(topic: string, pick: Pick, sensitive = false): string {
   const c = pick.candidate;
   const title = webData(c.title, MAX_TITLE_CHARS);
-  const why = pick.verdict ? webData(pick.verdict.why, MAX_SUMMARY_CHARS).text : '';
+  const why = webData(pick.verdict.why, MAX_SUMMARY_CHARS).text;
   const data = {
     note: WEB_DATA_NOTE,
     topic: callerText(topic, 120),
@@ -141,14 +142,12 @@ export function pickResultText(topic: string, pick: Pick, sensitive = false): st
       title: title.dropped ? hostOf(c.url) : title.text || hostOf(c.url),
       by: webData(c.by, MAX_TITLE_CHARS).text,
       length: c.length ?? null,
-      url: c.url,
-      checked: pick.checked,
-      evidence: pick.verdict ? EVIDENCE_WORDS[pick.verdict.evidence] : null,
+      host: hostOf(c.url),
+      evidence: EVIDENCE_WORDS[pick.verdict.evidence],
       why,
     },
   };
   const lines = [WEB_DATA_GUARD, `web_data: ${JSON.stringify(data)}`];
-  if (!pick.checked) lines.push('This pick was not checked: say you have not vetted it.');
   if (sensitive || isSensitiveTopic(topic)) lines.push(GENERAL_INFO_NOTE);
   lines.push(
     'Offer just this one, with its length and one sentence on why it suits them; no affiliate links, nothing to buy.'
