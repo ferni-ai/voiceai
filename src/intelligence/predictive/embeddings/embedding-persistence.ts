@@ -14,6 +14,8 @@
  * @module intelligence/predictive/embeddings/embedding-persistence
  */
 
+import { isRequireFixMemoryEnabled } from '../../../config/require-fix-memory-flag.js';
+import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embeddingObservability } from './embedding-observability.js';
@@ -27,20 +29,17 @@ const log = createLogger({ module: 'EmbeddingPersistence' });
 let firestoreDb: FirebaseFirestore.Firestore | null = null;
 
 function getFirestoreDb(): FirebaseFirestore.Firestore | null {
+  // In memory only until REQUIRE_FIX_MEMORY is on
+  if (!isRequireFixMemoryEnabled()) return null;
   if (firestoreDb) return firestoreDb;
 
   try {
-    // Dynamic import to avoid circular dependencies
-    const admin = require('firebase-admin');
-    if (admin.apps.length > 0) {
-      firestoreDb = admin.firestore();
-      return firestoreDb;
-    }
-  } catch (e) {
+    firestoreDb = getAdminFirestore();
+    return firestoreDb;
+  } catch {
     // Firebase not initialized
+    return null;
   }
-
-  return null;
 }
 
 // ============================================================================

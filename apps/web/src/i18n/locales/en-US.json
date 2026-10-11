@@ -1,4 +1,15 @@
 {
+  "answerCard": {
+    "answer": "What I found",
+    "recommendation": "My pick for you",
+    "sources": "Where this comes from",
+    "searchSuggestions": "Related Google searches",
+    "loading": "Just a moment...",
+    "notFound": "Couldn't find that one. It may be on the account I texted.",
+    "loadFailed": "Couldn't load that. Try again?",
+    "retry": "Try again",
+    "switchAccount": "Use another account"
+  },
   "meta": {
     "locale": "en-US",
     "name": "English (US)",
@@ -3300,8 +3311,8 @@
     "categorySweet": "Sweet Moments",
     "connectionConnected": "We're connected",
     "connectionConnecting": "Connecting...",
-    "connectionDisconnected": "We're not connected",
-    "connectionDisconnectedMessage": "Something went wrong, but we can try again.",
+    "connectionIdle": "Ready when you are",
+    "connectionIdleMessage": "Whenever you want to talk, I'm here.",
     "connectionError": "Connection lost",
     "connectionErrorMessage": "Something went wrong, but we can try again.",
     "connectionReconnect": "Reconnect",
@@ -9500,14 +9511,16 @@
     "cta": "Want to help keep Ferni free?",
     "dismiss": "Just happy to chat"
   },
+  "aiLabel": {
+    "companion": "AI companion"
+  },
   "afterCall": {
     "ariaLabel": "After your call",
     "rememberTitle": "{name} will remember",
     "rememberEmpty": "Nothing new to hold onto this time. Thanks for the company.",
     "nextStepTitle": "A gentle next step",
     "invitation": "Come back whenever you like. I'll be here.",
-    "close": "Close",
-    "seeCost": "What this call cost"
+    "close": "Close"
   },
   "moments": {
     "streakTitle": {
@@ -10100,6 +10113,11 @@
       "celebratory": "Celebratory",
       "curious": "Curious"
     },
+    "openers": {
+      "supportive": "Hey, I've been thinking about you. How are things going with {topic}?",
+      "celebratory": "How's {topic} going? Last time you sounded so excited about it!",
+      "curious": "Hey! How's {topic} going these days?"
+    },
     "eyebrow": "Conversation Starters",
     "lastTalked": "Last talked {when}",
     "overAYearAgo": "over a year ago",
@@ -10599,6 +10617,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "Relationship progress",
+    "emptyInvite": "Our story starts with your first conversation.",
     "progress": "progress",
     "next": "Next: {stage}",
     "stages": {
@@ -11073,5 +11092,25 @@
     "youSpeaking": "You're talking",
     "ferniThinking": "Ferni is thinking",
     "tapToInterrupt": "Tap to interrupt"
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "Send this text?",
+      "place_call": "Make this call?",
+      "purchase": "Buy this?"
+    },
+    "approve": "Approve",
+    "decline": "Decline",
+    "loading": "Just a moment...",
+    "expiresIn": "Good for {minutes} more min.",
+    "approved": "Done. I'll take it from here.",
+    "declined": "Okay, I won't.",
+    "alreadyAnswered": "You already answered this one.",
+    "expired": "That one expired. Ask me again?",
+    "changed": "That changed or was already answered. Reload?",
+    "needsPasskey": "This one needs a passkey, and you don't have one set up yet.",
+    "blocked": "Couldn't do that from here.",
+    "notFound": "Couldn't find that one. Try the account I texted.",
+    "failed": "Couldn't send that. Try again?"
   }
 }

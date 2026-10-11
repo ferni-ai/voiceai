@@ -300,7 +300,7 @@ function addStyles(): void {
       left: 50%;
       transform: translateX(-50%) translateY(20px);
       opacity: 0;
-      z-index: var(--z-modal, 1000);
+      z-index: var(--z-modal);
       
       background: var(--color-background-elevated, #fffdfb);
       border-radius: var(--radius-xl, 16px);

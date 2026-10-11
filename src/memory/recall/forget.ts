@@ -174,11 +174,7 @@ export const firestoreForgetStore: ForgetStore = {
   async addTopic(userId, topic) {
     const db = getFirestoreDb();
     if (!db) return;
-    const ref = db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('memory_state')
-      .doc('forgotten');
+    const ref = db.collection('bogle_users').doc(userId).collection('memory_state').doc('forgotten');
     await db.runTransaction(async (tx) => {
       const doc = await tx.get(ref);
       const topics: unknown = doc.exists ? doc.data()?.topics : [];

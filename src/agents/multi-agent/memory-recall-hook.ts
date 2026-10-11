@@ -103,6 +103,12 @@ export const firestoreRecallStore: RecallStore = {
 export interface MemoryRecallDeps {
   userId: string;
   userName?: string;
+  /**
+   * The persona speaking on this call (default 'ferni'). Its own told-life
+   * facts and updates are loaded, never another persona's: the note tells
+   * whoever is speaking "this is your life".
+   */
+  personaId?: string;
   store?: RecallStore;
   /** What Ferni told this caller about himself on earlier calls (life-ledger.ts). */
   ledgerStore?: LedgerStore;
@@ -173,9 +179,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           embed: deps.embed,
         })
       : undefined;
+  const personaId = deps.personaId ?? 'ferni';
   const ledger = loadLedger(
     deps.userId,
-    'ferni',
+    personaId,
     deps.ledgerStore,
     semanticOn ? TOLD_KEPT : RECALL_LIMIT
   );
@@ -193,6 +200,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       {
         facts: s.facts.length,
         followUps: s.followUps.length,
+        insideJokes: s.insideJokes?.length ?? 0,
         told: told.length,
         ms: Date.now() - started,
       },
@@ -216,7 +224,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   // note only if it is ready by then. Never rejects.
   const since = ledger
     .then((told) =>
-      loadLifeUpdates(deps.userId, told.slice(0, RECALL_LIMIT), 'ferni', deps.lifeUpdates)
+      loadLifeUpdates(deps.userId, told.slice(0, RECALL_LIMIT), personaId, deps.lifeUpdates)
     )
     .then((updates) => {
       sinceNote = formatLifeUpdates(updates);
@@ -267,6 +275,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         ...(followUpsOffered ? [] : snapshot.followUps),
         ...extras.flatMap((id) => laterFollowUps.get(id) ?? []),
       ];
+      // Shared bits, like the follow-ups, come once (shown only with INSIDE_JOKES=on).
+      const insideJokes = followUpsOffered ? [] : (snapshot.insideJokes ?? []);
       // The ledger, like the follow-ups, comes once, with the first note.
       const told = followUpsOffered
         ? null
@@ -275,7 +285,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const note =
         [
           checkIn,
-          formatRecall(facts, followUps, deps.userName),
+          formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes }),
           told,
           extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
           episodes?.take() ?? null,

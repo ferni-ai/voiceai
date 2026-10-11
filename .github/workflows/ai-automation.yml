@@ -28,6 +28,13 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened]
+    # Not a required check: reviews code, so a docs-only PR has nothing for it
+    paths:
+      - 'src/**'
+      - 'apps/**'
+      - 'packages/**'
+      - 'design-system/**'
+      - 'package.json'
   push:
     branches: [main]
     tags: ['v*']
@@ -64,6 +71,12 @@ env:
   # logged "Vertex AI enabled but GOOGLE_CLOUD_PROJECT not set".
   USE_VERTEX_AI: 'false'
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # ============================================================================
   # PR CHECKS - Run on every pull request
@@ -72,7 +85,8 @@ jobs:
   pr-ai-review:
     name: 🤖 AI Code Review
     if: github.event_name == 'pull_request'
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     permissions:
       pull-requests: write
       contents: read
@@ -133,7 +147,7 @@ jobs:
   pr-api-diff:
     name: 📡 API Contract Check
     if: github.event_name == 'pull_request'
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     # The repo's default token is read-only; this job's PR comment step needs write.
     permissions:
       contents: read
@@ -183,7 +197,7 @@ jobs:
   pr-bundle-check:
     name: 📦 Bundle Size Check
     if: github.event_name == 'pull_request'
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     # Read-only: the ratchet reports to the job summary, not a PR comment.
     permissions:
       contents: read
@@ -216,7 +230,7 @@ jobs:
   pr-brand-check:
     name: ✍️ Brand Voice Check
     if: github.event_name == 'pull_request'
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
@@ -236,7 +250,7 @@ jobs:
   release-notes:
     name: 📝 Generate Release Notes
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
@@ -286,7 +300,7 @@ jobs:
   weekly-deps:
     name: 📦 Dependency Check
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'deps'))
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     # The repo's default token is read-only; this job's issue step needs write.
     permissions:
       contents: read
@@ -330,7 +344,7 @@ jobs:
   weekly-flags:
     name: 🚩 Stale Flag Check
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'flags'))
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
@@ -346,7 +360,7 @@ jobs:
   weekly-refactor:
     name: 🔄 Refactoring Suggestions
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'refactor'))
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
@@ -367,7 +381,7 @@ jobs:
   weekly-translate:
     name: 🌍 Translation Scan
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.task == 'all' || github.event.inputs.task == 'translate'))
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
@@ -387,7 +401,7 @@ jobs:
   cost-forecast:
     name: 💰 Cost Forecast
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 

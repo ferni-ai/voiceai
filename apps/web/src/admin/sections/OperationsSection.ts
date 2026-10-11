@@ -339,7 +339,7 @@ export async function render(): Promise<string> {
         gap: var(--space-4, 1rem);
       }
 
-      @media (max-width: clamp(538px, 90vw, 768px)) {
+      @media (max-width: 768px) {
         .ops-metrics-row {
           grid-template-columns: 1fr;
         }
@@ -426,7 +426,7 @@ export async function render(): Promise<string> {
         gap: var(--space-4, 1rem);
       }
 
-      @media (max-width: clamp(538px, 90vw, 768px)) {
+      @media (max-width: 768px) {
         .ops-bottom-row {
           grid-template-columns: 1fr;
         }

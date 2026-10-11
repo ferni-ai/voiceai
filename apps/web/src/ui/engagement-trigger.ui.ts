@@ -391,7 +391,7 @@ class EngagementTriggerUI {
       }
 
       /* Mobile adjustments */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .engagement-trigger-btn {
           width: 48px;
           height: 48px;
