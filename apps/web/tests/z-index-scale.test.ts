@@ -52,6 +52,25 @@ function references(file: string): { where: string; name: string; fallback: stri
   return out;
 }
 
+/**
+ * Numeric z-index literals at or above the first app-level tier (--z-sticky,
+ * 100), as `file:line value`. Matches CSS in template literals
+ * (`z-index: 10000;`) and style objects (`zIndex: '1000'`, `.zIndex = 1000`).
+ * Small values (-3..30) layer inside one component and stay legal.
+ */
+const LITERAL_FLOOR = 100;
+function largeLiterals(file: string): string[] {
+  const out: string[] = [];
+  readFileSync(file, 'utf8')
+    .split('\n')
+    .forEach((line, i) => {
+      for (const m of line.matchAll(/z-?index['"]?\s*[:=]\s*['"]?(-?\d+)/gi)) {
+        if (Number(m[1]) >= LITERAL_FLOOR) out.push(`${relative(WEB_ROOT, file)}:${i + 1} ${m[1]}`);
+      }
+    });
+  return out;
+}
+
 const scale = scaleDefinitions(readFileSync(SCALE_FILE, 'utf8'));
 const refs = sourceFiles().flatMap(references).filter((r) => !NOT_LAYERS.has(r.name));
 const layer = (name: string): number => Number(scale.get(name));
@@ -84,6 +103,25 @@ describe('z-index scale', () => {
     // Example of what this rejects: z-index: var(--z-modal, 2100);
     const withFallback = refs.filter((r) => r.fallback !== null).map((r) => `${r.where} --z-${r.name}`);
     expect(withFallback).toEqual([]);
+  });
+
+  it('scanner sees z-index literals in TS template literals and style objects', () => {
+    // This file is the fixture: the lines below hold each shape the scanner must see.
+    // z-index: 10000;
+    // el.style.zIndex = '1000';
+    const fixture = join(WEB_ROOT, 'tests', 'z-index-scale.test.ts');
+    const seen = largeLiterals(fixture).map((s) => s.split(' ')[1]);
+    expect(seen).toEqual(expect.arrayContaining(['10000', '1000']));
+  });
+
+  it('no src/ui TS file sets a numeric z-index at app-tier height', () => {
+    // Example of what this rejects: `z-index: 10000;` in a modal's injected styles.
+    // Use the scale instead: z-index: var(--z-modal);
+    const uiDir = join(WEB_ROOT, 'src', 'ui');
+    const literals = sourceFiles()
+      .filter((f) => f.startsWith(uiDir) && f.endsWith('.ts'))
+      .flatMap(largeLiterals);
+    expect(literals).toEqual([]);
   });
 
   it('keeps the overlay tiers in order', () => {
