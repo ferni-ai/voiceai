@@ -64,6 +64,31 @@ describe('director notes', () => {
     ).toHaveLength(1);
   });
 
+  it('drops a note that points back at an earlier line with "answer that"', () => {
+    const call = [
+      {
+        speaker: 'user' as const,
+        text: 'I actually did send it. Wednesday night. No reply yet though.',
+      },
+      { speaker: 'ferni' as const, text: 'Getting it out the door is the hardest part.' },
+      { speaker: 'user' as const, text: 'The running, not so much. Once, maybe.' },
+      { speaker: 'ferni' as const, text: 'Once is better than zero, right?' },
+    ];
+    // Dev 2026-10-11: this note reached the reply to "Yeah, okay, thanks. Talk
+    // soon.", which came out as "Dana's probably just buried in stuff" instead of a goodbye.
+    expect(
+      parseNotes(
+        'Sam mentioned a sent message with no reply. Answer that instead of focusing on the running.',
+        call
+      )
+    ).toEqual([]);
+    expect(parseNotes('Once is a start for the running; keep it light.', call)).toHaveLength(1);
+    // A question they asked still gets answered (a real note from dev).
+    expect(
+      parseNotes('Sam asked about the running. Answer that directly before wandering off.', call)
+    ).toHaveLength(1);
+  });
+
   it('tells the director not to guess hidden motives and to answer questions', () => {
     expect(DIRECTOR_SYSTEM).toMatch(/hidden motives/);
     expect(DIRECTOR_SYSTEM).toMatch(/When they ask something, the next reply answers it/);

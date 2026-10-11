@@ -45,6 +45,7 @@
   "dependencies": {
     "@tsparticles/engine": "^3.9.1",
     "@tsparticles/slim": "^3.9.1",
+    "dompurify": "^3.4.16",
     "firebase": "^10.14.1",
     "gsap": "^3.15.0",
     "livekit-client": "^2.22.3",

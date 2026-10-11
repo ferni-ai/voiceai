@@ -223,6 +223,11 @@ export interface StartCrisisClassifierOptions {
   pattern: PatternOutcome;
   generate?: CrisisGenerateFn;
   env?: Record<string, string | undefined>;
+  /**
+   * The call this turn belongs to (its session id). With a scope, the run's
+   * verdict is kept with the turn's other reads (turnVerdicts).
+   */
+  scope?: string;
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
@@ -249,9 +254,46 @@ function rememberRun(key: string, now: number, run: CrisisClassifierRun): void {
   recentRuns.set(key, { at: now, run });
 }
 
+/**
+ * Every read of one turn, from whichever path made it: scope and latest
+ * message to the verdicts. Same TTL and bound as the shared runs.
+ */
+const turnReads = new Map<string, { at: number; verdicts: Set<Promise<CrisisVerdict | null>> }>();
+
+function turnKey(scope: string, latest: string): string {
+  return `${scope}\u0000${latest.trim().toLowerCase()}`;
+}
+
+function rememberRead(
+  scope: string,
+  latest: string,
+  now: number,
+  verdict: Promise<CrisisVerdict | null>
+): void {
+  for (const [k, v] of turnReads) if (now - v.at > RECENT_RUN_TTL_MS) turnReads.delete(k);
+  const key = turnKey(scope, latest);
+  const reads = turnReads.get(key);
+  if (reads) {
+    reads.verdicts.add(verdict);
+    return;
+  }
+  if (turnReads.size >= RECENT_RUN_MAX) {
+    const oldest = turnReads.keys().next().value;
+    if (oldest !== undefined) turnReads.delete(oldest);
+  }
+  turnReads.set(key, { at: now, verdicts: new Set([verdict]) });
+}
+
+/** All reads of this turn started so far in this call, each bounded by the classifier timeout. */
+export function turnVerdicts(scope: string, latest: string): Promise<Array<CrisisVerdict | null>> {
+  const reads = turnReads.get(turnKey(scope, latest));
+  return Promise.all(reads ? [...reads.verdicts] : []);
+}
+
 /** For tests: forget shared runs. */
 export function resetCrisisClassifierCache(): void {
   recentRuns.clear();
+  turnReads.clear();
 }
 
 export function verdictOutcome(verdict: CrisisVerdict): PatternOutcome {
@@ -280,7 +322,10 @@ export function startCrisisClassifier(
   const normalized = normalizeInput(input);
   const key = JSON.stringify([normalized.latest, normalized.earlier, normalized.companion ?? '']);
   const shared = cachedRun(key, startedAt);
-  if (shared) return { mode, verdict: shared.verdict };
+  if (shared) {
+    if (options.scope) rememberRead(options.scope, normalized.latest, startedAt, shared.verdict);
+    return { mode, verdict: shared.verdict };
+  }
 
   const generate = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
   const verdict = classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env)).then(
@@ -304,6 +349,7 @@ export function startCrisisClassifier(
   );
   const run = { mode, verdict };
   rememberRun(key, startedAt, run);
+  if (options.scope) rememberRead(options.scope, normalized.latest, startedAt, verdict);
   return run;
 }
 

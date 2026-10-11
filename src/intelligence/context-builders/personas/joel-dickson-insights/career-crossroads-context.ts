@@ -1,7 +1,7 @@
 /**
- * Joel Dickson Insights - Career Crossroads Context
+ * Nate Holloway (joel-dickson) Insights - Career Crossroads Context
  *
- * Detects career transition signals and injects relevant Joel stories and angles.
+ * Detects career transition signals and injects relevant Nate stories and angles.
  *
  * @module intelligence/context-builders/personas/joel-dickson-insights/career-crossroads-context
  */
@@ -20,7 +20,7 @@ export function buildCareerCrossroadsContext(data: JoelInsightData): CareerCross
   if (career.careerSignals.length > 0) {
     signals.push(`Career-related goals or signals: ${career.careerSignals.join(', ')}.`);
     suggestedAngle =
-      "Share your own journey — Fed to Vanguard, the leap of faith. Ask: 'What's the cost of NOT making a change?'";
+      "Share your own journey — the pension board in Lansing to the firm, the leap of faith. Ask: 'What's the cost of NOT making a change?'";
   }
 
   if (career.transitionLikely) {

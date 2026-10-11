@@ -6,10 +6,12 @@
  * install into exit 0 and LiveKit Cloud shipped an image without node_modules.
  * This runs the real RUN body from docker/Dockerfile.agent under /bin/sh -c
  * (Docker's RUN shell) with a stub pnpm, once failing and once succeeding.
+ * Since #989 the RUN also keeps suffix-thumb's runtime test/ dir out of the prune
+ * and fails unless compromise still loads after it, so the stub installs those.
  */
 import { describe, it, expect } from 'vitest';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -29,10 +31,26 @@ function prodDepsRun(): string {
     body.push(lines[i].replace(/\\$/, ''));
     if (!lines[i].endsWith('\\')) break;
   }
-  return body.join('\n').replace(/^RUN --mount=\S+\s*/, '');
+  // Docker drops each `\` + newline and joins the lines as they are; joining with
+  // '\n' split a command wrapped over two lines (#989's prune) into two broken ones.
+  return body.join('').replace(/^RUN --mount=\S+\s*/, '');
 }
 
-function run(install: 'fail' | 'ok'): { code: number; out: string } {
+/** A stub ESM package; `loads: false` gives it an entry point that throws on import. */
+function esmPackage(name: string, loads = true): string {
+  const body = loads ? 'export default {};' : "throw new Error('missing runtime file');";
+  return (
+    `mkdir -p node_modules/${name} && ` +
+    `echo '{"name":"${name}","type":"module","exports":"./index.js"}' > node_modules/${name}/package.json && ` +
+    `echo "${body}" > node_modules/${name}/index.js`
+  );
+}
+
+function run(install: 'fail' | 'ok' | 'compromise-broken'): {
+  code: number;
+  out: string;
+  modules: string;
+} {
   const dir = mkdtempSync(join(tmpdir(), 'prod-deps-'));
   const bin = join(dir, 'bin');
   mkdirSync(bin);
@@ -50,7 +68,15 @@ function run(install: 'fail' | 'ok'): { code: number; out: string } {
     `#!/bin/sh\nif [ "$1" = install ]; then ${
       install === 'fail'
         ? 'echo "stub install failed"; exit 1'
-        : 'mkdir -p node_modules/dotenv && echo "{}" > node_modules/dotenv/package.json'
+        : [
+            'mkdir -p node_modules/dotenv && echo "{}" > node_modules/dotenv/package.json',
+            esmPackage('compromise', install === 'ok'),
+            esmPackage('compromise-dates'),
+            // suffix-thumb reads its test/ dir at runtime; any other test/ dir is pruned
+            'mkdir -p node_modules/suffix-thumb/test node_modules/other-pkg/test',
+            'echo x > node_modules/suffix-thumb/test/data.js',
+            'echo x > node_modules/other-pkg/test/spec.js',
+          ].join(' && ')
     }; fi\nexit 0\n`
   );
   chmodSync(join(bin, 'pnpm'), 0o755);
@@ -63,7 +89,11 @@ function run(install: 'fail' | 'ok'): { code: number; out: string } {
     env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
     encoding: 'utf8',
   });
-  return { code: r.status ?? -1, out: `${r.stdout}${r.stderr}` };
+  return {
+    code: r.status ?? -1,
+    out: `${r.stdout}${r.stderr}`,
+    modules: join(dir, 'prod-deps', 'node_modules'),
+  };
 }
 
 describe('Dockerfile.agent prod-deps RUN', () => {
@@ -75,9 +105,21 @@ describe('Dockerfile.agent prod-deps RUN', () => {
   });
 
   it('passes and verifies dependencies when the install succeeds', () => {
-    const { code, out } = run('ok');
+    const { code, out, modules } = run('ok');
     expect(out).toContain('production dependencies present');
+    expect(out).toContain('Checking pruned packages still load');
+    expect(out).toContain('Production node_modules ready');
     expect(code).toBe(0);
+    // the prune keeps suffix-thumb's runtime test/ dir and still drops everyone else's
+    expect(existsSync(join(modules, 'suffix-thumb/test/data.js'))).toBe(true);
+    expect(existsSync(join(modules, 'other-pkg/test'))).toBe(false);
+  });
+
+  it('fails the build when compromise no longer loads after the prune', () => {
+    const { code, out } = run('compromise-broken');
+    expect(out).toContain('Checking pruned packages still load');
+    expect(code).not.toBe(0);
+    expect(out).not.toContain('Production node_modules ready');
   });
 
   it('can find node for the verify step', () => {

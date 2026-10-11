@@ -218,6 +218,9 @@ import type { VoiceAnalyzer } from '../domain/interfaces/voice-analyzer.js';
 import type { EmotionDetector } from '../domain/interfaces/emotion-detector.js';
 import { getFirestorePersonalityRepository } from '../infrastructure/firestore-personality-repository.js';
 import { InMemoryPersonalityRepository } from '../infrastructure/in-memory-personality-repository.js';
+import { AnticipationEngine } from '../domain/services/anticipation-engine.js';
+import { TimingCalculator } from '../domain/services/timing-calculator.js';
+import { VulnerabilityScorer } from '../domain/services/vulnerability-scorer.js';
 
 /**
  * Personality Service configuration
@@ -320,10 +323,6 @@ export function createTestPersonalityService(config?: Partial<PersonalityService
  * Create domain services (for direct use)
  */
 export function createDomainServices() {
-  const { AnticipationEngine } = require('../domain/services/anticipation-engine.js');
-  const { TimingCalculator } = require('../domain/services/timing-calculator.js');
-  const { VulnerabilityScorer } = require('../domain/services/vulnerability-scorer.js');
-
   return {
     anticipation: new AnticipationEngine(),
     timing: new TimingCalculator(),

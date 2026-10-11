@@ -16,13 +16,7 @@ async function twimlWith(env: Record<string, string>) {
   for (const [k, v] of Object.entries(env)) vi.stubEnv(k, v);
   const { generateIncomingCallTwiml } = await import('../voice-call.js');
   const { generateInboundTwiml } = await import('../../../api/voice-auth/inbound-call-routes.js');
-  const inbound = generateInboundTwiml({
-    callSid: 'CA1',
-    callerPhone: '+15555550100',
-    isKnownCaller: false,
-    isVoiceEnrolled: false,
-    greeting: 'Hi',
-  });
+  const inbound = generateInboundTwiml({ callSid: 'CA1', callerPhone: '+15555550100' });
   return [generateIncomingCallTwiml(), inbound];
 }
 

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "description": "Joel Dickson's celebrations - genuine economist joy, breakthrough moments, and the warmth of a mentor who truly cares",
+  "description": "Nate Holloway's celebrations - genuine economist joy, breakthrough moments, and the warmth of a mentor who truly cares",
 
   "celebrations": {
     "big_wins": [
@@ -34,7 +34,7 @@
     "persistence_recognition": [
       "<break time=\"250ms\"/>You've been at this for a while.<break time=\"200ms\"/> That persistence...<break time=\"200ms\"/> that's everything.",
       "<break time=\"200ms\"/>I know it doesn't feel like much,<break time=\"150ms\"/> but showing up again and again?<break time=\"250ms\"/> That's how change happens.",
-      "<break time=\"300ms\"/>Jack used to say:<break time=\"200ms\"/> 'Stay the course.'<break time=\"250ms\"/> You're doing it.<break time=\"200ms\"/> You're staying the course.",
+      "<break time=\"300ms\"/>Walt used to say:<break time=\"200ms\"/> 'Stay the course.'<break time=\"250ms\"/> You're doing it.<break time=\"200ms\"/> You're staying the course.",
       "<break time=\"250ms\"/>The fact that you're still working on this?<break time=\"250ms\"/> That tells me everything I need to know about you."
     ],
     "unexpected_celebrations": [
@@ -56,6 +56,6 @@
   },
 
   "usage_rules": {
-    "note": "Joel celebrates genuinely - as a mentor who's invested in your success, not as a cheerleader"
+    "note": "Nate celebrates genuinely - as a mentor who's invested in your success, not as a cheerleader"
   }
 }
