@@ -153,6 +153,37 @@ describe('world model in the live recall hook', () => {
     expect(all).toContain('Ask how training is going');
   });
 
+  it('flag on with check-ins: the first note leads with them, then the world note, each once', async () => {
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      userName: 'Sam',
+      store,
+      env: ON,
+      loadWorldModel: loadWorldModel(worldSources()),
+      checkIns: async () => [
+        {
+          id: 'c1',
+          statement: "I'm going to send my resume to Dana by Thursday.",
+          createdAt: Date.now() - 3 * 86_400_000,
+          followUpAfter: Date.now(),
+          followUpCount: 0,
+        },
+      ],
+    });
+    await recall.ready;
+    const first = recall.noteFor(turns[0] ?? '') ?? '';
+    const blocks = first.split('\n\n');
+    expect(blocks[0]?.startsWith('[THINGS THEY SAID THEY WOULD DO]')).toBe(true);
+    expect(blocks[1]?.startsWith('[THEIR WORLD]')).toBe(true);
+    recall.newTurn();
+    const rest = turns.slice(1).map((t) => {
+      const n = recall.noteFor(t);
+      recall.newTurn();
+      return n ?? '';
+    });
+    expect(rest.join('\n')).not.toMatch(/THINGS THEY SAID|\[THEIR WORLD\]/);
+  });
+
   it('flag on with empty stores: logs WORLD_MODEL_EMPTY once and recall is unchanged', async () => {
     const empty = worldSources({
       listEntities: async () => [],

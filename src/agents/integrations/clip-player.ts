@@ -22,6 +22,7 @@ import {
   presenceSoundsEnabled,
 } from './presence-watcher.js';
 import { startToolHum } from './tool-hum.js';
+import { reactionSidetrackDirect, startDirectClips } from './direct-clip-track.js';
 
 const log = createLogger({ module: 'ClipPlayer' });
 
@@ -41,16 +42,52 @@ export async function* pcmToFrames(pcm: ArrayBuffer): AsyncGenerator<AudioFrame>
   for (const out of resampler.flush()) yield out;
 }
 
+/** How far ahead of real time paced silence runs: a cushion against timer jitter. */
+export const PACED_LEAD_MS = 60;
+
+/** CLIP_TRACK_PACED=on: feed the keep-alive silence in real time (see silence()). */
+export function clipTrackPaced(env: Record<string, string | undefined> = process.env): boolean {
+  return env.CLIP_TRACK_PACED === 'on';
+}
+
 /**
  * Endless silence at mixer rate. The SDK's AudioMixer (rtc-node) ends itself
  * once its last stream is removed, and later play() calls then fail inside a
  * background task while still returning a handle: only the first clip of a
  * session was ever heard (measured 2026-09-28). A silent stream that never
  * ends keeps the mixer open.
+ *
+ * Unpaced, it yields as fast as the mixer takes it, so the player's 400 ms
+ * AudioSource queue sits full of silence and every clip waits behind it:
+ * play() to the wire took 688 ms (rtc-node mixer + source, n=8, 2026-10-10),
+ * and 82% of mid-turn backchannels in dev evals started after the caller was
+ * already talking again. Paced, each 100 ms block is released when it is due
+ * (PACED_LEAD_MS early), so almost nothing is queued ahead of a clip: 219-242
+ * ms to the wire.
+ *
+ * While a clip plays (`busy`), the silence runs unpaced again, so the mixer
+ * fills the source queue with the clip at once: a 60 ms cushion alone would
+ * break a clip up whenever the event loop stalls (VAD lag on dev ran ~470 ms
+ * p50). A clip after that one still reaches the wire in ~200 ms (tested).
  */
-export async function* silence(): AsyncGenerator<AudioFrame> {
+export async function* silence(
+  paced = clipTrackPaced(),
+  busy: () => boolean = () => false
+): AsyncGenerator<AudioFrame> {
   const samples = MIX_RATE / 10; // 100 ms, the mixer's block
-  for (;;) yield new AudioFrame(new Int16Array(samples), MIX_RATE, 1, samples);
+  let due = Date.now();
+  for (;;) {
+    if (paced && !busy()) {
+      const wait = due - PACED_LEAD_MS - Date.now();
+      if (wait > 0) {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, wait);
+        });
+      }
+    }
+    if (paced) due += 100;
+    yield new AudioFrame(new Int16Array(samples), MIX_RATE, 1, samples);
+  }
 }
 
 export class ClipPlayer {
@@ -60,7 +97,7 @@ export class ClipPlayer {
 
   async start(room: Room, session: voice.AgentSession): Promise<void> {
     await this.player.start({ room, agentSession: session });
-    this.player.play({ source: silence() });
+    this.player.play({ source: silence(clipTrackPaced(), () => this.playing) });
     this.started = true;
   }
 
@@ -113,6 +150,11 @@ const BACKCHANNEL_VOLUME = 0.75;
  * Start a clip player for a session's backchannels. Returns the `playClip`
  * callback for live backchanneling, or null when BACKCHANNEL_CLIPS=off or the
  * track could not be published (callers fall back to spoken backchannels).
+ *
+ * REACTION_SIDETRACK=direct: backchannel, laugh and opening clips play on a
+ * mixer-free track (direct-clip-track.ts, ~56 ms to the wire instead of
+ * ~650); presence sounds and the tool hum stay on the mixer track. One clip
+ * at a time across both, and one lastPlayedAt for all of them.
  */
 export async function startBackchannelClips(
   room: Room,
@@ -120,8 +162,20 @@ export async function startBackchannelClips(
   personaId: () => string,
   getClip: (text: string, personaId: string) => ArrayBuffer | null
 ): Promise<{
-  playClip: (text: string) => boolean;
+  playClip: (text: string, opts?: { pauseStartedAt?: number }) => boolean;
   lastPlayedAt: () => number;
+  /** Cut a clip played moments ago (the caller carried on). True if cut. */
+  cancelFresh: () => boolean;
+  /**
+   * play() to the wire for a clip: measured on the direct track (the last
+   * clip), estimated on the mixer track (~650 ms; ~220 ms with #692's pacing).
+   */
+  wireDelayMs: () => number;
+  /** What live backchanneling needs (live-backchanneling-integration.ts). */
+  live: {
+    playClip: (text: string, opts?: { pauseStartedAt?: number }) => boolean;
+    cancelClip: () => boolean;
+  };
   close: () => Promise<void>;
 } | null> {
   if (process.env.BACKCHANNEL_CLIPS === 'off') return null;
@@ -133,19 +187,31 @@ export async function startBackchannelClips(
     return null;
   }
   let lastPlayedAt = 0;
-  const stopPresence = startPresenceSounds(session, player);
+  const direct = reactionSidetrackDirect() ? await startDirectClips(room, session) : null;
+  const stopPresence = startPresenceSounds(session, player, () => direct?.playing ?? false);
   const stopToolHum = startToolHum(session, player);
+  const playClip = (text: string, opts?: { pauseStartedAt?: number }): boolean => {
+    const pcm = getClip(text, personaId());
+    if (pcm === null) return false;
+    const played = direct
+      ? !player.playing && direct.play(pcm, BACKCHANNEL_VOLUME, text, opts?.pauseStartedAt)
+      : player.play(pcm, BACKCHANNEL_VOLUME);
+    if (!played) return false;
+    lastPlayedAt = Date.now();
+    return true;
+  };
+  const cancelFresh = (): boolean => direct?.cancelIfFresh() ?? false;
   return {
-    playClip: (text) => {
-      const pcm = getClip(text, personaId());
-      if (pcm === null || !player.play(pcm, BACKCHANNEL_VOLUME)) return false;
-      lastPlayedAt = Date.now();
-      return true;
-    },
+    playClip,
     lastPlayedAt: () => lastPlayedAt,
+    cancelFresh,
+    wireDelayMs: () =>
+      direct ? (direct.lastWireMs ?? 60) : process.env.CLIP_TRACK_PACED === 'on' ? 220 : 650,
+    live: { playClip, cancelClip: cancelFresh },
     close: async () => {
       stopPresence();
       stopToolHum();
+      await direct?.close();
       await player.close();
     },
   };
@@ -160,13 +226,17 @@ const WHISTLE_VOLUME = 0.5;
  * easy pause, and with PRESENCE_SNORE a mock snore in a long quiet. Returns
  * the cleanup; a no-op unless PRESENCE_SOUNDS=on.
  */
-function startPresenceSounds(session: voice.AgentSession, player: ClipPlayer): () => void {
+function startPresenceSounds(
+  session: voice.AgentSession,
+  player: ClipPlayer,
+  otherTrackBusy: () => boolean = () => false
+): () => void {
   if (!presenceSoundsEnabled()) return () => {};
   const mood = () =>
     (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
       ?.primary;
   const playing = (kind: string, pcm: ArrayBuffer): boolean => {
-    const ok = player.play(pcm, WHISTLE_VOLUME);
+    const ok = !otherTrackBusy() && player.play(pcm, WHISTLE_VOLUME);
     if (ok) log.info({ kind }, `PRESENCE_SOUND ${kind}`);
     return ok;
   };
