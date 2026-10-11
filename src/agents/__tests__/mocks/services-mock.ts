@@ -506,13 +506,13 @@ export function setupServicesMocks(services?: ReturnType<typeof createMockSessio
   const mockServices = services || createMockSessionServices();
 
   // Session services
-  vi.mock('../../../services/index.js', () => ({
+  vi.doMock('../../../services/index.js', () => ({
     createSessionServices: vi.fn(() => mockServices),
     getSessionServices: vi.fn(() => mockServices),
   }));
 
   // Diagnostic logger
-  vi.mock('../../../services/diagnostic-logger.js', () => ({
+  vi.doMock('../../../services/diagnostic-logger.js', () => ({
     diag: {
       user: vi.fn(),
       session: vi.fn(),
@@ -525,36 +525,36 @@ export function setupServicesMocks(services?: ReturnType<typeof createMockSessio
   }));
 
   // Trust systems
-  vi.mock('../../../services/trust-systems/unified-persistence.js', () => ({
+  vi.doMock('../../../services/trust-systems/unified-persistence.js', () => ({
     recordHealthTrend: vi.fn(),
     recordInsight: vi.fn(),
     loadUserTrustData: vi.fn().mockResolvedValue({}),
   }));
 
   // Cross-persona insights
-  vi.mock('../../../services/cross-persona-insights.js', () => ({
+  vi.doMock('../../../services/cross-persona-insights.js', () => ({
     loadInsights: vi.fn().mockResolvedValue([]),
     formatInsightsForPrompt: vi.fn(() => ''),
     recordInsight: vi.fn(),
   }));
 
   // Health awareness
-  vi.mock('../../../services/health-awareness/voice-biometrics.js', () => ({
+  vi.doMock('../../../services/health-awareness/voice-biometrics.js', () => ({
     analyzeVoiceHealth: vi.fn().mockResolvedValue({}),
   }));
 
   // Identity
-  vi.mock('../../../services/identity/human-first-2fa.js', () => ({
+  vi.doMock('../../../services/identity/human-first-2fa.js', () => ({
     processUserMessage: vi.fn().mockResolvedValue({}),
   }));
 
   // Outreach
-  vi.mock('../../../services/outreach/conversation-extractor.js', () => ({
+  vi.doMock('../../../services/outreach/conversation-extractor.js', () => ({
     extractAndProcess: vi.fn().mockResolvedValue(undefined),
   }));
 
   // Self-healing
-  vi.mock('../../../services/self-healing/index.js', () => ({
+  vi.doMock('../../../services/self-healing/index.js', () => ({
     initSelfHealing: vi.fn().mockResolvedValue(undefined),
     recordFailure: vi.fn(),
     getCircuitState: vi.fn(() => 'closed'),

@@ -359,7 +359,7 @@ export function setupTTSMocks(client?: MockTTSClient): void {
   const mockClient = client || createMockTTSClient();
 
   // Mock Cartesia TTS
-  vi.mock('../../speech/cartesia-tts.js', () => ({
+  vi.doMock('../../speech/cartesia-tts.js', () => ({
     CartesiaTTS: vi.fn().mockImplementation(() => ({
       synthesize: vi.fn().mockImplementation(async (text) => mockClient.synthesize(text)),
       stream: vi.fn().mockImplementation((text) => mockClient.synthesizeStream(text)),
@@ -371,7 +371,7 @@ export function setupTTSMocks(client?: MockTTSClient): void {
   }));
 
   // Mock lightweight TTS
-  vi.mock('../shared/lightweight-tts.js', () => ({
+  vi.doMock('../shared/lightweight-tts.js', () => ({
     getLightweightTTS: vi.fn(() => ({
       speak: vi.fn().mockImplementation(async (text) => mockClient.synthesize(text)),
     })),
@@ -382,7 +382,7 @@ export function setupTTSMocks(client?: MockTTSClient): void {
  * Setup Silero VAD mocks
  */
 export function setupSileroMocks(): void {
-  vi.mock('@livekit/agents-plugin-silero', () => ({
+  vi.doMock('@livekit/agents-plugin-silero', () => ({
     VAD: {
       load: vi.fn().mockResolvedValue({
         detect: vi.fn().mockReturnValue({
