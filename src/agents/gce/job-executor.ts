@@ -14,6 +14,8 @@ import { EventEmitter } from 'node:events';
 
 import { InProcessInferenceExecutor } from '../core/inference-executor.js';
 import { runFullVoiceAgentEntry } from '../voice-agent-entry/index.js';
+// Work that runs after each call ends (extraction, person model): registered once per process.
+import '../after-call-register.js';
 
 // ============================================================================
 // TYPES

@@ -12,6 +12,7 @@ import { initializeLogger } from '@livekit/agents';
 
 import { getDeepExtractionWorker } from '../../memory/dynamic/index.js';
 import { setCallQualityForwarder } from '../../services/analytics/call-quality-monitor.js';
+import { pendingAfterCallTasks } from '../../services/session/after-call-tasks.js';
 import { registerGlobalErrorHandlers } from '../../utils/safe-fire-and-forget.js';
 import { drainBackground } from './drain-background.js';
 import { runJobInProcess, setOnJobLifecycle, setWorkerId, shutdownJob } from './job-executor.js';
@@ -34,10 +35,13 @@ const send = (msg: ToParent): void => {
   if (process.connected) process.send?.(msg);
 };
 
-/** Background memory work still to do: queued deep extractions plus one in progress. */
+/**
+ * Background work still to do: queued deep extractions plus one in progress,
+ * and after-call tasks (call extraction, person model) still running.
+ */
 function pendingMemoryWork(): number {
   const health = getDeepExtractionWorker().getHealthStatus();
-  return health.queueDepth + (health.isProcessing ? 1 : 0);
+  return health.queueDepth + (health.isProcessing ? 1 : 0) + pendingAfterCallTasks();
 }
 
 function reportLoad(): void {
