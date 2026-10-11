@@ -2439,7 +2439,8 @@
       "features": "Was Ferni sehen kann"
     },
     "title": "Wearables",
-    "notConfigured": "Noch nicht eingerichtet"
+    "notConfigured": "Noch nicht eingerichtet",
+    "appleHealthOnIphone": "Richte Apple Health in der Ferni-App auf deinem iPhone ein"
   },
   "transcript": {
     "enabled": "Transkription an",
@@ -9497,6 +9498,15 @@
     "cta": "Möchtest du helfen, Ferni kostenlos zu halten?",
     "dismiss": "Einfach froh zu plaudern"
   },
+  "afterCall": {
+    "ariaLabel": "Nach deinem Anruf",
+    "rememberTitle": "{name} wird sich merken",
+    "rememberEmpty": "Diesmal gibt es nichts Neues festzuhalten. Danke für deine Gesellschaft.",
+    "nextStepTitle": "Ein sanfter nächster Schritt",
+    "invitation": "Komm wieder, wann immer du magst. Ich bin da.",
+    "close": "Schließen",
+    "seeCost": "Was dieser Anruf gekostet hat"
+  },
   "moments": {
     "teamUnlockTitle": "Lerne {name} kennen",
     "niceWork": "Schön gemacht",
@@ -10795,7 +10805,8 @@
   "entrance": {
     "helper": "Dein persönlicher Wegbegleiter",
     "connectToTalk": "Verbinden",
-    "endTalk": "Auflegen"
+    "endTalk": "Auflegen",
+    "connectingCancel": "Verbindung wird hergestellt. Zum Abbrechen tippen"
   },
   "teamHuddle": {
     "typeWeekly": "Wöchentlicher Check-in",
@@ -11054,5 +11065,11 @@
   "agentAcks": {
     "gameStartFailed": "Das Spiel hat nicht gestartet. Sag Ferni einfach, dass du es spielen möchtest.",
     "actionFailed": "Das hat nicht geklappt. Vielleicht wurde es schon erledigt."
+  },
+  "speakerCues": {
+    "ferniSpeaking": "Ferni spricht",
+    "youSpeaking": "Du sprichst",
+    "ferniThinking": "Ferni denkt nach",
+    "tapToInterrupt": "Tippen zum Unterbrechen"
   }
 }

@@ -6,6 +6,7 @@ import { tp } from '../i18n/plural.js';
 import { appState } from '../state/index.js';
 import { apiDelete, apiGet, apiPost } from '../utils/api.js';
 import { toast } from './whisper.ui.js';
+import { startEcobeeLinkPoll, stopEcobeeLinkPoll } from './ecobee-link-poll.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -1574,25 +1575,21 @@ async function connectEcobee(_apiKey: string): Promise<void> {
     // Open Ecobee authorization page
     window.open('https://www.ecobee.com/consumerportal/index.html#/my-apps/add/new', '_blank');
 
-    // Poll for completion
-    const checkInterval = setInterval(async () => {
-      const statusRes = await apiGet<{ authorized: boolean }>('/api/ecobee/link/status', {
-        userId,
-      });
-
-      if (statusRes.ok && statusRes.data?.authorized) {
-        clearInterval(checkInterval);
+    // Poll for completion: the server answers { status: 'connected' | 'pending' | 'expired' | ... }
+    startEcobeeLinkPoll({
+      userId,
+      onConnected: () => {
         toast.success(t('toasts.ecobeeConnected'));
         callbacks.onConnected?.('ecobee');
         currentSetupFlow = null;
         loadAndRenderStatus();
-      }
-    }, 3000);
-
-    // Stop polling after 5 minutes
-    setTimeout(() => {
-      clearInterval(checkInterval);
-    }, 300000);
+      },
+      onExpired: () => {
+        toast.warning(t('vibe.pinExpiredRetry'));
+        setupStep = 1;
+        renderSetupStep();
+      },
+    });
 
     isLoading = false;
     renderEcobeeWaitingState();
@@ -1642,6 +1639,7 @@ function renderEcobeeWaitingState(): void {
   });
   cancelBtn.textContent = t('ui.smarthomesettings.cancel');
   cancelBtn.addEventListener('click', () => {
+    stopEcobeeLinkPoll();
     currentSetupFlow = null;
     loadAndRenderStatus();
   });
@@ -1674,12 +1672,12 @@ async function pairHueBridge(): Promise<void> {
 
       // Save to backend
       const userId = getUserId();
-      await apiPost('/api/smart-home/hue/save', {
+      const saved = await apiPost('/api/smart-home/hue/save', {
         userId,
         bridgeIp: hueBridgeIp,
         username: hueUsername,
       });
-
+      if (!saved.ok) throw new Error(saved.error ?? 'Failed to save Hue bridge');
       toast.success(t('toasts.hueConnected'));
       callbacks.onConnected?.('hue');
       setupStep = 2;
@@ -1720,11 +1718,11 @@ async function connectLifx(token: string): Promise<void> {
 
     // Save to backend
     const userId = getUserId();
-    await apiPost('/api/smart-home/lifx/save', {
+    const saved = await apiPost('/api/smart-home/lifx/save', {
       userId,
       token,
     });
-
+    if (!saved.ok) throw new Error(saved.error ?? 'Failed to save LIFX token');
     toast.success(tp('smarthome.lightsFound', lights.length));
     callbacks.onConnected?.('lifx');
     currentSetupFlow = null;
@@ -1767,11 +1765,11 @@ async function disconnectIntegration(integration: string): Promise<void> {
     const userId = getUserId();
 
     // Ecobee uses a different route
-    if (integration === 'ecobee') {
-      await apiDelete(`/api/ecobee/disconnect?userId=${userId}`);
-    } else {
-      await apiDelete(`/api/smart-home/${integration}/disconnect?userId=${userId}`);
-    }
+    const response =
+      integration === 'ecobee'
+        ? await apiDelete(`/api/ecobee/disconnect?userId=${userId}`)
+        : await apiDelete(`/api/smart-home/${integration}/disconnect?userId=${userId}`);
+    if (!response.ok) throw new Error(response.error ?? 'Disconnect failed');
 
     toast.success(t('toasts.disconnected'));
     callbacks.onDisconnected?.(integration);
@@ -1897,6 +1895,7 @@ export async function showSmartHomeSettings(cbs?: SmartHomeCallbacks): Promise<v
 }
 
 export function hideSmartHomeSettings(): void {
+  stopEcobeeLinkPoll();
   if (!container) return;
 
   container.classList.remove('smart-home-settings--visible');

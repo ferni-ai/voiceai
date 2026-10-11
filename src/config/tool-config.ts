@@ -152,6 +152,9 @@ const DEFAULT_ESSENTIAL_TOOLS = [
   // Fun
   'tellJoke',
   'getFunFact',
+  // The game scorekeeper; only exists with GAME_STATE=on (games/game-state-tool.ts).
+  // Without this the first agent's 64-slot cap dropped every games tool.
+  'gameState',
   // End call
   'endCall',
 ];

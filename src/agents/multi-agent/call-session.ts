@@ -32,8 +32,10 @@ export async function createCallSession(parts: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   llmModel: any;
   tts: Awaited<ReturnType<typeof createPersonaTTS>>;
+  /** A phone (SIP) caller: the STT may take narrowband settings (PHONE_AUDIO_MODE). */
+  phone?: boolean;
 }): Promise<voice.AgentSession<UserData>> {
-  const { persona, sessionId, services, userData, llmModel, tts } = parts;
+  const { persona, sessionId, services, userData, llmModel, tts, phone } = parts;
   const modelProvider = getModelProvider();
 
   // =========================================================================
@@ -94,7 +96,8 @@ export async function createCallSession(parts: {
           userName: (services.userProfile?.preferredName ||
             services.userProfile?.name ||
             userData?.userName) as string | undefined,
-        })
+        }),
+        { phone: phone === true }
       ) as InstanceType<typeof SonataSTT> | undefined);
 
   const session = new voice.AgentSession<UserData>({

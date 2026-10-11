@@ -2439,7 +2439,8 @@
       "features": "Ferniが確認できるデータ"
     },
     "title": "ウェアラブル",
-    "notConfigured": "まだ設定されていません"
+    "notConfigured": "まだ設定されていません",
+    "appleHealthOnIphone": "Apple Health は iPhone の Ferni アプリで設定してください"
   },
   "transcript": {
     "enabled": "文字起こし：オン",
@@ -9497,6 +9498,15 @@
     "cta": "Ferniを無料で続けるためにお手伝いいただけますか？",
     "dismiss": "お話できるだけで十分です"
   },
+  "afterCall": {
+    "ariaLabel": "通話のあとに",
+    "rememberTitle": "{name}が覚えておくこと",
+    "rememberEmpty": "今回は新しく覚えておくことはありません。一緒に過ごしてくれてありがとう。",
+    "nextStepTitle": "次のやさしい一歩",
+    "invitation": "いつでも戻ってきてください。ここで待っています。",
+    "close": "閉じる",
+    "seeCost": "この通話の費用"
+  },
   "moments": {
     "teamUnlockTitle": "{name}をご紹介します",
     "niceWork": "よく頑張りましたね",
@@ -10795,7 +10805,8 @@
   "entrance": {
     "helper": "あなた専属のガイド",
     "connectToTalk": "お話する",
-    "endTalk": "終了"
+    "endTalk": "終了",
+    "connectingCancel": "接続中です。タップしてキャンセル"
   },
   "teamHuddle": {
     "typeWeekly": "週に一度のチェックイン",
@@ -11054,5 +11065,11 @@
   "agentAcks": {
     "gameStartFailed": "ゲームを始められませんでした。Ferniに声でお願いしてみてくださいね。",
     "actionFailed": "うまくいきませんでした。すでに処理済みかもしれません。"
+  },
+  "speakerCues": {
+    "ferniSpeaking": "Ferniが話しています",
+    "youSpeaking": "あなたが話しています",
+    "ferniThinking": "Ferniが考えています",
+    "tapToInterrupt": "タップして割り込む"
   }
 }

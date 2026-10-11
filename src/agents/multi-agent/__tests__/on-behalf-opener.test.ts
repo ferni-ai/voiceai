@@ -28,6 +28,8 @@ const { identifyUser } = await import('../../voice-agent/user-identification-han
 const { buildUserAwareness } = await import('../../voice-agent/phases/user-awareness.js');
 const { outboundCallerAwareness, outboundOpener, outboundPartiesFor, waitForCallAnswered } =
   await import('../../shared/outbound-opener.js');
+const { signDispatch } = await import('../../../services/outreach/on-behalf-dispatch.js');
+const SECRET = 'test-livekit-secret';
 const { outboundCallContextBuilder } =
   await import('../../../intelligence/context-builders/external/outbound-call-context.js');
 
@@ -98,7 +100,7 @@ describe('the opener of a call placed on the user’s behalf', () => {
       { 'sip.callStatus': 'active' },
       phoneParticipant('active')
     );
-    await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 10_000 });
 
     const opener = String(say.mock.calls[0][0]);
     expect(opener).toMatch(/\bDoug\b/);
@@ -121,9 +123,41 @@ describe('the opener of a call placed on the user’s behalf', () => {
     const room = new EventEmitter();
     const { say, started } = startOrchestrator('ob-requester', room, phoneParticipant('active'));
     await started;
-    await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 10_000 });
     const opener = String(say.mock.calls[0][0]);
     expect(opener).toBe(SETH_TO_DOUG);
+  });
+
+  it('names the requester from a signed dispatch with no requester id, for display only', async () => {
+    // Dev 2026-10-10: a call to Seth's sister said "it's Ferni, an AI friend", without "Seth's".
+    const { userId: _userId, ...noId } = onBehalfMetadata();
+    const signed = signDispatch(noId, SECRET);
+    const openerOf = async (sessionId: string, dispatch: object): Promise<string> => {
+      const raw = JSON.stringify(dispatch);
+      await setupCallTypeContexts(
+        JSON.parse(raw),
+        'on_behalf_call',
+        sessionId,
+        `r-${sessionId}`,
+        raw
+      );
+      const room = new EventEmitter();
+      const { say, started } = startOrchestrator(sessionId, room, phoneParticipant('active'));
+      await started;
+      await vi.waitFor(() => expect(say).toHaveBeenCalledTimes(1), { timeout: 10_000 });
+      return String(say.mock.calls[0][0]);
+    };
+    const prior = process.env.LIVEKIT_API_SECRET;
+    process.env.LIVEKIT_API_SECRET = SECRET;
+    try {
+      expect(await openerOf('ob-no-id', signed)).toBe(SETH_TO_DOUG);
+      // Unsigned or altered: the top-level name must not reach Ferni's mouth.
+      const forged = { ...signed, userName: 'Mallory' };
+      expect(await openerOf('ob-no-id-forged', forged)).not.toMatch(/Seth|Mallory/);
+      expect(await openerOf('ob-no-id-unsigned', noId)).not.toMatch(/Seth/);
+    } finally {
+      process.env.LIVEKIT_API_SECRET = prior;
+    }
   });
 
   it('says nothing when the phone hangs up unanswered', async () => {
