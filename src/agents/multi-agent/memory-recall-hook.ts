@@ -111,8 +111,11 @@ export interface MemoryRecallDeps {
 export interface MemoryRecall {
   /** Resolves once the snapshot is loaded (for tests and startup logging). */
   ready: Promise<void>;
-  /** The recall note for this transcript, or null. Synchronous: never waits on the store. */
-  noteFor(transcript: string): string | null;
+  /**
+   * The recall note for this transcript, or null. Synchronous: never waits on
+   * the store. `final: false` marks an interim transcript.
+   */
+  noteFor(transcript: string, opts?: { final?: boolean }): string | null;
   /** The agent started replying: the next transcript belongs to a new user turn. */
   newTurn(): void;
 }
@@ -213,12 +216,18 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
 
   return {
     ready,
-    noteFor(transcript) {
+    noteFor(transcript, opts = {}) {
       const text = transcript.trim();
       if (!snapshot || !text) return null;
       index?.observe(text);
       const semantic = index?.matches() ?? new Map<string, number>();
-      const blend = index ? { semantic, now: Date.now() } : undefined;
+      // The first interim of a turn comes before its embedding. Word matches
+      // alone then spent the turn's four facts ("work" -> "works long
+      // shifts"), and the final transcript's meaning-matched facts found no
+      // room ("employer = St. Mary's", benchmark 2026-10-11). Interims wait
+      // for the meaning unless they name someone; a final transcript never waits.
+      const namedOnly = opts.final === false && (index?.awaitingTurn() ?? false);
+      const blend = index ? { semantic, now: Date.now(), namedOnly } : undefined;
       const budget = FACTS_PER_TURN - factsThisTurn;
       const ranked =
         budget > 0

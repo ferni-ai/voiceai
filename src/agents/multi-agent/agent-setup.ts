@@ -1619,9 +1619,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
   if (userId && userId !== 'anonymous' && memoryRecallMode() && sessionWithEvents.on) {
     const recall = createMemoryRecall({ userId, userName: userData.userName });
     const onRecallTranscript = (event: unknown) => {
-      const evt = event as { transcript?: string };
+      const evt = event as { transcript?: string; isFinal?: boolean };
       if (!evt.transcript) return;
-      const note = recall.noteFor(evt.transcript);
+      const note = recall.noteFor(evt.transcript, { final: evt.isFinal });
       if (note) addRecallNote(agent as unknown as RecallAgent, note);
     };
     const onRecallAgentState = (event: unknown) => {

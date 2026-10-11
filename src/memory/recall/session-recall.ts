@@ -84,6 +84,11 @@ export interface RecallBlend {
   /** factId to how far its similarity stood above the median. */
   semantic: ReadonlyMap<string, number>;
   now: number;
+  /**
+   * Only facts whose entity they named: an interim transcript before the
+   * turn's embedding lands, so loose word matches don't spend the turn.
+   */
+  namedOnly?: boolean;
 }
 
 /** A margin of 0.2 (a clear match) weighs as much as naming the entity. */
@@ -127,7 +132,7 @@ export function recallForTurn(
       if (words.has(w)) overlap++;
     }
     const margin = blend?.semantic.get(id) ?? 0;
-    if (!named && overlap === 0 && margin === 0) continue;
+    if (!named && (blend?.namedOnly || (overlap === 0 && margin === 0))) continue;
     let score = (named ? 2 : 0) + overlap * 0.5 + fact.confidence * 0.5;
     if (blend) score += margin * SEMANTIC_WEIGHT + recency(fact.extractedAt, blend.now);
     scored.push({ fact, score });
