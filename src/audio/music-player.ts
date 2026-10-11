@@ -247,6 +247,8 @@ export class CallMusicPlayer {
 
   // 🐛 FIX: Track if waitForPlayout has already resolved (to prevent double-firing)
   private trackEndHandled = false;
+  /** A pause that came while the next track was still loading (see pause()) */
+  private pausedWhileLoading = false;
 
   // Track current mood for mood-aware offers
   private currentUserMood: string | undefined;
@@ -694,14 +696,7 @@ export class CallMusicPlayer {
     try {
       // FIX: Clear all timers ATOMICALLY at the very start before any async work
       // This prevents race conditions where old timers fire during download
-      if (this.midSongMomentTimer) {
-        clearTimeout(this.midSongMomentTimer);
-        this.midSongMomentTimer = null;
-      }
-      if (this.trackEndBackupTimer) {
-        clearTimeout(this.trackEndBackupTimer);
-        this.trackEndBackupTimer = null;
-      }
+      this.clearTrackTimers();
       // Mark any pending track end as handled before starting new track
       this.trackEndHandled = true;
 
@@ -748,15 +743,7 @@ export class CallMusicPlayer {
         this.state.currentTrack = null;
         this.state.isAmbientMode = false;
         this.currentAudioPath = null;
-        // Clear timers
-        if (this.midSongMomentTimer) {
-          clearTimeout(this.midSongMomentTimer);
-          this.midSongMomentTimer = null;
-        }
-        if (this.trackEndBackupTimer) {
-          clearTimeout(this.trackEndBackupTimer);
-          this.trackEndBackupTimer = null;
-        }
+        this.clearTrackTimers();
         log.info(
           { track: track.name },
           '🎵 [PLAY-TRACE] Step 2: State cleared (mixer preserved for next track)'
@@ -764,6 +751,7 @@ export class CallMusicPlayer {
       }
       this.state.wasExplicitlyStopped = false;
       this.state.explicitStopTime = null;
+      this.pausedWhileLoading = false;
 
       // Download the audio file (with DJ fade-out baked in)
       // 🐛 FIX: Now returns actual duration detected via ffprobe (iTunes previews vary!)
@@ -814,6 +802,17 @@ export class CallMusicPlayer {
         );
         this.cleanupTempFile(audioPath);
         return false;
+      }
+      // Paused while it loaded (a tap in the gap before it starts): hold it, paused, and
+      // tell the app; resume replays currentTrack. Not for ambient music, which pauses
+      // itself under speech.
+      if (this.pausedWhileLoading && !isAmbient) {
+        this.pausedWhileLoading = false;
+        this.state.currentTrack = track;
+        this.cleanupTempFile(audioPath);
+        this.notifyStateChange('playing');
+        this.notifyStateChange('paused');
+        return true;
       }
 
       // Set current track state
@@ -1901,28 +1900,27 @@ export class CallMusicPlayer {
     }
   }
 
+  /** Mid-song moment and track-end backup timers belong to the track that set them */
+  private clearTrackTimers(): void {
+    if (this.midSongMomentTimer) clearTimeout(this.midSongMomentTimer);
+    if (this.trackEndBackupTimer) clearTimeout(this.trackEndBackupTimer);
+    this.midSongMomentTimer = null;
+    this.trackEndBackupTimer = null;
+  }
+
   /**
-   * Pause playback
+   * Pause playback. A track still loading isn't playing yet: the pause is remembered and
+   * holds it, paused, once loaded (Step 5 in playFromUrl).
    */
   pause(): void {
     const pausedTrack = this.state.currentTrack;
 
-    // 🎤 Clear mid-song moment timer
-    if (this.midSongMomentTimer) {
-      clearTimeout(this.midSongMomentTimer);
-      this.midSongMomentTimer = null;
-    }
-
-    // 🐛 FIX: Clear backup timer on pause
-    if (this.trackEndBackupTimer) {
-      clearTimeout(this.trackEndBackupTimer);
-      this.trackEndBackupTimer = null;
-    }
+    this.clearTrackTimers();
     this.trackEndHandled = true; // Prevent backup timer from firing
 
     if (this.currentPlayHandle && !this.currentPlayHandle.done()) {
       this.currentPlayHandle.stop();
-    }
+    } else this.pausedWhileLoading = true;
     this.state.isPlaying = false;
 
     log.info({ track: pausedTrack?.name }, '🎧 Music paused');
@@ -1979,17 +1977,7 @@ export class CallMusicPlayer {
     const wasAmbient = this.state.isAmbientMode;
     const queuedTracks = this.state.queue.length;
 
-    // 🎤 Clear mid-song moment timer
-    if (this.midSongMomentTimer) {
-      clearTimeout(this.midSongMomentTimer);
-      this.midSongMomentTimer = null;
-    }
-
-    // 🐛 FIX: Clear backup timer on stop
-    if (this.trackEndBackupTimer) {
-      clearTimeout(this.trackEndBackupTimer);
-      this.trackEndBackupTimer = null;
-    }
+    this.clearTrackTimers();
     this.trackEndHandled = true; // Prevent backup timer from firing
 
     if (this.currentPlayHandle && !this.currentPlayHandle.done()) {
