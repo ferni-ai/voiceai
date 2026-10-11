@@ -7900,6 +7900,8 @@
       "waitingTip": "טיפ: כדאי לחפש את 'My Apps' ← 'Add Application' באתר ecobee.com"
     },
     "hueSetup": {
+      "webUnavailableTitle": "עדיין לא זמין באתר",
+      "webUnavailableText": "הדפדפן לא יכול להגיע ל-Hue Bridge ברשת הביתית מהדף המאובטח הזה, ולכן עדיין אי אפשר לחבר את Hue מכאן.",
       "findTitle": "חיפוש ה-Hue Bridge",
       "findText": "בואו נמצא את ה-Hue Bridge ברשת שלכם. יש לוודא חיבור לאותה רשת WiFi שאליה מחובר ה-bridge.",
       "ipLabel": "כתובת ה-IP של ה-Bridge",

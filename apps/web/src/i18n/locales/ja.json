@@ -7854,6 +7854,8 @@
       "waitingTip": "ヒント：ecobee.comで「My Apps」→「Add Application」を探してみてください"
     },
     "hueSetup": {
+      "webUnavailableTitle": "ウェブ版ではまだ使えません",
+      "webUnavailableText": "この安全なページからは、ブラウザがご自宅のネットワーク上のHue Bridgeに接続できません。そのため、ここではまだHueを接続できません。",
       "findTitle": "Hue Bridgeを探す",
       "findText": "ネットワーク上のHue Bridgeを探しましょう。ブリッジと同じWi-Fiに接続していることを確認してくださいね。",
       "ipLabel": "ブリッジのIPアドレス",
