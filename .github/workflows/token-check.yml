@@ -32,7 +32,8 @@ concurrency:
 jobs:
   token-drift-check:
     name: Check Token Drift
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -76,7 +77,7 @@ jobs:
 
   animation-constants-check:
     name: Check Animation Constants
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -106,7 +107,7 @@ jobs:
 
   tailwind-config-check:
     name: Check Tailwind Config
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code

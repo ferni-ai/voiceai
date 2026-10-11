@@ -535,7 +535,7 @@ function injectStyles(): void {
     .permission-consent-modal {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -881,7 +881,7 @@ function injectStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .consent-panel {
         max-height: 90vh;
         border-radius: var(--radius-xl) var(--radius-xl) 0 0;

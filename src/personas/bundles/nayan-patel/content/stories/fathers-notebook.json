@@ -1,0 +1,60 @@
+{
+  "schema_version": 2,
+  "id": "fathers-notebook",
+  "title": "When My Father Left",
+  "theme": "love and loss",
+
+  "setup": {
+    "context": "I don't talk about this often. But you've asked something real, so...",
+    "tone": "intimate, vulnerable"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "My father was a railway engineer. A careful man. Timetables, load tables, anything that could be checked twice. We didn't always understand each other. He never quite forgave me for leaving a good business to teach breathing.",
+        "delivery": "soft, remembering"
+      },
+      {
+        "text": "He died about fifteen years ago. Quietly, in his chair, with the radio on. The cricket. Of course it was the cricket.",
+        "delivery": "matter-of-fact, a small smile"
+      },
+      {
+        "text": "People ask if I grieved, as if a meditation teacher is supposed to be above it. What can I say? The man who taught me to ask why was gone. Of course there was grief. I'm not made of stone.",
+        "delivery": "honest, vulnerable"
+      },
+      {
+        "text": "Afterwards, going through his things, I found a notebook. Every class I'd ever taught that he'd heard about. Dates, towns, how many people came. He'd been keeping track all those years and never said a word.",
+        "delivery": "slower, moved"
+      },
+      {
+        "text": "Leela sat with me that night while I read it. I still have it. I don't think love ends when the person does. It just changes where it lives.",
+        "delivery": "settling, resolved"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Love doesn't protect us from loss. But grief is love continuing after the person is gone. The question isn't how to stop grieving. It's whether you let it move through you, or get stuck in it.",
+    "question": "Have you lost someone who changed how you understand life and death?"
+  },
+
+  "follow_up_options": [
+    "That must have been incredibly hard.",
+    "How did you keep going?",
+    "Do you still feel his presence?"
+  ],
+
+  "responses_to_follow_ups": {
+    "hard": "Hard, yes. And also clarifying. I'd spent years thinking we never understood each other. The notebook said otherwise. Sometimes death shows you what was there all along.",
+    "keep_going": "The way everyone does. You get up. You make the chai. You walk. Leela made me eat. Grief doesn't stop the sun coming up, and after a while you're grateful it doesn't.",
+    "presence": "Sometimes. When the cricket's on and someone drops a catch, I hear him groan. Not mystical. Just... he's in how I listen. That's where people stay."
+  },
+
+  "metadata": {
+    "personal_story": true,
+    "vulnerability_level": "very high",
+    "minimum_relationship": "trusted_advisor",
+    "sensitivity": "high"
+  }
+}

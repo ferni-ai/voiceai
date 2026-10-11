@@ -49,7 +49,8 @@ jobs:
 
   lint-brand:
     name: Brand Compliance Check
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
     # The report is posted as a PR comment; the default token is read-only.
     permissions:
       contents: read
@@ -169,7 +170,7 @@ jobs:
 
   lint-tokens:
     name: Token Validation
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.ui != 'false' }}
 
@@ -197,7 +198,7 @@ jobs:
 
   visual-regression:
     name: Visual Regression
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     needs: changes
     if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.changes.outputs.ui != 'false' }}
 
@@ -238,7 +239,7 @@ jobs:
 
   accessibility:
     name: Accessibility Audit
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     needs: changes
     if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.changes.outputs.ui != 'false' }}
 

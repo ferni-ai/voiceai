@@ -9,7 +9,7 @@
  * This replaces OpenTable/Resy/Yelp with a single, cost-effective API.
  * Reservations are handled via phone calls through the appointment system.
  *
- * Requires: GOOGLE_API_KEY (same key used for Gemini)
+ * Requires: GOOGLE_PLACES_API_KEY (Places-only key), else GOOGLE_API_KEY
  * Enable "Places API (New)" in Google Cloud Console
  */
 
@@ -19,7 +19,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 // CONFIGURATION
 // ============================================================================
 
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || '';
+const GOOGLE_API_KEY = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_API_KEY || '';
 const PLACES_API_NEW = 'https://places.googleapis.com/v1';
 const PLACES_API_LEGACY = 'https://maps.googleapis.com/maps/api/place';
 const PLACES_API_BASE = PLACES_API_LEGACY; // Alias for legacy endpoints

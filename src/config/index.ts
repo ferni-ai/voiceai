@@ -19,9 +19,6 @@
  *    - Session-scoped, percentage rollout
  *    - Used for: audio intelligence features (prosody, laughter, rhythm)
  *
- * For a unified API, use:
- *   import { flags } from '../config/unified-flags.js';
- *
  * @module @ferni/config
  */
 
@@ -43,12 +40,6 @@ export {
   type AppConfig,
   type Environment,
 } from './environment.js';
-
-// ============================================================================
-// UNIFIED FLAGS FACADE (Recommended)
-// ============================================================================
-
-export { flags, getFlagsSummary, isAnyDebugEnabled, logFlagState } from './unified-flags.js';
 
 // ============================================================================
 // APPLICATION FEATURE FLAGS

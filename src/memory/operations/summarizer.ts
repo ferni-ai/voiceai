@@ -9,6 +9,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { ConversationSummary } from '../../types/user-profile.js';
 import { embed } from '../embeddings.js';
 import { callMomentLine, callerTimeZoneFor } from './call-moment.js';
+import { INSIDE_JOKES_PROMPT_TAIL, parseInsideJokes } from './inside-jokes.js';
 
 // ============================================================================
 // TYPES
@@ -302,9 +303,7 @@ export async function summarizeConversation(
 // LLM-ENHANCED SUMMARIZATION
 // ============================================================================
 
-/**
- * LLM-based summarization result
- */
+/** LLM-based summarization result */
 interface LLMSummaryResult {
   mainTopics: string[];
   keyPoints: string[];
@@ -313,6 +312,7 @@ interface LLMSummaryResult {
   followUps: string[];
   userConcerns: string[];
   relationshipProgress: string;
+  insideJokes?: unknown;
 }
 
 /** Generate a summary using LLM for richer understanding; falls back to extraction if it fails */
@@ -358,8 +358,8 @@ Respond with ONLY valid JSON (no markdown, no explanation):
   "openThreads": ["topic that wasn't fully resolved"],
   "followUps": ["thing to check on next time"],
   "userConcerns": ["worry or concern user expressed"],
-  "relationshipProgress": "brief note on how relationship deepened"
-}`;
+  "relationshipProgress": "brief note on how relationship deepened",
+${INSIDE_JOKES_PROMPT_TAIL}`;
 
   try {
     const response = await llmCall(prompt);
@@ -397,6 +397,8 @@ Respond with ONLY valid JSON (no markdown, no explanation):
       questionsRemaining: llmResult.openThreads,
       followUpItems: llmResult.followUps,
     };
+    const insideJokes = parseInsideJokes(llmResult.insideJokes);
+    if (insideJokes.length > 0) summary.insideJokes = insideJokes; // none: summary as before
 
     // Generate embedding
     if (opts.generateEmbedding) {

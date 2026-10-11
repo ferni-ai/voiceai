@@ -82,9 +82,9 @@ describe("the first Ferni agent's handoff tools", () => {
     expect(names).toEqual([
       'handoffToAlex',
       'handoffToHenry',
-      'handoffToJoel',
       'handoffToJordan',
       'handoffToMaya',
+      'handoffToNate',
       'handoffToNayan',
       'handoffToPeter',
       'handoffToPeterLynch',

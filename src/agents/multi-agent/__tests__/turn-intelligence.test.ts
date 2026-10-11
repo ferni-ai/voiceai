@@ -46,6 +46,30 @@ describe('createTurnIntelligenceHook', () => {
     expect(typeof ctx.sendDataMessage).toBe('function');
   });
 
+  it("gives the turn's crisis read the caller's recent lines and Ferni's last reply only with CRISIS_AGREEMENT_GATE=on", async () => {
+    const withContext = {
+      turnCount: 3,
+      recentTranscripts: ['What about Galway?', "And I'm still here."],
+      lastAgentResponse: 'You still there?',
+    } as unknown as TurnIntelligenceDeps['userData'];
+    const handle = vi.fn().mockResolvedValue(undefined);
+    const hook = createTurnIntelligenceHook({ persona, services, userData: withContext, handle });
+
+    vi.stubEnv('CRISIS_AGREEMENT_GATE', '');
+    await hook(llm.ChatContext.empty(), userMessage("And I'm still here."));
+    expect(handle.mock.calls[0][0].userData.recentTranscripts).toBeUndefined();
+    expect(handle.mock.calls[0][0].userData.lastAgentResponse).toBeUndefined();
+
+    vi.stubEnv('CRISIS_AGREEMENT_GATE', 'on');
+    await hook(llm.ChatContext.empty(), userMessage("And I'm still here."));
+    vi.unstubAllEnvs();
+    expect(handle.mock.calls[1][0].userData.recentTranscripts).toEqual([
+      'What about Galway?',
+      "And I'm still here.",
+    ]);
+    expect(handle.mock.calls[1][0].userData.lastAgentResponse).toBe('You still there?');
+  });
+
   it('skips empty turns', async () => {
     const handle = vi.fn();
     const hook = createTurnIntelligenceHook({ persona, services, userData, handle });
