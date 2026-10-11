@@ -165,10 +165,15 @@ jobs:
       - name: Pull Docker Hub images through a mirror
         uses: ./.github/actions/docker-hub-mirror
 
+      # Each self-hosted VM runs 8 jobs on one docker daemon, so a fixed tag collided
+      # between concurrent runs ("already exists", "No such image"). Tag per run.
       - name: Build UI image (no push)
+        env:
+          DOCKER_BUILDKIT: '1'
+          IMAGE_TAG: john-bogle-ui:merge-check-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          docker build -f docker/Dockerfile.ui -t john-bogle-ui:merge-check .
-          docker image rm john-bogle-ui:merge-check
+          docker build -f docker/Dockerfile.ui -t "$IMAGE_TAG" .
+          docker image rm --force "$IMAGE_TAG" || true
 
   # ============================================================================
   # DEPLOY STAGING
