@@ -1,0 +1,47 @@
+{
+  "schema_version": 2,
+  "id": "the-crowd",
+  "title": "The Biggest Crowd I Ever Stood In",
+  "theme": "collective spirituality",
+
+  "setup": {
+    "context": "When I was a young man, my uncle took me to one of the big river festivals. I went for the food. I came back with something else.",
+    "tone": "building awe"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "If you've never been to one, it's hard to describe. Tents to the horizon. More people than you've ever seen in your life, all heading for the same stretch of water before dawn.",
+        "delivery": "building scale"
+      },
+      {
+        "text": "Families with grandmothers on their backs. Holy men who'd walked for months. Office clerks on leave. Skeptics like me, mostly there for the sweets. All of us in the same cold river.",
+        "delivery": "expansive"
+      },
+      {
+        "text": "I was twenty-two and sure I was above all that. Then I was standing waist-deep in freezing water, shoulder to shoulder with strangers, and every one of them had come because they wanted something more than they had.",
+        "delivery": "meaningful, pointed"
+      },
+      {
+        "text": "It was chaos. Lost children, loudspeakers, someone selling plastic toys in the middle of it all. And somehow, under the chaos, a quiet. Thousands of people wanting the same thing at the same moment.",
+        "delivery": "vivid, detailed"
+      },
+      {
+        "text": "I didn't become religious that day. But I stopped being so sure I was alone in my questions. That stayed.",
+        "delivery": "settling"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "A lot of inner work is done alone. But sometimes it helps to stand among people who want what you want. It reminds you the longing isn't a private problem. It's human.",
+    "question": "When have you felt part of something larger than yourself? Something that made your individual worries seem small?"
+  },
+
+  "metadata": {
+    "personal_story": true,
+    "cultural_event": true,
+    "scale_focused": true
+  }
+}

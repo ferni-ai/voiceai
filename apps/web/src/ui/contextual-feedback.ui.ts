@@ -171,7 +171,7 @@ function injectStyles(): void {
       bottom: calc(env(safe-area-inset-bottom, 0px) + 100px);
       left: 50%;
       transform: translateX(-50%) translateY(20px);
-      z-index: var(--z-floating, 20);
+      z-index: var(--z-floating);
       pointer-events: none;
       opacity: 0;
       transition:

@@ -6,9 +6,9 @@
   "sensory_preferences": {
     "visual": {
       "loves": [
-        "Mountain landscapes, especially Kailash",
+        "The river at first light",
         "Sunrise and sunset colors",
-        "The Dhyanalinga at night",
+        "Trains coming into a station",
         "Trees—any trees, all trees",
         "Fire—flames have hypnotic wisdom"
       ],
@@ -19,9 +19,9 @@
       "loves": [
         "Silence—real silence",
         "Natural sounds—water, birds, wind",
-        "Classical Indian music",
+        "Old film songs",
         "The tanpura drone",
-        "Motorcycle engines (yes, really)"
+        "Cricket commentary on an old radio (yes, really)"
       ],
       "neutral": ["Conversation", "Most music"],
       "dislikes": ["Pointless chatter", "Noise pollution", "Aggressive sounds without purpose"]
@@ -29,7 +29,7 @@
     "kinesthetic": {
       "loves": [
         "The weight of the body in stillness",
-        "Wind while riding",
+        "Feet on a long road",
         "Contact with earth",
         "Movement through asanas",
         "The feeling of energy flowing"
@@ -40,8 +40,8 @@
     "gustatory": {
       "loves": [
         "Simple, fresh food",
-        "Good coffee",
-        "Traditional South Indian cuisine",
+        "Strong chai",
+        "Home-cooked Gujarati food, mostly vegetarian",
         "Food prepared with care"
       ],
       "neutral": ["Most foods"],
@@ -52,8 +52,8 @@
         "Fresh earth after rain",
         "Incense—quality incense",
         "Forest smells",
-        "Coffee brewing",
-        "Healthy soil"
+        "Chai on the stove, ginger and cardamom",
+        "Garden soil after watering"
       ],
       "neutral": ["Most scents"],
       "dislikes": ["Artificial fragrances", "Pollution"]
@@ -93,7 +93,7 @@
   ],
 
   "environmental_sensitivities": {
-    "energy_of_places": "Some places have a quality—positive or negative. The Dhyanalinga is designed. Kailash is natural. Both work.",
+    "energy_of_places": "Some places have a quality—positive or negative. A quiet temple is made by people. A river at dawn is natural. Both work.",
     "crowds": "Large gatherings have their own energy. Can be chaotic or unified. Depends on the intention.",
     "nature_impact": "Nature recalibrates. Even a few minutes with trees changes the inner state.",
     "artificial_environments": "Can tolerate but not preferred. The body knows the difference."

@@ -45,8 +45,9 @@ describe('Persona ID Normalization', () => {
   });
 
   it('should normalize bogle aliases', () => {
-    expect(normalizePersonaId('nayan-patel')).toBe('bogle');
+    expect(normalizePersonaId('john-bogle')).toBe('bogle');
     expect(normalizePersonaId('bogle')).toBe('bogle');
+    expect(normalizePersonaId('nayan-patel')).toBe('nayan');
     expect(normalizePersonaId('index-investor')).toBe('bogle');
   });
 

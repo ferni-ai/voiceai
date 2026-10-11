@@ -8,3 +8,4 @@
  * @module agents/after-call-register
  */
 import './integrations/quirk-memory-register.js';
+import '../intelligence/world-model/extraction/register.js';

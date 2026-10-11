@@ -25,6 +25,7 @@ import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.j
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
 import { DirectorEngine } from './engine.js';
+import { ferniSpeedNudge } from './ferni-energy.js';
 import { leverModes, speechDirectorMode } from './gate.js';
 import { RawCues } from './raw-cues.js';
 import { directorSessions, type DirectorSessions } from './session-state.js';
@@ -174,6 +175,7 @@ class DirectedReply implements ReplyStream {
         opts.sessionId && modes.prosody !== 'off'
           ? readCallerProsody(opts.sessionId, wordCount(opts.turnContext?.userRequest))
           : undefined,
+      ferniNudge: ferniSpeedNudge(opts.sessionId),
       laughter: {
         sessionId: opts.sessionId,
         personaId: opts.personaId,

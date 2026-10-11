@@ -14,7 +14,7 @@
 import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { canPurchase, COSMETICS_CATALOG, equipCosmetic, getCosmeticName, getEquippedCosmetics, getOwnedCosmetics, onCosmeticsChange, purchaseCosmetic, type CosmeticItem, type CosmeticType } from '../services/cosmetics.service.js';
+import { buyCosmetic, canPurchase, COSMETICS_CATALOG, equipCosmetic, getCosmeticName, getEquippedCosmetics, getOwnedCosmetics, onCosmeticsChange, type CosmeticItem, type CosmeticType } from '../services/cosmetics.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
@@ -348,7 +348,7 @@ const styles = `
 }
 
 /* Responsive */
-@media (max-width: clamp(420px, 90vw, 600px)) {
+@media (max-width: 600px) {
   .personalize-header {
     padding: var(--space-6, 24px) var(--space-5, 20px);
   }
@@ -498,6 +498,7 @@ function renderCategories(): string {
   return `
     <div class="personalize-categories">
       ${categories
+        .filter((cat) => cat === 'all' || COSMETICS_CATALOG.some((item) => item.type === cat))
         .map(
           (cat) => `
         <button 
@@ -678,7 +679,7 @@ function setupEventListeners(overlay: HTMLElement): void {
     if (!itemId) return;
 
     if (action === 'buy') {
-      handlePurchase(itemId);
+      void handlePurchase(itemId);
     } else if (action === 'equip') {
       handleEquip(itemId);
     }
@@ -690,8 +691,8 @@ function setupEventListeners(overlay: HTMLElement): void {
   });
 }
 
-function handlePurchase(itemId: string): void {
-  const success = purchaseCosmetic(itemId);
+async function handlePurchase(itemId: string): Promise<void> {
+  const success = await buyCosmetic(itemId);
   if (success) {
     toast.success(t('personalize.purchased'));
     equipCosmetic(itemId);

@@ -178,8 +178,11 @@ export class MemoryDecayManager {
   }
 
   /**
-   * Check if a memory is protected from decay
-   * Uses both built-in rules AND the Protection Engine for "Better Than Human" protection
+   * Check if a memory is protected from decay by the built-in rules.
+   *
+   * Protections the Protection Engine stored in Firestore (core identity,
+   * milestones, "remember this") need an async read, so callers that archive
+   * load them first and pass them to pruneWeakMemories().
    */
   isProtected(memory: MemoryItem): boolean {
     // Protected types
@@ -195,20 +198,6 @@ export class MemoryDecayManager {
     // Very high emotional weight memories are protected
     if (memory.emotionalWeight > 0.9) {
       return true;
-    }
-
-    // ENHANCEMENT: Check Protection Engine for "Better Than Human" protection
-    // Protects: core identity, emotional milestones, life milestones,
-    // relationship cores, and user-marked memories
-    try {
-      // Dynamic import to avoid circular dependencies
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { isMemoryProtected } = require('./protection-engine.js');
-      if (isMemoryProtected(memory)) {
-        return true;
-      }
-    } catch (error) {
-      // Protection engine not available - use built-in rules only
     }
 
     return false;
@@ -273,9 +262,14 @@ export class MemoryDecayManager {
   }
 
   /**
-   * Prune weak memories (archive them, don't delete)
+   * Prune weak memories (archive them, don't delete).
+   * `engineProtectedIds` are memories the Protection Engine protected; they are
+   * never archived, however weak.
    */
-  pruneWeakMemories(memories: DecayingMemory[]): PruneResult {
+  pruneWeakMemories(
+    memories: DecayingMemory[],
+    engineProtectedIds?: ReadonlySet<string>
+  ): PruneResult {
     const result: PruneResult = {
       archived: [],
       preserved: 0,
@@ -299,7 +293,8 @@ export class MemoryDecayManager {
       }
 
       // Archive if below threshold
-      if (decayResult.shouldArchive && !decayResult.isProtected) {
+      const engineProtected = engineProtectedIds?.has(memory.id) ?? false;
+      if (decayResult.shouldArchive && !decayResult.isProtected && !engineProtected) {
         result.archived.push(memory.id);
       } else {
         result.preserved++;
