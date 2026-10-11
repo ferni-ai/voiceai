@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { handOff } from './shortcut-handoff.js';
 
 const log = getLogger();
 
@@ -472,22 +473,11 @@ const quickCallDef: ToolDefinition = {
         trackCapabilityUsage(ctx.userId || 'anon', 'quickCall');
 
         try {
-          const { getToolDefinitions } = await import('../telephony/index.js');
-          const telephonyTools = await getToolDefinitions();
-          const callTool = telephonyTools.find(
-            (t) => t.id === 'makePhoneCall' || t.id === 'callContact'
-          );
-
-          if (!callTool) {
-            return `Calling isn't set up yet. Would you like to connect your phone?`;
-          }
-
-          const tool = callTool.create(ctx);
-          const result = await tool.execute({
-            contact,
-            message,
+          const purpose = message ? `Pass on this message: ${message}` : `Check in with ${contact}`;
+          const result = await handOff('quickCall', ctx, contact, {
+            contactQuery: contact,
+            purpose,
           });
-
           void persistAnalytics(ctx.userId || 'anon');
           return result;
         } catch (error) {
@@ -528,22 +518,12 @@ const quickTextDef: ToolDefinition = {
         trackCapabilityUsage(ctx.userId || 'anon', 'quickText');
 
         try {
-          const { getToolDefinitions } = await import('../communication/index.js');
-          const commTools = await getToolDefinitions();
-          const textTool = commTools.find(
-            (t) => t.id === 'sendText' || t.id === 'sendSMS' || t.id === 'sendMessage'
-          );
-
-          if (!textTool) {
-            return `Texting isn't set up yet. Would you like to connect your phone?`;
-          }
-
-          const tool = textTool.create(ctx);
-          const result = await tool.execute({
-            recipient: contact,
-            message,
+          const result = await handOff('quickText', ctx, contact, {
+            contact,
+            purpose: message,
+            preferredChannel: 'text',
+            customMessage: message,
           });
-
           void persistAnalytics(ctx.userId || 'anon');
           return result;
         } catch (error) {
@@ -582,21 +562,12 @@ const quickEmailDef: ToolDefinition = {
         trackCapabilityUsage(ctx.userId || 'anon', 'quickEmail');
 
         try {
-          const { getToolDefinitions } = await import('../communication/index.js');
-          const commTools = await getToolDefinitions();
-          const emailTool = commTools.find((t) => t.id === 'sendEmail' || t.id === 'composeEmail');
-
-          if (!emailTool) {
-            return `Email isn't set up yet. Would you like to connect your email?`;
-          }
-
-          const tool = emailTool.create(ctx);
-          const result = await tool.execute({
-            recipient,
-            subject: subject || 'Message from Ferni',
-            body,
+          const result = await handOff('quickEmail', ctx, recipient, {
+            contact: recipient,
+            purpose: subject || body,
+            preferredChannel: 'email',
+            customMessage: body,
           });
-
           void persistAnalytics(ctx.userId || 'anon');
           return result;
         } catch (error) {
