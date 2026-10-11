@@ -22,6 +22,7 @@ import { GeminiNativeAudioProvider } from '../gemini-native-audio.js';
 import { OpenAIRealtimeProvider } from '../openai-realtime.js';
 import type { ModelProvider } from '../types.js';
 import { resetGeminiFCConfig } from '../../shared/gemini-fc-config.js';
+import { resetToolConfig } from '../../../config/tool-config.js';
 
 describe('ModelProviderFactory', () => {
   // Reset provider state before each test
@@ -233,6 +234,7 @@ describe('GeminiLiveProvider', () => {
     delete process.env.FTIS_ENABLED;
     process.env.VOICE_PIPELINE = 'gemini-live';
     resetGeminiFCConfig();
+    resetToolConfig();
     provider = new GeminiLiveProvider();
   });
 
@@ -240,6 +242,7 @@ describe('GeminiLiveProvider', () => {
     delete process.env.FTIS_ENABLED;
     delete process.env.VOICE_PIPELINE;
     resetGeminiFCConfig();
+    resetToolConfig();
   });
 
   it('should have correct identity', () => {
@@ -252,6 +255,7 @@ describe('GeminiLiveProvider', () => {
   describe('FTIS mode (opt-in via FTIS_ENABLED=true)', () => {
     beforeEach(() => {
       process.env.FTIS_ENABLED = 'true';
+      resetToolConfig();
       // Recreate provider with new env
       provider = new GeminiLiveProvider();
     });
@@ -275,6 +279,7 @@ describe('GeminiLiveProvider', () => {
   describe('non-FTIS mode (current default)', () => {
     beforeEach(() => {
       delete process.env.FTIS_ENABLED;
+      resetToolConfig();
       // Recreate provider with new env
       provider = new GeminiLiveProvider();
     });

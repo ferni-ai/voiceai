@@ -1339,9 +1339,9 @@ async function processFinalTranscript(
     try {
       const { runFTISRouting, buildToolResponseInstructions } =
         await import('../processors/tool-routing-integration.js');
-      const { isFTISEnabled } = await import('../../config/tool-routing-config.js');
+      const { isFtisEnabled } = await import('../../config/tool-config.js');
 
-      if (isFTISEnabled() && userId) {
+      if (isFtisEnabled() && userId) {
         const ftisResult = await runFTISRouting(event.transcript, {
           userId,
           sessionId,
