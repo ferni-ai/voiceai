@@ -48,6 +48,7 @@ describe('soak arguments', () => {
 
   it('will not write and purge in one run, or take unknown flags', () => {
     expect(() => parseSoakArgs(['--write', '--purge'])).toThrow(/separate/);
+    expect(() => parseSoakArgs(['--job', '--write'])).toThrow(/dry run only/);
     expect(() => parseSoakArgs(['--all-users'])).toThrow(/Unknown/);
   });
 });
