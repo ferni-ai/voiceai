@@ -22,6 +22,7 @@
 
 import type { voice } from '@livekit/agents';
 import {
+  callerTimeZoneOf,
   lateNightFor,
   listenFirstEnabled,
   lowEnergyCaller,
@@ -141,7 +142,7 @@ export function quietPresenceFor(
   return new QuietPresence({
     cues: () => ({
       lowEnergy: lowEnergyCaller(turnsOf(session.history?.items ?? []).caller),
-      lateNight: lateNightFor(new Date(), userData.callerTimezone),
+      lateNight: lateNightFor(new Date(), callerTimeZoneOf(userData)),
     }),
     lastSpokeAt: callerLastSpokeAt,
     canSpeak: () =>

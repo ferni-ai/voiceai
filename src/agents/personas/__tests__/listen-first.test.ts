@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { gatedReply } from '../crisis-gate.js';
 import { setDirector, type Director } from '../director-notes.js';
 import {
+  callerTimeZoneOf,
   lateNightFor,
   listeningCuesFor,
   lowEnergyCaller,
@@ -137,6 +138,17 @@ describe('the caller low on energy', () => {
   });
 });
 
+describe("the caller's zone", () => {
+  it('prefers the call metadata zone, else the account zone (phone calls carry none)', () => {
+    const account = { services: { userProfile: { contactInfo: { timezone: 'America/Denver' } } } };
+    expect(callerTimeZoneOf({ callerTimezone: 'Europe/Dublin', ...account })).toBe('Europe/Dublin');
+    expect(callerTimeZoneOf(account)).toBe('America/Denver');
+    expect(callerTimeZoneOf({ callerTimezone: 'Not/AZone', ...account })).toBe('America/Denver');
+    expect(callerTimeZoneOf({ services: { userProfile: null } })).toBeUndefined();
+    expect(callerTimeZoneOf(undefined)).toBeUndefined();
+  });
+});
+
 describe('LISTEN_FIRST through the reply path', () => {
   it('off: the low-energy turns still draw stories and views of his own', async () => {
     delete process.env.LISTEN_FIRST;
@@ -184,6 +196,19 @@ describe('LISTEN_FIRST through the reply path', () => {
     );
     expect(cues?.lateNight).toBe(true);
     expect(cues?.ferniLines.at(-1)).toMatch(/sleep/);
+  });
+
+  it('on, a phone call with only the account zone: still late night', async () => {
+    process.env.LISTEN_FIRST = 'on';
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-11T07:47:00Z'));
+    const phone = {
+      userData: {
+        services: { userProfile: { contactInfo: { timezone: 'America/New_York' } } },
+      },
+    };
+    const sent = await reminders(phone);
+    expect(sent[4]).toMatch(/middle of the night/);
   });
 
   it('on: drops director notes that push him to share, keeps the rest', async () => {

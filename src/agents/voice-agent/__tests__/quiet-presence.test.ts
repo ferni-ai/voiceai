@@ -44,7 +44,7 @@ function history(turns: string[]) {
   };
 }
 
-function setup(turns: string[], callerTimezone?: string) {
+function setup(turns: string[], callerTimezone?: string, accountTimezone?: string) {
   const handlers = new Map<string, Set<(e: unknown) => void>>();
   const session = {
     agentState: 'listening',
@@ -74,7 +74,10 @@ function setup(turns: string[], callerTimezone?: string) {
       handleUserStartedSpeaking: () => undefined,
       handleUserFinishedSpeaking: () => undefined,
     },
-    userData: { callerTimezone },
+    userData: {
+      callerTimezone,
+      services: { userProfile: { contactInfo: { timezone: accountTimezone } } },
+    },
     sessionId: `quiet-presence-${Math.random().toString(36).slice(2)}`,
   } as unknown as SessionStateContext);
   return { result, emit };
@@ -177,6 +180,19 @@ describe('the silence path, through the real handler', () => {
     for (const ms of [...GAPS, 60_000]) await gap(emit, ms); // eslint-disable-line no-await-in-loop
     result.clearTimers();
     expect(safeGenerateReply).toHaveBeenCalledTimes(1);
+  });
+
+  it('on, a phone call (no metadata zone) at night by the account zone: the soft check', async () => {
+    process.env.LISTEN_FIRST = 'on';
+    const { result, emit } = setup(TIRED, undefined, 'America/New_York');
+    for (const ms of GAPS) await gap(emit, ms); // eslint-disable-line no-await-in-loop
+    await gap(emit, QUIET_WAIT_MS + 1_000);
+    result.clearTimers();
+    expect(safeGenerateReply).toHaveBeenCalledTimes(1);
+    expect(safeGenerateReply.mock.calls[0]).toEqual([
+      expect.anything(),
+      expect.objectContaining({ instructions: NIGHT_NOTE }),
+    ]);
   });
 
   it('on, a tired caller in the daytime: no spoken check-ins at all', async () => {
