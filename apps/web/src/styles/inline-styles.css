@@ -7173,6 +7173,79 @@ body {
   border-color: rgba(44, 37, 32, 0.2) !important;
 }
 
+/* ========================================================================
+       TEAM MEMBER STATES - one look per state, so the bar answers
+       "who can I talk to right now?" at a glance.
+       Class contract (applied by team.ui.ts / the handoff work):
+         .team-member--in-team    on your team, tap to talk
+         .team-member--addable    unlocked, not on your team yet: an empty slot
+         .team-member--locked     not available yet (styled above, silhouette)
+         .team-member--switching  a handoff to this member is in progress
+       ======================================================================== */
+
+.team-member--in-team .team-avatar-ring {
+  border-style: solid;
+}
+
+/* Addable read as a dimmer teammate: the dashed ring used a white-on-light
+   border token at opacity 0 and vanished, the initial was hidden by the avatar's
+   color: transparent rule, and the whole card (badge included) sat at 0.6.
+   Mute the avatar and name instead, keep the + badge crisp, and draw a ring
+   from the text colour so it shows on light and dark themes. */
+.team-member--addable {
+  opacity: 1;
+}
+
+.team-member--addable .team-avatar-ring--addable,
+[data-theme='zen'] .team-member--addable .team-avatar-ring--addable {
+  opacity: 1; /* the base ring is hidden until hover/active */
+  border-width: 2px;
+  border-color: color-mix(in srgb, currentColor 35%, transparent) !important;
+}
+
+.team-member--addable .team-avatar--addable {
+  opacity: 0.55;
+  filter: saturate(0.6);
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+}
+
+.team-member--addable .team-name {
+  opacity: 0.65;
+}
+
+.team-member--addable:hover .team-avatar--addable,
+.team-member--addable:focus-visible .team-avatar--addable {
+  opacity: 1;
+  filter: none;
+}
+
+.team-member--addable:hover .team-name,
+.team-member--addable:focus-visible .team-name {
+  opacity: 1;
+}
+
+/* Switching: same anticipation glow as the existing .switching-to class. */
+.team-member--switching .team-avatar {
+  transform: scale(1.08);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.25),
+    0 0 30px -5px var(--member-color);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.team-member--switching .team-avatar-ring {
+  opacity: 1;
+  animation: switchingPulse 0.6s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-member--switching .team-avatar-ring {
+    animation: none;
+  }
+}
+
 [data-theme='zen'] .team-member--addable:hover .team-avatar-ring--addable {
   border-color: var(--persona-primary, #4a6741) !important;
 }
