@@ -4,7 +4,11 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { connectWithTimeout, type Connectable } from '../../../src/app/call-connect.js';
+import {
+  cancelConnectAttempt,
+  connectWithTimeout,
+  type Connectable,
+} from '../../../src/app/call-connect.js';
 import { connectFailure } from '../../../src/services/connect-failure.js';
 
 afterEach(() => vi.useRealTimers());
@@ -63,5 +67,23 @@ describe('connectWithTimeout', () => {
 
     await expect(connectWithTimeout(service)).resolves.toEqual({ ok: true });
     expect(signal?.aborted).toBe(false);
+  });
+
+  it('lets the person cancel: aborts the attempt and reports cancelled, shown as nothing', async () => {
+    const service = hangingService();
+    service.getLastFailure = () => connectFailure('network');
+
+    const pending = connectWithTimeout(service, 30_000);
+    expect(cancelConnectAttempt()).toBe(true);
+
+    await expect(pending).resolves.toEqual({ ok: false, failure: connectFailure('cancelled') });
+    expect(service.signal?.aborted).toBe(true);
+    expect(connectFailure('cancelled').action).toBe('none');
+  });
+
+  it('has nothing to cancel once the attempt is over', async () => {
+    const service: Connectable = { connect: async () => true, getLastFailure: () => null };
+    await connectWithTimeout(service);
+    expect(cancelConnectAttempt()).toBe(false);
   });
 });

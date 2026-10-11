@@ -25,6 +25,7 @@ import { getCognitiveMemoryService } from '../memory/cognitive-memory.js';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- GDPR export uses generic shapes
 type AnyRecord = Record<string, any>;
 import { getLogger } from '../../utils/safe-logger.js';
+import { erasureSteps } from './erasure-step.js';
 
 const log = getLogger();
 
@@ -773,6 +774,7 @@ class DataExportService {
    */
   async deleteAllData(userId: string): Promise<Record<string, boolean>> {
     const deletionResults: Record<string, boolean> = {};
+    const step = erasureSteps(deletionResults, userId, log);
 
     try {
       // 1. Delete engagement data
@@ -784,6 +786,12 @@ class DataExportService {
         log.warn({ error: String(e), userId }, 'Failed to delete engagement data');
         deletionResults['engagement'] = false;
       }
+
+      // 1b. Revoke the Gmail "send as me" grant at Google while its token can still be read
+      await step('gmail_send_grant', 'Failed to revoke the Gmail send grant', async () => {
+        const { forgetGmailSendGrant } = await import('../identity/gmail-send-as-user.js');
+        await forgetGmailSendGrant(userId);
+      });
 
       // 2. Erase bogle_users/{uid} + subcollections. Not caught: if it fails, the erasure failed
       const { eraseUserRecord } = await import('./erase-user-record.js');
@@ -798,45 +806,29 @@ class DataExportService {
       }
 
       // 3. Delete wellbeing data
-      try {
+      await step('wellbeing', 'Failed to delete wellbeing data', async () => {
         const { deleteWellbeingData } = await import('../wellbeing-tracking/persistence.js');
         await deleteWellbeingData(userId);
-        deletionResults['wellbeing'] = true;
-      } catch (e) {
-        log.warn({ error: String(e), userId }, 'Failed to delete wellbeing data');
-        deletionResults['wellbeing'] = false;
-      }
+      });
 
       // 4. Delete trust data
-      try {
+      await step('trust', 'Failed to delete trust data', async () => {
         const { deleteTrustProfiles } = await import('../trust-systems/index.js');
         await deleteTrustProfiles(userId);
-        deletionResults['trust'] = true;
-      } catch (e) {
-        log.warn({ error: String(e), userId }, 'Failed to delete trust data');
-        deletionResults['trust'] = false;
-      }
+      });
 
       // 5. Delete contacts
-      try {
+      await step('contacts', 'Failed to delete contacts', async () => {
         const { deleteAllContacts } = await import('../contacts.js');
         await deleteAllContacts(userId);
-        deletionResults['contacts'] = true;
-      } catch (e) {
-        log.warn({ error: String(e), userId }, 'Failed to delete contacts');
-        deletionResults['contacts'] = false;
-      }
+      });
 
       // 6. Delete productivity data
-      try {
+      await step('productivity', 'Failed to delete productivity data', async () => {
         const { getProductivityStore } = await import('../stores/productivity-store.js');
         const store = getProductivityStore();
         await store.clearUserData(userId);
-        deletionResults['productivity'] = true;
-      } catch (e) {
-        log.warn({ error: String(e), userId }, 'Failed to delete productivity data');
-        deletionResults['productivity'] = false;
-      }
+      });
 
       // 7. Delete conversation history (if method exists)
       try {

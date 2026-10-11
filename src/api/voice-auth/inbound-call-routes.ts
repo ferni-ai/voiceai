@@ -22,6 +22,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../utils/safe-logger.js';
 import { lookupByPhone, recordCall } from '../../services/identity/sponsored-identity.js';
 import { identifyByPhone } from '../../services/identity/user-identification.js';
+import { escapeXml, generateAttestedTwiml, phoneAttestConfig } from './attested-twiml.js';
 import { parseRawBody } from '../helpers.js';
 import { isSignedByTwilio } from '../twilio-callback-signature.js';
 
@@ -95,6 +96,8 @@ interface TwilioIncomingCallPayload {
   CallerCountry?: string;
   Called: string;
   Caller: string;
+  /** STIR/SHAKEN result for From, e.g. TN-Validation-Passed-A. */
+  StirVerstat?: string;
 }
 
 /**
@@ -106,7 +109,7 @@ async function handleInboundCallWebhook(req: IncomingMessage, res: ServerRespons
   if (!form) return;
   const body = form as unknown as TwilioIncomingCallPayload;
 
-  const { CallSid, From, To, CallerName, CallerCity, CallerState } = body;
+  const { CallSid, From, To, CallerName, CallerCity, CallerState, StirVerstat } = body;
 
   log.info(
     {
@@ -131,19 +134,29 @@ async function handleInboundCallWebhook(req: IncomingMessage, res: ServerRespons
     startedAt: new Date(),
   });
 
-  // Step 3: Generate TwiML to connect to LiveKit
-  const twiml = generateInboundTwiml({
-    callSid: CallSid,
-    callerPhone: From,
-    callerName: callerInfo.displayName || CallerName,
-    userId: callerInfo.userId,
-    sponsoredIdentityId: callerInfo.sponsoredIdentityId,
-    sponsorUserId: callerInfo.sponsorUserId,
-    familyUserId: callerInfo.familyUserId,
-    isKnownCaller: callerInfo.isKnown,
-    isVoiceEnrolled: callerInfo.voiceEnrolled,
-    greeting: callerInfo.greeting,
-  });
+  // Step 3: Generate TwiML to connect to LiveKit. With attestation configured,
+  // dial the LiveKit trunk carrying a token the agent can check; otherwise
+  // today's TwiML.
+  const attestConfig = phoneAttestConfig();
+  const twiml = attestConfig
+    ? generateAttestedTwiml(attestConfig, {
+        callSid: CallSid,
+        from: From,
+        to: To,
+        verstat: StirVerstat,
+      })
+    : generateInboundTwiml({
+        callSid: CallSid,
+        callerPhone: From,
+        callerName: callerInfo.displayName || CallerName,
+        userId: callerInfo.userId,
+        sponsoredIdentityId: callerInfo.sponsoredIdentityId,
+        sponsorUserId: callerInfo.sponsorUserId,
+        familyUserId: callerInfo.familyUserId,
+        isKnownCaller: callerInfo.isKnown,
+        isVoiceEnrolled: callerInfo.voiceEnrolled,
+        greeting: callerInfo.greeting,
+      });
 
   log.info(
     {
@@ -445,18 +458,6 @@ async function readSignedTwilioForm(
   res.writeHead(403, { 'Content-Type': 'text/xml' });
   res.end(generateRejectTwiml('Invalid request signature'));
   return null;
-}
-
-/**
- * Escape XML special characters.
- */
-function escapeXml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
 }
 
 // ============================================================================
