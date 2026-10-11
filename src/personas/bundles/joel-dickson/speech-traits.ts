@@ -645,7 +645,7 @@ export function addTransitionPhrases(text: string, _emotion: string): string {
  * @param _laughterCount - Number of laughter instances detected
  * @returns Text with Nate's speech traits applied
  */
-export function applyLifeMentorSpeechTraits(
+export function applyJoelDicksonSpeechTraits(
   text: string,
   emotion: string,
   _baseSpeed: number,
@@ -685,7 +685,7 @@ export function applyLifeMentorSpeechTraits(
 /**
  * Configuration for Nate Holloway's speech traits
  */
-export const LIFE_MENTOR_SPEECH_CONFIG = {
+export const JOEL_DICKSON_SPEECH_CONFIG = {
   /** Base speech speed — slightly under 1.0 so Nate doesn't rush */
   baseSpeed: 0.95,
   /** Whether to enable firm/mentor pride moments */

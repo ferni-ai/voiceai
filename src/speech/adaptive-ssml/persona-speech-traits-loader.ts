@@ -152,8 +152,8 @@ async function loadPersonaTraits(personaId: string): Promise<PersonaSpeechTraitC
       case 'joel-dickson': {
         const module = await import('../../personas/bundles/joel-dickson/speech-traits.js');
         config = {
-          baseSpeed: module.LIFE_MENTOR_SPEECH_CONFIG.baseSpeed,
-          apply: module.applyLifeMentorSpeechTraits,
+          baseSpeed: module.JOEL_DICKSON_SPEECH_CONFIG.baseSpeed,
+          apply: module.applyJoelDicksonSpeechTraits,
         };
         break;
       }
