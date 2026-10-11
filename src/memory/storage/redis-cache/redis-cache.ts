@@ -95,29 +95,19 @@ export class RedisCache {
       // Dynamic import of ioredis
       const Redis = (await import('ioredis')).default;
 
-      let redisClient: InstanceType<typeof Redis>;
-
-      if (this.config.url) {
-        redisClient = new Redis(this.config.url, {
-          keyPrefix: this.config.keyPrefix,
-          maxRetriesPerRequest: this.config.maxRetriesPerRequest,
-          enableReadyCheck: this.config.enableReadyCheck,
-          lazyConnect: true, // Don't connect immediately, we'll test connection manually
-          protocol: 2, // ioredis 6 defaults to RESP3, which fails outright on Redis < 6
-        });
-      } else {
-        redisClient = new Redis({
-          host: this.config.host,
-          port: this.config.port,
-          password: this.config.password,
-          db: this.config.db,
-          keyPrefix: this.config.keyPrefix,
-          maxRetriesPerRequest: this.config.maxRetriesPerRequest,
-          enableReadyCheck: this.config.enableReadyCheck,
-          lazyConnect: true, // Don't connect immediately, we'll test connection manually
-          protocol: 2, // ioredis 6 defaults to RESP3, which fails outright on Redis < 6
-        });
-      }
+      // lazyConnect: we test the connection manually below. protocol 2: ioredis 6
+      // defaults to RESP3, which fails outright on Redis < 6.
+      const options = {
+        keyPrefix: this.config.keyPrefix,
+        maxRetriesPerRequest: this.config.maxRetriesPerRequest,
+        enableReadyCheck: this.config.enableReadyCheck,
+        lazyConnect: true,
+        protocol: 2,
+      } as const;
+      const { host, port, password, db } = this.config;
+      const redisClient = this.config.url
+        ? new Redis(this.config.url, options)
+        : new Redis({ ...options, host, port, password, db });
 
       // CRITICAL: Add error handler to prevent "Unhandled error event" crashes
       // This is required by ioredis when Redis is not available locally
