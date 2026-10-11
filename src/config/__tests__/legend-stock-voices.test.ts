@@ -65,6 +65,34 @@ describe('legend voices', () => {
     }
   );
 
+  it('answers to the fictional names, not the real people the ids are named for', () => {
+    const fictional: Record<string, string> = {
+      henry: VOICE_IDS.JOHN_BOGLE,
+      caldwell: VOICE_IDS.JOHN_BOGLE,
+      tom: VOICE_IDS.PETER_LYNCH,
+      brannigan: VOICE_IDS.PETER_LYNCH,
+      nate: VOICE_IDS.JOEL_DICKSON,
+      holloway: VOICE_IDS.JOEL_DICKSON,
+    };
+    for (const [alias, voice] of Object.entries(fictional)) {
+      expect(getVoiceIdForPersona(alias), alias).toBe(voice);
+    }
+    const legendVoices: string[] = LEGENDS.map((l) => l.voice);
+    for (const real of [
+      'bogle',
+      'jack-bogle',
+      'vanguard-founder',
+      'lynch',
+      'magellan',
+      'joel',
+      'dickson',
+      'dr-dickson',
+      'vanguard-mentor',
+    ]) {
+      expect(legendVoices, real).not.toContain(getVoiceIdForPersona(real));
+    }
+  });
+
   it("ignores the legacy JACK_BOGLE_VOICE_ID fallback for Peter John when it's a clone", () => {
     vi.stubEnv('PETER_JOHN_VOICE_ID', '');
     vi.stubEnv('JACK_BOGLE_VOICE_ID', CLONES[2]);

@@ -202,25 +202,27 @@ export function getVoiceIdForPersona(personaId: string): string {
     mystic: VOICE_IDS.NAYAN_PATEL,
     'lifetime-advisor': VOICE_IDS.NAYAN_PATEL,
 
-    // Joel Dickson aliases
+    // Financial Legends: fictional characters; no real person's name maps to a voice.
+    // Nate Holloway aliases (id joel-dickson)
     'joel-dickson': VOICE_IDS.JOEL_DICKSON,
-    joel: VOICE_IDS.JOEL_DICKSON,
-    dickson: VOICE_IDS.JOEL_DICKSON,
-    'dr-dickson': VOICE_IDS.JOEL_DICKSON,
-    'vanguard-mentor': VOICE_IDS.JOEL_DICKSON,
+    nate: VOICE_IDS.JOEL_DICKSON,
+    holloway: VOICE_IDS.JOEL_DICKSON,
+    'nate-holloway': VOICE_IDS.JOEL_DICKSON,
     'life-mentor': VOICE_IDS.JOEL_DICKSON,
 
-    // Peter Lynch aliases (Financial Legends)
+    // Tom Brannigan aliases (id peter-lynch)
     'peter-lynch': VOICE_IDS.PETER_LYNCH,
-    lynch: VOICE_IDS.PETER_LYNCH,
+    tom: VOICE_IDS.PETER_LYNCH,
+    brannigan: VOICE_IDS.PETER_LYNCH,
+    'tom-brannigan': VOICE_IDS.PETER_LYNCH,
     'stock-picker': VOICE_IDS.PETER_LYNCH,
-    magellan: VOICE_IDS.PETER_LYNCH,
 
-    // John Bogle aliases (Financial Legends)
+    // Henry Caldwell aliases (id john-bogle)
     'john-bogle': VOICE_IDS.JOHN_BOGLE,
-    bogle: VOICE_IDS.JOHN_BOGLE,
-    'jack-bogle': VOICE_IDS.JOHN_BOGLE,
-    'vanguard-founder': VOICE_IDS.JOHN_BOGLE,
+    henry: VOICE_IDS.JOHN_BOGLE,
+    caldwell: VOICE_IDS.JOHN_BOGLE,
+    'henry-caldwell': VOICE_IDS.JOHN_BOGLE,
+    'index-investing': VOICE_IDS.JOHN_BOGLE,
     'index-pioneer': VOICE_IDS.JOHN_BOGLE,
 
     // Generic
