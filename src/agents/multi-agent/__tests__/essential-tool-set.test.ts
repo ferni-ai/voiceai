@@ -81,10 +81,10 @@ describe("the first Ferni agent's handoff tools", () => {
     const { names, description } = await handoffsFor(wholeTeamUser);
     expect(names).toEqual([
       'handoffToAlex',
-      'handoffToJoel',
       'handoffToJohn',
       'handoffToJordan',
       'handoffToMaya',
+      'handoffToNate',
       'handoffToNayan',
       'handoffToPeter',
       'handoffToPeterLynch',

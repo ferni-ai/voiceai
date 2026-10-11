@@ -4,6 +4,7 @@
  * @module agents/multi-agent/persona-tts
  */
 import { voice } from '@livekit/agents';
+import { warmPersonaReactions } from '../shared/conversational-audio-cache.js';
 import { getPersonaDisplayName, getVoiceId } from '../../personas/voice-registry.js';
 import * as voiceManagerModule from '../../speech/voice-manager.js';
 import { resolveVoiceId } from '../../tools/handoff/voice-id-resolver.js';
@@ -18,6 +19,9 @@ const log = getLogger();
  * VOICE ID FIX: Use resolveVoiceId for single source of truth
  */
 export async function createPersonaTTS(personaId: string) {
+  // Its reaction clips ("mm-hmm", "oh no", the laugh) in this voice, before the
+  // first pause they could fill: at boot only Ferni's are rendered.
+  void warmPersonaReactions(personaId);
   // voiceManagerModule and resolveVoiceId now hoisted to module level
   // VOICE ID FIX: Use resolver as single source of truth
   const voiceIdResult = resolveVoiceId({ personaId }, { logLevel: 'info' });

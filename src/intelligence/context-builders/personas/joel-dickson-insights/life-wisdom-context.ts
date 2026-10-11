@@ -1,7 +1,7 @@
 /**
- * Joel Dickson Insights - Life Wisdom Context
+ * Nate Holloway (joel-dickson) Insights - Life Wisdom Context
  *
- * Joel's unique lens: "economist's eye" pattern recognition on the user's life choices.
+ * Nate's unique lens: "economist's eye" pattern recognition on the user's life choices.
  * Surfaces patterns and prompts for life wisdom, "enough," and values.
  *
  * @module intelligence/context-builders/personas/joel-dickson-insights/life-wisdom-context
@@ -33,7 +33,7 @@ export function buildLifeWisdomContext(data: JoelInsightData): LifeWisdomContext
   }
 
   if (lifeWisdom.enoughQuestionRaised) {
-    economistLens.push("The 'enough' question has come up. Joel's sweet spot.");
+    economistLens.push("The 'enough' question has come up. Nate's sweet spot.");
     prompts.push("'Enough' is a number they choose. Ask what theirs is — not the market's.");
   }
 
@@ -49,7 +49,7 @@ export function buildLifeWisdomContext(data: JoelInsightData): LifeWisdomContext
 
   const patternSummary =
     economistLens.length > 0
-      ? `[JOEL'S ECONOMIST EYE]: ${economistLens.join(' ')}`
+      ? `[NATE'S ECONOMIST EYE]: ${economistLens.join(' ')}`
       : null;
 
   return {

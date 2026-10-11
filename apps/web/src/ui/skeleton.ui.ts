@@ -90,7 +90,7 @@ function addSkeletonStyles(): void {
     .skeleton {
       position: fixed;
       inset: 0;
-      z-index: var(--z-overlay, 9999);
+      z-index: var(--z-overlay);
       display: flex;
       align-items: center;
       justify-content: center;
