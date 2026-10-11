@@ -43,6 +43,7 @@ import {
   turnStyleReminderEnabled,
   withTurnStyleReminder,
 } from './turn-style.js';
+import { burstLine, clearBurstOffer } from './vocal-bursts.js';
 
 /** Live tool retrieval waits this long for the pick before falling back (see toolsForTurn). */
 const LIVE_PICK_WAIT_MS = 150;
@@ -76,6 +77,8 @@ export function withTurnReminder(
   options: { shape?: boolean } = {}
 ): llm.ChatContext {
   const chatCtx = withoutStaleTurnContext(request);
+  // An invitation to open with a sound is for one request only (vocal-bursts.ts).
+  clearBurstOffer(session);
   const director = getDirector(session);
   const view = unlockViewFor((session as { userData?: unknown }).userData);
   const words = callerWords(chatCtx);
@@ -122,19 +125,27 @@ function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): st
   // Seeded per call and words: the preemptive and final requests agree, but
   // the same words on another call (or said again) can get another shape.
   const { signals, source } = signalsFor(session, said);
-  const turn = turnShapeFor(
-    said,
-    rngFor(`${callSeed(session)}:${said}`),
-    undefined,
-    withSupportHold(session, said, signals, source)
+  const held = withSupportHold(session, said, signals, source);
+  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, held);
+  // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
+  const burst = burstLine(
+    session,
+    held ?? regexSignals(said, callerMove(said)),
+    rngFor(`${callSeed(session)}:${said}:burst`)
   );
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
   log.info(
-    { move: turn.move, shape: turn.shape, extras: turn.extras, source, understood },
+    {
+      move: turn.move,
+      shape: turn.shape,
+      extras: burst ? [...turn.extras, 'vocal_burst'] : turn.extras,
+      source,
+      understood,
+    },
     'TURN_SHAPE'
   );
-  return turn.reminder;
+  return burst ? `${turn.reminder} ${burst}` : turn.reminder;
 }
 
 /**

@@ -43,6 +43,7 @@ import {
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
+import { burstAllowed } from './vocal-bursts.js';
 
 const log = createLogger({ module: 'CrisisGate' });
 
@@ -232,7 +233,7 @@ export async function gatedReply(
   request: llm.ChatContext,
   session: { userData: unknown },
   model: (ctx: llm.ChatContext) => Promise<ReadableStream<Chunk> | null>,
-  openerGate: { wrap(stream: ReadableStream<Chunk>): ReadableStream<Chunk> },
+  openerGate: { wrap(stream: ReadableStream<Chunk>, burst?: boolean): ReadableStream<Chunk> },
   options: { env?: Record<string, string | undefined>; generate?: CrisisGenerateFn } = {}
 ): Promise<ReadableStream<Chunk> | null> {
   const { env = process.env } = options;
@@ -247,10 +248,15 @@ export async function gatedReply(
     gate?.decision.action === 'guide'
       ? withTurnStyleReminder(plain(), gate.decision.guidance)
       : withTurnReminder(chatCtx, session);
-  const ask = async (request: llm.ChatContext): Promise<ReadableStream<Chunk> | null> => {
+  // A vocal burst only where this request invited one, never with crisis guidance.
+  const burst = burstAllowed(session, gate?.decision.action === 'guide', env);
+  const ask = async (
+    request: llm.ChatContext,
+    mayBurst = burst
+  ): Promise<ReadableStream<Chunk> | null> => {
     const stream = tapToolCalls(await model(request), session);
     if (!stream) return stream;
-    const trimmed = env.OPENER_GATE !== 'off' ? openerGate.wrap(stream) : stream;
+    const trimmed = env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, mayBurst) : stream;
     return withToolLeadIn(trimmed, chatCtx, session, env);
   };
   const reply = await ask(ctx);
@@ -258,6 +264,9 @@ export async function gatedReply(
   return holdUntilCleared(reply, gate.escalation, async (decision) => {
     if (decision.action === 'replace') return textReply(decision.script);
     if (decision.action === 'pass') return null;
-    return ask(withTurnStyleReminder(plain(), decision.guidance));
+    return ask(
+      withTurnStyleReminder(plain(), decision.guidance),
+      burst === undefined ? undefined : false
+    );
   });
 }

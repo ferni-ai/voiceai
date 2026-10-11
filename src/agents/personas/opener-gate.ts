@@ -14,6 +14,8 @@
 import type { llm } from '@livekit/agents';
 import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
 
+import { leadingBurst, withoutBurst, withRenderedBurst } from './vocal-bursts.js';
+
 export const OPENER_EVERY = 3;
 /** Characters of a reply to see before deciding (enough for "Ha! Oh, well,"). */
 const DECIDE_AFTER = 24;
@@ -105,8 +107,18 @@ export class OpenerGate {
     this.repliesSinceKept = every; // the first reply may keep one
   }
 
-  /** Decide for one reply's opening text. */
-  decide(opening: string): string {
+  /**
+   * Decide for one reply's opening text. `burst` (VOCAL_BURSTS=on) is whether
+   * this reply may open with a vocal burst: one it may is kept, in the spelling
+   * that renders; one it may not is dropped. Undefined: as before.
+   */
+  decide(opening: string, burst?: boolean): string {
+    const found = burst === undefined ? null : leadingBurst(opening);
+    if (found && burst) {
+      this.repliesSinceKept = 0;
+      return capitalizeStart(withRenderedBurst(opening, found));
+    }
+    if (found) opening = capitalizeStart(withoutBurst(opening, found));
     const { text, stripped } = stripStockOpener(opening);
     if (!stripped) return capitalizeStart(opening);
     if (this.repliesSinceKept >= this.every) {
@@ -117,9 +129,9 @@ export class OpenerGate {
     return text;
   }
 
-  /** Wrap one reply's LLM stream. */
-  wrap(input: ReadableStream<Chunk>): ReadableStream<Chunk> {
-    const decide = (opening: string): string => this.decide(opening);
+  /** Wrap one reply's LLM stream; `burst` as in decide. */
+  wrap(input: ReadableStream<Chunk>, burst?: boolean): ReadableStream<Chunk> {
+    const decide = (opening: string): string => this.decide(opening, burst);
     const early = this.early;
     let buffered = '';
     let template: Chunk | null = null;
