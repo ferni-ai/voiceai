@@ -64,9 +64,14 @@ const ANCHOR = `Score each dimension from 1 to 5 against real people on a casual
 5 = better than any friend could be (and still natural)
 Be strict: 3 is not the default. A score of 4 or 5 needs a quoted moment that earns it; a score of 2 or less needs a quoted moment that loses it.`;
 
+// The greeting stays in: a follow-up asked as he picks up (COACH_FOLLOW_THROUGH)
+// scored 1 when the judge couldn't see it, 4 when it could (dev 2026-10-11).
 export function transcriptOf(run) {
-  return turnsOf(run)
-    .map((t, i) => `${i + 1}. ${t.who === 'agent' ? 'FERNI' : 'CALLER'}: ${t.text}`)
+  return turnsOf(run, { greeting: true })
+    .map((t, i) => {
+      const who = t.who !== 'agent' ? 'CALLER' : t.greeting ? 'FERNI (answering the call)' : 'FERNI';
+      return `${i + 1}. ${who}: ${t.text}`;
+    })
     .join('\n');
 }
 
