@@ -185,6 +185,19 @@ describe('proactive check-in channel', () => {
     }
   });
 
+  it('an early-morning window of their own still leaves 22:00 quiet', async () => {
+    vi.setSystemTime(new Date('2026-10-13T02:00:00Z')); // 22:00 New York
+    seedUser({
+      outreachPreferences: {
+        ...TEXTS_AND_CALLS,
+        quietHours: { enabled: true, start: '01:00', end: '02:00' },
+      },
+    });
+    seedPromise('p1');
+    expect(await runHandler()).toMatchObject({ status: 'held', why: 'quiet hours' });
+    expect(texts).toHaveLength(0);
+  });
+
   it('two overlapping runs send a check-in once', async () => {
     seedUser();
     seedPromise('p1');
