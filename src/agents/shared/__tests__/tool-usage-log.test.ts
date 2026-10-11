@@ -50,6 +50,31 @@ describe('TOOL_USAGE', () => {
     expect(JSON.stringify(logged)).not.toContain('secret');
   });
 
+  it('keeps phone numbers, emails and results out of the line', () => {
+    logged.length = 0;
+    const session = new EventEmitter();
+    const end = trackToolUsage(session, 's3', () => 30);
+    session.emit(voice.AgentSessionEventTypes.FunctionToolsExecuted, {
+      functionCalls: [
+        { name: 'callOnBehalf', args: '{"phone":"+1 (415) 555-0142","note":"ask for Dana"}' },
+        { name: 'quickEmail', args: '{"to":"dana.k@example.com","body":"running late"}' },
+      ],
+      functionCallOutputs: [
+        { name: 'callOnBehalf', isError: true, output: 'Could not reach +14155550142' },
+        { name: 'quickEmail', isError: false, output: 'Sent to dana.k@example.com' },
+      ],
+    });
+    end();
+    const line = JSON.stringify(logged);
+    for (const secret of ['555', '0142', 'dana', 'example.com', '@', 'Dana', 'late', 'reach']) {
+      expect(line).not.toContain(secret);
+    }
+    expect(logged[0].fields).toMatchObject({
+      calls: { callOnBehalf: 1, quickEmail: 1 },
+      errors: 1,
+    });
+  });
+
   it('still logs the counts when the agent is gone at teardown', () => {
     logged.length = 0;
     const session = new EventEmitter();
