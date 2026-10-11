@@ -81,7 +81,19 @@ jobs:
           secret=$(gcloud secrets versions access latest --secret=livekit-dev-api-secret --project=johnb-2025)
           echo "::add-mask::$key"
           echo "::add-mask::$secret"
-          lk project add "$LK_PROJECT" --url "$LK_URL" --api-key "$key" --api-secret "$secret" >/dev/null
+          # Written from a heredoc rather than `lk project add --api-key ...`, so the
+          # keys never appear in a process's argv. Owner-only file on a throwaway runner.
+          umask 077
+          mkdir -p ~/.livekit
+          cat > ~/.livekit/cli-config.yaml <<CFG
+          default_project: $LK_PROJECT
+          projects:
+            - name: $LK_PROJECT
+              url: $LK_URL
+              api_key: $key
+              api_secret: $secret
+          CFG
+          unset key secret
           # Fails fast if the keys don't belong to ferni-dev.
           lk room list --project "$LK_PROJECT" >/dev/null
 
