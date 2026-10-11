@@ -66,7 +66,7 @@ interface TeamMemberInfo {
   initials: string;
 }
 
-const TEAM_INFO: TeamMemberInfo[] = [
+const teamInfo = (): TeamMemberInfo[] => [
   {
     id: 'ferni',
     displayName: t('teamIntro.members.ferni.name', 'Ferni'),
@@ -171,7 +171,7 @@ class TeamIntroModal extends Modal {
       </div>
       
       <div class="team-intro__grid">
-        ${TEAM_INFO.map((member) => createMemberCard(member)).join('')}
+        ${teamInfo().map((member) => createMemberCard(member)).join('')}
       </div>
       
       <footer class="team-intro__footer">

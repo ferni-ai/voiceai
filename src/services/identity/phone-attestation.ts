@@ -21,6 +21,13 @@ export const PHONE_ATTEST_ATTRIBUTE = 'ferni.attest';
 export const MAX_TTL_SECONDS = 120;
 const DEFAULT_TTL_SECONDS = 60;
 
+/** `**67` for a number ending in 67; null when there is no number. For logs. */
+export function maskPhoneNumber(phoneNumber: string | undefined): string | null {
+  const digits = (phoneNumber ?? '').replace(/\D/g, '');
+  if (!digits) return null;
+  return digits.length <= 2 ? '**' : `**${digits.slice(-2)}`;
+}
+
 export interface PhoneAttestationClaims {
   callSid: string;
   from: string;

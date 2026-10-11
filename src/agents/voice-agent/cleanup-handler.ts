@@ -56,7 +56,7 @@ import { getInsightsForPersona } from '../../services/cross-persona-insights.js'
 import type {
   EmotionalMoment,
   SessionInsight,
-} from '../../services/session-context/session-summary.js';
+} from '../../services/session/session-summary.js';
 import { commitmentKeeper } from '../../services/superhuman/commitment-keeper.js';
 
 // NEW: Unified Intelligence System (Levels 2-5) cleanup
@@ -849,7 +849,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       ? (async () => {
           try {
             const { storeSessionSummary } =
-              await import('../../services/session-context/session-summary.js');
+              await import('../../services/session/session-summary.js');
             const turnCount = finalConvState?.flow.turnCount || userData?.turnCount || 0;
             const startTime = services?.sessionStartTime
               ? new Date(services.sessionStartTime)

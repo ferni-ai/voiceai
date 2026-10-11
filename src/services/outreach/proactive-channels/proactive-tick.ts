@@ -4,8 +4,8 @@
  * it (outreach-log.ts). Cloud Scheduler runs it every minute with the
  * deliver-scheduled-actions job.
  *
- * This first step leaves a note in the app. Texts and calls, with the channel
- * rules and caps that decide between them, come next.
+ * The channel (a note in the app or a text) comes from channel-policy.ts: the
+ * user's opt-ins, verified phone, quiet hours, daily caps and back-off.
  *
  * Off unless PROACTIVE_CHANNELS=on, and then only for the user ids in
  * PROACTIVE_CHANNELS_USERS (comma separated). At most one check-in per user
@@ -16,11 +16,11 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
-import { consentFromPrefs } from '../outreach-consent.js';
 import { lastTalkedAt } from '../outreach-cadence.js';
 import { isValidTimezone, localMinutes } from '../call-hours-guard.js';
 import { collectTriggers } from './triggers.js';
-import { alreadySent, writeOutreachLog } from './outreach-log.js';
+import { chooseChannel } from './channel-policy.js';
+import { alreadySent, recentOutreach, writeOutreachLog } from './outreach-log.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
 
 const log = createLogger({ module: 'ProactiveChannels' });
@@ -36,25 +36,38 @@ export function proactiveChannelsUsers(): string[] {
     .filter(Boolean);
 }
 
+const HISTORY_MS = 3 * 24 * 60 * 60 * 1000;
+
 /** The delivery edges. Tests stub these; the SDKs live behind them. */
 export interface ProactiveDeps {
   sendInApp: (userId: string, trigger: ProactiveTrigger) => Promise<boolean>;
+  /** The phone number on their Firebase account (verified by SMS code), if any. */
+  verifiedPhone: (userId: string) => Promise<string | undefined>;
+  sendSms: (phone: string, text: string) => Promise<boolean>;
 }
 
 export interface UserTickResult {
   userId: string;
-  status: 'sent' | 'idle' | 'skipped' | 'dry_run' | 'error';
+  /** held: a trigger is waiting (quiet hours, caps, snooze) and goes out on a later run. */
+  status: 'sent' | 'idle' | 'held' | 'skipped' | 'dry_run' | 'error';
   channel?: ProactiveChannel;
   sourceId?: string;
   why?: string;
 }
 
+/** Their own time zone: the outreach setting's, then the profile's (as quiet-hours.ts, #802). */
+export function timezoneOf(user: Record<string, unknown>): string | undefined {
+  const prefs = (user.outreachPreferences ?? {}) as { timezone?: unknown };
+  const contact = (user.contactInfo ?? {}) as { timezone?: unknown };
+  return [prefs.timezone, contact.timezone].find(
+    (tz): tz is string => typeof tz === 'string' && isValidTimezone(tz)
+  );
+}
+
 /** The user's local hour, or undefined without a valid time zone on their profile. */
 function localHourOf(user: Record<string, unknown>, now: Date): number | undefined {
-  const prefs = (user.outreachPreferences ?? {}) as { timezone?: unknown };
-  const tz = (user.contactInfo as { timezone?: unknown } | undefined)?.timezone ?? prefs.timezone;
-  if (typeof tz !== 'string' || !isValidTimezone(tz)) return undefined;
-  return Math.floor(localMinutes(now, tz) / 60);
+  const tz = timezoneOf(user);
+  return tz === undefined ? undefined : Math.floor(localMinutes(now, tz) / 60);
 }
 
 /** The first trigger that hasn't gone out yet, in priority order. */
@@ -77,6 +90,25 @@ async function nextTrigger(
   return undefined;
 }
 
+/** Send on the chosen channel; a text that doesn't go out becomes a note in the app. */
+async function deliver(
+  userId: string,
+  trigger: ProactiveTrigger,
+  channel: ProactiveChannel,
+  phone: string | undefined,
+  deps: ProactiveDeps
+): Promise<{ channel: ProactiveChannel; ok: boolean; fallbackFrom?: ProactiveChannel }> {
+  if (channel === 'sms' && phone) {
+    const sent = await deps.sendSms(phone, trigger.text).catch((error: unknown) => {
+      log.warn({ error: String(error), userId }, 'Proactive text failed');
+      return false;
+    });
+    if (sent) return { channel, ok: true };
+    return { channel: 'in_app', ok: await deps.sendInApp(userId, trigger), fallbackFrom: channel };
+  }
+  return { channel: 'in_app', ok: await deps.sendInApp(userId, trigger) };
+}
+
 async function runForUser(
   userId: string,
   now: Date,
@@ -87,29 +119,40 @@ async function runForUser(
   if (!db) throw new Error('Firestore not available');
   const user = (await db.collection('bogle_users').doc(userId).get()).data();
   if (!user) return { userId, status: 'skipped', why: 'no such user' };
-  if (!consentFromPrefs(user.outreachPreferences).enabled) {
-    return { userId, status: 'skipped', why: 'outreach off' };
-  }
 
   const trigger = await nextTrigger(userId, user, now);
   if (!trigger) return { userId, status: 'idle' };
-  const channel: ProactiveChannel = 'in_app';
-  const why = 'in-app note (texts and calls not wired yet)';
-  const base = { userId, channel, sourceId: trigger.sourceId, why };
-  if (dryRun) return { ...base, status: 'dry_run' };
+  const verifiedPhone = await deps.verifiedPhone(userId);
+  const choice = chooseChannel({
+    trigger,
+    now,
+    prefs: user.outreachPreferences,
+    timezone: timezoneOf(user),
+    verifiedPhone,
+    lastTalkedAt: lastTalkedAt(user),
+    recent: await recentOutreach(userId, new Date(now.getTime() - HISTORY_MS)),
+    canCall: false,
+  });
+  const base = { userId, sourceId: trigger.sourceId, why: choice.why };
+  if (!choice.channel) return { ...base, status: choice.stop ? 'skipped' : 'held' };
+  if (dryRun) return { ...base, channel: choice.channel, status: 'dry_run' };
 
-  const ok = await deps.sendInApp(userId, trigger);
+  const sent = await deliver(userId, trigger, choice.channel, verifiedPhone, deps);
   await writeOutreachLog(userId, {
     sourceId: trigger.sourceId,
     kind: trigger.kind,
-    channel,
+    channel: sent.channel,
     reason: trigger.reason,
-    why,
+    why: choice.why,
     at: now.toISOString(),
-    outcome: ok ? 'sent' : 'failed',
+    outcome: sent.ok ? 'sent' : 'failed',
+    ...(sent.fallbackFrom && { fallbackFrom: sent.fallbackFrom }),
   });
-  log.info({ ...base, ok, kind: trigger.kind }, 'Proactive check-in sent');
-  return { ...base, status: 'sent' };
+  log.info(
+    { ...base, channel: sent.channel, ok: sent.ok, kind: trigger.kind },
+    'Proactive check-in sent'
+  );
+  return { ...base, channel: sent.channel, status: 'sent' };
 }
 
 export interface ProactiveTickResult {
