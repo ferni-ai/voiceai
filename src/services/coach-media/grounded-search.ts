@@ -11,7 +11,6 @@ import { getLogger } from '../../utils/safe-logger.js';
 export interface WebSource {
   title: string;
   url: string;
-  summary?: string; // the answer's sentence this page supports
 }
 
 export interface GroundedAnswer {
@@ -34,10 +33,6 @@ interface GroundingResponse {
   candidates?: Array<{
     groundingMetadata?: {
       groundingChunks?: Array<{ web?: { uri?: string; title?: string } }>;
-      groundingSupports?: Array<{
-        segment?: { text?: string };
-        groundingChunkIndices?: number[];
-      }>;
       searchEntryPoint?: { renderedContent?: string };
       webSearchQueries?: string[];
     };
@@ -121,28 +116,21 @@ export async function groundedSearch(
     const answer = (response.text ?? '').trim();
     const meta = response.candidates?.[0]?.groundingMetadata;
     const chunks = meta?.groundingChunks ?? [];
-    const support = new Map<number, string>();
-    for (const s of meta?.groundingSupports ?? []) {
-      for (const i of s.groundingChunkIndices ?? []) {
-        if (!support.has(i) && s.segment?.text) support.set(i, s.segment.text);
-      }
-    }
     const seen = new Set<string>();
     const raw = chunks
-      .flatMap((c, index) => (c.web?.uri ? [{ index, uri: c.web.uri, title: c.web.title }] : []))
+      .flatMap((c) => (c.web?.uri ? [{ uri: c.web.uri, title: c.web.title }] : []))
       .filter((w) => !seen.has(w.uri) && Boolean(seen.add(w.uri)))
       .slice(0, MAX_SOURCES);
     const resolved = await Promise.all(raw.map(async (w) => resolveSourceUrl(w.uri)));
     const sources = raw.flatMap((w, i) => {
       const url = resolved[i];
-      return url ? [{ title: (w.title ?? '').trim(), url, summary: support.get(w.index) }] : [];
+      return url ? [{ title: (w.title ?? '').trim(), url }] : [];
     });
     if (!answer && sources.length === 0) return null;
     log.info(
       {
         sources: sources.length,
         chars: answer.length,
-        supports: support.size,
         searchQueries: meta?.webSearchQueries?.length ?? 0,
         hasSearchSuggestions: Boolean(meta?.searchEntryPoint?.renderedContent),
       },
