@@ -997,3 +997,47 @@ describe('DeepExtractionWorker Edge Cases', () => {
     expect(stats.completedJobs).toBe(1);
   });
 });
+
+describe('fact extraction is dated', () => {
+  it('gives the fact prompt the call date in the caller zone, so "tomorrow" can become a day', async () => {
+    const { rememberCallerTimeZone } = await import('../../operations/call-moment.js');
+    rememberCallerTimeZone('s-dated', 'America/Denver');
+    const prompts: string[] = [];
+    const model = {
+      generateContent: async (p: string) => {
+        prompts.push(p);
+        const body = p.includes('Extract facts')
+          ? '[{"entityName":"interview","factType":"event","key":"date","value":"2026-10-11","confidence":0.9}]'
+          : '[{"name":"interview","type":"event","confidence":0.9}]';
+        return { response: Promise.resolve({ text: () => body }) };
+      },
+    };
+    const worker = new DeepExtractionWorker();
+    const internals = worker as unknown as {
+      getGeminiModel: () => Promise<unknown>;
+      processJob: (job: DeepExtractionJob) => Promise<void>;
+    };
+    internals.getGeminiModel = async () => model;
+    await internals
+      .processJob({
+        jobId: 'j1',
+        userId: 'u1',
+        sessionId: 's-dated',
+        turnNumber: 1,
+        transcript: 'My interview is tomorrow at ten, I am so nervous about it.',
+        timestamp: new Date('2026-10-11T02:00:00Z'),
+        priority: 'normal',
+        fastCaptureHints: {
+          mentionedEntities: [],
+          emotionSignals: [],
+          topicHints: [],
+          dateSignals: [],
+          relationshipSignals: [],
+        },
+      })
+      .catch(() => undefined); // persistence is mocked away; only the prompt matters here
+    const factPrompt = prompts.find((p) => p.includes('Extract facts'));
+    expect(factPrompt).toContain('Saturday, 2026-10-10 (America/Denver)');
+    expect(factPrompt).toContain('tomorrow 2026-10-11');
+  });
+});
