@@ -482,8 +482,6 @@ export async function saveInAppMessage(
     ssml?: string;
     reason?: string;
     triggerId?: string;
-    /** A card the app renders (e.g. a coaching pick with its sources). */
-    card?: Record<string, unknown>;
   }
 ): Promise<DeliveryResult> {
   try {

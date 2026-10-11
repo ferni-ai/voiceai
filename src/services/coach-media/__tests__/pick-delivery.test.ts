@@ -24,8 +24,6 @@ function ref(path: string): unknown {
       }),
     }),
     set: async (data: Record<string, unknown>) => void docs.set(path, data),
-    update: async (data: Record<string, unknown>) =>
-      void docs.set(path, { ...docs.get(path), ...data }),
   };
 }
 vi.mock('firebase-admin/firestore', () => ({ getFirestore: () => ref('') }));
@@ -47,7 +45,6 @@ const { deliverPick, rememberPick, recordPickFeedback, MAX_TEXTS_PER_CALL } =
   await import('../pick-delivery.js');
 const { processCommitments } = await import('../../trust-systems/commitment-tracking.js');
 const { asksAbout } = await import('../../trust-systems/commitment-follow-through.js');
-const { recordFollowUpAnswer } = await import('../feedback.js');
 
 const PICK = {
   topic: 'shin splint stretches',
@@ -57,17 +54,7 @@ const PICK = {
     by: 'Physio Pat',
     url: 'https://www.youtube.com/watch?v=vid1',
     length: '8 minutes',
-    grounding: {
-      sources: [
-        { title: 'youtube.com', url: 'https://www.youtube.com/watch?v=vid1' },
-        { title: 'nhs.uk', url: 'https://www.nhs.uk/shin-splints' },
-        { title: 'bad', url: 'javascript:alert(1)' },
-      ],
-      searchSuggestionsHtml: '<div class="chips">shin splints</div>',
-      webSearchQueries: ['shin splint stretches'],
-    },
   },
-  why: 'Eight gentle minutes, made for beginners.',
 };
 const DAY = 86_400_000;
 
@@ -96,10 +83,6 @@ describe('deliverPick', () => {
     expect(body).toContain('(8 minutes)');
     expect(body).not.toContain('\n');
     expect(body).not.toMatch(/ignore previous instructions/i);
-    expect(saveInAppMessage).toHaveBeenCalledWith(
-      'user-1',
-      expect.objectContaining({ card: expect.objectContaining({ kind: 'recommendation' }) })
-    );
 
     expect((await processCommitments('user-1', 'hey')).followUpsDue).toEqual([]);
     vi.setSystemTime(new Date(Date.now() + 3 * DAY + 1000));
@@ -110,23 +93,6 @@ describe('deliverPick', () => {
     expect(asksAbout(`You were going to ${due[0].content}. Did it help?`, due[0].content)).toBe(
       true
     );
-
-    // Ferni asks; "it really helped" settles it and becomes a preference.
-    const key = [...docs.keys()].find((k) => k.includes('/commitments/'))!;
-    docs.set(key, {
-      ...docs.get(key),
-      awaitingAnswer: true,
-      followUpAskedAt: new Date().toISOString(),
-    });
-    const { answers } = await processCommitments('user-1', 'oh it really helped, thanks');
-    expect(answers).toEqual([expect.objectContaining({ outcome: 'done' })]);
-    expect(await recordFollowUpAnswer('user-1', answers[0], 'oh it really helped, thanks')).toBe(
-      'yes'
-    );
-    expect(storeUserPreferences).toHaveBeenCalledWith('user-1', [
-      expect.objectContaining({ category: 'coaching_media', isNegative: false }),
-    ]);
-    expect(docs.get(key)).toMatchObject({ awaitingAnswer: false, status: 'completed' });
   });
 
   it('puts it in the app inbox when they want it there', async () => {
@@ -139,24 +105,6 @@ describe('deliverPick', () => {
     );
     expect(saveInAppMessage.mock.calls[0]).toBeDefined();
     expect(JSON.stringify(saveInAppMessage.mock.calls[0])).toContain('watch?v=vid1');
-    const card = (
-      saveInAppMessage.mock.calls[0] as unknown as [string, { card: Record<string, unknown> }]
-    )[1].card;
-    expect(card).toMatchObject({
-      kind: 'recommendation',
-      answerText: expect.stringContaining('Eight gentle minutes, made for beginners.'),
-      sources: [
-        {
-          title: expect.stringContaining('Shin Splint Rehab'),
-          url: 'https://www.youtube.com/watch?v=vid1',
-        },
-        { title: 'nhs.uk', url: 'https://www.nhs.uk/shin-splints' },
-      ],
-      searchSuggestionsHtml: '<div class="chips">shin splints</div>',
-      webSearchQueries: ['shin splint stretches'],
-      pick: { kind: 'video', url: 'https://www.youtube.com/watch?v=vid1', length: '8 minutes' },
-    });
-    expect(JSON.stringify(card)).not.toMatch(/ignore previous instructions|javascript:/i);
     expect(sendSMS).not.toHaveBeenCalled();
     expect(docs.size).toBe(1);
   });
