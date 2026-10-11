@@ -702,7 +702,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     return gatedReply(chatCtx, this.session, model, this.openerGate as never) as never;
   }
 
-  private readonly turnTools = { loggedLockedHandoffs: false };
+  private readonly turnTools = { loggedLockedHandoffs: false, agent: this };
 
   /** Limits stock reaction-word openers across this agent's replies. See opener-gate.ts. */
   private readonly openerGate = new OpenerGate();

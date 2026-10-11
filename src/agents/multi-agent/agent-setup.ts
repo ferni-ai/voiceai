@@ -200,6 +200,7 @@ export interface AgentSetupConfig {
    * Only this persona's Agent and its own listeners are built; the session stays the call's.
    */
   callSession?: voice.AgentSession<UserData>;
+  phoneCaller?: boolean; // a phone (LiveKit SIP) caller: see PHONE_AUDIO_MODE
 }
 
 /**
@@ -1142,9 +1143,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   mark('session_create_start');
   // A persona swapped into a running call joins its session (persona-swap.ts)
-  const session =
-    callSession ??
-    (await createCallSession({ persona, sessionId, services, userData, llmModel, tts }));
+  const parts = { persona, sessionId, services, userData, llmModel, tts };
+  const session = callSession ?? (await createCallSession({ ...parts, phone: config.phoneCaller }));
 
   mark('session_created');
   rememberPersona(session, persona); // personaOnCall: handlers follow the persona on the call

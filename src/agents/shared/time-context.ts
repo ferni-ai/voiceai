@@ -12,16 +12,9 @@
  * @module agents/shared/time-context
  */
 
-/** True for an IANA zone the runtime knows ("America/New_York"). */
-export function isValidTimeZone(tz: unknown): tz is string {
-  if (typeof tz !== 'string' || !tz || tz.length > 64) return false;
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: tz });
-    return true;
-  } catch {
-    return false;
-  }
-}
+import { isValidTimeZone } from '../../utils/time-zone.js';
+
+export { isValidTimeZone };
 
 /**
  * The caller's hour (0-23), or null when their time zone isn't known. The

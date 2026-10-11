@@ -107,17 +107,13 @@ const RETRY_DELAYS = [60_000, 300_000, 900_000]; // 1m, 5m, 15m
 // INITIALIZATION
 // ============================================================================
 
-/**
- * Initialize email delivery
- */
+/** Initialize email delivery */
 export function initializeEmailDelivery(deliveryConfig: EmailDeliveryConfig): void {
   config = deliveryConfig;
   log.info({ provider: config.provider }, '✅ Email Delivery initialized');
 }
 
-/**
- * Check if email delivery is available
- */
+/** Check if email delivery is available */
 export function isEmailDeliveryAvailable(): boolean {
   return config !== null;
 }
@@ -191,9 +187,7 @@ const PERSONA_STYLES: Record<string, PersonaEmailStyle> = {
 // HTML TEMPLATES
 // ============================================================================
 
-/**
- * Generate beautiful HTML email for persona
- */
+/** Generate beautiful HTML email for persona */
 export function generatePersonaEmailHTML(
   personaId: string,
   options: {
@@ -414,13 +408,18 @@ export function generatePersonaEmailHTML(
   `.trim();
 }
 
-/**
- * Format email body text to HTML
- */
-function formatEmailBody(body: string): string {
+/** Format plain email body text to HTML, escaping it: bodies can carry other people's words. */
+export function formatEmailBody(body: string): string {
+  const escape = (text: string) =>
+    text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   return body
     .split('\n\n')
-    .map((para) => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+    .map((para) => `<p>${escape(para).replace(/\n/g, '<br>')}</p>`)
     .join('');
 }
 
