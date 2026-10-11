@@ -30,7 +30,6 @@ import {
   isWrapUpMessage,
   normalizeMusicMessage,
 } from '../types/events.js';
-
 import { setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
@@ -40,6 +39,7 @@ import { handleVoiceEventDataMessage } from '../services/voice-events.service.js
 import { smartPromptTracker } from '../services/roadmap.service.js';
 import { setWrappingUp } from '../state/app.state.js';
 import { handleAgentAckMessage } from './agent-ack-handlers.js';
+import { handleReplyTone } from './reply-tone.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
 import { coachUI } from '../ui/coach.ui.js';
@@ -158,8 +158,8 @@ export function handleDataMessage(message: DataMessage): void {
   }
 
   if (routeGroupDataMessage(message)) return; // group roundtable / call → participant grid
-  // 🌉 Try to process as humanization signal (breakthrough, vulnerability, etc.),
-  // or as an agent ack / fallback notice (failed game start, no team mode)
+  if (handleReplyTone(message)) return; // Ferni's reply tone → resting face (ferni:reply-tone)
+  // 🌉 Humanization signal (breakthrough, vulnerability…) or agent ack / fallback notice
   if (humanizationBridge.processMessage(message) || handleAgentAckMessage(message)) {
     return;
   }

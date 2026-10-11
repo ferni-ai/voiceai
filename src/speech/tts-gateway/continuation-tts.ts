@@ -19,6 +19,7 @@ import { ReadableStream } from 'node:stream/web';
 import { findChunkEnd, findFirstChunkEnd, findFirstWordEnd } from './chunk-boundary.js';
 import { leadSilenceTrimEnabled, trimLeadingSilence } from './lead-silence.js';
 import { decideEmotion, STABLE_EMOTIONS } from './director/emotion.js';
+import { sendReplyTone } from './reply-tone-signal.js';
 import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type { SSMLProsodyConfig } from './types.js';
 
@@ -109,6 +110,8 @@ export interface ContinuationOptions {
    * to it: "0.9" on a 1.05 base plays at 0.95.
    */
   baseSpeed?: number;
+  /** The call's session: the reply's tone goes to its client (reply-tone-signal.ts). */
+  sessionId?: string;
   toFrames(pcm: ArrayBuffer): Iterable<AudioFrame>;
   /** Called at the reply's first audio; `trimmed` gets the leading silence dropped (lead-silence.ts). */
   onFirstAudio: (() => void) & { trimmed?: (ms: number) => void };
@@ -190,6 +193,8 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
       const ownBreak = /^(?:<(?!break)[^>]*>)*<break/.test(`${tags}${text}`);
       const pause = afterSentence && breakMs > 0 && !ownBreak ? `<break time="${breakMs}ms"/>` : '';
       afterSentence = ENDS_SENTENCE.test(text);
+      // Once per reply: the face takes the tone the voice opens with.
+      if (first) sendReplyTone({ emotion: next.emotion, speed: next.speed }, opts.sessionId);
       first = false;
       state = next;
       // Pieces are joined verbatim, so keep a space between sentences.
