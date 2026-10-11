@@ -20,6 +20,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { haptics } from '../utils/haptics.js';
 import { celebrationsUI } from './celebrations.ui.js';
 import { ferniMoments } from './ferni-moments.ui.js';
+import * as placement from './milestone-placement.js';
 import { soundUI } from './sound.ui.js';
 
 const log = createLogger('FerniMilestones');
@@ -537,6 +538,7 @@ export function initFerniMilestones(): void {
 function setupEventListeners(): void {
   // Track conversation starts
   window.addEventListener('ferni:connection-state', ((e: CustomEvent) => {
+    placement.noteConnectionState(e.detail?.state);
     if (e.detail?.state === 'connected') {
       trackConversationStart();
     }
@@ -946,13 +948,10 @@ function sendMilestoneNotification(milestone: Milestone): void {
 function processQueue(): void {
   if (isCelebrating || celebrationQueue.length === 0) return;
 
-  // Don't interrupt active conversations
-  const isConnected = document.body.classList.contains('connected');
-  const isSpeaking = document.body.classList.contains('speaking');
-
-  if (isConnected && isSpeaking) {
-    // Wait and try again
-    trackedTimeout(processQueue, 3000);
+  // Don't land on the call's opening or while Ferni speaks: wait and try again
+  const holdMs = placement.celebrationHoldMs();
+  if (holdMs > 0) {
+    trackedTimeout(processQueue, holdMs);
     return;
   }
 
@@ -1004,9 +1003,9 @@ async function showMilestoneCelebration(milestone: Milestone): Promise<void> {
   // Avatar reaction based on category
   triggerAvatarReaction(milestone.category);
 
-  // Create the celebration display
+  // Create the celebration display, above the call controls (never over them)
   const display = createCelebrationDisplay(milestone);
-  document.body.appendChild(display);
+  placement.placeMilestoneCard(display);
 
   // Animate in
   await animateCelebrationIn(display);
@@ -1234,8 +1233,11 @@ function injectMilestoneStyles(): void {
     .ferni-milestone {
       position: fixed;
       bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%);
+      /* Centred with margins, not a transform: the animation sets transform */
+      left: 0;
+      right: 0;
+      width: min(340px, calc(100vw - 2 * var(--space-4, 16px)));
+      margin-inline: auto;
       z-index: var(--z-notification, 9000);
       pointer-events: none;
     }
@@ -1274,9 +1276,7 @@ function injectMilestoneStyles(): void {
       padding: var(--space-4, 16px) var(--space-6, 24px);
       background: var(--color-background-elevated, #faf8f5);
       border-radius: var(--radius-2xl, 20px);
-      box-shadow: 
-        0 8px 32px rgba(0, 0, 0, 0.12),
-        0 2px 8px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
       max-width: min(340px, 100%);
     }
 
@@ -1330,12 +1330,12 @@ function injectMilestoneStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .ferni-milestone {
         bottom: 80px;
         left: var(--space-4, 16px);
         right: var(--space-4, 16px);
-        transform: none;
+        width: auto;
       }
 
       .ferni-milestone__content {
