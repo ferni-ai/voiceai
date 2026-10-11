@@ -227,6 +227,15 @@ function lazyLogger(bindings?: Record<string, unknown>): FallbackLogger {
  */
 export const getLogger = safeLog;
 
+/** Receives the raw arguments of every error-level call (error reporting registers here). */
+type ErrorLogSink = (args: unknown[]) => void;
+let errorLogSink: ErrorLogSink | null = null;
+
+/** Registers (or clears, with null) the sink that sees every error-level log call. */
+export function setErrorLogSink(sink: ErrorLogSink | null): void {
+  errorLogSink = sink;
+}
+
 /**
  * Wrap a pino-style logger to automatically serialize Error objects.
  *
@@ -238,6 +247,13 @@ function wrapLoggerWithErrorSerialization(pinoLogger: ReturnType<typeof log>): F
   const wrapMethod =
     (method: 'debug' | 'info' | 'warn' | 'error') =>
     (...args: unknown[]) => {
+      if (method === 'error' && errorLogSink) {
+        try {
+          errorLogSink(args);
+        } catch {
+          // A failing sink must not stop the log line.
+        }
+      }
       // If first arg is an object (bindings), process it for error serialization
       if (args.length > 0 && args[0] && typeof args[0] === 'object' && !Array.isArray(args[0])) {
         const processedBindings = processBindings(args[0] as Record<string, unknown>);

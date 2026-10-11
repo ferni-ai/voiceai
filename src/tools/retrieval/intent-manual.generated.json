@@ -9513,19 +9513,6 @@
       ],
       "descriptionHash": "2a258bb1c2"
     },
-    "handoffToJoel": {
-      "domain": "handoff",
-      "description": "Transfer conversation to Joel Dickson, who specializes in 57-year-old life mentor with a Stanford PhD and 30 years at Vanguard. Helps with life decisions, career crossroads, family transitions, and finding purpose. An economist who leads with heart, not head..",
-      "queries": [
-        "I would like to speak with Joel about a career decision.",
-        "I need to talk to Joel because I am fifty-five and trying to find my purpose after leaving my corporate job, and his background at Vanguard and Stanford seems perfect for this.",
-        "Can you put me through to Joel Dickson?",
-        "I am feeling really lost about whether to retire early or stay another five years, is that mentor Joel available to chat?",
-        "Connect to Joel.",
-        "I have been at a crossroads with my family and my career, and I think I need to talk to someone who understands the economics of life transitions like Joel."
-      ],
-      "descriptionHash": "6a580a125c"
-    },
     "handoffToJohn": {
       "domain": "handoff",
       "description": "Transfer conversation to John Bogle, who specializes in undefined.",
@@ -9576,6 +9563,19 @@
         "I'll need Maya's input on this."
       ],
       "descriptionHash": "15107649a3"
+    },
+    "handoffToNate": {
+      "domain": "handoff",
+      "description": "Transfer conversation to Nate Holloway, who specializes in 57-year-old life mentor with a Michigan economics PhD and nearly 30 years at a big low-cost fund company. Helps with life decisions, career crossroads, family transitions, and finding purpose. An economist who leads with heart, not head.",
+      "queries": [
+        "I would like to speak with Nate about a career decision.",
+        "I need to talk to Nate because I am fifty-five and trying to find my purpose after leaving my corporate job, and his economics background seems perfect for this.",
+        "Can you put me through to Nate Holloway?",
+        "I am feeling really lost about whether to retire early or stay another five years, is that mentor Nate available to chat?",
+        "Connect to Nate.",
+        "I have been at a crossroads with my family and my career, and I think I need to talk to someone who understands the economics of life transitions like Nate."
+      ],
+      "descriptionHash": "6c4ca9a05f"
     },
     "handoffToNayan": {
       "domain": "handoff",
@@ -12525,6 +12525,23 @@
         "I have got a list of movies here, just pick one for us to watch tonight"
       ],
       "descriptionHash": "3911d499eb"
+    },
+    "pickRestaurant": {
+      "domain": "local-search",
+      "description": "Recommend ONE place to eat, fitted to what you know about them (diet, likes, dislikes, allergies, budget), with the reasons and a DoorDash link they can tap. Use when they ask where to eat or what to get for dinner. You never order food.",
+      "queries": [
+        "where should I eat tonight",
+        "can you recommend a good restaurant around here",
+        "I'm starving, what should I get for dinner",
+        "pick a place for lunch for me",
+        "where's somewhere good to grab tacos",
+        "what's a good vegetarian spot nearby",
+        "I want sushi but nothing too expensive, where should I go",
+        "just tell me one place to order from tonight",
+        "what's the best ramen place near me",
+        "I don't know what to eat, help me pick somewhere"
+      ],
+      "descriptionHash": "a316f3dfc2"
     },
     "planCareerTransition": {
       "domain": "career",

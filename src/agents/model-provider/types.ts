@@ -23,9 +23,7 @@ export type ModelProviderId =
   | 'cartesia-cascade'
   | 'gemini-native-audio'
   | 'openai-realtime'
-  | 'gemini-live'
-  | 'chipchat'
-  | 'gemma3n';
+  | 'gemini-live';
 
 // ============================================================================
 // PROMPT CONFIGURATION
