@@ -203,10 +203,8 @@
   --color-jordan: #c4856a;
   --color-jordan-secondary: #a86d55;
   --color-jordan-glow: rgba(196, 133, 106, 0.28);
-  --color-jaggi: #b8956a;
-  --color-jaggi-secondary: #9a7b5a;
 
-  /* Nayan (alias for jaggi) */
+  /* Nayan */
   --color-nayan: #b8956a;
   --color-nayan-secondary: #9a7a52;
   --color-nayan-glow: rgba(184, 149, 106, 0.28);

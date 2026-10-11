@@ -4,7 +4,7 @@
  * Each persona remembers things naturally, like a friend would:
  *
  * Ferni (Life Coach): Your preferences, wins, favorite topics
- * Jack Bogle: Your investing philosophy, funds discussed
+ * Nayan (index investing): Your investing philosophy, funds discussed
  * Peter John: Stocks researched, companies you know, watchlist
  * Maya: Merchants, bills, savings goals, spending patterns
  * Jordan: Important dates, venues, vendors, dream plans
@@ -603,7 +603,7 @@ export async function getFerniMemories(userId: string): Promise<FerniMemory[]> {
   return (await recall(userId, 'jack-b')) as FerniMemory[];
 }
 
-// ----- Jack Bogle (Index Investing) -----
+// ----- Nayan (Index Investing; legacy Bogle memory type) -----
 
 export async function rememberFund(
   userId: string,
