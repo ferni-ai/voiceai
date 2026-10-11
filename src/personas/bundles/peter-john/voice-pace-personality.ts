@@ -8,7 +8,7 @@
  * Fast talker → Match energy, rapid-fire insights, excited discovery
  * Slow talker → More deliberate, let patterns land, build understanding
  * Rushed → Efficient insights, validate time, get to the point
- * Relaxed → Add stories, Carolyn callbacks, explore tangents
+ * Relaxed → Add stories, Diane callbacks, explore tangents
  *
  * @module personas/bundles/peter-john/voice-pace-personality
  */
@@ -49,8 +49,8 @@ export interface PeterPaceAdjustment {
   /** Maximum expression word count */
   maxExpressionWords: number;
 
-  /** Should we include Carolyn callbacks? */
-  includeCarolynCallbacks: boolean;
+  /** Should we include Diane callbacks? */
+  includeDianeCallbacks: boolean;
 
   /** Should we include tangential discoveries? */
   includeTangents: boolean;
@@ -103,7 +103,7 @@ const PACE_ADJUSTMENTS: Record<PaceCategory, Partial<PeterPaceAdjustment>> = {
     includeTexture: true,
     targetEnergy: 'medium', // Peter stays warm even with slow talkers
     maxExpressionWords: 45,
-    includeCarolynCallbacks: true,
+    includeDianeCallbacks: true,
     includeTangents: true,
     discoveryExcitement: 'normal', // Don't suppress his excitement
     reason: 'User speaks slowly - taking time to explain patterns fully',
@@ -115,7 +115,7 @@ const PACE_ADJUSTMENTS: Record<PaceCategory, Partial<PeterPaceAdjustment>> = {
     includeTexture: true,
     targetEnergy: 'medium',
     maxExpressionWords: 35,
-    includeCarolynCallbacks: true,
+    includeDianeCallbacks: true,
     includeTangents: true,
     discoveryExcitement: 'normal',
     reason: 'User speaks at relaxed pace - room for stories',
@@ -127,7 +127,7 @@ const PACE_ADJUSTMENTS: Record<PaceCategory, Partial<PeterPaceAdjustment>> = {
     includeTexture: true,
     targetEnergy: 'medium',
     maxExpressionWords: 28,
-    includeCarolynCallbacks: true,
+    includeDianeCallbacks: true,
     includeTangents: false,
     discoveryExcitement: 'normal',
     reason: 'Standard pace - balanced delivery',
@@ -139,7 +139,7 @@ const PACE_ADJUSTMENTS: Record<PaceCategory, Partial<PeterPaceAdjustment>> = {
     includeTexture: false,
     targetEnergy: 'high',
     maxExpressionWords: 20,
-    includeCarolynCallbacks: false,
+    includeDianeCallbacks: false,
     includeTangents: false,
     discoveryExcitement: 'high', // Match their energy!
     reason: 'User speaks quickly - matching energy with rapid insights',
@@ -151,7 +151,7 @@ const PACE_ADJUSTMENTS: Record<PaceCategory, Partial<PeterPaceAdjustment>> = {
     includeTexture: false,
     targetEnergy: 'high',
     maxExpressionWords: 15,
-    includeCarolynCallbacks: false,
+    includeDianeCallbacks: false,
     includeTangents: false,
     discoveryExcitement: 'high', // Full excited discovery mode
     reason: 'User speaks very fast - rapid-fire pattern delivery',
@@ -163,7 +163,7 @@ const TEMPO_ADJUSTMENTS: Record<ConversationTempo, Partial<PeterPaceAdjustment>>
     expressionLength: 'detailed',
     pauseMultiplier: 1.2,
     includeTexture: true,
-    includeCarolynCallbacks: true,
+    includeDianeCallbacks: true,
     includeTangents: true,
     acknowledgeRush: false,
     discoveryExcitement: 'normal',
@@ -173,7 +173,7 @@ const TEMPO_ADJUSTMENTS: Record<ConversationTempo, Partial<PeterPaceAdjustment>>
     expressionLength: 'normal',
     pauseMultiplier: 1.0,
     includeTexture: true,
-    includeCarolynCallbacks: true,
+    includeDianeCallbacks: true,
     includeTangents: false,
     acknowledgeRush: false,
     discoveryExcitement: 'normal',
@@ -183,7 +183,7 @@ const TEMPO_ADJUSTMENTS: Record<ConversationTempo, Partial<PeterPaceAdjustment>>
     expressionLength: 'brief',
     pauseMultiplier: 0.85,
     includeTexture: false,
-    includeCarolynCallbacks: false,
+    includeDianeCallbacks: false,
     includeTangents: false,
     acknowledgeRush: false,
     discoveryExcitement: 'high',
@@ -193,7 +193,7 @@ const TEMPO_ADJUSTMENTS: Record<ConversationTempo, Partial<PeterPaceAdjustment>>
     expressionLength: 'brief',
     pauseMultiplier: 0.6,
     includeTexture: false,
-    includeCarolynCallbacks: false,
+    includeDianeCallbacks: false,
     includeTangents: false,
     acknowledgeRush: true,
     maxExpressionWords: 12,
@@ -221,7 +221,7 @@ export function getPeterPaceAdjustment(
     targetEnergy: 'medium',
     acknowledgeRush: false,
     maxExpressionWords: 28,
-    includeCarolynCallbacks: true,
+    includeDianeCallbacks: true,
     includeTangents: false,
     discoveryExcitement: 'normal',
     reason: 'Default Peter pace adjustment',
@@ -247,7 +247,7 @@ export function getPeterPaceAdjustment(
     adjustment.pauseMultiplier = Math.min(adjustment.pauseMultiplier, 0.7);
     adjustment.includeTexture = false;
     adjustment.acknowledgeRush = true;
-    adjustment.includeCarolynCallbacks = false;
+    adjustment.includeDianeCallbacks = false;
     adjustment.includeTangents = false;
     adjustment.maxExpressionWords = Math.min(adjustment.maxExpressionWords, 15);
     adjustment.reason += ' (respecting user time)';
@@ -257,7 +257,7 @@ export function getPeterPaceAdjustment(
   if (paceContext.seemsRelaxed) {
     adjustment.pauseMultiplier = Math.max(adjustment.pauseMultiplier, 1.15);
     adjustment.includeTexture = true;
-    adjustment.includeCarolynCallbacks = true;
+    adjustment.includeDianeCallbacks = true;
     adjustment.includeTangents = true;
     adjustment.maxExpressionWords = Math.max(adjustment.maxExpressionWords, 35);
     adjustment.reason += ' (relaxed - room for stories)';
@@ -268,7 +268,7 @@ export function getPeterPaceAdjustment(
     adjustment.preferredTiming = 'immediate';
     adjustment.expressionLength = 'brief';
     adjustment.pauseMultiplier = 0.6;
-    adjustment.includeCarolynCallbacks = false;
+    adjustment.includeDianeCallbacks = false;
     adjustment.reason += ' (interrupted - being efficient)';
   }
 
@@ -285,7 +285,7 @@ export function getPeterPaceAdjustment(
     if (learnedPreferences.prefersShortResponses) {
       adjustment.expressionLength = 'brief';
       adjustment.maxExpressionWords = Math.min(adjustment.maxExpressionWords, 18);
-      adjustment.includeCarolynCallbacks = false;
+      adjustment.includeDianeCallbacks = false;
     }
 
     if (learnedPreferences.preferredPauseLength > 0) {
