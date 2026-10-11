@@ -17,7 +17,7 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
   },
 }));
 
-const { isFindableDomain, NEVER_FINDABLE_DOMAINS } =
+const { isFindableDomain, NEVER_FINDABLE_DOMAINS, NEVER_PIN_TOOLS } =
   await import('../../../tools/dynamic-loader/findable-domains.js');
 const { DEFAULT_ESSENTIAL_DOMAINS, TOPIC_TO_DOMAINS } =
   await import('../../../tools/dynamic-loader/index.js');
@@ -47,6 +47,16 @@ const manual = {
       domain: 'webhooks',
       description: 'trigger a webhook command',
       queries: ['run a command through a webhook'],
+    },
+    quickText: {
+      domain: 'simple-utilities',
+      description: 'text a contact',
+      queries: ['text my sister that I am running late'],
+    },
+    sendBatchMessages: {
+      domain: 'communication',
+      description: 'send messages to a group',
+      queries: ['send everyone a message that I am running late'],
     },
     setTimer: {
       domain: 'simple-utilities',
@@ -180,6 +190,41 @@ describe('TOOL_CORE_STATIC findTools fence', () => {
       ])
     );
   }, 60_000);
+});
+
+describe('TOOL_CORE_STATIC findTools never pins tools that contact people', () => {
+  const CONTACT = ['quickText', 'sendBatchMessages'];
+
+  it('find() and findTools leave them out, though their domains are findable', async () => {
+    const { agent, build, findTools, retrieval } = await call();
+    const need = 'text my sister and send everyone a message that I am running late';
+    const found = await retrieval.find(need, 4, { anyTool: true });
+    for (const c of CONTACT) expect(found.map((f) => f.name)).not.toContain(c);
+    await findTools(need);
+    for (const c of CONTACT) expect(Object.keys(agent.toolCtx.functionTools)).not.toContain(c);
+    for (const [asked] of build.mock.calls) for (const c of CONTACT) expect(asked).not.toContain(c);
+  });
+
+  it('the pinner refuses them when handed them; build never sees them', async () => {
+    const { agent, build } = await call();
+    const pin = createToolPinner(() => agent, CTX, build, domainOf);
+    expect(await pin([...CONTACT, 'setTimer'], 'text them')).toEqual([
+      { name: 'setTimer', description: 'setTimer.' },
+    ]);
+    expect(build).toHaveBeenCalledWith(['setTimer'], CTX);
+  });
+
+  it('buildToolsByName refuses every one of them from the real registry', async () => {
+    const spy = vi.spyOn(toolRegistry, 'buildToolSet');
+    const built = await buildToolsByName([...NEVER_PIN_TOOLS, 'tellJoke'], CTX);
+    expect(Object.keys(built)).toEqual(['tellJoke']);
+    expect(spy.mock.calls.at(-1)![0].forbidden).toEqual([...NEVER_PIN_TOOLS]);
+  }, 60_000);
+
+  it('the static core holds none of them, so the core never needs to build one', async () => {
+    const { STATIC_CORE_TOOLS } = await import('../../../config/tool-config.js');
+    for (const t of NEVER_PIN_TOOLS) expect(STATIC_CORE_TOOLS).not.toContain(t);
+  });
 });
 
 // Last: it resets the module graph.

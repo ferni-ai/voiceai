@@ -18,7 +18,7 @@
  */
 
 import { llm } from '@livekit/agents';
-import { isFindableDomain } from '../dynamic-loader/findable-domains.js';
+import { isFindableTool } from '../dynamic-loader/findable-domains.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { DenseToolIndex, Embedder } from './dense-index.js';
 import { RetrievalStats, isLiveCovered } from './retrieval-stats.js';
@@ -394,7 +394,7 @@ export class TurnToolRetrieval {
       if (found.length >= n) break;
       if (available && !(t.tool in available)) continue;
       // The whole catalog holds tools no caller may reach (runBash, webhooks).
-      if (opts.anyTool && !isFindableDomain(this.opts.domainOf(t.tool))) continue;
+      if (opts.anyTool && !isFindableTool(t.tool, this.opts.domainOf(t.tool))) continue;
       this.sticky.set(t.tool, this.turn);
       const description = (available?.[t.tool]?.description ?? '').split(/(?<=[.!?])\s/)[0];
       found.push({ name: t.tool, description: description.slice(0, 140) });

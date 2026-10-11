@@ -238,10 +238,8 @@ async function withoutAccountTools(
 }
 
 /**
- * TOOL_CORE_STATIC: tools findTools added to the agent after this reply began.
- * The SDK runs each step of a reply, and the tool calls in it, against the
- * tool context the reply started with, so they go into that same object: the
- * model's next step can call what it just found, in this turn.
+ * TOOL_CORE_STATIC: tools findTools added to the agent mid-reply go into the
+ * reply's own tool context, which the SDK runs the reply's next step against.
  */
 export function withPinnedTools(toolCtx: llm.ToolContext, agent: object | undefined): void {
   const own = (agent as Partial<ToolHolder> | undefined)?.toolCtx?.functionTools;

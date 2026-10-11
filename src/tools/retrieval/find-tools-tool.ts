@@ -21,10 +21,7 @@ import { getTurnToolRetrieval } from './turn-tool-retrieval.js';
 
 export const FIND_TOOLS = 'findTools';
 
-export interface FoundTool {
-  name: string;
-  description: string;
-}
+export type FoundTool = { name: string; description: string };
 
 /** Adds the named tools to the session's agent; returns the ones it now has. `need` is for the audit log. */
 export type ToolPinner = (names: readonly string[], need: string) => Promise<FoundTool[]>;

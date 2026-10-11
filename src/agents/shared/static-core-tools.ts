@@ -1,7 +1,6 @@
 /**
- * TOOL_CORE_STATIC: the one tool set a call keeps (tool-config.ts). Core tools
- * the essential domains lack (quickTimer, getWeatherForecast...) are built by
- * name, so the whole core is on the first request.
+ * TOOL_CORE_STATIC: the call's one tool set (tool-config.ts), core tools the
+ * essential domains lack built by name; and the findTools pinner.
  *
  * @module agents/shared/static-core-tools
  */
@@ -9,7 +8,7 @@
 import { createHash } from 'node:crypto';
 import type { voice } from '@livekit/agents';
 import { STATIC_CORE_TOOLS, isTeammateTool } from '../../config/tool-config.js';
-import { isFindableDomain } from '../../tools/dynamic-loader/findable-domains.js';
+import { isFindableTool } from '../../tools/dynamic-loader/findable-domains.js';
 import type { FoundTool, ToolPinner } from '../../tools/retrieval/find-tools-tool.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { updateAgentTools } from './tool-updater.js';
@@ -46,7 +45,7 @@ export const buildToolsByName: BuildToolsByName = async (names, ctx) => {
     ]);
   await dynamic.ensureEssentialDomainsLoaded(); // registers every domain's loader (once per job)
   const manual = loadIntentManual();
-  const findable = names.filter((name) => isFindableDomain(manual.tools[name]?.domain));
+  const findable = names.filter((name) => isFindableTool(name, manual.tools[name]?.domain));
   type Domain = Parameters<typeof loader.loadToolDomain>[0];
   const domains = new Set<Domain>();
   for (const name of findable) {
@@ -55,7 +54,7 @@ export const buildToolsByName: BuildToolsByName = async (names, ctx) => {
   }
   await Promise.all([...domains].map((domain) => loader.loadToolDomain(domain)));
   const allowed = findable.filter((name) =>
-    isFindableDomain(registry.toolRegistry.get(name)?.domain)
+    isFindableTool(name, registry.toolRegistry.get(name)?.domain)
   );
   const forbidden = names.filter((name) => !allowed.includes(name));
   if (forbidden.length > 0) log.warn({ forbidden }, 'Tools outside the findable domains not built');
@@ -129,7 +128,7 @@ export function createToolPinner(
 ): ToolPinner {
   return async (names, need) => {
     const domain = domainOf ?? (await intentManualDomainOf());
-    const allowed = names.filter((name) => isFindableDomain(domain(name)));
+    const allowed = names.filter((name) => isFindableTool(name, domain(name)));
     const target = agent() as voice.Agent<UserData> & ToolHolder;
     const missing = allowed.filter((name) => !(name in target.toolCtx.functionTools));
     const built = missing.length > 0 ? await build(missing, ctx) : {};

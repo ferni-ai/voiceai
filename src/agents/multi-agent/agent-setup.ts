@@ -1045,21 +1045,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const effectiveLimit = resolveInitialToolLimit(configuredLimit);
 
   const endCallTool = createEndCallTool(sessionId);
+  const coreCtx = {
+    userId: userId || 'anonymous',
+    sessionId,
+    agentId: persona.id,
+    agentDisplayName: persona.name || persona.id,
+  };
   if (staticCoreToolsEnabled()) {
     // TOOL_CORE_STATIC: one set for the whole call, findTools for the rest.
-    finalTools = (await staticCoreTools(
-      {
-        ...orchestratorTools,
-        [FIND_TOOLS]: createFindToolsTool(),
-        ...(endCallTool ? { [END_CALL]: endCallTool } : {}),
-      },
-      {
-        userId: userId || 'anonymous',
-        sessionId,
-        agentId: persona.id,
-        agentDisplayName: persona.name || persona.id,
-      }
-    )) as typeof finalTools;
+    const have = { ...orchestratorTools, [FIND_TOOLS]: createFindToolsTool() };
+    if (endCallTool) Object.assign(have, { [END_CALL]: endCallTool });
+    finalTools = (await staticCoreTools(have, coreCtx)) as typeof finalTools;
   } else if (effectiveLimit > 0 && toolCount > effectiveLimit) {
     // Use centralized tool capping which handles essential tool prioritization
     finalTools = capToolsToLimit(orchestratorTools, effectiveLimit);
@@ -1842,13 +1838,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         });
         if (staticCoreToolsEnabled()) {
           // findTools appends what it finds to the agent on the call now.
-          const pinner = createToolPinner(agentNow, {
-            userId: userId || 'anonymous',
-            sessionId,
-            agentId: persona.id,
-            agentDisplayName: persona.name || persona.id,
-          });
-          setToolPinner(session, pinner);
+          setToolPinner(session, createToolPinner(agentNow, coreCtx));
           cleanupFunctions.push(() => setToolPinner(session, null));
         }
         await installDirectorNotes({

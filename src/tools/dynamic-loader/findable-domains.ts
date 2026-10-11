@@ -1,8 +1,6 @@
 /**
- * The domains findTools may reach under TOOL_CORE_STATIC: the essential
- * domains and the ones the topic loader can load mid-call, so it reaches no
- * tool a call can't already get. Never developer (runBash), developer-custom,
- * webhooks, voice-enrollment, settings or commerce, whatever those lists say.
+ * What findTools may reach under TOOL_CORE_STATIC: the domains a call can load
+ * today (essential + topic), never NEVER_FINDABLE_DOMAINS (runBash, webhooks).
  *
  * @module tools/dynamic-loader/findable-domains
  */
@@ -26,4 +24,28 @@ const FINDABLE = new Set<string>([
 
 export function isFindableDomain(domain: string | undefined): boolean {
   return domain !== undefined && FINDABLE.has(domain) && !NEVER_FINDABLE_DOMAINS.includes(domain);
+}
+
+/**
+ * Tools that text, call or email someone: only the caller's own words load
+ * them (topic loader), so injected web text can't. callOnBehalf is core.
+ */
+export const NEVER_PIN_TOOLS: readonly string[] = [
+  'approveMessage',
+  'callAndConverse',
+  'multiOutreach',
+  'quickCall',
+  'quickEmail',
+  'quickText',
+  'reachOut',
+  'scheduleAtBestTime',
+  'scheduleEmail',
+  'scheduleMessage',
+  'sendBatchMessages',
+  'sendMessageNow',
+];
+
+/** A tool findTools may offer and pin: a findable domain, and not one that contacts people. */
+export function isFindableTool(name: string, domain: string | undefined): boolean {
+  return isFindableDomain(domain) && !NEVER_PIN_TOOLS.includes(name);
 }

@@ -108,7 +108,6 @@ const DEFAULT_ESSENTIAL_TOOLS = [
   'groundingExercise',
   'breatheWithMe',
   'groundingForTrauma',
-  // Memory
   'rememberAboutUser',
   'recallFromMemory',
   'recallPreviousConversation',
@@ -310,7 +309,6 @@ export function staticCoreToolsEnabled(env: NodeJS.ProcessEnv = process.env): bo
  */
 export const STATIC_CORE_TOOLS: readonly string[] = [
   'getCurrentContext',
-  // Safety: kept whatever their use
   'provideCrisisResources',
   'quickCrisisResources',
   'createSafetyPlan',
@@ -325,7 +323,6 @@ export const STATIC_CORE_TOOLS: readonly string[] = [
   'recallFromMemory',
   'rememberImportantFact',
   'recallPreviousConversation',
-  // The calls people make
   'playMusic',
   'musicControl',
   'quickTimer',
@@ -338,20 +335,15 @@ export const STATIC_CORE_TOOLS: readonly string[] = [
   'tellJoke',
   'getFunFact',
   'callOnBehalf',
-  // Call control
   'gameState',
   'endCall',
   'findTools',
 ];
 
 /** Teammate tools: they differ per user, so they go after the fixed core. */
+const TEAMMATE_TOOLS = ['askForTeammate', 'introduceMember', 'meetTheTeam'];
 export function isTeammateTool(name: string): boolean {
-  return (
-    name.startsWith('handoffTo') ||
-    name === 'askForTeammate' ||
-    name === 'introduceMember' ||
-    name === 'meetTheTeam'
-  );
+  return name.startsWith('handoffTo') || TEAMMATE_TOOLS.includes(name);
 }
 
 export function isStaticCoreTool(name: string): boolean {
