@@ -18,6 +18,7 @@
  * @module agents/personas/turn-shape
  */
 
+import { listeningLines, type ListeningCues } from './listen-first.js';
 import { stanceFor } from './turn-candor.js';
 import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
 
@@ -290,4 +291,18 @@ export function rngFor(text: string): () => number {
 /** The replay harness's entry point (scripts/humanness-eval/replay.ts). */
 export function reminderForTurn(userText: string): string {
   return turnShapeFor(userText).reminder;
+}
+
+/**
+ * LISTEN_FIRST=on, caller low on energy (listen-first.ts): no second story, no
+ * stance, no rough self-correction to dress up a monologue; a few words, an
+ * easy question every other turn at most, or just company.
+ */
+export function listeningShapeFor(
+  userText: string,
+  cues: Omit<ListeningCues, 'aboutFerni'>
+): TurnShape {
+  const move = callerMove(userText);
+  const lines = listeningLines({ ...cues, aboutFerni: move === 'about_ferni' });
+  return { move, shape: 'one', reminder: [REGISTER, ...lines].join(' '), extras: ['listen_first'] };
 }

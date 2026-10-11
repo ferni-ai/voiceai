@@ -29,10 +29,17 @@ import {
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { listenFirstEnabled, listeningCuesFor, withoutSharingNotes } from './listen-first.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
-import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
+import {
+  callerMove,
+  listeningShapeFor,
+  rngFor,
+  turnShapeEnabled,
+  turnShapeFor,
+} from './turn-shape.js';
 import {
   understandingFor,
   understandingMode,
@@ -82,7 +89,10 @@ export function withTurnReminder(
   // Nothing steers back to a locked teammate the caller didn't just name.
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
-  const notes = formatNotes((director?.current() ?? []).filter(keep));
+  // A caller low on energy gets no note pushing Ferni to share (listen-first.ts).
+  const unshared = (n: string[]): string[] =>
+    listeningFor(chatCtx, session) ? withoutSharingNotes(n) : n;
+  const notes = formatNotes(unshared((director?.current() ?? []).filter(keep)));
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
@@ -119,6 +129,12 @@ function callerWords(chatCtx: llm.ChatContext): string {
 function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): string {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
   if (!said) return TURN_STYLE_REMINDER;
+  const listening = listeningFor(chatCtx, session);
+  if (listening) {
+    const turn = listeningShapeFor(said, listening);
+    log.info({ move: turn.move, shape: turn.shape, extras: turn.extras }, 'TURN_SHAPE');
+    return turn.reminder;
+  }
   // Seeded per call and words: the preemptive and final requests agree, but
   // the same words on another call (or said again) can get another shape.
   const { signals, source } = signalsFor(session, said);
@@ -135,6 +151,16 @@ function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): st
     'TURN_SHAPE'
   );
   return turn.reminder;
+}
+
+/** LISTEN_FIRST=on and the caller low on energy: the cues for a listening reply (listen-first.ts). */
+function listeningFor(
+  chatCtx: llm.ChatContext,
+  session: object
+): ReturnType<typeof listeningCuesFor> {
+  if (!listenFirstEnabled()) return null;
+  const { userData } = session as { userData?: { callerTimezone?: string } };
+  return listeningCuesFor(chatCtx.items, userData?.callerTimezone);
 }
 
 /**
