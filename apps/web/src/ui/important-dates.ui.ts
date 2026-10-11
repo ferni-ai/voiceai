@@ -100,7 +100,7 @@ const ICONS = {
   check: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
 };
 
-const DATE_TYPES: { id: DateType; label: string; icon: string }[] = [
+const dateTypes = (): { id: DateType; label: string; icon: string }[] => [
   { id: 'birthday', label: t('importantDates.typeBirthday'), icon: ICONS.cake },
   { id: 'anniversary', label: t('importantDates.typeAnniversary'), icon: ICONS.heart },
   { id: 'memorial', label: t('importantDates.typeMemorial'), icon: ICONS.flower },
@@ -124,7 +124,7 @@ function injectStyles(): void {
     .important-dates-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -512,7 +512,7 @@ function injectStyles(): void {
        RESPONSIVE
        ========================================================================= */
     
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .important-dates-modal {
         width: 100%;
         max-width: none;
@@ -595,7 +595,7 @@ function renderForm(): string {
         <div class="id-form-field">
           <label class="id-form-label">${t('importantDates.type')}</label>
           <select class="id-form-select" id="id-form-type">
-            ${DATE_TYPES.map(dtype => `
+            ${dateTypes().map(dtype => `
               <option value="${dtype.id}" ${state.formType === dtype.id ? 'selected' : ''}>${dtype.label}</option>
             `).join('')}
           </select>
@@ -657,7 +657,7 @@ function renderDateList(): string {
   return state.dates.map((date, index) => {
     if (index === state.editingIndex) return ''; // Hide while editing
     
-    const typeInfo = DATE_TYPES.find(t => t.id === date.type) ?? DATE_TYPES[3]!;
+    const typeInfo = dateTypes().find(t => t.id === date.type) ?? dateTypes()[3]!;
     const displayDate = formatDisplayDate(date.date);
     
     return `

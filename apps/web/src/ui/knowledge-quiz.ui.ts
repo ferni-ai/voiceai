@@ -73,13 +73,13 @@ let state: QuizState = {
 // CONSTANTS
 // ============================================================================
 
-const CATEGORY_LABELS: Record<string, string> = {
+const categoryLabels = (): Record<string, string> => ({
   preferences: t('knowledgeQuiz.categoryPreferences'),
   memories: t('knowledgeQuiz.categoryMemories'),
   goals: t('knowledgeQuiz.categoryGoals'),
   personality: t('knowledgeQuiz.categoryPersonality'),
   fun_facts: t('knowledgeQuiz.categoryFunFacts'),
-};
+});
 
 // ============================================================================
 // INITIALIZATION
@@ -301,7 +301,7 @@ function renderCurrentQuestion(): void {
   categoryIcon.setAttribute('aria-hidden', 'true');
 
   const categoryLabel = document.createElement('span');
-  categoryLabel.textContent = CATEGORY_LABELS[question.category] || t('knowledgeQuiz.defaultCategory');
+  categoryLabel.textContent = categoryLabels()[question.category] || t('knowledgeQuiz.defaultCategory');
 
   category.appendChild(categoryIcon);
   category.appendChild(categoryLabel);
@@ -509,7 +509,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       opacity: 0;
       transition: opacity ${DURATION.NORMAL}ms ${EASING.EXPO_OUT};
       padding: var(--space-md, 16px);

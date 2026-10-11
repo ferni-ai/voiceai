@@ -169,6 +169,21 @@ export function callerRecognitionFor(sessionId: string | undefined): CallerRecog
   return sessionId ? bySession.get(sessionId) : undefined;
 }
 
+/** Sessions whose account came from an authenticated dispatch (accountNamedByDispatch). */
+const namedByDispatch = new Set<string>();
+
+export function rememberDispatchIdentity(sessionId: string, source: string, meta?: string): void {
+  if (!accountNamedByDispatch(source, meta)) return;
+  namedByDispatch.add(sessionId);
+  if (namedByDispatch.size > MAX_SESSIONS)
+    namedByDispatch.delete(namedByDispatch.values().next().value as string);
+}
+
+/** Proven account owner: recognition 'known', or an authenticated dispatch (never a number lookup). */
+export function sessionIsVerifiedOwner(sessionId: string): boolean {
+  return callerRecognitionFor(sessionId)?.status === 'known' || namedByDispatch.has(sessionId);
+}
+
 /** A session known only by its phone number: only conversational tools are open. */
 export function phoneOnlyIdentity(sessionId: string | undefined): boolean {
   return callerRecognitionFor(sessionId)?.status === 'known';

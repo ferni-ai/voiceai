@@ -110,6 +110,18 @@ const MIND_READING =
  */
 const BACK_TO_EARLIER =
   /\bconnect (it |this |that )?(to|with|back)\b|\b(come|circle|go|get) back to\b|\breturn to\b|\bbring (it|that|this) (back|up)\b|\bfollow(ing)? up on\b|\b(still|left) hanging\b/i;
+/**
+ * "Answer that" about something they said rather than asked: by the time Ferni
+ * reads it, "that" is an earlier line. Dev call 2026-10-11: 'Sam mentioned a
+ * sent message with no reply. Answer that instead of focusing on the running.'
+ * reached the reply to "Talk soon", which came out as a guess about why Dana
+ * hadn't written instead of a goodbye. A question they asked still gets
+ * answered ("Sam asked how you are doing; answer that directly" stays).
+ */
+const ANSWER_THAT = /\b(answer|address|respond to) that\b/i;
+const ABOUT_A_QUESTION = /\b(ask|asks|asked|asking|question|questions)\b|\?/i;
+const backToEarlier = (note: string): boolean =>
+  BACK_TO_EARLIER.test(note) || (ANSWER_THAT.test(note) && !ABOUT_A_QUESTION.test(note));
 const STOP = new Set(
   'that this they them their with what have from about your just like been were when then there some would could should into only also very really'.split(
     ' '
@@ -136,7 +148,7 @@ export function parseNotes(reply: string | undefined, call?: Line[]): string[] {
     // A note that is a quoted line for Ferni to say is exactly what we don't want.
     .filter((l) => !/^["“'].*["”']$/.test(l))
     .filter((l) => !GENERIC.test(l) && !PUSHY.test(l) && !MIND_READING.test(l))
-    .filter((l) => directorLooksBack() || !BACK_TO_EARLIER.test(l))
+    .filter((l) => directorLooksBack() || !backToEarlier(l))
     .filter((l) => !said || [...contentWords(l)].some((w) => said.has(w)))
     .map((l) => (l.length > 160 ? `${l.slice(0, 157)}...` : l));
   return notes.slice(0, 2);

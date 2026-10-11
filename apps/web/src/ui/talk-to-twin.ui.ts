@@ -618,7 +618,7 @@ function getTwinStyles(): string {
     .talk-twin-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -890,7 +890,7 @@ function getTwinStyles(): string {
     }
     
     /* Responsive */
-    @media (max-width: clamp(448px, 90vw, 640px)) {
+    @media (max-width: 640px) {
       .twin-container {
         width: 100vw;
         height: 100vh;
