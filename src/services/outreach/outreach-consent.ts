@@ -92,6 +92,16 @@ export function settingsFromChannels(channels: DeliveryChannel[]): SettingsChann
   );
 }
 
+/** What a settings body (POST /api/outreach/preferences) asks to save. */
+export function consentPatchFrom(body: unknown): Partial<OutreachConsent> & ProactiveSettings {
+  const b = (body ?? {}) as { enabled?: unknown; allowedChannels?: unknown };
+  return {
+    ...(typeof b.enabled === 'boolean' && { enabled: b.enabled }),
+    ...(Array.isArray(b.allowedChannels) && { channels: channelsFromSettings(b.allowedChannels) }),
+    ...proactiveSettingsFrom(body),
+  };
+}
+
 export async function readOutreachConsent(userId: string): Promise<OutreachConsent> {
   const db = getFirestoreDb();
   if (!db) return consentFromPrefs(undefined);
