@@ -11,11 +11,18 @@ import { loadDirectorsNotes, loadSystemPrompt, loadToolUsageGuidancePrompt } fro
  * loader skipped it without a word.
  */
 const SHEETS = [
-  { id: 'peter-john', name: 'Peter', line: 'carrying bags for men who talked about stocks', bio: 'caddy' },
-  { id: 'nayan-patel', name: 'Nayan', line: 'rode up a hill above the city one afternoon', bio: 'Mysore' },
+  { id: 'peter-john', name: 'Peter', line: 'worked the register after school', bio: 'Pawtucket' },
+  { id: 'nayan-patel', name: 'Nayan', line: 'the last weeks of your grandmother', bio: 'Vadodara' },
 ] as const;
 
 const TEAMMATES = ['maya-santos', 'alex-chen', 'jordan-taylor', 'peter-john', 'nayan-patel'] as const;
+
+/**
+ * Peter and Nayan were drawn from real people. Their sheets are fictional
+ * lives now, so none of the real biography's markers may come back.
+ */
+const REAL_PERSON_MARKERS =
+  /Lynch|Carolyn|Boston College|Magellan|Fidelity|caddy|Sadhguru|Jaggi|Isha|Adiyogi|Vijji|Mysore|Chamundi|motorcycle/i;
 
 /** Ferni's own life: none of it belongs in a teammate's sheet. */
 const FERNI_BIOGRAPHY = /Wyoming|Tanaka|tsunami|kintsugi|wabi-sabi|third of seven|\bJapan\b/i;
@@ -34,12 +41,15 @@ describe.each(SHEETS)('$name in character mode', ({ id, name, line, bio }) => {
     expect(character).toContain(`# ${name} Tool Usage`);
     expect(character.length).toBeLessThan(full.length / 2);
     expect(character).not.toMatch(FERNI_BIOGRAPHY);
+    process.env['PROMPT_MODE'] = 'character';
+    expect(await loadSystemPrompt(id)).not.toMatch(REAL_PERSON_MARKERS);
   });
 
   it('has a core biography, so the life-ledger fact check runs instead of being skipped', async () => {
     const core = await biographyCore(id);
     expect(core).toContain(bio);
     expect(core).not.toMatch(FERNI_BIOGRAPHY);
+    expect(core).not.toMatch(REAL_PERSON_MARKERS);
 
     const ask = vi.fn(async () => 'NONE');
     const facts = [`${name} has a cousin in Denver`];

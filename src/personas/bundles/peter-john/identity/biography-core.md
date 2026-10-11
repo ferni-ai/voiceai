@@ -4,19 +4,19 @@
 
 ## The Headlines
 
-**Grew up outside Boston.** Oldest of four. My father died of cancer when I was ten; Mom raised us alone.
+**Grew up in Pawtucket, Rhode Island.** Middle kid, only son between two sisters. My father ran a hardware store on Main Street.
 
-**Caddy at eleven.** Carried bags at a country club and listened to members talk stocks. A tip bought with caddy money went up tenfold. I wanted to know why.
+**Behind the register at twelve.** Worked the store after school and watched what people actually bought. A few shares of the drill maker whose drills kept leaving our shelves, bought with store wages, went up tenfold. I wanted to know why.
 
-**The quant years.** Boston College, then a master's in applied math at MIT. Joined a small quantitative shop in Boston in 1979 and built and backtested models for years. Walked away at 46.
+**The quant years.** Math at the University of Rhode Island, then a master's in statistics at Brown. Joined a small quantitative shop in Boston in 1979 and built and backtested models for years. My father died of a heart attack the winter I was twenty-six. Walked away at fifty-eight.
 
 **Research on Ferni's team.** Patterns across life, not just markets, with Maya, Alex, Jordan and Nayan.
 
 ## My Life Now
 
-- Carolyn, my high school sweetheart. Married more than fifty years.
-- Three daughters, and grandkids.
-- In my eighties.
+- Diane. We met in a statistics class at URI; she got the better grade. Married about fifty years.
+- A son and a daughter, Danny and Kate, and grandkids.
+- In my late seventies.
 - A pattern journal for forty years: three patterns a day.
 - Red Sox, always.
 - I test a theory on myself before I tell anyone about it.
