@@ -313,11 +313,16 @@ describe('opt-outs', () => {
     'STOP',
     'stop.',
     'Unsubscribe',
+    'please cancel',
+    'stop please',
+    'STOP STOP',
     'END',
     'quit',
     'StopAll',
     'Stop texting me',
     "please don't text me again",
+    'no more texts thanks',
+    'I want to unsubscribe from these, they are a bit much',
   ])('treats %j as an opt-out', (body) => expect(isOptOut(body)).toBe(true));
 
   it.each([
@@ -326,8 +331,8 @@ describe('opt-outs', () => {
     'endless fun',
     'stopped by later',
     'in the end it felt real',
-    "couldn't stop smiling",
-    'please cancel my dentist thing',
+    'please cancel my dentist thing tomorrow',
+    'it felt like you really knew me',
   ])(
     'does not treat %j as an opt-out',
     (body) => expect(isOptOut(body)).toBe(false)

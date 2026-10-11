@@ -33,10 +33,13 @@ export const REPLY_WINDOW_MS = 72 * 60 * 60 * 1000;
 const COLLECTION = 'feature_checkins';
 const OPTOUTS = 'feature_checkin_optouts';
 const HASH_PURPOSE = 'after-call-checkin/phone/v1';
-// Same rule as the inbound webhook and carriers: a keyword counts only as the whole message,
-// so "in the end it felt real" is a reply, not an opt-out. Plain asks to stop count anywhere.
-const OPT_OUT_WORDS = new Set(['stop', 'stopall', 'unsubscribe', 'cancel', 'end', 'quit']);
-const OPT_OUT_PHRASE = /\b(stop texting|don'?t text|do not text)\b/i;
+// Missing a real opt-out keeps texting someone who asked us to stop, so this leans toward
+// opting out. Unambiguous words count anywhere; stop/cancel/quit/end count in a short message
+// ("please stop", "cancel please"); explicit asks count anywhere. A long reply that merely
+// contains "end" ("in the end it felt real") stays a reply.
+const OPT_OUT_ANYWHERE = /\b(unsubscribe|stopall)\b|\b(stop|quit) (texting|messaging)\b|\b(don'?t|do not) (text|message)\b|\bno more (texts|messages)\b/i;
+const OPT_OUT_SHORT = /\b(stop|cancel|quit|end)\b/i;
+const SHORT_WORDS = 4;
 const keyword = (body: string): string => body.trim().toLowerCase().replace(/[.!\s]+$/, '');
 
 type Env = Record<string, string | undefined>;
@@ -164,7 +167,8 @@ export function phoneHash(raw: string, env: Env = process.env): string | null {
 
 /** Whole-word, case-insensitive, so "unstoppable" is not an opt-out. */
 export const isOptOut = (body: string): boolean =>
-  OPT_OUT_WORDS.has(keyword(body)) || OPT_OUT_PHRASE.test(body);
+  OPT_OUT_ANYWHERE.test(body) ||
+  (keyword(body).split(/\s+/).length <= SHORT_WORDS && OPT_OUT_SHORT.test(body));
 /** START undoes an opt-out, as the webhook's own reply to STOP promises. */
 export const isOptIn = (body: string): boolean => keyword(body) === 'start';
 
