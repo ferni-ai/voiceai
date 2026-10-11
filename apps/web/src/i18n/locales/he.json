@@ -9577,6 +9577,15 @@
     "cta": "רוצים לעזור לשמור על Ferni חינמי?",
     "dismiss": "פשוט כיף לשוחח"
   },
+  "afterCall": {
+    "ariaLabel": "אחרי השיחה",
+    "rememberTitle": "{name} יזכור",
+    "rememberEmpty": "אין משהו חדש לשמור הפעם. תודה על החברה.",
+    "nextStepTitle": "צעד הבא עדין",
+    "invitation": "חזור מתי שתרצה. אני כאן.",
+    "close": "סגור",
+    "seeCost": "כמה עלתה השיחה הזו"
+  },
   "moments": {
     "teamUnlockTitle": "להכיר את {name}",
     "niceWork": "עבודה יפה",

@@ -801,14 +801,13 @@ class VoiceAIApp {
     // Step 8: Now perform the actual disconnect (gracefully)
     await this.performStandardDisconnect(true); // true = skip disconnect sound
 
-    // Step 9: 💰 Show conversation cost transparency ("tip jar")
-    // Give the user a moment to settle, then show the cost card
+    // Step 9: After a moment, the after-call card (flag on) or the cost card (flag off)
     setTimeout(async () => {
       try {
-        const { showConversationCost } = await import('./ui/conversation-cost.ui.js');
-        await showConversationCost();
+        const { showPostCallCard } = await import('./ui/after-call/post-call.js');
+        await showPostCallCard();
       } catch (e) {
-        log.debug('Cost display skipped', { error: String(e) });
+        log.debug('Post-call card skipped', { error: String(e) });
       }
     }, 800);
 

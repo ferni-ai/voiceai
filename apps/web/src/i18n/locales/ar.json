@@ -9817,6 +9817,15 @@
     "cta": "هل تود المساعدة في إبقاء Ferni مجانياً؟",
     "dismiss": "يسعدني فقط التحدث"
   },
+  "afterCall": {
+    "ariaLabel": "بعد مكالمتك",
+    "rememberTitle": "سيتذكر {name}",
+    "rememberEmpty": "لا شيء جديد نحتفظ به هذه المرة. شكرًا على الصحبة.",
+    "nextStepTitle": "خطوة تالية لطيفة",
+    "invitation": "عد متى شئت. سأكون هنا.",
+    "close": "إغلاق",
+    "seeCost": "تكلفة هذه المكالمة"
+  },
   "moments": {
     "teamUnlockTitle": "تعرف على {name}",
     "niceWork": "عمل رائع",

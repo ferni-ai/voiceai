@@ -9497,6 +9497,15 @@
     "cta": "想幫忙讓 Ferni 保持免費嗎？",
     "dismiss": "能聊天就很開心了"
   },
+  "afterCall": {
+    "ariaLabel": "通話之後",
+    "rememberTitle": "{name}會記住",
+    "rememberEmpty": "這次沒有需要記住的新內容。謝謝你的陪伴。",
+    "nextStepTitle": "溫和的下一步",
+    "invitation": "隨時回來，我會在這裡。",
+    "close": "關閉",
+    "seeCost": "這次通話的費用"
+  },
   "moments": {
     "teamUnlockTitle": "認識 {name}",
     "niceWork": "做得好",
