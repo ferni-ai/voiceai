@@ -23,7 +23,13 @@ import { parseArgs } from 'node:util';
 import { llm } from '@livekit/agents';
 
 const { values } = parseArgs({
-  options: { variant: { type: 'string', default: 'off' }, out: { type: 'string' } },
+  options: {
+    variant: { type: 'string', default: 'off' },
+    out: { type: 'string' },
+    // 'gemini' alone when the local GPU is busy; judge the saved replies with qwen later (--rejudge).
+    judges: { type: 'string', default: 'gemini,qwen' },
+    rejudge: { type: 'string' },
+  },
 });
 const project = process.env.GOOGLE_CLOUD_PROJECT;
 if (!project) throw new Error('Set GOOGLE_CLOUD_PROJECT');
@@ -171,9 +177,11 @@ interface Row {
   ms: number;
   lineUs: number;
 }
-const rows: Row[] = [];
+const rows: Row[] = values.rejudge
+  ? (JSON.parse(readFileSync(values.rejudge, 'utf8')) as { judged: Row[] }).judged
+  : [];
 
-for (const call of CALLS) {
+for (const call of values.rejudge ? [] : CALLS) {
   const zone = call.browserZone ?? call.profileZone;
   const start = RealDate.parse(call.start);
   fakeNow = start;
@@ -331,7 +339,11 @@ async function qwenJudge(r: Row): Promise<Record<string, unknown> | null> {
 
 const judged = [];
 for (const r of rows) {
-  const [gemini, qwen] = await Promise.all([geminiJudge(r), qwenJudge(r)]);
+  const use = (values.judges ?? '').split(',');
+  const [gemini, qwen] = await Promise.all([
+    use.includes('gemini') ? geminiJudge(r) : null,
+    use.includes('qwen') ? qwenJudge(r) : null,
+  ]);
   judged.push({ ...r, gemini, qwen });
   process.stderr.write('j');
 }
