@@ -50,7 +50,7 @@ jobs:
   # UNIT TESTS
   # ==========================================================================
   unit-tests:
-    name: Unit Tests
+    name: Agent Unit Tests
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 10
 
@@ -91,7 +91,7 @@ jobs:
   # INTEGRATION TESTS
   # ==========================================================================
   integration-tests:
-    name: Integration Tests
+    name: Agent Integration Tests
     runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: unit-tests
