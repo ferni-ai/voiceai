@@ -19,6 +19,13 @@ vi.mock('@/utils/tracked-timeout.js', () => ({
 
 import { getMomentsManager, resetMomentsManager } from '@/ui/moments/manager.js';
 import { OVERLAY_HOST_STORAGE_KEY, isOverlayHostEnabled } from '@/ui/overlay/overlay-flag.js';
+import { setConnectionState } from '@/state/app.state.js';
+import {
+  INLINE_FEEDBACK_EVENT,
+  appCallSignal,
+  type CallSignal,
+  type InlineFeedbackDetail,
+} from '@/ui/overlay/toast-call-gate.js';
 import {
   dismissToast,
   maxVisibleToasts,
@@ -252,6 +259,141 @@ describe('toast queue semantics', () => {
     showToast({ message: 'Urgent', tone: 'error', priority: 'urgent' });
     showToast({ message: 'System', priority: 'urgent' });
     expect(dropped).not.toHaveBeenCalled();
+  });
+});
+
+/** A call the test starts and ends. */
+function fakeCall(): { signal: CallSignal; start(): void; end(): void } {
+  let live = false;
+  const ends = new Set<() => void>();
+  return {
+    signal: {
+      isLive: () => live,
+      onCallEnd: (callback) => {
+        ends.add(callback);
+        return () => ends.delete(callback);
+      },
+    },
+    start: () => (live = true),
+    end: () => {
+      live = false;
+      ends.forEach((callback) => callback());
+    },
+  };
+}
+
+describe('toast region during a voice call', () => {
+  let call: ReturnType<typeof fakeCall>;
+  const inline: InlineFeedbackDetail[] = [];
+  const onInline = (e: Event) => inline.push((e as CustomEvent<InlineFeedbackDetail>).detail);
+  const texts = () =>
+    [...document.querySelectorAll('.ferni-toast__message')].map((el) => el.textContent);
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '';
+    inline.length = 0;
+    call = fakeCall();
+    resetToastRegion(call.signal);
+    mediaMatches();
+    window.addEventListener(INLINE_FEEDBACK_EVENT, onInline);
+  });
+
+  afterEach(() => {
+    window.removeEventListener(INLINE_FEEDBACK_EVENT, onInline);
+    resetToastRegion();
+    vi.useRealTimers();
+  });
+
+  it('renders an error mid-call', () => {
+    call.start();
+    showToast({ message: "Ferni can't hear you", tone: 'error' });
+    expect(texts()).toEqual(["Ferni can't hear you"]);
+    expect(inline).toEqual([]);
+  });
+
+  it('renders a system toast mid-call', () => {
+    call.start();
+    showToast({ message: 'Call is being recorded', priority: 'system' });
+    expect(texts()).toEqual(['Call is being recorded']);
+  });
+
+  it('hands success to the transcript mid-call instead of rendering it', async () => {
+    const onDismiss = vi.fn();
+    call.start();
+    showToast({ message: 'Saved', tone: 'success', key: 'save', onDismiss });
+    expect(document.querySelector('.ferni-toast')).toBeNull();
+    expect(inline).toEqual([{ message: 'Saved', tone: 'success', key: 'save' }]);
+    expect(onDismiss).not.toHaveBeenCalled(); // never before show() returns
+    await Promise.resolve();
+    expect(onDismiss).toHaveBeenCalledWith('inline');
+  });
+
+  it('holds an achievement until the call ends, then shows it', () => {
+    call.start();
+    showToast({ kind: 'achievement', title: 'Early Bird', message: 'First chat of the day' });
+    showToast({ message: 'Maya left you a note', dismissible: true });
+    expect(document.querySelector('.ferni-toast')).toBeNull();
+    expect(inline).toEqual([]);
+
+    call.end();
+    expect(texts()).toEqual(['First chat of the day', 'Maya left you a note']);
+  });
+
+  it('lets a held toast be dismissed before the call ends', () => {
+    call.start();
+    const id = showToast({ message: 'Later', defer: true });
+    dismissToast(id);
+    call.end();
+    expect(document.querySelector('.ferni-toast')).toBeNull();
+  });
+
+  it('behaves as before outside a call', () => {
+    showToast({ message: 'Saved', tone: 'success' });
+    showToast({ kind: 'achievement', message: 'Early Bird' });
+    expect(texts()).toEqual(['Saved', 'Early Bird']);
+    expect(inline).toEqual([]);
+  });
+
+  it('moves focus to the region on F6 and back on Escape', () => {
+    const composer = document.createElement('input');
+    document.body.appendChild(composer);
+    composer.focus();
+    const press = (key: string) =>
+      document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+
+    showToast({ message: 'Saved' });
+    const region = document.querySelector<HTMLElement>('.ferni-toast-region');
+    // jsdom has no showPopover, so the region never opens and a closed popover
+    // can't take focus. In a browser it is :popover-open whenever it has toasts.
+    region?.removeAttribute('popover');
+    press('F6');
+    expect(document.activeElement).toBe(region);
+    press('Escape');
+    expect(document.activeElement).toBe(composer);
+
+    dismissToast(visibleToastIds()[0] ?? '');
+    press('F6');
+    expect(document.activeElement).toBe(composer); // nothing to read, focus stays
+  });
+});
+
+describe('app call signal', () => {
+  afterEach(() => setConnectionState('disconnected'));
+
+  it('is live while connected or reconnecting and ends on disconnect', () => {
+    const ended = vi.fn();
+    const stop = appCallSignal.onCallEnd(ended);
+    expect(appCallSignal.isLive()).toBe(false);
+    setConnectionState('connected');
+    expect(appCallSignal.isLive()).toBe(true);
+    setConnectionState('reconnecting');
+    expect(appCallSignal.isLive()).toBe(true);
+    expect(ended).not.toHaveBeenCalled();
+    setConnectionState('disconnected');
+    expect(appCallSignal.isLive()).toBe(false);
+    expect(ended).toHaveBeenCalledTimes(1);
+    stop();
   });
 });
 
