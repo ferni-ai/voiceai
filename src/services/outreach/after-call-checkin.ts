@@ -6,14 +6,17 @@
  * only when the agent has COHORT_FLAGS=on and the caller's own cohort flags
  * (read from Firestore) have POST_CALL_CHECKIN=on. Each check-in is written to
  * feature_checkins/{id}; replies to Ferni's number from that phone within
- * REPLY_WINDOW_MS land in feature_checkins/{id}/replies.
+ * REPLY_WINDOW_MS land in feature_checkins/{id}/replies. A reply that opts out
+ * writes feature_checkin_optouts/{phoneHash}, and no check-in goes to that
+ * phone again. Phones are keyed by an HMAC under LOG_HASH_SECRET; without it,
+ * nothing is sent or matched.
  *
  * Firestore, the caller's flags and SMS sending are injected so the logic is
  * testable without a network.
  *
  * @module services/outreach/after-call-checkin
  */
-import { createHash } from 'node:crypto';
+import { createHmac } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { cohortFlagsEnabled, resolveCallerFlags } from '../platform/cohort-flags.js';
@@ -28,8 +31,13 @@ export const MIN_USER_TURNS = 4;
 export const RATE_LIMIT_MS = 20 * 60 * 60 * 1000;
 export const REPLY_WINDOW_MS = 72 * 60 * 60 * 1000;
 const COLLECTION = 'feature_checkins';
+const OPTOUTS = 'feature_checkin_optouts';
+const HASH_PURPOSE = 'after-call-checkin/phone/v1';
+const OPT_OUT = /\b(stop|stopall|unsubscribe|cancel|end|quit)\b|\bstop\s+texting\b/i;
 
-export type SkipReason = 'not-member-call' | 'short-call' | 'recently-sent' | 'no-phone';
+type Env = Record<string, string | undefined>;
+export type SkipReason =
+  'not-member-call' | 'short-call' | 'recently-sent' | 'no-phone' | 'opted-out';
 export type CheckinDecision = { send: true; phone: string } | { send: false; reason: SkipReason };
 
 export interface CheckinRecord {
@@ -40,7 +48,7 @@ export interface CheckinRecord {
   question: string;
   status: 'sent' | 'failed';
   phoneLast4: string;
-  /** sha256 of the normalized phone, so a reply can be matched without storing the number. */
+  /** phoneHash() of the number, so a reply can be matched without storing the number. */
   phoneHash: string;
 }
 
@@ -54,10 +62,12 @@ export interface CheckinStore {
   add: (record: CheckinRecord) => Promise<string>;
   addReply: (checkinId: string, reply: { body: string; receivedAt: string }) => Promise<void>;
   sponsoredPhone: (userId: string) => Promise<string | undefined>;
+  isOptedOut: (phoneHash: string) => Promise<boolean>;
+  addOptOut: (phoneHash: string, optOut: { at: string; via: 'reply' }) => Promise<void>;
 }
 
 export interface CheckinDeps {
-  env: Record<string, string | undefined>;
+  env: Env;
   resolveFlags: (userId: string) => Promise<Record<string, string>>;
   store: CheckinStore;
   contactPhone: (userId: string) => Promise<string | undefined>;
@@ -67,7 +77,7 @@ export interface CheckinDeps {
 
 export interface CheckinOutcome {
   sent: boolean;
-  reason?: SkipReason | 'gate-off' | 'flag-off' | 'send-failed';
+  reason?: SkipReason | 'gate-off' | 'flag-off' | 'no-hash-secret' | 'send-failed';
 }
 
 /** Calls placed on someone's behalf, or with no known person, are not the member's own call. */
@@ -129,20 +139,39 @@ export function normalizePhone(raw: string): string | null {
   return digits.length >= 11 ? digits : null;
 }
 
-export function phoneHash(raw: string): string | null {
-  const n = normalizePhone(raw);
-  return n ? createHash('sha256').update(n).digest('hex') : null;
+let warnedNoSecret = false;
+
+/** This purpose's own key, derived from LOG_HASH_SECRET. Null, with one warning, without it. */
+function phoneHashKey(env: Env): Buffer | null {
+  const secret = env.LOG_HASH_SECRET;
+  if (secret) return createHmac('sha256', secret).update(HASH_PURPOSE).digest();
+  if (!warnedNoSecret) log.warn('LOG_HASH_SECRET is not set, so check-in texts are off');
+  warnedNoSecret = true;
+  return null;
 }
 
+/** HMAC of the E.164 number. Unkeyed, a ~10^10 number space is brute-forced in minutes. */
+export function phoneHash(raw: string, env: Env = process.env): string | null {
+  const n = normalizePhone(raw);
+  const key = n ? phoneHashKey(env) : null;
+  return n && key ? createHmac('sha256', key).update(`+${n}`).digest('hex') : null;
+}
+
+/** Whole-word, case-insensitive, so "unstoppable" is not an opt-out. */
+export const isOptOut = (body: string): boolean => OPT_OUT.test(body);
+
 const last4 = (phone: string): string => phone.replace(/\D/g, '').slice(-4);
+/** Twilio errors can quote the number (21211: "The 'To' number +1555... is not valid"). */
+export const redactNumbers = (text?: string): string | undefined =>
+  text?.replace(/\+?\d[\d ().-]{5,}\d/g, '[number]');
 
 /**
  * The userId to store, query by and hand to SMS delivery. A `phone:` id is
  * the caller's number, so it is replaced by the hash; sms-delivery logs userId.
  */
-export function recordUserId(userId: string): string {
+export function recordUserId(userId: string, env: Env = process.env): string {
   if (!userId.startsWith('phone:')) return userId;
-  return `phone#${phoneHash(userId.slice('phone:'.length)) ?? 'invalid'}`;
+  return `phone#${phoneHash(userId.slice('phone:'.length), env) ?? 'invalid'}`;
 }
 
 /** The after-call task. Never reads POST_CALL_CHECKIN from process.env. */
@@ -158,8 +187,9 @@ export async function runAfterCallCheckin(
   // Read the flag from Firestore, not process.env: by now the next call may have replaced env with another caller's flags.
   const flags = await deps.resolveFlags(ctx.userId);
   if (flags.POST_CALL_CHECKIN !== 'on') return { sent: false, reason: 'flag-off' };
+  if (!phoneHashKey(deps.env)) return { sent: false, reason: 'no-hash-secret' };
 
-  const storedId = recordUserId(ctx.userId);
+  const storedId = recordUserId(ctx.userId, deps.env);
   const [records, phone] = await Promise.all([
     deps.store.forUser(storedId),
     resolveCheckinPhone(ctx.userId, deps),
@@ -173,17 +203,16 @@ export async function runAfterCallCheckin(
     now,
   });
   const logCtx = { userId: storedId.slice(0, 8), sessionId: ctx.sessionId };
-  if (!decision.send) {
-    log.info({ ...logCtx, reason: decision.reason }, 'Check-in text skipped');
-    return { sent: false, reason: decision.reason };
-  }
+  const skip = (reason: SkipReason): CheckinOutcome => {
+    log.info({ ...logCtx, reason }, 'Check-in text skipped');
+    return { sent: false, reason };
+  };
+  if (!decision.send) return skip(decision.reason);
 
-  const hash = phoneHash(decision.phone);
+  const hash = phoneHash(decision.phone, deps.env);
   const phoneLast4 = last4(decision.phone);
-  if (!hash) {
-    log.info({ ...logCtx, phoneLast4 }, 'Check-in text skipped: unusable phone number');
-    return { sent: false, reason: 'no-phone' };
-  }
+  if (!hash) return skip('no-phone');
+  if (await deps.store.isOptedOut(hash)) return skip('opted-out');
   const result = await deps.send({
     to: decision.phone,
     body: CHECKIN_QUESTION,
@@ -201,7 +230,8 @@ export async function runAfterCallCheckin(
     phoneHash: hash,
   });
   if (!result.success) {
-    log.warn({ ...logCtx, phoneLast4, error: result.error }, 'Check-in text not sent');
+    const error = redactNumbers(result.error);
+    log.warn({ ...logCtx, phoneLast4, error }, 'Check-in text not sent');
     return { sent: false, reason: 'send-failed' };
   }
   log.info({ ...logCtx, phoneLast4 }, 'Check-in text sent');
@@ -221,23 +251,30 @@ export function matchCheckin(records: readonly StoredCheckin[], now: Date): Stor
 
 /**
  * Inbound SMS hook: if the sender got a check-in in the last 72 hours, keeps
- * their reply under it. Returns the check-in id, or null. Never throws, so
- * the caller's own handling of the message is unaffected.
+ * their reply under it, and records an opt-out if it is one. Returns the
+ * check-in id, or null. Never throws, so the caller's own handling of the
+ * message is unaffected.
  */
 export async function recordCheckinReply(
   from: unknown,
   body: unknown,
-  deps: Pick<CheckinDeps, 'store' | 'now'> = { store: firestoreCheckinStore, now: () => new Date() }
+  deps: Pick<CheckinDeps, 'store' | 'now' | 'env'> = {
+    store: firestoreCheckinStore,
+    now: () => new Date(),
+    env: process.env,
+  }
 ): Promise<string | null> {
   if (typeof from !== 'string' || typeof body !== 'string') return null;
-  const hash = phoneHash(from);
+  const hash = phoneHash(from, deps.env);
   if (!hash) return null;
   try {
     const now = deps.now();
     const match = matchCheckin(await deps.store.forPhoneHash(hash), now);
     if (!match) return null;
     await deps.store.addReply(match.id, { body, receivedAt: now.toISOString() });
-    log.info({ checkinId: match.id, phoneLast4: last4(from) }, 'Check-in reply recorded');
+    const optOut = isOptOut(body);
+    if (optOut) await deps.store.addOptOut(hash, { at: now.toISOString(), via: 'reply' });
+    log.info({ checkinId: match.id, phoneLast4: last4(from), optOut }, 'Check-in reply recorded');
     return match.id;
   } catch (error) {
     log.warn({ error: String(error), phoneLast4: last4(from) }, 'Check-in reply not recorded');
@@ -276,6 +313,12 @@ export const firestoreCheckinStore: CheckinStore = {
     const doc = await db().collection('sponsored_identities').doc(userId).get();
     const phone: unknown = doc.exists ? doc.data()?.phoneNumber : undefined;
     return typeof phone === 'string' ? phone : undefined;
+  },
+  async isOptedOut(hash) {
+    return (await db().collection(OPTOUTS).doc(hash).get()).exists;
+  },
+  async addOptOut(hash, optOut) {
+    await db().collection(OPTOUTS).doc(hash).set(optOut);
   },
 };
 

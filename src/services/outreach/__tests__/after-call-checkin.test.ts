@@ -1,12 +1,15 @@
+import { createHash } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   CHECKIN_QUESTION,
   decideCheckin,
+  isOptOut,
   lastSentAt,
   matchCheckin,
   phoneHash,
   recordCheckinReply,
   recordUserId,
+  redactNumbers,
   resolveCheckinPhone,
   runAfterCallCheckin,
   type CheckinDeps,
@@ -19,6 +22,8 @@ import type { AfterCallContext } from '../../session/after-call-tasks.js';
 const NOW = new Date('2026-10-11T18:00:00Z');
 const HOUR = 60 * 60 * 1000;
 const ago = (h: number): string => new Date(NOW.getTime() - h * HOUR).toISOString();
+const ENV = { COHORT_FLAGS: 'on', LOG_HASH_SECRET: 'test-secret' };
+const HASH = phoneHash('+15551234567', ENV) ?? '';
 
 function turns(userCount: number): AfterCallContext['turns'] {
   return Array.from({ length: userCount }, () => [
@@ -40,13 +45,14 @@ function stored(over: Partial<StoredCheckin> = {}): StoredCheckin {
     question: CHECKIN_QUESTION,
     status: 'sent',
     phoneLast4: '4567',
-    phoneHash: phoneHash('+15551234567') ?? '',
+    phoneHash: HASH,
     ...over,
   };
 }
 
-function makeStore(existing: StoredCheckin[] = []) {
+function makeStore(existing: StoredCheckin[] = [], optedOut: string[] = []) {
   const added: CheckinRecord[] = [];
+  const optOuts: Array<{ hash: string; via: string }> = [];
   const replies: Array<{ id: string; body: string }> = [];
   const store: CheckinStore = {
     forUser: vi.fn(async (userId: string) => existing.filter((r) => r.userId === userId)),
@@ -59,14 +65,22 @@ function makeStore(existing: StoredCheckin[] = []) {
       replies.push({ id, body: reply.body });
     }),
     sponsoredPhone: vi.fn(async () => '+15559990000'),
+    isOptedOut: vi.fn(async (h: string) => optedOut.includes(h)),
+    addOptOut: vi.fn(async (hash: string, o: { via: string }) => {
+      optOuts.push({ hash, via: o.via });
+    }),
   };
-  return { store, added, replies };
+  return { store, added, replies, optOuts };
 }
 
-function deps(over: Partial<CheckinDeps> = {}, existing: StoredCheckin[] = []) {
-  const s = makeStore(existing);
+function deps(
+  over: Partial<CheckinDeps> = {},
+  existing: StoredCheckin[] = [],
+  optedOut: string[] = []
+) {
+  const s = makeStore(existing, optedOut);
   const d: CheckinDeps = {
-    env: { COHORT_FLAGS: 'on' },
+    env: ENV,
     resolveFlags: vi.fn(async () => ({ POST_CALL_CHECKIN: 'on' })),
     store: s.store,
     contactPhone: vi.fn(async () => '+15551234567'),
@@ -226,8 +240,8 @@ describe('runAfterCallCheckin', () => {
     expect(await runAfterCallCheckin(ctx({ userId: 'phone:+15551234567' }), d)).toEqual({
       sent: true,
     });
-    const hashedId = recordUserId('phone:+15551234567');
-    expect(hashedId).toBe(`phone#${phoneHash('+15551234567')}`);
+    const hashedId = recordUserId('phone:+15551234567', ENV);
+    expect(hashedId).toBe(`phone#${HASH}`);
     expect(added[0]?.userId).toBe(hashedId);
     expect(d.send).toHaveBeenCalledWith(expect.objectContaining({ userId: hashedId }));
     expect(JSON.stringify(added)).not.toContain('5551234567');
@@ -239,6 +253,22 @@ describe('runAfterCallCheckin', () => {
     });
   });
 
+  it('sends nothing and reads nothing without LOG_HASH_SECRET', async () => {
+    const { d, added } = deps({ env: { COHORT_FLAGS: 'on' } });
+    expect(await runAfterCallCheckin(ctx(), d)).toEqual({ sent: false, reason: 'no-hash-secret' });
+    expect(d.store.forUser).not.toHaveBeenCalled();
+    expect(d.send).not.toHaveBeenCalled();
+    expect(added).toEqual([]);
+  });
+
+  it('skips a phone that opted out, before sending or recording', async () => {
+    const { d, added } = deps({}, [], [HASH]);
+    expect(await runAfterCallCheckin(ctx(), d)).toEqual({ sent: false, reason: 'opted-out' });
+    expect(d.store.isOptedOut).toHaveBeenCalledWith(HASH);
+    expect(d.send).not.toHaveBeenCalled();
+    expect(added).toEqual([]);
+  });
+
   it('records a failed send as failed', async () => {
     const { d, added } = deps({
       send: vi.fn(async () => ({ success: false, error: 'SMS delivery not initialized' })),
@@ -248,7 +278,76 @@ describe('runAfterCallCheckin', () => {
   });
 });
 
+describe('phoneHash', () => {
+  it('is keyed: two secrets give two hashes, neither is the plain sha256', () => {
+    const a = phoneHash('+15551234567', { LOG_HASH_SECRET: 'one' });
+    const b = phoneHash('+15551234567', { LOG_HASH_SECRET: 'two' });
+    expect(a).toMatch(/^[0-9a-f]{64}$/);
+    expect(a).not.toBe(b);
+    expect(a).toBe(phoneHash('(555) 123-4567', { LOG_HASH_SECRET: 'one' }));
+    expect(a).not.toBe(createHash('sha256').update('15551234567').digest('hex'));
+    expect(a).not.toBe(createHash('sha256').update('+15551234567').digest('hex'));
+  });
+
+  it('is null without LOG_HASH_SECRET', () => {
+    expect(phoneHash('+15551234567', {})).toBeNull();
+    expect(phoneHash('+15551234567', { LOG_HASH_SECRET: '' })).toBeNull();
+  });
+});
+
+describe('redactNumbers', () => {
+  it('removes a number quoted in a Twilio error but keeps the error code', () => {
+    const out = redactNumbers(
+      "21211: The 'To' number +1 (555) 123-4567 is not a valid phone number."
+    );
+    expect(out).toBe("21211: The 'To' number [number] is not a valid phone number.");
+    expect(redactNumbers(undefined)).toBeUndefined();
+  });
+});
+
+describe('opt-outs', () => {
+  it.each([
+    'STOP',
+    'stop.',
+    'Unsubscribe',
+    'please cancel',
+    'END',
+    'quit',
+    'StopAll',
+    'Stop texting me',
+  ])('treats %j as an opt-out', (body) => expect(isOptOut(body)).toBe(true));
+
+  it.each(['that was unstoppable', 'felt real', 'endless fun', 'stopped by later'])(
+    'does not treat %j as an opt-out',
+    (body) => expect(isOptOut(body)).toBe(false)
+  );
+
+  it('records an opt-out reply under that phone hash, and keeps the reply', async () => {
+    const { d, replies, optOuts } = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
+    expect(await recordCheckinReply('+15551234567', 'STOP', d)).toBe('c9');
+    expect(optOuts).toEqual([{ hash: HASH, via: 'reply' }]);
+    expect(replies).toEqual([{ id: 'c9', body: 'STOP' }]);
+  });
+
+  it('does not record "unstoppable" as an opt-out', async () => {
+    const { d, replies, optOuts } = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
+    expect(await recordCheckinReply('+15551234567', 'honestly unstoppable', d)).toBe('c9');
+    expect(optOuts).toEqual([]);
+    expect(replies).toHaveLength(1);
+  });
+});
+
 describe('replies', () => {
+  it('match only when the sending and receiving sides share the secret', async () => {
+    const same = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
+    expect(await recordCheckinReply('+15551234567', 'ok', same.d)).toBe('c9');
+    const other = deps({ env: { LOG_HASH_SECRET: 'rotated' } }, [stored({ id: 'c9' })]);
+    expect(await recordCheckinReply('+15551234567', 'ok', other.d)).toBeNull();
+    const none = deps({ env: {} }, [stored({ id: 'c9' })]);
+    expect(await recordCheckinReply('+15551234567', 'STOP', none.d)).toBeNull();
+    expect(none.optOuts).toEqual([]);
+  });
+
   it('matches the latest check-in sent to that phone within 72 hours', () => {
     const r = [
       stored({ id: 'old', sentAt: ago(80) }),
