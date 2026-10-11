@@ -14,7 +14,7 @@
  * @module custom-agent-wizard.ui
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { t } from '../i18n/index.js';
@@ -267,7 +267,7 @@ function renderStep(): void {
   }
 
   // Animate in
-  content.animate(
+  safeAnimate(content,
     [
       { opacity: 0, transform: 'translateY(10px)' },
       { opacity: 1, transform: 'translateY(0)' },

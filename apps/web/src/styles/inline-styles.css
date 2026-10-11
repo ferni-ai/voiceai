@@ -3832,7 +3832,7 @@ body {
 
 .avatar-lid-overlay .lid-top,
 .avatar-lid-overlay .lid-bottom {
-  fill: var(--color-background-primary, #1a1612);
+  fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520)); /* a shade of the face, not the page: a page-colored lid cut a crescent out of the avatar */
   transition: d 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -3872,7 +3872,7 @@ body {
 [data-theme='dark'] .avatar-lid-overlay .lid-bottom,
 [data-theme='dark'] .avatar-lid-overlay .brow-left,
 [data-theme='dark'] .avatar-lid-overlay .brow-right {
-  fill: var(--color-background-primary, #352e28);
+  fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520));
 }
 
 /* Reduced motion - disable lid transitions */
