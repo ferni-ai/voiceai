@@ -95,7 +95,10 @@ describe('buildSuggestionsDocument', () => {
       ?.getAttribute('content');
     expect(csp).toContain("default-src 'none'");
     expect(csp).not.toContain('script-src');
-    expect(csp).not.toContain('https:'); // no network fetches, so no view-tracking pixels
+    // Images only from Google's hosts (no third-party view-tracking pixels), no fonts, no scripts.
+    expect(csp).toBe(
+      "default-src 'none'; style-src 'unsafe-inline'; img-src data: https://www.gstatic.com https://www.google.com"
+    );
     expect(doc.querySelector('base')?.getAttribute('target')).toBe('_blank');
     expect(doc.querySelectorAll('script')).toHaveLength(0);
     expect(doc.querySelector('a.chip')?.getAttribute('href')).toBe(CHIP_HREF);

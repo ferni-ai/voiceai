@@ -473,15 +473,9 @@ class VoiceAIApp {
       return;
     }
 
-    // Answer card page, opened from a text link: /a/:id
-    if (window.location.pathname.startsWith('/a/')) {
-      const { answerCardIdFromPath, initAnswerCardPage } = await import('./ui/answer-card-page.ui.js');
-      const cardId = answerCardIdFromPath(window.location.pathname);
-      if (cardId) {
-        await initAnswerCardPage(cardId);
-        return;
-      }
-    }
+    // Pages opened from a text link that replace the app (/a/:id)
+    const { openStandalonePage } = await import('./app/standalone-pages.js');
+    if (await openStandalonePage(window.location.pathname)) return;
 
     // Check for CLI authentication route
     if (window.location.pathname === '/cli-auth') {
