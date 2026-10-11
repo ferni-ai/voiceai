@@ -613,7 +613,7 @@
       "_original": "Check if bringing in a team member would add value to the current conversation. Use this when you"
     },
     "checkConciergeStatus": {
-      "description": "Check the status of active concierge outreach requests (hotel quotes, restaurant reservations, appointments, service quotes). Use when user asks about pending requests.",
+      "description": "Use when the user asks about hotel quotes, reservations or appointments you were getting for them. Relay the result exactly.",
       "file": "src/tools/domains/concierge/index.ts"
     },
     "checkFinancialHealth": {
@@ -2106,7 +2106,7 @@
       "_original": "Get status of all savings goals. Use when the user asks about: - Savings progress - Goal status - Emergency fund"
     },
     "getServiceQuotes": {
-      "description": "Contact local service providers (plumbers, electricians, cleaners, etc.) to get quotes. AI-powered concierge calls businesses on user's behalf to get pricing and availability. Use when user needs home services quotes.",
+      "description": "Use when the user asks you to get quotes from a plumber, electrician, cleaner or other home service. Calling businesses isn't available yet: relay the result exactly and offer the alternative it gives.",
       "file": "src/tools/domains/concierge/index.ts"
     },
     "getShoppingList": {
@@ -2649,7 +2649,7 @@
       "file": "src/tools/scheduling/appointments-tools.ts"
     },
     "makeRestaurantReservation": {
-      "description": "Book restaurant tables via AI-powered concierge. Calls restaurants to check availability, make reservations, and handle special requests. Use when user wants to reserve a table, book for a party, or make dining reservations.",
+      "description": "Use when the user asks you to book a restaurant table. Calling businesses isn't available yet: relay the result exactly and offer the alternative it gives.",
       "file": "src/tools/domains/concierge/index.ts"
     },
     "makeTextGameMove": {
@@ -3446,7 +3446,7 @@
       "file": "src/tools/domains/difficult-conversations/index.ts"
     },
     "requestHotelQuotes": {
-      "description": "Contact hotels to get room rates and availability. AI-powered concierge calls hotels on user's behalf to compare prices and book rooms. Use when user wants hotel quotes, room rates, or to book accommodations.",
+      "description": "Use when the user asks you to call hotels for rates or to book a room. Calling businesses isn't available yet: relay the result exactly and offer the alternative it gives.",
       "file": "src/tools/domains/concierge/index.ts"
     },
     "requestMayaRetirementHelp": {
@@ -3609,7 +3609,7 @@
       "file": "src/tools/proactive.ts"
     },
     "scheduleHealthcareAppointment": {
-      "description": "Schedule doctor, dentist, specialist, or other healthcare appointments. AI-powered concierge calls providers to find availability and book appointments. Use when user wants to schedule medical appointments or find healthcare providers.",
+      "description": "Use when the user asks you to book a doctor, dentist or specialist appointment. Calling businesses isn't available yet: relay the result exactly and offer the alternative it gives.",
       "file": "src/tools/domains/concierge/index.ts"
     },
     "scheduleJoy": {
