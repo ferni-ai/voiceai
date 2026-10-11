@@ -309,7 +309,6 @@ const FEATURE_LOCK_MAP: Record<string, string> = {
   predictions: 'prediction-accuracy',
   'group-coaching': 'group-coaching',
   'video-call-settings': 'video-sessions',
-
   // Established stage (20+ convos, 14+ days). What Ferni remembers is open from the first call.
   ...(memoryControlEnabled() ? {} : { cognitive: 'deep-insights' }),
   history: 'conversation-history',
@@ -844,6 +843,7 @@ class SettingsMenuUI {
             ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects'), !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
             ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
+            ${memoryControlEnabled() ? this.renderMenuItem('cognitive', ICONS.brain, t('ferniKnows.panelTitle')) : ''}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
                 )
