@@ -37,8 +37,17 @@
 // value is the median (or rate) over calls in the window; n is how many calls
 // or items it rests on. A null value means nothing measured it yet.
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { checkRun, parseChecks } from './recall-facts.mjs';
 
@@ -318,11 +327,11 @@ export function coachOf(picks, since, until) {
   );
   const HELP = { yes: 1, somewhat: 0.5, no: 0 };
   // Asked on a call within LANDED_DAYS of falling due (it can't be asked before).
-  const askedInTime = (p) =>
-    typeof p.followUpAskedAt === 'string' &&
-    Date.parse(p.followUpAskedAt) - Date.parse(p.followUpDueAt) <= LANDED_DAYS * 86_400_000
-      ? 1
-      : 0;
+  const askedInTime = (p) => {
+    if (typeof p.followUpAskedAt !== 'string') return 0;
+    const late = Date.parse(p.followUpAskedAt) - Date.parse(p.followUpDueAt);
+    return late >= 0 && late <= LANDED_DAYS * 86_400_000 ? 1 : 0;
+  };
   return {
     coachTriedRate: dim(
       tried,
@@ -501,26 +510,26 @@ function ownerPicks() {
   const mask = COACH_FIELDS.map((f) => `mask.fieldPaths=${f}`).join('&');
   const base = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/bogle_users/${OWNER}/coach_media_picks?pageSize=300&${mask}`;
   const out = [];
-  let page = '';
-  do {
-    const body = JSON.parse(
-      execFileSync(
-        'curl',
-        [
-          '-sf',
-          '-H',
-          `Authorization: Bearer ${token}`,
-          `${base}${page ? `&pageToken=${page}` : ''}`,
-        ],
-        { encoding: 'utf8' }
-      )
-    );
-    for (const d of body.documents ?? []) {
-      const f = d.fields ?? {};
-      out.push(Object.fromEntries(COACH_FIELDS.map((k) => [k, firestoreValue(f[k])])));
-    }
-    page = body.nextPageToken ?? '';
-  } while (page);
+  // The token goes to curl in a 0600 header file, never on its command line.
+  const dir = mkdtempSync(join(tmpdir(), 'scorecard-'));
+  const header = join(dir, 'auth');
+  writeFileSync(header, `Authorization: Bearer ${token}\n`, { mode: 0o600 });
+  try {
+    let page = '';
+    do {
+      const url = `${base}${page ? `&pageToken=${page}` : ''}`;
+      const body = JSON.parse(
+        execFileSync('curl', ['-sf', '-H', `@${header}`, url], { encoding: 'utf8' })
+      );
+      for (const d of body.documents ?? []) {
+        const f = d.fields ?? {};
+        out.push(Object.fromEntries(COACH_FIELDS.map((k) => [k, firestoreValue(f[k])])));
+      }
+      page = body.nextPageToken ?? '';
+    } while (page);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
   return out;
 }
 

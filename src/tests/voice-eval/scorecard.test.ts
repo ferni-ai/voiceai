@@ -219,15 +219,16 @@ describe('coaching dimensions', () => {
         sent({ followUpAskedAt: '2026-10-12T09:00:00Z' }), // 7 days later: landed
         sent({ followUpAskedAt: '2026-10-13T09:00:00Z', outcome: 'done' }), // asked late: a miss
         sent({ outcome: null }), // never asked: a miss
+        sent({ followUpAskedAt: '2026-10-04T09:00:00Z' }), // before it was due: a miss
         sent({ followUpDueAt: '2026-10-20T00:00:00Z' }), // not due yet
         pick({ followUpDueAt: '2026-10-05T10:00:00Z' }), // never sent
       ],
       since,
       until
     );
-    expect(c.coachFollowUpLanded.current.prodReal).toEqual({ value: 0.5, n: 4, due: 4 });
+    expect(c.coachFollowUpLanded.current.prodReal).toEqual({ value: 0.4, n: 5, due: 5 });
     expect(c.coachFollowUpLanded.trend).toEqual([
-      { date: '2026-10-05', prodReal: 0.5, devEval: null },
+      { date: '2026-10-05', prodReal: 0.4, devEval: null },
     ]);
   });
 
