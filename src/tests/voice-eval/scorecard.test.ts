@@ -212,21 +212,22 @@ describe('coaching dimensions', () => {
     expect(c.coachHelpfulRate.current.prodReal).toEqual({ value: 0.5, n: 3 });
   });
 
-  it('follow-ups landed: asked (any outcome) over sent picks due in the window, with due', () => {
+  it('follow-ups landed: asked within 7 days of falling due, over sent picks due, with due', () => {
     const c = coachOf(
       [
-        sent({ outcome: 'done' }),
-        sent({ outcome: 'unanswered' }),
-        sent({ outcome: null }),
-        sent({ outcome: null, followUpDueAt: '2026-10-20T00:00:00Z' }), // not due yet
+        sent({ followUpAskedAt: '2026-10-06T09:00:00Z' }), // next day: landed
+        sent({ followUpAskedAt: '2026-10-12T09:00:00Z' }), // 7 days later: landed
+        sent({ followUpAskedAt: '2026-10-13T09:00:00Z', outcome: 'done' }), // asked late: a miss
+        sent({ outcome: null }), // never asked: a miss
+        sent({ followUpDueAt: '2026-10-20T00:00:00Z' }), // not due yet
         pick({ followUpDueAt: '2026-10-05T10:00:00Z' }), // never sent
       ],
       since,
       until
     );
-    expect(c.coachFollowUpLanded.current.prodReal).toEqual({ value: 0.67, n: 3, due: 3 });
+    expect(c.coachFollowUpLanded.current.prodReal).toEqual({ value: 0.5, n: 4, due: 4 });
     expect(c.coachFollowUpLanded.trend).toEqual([
-      { date: '2026-10-05', prodReal: 0.67, devEval: null },
+      { date: '2026-10-05', prodReal: 0.5, devEval: null },
     ]);
   });
 
@@ -275,6 +276,7 @@ describe('coaching dimensions', () => {
     expect(firestoreValue({ integerValue: '3200' })).toBe(3200);
     expect(firestoreValue({ booleanValue: false })).toBe(false);
     expect(firestoreValue({ nullValue: null })).toBeNull();
+    expect(firestoreValue({ timestampValue: '2026-10-05T10:00:00Z' })).toBe('2026-10-05T10:00:00Z');
     expect(firestoreValue(undefined)).toBeNull();
   });
 });

@@ -154,11 +154,16 @@ export const DIMENSIONS = {
     target: { value: 0.7, why: 'assumed: no published baseline; "somewhat" counts as 0.5' },
   },
   coachFollowUpLanded: {
-    label: 'Sent recommendations whose follow-up was asked by its due time',
+    label: 'Sent recommendations whose follow-up was asked within 7 days of falling due',
     unit: 'rate',
     better: 'higher',
     human: null,
-    target: { value: 0.9, why: 'a friend who checks back; assumed, not measured' },
+    target: {
+      value: 0.9,
+      why:
+        'a friend who checks back; assumed, not measured. A follow-up is asked on the first call ' +
+        'after it falls due, so one due in the last 7 days with no call since reads as a miss',
+    },
   },
   coachTimeToPick: {
     label: 'Time to the first checked recommendation in a call, p50',
@@ -279,9 +284,11 @@ export function panelOf(reports) {
 
 /**
  * Coaching picks [{ offeredAt, firstInCall, latencyMs, sentAt, followUpDueAt,
- * outcome, helped, answeredAt }] -> { <coach dimension>: { current, trend } }.
+ * followUpAskedAt, outcome, helped, answeredAt }] -> { <coach dimension>: { current, trend } }.
  * n is each rate's denominator; nothing to count gives value null, n 0.
  */
+const LANDED_DAYS = 7;
+
 export function coachOf(picks, since, until) {
   const inWindow = (t) => typeof t === 'string' && t >= since && t < until;
   const round = (x) => Math.round(x * 100) / 100;
@@ -310,6 +317,12 @@ export function coachOf(picks, since, until) {
     (p) => p.firstInCall && inWindow(p.offeredAt) && Number.isFinite(p.latencyMs)
   );
   const HELP = { yes: 1, somewhat: 0.5, no: 0 };
+  // Asked on a call within LANDED_DAYS of falling due (it can't be asked before).
+  const askedInTime = (p) =>
+    typeof p.followUpAskedAt === 'string' &&
+    Date.parse(p.followUpAskedAt) - Date.parse(p.followUpDueAt) <= LANDED_DAYS * 86_400_000
+      ? 1
+      : 0;
   return {
     coachTriedRate: dim(
       tried,
@@ -324,7 +337,7 @@ export function coachOf(picks, since, until) {
     coachFollowUpLanded: dim(
       due,
       (p) => p.followUpDueAt,
-      (xs) => rate(xs, (p) => (p.outcome ? 1 : 0)),
+      (xs) => rate(xs, askedInTime),
       (xs) => ({ due: xs.length })
     ),
     coachTimeToPick: dim(
@@ -468,6 +481,7 @@ const COACH_FIELDS = [
   'outcome',
   'helped',
   'answeredAt',
+  'followUpAskedAt',
 ];
 
 /** A Firestore REST value as plain JS; null when absent or null. */
@@ -477,6 +491,7 @@ export function firestoreValue(v) {
   if ('booleanValue' in v) return v.booleanValue;
   if ('integerValue' in v) return Number(v.integerValue);
   if ('doubleValue' in v) return v.doubleValue;
+  if ('timestampValue' in v) return v.timestampValue;
   return null;
 }
 
