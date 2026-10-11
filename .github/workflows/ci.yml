@@ -713,6 +713,10 @@ jobs:
       - name: Quality ratchet
         run: pnpm tsx apps/cli/src/commands/quality/ratchet.ts
 
+      # Blocking ratchet: a new import edge breaking architecture-layers.ts fails. ~5 s; scoreboard in job summary.
+      - name: Architecture gate
+        run: pnpm quality:arch
+
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
 
