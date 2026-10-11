@@ -96,12 +96,32 @@ export class PreSTTFrameProcessor extends FrameProcessor<AudioFrame> {
   }
 }
 
-/** Phone callers reach the room as SIP participants. PRE_STT_SIP=off turns this off. */
+export interface CallParticipantLike {
+  kind?: ParticipantKind;
+  identity?: string;
+  attributes?: Record<string, string>;
+}
+
+/**
+ * A phone caller: a SIP participant, inbound or dialed out through a trunk.
+ * LiveKit marks them kind SIP and sets sip.* attributes (sip.phoneNumber,
+ * sip.callStatus); our dialers name them sip_ or phone_ (phone_seth). Any one
+ * of these is enough, so a participant whose kind is missing from a stale
+ * snapshot is still caught.
+ */
+export function isPhoneParticipant(participant: CallParticipantLike | undefined): boolean {
+  if (!participant) return false;
+  if (participant.kind === ParticipantKind.SIP) return true;
+  if (Object.keys(participant.attributes ?? {}).some((k) => k.startsWith('sip.'))) return true;
+  return /^(sip|phone)_/.test(participant.identity ?? '');
+}
+
+/** Phone callers get AGC + high-pass before STT. PRE_STT_SIP=off turns this off. */
 export function wantsPhonePreStt(
-  participant: { kind?: ParticipantKind } | undefined,
+  participant: CallParticipantLike | undefined,
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return participant?.kind === ParticipantKind.SIP && env.PRE_STT_SIP !== 'off';
+  return isPhoneParticipant(participant) && env.PRE_STT_SIP !== 'off';
 }
 
 /**

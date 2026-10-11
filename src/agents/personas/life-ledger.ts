@@ -15,18 +15,27 @@
  * under the caller. On the next call the first recall note carries the most
  * recent ones, so he stays consistent and can pick a thread back up.
  *
- * LIFE_LEDGER=off turns it off.
+ * LIFE_LEDGER=off turns it off. FERNI_SELF_MEMORY=on keeps only his life:
+ * jokes, hypotheticals and remarks about the call itself are dropped, and the
+ * extractor sees his core biography and leaves out anything that contradicts
+ * it, so an improvised detail can't become a lasting "fact" against who he is.
  *
  * @module agents/personas/life-ledger
  */
 
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'LifeLedger' });
 
 export function lifeLedgerEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return env.LIFE_LEDGER !== 'off';
+}
+
+export function selfMemoryEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return env.FERNI_SELF_MEMORY === 'on';
 }
 
 export interface LedgerFact {
@@ -47,7 +56,7 @@ export type FactExtractor = (personaName: string, lines: string[]) => Promise<st
 
 const MAX_FACTS_PER_CALL = 8;
 const MAX_FACT_WORDS = 20;
-const RECALL_LIMIT = 10;
+export const RECALL_LIMIT = 10;
 const STOP = new Set(
   "that this they them their with what have from about your just like been were when then there some would could should into only also very really honestly actually ferni ferni's peter maya alex jordan nayan".split(
     ' '
@@ -74,6 +83,23 @@ export function groundedFacts(facts: string[], lines: string[]): string[] {
     out.push(fact);
   }
   return out.slice(0, MAX_FACTS_PER_CALL);
+}
+
+/**
+ * Not his life: "Ferni would end up eating his own wallet by Tuesday" (a joke),
+ * "Ferni got mixed up and confused the tea talk" (the call itself). Both were
+ * saved for a prod caller on 2026-10-10, half of that call's ledger.
+ */
+const HYPOTHETICAL = /^[\w-]+(?:'s)?\s+(?:would|wouldn't|could|couldn't|might)\b/i;
+const ABOUT_THE_CALL =
+  /\b(?:the|this|our) (?:conversation|call|chat|topic)\b|\b(?:mixed up|confused|misheard|misunderstood)\b.*\b(?:talk|conversation|question|said)\b/i;
+
+/** Drop the lines that aren't about his life (FERNI_SELF_MEMORY). */
+export function lifeFactsOnly(facts: string[]): string[] {
+  return facts.filter((f) => {
+    const fact = f.replace(/^[\s\-*\d.)]+/, '').trim();
+    return !HYPOTHETICAL.test(fact) && !ABOUT_THE_CALL.test(fact);
+  });
 }
 
 export function factDocId(f: LedgerFact): string {
@@ -109,17 +135,140 @@ export function formatLedger(
 const EXTRACT_PROMPT = (name: string) =>
   `Below are things ${name} said on a phone call. List the concrete things ${name} said about ${name}'s OWN life: what happened to them, people and pets in their life, places, habits, opinions and plans. One per line, under 15 words, in the third person ("${name}'s wife teases him about his coffee"). Only what ${name} states about ${name} ("I", "my", "we"): a remark about a situation in general ("a slow week can be nice") is a reaction to the other person, not part of ${name}'s life. Leave out anything about the other person, advice, and generic small talk. If there is nothing, reply NONE.`;
 
-const defaultExtractor: FactExtractor = async (name, lines) => {
+/** With FERNI_SELF_MEMORY: only real claims about his life. */
+const SELF_MEMORY_PROMPT = (name: string) =>
+  `${EXTRACT_PROMPT(name)} Leave out jokes, hypotheticals ("${name} would end up...") and remarks about the call itself.`;
+
+/**
+ * A second, narrower question: which facts the biography explicitly rules out.
+ * Asked inside the extraction prompt, gemini-3.5-flash-lite either kept "Ferni
+ * is an only child" / "grew up in Ohio" (6/6 runs) or dropped everything the
+ * biography doesn't mention (4/4). A looser "conflicts with" also dropped
+ * facts that fit it ("has a brother who lives out West": he is third of
+ * seven), so each verdict must quote the biography words it contradicts, and
+ * a quote that isn't in the biography doesn't count.
+ */
+const CONFLICT_PROMPT = (name: string, biography: string) =>
+  `Here is ${name}'s biography, in his voice:\n"""\n${biography.trim()}\n"""\nBelow are numbered facts about ${name}. List only the facts the biography explicitly rules out: it states something they cannot both be true with (a different hometown or country he grew up in, a different number of siblings, no wife). A fact the biography doesn't mention, or that fits with it, is fine; when unsure, it is fine. For each fact it rules out, write one line: the fact's number, a "|", then the exact words from the biography it contradicts. If none, reply NONE.`;
+
+const biographies = new Map<string, Promise<string>>();
+/**
+ * The persona's core biography, or '' when it has none (warned once). Looked
+ * up where the bundle loader looks, by working directory (src/ locally,
+ * dist/personas/bundles/ in the image), not next to this module: in the
+ * esbuild agent bundle this module lives at dist/agents/, so a path relative
+ * to it would miss.
+ */
+export function biographyCore(personaId: string): Promise<string> {
+  let bio = biographies.get(personaId);
+  if (!bio) {
+    bio = (async () => {
+      const { getBundleSearchPaths } = await import('../../personas/bundles/loader.js');
+      for (const root of getBundleSearchPaths()) {
+        const text = await readFile(join(root, personaId, 'identity', 'biography-core.md'), 'utf8').catch(() => '');
+        if (text) return text;
+      }
+      log.warn({ personaId }, 'No biography-core.md found; the biography check is skipped');
+      return '';
+    })();
+    biographies.set(personaId, bio);
+  }
+  return bio;
+}
+
+async function askModel(systemInstruction: string, input: string, temperature = 0.2): Promise<string> {
   const { getGenerativeModel } = await import('../../config/generative-model.js');
   const model = await getGenerativeModel({
     model: process.env.LIFE_LEDGER_MODEL || 'gemini-3.5-flash-lite',
-    systemInstruction: EXTRACT_PROMPT(name),
-    generationConfig: { temperature: 0.2, maxOutputTokens: 400 },
+    systemInstruction,
+    generationConfig: { temperature, maxOutputTokens: 400 },
   });
-  if (!model) return [];
-  const result = await model.generateContent(lines.map((l) => `- ${l}`).join('\n'));
-  const text = result.response.text().trim();
-  return /^none\b/i.test(text) ? [] : text.split('\n');
+  if (!model) return '';
+  return (await model.generateContent(input)).response.text().trim();
+}
+
+/** The facts that don't conflict with the persona's biography. Keeps all if it can't tell. */
+export async function consistentWithBiography(
+  name: string,
+  facts: string[],
+  biography: string,
+  ask: (system: string, input: string) => Promise<string> = (sys, input) => askModel(sys, input, 0)
+): Promise<string[]> {
+  if (!biography || facts.length === 0) return facts;
+  const numbered = facts.map((f, i) => `${i + 1}. ${f}`).join('\n');
+  // Asked twice; a fact goes only if both answers rule it out. Over 348 stored
+  // facts a single answer over-dropped one different fact each run ("his wife
+  // tells him driving tired is worse"); real contradictions came back 4/4.
+  const verdicts = await Promise.all(
+    [0, 1].map(() =>
+      ask(CONFLICT_PROMPT(name, biography), numbered)
+        .then((reply) => quotedConflicts(reply, biography))
+        .catch((error: unknown) => {
+          log.warn({ error: String(error) }, 'Biography check failed; keeping the facts');
+          return new Set<number>();
+        })
+    )
+  );
+  return facts.filter((_, i) => !verdicts.every((v) => v.has(i + 1)));
+}
+
+/** Fact numbers ruled out with a quote that is really in the biography (two words or more). */
+function quotedConflicts(reply: string, biography: string): Set<number> {
+  const bio = biography.toLowerCase().replace(/\s+/g, ' ');
+  const conflicting = new Set<number>();
+  for (const line of reply.split('\n')) {
+    const m = line.match(/^\D*(\d+)\s*[|:-]\s*["“]?(.+?)["”]?\s*$/);
+    const quote = m?.[2].toLowerCase().replace(/\s+/g, ' ').replace(/[."”]+$/, '');
+    if (m && quote && quote.split(' ').length >= 2 && bio.includes(quote)) conflicting.add(Number(m[1]));
+  }
+  return conflicting;
+}
+
+/** People and pets in the caller's own memory (dynamic_entities), by name. */
+export type CallerNames = (userId: string) => Promise<string[]>;
+
+const CALLER_KINDS = /^(person|pet|animal)$/i;
+export const firestoreCallerNames: CallerNames = async (userId) => {
+  const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
+  const db = getFirestoreDb();
+  if (!db) return [];
+  const snap = await db.collection('bogle_users').doc(userId).collection('dynamic_entities').limit(300).get();
+  return snap.docs
+    .map((d) => d.data() as { name?: unknown; type?: unknown })
+    .filter((e) => typeof e.name === 'string' && CALLER_KINDS.test(String(e.type)))
+    .map((e) => String(e.name));
+};
+
+/**
+ * Drop facts that give him one of the caller's own people or pets: 13 of the
+ * 348 stored facts on 2026-10-10 were an eval caller's dog Biscuit saved as
+ * Ferni's ("Ferni has a pet named Biscuit"). Only names count, not "Dad" or
+ * "Cat" (the extractor capitalizes those too), and never the caller or the
+ * persona himself ("Fernie").
+ */
+/** Capitalized but not a name ("Brother", "They"): he can have a brother or a cat of his own. */
+const COMMON_NOUN =
+  /^(?:(?:my |the |their )?(?:mom|mother|dad|father|parents?|brother|sister|sibling|son|daughter|kids?|child|baby|wife|husband|partner|spouse|boyfriend|girlfriend|friend|best friend|roommate|neighbou?r|boss|manager|coworker|colleague|team|grandma|grandpa|grandmother|grandfather|aunt|uncle|cousin|family|dog|cat|puppy|kitten|pet|bird|fish|doctor|teacher|therapist)|she|he|they|her|him|them|it|we|you|i)$/i;
+
+export function notTheCallers(facts: string[], callerNames: string[], personaName: string): string[] {
+  const own = personaName.toLowerCase().slice(0, 4);
+  const names = callerNames.filter(
+    (n) =>
+      /^[A-Z]/.test(n) &&
+      !COMMON_NOUN.test(n) &&
+      !/^(user|speaker|me)$/i.test(n) &&
+      !n.toLowerCase().startsWith(own)
+  );
+  if (names.length === 0) return facts;
+  const escape = (n: string) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`\\b(?:${names.map(escape).join('|')})\\b`, 'i');
+  return facts.filter((f) => !re.test(f));
+}
+
+const defaultExtractor: FactExtractor = async (name, lines) => {
+  const prompt = selfMemoryEnabled() ? SELF_MEMORY_PROMPT(name) : EXTRACT_PROMPT(name);
+  const text = await askModel(prompt, lines.map((l) => `- ${l}`).join('\n'));
+  return !text || /^none\b/i.test(text) ? [] : text.split('\n');
 };
 
 export const firestoreLedgerStore: LedgerStore = {
@@ -154,10 +303,11 @@ export const firestoreLedgerStore: LedgerStore = {
 export async function loadLedger(
   userId: string,
   personaId = 'ferni',
-  store: LedgerStore = firestoreLedgerStore
+  store: LedgerStore = firestoreLedgerStore,
+  limit = RECALL_LIMIT
 ): Promise<LedgerFact[]> {
   if (!lifeLedgerEnabled()) return [];
-  return store.recent(userId, personaId, RECALL_LIMIT).catch((error: unknown) => {
+  return store.recent(userId, personaId, limit).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Life ledger not loaded');
     return [];
   });
@@ -166,7 +316,15 @@ export async function loadLedger(
 /** Collects a call's replies per persona; flush() stores what was said about himself. */
 export function createLedgerRecorder(
   userId: string,
-  deps: { store?: LedgerStore; extract?: FactExtractor; now?: () => number } = {}
+  deps: {
+    store?: LedgerStore;
+    extract?: FactExtractor;
+    now?: () => number;
+    env?: Record<string, string | undefined>;
+    /** The biography check's model; injected so tests need none. */
+    ask?: (system: string, input: string) => Promise<string>;
+    callerNames?: CallerNames;
+  } = {}
 ) {
   const lines = new Map<string, string[]>();
   let flushed = false;
@@ -186,7 +344,22 @@ export function createLedgerRecorder(
         try {
           const name = personaId === 'ferni' ? 'Ferni' : personaId.split('-')[0];
           const raw = await (deps.extract ?? defaultExtractor)(name, said);
-          const facts = groundedFacts(raw, said).map((fact) => ({ personaId, fact, saidAt }));
+          const strict = selfMemoryEnabled(deps.env);
+          const grounded = groundedFacts(strict ? lifeFactsOnly(raw) : raw, said);
+          const mine = strict
+            ? notTheCallers(
+                grounded,
+                await (deps.callerNames ?? firestoreCallerNames)(userId).catch(() => []),
+                name
+              )
+            : grounded;
+          const own = strict
+            ? await consistentWithBiography(name, mine, await biographyCore(personaId), deps.ask)
+            : mine;
+          if (strict) {
+            log.info({ personaId, extracted: raw.length, kept: own.length }, 'LIFE_LEDGER_SELF_MEMORY');
+          }
+          const facts = own.map((fact) => ({ personaId, fact, saidAt }));
           if (facts.length === 0) continue;
           await (deps.store ?? firestoreLedgerStore).save(userId, facts);
           saved += facts.length;

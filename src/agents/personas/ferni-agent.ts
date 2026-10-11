@@ -34,6 +34,7 @@ import { getModelProvider } from '../model-provider/index.js';
 import { filterCaptionStream } from './caption-filter.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
+import { isScreeningCall } from '../shared/line-screen.js';
 import { tapSpokenText, toolsForTurn, withTeammateTool } from './turn-request.js';
 
 const log = createLogger({ module: 'FerniAgent' });
@@ -572,17 +573,16 @@ export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
     }
   }
 
+  /** Before the SDK replies to a user turn; never while a call is screened (line-screen.ts). */
+  async onUserTurnCompleted(turnCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
+    if (isScreeningCall(this.session)) throw new voice.StopResponse();
+    await this.onUserTurn?.(turnCtx, newMessage);
+  }
+
   /**
    * Called when Ferni becomes the active agent.
    * Generates a contextual greeting unless skipGreeting is set.
    */
-  /** Called by the SDK before it generates the reply to a user turn. */
-  async onUserTurnCompleted(turnCtx: llm.ChatContext, newMessage: llm.ChatMessage): Promise<void> {
-    if (this.onUserTurn) {
-      await this.onUserTurn(turnCtx, newMessage);
-    }
-  }
-
   async onEnter(): Promise<void> {
     if (this.skipGreeting) {
       // Greeting handled externally (by generateAndSpeakGreeting)
@@ -702,7 +702,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     return gatedReply(chatCtx, this.session, model, this.openerGate as never) as never;
   }
 
-  private readonly turnTools = { loggedLockedHandoffs: false };
+  private readonly turnTools = { loggedLockedHandoffs: false, agent: this };
 
   /** Limits stock reaction-word openers across this agent's replies. See opener-gate.ts. */
   private readonly openerGate = new OpenerGate();
