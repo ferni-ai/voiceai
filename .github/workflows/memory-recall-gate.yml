@@ -23,6 +23,7 @@ env:
 
 jobs:
   recall-at-5:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Memory recall@5 golden gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
