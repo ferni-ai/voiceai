@@ -8,23 +8,20 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { ConversationSummary } from '../../types/user-profile.js';
 import { embed } from '../embeddings.js';
+import { callMomentLine, callerTimeZoneFor } from './call-moment.js';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-/**
- * A single turn in a conversation
- */
+/** A single turn in a conversation */
 export interface ConversationTurn {
   role: 'user' | 'assistant';
   content: string;
   timestamp?: Date;
 }
 
-/**
- * Options for summarization
- */
+/** Options for summarization */
 export interface SummarizationOptions {
   maxLength?: number;
   includeEmotionalArc?: boolean;
@@ -34,6 +31,8 @@ export interface SummarizationOptions {
   useLLM?: boolean;
   /** LLM call function for summarization */
   llmCall?: (prompt: string) => Promise<string>;
+  /** The caller's IANA zone (default: the one recorded for the session), for absolute dates. */
+  timeZone?: string;
 }
 
 // ============================================================================
@@ -316,10 +315,7 @@ interface LLMSummaryResult {
   relationshipProgress: string;
 }
 
-/**
- * Generate a summary using LLM for richer understanding
- * Falls back to extraction if LLM fails
- */
+/** Generate a summary using LLM for richer understanding; falls back to extraction if it fails */
 export async function summarizeWithLLM(
   sessionId: string,
   turns: ConversationTurn[],
@@ -348,10 +344,12 @@ export async function summarizeWithLLM(
 
   // Build LLM prompt
   const prompt = `Summarize this conversation for future reference. Focus on what matters for continuing the relationship.
+${callMomentLine(turns[0]?.timestamp ?? now, opts.timeZone ?? callerTimeZoneFor(sessionId))}
 
 CONVERSATION:
 ${transcript}
 
+followUps: only what a close friend would ask about next time (a plan, an event, a worry, a person). Never routine daily life (sleep, meals, chores, a run). Use [] when nothing qualifies.
 Respond with ONLY valid JSON (no markdown, no explanation):
 {
   "mainTopics": ["topic1", "topic2"],
