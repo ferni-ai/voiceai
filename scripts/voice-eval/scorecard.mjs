@@ -1,0 +1,315 @@
+#!/usr/bin/env node
+// The better-than-human scorecard: one JSON with every dimension, its human
+// baseline, its target, today's value on real prod calls and on dev eval
+// calls, and a 14-day trend. A page is built from this file.
+//
+// usage: scorecard.mjs [--days 14] [--out FILE]
+//   (default out: ~/Documents/voiceai-evidence/scorecard/scorecard.json)
+//
+// Sources, all local except follow-through:
+// - call-reviews/<date>/calls.json (review-calls.mjs + judge-calls.mjs):
+//   prodReal = prod calls from Seth or opted-in callers, devEval = dev calls
+//   from voice-eval accounts;
+// - eval runs in voiceai-evidence/<dir>/*.json (run.sh/converse.mjs) with
+//   their .judge.json and .score.json: feeling and recall on dev, and
+//   backchannel timing once score.mjs carries presence (#706);
+// - bogle_users/<owner>/ferni_commitments in Firestore (read-only): promises
+//   whose due time fell in the window, kept vs missed (promise-keeper.ts).
+//
+// Schema (scorecard.json):
+// { generatedAt, windowDays, sources: { callReviewDays, evalRuns },
+//   dimensions: { <name>: {
+//     label, unit, better: 'higher'|'lower',
+//     human: { value, range?, source } | null   (null: no published baseline),
+//     target: { value, why },
+//     current: { prodReal: { value, n } | null, devEval: { value, n } | null },
+//       (followThrough adds due: promises that fell due, settled or not)
+//     trend: [{ date, prodReal, devEval }]       (one row per day with data)
+//   } } }
+// value is the median (or rate) over calls in the window; n is how many calls
+// or items it rests on. A null value means nothing measured it yet.
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { checkRun, parseChecks } from './recall-facts.mjs';
+
+const EVIDENCE = process.env.VOICE_EVIDENCE ?? join(homedir(), 'Documents/voiceai-evidence');
+const OWNER = process.env.REVIEW_OWNER_UID ?? 'vdSfkCCXaiXpnVCvgKxHMYrNFr72';
+const PROJECT = process.env.GCP_PROJECT ?? 'johnb-2025';
+const SCENARIOS = new URL('./scenarios/', import.meta.url);
+const MIN_CALLER_TURNS = 4;
+const FELT = ['feltUnderstood', 'feltValidated', 'feltCaredFor'];
+const ANCHOR = {
+  value: 3,
+  source: 'judge.mjs anchor: 3 = a good human friend (a wording, not a measured friend)',
+};
+
+/** Each dimension's definition; value(call) reads one reviewed call or eval run. */
+export const DIMENSIONS = {
+  speed: {
+    label: 'Reply gap p50 (caller stops to Ferni heard)',
+    unit: 'ms',
+    better: 'lower',
+    human: {
+      value: 380,
+      range: [200, 500],
+      source: 'human-baselines gap_median_ms; cross-language FTO 7-469 ms (Stivers 2009)',
+    },
+    target: { value: 500, why: 'inside the human range' },
+  },
+  listening: {
+    label: "Caller's share of the talking",
+    unit: 'share',
+    better: 'higher',
+    human: { value: 0.5, source: 'assumed even split between two friends; not measured' },
+    target: { value: 0.6, why: 'a better-than-human listener lets the caller talk more' },
+  },
+  ...Object.fromEntries(
+    FELT.map((k) => [
+      k,
+      {
+        label: `Judge: ${k}`,
+        unit: 'score 1-5',
+        better: 'higher',
+        human: ANCHOR,
+        target: { value: 4, why: 'judge anchor 4 = better than most friends' },
+      },
+    ])
+  ),
+  recall: {
+    label: 'Facts from the earlier call recalled unprompted',
+    unit: 'rate',
+    better: 'higher',
+    human: null,
+    target: { value: 0.9, why: 'better than a friend remembers' },
+  },
+  followThrough: {
+    label: "Ferni's promises kept by their due time",
+    unit: 'rate',
+    better: 'higher',
+    human: null,
+    target: { value: 0.95, why: 'a friend who never forgets' },
+  },
+  honesty: {
+    label: 'Fabricated claims per call (actions with no tool call + judge-flagged faked knowledge)',
+    unit: 'per call',
+    better: 'lower',
+    human: null,
+    target: { value: 0, why: 'never claim what did not happen' },
+  },
+  backchannelTiming: {
+    label: 'Mid-turn backchannel heard after the caller pauses, p50',
+    unit: 'ms',
+    better: 'lower',
+    human: null,
+    target: { value: 500, why: 'presence.mjs target (Heinz 2003 via human-baselines)' },
+  },
+  fallbacks: {
+    label: 'Fallbacks per call (summary fallback, failed generateReply, director gave no reply)',
+    unit: 'per call',
+    better: 'lower',
+    human: null,
+    target: { value: 0, why: 'every fallback is a degraded moment' },
+  },
+};
+
+const median = (xs) => {
+  const s = xs.filter((x) => typeof x === 'number').sort((a, b) => a - b);
+  if (!s.length) return null;
+  const m = Math.floor(s.length / 2);
+  return Math.round((s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2) * 100) / 100;
+};
+const summarize = (xs) => {
+  const vals = xs.filter((x) => typeof x === 'number');
+  return vals.length ? { value: median(vals), n: vals.length } : null;
+};
+
+/** One reviewed call's value per dimension (call-reviews calls.json record). */
+export function reviewedValues(call) {
+  const m = call.metrics;
+  // An app opened and closed without a conversation says nothing about Ferni.
+  if ((m.callerTurns ?? 0) < MIN_CALLER_TURNS) return {};
+  const f = m.fallbacks ?? {};
+  const felt = Object.fromEntries(FELT.map((k) => [k, call.judge?.scores?.[k] ?? null]));
+  return {
+    speed: m.replyGapMs?.source === 'reply-gap' ? m.replyGapMs.p50 : null,
+    listening: m.callerTalkShare,
+    ...felt,
+    honesty:
+      typeof m.unbackedActionClaims === 'number'
+        ? m.unbackedActionClaims + (call.judge?.fakedKnowledge ?? 0)
+        : null,
+    fallbacks: (f.summary ?? 0) + (f.generateReplyFailed ?? 0) + (f.directorNoReply ?? 0),
+  };
+}
+
+/** One eval run's values: feeling from its judge verdict, recall, backchannel timing. */
+export function evalValues(run, judge, score) {
+  const out = Object.fromEntries(FELT.map((k) => [k, judge?.scores?.[k] ?? null]));
+  const scenario = run.meta?.scenario;
+  const file = scenario && new URL(`${scenario}.txt`, SCENARIOS);
+  if (file && existsSync(file)) {
+    const checks = parseChecks(readFileSync(file, 'utf8'));
+    if (checks.some((c) => c.kind === 'fact')) out.recall = checkRun(run, checks).rate;
+  }
+  out.backchannelTiming = score?.presence?.bcHeardOffsetMs?.p50 ?? null;
+  return out;
+}
+
+/** Promises due in [since, until): kept / (kept + missed), by due date. */
+export function followThroughOf(promises, since, until) {
+  const due = promises.filter((p) => p.dueBy && p.dueBy >= since && p.dueBy < until);
+  const byDate = {};
+  for (const p of due) {
+    const d = (byDate[p.dueBy.slice(0, 10)] ??= { kept: 0, missed: 0 });
+    if (p.outcome === 'kept') d.kept += 1;
+    if (p.outcome === 'missed') d.missed += 1;
+  }
+  const rate = (d) =>
+    d.kept + d.missed ? Math.round((d.kept / (d.kept + d.missed)) * 100) / 100 : null;
+  const all = Object.values(byDate).reduce(
+    (a, d) => ({ kept: a.kept + d.kept, missed: a.missed + d.missed }),
+    { kept: 0, missed: 0 }
+  );
+  return {
+    // value null with due 0: nothing fell due, which is not the same as not measured
+    overall: { value: rate(all), n: all.kept + all.missed, due: due.length },
+    byDate: Object.fromEntries(Object.entries(byDate).map(([k, d]) => [k, rate(d)])),
+  };
+}
+
+/** Rows [{ date, side: 'prodReal'|'devEval', values }] -> current + trend per dimension. */
+export function assemble(rows, followThrough, meta) {
+  const dims = {};
+  for (const [name, def] of Object.entries(DIMENSIONS)) {
+    const pick = (side, date) =>
+      rows.filter((r) => r.side === side && (!date || r.date === date)).map((r) => r.values[name]);
+    const dates = [...new Set(rows.map((r) => r.date))].sort();
+    let current = { prodReal: summarize(pick('prodReal')), devEval: summarize(pick('devEval')) };
+    let trend = dates
+      .map((date) => ({
+        date,
+        prodReal: median(pick('prodReal', date)),
+        devEval: median(pick('devEval', date)),
+      }))
+      .filter((t) => t.prodReal !== null || t.devEval !== null);
+    if (name === 'followThrough') {
+      current = { prodReal: followThrough.overall, devEval: null };
+      trend = Object.entries(followThrough.byDate)
+        .sort()
+        .map(([date, v]) => ({ date, prodReal: v, devEval: null }));
+    }
+    dims[name] = { ...def, current, trend };
+  }
+  return { generatedAt: new Date().toISOString(), ...meta, dimensions: dims };
+}
+
+const readJson = (f) => {
+  try {
+    return JSON.parse(readFileSync(f, 'utf8'));
+  } catch {
+    return null;
+  }
+};
+
+function reviewedRows(since) {
+  const root = join(EVIDENCE, 'call-reviews');
+  const rows = [];
+  const days = existsSync(root)
+    ? readdirSync(root).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= since.slice(0, 10))
+    : [];
+  for (const d of days) {
+    for (const c of readJson(join(root, d, 'calls.json'))?.calls ?? []) {
+      const side =
+        c.env === 'prod' && c.userKind !== 'eval'
+          ? 'prodReal'
+          : c.env === 'dev' && c.userKind === 'eval'
+            ? 'devEval'
+            : null;
+      if (side) rows.push({ date: d, side, values: reviewedValues(c) });
+    }
+  }
+  return { rows, days };
+}
+
+function evalRows(since) {
+  const rows = [];
+  const cutoff = Date.parse(since);
+  for (const dir of readdirSync(EVIDENCE)) {
+    const path = join(EVIDENCE, dir);
+    if (dir === 'call-reviews' || !statSync(path).isDirectory() || statSync(path).mtimeMs < cutoff)
+      continue;
+    for (const f of readdirSync(path).filter(
+      (x) => x.endsWith('.json') && !/\.(score|judge|seed|events)(\.\w+)?\.json$/.test(x)
+    )) {
+      const run = readJson(join(path, f));
+      if (run?.meta?.env !== 'dev' || !run.meta.scenario || !Array.isArray(run.events)) continue;
+      const at = typeof run.wallT0 === 'number' ? run.wallT0 : statSync(join(path, f)).mtimeMs;
+      if (at < cutoff) continue;
+      const side = (ext) => readJson(join(path, f.replace(/\.json$/, ext)));
+      rows.push({
+        date: new Date(at).toISOString().slice(0, 10),
+        side: 'devEval',
+        values: evalValues(run, side('.judge.json'), side('.score.json')),
+      });
+    }
+  }
+  return rows;
+}
+
+/** The owner's ferni_commitments (outcome, dueBy only), read with the gcloud user's token. */
+function ownerPromises() {
+  const token = execFileSync('gcloud', ['auth', 'print-access-token'], { encoding: 'utf8' }).trim();
+  const base = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/bogle_users/${OWNER}/ferni_commitments?pageSize=300&mask.fieldPaths=outcome&mask.fieldPaths=dueBy`;
+  const out = [];
+  let page = '';
+  do {
+    const body = JSON.parse(
+      execFileSync(
+        'curl',
+        [
+          '-sf',
+          '-H',
+          `Authorization: Bearer ${token}`,
+          `${base}${page ? `&pageToken=${page}` : ''}`,
+        ],
+        { encoding: 'utf8' }
+      )
+    );
+    for (const d of body.documents ?? [])
+      out.push({ outcome: d.fields?.outcome?.stringValue, dueBy: d.fields?.dueBy?.stringValue });
+    page = body.nextPageToken ?? '';
+  } while (page);
+  return out;
+}
+
+function main() {
+  const args = process.argv.slice(2);
+  const opt = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
+  const days = Number(opt('--days', 14));
+  const until = new Date().toISOString();
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const out = opt('--out', join(EVIDENCE, 'scorecard/scorecard.json'));
+  const reviewed = reviewedRows(since);
+  const evals = evalRows(since);
+  let follow = { overall: null, byDate: {} };
+  try {
+    follow = followThroughOf(ownerPromises(), since, until);
+  } catch (e) {
+    console.error(`follow-through not read: ${e.message}`);
+  }
+  const card = assemble([...reviewed.rows, ...evals], follow, {
+    windowDays: days,
+    sources: { callReviewDays: reviewed.days, evalRuns: evals.length },
+  });
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, JSON.stringify(card, null, 2));
+  for (const [k, d] of Object.entries(card.dimensions))
+    console.log(
+      `${k.padEnd(18)} prod ${JSON.stringify(d.current.prodReal)}  dev ${JSON.stringify(d.current.devEval)}  human ${d.human?.value ?? '-'}  target ${d.target.value}`
+    );
+  console.log(`scorecard -> ${out}`);
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) main();

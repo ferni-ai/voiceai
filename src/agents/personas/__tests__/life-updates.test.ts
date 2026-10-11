@@ -8,7 +8,6 @@ vi.mock('../../../utils/safe-logger.js', () => {
     error: vi.fn(),
     child: vi.fn(() => logger),
   };
-  // The recall hook now pulls in the world model, whose modules use getLogger.
   return { createLogger: () => logger, getLogger: () => logger };
 });
 

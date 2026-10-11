@@ -15,7 +15,9 @@
  *                           for the caller to speak);
  * - voicemail            -> waits out the greeting, leaves a short message,
  *                           hangs up;
- * - full mailbox or menu -> hangs up quietly.
+ * - full mailbox or menu -> hangs up quietly;
+ * - a call screener      -> answers it once, then waits for a person
+ *                           (agents/outbound-call/call-screener.ts).
  *
  * The decision is pure and exported for tests; the phone, speech and hang-up
  * are ports.
@@ -30,10 +32,12 @@ import {
   type OutboundParties,
 } from '../../services/outreach/opening-line.js';
 import type { CallDisposition } from './call-control.js';
+import { isCallScreener, waitThroughScreener } from './call-screener.js';
 
 const log = createLogger({ module: 'call-opening' });
 
-export type Answered = 'person' | 'silence' | 'voicemail' | 'unreachable' | 'not_answered';
+export type Answered =
+  'person' | 'silence' | 'voicemail' | 'unreachable' | 'not_answered' | 'screened';
 
 /** The answering-machine detector's verdict, reduced to what the opening needs. */
 export interface FirstWords {
@@ -44,10 +48,12 @@ export interface FirstWords {
 export interface CallOpeningPorts {
   /** Resolves true once the line is answered, false if it never is. */
   waitForAnswer(): Promise<boolean>;
-  /** Listens to the first words after pickup. */
-  hearFirstWords(): Promise<FirstWords>;
+  /** Listens to the first words after pickup, or, after a screener, to whoever speaks next. */
+  hearFirstWords(options?: { afterScreener?: boolean }): Promise<FirstWords>;
   /** Speaks, interruptible. */
   say(text: string): Promise<void>;
+  /** Speaks the one line a call screener hears, and resolves when it has played. */
+  answerScreener(text: string): Promise<void>;
   /** Leaves the voicemail and resolves when it has played. */
   leaveVoicemail(): Promise<void>;
   hangUp(disposition?: CallDisposition): Promise<void>;
@@ -71,6 +77,7 @@ export async function openOnBehalfCall(
     }
 
     const heard = await ports.hearFirstWords();
+    if (isCallScreener(heard)) return await waitThroughScreener(parties, ports);
     switch (heard.category) {
       case 'machine-vm':
         await ports.leaveVoicemail();

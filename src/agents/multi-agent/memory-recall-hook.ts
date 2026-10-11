@@ -68,6 +68,7 @@ import {
 } from '../../intelligence/world-model/recall-note.js';
 import { buildWorldModelSnapshot } from '../../intelligence/world-model/snapshot.js';
 import type { WorldModelSnapshot } from '../../intelligence/world-model/types.js';
+import { forgottenTopics } from '../../memory/recall/forget.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -77,6 +78,7 @@ export function memoryRecallMode(env: Record<string, string | undefined> = proce
 
 /** Reads the collections the live pipeline writes. Plain queries: no composite index needed. */
 export const firestoreRecallStore: RecallStore = {
+  forgotten: (userId) => forgottenTopics(userId),
   async facts(userId) {
     const db = getFirestoreDb();
     if (!db) return [];
@@ -104,6 +106,12 @@ export const firestoreRecallStore: RecallStore = {
 export interface MemoryRecallDeps {
   userId: string;
   userName?: string;
+  /**
+   * The persona speaking on this call (default 'ferni'). Its own told-life
+   * facts and updates are loaded, never another persona's: the note tells
+   * whoever is speaking "this is your life".
+   */
+  personaId?: string;
   store?: RecallStore;
   /** What Ferni told this caller about himself on earlier calls (life-ledger.ts). */
   ledgerStore?: LedgerStore;
@@ -164,9 +172,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   // Semantic recall only: threads and stories past the first note, by id.
   const laterFollowUps = new Map<string, string>();
   const laterTold = new Map<string, LedgerFact>();
+  const personaId = deps.personaId ?? 'ferni';
   const ledger = loadLedger(
     deps.userId,
-    'ferni',
+    personaId,
     deps.ledgerStore,
     semanticOn ? TOLD_KEPT : RECALL_LIMIT
   );
@@ -184,6 +193,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       {
         facts: s.facts.length,
         followUps: s.followUps.length,
+        insideJokes: s.insideJokes?.length ?? 0,
         told: told.length,
         ms: Date.now() - started,
       },
@@ -207,7 +217,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   // note only if it is ready by then. Never rejects.
   const since = ledger
     .then((told) =>
-      loadLifeUpdates(deps.userId, told.slice(0, RECALL_LIMIT), 'ferni', deps.lifeUpdates)
+      loadLifeUpdates(deps.userId, told.slice(0, RECALL_LIMIT), personaId, deps.lifeUpdates)
     )
     .then((updates) => {
       sinceNote = formatLifeUpdates(updates);
@@ -280,6 +290,11 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         ...(followUpsOffered ? [] : snapshot.followUps),
         ...extras.flatMap((id) => laterFollowUps.get(id) ?? []),
       ].filter((item) => !world || !touchesAvoided(item, world.snapshot));
+      // Shared bits, like the follow-ups, come once (shown only with INSIDE_JOKES=on);
+      // none about a topic they asked to avoid.
+      const insideJokes = (followUpsOffered ? [] : (snapshot.insideJokes ?? [])).filter(
+        (joke) => !world || !touchesAvoided(joke, world.snapshot)
+      );
       // The ledger, like the follow-ups, comes once, with the first note.
       const told = followUpsOffered
         ? null
@@ -289,7 +304,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         [
           checkIn,
           worldNote,
-          formatRecall(facts, followUps, deps.userName),
+          formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes, env: deps.env }),
           told,
           extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
         ]

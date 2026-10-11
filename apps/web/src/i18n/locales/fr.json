@@ -3322,8 +3322,8 @@
     "categorySweet": "Doux moments",
     "connectionConnected": "On est connectés",
     "connectionConnecting": "Connexion en cours...",
-    "connectionDisconnected": "Nous ne sommes pas connectés",
-    "connectionDisconnectedMessage": "Un petit souci est survenu, mais on peut réessayer.",
+    "connectionIdle": "Prêt quand tu l'es",
+    "connectionIdleMessage": "Quand tu as envie de parler, je suis là.",
     "connectionError": "Connexion perdue",
     "connectionErrorMessage": "Un petit souci est survenu, mais on peut réessayer.",
     "connectionReconnect": "Se reconnecter",
@@ -9587,8 +9587,7 @@
     "rememberEmpty": "Rien de nouveau à retenir cette fois. Merci pour ce moment.",
     "nextStepTitle": "Une prochaine étape en douceur",
     "invitation": "Revenez quand vous voulez. Je serai là.",
-    "close": "Fermer",
-    "seeCost": "Ce qu'a coûté cet appel"
+    "close": "Fermer"
   },
   "moments": {
     "teamUnlockTitle": "Fais la connaissance de {name}",
@@ -10711,6 +10710,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "Progression de la relation",
+    "emptyInvite": "Notre histoire commence avec ta première conversation.",
     "progress": "progression",
     "next": "Étape suivante : {stage}",
     "stages": {

@@ -20,7 +20,10 @@ vi.mock('../../../utils/safe-logger.js', () => {
 vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
 import { createMemoryRecall } from '../memory-recall-hook.js';
-import { mergeProfileSignals, type WorldModelSources } from '../../../intelligence/world-model/sources.js';
+import {
+  mergeProfileSignals,
+  type WorldModelSources,
+} from '../../../intelligence/world-model/sources.js';
 import { buildWorldModelSnapshot } from '../../../intelligence/world-model/snapshot.js';
 import { WORLD_NOTE_MAX_CHARS } from '../../../intelligence/world-model/recall-note.js';
 
@@ -98,7 +101,13 @@ describe('world model in the live recall hook', () => {
 
   it('flag off: recall is exactly what it was, and the world model is never loaded', async () => {
     const loader = vi.fn(loadWorldModel(worldSources()));
-    const recall = createMemoryRecall({ userId: 'u1', userName: 'Sam', store, env: {}, loadWorldModel: loader });
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      userName: 'Sam',
+      store,
+      env: {},
+      loadWorldModel: loader,
+    });
     await recall.ready;
     const off = turns.map((t) => {
       const n = recall.noteFor(t);
@@ -184,6 +193,30 @@ describe('world model in the live recall hook', () => {
     expect(rest.join('\n')).not.toMatch(/THINGS THEY SAID|\[THEIR WORLD\]/);
   });
 
+  it('flag on with inside jokes: a bit about a topic to avoid is left out, the rest stay', async () => {
+    const env = { ...ON, INSIDE_JOKES: 'on' };
+    const jokes = {
+      ...store,
+      summaries: async () => [
+        {
+          followUpItems: [],
+          insideJokes: ['the time her ex sang karaoke', 'Biscuit vs the vacuum'],
+        },
+      ],
+    };
+    const recall = createMemoryRecall({
+      userId: 'u1',
+      userName: 'Sam',
+      store: jokes,
+      env,
+      loadWorldModel: loadWorldModel(worldSources()),
+    });
+    await recall.ready;
+    const first = recall.noteFor(turns[0] ?? '') ?? '';
+    expect(first).toContain('Biscuit vs the vacuum');
+    expect(first).not.toContain('karaoke');
+  });
+
   it('flag on with empty stores: logs WORLD_MODEL_EMPTY once and recall is unchanged', async () => {
     const empty = worldSources({
       listEntities: async () => [],
@@ -202,6 +235,10 @@ describe('mergeProfileSignals', () => {
     const merged = mergeProfileSignals(profile, { avoidances: [], dreams: [] });
     expect(merged.avoidances?.map((a) => a.topic)).toEqual(['their ex']);
     expect(merged.dreams?.map((d) => d.description)).toEqual(['Run a half marathon']);
-    expect(mergeProfileSignals(undefined, null)).toEqual({ avoidances: [], dreams: [], values: undefined });
+    expect(mergeProfileSignals(undefined, null)).toEqual({
+      avoidances: [],
+      dreams: [],
+      values: undefined,
+    });
   });
 });

@@ -250,9 +250,6 @@ COPY apps/web/public/sounds/ ./sounds/
 # Set environment variables
 ENV NODE_ENV=production
 ENV PERSONA_ID=ferni
-# Single-process mode: All jobs run in main process (eliminates child process spawn overhead)
-# This gives ~100x faster job startup (instant vs 30-120s with child processes)
-ENV USE_SINGLE_PROCESS=true
 
 # =============================================================================
 # NATIVE RUST MODULE CONFIGURATION
