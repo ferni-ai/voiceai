@@ -27,6 +27,7 @@ import { storeUserPreferences } from '../user-preferences-store.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { pickCard } from './answer-card.js';
 import { safeHttpsUrl } from './grounded-search.js';
+import { webData } from './result-text.js';
 import type { Candidate } from './checked-pick.js';
 import { COACH_MEDIA_COMMITMENT_PREFIX } from './feedback.js';
 import { markSent } from './pick-log.js';
@@ -41,11 +42,12 @@ export interface SentPick {
   pickId?: string;
 }
 
+/** Sends per call, per channel (text, app). */
 export const MAX_TEXTS_PER_CALL = 2;
 export const FOLLOW_UP_DAYS = 3;
 
 const lastPicks = new WeakMap<object, SentPick>();
-const textsSent = new WeakMap<object, number>();
+const sends = new WeakMap<object, Record<'text' | 'app', number>>();
 
 export function rememberPick(session: object | undefined, pick: SentPick): void {
   if (session) lastPicks.set(session, pick);
@@ -57,7 +59,14 @@ export function hasPick(session: object | undefined): boolean {
 }
 
 /** Hosts a sent link may point to, besides the pick's own grounded sources. */
-export const SMS_LINK_HOSTS = ['youtube.com', 'youtu.be', 'books.google.com'];
+// doordash.com and amazon.com: coach-local's restaurant and product picks.
+export const SMS_LINK_HOSTS = [
+  'youtube.com',
+  'youtu.be',
+  'books.google.com',
+  'doordash.com',
+  'amazon.com',
+];
 const hostOf = (url: string): string => new URL(url).hostname.replace(/^(www|m)\./, '');
 
 /** The pick's link if it is https on an allowed host or one of its grounded sources, else null. */
@@ -72,18 +81,24 @@ export function sendableLink(c: Candidate): string | null {
 }
 
 /**
- * The text a pick goes out as: a fixed template, the title as plain words
- * (no links, domains or phone-like numbers, one line, 60 chars) and exactly one
- * checked link. Titles come from YouTube or the web; nothing else of theirs is sent.
+ * A web title as plain words: no links, domains or phone-like numbers, no
+ * sentence that gives an order or speaks to an assistant, one line, `max`
+ * chars. Titles come from YouTube or the web; this is all of them that goes
+ * into a text or a later prompt.
  */
-export function smsBody(c: Candidate, link: string): string {
-  const title = callerText(c.title, 300)
-    .replace(/\bhttps?:\/\/\S+|\bwww\.\S+/gi, ' ')
+export function plainTitle(title: string, max: number): string {
+  const words = webData(title, 300)
+    .text.replace(/\bhttps?:\/\/\S+|\bwww\.\S+/gi, ' ')
     .replace(/\b[a-z0-9-]+(?:\.[a-z0-9-]+)+\b/gi, ' ')
     .replace(/\+?\d(?:[\s().-]*\d){2,}/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  const short = title.length > 60 ? `${title.slice(0, 59).trimEnd()}…` : title;
+  return words.length > max ? `${words.slice(0, max - 1).trimEnd()}…` : words;
+}
+
+/** The text a pick goes out as: a fixed template, the plain title and exactly one checked link. */
+export function smsBody(c: Candidate, link: string): string {
+  const short = plainTitle(c.title, 60);
   // Length is ours (spokenLength or a page count), but only its known shape goes out.
   const length = /^\d+(\.\d)? (seconds|minutes|hours|pages)$/.test(c.length ?? '')
     ? ` (${c.length})`
@@ -91,9 +106,13 @@ export function smsBody(c: Candidate, link: string): string {
   return `From Ferni, the ${c.kind === 'product' ? 'pick' : c.kind} we talked about: "${short || 'this one'}"${length} ${link}`;
 }
 
-/** What the follow-up asks about: "try the video 'Shin Splint Rehab'". */
+/**
+ * What the follow-up asks about, later, in a prompt: "try the video 'Shin
+ * Splint Rehab'". Only the kind and the plain title, never the raw one.
+ */
 export function commitmentText(c: Candidate): string {
-  return `try the ${c.kind} '${callerText(c.title, 80)}'`;
+  const title = plainTitle(c.title, 40);
+  return title ? `try the ${c.kind} '${title}'` : `try the ${c.kind} Ferni sent`;
 }
 
 async function followUpLater(userId: string, sent: SentPick): Promise<Date> {
@@ -149,14 +168,19 @@ export async function deliverPick(
     card: { ...pickCard(sent.topic, c, sent.why, personaId) },
   };
 
+  // Take a slot before the first await: parallel calls in one model step would
+  // otherwise all pass the check. Given back if nothing is sent.
+  const counts = sends.get(session!) ?? { text: 0, app: 0 };
+  if (counts[how] >= MAX_TEXTS_PER_CALL) {
+    return how === 'text'
+      ? 'Already texted them twice this call; offer the app instead.'
+      : 'Already put it in their app messages twice this call.';
+  }
+  counts[how] += 1;
+  sends.set(session!, counts);
+  const release = (): void => void (counts[how] -= 1);
+
   if (how === 'text') {
-    // Take a slot before the first await: parallel send_text calls in one model
-    // step would otherwise all pass the check. Given back if nothing is sent.
-    const count = textsSent.get(session!) ?? 0;
-    if (count >= MAX_TEXTS_PER_CALL)
-      return 'Already texted them twice this call; offer the app instead.';
-    textsSent.set(session!, count + 1);
-    const release = (): void => void textsSent.set(session!, (textsSent.get(session!) ?? 1) - 1);
     const reach = await userReach(userId, 'sms', { standingOptIn: false }).catch(() => null);
     if (!reach?.phone) {
       release();
@@ -172,7 +196,10 @@ export async function deliverPick(
     await saveInAppMessage(userId, inApp);
   } else {
     const saved = await saveInAppMessage(userId, inApp);
-    if (!saved.success) return "Couldn't save it to the app just now.";
+    if (!saved.success) {
+      release();
+      return "Couldn't save it to the app just now.";
+    }
   }
 
   const due = await followUpLater(userId, sent).catch((error: unknown) => {

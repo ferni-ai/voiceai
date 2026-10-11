@@ -23,7 +23,8 @@ export interface PickRecord {
   title: string;
   by: string;
   lengthSeconds?: number;
-  checked: boolean;
+  /** YouTube channelId; taste trusts this, never the display name in `by`. */
+  creatorId?: string;
   /** Tool start until the pick was returned. */
   latencyMs: number;
   firstInCall: boolean;

@@ -37,7 +37,7 @@ describe('topicOnlyQuery', () => {
 
   it('removes a name only as a whole word', () => {
     expect(topicOnlyQuery('Mark: stock market basics', ['Mark'])).toBe(': stock market basics');
-    expect(topicOnlyQuery('Alexander technique for posture', ['Al'])).toBe(
+    expect(topicOnlyQuery('alexander technique for posture', ['Al'])).toBe(
       'alexander technique for posture'
     );
   });
@@ -72,6 +72,39 @@ describe('topicOnlyQuery', () => {
     const q = topicOnlyQuery(`<b>${'sleepinghabits '.repeat(12)}</b>`, []);
     expect(q!.length).toBeLessThanOrEqual(MAX_QUERY_LENGTH);
     expect(q).not.toMatch(/[<>]/);
+  });
+});
+
+describe('topicOnlyQuery leaks found in review', () => {
+  it.each([
+    ['tips for Brian', 'tips for'],
+    ['stretches Sloan showed me', 'stretches showed me'],
+    ['what Eric and Ethan recommend', 'what and recommend'],
+    ['a coach in Greenwich', 'a coach in'],
+    ['help with Jordan at work', 'help with at work'],
+    ['talking to Megan about her diabetes diagnosis', 'talking to about her diabetes diagnosis'],
+    ['helping Ryan with homework', 'helping with homework'],
+    ['my friend named mike says try yoga', 'my friend says try yoga'],
+    ['a dog called biscuit', 'a dog'],
+    ['born 03/14/1980 sleep tips', 'born sleep tips'],
+    ['since 3-14-1980 and 2024.05.01', 'since and'],
+    ['on 3/4/80 back pain', 'on back pain'],
+    ['member 4111/1111/22 perks', 'member perks'],
+    ['what "dana whitfield" said about budgets', 'what said about budgets'],
+  ])('%s → %s', (topic, expected) => {
+    expect(topicOnlyQuery(topic, [])).toBe(expected);
+  });
+
+  it('matches a known name however it is composed (NFD vs NFC)', () => {
+    const nfd = 'Jose\u0301';
+    expect(topicOnlyQuery('stretches for josé', [nfd])).toBe('stretches for');
+    expect(topicOnlyQuery('stretches for jose\u0301', ['José'])).toBe('stretches for');
+  });
+
+  it('keeps languages, a few tools and acronyms people learn', () => {
+    expect(topicOnlyQuery('ADHD focus tips in Spanish with Excel', [])).toBe(
+      'adhd focus tips in spanish with excel'
+    );
   });
 });
 

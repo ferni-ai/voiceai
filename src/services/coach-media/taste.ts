@@ -1,6 +1,8 @@
 /**
  * What this person's picks taught Ferni: which kinds (video, short, book),
- * which creators, and what length worked for them, learned from their
+ * which creators (by YouTube channelId, never by display name, so a look-alike
+ * channel gets nothing; Google Books has no author id, so books get kind and
+ * length taste only), and what length worked for them, learned from their
  * answers to "did it help?" (and the feedback action) in the pick log.
  *
  * Helped scores +1, somewhat +0.5, didn't help -1. A pick that was sent and
@@ -12,7 +14,7 @@
  * @module services/coach-media/taste
  */
 
-import { callerText } from '../outreach/caller-text.js';
+import { plainTitle } from './pick-delivery.js';
 import type { Candidate } from './checked-pick.js';
 import type { PickRecord } from './pick-log.js';
 
@@ -24,7 +26,6 @@ export interface Taste {
   length: { short: number; long: number };
 }
 
-const creatorKey = (by: string): string => by.trim().toLowerCase();
 const lengthKey = (seconds: number | undefined): 'short' | 'long' | null =>
   seconds === undefined ? null : seconds <= SHORT_SECONDS ? 'short' : 'long';
 
@@ -43,7 +44,7 @@ export function tasteFrom(records: PickRecord[]): Taste {
     const s = signalOf(p);
     if (s === null) continue;
     taste.formats[p.format] = (taste.formats[p.format] ?? 0) + s;
-    if (p.by) taste.creators[creatorKey(p.by)] = (taste.creators[creatorKey(p.by)] ?? 0) + s;
+    if (p.creatorId) taste.creators[p.creatorId] = (taste.creators[p.creatorId] ?? 0) + s;
     const len = lengthKey(p.lengthSeconds);
     if (len) taste.length[len] += s;
   }
@@ -54,7 +55,7 @@ export function tasteFrom(records: PickRecord[]): Taste {
 export function boostFor(taste: Taste, c: Candidate, format: string): number {
   const len = lengthKey(c.seconds);
   return (
-    (taste.creators[creatorKey(c.by)] ?? 0) +
+    (c.creatorId ? (taste.creators[c.creatorId] ?? 0) : 0) +
     0.5 * (taste.formats[format] ?? 0) +
     (len ? 0.5 * taste.length[len] : 0)
   );
@@ -62,10 +63,12 @@ export function boostFor(taste: Taste, c: Candidate, format: string): number {
 
 /** Why this pick suits what worked before, in a few words; '' when taste says nothing. */
 export function tasteReason(taste: Taste, c: Candidate, format: string): string {
-  const creator = taste.creators[creatorKey(c.by)] ?? 0;
+  const creator = c.creatorId ? (taste.creators[c.creatorId] ?? 0) : 0;
   if (creator < 0) return ''; // never "you liked videos" about a creator they didn't
   const reasons: string[] = [];
-  if (creator > 0) reasons.push(`picks from ${callerText(c.by, 60)}`);
+  // The channel's display name is web data: plain words, 40 chars, data field only.
+  const name = plainTitle(c.by, 40);
+  if (creator > 0) reasons.push(name ? `picks from ${name}` : 'picks from this channel');
   const len = lengthKey(c.seconds);
   if (len && taste.length[len] > 0) reasons.push(len === 'short' ? 'short ones' : 'longer ones');
   if ((taste.formats[format] ?? 0) > 0 && reasons.length === 0) reasons.push(`${format}s`);

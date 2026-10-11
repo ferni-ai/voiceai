@@ -28,7 +28,6 @@ export interface GroundedAnswer {
   webSearchQueries?: string[];
 }
 
-/** Sources kept per answer. */
 export const MAX_SOURCES = 4;
 const TIMEOUT_MS = 9000;
 const REDIRECT_TIMEOUT_MS = 2500;
@@ -150,7 +149,7 @@ export async function groundedSearch(
         sources: sources.length,
         chars: answer.length,
         supports: support.size,
-        searchQueries: meta?.webSearchQueries ?? [],
+        searchQueries: meta?.webSearchQueries?.length ?? 0,
         hasSearchSuggestions: Boolean(meta?.searchEntryPoint?.renderedContent),
       },
       'coach-media: grounded answer'

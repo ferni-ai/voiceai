@@ -75,10 +75,10 @@ export function spokenLength(seconds: number): string {
 
 /**
  * Grounding has no safeSearch, so videos.list's own signals gate every video:
- * never age-restricted, only public, and embeddable when YouTube says.
+ * never age-restricted, only public, and only embeddable.
  */
 export function isSafeVideo(v: YouTubeVideo): boolean {
-  return !v.ageRestricted && v.privacyStatus === 'public' && v.embeddable !== false;
+  return !v.ageRestricted && v.privacyStatus === 'public' && v.embeddable === true;
 }
 
 function videoCandidate(v: YouTubeVideo): Candidate {
@@ -89,6 +89,7 @@ function videoCandidate(v: YouTubeVideo): Candidate {
     url: `https://www.youtube.com/watch?v=${encodeURIComponent(v.id)}`,
     length: v.durationSeconds ? spokenLength(v.durationSeconds) : undefined,
     seconds: v.durationSeconds || undefined,
+    creatorId: v.channelId || undefined,
   };
 }
 

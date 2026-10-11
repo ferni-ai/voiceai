@@ -59,7 +59,6 @@ describe('checkedPick', () => {
     });
     expect(first.contents[0].parts[1].text).toContain('What fits them: beginner');
     expect(pick?.candidate.url).toBe('https://www.youtube.com/watch?v=c');
-    expect(pick?.checked).toBe(true);
     expect(pick?.verdict?.why).toBe('Ten minutes, no equipment.');
   });
 
@@ -102,10 +101,10 @@ describe('checkedPick', () => {
     expect(await checkedPick([video('a'), video('b')], 't', '')).toBeNull();
   });
 
-  it('returns the top result unchecked when no check comes back', async () => {
+  it('fails closed: no pick at all when no check comes back', async () => {
     replyBy({ 'v=a': new Error('timeout'), 'v=b': new Error('quota') });
     const pick = await checkedPick([video('a'), video('b')], 't', '');
-    expect(pick).toEqual({ candidate: video('a'), verdict: null, checked: false });
+    expect(pick).toBeNull();
   });
 
   it('returns null for no candidates without calling Gemini', async () => {

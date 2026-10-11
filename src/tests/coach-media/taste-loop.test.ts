@@ -45,16 +45,18 @@ const generateContent = vi.fn();
 vi.mock('../../config/gemini-config.js', () => ({
   getGeminiClient: async () => ({ models: { generateContent } }),
 }));
-const VIDEOS: Record<string, { channelTitle: string; durationSeconds: number }> = {
-  vidPatShort: { channelTitle: 'Physio Pat', durationSeconds: 420 },
-  vidLecture1: { channelTitle: 'Lecture Hall', durationSeconds: 3600 },
-  vidPatCalf1: { channelTitle: 'Physio Pat', durationSeconds: 360 },
-};
+const VIDEOS: Record<string, { channelTitle: string; channelId: string; durationSeconds: number }> =
+  {
+    vidPatShort: { channelTitle: 'Physio Pat', channelId: 'UC-pat', durationSeconds: 420 },
+    vidLecture1: { channelTitle: 'Lecture Hall', channelId: 'UC-lecture', durationSeconds: 3600 },
+    vidPatCalf1: { channelTitle: 'Physio Pat', channelId: 'UC-pat', durationSeconds: 360 },
+    vidFakePat1: { channelTitle: 'Physio Pat', channelId: 'UC-impostor', durationSeconds: 3600 },
+  };
 vi.mock('../../services/video/youtube-search.js', () => ({
   searchVideos: vi.fn(async () => ({ found: false, videos: [] })),
   getVideoDetails: async (id: string) => ({
     found: true,
-    video: { id, title: `Title ${id}`, privacyStatus: 'public', ...VIDEOS[id] },
+    video: { id, title: `Title ${id}`, privacyStatus: 'public', embeddable: true, ...VIDEOS[id] },
   }),
 }));
 vi.mock('../../services/user-preferences-store.js', () => ({
@@ -109,7 +111,12 @@ describe('taste loop', () => {
     await runFindCoachingResources({ topic: 'shin splints', format: 'video' }, call1, 'u1');
     const logged = [...store.entries()].filter(([k]) => k.includes('/coach_media_picks/'));
     expect(logged).toHaveLength(1);
-    expect(logged[0][1]).toMatchObject({ by: 'Physio Pat', lengthSeconds: 420, firstInCall: true });
+    expect(logged[0][1]).toMatchObject({
+      by: 'Physio Pat',
+      creatorId: 'UC-pat',
+      lengthSeconds: 420,
+      firstInCall: true,
+    });
     expect(typeof logged[0][1].latencyMs).toBe('number');
 
     expect(await runCoachingPick({ action: 'send_text' }, call1, 'u1', 'ferni')).toContain(
@@ -132,8 +139,18 @@ describe('taste loop', () => {
       { session: {}, userData: {} },
       'u1'
     );
-    expect(out).toContain('watch?v=vidPatCalf1');
+    expect(out).toContain('Title vidPatCalf1');
     expect(out).toContain('last time they liked picks from Physio Pat and short ones');
+
+    // A look-alike channel with the same name earns no "you liked" line.
+    webFinds('vidFakePat1');
+    const fake = await runFindCoachingResources(
+      { topic: 'hip stretches', format: 'video' },
+      { session: {}, userData: {} },
+      'u1'
+    );
+    expect(fake).toContain('Title vidFakePat1');
+    expect(fake).not.toContain('picks from Physio Pat');
     const check = JSON.stringify(
       generateContent.mock.calls
         .filter((c) => !(c[0] as { config?: { tools?: unknown } }).config?.tools)
@@ -149,7 +166,7 @@ describe('taste loop', () => {
       { session: {}, userData: {} },
       'u2'
     );
-    expect(out).toContain('watch?v=vidLecture1');
+    expect(out).toContain('Title vidLecture1');
     expect(out).not.toContain('last time they liked');
   });
 });
