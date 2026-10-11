@@ -39,6 +39,7 @@ import { createLogger } from '../utils/logger.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
 import { initHandoffPresence } from './handoff-presence.ui.js';
 import { openMarketplace } from './lazy-screens.js';
+import { applyLockState } from './team-lock-state.js';
 import { toast } from './whisper.ui.js';
 
 const log = createLogger('TeamUI');
@@ -1179,42 +1180,9 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   nameSpan.className = 'team-name';
   nameSpan.textContent = displayName;
   element.appendChild(nameSpan);
-
-  if (!agent.isCoordinator) applyLockState(element, agent.id as UnlockTeamMemberId, isLocked);
-  else addClass(element, 'team-member--in-team');
+  applyLockState(element, agent.id as UnlockTeamMemberId, isLocked, agent.isCoordinator);
 
   return element;
-}
-
-/**
- * The state classes the caretaker styles (--in-team, --locked; --addable and --switching
- * are set where those happen), from the unlock service, which follows the server. A
- * locked teammate carries the server's reason as its tooltip and accessible description,
- * and a click shows it (showLockedMemberFeedback) instead of sending a handoff_request.
- */
-export function applyLockState(element: HTMLElement, id: UnlockTeamMemberId, isLocked: boolean): void {
-  element.classList.toggle('team-member--locked', isLocked);
-  element.classList.toggle('team-member--in-team', !isLocked);
-  const reasonId = `team-lock-reason-${id}`;
-  element.querySelector(`#${reasonId}`)?.remove();
-  const reason = isLocked ? lockReasonFor(id) : undefined;
-  if (!reason) {
-    element.removeAttribute('title');
-    element.removeAttribute('aria-describedby');
-    return;
-  }
-  const described = document.createElement('span');
-  described.id = reasonId;
-  described.className = 'sr-only';
-  described.textContent = reason;
-  element.appendChild(described);
-  element.setAttribute('title', reason);
-  element.setAttribute('aria-describedby', reasonId);
-}
-
-/** Why a teammate is locked: the server's words when it has said, else the shipped teaser. */
-function lockReasonFor(id: UnlockTeamMemberId): string | undefined {
-  return getMemberStatus(id).lockReason || getTeamMember(id)?.teaserMessage;
 }
 
 /**
@@ -1564,7 +1532,6 @@ function showLockedMemberFeedback(
 
   // Get the teaser message or fallback
   const name = memberConfig?.displayName || personaId;
-  // The server's reason (what the agent would say), then the shipped teaser
   const message =
     status.lockReason || memberConfig?.teaserMessage || t('teamRoster.notAvailableYet', { name });
 
@@ -1604,13 +1571,11 @@ function updateTeamMemberLockStates(state: ReturnType<typeof teamUnlockService.g
         removeClass(element, 'team-member--almost-unlocked');
       }
     } else {
-      removeClass(element, 'team-member--locked');
-      removeClass(element, 'team-member--almost-unlocked');
+      removeClass(element, 'team-member--locked', 'team-member--almost-unlocked');
     }
 
-    // Update data attribute
-    element.setAttribute('data-locked', isLocked.toString());
-    if (personaId !== 'ferni') applyLockState(element, personaId as UnlockTeamMemberId, isLocked);
+    // data-locked, the state classes and the lock reason (the server's words) as tooltip
+    applyLockState(element, personaId as UnlockTeamMemberId, isLocked, personaId === 'ferni');
 
     // Update aria-label
     const memberConfig = getTeamMember(personaId as UnlockTeamMemberId);
@@ -1749,9 +1714,7 @@ function clearSwitchingFeedback(targetPersonaId: SpeakerId): void {
   // Clear switching-to from target
   const targetElement = teamMemberElements.get(targetPersonaId);
   if (targetElement) {
-    removeClass(targetElement, 'switching-to');
-    removeClass(targetElement, 'team-member--switching');
-    removeClass(targetElement, 'send-failed');
+    removeClass(targetElement, 'switching-to', 'team-member--switching', 'send-failed');
   }
 
   // Clear switching-from from all elements (in case we don't know which one)
@@ -1783,8 +1746,7 @@ function showSwitchingFeedback(fromId: SpeakerId, toId: PersonaId): void {
 
   // Highlight the target persona with a subtle glow
   if (toElement) {
-    addClass(toElement, 'switching-to');
-    addClass(toElement, 'team-member--switching');
+    addClass(toElement, 'switching-to', 'team-member--switching');
   }
 
   // 🎬 Energy transfer animation - magical pulse travels from one to the other

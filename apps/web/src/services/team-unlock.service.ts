@@ -20,6 +20,7 @@ import {
   type EngagementMetrics,
   type RelationshipStage,
 } from './relationship-stage.service.js';
+import * as server from './team-unlock-server.js';
 
 const log = createLogger('TeamUnlock');
 
@@ -244,29 +245,6 @@ let teamByNeed = false;
  */
 let _hasSyncedWithBackend = false;
 
-/**
- * Who the server says is unlocked, and why each locked teammate is locked (its words),
- * from GET /api/relationship/team-unlocks: the same rule the voice agent refuses taps
- * with. While the tier hasn't changed here since that answer, it decides who is
- * unlocked; the local calculation only fills in progress. Before, the app read a field
- * the server never sent (unlockedTeamMembers) and decided from its own metrics, so on
- * dev 2026-10-11 it offered Nayan and Jordan, the agent refused both taps, and it
- * didn't offer Maya, whom the server had unlocked.
- */
-let server: {
-  unlocked: Set<TeamMemberId>;
-  tier: 'free' | 'friend' | 'partner';
-  reasons: Map<TeamMemberId, string>;
-} | null = null;
-
-/** Unsubscribes the resync on a refused handoff; set once per page (initTeamUnlockService). */
-let stopResyncOnRefusal: (() => void) | null = null;
-
-/** The server's answer when it still describes this client (the tier hasn't moved since). */
-function serverView(): typeof server {
-  return server && server.tier === subscriptionTier ? server : null;
-}
-
 // ============================================================================
 // PERSISTENCE HELPERS
 // ============================================================================
@@ -356,13 +334,7 @@ async function syncWithBackend(userIdOverride?: string): Promise<void> {
     }
 
     const url = `${TEAM_UNLOCK_API}?userId=${userId}`;
-    const response = await apiGet<{
-      bypassMode?: string;
-      teamByNeed?: boolean;
-      tier?: string;
-      unlockedMembers?: string[];
-      members?: Array<{ id?: string; unlocked?: boolean; teaserMessage?: string | null }>;
-    }>(url);
+    const response = await apiGet<server.TeamUnlocksResponse>(url);
 
     if (!response.ok || !response.data) {
       log.warn('Failed to sync team unlocks from backend:', response.status);
@@ -386,23 +358,7 @@ async function syncWithBackend(userIdOverride?: string): Promise<void> {
       subscriptionTier = data.tier as 'free' | 'friend' | 'partner';
     }
 
-    // Who is unlocked is the server's call (see `server`)
-    if (Array.isArray(data.unlockedMembers)) {
-      const known = new Set(TEAM_MEMBERS.map((m) => m.id));
-      const reasons = new Map<TeamMemberId, string>();
-      for (const m of data.members ?? []) {
-        const id = m.id as TeamMemberId;
-        if (known.has(id) && !m.unlocked && typeof m.teaserMessage === 'string') {
-          reasons.set(id, m.teaserMessage);
-        }
-      }
-      server = {
-        unlocked: new Set(data.unlockedMembers.filter((id): id is TeamMemberId => known.has(id as TeamMemberId))),
-        tier: subscriptionTier,
-        reasons,
-      };
-    }
-
+    server.record(data, subscriptionTier, TEAM_MEMBERS); // the server decides who is unlocked
     _hasSyncedWithBackend = true;
 
     // Update local state if backend has different data
@@ -476,26 +432,6 @@ function getMemberUnlockStatus(
   };
 }
 
-/** The local status, with the server's decision and reason when there is one. */
-function withServerDecision(
-  local: MemberUnlockStatus,
-  id: TeamMemberId,
-  decided: ReturnType<typeof serverView>
-): MemberUnlockStatus {
-  if (!decided || id === 'ferni' || isMemberBypassed(id)) return local;
-  if (decided.unlocked.has(id)) return { unlocked: true, progress: 1 };
-  return {
-    ...local,
-    unlocked: false,
-    // Local metrics said unlocked: they're wrong, so they say nothing about progress either
-    progress: local.unlocked ? 0 : local.progress,
-    lockReason:
-      decided.reasons.get(id) ??
-      local.lockReason ??
-      TEAM_MEMBERS.find((m) => m.id === id)?.teaserMessage,
-  };
-}
-
 function calculateProgress(metrics: EngagementMetrics, threshold: StageThreshold): number {
   // Average only what this member needs: a requirement of zero isn't progress already made
   // (Maya needs only conversations, and counting her two empty ones showed 67% on day one)
@@ -556,17 +492,7 @@ export function initTeamUnlockService(userId?: string): void {
   // FIX: Sync with backend for authoritative state and bypass mode
   // This runs async and updates state when complete
   void syncWithBackend(userId);
-
-  // A refused tap means this client and the server disagreed: ask the server again, so
-  // the teammate shows as locked, with its reason, instead of offering another dead click
-  if (!stopResyncOnRefusal) {
-    const claim = () => undefined; // claimed now; the import below fills it in
-    stopResyncOnRefusal = claim;
-    void import('./handoff.service.js').then(({ handoffService }) => {
-      if (stopResyncOnRefusal !== claim) return; // reset meanwhile
-      stopResyncOnRefusal = handoffService.onHandoffFailed(() => void syncWithBackend(userId));
-    });
-  }
+  server.resyncOnRefusal(() => void syncWithBackend(userId)); // a refused tap: ask again
 
   log.info('Team unlock service initialized');
 }
@@ -595,13 +521,9 @@ export function updateUnlockState(): TeamUnlockState {
   let nextUnlock: NextUnlockInfo | null = null;
   let newlyUnlocked: TeamMemberId | null = null;
 
-  const decided = serverView();
   for (const member of TEAM_MEMBERS) {
-    const status = withServerDecision(
-      getMemberUnlockStatus(member, stage, subscriptionTier, metrics),
-      member.id,
-      decided
-    );
+    const local = getMemberUnlockStatus(member, stage, subscriptionTier, metrics);
+    const status = server.decide(local, member, subscriptionTier, isMemberBypassed(member.id));
     memberStatuses.set(member.id, status);
 
     if (status.unlocked) {
@@ -686,13 +608,9 @@ export function isTeamMemberUnlocked(memberId: TeamMemberId): boolean {
   // FIX: Check backend bypass mode
   if (isMemberBypassed(memberId)) return true;
 
-  // The server's decision, when it still describes this client
-  const decided = serverView();
-  if (decided) return decided.unlocked.has(memberId);
-
-  // Check local state
-  if (!currentState) return false;
-  return currentState.unlockedMembers.has(memberId);
+  return (
+    server.unlocked(memberId, subscriptionTier) ?? !!currentState?.unlockedMembers.has(memberId)
+  );
 }
 
 /**
@@ -884,9 +802,7 @@ export function _resetForTesting(): void {
   teamByNeed = false;
   subscriptionTier = 'free';
   _hasSyncedWithBackend = false;
-  server = null;
-  stopResyncOnRefusal?.();
-  stopResyncOnRefusal = null;
+  server.reset();
   unlockListeners.clear();
   memberUnlockListeners.clear();
   almostThereListeners.clear();

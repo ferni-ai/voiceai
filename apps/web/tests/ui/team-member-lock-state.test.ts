@@ -13,7 +13,7 @@ import {
   resyncWithBackend,
   TEAM_MEMBERS,
 } from '../../src/services/team-unlock.service.js';
-import { applyLockState } from '../../src/ui/team.ui.js';
+import { applyLockState } from '../../src/ui/team-lock-state.js';
 
 const REASON = 'There is someone I deeply respect... a sage.';
 
