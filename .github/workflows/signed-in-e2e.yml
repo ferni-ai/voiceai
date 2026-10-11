@@ -50,6 +50,7 @@ env:
 
 jobs:
   signed-in-e2e:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Signed-in walk (desktop + phone)
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
