@@ -39,7 +39,17 @@ export async function handleDeliverScheduledActions(
   await run(res, 'deliver-scheduled-actions', async () => {
     const { deliverDueScheduledActions } =
       await import('../../services/workflows/scheduled-actions.js');
-    return { ...(await deliverDueScheduledActions({ dryRun: isDryRun(req) })) };
+    const actions = await deliverDueScheduledActions({ dryRun: isDryRun(req) });
+    // Proactive check-ins ride this per-minute job (PROACTIVE_CHANNELS=on,
+    // allowlisted users only); a failure there must not hide the actions result.
+    const { runProactiveChannelsTick } =
+      await import('../../services/outreach/proactive-channels/proactive-tick.js');
+    const { defaultProactiveDeps } =
+      await import('../../services/outreach/proactive-channels/default-deps.js');
+    const proactive = await runProactiveChannelsTick(defaultProactiveDeps(), {
+      dryRun: isDryRun(req),
+    }).catch((error: unknown) => ({ enabled: true, error: String(error) }));
+    return { ...actions, ...(proactive.enabled ? { proactive } : {}) };
   });
 }
 
@@ -50,7 +60,16 @@ export async function handleExecuteScheduledOutreach(
   await run(res, 'execute-scheduled-outreach', async () => {
     const { executeDueScheduledOutreach } =
       await import('../../services/outreach/scheduled-outreach-executor.js');
-    return { ...(await executeDueScheduledOutreach({ dryRun: isDryRun(req) })) };
+    const outreach = await executeDueScheduledOutreach({ dryRun: isDryRun(req) });
+    if (isDryRun(req) || process.env.CALL_HOURS_GUARD !== 'on') return { ...outreach };
+    // Calls the call-hours guard deferred ride the same per-minute job; their
+    // failure must not hide the outreach result.
+    const { executeDueDeferredCalls } = await import('../../services/outreach/deferred-calls.js');
+    const deferredCalls = await executeDueDeferredCalls().catch((error: unknown) => {
+      log.error({ error: String(error) }, 'Deferred calls run failed');
+      return { error: String(error) };
+    });
+    return { ...outreach, deferredCalls };
   });
 }
 

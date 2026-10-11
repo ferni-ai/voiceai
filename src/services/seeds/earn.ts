@@ -40,6 +40,25 @@ function daysBefore(date: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * What the app shows for today: whether the day's seeds are still to earn, and the streak
+ * as it stands (0 once a day was missed; the stored count only resets on the next earn).
+ */
+export function dailyStatus(
+  account: { lastConversationDate?: unknown; currentStreak?: unknown; seedTimeZone?: unknown },
+  now: Date = new Date()
+): { dailyBonusAvailable: boolean; currentStreak: number } {
+  const zone = typeof account.seedTimeZone === 'string' ? account.seedTimeZone : undefined;
+  const today = localDate(now, zone);
+  const last =
+    typeof account.lastConversationDate === 'string' ? account.lastConversationDate : null;
+  const live = last !== null && last >= daysBefore(today, 1);
+  return {
+    dailyBonusAvailable: last === null || last < today,
+    currentStreak: live ? Number(account.currentStreak ?? 0) : 0,
+  };
+}
+
 export interface DailyResult {
   daily: SeedResult;
   streakDays: number;

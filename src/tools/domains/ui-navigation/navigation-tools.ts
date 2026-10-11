@@ -18,6 +18,7 @@ import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { callSessionId } from '../../utils/call-session.js';
 
 const log = getLogger();
 
@@ -160,7 +161,7 @@ The panel parameter should be what the user said (e.g., "my story", "memory lane
             'The panel the user wants to open. Can be natural language like "my story", "memory lane", "calendar", "contacts"'
           ),
       }),
-      execute: async ({ panel }) => {
+      execute: async ({ panel }, run) => {
         try {
           const panelId = parsePanel(panel);
 
@@ -174,9 +175,12 @@ The panel parameter should be what the user said (e.g., "my story", "memory lane
 
           // Broadcast panel open event to UI
           if (ctx.userId) {
-            await broadcastUserEvent(ctx.userId, 'show_view', {
-              view: panelId,
-            });
+            await broadcastUserEvent(
+              ctx.userId,
+              'show_view',
+              { view: panelId },
+              { sessionId: callSessionId(run, ctx) }
+            );
           }
 
           const label = getPanelLabel(panelId);
@@ -236,14 +240,17 @@ const closePanelDef: ToolDefinition = {
 - "Never mind"
 - "Dismiss"`,
       parameters: z.object({}),
-      execute: async () => {
+      execute: async (_args, run) => {
         try {
           const { broadcastUserEvent } = await import('../../../services/user-events/index.js');
 
           if (ctx.userId) {
-            await broadcastUserEvent(ctx.userId, 'show_view', {
-              view: 'close',
-            });
+            await broadcastUserEvent(
+              ctx.userId,
+              'show_view',
+              { view: 'close' },
+              { sessionId: callSessionId(run, ctx) }
+            );
           }
 
           log.info({ userId: ctx.userId }, '🧭 Closing panel via voice');
