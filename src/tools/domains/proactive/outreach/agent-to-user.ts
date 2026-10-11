@@ -31,6 +31,7 @@ import { sendEmail, sendSMS } from '../../../../services/communication-service.j
 import { callWithPersonaVoice } from '../../../../services/voice/voice-call.js';
 import { scheduleProactiveCall } from '../../../../services/outreach/conversational-calls.js';
 import { userReach } from '../../../../services/outreach/user-reach.js';
+import { escapeXml } from '../../../../services/outreach/twilio-ssml.js';
 import {
   getPersonaDisplayName,
   getCanonicalPersonaId,
@@ -430,7 +431,7 @@ Use for important check-ins or when a phone call is more personal than text.`,
           userId: ctx.userId,
           phoneNumber: reach.phone,
           message,
-          ssml: message,
+          ssml: `<speak>${escapeXml(message)}</speak>`,
           personaId: getCanonicalPersonaId(ctx.agentId || 'ferni'),
           reason: 'user_requested_call',
         });

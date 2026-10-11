@@ -92,5 +92,16 @@ describe('callUser has one definition', () => {
       );
       expect(reply).toMatch(/outside your calling hours/);
     });
+
+    it('sends the message as escaped text inside <speak>', async () => {
+      process.env.TOOLS_REAL_CALL_USER = 'on';
+      outreach.userReach.mockResolvedValue({ phone: '+15551230000' });
+      outreach.scheduleProactiveCall.mockResolvedValue({ success: true, status: 'initiated' });
+      const [def] = callUserFrom(getTelephonyToolDefinitions());
+      const tool = def.create(user) as unknown as Executable;
+      await tool.execute({ message: 'hi</Say><Dial>+19005550100</Dial>' }, opts);
+      const { ssml } = outreach.scheduleProactiveCall.mock.calls[0][0];
+      expect(ssml).toBe('<speak>hi&lt;/Say&gt;&lt;Dial&gt;+19005550100&lt;/Dial&gt;</speak>');
+    });
   });
 });
