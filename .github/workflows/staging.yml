@@ -165,9 +165,14 @@ jobs:
       - name: Pull Docker Hub images through a mirror
         uses: ./.github/actions/docker-hub-mirror
 
+      # Self-hosted runners skip the mirror step above, so name the mirror in the
+      # build itself: the base image and the Dockerfile frontend both come from
+      # mirror.gcr.io instead of Docker Hub, whose anonymous pull limit (429) they share.
       - name: Build UI image (no push)
         run: |
-          docker build -f docker/Dockerfile.ui -t john-bogle-ui:merge-check .
+          docker build -f docker/Dockerfile.ui -t john-bogle-ui:merge-check \
+            --build-arg BASE_REGISTRY=mirror.gcr.io/library/ \
+            --build-arg BUILDKIT_SYNTAX=mirror.gcr.io/docker/dockerfile:1.4 .
           docker image rm john-bogle-ui:merge-check
 
   # ============================================================================
