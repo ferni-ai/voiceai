@@ -21,7 +21,10 @@ const embed: RetrievalEmbedder = async (texts) =>
   texts.map((t) =>
     /brother|pete|phone|number/i.test(t) ? [1, 0.05, 0.05, 0.05] : [0.05, 1, 0.05, 0.05]
   );
-const settle = () => new Promise((r) => setTimeout(r, 0));
+const settle = async () =>
+  new Promise<void>((r) => {
+    setTimeout(r, 0);
+  });
 const noLedger = { save: async () => undefined, recent: async () => [] };
 
 async function ask(episodes: boolean): Promise<string> {
@@ -54,5 +57,50 @@ describe('episode recall in the live hook', () => {
 
   it('is off unless asked for', async () => {
     expect(await ask(false)).not.toContain('435 339 7687');
+  });
+});
+
+describe('fact quotes in the live hook (RECALL_FACT_QUOTES)', () => {
+  // A fact recall finds by its words, and the line it came from.
+  const factStore = {
+    facts: async () => [
+      {
+        entityName: "User's brother",
+        key: 'phone number',
+        value: '435-339-7687',
+        confidence: 0.9,
+        extractedAt: '2026-01-05T18:01:00Z',
+      },
+    ],
+    summaries: async () => [],
+  };
+
+  async function noteFor(factQuotes: boolean): Promise<string | null> {
+    const recall = createMemoryRecall({
+      userId: 'u-quotes',
+      userName: 'Seth',
+      store: factStore,
+      ledgerStore: noLedger,
+      checkIns: async () => [],
+      semantic: false,
+      factQuotes,
+      episodeStore,
+    });
+    await recall.ready;
+    await settle();
+    return recall.noteFor("what's my brother's phone number");
+  }
+
+  it('grounds a recalled fact in the words and date of the call it came from', async () => {
+    const note = (await noteFor(true))!;
+    expect(note).toContain('phone number = 435-339-7687');
+    expect(note).toContain(`- phone number: on Jan 5, "Uh, yes. It's uh 435 339 7687."`);
+    expect(note).toContain("in Seth's own words");
+  });
+
+  it('is off unless asked for', async () => {
+    const note = (await noteFor(false))!;
+    expect(note).toContain('phone number = 435-339-7687');
+    expect(note).not.toContain('own words');
   });
 });

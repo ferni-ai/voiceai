@@ -63,9 +63,11 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { forgottenTopics } from '../../memory/recall/forget.js';
 import {
   createEpisodeRecall,
+  firestoreEpisodeStore,
   recallEpisodesEnabled,
   type EpisodeStore,
 } from '../../memory/recall/episodes.js';
+import { createFactQuotes, factQuotesEnabled } from '../../memory/recall/fact-quotes.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -122,6 +124,8 @@ export interface MemoryRecallDeps {
   /** RECALL_EPISODES=on (episodes.ts, needs semantic); read from the environment when not given. */
   episodes?: boolean;
   episodeStore?: EpisodeStore;
+  /** RECALL_FACT_QUOTES=on (fact-quotes.ts); read from the environment when not given. */
+  factQuotes?: boolean;
 }
 
 export interface MemoryRecall {
@@ -170,14 +174,26 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const laterFollowUps = new Map<string, string>();
   const laterTold = new Map<string, LedgerFact>();
   // The caller's own words from earlier calls; indexed apart so the snapshot never waits.
-  const episodes =
-    semanticOn && (deps.episodes ?? recallEpisodesEnabled())
-      ? createEpisodeRecall({
-          userId: deps.userId,
-          before: new Date(started),
-          store: deps.episodeStore,
-          embed: deps.embed,
-        })
+  const episodesOn = semanticOn && (deps.episodes ?? recallEpisodesEnabled());
+  const quotesOn = deps.factQuotes ?? factQuotesEnabled();
+  // Both read the caller's recent calls: one read serves both.
+  const recentCalls =
+    episodesOn || quotesOn
+      ? (deps.episodeStore ?? firestoreEpisodeStore).calls(deps.userId, new Date(started))
+      : undefined;
+  const callsOnce: EpisodeStore | undefined = recentCalls && { calls: () => recentCalls };
+  const episodes = episodesOn
+    ? createEpisodeRecall({
+        userId: deps.userId,
+        before: new Date(started),
+        store: callsOnce,
+        embed: deps.embed,
+      })
+    : undefined;
+  // Each recalled fact grounded in the caller's own words and the call's date.
+  const quotes =
+    quotesOn && recentCalls
+      ? createFactQuotes({ userId: deps.userId, userName: deps.userName, calls: recentCalls })
       : undefined;
   const personaId = deps.personaId ?? 'ferni';
   const ledger = loadLedger(
@@ -288,6 +304,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes }),
           told,
           extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
+          quotes?.take(facts) ?? null,
           episodes?.take() ?? null,
         ]
           .filter(Boolean)
@@ -316,6 +333,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     },
     newTurn() {
       episodes?.newTurn();
+      quotes?.newTurn();
       factsThisTurn = 0;
       tokensLeft = RECALL_TOKENS_PER_TURN;
       entitiesThisTurn.clear();
