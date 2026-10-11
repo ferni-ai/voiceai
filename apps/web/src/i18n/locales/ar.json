@@ -2515,7 +2515,8 @@
       "features": "ما يمكن لـ Ferni رؤيته"
     },
     "title": "الأجهزة القابلة للارتداء",
-    "notConfigured": "لم يُعدّ بعد"
+    "notConfigured": "لم يُعدّ بعد",
+    "appleHealthOnIphone": "يمكنك إعداد Apple Health من تطبيق Ferni على iPhone"
   },
   "transcript": {
     "enabled": "نسخ النص مفعّل",

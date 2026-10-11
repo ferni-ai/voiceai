@@ -2439,7 +2439,8 @@
       "features": "Was Ferni sehen kann"
     },
     "title": "Wearables",
-    "notConfigured": "Noch nicht eingerichtet"
+    "notConfigured": "Noch nicht eingerichtet",
+    "appleHealthOnIphone": "Richte Apple Health in der Ferni-App auf deinem iPhone ein"
   },
   "transcript": {
     "enabled": "Transkription an",
