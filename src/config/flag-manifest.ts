@@ -108,6 +108,7 @@ export const FLAG_MANIFEST = {
   EVALOPS_FIRESTORE_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
+  FACT_SWEEP: { default: 'off', owner: 'memory', kind: 'experiment' },
   // never on when NODE_ENV=production
   FERNI_DEVELOPER_TOOLS: { default: 'off', owner: 'tools', kind: 'config' },
   FERNI_LOCAL_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
