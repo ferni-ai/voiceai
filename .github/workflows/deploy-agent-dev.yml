@@ -1,0 +1,144 @@
+name: Deploy voice agent to dev
+
+# Every merge to main ships the voice agent to LiveKit Cloud dev
+# (ferni-dev, CA_siTDMHEba4Fg). Same gates as .claude/skills/deploy-agent:
+# clean tree, frozen install, typecheck, no live dev calls, build-log check,
+# then wait until the new version is the one serving.
+#
+# Prod is not deployed from here, and flags (lk agent update-secrets) stay a
+# deliberate manual step: both change what callers hear.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+# One deploy at a time. A newer merge replaces a queued one instead of
+# cancelling a deploy that is already running.
+concurrency:
+  group: deploy-agent-dev
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  LK_VERSION: '2.18.8'
+  LK_PROJECT: ferni-dev
+  LK_URL: wss://dev-8sm1ba0z.livekit.cloud
+  NODE_OPTIONS: '--max-old-space-size=8192'
+
+jobs:
+  deploy:
+    name: Deploy agent to ferni-dev
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          frozen-lockfile: 'true'
+
+      - name: Tree still clean after install
+        run: |
+          dirty=$(git status --porcelain --untracked-files=no)
+          if [ -n "$dirty" ]; then
+            echo "::error::install changed tracked files; deploying would ship something that isn't on main"
+            echo "$dirty"
+            exit 1
+          fi
+
+      - run: pnpm typecheck
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Install lk ${{ env.LK_VERSION }}
+        run: |
+          cd "$RUNNER_TEMP"
+          base=https://github.com/livekit/livekit-cli/releases/download/v$LK_VERSION
+          tarball=lk_${LK_VERSION}_linux_amd64.tar.gz
+          curl -fsSLO "$base/$tarball"
+          curl -fsSLO "$base/checksums.txt"
+          grep " $tarball\$" checksums.txt | sha256sum -c -
+          tar -xzf "$tarball" lk
+          sudo install lk /usr/local/bin/lk
+          lk --version
+
+      - name: Configure the ferni-dev project
+        run: |
+          key=$(gcloud secrets versions access latest --secret=livekit-dev-api-key --project=johnb-2025)
+          secret=$(gcloud secrets versions access latest --secret=livekit-dev-api-secret --project=johnb-2025)
+          echo "::add-mask::$key"
+          echo "::add-mask::$secret"
+          lk project add "$LK_PROJECT" --url "$LK_URL" --api-key "$key" --api-secret "$secret" >/dev/null
+          # Fails fast if the keys don't belong to ferni-dev.
+          lk room list --project "$LK_PROJECT" >/dev/null
+
+      - name: Wait until nobody is on a dev call
+        run: |
+          # A deploy drops live calls. Check every 30 s for up to 30 min.
+          for i in $(seq 1 60); do
+            rooms=$(lk room list --project "$LK_PROJECT" | grep -c '│ RM_' || true)
+            if [ "$rooms" = 0 ]; then
+              echo "no rooms open"
+              exit 0
+            fi
+            echo "$rooms room(s) open, waiting ($i/60)"
+            sleep 30
+          done
+          echo "::error::ferni-dev still had open rooms after 30 minutes; not deploying over a live call"
+          exit 1
+
+      - name: Deploy
+        run: |
+          log="$RUNNER_TEMP/deploy.log"
+          cp docker/Dockerfile.agent ./Dockerfile
+          set +e
+          lk agent deploy --project "$LK_PROJECT" --config "$GITHUB_WORKSPACE/livekit.toml" -y . > "$log" 2>&1
+          status=$?
+          set -e
+          rm -f Dockerfile
+          # Minified bundle code in the log contains "ERROR:" mid-line, so only
+          # real error lines count (tsc, BuildKit, esbuild).
+          if grep -qE "error TS[0-9]{4}|^(#[0-9]+ )?ERROR:|[Bb]uild failed|✘ \[ERROR\]" "$log"; then
+            grep -nE "error TS[0-9]{4}|^(#[0-9]+ )?ERROR:|[Bb]uild failed|✘ \[ERROR\]" "$log" | head -40
+            echo "::error::agent build failed"
+            exit 1
+          fi
+          # "bufio.Scanner: token too long" at the end is harmless and exits non-zero.
+          if [ $status -ne 0 ] && ! grep -q 'bufio.Scanner: token too long' "$log"; then
+            tail -40 "$log"
+            echo "::error::lk agent deploy exited $status"
+            exit 1
+          fi
+          echo "deployed ${GITHUB_SHA::9}"
+
+      - name: Wait until the new version is serving
+        run: |
+          # The row with ✓ in Production must carry this commit.
+          for i in $(seq 1 30); do
+            live=$(lk agent versions --project "$LK_PROJECT" --config "$GITHUB_WORKSPACE/livekit.toml" \
+              | awk -F'│' '$3 ~ /✓/ { gsub(/ /, "", $2); if (match($7, /"git_commit":"[0-9a-f]+"/)) print $2, substr($7, RSTART+14, RLENGTH-15) }' \
+              | head -1)
+            version=${live%% *}; commit=${live##* }
+            if [ -n "$commit" ] && [ "${GITHUB_SHA#"$commit"}" != "$GITHUB_SHA" ]; then
+              echo "live on ferni-dev: version $version, commit $commit"
+              echo "### ferni-dev now runs \`$version\` (commit \`$commit\`)" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "serving: ${live:-nothing yet}, waiting ($i/30)"
+            sleep 10
+          done
+          echo "::error::the new version never became the serving one"
+          exit 1
