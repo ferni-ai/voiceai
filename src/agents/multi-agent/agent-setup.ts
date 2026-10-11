@@ -116,6 +116,7 @@ import {
   installTurnListeners,
   recordAssistantTurns,
 } from './turn-observers.js';
+import { localClockContext, localClockEnabled } from '../shared/local-clock.js';
 import { timeContext } from '../shared/time-context.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
@@ -334,10 +335,18 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // the date/time from the VERY FIRST MOMENT (including greeting)
     // =========================================================================
     // The caller's local time and part of day (time-context.ts); never the server's UTC clock.
-    const dateTimeContext = timeContext(new Date(), userData?.callerTimezone);
-
     // Append date/time to model base instructions (session-specific, not cached)
     const outboundAwareness = outboundCallerAwareness(outboundPartiesFor(sessionId));
+    // FERNI_LOCAL_CLOCK=on: Ferni's own mountain-time clock, plus the caller's
+    // (browser zone, else the profile zone: a phone call may carry no browser zone).
+    const dateTimeContext =
+      localClockEnabled() && persona.id === 'ferni'
+        ? localClockContext(
+            new Date(),
+            userData?.callerTimezone ??
+              (outboundAwareness ? undefined : services.userProfile?.contactInfo?.timezone)
+          )
+        : timeContext(new Date(), userData?.callerTimezone);
     modelBaseInstructions = baseInstructions + dateTimeContext + outboundAwareness;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
