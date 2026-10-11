@@ -3322,8 +3322,8 @@
     "categorySweet": "רגעים מתוקים",
     "connectionConnected": "אנחנו מחוברים",
     "connectionConnecting": "מתחברים...",
-    "connectionDisconnected": "אנחנו לא מחוברים",
-    "connectionDisconnectedMessage": "משהו השתבש, אבל תמיד אפשר לנסות שוב.",
+    "connectionIdle": "מוכן מתי שתרצה",
+    "connectionIdleMessage": "מתי שבא לך לדבר, אני כאן.",
     "connectionError": "החיבור אבד",
     "connectionErrorMessage": "משהו השתבש, אבל תמיד אפשר לנסות שוב.",
     "connectionReconnect": "להתחבר מחדש",
@@ -10710,6 +10710,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "התקדמות מערכת היחסים",
+    "emptyInvite": "הסיפור שלנו מתחיל בשיחה הראשונה שלך.",
     "progress": "התקדמות",
     "next": "השלב הבא: {stage}",
     "stages": {

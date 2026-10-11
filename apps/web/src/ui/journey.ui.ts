@@ -46,7 +46,7 @@ import type { TrustJourneyData } from './trust-journey/types.js';
 
 const log = createLogger('JourneyUI');
 
-type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'speaking' | 'error';
+export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'speaking' | 'error';
 
 // ============================================================================
 // VOICE ID STATUS
@@ -522,7 +522,7 @@ function createModal(): void {
 // CONNECTION STATE
 // ============================================================================
 
-function renderConnectionBanner(state: ConnectionState): string {
+export function renderConnectionBanner(state: ConnectionState): string {
   switch (state) {
     case 'connected':
     case 'speaking':
@@ -561,13 +561,13 @@ function renderConnectionBanner(state: ConnectionState): string {
 
     case 'disconnected':
     default:
-      // Disconnected - show connect CTA
+      // Idle is the normal resting state, not a failure: invite, don't apologize
       return `
-        <div class="journey-connection journey-connection--disconnected">
-          <span class="journey-connection__icon">${ICONS.heartBroken}</span>
+        <div class="journey-connection journey-connection--idle">
+          <span class="journey-connection__icon">${ICONS.messageHeart}</span>
           <div class="journey-connection__content">
-            <span class="journey-connection__text">${t('journey.connectionDisconnected')}</span>
-            <p class="journey-connection__subtext">${t('journey.connectionDisconnectedMessage')}</p>
+            <span class="journey-connection__text">${t('journey.connectionIdle')}</span>
+            <p class="journey-connection__subtext">${t('journey.connectionIdleMessage')}</p>
           </div>
           <button class="journey-connect-btn">
             ${ICONS.phone}

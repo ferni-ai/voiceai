@@ -3300,8 +3300,8 @@
     "categorySweet": "달콤한 순간들",
     "connectionConnected": "연결되었어요",
     "connectionConnecting": "연결 중...",
-    "connectionDisconnected": "연결이 끊어졌어요",
-    "connectionDisconnectedMessage": "문제가 발생했지만, 다시 시도해볼 수 있어요.",
+    "connectionIdle": "준비되면 언제든지요",
+    "connectionIdleMessage": "이야기하고 싶을 때 언제든 여기 있을게요.",
     "connectionError": "연결이 끊김",
     "connectionErrorMessage": "문제가 발생했지만, 다시 시도해볼 수 있어요.",
     "connectionReconnect": "다시 연결하기",
@@ -10599,6 +10599,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "관계 진행 상황",
+    "emptyInvite": "우리 이야기는 첫 대화에서 시작돼요.",
     "progress": "진행도",
     "next": "다음 단계: {stage}",
     "stages": {

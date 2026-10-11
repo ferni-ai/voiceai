@@ -3300,8 +3300,8 @@
     "categorySweet": "甜蜜瞬间",
     "connectionConnected": "我们已联结",
     "connectionConnecting": "正在连接...",
-    "connectionDisconnected": "连接已断开",
-    "connectionDisconnectedMessage": "出了点小状况，不过我们可以再试一次。",
+    "connectionIdle": "随时准备好了",
+    "connectionIdleMessage": "想聊的时候，我一直都在。",
     "connectionError": "连接已断开",
     "connectionErrorMessage": "出了点小状况，不过我们可以再试一次。",
     "connectionReconnect": "重新连接",
@@ -10599,6 +10599,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "关系进展",
+    "emptyInvite": "我们的故事从你的第一次对话开始。",
     "progress": "进度",
     "next": "下一步：{stage}",
     "stages": {
