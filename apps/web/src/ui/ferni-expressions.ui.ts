@@ -48,10 +48,10 @@
 import { gsap } from '../utils/gsap-setup.js';
 import { DURATION } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { expressionMotion, holdReturnTarget, noteExpressionSet } from './avatar-motion/expression-easing.js';
 
 const log = createLogger('FerniExpressions');
 
-// GSAP helper
 const toSeconds = (ms: number) => ms / 1000;
 
 // ============================================================================
@@ -563,12 +563,12 @@ export function setExpression(
   const config = expressions[expression];
   if (!config) return;
   
-  // Create timeline with anticipation
+  // Create timeline; weight-aware easing + reduced motion when ferni:weighted-easing is on
   const tl = gsap.timeline();
   expressionTimeline = tl;
-  
+  const motion = expressionMotion(expression, duration);
   // Anticipation phase - slight opposite movement
-  if (prevExpression !== 'neutral' || expression !== 'neutral') {
+  if (motion.anticipate && (prevExpression !== 'neutral' || expression !== 'neutral')) {
     tl.to([lidTop, lidBottom], {
       scaleY: 0.95,
       duration: toSeconds(DURATION.MICRO),
@@ -580,25 +580,25 @@ export function setExpression(
   tl.to(lidTop, {
     attr: { d: config.topPath },
     scaleY: 1,
-    duration: toSeconds(duration),
-    ease: 'elastic.out(1, 0.7)',
-  }, toSeconds(DURATION.MICRO));
+    duration: toSeconds(motion.durationMs),
+    ease: motion.ease,
+  }, toSeconds(motion.delayMs));
   
   tl.to(lidBottom, {
     attr: { d: config.bottomPath },
     scaleY: 1,
-    duration: toSeconds(duration),
-    ease: 'elastic.out(1, 0.7)',
-  }, toSeconds(DURATION.MICRO));
+    duration: toSeconds(motion.durationMs),
+    ease: motion.ease,
+  }, toSeconds(motion.delayMs));
   
   // Dimple animations - subtle shadows that appear on warm expressions
   if (dimpleLeft && dimpleRight) {
     const dimpleOpacity = config.dimpleOpacity ?? 0;
     tl.to([dimpleLeft, dimpleRight], {
       opacity: dimpleOpacity,
-      duration: toSeconds(duration * 0.8),
+      duration: toSeconds(motion.durationMs * 0.8),
       ease: dimpleOpacity > 0 ? 'power2.out' : 'power2.in',
-    }, toSeconds(DURATION.MICRO));
+    }, toSeconds(motion.delayMs));
   }
   
   // Warmth sparkle effect for delighted/excited
@@ -606,10 +606,10 @@ export function setExpression(
     triggerWarmthSparkle();
   }
   
-  // Return to neutral after hold
+  noteExpressionSet(expression, hold); // resting moods become the hold-return baseline
   if (hold > 0) {
     tl.call(() => {
-      setExpression('neutral', DURATION.SLOW);
+      setExpression(holdReturnTarget('neutral', expressions), DURATION.SLOW);
     }, [], `+=${toSeconds(hold)}`);
   }
   
