@@ -119,11 +119,14 @@ describe('findCoachingResources on the live path', () => {
       skipGreeting: true,
     });
     const session = {
-      userData: { name: 'Seth Ford', services: { userProfile: profile } },
+      userData: {
+        name: 'Seth Ford',
+        services: { userProfile: { ...profile, familyMembers: [{ name: 'Mindy' }] } },
+      },
       currentAgent: agent,
     };
     const output = await dispatch(session, agent.toolCtx as unknown as Record<string, unknown>, {
-      topic: "Seth's beginner shin splint stretches",
+      topic: "Seth and Mindy's beginner shin splint stretches",
       format: 'video',
     });
 
@@ -131,7 +134,10 @@ describe('findCoachingResources on the live path', () => {
     const sent = JSON.stringify(generateContent.mock.calls[0][0]);
     expect(sent).toContain('beginner shin splint stretches video');
     expect(sent.toLowerCase()).not.toContain('seth');
+    expect(sent.toLowerCase()).not.toContain('mindy');
     expect(output).toContain('not instructions');
+    expect(output).toContain('web_data: ');
+    expect(output).toContain('Untrusted web data');
     expect(output).toContain('https://www.youtube.com/watch?v=abc123');
     expect(output).not.toMatch(/ignore previous instructions/i);
     expect(output).toContain('General info, not personal advice');

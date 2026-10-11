@@ -17,7 +17,11 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { groundedAnswer } from '../../../services/coach-media/grounded-search.js';
 import { groundedResultText } from '../../../services/coach-media/result-text.js';
-import { coachMediaEnabled, topicOnlyQuery } from '../../../services/coach-media/topic-query.js';
+import {
+  coachMediaEnabled,
+  sessionIdentifiers,
+  topicOnlyQuery,
+} from '../../../services/coach-media/topic-query.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition } from '../../registry/types.js';
 
@@ -27,11 +31,16 @@ const DESCRIPTION =
   'Look up what actually helps with something they are working on (a stretch routine, a ' +
   'money habit, a hard conversation, a skill) and the best video, book or article on it, ' +
   'checked against the web. Use when they want a resource or real-world advice beyond what ' +
-  'you know. Pass the TOPIC ONLY, in general words: never their name, a phone number, ' +
-  'an email, an account or a personal health detail.';
+  'you know. Pass a GENERIC topic only (e.g. "beginner shin splint stretches"): never a ' +
+  "name (theirs or anyone's), a place, an employer, a number, an email, an account or a " +
+  'personal health detail.';
 
 const parameters = z.object({
-  topic: z.string().describe('General topic words only, e.g. "beginner shin splint stretches"'),
+  topic: z
+    .string()
+    .describe(
+      'A generic topic in a few words, e.g. "beginner shin splint stretches"; no names, places or personal details'
+    ),
   format: z
     .enum(['any', 'video', 'book', 'article'])
     .optional()
@@ -49,10 +58,7 @@ export async function runFindCoachingResources(
   args: z.infer<typeof parameters>,
   userData: Record<string, unknown>
 ): Promise<string> {
-  const names = [userData.name, userData.userName, userData.preferredName].map((n) =>
-    typeof n === 'string' ? n : undefined
-  );
-  const topic = topicOnlyQuery(args.topic, names);
+  const topic = topicOnlyQuery(args.topic, sessionIdentifiers(userData));
   if (!topic) return 'Ask what topic they want help with, in a few general words.';
   const query = args.format && args.format !== 'any' ? `${topic} ${args.format}` : topic;
   getLogger().info({ format: args.format ?? 'any' }, 'coach-media: finding resources');
