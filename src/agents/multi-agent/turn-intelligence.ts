@@ -23,6 +23,7 @@ import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import type { UserData } from '../shared/types.js';
 import type { TurnHandlerContext } from '../voice-agent/turn-handler.js';
 import { getUserResponseGapMs } from '../voice-agent/user-response-gap.js';
+import { deferFirstTurn, firstTurnDeferEnabled } from './first-turn-defer.js';
 import { TURN_CONTEXT_HEADER } from './turn-context-header.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
@@ -327,7 +328,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
       const mine = ++run;
       const { llm } = await import('@livekit/agents');
       const scratch = llm.ChatContext.empty();
-      await hook(scratch, llm.ChatMessage.create({ role: 'user', content: turnText }));
+      await hook(scratch, llm.ChatMessage.create({ role: 'user', content: forText }));
       if (mine !== run) return; // a later segment of this turn superseded it
       const notes = scratch.items
         .map((item) => (item as { textContent?: string }).textContent?.trim())
@@ -348,5 +349,48 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
       userSpeaking = newState === 'speaking';
       await tryPush();
     },
+  };
+}
+
+interface SessionEvents {
+  on?: (event: string, handler: (...args: unknown[]) => void) => void;
+  off?: (event: string, handler: (...args: unknown[]) => void) => void;
+}
+
+/**
+ * Feeds a pusher from the session's events; returns the function that detaches it.
+ * FIRST_TURN_DEFER_BACKGROUND=on holds turn 1's build until Ferni speaks (first-turn-defer.ts).
+ */
+export function attachTurnContextPusher(
+  hook: UserTurnHook,
+  agent: ContextAgent,
+  session: SessionEvents,
+  env: Record<string, string | undefined> = process.env
+): () => void {
+  const deferral = firstTurnDeferEnabled(env) ? deferFirstTurn(hook) : undefined;
+  const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent);
+  const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');
+  const onTranscript = (event: unknown) => {
+    const evt = event as { transcript?: string; isFinal?: boolean };
+    if (!evt.isFinal || !evt.transcript?.trim()) return;
+    deferral?.onFinalTranscript();
+    pusher.onFinalTranscript(evt.transcript).catch(failed);
+  };
+  const onAgentState = (event: unknown) => {
+    const state = (event as { newState?: string }).newState;
+    deferral?.onAgentState(state);
+    pusher.onAgentState(state).catch(failed);
+  };
+  const onUserState = (event: unknown) => {
+    pusher.onUserState((event as { newState?: string }).newState).catch(failed);
+  };
+  session.on?.('user_input_transcribed', onTranscript);
+  session.on?.('agent_state_changed', onAgentState);
+  session.on?.('user_state_changed', onUserState);
+  return () => {
+    session.off?.('user_input_transcribed', onTranscript);
+    session.off?.('agent_state_changed', onAgentState);
+    session.off?.('user_state_changed', onUserState);
+    deferral?.dispose();
   };
 }
