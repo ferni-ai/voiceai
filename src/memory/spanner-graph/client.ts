@@ -13,7 +13,7 @@
  * @module memory/spanner-graph/client
  */
 
-import { Spanner, Database } from '@google-cloud/spanner';
+import { Spanner, type Database } from '@google-cloud/spanner';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   SPANNER_CONFIG,
@@ -662,16 +662,14 @@ export async function markAnchorRecalled(userId: string, anchorId: string): Prom
 // CLEANUP
 // ============================================================================
 
-/**
- * Close Spanner connections
- */
+/** Close Spanner connections. Spanner 9's close() is async, so a failed close rejects here. */
 export async function closeSpanner(): Promise<void> {
   if (databaseInstance) {
     await databaseInstance.close();
     databaseInstance = null;
   }
   if (spannerInstance) {
-    spannerInstance.close();
+    await spannerInstance.close();
     spannerInstance = null;
   }
   initialized = false;
