@@ -35,9 +35,7 @@ jobs:
       contents: read
       pull-requests: write
     # Only run on successful deployments or manual/PR triggers
-    if: |
-      github.event_name != 'deployment_status' ||
-      github.event.deployment_status.state == 'success'
+    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event_name != 'deployment_status' || github.event.deployment_status.state == 'success') }}
 
     steps:
       - name: Checkout
