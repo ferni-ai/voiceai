@@ -232,7 +232,7 @@ function playWarmthTransition(previousStage: RelationshipStage, newStage: Relati
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: var(--z-modal, 9999);
+    z-index: var(--z-modal);
     opacity: 0;
   `;
   

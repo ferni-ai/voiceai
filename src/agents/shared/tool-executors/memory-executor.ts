@@ -7,6 +7,7 @@
  * @module agents/shared/tool-executors/memory-executor
  */
 
+import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
@@ -448,41 +449,12 @@ async function execute(
       return 'What would you like me to forget?';
     }
 
-    log.info({ target, userId: ctx.userId }, '🗑️ Forgetting memory');
+    log.info({ userId: ctx.userId }, '🗑️ Forgetting memory'); // never log what to forget
 
-    if (ctx.userId) {
-      try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
-
-        const snapshot = await db
-          .collection('bogle_users')
-          .doc(ctx.userId)
-          .collection('extracted_facts')
-          .get();
-
-        const targetLower = target.toLowerCase();
-        const docsToDelete = snapshot.docs.filter((doc) => {
-          const data = doc.data();
-          return ((data.fact || data.content || '') as string).toLowerCase().includes(targetLower);
-        });
-
-        if (docsToDelete.length > 0) {
-          const batch = db.batch();
-          docsToDelete.forEach((doc) => batch.delete(doc.ref));
-          await batch.commit();
-
-          log.info({ userId: ctx.userId, deleted: docsToDelete.length }, '✅ Memories deleted');
-          return `I've forgotten about that. Your privacy matters.`;
-        }
-
-        return `I didn't find specific memories about "${target}" to remove.`;
-      } catch (err) {
-        log.warn({ error: String(err) }, 'Memory deletion failed');
-      }
-    }
-
-    return `I'll forget about that.`;
+    // Both fact collections, and recall from then on (forget.ts).
+    const forgot = await forgetForCaller(ctx.userId, target);
+    if (forgot.kind !== 'forgotten') return forgetProblem(forgot);
+    return `I've forgotten about that. Your privacy matters.`;
   }
 
   // ========================================

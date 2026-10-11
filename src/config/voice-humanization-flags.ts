@@ -118,7 +118,6 @@ const DEFAULT_FLAGS: VoiceHumanizationFlags = {
   // the caller's previous turn again, over them (dev call: "It's hard to say."
   // and "Why do you keep forgetting?" were each answered twice, the second
   // time 8 s and 22 s later). The "mm-hmm" clips still play during speech.
-  // VOICE_HUMANIZATION_ENABLE_L_L_M_BACKCHANNELS=true turns them back on.
   enableLLMBackchannels: false,
 
   // Rollout: 100% by default
@@ -185,50 +184,13 @@ export function initializeFlags(): void {
 }
 
 /**
- * Apply overrides from environment variables
+ * The one env switch left: VOICE_HUMANIZATION_DISABLED=true turns the
+ * humanization features off. The per-feature VOICE_HUMANIZATION_ENABLE_* and
+ * VOICE_HUMANIZATION_ROLLOUT_PERCENTAGE overrides were never set in any
+ * environment (flag audit 2026-10-11) and were removed; change a default above.
  */
 function applyEnvironmentOverrides(): void {
   const overrides: Partial<VoiceHumanizationFlags> = {};
-
-  // Boolean flags
-  const boolFlags: Array<keyof VoiceHumanizationFlags> = [
-    'enableProsodyTurnPrediction',
-    'enableMicroInterruptions',
-    'enableEmotionalArcTts',
-    'enableLaughterDetection',
-    'enableAmbientAwareness',
-    'enableRhythmMirroring',
-    'enableEmotionalContagion',
-    'enableEnhancedVoiceFingerprinting',
-    'enableVoiceAuthentication',
-    'enableFftAnalysis',
-    'enableEnhancedTurnPrediction',
-    'enableMultiSignalLaughter',
-    'enableWordTimingRhythm',
-    'enableResponseAnticipation',
-    'useCachedResponses',
-    'enableLiveBackchanneling',
-    'enableLLMBackchannels',
-    'enableVerboseLogging',
-    'enableMetrics',
-  ];
-
-  for (const flag of boolFlags) {
-    const envKey = `VOICE_HUMANIZATION_${flag.replace(/([A-Z])/g, '_$1').toUpperCase()}`;
-    const envValue = process.env[envKey];
-    if (envValue !== undefined) {
-      (overrides as Record<string, unknown>)[flag] = envValue === 'true' || envValue === '1';
-    }
-  }
-
-  // Rollout percentage
-  const rolloutEnv = process.env['VOICE_HUMANIZATION_ROLLOUT_PERCENTAGE'];
-  if (rolloutEnv !== undefined) {
-    const percentage = parseInt(rolloutEnv, 10);
-    if (!isNaN(percentage) && percentage >= 0 && percentage <= 100) {
-      overrides.rolloutPercentage = percentage;
-    }
-  }
 
   // Master kill switch
   if (process.env['VOICE_HUMANIZATION_DISABLED'] === 'true') {

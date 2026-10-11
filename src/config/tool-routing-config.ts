@@ -11,43 +11,10 @@
  *   Combined confidence = domain_confidence × meta_tool_confidence
  *
  * Placed in config/ (level 10) so both services and agents can import.
+ * Whether FTIS is on: isFtisEnabled() in config/tool-config.ts.
  *
  * @module config/tool-routing-config
  */
-
-// ============================================================================
-// FTIS MODE
-// ============================================================================
-
-/**
- * Whether FTIS is enabled for tool routing.
- *
- * **CURRENTLY DISABLED BY DEFAULT** for troubleshooting (Ferni not talking).
- * Set FTIS_ENABLED=true to re-enable the two-stage hierarchical router.
- *
- * When enabled:
- * - FTIS handles ALL tool classification (two-stage hierarchical)
- * - LLM doesn't use native function calling
- * - JSON workaround is disabled
- * - Tools execute directly based on classification confidence
- *
- * When disabled (current default):
- * - LLM uses native function calling (or JSON workaround with Gemini)
- * - Tool routing goes through normal LLM flow
- */
-export function isFTISEnabled(): boolean {
-  if (process.env.FTIS_ENABLED === 'true') {
-    return true;
-  }
-  return false;
-}
-
-/**
- * @deprecated Use isFTISEnabled() instead. Kept for backward compatibility.
- */
-export function isFTISV2OnlyMode(): boolean {
-  return isFTISEnabled();
-}
 
 // ============================================================================
 // FTIS CONFIGURATION CONSTANTS
