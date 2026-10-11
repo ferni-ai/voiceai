@@ -44,6 +44,7 @@ concurrency:
 
 jobs:
   firestore-e2e:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Firestore Emulator E2E
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
@@ -131,6 +132,7 @@ jobs:
   # firestore-e2e job sets SKIP_EMBEDDING, which would make create/resolve
   # paths here meaningless.
   entity-resolver-emulator:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Entity Resolver Emulator
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -187,6 +189,7 @@ jobs:
 
   # Quick unit tests (no emulator required)
   unit-tests:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Data Layer Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 5

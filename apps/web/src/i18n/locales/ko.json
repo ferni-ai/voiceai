@@ -10110,7 +10110,12 @@
     "getIdeas": "아이디어 얻기",
     "emptyTitle": "아직 제안할 내용이 없어요",
     "emptyText": "서로의 관계에 대해 조금 더 이야기해 주세요.",
-    "generateError": "아이디어를 만들지 못했어요. 다시 시도해 볼까요?"
+    "generateError": "아이디어를 만들지 못했어요. 다시 시도해 볼까요?",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "당신을 위해 준비한 것들",
@@ -11073,5 +11078,39 @@
     "youSpeaking": "내가 말하고 있어요",
     "ferniThinking": "Ferni가 생각하고 있어요",
     "tapToInterrupt": "탭해서 끼어들기"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }
