@@ -248,7 +248,11 @@ export async function setupCallTypeContexts(
   // =========================================================================
   // PROACTIVE OUTREACH CALL DETECTION
   // =========================================================================
-  if (callType === 'proactive_outreach') {
+  // Only our server places these, so only a signed dispatch is honoured: an
+  // unsigned one would put its own reason and opener into Ferni's mouth.
+  if (callType === 'proactive_outreach' && !(await isTrustedDispatch(rawJobMetadata))) {
+    process.stderr.write(`[voice-agent-entry] ⚠️ Unsigned proactive outreach dispatch refused\n`);
+  } else if (callType === 'proactive_outreach') {
     process.stderr.write(
       `[voice-agent-entry] 📞 PROACTIVE OUTREACH DETECTED - setting up check-in context\n`
     );
@@ -318,7 +322,8 @@ export async function finishCallTypeContexts(
 
 /**
  * The one gate for outbound calls our server places (on-behalf, family
- * check-in): the job metadata exactly as dispatched carries a valid signature.
+ * check-in, proactive outreach): the job metadata exactly as dispatched
+ * carries a valid signature.
  */
 async function isTrustedDispatch(rawJobMetadata: string | undefined): Promise<boolean> {
   const { verifyOnBehalfDispatch } = await import('../../services/outreach/on-behalf-dispatch.js');
