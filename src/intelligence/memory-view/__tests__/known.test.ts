@@ -1,0 +1,287 @@
+/**
+ * What Ferni knows, grouped: each store lands in its section with where it
+ * came from, only what the live readers would use is shown, pondering stays
+ * hidden behind its own flag, and every read is under the caller's own path.
+ */
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../../memory/recall/memory-control.js', () => ({ listRemembered: vi.fn() }));
+
+const { buildKnownView, createFirestoreKnownStore, loadKnownView, isMemoryViewPonderingOn } =
+  await import('../known.js');
+import type { KnownStore } from '../known.js';
+import type { TemporalFact } from '../../world-model/temporal/types.js';
+import type { MindModel } from '../../theory-of-mind/types.js';
+
+const NOW = new Date('2026-10-11T15:00:00.000Z');
+
+function world(over: Partial<TemporalFact>): TemporalFact {
+  return {
+    id: 'w1',
+    subject: 'Mindy',
+    subjectKind: 'person',
+    subjectKey: 'person:mindy',
+    relation: 'sister',
+    attribute: 'health',
+    value: 'recovering from knee surgery',
+    observedAt: '2026-10-09T18:00:00.000Z',
+    confidence: 0.9,
+    source: { kind: 'summary', sessionId: 's1', quote: 'her knee surgery went fine' },
+    validFrom: '2026-10-09T18:00:00.000Z',
+    validTo: null,
+    ...over,
+  };
+}
+
+const mind: MindModel = {
+  userId: 'u-1',
+  version: 1,
+  calls: 4,
+  toldFerni: [],
+  patterns: [
+    {
+      key: 'jokes-when-anxious',
+      kind: 'coping',
+      statement: 'jokes when anxious, then wants practical help',
+      moments: [
+        { sessionId: 's1', at: '2026-10-01T00:00:00.000Z', cue: 'laughed off the layoff news' },
+        { sessionId: 's2', at: '2026-10-08T00:00:00.000Z', cue: 'joked before asking for a plan' },
+      ],
+      contradictions: 0,
+      confidence: 0.55,
+      lastSeen: '2026-10-08T00:00:00.000Z',
+    },
+    {
+      key: 'one-moment-only',
+      kind: 'feeling',
+      statement: 'not sure yet',
+      moments: [{ sessionId: 's1', at: '2026-10-01T00:00:00.000Z', cue: 'once' }],
+      contradictions: 0,
+      confidence: 0.2,
+      lastSeen: '2026-10-01T00:00:00.000Z',
+    },
+  ],
+  sensitivities: [{ topic: 'her dad', how: "doesn't want to talk about it", at: '2026-10-02' }],
+  updatedAt: '2026-10-08T00:00:00.000Z',
+};
+
+const pondering = {
+  followUps: [{ text: 'Is the all-hands still on for next month?', basis: 'sum-1' }],
+  thinkingOf: [{ text: "your sister's move to Denver", basis: 'sum-2' }],
+};
+
+const empty = { facts: [], world: [], mind: null, pondering: null, summaryDays: new Map() };
+
+describe('buildKnownView', () => {
+  it('files facts under people, preferences and life now, with when they were learned', () => {
+    const view = buildKnownView(
+      {
+        ...empty,
+        facts: [
+          {
+            id: 'f1',
+            subject: 'Biscuit',
+            detail: 'breed: golden retriever',
+            learnedAt: '2026-10-09T00:00:00Z',
+          },
+          { id: 'f2', subject: 'you', detail: 'loves trail running' },
+          { id: 'f3', subject: 'you', detail: 'job: nurse', earlier: true, fromYou: true },
+        ],
+      },
+      NOW,
+      false
+    );
+    expect(view.people).toEqual([
+      expect.objectContaining({
+        id: 'f1',
+        kind: 'fact',
+        about: 'Biscuit',
+        source: 'told',
+        at: '2026-10-09T00:00:00Z',
+      }),
+    ]);
+    expect(view.preferences.map((i) => i.id)).toEqual(['f2']);
+    expect(view.lifeNow).toEqual([
+      expect.objectContaining({ id: 'f3', earlier: true, fromYou: true }),
+    ]);
+    expect(view.thinkingAbout).toBeUndefined();
+  });
+
+  it('shows current world facts with the caller’s own words, and dated ones as dates in order', () => {
+    const view = buildKnownView(
+      {
+        ...empty,
+        world: [
+          world({}),
+          world({
+            id: 'w2',
+            subject: 'self',
+            subjectKind: 'self',
+            attribute: 'job',
+            value: 'nurse at St. Mary’s',
+          }),
+          world({ id: 'w3', attribute: 'event', value: 'move to Denver', eventDate: '2026-11-01' }),
+          world({ id: 'w4', attribute: 'event', value: 'dentist', eventDate: '2026-10-12' }),
+          world({ id: 'w5', attribute: 'event', value: 'long past', eventDate: '2026-08-01' }),
+          world({ id: 'w6', value: 'closed fact', validTo: '2026-10-10T00:00:00.000Z' }),
+        ],
+      },
+      NOW,
+      false
+    );
+    expect(view.people).toEqual([
+      expect.objectContaining({
+        id: 'w1',
+        kind: 'world',
+        about: 'Mindy',
+        relation: 'sister',
+        text: 'health: recovering from knee surgery',
+        quote: 'her knee surgery went fine',
+        at: '2026-10-09T18:00:00.000Z',
+      }),
+    ]);
+    expect(view.lifeNow.map((i) => [i.id, i.text])).toEqual([['w2', 'job: nurse at St. Mary’s']]);
+    expect(view.dates.map((i) => [i.id, i.day])).toEqual([
+      ['w4', '2026-10-12'],
+      ['w3', '2026-11-01'],
+    ]);
+  });
+
+  it('shows only patterns Ferni acts on, as noticed, and sensitivities as told', () => {
+    const view = buildKnownView({ ...empty, mind }, NOW, false);
+    expect(view.readsYou).toEqual([
+      expect.objectContaining({
+        id: 'jokes-when-anxious',
+        kind: 'pattern',
+        source: 'noticed',
+        quote: 'joked before asking for a plan',
+      }),
+      expect.objectContaining({
+        kind: 'sensitivity',
+        source: 'told',
+        text: "her dad: doesn't want to talk about it",
+      }),
+    ]);
+  });
+
+  it('dates pondering items by the call they came from, only when its section is on', () => {
+    const parts = { ...empty, pondering, summaryDays: new Map([['sum-1', '2026-10-09']]) };
+    expect(buildKnownView(parts, NOW, false).thinkingAbout).toBeUndefined();
+    const view = buildKnownView(parts, NOW, true);
+    expect(view.thinkingAbout).toEqual([
+      expect.objectContaining({
+        kind: 'ponder',
+        source: 'noticed',
+        at: '2026-10-09T12:00:00.000Z',
+      }),
+      expect.objectContaining({ text: "your sister's move to Denver" }),
+    ]);
+    expect(view.thinkingAbout?.[1]?.at).toBeUndefined();
+  });
+
+  it('empty stores give empty sections, not errors', () => {
+    expect(buildKnownView(empty, NOW, true)).toEqual({
+      people: [],
+      lifeNow: [],
+      dates: [],
+      preferences: [],
+      readsYou: [],
+      thinkingAbout: [],
+    });
+  });
+});
+
+describe('loadKnownView', () => {
+  function store(): KnownStore & Record<string, ReturnType<typeof vi.fn>> {
+    return {
+      facts: vi.fn(async () => []),
+      worldFacts: vi.fn(async () => [world({})]),
+      mindModel: vi.fn(async () => {
+        throw new Error('unreadable');
+      }),
+      pondering: vi.fn(async () => pondering),
+      summaryDays: vi.fn(async () => new Map()),
+    };
+  }
+
+  it('reads every source for the caller only; one failing source leaves its section empty', async () => {
+    const s = store();
+    const env = { MEMORY_VIEW: 'on', MEMORY_VIEW_PONDERING: 'on' };
+    const view = await loadKnownView('u-1', s, { now: NOW, env });
+    for (const fn of [s.facts, s.worldFacts, s.mindModel, s.pondering]) {
+      expect(fn).toHaveBeenCalledWith('u-1');
+    }
+    expect(s.summaryDays).toHaveBeenCalledWith('u-1', ['sum-1', 'sum-2']);
+    expect(view.people).toHaveLength(1);
+    expect(view.readsYou).toEqual([]);
+    expect(view.thinkingAbout).toHaveLength(2);
+  });
+
+  it('never reads pondering unless its own flag is on', async () => {
+    const s = store();
+    const view = await loadKnownView('u-1', s, { now: NOW, env: { MEMORY_VIEW: 'on' } });
+    expect(s.pondering).not.toHaveBeenCalled();
+    expect(view.thinkingAbout).toBeUndefined();
+    expect(isMemoryViewPonderingOn({ MEMORY_VIEW_PONDERING: 'on' })).toBe(false);
+  });
+});
+
+describe('createFirestoreKnownStore', () => {
+  /** A Firestore that records every document path it is asked for. */
+  function fakeDb() {
+    const paths: string[] = [];
+    const doc = (path: string): Record<string, unknown> => ({
+      path,
+      id: path.split('/').pop(),
+      collection: (name: string) => col(`${path}/${name}`),
+      get: async () => {
+        paths.push(path);
+        return {
+          exists: false,
+          id: path.split('/').pop(),
+          data: () => undefined,
+          get: () => undefined,
+        };
+      },
+    });
+    const col = (path: string): Record<string, unknown> => {
+      const q = {
+        doc: (id: string) => doc(`${path}/${id}`),
+        where: () => q,
+        limit: () => q,
+        get: async () => {
+          paths.push(path);
+          return { docs: [] };
+        },
+      };
+      return q;
+    };
+    const db = {
+      collection: (name: string) => col(name),
+      getAll: async (...refs: Array<{ path: string }>) => {
+        paths.push(...refs.map((r) => r.path));
+        return refs.map((r) => ({
+          exists: false,
+          id: r.path.split('/').pop(),
+          get: () => undefined,
+        }));
+      },
+    };
+    return { db, paths };
+  }
+
+  it('reads only under bogle_users/{the caller}', async () => {
+    const { db, paths } = fakeDb();
+    const s = createFirestoreKnownStore(() => db as never);
+    await s.worldFacts('u-1');
+    await s.mindModel('u-1');
+    await s.pondering('u-1');
+    await s.summaryDays('u-1', ['sum-1']);
+    expect(paths).toEqual([
+      'bogle_users/u-1/world_facts',
+      'bogle_users/u-1/mind_model/current',
+      'bogle_users/u-1/predictive_intelligence/pondering',
+      'bogle_users/u-1/summaries/sum-1',
+    ]);
+  });
+});
