@@ -124,6 +124,7 @@ import {
 } from './turn-observers.js';
 import { localClockContext, localClockEnabled } from '../shared/local-clock.js';
 import { timeContext } from '../shared/time-context.js';
+import { WORLD_NOW_RULE, worldNowEnabled } from '../shared/world-now.js';
 // Gateway for health ping callback
 import { generateReply } from '../shared/generate-reply-gateway.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
@@ -353,7 +354,9 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
               (outboundAwareness ? undefined : services.userProfile?.contactInfo?.timezone)
           )
         : timeContext(new Date(), userData?.callerTimezone);
-    modelBaseInstructions = baseInstructions + dateTimeContext + outboundAwareness;
+    // WORLD_NOW=on: each reply gets the time now, and news, games and weather come from tools.
+    const worldNowRule = worldNowEnabled() ? `${WORLD_NOW_RULE}\n` : '';
+    modelBaseInstructions = baseInstructions + dateTimeContext + worldNowRule + outboundAwareness;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : services.userProfile;

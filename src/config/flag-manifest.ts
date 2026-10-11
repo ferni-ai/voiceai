@@ -280,6 +280,7 @@ export const FLAG_MANIFEST = {
   WORKER_PUBSUB: { default: 'off', owner: 'platform', kind: 'experiment' },
   WORLD_MODEL_SNAPSHOT: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   WORLD_MODEL_TEMPORAL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  WORLD_NOW: { default: 'off', owner: 'voice', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
 
 export type FlagName = keyof typeof FLAG_MANIFEST;

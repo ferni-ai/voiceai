@@ -14,6 +14,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
 import { phoneOnlyIdentity } from '../voice-agent-entry/caller-recognition.js';
 import { getBargeInFastPath } from '../multi-agent/barge-in-fastpath.js';
+import { worldNowNote } from '../shared/world-now.js';
 import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
 import {
   getTurnToolRetrieval,
@@ -93,6 +94,8 @@ export function withTurnReminder(
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
+    // WORLD_NOW=on: the caller's time this reply, not the call's start (world-now.ts).
+    worldNowNote(session),
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     // "Naya" in the transcript is Nayan (teammate-names.ts)

@@ -518,11 +518,14 @@ function generateWeatherHook(weatherText: string): string | undefined {
 // DATA FETCHING (Background)
 // ============================================================================
 
-async function fetchWeatherData(location: string): Promise<WeatherContext | undefined> {
+async function fetchWeatherData(
+  location: string,
+  withForecast = true
+): Promise<WeatherContext | undefined> {
   try {
     const [current, forecast] = await Promise.all([
       getCurrentWeather(location),
-      getWeatherForecast(location, 3),
+      withForecast ? getWeatherForecast(location, 3) : Promise.resolve(undefined),
     ]);
 
     const weatherContext: WeatherContext = {
@@ -676,7 +679,8 @@ async function fetchCulturalData(): Promise<CulturalContext> {
  */
 export async function warmWorldCache(
   userId: string,
-  interests: Partial<UserInterests> = {}
+  interests: Partial<UserInterests> = {},
+  options: { weatherOnly?: boolean } = {}
 ): Promise<void> {
   const fullInterests: UserInterests = {
     favoriteTeams: interests.favoriteTeams || [],
@@ -696,6 +700,15 @@ export async function warmWorldCache(
   userCaches.set(userId, cache);
 
   log.info({ userId, hasLocation: !!fullInterests.location }, 'Warming world cache');
+
+  // WORLD_NOW: only the home weather is read live (cachedHomeWeather); news,
+  // games and the forecast are looked up by tool when the talk goes there.
+  if (options.weatherOnly) {
+    const location = fullInterests.location;
+    cache.isRefreshing = Boolean(location);
+    if (location) void refreshHomeWeather(userId, cache, location);
+    return;
+  }
 
   // Fetch everything in parallel (don't await - this runs in background)
   const fetchPromise = Promise.all([
@@ -935,6 +948,37 @@ export function clearUserCache(userId: string): void {
 // ============================================================================
 // BACKGROUND REFRESH
 // ============================================================================
+
+async function refreshHomeWeather(
+  userId: string,
+  cache: UserWorldCache,
+  location: string
+): Promise<void> {
+  try {
+    const weather = await fetchWeatherData(location, false);
+    if (weather) cache.weather = weather;
+    log.info({ userId, hasWeather: Boolean(weather) }, 'Home weather cached');
+  } finally {
+    cache.isRefreshing = false;
+  }
+}
+
+/**
+ * The cached weather report for the caller's home (WORLD_NOW), never waiting
+ * on the network: once it is older than the weather TTL (30 min) a background
+ * refresh starts and the next read gets the new report.
+ */
+export function cachedHomeWeather(userId: string, now: number = Date.now()): string | undefined {
+  const cache = userCaches.get(userId);
+  if (!cache) return undefined;
+  const location = cache.interests.location;
+  const age = cache.weather ? now - cache.weather.fetchedAt.getTime() : Infinity;
+  if (location && age > CACHE_TTL.weather && !cache.isRefreshing) {
+    cache.isRefreshing = true;
+    void refreshHomeWeather(userId, cache, location);
+  }
+  return age > 2 * CACHE_TTL.weather ? undefined : cache.weather?.current;
+}
 
 async function refreshStaleData(
   userId: string,
