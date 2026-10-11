@@ -9507,7 +9507,9 @@
     "nextStepTitle": "Ein sanfter nächster Schritt",
     "invitation": "Komm wieder, wann immer du magst. Ich bin da.",
     "close": "Schließen",
-    "seeCost": "Was dieser Anruf gekostet hat"
+    "seeCost": "Was dieser Anruf gekostet hat",
+    "feedbackQuestion": "Wie war das Gespräch?",
+    "feedbackThanks": "Danke, das hilft mir."
   },
   "moments": {
     "teamUnlockTitle": "Lerne {name} kennen",

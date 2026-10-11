@@ -9507,7 +9507,9 @@
     "nextStepTitle": "부드러운 다음 걸음",
     "invitation": "언제든 다시 와요. 여기 있을게요.",
     "close": "닫기",
-    "seeCost": "이번 통화 비용"
+    "seeCost": "이번 통화 비용",
+    "feedbackQuestion": "이번 대화는 어땠어요?",
+    "feedbackThanks": "고마워요, 도움이 돼요."
   },
   "moments": {
     "teamUnlockTitle": "{name} 님 만나기",

@@ -292,9 +292,9 @@ function handleTipClick(_amount: string): void {
 // ============================================================================
 
 /**
- * Fetch and show the conversation cost card
+ * Fetch and show the conversation cost card. Resolves to the card, or null when none was shown.
  */
-export async function showConversationCost(): Promise<void> {
+export async function showConversationCost(): Promise<HTMLElement | null> {
   injectStyles();
   cleanupExisting();
 
@@ -304,7 +304,7 @@ export async function showConversationCost(): Promise<void> {
 
     if (!response.ok || !response.data) {
       log.debug('No cost data available');
-      return;
+      return null;
     }
 
     const data = response.data;
@@ -312,7 +312,7 @@ export async function showConversationCost(): Promise<void> {
     // Don't show if cost is essentially zero or no session
     if (!data.sessionId || data.totalCost < 0.0001) {
       log.debug('Skipping cost display - no meaningful cost', { cost: data.totalCost });
-      return;
+      return null;
     }
 
     // Create and show the card
@@ -333,8 +333,10 @@ export async function showConversationCost(): Promise<void> {
     dismissTimeout = setTimeout(() => {
       hide();
     }, 30000);
+    return container;
   } catch (error) {
     log.error('Failed to fetch conversation cost', error);
+    return null;
   }
 }
 

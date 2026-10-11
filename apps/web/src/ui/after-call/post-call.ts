@@ -4,6 +4,8 @@
  * Flag off (default): the conversation cost card, exactly as before.
  * Flag on: the after-call card (what Ferni will remember and one next step),
  * with the cost card one tap away from it.
+ * Either card carries the one-tap "how did that feel?" row when the agent
+ * asked for feedback during the call (it is never asked mid-call).
  *
  * @module ui/after-call/post-call
  */
@@ -11,9 +13,11 @@
 import { conversationTracker } from '../../services/conversation-tracker.service.js';
 import { apiGet } from '../../utils/api.js';
 import { createLogger } from '../../utils/logger.js';
+import { REACTIONS } from '../contextual-feedback.ui.js';
 import { showConversationCost } from '../conversation-cost.ui.js';
 import { hideAfterCallCard, showAfterCallCard } from './after-call-card.ui.js';
 import { loadAfterCallData } from './after-call-data.js';
+import { buildCallFeedbackRow } from './call-feedback.js';
 import { isAfterCallCardEnabled } from './after-call-flag.js';
 
 const log = createLogger('PostCall');
@@ -39,7 +43,7 @@ async function hasCallCost(): Promise<boolean> {
 
 export async function showPostCallCard(): Promise<void> {
   if (!isAfterCallCardEnabled()) {
-    await showConversationCost();
+    addFeedbackRow(await showConversationCost());
     return;
   }
 
@@ -64,8 +68,15 @@ export async function showPostCallCard(): Promise<void> {
     );
   };
   if (newCallStarted) return;
-  showAfterCallCard(data, {
+  const card = showAfterCallCard(data, {
     personaName: session?.personaName || 'Ferni',
     onShowCost: costAvailable ? onShowCost : undefined,
   });
+  addFeedbackRow(card);
+}
+
+function addFeedbackRow(card: HTMLElement | null): void {
+  if (!card) return;
+  const row = buildCallFeedbackRow(REACTIONS);
+  if (row) card.appendChild(row);
 }

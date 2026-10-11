@@ -9507,7 +9507,9 @@
     "nextStepTitle": "次のやさしい一歩",
     "invitation": "いつでも戻ってきてください。ここで待っています。",
     "close": "閉じる",
-    "seeCost": "この通話の費用"
+    "seeCost": "この通話の費用",
+    "feedbackQuestion": "今回の会話はどうでしたか？",
+    "feedbackThanks": "ありがとう、参考になります。"
   },
   "moments": {
     "teamUnlockTitle": "{name}をご紹介します",

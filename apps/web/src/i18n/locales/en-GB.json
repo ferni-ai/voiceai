@@ -9507,7 +9507,9 @@
     "nextStepTitle": "A gentle next step",
     "invitation": "Come back whenever you like. I'll be here.",
     "close": "Close",
-    "seeCost": "What this call cost"
+    "seeCost": "What this call cost",
+    "feedbackQuestion": "How did that feel?",
+    "feedbackThanks": "Thanks, that helps."
   },
   "moments": {
     "teamUnlockTitle": "Meet {name}",

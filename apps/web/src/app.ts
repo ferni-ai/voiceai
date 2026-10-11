@@ -1253,7 +1253,7 @@ class VoiceAIApp {
     });
     this.deferredInit('ThinkingUI', 100, async () => {
       initThinkingUI();
-      (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
+      (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless VITE_SPEAKER_CUES or ferni:speaker-cues
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
       initConnectionQualityUI();

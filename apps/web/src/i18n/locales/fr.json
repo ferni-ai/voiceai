@@ -9588,7 +9588,9 @@
     "nextStepTitle": "Une prochaine étape en douceur",
     "invitation": "Revenez quand vous voulez. Je serai là.",
     "close": "Fermer",
-    "seeCost": "Ce qu'a coûté cet appel"
+    "seeCost": "Ce qu'a coûté cet appel",
+    "feedbackQuestion": "Comment c'était ?",
+    "feedbackThanks": "Merci, ça m'aide."
   },
   "moments": {
     "teamUnlockTitle": "Fais la connaissance de {name}",
