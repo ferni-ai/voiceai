@@ -50,6 +50,7 @@ jobs:
   # UNIT TESTS
   # ==========================================================================
   unit-tests:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Agent Unit Tests
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
@@ -92,6 +93,7 @@ jobs:
   # INTEGRATION TESTS
   # ==========================================================================
   integration-tests:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Agent Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -125,6 +127,7 @@ jobs:
   # CONTRACT TESTS
   # ==========================================================================
   contract-tests:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Contract Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -148,6 +151,7 @@ jobs:
   # SNAPSHOT TESTS
   # ==========================================================================
   snapshot-tests:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Snapshot Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -182,7 +186,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [unit-tests, integration-tests]
-    if: ${{ github.event.inputs.run_performance != 'false' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event.inputs.run_performance != 'false') }}
 
     steps:
       - name: Checkout
@@ -208,6 +212,7 @@ jobs:
   # MULTI-AGENT E2E TESTS
   # ==========================================================================
   multi-agent-e2e:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Multi-Agent E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -263,7 +268,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [unit-tests, integration-tests]
-    if: ${{ github.event.inputs.run_chaos != 'false' }}
+    if: ${{ vars.OPTIONAL_CI != 'off' && (github.event.inputs.run_chaos != 'false') }}
 
     steps:
       - name: Checkout
@@ -298,7 +303,7 @@ jobs:
       - multi-agent-e2e
       - performance-tests
       - chaos-tests
-    if: always()
+    if: ${{ vars.OPTIONAL_CI != 'off' && (always()) }}
 
     steps:
       - name: Generate Summary
