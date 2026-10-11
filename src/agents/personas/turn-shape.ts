@@ -21,7 +21,7 @@
 import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
 import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
-import { QUIET_LINE } from './quiet-caller.js';
+import { quietLineFor } from './quiet-caller.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -239,7 +239,7 @@ function modelChosenShape(
   const asks = rng() < 0.25;
   const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig, style);
   parts.push(...extras.lines, FIT_THE_MOMENT);
-  if (sig.quiet) parts.push(QUIET_LINE);
+  if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
   parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory)));
   return {
     move,
@@ -290,7 +290,7 @@ export function turnShapeFor(
   const asks = questionAllowed(shape, rng);
   const extras = extrasFor(userText, move, shape, asks, rng, process.env, sig, style);
   parts.push(...extras.lines);
-  if (sig.quiet) parts.push(QUIET_LINE);
+  if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
   parts.push(
     extras.shapeLine ?? SHAPE_LINE[shape],
     extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory))

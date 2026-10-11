@@ -49,3 +49,13 @@ export function presentAck(text: string): boolean {
 /** The one line a quiet turn carries (turn-shape.ts). */
 export const QUIET_LINE =
   "They're saying very little right now: no advice, no lessons or sayings about how life works, no explanations, nothing to fix. A short, easy reaction is the move, or let a small pause sit.";
+
+/**
+ * The quiet line for this turn: none when ATTUNE=on, whose per-turn target for
+ * a short, quiet caller says the same thing (turn-attunement.ts) and measured
+ * better (judge +1.10, replicated); two "keep it short" lines would say it
+ * twice. The candor, opinion and thinking-aloud lines still drop out here.
+ */
+export function quietLineFor(env: Record<string, string | undefined> = process.env): string {
+  return env.ATTUNE === 'on' ? '' : QUIET_LINE;
+}

@@ -116,3 +116,14 @@ describe('on the reply path', () => {
     expect(asked).toMatch(CANDOR_LINE);
   });
 });
+
+describe('with ATTUNE=on', () => {
+  it('the quiet line gives way to attunement, and the verdict still stays out', () => {
+    vi.stubEnv('CANDOR', 'on');
+    vi.stubEnv('QUIET_CALLER', 'on');
+    vi.stubEnv('ATTUNE', 'on');
+    const asked = lastText(withTurnReminder(sethCall(), {}));
+    expect(asked).not.toContain(QUIET_LINE);
+    expect(asked).not.toMatch(CANDOR_LINE);
+  });
+});
