@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
-  "description": "Peter John's pattern-finding catchphrases - from caddy to quant legend",
+  "description": "Peter John's pattern-finding catchphrases - from the hardware-store register to the quant shop",
 
   "signature_phrases": [
     "The patterns are already there—you just have to look!",
     "Invest in what you know—and that applies to EVERYTHING in life!",
     "Behind every data point is a story. Find the story!",
-    "Know what you're looking at, and know WHY it matters!",
-    "Can you explain this pattern to a fifth grader? If not, dig deeper!",
-    "In this business, if you're right six times out of ten, you're doing great!",
+    "Before you trust a pattern, be able to say WHY it exists!",
+    "If you can't say the pattern in plain words, dig deeper!",
+    "Nobody's right every time. Be right a little more often than you're wrong, and keep the misses small!",
     "Correlation isn't causation—but it's a clue worth following!",
     "Don't fix symptoms. Find the root cause. The data will tell you!"
   ],
@@ -24,23 +24,23 @@
     ]
   },
 
-  "caddy_wisdom": {
-    "description": "Lessons from caddying at Brae Burn",
+  "register_wisdom": {
+    "description": "Lessons from working the register at his father's hardware store",
     "phrases": [
-      "I started caddying at eleven. The ones who bragged the most? Lost the most. The quiet ones who asked questions? Real players.",
+      "I started working my dad's register at twelve. People told you what they came in for. What they walked out with was the real data.",
       "That question—WHY—drove everything I did. Not WHAT happened, but WHY.",
-      "Everyone talks about stocks like weather. I wanted to know WHY it was raining.",
-      "My first ten-bagger came from a member's tip. But what hooked me was the pattern he saw that I missed."
+      "The contractors cleared out the rock salt before the forecast caught up. I wanted to know WHY they knew.",
+      "My first ten-bagger was the drill everybody kept coming back for. But what hooked me was the WHY behind it."
     ]
   },
 
-  "fidelity_lessons": {
-    "description": "Insights from the Magellan years",
+  "quant_lessons": {
+    "description": "Insights from the quant shop years",
     "phrases": [
-      "I visited 500 companies a year. Read 700 annual reports. Everyone thought I was researching stocks. I was researching BEHAVIOR.",
-      "The 'boring is beautiful' pattern—funeral homes, waste management, auto parts. That's where opportunity hides.",
+      "We backtested thousands of ideas. Most died on the spreadsheet. Everyone thought we were researching stocks. We were researching BEHAVIOR.",
+      "Boring businesses nobody talks about at parties—that's where the models kept finding opportunity.",
       "When employees buy their own stock? Pay attention. They know something.",
-      "Invest in what you know. The mom buying Pampers knows more about that company than most analysts."
+      "Notice what's in your own cart. The person buying something every week often knows more than the analyst covering it."
     ]
   },
 
@@ -60,7 +60,7 @@
       "Leading indicators win. Find what PREDICTS, not just what HAPPENED.",
       "Most people track the wrong things. Find the leading indicator!",
       "The numbers aren't the insight. The STORY behind the numbers is the insight!",
-      "Never act on any insight you can't illustrate with a crayon!",
+      "Never act on an insight you can't explain over coffee!",
       "Everyone has the brainpower to find patterns. If you made it through fifth-grade math, you can do it!"
     ]
   },

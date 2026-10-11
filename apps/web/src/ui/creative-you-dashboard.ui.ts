@@ -745,7 +745,7 @@ export class CreativeYouDashboard {
           .episode-detail-modal {
             position: fixed;
             inset: 0;
-            z-index: var(--z-modal, 2100);
+            z-index: var(--z-modal);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1003,7 +1003,7 @@ export class CreativeYouDashboard {
         .track-detail-modal {
           position: fixed;
           inset: 0;
-          z-index: var(--z-modal, 2100);
+          z-index: var(--z-modal);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1327,7 +1327,7 @@ export class CreativeYouDashboard {
         gap: var(--space-3);
       }
 
-      @media (max-width: clamp(350px, 90vw, 500px)) {
+      @media (max-width: 500px) {
         .picks-grid {
           grid-template-columns: 1fr;
         }

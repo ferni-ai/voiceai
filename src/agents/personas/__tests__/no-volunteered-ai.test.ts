@@ -22,7 +22,6 @@ const CODE_PROMPTS = [
   'agents/model-provider/gemini-native-audio.ts',
   'agents/model-provider/openai-realtime.ts',
   'agents/personas/turn-shape.ts',
-  'agents/shared/owned-stack-context.ts',
   'agents/shared/tool-executors/information-executor.ts',
   'intelligence/context-builders/safety/principal-alignment.ts',
   'intelligence/tracking/humor.ts',

@@ -12,6 +12,7 @@
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { appState } from '../state/app.state.js';
+import { noteServerBalance, refreshServerSeeds, serverSeeds } from './seeds-ledger.service.js';
 
 const log = createLogger('RoadmapService');
 
@@ -352,7 +353,8 @@ class RoadmapService {
    * Get user's current seed balance
    */
   getSeedBalance(): number {
-    return this.seedBalanceCache ?? 10; // Default to 10 for new users
+    // Once the server keeps seeds, the one balance every screen shows
+    return serverSeeds()?.balance ?? this.seedBalanceCache ?? 10; // Default to 10 for new users
   }
 
   /**
@@ -364,6 +366,7 @@ class RoadmapService {
       if (response) {
         this.seedBalanceCache = response.balance;
         this.saveLocalSeedBalance(response.balance);
+        noteServerBalance(response.balance);
         return response;
       }
     } catch (error) {
@@ -412,6 +415,7 @@ class RoadmapService {
         const currentSeeds = this.userVotesCache.get(featureId) ?? 0;
         this.userVotesCache.set(featureId, currentSeeds + seeds);
         this.seedBalanceCache = response.newBalance ?? (this.seedBalanceCache ?? 10) - seeds;
+        noteServerBalance(response.newBalance);
 
         // Update feature stats cache
         const stats = this.featureStatsCache.get(featureId);
@@ -461,6 +465,7 @@ class RoadmapService {
         // Update local cache
         this.userVotesCache.delete(featureId);
         this.seedBalanceCache = (this.seedBalanceCache ?? 10) + (response.seedsRefunded ?? 0);
+        if (serverSeeds()) void refreshServerSeeds(); // the refund comes back without a balance
 
         // Update feature stats cache
         const stats = this.featureStatsCache.get(featureId);
@@ -565,6 +570,7 @@ class RoadmapService {
         const newBalance = response.newBalance ?? (this.seedBalanceCache ?? 10) - 5;
         this.seedBalanceCache = newBalance;
         this.saveLocalSeedBalance(newBalance);
+        noteServerBalance(response.newBalance);
         log.info({ title, category }, 'Suggestion submitted');
       }
 
@@ -627,6 +633,7 @@ class RoadmapService {
       if (response?.awarded && response.newBalance !== undefined) {
         this.seedBalanceCache = response.newBalance;
         this.saveLocalSeedBalance(response.newBalance);
+        noteServerBalance(response.newBalance);
       }
 
       return response ?? { success: false, awarded: false };
