@@ -19,6 +19,8 @@
  */
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
+import { forgetTokens, isForgotten } from './session-recall.js';
 import {
   createSemanticIndex,
   estimateTokens,
@@ -64,6 +66,23 @@ const CALLS_READ = 8;
 /** A call this short is a test or a hang-up. */
 const MIN_TURNS = 4;
 
+/**
+ * True when a raw passage is about a forgotten topic. Speech rarely uses the
+ * topic's own words ("forget my brother's number" vs "it's uh 435 339
+ * 7687"), so a passage goes if it has any distinctive word of the topic
+ * (five letters or more, or a number of four digits or more); otherwise it
+ * needs all the topic's words, as facts do. One tokenizer (forgetTokens) on
+ * both sides, so a request can't match one way and slip past the other. A
+ * privacy request errs toward leaving a passage out.
+ */
+export function isForgottenPassage(text: string, topics: readonly string[]): boolean {
+  if (isForgotten(text, topics)) return true;
+  const words = new Set(forgetTokens(text));
+  return topics.some((t) =>
+    forgetTokens(t).some((w) => (/^\d{4,}$/.test(w) || w.length >= 5) && words.has(w))
+  );
+}
+
 /** Short overlapping passages of each call's lines, newest call first. */
 export function episodesOf(calls: readonly EpisodeCall[]): Episode[] {
   const out: Episode[] = [];
@@ -90,7 +109,7 @@ function ago(at: string, now: number): string {
 export function formatEpisodes(episodes: readonly Episode[], now: number): string | null {
   if (episodes.length === 0) return null;
   return [
-    'What they said on earlier calls, in their own words (as of then; it may have changed since):',
+    'What they said on earlier calls, in their own words (as of then; it may have changed since; speech-to-text may have garbled them, so if a quote is unclear, ask rather than assert):',
     ...episodes.map((e) => `- (${ago(e.at, now)}) "${e.text}"`),
   ].join('\n');
 }
@@ -110,15 +129,24 @@ export function createEpisodeRecall(deps: {
   store?: EpisodeStore;
   embed?: RetrievalEmbedder;
   now?: () => number;
+  /** Topics the caller asked to forget (forget.ts), or null if unreadable: then nothing is quoted. */
+  forgotten?: () => Promise<string[] | null>;
 }): EpisodeRecall {
   const byId = new Map<string, Episode>();
   const quoted = new Set<string>();
   let index: SemanticIndex | undefined;
   let tokensLeft = EPISODE_TOKENS_PER_TURN;
-  const ready = (deps.store ?? firestoreEpisodeStore)
-    .calls(deps.userId, deps.before)
-    .then(async (calls) => {
-      const episodes = episodesOf(calls);
+  const ready = Promise.all([
+    (deps.store ?? firestoreEpisodeStore).calls(deps.userId, deps.before),
+    (deps.forgotten ?? (() => forgottenTopicsOrNull(deps.userId)))(),
+  ])
+    .then(async ([calls, forgotten]) => {
+      if (forgotten === null) {
+        log.warn('Forgotten topics unreadable: quoting nothing this call');
+        return;
+      }
+      // Stored transcripts still hold what they asked to forget; quotes never do.
+      const episodes = episodesOf(calls).filter((e) => !isForgottenPassage(e.text, forgotten));
       for (const e of episodes) byId.set(e.id, e);
       index = createSemanticIndex(
         episodes.map((e) => ({ id: e.id, text: e.text })),
@@ -133,9 +161,12 @@ export function createEpisodeRecall(deps: {
     observe: (text) => index?.observe(text),
     take: () => {
       if (!index) return null;
+      // A topic forgotten during this call counts at once.
+      const forgottenNow = forgottenInProcess(deps.userId);
       const fresh = [...index.matches().keys()]
         .filter((id) => !quoted.has(id))
-        .flatMap((id) => byId.get(id) ?? []);
+        .flatMap((id) => byId.get(id) ?? [])
+        .filter((e) => !isForgottenPassage(e.text, forgottenNow));
       const picked = withinTokens(fresh, (e) => e.text, tokensLeft);
       for (const e of picked) quoted.add(e.id);
       tokensLeft -= estimateTokens(picked.map((e) => e.text));

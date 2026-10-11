@@ -78,6 +78,7 @@ export async function forgetTopic(
     return { kind: 'too-broad', matched: matched.length };
   }
   await store.addTopic(userId, tokens);
+  noteForgotten(userId, tokens);
   if (matched.length > 0) await store.markForgotten(userId, matched, now.toISOString());
   log.info({ userId: userId.slice(0, 8), marked: matched.length }, 'Forgot a topic');
   return { kind: 'forgotten', marked: matched.length };
@@ -103,6 +104,31 @@ export function forgetProblem(result: Exclude<ForgetResult, { kind: 'forgotten' 
   }
   if (result.kind === 'nothing') return 'What exactly should I forget?';
   return "I couldn't remove that just now. Ask me again in a moment?";
+}
+
+/** Topics forgotten in this process, so a call already running honours them at once. */
+const forgottenHere = new Map<string, Set<string>>();
+function noteForgotten(userId: string, tokens: string): void {
+  const set = forgottenHere.get(userId) ?? new Set<string>();
+  set.add(tokens);
+  forgottenHere.set(userId, set);
+}
+export function forgottenInProcess(userId: string): string[] {
+  return [...(forgottenHere.get(userId) ?? [])];
+}
+
+/**
+ * Recorded topics, or null when they can't be read: a reader of raw words
+ * (episode quotes) must then quote nothing rather than risk a forgotten one.
+ */
+export async function forgottenTopicsOrNull(
+  userId: string,
+  store: ForgetStore = firestoreForgetStore
+): Promise<string[] | null> {
+  return store.topics(userId).catch((error: unknown) => {
+    log.warn({ error: String(error) }, 'Forgotten topics not loaded');
+    return null;
+  });
 }
 
 /** Recorded topics (their words). Never throws: an unreadable list is empty. */
@@ -148,7 +174,11 @@ export const firestoreForgetStore: ForgetStore = {
   async addTopic(userId, topic) {
     const db = getFirestoreDb();
     if (!db) return;
-    const ref = db.collection('bogle_users').doc(userId).collection('memory_state').doc('forgotten');
+    const ref = db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('memory_state')
+      .doc('forgotten');
     await db.runTransaction(async (tx) => {
       const doc = await tx.get(ref);
       const topics: unknown = doc.exists ? doc.data()?.topics : [];
