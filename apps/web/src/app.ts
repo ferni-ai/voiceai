@@ -854,7 +854,6 @@ class VoiceAIApp {
     presenceUI.setConnected(false);
     presenceUI.setSpeaking(false);
     presenceUI.setListening(false);
-    // keyboardUI.setConnected(false);
     connectionQualityUI.hide();
     transcriptUI.hide();
     engagementTriggerUI.hide();
@@ -1270,6 +1269,7 @@ class VoiceAIApp {
     });
     this.deferredInit('ThinkingUI', 100, async () => {
       initThinkingUI();
+      (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
       initConnectionQualityUI();

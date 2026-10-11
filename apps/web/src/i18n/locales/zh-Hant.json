@@ -11054,5 +11054,11 @@
   "agentAcks": {
     "gameStartFailed": "遊戲沒能開始。試著直接對 Ferni 說出來吧。",
     "actionFailed": "沒有成功。可能已經處理過了。"
+  },
+  "speakerCues": {
+    "ferniSpeaking": "Ferni 正在說話",
+    "youSpeaking": "你正在說話",
+    "ferniThinking": "Ferni 正在思考",
+    "tapToInterrupt": "輕點以打斷"
   }
 }

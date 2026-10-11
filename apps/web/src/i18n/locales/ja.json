@@ -11054,5 +11054,11 @@
   "agentAcks": {
     "gameStartFailed": "ゲームを始められませんでした。Ferniに声でお願いしてみてくださいね。",
     "actionFailed": "うまくいきませんでした。すでに処理済みかもしれません。"
+  },
+  "speakerCues": {
+    "ferniSpeaking": "Ferniが話しています",
+    "youSpeaking": "あなたが話しています",
+    "ferniThinking": "Ferniが考えています",
+    "tapToInterrupt": "タップして割り込む"
   }
 }

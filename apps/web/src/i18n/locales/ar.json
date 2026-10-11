@@ -11554,5 +11554,11 @@
   "agentAcks": {
     "gameStartFailed": "لم تبدأ اللعبة. جرّبوا أن تطلبوا من Ferni اللعب بصوتٍ عالٍ.",
     "actionFailed": "لم تتم العملية. ربما تمت معالجتها بالفعل."
+  },
+  "speakerCues": {
+    "ferniSpeaking": "فيرني يتحدث",
+    "youSpeaking": "أنت تتحدث",
+    "ferniThinking": "فيرني يفكر",
+    "tapToInterrupt": "انقر للمقاطعة"
   }
 }

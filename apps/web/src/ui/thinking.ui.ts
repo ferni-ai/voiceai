@@ -7,7 +7,7 @@
  * - Small floating indicator below (absolutely positioned)
  * - 🎬 WALL-E style curious head tilt animation!
  * 
- * Each persona has their own thinking style and phrases.
+ * Ferni's thinking phrases live in THINKING_MESSAGES.
  * 
  * Pixar Principles Applied:
  * - ANTICIPATION: Slight wind-up before tilt
@@ -16,8 +16,6 @@
  * - APPEAL: Curious, engaged expression
  */
 
-import { normalizeAgentId } from '../config/personas.js';
-import type { PersonaId } from '../types/persona.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -37,67 +35,15 @@ let hideTimeout: ReturnType<typeof setTimeout> | null = null;
 let avatarContainer: HTMLElement | null = null;
 let curiousTiltAnimation: Animation | null = null;
 
-// Persona-specific thinking phrases - each character thinks differently!
-// Uses canonical IDs only - normalization handles legacy aliases
-const PERSONA_THINKING_MESSAGES: Record<PersonaId, string[]> = {
-  // Ferni - warm, encouraging, playful
-  'ferni': [
-    'Hmm, let me think...',
-    'Ooh, good one...',
-    'Let me ponder that...',
-    'Thinking...',
-    'Mulling it over...',
-  ],
-  // Nayan Patel - wise, measured, thoughtful
-  'nayan-patel': [
-    'Considering carefully...',
-    'Let me reflect...',
-    'Thinking it through...',
-    'Pondering wisely...',
-    'Taking a moment...',
-  ],
-  // Peter John - energetic, practical
-  'peter-john': [
-    'Great question...',
-    'Let me dig into that...',
-    'Analyzing...',
-    'Running the numbers...',
-    'Thinking...',
-  ],
-  // Alex Chen - thoughtful communicator
-  'alex-chen': [
-    'Let me think about how to say this...',
-    'Considering your perspective...',
-    'Hmm, thinking...',
-    'Processing that...',
-    'Finding the right words...',
-  ],
-  // Maya Santos - practical, organized
-  'maya-santos': [
-    'Crunching the numbers...',
-    'Let me think...',
-    'Considering options...',
-    'Working on it...',
-    'Almost there...',
-  ],
-  // Jordan Taylor - creative, enthusiastic
-  'jordan-taylor': [
-    'Ooh, let me think...',
-    'So many ideas...',
-    'Brainstorming...',
-    'Just a moment...',
-    'Getting creative...',
-  ],
-};
-
-// Default fallback messages
-// Note: Using hardcoded string instead of t() to avoid module-load race condition
-const DEFAULT_THINKING_MESSAGES = [
-  'Thinking...',
-  'Hmm...',
-  'Let me think...',
-  'One moment...',
-  'Processing...',
+// What the floating indicator says while Ferni thinks. Ferni is the only
+// voice on a call now, so there is one list (no retired personas, no
+// machine words like "Processing").
+const THINKING_MESSAGES = [
+  'Hmm, let me think',
+  'Ooh, good one',
+  'Let me ponder that',
+  'Thinking',
+  'Mulling it over',
 ];
 
 let messageIndex = 0;
@@ -209,9 +155,7 @@ export function setPersona(personaId: string): void {
  * Get thinking messages for current persona
  */
 function getThinkingMessages(): string[] {
-  // Normalize the persona ID to handle legacy aliases
-  const normalizedId = normalizeAgentId(currentPersonaId);
-  return PERSONA_THINKING_MESSAGES[normalizedId] ?? DEFAULT_THINKING_MESSAGES;
+  return THINKING_MESSAGES;
 }
 
 // ============================================================================
@@ -398,29 +342,9 @@ function stopCuriousTilt(): void {
  * Each persona expresses curiosity differently!
  */
 function getCuriousTiltIntensity(): { angle: number; duration: number } {
-  // Persona-specific curiosity expressions
   const personaTilts: Record<string, { angle: number; duration: number }> = {
     // Ferni - playful, expressive curiosity
     'ferni': { angle: 4.5, duration: 3200 },
-    'jack-b': { angle: 4.5, duration: 3200 },
-    
-    // Nayan Patel - subtle, wise contemplation
-    'nayan-patel': { angle: 2.5, duration: 4000 },
-    
-    // Peter Lynch - eager, quick curiosity
-    'peter-john': { angle: 5, duration: 2600 },
-    
-    // Alex Chen - thoughtful, measured tilt
-    'alex-chen': { angle: 3.5, duration: 3500 },
-    'comm-specialist': { angle: 3.5, duration: 3500 },
-    
-    // Maya Santos - practical, focused
-    'maya-santos': { angle: 3, duration: 3000 },
-    'spend-save': { angle: 3, duration: 3000 },
-    
-    // Jordan Taylor - enthusiastic, bouncy
-    'jordan-taylor': { angle: 5.5, duration: 2800 },
-    'event-planner': { angle: 5.5, duration: 2800 },
   };
   
   return personaTilts[currentPersonaId] ?? { angle: 4, duration: 3200 };
