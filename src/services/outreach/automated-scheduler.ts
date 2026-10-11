@@ -28,6 +28,7 @@ import {
 import { getOnboardingState, getPendingCheckIns } from './intelligent-onboarding-arc.js';
 import { getOptimalOutreachTime, getPreferredChannel } from './engagement-tracking.js';
 import { allowedDeliveryChannels } from './outreach-consent.js';
+import { verifiedPhoneOf } from './user-reach.js';
 import {
   cadenceHold,
   engagementLevel as engagementLevelOf,
@@ -307,7 +308,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         candidates.push({
           userId,
           email: data.email,
-          phone: data.phone || data.phoneNumber,
+          phone: verifiedPhoneOf(userId, data), // never the model-written profile phone
           name: data.displayName || data.name,
           daysSinceSignup,
           lastConversationDate: talkedAt === undefined ? undefined : new Date(talkedAt),
@@ -435,16 +436,14 @@ async function determineBestChannel(
 // QUIET HOURS
 // ============================================================================
 
-/**
- * Check if user is in quiet hours
- */
+/** Is it quiet hours for this user now, in their time zone (default Eastern)? */
 function isInQuietHours(candidate: UserOutreachCandidate): boolean {
   const { outreachPreferences } = candidate;
 
-  // Default quiet hours: 10 PM - 8 AM
-  const quietStart = outreachPreferences?.quietHoursStart ?? 22;
+  // Default quiet hours: 9 PM - 8 AM Eastern
+  const quietStart = outreachPreferences?.quietHoursStart ?? 21;
   const quietEnd = outreachPreferences?.quietHoursEnd ?? 8;
-  const timezone = outreachPreferences?.timezone || 'America/Los_Angeles';
+  const timezone = outreachPreferences?.timezone || 'America/New_York';
 
   try {
     const now = new Date();
@@ -458,8 +457,8 @@ function isInQuietHours(candidate: UserOutreachCandidate): boolean {
 
     return hour >= quietStart && hour < quietEnd;
   } catch {
-    // If timezone fails, assume not in quiet hours
-    return false;
+    // A bad time zone fails closed: better a day late than a text at 3am.
+    return true;
   }
 }
 
