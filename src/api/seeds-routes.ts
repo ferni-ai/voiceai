@@ -6,6 +6,7 @@
  * - POST /api/seeds/claim-daily - Claim daily bonus
  * - POST /api/seeds/gift - Gift seeds to another user
  * - POST /api/seeds/purchase - Buy a cosmetic (seeds-purchase.ts)
+ * - POST /api/seeds/import-local - One-time import of a browser's seeds (seeds-import.ts)
  * - GET /api/seeds/garden - Get garden/referral stats
  * - POST /api/seeds/referral - Process a referral signup
  * - GET /api/seeds/history - Get seed transaction history
@@ -17,7 +18,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { getUserId, parseBody, sendJSON, sendError } from './helpers.js';
 import { removeUndefined } from '../utils/firestore-utils.js';
-import { awardDailyConversation, DAILY_SEEDS } from '../services/seeds/earn.js';
+import { awardDailyConversation, DAILY_SEEDS, dailyStatus } from '../services/seeds/earn.js';
 import {
   commitSeeds,
   ENTRIES_SUBCOLLECTION,
@@ -27,6 +28,7 @@ import {
 } from '../services/seeds/ledger.js';
 import { ownedCosmetics } from '../services/seeds/cosmetics-catalog.js';
 import { purchaseCosmetic } from './seeds-purchase.js';
+import { importLocalSeeds, serverLedgerEnabled } from './seeds-import.js';
 
 const log = createLogger({ module: 'SeedsRoutes' });
 
@@ -47,8 +49,8 @@ interface UserSeeds {
   lifetimeEarned: number;
   lifetimePlanted: number;
   currentStreak: number;
-  lastDailyClaimDate: string | null;
   lastConversationDate: string | null;
+  seedTimeZone?: string;
   referralCode: string;
   referredBy: string | null;
   referrals: string[];
@@ -163,8 +165,8 @@ async function getOrCreateUserSeeds(
       lifetimeEarned: data.lifetimeEarned ?? STARTER_SEEDS,
       lifetimePlanted: data.lifetimePlanted ?? 0,
       currentStreak: data.currentStreak ?? 0,
-      lastDailyClaimDate: data.lastDailyClaimDate ?? null,
       lastConversationDate: data.lastConversationDate ?? null,
+      seedTimeZone: data.seedTimeZone,
       referralCode,
       referredBy: data.referredBy ?? null,
       referrals: data.referrals ?? [],
@@ -188,7 +190,6 @@ async function getOrCreateUserSeeds(
     lifetimeEarned: STARTER_SEEDS,
     lifetimePlanted: 0,
     currentStreak: 0,
-    lastDailyClaimDate: null,
     lastConversationDate: null,
     referralCode: generateReferralCode(),
     referredBy: null,
@@ -260,13 +261,14 @@ export async function handleSeedsRoutes(
     // GET /api/seeds - Get user's seed balance and stats
     if (pathname === '/api/seeds' && req.method === 'GET') {
       const userSeeds = await getOrCreateUserSeeds(db, userId);
-      const today = new Date().toISOString().split('T')[0];
+      // The daily earn records lastConversationDate (claim-daily and session end alike)
+      const day = dailyStatus(userSeeds);
 
       sendJSON(res, {
         balance: userSeeds.balance,
         lifetimeEarned: userSeeds.lifetimeEarned,
-        currentStreak: userSeeds.currentStreak,
-        dailyBonusAvailable: userSeeds.lastDailyClaimDate !== today,
+        currentStreak: day.currentStreak,
+        dailyBonusAvailable: day.dailyBonusAvailable,
         referralCode: userSeeds.referralCode,
         referralUrl: `https://ferni.ai/grow/${userSeeds.referralCode}`,
         garden: {
@@ -275,7 +277,17 @@ export async function handleSeedsRoutes(
         },
         earnedFrom: userSeeds.earnedFrom,
         ownedCosmetics: userSeeds.ownedCosmetics,
+        // The web keeps its own ledger until this is on (SEEDS_SERVER_LEDGER=on)
+        serverLedger: serverLedgerEnabled(),
       });
+      return true;
+    }
+
+    // POST /api/seeds/import-local - Bring a browser's seeds and cosmetics over, once
+    if (pathname === '/api/seeds/import-local' && req.method === 'POST') {
+      const result = await importLocalSeeds(db, userId, await parseBody(req));
+      if (result.status !== 200) sendErrorStatus(res, result.status, result.error);
+      else sendJSON(res, result.body);
       return true;
     }
 
