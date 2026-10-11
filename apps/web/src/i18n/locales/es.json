@@ -9587,8 +9587,7 @@
     "rememberEmpty": "Nada nuevo que guardar esta vez. Gracias por la compañía.",
     "nextStepTitle": "Un pequeño siguiente paso",
     "invitation": "Vuelve cuando quieras. Aquí estaré.",
-    "close": "Cerrar",
-    "seeCost": "Lo que costó esta llamada"
+    "close": "Cerrar"
   },
   "moments": {
     "teamUnlockTitle": "Conoce a {name}",
