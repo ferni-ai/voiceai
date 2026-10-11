@@ -191,7 +191,8 @@ async function askLocal(model: string, prompt: string): Promise<string> {
       messages: [{ role: 'user', content: prompt }],
       stream: false,
       think: true,
-      options: { temperature: 0, num_predict: 2000 },
+      // Grading prompts are short; the default context window costs memory and speed.
+      options: { temperature: 0, num_predict: 2000, num_ctx: 8192 },
     }),
   });
   if (!res.ok) throw new Error(`ollama ${model}: HTTP ${res.status}`);
