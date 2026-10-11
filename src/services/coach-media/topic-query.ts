@@ -31,9 +31,15 @@ const DIGIT_RUN = /\+?\d(?:[\s().-]*\d){4,}/g;
 
 const QUOTED = /"[^"]*"|“[^”]*”|‘[^’]*’/g;
 // A Titlecase word after a preposition: a place, employer or person ("at Mayo",
-// "with Dana"). Language and nationality words ("in Spanish") are kept.
+// "with Dana"). Language and nationality words ("in Spanish") are kept, and so
+// are a few common tools people learn ("in Python").
 const PROPER_AFTER_PREPOSITION =
-  /\b(at|in|from|with|near|for|by)\s+(?!\p{Lu}\p{Ll}*(?:ish|ese|ian|an|ic|ch)\b)\p{Lu}\p{Ll}+(?:'s)?/gu;
+  /\b(at|in|from|with|near|for|by)\s+(?!\p{Lu}\p{Ll}*(?:ish|ese|ian|an|ic|ch)\b)(\p{Lu}\p{Ll}+)(?:'s)?/gu;
+const KEPT_PROPER = new Set(
+  'python javascript java excel sql react swift kotlin rust photoshop figma canva notion linux windows bible yoga pilates'.split(
+    ' '
+  )
+);
 
 /** Every name the session knows for this caller: theirs, their family's, their city. */
 export function sessionIdentifiers(userData: Record<string, unknown>): string[] {
@@ -85,7 +91,9 @@ export function topicOnlyQuery(
     );
   }
   query = query
-    .replace(PROPER_AFTER_PREPOSITION, '$1')
+    .replace(PROPER_AFTER_PREPOSITION, (whole: string, prep: string, word: string) =>
+      KEPT_PROPER.has(word.toLowerCase()) ? whole : prep
+    )
     .replace(/["“”‘’<>`{}[\]\\|]/g, ' ')
     .toLowerCase()
     .split(/\s+/)

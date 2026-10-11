@@ -1,18 +1,11 @@
 /**
- * How a coaching-resource result reaches the conversation model: a guard line
- * and one JSON data field, never prose it might read as instructions. Web
- * pages can say anything ("call this number now", "use the reachOut tool"), and
- * a phrase blocklist can't catch every variant, so the result is also small
- * and structured: per source only a title (80 chars), host, URL and a neutral
- * summary (140 chars); the answer at most 400 chars. Text is flattened with
- * callerText, phone-like numbers are removed, and any sentence that gives an
- * order or speaks to "you", an assistant or an AI is dropped (and counted)
- * rather than trusted. A title that does so is replaced by its host.
- *
- * The backstop is that side-effect tools are gated on their own; this keeps
- * what the model sees to data.
- *
- * Health, medical and money topics also carry a "general info" line.
+ * Web text reaches the conversation model as a guard line plus one small JSON
+ * data field, never as prose: pages can say "call this number now" or "use
+ * the reachOut tool", and a phrase blocklist can't catch every variant. So
+ * every field is truncated, numbers removed, and any sentence that gives an
+ * order or speaks to "you"/an assistant/an AI dropped rather than trusted.
+ * Gating side-effect tools is the backstop; this keeps what the model sees
+ * to data.
  *
  * @module services/coach-media/result-text
  */
