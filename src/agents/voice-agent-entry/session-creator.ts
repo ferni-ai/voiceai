@@ -28,7 +28,6 @@ import { modelConfig } from '../../services/model-config.js';
 import { endpointingDelays } from '../shared/turn-patience.js';
 import { limitSessionListeners } from '../shared/session-listener-limit.js';
 
-
 // ============================================================================
 // VAD CACHING (Worker-Level Singleton)
 // ============================================================================
@@ -42,7 +41,9 @@ let vadLoadPromise: Promise<VadInstance> | null = null;
  * Pre-warm the Silero VAD at worker startup.
  * Call this once during worker initialization to avoid ~764ms per-session load.
  */
-export async function prewarmVAD(silero: typeof import('@livekit/agents-plugin-silero')): Promise<void> {
+export async function prewarmVAD(
+  silero: typeof import('@livekit/agents-plugin-silero')
+): Promise<void> {
   if (cachedVad) return;
   if (vadLoadPromise) {
     await vadLoadPromise;
@@ -51,7 +52,9 @@ export async function prewarmVAD(silero: typeof import('@livekit/agents-plugin-s
   vadLoadPromise = (async () => {
     const start = Date.now();
     cachedVad = await silero.VAD.load();
-    process.stderr.write(`[session-creator] 🎙️ VAD pre-warmed at worker level in ${Date.now() - start}ms\n`);
+    process.stderr.write(
+      `[session-creator] 🎙️ VAD pre-warmed at worker level in ${Date.now() - start}ms\n`
+    );
     return cachedVad;
   })();
   await vadLoadPromise;
@@ -92,9 +95,18 @@ export interface CreateSessionResult {
  */
 export async function createAgentSession(input: CreateSessionInput): Promise<CreateSessionResult> {
   const {
-    sessionId, sessionPersona, systemPrompt, modelBaseInstructions,
-    userId, userAccent, userData, services, voiceDeps,
-    metadata, subscriptionTier, cleanupHandlers,
+    sessionId,
+    sessionPersona,
+    systemPrompt,
+    modelBaseInstructions,
+    userId,
+    userAccent,
+    userData,
+    services,
+    voiceDeps,
+    metadata,
+    subscriptionTier,
+    cleanupHandlers,
   } = input;
 
   const modelProvider = getModelProvider();
@@ -146,7 +158,10 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     try {
       const { getLocalizedVoiceId } =
         await import('../../services/voice/cartesia-voice-localization.js');
-      const localizationResult = await getLocalizedVoiceId(sessionPersona.id, userAccent as import('../../config/voice-accents.js').EnglishAccent);
+      const localizationResult = await getLocalizedVoiceId(
+        sessionPersona.id,
+        userAccent as import('../../config/voice-accents.js').EnglishAccent
+      );
       effectiveVoiceId = localizationResult.voiceId;
       isLocalizedVoice = localizationResult.isLocalized;
       process.stderr.write(
@@ -192,7 +207,12 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   void (async () => {
     try {
       const { registerSessionTTS } = await import('../../api/session-accent-routes.js');
-      registerSessionTTS(sessionId, tts as never, sessionPersona.id, (userAccent || 'american') as import('../../config/voice-accents.js').EnglishAccent);
+      registerSessionTTS(
+        sessionId,
+        tts as never,
+        sessionPersona.id,
+        (userAccent || 'american') as import('../../config/voice-accents.js').EnglishAccent
+      );
     } catch {
       // Non-critical
     }
@@ -315,7 +335,9 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
                 services: new EnvironmentServiceRegistry(),
               });
               sessionTools[toolId] = tool;
-              process.stderr.write(`[voice-agent-entry] ✅ Recovered ${toolId} via direct import\n`);
+              process.stderr.write(
+                `[voice-agent-entry] ✅ Recovered ${toolId} via direct import\n`
+              );
             }
           }
           toolCount = Object.keys(sessionTools).length;
@@ -362,6 +384,19 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   const endCallTool = createEndCallTool(sessionId);
   if (endCallTool) sessionTools = { ...(sessionTools ?? {}), [END_CALL]: endCallTool };
 
+  // TOOL_CORE_STATIC: the gateway's set is uncapped (349+ tools); send the core.
+  const { staticCoreToolsEnabled } = await import('../../config/tool-config.js');
+  if (staticCoreToolsEnabled()) {
+    const { staticCoreTools } = await import('../shared/static-core-tools.js');
+    sessionTools = await staticCoreTools(sessionTools ?? {}, {
+      userId: userId || 'anonymous',
+      sessionId,
+      agentId: sessionPersona.id,
+      agentDisplayName: sessionPersona.name || sessionPersona.id,
+    });
+    toolCount = Object.keys(sessionTools).length;
+  }
+
   // Create agent
   const { FerniAgent } = ferniAgentModule;
   const toolNames = Object.keys(sessionTools || {});
@@ -388,9 +423,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   // Build tool config
   const { buildToolConfig } = functionCallingModule;
   const emotionAnalysis = userData.lastEmotionAnalysis as { distressLevel?: number } | undefined;
-  const isCrisis = emotionAnalysis?.distressLevel
-    ? emotionAnalysis.distressLevel > 0.7
-    : false;
+  const isCrisis = emotionAnalysis?.distressLevel ? emotionAnalysis.distressLevel > 0.7 : false;
   const toolConfig = buildToolConfig({ environment: 'production', isCrisis });
   const allowedTools = toolConfig.functionCallingConfig.allowedFunctionNames;
   process.stderr.write(
@@ -452,8 +485,12 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const session: any = new voice.AgentSession({
     turnDetection: modelProvider.getSessionTurnDetection(),
-    vad, ...(externalStt && { stt: externalStt }),
-    llm, tts, userData, voiceOptions,
+    vad,
+    ...(externalStt && { stt: externalStt }),
+    llm,
+    tts,
+    userData,
+    voiceOptions,
   });
   limitSessionListeners(session); // see session-listener-limit.ts
 
@@ -474,7 +511,11 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     );
     cleanupHandlers.push(detachTurnMetrics);
     cleanupHandlers.push(() => {
-      try { clearRetryCounter(session); } catch { /* ignore */ }
+      try {
+        clearRetryCounter(session);
+      } catch {
+        /* ignore */
+      }
     });
   }
 

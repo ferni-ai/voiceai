@@ -30,7 +30,7 @@ import { getRealtimeModel } from '../../config/gemini-config.js';
 import { resolveCrisisGuardMode } from '../safety/crisis-shadow.js';
 import { observeFinalTranscript } from '../shared/final-transcript-observer.js';
 // Centralized tool configuration (Jan 2026)
-import { capToolsToLimit, getMaxTools } from '../../config/tool-config.js';
+import { capToolsToLimit, getMaxTools, staticCoreToolsEnabled } from '../../config/tool-config.js';
 
 // Model provider abstraction - centralizes all model-specific behavior
 import { getModelProvider, isUsingOpenAI } from '../model-provider/index.js';
@@ -97,7 +97,12 @@ import { composeAgentInstructions } from './agent-instructions.js';
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
-import { createFindToolsTool, FIND_TOOLS } from '../../tools/retrieval/find-tools-tool.js';
+import {
+  createFindToolsTool,
+  FIND_TOOLS,
+  setToolPinner,
+} from '../../tools/retrieval/find-tools-tool.js';
+import { createToolPinner, staticCoreTools } from '../shared/static-core-tools.js';
 import { amdOpensCall, createEndCallTool, END_CALL } from '../outbound-call/call-control.js';
 import { toolRetrievalMode as retrievalModeNow } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
@@ -1039,7 +1044,23 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // Every provider gets a cap: the essential domains alone are ~340 tools.
   const effectiveLimit = resolveInitialToolLimit(configuredLimit);
 
-  if (effectiveLimit > 0 && toolCount > effectiveLimit) {
+  const endCallTool = createEndCallTool(sessionId);
+  if (staticCoreToolsEnabled()) {
+    // TOOL_CORE_STATIC: one set for the whole call, findTools for the rest.
+    finalTools = (await staticCoreTools(
+      {
+        ...orchestratorTools,
+        [FIND_TOOLS]: createFindToolsTool(),
+        ...(endCallTool ? { [END_CALL]: endCallTool } : {}),
+      },
+      {
+        userId: userId || 'anonymous',
+        sessionId,
+        agentId: persona.id,
+        agentDisplayName: persona.name || persona.id,
+      }
+    )) as typeof finalTools;
+  } else if (effectiveLimit > 0 && toolCount > effectiveLimit) {
     // Use centralized tool capping which handles essential tool prioritization
     finalTools = capToolsToLimit(orchestratorTools, effectiveLimit);
     const cappedCount = Object.keys(finalTools).length;
@@ -1073,13 +1094,12 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   // Live tool retrieval sends each request only the tools its words point to;
   // findTools lets the model reach one retrieval ranked too low.
-  if (retrievalModeNow() === 'live') {
+  if (retrievalModeNow() === 'live' && !staticCoreToolsEnabled()) {
     finalTools = { ...finalTools, [FIND_TOOLS]: createFindToolsTool() } as typeof finalTools;
   }
 
   // On-behalf phone call: Ferni can hang up after a goodbye or a voicemail
-  const endCallTool = createEndCallTool(sessionId);
-  if (endCallTool) {
+  if (endCallTool && !staticCoreToolsEnabled()) {
     finalTools = { ...finalTools, [END_CALL]: endCallTool } as typeof finalTools;
   }
 
@@ -1820,6 +1840,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
           dynamicToolLoader,
           cleanupFunctions,
         });
+        if (staticCoreToolsEnabled()) {
+          // findTools appends what it finds to the agent on the call now.
+          const pinner = createToolPinner(agentNow, {
+            userId: userId || 'anonymous',
+            sessionId,
+            agentId: persona.id,
+            agentDisplayName: persona.name || persona.id,
+          });
+          setToolPinner(session, pinner);
+          cleanupFunctions.push(() => setToolPinner(session, null));
+        }
         await installDirectorNotes({
           session,
           sessionId,

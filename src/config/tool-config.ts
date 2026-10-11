@@ -292,7 +292,82 @@ export function getMaxTools(): number {
  * caches a request's prefix). See tool-updater.ts and gemini-declarations.ts.
  */
 export function appendOnlyToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.CASCADE_APPEND_ONLY_TOOLS === 'on';
+  return env.CASCADE_APPEND_ONLY_TOOLS === 'on' || staticCoreToolsEnabled(env);
+}
+
+/**
+ * TOOL_CORE_STATIC=on: every request in a call carries the same tools, the
+ * STATIC_CORE_TOOLS the agent has plus the user's teammate tools, in this
+ * order. Mid-call topic loads add nothing; findTools reaches the rest and
+ * what it finds is appended for the rest of the call (append-only order, so
+ * the declarations prefix Gemini cached stays the same).
+ *
+ * Why (prod + dev logs 2026-10-04..11): requests carried 88 tools (~5.3k of
+ * ~10.9k prompt tokens) but prod called 3 distinct tools in 223 turns and 20
+ * were called across prod and dev; 68 of the 88 were never called. TTFT is
+ * flat below ~100 tools and tracks prompt-cache hits instead, and turns whose
+ * tool set changed cached worse (dev median cached share 0.78 vs 0.89).
+ */
+export function staticCoreToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.TOOL_CORE_STATIC === 'on';
+}
+
+/**
+ * The static core, in request order. One tool per lookalike group
+ * (quickTimer, not setTimer/quickAlarm; getWeatherForecast, not
+ * getWeather/quickWeather). It covers every prod tool call of that week and
+ * ~92% of dev's; calendar, reminders and on-behalf calling are kept although
+ * one week of calls undercounts them. Tools a call can't have (gameState
+ * without GAME_STATE, endCall off an on-behalf call) are skipped.
+ */
+export const STATIC_CORE_TOOLS: readonly string[] = [
+  'getCurrentContext',
+  // Safety: kept whatever their use
+  'provideCrisisResources',
+  'quickCrisisResources',
+  'createSafetyPlan',
+  'deEscalateAnxiety',
+  'evaluateHumanTransfer',
+  'connectToHumanExpert',
+  'groundingExercise',
+  'breatheWithMe',
+  'groundingForTrauma',
+  // Memory
+  'rememberAboutUser',
+  'recallFromMemory',
+  'rememberImportantFact',
+  'recallPreviousConversation',
+  // The calls people make
+  'playMusic',
+  'musicControl',
+  'quickTimer',
+  'setReminder',
+  'getReminders',
+  'getCalendarToday',
+  'createCalendarEvent',
+  'getWeatherForecast',
+  'searchWeb',
+  'tellJoke',
+  'getFunFact',
+  'callOnBehalf',
+  // Call control
+  'gameState',
+  'endCall',
+  'findTools',
+];
+
+/** Teammate tools: they differ per user, so they go after the fixed core. */
+export function isTeammateTool(name: string): boolean {
+  return (
+    name.startsWith('handoffTo') ||
+    name === 'askForTeammate' ||
+    name === 'introduceMember' ||
+    name === 'meetTheTeam'
+  );
+}
+
+export function isStaticCoreTool(name: string): boolean {
+  return STATIC_CORE_TOOLS.includes(name) || isTeammateTool(name);
 }
 
 /**

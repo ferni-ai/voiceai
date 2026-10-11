@@ -119,7 +119,8 @@ export async function installToolRetrieval(
   // catalog in the background (the first call in a process also imports every
   // domain, ~2 s) and hand it over once a reply has started, so the change
   // can't void LiveKit's preemptive reply.
-  if (toolRetrievalMode() === 'live') {
+  const { staticCoreToolsEnabled } = await import('../../config/tool-config.js');
+  if (toolRetrievalMode() === 'live' && !staticCoreToolsEnabled()) {
     const catalogStarted = Date.now();
     void dynamicToolLoader
       .loadAllDomains()

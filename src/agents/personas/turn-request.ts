@@ -9,6 +9,7 @@
 import type { llm } from '@livekit/agents';
 import { TransformStream, type ReadableStream } from 'node:stream/web';
 
+import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
 import { phoneOnlyIdentity } from '../voice-agent-entry/caller-recognition.js';
@@ -193,6 +194,7 @@ export async function toolsForTurn(
   toolCtx: llm.ToolContext,
   state: TurnToolsState
 ): Promise<llm.ToolContext> {
+  if (staticCoreToolsEnabled()) withPinnedTools(toolCtx, state.agent);
   const view = unlockViewFor(session.userData);
   const allowed = phoneOnlyIdentity(sessionIdOf(session.userData))
     ? await withoutAccountTools(toolCtx, state)
@@ -236,6 +238,21 @@ async function withoutAccountTools(
 }
 
 /**
+ * TOOL_CORE_STATIC: tools findTools added to the agent after this reply began.
+ * The SDK runs each step of a reply, and the tool calls in it, against the
+ * tool context the reply started with, so they go into that same object: the
+ * model's next step can call what it just found, in this turn.
+ */
+export function withPinnedTools(toolCtx: llm.ToolContext, agent: object | undefined): void {
+  const own = (agent as Partial<ToolHolder> | undefined)?.toolCtx?.functionTools;
+  if (!own) return;
+  const added = Object.entries(own)
+    .filter(([name]) => !(name in toolCtx.functionTools))
+    .map(([, tool]) => tool);
+  if (added.length > 0) toolCtx.updateTools([...toolCtx.tools, ...added]);
+}
+
+/**
  * Shadow mode only logs what would be picked (nothing awaited); live mode sends
  * core + recent + retrieved tools, waiting at most LIVE_PICK_WAIT_MS for the
  * pick, then using a close pick from this turn, and otherwise sending them all.
@@ -246,8 +263,9 @@ async function retrievedTools(
   chatCtx: llm.ChatContext,
   toolCtx: llm.ToolContext
 ): Promise<llm.ToolContext> {
-  const mode = toolRetrievalMode();
-  if (mode === 'off') return toolCtx;
+  // TOOL_CORE_STATIC keeps one set per call: retrieval may only observe.
+  const mode = staticCoreToolsEnabled() ? 'shadow' : toolRetrievalMode();
+  if (toolRetrievalMode() === 'off') return toolCtx;
   const retrieval = getTurnToolRetrieval(session);
   if (!retrieval) return toolCtx; // the full catalog is only loaded with retrieval
   const text = latestUserText(chatCtx);
