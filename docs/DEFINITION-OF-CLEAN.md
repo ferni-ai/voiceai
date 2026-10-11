@@ -60,7 +60,7 @@ Measured on dev before anything ships; the user listens before prod.
 
 | Standard | Measure | Gate |
 |---|---|---|
-| Layers point down | `pnpm quality:arch` | 0 violations |
+| Layers point inward | `pnpm quality:arch` (import AST vs `architecture-layers.ts`) | no new violating edge (per-edge baseline) |
 | No per-caller state at module level | singletons that hold a user/session (the tool loader and timer handler were) | each found one is fixed with a test (PR #121, 02eba4269) |
 | The docs agents read match production | `CLAUDE.md` claims vs `livekit*.toml`, the model factory | reviewed when the stack changes |
 

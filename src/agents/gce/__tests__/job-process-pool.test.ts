@@ -2,17 +2,17 @@ import { fork } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { Job } from '@livekit/protocol';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { drainBackground } from '../drain-background.js';
 import type { JobInfo } from '../job-executor.js';
 import { JobProcessPool } from '../job-process-pool.js';
 import { asToChild, asToParent, decodeJob, encodeJob } from '../job-process-protocol.js';
 
-const sleep = (ms: number) =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, ms);
-  });
+// Children are real processes, so how fast they warm up depends on the machine. Poll
+// for a state instead of sleeping a fixed time: on a loaded CI runner 400ms was not
+// enough for two children to start (2026-10-11 merge queue).
+const settles = { timeout: 5000, interval: 20 };
 
 const FAKE = fileURLToPath(new URL('./fixtures/fake-job-child.mjs', import.meta.url));
 
@@ -91,10 +91,11 @@ describe('JobProcessPool', () => {
   it('never gives two jobs assigned at once the same child', async () => {
     const { pool, events, handedTo } = makePool({ jobMs: 150 });
     const both = Promise.all([pool.run(info('AJ_x')), pool.run(info('AJ_y'))]);
-    await sleep(400);
-    expect(new Set(events.filter(([, e]) => e === 'started').map(([id]) => id))).toEqual(
-      new Set(['AJ_x', 'AJ_y'])
-    );
+    await vi.waitFor(() => {
+      expect(new Set(events.filter(([, e]) => e === 'started').map(([id]) => id))).toEqual(
+        new Set(['AJ_x', 'AJ_y'])
+      );
+    }, settles);
     await both;
     expect(handedTo).toHaveLength(2);
     expect(new Set(handedTo).size).toBe(2);
@@ -108,15 +109,17 @@ describe('JobProcessPool', () => {
       ['AJ_c', 'started'],
       ['AJ_c', 'failed'],
     ]);
-    await sleep(100);
-    expect(spawned.length).toBeGreaterThanOrEqual(2);
+    await vi.waitFor(() => {
+      expect(spawned.length).toBeGreaterThanOrEqual(2);
+    }, settles);
   });
 
   it("forwards a LiveKit termination to the job's child", async () => {
     const { pool, events } = makePool({ jobMs: 10_000 });
     const running = pool.run(info('AJ_t'));
-    await sleep(200);
-    expect(pool.activeJobIds()).toEqual(['AJ_t']);
+    await vi.waitFor(() => {
+      expect(pool.activeJobIds()).toEqual(['AJ_t']);
+    }, settles);
     expect(pool.shutdown('AJ_t', 'livekit_termination')).toBe(true);
     expect(pool.shutdown('AJ_other', 'x')).toBe(false);
     await running;
@@ -125,11 +128,12 @@ describe('JobProcessPool', () => {
 
   it("reports load as the children's summed CPU share or the busiest loop", async () => {
     const { pool } = makePool({ idle: 2 });
-    await sleep(300);
-    // two children at 0.4 CPU each: 0.8 of 4 CPUs is 0.2, below the busiest loop (0.3)
-    expect(pool.load(4)).toBeCloseTo(0.3);
-    // on 1 CPU the summed share wins (0.8)
-    expect(pool.load(1)).toBeCloseTo(0.8);
+    await vi.waitFor(() => {
+      // two children at 0.4 CPU each: 0.8 of 4 CPUs is 0.2, below the busiest loop (0.3)
+      expect(pool.load(4)).toBeCloseTo(0.3);
+      // on 1 CPU the summed share wins (0.8)
+      expect(pool.load(1)).toBeCloseTo(0.8);
+    }, settles);
   });
 
   it('fails the job when no child warms up in time', async () => {

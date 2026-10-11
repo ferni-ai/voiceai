@@ -675,7 +675,7 @@ function injectStyles(): void {
       position: absolute;
       bottom: -4px;
       right: -4px;
-      z-index: var(--z-docked, 100);
+      z-index: var(--z-docked);
       
       display: flex;
       align-items: center;

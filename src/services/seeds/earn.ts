@@ -9,6 +9,7 @@
  * @module services/seeds/earn
  */
 import type admin from 'firebase-admin';
+import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { commitSeeds, prepareMoreSeeds, prepareSeeds, type SeedResult } from './ledger.js';
 
@@ -20,6 +21,15 @@ export const STREAK_MILESTONES: Readonly<Record<number, number>> = {
   60: 200,
   100: 500,
 };
+
+/**
+ * Whether daily chats and streaks earn seeds. Not under TEAM_BY_NEED (product decision,
+ * 2026-10-11): showing up isn't paid for. Balances, purchases, gifts and referral seeds
+ * are untouched; the day and streak are still recorded.
+ */
+export function dailyEarnsSeeds(): boolean {
+  return !isTeamByNeedEnabled();
+}
 
 /** YYYY-MM-DD in the time zone (UTC when it isn't a valid IANA zone). */
 export function localDate(now: Date, timeZone?: string): string {
@@ -122,11 +132,14 @@ export async function awardDailyConversation(
     const started =
       typeof account.streakStart === 'string' ? account.streakStart : daysBefore(today, previous);
     const streakStart = continues ? started : today;
-    const bonus = STREAK_MILESTONES[streakDays];
+    const pays = dailyEarnsSeeds();
+    const bonus = pays ? STREAK_MILESTONES[streakDays] : undefined;
     const streakKey = `streak:${streakDays}:${streakStart}`;
-    await prepareMoreSeeds(tx, state, bonus ? [dailyKey, streakKey] : [dailyKey]);
+    if (pays) await prepareMoreSeeds(tx, state, bonus ? [dailyKey, streakKey] : [dailyKey]);
 
-    const daily = commitSeeds(tx, state, { delta: DAILY_SEEDS, reason: 'daily', key: dailyKey });
+    const daily = pays
+      ? commitSeeds(tx, state, { delta: DAILY_SEEDS, reason: 'daily', key: dailyKey })
+      : { applied: false };
     const paid = bonus
       ? commitSeeds(tx, state, { delta: bonus, reason: 'streaks', key: streakKey })
       : null;

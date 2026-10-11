@@ -13,19 +13,26 @@ on:
       - 'apps/web/src/ui/**/*.ts'
       - 'apps/web/src/app.ts'
       - 'apps/web/src/services/**/*.ts'
-      - 'promo/ferni-website/src/_data/i18n/**'
-      - 'promo/ferni-website/src/**/*.njk'
-      - 'promo/ferni-website/src/**/*.html'
+      - 'apps/website/ferni-website/src/_data/i18n/**'
+      - 'apps/website/ferni-website/src/**/*.njk'
+      - 'apps/website/ferni-website/src/**/*.html'
   push:
     branches: [main]
     paths:
       - 'apps/web/src/i18n/**'
-      - 'promo/ferni-website/src/_data/i18n/**'
+      - 'apps/website/ferni-website/src/_data/i18n/**'
+
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   i18n-validation:
     name: 🌐 Translation Validation
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code

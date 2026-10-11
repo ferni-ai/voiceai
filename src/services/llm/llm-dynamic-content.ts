@@ -17,7 +17,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { callLLM } from './llm-utils.js';
+import { callLLM } from '../llm-utils.js';
 
 const log = getLogger();
 
@@ -491,12 +491,12 @@ export async function generateContent(context: ContentContext): Promise<Generate
         maxTokens: generator.maxTokens || 100,
         temperature: generator.temperature || 0.8,
         timeout: generator.timeout || 3000,
+        retry429: true, // this path has always retried 429s
       });
 
       const latencyMs = Date.now() - startTime;
 
       if (result) {
-        // Clean up the result
         const cleaned = result.trim().replace(/^["']|["']$/g, '');
 
         // Cache it
