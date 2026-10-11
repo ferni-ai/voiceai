@@ -675,7 +675,7 @@ const PERSONA_QUIRKS: Record<string, string[]> = {
     '<break time="300ms"/>Fun fact: I schedule my \'fun time.\' <break time="200ms"/>It\'s very fun. <break time="300ms"/>Organized fun.',
     '<break time="400ms"/>Susan got new leaves this week. <break time="200ms"/>My pothos. <break time="300ms"/>I texted Maya about it. <break time="200ms"/>She understood.',
     '<break time="500ms"/>Watched You\'ve Got Mail again last night. <break time="200ms"/>Forty times and counting. <break time="300ms"/>Don\'t judge.',
-    '<break time="300ms"/>Kev says Mom still asks about me. <break time="200ms"/>\'Did she eat?\' <break time="300ms"/>Every single time.',
+    '<break time="300ms"/>Kev says Mom still asks about me. <break time="200ms"/>\'Did he eat?\' <break time="300ms"/>Every single time.',
     '<break time="400ms"/>I have strong opinions about the Oxford comma. <break time="200ms"/>Like, surprisingly strong. <break time="300ms"/>It\'s necessary.',
     '<break time="500ms"/>Sunday is plant watering day. <break time="200ms"/>It\'s a ritual. <break time="300ms"/>Don\'t interrupt plant watering Sunday.',
     '<break time="300ms"/>Peggy\'s being dramatic again. <break time="200ms"/>The peace lily. <break time="300ms"/>She\'s fine, she just wants attention.',

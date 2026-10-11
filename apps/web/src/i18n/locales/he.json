@@ -3322,8 +3322,8 @@
     "categorySweet": "רגעים מתוקים",
     "connectionConnected": "אנחנו מחוברים",
     "connectionConnecting": "מתחברים...",
-    "connectionDisconnected": "אנחנו לא מחוברים",
-    "connectionDisconnectedMessage": "משהו השתבש, אבל תמיד אפשר לנסות שוב.",
+    "connectionIdle": "מוכן מתי שתרצה",
+    "connectionIdleMessage": "מתי שבא לך לדבר, אני כאן.",
     "connectionError": "החיבור אבד",
     "connectionErrorMessage": "משהו השתבש, אבל תמיד אפשר לנסות שוב.",
     "connectionReconnect": "להתחבר מחדש",
@@ -10207,7 +10207,12 @@
     "getIdeas": "לקבל רעיונות",
     "emptyTitle": "אין עדיין הצעות",
     "emptyText": "כדאי לנסות להוסיף עוד פרטים על מערכת היחסים שלכם.",
-    "generateError": "לא הצלחתי ליצור רעיונות. לנסות שוב?"
+    "generateError": "לא הצלחתי ליצור רעיונות. לנסות שוב?",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "מה שאני עושה בשבילכם",
@@ -10712,6 +10717,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "התקדמות מערכת היחסים",
+    "emptyInvite": "הסיפור שלנו מתחיל בשיחה הראשונה שלך.",
     "progress": "התקדמות",
     "next": "השלב הבא: {stage}",
     "stages": {
@@ -11200,5 +11206,39 @@
     "youSpeaking": "את/ה מדבר/ת",
     "ferniThinking": "פרני חושב",
     "tapToInterrupt": "הקש כדי להפריע"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

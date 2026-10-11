@@ -3300,8 +3300,8 @@
     "categorySweet": "달콤한 순간들",
     "connectionConnected": "연결되었어요",
     "connectionConnecting": "연결 중...",
-    "connectionDisconnected": "연결이 끊어졌어요",
-    "connectionDisconnectedMessage": "문제가 발생했지만, 다시 시도해볼 수 있어요.",
+    "connectionIdle": "준비되면 언제든지요",
+    "connectionIdleMessage": "이야기하고 싶을 때 언제든 여기 있을게요.",
     "connectionError": "연결이 끊김",
     "connectionErrorMessage": "문제가 발생했지만, 다시 시도해볼 수 있어요.",
     "connectionReconnect": "다시 연결하기",
@@ -10113,7 +10113,12 @@
     "getIdeas": "아이디어 얻기",
     "emptyTitle": "아직 제안할 내용이 없어요",
     "emptyText": "서로의 관계에 대해 조금 더 이야기해 주세요.",
-    "generateError": "아이디어를 만들지 못했어요. 다시 시도해 볼까요?"
+    "generateError": "아이디어를 만들지 못했어요. 다시 시도해 볼까요?",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "당신을 위해 준비한 것들",
@@ -10601,6 +10606,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "관계 진행 상황",
+    "emptyInvite": "우리 이야기는 첫 대화에서 시작돼요.",
     "progress": "진행도",
     "next": "다음 단계: {stage}",
     "stages": {
@@ -11075,5 +11081,39 @@
     "youSpeaking": "내가 말하고 있어요",
     "ferniThinking": "Ferni가 생각하고 있어요",
     "tapToInterrupt": "탭해서 끼어들기"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

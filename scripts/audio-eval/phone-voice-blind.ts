@@ -33,7 +33,6 @@ import { notePhoneListener } from '../../src/agents/shared/performance/phone-voi
 import {
   applyPostTTSEnhancement,
   PostTTSPresets,
-  postTtsEnvOverrides,
 } from '../../src/agents/shared/performance/post-tts-transform.js';
 import { getVoiceIdForPersona } from '../../src/config/voice-ids.js';
 import { getCallerProsodyTracker } from '../../src/speech/audio-prosody/caller-prosody.js';
@@ -59,7 +58,6 @@ const LEVER_ENV: Record<string, string | undefined> = {
   SPEECH_DIRECTOR_PROSODY: undefined,
   SPEECH_STAGE2_NONVERBAL: undefined,
   SPEECH_STAGE2_TEMPO: undefined,
-  POST_TTS_ENHANCEMENT_ENABLED: undefined,
   PHONE_VOICE_PROFILE: undefined,
   TTS_REPLY_CONTINUATIONS: undefined, // prod default: one Cartesia context per reply
 };
@@ -191,7 +189,7 @@ async function render(
   });
   const audio = await tts(textStream(line.text) as never);
   if (!audio) throw new Error(`no audio for arm ${arm}`);
-  const config = { ...PostTTSPresets.betterThanHuman, ...postTtsEnvOverrides(), sessionId };
+  const config = { ...PostTTSPresets.betterThanHuman, sessionId };
   const out = await applyPostTTSEnhancement(
     audio,
     { ...config, personaId: 'ferni' },

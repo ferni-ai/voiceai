@@ -16,6 +16,7 @@
  */
 
 import type { Room } from '@livekit/rtc-node';
+import { applyCallerFlags } from '../../services/platform/cohort-flags.js';
 import {
   getSpeakerChangeDetector,
   type SpeakerChangeEvent,
@@ -26,6 +27,7 @@ import { prefetchUserCommitments } from '../../services/superhuman/commitment-pr
 import { createSpeakerChangePrompter, listenForSpeakerCheckReplies } from './speaker-check.js';
 import {
   accountNamedByDispatch,
+  rememberDispatchIdentity,
   callerRecognitionEnabled,
   recognizePhoneSession,
 } from '../voice-agent-entry/caller-recognition.js';
@@ -184,6 +186,10 @@ export async function identifyUser(
   // Detect and set user's preferred English accent for TTS
   // ===============================================
   userAccent = await detectUserAccent(jobMetadata);
+  rememberDispatchIdentity(sessionId, identificationSource, jobMetadata);
+
+  // Friends-and-family flags for this caller, before anything reads a flag (cohort-flags.ts).
+  await applyCallerFlags(userId);
 
   return {
     userId,

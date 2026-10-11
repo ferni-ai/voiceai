@@ -20,6 +20,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { voicePipeline } from '../../config/model-provider-config.js';
 
 const log = createLogger({ module: 'GeminiFCConfig' });
 
@@ -188,7 +189,7 @@ export function loadGeminiFCConfig(): GeminiFCConfiguration {
     // Core mode
     useNativeFunctionCalling: parseBool(
       env.GEMINI_USE_NATIVE_FC,
-      env.VOICE_PIPELINE === 'gemini-live' ? true : DEFAULT_CONFIG.useNativeFunctionCalling
+      voicePipeline(env) === 'gemini-live' ? true : DEFAULT_CONFIG.useNativeFunctionCalling
     ),
     enableJsonFallback: false,
     fcMode: parseFCMode(env.GEMINI_FC_MODE),

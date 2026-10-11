@@ -74,7 +74,9 @@ describe('call feedback', () => {
     await showPostCallCard();
 
     const row = feedbackRow();
-    expect(row?.closest('.ferni-cost-card')).not.toBeNull();
+    // The recap is the post-call card by default (after-call-flag.ts). The row
+    // rides that card; flag off still puts it on the cost card.
+    expect(row?.closest('.ferni-after-call-card')).not.toBeNull();
     expect(row?.textContent).toContain('How did that feel?');
     const helpful = row?.querySelector<HTMLButtonElement>('[data-reaction="helpful"]');
     expect(helpful?.getAttribute('aria-label')).toBe('Helpful');

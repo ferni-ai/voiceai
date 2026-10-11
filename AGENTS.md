@@ -74,9 +74,9 @@ function-call workaround or Sonata are describing retired setups.
 - **Logging**: `createLogger` from `src/utils/logger.js`, never `console.*`.
   Never swallow an error (`.catch(() => {})`); log it with context.
 - **Types**: no `any`, no `as any`. Use `unknown` and narrow.
-- **Layers**: `agents/` and `api/` → `personas/ intelligence/ tools/
-  conversation/ speech/` → `services/` → `memory/` → `config/ utils/ types/`.
-  Lower layers never import higher ones (`pnpm quality:arch`).
+- **Layers** point inward: L5 entrypoints → L4 orchestration → L3 (ten capability
+  contexts, via each other's index.ts) → L2 shared kernel; L1 adapters implement L2/L3 ports.
+  Map: `apps/cli/src/commands/quality/architecture-layers.ts`; `pnpm quality:arch` fails new violations.
 - **Names**: files are kebab-case. Name by function, not acronym or version
   (`tool-classifier.ts`, not `ftis-v2.ts`). No persona names in tool files.
 - **Classifiers on user text** match whole words, never substrings
