@@ -972,7 +972,7 @@ button {
    ============================================ */
 .team-card {
   padding: var(--space-8);
-  background: white;
+  background: var(--page-card, white);
   border-radius: var(--radius-xl);
   border: 1px solid rgba(44, 37, 32, 0.06);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1474,7 +1474,7 @@ button {
 .feature {
   text-align: center;
   padding: var(--space-8);
-  background: white;
+  background: var(--page-card, white);
   border-radius: var(--radius-xl);
   border: 1px solid rgba(44, 37, 32, 0.06);
   box-shadow:
@@ -1952,7 +1952,7 @@ button {
 /* Base pricing card */
 .pricing-card {
   padding: var(--space-10);
-  background: white;
+  background: var(--page-card, white);
   border-radius: 28px;
   border: 1px solid rgba(44, 37, 32, 0.08);
   text-align: center;
@@ -2101,7 +2101,7 @@ button {
 }
 
 .pricing-card--featured .btn--primary {
-  background: white;
+  background: var(--page-card, white);
   color: var(--color-natural-ink);
 }
 
@@ -2119,7 +2119,7 @@ button {
 
 /* Fund Explainer - How it Works */
 .fund-explainer {
-  background: white;
+  background: var(--page-card, white);
   border-radius: 28px;
   padding: var(--space-10) var(--space-8);
   margin-bottom: var(--space-12);
@@ -2205,7 +2205,7 @@ button {
 /* Gift Card */
 .gift-card {
   padding: var(--space-8);
-  background: white;
+  background: var(--page-card, white);
   border-radius: var(--radius-xl);
   border: 1px solid rgba(44, 37, 32, 0.08);
   text-align: center;
@@ -2225,7 +2225,7 @@ button {
 
 /* Featured Gift Card */
 .gift-card--featured {
-  background: white;
+  background: var(--page-card, white);
   border: 2px solid var(--color-ferni-green);
   position: relative;
   box-shadow:
@@ -2462,7 +2462,7 @@ button {
   flex-direction: column;
   align-items: center;
   padding: var(--space-8) clamp(32px, 8vw, 64px);
-  background: white;
+  background: var(--page-card, white);
   border-radius: var(--radius-xl);
   text-decoration: none;
   position: relative;
@@ -2531,7 +2531,7 @@ button {
 }
 
 .final-cta .btn--primary {
-  background: white;
+  background: var(--page-card, white);
   color: var(--color-natural-ink);
 }
 
@@ -5289,7 +5289,7 @@ img[loading='lazy']:not([data-src]) {
 
 /* Speech bubble - elevated glass */
 .two-am__bubble {
-  background: white;
+  background: var(--page-card, white);
   padding: var(--space-8) var(--space-10);
   border-radius: 28px;
   box-shadow:
@@ -5346,7 +5346,7 @@ img[loading='lazy']:not([data-src]) {
   margin-top: clamp(40px, 6vh, 64px);
   -webkit-overflow-scrolling: touch;
   padding: var(--space-4);
-  background: white;
+  background: var(--page-card, white);
   border-radius: var(--radius-xl);
   box-shadow:
     0 1px 2px rgba(44, 37, 32, 0.04),
@@ -5413,7 +5413,7 @@ img[loading='lazy']:not([data-src]) {
 .proof-table__icon {
   width: 48px;
   height: 48px;
-  background: white;
+  background: var(--page-card, white);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -6162,7 +6162,7 @@ img[loading='lazy']:not([data-src]) {
 /* Card Styling */
 .story__card {
   padding: var(--space-8);
-  background: white;
+  background: var(--page-card, white);
   border-radius: var(--radius-xl);
   border: 1px solid rgba(44, 37, 32, 0.06);
   box-shadow: 0 1px 2px rgba(44, 37, 32, 0.04),
@@ -6804,7 +6804,7 @@ body[data-time-of-day='early-morning'] {
      Cards are "islands of light" in dark mode
      =========================================== */
   .feature {
-    background: white !important;
+    background: var(--page-card, white) !important;
     border-color: rgba(44, 37, 32, 0.1);
   }
 
@@ -6879,7 +6879,7 @@ body[data-time-of-day='early-morning'] {
 /* Feature Cards - "Islands of light" with dark readable text */
 .theme--dark .feature,
 body.theme--dark .feature {
-  background: white !important;
+  background: var(--page-card, white) !important;
   border-color: rgba(44, 37, 32, 0.1) !important;
 }
 
@@ -6950,7 +6950,7 @@ body.theme--dark .journey__stage-badge {
 /* Use-Case Cards - "Islands of light" in YOUR MOMENTS section */
 .theme--dark .use-case,
 body.theme--dark .use-case {
-  background: white !important;
+  background: var(--page-card, white) !important;
   border-color: var(--color-border-medium) !important;
 }
 
