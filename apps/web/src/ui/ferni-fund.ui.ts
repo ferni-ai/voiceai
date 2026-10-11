@@ -16,6 +16,7 @@
 import { t } from '../i18n/index.js';
 import { DURATION } from '../config/animation-constants.js';
 import { formatAmount } from '../services/monetization.service.js';
+import { isPaywallOn } from '../services/paywall.service.js';
 import {
   payForSeed,
   seedPaymentFailureMessage,
@@ -388,11 +389,9 @@ async function processContribution(
 // PUBLIC API
 // ============================================================================
 
-/**
- * Open the Ferni Fund modal
- */
+/** Open the Ferni Fund modal: only while the server has a paywall on (services/paywall.service.ts). */
 export async function open(userId: string): Promise<void> {
-  if (isOpen) return;
+  if (isOpen || !isPaywallOn()) return;
 
   currentUserId = userId;
   container = await createModal();

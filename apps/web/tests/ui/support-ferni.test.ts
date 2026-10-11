@@ -105,9 +105,13 @@ function findBillingButton(): HTMLElement | null {
 // ============================================================================
 
 describe('Support Ferni UI', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     document.body.innerHTML = '';
+    // These tests cover the modal itself, which exists only while the server has a paywall on.
+    // Imported here, not at the top: some tests reset modules, and the modal reads this instance.
+    const { recordPaywallFlag } = await import('../../src/services/paywall.service.js');
+    recordPaywallFlag({ paywall: true });
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ url: 'https://stripe.com/checkout' }),

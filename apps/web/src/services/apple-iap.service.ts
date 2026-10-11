@@ -12,6 +12,7 @@
  */
 
 import { apiGet } from '../utils/api.js';
+import { recordPaywallFlag } from './paywall.service.js';
 
 const APPLE_SUBSCRIPTIONS_URL = 'https://apps.apple.com/account/subscriptions';
 
@@ -49,6 +50,7 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
     if (!response.ok || !response.data) {
       return { tier: 'free', status: 'expired', provider: 'none' };
     }
+    recordPaywallFlag(response.data);
 
     return {
       tier: (response.data.tier || 'free') as 'free' | 'friend' | 'partner',
