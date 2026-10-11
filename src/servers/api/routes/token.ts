@@ -438,8 +438,8 @@ export async function handleTokenRoutes(
 
   // Token generation endpoint (authenticated users)
   if (pathname === '/token') {
-    // Rate limit: 20 tokens per minute per IP
-    if (rateLimit(req, res, { maxRequests: 20, windowMs: 60000 })) {
+    // Rate limit: 20 tokens a minute per person (else per IP), not shared with other routes
+    if (rateLimit(req, res, { maxRequests: 20, windowMs: 60000, keyPrefix: 'token' })) {
       return true;
     }
 
