@@ -713,15 +713,9 @@ export interface UserProfile {
 
   /** 🎮 Game history and stats across sessions */
   gameMemory?: GameMemory;
-
   // Conversation history
   conversationSummaries: ConversationSummary[];
-  /**
-   * Days (YYYY-MM-DD, oldest first) with a saved call summary, read from the
-   * summaries subcollection when the profile loads; never stored on the
-   * profile. Unlock streaks count these (memory/storage/conversation-days.ts).
-   */
-  conversationDays?: string[];
+  conversationDays?: string[]; // Days with a saved summary; read on load, never stored (conversation-days.ts)
   lastConversationSummary?: string; // Quick access to most recent
   openQuestions: string[]; // Things they asked that weren't fully addressed
   pendingFollowUps: Array<{ topic: string; targetDate: Date; reason: string }>;

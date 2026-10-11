@@ -16,6 +16,7 @@
  * @module memory/storage/conversation-days
  */
 import type { Firestore } from 'firebase-admin/firestore';
+import { getLogger } from '../../utils/safe-logger.js';
 
 /** Summaries read for streaks: more than a year of daily calls. */
 export const CONVERSATION_DAYS_LIMIT = 400;
@@ -66,4 +67,20 @@ export async function readConversationDays(
     .limit(limit)
     .get();
   return distinctDays(snapshot.docs.map((d) => d.get('timestamp')));
+}
+
+/** The days for getProfile: undefined when switched off or unreadable, so a load never fails on them. */
+export async function conversationDaysFor(
+  db: unknown,
+  usersCollection: string,
+  userId: string
+): Promise<string[] | undefined> {
+  if (!streakFromSummariesEnabled()) return undefined;
+  try {
+    // The client is firebase-admin's; the store's local Firestore interface just doesn't declare select()
+    return await readConversationDays(db as Pick<Firestore, 'collection'>, usersCollection, userId);
+  } catch (error) {
+    getLogger().warn({ userId, error: String(error) }, 'Conversation days unreadable');
+    return undefined;
+  }
 }
