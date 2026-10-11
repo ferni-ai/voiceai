@@ -133,7 +133,7 @@ function generatePersonaCSS(personas) {
   --persona-primary: ${personaColors.primary};
   --persona-secondary: ${personaColors.secondary};
   --persona-text: ${personaColors.textOnLight || personaColors.primary};
-  --persona-on-primary: ${personaColors.text || '#ffffff'};
+  --persona-on-primary: ${personaColors.onPrimary || personaColors.text || '#ffffff'};
   --persona-glow: ${personaColors.glow};
   --persona-tint: ${personaColors.tint};
 }`);

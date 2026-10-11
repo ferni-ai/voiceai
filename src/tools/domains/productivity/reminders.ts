@@ -21,12 +21,36 @@ import {
   type ReminderDeliveryMethod,
 } from '../../../services/scheduling/reminder-scheduler.js';
 import { recordReminderPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
+import { userReach } from '../../../services/outreach/user-reach.js';
+import { isAssistantActionsReal } from '../../../config/assistant-actions-flag.js';
 
 const log = getLogger();
 
 // ============================================================================
 // SET REMINDER TOOL
 // ============================================================================
+
+/** The user asked for a text but there's no verified number to send it to. */
+export const NO_NUMBER_TO_TEXT =
+  "I don't have a verified number for you, so I can't text this one. I can keep it in the app instead. Want that?";
+
+/**
+ * With ASSISTANT_ACTIONS_REAL on, where a reminder for the user is texted: only
+ * the verified number on their account, never one the model passes in. Asking
+ * for a text, or having a phone-first account (the app inbox is somewhere they
+ * never look), is consent for this one text; otherwise texts need the user's
+ * standing opt-in. null = no text, keep the in-app reminder.
+ */
+async function textAddress(userId: string, askedForText: boolean): Promise<string | null> {
+  const phoneFirst = userId.startsWith('phone:');
+  try {
+    const reach = await userReach(userId, 'sms', { standingOptIn: !askedForText && !phoneFirst });
+    return reach.phone ?? null;
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Could not look up where to text the reminder');
+    return null;
+  }
+}
 
 /**
  * Natural language reminder tool
@@ -58,7 +82,7 @@ const setReminderDef: ToolDefinition = {
           .enum(['sms', 'email', 'voice_message'])
           .optional()
           .describe(
-            'How to deliver the reminder. Defaults to voice_message (will remind in next conversation)'
+            'How to deliver the reminder. Use sms only when the user asks to be texted. Defaults to voice_message (the app inbox)'
           ),
         deliveryAddress: z
           .string()
@@ -76,15 +100,26 @@ const setReminderDef: ToolDefinition = {
           return `I couldn't understand "${when}" as a time. Try something like "in 30 minutes", "tomorrow at 2pm", or "next Monday morning".`;
         }
 
+        let method: ReminderDeliveryMethod = deliveryMethod;
+        let address = deliveryAddress || '';
+        if (isAssistantActionsReal() && deliveryMethod !== 'email') {
+          const phone = await textAddress(ctx.userId, deliveryMethod === 'sms');
+          if (phone) {
+            method = 'sms';
+            address = phone;
+          } else if (deliveryMethod === 'sms') {
+            return NO_NUMBER_TO_TEXT;
+          }
+        }
+
         // For SMS/email, we need a delivery address
         // For voice_message, we'll use the user's session to deliver it
-        let address = deliveryAddress || '';
-        if ((deliveryMethod === 'sms' || deliveryMethod === 'email') && !address) {
-          return `I need a ${deliveryMethod === 'sms' ? 'phone number' : 'email address'} to send the reminder. What should I use?`;
+        if ((method === 'sms' || method === 'email') && !address) {
+          return `I need a ${method === 'sms' ? 'phone number' : 'email address'} to send the reminder. What should I use?`;
         }
 
         // For voice_message, store a marker that gets checked on session start
-        if (deliveryMethod === 'voice_message') {
+        if (method === 'voice_message') {
           address = `voice:${ctx.userId}`;
         }
 
@@ -93,7 +128,7 @@ const setReminderDef: ToolDefinition = {
             userId: ctx.userId,
             message,
             scheduledFor,
-            deliveryMethod: deliveryMethod as ReminderDeliveryMethod,
+            deliveryMethod: method,
             deliveryAddress: address,
             createdBy: ctx.agentId || 'ferni',
             personaId: ctx.agentId,
@@ -104,18 +139,20 @@ const setReminderDef: ToolDefinition = {
           // Format a human-friendly confirmation
           const timeStr = formatReminderTime(scheduledFor);
           const methodStr =
-            deliveryMethod === 'voice_message'
+            method === 'voice_message'
               ? "I'll remind you"
-              : deliveryMethod === 'sms'
+              : method === 'sms'
                 ? "I'll text you"
                 : "I'll email you";
+          // It lands in the app inbox, so say so rather than imply a ping.
+          const where = method === 'voice_message' && isAssistantActionsReal() ? ' in the app' : '';
 
           log.info(
             { reminderId: reminder.id, scheduledFor: scheduledFor.toISOString() },
             'Reminder created'
           );
 
-          return `Got it! ${methodStr} ${timeStr} to "${message}".`;
+          return `Got it! ${methodStr}${where} ${timeStr} to "${message}".`;
         } catch (error) {
           log.error({ error: String(error), userId: ctx.userId }, 'Failed to create reminder');
           return "I couldn't set that reminder. Let me try again in a moment.";

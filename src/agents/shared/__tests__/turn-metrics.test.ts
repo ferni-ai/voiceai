@@ -6,7 +6,7 @@
  */
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { TurnMetricsAggregator, attachTurnMetrics } from '../turn-metrics.js';
+import { TurnMetricsAggregator, attachTurnMetrics, measureLoopLag } from '../turn-metrics.js';
 
 const eou = (speechId: string, endOfUtteranceDelayMs = 400, transcriptionDelayMs = 120) =>
   ({
@@ -182,5 +182,59 @@ describe('attachTurnMetrics', () => {
     for (const m of [eou('t2'), llmM('t2'), ttsM('t2')])
       session.emit('metrics_collected', { type: 'metrics_collected', metrics: m, createdAt: 0 });
     expect(records).toHaveLength(1);
+  });
+});
+
+describe('event-loop lag per turn', () => {
+  it('measures from the commit to the LLM metric and reports it with the turn', () => {
+    const windows: string[] = [];
+    let n = 0;
+    const agg = new TurnMetricsAggregator(() => {
+      const id = ++n;
+      windows.push(`start ${id}`);
+      return () => {
+        windows.push(`stop ${id}`);
+        return { p99Ms: id * 100, maxMs: id * 150 };
+      };
+    });
+    agg.add(eou('a'));
+    agg.add(llmM('a'));
+    agg.add(llmM('a')); // a tool call's second request is not a new window
+    expect(agg.add(ttsM('a'))).toMatchObject({ loopLagP99Ms: 100, loopLagMaxMs: 150 });
+    agg.add(eou('b')); // no LLM metric for b: its window is closed by the next turn
+    agg.add(eou('c'));
+    agg.add(llmM('c'));
+    expect(agg.add(ttsM('c'))).toMatchObject({ loopLagP99Ms: 300, loopLagMaxMs: 450 });
+    expect(windows).toEqual(['start 1', 'stop 1', 'start 2', 'stop 2', 'start 3', 'stop 3']);
+  });
+
+  it('is null when nothing was measured', () => {
+    const agg = new TurnMetricsAggregator(() => () => null);
+    agg.add(eou('a'));
+    agg.add(llmM('a'));
+    expect(agg.add(ttsM('a'))).toMatchObject({ loopLagP99Ms: null, loopLagMaxMs: null });
+  });
+
+  it('sees a blocked event loop', async () => {
+    const wait = (ms: number): Promise<void> =>
+      new Promise((r) => {
+        setTimeout(r, ms);
+      });
+    const block = (ms: number): void => {
+      const until = Date.now() + ms;
+      while (Date.now() < until) {
+        // busy, like CPU-heavy turn work on the same thread
+      }
+    };
+    const idle = measureLoopLag();
+    await wait(100);
+    const idleLag = idle();
+    const busy = measureLoopLag();
+    await wait(30);
+    block(400);
+    await wait(30);
+    const busyLag = busy();
+    expect(idleLag?.maxMs ?? 0).toBeLessThan(150); // loose: CI machines are busy
+    expect(busyLag?.maxMs ?? 0).toBeGreaterThanOrEqual(300);
   });
 });
