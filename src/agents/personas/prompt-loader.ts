@@ -23,6 +23,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { SELF_VOICED_NOTE, SPARSE_MARKUP_NOTE, adaptSpeechMarkup } from './speech-markup-notes.js';
 import { getModelProvider } from '../model-provider/index.js';
+import { withOwnLife } from '../../personas/persona-slip-guard.js';
 // Use centralized FTIS mode check - single source of truth
 import { isFTISEnabled } from '../processors/tool-routing-integration.js';
 
@@ -515,10 +516,10 @@ export async function loadSystemPrompt(
   return adaptSpeechMarkup(await loadSystemPromptForTTS(personaId, mode));
 }
 
-/** identity/character.md plus the persona's tool-usage guidance, or null if it has none. */
+/** identity/character.md (+ own life, persona-slip-guard.ts) and tool-usage guidance, or null. */
 async function loadCharacterPrompt(personaId: string): Promise<string | null> {
   const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
-  const character = await loadFile(bundleDir, 'identity/character.md');
+  const character = await withOwnLife(await loadFile(bundleDir, 'identity/character.md'), bundleDir);
   if (!character) return null;
   const tools = await loadToolUsageGuidance(bundleDir);
   const prompt = tools ? `${character}\n\n---\n\n${tools}` : character;
@@ -907,4 +908,3 @@ export function getModelBaseInstructionsCached(): string | null {
 // ============================================================================
 
 export { FALLBACK_PROMPTS, PERSONA_BUNDLES };
-
