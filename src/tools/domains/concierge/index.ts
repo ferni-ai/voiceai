@@ -1,8 +1,9 @@
 /**
  * Concierge Domain Tools - Business & Vendor Outreach
  *
- * AI-powered outreach to BUSINESSES on behalf of users - calling hotels,
- * restaurants, service providers to get quotes, make reservations, and schedule appointments.
+ * Outreach to BUSINESSES on behalf of users (hotels, restaurants, service
+ * providers). Nothing can call them yet, so the action tools say so honestly
+ * (see CONCIERGE_CANT_CALL) rather than reporting made-up results.
  *
  * DOMAIN: concierge
  * TOOLS:
@@ -32,19 +33,25 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition, Tool } from '../../registry/types.js';
 
-// Import concierge service functions
-import {
-  createConciergeRouter,
-  getTaskTracker,
-  PhoneCaller,
-  registerNotifier,
-  type ConciergeRequirements,
-} from '../../../services/concierge/index.js';
+import { registerNotifier } from '../../../services/concierge/index.js';
 
 // Superhuman calendar prep service
 import { buildCalendarPrepContext } from '../../../services/superhuman/calendar-prep-coaching.js';
 
 const log = getLogger();
+
+/**
+ * Nothing can call, text or email a business yet: the phone caller only ever
+ * pretended to place calls and invented prices, bookings and reference
+ * numbers, which these tools then reported as real. Until outreach can really
+ * happen, every concierge action says so and offers what does work.
+ */
+export const CONCIERGE_CANT_CALL =
+  "I can't call businesses for you yet, so I haven't contacted anyone and nothing is booked. I can help you work out what to ask and who to try, so you can make the call. Want to do that?";
+
+/** What checkConciergeStatus says, since no request can be in progress. */
+export const CONCIERGE_NOTHING_IN_PROGRESS =
+  "I can't call businesses for you yet, so there aren't any quotes, reservations or appointments in progress.";
 
 // Register the concierge notification system when this module loads
 // This ensures users get email/push notifications when concierge requests complete
@@ -66,7 +73,7 @@ const requestHotelQuotesDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Request hotel rate quotes by calling multiple hotels. Use when the user wants to find hotel prices or book accommodations.',
+        "Use when the user asks you to call hotels for rates or to book a room. Calling businesses isn't available yet: relay the result exactly and offer the alternative it gives.",
       parameters: z.object({
         destination: z.string().describe('City or area for the hotel'),
         checkIn: z.string().describe('Check-in date (YYYY-MM-DD format)'),
@@ -76,50 +83,12 @@ const requestHotelQuotesDef: ToolDefinition = {
         roomType: z.string().optional().describe('Preferred room type'),
         maxBudget: z.number().optional().describe('Maximum budget per night'),
       }),
-      execute: async (params) => {
-        try {
-          log.info(
-            { destination: params.destination, userId: ctx.userId },
-            'Requesting hotel quotes'
-          );
-
-          const router = createConciergeRouter({
-            userId: ctx.userId,
-            sessionId: undefined,
-          });
-
-          const requirements: ConciergeRequirements = {
-            location: params.destination,
-            dateRange: {
-              start: new Date(params.checkIn),
-              end: new Date(params.checkOut),
-            },
-            guests: params.guests,
-            rooms: params.rooms,
-            roomType: params.roomType,
-            budget: params.maxBudget ? { max: params.maxBudget } : undefined,
-          };
-
-          const result = await router.routeRequest(
-            `Find hotel rates in ${params.destination}`,
-            requirements,
-            { maxTargets: 5, preferredChannel: 'phone' }
-          );
-
-          if (!result.success) {
-            return `I couldn't start the hotel search: ${result.error}`;
-          }
-
-          // Start outreach in background
-          startConciergeOutreach(result.requestId!, ctx.userId).catch((e) =>
-            log.error({ error: String(e) }, 'Outreach failed')
-          );
-
-          return `I'm now calling ${result.estimatedTargets} hotels in ${params.destination} to get you the best rates for ${params.checkIn} to ${params.checkOut}. I'll compare prices and let you know what I find!`;
-        } catch (error) {
-          log.error({ error: String(error) }, 'Failed to request hotel quotes');
-          return 'I ran into an issue starting the hotel search. Would you like me to try again?';
-        }
+      execute: async () => {
+        log.info(
+          { userId: ctx.userId },
+          'requestHotelQuotes: no way to call businesses, told the user'
+        );
+        return CONCIERGE_CANT_CALL;
       },
     });
   },
@@ -139,7 +108,7 @@ const makeRestaurantReservationDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Make a restaurant reservation by calling restaurants. Use when the user wants to book a table.',
+        "Use when the user asks you to book a restaurant table. Calling businesses isn't available yet: relay the result exactly and offer the alternative it gives.",
       parameters: z.object({
         restaurantName: z.string().optional().describe('Specific restaurant name, if known'),
         cuisine: z.string().optional().describe('Type of cuisine if searching'),
@@ -150,50 +119,12 @@ const makeRestaurantReservationDef: ToolDefinition = {
         dietaryRestrictions: z.array(z.string()).optional().describe('Any dietary needs'),
         occasion: z.string().optional().describe('Special occasion if any'),
       }),
-      execute: async (params) => {
-        try {
-          log.info(
-            { location: params.location, partySize: params.partySize },
-            'Making restaurant reservation'
-          );
-
-          const router = createConciergeRouter({
-            userId: ctx.userId,
-            sessionId: undefined,
-          });
-
-          const requirements: ConciergeRequirements = {
-            location: params.location,
-            date: new Date(params.date),
-            timePreference: parseTimePreference(params.time),
-            partySize: params.partySize,
-            dietaryRestrictions: params.dietaryRestrictions,
-            occasion: params.occasion,
-          };
-
-          const description = params.restaurantName
-            ? `Make a reservation at ${params.restaurantName}`
-            : `Find a ${params.cuisine || 'great'} restaurant in ${params.location}`;
-
-          const result = await router.routeRequest(description, requirements, {
-            maxTargets: params.restaurantName ? 1 : 3,
-            preferredChannel: 'phone',
-          });
-
-          if (!result.success) {
-            return `I couldn't start the reservation process: ${result.error}`;
-          }
-
-          startConciergeOutreach(result.requestId!, ctx.userId).catch((e) =>
-            log.error({ error: String(e) }, 'Outreach failed')
-          );
-
-          const restaurantDesc = params.restaurantName || `${params.cuisine || ''} restaurants`;
-          return `I'm calling ${restaurantDesc} now to book a table for ${params.partySize} on ${new Date(params.date).toLocaleDateString()}. I'll handle any special requests and get back to you with the confirmation!`;
-        } catch (error) {
-          log.error({ error: String(error) }, 'Failed to make restaurant reservation');
-          return 'I had trouble starting the reservation. Would you like me to try again?';
-        }
+      execute: async () => {
+        log.info(
+          { userId: ctx.userId },
+          'makeRestaurantReservation: no way to call businesses, told the user'
+        );
+        return CONCIERGE_CANT_CALL;
       },
     });
   },
@@ -213,7 +144,7 @@ const scheduleAppointmentDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Schedule a healthcare appointment by calling medical offices. Use when the user needs to see a doctor, dentist, or specialist.',
+        "Use when the user asks you to book a doctor, dentist or specialist appointment. Calling businesses isn't available yet: relay the result exactly and offer the alternative it gives.",
       parameters: z.object({
         providerType: z
           .string()
@@ -230,51 +161,12 @@ const scheduleAppointmentDef: ToolDefinition = {
           .optional()
           .describe('Preferred time of day'),
       }),
-      execute: async (params) => {
-        try {
-          log.info(
-            { providerType: params.providerType, location: params.location },
-            'Scheduling appointment'
-          );
-
-          const router = createConciergeRouter({
-            userId: ctx.userId,
-            sessionId: undefined,
-          });
-
-          const requirements: ConciergeRequirements = {
-            location: params.location,
-            providerType: params.providerType,
-            urgency: params.urgency || 'routine',
-            reason: params.reason,
-            insuranceProvider: params.insuranceProvider,
-            timePreference: params.preferredTime,
-          };
-
-          const result = await router.routeRequest(
-            `Schedule a ${params.providerType} appointment`,
-            requirements,
-            { maxTargets: 3, preferredChannel: 'phone' }
-          );
-
-          if (!result.success) {
-            return `I couldn't start the appointment search: ${result.error}`;
-          }
-
-          startConciergeOutreach(result.requestId!, ctx.userId).catch((e) =>
-            log.error({ error: String(e) }, 'Outreach failed')
-          );
-
-          const urgencyText =
-            params.urgency === 'urgent'
-              ? "I'm prioritizing finding the soonest availability"
-              : "I'll find a convenient time";
-
-          return `I'm calling ${params.providerType} offices in ${params.location} to schedule an appointment. ${urgencyText}. ${params.insuranceProvider ? `I'll confirm they accept ${params.insuranceProvider}.` : ''}`;
-        } catch (error) {
-          log.error({ error: String(error) }, 'Failed to schedule appointment');
-          return 'I had trouble starting the appointment search. Want me to try again?';
-        }
+      execute: async () => {
+        log.info(
+          { userId: ctx.userId },
+          'scheduleHealthcareAppointment: no way to call businesses, told the user'
+        );
+        return CONCIERGE_CANT_CALL;
       },
     });
   },
@@ -294,7 +186,7 @@ const getServiceQuotesDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Get quotes from local service providers. Use when the user needs a plumber, electrician, cleaner, or other home service.',
+        "Use when the user asks you to get quotes from a plumber, electrician, cleaner or other home service. Calling businesses isn't available yet: relay the result exactly and offer the alternative it gives.",
       parameters: z.object({
         serviceType: z
           .string()
@@ -304,45 +196,12 @@ const getServiceQuotesDef: ToolDefinition = {
         preferredDate: z.string().optional().describe('Preferred date for service'),
         maxBudget: z.number().optional().describe('Maximum budget'),
       }),
-      execute: async (params) => {
-        try {
-          log.info(
-            { serviceType: params.serviceType, location: params.location },
-            'Getting service quotes'
-          );
-
-          const router = createConciergeRouter({
-            userId: ctx.userId,
-            sessionId: undefined,
-          });
-
-          const requirements: ConciergeRequirements = {
-            location: params.location,
-            serviceType: params.serviceType,
-            serviceDescription: params.description,
-            date: params.preferredDate ? new Date(params.preferredDate) : undefined,
-            budget: params.maxBudget ? { max: params.maxBudget } : undefined,
-          };
-
-          const result = await router.routeRequest(
-            `Get quotes for ${params.serviceType}`,
-            requirements,
-            { maxTargets: 5, preferredChannel: 'phone' }
-          );
-
-          if (!result.success) {
-            return `I couldn't start the quote search: ${result.error}`;
-          }
-
-          startConciergeOutreach(result.requestId!, ctx.userId).catch((e) =>
-            log.error({ error: String(e) }, 'Outreach failed')
-          );
-
-          return `I'm reaching out to ${result.estimatedTargets} ${params.serviceType}s in ${params.location} to get you quotes. I'll compare pricing and availability, then give you my recommendation!`;
-        } catch (error) {
-          log.error({ error: String(error) }, 'Failed to get service quotes');
-          return 'I ran into an issue getting quotes. Should I try again?';
-        }
+      execute: async () => {
+        log.info(
+          { userId: ctx.userId },
+          'getServiceQuotes: no way to call businesses, told the user'
+        );
+        return CONCIERGE_CANT_CALL;
       },
     });
   },
@@ -362,146 +221,17 @@ const checkConciergeStatusDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
       description:
-        'Check the status of outreach requests. Use when the user asks about pending hotel quotes, reservations, or appointments.',
+        'Use when the user asks about hotel quotes, reservations or appointments you were getting for them. Relay the result exactly.',
       parameters: z.object({
         requestId: z.string().optional().describe('Specific request ID to check'),
       }),
-      execute: async (params) => {
-        try {
-          const tracker = getTaskTracker();
-
-          if (params.requestId) {
-            const request = await tracker.getRequest(params.requestId);
-            if (!request) {
-              return "I couldn't find that request. It may have been completed or expired.";
-            }
-            return formatStatusUpdate(request);
-          }
-
-          // Get all active requests
-          const requests = await tracker.getUserRequests(ctx.userId);
-          if (requests.length === 0) {
-            return "You don't have any active concierge requests right now.";
-          }
-
-          const summaries = requests.map((r) => {
-            const emoji = getStatusEmoji(r.status);
-            return `${emoji} ${r.description} (${r.status})`;
-          });
-
-          return `Here are your active requests:\n\n${summaries.join('\n')}`;
-        } catch (error) {
-          log.error({ error: String(error) }, 'Failed to check status');
-          return 'I had trouble checking the status. Let me try again.';
-        }
+      execute: async () => {
+        log.info({ userId: ctx.userId }, 'checkConciergeStatus: nothing can be in progress');
+        return CONCIERGE_NOTHING_IN_PROGRESS;
       },
     });
   },
 };
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Start the outreach process in the background
- */
-async function startConciergeOutreach(requestId: string, userId: string): Promise<void> {
-  const tracker = getTaskTracker();
-  const request = await tracker.getRequest(requestId);
-  if (!request) return;
-
-  await tracker.updateStatus(requestId, 'in_progress', 'Starting outreach');
-
-  const caller = new PhoneCaller({
-    userId,
-    userName: undefined,
-    callbackNumber: undefined,
-  });
-
-  // Process targets
-  for (const target of request.targets.slice(0, request.maxTargets)) {
-    if (!target.phone) continue;
-
-    await tracker.updateTargetStatus(requestId, target.id, 'calling');
-
-    const result = await caller.call({
-      target,
-      domain: request.domain,
-      requirements: request.requirements,
-    });
-
-    if (result.success && result.result) {
-      await tracker.addResult(requestId, result.result);
-    } else {
-      await tracker.updateTargetStatus(requestId, target.id, 'failed');
-    }
-
-    const updatedRequest = await tracker.getRequest(requestId);
-    if (updatedRequest && tracker.isRequestComplete(updatedRequest)) {
-      break;
-    }
-  }
-
-  await tracker.updateStatus(requestId, 'completed');
-}
-
-/**
- * Parse time preference from natural language
- */
-function parseTimePreference(time?: string): 'morning' | 'afternoon' | 'evening' | 'any' {
-  if (!time) return 'any';
-  const lower = time.toLowerCase();
-  if (lower.includes('morning') || lower.includes('breakfast')) return 'morning';
-  if (lower.includes('afternoon') || lower.includes('lunch')) return 'afternoon';
-  if (lower.includes('evening') || lower.includes('dinner') || lower.includes('night'))
-    return 'evening';
-  return 'any';
-}
-
-/**
- * Format status update for speech
- */
-function formatStatusUpdate(request: any): string {
-  const emoji = getStatusEmoji(request.status);
-  let message = `${emoji} ${request.description}\n\n`;
-
-  switch (request.status) {
-    case 'pending':
-      message += 'Queued and ready to start.';
-      break;
-    case 'in_progress':
-      message += `Calling businesses... ${request.results.length} responses so far.`;
-      break;
-    case 'awaiting_user':
-      if (request.recommendation) {
-        message += `I recommend ${request.recommendation.targetName}: ${request.recommendation.reason}`;
-      }
-      break;
-    case 'completed':
-      message += `All done! Got ${request.results.filter((r: any) => r.success).length} successful responses.`;
-      break;
-    case 'failed':
-      message += `Unfortunately, I couldn't complete this request.`;
-      break;
-  }
-
-  return message;
-}
-
-/**
- * Get status emoji
- */
-function getStatusEmoji(status: string): string {
-  const emojis: Record<string, string> = {
-    pending: '⏳',
-    in_progress: '📞',
-    awaiting_user: '✋',
-    completed: '✅',
-    failed: '❌',
-  };
-  return emojis[status] || '❓';
-}
 
 // ============================================================================
 // CALENDAR PREP CONCIERGE - "Better Than Human"
@@ -595,19 +325,14 @@ const proactiveConciergeCheckInDef: ToolDefinition = {
           let response = `**Proactive Concierge Check-In**\n\n`;
 
           if (!prepContext || prepContext === '') {
-            response += `I don't have calendar access yet, but here's how I can help:\n\n`;
-            response += `- **Reservations:** I can call restaurants to book tables\n`;
-            response += `- **Appointments:** I can schedule healthcare visits\n`;
-            response += `- **Travel:** I can get hotel quotes and compare rates\n`;
-            response += `- **Services:** I can get quotes from plumbers, cleaners, etc.\n\n`;
+            response += `I don't have calendar access yet. I can't call businesses for you yet either, `;
+            response += `but I can help you plan what's coming up and what to ask when you call.\n\n`;
             response += `What's coming up that I can help with?`;
           } else {
             response += prepContext;
             response += `\n\n---\n\n`;
-            response += `Based on what's coming up, would you like me to:\n`;
-            response += `- Make any reservations?\n`;
-            response += `- Schedule related appointments?\n`;
-            response += `- Get quotes for anything?\n`;
+            response += `I can't call businesses for you yet, but I can help you plan any reservations, `;
+            response += `appointments or quotes these need, so you know who to call and what to ask.\n`;
           }
 
           log.info({ userId: ctx.userId }, 'Proactive concierge check-in');

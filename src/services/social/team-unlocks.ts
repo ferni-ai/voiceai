@@ -38,6 +38,8 @@ const log = createLogger({ module: 'TeamUnlocks' });
  * - "1", "2", "3", etc. → Unlock first N team members (after Ferni)
  * - "maya"              → Unlock specific member by first name
  * - "maya,peter,alex"   → Comma-separated list of members
+ * - "off", "false", "0", "none" or empty → no bypass (dev had "off", which was
+ *   read as a member name and logged "Unknown team member" on every parse)
  *
  * @returns Set of member IDs to bypass, or null if no bypass
  */
@@ -48,13 +50,16 @@ let cachedBypassConfig: { value: Set<TeamMemberId> | 'all' | null; parsed: boole
   parsed: false,
 };
 
+const BYPASS_OFF = new Set(['off', 'false', '0', 'none']);
+
 export function parseBypassConfig(): Set<TeamMemberId> | 'all' | null {
   // Return cached value if already parsed
   if (cachedBypassConfig.parsed) {
     return cachedBypassConfig.value;
   }
 
-  const bypassValue = process.env['BYPASS_TEAM_UNLOCKS'];
+  const raw = process.env['BYPASS_TEAM_UNLOCKS'];
+  const bypassValue = raw && !BYPASS_OFF.has(raw.trim().toLowerCase()) ? raw : undefined;
 
   // Log ONCE during parsing (cached result prevents duplicate logs)
   if (bypassValue) {

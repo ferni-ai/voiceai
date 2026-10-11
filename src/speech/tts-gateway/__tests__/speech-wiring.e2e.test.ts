@@ -22,7 +22,7 @@
 import { createRequire } from 'node:module';
 import { ReadableStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 import type { AudioFrame } from '@livekit/rtc-node';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LESTER_PRO_V3_VOICE_ID } from '../../../config/voice-ids.js';
 import {
@@ -235,11 +235,6 @@ afterEach(() => {
 describe.skipIf(!hasNative())(
   'speech wiring end to end (real gateway, Cartesia provider, Rust)',
   () => {
-    beforeAll(() => {
-      // tts-wrapper always enhances; keep the env default (on).
-      delete process.env.POST_TTS_ENHANCEMENT_ENABLED;
-    });
-
     it('all levers live on Ferni’s PVC: clean text, one plan for this reply, sigh then stretched speech', async () => {
       Object.assign(process.env, ALL_LIVE);
       const sid = `e2e-live-${++session}`;
@@ -311,29 +306,24 @@ describe.skipIf(!hasNative())(
 );
 
 describe('every gate off: Stage 2 is not even in the chain', () => {
-  it('returns the gateway stream itself when post-TTS DSP is off', async () => {
-    process.env.POST_TTS_ENHANCEMENT_ENABLED = 'false';
-    try {
-      const sid = `e2e-identity-${++session}`;
-      const { frames, gatewaySameAsOutput } = await speak(sid, 2);
-      expect(gatewaySameAsOutput).toBe(true);
-      // Byte for byte the tone Cartesia sent, in 20 ms frames.
-      const got = new Int16Array(samplesOf(frames));
-      let off = 0;
-      for (const f of frames) {
-        got.set(new Int16Array(f.data.buffer, f.data.byteOffset, f.samplesPerChannel), off);
-        off += f.samplesPerChannel;
-      }
-      const sentPcm = new Int16Array(got.length);
-      let o = 0;
-      for (const p of net.pcm) {
-        sentPcm.set(p, o);
-        o += p.length;
-      }
-      expect(Array.from(got)).toEqual(Array.from(sentPcm));
-      expect(frames.every((f) => f.samplesPerChannel === FRAME)).toBe(true);
-    } finally {
-      delete process.env.POST_TTS_ENHANCEMENT_ENABLED;
+  it('returns the gateway stream itself', async () => {
+    const sid = `e2e-identity-${++session}`;
+    const { frames, gatewaySameAsOutput } = await speak(sid, 2);
+    expect(gatewaySameAsOutput).toBe(true);
+    // Byte for byte the tone Cartesia sent, in 20 ms frames.
+    const got = new Int16Array(samplesOf(frames));
+    let off = 0;
+    for (const f of frames) {
+      got.set(new Int16Array(f.data.buffer, f.data.byteOffset, f.samplesPerChannel), off);
+      off += f.samplesPerChannel;
     }
+    const sentPcm = new Int16Array(got.length);
+    let o = 0;
+    for (const p of net.pcm) {
+      sentPcm.set(p, o);
+      o += p.length;
+    }
+    expect(Array.from(got)).toEqual(Array.from(sentPcm));
+    expect(frames.every((f) => f.samplesPerChannel === FRAME)).toBe(true);
   });
 });

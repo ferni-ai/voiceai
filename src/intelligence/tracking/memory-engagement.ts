@@ -12,6 +12,7 @@
  *   - "I've been thinking about you" moments
  */
 
+import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserProfile, KeyMoment, RelationshipStage } from '../../types/user-profile.js';
 
@@ -580,10 +581,9 @@ export class MemoryEngagementEngine {
     return templates[Math.floor(Math.random() * templates.length)].replace('{topic}', topic);
   }
 
-  /**
-   * Generate streak-at-risk alert
-   */
+  /** Streak-at-risk alert; '' under TEAM_BY_NEED (no "don't break your streak" nudges) */
   generateStreakAlert(streakType: string, days: number): string {
+    if (isTeamByNeedEnabled()) return '';
     const templates = PROACTIVE_TRIGGERS.streak_at_risk;
     return templates[Math.floor(Math.random() * templates.length)]
       .replace('{streak_type}', streakType)

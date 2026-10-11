@@ -27,6 +27,7 @@
  */
 
 import { gsap } from '../utils/gsap-setup.js';
+import { prefersReducedMotion } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -140,7 +141,7 @@ export function disposeAvatarLamp(): void {
  * Subtle scale oscillation that makes the avatar feel alive.
  */
 export function startBreathing(): void {
-  if (state.breathingActive || !coachAvatar) return;
+  if (state.breathingActive || !coachAvatar || prefersReducedMotion()) return;
 
   state.breathingActive = true;
 
@@ -148,8 +149,7 @@ export function startBreathing(): void {
   const tl = gsap.timeline({ repeat: -1, yoyo: true });
   state.breathingTimeline = tl;
 
-  // Inhale - noticeable but gentle expansion
-  // Increased from 1.5-2% to 2.5-3.5% for better visibility
+  // Inhale - noticeable but gentle expansion (2.5-3.5%)
   tl.to(coachAvatar, {
     scaleX: 1.025,
     scaleY: 1.035,

@@ -76,7 +76,7 @@ async function getPersonaBuilder(personaId: string): Promise<PersonaContextBuild
       case 'joel-dickson': {
         const mod =
           await import('../../../intelligence/context-builders/personas/joel-dickson-insights/index.js');
-        builder = mod.buildJoelDicksonInsightsContext;
+        builder = mod.buildLifeMentorInsightsContext;
         break;
       }
       default:

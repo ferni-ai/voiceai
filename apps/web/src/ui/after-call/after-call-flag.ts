@@ -1,9 +1,10 @@
 /**
  * After-call card flag.
  *
- * Off by default. Turn it on for a build with VITE_AFTER_CALL_CARD=true, or
- * for one browser with localStorage `ferni:flag:after-call-card` = 'true'
- * (set it to 'false' to force it off on a build that has it on).
+ * On by default: the recap is the post-call moment. Turn it off for a build
+ * with VITE_AFTER_CALL_CARD=false (the cost card comes back), or for one
+ * browser with localStorage `ferni:flag:after-call-card` = 'false'
+ * ('true' forces it on for a build that has it off).
  *
  * @module ui/after-call/after-call-flag
  */
@@ -22,5 +23,5 @@ export function isAfterCallCardEnabled(): boolean {
   } catch (error) {
     log.debug('localStorage unavailable for after-call flag', { error: String(error) });
   }
-  return import.meta.env.VITE_AFTER_CALL_CARD === 'true';
+  return import.meta.env.VITE_AFTER_CALL_CARD !== 'false';
 }
