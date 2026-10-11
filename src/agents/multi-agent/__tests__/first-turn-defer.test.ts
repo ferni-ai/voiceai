@@ -166,6 +166,20 @@ describe('turn 1 background work with FIRST_TURN_DEFER_BACKGROUND', () => {
     expect(hook).toHaveBeenCalledTimes(1);
   });
 
+  it('runs a held turn 1 when the session ends before Ferni speaks', async () => {
+    const session = new EventEmitter();
+    const hook = blockingHook(0);
+    const detach = attachTurnContextPusher(hook, makeAgent(), session, { env: ON });
+
+    finalTranscript(session, 'im parked on the bridge, just sitting here');
+    await pause(20);
+    expect(hook).not.toHaveBeenCalled();
+
+    detach(); // caller hung up: no 'speaking', no gate verdict, well inside the 6 s bound
+    await vi.waitFor(() => expect(hook).toHaveBeenCalledTimes(1), { timeout: 500 });
+    expect(hook.mock.calls[0][1].textContent).toBe('im parked on the bridge, just sitting here');
+  });
+
   it('builds turn 1 at once when off (the default)', async () => {
     const session = new EventEmitter();
     const hook = blockingHook(0);

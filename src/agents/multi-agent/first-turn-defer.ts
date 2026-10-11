@@ -73,7 +73,7 @@ export interface FirstTurnDeferral {
   onAgentState: (newState: string | undefined) => void;
   /** Feed CrisisGate's decisions; anything but 'pass' releases turn 1 at once. */
   onCrisisDecision: (action: string | undefined) => void;
-  /** Clears the timer when the session ends. */
+  /** At session end: releases anything still held, so turn 1 is delayed, never dropped. */
   dispose: () => void;
 }
 
@@ -122,8 +122,7 @@ export function deferFirstTurn(
     onCrisisDecision(action) {
       if (action && action !== 'pass') open('crisis_gate');
     },
-    dispose() {
-      if (timer) clearTimeout(timer);
-    },
+    // Held work still runs when the session ends, as it would without the flag.
+    dispose: () => open('session_end'),
   };
 }
