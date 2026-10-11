@@ -572,7 +572,7 @@ function createWelcomeSparkles(element: HTMLElement): void {
       top: ${centerY}px;
       transform: translate(-50%, -50%);
       pointer-events: none;
-      z-index: var(--z-dropdown, 1000);
+      z-index: var(--z-dropdown);
       box-shadow: 0 0 6px var(--color-sparkle, white), 0 0 12px var(--color-glow-white, rgba(255, 255, 255, 0.6));
     `;
 
@@ -612,7 +612,7 @@ function injectCameoRosterStyles(): void {
     /* Cameo team member in roster - OVERRIDE entrance animation opacity */
     .team-member--cameo {
       position: relative;
-      z-index: var(--z-docked, 10);
+      z-index: var(--z-docked);
       /* Override entrance-roster opacity: 0 rule */
       animation: none !important;
     }

@@ -1003,7 +1003,7 @@ function injectStyles(): void {
     .subscription-modal {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 9999);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1519,7 +1519,7 @@ function injectStyles(): void {
       box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
       cursor: pointer;
       transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
-      z-index: var(--z-toast, 1100);
+      z-index: var(--z-toast);
     }
     
     .usage-indicator:hover {

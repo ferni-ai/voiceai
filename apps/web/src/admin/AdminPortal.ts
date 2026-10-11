@@ -660,7 +660,7 @@ function injectAdminPortalStyles(): void {
       font-family: var(--font-body, 'Inter', -apple-system, sans-serif);
       /* Ensure admin portal is on top */
       position: relative;
-      z-index: var(--z-sticky, 100);
+      z-index: var(--z-sticky);
       overflow: hidden; /* Contain all scrolling within children */
     }
 
@@ -888,7 +888,7 @@ function injectAdminPortalStyles(): void {
         left: 0;
         top: 0;
         bottom: 0;
-        z-index: var(--z-modal, 2100);
+        z-index: var(--z-modal);
         transform: translateX(-100%);
         transition: transform var(--duration-slow, ${DURATION.SLOW}ms) var(--ease-standard, ${EASING.STANDARD});
       }
@@ -1079,7 +1079,7 @@ function injectAdminPortalStyles(): void {
     .admin-modal-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal-backdrop, 2000);
+      z-index: var(--z-modal-backdrop);
       display: flex;
       align-items: center;
       justify-content: center;

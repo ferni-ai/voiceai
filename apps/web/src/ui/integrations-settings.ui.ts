@@ -508,7 +508,7 @@ class IntegrationsSettingsUI {
       .integrations-settings {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 2100);
+        z-index: var(--z-modal);
         pointer-events: none;
         visibility: hidden;
       }

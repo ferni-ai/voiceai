@@ -1486,7 +1486,7 @@ class SettingsMenuUI {
         right: var(--ma-rest, 21px);
         width: 44px;
         height: 44px;
-        z-index: var(--z-fixed, 1200);
+        z-index: var(--z-fixed);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1523,7 +1523,7 @@ class SettingsMenuUI {
       .settings-menu {
         position: fixed;
         inset: 0;
-        z-index: var(--z-panel, 1300);
+        z-index: var(--z-panel);
         pointer-events: none;
         visibility: hidden;
       }

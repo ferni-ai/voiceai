@@ -1236,7 +1236,7 @@ function injectMilestoneStyles(): void {
       bottom: 100px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: var(--z-notification, 9000);
+      z-index: var(--z-notification);
       pointer-events: none;
     }
 

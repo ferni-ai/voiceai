@@ -40,7 +40,7 @@ const STYLES = `
 .sign-in-gate-overlay {
   position: fixed;
   inset: 0;
-  z-index: var(--z-system, 9999);
+  z-index: var(--z-system);
   background: var(--color-bg-primary, #0a0a0f);
   display: flex;
   flex-direction: column;

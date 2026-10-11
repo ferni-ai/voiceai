@@ -509,7 +509,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       opacity: 0;
       transition: opacity ${DURATION.NORMAL}ms ${EASING.EXPO_OUT};
       padding: var(--space-md, 16px);

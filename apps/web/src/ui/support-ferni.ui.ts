@@ -626,7 +626,7 @@ function injectStyles(): void {
     .support-ferni-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 9999);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;

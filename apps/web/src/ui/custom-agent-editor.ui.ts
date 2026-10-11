@@ -875,7 +875,7 @@ function getEditorStyles(): string {
     .agent-editor-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
