@@ -223,7 +223,6 @@ async function captionMoments(): Promise<void> {
     new CustomEvent('ferni:backend-trust-signal', {
       detail: {
         type: 'callback',
-        title: 'Remember when',
         message: 'You started martial arts on Tuesdays',
       },
     })

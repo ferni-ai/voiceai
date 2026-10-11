@@ -284,9 +284,9 @@ class LiveCaptions {
     const place = (ceiling: number | null): CaptionsLayout =>
       captionsLayout(window.innerHeight, controls?.height ? controls.top : null, ceiling, gap);
     // Keep clear of the whole persona header (avatar, name, roster) when that
-    // leaves room for a line; never closer than the avatar itself.
+    // leaves room for a line (and the chip); never closer than the avatar.
     let { bottom, maxHeight } = place(bottomOf('.header'));
-    if (this.fit(maxHeight, false) < 1) {
+    if (this.fit(maxHeight, true) < 1) {
       ({ bottom, maxHeight } = place(bottomOf('.avatar-container')));
     }
     this.root.style.setProperty('--ferni-captions-bottom', `${bottom}px`);

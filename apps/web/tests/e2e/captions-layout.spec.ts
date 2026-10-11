@@ -67,6 +67,10 @@ for (const vp of VIEWPORTS) {
           .filter((l) => l.scrollHeight > l.clientHeight || l.scrollWidth > l.clientWidth)
           .map((l) => l.textContent?.slice(0, 40)),
         overflow: lines.map((l) => getComputedStyle(l).textOverflow),
+        // A chip is one line; two lines read like a toast.
+        multiLineChips: [...document.querySelectorAll<HTMLElement>('.ferni-captions .ferni-moment')]
+          .filter((c) => c.clientHeight >= 2 * parseFloat(getComputedStyle(c).lineHeight))
+          .map((c) => c.textContent),
       };
     });
 
@@ -77,6 +81,7 @@ for (const vp of VIEWPORTS) {
       expect(geometry.captions!.bottom).toBeLessThanOrEqual(geometry.controls.top);
     }
     expect(geometry.clipped).toEqual([]);
+    expect(geometry.multiLineChips).toEqual([]);
     expect(geometry.overflow.every((v) => v !== 'ellipsis')).toBe(true);
     await context.close();
   });

@@ -1,7 +1,7 @@
 /**
  * Moment chips: the things Ferni heard and is holding on to, shown as small
- * chips under the live captions ("Remember when · the martial arts class on
- * Tuesday"). This is the part a person can't do: you see that you were heard.
+ * chips under the live captions, in Ferni's voice and on one line ("I'll
+ * remember: you started martial arts on Tuesdays"). This is the part a person can't do: you see that you were heard.
  *
  * Sources (all window events, all optional; nothing shows if none arrive):
  * - `ferni:backend-trust-signal` callback / growth / small_win. The trust
@@ -17,6 +17,7 @@
  */
 
 import { DURATION } from '../../config/animation-constants.js';
+import { t } from '../../i18n/index.js';
 
 export interface Moment {
   key: string;
@@ -26,8 +27,17 @@ export interface Moment {
 
 const MAX_CHIPS = 1; // one moment at a time: the newest, never a pile
 const CHIP_MS = 9000;
-/** Trust signals worth a chip: memory callbacks, growth, small wins. */
-const TRUST_TYPES = new Set(['callback', 'growth', 'small_win']);
+/** Trust signals worth a chip, labelled in Ferni's voice (i18n keys). */
+const TRUST_LABELS: Record<string, string> = {
+  callback: 'transcript.momentRemember', // "I'll remember:"
+  growth: 'transcript.momentNoticed', // "I noticed:"
+  small_win: 'transcript.momentWin', // "Nice:"
+};
+/** Words a shortened chip should not end on. */
+const DANGLING = /^(a|an|the|and|or|but|on|in|at|to|for|of|with|from|by|my|your|our)$/i;
+/** Sentence starters that read wrong capitalised after a label ("…: you"). */
+const STARTERS =
+  /^(You|Your|Yours|Yourself|You're|You've|You'll|You'd|My|We|We're|Our|The|That|This|It|It's)\b/;
 
 const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
@@ -36,8 +46,9 @@ export function momentFromTrustSignal(detail: unknown): Moment | null {
   const d = (detail ?? {}) as Record<string, unknown>;
   const type = text(d['type']);
   const message = text(d['message']);
-  if (!TRUST_TYPES.has(type) || !message) return null;
-  return { key: `trust:${type}`, label: text(d['title']) || undefined, text: message };
+  const label = TRUST_LABELS[type];
+  if (!label || !message) return null;
+  return { key: `trust:${type}`, label: t(label), text: continueAfterLabel(message) };
 }
 
 /** A chip for in-call feedback ({message, tone, key}) or a generic moment. */
@@ -50,6 +61,11 @@ export function momentFromDetail(detail: unknown, prefix: string): Moment | null
     label: text(d['label']) || undefined,
     text: message,
   };
+}
+
+/** "You started…" → "you started…" so it reads on from the label; names stay. */
+export function continueAfterLabel(message: string): string {
+  return message.replace(STARTERS, (word) => word.toLowerCase());
 }
 
 export function renderChip(moment: Moment): HTMLLIElement {
@@ -69,6 +85,27 @@ export function renderChip(moment: Moment): HTMLLIElement {
   return chip;
 }
 
+/**
+ * Keep a chip to one line (a two-line chip reads like a toast): drop whole
+ * words from the end until it fits, end with "…", and keep the full moment
+ * as the chip's accessible text. Skipped when the row has no width yet.
+ */
+export function fitOneLine(chip: HTMLElement, width: number): void {
+  const body = chip.querySelector<HTMLElement>('.ferni-moment__text');
+  if (!body || width <= 0 || chip.scrollWidth <= width) return;
+  const label = chip.querySelector('.ferni-moment__label')?.textContent;
+  const full = [label, body.textContent].filter(Boolean).join(' ');
+  const words = (body.textContent ?? '').split(' ');
+  while (words.length > 1 && chip.scrollWidth > width) {
+    words.pop();
+    // Never end on a dangling little word ("martial arts on…").
+    while (words.length > 1 && DANGLING.test(words[words.length - 1] ?? '')) words.pop();
+    body.textContent = `${words.join(' ').replace(/[\s,;:.]+$/, '')}…`;
+  }
+  chip.setAttribute('aria-label', full);
+  chip.title = full;
+}
+
 export class MomentChips {
   private timers = new Map<HTMLElement, ReturnType<typeof setTimeout>>();
 
@@ -81,6 +118,7 @@ export class MomentChips {
     for (const old of this.chips()) if (old.dataset.key === moment.key) this.drop(old, true);
     const chip = renderChip(moment);
     this.list.append(chip);
+    fitOneLine(chip, this.list.clientWidth);
     const live = this.chips();
     for (const extra of live.slice(0, Math.max(0, live.length - MAX_CHIPS))) this.drop(extra, true);
     this.timers.set(

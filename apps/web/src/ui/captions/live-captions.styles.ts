@@ -11,6 +11,8 @@ import { DURATION, EASING } from '../../config/animation-constants.js';
 
 const STYLE_ID = 'ferni-captions-styles';
 
+// --leading-* on :root mix unitless numbers with vw inside clamp(), which is
+// invalid, so they compute to the inherited 1.6. Captions set plain ratios.
 const CSS = `
 .ferni-captions {
   position: fixed; left: 50%; bottom: var(--ferni-captions-bottom, var(--space-xl));
@@ -31,7 +33,7 @@ const CSS = `
 .ferni-captions__viewport {
   /* Whole lines: layout() sets how many fit clear of the avatar (max 2). */
   flex: none; max-height: calc(var(--ferni-captions-lines, 2) * 1lh); overflow: hidden;
-  font-family: var(--font-body); font-size: var(--text-xl); line-height: var(--leading-snug);
+  font-family: var(--font-body); font-size: var(--text-xl); line-height: 1.3;
   font-weight: var(--font-weight-medium); color: var(--color-text-primary);
   border-radius: var(--radius-lg); cursor: pointer;
 }
@@ -50,7 +52,7 @@ const CSS = `
   display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-xs);
   margin: 0; padding: 0; list-style: none;
 }
-.ferni-captions__moments:not(:empty) { padding-top: var(--space-sm); }
+.ferni-captions__moments:not(:empty) { padding-top: var(--space-xs); }
 /* Out of flow but still measured, so layout() can bring the chips back. */
 .ferni-captions--moments-aside .ferni-captions__moments { position: absolute; visibility: hidden; }
 .ferni-moment {
@@ -58,8 +60,8 @@ const CSS = `
   padding: var(--space-xs) var(--space-md); border-radius: var(--radius-xl);
   background: var(--color-bg-elevated); box-shadow: var(--shadow-sm);
   border: 1px solid var(--color-border-subtle);
-  font-size: var(--text-sm); line-height: var(--leading-snug); color: var(--color-text-primary);
-  overflow-wrap: anywhere;
+  font-size: var(--text-sm); line-height: 1.25; color: var(--color-text-primary);
+  white-space: nowrap;
   animation: ferni-moment-in ${DURATION.SLOW * 2}ms ${EASING.SPRING} both;
   transition: opacity ${DURATION.SLOW}ms ${EASING.DECELERATE};
 }
