@@ -5,7 +5,7 @@
  * The essential domains include a "handoff" domain built for no one. Spread
  * over the session's handoffs it put back handoffToFerni (Ferni handing off to
  * itself) and every teammate the person hadn't unlocked, and its handoffToPeter
- * (built last for Peter Lynch) replaced the session's Peter John.
+ * (built last for the Financial Legends' Peter) replaced the session's Peter John.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { UserProfile } from '../../../types/user-profile.js';
@@ -87,10 +87,10 @@ describe("the first Ferni agent's handoff tools", () => {
       'handoffToMaya',
       'handoffToNayan',
       'handoffToPeter',
-      'handoffToPeterLynch',
+      'handoffToTom',
     ]);
     expect(description('handoffToPeter')).toMatch(/^Transfer conversation to Peter John, /);
-    expect(description('handoffToPeterLynch')).toMatch(/^Transfer conversation to Peter Lynch, /);
+    expect(description('handoffToTom')).toMatch(/^Transfer conversation to Tom Brannigan, /);
     expect(description('handoffToHenry')).toMatch(/^Transfer conversation to Henry Caldwell, /);
   }, 60_000);
 });
