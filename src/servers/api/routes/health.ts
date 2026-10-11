@@ -23,9 +23,7 @@ const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 const PLAID_ENV = process.env.PLAID_ENV || 'sandbox';
 const PORT = process.env.PORT || 3002;
 
-/**
- * Handle health routes
- */
+/** Handle health routes */
 export async function handleHealthRoutes(
   req: IncomingMessage,
   res: ServerResponse,

@@ -48,8 +48,7 @@ const log = createLogger({ module: 'SyntheticE2E' });
  *
  * To use:
  *   1. Ensure you're authenticated: gcloud auth application-default login
- *   2. Set USE_VERTEX_AI=true in .env
- *   3. Set GOOGLE_CLOUD_PROJECT (and optionally GEMINI_LOCATION, default global) in .env
+ *   2. Set GOOGLE_CLOUD_PROJECT (and optionally GEMINI_LOCATION, default global) in .env
  */
 const USE_VERTEX_AI = useVertexAI();
 const VERTEX_AI_API_KEY = process.env.VERTEX_AI_API_KEY;

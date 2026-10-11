@@ -176,9 +176,7 @@ async function checkCartesia(): Promise<HealthCheckResult> {
   }
 }
 
-/**
- * Gemini AI health check - verify API connectivity
- */
+/** Gemini AI health check - verify API connectivity */
 async function checkGemini(): Promise<HealthCheckResult> {
   const start = Date.now();
 

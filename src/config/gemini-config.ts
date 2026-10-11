@@ -20,7 +20,6 @@ const log = createLogger({ module: 'GeminiConfig' });
 
 /**
  * USE_VERTEX_AI - The ONE flag to control Vertex AI vs Gemini API
- *
  * - true (default): Use Vertex AI (higher quotas, no 429 rate limits)
  * - false: Use Gemini API with API key
  */
