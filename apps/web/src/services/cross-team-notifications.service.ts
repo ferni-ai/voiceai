@@ -15,6 +15,8 @@ import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { apiGet } from '../utils/api.js';
 import { openAuthedWebSocket } from './authed-websocket.service.js';
 import { createLogger } from '../utils/logger.js';
+import type { TeamInsight } from '../types/team-insight.js';
+import { acknowledgeTeamInsight, toCrossTeamInsight, type CrossTeamInsight, type CrossTeamPriority } from './cross-team-insight-mapper.js';
 
 const log = createLogger('CrossTeamNotifications');
 
@@ -22,16 +24,7 @@ const log = createLogger('CrossTeamNotifications');
 // TYPES
 // ============================================================================
 
-export interface CrossTeamInsight {
-  id: string;
-  type: 'celebration' | 'support' | 'coordination' | 'insight' | 'handoff_suggestion';
-  sourcePersona: string;
-  targetPersona: string;
-  message: string;
-  priority: 'high' | 'medium' | 'low';
-  timestamp: Date;
-  acknowledged?: boolean;
-}
+export type { CrossTeamInsight };
 
 interface NotificationThresholds {
   /** Minimum time between notifications (ms) */
@@ -39,7 +32,7 @@ interface NotificationThresholds {
   /** Maximum notifications per session */
   maxPerSession: number;
   /** Priority levels to show */
-  showPriorities: ('high' | 'medium' | 'low')[];
+  showPriorities: CrossTeamPriority[];
 }
 
 // ============================================================================
@@ -207,6 +200,7 @@ export function showCrossTeamNotification(insight: CrossTeamInsight): boolean {
 
   // Show the notification
   showOutreach(outreach);
+  void acknowledgeTeamInsight(insight.id);
   log.info({ type: insight.type, source: insight.sourcePersona }, '🔔 Showed cross-team notification');
 
   return true;
@@ -398,19 +392,11 @@ export async function startInsightsPolling(userId: string): Promise<void> {
 
   const pollForInsights = async () => {
     try {
-      // apiGet handles authentication automatically
-      const response = await apiGet<{ insights?: CrossTeamInsight[] }>(
-        `/api/team-insights?userId=${userId}&limit=5`
-      );
+      // apiGet handles authentication; the server sends TeamInsight, not CrossTeamInsight
+      const response = await apiGet<{ insights?: TeamInsight[] }>(`/api/team-insights?userId=${userId}&limit=5`);
       if (!response.ok || !response.data) return;
-
-      const insights: CrossTeamInsight[] = response.data.insights || [];
-
-      // Show the best unacknowledged insight
-      const unacknowledged = insights.filter(i => !i.acknowledged);
-      if (unacknowledged.length > 0) {
-        showBestInsight(unacknowledged);
-      }
+      // The server only returns insights not yet acknowledged; showing one acknowledges it
+      showBestInsight((response.data.insights ?? []).map(toCrossTeamInsight));
     } catch (err) {
       log.debug('Failed to poll insights:', err);
     }
