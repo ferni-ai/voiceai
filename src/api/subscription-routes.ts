@@ -34,6 +34,7 @@ import {
 } from '../services/subscription-metrics.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { decideActingUser } from './acting-user.js';
+import { isPaywallOn, monetizationOptions, withPaywallState } from '../services/billing/paywall.js';
 
 // Initialize subscription metrics on module load (fire-and-forget)
 // Logger isn't available yet at module level, so we use process.stderr for init errors
@@ -123,7 +124,7 @@ async function getStatus(ctx: RequestContext): Promise<ResponseContext> {
 
   try {
     // Includes billingSource ('stripe' | 'app_store' | 'none'), from the profile's billing records.
-    return json(200, await getSubscriptionInfo(userId));
+    return json(200, withPaywallState(await getSubscriptionInfo(userId)));
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get subscription status');
     return json(500, { error: 'Failed to get subscription status' });
@@ -682,7 +683,8 @@ async function getConfig(ctx: RequestContext): Promise<ResponseContext> {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
     body: {
-      enabled: isConfigured,
+      enabled: isConfigured && isPaywallOn(),
+      paywall: isPaywallOn(),
       model: 'ferni-free-forever', // New monetization model identifier
       locale,
       currency: pricing.friend.currency,
@@ -743,13 +745,7 @@ async function getConfig(ctx: RequestContext): Promise<ResponseContext> {
         },
       ],
       // Additional monetization options
-      monetization: {
-        tipJar: true,
-        valueCapture: true,
-        ferniFund: true,
-        b2bAvailable: true,
-        partnerships: true,
-      },
+      monetization: monetizationOptions(),
     },
   };
 }

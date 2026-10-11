@@ -20,6 +20,7 @@
 
 import { getStore } from '../../memory/store-factory.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isPaywallOn } from './paywall.js';
 
 const log = createLogger({ module: 'FirstTasteTrial' });
 
@@ -253,10 +254,12 @@ export async function checkTrialStatus(
   let showTransition = false;
   let transitionPrompt: string | null = null;
 
-  if (trialEnded) {
+  // While Ferni is free nothing ends at the trial mark, so he doesn't say it's wrapping up.
+  const announceEnd = isPaywallOn();
+  if (announceEnd && trialEnded) {
     showTransition = true;
     transitionPrompt = getTrialEndPrompt();
-  } else if (approachingEnd && timeRemainingMs <= 60000) {
+  } else if (announceEnd && approachingEnd && timeRemainingMs <= 60000) {
     // Within last minute - soft mention
     showTransition = true;
     transitionPrompt = getApproachingEndPrompt(Math.ceil(timeRemainingMs / 60000));
