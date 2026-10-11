@@ -79,6 +79,15 @@ export function buildCallOutcome(
       callbackRequired: false,
     };
   }
+  if (disposition === 'unreachable') {
+    return {
+      callId: call.callId,
+      status: 'no_answer',
+      objectiveAchieved: false,
+      outcome: `I couldn't reach ${name}; their voicemail wasn't taking messages. Want me to try again later?`,
+      callbackRequired: true,
+    };
+  }
   if (disposition === 'wrong_number') {
     return {
       callId: call.callId,

@@ -15,67 +15,15 @@ import {
   AI_DISCLOSURE_RULE,
   getOutboundCallContext,
 } from '../../intelligence/context-builders/external/outbound-call-context.js';
+import { partiesOf, type OutboundParties } from '../../services/outreach/opening-line.js';
 
-/** Who is on an on-behalf call: the person Ferni phoned, and who asked. */
-export interface OutboundParties {
-  /** The person on the line; undefined when the dispatcher didn't name them. */
-  recipientName?: string;
-  /** The user Ferni is calling for; never the person on the line. */
-  sponsorName?: string;
-  /** A personal call opens by name; a business is greeted without one. */
-  personal: boolean;
-  /** The dispatcher's own opening line, used when it says Ferni is an AI. */
-  openingLine?: string;
-}
-
-/** Defaults the metadata and dispatch parsers fill in when a name is missing. */
-const PLACEHOLDER_NAMES = new Set([
-  'unknown',
-  'the user',
-  'user',
-  'friend',
-  'contact',
-  'them',
-  'your person',
-  'your family member',
-]);
-
-function realName(name: string | undefined): string | undefined {
-  const trimmed = name?.trim();
-  return trimmed && !PLACEHOLDER_NAMES.has(trimmed.toLowerCase()) ? trimmed : undefined;
-}
+// The opener text is in services, where the outbound-call prompt can quote it too.
+export { outboundOpener, type OutboundParties } from '../../services/outreach/opening-line.js';
 
 /** The parties of this session's on-behalf call, or undefined for any other call. */
 export function outboundPartiesFor(sessionId: string): OutboundParties | undefined {
   const call = getOutboundCallContext(sessionId);
-  if (!call) return undefined;
-  return {
-    recipientName: realName(call.recipientName),
-    sponsorName: realName(call.userName),
-    personal: call.callType === 'personal',
-    openingLine: call.openingLine,
-  };
-}
-
-/**
- * The opener: addresses the person on the line, introduces Ferni as the
- * user's AI friend, and says why it called: the one, light AI disclosure.
- * Ferni is never "an assistant" to the people it calls. Fixed text, not the director: the
- * AI disclosure is a compliance line and must not depend on a model choosing
- * to say it. (complianceScript stays a model instruction: in practice it is
- * written as directions, "Open by saying ...", not as speakable words.)
- */
-export function outboundOpener(parties: OutboundParties): string {
-  const { recipientName, sponsorName, personal, openingLine } = parties;
-  if (openingLine && /\bAI\b/.test(openingLine)) return openingLine;
-  if (personal) {
-    const hello = recipientName ? `Hi ${recipientName}` : 'Hi';
-    return sponsorName
-      ? `${hello}, it's Ferni, ${sponsorName}'s AI friend. ${sponsorName} asked me to check in on you. Is now an okay time?`
-      : `${hello}, it's Ferni, an AI friend, calling to check in on you. Is now an okay time?`;
-  }
-  const forWhom = sponsorName ? `for ${sponsorName}` : "on someone's behalf";
-  return `Hi, this is Ferni, an AI calling ${forWhom}. Do you have a quick minute?`;
+  return call ? partiesOf(call) : undefined;
 }
 
 /**

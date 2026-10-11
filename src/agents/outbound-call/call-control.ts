@@ -17,6 +17,7 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isCallOpeningAmdEnabled } from '../../config/call-opening-flag.js';
 
 const log = createLogger({ module: 'outbound-call-control' });
 
@@ -28,7 +29,8 @@ export const CALL_DISPOSITIONS = [
   'refused',
   'wrong_number',
 ] as const;
-export type CallDisposition = (typeof CALL_DISPOSITIONS)[number];
+/** How a call ended: what Ferni can say with endCall, or that nobody real picked up. */
+export type CallDisposition = (typeof CALL_DISPOSITIONS)[number] | 'unreachable';
 
 interface CallSession {
   callId: string;
@@ -39,6 +41,7 @@ interface CallSession {
 // can only record or read how its own call ended.
 const sessions = new Map<string, CallSession>();
 const dispositions = new Map<string, CallDisposition>();
+const hungUp = new Set<string>();
 
 /** Remember which room an on-behalf call session is in, so it can hang up. */
 export function registerOnBehalfCallRoom(
@@ -59,6 +62,23 @@ export function takeCallDisposition(sessionId: string): CallDisposition | undefi
 export function forgetOnBehalfCallRoom(sessionId: string): void {
   sessions.delete(sessionId);
   dispositions.delete(sessionId); // in case it was never read
+  hungUp.delete(sessionId);
+}
+
+/** The call this session is placing on someone's behalf, if any. */
+export function onBehalfCallFor(
+  sessionId: string
+): { callId: string; roomName: string } | undefined {
+  return sessions.get(sessionId);
+}
+
+/**
+ * True when this session's on-behalf call opens through answering-machine
+ * detection (CALL_OPENING_AMD on). Such a session is never health-pinged: a
+ * ping could make it speak while the phone rings.
+ */
+export function amdOpensCall(sessionId: string): boolean {
+  return isCallOpeningAmdEnabled() && sessions.has(sessionId);
 }
 
 export type HangUp = (roomName: string) => Promise<void>;
@@ -73,11 +93,34 @@ async function deleteRoom(roomName: string): Promise<void> {
 }
 
 /**
+ * End this session's call, recording how it ended (if Ferni knows). Returns
+ * false if the line couldn't be dropped.
+ */
+export async function hangUpCall(
+  sessionId: string,
+  disposition?: CallDisposition,
+  hangUp: HangUp = deleteRoom
+): Promise<boolean> {
+  const call = sessions.get(sessionId);
+  if (!call) return false;
+  if (disposition && !dispositions.has(sessionId)) dispositions.set(sessionId, disposition);
+  if (hungUp.has(sessionId)) return true; // the tool and the opening can both end the call
+  try {
+    await hangUp(call.roomName);
+    hungUp.add(sessionId);
+    log.info({ callId: call.callId, disposition }, 'Ferni hung up the call');
+    return true;
+  } catch (error) {
+    log.error({ error: String(error), callId: call.callId }, 'Failed to hang up');
+    return false;
+  }
+}
+
+/**
  * The endCall tool for an on-behalf call session, or null for any other session.
  */
 export function createEndCallTool(sessionId: string, hangUp: HangUp = deleteRoom) {
-  const call = sessions.get(sessionId);
-  if (!call) return null;
+  if (!sessions.has(sessionId)) return null;
 
   return llm.tool({
     description:
@@ -99,14 +142,9 @@ export function createEndCallTool(sessionId: string, hangUp: HangUp = deleteRoom
       } catch {
         // Hang up anyway; a cut-off goodbye beats a line left open
       }
-      try {
-        await hangUp(call.roomName);
-        log.info({ callId: call.callId, outcome }, 'Ferni hung up the call');
-        return 'The call has ended.';
-      } catch (error) {
-        log.error({ error: String(error), callId: call.callId }, 'Failed to hang up');
-        return "The line didn't drop. Stay quiet; the call will end when they hang up.";
-      }
+      return (await hangUpCall(sessionId, outcome, hangUp))
+        ? 'The call has ended.'
+        : "The line didn't drop. Stay quiet; the call will end when they hang up.";
     },
   });
 }

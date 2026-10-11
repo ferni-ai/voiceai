@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createEndCallTool,
   forgetOnBehalfCallRoom,
+  hangUpCall,
   registerOnBehalfCallRoom,
   takeCallDisposition,
 } from '../call-control.js';
@@ -35,7 +36,9 @@ describe('endCall', () => {
       order.push(`hang up ${room}`);
     });
     const waitForPlayout = vi.fn(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20)); // the goodbye is still playing
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 20); // the goodbye is still playing
+      });
       order.push('goodbye played');
     });
 
@@ -73,6 +76,15 @@ describe('endCall', () => {
     );
     expect(takeCallDisposition('s-b')).toBeUndefined();
     expect(takeCallDisposition('s-a')).toBe('wrong_number');
+  });
+
+  it('is safe to end twice (the tool during a voicemail, then the opening)', async () => {
+    registerOnBehalfCallRoom('s-twice', 'call-twice', 'room-twice');
+    const hangUp = vi.fn(async () => undefined);
+    await expect(hangUpCall('s-twice', 'voicemail_left', hangUp)).resolves.toBe(true);
+    await expect(hangUpCall('s-twice', 'completed', hangUp)).resolves.toBe(true);
+    expect(hangUp).toHaveBeenCalledTimes(1);
+    expect(takeCallDisposition('s-twice')).toBe('voicemail_left');
   });
 
   it('forgets an unread outcome along with the call', async () => {
