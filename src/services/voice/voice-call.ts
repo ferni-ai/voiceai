@@ -41,7 +41,7 @@ const TWILIO_FALLBACK_VOICES: Record<string, string> = {
 
 // LiveKit SIP configuration for incoming calls
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
-const SIP_TRUNK_ID = process.env.SIP_TRUNK_ID || '';
+const SIP_INBOUND_TRUNK_ID = process.env.SIP_INBOUND_TRUNK_ID || ''; // SIP_TRUNK_ID is outbound
 
 // GCS configuration for audio hosting
 // Priority: explicit GCS_VOICE_BUCKET > derived from GOOGLE_CLOUD_PROJECT > empty
@@ -444,7 +444,7 @@ export function generateIncomingCallTwiml(options?: {
 }): string {
   const greeting = options?.greeting || "Hello! You've reached the Ferni team. Let me connect you.";
 
-  if (LIVEKIT_URL && SIP_TRUNK_ID) {
+  if (LIVEKIT_URL && SIP_INBOUND_TRUNK_ID) {
     // Forward to LiveKit SIP trunk
     // The SIP URI would be configured in your LiveKit dashboard
     const sipUri = `sip:agent@${new URL(LIVEKIT_URL).hostname}`;

@@ -284,6 +284,24 @@ export function getMaxTools(): number {
 }
 
 /**
+ * CASCADE_APPEND_ONLY_TOOLS=on: a call's tools only grow, in the order they
+ * arrived, so the declarations a request starts with stay the same (Gemini
+ * caches a request's prefix). See tool-updater.ts and gemini-declarations.ts.
+ */
+export function appendOnlyToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.CASCADE_APPEND_ONLY_TOOLS === 'on';
+}
+
+/**
+ * The most tools an append-only call holds. Union of a call's tools under
+ * append-only, from 611 calls' tool updates (2026-10-03..10): p50 88, p90 131,
+ * prod-only p95 123. Past it, the oldest non-essential tools go as one block
+ * of APPEND_ONLY_EVICT_BLOCK, so the prefix breaks rarely, not every load.
+ */
+export const APPEND_ONLY_TOOL_CAP = 128;
+export const APPEND_ONLY_EVICT_BLOCK = 32;
+
+/**
  * Check if a tool is in the essential tools list
  */
 export function isEssentialTool(toolName: string): boolean {
