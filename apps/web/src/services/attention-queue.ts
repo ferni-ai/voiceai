@@ -70,7 +70,9 @@ function readGranted(storage: AttentionQueueOptions['storage']): AttentionId[] {
   try {
     const parsed: unknown = JSON.parse(storage?.getItem(GRANTED_KEY) ?? '[]');
     return Array.isArray(parsed)
-      ? parsed.filter((id): id is AttentionId => typeof id === 'string' && id in ATTENTION_PRIORITY)
+      ? parsed.filter(
+          (id): id is AttentionId => typeof id === 'string' && Object.hasOwn(ATTENTION_PRIORITY, id)
+        )
       : [];
   } catch {
     return [];
