@@ -1962,7 +1962,7 @@
     "planDetails": "Your Support",
     "prioritySupport": "Priority support",
     "thankYouPerks": "As a thank you, we'll unlock some perks.",
-    "unlimitedConversations": "Unlimited conversations",
+    "unlimitedConversations": "Talk as much as you like",
     "upgrade": "Support Ferni",
     "welcomeFounder": "Welcome, Founder",
     "youreOneOfUs": "You're One of Us Now",
@@ -2706,7 +2706,7 @@
       "description": "Ferni is free. Really free. Talk whenever you need.",
       "price": "Free forever",
       "features": {
-        "unlimitedFerni": "Unlimited conversations with Ferni",
+        "unlimitedFerni": "Talk with Ferni as much as you like",
         "heartToHearts": "7-minute heart-to-hearts",
         "fullMemory": "Full memory — I remember everything",
         "customization": "Avatar & theme personalisation"
