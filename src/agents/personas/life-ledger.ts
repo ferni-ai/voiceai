@@ -118,11 +118,20 @@ export function factDocId(f: LedgerFact): string {
   return `${f.personaId}_${createHash('sha1').update(f.fact.toLowerCase()).digest('hex').slice(0, 16)}`;
 }
 
+/**
+ * RECALL_BRIDGE: his life waits until they ask about him or it connects. The
+ * old footer invited "pick a thread back up", and on a dev call (2026-10-11)
+ * Ferni answered "Still on there." with the caller's mail and then his own.
+ */
+const BRIDGE_FOOTER =
+  "This is your life, kept here so you stay consistent with it, not things to bring up. Don't volunteer any of them while they're on another topic or just saying hi: mention one only when they ask about you or what they just said is about the same thing. When they ask about something you told them, it is one of these; never make up a different event in its place. Don't repeat these back or list them.";
+
 /** The note for the first turn of a call, or null when there is nothing. */
 export function formatLedger(
   facts: LedgerFact[],
   userName?: string,
-  now: number = Date.now()
+  now: number = Date.now(),
+  opts: { bridge?: boolean } = {}
 ): string | null {
   if (facts.length === 0) return null;
   const who = userName || 'them';
@@ -140,7 +149,9 @@ export function formatLedger(
   return [
     `[WHAT YOU'VE TOLD ${who.toUpperCase()} ABOUT YOUR OWN LIFE ON EARLIER CALLS]`,
     ...lines,
-    'This is your life: stay consistent with it, and if it fits, pick a thread back up the way a friend would ("the goat got out again"). When they ask about something you told them, it is one of these; never make up a different event in its place. Don\'t repeat these back or list them.',
+    opts.bridge
+      ? BRIDGE_FOOTER
+      : 'This is your life: stay consistent with it, and if it fits, pick a thread back up the way a friend would ("the goat got out again"). When they ask about something you told them, it is one of these; never make up a different event in its place. Don\'t repeat these back or list them.',
   ].join('\n');
 }
 
