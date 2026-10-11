@@ -1,14 +1,8 @@
 /**
- * The live inputs of the context packet (CONTEXT_PACKET=on), turned into the
- * typed PacketInput the assembler takes (context-packet.ts).
- *
- * Memory: with the packet on, memory recall keeps what it picked here, typed,
- * instead of adding an unlabelled note to the chat (memory-recall-hook.ts
- * addRecallNote). Kept per call, keyed by the AgentSession, newest first.
- *
- * Guidance: the director's notes and the told-this-call note go to the ranker;
- * when the caller asks how Ferni knows something, an honesty note joins them,
- * so "how do you know I was up late?" gets the source instead of a deflection.
+ * The live inputs of the context packet (CONTEXT_PACKET=on) as the typed input
+ * the assembler takes (context-packet.ts): recall's picks, kept per call instead
+ * of an unlabelled chat note, and the turn's notes for the one ranker, plus an
+ * honesty note when the caller asks how Ferni knows something.
  *
  * @module agents/personas/context-packet/turn-packet
  */
@@ -201,11 +195,8 @@ export function packetLogFields(accounting: PacketAccounting): {
   dropped: Record<string, number>;
   guidanceDropped: Record<string, number>;
 } {
-  const count = (keys: string[]): Record<string, number> => {
-    const out: Record<string, number> = {};
-    for (const k of keys) out[k] = (out[k] ?? 0) + 1;
-    return out;
-  };
+  const count = (keys: string[]): Record<string, number> =>
+    keys.reduce<Record<string, number>>((n, k) => ({ ...n, [k]: (n[k] ?? 0) + 1 }), {});
   return {
     sections: accounting.sections.filter((s) => s.lines > 0).map((s) => [s.name, s.tokensEst]),
     tokens: accounting.totalTokensEst,
