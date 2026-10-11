@@ -256,6 +256,16 @@ async function loadTranslations(locale: SupportedLocale): Promise<void> {
       }
     }
   }
+
+  // t() falls back through FALLBACK_CHAIN to en-US, which only works if those
+  // locales are loaded. Loading only the chosen one (e.g. es after a reload)
+  // left every untranslated key on screen as its raw name ("aiLabel.companion"),
+  // which failed the signed-in locale walk on every PR (2026-10-11).
+  for (const fallback of FALLBACK_CHAIN[locale] || []) {
+    if (!loadedTranslations.has(fallback)) {
+      await loadTranslations(fallback);
+    }
+  }
 }
 
 // ============================================================================
