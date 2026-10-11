@@ -2960,7 +2960,7 @@ function handleSemanticRouting(event: SemanticRoutingEvent): void {
 /**
  * Pending action event from backend
  *
- * Part of the AGI-like experience: Ferni shows what action she wants to take
+ * Part of the AGI-like experience: Ferni shows what action he wants to take
  * and asks for permission. The UI displays a card with approve/reject buttons.
  */
 interface PendingActionEvent extends DataMessage {
