@@ -10,6 +10,24 @@
 import type { JobContext } from '@livekit/agents';
 import type { ParsedMetadata } from './types.js';
 import { parseOnBehalfDispatch } from '../../services/outreach/on-behalf-dispatch.js';
+import { maskPhoneNumber } from '../../services/identity/phone-attestation.js';
+
+/** What an inbound dispatch says about the caller's account; honoured only when signed. */
+const INBOUND_ACCOUNT_FIELDS = [
+  'callerPhone',
+  'userId',
+  'user_id',
+  'familyUserId',
+  'sponsoredIdentityId',
+  'sponsorUserId',
+  'isKnownCaller',
+  'isVoiceEnrolled',
+  'callerName',
+  'relationship',
+  'notes',
+  'accessLevel',
+  'allowedPersonas',
+] as const;
 
 /**
  * Parse job and room metadata from the LiveKit job context.
@@ -73,16 +91,25 @@ export async function setupCallTypeContexts(
   // INBOUND CALL DETECTION
   // =========================================================================
   if (callType === 'inbound_call') {
+    // Who the caller is came from caller ID, which can be spoofed: the number
+    // and account fields count only on a dispatch our server signed, the same
+    // gate as on-behalf calls. Unsigned, the caller is a stranger.
+    if (!(await isTrustedDispatch(rawJobMetadata))) {
+      for (const field of INBOUND_ACCOUNT_FIELDS) delete metadata[field];
+      process.stderr.write(
+        `[voice-agent-entry] ⚠️ Unsigned inbound dispatch: caller treated as a stranger\n`
+      );
+    }
     process.stderr.write(
       `[voice-agent-entry] 📞 INBOUND CALL DETECTED - setting up caller context\n`
     );
     process.stderr.write(
       `[voice-agent-entry] 📞 Caller context: ${JSON.stringify({
         callSid: metadata.callSid,
-        callerPhone: metadata.callerPhone
-          ? `${String(metadata.callerPhone).slice(0, 4)}****`
-          : 'unknown',
-        callerName: metadata.callerName,
+        callerPhone:
+          maskPhoneNumber(
+            typeof metadata.callerPhone === 'string' ? metadata.callerPhone : undefined
+          ) ?? 'unknown',
         isKnownCaller: metadata.isKnownCaller,
         isSponsored: !!metadata.sponsoredIdentityId,
       })}\n`
@@ -120,14 +147,10 @@ export async function setupCallTypeContexts(
       if (metadata.sponsoredIdentityId) {
         if (metadata.familyUserId) {
           metadata.user_id = metadata.familyUserId as string;
-          process.stderr.write(
-            `[voice-agent-entry] 📞 Using familyUserId for memory: ${metadata.familyUserId}\n`
-          );
+          process.stderr.write(`[voice-agent-entry] 📞 Using familyUserId for memory\n`);
         } else {
           metadata.user_id = `family_${metadata.sponsoredIdentityId}`;
-          process.stderr.write(
-            `[voice-agent-entry] 📞 Using generated familyUserId: family_${metadata.sponsoredIdentityId}\n`
-          );
+          process.stderr.write(`[voice-agent-entry] 📞 Using generated familyUserId for memory\n`);
         }
       } else if (metadata.userId) {
         metadata.user_id = metadata.userId;
