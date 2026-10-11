@@ -23,6 +23,9 @@
 
 import { voice } from '@livekit/agents';
 import {
+  APPEND_ONLY_EVICT_BLOCK,
+  APPEND_ONLY_TOOL_CAP,
+  appendOnlyToolsEnabled,
   capToolsToLimit,
   getMaxTools,
   isEssentialTool,
@@ -129,7 +132,8 @@ export async function updateAgentTools(
     const topicToolCount = Object.keys(newTools).filter((name) => !isEssentialTool(name)).length;
     const limit =
       resolveInitialToolLimit(getMaxTools()) + Math.min(topicToolCount, resolveTopicToolHeadroom());
-    const merged = capToolsToLimit({ ...newTools, ...existing, ...newTools }, limit);
+    const capped = capToolsToLimit({ ...newTools, ...existing, ...newTools }, limit);
+    const merged = appendOnlyToolsEnabled() ? appendOnly(existing, capped) : capped;
 
     await target.updateTools(merged);
 
@@ -153,6 +157,31 @@ export async function updateAgentTools(
     log.error({ error: String(error), provider: provider.id }, 'Failed to update agent tools');
     return false;
   }
+}
+
+/**
+ * CASCADE_APPEND_ONLY_TOOLS: the agent's tools in their order, then the ones
+ * the cap picked that are new, at the end. Nothing is evicted until the call
+ * holds APPEND_ONLY_TOOL_CAP tools; then the oldest non-essential ones go as
+ * one block, so the declarations change at the front rarely, not every load.
+ */
+function appendOnly(
+  existing: Record<string, unknown>,
+  picked: Record<string, unknown>
+): Record<string, unknown> {
+  const added = Object.keys(picked).filter((name) => !(name in existing));
+  const merged: Record<string, unknown> = { ...existing };
+  for (const name of added) merged[name] = picked[name];
+  let excess = Object.keys(merged).length - APPEND_ONLY_TOOL_CAP;
+  if (excess <= 0) return merged;
+  excess += APPEND_ONLY_EVICT_BLOCK;
+  for (const name of Object.keys(existing)) {
+    if (excess <= 0) break;
+    if (isEssentialTool(name)) continue;
+    delete merged[name];
+    excess -= 1;
+  }
+  return merged;
 }
 
 /**

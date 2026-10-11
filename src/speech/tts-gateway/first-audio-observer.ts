@@ -15,6 +15,8 @@ const log = createLogger({ module: 'GatewayTTSNode' });
 export type FirstAudioObserver = (() => void) & {
   /** Record when the first LLM text arrived and when the first text went to the provider. */
   stage(stage: 'text' | 'push'): void;
+  /** Sonic's leading silence dropped before the first audio (lead-silence.ts). */
+  trimmed(ms: number): void;
 };
 
 interface FirstAudioObserverOptions {
@@ -27,7 +29,7 @@ export function createFirstAudioObserver({
   startTime,
 }: FirstAudioObserverOptions): FirstAudioObserver {
   let hasMarkedFirstAudio = false;
-  const stages: { textMs?: number; pushMs?: number } = {};
+  const stages: { textMs?: number; pushMs?: number; leadTrimMs?: number } = {};
 
   const observe = (): void => {
     if (hasMarkedFirstAudio) return;
@@ -51,6 +53,9 @@ export function createFirstAudioObserver({
     }
   };
   return Object.assign(observe, {
+    trimmed(ms: number): void {
+      stages.leadTrimMs ??= ms;
+    },
     stage(stage: 'text' | 'push'): void {
       const key = stage === 'text' ? 'textMs' : 'pushMs';
       stages[key] ??= Date.now() - startTime;

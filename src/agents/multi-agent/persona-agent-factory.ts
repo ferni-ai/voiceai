@@ -34,6 +34,7 @@ import { getModelProvider } from '../model-provider/index.js';
 import { registerAgentReplyRecorder } from '../voice-agent/agent-reply-recorder.js';
 import {
   createPreSTTFrameProcessor,
+  isPhoneParticipant,
   wantsPhonePreStt,
 } from '../integrations/pre-stt-frame-processor.js';
 import { getPrewarmGreetingPolicy, planFactoryPrewarm } from './prewarm-greeting-overlap.js';
@@ -160,6 +161,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       enableFullHandlers,
       deferHandlers, // Wire handlers in background after greeting
       callSession: context.callSession as AgentSetupConfig['callSession'],
+      phoneCaller: isPhoneParticipant(context.userParticipant),
     });
     mark('setup_persona_agent_done');
     // A phone caller: Ferni hangs up after a real goodbye (PHONE_GOODBYE, phone-goodbye.ts).
