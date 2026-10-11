@@ -9,6 +9,12 @@ import {
   callCheckIns,
   coachFollowThroughMode,
 } from '../../services/superhuman/commitment-follow-up.js';
+import { contentWords } from '../../memory/recall/session-recall.js';
+import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
+import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
+import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
+import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { callerHour } from '../shared/time-context.js';
 import {
   callerRecognitionFor,
@@ -32,6 +38,16 @@ export const GREETING_DIRECTION =
 export const CHECK_IN_DIRECTION =
   ' They told you they meant to do something: you may say hello, then ask how it went as an open question, naming it in their words ("Hey Sam. How did the running go this week?"). Not a yes-or-no question and not "did you actually", which sound like checking up on them. Skip it if it was painful.';
 
+/** Added when the nightly pondering pass left one thing to ask about (PONDERING). */
+export const PONDER_DIRECTION =
+  ' There is one thing from an earlier call you could ask about: you may say hello, then ask how it is going as an open question, naming it in their words ("Hey Sam. How\'s the martial arts going?"). Not a yes-or-no question. Never say you were thinking about them, had them on your mind, or were wondering about it.';
+
+/** "I was just thinking about you": warm once, a tic when it opens every call. */
+const THINKING_OF_YOU =
+  /\b(?:thinking (?:about|of) you|on my mind|been wondering|was (?:just )?wondering)\b/i;
+
+const log = createLogger({ module: 'greeting-direction' });
+
 /** How long the greeting waits for the caller's open commitments before going without. */
 const CHECK_IN_WAIT_MS = 400;
 
@@ -45,6 +61,45 @@ async function checkInFor(userId: string | undefined): Promise<string | undefine
   const open = await Promise.race([callCheckIns(userId), late]);
   clearTimeout(timer);
   return open?.[0]?.statement;
+}
+
+interface PonderAsk {
+  text: string;
+  /** Records it as raised, so no later call asks it again. */
+  mark: () => Promise<void>;
+}
+
+/**
+ * The pondered thing to open on, or undefined: flag off, nothing due, a recent
+ * crisis, a first call, or too slow. The pass writes nothing before a caller's
+ * second call, and a profile that says this is their first or second call
+ * keeps it out too.
+ */
+async function ponderFor(
+  userId: string | undefined,
+  history: CallerHistory | undefined
+): Promise<PonderAsk | undefined> {
+  if (!userId || userId === 'anonymous' || !isPonderingOn()) return undefined;
+  if (history && history.calls < 2) return undefined;
+  const db = getFirestoreDb();
+  if (!db) return undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), CHECK_IN_WAIT_MS);
+  });
+  const read = ponderingForOpener(db, userId).catch((error: unknown) => {
+    log.warn({ error: String(error) }, 'Pondering not read for the greeting');
+    return undefined;
+  });
+  const found = await Promise.race([read, late]);
+  clearTimeout(timer);
+  return found && { text: found.text, mark: async () => markSurfaced(db, userId, found.item) };
+}
+
+/** True when the spoken line is about the item: they share a real word. */
+export function lineAsks(line: string, item: string): boolean {
+  const said = contentWords(line);
+  return [...contentWords(item)].some((w) => said.has(w));
 }
 
 /** The "time of day" fact for an hour of the day (0-23). */
@@ -110,12 +165,15 @@ export function greetingFacts(
   partOfDay: string,
   userName: string | undefined,
   history: CallerHistory | undefined,
-  checkIn?: string
+  checkIn?: string,
+  ponder?: string
 ): Record<string, string> {
   // No time zone, no time of day: guessing it wrong is worse than leaving it out.
   const facts: Record<string, string> = partOfDay ? { 'time of day': partOfDay } : {};
   if (userName) facts['their name'] = userName;
   if (checkIn) facts['something they said they would do'] = checkIn.slice(0, MAX_TOPIC_CHARS);
+  if (ponder)
+    facts['something to ask about from an earlier call'] = ponder.slice(0, MAX_TOPIC_CHARS);
   if (!history) return facts;
   facts['how well you know each other'] = `${history.calls} calls so far`;
   if (history.daysSince !== undefined)
@@ -156,18 +214,54 @@ export async function directedGreeting(
   const { directedText } = await import('../../speech/direction/index.js');
   const partOfDay = hour === null ? '' : partOfDayFor(hour);
   // Not gated on history: the profile behind it can still be loading.
-  const checkIn = await checkInFor(userData?.userId);
+  const [checkIn, pondered] = await Promise.all([
+    checkInFor(userData?.userId),
+    ponderFor(userData?.userId, history),
+  ]);
+  // One thing to ask about per call: what they said they'd do comes first.
+  const ask = checkIn ? undefined : pondered;
   // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
   const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
   const direction =
-    GREETING_DIRECTION + (checkIn ? CHECK_IN_DIRECTION : '') + (unknown ? ` ${unknown}` : '');
+    GREETING_DIRECTION +
+    (checkIn ? CHECK_IN_DIRECTION : '') +
+    (ask && !unknown ? PONDER_DIRECTION : '') +
+    (unknown ? ` ${unknown}` : '');
   const directed = await directedText(sessionId, {
     moment: 'greeting',
     direction,
-    facts: greetingFacts(partOfDay, userData?.userName, history, checkIn),
+    facts: greetingFacts(
+      partOfDay,
+      userData?.userName,
+      history,
+      checkIn,
+      unknown ? undefined : ask?.text
+    ),
     fallback: scripted,
     urgency: 'now',
     maxChars: 140,
   });
-  return calmGreeting(directed.text);
+  return calmGreeting(unknown ? directed.text : afterAsking(directed, scripted, ask));
+}
+
+/**
+ * The line to speak when a pondered item was offered: the scripted greeting
+ * instead of a "thinking about you" line, and the item marked as raised only
+ * when the model's line actually asked it (otherwise it waits for another call).
+ */
+function afterAsking(
+  directed: { text: string; source: string },
+  scripted: string,
+  ask: PonderAsk | undefined
+): string {
+  if (!ask || directed.source !== 'actor') return directed.text;
+  if (THINKING_OF_YOU.test(directed.text)) return scripted;
+  if (lineAsks(directed.text, ask.text)) {
+    ask
+      .mark()
+      .catch((error: unknown) =>
+        log.warn({ error: String(error) }, 'Pondered item not marked as raised')
+      );
+  }
+  return directed.text;
 }
