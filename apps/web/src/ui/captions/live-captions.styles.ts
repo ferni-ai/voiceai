@@ -45,9 +45,33 @@ const CSS = `
 .ferni-caption-line[data-speaker='user'] {
   font-size: var(--text-lg); font-weight: var(--font-weight-normal); color: var(--color-text-secondary);
 }
-.ferni-caption-line.ferni-caption-note {
-  margin-top: var(--space-2xs); font-size: var(--text-sm); color: var(--color-text-secondary);
+.ferni-captions--words-off .ferni-captions__viewport { display: none; }
+.ferni-captions__moments {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-xs);
+  margin: 0; padding: 0; list-style: none;
 }
+.ferni-captions__moments:not(:empty) { padding-top: var(--space-sm); }
+/* Out of flow but still measured, so layout() can bring the chips back. */
+.ferni-captions--moments-aside .ferni-captions__moments { position: absolute; visibility: hidden; }
+.ferni-moment {
+  display: inline-block; max-width: 100%;
+  padding: var(--space-xs) var(--space-md); border-radius: var(--radius-xl);
+  background: var(--color-bg-elevated); box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border-subtle);
+  font-size: var(--text-sm); line-height: var(--leading-snug); color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+  animation: ferni-moment-in ${DURATION.SLOW * 2}ms ${EASING.SPRING} both;
+  transition: opacity ${DURATION.SLOW}ms ${EASING.DECELERATE};
+}
+.ferni-moment::before {
+  content: ''; display: inline-block; vertical-align: middle; width: var(--space-sm); height: var(--space-sm);
+  margin-inline-end: var(--space-sm); border-radius: var(--radius-full); background: var(--persona-primary);
+}
+.ferni-moment__label {
+  margin-inline-end: var(--space-xs); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary);
+}
+.ferni-moment--leaving { opacity: 0; }
+@keyframes ferni-moment-in { from { opacity: 0; transform: translateY(var(--space-xs)) scale(0.96); } }
 .ferni-caption-line:not(.ferni-caption-line--settled) .ferni-caption-words {
   animation: ferni-words-in ${DURATION.SLOW * 2}ms ${EASING.DECELERATE} both;
 }
@@ -65,7 +89,8 @@ const CSS = `
 .engagement-triggers .ferni-captions-toggle--on { color: var(--persona-primary); border-color: var(--persona-primary); }
 @media (prefers-reduced-motion: reduce) {
   .ferni-captions { transition: opacity ${DURATION.NORMAL}ms linear; transform: translate(-50%, 0); }
-  .ferni-caption-line .ferni-caption-words { animation: none; }
+  .ferni-caption-line .ferni-caption-words,
+  .ferni-moment { animation: none; }
 }
 `;
 

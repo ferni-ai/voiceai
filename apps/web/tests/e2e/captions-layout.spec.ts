@@ -41,11 +41,12 @@ for (const vp of VIEWPORTS) {
       localStorage.setItem('ferni:flag:captions-v2', 'true');
       localStorage.setItem('ferni_show_transcription', 'true');
     });
-    await page.goto('/?e2e=1&gallery=overlays&scene=captions');
+    await page.goto('/?e2e=1&gallery=overlays&scene=caption-moments');
     await page.waitForFunction(
       () => (window as unknown as { __overlayGallery?: { ready: boolean } }).__overlayGallery?.ready
     );
     await expect(page.locator('.ferni-captions.ferni-captions--visible')).toBeVisible();
+    await expect(page.locator('.ferni-captions .ferni-moment')).toHaveCount(1);
     await page.waitForTimeout(500); // layout follows the connect transition
 
     const geometry = await page.evaluate(() => {
@@ -54,7 +55,9 @@ for (const vp of VIEWPORTS) {
         return r ? { top: r.top, bottom: r.bottom, left: r.left, right: r.right } : null;
       };
       const lines = [
-        ...document.querySelectorAll<HTMLElement>('.ferni-captions .ferni-caption-line'),
+        ...document.querySelectorAll<HTMLElement>(
+          '.ferni-captions .ferni-caption-line, .ferni-captions .ferni-moment'
+        ),
       ];
       return {
         captions: box('.ferni-captions'),

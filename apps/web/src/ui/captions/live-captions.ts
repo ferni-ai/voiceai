@@ -11,6 +11,8 @@
  * - Ferni speaks in the primary voice (larger, full strength); your words
  *   use a quieter register, so the speaker shows without labels.
  * - Tap the words for the conversation so far (transcript-sheet.ts).
+ * - Moments Ferni is holding on to appear as small chips under the words
+ *   (moment-chips.ts), even with captions off.
  * - Off by default on a voice call; the captions button in the controls
  *   turns them on (captions-toggle.ts).
  *
@@ -24,10 +26,15 @@ import { t } from '../../i18n/index.js';
 import { appState } from '../../state/app.state.js';
 import { injectCaptionStyles } from './live-captions.styles.js';
 import { captionsOn, mountCaptionsToggle } from './captions-toggle.js';
+import {
+  MomentChips,
+  momentFromDetail,
+  momentFromTrustSignal,
+  type Moment,
+} from './moment-chips.js';
 import { injectTranscriptSheetStyles, openTranscriptSheet } from './transcript-sheet.js';
 
-/** 'note' is quiet in-call feedback (ferni:inline-feedback), not speech. */
-export type CaptionSpeaker = 'user' | 'agent' | 'note';
+export type CaptionSpeaker = 'user' | 'agent';
 
 export interface CaptionEntry {
   speaker: CaptionSpeaker;
@@ -60,14 +67,11 @@ export function applyTranscript(
   return [...entries, { speaker, text: clean, final }].slice(-HISTORY_LIMIT);
 }
 
-/**
- * The newest speaker's turn (with any feedback notes inside it), up to the
- * last RENDERED utterances: what the live region shows under that name.
- */
+/** The newest speaker's turn, up to the last RENDERED utterances. */
 export function currentTurn(entries: readonly CaptionEntry[]): CaptionEntry[] {
-  const speaker = [...entries].reverse().find((e) => e.speaker !== 'note')?.speaker;
+  const speaker = entries[entries.length - 1]?.speaker;
   let start = entries.length;
-  while (start > 0 && [speaker, 'note'].includes(entries[start - 1]?.speaker)) start--;
+  while (start > 0 && entries[start - 1]?.speaker === speaker) start--;
   return entries.slice(Math.max(start, entries.length - RENDERED));
 }
 
@@ -93,17 +97,15 @@ export function captionsLayout(
 }
 
 function speakerName(speaker: CaptionSpeaker): string {
-  if (speaker === 'note') return '';
   return speaker === 'user' ? t('common.you') : appState.get('activePersona').name;
 }
 
 /** One utterance as a paragraph, optionally led by its speaker's name. */
 export function renderLine(entry: CaptionEntry, showName: boolean): HTMLParagraphElement {
   const line = document.createElement('p');
-  line.className =
-    entry.speaker === 'note' ? 'ferni-caption-line ferni-caption-note' : 'ferni-caption-line';
+  line.className = 'ferni-caption-line';
   line.dataset.speaker = entry.speaker;
-  if (showName && entry.speaker !== 'note') {
+  if (showName) {
     const name = document.createElement('span');
     name.className = 'ferni-caption-line__name';
     name.textContent = speakerName(entry.speaker);
@@ -138,8 +140,17 @@ class LiveCaptions {
   private entries: CaptionEntry[] = [];
   private idle: ReturnType<typeof setTimeout> | null = null;
   private frame = 0;
+  private wordsShown = false;
+  private chips: MomentChips | null = null;
 
   constructor(private readonly isEnabled: () => boolean) {}
+
+  /** A moment chip (see moment-chips.ts); shows even with captions off. */
+  moment(moment: Moment | null): void {
+    if (!moment) return;
+    this.mount();
+    this.chips?.show(moment);
+  }
 
   push(speaker: CaptionSpeaker, text: string, final: boolean): void {
     const before = this.entries;
@@ -162,12 +173,23 @@ class LiveCaptions {
   }
 
   hide(): void {
-    this.root?.classList.remove('ferni-captions--visible');
+    this.wordsShown = false;
+    this.update();
+  }
+
+  /** Visible while there are words to show or moments to keep. */
+  private update(): void {
+    if (!this.root) return;
+    const chips = this.chips?.count() ?? 0;
+    this.root.classList.toggle('ferni-captions--words-off', !this.wordsShown);
+    this.root.classList.toggle('ferni-captions--visible', this.wordsShown || chips > 0);
+    this.schedule();
   }
 
   /** Call ended: forget the conversation and take the region down. */
   reset(): void {
     this.entries = [];
+    this.chips?.clear();
     this.hide();
     if (this.viewport) this.viewport.replaceChildren();
   }
@@ -193,15 +215,18 @@ class LiveCaptions {
     viewport.tabIndex = 0;
     viewport.setAttribute('role', 'button');
     viewport.setAttribute('aria-label', t('transcript.showAll'));
-    const open = (): void =>
-      openTranscriptSheet(this.entries, (e) => renderLine(e, e.speaker !== 'note'));
+    const open = (): void => openTranscriptSheet(this.entries, (e) => renderLine(e, true));
     viewport.addEventListener('click', open);
     viewport.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       e.preventDefault();
       open();
     });
-    root.append(viewport);
+    const moments = document.createElement('ol');
+    moments.className = 'ferni-captions__moments';
+    moments.setAttribute('role', 'status');
+    this.chips = new MomentChips(moments, () => this.update());
+    root.append(viewport, moments);
     document.body.append(root);
     window.addEventListener('resize', () => this.schedule());
     // The avatar grows and the controls move when a call connects; follow them.
@@ -237,8 +262,8 @@ class LiveCaptions {
         })
       );
     }
-    root.classList.add('ferni-captions--visible');
-    this.schedule();
+    this.wordsShown = true;
+    this.update();
   }
 
   private schedule(): void {
@@ -261,13 +286,20 @@ class LiveCaptions {
     // Keep clear of the whole persona header (avatar, name, roster) when that
     // leaves room for a line; never closer than the avatar itself.
     let { bottom, maxHeight } = place(bottomOf('.header'));
-    if (this.fit(maxHeight) < 1) ({ bottom, maxHeight } = place(bottomOf('.avatar-container')));
+    if (this.fit(maxHeight, false) < 1) {
+      ({ bottom, maxHeight } = place(bottomOf('.avatar-container')));
+    }
     this.root.style.setProperty('--ferni-captions-bottom', `${bottom}px`);
     this.root.style.setProperty('--ferni-captions-room', `${maxHeight}px`);
-    const lines = this.fit(maxHeight);
+    // Words come first (captions are access; chips are delight): if both
+    // don't fit, the chips step aside. Not even one line, or no room for
+    // chips alone: stay hidden rather than cover the avatar.
+    const withChips = this.fit(maxHeight, true);
+    const lines = withChips >= 1 ? withChips : this.fit(maxHeight, false);
+    const chipsAside = this.wordsShown ? withChips < 1 : maxHeight < this.chrome(true);
     this.root.style.setProperty('--ferni-captions-lines', String(Math.max(1, lines)));
-    // Not even one line fits beside the avatar: stay hidden rather than cover it.
-    this.root.classList.toggle('ferni-captions--no-room', lines < 1);
+    this.root.classList.toggle('ferni-captions--moments-aside', chipsAside);
+    this.root.classList.toggle('ferni-captions--no-room', this.wordsShown ? lines < 1 : chipsAside);
     this.viewport.scrollTop = this.viewport.scrollHeight;
     this.root.classList.toggle(
       'ferni-captions--overflowing',
@@ -275,13 +307,19 @@ class LiveCaptions {
     );
   }
 
-  /** Whole caption lines (at most MAX_LINES) that fit in `room` px. */
-  private fit(room: number): number {
-    if (!this.root || !this.viewport) return 0;
+  /** Padding, plus the moment chips when they are counted. */
+  private chrome(withChips: boolean): number {
+    if (!this.root) return 0;
     const style = getComputedStyle(this.root);
-    const chrome = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+    const chips = withChips ? (this.chips?.list.offsetHeight ?? 0) : 0;
+    return parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + chips;
+  }
+
+  /** Whole caption lines (at most MAX_LINES) that fit in `room` px. */
+  private fit(room: number, withChips: boolean): number {
+    if (!this.viewport) return 0;
     const line = parseFloat(getComputedStyle(this.viewport).lineHeight) || 1;
-    return Math.min(MAX_LINES, Math.floor((room - chrome) / line));
+    return Math.min(MAX_LINES, Math.floor((room - this.chrome(withChips)) / line));
   }
 }
 
@@ -301,12 +339,13 @@ export function initLiveCaptions(isEnabled: () => boolean = captionsOn): LiveCap
     // Same defaults as app.ts: user text is interim until final, agent text final.
     captions.push(type, text, isFinal ?? type === 'agent');
   }) as EventListener);
-  // In-call success/info toasts arrive here instead (toast in-call gate) and
-  // show as a quiet line in the captions, fading with them.
-  window.addEventListener('ferni:inline-feedback', ((e: CustomEvent) => {
-    const message = (e.detail as { message?: unknown })?.message;
-    if (typeof message === 'string') captions.push('note', message, true);
-  }) as EventListener);
+  // Moments: what Ferni heard and is holding on to (moment-chips.ts).
+  const on = (name: string, toMoment: (detail: unknown) => Moment | null): void =>
+    window.addEventListener(name, ((e: CustomEvent) =>
+      captions.moment(toMoment(e.detail))) as EventListener);
+  on('ferni:backend-trust-signal', momentFromTrustSignal);
+  on('ferni:inline-feedback', (d) => momentFromDetail(d, 'feedback'));
+  on('ferni:moment', (d) => momentFromDetail(d, 'moment'));
   window.addEventListener('ferni:connection-state', ((e: CustomEvent) => {
     if ((e.detail as { state?: string })?.state === 'disconnected') captions.reset();
   }) as EventListener);

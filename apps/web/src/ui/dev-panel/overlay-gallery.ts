@@ -216,6 +216,21 @@ async function captions(): Promise<void> {
   await wait(400);
 }
 
+/** Captions plus a moment Ferni is holding on to (moment chip). */
+async function captionMoments(): Promise<void> {
+  await captions();
+  window.dispatchEvent(
+    new CustomEvent('ferni:backend-trust-signal', {
+      detail: {
+        type: 'callback',
+        title: 'Remember when',
+        message: 'You started martial arts on Tuesdays',
+      },
+    })
+  );
+  await wait(400);
+}
+
 export const SCENES: Readonly<Record<string, Scene>> = {
   'toast-pair': twoToasts,
   'toast-error': toastError,
@@ -237,6 +252,7 @@ export const SCENES: Readonly<Record<string, Scene>> = {
   'command-palette': commandPalette,
   'coach-mark': coachMark,
   captions,
+  'caption-moments': captionMoments,
 };
 
 // Probe: measurements of every visible fixed overlay, for the screenshot report.

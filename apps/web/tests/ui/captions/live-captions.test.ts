@@ -84,9 +84,9 @@ describe('currentTurn', () => {
     final: true,
   });
 
-  it("returns the newest speaker's run with notes inside it", () => {
-    const entries = [e('agent', 'a'), e('user', 'b'), e('agent', 'c'), e('note', 'n')];
-    expect(currentTurn(entries).map((x) => x.text)).toEqual(['c', 'n']);
+  it("returns the newest speaker's run", () => {
+    const entries = [e('agent', 'a'), e('user', 'b'), e('agent', 'c'), e('agent', 'd')];
+    expect(currentTurn(entries).map((x) => x.text)).toEqual(['c', 'd']);
   });
 
   it('caps a long turn at the last three utterances', () => {
@@ -237,16 +237,62 @@ describe('live captions region', () => {
     expect(lines()).toHaveLength(0);
   });
 
-  it('shows in-call feedback as a quiet note in the current turn', () => {
-    say('agent', 'Saving that for you', true);
+  it('shows what Ferni is holding on to as a chip, even with captions off', () => {
+    vi.useFakeTimers();
+    enabled = false;
+    window.dispatchEvent(
+      new CustomEvent('ferni:backend-trust-signal', {
+        detail: { type: 'callback', title: 'Remember when', message: 'Martial arts on Tuesdays' },
+      })
+    );
     window.dispatchEvent(
       new CustomEvent('ferni:inline-feedback', {
         detail: { message: 'Reminder set for 7:30', tone: 'success', key: 'reminder' },
       })
     );
-    expect(document.querySelector('.ferni-captions .ferni-caption-note')?.textContent).toBe(
-      'Reminder set for 7:30'
+    const chips = (): string[] =>
+      [...document.querySelectorAll('.ferni-captions .ferni-moment')].map(
+        (c) => c.textContent ?? ''
+      );
+    // One moment at a time: the newest.
+    expect(chips()).toEqual(['Reminder set for 7:30']);
+    const region = document.querySelector('.ferni-captions');
+    expect(region?.classList.contains('ferni-captions--visible')).toBe(true);
+    expect(region?.classList.contains('ferni-captions--words-off')).toBe(true);
+    // An update to the same moment replaces it.
+    window.dispatchEvent(
+      new CustomEvent('ferni:inline-feedback', {
+        detail: { message: 'Reminder moved to 8:00', key: 'reminder' },
+      })
     );
+    expect(chips()).toEqual(['Reminder moved to 8:00']);
+    // Chips settle away, and the region goes with them.
+    vi.advanceTimersByTime(15_000);
+    expect(chips()).toEqual([]);
+    expect(region?.classList.contains('ferni-captions--visible')).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it('turns a memory callback into a labelled chip', () => {
+    window.dispatchEvent(
+      new CustomEvent('ferni:backend-trust-signal', {
+        detail: { type: 'callback', title: 'Remember when', message: 'Martial arts on Tuesdays' },
+      })
+    );
+    const chip = document.querySelector('.ferni-captions .ferni-moment');
+    expect(chip?.querySelector('.ferni-moment__label')?.textContent).toBe('Remember when');
+    expect(chip?.querySelector('.ferni-moment__text')?.textContent).toBe(
+      'Martial arts on Tuesdays'
+    );
+  });
+
+  it('keeps private trust signals (reading between the lines) off screen', () => {
+    window.dispatchEvent(
+      new CustomEvent('ferni:backend-trust-signal', {
+        detail: { type: 'reading_lines', title: 'I sense', message: 'You sound tired' },
+      })
+    );
+    expect(document.querySelectorAll('.ferni-captions .ferni-moment')).toHaveLength(0);
   });
 
   it('retires the status-island pill once captions v2 is on', () => {
