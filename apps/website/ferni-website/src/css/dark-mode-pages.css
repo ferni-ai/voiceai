@@ -1,0 +1,66 @@
+/* =======================================================
+   DARK MODE: BASE AND PAGE LAYOUTS
+   =======================================================
+
+   Pages on the base and page layouts (compare, enterprise, use cases,
+   marketplace, press, accessibility, cookies) use Tailwind utilities
+   and pages.css. _tokens.css flips the text tokens in dark mode, but
+   bg-white, the Tailwind tints and --color-bg stayed light, so the
+   flipped text sat on white.
+
+   Loads after styles.css and pages.css, and only acts in dark mode.
+   Night Ink: field #14110e, raised #1e1a16, card #2a241f.
+
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  :root:root {
+    --color-bg: #1e1a16;
+    --color-elevated: #2a241f;
+  }
+
+  :root .nav {
+    background-color: rgba(20, 17, 14, 0.85);
+  }
+
+  :root .bg-white {
+    background-color: #2a241f;
+  }
+
+  :root .bg-amber-50,
+  :root .bg-amber-100 {
+    background-color: rgba(224, 184, 96, 0.12);
+  }
+
+  :root .bg-pink-100 {
+    background-color: rgba(236, 72, 153, 0.14);
+  }
+
+  :root .border-amber-200 {
+    border-color: rgba(224, 184, 96, 0.3);
+  }
+
+  :root .text-amber-600 {
+    color: #e0b860;
+  }
+
+  :root .text-pink-500 {
+    color: #f49ac8;
+  }
+
+  /* Dark sage (#4a6741) reads at 2:1 on the dark field */
+  :root .text-ferni,
+  :root .press-email {
+    color: #a5c99a;
+  }
+
+  /* The accent lightens in dark mode, so its skip link takes dark text */
+  :root .skip-link {
+    color: #14110e;
+  }
+
+  /* Initials on the colored persona fills stay light in both themes */
+  :root .persona-card__avatar {
+    color: #faf8f5;
+  }
+}
