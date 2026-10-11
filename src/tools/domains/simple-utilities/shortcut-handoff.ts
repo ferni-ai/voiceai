@@ -42,6 +42,8 @@ export async function handOff(
   shortcut: Shortcut,
   ctx: ToolContext,
   contact: string,
+  /** The shortcut's own run context, so the real tool sees the same call and session. */
+  opts: unknown,
   args: Record<string, unknown>
 ): Promise<string> {
   const { toolId, verb, load } = SHORTCUT_TARGETS[shortcut];
@@ -52,5 +54,5 @@ export async function handOff(
   const def = defs.find((d) => d.id === toolId);
   if (!def) return `I can't ${verb} ${contact} right now, so nothing was sent.`;
   const tool = def.create(ctx);
-  return String(await tool.execute(args, { toolCallId: `${shortcut}-handoff`, ctx: {} }));
+  return String(await tool.execute(args, opts ?? { toolCallId: `${shortcut}-handoff`, ctx: {} }));
 }

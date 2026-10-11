@@ -18,6 +18,8 @@ vi.mock('../../../workflows/scheduled-actions.js', () => ({
 vi.mock('../../../data-layer/hooks/superhuman-hooks.js', () => ({
   onCommitmentKeeperChange: vi.fn(async () => undefined),
 }));
+// No verified phone on the account: every check-in here is a note in the app.
+vi.mock('../../../identity/firebase-auth.js', () => ({ getFirebaseUser: vi.fn(async () => null) }));
 
 const { handleDeliverScheduledActions } =
   await import('../../../../api/scheduled-jobs/background-delivery-jobs.js');
