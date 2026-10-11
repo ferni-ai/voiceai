@@ -39,7 +39,7 @@ Set them signed in as Seth (Firebase ID token):
 curl -X POST https://app.ferni.ai/api/outreach/preferences \
   -H "Authorization: Bearer $FERNI_ID_TOKEN" -H 'Content-Type: application/json' \
   -d '{"preferences":{"enabled":true,"allowedChannels":["sms","call"],
-       "proactiveFrequency":"gentle","quietHours":{"start":"21:00","end":"08:00"}}}'
+       "proactiveFrequency":"gentle"}}'
 ```
 
 ## Verify his phone first (#675)
