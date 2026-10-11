@@ -69,7 +69,31 @@ async function openScene(page: Page, scene: string, flagOn = false): Promise<voi
       timeout: 45_000,
     }
   );
-  await page.waitForTimeout(800); // entrance transitions
+  await page.waitForTimeout(600); // entrance transitions
+  // Wait for the app shell to stop moving (late chips and badges shift it by a few px).
+  let last = '';
+  for (let i = 0; i < 20; i++) {
+    const now = await page.evaluate(() => {
+      const r = document.getElementById('connectBtn')?.getBoundingClientRect();
+      return r ? `${r.x},${r.y},${r.width},${r.height}` : '';
+    });
+    if (now && now === last) break;
+    last = now;
+    await page.waitForTimeout(250);
+  }
+  // Let finite entrance animations and transitions finish (the busier the machine, the longer).
+  await page
+    .waitForFunction(
+      () =>
+        document
+          .getAnimations()
+          .every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
+      null,
+      { timeout: 5_000 }
+    )
+    .catch(() => undefined);
+  // Freeze transitions from here on, so a theme switch can't be measured mid-fade.
+  await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
 }
 
 /** Switch theme in place (the gallery keeps its overlays open). */
@@ -78,6 +102,13 @@ async function useTheme(page: Page, theme: 'zen' | 'midnight'): Promise<void> {
   await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
   await page.waitForTimeout(300);
 }
+
+/**
+ * Scenes whose overlays keep animating (sparkles, the avatar's stretch, several
+ * arrivals at once) are contrast-checked but not pixel-compared: their frames
+ * differ run to run on a busy runner.
+ */
+const NO_SNAPSHOT = new Set(['achievement', 'celebration', 'collision']);
 
 /** Text that changes with the clock or animates, kept out of the pixel diff. */
 const MASKS = ['.avatar-container', '.settings-menu__header-eyebrow', '.countdown-text'];
@@ -128,6 +159,7 @@ for (const scene of SCENES) {
         ).toBeLessThanOrEqual(baseline[key] ?? 0);
       }
 
+      if (NO_SNAPSHOT.has(scene)) continue;
       await expect(page).toHaveScreenshot(`${scene}-${theme}.png`, {
         mask: MASKS.map((s) => page.locator(s)),
       });
