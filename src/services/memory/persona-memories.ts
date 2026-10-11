@@ -94,7 +94,7 @@ export interface FerniMemory extends Memory {
 }
 
 // ============================================================================
-// JACK BOGLE MEMORIES
+// INDEX-INVESTING MEMORIES (Nayan; legacy 'bogle' type)
 // ============================================================================
 
 export interface BogleMemory extends Memory {
@@ -920,7 +920,7 @@ export default {
   rememberPreference,
   rememberWin,
   getFerniMemories,
-  // Bogle
+  // Index investing (Nayan)
   rememberFund,
   rememberInvestingPhilosophy,
   getBogleMemories,
