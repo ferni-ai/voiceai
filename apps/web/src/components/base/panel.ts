@@ -310,7 +310,7 @@ export function injectPanelStyles(): void {
     .ferni-panel-wrapper {
       position: fixed;
       inset: 0;
-      z-index: var(--z-panel, 900);
+      z-index: var(--z-panel);
     }
 
     .ferni-panel {

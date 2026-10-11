@@ -72,7 +72,7 @@ function listFiles(dir: string): string[] {
 }
 
 const SCANNED = ['content/stories', 'content/knowledge'];
-const SCANNED_FILES = ['speech-traits.ts', 'voice-pace-personality.ts', 'persona.manifest.json'];
+const SCANNED_FILES = ['speech-traits.ts', 'persona.manifest.json'];
 
 const files = [
   ...SCANNED.flatMap((dir) => listFiles(join(BUNDLE_DIR, dir))),

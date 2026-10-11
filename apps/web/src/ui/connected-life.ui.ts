@@ -478,7 +478,7 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: var(--z-modal, 2100);
+  z-index: var(--z-modal);
   opacity: 0;
   visibility: hidden;
   transition: opacity ${DURATION.SLOW}ms ${EASING.STANDARD},

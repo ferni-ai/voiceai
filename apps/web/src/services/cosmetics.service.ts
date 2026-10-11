@@ -12,6 +12,7 @@
 import { t } from '../i18n/index.js';
 import { setTheme, type ThemeName } from '../theme/index.js';
 import { createLogger } from '../utils/logger.js';
+import { purchaseOnServer, serverSeeds } from './seeds-ledger.service.js';
 
 const log = createLogger('Cosmetics');
 
@@ -297,14 +298,22 @@ const PREMIUM_VOICE_PACKS: CosmeticItem[] = [
 // ALL COSMETICS CATALOG
 // ============================================================================
 
+/**
+ * Off: nothing on the agent applies a voice pack (getVoicePackModifiers has no
+ * caller) and the web never reaches the room to send one, so a bought pack
+ * changed nothing. Kept out of the catalog, and so out of the store and
+ * purchases, until the agent applies them. Owned items and balances are untouched.
+ */
+const VOICE_PACKS_AVAILABLE = false;
+
 export const COSMETICS_CATALOG: CosmeticItem[] = [
   ...DEFAULT_AVATAR_SKINS,
   ...DEFAULT_UI_THEMES,
-  ...DEFAULT_VOICE_PACKS,
+  ...(VOICE_PACKS_AVAILABLE ? DEFAULT_VOICE_PACKS : []),
   ...PREMIUM_AVATAR_SKINS,
   ...PREMIUM_UI_THEMES,
   ...PREMIUM_SOUND_PACKS,
-  ...PREMIUM_VOICE_PACKS,
+  ...(VOICE_PACKS_AVAILABLE ? PREMIUM_VOICE_PACKS : []),
 ];
 
 const STARTER_SEEDS = 25; // Starter seeds for new users
@@ -313,9 +322,11 @@ const STARTER_SEEDS = 25; // Starter seeds for new users
 // STATE
 // ============================================================================
 
+const DEFAULT_OWNED = ['skin-default', 'theme-default', 'voice-default']; // server DEFAULT_COSMETICS
+
 function createDefaultCosmetics(): UserCosmetics {
   return {
-    ownedItems: ['skin-default', 'theme-default', 'voice-default'],
+    ownedItems: [...DEFAULT_OWNED],
     equipped: {
       'avatar-skin': 'skin-default',
       'ui-theme': 'theme-default',
@@ -330,6 +341,10 @@ function createDefaultCosmetics(): UserCosmetics {
 let userCosmetics: UserCosmetics = createDefaultCosmetics();
 let currentTier: SubscriptionTier = 'free';
 const cosmeticsListeners = new Set<(cosmetics: UserCosmetics) => void>();
+
+/** What this person owns: the server's list once it keeps seeds, else this browser's */
+const ownedIds = (server = serverSeeds()): string[] =>
+  server ? [...DEFAULT_OWNED, ...server.ownedCosmetics] : userCosmetics.ownedItems;
 
 // ============================================================================
 // CORE FUNCTIONS
@@ -354,55 +369,44 @@ export function initCosmeticsService(): void {
   // Apply equipped cosmetics
   applyEquippedCosmetics();
 
+  // The server's balance or items changed (seeds-ledger.service)
+  document.addEventListener('ferni:cosmetics-change', notifyListeners);
+
   log.info('Cosmetics service initialized');
 }
 
-/**
- * Set subscription tier (affects what can be purchased)
- */
+/** Set subscription tier (affects what can be purchased) */
 export function setSubscriptionTier(tier: SubscriptionTier): void {
   currentTier = tier;
   log.debug({ tier }, 'Subscription tier set');
 }
 
-/**
- * Get all cosmetics (for shop display)
- */
+/** Get all cosmetics (for shop display) */
 export function getAllCosmetics(): CosmeticItem[] {
   return COSMETICS_CATALOG;
 }
 
-/**
- * Get cosmetics by type
- */
+/** Get cosmetics by type */
 export function getCosmeticsByType(type: CosmeticType): CosmeticItem[] {
   return COSMETICS_CATALOG.filter((c) => c.type === type);
 }
 
-/**
- * Get user's owned cosmetics
- */
+/** Get user's owned cosmetics */
 export function getOwnedCosmetics(): CosmeticItem[] {
-  return COSMETICS_CATALOG.filter((c) => userCosmetics.ownedItems.includes(c.id));
+  return COSMETICS_CATALOG.filter((c) => ownedIds().includes(c.id));
 }
 
-/**
- * Get user's equipped cosmetics
- */
+/** Get user's equipped cosmetics */
 export function getEquippedCosmetics(): UserCosmetics['equipped'] {
   return { ...userCosmetics.equipped };
 }
 
-/**
- * Check if user owns a cosmetic
- */
+/** Check if user owns a cosmetic */
 export function ownsCosmetic(cosmeticId: string): boolean {
-  return userCosmetics.ownedItems.includes(cosmeticId);
+  return ownedIds().includes(cosmeticId);
 }
 
-/**
- * Check if user can purchase a cosmetic
- */
+/** Check if user can purchase a cosmetic */
 export function canPurchase(cosmeticId: string): { canBuy: boolean; reason?: string } {
   const cosmetic = COSMETICS_CATALOG.find((c) => c.id === cosmeticId);
 
@@ -428,7 +432,7 @@ export function canPurchase(cosmeticId: string): { canBuy: boolean; reason?: str
   }
 
   // Check seed balance
-  if (userCosmetics.seedBalance < cosmetic.priceInSeeds) {
+  if (getSeedBalance() < cosmetic.priceInSeeds) {
     return { canBuy: false, reason: 'Need more Seeds' };
   }
 
@@ -459,6 +463,12 @@ export function purchaseCosmetic(cosmeticId: string): boolean {
 
   log.info({ cosmeticId, newBalance: userCosmetics.seedBalance }, 'Cosmetic purchased');
   return true;
+}
+
+/** Buy on the server once it keeps seeds (its price, charged once), else in this browser */
+export async function buyCosmetic(cosmeticId: string): Promise<boolean> {
+  if (!serverSeeds()) return purchaseCosmetic(cosmeticId);
+  return canPurchase(cosmeticId).canBuy && purchaseOnServer(cosmeticId);
 }
 
 /**
@@ -502,26 +512,24 @@ export function unequipCosmetic(type: CosmeticType): void {
   log.info({ type }, 'Cosmetic unequipped');
 }
 
-/**
- * Get seed balance
- */
+/** Get seed balance */
 export function getSeedBalance(): number {
-  return userCosmetics.seedBalance;
+  return serverSeeds()?.balance ?? userCosmetics.seedBalance;
 }
 
 /**
  * Add seeds (for purchases, rewards, etc.)
  */
 export function addSeeds(amount: number): void {
+  // The server pays its own earns once it keeps seeds
+  if (serverSeeds()) return;
   userCosmetics.seedBalance += amount;
   saveCosmetics();
   notifyListeners();
   log.info({ amount, newBalance: userCosmetics.seedBalance }, 'Seeds added');
 }
 
-/**
- * Subscribe to cosmetics changes
- */
+/** Subscribe to cosmetics changes */
 export function onCosmeticsChange(listener: (cosmetics: UserCosmetics) => void): () => void {
   cosmeticsListeners.add(listener);
   return () => cosmeticsListeners.delete(listener);
