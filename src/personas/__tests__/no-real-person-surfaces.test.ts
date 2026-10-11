@@ -1,12 +1,13 @@
 /**
- * The surfaces people see a persona through (web persona cards, design-system
- * persona tokens, the team page, the legends landing page, and what teammates
+ * The surfaces people see a persona through (design-system persona tokens, the team page, the legends landing page, and what teammates
  * say about each other) carry fictional characters, never the real people the
  * personas were first modelled on (Seth, 2026-10-11).
  *
  * Persona ids still carry the old names (`john-bogle`, `peter-lynch`,
  * `joel-dickson`) until the id migration, so ids and id-shaped tokens are
- * stripped before matching; everything a person can read is checked.
+ * stripped before matching; everything a person can read is checked. The web
+ * persona cards (personas.generated.json) are regenerated from the bundle
+ * manifests, whose own tests guard them.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -30,34 +31,13 @@ function strings(value: unknown): string[] {
   return [];
 }
 
-const SHOWN_FIELDS = ['name', 'description', 'subtitle', 'entrancePhrase', 'quotes', 'traits', 'domains'] as const;
-
-describe('web persona cards', () => {
-  const config = JSON.parse(read('apps/web/src/config/personas.generated.json')) as {
-    personas: Record<string, Record<string, unknown>>;
-    legends: Record<string, Record<string, unknown>>;
-  };
-  const cards = { ...config.personas, ...config.legends };
-
-  it.each(Object.keys(cards))('%s shows no real person', (id) => {
-    const shown = SHOWN_FIELDS.flatMap((field) => strings(cards[id]?.[field]));
-    expect(shown.length).toBeGreaterThan(3);
-    for (const text of shown) expect(readable(text), `${id}: ${text}`).not.toMatch(REAL_PEOPLE);
-  });
-
-  it('names the legends by their fictional characters', () => {
-    expect(config.legends['john-bogle']?.name).toBe('Henry Caldwell');
-    expect(config.legends['peter-lynch']?.name).toBe('Tom Brannigan');
-    expect(config.legends['joel-dickson']?.name).toBe('Nate Holloway');
-  });
-});
-
 describe('design-system persona tokens', () => {
   it('name and describe no real person', () => {
     const tokens = strings(JSON.parse(read('design-system/tokens/personas.json')));
     const colors = strings(JSON.parse(read('design-system/tokens/colors.json')));
     expect(tokens.length).toBeGreaterThan(50);
-    for (const text of [...tokens, ...colors]) expect(readable(text), text).not.toMatch(REAL_PEOPLE);
+    for (const text of [...tokens, ...colors])
+      expect(readable(text), text).not.toMatch(REAL_PEOPLE);
   });
 });
 

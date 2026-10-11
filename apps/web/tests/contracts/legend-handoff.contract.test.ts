@@ -1,9 +1,9 @@
 /**
  * Financial Legend handoff contract: agent → web.
  *
- * When the voice agent hands a call to a Financial Legend (Tom Brannigan, Henry
- * Caldwell, Nate Holloway: ids peter-lynch, john-bogle, joel-dickson), the web must show THAT person. Before this, the web
- * mapped `peter-lynch` to Peter John on purpose, so a handoff to the stock-picking legend
+ * When the voice agent hands a call to a Financial Legend (Peter Lynch, John
+ * Bogle, Joel Dickson), the web must show THAT person. Before this, the web
+ * mapped `peter-lynch` to Peter John on purpose, so a handoff to Peter Lynch
  * showed Peter John's name, face and colour.
  *
  * The message is built by the backend's REAL code: the id is canonicalized by
@@ -48,7 +48,7 @@ afterEach(() => {
 });
 
 describe('handoff to a Financial Legend', () => {
-  it('shows Tom Brannigan (peter-lynch), with his own initials and token colour, not Peter John', async () => {
+  it('shows Peter Lynch, with his own initials and token colour, not Peter John', async () => {
     const completedTo: string[] = [];
     cleanups.push(handoffService.onHandoffComplete((to) => completedTo.push(to)));
 
@@ -58,8 +58,8 @@ describe('handoff to a Financial Legend', () => {
 
     const speaking = appState.get('activePersona');
     expect(speaking.id).toBe('peter-lynch');
-    expect(speaking.name).toBe('Tom Brannigan');
-    expect(speaking.initials).toBe('TB');
+    expect(speaking.name).toBe('Peter Lynch');
+    expect(speaking.initials).toBe('PL');
     expect(speaking.subtitle).toBe('Stock Picking Guide');
     expect(speaking.colors.primary).toBe(GENERATED_PERSONA_COLORS['lynch']?.primary);
     expect(speaking.colors.primary).not.toBe(PERSONAS['peter-john'].colors.primary);
@@ -73,15 +73,15 @@ describe('handoff to a Financial Legend', () => {
     );
   });
 
-  it('shows Henry Caldwell and Nate Holloway as themselves', async () => {
+  it('shows John Bogle and Joel Dickson as themselves', async () => {
     await handoffService.processDataMessage(handoffCompleteFromAgent('john-bogle'));
-    expect(appState.get('activePersona').name).toBe('Henry Caldwell');
+    expect(appState.get('activePersona').name).toBe('John Bogle');
     expect(appState.get('activePersona').colors.primary).toBe(
       GENERATED_PERSONA_COLORS['bogle']?.primary
     );
 
     await handoffService.processDataMessage(handoffCompleteFromAgent('joel-dickson'));
-    expect(appState.get('activePersona').name).toBe('Nate Holloway');
+    expect(appState.get('activePersona').name).toBe('Joel Dickson');
     expect(appState.get('activePersona').colors.primary).toBe(
       GENERATED_PERSONA_COLORS['joel']?.primary
     );
