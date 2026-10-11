@@ -34,7 +34,7 @@ const parameters = z.object({
   topic: z
     .string()
     .describe(
-      'A generic topic in a few words, e.g. "beginner shin splint stretches"; no names, places or personal details'
+      'A generic lowercase topic in a few words, e.g. "beginner shin splint stretches"; no names, places or personal details'
     ),
   format: z
     .enum(['any', 'video', 'book', 'article'])
