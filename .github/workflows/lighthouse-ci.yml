@@ -6,7 +6,7 @@ name: Lighthouse CI
 on:
   pull_request:
     paths:
-      - 'promo/ferni-website/**'
+      - 'apps/website/ferni-website/**'
       - '.github/workflows/lighthouse-ci.yml'
   schedule:
     # Run weekly on Sundays at 6am UTC
