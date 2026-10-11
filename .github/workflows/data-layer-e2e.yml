@@ -36,6 +36,12 @@ on:
       - 'firebase.json'
   workflow_dispatch:
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   firestore-e2e:
     name: Firestore Emulator E2E

@@ -11,7 +11,16 @@ on:
   pull_request:
     paths:
       - 'apps/web/**'
-      - 'src/**'
+      # What the walk exercises: the API server and the layers under it. Voice-only
+      # code (agents, speech, conversation, tools, personas) is still walked on every
+      # push to main, without paths.
+      - 'src/servers/**'
+      - 'src/api/**'
+      - 'src/services/**'
+      - 'src/memory/**'
+      - 'src/config/**'
+      - 'src/types/**'
+      - 'src/utils/**'
       - 'e2e/signed-in/**'
       - 'playwright.signed-in.config.ts'
       - 'firebase.json'
@@ -22,9 +31,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
 concurrency:
-  group: signed-in-e2e-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

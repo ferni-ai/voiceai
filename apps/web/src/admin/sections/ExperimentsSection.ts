@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { adminFetch } from '../admin-fetch.js';
 import { toast } from '../../ui/whisper.ui.js';
 import {
   ICON_CHART,
@@ -78,7 +79,7 @@ interface ExperimentsResponse {
 
 async function fetchExperiments(): Promise<ExperimentsResponse> {
   try {
-    const response = await fetch('/api/v1/admin/experiments');
+    const response = await adminFetch('/api/v1/admin/experiments');
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
   } catch (error) {
@@ -92,7 +93,7 @@ async function fetchExperiments(): Promise<ExperimentsResponse> {
 
 async function startExperiment(id: string): Promise<boolean> {
   try {
-    const response = await fetch(`/api/v1/admin/experiments/${id}/start`, {
+    const response = await adminFetch(`/api/v1/admin/experiments/${id}/start`, {
       method: 'POST',
     });
     return response.ok;
@@ -104,7 +105,7 @@ async function startExperiment(id: string): Promise<boolean> {
 
 async function pauseExperiment(id: string): Promise<boolean> {
   try {
-    const response = await fetch(`/api/v1/admin/experiments/${id}/pause`, {
+    const response = await adminFetch(`/api/v1/admin/experiments/${id}/pause`, {
       method: 'POST',
     });
     return response.ok;
@@ -116,9 +117,8 @@ async function pauseExperiment(id: string): Promise<boolean> {
 
 async function completeExperiment(id: string, winner: string): Promise<boolean> {
   try {
-    const response = await fetch(`/api/v1/admin/experiments/${id}/complete`, {
+    const response = await adminFetch(`/api/v1/admin/experiments/${id}/complete`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ winner }),
     });
     return response.ok;

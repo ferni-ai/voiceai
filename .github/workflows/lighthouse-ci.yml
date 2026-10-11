@@ -20,6 +20,12 @@ env:
   BEST_PRACTICES_BUDGET: 85
   SEO_BUDGET: 90
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   lighthouse:
     name: Lighthouse Audit
