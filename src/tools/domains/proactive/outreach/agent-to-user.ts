@@ -392,7 +392,8 @@ Use when you need to reach them right now outside of the conversation.`,
 };
 
 /**
- * Call the user
+ * Call the user. Registered by the telephony domain (behind
+ * TOOLS_REAL_CALL_USER), not here, so there is one callUser.
  */
 export const callUserDef: ToolDefinition = {
   id: 'callUser',
@@ -435,7 +436,7 @@ Use for important check-ins or when a phone call is more personal than text.`,
 // ============================================================================
 
 export function getAgentToUserOutreachDefinitions(): ToolDefinition[] {
-  return [saveContactInfoDef, scheduleReminderDef, sendImmediateOutreachDef, callUserDef];
+  return [saveContactInfoDef, scheduleReminderDef, sendImmediateOutreachDef];
 }
 
 export default getAgentToUserOutreachDefinitions;
