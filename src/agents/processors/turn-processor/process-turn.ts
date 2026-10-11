@@ -190,7 +190,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // SAFETY FIRST: Crisis detection runs BEFORE anything else
   // The classifier's verdict is awaited (turn-crisis.ts) before any LLM bypass and the result.
-  const turnCrisis = startTurnCrisis(userText, userData);
+  const turnCrisis = startTurnCrisis(userText, userData, { sessionId: services.sessionId });
   const crisisResult = turnCrisis.patterns;
 
   if (hasCrisisSignal(crisisResult)) {
@@ -1510,7 +1510,7 @@ If they're just conversing, respond naturally without a tool call.`,
     easterEgg,
     valueCapture: valueCaptureResult,
     advancedHumanization,
-    crisis: crisisSummary(finalCrisis),
+    crisis: crisisSummary(finalCrisis, await turnCrisis.softCheck()),
     trustContext: trustContextSummary,
     semanticRouting,
     resonanceCheck,

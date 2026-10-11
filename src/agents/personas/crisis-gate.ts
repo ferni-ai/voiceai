@@ -23,7 +23,13 @@ import type { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 
 import {
+  agreementOutcome,
+  resolveCrisisAgreementGate,
+  SOFT_CRISIS_CHECK,
+} from '../../services/safety/crisis-agreement.js';
+import {
   startCrisisClassifier,
+  turnVerdicts,
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -96,6 +102,14 @@ function callerWords(chatCtx: llm.ChatContext): {
   return { latest: latest.join(' '), earlier: said, companion };
 }
 
+/** The call's session id, which the reply gate and the turn pipeline share. */
+function sessionScope(userData: unknown): string | undefined {
+  return (
+    (userData as { services?: { sessionId?: string } } | undefined)?.services?.sessionId ||
+    undefined
+  );
+}
+
 export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
     return { action: 'replace', script: crisis.suggestedResponse };
@@ -133,14 +147,27 @@ export function startCrisisGate(
 
   const pattern =
     decision.action === 'replace' ? 'block' : decision.action === 'guide' ? 'crisis' : 'none';
-  const run = startCrisisClassifier({ latest, earlier, companion }, { pattern, env, generate });
+  // The agreement gate weighs this read against the turn pipeline's (crisis-agreement.ts).
+  const scope = resolveCrisisAgreementGate(env) ? sessionScope(userData) : undefined;
+  const run = startCrisisClassifier(
+    { latest, earlier, companion },
+    { pattern, env, generate, scope }
+  );
   if (run?.mode !== 'live' || decision.action === 'replace') return { decision, escalation: null };
 
-  const escalation = run.verdict.then((verdict): CrisisGateDecision | null => {
+  const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
     const merged = applyClassifierVerdict(detection, verdict);
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
+    if (scope) {
+      const verdicts = await turnVerdicts(scope, latest);
+      const outcome = agreementOutcome({ pattern, verdicts, latest, companion });
+      if (outcome !== 'escalate') {
+        log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');
+        return outcome === 'soft' ? { action: 'guide', guidance: SOFT_CRISIS_CHECK } : null;
+      }
+    }
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },
       'CRISIS_GATE'
