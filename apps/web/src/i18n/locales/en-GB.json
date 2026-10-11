@@ -3300,8 +3300,8 @@
     "categorySweet": "Sweet Moments",
     "connectionConnected": "We're connected",
     "connectionConnecting": "Connecting...",
-    "connectionDisconnected": "We're not connected",
-    "connectionDisconnectedMessage": "Something went wrong, but we can try again.",
+    "connectionIdle": "Ready when you are",
+    "connectionIdleMessage": "Whenever you want to talk, I'm here.",
     "connectionError": "Connection lost",
     "connectionErrorMessage": "Something went wrong, but we can try again.",
     "connectionReconnect": "Reconnect",
@@ -10599,6 +10599,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "Relationship progress",
+    "emptyInvite": "Our story starts with your first conversation.",
     "progress": "progress",
     "next": "Next: {stage}",
     "stages": {

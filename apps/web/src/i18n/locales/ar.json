@@ -3388,8 +3388,8 @@
     "categorySweet": "لحظات لطيفة",
     "connectionConnected": "متصلون",
     "connectionConnecting": "جاري الاتصال...",
-    "connectionDisconnected": "غير متصلين",
-    "connectionDisconnectedMessage": "حدث خطأ ما، ولكن يمكن المحاولة مجددًا.",
+    "connectionIdle": "نحن جاهزون متى شئت",
+    "connectionIdleMessage": "كلما أردت الحديث، أنا هنا.",
     "connectionError": "انقطع الاتصال",
     "connectionErrorMessage": "حدث خطأ ما، ولكن يمكن المحاولة مجددًا.",
     "connectionReconnect": "إعادة الاتصال",
@@ -11043,6 +11043,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "تقدم العلاقة",
+    "emptyInvite": "قصتنا تبدأ مع أول محادثة بيننا.",
     "progress": "التقدم",
     "next": "التالي: {stage}",
     "stages": {

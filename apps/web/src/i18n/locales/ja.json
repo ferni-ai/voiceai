@@ -3300,8 +3300,8 @@
     "categorySweet": "心温まる瞬間",
     "connectionConnected": "つながっています",
     "connectionConnecting": "接続中...",
-    "connectionDisconnected": "接続されていません",
-    "connectionDisconnectedMessage": "何か問題が発生したようです。もう一度お試しください。",
+    "connectionIdle": "いつでもどうぞ",
+    "connectionIdleMessage": "話したくなったら、いつでもここにいます。",
     "connectionError": "接続が切れました",
     "connectionErrorMessage": "何か問題が発生したようです。もう一度お試しください。",
     "connectionReconnect": "再接続する",
@@ -10599,6 +10599,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "関係の進捗",
+    "emptyInvite": "私たちの物語は、最初の会話から始まります。",
     "progress": "進捗",
     "next": "次：{stage}",
     "stages": {
