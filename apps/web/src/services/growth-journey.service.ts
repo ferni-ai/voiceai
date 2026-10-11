@@ -276,8 +276,8 @@ function generateNewYearMilestones(seasonId: string): JourneyMilestone[] {
   ];
 }
 
-// Current season is determined dynamically
-const CURRENT_SEASON: Season = determineCurrentSeason();
+let seasonCache: Season | null = null; // built on first use: t() needs initI18n first
+const currentSeason = (): Season => (seasonCache ??= determineCurrentSeason());
 
 function generateMilestones(seasonId: string): JourneyMilestone[] {
   return [
@@ -409,7 +409,7 @@ function generateMilestones(seasonId: string): JourneyMilestone[] {
 // STATE
 // ============================================================================
 
-let journeyProgress: JourneyProgress = createDefaultProgress(CURRENT_SEASON.id);
+let journeyProgress: JourneyProgress = createDefaultProgress('');
 const progressListeners = new Set<(progress: JourneyProgress) => void>();
 
 function createDefaultProgress(seasonId: string): JourneyProgress {
@@ -432,17 +432,18 @@ function createDefaultProgress(seasonId: string): JourneyProgress {
  * Initialize the journey service
  */
 export function init(): void {
+  if (!journeyProgress.seasonId) journeyProgress.seasonId = currentSeason().id;
   const saved = localStorage.getItem('ferni_journey_progress');
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      if (parsed.seasonId === CURRENT_SEASON.id) {
+      if (parsed.seasonId === currentSeason().id) {
         journeyProgress = {
           ...parsed,
           startedAt: new Date(parsed.startedAt),
         };
       } else {
-        journeyProgress = createDefaultProgress(CURRENT_SEASON.id);
+        journeyProgress = createDefaultProgress(currentSeason().id);
         saveProgress();
       }
     } catch {
@@ -457,7 +458,6 @@ export function init(): void {
   // Listen to conversation END (not start) to count completed conversations
   window.addEventListener('ferni:conversation-end', () => {
     const newMilestones = recordConversation();
-    
     if (newMilestones.length > 0) {
       log.info({ count: newMilestones.length }, 'New milestones ready to celebrate');
       
@@ -477,7 +477,7 @@ export function init(): void {
  * Get current season
  */
 export function getCurrentSeason(): Season {
-  return { ...CURRENT_SEASON };
+  return { ...currentSeason() };
 }
 
 /**
@@ -492,7 +492,7 @@ export function getProgress(): JourneyProgress {
  */
 export function isSeasonActive(): boolean {
   const now = new Date();
-  return now >= CURRENT_SEASON.startDate && now <= CURRENT_SEASON.endDate;
+  return now >= currentSeason().startDate && now <= currentSeason().endDate;
 }
 
 /**
@@ -500,7 +500,7 @@ export function isSeasonActive(): boolean {
  */
 export function getDaysRemaining(): number {
   const now = new Date();
-  const diff = CURRENT_SEASON.endDate.getTime() - now.getTime();
+  const diff = currentSeason().endDate.getTime() - now.getTime();
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
@@ -555,7 +555,7 @@ function checkForNewMilestones(): JourneyMilestone[] {
 
   const newMilestones: JourneyMilestone[] = [];
 
-  for (const milestone of CURRENT_SEASON.milestones) {
+  for (const milestone of currentSeason().milestones) {
     // Already celebrated?
     if (journeyProgress.celebratedMilestones.includes(milestone.id)) continue;
 
@@ -593,7 +593,7 @@ export function getAllMilestonesWithStatus(): Array<
 > {
   updateWeeksTogether();
 
-  return CURRENT_SEASON.milestones.map((milestone) => {
+  return currentSeason().milestones.map((milestone) => {
     let status: 'celebrated' | 'ready' | 'upcoming';
 
     if (journeyProgress.celebratedMilestones.includes(milestone.id)) {
@@ -627,7 +627,7 @@ export function celebrateMilestone(milestoneId: string): {
   milestone?: JourneyMilestone;
   error?: string;
 } {
-  const milestone = CURRENT_SEASON.milestones.find((m) => m.id === milestoneId);
+  const milestone = currentSeason().milestones.find((m) => m.id === milestoneId);
 
   if (!milestone) {
     return { success: false, error: 'Milestone not found' };
@@ -674,7 +674,7 @@ export async function becomeCompanion(): Promise<{ success: boolean; error?: str
   try {
     const response = await apiPost<{ message?: string }>(
       '/api/monetization/journey/companion',
-      { seasonId: CURRENT_SEASON.id }
+      { seasonId: currentSeason().id }
     );
 
     if (!response.ok) {
@@ -704,7 +704,7 @@ export function isCompanion(): boolean {
  * Get companion price
  */
 export function getCompanionPrice(): number {
-  return CURRENT_SEASON.companionPriceInCents || 0;
+  return currentSeason().companionPriceInCents || 0;
 }
 
 // ============================================================================
