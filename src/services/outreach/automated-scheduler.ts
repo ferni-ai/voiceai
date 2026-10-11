@@ -506,11 +506,6 @@ async function recordOutreachSent(
 // ============================================================================
 
 /**
- * Handler for Cloud Scheduler HTTP trigger
- *
- * Called by: Cloud Scheduler job hitting /api/outreach/scheduler/daily
- */
-/**
  * The scheduled daily run. Callers must have authenticated the request
  * (outreach.routes.ts accepts Cloud Scheduler's OIDC token or an admin); a
  * header check here was spoofable.
@@ -524,14 +519,3 @@ export async function handleSchedulerTrigger(
     dryRun: opts.dryRun === true,
   });
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export const automatedScheduler = {
-  runDaily: runDailyOutreach,
-  handleTrigger: handleSchedulerTrigger,
-};
-
-export default automatedScheduler;
