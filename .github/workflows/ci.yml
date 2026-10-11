@@ -34,8 +34,12 @@ on:
 
 # A new push to a PR supersedes its running checks. Merge-queue entries and pushes to
 # main always finish: cancelling one drops the queue entry or main's only verdict.
+# Pushes share one group per branch, so a running main build finishes but only the
+# newest waiting one is kept: its verdict covers every commit before it. Before this,
+# each merge queued its own full run and 87 waited at once, holding the runners the
+# merge queue needed (2026-10-11).
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || (github.event_name == 'push' && github.ref) || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
