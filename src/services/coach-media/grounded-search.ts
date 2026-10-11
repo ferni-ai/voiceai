@@ -1,12 +1,7 @@
 /**
- * A short web answer with its sources, from Gemini's Google Search grounding
- * on the shared client (Vertex, no new key): DuckDuckGo instant answers
- * (searchWeb) come back empty for most coaching asks. Grounding is its own
- * request because Vertex won't combine it with function calling. Vertex source
- * links are redirects, resolved without following them so the user gets a
- * link that lasts. Google's terms ask that sources and Search suggestions be
- * shown to the user, so they're returned for the card, never the model's text.
- *
+ * A short web answer with sources from Gemini's Search grounding (shared Vertex
+ * client), as its own request: Vertex won't mix grounding with function calls.
+ * Sources and Search suggestions are for the user's card, never the model.
  * @module services/coach-media/grounded-search
  */
 
@@ -16,8 +11,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 export interface WebSource {
   title: string;
   url: string;
-  /** The answer's own sentence this page supports, when grounding says so. */
-  summary?: string;
+  summary?: string; // the answer's sentence this page supports
 }
 
 export interface GroundedAnswer {
