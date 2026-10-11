@@ -13,10 +13,8 @@ vi.mock('../../superhuman/firestore-utils.js', () => ({
     }),
   }),
 }));
-vi.mock('../../contacts/optimal-timing.js', () => ({ getTimingRecommendation: vi.fn() }));
 
 const qh = await import('../quiet-hours.js');
-const { evaluateTiming } = await import('../scheduling/send-window-optimizer.js');
 
 const at = (iso: string): Date => new Date(iso);
 /** 04:00 in New York. */
@@ -113,28 +111,5 @@ describe('userQuietHours reads the stored user', () => {
     expect((await qh.callQuietHours('u1', NY_4AM)).quiet).toBe(false);
     process.env.QUIET_HOURS_UNIFIED = 'on';
     expect((await qh.callQuietHours('u1', NY_4AM)).quiet).toBe(true);
-  });
-});
-
-describe('send-window-optimizer behind QUIET_HOURS_UNIFIED', () => {
-  const state = {
-    userId: 'u1',
-    preferences: { quietHoursStart: '22:00', quietHoursEnd: '08:00', timezone: NY },
-    patterns: { preferredHours: [], preferredDays: [] },
-  } as never;
-  const trigger = { priority: 'high' } as never;
-
-  it('off: the server clock (UTC) lets 4am ET through', async () => {
-    process.env.TZ = 'UTC';
-    const r = await evaluateTiming(state, trigger, NY_4AM);
-    expect(r.reason).not.toBe('Quiet hours');
-  });
-
-  it('on: 4am ET is quiet and waits until 8am ET', async () => {
-    process.env.TZ = 'UTC';
-    process.env.QUIET_HOURS_UNIFIED = 'on';
-    const r = await evaluateTiming(state, trigger, NY_4AM);
-    expect(r).toMatchObject({ defer: true, reason: 'Quiet hours' });
-    expect(r.deferUntil?.toISOString()).toBe('2026-10-11T12:00:00.000Z');
   });
 });

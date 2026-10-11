@@ -29,10 +29,6 @@ import type {
   AlertCategory,
 } from './types.js';
 import { DEFAULT_ALERT_PREFERENCES } from './types.js';
-import {
-  isQuietHoursUnified,
-  isUserQuietBetween,
-} from '../../../../services/outreach/quiet-hours.js';
 import { checkWeatherCalendarConflicts, checkWeatherAlerts } from './weather-calendar.js';
 
 // Re-export types
@@ -160,10 +156,7 @@ export async function checkAllAlerts(context: AlertGenerationContext): Promise<P
   const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
   if (prefs.quietHoursStart && prefs.quietHoursEnd) {
-    // Off: on the server clock, which is UTC on Cloud Run.
-    const inQuietHours = isQuietHoursUnified()
-      ? await isUserQuietBetween(userId, prefs.quietHoursStart, prefs.quietHoursEnd, now)
-      : isInQuietHours(currentTime, prefs.quietHoursStart, prefs.quietHoursEnd);
+    const inQuietHours = isInQuietHours(currentTime, prefs.quietHoursStart, prefs.quietHoursEnd);
     if (inQuietHours) {
       // Only allow critical alerts during quiet hours
       const criticalAlerts = filteredAlerts.filter((a) => a.urgency === 'critical');

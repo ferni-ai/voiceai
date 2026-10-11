@@ -19,7 +19,6 @@ import {
   type GroupOutreachResult,
 } from './group-outreach.js';
 import { ferniCheckInOutreach, mayaHabitOutreach } from './outbound-initiator.js';
-import { isQuietHoursUnified, userQuietHours } from '../outreach/quiet-hours.js';
 
 const log = createLogger({ module: 'SuperhumanOutreachIntelligence' });
 
@@ -38,8 +37,6 @@ function checkTimingIntelligence(context: {
   lastOutreachAt?: Date;
   quietHoursStart?: number;
   quietHoursEnd?: number;
-  /** Set when QUIET_HOURS_UNIFIED=on, from the user's stored quiet hours. */
-  quietNow?: boolean;
 }): { canOutreach: boolean; reason?: string } {
   const now = new Date();
   const currentHour = now.getHours();
@@ -48,10 +45,9 @@ function checkTimingIntelligence(context: {
   const quietEnd = context.quietHoursEnd ?? DEFAULT_QUIET_HOURS_END;
 
   const isQuietHours =
-    context.quietNow ??
-    (quietStart > quietEnd
+    quietStart > quietEnd
       ? currentHour >= quietStart || currentHour < quietEnd
-      : currentHour >= quietStart && currentHour < quietEnd);
+      : currentHour >= quietStart && currentHour < quietEnd;
 
   if (isQuietHours) {
     return {
@@ -139,8 +135,7 @@ export async function processSuperhumanSignals(
   const hasCrisis = signals.some((s) => s.type === 'crisis_detected');
 
   if (!hasUrgentSignal && !hasCrisis) {
-    const quietNow = isQuietHoursUnified() ? (await userQuietHours(userId)).quiet : undefined;
-    const timing = checkTimingIntelligence({ ...userContext, quietNow });
+    const timing = checkTimingIntelligence(userContext);
     if (!timing.canOutreach) {
       log.debug({ userId, reason: timing.reason }, '⏰ Outreach deferred due to timing');
       return null;
@@ -242,7 +237,7 @@ export async function processSuperhumanSignals(
     '🎯 Selected outreach rule'
   );
 
-  return executeOutreachAction(userId, selectedRule.action, userContext);
+  return await executeOutreachAction(userId, selectedRule.action, userContext);
 }
 
 // ============================================================================

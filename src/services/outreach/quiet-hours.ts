@@ -119,15 +119,6 @@ export function quietEndsAt(
   return next;
 }
 
-/** For callers that keep the window as 'HH:MM' strings next to a time zone. */
-export function isQuietBetween(at: Date, start?: string, end?: string, tz?: string): boolean {
-  return isQuietAt(at, parseQuietWindow(start, end), quietZones(tz));
-}
-
-export function quietBetweenEndsAt(at: Date, start?: string, end?: string, tz?: string): Date {
-  return quietEndsAt(at, parseQuietWindow(start, end), quietZones(tz));
-}
-
 export function isUserQuiet(user: QuietHoursUser | undefined, now = new Date()): boolean {
   return isQuietAt(now, quietWindowOf(user), quietZonesOf(user));
 }
@@ -150,17 +141,6 @@ export async function userQuietHours(userId: string, now = new Date()): Promise<
   const zones = quietZonesOf(user);
   const quiet = isQuietAt(now, window, zones);
   return { quiet, until: quiet ? quietEndsAt(now, window, zones) : now };
-}
-
-/** A window kept elsewhere as 'HH:MM' strings, read in this user's time zone. */
-export async function isUserQuietBetween(
-  userId: string,
-  start?: string,
-  end?: string,
-  now = new Date()
-): Promise<boolean> {
-  const zones = quietZonesOf(await loadQuietHoursUser(userId));
-  return isQuietAt(now, parseQuietWindow(start, end), zones);
 }
 
 /**

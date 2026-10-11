@@ -16,8 +16,8 @@ import {
   type DayOfWeek,
 } from '../../contacts/optimal-timing.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import type { OutreachTrigger, UserOutreachState } from '../decision-engine-types.js';
-import { isQuietBetween, isQuietHoursUnified, quietBetweenEndsAt } from '../quiet-hours.js';
+import type { UserOutreachState } from '../decision-engine-types.js';
+import type { OutreachTrigger } from '../decision-engine-types.js';
 
 const log = getLogger().child({ service: 'send-window-optimizer' });
 
@@ -97,22 +97,15 @@ export async function evaluateTiming(
   const hour = now.getHours();
   const day = now.getDay();
 
-  // Check quiet hours. Off: whole hours on the server clock.
-  const { quietHoursStart, quietHoursEnd, timezone } = state.preferences;
-  const quietStart = parseInt(quietHoursStart.split(':')[0]);
-  const quietEnd = parseInt(quietHoursEnd.split(':')[0]);
-  const unified = isQuietHoursUnified();
+  // Check quiet hours
+  const quietStart = parseInt(state.preferences.quietHoursStart.split(':')[0]);
+  const quietEnd = parseInt(state.preferences.quietHoursEnd.split(':')[0]);
 
-  const inQuietHours = unified
-    ? isQuietBetween(now, quietHoursStart, quietHoursEnd, timezone)
-    : (quietStart > quietEnd && (hour >= quietStart || hour < quietEnd)) ||
-      (quietStart <= quietEnd && hour >= quietStart && hour < quietEnd);
+  const inQuietHours =
+    (quietStart > quietEnd && (hour >= quietStart || hour < quietEnd)) ||
+    (quietStart <= quietEnd && hour >= quietStart && hour < quietEnd);
 
   if (inQuietHours && trigger.priority !== 'urgent') {
-    if (unified) {
-      const deferUntil = quietBetweenEndsAt(now, quietHoursStart, quietHoursEnd, timezone);
-      return { defer: true, reason: 'Quiet hours', deferUntil };
-    }
     const deferUntil = new Date(now);
     deferUntil.setHours(quietEnd, 0, 0, 0);
     if (hour >= quietStart) {
