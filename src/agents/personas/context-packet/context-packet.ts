@@ -34,8 +34,8 @@ export const SECTION_BUDGETS: Readonly<Record<SectionName, number>> = {
   right_now: 80,
   what_i_remember: 300,
   what_ive_promised: 100,
-  // The turn's style reminder alone is ~250 tokens (turn-style.ts) and must fit.
-  this_turn: 360,
+  // The per-turn shape reminder alone is ~575 tokens (turn-shape.ts) and must fit.
+  this_turn: 800,
   team: 100,
   data: 400,
 };
