@@ -3045,8 +3045,7 @@ class VoiceAIApp {
       thinkingUI.hide();
     });
 
-    // When handoff fails - hide indicator and show error
-    // FIX AUDIT GAP #1: Now receives rollbackTo to restore waveform/avatar persona
+    // When handoff fails: hide indicator, restore persona (rollbackTo), show the error or decline
     handoffService.onHandoffFailed((error, targetPersona, rollbackTo, userMessage) => {
       log.error('onHandoffFailed:', { error, targetPersona, rollbackTo });
       // FIX BUG: Clear safety timeout
@@ -3066,8 +3065,6 @@ class VoiceAIApp {
       }
 
       thinkingUI.hide();
-      // A locked teammate comes back with a warm decline: show it where it can't be missed
-      // (a tap on Nayan on dev, 2026-10-11, showed nothing anyone noticed)
       if (userMessage) toast.show({ message: userMessage, duration: 6000 });
       else messageUI.show(t('app.handoffFailed'), 'error', 3000);
     });

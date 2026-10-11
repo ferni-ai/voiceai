@@ -88,10 +88,8 @@ export interface HandoffEvent {
   readonly greeting?: string;
   /** Sound hint for frontend */
   readonly playSound?: string;
-  /** Error message (on handoff_failed) */
-  readonly error?: string;
-  /** Words for the caller, e.g. a locked teammate's decline (on handoff_failed) */
-  readonly userMessage?: string;
+  readonly error?: string; // Error message (on handoff_failed)
+  readonly userMessage?: string; // Words for the caller, e.g. a teammate's decline (on handoff_failed)
   /** Persona to rollback to on failure (on handoff_failed) */
   readonly rollbackTo?: string;
   /** Elapsed time in ms (on handoff_progress) */

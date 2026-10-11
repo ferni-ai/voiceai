@@ -13,10 +13,12 @@ import { getCanonicalPersonaId, isKnownPersona } from '../../personas/voice-regi
 
 export function handoffStartMessages(
   target: string,
-  previousAgent: string | null | undefined
+  previousAgent: string | null | undefined,
+  acknowledge = false
 ): Record<string, unknown>[] {
   const timestamp = Date.now();
   return [
+    ...(acknowledge ? [{ type: 'handoff_acknowledged', target, success: true, timestamp }] : []),
     { type: 'handoff_started', target, newAgent: target, previousAgent, timestamp },
     {
       type: 'handoff_progress',
