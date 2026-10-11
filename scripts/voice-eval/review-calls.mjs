@@ -206,7 +206,16 @@ export function callMetrics(timeline, lines) {
         : words('user') + words('agent')
           ? Math.round((words('user') / (words('user') + words('agent'))) * 100) / 100
           : null,
-    callerTurns: timeline.filter((e) => e.who === 'user').length,
+    // Caller previews carry no sessionId and are dropped when sessions interleave;
+    // the memory buffer's per-turn line carries one, so it still counts the turns.
+    callerTurns: Math.max(
+      timeline.filter((e) => e.who === 'user').length,
+      new Set(
+        lines
+          .filter((l) => l.msg.includes('recordTurn START') && l.sessionId)
+          .map((l) => l.turnNumber)
+      ).size
+    ),
     ferniTurns: timeline.filter((e) => e.who === 'agent').length,
     directorNotes: {
       notes: notes.reduce((a, l) => a + l.notes.length, 0),

@@ -126,6 +126,16 @@ describe('review-calls timeline and metrics', () => {
     expect(m.fallbacks.summary).toBe(0);
   });
 
+  it('counts caller turns from the memory buffer when previews were dropped', () => {
+    const turns = parseEntries(
+      [0, 1, 1, 2, 3, 4].map((n, i) =>
+        line(i, '🧠 [MEMORY-AUDIT] recordTurn START', { sessionId: SESSION, turnNumber: n })
+      )
+    );
+    expect(callMetrics([], turns).callerTurns).toBe(5);
+    expect(callMetrics(timeline, []).callerTurns).toBe(3);
+  });
+
   it('estimates the gap from TURN_METRICS on builds without REPLY_GAP', () => {
     const old = parseEntries([
       line(1, 'TURN_METRICS', { eouDelayMs: 300, llmTtftMs: 600, ttsTtfbMs: 200 }),
