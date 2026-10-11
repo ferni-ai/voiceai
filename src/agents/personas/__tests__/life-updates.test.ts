@@ -8,7 +8,8 @@ vi.mock('../../../utils/safe-logger.js', () => {
     error: vi.fn(),
     child: vi.fn(() => logger),
   };
-  return { createLogger: () => logger };
+  // The recall hook now pulls in the world model, whose modules use getLogger.
+  return { createLogger: () => logger, getLogger: () => logger };
 });
 
 import { createMemoryRecall } from '../../multi-agent/memory-recall-hook.js';
