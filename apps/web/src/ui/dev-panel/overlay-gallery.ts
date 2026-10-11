@@ -219,9 +219,7 @@ export const SCENES: Readonly<Record<string, Scene>> = {
   'coach-mark': coachMark,
 };
 
-// ---------------------------------------------------------------------------
-// Probe: measurements of every visible fixed/absolute overlay, for the report
-// ---------------------------------------------------------------------------
+// Probe: measurements of every visible fixed overlay, for the screenshot report.
 
 interface OverlayProbe {
   selector: string;
@@ -353,10 +351,6 @@ function probe(): {
       : null,
   };
 }
-
-// ---------------------------------------------------------------------------
-// Mount
-// ---------------------------------------------------------------------------
 
 /** Resolves once the app shell has rendered and its deferred UI has settled. */
 async function waitForApp(): Promise<void> {
