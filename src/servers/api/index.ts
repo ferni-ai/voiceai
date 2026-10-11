@@ -5,6 +5,7 @@
  */
 
 import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
+import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
 import http from 'http';
 import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -517,7 +518,6 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const handled = await handleGamesRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
-
   } catch (err) {
     log.error({ error: String(err) }, 'Share route error');
     if (!res.writableEnded) {
