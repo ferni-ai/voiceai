@@ -651,7 +651,7 @@ function injectStyles(): void {
     }
 
     /* Mobile */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .referral-modal {
         padding: 0;
         align-items: flex-end;

@@ -478,7 +478,7 @@ class NotificationsUI {
       /* ========================================
          RESPONSIVE
          ======================================== */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .notifications-container {
           right: var(--ma-pause);
           left: var(--ma-pause);

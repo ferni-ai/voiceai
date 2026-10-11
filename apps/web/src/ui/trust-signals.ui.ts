@@ -681,7 +681,7 @@ function injectStyles(): void {
       }
     }
     
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .trust-signals-container {
         top: auto;
         bottom: var(--space-20, 80px);

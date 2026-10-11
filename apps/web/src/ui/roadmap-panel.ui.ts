@@ -3208,7 +3208,7 @@ class RoadmapPanelUI {
       /* ========================================================================
          RESPONSIVE
          ======================================================================== */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .roadmap-panel {
           padding: 0;
           align-items: flex-end;

@@ -1027,7 +1027,7 @@ function injectStyles(): void {
       margin-top: var(--space-1, 4px);
     }
 
-    @media (max-width: clamp(538px, 90vw, 768px)) {
+    @media (max-width: 768px) {
       .admin-panel {
         margin: 0;
         border-radius: 0;

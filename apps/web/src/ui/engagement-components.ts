@@ -471,7 +471,7 @@ export const SHARED_STYLES = `
   /* ========================================
      RESPONSIVE - Modal/Menu adjustments
      ======================================== */
-  @media (max-width: clamp(336px, 90vw, 480px)) {
+  @media (max-width: 480px) {
     .ferni-modal {
       /* Respect safe areas on notched devices */
       padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
@@ -508,7 +508,7 @@ export const SHARED_STYLES = `
   
   /* iOS Safari specific fixes */
   @supports (-webkit-touch-callout: none) {
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .ferni-modal__card {
         max-height: -webkit-fill-available;
       }

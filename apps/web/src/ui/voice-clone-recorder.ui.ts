@@ -649,7 +649,7 @@ const STYLES = `
   }
 
   /* Responsive */
-  @media (max-width: clamp(336px, 90vw, 480px)) {
+  @media (max-width: 480px) {
     .voice-clone-recorder-modal {
       max-height: 100vh;
       border-radius: 0;

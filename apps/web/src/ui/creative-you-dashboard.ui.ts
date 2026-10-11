@@ -1327,7 +1327,7 @@ export class CreativeYouDashboard {
         gap: var(--space-3);
       }
 
-      @media (max-width: clamp(350px, 90vw, 500px)) {
+      @media (max-width: 500px) {
         .picks-grid {
           grid-template-columns: 1fr;
         }

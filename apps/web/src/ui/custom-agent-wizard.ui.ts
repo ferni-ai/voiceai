@@ -2357,7 +2357,7 @@ function getWizardStyles(): string {
     }
     
     /* Responsive */
-    @media (max-width: clamp(448px, 90vw, 640px)) {
+    @media (max-width: 640px) {
       .wizard-container {
         width: 100vw;
         height: 100vh;

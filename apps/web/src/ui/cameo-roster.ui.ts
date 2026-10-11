@@ -687,7 +687,7 @@ function injectCameoRosterStyles(): void {
     }
 
     /* Mobile: ensure cameo is visible */
-    @media (max-width: clamp(537px, 90vw, 767px)) {
+    @media (max-width: 767px) {
       .team-member--cameo {
         /* Ensure visible on mobile too */
         display: flex !important;
@@ -701,7 +701,7 @@ function injectCameoRosterStyles(): void {
     }
     
     /* Even on tiny screens, show the cameo name */
-    @media (max-width: min(380px, 100%)) {
+    @media (max-width: 380px) {
       .team-member--cameo .team-name {
         display: block !important;
         font-size: 8px;

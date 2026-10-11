@@ -863,7 +863,7 @@ function injectAdminPortalStyles(): void {
       outline-offset: 2px;
     }
 
-    @media (max-width: clamp(538px, 90vw, 768px)) {
+    @media (max-width: 768px) {
       .admin-sidebar-toggle {
         display: flex;
         align-items: center;

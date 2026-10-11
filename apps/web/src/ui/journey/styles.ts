@@ -1746,7 +1746,7 @@ function getJourneyStyles(): string {
     /* ===================================================================
        MOBILE - Sheet animation from bottom
        =================================================================== */
-    @media (max-width: clamp(448px, 90vw, 640px)) {
+    @media (max-width: 640px) {
       .journey-modal {
         padding: 0;
         align-items: flex-end;

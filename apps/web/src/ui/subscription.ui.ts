@@ -1619,7 +1619,7 @@ function injectStyles(): void {
     }
     
     /* Responsive */
-    @media (max-width: clamp(538px, 90vw, 768px)) {
+    @media (max-width: 768px) {
       .subscription-modal {
         /* Safe area padding for notched devices */
         padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
@@ -1657,7 +1657,7 @@ function injectStyles(): void {
     
     /* iOS Safari specific fixes */
     @supports (-webkit-touch-callout: none) {
-      @media (max-width: clamp(538px, 90vw, 768px)) {
+      @media (max-width: 768px) {
         .subscription-card {
           max-height: -webkit-fill-available;
         }

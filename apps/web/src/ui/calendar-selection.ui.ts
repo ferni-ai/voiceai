@@ -840,7 +840,7 @@ class CalendarSelectionUI {
         border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.2));
       }
 
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .calendar-selection__wrapper {
           max-width: 100%;
           max-height: 90vh;

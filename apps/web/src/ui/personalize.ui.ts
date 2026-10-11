@@ -348,7 +348,7 @@ const styles = `
 }
 
 /* Responsive */
-@media (max-width: clamp(420px, 90vw, 600px)) {
+@media (max-width: 600px) {
   .personalize-header {
     padding: var(--space-6, 24px) var(--space-5, 20px);
   }

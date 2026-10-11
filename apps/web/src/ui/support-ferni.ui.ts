@@ -1322,7 +1322,7 @@ function injectStyles(): void {
     }
 
     /* Responsive */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .support-ferni-card {
         padding: var(--space-5, 20px);
         max-height: 85vh;

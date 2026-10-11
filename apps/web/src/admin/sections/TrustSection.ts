@@ -182,7 +182,7 @@ export async function render(): Promise<string> {
         grid-template-columns: repeat(4, 1fr);
       }
 
-      @media (max-width: min(1024px, 100%)) {
+      @media (max-width: 1024px) {
         .trust-stats {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -425,7 +425,7 @@ export async function render(): Promise<string> {
         margin-bottom: var(--space-4, 1rem);
       }
 
-      @media (max-width: min(900px, 100%)) {
+      @media (max-width: 900px) {
         .warmth-visualization {
           flex-direction: column;
         }
