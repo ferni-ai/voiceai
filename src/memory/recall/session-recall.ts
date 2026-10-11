@@ -22,6 +22,9 @@ export interface RecallFact {
   confidence: number;
   /** When it was extracted (ISO), so Ferni knows how old the memory is. */
   extractedAt?: string;
+  /** The extractor's kind (relationship, event, state...) and when it holds ("next week"). */
+  factType?: string;
+  temporalContext?: string;
 }
 
 export interface RecallSnapshot {
@@ -297,6 +300,8 @@ export async function loadRecallSnapshot(
           value: String(d.value ?? ''),
           confidence: confidenceOf(d.confidence),
           ...(typeof d.extractedAt === 'string' ? { extractedAt: d.extractedAt } : {}),
+          ...(typeof d.factType === 'string' ? { factType: d.factType } : {}),
+          ...(typeof d.temporalContext === 'string' ? { temporalContext: d.temporalContext } : {}),
         })
       )
       .filter((f) => f.confidence >= MIN_RECALL_CONFIDENCE)

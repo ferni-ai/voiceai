@@ -123,6 +123,8 @@ export interface MemoryRecall {
   noteFor(transcript: string): string | null;
   /** The agent started replying: the next transcript belongs to a new user turn. */
   newTurn(): void;
+  /** What was loaded at call start, once it is (for the name lift); undefined before. */
+  snapshot(): RecallSnapshot | undefined;
 }
 
 /**
@@ -300,6 +302,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       entitiesThisTurn.clear();
       index?.newTurn();
     },
+    snapshot: () => snapshot,
   };
 }
 
