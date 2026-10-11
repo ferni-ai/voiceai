@@ -18,6 +18,7 @@ import {
   handleClickTracking,
 } from '../services/outreach/webhooks/index.js';
 import { handlePushInteraction } from '../services/outreach/delivery/push-notifications.js';
+import { recordCheckinReply } from '../services/outreach/after-call-checkin.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { isSignedByTwilio } from './twilio-callback-signature.js';
 import { URL } from 'url';
@@ -176,6 +177,8 @@ export async function handleOutreachWebhookRoutes(
         signature,
         fullUrl
       );
+      // success is false only when the Twilio signature failed; never throws.
+      if (result.success) await recordCheckinReply(body.From, body.Body);
 
       if (result.twiml) {
         sendTwiML(res, result.twiml);
