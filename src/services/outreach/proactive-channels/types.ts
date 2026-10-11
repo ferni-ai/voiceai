@@ -23,4 +23,6 @@ export interface ProactiveTrigger {
   reason: string;
   /** After this the moment has passed (a missed promise, a stale follow-up). */
   expiresAt?: Date;
+  /** Run once it has gone out (e.g. record a commitment as followed up). */
+  afterSend?: () => Promise<void>;
 }
