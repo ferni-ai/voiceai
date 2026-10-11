@@ -11,7 +11,7 @@
  * @module services/outreach/proactive-channels/outreach-text
  */
 
-import { callLLM } from '../../llm/llm-utils.js';
+import { callLLM } from '../../llm-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
 

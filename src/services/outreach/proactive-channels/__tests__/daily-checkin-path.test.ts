@@ -38,7 +38,7 @@ vi.mock('../../llm-content-generator.js', () => ({
 }));
 
 let modelReply: string | null = null;
-vi.mock('../../../llm/llm-utils.js', () => ({ callLLM: vi.fn(async () => modelReply) }));
+vi.mock('../../../llm-utils.js', () => ({ callLLM: vi.fn(async () => modelReply) }));
 
 const { runDailyOutreach } = await import('../../automated-scheduler.js');
 

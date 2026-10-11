@@ -76,7 +76,7 @@ vi.mock('../../memory/dynamic/async-events-config.js', async (importOriginal) =>
       emittedEvents.push({ event, data });
       return true;
     }),
-    safeOnEvent: vi.fn(() => true),
+    safeOnEvent: vi.fn(() => () => {}), // returns the unsubscribe fn (#777)
     isAsyncEventsConfigured: vi.fn(() => true),
   };
 });

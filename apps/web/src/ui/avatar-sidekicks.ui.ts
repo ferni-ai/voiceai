@@ -1002,7 +1002,7 @@ function injectStyles(): void {
       position: absolute;
       inset: 0;
       pointer-events: none;
-      z-index: var(--z-floating, 20);
+      z-index: var(--z-floating);
       overflow: visible;
     }
     

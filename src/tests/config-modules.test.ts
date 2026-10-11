@@ -490,97 +490,6 @@ describe('feature-flags.ts', () => {
     });
   });
 
-  describe('environment variable parsing', () => {
-    it('should parse DEBUG_AGENT=true', async () => {
-      process.env.DEBUG_AGENT = 'true';
-      const { reloadFeatureFlags } = await import('../config/feature-flags.js');
-      const flags = reloadFeatureFlags();
-
-      expect(flags.debug.agent).toBe(true);
-    });
-
-    it('should parse DEBUG_AGENT=1', async () => {
-      process.env.DEBUG_AGENT = '1';
-      const { reloadFeatureFlags } = await import('../config/feature-flags.js');
-      const flags = reloadFeatureFlags();
-
-      expect(flags.debug.agent).toBe(true);
-    });
-
-    it('should parse DEBUG_AGENT=yes', async () => {
-      process.env.DEBUG_AGENT = 'yes';
-      const { reloadFeatureFlags } = await import('../config/feature-flags.js');
-      const flags = reloadFeatureFlags();
-
-      expect(flags.debug.agent).toBe(true);
-    });
-
-    it('should parse DEBUG_AGENT=false', async () => {
-      process.env.DEBUG_AGENT = 'false';
-      const { reloadFeatureFlags } = await import('../config/feature-flags.js');
-      const flags = reloadFeatureFlags();
-
-      expect(flags.debug.agent).toBe(false);
-    });
-
-    it('should parse DEBUG_AGENT=0', async () => {
-      process.env.DEBUG_AGENT = '0';
-      const { reloadFeatureFlags } = await import('../config/feature-flags.js');
-      const flags = reloadFeatureFlags();
-
-      expect(flags.debug.agent).toBe(false);
-    });
-
-    it('should parse DEBUG_AGENT=no', async () => {
-      process.env.DEBUG_AGENT = 'no';
-      const { reloadFeatureFlags } = await import('../config/feature-flags.js');
-      const flags = reloadFeatureFlags();
-
-      expect(flags.debug.agent).toBe(false);
-    });
-
-    it('should ignore empty string values', async () => {
-      process.env.DEBUG_AGENT = '';
-      const { reloadFeatureFlags } = await import('../config/feature-flags.js');
-      const flags = reloadFeatureFlags();
-
-      expect(flags.debug.agent).toBe(false); // Default value
-    });
-
-    it('should ignore invalid values', async () => {
-      process.env.DEBUG_AGENT = 'maybe';
-      const { reloadFeatureFlags } = await import('../config/feature-flags.js');
-      const flags = reloadFeatureFlags();
-
-      expect(flags.debug.agent).toBe(false); // Default value
-    });
-
-    it('should be case insensitive', async () => {
-      process.env.DEBUG_AGENT = 'TRUE';
-      const { reloadFeatureFlags } = await import('../config/feature-flags.js');
-      const flags = reloadFeatureFlags();
-
-      expect(flags.debug.agent).toBe(true);
-    });
-  });
-
-  describe('multiple environment variables', () => {
-    it('should override multiple flags', async () => {
-      process.env.DEBUG_AGENT = 'true';
-      process.env.DEBUG_MEMORY = 'true';
-      process.env.ENABLE_DISFLUENCIES = 'false';
-      process.env.ENABLE_MUSIC = 'false';
-
-      const { reloadFeatureFlags } = await import('../config/feature-flags.js');
-      const flags = reloadFeatureFlags();
-
-      expect(flags.debug.agent).toBe(true);
-      expect(flags.debug.memory).toBe(true);
-      expect(flags.humanization.disfluencies).toBe(false);
-      expect(flags.audio.musicEnabled).toBe(false);
-    });
-  });
-
   describe('isFeatureEnabled', () => {
     it('should check nested feature flags', async () => {
       const { isFeatureEnabled } = await import('../config/feature-flags.js');
@@ -594,14 +503,6 @@ describe('feature-flags.ts', () => {
 
       expect(isFeatureEnabled('nonexistent.path')).toBe(false);
     });
-
-    it('should work with environment overrides', async () => {
-      process.env.DEBUG_AGENT = 'true';
-      const { reloadFeatureFlags, isFeatureEnabled } = await import('../config/feature-flags.js');
-      reloadFeatureFlags();
-
-      expect(isFeatureEnabled('debug.agent')).toBe(true);
-    });
   });
 
   describe('isDebugEnabled', () => {
@@ -610,14 +511,6 @@ describe('feature-flags.ts', () => {
 
       expect(isDebugEnabled('agent')).toBe(false);
       expect(isDebugEnabled('memory')).toBe(false);
-    });
-
-    it('should work with environment overrides', async () => {
-      process.env.DEBUG_HUMANIZING = 'true';
-      const { reloadFeatureFlags, isDebugEnabled } = await import('../config/feature-flags.js');
-      reloadFeatureFlags();
-
-      expect(isDebugEnabled('humanizing')).toBe(true);
     });
   });
 
@@ -628,15 +521,6 @@ describe('feature-flags.ts', () => {
       expect(isExperimentalEnabled('voiceEmotionDetection')).toBe(true);
       expect(isExperimentalEnabled('abTesting')).toBe(false);
     });
-
-    it('should work with environment overrides', async () => {
-      process.env.ENABLE_AB_TESTING = 'true';
-      const { reloadFeatureFlags, isExperimentalEnabled } =
-        await import('../config/feature-flags.js');
-      reloadFeatureFlags();
-
-      expect(isExperimentalEnabled('abTesting')).toBe(true);
-    });
   });
 
   describe('isHumanizationEnabled', () => {
@@ -645,15 +529,6 @@ describe('feature-flags.ts', () => {
 
       expect(isHumanizationEnabled()).toBe(true);
     });
-
-    it('should respect environment override', async () => {
-      process.env.HUMANIZATION_ENABLED = 'false';
-      const { reloadFeatureFlags, isHumanizationEnabled } =
-        await import('../config/feature-flags.js');
-      reloadFeatureFlags();
-
-      expect(isHumanizationEnabled()).toBe(false);
-    });
   });
 
   describe('getEnabledDebugCategories', () => {
@@ -661,22 +536,6 @@ describe('feature-flags.ts', () => {
       const { getEnabledDebugCategories } = await import('../config/feature-flags.js');
 
       expect(getEnabledDebugCategories()).toEqual([]);
-    });
-
-    it('should return enabled debug categories', async () => {
-      process.env.DEBUG_AGENT = 'true';
-      process.env.DEBUG_MEMORY = 'true';
-      process.env.DEBUG_TOOLS = 'true';
-
-      const { reloadFeatureFlags, getEnabledDebugCategories } =
-        await import('../config/feature-flags.js');
-      reloadFeatureFlags();
-
-      const enabled = getEnabledDebugCategories();
-      expect(enabled).toContain('agent');
-      expect(enabled).toContain('memory');
-      expect(enabled).toContain('tools');
-      expect(enabled).not.toContain('humanizing');
     });
   });
 
@@ -709,17 +568,15 @@ describe('feature-flags.ts', () => {
   });
 
   describe('reloadFeatureFlags', () => {
-    it('should reload flags from environment', async () => {
-      const { getFeatureFlags, reloadFeatureFlags } = await import('../config/feature-flags.js');
+    it('should drop runtime overrides', async () => {
+      const { getFeatureFlags, reloadFeatureFlags, setFeatureFlagsForTesting } =
+        await import('../config/feature-flags.js');
 
-      const flags1 = getFeatureFlags();
-      expect(flags1.debug.agent).toBe(false);
+      setFeatureFlagsForTesting({ debug: { ...getFeatureFlags().debug, agent: true } });
+      expect(getFeatureFlags().debug.agent).toBe(true);
 
-      process.env.DEBUG_AGENT = 'true';
       const flags2 = reloadFeatureFlags();
-
-      expect(flags2.debug.agent).toBe(true);
-      expect(flags1).not.toBe(flags2);
+      expect(flags2.debug.agent).toBe(false);
     });
   });
 

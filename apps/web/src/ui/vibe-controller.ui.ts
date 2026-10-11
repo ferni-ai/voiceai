@@ -467,7 +467,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: var(--z-modal-backdrop, 2000);
+      z-index: var(--z-modal-backdrop);
       opacity: 0;
       visibility: hidden;
       transition: opacity ${DURATION.SLOW}ms ${EASING.OUT_EXPO}, visibility ${DURATION.SLOW}ms;
@@ -1194,7 +1194,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       background: rgba(44, 37, 32, 0.75);
     }
 

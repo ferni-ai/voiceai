@@ -279,7 +279,7 @@ export async function buildContextInjections(
     // 2f. CROSS-CHANNEL CONTEXT (first turn only)
     userId && isFirstTurn
       ? withinBudget('cross_channel', FIRST_TURN_TIMEOUT_MS,
-          import('../../services/session-context/session-summary.js').then(async ({ getActiveUserContext, formatContextForVoiceCall }) => {
+          import('../../services/session/session-summary.js').then(async ({ getActiveUserContext, formatContextForVoiceCall }) => {
             const activeContext = await getActiveUserContext(userId);
             if (activeContext) {
               const crossChannelContext = formatContextForVoiceCall(activeContext);

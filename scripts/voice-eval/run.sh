@@ -22,6 +22,8 @@
 # The user id must start with "voice-eval-": code that skips synthetic
 # callers keys on it (src/services/outreach/automated-scheduler.ts).
 #
+# EVAL_TIER=partner gives the eval user a subscription first (seed-tier.ts): the
+#   whole team is unlocked, as for a real Partner subscriber.
 # EVAL_DRY_RUN=1 prints the plan as JSON (user id, rooms, scenarios) and exits:
 #   no audio, no token, no call.
 # EVAL_TZ sets the caller's timezone (default America/New_York).
@@ -210,6 +212,13 @@ if [[ $env == phone ]]; then
   node $HERE/score.mjs $json | tee ${json:r}.score.json
   node $HERE/mix.mjs $json >&2
   exit 0
+fi
+
+# EVAL_TIER=free|friend|partner: the caller's subscription, written to this eval user's
+# profile before the call (seed-tier.ts). partner opens the whole team, so handoffs to
+# every teammate can be proven without a bypass secret on the agent.
+if [[ -n ${EVAL_TIER:-} ]]; then
+  (cd $ROOT && npx tsx $HERE/seed-tier.ts --project ${EVAL_FIRESTORE_PROJECT:-johnb-2025} --uid $uid --tier $EVAL_TIER)
 fi
 
 if [[ -n $seed ]]; then

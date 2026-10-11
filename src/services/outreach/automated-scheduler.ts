@@ -28,6 +28,8 @@ import {
 import { getOnboardingState, getPendingCheckIns } from './intelligent-onboarding-arc.js';
 import { getOptimalOutreachTime, getPreferredChannel } from './engagement-tracking.js';
 import { allowedDeliveryChannels } from './outreach-consent.js';
+import { isValidTimezone } from './call-hours-guard.js';
+import { hoursWindow, isQuietAt, isQuietHoursUnified, isUserQuiet } from './quiet-hours.js';
 import {
   cadenceHold,
   engagementLevel as engagementLevelOf,
@@ -95,6 +97,7 @@ interface UserOutreachCandidate {
     quietHoursEnd?: number;
     timezone?: string;
   };
+  contactInfo?: { timezone?: string };
 }
 
 // ============================================================================
@@ -326,6 +329,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
           engagementLevel,
           unanswered: unansweredCount(data),
           outreachPreferences: data.outreachPreferences,
+          contactInfo: data.contactInfo,
         });
       }
       if (page.size < CANDIDATE_PAGE_SIZE) break;
@@ -449,28 +453,12 @@ async function determineBestChannel(
  * Check if user is in quiet hours
  */
 function isInQuietHours(candidate: UserOutreachCandidate): boolean {
-  const { outreachPreferences } = candidate;
-
-  // Default quiet hours: 10 PM - 8 AM
-  const quietStart = outreachPreferences?.quietHoursStart ?? 22;
-  const quietEnd = outreachPreferences?.quietHoursEnd ?? 8;
-  const timezone = outreachPreferences?.timezone || 'America/Los_Angeles';
-
-  try {
-    const now = new Date();
-    const userTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
-    const hour = userTime.getHours();
-
-    // Handle overnight quiet hours (e.g., 22:00 - 08:00)
-    if (quietStart > quietEnd) {
-      return hour >= quietStart || hour < quietEnd;
-    }
-
-    return hour >= quietStart && hour < quietEnd;
-  } catch {
-    // If timezone fails, assume not in quiet hours
-    return false;
-  }
+  if (isQuietHoursUnified()) return isUserQuiet(candidate);
+  // Off: the hour fields only, default 22-8, in the user's zone or Los Angeles.
+  const prefs = candidate.outreachPreferences;
+  const zone = prefs?.timezone || 'America/Los_Angeles';
+  const window = hoursWindow(prefs?.quietHoursStart ?? 22, prefs?.quietHoursEnd ?? 8);
+  return isValidTimezone(zone) && isQuietAt(new Date(), window, [zone]);
 }
 
 // ============================================================================

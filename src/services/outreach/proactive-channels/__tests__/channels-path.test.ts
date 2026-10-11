@@ -36,7 +36,7 @@ vi.mock('../../../communication-service.js', () => ({
   }),
 }));
 
-vi.mock('../../../llm/llm-utils.js', () => ({
+vi.mock('../../../llm-utils.js', () => ({
   callLLM: vi.fn(async (prompt: string) => {
     prompts.push(prompt);
     if (modelReply instanceof Error) throw modelReply;
