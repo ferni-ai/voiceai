@@ -82,6 +82,8 @@ export interface TurnSignals {
    * (ferni-state.ts). Undefined when his state has no say.
    */
   ownStory?: boolean;
+  /** QUIET_CALLER=on: their last turns were a few words each (quiet-caller.ts). */
+  quiet?: boolean;
 }
 
 /** The model's understanding as signals. */
@@ -146,7 +148,7 @@ export function extrasFor(
     out.fired.push('laugh_along');
   }
   const venting = signals.careful;
-  if (on(env, 'THINK_ALOUD') && shape !== 'react') {
+  if (on(env, 'THINK_ALOUD') && shape !== 'react' && !signals.quiet) {
     // Live, request turns are rare: also think aloud on some longer answers.
     const p =
       move === 'request' || move === 'about_ferni'
@@ -205,7 +207,13 @@ export function extrasFor(
       out.lines.push(LAUGH_SPONTANEOUS);
       out.fired.push('laugh_spontaneous');
     }
-    if (move !== 'ack' && !venting && shape !== 'react' && rng() < scaled(0.25, style.opinion)) {
+    if (
+      move !== 'ack' &&
+      !venting &&
+      !signals.quiet &&
+      shape !== 'react' &&
+      rng() < scaled(0.25, style.opinion)
+    ) {
       out.lines.push(OPINION);
       out.fired.push('opinion');
     }

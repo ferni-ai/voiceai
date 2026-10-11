@@ -36,6 +36,7 @@ import { ferniStateTurn } from './ferni-state.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
+import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
 import {
@@ -169,7 +170,11 @@ function styleFor(
     said,
     rngFor(`${callSeed(session)}:${said}`),
     undefined,
-    withOwnStory(withSupportHold(session, said, signals, source), said, ownStory)
+    withQuiet(
+      withOwnStory(withSupportHold(session, said, signals, source), said, ownStory),
+      said,
+      chatCtx
+    )
   );
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
@@ -220,6 +225,30 @@ function withOwnStory(
 ): TurnSignals | undefined {
   if (ownStory === undefined) return signals;
   return { ...(signals ?? regexSignals(said, callerMove(said))), ownStory };
+}
+
+/**
+ * QUIET_CALLER=on: a caller saying very little gets room, not advice
+ * (quiet-caller.ts); "I'm still here" reads as an ack.
+ */
+function withQuiet(
+  signals: TurnSignals | undefined,
+  said: string,
+  chatCtx: llm.ChatContext
+): TurnSignals | undefined {
+  if (!quietCallerEnabled()) return signals;
+  const sig = signals ?? regexSignals(said, callerMove(said));
+  const quiet = isQuietCaller(callerTurnsOf(chatCtx));
+  const move = presentAck(said) ? 'ack' : sig.move;
+  return quiet || move !== sig.move ? { ...sig, move, quiet } : sig;
+}
+
+/** What the caller has said on the call, notes aside, oldest first. */
+function callerTurnsOf(chatCtx: llm.ChatContext): string[] {
+  return chatCtx.items
+    .filter((i) => i.type === 'message' && i.role === 'user')
+    .map((i) => (i as llm.ChatMessage).textContent ?? '')
+    .filter((t) => t && !t.startsWith(TURN_CONTEXT_HEADER));
 }
 
 const callSeeds = new WeakMap<object, string>();
