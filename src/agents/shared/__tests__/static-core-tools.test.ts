@@ -148,8 +148,13 @@ describe('TOOL_CORE_STATIC on a call', () => {
   it('a pinned (findTools) tool is appended: the earlier declarations stay a byte-identical prefix', async () => {
     const agent = makeAgent(await staticCoreTools(toolSet(ESSENTIAL_DOMAIN_TOOLS), CTX, buildAll));
     const before = await requestTools(agent);
-    const pin = createToolPinner(() => agent, CTX, buildAll);
-    const found = await pin(['aardvarkTool']); // sorts ahead of every core tool by name
+    const pin = createToolPinner(
+      () => agent,
+      CTX,
+      buildAll,
+      () => 'simple-utilities'
+    );
+    const found = await pin(['aardvarkTool'], 'an aardvark'); // sorts ahead of every core tool by name
     const after = await requestTools(agent);
 
     expect(found.map((f) => f.name)).toEqual(['aardvarkTool']);

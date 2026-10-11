@@ -356,6 +356,72 @@ export const STATIC_CORE_TOOLS: readonly string[] = [
   'findTools',
 ];
 
+/**
+ * The domains findTools may reach under TOOL_CORE_STATIC: the essential
+ * domains (dynamic-loader/essential-domains.ts) and the ones the topic loader
+ * can load mid-call (topic-mappings.ts), so findTools reaches no tool a call
+ * can't already get. Pinned to those lists by static-core-tools.test.ts. The
+ * catalog also holds tools no caller may reach this way: runBash and the rest
+ * of developer, webhooks, settings, voice enrollment, commerce.
+ */
+export const FINDABLE_DOMAINS: readonly string[] = [
+  // essential
+  'memory',
+  'handoff',
+  'awareness',
+  'entertainment',
+  'telephony',
+  'calendar',
+  'productivity',
+  'games',
+  'presence',
+  'trauma-support',
+  'crisis',
+  'human-transfer',
+  // topic-loadable
+  'books',
+  'communication',
+  'curiosity',
+  'dreams',
+  'finance',
+  'grief',
+  'habits',
+  'information',
+  'learning',
+  'life-planning',
+  'local-search',
+  'meaning',
+  'play',
+  'podcasts',
+  'relationships',
+  'research',
+  'scheduling',
+  'self-compassion',
+  'simple-utilities',
+  'video',
+  'vulnerability',
+  'wellness',
+  'wisdom',
+];
+
+/** Never findable, even if a topic mapping or the list above ever names them. */
+export const NEVER_FINDABLE_DOMAINS: readonly string[] = [
+  'developer',
+  'developer-custom',
+  'webhooks',
+  'voice-enrollment',
+  'settings',
+  'commerce',
+];
+
+export function isFindableDomain(domain: string | undefined): boolean {
+  return (
+    domain !== undefined &&
+    FINDABLE_DOMAINS.includes(domain) &&
+    !NEVER_FINDABLE_DOMAINS.includes(domain)
+  );
+}
+
 /** Teammate tools: they differ per user, so they go after the fixed core. */
 export function isTeammateTool(name: string): boolean {
   return (

@@ -18,6 +18,7 @@
  */
 
 import { llm } from '@livekit/agents';
+import { isFindableDomain } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { DenseToolIndex, Embedder } from './dense-index.js';
 import { RetrievalStats, isLiveCovered } from './retrieval-stats.js';
@@ -377,8 +378,8 @@ export class TurnToolRetrieval {
    * findTools: search the whole index for what the model says it needs and
    * make the best matches the agent has part of every request for the next
    * few turns, starting with the model's next step in this same reply.
-   * `anyTool` (TOOL_CORE_STATIC) searches the whole catalog, loaded or not:
-   * the caller adds what it finds to the agent.
+   * `anyTool` (TOOL_CORE_STATIC) searches the whole catalog's findable
+   * domains (tool-config.ts), loaded or not: the caller adds what it finds.
    */
   async find(
     need: string,
@@ -392,6 +393,8 @@ export class TurnToolRetrieval {
     for (const t of index.search(vector, n * CANDIDATES_PER_SLOT * 2)) {
       if (found.length >= n) break;
       if (available && !(t.tool in available)) continue;
+      // The whole catalog holds tools no caller may reach (runBash, webhooks).
+      if (opts.anyTool && !isFindableDomain(this.opts.domainOf(t.tool))) continue;
       this.sticky.set(t.tool, this.turn);
       const description = (available?.[t.tool]?.description ?? '').split(/(?<=[.!?])\s/)[0];
       found.push({ name: t.tool, description: description.slice(0, 140) });

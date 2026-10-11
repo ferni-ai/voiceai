@@ -27,8 +27,8 @@ export interface FoundTool {
   description: string;
 }
 
-/** Adds the named tools to the session's agent; returns the ones it now has. */
-export type ToolPinner = (names: readonly string[]) => Promise<FoundTool[]>;
+/** Adds the named tools to the session's agent; returns the ones it now has. `need` is for the audit log. */
+export type ToolPinner = (names: readonly string[], need: string) => Promise<FoundTool[]>;
 
 // Keyed by the AgentSession, like the retrieval itself.
 const pinners = new WeakMap<object, ToolPinner>();
@@ -56,7 +56,13 @@ export function createFindToolsTool() {
         const pin = pinners.get(ctx.session);
         if (!pin) return UNAVAILABLE;
         const matches = await retrieval.find(need, 5, { anyTool: true });
-        found = matches.length > 0 ? await pin(matches.map((m) => m.name)) : [];
+        found =
+          matches.length > 0
+            ? await pin(
+                matches.map((m) => m.name),
+                need
+              )
+            : [];
       } else {
         found = await retrieval.find(need);
       }

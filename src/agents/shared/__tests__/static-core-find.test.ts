@@ -84,7 +84,8 @@ async function startCall(responses: voice.testing.FakeLLMResponse[]) {
     createToolPinner(
       () => agent,
       { userId: 'u', agentId: 'ferni', agentDisplayName: 'Ferni' },
-      async (names) => Object.fromEntries(names.map((n) => [n, tool(n, 'beam on')]))
+      async (names) => Object.fromEntries(names.map((n) => [n, tool(n, 'beam on')])),
+      () => 'simple-utilities' // a findable domain
     )
   );
   await session.start({ agent });
