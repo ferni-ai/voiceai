@@ -100,7 +100,6 @@ class ErrorTrackingService {
         dsn: this.dsn,
         environment: this.environment,
         tracesSampleRate: this.environment === 'production' ? 0.1 : 1.0,
-        profilesSampleRate: this.environment === 'production' ? 0.1 : 1.0,
         integrations: [],
         beforeSend(event) {
           // Scrub sensitive data

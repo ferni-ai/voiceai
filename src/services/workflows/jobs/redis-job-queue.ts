@@ -86,24 +86,17 @@ export class RedisJobQueue {
       const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
       const redisPassword = process.env.REDIS_PASSWORD;
 
-      let redisClient: InstanceType<typeof Redis>;
-
-      if (redisUrl) {
-        redisClient = new Redis(redisUrl, {
-          keyPrefix: 'ferni:',
-          maxRetriesPerRequest: 3,
-          lazyConnect: true,
-        });
-      } else {
-        redisClient = new Redis({
-          host: redisHost,
-          port: redisPort,
-          password: redisPassword,
-          keyPrefix: '', // We handle prefixes ourselves in KEYS
-          maxRetriesPerRequest: 3,
-          lazyConnect: true,
-        });
-      }
+      // protocol 2: ioredis 6 defaults to RESP3, which fails outright on Redis < 6.
+      const options = { maxRetriesPerRequest: 3, lazyConnect: true, protocol: 2 } as const;
+      const redisClient = redisUrl
+        ? new Redis(redisUrl, { ...options, keyPrefix: 'ferni:' })
+        : new Redis({
+            ...options,
+            host: redisHost,
+            port: redisPort,
+            password: redisPassword,
+            keyPrefix: '', // We handle prefixes ourselves in KEYS
+          });
 
       // Suppress connection errors (graceful degradation)
       redisClient.on('error', (error) => {
