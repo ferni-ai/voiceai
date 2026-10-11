@@ -33,9 +33,15 @@ on:
   merge_group:
 
 # Cancel in-progress runs when a new run is triggered
+# Only a newer push to the same PR cancels a run. A merge-queue run must never
+# be cancelled: when a second request for the same queue ref arrived, this
+# cancelled the group's running checks ("Canceling since a higher priority
+# waiting request for ci-CI-refs/heads/gh-readonly-queue/main/pr-769-...
+# exists"), the queue dropped the PR and started over, and nothing merged for
+# three hours on 2026-10-11.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NODE_VERSION: '22'
