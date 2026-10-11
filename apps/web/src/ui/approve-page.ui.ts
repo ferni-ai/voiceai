@@ -15,11 +15,14 @@ import { initializeAuth } from '../services/auth-init.service.js';
 import { signOut } from '../services/firebase-auth.service.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
+import { refuseFraming } from '../utils/frame-guard.js';
 import { showSignInGate } from './sign-in-gate.ui.js';
 
 const log = createLogger('ApprovePage');
 
 const PAGE = 'approve-page';
+/** How long Approve stays disabled after the card appears or regains view/focus. */
+export const APPROVE_ARM_MS = 1500;
 const STYLE_ID = 'approve-page-styles';
 
 export interface PendingActionView {
@@ -113,12 +116,33 @@ export function renderPendingAction(
     `${PAGE}__button ${PAGE}__button--primary`,
     t('approvePage.approve')
   );
+  // Approve takes a deliberate tap: it arms APPROVE_ARM_MS after the card is
+  // shown, and again after the page comes back into view or focus, so a click
+  // aimed at something else (or a page swapped in underneath) can't land on it.
+  let decided = false;
+  let armTimer: ReturnType<typeof setTimeout> | undefined;
+  const arm = (): void => {
+    clearTimeout(armTimer);
+    approve.disabled = true;
+    armTimer = setTimeout(() => {
+      approve.disabled = decided;
+    }, APPROVE_ARM_MS);
+  };
+  const rearmWhenVisible = (): void => {
+    if (document.visibilityState === 'visible') arm();
+  };
+  document.addEventListener('visibilitychange', rearmWhenVisible);
+  window.addEventListener('focus', arm);
   for (const [button, decision] of [
     [decline, 'decline'],
     [approve, 'approve'],
   ] as const) {
     button.type = 'button';
     button.addEventListener('click', () => {
+      decided = true;
+      clearTimeout(armTimer);
+      document.removeEventListener('visibilitychange', rearmWhenVisible);
+      window.removeEventListener('focus', arm);
       decline.disabled = true;
       approve.disabled = true;
       void onDecide(decision).then((message) => {
@@ -129,6 +153,7 @@ export function renderPendingAction(
   }
   actions.append(decline, approve);
   card.append(actions);
+  arm();
   return card;
 }
 
@@ -146,7 +171,7 @@ function injectStyles(): void {
     .${PAGE}__title { margin: 0 0 var(--ma-pause); font-size: var(--text-lg); font-weight: var(--font-weight-semibold); }
     .${PAGE}__fields { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: var(--ma-breath) var(--ma-pause); }
     .${PAGE}__key { color: var(--color-text-muted); font-size: var(--text-sm); }
-    .${PAGE}__value { margin: 0; font-size: var(--text-base); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .${PAGE}__value { margin: 0; font-size: var(--text-base); white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
     .${PAGE}__status { margin: var(--ma-rest) 0 0; font-size: var(--text-sm); color: var(--color-text-secondary); }
     .${PAGE}__actions { display: flex; gap: var(--ma-pause); justify-content: flex-end; margin-top: var(--ma-rest); }
     .${PAGE}__button { min-height: 44px; padding: 0 var(--space-6); border-radius: var(--radius-full);
@@ -186,6 +211,7 @@ export async function showPendingAction(root: HTMLElement, id: string): Promise<
 
 /** Entry for /p/:id: sign in, then show the action in place of the app. */
 export async function initApprovePage(id: string): Promise<void> {
+  if (refuseFraming()) return;
   await initI18n();
   const auth = await initializeAuth();
   if (!auth.isAuthenticated) await showSignInGate();

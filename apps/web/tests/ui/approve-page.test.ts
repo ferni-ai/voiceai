@@ -14,11 +14,26 @@ vi.mock('../../src/utils/api.js', () => ({
   apiPost: mockApiPost,
   getApiHeaders: vi.fn(() => ({})),
 }));
-vi.mock('../../src/services/firebase-auth.service.js', () => ({ signOut: mockSignOut }));
+vi.mock('../../src/services/firebase-auth.service.js', () => ({
+  signOut: mockSignOut,
+  getAuthToken: vi.fn(async () => null),
+}));
 vi.mock('../../src/ui/sign-in-gate.ui.js', () => ({ showSignInGate: mockGate }));
+// auth-init starts Firebase on import; the page only needs its result.
+vi.mock('../../src/services/auth-init.service.js', () => ({
+  initializeAuth: vi.fn(async () => ({ isAuthenticated: true })),
+}));
+const mockRefuseFraming = vi.fn(() => false);
+vi.mock('../../src/utils/frame-guard.js', () => ({ refuseFraming: mockRefuseFraming }));
 
-const { pendingActionIdFromPath, renderPendingAction, sendDecision, showPendingAction } =
-  await import('../../src/ui/approve-page.ui');
+const {
+  APPROVE_ARM_MS,
+  initApprovePage,
+  pendingActionIdFromPath,
+  renderPendingAction,
+  sendDecision,
+  showPendingAction,
+} = await import('../../src/ui/approve-page.ui');
 
 const ID = 'B'.repeat(43);
 const NOW = 1_760_000_000_000;
@@ -34,7 +49,11 @@ const ACTION = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.useRealTimers();
 });
+
+const approveButton = (root: HTMLElement) =>
+  [...root.querySelectorAll('button')].find((b) => b.textContent === 'Approve');
 
 const click = (root: HTMLElement, label: string) =>
   [...root.querySelectorAll('button')].find((b) => b.textContent === label)?.click();
@@ -60,9 +79,40 @@ describe('renderPendingAction', () => {
     expect(card.querySelector('[role="status"]')?.textContent).toBe('Good for 4 more min.');
   });
 
-  it('approves once, then shows the outcome in place of the buttons', async () => {
+  it('wraps a long value in full instead of cutting it', () => {
+    const long = '4'.repeat(400);
+    const card = renderPendingAction({ ...ACTION, payload: { to: long } }, vi.fn(), NOW);
+    expect(card.querySelector('dd')?.textContent).toBe(long);
+  });
+
+  it('arms Approve only after a pause, and again after the page regains focus', () => {
+    vi.useFakeTimers();
     const onDecide = vi.fn(async () => 'Done.');
     const card = renderPendingAction(ACTION, onDecide, NOW);
+    const approve = approveButton(card);
+    expect(approve?.disabled).toBe(true);
+    click(card, 'Approve');
+    expect(onDecide).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(APPROVE_ARM_MS - 1);
+    expect(approve?.disabled).toBe(true);
+    vi.advanceTimersByTime(1);
+    expect(approve?.disabled).toBe(false);
+    window.dispatchEvent(new Event('focus'));
+    expect(approve?.disabled).toBe(true);
+    vi.advanceTimersByTime(APPROVE_ARM_MS);
+    expect(approve?.disabled).toBe(false);
+    // Decline is always available at once.
+    expect(
+      [...card.querySelectorAll('button')].find((b) => b.textContent === 'Decline')?.disabled
+    ).toBe(false);
+  });
+
+  it('approves once, then shows the outcome in place of the buttons', async () => {
+    vi.useFakeTimers();
+    const onDecide = vi.fn(async () => 'Done.');
+    const card = renderPendingAction(ACTION, onDecide, NOW);
+    vi.advanceTimersByTime(APPROVE_ARM_MS);
+    vi.useRealTimers();
     click(card, 'Approve');
     click(card, 'Approve');
     await vi.waitFor(() =>
@@ -107,6 +157,21 @@ describe('sendDecision', () => {
 });
 
 describe('showPendingAction', () => {
+  it('shows only what the server stored, never values from the URL', async () => {
+    window.history.replaceState(null, '', `/p/${ID}?to=%2B19990000000&body=Send%20me%20%24500`);
+    mockApiGet.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { action: { ...ACTION, expiresAt: Date.now() + 60_000 } },
+    });
+    const root = document.createElement('main');
+    await showPendingAction(root, ID);
+    expect(root.textContent).toContain('+15551230000');
+    expect(root.textContent).not.toContain('+19990000000');
+    expect(root.textContent).not.toContain('$500');
+    window.history.replaceState(null, '', '/');
+  });
+
   it("says it can't find an action that isn't yours", async () => {
     mockApiGet.mockResolvedValue({ ok: false, status: 404 });
     const root = document.createElement('main');
@@ -125,12 +190,25 @@ describe('showPendingAction', () => {
     });
     mockApiPost.mockResolvedValue({ ok: false, status: 403 });
     const root = document.createElement('main');
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     await showPendingAction(root, ID);
+    vi.advanceTimersByTime(APPROVE_ARM_MS);
+    vi.useRealTimers();
     click(root, 'Approve');
     await vi.waitFor(() =>
       expect(root.querySelector('[role="status"]')?.textContent).toBe(
         "This one needs a passkey, and you don't have one set up yet."
       )
     );
+  });
+});
+
+describe('initApprovePage', () => {
+  it('stops before sign-in or any request when the page is framed', async () => {
+    mockRefuseFraming.mockReturnValueOnce(true);
+    await initApprovePage(ID);
+    expect(mockRefuseFraming).toHaveBeenCalledTimes(1);
+    expect(mockGate).not.toHaveBeenCalled();
+    expect(mockApiGet).not.toHaveBeenCalled();
   });
 });
