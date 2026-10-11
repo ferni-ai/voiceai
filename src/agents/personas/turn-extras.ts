@@ -77,6 +77,11 @@ export interface TurnSignals {
   laughed: boolean;
   laughFits: boolean;
   adviceFits: boolean;
+  /**
+   * FERNI_STATE=on: whether a story of his own may ride this reply
+   * (ferni-state.ts). Undefined when his state has no say.
+   */
+  ownStory?: boolean;
 }
 
 /** The model's understanding as signals. */
