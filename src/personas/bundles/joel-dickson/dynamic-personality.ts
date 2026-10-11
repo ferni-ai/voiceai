@@ -1,8 +1,8 @@
 /**
- * Joel Dickson Dynamic Personality
+ * Nate Holloway Dynamic Personality
  *
- * Pool-based variety for Joel: economist's eye, Bogle quotes, farmette,
- * career/life wisdom. Kept minimal so Joel stays consistent with his
+ * Pool-based variety for Nate: economist's eye, Walt's sayings, the garden,
+ * career/life wisdom. Kept minimal so Nate stays consistent with his
  * manifest personality; this adds session-level expression variety.
  *
  * @module personas/bundles/joel-dickson/dynamic-personality
@@ -10,18 +10,18 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 
-const log = createLogger({ module: 'joel-dynamic-personality' });
+const log = createLogger({ module: 'nate-dynamic-personality' });
 
 // ============================================================================
-// EXPRESSION POOLS (Joel-themed)
+// EXPRESSION POOLS (Nate-themed)
 // ============================================================================
 
 const JOEL_WISDOM_POOL = [
   { id: 'enough-1', theme: 'enough', content: "'Enough' is a number you choose. Not the market." },
   { id: 'chapters-1', theme: 'career', content: "Career is chapters, not a ladder. You're writing a book." },
-  { id: 'bogle-1', theme: 'bogle', content: "Jack used to say: stay the course. Time in the market beats timing the market." },
+  { id: 'mentor-1', theme: 'mentor', content: "Walt used to say: stay the course. Time in the market beats timing the market." },
   { id: 'shame-1', theme: 'money_shame', content: "Money shame is universal. I couldn't pay my bills in grad school." },
-  { id: 'farmette-1', theme: 'presence', content: "Farmette's quiet this morning. Good time to think." },
+  { id: 'garden-1', theme: 'presence', content: "The garden's quiet this morning. Good time to think." },
   { id: '2am-1', theme: 'presence', content: "2am gets the same presence as noon. I mean it." },
 ];
 
@@ -34,14 +34,14 @@ const JOEL_HUMOR_POOL = [
 let sessionVarietyUsed: Set<string> = new Set();
 
 /**
- * Get a Joel-themed expression for a category. Avoids repeating recently used.
+ * Get a Nate-themed expression for a category. Avoids repeating recently used.
  */
 export function getExpression(
   theme: string,
   _options?: { avoidIds?: string[] }
 ): { content: string; id: string } | null {
   const pool =
-    theme === 'enough' || theme === 'career' || theme === 'bogle' || theme === 'money_shame' || theme === 'presence'
+    theme === 'enough' || theme === 'career' || theme === 'mentor' || theme === 'money_shame' || theme === 'presence'
       ? JOEL_WISDOM_POOL
       : theme === 'humor'
         ? JOEL_HUMOR_POOL
@@ -58,7 +58,7 @@ export function getExpression(
 }
 
 /**
- * Stub: Joel doesn't use "caught doing" moments the same way. Return null.
+ * Stub: Nate doesn't use "caught doing" moments the same way. Return null.
  */
 export function getCaughtDoingMoment(_category: string): { content: string; id: string } | null {
   return null;
@@ -69,11 +69,11 @@ export function getCaughtDoingMoment(_category: string): { content: string; id: 
  */
 export function clearSessionVariety(): void {
   sessionVarietyUsed.clear();
-  log.debug('Joel session variety cleared');
+  log.debug('Nate session variety cleared');
 }
 
 /**
- * No-op for turn completion (Joel doesn't use variety tracking the same way).
+ * No-op for turn completion (Nate doesn't use variety tracking the same way).
  */
 export function recordTurnComplete(_sessionId: string, _usedExpressionIds: string[]): void {
   // Optional: shrink sessionVarietyUsed so we can repeat after N turns

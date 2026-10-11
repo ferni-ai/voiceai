@@ -1,8 +1,8 @@
 /**
- * Joel Dickson: Superhuman Memory → Personality Integration
+ * Nate Holloway: Superhuman Memory → Personality Integration
  *
- * Same as Ferni's integration but scoped to Joel: dates, growth, absences,
- * inside jokes (Joel-voiced), and comfort. Uses shared memory-personality bridge.
+ * Same as Ferni's integration but scoped to Nate: dates, growth, absences,
+ * inside jokes (Nate-voiced), and comfort. Uses shared memory-personality bridge.
  *
  * @module personas/bundles/joel-dickson/superhuman-memory-integration
  */
@@ -29,10 +29,10 @@ import {
   type MemoryCallback,
 } from '../../shared/memory-personality-bridge.js';
 
-const log = createLogger({ module: 'joel-superhuman-memory-integration' });
+const log = createLogger({ module: 'nate-superhuman-memory-integration' });
 
 // ============================================================================
-// CONFIG (Joel-appropriate defaults)
+// CONFIG (Nate-appropriate defaults)
 // ============================================================================
 
 export interface JoelMemoryIntegrationConfig {
@@ -66,7 +66,7 @@ const DEFAULT_CONFIG: JoelMemoryIntegrationConfig = {
 // ============================================================================
 
 /**
- * Initialize Joel memory callbacks from superhuman memory at session start.
+ * Initialize Nate memory callbacks from superhuman memory at session start.
  */
 export async function initializeMemoryCallbacks(
   userId: string,
@@ -81,7 +81,7 @@ export async function initializeMemoryCallbacks(
   let callbacksQueued = 0;
 
   if (!humanMemory) {
-    log.debug({ userId }, 'No human memory available for Joel callbacks');
+    log.debug({ userId }, 'No human memory available for Nate callbacks');
     return { callbacksQueued: 0, comfortGuidance: null };
   }
 
@@ -146,7 +146,7 @@ export async function initializeMemoryCallbacks(
 
   log.info(
     { userId, callbacksQueued, hasComfort: !!comfortGuidance },
-    'Joel memory callbacks initialized'
+    'Nate memory callbacks initialized'
   );
 
   return { callbacksQueued, comfortGuidance };
