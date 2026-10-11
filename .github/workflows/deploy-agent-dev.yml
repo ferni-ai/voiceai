@@ -1,0 +1,154 @@
+name: Deploy Voice Agent (dev)
+
+# Deploys main to the dev voice agent on LiveKit Cloud (ferni-dev,
+# CA_siTDMHEba4Fg) after every merge, with the gates of the deploy-agent skill:
+# frozen install, typecheck, empty rooms, then a check that the new commit is
+# the live version. A deploy restarts the agent and drops calls, so it waits
+# for ferni-dev to have no rooms and fails rather than cut into one.
+#
+# Run it by hand to set dev flags: each "KEY=value" line of `secrets` becomes
+# one --secrets (commas don't split, and update-secrets merges). Setting
+# secrets restarts the agent too, so it waits for empty rooms the same way.
+#
+# Prod is not deployed from here: it stays a manual step of the skill, and
+# only for a commit that has run on dev.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy main to dev'
+        type: boolean
+        default: false
+      secrets:
+        description: 'Dev flags to set, one KEY=value per line (e.g. COACH_FOLLOW_THROUGH=on). Values show in the log, so flags only.'
+        type: string
+        default: ''
+
+# One change to the dev agent at a time. A queued run is replaced by a newer
+# one, so main's head wins; a running deploy is never cut off.
+concurrency:
+  group: deploy-agent-dev
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+  LIVEKIT_URL: wss://dev-8sm1ba0z.livekit.cloud
+  # Rooms are checked every 30s for up to 20 minutes.
+  ROOM_WAIT_TRIES: '40'
+
+jobs:
+  agent:
+    name: Deploy dev agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Read dev LiveKit keys
+        run: |
+          key=$(gcloud secrets versions access latest --secret=livekit-dev-api-key --project=johnb-2025)
+          secret=$(gcloud secrets versions access latest --secret=livekit-dev-api-secret --project=johnb-2025)
+          echo "::add-mask::$key"
+          echo "::add-mask::$secret"
+          {
+            echo "LIVEKIT_API_KEY=$key"
+            echo "LIVEKIT_API_SECRET=$secret"
+          } >> "$GITHUB_ENV"
+
+      - name: Install lk
+        run: |
+          curl -sSL https://get.livekit.io/cli | bash
+          lk --version
+
+      - name: Install and typecheck
+        if: github.event_name == 'push' || inputs.deploy
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm typecheck
+
+      - name: Wait for ferni-dev to have no rooms
+        run: |
+          for i in $(seq 1 "$ROOM_WAIT_TRIES"); do
+            # A failed listing fails the step here, never reads as "no rooms".
+            list=$(lk room list --url "$LIVEKIT_URL")
+            rooms=$(grep -c '│ RM_' <<< "$list" || true)
+            if [ "$rooms" = 0 ]; then
+              echo "No rooms open."
+              exit 0
+            fi
+            echo "$rooms room(s) open, waiting ($i/$ROOM_WAIT_TRIES)"
+            sleep 30
+          done
+          echo "::error::ferni-dev still has rooms open; not restarting the agent over a live call."
+          exit 1
+
+      - name: Deploy
+        if: github.event_name == 'push' || inputs.deploy
+        run: |
+          cp docker/Dockerfile.agent ./Dockerfile
+          set +e
+          lk agent deploy --url "$LIVEKIT_URL" --config "$PWD/livekit.toml" -y . > deploy.log 2>&1
+          rm -f Dockerfile
+          set -e
+          tail -n 40 deploy.log
+          # Real error lines only: the build log echoes minified code with "ERROR:" mid-line.
+          if grep -qE "error TS[0-9]{4}|^(#[0-9]+ )?ERROR:|[Bb]uild failed|✘ \[ERROR\]" deploy.log; then
+            echo "::error::lk agent deploy failed"
+            exit 1
+          fi
+
+      - name: Check the new commit is live
+        if: github.event_name == 'push' || inputs.deploy
+        run: |
+          short=$(git rev-parse --short=9 HEAD)
+          for i in $(seq 1 20); do
+            if lk agent versions --url "$LIVEKIT_URL" --config "$PWD/livekit.toml" | grep '✓' | grep -q "$short"; then
+              lk agent versions --url "$LIVEKIT_URL" --config "$PWD/livekit.toml" | head -n 6
+              echo "Live on dev: $short"
+              exit 0
+            fi
+            sleep 30
+          done
+          lk agent versions --url "$LIVEKIT_URL" --config "$PWD/livekit.toml" | head -n 6
+          echo "::error::$short is not the live dev version after 10 minutes"
+          exit 1
+
+      - name: Set dev secrets
+        if: github.event_name == 'workflow_dispatch' && inputs.secrets != ''
+        env:
+          # Read from env, never spliced into the script.
+          SECRETS_INPUT: ${{ inputs.secrets }}
+        run: |
+          args=()
+          while IFS= read -r line; do
+            line=$(echo "$line" | xargs)
+            [ -z "$line" ] && continue
+            if ! [[ "$line" =~ ^[A-Z][A-Z0-9_]*=[^,[:space:]]+$ ]]; then
+              echo "::error::Not KEY=value (no commas, no empty value; use off): ${line%%=*}"
+              exit 1
+            fi
+            args+=(--secrets "$line")
+            echo "Setting ${line%%=*}"
+          done <<< "$SECRETS_INPUT"
+          [ ${#args[@]} -gt 0 ] || { echo "::error::No secrets given"; exit 1; }
+          lk agent update-secrets --url "$LIVEKIT_URL" --config "$PWD/livekit.toml" "${args[@]}"
