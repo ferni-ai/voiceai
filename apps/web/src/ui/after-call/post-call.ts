@@ -12,7 +12,7 @@ import { conversationTracker } from '../../services/conversation-tracker.service
 import { apiGet } from '../../utils/api.js';
 import { createLogger } from '../../utils/logger.js';
 import { showConversationCost } from '../conversation-cost.ui.js';
-import { showAfterCallCard } from './after-call-card.ui.js';
+import { hideAfterCallCard, showAfterCallCard } from './after-call-card.ui.js';
 import { loadAfterCallData } from './after-call-data.js';
 import { isAfterCallCardEnabled } from './after-call-flag.js';
 
@@ -27,7 +27,9 @@ function callStartedAt(startTime: string | undefined): number | null {
 /** Same test the cost card uses before it shows itself, so the link is never a dead tap. */
 async function hasCallCost(): Promise<boolean> {
   try {
-    const res = await apiGet<{ sessionId?: string | null; totalCost?: number }>('/api/conversation/cost');
+    const res = await apiGet<{ sessionId?: string | null; totalCost?: number }>(
+      '/api/conversation/cost'
+    );
     return Boolean(res.ok && res.data?.sessionId && (res.data.totalCost ?? 0) >= 0.0001);
   } catch (error) {
     log.debug('Cost check failed', { error: String(error) });
@@ -41,6 +43,15 @@ export async function showPostCallCard(): Promise<void> {
     return;
   }
 
+  // A new call can start while the data loads, or while the card is up.
+  // Either way the card belongs to the old call, so it must not cover the new one.
+  let newCallStarted = false;
+  const onConnected = (): void => {
+    newCallStarted = true;
+    hideAfterCallCard(true);
+  };
+  document.addEventListener('ferni:connected', onConnected, { once: true });
+
   // The tracker keeps the last call's session until the next call starts.
   const session = conversationTracker.getCurrentSession();
   const [data, costAvailable] = await Promise.all([
@@ -52,6 +63,7 @@ export async function showPostCallCard(): Promise<void> {
       log.warn('Cost card failed to open from after-call card', { error: String(error) })
     );
   };
+  if (newCallStarted) return;
   showAfterCallCard(data, {
     personaName: session?.personaName || 'Ferni',
     onShowCost: costAvailable ? onShowCost : undefined,

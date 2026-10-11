@@ -57,7 +57,8 @@ const inCall = (offsetMs: number): string => new Date(Date.now() + offsetMs).toI
 const LONG_AGO = '2025-01-01T00:00:00.000Z';
 
 async function startCall(): Promise<void> {
-  const { conversationTracker } = await import('../../src/services/conversation-tracker.service.js');
+  const { conversationTracker } =
+    await import('../../src/services/conversation-tracker.service.js');
   conversationTracker.startSession('ferni', 'Ferni');
 }
 
@@ -124,7 +125,9 @@ describe('after-call card', () => {
       expect(items).toEqual(['Your sister Maya is moving to Lisbon', 'Started running again']);
       expect(card!.textContent).not.toContain('Old fact from last spring');
       expect(card!.textContent).not.toContain('Undated fact');
-      expect(card!.querySelector('.after-call-commitment')?.textContent).toBe('Call Maya on Sunday');
+      expect(card!.querySelector('.after-call-commitment')?.textContent).toBe(
+        'Call Maya on Sunday'
+      );
       expect(card!.querySelector('.after-call-empty')).toBeNull();
     });
 
@@ -165,9 +168,42 @@ describe('after-call card', () => {
       await runPostCall();
       afterCallCard()!.querySelector<HTMLButtonElement>('.after-call-cost')!.click();
       await vi.waitFor(() => expect(costCard()).not.toBeNull());
-      const { isAfterCallCardShowing } = await import('../../src/ui/after-call/after-call-card.ui.js');
+      const { isAfterCallCardShowing } =
+        await import('../../src/ui/after-call/after-call-card.ui.js');
       expect(isAfterCallCardShowing()).toBe(false);
       expect(afterCallCard()?.classList.contains('visible') ?? false).toBe(false);
+    });
+
+    it('closes when the next call connects', async () => {
+      routeApi({});
+
+      await runPostCall();
+      expect(afterCallCard()).not.toBeNull();
+      document.dispatchEvent(new CustomEvent('ferni:connected'));
+      expect(afterCallCard()).toBeNull();
+    });
+
+    it('never appears over a call that connected while its data loaded', async () => {
+      let releaseMemories: () => void = () => undefined;
+      mockApiGet.mockImplementation((path: string) => {
+        if (path === '/api/cognitive/memories') {
+          return new Promise((resolve) => {
+            releaseMemories = () => resolve({ ok: true, status: 200, data: { memories: [] } });
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          data: path === '/api/conversation/cost' ? COST : { items: [] },
+        });
+      });
+
+      const pending = runPostCall();
+      await vi.waitFor(() => expect(mockApiGet).toHaveBeenCalledWith('/api/cognitive/memories'));
+      document.dispatchEvent(new CustomEvent('ferni:connected'));
+      releaseMemories();
+      await pending;
+      expect(afterCallCard()).toBeNull();
     });
 
     it('is a labelled, focusable dialog that closes on Escape', async () => {
@@ -213,7 +249,10 @@ describe('after-call data', () => {
   it('returns nothing when the call start is unknown', async () => {
     const { loadAfterCallData } = await import('../../src/ui/after-call/after-call-data.js');
     mockApiGet.mockReset();
-    expect(await loadAfterCallData(null, ['an insight'])).toEqual({ remembered: [], nextStep: null });
+    expect(await loadAfterCallData(null, ['an insight'])).toEqual({
+      remembered: [],
+      nextStep: null,
+    });
     expect(mockApiGet).not.toHaveBeenCalled();
   });
 });
