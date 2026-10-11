@@ -7,7 +7,7 @@
  */
 
 import { config } from 'dotenv';
-config();
+config({ quiet: true });
 
 import { callWithPersonaVoice } from '../src/services/voice/voice-call.js';
 

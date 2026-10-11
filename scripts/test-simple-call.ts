@@ -10,7 +10,7 @@
  */
 
 import { config } from 'dotenv';
-config();
+config({ quiet: true });
 
 const args = process.argv.slice(2);
 
