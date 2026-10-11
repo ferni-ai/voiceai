@@ -36,7 +36,6 @@ exports[`feature-flags.ts resolved values > match the values recorded before the
   "experimental": {
     "abTesting": false,
     "batchedSummarization": true,
-    "contextBuilderPrewarm": true,
     "crossSessionThreading": true,
     "embeddingWorkerIntegration": false,
     "geminiEmotionAnalysis": false,
