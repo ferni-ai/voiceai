@@ -29,14 +29,18 @@ const stripePayments = vi.hoisted(() => ({
   createPaymentIntent: vi.fn(async () => ({ clientSecret: 'pi_secret', paymentIntentId: 'pi_1' })),
 }));
 vi.mock('../services/stripe-payments.js', () => stripePayments);
-const stripeSubscription = vi.hoisted(() => ({
-  createCheckoutSession: vi.fn(async () => ({
+vi.mock('../services/stripe-subscription.js', () => ({ createPortalSession: vi.fn() }));
+// The monthly gift's Checkout wrapper; its amount validation stays real.
+const seedFund = vi.hoisted(() => ({
+  createSeedFundCheckout: vi.fn(async () => ({
     sessionId: 'cs_1',
     url: 'https://checkout.stripe.com/cs_1',
   })),
-  createPortalSession: vi.fn(),
 }));
-vi.mock('../services/stripe-subscription.js', () => stripeSubscription);
+vi.mock('../services/billing/seed-fund-checkout.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../services/billing/seed-fund-checkout.js')>()),
+  ...seedFund,
+}));
 
 vi.mock('../../apps/web/src/services/firebase-auth.service.js', () => ({
   initAuth: vi.fn(async () => undefined),
@@ -184,8 +188,8 @@ describe('monthly gift: startMonthlyGift ↔ POST /api/garden/subscribe', () => 
 
     expect(exchanges[0].body).toEqual({ amount: 10 });
     expect(exchanges[0].status).toBe(200);
-    expect(stripeSubscription.createCheckoutSession).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'uid-42' })
+    expect(seedFund.createSeedFundCheckout).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'uid-42', seedsUid: 'uid-42', amountCents: 1000 })
     );
     expect(window.location.href).toBe('https://checkout.stripe.com/cs_1');
     expect(outcome).toEqual({ status: 'redirected' });
@@ -197,7 +201,7 @@ describe('monthly gift: startMonthlyGift ↔ POST /api/garden/subscribe', () => 
     const outcome = await startMonthlyGift(10);
 
     expect(exchanges[0].status).toBe(503);
-    expect(stripeSubscription.createCheckoutSession).not.toHaveBeenCalled();
+    expect(seedFund.createSeedFundCheckout).not.toHaveBeenCalled();
     expect(outcome).toEqual({ status: 'not-configured' });
   });
 });

@@ -79,12 +79,32 @@ export function factId(f: RecallFact): string {
   return `${f.entity}|${f.key}|${f.value}`.toLowerCase();
 }
 
+/** Semantic matches for this turn (semantic-recall.ts), when SEMANTIC_RECALL is on. */
+export interface RecallBlend {
+  /** factId to how far its similarity stood above the median. */
+  semantic: ReadonlyMap<string, number>;
+  now: number;
+}
+
+/** A margin of 0.2 (a clear match) weighs as much as naming the entity. */
+const SEMANTIC_WEIGHT = 10;
+/** Newer memories edge out older ones: +0.5 today, +0.18 a month ago. */
+const RECENCY_WEIGHT = 0.5;
+const RECENCY_DAYS = 30;
+
+function recency(extractedAt: string | undefined, now: number): number {
+  const t = extractedAt ? Date.parse(extractedAt) : NaN;
+  if (Number.isNaN(t)) return 0;
+  return RECENCY_WEIGHT * Math.exp(-Math.max(0, now - t) / 86_400_000 / RECENCY_DAYS);
+}
+
 /**
  * The facts worth bringing to this turn, best first.
  *
  * A fact is relevant when the user names its entity, or shares content words
- * with it. Facts already surfaced this session are skipped so Ferni does not
- * keep repeating the same recollection.
+ * with it, or (with a blend) means something close to what they said. Facts
+ * already surfaced this session are skipped so Ferni does not keep repeating
+ * the same recollection.
  */
 export function recallForTurn(
   snapshot: RecallSnapshot,
@@ -93,19 +113,24 @@ export function recallForTurn(
   max = 4,
   perEntity = 2,
   /** Facts per entity already recalled this turn (from earlier interim transcripts). */
-  usedThisTurn: ReadonlyMap<string, number> = new Map()
+  usedThisTurn: ReadonlyMap<string, number> = new Map(),
+  blend?: RecallBlend
 ): RecallFact[] {
   const words = contentWords(userText);
   const scored: Array<{ fact: RecallFact; score: number }> = [];
   for (const fact of snapshot.facts) {
-    if (surfaced.has(factId(fact))) continue;
+    const id = factId(fact);
+    if (surfaced.has(id)) continue;
     const named = !SELF_ENTITY.test(fact.entity) && mentions(userText, fact.entity);
     let overlap = 0;
     for (const w of contentWords(`${fact.entity} ${fact.key} ${fact.value}`)) {
       if (words.has(w)) overlap++;
     }
-    if (!named && overlap === 0) continue;
-    scored.push({ fact, score: (named ? 2 : 0) + overlap * 0.5 + fact.confidence * 0.5 });
+    const margin = blend?.semantic.get(id) ?? 0;
+    if (!named && overlap === 0 && margin === 0) continue;
+    let score = (named ? 2 : 0) + overlap * 0.5 + fact.confidence * 0.5;
+    if (blend) score += margin * SEMANTIC_WEIGHT + recency(fact.extractedAt, blend.now);
+    scored.push({ fact, score });
   }
   scored.sort((a, b) => b.score - a.score);
   // One entity can't take the whole turn ("sister" brought 4 pregnancy rows
@@ -182,12 +207,13 @@ function confidenceOf(raw: unknown): number {
   if (typeof raw === 'string') return WORD_CONFIDENCE[raw.trim().toLowerCase()] ?? 0.5;
   return 0.5;
 }
-const MAX_FOLLOW_UPS = 3;
+export const MAX_FOLLOW_UPS = 3;
 
 /** Load a user's recall snapshot. Never throws; an unreachable store yields an empty snapshot. */
 export async function loadRecallSnapshot(
   store: RecallStore,
-  userId: string
+  userId: string,
+  maxFollowUps = MAX_FOLLOW_UPS
 ): Promise<RecallSnapshot> {
   const [rawFacts, rawSummaries] = await Promise.all([
     store.facts(userId).catch(() => []),
@@ -212,9 +238,9 @@ export async function loadRecallSnapshot(
     for (const item of Array.isArray(s.followUpItems) ? s.followUpItems : []) {
       const text = String(item).trim();
       if (text && !followUps.includes(text)) followUps.push(text);
-      if (followUps.length >= MAX_FOLLOW_UPS) break;
+      if (followUps.length >= maxFollowUps) break;
     }
-    if (followUps.length >= MAX_FOLLOW_UPS) break;
+    if (followUps.length >= maxFollowUps) break;
   }
   return { facts, followUps };
 }

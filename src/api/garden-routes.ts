@@ -37,7 +37,8 @@ import {
   type SubscriptionResponse,
 } from '../types/seed-fund.types.js';
 import { createPaymentIntent, isStripeConfigured } from '../services/stripe-payments.js';
-import { createCheckoutSession, createPortalSession } from '../services/stripe-subscription.js';
+import { createPortalSession } from '../services/stripe-subscription.js';
+import * as seedFund from '../services/billing/seed-fund-checkout.js';
 
 const log = createLogger({ module: 'GardenAPI' });
 
@@ -327,12 +328,12 @@ async function handleStartMonthly(
 ): Promise<void> {
   try {
     const body = await parseBody<StartMonthlyRequest>(req);
-    const { amount } = body;
-
-    if (!amount || amount < 5) {
-      sendError(res, 'Monthly amount must be at least $5', 400);
+    const amountCents = seedFund.monthlyGiftCents(body.amount);
+    if (amountCents === null) {
+      sendError(res, seedFund.GIFT_AMOUNT_ERROR, 400);
       return;
     }
+    const { amount } = body;
 
     if (!isStripeConfigured()) {
       log.warn({ userId }, 'Stripe not configured for garden subscription');
@@ -348,13 +349,13 @@ async function handleStartMonthly(
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
 
-    // 'friend' tier pricing for now; the invoice.paid webhook pays the founding bonus
-    const checkoutResult = await createCheckoutSession({
+    // The chosen amount, monthly, as a gift (not the Friend plan); invoice.paid pays the bonus
+    const checkoutResult = await seedFund.createSeedFundCheckout({
       userId,
-      tier: 'friend',
+      seedsUid: verifiedUid,
+      amountCents,
       successUrl: `${baseUrl}/garden/success`,
       cancelUrl: `${baseUrl}/garden/cancel`,
-      metadata: { garden_type: 'monthly', ...(verifiedUid ? { seeds_uid: verifiedUid } : {}) },
     });
 
     log.info(

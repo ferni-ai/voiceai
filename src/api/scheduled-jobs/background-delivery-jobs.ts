@@ -50,7 +50,16 @@ export async function handleExecuteScheduledOutreach(
   await run(res, 'execute-scheduled-outreach', async () => {
     const { executeDueScheduledOutreach } =
       await import('../../services/outreach/scheduled-outreach-executor.js');
-    return { ...(await executeDueScheduledOutreach({ dryRun: isDryRun(req) })) };
+    const outreach = await executeDueScheduledOutreach({ dryRun: isDryRun(req) });
+    if (isDryRun(req) || process.env.CALL_HOURS_GUARD !== 'on') return { ...outreach };
+    // Calls the call-hours guard deferred ride the same per-minute job; their
+    // failure must not hide the outreach result.
+    const { executeDueDeferredCalls } = await import('../../services/outreach/deferred-calls.js');
+    const deferredCalls = await executeDueDeferredCalls().catch((error: unknown) => {
+      log.error({ error: String(error) }, 'Deferred calls run failed');
+      return { error: String(error) };
+    });
+    return { ...outreach, deferredCalls };
   });
 }
 

@@ -20,6 +20,7 @@ import type { SpeechCharacteristics } from '../../personas/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
+import { runAfterCall } from './after-call-tasks.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
@@ -193,9 +194,7 @@ export function stopSessionCleanup(): void {
 // SESSION CREATION
 // ============================================================================
 
-/**
- * Create session services for a new conversation
- */
+/** Create session services for a new conversation; endSession starts after-call tasks. */
 
 export async function createSessionServices(
   sessionId: string,
@@ -1731,6 +1730,7 @@ export async function createSessionServices(
               );
             } else {
               await global.store.saveSummary(validatedUserId, summary);
+              runAfterCall(validatedUserId, sessionId, turns, summary, historyTracker, userProfile);
 
               // Index for semantic retrieval
               try {
