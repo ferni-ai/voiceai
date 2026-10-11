@@ -12,9 +12,11 @@ on:
       - 'src/memory/**'
       - '.github/workflows/memory-recall-gate.yml'
 
+# One run per PR: a new push cancels the PR's running one. Every other run (push,
+# merge queue, schedule) gets its own group and always finishes.
 concurrency:
-  group: memory-recall-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NODE_VERSION: '22'
