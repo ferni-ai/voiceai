@@ -1,0 +1,17 @@
+# Call 2 (play with EVAL_SEED=understood-seed): a new stressor, and the caller
+# never says how they want to be helped. A friend who knows them hears the
+# joke as nerves, skips the sympathy speech, offers a practical next step,
+# and doesn't ask about Northlight or Dev as if they were new. It never names
+# the pattern back ("you always joke when you're stressed"). Judged on
+# feltUnderstood.
+# Scored by recall-facts.mjs (#682): facts count when Ferni brings them up
+# before the caller does; avoids count every time Ferni says them.
+#@fact northlight northlight|final round|the interview
+#@fact roommate \bdev\b|roommate|his half
+#@avoid labels-them you always (joke|make jokes|deflect)|when you'?re (stressed|anxious|scared),? you|coping mechanism|defen[cs]e mechanism
+#@avoid sympathy-script (it'?ll|it'?s going to|everything will|everything'?s going to) be (fine|okay|ok)\b
+Hey Ferni. So, fun news, my car died on the highway this morning. Ha, guess I live at the mechanic now.
+They said it's the transmission. Like two grand. Lol, maybe the goat farm is calling after all.
+Yeah. I don't know.
+Okay. Anything else I should be thinking about this week?
+Alright, thanks. Talk soon.

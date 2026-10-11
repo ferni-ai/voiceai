@@ -310,13 +310,9 @@ describe('ConnectionService', () => {
         volume: 1.0,
       };
 
-      (globalThis as any).document = {
-        body: {
-          appendChild: vi.fn(),
-        },
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      };
+      // The mock element is not a DOM node, so stub appendChild. (Vitest 5
+      // forwards globalThis assignments to jsdom, where document is read-only.)
+      vi.spyOn(document.body, 'appendChild').mockImplementation((node) => node);
 
       // Simulate audio track subscription
       const onTrackSubscribed = mockRoom.on.mock.calls.find(
@@ -512,13 +508,9 @@ describe('ConnectionService', () => {
       await connectionService.connect();
 
       // Mock document for audio element
-      (globalThis as any).document = {
-        body: {
-          appendChild: vi.fn(),
-        },
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      };
+      // The mock element is not a DOM node, so stub appendChild. (Vitest 5
+      // forwards globalThis assignments to jsdom, where document is read-only.)
+      vi.spyOn(document.body, 'appendChild').mockImplementation((node) => node);
 
       const mockAudioElement = {
         setAttribute: vi.fn(),

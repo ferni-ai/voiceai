@@ -182,6 +182,7 @@ interface UserDataWithTrial {
   turnCount?: number;
   isTrialUser?: boolean;
   isFirstConversation?: boolean;
+  callerTimezone?: string;
   // Phase 5: Anticipatory trigger profile for session-end save
   triggerProfile?: import('../../intelligence/triggers/index.js').UserTriggerProfile;
   // H2.2 BTH: Conversation plan for goal-directed sessions
@@ -634,15 +635,12 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     // Game state
     cleanupGames(sessionId),
 
-    // Seed economy - award 1 seed per completed conversation
+    // Seed economy - the day's first conversation and streak milestones (caller's own day)
     userId
       ? (async () => {
-          const result = await awardSeedsForConversation(userId, 1, 'conversation');
+          const result = await awardSeedsForConversation(userId, userData?.callerTimezone);
           if (result.success) {
-            diag.session('🌱 Seed awarded for conversation', {
-              userId,
-              newBalance: result.newBalance,
-            });
+            diag.session('🌱 Conversation seeds', { userId, newBalance: result.newBalance });
           }
         })()
       : Promise.resolve(),
@@ -1695,11 +1693,11 @@ async function cleanupMusic(sessionId: string): Promise<void> {
 
 async function cleanupGames(sessionId: string): Promise<void> {
   try {
-    const { getSessionGameEngine, resetSessionGameEngine } =
-      await import('../../services/games/index.js');
-    const engine = getSessionGameEngine(sessionId);
-    await engine.flushToStorage();
-    resetSessionGameEngine(sessionId);
+    const games = await import('../../services/games/index.js');
+    await games.getSessionGameEngine(sessionId).flushToStorage();
+    games.resetSessionGameEngine(sessionId);
+    // Text games (tic-tac-toe, 20 questions...) were otherwise kept for the process's life.
+    games.resetSessionTextGameEngine(sessionId);
     diag.session('Game engine flushed and reset');
   } catch (e) {
     log().debug({ error: String(e) }, 'Game cleanup failed (non-fatal)');

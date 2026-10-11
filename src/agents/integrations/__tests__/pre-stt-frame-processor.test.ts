@@ -4,7 +4,11 @@
  */
 import { AudioFrame, ParticipantKind } from '@livekit/rtc-node';
 import { describe, expect, it } from 'vitest';
-import { createPreSTTFrameProcessor, wantsPhonePreStt } from '../pre-stt-frame-processor.js';
+import {
+  createPreSTTFrameProcessor,
+  isPhoneParticipant,
+  wantsPhonePreStt,
+} from '../pre-stt-frame-processor.js';
 
 const RATE = 24_000;
 const FRAME = 480; // 20 ms
@@ -26,6 +30,34 @@ describe('which callers get it', () => {
     expect(wantsPhonePreStt({ kind: ParticipantKind.STANDARD }, {})).toBe(false);
     expect(wantsPhonePreStt(undefined, {})).toBe(false);
     expect(wantsPhonePreStt({ kind: ParticipantKind.SIP }, { PRE_STT_SIP: 'off' })).toBe(false);
+  });
+});
+
+describe('isPhoneParticipant', () => {
+  // Shaped like the prod outbound call AJ_6gTw8RUcxwBC (dialed via trunk ST_AEE6NnKE84XP).
+  const sethAttributes = { 'sip.callStatus': 'active', 'sip.phoneNumber': '+15550100' };
+
+  it('catches the outbound-dialed caller however LiveKit describes them', () => {
+    const seth = { identity: 'phone_seth', kind: ParticipantKind.SIP, attributes: sethAttributes };
+    expect(isPhoneParticipant(seth)).toBe(true);
+    expect(isPhoneParticipant({ ...seth, kind: undefined })).toBe(true);
+    expect(isPhoneParticipant({ identity: 'phone_seth' })).toBe(true);
+    expect(isPhoneParticipant({ identity: 'u1', attributes: sethAttributes })).toBe(true);
+    expect(isPhoneParticipant({ identity: 'sip_+15550100' })).toBe(true);
+    expect(wantsPhonePreStt({ identity: 'phone_seth', attributes: sethAttributes }, {})).toBe(true);
+  });
+
+  it('leaves app callers alone', () => {
+    expect(
+      isPhoneParticipant({
+        identity: 'vdSfkCCXaiXpnVCvgKxHMYrNFr72',
+        kind: ParticipantKind.STANDARD,
+      })
+    ).toBe(false);
+    expect(isPhoneParticipant({ identity: 'smartphone_user', attributes: { tier: 'pro' } })).toBe(
+      false
+    );
+    expect(isPhoneParticipant(undefined)).toBe(false);
   });
 });
 
