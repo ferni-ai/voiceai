@@ -29,6 +29,7 @@ import {
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
+import { repairNoteFor } from './repair-check.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
@@ -83,12 +84,15 @@ export function withTurnReminder(
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
   const notes = formatNotes((director?.current() ?? []).filter(keep));
+  // REPAIR_MODE=on: a light check on words that look misheard; none with crisis guidance.
+  const repair = options.shape !== false ? repairNoteFor(chatCtx, session) : '';
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     notes,
+    repair,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
