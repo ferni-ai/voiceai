@@ -505,7 +505,7 @@ function injectStyles(): void {
       position: fixed;
       top: var(--space-4, 16px);
       right: var(--space-4, 16px);
-      z-index: var(--z-toast, 8000);
+      z-index: var(--z-toast);
       display: flex;
       flex-direction: column;
       gap: var(--space-3, 12px);

@@ -572,7 +572,7 @@ export class PredictionsUI {
       .predictions-panel {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -843,7 +843,7 @@ export class PredictionsUI {
       .prediction-resolution-modal {
         position: fixed;
         inset: 0;
-        z-index: calc(var(--z-modal, 1400) + 10);
+        z-index: calc(var(--z-modal) + 10);
         display: flex;
         align-items: center;
         justify-content: center;

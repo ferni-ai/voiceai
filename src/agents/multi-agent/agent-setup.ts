@@ -17,6 +17,7 @@
  */
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
+import { attachTurnReceipts } from '../shared/turn-receipt.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig, PersonaId } from '../../personas/types.js';
@@ -1421,6 +1422,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
       event: TURN_METRICS_EVENT,
       handler: turnMetricsHandler as (...args: unknown[]) => void,
     });
+    // One TURN_RECEIPT line per caller turn: what the model was given and did, no words.
+    cleanupFunctions.push(
+      attachTurnReceipts(session as never, {
+        sessionId,
+        userId,
+        persona: () => userData.personaId ?? persona.id,
+      })
+    );
 
     // 🔊 COMPREHENSIVE SESSION DEBUG: Track ALL session events during startup
     // This helps us understand what's happening during prewarm

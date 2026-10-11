@@ -489,7 +489,7 @@ class CommandsPanelUI {
       .ferni-commands {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         justify-content: flex-end;
         opacity: 0;

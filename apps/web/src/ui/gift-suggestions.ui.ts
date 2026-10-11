@@ -130,7 +130,7 @@ function injectStyles(): void {
     .gift-suggestions-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -777,26 +777,59 @@ function bindEvents(): void {
 // ACTIONS
 // ============================================================================
 
+/** A suggestion as GET /api/gifts/:contactId/suggestions returns it (gift-tracking-service). */
+interface ServerGiftSuggestion {
+  idea: string;
+  description: string;
+  priceRange: string;
+  reasoning: string;
+  tags?: string[];
+}
+
+/** Budget choices as the min/max dollars the server takes. */
+const BUDGET_RANGES: Record<string, [number, number]> = {
+  under_25: [0, 25],
+  '25_50': [25, 50],
+  '50_100': [50, 100],
+  '100_200': [100, 200],
+  over_200: [200, 1000],
+};
+
+function giftSuggestionsUrl(contactId: string, occasion: string, budget: string): string {
+  const params = new URLSearchParams({ occasion: occasion || 'any' });
+  const range = BUDGET_RANGES[budget];
+  if (range) {
+    params.set('minBudget', String(range[0]));
+    params.set('maxBudget', String(range[1]));
+  }
+  return `/api/gifts/${encodeURIComponent(contactId)}/suggestions?${params.toString()}`;
+}
+
+function toGiftSuggestion(s: ServerGiftSuggestion, index: number): GiftSuggestion {
+  return {
+    id: `gift-${index}`,
+    name: s.idea,
+    description: s.description,
+    priceRange: s.priceRange,
+    reasoning: s.reasoning,
+    category: s.tags?.[0] ?? t('gifts.categoryGeneral'),
+  };
+}
+
 async function generateSuggestions(): Promise<void> {
   state.isLoading = true;
   state.error = null;
   render();
 
   try {
-    const response = await apiFetch(`/api/contacts/${state.contactId}/gift-suggestions`, {
-      method: 'POST',
-      body: JSON.stringify({
-        occasion: state.occasion || undefined,
-        budget: state.budget || undefined,
-      }),
-    });
+    const response = await apiFetch(giftSuggestionsUrl(state.contactId, state.occasion, state.budget));
 
     if (!response.ok) {
       throw new Error('Failed to generate suggestions');
     }
 
-    const data = await response.json();
-    state.suggestions = data.suggestions || [];
+    const data = (await response.json()) as { suggestions?: ServerGiftSuggestion[] };
+    state.suggestions = (data.suggestions ?? []).map(toGiftSuggestion);
     state.hasGenerated = true;
     state.isLoading = false;
     render();
