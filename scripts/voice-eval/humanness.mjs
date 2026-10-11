@@ -73,7 +73,11 @@ export function turnsOf(run, { greeting = false } = {}) {
         last.text = segs.join(' ');
       }
     } else {
-      turns.push(isGreeting ? { who: e.who, text: e.text, t: e.t, greeting: true } : { who: e.who, text: e.text, t: e.t });
+      turns.push(
+        isGreeting
+          ? { who: e.who, text: e.text, t: e.t, greeting: true }
+          : { who: e.who, text: e.text, t: e.t }
+      );
       segs = [e.text];
     }
   }
