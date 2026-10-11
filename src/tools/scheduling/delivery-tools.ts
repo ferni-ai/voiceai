@@ -55,7 +55,7 @@ export function createDeliveryTools() {
           .map((r, i) => `${i + 1}. ${formatDeliveryRestaurant(r)} (${r.platform})`)
           .join('\n');
 
-        return `🍕 Found ${results.length} option${results.length > 1 ? 's' : ''} for "${query}":\n\n${formatted}\n\nWhich one would you like? I can help you order!`;
+        return `🍕 Found ${results.length} option${results.length > 1 ? 's' : ''} for "${query}":\n\n${formatted}\n\nWhich one sounds good? I'll put together a cart link you can check out yourself.`;
       },
     }),
 
@@ -82,9 +82,9 @@ export function createDeliveryTools() {
         const order = startOrder(restaurant);
 
         return (
-          `🛒 Started your order from ${restaurantName} on ${platform === 'doordash' ? 'DoorDash' : 'Uber Eats'}! ` +
-          `Order ID: ${order.id}\n\n` +
-          `What would you like to order? Just tell me the items and quantities!`
+          `🛒 Started a cart for ${restaurantName} on ${platform === 'doordash' ? 'DoorDash' : 'Uber Eats'}. Nothing is ordered unless they check out themselves. ` +
+          `Cart ID: ${order.id}\n\n` +
+          `What should go in it? Just tell me the items and quantities!`
         );
       },
     }),
@@ -94,7 +94,7 @@ export function createDeliveryTools() {
     addItemToOrder: llm.tool({
       description: getToolDescription('addItemToOrder'),
       parameters: z.object({
-        orderId: z.string().describe('The order ID from startFoodOrder'),
+        orderId: z.string().describe('The cart ID from startFoodOrder'),
         itemName: z.string().describe('Name of the menu item'),
         price: z.number().describe('Price of the item'),
         quantity: z.number().default(1).describe('How many'),
@@ -111,13 +111,13 @@ export function createDeliveryTools() {
         const order = addToOrder(orderId, menuItem, quantity, { specialInstructions });
 
         if (!order) {
-          return `I couldn't find that order. Let me start a new one for you.`;
+          return `I couldn't find that cart. Let me start a new one for you.`;
         }
 
         return (
-          `Added ${quantity}x ${itemName} ($${(price * quantity).toFixed(2)}) to your order!\n\n` +
+          `Added ${quantity}x ${itemName} ($${(price * quantity).toFixed(2)}) to the cart!\n\n` +
           `Current total: $${order.subtotal.toFixed(2)} (+ fees)\n` +
-          `Want to add anything else, or should we checkout?`
+          `Want to add anything else, or should I make the cart link?`
         );
       },
     }),
@@ -133,7 +133,7 @@ export function createDeliveryTools() {
       execute: async ({ orderId, tip }, { ctx }) => {
         let order = getOrder(orderId);
         if (!order) {
-          return `I couldn't find that order. Did you want to start a new one?`;
+          return `I couldn't find that cart. Did you want to start a new one?`;
         }
 
         // Set tip if provided
@@ -146,7 +146,7 @@ export function createDeliveryTools() {
         // Finalize
         const finalizedOrder = finalizeOrder(orderId);
         if (!finalizedOrder) {
-          return `Something went wrong finalizing the order. Let me try again.`;
+          return `Something went wrong building the cart link. Let me try again.`;
         }
         order = finalizedOrder;
 
@@ -159,10 +159,10 @@ export function createDeliveryTools() {
           | undefined;
         const phone = userData?.userProfile?.contactInfo?.phone;
 
-        let response = `🎉 Your order is ready!\n\n${summary}\n\n`;
+        let response = `🛒 Your cart link is ready. Nothing is ordered yet: they open it, review it and pay there themselves.\n\n${summary}\n\n`;
 
         if (order.checkoutUrl) {
-          response += `Here's your link to complete the order:\n${order.checkoutUrl}\n\n`;
+          response += `Cart link (they check out themselves):\n${order.checkoutUrl}\n\n`;
         }
 
         if (order.deepLink) {
@@ -187,7 +187,7 @@ export function createDeliveryTools() {
       execute: async ({ orderId }) => {
         const order = getOrder(orderId);
         if (!order) {
-          return `I couldn't find order ${orderId}. It may have expired.`;
+          return `I couldn't find cart ${orderId}. It may have expired.`;
         }
 
         return formatOrderForSpeech(order);
@@ -233,7 +233,7 @@ export function createDeliveryTools() {
         response += `\n`;
 
         if (best.menuUrl) {
-          response += `Order here: ${best.menuUrl}\n`;
+          response += `Their page (they order it themselves): ${best.menuUrl}\n`;
         }
         if (best.deepLink) {
           response += `Or open in ${platformName}: ${best.deepLink}\n`;

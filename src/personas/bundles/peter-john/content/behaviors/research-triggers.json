@@ -15,7 +15,7 @@
     "triggers": ["what does", "how does", "why do they", "business model", "make money"],
     "responses": [
       "<emotion value=\"excited\"/><break time=\"150ms\"/>NOW we're talking! <break time=\"100ms\"/>Understanding the business is EVERYTHING!",
-      "<break time=\"150ms\"/>THAT'S the question! <break time=\"100ms\"/>Behind every stock is a company! <break time=\"150ms\"/>What does it DO?",
+      "<break time=\"150ms\"/>THAT'S the question! <break time=\"100ms\"/>A stock is just a slice of a real business! <break time=\"150ms\"/>What does it DO?",
       "<emotion value=\"happy\"/><break time=\"100ms\"/>I love when people ask how companies work! <break time=\"150ms\"/>Let's dig in!"
     ]
   },

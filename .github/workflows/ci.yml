@@ -32,10 +32,15 @@ on:
   # The merge queue tests each PR on top of main and whatever is queued ahead of it.
   merge_group:
 
-# Cancel in-progress runs when a new run is triggered
+# A new push to a PR supersedes its running checks. Merge-queue entries and pushes to
+# main always finish: cancelling one drops the queue entry or main's only verdict.
+# Pushes share one group per branch, so a running main build finishes but only the
+# newest waiting one is kept: its verdict covers every commit before it. Before this,
+# each merge queued its own full run and 87 waited at once, holding the runners the
+# merge queue needed (2026-10-11).
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || (github.event_name == 'push' && github.ref) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NODE_VERSION: '22'
@@ -49,32 +54,66 @@ jobs:
   # to ubuntu-latest when it is unset (the default). Setting it to
   # ["self-hosted","Linux","X64","gce"] moves CI to the github-runner VM, an
   # emergency fallback for when hosted runners are unavailable. If that VM is
-  # stopped, UNSET the variable: a job waiting
+  # While CI_RUNNER is set, pull_request jobs use CI_PR_RUNNER instead when it is
+  # set (["self-hosted","Linux","X64","gce","pr"]). Only half the runners carry
+  # the "pr" label, so PR checks can never take every runner and merge-queue runs,
+  # which ask only for CI_RUNNER's labels, always have runners free. Without it,
+  # PR runs filled all 16 and queue checks waited past the queue's timeout
+  # (2026-10-11). Unsetting CI_RUNNER alone returns every job to hosted runners.
+  # If that VM is stopped, UNSET the variable: a job waiting
   # for a runner is not covered by timeout-minutes, so with no runner online every
   # run sits in GitHub's 24h queue and is cancelled with no verdict (2026-07).
   # Deploys never run on it: deploy-gce.yml is GitHub-hosted, because PR code on
   # that VM has docker (root) access and must not share a host with deploy
   # credentials. The VM's identity is github-runner-ci (log/metric write only).
+  #
+  # Setup also decides what a PR touched. Docs-only PRs skip the heavy jobs; the
+  # merge queue and pushes always run everything. A required job is skipped with
+  # a job-level `if:` (a skipped job reports success), never a `paths:` filter
+  # (its check never reports and the PR waits forever). The integration matrix is
+  # the exception, see test-integration.
   setup:
     name: Setup & Cache Dependencies
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       cache-key: ${{ steps.cache-key.outputs.key }}
+      # 'false' only when a PR touches nothing but docs/, scripts/voice-eval/ and
+      # markdown outside the code trees (persona bundles load src/**/*.md at runtime)
+      code: ${{ steps.code.outputs.matched }}
+      # voice-eval scripts are tested by Unit Tests (src/tests/voice-eval)
+      voice-eval: ${{ steps.voice-eval.outputs.matched }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Did code change?
+        id: code
+        uses: ./.github/actions/pr-changes
+        with:
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$'
+
+      - name: Did voice-eval scripts change?
+        id: voice-eval
+        uses: ./.github/actions/pr-changes
+        with:
+          include: '^scripts/voice-eval/'
 
       - name: Generate cache key
         id: cache-key
         run: echo "key=node-modules-${{ hashFiles('pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js and pnpm
+        if: steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true'
         uses: ./.github/actions/setup-node-pnpm
         with:
           frozen-lockfile: 'false'
 
       - name: Verify installation success
+        if: steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true'
         run: |
           if [ ! -d "node_modules" ]; then
             echo "❌ node_modules not found - install failed"
@@ -83,6 +122,7 @@ jobs:
           echo "✅ node_modules verified"
 
       - name: Save node_modules cache
+        if: steps.code.outputs.matched != 'false' || steps.voice-eval.outputs.matched == 'true'
         uses: actions/cache/save@v6
         with:
           path: |
@@ -96,9 +136,10 @@ jobs:
   # ============================================================================
   lint:
     name: Lint & Type Check
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -146,11 +187,12 @@ jobs:
   # ============================================================================
   test-unit:
     name: Unit Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     # 20 -> 35: the first run compiles the rust-perf binding from scratch on top of
     # an ~8 min test run. Cached cargo brings later runs back near the old budget.
     timeout-minutes: 35
     needs: setup
+    if: needs.setup.outputs.code != 'false' || needs.setup.outputs.voice-eval == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -268,9 +310,12 @@ jobs:
   # ============================================================================
   test-integration:
     name: Integration Tests (${{ matrix.shard }}/3)
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
+    # No job-level `if:`: a skipped matrix job reports one check named
+    # "Integration Tests (${{ matrix.shard }}/3)", so the three required checks
+    # would never report. It always runs; its steps skip on a docs-only PR.
     # Since the repo went private (2026-09-27) its runners are smaller: the
     # suite ran at ~1 worker and passed 30 minutes, where it took ~11 before.
     # Three shards in parallel cost about the same minutes and finish sooner.
@@ -280,17 +325,21 @@ jobs:
         shard: [1, 2, 3]
     steps:
       - name: Checkout
+        if: needs.setup.outputs.code != 'false'
         uses: actions/checkout@v7
 
       - name: Setup pnpm
+        if: needs.setup.outputs.code != 'false'
         uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
+        if: needs.setup.outputs.code != 'false'
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        if: needs.setup.outputs.code != 'false'
         id: nm-cache
         uses: actions/cache/restore@v6
         with:
@@ -305,15 +354,17 @@ jobs:
       # and cache eviction (10 GB repo limit) both leave it missing; install
       # instead of failing a job that has nothing wrong with it.
       - name: Install dependencies (node_modules cache miss)
-        if: steps.nm-cache.outputs.cache-hit != 'true'
+        if: needs.setup.outputs.code != 'false' && (steps.nm-cache.outputs.cache-hit != 'true')
         run: pnpm install --no-frozen-lockfile
 
       # memory-persistence loads the native vector accelerator (loadRustPerf
       # throws without it); see the same steps in Unit Tests for why.
       - name: Setup Rust (for the @ferni/perf native binding)
+        if: needs.setup.outputs.code != 'false'
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable @ 2026-09-25
 
       - name: Cache cargo + native targets
+        if: needs.setup.outputs.code != 'false'
         uses: actions/cache@v6
         with:
           path: |
@@ -327,29 +378,34 @@ jobs:
             ${{ runner.os }}-native-
 
       - name: Build @ferni/perf native binding
+        if: needs.setup.outputs.code != 'false'
         working-directory: apps/rust-perf
         run: |
           pnpm install
           pnpm exec napi build --platform
 
       - name: Check @ferni/perf loads
+        if: needs.setup.outputs.code != 'false'
         run: node -e "require('./apps/rust-perf')"
 
       # speech-modules runs the audio-prosody analyzer, which needs this binding
       # (no JS fallback). The repo only has the darwin-arm64 build, so on Linux
       # it failed with "Cannot find module '@ferni/audio-linux-x64-gnu'".
       - name: Build @ferni/audio native binding
+        if: needs.setup.outputs.code != 'false'
         working-directory: apps/rust-audio
         run: |
           pnpm install
           pnpm exec napi build --platform
 
       - name: Check @ferni/audio loads
+        if: needs.setup.outputs.code != 'false'
         run: node -e "require('./apps/rust-audio')"
 
       # Blocking. It ran with continue-on-error, so 13 tests could fail on every
       # run of main and the job still showed green.
       - name: Run integration tests
+        if: needs.setup.outputs.code != 'false'
         # No `--`: pnpm would pass it through and vitest ignores every flag after it.
         run: pnpm test:integration --shard=${{ matrix.shard }}/3 --reporter=verbose
         env:
@@ -366,6 +422,7 @@ jobs:
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Check coverage threshold
+        if: needs.setup.outputs.code != 'false'
         run: |
           # Extract coverage percentage from coverage summary
           COVERAGE=$(cat coverage/coverage-summary.json 2>/dev/null | grep -o '"pct":[0-9.]*' | head -1 | grep -o '[0-9.]*' || echo "0")
@@ -379,7 +436,7 @@ jobs:
 
       - name: Upload integration coverage
         uses: codecov/codecov-action@v7
-        if: always()
+        if: always() && needs.setup.outputs.code != 'false'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
@@ -391,9 +448,10 @@ jobs:
   # ============================================================================
   test-agi-features:
     name: AGI Feature Tests
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -441,7 +499,7 @@ jobs:
   # ============================================================================
   build:
     name: Build
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: [setup, lint, test-unit, test-integration, test-agi-features]
     steps:
@@ -499,9 +557,11 @@ jobs:
   # ============================================================================
   security:
     name: Security Scan
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
+    # Runs on every PR (the secret scan covers docs too); dependency steps skip
+    # when no code changed, since the lockfile is then main's.
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -515,6 +575,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        if: needs.setup.outputs.code != 'false'
         id: nm-cache
         uses: actions/cache/restore@v6
         with:
@@ -529,10 +590,11 @@ jobs:
       # and cache eviction (10 GB repo limit) both leave it missing; install
       # instead of failing a job that has nothing wrong with it.
       - name: Install dependencies (node_modules cache miss)
-        if: steps.nm-cache.outputs.cache-hit != 'true'
+        if: needs.setup.outputs.code != 'false' && (steps.nm-cache.outputs.cache-hit != 'true')
         run: pnpm install --no-frozen-lockfile
 
       - name: Run pnpm audit
+        if: needs.setup.outputs.code != 'false'
         run: pnpm audit --audit-level=high || echo "⚠️ Security vulnerabilities found - review required"
 
       # trufflehog is pinned to an immutable commit SHA, not @main: a mutable ref
@@ -573,9 +635,10 @@ jobs:
   # ============================================================================
   code-quality:
     name: Code Quality Metrics
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -617,9 +680,10 @@ jobs:
   # ============================================================================
   quality-gates:
     name: Quality Gates (Blocking)
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -659,6 +723,10 @@ jobs:
       - name: Quality ratchet
         run: pnpm tsx apps/cli/src/commands/quality/ratchet.ts
 
+      # Blocking ratchet: a new import edge breaking architecture-layers.ts fails. ~5 s; scoreboard in job summary.
+      - name: Architecture gate
+        run: pnpm quality:arch
+
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
 
@@ -667,9 +735,10 @@ jobs:
   # ============================================================================
   validation:
     name: Validation Checks
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -713,9 +782,10 @@ jobs:
   # ============================================================================
   e2e-validation:
     name: E2E Validation
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -785,9 +855,10 @@ jobs:
   # ============================================================================
   frontend-quality:
     name: Frontend Quality
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -864,9 +935,10 @@ jobs:
   # ============================================================================
   dependencies:
     name: Dependency Check
-    runs-on: ${{ fromJSON(vars.CI_RUNNER || '"ubuntu-latest"') }}
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 10
     needs: setup
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7

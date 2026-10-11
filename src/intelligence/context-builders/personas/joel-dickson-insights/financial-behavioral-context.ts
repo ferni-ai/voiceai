@@ -1,5 +1,5 @@
 /**
- * Joel Dickson Insights - Financial Behavioral Context
+ * Nate Holloway (joel-dickson) Insights - Financial Behavioral Context
  *
  * Behavioral finance insights: spending patterns, money anxiety signals.
  * Keeps people from making emotional decisions about money.
