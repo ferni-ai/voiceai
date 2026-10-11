@@ -20,6 +20,7 @@ import { createLogger } from '../utils/logger.js';
 import { toast } from './whisper.ui.js';
 import { soundUI } from './sound.ui.js';
 import { t } from '../i18n/index.js';
+import { requestAttention } from '../services/attention-queue.js';
 
 const log = createLogger('FerniBirthday');
 
@@ -63,7 +64,7 @@ export function initFerniBirthdayUI(): void {
   // Check if it's Ferni's birthday
   if (isFerniBirthday() && !hasCelebratedToday()) {
     // Celebrate after a short delay to let the app load
-    setTimeout(() => celebrate(), 2000);
+    setTimeout(() => requestAttention('ferni-birthday', celebrate), 2000);
   }
 
   isInitialized = true;
