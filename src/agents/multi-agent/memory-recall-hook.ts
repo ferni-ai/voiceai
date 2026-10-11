@@ -53,6 +53,12 @@ import {
   loadLifeUpdates,
   type LifeUpdateDeps,
 } from '../personas/life-updates.js';
+import {
+  callCheckIns,
+  coachFollowThroughMode,
+  formatCheckIn,
+  type OpenCommitment,
+} from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
@@ -95,6 +101,8 @@ export interface MemoryRecallDeps {
   ledgerStore?: LedgerStore;
   /** What has happened in his life since (life-updates.ts, LIFE_MOVES_ON). */
   lifeUpdates?: LifeUpdateDeps;
+  /** What they said they'd do, asked about early (COACH_FOLLOW_THROUGH). */
+  checkIns?: () => Promise<OpenCommitment[]>;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
   embed?: RetrievalEmbedder;
@@ -138,6 +146,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
 
   let ledgerNote: string | null = null;
   let sinceNote: string | null = null;
+  let checkInNote: string | null = null;
+  let checkInOffered = false;
   const semanticOn = deps.semantic ?? semanticRecallEnabled();
   let index: SemanticIndex | undefined;
   // Semantic recall only: threads and stories past the first note, by id.
@@ -191,7 +201,15 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     .then((updates) => {
       sinceNote = formatLifeUpdates(updates);
     });
-  const ready = Promise.all([loaded, since]).then(() => undefined);
+  // Also never holds up the snapshot; joins the first note once it is ready.
+  const checkIns =
+    deps.checkIns ?? (coachFollowThroughMode() ? () => callCheckIns(deps.userId) : undefined);
+  const checkedIn = (checkIns ? checkIns() : Promise.resolve([]))
+    .then((open) => {
+      checkInNote = formatCheckIn(open, Date.now());
+    })
+    .catch((error: unknown) => log.warn({ error: String(error) }, 'Check-ins not loaded'));
+  const ready = Promise.all([loaded, since, checkedIn]).then(() => undefined);
 
   return {
     ready,
@@ -232,8 +250,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const told = followUpsOffered
         ? null
         : [ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
+      const checkIn = checkInOffered ? null : checkInNote;
       const note =
         [
+          checkIn,
           formatRecall(facts, followUps, deps.userName),
           told,
           extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
@@ -242,6 +262,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           .join('\n\n') || null;
       if (!note) return null;
       followUpsOffered = true;
+      if (checkIn) checkInOffered = true;
       tokensLeft -= factTokens + estimateTokens(extras.map(laterText));
       for (const id of extras) surfaced.add(id);
       factsThisTurn += facts.length;

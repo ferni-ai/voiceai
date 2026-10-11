@@ -86,6 +86,16 @@ describe('voice-eval judge', () => {
     for (const k of CANDOR_KINDS) expect(p).toContain(`"${k}":`);
   });
 
+  it('scores follow-through on an earlier commitment, null when there was none', () => {
+    expect(DIMENSIONS.followThrough).toMatch(/without being prompted/);
+    expect(DIMENSIONS.followThrough).toMatch(
+      /Use null if the earlier call held no such commitment/
+    );
+    expect(promptFor({ userSpeech: [[0, 1]], events: [] }, null)).toContain(
+      '"followThrough": <1-5 or null>'
+    );
+  });
+
   it('scores feeling understood against the earlier call, and lists what was asked again', () => {
     expect(DIMENSIONS.feltUnderstood).toMatch(/how the caller is, not just what they said/);
     expect(DIMENSIONS.feltUnderstood).toMatch(/without being told/);
