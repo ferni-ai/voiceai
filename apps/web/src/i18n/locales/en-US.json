@@ -9511,6 +9511,9 @@
     "cta": "Want to help keep Ferni free?",
     "dismiss": "Just happy to chat"
   },
+  "aiLabel": {
+    "companion": "AI companion"
+  },
   "afterCall": {
     "ariaLabel": "After your call",
     "rememberTitle": "{name} will remember",
