@@ -97,6 +97,8 @@ import { composeAgentInstructions } from './agent-instructions.js';
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
+import { getAgentToolCount } from '../shared/tool-updater.js';
+import { trackToolUsage } from '../shared/tool-usage-log.js';
 import { createFindToolsTool, FIND_TOOLS } from '../../tools/retrieval/find-tools-tool.js';
 import { amdOpensCall, createEndCallTool, END_CALL } from '../outbound-call/call-control.js';
 import { toolRetrievalMode as retrievalModeNow } from '../../tools/retrieval/turn-tool-retrieval.js';
@@ -1820,6 +1822,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
           dynamicToolLoader,
           cleanupFunctions,
         });
+        // One TOOL_USAGE line per call: tool names and counts (tool-usage-log.ts).
+        cleanupFunctions.push(
+          trackToolUsage(session as never, sessionId, () => getAgentToolCount(agentNow() as never))
+        );
         await installDirectorNotes({
           session,
           sessionId,
