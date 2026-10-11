@@ -168,7 +168,7 @@ export function render(): string {
         gap: var(--space-4, 1rem);
       }
 
-      @media (max-width: min(1024px, 100%)) {
+      @media (max-width: 1024px) {
         .design-section {
           grid-template-columns: 1fr;
         }
@@ -178,7 +178,7 @@ export function render(): string {
         grid-column: span 2;
       }
 
-      @media (max-width: min(1024px, 100%)) {
+      @media (max-width: 1024px) {
         .design-avatar {
           grid-column: span 1;
         }
@@ -461,7 +461,7 @@ export function render(): string {
         gap: var(--space-3, 0.75rem);
       }
 
-      @media (max-width: clamp(420px, 90vw, 600px)) {
+      @media (max-width: 600px) {
         .colors-grid {
           grid-template-columns: repeat(2, 1fr);
         }
@@ -565,7 +565,7 @@ export function render(): string {
         border: 1px solid rgba(74, 103, 65, 0.3);
       }
 
-      @media (max-width: min(1024px, 100%)) {
+      @media (max-width: 1024px) {
         .design-soul {
           grid-column: span 1;
         }
@@ -602,7 +602,7 @@ export function render(): string {
         margin-bottom: var(--space-4, 1rem);
       }
 
-      @media (max-width: min(900px, 100%)) {
+      @media (max-width: 900px) {
         .soul-features-grid {
           grid-template-columns: repeat(2, 1fr);
         }

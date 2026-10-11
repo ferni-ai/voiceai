@@ -84,3 +84,16 @@ describe('isDay', () => {
     }
   });
 });
+
+describe('validObservation by', () => {
+  it("keeps who made a commitment; anything else is left out (the caller's)", () => {
+    const promise = { ...good, attribute: 'commitment', value: 'call Friday to ask about Mindy' };
+    expect(validObservation({ ...promise, by: 'ferni' }, 's1')?.by).toBe('ferni');
+    expect(validObservation({ ...promise, by: 'caller' }, 's1')?.by).toBe('caller');
+    for (const other of ['assistant', 'Ferni', 1, null, undefined]) {
+      const kept = validObservation({ ...promise, by: other }, 's1');
+      expect(kept).not.toBeNull();
+      expect(kept && 'by' in kept).toBe(false);
+    }
+  });
+});

@@ -190,7 +190,7 @@ describe('Contact Settings UI', () => {
         return Promise.resolve({
           ok: true,
           status: 200,
-          data: { sent: true },
+          data: { success: true, message: 'Verification code sent' },
         });
       }
       return Promise.resolve({ ok: true, status: 200, data: {} });
@@ -336,6 +336,39 @@ describe('Contact Settings UI', () => {
         expect.stringContaining('/api/outreach/verify-phone'),
         expect.anything()
       );
+    });
+
+    it('sends the code and confirms it through the outreach service', async () => {
+      mockApiGet.mockImplementation((url: string) => {
+        if (url.includes('/api/outreach/context')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            data: { success: true, context: { personal: { ...mockContactInfo, phoneVerified: false } } },
+          });
+        }
+        return Promise.resolve({ ok: true, status: 200, data: {} });
+      });
+      const { outreachService } = await import('../../src/services/outreach.service.js');
+      const send = vi.spyOn(outreachService, 'sendVerificationCode');
+      const confirm = vi
+        .spyOn(outreachService, 'verifyPhone')
+        .mockResolvedValue({ success: true, message: 'Phone verified' });
+
+      await openContactSettings();
+      await new Promise((r) => setTimeout(r, 200));
+      findVerifyPhoneButton()?.click();
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(send).toHaveBeenCalledWith(mockContactInfo.phone);
+      const codeInput = document.querySelector<HTMLInputElement>('#verification-code');
+      expect(codeInput).not.toBeNull();
+      if (codeInput) {
+        codeInput.value = '123456';
+        codeInput.dispatchEvent(new Event('input'));
+      }
+      await new Promise((r) => setTimeout(r, 50));
+      expect(confirm).toHaveBeenCalledWith(mockContactInfo.phone, '123456');
     });
 
     it('should show verification code input after sending SMS', async () => {

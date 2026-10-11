@@ -611,59 +611,6 @@ export function getLoadingStatus(): {
 }
 
 // ============================================================================
-// PRE-WARMING (SESSION START OPTIMIZATION)
-// ============================================================================
-
-/**
- * Pre-warm context builders in background at session start.
- * Fire-and-forget - doesn't block session startup.
- *
- * Call this early in session initialization to ensure builders
- * are loaded before the first conversation turn.
- *
- * @example
- * // In session initialization
- * prewarmBuildersInBackground(); // Non-blocking
- */
-export function prewarmBuildersInBackground(): void {
-  if (!isFeatureEnabled('experimental.contextBuilderPrewarm')) {
-    log.debug('Context builder pre-warm disabled by feature flag');
-    return;
-  }
-
-  // Already loaded, nothing to do
-  if (buildersLoaded) {
-    log.debug('Context builders already loaded, skipping pre-warm');
-    return;
-  }
-
-  // Fire-and-forget - don't await
-  log.info('🔥 Pre-warming context builders in background');
-  ensureBuildersLoaded().catch((error) => {
-    log.warn({ error: String(error) }, 'Context builder pre-warm failed');
-  });
-}
-
-/**
- * Pre-warm with conditional loading config.
- * Allows session-specific optimization based on session context.
- *
- * @param config - Conditional loading configuration
- */
-export function prewarmBuildersWithConfig(config: Partial<ConditionalLoadingConfig>): void {
-  if (!isFeatureEnabled('experimental.contextBuilderPrewarm')) {
-    log.debug('Context builder pre-warm disabled by feature flag');
-    return;
-  }
-
-  // Configure conditional loading
-  configureConditionalLoading(config);
-
-  // Trigger pre-warm
-  prewarmBuildersInBackground();
-}
-
-// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -675,7 +622,5 @@ export default {
   getAllBuilderModules,
   getBuilderModulesByCategory,
   configureConditionalLoading,
-  prewarmBuildersInBackground,
-  prewarmBuildersWithConfig,
   BUILDER_MANIFEST,
 };

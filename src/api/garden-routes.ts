@@ -812,6 +812,19 @@ async function seedFoundersData(): Promise<{
 }
 
 /**
+ * The seed data is made up (MOCK_FOUNDERS, MOCK_STORIES), and without the
+ * emulator getFirestore() reaches the real project even on a laptop, so only a
+ * non-production process pointed at the emulator may seed.
+ */
+function canSeedFounders(): boolean {
+  return (
+    !!process.env.FIRESTORE_EMULATOR_HOST &&
+    process.env.NODE_ENV !== 'production' &&
+    !process.env.K_SERVICE
+  );
+}
+
+/**
  * Admin endpoint to seed founders data
  * POST /api/garden/admin/seed
  */
@@ -826,6 +839,12 @@ async function handleSeedFoundersData(req: IncomingMessage, res: ServerResponse)
 
   if (!isAdmin) {
     sendError(res, 'Unauthorized', 401);
+    return;
+  }
+
+  if (!canSeedFounders()) {
+    log.warn('Refused to seed made-up founders outside the Firestore emulator');
+    sendError(res, 'Seeding only runs against the Firestore emulator', 403);
     return;
   }
 

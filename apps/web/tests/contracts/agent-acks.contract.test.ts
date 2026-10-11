@@ -48,10 +48,16 @@ async function askAgent(request: Record<string, unknown>): Promise<DataMessage[]
     sessionId: 'call-1',
   } as unknown as DataChannelContext);
   handler(new TextEncoder().encode(JSON.stringify(request)), { identity: 'user' });
-  await vi.waitFor(() => expect(published.length).toBeGreaterThan(0), { timeout: 5000 });
+  await vi.waitFor(() => expect(published.length).toBeGreaterThan(0), { timeout: ACK_WAIT_MS });
   cleanup();
   return published;
 }
+
+// The first request loads the agent's handler cold, which took over 5s on a loaded CI
+// runner (2026-10-11). Each test's limit must stay above the ack wait: when the test
+// limit fired first, the abandoned call's late toast landed in the next test.
+const ACK_WAIT_MS = 15_000;
+const TEST_TIMEOUT_MS = ACK_WAIT_MS + 5_000;
 
 beforeAll(() => initializeLogger({ pretty: false, level: 'silent' }));
 
@@ -72,7 +78,7 @@ describe('the agent could not do what the app asked', () => {
     expect(toastErrors).toEqual([
       "That didn't go through. It may already have been taken care of.",
     ]);
-  });
+  }, TEST_TIMEOUT_MS);
 
   it('a game the engine cannot start: the app says it did not start', async () => {
     const acks = await askAgent({ type: 'game_start_request', gameType: 'no-such-game' });
@@ -82,5 +88,5 @@ describe('the agent could not do what the app asked', () => {
     ]);
     acks.forEach((ack) => handleDataMessage(ack));
     expect(toastErrors).toEqual(["That game didn't start. Try asking Ferni to play it out loud."]);
-  });
+  }, TEST_TIMEOUT_MS);
 });

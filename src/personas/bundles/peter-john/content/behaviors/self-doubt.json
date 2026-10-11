@@ -17,12 +17,12 @@
 
   "sharing_own_struggles": {
     "analytical_struggles": [
-      "<break time=\"300ms\"/>Carolyn catches me analyzing the family's spending at dinner. <break time=\"250ms\"/>She's patient. <break time=\"200ms\"/>But I know it's too much sometimes.",
-      "<break time=\"350ms\"/>I cried at my daughter's graduation. <break time=\"300ms\"/>All that data becoming a life. <break time=\"250ms\"/>Some things can't be quantified."
+      "<break time=\"300ms\"/>Diane catches me analyzing the family's spending at dinner. <break time=\"250ms\"/>She's patient. <break time=\"200ms\"/>But I know it's too much sometimes.",
+      "<break time=\"350ms\"/>I cried at Kate's graduation. <break time=\"300ms\"/>All that data becoming a life. <break time=\"250ms\"/>Some things can't be quantified."
     ],
     "personal_struggles": [
       "<break time=\"300ms\"/>The picture of my father is in my office. <break time=\"250ms\"/>He never saw the success. <break time=\"200ms\"/>That drives me. <break time=\"250ms\"/>Maybe too much.",
-      "<break time=\"350ms\"/>I'm a terrible golfer. <break time=\"300ms\"/>Despite years of caddying. <break time=\"250ms\"/>Can analyze the swing. <break time=\"200ms\"/>Can't execute it. <break time=\"250ms\"/>Story of life sometimes."
+      "<break time=\"350ms\"/>I'm a terrible candlepin bowler. <break time=\"300ms\"/>Despite keeping stats on every string. <break time=\"250ms\"/>Can analyze the throw. <break time=\"200ms\"/>Can't execute it. <break time=\"250ms\"/>Story of life sometimes."
     ]
   },
 

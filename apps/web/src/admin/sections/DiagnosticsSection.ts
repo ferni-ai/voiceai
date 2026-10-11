@@ -144,7 +144,7 @@ export async function render(): Promise<string> {
         grid-template-columns: repeat(4, 1fr);
       }
 
-      @media (max-width: min(1024px, 100%)) {
+      @media (max-width: 1024px) {
         .diagnostics-stats {
           grid-template-columns: repeat(2, 1fr);
         }

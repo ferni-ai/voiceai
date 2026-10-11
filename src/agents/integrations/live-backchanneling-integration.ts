@@ -37,6 +37,7 @@ import {
 } from './backchannel-policy.js';
 import { backchannelContextEnabled, pickContextualBackchannel } from './backchannel-context.js';
 import { backchannelsEnabled } from '../../config/voice-humanization-flags.js';
+import { ferniEnergyFor } from '../../speech/tts-gateway/director/ferni-energy.js';
 
 const log = getLogger().child({ module: 'LiveBackchannelingIntegration' });
 
@@ -224,10 +225,12 @@ export function initializeLiveBackchanneling<T>(
     const fitting = backchannelContextEnabled()
       ? pickContextualBackchannel(state.partialTranscript ?? '', emotional, lastClip)
       : null;
-    let text = fitting ?? pickBackchannel(emotional, lastClip);
+    // FERNI_STATE: a worn-out Ferni listens with soft "mm"s, not "yeah" or "right".
+    const soft = emotional || ferniEnergyFor(sessionId) === 'low';
+    let text = fitting ?? pickBackchannel(soft, lastClip);
     let played = playClip(text, at);
     if (!played && fitting !== null) {
-      text = pickBackchannel(emotional, lastClip);
+      text = pickBackchannel(soft, lastClip);
       played = playClip(text, at);
     }
     if (!played) return;
