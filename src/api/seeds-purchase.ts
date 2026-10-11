@@ -13,7 +13,7 @@
  *
  * @module api/seeds-purchase
  */
-import admin from 'firebase-admin';
+import { FieldValue, type Firestore } from 'firebase-admin/firestore';
 import { getSubscriptionInfo } from '../services/billing/stripe-subscription.js';
 import {
   cosmeticForSale,
@@ -36,7 +36,7 @@ export type PurchaseResult =
   | { status: 400 | 403 | 503; error: string };
 
 export async function purchaseCosmetic(
-  db: admin.firestore.Firestore,
+  db: Firestore,
   uid: string,
   itemId: unknown
 ): Promise<PurchaseResult> {
@@ -92,7 +92,7 @@ export async function purchaseCosmetic(
       });
       tx.set(
         state.accountRef,
-        { ownedCosmetics: admin.firestore.FieldValue.arrayUnion(item.id) },
+        { ownedCosmetics: FieldValue.arrayUnion(item.id) },
         { merge: true }
       );
       return {
