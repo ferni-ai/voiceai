@@ -76,6 +76,7 @@ import {
 } from './memory-recall-hook.js';
 import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { rememberForPacket } from '../personas/context-packet/turn-packet.js';
+import { loadWorldFactsForCall } from '../../intelligence/world-model/temporal/in-call-load.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
 // Tool loading - hoisted for faster initial agent startup
 import { buildEssentialToolSet, type EssentialToolSetInput } from './essential-tool-set.js';
@@ -1677,6 +1678,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
       sessionWithEvents.off?.('agent_state_changed', onRecallAgentState);
     });
   }
+
+  // WORLD_FACTS_IN_CALL=on: what's current in their life (the new job, the
+  // interview Thursday), read once for the call; each turn's note picks from it.
+  if (!callSession) void loadWorldFactsForCall(userData, userId);
 
   // Built in the background on each final transcript and pushed between
   // turns for the next reply: never in onUserTurnCompleted, where changing the

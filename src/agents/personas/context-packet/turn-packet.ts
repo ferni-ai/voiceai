@@ -120,6 +120,8 @@ export interface TurnParts {
   shape: string;
   /** Crisis guidance for this reply (crisis-gate.ts): the top-ranked note. */
   safety?: string;
+  /** Where their life stands now, labelled (world-model/temporal/in-call.ts); [] when none. */
+  life?: string[];
   now: number;
 }
 
@@ -171,6 +173,7 @@ export function turnPacket(session: object, p: TurnParts): ContextPacket {
       localTime: localTime(p.now, p.timeZone),
       justHappened: [p.state, p.game].filter((t): t is string => Boolean(t)),
     },
+    life: p.life,
     memories: (call?.facts ?? []).filter((f) => f.source !== 'my-news' || f.learnedBy === persona),
     commitments: call ? [...call.commitments.values()] : [],
     guidance,
