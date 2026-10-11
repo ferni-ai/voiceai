@@ -138,6 +138,25 @@ export function serveStaticFile(
   });
 }
 
+const NO_FRAMING = "frame-ancestors 'none'";
+
+/**
+ * Forbid framing of this response: X-Frame-Options DENY, and frame-ancestors
+ * 'none' in the enforced CSP (replacing the site-wide 'self', or added when
+ * only a report-only policy is set, as outside production).
+ */
+export function denyFraming(res: ServerResponse): void {
+  res.setHeader('X-Frame-Options', 'DENY');
+  const csp = res.getHeader('Content-Security-Policy');
+  if (typeof csp !== 'string') {
+    res.setHeader('Content-Security-Policy', NO_FRAMING);
+  } else if (/frame-ancestors[^;]*/.test(csp)) {
+    res.setHeader('Content-Security-Policy', csp.replace(/frame-ancestors[^;]*/, NO_FRAMING));
+  } else {
+    res.setHeader('Content-Security-Policy', `${csp}; ${NO_FRAMING}`);
+  }
+}
+
 /**
  * Handle static file routes (SPA routing)
  */
@@ -146,6 +165,9 @@ export function handleStaticRoutes(
   res: ServerResponse,
   pathname: string
 ): boolean {
+  // The answer card and approval pages are never framed (clickjacking)
+  if (pathname.startsWith('/a/') || pathname.startsWith('/p/')) denyFraming(res);
+
   // Serve index.html for root
   if (pathname === '/' || pathname === '') {
     serveStaticFile('index.html', res, req);
@@ -154,6 +176,12 @@ export function handleStaticRoutes(
 
   // Serve admin page (same SPA, JS handles routing)
   if (pathname === '/admin') {
+    serveStaticFile('index.html', res, req);
+    return true;
+  }
+
+  // Approval page: /p/:id (SPA handles routing)
+  if (pathname.startsWith('/p/')) {
     serveStaticFile('index.html', res, req);
     return true;
   }

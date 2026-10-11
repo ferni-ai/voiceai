@@ -479,6 +479,16 @@ class VoiceAIApp {
       return;
     }
 
+    // Approval page for a pending action, opened from a text link: /p/:id
+    if (window.location.pathname.startsWith('/p/')) {
+      const { pendingActionIdFromPath, initApprovePage } = await import('./ui/approve-page.ui.js');
+      const actionId = pendingActionIdFromPath(window.location.pathname);
+      if (actionId) {
+        await initApprovePage(actionId);
+        return;
+      }
+    }
+
     // DISABLED: No skeleton loading - everything visible immediately
     // initSkeletonUI();
 
