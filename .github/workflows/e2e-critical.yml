@@ -41,6 +41,7 @@ env:
 
 jobs:
   e2e-critical:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Tools + Handoff + Superhuman E2E
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest
