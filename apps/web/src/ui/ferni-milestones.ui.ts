@@ -21,6 +21,8 @@ import { haptics } from '../utils/haptics.js';
 import { celebrationsUI } from './celebrations.ui.js';
 import { ferniMoments } from './ferni-moments.ui.js';
 import { soundUI } from './sound.ui.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { showToast } from './overlay/toast-region.js';
 
 const log = createLogger('FerniMilestones');
 
@@ -971,8 +973,21 @@ function processQueue(): void {
 // ============================================================================
 
 async function showMilestoneCelebration(milestone: Milestone): Promise<void> {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const inToastRegion = isOverlayHostEnabled();
+  if (inToastRegion) {
+    // Shown (and announced) under Reduce Motion too; only the flourishes below are skipped.
+    const message = t(milestone.message);
+    const subtitle = milestone.subtitle ? t(milestone.subtitle) : '';
+    showToast(
+      subtitle
+        ? { kind: 'achievement', title: message, message: subtitle }
+        : { kind: 'achievement', message }
+    );
+  }
+
   // Check reduced motion
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (reducedMotion) {
     return;
   }
 
@@ -1003,6 +1018,8 @@ async function showMilestoneCelebration(milestone: Milestone): Promise<void> {
 
   // Avatar reaction based on category
   triggerAvatarReaction(milestone.category);
+
+  if (inToastRegion) return;
 
   // Create the celebration display
   const display = createCelebrationDisplay(milestone);

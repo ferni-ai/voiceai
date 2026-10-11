@@ -370,6 +370,19 @@ class MomentsManager {
     type: CelebrationType,
     data?: Omit<CelebrationConfig, 'type'>
   ): Promise<void> {
+    if (isOverlayHostEnabled()) {
+      this.emit('celebration:started', { type });
+      // An achievement toast instead of the centred card over the call controls.
+      const { title, subtitle } = this.celebrationCopy({ type, ...data });
+      this.playHaptic('success');
+      this.triggerAvatarCelebration();
+      showToast(
+        subtitle ? { kind: 'achievement', title, message: subtitle } : { kind: 'achievement', message: title }
+      );
+      this.emit('celebration:completed', { type });
+      return;
+    }
+
     this.initialize();
 
     // Dismiss any active moment
@@ -389,18 +402,7 @@ class MomentsManager {
     this.emit('celebration:completed', { type });
   }
 
-  private async playCelebrationSequence(config: CelebrationConfig): Promise<void> {
-    // Create celebration element
-    const element = document.createElement('div');
-    element.className = 'moment-celebration';
-
-    // Build content - using SVG icons (not emoji per brand guidelines)
-    let iconName: keyof typeof MOMENT_ICONS = 'sparkle';
-    if (config.type === 'streak') iconName = 'flame';
-    if (config.type === 'badge') iconName = 'trophy';
-    if (config.type === 'team_unlock') iconName = 'users';
-    if (config.type === 'secret') iconName = 'star';
-
+  private celebrationCopy(config: CelebrationConfig): { title: string; subtitle?: string } {
     const title =
       config.title ??
       (config.type === 'streak'
@@ -416,6 +418,22 @@ class MomentsManager {
         : config.type === 'team_unlock'
           ? t('celebration.teamUnlockSubtitle')
           : undefined);
+    return { title, subtitle };
+  }
+
+  private async playCelebrationSequence(config: CelebrationConfig): Promise<void> {
+    // Create celebration element
+    const element = document.createElement('div');
+    element.className = 'moment-celebration';
+
+    // Build content - using SVG icons (not emoji per brand guidelines)
+    let iconName: keyof typeof MOMENT_ICONS = 'sparkle';
+    if (config.type === 'streak') iconName = 'flame';
+    if (config.type === 'badge') iconName = 'trophy';
+    if (config.type === 'team_unlock') iconName = 'users';
+    if (config.type === 'secret') iconName = 'star';
+
+    const { title, subtitle } = this.celebrationCopy(config);
 
     element.innerHTML = `
       <div class="moment-celebration__icon">${getIcon(iconName, 48)}</div>
