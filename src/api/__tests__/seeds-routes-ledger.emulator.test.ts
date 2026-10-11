@@ -63,6 +63,11 @@ describe.skipIf(!emulator)('seeds routes on the ledger (Firestore emulator)', ()
     const conversation = await awardDailyConversation(db, a);
 
     expect(first).toMatchObject({ claimed: true, amount: 5, newBalance: 30 });
+    // GET reads the same daily record: the day's bonus is taken, the streak is 1
+    expect(await call(a, 'GET', '/api/seeds')).toMatchObject({
+      dailyBonusAvailable: false,
+      currentStreak: 1,
+    });
     expect(second).toEqual({ claimed: false, reason: 'Already claimed today' });
     expect(conversation.daily.applied).toBe(false);
     expect(await balance(a)).toBe(30);
