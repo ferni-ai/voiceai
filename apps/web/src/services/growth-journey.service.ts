@@ -10,7 +10,7 @@
  * Philosophy: "As we grow together, I want to celebrate with you."
  */
 
-import { t } from '../i18n/index.js';
+import { localizeMilestone, localizeSeason } from './growth-journey-text.js';
 import { createLogger } from '../utils/logger.js';
 import { apiPost } from '../utils/api.js';
 const log = createLogger('GrowthJourney');
@@ -128,8 +128,8 @@ function createNewYearSeason(year: number): Season {
 function createSpringSeason(year: number): Season {
   return {
     id: `spring-${year}`,
-    name: t('growthJourney.seasons.spring.name'),
-    description: t('growthJourney.seasons.spring.desc'),
+    name: 'growthJourney.seasons.spring.name',
+    description: 'growthJourney.seasons.spring.desc',
     startDate: new Date(`${year}-03-01`),
     endDate: new Date(`${year}-05-31`),
     companionPriceInCents: 499,
@@ -140,8 +140,8 @@ function createSpringSeason(year: number): Season {
 function createSummerSeason(year: number): Season {
   return {
     id: `summer-${year}`,
-    name: t('growthJourney.seasons.summer.name'),
-    description: t('growthJourney.seasons.summer.desc'),
+    name: 'growthJourney.seasons.summer.name',
+    description: 'growthJourney.seasons.summer.desc',
     startDate: new Date(`${year}-06-01`),
     endDate: new Date(`${year}-08-31`),
     companionPriceInCents: 499,
@@ -152,8 +152,8 @@ function createSummerSeason(year: number): Season {
 function createFallSeason(year: number): Season {
   return {
     id: `fall-${year}`,
-    name: t('growthJourney.seasons.fall.name'),
-    description: t('growthJourney.seasons.fall.desc'),
+    name: 'growthJourney.seasons.fall.name',
+    description: 'growthJourney.seasons.fall.desc',
     startDate: new Date(`${year}-09-01`),
     endDate: new Date(`${year}-11-30`),
     companionPriceInCents: 499,
@@ -164,8 +164,8 @@ function createFallSeason(year: number): Season {
 function createWinterSeason(year: number): Season {
   return {
     id: `winter-${year}`,
-    name: t('growthJourney.seasons.winter.name'),
-    description: t('growthJourney.seasons.winter.desc'),
+    name: 'growthJourney.seasons.winter.name',
+    description: 'growthJourney.seasons.winter.desc',
     startDate: new Date(`${year}-02-01`),
     endDate: new Date(`${year}-02-28`),
     companionPriceInCents: 499,
@@ -181,24 +181,24 @@ function generateNewYearMilestones(seasonId: string): JourneyMilestone[] {
     // Fresh start milestones
     {
       id: `${seasonId}-first-chat`,
-      title: t('growthJourney.milestones.newyear.firstchat'),
-      message: t('growthJourney.milestones.newyear.firstchatmsg'),
+      title: 'growthJourney.milestones.newyear.firstchat',
+      message: 'growthJourney.milestones.newyear.firstchatmsg',
       type: 'badge',
       gift: { badgeId: 'badge-new-year' },
       requirement: { type: 'conversations', value: 1 },
     },
     {
       id: `${seasonId}-week-one`,
-      title: t('growthJourney.milestones.newyear.weekone'),
-      message: t('growthJourney.milestones.newyear.weekonemsg'),
+      title: 'growthJourney.milestones.newyear.weekone',
+      message: 'growthJourney.milestones.newyear.weekonemsg',
       type: 'theme',
       gift: { cosmeticId: 'theme-aurora' },
       requirement: { type: 'weeks-together', value: 1 },
     },
     {
       id: `${seasonId}-five-chats`,
-      title: t('growthJourney.milestones.newyear.fivechats'),
-      message: t('growthJourney.milestones.newyear.fivechatsmsg'),
+      title: 'growthJourney.milestones.newyear.fivechats',
+      message: 'growthJourney.milestones.newyear.fivechatsmsg',
       type: 'soundscape',
       gift: { cosmeticId: 'sounds-morning-birds' },
       requirement: { type: 'conversations', value: 5 },
@@ -207,24 +207,24 @@ function generateNewYearMilestones(seasonId: string): JourneyMilestone[] {
     // Building momentum
     {
       id: `${seasonId}-two-weeks`,
-      title: t('growthJourney.milestones.newyear.twoweeks'),
-      message: t('growthJourney.milestones.newyear.twoweeksmsg'),
+      title: 'growthJourney.milestones.newyear.twoweeks',
+      message: 'growthJourney.milestones.newyear.twoweeksmsg',
       type: 'avatar-style',
       gift: { cosmeticId: 'style-fresh-start' },
       requirement: { type: 'weeks-together', value: 2 },
     },
     {
       id: `${seasonId}-first-goal`,
-      title: t('growthJourney.milestones.newyear.firstwin'),
-      message: t('growthJourney.milestones.newyear.firstwinmsg'),
+      title: 'growthJourney.milestones.newyear.firstwin',
+      message: 'growthJourney.milestones.newyear.firstwinmsg',
       type: 'badge',
       gift: { badgeId: 'badge-first-win-year' },
       requirement: { type: 'goals-achieved', value: 1 },
     },
     {
       id: `${seasonId}-ten-chats`,
-      title: t('growthJourney.milestones.newyear.tenchats'),
-      message: t('growthJourney.milestones.newyear.tenchatsmsg'),
+      title: 'growthJourney.milestones.newyear.tenchats',
+      message: 'growthJourney.milestones.newyear.tenchatsmsg',
       type: 'theme',
       gift: { cosmeticId: 'theme-sunrise' },
       requirement: { type: 'conversations', value: 10 },
@@ -233,24 +233,24 @@ function generateNewYearMilestones(seasonId: string): JourneyMilestone[] {
     // Deep commitment
     {
       id: `${seasonId}-three-weeks`,
-      title: t('growthJourney.milestones.newyear.threeweeks'),
-      message: t('growthJourney.milestones.newyear.threeweeksmsg'),
+      title: 'growthJourney.milestones.newyear.threeweeks',
+      message: 'growthJourney.milestones.newyear.threeweeksmsg',
       type: 'soundscape',
       gift: { cosmeticId: 'sounds-celebration' },
       requirement: { type: 'weeks-together', value: 3 },
     },
     {
       id: `${seasonId}-three-goals`,
-      title: t('growthJourney.milestones.newyear.threegoals'),
-      message: t('growthJourney.milestones.newyear.threegoalsmsg'),
+      title: 'growthJourney.milestones.newyear.threegoals',
+      message: 'growthJourney.milestones.newyear.threegoalsmsg',
       type: 'title',
-      gift: { title: t('growthJourney.milestones.newyear.yearofgrowth') },
+      gift: { title: 'growthJourney.milestones.newyear.yearofgrowth' },
       requirement: { type: 'goals-achieved', value: 3 },
     },
     {
       id: `${seasonId}-twenty-chats`,
-      title: t('growthJourney.milestones.newyear.twentychats'),
-      message: t('growthJourney.milestones.newyear.twentychatsmsg'),
+      title: 'growthJourney.milestones.newyear.twentychats',
+      message: 'growthJourney.milestones.newyear.twentychatsmsg',
       type: 'avatar-style',
       gift: { cosmeticId: 'style-golden-dawn' },
       requirement: { type: 'conversations', value: 20 },
@@ -259,18 +259,18 @@ function generateNewYearMilestones(seasonId: string): JourneyMilestone[] {
     // Season completion
     {
       id: `${seasonId}-month-one`,
-      title: t('growthJourney.milestones.newyear.januarycomplete'),
-      message: t('growthJourney.milestones.newyear.januarycompletemsg'),
+      title: 'growthJourney.milestones.newyear.januarycomplete',
+      message: 'growthJourney.milestones.newyear.januarycompletemsg',
       type: 'badge',
       gift: { badgeId: 'badge-january-champion' },
       requirement: { type: 'weeks-together', value: 4 },
     },
     {
       id: `${seasonId}-thirty-chats`,
-      title: t('growthJourney.milestones.newyear.thirtychats'),
-      message: t('growthJourney.milestones.newyear.thirtychatsmsg'),
+      title: 'growthJourney.milestones.newyear.thirtychats',
+      message: 'growthJourney.milestones.newyear.thirtychatsmsg',
       type: 'title',
-      gift: { title: t('growthJourney.milestones.newyear.freshstarter') },
+      gift: { title: 'growthJourney.milestones.newyear.freshstarter' },
       requirement: { type: 'conversations', value: 30 },
     },
   ];
@@ -284,24 +284,24 @@ function generateMilestones(seasonId: string): JourneyMilestone[] {
     // Early milestones - celebrate first conversations
     {
       id: `${seasonId}-first-chat`,
-      title: t('growthJourney.milestones.reg.firstconvo'),
-      message: t('growthJourney.milestones.reg.firstconvomsg'),
+      title: 'growthJourney.milestones.reg.firstconvo',
+      message: 'growthJourney.milestones.reg.firstconvomsg',
       type: 'badge',
       gift: { badgeId: 'badge-first-hello' },
       requirement: { type: 'conversations', value: 1 },
     },
     {
       id: `${seasonId}-week-one`,
-      title: t('growthJourney.milestones.reg.oneweek'),
-      message: t('growthJourney.milestones.reg.oneweekmsg'),
+      title: 'growthJourney.milestones.reg.oneweek',
+      message: 'growthJourney.milestones.reg.oneweekmsg',
       type: 'theme',
       gift: { cosmeticId: 'theme-morning-light' },
       requirement: { type: 'weeks-together', value: 1 },
     },
     {
       id: `${seasonId}-five-chats`,
-      title: t('growthJourney.milestones.reg.fiveconvo'),
-      message: t('growthJourney.milestones.reg.fiveconvomsg'),
+      title: 'growthJourney.milestones.reg.fiveconvo',
+      message: 'growthJourney.milestones.reg.fiveconvomsg',
       type: 'soundscape',
       gift: { cosmeticId: 'sounds-gentle-rain' },
       requirement: { type: 'conversations', value: 5 },
@@ -310,24 +310,24 @@ function generateMilestones(seasonId: string): JourneyMilestone[] {
     // Building relationship
     {
       id: `${seasonId}-two-weeks`,
-      title: t('growthJourney.milestones.reg.twoweeks'),
-      message: t('growthJourney.milestones.reg.twoweeksmsg'),
+      title: 'growthJourney.milestones.reg.twoweeks',
+      message: 'growthJourney.milestones.reg.twoweeksmsg',
       type: 'avatar-style',
       gift: { cosmeticId: 'style-warm-glow' },
       requirement: { type: 'weeks-together', value: 2 },
     },
     {
       id: `${seasonId}-first-goal`,
-      title: t('growthJourney.milestones.reg.firstgoal'),
-      message: t('growthJourney.milestones.reg.firstgoalmsg'),
+      title: 'growthJourney.milestones.reg.firstgoal',
+      message: 'growthJourney.milestones.reg.firstgoalmsg',
       type: 'badge',
       gift: { badgeId: 'badge-first-win' },
       requirement: { type: 'goals-achieved', value: 1 },
     },
     {
       id: `${seasonId}-ten-chats`,
-      title: t('growthJourney.milestones.reg.tenchats'),
-      message: t('growthJourney.milestones.reg.tenchatsmsg'),
+      title: 'growthJourney.milestones.reg.tenchats',
+      message: 'growthJourney.milestones.reg.tenchatsmsg',
       type: 'theme',
       gift: { cosmeticId: 'theme-forest-peace' },
       requirement: { type: 'conversations', value: 10 },
@@ -336,24 +336,24 @@ function generateMilestones(seasonId: string): JourneyMilestone[] {
     // Deepening connection
     {
       id: `${seasonId}-month-one`,
-      title: t('growthJourney.milestones.reg.onemonth'),
-      message: t('growthJourney.milestones.reg.onemonthmsg'),
+      title: 'growthJourney.milestones.reg.onemonth',
+      message: 'growthJourney.milestones.reg.onemonthmsg',
       type: 'soundscape',
       gift: { cosmeticId: 'sounds-evening-calm' },
       requirement: { type: 'weeks-together', value: 4 },
     },
     {
       id: `${seasonId}-three-goals`,
-      title: t('growthJourney.milestones.reg.threegoals'),
-      message: t('growthJourney.milestones.reg.threegoalsmsg'),
+      title: 'growthJourney.milestones.reg.threegoals',
+      message: 'growthJourney.milestones.reg.threegoalsmsg',
       type: 'title',
-      gift: { title: t('growthJourney.milestones.reg.growing') },
+      gift: { title: 'growthJourney.milestones.reg.growing' },
       requirement: { type: 'goals-achieved', value: 3 },
     },
     {
       id: `${seasonId}-twenty-chats`,
-      title: t('growthJourney.milestones.reg.twentychats'),
-      message: t('growthJourney.milestones.reg.twentychatsmsg'),
+      title: 'growthJourney.milestones.reg.twentychats',
+      message: 'growthJourney.milestones.reg.twentychatsmsg',
       type: 'avatar-style',
       gift: { cosmeticId: 'style-golden-hour' },
       requirement: { type: 'conversations', value: 20 },
@@ -362,24 +362,24 @@ function generateMilestones(seasonId: string): JourneyMilestone[] {
     // Real relationship
     {
       id: `${seasonId}-six-weeks`,
-      title: t('growthJourney.milestones.reg.sixweeks'),
-      message: t('growthJourney.milestones.reg.sixweeksmsg'),
+      title: 'growthJourney.milestones.reg.sixweeks',
+      message: 'growthJourney.milestones.reg.sixweeksmsg',
       type: 'theme',
       gift: { cosmeticId: 'theme-sunset-warmth' },
       requirement: { type: 'weeks-together', value: 6 },
     },
     {
       id: `${seasonId}-five-goals`,
-      title: t('growthJourney.milestones.reg.fivegoals'),
-      message: t('growthJourney.milestones.reg.fivegoalsmsg'),
+      title: 'growthJourney.milestones.reg.fivegoals',
+      message: 'growthJourney.milestones.reg.fivegoalsmsg',
       type: 'badge',
       gift: { badgeId: 'badge-achiever' },
       requirement: { type: 'goals-achieved', value: 5 },
     },
     {
       id: `${seasonId}-thirty-chats`,
-      title: t('growthJourney.milestones.reg.thirtychats'),
-      message: t('growthJourney.milestones.reg.thirtychatsmsg'),
+      title: 'growthJourney.milestones.reg.thirtychats',
+      message: 'growthJourney.milestones.reg.thirtychatsmsg',
       type: 'soundscape',
       gift: { cosmeticId: 'sounds-ocean-waves' },
       requirement: { type: 'conversations', value: 30 },
@@ -388,18 +388,18 @@ function generateMilestones(seasonId: string): JourneyMilestone[] {
     // Season completion
     {
       id: `${seasonId}-two-months`,
-      title: t('growthJourney.milestones.reg.twomonths'),
-      message: t('growthJourney.milestones.reg.twomonthmsg'),
+      title: 'growthJourney.milestones.reg.twomonths',
+      message: 'growthJourney.milestones.reg.twomonthmsg',
       type: 'avatar-style',
       gift: { cosmeticId: 'style-spring-bloom' },
       requirement: { type: 'weeks-together', value: 8 },
     },
     {
       id: `${seasonId}-fifty-chats`,
-      title: t('growthJourney.milestones.reg.fiftychats'),
-      message: t('growthJourney.milestones.reg.fiftychatsmsg'),
+      title: 'growthJourney.milestones.reg.fiftychats',
+      message: 'growthJourney.milestones.reg.fiftychatsmsg',
       type: 'title',
-      gift: { title: t('growthJourney.milestones.reg.seasoncompanion') },
+      gift: { title: 'growthJourney.milestones.reg.seasoncompanion' },
       requirement: { type: 'conversations', value: 50 },
     },
   ];
@@ -477,7 +477,7 @@ export function init(): void {
  * Get current season
  */
 export function getCurrentSeason(): Season {
-  return { ...CURRENT_SEASON };
+  return localizeSeason(CURRENT_SEASON);
 }
 
 /**
@@ -574,7 +574,7 @@ function checkForNewMilestones(): JourneyMilestone[] {
     }
 
     if (met) {
-      newMilestones.push(milestone);
+      newMilestones.push(localizeMilestone(milestone));
     }
   }
 
@@ -615,7 +615,7 @@ export function getAllMilestonesWithStatus(): Array<
       status = met ? 'ready' : 'upcoming';
     }
 
-    return { ...milestone, status };
+    return { ...localizeMilestone(milestone), status };
   });
 }
 
@@ -627,7 +627,7 @@ export function celebrateMilestone(milestoneId: string): {
   milestone?: JourneyMilestone;
   error?: string;
 } {
-  const milestone = CURRENT_SEASON.milestones.find((m) => m.id === milestoneId);
+  const milestone = getCurrentSeason().milestones.find((m) => m.id === milestoneId);
 
   if (!milestone) {
     return { success: false, error: 'Milestone not found' };

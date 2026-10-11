@@ -48,9 +48,9 @@ export interface FeatureHint {
   id: string;
   type: HintType;
   targetSelector: string;
-  title: string;
-  message: string;
-  ctaText?: string;
+  title: string; // i18n key, translated when the hint renders
+  message: string; // i18n key
+  ctaText?: string; // i18n key
   ctaAction?: () => void;
   minStage?: RelationshipStage;
   showAfterDelay?: number;
@@ -85,9 +85,9 @@ export const FEATURE_HINTS: FeatureHint[] = [
     id: 'team-huddle-intro',
     type: 'spotlight',
     targetSelector: '[data-feature="team-huddle"], .engagement-trigger',
-    title: t('featureHints.teamHuddlesTitle'),
-    message: t('featureHints.teamHuddlesMessage'),
-    ctaText: t('featureHints.teamHuddlesCta'),
+    title: 'featureHints.teamHuddlesTitle',
+    message: 'featureHints.teamHuddlesMessage',
+    ctaText: 'featureHints.teamHuddlesCta',
     minStage: 'building-trust',
     showOnce: true,
     priority: 10,
@@ -98,9 +98,9 @@ export const FEATURE_HINTS: FeatureHint[] = [
     id: 'custom-rituals-intro',
     type: 'card',
     targetSelector: '[data-feature="rituals"], .ritual-builder-trigger',
-    title: t('featureHints.createRitualsTitle'),
-    message: t('featureHints.createRitualsMessage'),
-    ctaText: t('featureHints.createRitualsCta'),
+    title: 'featureHints.createRitualsTitle',
+    message: 'featureHints.createRitualsMessage',
+    ctaText: 'featureHints.createRitualsCta',
     minStage: 'getting-started',
     showOnce: true,
     showAfterDelay: 2000,
@@ -112,8 +112,8 @@ export const FEATURE_HINTS: FeatureHint[] = [
     id: 'memory-timeline-intro',
     type: 'tooltip',
     targetSelector: '[data-feature="journey"], .journey-trigger, .relationship-progress',
-    title: t('featureHints.journeyTitle'),
-    message: t('featureHints.journeyMessage'),
+    title: 'featureHints.journeyTitle',
+    message: 'featureHints.journeyMessage',
     minStage: 'building-trust',
     showOnce: true,
     priority: 7,
@@ -124,9 +124,9 @@ export const FEATURE_HINTS: FeatureHint[] = [
     id: 'trust-journey-intro',
     type: 'spotlight',
     targetSelector: '[data-feature="trust-journey"]',
-    title: t('featureHints.trustJourneyTitle'),
-    message: t('featureHints.trustJourneyMessage'),
-    ctaText: t('featureHints.trustJourneyExplore'),
+    title: 'featureHints.trustJourneyTitle',
+    message: 'featureHints.trustJourneyMessage',
+    ctaText: 'featureHints.trustJourneyExplore',
     minStage: 'established',
     showOnce: true,
     priority: 9,
@@ -137,8 +137,8 @@ export const FEATURE_HINTS: FeatureHint[] = [
     id: 'settings-intro',
     type: 'tooltip',
     targetSelector: '.settings-trigger, [data-feature="settings"]',
-    title: t('featureHints.customizeTitle'),
-    message: t('featureHints.customizeMessage'),
+    title: 'featureHints.customizeTitle',
+    message: 'featureHints.customizeMessage',
     minStage: 'getting-started',
     showOnce: true,
     showAfterDelay: 5000,
@@ -150,9 +150,9 @@ export const FEATURE_HINTS: FeatureHint[] = [
     id: 'spotify-intro',
     type: 'card',
     targetSelector: '[data-feature="spotify"], .spotify-trigger',
-    title: t('featureHints.spotifyTitle'),
-    message: t('featureHints.spotifyMessage'),
-    ctaText: t('featureHints.spotifyConnect'),
+    title: 'featureHints.spotifyTitle',
+    message: 'featureHints.spotifyMessage',
+    ctaText: 'featureHints.spotifyConnect',
     minStage: 'getting-started',
     showOnce: true,
     priority: 5,
@@ -413,8 +413,8 @@ function createTooltipHint(hint: FeatureHint, _target: Element): HTMLElement {
       <button class="hint-close" aria-label="${t('accessibility.dismiss')}">
         ${ICONS.close}
       </button>
-      <p class="hint-title">${hint.title}</p>
-      <p class="hint-message">${hint.message}</p>
+      <p class="hint-title">${t(hint.title)}</p>
+      <p class="hint-message">${t(hint.message)}</p>
     </div>
   `;
 
@@ -438,13 +438,13 @@ function createCardHint(hint: FeatureHint, _target: Element): HTMLElement {
       <div class="hint-icon">
         ${ICONS.lightbulb}
       </div>
-      <p class="hint-title">${hint.title}</p>
-      <p class="hint-message">${hint.message}</p>
+      <p class="hint-title">${t(hint.title)}</p>
+      <p class="hint-message">${t(hint.message)}</p>
       ${
         hint.ctaText
           ? `
         <button class="hint-cta">
-          <span>${hint.ctaText}</span>
+          <span>${t(hint.ctaText)}</span>
           ${ICONS.arrowRight}
         </button>
       `
@@ -490,13 +490,13 @@ function createSpotlightHint(hint: FeatureHint, _target: Element): HTMLElement {
       <div class="hint-icon">
         ${ICONS.sparkles}
       </div>
-      <p class="hint-title">${hint.title}</p>
-      <p class="hint-message">${hint.message}</p>
+      <p class="hint-title">${t(hint.title)}</p>
+      <p class="hint-message">${t(hint.message)}</p>
       ${
         hint.ctaText
           ? `
         <button class="hint-cta">
-          <span>${hint.ctaText}</span>
+          <span>${t(hint.ctaText)}</span>
           ${ICONS.arrowRight}
         </button>
       `

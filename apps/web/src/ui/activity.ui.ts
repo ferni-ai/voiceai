@@ -71,20 +71,20 @@ const ACTION_ICONS: Record<ActionType, string> = {
   reminder: 'bell',
 };
 
+/** Label i18n keys, translated at render: t() at import ran before initI18n (raw keys showed). */
 const ACTION_LABELS: Record<ActionType, string> = {
-  call: t('activity.actionCall'),
-  text: t('activity.actionText'),
-  email: t('activity.actionEmail'),
-  calendar: t('activity.actionCalendar'),
-  reminder: t('activity.actionReminder'),
+  call: 'activity.actionCall',
+  text: 'activity.actionText',
+  email: 'activity.actionEmail',
+  calendar: 'activity.actionCalendar',
+  reminder: 'activity.actionReminder',
 };
-
 const STATUS_LABELS: Record<ActionStatus, string> = {
-  requested: t('activity.statusPending'),
-  in_progress: t('activity.statusInProgress'),
-  completed: t('activity.statusCompleted'),
-  failed: t('activity.statusFailed'),
-  cancelled: t('activity.statusCancelled'),
+  requested: 'activity.statusPending',
+  in_progress: 'activity.statusInProgress',
+  completed: 'activity.statusCompleted',
+  failed: 'activity.statusFailed',
+  cancelled: 'activity.statusCancelled',
 };
 
 // ============================================================================
@@ -664,7 +664,7 @@ class ActivityUI {
     // Type-specific filters
     const types: ActionType[] = ['call', 'text', 'email', 'calendar', 'reminder'];
     for (const type of types) {
-      const btn = this.createFilterButton(type, ACTION_LABELS[type]);
+      const btn = this.createFilterButton(type, t(ACTION_LABELS[type]));
       filters.appendChild(btn);
     }
 
@@ -831,7 +831,7 @@ class ActivityUI {
     status.appendChild(statusDot);
 
     const statusText = document.createElement('span');
-    statusText.textContent = STATUS_LABELS[action.status];
+    statusText.textContent = t(STATUS_LABELS[action.status]);
     status.appendChild(statusText);
 
     card.appendChild(status);
@@ -869,7 +869,7 @@ class ActivityUI {
     text.textContent =
       this.activeFilter === 'all'
         ? "No activity yet. Ask Ferni to call someone or send a message!"
-        : `No ${ACTION_LABELS[this.activeFilter as ActionType].toLowerCase()} activity yet.`;
+        : `No ${t(ACTION_LABELS[this.activeFilter as ActionType]).toLowerCase()} activity yet.`;
     empty.appendChild(text);
 
     this.content.appendChild(empty);
@@ -897,7 +897,7 @@ class ActivityUI {
   }
 
   private formatTypeLabel(action: FerniAction): string {
-    const baseLabel = ACTION_LABELS[action.type];
+    const baseLabel = t(ACTION_LABELS[action.type]);
     if (action.request.target) {
       return `${baseLabel} to ${action.request.target}`;
     }

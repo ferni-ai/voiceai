@@ -16,6 +16,7 @@ import { apiGet, apiPost } from '../utils/api-helpers.js';
 import { getLocale, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
+import { averageRequirementProgress } from './stage-progress.js';
 
 const log = createLogger('Relationship');
 
@@ -680,14 +681,8 @@ class RelationshipStageService {
     const threshold = STAGE_THRESHOLDS[requiredStage];
     const metrics = this.data.metrics;
 
-    // Calculate progress towards the required stage
-    const convProgress = Math.min(1, metrics.totalConversations / threshold.minConversations);
-    const daysProgress = Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays);
-    const streakProgress = Math.min(
-      1,
-      Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak
-    );
-    const progress = (convProgress + daysProgress + streakProgress) / 3;
+    // Progress towards the required stage, over the requirements it actually sets
+    const progress = averageRequirementProgress(metrics, threshold);
 
     // Generate friendly hint
     let hint = '';
@@ -752,15 +747,9 @@ class RelationshipStageService {
     }
     const metrics = this.data.metrics;
 
-    // Calculate progress as average of all requirements. A requirement of 0 is met
-    // already; dividing by it would give NaN (0/0) and poison the average.
-    const fraction = (value: number, min: number): number => (min > 0 ? Math.min(1, value / min) : 1);
+    // Average over the requirements the next stage sets (a 0 minimum is not progress)
+    const progress = averageRequirementProgress(metrics, threshold);
     const bestStreak = Math.max(metrics.currentStreak, metrics.longestStreak);
-    const progress =
-      (fraction(metrics.totalConversations, threshold.minConversations) +
-        fraction(metrics.daysSinceFirstMeeting, threshold.minDays) +
-        fraction(bestStreak, threshold.minStreak)) /
-      3;
 
     const remaining: string[] = [];
     if (metrics.totalConversations < threshold.minConversations) {

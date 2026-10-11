@@ -4,6 +4,8 @@
  * getProgressToNextStage averages three requirements (conversations, days,
  * streak). A requirement of 0 used to divide 0/0, so progress was NaN for the
  * first-meeting -> getting-started step (minDays and minStreak are 0 there).
+ * Then the 0 requirements were counted as met, so a brand-new user saw 67%.
+ * Only requirements with a minimum above 0 count towards the average.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -55,15 +57,45 @@ describe('RelationshipStageService.getProgressToNextStage', () => {
     const { nextStage, progress } = service.getProgressToNextStage();
 
     expect(nextStage).toBe('getting-started');
-    // Only the conversations requirement (10) is unmet; days and streak need 0.
+    // Only the conversations requirement (10) exists; days and streak need 0.
     expect(Number.isNaN(progress)).toBe(false);
-    expect(progress).toBeCloseTo(2 / 3, 5);
+    expect(progress).toBe(0);
+  });
+
+  it('shows 0% progress for a new user with no conversations, not 67%', async () => {
+    const service = await serviceWith('first-meeting', {
+      totalConversations: 0,
+      daysSinceFirstMeeting: 0,
+      currentStreak: 0,
+      longestStreak: 0,
+    });
+
+    expect(Math.round(service.getProgressToNextStage().progress * 100)).toBe(0);
   });
 
   it('counts partial progress on the one requirement that has a minimum', async () => {
     const service = await serviceWith('first-meeting', { totalConversations: 5 });
 
-    expect(service.getProgressToNextStage().progress).toBeCloseTo((0.5 + 1 + 1) / 3, 5);
+    expect(service.getProgressToNextStage().progress).toBeCloseTo(0.5, 5);
+  });
+
+  it('ignores days and streak that the next stage does not require', async () => {
+    const service = await serviceWith('first-meeting', {
+      totalConversations: 0,
+      daysSinceFirstMeeting: 40,
+      currentStreak: 10,
+    });
+
+    expect(service.getProgressToNextStage().progress).toBe(0);
+  });
+
+  it('feature unlock progress is finite and 0 for a new user', async () => {
+    const service = await serviceWith('first-meeting', {});
+
+    const { isUnlocked, progress } = service.getFeatureUnlockProgress('relationship-progress');
+
+    expect(isUnlocked).toBe(false);
+    expect(progress).toBe(0);
   });
 
   it('still averages all three requirements when none are zero (getting-started -> building-trust)', async () => {
