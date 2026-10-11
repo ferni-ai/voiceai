@@ -198,6 +198,7 @@ export const FLAG_MANIFEST = {
   POST_TTS_VOCAL_FRY: { default: 'off', owner: 'voice', kind: 'experiment' },
   POST_TTS_WARMTH: { default: 'off', owner: 'voice', kind: 'experiment' },
   PREDICTIONS_USE_ASYNC: { default: 'off', owner: 'voice', kind: 'experiment' },
+  PRESENCE_CHECK_CAP: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_HUM: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_SNORE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_SOUNDS: { default: 'off', owner: 'voice', kind: 'experiment' },
