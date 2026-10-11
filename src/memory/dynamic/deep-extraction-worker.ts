@@ -238,25 +238,10 @@ export class DeepExtractionWorker {
       if (this.running) this.batcher.add(job as DeepExtractionJob);
       else this.log.warn('🧠 [MEMORY-AUDIT] Received job but worker not running');
     };
-    const registered = safeOnEvent('memory:deep-extraction', listener);
+    // stop() removes the listener, so a restart doesn't process every job twice
+    this.eventListenerCleanup = safeOnEvent('memory:deep-extraction', listener);
 
-    if (registered) {
-      // Store cleanup function to remove the listener on stop()
-      this.eventListenerCleanup = () => {
-        try {
-          // safeOnEvent wraps EventEmitter - attempt to remove the listener
-          const { getAsyncEvents } = require('./async-events-config.js');
-          const emitter = getAsyncEvents?.();
-          if (emitter?.removeListener) {
-            emitter.removeListener('memory:deep-extraction', listener);
-          }
-        } catch {
-          // Best-effort cleanup
-        }
-      };
-    }
-
-    if (!registered) {
+    if (!this.eventListenerCleanup) {
       this.log.warn(
         '🧠 [MEMORY-AUDIT] AsyncEvents not configured - deep extraction will not receive jobs'
       );
