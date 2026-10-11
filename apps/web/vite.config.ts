@@ -112,7 +112,13 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       sourcemap: process.env.SOURCE_MAP === 'true', // Only enable if explicitly requested
+      // Vite 8 defaults to Oxc (JS) and Lightning CSS. Lightning CSS rejects
+      // src/styles/inline-styles.css, whose media queries use min(Npx, 100%)
+      // (a percentage is invalid in a media feature, so browsers already ignore
+      // those blocks). Keep esbuild for both until that CSS is fixed, so the
+      // shipped bundle matches what Vite 6 produced.
       minify: 'esbuild',
+      cssMinify: 'esbuild',
       target: 'es2022',
       // dist/.vite/manifest.json: the chunk graph the bundle ratchet
       // (apps/cli/src/commands/quality/ratchet.ts) reads to tell initial
@@ -122,7 +128,7 @@ export default defineConfig(({ mode }) => {
       esbuild: {
         drop: ['console', 'debugger'],
       },
-      rollupOptions: {
+      rolldownOptions: {
         // Treat gsap as external - use window.gsap from CDN
         external: ['gsap'],
         // A circular chunk is a runtime TDZ crash waiting for the right import

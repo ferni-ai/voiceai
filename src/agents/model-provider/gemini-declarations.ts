@@ -19,7 +19,8 @@
  * and the next two replies had 0 of ~10k prompt tokens cached.
  * PROMPT_STABLE_PREFIX=on sends the essential tools (tool-config.ts) first:
  * the cap never evicts them, so a domain load usually changes only the
- * declarations after them.
+ * declarations after them. CASCADE_APPEND_ONLY_TOOLS=on goes further: tools
+ * keep the order the agent got them, and a load only appends (inArrivalOrder).
  *
  * @module agents/model-provider/gemini-declarations
  */
@@ -29,7 +30,7 @@ import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { llm } from '@livekit/agents';
 import * as google from '@livekit/agents-plugin-google';
-import { isEssentialTool } from '../../config/tool-config.js';
+import { appendOnlyToolsEnabled, isEssentialTool } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { stablePrefixEnabled } from '../multi-agent/agent-instructions.js';
 
@@ -94,7 +95,10 @@ export class DeclarationCache {
     env: Record<string, string | undefined> = process.env
   ): FunctionDeclaration[] {
     const stable = stablePrefixEnabled(env);
-    const key = `${stable ? 'stable:' : ''}${toolSetSignature(toolCtx)}`;
+    const arrival = appendOnlyToolsEnabled(env);
+    // In arrival order the key carries the order: same set, other order, other request.
+    const order = arrival ? `arrival:${Object.keys(toolCtx.functionTools).join(',')}|` : '';
+    const key = `${order}${stable ? 'stable:' : ''}${toolSetSignature(toolCtx)}`;
     const cached = this.sets.get(key);
     if (cached) {
       this.sets.delete(key); // most recently used goes last
@@ -102,7 +106,11 @@ export class DeclarationCache {
       return cached;
     }
     const converted = this.convert(toolCtx);
-    const declarations = stable ? essentialFirst(converted) : converted;
+    const declarations = arrival
+      ? inArrivalOrder(converted, toolCtx)
+      : stable
+        ? essentialFirst(converted)
+        : converted;
     this.conversions += 1;
     this.sets.set(key, declarations);
     if (this.sets.size > this.maxSets) {
@@ -117,6 +125,20 @@ export class DeclarationCache {
 export function essentialFirst(declarations: FunctionDeclaration[]): FunctionDeclaration[] {
   const essential = declarations.filter((d) => isEssentialTool(d.name));
   return [...essential, ...declarations.filter((d) => !isEssentialTool(d.name))];
+}
+
+/**
+ * The tools in the order the agent got them (CASCADE_APPEND_ONLY_TOOLS): new
+ * tools are appended (tool-updater.ts), so a load leaves the earlier
+ * declarations as they were, a prefix of the new ones.
+ */
+export function inArrivalOrder(
+  declarations: FunctionDeclaration[],
+  toolCtx: llm.ToolContext
+): FunctionDeclaration[] {
+  const position = new Map(Object.keys(toolCtx.functionTools).map((name, i) => [name, i]));
+  const at = (d: FunctionDeclaration): number => position.get(d.name) ?? position.size;
+  return [...declarations].sort((a, b) => at(a) - at(b));
 }
 
 let pluginConverter: Promise<DeclarationConverter | null> | undefined;
