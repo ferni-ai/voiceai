@@ -37,6 +37,8 @@
  * @module agents/multi-agent/first-turn-defer
  */
 
+import { setImmediate } from 'node:timers';
+import { isUsingOpenAI } from '../../config/model-provider-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
 import {
@@ -51,12 +53,30 @@ const log = createLogger({ module: 'FirstTurnDefer' });
 /** The longest turn 1's context waits for Ferni to speak. */
 export const MAX_DEFER_MS = 6000;
 
-/** On by flag, and only while CrisisGate decides each reply's crisis handling live. */
+/** How long session end waits for released turn-1 work before cleanup goes on. */
+export const SESSION_END_WAIT_MS = 3000;
+
+/**
+ * On by flag, only while CrisisGate decides each reply's crisis handling live,
+ * which needs the llmNode path: the OpenAI Realtime model replies without it.
+ */
 export function firstTurnDeferEnabled(
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  usingOpenAI: () => boolean = isUsingOpenAI
 ): boolean {
-  return env.FIRST_TURN_DEFER_BACKGROUND === 'on' && resolveCrisisGuardMode(env) === 'live';
+  return (
+    env.FIRST_TURN_DEFER_BACKGROUND === 'on' &&
+    resolveCrisisGuardMode(env) === 'live' &&
+    !usingOpenAI()
+  );
 }
+
+/** Sessions whose caller has finished a turn: a later persona (handoff) never defers. */
+const pastFirstTurn = new WeakSet<object>();
+export const noteUserTurn = (session: object): void => {
+  pastFirstTurn.add(session);
+};
+export const hadUserTurn = (session: object): boolean => pastFirstTurn.has(session);
 
 /** Any crisis-guard signal at all in these words, with the caller's voice reading. */
 export function hasSafetySignal(text: string, voiceEmotion?: unknown): boolean {
@@ -73,15 +93,30 @@ export interface FirstTurnDeferral {
   onAgentState: (newState: string | undefined) => void;
   /** Feed CrisisGate's decisions; anything but 'pass' releases turn 1 at once. */
   onCrisisDecision: (action: string | undefined) => void;
-  /** At session end: releases anything still held, so turn 1 is delayed, never dropped. */
-  dispose: () => void;
+  /**
+   * At session end: releases anything still held, so turn 1 is delayed, never
+   * dropped, and waits up to SESSION_END_WAIT_MS for that work (its crisis
+   * signals) before cleanup goes on and the job can exit.
+   */
+  dispose: () => Promise<void>;
 }
 
 export function deferFirstTurn(
   hook: UserTurnHook,
-  options: { maxDeferMs?: number; voiceEmotion?: () => unknown } = {}
+  options: {
+    maxDeferMs?: number;
+    endWaitMs?: number;
+    voiceEmotion?: () => unknown;
+    safetySignal?: (text: string, voiceEmotion: unknown) => boolean;
+  } = {}
 ): FirstTurnDeferral {
-  const { maxDeferMs = MAX_DEFER_MS, voiceEmotion = () => undefined } = options;
+  const {
+    maxDeferMs = MAX_DEFER_MS,
+    endWaitMs = SESSION_END_WAIT_MS,
+    voiceEmotion = () => undefined,
+    safetySignal = hasSafetySignal,
+  } = options;
+  const held = new Set<Promise<void>>();
   let released = false;
   let armedAt = 0;
   let calls = 0;
@@ -96,7 +131,8 @@ export function deferFirstTurn(
     if (released) return;
     released = true;
     if (timer) clearTimeout(timer);
-    log.info({ reason, waitedMs: armedAt ? Date.now() - armedAt : 0 }, 'FIRST_TURN_DEFER released');
+    // Nothing was held when no turn-1 words arrived (e.g. a session ending at the greeting).
+    if (armedAt) log.info({ reason, waitedMs: Date.now() - armedAt }, 'FIRST_TURN_DEFER released');
     release();
   };
 
@@ -104,8 +140,13 @@ export function deferFirstTurn(
     // The pusher calls this once per final transcript, in order.
     hook: async (turnCtx, newMessage) => {
       if (++calls > firstTurnSegments) return hook(turnCtx, newMessage);
-      await gate;
-      return hook(turnCtx, newMessage);
+      const run = gate.then(() => hook(turnCtx, newMessage));
+      held.add(run);
+      try {
+        await run;
+      } finally {
+        held.delete(run);
+      }
     },
     onFinalTranscript(transcript) {
       if (released) return;
@@ -114,7 +155,12 @@ export function deferFirstTurn(
         armedAt = Date.now();
         timer = setTimeout(() => open('timeout'), maxDeferMs);
       }
-      if (hasSafetySignal(transcript, voiceEmotion())) open('safety');
+      try {
+        if (safetySignal(transcript, voiceEmotion())) open('safety');
+      } catch (error) {
+        log.warn({ error: String(error) }, 'FIRST_TURN_DEFER safety check failed');
+        open('error');
+      }
     },
     onAgentState(newState) {
       if (armedAt && newState === 'speaking') open('speaking');
@@ -123,6 +169,22 @@ export function deferFirstTurn(
       if (action && action !== 'pass') open('crisis_gate');
     },
     // Held work still runs when the session ends, as it would without the flag.
-    dispose: () => open('session_end'),
+    async dispose() {
+      open('session_end');
+      // A segment that just arrived reaches the hook after the pusher's import.
+      await new Promise<void>((resolve) => {
+        setImmediate(resolve);
+      });
+      if (held.size === 0) return;
+      let waited: ReturnType<typeof setTimeout> | undefined;
+      const outcome = await Promise.race([
+        Promise.allSettled([...held]).then(() => 'done' as const),
+        new Promise<'late'>((resolve) => {
+          waited = setTimeout(() => resolve('late'), endWaitMs);
+        }),
+      ]);
+      clearTimeout(waited);
+      if (outcome === 'late') log.warn({ endWaitMs }, 'FIRST_TURN_DEFER work outlived session end');
+    },
   };
 }

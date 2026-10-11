@@ -24,7 +24,12 @@ import type { UserData } from '../shared/types.js';
 import type { TurnHandlerContext } from '../voice-agent/turn-handler.js';
 import { getUserResponseGapMs } from '../voice-agent/user-response-gap.js';
 import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
-import { deferFirstTurn, firstTurnDeferEnabled } from './first-turn-defer.js';
+import {
+  deferFirstTurn,
+  firstTurnDeferEnabled,
+  hadUserTurn,
+  noteUserTurn,
+} from './first-turn-defer.js';
 import { TURN_CONTEXT_HEADER } from './turn-context-header.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
@@ -368,19 +373,21 @@ export function attachTurnContextPusher(
   agent: ContextAgent,
   session: SessionEvents,
   options: { env?: Record<string, string | undefined>; userData?: unknown } = {}
-): () => void {
+): () => Promise<void> {
   const { env = process.env, userData } = options;
-  const deferral = firstTurnDeferEnabled(env)
-    ? deferFirstTurn(hook, {
-        voiceEmotion: () => (userData as { voiceEmotion?: unknown } | undefined)?.voiceEmotion,
-      })
-    : undefined;
+  const deferral =
+    firstTurnDeferEnabled(env) && !hadUserTurn(session)
+      ? deferFirstTurn(hook, {
+          voiceEmotion: () => (userData as { voiceEmotion?: unknown } | undefined)?.voiceEmotion,
+        })
+      : undefined;
   const pusher = createTurnContextPusher(deferral?.hook ?? hook, agent);
   const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');
   const onTranscript = (event: unknown) => {
     const evt = event as { transcript?: string; isFinal?: boolean };
     if (!evt.isFinal || !evt.transcript?.trim()) return;
     deferral?.onFinalTranscript(evt.transcript);
+    noteUserTurn(session);
     pusher.onFinalTranscript(evt.transcript).catch(failed);
   };
   const onAgentState = (event: unknown) => {
@@ -398,11 +405,11 @@ export function attachTurnContextPusher(
   session.on?.('agent_state_changed', onAgentState);
   session.on?.('user_state_changed', onUserState);
   if (deferral) session.on?.(CRISIS_GATE_SIGNAL, onCrisis);
-  return () => {
+  return async () => {
     session.off?.('user_input_transcribed', onTranscript);
     session.off?.('agent_state_changed', onAgentState);
     session.off?.('user_state_changed', onUserState);
     if (deferral) session.off?.(CRISIS_GATE_SIGNAL, onCrisis);
-    deferral?.dispose();
+    await deferral?.dispose();
   };
 }

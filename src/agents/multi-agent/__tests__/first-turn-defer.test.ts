@@ -61,6 +61,11 @@ describe('firstTurnDeferEnabled', () => {
     expect(firstTurnDeferEnabled({ ...ON, CRISIS_GUARD_MODE: 'shadow' })).toBe(false);
     expect(firstTurnDeferEnabled({ ...ON, CRISIS_GUARD_MODE: 'off' })).toBe(false);
   });
+
+  it('is off on the OpenAI Realtime path, which replies without llmNode and CrisisGate', () => {
+    expect(firstTurnDeferEnabled(ON, () => false)).toBe(true);
+    expect(firstTurnDeferEnabled(ON, () => true)).toBe(false);
+  });
 });
 
 describe('turn 1 background work with FIRST_TURN_DEFER_BACKGROUND', () => {
@@ -178,6 +183,83 @@ describe('turn 1 background work with FIRST_TURN_DEFER_BACKGROUND', () => {
     detach(); // caller hung up: no 'speaking', no gate verdict, well inside the 6 s bound
     await vi.waitFor(() => expect(hook).toHaveBeenCalledTimes(1), { timeout: 500 });
     expect(hook.mock.calls[0][1].textContent).toBe('im parked on the bridge, just sitting here');
+  });
+
+  it('session end waits for the released turn-1 build to finish', async () => {
+    const session = new EventEmitter();
+    let finished = false;
+    const hook = vi.fn<UserTurnHook>(async () => {
+      await pause(200);
+      finished = true;
+    });
+    const detach = attachTurnContextPusher(hook, makeAgent(), session, { env: ON });
+
+    finalTranscript(session, 'im parked on the bridge, just sitting here');
+    await pause(20);
+    expect(hook).not.toHaveBeenCalled();
+    await detach();
+    expect(hook).toHaveBeenCalledTimes(1);
+    expect(finished).toBe(true);
+  });
+
+  it('session end right after the words still waits for their build', async () => {
+    const session = new EventEmitter();
+    let finished = false;
+    const hook = vi.fn<UserTurnHook>(async () => {
+      await pause(100);
+      finished = true;
+    });
+    const detach = attachTurnContextPusher(hook, makeAgent(), session, { env: ON });
+    finalTranscript(session, 'im parked on the bridge, just sitting here');
+    await detach(); // same tick: the pusher has not reached the hook yet
+    expect(finished).toBe(true);
+  });
+
+  it('session end waits at most the bound for turn-1 work', async () => {
+    const deferral = deferFirstTurn(
+      vi.fn<UserTurnHook>(() => new Promise<void>(() => {})),
+      { endWaitMs: 50 }
+    );
+    deferral.onFinalTranscript('hi');
+    void deferral.hook(
+      llm.ChatContext.empty(),
+      llm.ChatMessage.create({ role: 'user', content: 'hi' })
+    );
+    const start = performance.now();
+    await deferral.dispose();
+    expect(performance.now() - start).toBeLessThan(1000);
+  });
+
+  it('a persona taking over after turn 1 (handoff) does not defer its first turn', async () => {
+    const session = new EventEmitter();
+    const first = blockingHook(0);
+    const detachFirst = attachTurnContextPusher(first, makeAgent(), session, { env: ON });
+    finalTranscript(session, 'first turn');
+    agentState(session, 'speaking');
+    await vi.waitFor(() => expect(first).toHaveBeenCalledTimes(1));
+    agentState(session, 'listening');
+
+    const next = blockingHook(0);
+    const detachNext = attachTurnContextPusher(next, makeAgent(), session, { env: ON });
+    await detachFirst();
+    finalTranscript(session, 'hi maya');
+    await vi.waitFor(() => expect(next).toHaveBeenCalledTimes(1), { timeout: 500 });
+    await detachNext();
+  });
+
+  it('a failing safety check releases turn 1 at once and never throws into the listener', async () => {
+    const hook = vi.fn<UserTurnHook>(async () => {});
+    const deferral = deferFirstTurn(hook, {
+      safetySignal: () => {
+        throw new Error('guard broke');
+      },
+    });
+    expect(() => deferral.onFinalTranscript('hi')).not.toThrow();
+    await deferral.hook(
+      llm.ChatContext.empty(),
+      llm.ChatMessage.create({ role: 'user', content: 'hi' })
+    );
+    expect(hook).toHaveBeenCalledTimes(1);
   });
 
   it('builds turn 1 at once when off (the default)', async () => {
