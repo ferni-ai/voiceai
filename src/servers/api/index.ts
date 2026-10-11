@@ -100,6 +100,7 @@ import { handleFTISRoutes } from '../../services/observability/routing-metrics.j
 import { handleToolsAnalyticsRoutes } from '../../api/tools-analytics-routes.js';
 import { handleChatRoutes } from '../../api/chat-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
+import { handlePasskeyRoutes } from '../../api/passkey-routes.js';
 import { handleOutreachRoutes } from '../../api/outreach.routes.js';
 import { handleBackgroundResultsRoutes } from '../../api/background-results-routes.js';
 import { handleGDPRRoutes } from '../../api/gdpr-routes.js';
@@ -832,6 +833,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       const handled = await handleRelationshipRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
+
+    // Passkeys for approvals (APPROVALS_PAGE + APPROVALS_PASSKEYS)
+    if (await handlePasskeyRoutes(req, res, pathname)) return;
 
     // Outreach routes
     if (pathname.startsWith('/api/outreach')) {
