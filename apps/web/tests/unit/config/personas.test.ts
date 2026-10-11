@@ -177,7 +177,7 @@ describe('Personas Config', () => {
     it('does not turn the stock-picking legend (peter-lynch) into Peter John', () => {
       // A Financial Legend is not on the team: no team id stands in for him
       expect(normalizeAgentId('peter-lynch')).not.toBe('peter-john');
-      expect(normalizeAgentId('lynch')).not.toBe('peter-john');
+      expect(normalizeAgentId('tom')).not.toBe('peter-john');
       expect(normalizeAgentId('peter')).toBe('peter-john');
     });
 
@@ -214,10 +214,25 @@ describe('Personas Config', () => {
   describe('Financial Legends (who is speaking, not the team)', () => {
     it('normalizeSpeakerId keeps a Legend as themselves and aliases as the bundles do', () => {
       expect(normalizeSpeakerId('peter-lynch')).toBe('peter-lynch');
-      expect(normalizeSpeakerId('lynch')).toBe('peter-lynch');
-      expect(normalizeSpeakerId('bogle')).toBe('john-bogle');
-      expect(normalizeSpeakerId('jack-bogle')).toBe('john-bogle');
-      expect(normalizeSpeakerId('joel')).toBe('joel-dickson');
+      expect(normalizeSpeakerId('tom')).toBe('peter-lynch');
+      expect(normalizeSpeakerId('henry')).toBe('john-bogle');
+      expect(normalizeSpeakerId('caldwell')).toBe('john-bogle');
+      expect(normalizeSpeakerId('nate')).toBe('joel-dickson');
+    });
+
+    it('normalizeSpeakerId never maps a real person to a Legend', () => {
+      for (const real of [
+        'lynch',
+        'magellan',
+        'bogle',
+        'jack-bogle',
+        'vanguard-founder',
+        'joel',
+        'dickson',
+        'dr-dickson',
+      ]) {
+        expect(normalizeSpeakerId(real), real).toBe('ferni');
+      }
     });
 
     it('normalizeSpeakerId leaves team ids and aliases to the team', () => {

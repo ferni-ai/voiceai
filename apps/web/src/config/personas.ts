@@ -255,15 +255,15 @@ export const LEGENDS: Readonly<Record<LegendId, PersonaConfig>> = Object.freeze(
 
 /** Legend aliases from their bundles. 'peter' and 'john' stay with Peter John. */
 const LEGEND_ALIASES: Readonly<Record<string, LegendId>> = {
-  lynch: 'peter-lynch',
+  // Fictional names only: no real person's name reaches a legend.
+  tom: 'peter-lynch',
+  brannigan: 'peter-lynch',
   'stock-picker': 'peter-lynch',
-  magellan: 'peter-lynch',
-  bogle: 'john-bogle',
-  'jack-bogle': 'john-bogle',
-  'vanguard-founder': 'john-bogle',
-  joel: 'joel-dickson',
-  dickson: 'joel-dickson',
-  'dr-dickson': 'joel-dickson',
+  henry: 'john-bogle',
+  caldwell: 'john-bogle',
+  'index-investing': 'john-bogle',
+  nate: 'joel-dickson',
+  holloway: 'joel-dickson',
   'life-mentor': 'joel-dickson',
 };
 
