@@ -14,6 +14,7 @@
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import { getAuthState } from './firebase-auth.service.js';
+import { requestAttention } from './attention-queue.js';
 
 const log = createLogger('CheckinService');
 
@@ -129,17 +130,19 @@ async function checkForCheckin(): Promise<void> {
  * Dispatch event when check-in is available.
  */
 function dispatchCheckinAvailable(checkin: CheckinInfo): void {
-  window.dispatchEvent(
-    new CustomEvent('ferni:checkin-available', {
-      detail: {
-        id: checkin.id,
-        message: checkin.message,
-        type: checkin.type,
-        personaId: checkin.personaId,
-      },
-    })
-  );
-  log.info('Check-in available event dispatched', { type: checkin.type });
+  requestAttention('checkin', () => {
+    window.dispatchEvent(
+      new CustomEvent('ferni:checkin-available', {
+        detail: {
+          id: checkin.id,
+          message: checkin.message,
+          type: checkin.type,
+          personaId: checkin.personaId,
+        },
+      })
+    );
+    log.info('Check-in available event dispatched', { type: checkin.type });
+  });
 }
 
 // ============================================================================

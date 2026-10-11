@@ -95,6 +95,17 @@ async function initializeFirestore(): Promise<FirebaseFirestore.Firestore | null
   }
 }
 
+/**
+ * cleanForFirestore turns Dates into ISO strings, but the scheduled-outreach
+ * job and cleanup query scheduledFor and updatedAt as timestamps, and Firestore
+ * never matches a string against a timestamp. Keep the Dates.
+ */
+function forFirestore(data: object): Record<string, unknown> {
+  const clean = cleanForFirestore(data) as Record<string, unknown>;
+  for (const [key, value] of Object.entries(data)) if (value instanceof Date) clean[key] = value;
+  return clean;
+}
+
 // ============================================================================
 // STORAGE FUNCTIONS
 // ============================================================================
@@ -136,7 +147,7 @@ export async function scheduleOutreach(
     .doc(userId)
     .collection('scheduled_outreach')
     .doc(id)
-    .set(cleanForFirestore(record));
+    .set(forFirestore(record));
 
   log.info(
     {
@@ -260,7 +271,7 @@ export async function updateOutreachStatus(
       .doc(userId)
       .collection('scheduled_outreach')
       .doc(outreachId)
-      .update(cleanForFirestore(updateData));
+      .update(forFirestore(updateData));
 
     log.debug({ userId, outreachId, status }, 'Outreach status updated');
   } catch (error) {
@@ -297,7 +308,7 @@ export async function incrementRetry(
     const shouldRetry = newRetryCount < (data.maxRetries || 3);
 
     await doc.ref.update(
-      cleanForFirestore({
+      forFirestore({
         retryCount: newRetryCount,
         status: shouldRetry ? 'pending' : 'failed',
         updatedAt: new Date(),
@@ -328,7 +339,7 @@ export async function cancelScheduledOutreach(
       .collection('scheduled_outreach')
       .doc(outreachId)
       .update(
-        cleanForFirestore({
+        forFirestore({
           status: 'cancelled',
           updatedAt: new Date(),
         })
@@ -348,7 +359,7 @@ export async function cancelScheduledOutreach(
  */
 export async function cleanupOldOutreach(
   userId: string,
-  olderThanDays: number = 30
+  olderThanDays = 30
 ): Promise<number> {
   const firestore = await getFirestore();
   if (!firestore) return 0;
