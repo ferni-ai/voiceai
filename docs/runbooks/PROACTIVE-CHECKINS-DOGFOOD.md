@@ -24,8 +24,10 @@ fails, a prepared line goes out. The same words never go out twice in a row.
 
 - Texts and calls on; frequency `gentle`: at most 3 check-ins a day, at most
   2 texts, at most 1 call.
-- Quiet hours 21:00 to 08:00 in his own time zone (`contactInfo.timezone`
-  must be `America/New_York`). Calls only 9:00 to 20:30.
+- Quiet hours 21:00 to 08:00 (set below; the default is 22:00) in his own
+  time zone: `outreachPreferences.timezone`, else `contactInfo.timezone`, so
+  either must be `America/New_York` and the other unset or the same (same
+  rules as quiet-hours.ts, #802). Calls only 9:00 to 20:30.
 - Back-off: after two texts with no conversation since, notes in the app
   until he talks to Ferni again. After a missed or declined call, no calls
   for three days.
