@@ -26,6 +26,7 @@ import {
   withoutLockedTeammateNotes,
   withTeammateAsk,
 } from '../../tools/handoff/locked-teammates.js';
+import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
@@ -88,6 +89,8 @@ export function withTurnReminder(
   const reminder = [
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
+    // "Naya" in the transcript is Nayan (teammate-names.ts)
+    heardTeammateNote(words),
     notes,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
