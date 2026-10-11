@@ -8,9 +8,9 @@
  * - alex-chen:    'full'      - Full calendar management (primary calendar persona)
  * - jordan-taylor: 'events'   - Event planning and celebration focus
  * - ferni:        'awareness' - General awareness for life coaching context
- * - maya-patel:   'habits'    - Habit-related schedule awareness
+ * - maya-santos:  'habits'    - Habit-related schedule awareness
  * - peter-john:   'research'  - Research and focus time scheduling
- * - nayan-kumar:  'wisdom'    - Life rhythm and balance awareness
+ * - nayan-patel:  'wisdom'    - Life rhythm and balance awareness
  *
  * ENHANCED WITH "BETTER THAN HUMAN" CAPABILITIES:
  * - Ambient calendar awareness (meeting starting soon, just ended)
@@ -20,6 +20,7 @@
  * Alex gets full BTH features, other personas get tiered awareness.
  */
 
+import { CANONICAL_IDS } from '../../../personas/persona-ids.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   isConnected,
@@ -83,24 +84,30 @@ export interface CalendarAwarenessContext {
 // Detail levels for each persona
 type CalendarDetailLevel = 'full' | 'events' | 'awareness' | 'habits' | 'research' | 'wisdom';
 
+// Keyed by canonical persona id: 'maya-patel' / 'nayan-kumar' here once meant
+// Maya and Nayan got no calendar context at all.
 const CALENDAR_DETAIL_LEVELS: Record<string, CalendarDetailLevel> = {
-  'alex-chen': 'full', // Full calendar management (primary)
-  'jordan-taylor': 'events', // Event planning and celebration focus
-  ferni: 'awareness', // General awareness for life coaching
-  'maya-patel': 'habits', // Habit-related schedule awareness
-  'peter-john': 'research', // Research and focus time scheduling
-  'nayan-kumar': 'wisdom', // Life rhythm and balance awareness
+  [CANONICAL_IDS.COMMUNICATOR]: 'full', // Full calendar management (primary)
+  [CANONICAL_IDS.PLANNER]: 'events', // Event planning and celebration focus
+  [CANONICAL_IDS.COACH]: 'awareness', // General awareness for life coaching
+  [CANONICAL_IDS.BUDGETER]: 'habits', // Habit-related schedule awareness
+  [CANONICAL_IDS.RESEARCHER]: 'research', // Research and focus time scheduling
+  [CANONICAL_IDS.SAGE]: 'wisdom', // Life rhythm and balance awareness
 };
 
 // All personas get calendar awareness now
 const CALENDAR_AWARE_PERSONAS = Object.keys(CALENDAR_DETAIL_LEVELS);
-const ALEX_PERSONA_ID = 'alex-chen';
+const ALEX_PERSONA_ID = CANONICAL_IDS.COMMUNICATOR;
 const UPCOMING_MEETING_THRESHOLD_MINUTES = 60; // Alert if meeting within 60 min
 
 // Personas that get full "Better Than Human" features
-const BTH_FULL_PERSONAS = ['alex-chen'] as const;
+const BTH_FULL_PERSONAS = [CANONICAL_IDS.COMMUNICATOR] as const;
 // Personas that get lite BTH features (load factors, recovery suggestions)
-const BTH_LITE_PERSONAS = ['ferni', 'maya-patel', 'nayan-kumar'] as const;
+const BTH_LITE_PERSONAS = [
+  CANONICAL_IDS.COACH,
+  CANONICAL_IDS.BUDGETER,
+  CANONICAL_IDS.SAGE,
+] as const;
 
 // ============================================================================
 // MAIN BUILDER
