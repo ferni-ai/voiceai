@@ -22,15 +22,25 @@ import { injectToastRegionStyles } from './toast-region.styles.js';
 
 export type ToastTone = 'info' | 'success' | 'warning' | 'error';
 
+/** Why a toast left: its time ran out, the reader closed it, its action ran, or code dismissed it. */
+export type ToastDismissReason = 'timeout' | 'user' | 'action' | 'api';
+
 export interface ToastOptions {
   message: string;
   tone?: ToastTone;
   /** Callers may extend the display time; they cannot shorten it. */
   duration?: number;
   action?: { label: string; callback: () => void };
-  /** Achievement toasts: a bold headline above the message and a star icon. */
+  /** A bold headline above the message (achievements, notification cards). */
   title?: string;
+  /** Achievement toasts use a star icon and the success stripe. */
   kind?: 'achievement';
+  /** Shows a close button; `persistent` implies it. */
+  dismissible?: boolean;
+  /** Stays until the reader or the caller dismisses it. */
+  persistent?: boolean;
+  /** Called once when the toast leaves (or is dropped from the queue). */
+  onDismiss?: (reason: ToastDismissReason) => void;
 }
 
 interface Entry {
@@ -63,6 +73,9 @@ export function maxVisibleToasts(): number {
 
 const STAR_PATH =
   '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>';
+
+const CLOSE_ICON =
+  '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
 
 const ICON_PATHS: Record<ToastTone, string> = {
   info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
@@ -102,15 +115,17 @@ class ToastRegion {
     return entry.id;
   }
 
-  dismiss(id: string): void {
+  dismiss(id: string, reason: ToastDismissReason = 'api'): void {
     const queued = this.queue.findIndex((e) => e.id === id);
     if (queued >= 0) {
-      this.queue.splice(queued, 1);
+      const [dropped] = this.queue.splice(queued, 1);
+      dropped?.options.onDismiss?.(reason);
       return;
     }
     const entry = this.visible.find((e) => e.id === id);
     if (!entry) return;
     clearTimeout(entry.timer);
+    entry.options.onDismiss?.(reason);
     this.visible = this.visible.filter((e) => e !== entry);
     const el = entry.element;
     el?.classList.add('ferni-toast--leaving');
@@ -122,7 +137,7 @@ class ToastRegion {
   }
 
   dismissAll(): void {
-    this.queue = [];
+    [...this.queue].forEach((e) => this.dismiss(e.id));
     [...this.visible].forEach((e) => this.dismiss(e.id));
   }
 
@@ -155,7 +170,9 @@ class ToastRegion {
     const el = document.createElement('li');
     const { title, kind, message } = entry.options;
     const achievement = kind === 'achievement';
-    el.className = `ferni-toast ferni-toast--${achievement ? 'achievement' : tone} ferni-toast--entering`;
+    // A headline with an action lays out as a card: the action gets its own row.
+    const card = Boolean(title && entry.options.action);
+    el.className = `ferni-toast ferni-toast--${achievement ? 'achievement' : tone}${card ? ' ferni-toast--card' : ''} ferni-toast--entering`;
     el.dataset.toastId = entry.id;
     el.innerHTML = `<svg class="ferni-toast__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${achievement ? STAR_PATH : ICON_PATHS[tone]}</svg>`;
     const body = document.createElement('span');
@@ -180,9 +197,19 @@ class ToastRegion {
       button.textContent = action.label;
       button.addEventListener('click', () => {
         action.callback();
-        this.dismiss(entry.id);
+        this.dismiss(entry.id, 'action');
       });
       el.appendChild(button);
+    }
+
+    if (entry.options.dismissible || entry.options.persistent) {
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.className = 'ferni-toast__close';
+      close.setAttribute('aria-label', t('accessibility.dismissNotification'));
+      close.innerHTML = CLOSE_ICON;
+      close.addEventListener('click', () => this.dismiss(entry.id, 'user'));
+      el.appendChild(close);
     }
 
     entry.element = el;
@@ -195,8 +222,9 @@ class ToastRegion {
   }
 
   private startTimer(entry: Entry): void {
+    if (entry.options.persistent) return;
     entry.startedAt = Date.now();
-    entry.timer = setTimeout(() => this.dismiss(entry.id), entry.remaining);
+    entry.timer = setTimeout(() => this.dismiss(entry.id, 'timeout'), entry.remaining);
   }
 
   private pause(): void {

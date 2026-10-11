@@ -19,6 +19,8 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { dismissToast, showToast } from './overlay/toast-region.js';
 
 const log = createLogger('ProactiveOutreachUI');
 
@@ -80,6 +82,8 @@ let container: HTMLElement | null = null;
 let isInitialized = false;
 let currentOutreach: ProactiveOutreachData | null = null;
 let dismissTimeout: ReturnType<typeof setTimeout> | null = null;
+/** The outreach's toast while the overlay host renders it. */
+let currentToastId: string | null = null;
 
 // ============================================================================
 // OUTREACH DISPLAY
@@ -103,6 +107,12 @@ export function showOutreach(data: ProactiveOutreachData): void {
   currentOutreach = data;
   log.info({ type: data.type, personaId: data.personaId }, '💭 Showing proactive outreach');
 
+  if (isOverlayHostEnabled()) {
+    showOutreachToast(data);
+    document.dispatchEvent(new CustomEvent('ferni:proactive-outreach', { detail: data }));
+    return;
+  }
+
   // Create the notification element
   const notification = createNotificationElement(data);
   container?.appendChild(notification);
@@ -124,10 +134,40 @@ export function showOutreach(data: ProactiveOutreachData): void {
   }));
 }
 
+/** Overlay host on: the outreach card becomes a toast in the shared region. */
+function showOutreachToast(data: ProactiveOutreachData): void {
+  const id = showToast({
+    title: `${data.personaName || 'Ferni'} · ${outreachHeader(data)}`,
+    message: data.context ? `${data.message} ${data.context}` : data.message,
+    duration: data.priority === 'high' ? 25000 : 15000,
+    dismissible: true,
+    action: {
+      label: t('proactiveOutreach.letsTalk'),
+      callback: () => {
+        document.dispatchEvent(
+          new CustomEvent('ferni:outreach-respond', { detail: { outreachId: data.id, type: data.type } })
+        );
+      },
+    },
+    onDismiss: () => {
+      if (currentToastId === id) {
+        currentToastId = null;
+        currentOutreach = null;
+      }
+    },
+  });
+  currentToastId = id;
+}
+
 /**
  * Dismiss the current outreach notification
  */
 export function dismissOutreach(): void {
+  if (currentToastId) {
+    const id = currentToastId;
+    currentToastId = null;
+    dismissToast(id);
+  }
   if (dismissTimeout) {
     clearTimeout(dismissTimeout);
     dismissTimeout = null;
@@ -144,6 +184,18 @@ export function dismissOutreach(): void {
   }
 
   currentOutreach = null;
+}
+
+/** Header line for an outreach type ("Thinking of you..."). */
+function outreachHeader(data: ProactiveOutreachData): string {
+  const headerKeys: Record<string, string> = {
+    thinking_of_you: 'proactiveOutreach.header.thinkingOfYou',
+    growth_reflection: 'proactiveOutreach.header.growthReflection',
+    celebration: 'proactiveOutreach.header.celebration',
+    life_event: 'proactiveOutreach.header.lifeEvent',
+    random_warmth: 'proactiveOutreach.header.randomWarmth',
+  };
+  return t(headerKeys[data.type] || 'proactiveOutreach.header.default');
 }
 
 /**
@@ -165,15 +217,7 @@ function createNotificationElement(data: ProactiveOutreachData): HTMLElement {
   };
   const icon = icons[data.type] || ICONS.thoughtBubble;
 
-  // Header based on type
-  const headerKeys: Record<string, string> = {
-    thinking_of_you: 'proactiveOutreach.header.thinkingOfYou',
-    growth_reflection: 'proactiveOutreach.header.growthReflection',
-    celebration: 'proactiveOutreach.header.celebration',
-    life_event: 'proactiveOutreach.header.lifeEvent',
-    random_warmth: 'proactiveOutreach.header.randomWarmth',
-  };
-  const header = t(headerKeys[data.type] || 'proactiveOutreach.header.default');
+  const header = outreachHeader(data);
 
   notification.innerHTML = `
     <div class="proactive-outreach__icon">${icon}</div>

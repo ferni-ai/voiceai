@@ -17,6 +17,8 @@ import { tp } from '../i18n/plural.js';
 import { DURATION, prefersReducedMotion } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { ICONS, injectSharedStyles, escapeHtml, type IconName } from './engagement-components.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { dismissToast, showToast } from './overlay/toast-region.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -123,6 +125,8 @@ class NotificationsUI {
   private container: HTMLElement | null = null;
   private notifications: Map<string, { element: HTMLElement; data: Notification }> = new Map();
   private callbacks: NotificationUICallbacks = {};
+  /** Notification id -> toast id, while the overlay host renders them. */
+  private toasts: Map<string, string> = new Map();
   private styleElement: HTMLStyleElement | null = null;
 
   /**
@@ -158,6 +162,10 @@ class NotificationsUI {
    * Show a notification
    */
   show(notification: Notification): void {
+    if (isOverlayHostEnabled()) {
+      this.showInToastRegion(notification);
+      return;
+    }
     this.initialize();
     if (!this.container) return;
 
@@ -183,6 +191,11 @@ class NotificationsUI {
    * Dismiss a notification
    */
   dismiss(id: string): void {
+    const toastId = this.toasts.get(id);
+    if (toastId) {
+      dismissToast(toastId);
+      return;
+    }
     const item = this.notifications.get(id);
     if (!item) return;
 
@@ -205,6 +218,7 @@ class NotificationsUI {
    * Dismiss all notifications
    */
   dismissAll(): void {
+    for (const id of [...this.toasts.keys()]) this.dismiss(id);
     for (const id of this.notifications.keys()) {
       this.dismiss(id);
     }
@@ -214,12 +228,36 @@ class NotificationsUI {
    * Get active notification count
    */
   getCount(): number {
-    return this.notifications.size;
+    return this.notifications.size + this.toasts.size;
   }
 
   // ============================================================================
   // PRIVATE METHODS
   // ============================================================================
+
+  /** Overlay host on: the card becomes a toast in the shared top-right region. */
+  private showInToastRegion(notification: Notification): void {
+    const { action, dismissAfter } = notification;
+    const toastId = showToast({
+      title: notification.title,
+      message: notification.message,
+      duration: dismissAfter,
+      persistent: !dismissAfter,
+      dismissible: true,
+      action: action && {
+        label: action.label,
+        callback: () => {
+          action.callback();
+          this.callbacks.onAction?.(notification);
+        },
+      },
+      onDismiss: () => {
+        this.toasts.delete(notification.id);
+        this.callbacks.onDismiss?.(notification);
+      },
+    });
+    this.toasts.set(notification.id, toastId);
+  }
 
   private createNotificationElement(notification: Notification): HTMLElement {
     const colors = TYPE_COLORS[notification.type];
