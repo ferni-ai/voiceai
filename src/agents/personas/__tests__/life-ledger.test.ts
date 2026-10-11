@@ -1,12 +1,25 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createMemoryRecall } from '../../multi-agent/memory-recall-hook.js';
 import {
+  consistentWithBiography,
   createLedgerRecorder,
   formatLedger,
   groundedFacts,
   type LedgerFact,
   type LedgerStore,
 } from '../life-ledger.js';
+
+const prompts = vi.hoisted(() => [] as string[]);
+vi.mock('../../../config/generative-model.js', () => ({
+  getGenerativeModel: async (opts: { systemInstruction: string }) => {
+    prompts.push(opts.systemInstruction);
+    return {
+      generateContent: async () => ({
+        response: { text: () => "Jordan's neighbor teases her about her coffee" },
+      }),
+    };
+  },
+}));
 
 const lines = [
   "Ha, my neighbor's goat got out again and ate half of my wife's marigolds.",
@@ -87,7 +100,11 @@ describe('life ledger', () => {
         saidAt: '2026-10-06T12:00:00.000Z',
       },
     ]);
-    expect(extract).toHaveBeenCalledWith('Ferni', lines);
+    expect(extract).toHaveBeenCalledWith('Ferni', lines, {
+      subject: 'he',
+      object: 'him',
+      possessive: 'his',
+    });
   });
 
   it('never throws when extraction fails', async () => {
@@ -118,5 +135,62 @@ describe('life ledger', () => {
     expect(recall.noteFor('hey, how are you')).toContain("Ferni's neighbor's goat got out");
     recall.newTurn();
     expect(recall.noteFor('what are you up to')).toBeNull();
+  });
+});
+
+describe('life ledger pronouns', () => {
+  const capture = () => {
+    const systems: string[] = [];
+    const ask = async (system: string) => {
+      systems.push(system);
+      return 'NONE';
+    };
+    return { systems, ask };
+  };
+  const bio = 'I grew up in a small town. I have a brother.';
+
+  it('asks the biography check about Maya as a woman, not a man with a wife', async () => {
+    const { systems, ask } = capture();
+    await consistentWithBiography('Maya', ['Maya grew up in Lisbon'], bio, ask);
+    expect(systems).toHaveLength(2);
+    for (const system of systems) {
+      expect(system).toContain("Maya's biography, in her voice");
+      expect(system).toContain('country she grew up in');
+      expect(system).toContain('a different marital status');
+      expect(system).not.toMatch(/\b(he|his|him)\b/);
+      expect(system).not.toContain('no wife');
+    }
+  });
+
+  it("extracts Jordan's facts with her pronouns when a call ends", async () => {
+    prompts.length = 0;
+    const store = memoryStore();
+    const rec = createLedgerRecorder('u1', {
+      store,
+      now: () => Date.parse('2026-10-06T12:00:00Z'),
+    });
+    rec.add('jordan-taylor', 'My neighbor teases me about my coffee every single morning.');
+    expect(await rec.flush()).toBe(1);
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toContain('"jordan\'s neighbor teases her about her coffee"');
+    expect(prompts[0]).toContain('in her life');
+    expect(prompts[0]).not.toMatch(/\b(he|his|him)\b/);
+    expect(prompts[0]).not.toContain('wife');
+  });
+
+  it('still describes Ferni as he/his', async () => {
+    const { systems, ask } = capture();
+    await consistentWithBiography('Ferni', ['Ferni grew up in Ohio'], bio, ask);
+    expect(systems[0]).toContain("Ferni's biography, in his voice");
+    expect(systems[0]).toContain('country he grew up in');
+    expect(systems[0]).not.toMatch(/\b(she|her)\b/);
+  });
+
+  it('uses they/their for a persona it does not know', async () => {
+    const { systems, ask } = capture();
+    await consistentWithBiography('Quinn', ['Quinn grew up in Leeds'], bio, ask);
+    expect(systems[0]).toContain("Quinn's biography, in their voice");
+    expect(systems[0]).toContain('country they grew up in');
+    expect(systems[0]).not.toMatch(/\b(he|his|him|she|her)\b/);
   });
 });
