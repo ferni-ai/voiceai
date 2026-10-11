@@ -623,7 +623,7 @@ function injectStyles(): void {
     .marketplace-admin-panel {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       opacity: 0;
       pointer-events: none;

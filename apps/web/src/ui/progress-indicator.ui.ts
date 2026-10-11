@@ -386,7 +386,7 @@ function injectStyles(): void {
       position: fixed;
       bottom: var(--space-4, 16px);
       left: var(--space-4, 16px);
-      z-index: var(--z-sticky, 6000);
+      z-index: var(--z-sticky);
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-xl, 16px);
       box-shadow: 
