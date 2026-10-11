@@ -15,7 +15,7 @@
  *
  * @module memory/storage/conversation-days
  */
-import type { Firestore } from 'firebase-admin/firestore';
+import type { DocumentReference, Firestore } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 
 /** Summaries read for streaks: more than a year of daily calls. */
@@ -58,9 +58,14 @@ export async function readConversationDays(
   userId: string,
   limit = CONVERSATION_DAYS_LIMIT
 ): Promise<string[]> {
-  const snapshot = await db
-    .collection(usersCollection)
-    .doc(userId)
+  return daysUnder(db.collection(usersCollection).doc(userId), limit);
+}
+
+async function daysUnder(
+  userDoc: Pick<DocumentReference, 'collection'>,
+  limit = CONVERSATION_DAYS_LIMIT
+): Promise<string[]> {
+  const snapshot = await userDoc
     .collection('summaries')
     .orderBy('timestamp', 'desc')
     .select('timestamp')
@@ -69,18 +74,18 @@ export async function readConversationDays(
   return distinctDays(snapshot.docs.map((d) => d.get('timestamp')));
 }
 
-/** The days for getProfile: undefined when switched off or unreadable, so a load never fails on them. */
-export async function conversationDaysFor(
-  db: unknown,
-  usersCollection: string,
-  userId: string
-): Promise<string[] | undefined> {
+/**
+ * The days for getProfile, read under the user's document alongside the profile read
+ * (no added wait). Undefined when switched off or unreadable, so a load never fails on them.
+ * saveProfile leaves them out: they are never stored on the profile.
+ */
+export async function conversationDaysFor(userDoc: unknown): Promise<string[] | undefined> {
   if (!streakFromSummariesEnabled()) return undefined;
   try {
-    // The client is firebase-admin's; the store's local Firestore interface just doesn't declare select()
-    return await readConversationDays(db as Pick<Firestore, 'collection'>, usersCollection, userId);
+    // firebase-admin's DocumentReference; the store's local Firestore interface lacks select()
+    return await daysUnder(userDoc as Pick<DocumentReference, 'collection'>);
   } catch (error) {
-    getLogger().warn({ userId, error: String(error) }, 'Conversation days unreadable');
+    getLogger().warn({ error: String(error) }, 'Conversation days unreadable');
     return undefined;
   }
 }

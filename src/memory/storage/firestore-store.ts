@@ -198,18 +198,13 @@ export class FirestoreStore extends MemoryStore {
     const db = await this.ensureInitialized();
 
     try {
-      const [doc, conversationDays] = await Promise.all([
-        db.collection(this.USERS_COLLECTION).doc(userId).get(),
-        conversationDaysFor(db, this.USERS_COLLECTION, userId), // in parallel: no added wait
-      ]);
+      const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
+      const [doc, days] = await Promise.all([docRef.get(), conversationDaysFor(docRef)]);
 
-      if (!doc.exists) return null;
-
-      const data = doc.data();
+      const data = doc.exists ? doc.data() : undefined;
       if (!data) return null;
 
-      const hydrated = this.hydrateData(data);
-      if (conversationDays) hydrated.conversationDays = conversationDays;
+      const hydrated = Object.assign(this.hydrateData(data), days && { conversationDays: days });
       if (!isValidUserProfile(hydrated)) {
         // FIX: Enhanced logging with data sample for debugging data corruption
         getLogger().error(
