@@ -473,6 +473,10 @@ class VoiceAIApp {
       return;
     }
 
+    // Pages opened from a text link that replace the app (/a/:id)
+    const { openStandalonePage } = await import('./app/standalone-pages.js');
+    if (await openStandalonePage(window.location.pathname)) return;
+
     // Check for CLI authentication route
     if (window.location.pathname === '/cli-auth') {
       initCLIAuth();
