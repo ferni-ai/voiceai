@@ -10,7 +10,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CAPTIONS_V2_STORAGE_KEY, isCaptionsV2Enabled } from '@/ui/captions/captions-flag.js';
 import {
   applyTranscript,
-  captionsLayout,
   currentTurn,
   initLiveCaptions,
   revealWords,
@@ -96,22 +95,33 @@ describe('currentTurn', () => {
   });
 });
 
-describe('captionsLayout', () => {
-  it('sits a gap above the controls and stops a gap below the avatar', () => {
-    // 1440x900 desktop: controls top 649, persona header bottom 516.
-    const layout = captionsLayout(900, 649, 516, 16);
-    expect(layout.bottom).toBe(900 - 633);
-    expect(layout.maxHeight).toBe(633 - 532);
-    // The region's top edge can never reach the avatar.
-    expect(900 - layout.bottom - layout.maxHeight).toBeGreaterThanOrEqual(516 + 16);
+describe('identity slot', () => {
+  it('sits under the name and the AI companion pill, above the team roster', () => {
+    document.body.innerHTML = `<div id="coach"><h1 id="personaName">Ferni</h1>
+      <p id="personaSubtitle">I am what you make me</p>
+      <div class="ai-companion-label-row"><span class="ai-companion-label">AI companion</span></div>
+      <div id="teamRoster"></div></div>`;
+    say('agent', 'Hey! How are you?', true);
+    const order = [...(document.getElementById('coach')?.children ?? [])].map(
+      (el) => el.id || el.classList[0]
+    );
+    expect(order).toEqual([
+      'personaName',
+      'personaSubtitle',
+      'ai-companion-label-row',
+      'ferni-captions',
+      'teamRoster',
+    ]);
+    expect(
+      document.querySelector('.ferni-captions')?.classList.contains('ferni-captions--on')
+    ).toBe(true);
   });
 
-  it('reports no room rather than a negative height when the avatar crowds the controls', () => {
-    expect(captionsLayout(390, 200, 190, 16).maxHeight).toBe(0);
-  });
-
-  it('falls back to the viewport edges when controls or avatar are not on screen', () => {
-    expect(captionsLayout(800, null, null, 16)).toEqual({ bottom: 16, maxHeight: 768 });
+  it('hides the tagline and plan chip during a call but never the AI companion pill', () => {
+    const css = document.getElementById('ferni-captions-styles')?.textContent ?? '';
+    expect(css).toMatch(/body\[data-connected='true'\] #personaSubtitle/);
+    expect(css).toMatch(/body\[data-connected='true'\] #coach \.subscription-badge/);
+    expect(css).not.toMatch(/ai-companion-label[^{]*\{[^}]*display:\s*none/);
   });
 });
 

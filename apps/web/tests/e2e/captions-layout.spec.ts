@@ -3,8 +3,10 @@
  * overlay gallery's `captions` scene connects and streams a long user line
  * and a long Ferni line).
  *
- * - the caption region never intersects the avatar's box
- * - it sits above the call controls
+ * - the caption region (words + moment chip) sits in the persona's slot,
+ *   under the name (beside it in the landscape row), and never intersects
+ *   the name, the avatar, the voice waveform, the team roster or the controls
+ * - the AI companion pill (#928) stays visible beside it
  * - no caption line is clipped inside itself (scrollHeight <= clientHeight,
  *   scrollWidth <= clientWidth): text wraps, it is never ellipsized
  *
@@ -30,7 +32,9 @@ const intersects = (a: Box, b: Box): boolean =>
   a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 
 for (const vp of VIEWPORTS) {
-  test(`captions stay clear of the avatar and unclipped at ${vp.name}`, async ({ browser }) => {
+  test(`captions sit in the persona slot, clear of everything, at ${vp.name}`, async ({
+    browser,
+  }) => {
     const context = await browser.newContext({
       viewport: { width: vp.width, height: vp.height },
       isMobile: vp.mobile,
@@ -50,9 +54,12 @@ for (const vp of VIEWPORTS) {
     await page.waitForTimeout(500); // layout follows the connect transition
 
     const geometry = await page.evaluate(() => {
+      // Boxes with no area (e.g. a roster hidden on phones) can't collide.
       const box = (selector: string): Box | null => {
         const r = document.querySelector(selector)?.getBoundingClientRect();
-        return r ? { top: r.top, bottom: r.bottom, left: r.left, right: r.right } : null;
+        return r && r.width > 0 && r.height > 0
+          ? { top: r.top, bottom: r.bottom, left: r.left, right: r.right }
+          : null;
       };
       const lines = [
         ...document.querySelectorAll<HTMLElement>(
@@ -61,8 +68,15 @@ for (const vp of VIEWPORTS) {
       ];
       return {
         captions: box('.ferni-captions'),
-        avatar: box('.avatar-container'),
-        controls: box('.controls-row'),
+        aiPill: box('.ai-companion-label'),
+        others: {
+          name: box('#personaName'),
+          avatar: box('.avatar-container'),
+          waveform: box('#waveformContainer'),
+          roster: box('#teamRoster'),
+          controls: box('.controls-row'),
+          aiPill: box('.ai-companion-label'),
+        },
         clipped: lines
           .filter((l) => l.scrollHeight > l.clientHeight || l.scrollWidth > l.clientWidth)
           .map((l) => l.textContent?.slice(0, 40)),
@@ -74,12 +88,15 @@ for (const vp of VIEWPORTS) {
       };
     });
 
-    expect(geometry.captions).not.toBeNull();
-    expect(geometry.avatar).not.toBeNull();
-    expect(intersects(geometry.captions as Box, geometry.avatar as Box)).toBe(false);
-    if (geometry.controls) {
-      expect(geometry.captions!.bottom).toBeLessThanOrEqual(geometry.controls.top);
-    }
+    const captions = geometry.captions as Box;
+    expect(captions).not.toBeNull();
+    expect(geometry.others.avatar).not.toBeNull();
+    expect(geometry.others.waveform).not.toBeNull();
+    expect(geometry.aiPill).not.toBeNull(); // #928: the AI label never hides
+    const hits = Object.entries(geometry.others)
+      .filter(([, other]) => other && intersects(captions, other))
+      .map(([name]) => name);
+    expect(hits).toEqual([]);
     expect(geometry.clipped).toEqual([]);
     expect(geometry.multiLineChips).toEqual([]);
     expect(geometry.overflow.every((v) => v !== 'ellipsis')).toBe(true);

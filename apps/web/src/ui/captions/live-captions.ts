@@ -2,9 +2,11 @@
  * Live captions (behind the captions-v2 flag, see captions-flag.ts).
  *
  * Words, not a window. Modelled on iOS Live Captions, but with no panel:
- * - Ferni's words sit in the open space between the persona and the call
- *   controls, never over the avatar, controls or anything else: the region
- *   is capped by that space (captionsLayout) and holds whole lines only.
+ * - During a call the words take the persona's own slot: under Ferni's name
+ *   (where the tagline and plan chip were; they step out while the call is
+ *   on, the AI companion pill stays) and above the team roster. They are in
+ *   the layout, not over it, so they never sit on the avatar, the waveform
+ *   or the controls.
  * - Only the last line or two of the current turn. New words fade in as
  *   they are spoken; earlier text scrolls up under a soft fade. Nothing is
  *   ever ellipsized.
@@ -44,7 +46,6 @@ export interface CaptionEntry {
 
 const HISTORY_LIMIT = 200; // utterances kept in the history
 const RENDERED = 3; // utterances rendered in the live region
-const MAX_LINES = 2; // the last line or two; the sheet keeps the rest
 const IDLE_MS = 6000; // captions fade after this long without speech
 
 /**
@@ -73,27 +74,6 @@ export function currentTurn(entries: readonly CaptionEntry[]): CaptionEntry[] {
   let start = entries.length;
   while (start > 0 && entries[start - 1]?.speaker === speaker) start--;
   return entries.slice(Math.max(start, entries.length - RENDERED));
-}
-
-export interface CaptionsLayout {
-  bottom: number; // viewport bottom to the region's bottom edge
-  maxHeight: number; // tallest the region may grow without reaching the avatar
-}
-
-/**
- * Bottom-anchor the region `gap` above the controls and stop it `gap` below
- * the avatar. With no controls on screen it sits `gap` above the viewport
- * bottom; with no avatar it may use the full height.
- */
-export function captionsLayout(
-  viewportHeight: number,
-  controlsTop: number | null,
-  avatarBottom: number | null,
-  gap: number
-): CaptionsLayout {
-  const floor = (controlsTop ?? viewportHeight) - gap;
-  const ceiling = (avatarBottom ?? 0) + gap;
-  return { bottom: viewportHeight - floor, maxHeight: Math.max(0, floor - ceiling) };
 }
 
 function speakerName(speaker: CaptionSpeaker): string {
@@ -181,6 +161,8 @@ class LiveCaptions {
   private update(): void {
     if (!this.root) return;
     const chips = this.chips?.count() ?? 0;
+    // Captions on: the slot keeps its height even between sentences.
+    this.root.classList.toggle('ferni-captions--on', this.isEnabled());
     this.root.classList.toggle('ferni-captions--words-off', !this.wordsShown);
     this.root.classList.toggle('ferni-captions--visible', this.wordsShown || chips > 0);
     this.schedule();
@@ -201,15 +183,14 @@ class LiveCaptions {
   private mount(): HTMLElement {
     if (this.root) {
       // Something replaced the body (route swap, HMR): put the region back.
-      if (!this.root.isConnected) document.body.append(this.root);
+      if (!this.root.isConnected) placeInIdentitySlot(this.root);
       return this.root;
     }
     document.querySelectorAll('.ferni-captions').forEach((el) => el.remove()); // HMR
     const root = document.createElement('section');
     root.className = 'ferni-captions';
     root.setAttribute('aria-label', t('transcript.captionsLabel'));
-    // No panel, no labels: the words sit in the open space between Ferni and
-    // the controls. Tapping them (or Enter) opens the conversation so far.
+    // Tapping the words (or Enter) opens the conversation so far.
     const viewport = document.createElement('div');
     viewport.className = 'ferni-captions__viewport';
     viewport.tabIndex = 0;
@@ -227,15 +208,7 @@ class LiveCaptions {
     moments.setAttribute('role', 'status');
     this.chips = new MomentChips(moments, () => this.update());
     root.append(viewport, moments);
-    document.body.append(root);
-    window.addEventListener('resize', () => this.schedule());
-    // The avatar grows and the controls move when a call connects; follow them.
-    if (typeof ResizeObserver !== 'undefined') {
-      const observer = new ResizeObserver(() => this.schedule());
-      for (const el of document.querySelectorAll('.header, .avatar-container, .controls-row')) {
-        observer.observe(el);
-      }
-    }
+    placeInIdentitySlot(root);
     this.root = root;
     this.viewport = viewport;
     return root;
@@ -262,6 +235,8 @@ class LiveCaptions {
         })
       );
     }
+    // Ferni's words read as speech from the face; the caller's stay quiet.
+    viewport.dataset.speaker = newest?.speaker ?? '';
     this.wordsShown = true;
     this.update();
   }
@@ -271,56 +246,26 @@ class LiveCaptions {
     this.frame = requestAnimationFrame(() => this.layout());
   }
 
+  /** Keep the newest words in view; fade the top when older text scrolls. */
   private layout(): void {
     if (!this.root || !this.viewport) return;
-    const controls = document.querySelector('.controls-row')?.getBoundingClientRect();
-    const bottomOf = (selector: string): number | null => {
-      const rect = document.querySelector(selector)?.getBoundingClientRect();
-      return rect && rect.height > 0 ? rect.bottom : null;
-    };
-    // One rem (--space-md) between the region, the controls and the avatar.
-    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-    const gap = Number.isFinite(rem) ? rem : 0;
-    const place = (ceiling: number | null): CaptionsLayout =>
-      captionsLayout(window.innerHeight, controls?.height ? controls.top : null, ceiling, gap);
-    // Keep clear of the whole persona header (avatar, name, roster) when that
-    // leaves room for a line (and the chip); never closer than the avatar.
-    let { bottom, maxHeight } = place(bottomOf('.header'));
-    if (this.fit(maxHeight, true) < 1) {
-      ({ bottom, maxHeight } = place(bottomOf('.avatar-container')));
-    }
-    this.root.style.setProperty('--ferni-captions-bottom', `${bottom}px`);
-    this.root.style.setProperty('--ferni-captions-room', `${maxHeight}px`);
-    // Words come first (captions are access; chips are delight): if both
-    // don't fit, the chips step aside. Not even one line, or no room for
-    // chips alone: stay hidden rather than cover the avatar.
-    const withChips = this.fit(maxHeight, true);
-    const lines = withChips >= 1 ? withChips : this.fit(maxHeight, false);
-    const chipsAside = this.wordsShown ? withChips < 1 : maxHeight < this.chrome(true);
-    this.root.style.setProperty('--ferni-captions-lines', String(Math.max(1, lines)));
-    this.root.classList.toggle('ferni-captions--moments-aside', chipsAside);
-    this.root.classList.toggle('ferni-captions--no-room', this.wordsShown ? lines < 1 : chipsAside);
     this.viewport.scrollTop = this.viewport.scrollHeight;
     this.root.classList.toggle(
       'ferni-captions--overflowing',
-      lines > 1 && this.viewport.scrollHeight > this.viewport.clientHeight
+      this.viewport.scrollHeight > this.viewport.clientHeight
     );
   }
+}
 
-  /** Padding, plus the moment chips when they are counted. */
-  private chrome(withChips: boolean): number {
-    if (!this.root) return 0;
-    const style = getComputedStyle(this.root);
-    const chips = withChips ? (this.chips?.list.offsetHeight ?? 0) : 0;
-    return parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + chips;
-  }
-
-  /** Whole caption lines (at most MAX_LINES) that fit in `room` px. */
-  private fit(room: number, withChips: boolean): number {
-    if (!this.viewport) return 0;
-    const line = parseFloat(getComputedStyle(this.viewport).lineHeight) || 1;
-    return Math.min(MAX_LINES, Math.floor((room - this.chrome(withChips)) / line));
-  }
+/**
+ * The persona's identity slot: in #coach, after the AI companion pill and
+ * before the team roster (CSS hides the tagline and plan chip during a call).
+ * Without that markup, the end of the body.
+ */
+function placeInIdentitySlot(root: HTMLElement): void {
+  const roster = document.getElementById('teamRoster');
+  if (roster?.parentElement) roster.parentElement.insertBefore(root, roster);
+  else (document.getElementById('coach') ?? document.body).append(root);
 }
 
 let instance: LiveCaptions | null = null;

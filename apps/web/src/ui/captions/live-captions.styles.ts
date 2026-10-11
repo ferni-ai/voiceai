@@ -1,8 +1,8 @@
 /**
- * Live captions styles. No panel: Ferni's words sit in the open space between
- * the persona and the controls, centred, and fade in as they are spoken. The
- * user's words use a quieter register (smaller, secondary colour), so the
- * speaker shows without labels. Colours, spacing, type and z-index are tokens.
+ * Live captions styles. During a call the captions take the persona's own
+ * slot, under the name and above the team roster, in the layout rather than
+ * over it. Ferni's words read as a speech bubble from the face; the caller's
+ * words use a quieter register. Colours, spacing and type are tokens.
  *
  * @module ui/captions/live-captions.styles
  */
@@ -14,47 +14,58 @@ const STYLE_ID = 'ferni-captions-styles';
 // --leading-* on :root mix unitless numbers with vw inside clamp(), which is
 // invalid, so they compute to the inherited 1.6. Captions set plain ratios.
 const CSS = `
+/* During a call the tagline and plan chip step out and the captions take
+   their slot. The AI companion pill (#928) stays. */
+body[data-connected='true'] #personaSubtitle,
+body[data-connected='true'] #coach .subscription-badge { display: none; }
 .ferni-captions {
-  position: fixed; left: 50%; bottom: var(--ferni-captions-bottom, var(--space-xl));
-  z-index: var(--z-sticky);
-  display: flex; flex-direction: column; overflow: hidden;
-  width: min(38rem, calc(100% - 2 * var(--space-md)));
-  max-height: var(--ferni-captions-room, 100vh);
-  padding: var(--space-xs) var(--space-md);
-  text-align: center;
-  opacity: 0; pointer-events: none; transform: translate(-50%, var(--space-sm));
-  transition: opacity ${DURATION.SLOW}ms ${EASING.DECELERATE},
-    transform ${DURATION.SLOW}ms ${EASING.DECELERATE};
+  --ferni-captions-lines: 2;
+  display: none; flex-direction: column; align-items: center; gap: var(--space-xs);
+  width: min(34rem, 100%); margin: var(--space-sm) auto; text-align: center;
 }
-.ferni-captions--visible { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
-.ferni-captions--no-room { visibility: hidden; }
+body[data-connected='true'] .ferni-captions { display: flex; }
+@media (max-height: 600px) { .ferni-captions { --ferni-captions-lines: 1; } }
 /* Captions v2 replaces the one-line pill that sat over the avatar. */
 #transcriptContainer { display: none; }
 .ferni-captions__viewport {
-  /* Whole lines: layout() sets how many fit clear of the avatar (max 2). */
-  flex: none; max-height: calc(var(--ferni-captions-lines, 2) * 1lh); overflow: hidden;
-  font-family: var(--font-body); font-size: var(--text-xl); line-height: 1.3;
+  /* The slot is reserved while captions are on, so the roster never jumps. */
+  display: none; flex-direction: column; align-items: center; gap: var(--space-xs);
+  width: 100%; box-sizing: border-box; overflow: hidden;
+  height: calc(var(--ferni-captions-lines) * 1lh + var(--space-md) + var(--space-xs));
+  padding-top: var(--space-sm);
+  font-family: var(--font-body); font-size: var(--text-lg); line-height: 1.3;
   font-weight: var(--font-weight-medium); color: var(--color-text-primary);
   border-radius: var(--radius-lg); cursor: pointer;
+  transition: opacity ${DURATION.SLOW}ms ${EASING.DECELERATE};
 }
+.ferni-captions--on .ferni-captions__viewport { display: flex; }
+.ferni-captions--words-off .ferni-captions__viewport { opacity: 0; pointer-events: none; }
 .ferni-captions__viewport:focus-visible { outline: 2px solid var(--color-accent-primary); outline-offset: 2px; }
 .ferni-captions--overflowing .ferni-captions__viewport {
   -webkit-mask-image: linear-gradient(to bottom, transparent, black 0.8lh);
   mask-image: linear-gradient(to bottom, transparent, black 0.8lh);
 }
 .ferni-caption-line { margin: 0; overflow-wrap: anywhere; }
+/* Ferni's words: a soft bubble with a small tail up toward the face. */
+.ferni-captions .ferni-caption-line[data-speaker='agent'] {
+  position: relative; max-width: 100%; box-sizing: border-box;
+  padding: var(--space-2xs) var(--space-md); border-radius: var(--radius-xl);
+  background: var(--color-bg-elevated); box-shadow: var(--shadow-sm);
+}
+.ferni-captions .ferni-caption-line[data-speaker='agent']:first-child::before {
+  content: ''; position: absolute; top: calc(-1 * var(--space-xs)); left: 50%;
+  width: var(--space-sm); height: var(--space-sm); background: inherit;
+  transform: translateX(-50%) rotate(45deg);
+}
 .ferni-caption-line--settled { color: var(--color-text-secondary); }
 .ferni-caption-line[data-speaker='user'] {
-  font-size: var(--text-lg); font-weight: var(--font-weight-normal); color: var(--color-text-secondary);
+  font-size: var(--text-base); font-weight: var(--font-weight-normal); color: var(--color-text-secondary);
 }
-.ferni-captions--words-off .ferni-captions__viewport { display: none; }
 .ferni-captions__moments {
   display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-xs);
   margin: 0; padding: 0; list-style: none;
 }
-.ferni-captions__moments:not(:empty) { padding-top: var(--space-xs); }
-/* Out of flow but still measured, so layout() can bring the chips back. */
-.ferni-captions--moments-aside .ferni-captions__moments { position: absolute; visibility: hidden; }
+
 .ferni-moment {
   display: inline-block; max-width: 100%;
   padding: var(--space-xs) var(--space-md); border-radius: var(--radius-xl);
@@ -90,7 +101,7 @@ const CSS = `
 .ferni-caption-line[data-speaker='user'] .ferni-caption-line__name::before { background: var(--color-text-muted); }
 .engagement-triggers .ferni-captions-toggle--on { color: var(--persona-primary); border-color: var(--persona-primary); }
 @media (prefers-reduced-motion: reduce) {
-  .ferni-captions { transition: opacity ${DURATION.NORMAL}ms linear; transform: translate(-50%, 0); }
+  .ferni-captions__viewport { transition: none; }
   .ferni-caption-line .ferni-caption-words,
   .ferni-moment { animation: none; }
 }
