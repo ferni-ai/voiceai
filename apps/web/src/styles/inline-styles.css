@@ -5108,6 +5108,16 @@ body {
   opacity: 1;
 }
 
+/* Before a call the bars are frozen: waveform.ui.ts only animates them
+   between start() (call connected, app.ts) and stop() (hang-up), so
+   pre-connect they sat as an unexplained row of nine dots above Connect.
+   Hide them until the waveform is live; the container keeps its height so
+   nothing shifts when a call starts. */
+#waveformContainer:not(.active) .waveform-bars {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
 /* Transitioning state - shimmer effect during handoffs */
 #waveformContainer.transitioning .waveform-bar {
   animation: barShimmer 1.2s ease-in-out infinite;
