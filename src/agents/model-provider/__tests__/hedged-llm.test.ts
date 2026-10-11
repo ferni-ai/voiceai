@@ -164,4 +164,32 @@ describe('HedgedLLM', () => {
     expect(primary.calls + backup.calls).toBe(2); // nothing was retried
     expect(errors).toEqual([]);
   });
+
+  it('does not start the backup for a reply closed before the hedge delay', async () => {
+    const primary = new FakeLLM('primary', { chunks: [{ afterMs: 150, content: 'late' }] });
+    const backup = new FakeLLM('backup', { chunks: [{ afterMs: 10, content: 'unread' }] });
+    const stream = new HedgedLLM(primary, backup, 50).chat({
+      chatCtx: new llm.ChatContext(),
+      connOptions: { maxRetry: 0, retryIntervalMs: 0, timeoutMs: 5000 },
+    });
+    await sleep(20);
+    expect(primary.calls).toBe(1);
+    stream.close(); // e.g. the fast lane answered first
+    await sleep(300); // past the hedge delay and the primary's quiet end
+    expect(backup.calls).toBe(0);
+  });
+
+  it('does not start the backup when a closed primary ends empty', async () => {
+    const primary = new FakeLLM('primary', { chunks: [{ afterMs: 30, content: 'late' }] });
+    const backup = new FakeLLM('backup', { chunks: [{ afterMs: 10, content: 'unread' }] });
+    const stream = new HedgedLLM(primary, backup, 1000).chat({
+      chatCtx: new llm.ChatContext(),
+      connOptions: { maxRetry: 0, retryIntervalMs: 0, timeoutMs: 5000 },
+    });
+    await sleep(10);
+    stream.close();
+    await sleep(100); // the closed primary has ended without a word
+    expect(primary.closed).toBe(true);
+    expect(backup.calls).toBe(0);
+  });
 });
