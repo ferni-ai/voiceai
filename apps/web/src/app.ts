@@ -1889,8 +1889,7 @@ class VoiceAIApp {
           import('./ui/your-year-with-ferni.ui.js')
             .then(({ openYourYearWithFerni }) => {
               log.debug('YourYear module loaded, opening');
-              const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
-              return openYourYearWithFerni(userId);
+              return openYourYearWithFerni();
             })
             .then(() => {
               log.debug('YourYear opened successfully');
@@ -2030,10 +2029,7 @@ class VoiceAIApp {
     });
     this.addTrackedListener(window, 'ferni:open-year-with-ferni', () => {
       import('./ui/your-year-with-ferni.ui.js')
-        .then(({ openYourYearWithFerni }) => {
-          const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
-          return openYourYearWithFerni(userId);
-        })
+        .then(({ openYourYearWithFerni }) => openYourYearWithFerni())
         .catch((err) => {
           log.error({ error: String(err) }, 'Failed to open Your Year with Ferni');
         });
