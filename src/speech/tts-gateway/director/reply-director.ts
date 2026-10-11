@@ -24,7 +24,7 @@ import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.j
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
 import { DirectorEngine } from './engine.js';
-import { ferniSpeedNudge } from './ferni-energy.js';
+import { ferniSpeedNudge, ferniVolume } from './ferni-energy.js';
 import { leverModes, speechDirectorMode } from './gate.js';
 import { RawCues } from './raw-cues.js';
 import { directorSessions, type DirectorSessions } from './session-state.js';
@@ -82,6 +82,8 @@ export interface PlanSummary {
   tempo?: number;
   /** Prosody tags were taken off every push (the voice ignores them). */
   tagsStripped: boolean;
+  /** The reply's volume scale when one is set (the porch light), else absent. */
+  volume?: number;
   /** The opening breath/sigh decided (nonverbal lever not off), and why. */
   opening?: string;
   openingReason: string;
@@ -151,6 +153,7 @@ class DirectedReply implements ReplyStream {
   private plannedRevision = 0;
   private updated = false;
   private readonly stripProsody: boolean;
+  private readonly volume: number;
 
   constructor(
     private readonly inner: ReplyStream,
@@ -161,6 +164,7 @@ class DirectedReply implements ReplyStream {
   ) {
     const sessions = opts.sessions ?? directorSessions;
     this.stripProsody = mode === 'live' && !voiceHonorsProsodyTags(opts.voiceId);
+    this.volume = ferniVolume(opts.sessionId);
     this.engine = new DirectorEngine({
       modes,
       voiceId: opts.voiceId,
@@ -175,6 +179,7 @@ class DirectedReply implements ReplyStream {
           ? readCallerProsody(opts.sessionId, wordCount(opts.turnContext?.userRequest))
           : undefined,
       ferniNudge: ferniSpeedNudge(opts.sessionId),
+      volume: this.volume,
       laughter: {
         sessionId: opts.sessionId,
         personaId: opts.personaId,
@@ -357,6 +362,7 @@ class DirectedReply implements ReplyStream {
       speed: engine.speed,
       tempo: engine.tempo,
       tagsStripped: this.stripProsody,
+      volume: this.volume === 1 ? undefined : this.volume,
       opening: engine.opening.opening?.kind,
       openingReason: engine.opening.reason,
       laughter: engine.laughter,

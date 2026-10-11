@@ -29,6 +29,7 @@ import { respondToProsody, type ProsodyResponse } from './prosody-response.js';
 import type { CallerProsody } from '../../audio-prosody/caller-prosody.js';
 import { commaDensity, planPauses, removeMidSentenceEllipses } from './pauses.js';
 import { PhraseAssembler } from './phrasing.js';
+import { scaleVolumeTags } from './ferni-energy.js';
 import type { CarryOver } from './session-state.js';
 import type { Lever, LeverModes, RustEvent, SpeechPlan, SpeechSegment } from './types.js';
 
@@ -93,8 +94,10 @@ export interface EngineContext {
   userText?: string;
   /** How the caller sounded this turn, against their baseline (caller-prosody.ts). */
   callerProsody?: CallerProsody;
-  /** Ferni's own energy on this call as a pace nudge (ferni-energy.ts; 0 when FERNI_STATE is off). */
+  /** Ferni's own pace nudge on this call (ferni-energy.ts; 0 when FERNI_STATE and PORCH_LIGHT are off). */
   ferniNudge?: number;
+  /** Scales the reply's volume with the pacing lever live (ferni-energy.ts; 1 or unset: as is). */
+  volume?: number;
   /** Renders opening controls; providers/cartesia.ts prosodyTags. */
   renderTags: (prosody: SSMLProsodyConfig) => string;
   /**
@@ -237,8 +240,14 @@ export class DirectorEngine {
       // never voiced with them (review LOW: tags one phrase early).
       const strip = this.ctx.stripProsody === true;
       if (strip) spokenBody = spokenBody.replace(PROSODY_TAG, '');
-      if (first) this.pendingTags += strip ? volumeOnly(tags) : this.openingTags(tags, prosody);
-      else spokenBody = `${strip ? volumeOnly(tags) : this.laterTags(tags, prosody)}${spokenBody}`;
+      const own = strip
+        ? volumeOnly(tags)
+        : first
+          ? this.openingTags(tags, prosody)
+          : this.laterTags(tags, prosody);
+      const lead = this.live('pacing') ? scaleVolumeTags(own, this.ctx.volume ?? 1, first) : own;
+      if (first) this.pendingTags += lead;
+      else spokenBody = `${lead}${spokenBody}`;
       const spoken = this.spokenPhrases.accept(spokenBody, first);
       if (spoken.length === 0) this.stats.held++;
       return this.emit(spoken);
