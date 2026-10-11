@@ -10,6 +10,8 @@
  */
 
 import { t } from '../i18n/index.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { openDialog, type DialogHandle } from './overlay/dialog.js';
 
 // ============================================================================
 // TYPES
@@ -39,6 +41,9 @@ let sheetElement: HTMLElement | null = null;
 let backdropElement: HTMLElement | null = null;
 let handleElement: HTMLElement | null = null;
 let actionsContainer: HTMLElement | null = null;
+/** The sheet's content, lent to a native dialog while the overlay host shows it. */
+let contentElement: HTMLElement | null = null;
+let dialog: DialogHandle | null = null;
 let isInitialized = false;
 
 const state: BottomSheetState = {
@@ -121,6 +126,12 @@ const STYLES = `
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   max-height: calc(70vh - 60px);
+}
+
+/* In the overlay-host dialog sheet, the dialog supplies padding and height. */
+.mobile-bottom-sheet-dialog .mobile-bottom-sheet__content {
+  padding: 0;
+  max-height: none;
 }
 
 /* Title */
@@ -425,6 +436,7 @@ function createElements(): void {
   actionsContainer.setAttribute('role', 'group');
   actionsContainer.setAttribute('aria-label', t('menu.mobileSheet.title'));
   content.appendChild(actionsContainer);
+  contentElement = content;
 
   sheetElement.appendChild(content);
   document.body.appendChild(sheetElement);
@@ -625,6 +637,10 @@ let previouslyFocusedElement: HTMLElement | null = null;
 
 export function open(): void {
   if (state.isOpen) return;
+  if (isOverlayHostEnabled() && contentElement) {
+    openAsDialog(contentElement);
+    return;
+  }
 
   // Store current focus for restoration
   previouslyFocusedElement = document.activeElement as HTMLElement;
@@ -651,6 +667,10 @@ export function open(): void {
 
 export function close(): void {
   if (!state.isOpen) return;
+  if (dialog) {
+    dialog.close(); // its onClose puts the content back and resets state
+    return;
+  }
 
   state.isOpen = false;
   sheetElement?.classList.remove('open');
@@ -673,6 +693,31 @@ export function close(): void {
       (trigger as HTMLElement)?.focus();
     }
   });
+}
+
+/**
+ * Overlay host on: the same content in a native <dialog> sheet, which brings
+ * the top layer, an inert page behind it, Escape, focus return, drag-to-dismiss
+ * and a second (large) detent. The trigger hides while it is open, as before.
+ */
+function openAsDialog(content: HTMLElement): void {
+  const trigger = document.querySelector('.mobile-menu-trigger');
+  state.isOpen = true;
+  trigger?.classList.add('hidden');
+  trigger?.setAttribute('aria-expanded', 'true');
+  dialog = openDialog(content, {
+    size: 'md',
+    labelledBy: 'mobile-sheet-title',
+    className: 'mobile-bottom-sheet-dialog',
+    onClose: () => {
+      dialog = null;
+      state.isOpen = false;
+      sheetElement?.appendChild(content);
+      trigger?.classList.remove('hidden');
+      trigger?.setAttribute('aria-expanded', 'false');
+    },
+  });
+  content.querySelector<HTMLElement>('button')?.focus();
 }
 
 export function toggle(): void {
