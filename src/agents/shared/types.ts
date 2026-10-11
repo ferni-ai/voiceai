@@ -67,6 +67,8 @@ export interface UserData {
   callerTimezone?: string;
   /** Active persona ID (e.g., 'ferni', 'peter-john') - used for TTS persona-specific traits */
   personaId?: string;
+  /** Eval calls only: Ferni's local time for his state (eval-local-time.ts). */
+  evalLocalTime?: { hour: number; minute: number };
 
   // Session state
   isReturningUser?: boolean;

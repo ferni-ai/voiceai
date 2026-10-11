@@ -61,6 +61,7 @@ import { configureModelProvider } from '../../personas/bundles/model-provider-co
 
 // Submodule imports
 import { finishCallTypeContexts, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
+import { evalLocalTime } from '../personas/eval-local-time.js';
 import { buildSessionPersona } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
 import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
@@ -375,6 +376,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     userData = initResult.userData;
     if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
     rememberCallerTimeZone(metadata.timezone, sessionId, services?.realtimeConversationId);
+    // Eval-only: Ferni's clock for his state; ignored unless VOICE_EVAL_CLOCK=on and a voice-eval- user.
+    if (userData) userData.evalLocalTime = evalLocalTime(userId, metadata);
     // IP-detected city (token → dispatch metadata), both paths: tools read it from userData.
     if (userData && typeof metadata.city === 'string' && metadata.city) {
       userData.userLocation = {

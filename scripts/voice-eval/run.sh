@@ -25,6 +25,9 @@
 # EVAL_DRY_RUN=1 prints the plan as JSON (user id, rooms, scenarios) and exits:
 #   no audio, no token, no call.
 # EVAL_TZ sets the caller's timezone (default America/New_York).
+# EVAL_LOCAL_TIME=HH:MM: Ferni's own clock for his state (FERNI_STATE), e.g. 01:47
+#   (job metadata eval_local_time). Only a worker started with VOICE_EVAL_CLOCK=on
+#   honours it, for voice-eval- users only (eval-local-time.ts). Dev and prod ignore it.
 # EVAL_CITY / EVAL_REGION: the caller's location, as the token server's geo
 #   lookup would send it (weather and local tools use it).
 # local: a worker started from a checkout on the dev project, e.g.
@@ -126,6 +129,7 @@ converse_call() {
   meta=$(node -e '
     const [uid, tz, city, region] = process.argv.slice(1);
     const m = { user_id: uid, user_name: "Sam", timezone: tz };
+    if (process.env.EVAL_LOCAL_TIME) m.eval_local_time = process.env.EVAL_LOCAL_TIME;
     if (city) Object.assign(m, { city, regionCode: region });
     process.stdout.write(JSON.stringify(m));
   ' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}")
