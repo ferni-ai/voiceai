@@ -66,6 +66,13 @@ import {
   type IncrementalCaptureInput,
 } from '../../memory/capture/active-listening-capture.js';
 
+// Vitest 5 only accepts vi.mock at the top level. Vitest 4 hoisted these
+// here from inside the suites below, so moving them changes nothing.
+// Mock the function
+vi.mock('../../services/superhuman/commitment-keeper.js', () => ({
+  loadUserCommitments: vi.fn().mockResolvedValue([]),
+}));
+
 // ============================================================================
 // TEST CONSTANTS
 // ============================================================================
@@ -142,11 +149,6 @@ describe('Phase 10: Superhuman Recall Triggers', () => {
           mentions: 3,
         },
       ];
-
-      // Mock the function
-      vi.mock('../../services/superhuman/commitment-keeper.js', () => ({
-        loadUserCommitments: vi.fn().mockResolvedValue([]),
-      }));
 
       const result = await detectAnniversaries(TEST_USER_ID, new Date(), mockDates, []);
 

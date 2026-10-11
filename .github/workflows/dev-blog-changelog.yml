@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0 # Full history for git log
 
@@ -116,7 +116,7 @@ jobs:
 
       - name: Post to Slack
         if: env.INPUT_DRY_RUN != 'true' && success()
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: slackapi/slack-github-action@v4.0.0
         with:
           channel-id: 'dev-announcements'
           payload-file-path: '.github/slack-changelog-payload.json'

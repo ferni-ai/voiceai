@@ -16,6 +16,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { getRedisPubSub, CHANNELS, type PubSubMessage } from '../redis-pubsub.js';
+import { deliverOverCall } from './call-delivery.js';
 
 const log = createLogger({ module: 'UserEvents' });
 
@@ -86,7 +87,8 @@ export function registerUserEventBroadcast(fn: BroadcastFn): () => void {
 export async function broadcastUserEvent<T>(
   userId: string,
   eventType: UserEventType,
-  data: T
+  data: T,
+  options: { sessionId?: string } = {}
 ): Promise<void> {
   const event: UserEvent<T> = {
     type: eventType,
@@ -95,6 +97,15 @@ export async function broadcastUserEvent<T>(
     timestamp: new Date().toISOString(),
     source: 'voice',
   };
+
+  // The agent's own call: the app on this call receives it on the data channel
+  try {
+    if (await deliverOverCall(eventType, data, options.sessionId)) {
+      log.debug({ userId, eventType }, 'User event sent over the call');
+    }
+  } catch (error) {
+    log.warn({ error: String(error), eventType }, 'Sending user event over the call failed');
+  }
 
   // Buffer for HTTP poll/SSE clients (Firebase Hosting has no WebSocket proxy)
   bufferPendingEvent(event);

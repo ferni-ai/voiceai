@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../../services/superhuman/firestore-utils.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { ALARM_CANT_RING } from './alarm-ring.js';
 
 const log = getLogger();
 
@@ -346,11 +347,9 @@ const setAlarmDef: ToolDefinition = {
         const timeDisplay = formatTimeForSpeech(parsedTime);
         const repeatDisplay = formatRepeatForSpeech(alarm);
 
-        if (alarm.repeat === 'once') {
-          return `⏰ Alarm set for **${timeDisplay}**${label ? ` - "${label}"` : ''}`;
-        }
-
-        return `⏰ Alarm set for **${timeDisplay}**, repeating ${repeatDisplay}${label ? ` - "${label}"` : ''}`;
+        const when =
+          alarm.repeat === 'once' ? timeDisplay : `${timeDisplay}, repeating ${repeatDisplay}`;
+        return `Saved an alarm for ${when}${label ? ` ("${label}")` : ''}. ${ALARM_CANT_RING}`;
       },
     });
   },

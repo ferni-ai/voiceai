@@ -8,6 +8,7 @@
 import { shouldSkipGenerateReply } from '../../handoff/unified-state.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
+import { armSilentLine } from '../outbound-call/silent-line.js';
 import { canTriggerProactive } from '../shared/response-orchestrator.js';
 
 /**
@@ -44,6 +45,8 @@ export function silenceResponseBlocked(
       silenceSec: Math.round(silenceDurationSec),
     });
   }
+  // A placed call whose other end stays quiet gets hung up (silent-line.ts).
+  const silentLine = !steppedAway && armSilentLine(sessionId, silenceDurationSec);
 
   // FIX: Skip silence response if tools are actively executing (e.g., music search)
   // This prevents gateway timeouts when LLM is busy processing tool calls
@@ -93,5 +96,7 @@ export function silenceResponseBlocked(
     });
   }
 
-  return Boolean(steppedAway || toolsActive || handoffOrDraining || noParticipants || !sdkIdle);
+  return Boolean(
+    steppedAway || silentLine || toolsActive || handoffOrDraining || noParticipants || !sdkIdle
+  );
 }
