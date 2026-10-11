@@ -102,7 +102,7 @@ describe('admin sections send the signed-in admin token', () => {
 
 describe('Preview voice', () => {
   it('calls the persona TTS route that exists on the server', async () => {
-    fetchMock.mockResolvedValueOnce(new Response(new Blob(['mp3']), { status: 200 }));
+    fetchMock.mockResolvedValueOnce(new Response('mp3', { status: 200 }));
     const play = vi.fn(async () => undefined);
     vi.stubGlobal(
       'Audio',
@@ -132,7 +132,7 @@ describe('Preview voice', () => {
   });
 
   it('releases the audio when the browser blocks playback', async () => {
-    fetchMock.mockResolvedValueOnce(new Response(new Blob(['mp3']), { status: 200 }));
+    fetchMock.mockResolvedValueOnce(new Response('mp3', { status: 200 }));
     vi.stubGlobal(
       'Audio',
       class {
