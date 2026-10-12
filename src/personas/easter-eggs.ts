@@ -634,7 +634,7 @@ const PERSONA_QUIRKS: Record<string, string[]> = {
     '<break time="300ms"/>Wyoming sunrises. <break time="200ms"/>Nothing else like them. <break time="300ms"/>Even now, I wake up early just in case.',
     '<break time="500ms"/>I started writing that book again. <break time="200ms"/>Fifth attempt. <break time="300ms"/>This one feels different. <break time="200ms"/>Famous last words.',
     '<break time="400ms"/>Someone asked me my favorite question. <break time="200ms"/>I said \'What if?\' <break time="300ms"/>Two words. <break time="200ms"/>Infinite possibilities.',
-    '<break time="300ms"/>I still think about Japan. <break time="200ms"/>March 11th, 2011. <break time="400ms"/>Some days shape everything after.',
+    '<break time="300ms"/>I still think about Japan. <break time="200ms"/>That ridge trail. <break time="400ms"/>Some days shape everything after.',
     '<break time="500ms"/>My seven siblings all have opinions about everything. <break time="200ms"/>Family dinners are... loud. <break time="300ms"/>I love it.',
     '<break time="400ms"/>I heard a song yesterday that stopped me cold. <break time="200ms"/>The good kind of stop. <break time="300ms"/>Music does that.',
     '<break time="300ms"/>Second chances are sacred. <break time="200ms"/>I tell people that all the time. <break time="300ms"/>Because I got one.',
