@@ -8,15 +8,7 @@
  * - Track important dates (birthdays, anniversaries)
  * - Get outreach suggestions
  *
- * Routes:
- * - GET /api/contacts - List all contacts
- * - POST /api/contacts - Create a contact
- * - GET /api/contacts/:id - Get a contact
- * - PUT /api/contacts/:id - Update a contact
- * - POST /api/contacts/:id/important-dates - Add important date
- * - GET /api/contacts/groups - List groups
- * - POST /api/contacts/groups - Create group
- * - GET /api/contacts/nudges - Get outreach suggestions
+ * Routes: handleContactsRoutes below, one block per method and path.
  *
  * @module api/contacts-routes
  */
@@ -31,6 +23,7 @@ import {
   sendError,
   sendJSON,
 } from './helpers.js';
+import { deletePersonHandler } from './contact-delete.js';
 import {
   getContacts,
   getContact,
@@ -738,6 +731,12 @@ export async function handleContactsRoutes(
     // PUT /api/contacts/:id
     if (method === 'PUT' && !subPath) {
       await updateContact(req, res, parsedUrl, contactId);
+      return true;
+    }
+
+    // DELETE /api/contacts/:id - remove the person from both stores
+    if (method === 'DELETE' && !subPath) {
+      await deletePersonHandler(req, res, parsedUrl, contactId);
       return true;
     }
 
