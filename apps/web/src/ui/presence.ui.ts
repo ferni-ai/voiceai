@@ -28,6 +28,7 @@
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { breathingComposite, isAvatarCompositorEnabled } from './avatar-motion/compositor.js';
+import { initGaze } from './avatar-motion/gaze.js';
 import { speakingSystem } from './speaking-system.ui.js';
 
 const log = createLogger('PresenceUI');
@@ -152,8 +153,7 @@ export function initPresenceUI(): void {
   // Start breathing animation using Web Animations API
   startBreathingAnimation();
   
-  // Start subtle eye tracking loop
-  startEyeTracking();
+  if (!initGaze()) startEyeTracking(); // ferni:gaze owns the eyes when on, else mouse tracking
   
   // 🆕 Human-like behaviors - makes avatar feel alive
   startBlinking();
