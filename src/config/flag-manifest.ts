@@ -161,6 +161,7 @@ export const FLAG_MANIFEST = {
   OPENER_GATE_EARLY: { default: 'off', owner: 'voice', kind: 'experiment' },
   OUTREACH_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
   OUTREACH_DRY_RUN: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  OUTREACH_GROUNDED_CHECKINS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   OVERLAP_GREETING_WITH_PREWARM: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PACE_MATCHING: { default: 'on', owner: 'voice', kind: 'config' },
   PAYWALL: { default: 'off', owner: 'billing', kind: 'kill-switch' },
