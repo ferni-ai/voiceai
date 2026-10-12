@@ -4276,12 +4276,16 @@
     "tomorrowMorning": "Tomorrow morning ({time})",
     "eyebrow": "YOUR CHECK-INS",
     "title": "Scheduled Outreach",
-    "loadError": "Unable to load data",
-    "loadErrorHint": "Please try again later",
+    "loadError": "Something unexpected happened.",
+    "loadErrorHint": "Want to try again?",
+    "signedOut": "You need to sign in first.",
+    "signIn": "Sign in",
+    "offline": "This needs a connection. I'll be here when you're back.",
     "emptyUpcoming": "No upcoming check-ins",
-    "emptyUpcomingHint": "We'll reach out when there's something to discuss!",
-    "emptyHistory": "No outreach history yet",
-    "emptyHistoryHint": "Your recent check-ins will appear here",
+    "emptyUpcomingHint": "When I plan to check in, you'll see it here first.",
+    "emptyHistory": "Nothing from me yet",
+    "emptyHistoryHint": "When I text, call or send you a note, it shows up here.",
+    "chooseCheckIns": "Choose when I check in",
     "reschedule": "Reschedule",
     "scheduledFor": "Scheduled for {time}",
     "confirmCancel": "Are you sure you want to cancel this check-in?",
@@ -4294,10 +4298,20 @@
     "priorityHigh": "High",
     "priorityMedium": "Medium",
     "priorityLow": "Low",
+    "statusPending": "On its way",
+    "statusSent": "Sent",
     "statusDelivered": "Delivered",
     "statusOpened": "Opened",
     "statusResponded": "You replied!",
-    "statusFailed": "Not delivered"
+    "statusFailed": "Not delivered",
+    "kind": {
+      "thinking_of_you": "Thinking of you",
+      "check_in": "Checking in",
+      "reminder": "A reminder",
+      "celebration": "Celebrating with you",
+      "follow_up": "Following up",
+      "crisis_support": "Checking on you"
+    }
   },
   "gameBoard": {
     "gameNames": {
