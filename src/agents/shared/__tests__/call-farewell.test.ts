@@ -11,6 +11,7 @@ import {
   ferniSaysGoodbye,
   IDLE_AFTER_GOODBYE_MS,
   markFarewell,
+  MAX_CALLER_CHARS,
   stayQuiet,
   stayQuietOn,
   watchFarewell,
@@ -66,6 +67,43 @@ describe('callerSaysGoodbye', () => {
     'bye?',
     '',
   ])('"%s" is not a goodbye', (text) => {
+    expect(callerSaysGoodbye(text)).toBe(false);
+  });
+});
+
+describe('callerSaysGoodbye on long or hostile turns', () => {
+  // The old regex nested overlapping alternatives under `*`: "thank you" x26
+  // took 1.4 s and each repeat roughly doubled it. These run on live transcripts.
+  it.each([
+    ['thank you ', 'x'],
+    ['bye ', 'x'],
+    ['bye-bye ', 'x'],
+    ['okay ', 'x'],
+    ['thanks so much ', 'later x'],
+  ])('"%s" x10,000 then "%s" is checked in under 50 ms', (fragment, end) => {
+    const text = fragment.repeat(10_000) + end;
+    const started = performance.now();
+    expect(callerSaysGoodbye(text)).toBe(false);
+    expect(performance.now() - started).toBeLessThan(50);
+  });
+
+  it('reads only the end of a long turn, where a goodbye is', () => {
+    expect(callerSaysGoodbye(`${'so anyway '.repeat(100)}. okay bye`)).toBe(true);
+    expect(callerSaysGoodbye(`okay bye. ${'and then we talked about work '.repeat(20)}`)).toBe(
+      false
+    );
+  });
+
+  it('looks no further back than MAX_CALLER_CHARS', () => {
+    expect(callerSaysGoodbye(`bye, ${'ok, '.repeat(10)}`)).toBe(true);
+    expect(callerSaysGoodbye(`bye, ${'ok, '.repeat(60)}`)).toBe(false);
+  });
+
+  it('drops the word the length cap cut through', () => {
+    // The last MAX_CALLER_CHARS characters start at "later", inside "translater".
+    const tail = `${', ok'.repeat(48)},ok`;
+    const text = `translater${tail}`;
+    expect(('later' + tail).length).toBe(MAX_CALLER_CHARS);
     expect(callerSaysGoodbye(text)).toBe(false);
   });
 });

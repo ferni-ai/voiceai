@@ -69,22 +69,118 @@ export function stayQuietOn(session: object, env: Env = process.env): boolean {
   return sessionId !== undefined && stayQuiet(sessionId, env);
 }
 
-const LEAD = String.raw`(?:(?:ok(?:ay)?|alright|all right|well|so|anyway|yeah|yep|cool|great|perfect|right|thanks?(?: you)?(?: so much)?|thank you(?: so much)?)[\s,]+)*`;
-const CLOSER = String.raw`(?:bye(?:[\s-]?bye)?|goodbye|good ?night|night night|later|see (?:ya|you)(?: later| soon| tomorrow| around| next time)?|talk (?:to you )?(?:later|soon|tomorrow)|catch you later|take care|have a (?:good|great|nice) (?:one|night|day|evening|weekend)|i (?:gotta|got to|have to|need to|should) (?:go|run|get going|head out|hop off)|(?:gotta|got to) (?:go|run|get going)|i'?ll let you go|signing off|i'?m off)`;
-const TAIL = String.raw`(?:[\s,]+(?:now|then|ferni|friend|buddy|for now|bye(?:[\s-]?bye)?))*`;
-/** A clause that is a goodbye and nothing else. */
-const CLOSING_CLAUSE = new RegExp(`^${LEAD}${CLOSER}${TAIL}$`, 'i');
-/** A clause that may follow a goodbye without undoing it ("bye, thanks", "bye, love you"). */
-const AFTERWORD =
-  /^(?:thanks?(?: you)?(?: so much)?|thank you(?: so much)?|ok(?:ay)?|alright|love you|you too|ferni|take care|have a (?:good|great|nice) (?:one|night|day|evening|weekend))$/i;
+/**
+ * Caller goodbyes are matched on words, not one big regex. The regex this
+ * replaced nested overlapping alternatives under `*` ("thank you" matched two
+ * ways, "bye bye" three), so a turn like "thank you thank you ... x" took
+ * exponential time on a live transcript. Here every check is a linear pass
+ * over at most MAX_CALLER_CHARS of text.
+ */
+export const MAX_CALLER_CHARS = 200;
+const MAX_FERNI_CHARS = 300;
 
-function clauses(text: string): string[] {
-  return text
-    .toLowerCase()
-    .replace(/[’]/g, "'")
-    .split(/[.!?,;:]+/)
-    .map((c) => c.trim())
-    .filter(Boolean);
+/** Every way to fill a phrase template: [["see"], ["ya", "you"]] -> "see ya", "see you". */
+function expand(...slots: string[][]): string[] {
+  return slots.reduce<string[]>(
+    (acc, options) => acc.flatMap((head) => options.map((o) => (head ? `${head} ${o}` : o))),
+    ['']
+  );
+}
+
+const THANKS = expand(['thank', 'thanks', 'thank you', 'thanks you'], ['', 'so much']).map((p) =>
+  p.trim()
+);
+const GOOD_TIME = expand(
+  ['have a'],
+  ['good', 'great', 'nice'],
+  ['one', 'night', 'day', 'evening', 'weekend']
+);
+/** Words that may lead into a goodbye: "okay so, thanks, bye". */
+const LEADS = new Set([
+  ...['ok', 'okay', 'alright', 'all right', 'well', 'so', 'anyway', 'yeah', 'yep', 'cool'],
+  ...['great', 'perfect', 'right'],
+  ...THANKS,
+]);
+/** A goodbye on its own. */
+const CLOSERS = new Set([
+  ...['bye', 'bye bye', 'byebye', 'goodbye', 'good night', 'goodnight', 'night night', 'later'],
+  ...expand(['see'], ['ya', 'you'], ['', 'later', 'soon', 'tomorrow', 'around', 'next time']).map(
+    (p) => p.trim()
+  ),
+  ...expand(['talk', 'talk to you'], ['later', 'soon', 'tomorrow']),
+  ...['catch you later', 'take care', 'signing off', "i'm off", 'im off'],
+  ...["i'll let you go", 'ill let you go'],
+  ...GOOD_TIME,
+  ...expand(
+    ['i'],
+    ['gotta', 'got to', 'have to', 'need to', 'should'],
+    ['go', 'run', 'get going', 'head out', 'hop off']
+  ),
+  ...expand(['gotta', 'got to'], ['go', 'run', 'get going']),
+]);
+/** Words that may trail a goodbye: "bye now", "talk soon, ferni". */
+const TAILS = new Set([
+  'now',
+  'then',
+  'ferni',
+  'friend',
+  'buddy',
+  'for now',
+  'bye',
+  'bye bye',
+  'byebye',
+]);
+/** A clause that may follow a goodbye without undoing it ("bye, thanks", "bye, love you"). */
+const AFTERWORDS = new Set([
+  ...THANKS,
+  ...['ok', 'okay', 'alright', 'love you', 'you too', 'ferni', 'take care'],
+  ...GOOD_TIME,
+]);
+/** Longest phrase in any set, in words. */
+const MAX_PHRASE_WORDS = 5;
+
+/** The longest phrase from `set` starting at word `at`, as a word count (0 if none). */
+function phraseAt(words: readonly string[], at: number, set: ReadonlySet<string>): number {
+  for (let len = Math.min(MAX_PHRASE_WORDS, words.length - at); len > 0; len--) {
+    if (set.has(words.slice(at, at + len).join(' '))) return len;
+  }
+  return 0;
+}
+
+/** True when words[from..] is made only of phrases from `set`. */
+function onlyPhrases(words: readonly string[], from: number, set: ReadonlySet<string>): boolean {
+  for (let i = from; i < words.length;) {
+    const len = phraseAt(words, i, set);
+    if (len === 0) return false;
+    i += len;
+  }
+  return true;
+}
+
+/** A clause that is a goodbye and nothing else: leads, one goodbye, tails. */
+function closingClause(words: readonly string[]): boolean {
+  let i = 0;
+  for (let len = phraseAt(words, i, LEADS); len > 0; len = phraseAt(words, i, LEADS)) i += len;
+  // Try each goodbye length here: "bye bye now" is "bye bye" + "now" or "bye" + "bye now".
+  for (let len = Math.min(MAX_PHRASE_WORDS, words.length - i); len > 0; len--) {
+    if (CLOSERS.has(words.slice(i, i + len).join(' ')) && onlyPhrases(words, i + len, TAILS)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function clauseWords(text: string): string[][] {
+  let t = text.toLowerCase().replace(/[’]/g, "'");
+  if (t.length > MAX_CALLER_CHARS) {
+    // Keep the end, where a goodbye is, and drop the word the cut landed in.
+    t = t.slice(-MAX_CALLER_CHARS);
+    t = t.slice(t.search(/[\s.!?,;:]/) + 1);
+  }
+  return t
+    .split(/[.!?,;:]/)
+    .map((c) => c.split(/[\s-]/).filter(Boolean))
+    .filter((words) => words.length > 0);
 }
 
 /**
@@ -93,11 +189,11 @@ function clauses(text: string): string[] {
  */
 export function callerSaysGoodbye(text: string): boolean {
   if (text.trim().endsWith('?')) return false; // "bye?" is a question, not a goodbye
-  const parts = clauses(text);
+  const parts = clauseWords(text);
   for (let i = parts.length - 1; i >= 0; i--) {
-    const part = parts[i] ?? '';
-    if (CLOSING_CLAUSE.test(part)) return true;
-    if (!AFTERWORD.test(part)) return false;
+    const words = parts[i] ?? [];
+    if (closingClause(words)) return true;
+    if (!onlyPhrases(words, 0, AFTERWORDS)) return false;
   }
   return false;
 }
@@ -108,7 +204,7 @@ const FERNI_GOODBYE =
 /** Ferni's reply says goodbye and doesn't end on a question. */
 export function ferniSaysGoodbye(text: string): boolean {
   const t = text.trim();
-  return FERNI_GOODBYE.test(t) && !t.endsWith('?');
+  return !t.endsWith('?') && FERNI_GOODBYE.test(t.slice(-MAX_FERNI_CHARS));
 }
 
 interface ItemEvent {
