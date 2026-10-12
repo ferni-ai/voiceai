@@ -167,6 +167,7 @@ export const FLAG_MANIFEST = {
   MULTI_AGENT_ESSENTIAL_TOOLS_FIRST: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   MULTI_AGENT_MODE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   MULTI_AGENT_SINGLE_SESSION: { default: 'off', owner: 'voice', kind: 'experiment' },
+  MUSIC_CONTINUE_AS_ASKED: { default: 'off', owner: 'voice', kind: 'experiment' },
   MUSIC_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   NAME_CORRECTION: { default: 'off', owner: 'memory', kind: 'experiment' },
   // a mode: on speaks a fallback when a reply fails, shadow only logs it
