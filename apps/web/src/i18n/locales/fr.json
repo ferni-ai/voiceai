@@ -8552,6 +8552,7 @@
     "accuracy": "Précision des prédictions",
     "keepTalking": "Continue à me parler. On construit quelque chose de beau.",
     "accuracyLabel": "Précision",
+    "loadFailed": "Hum, tes prédictions ne se sont pas chargées. C'est de mon côté, pas du tien. Attends un instant, puis rouvre ceci.",
     "resolved": "Résolu",
     "streak": "Série",
     "sampleOverwhelmed": "\"Tu te sentirais sous pression cette semaine\"",

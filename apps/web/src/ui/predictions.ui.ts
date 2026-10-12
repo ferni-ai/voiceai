@@ -481,21 +481,19 @@ export class PredictionsUI {
       return;
     }
 
-    // Try to fetch from API
+    // Try to fetch from API (null: the load failed, which is not "no predictions")
     const userId = localStorage.getItem('ferni_user_id');
-    if (userId) {
-      const predictions = await engagementService.fetchPredictions(userId);
-      if (predictions.length > 0) {
-        log.debug('Loaded predictions from API');
-        this.update({
-          predictions,
-          accuracy: engagementService.calculateAccuracy(),
-          totalResolved: predictions.filter((p) => p.status === 'resolved').length,
-          currentStreak: this.calculateStreak(predictions),
-        });
-        this.hasDataLoaded = true;
-        return;
-      }
+    const predictions = userId ? await engagementService.fetchPredictions(userId) : [];
+    if (predictions && predictions.length > 0) {
+      log.debug('Loaded predictions from API');
+      this.update({
+        predictions,
+        accuracy: engagementService.calculateAccuracy(),
+        totalResolved: predictions.filter((p) => p.status === 'resolved').length,
+        currentStreak: this.calculateStreak(predictions),
+      });
+      this.hasDataLoaded = true;
+      return;
     }
 
     // Fall back to demo data if enabled
@@ -512,11 +510,12 @@ export class PredictionsUI {
       return;
     }
 
-    // Explicitly render empty state (in case initial render failed)
-    log.debug('No predictions data available, rendering empty state');
+    // Empty state, or the failure (the next open retries since nothing loaded)
     const content = this.container?.querySelector('#predictions-content');
     if (content) {
-      content.innerHTML = this.renderEmptyState();
+      content.innerHTML = predictions
+        ? this.renderEmptyState()
+        : `<div class="predictions-empty"><p class="predictions-empty__cta-text">${t('predictions.loadFailed')}</p></div>`;
     }
   }
 

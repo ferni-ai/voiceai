@@ -223,7 +223,7 @@ import {
   getDemoEngagementData,
   getDemoPredictions,
 } from './services/engagement-demo-data.js';
-import { scoredStreak } from './services/prediction-data.js';
+import { pendingPredictionCount, scoredStreak } from './services/prediction-data.js';
 // Environment detection
 import { getApiHeadersAsync } from './utils/api.js';
 import { shouldUseDemoData } from './utils/environment.js';
@@ -3137,8 +3137,7 @@ class VoiceAIApp {
 
       onPredictionsUpdate: (predictions) => {
         // Update predictions UI
-        const readyCount = predictions.filter((p) => p.status === 'resolved').length;
-        engagementTriggerUI.updateBadges({ predictionsReady: readyCount > 0 ? readyCount : 0 });
+        engagementTriggerUI.updateBadges({ predictionsReady: pendingPredictionCount(predictions) });
 
         // Accuracy and streak come from the server's scores, not the raw numbers.
         getPredictionsUI().update({
