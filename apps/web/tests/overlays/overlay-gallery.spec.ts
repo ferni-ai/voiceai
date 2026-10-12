@@ -32,6 +32,8 @@ const SCENES = [
   'notification-card',
   'outreach',
   'offline-banner',
+  'reconnecting',
+  'weak-connection',
   'collision',
   'modal',
   'sheet',
@@ -41,6 +43,7 @@ const SCENES = [
   'call-notice',
   'command-palette',
   'coach-mark',
+  'captions',
 ] as const;
 
 const BASELINE_FILE = join(dirname(fileURLToPath(import.meta.url)), 'contrast-baseline.json');
