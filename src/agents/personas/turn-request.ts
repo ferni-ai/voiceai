@@ -38,6 +38,7 @@ import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
+import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
 import {
   understandingFor,
@@ -158,7 +159,7 @@ function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): st
     said,
     rngFor(`${callSeed(session)}:${said}`),
     undefined,
-    withSupportHold(session, said, signals, source)
+    withRecent(withSupportHold(session, said, signals, source), said, chatCtx)
   );
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
@@ -167,6 +168,26 @@ function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): st
     'TURN_SHAPE'
   );
   return turn.reminder;
+}
+
+/**
+ * TURN_LENGTH / TURN_TEXTURE=learned: the turns before this reply, which set its length
+ * (turn-length.ts). Spoken words only: per-turn notes ride after a blank line or as a header.
+ */
+function withRecent(
+  signals: TurnSignals | undefined,
+  said: string,
+  chatCtx: llm.ChatContext
+): TurnSignals | undefined {
+  if (!lengthLearned() && !textureLearned()) return signals;
+  const turns = chatCtx.items.flatMap((item) => {
+    if (item.type !== 'message' || (item.role !== 'user' && item.role !== 'assistant')) return [];
+    const text = (item.textContent ?? '').split('\n')[0].trim();
+    return text && !text.startsWith(TURN_CONTEXT_HEADER)
+      ? [{ ferni: item.role === 'assistant', text }]
+      : [];
+  });
+  return { ...(signals ?? regexSignals(said, callerMove(said))), recent: recentTurns(turns) };
 }
 
 /**
