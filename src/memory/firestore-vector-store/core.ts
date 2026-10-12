@@ -27,7 +27,7 @@ import type {
   VectorStoreHealth,
 } from './types.js';
 import { DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_DIMENSION } from './types.js';
-import { extractEmbedding, matchesFilter, ownerId } from './helpers.js';
+import { extractEmbedding, filteredQuery, keepCandidate } from './helpers.js';
 import { FallbackCache } from './fallback-cache.js';
 import { RecoveryManager, migrateCacheToFirestore } from './recovery.js';
 import { getVectorSearchCache, type VectorSearchCache } from './search-cache.js';
@@ -490,27 +490,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
       const collRef = this.db.collection(this.COLLECTION_NAME);
 
       if (collRef.findNearest) {
-        // Apply filters BEFORE findNearest (VectorQuery doesn't support .where())
-        // Type is CollectionReference which supports where() and findNearest()
-        let baseQuery: CollectionReference | Query = collRef;
-
-        if (options?.filter?.source) {
-          const sources = Array.isArray(options.filter.source)
-            ? options.filter.source
-            : [options.filter.source];
-          if (sources.length === 1) {
-            baseQuery = baseQuery.where('metadata.source', '==', sources[0]);
-          }
-        }
-
-        const owner = ownerId(options?.filter?.userId);
-        if (owner) {
-          baseQuery = baseQuery.where('metadata.userId', '==', owner);
-        }
-
-        // Cast back to CollectionReference to access findNearest
-        // Non-null assertion is safe here because we're inside the if (collRef.findNearest) check
-        const searchQuery = (baseQuery as CollectionReference).findNearest!({
+        // Non-null: inside the collRef.findNearest check
+        const searchQuery = filteredQuery(collRef, options?.filter).findNearest!({
           vectorField: 'embedding',
           queryVector: queryEmbedding,
           limit: topK * 2,
@@ -532,10 +513,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
           const data = doc.data();
           if (!data) continue;
 
-          // The query can't express every filter (several sources, categories),
-          // and a document of another user must never come back.
-          const metadata = data.metadata as VectorDocument['metadata'] | undefined;
-          if (!metadata || !matchesFilter({ metadata }, options?.filter)) continue;
+          if (!keepCandidate(data, options?.filter)) continue;
 
           const docEmbedding = extractEmbedding(data.embedding, this.EMBEDDING_DIMENSION, doc.id);
           if (!docEmbedding) continue;
@@ -634,23 +612,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
       const collRef = this.db.collection(this.COLLECTION_NAME);
 
       if (collRef.findNearest) {
-        // Filter BEFORE findNearest, as search() does: without it the nearest
-        // vectors of every user came back.
-        let baseQuery: CollectionReference | Query = collRef;
-        if (options?.filter?.source) {
-          const sources = Array.isArray(options.filter.source)
-            ? options.filter.source
-            : [options.filter.source];
-          if (sources.length === 1) {
-            baseQuery = baseQuery.where('metadata.source', '==', sources[0]);
-          }
-        }
-        const owner = ownerId(options?.filter?.userId);
-        if (owner) {
-          baseQuery = baseQuery.where('metadata.userId', '==', owner);
-        }
-        // Request more results to allow for minScore filtering
-        const searchQuery = (baseQuery as CollectionReference).findNearest!({
+        // Filtered BEFORE findNearest: without it every user's nearest vectors came back.
+        const searchQuery = filteredQuery(collRef, options?.filter).findNearest!({
           vectorField: 'embedding',
           queryVector: queryEmbedding,
           limit: topK * 2,
@@ -672,10 +635,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
           const data = doc.data();
           if (!data) continue;
 
-          // The query can't express every filter (several sources, categories),
-          // and a document of another user must never come back.
-          const metadata = data.metadata as VectorDocument['metadata'] | undefined;
-          if (!metadata || !matchesFilter({ metadata }, options?.filter)) continue;
+          if (!keepCandidate(data, options?.filter)) continue;
 
           const docEmbedding = extractEmbedding(data.embedding, this.EMBEDDING_DIMENSION, doc.id);
           if (!docEmbedding) continue;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { matchesFilter, ownedBy, ownerId } from '../helpers.js';
+import { matchesFilter } from '../helpers.js';
+import { ownedBy, ownerId } from '../../retrieval/vector-ownership.js';
 import { FallbackCache } from '../fallback-cache.js';
 
 const doc = (userId?: string, source = 'conversation') => ({

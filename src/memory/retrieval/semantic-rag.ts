@@ -13,7 +13,7 @@
  * Supports both ephemeral VectorStore and persistent FirestoreVectorStore.
  */
 
-import { ownedBy } from '../firestore-vector-store/helpers.js';
+import { ownedBy } from './vector-ownership.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { embedCached } from '../embedding-cache.js';
 import { embed } from '../embeddings.js';
@@ -63,9 +63,7 @@ function getActiveStore(): AnyVectorStore {
 // TYPES
 // ============================================================================
 
-/**
- * RAG search result
- */
+/** RAG search result */
 export interface RAGResult {
   content: string;
   source: string;
@@ -74,9 +72,7 @@ export interface RAGResult {
   metadata?: Record<string, unknown>;
 }
 
-/**
- * RAG context for injection into prompts
- */
+/** RAG context for injection into prompts */
 export interface RAGContext {
   results: RAGResult[];
   formattedContext: string;
@@ -274,9 +270,7 @@ export async function semanticSearch(
     filter.userId = options.userId;
   }
 
-  // Search. The store returns only this caller's documents, or with no
-  // userId only shared ones (helpers.ts ownedBy); checked here again for any
-  // store that doesn't.
+  // The store returns only the caller's (or, without a userId, shared) documents; checked again.
   const results = (
     await store.search(query, {
       topK,

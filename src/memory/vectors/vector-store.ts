@@ -7,7 +7,7 @@
  * Implements VectorStoreContract interface for swappable backends.
  */
 
-import { ownedBy } from '../firestore-vector-store/helpers.js';
+import { ownedBy } from '../retrieval/vector-ownership.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { embed, embedBatch } from './embeddings.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator

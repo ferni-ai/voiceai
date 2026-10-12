@@ -7,7 +7,8 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import type { FieldVector } from './types.js';
+import { ownedBy, ownerId } from '../retrieval/vector-ownership.js';
+import type { CollectionReference, FieldVector, Query } from './types.js';
 
 /**
  * Safely extract embedding array with validation.
@@ -54,29 +55,6 @@ export function extractEmbedding(
   return embedding;
 }
 
-/** A real owner id: not missing, empty, or the shared placeholder "anonymous". */
-export function ownerId(userId: unknown): string | undefined {
-  return typeof userId === 'string' && userId.trim() !== '' && userId !== 'anonymous'
-    ? userId
-    : undefined;
-}
-
-/**
- * Whether a document belongs to the caller a filter names. Fail safe: a
- * filter without a real userId sees only documents with no owner (shared
- * persona knowledge), never anyone's memories. A document owned by
- * "anonymous" is nobody's to share.
- */
-export function ownedBy(
-  doc: { metadata: { userId?: unknown } },
-  filter?: { userId?: unknown }
-): boolean {
-  const caller = ownerId(filter?.userId);
-  const owner = doc.metadata.userId;
-  const hasOwner = owner !== undefined && owner !== null && owner !== '';
-  return caller ? owner === caller : !hasOwner;
-}
-
 /**
  * Check if document matches filter criteria (owner first, see ownedBy).
  */
@@ -98,4 +76,34 @@ export function matchesFilter(
   }
 
   return true;
+}
+
+/**
+ * The collection narrowed by what a query can express (one source, the
+ * owner): applied BEFORE findNearest, which can't take where() itself.
+ */
+export function filteredQuery(
+  collRef: CollectionReference,
+  filter?: { source?: string | string[]; userId?: string }
+): CollectionReference {
+  let q: CollectionReference | Query = collRef;
+  const sources = filter?.source === undefined ? [] : [filter.source].flat();
+  if (sources.length === 1) q = q.where('metadata.source', '==', sources[0]);
+  const owner = ownerId(filter?.userId);
+  if (owner) q = q.where('metadata.userId', '==', owner);
+  return q as CollectionReference;
+}
+
+/**
+ * Whether a stored vector may be returned: the query can't express every
+ * filter (several sources, categories), and another user's document must
+ * never come back.
+ */
+export function keepCandidate(
+  data: { metadata?: unknown },
+  filter?: { source?: string | string[]; category?: string | string[]; userId?: string }
+): boolean {
+  const metadata = data.metadata as
+    { source: string; category?: string; userId?: string } | undefined;
+  return !!metadata && matchesFilter({ metadata }, filter);
 }
