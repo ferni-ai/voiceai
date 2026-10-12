@@ -1272,7 +1272,7 @@ class VoiceAIApp {
     this.deferredInit('ThinkingUI', 100, async () => {
       initThinkingUI();
       (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
-      initAvatarTurns(); // off unless ferni:avatar-turns
+      (await import('./ui/avatar-motion/turn-gestures.js')).initTurnGestures(initAvatarTurns()); // off unless ferni:avatar-turns (+ ferni:turn-gestures)
       (await import('./ui/avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
