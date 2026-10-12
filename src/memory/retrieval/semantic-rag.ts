@@ -33,18 +33,14 @@ type AnyVectorStore = VectorStore | FirestoreVectorStore;
 // Active vector store reference (set during initialization)
 let activeVectorStore: AnyVectorStore | null = null;
 
-/**
- * Set the active vector store (called by initializeMemorySystem)
- */
+/** Set the active vector store (called by initializeMemorySystem) */
 export function setActiveVectorStore(store: AnyVectorStore): void {
   activeVectorStore = store;
   getLogger().info(`Active vector store set: ${store.constructor.name}`);
 }
 
-/**
- * Get the active vector store (uses persistent store if available)
- */
-function getActiveStore(): AnyVectorStore {
+/** Get the active vector store (uses persistent store if available) */
+export function getActiveStore(): AnyVectorStore {
   if (activeVectorStore) return activeVectorStore;
 
   // Fallback: try to detect which store to use
@@ -66,6 +62,8 @@ function getActiveStore(): AnyVectorStore {
  * RAG search result
  */
 export interface RAGResult {
+  /** The vector document's id ("conversation_fact_<docId>" for an indexed dynamic fact). */
+  id?: string;
   content: string;
   source: string;
   category?: string;
@@ -286,6 +284,7 @@ export async function semanticSearch(
   metrics.recordRetrieval(durationMs, results.length, topScore);
 
   return results.map((r) => ({
+    id: r.document.id,
     content: r.document.text,
     source: r.document.metadata.source,
     category: r.document.metadata.category as string | undefined,
