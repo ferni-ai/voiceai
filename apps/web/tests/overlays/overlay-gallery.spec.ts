@@ -47,6 +47,20 @@ const BASELINE_FILE = join(dirname(fileURLToPath(import.meta.url)), 'contrast-ba
 const baseline: Record<string, number> = JSON.parse(readFileSync(BASELINE_FILE, 'utf8'));
 const updating = process.env.UPDATE_CONTRAST_BASELINE === '1';
 
+/** Wait until no finite animation or transition is still running (5 s cap). */
+async function settleAnimations(page: Page): Promise<void> {
+  await page
+    .waitForFunction(
+      () =>
+        document
+          .getAnimations()
+          .every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
+      null,
+      { timeout: 5_000 }
+    )
+    .catch(() => undefined);
+}
+
 async function openScene(page: Page, scene: string, flagOn = false): Promise<void> {
   await page.addInitScript(
     ([withAchievement, overlayHost]) => {
@@ -55,12 +69,17 @@ async function openScene(page: Page, scene: string, flagOn = false): Promise<voi
         if (!withAchievement)
           localStorage.setItem('ferni-last-interaction-date', new Date().toDateString());
         if (overlayHost) localStorage.setItem('ferni:flag:overlay-host', 'true');
+        // The welcome tour is not a gallery scene; on a slow runner it opened mid-test.
+        localStorage.setItem('ferni:onboarding:complete', 'true');
       } catch {
         // Storage unavailable: the scene still renders.
       }
     },
     [scene === 'achievement' || scene === 'collision', flagOn] as const
   );
+  // Pin the wall clock: greetings, countdowns and time-of-day features must not
+  // depend on when CI runs (a run between 00:00 and 05:00 showed Night Owl).
+  await page.clock.setFixedTime(new Date('2026-10-12T14:00:00'));
   await page.goto(`/?e2e=1&gallery=overlays&scene=${scene}`);
   await page.waitForFunction(
     () => (window as unknown as { __overlayGallery?: { ready: boolean } }).__overlayGallery?.ready,
@@ -82,16 +101,7 @@ async function openScene(page: Page, scene: string, flagOn = false): Promise<voi
     await page.waitForTimeout(250);
   }
   // Let finite entrance animations and transitions finish (the busier the machine, the longer).
-  await page
-    .waitForFunction(
-      () =>
-        document
-          .getAnimations()
-          .every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
-      null,
-      { timeout: 5_000 }
-    )
-    .catch(() => undefined);
+  await settleAnimations(page);
   // Freeze transitions from here on, so a theme switch can't be measured mid-fade.
   await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
 }
@@ -101,6 +111,8 @@ async function useTheme(page: Page, theme: 'zen' | 'midnight'): Promise<void> {
   await page.emulateMedia({ colorScheme: theme === 'midnight' ? 'dark' : 'light' });
   await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
   await page.waitForTimeout(300);
+  // A late entrance (a coach mark fading in) can still be running; measure it settled.
+  await settleAnimations(page);
 }
 
 /**

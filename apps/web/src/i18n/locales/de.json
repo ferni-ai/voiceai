@@ -10406,6 +10406,12 @@
       "fair": "Akzeptabel",
       "poor": "Schlechte Verbindung",
       "disconnected": "Getrennt"
+    },
+    "island": {
+      "offline": "Du bist offline. Ich verbinde mich wieder, sobald du zurück bist.",
+      "reconnecting": "Verbinde neu…",
+      "weak": "Schwache Verbindung",
+      "backOnline": "Wieder online"
     }
   },
   "ideasGallery": {
@@ -10863,6 +10869,9 @@
       "one": "{count} Tag",
       "other": "{count} Tage"
     }
+  },
+  "avatarFeedback": {
+    "nomNom": "Mjam, mjam!"
   },
   "avatarTapReactions": {
     "tickles": "Hehe, das kitzelt!"

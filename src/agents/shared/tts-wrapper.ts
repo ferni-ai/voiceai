@@ -1188,7 +1188,7 @@ const PERSONA_DISPLAY_NAMES: Record<string, string> = {
   'alex-chen': 'Alex',
   'jordan-taylor': 'Jordan',
   'nayan-patel': 'Nayan',
-  'joel-dickson': 'Joel',
+  'joel-dickson': 'Nate',
 };
 
 /**

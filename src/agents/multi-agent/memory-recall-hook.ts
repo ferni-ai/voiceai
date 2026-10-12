@@ -63,6 +63,12 @@ import {
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
+import {
+  createEpisodeRecall,
+  recallEpisodesEnabled,
+  type EpisodeStore,
+} from '../../memory/recall/episodes.js';
+import { firestoreEpisodeStore } from '../../memory/storage/episode-store.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -119,6 +125,9 @@ export interface MemoryRecallDeps {
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
   embed?: RetrievalEmbedder;
+  /** RECALL_EPISODES=on (episodes.ts, needs semantic); read from the environment when not given. */
+  episodes?: boolean;
+  episodeStore?: EpisodeStore;
 }
 
 export interface MemoryRecall {
@@ -166,6 +175,16 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   // Semantic recall only: threads and stories past the first note, by id.
   const laterFollowUps = new Map<string, string>();
   const laterTold = new Map<string, LedgerFact>();
+  // The caller's own words from earlier calls; indexed apart so the snapshot never waits.
+  const episodes =
+    semanticOn && (deps.episodes ?? recallEpisodesEnabled())
+      ? createEpisodeRecall({
+          userId: deps.userId,
+          before: new Date(started),
+          store: deps.episodeStore ?? firestoreEpisodeStore,
+          embed: deps.embed,
+        })
+      : undefined;
   const personaId = deps.personaId ?? 'ferni';
   // FERNI_SELF_RECALL=on: asked about himself, what he told about it (self-recall.ts).
   const selfRecall = deps.selfRecall ?? selfRecallEnabled();
@@ -243,6 +262,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const text = transcript.trim();
       if (!snapshot || !text) return null;
       index?.observe(text);
+      episodes?.observe(text);
       const semantic = index?.matches() ?? new Map<string, number>();
       const blend = index ? { semantic, now: Date.now() } : undefined;
       const budget = FACTS_PER_TURN - factsThisTurn;
@@ -291,6 +311,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes }),
           told,
           extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
+          episodes?.take() ?? null,
           self,
         ]
           .filter(Boolean)
@@ -319,6 +340,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       return note;
     },
     newTurn() {
+      episodes?.newTurn();
       selfNoteGiven = false;
       factsThisTurn = 0;
       tokensLeft = RECALL_TOKENS_PER_TURN;
