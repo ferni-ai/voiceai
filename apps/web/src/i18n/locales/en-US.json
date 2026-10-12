@@ -2940,6 +2940,12 @@
     "quickConnections": "Quick Connections",
     "startWithAnyone": "Start a conversation with anyone on your team",
     "allCaughtUp": "All caught up!",
+    "hubEmptyTitle": "Nothing here yet",
+    "hubEmptyBody": "When you tell me what you're working on, or something you mean to do, I'll keep it here.",
+    "hubSomethingUnexpected": "Something unexpected happened. Want to try again?",
+    "hubTryAgain": "Try again",
+    "hubSignInFirst": "You need to sign in first.",
+    "hubSignIn": "Sign in",
     "close": "Close"
   },
   "breathing": {
