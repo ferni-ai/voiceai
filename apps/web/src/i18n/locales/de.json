@@ -1758,10 +1758,10 @@
       "plant": "Pflanze Samen für Funktionen ein, die du dir wünschst",
       "suggest": "Schlage neue Ideen für 5 Samen vor",
       "title": "Wie Samen funktionieren",
-      "conversation": "Führe ein Gespräch: +1 Samenkorn",
+      "conversation": "Erstes Gespräch des Tages: +5 Samen",
       "note": "Samen helfen uns zu entscheiden, was wir als Nächstes bauen!",
-      "streak30": "30-Tage-Serie: +15 Samen",
-      "streak7": "7-Tage-Serie: +5 Samen",
+      "streak30": "30-Tage-Serie: +100 Samen",
+      "streak7": "7-Tage-Serie: +25 Samen",
       "vote": "Stimme für Funktionen ab: 1–10 Samen"
     },
     "intro": "Jede große Beziehung hat ihre Jahreszeiten. Das sind die Samen, die wir gemeinsam pflanzen.",
@@ -3727,8 +3727,7 @@
       "disabled": "Keine Kalenderereignisse",
       "loadingSuggestions": "Ich suche nach den besten Zeiten...",
       "noSuggestions": "Keine Vorschläge gefunden",
-      "suggestion": "Laut deinem Kalender ist diese Zeit meistens frei",
-      "suggestedTime": "Vorgeschlagene Zeit"
+      "suggestion": "Laut deinem Kalender ist diese Zeit meistens frei"
     },
     "validation": {
       "nameRequired": "Jede Übung braucht einen Namen"
@@ -3908,6 +3907,8 @@
     "loadingCoaches": "Coaches werden gesucht...",
     "noMatches": "Keine Treffer gefunden",
     "noMatchesHint": "Probiere eine andere Suche aus oder entdecke alle Coaches.",
+    "nobodyYet": "Noch niemand Neues zum Kennenlernen.",
+    "nobodyYetHint": "Sobald jemand Neues bei deinen Gesprächen dabei sein kann, lernst du ihn hier kennen. Bis dahin: Sprich mit deinem Team.",
     "becomeCreator": "Creator werden",
     "poweredBy": "Unterstützt durch Ferni",
     "teamLocked": {
@@ -4543,7 +4544,7 @@
     "successDeployed": "Seite veröffentlicht!",
     "title": "Agenten-Seite erstellen",
     "nameLabel": "Name des Agenten",
-    "namePlaceholder": "z. B. Joel Dickson",
+    "namePlaceholder": "z. B. Nate Holloway",
     "nameHint": "Der vollständige Name deines KI-Agenten",
     "initialsLabel": "Initialen",
     "initialsPlaceholder": "z. B. JD",
@@ -5326,11 +5327,8 @@
     "upcomingIntro": "Ich gebe auf dich acht. Hier sind die Zeiten für meine nächsten Check-ins.",
     "learningTitle": "Ich lerne gerade, wann du mich brauchst",
     "learningDesc": "Je mehr wir sprechen, desto besser verstehe ich deinen Rhythmus, deine Muster und Bedürfnisse.",
-    "whatThisWillLook": "Wie das aussehen wird",
-    "noticedConcern": "Besorgnis bemerkt",
-    "streakSupport": "Unterstützung für deine Serie",
-    "nextMonday": "Nächsten Montag",
-    "calendarAware": "Kalender-sensibel",
+    "upcomingEmptyNote": "Noch nichts geplant, und das ist okay. Wenn ich mich bei dir melden will, siehst du es hier.",
+    "upcomingLoadFailed": "Hm, deine Check-ins haben nicht geladen. Das liegt an mir, nicht an dir. Warte kurz und öffne das hier noch einmal.",
     "perfectTiming": "Perfektes Timing",
     "perfectTimingDesc": "Ich lerne, wann du am empfänglichsten bist",
     "patternDetection": "Mustererkennung",
@@ -5349,10 +5347,6 @@
     "streakMilestonesDesc": "Feiere deine Beständigkeit – ich erinnere mich an jeden Schritt deiner Reise",
     "to": "Bis",
     "quietNote": "Wenn du um 2 Uhr nachts wach bist und dich meldest, bin ich genauso für dich da wie am helllichten Tag.",
-    "sampleFriday": "Freitag um {time}",
-    "sampleOverwhelmed": "„Du hast gestern erwähnt, dass dir alles über den Kopf wächst. Wie geht es dir heute?“",
-    "sampleMeditation": "„Deine Meditations-Serie steht bei 6 Tagen! Bereit für Tag 7?“",
-    "samplePresentation": "„Die große Präsentation steht an. Wollen wir uns zusammen vorbereiten?“",
     "guardianDesc": "Ich passe rund um die Uhr auf dich auf",
     "emptyCta": "Sprich einfach weiter mit mir. Jedes Gespräch hilft mir besser zu verstehen, wann und wie ich dich am besten unterstützen kann.",
     "emptyTip": "Aktiviere „{feature}“ in den Einstellungen, um proaktive Unterstützung freizuschalten"
@@ -6256,20 +6250,6 @@
       },
       "empty": "Hey. Ich bin hier – na ja, eigentlich bin ich du. Fang einfach an zu schreiben, dann kann ich über mehr reflektieren. Aber für den Moment: Was geht dir durch den Kopf?"
     },
-    "fallback": {
-      "option1": "Das ist interessant. Wie kommst du gerade jetzt darauf?",
-      "option2": "Ich verstehe dich. Was gibt es da noch?",
-      "option3": "Erzähl mir mehr. Was liegt darunter?",
-      "option4": "Darüber habe ich auch schon nachgedacht. Was ist die Frage hinter der Frage?",
-      "advice": "Ich habe gelernt, dass der beste Rat meistens kommt, wenn man ein bisschen länger mit der Frage verweilt. Was sagt dein Bauchgefühl?",
-      "feeling": "Das ist ganz schön viel zu tragen. Das kenne ich auch. Was würde dir jetzt helfen – darüber zu sprechen oder es einfach nur kurz zuzulassen?",
-      "remember": "Ich erinnere mich an mehr, als du vielleicht denkst. In den Journal-Einträgen steckt so einiges. Wonach suchst du genau?"
-    },
-    "fallbackKeywords": {
-      "advice": "Rat,sollte",
-      "feeling": "fühlen,Gefühl",
-      "remember": "erinnern"
-    },
     "dialogLabel": "Deine Chronik",
     "switchToVoice": "Zur Sprache wechseln",
     "captured": "Festgehalten!",
@@ -6284,7 +6264,8 @@
       }
     },
     "emptyDescription": "Deine Chronik ist noch leer, aber jede große Geschichte beginnt irgendwo. Halte deinen ersten Gedanken fest und sieh deiner Weisheit beim Wachsen zu.",
-    "quoted": "\"{text}\""
+    "quoted": "\"{text}\"",
+    "replyFailed": "Das ist nicht durchgegangen. Das liegt an mir, nicht an dir. Schick es gern noch einmal."
   },
   "marketplacePermissionConsent": {
     "required": "Erforderliche Berechtigungen",
@@ -8502,23 +8483,17 @@
   },
   "predictions": {
     "promise": "Versprechen",
-    "title": "Deine Kristallkugel",
-    "description": "Ich lerne vorherzusehen, was du brauchst, noch bevor du fragst.",
-    "preview": "Vorschau",
+    "title": "Sag deine Woche voraus",
+    "description": "Ein Spiel mit Peter im Gespräch. Schätz, wie deine Woche läuft, und sieh dann, wie nah du dran warst.",
     "accurate": "Treffend",
-    "exampleStress": "Du hast am Dienstag Stress erwähnt",
     "watching": "Im Blick",
-    "checkIn": "Ich mache einen Check-in bei dir",
     "accuracy": "Vorhersagegenauigkeit",
     "keepTalking": "Lass uns weiterreden. Wir bauen da etwas auf.",
     "accuracyLabel": "Genauigkeit",
+    "loadFailed": "Hm, deine Vorhersagen haben nicht geladen. Das liegt an mir, nicht an dir. Warte kurz und öffne das hier noch einmal.",
     "resolved": "Gelöst",
     "streak": "Serie",
-    "sampleOverwhelmed": "„Du würdest dich diese Woche überfordert fühlen“",
-    "sampleGym": "„Die Fitnessstudio-Gewohnheit würde ins Wanken geraten“",
-    "sampleSunday": "„Der Sonntagabend wird sich schwer anfühlen“",
-    "exampleGym": "Du hast 2 Einheiten verpasst",
-    "ctaText": "Sprich mit Peter über Vorhersagen. Stärke deine Selbstwahrnehmung durch das Vorhersagespiel.",
+    "ctaText": "Frag Peter beim nächsten Gespräch danach. Deine Schätzungen und wie sie ausgegangen sind, erscheinen hier.",
     "activePredictions": "Aktive Vorhersagen",
     "recentResults": "Letzte Ergebnisse"
   },
@@ -11126,6 +11101,21 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
   },
   "venmoChipIn": {
     "eyebrow": "Beitragen",

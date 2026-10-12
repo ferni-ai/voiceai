@@ -17,6 +17,8 @@
  * before its first await, so calling it from the listener lands first.
  *
  * Follow-ups from recent sessions are offered once, with the first recall.
+ * With RECALL_BRIDGE=on they wait for a turn they fit (threadsForTurn) instead,
+ * and so does Ferni's own life unless they ask about him; each still comes once.
  *
  * @module agents/multi-agent/memory-recall-hook
  */
@@ -26,7 +28,9 @@ import {
   formatRecall,
   loadRecallSnapshot,
   MAX_FOLLOW_UPS,
+  recallBridgeEnabled,
   recallForTurn,
+  threadsForTurn,
   type RecallFact,
   type RecallSnapshot,
   type RecallStore,
@@ -126,6 +130,8 @@ export interface MemoryRecallDeps {
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
   embed?: RetrievalEmbedder;
+  /** RECALL_BRIDGE=on; read from the environment when not given. */
+  bridge?: boolean;
   /** RECALL_EPISODES=on (episodes.ts, needs semantic); read from the environment when not given. */
   episodes?: boolean;
   episodeStore?: EpisodeStore;
@@ -153,6 +159,8 @@ export interface MemoryRecall {
 const FACTS_PER_TURN = 4;
 /** One person or thing can't take the whole turn ("sister" brought 4 pregnancy rows, 2026-10-04). */
 const FACTS_PER_ENTITY = 2;
+/** "How are you?", "what about you": they asked about him, so his own life is fair game. */
+const ASKS_ABOUT_YOU = /\byou(?:'re|r|rself)?\b/i;
 /** With semantic recall: open threads and Ferni's own stories kept for later in the call. */
 const FOLLOW_UPS_KEPT = 12;
 const TOLD_KEPT = 40;
@@ -168,6 +176,14 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let snapshot: RecallSnapshot | undefined;
   const surfaced = new Set<string>();
   let followUpsOffered = false;
+  const bridge = deps.bridge ?? recallBridgeEnabled();
+  // RECALL_BRIDGE: open threads not yet offered, and which caller turn this is.
+  let threadsLeft: string[] = [];
+  let callerTurn = 0;
+  let turnCounted = false;
+  // RECALL_BRIDGE: his own life waits too, and is offered once.
+  let ledgerFacts = '';
+  let toldOffered = false;
   let factsThisTurn = 0;
   let tokensLeft = RECALL_TOKENS_PER_TURN;
   const entitiesThisTurn = new Map<string, number>();
@@ -221,8 +237,13 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     ledger,
   ]).then(([s, told]) => {
     snapshot = { ...s, followUps: s.followUps.slice(0, MAX_FOLLOW_UPS) };
+    threadsLeft = snapshot.followUps;
     allTold = told;
-    ledgerNote = formatLedger(told.slice(0, RECALL_LIMIT), deps.userName);
+    ledgerFacts = told
+      .slice(0, RECALL_LIMIT)
+      .map((f) => f.fact)
+      .join(' ');
+    ledgerNote = formatLedger(told.slice(0, RECALL_LIMIT), deps.userName, Date.now(), { bridge });
     log.info(
       {
         facts: s.facts.length,
@@ -275,6 +296,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     ready,
     noteFor(transcript, opts = {}) {
       const text = transcript.trim();
+      if (text && !turnCounted) {
+        turnCounted = true;
+        callerTurn++;
+      }
       if (!snapshot || !text) return null;
       index?.observe(text);
       episodes?.observe(text);
@@ -310,16 +335,22 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const factTokens = estimateTokens(facts.map((f) => factText(f)));
       const extras = blend ? withinTokens(later, laterText, tokensLeft - factTokens) : later;
       const extraTold = extras.flatMap((id) => laterTold.get(id) ?? []);
-      const followUps = [
-        ...(followUpsOffered ? [] : snapshot.followUps),
-        ...extras.flatMap((id) => laterFollowUps.get(id) ?? []),
-      ];
+      const threadsNow = bridge
+        ? threadsForTurn(threadsLeft, text, callerTurn)
+        : followUpsOffered
+          ? []
+          : snapshot.followUps;
+      const followUps = [...threadsNow, ...extras.flatMap((id) => laterFollowUps.get(id) ?? [])];
       // Shared bits, like the follow-ups, come once (shown only with INSIDE_JOKES=on).
       const insideJokes = followUpsOffered ? [] : (snapshot.insideJokes ?? []);
-      // The ledger, like the follow-ups, comes once, with the first note.
-      const told = followUpsOffered
-        ? null
-        : [ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
+      // The ledger, like the follow-ups, comes once, with the first note. With
+      // RECALL_BRIDGE it waits like the threads, unless they ask about him: on
+      // "Still on there." alone it was read as his mail pile (6/8 replies).
+      const tellNow = bridge
+        ? !toldOffered &&
+          (ASKS_ABOUT_YOU.test(text) || threadsForTurn([ledgerFacts], text, callerTurn).length > 0)
+        : !followUpsOffered;
+      const told = tellNow ? [ledgerNote, sinceNote].filter(Boolean).join('\n') || null : null;
       const checkIn = checkInOffered ? null : checkInNote;
       // Once a turn, when they ask about him and something answers it.
       const self =
@@ -330,10 +361,12 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const note =
         [
           checkIn,
-          formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes }),
+          formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
           summaryRecall?.take(text) ?? null,
           told,
-          extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
+          extraTold.length > 0
+            ? formatLedger(extraTold, deps.userName, Date.now(), { bridge })
+            : null,
           episodes?.take() ?? null,
           self,
         ]
@@ -341,6 +374,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           .join('\n\n') || null;
       if (!note) return null;
       followUpsOffered = true;
+      if (told) toldOffered = true;
+      threadsLeft = threadsLeft.filter((t) => !threadsNow.includes(t));
       if (checkIn) checkInOffered = true;
       tokensLeft -= factTokens + estimateTokens(extras.map(laterText));
       for (const id of extras) surfaced.add(id);
@@ -363,6 +398,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       return note;
     },
     newTurn() {
+      turnCounted = false;
       episodes?.newTurn();
       selfNoteGiven = false;
       factsThisTurn = 0;

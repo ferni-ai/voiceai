@@ -1758,10 +1758,10 @@
       "plant": "在你希望開發的功能上播下種子",
       "suggest": "花費 5 顆種子來提議新想法",
       "title": "種子如何運作",
-      "conversation": "進行一次對話：+1 顆種子",
+      "conversation": "每天第一次對話：+5 顆種子",
       "note": "種子能幫助我們決定接下來要優先打造什麼功能！",
-      "streak30": "連續 30 天：+15 顆種子",
-      "streak7": "連續 7 天：+5 顆種子",
+      "streak30": "連續 30 天：+100 顆種子",
+      "streak7": "連續 7 天：+25 顆種子",
       "vote": "為功能投票：1-10 顆種子"
     },
     "intro": "每段美好的關係都有四季更迭。這些是我們一起播下的種子。",
@@ -3727,8 +3727,7 @@
       "disabled": "不建立行事曆活動",
       "loadingSuggestions": "正在尋找最適合的時間...",
       "noSuggestions": "找不到建議的時間",
-      "suggestion": "你的行事曆顯示這個時間通常是有空的",
-      "suggestedTime": "建議時間"
+      "suggestion": "你的行事曆顯示這個時間通常是有空的"
     },
     "validation": {
       "nameRequired": "每個練習都需要一個名字"
@@ -3908,6 +3907,8 @@
     "loadingCoaches": "正在尋找教練...",
     "noMatches": "找不到相符的結果",
     "noMatchesHint": "試試其他關鍵字，或探索所有教練。",
+    "nobodyYet": "還沒有新朋友可以認識。",
+    "nobodyYetHint": "等有新朋友可以加入你的通話時，你會在這裡認識他們。現在，先和你的團隊聊聊吧。",
     "becomeCreator": "成為創作者",
     "poweredBy": "由 Ferni 提供技術支援",
     "teamLocked": {
@@ -4543,7 +4544,7 @@
     "successDeployed": "頁面已成功部署！",
     "title": "建立助理頁面",
     "nameLabel": "助理名稱",
-    "namePlaceholder": "例如：Joel Dickson",
+    "namePlaceholder": "例如：Nate Holloway",
     "nameHint": "你的 AI 助理全名",
     "initialsLabel": "縮寫",
     "initialsPlaceholder": "例如：JD",
@@ -5327,11 +5328,8 @@
     "upcomingIntro": "我會一直守護著你。以下是我會與你進行自我檢視的時間。",
     "learningTitle": "我正在學習你何時最需要我",
     "learningDesc": "我們聊得越多，我就越能理解你的生活節奏、模式與需求。",
-    "whatThisWillLook": "這會是什麼樣子",
-    "noticedConcern": "注意到令人擔憂的狀況",
-    "streakSupport": "連續天數支持",
-    "nextMonday": "下週一",
-    "calendarAware": "行事曆感知",
+    "upcomingEmptyNote": "還沒有安排，沒關係。等我打算聯絡你時，你會在這裡看到。",
+    "upcomingLoadFailed": "嗯，你的聯絡安排沒有載入。是我這邊的問題，不是你的。稍等一下，再打開一次。",
     "perfectTiming": "完美時機",
     "perfectTimingDesc": "我會學習你最容易接受訊息的時間",
     "patternDetection": "模式偵測",
@@ -5349,10 +5347,6 @@
     "streakMilestonesDesc": "慶祝你的持之以恆——我記得你旅程中的每一步",
     "to": "至",
     "quietNote": "如果你在凌晨兩點醒來並找我，我也會像中午一樣，隨時在這裡陪伴你。",
-    "sampleFriday": "星期五 {time}",
-    "sampleOverwhelmed": "「你昨天提到覺得有些招架不住。你現在還好嗎？」",
-    "sampleMeditation": "「你的冥想連續天數已經達到 6 天囉！準備好迎接第 7 天了嗎？」",
-    "samplePresentation": "「那場重要的簡報快到了。想一起準備一下嗎？」",
     "guardianDesc": "全天候守護著你",
     "emptyCta": "繼續和我聊聊吧。每一次的對話，都能幫助我更了解該在什麼時候、用什麼方式給予你最好的支持。",
     "emptyTip": "在設定中啟用「{feature}」來解鎖主動支持"
@@ -6256,20 +6250,6 @@
       },
       "empty": "嗨。我在這裡——嗯，其實我就是你。開始寫日記吧，這樣我就能有更多內容可以為你整理。現在，你腦海中在想些什麼？"
     },
-    "fallback": {
-      "option1": "這很有意思。是什麼讓你現在提起這件事？",
-      "option2": "我聽到了。還有其他想說的嗎？",
-      "option3": "多跟我說一點。這背後隱藏著什麼呢？",
-      "option4": "這也是我一直在思考的事。這個問題背後真正的核心問題是什麼？",
-      "advice": "我明白最好的建議通常來自於與問題共處更長的時間。你的直覺怎麼說？",
-      "feeling": "這確實不容易承受。我也曾有過這種感覺。現在什麼對你最有幫助——是好好聊聊，還是只是靜靜地待著？",
-      "remember": "我記住的事情可能比你想像的還要多。日記裡記錄了好多東西。你具體在尋找什麼呢？"
-    },
-    "fallbackKeywords": {
-      "advice": "建議,應該",
-      "feeling": "感覺,感受",
-      "remember": "記得,回憶"
-    },
     "dialogLabel": "你的時光紀錄",
     "switchToVoice": "切換至語音",
     "captured": "已記錄！",
@@ -6284,7 +6264,8 @@
       }
     },
     "emptyDescription": "你的時光紀錄目前是空的，但每個偉大的故事都有個起點。寫下你的第一個想法，看著你的智慧漸漸成長。",
-    "quoted": "「{text}」"
+    "quoted": "「{text}」",
+    "replyFailed": "沒有傳送成功。是我這邊的問題，不是你的。再傳一次試試。"
   },
   "marketplacePermissionConsent": {
     "required": "必要權限",
@@ -8502,23 +8483,17 @@
   },
   "predictions": {
     "promise": "承諾",
-    "title": "你的水晶球",
-    "description": "我會學習在你開口之前，就先預測你的需求。",
-    "preview": "預覽",
+    "title": "預測你的一週",
+    "description": "這是在通話中和 Peter 一起玩的遊戲。猜猜你這一週會怎樣，再看看猜得有多準。",
     "accurate": "準確",
-    "exampleStress": "你在週二提到了壓力",
     "watching": "觀察中",
-    "checkIn": "我會陪你進行自我檢視",
     "accuracy": "預測準確度",
     "keepTalking": "繼續聊聊吧。我們正在共同建立一些默契。",
     "accuracyLabel": "準確度",
+    "loadFailed": "嗯，你的預測沒有載入。是我這邊的問題，不是你的。稍等一下，再打開一次。",
     "resolved": "已解決",
     "streak": "連續天數",
-    "sampleOverwhelmed": "「你這週可能會感到有些喘不過氣」",
-    "sampleGym": "「去健身房的習慣可能會遇到瓶頸」",
-    "sampleSunday": "「週日的傍晚可能會感到有些沉重」",
-    "exampleGym": "你錯過了 2 次健身房行程",
-    "ctaText": "和 Peter 聊聊如何做出預測吧。透過預測遊戲來建立自我覺察。",
+    "ctaText": "下次聊天時請 Peter 和你一起玩。你的預測和結果會顯示在這裡。",
     "activePredictions": "進行中的預測",
     "recentResults": "最近的結果"
   },
@@ -11126,6 +11101,21 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
   },
   "venmoChipIn": {
     "eyebrow": "出份力",

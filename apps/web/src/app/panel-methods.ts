@@ -310,7 +310,7 @@ function getDemoCognitiveData() {
         type: 'preference' as const,
         content: 'You prefer index funds over individual stocks',
         confidence: 0.9,
-        source: 'Jack Bogle',
+        source: 'Henry',
         learnedAt: new Date(Date.now() - 518400000).toISOString(),
       },
       {

@@ -2283,10 +2283,10 @@
       "plant": "Plant seeds on features you want to see built",
       "grow": "Features with more seeds get prioritized",
       "suggest": "Suggest new ideas for 5 seeds",
-      "conversation": "Have a conversation: +1 seed",
+      "conversation": "First conversation of the day: +5 seeds",
       "note": "Seeds help us prioritize what to build next!",
-      "streak30": "30-day streak: +15 seeds",
-      "streak7": "7-day streak: +5 seeds",
+      "streak30": "30-day streak: +100 seeds",
+      "streak7": "7-day streak: +25 seeds",
       "vote": "Vote for features: 1-10 seeds"
     },
     "backToRoadmap": "Back to Roadmap",
@@ -2357,6 +2357,7 @@
       "family": "Family",
       "friend": "Friend",
       "colleague": "Colleague",
+      "professional": "Professional",
       "mentor": "Mentor",
       "acquaintance": "Acquaintance",
       "other": "Other"
@@ -3740,8 +3741,7 @@
       "disabled": "No calendar events",
       "loadingSuggestions": "Finding the best times...",
       "noSuggestions": "No suggestions found",
-      "suggestion": "Your calendar shows this time is usually free",
-      "suggestedTime": "Suggested time"
+      "suggestion": "Your calendar shows this time is usually free"
     },
     "validation": {
       "nameRequired": "Every practice needs a name"
@@ -3921,6 +3921,8 @@
     "loadingCoaches": "Finding coaches...",
     "noMatches": "No matches yet",
     "noMatchesHint": "Try a different search or explore all coaches.",
+    "nobodyYet": "Nobody new to meet yet.",
+    "nobodyYetHint": "When someone new can join your calls, you'll meet them here. For now, talk with your team.",
     "becomeCreator": "Become a creator",
     "poweredBy": "Powered by Ferni",
     "teamLocked": {
@@ -4556,7 +4558,7 @@
     "successDeployed": "Page deployed!",
     "title": "Create Agent Page",
     "nameLabel": "Agent Name",
-    "namePlaceholder": "e.g., Joel Dickson",
+    "namePlaceholder": "e.g., Nate Holloway",
     "nameHint": "The full name of your AI agent",
     "initialsLabel": "Initials",
     "initialsPlaceholder": "e.g., JD",
@@ -5340,11 +5342,8 @@
     "upcomingIntro": "I'm watching out for you. Here's when I'll check in.",
     "learningTitle": "I'm learning when you need me",
     "learningDesc": "The more we talk, the better I understand your rhythms, patterns, and needs.",
-    "whatThisWillLook": "What this will look like",
-    "noticedConcern": "Noticed concern",
-    "streakSupport": "Streak support",
-    "nextMonday": "Next Monday",
-    "calendarAware": "Calendar aware",
+    "upcomingEmptyNote": "Nothing planned yet, and that's okay. When I plan to check in, you'll see it here.",
+    "upcomingLoadFailed": "Hmm, your check-ins didn't load. That's on me, not you. Give it a moment, then open this again.",
     "perfectTiming": "Perfect Timing",
     "perfectTimingDesc": "I learn when you're most receptive",
     "patternDetection": "Pattern Detection",
@@ -5362,10 +5361,6 @@
     "streakMilestonesDesc": "Celebrate consistency—I remember every step of your journey",
     "to": "To",
     "quietNote": "If you're awake at 2am and reach out, I'm here with the same presence as noon.",
-    "sampleFriday": "Friday at {time}",
-    "sampleOverwhelmed": "\"You mentioned feeling overwhelmed yesterday. How are you holding up?\"",
-    "sampleMeditation": "\"Your meditation streak is at 6 days! Ready for day 7?\"",
-    "samplePresentation": "\"That big presentation is coming up. Want to prep together?\"",
     "guardianDesc": "Watching out for you 24/7",
     "emptyCta": "Keep talking with me. Every conversation helps me understand when and how to support you best.",
     "emptyTip": "Enable \"{feature}\" in Settings to unlock proactive support"
@@ -6269,20 +6264,6 @@
       },
       "empty": "Hey. I'm here - well, I'm you. Start journaling and I'll have more to reflect on. For now, what's on your mind?"
     },
-    "fallback": {
-      "option1": "That's interesting. What makes you bring that up now?",
-      "option2": "I hear you. What else is there?",
-      "option3": "Tell me more. What's underneath that?",
-      "option4": "That's something I've been thinking about too. What's the question behind the question?",
-      "advice": "I've learned that the best advice usually comes from sitting with the question longer. What does your gut say?",
-      "feeling": "That's a lot to carry. I've felt that too. What would help right now - to talk it through or to just sit with it?",
-      "remember": "I remember more than you might think. The journal entries hold a lot. What specifically are you looking for?"
-    },
-    "fallbackKeywords": {
-      "advice": "advice,should",
-      "feeling": "feel,feeling",
-      "remember": "remember"
-    },
     "dialogLabel": "Your Chronicle",
     "switchToVoice": "Switch to voice",
     "captured": "Captured!",
@@ -6297,7 +6278,8 @@
       }
     },
     "emptyDescription": "Your chronicle is empty, but every great story starts somewhere. Capture your first thought, and watch your wisdom grow.",
-    "quoted": "\"{text}\""
+    "quoted": "\"{text}\"",
+    "replyFailed": "That didn't go through. It's on my end, not yours. Try sending it again."
   },
   "marketplacePermissionConsent": {
     "required": "Required Permissions",
@@ -8385,7 +8367,7 @@
     "badgeSoon": "Soon",
     "badgeCheckIn": "Check in",
     "emptyTitle": "No one here yet",
-    "emptyDescription": "Add people you care about and we'll help you nurture those relationships.",
+    "emptyDescription": "Tell me about someone you care about and I'll keep them here.",
     "addSomeone": "Add Someone",
     "importFromGoogleCsv": "Import from Google or CSV",
     "noMatchFilter": "No people match this filter",
@@ -8413,12 +8395,13 @@
       "family": "Family",
       "friends": "Friends",
       "work": "Work",
+      "professional": "Professional",
       "mentor": "Mentor",
       "acquaintance": "Acquaintance",
       "misc": "Other"
     },
-    "loadError": "Couldn't load your contacts",
-    "loadErrorRetry": "Couldn't load your contacts. Try again?"
+    "loadError": "Something unexpected happened. Want to try again?",
+    "loadErrorRetry": "Something unexpected happened. Want to try again?"
   },
   "importContacts": {
     "googleContacts": "Google Contacts",
@@ -8515,23 +8498,17 @@
   },
   "predictions": {
     "promise": "Promise",
-    "title": "Your Crystal Ball",
-    "description": "I'll learn to anticipate what you need before you ask.",
-    "preview": "Preview",
+    "title": "Predict your week",
+    "description": "A game you play with Peter on a call. Guess how your week will go, then see how close you got.",
     "accurate": "Accurate",
-    "exampleStress": "You mentioned stress on Tuesday",
     "watching": "Watching",
-    "checkIn": "I'll check in with you",
     "accuracy": "Prediction accuracy",
     "keepTalking": "Keep talking. We're building something.",
     "accuracyLabel": "Accuracy",
+    "loadFailed": "Hmm, your predictions didn't load. That's on me, not you. Give it a moment, then open this again.",
     "resolved": "Resolved",
     "streak": "Streak",
-    "sampleOverwhelmed": "\"You'd feel overwhelmed this week\"",
-    "sampleGym": "\"The gym habit would struggle\"",
-    "sampleSunday": "\"Sunday evening will feel heavy\"",
-    "exampleGym": "You skipped 2 sessions",
-    "ctaText": "Talk to Peter about making predictions. Build self-awareness through the prediction game.",
+    "ctaText": "Ask Peter to play next time you talk. Your guesses, and how they turned out, will show up here.",
     "activePredictions": "Active Predictions",
     "recentResults": "Recent Results"
   },
@@ -11129,6 +11106,21 @@
     "blocked": "Couldn't do that from here.",
     "notFound": "Couldn't find that one. Try the account I texted.",
     "failed": "Couldn't send that. Try again?"
+  },
+  "memoryView": {
+    "subtitle": "What I'd bring up on a call. Change anything, any time.",
+    "lifeNow": "Your life now",
+    "dates": "Dates that matter",
+    "readsYou": "How I read you",
+    "readsYouNote": "Impressions, not facts. Tell me if I've got you wrong.",
+    "thinkingAbout": "On my mind",
+    "thinkingAboutNote": "Things I've been meaning to ask you about.",
+    "fixedByYou": "You fixed this",
+    "thatsWrong": "That's wrong",
+    "forget": "Forget",
+    "correctLabel": "What's right?",
+    "wrongDone": "Got it. I had that wrong.",
+    "empty": "Nothing yet. What I learn about you shows up here, and you can change any of it."
   },
   "venmoChipIn": {
     "eyebrow": "Chip in",

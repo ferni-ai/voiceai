@@ -27,6 +27,7 @@ import { isFullTeamUnlocked } from '../services/team-unlock.service.js';
 import { signOutOfThisBrowser } from './sign-out.js';
 // Roadmap service - for "What's Growing" experience
 import { roadmapService } from '../services/roadmap.service.js';
+import { isPatternInsightsOn } from '../config/pattern-insights-flag.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -785,7 +786,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('trust-dashboard', ICONS.ring, t('menu.items.trustDashboard'))}
             ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
             ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane'), t('common.new'))}
-            ${this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights'))}
+            ${isPatternInsightsOn() ? this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights')) : ''}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
             ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear'), t('common.new'))}
           `
@@ -1435,8 +1436,7 @@ class SettingsMenuUI {
       case 'pattern-insights':
         this.callbacks.onPatternInsightsClick?.();
         break;
-      case 'conversation-insights':
-        // Consolidated into Pattern Insights (Phase 2)
+      case 'conversation-insights': // consolidated into Pattern Insights
         this.callbacks.onPatternInsightsClick?.();
         break;
       case 'knowledge-quiz':

@@ -33,12 +33,14 @@ function setup(mode: 'on' | 'shadow' = 'on', over: Partial<NeverSilentSession> =
   const { session, said } = fakeSession(over);
   const logs: Array<Record<string, unknown>> = [];
   let quiet = false;
+  let paused = false;
   const guard = createNeverSilentGuard({
     session,
     mode,
     hangMs: 5000,
     toolHoldMs: 15_000,
     stayQuiet: () => quiet,
+    replyPaused: () => paused,
     log: (f) => logs.push(f),
   });
   /** A caller turn as LiveKit runs it: speech created, message committed, thinking. */
@@ -53,7 +55,16 @@ function setup(mode: 'on' | 'shadow' = 'on', over: Partial<NeverSilentSession> =
     session.agentState = s;
     guard.onAgentState({ newState: s });
   };
-  return { session, said, logs, guard, turn, state, setQuiet: (q: boolean) => (quiet = q) };
+  return {
+    session,
+    said,
+    logs,
+    guard,
+    turn,
+    state,
+    setQuiet: (q: boolean) => (quiet = q),
+    setPaused: (p: boolean) => (paused = p),
+  };
 }
 
 describe('neverSilentMode / hangMs', () => {
@@ -224,5 +235,29 @@ describe('createNeverSilentGuard', () => {
     h.state('listening');
     vi.advanceTimersByTime(10_000);
     expect(h.said).toEqual([]);
+  });
+
+  it('waits for a reply paused for noise instead of apologising over it', () => {
+    const h = setup();
+    h.turn();
+    h.setPaused(true);
+    h.state('listening');
+    expect(h.said).toEqual([]);
+    vi.advanceTimersByTime(5000); // still paused at the deadline: wait another
+    expect(h.said).toEqual([]);
+    h.state('speaking'); // it resumed
+    vi.advanceTimersByTime(10_000);
+    expect(h.said).toEqual([]);
+  });
+
+  it('a pause that never resumes still ends in the fallback', () => {
+    const h = setup();
+    h.turn();
+    h.setPaused(true);
+    h.state('listening');
+    vi.advanceTimersByTime(5000);
+    h.setPaused(false);
+    vi.advanceTimersByTime(5000);
+    expect(h.said).toHaveLength(1);
   });
 });

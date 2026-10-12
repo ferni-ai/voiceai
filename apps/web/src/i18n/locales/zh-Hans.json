@@ -1758,10 +1758,10 @@
       "plant": "为你希望实现的功能播下种子",
       "suggest": "提议新想法需消耗 5 颗种子",
       "title": "种子如何运作",
-      "conversation": "进行一次对话：+1 颗种子",
+      "conversation": "每天第一次对话：+5 颗种子",
       "note": "种子能帮我们决定下一步优先开发什么！",
-      "streak30": "连续 30 天：+15 颗种子",
-      "streak7": "连续 7 天：+5 颗种子",
+      "streak30": "连续 30 天：+100 颗种子",
+      "streak7": "连续 7 天：+25 颗种子",
       "vote": "为功能投票：1-10 颗种子"
     },
     "intro": "每段美好的关系都有四季。这些是我们共同播下的种子。",
@@ -3727,8 +3727,7 @@
       "disabled": "未创建日历日程",
       "loadingSuggestions": "正在寻找最佳时间...",
       "noSuggestions": "未找到推荐时间",
-      "suggestion": "你的日历显示这个时间通常是有空的",
-      "suggestedTime": "推荐时间"
+      "suggestion": "你的日历显示这个时间通常是有空的"
     },
     "validation": {
       "nameRequired": "每个练习都需要一个名字"
@@ -3908,6 +3907,8 @@
     "loadingCoaches": "正在寻找教练...",
     "noMatches": "暂无匹配结果",
     "noMatchesHint": "试试其他搜索词，或浏览所有教练。",
+    "nobodyYet": "还没有新朋友可以认识。",
+    "nobodyYetHint": "等有新朋友可以加入你的通话时，你会在这里认识他们。现在，先和你的团队聊聊吧。",
     "becomeCreator": "成为创作者",
     "poweredBy": "由 Ferni 提供支持",
     "teamLocked": {
@@ -4543,7 +4544,7 @@
     "successDeployed": "页面已成功部署！",
     "title": "创建智能体页面",
     "nameLabel": "智能体名称",
-    "namePlaceholder": "例如：Joel Dickson",
+    "namePlaceholder": "例如：Nate Holloway",
     "nameHint": "你的 AI 智能体的全名",
     "initialsLabel": "首字母",
     "initialsPlaceholder": "例如：JD",
@@ -5327,11 +5328,8 @@
     "upcomingIntro": "我一直在默默关注着你。这是我接下来会发起记录的时间。",
     "learningTitle": "我正在学习你何时最需要我",
     "learningDesc": "我们聊得越多，我就越能理解你的生活节奏、习惯和需求。",
-    "whatThisWillLook": "呈现的效果",
-    "noticedConcern": "注意到的担忧",
-    "streakSupport": "连续天数支持",
-    "nextMonday": "下周一",
-    "calendarAware": "日历感知",
+    "upcomingEmptyNote": "还没有安排，没关系。等我打算联系你时，你会在这里看到。",
+    "upcomingLoadFailed": "嗯，你的联系安排没有加载出来。是我这边的问题，不是你的。稍等一下，再打开一次。",
     "perfectTiming": "完美时机",
     "perfectTimingDesc": "我会学习你最容易接受交流的时间",
     "patternDetection": "规律发现",
@@ -5349,10 +5347,6 @@
     "streakMilestonesDesc": "庆祝你的坚持——我记得你旅程中的每一步",
     "to": "至",
     "quietNote": "如果你在凌晨两点醒来并联系我，我依然会像中午一样，温和地陪伴在你身边。",
-    "sampleFriday": "周五 {time}",
-    "sampleOverwhelmed": "“你昨天提到感觉压力很大。现在好些了吗？”",
-    "sampleMeditation": "“你的冥想连续天数已经达到 6 天啦！准备好迎接第 7 天了吗？”",
-    "samplePresentation": "“那场重要的演示快到了。想一起准备一下吗？”",
     "guardianDesc": "全天候守护着你",
     "emptyCta": "继续和我聊聊吧。每一次对话都能帮我更好地理解何时以及如何给你最贴心的支持。",
     "emptyTip": "在设置中开启“{feature}”，解锁主动支持"
@@ -6256,20 +6250,6 @@
       },
       "empty": "嗨。我在这里——其实，我就是你。开始写日记吧，这样我就有更多可以帮你梳理的内容了。现在，你脑海里在想些什么？"
     },
-    "fallback": {
-      "option1": "这很有意思。为什么你现在会想到这个？",
-      "option2": "我听着呢。还有别的吗？",
-      "option3": "多跟我说说。这背后隐藏着什么？",
-      "option4": "这也是我一直在思考的问题。在这个问题背后，真正的疑问是什么？",
-      "advice": "我明白，最好的建议往往来自于与问题多相处一会儿。你的直觉怎么说？",
-      "feeling": "这确实很沉重。我也曾有过这种感觉。现在怎么做能帮到你——是把它说透，还是先静静地待一会儿？",
-      "remember": "我记住的事情可能比你想象的还要多。日记记录里保存了很多东西。你具体在寻找什么？"
-    },
-    "fallbackKeywords": {
-      "advice": "建议,应该",
-      "feeling": "感觉,感受",
-      "remember": "记得"
-    },
     "dialogLabel": "你的时光日志",
     "switchToVoice": "切换到语音",
     "captured": "已记录！",
@@ -6284,7 +6264,8 @@
       }
     },
     "emptyDescription": "你的时光日志还是空的，但每一个伟大的故事都有一个起点。记录下你的第一个想法，看着你的智慧慢慢成长吧。",
-    "quoted": "“{text}”"
+    "quoted": "“{text}”",
+    "replyFailed": "没有发送成功。是我这边的问题，不是你的。再发一次试试。"
   },
   "marketplacePermissionConsent": {
     "required": "必要权限",
@@ -8502,23 +8483,17 @@
   },
   "predictions": {
     "promise": "承诺",
-    "title": "你的水晶球",
-    "description": "我会学着在你开口之前，就预见到你的需要。",
-    "preview": "预览",
+    "title": "预测你的一周",
+    "description": "这是在通话中和 Peter 一起玩的游戏。猜猜你这一周会怎样，再看看猜得有多准。",
     "accurate": "准确",
-    "exampleStress": "你在周二提到了压力",
     "watching": "关注中",
-    "checkIn": "我会找你记录",
     "accuracy": "预测准确率",
     "keepTalking": "继续聊聊吧。我们正在共同建立默契。",
     "accuracyLabel": "准确率",
+    "loadFailed": "嗯，你的预测没有加载出来。是我这边的问题，不是你的。稍等一下，再打开一次。",
     "resolved": "已解决",
     "streak": "连续天数",
-    "sampleOverwhelmed": "“你这周会感到有些不堪重负”",
-    "sampleGym": "“去健身房的习惯可能会遇到阻碍”",
-    "sampleSunday": "“周日的傍晚会让人感觉有些沉重”",
-    "exampleGym": "你错过了 2 次健身",
-    "ctaText": "和 Peter 聊聊，开始进行预测。通过预测游戏来建立自我认知。",
+    "ctaText": "下次聊天时请 Peter 和你一起玩。你的预测和结果会显示在这里。",
     "activePredictions": "进行中的预测",
     "recentResults": "最近的结果"
   },
@@ -11126,6 +11101,21 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
   },
   "venmoChipIn": {
     "eyebrow": "出份力",

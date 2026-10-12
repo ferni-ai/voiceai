@@ -53,6 +53,7 @@ import {
 import { buildNudgeContext } from '../services/contacts/outreach-nudges.js';
 import { contactEdits } from './contact-edits.js';
 import { buildRelationshipInsightsView } from '../services/contacts/relationship-insights-view.js';
+import { findPerson, listPeople } from '../services/contacts/people-list.js';
 
 const log = createLogger({ module: 'ContactsAPI' });
 
@@ -72,7 +73,7 @@ async function listContacts(
   }
 
   try {
-    const contacts = await getContacts(userId);
+    const contacts = await listPeople(userId); // the panel's people and the ones saved in calls
     sendJSON(res, { contacts, count: contacts.length });
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to list contacts');
@@ -119,7 +120,7 @@ async function getContactHandler(
   }
 
   try {
-    const contact = await getContact(userId, contactId);
+    const contact = await findPerson(userId, contactId);
     if (!contact) {
       sendError(res, 'Contact not found', 404);
       return;
@@ -791,7 +792,6 @@ export async function handleContactsRoutes(
     }
   }
 
-  // 404 for unmatched contact routes
   // Unmatched contact routes: the server answers 404
   return false;
 }

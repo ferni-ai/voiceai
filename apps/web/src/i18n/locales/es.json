@@ -1771,10 +1771,10 @@
       "plant": "Planta semillas en las funciones que quieras que construyamos",
       "suggest": "Sugiere nuevas ideas por 5 semillas",
       "title": "Cómo funcionan las semillas",
-      "conversation": "Ten una conversación: +1 semilla",
+      "conversation": "Primera conversación del día: +5 semillas",
       "note": "¡Las semillas nos ayudan a priorizar qué construir después!",
-      "streak30": "Racha de 30 días: +15 semillas",
-      "streak7": "Racha de 7 días: +5 semillas",
+      "streak30": "Racha de 30 días: +100 semillas",
+      "streak7": "Racha de 7 días: +25 semillas",
       "vote": "Vota por funciones: de 1 a 10 semillas"
     },
     "intro": "Cada gran relación tiene sus estaciones. Estas son las semillas que estamos sembrando en conjunto.",
@@ -3750,8 +3750,7 @@
       "disabled": "Sin eventos en el calendario",
       "loadingSuggestions": "Buscando los mejores momentos...",
       "noSuggestions": "No se encontraron sugerencias",
-      "suggestion": "Tu calendario muestra que esta hora suele estar libre",
-      "suggestedTime": "Hora sugerida"
+      "suggestion": "Tu calendario muestra que esta hora suele estar libre"
     },
     "validation": {
       "nameRequired": "Cada práctica necesita un nombre"
@@ -3931,6 +3930,8 @@
     "loadingCoaches": "Buscando coaches...",
     "noMatches": "Sin resultados aún",
     "noMatchesHint": "Prueba con otra búsqueda o explora todos los coaches.",
+    "nobodyYet": "Todavía no hay nadie nuevo que conocer.",
+    "nobodyYetHint": "Cuando alguien nuevo pueda unirse a tus llamadas, lo conocerás aquí. Por ahora, habla con tu equipo.",
     "becomeCreator": "Conviértete en creador",
     "poweredBy": "Con la tecnología de Ferni",
     "teamLocked": {
@@ -4574,7 +4575,7 @@
     "successDeployed": "¡Página publicada!",
     "title": "Crear página del agente",
     "nameLabel": "Nombre del agente",
-    "namePlaceholder": "ej. Joel Dickson",
+    "namePlaceholder": "ej. Nate Holloway",
     "nameHint": "El nombre completo de tu agente de IA",
     "initialsLabel": "Iniciales",
     "initialsPlaceholder": "ej. JD",
@@ -5359,11 +5360,8 @@
     "upcomingIntro": "Estoy pendiente de ti. Aquí tienes cuándo haré un registro.",
     "learningTitle": "Estoy aprendiendo cuándo me necesitas",
     "learningDesc": "Mientras más hablemos, mejor entenderé tus ritmos, patrones y necesidades.",
-    "whatThisWillLook": "Cómo se verá esto",
-    "noticedConcern": "Preocupación detectada",
-    "streakSupport": "Apoyo para tu racha",
-    "nextMonday": "El próximo lunes",
-    "calendarAware": "Sincronía con tu calendario",
+    "upcomingEmptyNote": "Todavía no hay nada planeado, y está bien. Cuando planee escribirte, lo verás aquí.",
+    "upcomingLoadFailed": "Mmm, tus mensajes programados no se cargaron. Es cosa mía, no tuya. Espera un momento y vuelve a abrir esto.",
     "perfectTiming": "El momento perfecto",
     "perfectTimingDesc": "Aprendo cuándo tienes mayor receptividad",
     "patternDetection": "Detección de patrones",
@@ -5381,10 +5379,6 @@
     "streakMilestonesDesc": "Celebra la constancia: recuerdo cada paso de tu camino",
     "to": "A",
     "quietNote": "Si te despiertas a las 2 a. m. y me escribes, estaré aquí con la misma presencia que a mediodía.",
-    "sampleFriday": "Viernes a las {time}",
-    "sampleOverwhelmed": "\"Ayer mencionaste que sentías agobio. ¿Cómo lo vas llevando?\"",
-    "sampleMeditation": "\"¡Tu racha de meditación es de 6 días! ¿Todo listo para el día 7?\"",
-    "samplePresentation": "\"Se acerca esa gran presentación. ¿Quieres que nos preparemos en equipo?\"",
     "guardianDesc": "Cuidando de ti las 24 horas, los 7 días de la semana",
     "emptyCta": "Sigue conversando conmigo. Cada conversación me ayuda a entender cuándo y cómo darte el mejor apoyo.",
     "emptyTip": "Activa \"{feature}\" en los Ajustes para desbloquear el apoyo proactivo"
@@ -6294,20 +6288,6 @@
       },
       "empty": "Hola. Estoy aquí... bueno, soy tú. Empieza a escribir en tu diario y tendré más sobre lo que reflexionar. Por ahora, ¿qué tienes en mente?"
     },
-    "fallback": {
-      "option1": "Qué interesante. ¿Qué te hace pensar en eso ahora?",
-      "option2": "Te escucho. ¿Qué más hay ahí?",
-      "option3": "Cuéntame más. ¿Qué hay detrás de eso?",
-      "option4": "Eso es algo en lo que también he estado pensando. ¿Cuál es la pregunta detrás de la pregunta?",
-      "advice": "He aprendido que el mejor consejo suele venir de quedarse un rato más con la pregunta. ¿Qué te dice tu intuición?",
-      "feeling": "Es mucho peso para cargar. Yo también he sentido eso. ¿Qué te ayudaría más ahora: hablarlo o simplemente quedarte un momento con ello?",
-      "remember": "Recuerdo más de lo que crees. Las entradas del diario guardan mucho. ¿Qué buscas específicamente?"
-    },
-    "fallbackKeywords": {
-      "advice": "consejo,debería",
-      "feeling": "sentir,sentimiento",
-      "remember": "recordar"
-    },
     "dialogLabel": "Tu crónica",
     "switchToVoice": "Cambiar a voz",
     "captured": "¡Capturado!",
@@ -6322,7 +6302,8 @@
       }
     },
     "emptyDescription": "Tu crónica está vacía, pero toda gran historia comienza en algún lugar. Captura tu primer pensamiento y mira cómo crece tu sabiduría.",
-    "quoted": "\"{text}\""
+    "quoted": "\"{text}\"",
+    "replyFailed": "Eso no se envió. Es cosa mía, no tuya. Intenta enviarlo otra vez."
   },
   "marketplacePermissionConsent": {
     "required": "Permisos requeridos",
@@ -8555,23 +8536,17 @@
   },
   "predictions": {
     "promise": "Promesa",
-    "title": "Tu bola de cristal",
-    "description": "Aprenderé a anticipar lo que necesitas antes de que lo pidas.",
-    "preview": "Vista previa",
+    "title": "Predice tu semana",
+    "description": "Un juego con Peter durante una llamada. Adivina cómo irá tu semana y luego mira cuánto te acercaste.",
     "accurate": "Preciso",
-    "exampleStress": "Mencionaste que tenías estrés el martes",
     "watching": "Observando",
-    "checkIn": "Haré un registro contigo",
     "accuracy": "Precisión de las predicciones",
     "keepTalking": "Sigue conversando. Estamos construyendo algo especial.",
     "accuracyLabel": "Precisión",
+    "loadFailed": "Mmm, tus predicciones no se cargaron. Es cosa mía, no tuya. Espera un momento y vuelve a abrir esto.",
     "resolved": "Resuelto",
     "streak": "Racha",
-    "sampleOverwhelmed": "\"Sentirías agobio esta semana\"",
-    "sampleGym": "\"Te costaría mantener el hábito del gimnasio\"",
-    "sampleSunday": "\"La tarde del domingo se sentiría pesada\"",
-    "exampleGym": "Te saltaste 2 sesiones",
-    "ctaText": "Habla con Peter sobre cómo hacer predicciones. Desarrolla tu autoconocimiento con el juego de las predicciones.",
+    "ctaText": "Pídele a Peter jugar la próxima vez que hablen. Tus predicciones, y cómo resultaron, aparecerán aquí.",
     "activePredictions": "Predicciones activas",
     "recentResults": "Resultados recientes"
   },
@@ -11252,6 +11227,21 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
   },
   "venmoChipIn": {
     "eyebrow": "Aporta",
