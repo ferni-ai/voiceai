@@ -355,7 +355,7 @@ class SanctuaryUI {
       ]);
 
       // Transform API insights to BetterThanHumanInsight format
-      let insights = this.getDefaultInsights();
+      let insights = this.getDefaultInsights(!insightsResult.ok);
       if (insightsResult.ok && insightsResult.data) {
         const apiInsights: BetterThanHumanInsight[] = [];
         
@@ -423,7 +423,7 @@ class SanctuaryUI {
       return {
         greeting,
         timeContext,
-        insights: this.getDefaultInsights(),
+        insights: this.getDefaultInsights(true),
         practices: this.getDefaultPractices(),
         inspirations: this.getInspirations(timeContext),
       };
@@ -478,16 +478,18 @@ class SanctuaryUI {
 
   /**
    * Shown when there is nothing real to show. No generic "insight" dressed up as
-   * being about this person: say what will appear here and how it gets there.
+   * being about this person. `unavailable`: the load failed, so say so (it's on us)
+   * instead of telling someone with a history that nothing has been noticed yet.
    */
-  private getDefaultInsights(): BetterThanHumanInsight[] {
+  private getDefaultInsights(unavailable = false): BetterThanHumanInsight[] {
+    const key = unavailable ? 'sanctuary.insightsUnavailable' : 'sanctuary.noInsightsYet';
     return [
       {
-        id: 'no-insights-yet',
+        id: unavailable ? 'insights-unavailable' : 'no-insights-yet',
         type: 'observation',
         icon: 'observation',
-        title: t('sanctuary.noInsightsYetTitle'),
-        description: t('sanctuary.noInsightsYetDesc'),
+        title: t(`${key}Title`),
+        description: t(`${key}Desc`),
       },
     ];
   }

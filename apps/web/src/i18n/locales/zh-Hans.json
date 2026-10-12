@@ -6350,8 +6350,10 @@
     "categoryConnectDescription": "滋养人际关系",
     "categoryGrow": "成长",
     "categoryGrowDescription": "温柔地蜕变",
-    "noInsightsYetTitle": "这里还没有内容",
-    "noInsightsYetDesc": "和我聊一会儿，我注意到的关于你的事情就会出现在这里。",
+    "noInsightsYetTitle": "这里还什么都没有。",
+    "noInsightsYetDesc": "聊过几次之后，我会开始注意到一些事：你的习惯模式、你提到的计划、重要的时刻。它们会出现在这里。现在，我们先聊聊吧。",
+    "insightsUnavailableTitle": "我没能加载我注意到的内容。",
+    "insightsUnavailableDesc": "这是我的问题，不是你的。稍后再试一次。我会一直在这里。",
     "practicePrompt": {
       "dailyCheckin": "很高兴见到你。说真的，你现在感觉怎么样？",
       "gratitude": "让我们停下脚步，心怀感激。此时此刻，有什么是让你感到温暖和感谢的？",

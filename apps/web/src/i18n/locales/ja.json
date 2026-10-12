@@ -6350,8 +6350,10 @@
     "categoryConnectDescription": "関係を育む",
     "categoryGrow": "成長する",
     "categoryGrowDescription": "穏やかな歩み",
-    "noInsightsYetTitle": "まだ何もありません",
-    "noInsightsYetDesc": "しばらくお話しすると、あなたについて気づいたことがここに表示されます。",
+    "noInsightsYetTitle": "まだ何もありません。",
+    "noInsightsYetDesc": "何度かお話しするうちに、あなたのパターン、話してくれた予定、大切な瞬間に気づいていきます。それがここに表示されます。今はただ、お話ししましょう。",
+    "insightsUnavailableTitle": "気づいたことを読み込めませんでした。",
+    "insightsUnavailableDesc": "あなたのせいではありません。少ししてからもう一度試してください。私はここにいます。",
     "practicePrompt": {
       "dailyCheckin": "お会いできて嬉しいです。今、本当はどんな気分ですか？",
       "gratitude": "立ち止まって、感謝を味わいましょう。今、感謝していることを一つ教えてください。",

@@ -6388,8 +6388,10 @@
     "categoryConnectDescription": "Nutre tus relaciones",
     "categoryGrow": "Crecer",
     "categoryGrowDescription": "Progreso amable",
-    "noInsightsYetTitle": "Todavía no hay nada",
-    "noInsightsYetDesc": "Habla conmigo un rato y aquí aparecerá lo que note de ti.",
+    "noInsightsYetTitle": "Todavía no hay nada aquí.",
+    "noInsightsYetDesc": "Después de algunas conversaciones empezaré a notar cosas: tus patrones, los planes que mencionas, los momentos que importan. Aparecerán aquí. Por ahora, solo hablemos.",
+    "insightsUnavailableTitle": "No pude cargar lo que he notado.",
+    "insightsUnavailableDesc": "Es cosa mía, no tuya. Inténtalo de nuevo en un rato. Seguiré aquí.",
     "practicePrompt": {
       "dailyCheckin": "Qué alegría verte. ¿Cómo te sientes en este momento, de verdad?",
       "gratitude": "Hagamos una pausa para agradecer. ¿De qué sientes gratitud en este momento?",

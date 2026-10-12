@@ -6350,8 +6350,10 @@
     "categoryConnectDescription": "Beziehungen pflegen",
     "categoryGrow": "Wachsen",
     "categoryGrowDescription": "Sanfter Fortschritt",
-    "noInsightsYetTitle": "Noch nichts zu sehen",
-    "noInsightsYetDesc": "Sprich eine Weile mit mir, dann erscheint hier, was mir an dir auffällt.",
+    "noInsightsYetTitle": "Noch nichts hier.",
+    "noInsightsYetDesc": "Nach ein paar Gesprächen fallen mir Dinge auf: deine Muster, die Pläne, die du erwähnst, die Momente, die zählen. Sie erscheinen hier. Für jetzt: lass uns einfach reden.",
+    "insightsUnavailableTitle": "Ich konnte nicht laden, was mir aufgefallen ist.",
+    "insightsUnavailableDesc": "Das liegt an mir, nicht an dir. Versuch es gleich noch mal. Ich bin noch da.",
     "practicePrompt": {
       "dailyCheckin": "Schön, dich zu sehen. Wie geht es dir gerade wirklich?",
       "gratitude": "Lass uns kurz innehalten. Für welche Sache bist du gerade dankbar?",

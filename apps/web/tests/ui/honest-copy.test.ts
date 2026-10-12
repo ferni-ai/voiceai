@@ -35,6 +35,7 @@ vi.mock('../../src/services/relationship-stage.service.js', () => ({
   relationshipStageService: stage,
 }));
 
+import { apiGet } from '../../src/utils/api.js';
 import { getSanctuaryUI } from '../../src/ui/sanctuary.ui.js';
 import { manageSubscriptionUI } from '../../src/ui/manage-subscription.ui.js';
 import {
@@ -54,27 +55,50 @@ describe('honest copy', () => {
     Element.prototype.animate = vi.fn() as unknown as Element['animate'];
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await settle(getSanctuaryUI().close()); // a failed assertion must not leave it open for the next test
     vi.useRealTimers();
     vi.unstubAllEnvs();
     document.body.replaceChildren();
   });
 
-  it('sanctuary with no insights says what will appear, not generic lines about the user', async () => {
+  const INVENTED = [
+    'Your mornings set the tone',
+    'Evening reflections help',
+    'I remember everything',
+    'I hold your story complete',
+  ];
+
+  function sanctuaryInsights(): string {
+    return document.querySelector('.sanctuary-insight-list')?.textContent ?? '';
+  }
+
+  it('sanctuary with no insights says what will appear and how, not generic lines about the user', async () => {
+    vi.mocked(apiGet).mockImplementationOnce(async () => ({
+      ok: true,
+      status: 200,
+      data: { greeting: 'Hi', timeContext: 'morning', insights: [], practices: [] },
+    }));
     const ui = getSanctuaryUI();
     await settle(ui.open());
-    const insights = document.querySelector('.sanctuary-insight-list')?.textContent ?? '';
+    const insights = sanctuaryInsights();
 
-    expect(insights).toContain('Nothing to show yet');
-    expect(insights).toContain('what I notice about you will show up here');
-    for (const invented of [
-      'Your mornings set the tone',
-      'Evening reflections help',
-      'I remember everything',
-      'I hold your story complete',
-    ]) {
-      expect(insights).not.toContain(invented);
-    }
+    expect(insights).toContain('Nothing here yet.');
+    expect(insights).toContain("After a few conversations, I'll start to notice things");
+    expect(insights).toContain('For now, just talk.');
+    for (const invented of INVENTED) expect(insights).not.toContain(invented);
+    await settle(ui.close());
+  });
+
+  it('sanctuary that could not load says so, instead of claiming nothing was noticed', async () => {
+    const ui = getSanctuaryUI();
+    await settle(ui.open());
+    const insights = sanctuaryInsights();
+
+    expect(insights).toContain("I couldn't load what I've noticed.");
+    expect(insights).toContain("That's on me, not you.");
+    expect(insights).not.toContain('Nothing here yet.');
+    for (const invented of INVENTED) expect(insights).not.toContain(invented);
     await settle(ui.close());
   });
 

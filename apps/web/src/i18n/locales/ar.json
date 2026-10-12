@@ -6498,8 +6498,10 @@
     "categoryConnectDescription": "رعاية العلاقات",
     "categoryGrow": "نمو",
     "categoryGrowDescription": "تقدّم لطيف",
-    "noInsightsYetTitle": "لا شيء هنا بعد",
-    "noInsightsYetDesc": "تحدّث معي لبعض الوقت وسيظهر هنا ما ألاحظه عنك.",
+    "noInsightsYetTitle": "لا شيء هنا بعد.",
+    "noInsightsYetDesc": "بعد بضع محادثات سأبدأ بملاحظة أشياء: أنماطك، والخطط التي تذكرها، واللحظات المهمة. ستظهر هنا. أما الآن، فلنتحدث فقط.",
+    "insightsUnavailableTitle": "لم أتمكن من تحميل ما لاحظته.",
+    "insightsUnavailableDesc": "الخطأ مني، لا منك. حاول مرة أخرى بعد قليل. سأبقى هنا.",
     "practicePrompt": {
       "dailyCheckin": "يسعدني لقاؤكم. كيف تشعرون الآن حقاً؟",
       "gratitude": "لنأخذ استراحة ونعبّر عن تقديرنا. ما هو الشيء الوحيد الذي تشعرون بالامتنان له الآن؟",

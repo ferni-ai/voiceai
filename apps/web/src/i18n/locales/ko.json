@@ -6350,8 +6350,10 @@
     "categoryConnectDescription": "소중한 관계를 가꾸어보세요",
     "categoryGrow": "성장하기",
     "categoryGrowDescription": "조금씩 부드럽게 나아가요",
-    "noInsightsYetTitle": "아직 표시할 내용이 없어요",
-    "noInsightsYetDesc": "저와 잠시 이야기하면 제가 알게 된 당신에 대한 것들이 여기에 나타나요.",
+    "noInsightsYetTitle": "아직 아무것도 없어요.",
+    "noInsightsYetDesc": "몇 번 대화를 나누다 보면 당신의 패턴, 말해 준 계획, 소중한 순간들을 알아차리게 될 거예요. 그게 여기에 나타나요. 지금은 그냥 이야기해요.",
+    "insightsUnavailableTitle": "제가 알아차린 것을 불러오지 못했어요.",
+    "insightsUnavailableDesc": "당신 탓이 아니라 제 문제예요. 잠시 후에 다시 시도해 주세요. 저는 여기 있을게요.",
     "practicePrompt": {
       "dailyCheckin": "만나서 반가워요. 지금 기분이 정말 어떠신가요?",
       "gratitude": "잠시 멈추어 감사함을 느껴봐요. 지금 이 순간 감사한 일 한 가지는 무엇인가요?",

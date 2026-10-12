@@ -6350,8 +6350,10 @@
     "categoryConnectDescription": "Nurture relationships",
     "categoryGrow": "Grow",
     "categoryGrowDescription": "Gentle progress",
-    "noInsightsYetTitle": "Nothing to show yet",
-    "noInsightsYetDesc": "Talk with me for a while and what I notice about you will show up here.",
+    "noInsightsYetTitle": "Nothing here yet.",
+    "noInsightsYetDesc": "After a few conversations, I'll start to notice things: your patterns, the plans you mention, the moments that matter. They'll show up here. For now, just talk.",
+    "insightsUnavailableTitle": "I couldn't load what I've noticed.",
+    "insightsUnavailableDesc": "That's on me, not you. Try again in a bit. I'll still be here.",
     "practicePrompt": {
       "dailyCheckin": "Good to see you. How are you feeling right now, really?",
       "gratitude": "Let's pause and appreciate. What's one thing you're grateful for right now?",

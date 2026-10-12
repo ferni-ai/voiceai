@@ -6388,8 +6388,10 @@
     "categoryConnectDescription": "Nourrir tes relations",
     "categoryGrow": "Grandir",
     "categoryGrowDescription": "Progresser en douceur",
-    "noInsightsYetTitle": "Rien pour l'instant",
-    "noInsightsYetDesc": "Parle avec moi un moment, et ce que je remarque chez toi apparaîtra ici.",
+    "noInsightsYetTitle": "Rien ici pour l'instant.",
+    "noInsightsYetDesc": "Après quelques conversations, je commencerai à remarquer des choses : tes habitudes, les projets dont tu parles, les moments qui comptent. Ils apparaîtront ici. Pour l'instant, parlons simplement.",
+    "insightsUnavailableTitle": "Je n'ai pas pu charger ce que j'ai remarqué.",
+    "insightsUnavailableDesc": "C'est de ma faute, pas de la tienne. Réessaie dans un moment. Je serai toujours là.",
     "practicePrompt": {
       "dailyCheckin": "Quel plaisir de te voir. Comment te sens-tu en ce moment, vraiment ?",
       "gratitude": "Faisons une pause pour apprécier. Quelle est la chose pour laquelle tu as de la gratitude en ce moment ?",

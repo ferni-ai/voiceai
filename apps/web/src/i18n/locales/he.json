@@ -6387,8 +6387,10 @@
     "categoryConnectDescription": "לטפח מערכות יחסים",
     "categoryGrow": "צמיחה",
     "categoryGrowDescription": "התקדמות עדינה",
-    "noInsightsYetTitle": "אין כאן עדיין כלום",
-    "noInsightsYetDesc": "דבר איתי קצת, ומה שאני שם לב אליו אצלך יופיע כאן.",
+    "noInsightsYetTitle": "עדיין אין כאן כלום.",
+    "noInsightsYetDesc": "אחרי כמה שיחות אתחיל לשים לב לדברים: הדפוסים שלך, התוכניות שאתה מזכיר, הרגעים שחשובים. הם יופיעו כאן. בינתיים, פשוט נדבר.",
+    "insightsUnavailableTitle": "לא הצלחתי לטעון את מה ששמתי לב אליו.",
+    "insightsUnavailableDesc": "זה עליי, לא עליך. נסה שוב בעוד רגע. אני עדיין כאן.",
     "practicePrompt": {
       "dailyCheckin": "איזה כיף להיפגש. איך ההרגשה כרגע, באמת?",
       "gratitude": "בואו נעצור לרגע ונוקיר תודה. מהו דבר אחד שעליו יש לכם הכרת תודה כרגע?",

@@ -6350,8 +6350,10 @@
     "categoryConnectDescription": "滋養人際關係",
     "categoryGrow": "成長",
     "categoryGrowDescription": "溫和地進步",
-    "noInsightsYetTitle": "這裡還沒有內容",
-    "noInsightsYetDesc": "和我聊一會兒，我注意到的關於你的事情就會出現在這裡。",
+    "noInsightsYetTitle": "這裡還什麼都沒有。",
+    "noInsightsYetDesc": "聊過幾次之後，我會開始注意到一些事：你的習慣模式、你提到的計畫、重要的時刻。它們會出現在這裡。現在，我們先聊聊吧。",
+    "insightsUnavailableTitle": "我沒能載入我注意到的內容。",
+    "insightsUnavailableDesc": "這是我的問題，不是你的。稍後再試一次。我會一直在這裡。",
     "practicePrompt": {
       "dailyCheckin": "很高興見到你。你現在真實的感覺如何？",
       "gratitude": "讓我們停下腳步，心存感激。此時此刻，有哪一件事讓你感到感恩？",
