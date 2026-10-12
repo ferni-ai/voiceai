@@ -10,7 +10,6 @@
     "closeDashboard": "סגירת לוח הבקרה",
     "closeDetails": "סגירת הפרטים",
     "closeHistory": "סגירת ההיסטוריה",
-    "closeHuddle": "סגירת המפגש",
     "closeMenu": "סגירת התפריט",
     "closePublisher": "סגירת פורטל המפרסמים",
     "closeSettings": "סגירת ההגדרות",
@@ -545,7 +544,6 @@
     "target": "יעד",
     "tasks": "משימות",
     "teachings": "שיעורים",
-    "teamHuddle": "מפגש צוות",
     "teamMembersUnlocked": "חברי צוות שנפתחו",
     "teamUnlock": "פתיחת צוות",
     "testCall": "שיחת ניסיון",
@@ -1216,7 +1214,6 @@
       "supportFerni": "לתמוך ב-Ferni",
       "supportFerniExpanded": "לתמוך ב-Ferni",
       "takeTour": "להכיר את המקום",
-      "teamHuddles": "מפגש צוות",
       "teamInsights": "מה שהצוות שם לב אליו",
       "toggleTheme": "בהיר / כהה",
       "trustDetails": "איך צמחנו",
@@ -1259,8 +1256,7 @@
       "growthJournal": "יומן צמיחה",
       "knowledgeQuiz": "כמה טוב אתם מכירים אותי?",
       "soundEffects": "אפקטים קוליים",
-      "sleepSchedule": "לוח זמני שינה",
-      "teamObservations": "תצפיות הצוות"
+      "sleepSchedule": "לוח זמני שינה"
     },
     "keepChatting": "ככל שנדבר יותר, נתקרב יותר",
     "maxLevel": "שותפים לחיים",
@@ -7243,19 +7239,6 @@
       "other": "{active} מתוך {count} יכולות פעילות"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "סינתזה של הצוות",
-    "assessment": "הערכה כללית",
-    "connections": "חיבורים בין-תחומיים",
-    "recommendations": "המלצות הצוות",
-    "loading": "תצפיות הצוות בטעינה...",
-    "empty": {
-      "title": "אין עדיין תצפיות צוות",
-      "description": "תוך כדי שיחה עם הצוות, חברי הצוות ישתפו תובנות זה עם זה."
-    },
-    "recent": "תצפיות אחרונות",
-    "title": "תצפיות צוות"
-  },
   "observationTypes": {
     "insight": "תובנה",
     "concern": "חשש",
@@ -9022,9 +9005,6 @@
     "zhHant": "סינית (מסורתית)"
   },
   "featureHints": {
-    "teamHuddlesTitle": "מפגשי הצוות כבר כאן!",
-    "teamHuddlesMessage": "עכשיו, כשאנחנו מכירים טוב יותר, אפשר לשמוע מכמה חברי צוות בבת אחת.",
-    "teamHuddlesCta": "לנסות מפגש צוות",
     "createRitualsTitle": "ליצור טקסים משלכם",
     "createRitualsMessage": "עכשיו אפשר ליצור תרגולים יומיים מותאמים אישית. איזה הרגל קטן הכי יעזור לכם?",
     "createRitualsCta": "ליצור טקס",
@@ -10298,8 +10278,6 @@
     "allDataDeleted": "כל הנתונים נמחקו",
     "deletingAccount": "מוחקים את החשבון שלך...",
     "accountDeleted": "החשבון שלך נמחק. שימרו על עצמכם.",
-    "couldNotStartHuddle": "לא הצלחנו להתחיל שיחת צוות. לנסות שוב?",
-    "defaultHuddleTopic": "צ'ק-אין שבועי על ההתקדמות שלך",
     "conversationsLeft": {
       "one": "נשארה עוד שיחה אחת ({count}). אני כאן תמיד.",
       "two": "נשארו עוד {count} שיחות. אני כאן תמיד.",
@@ -10918,11 +10896,6 @@
     "connectToTalk": "להתחבר",
     "endTalk": "ניתוק",
     "connectingCancel": "מתחבר. הקש לביטול"
-  },
-  "teamHuddle": {
-    "typeWeekly": "צ'ק-אין שבועי",
-    "typeMilestone": "חגיגת אבן דרך",
-    "typeSpecial": "רגע מיוחד"
   },
   "analyticsDashboard": {
     "title": "המסע האישי",

@@ -10,7 +10,6 @@
     "closeDashboard": "關閉控制台",
     "closeDetails": "關閉詳細資訊",
     "closeHistory": "關閉歷史紀錄",
-    "closeHuddle": "關閉討論",
     "closeMenu": "關閉選單",
     "closePublisher": "關閉發布者入口網站",
     "closeSettings": "關閉設定",
@@ -545,7 +544,6 @@
     "target": "目標",
     "tasks": "任務",
     "teachings": "指引",
-    "teamHuddle": "團隊小聚",
     "teamMembersUnlocked": "已解鎖的團隊成員",
     "teamUnlock": "解鎖團隊",
     "testCall": "測試通話",
@@ -1213,7 +1211,6 @@
       "supportFerni": "支持 Ferni",
       "supportFerniExpanded": "支持 Ferni",
       "takeTour": "帶我到處看看",
-      "teamHuddles": "團隊聚聚",
       "teamInsights": "團隊的洞察",
       "toggleTheme": "淺色 / 深色",
       "trustDetails": "我們的成長點滴",
@@ -1256,8 +1253,7 @@
       "growthJournal": "成長日記",
       "knowledgeQuiz": "你有多了解我？",
       "soundEffects": "音效",
-      "sleepSchedule": "睡眠作息",
-      "teamObservations": "團隊觀察"
+      "sleepSchedule": "睡眠作息"
     },
     "keepChatting": "我們聊得越多，就越親近喔",
     "maxLevel": "終生夥伴",
@@ -7197,19 +7193,6 @@
       "one": "已啟用 {count} 項功能中的 {active} 項"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "團隊綜合分析",
-    "assessment": "整體評估",
-    "connections": "跨領域關聯",
-    "recommendations": "團隊建議",
-    "loading": "正在載入團隊觀察...",
-    "empty": {
-      "title": "目前還沒有團隊觀察",
-      "description": "當你與團隊對話時，他們會互相分享彼此的洞察。"
-    },
-    "recent": "最近的觀察",
-    "title": "團隊觀察"
-  },
   "observationTypes": {
     "insight": "洞察",
     "concern": "擔憂",
@@ -8953,9 +8936,6 @@
     "he": "希伯來文"
   },
   "featureHints": {
-    "teamHuddlesTitle": "團隊小聚來囉！",
-    "teamHuddlesMessage": "既然我們對彼此更熟悉了，你現在可以同時聽聽多位團隊成員的想法囉。",
-    "teamHuddlesCta": "體驗團隊小聚",
     "createRitualsTitle": "創造你專屬的儀式",
     "createRitualsMessage": "你現在可以自訂每日練習了。什麼樣的小習慣對你最有幫助呢？",
     "createRitualsCta": "建立儀式",
@@ -10204,8 +10184,6 @@
     "allDataDeleted": "所有資料已刪除",
     "deletingAccount": "正在刪除你的帳號...",
     "accountDeleted": "你的帳號已刪除。保重喔。",
-    "couldNotStartHuddle": "無法開始團隊小聚。要再試一次嗎？",
-    "defaultHuddleTopic": "每週進度自我檢視",
     "conversationsLeft": {
       "other": "還剩下 {count} 次對話。只要你需要，我隨時都在這裡。",
       "one": "還剩下 {count} 次對話。只要你需要，我隨時都在這裡。"
@@ -10799,11 +10777,6 @@
     "connectToTalk": "聊聊",
     "endTalk": "掛斷",
     "connectingCancel": "正在連線。輕點即可取消"
-  },
-  "teamHuddle": {
-    "typeWeekly": "每週自我檢視",
-    "typeMilestone": "里程碑慶祝",
-    "typeSpecial": "特別時刻"
   },
   "analyticsDashboard": {
     "title": "你的旅程",

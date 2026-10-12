@@ -10,7 +10,6 @@
     "closeDashboard": "대시보드 닫기",
     "closeDetails": "상세 정보 닫기",
     "closeHistory": "히스토리 닫기",
-    "closeHuddle": "허들 닫기",
     "closeMenu": "메뉴 닫기",
     "closePublisher": "퍼블리셔 포털 닫기",
     "closeSettings": "설정 닫기",
@@ -545,7 +544,6 @@
     "target": "목표",
     "tasks": "할 일",
     "teachings": "가르침",
-    "teamHuddle": "팀 허들",
     "teamMembersUnlocked": "잠금 해제된 팀원들",
     "teamUnlock": "팀 잠금 해제",
     "testCall": "테스트 통화",
@@ -1241,7 +1239,6 @@
       "gifts": "선물과 특별한 날들",
       "videoSessions": "영상 통화",
       "groupCoaching": "친구들과 함께",
-      "teamHuddles": "팀과 도란도란",
       "teamSessions": "팀과 함께하는 시간",
       "conferenceCalls": "그룹 통화",
       "concierge": "일상 속 도우미",
@@ -1296,8 +1293,7 @@
       "growthJournal": "성장 일지",
       "knowledgeQuiz": "나를 얼마나 잘 아시나요?",
       "soundEffects": "효과음",
-      "sleepSchedule": "수면 일정",
-      "teamObservations": "팀의 관찰 기록"
+      "sleepSchedule": "수면 일정"
     },
     "quickAdd": {
       "person": "새로운 사람",
@@ -7197,19 +7193,6 @@
       "one": "활성화된 기능 {count}개 중 {active}개"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "팀 종합 분석",
-    "assessment": "종합 평가",
-    "connections": "영역 간 연결",
-    "recommendations": "팀 추천 사항",
-    "loading": "팀 관찰 내용을 불러오는 중이에요...",
-    "empty": {
-      "title": "아직 팀 관찰 내용이 없어요",
-      "description": "팀과 대화를 나누면, 서로 인사이트를 공유하게 될 거예요."
-    },
-    "recent": "최근 관찰 내용",
-    "title": "팀 관찰 내용"
-  },
   "observationTypes": {
     "insight": "인사이트",
     "concern": "우려 사항",
@@ -8953,9 +8936,6 @@
     "he": "히브리어"
   },
   "featureHints": {
-    "teamHuddlesTitle": "팀 허들이 시작되었어요!",
-    "teamHuddlesMessage": "서로에 대해 더 잘 알게 되었으니, 이제 여러 팀 멤버들의 이야기를 한 번에 들어보세요.",
-    "teamHuddlesCta": "허들 시작해 보기",
     "createRitualsTitle": "나만의 리추얼 만들기",
     "createRitualsMessage": "이제 나만의 일일 실천을 직접 만들 수 있어요. 어떤 작은 습관이 가장 도움이 될까요?",
     "createRitualsCta": "리추얼 만들기",
@@ -10203,8 +10183,6 @@
     "allDataDeleted": "모든 데이터가 삭제되었어요",
     "deletingAccount": "계정을 삭제하는 중...",
     "accountDeleted": "계정이 삭제되었어요. 늘 건강하고 행복하세요.",
-    "couldNotStartHuddle": "팀 허들을 시작하지 못했어요. 다시 시도해 볼까요?",
-    "defaultHuddleTopic": "이번 주 진행 상황 체크인",
     "outlookCalendar": "Outlook 캘린더",
     "conversationsLeft": {
       "other": "남은 대화가 {count}회 있어요. 도움이 필요하실 때 언제든 찾아주세요.",
@@ -10799,11 +10777,6 @@
     "connectToTalk": "대화해요",
     "endTalk": "대화 종료",
     "connectingCancel": "연결 중입니다. 탭하여 취소"
-  },
-  "teamHuddle": {
-    "typeWeekly": "주간 체크인",
-    "typeMilestone": "마일스톤 축하",
-    "typeSpecial": "특별한 순간"
   },
   "analyticsDashboard": {
     "title": "나의 여정",

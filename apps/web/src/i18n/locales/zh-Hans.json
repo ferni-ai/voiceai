@@ -10,7 +10,6 @@
     "closeDashboard": "关闭控制面板",
     "closeDetails": "关闭详情",
     "closeHistory": "关闭历史记录",
-    "closeHuddle": "关闭讨论组",
     "closeMenu": "关闭菜单",
     "closePublisher": "关闭发布者门户",
     "closeSettings": "关闭设置",
@@ -545,7 +544,6 @@
     "target": "目标",
     "tasks": "任务",
     "teachings": "教导",
-    "teamHuddle": "团队小聚",
     "teamMembersUnlocked": "已解锁的团队成员",
     "teamUnlock": "团队解锁",
     "testCall": "测试通话",
@@ -1241,7 +1239,6 @@
       "gifts": "礼物与特别的日子",
       "videoSessions": "视频通话",
       "groupCoaching": "与朋友一起",
-      "teamHuddles": "团队碰头会",
       "teamSessions": "团队时间",
       "conferenceCalls": "多人通话",
       "concierge": "现实生活协助",
@@ -1296,8 +1293,7 @@
       "growthJournal": "成长日志",
       "knowledgeQuiz": "你有多了解我？",
       "soundEffects": "音效",
-      "sleepSchedule": "睡眠作息",
-      "teamObservations": "团队观察"
+      "sleepSchedule": "睡眠作息"
     },
     "quickAdd": {
       "person": "新认识的人",
@@ -7197,19 +7193,6 @@
       "one": "已启用 {count} 项功能中的 {active} 项"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "团队综合分析",
-    "assessment": "整体评估",
-    "connections": "跨领域联结",
-    "recommendations": "团队建议",
-    "loading": "正在加载团队观察...",
-    "empty": {
-      "title": "暂无团队观察",
-      "description": "当你与团队交流时，他们会彼此分享感悟。"
-    },
-    "recent": "最近观察",
-    "title": "团队观察"
-  },
   "observationTypes": {
     "insight": "感悟",
     "concern": "担忧",
@@ -8953,9 +8936,6 @@
     "he": "希伯来语"
   },
   "featureHints": {
-    "teamHuddlesTitle": "团队小聚来啦！",
-    "teamHuddlesMessage": "既然我们对彼此更熟悉了，你可以同时听到多位团队成员的声音啦。",
-    "teamHuddlesCta": "试试团队小聚",
     "createRitualsTitle": "创造你自己的仪式",
     "createRitualsMessage": "你现在可以自定义每日练习了。什么样的小习惯对你最有帮助呢？",
     "createRitualsCta": "创造一个仪式",
@@ -10203,8 +10183,6 @@
     "allDataDeleted": "所有数据已删除",
     "deletingAccount": "正在注销你的账号...",
     "accountDeleted": "你的账号已注销。多保重。",
-    "couldNotStartHuddle": "无法开始团队讨论。要再试一次吗？",
-    "defaultHuddleTopic": "每周记录你的进展",
     "outlookCalendar": "Outlook 日历",
     "conversationsLeft": {
       "other": "还剩 {count} 次对话。只要你需要，我随时都在。",
@@ -10799,11 +10777,6 @@
     "connectToTalk": "连线",
     "endTalk": "挂断",
     "connectingCancel": "正在连接。点按即可取消"
-  },
-  "teamHuddle": {
-    "typeWeekly": "每周记录",
-    "typeMilestone": "里程碑庆祝",
-    "typeSpecial": "特别时刻"
   },
   "analyticsDashboard": {
     "title": "你的旅程",

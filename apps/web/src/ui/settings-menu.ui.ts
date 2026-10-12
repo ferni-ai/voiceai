@@ -73,8 +73,6 @@ export interface SettingsMenuUICallbacks {
   onEightSleepClick?: () => void;
   onOuraClick?: () => void;
   onAppleHealthClick?: () => void;
-  onTeamHuddleClick?: () => void;
-  onTeamObservationsClick?: () => void;
   onTrustJourneyClick?: () => void;
   onTrustDashboardClick?: () => void;
   onMusicDashboardClick?: () => void;
@@ -304,7 +302,6 @@ const FEATURE_LOCK_MAP: Record<string, string> = {
   analytics: 'progress-analytics',
 
   // Building Trust stage (7+ convos, 3+ days)
-  team: 'team-huddle',
   'conversation-memory': 'memory-browser',
   wellbeing: 'wellbeing-dashboard',
   predictions: 'prediction-accuracy',
@@ -1047,8 +1044,6 @@ class SettingsMenuUI {
       contacts: { icon: ICONS.users, label: t('menu.items.contacts') },
       'video-call-settings': { icon: ICONS.video, label: t('menu.items.videoSessions') },
       'group-coaching': { icon: ICONS.users, label: t('menu.items.groupCoaching') },
-      team: { icon: ICONS.team, label: t('menu.items.teamHuddles') },
-      'team-observations': { icon: ICONS.lightbulb, label: t('menu.items.teamObservations') },
       'play-games': { icon: ICONS.sparkles, label: t('menu.items.playGames') },
       'music-dashboard': { icon: ICONS.music, label: t('menu.items.musicalYou') },
       'creative-you': { icon: ICONS.creative, label: t('menu.items.creativeYou') },
@@ -1270,12 +1265,6 @@ class SettingsMenuUI {
         break;
       case 'theme':
         this.callbacks.onThemeToggle?.();
-        break;
-      case 'team':
-        this.callbacks.onTeamHuddleClick?.();
-        break;
-      case 'team-observations':
-        this.callbacks.onTeamObservationsClick?.();
         break;
       case 'notifications':
         this.callbacks.onNotificationSettingsClick?.();

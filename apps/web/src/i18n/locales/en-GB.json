@@ -10,7 +10,6 @@
     "closeDashboard": "Close dashboard",
     "closeDetails": "Close details",
     "closeHistory": "Close history",
-    "closeHuddle": "Close huddle",
     "closeMenu": "Close menu",
     "closePublisher": "Close publisher portal",
     "closeSettings": "Close settings",
@@ -545,7 +544,6 @@
     "target": "Target",
     "tasks": "Tasks",
     "teachings": "Teachings",
-    "teamHuddle": "Team Huddle",
     "teamMembersUnlocked": "Team members unlocked",
     "teamUnlock": "Team Unlock",
     "testCall": "Test Call",
@@ -1241,7 +1239,6 @@
       "gifts": "Gifts & Special Days",
       "videoSessions": "Video Call",
       "groupCoaching": "With Friends",
-      "teamHuddles": "Team Catch-Up",
       "teamSessions": "Team Time",
       "conferenceCalls": "Group Calls",
       "concierge": "Real-World Help",
@@ -1296,8 +1293,7 @@
       "conversationInsights": "How We Connect",
       "growthJournal": "Growth Journal",
       "knowledgeQuiz": "How Well Do You Know Me?",
-      "soundEffects": "Sound Effects",
-      "teamObservations": "Team Observations"
+      "soundEffects": "Sound Effects"
     },
     "quickAdd": {
       "person": "Someone new",
@@ -7197,19 +7193,6 @@
       "other": "{active} of {count} capabilities active"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "Team Synthesis",
-    "assessment": "Overall Assessment",
-    "connections": "Cross-Domain Connections",
-    "recommendations": "Team Recommendations",
-    "loading": "Loading team observations...",
-    "empty": {
-      "title": "No team observations yet",
-      "description": "As you talk with the team, they'll share insights with each other."
-    },
-    "recent": "Recent Observations",
-    "title": "Team Observations"
-  },
   "observationTypes": {
     "insight": "Insight",
     "concern": "Concern",
@@ -8953,9 +8936,6 @@
     "he": "Hebrew"
   },
   "featureHints": {
-    "teamHuddlesTitle": "Team Huddles are here!",
-    "teamHuddlesMessage": "Now that we know each other better, you can hear from multiple team members at once.",
-    "teamHuddlesCta": "Try a huddle",
     "createRitualsTitle": "Create your own rituals",
     "createRitualsMessage": "You can now create custom daily practices. What small habit would help you most?",
     "createRitualsCta": "Create a ritual",
@@ -10207,8 +10187,6 @@
     "allDataDeleted": "All data deleted",
     "deletingAccount": "Deleting your account...",
     "accountDeleted": "Your account is deleted. Take care.",
-    "couldNotStartHuddle": "Couldn't start a team huddle. Try again?",
-    "defaultHuddleTopic": "Weekly check-in on your progress",
     "conversationsLeft": {
       "one": "{count} conversation left. I'm here whenever you need me.",
       "other": "{count} conversations left. I'm here whenever you need me."
@@ -10802,11 +10780,6 @@
     "connectToTalk": "Connect",
     "endTalk": "Disconnect",
     "connectingCancel": "Connecting. Tap to cancel"
-  },
-  "teamHuddle": {
-    "typeWeekly": "Weekly Check-in",
-    "typeMilestone": "Milestone Celebration",
-    "typeSpecial": "Special Moment"
   },
   "analyticsDashboard": {
     "title": "Your Journey",

@@ -1161,7 +1161,6 @@ function createPanel(): HTMLElement {
         <div class="dev-subsection">
           <span class="dev-label">Feature Hints</span>
           <div class="dev-expression-buttons" role="button" tabindex="0">
-            <button aria-label="Team Huddle" class="dev-expression-btn" data-feature-hint="team-huddle-intro" title="Team Huddle hint">Team Huddle</button>
             <button aria-label="Rituals" class="dev-expression-btn" data-feature-hint="custom-rituals-intro" title="Custom Rituals hint">Rituals</button>
             <button aria-label="Memory" class="dev-expression-btn" data-feature-hint="memory-timeline-intro" title="Memory Timeline hint">Memory</button>
             <button aria-label="Reset Hints" class="dev-expression-btn dev-expression-btn--danger" data-action="reset-hints" title="Reset dismissed hints">Reset Hints</button>
@@ -1760,9 +1759,6 @@ function createPanel(): HTMLElement {
             </button>
             <button aria-label="Confirm" class="dev-expression-btn dev-expression-btn--modal" data-modal="daily" title="Open daily check-in">
               ${ICONS.sun} Daily Check-in
-            </button>
-            <button aria-label="Team Huddle" class="dev-expression-btn dev-expression-btn--modal" data-modal="huddle" title="Open team huddle">
-              ${ICONS.handshake} Team Huddle
             </button>
             <button aria-label="Marketplace" class="dev-expression-btn dev-expression-btn--modal" data-modal="marketplace" title="Open marketplace">
               ${ICONS.store} Marketplace
@@ -5285,10 +5281,6 @@ function openModal(modal: string): void {
     case 'daily':
       window.dispatchEvent(new CustomEvent('ferni:open-daily-practice'));
       log.info('Opening daily check-in');
-      break;
-    case 'huddle':
-      window.dispatchEvent(new CustomEvent('ferni:open-team-huddle'));
-      log.info('Opening team huddle');
       break;
     case 'marketplace':
       window.dispatchEvent(new CustomEvent('ferni:open-marketplace'));
