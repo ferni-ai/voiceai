@@ -344,7 +344,7 @@
         "calendar": "Calendar",
         "history": "Past chats",
         "people": "Your people",
-        "insights": "How you're doing"
+        "insights": "What I've learned"
       }
     },
     "ariaLabel": "Settings menu",
@@ -8801,6 +8801,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Past Chats",
     "loadError": "Couldn't load data.",
     "tryAgain": "Try again?",
     "ariaLabel": "Conversation history",
