@@ -56,7 +56,7 @@ export function extractEmbedding(
 }
 
 /**
- * Check if document matches filter criteria (owner first, see ownedBy).
+ * Check if document matches filter criteria.
  */
 export function matchesFilter(
   doc: { metadata: { source: string; category?: string; userId?: string } },
