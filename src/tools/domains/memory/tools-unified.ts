@@ -16,6 +16,7 @@ import { getUnifiedMemoryService } from '../../../services/unified-memory-servic
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { REMEMBERED, REMEMBERED_THIS_CALL } from './tools.js';
 
 const log = getLogger();
 
@@ -188,7 +189,7 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
 
         if (!userId) {
           log.warn('No userId available for memory write');
-          return '';
+          return REMEMBERED_THIS_CALL;
         }
 
         // Store in session for awareness tools (backward compat)
@@ -208,10 +209,10 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
 
         if (result.success) {
           log.debug({ memoryId: result.memoryId }, 'Memory written successfully');
+          return REMEMBERED;
         }
-
-        // Return empty - agent should continue naturally
-        return '';
+        // Never an empty result (tool-output-guard.ts): say whether it was kept
+        return REMEMBERED_THIS_CALL;
       },
     });
   },

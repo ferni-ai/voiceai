@@ -61,6 +61,11 @@ interface UserData {
 // REMEMBER ABOUT USER
 // ============================================================================
 
+/** rememberAboutUser's results: short, honest, and not something to read out. */
+export const REMEMBERED = 'Saved for next time. Carry on; no need to mention it.';
+export const REMEMBERED_THIS_CALL =
+  "Noted for this call, but it couldn't be saved for next time. Carry on; no need to mention it.";
+
 export const rememberAboutUserDef: ToolDefinition = {
   id: 'rememberAboutUser',
   name: 'Remember About User',
@@ -111,11 +116,11 @@ export const rememberAboutUserDef: ToolDefinition = {
 
           services.captureInsight(insightType, `explicit_memory_${category}`, fact, confidence);
           getLogger().info('Fact captured to learning engine for persistence');
+          return REMEMBERED;
         }
 
-        // Return empty string - agent should continue naturally without reading any acknowledgment
-        // The tool executed silently; the agent decides how/if to respond
-        return '';
+        // Kept in this call's notes only: say so rather than return nothing (tool-output-guard.ts)
+        return REMEMBERED_THIS_CALL;
       },
     });
   },

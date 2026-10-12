@@ -34,6 +34,7 @@ import { filterCaptionStream } from './caption-filter.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
+import { fillEmptyToolOutputs } from './tool-output-guard.js';
 import { isScreeningCall } from '../shared/line-screen.js';
 import { tapSpokenText, toolsForTurn, withTeammateTool } from './turn-request.js';
 import { noteRequest } from '../shared/turn-receipt.js';
@@ -690,13 +691,17 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
 
   /**
    * Every LLM request (preemptive or not) goes through here, gated for crisis with
-   * the turn reminder and director's notes (crisis-gate.ts), with this turn's tools.
+   * the turn reminder and director's notes (crisis-gate.ts), with this turn's tools
+   * and no empty tool result.
    */
   async llmNode(
     chatCtx: llm.ChatContext,
     toolCtx: llm.ToolContext,
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
+    // No tool result reaches the model empty (tool-output-guard.ts).
+    const userData = this.session.userData as { services?: { sessionId?: string } } | undefined;
+    fillEmptyToolOutputs(chatCtx, userData?.services?.sessionId);
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
     const model = async (ctx: llm.ChatContext) => {
       noteRequest(this.session, ctx, tools); // the request as sent, for its TURN_RECEIPT
