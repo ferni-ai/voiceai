@@ -30,6 +30,13 @@ import {
   textureLine,
 } from './turn-length.js';
 import { MOVE_LINE, moveLearned, nextMove } from './turn-move.js';
+import {
+  FOLLOWUP_LINE,
+  followUpLearned,
+  followUpNow,
+  SPECIFIC_LINE,
+  specificOn,
+} from './turn-specific.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -259,15 +266,22 @@ function modelChosenShape(
   }
   const next = moveOn ? nextMove(userText, sig.recent, sig.careful, rng) : null;
   if (next) parts.push(MOVE_LINE[next]);
-  if (learn.length) parts.push(lengthLine(target));
+  // TURN_FOLLOWUP=learned / TURN_SPECIFIC=on (turn-specific.ts), on chat turns only.
+  const chat = move === 'share' || move === 'ack';
+  const followUp = followUpLearned() && chat && followUpNow(userText, sig.recent, rng);
+  if (specificOn() && chat && !followUp) parts.push(SPECIFIC_LINE);
+  if (followUp) parts.push(FOLLOWUP_LINE);
+  else if (learn.length) parts.push(lengthLine(target));
   parts.push(planLine(sig.pickUp));
   // An asking move carries its own question; any other move ends without one.
-  if (next) parts.push(next === 'ask' ? '' : QUESTION_LINE.none);
+  if (followUp) parts.push('');
+  else if (next) parts.push(next === 'ask' ? '' : QUESTION_LINE.none);
   else parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none));
   const learned = [
     learn.length ? `length_${target}` : '',
     texture ? `texture_${texture.kind}` : '',
     next ? `move_${next}` : '',
+    followUp ? 'follow_up' : '',
   ];
   return {
     move,

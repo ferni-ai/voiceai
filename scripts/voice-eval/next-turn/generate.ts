@@ -42,6 +42,12 @@ const ARMS: Record<string, string> = {
   lean2: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_LEAN=on NEXT_TURN_SALT=2',
   lt3: 'TURN_LENGTH=learned TURN_TEXTURE=learned NEXT_TURN_SALT=3',
   lean3: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_LEAN=on NEXT_TURN_SALT=3',
+  spec: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_SPECIFIC=on',
+  spec2: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_SPECIFIC=on NEXT_TURN_SALT=2',
+  spec3: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_SPECIFIC=on NEXT_TURN_SALT=3',
+  fup: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_FOLLOWUP=learned',
+  fup2: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_FOLLOWUP=learned NEXT_TURN_SALT=2',
+  fup3: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_FOLLOWUP=learned NEXT_TURN_SALT=3',
   inflight:
     'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_PLAN=on TURN_PLAN_CHECK=on ATTUNE=on QUIET_CALLER=on HONEST_FRIEND=on',
 };
@@ -57,6 +63,7 @@ const loader = await import('../../../src/agents/personas/prompt-loader.js');
 const { turnShapeFor, rngFor } = await import('../../../src/agents/personas/turn-shape.js');
 const { laneReason } = await import('../../../src/agents/model-provider/fast-lane.js');
 const { recentTurns } = await import('../../../src/agents/personas/turn-length.js');
+const { pickSpecific } = await import('../../../src/agents/personas/turn-specific.js');
 const { regexSignals } = await import('../../../src/agents/personas/turn-extras.js');
 const { callerMove } = await import('../../../src/agents/personas/turn-shape.js');
 
@@ -117,14 +124,22 @@ await pool(
   6,
   async (m: Moment) => {
     const said = neutralise(m.context[m.context.length - 1].text, m.names) as string;
+    let specificMeta: Record<string, unknown> = {};
     const recent = recentTurns(m.context.map((t) => ({ ferni: t.who === 'friend', text: t.text })));
     const plan = process.env.TURN_PLAN === 'on' ? await fastJson(PLAN, lines(m)) : null;
     const pickUp = typeof plan?.json.pickUp === 'string' ? plan.json.pickUp : undefined;
     const sig = { ...regexSignals(said, callerMove(said)), recent, pickUp };
-    const shape = turnShapeFor(said, rngFor(`${process.env.NEXT_TURN_SALT ?? ''}${m.id}:${said}`), undefined, sig);
+    const shape = turnShapeFor(
+      said,
+      rngFor(`${process.env.NEXT_TURN_SALT ?? ''}${m.id}:${said}`),
+      undefined,
+      sig
+    );
     const lane = laneReason(said);
     const model =
-      process.env.CASCADE_FAST_LANE === 'on' && lane === 'chat' ? 'gemini-3.5-flash-lite' : 'gemini-3.5-flash';
+      process.env.CASCADE_FAST_LANE === 'on' && lane === 'chat'
+        ? 'gemini-3.5-flash-lite'
+        : 'gemini-3.5-flash';
     const generationConfig = {
       temperature,
       maxOutputTokens: 400,
@@ -142,8 +157,16 @@ await pool(
       }
       throw new Error(`${m.id}: no reply after 3 tries`);
     };
-    let reply = await draft();
+    // TURN_SPECIFIC=on: two drafts side by side, keep the more specific (turn-specific.ts).
+    let reply: string;
+    if (process.env.TURN_SPECIFIC === 'on' && (sig.move === 'share' || sig.move === 'ack')) {
+      const drafts = await Promise.all([draft(), draft()]);
+      const best = pickSpecific(drafts, said);
+      reply = drafts[best];
+      specificMeta = { drafts, picked: best };
+    } else reply = await draft();
     const meta: Record<string, unknown> = {
+      ...specificMeta,
       model,
       lane,
       shape: shape.shape,
