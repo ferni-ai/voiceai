@@ -7,6 +7,19 @@ import { stt, voice } from '@livekit/agents';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { normalizeNameMishear, sttWithNameFix } from '../name-mishear.js';
 
+const logged = vi.hoisted(() => [] as Array<{ fields: unknown; msg: unknown }>);
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../utils/safe-logger.js')>();
+  return {
+    ...real,
+    createLogger: (bindings: Record<string, unknown>) => {
+      const logger = real.createLogger(bindings);
+      if (bindings.module !== 'NameMishear') return logger;
+      return { ...logger, info: (fields: unknown, msg: unknown) => logged.push({ fields, msg }) };
+    },
+  };
+});
+
 vi.mock('../../voice-agent/audio-processor.js', () => ({
   processAudioStream: vi.fn(async () => undefined),
 }));
@@ -90,6 +103,20 @@ describe('sttWithNameFix', () => {
     expect(await texts(await sttWithNameFix(session, events(), ON))).toEqual([
       'How are you doing, Ferni?',
     ]);
+  });
+
+  it("logs which name was changed, never the caller's words", async () => {
+    logged.length = 0;
+    const session = { userData: { personaId: 'ferni' } };
+    const heard = 'Hey Fern, my sister Dana got the job today, Freddy?';
+    await texts(await sttWithNameFix(session, Promise.resolve(streamOf([final(heard)])), ON));
+    expect(logged).toEqual([
+      { fields: { variants: ['Fern→Ferni', 'Freddy→Ferni'], count: 2 }, msg: 'NAME_MISHEAR fixed' },
+    ]);
+    const json = JSON.stringify(logged);
+    for (const word of ['Hey', 'sister', 'Dana', 'job', 'today', 'Ferni,']) {
+      expect(json).not.toContain(word);
+    }
   });
 
   it('changes nothing with the flag off', async () => {

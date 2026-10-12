@@ -46,11 +46,20 @@ function addressesFerni(before: string, after: string): boolean {
   return (prev === '' || /[.!?]$/.test(prev)) && CLOSES.test(after) && !LIST.test(after);
 }
 
+/** The text put right, and the variants changed ("Freddy→Ferni"), never the text itself. */
+function fixName(text: string): { text: string; fixed: string[] } {
+  const fixed: string[] = [];
+  const out = text.replace(MISHEARD, (word, _w: string, at: number) => {
+    if (!addressesFerni(text.slice(0, at), text.slice(at + word.length))) return word;
+    fixed.push(`${word}→Ferni`);
+    return 'Ferni';
+  });
+  return { text: out, fixed };
+}
+
 /** The text with mishearings of Ferni's name that address Ferni put right. */
 export function normalizeNameMishear(text: string): string {
-  return text.replace(MISHEARD, (word, _w: string, at: number) =>
-    addressesFerni(text.slice(0, at), text.slice(at + word.length)) ? 'Ferni' : word
-  );
+  return fixName(text).text;
 }
 
 const TRANSCRIPTS = new Set([
@@ -64,10 +73,11 @@ function fixEvent<E>(ev: E): E {
   const event = ev as unknown as stt.SpeechEvent;
   const alt = event.alternatives?.[0];
   if (!TRANSCRIPTS.has(event.type) || alt === undefined) return ev;
-  const text = normalizeNameMishear(alt.text);
-  if (text === alt.text) return ev;
+  const { text, fixed } = fixName(alt.text);
+  if (fixed.length === 0) return ev;
   if (event.type === stt.SpeechEventType.FINAL_TRANSCRIPT) {
-    log.info({ heard: alt.text, text }, 'NAME_MISHEAR fixed');
+    // Never the caller's words: only which name was changed, and how often.
+    log.info({ variants: fixed, count: fixed.length }, 'NAME_MISHEAR fixed');
   }
   const rest = event.alternatives?.slice(1) ?? [];
   return { ...event, alternatives: [{ ...alt, text }, ...rest] } as unknown as E;
