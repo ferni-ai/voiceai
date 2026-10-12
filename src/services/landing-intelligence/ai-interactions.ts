@@ -18,8 +18,8 @@ const log = createLogger({ module: 'LandingAIInteractions' });
 // GEMINI CONFIG (uses centralized config)
 // ============================================================================
 
+import { getGenerativeAI, type GenerativeAI } from '../../config/generative-model.js';
 import {
-  getGeminiClient,
   isGeminiConfigured,
   getDefaultModel,
   TEMP_EXTRACTION,
@@ -37,10 +37,10 @@ import {
 // Model name comes from centralized config (GEMINI_MODEL env var)
 const MODEL_NAME = getDefaultModel();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getGenAI(): Promise<any | null> {
+// The shared Gemini client (Vertex via ADC on Cloud Run), in the old SDK's shape
+async function getGenAI(): Promise<GenerativeAI | null> {
   if (!isGeminiConfigured()) return null;
-  return getGeminiClient();
+  return getGenerativeAI();
 }
 
 // Rate limiting for demo chat (per visitor)
@@ -275,24 +275,21 @@ Remember: This is their first impression of Ferni. Make it count.`;
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
-    // Build conversation history
-    const history = messages.slice(0, -1).map((m) => ({
+    // Conversation history, then the new turn (what startChat().sendMessage() sent)
+    const contents = messages.slice(0, -1).map((m) => ({
       role: m.role === 'user' ? 'user' : 'model',
       parts: [{ text: m.content }],
     }));
+    const lastText = messages[messages.length - 1].content;
+    contents.push({ role: 'user', parts: [{ text: systemPrompt }, { text: lastText }] });
 
-    const chat = model.startChat({
-      history,
+    const result = await model.generateContent({
+      contents,
       generationConfig: {
         maxOutputTokens: MAX_TOKENS_TINY,
         temperature: TEMP_REASONING,
       },
     });
-
-    const result = await chat.sendMessage([
-      { text: systemPrompt },
-      { text: messages[messages.length - 1].content },
-    ]);
 
     return result.response.text();
   } catch (error) {

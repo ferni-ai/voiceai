@@ -2,10 +2,10 @@
  * Gemini Client for Landing Intelligence
  *
  * Fast, low-latency Gemini client optimized for landing page use cases.
- * Uses Gemini 2.0 Flash for speed, with fallback to cached responses.
+ * Uses the default model for speed, with fallback to cached responses.
  *
- * NOTE: Uses dynamic import for @google/generative-ai to make it optional.
- * If the package is not installed, falls back to null responses.
+ * Calls go through the shared Gemini client (Vertex via ADC on Cloud Run), so
+ * the UI server needs no API key. When Gemini is unavailable, returns null.
  *
  * @module services/landing-intelligence/gemini-client
  */
@@ -14,30 +14,14 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getDefaultModel } from '../model-config.js';
 
 // Use centralized Gemini config
+import { isGeminiConfigured, getGeminiConfigStatus } from '../../config/gemini-config.js';
 import {
-  getGeminiClient,
-  isGeminiConfigured,
-  getGeminiConfigStatus,
-} from '../../config/gemini-config.js';
+  getGenerativeModel,
+  type GenerationConfig,
+  type GenerativeModel,
+} from '../../config/generative-model.js';
 
 const log = createLogger({ module: 'LandingGemini' });
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-// Type for the Gemini client (using interface to avoid dependency on @google/genai types)
-interface GeminiClient {
-  getGenerativeModel: (config: {
-    model: string;
-    safetySettings?: unknown;
-    generationConfig?: Record<string, unknown>;
-  }) => {
-    generateContent: (prompt: string) => Promise<{
-      response: { text: () => string };
-    }>;
-  };
-}
 
 // ============================================================================
 // CONFIGURATION
@@ -46,11 +30,6 @@ interface GeminiClient {
 // Use centralized model config (toggle via admin UI or model-config.json)
 function getModelName(): string {
   return getDefaultModel();
-}
-
-// Safety settings for content generation (permissive for landing page use)
-function getSafetySettings(): unknown[] {
-  return []; // Use default safety settings
 }
 
 // Generation config for fast responses
@@ -65,20 +44,12 @@ const GENERATION_CONFIG = {
 // CLIENT INITIALIZATION (uses centralized config)
 // ============================================================================
 
-// Cached client
-let cachedClient: GeminiClient | null = null;
-
-async function getClient(): Promise<GeminiClient | null> {
-  if (cachedClient) return cachedClient;
-
+async function getModel(generationConfig: GenerationConfig): Promise<GenerativeModel | null> {
   if (!isGeminiConfigured()) {
     log.warn({ status: getGeminiConfigStatus() }, 'Gemini not configured for landing page');
     return null;
   }
-
-  // Cast from unknown to GeminiClient (centralized config returns unknown for flexibility)
-  cachedClient = (await getGeminiClient()) as GeminiClient | null;
-  return cachedClient;
+  return getGenerativeModel({ model: getModelName(), generationConfig });
 }
 
 // ============================================================================
@@ -164,21 +135,15 @@ export async function generateJSON<T>(
   }
 
   try {
-    const client = await getClient();
-    if (!client) {
+    const model = await getModel({
+      ...GENERATION_CONFIG,
+      maxOutputTokens: options.maxTokens || GENERATION_CONFIG.maxOutputTokens,
+      temperature: options.temperature ?? GENERATION_CONFIG.temperature,
+    });
+    if (!model) {
       log.debug('Gemini client not available, returning null');
       return null;
     }
-
-    const model = client.getGenerativeModel({
-      model: getModelName(),
-      safetySettings: getSafetySettings(),
-      generationConfig: {
-        ...GENERATION_CONFIG,
-        maxOutputTokens: options.maxTokens || GENERATION_CONFIG.maxOutputTokens,
-        temperature: options.temperature ?? GENERATION_CONFIG.temperature,
-      },
-    });
 
     // Add JSON instruction to prompt
     const fullPrompt = `${prompt}
@@ -220,21 +185,15 @@ export async function generateText(
   options: GenerationOptions = {}
 ): Promise<string | null> {
   try {
-    const client = await getClient();
-    if (!client) {
+    const model = await getModel({
+      ...GENERATION_CONFIG,
+      maxOutputTokens: options.maxTokens || 100, // Short for text
+      temperature: options.temperature ?? 0.8,
+    });
+    if (!model) {
       log.debug('Gemini client not available, returning null');
       return null;
     }
-
-    const model = client.getGenerativeModel({
-      model: getModelName(),
-      safetySettings: getSafetySettings(),
-      generationConfig: {
-        ...GENERATION_CONFIG,
-        maxOutputTokens: options.maxTokens || 100, // Short for text
-        temperature: options.temperature ?? 0.8,
-      },
-    });
 
     const startTime = Date.now();
     const timeoutMs = options.timeout || 3000; // Faster timeout for text
