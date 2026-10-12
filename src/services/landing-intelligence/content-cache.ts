@@ -14,7 +14,7 @@
 
 import { Firestore } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
-import { generatePersonalizedHero, generateSocialProof } from './ai-interactions.js';
+import { generatePersonalizedHero } from './ai-interactions.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -55,16 +55,6 @@ export interface CachedHero {
     timeBlock: 'lateNight' | 'earlyMorning' | 'morning' | 'afternoon' | 'evening';
     visitorType: 'new' | 'returning' | 'loyal';
   };
-  generatedAt: Date;
-  expiresAt: Date;
-}
-
-export interface CachedSocialProof {
-  id: string;
-  messages: Array<{
-    text: string;
-    type: 'memory' | 'presence' | 'understanding' | 'moment';
-  }>;
   generatedAt: Date;
   expiresAt: Date;
 }
@@ -110,7 +100,6 @@ const CONFIG = {
   // Firestore collections
   collections: {
     heroes: 'landing_cache_heroes',
-    socialProof: 'landing_cache_social_proof',
     memoryStories: 'landing_cache_memory_stories',
     lateNightScenarios: 'landing_cache_late_night',
     useCaseQuotes: 'landing_cache_use_cases',
@@ -119,7 +108,6 @@ const CONFIG = {
   // TTL for different content types
   ttl: {
     heroes: 24 * 60 * 60 * 1000, // 24 hours
-    socialProof: 24 * 60 * 60 * 1000, // 24 hours
     memoryStories: 7 * 24 * 60 * 60 * 1000, // 7 days
     lateNightScenarios: 7 * 24 * 60 * 60 * 1000, // 7 days
     useCaseQuotes: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -128,7 +116,6 @@ const CONFIG = {
   // How many variations to pre-generate
   variations: {
     heroes: 15, // 5 time blocks x 3 visitor types
-    socialProof: 30, // Rotating messages
     memoryStories: 10,
     lateNightScenarios: 15,
     useCaseQuotes: 6, // 6 categories x 5 quotes each
@@ -137,7 +124,6 @@ const CONFIG = {
   // Cache control headers for CDN
   cacheHeaders: {
     heroes: 'public, max-age=3600, s-maxage=86400', // 1h browser, 24h CDN
-    socialProof: 'public, max-age=1800, s-maxage=43200', // 30m browser, 12h CDN
     memoryStories: 'public, max-age=86400, s-maxage=604800', // 24h browser, 7d CDN
     lateNightScenarios: 'public, max-age=86400, s-maxage=604800',
     useCaseQuotes: 'public, max-age=86400, s-maxage=604800',
@@ -199,29 +185,6 @@ const FALLBACK_HEROES: Record<string, Partial<CachedHero>> = {
   },
 };
 
-const FALLBACK_SOCIAL_PROOF = [
-  {
-    text: 'Last night at 3am, someone asked me about building a morning routine. We talked for 47 minutes.',
-    type: 'presence' as const,
-  },
-  {
-    text: "I reminded someone about a breakthrough they had 4 months ago. They'd forgotten. I hadn't.",
-    type: 'memory' as const,
-  },
-  {
-    text: "Someone said 'I'm fine' but I heard the pause. We talked about what was really going on.",
-    type: 'understanding' as const,
-  },
-  {
-    text: "A user mentioned their sister's birthday is coming up. I remembered they were trying to reconnect.",
-    type: 'memory' as const,
-  },
-  {
-    text: "It's 2am somewhere. Right now I'm talking to 47 people who couldn't sleep.",
-    type: 'presence' as const,
-  },
-];
-
 // ═══════════════════════════════════════════════════════════════════════════
 // CACHE OPERATIONS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -277,38 +240,6 @@ function createFallbackHero(cacheKey: string): CachedHero {
     generatedAt: new Date(),
     expiresAt: new Date(Date.now() + CONFIG.ttl.heroes),
   };
-}
-
-/**
- * Get cached social proof messages
- */
-export async function getCachedSocialProof(count = 5): Promise<CachedSocialProof['messages']> {
-  try {
-    const db = getDb();
-    if (!db) {
-      return FALLBACK_SOCIAL_PROOF.slice(0, count);
-    }
-
-    const snapshot = await db
-      .collection(CONFIG.collections.socialProof)
-      .orderBy('generatedAt', 'desc')
-      .limit(1)
-      .get();
-
-    if (!snapshot.empty) {
-      const data = snapshot.docs[0].data() as CachedSocialProof;
-      if (data.expiresAt && new Date(data.expiresAt) > new Date()) {
-        // Shuffle and return requested count
-        const shuffled = [...data.messages].sort(() => Math.random() - 0.5);
-        return shuffled.slice(0, count);
-      }
-    }
-
-    return FALLBACK_SOCIAL_PROOF.slice(0, count);
-  } catch (error) {
-    log.error({ error: String(error) }, 'Error getting cached social proof');
-    return FALLBACK_SOCIAL_PROOF.slice(0, count);
-  }
 }
 
 /**
@@ -454,71 +385,24 @@ export async function generateAndCacheHeroes(): Promise<number> {
 }
 
 /**
- * Generate social proof messages and cache them
- */
-export async function generateAndCacheSocialProof(): Promise<number> {
-  const db = getDb();
-  if (!db) return 0;
-
-  try {
-    const snippets = await generateSocialProof(CONFIG.variations.socialProof);
-
-    if (snippets && snippets.length > 0) {
-      const cached: CachedSocialProof = {
-        id: `social_proof_${Date.now()}`,
-        messages: snippets.map((snippet, i) => ({
-          text: snippet.content,
-          type: (['memory', 'presence', 'understanding', 'moment'] as const)[i % 4],
-        })),
-        generatedAt: new Date(),
-        expiresAt: new Date(Date.now() + CONFIG.ttl.socialProof),
-      };
-
-      await db
-        .collection(CONFIG.collections.socialProof)
-        .doc(cached.id)
-        .set(cleanForFirestore(cached));
-
-      log.info({ count: cached.messages.length }, 'Cached social proof messages');
-      return cached.messages.length;
-    }
-
-    return 0;
-  } catch (error) {
-    log.error({ error: String(error) }, 'Error generating social proof');
-    return 0;
-  }
-}
-
-/**
  * Run full batch generation (call from daily cron job)
  */
 export async function runBatchGeneration(): Promise<{
   heroes: number;
-  socialProof: number;
   totalCost: string;
 }> {
   log.info('Starting batch content generation...');
 
   const heroes = await generateAndCacheHeroes();
-  const socialProof = await generateAndCacheSocialProof();
 
   // Estimate cost (Gemini Pro 1.5: ~$0.0005 per 1K tokens)
-  const estimatedTokens = heroes * 500 + socialProof * 200;
+  const estimatedTokens = heroes * 500;
   const estimatedCost = ((estimatedTokens / 1000) * 0.0005).toFixed(4);
 
-  log.info(
-    {
-      heroes,
-      socialProof,
-      estimatedCost: `$${estimatedCost}`,
-    },
-    'Batch generation complete'
-  );
+  log.info({ heroes, estimatedCost: `$${estimatedCost}` }, 'Batch generation complete');
 
   return {
     heroes,
-    socialProof,
     totalCost: `$${estimatedCost}`,
   };
 }

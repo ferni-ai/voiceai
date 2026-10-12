@@ -112,6 +112,7 @@ import {
 } from './ui/spotify.ui.js';
 import { openEverythingConnected } from './ui/everything-connected.js';
 import { initTeamUI, teamUI } from './ui/team.ui.js';
+import { initRosterPreferences } from './services/roster-preferences.service.js';
 import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
 // Group Conversations - Team Roundtables and Conference Calls
 import { initGroupConversationUI } from './ui/group-conversation.ui.js';
@@ -494,9 +495,6 @@ class VoiceAIApp {
         return;
       }
     }
-
-    // DISABLED: No skeleton loading - everything visible immediately
-    // initSkeletonUI();
 
     // Add app-loaded class immediately so everything is visible
     document.body.classList.add('app-loaded');
@@ -1238,6 +1236,7 @@ class VoiceAIApp {
     this.safeInit('WaveformUI', () => initWaveformUI());
     this.safeInit('CoachUI', () => initCoachUI());
     this.safeInit('ExpressiveEyes', () => initExpressiveEyes()); // 👀 Pixar-style eye expressions
+    this.safeInit('RosterPreferences', () => initRosterPreferences()); // saved teammates, before the bar renders
     this.safeInit('TeamUI', () => initTeamUI());
     this.safeInit('SpotifyUI', () => initSpotifyUI());
     this.safeInit('ControlsUI', () =>
@@ -1255,7 +1254,6 @@ class VoiceAIApp {
 
     // =========================================================================
     // DEFERRED LOADING - Premium features loaded after first paint
-    // This significantly speeds up initial page load time
     // =========================================================================
     // Essential extras - load after 100ms (needed early but not for first paint)
     this.deferredInit('SoundUI', 100, async () => {
@@ -1277,6 +1275,7 @@ class VoiceAIApp {
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
       initConnectionQualityUI();
+      (await import('./ui/tap-to-hear.ui.js')).initTapToHear(); // only shows while the browser blocks call audio
     });
     this.deferredInit('MoodUI', 100, async () => {
       initMoodUI();

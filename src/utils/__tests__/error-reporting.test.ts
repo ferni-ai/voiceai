@@ -82,16 +82,27 @@ describe('buildSentryOptions', () => {
       environment: 'prod',
       release: 'f00d',
       tracesSampleRate: 0,
-      skipOpenTelemetrySetup: true,
-      registerEsmLoaderHooks: false,
-      sendDefaultPii: false,
+      enableOpenTelemetrySetup: false,
+      enableRuntimeChannelInjection: false,
+      dataCollection: {
+        userInfo: false,
+        cookies: false,
+        httpHeaders: false,
+        httpBodies: [],
+        urlQueryParams: false,
+        genAI: { inputs: false, outputs: false },
+        databaseQueryData: false,
+        queues: false,
+        graphQL: { document: false, variables: false },
+        stackFrameVariables: false,
+      },
       includeLocalVariables: false,
     });
     expect(buildSentryOptions({ SENTRY_DSN: DSN, NODE_ENV: 'production' })?.environment).toBe(
       'production'
     );
     expect(buildSentryOptions({ SENTRY_DSN: DSN, SENTRY_TRACES_SAMPLE_RATE: '0.2' })).toMatchObject(
-      { tracesSampleRate: 0.2, skipOpenTelemetrySetup: false, registerEsmLoaderHooks: true }
+      { tracesSampleRate: 0.2, enableOpenTelemetrySetup: true, enableRuntimeChannelInjection: true }
     );
     expect(buildSentryOptions({ SENTRY_DSN: DSN, SENTRY_TRACES_SAMPLE_RATE: '5' })).toMatchObject({
       tracesSampleRate: 0,
