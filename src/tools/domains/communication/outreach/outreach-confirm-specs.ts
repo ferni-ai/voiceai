@@ -48,11 +48,37 @@ export function argsConfirm(what: string): ConfirmSpec {
   return {
     prepare: async (args) => {
       const name = firstText(args, ['contactName', 'friendName', 'recipientName']);
-      const address = firstText(args, ['contactPhone', 'friendPhone', 'recipientEmail']);
+      const address = firstText(args, [
+        'contactPhone',
+        'friendPhone',
+        'recipientEmail',
+        'to',
+        'phoneNumber',
+      ]);
       if (!name && !address) return `Nothing was sent: I couldn't tell who ${what} would go to.`;
-      const says = firstText(args, ['message', 'objective', 'purpose']);
+      const says = firstText(args, ['message', 'objective', 'purpose', 'body']);
       const who = [name, address].filter(Boolean).join(' at ');
       return { args, readBack: `${what} to ${who}${says ? `, about "${says}"` : ''}` };
+    },
+  };
+}
+
+/**
+ * postToTwitter / postToLinkedIn: only action 'post' publishes. Read back the
+ * exact words; a saved draft is dropped so what posts is what the caller heard.
+ */
+export function postConfirm(where: string): ConfirmSpec {
+  return {
+    applies: (args) => args.action === 'post',
+    prepare: async (args) => {
+      const parts = [args.content].flat().filter((p): p is string => typeof p === 'string');
+      const text = parts
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .join(' / ');
+      if (!text) return 'Nothing was posted: tell the caller the exact words first.';
+      const { useDraft: _draft, ...exact } = args;
+      return { args: exact, readBack: `a public post to ${where} saying "${text}"` };
     },
   };
 }
