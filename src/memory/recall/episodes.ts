@@ -78,8 +78,18 @@ const MIN_TURNS = 4;
 export function isForgottenPassage(text: string, topics: readonly string[]): boolean {
   if (isForgotten(text, topics)) return true;
   const words = new Set(forgetTokens(text));
+  // "Distinctive" is judged on the word as written, not its stem: a stemmer
+  // can shorten "wedding" below five letters, and the topic must still count.
   return topics.some((t) =>
-    forgetTokens(t).some((w) => (/^\d{4,}$/.test(w) || w.length >= 5) && words.has(w))
+    t
+      .split(/\s+/)
+      .map((raw) => ({ raw: raw.replace(/[^\p{L}\p{N}]/gu, ''), tokens: forgetTokens(raw) }))
+      .some(
+        ({ raw, tokens }) =>
+          (/^\d{4,}$/.test(raw) || raw.length >= 5) &&
+          tokens.length > 0 &&
+          tokens.every((w) => words.has(w))
+      )
   );
 }
 
