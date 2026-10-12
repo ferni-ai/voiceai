@@ -20,6 +20,7 @@ import { formatCurrency, formatNumber, t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import { anchorAboveControls, anchoredCardCss } from './after-call/anchor-above-controls.js';
+import { openSupport } from './support/open-support.js';
 
 const log = createLogger('ConversationCostUI');
 
@@ -285,10 +286,8 @@ function handleTipClick(_amount: string): void {
   // Hide the cost card first
   hide();
 
-  // Open the Support Ferni modal which has proper payment integration
-  import('./support-ferni.ui.js').then(({ supportFerniUI }) => {
-    void supportFerniUI.open();
-  });
+  // Venmo chip-in when configured, otherwise the Stripe Support Ferni modal
+  openSupport().catch((error: unknown) => log.warn('Support failed to open', { error: String(error) }));
 }
 
 // ============================================================================

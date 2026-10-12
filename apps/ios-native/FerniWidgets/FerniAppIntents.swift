@@ -29,13 +29,15 @@ enum MoodType: String, AppEnum {
         ]
     }
 
-    var emoji: String {
+    /// SF Symbol for this mood, the same weather glyphs as the App Intent
+    /// display representations above. The brand puts no emojis in UI.
+    var symbolName: String {
         switch self {
-        case .great: return "😊"
-        case .good: return "🙂"
-        case .okay: return "😐"
-        case .meh: return "😕"
-        case .low: return "😔"
+        case .great: return "sun.max.fill"
+        case .good: return "sun.min.fill"
+        case .okay: return "cloud.sun.fill"
+        case .meh: return "cloud.fill"
+        case .low: return "cloud.rain.fill"
         }
     }
 

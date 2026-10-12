@@ -665,8 +665,6 @@ body {
 /* Zen header styling - clean, extends to top */
 [data-theme='zen'] .header {
   background: transparent;
-  /* Subtle border at bottom of frosted glass area */
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   /* Padding at top instead of margin so frosted glass covers full area */
   margin-top: 0;
   padding-top: calc(32px + env(safe-area-inset-top, 0px));
@@ -681,6 +679,8 @@ body {
   right: -50vw;
   bottom: 0;
   background: rgba(255, 255, 255, 0.75);
+  /* Fade out at the bottom: a hard edge read as a seam across the screen */
+  mask-image: linear-gradient(to bottom, black 70%, transparent);
   backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   z-index: -1;
@@ -1811,6 +1811,13 @@ html.theme-transitioning *::after {
 .app-loaded .entrance-roster.entrance-complete .team-member {
   opacity: 1 !important;
   pointer-events: auto !important;
+}
+
+/* Stable roster: the entrance plays once. Rebuilding the bar after a tap, add or
+   handoff must not replay it on every avatar; roster-motion.ts moves only what changed. */
+.app-loaded .entrance-roster.roster-settled .team-member {
+  animation: none;
+  opacity: 1;
 }
 
 /* CRITICAL: Marketplace "More" button must ALWAYS be visible and clickable.
@@ -3705,63 +3712,28 @@ body {
   animation-duration: 1.5s; /* Energetic - research enthusiasm */
 }
 
-/* Persona transition - playful bounce entrance */
-#coach.persona-transitioning #coachAvatar {
-  animation: personaBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes personaBounce {
-  0% {
-    transform: scale(0.8) rotate(-5deg) translate3d(0, 0, 0);
-    opacity: 0.5;
-  }
-  40% {
-    transform: scale(1.08) rotate(2deg) translate3d(0, -2px, 0);
-    opacity: 1;
-  }
-  60% {
-    transform: scale(0.97) rotate(-1deg) translate3d(0, 1px, 0);
-  }
-  80% {
-    transform: scale(1.02) rotate(0.5deg) translate3d(0, -0.5px, 0);
-  }
-  /* Perfect settle to exact origin */
-  100% {
-    transform: scale(1) rotate(0deg) translate3d(0, 0, 0);
-    opacity: 1;
-  }
-}
-
-/* Avatar ring sparkle during transition */
+/* Persona transition. The avatar's entrance bounce is coach.ui's WAAPI
+   playReaction('bounce'); a CSS bounce here ran on the same element underneath
+   it (and its keyframe name collided with the idle personaBounce below).
+   The ring animates transform/opacity only: border-width and box-shadow
+   re-ran layout and paint on every frame. */
 #coach.persona-transitioning #avatarRing {
-  animation: ringSparkle 0.6s ease-out;
+  animation: ringSparkle 0.35s ease-out;
 }
 
 @keyframes ringSparkle {
   0% {
     opacity: 0.2;
     transform: scale(1);
-    border-width: 1.5px;
-    box-shadow: 0 0 0 transparent;
   }
   40% {
     opacity: 0.8;
-    transform: scale(1.15);
-    border-width: 3px;
-    box-shadow: 0 0 20px var(--persona-glow);
-  }
-  70% {
-    opacity: 0.5;
-    transform: scale(1.05);
-    border-width: 2px;
-    box-shadow: 0 0 8px var(--persona-glow);
+    transform: scale(1.12);
   }
   /* Perfect return to exact initial state */
   100% {
     opacity: 0.4;
     transform: scale(1);
-    border-width: 1.5px;
-    box-shadow: 0 0 0 transparent;
   }
 }
 
@@ -3832,7 +3804,9 @@ body {
 
 .avatar-lid-overlay .lid-top,
 .avatar-lid-overlay .lid-bottom {
-  fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520)); /* a shade of the face, not the page: a page-colored lid cut a crescent out of the avatar */
+  /* The lids take the page colour on purpose: the light lid dropping over the eyes is the
+     "cap" that carries the expression (Seth, 2026-10-11). Don't recolour it to the face. */
+  fill: var(--color-background-primary, #1a1612);
   transition: d 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -3872,7 +3846,7 @@ body {
 [data-theme='dark'] .avatar-lid-overlay .lid-bottom,
 [data-theme='dark'] .avatar-lid-overlay .brow-left,
 [data-theme='dark'] .avatar-lid-overlay .brow-right {
-  fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520));
+  fill: var(--color-background-primary, #352e28);
 }
 
 /* Reduced motion - disable lid transitions */
@@ -5790,7 +5764,6 @@ body {
 .btn-connecting {
   position: relative;
   cursor: pointer; /* tap to cancel */
-  /* Subtle width expansion to accommodate spinner */
   min-width: min(160px, 100%);
   transition: min-width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -5800,11 +5773,15 @@ body {
   transform: scale(0.9);
 }
 
-/* Connecting state overlay with spinner + text */
-.btn-connecting::after {
+/* Connecting label over the button. Undo the .btn-primary::after glow
+   (behind the button, blurred, fill colour) or the label is invisible. */
+.btn.btn-connecting::after {
   content: attr(data-status);
   position: absolute;
   inset: 0;
+  z-index: 1;
+  background: none;
+  filter: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9769,7 +9746,7 @@ body {
   opacity: 0;
   transform: translateY(-10px);
   transition: all var(--transition-base);
-  z-index: var(--z-elevated);
+  z-index: var(--z-notification);
 }
 
 .connection-quality.visible {
@@ -11724,7 +11701,7 @@ body.ambient-aurora {
        FERNI-CENTERED RESPONSIVE DESIGN SYSTEM
        
        A comprehensive, mobile-first approach to make Ferni feel like
-       she's speaking directly to you - not a dashboard, but a conversation.
+       he's speaking directly to you - not a dashboard, but a conversation.
        
        BREAKPOINT STRATEGY (Mobile-First):
        ├── ≤320px    : Very Small (iPhone SE 1st gen, older devices)
@@ -11977,13 +11954,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(180px, 100%);
@@ -12049,13 +12019,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(200px, 100%);
@@ -12123,13 +12086,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(160px, 100%);
@@ -12192,13 +12148,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(140px, 100%);
@@ -12262,13 +12211,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(120px, 100%);
@@ -12493,8 +12435,6 @@ body.ambient-aurora {
   }
 
   /* Hide secondary elements that take up space */
-  #teamRoster,
-  .entrance-roster,
   .garden-widget-wrapper,
   #gardenWidgetContainer {
     display: none !important;
@@ -12848,14 +12788,14 @@ body.ambient-aurora {
 /* ---------------------------------------------------------------------
    BUTTON - Fixed 56px height, never changes
    --------------------------------------------------------------------- */
-.btn,
+.btn:not(.btn-mute),
 .btn-primary {
   min-height: var(--ferni-button-height) !important;
   padding: var(--ferni-button-padding) !important;
   font-size: var(--ferni-button-font) !important;
 }
 
-.btn-secondary {
+.btn-secondary:not(.btn-mute) {
   min-height: 48px !important;
   padding: 12px 28px !important;
 }
@@ -12904,7 +12844,7 @@ body.ambient-aurora {
    Philosophy: On mobile, Ferni should feel like texting a friend.
    Hide the dashboard complexity, focus on the conversation.
 
-   - Hide team roster (secondary)
+   - Team roster as a compact scrolling row, not hidden (2026-10-11)
    - Hide garden widget (tertiary)
    - Hide subscription badge when connected (distraction)
    - Larger avatar for intimacy
@@ -12917,16 +12857,8 @@ body.ambient-aurora {
      HIDE SECONDARY ELEMENTS
      ========================= */
 
-  /* Team roster - nice on desktop, overwhelming on mobile */
-  #teamRoster,
-  .entrance-roster,
-  .team-roster {
-    display: none !important;
-    visibility: hidden !important;
-    height: 0 !important;
-    overflow: hidden !important;
-    pointer-events: none !important;
-  }
+  /* Team roster stays, as a compact row (see TEAM ROSTER ON PHONES below).
+     Hiding it left phones no way to see or switch teammates. */
 
   /* Garden widget - meaningful but not essential for core experience */
   .garden-widget-wrapper,
@@ -12957,10 +12889,6 @@ body.ambient-aurora {
      When connected, maximize avatar presence
      ========================= */
 
-  body[data-connected="true"] .header {
-    padding-top: calc(var(--space-sm) + env(safe-area-inset-top, 0px)) !important;
-  }
-
   body[data-connected="true"] .avatar-container {
     width: min(160px, 45vw) !important;
     height: min(160px, 45vw) !important;
@@ -12973,10 +12901,7 @@ body.ambient-aurora {
   }
 
   body[data-connected="true"] #personaSubtitle {
-    opacity: 0 !important;
-    height: 0 !important;
-    margin: 0 !important;
-    overflow: hidden !important;
+    visibility: hidden !important; /* keeps its line: collapsing it shifted the layout */
   }
 
   body[data-connected="true"] #helperText {
@@ -13017,7 +12942,7 @@ body.ambient-aurora {
   }
 
   .btn-primary,
-  .btn-secondary {
+  .btn-secondary:not(.btn-mute) {
     min-width: min(180px, 100%) !important;
     padding: 16px 36px !important;
   }
@@ -13071,7 +12996,7 @@ body.ambient-aurora {
     padding: 0 var(--space-md) !important;
   }
 
-  .btn-primary {
+  #connectBtn {
     width: 100% !important;
     max-width: 280px !important;
   }
@@ -13409,4 +13334,48 @@ body.ambient-aurora {
 
 [data-theme="midnight"] .progress-ring-fill {
   stroke: var(--persona-text) !important;
+}
+
+/* ========================================================================
+   TEAM ROSTER ON PHONES (2026-10-11)
+   The roster used to be hidden at every phone width (and up to 768px), so a
+   phone had no way to see or switch teammates. Un-hidden, it wrapped into a
+   two-row grid that pushed Connect down. On phones it is one row that
+   scrolls sideways: centred when it fits (auto margins on the ends, which
+   unlike justify-content: center never clip the first card when it
+   overflows), snap-scrolled, inset by the safe area, cards >= 44px tall.
+   ======================================================================== */
+@media (max-width: 768px) {
+  #teamRoster {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    max-width: 100%;
+    gap: 4px;
+    padding: 6px max(10px, env(safe-area-inset-right)) 6px max(10px, env(safe-area-inset-left));
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  #teamRoster::-webkit-scrollbar {
+    display: none;
+  }
+
+  #teamRoster > :first-child {
+    margin-inline-start: auto;
+  }
+
+  #teamRoster > :last-child {
+    margin-inline-end: auto;
+  }
+
+  #teamRoster .team-member {
+    flex: 0 0 auto;
+    min-width: 52px;
+    min-height: 44px;
+    scroll-snap-align: center;
+  }
 }

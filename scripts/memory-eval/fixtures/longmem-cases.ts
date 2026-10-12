@@ -11,6 +11,11 @@
  *
  * Sessions are placed by days before the run date, so "said N days ago"
  * notes and the gold dates stay consistent whenever the benchmark runs.
+ *
+ * The last three histories are harder on recall: questions that share no
+ * words with the memory they need (noor), a fact replaced twice (eli), and a
+ * crowded history where a turn's few recalled facts must be the right ones
+ * (ruth).
  */
 import type { MemoryCase, MemoryHistory } from '../longmem-lib.js';
 
@@ -115,6 +120,83 @@ export const HISTORIES: MemoryHistory[] = [
         user: [
           'The wedding was amazing. I gave the toast and only cried a little.',
           "Now I'm planning a trip to Japan in December, mostly for the food.",
+        ],
+      },
+    ],
+  },
+  {
+    id: 'noor',
+    name: 'Noor',
+    sessions: [
+      {
+        daysAgo: 24,
+        user: [
+          'I pulled my groin playing five-a-side, so now I see a physical therapist, Dr. Okonkwo.',
+          'She has me doing Copenhagen planks every morning, which are brutal.',
+        ],
+      },
+      {
+        daysAgo: 10,
+        user: [
+          "Work's been fine. I'm a sound engineer for a podcast studio downtown.",
+          'My partner Jules and I are fostering a beagle called Turnip for a few weeks.',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'eli',
+    name: 'Eli',
+    sessions: [
+      {
+        daysAgo: 60,
+        user: [
+          "I'm still baking at Rise and Grind, the 4 a.m. starts are killing me.",
+          "I've been teaching myself to code at night though.",
+        ],
+      },
+      {
+        daysAgo: 33,
+        user: [
+          'I did it, I quit the bakery! I got a junior developer job at a startup called Lumen Labs.',
+          'First week was terrifying but everyone is really kind.',
+        ],
+      },
+      {
+        daysAgo: 5,
+        user: [
+          'Wild news. Lumen Labs got acquired by Northwind, so I work for Northwind now.',
+          'Same team and same desk, just a new logo on my badge.',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'ruth',
+    name: 'Ruth',
+    sessions: [
+      {
+        daysAgo: 45,
+        user: [
+          'My husband Walt is getting his hip replaced next month, he is nervous.',
+          'My sister Joan in Tucson keeps calling to check on him.',
+          'And my book club picked Lessons in Chemistry, I am halfway through.',
+        ],
+      },
+      {
+        daysAgo: 20,
+        user: [
+          "My nephew Marcus just started at Purdue, he's studying aerospace engineering.",
+          "Walt's surgery went well, he's already walking with a cane.",
+          'Our grandson Theo turns seven next week and he wants a dinosaur cake.',
+        ],
+      },
+      {
+        daysAgo: 4,
+        user: [
+          'Joan is coming up from Tucson for Thanksgiving this year.',
+          'The book club moved on to The Covenant of Water, it is long but lovely.',
+          'And I finally started water aerobics at the Y on Tuesdays.',
         ],
       },
     ],
@@ -233,6 +315,85 @@ export const CASES: MemoryCase[] = [
     history: 'sam',
     category: 'abstention',
     ask: "What's my brother's name?",
+    gold: () => 'never said',
+  },
+  // harder: no shared words, facts replaced twice, a crowded history
+  {
+    history: 'noor',
+    category: 'single-session',
+    ask: "Who's helping me rehab my injury?",
+    gold: () => 'Dr. Okonkwo, the physical therapist',
+  },
+  {
+    history: 'noor',
+    category: 'single-session',
+    ask: 'What exercise am I supposed to do every morning?',
+    gold: () => 'Copenhagen planks',
+  },
+  {
+    history: 'noor',
+    category: 'single-session',
+    ask: "What's the name of the dog we're looking after?",
+    gold: () => 'Turnip (a beagle)',
+  },
+  {
+    history: 'noor',
+    category: 'multi-session',
+    ask: 'How did I get hurt, and who is treating me for it?',
+    gold: () => 'pulled a groin playing five-a-side football; Dr. Okonkwo',
+  },
+  {
+    history: 'noor',
+    category: 'abstention',
+    ask: "What's my physical therapist's first name?",
+    gold: () => 'never said',
+  },
+  {
+    history: 'eli',
+    category: 'knowledge-update',
+    ask: 'Which company do I work for now?',
+    gold: () => 'Northwind (which acquired Lumen Labs)',
+  },
+  {
+    history: 'eli',
+    category: 'multi-session',
+    ask: 'Who bought the startup I joined after leaving the bakery?',
+    gold: () => 'Northwind bought Lumen Labs',
+  },
+  {
+    history: 'eli',
+    category: 'single-session',
+    ask: 'What was the name of the bakery I used to work at?',
+    gold: () => 'Rise and Grind',
+  },
+  {
+    history: 'ruth',
+    category: 'single-session',
+    ask: 'Which university is Marcus at?',
+    gold: () => 'Purdue',
+  },
+  {
+    history: 'ruth',
+    category: 'knowledge-update',
+    ask: 'What is my book club reading right now?',
+    gold: () => 'The Covenant of Water (not Lessons in Chemistry)',
+  },
+  {
+    history: 'ruth',
+    category: 'multi-session',
+    ask: 'How is my husband recovering from his operation?',
+    gold: () => "well: Walt's hip replacement went well and he's walking with a cane",
+  },
+  {
+    history: 'ruth',
+    category: 'single-session',
+    ask: 'What day do I go to water aerobics?',
+    gold: () => 'Tuesdays',
+  },
+  {
+    history: 'ruth',
+    category: 'abstention',
+    ask: "What's my daughter's name?",
     gold: () => 'never said',
   },
 ];

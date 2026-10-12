@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-10-11T00:27:40.182Z
+ * Generated: 2026-10-12T08:57:09.822Z
  */
 
 :root {
@@ -377,12 +377,6 @@
   --color-stone-dark: #6b635a;
   --color-paper-light: #f5f5f5;
   --color-paper-sand: #fffdfb;
-
-  /* ============================================
-     COLORS - Legacy Aliases
-     ============================================ */
-  --color-jaggi: var(--color-nayan);
-  --color-jaggi-secondary: var(--color-jack);
 
   /* ============================================
      SPACING

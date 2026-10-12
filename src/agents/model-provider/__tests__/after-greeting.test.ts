@@ -1,76 +1,46 @@
 import { EventEmitter } from 'node:events';
-import { describe, expect, it, vi } from 'vitest';
-import { armSttRefresh } from '../after-greeting.js';
-import { logStreamOpens, refreshSttStream } from '../cartesia-cascade.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-function fakeStt() {
+const armPromptCacheWarm = vi.fn();
+vi.mock('../cache-warm.js', () => ({ armPromptCacheWarm }));
+
+const { run } = await import('../after-greeting.js');
+const cascade = await import('../cartesia-cascade.js');
+
+/** A session whose STT stream still has the old patch's refresh(). */
+function fakeSession() {
   const refreshed: number[] = [];
   let n = 0;
-  const stt = logStreamOpens({
+  const stt = cascade.logStreamOpens({
     stream: () => {
       const id = ++n;
       return { refresh: () => (refreshed.push(id), true) };
     },
   });
-  return { stt, refreshed };
+  stt.stream();
+  return { session: Object.assign(new EventEmitter(), { stt }), refreshed };
 }
 
-describe('refreshSttStream', () => {
-  it("refreshes the STT's latest stream, and nothing without one", () => {
-    const { stt, refreshed } = fakeStt();
-    expect(refreshSttStream(stt)).toBe(false);
-    stt.stream();
-    stt.stream();
-    expect(refreshSttStream(stt)).toBe(true);
-    expect(refreshed).toEqual([2]);
-    expect(refreshSttStream(undefined)).toBe(false);
-    const unpatched = logStreamOpens({ stream: () => ({}) });
-    unpatched.stream();
-    expect(refreshSttStream(unpatched)).toBe(false);
-  });
-});
+describe('after-greeting run', () => {
+  beforeEach(() => armPromptCacheWarm.mockClear());
 
-describe('armSttRefresh', () => {
-  const ON = { STT_REFRESH_AFTER_GREETING: 'on' };
-
-  it('does nothing unless STT_REFRESH_AFTER_GREETING=on', () => {
-    const { stt, refreshed } = fakeStt();
-    stt.stream();
-    const session = Object.assign(new EventEmitter(), { stt });
-    armSttRefresh(session, {});
-    session.emit('agent_state_changed', { oldState: 'speaking', newState: 'listening' });
-    expect(refreshed).toEqual([]);
+  it('arms the prompt-cache warm with the same session and env', () => {
+    const { session } = fakeSession();
+    const env = { CASCADE_CACHE_WARM: 'on' };
+    run(session, env);
+    expect(armPromptCacheWarm).toHaveBeenCalledTimes(1);
+    expect(armPromptCacheWarm).toHaveBeenCalledWith(session, env);
   });
 
-  it('refreshes once, when the greeting stops playing', () => {
-    const { stt, refreshed } = fakeStt();
-    stt.stream();
-    const session = Object.assign(new EventEmitter(), { stt });
-    armSttRefresh(session, ON);
-    session.emit('agent_state_changed', { oldState: 'initializing', newState: 'listening' });
-    session.emit('agent_state_changed', { oldState: 'listening', newState: 'speaking' });
-    expect(refreshed).toEqual([]);
-    session.emit('agent_state_changed', { oldState: 'speaking', newState: 'listening' });
-    expect(refreshed).toEqual([1]);
-    // Later replies end the same way; only the greeting's end refreshes.
-    session.emit('agent_state_changed', { oldState: 'speaking', newState: 'listening' });
-    expect(refreshed).toEqual([1]);
+  it('no longer refreshes the STT socket when the greeting ends, even with the old flag on', () => {
+    const { session, refreshed } = fakeSession();
+    run(session, { STT_REFRESH_AFTER_GREETING: 'on' });
     expect(session.listenerCount('agent_state_changed')).toBe(0);
+    session.emit('agent_state_changed', { oldState: 'speaking', newState: 'listening' });
+    expect(refreshed).toEqual([]);
   });
 
-  it('stops listening if the greeting never ends', () => {
-    vi.useFakeTimers();
-    try {
-      const { stt, refreshed } = fakeStt();
-      stt.stream();
-      const session = Object.assign(new EventEmitter(), { stt });
-      armSttRefresh(session, ON, 1000);
-      vi.advanceTimersByTime(1001);
-      expect(session.listenerCount('agent_state_changed')).toBe(0);
-      session.emit('agent_state_changed', { oldState: 'speaking', newState: 'listening' });
-      expect(refreshed).toEqual([]);
-    } finally {
-      vi.useRealTimers();
-    }
+  it('the cascade no longer exports the refresh helper', () => {
+    expect('refreshSttStream' in cascade).toBe(false);
   });
 });
