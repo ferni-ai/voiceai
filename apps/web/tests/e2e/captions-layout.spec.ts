@@ -67,7 +67,12 @@ for (const vp of VIEWPORTS) {
         ),
       ];
       return {
-        captions: box('.ferni-captions'),
+        // Variant B: each visible bubble (the region itself is a layer).
+        bubbles: [...document.querySelectorAll<HTMLElement>('.ferni-bubble')]
+          .filter((b) => Number(getComputedStyle(b).opacity) > 0)
+          .map((b) => b.getBoundingClientRect())
+          .filter((r) => r.width > 0 && r.height > 0)
+          .map((r) => ({ top: r.top, bottom: r.bottom, left: r.left, right: r.right })),
         aiPill: box('.ai-companion-label'),
         others: {
           name: box('#personaName'),
@@ -88,13 +93,12 @@ for (const vp of VIEWPORTS) {
       };
     });
 
-    const captions = geometry.captions as Box;
-    expect(captions).not.toBeNull();
+    expect(geometry.bubbles.length).toBeGreaterThan(0);
     expect(geometry.others.avatar).not.toBeNull();
     expect(geometry.others.waveform).not.toBeNull();
     expect(geometry.aiPill).not.toBeNull(); // #928: the AI label never hides
     const hits = Object.entries(geometry.others)
-      .filter(([, other]) => other && intersects(captions, other))
+      .filter(([, other]) => other && geometry.bubbles.some((b) => intersects(b, other)))
       .map(([name]) => name);
     expect(hits).toEqual([]);
     expect(geometry.clipped).toEqual([]);
