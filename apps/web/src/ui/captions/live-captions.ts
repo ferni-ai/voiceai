@@ -1,17 +1,15 @@
 /**
  * Live captions (behind the captions-v2 flag, see captions-flag.ts).
  *
- * Words, not a window. Modelled on iOS Live Captions, but with no panel:
- * - During a call the words take the persona's own slot: under Ferni's name
- *   (where the tagline and plan chip were; they step out while the call is
- *   on, the AI companion pill stays) and above the team roster. They are in
- *   the layout, not over it, so they never sit on the avatar, the waveform
- *   or the controls.
- * - Only the last line or two of the current turn. New words fade in as
- *   they are spoken; earlier text scrolls up under a soft fade. Nothing is
- *   ever ellipsized.
- * - Ferni speaks in the primary voice (larger, full strength); your words
- *   use a quieter register, so the speaker shows without labels.
+ * Variant A: a speech bubble beside Ferni, like a character talking.
+ * - Desktop and landscape: anchored to the avatar's right edge (or after the
+ *   name row), a small vector tail pointing at the face. Portrait phones: in
+ *   the flow just under the avatar, tail up. Never over the face, the
+ *   roster, the waveform or the controls (caption-bubble.ts).
+ * - One utterance at a time, two short lines at most. A new one replaces the
+ *   last with a soft morph of the bubble; words fade in as they are spoken.
+ * - The caller's words appear in the same bubble in a quieter voice, without
+ *   the tail. Moment chips sit inside the bubble, under the words.
  * - Tap the words for the conversation so far (transcript-sheet.ts).
  * - Moments Ferni is holding on to appear as small chips under the words
  *   (moment-chips.ts), even with captions off.
@@ -35,6 +33,7 @@ import {
   type Moment,
 } from './moment-chips.js';
 import { injectTranscriptSheetStyles, openTranscriptSheet } from './transcript-sheet.js';
+import { TAIL_SVG, morph, placeBubble, popIn } from './caption-bubble.js';
 
 export type CaptionSpeaker = 'user' | 'agent';
 
@@ -183,12 +182,12 @@ class LiveCaptions {
   private mount(): HTMLElement {
     if (this.root) {
       // Something replaced the body (route swap, HMR): put the region back.
-      if (!this.root.isConnected) placeInIdentitySlot(this.root);
+      if (!this.root.isConnected) placeBesideAvatar(this.root);
       return this.root;
     }
     document.querySelectorAll('.ferni-captions').forEach((el) => el.remove()); // HMR
     const root = document.createElement('section');
-    root.className = 'ferni-captions';
+    root.className = 'ferni-captions ferni-bubble';
     root.setAttribute('aria-label', t('transcript.captionsLabel'));
     // Tapping the words (or Enter) opens the conversation so far.
     const viewport = document.createElement('div');
@@ -207,8 +206,16 @@ class LiveCaptions {
     moments.className = 'ferni-captions__moments';
     moments.setAttribute('role', 'status');
     this.chips = new MomentChips(moments, () => this.update());
-    root.append(viewport, moments);
-    placeInIdentitySlot(root);
+    const bg = document.createElement('div');
+    bg.className = 'ferni-bubble__bg';
+    root.append(bg, viewport, moments);
+    root.insertAdjacentHTML('beforeend', TAIL_SVG);
+    placeBesideAvatar(root);
+    // Re-place only when the layout around Ferni actually changes.
+    window.addEventListener('resize', () => this.schedule());
+    if (typeof ResizeObserver !== 'undefined' && root.parentElement) {
+      new ResizeObserver(() => this.schedule()).observe(root.parentElement);
+    }
     this.root = root;
     this.viewport = viewport;
     return root;
@@ -219,24 +226,22 @@ class LiveCaptions {
     const root = this.mount();
     const viewport = this.viewport;
     if (!viewport) return;
-    const shown = currentTurn(this.entries);
+    const newest = this.entries[this.entries.length - 1];
     const last = viewport.lastElementChild as HTMLElement | null;
-    const newest = shown[shown.length - 1];
-    if (grew && last && newest && viewport.childElementCount === shown.length) {
+    const wasShown = root.classList.contains('ferni-captions--visible') && this.wordsShown;
+    if (grew && last && newest) {
       revealWords(last, last.dataset.text ?? '', newest.text);
-    } else {
-      viewport.replaceChildren(
-        ...shown.map((entry, i) => {
-          const line = renderLine({ ...entry, text: '' }, false);
-          // Earlier lines arrive settled; the newest one reveals its words.
-          if (i < shown.length - 1) line.classList.add('ferni-caption-line--settled');
-          revealWords(line, '', entry.text);
-          return line;
-        })
-      );
+    } else if (newest) {
+      // One utterance at a time: the new one replaces the last, and the
+      // bubble eases between the two sizes.
+      morph(root, () => {
+        const line = renderLine({ ...newest, text: '' }, false);
+        revealWords(line, '', newest.text);
+        viewport.replaceChildren(line);
+        root.dataset.speaker = newest.speaker;
+      });
     }
-    // Ferni's words read as speech from the face; the caller's stay quiet.
-    viewport.dataset.speaker = newest?.speaker ?? '';
+    if (!wasShown) popIn(root);
     this.wordsShown = true;
     this.update();
   }
@@ -249,6 +254,7 @@ class LiveCaptions {
   /** Keep the newest words in view; fade the top when older text scrolls. */
   private layout(): void {
     if (!this.root || !this.viewport) return;
+    placeBubble(this.root);
     this.viewport.scrollTop = this.viewport.scrollHeight;
     this.root.classList.toggle(
       'ferni-captions--overflowing',
@@ -257,14 +263,11 @@ class LiveCaptions {
   }
 }
 
-/**
- * The persona's identity slot: in #coach, after the AI companion pill and
- * before the team roster (CSS hides the tagline and plan chip during a call).
- * Without that markup, the end of the body.
- */
-function placeInIdentitySlot(root: HTMLElement): void {
-  const roster = document.getElementById('teamRoster');
-  if (roster?.parentElement) roster.parentElement.insertBefore(root, roster);
+/** In #coach right after the avatar: in the flow under it on portrait
+ * phones, positioned beside it elsewhere (caption-bubble.ts). */
+function placeBesideAvatar(root: HTMLElement): void {
+  const avatar = document.querySelector('#coach .avatar-container');
+  if (avatar) avatar.after(root);
   else (document.getElementById('coach') ?? document.body).append(root);
 }
 

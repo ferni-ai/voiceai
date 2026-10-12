@@ -19,6 +19,7 @@ import {
 import { captionsOn, mountCaptionsToggle } from '@/ui/captions/captions-toggle.js';
 import { continueAfterLabel, fitOneLine, renderChip } from '@/ui/captions/moment-chips.js';
 import { PREFERENCE_KEYS } from '@/config/storage-keys.js';
+import { bubblePlacement } from '@/ui/captions/caption-bubble.js';
 
 const say = (type: string, text: string, isFinal?: boolean): void => {
   window.dispatchEvent(new CustomEvent('ferni:transcript', { detail: { type, text, isFinal } }));
@@ -95,33 +96,44 @@ describe('currentTurn', () => {
   });
 });
 
-describe('identity slot', () => {
-  it('sits under the name and the AI companion pill, above the team roster', () => {
-    document.body.innerHTML = `<div id="coach"><h1 id="personaName">Ferni</h1>
-      <p id="personaSubtitle">I am what you make me</p>
-      <div class="ai-companion-label-row"><span class="ai-companion-label">AI companion</span></div>
+describe('speech bubble placement', () => {
+  const box = (left: number, top: number, w: number, h: number) => ({
+    left,
+    top,
+    right: left + w,
+    bottom: top + h,
+  });
+
+  it('anchors beside the avatar with room to spare (desktop)', () => {
+    const p = bubblePlacement(1440, box(660, 29, 120, 120), [box(695, 222, 50, 26)]);
+    expect(p.mode).toBe('side');
+    expect(p.left).toBeGreaterThan(780); // right of the avatar, never over the face
+  });
+
+  it('starts after the name row when it shares the avatar row (landscape)', () => {
+    const p = bubblePlacement(844, box(45, 44, 107, 120), [
+      box(204, 93, 45, 24),
+      box(257, 95, 97, 24),
+    ]);
+    expect(p.mode).toBe('side');
+    expect(p.left).toBeGreaterThan(354);
+  });
+
+  it('drops under the avatar when there is no room beside it (portrait phone)', () => {
+    expect(bubblePlacement(358, box(89, 49, 180, 180), []).mode).toBe('below');
+  });
+
+  it('sits right after the avatar in #coach and keeps the tagline', () => {
+    document.body.innerHTML = `<div id="coach"><div class="avatar-container"></div>
+      <h1 id="personaName">Ferni</h1><p id="personaSubtitle">I am what you make me</p>
       <div id="teamRoster"></div></div>`;
     say('agent', 'Hey! How are you?', true);
     const order = [...(document.getElementById('coach')?.children ?? [])].map(
       (el) => el.id || el.classList[0]
     );
-    expect(order).toEqual([
-      'personaName',
-      'personaSubtitle',
-      'ai-companion-label-row',
-      'ferni-captions',
-      'teamRoster',
-    ]);
-    expect(
-      document.querySelector('.ferni-captions')?.classList.contains('ferni-captions--on')
-    ).toBe(true);
-  });
-
-  it('hides the tagline and plan chip during a call but never the AI companion pill', () => {
+    expect(order.slice(0, 3)).toEqual(['avatar-container', 'ferni-captions', 'personaName']);
     const css = document.getElementById('ferni-captions-styles')?.textContent ?? '';
-    expect(css).toMatch(/body\[data-connected='true'\] #personaSubtitle/);
-    expect(css).toMatch(/body\[data-connected='true'\] #coach \.subscription-badge/);
-    expect(css).not.toMatch(/ai-companion-label[^{]*\{[^}]*display:\s*none/);
+    expect(css).not.toMatch(/#personaSubtitle/);
   });
 });
 
@@ -276,7 +288,7 @@ describe('live captions region', () => {
     captions.reset();
   });
 
-  it('renders the current turn as plain words in their own region, no panel or labels', () => {
+  it('shows the newest utterance in one bubble, without labels', () => {
     say('user', 'I rushed it because he kept checking his watch', true);
     say('agent', 'That makes a lot of sense', false);
     const region = document.querySelector('.ferni-captions');
@@ -295,9 +307,9 @@ describe('live captions region', () => {
     expect(line?.querySelectorAll('.ferni-caption-words')).toHaveLength(2);
   });
 
-  it('keeps only the last three utterances on screen and the rest in history', () => {
+  it('shows one utterance at a time; the rest stay in history', () => {
     for (let i = 0; i < 5; i++) say('agent', `line ${i}`, true);
-    expect(lines()).toHaveLength(3);
+    expect(lines()).toEqual(['line 4']);
     expect(captions.history()).toHaveLength(5);
   });
 
