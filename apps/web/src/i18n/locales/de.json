@@ -11112,5 +11112,17 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "Beitragen",
+    "title": "Ein Dollar hält das Gespräch am Laufen",
+    "body": "Ferni ist vorerst kostenlos. Wenn dir ein Gespräch geholfen hat, kannst du einen Dollar über Venmo senden. Mehr ist willkommen, aber nie erwartet.",
+    "qrAlt": "Venmo-QR-Code für @{handle}",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "openVenmo": "Venmo öffnen",
+    "helper": "Scanne ihn mit der Kamera deines Handys oder tippe auf Venmo öffnen. Den Betrag kannst du ändern.",
+    "maybeLater": "Vielleicht später",
+    "close": "Schließen"
   }
 }

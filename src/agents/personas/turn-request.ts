@@ -33,6 +33,7 @@ import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { ferniStateTurn } from './ferni-state.js';
+import { firstCallNote } from './first-call-rapport.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
@@ -105,6 +106,8 @@ export function withTurnReminder(
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
     state.note,
+    // FIRST_CALL_RAPPORT=on: a new caller's first call (names, a reason to come back)
+    firstCallNote(chatCtx, session, words),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     turnStyleReminderEnabled()
