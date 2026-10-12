@@ -1,5 +1,6 @@
 /**
- * With OUTREACH_CONFIRM=on, outreach tools send only after the caller's own yes.
+ * Outreach tools send only after the caller's own yes (on by default; OUTBOUND_CONFIRM=off
+ * turns it off in tests only).
  *
  * Before: reachOut and multiOutreach texted and called people as soon as the
  * model called them, and sendBatchMessages trusted a `confirm` flag the model
@@ -99,7 +100,6 @@ function textsSent(): Array<[string, string]> {
 
 describe('outreach waits for the caller', () => {
   beforeEach(() => {
-    vi.stubEnv('OUTREACH_CONFIRM', 'on');
     vi.mocked(searchContacts).mockImplementation(async (_u, q) => {
       const c = contacts[q.toLowerCase()];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -115,8 +115,8 @@ describe('outreach waits for the caller', () => {
     vi.clearAllMocks();
   });
 
-  it('with the flag off, multiOutreach sends at once (unchanged behavior)', async () => {
-    vi.stubEnv('OUTREACH_CONFIRM', '');
+  it('with the test-only escape hatch, multiOutreach sends at once', async () => {
+    vi.stubEnv('OUTBOUND_CONFIRM', 'off');
     const call = liveCall();
 
     await call.call('multiOutreach', MULTI_TO_MOM, 'c1');

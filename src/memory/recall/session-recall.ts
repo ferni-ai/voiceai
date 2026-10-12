@@ -16,6 +16,8 @@
  */
 import { foldedWords, legacyForgetTokens, stem } from './forget-tokens.js';
 
+import { flagOn } from '../../config/env-flag.js';
+
 export interface RecallFact {
   entity: string;
   key: string;
@@ -44,6 +46,20 @@ export const EMPTY_SNAPSHOT: RecallSnapshot = { facts: [], followUps: [], inside
  */
 export function insideJokesEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return env.INSIDE_JOKES === 'on';
+}
+
+/**
+ * RECALL_BRIDGE=on (off by default): open threads from earlier calls wait for
+ * a turn they fit, and the note says how to bring one up. On a dev call
+ * (2026-10-11) the caller answered the greeting with "Still on there." and
+ * Ferni's next line was "That mail isn't going to clear itself, but honestly
+ * mine's still sitting right where it was this morning too": a thread from an
+ * earlier call, dropped in as if it carried on a thought, next to his own life.
+ */
+export function recallBridgeEnabled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return flagOn('RECALL_BRIDGE', env);
 }
 
 /** The entity the extractor uses for the caller themself. */
@@ -263,6 +279,55 @@ export interface RecallExtras {
   /** Shared bits from past calls; shown only with INSIDE_JOKES=on. */
   insideJokes?: string[];
   env?: Record<string, string | undefined>;
+  /** RECALL_BRIDGE: say how to bring an open thread up. */
+  bridge?: boolean;
+}
+
+/** How to raise an open thread (RECALL_BRIDGE). */
+export const THREAD_BRIDGE =
+  'These open threads are from earlier calls. Answer what they just said first. ' +
+  'If you bring one up, make it clearly from last time ("last time you mentioned the mail, how\'d that go?"), ' +
+  'never as if it were part of this call or carried on what you were saying, ' +
+  'and never in the same breath as something about your own life.';
+
+/**
+ * Words a greeting, a check-in or an ack is made of. A turn made only of these
+ * is not about anything yet; they also never count as a match with a thread.
+ */
+const SMALL_TALK = new Set(
+  `hey hi hello hiya yo howdy morning afternoon evening good great fine okay ok alright all right
+  not bad too much nothing doing going how how's are you you're thanks thank still there here
+  yeah yep yes nope sure cool nice well pretty hanging hangin feeling vibe today tonight
+  ferni man buddy friend again back on it it's i'm im just so and the a um uh hmm mhm oh ah`
+    .split(/\s+/)
+    .filter(Boolean)
+);
+
+/** "What's new?", "anything going on?": the caller hands over the topic. */
+const OPEN_QUESTION =
+  /\b(?:what'?s|what is|anything) (?:new|going on|happening|up with you|been going on)\b|\bcatch me up\b|\bwhat (?:should|do you want to) (?:we )?talk about\b/i;
+
+/** A greeting, a short check-in (four words or fewer) or an ack: not about anything yet. */
+export function onlySmallTalk(text: string): boolean {
+  const words = text.toLowerCase().match(/[a-z][a-z']*/g) ?? [];
+  return words.length <= 4 || words.every((w) => SMALL_TALK.has(w));
+}
+
+/**
+ * RECALL_BRIDGE: which of the open threads still to offer fit this turn.
+ * All of them once the caller says something of substance or asks an open
+ * question, and on their third turn at the latest; before that, only a thread
+ * that shares a word with what they said ("the mail" when they mention mail).
+ */
+export function threadsForTurn(threads: string[], text: string, callerTurn: number): string[] {
+  if (threads.length === 0) return [];
+  if (callerTurn >= 3 || OPEN_QUESTION.test(text) || !onlySmallTalk(text)) return threads;
+  const said = [...contentWords(text)].filter((w) => w.length >= 3 && !SMALL_TALK.has(w));
+  if (said.length === 0) return [];
+  return threads.filter((t) => {
+    const words = contentWords(t);
+    return said.some((w) => words.has(w));
+  });
 }
 
 /** A context note for the LLM, or null when there is nothing to recall. */
@@ -284,8 +349,9 @@ export function formatRecall(
     lines.push(`- ${subject}: ${f.key.replace(/_/g, ' ')} = ${f.value}${age(f.extractedAt, now)}${was}`);
   }
   if (followUps.length > 0) {
-    lines.push('Open threads from last time:');
+    lines.push(extras.bridge ? 'Open threads from earlier calls:' : 'Open threads from last time:');
     for (const item of followUps) lines.push(`- ${item}`);
+    if (extras.bridge) lines.push(THREAD_BRIDGE);
   }
   if (jokes.length > 0) {
     lines.push(

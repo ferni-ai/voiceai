@@ -4574,7 +4574,7 @@
     "successDeployed": "¡Página publicada!",
     "title": "Crear página del agente",
     "nameLabel": "Nombre del agente",
-    "namePlaceholder": "ej. Joel Dickson",
+    "namePlaceholder": "ej. Nate Holloway",
     "nameHint": "El nombre completo de tu agente de IA",
     "initialsLabel": "Iniciales",
     "initialsPlaceholder": "ej. JD",
@@ -11252,6 +11252,21 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
   },
   "venmoChipIn": {
     "eyebrow": "Aporta",

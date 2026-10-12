@@ -4573,7 +4573,7 @@
     "successDeployed": "הדף הושק בהצלחה!",
     "title": "יצירת דף סוכן",
     "nameLabel": "שם הסוכן",
-    "namePlaceholder": "למשל, Joel Dickson",
+    "namePlaceholder": "למשל, Nate Holloway",
     "nameHint": "השם המלא של סוכן ה-AI שלכם",
     "initialsLabel": "ראשי תיבות",
     "initialsPlaceholder": "למשל, JD",
@@ -11251,6 +11251,21 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
   },
   "venmoChipIn": {
     "eyebrow": "לתרום",

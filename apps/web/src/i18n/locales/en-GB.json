@@ -4543,7 +4543,7 @@
     "successDeployed": "Page deployed!",
     "title": "Create Agent Page",
     "nameLabel": "Agent Name",
-    "namePlaceholder": "e.g., Joel Dickson",
+    "namePlaceholder": "e.g., Nate Holloway",
     "nameHint": "The full name of your AI agent",
     "initialsLabel": "Initials",
     "initialsPlaceholder": "e.g., JD",
@@ -11126,6 +11126,21 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
   },
   "venmoChipIn": {
     "eyebrow": "Chip in",

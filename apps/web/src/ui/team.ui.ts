@@ -1,7 +1,7 @@
 /**
  * Team UI Component
  *
- * Manages the team roster display (Ferni, Jack Bogle, Peter Lynch, etc).
+ * Manages the team roster display (Ferni and the team, plus the financial legends).
  * Shows which team member is currently active.
  *
  * 🎬 PIXAR ANIMATION ENHANCEMENTS:

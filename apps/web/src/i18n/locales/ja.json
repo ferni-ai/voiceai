@@ -4543,7 +4543,7 @@
     "successDeployed": "ページが公開されました！",
     "title": "エージェントページの作成",
     "nameLabel": "エージェント名",
-    "namePlaceholder": "例：Joel Dickson",
+    "namePlaceholder": "例：Nate Holloway",
     "nameHint": "AIエージェントのフルネーム",
     "initialsLabel": "イニシャル",
     "initialsPlaceholder": "例：JD",
@@ -11126,6 +11126,21 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
   },
   "venmoChipIn": {
     "eyebrow": "応援する",

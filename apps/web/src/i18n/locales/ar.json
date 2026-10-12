@@ -4663,7 +4663,7 @@
     "successDeployed": "تم نشر الصفحة!",
     "title": "إنشاء صفحة الوكيل",
     "nameLabel": "اسم الوكيل",
-    "namePlaceholder": "مثل Joel Dickson",
+    "namePlaceholder": "مثل Nate Holloway",
     "nameHint": "الاسم الكامل لوكيل الذكاء الاصطناعي الخاص بك",
     "initialsLabel": "الحروف الأولى",
     "initialsPlaceholder": "مثل JD",
@@ -11626,6 +11626,21 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
   },
   "venmoChipIn": {
     "eyebrow": "ساهم",
