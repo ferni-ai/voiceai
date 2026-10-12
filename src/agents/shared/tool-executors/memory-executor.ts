@@ -358,9 +358,7 @@ async function execute(
     return '';
   }
 
-  // ========================================
-  // UPDATE MEMORY
-  // ========================================
+  // --- UPDATE MEMORY ---
   if (fnLower === 'updatememory') {
     const oldFact = args.oldFact as string;
     const newFact = args.newFact as string;
