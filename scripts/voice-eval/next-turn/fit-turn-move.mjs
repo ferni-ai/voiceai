@@ -1,0 +1,119 @@
+#!/usr/bin/env node
+// Fit what TURN_MOVE=learned samples from: what a friend's next turn does (answer, add something,
+// ask, react, agree, push back) given cheap features of the moment. Labels a sample of next turns
+// from held-in SBCSAE conversations with gemini-3.5-flash-lite (10 per call; eval moments left
+// out), or reads earlier labels with --labels. Writes aggregate shares only to
+// src/agents/personas/turn-move-table.generated.ts.
+//
+//   node scripts/voice-eval/next-turn/fit-turn-move.mjs [--n 1500] [--labels <acts.json>] [--moments <moments.json>]
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { parseArgs } from 'node:util';
+
+import { hashSeed, shuffled } from '../judge-stats.mjs';
+import { CONVERSATIONS, turnsOf, words } from './corpus.mjs';
+import { gemini, pool } from './models.mjs';
+
+const CORPUS = join(homedir(), 'Documents/voiceai-evidence/human-corpora/sbcsae/raw/SBCSAE');
+const OUT = new URL('../../../src/agents/personas/turn-move-table.generated.ts', import.meta.url);
+const ACTS = ['answer', 'add', 'ask', 'react', 'agree', 'push_back', 'shift'];
+const MOVES = ['answer', 'add', 'ask', 'react', 'agree', 'push_back']; // shift counts as add
+const LABEL = `For each item: two people who know each other are talking. A said the PREV line; B replied with REPLY. Label B's reply by the main move it makes:
+answer = answers a question A just asked
+add = adds something new: the next fact, more of the story, their own related experience or knowledge, a plan or suggestion
+ask = asks A about a specific detail or for clarification
+react = a reaction or evaluation of what A said (surprise, sympathy, "that's great", "oh no", a comment about it) without adding new content
+agree = agrees, confirms or echoes A
+push_back = disagrees, corrects, teases or challenges A
+shift = changes the subject or turns to something else in the room
+JSON only: {"labels": ["<move for item 1>", ...]} in item order.`;
+
+const opt = { type: 'string' };
+const { values } = parseArgs({ options: { n: opt, labels: opt, moments: opt } });
+let items;
+if (values.labels && existsSync(values.labels))
+  items = JSON.parse(readFileSync(values.labels, 'utf8'));
+else {
+  const skip = new Set(
+    values.moments ? JSON.parse(readFileSync(values.moments, 'utf8')).map((m) => m.id) : []
+  );
+  items = [];
+  for (const f of CONVERSATIONS.filter((c) => hashSeed(c) % 3 !== 0)) {
+    const { turns } = turnsOf(readFileSync(join(CORPUS, `${f}.cha`), 'utf8'));
+    for (let i = 1; i < turns.length; i++) {
+      const [p, r] = [turns[i - 1], turns[i]];
+      if (p.who === r.who || words(r.text) < 2 || words(p.text) < 3 || skip.has(`${f}-${i}`))
+        continue;
+      const own = words(
+        turns
+          .slice(0, i)
+          .reverse()
+          .find((t) => t.who === r.who)?.text ?? ''
+      );
+      items.push({
+        prev: p.text,
+        reply: r.text,
+        theirs: words(p.text),
+        own,
+        q: /\?\s*$/.test(p.text.trim()),
+      });
+    }
+  }
+  items = shuffled(items, 7).slice(0, Number(values.n ?? 1500));
+  const batches = [];
+  for (let i = 0; i < items.length; i += 10) batches.push(items.slice(i, i + 10));
+  await pool(batches, 8, async (b) => {
+    const text = b.map((x, i) => `ITEM ${i + 1}\nPREV: ${x.prev}\nREPLY: ${x.reply}`).join('\n\n');
+    const thinkingConfig = { thinkingLevel: 'MINIMAL' };
+    const t = await gemini('gemini-3.5-flash-lite', {
+      contents: [{ role: 'user', parts: [{ text: `${LABEL}\n\n${text}` }] }],
+      generationConfig: { temperature: 0, responseMimeType: 'application/json', thinkingConfig },
+    });
+    const labels = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)).labels ?? [];
+    b.forEach((x, i) => (x.act = ACTS.includes(labels[i]) ? labels[i] : null));
+  });
+}
+
+const bucket = (x, edges) => edges.filter((e) => x > e).length;
+const labelled = items
+  .filter((x) => x.act)
+  .map((x) => ({ ...x, move: x.act === 'shift' ? 'add' : x.act }));
+const shares = (xs, prior, weight) => {
+  const c = Object.fromEntries(MOVES.map((m) => [m, 0]));
+  for (const x of xs) c[x.move]++;
+  return MOVES.map(
+    (m) =>
+      Math.round(
+        (1000 * (c[m] + weight * (prior?.[MOVES.indexOf(m)] ?? 0))) / (xs.length + weight)
+      ) / 1000
+  );
+};
+// Cells: question?, their turn (<=6, 7-15, 16+ words), his own last turn (<=4, 5-12, 13+), each
+// smoothed toward the question-or-not shares with the weight of 30 turns.
+const table = {};
+for (const q of [0, 1]) {
+  const qs = labelled.filter((x) => +x.q === q);
+  const prior = shares(qs, null, 0);
+  for (const t of [0, 1, 2])
+    for (const o of [0, 1, 2]) {
+      const cell = qs.filter(
+        (x) => bucket(x.theirs, [6, 15]) === t && bucket(x.own, [4, 12]) === o
+      );
+      table[`${q}${t}${o}`] = shares(cell, prior, 30);
+    }
+}
+writeFileSync(
+  OUT,
+  `// Generated by scripts/voice-eval/next-turn/fit-turn-move.mjs from ${labelled.length} next turns between
+// friends in held-in SBCSAE conversations (Du Bois et al. 2000-2005, CC BY-ND), labelled by
+// gemini-3.5-flash-lite. Aggregate shares only. Do not edit; re-run the script.
+
+/** Moves, in the order of each row of NEXT_MOVE. */
+export const MOVES = ${JSON.stringify(MOVES)} as const;
+
+/** Share of each move, by [their turn a question][their turn length][his own last turn] bucket. */
+export const NEXT_MOVE: Record<string, number[]> = ${JSON.stringify(table)};
+`
+);
+console.log(`${labelled.length} labelled next turns; cells ${Object.keys(table).length}`);

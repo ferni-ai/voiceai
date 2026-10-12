@@ -29,6 +29,7 @@ import {
   textureLearned,
   textureLine,
 } from './turn-length.js';
+import { MOVE_LINE, moveLearned, nextMove } from './turn-move.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -200,6 +201,9 @@ const FIT_THE_MOMENT =
   'Anything that matters to them, good or bad (news, something they are proud of, worried about or hurt by), gets a real response to that specific thing, with the feeling it deserves, not a remark that would fit anything. ' +
   'When they ask you something or ask for help, actually answer it; when they ask about you, talk about yourself, something specific. ' +
   'Most replies are a sentence or two, some only a few words; go longer only when they asked for it.';
+const LEAN_GUARDS =
+  'Talk like a close friend on the phone, not a therapist, coach, host or assistant. ' +
+  'Build only on what they actually told you: never fill in details of their day, plans or people they did not mention.';
 /** FIT_THE_MOMENT without its fixed length rule, for TURN_LENGTH=learned (the length line says it). */
 const FIT_THE_MOMENT_LEARNED = FIT_THE_MOMENT.replace(/ Most replies are .*$/, '');
 
@@ -219,8 +223,11 @@ function modelChosenShape(
   // 2.87 -> 2.63, replies grew 17 -> 24 words and question endings 13% -> 21%
   // (dev A/B, 15 calls per arm, judge.mjs, 2026-10-10).
   const parts = [REGISTER];
+  // TURN_MOVE=learned (turn-move.ts) picks what a shared or acknowledged turn's reply does, so the
+  // fixed second-story draw stands aside; off, the draw is as before.
+  const moveOn = moveLearned() && (move === 'share' || move === 'ack');
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
-  else if (move === 'share' && !sig.careful && rng() < 0.3) parts.push(SECOND_STORY);
+  else if (!moveOn && move === 'share' && !sig.careful && rng() < 0.3) parts.push(SECOND_STORY);
   const stance = stanceFor(
     userText,
     move,
@@ -243,12 +250,24 @@ function modelChosenShape(
   const asks = rng() < 0.25;
   const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig, style);
   parts.push(...extras.lines, learn.length ? FIT_THE_MOMENT_LEARNED : FIT_THE_MOMENT);
+  // TURN_LEAN=on (experiment): only the guards, the fit, and the learned length and texture.
+  if (process.env.TURN_LEAN === 'on' && (move === 'share' || move === 'ack')) {
+    const lean = [LEAN_GUARDS, learn.length ? FIT_THE_MOMENT_LEARNED : FIT_THE_MOMENT];
+    if (texture) lean.push(texture.line);
+    if (learn.length) lean.push(lengthLine(target));
+    return { move, shape: 'answer', reminder: lean.join(' '), extras: ['model_shape', 'lean'] };
+  }
+  const next = moveOn ? nextMove(userText, sig.recent, sig.careful, rng) : null;
+  if (next) parts.push(MOVE_LINE[next]);
   if (learn.length) parts.push(lengthLine(target));
   parts.push(planLine(sig.pickUp));
-  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none));
+  // An asking move carries its own question; any other move ends without one.
+  if (next) parts.push(next === 'ask' ? '' : QUESTION_LINE.none);
+  else parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none));
   const learned = [
     learn.length ? `length_${target}` : '',
     texture ? `texture_${texture.kind}` : '',
+    next ? `move_${next}` : '',
   ];
   return {
     move,

@@ -163,7 +163,9 @@ export function extrasFor(
       out.fired.push('think_aloud');
     }
   }
-  if (on(env, 'CURIOUS_DETAIL')) {
+  // TURN_MOVE=learned decides whether a chat reply asks or adds something of his own.
+  const learnedMove = env.TURN_MOVE === 'learned' && chat;
+  if (on(env, 'CURIOUS_DETAIL') && !learnedMove) {
     if (questionAllowed) {
       out.questionLine = CURIOUS_QUESTION;
       out.fired.push('curious_question');
@@ -176,6 +178,7 @@ export function extrasFor(
   // Fired 0 times live when limited to a quick "yeah": also on light shares.
   if (
     on(env, 'ASK_ADVICE') &&
+    !learnedMove &&
     !venting &&
     // Live, "keep an eye on the time for me" got the timer plus a musing about
     // his basil: a request wants the thing done, not his dilemma.

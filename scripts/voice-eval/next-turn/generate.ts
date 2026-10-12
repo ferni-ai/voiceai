@@ -33,6 +33,15 @@ const ARMS: Record<string, string> = {
   texture: 'TURN_TEXTURE=learned',
   plan: 'TURN_PLAN=on TURN_PLAN_CHECK=on',
   all: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_PLAN=on TURN_PLAN_CHECK=on',
+  lt: 'TURN_LENGTH=learned TURN_TEXTURE=learned',
+  move: 'TURN_MOVE=learned',
+  ltm: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_MOVE=learned',
+  ltf: 'TURN_LENGTH=learned TURN_TEXTURE=learned CASCADE_FAST_LANE=off',
+  lean: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_LEAN=on',
+  lt2: 'TURN_LENGTH=learned TURN_TEXTURE=learned NEXT_TURN_SALT=2',
+  lean2: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_LEAN=on NEXT_TURN_SALT=2',
+  lt3: 'TURN_LENGTH=learned TURN_TEXTURE=learned NEXT_TURN_SALT=3',
+  lean3: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_LEAN=on NEXT_TURN_SALT=3',
   inflight:
     'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_PLAN=on TURN_PLAN_CHECK=on ATTUNE=on QUIET_CALLER=on HONEST_FRIEND=on',
 };
@@ -112,9 +121,10 @@ await pool(
     const plan = process.env.TURN_PLAN === 'on' ? await fastJson(PLAN, lines(m)) : null;
     const pickUp = typeof plan?.json.pickUp === 'string' ? plan.json.pickUp : undefined;
     const sig = { ...regexSignals(said, callerMove(said)), recent, pickUp };
-    const shape = turnShapeFor(said, rngFor(`${m.id}:${said}`), undefined, sig);
+    const shape = turnShapeFor(said, rngFor(`${process.env.NEXT_TURN_SALT ?? ''}${m.id}:${said}`), undefined, sig);
     const lane = laneReason(said);
-    const model = lane === 'chat' ? 'gemini-3.5-flash-lite' : 'gemini-3.5-flash';
+    const model =
+      process.env.CASCADE_FAST_LANE === 'on' && lane === 'chat' ? 'gemini-3.5-flash-lite' : 'gemini-3.5-flash';
     const generationConfig = {
       temperature,
       maxOutputTokens: 400,
