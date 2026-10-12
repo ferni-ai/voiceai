@@ -28,6 +28,7 @@
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { breathingComposite, isAvatarCompositorEnabled } from './avatar-motion/compositor.js';
+import { isNaturalBlinkEnabled } from './avatar-motion/natural-blink.js';
 import { speakingSystem } from './speaking-system.ui.js';
 
 const log = createLogger('PresenceUI');
@@ -506,11 +507,10 @@ const MIN_BLINK_INTERVAL = 1500; // At least 1.5s between blinks
 function performBlink(): void {
   if (!avatarElement || !avatarContainer) return;
   
-  // Check for reduced motion
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   
-  // Don't blink while speaking (looks unnatural)
-  if (isSpeaking) return;
+  // Don't blink while speaking (looks unnatural); natural blink owns blinks when on
+  if (isSpeaking || isNaturalBlinkEnabled()) return;
   
   // Prevent rapid blinking
   const now = Date.now();

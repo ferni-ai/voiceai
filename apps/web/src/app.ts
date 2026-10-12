@@ -1257,7 +1257,6 @@ class VoiceAIApp {
     // DEFERRED LOADING - Premium features loaded after first paint
     // This significantly speeds up initial page load time
     // =========================================================================
-
     // Essential extras - load after 100ms (needed early but not for first paint)
     this.deferredInit('SoundUI', 100, async () => {
       initSoundUI();
@@ -1274,6 +1273,7 @@ class VoiceAIApp {
       initThinkingUI();
       (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
       initAvatarTurns(); // off unless ferni:avatar-turns
+      (await import('./ui/avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
       initConnectionQualityUI();
