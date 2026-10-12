@@ -13,6 +13,8 @@ vi.mock('../../semantic-rag.js', () => ({
   indexConversationSummary: async (_u: string, s: { id: string; text: string }) => {
     indexed.push({ id: s.id, text: s.text });
   },
+}));
+vi.mock('../../retrieval/conversation-index.js', () => ({
   removeConversationDocument: async (id: string) => {
     removed.push(id);
   },

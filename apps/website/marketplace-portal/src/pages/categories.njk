@@ -82,8 +82,8 @@ description: Browse AI personas by category - Health, Life, Career, Creative, an
               </span>
               <span class="persona-rating-count">{{ persona.rating }}</span>
             </div>
-            <span class="persona-price {% if persona.pricing.model == 'free' or persona.pricing.model == 'freemium' %}free{% endif %}">
-              {% if persona.pricing.model == 'free' %}
+            <span class="persona-price {% if not pricing.showPrices or persona.pricing.model == 'free' or persona.pricing.model == 'freemium' %}free{% endif %}">
+              {% if not pricing.showPrices or persona.pricing.model == 'free' %}
                 Free
               {% elif persona.pricing.model == 'freemium' %}
                 Free+

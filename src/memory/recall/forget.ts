@@ -146,14 +146,11 @@ export const firestoreForgetStore: ForgetStore = {
     }
     // Their copies in the memory tool's index go now, not at the next re-index
     // (user-memory-indexer.ts); recallFromMemory also checks by id meanwhile.
-    const { removeConversationDocument } = await import('../retrieval/semantic-rag.js');
-    const { removeIndexedMemory } = await import('../retrieval/semantic-memory-search.js');
+    const { removeConversationDocument } = await import('../retrieval/conversation-index.js');
     for (const r of refs.filter((x) => x.collection === 'dynamic_facts')) {
       await removeConversationDocument(`fact_${r.id}`).catch((error: unknown) =>
         log.warn({ error: String(error) }, 'Forgotten fact not removed from the index')
       );
-      // The graph sync's copy (spanner-graph insertFact), read by per-turn memory search.
-      await removeIndexedMemory('fact', `fact_${userId}_${r.id}`);
     }
   },
   async addTopic(userId, topic) {

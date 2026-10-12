@@ -595,6 +595,7 @@ code {
 
 .btn-add-team:hover {
   background: rgba(255, 255, 255, 0.9);
+  color: var(--persona-color, var(--accent-primary));
 }
 
 .btn-preview-voice {
