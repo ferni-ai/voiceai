@@ -1,7 +1,7 @@
 /**
  * An in-memory Firestore keyed by document path, with nested subcollections:
  * doc get/set/update, collection where (==, >=, <=), orderBy (asc/desc, or
- * '__name__' for the document id), startAfter(id), limit. Enough for the
+ * '__name__' for the document id), startAfter/startAt/endAt(id), limit. Enough for the
  * proactive check-in run and the daily outreach run end to end.
  */
 type Json = Record<string, unknown>;
@@ -38,14 +38,17 @@ export function pathFirestore(docs: Map<string, Json>) {
     filters: Filter[],
     order?: [string, string],
     n = Infinity,
-    after?: string
+    after?: string,
+    range: { from?: string; to?: string } = {}
   ): Json {
     return {
       where: (f: string, op: string, v: unknown) =>
-        query(prefix, [...filters, [f, op, v]], order, n, after),
-      orderBy: (f: string, dir = 'asc') => query(prefix, filters, [f, dir], n, after),
-      limit: (k: number) => query(prefix, filters, order, k, after),
-      startAfter: (id: string) => query(prefix, filters, order, n, id),
+        query(prefix, [...filters, [f, op, v]], order, n, after, range),
+      orderBy: (f: string, dir = 'asc') => query(prefix, filters, [f, dir], n, after, range),
+      limit: (k: number) => query(prefix, filters, order, k, after, range),
+      startAfter: (id: string) => query(prefix, filters, order, n, id, range),
+      startAt: (id: string) => query(prefix, filters, order, n, after, { ...range, from: id }),
+      endAt: (id: string) => query(prefix, filters, order, n, after, { ...range, to: id }),
       get: async () => {
         let paths = [...docs.keys()].filter(
           (p) => p.startsWith(`${prefix}/`) && !p.slice(prefix.length + 1).includes('/')
@@ -65,6 +68,9 @@ export function pathFirestore(docs: Map<string, Json>) {
           paths.sort((a, b) => cmp(key(a), key(b)) * (dir === 'desc' ? -1 : 1));
         }
         if (after !== undefined) paths = paths.filter((p) => idOf(p) > after);
+        const { from, to } = range;
+        if (from !== undefined) paths = paths.filter((p) => idOf(p) >= from);
+        if (to !== undefined) paths = paths.filter((p) => idOf(p) <= to);
         const out = paths.slice(0, n).map(snap);
         return { docs: out, size: out.length, empty: out.length === 0 };
       },
