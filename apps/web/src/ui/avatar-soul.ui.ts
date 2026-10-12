@@ -1699,7 +1699,8 @@ function injectSoulStyles(): void {
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
       background-size: 100px 100px;
       mix-blend-mode: overlay;
-      /* Subtle breathing animation - grain shifts with avatar breathing */
+      /* Breathes with the avatar: opacity only (composited; moving the
+         background-position repainted the grain every frame at idle) */
       animation: grainBreath 8s ease-in-out infinite;
     }
     
@@ -1709,14 +1710,8 @@ function injectSoulStyles(): void {
     }
 
     @keyframes grainBreath {
-      0%, 100% { 
-        background-position: 0% 0%;
-        opacity: 0.04;
-      }
-      50% { 
-        background-position: 5% 5%;
-        opacity: 0.05;
-      }
+      0%, 100% { opacity: 0.04; }
+      50% { opacity: 0.05; }
     }
     
     /* Warmth Bloom - Emotional warmth radiating outward */
