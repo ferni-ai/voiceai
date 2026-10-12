@@ -41,7 +41,9 @@ jobs:
       is_pr: ${{ steps.branch.outputs.is_pr }}
       env_name: ${{ steps.branch.outputs.env_name }}
       service_name: ${{ steps.branch.outputs.service_name }}
-      # 'false' only on a PR that touches nothing but docs (see ci.yml's changes job)
+      # 'false' on a PR or queue group that touches nothing the UI image or backend
+      # build can see: docs, or only apps/website, ios-native, android-native or
+      # macos-menubar (see ci.yml's setup job; CI_SCOPED_QUEUE=off scopes PRs only)
       code: ${{ steps.code.outputs.matched }}
       # A preview is for clicking through the web app, so a PR gets one only when it
       # changes what the UI server image serves, or carries the `preview` label
@@ -98,7 +100,8 @@ jobs:
       - id: code
         uses: ./.github/actions/pr-changes
         with:
-          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$'
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|macos-menubar)/'
+          merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
 
       - id: ui
         uses: ./.github/actions/pr-changes
@@ -112,7 +115,7 @@ jobs:
     name: Build & Test
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     needs: context
-    # Required check: skipped (which reports success) on a docs-only PR, never
+    # Required check: skipped (which reports success) when `code` is false, never
     # filtered out by `paths:`, which would leave it pending forever.
     if: needs.context.outputs.code != 'false'
     
