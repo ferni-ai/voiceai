@@ -38,6 +38,7 @@ import { initializeFrontendPublisher } from '../realtime/frontend-publisher.js';
 import type { JobContext } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
+import { takeHandoffReason } from '../../tools/handoff/handoff-reasons.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
@@ -208,7 +209,7 @@ export async function handleHandoffFromDataChannel(
   reason: string,
   services: SessionServices,
   onAgentReady?: HandoffRequest['onAgentReady']
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; declined?: boolean }> {
   if (orchestrator.isHandoffInProgress()) {
     return { success: false, error: 'Handoff already in progress' };
   }
@@ -220,7 +221,11 @@ export async function handleHandoffFromDataChannel(
   let unlock = check(services.userProfile ?? null);
   // Refused with no profile yet: it may still be loading, so wait for it once and decide again
   if (!unlock.open && !services.userProfile) unlock = check(await profileWhenLoaded(services));
-  if (!unlock.open) return { success: false, error: unlock.error };
+  // Locked: the error is a warm decline from persona data, for the caller to hear and see.
+  // Anything else (an id that maps to no persona) stays technical: never said or shown.
+  if (!unlock.open) {
+    return { success: false, error: unlock.error, ...(unlock.locked ? { declined: true } : {}) };
+  }
   // From here on, only the id the check decided on: never the raw one from the browser
   const target = unlock.target;
   const currentPersona = orchestrator.getCurrentPersonaId();
@@ -232,7 +237,8 @@ export async function handleHandoffFromDataChannel(
 
   const result = await orchestrator.handoff({
     targetPersonaId: target,
-    reason,
+    // The model's own reason when it asked for this handoff (its tool noted it)
+    reason: takeHandoffReason(String(services.sessionId), target) ?? reason,
     userName: services.userProfile?.name,
     userEmotion: services.sessionPriming?.emotionalContext?.lastEmotion,
     onAgentReady,

@@ -81,7 +81,9 @@
   },
   "transcript": {
     "enabled": "Transcription on",
-    "disabled": "Transcription off"
+    "disabled": "Transcription off",
+    "captionsLabel": "Live captions",
+    "you": "You"
   },
   "placeholders": {
     "customAmount": "Custom amount",
@@ -344,7 +346,7 @@
         "calendar": "Calendar",
         "history": "Past chats",
         "people": "Your people",
-        "insights": "How you're doing"
+        "insights": "What I've learned"
       }
     },
     "ariaLabel": "Settings menu",
@@ -562,7 +564,7 @@
     "currentPlan": "You're Here",
     "planDetails": "Your Support",
     "features": "Perks",
-    "unlimitedConversations": "Unlimited conversations",
+    "unlimitedConversations": "Talk as much as you like",
     "allTeamMembers": "Full team access",
     "prioritySupport": "Priority support",
     "advancedInsights": "Early access to features",
@@ -2717,7 +2719,7 @@
       "description": "Ferni is free. Really free. Talk whenever you need.",
       "price": "Free forever",
       "features": {
-        "unlimitedFerni": "Unlimited conversations with Ferni",
+        "unlimitedFerni": "Talk with Ferni as much as you like",
         "heartToHearts": "7-minute heart-to-hearts",
         "fullMemory": "Full memory — I remember everything",
         "customization": "Avatar & theme customization"
@@ -4631,7 +4633,8 @@
     "sourceInferred": "I noticed",
     "correctButton": "Correct",
     "memoriesCount": "{count} memories",
-    "confidence": "{confidence}% confident"
+    "confidence": "{confidence}% confident",
+    "earlier": "earlier"
   },
   "memoryCorrection": {
     "modalTitle": "Correct This Memory",
@@ -8801,6 +8804,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Past Chats",
     "loadError": "Couldn't load data.",
     "tryAgain": "Try again?",
     "ariaLabel": "Conversation history",
@@ -9459,6 +9463,7 @@
       "groupSessions": "group sessions",
       "vibeController": "the vibe controller",
       "smartHomeSettings": "smart home settings",
+      "siriShortcuts": "Siri Shortcuts",
       "appleHealthSettings": "Apple Health settings",
       "eightSleepSettings": "Eight Sleep settings",
       "ouraSettings": "Oura settings",
@@ -10254,7 +10259,9 @@
     "deletingAccount": "Deleting your account...",
     "accountDeleted": "Your account is deleted. Take care.",
     "couldNotStartHuddle": "Couldn't start a team huddle. Try again?",
-    "defaultHuddleTopic": "Weekly check-in on your progress"
+    "defaultHuddleTopic": "Weekly check-in on your progress",
+    "couldNotLoadMemories": "Couldn't load what I remember. Try again?",
+    "memoryCorrected": "Got it. I'll remember it that way."
   },
   "trustSignals": {
     "prefix": {
@@ -10419,6 +10426,12 @@
       "fair": "Fair",
       "poor": "Poor connection",
       "disconnected": "Disconnected"
+    },
+    "island": {
+      "offline": "You're offline. I'll reconnect when you're back.",
+      "reconnecting": "Reconnecting…",
+      "weak": "Weak connection",
+      "backOnline": "Back online"
     }
   },
   "ideasGallery": {
@@ -10877,6 +10890,9 @@
     "confidenceTitle": "{confidence}% confidence",
     "loadError": "Unable to load your progress"
   },
+  "avatarFeedback": {
+    "nomNom": "Nom nom!"
+  },
   "avatarTapReactions": {
     "tickles": "Hehe, that tickles!"
   },
@@ -11112,5 +11128,17 @@
     "blocked": "Couldn't do that from here.",
     "notFound": "Couldn't find that one. Try the account I texted.",
     "failed": "Couldn't send that. Try again?"
+  },
+  "venmoChipIn": {
+    "eyebrow": "Chip in",
+    "title": "A dollar keeps the conversation going",
+    "body": "Ferni is free for now. If a talk helped, you can send a dollar on Venmo. More is welcome, never expected.",
+    "qrAlt": "Venmo QR code for @{handle}",
+    "copy": "Copy",
+    "copied": "Copied",
+    "openVenmo": "Open Venmo",
+    "helper": "Scan with your phone's camera, or tap Open Venmo. You can change the amount.",
+    "maybeLater": "Maybe later",
+    "close": "Close"
   }
 }

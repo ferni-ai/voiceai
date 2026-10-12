@@ -173,7 +173,7 @@ export async function runMultiAgentMode(
     const { roundtableAgentsForCall } =
       await import('../../group-conversation/session-roundtable-agents.js');
     const { handoffEvents } = await import('../../../handoff/index.js');
-    const { handoffStartMessages } = await import('../../multi-agent/handoff-messages.js');
+    const handoffMsgs = await import('../../multi-agent/handoff-messages.js');
     const { offerAgent, withdrawAgent } = await import('../../../tools/handoff/ready-agents.js');
 
     // Initialize multi-agent session
@@ -276,34 +276,31 @@ export async function runMultiAgentMode(
 
               const currentPersonaId = multiAgentResult.orchestrator.getCurrentPersonaId();
 
-              // Send handoff_acknowledged
-              await publishDataMessage(ctx.room, {
-                type: 'handoff_acknowledged',
-                target: message.target,
-                success: true,
-                timestamp: Date.now(),
-              });
+              const target = handoffMsgs.knownHandoffTarget(message.target); // known personas only
+              if (!target) {
+                const failed = handoffMsgs.unknownTargetFailedMessage(currentPersonaId);
+                await publishDataMessage(ctx.room, failed);
+                return;
+              }
 
-              for (const m of handoffStartMessages(message.target!, currentPersonaId)) {
+              // handoff_acknowledged, then handoff_started and handoff_progress
+              for (const m of handoffMsgs.handoffStartMessages(target, currentPersonaId, true)) {
                 await publishDataMessage(ctx.room, m);
               }
 
               const result = await handleHandoffFromDataChannel(
                 multiAgentResult.orchestrator,
-                message.target!,
-                message.reason || 'User requested via UI',
+                target,
+                'User requested via UI',
                 services
               );
 
               if (!result.success) {
                 process.stderr.write(`[multi-agent-mode] 🎭 Handoff failed: ${result.error}\n`);
-                await publishDataMessage(ctx.room, {
-                  type: 'handoff_failed',
-                  target: message.target,
-                  error: result.error,
-                  rollbackTo: currentPersonaId,
-                  timestamp: Date.now(),
-                });
+                const failed = handoffMsgs.handoffFailedMessage(target, result, currentPersonaId);
+                await publishDataMessage(ctx.room, failed.message);
+                // A locked teammate: the agent on the call says the decline out loud too
+                if (failed.say) multiAgentResult.orchestrator.getActiveAgent()?.say(failed.say);
               }
             } finally {
               handoffLock.release();
@@ -351,7 +348,7 @@ export async function runMultiAgentMode(
             `[multi-agent-mode] 🎭 LLM-triggered handoff via voiceSwitch: ${currentPersonaId || 'unknown'} → ${targetPersonaId}\n`
           );
 
-          for (const m of handoffStartMessages(targetPersonaId, currentPersonaId)) {
+          for (const m of handoffMsgs.handoffStartMessages(targetPersonaId, currentPersonaId)) {
             await publishDataMessage(ctx.room, m);
           }
 

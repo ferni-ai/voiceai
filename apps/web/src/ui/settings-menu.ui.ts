@@ -12,6 +12,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { memoryControlEnabled } from './memory/remembered.js';
 import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 // Relationship stage service - used for feature unlocking and progress display
@@ -293,8 +294,7 @@ const ICONS = {
 };
 
 // ============================================================================
-// FEATURE LOCK MAPPING - Maps menu actions to unlockable features
-// Progressive disclosure: features unlock as relationship deepens
+// FEATURE LOCK MAPPING: menu actions to features that unlock as the relationship deepens
 // ============================================================================
 
 const FEATURE_LOCK_MAP: Record<string, string> = {
@@ -309,9 +309,8 @@ const FEATURE_LOCK_MAP: Record<string, string> = {
   predictions: 'prediction-accuracy',
   'group-coaching': 'group-coaching',
   'video-call-settings': 'video-sessions',
-
-  // Established stage (20+ convos, 14+ days)
-  cognitive: 'deep-insights',
+  // Established stage (20+ convos, 14+ days). What Ferni remembers is open from the first call.
+  ...(memoryControlEnabled() ? {} : { cognitive: 'deep-insights' }),
   history: 'conversation-history',
 };
 
@@ -844,6 +843,7 @@ class SettingsMenuUI {
             ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects'), !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
             ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
+            ${memoryControlEnabled() ? this.renderMenuItem('cognitive', ICONS.brain, t('ferniKnows.panelTitle')) : ''}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
                 )

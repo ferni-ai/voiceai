@@ -15,6 +15,7 @@
 import { getLocale, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { DURATION, prefersReducedMotion } from '../config/animation-constants.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { ICONS, injectSharedStyles, escapeHtml, type IconName } from './engagement-components.js';
 
@@ -79,7 +80,7 @@ const TYPE_COLORS: Record<Notification['type'], { bg: string; border: string; ic
   ritual_reminder: {
     bg: 'var(--persona-tint, var(--color-accent-subtle))',
     border: 'var(--persona-primary, var(--color-accent-primary))',
-    icon: 'var(--persona-primary, var(--color-accent-primary))',
+    icon: 'var(--persona-text, var(--color-accent-text))',
   },
   streak_milestone: {
     bg: 'var(--color-semantic-success-glow)',
@@ -99,7 +100,7 @@ const TYPE_COLORS: Record<Notification['type'], { bg: string; border: string; ic
   welcome: {
     bg: 'var(--persona-tint, var(--color-accent-subtle))',
     border: 'var(--persona-primary, var(--color-accent-primary))',
-    icon: 'var(--persona-primary, var(--color-accent-primary))',
+    icon: 'var(--persona-text, var(--color-accent-text))',
   },
 };
 
@@ -544,14 +545,13 @@ export function showRitualReminder(
   });
 }
 
-/**
- * Show a streak milestone notification
- */
+/** Show a streak milestone notification (never under VITE_NO_STREAKS). */
 export function showStreakMilestone(
   ritualName: string,
   streakCount: number,
   personaId: string
 ): void {
+  if (isNoStreaksOn()) return;
   getNotificationsUI().show({
     id: `streak-${Date.now()}`,
     type: 'streak_milestone',
