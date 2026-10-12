@@ -8512,6 +8512,7 @@
     "accuracy": "Vorhersagegenauigkeit",
     "keepTalking": "Lass uns weiterreden. Wir bauen da etwas auf.",
     "accuracyLabel": "Genauigkeit",
+    "loadFailed": "Deine Vorhersagen konnten nicht geladen werden. Versuch es gleich noch einmal.",
     "resolved": "Gelöst",
     "streak": "Serie",
     "sampleOverwhelmed": "„Du würdest dich diese Woche überfordert fühlen“",

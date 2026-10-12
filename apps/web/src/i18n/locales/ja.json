@@ -8512,6 +8512,7 @@
     "accuracy": "予測の精度",
     "keepTalking": "お話を続けましょう。素晴らしいものを一緒に築いています。",
     "accuracyLabel": "精度",
+    "loadFailed": "予想を読み込めませんでした。少ししてからもう一度お試しください。",
     "resolved": "解決済み",
     "streak": "ストリーク",
     "sampleOverwhelmed": "「今週はキャパオーバーになりそう」",

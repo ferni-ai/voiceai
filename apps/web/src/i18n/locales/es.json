@@ -8565,6 +8565,7 @@
     "accuracy": "Precisión de las predicciones",
     "keepTalking": "Sigue conversando. Estamos construyendo algo especial.",
     "accuracyLabel": "Precisión",
+    "loadFailed": "No se pudieron cargar tus predicciones. Inténtalo de nuevo en un momento.",
     "resolved": "Resuelto",
     "streak": "Racha",
     "sampleOverwhelmed": "\"Sentirías agobio esta semana\"",

@@ -8512,6 +8512,7 @@
     "accuracy": "예측 정확도",
     "keepTalking": "계속 대화해 봐요. 우리는 무언가를 함께 만들어가고 있어요.",
     "accuracyLabel": "정확도",
+    "loadFailed": "예측을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
     "resolved": "해결됨",
     "streak": "연속 기록",
     "sampleOverwhelmed": "\"이번 주에 마음이 버겁다고 느끼실 것 같아요\"",

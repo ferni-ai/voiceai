@@ -8525,6 +8525,7 @@
     "accuracy": "Prediction accuracy",
     "keepTalking": "Keep talking. We're building something.",
     "accuracyLabel": "Accuracy",
+    "loadFailed": "Couldn't load your predictions. Try again in a moment.",
     "resolved": "Resolved",
     "streak": "Streak",
     "sampleOverwhelmed": "\"You'd feel overwhelmed this week\"",
