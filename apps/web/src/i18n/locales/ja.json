@@ -10864,6 +10864,9 @@
       "one": "{count}日"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "もぐもぐ！"
+  },
   "avatarTapReactions": {
     "tickles": "ふふっ、くすぐったいよ！"
   },

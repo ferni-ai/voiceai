@@ -10986,6 +10986,9 @@
       "other": "{count} jours"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "Miam miam !"
+  },
   "avatarTapReactions": {
     "tickles": "Héhé, ça chatouille !"
   },

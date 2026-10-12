@@ -11348,6 +11348,9 @@
       "other": "{count} يوم"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "يم يم!"
+  },
   "avatarTapReactions": {
     "tickles": "ههه، هذا يثير الدغدغة!"
   },

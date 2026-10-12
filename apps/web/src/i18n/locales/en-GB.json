@@ -10867,6 +10867,9 @@
       "other": "{count} days"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "Nom nom!"
+  },
   "avatarTapReactions": {
     "tickles": "Hehe, that tickles!"
   },

@@ -10878,6 +10878,9 @@
     "confidenceTitle": "{confidence}% confidence",
     "loadError": "Unable to load your progress"
   },
+  "avatarFeedback": {
+    "nomNom": "Nom nom!"
+  },
   "avatarTapReactions": {
     "tickles": "Hehe, that tickles!"
   },

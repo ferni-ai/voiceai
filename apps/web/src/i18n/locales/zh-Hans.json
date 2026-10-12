@@ -10864,6 +10864,9 @@
       "one": "{count} 天"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "好吃好吃！"
+  },
   "avatarTapReactions": {
     "tickles": "嘿嘿，好痒呀！"
   },

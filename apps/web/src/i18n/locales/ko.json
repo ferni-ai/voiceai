@@ -10864,6 +10864,9 @@
       "one": "{count}일"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "냠냠!"
+  },
   "avatarTapReactions": {
     "tickles": "헤헤, 간지러워요!"
   },

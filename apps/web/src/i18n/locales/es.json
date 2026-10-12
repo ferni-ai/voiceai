@@ -10986,6 +10986,9 @@
       "other": "{count} días"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "¡Ñam, ñam!"
+  },
   "avatarTapReactions": {
     "tickles": "¡Jeje, eso me da cosquillas!"
   },

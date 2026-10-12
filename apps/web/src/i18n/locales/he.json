@@ -10985,6 +10985,9 @@
       "other": "{count} ימים"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "יאמי יאמי!"
+  },
   "avatarTapReactions": {
     "tickles": "היהי, זה מדגדג!"
   },

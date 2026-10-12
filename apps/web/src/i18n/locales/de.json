@@ -10864,6 +10864,9 @@
       "other": "{count} Tage"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "Mjam, mjam!"
+  },
   "avatarTapReactions": {
     "tickles": "Hehe, das kitzelt!"
   },
