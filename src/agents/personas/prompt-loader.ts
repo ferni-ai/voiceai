@@ -452,7 +452,11 @@ async function loadToolUsageGuidance(bundleDir: string): Promise<string | null> 
     return null;
   }
 
-  const guidance = await loadFile(bundleDir, 'identity/tool-usage-guidance.md');
+  // Every persona can do the everyday things (music, timers, reminders, weather):
+  // dev call 2026-10-12, Peter thought music wasn't his and offered market trends.
+  const shared = await loadSharedFile('shared-capabilities.md');
+  const own = await loadFile(bundleDir, 'identity/tool-usage-guidance.md');
+  const guidance = [own, shared].filter(Boolean).join('\n\n') || null;
 
   if (guidance) {
     log.debug(
