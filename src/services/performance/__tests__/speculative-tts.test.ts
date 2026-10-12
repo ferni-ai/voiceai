@@ -51,6 +51,8 @@ describe('SpeculativeTTS', () => {
 
     // Set API key for tests
     vi.stubEnv('CARTESIA_API_KEY', 'test-api-key');
+    // These cover the engine when enabled; the flag defaults off.
+    vi.stubEnv('SPECULATIVE_TTS', 'on');
   });
 
   afterEach(() => {
