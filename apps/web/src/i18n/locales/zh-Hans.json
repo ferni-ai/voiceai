@@ -11012,19 +11012,6 @@
       "roomToGrow": "成长空间",
       "insight": "“你的精力在周中会下降。周三似乎是你最难熬的一天。”"
     },
-    "predictions": {
-      "title": "我的预测",
-      "message": "我会学会预测你的需求，在你开口之前就准备好。",
-      "guessOverwhelmed": "“你这周会感到有些不堪重负”",
-      "resultStress": "你在周二和周四提到了压力",
-      "guessGym": "“去健身房的习惯可能会遇到阻碍”",
-      "guessSunday": "“周日晚上会感觉有些沉重”",
-      "resultCheckIn": "我会找你记录一下",
-      "skipped": {
-        "other": "你本周跳过了 {count} 次",
-        "one": "你本周跳过了 {count} 次"
-      }
-    },
     "team": {
       "title": "我们的观察",
       "message": "你的整个团队都会分享他们的观察，来帮助你成长。",

@@ -11135,20 +11135,6 @@
       "roomToGrow": "De la marge pour grandir",
       "insight": "« Ton énergie baisse en milieu de semaine. Le mercredi semble être ta journée la plus difficile. »"
     },
-    "predictions": {
-      "title": "Mes prédictions",
-      "message": "J'apprendrai à anticiper tes besoins avant même que tu ne demandes.",
-      "guessOverwhelmed": "« Tu te sentirais sous pression cette semaine »",
-      "resultStress": "Tu as parlé de stress mardi et jeudi",
-      "guessGym": "« Ton habitude d'aller au sport serait difficile à tenir »",
-      "guessSunday": "« Le dimanche soir te semblera pesant »",
-      "resultCheckIn": "Je ferai un check-in avec toi",
-      "skipped": {
-        "one": "Tu as manqué {count} session cette semaine",
-        "many": "Tu as manqué {count} de sessions cette semaine",
-        "other": "Tu as manqué {count} sessions cette semaine"
-      }
-    },
     "team": {
       "title": "Ce que notre équipe remarque",
       "message": "Toute ton équipe partage ses observations pour t'aider à grandir.",

@@ -11012,19 +11012,6 @@
       "roomToGrow": "成長空間",
       "insight": "「你的精力在週中會有所下降。週三似乎是你最難熬的一天。」"
     },
-    "predictions": {
-      "title": "我的預測",
-      "message": "我會學著在你開口前，就預判你的需求。",
-      "guessOverwhelmed": "「你這週可能會感到有些吃不消」",
-      "resultStress": "你在週二和週四提到了壓力",
-      "guessGym": "「去健身房的習慣可能會遇到瓶頸」",
-      "guessSunday": "「週日晚上會感覺有些沉重」",
-      "resultCheckIn": "我會找你進行自我檢視",
-      "skipped": {
-        "other": "你這週跳過了 {count} 次對話",
-        "one": "你這週跳過了 {count} 次對話"
-      }
-    },
     "team": {
       "title": "我們的觀察",
       "message": "你的整個團隊都會分享他們的觀察，來幫助你成長。",

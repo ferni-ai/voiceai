@@ -11012,19 +11012,6 @@
       "roomToGrow": "Raum für Wachstum",
       "insight": "„Deine Energie sinkt Mitte der Woche. Der Mittwoch scheint dein schwerster Tag zu sein.“"
     },
-    "predictions": {
-      "title": "Meine Vorhersagen",
-      "message": "Ich werde lernen, deine Bedürfnisse vorauszusehen, noch bevor du fragst.",
-      "guessOverwhelmed": "„Dass du dich diese Woche überfordert fühlen würdest“",
-      "resultStress": "Du hast am Dienstag und Donnerstag Stress erwähnt",
-      "guessGym": "„Dass es mit dem Fitnessstudio diese Woche schwierig wird“",
-      "guessSunday": "„Dass sich der Sonntagabend schwer anfühlen wird“",
-      "resultCheckIn": "Ich mache einen Check-in bei dir",
-      "skipped": {
-        "one": "Du hast diese Woche {count} Sitzung übersprungen",
-        "other": "Du hast diese Woche {count} Sitzungen übersprungen"
-      }
-    },
     "team": {
       "title": "Was uns auffällt",
       "message": "Dein ganzes Team teilt Beobachtungen, um dir beim Wachsen zu helfen.",
