@@ -3750,8 +3750,7 @@
       "disabled": "Pas d'événements au calendrier",
       "loadingSuggestions": "Recherche des meilleurs moments...",
       "noSuggestions": "Aucune suggestion trouvée",
-      "suggestion": "Ton calendrier indique que ce créneau est généralement libre",
-      "suggestedTime": "Heure suggérée"
+      "suggestion": "Ton calendrier indique que ce créneau est généralement libre"
     },
     "validation": {
       "nameRequired": "Chaque pratique a besoin d'un nom"

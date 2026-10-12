@@ -24,6 +24,9 @@ import {
   renderCloseButton,
 } from './engagement-components.js';
 import { apiGet } from '../utils/api.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('RitualBuilderUI');
 
 // ============================================================================
 // HELPERS
@@ -870,26 +873,16 @@ class RitualBuilderUI {
         frequency: this.ritual.frequency,
       });
 
-      const response = await apiGet<{ suggestions?: string[] }>(
+      // The server already sends TimeSuggestion objects (practice-calendar.ts).
+      const response = await apiGet<{ suggestions?: TimeSuggestion[] }>(
         `/api/practices/time-suggestions?${params}`
       );
       if (response.ok && response.data) {
-        // Map string times to TimeSuggestion objects
-        this.timeSuggestions = (response.data.suggestions || []).map((timeStr: string): TimeSuggestion => {
-          const [hours, minutes] = timeStr.split(':').map(Number);
-          return { 
-            time: timeStr, 
-            hour: hours ?? 0, 
-            minute: minutes ?? 0,
-            dayOfWeek: '',
-            confidence: 0.8,
-            reasoning: t('rituals.calendar.suggestedTime', 'Suggested time'),
-            freeMinutes: 60,
-          };
-        });
+        this.timeSuggestions = response.data.suggestions ?? [];
       }
     } catch (err) {
-      // Silently fail - suggestions are optional
+      // Suggestions are optional: the user can still pick a time by hand
+      log.warn('Time suggestions failed', err);
       this.timeSuggestions = [];
     } finally {
       this.loadingSuggestions = false;

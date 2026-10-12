@@ -3727,8 +3727,7 @@
       "disabled": "캘린더 일정 없음",
       "loadingSuggestions": "가장 좋은 시간을 찾는 중...",
       "noSuggestions": "추천 시간을 찾지 못했어요",
-      "suggestion": "캘린더를 보니 보통 이 시간이 비어 있네요",
-      "suggestedTime": "추천 시간"
+      "suggestion": "캘린더를 보니 보통 이 시간이 비어 있네요"
     },
     "validation": {
       "nameRequired": "모든 실천에는 이름이 필요해요"

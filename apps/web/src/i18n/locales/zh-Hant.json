@@ -3727,8 +3727,7 @@
       "disabled": "不建立行事曆活動",
       "loadingSuggestions": "正在尋找最適合的時間...",
       "noSuggestions": "找不到建議的時間",
-      "suggestion": "你的行事曆顯示這個時間通常是有空的",
-      "suggestedTime": "建議時間"
+      "suggestion": "你的行事曆顯示這個時間通常是有空的"
     },
     "validation": {
       "nameRequired": "每個練習都需要一個名字"

@@ -3750,8 +3750,7 @@
       "disabled": "אין אירועים בלוח השנה",
       "loadingSuggestions": "מוצאים את הזמנים הכי טובים...",
       "noSuggestions": "לא נמצאו הצעות",
-      "suggestion": "לפי לוח השנה שלך, הזמן הזה פנוי בדרך כלל",
-      "suggestedTime": "זמן מוצע"
+      "suggestion": "לפי לוח השנה שלך, הזמן הזה פנוי בדרך כלל"
     },
     "validation": {
       "nameRequired": "לכל תרגול צריך להיות שם"

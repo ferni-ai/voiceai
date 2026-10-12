@@ -3727,8 +3727,7 @@
       "disabled": "未创建日历日程",
       "loadingSuggestions": "正在寻找最佳时间...",
       "noSuggestions": "未找到推荐时间",
-      "suggestion": "你的日历显示这个时间通常是有空的",
-      "suggestedTime": "推荐时间"
+      "suggestion": "你的日历显示这个时间通常是有空的"
     },
     "validation": {
       "nameRequired": "每个练习都需要一个名字"

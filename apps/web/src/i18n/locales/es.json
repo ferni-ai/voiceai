@@ -3750,8 +3750,7 @@
       "disabled": "Sin eventos en el calendario",
       "loadingSuggestions": "Buscando los mejores momentos...",
       "noSuggestions": "No se encontraron sugerencias",
-      "suggestion": "Tu calendario muestra que esta hora suele estar libre",
-      "suggestedTime": "Hora sugerida"
+      "suggestion": "Tu calendario muestra que esta hora suele estar libre"
     },
     "validation": {
       "nameRequired": "Cada práctica necesita un nombre"
