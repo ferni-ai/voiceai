@@ -8,7 +8,12 @@
  */
 
 import { DURATION, EASING, STAGGER } from '../../config/animation-constants.js';
-import type { AnimationKeyframes, AnimationOptions, CelebrationBeat, HapticPattern } from './types.js';
+import type {
+  AnimationKeyframes,
+  AnimationOptions,
+  CelebrationBeat,
+  HapticPattern,
+} from './types.js';
 
 // ============================================================================
 // DURATION CONSTANTS
@@ -69,10 +74,7 @@ export const WHISPER_ANIMATION = {
 
 export const NOTICE_ANIMATION = {
   avatarAnticipation: {
-    keyframes: [
-      { transform: 'scale(1)' },
-      { transform: 'scale(0.98)' },
-    ] as AnimationKeyframes[],
+    keyframes: [{ transform: 'scale(1)' }, { transform: 'scale(0.98)' }] as AnimationKeyframes[],
     options: {
       duration: DURATION.FAST,
       easing: EASING.ANTICIPATE,
@@ -261,7 +263,10 @@ export const BADGE_ANIMATION = {
   checkinPulse: {
     keyframes: [
       { boxShadow: '0 2px 8px rgba(74, 103, 65, 0.3), 0 0 0 1px rgba(74, 103, 65, 0.2)' },
-      { boxShadow: '0 2px 12px rgba(74, 103, 65, 0.5), 0 0 0 4px rgba(74, 103, 65, 0.1)', offset: 0.5 },
+      {
+        boxShadow: '0 2px 12px rgba(74, 103, 65, 0.5), 0 0 0 4px rgba(74, 103, 65, 0.1)',
+        offset: 0.5,
+      },
       { boxShadow: '0 2px 8px rgba(74, 103, 65, 0.3), 0 0 0 1px rgba(74, 103, 65, 0.2)' },
     ] as AnimationKeyframes[],
     options: {
@@ -355,13 +360,21 @@ export const MOMENT_COLORS = {
 // Z-INDEX LAYERS
 // ============================================================================
 
+/**
+ * Layers come from the z-index scale on :root (src/styles/inline-styles.css),
+ * never a number: a literal 1000 put every "Saved" pill behind the settings
+ * panels (--z-panel), which are full width on phones.
+ */
 export const MOMENT_Z_INDEX = {
-  whisper: 1000,
-  notice: 1100,
-  celebration: 1200,
-  badge: 1300,
-  milestone: 2000,
-  trophyRoom: 2100,
+  /** Whispers and notices: above panels and modals, like every toast. */
+  whisper: 'var(--z-notification)',
+  notice: 'var(--z-notification)',
+  celebration: 'var(--z-notification)',
+  /** Badges sit on the avatar, inside its own stacking context. */
+  badge: 'var(--z-overlay)',
+  milestone: 'var(--z-modal)',
+  trophyRoom: 'var(--z-modal)',
+  trophyRoomDetail: 'var(--z-modal-elevated)',
 } as const;
 
 // ============================================================================
@@ -374,15 +387,4 @@ export const SPARKLE_CONFIG = {
   spread: { min: 30, max: 60 },
   duration: DURATION.CELEBRATION,
   colors: ['rgba(255, 255, 255, 0.9)', 'var(--persona-glow)'],
-} as const;
-
-// ============================================================================
-// ACCESSIBILITY
-// ============================================================================
-
-export const REDUCED_MOTION_DURATIONS = {
-  whisper: DURATION.FAST,
-  notice: DURATION.FAST,
-  celebration: DURATION.NORMAL,
-  milestone: DURATION.NORMAL,
 } as const;

@@ -16,6 +16,7 @@
  * @module memory/dynamic/firestore-spanner-sync
  */
 
+import { syncFactDocs } from './spanner-sync-forget.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, toSafeDate } from '../../utils/firestore-utils.js';
 
@@ -147,12 +148,7 @@ async function syncEntityToSpanner(entity: SyncableEntity): Promise<boolean> {
       userId: entity.userId,
       name: entity.name,
       entityType: entity.type as
-        | 'person'
-        | 'place'
-        | 'organization'
-        | 'event'
-        | 'concept'
-        | 'thing',
+        'person' | 'place' | 'organization' | 'event' | 'concept' | 'thing',
       attributes: {},
       importance: entity.importance,
       firstMentioned: extractedDate,
@@ -271,45 +267,6 @@ async function getUnsyncedEntities(limit: number): Promise<SyncableEntity[]> {
   return entities;
 }
 
-async function getUnsyncedFacts(limit: number): Promise<SyncableFact[]> {
-  const db = getFirestoreDb();
-  if (!db) return [];
-
-  const cutoffTime = new Date(Date.now() - config.minAgeMs).toISOString();
-  const facts: SyncableFact[] = [];
-
-  try {
-    const snapshot = await db
-      .collectionGroup('dynamic_facts')
-      .where('extractedAt', '<', cutoffTime)
-      .where('syncedToSpanner', '==', false)
-      .orderBy('extractedAt', 'asc')
-      .limit(limit)
-      .get();
-
-    for (const doc of snapshot.docs) {
-      const data = doc.data();
-      const pathParts = doc.ref.path.split('/');
-      const userId = pathParts[1];
-
-      facts.push({
-        id: doc.id,
-        userId,
-        entityName: data.entityName || '',
-        factType: data.factType || 'attribute',
-        key: data.key || '',
-        value: data.value || '',
-        confidence: data.confidence || 0.5,
-        extractedAt: data.extractedAt,
-      });
-    }
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Collection group query failed for facts - check Firestore composite index');
-  }
-
-  return facts;
-}
-
 async function getUnsyncedRelationships(limit: number): Promise<SyncableRelationship[]> {
   const db = getFirestoreDb();
   if (!db) return [];
@@ -342,7 +299,10 @@ async function getUnsyncedRelationships(limit: number): Promise<SyncableRelation
       });
     }
   } catch (error) {
-    log.warn({ error: String(error) }, 'Collection group query failed for relationships - check Firestore composite index');
+    log.warn(
+      { error: String(error) },
+      'Collection group query failed for relationships - check Firestore composite index'
+    );
   }
 
   return relationships;
@@ -416,15 +376,14 @@ export async function runSyncCycle(): Promise<SyncResult> {
       }
     }
 
-    // 2. Sync facts
-    const facts = await getUnsyncedFacts(config.batchSize);
-    for (const fact of facts) {
-      const success = await syncFactToSpanner(fact);
-      if (success) {
-        await markAsSynced('dynamic_facts', fact.userId, fact.id);
-        result.factsSynced++;
-      }
-    }
+    // 2. Sync facts: copy live ones, remove forgotten ones (spanner-sync-forget.ts)
+    const { firestoreFactSyncOps, getUnsyncedFactDocs, RETRIES_PER_CYCLE } =
+      await import('../spanner-graph/client.js');
+    const factDocs = [
+      ...(await getUnsyncedFactDocs(config.batchSize, config.minAgeMs)),
+      ...(await getUnsyncedFactDocs(RETRIES_PER_CYCLE, config.minAgeMs, 'retry')),
+    ];
+    result.factsSynced += (await syncFactDocs(factDocs, firestoreFactSyncOps())).synced;
 
     // 3. Sync relationships
     const relationships = await getUnsyncedRelationships(config.batchSize);
@@ -566,10 +525,7 @@ export async function syncMemoryImmediately(memory: {
 
   try {
     const importance = memory.emotionalWeight || memory.strength || 0.5;
-    log.debug(
-      { memoryId: memory.id, importance },
-      'Syncing memory to Spanner immediately'
-    );
+    log.debug({ memoryId: memory.id, importance }, 'Syncing memory to Spanner immediately');
 
     // Sync entities from people mentioned
     for (const person of memory.peopleMentioned || []) {
@@ -690,8 +646,9 @@ export async function processPrioritySyncQueue(): Promise<number> {
       log.warn('Firestore not available for priority sync');
       return 0;
     }
-    
-    for (const memoryId of memoryIds.slice(0, 50)) { // Process up to 50 at a time
+
+    for (const memoryId of memoryIds.slice(0, 50)) {
+      // Process up to 50 at a time
       try {
         // Query the memory from the unified memories collection
         const memorySnapshot = await db
@@ -703,7 +660,7 @@ export async function processPrioritySyncQueue(): Promise<number> {
         if (!memorySnapshot.empty) {
           const memoryDoc = memorySnapshot.docs[0];
           const data = memoryDoc.data();
-          
+
           const syncSuccess = await syncMemoryImmediately({
             id: data.id,
             userId: data.userId,

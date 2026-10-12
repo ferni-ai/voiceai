@@ -6,7 +6,8 @@ personaColor: "#4A5568"
 personaSecondary: "#2D3748"
 ---
 
-{% from "partials/icons.njk" import play, plus, starFilled, star, verified, check %}
+{% from "partials/icons.njk" import play, plus, check %}
+{% from "partials/pricing.njk" import priced, priceBadge with context %}
 
 <!-- Hero -->
 <section class="persona-detail-hero" style="--persona-color: #4A5568; --persona-secondary: #2D3748;">
@@ -30,20 +31,13 @@ personaSecondary: "#2D3748"
         <h1>Ray</h1>
         <p class="persona-detail-tagline">Career Architect</p>
         <div class="persona-detail-meta">
-          <span style="display: inline-flex; align-items: center; gap: var(--space-1); color: var(--warning);">
-            {{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ star(16) }}
-          </span>
-          <span>4.6 (934 reviews)</span>
-          <span style="opacity: 0.7;">|</span>
-          <span>15,600+ users</span>
-          <span style="opacity: 0.7;">|</span>
-          <span>by CareerPath AI</span>
+          <span>by Ferni</span>
         </div>
         <div class="persona-detail-actions">
-          <button class="btn btn-add-team btn-lg">
+          <a href="{{ site.appUrl }}" class="btn btn-add-team btn-lg">
             {{ plus(20) }}
-            Add to Team - $12.99/mo
-          </button>
+            {{ priced('Add to Team - $12.99/mo', 'Add to Team') }}
+          </a>
           <button class="btn btn-preview-voice">
             {{ play(20) }}
             Preview Voice
@@ -128,75 +122,6 @@ personaSecondary: "#2D3748"
             than their initial offer."
           </p>
         </div>
-
-        <!-- Reviews -->
-        <div class="reviews-section">
-          <div class="reviews-header">
-            <div class="reviews-summary">
-              <span class="reviews-rating-big">4.6</span>
-              <div class="reviews-rating-info">
-                <span class="reviews-stars" style="color: var(--warning);">
-                  {{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ star(18) }}
-                </span>
-                <span class="reviews-count">934 reviews</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #4A5568, #2D3748); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">A</div>
-              <div>
-                <div class="review-author">Amanda C.</div>
-                <div class="review-date">1 week ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              Ray helped me negotiate a 25% raise when I was going to accept the first offer.
-              He coached me through the conversation, gave me the exact words to use, and helped
-              me believe I was worth it. Paid for itself immediately.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #E07B53, #B85C3C); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">M</div>
-              <div>
-                <div class="review-author">Michael P.</div>
-                <div class="review-date">3 weeks ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              Transitioning from engineering to product management felt impossible until Ray helped
-              me reframe my experience. The mock interviews were incredibly helpful. Now I'm a PM
-              at a company I love. Ray's style is direct—might not be for everyone.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #D4A373, #A67B5B); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">S</div>
-              <div>
-                <div class="review-author">Sarah L.</div>
-                <div class="review-date">1 month ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              The networking coaching was exactly what I needed. Ray helped me see that networking
-              isn't about being fake—it's about building genuine relationships. My LinkedIn
-              engagement went up 400% using his strategies.
-            </p>
-          </div>
-        </div>
       </div>
 
       <!-- Right Column -->
@@ -250,13 +175,9 @@ personaSecondary: "#2D3748"
         <div style="background: var(--bg-elevated); border-radius: var(--radius-2xl); padding: var(--space-6); box-shadow: var(--shadow-card); margin-bottom: var(--space-6);">
           <h3 style="font-size: var(--text-lg); margin-bottom: var(--space-4);">Publisher</h3>
           <div style="display: flex; align-items: center; gap: var(--space-3);">
-            <div style="width: 48px; height: 48px; background: #4A5568; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">C</div>
+            <div style="width: 48px; height: 48px; background: #4A5568; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">F</div>
             <div>
-              <div style="font-weight: 600;">CareerPath AI</div>
-              <div style="font-size: var(--text-sm); color: var(--success); display: flex; align-items: center; gap: var(--space-1);">
-                {{ verified(14) }}
-                Verified Publisher
-              </div>
+              <div style="font-weight: 600;">Ferni</div>
             </div>
           </div>
         </div>
@@ -267,9 +188,9 @@ personaSecondary: "#2D3748"
           <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
             Build the career you deserve
           </p>
-          <button class="btn" style="background: white; color: #4A5568; width: 100%;">
-            Add to Team - $12.99/mo
-          </button>
+          <a href="{{ site.appUrl }}" class="btn" style="background: white; color: #4A5568; width: 100%;">
+            {{ priced('Add to Team - $12.99/mo', 'Add to Team') }}
+          </a>
         </div>
       </div>
 
@@ -297,13 +218,7 @@ personaSecondary: "#2D3748"
         <div class="persona-body">
           <p class="persona-description">Strategies that work with how your ADHD brain operates.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-              <span class="persona-rating-count">4.9</span>
-            </div>
-            <span class="persona-price">$9.99/mo</span>
+            {{ priceBadge('$9.99/mo') }}
           </div>
         </div>
       </a>
@@ -319,13 +234,7 @@ personaSecondary: "#2D3748"
         <div class="persona-body">
           <p class="persona-description">Spark creativity and battle creative block with energy and ideas.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-              <span class="persona-rating-count">4.75</span>
-            </div>
-            <span class="persona-price free">Free+</span>
+            {{ priceBadge('Free+') }}
           </div>
         </div>
       </a>
@@ -341,13 +250,7 @@ personaSecondary: "#2D3748"
         <div class="persona-body">
           <p class="persona-description">Reclaim your nights with evidence-based sleep coaching.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-              <span class="persona-rating-count">4.7</span>
-            </div>
-            <span class="persona-price free">Free+</span>
+            {{ priceBadge('Free+') }}
           </div>
         </div>
       </a>

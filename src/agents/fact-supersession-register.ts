@@ -8,12 +8,14 @@
 import { registerAfterCallTask } from '../services/session/after-call-tasks.js';
 import { callLLM } from '../services/llm-utils.js';
 import { factSupersessionEnabled, supersedeNewFacts } from '../memory/dynamic/fact-supersession.js';
+import { firestoreSupersessionStore } from '../memory/storage/supersession-store.js';
 
 registerAfterCallTask(
   'fact-supersession',
   async (ctx) => {
     if (!factSupersessionEnabled()) return;
     await supersedeNewFacts(ctx.userId, {
+      store: firestoreSupersessionStore,
       llm: (prompt) => callLLM(prompt, { temperature: 0, maxTokens: 600 }),
       since: ctx.startedAt,
     });
