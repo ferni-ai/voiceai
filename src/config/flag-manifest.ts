@@ -180,6 +180,7 @@ export const FLAG_MANIFEST = {
   // a mode: on speaks a fallback when a reply fails, shadow only logs it
   NEVER_SILENT: { default: 'off', owner: 'voice', kind: 'experiment' },
   ONNX_USE_COREML: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  ON_BEHALF_TEXTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   OPENER_FOLLOW_UP: { default: 'off', owner: 'memory', kind: 'experiment' },
   OPENER_GATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   OPENER_GATE_EARLY: { default: 'off', owner: 'voice', kind: 'experiment' },

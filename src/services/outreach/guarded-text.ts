@@ -37,6 +37,9 @@ import {
 } from './checkin-replies.js';
 import type { SMSDeliveryResult, SMSMessage } from './delivery/sms-delivery.js';
 import { verifiedPhoneOf } from './user-reach.js';
+import { userTimeZone } from '../../utils/caller-time-zone.js';
+import { isValidTimeZone } from '../../utils/time-zone.js';
+import { isQuietHour } from '../follow-through/index.js';
 
 const log = createLogger({ module: 'guarded-text' });
 
@@ -200,6 +203,101 @@ export async function sendGuardedText(
     return { sent: false, reason: 'send-failed' };
   }
   log.info({ ...logCtx, phoneLast4 }, 'Text sent');
+  return { sent: true };
+}
+
+// ---------------------------------------------------------------------------
+// Texts a member asks Ferni to send to someone else
+// ---------------------------------------------------------------------------
+
+export function onBehalfTextsOn(env: Env = process.env): boolean {
+  return env.ON_BEHALF_TEXTS === 'on';
+}
+
+/** No more than one text to the same person every 10 minutes: a loop can't spam them. */
+export const ON_BEHALF_GAP_MS = 10 * 60 * 1000;
+
+export interface OnBehalfText {
+  /** The member it is sent for. */
+  readonly senderUserId: string;
+  readonly toPhone: string;
+  readonly body: string;
+  /** What it is about (the outreach id), stored with the record. */
+  readonly refId: string;
+  /** The recipient's IANA zone when known; else the member's. */
+  readonly zone?: string;
+}
+
+export type OnBehalfSkip =
+  | 'flag-off'
+  | 'no-hash-secret'
+  | 'bad-number'
+  | 'opted-out'
+  | 'recently-sent'
+  | 'quiet-hours'
+  | 'send-failed';
+export type OnBehalfOutcome = { sent: true } | { sent: false; reason: OnBehalfSkip };
+
+/** Quiet hours (21:00 to 08:00, follow-through's) in their zone, else the member's; none when unknown. */
+function quietFor(now: Date, zone: string | undefined): boolean {
+  return zone !== undefined && isValidTimeZone(zone) && isQuietHour(now, zone);
+}
+
+/**
+ * Sends a text to someone else for a member (the caller has already said yes,
+ * outreach-confirm.ts): only to a valid number, never after that number sent
+ * STOP (any STOP to our number is recorded, checkin-replies.ts), not twice in
+ * ten minutes, not in their quiet hours. Off unless ON_BEHALF_TEXTS=on.
+ */
+export async function sendOnBehalfText(
+  t: OnBehalfText,
+  deps: TextDeps = defaultTextDeps()
+): Promise<OnBehalfOutcome> {
+  const skip = (reason: OnBehalfSkip): OnBehalfOutcome => {
+    log.info({ kind: 'on-behalf', refId: t.refId, reason }, 'Text skipped');
+    return { sent: false, reason };
+  };
+  if (!onBehalfTextsOn(deps.env)) return skip('flag-off');
+  if (!phoneHashKey(deps.env)) return skip('no-hash-secret');
+  const to = toE164(t.toPhone);
+  const hash = to ? phoneHash(to, deps.env) : null;
+  if (!to || !hash) return skip('bad-number');
+  const now = deps.now();
+  if (quietFor(now, t.zone ?? userTimeZone({ userId: t.senderUserId }))) return skip('quiet-hours');
+  const [optedOut, toPhone] = await Promise.all([
+    deps.store.isOptedOut(hash),
+    deps.store.forPhoneHash(hash),
+  ]);
+  if (optedOut) return skip('opted-out');
+  if (sentWithin(lastSentAt(toPhone, 'on-behalf'), now, ON_BEHALF_GAP_MS))
+    return skip('recently-sent');
+
+  const storedId = recordUserId(t.senderUserId, deps.env) ?? 'unknown';
+  const result = await deps.send({
+    to,
+    body: t.body,
+    personaId: 'ferni',
+    userId: storedId,
+    outreachId: t.refId,
+  });
+  await deps.store.add({
+    userId: storedId,
+    sessionId: t.refId,
+    sentAt: now.toISOString(),
+    question: t.body,
+    status: result.success ? 'sent' : 'failed',
+    phoneLast4: last4(to),
+    phoneHash: hash,
+    kind: 'on-behalf',
+    refId: t.refId,
+  });
+  if (!result.success) {
+    log.warn(
+      { kind: 'on-behalf', refId: t.refId, error: redactNumbers(result.error) },
+      'Text not sent'
+    );
+    return { sent: false, reason: 'send-failed' };
+  }
   return { sent: true };
 }
 
