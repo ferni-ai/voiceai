@@ -10,7 +10,6 @@
     "closeDashboard": "ダッシュボードを閉じる",
     "closeDetails": "詳細を閉じる",
     "closeHistory": "履歴を閉じる",
-    "closeHuddle": "ハドルを閉じる",
     "closeMenu": "メニューを閉じる",
     "closePublisher": "パブリッシャーポータルを閉じる",
     "closeSettings": "設定を閉じる",
@@ -545,7 +544,6 @@
     "target": "目標",
     "tasks": "タスク",
     "teachings": "教え",
-    "teamHuddle": "チームハドル",
     "teamMembersUnlocked": "アンロックされたチームメンバー",
     "teamUnlock": "チームのアンロック",
     "testCall": "テスト通話",
@@ -1241,7 +1239,6 @@
       "gifts": "贈り物と特別な日",
       "videoSessions": "ビデオ通話",
       "groupCoaching": "友達と一緒に",
-      "teamHuddles": "チームのキャッチアップ",
       "teamSessions": "チームの時間",
       "conferenceCalls": "グループ通話",
       "concierge": "日常のお手伝い",
@@ -1296,8 +1293,7 @@
       "growthJournal": "成長ジャーナル",
       "knowledgeQuiz": "私のことをどれくらい知っていますか？",
       "soundEffects": "効果音",
-      "sleepSchedule": "睡眠スケジュール",
-      "teamObservations": "チームの観察"
+      "sleepSchedule": "睡眠スケジュール"
     },
     "quickAdd": {
       "person": "新しい人",
@@ -7216,19 +7212,6 @@
       "one": "{count}個中{active}個の機能が有効"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "チームの統合",
-    "assessment": "総合評価",
-    "connections": "領域を越えたつながり",
-    "recommendations": "チームからの提案",
-    "loading": "チームの観察結果を読み込んでいます...",
-    "empty": {
-      "title": "チームの観察結果はまだありません",
-      "description": "チームとお話をしていくうちに、お互いに気づきを共有し合うようになります。"
-    },
-    "recent": "最近の観察結果",
-    "title": "チームの観察結果"
-  },
   "observationTypes": {
     "insight": "気づき",
     "concern": "気になること",
@@ -8978,9 +8961,6 @@
     "he": "ヘブライ語"
   },
   "featureHints": {
-    "teamHuddlesTitle": "チームハドルが始まりました！",
-    "teamHuddlesMessage": "お互いのことをもっと知ることができたので、これからは複数のチームメンバーから一度に話を聞くことができます。",
-    "teamHuddlesCta": "ハドルを試してみる",
     "createRitualsTitle": "あなただけの「リチュアル」を作ろう",
     "createRitualsMessage": "カスタムのデイリー「プラクティス」を作成できるようになりました。あなたにとって、どんな小さな習慣が一番助けになりますか？",
     "createRitualsCta": "リチュアルを作成する",
@@ -10229,8 +10209,6 @@
     "allDataDeleted": "すべてのデータが削除されました",
     "deletingAccount": "アカウントを削除しています...",
     "accountDeleted": "アカウントが削除されました。お元気で。",
-    "couldNotStartHuddle": "チームハドルを開始できませんでした。もう一度お試しになりますか？",
-    "defaultHuddleTopic": "今週の進捗チェックイン",
     "conversationsLeft": {
       "other": "残りのお話はあと{count}回です。必要なときはいつでもここにいますからね。",
       "one": "残りのお話はあと{count}回です。必要なときはいつでもここにいますからね。"
@@ -10824,11 +10802,6 @@
     "connectToTalk": "お話する",
     "endTalk": "終了",
     "connectingCancel": "接続中です。タップしてキャンセル"
-  },
-  "teamHuddle": {
-    "typeWeekly": "週に一度のチェックイン",
-    "typeMilestone": "マイルストーンのお祝い",
-    "typeSpecial": "特別な瞬間"
   },
   "analyticsDashboard": {
     "title": "あなたの道のり",

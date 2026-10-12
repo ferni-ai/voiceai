@@ -10,7 +10,6 @@
     "closeDashboard": "Dashboard schließen",
     "closeDetails": "Details schließen",
     "closeHistory": "Verlauf schließen",
-    "closeHuddle": "Huddle schließen",
     "closeMenu": "Menü schließen",
     "closePublisher": "Publisher-Portal schließen",
     "closeSettings": "Einstellungen schließen",
@@ -545,7 +544,6 @@
     "target": "Ziel",
     "tasks": "Aufgaben",
     "teachings": "Lehren",
-    "teamHuddle": "Team-Huddle",
     "teamMembersUnlocked": "Teammitglieder freigeschaltet",
     "teamUnlock": "Team freischalten",
     "testCall": "Testanruf",
@@ -1221,7 +1219,6 @@
       "supportFerni": "Ferni unterstützen",
       "supportFerniExpanded": "Ferni unterstützen",
       "takeTour": "Zeig mir alles",
-      "teamHuddles": "Team-Treffen",
       "teamInsights": "Was dem Team auffällt",
       "toggleTheme": "Hell / Dunkel",
       "trustDetails": "Wie wir gewachsen sind",
@@ -1263,8 +1260,7 @@
       "growthJournal": "Wachstumsjournal",
       "knowledgeQuiz": "Wie gut kennst du mich?",
       "soundEffects": "Soundeffekte",
-      "sleepSchedule": "Schlafplan",
-      "teamObservations": "Team-Beobachtungen"
+      "sleepSchedule": "Schlafplan"
     },
     "keepChatting": "Je mehr wir sprechen, desto näher kommen wir uns",
     "maxLevel": "Lebenspartner",
@@ -7216,19 +7212,6 @@
       "other": "{active} von {count} Fähigkeiten aktiv"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "Team-Synthese",
-    "assessment": "Gesamtbewertung",
-    "connections": "Bereichsübergreifende Verbindungen",
-    "recommendations": "Team-Empfehlungen",
-    "loading": "Team-Beobachtungen werden geladen...",
-    "empty": {
-      "title": "Noch keine Team-Beobachtungen",
-      "description": "Wenn du mit dem Team sprichst, teilen sie ihre Erkenntnisse untereinander."
-    },
-    "recent": "Letzte Beobachtungen",
-    "title": "Team-Beobachtungen"
-  },
   "observationTypes": {
     "insight": "Erkenntnis",
     "concern": "Sorge",
@@ -8978,9 +8961,6 @@
     "he": "Hebräisch"
   },
   "featureHints": {
-    "teamHuddlesTitle": "Team-Huddles sind da!",
-    "teamHuddlesMessage": "Jetzt, wo wir uns besser kennen, kannst du von mehreren Team-Mitgliedern gleichzeitig hören.",
-    "teamHuddlesCta": "Probiere ein Huddle aus",
     "createRitualsTitle": "Erstelle deine eigenen Rituale",
     "createRitualsMessage": "Du kannst jetzt eigene tägliche Übungen erstellen. Welche kleine Gewohnheit würde dir am meisten helfen?",
     "createRitualsCta": "Ritual erstellen",
@@ -10229,8 +10209,6 @@
     "allDataDeleted": "Alle Daten gelöscht",
     "deletingAccount": "Dein Account wird gelöscht...",
     "accountDeleted": "Dein Account wurde gelöscht. Mach's gut!",
-    "couldNotStartHuddle": "Das Team-Huddle konnte nicht gestartet werden. Versuchst du es noch mal?",
-    "defaultHuddleTopic": "Wöchentlicher Check-in zu deinen Fortschritten",
     "conversationsLeft": {
       "one": "{count} Gespräch übrig. Ich bin da, wann immer du mich brauchst.",
       "other": "{count} Gespräche übrig. Ich bin da, wann immer du mich brauchst."
@@ -10824,11 +10802,6 @@
     "connectToTalk": "Verbinden",
     "endTalk": "Auflegen",
     "connectingCancel": "Verbindung wird hergestellt. Zum Abbrechen tippen"
-  },
-  "teamHuddle": {
-    "typeWeekly": "Wöchentlicher Check-in",
-    "typeMilestone": "Meilenstein-Feier",
-    "typeSpecial": "Besonderer Moment"
   },
   "analyticsDashboard": {
     "title": "Deine Reise",

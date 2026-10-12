@@ -49,7 +49,6 @@ import {
   showFerniFundThankYou,
   showGroupCoaching,
   showHouseholdManager,
-  showLifeContextDashboard,
   showLinkedInSettings,
   showOuraSettings,
   showPatternInsights,
@@ -245,14 +244,13 @@ import {
   conversationTracker,
   initConversationTracker,
 } from './services/conversation-tracker.service.js';
-import { initRitualsService, ritualsService } from './services/rituals.service.js';
+import { initRitualsService } from './services/rituals.service.js';
 import { getOnboardingUI, initOnboardingUI, startOnboardingIfNeeded } from './ui/onboarding.ui.js';
 import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
 // 🎬 Cameo Roster - Team member pop-in animations in the roster
 import { initCameoRoster } from './ui/cameo-roster.ui.js';
 import { initRelationshipProgressUI } from './ui/stage-celebration.ui.js';
 // Trust Journey is now integrated into journey.ui.ts - no separate init needed
-import { initTeamHuddleUI } from './ui/team-huddle.ui.js';
 // Team Intro - Meet the team modal for mobile
 import { initTeamIntro, showTeamIntro } from './ui/team-intro.ui.js';
 // Push Notifications
@@ -389,17 +387,12 @@ import {
   showConversationHistory,
   showDataExport,
   showPredictionTracker,
-  showTeamHuddle,
   showTrustDashboard,
   showYourStoryDashboard,
 } from './app/panel-methods.js';
 
 // Data message handlers (extracted for file size)
-import {
-  handleDataMessage,
-  handleEngagementTrigger,
-  setShowTeamHuddleCallback,
-} from './app/data-message-handlers.js';
+import { handleDataMessage, handleEngagementTrigger } from './app/data-message-handlers.js';
 
 // ============================================================================
 // APPLICATION CLASS
@@ -1727,7 +1720,6 @@ class VoiceAIApp {
     this.safeInit('PersonaTransitionUI', () => initPersonaTransitionUI());
     // 🎬 Cameo Roster - Team member pop-in/out in the roster
     this.safeInit('CameoRoster', () => initCameoRoster());
-    this.safeInit('TeamHuddleUI', () => initTeamHuddleUI());
     // Team Intro - "Meet the Team" modal (used by mobile bottom sheet)
     this.safeInit('TeamIntro', () => initTeamIntro());
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
@@ -1874,9 +1866,6 @@ class VoiceAIApp {
         onNotificationSettingsClick: () => void openNotificationSettings(),
         onSleepSettingsClick: () => void import('./ui/sleep-settings.ui.js').then((m) => m.show()),
         onSpotifyClick: () => void triggerSpotifyLinkToggle(),
-        onTeamHuddleClick: () => showTeamHuddle(),
-        onTeamObservationsClick: () =>
-          void import('./ui/team-observations-panel.ui.js').then((m) => m.show()),
         // Trust Journey is now integrated into the unified Journey modal
         onTrustJourneyClick: () => journeyUI.open(),
         onTrustDashboardClick: () =>
@@ -2019,9 +2008,6 @@ class VoiceAIApp {
     });
     this.addTrackedListener(window, 'ferni:open-predictions', () => {
       void getPredictionsUI().show();
-    });
-    this.addTrackedListener(window, 'ferni:open-team-huddle', () => {
-      void showTeamHuddle();
     });
 
     // 🎤 Voice-Activated Navigation - Handle panel open events from voice commands
@@ -2277,9 +2263,6 @@ class VoiceAIApp {
         celebrateStreak(days, 'ferni');
       }
     }) as EventListener);
-
-    // Set up team huddle callback for data message handlers
-    setShowTeamHuddleCallback(() => showTeamHuddle());
 
     // 📊 Load engagement data (API first, demo fallback in dev)
     void this.loadEngagementData();

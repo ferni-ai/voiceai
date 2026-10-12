@@ -10,7 +10,6 @@
     "closeDashboard": "Cerrar panel",
     "closeDetails": "Cerrar detalles",
     "closeHistory": "Cerrar historial",
-    "closeHuddle": "Cerrar reunión",
     "closeMenu": "Cerrar menú",
     "closePublisher": "Cerrar portal de publicación",
     "closeSettings": "Cerrar ajustes",
@@ -545,7 +544,6 @@
     "target": "Objetivo",
     "tasks": "Tareas",
     "teachings": "Enseñanzas",
-    "teamHuddle": "Reunión de equipo",
     "teamMembersUnlocked": "Miembros del equipo desbloqueados",
     "teamUnlock": "Desbloqueo de equipo",
     "testCall": "Llamada de prueba",
@@ -1224,7 +1222,6 @@
       "supportFerni": "Apoya a Ferni",
       "supportFerniExpanded": "Apoya a Ferni",
       "takeTour": "Dame un recorrido",
-      "teamHuddles": "Ponerse al día con el equipo",
       "teamInsights": "Lo que nota el equipo",
       "toggleTheme": "Claro / Oscuro",
       "trustDetails": "Cómo hemos crecido",
@@ -1266,8 +1263,7 @@
       "growthJournal": "Diario de crecimiento",
       "knowledgeQuiz": "¿Qué tan bien me conoces?",
       "soundEffects": "Efectos de sonido",
-      "sleepSchedule": "Horario de sueño",
-      "teamObservations": "Observaciones del equipo"
+      "sleepSchedule": "Horario de sueño"
     },
     "keepChatting": "Mientras más hablemos, más nos acercaremos",
     "maxLevel": "Compañeros de vida",
@@ -7263,19 +7259,6 @@
       "other": "{active} de {count} capacidades activas"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "Síntesis del equipo",
-    "assessment": "Evaluación general",
-    "connections": "Conexiones entre áreas",
-    "recommendations": "Recomendaciones del equipo",
-    "loading": "Cargando las observaciones del equipo...",
-    "empty": {
-      "title": "Aún no hay observaciones del equipo",
-      "description": "A medida que hables con el equipo, compartirán sus reflexiones entre sí."
-    },
-    "recent": "Observaciones recientes",
-    "title": "Observaciones del equipo"
-  },
   "observationTypes": {
     "insight": "Reflexión",
     "concern": "Inquietud",
@@ -9048,9 +9031,6 @@
     "he": "Hebreo"
   },
   "featureHints": {
-    "teamHuddlesTitle": "¡Ya están aquí las reuniones de equipo!",
-    "teamHuddlesMessage": "Ahora que nos conocemos mejor, puedes escuchar a varios miembros del equipo a la vez.",
-    "teamHuddlesCta": "Probar una reunión",
     "createRitualsTitle": "Crea tus propios rituales",
     "createRitualsMessage": "Ahora puedes crear prácticas diarias personalizadas. ¿Qué pequeño hábito te ayudaría más?",
     "createRitualsCta": "Crear un ritual",
@@ -10324,8 +10304,6 @@
     "allDataDeleted": "Todos los datos fueron eliminados",
     "deletingAccount": "Eliminando tu cuenta...",
     "accountDeleted": "Tu cuenta ha sido eliminada. Cuídate mucho.",
-    "couldNotStartHuddle": "No se pudo iniciar la reunión de equipo. ¿Lo intentamos de nuevo?",
-    "defaultHuddleTopic": "Registro semanal de tu progreso",
     "conversationsLeft": {
       "one": "Te queda {count} conversación. Aquí estoy siempre que me necesites.",
       "many": "Te quedan {count} conversaciones. Aquí estoy siempre que me necesites.",
@@ -10944,11 +10922,6 @@
     "connectToTalk": "Hablar",
     "endTalk": "Desconectar",
     "connectingCancel": "Conectando. Toca para cancelar"
-  },
-  "teamHuddle": {
-    "typeWeekly": "Registro semanal",
-    "typeMilestone": "Celebración de hito",
-    "typeSpecial": "Momento especial"
   },
   "analyticsDashboard": {
     "title": "Tu camino",

@@ -10,7 +10,6 @@
     "closeDashboard": "إغلاق لوحة التحكم",
     "closeDetails": "إغلاق التفاصيل",
     "closeHistory": "إغلاق السجل",
-    "closeHuddle": "إغلاق اللقاء السريع",
     "closeMenu": "إغلاق القائمة",
     "closePublisher": "إغلاق بوابة الناشر",
     "closeSettings": "إغلاق الإعدادات",
@@ -545,7 +544,6 @@
     "target": "الهدف",
     "tasks": "المهام",
     "teachings": "الدروس",
-    "teamHuddle": "تجمع الفريق",
     "teamMembersUnlocked": "تم إلغاء قفل أعضاء الفريق",
     "teamUnlock": "إلغاء قفل الفريق",
     "testCall": "مكالمة تجريبية",
@@ -1225,7 +1223,6 @@
       "supportFerni": "دعم Ferni",
       "supportFerniExpanded": "دعم Ferni",
       "takeTour": "خذني في جولة",
-      "teamHuddles": "لقاء الفريق السريع",
       "teamInsights": "ما يلاحظه الفريق",
       "toggleTheme": "فاتح / داكن",
       "trustDetails": "كيف كبرنا معاً",
@@ -1268,8 +1265,7 @@
       "growthJournal": "مذكرات النمو",
       "knowledgeQuiz": "ما مدى معرفتك بي؟",
       "soundEffects": "المؤثرات الصوتية",
-      "sleepSchedule": "جدول النوم",
-      "teamObservations": "ملاحظات الفريق"
+      "sleepSchedule": "جدول النوم"
     },
     "keepChatting": "كلما تحدثنا أكثر، اقتربنا أكثر",
     "maxLevel": "شركاء الحياة",
@@ -7400,19 +7396,6 @@
       "other": "{active} من أصل {count} قدرة نشطة"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "خلاصة الفريق",
-    "assessment": "التقييم العام",
-    "connections": "الروابط المشتركة بين المجالات",
-    "recommendations": "توصيات الفريق",
-    "loading": "جاري تحميل ملاحظات الفريق...",
-    "empty": {
-      "title": "لا توجد ملاحظات من الفريق بعد",
-      "description": "بينما تتحدثون مع الفريق، سيشاركون الإضاءات مع بعضهم البعض."
-    },
-    "recent": "الملاحظات الأخيرة",
-    "title": "ملاحظات الفريق"
-  },
   "observationTypes": {
     "insight": "إضاءة",
     "concern": "مبعث قلق",
@@ -9254,9 +9237,6 @@
     "he": "العبرية"
   },
   "featureHints": {
-    "teamHuddlesTitle": "لقاءات الفريق السريعة أصبحت هنا!",
-    "teamHuddlesMessage": "الآن بعد أن أصبحنا نعرف بعضنا بشكل أفضل، يمكنك الاستماع إلى عدة أعضاء من الفريق في وقت واحد.",
-    "teamHuddlesCta": "تجربة لقاء سريع",
     "createRitualsTitle": "ابتكار طقوسك الخاصة",
     "createRitualsMessage": "يمكنك الآن إنشاء ممارسات يومية مخصصة. ما هي العادة الصغيرة التي قد تساعدك أكثر؟",
     "createRitualsCta": "إنشاء طقس",
@@ -10605,8 +10585,6 @@
     "allDataDeleted": "تم حذف جميع البيانات",
     "deletingAccount": "جاري حذف الحساب...",
     "accountDeleted": "تم حذف الحساب. رافقتك السلامة.",
-    "couldNotStartHuddle": "تعذّر بدء اجتماع الفريق السريع. هل تودّ المحاولة مجدداً؟",
-    "defaultHuddleTopic": "اطمئنان أسبوعي على التقدم المحرز",
     "conversationsLeft": {
       "zero": "لم تتبقَّ أي محادثة ({count}). أنا هنا دائمًا عند الحاجة.",
       "one": "تبقت محادثة واحدة ({count}). أنا هنا دائمًا عند الحاجة.",
@@ -11300,11 +11278,6 @@
     "connectToTalk": "تواصل",
     "endTalk": "إنهاء",
     "connectingCancel": "جارٍ الاتصال. اضغط للإلغاء"
-  },
-  "teamHuddle": {
-    "typeWeekly": "اطمئنان أسبوعي",
-    "typeMilestone": "احتفاء بمحطة مهمة",
-    "typeSpecial": "لحظة خاصة"
   },
   "analyticsDashboard": {
     "title": "رحلتك",

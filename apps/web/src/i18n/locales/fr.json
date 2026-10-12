@@ -10,7 +10,6 @@
     "closeDashboard": "Fermer le tableau de bord",
     "closeDetails": "Fermer les détails",
     "closeHistory": "Fermer l'historique",
-    "closeHuddle": "Fermer le huddle",
     "closeMenu": "Fermer le menu",
     "closePublisher": "Fermer le portail éditeur",
     "closeSettings": "Fermer les paramètres",
@@ -545,7 +544,6 @@
     "target": "Cible",
     "tasks": "Tâches",
     "teachings": "Enseignements",
-    "teamHuddle": "Rassemblement de l'équipe",
     "teamMembersUnlocked": "Membres de l'équipe déverrouillés",
     "teamUnlock": "Déverrouillage de l'équipe",
     "testCall": "Appel test",
@@ -1244,7 +1242,6 @@
       "gifts": "Cadeaux & jours spéciaux",
       "videoSessions": "Appel vidéo",
       "groupCoaching": "Entre amis",
-      "teamHuddles": "Point d'équipe",
       "teamSessions": "Moment en équipe",
       "conferenceCalls": "Appels de groupe",
       "concierge": "Aide au quotidien",
@@ -1299,8 +1296,7 @@
       "growthJournal": "Journal de croissance",
       "knowledgeQuiz": "Est-ce que tu me connais bien ?",
       "soundEffects": "Effets sonores",
-      "sleepSchedule": "Horaires de sommeil",
-      "teamObservations": "Observations de l'équipe"
+      "sleepSchedule": "Horaires de sommeil"
     },
     "quickAdd": {
       "person": "Quelqu'un de nouveau",
@@ -7263,19 +7259,6 @@
       "other": "{active} sur {count} capacités actives"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "Synthèse de l'équipe",
-    "assessment": "Évaluation globale",
-    "connections": "Liens transversaux",
-    "recommendations": "Recommandations de l'équipe",
-    "loading": "Chargement des observations de l'équipe...",
-    "empty": {
-      "title": "Pas encore d'observations de l'équipe",
-      "description": "À mesure que tu parles avec l'équipe, ils partageront leurs déclics entre eux."
-    },
-    "recent": "Observations récentes",
-    "title": "Observations de l'équipe"
-  },
   "observationTypes": {
     "insight": "Déclic",
     "concern": "Préoccupation",
@@ -9048,9 +9031,6 @@
     "he": "Hébreu"
   },
   "featureHints": {
-    "teamHuddlesTitle": "Les Huddles d'équipe sont là !",
-    "teamHuddlesMessage": "Maintenant que nous nous connaissons mieux, tu peux écouter plusieurs membres de l'équipe en même temps.",
-    "teamHuddlesCta": "Essayer un huddle",
     "createRitualsTitle": "Crée tes propres rituels",
     "createRitualsMessage": "Tu peux maintenant créer des pratiques quotidiennes personnalisées. Quelle petite habitude t'aiderait le plus ?",
     "createRitualsCta": "Créer un rituel",
@@ -10323,8 +10303,6 @@
     "allDataDeleted": "Toutes les données ont été supprimées",
     "deletingAccount": "Suppression de ton compte...",
     "accountDeleted": "Ton compte est supprimé. Prends soin de toi.",
-    "couldNotStartHuddle": "Impossible de lancer un huddle d'équipe. Réessayer ?",
-    "defaultHuddleTopic": "Check-in hebdomadaire sur tes progrès",
     "outlookCalendar": "Calendrier Outlook",
     "conversationsLeft": {
       "one": "Il te reste {count} conversation. Je suis là dès que tu as besoin de moi.",
@@ -10944,11 +10922,6 @@
     "connectToTalk": "Discuter",
     "endTalk": "Raccrocher",
     "connectingCancel": "Connexion en cours. Touchez pour annuler"
-  },
-  "teamHuddle": {
-    "typeWeekly": "Check-in hebdomadaire",
-    "typeMilestone": "Célébration d'étape",
-    "typeSpecial": "Moment spécial"
   },
   "analyticsDashboard": {
     "title": "Ton parcours",

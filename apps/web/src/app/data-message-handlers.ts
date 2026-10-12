@@ -117,16 +117,6 @@ import {
 
 const log = createLogger('DataMessageHandlers');
 
-// Callback for showing team huddle (set by app.ts)
-let showTeamHuddleCallback: (() => void) | null = null;
-
-/**
- * Set the callback for showing team huddle.
- */
-export function setShowTeamHuddleCallback(callback: () => void): void {
-  showTeamHuddleCallback = callback;
-}
-
 // 🔄 Last agent response - for repeat functionality
 let lastAgentResponse: { text: string; personaId?: string; timestamp: number } | null = null;
 
@@ -2244,10 +2234,6 @@ export function handleEngagementTrigger(event: EngagementTriggerEvent): void {
       break;
     case 'ritual_reminder':
       engagementTriggerUI.pulseEngagement();
-      break;
-    case 'team_suggestion':
-      // Show team huddle when the agent suggests it
-      showTeamHuddleCallback?.();
       break;
   }
 
