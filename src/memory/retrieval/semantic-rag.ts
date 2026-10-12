@@ -233,14 +233,6 @@ export async function indexConversationSummary(
   getLogger().debug(`Indexed conversation summary: ${summary.id}`);
 }
 
-/** Remove a conversation document indexed by indexConversationSummary (same id). */
-export async function removeConversationDocument(
-  id: string,
-  vectorStore?: AnyVectorStore
-): Promise<void> {
-  await (vectorStore || getActiveStore()).removeDocument(`conversation_${id}`);
-}
-
 // ============================================================================
 // SEMANTIC SEARCH
 // ============================================================================
