@@ -285,7 +285,10 @@ export class FirestoreVectorStore implements VectorStoreContract {
       try {
         embedding = await embed(doc.text);
       } catch (error) {
-        log.warn({ docId: doc.id, error: String(error) }, 'Failed to generate embedding - storing without embedding for later retry');
+        log.warn(
+          { docId: doc.id, error: String(error) },
+          'Failed to generate embedding - storing without embedding for later retry'
+        );
         needsEmbedding = true;
         // Continue to store document without embedding rather than dropping it
       }
@@ -368,8 +371,11 @@ export class FirestoreVectorStore implements VectorStoreContract {
 
     this.fallbackCache.delete(id);
 
+    // Only the in-memory cache was reached: the persisted copy, if any, is
+    // still there, so the removal is not confirmed (a privacy delete must
+    // not be reported as done).
     if (this.useFallback || !this.db) {
-      return true;
+      return false;
     }
 
     try {

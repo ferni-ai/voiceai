@@ -151,8 +151,18 @@ export async function upsertEntity(
  * Automatically classifies the domain based on key/value if not provided.
  * Also indexes the fact for semantic search.
  */
-export async function insertFact(fact: Omit<GraphFact, 'createdAt'>): Promise<void> {
-  if (!isSpannerReady()) return;
+export async function insertFact(
+  fact: Omit<GraphFact, 'createdAt'>,
+  opts: {
+    /**
+     * Wait for the semantic-index copy to be written before returning, so a
+     * caller that may delete the fact next (the sync) can't be overtaken by
+     * a late write.
+     */
+    awaitIndex?: boolean;
+  } = {}
+): Promise<boolean> {
+  if (!isSpannerReady()) return false;
 
   const db = getDatabase();
   const now = new Date().toISOString();
@@ -187,17 +197,21 @@ export async function insertFact(fact: Omit<GraphFact, 'createdAt'>): Promise<vo
 
     log.debug({ factId: fact.factId, domain }, 'Fact inserted with domain');
 
-    // Index for semantic search (non-blocking)
-    fireAndForget(async () => {
+    // Index for semantic search
+    const index = async () => {
       const { indexMemory } = await import('../retrieval/semantic-memory-search.js');
       await indexMemory(fact.userId, `${fact.key}: ${fact.value}`, 'fact', fact.factId, {
         domain,
         factType: fact.factType,
         confidence: fact.confidence,
       });
-    }, `index-fact-for-semantic-search:${fact.factId}`);
+    };
+    if (opts.awaitIndex) await index();
+    else fireAndForget(index, `index-fact-for-semantic-search:${fact.factId}`);
+    return true;
   } catch (error) {
     log.warn({ error: String(error), factId: fact.factId }, 'Failed to insert fact');
+    return false;
   }
 }
 

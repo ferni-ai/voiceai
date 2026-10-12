@@ -1,81 +1,170 @@
-import { describe, expect, it } from 'vitest';
-import { syncFactDocs, syncableFact } from '../firestore-spanner-sync.js';
+/**
+ * The graph sync never leaves a forgotten fact in the graph store or its
+ * semantic index, never reports a removal it didn't make, and never lets
+ * failing removals hold up live facts. These drive the REAL sync, mark,
+ * insert and delete code; only the infrastructure is faked: Spanner, the
+ * Firestore docs, and the vector index (whose writes can be delayed, and
+ * which can be in fallback mode).
+ */
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-describe('copying facts to Spanner', () => {
-  const path = 'bogle_users/u1/dynamic_facts/f1';
-  const fact = {
-    entityName: 'Pete',
-    key: 'phone',
-    value: '435-339-7687',
-    extractedAt: '2026-01-05',
+// --- Spanner: a facts table -----------------------------------------------
+const graph = new Map<string, string>(); // fact_id -> user_id
+let spannerFails = false;
+vi.mock('@google-cloud/spanner', () => {
+  const database = {
+    run: async () => [[{ ok: 1 }]],
+    runTransactionAsync: async (fn: (tx: unknown) => Promise<void>) => {
+      if (spannerFails) throw new Error('spanner down');
+      await fn({
+        runUpdate: async ({ sql, params }: { sql: string; params: Record<string, string> }) => {
+          if (/^\s*INSERT INTO facts/i.test(sql)) graph.set(params.factId!, params.userId!);
+          if (/^\s*DELETE FROM facts/i.test(sql)) graph.delete(params.factId!);
+        },
+        commit: async () => undefined,
+      });
+    },
   };
-
-  it('copies a live fact with its owner', () => {
-    expect(syncableFact('f1', path, fact)).toMatchObject({ id: 'f1', userId: 'u1', key: 'phone' });
-  });
-
-  it('never copies a fact the caller asked to forget (any forgottenAt value)', () => {
-    expect(syncableFact('f1', path, { ...fact, forgottenAt: '2026-01-07T00:00:00Z' })).toBeNull();
-    expect(syncableFact('f1', path, { ...fact, forgottenAt: { seconds: 1 } })).toBeNull();
-  });
-});
-
-describe('a sync batch with forgotten facts', () => {
-  const live = (id: string) => ({
-    id,
-    path: `bogle_users/u1/dynamic_facts/${id}`,
-    data: { entityName: 'User', key: 'job', value: `job ${id}`, extractedAt: '2026-01-05' },
-  });
-  const forgotten = (id: string) => ({
-    ...live(id),
-    data: { ...live(id).data, forgottenAt: '2026-01-07T00:00:00Z' },
-  });
-
-  /** forgottenSince: docs forgotten after the sync read them (seen by the transactional re-read). */
-  function ops(opts: { removeFails?: boolean; forgottenSince?: string[] } = {}) {
-    const log: string[] = [];
-    return {
-      log,
-      ops: {
-        insert: async (f: { id: string }) => (log.push(`insert ${f.id}`), true),
-        remove: async (_u: string, factId: string) => {
-          if (opts.removeFails) throw new Error('graph down');
-          log.push(`remove ${factId}`);
-        },
-        markSynced: async (_u: string, id: string, o: { onlyIfLive: boolean }) => {
-          if (o.onlyIfLive && opts.forgottenSince?.includes(id)) return false;
-          log.push(`mark ${id}`);
-          return true;
-        },
-      },
-    };
+  class Spanner {
+    instance() {
+      return { database: () => database };
+    }
   }
-
-  it('removes the copy of a forgotten fact at the head of the batch, marks it, and moves on', async () => {
-    const { log, ops: o } = ops();
-    const out = await syncFactDocs([forgotten('f0'), live('f1')], o);
-    expect(log).toEqual(['remove fact_u1_f0', 'mark f0', 'insert f1', 'mark f1']);
-    expect(out).toEqual({ synced: 1, removed: 1, failed: 0, deleteFailures: 0 });
-  });
-
-  it('takes back a copy written for a fact forgotten between the read and the write', async () => {
-    const { log, ops: o } = ops({ forgottenSince: ['f1'] });
-    const out = await syncFactDocs([live('f1')], o);
-    expect(log).toEqual(['insert f1', 'remove fact_u1_f1', 'mark f1']);
-    expect(out).toMatchObject({ synced: 0, removed: 1 });
-  });
-
-  it('never reports a failed removal as done: left unsynced, counted, live facts still copied', async () => {
-    const { log, ops: o } = ops({ removeFails: true });
-    const out = await syncFactDocs([forgotten('f0'), live('f1')], o);
-    expect(log).toEqual(['insert f1', 'mark f1']); // f0 not marked: retried next cycle
-    expect(out).toEqual({ synced: 1, removed: 0, failed: 0, deleteFailures: 1 });
-  });
+  return { Spanner };
 });
 
-describe('deleting a graph copy', () => {
-  it('throws when the graph store is not ready, so the sync never marks it removed', async () => {
-    const { deleteFact } = await import('../../spanner-graph/client.js');
-    await expect(deleteFact('u1', 'fact_u1_f0')).rejects.toThrow();
+// --- the semantic index: writes can land late; fallback can be switched on --
+const vectors = new Map<string, string>();
+let indexDelayMs = 0;
+let store: unknown;
+const fakeStore = {
+  isInitialized: true,
+  initialize: async () => undefined,
+  addDocument: async (d: { id: string; text: string }) => {
+    await new Promise((r) => setTimeout(r, indexDelayMs));
+    vectors.set(d.id, d.text);
+  },
+  removeDocument: async (id: string) => (vectors.delete(id), true),
+};
+vi.mock('../../firestore-vector-store/index.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../firestore-vector-store/index.js')>()),
+  getFirestoreVectorStore: () => store,
+}));
+
+// --- Firestore: dynamic_facts docs ------------------------------------------
+const docs = new Map<string, Record<string, unknown>>();
+const ref = (path: string) => ({
+  path,
+  update: async (data: Record<string, unknown>) => {
+    docs.set(path, { ...(docs.get(path) ?? {}), ...data });
+  },
+});
+vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/firestore-utils.js')>()),
+  getFirestoreDb: () => {
+    const at = (path: string): unknown => ({
+      doc: (id: string) => ({
+        ...ref(`${path}/${id}`),
+        collection: (c: string) => at(`${path}/${id}/${c}`),
+      }),
+    });
+    return {
+      collection: (c: string) => at(c),
+      runTransaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn({
+          get: async (r: { path: string }) => {
+            const d = docs.get(r.path);
+            return { exists: !!d, get: (k: string) => d?.[k] };
+          },
+          update: (r: { path: string }, data: Record<string, unknown>) => {
+            docs.set(r.path, { ...(docs.get(r.path) ?? {}), ...data });
+          },
+        }),
+    };
+  },
+}));
+
+const { initializeSpanner } = await import('../../spanner-graph/client.js');
+const { syncFactDocs, firestoreFactSyncOps, retryDue, retryAfter } =
+  await import('../firestore-spanner-sync.js');
+
+const path = (id: string) => `bogle_users/u1/dynamic_facts/${id}`;
+const live = { entityName: 'User', key: 'job', value: 'nurse', extractedAt: '2026-01-05' };
+const asRead = (id: string, data: Record<string, unknown> = live) => ({ id, path: path(id), data });
+const settle = () => new Promise((r) => setTimeout(r, indexDelayMs + 20));
+
+beforeEach(async () => {
+  graph.clear();
+  vectors.clear();
+  docs.clear();
+  indexDelayMs = 0;
+  spannerFails = false;
+  store = fakeStore;
+  await initializeSpanner();
+});
+afterEach(() => vi.useRealTimers());
+
+describe('the graph sync and forgetting', () => {
+  it('a fact forgotten between the read and the write leaves no copy, even when the index write is slow', async () => {
+    indexDelayMs = 30;
+    docs.set(path('f1'), { ...live, syncedToSpanner: false, forgottenAt: '2026-01-07' }); // forgotten after the read
+    const out = await syncFactDocs([asRead('f1')], firestoreFactSyncOps());
+    await settle(); // let any late index write land
+    expect(graph.has('fact_u1_f1')).toBe(false);
+    expect(vectors.has('fact_fact_u1_f1')).toBe(false);
+    expect(out.removed).toBe(1);
+    expect(docs.get(path('f1'))?.syncedToSpanner).toBe(true);
+  });
+
+  it('a live fact is copied, indexed, and marked synced', async () => {
+    docs.set(path('f2'), { ...live, syncedToSpanner: false });
+    const out = await syncFactDocs([asRead('f2')], firestoreFactSyncOps());
+    expect(graph.has('fact_u1_f2')).toBe(true);
+    expect(vectors.has('fact_fact_u1_f2')).toBe(true);
+    expect(out.synced).toBe(1);
+    expect(docs.get(path('f2'))?.syncedToSpanner).toBe(true);
+  });
+
+  it('never reports a removal the index did not confirm (fallback mode), and defers it', async () => {
+    const { FirestoreVectorStore } = await vi.importActual<
+      typeof import('../../firestore-vector-store/index.js')
+    >('../../firestore-vector-store/index.js');
+    const fallback = new FirestoreVectorStore();
+    await fallback.initialize(); // no Firestore in tests: fallback mode
+    expect(fallback.getHealth().usingFallback).toBe(true);
+    store = fallback;
+    const forgotten = { ...live, forgottenAt: '2026-01-07', syncedToSpanner: false };
+    docs.set(path('f3'), forgotten);
+    const out = await syncFactDocs([asRead('f3', forgotten)], firestoreFactSyncOps());
+    expect(out).toMatchObject({ removed: 0, deleteFailures: 1 });
+    expect(docs.get(path('f3'))).toMatchObject({ syncedToSpanner: 'retry', syncRetryCount: 1 });
+  });
+
+  it('failing removals go to their own retry queue, so live facts behind them still sync', async () => {
+    store = { ...fakeStore, removeDocument: async () => false };
+    const forgotten = { ...live, forgottenAt: '2026-01-07', syncedToSpanner: false };
+    for (const id of ['g1', 'g2', 'g3']) docs.set(path(id), { ...forgotten });
+    docs.set(path('f4'), { ...live, syncedToSpanner: false });
+    const out = await syncFactDocs(
+      [asRead('g1', forgotten), asRead('g2', forgotten), asRead('g3', forgotten), asRead('f4')],
+      firestoreFactSyncOps()
+    );
+    expect(out.synced).toBe(1);
+    for (const id of ['g1', 'g2', 'g3']) {
+      // Out of the main queue (syncedToSpanner == false), not marked done.
+      expect(docs.get(path(id))?.syncedToSpanner).toBe('retry');
+    }
+    const now = Date.parse('2026-01-10T00:00:00Z');
+    expect(retryDue({ syncRetryAfter: retryAfter(1, now) }, now)).toBe(false);
+    expect(retryDue({ syncRetryAfter: retryAfter(1, now) }, now + 61_000)).toBe(true);
+    expect(Date.parse(retryAfter(30, now)) - now).toBe(24 * 3_600_000); // capped at a day
+  });
+
+  it('a failed graph insert is not marked synced', async () => {
+    spannerFails = true;
+    docs.set(path('f5'), { ...live, syncedToSpanner: false });
+    const out = await syncFactDocs([asRead('f5')], firestoreFactSyncOps());
+    expect(out.failed).toBe(1);
+    expect(docs.get(path('f5'))?.syncedToSpanner).toBe(false);
   });
 });
