@@ -126,9 +126,11 @@ async function useTheme(page: Page, theme: 'zen' | 'midnight'): Promise<void> {
 /**
  * Scenes whose overlays keep animating (sparkles, the avatar's stretch, several
  * arrivals at once) are contrast-checked but not pixel-compared: their frames
- * differ run to run on a busy runner.
+ * differ run to run on a busy runner. Captions too: on a phone the in-call
+ * layout is still settling, so they show three lines, one or none depending on
+ * when the frame is taken (tests/e2e/captions-layout.spec.ts checks their box).
  */
-const NO_SNAPSHOT = new Set(['achievement', 'celebration', 'collision']);
+const NO_SNAPSHOT = new Set(['achievement', 'celebration', 'collision', 'captions']);
 
 /** Text that changes with the clock or animates, kept out of the pixel diff. */
 const MASKS = ['.avatar-container', '.settings-menu__header-eyebrow', '.countdown-text'];
