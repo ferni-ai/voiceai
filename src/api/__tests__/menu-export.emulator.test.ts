@@ -1,0 +1,115 @@
+/**
+ * Menu item 31, Take Your Story: the export carries every store a panel reads or the voice
+ * agent writes. One document goes into each store in KNOWN_USER_STORES (the list kept next
+ * to the export code), then GET /api/export/categories and POST /api/export run through
+ * the real route handler, as the web's data-export.service.ts calls them, on the Firestore
+ * emulator. A known store missing from the file fails this test.
+ */
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import admin from 'firebase-admin';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { KNOWN_USER_STORES } from '../../services/platform/user-records-export.js';
+
+// The shared setup fakes Firestore for every test; here the export must read the emulator
+vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
+vi.mock('../../services/identity/firebase-auth.js', () => ({ ensureFirebaseAdmin: () => true }));
+
+const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
+process.env.GCLOUD_PROJECT ??= 'demo-menu-export';
+
+let server: Server;
+let base: string;
+let db: admin.firestore.Firestore;
+const id = () => `u-${Math.random().toString(36).slice(2)}`;
+
+beforeAll(async () => {
+  if (!emulator) return;
+  if (!admin.apps.length) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
+  db = admin.firestore();
+  const { handleDataRoutes } = await import('../routes/data.js');
+  server = createServer((req, res) => {
+    const url = new URL(req.url ?? '/', 'http://x');
+    void handleDataRoutes(req, res, url.pathname, url).then((handled) => {
+      if (!handled) res.writeHead(404).end();
+    });
+  });
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+});
+
+afterAll(() => server?.close());
+
+/** One document in a store: "a/{uid}/b" is a subcollection, "a/{uid}" a doc, "a" a uid field */
+async function seed(store: string, uid: string, marker: string): Promise<void> {
+  const path = store.replace('{uid}', uid);
+  const parts = path.split('/');
+  if (parts.length % 2 === 0) {
+    await db.doc(path).set({ marker }, { merge: true });
+  } else if (parts.length === 1) {
+    const field = store === 'sponsored_identities' ? 'sponsorUserId' : 'userId';
+    await db.collection(path).add({ [field]: uid, marker, lastInteraction: new Date() });
+  } else {
+    await db.collection(path).add({ marker, at: new Date() });
+  }
+}
+
+async function exportAll(uid: string) {
+  const headers = { 'x-firebase-uid': uid, 'content-type': 'application/json' };
+  const listed = await fetch(`${base}/api/export/categories`, { headers });
+  const { categories } = (await listed.json()) as {
+    categories: Array<{ category: string; itemCount: number }>;
+  };
+  const res = await fetch(`${base}/api/export`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ format: 'json', categories: categories.map((c) => c.category) }),
+  });
+  expect(res.status).toBe(200);
+  const file = (await res.json()) as { categories: Record<string, Record<string, unknown>> };
+  return { categories, records: file.categories.records ?? {} };
+}
+
+describe.skipIf(!emulator)('export carries every known user store (Firestore emulator)', () => {
+  it('each store in KNOWN_USER_STORES is in the file, with its document', async () => {
+    const uid = id();
+    for (const store of KNOWN_USER_STORES) await seed(store, uid, `marker:${store}`);
+
+    const { categories, records } = await exportAll(uid);
+
+    const missing = KNOWN_USER_STORES.filter(
+      (store) => !JSON.stringify(records[store] ?? null).includes(`marker:${store}`)
+    );
+    expect(missing).toEqual([]);
+    expect(categories.find((c) => c.category === 'Records')?.itemCount).toBe(
+      KNOWN_USER_STORES.length
+    );
+  });
+
+  it('timestamps come out as ISO strings', async () => {
+    const uid = id();
+    await seed('users/{uid}/calendar_events', uid, 'when');
+    const { records } = await exportAll(uid);
+    const [event] = records['users/{uid}/calendar_events'] as Array<{ at: string }>;
+    expect(event?.at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it('never exports sign-in credentials, as a store or as a field', async () => {
+    const uid = id();
+    await db.doc(`bogle_users/${uid}/google_calendar_tokens/data`).set({ refresh: 'r-secret' });
+    await db.doc(`bogle_users/${uid}`).set({ name: 'Dana', pushToken: 'p-secret' });
+    const { records } = await exportAll(uid);
+
+    expect(JSON.stringify(records)).toContain('Dana');
+    expect(JSON.stringify(records)).not.toMatch(/r-secret|p-secret/);
+  });
+
+  it("someone else's records are not in the file", async () => {
+    const owner = id();
+    for (const store of KNOWN_USER_STORES) await seed(store, owner, 'not-yours');
+    const { records } = await exportAll(id());
+    expect(JSON.stringify(records)).not.toContain('not-yours');
+  });
+});

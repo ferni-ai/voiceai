@@ -58,6 +58,7 @@ const CATEGORY_DESCRIPTION_KEYS: Record<string, string> = {
   Wellbeing: 'dataExportService.categoryWellbeing',
   Habits: 'dataExportService.categoryHabits',
   Productivity: 'dataExportService.categoryProductivity',
+  Records: 'dataExportService.categoryRecords',
 };
 
 const CATEGORY_NAME_KEYS: Record<string, string> = {
@@ -72,6 +73,7 @@ const CATEGORY_NAME_KEYS: Record<string, string> = {
   Wellbeing: 'dataExportService.categoryName.wellbeing',
   Habits: 'dataExportService.categoryName.habits',
   Productivity: 'dataExportService.categoryName.productivity',
+  Records: 'dataExportService.categoryName.records',
 };
 
 function localizeCategories(categories: ExportableCategory[]): ExportableCategory[] {

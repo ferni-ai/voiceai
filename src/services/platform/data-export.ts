@@ -26,6 +26,8 @@ import { getCognitiveMemoryService } from '../memory/cognitive-memory.js';
 type AnyRecord = Record<string, any>;
 import { getLogger } from '../../utils/safe-logger.js';
 import { erasureSteps } from './erasure-step.js';
+import { EXPORT_CATEGORIES } from './export-categories.js';
+import { countUserRecords, exportUserRecords } from './user-records-export.js';
 
 const log = getLogger();
 
@@ -54,59 +56,7 @@ export type ExportFormat = 'json' | 'csv';
 // CATEGORY DEFINITIONS
 // ============================================================================
 
-/**
- * All exportable data categories with their descriptions.
- */
-export const EXPORT_CATEGORIES = {
-  Conversations: {
-    description: 'All conversation transcripts and metadata',
-    icon: 'message-circle',
-  },
-  Insights: {
-    description: 'What Ferni has learned about you',
-    icon: 'lightbulb',
-  },
-  Rituals: {
-    description: 'Daily practice history and streaks',
-    icon: 'sun',
-  },
-  Predictions: {
-    description: 'Your predictions and outcomes',
-    icon: 'target',
-  },
-  'Mood History': {
-    description: 'Emotional weather records',
-    icon: 'cloud-sun',
-  },
-  Profile: {
-    description: 'Your profile and preferences',
-    icon: 'user',
-  },
-  Contacts: {
-    description: 'Your people and relationships',
-    icon: 'users',
-  },
-  'Trust Journey': {
-    description: 'Your growth, boundaries, and shared moments',
-    icon: 'heart',
-  },
-  Wellbeing: {
-    description: 'Wellness snapshots and trends',
-    icon: 'activity',
-  },
-  Habits: {
-    description: "Maya's habit coaching data",
-    icon: 'repeat',
-  },
-  Productivity: {
-    description: 'Tasks, notes, and journal entries',
-    icon: 'check-square',
-  },
-  'Answer Cards': {
-    description: 'Answers and picks Ferni sent you, with their sources',
-    icon: 'link',
-  },
-} as const;
+export { EXPORT_CATEGORIES } from './export-categories.js';
 
 // ============================================================================
 // DATA EXPORT SERVICE
@@ -119,6 +69,13 @@ class DataExportService {
    */
   async getExportableCategories(userId: string): Promise<ExportCategory[]> {
     const categories: ExportCategory[] = [];
+    // First and on its own: it holds everything, so a failure below must not hide it
+    const itemCount = await countUserRecords(userId).catch((error: unknown) => {
+      log.warn({ error: String(error), userId }, 'Failed to count stored records');
+      return 0;
+    });
+    const { description } = EXPORT_CATEGORIES.Records;
+    categories.push({ category: 'Records', description, itemCount, exportable: true });
 
     try {
       // 1. Conversations
@@ -309,6 +266,8 @@ class DataExportService {
         return this.exportProductivity(userId);
       case 'Answer Cards':
         return this.exportAnswerCards(userId);
+      case 'Records':
+        return exportUserRecords(userId);
       default:
         log.warn({ category }, 'Unknown export category');
         return null;

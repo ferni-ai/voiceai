@@ -8860,6 +8860,7 @@
     "categoryWellbeing": "Wellness snapshots and trends",
     "categoryHabits": "Maya's habit coaching data",
     "categoryProductivity": "Tasks, notes, and journal entries",
+    "categoryRecords": "Every call, summary, event, note and memory I keep for you, as stored",
     "categoryName": {
       "conversations": "Conversations",
       "insights": "Insights",
@@ -8871,7 +8872,8 @@
       "trustJourney": "Trust Journey",
       "wellbeing": "Wellbeing",
       "habits": "Habits",
-      "productivity": "Productivity"
+      "productivity": "Productivity",
+      "records": "Everything I keep"
     }
   },
   "healthDashboard": {
