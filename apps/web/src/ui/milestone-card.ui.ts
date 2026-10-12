@@ -16,6 +16,7 @@
  * - Optimized for social sharing (1200x630 for most platforms)
  */
 
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { formatDate, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { createLogger } from '../utils/logger.js';
@@ -276,8 +277,7 @@ function drawSummaryContent(ctx: CanvasRenderingContext2D, data: JourneySummaryC
   // Days together
   drawStat(ctx, startX + statSpacing, statsY, String(data.daysTogether), t('yourStory.stats.daysTogether'));
 
-  // Streak
-  drawStat(ctx, startX + statSpacing * 2, statsY, String(data.streak), t('yourStory.stats.dayStreak'));
+  if (!isNoStreaksOn()) drawStat(ctx, startX + statSpacing * 2, statsY, String(data.streak), t('yourStory.stats.dayStreak'));
 
   // Conversations (estimated)
   const estimatedConversations = Math.max(data.celebrated, data.daysTogether);

@@ -6,6 +6,7 @@
  * @module @ferni/rituals
  */
 
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import type { Ritual } from './ritual.types.js';
 
 // ============================================================================
@@ -490,7 +491,6 @@ const STREAK_RITUAL: Ritual = {
   interruptible: true,
   cooldown: 86400000, // Once per day
   tags: ['milestone', 'streak'],
-  
   sequence: [
     {
       type: 'branch',
@@ -663,7 +663,7 @@ export const RITUAL_REGISTRY: Ritual[] = [
   STAGE_UP_RITUAL,
   TEAM_UNLOCK_RITUAL,
   CONVERSATION_MILESTONE_RITUAL,
-  STREAK_RITUAL,
+  ...(isNoStreaksOn() ? [] : [STREAK_RITUAL]), // no streak ritual under VITE_NO_STREAKS
   ANNIVERSARY_RITUAL,
   
   // Goodbye

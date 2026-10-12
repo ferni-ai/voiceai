@@ -56,20 +56,9 @@ PRIVACY FIRST
 
 Your conversations are encrypted and private. We never sell your data. You control what Ferni remembers.
 
-SUBSCRIPTION OPTIONS
+FREE RIGHT NOW
 
-Try Ferni free for 7 days. Then choose:
-
-Friend Plan ($9.99/month or $99.99/year)
-• Access to Maya, Peter, Alex, and Jordan
-• Unlimited conversations
-• Full habit coaching
-
-Partner Plan ($19.99/month or $199.99/year)
-• Everything in Friend
-• Nayan — Deep wisdom persona
-• Priority features
-• Exclusive content
+Ferni is free. No plan to pick, no trial clock. Maya, Peter, Alex, Jordan and Nayan join your team as you and Ferni get to know each other.
 
 Start your journey to better emotional wellbeing today.
 ```

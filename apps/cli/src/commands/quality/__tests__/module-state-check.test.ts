@@ -41,7 +41,7 @@ describe('module-level per-caller state check', () => {
   });
 
   it('does not flag keyed per-call publishers', () => {
-    const file = 'src/agents/realtime/call-publishers.ts';
+    const file = 'src/agents/realtime/session-publishers.ts';
     const src = readFileSync(join(findProjectRoot(), file), 'utf8');
     expect(findModuleStateHazards(src, file)).toEqual([]);
   });
