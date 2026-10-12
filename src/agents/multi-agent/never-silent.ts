@@ -95,6 +95,8 @@ export function createNeverSilentGuard(deps: {
   toolHoldMs?: number;
   /** Music playing, call closing: a fallback would be wrong, not just late. */
   stayQuiet?: () => boolean;
+  /** A reply paused for caller audio that may still resume (resume-buffer.ts): wait for it. */
+  replyPaused?: () => boolean;
   log: (fields: Record<string, unknown>) => void;
   now?: () => number;
   setTimer?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
@@ -145,6 +147,11 @@ export function createNeverSilentGuard(deps: {
   const check = (reason: SilenceReason): void => {
     if (!turn) return;
     if (session.userState === 'speaking' || session.agentState === 'speaking') return disarm();
+    // Paused for noise: the reply resumes ~1 s later; the hang deadline still stands.
+    if (deps.replyPaused?.()) {
+      if (reason === 'hang' && !timer) schedule(hang);
+      return;
+    }
     if (!turn.speech && !turn.thinking) return disarm(); // no reply attempted (AMD, paused, closing)
     if (turn.speech?.interrupted) return disarm(); // cancelled on purpose (barge-in, noise filter)
     fallback(reason);

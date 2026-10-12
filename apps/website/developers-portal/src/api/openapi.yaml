@@ -11,27 +11,36 @@ info:
     2. Create a test API key in the dashboard
     3. Make your first API call
     4. Create a persona and submit for review
-    5. Upgrade to live API key for production
+    5. Switch to a live API key for production (requires a verified publisher)
 
     ## Authentication
 
     Include your API key as a Bearer token:
     ```
-    Authorization: Bearer ferni_live_xxxxxxxxxxxxx
+    Authorization: Bearer pk_live_xxxxxxxxxxxxx
     ```
 
     ### Key Types
     | Type | Prefix | Usage |
     |------|--------|-------|
-    | Live | `ferni_live_` | Production, billed |
-    | Test | `ferni_test_` | Development, free tier |
+    | Live | `pk_live_` | Production (requires a verified publisher) |
+    | Test | `pk_test_` | Development and testing |
 
     ## Rate Limits
-    | Tier | Requests/min | Sessions |
-    |------|--------------|----------|
-    | Free | 100 | 5 |
-    | Pro | 500 | 25 |
-    | Enterprise | Custom | Custom |
+
+    Ferni is free right now; there are no paid tiers. Limits are per publisher
+    and depend on the kind of operation:
+
+    | Operation | Requests/min |
+    |-----------|--------------|
+    | Read (list, get) | 200 |
+    | Standard | 100 |
+    | Write (create, update, delete) | 50 |
+    | Webhook delivery logs | 30 |
+    | Expensive (test connections, execute) | 10 |
+
+    Responses include `X-RateLimit-Limit`, `X-RateLimit-Remaining` and
+    `X-RateLimit-Reset`; a `429` also carries `Retry-After`.
 
     ## Webhook Signatures
 

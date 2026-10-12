@@ -18,6 +18,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { t } from '../i18n/index.js';
 import { roadmapService, smartPromptTracker, STAGE_INFO, type RoadmapFeature, type SmartPromptRecommendation } from '../services/roadmap.service.js';
 import { getCurrentStreak, getNextStreakMilestone } from '../services/seeds-economy.service.js';
@@ -308,10 +309,9 @@ class RoadmapPanelUI {
     this.bindOverviewEvents();
   }
 
-  /**
-   * Render streak progress indicator
-   */
+  /** Render streak progress indicator (nothing under VITE_NO_STREAKS) */
   private renderStreakProgress(): string {
+    if (isNoStreaksOn()) return '';
     const currentStreak = getCurrentStreak();
     const nextMilestone = getNextStreakMilestone();
 

@@ -665,6 +665,9 @@ body {
 /* Zen header styling - clean, extends to top */
 [data-theme='zen'] .header {
   background: transparent;
+  /* No bottom border: the frosted panel below fades out instead. A hard
+     1px line plus a white-to-beige step cut the page in two at the end of
+     the header (2026-10-11 audit). */
   /* Padding at top instead of margin so frosted glass covers full area */
   margin-top: 0;
   padding-top: calc(32px + env(safe-area-inset-top, 0px));
@@ -679,11 +682,12 @@ body {
   right: -50vw;
   bottom: 0;
   background: rgba(255, 255, 255, 0.75);
-  /* Fade out at the bottom: a hard edge read as a seam across the screen */
-  mask-image: linear-gradient(to bottom, black 70%, transparent);
   backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   z-index: -1;
+  /* Fade the panel's bottom edge into the page instead of ending it on a line. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
 }
 
 /* Zen avatar styling: the face carries the persona color. The eyes are
@@ -1811,6 +1815,13 @@ html.theme-transitioning *::after {
 .app-loaded .entrance-roster.entrance-complete .team-member {
   opacity: 1 !important;
   pointer-events: auto !important;
+}
+
+/* Stable roster: the entrance plays once. Rebuilding the bar after a tap, add or
+   handoff must not replay it on every avatar; roster-motion.ts moves only what changed. */
+.app-loaded .entrance-roster.roster-settled .team-member {
+  animation: none;
+  opacity: 1;
 }
 
 /* CRITICAL: Marketplace "More" button must ALWAYS be visible and clickable.

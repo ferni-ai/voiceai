@@ -8,7 +8,7 @@
  * @module agents/shared/tool-executors/__tests__/telephony-executor.test
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { telephonyExecutor } from '../telephony-executor.js';
 import type { ToolExecutionContext } from '../types.js';
 
@@ -60,6 +60,13 @@ describe('TelephonyExecutor', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // These pin argument handling; the outbound confirm gate is tested in
+    // tools/domains/telephony/__tests__/call-confirm-gate.test.ts.
+    vi.stubEnv('OUTBOUND_CONFIRM', 'off');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   describe('executor metadata', () => {
