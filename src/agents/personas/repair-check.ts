@@ -33,6 +33,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
 import { callerVenting } from './turn-extras.js';
+import { askWhenUnclearEnabled, toolLinesOf, unclearCue, unclearNote } from './unclear-turn.js';
 
 const log = createLogger({ module: 'RepairCheck' });
 
@@ -236,10 +237,13 @@ export function repairNoteFor(
   if (!said || ALREADY_CHECKED.test(previous)) return '';
   if (callerVenting(said) || detectCrisis(said, undefined, { recentMessages: earlier }).isCrisis)
     return '';
-  const cue = mishearCue(said, { prompt, turns, names: knownNames(session) }, previous);
+  const cue =
+    mishearCue(said, { prompt, turns, names: knownNames(session) }, previous) ??
+    // ASK_WHEN_UNCLEAR=on: an unclear request or a cut-up turn (unclear-turn.ts).
+    (askWhenUnclearEnabled(env) ? unclearCue(said, [...turns, ...toolLinesOf(chatCtx)]) : null);
   if (!cue) return '';
   // The kind and cost only: logs never carry the caller's words.
   const ms = Math.round((performance.now() - started) * 100) / 100;
   log.info({ kind: cue.kind, ms }, 'REPAIR_CHECK');
-  return repairNote(cue);
+  return 'options' in cue ? unclearNote(cue) : repairNote(cue);
 }
