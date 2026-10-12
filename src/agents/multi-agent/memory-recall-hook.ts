@@ -35,6 +35,7 @@ import {
   type RecallSnapshot,
   type RecallStore,
 } from '../../memory/recall/session-recall.js';
+import { formatPeople, peopleOf, recallPeopleEnabled } from '../../memory/recall/people.js';
 import {
   createSemanticIndex,
   estimateTokens,
@@ -129,6 +130,8 @@ export interface MemoryRecallDeps {
   selfRecall?: boolean;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
+  /** RECALL_PEOPLE=on (people.ts); read from the environment when not given. */
+  people?: boolean;
   embed?: RetrievalEmbedder;
   /** RECALL_BRIDGE=on; read from the environment when not given. */
   bridge?: boolean;
@@ -189,6 +192,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const entitiesThisTurn = new Map<string, number>();
 
   let ledgerNote: string | null = null;
+  let peopleNote: string | null = null;
   let sinceNote: string | null = null;
   let checkInNote: string | null = null;
   let checkInOffered = false;
@@ -244,6 +248,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       .map((f) => f.fact)
       .join(' ');
     ledgerNote = formatLedger(told.slice(0, RECALL_LIMIT), deps.userName, Date.now(), { bridge });
+    if (deps.people ?? recallPeopleEnabled()) peopleNote = formatPeople(peopleOf(s.facts));
     log.info(
       {
         facts: s.facts.length,
@@ -351,6 +356,8 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           (ASKS_ABOUT_YOU.test(text) || threadsForTurn([ledgerFacts], text, callerTurn).length > 0)
         : !followUpsOffered;
       const told = tellNow ? [ledgerNote, sinceNote].filter(Boolean).join('\n') || null : null;
+      // Who is who (RECALL_PEOPLE), once, with the first note.
+      const people = followUpsOffered ? null : peopleNote;
       const checkIn = checkInOffered ? null : checkInNote;
       // Once a turn, when they ask about him and something answers it.
       const self =
@@ -363,6 +370,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           checkIn,
           formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
           summaryRecall?.take(text) ?? null,
+          people,
           told,
           extraTold.length > 0
             ? formatLedger(extraTold, deps.userName, Date.now(), { bridge })
