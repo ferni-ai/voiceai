@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   parseUnderstanding,
+  setTurnUnderstander,
   TurnUnderstander,
   understandingMode,
+  understandingOfLastTurn,
   type UnderstandFn,
 } from '../turn-understanding.js';
 
@@ -121,6 +123,21 @@ describe('turn understanding', () => {
     await sleep(40);
     expect(m.asked.at(-1)?.NOW).toBe('honestly so tired');
     expect(u.forTurn('honestly so tired')?.result.mood).toBe('venting');
+  });
+
+  it("keeps the finished turn's reading past newTurn, for the deliberator", async () => {
+    const u = new TurnUnderstander(fakeModel(0).fn);
+    const session = {};
+    setTurnUnderstander(session, u);
+    const turn = 'my sister finally moved out to denver last weekend';
+    await u.settle(turn);
+    expect(understandingOfLastTurn(session)).toBeNull();
+    u.newTurn(turn);
+    expect(u.forTurn(turn)).toBeNull();
+    expect(understandingOfLastTurn(session)?.mood).toBe('venting');
+    u.newTurn('a turn it never heard');
+    expect(understandingOfLastTurn(session)).toBeNull();
+    setTurnUnderstander(session, null);
   });
 
   it('still asks about words heard while the last turn was being dropped', async () => {

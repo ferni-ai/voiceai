@@ -972,7 +972,7 @@ function injectStyles(): void {
     }
 
     /* Mobile-specific refinements */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .pull-indicator {
         bottom: -50px;
       }
@@ -997,7 +997,7 @@ function injectStyles(): void {
     }
 
     /* Large mobile (390-430px) - bigger immersive avatar */
-    @media (min-width: min(390px, 100%)) and (max-width: clamp(336px, 90vw, 480px)) {
+    @media (min-width: 390px) and (max-width: 480px) {
       .immersive-avatar {
         width: min(260px, 100%) !important;
         height: 260px !important;
