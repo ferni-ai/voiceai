@@ -2,7 +2,8 @@
 /**
  * Scores the live memory eval (run-live.sh): Ferni's first line of each quiz
  * call is graded as the opener, and his reply to each quiz line against the
- * persona's gold answer, with the benchmark's judge. Two labels compare runs
+ * persona's gold answer, with the benchmark's judge plus a rule for spoken
+ * answers (live-judge.ts). Two labels compare runs
  * (e.g. flags off and on), paired by question. A missing quiz file or start
  * time fails the run unless --allow-missing is passed.
  *
@@ -19,14 +20,13 @@ import {
   failureCount,
   formatPaired,
   formatReport,
-  judgePrompt,
   localDay,
   paired,
-  parseYesNo,
   promptHashes,
   type CaseResult,
 } from '../longmem-lib.js';
 import { PERSONAS } from '../fixtures/live-personas.js';
+import { LIVE_JUDGE_MAX_TOKENS, liveJudgePrompt, parseLiveVerdict } from './live-judge.js';
 import { agentLines, repliesAfter, type EvalRun } from './transcript.js';
 
 const OUT = join(import.meta.dirname, '../../voice-eval/out');
@@ -66,11 +66,11 @@ async function score(label: string, allowMissing: boolean): Promise<CaseResult[]
       const noAnswer = response.trim() === '';
       const judgeReply = noAnswer
         ? null
-        : await callLLM(judgePrompt(category, ask, gold, response), {
+        : await callLLM(liveJudgePrompt(category, ask, gold, response, days.today()), {
             temperature: 0,
-            maxTokens: 10,
+            maxTokens: LIVE_JUDGE_MAX_TOKENS,
           });
-      const correct = parseYesNo(judgeReply);
+      const correct = parseLiveVerdict(judgeReply);
       results.push({
         history: p.id,
         category,
