@@ -32,9 +32,10 @@ import {
 import { CircuitOpenError, getCircuitBreaker } from '../utils/circuit-breaker.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { vertexText, type VertexTextModel } from './llm/vertex-text.js';
+import { useVertexAI } from '../config/vertex-flag.js';
 
 // Check if Vertex AI is explicitly enabled
-const USE_VERTEX_AI = process.env.USE_VERTEX_AI !== 'false';
+const USE_VERTEX_AI = useVertexAI();
 
 // ============================================================================
 // CIRCUIT BREAKERS

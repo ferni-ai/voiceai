@@ -1,9 +1,9 @@
 {
   "stories": [
     {
-      "id": "taco-bell-discovery",
-      "file": "taco-bell-discovery.json",
-      "triggers": ["taco bell", "restaurant", "food", "consumer", "everyday"],
+      "id": "burrito-chain-discovery",
+      "file": "burrito-chain-discovery.json",
+      "triggers": ["burrito", "restaurant", "food", "consumer", "everyday"],
       "category": "professional"
     },
     {
@@ -13,30 +13,30 @@
       "category": "educational"
     },
     {
-      "id": "caddy-days",
-      "file": "caddy-days.json",
+      "id": "register-days",
+      "file": "register-days.json",
       "triggers": [
-        "caddy",
-        "golf",
+        "hardware store",
+        "register",
         "first stock",
         "beginning",
-        "brae burn",
+        "pawtucket",
         "origin",
-        "father died"
+        "father's store"
       ],
       "category": "personal"
     },
     {
-      "id": "carolyn-story",
-      "file": "carolyn-story.json",
+      "id": "diane-story",
+      "file": "diane-story.json",
       "triggers": [
         "wife",
-        "carolyn",
+        "diane",
         "family",
         "retirement",
         "work-life balance",
         "priorities",
-        "daughters"
+        "grandkids"
       ],
       "category": "personal"
     },

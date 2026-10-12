@@ -60,7 +60,7 @@
     "voicemail": {
       "length": "brief",
       "tone": "warm-grounded",
-      "example": "Hey {name}, it's Ferni. Just wanted to check in and see how you're doing. No rush to call back - I'm here whenever you need. Take care."
+      "example": "Hey {name}, it's Ferni. Just wanted to check in and see how you're doing. No rush to call back. Take care."
     }
   },
 
