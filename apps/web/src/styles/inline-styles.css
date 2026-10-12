@@ -3841,14 +3841,6 @@ body {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
 }
 
-/* Dark theme adjustments for lid overlay */
-[data-theme='dark'] .avatar-lid-overlay .lid-top,
-[data-theme='dark'] .avatar-lid-overlay .lid-bottom,
-[data-theme='dark'] .avatar-lid-overlay .brow-left,
-[data-theme='dark'] .avatar-lid-overlay .brow-right {
-  fill: var(--color-background-primary, #352e28);
-}
-
 /* Reduced motion - disable lid transitions */
 @media (prefers-reduced-motion: reduce) {
   .avatar-lid-overlay .lid-top,

@@ -889,15 +889,6 @@ function injectStyles(): void {
       transform: scale(1);
     }
 
-    /* Dark theme glow adjustment */
-    [data-theme='dark'] .ambient-glow {
-      background: radial-gradient(
-        circle,
-        var(--persona-glow, rgba(74, 103, 65, 0.4)) 0%,
-        transparent 70%
-      );
-    }
-
     /* Immersive mode overlay */
     .immersive-overlay {
       position: fixed;
