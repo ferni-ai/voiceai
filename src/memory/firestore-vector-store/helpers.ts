@@ -7,7 +7,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import type { FieldVector } from './types.js';
+import type { CollectionReference, FieldVector, Query } from './types.js';
 
 /**
  * Safely extract embedding array with validation.
@@ -76,4 +76,33 @@ export function matchesFilter(
   if (filter.userId && doc.metadata.userId !== filter.userId) return false;
 
   return true;
+}
+
+/**
+ * The collection narrowed by what a query can express (one source, the
+ * owner): applied BEFORE findNearest, which can't take where() itself.
+ */
+export function filteredQuery(
+  collRef: CollectionReference,
+  filter?: { source?: string | string[]; userId?: string }
+): CollectionReference {
+  let q: CollectionReference | Query = collRef;
+  const sources = filter?.source === undefined ? [] : [filter.source].flat();
+  if (sources.length === 1) q = q.where('metadata.source', '==', sources[0]);
+  if (filter?.userId) q = q.where('metadata.userId', '==', filter.userId);
+  return q as CollectionReference;
+}
+
+/**
+ * Whether a stored vector may be returned: the query can't express every
+ * filter (several sources, categories), and another user's document must
+ * never come back.
+ */
+export function keepCandidate(
+  data: { metadata?: unknown },
+  filter?: { source?: string | string[]; category?: string | string[]; userId?: string }
+): boolean {
+  const metadata = data.metadata as
+    { source: string; category?: string; userId?: string } | undefined;
+  return !!metadata && matchesFilter({ metadata }, filter);
 }

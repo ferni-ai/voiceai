@@ -35,7 +35,7 @@ export const ferniFingerprint: PersonaVoiceFingerprint = {
     // Wyoming/Japan references
     'Wyoming',
     'back in Japan',
-    'the tsunami',
+    'Tanaka-san',
     'that sky',
 
     // Coaching style

@@ -19,6 +19,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { initSpringBody } from './avatar-motion/spring-body.js';
+import { claimAvatarContainer } from './avatar-motion/compositor.js';
 
 const log = createLogger('SpeakingSystem');
 
@@ -74,6 +75,16 @@ let avatarRing: HTMLElement | null = null;
 let lidTop: SVGPathElement | null = null;
 let lidBottom: SVGPathElement | null = null;
 let haloWaves: HTMLElement[] = [];
+
+// Reduced motion: body and halo hold still; the lid mouth still articulates.
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+let reducedMotionQuery: MediaQueryList | null = null;
+
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  reducedMotionQuery ??= window.matchMedia(REDUCED_MOTION_QUERY);
+  return reducedMotionQuery.matches;
+}
 
 // ============================================================================
 // INITIALIZATION
@@ -176,9 +187,15 @@ export function startSpeaking(): void {
   isSpeaking = true;
   
   if (animationFrame === null) {
-    animationFrame = requestAnimationFrame(animateLoop);
+    beginLoop();
     log.debug('🔊 Speaking animation started');
   }
+}
+
+/** Start the rAF loop; under ferni:avatar-compositor, claim the body first. */
+function beginLoop(): void {
+  if (avatarContainer) claimAvatarContainer(avatarContainer);
+  animationFrame = requestAnimationFrame(animateLoop);
 }
 
 /**
@@ -202,7 +219,7 @@ export function updateVolume(volume: number): void {
   // Auto-start if volume comes in while not speaking
   if (currentVolume > 0.05 && animationFrame === null) {
     isSpeaking = true;
-    animationFrame = requestAnimationFrame(animateLoop);
+    beginLoop();
   }
 }
 
@@ -243,6 +260,10 @@ function animateLoop(): void {
 
 function updateBodyPulse(volume: number): void {
   if (!avatarContainer) return;
+  if (prefersReducedMotion()) {
+    resetBody();
+    return;
+  }
   
   // Calculate squash/stretch
   const stretchAmount = volume * (CONFIG.body.maxScaleY - 1);
@@ -265,6 +286,10 @@ function updateBodyPulse(volume: number): void {
 
 function updateHaloPulse(volume: number): void {
   if (!avatarRing) return;
+  if (prefersReducedMotion()) {
+    resetHalo();
+    return;
+  }
   
   // Primary ring
   const scale = 1 + (volume * (CONFIG.halo.maxScale - 1));
@@ -309,25 +334,27 @@ function updateLidMouth(volume: number): void {
 // RESET
 // ============================================================================
 
-function resetAllLayers(): void {
-  // Reset body
-  if (avatarContainer) {
-    avatarContainer.style.transform = '';
-    avatarContainer.style.removeProperty('--speaking-scale-x');
-    avatarContainer.style.removeProperty('--speaking-scale-y');
-  }
-  
-  // Reset halo
+function resetBody(): void {
+  if (!avatarContainer) return;
+  avatarContainer.style.transform = '';
+  avatarContainer.style.removeProperty('--speaking-scale-x');
+  avatarContainer.style.removeProperty('--speaking-scale-y');
+}
+
+function resetHalo(): void {
   if (avatarRing) {
     avatarRing.style.transform = '';
     avatarRing.style.opacity = String(CONFIG.halo.minOpacity);
   }
-  
-  // Reset waves
   haloWaves.forEach(wave => {
     wave.style.transform = '';
     wave.style.opacity = '0';
   });
+}
+
+function resetAllLayers(): void {
+  resetBody();
+  resetHalo();
   
   // Reset lids
   if (lidBottom) {

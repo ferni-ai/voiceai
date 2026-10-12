@@ -26,6 +26,7 @@ import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { directedGreeting } from './greeting-direction.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
+import { briefedHandoffs, briefingFor, withBrief } from './handoff-brief.js';
 export { calmGreeting } from './greeting-direction.js';
 
 // Predictive handoff - pre-briefings for specialist personas
@@ -366,10 +367,10 @@ export class AgentOrchestrator {
     const previousPersonaId = currentAgent.personaId;
     diag.entry(`🎭 Handoff starting: ${previousPersonaId} → ${request.targetPersonaId}`);
 
+    // BRIEFED_HANDOFF: the teammate's brief and first line, written while the goodbye plays
+    const briefing = briefedHandoffs() ? briefingFor(currentAgent, request) : null;
     try {
-      // ================================================================
       // STEP 1: Let old agent say goodbye naturally
-      // ================================================================
       const step1Start = Date.now();
       log.info(
         { from: previousPersonaId, to: request.targetPersonaId },
@@ -381,9 +382,7 @@ export class AgentOrchestrator {
         '🎭 [HANDOFF STEP 1/5] ✅ Goodbye complete'
       );
 
-      // ================================================================
       // STEP 2: Close old agent
-      // ================================================================
       const step2Start = Date.now();
       log.info(
         { agentId: currentAgent.id, personaId: previousPersonaId },
@@ -449,10 +448,11 @@ export class AgentOrchestrator {
         }
       }
 
+      const briefed = await briefing; // bounded (handoff-brief.ts), and mostly done by now
       const newAgent = await this.spawnAgent(request.targetPersonaId, {
         room: this.room,
         userParticipant: this.userParticipant,
-        conversationSummary: enhancedSummary,
+        conversationSummary: withBrief(briefed, enhancedSummary),
         recentMessages: request.recentMessages,
         userName: request.userName,
         isHandoff: true,
@@ -471,9 +471,7 @@ export class AgentOrchestrator {
         '🎭 [HANDOFF STEP 3/5] ✅ New agent spawned'
       );
 
-      // ================================================================
       // STEP 4: Switch active agent
-      // ================================================================
       const step4Start = Date.now();
       log.info({ newAgentId: newAgent.id }, '🎭 [HANDOFF STEP 4/5] Setting new agent as active...');
       this.setActiveAgent(newAgent.id);
@@ -490,7 +488,7 @@ export class AgentOrchestrator {
         { personaId: request.targetPersonaId },
         '🎭 [HANDOFF STEP 5/5] New agent greeting...'
       );
-      await this.agentGreets(newAgent, previousPersonaId, request);
+      await this.agentGreets(newAgent, previousPersonaId, request, briefed?.firstLine);
       log.info(
         { personaId: request.targetPersonaId, durationMs: Date.now() - step5Start },
         '🎭 [HANDOFF STEP 5/5] ✅ Greeting complete'
@@ -819,9 +817,11 @@ export class AgentOrchestrator {
   private async agentGreets(
     agent: PersonaAgent,
     previousPersonaId: string,
-    request: HandoffRequest
+    request: HandoffRequest,
+    firstLine?: string
   ): Promise<void> {
-    const greeting = this.getGreetingPhrase(agent.personaId, previousPersonaId, request);
+    const greeting =
+      firstLine ?? this.getGreetingPhrase(agent.personaId, previousPersonaId, request);
     const textToSpeak = greeting || "Hey! What's up?";
 
     log.info(

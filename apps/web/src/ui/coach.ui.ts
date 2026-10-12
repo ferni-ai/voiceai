@@ -29,6 +29,7 @@ import {
 import { relationshipStageService } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { isAvatarCompositorEnabled } from './avatar-motion/compositor.js';
 
 const log = createLogger('CoachUI');
 
@@ -409,10 +410,9 @@ export function updateAudioState(state: AudioState): void {
  * Most visual movement should come from the waveform and avatar itself.
  */
 export function setVisualizationVolume(volume: number): void {
-  if (!elements) return;
-
-  // Scale the ring VERY subtly - the waveform provides main visual feedback
-  // Ring should feel like a gentle halo, not bouncing wildly
+  // Under ferni:avatar-compositor the speaking system owns the ring (one writer, no jitter)
+  if (!elements || isAvatarCompositorEnabled()) return;
+  // Scale the ring VERY subtly - the waveform provides main visual feedback, a gentle halo
   const scale = 1 + volume * 0.06; // Reduced from 0.3 to 0.06 (6% max vs 30%)
   elements.avatarRing.style.transform = `scale(${scale})`;
 
