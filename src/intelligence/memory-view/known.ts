@@ -18,6 +18,7 @@
 import { createHash } from 'node:crypto';
 import type { Firestore } from '@google-cloud/firestore';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { firestoreForgetStore, isForgotten } from '../../memory/recall/forget.js';
 import { listRemembered, type RememberedFact } from '../../memory/recall/memory-control.js';
 import { MAX_OPEN_FACTS } from '../world-model/temporal/store.js';
 import type { TemporalFact } from '../world-model/temporal/types.js';
@@ -71,7 +72,8 @@ export interface KnownView {
   thinkingAbout?: KnownItem[];
 }
 
-export type StoredPondering = Pondering & { generatedAt?: string };
+/** The pondering document; dismissed: calls the caller put an item from down. */
+export type StoredPondering = Pondering & { generatedAt?: string; dismissed?: string[] };
 
 /** The slices of the caller's record the view reads; each only ever for one uid. */
 export interface KnownStore {
@@ -81,6 +83,8 @@ export interface KnownStore {
   pondering: (userId: string) => Promise<StoredPondering | null>;
   /** YYYY-MM-DD of the caller's summaries with these ids, for pondering's provenance. */
   summaryDays: (userId: string, ids: string[]) => Promise<Map<string, string>>;
+  /** Topics the caller asked Ferni to forget (memory/recall/forget.ts). Throws if unreadable. */
+  forgotten: (userId: string) => Promise<string[]>;
 }
 
 const PREFERENCE =
@@ -160,40 +164,67 @@ export interface KnownParts {
   mind: MindModel | null;
   pondering: StoredPondering | null;
   summaryDays: Map<string, string>;
+  /** Forgotten topics: matched exactly as the recall readers match them (isForgotten). */
+  forgotten: readonly string[];
+}
+
+type Kept = (text: string) => boolean;
+
+/** Established patterns (noticed) and sensitivities (told), less anything forgotten. */
+function readings(mind: MindModel | null, kept: Kept): KnownItem[] {
+  const established = (mind?.patterns ?? []).filter(
+    (p) =>
+      p.moments.length >= ESTABLISHED_MOMENTS &&
+      p.confidence > 0 &&
+      SAFE_ID.test(p.key) &&
+      kept(p.statement)
+  );
+  const sensitivities = (mind?.sensitivities ?? []).filter((x) => kept(`${x.topic} ${x.how}`));
+  return [
+    ...established.map(fromPattern),
+    ...sensitivities.map((s): KnownItem => ({
+      id: hashId(s.topic),
+      kind: 'sensitivity',
+      text: `${s.topic}: ${s.how}`,
+      source: 'told',
+      at: s.at,
+    })),
+  ];
+}
+
+/** The latest pondering, less dismissed calls and forgotten topics (as ponder-user.ts drops them). */
+function thoughts(parts: KnownParts, kept: Kept): KnownItem[] {
+  const p = parts.pondering;
+  const dismissed = new Set(p?.dismissed ?? []);
+  return [...(p?.followUps ?? []), ...(p?.thinkingOf ?? [])]
+    .filter((i) => !dismissed.has(i.basis) && kept(i.text))
+    .map((i) => fromPonder(i, parts.summaryDays.get(i.basis)));
 }
 
 /** Group what is stored into the view's sections. Pure: the caller passes the time. */
 export function buildKnownView(parts: KnownParts, now: Date, withPondering: boolean): KnownView {
   const view: KnownView = { people: [], lifeNow: [], dates: [], preferences: [], readsYou: [] };
-  for (const f of parts.facts) fileLife(view, fromFact(f));
+  // What recall would leave out is not shown either: the same matcher, on the same words
+  // each reader matches (session-recall.ts, world ingest, ponder-user.ts).
+  const kept = (text: string): boolean => !isForgotten(text, parts.forgotten);
+  for (const f of parts.facts.filter((x) => kept(`${x.subject} ${x.detail}`))) {
+    fileLife(view, fromFact(f));
+  }
   const earliest = new Date(now.getTime() - DATES_LOOKBACK_DAYS * DAY_MS)
     .toISOString()
     .slice(0, 10);
-  for (const w of parts.world.filter((f) => f.validTo === null && SAFE_ID.test(f.id))) {
+  const current = parts.world.filter(
+    (f) =>
+      f.validTo === null && SAFE_ID.test(f.id) && kept(`${f.subject} ${f.attribute} ${f.value}`)
+  );
+  for (const w of current) {
     const item = fromWorld(w);
     if (item.day === undefined) fileLife(view, item);
     else if (item.day >= earliest) view.dates.push(item);
   }
   view.dates.sort((a, b) => (a.day ?? '').localeCompare(b.day ?? ''));
-  const established = (parts.mind?.patterns ?? []).filter(
-    (p) => p.moments.length >= ESTABLISHED_MOMENTS && p.confidence > 0 && SAFE_ID.test(p.key)
-  );
-  view.readsYou.push(...established.map(fromPattern));
-  for (const s of parts.mind?.sensitivities ?? []) {
-    const text = `${s.topic}: ${s.how}`;
-    view.readsYou.push({
-      id: hashId(s.topic),
-      kind: 'sensitivity',
-      text,
-      source: 'told',
-      at: s.at,
-    });
-  }
-  if (withPondering) {
-    const p = parts.pondering;
-    const items = [...(p?.followUps ?? []), ...(p?.thinkingOf ?? [])];
-    view.thinkingAbout = items.map((i) => fromPonder(i, parts.summaryDays.get(i.basis)));
-  }
+  view.readsYou.push(...readings(parts.mind, kept));
+  if (withPondering) view.thinkingAbout = thoughts(parts, kept);
   return view;
 }
 
@@ -204,8 +235,10 @@ export async function loadKnownView(
   { now = new Date(), env = process.env }: { now?: Date; env?: Env } = {}
 ): Promise<KnownView> {
   const withPondering = isMemoryViewPonderingOn(env);
-  const [facts, world, mind, pondering] = await Promise.all([
+  // Unreadable forgotten topics fail the view: showing what was forgotten is worse than nothing.
+  const [facts, forgotten, world, mind, pondering] = await Promise.all([
     store.facts(userId),
+    store.forgotten(userId),
     store.worldFacts(userId).catch(() => []),
     store.mindModel(userId).catch(() => null),
     withPondering ? store.pondering(userId).catch(() => null) : Promise.resolve(null),
@@ -216,7 +249,8 @@ export async function loadKnownView(
   const summaryDays = bases.length
     ? await store.summaryDays(userId, [...new Set(bases)]).catch(() => new Map<string, string>())
     : new Map<string, string>();
-  return buildKnownView({ facts, world, mind, pondering, summaryDays }, now, withPondering);
+  const parts = { facts, world, mind, pondering, summaryDays, forgotten };
+  return buildKnownView(parts, now, withPondering);
 }
 
 function asMindModel(data: unknown): MindModel | null {
@@ -242,6 +276,7 @@ export function createFirestoreKnownStore(
     getDb()?.collection('bogle_users').doc(userId) ?? null;
   return {
     facts: async (userId) => listRemembered(userId),
+    forgotten: async (userId) => firestoreForgetStore.topics(userId),
     async worldFacts(userId) {
       const snap = await user(userId)
         ?.collection('world_facts')
