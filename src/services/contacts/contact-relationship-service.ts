@@ -38,6 +38,7 @@ export interface ContactRelationship {
   phone?: string;
   relationship?: 'family' | 'friend' | 'colleague' | 'acquaintance' | 'professional' | 'other';
   notes?: string;
+  howWeMet?: string;
 
   // Relationship tracking
   firstInteraction: Date;
@@ -264,7 +265,6 @@ export async function upsertContact(
   let saved: ContactRelationship;
 
   if (existingIndex >= 0) {
-    // Update existing
     saved = {
       ...contacts[existingIndex],
       ...contact,
@@ -272,7 +272,6 @@ export async function upsertContact(
     };
     contacts[existingIndex] = saved;
   } else {
-    // Create new
     saved = {
       id: `contact_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       userId,
@@ -282,6 +281,7 @@ export async function upsertContact(
       phone: contact.phone,
       relationship: contact.relationship || 'other',
       notes: contact.notes,
+      howWeMet: contact.howWeMet,
       firstInteraction: contact.firstInteraction || now,
       lastInteraction: contact.lastInteraction || now,
       interactionCount: contact.interactionCount || 0,
