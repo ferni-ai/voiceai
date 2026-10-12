@@ -18,6 +18,7 @@ import {
   getPendingReminders,
   cancelReminder,
   parseNaturalTime,
+  userTimeZone,
   type ReminderDeliveryMethod,
 } from '../../../services/scheduling/reminder-scheduler.js';
 import { recordReminderPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
@@ -95,7 +96,8 @@ const setReminderDef: ToolDefinition = {
         log.info({ userId: ctx.userId, message, when, deliveryMethod }, 'Setting reminder');
 
         // Parse the natural language time
-        const scheduledFor = parseNaturalTime(when);
+        const zone = userTimeZone(ctx);
+        const scheduledFor = parseNaturalTime(when, zone);
         if (!scheduledFor) {
           return `I couldn't understand "${when}" as a time. Try something like "in 30 minutes", "tomorrow at 2pm", or "next Monday morning".`;
         }
@@ -128,6 +130,7 @@ const setReminderDef: ToolDefinition = {
             userId: ctx.userId,
             message,
             scheduledFor,
+            timezone: zone,
             deliveryMethod: method,
             deliveryAddress: address,
             createdBy: ctx.agentId || 'ferni',

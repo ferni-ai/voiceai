@@ -11216,7 +11216,8 @@
     "ferniSpeaking": "Ferni parle",
     "youSpeaking": "Tu parles",
     "ferniThinking": "Ferni réfléchit",
-    "tapToInterrupt": "Touche pour interrompre"
+    "tapToInterrupt": "Touche pour interrompre",
+    "tapToHear": "Touchez pour entendre Ferni"
   },
   "answerCard": {
     "answer": "",

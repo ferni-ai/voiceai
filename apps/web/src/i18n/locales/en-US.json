@@ -11107,7 +11107,8 @@
     "ferniSpeaking": "Ferni is talking",
     "youSpeaking": "You're talking",
     "ferniThinking": "Ferni is thinking",
-    "tapToInterrupt": "Tap to interrupt"
+    "tapToInterrupt": "Tap to interrupt",
+    "tapToHear": "Tap to hear Ferni"
   },
   "approvePage": {
     "kind": {

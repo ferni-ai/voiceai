@@ -1,5 +1,5 @@
 /**
- * First calls with brand-new people: 25 caller personas (fixtures/personas.json) each
+ * First calls with brand-new people: 26 caller personas (fixtures/personas.json) each
  * have one first call with Ferni, in text, through his live prompt path.
  *
  *   GOOGLE_CLOUD_PROJECT=johnb-2025 npx tsx scripts/first-call-eval/simulate.ts \
@@ -38,6 +38,8 @@ export interface Persona {
   nameWhen: 'volunteer' | 'asked' | 'late';
   turns: number;
   ai?: string;
+  /** The name on their account when it isn't the one they go by (NAME_CORRECTION). */
+  accountName?: string;
   facts: Array<[string, string]>;
 }
 export interface Line {
@@ -123,13 +125,24 @@ async function ferniSystem(): Promise<string> {
   return `${base}${awareness}\n\n---\n\n${await loadSystemPrompt('ferni')}`;
 }
 
-async function oneCall(p: Persona, system: string, label: string): Promise<Line[]> {
+/** agent-setup.ts: "You're talking to <name>." heads the awareness note when the account has a name. */
+function systemFor(p: Persona, system: string): string {
+  if (!p.accountName) return system;
+  return system.replace(
+    "## Who You're Talking To\n\n",
+    `## Who You're Talking To\n\nYou're talking to ${p.accountName}.\n`
+  );
+}
+
+async function oneCall(p: Persona, shared: string, label: string): Promise<Line[]> {
+  const system = systemFor(p, shared);
   const { withTurnReminder } = await import('../../src/agents/personas/turn-request.js');
   const { directedGreeting } = await import('../../src/agents/multi-agent/greeting-direction.js');
   const sessionId = `first-call-eval-${label}-${p.id}`;
   const userData = {
     userId: sessionId,
     isReturningUser: false,
+    userName: p.accountName,
     callerTimezone: 'America/New_York',
     services: { sessionId },
   };
@@ -164,20 +177,27 @@ async function main(): Promise<void> {
     },
   });
   if (!values.label) throw new Error('--label is required');
-  const all = JSON.parse(readFileSync(join(HERE, 'fixtures', 'personas.json'), 'utf8')) as Persona[];
+  const all = JSON.parse(
+    readFileSync(join(HERE, 'fixtures', 'personas.json'), 'utf8')
+  ) as Persona[];
   const only = values.only?.split(',');
   const queue = all.filter((p) => !only || only.includes(p.id));
   const outDir = join(HERE, 'out', values.label);
   mkdirSync(outDir, { recursive: true });
   const system = await ferniSystem();
   const flag = process.env.FIRST_CALL_RAPPORT ?? 'off';
+  const nameCorrection = process.env.NAME_CORRECTION ?? 'off';
   await Promise.all(
     Array.from({ length: Number(values.concurrency) }, async () => {
       for (let p = queue.shift(); p; p = queue.shift()) {
         const lines = await oneCall(p, system, values.label as string);
         writeFileSync(
           join(outDir, `${p.id}.json`),
-          JSON.stringify({ persona: p, label: values.label, flag, model: MODEL, lines }, null, 2)
+          JSON.stringify(
+            { persona: p, label: values.label, flag, nameCorrection, model: MODEL, lines },
+            null,
+            2
+          )
         );
         process.stderr.write(`${p.id}: ${lines.length} lines\n`);
       }

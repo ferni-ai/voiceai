@@ -11090,7 +11090,8 @@
     "ferniSpeaking": "Ferni spricht",
     "youSpeaking": "Du sprichst",
     "ferniThinking": "Ferni denkt nach",
-    "tapToInterrupt": "Tippen zum Unterbrechen"
+    "tapToInterrupt": "Tippen zum Unterbrechen",
+    "tapToHear": "Tippen, um Ferni zu hören"
   },
   "answerCard": {
     "answer": "",
