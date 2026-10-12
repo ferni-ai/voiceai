@@ -137,6 +137,7 @@ import {
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
 import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
+import { lastTalkedAwareness } from './welcome-back.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 
 const log = getLogger();
@@ -392,21 +393,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           const daysSince = Math.floor(
             (sessionStartTime.getTime() - lastContactDate.getTime()) / (24 * 60 * 60 * 1000)
           );
-          if (daysSince === 0) {
-            userAwareness.push('You talked earlier today.');
-          } else if (daysSince === 1) {
-            userAwareness.push('You talked yesterday.');
-          } else if (daysSince < 7) {
-            userAwareness.push(`Last talked ${daysSince} days ago.`);
-          } else if (daysSince < 30) {
-            userAwareness.push(
-              `It's been about ${Math.round(daysSince / 7)} weeks since you last talked.`
-            );
-          } else {
-            userAwareness.push(
-              `It's been a while - about ${Math.round(daysSince / 30)} month${daysSince > 45 ? 's' : ''} since you last talked.`
-            );
-          }
+          userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
         userAwareness.push(

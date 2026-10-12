@@ -27,6 +27,7 @@
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { ANALYTICS_ICONS } from './icons/shared-icons.js';
 
 const log = createLogger('LocationPromptUI');
 
@@ -45,27 +46,20 @@ export interface LocationPromptResult {
 // WARM PROMPT CONTENT
 // ============================================================================
 
-const PROMPT_CONTENT: Record<
-  LocationPromptContext,
-  { icon: string; titleKey: string; messageKey: string }
-> = {
+const PROMPT_CONTENT: Record<LocationPromptContext, { titleKey: string; messageKey: string }> = {
   weather: {
-    icon: '🌤️',
     titleKey: 'locationPrompt.weather.title',
     messageKey: 'locationPrompt.weather.message',
   },
   events: {
-    icon: '📍',
     titleKey: 'locationPrompt.events.title',
     messageKey: 'locationPrompt.events.message',
   },
   timezone: {
-    icon: '🕐',
     titleKey: 'locationPrompt.timezone.title',
     messageKey: 'locationPrompt.timezone.message',
   },
   personalization: {
-    icon: '✨',
     titleKey: 'locationPrompt.personalization.title',
     messageKey: 'locationPrompt.personalization.message',
   },
@@ -99,7 +93,7 @@ export function showLocationPrompt(
     promptContainer.innerHTML = `
       <div class="ferni-location-prompt-backdrop"></div>
       <div class="ferni-location-prompt-card" role="dialog" aria-modal="true" aria-labelledby="location-prompt-title">
-        <div class="ferni-location-prompt-icon">${content.icon}</div>
+        <div class="ferni-location-prompt-icon" aria-hidden="true">${ANALYTICS_ICONS.mapPin}</div>
         <h2 id="location-prompt-title" class="ferni-location-prompt-title">${t(content.titleKey)}</h2>
         <p class="ferni-location-prompt-message">${t(content.messageKey)}</p>
         <p class="ferni-location-prompt-note">${t('locationPrompt.note')}</p>
@@ -135,7 +129,7 @@ export function showLocationPrompt(
     const allowBtn = promptContainer.querySelector('[data-action="allow"]') as HTMLButtonElement;
     allowBtn?.focus();
 
-    log.debug({ context }, '📍 Location prompt shown');
+    log.debug({ context }, 'Location prompt shown');
   });
 }
 
@@ -165,16 +159,16 @@ function handleClick(event: Event): void {
   const action = target.closest('[data-action]')?.getAttribute('data-action');
 
   if (action === 'allow') {
-    log.debug('📍 User allowed location prompt');
+    log.debug('User allowed location prompt');
     resolvePrompt?.({ allowed: true, rememberChoice: true });
     hideLocationPrompt();
   } else if (action === 'not-now') {
-    log.debug('📍 User declined location prompt');
+    log.debug('User declined location prompt');
     resolvePrompt?.({ allowed: false, rememberChoice: false });
     hideLocationPrompt();
   } else if (target.classList.contains('ferni-location-prompt-backdrop')) {
     // Close on backdrop click
-    log.debug('📍 User dismissed location prompt via backdrop');
+    log.debug('User dismissed location prompt via backdrop');
     resolvePrompt?.({ allowed: false, rememberChoice: false });
     hideLocationPrompt();
   }
@@ -182,7 +176,7 @@ function handleClick(event: Event): void {
 
 function handleKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape') {
-    log.debug('📍 User dismissed location prompt via Escape');
+    log.debug('User dismissed location prompt via Escape');
     resolvePrompt?.({ allowed: false, rememberChoice: false });
     hideLocationPrompt();
   }
@@ -244,9 +238,15 @@ function addStyles(): void {
     }
 
     .ferni-location-prompt-icon {
-      font-size: 3rem;
+      display: flex;
+      justify-content: center;
       margin-bottom: var(--space-4, 1rem);
-      line-height: 1;
+      color: var(--color-accent, #3d5a45);
+    }
+
+    .ferni-location-prompt-icon svg {
+      width: 3rem;
+      height: 3rem;
     }
 
     .ferni-location-prompt-title {
@@ -306,7 +306,7 @@ function addStyles(): void {
 
     .ferni-location-prompt-btn--primary {
       background: var(--color-accent, #3d5a45);
-      color: white;
+      color: var(--color-text-on-accent);
     }
 
     .ferni-location-prompt-btn--primary:hover {
@@ -374,7 +374,7 @@ export async function requestLocationWithWarmPrompt(
 
   // Check if already denied
   if (isLocationDenied()) {
-    log.debug('📍 Location previously denied, skipping prompt');
+    log.debug('Location previously denied, skipping prompt');
     return { success: false };
   }
 

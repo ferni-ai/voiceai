@@ -127,6 +127,13 @@ describe('isForgottenPassage', () => {
     expect(isForgottenPassage('my old job at the bakery', ['old job'])).toBe(true);
     expect(isForgottenPassage(said, [])).toBe(false);
   });
+
+  it('judges a distinctive word as written, so a stem shorter than five letters still counts', () => {
+    // Stored as the earlier tokenizer kept it; a stemmer may read "wedding" as "wed".
+    expect(isForgottenPassage('The wedding was lovely', ['sister wedding'])).toBe(true);
+    expect(isForgottenPassage('weddings are pricey', ['sister wedding'])).toBe(true);
+    expect(isForgottenPassage('We went to the zoo', ['sister wedding'])).toBe(false);
+  });
 });
 
 describe('privacy holds even when things go wrong', () => {

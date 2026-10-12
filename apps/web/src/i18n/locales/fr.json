@@ -1322,7 +1322,7 @@
         "calendar": "Calendrier",
         "history": "Anciennes conversations",
         "people": "Tes proches",
-        "insights": "Comment tu vas"
+        "insights": "Ce que j'ai appris"
       }
     },
     "ariaLabel": "Menu des paramètres",
@@ -8857,6 +8857,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Anciennes conversations",
     "loadError": "Impossible de charger les données.",
     "tryAgain": "Réessayer ?",
     "ariaLabel": "Historique des conversations",
@@ -10511,6 +10512,12 @@
       "fair": "Moyenne",
       "poor": "Connexion faible",
       "disconnected": "Hors ligne"
+    },
+    "island": {
+      "offline": "Tu es hors ligne. Je me reconnecte dès que tu reviens.",
+      "reconnecting": "Reconnexion…",
+      "weak": "Connexion faible",
+      "backOnline": "De retour en ligne"
     }
   },
   "ideasGallery": {
@@ -10985,6 +10992,9 @@
       "other": "{count} jours"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "Miam miam !"
+  },
   "avatarTapReactions": {
     "tickles": "Héhé, ça chatouille !"
   },
@@ -11238,5 +11248,17 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "Participer",
+    "title": "Un dollar fait vivre la conversation",
+    "body": "Ferni est gratuit pour l'instant. Si une discussion t'a aidé, tu peux envoyer un dollar sur Venmo. Plus, c'est bienvenu, jamais attendu.",
+    "qrAlt": "Code QR Venmo pour @{handle}",
+    "copy": "Copier",
+    "copied": "Copié",
+    "openVenmo": "Ouvrir Venmo",
+    "helper": "Scanne-le avec l'appareil photo de ton téléphone ou touche Ouvrir Venmo. Tu peux changer le montant.",
+    "maybeLater": "Plus tard",
+    "close": "Fermer"
   }
 }

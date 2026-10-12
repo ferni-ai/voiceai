@@ -1319,7 +1319,7 @@
         "calendar": "カレンダー",
         "history": "過去のお話",
         "people": "あなたの大切な人たち",
-        "insights": "最近の様子"
+        "insights": "学んだこと"
       }
     },
     "ariaLabel": "設定メニュー",
@@ -8790,6 +8790,7 @@
     }
   },
   "conversationHistory": {
+    "title": "過去のお話",
     "loadError": "データを読み込めませんでした。",
     "tryAgain": "もう一度試しますか？",
     "ariaLabel": "お話の履歴",
@@ -10405,6 +10406,12 @@
       "fair": "普通",
       "poor": "接続不安定",
       "disconnected": "切断されました"
+    },
+    "island": {
+      "offline": "オフラインのようです。つながったら、すぐに再接続しますね。",
+      "reconnecting": "再接続中…",
+      "weak": "接続が不安定です",
+      "backOnline": "オンラインに戻りました"
     }
   },
   "ideasGallery": {
@@ -10863,6 +10870,9 @@
       "one": "{count}日"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "もぐもぐ！"
+  },
   "avatarTapReactions": {
     "tickles": "ふふっ、くすぐったいよ！"
   },
@@ -11112,5 +11122,17 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "応援する",
+    "title": "1ドルで、会話が続きます",
+    "body": "Ferniは今のところ無料です。話して役に立ったら、Venmoで1ドル送れます。それ以上も歓迎ですが、求めてはいません。",
+    "qrAlt": "@{handle} のVenmo QRコード",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "openVenmo": "Venmoを開く",
+    "helper": "スマホのカメラで読み取るか、「Venmoを開く」をタップしてください。金額は変更できます。",
+    "maybeLater": "また今度",
+    "close": "閉じる"
   }
 }

@@ -28,7 +28,7 @@ export const PERSONA_EVOLUTION_STORIES: PersonaEvolutionEvent[] = [
     eventType: 'story_unlock',
     title: 'A Memory from Tokyo',
     description:
-      "I was thinking about Tanaka-san today. It's the anniversary of when I lost him. Funny how grief works—it gets softer but never goes away.",
+      "I was thinking about Tanaka-san today. Fog on the hills this morning, like on that ridge. Funny how grief works—it gets softer but never goes away.",
     occurredAt: new Date(),
     sharedWithUser: false,
     unlockCondition: { type: 'topic_discussed', value: 'loss' },

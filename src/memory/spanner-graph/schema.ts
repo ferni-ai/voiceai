@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS entities (
 
 -- Facts table: Things we know about entities
 CREATE TABLE IF NOT EXISTS facts (
-  fact_id STRING(36) NOT NULL,
+  fact_id STRING(128) NOT NULL,
   user_id STRING(36) NOT NULL,
   fact_type STRING(50) NOT NULL,
   key STRING(255) NOT NULL,
@@ -76,10 +76,10 @@ CREATE TABLE IF NOT EXISTS relationships (
 
 -- Entity-Fact junction table: Links facts to entities
 CREATE TABLE IF NOT EXISTS entity_facts (
-  entity_fact_id STRING(36) NOT NULL,
+  entity_fact_id STRING(192) NOT NULL,
   user_id STRING(36) NOT NULL,
   entity_id STRING(36) NOT NULL,
-  fact_id STRING(36) NOT NULL,
+  fact_id STRING(128) NOT NULL,
   created_at TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
 ) PRIMARY KEY (user_id, entity_fact_id);
 

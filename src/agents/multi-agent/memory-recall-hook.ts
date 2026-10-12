@@ -44,10 +44,12 @@ import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import {
   formatLedger,
   loadLedger,
+  personaDisplayName,
   RECALL_LIMIT,
   type LedgerFact,
   type LedgerStore,
 } from '../personas/life-ledger.js';
+import { loadCanon, selfRecallEnabled, selfRecallNote } from '../personas/self-recall.js';
 import {
   formatLifeUpdates,
   loadLifeUpdates,
@@ -60,12 +62,13 @@ import {
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { forgottenTopics } from '../../memory/recall/forget.js';
+import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
 import {
   createEpisodeRecall,
   recallEpisodesEnabled,
   type EpisodeStore,
 } from '../../memory/recall/episodes.js';
+import { firestoreEpisodeStore } from '../../memory/storage/episode-store.js';
 import { createSummaryRecall, summaryRecallEnabled } from '../../memory/recall/call-summaries.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
@@ -76,7 +79,8 @@ export function memoryRecallMode(env: Record<string, string | undefined> = proce
 
 /** Reads the collections the live pipeline writes. Plain queries: no composite index needed. */
 export const firestoreRecallStore: RecallStore = {
-  forgotten: (userId) => forgottenTopics(userId),
+  // Null when unreadable: the snapshot then fails closed (session-recall.ts).
+  forgotten: async (userId) => forgottenTopicsOrNull(userId),
   async facts(userId) {
     const db = getFirestoreDb();
     if (!db) return [];
@@ -117,6 +121,8 @@ export interface MemoryRecallDeps {
   lifeUpdates?: LifeUpdateDeps;
   /** What they said they'd do, asked about early (COACH_FOLLOW_THROUGH). */
   checkIns?: () => Promise<OpenCommitment[]>;
+  /** FERNI_SELF_RECALL=on; read from the environment when not given. */
+  selfRecall?: boolean;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
   embed?: RetrievalEmbedder;
@@ -187,16 +193,21 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       ? createEpisodeRecall({
           userId: deps.userId,
           before: new Date(started),
-          store: deps.episodeStore,
+          store: deps.episodeStore ?? firestoreEpisodeStore,
           embed: deps.embed,
         })
       : undefined;
   const personaId = deps.personaId ?? 'ferni';
+  // FERNI_SELF_RECALL=on: asked about himself, what he told about it (self-recall.ts).
+  const selfRecall = deps.selfRecall ?? selfRecallEnabled();
+  let allTold: LedgerFact[] = [];
+  let canon: Record<string, string> = {};
+  let selfNoteGiven = false;
   const ledger = loadLedger(
     deps.userId,
     personaId,
     deps.ledgerStore,
-    semanticOn ? TOLD_KEPT : RECALL_LIMIT
+    semanticOn || selfRecall ? TOLD_KEPT : RECALL_LIMIT
   );
   const loaded = Promise.all([
     loadRecallSnapshot(
@@ -207,6 +218,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     ledger,
   ]).then(([s, told]) => {
     snapshot = { ...s, followUps: s.followUps.slice(0, MAX_FOLLOW_UPS) };
+    allTold = told;
     ledgerNote = formatLedger(told.slice(0, RECALL_LIMIT), deps.userName);
     log.info(
       {
@@ -249,7 +261,12 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       checkInNote = formatCheckIn(open, Date.now());
     })
     .catch((error: unknown) => log.warn({ error: String(error) }, 'Check-ins not loaded'));
-  const ready = Promise.all([loaded, since, checkedIn]).then(() => undefined);
+  const canonLoaded = selfRecall
+    ? loadCanon(personaId).then((c) => {
+        canon = c;
+      })
+    : Promise.resolve();
+  const ready = Promise.all([loaded, since, checkedIn, canonLoaded]).then(() => undefined);
 
   return {
     ready,
@@ -295,6 +312,12 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         ? null
         : [ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
       const checkIn = checkInOffered ? null : checkInNote;
+      // Once a turn, when they ask about him and something answers it.
+      const self =
+        selfRecall && !selfNoteGiven
+          ? selfRecallNote(text, allTold, canon, { name: personaDisplayName(personaId) })
+          : null;
+      if (self) selfNoteGiven = true;
       const note =
         [
           checkIn,
@@ -303,6 +326,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           told,
           extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
           episodes?.take() ?? null,
+          self,
         ]
           .filter(Boolean)
           .join('\n\n') || null;
@@ -323,6 +347,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           followUps: followUps.length,
           semantic: semantic.size,
           extras: extras.length,
+          self: self !== null,
         },
         'Recall added'
       );
@@ -330,6 +355,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     },
     newTurn() {
       episodes?.newTurn();
+      selfNoteGiven = false;
       factsThisTurn = 0;
       tokensLeft = RECALL_TOKENS_PER_TURN;
       entitiesThisTurn.clear();
