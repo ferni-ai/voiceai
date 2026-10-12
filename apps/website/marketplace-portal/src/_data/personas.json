@@ -32,10 +32,9 @@
         "priceInCents": 999,
         "interval": "monthly"
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "Ferni Labs",
-        "verified": true
+        "name": "Ferni"
       }
     },
     {
@@ -69,10 +68,9 @@
         "priceInCents": 1499,
         "interval": "monthly"
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "Recovery Path Inc",
-        "verified": true
+        "name": "Ferni"
       }
     },
     {
@@ -109,10 +107,9 @@
           "monthlyExecutions": 50
         }
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "Ferni Labs",
-        "verified": true
+        "name": "Ferni"
       }
     },
     {
@@ -146,10 +143,9 @@
         "priceInCents": 799,
         "interval": "monthly"
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "Ferni Labs",
-        "verified": true
+        "name": "Ferni"
       }
     },
     {
@@ -183,10 +179,9 @@
         "priceInCents": 999,
         "interval": "monthly"
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "Spoonie Tech Co",
-        "verified": true
+        "name": "Ferni"
       }
     },
     {
@@ -223,10 +218,9 @@
           "monthlyExecutions": 30
         }
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "Ferni Labs",
-        "verified": true
+        "name": "Ferni"
       }
     },
     {
@@ -260,10 +254,9 @@
         "priceInCents": 1299,
         "interval": "monthly"
       },
-      "trustLevel": "verified",
+      "trustLevel": "platform",
       "publisher": {
-        "name": "CareerPath AI",
-        "verified": true
+        "name": "Ferni"
       }
     }
   ],
