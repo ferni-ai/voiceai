@@ -4,7 +4,7 @@
  * 2,377 "Gemini generation failed" errors on john-bogle-ui from 10-10 to 10-12,
  * with every page variant on fallback copy.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const generateContent = vi.fn();
 const getGeminiClient = vi.fn();
@@ -24,15 +24,63 @@ vi.mock('../../../config/gemini-config.js', async (importOriginal) => ({
 vi.mock('../../../utils/safe-logger.js', () => ({ createLogger: () => log }));
 
 import { clearCache, generateJSON, generateText } from '../gemini-client.js';
-import { generateSentimentReactiveCopy, sendDemoChatMessage } from '../ai-interactions.js';
+import {
+  generatePersonaPreview,
+  generateSentimentReactiveCopy,
+  sendDemoChatMessage,
+} from '../ai-interactions.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
   clearCache();
+  vi.stubEnv('LANDING_AI', 'on');
   getGeminiClient.mockResolvedValue({ models: { generateContent } });
 });
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
-describe('landing gemini-client on the shared client', () => {
+// The landing routes are public and the chat limit is keyed on a client-chosen
+// visitorId, so the model must stay unreachable until LANDING_AI is turned on.
+describe('with LANDING_AI unset (default off)', () => {
+  beforeEach(() => {
+    vi.stubEnv('LANDING_AI', undefined);
+    generateContent.mockResolvedValue({ text: 'model reply' });
+  });
+
+  it('demo chat returns the static fallback without calling the client', async () => {
+    const reply = await sendDemoChatMessage('visitor-off', 'work is a lot');
+
+    expect(reply.response).toBe("Work stuff can be complicated. What's going on?");
+    expect(getGeminiClient).not.toHaveBeenCalled();
+    expect(generateContent).not.toHaveBeenCalled();
+    expect(log.error).not.toHaveBeenCalled();
+    expect(log.warn).not.toHaveBeenCalled();
+  });
+
+  it('persona preview returns the static fallback without calling the client', async () => {
+    const preview = await generatePersonaPreview({
+      persona: 'ferni',
+      question: 'how do you handle stress?',
+    });
+
+    expect(preview.response).toBe(
+      "That sounds like a lot to carry. What's weighing on you the most right now?"
+    );
+    expect(getGeminiClient).not.toHaveBeenCalled();
+    expect(generateContent).not.toHaveBeenCalled();
+  });
+
+  it('AI variants (generateJSON / generateText) return null without calling the client', async () => {
+    expect(await generateJSON('write a headline', { skipCache: true })).toBeNull();
+    expect(await generateText('Say "ok"')).toBeNull();
+    expect(getGeminiClient).not.toHaveBeenCalled();
+    expect(log.error).not.toHaveBeenCalled();
+    expect(log.warn).not.toHaveBeenCalled();
+  });
+});
+
+describe('landing gemini-client on the shared client (LANDING_AI=on)', () => {
   it('generateJSON calls models.generateContent and parses the reply', async () => {
     generateContent.mockResolvedValue({ text: '{"headline":"Finally, someone who listens"}' });
 
@@ -63,7 +111,7 @@ describe('landing gemini-client on the shared client', () => {
   });
 });
 
-describe('ai-interactions on the shared client', () => {
+describe('ai-interactions on the shared client (LANDING_AI=on)', () => {
   const request = {
     sentiment: 0.2,
     currentSection: 'hero',
@@ -93,6 +141,15 @@ describe('ai-interactions on the shared client', () => {
       { error: expect.objectContaining({ message: 'vertex 503' }) },
       'Failed to generate sentiment-reactive copy'
     );
+  });
+
+  it('persona preview is generated through models.generateContent', async () => {
+    generateContent.mockResolvedValue({ text: 'I breathe first, then pick one thing.' });
+
+    const preview = await generatePersonaPreview({ persona: 'ferni', question: 'stress?' });
+
+    expect(preview.response).toBe('I breathe first, then pick one thing.');
+    expect(generateContent).toHaveBeenCalledTimes(1);
   });
 
   it('demo chat sends the history plus the new turn in one request', async () => {

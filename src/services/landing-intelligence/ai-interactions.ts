@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { landingAiEnabled } from './landing-ai-flag.js';
 
 const log = createLogger({ module: 'LandingAIInteractions' });
 
@@ -37,9 +38,9 @@ import {
 // Model name comes from centralized config (GEMINI_MODEL env var)
 const MODEL_NAME = getDefaultModel();
 
-// The shared Gemini client (Vertex via ADC on Cloud Run), in the old SDK's shape
+// The shared Gemini client in the old SDK's shape; null (static fallbacks) when LANDING_AI is off
 async function getGenAI(): Promise<GenerativeAI | null> {
-  if (!isGeminiConfigured()) return null;
+  if (!landingAiEnabled() || !isGeminiConfigured()) return null;
   return getGenerativeAI();
 }
 
@@ -251,7 +252,7 @@ export async function sendDemoChatMessage(
 async function generateChatResponse(messages: DemoChatMessage[], persona: string): Promise<string> {
   const genAI = await getGenAI();
   if (!genAI) {
-    log.warn('Gemini API not configured, using fallback response');
+    log.debug('Landing AI off or Gemini not configured, using fallback response');
     return getFallbackResponse(messages[messages.length - 1].content, persona);
   }
 

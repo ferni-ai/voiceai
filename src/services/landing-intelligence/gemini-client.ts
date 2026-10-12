@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getDefaultModel } from '../model-config.js';
+import { landingAiEnabled } from './landing-ai-flag.js';
 
 // Use centralized Gemini config
 import { isGeminiConfigured, getGeminiConfigStatus } from '../../config/gemini-config.js';
@@ -45,6 +46,7 @@ const GENERATION_CONFIG = {
 // ============================================================================
 
 async function getModel(generationConfig: GenerationConfig): Promise<GenerativeModel | null> {
+  if (!landingAiEnabled()) return null; // callers serve their fallback
   if (!isGeminiConfigured()) {
     log.warn({ status: getGeminiConfigStatus() }, 'Gemini not configured for landing page');
     return null;
