@@ -129,6 +129,10 @@ COPY apps/web/ ./
 ARG BUILD_TIMESTAMP=default
 RUN echo "Build: ${BUILD_TIMESTAMP}" && rm -rf public/design-system/brand 2>/dev/null || true && mkdir -p public/design-system/brand
 
+# Vite bakes VITE_* in at build time. Venmo chip-in (#1014) stays off when these are empty.
+ARG VITE_VENMO_CHIP_IN=""
+ARG VITE_VENMO_HANDLE=""
+ENV VITE_VENMO_CHIP_IN=$VITE_VENMO_CHIP_IN VITE_VENMO_HANDLE=$VITE_VENMO_HANDLE
 RUN pnpm run build
 
 # ============================================================================

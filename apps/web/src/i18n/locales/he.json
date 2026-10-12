@@ -1322,7 +1322,7 @@
         "calendar": "לוח שנה",
         "history": "שיחות קודמות",
         "people": "האנשים שלכם",
-        "insights": "מה שלומכם"
+        "insights": "מה שלמדתי"
       }
     },
     "ariaLabel": "תפריט הגדרות",
@@ -8856,6 +8856,7 @@
     }
   },
   "conversationHistory": {
+    "title": "שיחות קודמות",
     "loadError": "לא הצלחנו לטעון את הנתונים.",
     "tryAgain": "לנסות שוב?",
     "ariaLabel": "היסטוריית שיחות",

@@ -59,14 +59,14 @@ async function noticeWithAction(): Promise<void> {
 }
 
 async function achievement(): Promise<void> {
-  // The real Early Bird path: first interaction of the day unlocks it.
+  // A real easter-egg achievement (the Konami code), through its own unlock path.
   const { easterEggsUI } = await import('../easter-eggs.ui.js');
-  easterEggsUI.triggerMorningStretch();
+  easterEggsUI.triggerKonamiCode();
 }
 
 async function celebration(): Promise<void> {
   const { moments } = await import('../moments/index.js');
-  void moments.celebrate('badge', { title: 'Early Bird', subtitle: 'First chat of the day' });
+  void moments.celebrate('streak', { count: 7 });
 }
 
 async function milestone(): Promise<void> {

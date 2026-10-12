@@ -7,6 +7,7 @@ personaSecondary: "#1A252F"
 ---
 
 {% from "partials/icons.njk" import play, plus, starFilled, star, verified, check %}
+{% from "partials/pricing.njk" import priced, priceBadge with context %}
 
 <!-- Hero -->
 <section class="persona-detail-hero" style="--persona-color: #2C3E50; --persona-secondary: #1A252F;">
@@ -40,10 +41,10 @@ personaSecondary: "#1A252F"
           <span>by Ferni Labs</span>
         </div>
         <div class="persona-detail-actions">
-          <button class="btn btn-add-team btn-lg">
+          <a href="{{ site.appUrl }}" class="btn btn-add-team btn-lg">
             {{ plus(20) }}
-            Try Free
-          </button>
+            {{ priced('Try Free', 'Add to Team') }}
+          </a>
           <button class="btn btn-preview-voice">
             {{ play(20) }}
             Preview Voice
@@ -245,6 +246,7 @@ personaSecondary: "#1A252F"
         </div>
 
         <!-- Pricing -->
+        {% if pricing.showPrices %}
         <div style="background: var(--bg-elevated); border-radius: var(--radius-2xl); padding: var(--space-6); box-shadow: var(--shadow-card); margin-bottom: var(--space-6);">
           <h3 style="font-size: var(--text-lg); margin-bottom: var(--space-4);">Pricing</h3>
           <div style="display: flex; flex-direction: column; gap: var(--space-3);">
@@ -258,6 +260,7 @@ personaSecondary: "#1A252F"
             </div>
           </div>
         </div>
+        {% endif %}
 
         <!-- Publisher -->
         <div style="background: var(--bg-elevated); border-radius: var(--radius-2xl); padding: var(--space-6); box-shadow: var(--shadow-card); margin-bottom: var(--space-6);">
@@ -278,11 +281,11 @@ personaSecondary: "#1A252F"
         <div style="background: linear-gradient(135deg, #2C3E50, #1A252F); border-radius: var(--radius-2xl); padding: var(--space-6); color: white; text-align: center;">
           <h3 style="margin-bottom: var(--space-2); color: white;">Ready for better sleep?</h3>
           <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
-            Start your free trial tonight
+            {{ priced('Start your free trial tonight', 'Free to add to your team') }}
           </p>
-          <button class="btn" style="background: white; color: #2C3E50; width: 100%;">
-            Try Free
-          </button>
+          <a href="{{ site.appUrl }}" class="btn" style="background: white; color: #2C3E50; width: 100%;">
+            {{ priced('Try Free', 'Add to Team') }}
+          </a>
         </div>
       </div>
 
@@ -316,7 +319,7 @@ personaSecondary: "#1A252F"
               </span>
               <span class="persona-rating-count">4.9</span>
             </div>
-            <span class="persona-price">$9.99/mo</span>
+            {{ priceBadge('$9.99/mo') }}
           </div>
         </div>
       </a>
@@ -338,7 +341,7 @@ personaSecondary: "#1A252F"
               </span>
               <span class="persona-rating-count">4.92</span>
             </div>
-            <span class="persona-price">$9.99/mo</span>
+            {{ priceBadge('$9.99/mo') }}
           </div>
         </div>
       </a>
@@ -360,7 +363,7 @@ personaSecondary: "#1A252F"
               </span>
               <span class="persona-rating-count">4.95</span>
             </div>
-            <span class="persona-price">$14.99/mo</span>
+            {{ priceBadge('$14.99/mo') }}
           </div>
         </div>
       </a>
