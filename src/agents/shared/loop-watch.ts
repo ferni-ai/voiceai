@@ -20,6 +20,7 @@ import { monitorEventLoopDelay } from 'node:perf_hooks';
 
 import { registerInterval } from '../../utils/interval-manager.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { profileCall } from './call-cpu-profile.js';
 
 const log = getLogger();
 
@@ -161,6 +162,8 @@ export function watchCallLoop(
       );
     }
   }, thresholdMs);
+  // CALL_CPU_PROFILE=on: what ran in those stalls (call-cpu-profile.ts).
+  const finishProfile = profileCall(jobId, startedAt, stalls, env);
 
   let finished = false;
   return () => {
@@ -182,5 +185,6 @@ export function watchCallLoop(
       Date.now()
     );
     log.info({ jobId, thresholdMs, ...summary }, 'LOOP_SUMMARY');
+    finishProfile();
   };
 }
