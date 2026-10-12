@@ -9,6 +9,7 @@ import {
   callCheckIns,
   coachFollowThroughMode,
 } from '../../services/superhuman/commitment-follow-up.js';
+import { markWinSurfaced, winForOpener, type Win } from '../../services/superhuman/wins.js';
 import { callerHour } from '../shared/time-context.js';
 import {
   callerRecognitionFor,
@@ -33,19 +34,49 @@ export const GREETING_DIRECTION =
 export const CHECK_IN_DIRECTION =
   ' They told you they meant to do something: you may say hello, then ask how it went as an open question, naming it in their words ("Hey Sam. How did the running go this week?"). Not a yes-or-no question and not "did you actually", which sound like checking up on them. Skip it if it was painful.';
 
-/** How long the greeting waits for the caller's open commitments before going without. */
+/**
+ * Added when they did something they said they would (a win, wins.ts). Named
+ * once, glad with them, and the call is theirs: not a report or a lecture.
+ */
+export const WIN_DIRECTION =
+  ' They did something they told you they would do: say hello, then name it once, glad with them, in a few plain words and the past tense ("Hey Sam. You called your sister, that\'s great."). Then let them talk; do not ask for a report or make a big speech of it.';
+
+/** How long the greeting waits for the caller's open commitments and wins before going without. */
 const CHECK_IN_WAIT_MS = 400;
 
-/** The commitment to open on, or undefined (flag off, none open, or too slow). */
-async function checkInFor(userId: string | undefined): Promise<string | undefined> {
-  if (!userId || userId === 'anonymous' || !coachFollowThroughMode()) return undefined;
+async function inTime<T>(work: Promise<T>): Promise<T | undefined> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<undefined>((resolve) => {
     timer = setTimeout(() => resolve(undefined), CHECK_IN_WAIT_MS);
   });
-  const open = await Promise.race([callCheckIns(userId), late]);
+  const result = await Promise.race([work, late]);
   clearTimeout(timer);
-  return open?.[0]?.statement;
+  return result;
+}
+
+/** The commitment to open on, or undefined (flag off, none open, or too slow). */
+async function checkInFor(userId: string | undefined): Promise<string | undefined> {
+  if (!userId || userId === 'anonymous' || !coachFollowThroughMode()) return undefined;
+  return (await inTime(callCheckIns(userId)))?.[0]?.statement;
+}
+
+/** A win not yet named, or undefined (COACH_WINS off, none, or too slow). */
+async function winFor(userId: string | undefined): Promise<Win | undefined> {
+  if (!userId || userId === 'anonymous') return undefined;
+  return inTime(winForOpener(userId));
+}
+
+/**
+ * One opening thread per call: a win first (it is news since last time and is
+ * named only once), else what they said they'd do. A future one-thread arbiter
+ * replaces this choice; welcome-back and pondering then defer to the thread.
+ */
+export function openingThread(
+  win: Win | undefined,
+  checkIn: string | undefined
+): { win?: Win; checkIn?: string } {
+  if (win) return { win };
+  return checkIn ? { checkIn } : {};
 }
 
 /** The "time of day" fact for an hour of the day (0-23). */
@@ -111,12 +142,14 @@ export function greetingFacts(
   partOfDay: string,
   userName: string | undefined,
   history: CallerHistory | undefined,
-  checkIn?: string
+  checkIn?: string,
+  win?: string
 ): Record<string, string> {
   // No time zone, no time of day: guessing it wrong is worse than leaving it out.
   const facts: Record<string, string> = partOfDay ? { 'time of day': partOfDay } : {};
   if (userName) facts['their name'] = userName;
   if (checkIn) facts['something they said they would do'] = checkIn.slice(0, MAX_TOPIC_CHARS);
+  if (win) facts['something they said they would do, and did'] = win.slice(0, MAX_TOPIC_CHARS);
   if (!history) return facts;
   facts['how well you know each other'] = `${history.calls} calls so far`;
   if (history.daysSince !== undefined)
@@ -157,23 +190,31 @@ export async function directedGreeting(
   const { directedText } = await import('../../speech/direction/index.js');
   const partOfDay = hour === null ? '' : partOfDayFor(hour);
   // Not gated on history: the profile behind it can still be loading.
-  const [checkIn, welcome] = await Promise.all([
+  const [openCheckIn, openWin, welcome] = await Promise.all([
     checkInFor(userData?.userId),
+    winFor(userData?.userId),
     loadWelcomeBack(userData?.userId, personaId, history),
   ]);
   // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
   const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
+  const { win, checkIn } = unknown ? {} : openingThread(openWin, openCheckIn);
   // Back after a gap (WELCOME_BACK_BOTH_SIDES): one thread, one thing from his life, never the gap.
-  const back = welcome && !unknown ? planWelcomeBack(welcome, { checkIn }) : undefined;
+  const back =
+    welcome && !unknown ? planWelcomeBack(welcome, { checkIn: checkIn ?? win?.text }) : undefined;
+  if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
   const direction =
     GREETING_DIRECTION +
+    (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (back?.direction ?? '') +
     (unknown ? ` ${unknown}` : '');
   const directed = await directedText(sessionId, {
     moment: 'greeting',
     direction,
-    facts: welcomeBackFacts(greetingFacts(partOfDay, userData?.userName, history, checkIn), back),
+    facts: welcomeBackFacts(
+      greetingFacts(partOfDay, userData?.userName, history, checkIn, win?.text),
+      back
+    ),
     fallback: scripted,
     urgency: 'now',
     maxChars: 140,

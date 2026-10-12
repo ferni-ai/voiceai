@@ -70,6 +70,8 @@ export const FLAG_MANIFEST = {
   CI: { default: 'off', owner: 'tools', kind: 'config' },
   CLIP_TRACK_PACED: { default: 'off', owner: 'voice', kind: 'experiment' },
   COACH_FOLLOW_THROUGH: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on: a commitment marked done is stored as a win the next greeting names once
+  COACH_WINS: { default: 'on', owner: 'intelligence', kind: 'kill-switch' },
   COACH_MEDIA: { default: 'off', owner: 'tools', kind: 'experiment' },
   COHORT_FLAGS: { default: 'off', owner: 'platform', kind: 'experiment' },
   CONDITIONAL_BUILDERS: { default: 'off', owner: 'intelligence', kind: 'experiment' },

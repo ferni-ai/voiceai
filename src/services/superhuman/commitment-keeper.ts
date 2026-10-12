@@ -21,6 +21,7 @@ import {
 import { syncCommitmentToCalendar } from '../calendar/calendar-bridge.js';
 import { onCommitmentKeeperChange } from '../data-layer/hooks/superhuman-hooks.js';
 import { onCommitmentMade, onCommitmentAtRisk } from '../outreach/superhuman-outreach-bridge.js';
+import { recordWinFromCommitment } from './wins.js';
 
 const log = createLogger({ module: 'commitment-keeper' });
 
@@ -588,21 +589,18 @@ export async function updateCommitmentStatus(
           })
         );
     }
+    // Every "done" passes here: a win the next call can name once (wins.ts).
+    if (status === 'completed') void recordWinFromCommitment(userId, commitmentId);
 
-    // Update cache
     const userCommitments = commitmentCache.get(userId) || [];
     const idx = userCommitments.findIndex((c) => c.id === commitmentId);
     if (idx >= 0) {
-      userCommitments[idx].status = status;
-      if (reaction) userCommitments[idx].userReactionToFollowUp = reaction;
-
-      // 🎭 TRIGGER GROUP OUTREACH: When a commitment is completed, celebrate with the team!
-      if (status === 'completed') {
-        const commitment = userCommitments[idx];
-        // Only trigger for emotionally significant commitments
-        if (commitment.emotionalWeight > 0.5) {
-          void triggerCommitmentCelebration(userId, commitment);
-        }
+      const commitment = userCommitments[idx];
+      commitment.status = status;
+      if (reaction) commitment.userReactionToFollowUp = reaction;
+      // Group outreach celebrates an emotionally significant one with the team.
+      if (status === 'completed' && commitment.emotionalWeight > 0.5) {
+        void triggerCommitmentCelebration(userId, commitment);
       }
     }
 
