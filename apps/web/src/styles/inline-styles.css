@@ -531,22 +531,16 @@ body {
 [data-persona='peter-john'] {
   --persona-primary: #3a6b73;
   --persona-secondary: #2d5359;
+  --persona-on-primary: var(--color-peter-on-primary);
   --persona-glow: rgba(58, 107, 115, 0.32);
   --persona-bg-tint: rgba(58, 107, 115, 0.08);
-}
-
-/* Nayan Patel - Golden Amber (wisdom, long-term thinking) */
-[data-persona='nayan-patel'] {
-  --persona-primary: #b8956a;
-  --persona-secondary: #9a7a52;
-  --persona-glow: rgba(184, 149, 106, 0.35);
-  --persona-bg-tint: rgba(184, 149, 106, 0.08);
 }
 
 /* Joel Dickson - Vanguard Burgundy (distinguished, trustworthy, financial wisdom) */
 [data-persona='joel-dickson'] {
   --persona-primary: #9A0718;
   --persona-secondary: #7A0514;
+  --persona-on-primary: var(--color-joel-on-primary);
   --persona-glow: rgba(154, 7, 24, 0.28);
   --persona-bg-tint: rgba(154, 7, 24, 0.06);
 }
@@ -555,6 +549,7 @@ body {
 [data-persona='alex-chen'] {
   --persona-primary: #5a6b8a;
   --persona-secondary: #4a5a73;
+  --persona-on-primary: var(--color-alex-on-primary);
   --persona-glow: rgba(90, 107, 138, 0.32);
   --persona-bg-tint: rgba(90, 107, 138, 0.08);
 }
@@ -563,6 +558,7 @@ body {
 [data-persona='maya-santos'] {
   --persona-primary: #a67a6a;
   --persona-secondary: #8a635a;
+  --persona-on-primary: var(--color-maya-on-primary);
   --persona-glow: rgba(166, 122, 106, 0.32);
   --persona-bg-tint: rgba(166, 122, 106, 0.08);
 }
@@ -571,6 +567,7 @@ body {
 [data-persona='jordan-taylor'] {
   --persona-primary: #c4856a;
   --persona-secondary: #a86d55;
+  --persona-on-primary: var(--color-jordan-on-primary);
   --persona-glow: rgba(196, 133, 106, 0.32);
   --persona-bg-tint: rgba(196, 133, 106, 0.08);
 }
@@ -580,6 +577,7 @@ body {
 [data-persona='lifetime-advisor'] {
   --persona-primary: #b8956a;
   --persona-secondary: #9a7a52;
+  --persona-on-primary: var(--color-nayan-on-primary);
   --persona-glow: rgba(184, 149, 106, 0.35);
   --persona-bg-tint: rgba(184, 149, 106, 0.1);
 }

@@ -1459,7 +1459,7 @@ function getProfileStyles(): string {
     
     .progress-step--complete {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .progress-step--current {
@@ -1494,7 +1494,7 @@ function getProfileStyles(): string {
     
     .profile-btn--primary {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
       border: none;
     }
     

@@ -205,7 +205,7 @@ const PANEL_STYLES = `
 
   .insights-debug-panel__btn--primary {
     background: var(--color-accent-primary, #4a6741);
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .insights-debug-panel__btn--primary:hover {

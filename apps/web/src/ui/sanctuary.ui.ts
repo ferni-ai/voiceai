@@ -1385,7 +1385,7 @@ class SanctuaryUI {
       .sanctuary-practice-start {
         padding: var(--space-xs, 6px) var(--space-md, 12px);
         background: var(--color-accent-primary, #3D5A45);
-        color: white;
+        color: var(--color-text-on-accent);
         font-size: 12px;
         font-weight: 600;
         border-radius: var(--radius-full, 50px);

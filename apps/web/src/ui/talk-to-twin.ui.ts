@@ -768,7 +768,7 @@ function getTwinStyles(): string {
     
     .twin-message--user .message-content {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
       border-bottom-right-radius: 4px;
     }
     
@@ -863,7 +863,7 @@ function getTwinStyles(): string {
       border-radius: 50%;
       background: var(--color-accent, #4a6741);
       border: none;
-      color: white;
+      color: var(--color-text-on-accent);
       cursor: pointer;
       display: flex;
       align-items: center;

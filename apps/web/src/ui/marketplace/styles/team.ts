@@ -527,7 +527,8 @@ export function getTeamStyles(): string {
       font-family: var(--font-display);
       font-size: 0.55rem;
       font-weight: 700;
-      color: white;
+      background: var(--persona-primary);
+      color: var(--persona-on-primary);
     }
 
     .team-progress-name {
@@ -549,7 +550,6 @@ export function getTeamStyles(): string {
 
     .team-progress-member.locked .team-progress-avatar {
       filter: grayscale(0.5);
-      opacity: 0.7;
     }
 
     /* ========================================

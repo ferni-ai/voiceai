@@ -1709,7 +1709,7 @@ function getWizardStyles(): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--color-text-on-accent);
       opacity: 0;
       transform: scale(0.5);
       transition: all ${DURATION.NORMAL}ms ${EASING.SPRING};
@@ -1876,7 +1876,7 @@ function getWizardStyles(): string {
     .recording-btn {
       padding: var(--space-sm, 12px) var(--space-lg, 24px);
       background: var(--color-accent);
-      color: white;
+      color: var(--color-text-on-accent);
       border: none;
       border-radius: var(--radius-full, 999px);
       font-size: 0.95rem;
@@ -2033,7 +2033,7 @@ function getWizardStyles(): string {
     
     .voice-preview-btn:hover {
       background: var(--color-accent);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .voice-skip-message {
@@ -2120,7 +2120,7 @@ function getWizardStyles(): string {
     .trait-chip--selected {
       background: var(--color-accent);
       border-color: var(--color-accent);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     /* Profile Options */
@@ -2217,7 +2217,7 @@ function getWizardStyles(): string {
       font-size: 0.65rem;
       padding: 2px 8px;
       background: var(--color-accent);
-      color: white;
+      color: var(--color-text-on-accent);
       border-radius: var(--radius-sm, 4px);
       text-transform: uppercase;
     }
@@ -2336,7 +2336,7 @@ function getWizardStyles(): string {
     .wizard-btn--primary {
       background: var(--color-accent, #4a6741);
       border: none;
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .wizard-btn--primary:hover:not(:disabled) {

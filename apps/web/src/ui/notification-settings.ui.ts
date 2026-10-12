@@ -1247,7 +1247,7 @@ class NotificationSettingsUI {
 
       .notif-settings__btn--primary {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .notif-settings__btn--primary:hover { background: var(--color-accent-hover, #3a7050); }

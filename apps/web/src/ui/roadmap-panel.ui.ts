@@ -1242,7 +1242,7 @@ class RoadmapPanelUI {
 
       .roadmap-panel__seed-info-trigger:hover {
         background: var(--color-accent-primary, #3D5A45);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       /* ========================================================================
@@ -2009,7 +2009,7 @@ class RoadmapPanelUI {
       .roadmap-detail__seed-btn--add {
         background: var(--color-accent-primary, #3D5A45);
         border-color: var(--color-accent-primary, #3D5A45);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .roadmap-detail__seed-btn--add:hover:not(:disabled) {
@@ -2202,7 +2202,7 @@ class RoadmapPanelUI {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: white;
+        color: var(--color-text-on-accent);
         cursor: pointer;
         transition: all ${DURATION.MODERATE}ms ${EASING.SPRING};
         box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.08));
@@ -2628,7 +2628,7 @@ class RoadmapPanelUI {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: white;
+        color: var(--color-text-on-accent);
         cursor: pointer;
         transition: all ${DURATION.MODERATE}ms ${EASING.SPRING};
         box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.08));
@@ -2716,7 +2716,7 @@ class RoadmapPanelUI {
         font-family: var(--font-body, Inter, sans-serif);
         font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: white;
+        color: var(--color-text-on-accent);
         cursor: pointer;
         transition: all ${DURATION.MODERATE}ms ${EASING.SPRING};
         margin-top: var(--space-4, 16px);

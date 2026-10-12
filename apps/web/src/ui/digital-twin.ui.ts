@@ -984,7 +984,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .digital-twin-consent__icon svg {
@@ -1015,7 +1015,7 @@ const STYLES = `
     gap: var(--space-2, 8px);
     padding: var(--space-3, 12px) var(--space-5, 20px);
     background: var(--color-accent, #3d5a45);
-    color: white;
+    color: var(--color-text-on-accent);
     font-size: 14px;
     font-weight: 600;
     border: none;
