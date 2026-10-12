@@ -49,6 +49,7 @@ export const FLAG_MANIFEST = {
   ASK_ADVICE: { default: 'off', owner: 'voice', kind: 'experiment' },
   ASSISTANT_ACTIONS_REAL: { default: 'off', owner: 'platform', kind: 'experiment' },
   AVATAR_LISTEN_SIGNALS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  AVATAR_REPLY_TONE: { default: 'off', owner: 'voice', kind: 'experiment' },
   BACKCHANNELS: { default: 'off', owner: 'platform', kind: 'experiment' },
   BACKCHANNEL_CLIPS: { default: 'on', owner: 'voice', kind: 'config' },
   BACKCHANNEL_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
