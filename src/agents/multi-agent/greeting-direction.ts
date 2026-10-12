@@ -10,6 +10,7 @@ import {
   coachFollowThroughMode,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { contentWords } from '../../memory/recall/session-recall.js';
+import { claimOpenerFollowUp } from '../../memory/recall/opener-claim.js';
 import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
 import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
 import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
@@ -241,7 +242,21 @@ export async function directedGreeting(
     urgency: 'now',
     maxChars: 140,
   });
-  return calmGreeting(unknown ? directed.text : afterAsking(directed, scripted, ask));
+  const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
+  // One follow-up per call opener (opener-claim.ts): having asked, the greeting
+  // keeps the first recall note from asking about a thread too.
+  const topic = checkIn ?? ask?.text;
+  if (
+    !unknown &&
+    userData?.userId &&
+    directed.source === 'actor' &&
+    topic &&
+    spoken === directed.text &&
+    lineAsks(spoken, topic)
+  ) {
+    claimOpenerFollowUp(userData.userId, 'greeting');
+  }
+  return calmGreeting(spoken);
 }
 
 /**

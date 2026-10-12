@@ -54,6 +54,7 @@ vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb }));
 
 const { directedGreeting, GREETING_DIRECTION, PONDER_DIRECTION, rememberCallerHistory } =
   await import('../greeting-direction.js');
+const { takeOpenerClaim } = await import('../../../memory/recall/opener-claim.js');
 
 type Request = { direction: string; facts: Record<string, string> };
 const lastRequest = (): Request => directedText.mock.calls.at(-1)![1] as unknown as Request;
@@ -160,6 +161,29 @@ describe('opening on a pondered follow-up', () => {
     const said = await greet({ calls: 5 });
     expect(said).not.toMatch(/thinking about you/i);
     expect(sets).toEqual([]);
+  });
+
+  it('claims the call opener when its line asked, so recall asks no second follow-up', async () => {
+    docs = due();
+    actorLine = "Hey Sam. How's the martial arts going?";
+    await greet({ calls: 5 });
+    expect(takeOpenerClaim('u1')).toBe('greeting');
+
+    openCommitments = [{ statement: 'start running again' }];
+    actorLine = 'Hey Sam. How did the running go?';
+    await greet({ calls: 5 });
+    expect(takeOpenerClaim('u1')).toBe('greeting');
+
+    // Asked nothing, or the line was swapped for the plain hello: recall may ask.
+    openCommitments = [];
+    for (const line of [
+      'Hey Sam. How has your week been?',
+      'Hey Sam, I was just thinking about you. How is the martial arts going?',
+    ]) {
+      actorLine = line;
+      await greet({ calls: 5 });
+      expect(takeOpenerClaim('u1')).toBeUndefined();
+    }
   });
 
   it('does not mark an item the line never asked', async () => {
