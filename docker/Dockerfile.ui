@@ -27,6 +27,11 @@
 
 ARG NODE_VERSION=22
 
+# Registry prefix for the node base image. Empty pulls from Docker Hub; CI passes
+# mirror.gcr.io/library/ so self-hosted runners, which skip the daemon mirror, do
+# not hit Docker Hub's anonymous pull limit (429).
+ARG BASE_REGISTRY=
+
 # LiveKit agents SDK version - update this when upgrading @livekit/agents packages
 # Check latest: https://www.npmjs.com/package/@livekit/agents
 ARG LIVEKIT_AGENTS_VERSION=1.0.31
@@ -39,7 +44,7 @@ ARG LIVEKIT_AGENTS_VERSION=1.0.31
 # apps/web/package-lock.json, a second lockfile nothing kept in sync: when a
 # PR added a dev dependency to apps/web/package.json (archunit, #392), npm ci
 # refused and every UI deploy from main failed.
-FROM node:${NODE_VERSION}-slim AS workspace-deps
+FROM ${BASE_REGISTRY}node:${NODE_VERSION}-slim AS workspace-deps
 
 # Install git and enable pnpm
 RUN apt-get update && apt-get install -y --no-install-recommends git \
@@ -133,7 +138,7 @@ RUN pnpm run build
 # ============================================================================
 # Stage 4: Production Server
 # ============================================================================
-FROM node:${NODE_VERSION}-slim AS production
+FROM ${BASE_REGISTRY}node:${NODE_VERSION}-slim AS production
 
 WORKDIR /app
 

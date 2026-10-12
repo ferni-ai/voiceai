@@ -10406,6 +10406,12 @@
       "fair": "一般",
       "poor": "连接较差",
       "disconnected": "已断开连接"
+    },
+    "island": {
+      "offline": "你离线了。网络恢复后我会马上重新连接。",
+      "reconnecting": "正在重新连接…",
+      "weak": "网络较弱",
+      "backOnline": "已恢复在线"
     }
   },
   "ideasGallery": {
@@ -10863,6 +10869,9 @@
       "other": "{count} 天",
       "one": "{count} 天"
     }
+  },
+  "avatarFeedback": {
+    "nomNom": "好吃好吃！"
   },
   "avatarTapReactions": {
     "tickles": "嘿嘿，好痒呀！"

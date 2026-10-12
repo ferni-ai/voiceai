@@ -81,7 +81,9 @@
   },
   "transcript": {
     "enabled": "Transcription on",
-    "disabled": "Transcription off"
+    "disabled": "Transcription off",
+    "captionsLabel": "Live captions",
+    "you": "You"
   },
   "placeholders": {
     "customAmount": "Custom amount",
@@ -9460,6 +9462,7 @@
       "groupSessions": "group sessions",
       "vibeController": "the vibe controller",
       "smartHomeSettings": "smart home settings",
+      "siriShortcuts": "Siri Shortcuts",
       "appleHealthSettings": "Apple Health settings",
       "eightSleepSettings": "Eight Sleep settings",
       "ouraSettings": "Oura settings",
@@ -10420,6 +10423,12 @@
       "fair": "Fair",
       "poor": "Poor connection",
       "disconnected": "Disconnected"
+    },
+    "island": {
+      "offline": "You're offline. I'll reconnect when you're back.",
+      "reconnecting": "Reconnecting…",
+      "weak": "Weak connection",
+      "backOnline": "Back online"
     }
   },
   "ideasGallery": {
@@ -10877,6 +10886,9 @@
     },
     "confidenceTitle": "{confidence}% confidence",
     "loadError": "Unable to load your progress"
+  },
+  "avatarFeedback": {
+    "nomNom": "Nom nom!"
   },
   "avatarTapReactions": {
     "tickles": "Hehe, that tickles!"

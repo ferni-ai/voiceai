@@ -317,7 +317,7 @@ const log = createLogger('App');
 import { initModalCoordinator, modalCoordinator } from './services/modal-coordinator.service.js';
 
 // 🎬 Character-quality Animation Orchestrator
-import { animatePersonaTransition, playCharacterReaction } from './ui/animation-orchestrator.ui.js';
+import { animatePersonaTransition } from './ui/animation-orchestrator.ui.js';
 // ⚡ GSAP Performance Utilities
 import { initGSAP, promoteAllToGPU } from './utils/gsap-animations.js';
 // Agent particles disabled for cleaner UI
@@ -3094,12 +3094,9 @@ class VoiceAIApp {
       // Also hide thinking indicator in case it's stuck
       thinkingUI.hide();
 
-      // 🎬 Character-style celebration on handoff
-      const avatarContainer = document.querySelector('.avatar-container');
-      if (avatarContainer instanceof HTMLElement) {
-        void playCharacterReaction(avatarContainer, 'joy', newPersona.id);
-      }
-      coachUI.flash();
+      // The avatar's entrance is coach.ui's single persona bounce (activePersona
+      // subscription). A second 'joy' bounce and a brightness flash here doubled
+      // the motion and animated filter, which repaints every frame.
 
       // Update theme persona colors
       this.updatePersonaTheme(newPersona.id);

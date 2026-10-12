@@ -463,7 +463,7 @@ function injectStyles(): void {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
     
     .progress-ring-icon svg {
@@ -494,7 +494,7 @@ function injectStyles(): void {
     .progress-narrative {
       font-family: var(--font-body, 'Inter', sans-serif);
       font-size: var(--text-xs, 12px);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
       font-style: italic;
       cursor: help;
     }
@@ -536,7 +536,7 @@ function injectStyles(): void {
       font-weight: var(--font-weight-bold, 700);
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
     
     .progress-collapse-btn {
@@ -608,7 +608,7 @@ function injectStyles(): void {
     }
     
     .progress-ring-icon-large {
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
     
     .progress-ring-icon-large svg {
@@ -692,7 +692,7 @@ function injectStyles(): void {
       font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
       font-size: var(--text-sm, 14px);
       font-weight: var(--font-weight-semibold, 600);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
       margin-bottom: var(--space-1, 4px);
     }
     
