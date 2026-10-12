@@ -33,6 +33,8 @@ const SCENES = [
   'notification-card',
   'outreach',
   'offline-banner',
+  'reconnecting',
+  'weak-connection',
   'collision',
   'modal',
   'sheet',
@@ -42,6 +44,7 @@ const SCENES = [
   'call-notice',
   'command-palette',
   'coach-mark',
+  'captions',
 ] as const;
 
 const BASELINE_FILE = join(dirname(fileURLToPath(import.meta.url)), 'contrast-baseline.json');
@@ -64,19 +67,24 @@ async function settleAnimations(page: Page): Promise<void> {
 
 async function openScene(page: Page, scene: string, flagOn = false): Promise<void> {
   await page.addInitScript(
-    ([withAchievement, overlayHost]) => {
+    ([withAchievement, overlayHost, withCaptions]) => {
       try {
         // The first chat of the day unlocks Early Bird; keep it to the scenes that show it.
         if (!withAchievement)
           localStorage.setItem('ferni-last-interaction-date', new Date().toDateString());
         if (overlayHost) localStorage.setItem('ferni:flag:overlay-host', 'true');
+        // Live captions need their flag and the transcription setting, or the scene shows none.
+        if (withCaptions) {
+          localStorage.setItem('ferni:flag:captions-v2', 'true');
+          localStorage.setItem('ferni_show_transcription', 'true');
+        }
         // The welcome tour is not a gallery scene; on a slow runner it opened mid-test.
         localStorage.setItem('ferni:onboarding:complete', 'true');
       } catch {
         // Storage unavailable: the scene still renders.
       }
     },
-    [scene === 'achievement' || scene === 'collision', flagOn] as const
+    [scene === 'achievement' || scene === 'collision', flagOn, scene === 'captions'] as const
   );
   // Pin the wall clock: greetings, countdowns and time-of-day features must not
   // depend on when CI runs (a run between 00:00 and 05:00 showed Night Owl).
@@ -119,9 +127,17 @@ async function useTheme(page: Page, theme: 'zen' | 'midnight'): Promise<void> {
 /**
  * Scenes whose overlays keep animating (sparkles, the avatar's stretch, several
  * arrivals at once) are contrast-checked but not pixel-compared: their frames
- * differ run to run on a busy runner.
+ * differ run to run on a busy runner. Captions too: on a phone the in-call
+ * layout is still settling, so they show three lines, one or none depending on
+ * when the frame is taken (tests/e2e/captions-layout.spec.ts checks their box).
  */
-const NO_SNAPSHOT = new Set(['achievement', 'celebration', 'first-milestone', 'collision']);
+const NO_SNAPSHOT = new Set([
+  'achievement',
+  'celebration',
+  'first-milestone',
+  'collision',
+  'captions',
+]);
 
 /** Text that changes with the clock or animates, kept out of the pixel diff. */
 const MASKS = ['.avatar-container', '.settings-menu__header-eyebrow', '.countdown-text'];

@@ -541,13 +541,13 @@
       }
     },
     "joel": {
-      "name": "Joel",
+      "name": "Nate",
       "role": "Financial Mentor",
       "archetype": "The Distinguished Investor Who Simplifies Complexity",
       "colors": {
         "primary": {
           "value": "#9A0718",
-          "description": "Vanguard burgundy red"
+          "description": "Burgundy red"
         },
         "secondary": {
           "value": "#7A0514",
@@ -579,13 +579,13 @@
       }
     },
     "lynch": {
-      "name": "Peter Lynch",
+      "name": "Tom Brannigan",
       "role": "Stock Picking Guide (Financial Legend)",
-      "archetype": "The Legendary Stock Picker Who Says Invest in What You Know",
+      "archetype": "The Stock Picker Who Finds Great Companies by Paying Attention",
       "colors": {
         "primary": {
           "value": "#1a5f2a",
-          "description": "Fidelity forest green"
+          "description": "Forest green"
         },
         "secondary": {
           "value": "#154c22",
@@ -617,13 +617,13 @@
       }
     },
     "bogle": {
-      "name": "John Bogle",
-      "role": "Index Investing Pioneer (Financial Legend)",
-      "archetype": "The Father of Index Investing Who Put Investors First",
+      "name": "Henry Caldwell",
+      "role": "Index Investing Elder (Financial Legend)",
+      "archetype": "The Index-Investing Elder Who Puts Investors First",
       "colors": {
         "primary": {
           "value": "#8b0000",
-          "description": "Deep Vanguard red"
+          "description": "Deep red"
         },
         "secondary": {
           "value": "#6f0000",
