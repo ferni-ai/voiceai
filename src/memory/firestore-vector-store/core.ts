@@ -27,7 +27,7 @@ import type {
   VectorStoreHealth,
 } from './types.js';
 import { DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_DIMENSION } from './types.js';
-import { extractEmbedding, matchesFilter } from './helpers.js';
+import { extractEmbedding, matchesFilter, ownerId } from './helpers.js';
 import { FallbackCache } from './fallback-cache.js';
 import { RecoveryManager, migrateCacheToFirestore } from './recovery.js';
 import { getVectorSearchCache, type VectorSearchCache } from './search-cache.js';
@@ -503,8 +503,9 @@ export class FirestoreVectorStore implements VectorStoreContract {
           }
         }
 
-        if (options?.filter?.userId) {
-          baseQuery = baseQuery.where('metadata.userId', '==', options.filter.userId);
+        const owner = ownerId(options?.filter?.userId);
+        if (owner) {
+          baseQuery = baseQuery.where('metadata.userId', '==', owner);
         }
 
         // Cast back to CollectionReference to access findNearest
@@ -644,8 +645,9 @@ export class FirestoreVectorStore implements VectorStoreContract {
             baseQuery = baseQuery.where('metadata.source', '==', sources[0]);
           }
         }
-        if (options?.filter?.userId) {
-          baseQuery = baseQuery.where('metadata.userId', '==', options.filter.userId);
+        const owner = ownerId(options?.filter?.userId);
+        if (owner) {
+          baseQuery = baseQuery.where('metadata.userId', '==', owner);
         }
         // Request more results to allow for minScore filtering
         const searchQuery = (baseQuery as CollectionReference).findNearest!({

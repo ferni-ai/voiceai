@@ -7,6 +7,7 @@
  * Implements VectorStoreContract interface for swappable backends.
  */
 
+import { ownedBy } from '../firestore-vector-store/helpers.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { embed, embedBatch } from './embeddings.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
@@ -114,6 +115,8 @@ export class VectorStore implements VectorStoreContract {
    * Check if filter matches document
    */
   private matchesFilter(doc: VectorDocument, filter?: VectorFilter): boolean {
+    // The same fail-safe owner rule as the Firestore store (helpers.ts ownedBy).
+    if (!ownedBy(doc, filter)) return false;
     if (!filter) return true;
 
     // Source filter
@@ -126,11 +129,6 @@ export class VectorStore implements VectorStoreContract {
     if (filter.category) {
       const categories = Array.isArray(filter.category) ? filter.category : [filter.category];
       if (!doc.metadata.category || !categories.includes(doc.metadata.category)) return false;
-    }
-
-    // User ID filter
-    if (filter.userId && doc.metadata.userId !== filter.userId) {
-      return false;
     }
 
     // Timestamp filters

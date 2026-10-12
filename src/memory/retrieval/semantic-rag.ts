@@ -13,6 +13,7 @@
  * Supports both ephemeral VectorStore and persistent FirestoreVectorStore.
  */
 
+import { ownedBy } from '../firestore-vector-store/helpers.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { embedCached } from '../embedding-cache.js';
 import { embed } from '../embeddings.js';
@@ -273,19 +274,16 @@ export async function semanticSearch(
     filter.userId = options.userId;
   }
 
-  // Search. Without a userId only shared documents (persona knowledge) may
-  // come back, never anyone's own memories, so ask for more and keep those.
-  const found = await store.search(query, {
-    topK: options?.userId ? topK : topK * 4,
-    filter: Object.keys(filter).length > 0 ? filter : undefined,
-    minScore,
-  });
-  const results = found
-    .filter((r) => {
-      const owner = r.document.metadata.userId;
-      return owner === undefined || owner === null || owner === options?.userId;
+  // Search. The store returns only this caller's documents, or with no
+  // userId only shared ones (helpers.ts ownedBy); checked here again for any
+  // store that doesn't.
+  const results = (
+    await store.search(query, {
+      topK,
+      filter: Object.keys(filter).length > 0 ? filter : undefined,
+      minScore,
     })
-    .slice(0, topK);
+  ).filter((r) => ownedBy(r.document, { userId: options?.userId }));
 
   // Record metrics
   const durationMs = Date.now() - startTime;

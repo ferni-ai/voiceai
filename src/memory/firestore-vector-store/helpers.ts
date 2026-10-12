@@ -54,13 +54,37 @@ export function extractEmbedding(
   return embedding;
 }
 
+/** A real owner id: not missing, empty, or the shared placeholder "anonymous". */
+export function ownerId(userId: unknown): string | undefined {
+  return typeof userId === 'string' && userId.trim() !== '' && userId !== 'anonymous'
+    ? userId
+    : undefined;
+}
+
 /**
- * Check if document matches filter criteria.
+ * Whether a document belongs to the caller a filter names. Fail safe: a
+ * filter without a real userId sees only documents with no owner (shared
+ * persona knowledge), never anyone's memories. A document owned by
+ * "anonymous" is nobody's to share.
+ */
+export function ownedBy(
+  doc: { metadata: { userId?: unknown } },
+  filter?: { userId?: unknown }
+): boolean {
+  const caller = ownerId(filter?.userId);
+  const owner = doc.metadata.userId;
+  const hasOwner = owner !== undefined && owner !== null && owner !== '';
+  return caller ? owner === caller : !hasOwner;
+}
+
+/**
+ * Check if document matches filter criteria (owner first, see ownedBy).
  */
 export function matchesFilter(
   doc: { metadata: { source: string; category?: string; userId?: string } },
   filter?: { source?: string | string[]; category?: string | string[]; userId?: string }
 ): boolean {
+  if (!ownedBy(doc, filter)) return false;
   if (!filter) return true;
 
   if (filter.source) {
@@ -72,8 +96,6 @@ export function matchesFilter(
     const categories = Array.isArray(filter.category) ? filter.category : [filter.category];
     if (!doc.metadata.category || !categories.includes(doc.metadata.category)) return false;
   }
-
-  if (filter.userId && doc.metadata.userId !== filter.userId) return false;
 
   return true;
 }
