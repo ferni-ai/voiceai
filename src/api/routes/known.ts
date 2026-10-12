@@ -16,6 +16,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { API_ERRORS } from '../error-messages.js';
 import { parseBody, requireUserId, sendError, sendJSON } from '../helpers.js';
 import {
+  ForgottenTopicsUnreadable,
   isMemoryViewOn,
   isMemoryViewPonderingOn,
   loadKnownView,
@@ -88,7 +89,9 @@ async function view(req: IncomingMessage, res: ServerResponse, parsedUrl: URL): 
     sendJSON(res, await loadKnownView(userId));
   } catch (err) {
     log.error({ error: String(err) }, 'Failed to load what Ferni knows');
-    sendError(res, API_ERRORS.OPERATION_FAILED, 500);
+    // Can't tell what was forgotten: refuse (retryable), never a view that might show it.
+    if (err instanceof ForgottenTopicsUnreadable) sendError(res, API_ERRORS.OPERATION_FAILED, 503);
+    else sendError(res, API_ERRORS.OPERATION_FAILED, 500);
   }
   return true;
 }

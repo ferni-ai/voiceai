@@ -228,17 +228,42 @@ export function buildKnownView(parts: KnownParts, now: Date, withPondering: bool
   return view;
 }
 
-/** The caller's view. Each source is read independently; one failing leaves its section empty. */
+/**
+ * What the caller asked Ferni to forget couldn't be read (a throw, or the
+ * forget store's null): the view is refused (503), never shown unfiltered.
+ */
+export class ForgottenTopicsUnreadable extends Error {
+  constructor(cause?: unknown) {
+    super('Forgotten topics unreadable', { cause });
+    this.name = 'ForgottenTopicsUnreadable';
+  }
+}
+
+/** The topics, or ForgottenTopicsUnreadable; never [] standing in for a failed read. */
+async function readForgotten(store: KnownStore, userId: string): Promise<string[]> {
+  const topics = await store.forgotten(userId).catch((error: unknown) => {
+    throw new ForgottenTopicsUnreadable(error);
+  });
+  if (!Array.isArray(topics) || !topics.every((t) => typeof t === 'string')) {
+    throw new ForgottenTopicsUnreadable();
+  }
+  return topics;
+}
+
+/**
+ * The caller's view. The forgotten topics must be read or nothing is shown;
+ * otherwise each source is read independently, one failing leaving its section empty.
+ */
 export async function loadKnownView(
   userId: string,
   store: KnownStore = firestoreKnownStore,
   { now = new Date(), env = process.env }: { now?: Date; env?: Env } = {}
 ): Promise<KnownView> {
   const withPondering = isMemoryViewPonderingOn(env);
-  // Unreadable forgotten topics fail the view: showing what was forgotten is worse than nothing.
-  const [facts, forgotten, world, mind, pondering] = await Promise.all([
+  // Read first and alone: if it fails, nothing else is read or returned.
+  const forgotten = await readForgotten(store, userId);
+  const [facts, world, mind, pondering] = await Promise.all([
     store.facts(userId),
-    store.forgotten(userId),
     store.worldFacts(userId).catch(() => []),
     store.mindModel(userId).catch(() => null),
     withPondering ? store.pondering(userId).catch(() => null) : Promise.resolve(null),
@@ -249,8 +274,6 @@ export async function loadKnownView(
   const summaryDays = bases.length
     ? await store.summaryDays(userId, [...new Set(bases)]).catch(() => new Map<string, string>())
     : new Map<string, string>();
-  // null: unreadable or malformed (the forget store's contract, #1094); fail the same way.
-  if (!Array.isArray(forgotten)) throw new Error('Forgotten topics unreadable');
   const parts = { facts, world, mind, pondering, summaryDays, forgotten };
   return buildKnownView(parts, now, withPondering);
 }
