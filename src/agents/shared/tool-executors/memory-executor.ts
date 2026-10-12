@@ -8,6 +8,7 @@
  */
 
 import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
+import { loadRecallForgetGuard } from './recall-forget-guard.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
@@ -27,9 +28,7 @@ const HANDLED_TOOLS = [
   'savememory',
   'searchmemories',
   'remembername',
-  // ===========================================
-  // FTIS V3 Semantic Tool IDs (from category_to_tools.json)
-  // ===========================================
+  // --- FTIS V3 Semantic Tool IDs (from category_to_tools.json) ---
   // memory_save category
   'memory_save',
   'memory_note',
@@ -58,9 +57,7 @@ const TOOL_ALIASES: Record<string, string> = {
   voice_memo_list: 'recallfrommemory',
 };
 
-/**
- * Execute memory-related tools
- */
+/** Execute memory-related tools */
 async function execute(
   fn: string,
   args: Record<string, unknown>,
@@ -78,9 +75,7 @@ async function execute(
     fnLower = TOOL_ALIASES[fnLower];
   }
 
-  // ========================================
-  // REMEMBER ABOUT USER
-  // ========================================
+  // --- REMEMBER ABOUT USER ---
   if (fnLower === 'rememberaboutuser') {
     const fact = args.fact as string;
     const category = (args.category as string) || 'personal';
@@ -171,22 +166,14 @@ async function execute(
     log.info({ topic, userId: ctx.userId }, '🧠 Recalling from memory');
 
     if (ctx.userId) {
-      // Nothing they asked to forget comes back, cached or not: unreadable
-      // topics recall nothing (fails closed).
-      const { readForgottenTopics, forgottenFactCopies } =
-        await import('../../../memory/signals/user-memory-indexer.js');
-      const { isForgotten } = await import('../../../memory/recall/session-recall.js');
-      const forgotten = await readForgottenTopics(ctx.userId);
-      if (forgotten === null) {
-        log.warn({ userId: ctx.userId }, 'Forgotten topics unreadable: recalling nothing');
-        return "I can't look back through our past conversations right now.";
-      }
+      const guard = await loadRecallForgetGuard(ctx.userId); // recall-forget-guard.ts
+      if (!guard) return "I can't look back through our past conversations right now.";
 
       if (ctx.sessionId) {
         try {
           const { getCachedMemoryResult } = await import('../performance/session-optimizations.js');
           const cached = getCachedMemoryResult(ctx.sessionId, topic);
-          if (cached && !isForgotten(String(cached.result), forgotten)) {
+          if (cached && !guard.hides(String(cached.result))) {
             log.debug({ topic }, '💾 Memory recall from cache');
             return cached.result as string;
           }
@@ -212,20 +199,13 @@ async function execute(
           timestamp?: Date;
         }
 
-        // An indexed fact is checked by its id: forgotten or gone, it is never said back.
-        const dropped = await forgottenFactCopies(
-          ctx.userId,
-          ragResults.results.map((r) => r.id)
-        );
-        const memories: MemoryItem[] = ragResults.results
-          .filter((r) => !(r.id && dropped.has(r.id)) && !isForgotten(r.content, forgotten))
-          .map((r) => ({
-            content: r.content,
-            score: r.score,
-            timestamp: r.metadata?.timestamp
-              ? new Date(r.metadata.timestamp as string | number)
-              : undefined,
-          }));
+        const memories: MemoryItem[] = (await guard.keep(ragResults.results)).map((r) => ({
+          content: r.content,
+          score: r.score,
+          timestamp: r.metadata?.timestamp
+            ? new Date(r.metadata.timestamp as string | number)
+            : undefined,
+        }));
 
         // Also get facts from Firestore
         const { getFirestore } = await import('firebase-admin/firestore');
@@ -251,7 +231,7 @@ async function execute(
           for (const doc of factsSnapshot.docs) {
             const data = doc.data();
             const factText = (data.fact || data.content || '') as string;
-            if (data.forgottenAt != null || isForgotten(factText, forgotten)) continue;
+            if (data.forgottenAt != null || guard.hides(factText)) continue;
             const factEmbedding = data.embedding as number[] | undefined;
 
             let score = 0;

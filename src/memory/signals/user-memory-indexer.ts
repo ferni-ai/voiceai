@@ -11,7 +11,8 @@
 import type { UserProfile } from '../../types/user-profile.js';
 import { getFirestoreDb, toSafeDate } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { indexConversationSummary, removeConversationDocument } from '../semantic-rag.js';
+import { indexConversationSummary } from '../semantic-rag.js';
+import { removeConversationDocument } from '../retrieval/conversation-index.js';
 import { isForgotten } from '../recall/session-recall.js';
 import { getFirestore } from '../firestore-factory.js';
 import { readCallSummaries } from '../storage/call-summaries.js';

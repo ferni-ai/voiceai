@@ -33,18 +33,14 @@ type AnyVectorStore = VectorStore | FirestoreVectorStore;
 // Active vector store reference (set during initialization)
 let activeVectorStore: AnyVectorStore | null = null;
 
-/**
- * Set the active vector store (called by initializeMemorySystem)
- */
+/** Set the active vector store (called by initializeMemorySystem) */
 export function setActiveVectorStore(store: AnyVectorStore): void {
   activeVectorStore = store;
   getLogger().info(`Active vector store set: ${store.constructor.name}`);
 }
 
-/**
- * Get the active vector store (uses persistent store if available)
- */
-function getActiveStore(): AnyVectorStore {
+/** Get the active vector store (uses persistent store if available) */
+export function getActiveStore(): AnyVectorStore {
   if (activeVectorStore) return activeVectorStore;
 
   // Fallback: try to detect which store to use
@@ -235,14 +231,6 @@ export async function indexConversationSummary(
 
   await store.addDocument(doc);
   getLogger().debug(`Indexed conversation summary: ${summary.id}`);
-}
-
-/** Remove a conversation document indexed by indexConversationSummary (same id). */
-export async function removeConversationDocument(
-  id: string,
-  vectorStore?: AnyVectorStore
-): Promise<void> {
-  await (vectorStore || getActiveStore()).removeDocument(`conversation_${id}`);
 }
 
 // ============================================================================
