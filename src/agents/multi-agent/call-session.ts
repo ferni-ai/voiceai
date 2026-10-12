@@ -14,7 +14,7 @@ import {
   createProviderSTT,
   getModelProvider,
 } from '../model-provider/index.js';
-import { noteAgentState } from '../shared/loop-watch.js';
+import { watchAgentState } from '../shared/loop-watch.js';
 import { routeSayThroughModel } from '../shared/native-speech.js';
 import { limitSessionListeners } from '../shared/session-listener-limit.js';
 import { endpointingDelays, sessionTurnDetection } from '../shared/turn-patience.js';
@@ -122,7 +122,7 @@ export async function createCallSession(parts: {
 
   logBargeInDecisions(session, sessionId);
   // LOOP_STALL lines say whether Ferni was speaking (loop-watch.ts).
-  session.on(voice.AgentSessionEventTypes.AgentStateChanged, (ev) => noteAgentState(ev.newState));
+  watchAgentState(session);
 
   // Gemini native audio speaks for itself: scripted say() lines must come from
   // the model too, or the call alternates between Gemini's and Cartesia's voice.

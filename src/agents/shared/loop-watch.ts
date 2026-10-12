@@ -63,6 +63,16 @@ export function noteAgentState(state: string, at: number = Date.now()): void {
   agentState = state;
 }
 
+/** Feeds a session's agent_state_changed events to noteAgentState (sessions without events are skipped). */
+export function watchAgentState(session: unknown): void {
+  const on = (session as { on?: (e: string, fn: (ev: { newState?: string }) => void) => unknown })
+    ?.on;
+  if (typeof on !== 'function') return;
+  on.call(session, 'agent_state_changed', (ev) => {
+    if (ev?.newState) noteAgentState(ev.newState);
+  });
+}
+
 // ---------------------------------------------------------------- the watcher
 
 type Listener = (s: Stall) => void;

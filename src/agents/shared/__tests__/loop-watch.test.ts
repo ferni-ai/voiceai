@@ -89,3 +89,21 @@ describe('summarizeStalls', () => {
     expect(s.worst[0]).toEqual({ atMs: 1000, ms: 300, state: 'speaking' });
   });
 });
+
+describe('watchAgentState', () => {
+  it("follows a session's agent_state_changed events, and skips a session without events", async () => {
+    const { EventEmitter } = await import('node:events');
+    const { watchAgentState } = await import('../loop-watch.js');
+    const t = fakeTicker();
+    const seen: Stall[] = [];
+    t.tick(100);
+    const detach = onStall((s) => seen.push(s), 100, t);
+    const session = new EventEmitter();
+    watchAgentState(session);
+    watchAgentState({});
+    session.emit('agent_state_changed', { newState: 'thinking' });
+    t.tick(300);
+    detach();
+    expect(seen[0]?.agentState).toBe('thinking');
+  });
+});
