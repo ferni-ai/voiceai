@@ -255,26 +255,22 @@ class BreathSyncManager {
     });
   }
 
+  /**
+   * Mirror the slow-changing breath values to :root, only when they change.
+   * The per-frame phase is not mirrored: a custom property on :root changes
+   * the computed style of every element, so writing one each frame re-ran
+   * style for the whole document (~2,000 elements) 60 times a second, and no
+   * stylesheet read it. Per-frame consumers subscribe() instead.
+   */
   private updateCSSProperties(): void {
-    const root = document.documentElement;
+    this.setRootVar('--breath-rate-ms', `${Math.round(this.getCycleDuration())}ms`);
+    this.setRootVar('--breath-depth', this.state.depth.toFixed(2));
+  }
 
-    // Core breath properties
-    root.style.setProperty('--breath-phase', this.state.phase.toFixed(4));
-    root.style.setProperty('--breath-rate-ms', `${this.getCycleDuration()}ms`);
-    root.style.setProperty('--breath-depth', this.state.depth.toFixed(2));
-
-    // Derived properties for common use cases
-    // Scale: 1.0 at exhale, 1.002 at inhale peak (subtle!)
-    const breathScale = 1 + this.state.phase * 0.002 * this.state.depth;
-    root.style.setProperty('--breath-scale', breathScale.toFixed(5));
-
-    // Opacity pulse: 0.95 at exhale, 1.0 at inhale
-    const breathOpacity = 0.95 + this.state.phase * 0.05 * this.state.depth;
-    root.style.setProperty('--breath-opacity', breathOpacity.toFixed(3));
-
-    // Translate for subtle rise/fall: 0 at exhale, -2px at inhale
-    const breathTranslateY = -this.state.phase * 2 * this.state.depth;
-    root.style.setProperty('--breath-translate-y', `${breathTranslateY.toFixed(2)}px`);
+  private setRootVar(name: string, value: string): void {
+    // Reading the inline declaration does not compute style, so this is cheap
+    const { style } = document.documentElement;
+    if (style.getPropertyValue(name) !== value) style.setProperty(name, value);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -346,26 +342,13 @@ export function destroyBreathSync(): void {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CSS Usage Examples (for reference)
+// Usage
 // ─────────────────────────────────────────────────────────────────────────────
 
 /*
-Usage in CSS:
-
-.avatar-container {
-  transform: translateY(var(--breath-translate-y)) scale(var(--breath-scale));
-}
-
-.glass-card {
-  transform: scale(var(--breath-scale));
-  opacity: var(--breath-opacity);
-}
-
-.ambient-glow {
-  opacity: calc(0.3 + var(--breath-phase) * 0.1);
-}
-
-For more complex animations, subscribe to updates:
+CSS can read --breath-rate-ms and --breath-depth (on :root, written on change).
+For per-frame motion, subscribe and write to the element you animate, or use a
+CSS animation with duration var(--breath-rate-ms):
 
 getBreathSync().subscribe((state) => {
   // Custom animation logic based on state.phase

@@ -6,7 +6,8 @@
  * LAYERS:
  * 1. Body Pulse (PRIMARY) - Avatar squash/stretch with voice volume
  * 2. Halo Pulse (AMBIENT) - Presence ring scales + secondary waves
- * 3. Lid Mouth (DETAIL) - Bottom lid opens with volume
+ * 3. Lid Mouth (DETAIL) - Bottom lid opens with volume, from the current
+ *    expression's shape (only under ferni:lid-blend, see avatar-motion/lid-blend.ts)
  * 
  * PHILOSOPHY:
  * Like Pixar's WALL-E and Luxo Jr., we don't need a literal mouth to
@@ -18,6 +19,15 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { initSpringBody } from './avatar-motion/spring-body.js';
+import { claimAvatarContainer } from './avatar-motion/compositor.js';
+import {
+  isLidBlendEnabled,
+  lidBlendLevel,
+  settleBlendedLids,
+  smoothByDirection,
+  writeBlendedLids,
+} from './avatar-motion/lid-blend.js';
 
 const log = createLogger('SpeakingSystem');
 
@@ -42,14 +52,6 @@ const CONFIG = {
     waveScaleIncrement: 0.04,  // Each wave slightly larger
     waveOpacityDecay: 0.5      // Each wave more transparent
   },
-  lid: {
-    bottomYClosed: 110,    // Neutral (invisible)
-    bottomYOpen: 70,       // Max open (showing green orb)
-    topYClosed: -10,       // Neutral (invisible)
-    topYOpen: 15,          // Slight close when speaking
-    smoothingAttack: 0.25,
-    smoothingRelease: 0.12
-  },
   timing: {
     transitionMs: 80,
     phraseRhythmMs: 450,
@@ -66,6 +68,8 @@ let isSpeaking = false;
 let currentVolume = 0;
 let smoothedVolume = 0;
 let animationFrame: number | null = null;
+/** ferni:lid-blend, read when speech starts and with each volume update. */
+let lidBlendOn = false;
 
 // DOM Elements
 let avatarContainer: HTMLElement | null = null;
@@ -73,6 +77,16 @@ let avatarRing: HTMLElement | null = null;
 let lidTop: SVGPathElement | null = null;
 let lidBottom: SVGPathElement | null = null;
 let haloWaves: HTMLElement[] = [];
+
+// Reduced motion: body and halo hold still; the lid mouth still articulates.
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+let reducedMotionQuery: MediaQueryList | null = null;
+
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  reducedMotionQuery ??= window.matchMedia(REDUCED_MOTION_QUERY);
+  return reducedMotionQuery.matches;
+}
 
 // ============================================================================
 // INITIALIZATION
@@ -101,6 +115,7 @@ export function initSpeakingSystem(): void {
   
   isInitialized = true;
   log.info('🔊 Speaking system initialized (3-layer: body, halo, lid)');
+  initSpringBody();
 }
 
 /**
@@ -146,8 +161,8 @@ function createHaloWaves(): void {
  * Connect to the lid overlay system (created by ferni-expressions.ui.ts)
  */
 function connectToLidOverlay(): void {
-  // The lid overlay is created dynamically, so we query for it
-  const lidOverlay = document.querySelector('.ferni-lid-overlay');
+  // The lid overlay is created dynamically by ferni-expressions as `.avatar-lid-overlay`
+  const lidOverlay = document.querySelector('.avatar-lid-overlay');
   if (lidOverlay) {
     lidTop = lidOverlay.querySelector('.lid-top') as SVGPathElement;
     lidBottom = lidOverlay.querySelector('.lid-bottom') as SVGPathElement;
@@ -172,11 +187,18 @@ export function startSpeaking(): void {
   }
   
   isSpeaking = true;
+  lidBlendOn = isLidBlendEnabled();
   
   if (animationFrame === null) {
-    animationFrame = requestAnimationFrame(animateLoop);
+    beginLoop();
     log.debug('🔊 Speaking animation started');
   }
+}
+
+/** Start the rAF loop; under ferni:avatar-compositor, claim the body first. */
+function beginLoop(): void {
+  if (avatarContainer) claimAvatarContainer(avatarContainer);
+  animationFrame = requestAnimationFrame(animateLoop);
 }
 
 /**
@@ -195,12 +217,15 @@ export function stopSpeaking(): void {
  * Called by audio visualization system.
  */
 export function updateVolume(volume: number): void {
-  currentVolume = Math.max(0, Math.min(1, volume));
+  lidBlendOn = isLidBlendEnabled();
+  // Under ferni:lid-blend the level is a gated RMS, so line noise reads as silence
+  const level = lidBlendOn ? lidBlendLevel(volume) : volume;
+  currentVolume = Math.max(0, Math.min(1, level));
   
   // Auto-start if volume comes in while not speaking
   if (currentVolume > 0.05 && animationFrame === null) {
     isSpeaking = true;
-    animationFrame = requestAnimationFrame(animateLoop);
+    beginLoop();
   }
 }
 
@@ -212,10 +237,15 @@ export function updateVolume(volume: number): void {
  * Main animation loop - updates all three layers
  */
 function animateLoop(): void {
-  // Smooth the volume
-  const cfg = isSpeaking ? CONFIG.body.smoothingAttack : CONFIG.body.smoothingRelease;
+  // Smooth the volume. Under ferni:lid-blend, attack or release follows the
+  // direction the volume moves, so drops mid-speech decay slowly.
   const targetVolume = isSpeaking ? currentVolume : 0;
-  smoothedVolume += (targetVolume - smoothedVolume) * cfg;
+  if (lidBlendOn) {
+    smoothedVolume = smoothByDirection(smoothedVolume, targetVolume, CONFIG.body.smoothingAttack, CONFIG.body.smoothingRelease);
+  } else {
+    const cfg = isSpeaking ? CONFIG.body.smoothingAttack : CONFIG.body.smoothingRelease;
+    smoothedVolume += (targetVolume - smoothedVolume) * cfg;
+  }
   
   // If not speaking and volume near zero, stop
   if (!isSpeaking && smoothedVolume < 0.001) {
@@ -241,6 +271,10 @@ function animateLoop(): void {
 
 function updateBodyPulse(volume: number): void {
   if (!avatarContainer) return;
+  if (prefersReducedMotion()) {
+    resetBody();
+    return;
+  }
   
   // Calculate squash/stretch
   const stretchAmount = volume * (CONFIG.body.maxScaleY - 1);
@@ -263,6 +297,10 @@ function updateBodyPulse(volume: number): void {
 
 function updateHaloPulse(volume: number): void {
   if (!avatarRing) return;
+  if (prefersReducedMotion()) {
+    resetHalo();
+    return;
+  }
   
   // Primary ring
   const scale = 1 + (volume * (CONFIG.halo.maxScale - 1));
@@ -285,55 +323,44 @@ function updateHaloPulse(volume: number): void {
 // LAYER 3: LID MOUTH
 // ============================================================================
 
+/**
+ * The lid mouth runs only under ferni:lid-blend. Without the flag it never ran
+ * in production (it looked up a `.ferni-lid-overlay` that doesn't exist), and
+ * its neutral-based rewrite would wipe every expression during speech.
+ */
 function updateLidMouth(volume: number): void {
-  if (!lidBottom) {
-    // Try to reconnect
-    connectToLidOverlay();
-    return;
-  }
-  
-  // Bottom lid opens with volume
-  const bottomY = CONFIG.lid.bottomYClosed - (volume * (CONFIG.lid.bottomYClosed - CONFIG.lid.bottomYOpen));
-  lidBottom.setAttribute('d', `M 0,100 Q 50,${bottomY} 100,100 L 100,100 L 0,100 Z`);
-  
-  // Top lid slightly closes with volume (effort expression)
-  if (lidTop) {
-    const topY = CONFIG.lid.topYClosed + (volume * (CONFIG.lid.topYOpen - CONFIG.lid.topYClosed));
-    lidTop.setAttribute('d', `M 0,0 Q 50,${topY} 100,0 L 100,0 L 0,0 Z`);
-  }
+  if (!lidBlendOn || !lidBottom) return;
+  writeBlendedLids({ top: lidTop, bottom: lidBottom }, volume);
 }
 
 // ============================================================================
 // RESET
 // ============================================================================
 
-function resetAllLayers(): void {
-  // Reset body
-  if (avatarContainer) {
-    avatarContainer.style.transform = '';
-    avatarContainer.style.removeProperty('--speaking-scale-x');
-    avatarContainer.style.removeProperty('--speaking-scale-y');
-  }
-  
-  // Reset halo
+function resetBody(): void {
+  if (!avatarContainer) return;
+  avatarContainer.style.transform = '';
+  avatarContainer.style.removeProperty('--speaking-scale-x');
+  avatarContainer.style.removeProperty('--speaking-scale-y');
+}
+
+function resetHalo(): void {
   if (avatarRing) {
     avatarRing.style.transform = '';
     avatarRing.style.opacity = String(CONFIG.halo.minOpacity);
   }
-  
-  // Reset waves
   haloWaves.forEach(wave => {
     wave.style.transform = '';
     wave.style.opacity = '0';
   });
+}
+
+function resetAllLayers(): void {
+  resetBody();
+  resetHalo();
   
-  // Reset lids
-  if (lidBottom) {
-    lidBottom.setAttribute('d', `M 0,100 Q 50,${CONFIG.lid.bottomYClosed} 100,100 L 100,100 L 0,100 Z`);
-  }
-  if (lidTop) {
-    lidTop.setAttribute('d', `M 0,0 Q 50,${CONFIG.lid.topYClosed} 100,0 L 100,0 L 0,0 Z`);
-  }
+  // Lids settle on the current expression, not on neutral
+  if (lidBlendOn) settleBlendedLids({ top: lidTop, bottom: lidBottom });
 }
 
 // ============================================================================

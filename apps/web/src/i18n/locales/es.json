@@ -1322,7 +1322,7 @@
         "calendar": "Calendario",
         "history": "Charlas anteriores",
         "people": "Tu gente",
-        "insights": "Cómo te va"
+        "insights": "Lo que he aprendido"
       }
     },
     "ariaLabel": "Menú de configuración",
@@ -4652,7 +4652,8 @@
     "sourceInferred": "Me di cuenta",
     "correctButton": "Corregir",
     "memoriesCount": "{count} recuerdos",
-    "confidence": "{confidence}% de seguridad"
+    "confidence": "{confidence}% de seguridad",
+    "earlier": "antes"
   },
   "memoryCorrection": {
     "modalTitle": "Corregir este recuerdo",
@@ -8857,6 +8858,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Charlas anteriores",
     "loadError": "No se pudieron cargar los datos.",
     "tryAgain": "¿Quieres volver a intentarlo?",
     "ariaLabel": "Historial de conversaciones",
@@ -10338,7 +10340,9 @@
       "one": "¡Has ganado {count} semilla!",
       "many": "¡Has ganado {count} semillas!",
       "other": "¡Has ganado {count} semillas!"
-    }
+    },
+    "couldNotLoadMemories": "No pude cargar lo que recuerdo. ¿Lo intentamos de nuevo?",
+    "memoryCorrected": "Entendido. Lo recordaré así."
   },
   "trustSignals": {
     "prefix": {
@@ -10511,6 +10515,12 @@
       "fair": "Regular",
       "poor": "Conexión débil",
       "disconnected": "Sin conexión"
+    },
+    "island": {
+      "offline": "No tienes conexión. Me reconecto en cuanto vuelvas.",
+      "reconnecting": "Reconectando…",
+      "weak": "Conexión débil",
+      "backOnline": "De nuevo en línea"
     }
   },
   "ideasGallery": {
@@ -10985,6 +10995,9 @@
       "other": "{count} días"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "¡Ñam, ñam!"
+  },
   "avatarTapReactions": {
     "tickles": "¡Jeje, eso me da cosquillas!"
   },
@@ -11238,5 +11251,17 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "Aporta",
+    "title": "Un dólar mantiene viva la conversación",
+    "body": "Ferni es gratis por ahora. Si una charla te ayudó, puedes enviar un dólar por Venmo. Más es bienvenido, nunca esperado.",
+    "qrAlt": "Código QR de Venmo para @{handle}",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "openVenmo": "Abrir Venmo",
+    "helper": "Escanéalo con la cámara de tu teléfono o toca Abrir Venmo. Puedes cambiar el importe.",
+    "maybeLater": "Quizás después",
+    "close": "Cerrar"
   }
 }

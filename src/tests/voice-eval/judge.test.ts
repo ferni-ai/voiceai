@@ -8,9 +8,10 @@ import {
   candorTurnsOf,
   combine,
   DIMENSIONS,
-  ferniBiography,
   parseArgs,
   parseJudgeJson,
+  personaOf,
+  personaProfile,
   promptFor,
   providersFrom,
   verdictFile,
@@ -150,17 +151,50 @@ describe('voice-eval judge', () => {
     ]);
     const withSeed = promptFor(call, seed);
     for (const k of Object.keys(DIMENSIONS)) expect(withSeed).toContain(`- ${k}:`);
-    expect(withSeed).toContain('2. FERNI: The Stripe interview?');
+    // The greeting is turn 1 (#789), so the reply to the caller is turn 3.
+    expect(withSeed).toContain('1. FERNI (answering the call): Hey Sam.');
+    expect(withSeed).toContain('3. FERNI: The Stripe interview?');
     expect(withSeed).toContain('CALLER: I have an interview at Stripe on Monday.');
     expect(promptFor(call, null)).toContain('There was no earlier call');
   });
 
   it("gives the judge Ferni's canonical background so its stories are judged against it", () => {
-    expect(ferniBiography()).toMatch(/Wyoming/);
-    expect(ferniBiography()).toMatch(/Japan/);
+    expect(personaProfile('ferni').bio).toMatch(/Wyoming/);
+    expect(personaProfile('ferni').bio).toMatch(/Japan/);
     const p = promptFor({ userSpeech: [[0, 1]], events: [] }, null);
     expect(p).toContain("FERNI'S BACKGROUND");
-    expect(ferniBiography('/no/such/file')).toBe('');
+    expect(personaProfile('no-such-persona')).toEqual({
+      id: 'no-such-persona',
+      name: 'no-such-persona',
+      bio: '',
+    });
+  });
+
+  it("judges a teammate call as that teammate, with their background and none of Ferni's", () => {
+    const maya = {
+      ...run([
+        ['user', 'I said I would go to the gym and I have not gone once.'],
+        ['agent', 'Okay, no shame. What time does your alarm go off?'],
+      ]),
+      meta: { persona: 'maya-santos' },
+    };
+    expect(personaOf(maya)).toBe('maya-santos');
+    const p = promptFor(maya, null);
+    expect(p).toContain('how good a friend "Maya" is');
+    // The greeting is turn 1, so Maya's reply is turn 3.
+    expect(p).toContain('1. MAYA (answering the call): Hey Sam.');
+    expect(p).toContain('3. MAYA: Okay, no shame.');
+    expect(p).toContain("MAYA'S BACKGROUND");
+    // Maya's biography may name Ferni as a teammate. Ferni's life must not.
+    expect(p).toMatch(/habits coach/i);
+    expect(p).toMatch(/Stockton/);
+    for (const ferniMarker of [/Wyoming/, /Japan/, /kintsugi/i, /tsunami/i])
+      expect(p).not.toMatch(ferniMarker);
+  });
+
+  it('judges a run with no persona as Ferni', () => {
+    expect(personaOf({ meta: { uid: 'voice-eval-x' } })).toBe('ferni');
+    expect(personaOf({})).toBe('ferni');
   });
 
   it('tells the judge that fair inferences from what the caller said are not invented', () => {

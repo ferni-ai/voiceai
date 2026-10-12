@@ -6,7 +6,8 @@ personaColor: "#D4A373"
 personaSecondary: "#A67B5B"
 ---
 
-{% from "partials/icons.njk" import play, plus, starFilled, star, verified, check %}
+{% from "partials/icons.njk" import play, plus, verified, check %}
+{% from "partials/pricing.njk" import priced, priceBadge with context %}
 
 <!-- Hero -->
 <section class="persona-detail-hero" style="--persona-color: #D4A373; --persona-secondary: #A67B5B;">
@@ -30,20 +31,13 @@ personaSecondary: "#A67B5B"
         <h1>Carmen</h1>
         <p class="persona-detail-tagline">Parenting Partner</p>
         <div class="persona-detail-meta">
-          <span style="display: inline-flex; align-items: center; gap: var(--space-1); color: var(--warning);">
-            {{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}
-          </span>
-          <span>4.85 (2,103 reviews)</span>
-          <span style="opacity: 0.7;">|</span>
-          <span>31,200+ users</span>
-          <span style="opacity: 0.7;">|</span>
           <span>by Ferni Labs</span>
         </div>
         <div class="persona-detail-actions">
-          <button class="btn btn-add-team btn-lg">
+          <a href="{{ site.appUrl }}" class="btn btn-add-team btn-lg">
             {{ plus(20) }}
-            Add to Team - $7.99/mo
-          </button>
+            {{ priced('Add to Team - $7.99/mo', 'Add to Team') }}
+          </a>
           <button class="btn btn-preview-voice">
             {{ play(20) }}
             Preview Voice
@@ -128,75 +122,6 @@ personaSecondary: "#A67B5B"
             start there."
           </p>
         </div>
-
-        <!-- Reviews -->
-        <div class="reviews-section">
-          <div class="reviews-header">
-            <div class="reviews-summary">
-              <span class="reviews-rating-big">4.85</span>
-              <div class="reviews-rating-info">
-                <span class="reviews-stars" style="color: var(--warning);">
-                  {{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}
-                </span>
-                <span class="reviews-count">2,103 reviews</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #D4A373, #A67B5B); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">M</div>
-              <div>
-                <div class="review-author">Michelle T.</div>
-                <div class="review-date">3 days ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              As a single mom of three, Carmen has been a lifesaver. When I'm at my wit's end
-              at 9pm and can't call anyone, Carmen talks me through it. She reminds me I'm doing
-              okay even when it doesn't feel like it.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #6B5B95, #4A4063); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">J</div>
-              <div>
-                <div class="review-author">James K.</div>
-                <div class="review-date">1 week ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              As a dad, I was worried this would be "mom-focused" but Carmen is great for all
-              parents. She helped me navigate my daughter's pre-teen drama in ways I never could
-              have figured out on my own.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #2C3E50, #1A252F); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">S</div>
-              <div>
-                <div class="review-author">Sarah L.</div>
-                <div class="review-date">3 weeks ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              The discipline strategies Carmen suggested actually work! My 4-year-old's tantrums
-              have decreased significantly. I love that she explains the "why" behind each approach
-              so I understand child development better.
-            </p>
-          </div>
-        </div>
       </div>
 
       <!-- Right Column -->
@@ -267,9 +192,9 @@ personaSecondary: "#A67B5B"
           <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
             Your village is waiting
           </p>
-          <button class="btn" style="background: white; color: #A67B5B; width: 100%;">
-            Add to Team - $7.99/mo
-          </button>
+          <a href="{{ site.appUrl }}" class="btn" style="background: white; color: #A67B5B; width: 100%;">
+            {{ priced('Add to Team - $7.99/mo', 'Add to Team') }}
+          </a>
         </div>
       </div>
 
@@ -297,13 +222,7 @@ personaSecondary: "#A67B5B"
         <div class="persona-body">
           <p class="persona-description">Strategies that work with how your ADHD brain operates—not against it.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-              <span class="persona-rating-count">4.9</span>
-            </div>
-            <span class="persona-price">$9.99/mo</span>
+            {{ priceBadge('$9.99/mo') }}
           </div>
         </div>
       </a>
@@ -319,13 +238,7 @@ personaSecondary: "#A67B5B"
         <div class="persona-body">
           <p class="persona-description">Reclaim your nights with evidence-based sleep coaching.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-              <span class="persona-rating-count">4.7</span>
-            </div>
-            <span class="persona-price free">Free+</span>
+            {{ priceBadge('Free+') }}
           </div>
         </div>
       </a>
@@ -341,13 +254,7 @@ personaSecondary: "#A67B5B"
         <div class="persona-body">
           <p class="persona-description">Spark creativity and battle creative block with energy and fresh ideas.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-              <span class="persona-rating-count">4.75</span>
-            </div>
-            <span class="persona-price free">Free+</span>
+            {{ priceBadge('Free+') }}
           </div>
         </div>
       </a>

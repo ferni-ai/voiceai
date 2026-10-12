@@ -27,9 +27,6 @@
         "Building habits",
         "Medication awareness"
       ],
-      "rating": 4.9,
-      "reviewCount": 847,
-      "installs": 12500,
       "pricing": {
         "model": "subscription",
         "priceInCents": 999,
@@ -67,9 +64,6 @@
         "Healthy coping",
         "Celebrating milestones"
       ],
-      "rating": 4.95,
-      "reviewCount": 523,
-      "installs": 8200,
       "pricing": {
         "model": "subscription",
         "priceInCents": 1499,
@@ -107,9 +101,6 @@
         "Sleep tracking",
         "Circadian rhythm"
       ],
-      "rating": 4.7,
-      "reviewCount": 1205,
-      "installs": 18400,
       "pricing": {
         "model": "freemium",
         "priceInCents": 499,
@@ -150,9 +141,6 @@
         "Self-care for parents",
         "Family communication"
       ],
-      "rating": 4.85,
-      "reviewCount": 2103,
-      "installs": 31200,
       "pricing": {
         "model": "subscription",
         "priceInCents": 799,
@@ -190,9 +178,6 @@
         "Mental health",
         "Grief and acceptance"
       ],
-      "rating": 4.92,
-      "reviewCount": 689,
-      "installs": 9800,
       "pricing": {
         "model": "subscription",
         "priceInCents": 999,
@@ -230,9 +215,6 @@
         "Artistic practice",
         "Creative confidence"
       ],
-      "rating": 4.75,
-      "reviewCount": 1456,
-      "installs": 22100,
       "pricing": {
         "model": "freemium",
         "priceInCents": 699,
@@ -273,9 +255,6 @@
         "Professional networking",
         "Executive presence"
       ],
-      "rating": 4.6,
-      "reviewCount": 934,
-      "installs": 15600,
       "pricing": {
         "model": "subscription",
         "priceInCents": 1299,

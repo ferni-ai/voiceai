@@ -43,7 +43,7 @@ export const TYPE_COLORS: Record<NotificationType, { bg: string; border: string;
   ritual_reminder: {
     bg: 'var(--persona-tint, var(--color-accent-subtle))',
     border: 'var(--persona-primary, var(--color-accent-primary))',
-    icon: 'var(--persona-primary, var(--color-accent-primary))',
+    icon: 'var(--persona-text, var(--color-accent-text))',
   },
   streak_milestone: {
     bg: 'var(--color-semantic-success-glow)',
@@ -63,7 +63,7 @@ export const TYPE_COLORS: Record<NotificationType, { bg: string; border: string;
   welcome: {
     bg: 'var(--persona-tint, var(--color-accent-subtle))',
     border: 'var(--persona-primary, var(--color-accent-primary))',
-    icon: 'var(--persona-primary, var(--color-accent-primary))',
+    icon: 'var(--persona-text, var(--color-accent-text))',
   },
 };
 

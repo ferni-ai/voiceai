@@ -326,6 +326,8 @@ jobs:
             --tag ${{ env.UI_IMAGE }}:${{ needs.prepare.outputs.short_sha }} \
             --tag ${{ env.UI_IMAGE }}:latest \
             --build-arg NODE_VERSION=22 \
+            --build-arg VITE_VENMO_CHIP_IN="${{ vars.VITE_VENMO_CHIP_IN }}" \
+            --build-arg VITE_VENMO_HANDLE="${{ vars.VITE_VENMO_HANDLE }}" \
             .
 
           # Push all tags

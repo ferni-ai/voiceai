@@ -145,6 +145,7 @@ import { initMoodUI, moodUI } from './ui/mood.ui.js';
 // DISABLED: No skeleton loading - everything visible immediately
 // import { initSkeletonUI, skeletonUI } from './ui/skeleton.ui.js';
 import { initThinkingUI, thinkingUI } from './ui/thinking.ui.js';
+import { initAvatarTurns, trackTurnFallback } from './ui/avatar-motion/turn-driver.js';
 import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
 import {
   getIntegrationsSettingsUI,
@@ -316,7 +317,7 @@ const log = createLogger('App');
 import { initModalCoordinator, modalCoordinator } from './services/modal-coordinator.service.js';
 
 // 🎬 Character-quality Animation Orchestrator
-import { animatePersonaTransition, playCharacterReaction } from './ui/animation-orchestrator.ui.js';
+import { animatePersonaTransition } from './ui/animation-orchestrator.ui.js';
 // ⚡ GSAP Performance Utilities
 import { initGSAP, promoteAllToGPU } from './utils/gsap-animations.js';
 // Agent particles disabled for cleaner UI
@@ -1256,7 +1257,6 @@ class VoiceAIApp {
     // DEFERRED LOADING - Premium features loaded after first paint
     // This significantly speeds up initial page load time
     // =========================================================================
-
     // Essential extras - load after 100ms (needed early but not for first paint)
     this.deferredInit('SoundUI', 100, async () => {
       initSoundUI();
@@ -1272,6 +1272,8 @@ class VoiceAIApp {
     this.deferredInit('ThinkingUI', 100, async () => {
       initThinkingUI();
       (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
+      initAvatarTurns(); // off unless ferni:avatar-turns
+      (await import('./ui/avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
       initConnectionQualityUI();
@@ -2858,11 +2860,9 @@ class VoiceAIApp {
           trackReadyState: mediaStreamTrack?.readyState,
         });
         void this.attachAudioVisualization(audioElement, mediaStreamTrack);
-        setAudioState('speaking');
+        trackTurnFallback('agent-audio'); // avatar state, unless ferni:avatar-turns drives it
         // Set speaking state directly - don't rely only on volume detection
         waveformUI.setSpeaking(true);
-        presenceUI.setSpeaking(true);
-        expressiveEyes.setVoiceState('speaking'); // 👀 Pixar eyes react to speaking
         // Agent is speaking, so we're not in listening mode
         waveformUI.setListening(false);
 
@@ -2876,9 +2876,7 @@ class VoiceAIApp {
       onAudioTrackEnd: (_participantId) => {
         // Agent stopped speaking
         waveformUI.setSpeaking(false);
-        presenceUI.setSpeaking(false);
-        expressiveEyes.setVoiceState('listening'); // 👀 Eyes widen attentively
-        setAudioState('listening');
+        trackTurnFallback('agent-audio-end'); // avatar state, unless ferni:avatar-turns drives it
         // Now we're listening for user input
         waveformUI.setListening(true);
 
@@ -2966,7 +2964,7 @@ class VoiceAIApp {
       onLocalMicActive: (isActive) => {
         // When user's mic is active, show listening state
         waveformUI.setListening(isActive);
-        presenceUI.setListening(isActive);
+        trackTurnFallback(isActive ? 'mic-on' : 'mic-off');
 
         // 🎚️ Duck/unduck music when user is speaking
         const controller = getMusicAudioController();
@@ -3045,9 +3043,8 @@ class VoiceAIApp {
       thinkingUI.hide();
     });
 
-    // When handoff fails - hide indicator and show error
-    // FIX AUDIT GAP #1: Now receives rollbackTo to restore waveform/avatar persona
-    handoffService.onHandoffFailed((error, targetPersona, rollbackTo) => {
+    // When handoff fails: hide indicator, restore persona (rollbackTo), show the error or decline
+    handoffService.onHandoffFailed((error, targetPersona, rollbackTo, userMessage) => {
       log.error('onHandoffFailed:', { error, targetPersona, rollbackTo });
       // FIX BUG: Clear safety timeout
       if (handoffUITimeout) {
@@ -3066,7 +3063,8 @@ class VoiceAIApp {
       }
 
       thinkingUI.hide();
-      messageUI.show(t('app.handoffFailed'), 'error', 3000);
+      if (userMessage) toast.show({ message: userMessage, duration: 6000 });
+      else messageUI.show(t('app.handoffFailed'), 'error', 3000);
     });
 
     // When handoff is cancelled - hide indicator
@@ -3096,12 +3094,9 @@ class VoiceAIApp {
       // Also hide thinking indicator in case it's stuck
       thinkingUI.hide();
 
-      // 🎬 Character-style celebration on handoff
-      const avatarContainer = document.querySelector('.avatar-container');
-      if (avatarContainer instanceof HTMLElement) {
-        void playCharacterReaction(avatarContainer, 'joy', newPersona.id);
-      }
-      coachUI.flash();
+      // The avatar's entrance is coach.ui's single persona bounce (activePersona
+      // subscription). A second 'joy' bounce and a brightness flash here doubled
+      // the motion and animated filter, which repaints every frame.
 
       // Update theme persona colors
       this.updatePersonaTheme(newPersona.id);

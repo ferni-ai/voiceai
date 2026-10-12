@@ -10,15 +10,17 @@
  * 3. Streaming: Start TTS on first LLM chunk, don't wait for complete response
  * 4. Cache: Keep frequently used phrases in audio form
  *
- * Expected improvement: 200-400ms latency reduction on first audio
- *
+ * SPECULATIVE_TTS=off skips the warmup and pre-renders: the live reply path
+ * (gateway TTS) never reads this cache (0 hits on dev, 2026-10-11).
  * @module agents/shared/performance/speculative-tts
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
-import { getVoiceIdForPersona, CARTESIA_MODEL } from '../../config/voice-ids.js';
+import { CARTESIA_MODEL } from '../../config/voice-ids.js';
+import { resolveSpeculativeVoiceId } from './speculative-voice.js';
 
 // Note: This file was moved from agents/shared/performance/ to services/performance/
 // to fix architecture layer violations (services should not import from agents)
@@ -231,6 +233,7 @@ class SpeculativeTTSEngine {
    * different emotional contexts.
    */
   async warmupVoice(voiceId: string, emotions?: string[]): Promise<void> {
+    if (!resolveSpeculativeVoiceId(voiceId)) return;
     log.debug({ voiceId }, 'Warming up TTS cache for voice with emotion variants');
 
     const emotionsToWarm = emotions || [...COMMON_EMOTIONS];
@@ -284,6 +287,7 @@ class SpeculativeTTSEngine {
       distressLevel?: number;
     }
   ): Promise<void> {
+    if (!resolveSpeculativeVoiceId(voiceId)) return;
     const candidates = this.predictCandidates(context);
     this.currentSpeculations.set(sessionId, candidates);
 
@@ -575,7 +579,7 @@ class SpeculativeTTSEngine {
     possibleContinuations: string[],
     emotion?: string
   ): Promise<void> {
-    if (!this.config.enableBranching) return;
+    if (!this.config.enableBranching || !resolveSpeculativeVoiceId(voiceId)) return;
 
     const branches = possibleContinuations.slice(0, this.config.maxBranches);
 
@@ -659,11 +663,8 @@ class SpeculativeTTSEngine {
     }
 
     try {
-      // Resolve persona name to Cartesia voice ID if needed
-      // (voiceId might be a persona name like 'ferni' or a raw Cartesia ID)
-      const resolvedVoiceId = voiceId.includes('-')
-        ? voiceId // Already a Cartesia UUID
-        : getVoiceIdForPersona(voiceId);
+      const resolvedVoiceId = resolveSpeculativeVoiceId(voiceId);
+      if (!resolvedVoiceId) return new ArrayBuffer(0); // Cartesia only takes UUIDs
 
       // 🔧 FIX: Strip SSML tags before sending to Cartesia
       // Cartesia's bytes API doesn't reliably handle SSML in streaming mode,
@@ -851,16 +852,13 @@ export function getSpeculativeTTS(config?: SpeculativeTTSConfig): SpeculativeTTS
 // CONVENIENCE FUNCTIONS
 // ============================================================================
 
-/**
- * Warm up TTS cache for a voice with emotion variants
- */
+/** Warm up TTS cache for a voice with emotion variants (not with SPECULATIVE_TTS=off). */
 export async function warmupTTSVoice(voiceId: string, emotions?: string[]): Promise<void> {
+  if (!flagOn('SPECULATIVE_TTS')) return;
   await getSpeculativeTTS().warmupVoice(voiceId, emotions);
 }
 
-/**
- * Start speculative TTS generation
- */
+/** Start speculative TTS generation (not with SPECULATIVE_TTS=off). */
 export async function speculateTTS(
   sessionId: string,
   voiceId: string,
@@ -871,6 +869,7 @@ export async function speculateTTS(
     distressLevel?: number;
   }
 ): Promise<void> {
+  if (!flagOn('SPECULATIVE_TTS')) return;
   await getSpeculativeTTS().speculate(sessionId, voiceId, context);
 }
 
@@ -896,9 +895,7 @@ export function streamTTSWithSpeculation(
   return getSpeculativeTTS().streamTTS(textStream, voiceId, emotion);
 }
 
-/**
- * Branch prediction for TTS (emotion-aware)
- */
+/** Branch prediction for TTS, emotion-aware (not with SPECULATIVE_TTS=off). */
 export async function branchPredictTTS(
   sessionId: string,
   voiceId: string,
@@ -906,6 +903,7 @@ export async function branchPredictTTS(
   continuations: string[],
   emotion?: string
 ): Promise<void> {
+  if (!flagOn('SPECULATIVE_TTS')) return;
   await getSpeculativeTTS().branchPredict(sessionId, voiceId, prefix, continuations, emotion);
 }
 
