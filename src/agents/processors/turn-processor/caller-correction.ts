@@ -19,5 +19,6 @@ export async function recordCallerCorrection(
   await userCorrections.autoRecord(userId, callerLine, previousReply, personaId);
   if (!flagOn('DISPUTE_DENIED_FACTS')) return;
   const { disputeForCaller } = await import('../../../memory/recall/dispute.js');
-  await disputeForCaller(userId, callerLine, previousReply);
+  const { firestoreDisputeStore } = await import('../../../memory/storage/dispute-store.js');
+  await disputeForCaller(userId, callerLine, previousReply, firestoreDisputeStore);
 }

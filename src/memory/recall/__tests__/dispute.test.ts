@@ -4,8 +4,9 @@
  * contracts came from a mishearing on a dev call; these are his stored facts.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { denialOf, disputeDenied, disputeForCaller } from '../dispute.js';
-import type { ForgetStore, StoredFactRef } from '../forget.js';
+import { denialOf, disputeDenied, disputeForCaller, type DisputeStore } from '../dispute.js';
+import { forgottenInProcess, type StoredFactRef } from '../forget.js';
+import { summarySnippets } from '../call-summaries.js';
 import { loadRecallSnapshot } from '../session-recall.js';
 
 const PETER =
@@ -29,26 +30,53 @@ const SETH_FACTS = [
   fact('d5', { entityName: 'User', key: 'birthday', value: 'birthday is in October' }),
 ];
 
-function memoryStore(facts: StoredFactRef[]) {
+/** The 01:33 dev-call summary the mishearing produced. */
+const DEV_SUMMARY = {
+  timestamp: '2026-10-12T01:33:32.536Z',
+  mainTopics: ['Work contracts', 'Unopened mail pile'],
+  keyPoints: [
+    'The user was working on contracts on the evening of 2026-10-11.',
+    'The user has a pile of unopened mail on the kitchen table and dislikes dealing with mail.',
+  ],
+  followUpItems: ['How did the contract wrangling turn out?'],
+};
+
+function memoryStore(
+  facts: StoredFactRef[],
+  summaries = [{ id: 'summary_dev', data: DEV_SUMMARY }]
+) {
   const state = {
     facts: facts.map((f) => ({ ...f, data: { ...f.data } })),
-    topics: [] as string[],
+    summaries: summaries.map((x) => ({ ...x, data: { ...x.data } as Record<string, unknown> })),
   };
-  const store: ForgetStore = {
+  const store: DisputeStore = {
     facts: async () => state.facts,
-    markForgotten: async (_u, refs, at) => {
+    summaries: async () => state.summaries,
+    markFacts: async (_u, refs, at) => {
       for (const r of refs) {
         const f = state.facts.find((x) => x.id === r.id);
-        if (f) f.data.forgottenAt = at;
+        if (f) Object.assign(f.data, { forgottenAt: at, disputedAt: at });
       }
     },
-    addTopic: async (_u, t) => {
-      if (!state.topics.includes(t)) state.topics.push(t);
+    markSummaryItems: async (_u, id, items, at) => {
+      const x = state.summaries.find((y) => y.id === id);
+      if (!x) return;
+      const had = Array.isArray(x.data.disputedItems) ? (x.data.disputedItems as string[]) : [];
+      Object.assign(x.data, { disputedItems: [...had, ...items], disputedAt: at });
     },
-    topics: async () => state.topics,
   };
-  const marked = () => state.facts.filter((f) => f.data.forgottenAt).map((f) => f.id);
-  return { store, state, marked };
+  const marked = () => state.facts.filter((f) => f.data.disputedAt).map((f) => f.id);
+  /** Recall with whatever this process has recorded as forgotten (forget.ts): a dispute records nothing. */
+  const recall = () =>
+    loadRecallSnapshot(
+      {
+        facts: async () => state.facts.map((f) => f.data),
+        summaries: async () => state.summaries.map((x) => x.data),
+        forgotten: async () => forgottenInProcess('seth'),
+      },
+      'seth'
+    );
+  return { store, state, marked, recall };
 }
 
 afterEach(() => {
@@ -78,51 +106,55 @@ describe('denialOf', () => {
 });
 
 describe('disputeDenied', () => {
-  it('marks the contract facts, records the topic, keeps the rest', async () => {
+  it('marks the contract facts and summary items, keeps the rest', async () => {
     const { store, state, marked } = memoryStore(SETH_FACTS);
     const result = await disputeDenied('seth', { kind: 'echo', topic: 'contracts' }, store);
-    expect(result).toEqual({ kind: 'disputed', marked: 2 });
+    expect(result).toEqual({ kind: 'disputed', facts: 2, items: 3 });
     expect(marked()).toEqual(['f_f6d35aee', 'f_6a72af2b']);
-    expect(state.topics).toEqual(['contracts']);
+    expect(state.summaries[0]!.data.disputedItems).toEqual([
+      'How did the contract wrangling turn out?',
+      'The user was working on contracts on the evening of 2026-10-11.',
+      'Work contracts',
+    ]);
   });
 
-  it('recall then serves neither the facts nor the contract follow-up', async () => {
-    const { store, state } = memoryStore(SETH_FACTS);
-    const before = await loadRecallSnapshot(
-      {
-        facts: async () => state.facts.map((f) => f.data),
-        summaries: async () => [{ followUpItems: ['How did the contract wrangling turn out?'] }],
-        forgotten: async () => [...state.topics],
-      },
-      'seth'
-    );
-    expect(before.followUps).toEqual(['How did the contract wrangling turn out?']);
+  it('recall then serves neither the facts, the follow-up nor the key point', async () => {
+    const { store, recall } = memoryStore(SETH_FACTS);
+    expect((await recall()).followUps).toEqual(['How did the contract wrangling turn out?']);
 
     await disputeDenied('seth', { kind: 'echo', topic: 'contracts' }, store);
-    const after = await loadRecallSnapshot(
-      {
-        facts: async () => state.facts.map((f) => f.data),
-        summaries: async () => [{ followUpItems: ['How did the contract wrangling turn out?'] }],
-        forgotten: async () => [...state.topics],
-      },
-      'seth'
-    );
+    const after = await recall();
     expect(after.followUps).toEqual([]);
     expect(after.facts.map((f) => f.value).join(' ')).not.toMatch(/contract/i);
     expect(after.facts.map((f) => f.value)).toContain('golden retriever');
+    const snippets = summarySnippets([await store.summaries('seth').then((x) => x[0]!.data)], []);
+    expect(snippets.map((x) => x.text)).toEqual([
+      'The user has a pile of unopened mail on the kitchen table and dislikes dealing with mail.',
+    ]);
+    expect(snippets[0]!.whole).not.toMatch(/contract/i);
   });
 
-  it('a plain denial marks only facts sharing two words with the reply, and records no topic', async () => {
-    const { store, state, marked } = memoryStore(SETH_FACTS);
+  it('a denial is not a forget: a later true fact about contracts is recalled', async () => {
+    const { store, state, recall } = memoryStore(SETH_FACTS);
+    await disputeDenied('seth', { kind: 'echo', topic: 'contracts' }, store);
+    state.facts.push(
+      fact('later', { entityName: 'User', key: 'work', value: 'signing new contracts with Acme' })
+    );
+    expect(forgottenInProcess('seth')).toEqual([]);
+    const values = (await recall()).facts.map((f) => f.value);
+    expect(values).toContain('signing new contracts with Acme');
+    expect(values).not.toContain('contracts');
+  });
+
+  it('a plain denial marks only facts sharing two words with the reply', async () => {
+    const { store, marked } = memoryStore(SETH_FACTS, []);
     const denial = denialOf("No, that's wrong.", "So you're moving to Austin in October?");
     expect(denial).not.toBeNull();
     await disputeDenied('seth', denial!, store);
     expect(marked()).toEqual(['d4']); // the October birthday shares one word and stays
-    expect(state.topics).toEqual([]);
   });
 
   it('refuses a denial that would cover many facts', async () => {
-    // 8 of 38 facts: under forgetTopic's own 30% share, still too many for one denial.
     const many = [
       ...Array.from({ length: 8 }, (_, i) =>
         fact(`c${i}`, { entityName: 'User', key: 'work', value: `contract number ${i}` })
@@ -135,7 +167,7 @@ describe('disputeDenied', () => {
     const result = await disputeDenied('seth', { kind: 'echo', topic: 'contracts' }, store);
     expect(result).toEqual({ kind: 'too-broad', matched: 8 });
     expect(marked()).toEqual([]);
-    expect(state.topics).toEqual([]);
+    expect(state.summaries[0]!.data.disputedItems).toBeUndefined();
   });
 });
 
@@ -152,7 +184,8 @@ describe('disputeForCaller', () => {
     const { store, marked } = memoryStore(SETH_FACTS);
     expect(await disputeForCaller('seth', 'What contracts?', PETER, store)).toEqual({
       kind: 'disputed',
-      marked: 2,
+      facts: 2,
+      items: 3,
     });
     expect(marked()).toEqual(['f_f6d35aee', 'f_6a72af2b']);
   });

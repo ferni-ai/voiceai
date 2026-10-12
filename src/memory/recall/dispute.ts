@@ -11,14 +11,21 @@
  * Two shapes are read, each only against the reply just before it, and only
  * when that reply was about the caller ("you", "your"):
  * - an echo question naming the thing: "What contracts?" after a reply that
- *   mentions contracts. The topic is disputed the way a forget request is
- *   (forget.ts: facts marked, topic recorded, so call summaries and their
- *   follow-ups about it are left out too). Nothing is deleted.
+ *   mentions contracts. What is disputed: the caller's facts about it.
  * - a plain denial: "I never said that", "No, that's wrong", "That never
- *   happened". There's no single topic, so the caller's facts sharing at least
- *   two words with the reply are marked; no topic is recorded.
- * Both refuse a match covering more than a few facts (too broad to be the one
- * Ferni got wrong).
+ *   happened". What is disputed: facts sharing at least two words with the
+ *   reply.
+ * Summary items about it (follow-ups, key points, topics, open threads,
+ * inside jokes) are disputed the same way.
+ *
+ * A denial means "that memory is wrong", not "never bring this up": only the
+ * matched items are marked, never the forgotten-topics list (that is for
+ * explicit forgets), so a later true "I'm signing contracts with Acme" is
+ * remembered as usual. Facts are marked forgottenAt (forget.ts: out of recall,
+ * their index copies removed, dropped by source in vector search) plus
+ * disputedAt; summaries get disputedItems, which recall skips and which drops
+ * the summary's vector copy (forget-filter.ts). Nothing is deleted. A match
+ * over a few facts is refused (too broad to be the one Ferni got wrong).
  *
  * Not fact supersession (fact-supersession.ts): recall keeps a replaced fact
  * as "how things were before", and a denied memory was never true.
@@ -26,7 +33,7 @@
  * @module memory/recall/dispute
  */
 import { createLogger } from '../../utils/safe-logger.js';
-import { factText, firestoreForgetStore, forgetTopic, type ForgetStore } from './forget.js';
+import { factText, type StoredFactRef } from './forget.js';
 import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
 
 const log = createLogger({ module: 'dispute' });
@@ -54,6 +61,16 @@ function topicWordsOf(text: string): string[] {
 const ABOUT_CALLER = /\byou(?:r|'re|'ve|'d)?\b/i;
 /** More facts than this for one denial is not the one Ferni got wrong. */
 const MAX_DISPUTED = 5;
+/** Nor this many summary items. */
+const MAX_DISPUTED_ITEMS = 8;
+/** Summary fields whose string items recall serves. */
+export const SUMMARY_ITEM_FIELDS = [
+  'followUpItems',
+  'keyPoints',
+  'mainTopics',
+  'questionsRemaining',
+  'insideJokes',
+] as const;
 
 export type Denial = { kind: 'echo'; topic: string } | { kind: 'denial'; words: string[] };
 
@@ -79,34 +96,66 @@ export function denialOf(callerLine: string, previousReply: string): Denial | nu
 }
 
 export type DisputeResult =
-  | { kind: 'disputed'; marked: number }
+  | { kind: 'disputed'; facts: number; items: number }
   | { kind: 'too-broad'; matched: number }
   | { kind: 'nothing' };
 
-/** Marks what the caller disputed. Throws only if the store does. */
+export interface StoredSummaryRef {
+  id: string;
+  data: Record<string, unknown>;
+}
+
+export interface DisputeStore {
+  /** The caller's facts in every fact collection (forget.ts). */
+  facts: (userId: string) => Promise<StoredFactRef[]>;
+  /** The caller's recent call summaries. */
+  summaries: (userId: string) => Promise<StoredSummaryRef[]>;
+  markFacts: (userId: string, refs: StoredFactRef[], at: string) => Promise<void>;
+  markSummaryItems: (userId: string, id: string, items: string[], at: string) => Promise<void>;
+}
+
+/** What a denial covers: a text about the echoed topic, or sharing two words with the reply. */
+function matcher(denial: Denial): (text: string) => boolean {
+  if (denial.kind === 'echo') {
+    const topic = storedTopic(denial.topic);
+    return (text) => isForgotten(text, [topic]);
+  }
+  const reply = new Set(denial.words);
+  return (text) => topicWordsOf(text).filter((w) => reply.has(w)).length >= 2;
+}
+
+/** A summary's items that a denial covers and that aren't disputed yet. */
+function disputedItemsOf(data: Record<string, unknown>, covers: (t: string) => boolean): string[] {
+  const done = new Set(Array.isArray(data.disputedItems) ? data.disputedItems.map(String) : []);
+  return SUMMARY_ITEM_FIELDS.flatMap((field) => {
+    const items: unknown = data[field];
+    return Array.isArray(items) ? items.filter((x): x is string => typeof x === 'string') : [];
+  }).filter((item) => !done.has(item) && covers(item));
+}
+
+/** Marks what the caller disputed. Throws only if the store does. Firestore: storage/dispute-store.ts. */
 export async function disputeDenied(
   userId: string,
   denial: Denial,
-  store: ForgetStore = firestoreForgetStore,
+  store: DisputeStore,
   now: Date = new Date()
 ): Promise<DisputeResult> {
-  const live = (await store.facts(userId)).filter((f) => typeof f.data.forgottenAt !== 'string');
-  if (denial.kind === 'echo') {
-    const topic = storedTopic(denial.topic);
-    const matched = live.filter((f) => isForgotten(factText(f.data), [topic])).length;
-    if (matched > MAX_DISPUTED) return { kind: 'too-broad', matched };
-    const result = await forgetTopic(userId, denial.topic, store, now);
-    if (result.kind === 'forgotten') return { kind: 'disputed', marked: result.marked };
-    return result.kind === 'too-broad' ? result : { kind: 'nothing' };
-  }
-  const reply = new Set(denial.words);
-  const matched = live.filter(
-    (f) => topicWordsOf(factText(f.data)).filter((w) => reply.has(w)).length >= 2
+  const covers = matcher(denial);
+  const [facts, summaries] = await Promise.all([store.facts(userId), store.summaries(userId)]);
+  const matched = facts.filter(
+    (f) => typeof f.data.forgottenAt !== 'string' && covers(factText(f.data))
   );
-  if (matched.length === 0) return { kind: 'nothing' };
+  const items = summaries
+    .map((s) => ({ id: s.id, items: disputedItemsOf(s.data, covers) }))
+    .filter((s) => s.items.length > 0);
+  const itemCount = items.reduce((n, s) => n + s.items.length, 0);
   if (matched.length > MAX_DISPUTED) return { kind: 'too-broad', matched: matched.length };
-  await store.markForgotten(userId, matched, now.toISOString());
-  return { kind: 'disputed', marked: matched.length };
+  if (itemCount > MAX_DISPUTED_ITEMS) return { kind: 'too-broad', matched: itemCount };
+  if (matched.length === 0 && itemCount === 0) return { kind: 'nothing' };
+  const at = now.toISOString();
+  if (matched.length > 0) await store.markFacts(userId, matched, at);
+  for (const s of items) await store.markSummaryItems(userId, s.id, s.items, at);
+  return { kind: 'disputed', facts: matched.length, items: itemCount };
 }
 
 /** Reads the caller's line against the reply before it and disputes what it denies. Never throws. */
@@ -114,7 +163,7 @@ export async function disputeForCaller(
   userId: string | undefined,
   callerLine: string,
   previousReply: string,
-  store: ForgetStore = firestoreForgetStore
+  store: DisputeStore
 ): Promise<DisputeResult> {
   if (!userId || userId === 'anonymous') return { kind: 'nothing' };
   const denial = denialOf(callerLine, previousReply);

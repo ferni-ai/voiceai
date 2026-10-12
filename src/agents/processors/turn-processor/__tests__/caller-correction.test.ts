@@ -14,6 +14,9 @@ vi.mock('../../../../services/superhuman/user-corrections.js', () => ({
   userCorrections: { autoRecord: calls.autoRecord },
 }));
 vi.mock('../../../../memory/recall/dispute.js', () => ({ disputeForCaller: calls.dispute }));
+vi.mock('../../../../memory/storage/dispute-store.js', () => ({
+  firestoreDisputeStore: { name: 'firestore' },
+}));
 
 import { recordCallerCorrection } from '../caller-correction.js';
 
@@ -38,7 +41,9 @@ describe('recordCallerCorrection', () => {
       PETER,
       'peter-john'
     );
-    expect(calls.dispute).toHaveBeenCalledWith('seth-uid', 'What contracts?', PETER);
+    expect(calls.dispute).toHaveBeenCalledWith('seth-uid', 'What contracts?', PETER, {
+      name: 'firestore',
+    });
   });
 
   it('flag off: records the correction only', async () => {
