@@ -138,6 +138,7 @@ export const FLAG_MANIFEST = {
   GEMINI_LIVE_USE_VERTEX_AI: { default: 'off', owner: 'voice', kind: 'experiment' },
   GEMMA3N_USE_VERTEX_AI: { default: 'off', owner: 'voice', kind: 'experiment' },
   GOOGLE_GENAI_USE_VERTEXAI: { default: 'off', owner: 'voice', kind: 'experiment' },
+  GREETING_WIRE_AFTER: { default: 'off', owner: 'voice', kind: 'experiment' },
   GTM_AUTO_PUBLISH: { default: 'off', owner: 'platform', kind: 'experiment' },
   GTM_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   GTM_PLATFORM_BLOG: { default: 'off', owner: 'platform', kind: 'experiment' },
