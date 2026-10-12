@@ -8512,7 +8512,7 @@
     "accuracy": "預測準確度",
     "keepTalking": "繼續聊聊吧。我們正在共同建立一些默契。",
     "accuracyLabel": "準確度",
-    "loadFailed": "無法載入你的預測。請稍後再試。",
+    "loadFailed": "嗯，你的預測沒有載入。是我這邊的問題，不是你的。稍等一下，再打開一次。",
     "resolved": "已解決",
     "streak": "連續天數",
     "sampleOverwhelmed": "「你這週可能會感到有些喘不過氣」",
