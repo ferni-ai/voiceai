@@ -1,5 +1,5 @@
 /**
- * AI role label ("AI life coach" for Ferni) on the main screen and sign-in gate.
+ * AI role label ("Life coach" for Ferni) on the main screen and sign-in gate.
  *
  * A small, persistent, honest label on the main screen and the sign-in gate.
  * It lives in its own element so the relationship-stage subtitle ("I am what
@@ -39,7 +39,7 @@ describe('AI role label on the main screen', () => {
     translateStaticDom();
 
     const label = mainLabel();
-    expect(label?.textContent).toBe('AI life coach');
+    expect(label?.textContent).toBe('Life coach');
     expect(label?.querySelector('[data-i18n]')?.getAttribute('data-i18n')).toBe('aiLabel.role.lifeCoach');
     expect(document.getElementById('personaSubtitle')!.contains(label)).toBe(false);
     // Right under the name and subtitle, before the roster
@@ -65,7 +65,7 @@ describe('AI role label on the main screen', () => {
     await vi.waitFor(() => expect(subtitle.textContent).toBe(stageSubtitle), { timeout: 3000 });
 
     expect(subtitle.textContent).not.toBe(before);
-    expect(mainLabel()?.textContent).toBe('AI life coach');
+    expect(mainLabel()?.textContent).toBe('Life coach');
     dispose();
   });
 });
@@ -77,7 +77,7 @@ describe('AI role label on the sign-in gate', () => {
 
     const overlay = document.querySelector('.sign-in-gate-overlay')!;
     const label = overlay.querySelector('.ai-companion-label');
-    expect(label?.textContent).toBe('AI life coach');
+    expect(label?.textContent).toBe('Life coach');
     const title = overlay.querySelector('.sign-in-gate-title')!;
     expect(label!.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     hideSignInGate();
@@ -89,8 +89,8 @@ describe('AI role label copy', () => {
     for (const locale of ['en-US', 'en-GB']) {
       const raw = readFileSync(resolve(__dirname, `../../src/i18n/locales/${locale}.json`), 'utf8');
       const messages = JSON.parse(raw) as { aiLabel?: { role?: Record<string, string> } };
-      expect(messages.aiLabel?.role?.lifeCoach).toBe('AI life coach');
-      expect(messages.aiLabel?.role?.friend).toBe('AI friend');
+      expect(messages.aiLabel?.role?.lifeCoach).toBe('Life coach');
+      expect(messages.aiLabel?.role?.friend).toBe('Friend');
       expect(raw).not.toMatch(/AI companion/i);
     }
   });

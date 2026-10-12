@@ -1,5 +1,5 @@
 /*
- * AI role label ("AI life coach", "AI habits coach"): a small, persistent,
+ * role label ("Life coach", "Habits coach"): a small, persistent,
  * honest chip under the speaker's name on the main screen and on the sign-in
  * gate. It lives in its own element so the dynamic subtitle (#personaSubtitle)
  * can never overwrite it. ai-role-label.ui.ts swaps the words on a handoff.

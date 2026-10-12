@@ -54,7 +54,7 @@ export interface BundleIdentity {
   description: string;
   aliases?: string[];
   self_reference: string;
-  /** i18n key of the AI role label the web shows under the name ("AI life coach") */
+  /** i18n key of the role label the web shows under the name ("Life coach") */
   role_label?: string;
 }
 

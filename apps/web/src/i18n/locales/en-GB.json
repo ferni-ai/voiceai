@@ -3555,7 +3555,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "Your AI life coach",
+        "role": "Your life coach",
         "description": "I'm here for whatever you need — from daily check-ins to deep conversations.",
         "unlockHint": "Always by your side",
         "unlockedMessage": "We've been through a lot together.",
@@ -9502,16 +9502,16 @@
   },
   "aiLabel": {
     "role": {
-      "lifeCoach": "AI life coach",
-      "habitsCoach": "AI habits coach",
-      "insightsMentor": "AI insights mentor",
-      "lifePlanner": "AI life planner",
-      "communicationCoach": "AI communication coach",
-      "wisdomGuide": "AI wisdom guide",
-      "investingMentor": "AI investing mentor",
-      "stockPickingGuide": "AI stock-picking guide",
-      "lifeMentor": "AI life mentor",
-      "friend": "AI friend"
+      "lifeCoach": "Life coach",
+      "habitsCoach": "Habits coach",
+      "insightsMentor": "Insights mentor",
+      "lifePlanner": "Life planner",
+      "communicationCoach": "Communication coach",
+      "wisdomGuide": "Wisdom guide",
+      "investingMentor": "Investing mentor",
+      "stockPickingGuide": "Stock-picking guide",
+      "lifeMentor": "Life mentor",
+      "friend": "Friend"
     }
   },
   "afterCall": {

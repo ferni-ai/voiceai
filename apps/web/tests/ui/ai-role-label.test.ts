@@ -1,9 +1,9 @@
 /**
- * Per-persona AI role label ("AI life coach", "AI habits coach", ...).
+ * Per-persona role label ("Life coach" for Ferni, "Habits coach" for Maya, ...).
  *
- * The label is also the app's AI disclosure (companion-chatbot laws such as
- * California SB 243), so every label must say "AI". The key comes from each
- * persona's manifest (identity.role_label) through personas.generated.json.
+ * No label says "AI" (Seth's call, 2026-10-12): every speaker shows just
+ * their role. The key comes from each persona's manifest (identity.role_label)
+ * through personas.generated.json.
  */
 
 import { readFileSync } from 'node:fs';
@@ -25,15 +25,15 @@ const locale = (name: string) =>
 
 /** The label Seth's team agreed for each speaker, from their manifest role. */
 const EXPECTED: Record<string, string> = {
-  ferni: 'AI life coach',
-  'maya-santos': 'AI habits coach',
-  'peter-john': 'AI insights mentor',
-  'jordan-taylor': 'AI life planner',
-  'alex-chen': 'AI communication coach',
-  'nayan-patel': 'AI wisdom guide',
-  'john-bogle': 'AI investing mentor', // Henry Caldwell
-  'peter-lynch': 'AI stock-picking guide', // Tom Brannigan
-  'joel-dickson': 'AI life mentor', // Nate Holloway
+  ferni: 'Life coach',
+  'maya-santos': 'Habits coach',
+  'peter-john': 'Insights mentor',
+  'jordan-taylor': 'Life planner',
+  'alex-chen': 'Communication coach',
+  'nayan-patel': 'Wisdom guide',
+  'john-bogle': 'Investing mentor', // Henry Caldwell
+  'peter-lynch': 'Stock-picking guide', // Tom Brannigan
+  'joel-dickson': 'Life mentor', // Nate Holloway
 };
 
 const ALL_SPEAKERS = [...Object.values(PERSONAS), ...Object.values(LEGENDS)];
@@ -60,20 +60,20 @@ describe('AI role label per persona', () => {
     }
   });
 
-  it('always says "AI": every label in en-US and en-GB, and every speaker', () => {
+  it('never says "AI": every label in en-US and en-GB, and every speaker', () => {
     for (const name of ['en-US', 'en-GB']) {
       const labels = Object.entries(locale(name).aiLabel.role);
       expect(labels.length).toBeGreaterThanOrEqual(ALL_SPEAKERS.length);
-      for (const [key, text] of labels) expect(text, `${name} ${key}`).toMatch(/\bAI\b/);
+      for (const [key, text] of labels) expect(text, `${name} ${key}`).not.toMatch(/\bAI\b/);
     }
-    for (const persona of ALL_SPEAKERS) expect(aiRoleLabel(persona), persona.id).toMatch(/\bAI\b/);
+    for (const persona of ALL_SPEAKERS) expect(aiRoleLabel(persona), persona.id).not.toMatch(/\bAI\b/);
   });
 
-  it('falls back to "AI friend" with no key or an unknown key', () => {
-    expect(aiRoleLabel(undefined)).toBe('AI friend');
-    expect(aiRoleLabel({ roleLabel: undefined })).toBe('AI friend');
+  it('falls back to "Friend" with no key or an unknown key', () => {
+    expect(aiRoleLabel(undefined)).toBe('Friend');
+    expect(aiRoleLabel({ roleLabel: undefined })).toBe('Friend');
     expect(aiRoleLabelKey({ roleLabel: 'aiLabel.role.noSuchRole' })).toBe(FALLBACK_ROLE_LABEL_KEY);
-    expect(aiRoleLabel({ roleLabel: 'aiLabel.role.noSuchRole' })).toBe('AI friend');
+    expect(aiRoleLabel({ roleLabel: 'aiLabel.role.noSuchRole' })).toBe('Friend');
   });
 });
 
@@ -87,18 +87,18 @@ describe('AI role label on handoff', () => {
     const { translateStaticDom } = await import('../../src/i18n/static-dom.js');
     initCoachUI();
     appState.set('activePersona', PERSONAS.ferni);
-    expect(pill().textContent).toBe('AI life coach');
+    expect(pill().textContent).toBe('Life coach');
 
     appState.set('activePersona', PERSONAS['maya-santos']);
-    expect(pill().textContent).toBe('AI habits coach');
+    expect(pill().textContent).toBe('Habits coach');
     appState.set('activePersona', LEGENDS['peter-lynch']);
-    expect(pill().textContent).toBe('AI stock-picking guide');
+    expect(pill().textContent).toBe('Stock-picking guide');
 
     // The static-DOM translator re-reads data-i18n on a locale change
     translateStaticDom();
-    expect(pill().textContent).toBe('AI stock-picking guide');
+    expect(pill().textContent).toBe('Stock-picking guide');
     appState.set('activePersona', PERSONAS.ferni);
-    expect(pill().textContent).toBe('AI life coach');
+    expect(pill().textContent).toBe('Life coach');
     dispose();
   });
 
@@ -123,7 +123,7 @@ describe('AI role label on handoff', () => {
       showAiRoleLabel(label, PERSONAS['alex-chen']);
       expect(text.dataset.i18n).toBe('aiLabel.role.communicationCoach');
       width = 160; // the new words are wider; measured after the swap
-      await vi.waitFor(() => expect(text.textContent).toBe('AI communication coach'));
+      await vi.waitFor(() => expect(text.textContent).toBe('Communication coach'));
 
       const opacities = textAnimate.mock.calls.map(([frames]) => frames.map((f) => f.opacity));
       expect(opacities).toEqual([

@@ -1,10 +1,9 @@
 /**
- * The AI role label under the speaker's name: "AI life coach" for Ferni,
- * "AI habits coach" for Maya, and so on.
+ * The role label under the speaker's name: "Life coach" for Ferni,
+ * "Habits coach" for Maya, and so on.
  *
- * It is also the app's AI disclosure, so every label says "AI". The i18n key
- * comes from the persona's manifest (identity.role_label, generated into
- * personas.generated.json); a persona without one shows "AI friend".
+ * The i18n key comes from the persona's manifest (identity.role_label,
+ * generated into personas.generated.json); a persona without one shows "Friend".
  *
  * On a handoff the words crossfade (opacity only) and the pill eases to its new
  * width. The pill sits alone in its row, so nothing around it moves.
