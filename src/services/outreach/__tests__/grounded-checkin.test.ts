@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  blocksGenericCheckIns,
   composeMessage,
   dueNow,
   groundingQuote,
@@ -46,10 +47,17 @@ const item = (id: string, text: string, when?: string): CheckInItem => ({
 });
 
 describe('the flag', () => {
-  it('is off unless OUTREACH_GROUNDED_CHECKINS=on', () => {
-    expect(isGroundedCheckInsOn({})).toBe(false);
-    expect(isGroundedCheckInsOn({ OUTREACH_GROUNDED_CHECKINS: 'true' })).toBe(false);
+  it('is on by default, so generic check-ins stay blocked with no env set', () => {
+    expect(isGroundedCheckInsOn({})).toBe(true);
+    expect(blocksGenericCheckIns({})).toBe(true);
     expect(isGroundedCheckInsOn({ OUTREACH_GROUNDED_CHECKINS: 'on' })).toBe(true);
+    expect(isGroundedCheckInsOn({ OUTREACH_GROUNDED_CHECKINS: 'garbled' })).toBe(true);
+  });
+
+  it('only an explicit off brings back the generic check-ins', () => {
+    expect(isGroundedCheckInsOn({ OUTREACH_GROUNDED_CHECKINS: 'off' })).toBe(false);
+    expect(blocksGenericCheckIns({ OUTREACH_GROUNDED_CHECKINS: 'off' })).toBe(false);
+    expect(blocksGenericCheckIns({ OUTREACH_GROUNDED_CHECKINS: 'false' })).toBe(false);
   });
 });
 
@@ -72,9 +80,14 @@ describe('grounding', () => {
 
   it("never quotes the caller talking about Ferni's life as their own", () => {
     // The 2026-10-11 dry run grounded "How is your martial arts training going?" on this line.
-    const aboutFerni = ['Oh, I meant your martial arts training.', 'Do you still do martial arts training?'];
+    const aboutFerni = [
+      'Oh, I meant your martial arts training.',
+      'Do you still do martial arts training?',
+    ];
     expect(groundingQuote('How is your martial arts training going?', aboutFerni)).toBeUndefined();
-    expect(groundingQuote('How is the martial arts going?', ['martial arts tonight, finally'])).toBeUndefined();
+    expect(
+      groundingQuote('How is the martial arts going?', ['martial arts tonight, finally'])
+    ).toBeUndefined();
   });
 });
 

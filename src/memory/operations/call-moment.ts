@@ -90,25 +90,6 @@ export function callMomentLine(at: Date, timeZone?: string): string {
   );
 }
 
-// The caller's zone per session, recorded when the call starts (the dispatch
-// metadata carries it) and read by memory writers that only have a session
-// id. Bounded: a worker runs one call at a time, so old entries are just
-// left over from earlier calls.
-const MAX_SESSIONS = 200;
-const zones = new Map<string, string>();
-
-/** Records the zone under each id a memory writer may key the call by. */
-export function rememberCallerTimeZone(timeZone: unknown, ...ids: unknown[]): void {
-  const zone = validZone(typeof timeZone === 'string' ? timeZone : undefined);
-  if (!zone) return;
-  for (const id of ids) {
-    if (typeof id !== 'string' || !id) continue;
-    zones.delete(id);
-    zones.set(id, zone);
-  }
-  while (zones.size > MAX_SESSIONS) zones.delete(zones.keys().next().value as string);
-}
-
-export function callerTimeZoneFor(sessionId: string): string | undefined {
-  return zones.get(sessionId);
-}
+// The caller's zone per session: kept in utils so tools that schedule things
+// read the same record the memory writers do.
+export { callerTimeZoneFor, rememberCallerTimeZone } from '../../utils/caller-time-zone.js';
