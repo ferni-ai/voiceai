@@ -28,7 +28,7 @@ import {
   verifyIdentity,
   type AuthContext,
 } from '../services/identity/natural-auth.js';
-import { signOnBehalfDispatch } from '../services/outreach/on-behalf-dispatch.js';
+import { signDispatch, signOnBehalfDispatch } from '../services/outreach/on-behalf-dispatch.js';
 
 describe('Natural Authentication', () => {
   describe('authenticateNaturally', () => {
@@ -71,14 +71,18 @@ describe('Natural Authentication', () => {
       expect(String(result.userId ?? '')).not.toContain('5551234567');
     });
 
-    it('should handle explicit user_id', async () => {
-      const result = await authenticateNaturally({
-        metadata: {
-          user_id: 'known-user-123',
-        },
-      });
+    it('should handle explicit user_id on a dispatch our server signed', async () => {
+      process.env.LIVEKIT_API_SECRET = 'test-livekit-secret';
+      const metadata = signDispatch({ user_id: 'known-user-123' }, 'test-livekit-secret');
+      const result = await authenticateNaturally({ metadata });
 
       expect(result.userId).toBe('known-user-123');
+    });
+
+    it('should not identify anyone by an unsigned user_id', async () => {
+      const result = await authenticateNaturally({ metadata: { user_id: 'known-user-123' } });
+
+      expect(result.userId).not.toBe('known-user-123');
     });
 
     it('should handle null voice sketch', async () => {
