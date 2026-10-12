@@ -1,18 +1,11 @@
 /**
- * A briefed handoff (BRIEFED_HANDOFF=on): the teammate a caller is handed to already
- * knows why they came, so the caller never has to say it twice.
+ * A briefed handoff (BRIEFED_HANDOFF=on): the teammate already knows why the caller came.
  *
- * Before this, the teammate opened on canned banter ("Hey there! Peter here.") and,
- * asked "Hi Peter", answered "Oh, right, I am Peter" (dev voice eval bh-01, 2026-10-11).
- * The tool's `reason` never reached it ("LLM requested handoff"), a tap's reason was
- * "User requested via UI", and the recall notes Ferni had during the talk are system
- * messages, which the swap drops (persona-swap.ts conversationSoFar).
- *
- * At handoff time, while the outgoing persona says goodbye, two fast-model calls run:
- * the brief (why they came, what they said, what's open, how they seem, what Ferni
- * promised, up to 3 remembered facts; ≤150 tokens, added to the teammate's prompt) and
- * the teammate's first line, written by the director in the teammate's own character
- * (cue-say.ts). Either one late or failed: a brief built from the turns themselves, and
+ * Before, the teammate opened on canned banter ("Hey there! Peter here."); asked "Hi
+ * Peter", it said "Oh, right, I am Peter" (dev eval bh-01, 2026-10-11). The swap drops
+ * Ferni's recall notes (system messages). While the goodbye plays, two fast-model calls
+ * write the brief (≤150 tokens, into the teammate's prompt) and the teammate's first
+ * line (the director, in their character). Late or failed: a brief from the turns, and
  * the old banter line.
  *
  * @module agents/multi-agent/handoff-brief
