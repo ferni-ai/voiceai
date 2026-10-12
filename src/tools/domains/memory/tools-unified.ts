@@ -16,6 +16,8 @@ import { getUnifiedMemoryService } from '../../../services/unified-memory-servic
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { getSessionId } from '../../utils/tool-helpers.js';
+import { announceRemembered } from './remember-moment.js';
 
 const log = getLogger();
 
@@ -208,6 +210,9 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
 
         if (result.success) {
           log.debug({ memoryId: result.memoryId }, 'Memory written successfully');
+          // "I'll remember: …" in the app (REMEMBER_MOMENT=on); only after a store that succeeded.
+          const sessionId = getSessionId({ ctx: toolCtx });
+          void announceRemembered({ userId, sessionId, fact, category });
         }
 
         // Return empty - agent should continue naturally

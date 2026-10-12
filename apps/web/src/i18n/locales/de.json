@@ -9513,6 +9513,7 @@
   "moments": {
     "teamUnlockTitle": "Lerne {name} kennen",
     "niceWork": "Schön gemacht",
+    "remembered": "Merk ich mir: {summary}",
     "streakSubtitle": "Du bist da. Das zählt.",
     "streakTitle": {
       "one": "{count}-Tage-Serie",

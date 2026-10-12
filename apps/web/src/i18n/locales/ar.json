@@ -9833,6 +9833,7 @@
   "moments": {
     "teamUnlockTitle": "تعرف على {name}",
     "niceWork": "عمل رائع",
+    "remembered": "سأتذكّر هذا: {summary}",
     "streakSubtitle": "حضورك مستمر، وهذا أمر رائع.",
     "streakTitle": {
       "zero": "سلسلة من {count} يوم",
