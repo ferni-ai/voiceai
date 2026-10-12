@@ -66,6 +66,19 @@ describe('claudeText', () => {
     });
   });
 
+  it('sends the workspace header only when ANTHROPIC_WORKSPACE_ID is set', async () => {
+    const headersOf = (f: ReturnType<typeof reply>) =>
+      (f.mock.calls[0]?.[1]?.headers as Record<string, string> | undefined)?.[
+        'anthropic-workspace-id'
+      ] ?? null;
+    const without = reply({ content: [{ type: 'text', text: 'ok' }] });
+    await claudeText('p', {}, ON, without);
+    expect(headersOf(without)).toBeNull();
+    const withWs = reply({ content: [{ type: 'text', text: 'ok' }] });
+    await claudeText('p', {}, { ...ON, ANTHROPIC_WORKSPACE_ID: 'wrkspc_test' }, withWs);
+    expect(headersOf(withWs)).toBe('wrkspc_test');
+  });
+
   it('joins the text blocks and skips thinking blocks', async () => {
     const f = reply({
       content: [

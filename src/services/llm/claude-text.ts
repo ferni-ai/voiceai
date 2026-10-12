@@ -14,7 +14,9 @@
  * worse than off.
  *
  * Env: CLAUDE_LLM_MODEL (default claude-sonnet-5-5), CLAUDE_LLM_EFFORT
- * (default low), CLAUDE_LLM_TIMEOUT_MS (default: the caller's timeout).
+ * (default low), CLAUDE_LLM_TIMEOUT_MS (default: the caller's timeout),
+ * ANTHROPIC_WORKSPACE_ID (required by keys not scoped to one workspace, which
+ * otherwise get a 400; sent as the anthropic-workspace-id header).
  *
  * @module services/llm/claude-text
  */
@@ -91,6 +93,9 @@ export async function claudeText(
           'x-api-key': key,
           'anthropic-version': '2023-06-01',
           'content-type': 'application/json',
+          ...(env.ANTHROPIC_WORKSPACE_ID
+            ? { 'anthropic-workspace-id': env.ANTHROPIC_WORKSPACE_ID }
+            : {}),
         },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(timeout),
