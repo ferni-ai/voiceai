@@ -256,6 +256,7 @@ export const FLAG_MANIFEST = {
   SEMANTIC_ROUTER_WARMUP: { default: 'on', owner: 'tools', kind: 'config' },
   SEMANTIC_ROUTING_DEBUG: { default: 'off', owner: 'tools', kind: 'config' },
   SESSION_CONTINUITY_WRITE: { default: 'off', owner: 'memory', kind: 'experiment' },
+  SILENCE_REMARK_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   SILENT_LINE_HANGUP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   SKIP_CONVERSATIONAL_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
   SKIP_GEMINI_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },

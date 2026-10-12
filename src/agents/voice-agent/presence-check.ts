@@ -23,6 +23,7 @@ import { ReadableStream } from 'node:stream/web';
 
 import { flagOn } from '../../config/env-flag.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { remarkTooSoon, silenceRemarkGuardOn } from './silence-remark-guard.js';
 
 /** Default minimum gap between two presence checks to a caller whose audio is fine. */
 export const PRESENCE_CHECK_MIN_GAP_MS = 180_000;
@@ -55,6 +56,24 @@ export function isPresenceCheck(text: string): boolean {
   return PRESENCE_PATTERNS.some((p) => p.test(plain));
 }
 
+/** Sounds and words that carry nothing on their own: "Mm?", "Yeah?", "Hey, so...". */
+const FILLER =
+  /\b(?:m+h?m*|h+m+|uh+(?:-?huh)?|um+|oh+|ah+|yeah|yep|yes|hey|hi|hello+|so|okay|ok|or|and|well)\b/gi;
+
+/**
+ * True when the text is nothing but a check on the caller: a presence check
+ * ("You there?", "Still with me?") or a bare questioning sound ("Mm?",
+ * "Yeah?"), with nothing else said. "You still there, or did the music put you
+ * to sleep too?" says something more, so it is not bare (the cap still applies).
+ */
+export function isBarePresenceCheck(text: string): boolean {
+  const plain = text.replace(/<[^>]*>|\[[^\]]*\]/g, ' ').trim();
+  if (!plain || !(plain.includes('?') || isPresenceCheck(plain))) return false;
+  let rest = plain;
+  for (const p of PRESENCE_PATTERNS) rest = rest.replace(new RegExp(p.source, 'gi'), ' ');
+  return rest.replace(FILLER, ' ').replace(/[^\p{L}\p{N}]+/gu, '') === '';
+}
+
 /** PRESENCE_CHECK_MIN_GAP_MS from the environment, or the 3-minute default. */
 export function presenceCheckGapMs(env: Record<string, string | undefined> = process.env): number {
   const n = Number(env.PRESENCE_CHECK_MIN_GAP_MS);
@@ -83,7 +102,10 @@ export function presenceCheckAllowed(
 
 interface PresenceState {
   lastCheckAt?: number;
-  armed?: { allowPresence: boolean; at: number };
+  /** When the last remark into silence was asked for (SILENCE_REMARK_GUARD). */
+  lastRemarkAt?: number;
+  /** dropBare: drop a reply that is only "Mm?" / "You there?" (SILENCE_REMARK_GUARD). */
+  armed?: { allowPresence: boolean; at: number; dropBare?: boolean };
 }
 
 const states = new WeakMap<object, PresenceState>();
@@ -108,9 +130,10 @@ export function recordPresenceCheck(session: object, now: number = Date.now()): 
 export function armSilenceReply(
   session: object,
   allowPresence: boolean,
-  now: number = Date.now()
+  now: number = Date.now(),
+  dropBare = false
 ): void {
-  stateOf(session).armed = { allowPresence, at: now };
+  stateOf(session).armed = { allowPresence, at: now, dropBare };
 }
 
 /** The caller spoke: any armed silence reply is no longer pending. */
@@ -138,10 +161,11 @@ export function capSilenceRequest<T extends SilenceRequest>(
   session: object,
   request: T,
   audioDropped: boolean,
-  now: number = Date.now()
+  now: number = Date.now(),
+  dropBare = false
 ): T {
   const allowPresence = presenceCheckAllowed(lastPresenceCheckAt(session), now, audioDropped);
-  if (request.instructions) armSilenceReply(session, allowPresence, now);
+  if (request.instructions) armSilenceReply(session, allowPresence, now, dropBare);
   else if (allowPresence && request.fallback && isPresenceCheck(request.fallback)) {
     recordPresenceCheck(session, now);
   }
@@ -157,24 +181,50 @@ export function capSilenceRequest<T extends SilenceRequest>(
 export interface PresenceCap {
   /** The caller spoke: a pending silence remark is no longer pending. */
   callerSpoke: () => void;
-  /** Cap one long-silence request; unchanged when the flag is off. */
+  /** SILENCE_REMARK_GUARD: a remark went out under a minute ago, even if the caller spoke since. */
+  held: () => boolean;
+  /** Cap one long-silence request; unchanged when both flags are off. */
   cap: <T extends SilenceRequest>(request: T) => T;
   stop: () => void;
 }
 
-/** PRESENCE_CHECK_CAP=on: cap presence checks for this session; off: change nothing. */
+/**
+ * PRESENCE_CHECK_CAP=on: cap presence checks for this session.
+ * SILENCE_REMARK_GUARD=on: at most one remark a minute across the caller's
+ * turns, and a reply that is only a check is dropped unless the audio dropped.
+ * Both off: change nothing.
+ */
 export function createPresenceCap(
   session: object,
   room: RoomLike | undefined,
   env: Record<string, string | undefined> = process.env
 ): PresenceCap {
-  if (!flagOn('PRESENCE_CHECK_CAP', env)) {
-    return { callerSpoke: () => undefined, cap: (request) => request, stop: () => undefined };
+  const capOn = flagOn('PRESENCE_CHECK_CAP', env);
+  const guardOn = silenceRemarkGuardOn(env);
+  if (!capOn && !guardOn) {
+    return {
+      callerSpoke: () => undefined,
+      held: () => false,
+      cap: (request) => request,
+      stop: () => undefined,
+    };
   }
   const audio = watchRemoteAudio(room);
   return {
     callerSpoke: () => disarmSilenceReply(session),
-    cap: (request) => capSilenceRequest(session, request, audio.dropped()),
+    held: () => {
+      const held = guardOn && remarkTooSoon(states.get(session)?.lastRemarkAt, Date.now());
+      if (held) diag.state('🤫 [SILENCE] Skipped - a remark went out under a minute ago');
+      return held;
+    },
+    cap: (request) => {
+      const now = Date.now();
+      const dropped = audio.dropped(now);
+      if (guardOn) stateOf(session).lastRemarkAt = now;
+      if (capOn) return capSilenceRequest(session, request, dropped, now, guardOn && !dropped);
+      if (request.instructions) armSilenceReply(session, true, now, !dropped);
+      return request;
+    },
     stop: () => audio.stop(),
   };
 }
@@ -216,9 +266,10 @@ export function filterSilenceReply<T extends Chunk>(
           text += contentOf(chunk) ?? '';
         }
         const check = isPresenceCheck(text);
-        const drop = check && !armed.allowPresence;
+        const bare = Boolean(armed.dropBare) && isBarePresenceCheck(text);
+        const drop = bare || (check && !armed.allowPresence);
         if (check && !drop) recordPresenceCheck(session, now());
-        if (check) diag.state('🤫 [SILENCE] Presence check', { spoken: !drop });
+        if (check || bare) diag.state('🤫 [SILENCE] Presence check', { spoken: !drop, bare });
         for (const chunk of held)
           if (!drop || contentOf(chunk) === undefined) controller.enqueue(chunk);
         controller.close();
