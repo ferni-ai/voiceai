@@ -379,12 +379,6 @@
   --color-paper-sand: #fffdfb;
 
   /* ============================================
-     COLORS - Legacy Aliases
-     ============================================ */
-  --color-jaggi: var(--color-nayan);
-  --color-jaggi-secondary: var(--color-jack);
-
-  /* ============================================
      SPACING
      ============================================ */
   --space-0: 0;
