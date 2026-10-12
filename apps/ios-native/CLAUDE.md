@@ -65,6 +65,10 @@ All extensions share: `group.com.ferni.shared`
 
 ## Subscription Tiers (StoreKit 2)
 
+Ferni is free for now: `PaidPlans.isOffered` (`Sources/App/PaidPlans.swift`)
+is `false`, so no plan, price or purchase button is shown, and teammates join
+by relationship stage only. The StoreKit code below stays for when plans return.
+
 | Tier | Price | Personas | Conversations |
 |------|-------|----------|---------------|
 | Free | $0 | Ferni only | 5/month |

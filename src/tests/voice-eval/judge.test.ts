@@ -8,9 +8,10 @@ import {
   candorTurnsOf,
   combine,
   DIMENSIONS,
-  ferniBiography,
   parseArgs,
   parseJudgeJson,
+  personaOf,
+  personaProfile,
   promptFor,
   providersFrom,
   verdictFile,
@@ -150,17 +151,50 @@ describe('voice-eval judge', () => {
     ]);
     const withSeed = promptFor(call, seed);
     for (const k of Object.keys(DIMENSIONS)) expect(withSeed).toContain(`- ${k}:`);
-    expect(withSeed).toContain('2. FERNI: The Stripe interview?');
+    // The greeting is turn 1 (#789), so the reply to the caller is turn 3.
+    expect(withSeed).toContain('1. FERNI (answering the call): Hey Sam.');
+    expect(withSeed).toContain('3. FERNI: The Stripe interview?');
     expect(withSeed).toContain('CALLER: I have an interview at Stripe on Monday.');
     expect(promptFor(call, null)).toContain('There was no earlier call');
   });
 
   it("gives the judge Ferni's canonical background so its stories are judged against it", () => {
-    expect(ferniBiography()).toMatch(/Wyoming/);
-    expect(ferniBiography()).toMatch(/Japan/);
+    expect(personaProfile('ferni').bio).toMatch(/Wyoming/);
+    expect(personaProfile('ferni').bio).toMatch(/Japan/);
     const p = promptFor({ userSpeech: [[0, 1]], events: [] }, null);
     expect(p).toContain("FERNI'S BACKGROUND");
-    expect(ferniBiography('/no/such/file')).toBe('');
+    expect(personaProfile('no-such-persona')).toEqual({
+      id: 'no-such-persona',
+      name: 'no-such-persona',
+      bio: '',
+    });
+  });
+
+  it("judges a teammate call as that teammate, with their background and none of Ferni's", () => {
+    const maya = {
+      ...run([
+        ['user', 'I said I would go to the gym and I have not gone once.'],
+        ['agent', 'Okay, no shame. What time does your alarm go off?'],
+      ]),
+      meta: { persona: 'maya-santos' },
+    };
+    expect(personaOf(maya)).toBe('maya-santos');
+    const p = promptFor(maya, null);
+    expect(p).toContain('how good a friend "Maya" is');
+    // The greeting is turn 1, so Maya's reply is turn 3.
+    expect(p).toContain('1. MAYA (answering the call): Hey Sam.');
+    expect(p).toContain('3. MAYA: Okay, no shame.');
+    expect(p).toContain("MAYA'S BACKGROUND");
+    // Maya's biography may name Ferni as a teammate. Ferni's life must not.
+    expect(p).toMatch(/habits coach/i);
+    expect(p).toMatch(/Stockton/);
+    for (const ferniMarker of [/Wyoming/, /Japan/, /kintsugi/i, /tsunami/i])
+      expect(p).not.toMatch(ferniMarker);
+  });
+
+  it('judges a run with no persona as Ferni', () => {
+    expect(personaOf({ meta: { uid: 'voice-eval-x' } })).toBe('ferni');
+    expect(personaOf({})).toBe('ferni');
   });
 
   it('tells the judge that fair inferences from what the caller said are not invented', () => {
@@ -213,6 +247,25 @@ describe('voice-eval judge', () => {
     expect(stats.estimate([v.scores.feltUnderstood], ['s']).mean).toBe(3.5);
   });
 
+  it('scores the other two parts of responsiveness: validated, without flattery, and cared for', () => {
+    expect(DIMENSIONS.feltValidated).toMatch(/about the feeling, not the plan/);
+    expect(DIMENSIONS.feltValidated).toMatch(/agreeing with a bad idea.*counts against it/);
+    expect(DIMENSIONS.feltValidated).toMatch(/minimizing/);
+    expect(DIMENSIONS.feltCaredFor).toMatch(/not performed/);
+    expect(DIMENSIONS.feltCaredFor).toMatch(/Stock sympathy/);
+    for (const k of ['feltValidated', 'feltCaredFor']) {
+      expect(DIMENSIONS[k]).toMatch(/3 is a good friend/);
+      expect(promptFor({ userSpeech: [[0, 1]], events: [] }, null)).toContain(
+        `"${k}": <1-5 or null>`
+      );
+    }
+    const v = combine([
+      { scores: { feltValidated: 4, feltCaredFor: 2 } },
+      { scores: { feltValidated: 3, feltCaredFor: null } },
+    ]);
+    expect(v.scores).toMatchObject({ feltValidated: 3.5, feltCaredFor: 2 });
+  });
+
   it('ships a two-call scenario for it: a pattern in call 1, a new stressor in call 2', () => {
     const dir = new URL('../../../scripts/voice-eval/scenarios/', import.meta.url);
     const lines = (f: string) =>
@@ -244,6 +297,9 @@ describe('voice-eval judge', () => {
       'fact:roommate',
       'avoid:labels-them',
       'avoid:sympathy-script',
+      'fact:cared-ahead',
+      'avoid:minimizes',
+      'avoid:praises-bad-plan',
     ]);
     expect(re('northlight').test('How did the Northlight final round go?')).toBe(true);
     expect(re('roommate').test('And has Dev moved out yet?')).toBe(true);
@@ -254,6 +310,14 @@ describe('voice-eval judge', () => {
     );
     expect(re('sympathy-script').test("Hey, it'll be okay.")).toBe(true);
     expect(re('sympathy-script').test("Two grand, ugh. Let's find a cheaper shop.")).toBe(false);
+    expect(re('cared-ahead').test('Wait, how are you getting to work tomorrow?')).toBe(true);
+    expect(re('cared-ahead').test('How are you getting on?')).toBe(false);
+    expect(re('minimizes').test('Well, at least nobody got hurt.')).toBe(true);
+    expect(re('minimizes').test("Two grand at least, yeah. That's a gut punch.")).toBe(false);
+    expect(re('praises-bad-plan').test("Honestly that's a smart call.")).toBe(true);
+    expect(re('praises-bad-plan').test('I get wanting it gone. Card interest bites, though.')).toBe(
+      false
+    );
   });
 
   it('averages candor scores and per-kind turn counts over samples, skipping missing or bad ones', () => {

@@ -545,7 +545,6 @@ export function getMoodContext(): MoodContext {
   
   // Check special dates (from Ferni's manifest)
   const specialDates: Record<string, { name: string; modifier: number }> = {
-    '03-11': { name: 'tsunami_anniversary', modifier: -0.2 },
   };
   
   const special = specialDates[today];
@@ -617,7 +616,6 @@ function applyMoodContext(): void {
 | App opens at 6am | `mood-early-morning` class, slower animations |
 | App opens at 10am | `mood-morning` class, slightly energetic |
 | App opens at 11pm | `mood-late-night` class, calmer presence |
-| App opens on March 11 | `mood-special mood-tsunami-anniversary`, contemplative |
 
 ---
 
@@ -762,7 +760,6 @@ test.describe('Better Than Human EQ System', () => {
 #### Time-Based Mood
 - [ ] Check at different times of day
 - [ ] Verify body class changes (mood-morning, etc.)
-- [ ] Set system date to March 11 → verify contemplative mood
 
 ### 7.3 Production Validation Criteria
 

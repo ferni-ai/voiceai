@@ -1,8 +1,15 @@
 /**
  * SOTA release gate for Waves 1-5.
  *
- * Usage:
+ * Usage (the agent runs on LiveKit Cloud; its metrics come from live-call evals
+ * on dev, see the voice-eval skill and scripts/ops/voice-eval-metrics.mjs):
+ *   VOICE_EVAL_RESULT=<score.mjs pooled JSON> \
+ *   VOICE_EVAL_RECALL=<recall-facts.mjs --json output> \
  *   node scripts/ops/sota-release-gate.mjs
+ *
+ * OBS_URL instead points the latency, barge-in and memory checks at a
+ * reachable /api/observability (a local agent). With neither they fail.
+ * outreach-drain calls Cloud Run with ASYNC_ID_TOKEN or a gcloud identity token.
  *
  * Runs these checks in order:
  *   - scripts/ops/assert-first-audio-slo.mjs

@@ -176,16 +176,16 @@ const mockPersonaModes: BundlePersonaModes = {
 const mockStoryGraph: BundleStoryGraph = {
   story_arcs: {
     resilience_arc: {
-      sequence: ['tsunami', 'kintsugi', 'second-chances'],
+      sequence: ['the-ridge', 'kintsugi', 'second-chances'],
       narrative: 'How challenges become wisdom',
       spacing: 'minimum_5_turns_between',
     },
   },
   story_references: {
-    tsunami: {
-      id: 'tsunami',
+    'the-ridge': {
+      id: 'the-ridge',
       naturally_leads_to: ['kintsugi'],
-      callback_phrases: ['Remember when I told you about the tsunami?'],
+      callback_phrases: ['Remember when I told you about Tanaka-san?'],
       related_themes: ['resilience', 'perspective'],
     },
   },
@@ -451,14 +451,14 @@ describe('Bundle Persona Modes', () => {
 describe('Bundle Story Graph', () => {
   it('should define story arcs', () => {
     const arc = mockStoryGraph.story_arcs.resilience_arc;
-    expect(arc.sequence).toEqual(['tsunami', 'kintsugi', 'second-chances']);
+    expect(arc.sequence).toEqual(['the-ridge', 'kintsugi', 'second-chances']);
     expect(arc.narrative).toContain('challenges');
   });
 
   it('should have story references with callbacks', () => {
-    const { tsunami } = mockStoryGraph.story_references;
-    expect(tsunami.callback_phrases?.length).toBeGreaterThan(0);
-    expect(tsunami.naturally_leads_to).toContain('kintsugi');
+    const ridge = mockStoryGraph.story_references['the-ridge'];
+    expect(ridge.callback_phrases?.length).toBeGreaterThan(0);
+    expect(ridge.naturally_leads_to).toContain('kintsugi');
   });
 
   it('should have context triggers for story selection', () => {
@@ -726,7 +726,7 @@ const mockInnerWorld: BundleInnerWorld = {
     legacy_hope: 'I want someone to say I asked them the question that changed their life.',
   },
   mortality_awareness: {
-    how_they_think_about_death: 'The tsunami taught me death is always closer than we think.',
+    how_they_think_about_death: 'Losing Tanaka-san taught me death is always closer than we think.',
     what_they_want_said_at_their_funeral: 'He asked good questions. He made people feel seen.',
     living_with_awareness: 'Every conversation could be the last. Make it count.',
     age_feeling: "I don't feel my age until I try to sit on the floor.",

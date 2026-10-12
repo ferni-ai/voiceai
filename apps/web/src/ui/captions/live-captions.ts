@@ -2,9 +2,13 @@
  * Live captions (behind the captions-v2 flag, see captions-flag.ts).
  *
  * Words, not a window. Modelled on iOS Live Captions, but with no panel:
- * - Ferni's words sit in the open space between the persona and the call
- *   controls, never over the avatar, controls or anything else: the region
- *   is capped by that space (captionsLayout) and holds whole lines only.
+ * - Ferni's words sit in the open space between the persona and the
+ *   waveform and call controls, never over the avatar, waveform, controls or
+ *   anything else: the region is capped by that space (captionsLayout) and
+ *   holds whole lines only.
+ * - In a call with captions on, the persona picker under the avatar steps
+ *   aside (CAPTIONS_CALL_CLASS): with it there is no room for even one line
+ *   above the waveform, and mid-call switching is a voice request anyway.
  * - Only the last line or two of the current turn. New words fade in as
  *   they are spoken; earlier text scrolls up under a soft fade. Nothing is
  *   ever ellipsized.
@@ -24,7 +28,7 @@
 
 import { t } from '../../i18n/index.js';
 import { appState } from '../../state/app.state.js';
-import { injectCaptionStyles } from './live-captions.styles.js';
+import { CAPTIONS_CALL_CLASS, injectCaptionStyles } from './live-captions.styles.js';
 import { captionsOn, mountCaptionsToggle } from './captions-toggle.js';
 import {
   MomentChips,
@@ -155,6 +159,7 @@ class LiveCaptions {
   push(speaker: CaptionSpeaker, text: string, final: boolean): void {
     const before = this.entries;
     this.entries = applyTranscript(before, speaker, text, final);
+    this.syncCall();
     if (this.entries === before) return;
     if (!this.isEnabled()) return this.hide();
     // Same length and same second-to-last entry: the open utterance grew.
@@ -166,8 +171,12 @@ class LiveCaptions {
     this.idle = setTimeout(() => this.hide(), IDLE_MS);
   }
 
-  /** Captions were switched on or off mid-call. */
+  /**
+   * Captions were switched on or off mid-call. The picker follows the switch
+   * (it steps aside while captions are on), so there is room for them.
+   */
   refresh(): void {
+    this.syncCall();
     if (this.isEnabled() && this.entries.length > 0) this.render(false);
     else this.hide();
   }
@@ -186,11 +195,22 @@ class LiveCaptions {
     this.schedule();
   }
 
+  /**
+   * Captions on in a call: the picker yields for the whole call, not per
+   * utterance, so the header does not jump each time captions fade.
+   */
+  syncCall(): void {
+    const inCall = document.body.dataset.connected === 'true';
+    document.body.classList.toggle(CAPTIONS_CALL_CLASS, inCall && this.isEnabled());
+    this.schedule();
+  }
+
   /** Call ended: forget the conversation and take the region down. */
   reset(): void {
     this.entries = [];
     this.chips?.clear();
     this.hide();
+    document.body.classList.remove(CAPTIONS_CALL_CLASS);
     if (this.viewport) this.viewport.replaceChildren();
   }
 
@@ -232,7 +252,8 @@ class LiveCaptions {
     // The avatar grows and the controls move when a call connects; follow them.
     if (typeof ResizeObserver !== 'undefined') {
       const observer = new ResizeObserver(() => this.schedule());
-      for (const el of document.querySelectorAll('.header, .avatar-container, .controls-row')) {
+      const watched = '.header, .avatar-container, #waveformContainer, .controls-row';
+      for (const el of document.querySelectorAll(watched)) {
         observer.observe(el);
       }
     }
@@ -273,16 +294,19 @@ class LiveCaptions {
 
   private layout(): void {
     if (!this.root || !this.viewport) return;
-    const controls = document.querySelector('.controls-row')?.getBoundingClientRect();
-    const bottomOf = (selector: string): number | null => {
+    const rectOf = (selector: string): DOMRect | null => {
       const rect = document.querySelector(selector)?.getBoundingClientRect();
-      return rect && rect.height > 0 ? rect.bottom : null;
+      return rect && rect.height > 0 ? rect : null;
     };
-    // One rem (--space-md) between the region, the controls and the avatar.
+    const bottomOf = (selector: string): number | null => rectOf(selector)?.bottom ?? null;
+    // The waveform sits just above the controls: captions stop above both.
+    const below = [rectOf('#waveformContainer'), rectOf('.controls-row')].filter((r) => r !== null);
+    const floor = below.length ? Math.min(...below.map((r) => r.top)) : null;
+    // One rem (--space-md) between the region, the waveform and the avatar.
     const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
     const gap = Number.isFinite(rem) ? rem : 0;
     const place = (ceiling: number | null): CaptionsLayout =>
-      captionsLayout(window.innerHeight, controls?.height ? controls.top : null, ceiling, gap);
+      captionsLayout(window.innerHeight, floor, ceiling, gap);
     // Keep clear of the whole persona header (avatar, name, roster) when that
     // leaves room for a line (and the chip); never closer than the avatar.
     let { bottom, maxHeight } = place(bottomOf('.header'));
@@ -348,7 +372,9 @@ export function initLiveCaptions(isEnabled: () => boolean = captionsOn): LiveCap
   on('ferni:moment', (d) => momentFromDetail(d, 'moment'));
   window.addEventListener('ferni:connection-state', ((e: CustomEvent) => {
     if ((e.detail as { state?: string })?.state === 'disconnected') captions.reset();
+    else captions.syncCall();
   }) as EventListener);
+  captions.syncCall(); // the call may already be up
   instance = captions;
   return captions;
 }

@@ -27,8 +27,8 @@ import {
 } from '../shared/tts-wrapper.js';
 // Centralized generateReply gateway - NEVER use session.generateReply directly!
 import { generateReply } from '../shared/generate-reply-gateway.js';
-// Safe fire-and-forget for non-critical async operations
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+import { filterSilenceReply } from '../voice-agent/presence-check.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { filterCaptionStream } from './caption-filter.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
@@ -689,8 +689,9 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
   }
 
   /**
-   * Every LLM request (preemptive or not) goes through here, gated for crisis with
-   * the turn reminder and director's notes (crisis-gate.ts), with this turn's tools.
+   * Every LLM request (preemptive or not) goes through here, gated for crisis with the turn
+   * reminder and director's notes (crisis-gate.ts), with this turn's tools. A long-silence
+   * remark is held and dropped when it is a capped "you still there?" (presence-check.ts).
    */
   async llmNode(
     chatCtx: llm.ChatContext,
@@ -702,7 +703,8 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
       noteRequest(this.session, ctx, tools); // the request as sent, for its TURN_RECEIPT
       return super.llmNode(ctx, tools, modelSettings) as never;
     };
-    return gatedReply(chatCtx, this.session, model, this.openerGate as never) as never;
+    const reply = await gatedReply(chatCtx, this.session, model, this.openerGate as never);
+    return filterSilenceReply(this.session, reply) as never;
   }
 
   private readonly turnTools = { loggedLockedHandoffs: false, agent: this };
@@ -721,12 +723,10 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
    * The LiveKit SDK does baseStream.tee() and sends one to transcription, one to TTS.
    * So we MUST filter in ttsNode to prevent TTS from speaking the JSON.
    *
-   * This uses the shared wrappedTtsNode which handles:
+   * This uses the shared wrappedTtsNode (../shared/tts-wrapper.ts), which handles:
    * - JSON function call sanitization
    * - Interrupt-aware SSML softening
    * - FinOps cost tracking
-   *
-   * @see ../shared/tts-wrapper.ts
    */
   async ttsNode(
     text: NodeReadableStream<string>,

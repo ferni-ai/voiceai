@@ -584,15 +584,11 @@ The transcendent systems set these CSS custom properties:
 PHASE 1: CORE ANIMATION SYSTEMS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Breath Sync:
-  --breath-phase         (0-1)
+Breath Sync (written only on change; per-frame phase: getBreathSync().subscribe):
   --breath-rate-ms       (e.g., "4285ms")
   --breath-depth         (0-1)
-  --breath-scale         (e.g., "1.001")
-  --breath-opacity       (e.g., "0.97")
-  --breath-translate-y   (e.g., "-1.4px")
 
-Emotional Color:
+Emotional Color (written only on change, i.e. during an emotion transition):
   --emotional-warmth     (-1 to 1)
   --emotional-intensity  (0-1)
   --emotional-depth      (0-1)
@@ -649,12 +645,9 @@ Imperfection Engine:
 USAGE EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Avatar breathing:
+Avatar breathing (a compositor animation paced by the breath rate):
   .avatar-container {
-    transform:
-      translateY(var(--breath-translate-y))
-      scale(var(--breath-scale));
-    transition: transform 100ms ease-out;
+    animation: breathe var(--breath-rate-ms) ease-in-out infinite;
   }
 
 Emotional glow:

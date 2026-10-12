@@ -59,14 +59,14 @@ async function noticeWithAction(): Promise<void> {
 }
 
 async function achievement(): Promise<void> {
-  // The real Early Bird path: first interaction of the day unlocks it.
+  // A real easter-egg achievement (the Konami code), through its own unlock path.
   const { easterEggsUI } = await import('../easter-eggs.ui.js');
-  easterEggsUI.triggerMorningStretch();
+  easterEggsUI.triggerKonamiCode();
 }
 
 async function celebration(): Promise<void> {
   const { moments } = await import('../moments/index.js');
-  void moments.celebrate('badge', { title: 'Early Bird', subtitle: 'First chat of the day' });
+  void moments.celebrate('streak', { count: 7 });
 }
 
 async function milestone(): Promise<void> {
@@ -100,6 +100,22 @@ async function offlineBanner(): Promise<void> {
   const { offlineBanner: banner } = await import('../offline-banner.ui.js');
   banner.init();
   banner.show();
+}
+
+/** A call that dropped and is coming back (status island with the flag on). */
+async function reconnecting(): Promise<void> {
+  (await import('../status-island-connection.js')).initStatusIslandConnection();
+  window.dispatchEvent(new CustomEvent('ferni:connection-state', { detail: { state: 'reconnecting' } }));
+}
+
+/** A call on a poor link; the island shows it after its 3 s debounce. */
+async function weakConnection(): Promise<void> {
+  (await import('../status-island-connection.js')).initStatusIslandConnection();
+  const cq = await import('../connection-quality.ui.js');
+  window.dispatchEvent(new CustomEvent('ferni:connection-state', { detail: { state: 'connected' } }));
+  cq.setQuality('poor');
+  cq.show();
+  await wait(3200);
 }
 
 /** Every bottom/top-right transient at once: what a busy first minute looks like. */
@@ -241,6 +257,8 @@ export const SCENES: Readonly<Record<string, Scene>> = {
   'notification-card': notificationCard,
   outreach,
   'offline-banner': offlineBanner,
+  reconnecting,
+  'weak-connection': weakConnection,
   collision,
   modal,
   sheet,

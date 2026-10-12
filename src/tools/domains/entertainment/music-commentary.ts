@@ -22,7 +22,7 @@ interface ArtistInfo {
   aliases: string[];
   era: string;
   facts: string[];
-  stories: string[]; // Personal memories/stories Jack might share
+  stories: string[]; // Personal memories/stories Peter might share
   investingWisdom: string[]; // Connections to investing/life lessons
   funFacts: string[]; // Trivia for games
 }
@@ -35,16 +35,16 @@ const ARTIST_DATABASE: ArtistInfo[] = [
     era: '1940s Big Band',
     facts: [
       'Did you know Glenn Miller\'s "In the Mood" was the first gold record ever? Sold over a million copies in 1942.',
-      "Glenn Miller was a perfectionist. He'd rehearse his band for hours until every note was just right. Reminds me of how we approached fund management at Vanguard.",
+      "Glenn Miller was a perfectionist. He'd rehearse his band for hours until every note was just right. Reminds me of how the best fund managers run a portfolio.",
       'Tragically, Glenn Miller disappeared over the English Channel in 1944. He was on his way to entertain troops.',
     ],
     stories: [
-      'I remember dancing to Glenn Miller at Princeton. Eve and I would go to these campus dances... she was a much better dancer than me, but I tried.',
+      'My parents used to dance to Glenn Miller in the kitchen back in Pawtucket. My mother was the better dancer, but Dad tried.',
       "During the war, Glenn Miller's music was everywhere. It really lifted spirits during those difficult times.",
     ],
     investingWisdom: [
       "Glenn Miller built something timeless. That's what I always tried to do - build something that lasts. Not flashy, not trendy, just solid.",
-      'Miller was all about consistent quality, not gimmicks. Same philosophy we had at Vanguard.',
+      'Miller was all about consistent quality, not gimmicks. Same philosophy I tried to bring to my own work.',
     ],
     funFacts: [
       '"In the Mood" hit number one in 1939 - same year World War II started.',
@@ -69,10 +69,10 @@ const ARTIST_DATABASE: ArtistInfo[] = [
     ],
     stories: [
       "I saw Sinatra perform once in Atlantic City. The man had presence. When he walked on stage, you couldn't look anywhere else.",
-      "Eve loved Sinatra. We had a few of his records that we'd play on Sunday evenings.",
+      "Diane loved Sinatra. We had a few of his records that we'd play on Sunday evenings.",
     ],
     investingWisdom: [
-      "Sinatra did it his way, and that's what I admired. At Vanguard, we did things our way too - put investors first, even when Wall Street laughed.",
+      "Sinatra did it his way, and that's what I admired. I always respected the people who put investors first, even when Wall Street laughed.",
       "Sinatra's career had terrible downs and remarkable comebacks. Markets are the same - patience and staying true to yourself is everything.",
     ],
     funFacts: [
@@ -345,7 +345,7 @@ function randomItem<T>(arr: T[]): T {
  * @param trackName - Name of the track
  * @param artistName - Name of the artist
  * @param personaId - Optional persona ID. Personal stories and investing wisdom
- *                    are only returned for 'peter-john' persona (Jack Bogle style).
+ *                    are only returned for the 'peter-john' persona (Peter's own memories).
  *                    All personas can share facts and fun facts.
  */
 export function getMusicCommentary(
@@ -367,7 +367,7 @@ export function getMusicCommentary(
     return null;
   }
 
-  // Personal stories and investing wisdom are persona-specific (Peter John / Jack Bogle style)
+  // Personal stories and investing wisdom are persona-specific (Peter's own memories)
   const canSharePersonalContent = personaId === 'peter-john';
 
   // Weight different types of commentary

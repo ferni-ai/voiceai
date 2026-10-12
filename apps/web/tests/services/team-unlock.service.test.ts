@@ -640,3 +640,83 @@ describe('TeamUnlockService', () => {
     });
   });
 });
+
+/**
+ * Who is unlocked is the server's call: the same rule the voice agent refuses taps with.
+ * Dev 2026-10-11: the server (and agent) had Seth at Ferni + Maya; the app offered Nayan
+ * and Jordan, whose taps the agent refused, and didn't offer Maya.
+ */
+describe('the server decides who is unlocked', () => {
+  const NAYAN_TEASER = 'There is someone I deeply respect... a sage.';
+  const serverSays = (unlockedMembers: string[], tier = 'free') =>
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          tier,
+          unlockedMembers,
+          bypassMode: null,
+          members: TEAM_MEMBERS.map((m) => ({
+            id: m.id,
+            unlocked: unlockedMembers.includes(m.id),
+            teaserMessage: unlockedMembers.includes(m.id)
+              ? null
+              : m.id === 'nayan-patel'
+                ? NAYAN_TEASER
+                : `${m.displayName} is locked`,
+          })),
+        }),
+    });
+
+  it('locks a teammate the local metrics would unlock, with the server reason', async () => {
+    mockStageService.getStage.mockReturnValue('deep-partnership');
+    serverSays(['ferni', 'maya-santos']);
+    await resyncWithBackend('test-user');
+
+    expect(isTeamMemberUnlocked('maya-santos')).toBe(true);
+    expect(isTeamMemberUnlocked('nayan-patel')).toBe(false);
+    expect(isTeamMemberUnlocked('jordan-taylor')).toBe(false);
+    expect(getMemberStatus('nayan-patel')).toMatchObject({
+      unlocked: false,
+      lockReason: NAYAN_TEASER,
+    });
+    expect(getUnlockState()?.unlockedMembers).toEqual(new Set(['ferni', 'maya-santos']));
+  });
+
+  it('unlocks a teammate the server unlocked though the local metrics are behind', async () => {
+    mockStageService.getStage.mockReturnValue('first-meeting');
+    serverSays(['ferni', 'maya-santos']);
+    await resyncWithBackend('test-user');
+
+    expect(isTeamMemberUnlocked('maya-santos')).toBe(true);
+  });
+
+  it('a tier changed here since (a purchase, the dev panel) falls back to the local rule', async () => {
+    serverSays(['ferni', 'maya-santos']);
+    await resyncWithBackend('test-user');
+    setSubscriptionTier('friend');
+
+    expect(isTeamMemberUnlocked('jordan-taylor')).toBe(true);
+  });
+
+  it('asks the server again after a refused handoff', async () => {
+    localStorageMock.setItem('ferni_user_id', 'test-user');
+    initTeamUnlockService();
+    const unlockCalls = () =>
+      mockFetch.mock.calls.filter(([url]) => String(url).includes('/api/relationship/team-unlocks'))
+        .length;
+    await vi.waitFor(() => expect(unlockCalls()).toBe(1));
+    const { handoffService } = await import('../../src/services/handoff.service.js');
+    // the init subscribes asynchronously; let it land
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    await handoffService.processDataMessage({
+      type: 'handoff_failed',
+      target: 'nayan-patel',
+      error: NAYAN_TEASER,
+      rollbackTo: 'ferni',
+    } as never);
+
+    await vi.waitFor(() => expect(unlockCalls()).toBe(2));
+  });
+});

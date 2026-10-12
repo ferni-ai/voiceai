@@ -9,12 +9,20 @@
  *   ASYNC_URL=https://ferni-async-bmopaivmsq-uc.a.run.app
  *   GCP_PROJECT_ID=johnb-2025
  *   PENDING_MAX_AGE_MS=300000
+ *   ASYNC_ID_TOKEN=<identity token>   (else `gcloud auth print-identity-token`)
+ *
+ * The Cloud Run service rejects unauthenticated calls (403), so requests to a
+ * *.run.app URL carry an identity token for the service URL: ASYNC_ID_TOKEN if
+ * set, else one from `gcloud auth print-identity-token --audiences=<url>`.
+ * The token is never printed; the result says only where it came from.
  *
  * Checks async /health first. If ADC can access Firestore, also asserts there
  * are no pending outreach_triggers older than PENDING_MAX_AGE_MS. If Firestore
  * cannot be queried, the pending-drain check is reported as skipped and the
  * script exits 0 as long as async health is healthy.
  */
+
+import { execFileSync } from 'node:child_process';
 
 const DEFAULT_ASYNC_URL = 'https://ferni-async-bmopaivmsq-uc.a.run.app';
 const ASYNC_HEALTH_URL =
@@ -25,17 +33,45 @@ const PENDING_MAX_AGE_MS = Number(process.env.PENDING_MAX_AGE_MS || 5 * 60 * 100
 const FIRESTORE_TIMEOUT_MS = Number(process.env.FIRESTORE_TIMEOUT_MS || 5000);
 const PENDING_SCAN_LIMIT = Number(process.env.PENDING_SCAN_LIMIT || 500);
 
+/**
+ * Identity token for a Cloud Run URL, or none for other hosts (e.g. localhost).
+ * @returns {{ token: string | null, auth: string }}
+ */
+export function identityTokenFor(url, env = process.env, run = execFileSync) {
+  if (!/^https:\/\/[^/]+\.run\.app(\/|$)/.test(url)) return { token: null, auth: 'none (not Cloud Run)' };
+  if (env.ASYNC_ID_TOKEN) return { token: env.ASYNC_ID_TOKEN, auth: 'ASYNC_ID_TOKEN' };
+  // --audiences works only for service accounts; a user login falls back to a
+  // plain identity token, which Cloud Run accepts for users with run.invoker.
+  const attempts = [
+    ['auth', 'print-identity-token', `--audiences=${new URL(url).origin}`],
+    ['auth', 'print-identity-token'],
+  ];
+  let detail = 'gcloud returned no token';
+  for (const args of attempts) {
+    try {
+      const token = run('gcloud', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000 }).trim();
+      if (token) return { token, auth: 'gcloud identity token' };
+    } catch (error) {
+      // stderr only: never echo stdout, which could hold a token.
+      detail = String(error?.stderr || error?.message || error).trim().split('\n')[0];
+    }
+  }
+  return { token: null, auth: `none (gcloud identity token failed: ${detail})` };
+}
+
 function printResult(result) {
   console.log(JSON.stringify(result, null, 2));
 }
 
 async function fetchHealth() {
-  const res = await fetch(ASYNC_HEALTH_URL);
+  const { token, auth } = identityTokenFor(ASYNC_HEALTH_URL);
+  const res = await fetch(ASYNC_HEALTH_URL, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
   const body = await res.json().catch(() => null);
   return {
     ok: res.ok && body?.status === 'healthy',
     status: res.status,
     url: ASYNC_HEALTH_URL,
+    auth,
     body,
   };
 }

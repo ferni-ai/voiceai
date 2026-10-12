@@ -1322,7 +1322,7 @@
         "calendar": "לוח שנה",
         "history": "שיחות קודמות",
         "people": "האנשים שלכם",
-        "insights": "מה שלומכם"
+        "insights": "מה שלמדתי"
       }
     },
     "ariaLabel": "תפריט הגדרות",
@@ -4651,7 +4651,8 @@
     "sourceInferred": "שמתי לב",
     "correctButton": "תיקון",
     "memoriesCount": "{count} זיכרונות",
-    "confidence": "{confidence}% ביטחון"
+    "confidence": "{confidence}% ביטחון",
+    "earlier": "קודם"
   },
   "memoryCorrection": {
     "modalTitle": "תיקון הזיכרון הזה",
@@ -8856,6 +8857,7 @@
     }
   },
   "conversationHistory": {
+    "title": "שיחות קודמות",
     "loadError": "לא הצלחנו לטעון את הנתונים.",
     "tryAgain": "לנסות שוב?",
     "ariaLabel": "היסטוריית שיחות",
@@ -10204,7 +10206,12 @@
     "getIdeas": "לקבל רעיונות",
     "emptyTitle": "אין עדיין הצעות",
     "emptyText": "כדאי לנסות להוסיף עוד פרטים על מערכת היחסים שלכם.",
-    "generateError": "לא הצלחתי ליצור רעיונות. לנסות שוב?"
+    "generateError": "לא הצלחתי ליצור רעיונות. לנסות שוב?",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "מה שאני עושה בשבילכם",
@@ -10332,7 +10339,9 @@
       "one": "התקבל זרע אחד ({count})!",
       "two": "התקבלו {count} זרעים!",
       "other": "התקבלו {count} זרעים!"
-    }
+    },
+    "couldNotLoadMemories": "לא הצלחתי לטעון את מה שאני זוכר. לנסות שוב?",
+    "memoryCorrected": "הבנתי. אזכור את זה כך."
   },
   "trustSignals": {
     "prefix": {
@@ -10505,6 +10514,12 @@
       "fair": "בינוני",
       "poor": "חיבור חלש",
       "disconnected": "מנותק"
+    },
+    "island": {
+      "offline": "אין חיבור לאינטרנט. אתחבר מחדש כשתחזור.",
+      "reconnecting": "מתחבר מחדש…",
+      "weak": "חיבור חלש",
+      "backOnline": "שוב מחובר"
     }
   },
   "ideasGallery": {
@@ -10979,6 +10994,9 @@
       "other": "{count} ימים"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "יאמי יאמי!"
+  },
   "avatarTapReactions": {
     "tickles": "היהי, זה מדגדג!"
   },
@@ -11197,6 +11215,53 @@
     "ferniSpeaking": "פרני מדבר",
     "youSpeaking": "את/ה מדבר/ת",
     "ferniThinking": "פרני חושב",
-    "tapToInterrupt": "הקש כדי להפריע"
+    "tapToInterrupt": "הקש כדי להפריע",
+    "tapToHear": "הקישו כדי לשמוע את פרני"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "לתרום",
+    "title": "דולר אחד שומר על השיחה",
+    "body": "Ferni בחינם בינתיים. אם שיחה עזרה לך, אפשר לשלוח דולר ב-Venmo. יותר יתקבל בברכה, אבל אף פעם לא מצופה.",
+    "qrAlt": "קוד QR של Venmo עבור @{handle}",
+    "copy": "העתקה",
+    "copied": "הועתק",
+    "openVenmo": "לפתוח את Venmo",
+    "helper": "סרקו עם המצלמה של הטלפון, או הקישו על לפתוח את Venmo. אפשר לשנות את הסכום.",
+    "maybeLater": "אולי אחר כך",
+    "close": "סגירה"
   }
 }
