@@ -8272,8 +8272,7 @@
     "growthDesc": "Progress you might not notice yourself.",
     "guardianPresence": "Guardian Presence",
     "guardianDesc": "I catch what you're not saying.",
-    "whatMightLook": "What insights might look like",
-    "keepTalking": "Just keep talking. I'm always listening, always learning, always here.",
+    "keepTalking": "For now, just talk. I'm paying attention.",
     "betterThanMemory": "Better than human memory, working for you.",
     "chapter": {
       "default": {
@@ -11069,9 +11068,9 @@
   },
   "x": "Friend • Mentioned 12 times",
   "insightsView": {
-    "samplePattern": "\"Sunday evenings seem hard for you...\"",
-    "sampleInsight": "\"You've mentioned feeling tired 8 times this week. The tiredness seems connected to boundary-setting challenges at work.\"",
-    "sampleEvidence": "Based on {count} conversations"
+    "patternDesc": "What keeps coming up when we talk.",
+    "emptyNote": "Nothing here yet, and that's okay. After a few conversations, I'll start to notice patterns, and they'll show up here.",
+    "loadFailed": "Hmm, what I've noticed didn't load. That's on me, not you. Give it a moment, then open this again."
   },
   "agentAcks": {
     "gameStartFailed": "That game didn't start. Try asking Ferni to play it out loud.",

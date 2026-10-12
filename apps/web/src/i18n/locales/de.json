@@ -8241,8 +8241,7 @@
     "growthDesc": "Fortschritte, die du selbst vielleicht gar nicht bemerkst.",
     "guardianPresence": "Schützende Präsenz",
     "guardianDesc": "Ich nehme wahr, was du nicht aussprichst.",
-    "whatMightLook": "Wie Erkenntnisse aussehen könnten",
-    "keepTalking": "Sprich einfach weiter. Ich höre immer zu, lerne ständig dazu und bin immer für dich da.",
+    "keepTalking": "Erzähl einfach. Ich höre dir zu.",
     "betterThanMemory": "Besser als das menschliche Gedächtnis, ganz für dich da.",
     "chapter": {
       "default": {
@@ -11026,9 +11025,9 @@
   },
   "x": "Freund*in • 12-mal erwähnt",
   "insightsView": {
-    "samplePattern": "\"Sonntagabende scheinen schwer für dich zu sein...\"",
-    "sampleInsight": "\"Du hast diese Woche 8-mal erwähnt, dass du müde bist. Die Müdigkeit scheint mit Schwierigkeiten beim Grenzenziehen bei der Arbeit zusammenzuhängen.\"",
-    "sampleEvidence": "Basierend auf {count} Gesprächen"
+    "patternDesc": "Was in unseren Gesprächen immer wieder vorkommt.",
+    "emptyNote": "Hier ist noch nichts, und das ist okay. Nach ein paar Gesprächen fallen mir Muster auf, und sie erscheinen hier.",
+    "loadFailed": "Hm, was mir aufgefallen ist, hat nicht geladen. Das liegt an mir, nicht an dir. Warte kurz und öffne das hier noch einmal."
   },
   "agentAcks": {
     "gameStartFailed": "Das Spiel hat nicht gestartet. Sag Ferni einfach, dass du es spielen möchtest.",
