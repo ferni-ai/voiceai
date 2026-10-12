@@ -6294,20 +6294,6 @@
       },
       "empty": "Coucou. Je suis là — enfin, je suis toi. Commence à écrire ton journal et j'aurai plus de matière pour t'aider à réfléchir. Pour l'instant, qu'as-tu en tête ?"
     },
-    "fallback": {
-      "option1": "C'est intéressant. Pourquoi penses-tu à ça maintenant ?",
-      "option2": "Je t'écoute. Qu'y a-t-il d'autre ?",
-      "option3": "Dis-m'en plus. Qu'est-ce qui se cache derrière ?",
-      "option4": "C'est une chose à laquelle je pense aussi. Quelle est la question derrière la question ?",
-      "advice": "J'ai appris que les meilleurs conseils viennent souvent quand on prend le temps de poser la question. Que te dit ton instinct ?",
-      "feeling": "C'est lourd à porter. J'ai déjà ressenti cela aussi. Qu'est-ce qui t'aiderait là, tout de suite — en parler ou simplement l'accueillir en silence ?",
-      "remember": "Je me souviens de plus de choses que tu ne le penses. Nos notes contiennent beaucoup de choses. Que cherches-tu précisément ?"
-    },
-    "fallbackKeywords": {
-      "advice": "conseil,devrais,conseils",
-      "feeling": "ressentir,sentiment,sens,émotion",
-      "remember": "souvenir,rappeler"
-    },
     "dialogLabel": "Ta Chronique",
     "switchToVoice": "Passer à la voix",
     "captured": "Capturé !",
@@ -6322,7 +6308,8 @@
       }
     },
     "emptyDescription": "Ta chronique est vide, mais chaque belle histoire commence quelque part. Capture ta première pensée et regarde ta sagesse grandir.",
-    "quoted": "« {text} »"
+    "quoted": "« {text} »",
+    "replyFailed": "Ça n'est pas passé. C'est de mon côté, pas du tien. Essaie de l'envoyer à nouveau."
   },
   "marketplacePermissionConsent": {
     "required": "Autorisations requises",

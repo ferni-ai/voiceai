@@ -6256,20 +6256,6 @@
       },
       "empty": "Hey. I'm here - well, I'm you. Start journalling and I'll have more to reflect on. For now, what's on your mind?"
     },
-    "fallback": {
-      "option1": "That's interesting. What makes you bring that up now?",
-      "option2": "I hear you. What else is there?",
-      "option3": "Tell me more. What's underneath that?",
-      "option4": "That's something I've been thinking about too. What's the question behind the question?",
-      "advice": "I've learnt that the best advice usually comes from sitting with the question longer. What does your gut say?",
-      "feeling": "That's a lot to carry. I've felt that too. What would help right now - to talk it through or to just sit with it?",
-      "remember": "I remember more than you might think. The journal entries hold a lot. What specifically are you looking for?"
-    },
-    "fallbackKeywords": {
-      "advice": "advice,should",
-      "feeling": "feel,feeling",
-      "remember": "remember"
-    },
     "dialogLabel": "Your Chronicle",
     "switchToVoice": "Switch to voice",
     "captured": "Captured!",
@@ -6284,7 +6270,8 @@
       }
     },
     "emptyDescription": "Your chronicle is empty, but every great story starts somewhere. Capture your first thought, and watch your wisdom grow.",
-    "quoted": "\"{text}\""
+    "quoted": "\"{text}\"",
+    "replyFailed": "That didn't go through. It's on my end, not yours. Try sending it again."
   },
   "marketplacePermissionConsent": {
     "required": "Required Permissions",

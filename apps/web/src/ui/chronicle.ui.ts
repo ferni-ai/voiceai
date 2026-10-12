@@ -20,7 +20,7 @@ import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { apiGet, apiPost, getUserId } from '../utils/api.js';
 import { connectionService } from '../services/connection.service.js';
-import { formatDate, getLocale, t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
 
 const log = createLogger('ChronicleUI');
 
@@ -71,7 +71,7 @@ interface ChronicleState {
 
 interface ChatMessage {
   id: string;
-  role: 'user' | 'past-self';
+  role: 'user' | 'past-self' | 'notice';
   content: string;
   timestamp: Date;
 }
@@ -747,7 +747,10 @@ const styles = `
     border-bottom-right-radius: var(--radius-sm, 4px);
   }
   
-  .chronicle-chat-message.thinking {
+  .chronicle-chat-message.notice { align-self: center; }
+
+  .chronicle-chat-message.thinking,
+  .chronicle-chat-message.notice {
     background: var(--color-background-subtle, rgba(0,0,0,0.04));
     color: var(--color-text-muted, #9a8c7f);
   }
@@ -1599,25 +1602,22 @@ async function sendConversation(): Promise<void> {
       agentId: state.agentId,
     });
 
-    const response =
-      result.ok && result.data?.response ? result.data.response : getFallbackResponse(userMessage);
-
-    state.chatMessages.push({
-      id: `msg-${Date.now() + 1}`,
-      role: 'past-self',
-      content: response,
-      timestamp: new Date(),
-    });
-
-    soundUI.play('click');
+    const response = result.ok ? result.data?.response : undefined;
+    if (response) {
+      state.chatMessages.push({
+        id: `msg-${Date.now() + 1}`,
+        role: 'past-self',
+        content: response,
+        timestamp: new Date(),
+      });
+      soundUI.play('click');
+    } else {
+      log.warn(`Twin response failed with status ${result.status}`);
+      pushReplyFailedNotice();
+    }
   } catch (error) {
     log.error('Conversation error:', error);
-    state.chatMessages.push({
-      id: `msg-${Date.now() + 1}`,
-      role: 'past-self',
-      content: getFallbackResponse(userMessage),
-      timestamp: new Date(),
-    });
+    pushReplyFailedNotice();
   }
 
   state.isThinking = false;
@@ -1627,19 +1627,14 @@ async function sendConversation(): Promise<void> {
   input?.focus();
 }
 
-function getFallbackResponse(userMessage: string): string {
-  const lower = userMessage.toLocaleLowerCase(getLocale());
-  // Each locale lists, comma-separated, the words that signal the intent.
-  const mentions = (intent: string): boolean =>
-    t(`chronicle.fallbackKeywords.${intent}`)
-      .split(',')
-      .some((word) => lower.includes(word.trim()));
-
-  if (mentions('advice')) return t('chronicle.fallback.advice');
-  if (mentions('feeling')) return t('chronicle.fallback.feeling');
-  if (mentions('remember')) return t('chronicle.fallback.remember');
-
-  return pickVariant('chronicle.fallback', 4);
+/** No reply came back: say so, never answer in the user's past voice. */
+function pushReplyFailedNotice(): void {
+  state.chatMessages.push({
+    id: `msg-${Date.now() + 1}`,
+    role: 'notice',
+    content: t('chronicle.replyFailed'),
+    timestamp: new Date(),
+  });
 }
 
 // ============================================================================
