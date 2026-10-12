@@ -13,6 +13,7 @@ import { Room, RoomEvent, TrackKind } from '@livekit/rtc-node';
 import { EventEmitter } from 'node:events';
 
 import { InProcessInferenceExecutor } from '../core/inference-executor.js';
+import { watchCallLoop } from '../shared/loop-watch.js';
 import { runFullVoiceAgentEntry } from '../voice-agent-entry/index.js';
 // Work that runs after each call ends (extraction, person model): registered once per process.
 import '../after-call-register.js';
@@ -136,6 +137,8 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     activeJobs,
     totalJobs,
   });
+  // LOOP_STALL / LOOP_SUMMARY: event-loop blocks the caller hears as audio hangs.
+  const finishLoopWatch = watchCallLoop(jobId);
 
   // Notify LiveKit immediately that this job is running (UpdateJobStatus JS_RUNNING)
   try {
@@ -357,6 +360,7 @@ export async function runJobInProcess(info: JobInfo, log: LogFn): Promise<void> 
     });
     throw error;
   } finally {
+    finishLoopWatch();
     runningContexts.delete(jobId);
     clearTimeout(sessionTimeout);
     if (emptyRoomTimer) clearTimeout(emptyRoomTimer);
