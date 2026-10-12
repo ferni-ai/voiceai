@@ -16,6 +16,7 @@
  * @module memory/dynamic/firestore-spanner-sync
  */
 
+import { syncFactDocs } from './spanner-sync-forget.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, toSafeDate } from '../../utils/firestore-utils.js';
 
@@ -107,8 +108,6 @@ interface SyncStats {
   totalRelationshipsSynced: number;
   totalSyncRuns: number;
   failedSyncs: number;
-  /** Copies of forgotten facts the graph store couldn't remove yet (retried each cycle). */
-  factDeleteFailures: number;
   avgSyncDurationMs: number;
 }
 
@@ -123,7 +122,6 @@ const syncStats: SyncStats = {
   totalRelationshipsSynced: 0,
   totalSyncRuns: 0,
   failedSyncs: 0,
-  factDeleteFailures: 0,
   avgSyncDurationMs: 0,
 };
 
@@ -167,23 +165,19 @@ async function syncEntityToSpanner(entity: SyncableEntity): Promise<boolean> {
 async function syncFactToSpanner(fact: SyncableFact): Promise<boolean> {
   try {
     const { insertFact } = await import('../spanner-graph/client.js');
-    // The index copy is written before this returns: if the fact turns out to
-    // have been forgotten meanwhile, the removal that follows can't be
-    // overtaken by a late write.
-    return await insertFact(
-      {
-        factId: `fact_${fact.userId}_${fact.id}`,
-        userId: fact.userId,
-        factType: fact.factType as 'attribute' | 'event' | 'relationship' | 'state' | 'preference',
-        key: fact.key,
-        value: fact.value,
-        domain: 'general', // Default domain for synced facts
-        confidence: fact.confidence,
-        sourceSession: undefined,
-        extractedAt: new Date(fact.extractedAt),
-      },
-      { awaitIndex: true }
-    );
+
+    await insertFact({
+      factId: `fact_${fact.userId}_${fact.id}`,
+      userId: fact.userId,
+      factType: fact.factType as 'attribute' | 'event' | 'relationship' | 'state' | 'preference',
+      key: fact.key,
+      value: fact.value,
+      domain: 'general', // Default domain for synced facts
+      confidence: fact.confidence,
+      sourceSession: undefined,
+      extractedAt: new Date(fact.extractedAt),
+    });
+    return true;
   } catch (error) {
     log.warn({ error: String(error), factId: fact.id }, 'Failed to sync fact to Spanner');
     return false;
@@ -273,188 +267,6 @@ async function getUnsyncedEntities(limit: number): Promise<SyncableEntity[]> {
   return entities;
 }
 
-/**
- * A dynamic_facts doc as a fact to copy to Spanner, or null for one the
- * caller asked to forget (forget.ts marks forgottenAt): a copy would carry
- * no mark, so it is never copied.
- */
-export function syncableFact(
-  id: string,
-  path: string,
-  data: Record<string, unknown>
-): SyncableFact | null {
-  if (data.forgottenAt !== undefined && data.forgottenAt !== null) return null;
-  return {
-    id,
-    userId: path.split('/')[1] ?? '',
-    entityName: String(data.entityName || ''),
-    factType: String(data.factType || 'attribute'),
-    key: String(data.key || ''),
-    value: String(data.value || ''),
-    confidence: Number(data.confidence || 0.5),
-    extractedAt: data.extractedAt as SyncableFact['extractedAt'],
-  };
-}
-
-export interface FactDoc {
-  id: string;
-  path: string;
-  data: Record<string, unknown>;
-}
-
-export interface FactSyncOps {
-  insert: (fact: SyncableFact) => Promise<boolean>;
-  /** Removes a forgotten fact's copy from the graph (and the index it feeds); throws on failure. */
-  remove: (userId: string, factId: string) => Promise<void>;
-  /**
-   * Marks the doc synced, in one transaction with a re-read: with onlyIfLive
-   * it refuses (false) when the fact was forgotten since it was read.
-   */
-  markSynced: (userId: string, docId: string, opts: { onlyIfLive: boolean }) => Promise<boolean>;
-  /**
-   * Moves a fact whose copy couldn't be removed out of the main queue, to be
-   * retried later with backoff, so it can't hold up the facts behind it.
-   */
-  deferRetry: (userId: string, docId: string, attempts: number) => Promise<void>;
-}
-
-const RETRY_BASE_MS = 60_000;
-const RETRY_MAX_MS = 24 * 3_600_000;
-
-/** When a failed removal may be tried again: 1 min, 2, 4, ... at most a day. */
-export function retryAfter(attempts: number, now: number): string {
-  return new Date(
-    now + Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** Math.max(0, attempts - 1))
-  ).toISOString();
-}
-
-/** A deferred fact whose retry time has come. */
-export function retryDue(data: Record<string, unknown>, now: number): boolean {
-  const at = Date.parse(String(data.syncRetryAfter ?? ''));
-  return !Number.isFinite(at) || at <= now;
-}
-
-/**
- * Copies live facts and removes forgotten ones (forget.ts sets forgottenAt
- * and syncedToSpanner=false, so a fact copied before it was forgotten comes
- * back here once). A forgotten fact is marked synced once its copy is gone,
- * so the cursor (syncedToSpanner == false, oldest first) moves past it; if
- * the removal fails it is retried next cycle, and the live facts after it
- * in the batch are still copied.
- */
-export async function syncFactDocs(
-  docs: readonly FactDoc[],
-  ops: FactSyncOps
-): Promise<{ synced: number; removed: number; failed: number; deleteFailures: number }> {
-  const out = { synced: 0, removed: 0, failed: 0, deleteFailures: 0 };
-  const removeCopy = async (
-    userId: string,
-    docId: string,
-    data: Record<string, unknown>
-  ): Promise<boolean> => {
-    try {
-      await ops.remove(userId, `fact_${userId}_${docId}`);
-    } catch (error) {
-      // Never reported as removed: retried later, out of the main queue.
-      out.deleteFailures++;
-      log.error({ error: String(error), factId: docId }, 'Forgotten fact copy not removed');
-      await ops.deferRetry(userId, docId, Number(data.syncRetryCount ?? 0) + 1);
-      return false;
-    }
-    out.removed++;
-    return ops.markSynced(userId, docId, { onlyIfLive: false });
-  };
-  for (const doc of docs) {
-    const fact = syncableFact(doc.id, doc.path, doc.data);
-    const userId = doc.path.split('/')[1] ?? '';
-    try {
-      if (!fact) {
-        await removeCopy(userId, doc.id, doc.data);
-        continue;
-      }
-      if (!(await ops.insert(fact))) {
-        out.failed++;
-        continue;
-      }
-      // Forgotten between the read and the write: take the copy back out.
-      if (await ops.markSynced(userId, doc.id, { onlyIfLive: true })) out.synced++;
-      else await removeCopy(userId, doc.id, doc.data);
-    } catch (error) {
-      out.failed++;
-      log.warn({ error: String(error), factId: doc.id }, 'Fact not synced');
-    }
-  }
-  return out;
-}
-
-const RETRIES_PER_CYCLE = 10;
-
-/** The sync's real operations on Firestore, the graph store and its index. */
-export function firestoreFactSyncOps(): FactSyncOps {
-  return {
-    insert: syncFactToSpanner,
-    remove: async (userId, factId) => {
-      const { deleteFact } = await import('../spanner-graph/client.js');
-      await deleteFact(userId, factId);
-    },
-    markSynced: async (userId, docId, opts) => markFactSynced(userId, docId, opts),
-    deferRetry: async (userId, docId, attempts) => {
-      const db = getFirestoreDb();
-      if (!db) return;
-      await db
-        .collection('bogle_users')
-        .doc(userId)
-        .collection('dynamic_facts')
-        .doc(docId)
-        .update({
-          syncedToSpanner: 'retry',
-          syncRetryCount: attempts,
-          syncRetryAfter: retryAfter(attempts, Date.now()),
-        });
-    },
-  };
-}
-
-/**
- * Facts waiting to sync, oldest first; with queue 'retry', removals that
- * failed before and are due again (same index: extractedAt, syncedToSpanner).
- */
-async function getUnsyncedFactDocs(
-  limit: number,
-  queue: false | 'retry' = false
-): Promise<FactDoc[]> {
-  const db = getFirestoreDb();
-  if (!db) return [];
-
-  const cutoffTime = new Date(Date.now() - config.minAgeMs).toISOString();
-  const facts: FactDoc[] = [];
-
-  try {
-    const snapshot = await db
-      .collectionGroup('dynamic_facts')
-      .where('extractedAt', '<', cutoffTime)
-      .where('syncedToSpanner', '==', queue)
-      .orderBy('extractedAt', 'asc')
-      .limit(queue === 'retry' ? limit * 5 : limit)
-      .get();
-
-    const now = Date.now();
-    for (const doc of snapshot.docs) {
-      const data = doc.data();
-      if (queue === 'retry' && !retryDue(data, now)) continue;
-      facts.push({ id: doc.id, path: doc.ref.path, data });
-      if (facts.length >= limit) break;
-    }
-  } catch (error) {
-    log.warn(
-      { error: String(error) },
-      'Collection group query failed for facts - check Firestore composite index'
-    );
-  }
-
-  return facts;
-}
-
 async function getUnsyncedRelationships(limit: number): Promise<SyncableRelationship[]> {
   const db = getFirestoreDb();
   if (!db) return [];
@@ -494,32 +306,6 @@ async function getUnsyncedRelationships(limit: number): Promise<SyncableRelation
   }
 
   return relationships;
-}
-
-/**
- * Marks a dynamic fact synced in a transaction that re-reads it: with
- * onlyIfLive, a fact forgotten since the sync read it stays unsynced (false),
- * so its copy is removed (forget.ts also resets syncedToSpanner).
- */
-export async function markFactSynced(
-  userId: string,
-  docId: string,
-  opts: { onlyIfLive: boolean }
-): Promise<boolean> {
-  const db = getFirestoreDb();
-  if (!db) return false;
-  const ref = db.collection('bogle_users').doc(userId).collection('dynamic_facts').doc(docId);
-  return db.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    const forgottenAt = snap.exists ? snap.get('forgottenAt') : undefined;
-    if (opts.onlyIfLive && (!snap.exists || (forgottenAt !== undefined && forgottenAt !== null))) {
-      return false;
-    }
-    if (snap.exists) {
-      tx.update(ref, { syncedToSpanner: true, syncedAt: new Date().toISOString() });
-    }
-    return true;
-  });
 }
 
 async function markAsSynced(
@@ -590,15 +376,14 @@ export async function runSyncCycle(): Promise<SyncResult> {
       }
     }
 
-    // 2. Sync facts: copy live ones, remove forgotten ones (and retry
-    // removals that failed earlier, from their own queue)
+    // 2. Sync facts: copy live ones, remove forgotten ones (spanner-sync-forget.ts)
+    const { firestoreFactSyncOps, getUnsyncedFactDocs, RETRIES_PER_CYCLE } =
+      await import('../spanner-graph/client.js');
     const factDocs = [
-      ...(await getUnsyncedFactDocs(config.batchSize)),
-      ...(await getUnsyncedFactDocs(RETRIES_PER_CYCLE, 'retry')),
+      ...(await getUnsyncedFactDocs(config.batchSize, config.minAgeMs)),
+      ...(await getUnsyncedFactDocs(RETRIES_PER_CYCLE, config.minAgeMs, 'retry')),
     ];
-    const facts = await syncFactDocs(factDocs, firestoreFactSyncOps());
-    result.factsSynced += facts.synced;
-    syncStats.factDeleteFailures += facts.deleteFailures;
+    result.factsSynced += (await syncFactDocs(factDocs, firestoreFactSyncOps())).synced;
 
     // 3. Sync relationships
     const relationships = await getUnsyncedRelationships(config.batchSize);

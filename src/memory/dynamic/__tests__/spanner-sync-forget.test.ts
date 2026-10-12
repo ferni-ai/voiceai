@@ -18,7 +18,11 @@ vi.mock('@google-cloud/spanner', () => {
       if (spannerFails) throw new Error('spanner down');
       await fn({
         runUpdate: async ({ sql, params }: { sql: string; params: Record<string, string> }) => {
-          if (/^\s*INSERT INTO facts/i.test(sql)) graph.set(params.factId!, params.userId!);
+          if (/^\s*INSERT INTO facts/i.test(sql) && graph.has(params.factId!)) {
+            throw new Error('ALREADY_EXISTS: duplicate key'); // a plain insert, retried
+          }
+          if (/^\s*INSERT (OR UPDATE )?INTO facts/i.test(sql))
+            graph.set(params.factId!, params.userId!);
           if (/^\s*DELETE FROM facts/i.test(sql)) graph.delete(params.factId!);
         },
         commit: async () => undefined,
@@ -85,8 +89,8 @@ vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
 }));
 
 const { initializeSpanner } = await import('../../spanner-graph/client.js');
-const { syncFactDocs, firestoreFactSyncOps, retryDue, retryAfter } =
-  await import('../firestore-spanner-sync.js');
+const { syncFactDocs, retryDue, retryAfter } = await import('../spanner-sync-forget.js');
+const { firestoreFactSyncOps } = await import('../../spanner-graph/fact-sync-ops.js');
 
 const path = (id: string) => `bogle_users/u1/dynamic_facts/${id}`;
 const live = { entityName: 'User', key: 'job', value: 'nurse', extractedAt: '2026-01-05' };
@@ -160,11 +164,20 @@ describe('the graph sync and forgetting', () => {
     expect(Date.parse(retryAfter(30, now)) - now).toBe(24 * 3_600_000); // capped at a day
   });
 
-  it('a failed graph insert is not marked synced', async () => {
+  it('a failed graph insert is not marked synced, and leaves the main queue for the retry queue', async () => {
     spannerFails = true;
     docs.set(path('f5'), { ...live, syncedToSpanner: false });
     const out = await syncFactDocs([asRead('f5')], firestoreFactSyncOps());
     expect(out.failed).toBe(1);
-    expect(docs.get(path('f5'))?.syncedToSpanner).toBe(false);
+    // Not true (no copy) and not false (it would head the next batch forever).
+    expect(docs.get(path('f5'))).toMatchObject({ syncedToSpanner: 'retry', syncRetryCount: 1 });
+  });
+
+  it('re-copying a fact whose earlier copy committed but was never marked succeeds (upsert)', async () => {
+    graph.set('fact_u1_f6', 'u1'); // committed on an earlier cycle; the mark then failed
+    docs.set(path('f6'), { ...live, syncedToSpanner: false });
+    const out = await syncFactDocs([asRead('f6')], firestoreFactSyncOps());
+    expect(out.synced).toBe(1);
+    expect(docs.get(path('f6'))?.syncedToSpanner).toBe(true);
   });
 });

@@ -363,19 +363,14 @@ export class FirestoreVectorStore implements VectorStoreContract {
     log.info({ count: docs.length }, 'Added documents to vector store');
   }
 
-  /**
-   * Remove a document from the store.
-   */
+  /** Remove a document from the store; true only when the persisted copy is gone. */
   async removeDocument(id: string): Promise<boolean> {
     await this.ensureInitialized();
 
     this.fallbackCache.delete(id);
 
-    // Only the in-memory cache was reached: the persisted copy, if any, is
-    // still there, so the removal is not confirmed (a privacy delete must
-    // not be reported as done).
     if (this.useFallback || !this.db) {
-      return false;
+      return false; // only the cache was reached
     }
 
     try {
@@ -587,9 +582,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
     return fallbackResults;
   }
 
-  /**
-   * Search by embedding directly.
-   */
+  /** Search by embedding directly. */
   async searchByEmbedding(
     queryEmbedding: number[],
     options?: {

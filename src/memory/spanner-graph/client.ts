@@ -37,9 +37,7 @@ let spannerInstance: Spanner | null = null;
 let databaseInstance: Database | null = null;
 let initialized = false;
 
-/**
- * Get or create the Spanner client instance
- */
+/** Get or create the Spanner client instance */
 function getSpannerClient(): Spanner {
   if (!spannerInstance) {
     spannerInstance = new Spanner({
@@ -53,7 +51,7 @@ function getSpannerClient(): Spanner {
 /**
  * Get or create the Database instance
  */
-function getDatabase(): Database {
+export function getDatabase(): Database {
   if (!databaseInstance) {
     const spanner = getSpannerClient();
     const instance = spanner.instance(SPANNER_CONFIG.instanceId);
@@ -63,9 +61,7 @@ function getDatabase(): Database {
   return databaseInstance;
 }
 
-/**
- * Check if Spanner is ready
- */
+/** Check if Spanner is ready */
 export function isSpannerReady(): boolean {
   return initialized;
 }
@@ -92,6 +88,9 @@ export async function initializeSpanner(): Promise<boolean> {
 
   return false;
 }
+
+// The graph sync's fact queue (forget-safe), for firestore-spanner-sync.ts.
+export { firestoreFactSyncOps, getUnsyncedFactDocs, RETRIES_PER_CYCLE } from './fact-sync-ops.js';
 
 // ============================================================================
 // WRITE OPERATIONS
@@ -151,18 +150,8 @@ export async function upsertEntity(
  * Automatically classifies the domain based on key/value if not provided.
  * Also indexes the fact for semantic search.
  */
-export async function insertFact(
-  fact: Omit<GraphFact, 'createdAt'>,
-  opts: {
-    /**
-     * Wait for the semantic-index copy to be written before returning, so a
-     * caller that may delete the fact next (the sync) can't be overtaken by
-     * a late write.
-     */
-    awaitIndex?: boolean;
-  } = {}
-): Promise<boolean> {
-  if (!isSpannerReady()) return false;
+export async function insertFact(fact: Omit<GraphFact, 'createdAt'>): Promise<void> {
+  if (!isSpannerReady()) return;
 
   const db = getDatabase();
   const now = new Date().toISOString();
@@ -174,7 +163,7 @@ export async function insertFact(
     await db.runTransactionAsync(async (transaction) => {
       await transaction.runUpdate({
         sql: `
-          INSERT INTO facts 
+          INSERT OR UPDATE INTO facts 
           (fact_id, user_id, fact_type, key, value, domain, confidence, source_session, extracted_at, created_at)
           VALUES 
           (@factId, @userId, @factType, @key, @value, @domain, @confidence, @sourceSession, @extractedAt, @createdAt)
@@ -197,50 +186,17 @@ export async function insertFact(
 
     log.debug({ factId: fact.factId, domain }, 'Fact inserted with domain');
 
-    // Index for semantic search
-    const index = async () => {
+    // Index for semantic search (non-blocking)
+    fireAndForget(async () => {
       const { indexMemory } = await import('../retrieval/semantic-memory-search.js');
       await indexMemory(fact.userId, `${fact.key}: ${fact.value}`, 'fact', fact.factId, {
         domain,
         factType: fact.factType,
         confidence: fact.confidence,
       });
-    };
-    if (opts.awaitIndex) await index();
-    else fireAndForget(index, `index-fact-for-semantic-search:${fact.factId}`);
-    return true;
+    }, `index-fact-for-semantic-search:${fact.factId}`);
   } catch (error) {
     log.warn({ error: String(error), factId: fact.factId }, 'Failed to insert fact');
-    return false;
-  }
-}
-
-/**
- * Delete a fact the caller asked to forget, its entity links, and its copy in
- * the semantic memory index (insertFact indexes it there). Throws when the
- * graph can't be written, so the sync retries instead of marking it done.
- */
-export async function deleteFact(userId: string, factId: string): Promise<void> {
-  if (!isSpannerReady()) throw new Error('Spanner not ready');
-  const db = getDatabase();
-  await db.runTransactionAsync(async (transaction) => {
-    await transaction.runUpdate({
-      sql: 'DELETE FROM entity_facts WHERE user_id = @userId AND fact_id = @factId',
-      params: { userId, factId },
-    });
-    await transaction.runUpdate({
-      sql: 'DELETE FROM facts WHERE user_id = @userId AND fact_id = @factId',
-      params: { userId, factId },
-    });
-    await transaction.commit();
-  });
-  // Not removeIndexedMemory: it logs and swallows a failure, and a delete
-  // that didn't happen must never be reported as done.
-  const { getFirestoreVectorStore } = await import('../firestore-vector-store.js');
-  const store = getFirestoreVectorStore();
-  if (!store.isInitialized) await store.initialize();
-  if (!(await store.removeDocument(`fact_${factId}`))) {
-    throw new Error('Index copy not removed');
   }
 }
 
