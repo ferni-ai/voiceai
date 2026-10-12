@@ -3908,6 +3908,8 @@
     "loadingCoaches": "코치들을 찾는 중...",
     "noMatches": "일치하는 결과가 없어요",
     "noMatchesHint": "다른 단어로 검색하거나 모든 코치를 둘러보세요.",
+    "nobodyYet": "아직 새로 만날 친구가 없어요",
+    "nobodyYetHint": "새로운 친구가 통화에 함께할 수 있게 되면 여기에서 만날 수 있어요.",
     "becomeCreator": "크리에이터 되기",
     "teamLocked": {
       "title": "먼저 팀을 만나보세요",

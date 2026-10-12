@@ -3908,6 +3908,8 @@
     "loadingCoaches": "コーチを探しています...",
     "noMatches": "一致するものはまだありません",
     "noMatchesHint": "別の言葉で検索するか、すべてのコーチを見てみましょう。",
+    "nobodyYet": "まだ新しい仲間はいません",
+    "nobodyYetHint": "新しい仲間が通話に参加できるようになったら、ここで紹介します。",
     "becomeCreator": "クリエイターになる",
     "teamLocked": {
       "title": "まずはチームに会いましょう",

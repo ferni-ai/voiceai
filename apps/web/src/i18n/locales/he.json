@@ -3931,6 +3931,8 @@
     "loadingCoaches": "מחפשים מאמנים...",
     "noMatches": "לא נמצאו התאמות",
     "noMatchesHint": "כדאי לנסות חיפוש אחר או לחקור את כל המאמנים.",
+    "nobodyYet": "עדיין אין חברים חדשים להכיר",
+    "nobodyYetHint": "כשמישהו חדש יוכל להצטרף לשיחות שלך, תפגוש אותו כאן.",
     "becomeCreator": "להפוך ליוצרים",
     "poweredBy": "מופעל על ידי Ferni",
     "teamLocked": {

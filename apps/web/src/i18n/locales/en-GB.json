@@ -3908,6 +3908,8 @@
     "loadingCoaches": "Finding coaches...",
     "noMatches": "No matches yet",
     "noMatchesHint": "Try a different search or explore all coaches.",
+    "nobodyYet": "No new friends to meet yet",
+    "nobodyYetHint": "When someone new can join your calls, you'll meet them here.",
     "becomeCreator": "Become a creator",
     "poweredBy": "Powered by Ferni",
     "teamLocked": {
