@@ -18,7 +18,6 @@
  * @module memory/recall/episodes
  */
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
 import { forgetTokens, isForgotten } from './session-recall.js';
 import {
@@ -62,9 +61,9 @@ const STRIDE = 2;
 const MAX_EPISODES = 240;
 /** Quoted words per turn, in tokens: about two short passages. */
 export const EPISODE_TOKENS_PER_TURN = 80;
-const CALLS_READ = 8;
+export const CALLS_READ = 8;
 /** A call this short is a test or a hang-up. */
-const MIN_TURNS = 4;
+export const MIN_TURNS = 4;
 
 /**
  * True when a raw passage is about a forgotten topic. Speech rarely uses the
@@ -124,6 +123,9 @@ export function formatEpisodes(episodes: readonly Episode[], now: number): strin
   ].join('\n');
 }
 
+/** No store given: no earlier calls (the live hook passes storage/episode-store.ts). */
+const noCalls: EpisodeStore = { calls: async () => [] };
+
 export interface EpisodeRecall {
   ready: Promise<void>;
   observe: (text: string) => void;
@@ -147,7 +149,7 @@ export function createEpisodeRecall(deps: {
   let index: SemanticIndex | undefined;
   let tokensLeft = EPISODE_TOKENS_PER_TURN;
   const ready = Promise.all([
-    (deps.store ?? firestoreEpisodeStore).calls(deps.userId, deps.before),
+    (deps.store ?? noCalls).calls(deps.userId, deps.before),
     (deps.forgotten ?? (() => forgottenTopicsOrNull(deps.userId)))(),
   ])
     .then(async ([calls, forgotten]) => {
@@ -188,46 +190,3 @@ export function createEpisodeRecall(deps: {
     },
   };
 }
-
-function millis(v: unknown): number {
-  if (v && typeof (v as { toDate?: unknown }).toDate === 'function') {
-    return (v as { toDate: () => Date }).toDate().getTime();
-  }
-  return Date.parse(String(v));
-}
-
-/** bogle_users/{uid}/conversations by startedAt, and each call's turns. */
-export const firestoreEpisodeStore: EpisodeStore = {
-  async calls(userId, before) {
-    const db = getFirestoreDb();
-    if (!db) return [];
-    const convs = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('conversations')
-      .where('startedAt', '<', before)
-      .orderBy('startedAt', 'desc')
-      .limit(CALLS_READ * 2)
-      .get();
-    const recent = convs.docs
-      .filter((d) => {
-        const n = d.data().turnCount;
-        return typeof n !== 'number' || n >= MIN_TURNS;
-      })
-      .slice(0, CALLS_READ);
-    return Promise.all(
-      recent.map(async (d) => {
-        const turns = (await d.ref.collection('turns').get()).docs
-          .map((t) => t.data())
-          .filter((t) => t.role === 'user' && typeof t.content === 'string')
-          .map((t) => ({ at: millis(t.timestamp), text: String(t.content) }))
-          .sort((a, b) => a.at - b.at);
-        return {
-          id: d.id,
-          at: new Date(millis(d.data().startedAt)).toISOString(),
-          lines: turns.map((t) => t.text),
-        };
-      })
-    );
-  },
-};

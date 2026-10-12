@@ -84,6 +84,12 @@ jobs:
       # 'false' only when a PR touches nothing but docs/, scripts/voice-eval/ and
       # markdown outside the code trees (persona bundles load src/**/*.md at runtime)
       code: ${{ steps.code.outputs.matched }}
+      # 'false' also when a PR touches only apps that aren't the Node app (website,
+      # ios-native, android-native, macos-menubar): none is in the UI image, ESLint
+      # ignores apps/**, and none has .ts, so the test, lint and build jobs can't
+      # see the change. Security and Quality Gates (brand scans the website) stay on
+      # `code`. The merge queue is scoped the same way unless CI_SCOPED_QUEUE=off.
+      node: ${{ steps.node.outputs.matched }}
       # voice-eval scripts are tested by Unit Tests (src/tests/voice-eval)
       voice-eval: ${{ steps.voice-eval.outputs.matched }}
     steps:
@@ -95,12 +101,21 @@ jobs:
         uses: ./.github/actions/pr-changes
         with:
           exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$'
+          merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
+
+      - name: Did the Node app change?
+        id: node
+        uses: ./.github/actions/pr-changes
+        with:
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|macos-menubar)/'
+          merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
 
       - name: Did voice-eval scripts change?
         id: voice-eval
         uses: ./.github/actions/pr-changes
         with:
           include: '^scripts/voice-eval/'
+          merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
 
       - name: Generate cache key
         id: cache-key
@@ -139,7 +154,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -192,7 +207,7 @@ jobs:
     # an ~8 min test run. Cached cargo brings later runs back near the old budget.
     timeout-minutes: 35
     needs: setup
-    if: needs.setup.outputs.code != 'false' || needs.setup.outputs.voice-eval == 'true'
+    if: needs.setup.outputs.node != 'false' || needs.setup.outputs.voice-eval == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -325,21 +340,21 @@ jobs:
         shard: [1, 2, 3]
     steps:
       - name: Checkout
-        if: needs.setup.outputs.code != 'false'
+        if: needs.setup.outputs.node != 'false'
         uses: actions/checkout@v7
 
       - name: Setup pnpm
-        if: needs.setup.outputs.code != 'false'
+        if: needs.setup.outputs.node != 'false'
         uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        if: needs.setup.outputs.code != 'false'
+        if: needs.setup.outputs.node != 'false'
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
-        if: needs.setup.outputs.code != 'false'
+        if: needs.setup.outputs.node != 'false'
         id: nm-cache
         uses: actions/cache/restore@v6
         with:
@@ -354,17 +369,17 @@ jobs:
       # and cache eviction (10 GB repo limit) both leave it missing; install
       # instead of failing a job that has nothing wrong with it.
       - name: Install dependencies (node_modules cache miss)
-        if: needs.setup.outputs.code != 'false' && (steps.nm-cache.outputs.cache-hit != 'true')
+        if: needs.setup.outputs.node != 'false' && (steps.nm-cache.outputs.cache-hit != 'true')
         run: pnpm install --no-frozen-lockfile
 
       # memory-persistence loads the native vector accelerator (loadRustPerf
       # throws without it); see the same steps in Unit Tests for why.
       - name: Setup Rust (for the @ferni/perf native binding)
-        if: needs.setup.outputs.code != 'false'
+        if: needs.setup.outputs.node != 'false'
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable @ 2026-09-25
 
       - name: Cache cargo + native targets
-        if: needs.setup.outputs.code != 'false'
+        if: needs.setup.outputs.node != 'false'
         uses: actions/cache@v6
         with:
           path: |
@@ -378,34 +393,34 @@ jobs:
             ${{ runner.os }}-native-
 
       - name: Build @ferni/perf native binding
-        if: needs.setup.outputs.code != 'false'
+        if: needs.setup.outputs.node != 'false'
         working-directory: apps/rust-perf
         run: |
           pnpm install
           pnpm exec napi build --platform
 
       - name: Check @ferni/perf loads
-        if: needs.setup.outputs.code != 'false'
+        if: needs.setup.outputs.node != 'false'
         run: node -e "require('./apps/rust-perf')"
 
       # speech-modules runs the audio-prosody analyzer, which needs this binding
       # (no JS fallback). The repo only has the darwin-arm64 build, so on Linux
       # it failed with "Cannot find module '@ferni/audio-linux-x64-gnu'".
       - name: Build @ferni/audio native binding
-        if: needs.setup.outputs.code != 'false'
+        if: needs.setup.outputs.node != 'false'
         working-directory: apps/rust-audio
         run: |
           pnpm install
           pnpm exec napi build --platform
 
       - name: Check @ferni/audio loads
-        if: needs.setup.outputs.code != 'false'
+        if: needs.setup.outputs.node != 'false'
         run: node -e "require('./apps/rust-audio')"
 
       # Blocking. It ran with continue-on-error, so 13 tests could fail on every
       # run of main and the job still showed green.
       - name: Run integration tests
-        if: needs.setup.outputs.code != 'false'
+        if: needs.setup.outputs.node != 'false'
         # No `--`: pnpm would pass it through and vitest ignores every flag after it.
         run: pnpm test:integration --shard=${{ matrix.shard }}/3 --reporter=verbose
         env:
@@ -422,7 +437,7 @@ jobs:
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Check coverage threshold
-        if: needs.setup.outputs.code != 'false'
+        if: needs.setup.outputs.node != 'false'
         run: |
           # Extract coverage percentage from coverage summary
           COVERAGE=$(cat coverage/coverage-summary.json 2>/dev/null | grep -o '"pct":[0-9.]*' | head -1 | grep -o '[0-9.]*' || echo "0")
@@ -436,7 +451,7 @@ jobs:
 
       - name: Upload integration coverage
         uses: codecov/codecov-action@v7
-        if: always() && needs.setup.outputs.code != 'false'
+        if: always() && needs.setup.outputs.node != 'false'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
@@ -451,7 +466,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -638,7 +653,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -738,7 +753,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -785,7 +800,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -858,7 +873,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -938,7 +953,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 10
     needs: setup
-    if: needs.setup.outputs.code != 'false'
+    if: needs.setup.outputs.node != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
