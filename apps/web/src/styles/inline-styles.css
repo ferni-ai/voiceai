@@ -1813,6 +1813,13 @@ html.theme-transitioning *::after {
   pointer-events: auto !important;
 }
 
+/* Stable roster: the entrance plays once. Rebuilding the bar after a tap, add or
+   handoff must not replay it on every avatar; roster-motion.ts moves only what changed. */
+.app-loaded .entrance-roster.roster-settled .team-member {
+  animation: none;
+  opacity: 1;
+}
+
 /* CRITICAL: Marketplace "More" button must ALWAYS be visible and clickable.
    It's added dynamically after the entrance animations, so it needs explicit visibility. */
 .team-member--marketplace {
