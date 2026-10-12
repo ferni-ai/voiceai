@@ -10645,10 +10645,10 @@ body {
   opacity: 1;
 }
 
-/* Ensure roster has room for hint */
+/* Room for the hint. Not !important: it beat the phone row's scrolling. */
 #teamRoster {
   padding-bottom: 16px;
-  overflow: visible !important;
+  overflow: visible;
 }
 
 /* Full coach section becomes drop zone */
