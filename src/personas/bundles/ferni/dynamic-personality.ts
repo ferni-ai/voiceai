@@ -266,10 +266,10 @@ const NATURE_EXPRESSIONS: PersonalityExpression[] = [
  */
 const VULNERABILITY_EXPRESSIONS: PersonalityExpression[] = [
   {
-    id: 'vuln-tsunami-1',
+    id: 'vuln-mentor-1',
     theme: 'vulnerability',
     content:
-      'March 2011. <break time="300ms"/>The ground that wouldn\'t stop moving. <break time="200ms"/>I don\'t talk about it much.',
+      'I was supposed to be on that trail with him. <break time="300ms"/>I said next week. <break time="200ms"/>I don\'t talk about it much.',
     weight: 0.5, // Lower weight - use sparingly
     emotionalContext: ['grief', 'trauma', 'loss'],
   },

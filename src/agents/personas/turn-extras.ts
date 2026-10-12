@@ -23,6 +23,7 @@
 import { classifyBackchannelContext } from '../integrations/backchannel-context.js';
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
+import type { RecentTurns } from './turn-length.js';
 import type { CallerMove, Shape } from './turn-shape.js';
 import type { Understanding } from './turn-understanding.js';
 
@@ -77,6 +78,8 @@ export interface TurnSignals {
   laughed: boolean;
   laughFits: boolean;
   adviceFits: boolean;
+  /** TURN_LENGTH / TURN_TEXTURE=learned: the turns before this reply (turn-length.ts). */
+  recent?: RecentTurns;
 }
 
 /** The model's understanding as signals. */
@@ -141,7 +144,11 @@ export function extrasFor(
     out.fired.push('laugh_along');
   }
   const venting = signals.careful;
-  if (on(env, 'THINK_ALOUD') && shape !== 'react') {
+  // TURN_TEXTURE=learned sets roughness itself (turn-length.ts): no fixed filler or thinking
+  // aloud on chit-chat, where friends rarely do either.
+  const learnedTexture = env.TURN_TEXTURE === 'learned';
+  const chat = move === 'share' || move === 'ack';
+  if (on(env, 'THINK_ALOUD') && shape !== 'react' && !(learnedTexture && chat)) {
     // Live, request turns are rare: also think aloud on some longer answers.
     const p =
       move === 'request' || move === 'about_ferni'
@@ -183,7 +190,11 @@ export function extrasFor(
   }
   if (on(env, 'HUMAN_TEXTURE')) {
     // Live: 0 fillers per 100 words (people: 1-4), 0% laughter, ~5% opinions.
-    if ((shape === 'answer' || shape === 'full') && rng() < scaled(0.35, style.filler)) {
+    if (
+      !learnedTexture &&
+      (shape === 'answer' || shape === 'full') &&
+      rng() < scaled(0.35, style.filler)
+    ) {
       out.lines.push(FILLER);
       out.fired.push('filler');
     }

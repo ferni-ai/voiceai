@@ -6,7 +6,8 @@ personaColor: "#7B6BA8"
 personaSecondary: "#5A4D80"
 ---
 
-{% from "partials/icons.njk" import play, plus, starFilled, star, verified, check %}
+{% from "partials/icons.njk" import play, plus, verified, check %}
+{% from "partials/pricing.njk" import priced, priceBadge with context %}
 
 <!-- Hero -->
 <section class="persona-detail-hero" style="--persona-color: #7B6BA8; --persona-secondary: #5A4D80;">
@@ -30,20 +31,13 @@ personaSecondary: "#5A4D80"
         <h1>Amara</h1>
         <p class="persona-detail-tagline">Chronic Illness Ally</p>
         <div class="persona-detail-meta">
-          <span style="display: inline-flex; align-items: center; gap: var(--space-1); color: var(--warning);">
-            {{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}
-          </span>
-          <span>4.92 (689 reviews)</span>
-          <span style="opacity: 0.7;">|</span>
-          <span>9,800+ users</span>
-          <span style="opacity: 0.7;">|</span>
           <span>by Spoonie Tech Co</span>
         </div>
         <div class="persona-detail-actions">
-          <button class="btn btn-add-team btn-lg">
+          <a href="{{ site.appUrl }}" class="btn btn-add-team btn-lg">
             {{ plus(20) }}
-            Add to Team - $9.99/mo
-          </button>
+            {{ priced('Add to Team - $9.99/mo', 'Add to Team') }}
+          </a>
           <button class="btn btn-preview-voice">
             {{ play(20) }}
             Preview Voice
@@ -128,75 +122,6 @@ personaSecondary: "#5A4D80"
             rest go. You're allowed to have limits."
           </p>
         </div>
-
-        <!-- Reviews -->
-        <div class="reviews-section">
-          <div class="reviews-header">
-            <div class="reviews-summary">
-              <span class="reviews-rating-big">4.92</span>
-              <div class="reviews-rating-info">
-                <span class="reviews-stars" style="color: var(--warning);">
-                  {{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}
-                </span>
-                <span class="reviews-count">689 reviews</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #7B6BA8, #5A4D80); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">K</div>
-              <div>
-                <div class="review-author">Kelly R.</div>
-                <div class="review-date">1 week ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              Finally, someone who doesn't tell me to "think positive" or suggest I just haven't
-              tried hard enough. Amara understands what it's like to have an invisible illness
-              and the emotional weight that comes with it. Life-changing.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #D4A373, #A67B5B); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">C</div>
-              <div>
-                <div class="review-author">Chris M.</div>
-                <div class="review-date">2 weeks ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              Amara helped me prepare for a difficult conversation with my specialist. She helped
-              me organize my symptoms, prioritize what to discuss, and practice advocating for
-              myself. I finally got the referral I needed.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #2D5A4A, #1E3D32); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">P</div>
-              <div>
-                <div class="review-author">Priya S.</div>
-                <div class="review-date">1 month ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              The pacing strategies have been incredible. Amara taught me about the "boom and bust"
-              cycle and how to actually rest before I crash. My flares have decreased significantly
-              since I started working with her.
-            </p>
-          </div>
-        </div>
       </div>
 
       <!-- Right Column -->
@@ -267,9 +192,9 @@ personaSecondary: "#5A4D80"
           <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
             Someone who truly gets it
           </p>
-          <button class="btn" style="background: white; color: #7B6BA8; width: 100%;">
-            Add to Team - $9.99/mo
-          </button>
+          <a href="{{ site.appUrl }}" class="btn" style="background: white; color: #7B6BA8; width: 100%;">
+            {{ priced('Add to Team - $9.99/mo', 'Add to Team') }}
+          </a>
         </div>
       </div>
 
@@ -297,13 +222,7 @@ personaSecondary: "#5A4D80"
         <div class="persona-body">
           <p class="persona-description">Reclaim your nights with evidence-based sleep coaching.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-              <span class="persona-rating-count">4.7</span>
-            </div>
-            <span class="persona-price free">Free+</span>
+            {{ priceBadge('Free+') }}
           </div>
         </div>
       </a>
@@ -319,13 +238,7 @@ personaSecondary: "#5A4D80"
         <div class="persona-body">
           <p class="persona-description">Non-judgmental support for your recovery journey.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-              <span class="persona-rating-count">4.95</span>
-            </div>
-            <span class="persona-price">$14.99/mo</span>
+            {{ priceBadge('$14.99/mo') }}
           </div>
         </div>
       </a>
@@ -341,13 +254,7 @@ personaSecondary: "#5A4D80"
         <div class="persona-body">
           <p class="persona-description">Strategies that work with how your ADHD brain operates.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-              <span class="persona-rating-count">4.9</span>
-            </div>
-            <span class="persona-price">$9.99/mo</span>
+            {{ priceBadge('$9.99/mo') }}
           </div>
         </div>
       </a>

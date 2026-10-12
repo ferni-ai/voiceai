@@ -21,7 +21,6 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { celebrationsUI } from './celebrations.ui.js';
 import { soundUI } from './sound.ui.js';
-import { watchMorningCalls } from './morning-call.js';
 
 // Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -77,8 +76,6 @@ const achievements: Achievement[] = [
   { id: 'petting', nameKey: 'easterEggs.achievements.petting.name', descriptionKey: 'easterEggs.achievements.petting.description', unlocked: false },
   { id: 'stretch', nameKey: 'easterEggs.achievements.stretch.name', descriptionKey: 'easterEggs.achievements.stretch.description', unlocked: false },
   { id: 'tilt', nameKey: 'easterEggs.achievements.tilt.name', descriptionKey: 'easterEggs.achievements.tilt.description', unlocked: false },
-  { id: 'night-owl', nameKey: 'easterEggs.achievements.nightOwl.name', descriptionKey: 'easterEggs.achievements.nightOwl.description', unlocked: false },
-  { id: 'early-bird', nameKey: 'easterEggs.achievements.earlyBird.name', descriptionKey: 'easterEggs.achievements.earlyBird.description', unlocked: false },
 ];
 
 // 🎬 Personality quirks
@@ -196,9 +193,6 @@ export function initEasterEggsUI(): void {
   // 😴 Check for sleepy mode (late night)
   checkSleepyMode();
   sleepyCheckInterval = setInterval(checkSleepyMode, 60000); // Check every minute
-
-  // 🌅 Morning stretch: earned by finishing a call that started in the morning
-  stopWatchingMorningCalls = watchMorningCalls(triggerMorningStretch);
 
   // 💭 Start idle/daydreaming detection
   startIdleDetection();
@@ -1148,8 +1142,8 @@ function showAchievementNotification(achievement: Achievement): void {
   `;
   notification.style.cssText = `
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    top: calc(env(safe-area-inset-top, 0px) + 4.5rem); /* below the status island, clear of the controls band */
+    right: 1rem; max-width: calc(100vw - 2rem);
     background: linear-gradient(135deg, var(--persona-primary, #4a6741) 0%, var(--persona-secondary, #3d5a35) 100%);
     /* White, like every other persona-gradient surface. --persona-text is the
        persona colour for text on LIGHT backgrounds, so it painted this text the
@@ -1458,7 +1452,6 @@ function checkSleepyMode(): void {
 
   if (shouldBeSleepy && !sleepyModeActive) {
     sleepyModeActive = true;
-    unlockAchievement('night-owl');
     // Increase yawn frequency in quirks
   } else if (!shouldBeSleepy && sleepyModeActive) {
     sleepyModeActive = false;
@@ -1491,43 +1484,6 @@ function triggerSleepyBehavior(): void {
       easing: EASING.EASE_IN_OUT,
     }
   );
-}
-
-// ============================================================================
-// 🌅 MORNING STRETCH - After a call that started in the morning
-// ============================================================================
-
-let stopWatchingMorningCalls: (() => void) | null = null;
-
-function triggerMorningStretch(): void {
-  const avatar = document.querySelector('.avatar-container');
-  unlockAchievement('early-bird');
-
-  if (!avatar || !(avatar instanceof HTMLElement)) return;
-
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    return;
-  }
-
-  // Wake-up stretch animation
-  avatar.animate(
-    [
-      { transform: 'scale(0.95) translateY(5px)', offset: 0 }, // Sleepy
-      { transform: 'scale(0.97) translateY(3px)', offset: 0.1 },
-      { transform: 'scale(1) translateY(0)', offset: 0.2 },
-      { transform: 'scale(1.08, 0.94) translateY(-8px)', offset: 0.4 }, // Big stretch up
-      { transform: 'scale(1.1, 0.92) translateY(-12px)', offset: 0.5 }, // Peak stretch
-      { transform: 'scale(0.95, 1.05) translateY(3px)', offset: 0.7 }, // Settle down
-      { transform: 'scale(1.02) translateY(-2px)', offset: 0.85 }, // Little bounce
-      { transform: 'scale(1) translateY(0)', offset: 1 },
-    ],
-    {
-      duration: DURATION.GLACIAL,
-      easing: EASING.SPRING,
-    }
-  );
-
-  soundUI.play('success');
 }
 
 // ============================================================================
@@ -1811,8 +1767,6 @@ export function dispose(): void {
   document.removeEventListener('touchstart', recordActivity);
   document.removeEventListener('keydown', recordActivity);
 
-  stopWatchingMorningCalls?.();
-  stopWatchingMorningCalls = null;
 
   // Remove speech event listeners
   window.removeEventListener(
@@ -1892,6 +1846,6 @@ export const easterEggsUI = {
   triggerSighEmpathy,
   triggerThankYouBeam,
   // Manual triggers for testing
-  triggerMorningStretch,
+  triggerKonamiCode,
   triggerSleepyBehavior,
 };

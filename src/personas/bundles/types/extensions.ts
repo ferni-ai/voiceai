@@ -718,7 +718,7 @@ export interface BundleLateNightPresence {
     heavy_thoughts?: string[];
     processing_day?: string[];
   };
-  tsunami_wisdom_at_night?: string[];
+  mentor_wisdom_at_night?: string[];
   grounding_exercises?: string[];
   morning_will_come_hope?: string[];
   usage_rules?: {

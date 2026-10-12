@@ -22,6 +22,7 @@
 
 import { decideLaughter } from '../../adaptive-ssml/contextual-laughter.js';
 import type { Valence } from './emotion.js';
+import { decideTeamLaughter, noteWrittenLaughter, teamLaughStyle } from './team-laughter.js';
 
 export type LaughPlacement = 'before' | 'after';
 
@@ -38,6 +39,8 @@ export interface LaughterInput {
   userEmotion?: string;
   /** Rapport 0-1; contextual-laughter's default (0.5) when unknown. */
   comfortLevel?: number;
+  /** TEAM_VOICES=on: teammates and legends laugh by their own style (team-laughter.ts). */
+  teamVoices?: boolean;
 }
 
 const TOPIC_WEIGHT: Record<Valence, 'light' | 'medium' | 'heavy'> = {
@@ -49,10 +52,21 @@ const TOPIC_WEIGHT: Record<Valence, 'light' | 'medium' | 'heavy'> = {
 
 const LAUGHTER_TAG = /\[laughter\]/i;
 
+/** Who and which turn: what the engine knows before the reply's first phrase. */
+export type LaughterWho = Pick<
+  LaughterInput,
+  'sessionId' | 'personaId' | 'turn' | 'userEmotion' | 'comfortLevel' | 'teamVoices'
+>;
+
 /** Where to add `[laughter]` for this reply, or undefined for none. */
 export function decideReplyLaughter(input: LaughterInput): LaughPlacement | undefined {
   if (!input.sessionId || input.replyValence === 'heavy') return undefined;
-  if (input.alreadyLaughing || LAUGHTER_TAG.test(input.phrase)) return undefined;
+  const team = input.teamVoices ? teamLaughStyle(input.personaId) : undefined;
+  if (input.alreadyLaughing || LAUGHTER_TAG.test(input.phrase)) {
+    if (team) noteWrittenLaughter(input.sessionId, input.turn);
+    return undefined;
+  }
+  if (team) return decideTeamLaughter(input, team);
   const decision = decideLaughter(
     {
       responseText: input.phrase,

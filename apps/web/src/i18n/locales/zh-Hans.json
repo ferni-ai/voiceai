@@ -1319,7 +1319,7 @@
         "calendar": "日历",
         "history": "往期聊天",
         "people": "你身边的人",
-        "insights": "你的近况感悟"
+        "insights": "我对你的了解"
       }
     },
     "ariaLabel": "设置菜单",
@@ -8790,6 +8790,7 @@
     }
   },
   "conversationHistory": {
+    "title": "往期聊天",
     "loadError": "无法加载数据。",
     "tryAgain": "再试一次？",
     "ariaLabel": "对话历史",

@@ -11,6 +11,8 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { t } from '../i18n/index.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { openDialog } from './overlay/dialog.js';
 
 const log = createLogger('ConfirmModal');
 
@@ -315,6 +317,7 @@ function closeModal(result: boolean): void {
  * }
  */
 export function confirm(options: ConfirmModalOptions): Promise<boolean> {
+  if (isOverlayHostEnabled()) return confirmInDialog(options);
   ensureStylesExist();
 
   return new Promise((resolve) => {
@@ -336,6 +339,66 @@ export function confirm(options: ConfirmModalOptions): Promise<boolean> {
 
     soundUI.play('switch');
     log.debug('Confirm modal opened:', options.title);
+  });
+}
+
+let dialogCount = 0;
+
+/**
+ * Overlay host on: a native <dialog> alert. Focus starts on Cancel (never on a
+ * destructive action), Escape and the backdrop cancel, and each call gets its
+ * own dialog, so a second confirm no longer drops the first one's promise.
+ */
+function confirmInDialog(options: ConfirmModalOptions): Promise<boolean> {
+  return new Promise((resolve) => {
+    const n = ++dialogCount;
+    const iconType = options.icon || (options.destructive ? 'delete' : 'question');
+    const content = document.createElement('div');
+
+    const icon = document.createElement('div');
+    icon.className = `ferni-dialog__icon${options.destructive ? ' ferni-dialog__icon--destructive' : iconType === 'warning' ? ' ferni-dialog__icon--warning' : ''}`;
+    icon.innerHTML = ICONS[iconType]; // static SVG markup from this module
+    const title = document.createElement('h2');
+    title.className = 'ferni-dialog__title';
+    title.id = `ferni-confirm-title-${n}`;
+    title.textContent = options.title;
+    const message = document.createElement('p');
+    message.className = 'ferni-dialog__message';
+    message.id = `ferni-confirm-message-${n}`;
+    message.textContent = options.message;
+
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'ferni-dialog__button';
+    cancel.textContent = options.cancelText || t('confirmModal.cancel');
+    cancel.autofocus = true;
+    const ok = document.createElement('button');
+    ok.type = 'button';
+    ok.className = `ferni-dialog__button ${options.destructive ? 'ferni-dialog__button--destructive' : 'ferni-dialog__button--primary'}`;
+    ok.textContent = options.confirmText || t('confirmModal.confirm');
+    const actions = document.createElement('div');
+    actions.className = 'ferni-dialog__actions';
+    actions.append(cancel, ok);
+    content.append(icon, title, message, actions);
+
+    let confirmed = false;
+    const dialog = openDialog(content, {
+      size: 'sm',
+      role: 'alertdialog',
+      labelledBy: title.id,
+      describedBy: message.id,
+      onClose: () => {
+        soundUI.play('click');
+        resolve(confirmed);
+      },
+    });
+    cancel.addEventListener('click', () => dialog.close());
+    ok.addEventListener('click', () => {
+      confirmed = true;
+      dialog.close();
+    });
+    soundUI.play('switch');
+    log.debug('Confirm dialog opened:', options.title);
   });
 }
 
@@ -374,4 +437,3 @@ export function confirmWarning(
     ...options,
   });
 }
-

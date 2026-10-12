@@ -344,7 +344,7 @@ class ConversationHistoryUI {
   private renderHeader(): string {
     return `
       <header class="history__header">
-        <h2 class="history__title">${t('accessibility.yourJourney')}</h2>
+        <h2 class="history__title">${t('conversationHistory.title')}</h2>
         <button class="history__close" aria-label="${t('accessibility.closeHistory')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
@@ -441,7 +441,7 @@ class ConversationHistoryUI {
       .history__card {
         position: relative;
         width: 100%;
-        max-width: clamp(336px, 90vw, 480px);
+        max-width: var(--modal-width, clamp(336px, 90vw, 480px));
         max-height: 80vh;
         background: var(--color-bg-elevated, #FFFDFB);
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
@@ -485,8 +485,8 @@ class ConversationHistoryUI {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
+        width: var(--space-11, 44px);
+        height: var(--space-11, 44px);
         padding: 0;
         background: var(--color-background-tertiary);
         border: none;
