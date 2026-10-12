@@ -12,7 +12,10 @@ import { TransformStream, type ReadableStream } from 'node:stream/web';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
-import { phoneOnlyIdentity } from '../voice-agent-entry/caller-recognition.js';
+import {
+  phoneOnlyIdentity,
+  sessionIsVerifiedOwner,
+} from '../voice-agent-entry/caller-recognition.js';
 import { getBargeInFastPath } from '../multi-agent/barge-in-fastpath.js';
 import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
 import {
@@ -34,6 +37,7 @@ import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { ferniStateNote } from './ferni-state.js';
 import { firstCallNote } from './first-call-rapport.js';
+import { nameCorrectionNote } from './name-correction.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
 import { callerTurnsOf, happyExitNote, happyExitsEnabled } from './happy-exits.js';
@@ -108,6 +112,10 @@ export function withTurnReminder(
     ferniStateNote(chatCtx, session, { careful: options.shape === false }),
     // FIRST_CALL_RAPPORT=on: a new caller's first call (names, a reason to come back)
     firstCallNote(chatCtx, session, words),
+    // NAME_CORRECTION=on: the name they gave for themselves wins over the account's
+    nameCorrectionNote(chatCtx, session, words, process.env, {
+      verifiedOwner: sessionIsVerifiedOwner,
+    }),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
