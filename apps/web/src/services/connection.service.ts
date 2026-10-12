@@ -71,6 +71,7 @@ import { registerMicRestoreHandlers, type MicRoom } from './mic-restore.js';
 import { spotifyService } from './spotify.service.js';
 import { fetchConnectionToken } from './token-fetch.service.js';
 import { attachLiveTranscription } from './live-transcription.service.js';
+import { reportPlayRejected } from './audio-play-blocked.js';
 
 const log = createLogger('Connection');
 
@@ -784,14 +785,13 @@ class ConnectionService {
         audioEl.style.left = '-9999px';
         document.body.appendChild(audioEl);
 
-        // iOS audio unlock: try to play immediately
+        // Play now (iOS needs load() first); if refused, retry on the next gesture
         const playAudio = async () => {
           try {
-            // iOS requires load() call before play() in some cases
             audioEl.load();
             await audioEl.play();
           } catch (err) {
-            // iOS/mobile requires user gesture - set up handlers
+            reportPlayRejected(err, { trackKey, isMusicTrack }); // offers "Tap to hear Ferni"
             const unlock = () => {
               audioEl.play().catch((e) => log.warn('Audio unlock failed:', e));
               document.removeEventListener('touchstart', unlock);

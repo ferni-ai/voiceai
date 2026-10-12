@@ -11090,7 +11090,8 @@
     "ferniSpeaking": "Ferni가 말하고 있어요",
     "youSpeaking": "내가 말하고 있어요",
     "ferniThinking": "Ferni가 생각하고 있어요",
-    "tapToInterrupt": "탭해서 끼어들기"
+    "tapToInterrupt": "탭해서 끼어들기",
+    "tapToHear": "탭해서 Ferni 목소리 듣기"
   },
   "answerCard": {
     "answer": "",
