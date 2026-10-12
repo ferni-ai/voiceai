@@ -9,7 +9,7 @@
  */
 import type { DeepExtractionJob } from './deep-extraction-worker.js';
 import { createTurnBatcher, type TurnBatcher, type TurnBatcherOptions } from './turn-batcher.js';
-import { assertedLines } from '../caller-assertions.js';
+import { assertedLines, callerAssertedMemoryOn } from '../caller-assertions.js';
 
 export const DEEP_EXTRACTION_BATCH_TURNS = 4;
 export const DEEP_EXTRACTION_IDLE_MS = 30_000;
@@ -45,6 +45,7 @@ export function mergeDeepExtractionJobs(jobs: readonly DeepExtractionJob[]): Dee
  * (caller-assertions.ts); null when nothing the caller asserted is left.
  */
 export function assertedJob(job: DeepExtractionJob): DeepExtractionJob | null {
+  if (!callerAssertedMemoryOn()) return job; // flag off: every job runs, as before
   const transcript = assertedLines(job.transcript.split('\n')).join('\n');
   if (transcript.length === 0) return null;
   return transcript === job.transcript ? job : { ...job, transcript };

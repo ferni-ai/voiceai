@@ -102,6 +102,14 @@ describe('deep extraction reads only what the caller asserts', () => {
     expect(run.mock.calls[0][0].transcript).toBe('I was working late on some AI.');
   });
 
+  it('flag off: a job with an empty transcript still runs, as before', () => {
+    vi.stubEnv('CALLER_ASSERTED_MEMORY', 'off');
+    const run = vi.fn();
+    const b = createDeepExtractionBatcher(run, { ...noTimers, batchTurns: 1 });
+    b.add(job(1, ''));
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
   it('flag off: the merged transcript is unchanged', () => {
     const run = vi.fn();
     const b = createDeepExtractionBatcher(run, noTimers);
