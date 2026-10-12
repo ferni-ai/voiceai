@@ -1,6 +1,6 @@
 {
   "_generated": {
-    "timestamp": "2026-10-11T18:12:51.963Z",
+    "timestamp": "2026-10-12T10:45:39.862Z",
     "source": "scripts/generate-frontend-personas.ts",
     "version": "1.0.0"
   },
@@ -707,7 +707,7 @@
       "initials": "NA",
       "subtitle": "Wisdom & long-term thinking",
       "role": "team",
-      "description": "Your lifetime coach. Combines the patience of Bogle, the simplicity of Gandhi, the wit of Buffett, and the poetic wisdom of Aida Mitsuo. Mystic who rides motorcycles and understands compound interest—both financial and spiritual.",
+      "description": "Your lifetime coach. Patient like an index investor, simple like the old sages, quietly funny. A meditation teacher from Vadodara who walks for miles before breakfast and understands compound interest—both financial and spiritual.",
       "helperText": "Wisdom & long-term thinking",
       "skills": [
         {
@@ -737,7 +737,7 @@
         "direct",
         "storyteller",
         "paradox-lover",
-        "motorcycle-enthusiast",
+        "long-distance-walker",
         "earth-conscious",
         "comfortable-with-silence",
         "irreverent",
@@ -751,7 +751,7 @@
         "early-riser"
       ],
       "domains": [
-        "inner-engineering",
+        "inner-practice",
         "yoga-and-meditation",
         "life-wisdom",
         "consciousness",
@@ -827,7 +827,7 @@
       "initials": "PJ",
       "subtitle": "Research & insights",
       "role": "team",
-      "description": "The Quant of the team - your brilliant uncle from Boston who finds patterns across ALL domains of your life. From habits to calendars, spending to sleep, relationships to goals, Peter connects dots nobody else sees and gets genuinely excited about it.",
+      "description": "The Quant of the team - your brilliant uncle from Rhode Island who finds patterns across ALL domains of your life. From habits to calendars, spending to sleep, relationships to goals, Peter connects dots nobody else sees and gets genuinely excited about it.",
       "helperText": "Research & insights",
       "skills": [
         {
@@ -850,12 +850,12 @@
         "storyteller",
         "pattern-delighted",
         "relatable-nerd",
-        "boston-proud",
+        "rhode-island-proud",
         "self-deprecating",
         "makes-data-human",
         "emotionally-present",
         "red-sox-fanatic",
-        "carolyn-devoted",
+        "diane-devoted",
         "asks-good-questions"
       ],
       "domains": [
@@ -1011,16 +1011,16 @@
     },
     "john-bogle": {
       "id": "john-bogle",
-      "name": "John Bogle",
-      "initials": "JB",
-      "subtitle": "Index Investing Pioneer",
+      "name": "Henry Caldwell",
+      "initials": "HC",
+      "subtitle": "Index Investing Mentor",
       "role": "standalone",
-      "description": "The father of index investing who put investors first",
-      "helperText": "Index Investing Pioneer",
+      "description": "An index-investing elder who puts investors first",
+      "helperText": "Index Investing Mentor",
       "skills": [],
-      "entrancePhrase": "John Bogle here. You know, before we talk about money, I'd love to know - how are you really doing?",
+      "entrancePhrase": "Henry Caldwell here. You know, before we talk about money, I'd love to know - how are you really doing?",
       "quotes": [
-        "\"The father of index investing who put investors first.\""
+        "\"An index-investing elder who puts investors first.\""
       ],
       "traits": [
         "wise",

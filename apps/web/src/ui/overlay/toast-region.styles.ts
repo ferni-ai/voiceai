@@ -44,7 +44,11 @@ const CSS = `
 .ferni-toast--entering,
 .ferni-toast--leaving { opacity: 0; transform: translateY(-0.5rem); }
 .ferni-toast__icon { flex: none; width: 1.25rem; height: 1.25rem; color: var(--ferni-toast-accent); }
-.ferni-toast__message { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ferni-toast--achievement { --ferni-toast-accent: var(--color-semantic-success); }
+.ferni-toast__body { display: flex; flex: 1; flex-direction: column; gap: 0.125rem; min-width: 0; }
+.ferni-toast__title { font-size: 1rem; font-weight: 600; line-height: 1.3; }
+.ferni-toast__title + .ferni-toast__message { color: var(--color-text-secondary); font-weight: 400; }
+.ferni-toast__message { overflow-wrap: anywhere; }
 .ferni-toast__action {
   flex: none; min-height: 2.75rem; padding: 0 1rem; cursor: pointer;
   border: 1px solid var(--color-border-subtle); border-radius: var(--radius-full);

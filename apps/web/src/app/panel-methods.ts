@@ -26,6 +26,7 @@ import {
 } from '../services/prediction-tracker-data.js';
 import { showTeamHuddle as showTeamHuddleUI, type TeamHuddleData } from '../ui/team-huddle.ui.js';
 import { loadYourStory } from '../ui/lazy-screens.js';
+import { memoryControlEnabled, showRemembered } from '../ui/memory/remembered.js';
 import { toast } from '../ui/whisper.ui.js';
 import { apiDelete, apiGet, apiPost } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
@@ -207,9 +208,7 @@ export async function showAnalyticsDashboard(): Promise<void> {
 // COGNITIVE INSIGHTS
 // ============================================================================
 
-/**
- * Delete a memory from "What I've Learned" and refresh the UI.
- */
+/** Delete a memory from "What I've Learned" and refresh the UI. */
 export async function deleteMemory(memoryId: string): Promise<void> {
   const response = await apiDelete(`/api/cognitive/memories/${encodeURIComponent(memoryId)}`);
   if (response.ok) {
@@ -225,11 +224,9 @@ export async function deleteMemory(memoryId: string): Promise<void> {
   await showCognitiveInsights();
 }
 
-/**
- * Show cognitive insights panel.
- * Fetches real data from API, falls back to demo data in development.
- */
+/** "What I've Learned"; with VITE_MEMORY_CONTROL, what Ferni really remembers (remembered.ts). */
 export async function showCognitiveInsights(): Promise<void> {
+  if (memoryControlEnabled()) return showRemembered();
   void trackScreen('cognitive-insights');
   getCognitiveInsightsUI().setCallbacks({
     onDeleteMemory: async (memoryId: string) => {

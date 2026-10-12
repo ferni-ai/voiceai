@@ -13,6 +13,7 @@ import { ritualsService } from '../services/rituals.service.js';
 import { messageUI } from './message.ui.js';
 import { toast, toastInfo } from './whisper.ui.js';
 import { startOAuthConnect } from '../services/oauth-connect.service.js';
+import { isVenmoChipInEnabled, openSupport } from './support/open-support.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('LazyScreens');
@@ -108,11 +109,13 @@ export async function openMarketplaceAdmin(session: { id: string; name: string }
 }
 
 export async function openSupportFerni(): Promise<void> {
+  if (isVenmoChipInEnabled()) return openSupport();
   const m = await loadScreen('lazyScreens.screens.supportFerni', () => import('./support-ferni.ui.js'));
   await m?.supportFerniUI.open();
 }
 
 export async function openFerniFund(userId: string): Promise<void> {
+  if (isVenmoChipInEnabled()) return openSupport();
   const m = await loadScreen('lazyScreens.screens.garden', () => import('./ferni-fund.ui.js'));
   await m?.ferniFundUI.open(userId);
 }

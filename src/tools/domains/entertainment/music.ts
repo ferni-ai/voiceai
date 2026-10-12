@@ -39,6 +39,7 @@ import {
   shouldReactToMusic,
 } from '../../../speech/music-reactions.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { ambientStartLine, startWithin } from './music-start.js';
 import { getParameterDescription, getToolDescription } from '../../utils/tool-descriptions.js';
 
 // ============================================================================
@@ -296,62 +297,37 @@ async function playAmbientMusic(query: string): Promise<string> {
     return `I'd love to set the mood with some ${query} music, but the audio system isn't ready this session. Let's keep chatting!`;
   }
 
-  // Play the first track immediately
+  // Start the first track, queue up to 4 more (~2.5 min of continuous DJ previews),
+  // and answer with what's playing without waiting out the download (music-start.ts).
   const firstTrack = tracksWithPreviews[0];
-  const ITUNES_PREVIEW_DURATION_MS = 30000;
-
-  const musicTrack: MusicTrack = {
-    name: firstTrack.trackName,
-    artist: firstTrack.artistName,
-    previewUrl: firstTrack.previewUrl!,
-    duration: ITUNES_PREVIEW_DURATION_MS,
-    albumArt: firstTrack.artworkUrl100, // 🎨 Album artwork for Now Playing UI
-  };
-
-  const success = await musicPlayer.playFromUrl(firstTrack.previewUrl!, musicTrack);
-
-  if (!success) {
-    log.error({ track: firstTrack.trackName }, '🎧 Failed to start ambient playback');
-    // 🚨 IMPROVED: Better error message - system issue, not track issue
-    return `Something went wrong with the audio system while trying to play ${query} music. You might need to reconnect for music to work.`;
-  }
-
-  // 🎧 DJ MODE: Queue multiple tracks for a continuous DJ experience
-  // Each track is ~30 seconds, so 5 tracks = ~2.5 minutes of continuous music
-  // This gives the user a proper music session, not just 2 quick songs!
-  const TRACKS_TO_QUEUE = 4; // Queue 4 backup tracks (+ 1 playing = 5 total)
-  const tracksToQueue = tracksWithPreviews.slice(1, TRACKS_TO_QUEUE + 1);
-
-  for (const backupTrack of tracksToQueue) {
-    musicPlayer.addToQueue({
-      name: backupTrack.trackName,
-      artist: backupTrack.artistName,
-      previewUrl: backupTrack.previewUrl!,
-      duration: ITUNES_PREVIEW_DURATION_MS,
-      albumArt: backupTrack.artworkUrl100,
-    });
-  }
-
-  log.info(
-    {
-      firstTrack: firstTrack.trackName,
-      queuedTracks: tracksToQueue.map((t) => t.trackName),
-      queueLength: tracksToQueue.length,
-      totalTracksFound: tracksWithPreviews.length,
-    },
-    '🎧 DJ Mode: Playing with continuous queue for a proper music session!'
+  const PREVIEW_MS = 30000;
+  const toTrack = (t: (typeof tracksWithPreviews)[number]): MusicTrack => ({
+    name: t.trackName,
+    artist: t.artistName,
+    previewUrl: t.previewUrl,
+    duration: PREVIEW_MS,
+    albumArt: t.artworkUrl100, // 🎨 Album artwork for Now Playing UI
+  });
+  const queued = tracksWithPreviews.slice(1, 5);
+  const track = { ...toTrack(firstTrack), genre: firstTrack.primaryGenreName };
+  const outcome = await startWithin(
+    () => musicPlayer.playFromUrl(firstTrack.previewUrl, toTrack(firstTrack)),
+    track,
+    (ok) => {
+      if (!ok) return;
+      for (const t of queued) musicPlayer.addToQueue(toTrack(t));
+      log.info(
+        { firstTrack: firstTrack.trackName, queuedTracks: queued.map((t) => t.trackName) },
+        '🎧 DJ Mode: Playing with continuous queue for a proper music session!'
+      );
+    }
   );
 
-  // Return ambient-style response (short, doesn't interrupt conversation)
-  const ambientResponses = [
-    "Here's some vibes...",
-    'Setting the mood...',
-    'Got something for you...',
-    `Some ${query} coming up...`,
-    '', // Sometimes just play silently and let the music speak!
-  ];
-
-  return ambientResponses[Math.floor(Math.random() * ambientResponses.length)];
+  if (outcome === 'failed') {
+    log.error({ track: firstTrack.trackName }, '🎧 Failed to start ambient playback');
+    return `Something went wrong with the audio system while trying to play ${query} music. You might need to reconnect for music to work.`;
+  }
+  return ambientStartLine(outcome, track, queued.length);
 }
 
 /**
@@ -578,8 +554,9 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
       usedCrossfade = true;
     } else {
       // Normal play (nothing was playing before)
-      log.debug('Step 4: Calling playFromUrl', { previewUrl: track.previewUrl });
-      success = await currentMusicPlayer.playFromUrl(track.previewUrl, musicTrack);
+      // Not waiting out the download: still loading after START_WAIT_MS counts as on its way.
+      const play = () => currentMusicPlayer.playFromUrl(track.previewUrl, musicTrack);
+      success = (await startWithin(play, track)) !== 'failed';
     }
 
     log.debug('Play returned', { success, usedCrossfade });

@@ -1319,7 +1319,7 @@
         "calendar": "Calendar",
         "history": "Past chats",
         "people": "Your people",
-        "insights": "How you're doing"
+        "insights": "What I've learned"
       }
     },
     "ariaLabel": "Settings menu",
@@ -4620,7 +4620,8 @@
     "sourceInferred": "I noticed",
     "correctButton": "Correct",
     "memoriesCount": "{count} memories",
-    "confidence": "{confidence}% confident"
+    "confidence": "{confidence}% confident",
+    "earlier": "earlier"
   },
   "memoryCorrection": {
     "modalTitle": "Correct This Memory",
@@ -8790,6 +8791,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Past Chats",
     "loadError": "Couldn't load data.",
     "tryAgain": "Try again?",
     "ariaLabel": "Conversation history",
@@ -10243,7 +10245,9 @@
     "seedsEarned": {
       "one": "You earned {count} seed!",
       "other": "You earned {count} seeds!"
-    }
+    },
+    "couldNotLoadMemories": "Couldn't load what I remember. Try again?",
+    "memoryCorrected": "Got it. I'll remember it that way."
   },
   "trustSignals": {
     "prefix": {
@@ -10408,6 +10412,12 @@
       "fair": "Fair",
       "poor": "Poor connection",
       "disconnected": "Disconnected"
+    },
+    "island": {
+      "offline": "You're offline. I'll reconnect when you're back.",
+      "reconnecting": "Reconnecting…",
+      "weak": "Weak connection",
+      "backOnline": "Back online"
     }
   },
   "ideasGallery": {
@@ -10866,6 +10876,9 @@
       "other": "{count} days"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "Nom nom!"
+  },
   "avatarTapReactions": {
     "tickles": "Hehe, that tickles!"
   },
@@ -11112,5 +11125,17 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "Chip in",
+    "title": "A dollar keeps the conversation going",
+    "body": "Ferni is free for now. If a talk helped, you can send a dollar on Venmo. More is welcome, never expected.",
+    "qrAlt": "Venmo QR code for @{handle}",
+    "copy": "Copy",
+    "copied": "Copied",
+    "openVenmo": "Open Venmo",
+    "helper": "Scan with your phone's camera, or tap Open Venmo. You can change the amount.",
+    "maybeLater": "Maybe later",
+    "close": "Close"
   }
 }

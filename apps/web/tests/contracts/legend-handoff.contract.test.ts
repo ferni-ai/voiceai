@@ -1,10 +1,10 @@
 /**
  * Financial Legend handoff contract: agent → web.
  *
- * When the voice agent hands a call to a Financial Legend (Peter Lynch, John
- * Bogle, Joel Dickson), the web must show THAT person. Before this, the web
- * mapped `peter-lynch` to Peter John on purpose, so a handoff to Peter Lynch
- * showed Peter John's name, face and colour.
+ * When the voice agent hands a call to a Financial Legend (the peter-lynch,
+ * john-bogle and joel-dickson personas), the web must show THAT persona. Before
+ * this, the web mapped `peter-lynch` to Peter John on purpose, so a handoff to
+ * peter-lynch showed Peter John's name, face and colour.
  *
  * The message is built by the backend's REAL code: the id is canonicalized by
  * src/personas/persona-ids.ts (the coordinator's getCanonicalPersonaId
@@ -73,9 +73,9 @@ describe('handoff to a Financial Legend', () => {
     );
   });
 
-  it('shows John Bogle and Nate Holloway (joel-dickson) as themselves', async () => {
+  it('shows Henry Caldwell (john-bogle) and Nate Holloway (joel-dickson) as themselves', async () => {
     await handoffService.processDataMessage(handoffCompleteFromAgent('john-bogle'));
-    expect(appState.get('activePersona').name).toBe('John Bogle');
+    expect(appState.get('activePersona').name).toBe('Henry Caldwell');
     expect(appState.get('activePersona').colors.primary).toBe(
       GENERATED_PERSONA_COLORS['bogle']?.primary
     );

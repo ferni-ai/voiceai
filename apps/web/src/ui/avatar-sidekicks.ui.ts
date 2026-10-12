@@ -3,18 +3,18 @@
  * 
  * Small floating icons that appear BESIDE Ferni's avatar (not over it).
  * Think of these as "props" or "gestures" - like Ferni holding a coffee cup,
- * showing a lightbulb for an idea, or hearts drifting beside her.
+ * showing a lightbulb for an idea, or hearts drifting beside him.
  * 
  * DESIGN PHILOSOPHY:
  * ==================
  * Instead of covering Ferni's face/eyes with icons (which was "too much"),
- * these sidekicks float alongside her - like expressive hands or accessories.
+ * these sidekicks float alongside him - like expressive hands or accessories.
  * 
- * - Coffee cup floating beside her in the morning
- * - Lightbulb appearing when she has an idea
+ * - Coffee cup floating beside him in the morning
+ * - Lightbulb appearing when he has an idea
  * - Musical notes drifting when discussing music
  * - Hearts floating during empathetic moments
- * - Sparkles dancing beside her during celebrations
+ * - Sparkles dancing beside him during celebrations
  * 
  * ANIMATION PRINCIPLES:
  * ====================
