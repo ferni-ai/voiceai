@@ -147,12 +147,7 @@ async function syncEntityToSpanner(entity: SyncableEntity): Promise<boolean> {
       userId: entity.userId,
       name: entity.name,
       entityType: entity.type as
-        | 'person'
-        | 'place'
-        | 'organization'
-        | 'event'
-        | 'concept'
-        | 'thing',
+        'person' | 'place' | 'organization' | 'event' | 'concept' | 'thing',
       attributes: {},
       importance: entity.importance,
       firstMentioned: extractedDate,
@@ -271,6 +266,29 @@ async function getUnsyncedEntities(limit: number): Promise<SyncableEntity[]> {
   return entities;
 }
 
+/**
+ * A dynamic_facts doc as a fact to copy to Spanner, or null for one the
+ * caller asked to forget (forget.ts marks forgottenAt): a copy would carry
+ * no mark, so it is never copied.
+ */
+export function syncableFact(
+  id: string,
+  path: string,
+  data: Record<string, unknown>
+): SyncableFact | null {
+  if (data.forgottenAt !== undefined && data.forgottenAt !== null) return null;
+  return {
+    id,
+    userId: path.split('/')[1] ?? '',
+    entityName: String(data.entityName || ''),
+    factType: String(data.factType || 'attribute'),
+    key: String(data.key || ''),
+    value: String(data.value || ''),
+    confidence: Number(data.confidence || 0.5),
+    extractedAt: data.extractedAt as SyncableFact['extractedAt'],
+  };
+}
+
 async function getUnsyncedFacts(limit: number): Promise<SyncableFact[]> {
   const db = getFirestoreDb();
   if (!db) return [];
@@ -288,23 +306,14 @@ async function getUnsyncedFacts(limit: number): Promise<SyncableFact[]> {
       .get();
 
     for (const doc of snapshot.docs) {
-      const data = doc.data();
-      const pathParts = doc.ref.path.split('/');
-      const userId = pathParts[1];
-
-      facts.push({
-        id: doc.id,
-        userId,
-        entityName: data.entityName || '',
-        factType: data.factType || 'attribute',
-        key: data.key || '',
-        value: data.value || '',
-        confidence: data.confidence || 0.5,
-        extractedAt: data.extractedAt,
-      });
+      const fact = syncableFact(doc.id, doc.ref.path, doc.data());
+      if (fact) facts.push(fact);
     }
   } catch (error) {
-    log.warn({ error: String(error) }, 'Collection group query failed for facts - check Firestore composite index');
+    log.warn(
+      { error: String(error) },
+      'Collection group query failed for facts - check Firestore composite index'
+    );
   }
 
   return facts;
@@ -342,7 +351,10 @@ async function getUnsyncedRelationships(limit: number): Promise<SyncableRelation
       });
     }
   } catch (error) {
-    log.warn({ error: String(error) }, 'Collection group query failed for relationships - check Firestore composite index');
+    log.warn(
+      { error: String(error) },
+      'Collection group query failed for relationships - check Firestore composite index'
+    );
   }
 
   return relationships;
@@ -566,10 +578,7 @@ export async function syncMemoryImmediately(memory: {
 
   try {
     const importance = memory.emotionalWeight || memory.strength || 0.5;
-    log.debug(
-      { memoryId: memory.id, importance },
-      'Syncing memory to Spanner immediately'
-    );
+    log.debug({ memoryId: memory.id, importance }, 'Syncing memory to Spanner immediately');
 
     // Sync entities from people mentioned
     for (const person of memory.peopleMentioned || []) {
@@ -690,8 +699,9 @@ export async function processPrioritySyncQueue(): Promise<number> {
       log.warn('Firestore not available for priority sync');
       return 0;
     }
-    
-    for (const memoryId of memoryIds.slice(0, 50)) { // Process up to 50 at a time
+
+    for (const memoryId of memoryIds.slice(0, 50)) {
+      // Process up to 50 at a time
       try {
         // Query the memory from the unified memories collection
         const memorySnapshot = await db
@@ -703,7 +713,7 @@ export async function processPrioritySyncQueue(): Promise<number> {
         if (!memorySnapshot.empty) {
           const memoryDoc = memorySnapshot.docs[0];
           const data = memoryDoc.data();
-          
+
           const syncSuccess = await syncMemoryImmediately({
             id: data.id,
             userId: data.userId,
