@@ -1519,41 +1519,6 @@ button {
 }
 
 /* ============================================================================
-   SOCIAL PROOF STRIP
-   ============================================================================ */
-.social-proof {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: var(--space-8);
-  flex-wrap: wrap;
-  padding: var(--space-6) 0;
-  border-top: 1px solid var(--color-border-subtle);
-  border-bottom: 1px solid var(--color-border-subtle);
-  margin-top: var(--space-16);
-}
-
-.social-proof-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.social-proof-number {
-  font-family: var(--font-display);
-  font-size: var(--text-3xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-}
-
-.social-proof-label {
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
-/* ============================================================================
    PRICING PREVIEW
    ============================================================================ */
 .pricing-preview {

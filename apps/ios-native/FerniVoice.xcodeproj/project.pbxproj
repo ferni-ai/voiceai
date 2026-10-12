@@ -76,6 +76,7 @@
 		DD5957C8DA4311524E6511B8 /* AmbientModeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D686533AA45C1925F88A5B /* AmbientModeService.swift */; };
 		E30644C2BED1939D518A623B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 24D5FB024B86FDBD253D973B /* PrivacyInfo.xcprivacy */; };
 		E8ABFBE1338A50A0953891D9 /* FerniVoiceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */; };
+		B2D0FEED0000000000000107 /* PaidPlans.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D0FEED0000000000000007 /* PaidPlans.swift */; };
 		EB020B72B1AA4A8E51984708 /* TranscriptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */; };
 		EC8EF364A992CFCF0EEBED45 /* FerniWindowAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B34628F1094466859A41B59 /* FerniWindowAvatar.swift */; };
 		ED8512C6774680019D03F987 /* AccountSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDBAD3CDC18C4DD4B2CA54B1 /* AccountSection.swift */; };
@@ -148,6 +149,7 @@
 		0A8C78DB6D8406DE65F35C3B /* InteractiveMoodWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractiveMoodWidget.swift; sourceTree = "<group>"; };
 		102C31505053144B48576C2E /* FerniVoice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FerniVoice.entitlements; sourceTree = "<group>"; };
 		108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniVoiceApp.swift; sourceTree = "<group>"; };
+		B2D0FEED0000000000000007 /* PaidPlans.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaidPlans.swift; sourceTree = "<group>"; };
 		183B5FD5B7D7FF9C6C82A709 /* FerniWatchWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchWidgets.swift; sourceTree = "<group>"; };
 		187E97C616ED5CF9BB291723 /* SessionWindowAvatar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionWindowAvatar.swift; sourceTree = "<group>"; };
 		1A9E71C3A7CB1F6BB57DC8E8 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
@@ -424,6 +426,7 @@
 			isa = PBXGroup;
 			children = (
 				108E301F69A0A9F26F74CF53 /* FerniVoiceApp.swift */,
+				B2D0FEED0000000000000007 /* PaidPlans.swift */,
 				BCC596556B7D8A8EC66681E8 /* Typography.swift */,
 			);
 			path = App;
@@ -807,6 +810,7 @@
 				4078804CAAF53E42D093BEF3 /* FerniColors.swift in Sources */,
 				2834B7417B33162D4A883F17 /* FerniSpeakingAvatar.swift in Sources */,
 				E8ABFBE1338A50A0953891D9 /* FerniVoiceApp.swift in Sources */,
+				B2D0FEED0000000000000107 /* PaidPlans.swift in Sources */,
 				EC8EF364A992CFCF0EEBED45 /* FerniWindowAvatar.swift in Sources */,
 				35C03580BC88E4E8D27539EB /* HealthKitService.swift in Sources */,
 				087EA07EC8A40E2707A1D567 /* HomeKitService.swift in Sources */,
