@@ -183,11 +183,20 @@ async function askQwen(prompt: string): Promise<Verdict[]> {
   }
 }
 
+/**
+ * One cache object per file, read once: the workers judge several calls of a
+ * run at once, and reading the file per call lost verdicts written meanwhile.
+ */
+const caches = new Map<string, Record<string, Verdict[]>>();
 async function judged(file: string, provider: 'gemini' | 'qwen', run: Run, k: number) {
   const cache = file.replace(/\.json$/, `.judge-${provider}.json`);
-  const all: Record<string, Verdict[]> = existsSync(cache)
-    ? JSON.parse(readFileSync(cache, 'utf8'))
-    : {};
+  let all = caches.get(cache);
+  if (!all) {
+    all = existsSync(cache)
+      ? (JSON.parse(readFileSync(cache, 'utf8')) as Record<string, Verdict[]>)
+      : {};
+    caches.set(cache, all);
+  }
   if (!all[k]) {
     all[k] = await (provider === 'gemini' ? askGemini : askQwen)(PROMPT(run, k));
     writeFileSync(cache, JSON.stringify(all, null, 2));
