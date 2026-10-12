@@ -12,7 +12,6 @@ import {
   getChannelProfile,
   getConversationalCallService,
   getOutreachDecisionEngine,
-  getOutreachHistory,
   getPendingOutreach,
   getTimingProfile,
   getUserContext,
@@ -26,6 +25,7 @@ import {
   type ThinkingOfYouTrigger,
 } from '../services/outreach/index.js';
 import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js';
+import { sendOutreachHistory } from './outreach-history-route.js';
 import {
   channelsFromSettings,
   readOutreachConsent,
@@ -442,19 +442,9 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // GET /api/outreach/history
+    // GET /api/outreach/history: what was actually sent (outreach_attempts), caller only
     if (route === '/history' && method === 'GET') {
-      const url = new URL(req.url || '', 'http://localhost');
-      // Use authenticated userId
-      const userId = authenticatedUserId;
-      const limit = parseInt(url.searchParams.get('limit') || '20');
-
-      const history = getOutreachHistory(userId, limit);
-      sendJsonResponse(res, 200, {
-        success: true,
-        history,
-        count: history.length,
-      });
+      await sendOutreachHistory(res, authenticatedUserId, new URL(req.url || '', 'http://x'));
       return true;
     }
 

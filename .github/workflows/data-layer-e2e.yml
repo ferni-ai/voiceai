@@ -14,6 +14,9 @@ on:
       - 'src/services/billing/stripe-subscription.ts'
       - 'src/api/garden-routes.ts'
       - 'src/api/roadmap-*.ts'
+      - 'src/api/outreach*.ts'
+      - 'src/services/outreach/outreach-history*.ts'
+      - 'src/api/__tests__/menu-*.emulator.test.ts'
       - 'src/memory/**'
       - 'src/intelligence/**'
       - 'src/tests/data-layer/**'
@@ -31,6 +34,9 @@ on:
       - 'src/services/billing/stripe-subscription.ts'
       - 'src/api/garden-routes.ts'
       - 'src/api/roadmap-*.ts'
+      - 'src/api/outreach*.ts'
+      - 'src/services/outreach/outreach-history*.ts'
+      - 'src/api/__tests__/menu-*.emulator.test.ts'
       - 'src/memory/**'
       - 'firestore.indexes.json'
       - 'firebase.json'
@@ -99,6 +105,18 @@ jobs:
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
+
+      # Menu green program: each panel's write->read contract (the voice writer, then
+      # the route the panel calls). New lanes add a menu-*.emulator.test.ts; no edit here.
+      - name: Run Menu Contract Tests
+        run: |
+          pnpm vitest run src/api/__tests__/menu- --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          GCLOUD_PROJECT: demo-project
+          NODE_ENV: test
+          GOOGLE_API_KEY: ''
+          SKIP_EMBEDDING: 'true'
 
       - name: Run Service Wiring Integration Tests
         run: |
