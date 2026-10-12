@@ -7,73 +7,17 @@
  * inputs and buttons. 54 keys were missing when this test was added.
  */
 
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { t } from '../src/i18n/index';
+import { t, tIfComplete } from '../src/i18n/index';
+// Shared with `node tests/i18n-audit.mjs`, which also prints locale backlog numbers.
+import { audit, loadLocale, objectKeys, tCalls, valueOf } from './i18n-audit.mjs';
 
 const SRC = join(__dirname, '..', 'src');
-const EN_US = JSON.parse(readFileSync(join(SRC, 'i18n', 'locales', 'en-US.json'), 'utf8'));
-
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const path = join(dir, name);
-    if (statSync(path).isDirectory()) return name === '__tests__' ? [] : sourceFiles(path);
-    return /\.tsx?$/.test(name) && !/\.(test|d)\.ts$/.test(name) ? [path] : [];
-  });
-}
-
-function valueOf(key: string): string | undefined {
-  let node: unknown = EN_US;
-  for (const part of key.split('.')) {
-    if (typeof node !== 'object' || node === null || !(part in node)) return undefined;
-    node = (node as Record<string, unknown>)[part];
-  }
-  return typeof node === 'string' ? node : undefined;
-}
-
-function hasKey(key: string): boolean {
-  return valueOf(key) !== undefined;
-}
-
-/** `file:line key` for every literal dotted t('...') key missing from en-US. */
-function missingKeys(): string[] {
-  return sourceFiles(SRC).flatMap((file) => {
-    const source = readFileSync(file, 'utf8');
-    return [...source.matchAll(/\bt\(\s*['"]([a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+)['"]/g)]
-      .filter((m) => !hasKey(m[1]))
-      .map((m) => `${relative(SRC, file)}:${source.slice(0, m.index).split('\n').length} ${m[1]}`);
-  });
-}
-
-/** Names a t('key', { ... }) call passes, or null when a spread hides them. */
-function paramNames(objectBody: string): Set<string> | null {
-  const names = new Set<string>();
-  for (const part of objectBody.split(',').map((p) => p.trim()).filter(Boolean)) {
-    if (part.startsWith('...')) return null;
-    const name = /^['"]?(\w+)['"]?\s*(?::|$)/.exec(part)?.[1];
-    if (name) names.add(name);
-  }
-  return names;
-}
-
-/**
- * `file:line key` for t() calls that leave an en-US placeholder unfilled, which
- * renders literally ("Your balance: {amount} seeds"). Only calls whose params
- * are a flat object literal are checked.
- */
-function unfilledPlaceholders(): string[] {
-  return sourceFiles(SRC).flatMap((file) => {
-    const source = readFileSync(file, 'utf8');
-    return [...source.matchAll(/\bt\(\s*['"]([a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+)['"]\s*,\s*\{([^{}]*)\}/g)]
-      .filter((m) => {
-        const passed = paramNames(m[2]);
-        const wanted = [...(valueOf(m[1]) ?? '').matchAll(/\{(\w+)\}/g)].map((p) => p[1]);
-        return passed !== null && wanted.some((name) => !passed.has(name));
-      })
-      .map((m) => `${relative(SRC, file)}:${source.slice(0, m.index).split('\n').length} ${m[1]}`);
-  });
-}
+const EN_US = loadLocale('en-US');
+const hasKey = (key: string): boolean => valueOf(EN_US, key) !== undefined;
+const report = audit();
 
 describe('i18n keys', () => {
   it('finds keys to check (scanner sanity check)', () => {
@@ -83,23 +27,49 @@ describe('i18n keys', () => {
 
   it('every literal key used in src/ exists in en-US', () => {
     // i18n/index.ts documents t() with an illustrative key in its JSDoc.
-    expect(missingKeys().filter((entry) => !entry.endsWith(' hero.headline'))).toEqual([]);
+    expect(report.missing.filter((entry: string) => !entry.endsWith(' hero.headline'))).toEqual([]);
   });
 
-  it('every placeholder in a checked call gets a param', () => {
-    expect(paramNames('amount: total, count')).toEqual(new Set(['amount', 'count']));
-    expect(paramNames('...rest')).toBeNull();
-    expect(unfilledPlaceholders()).toEqual([]);
+  it('reads the param names a call passes', () => {
+    expect(objectKeys('{ amount: total, count }')).toEqual(new Set(['amount', 'count']));
+    expect(objectKeys('{ ...rest }')).toBeNull();
+    const [call] = tCalls("t('a.b', 'Fallback {n}', { n: fmt(x, { y: 1 }) })");
+    expect(call).toMatchObject({ key: 'a.b', fallback: 'Fallback {n}', params: new Set(['n']) });
+    expect(tCalls("t('a.b').replace('{n}', v)")[0]).toMatchObject({ params: undefined, replacedAfter: true });
+  });
+
+  it('every placeholder gets a param, including calls that pass none', () => {
+    // A missing param is stripped at runtime, so the sentence silently loses a word.
+    expect(report.unfilled).toEqual([]);
+  });
+
+  it('no key-shaped literal points into a namespace but misses its key', () => {
+    expect(report.rawKeys).toEqual([]);
   });
 
   it('every data-i18n key in index.html exists in en-US', () => {
     const html = readFileSync(join(SRC, '..', 'index.html'), 'utf8');
-    const keys = [...html.matchAll(/data-i18n(?:-[a-z-]+)?="([^"]+)"/g)].map((m) => m[1]);
+    const keys = [...html.matchAll(/data-i18n(?:-[a-z-]+)?="([^"]+)"/g)].map((m) => m[1] as string);
     expect(keys.length).toBeGreaterThan(5);
     expect(keys.filter((key) => !hasKey(key))).toEqual([]);
   });
 
   it('interpolates params into the fallback text', () => {
     expect(t('test.missing.key', { seeds: 5 }, "You'll both get {seeds} seeds")).toBe("You'll both get 5 seeds");
+  });
+
+  it('never shows a raw placeholder when a param is missing', () => {
+    const summary = undefined as unknown as string;
+    expect(t('toasts.teamInsight', { source: 'Ferni', summary })).toBe('Ferni: ');
+    expect(t('test.missing.key', "Hi {name}, you've got {count}", { count: 2 })).toBe("Hi , you've got 2");
+  });
+
+  it('tIfComplete returns null unless every placeholder has a non-empty value', () => {
+    expect(tIfComplete('toasts.teamInsight', { source: 'Maya', summary: 'Budget is 80% used.' })).toBe(
+      'Maya: Budget is 80% used.'
+    );
+    expect(tIfComplete('toasts.teamInsight', { source: 'Ferni', summary: undefined as unknown as string })).toBeNull();
+    expect(tIfComplete('toasts.teamInsight', { source: 'Ferni', summary: '  ' })).toBeNull();
+    expect(tIfComplete('test.missing.key', { a: 1 })).toBeNull();
   });
 });

@@ -1319,7 +1319,7 @@
         "calendar": "カレンダー",
         "history": "過去のお話",
         "people": "あなたの大切な人たち",
-        "insights": "最近の様子"
+        "insights": "学んだこと"
       }
     },
     "ariaLabel": "設定メニュー",
@@ -4620,7 +4620,8 @@
     "sourceInferred": "私が気づいたこと",
     "correctButton": "修正する",
     "memoriesCount": "{count}個の思い出",
-    "confidence": "確信度 {confidence}%"
+    "confidence": "確信度 {confidence}%",
+    "earlier": "以前"
   },
   "memoryCorrection": {
     "modalTitle": "思い出を修正する",
@@ -8790,6 +8791,7 @@
     }
   },
   "conversationHistory": {
+    "title": "過去のお話",
     "loadError": "データを読み込めませんでした。",
     "tryAgain": "もう一度試しますか？",
     "ariaLabel": "お話の履歴",
@@ -10240,7 +10242,9 @@
     "seedsEarned": {
       "other": "タネを{count}個獲得しました！",
       "one": "タネを{count}個獲得しました！"
-    }
+    },
+    "couldNotLoadMemories": "覚えていることを読み込めませんでした。もう一度試しますか？",
+    "memoryCorrected": "わかりました。そのように覚えておきます。"
   },
   "trustSignals": {
     "prefix": {
@@ -10405,6 +10409,12 @@
       "fair": "普通",
       "poor": "接続不安定",
       "disconnected": "切断されました"
+    },
+    "island": {
+      "offline": "オフラインのようです。つながったら、すぐに再接続しますね。",
+      "reconnecting": "再接続中…",
+      "weak": "接続が不安定です",
+      "backOnline": "オンラインに戻りました"
     }
   },
   "ideasGallery": {
@@ -10862,6 +10872,9 @@
       "other": "{count}日",
       "one": "{count}日"
     }
+  },
+  "avatarFeedback": {
+    "nomNom": "もぐもぐ！"
   },
   "avatarTapReactions": {
     "tickles": "ふふっ、くすぐったいよ！"

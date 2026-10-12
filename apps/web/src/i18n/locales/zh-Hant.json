@@ -1319,7 +1319,7 @@
         "calendar": "行事曆",
         "history": "過去的對話",
         "people": "你身邊的人",
-        "insights": "你的近況"
+        "insights": "我的收穫"
       }
     },
     "ariaLabel": "設定選單",
@@ -4620,7 +4620,8 @@
     "sourceInferred": "我注意到的",
     "correctButton": "修正",
     "memoriesCount": "{count} 個回憶",
-    "confidence": "信心度 {confidence}%"
+    "confidence": "信心度 {confidence}%",
+    "earlier": "以前"
   },
   "memoryCorrection": {
     "modalTitle": "修正這個回憶",
@@ -8790,6 +8791,7 @@
     }
   },
   "conversationHistory": {
+    "title": "過去的對話",
     "loadError": "無法載入資料。",
     "tryAgain": "要再試一次嗎？",
     "ariaLabel": "對話紀錄",
@@ -10240,7 +10242,9 @@
     "seedsEarned": {
       "other": "你獲得了 {count} 顆種子！",
       "one": "你獲得了 {count} 顆種子！"
-    }
+    },
+    "couldNotLoadMemories": "沒能載入我記得的內容。再試一次？",
+    "memoryCorrected": "明白了，我會這樣記住。"
   },
   "trustSignals": {
     "prefix": {
@@ -10405,6 +10409,12 @@
       "fair": "普通",
       "poor": "連線不佳",
       "disconnected": "已斷線"
+    },
+    "island": {
+      "offline": "你目前離線了。網路恢復後我會馬上重新連線。",
+      "reconnecting": "正在重新連線…",
+      "weak": "網路較弱",
+      "backOnline": "已恢復連線"
     }
   },
   "ideasGallery": {
@@ -10862,6 +10872,9 @@
       "other": "連續 {count} 天",
       "one": "連續 {count} 天"
     }
+  },
+  "avatarFeedback": {
+    "nomNom": "好吃好吃！"
   },
   "avatarTapReactions": {
     "tickles": "呵呵，好癢喔！"

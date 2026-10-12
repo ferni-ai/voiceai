@@ -168,6 +168,9 @@ jobs:
       - name: Pull Docker Hub images through a mirror
         uses: ./.github/actions/docker-hub-mirror
 
+      # Self-hosted runners skip the mirror step above, so name the mirror in the
+      # build itself: the base image and the Dockerfile frontend both come from
+      # mirror.gcr.io instead of Docker Hub, whose anonymous pull limit (429) they share.
       # One tag per run attempt: the 8 runners on a VM share one Docker daemon, so two
       # queue entries building at once collided on a fixed tag ("already exists",
       # 2026-10-11), and a cancelled run left its tag behind for the next one.
@@ -176,7 +179,9 @@ jobs:
           IMAGE: john-bogle-ui:merge-check-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           trap 'docker image rm "$IMAGE" >/dev/null 2>&1 || echo "::warning::could not remove $IMAGE"' EXIT
-          docker build -f docker/Dockerfile.ui -t "$IMAGE" .
+          docker build -f docker/Dockerfile.ui -t "$IMAGE" \
+            --build-arg BASE_REGISTRY=mirror.gcr.io/library/ \
+            --build-arg BUILDKIT_SYNTAX=mirror.gcr.io/docker/dockerfile:1.4 .
 
   # ============================================================================
   # DEPLOY STAGING

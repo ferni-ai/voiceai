@@ -1807,8 +1807,8 @@ class CalendarViewUI {
       }
 
       .calendar-view__close {
-        width: 36px;
-        height: 36px;
+        width: var(--space-11, 44px); height: var(--space-11, 44px);
+        margin-inline-start: auto; /* right edge even when no header-content fills the row */
         border-radius: 50%;
         border: none;
         background: var(--color-background-secondary, rgba(44, 37, 32, 0.05));

@@ -28,7 +28,10 @@ import {
   type DataMessageRoom,
 } from '../../../../src/agents/shared/data-message-envelope.js';
 import { FrontendPublisher } from '../../../../src/agents/realtime/frontend-publisher.js';
-import { handoffStartMessages } from '../../../../src/agents/multi-agent/handoff-messages.js';
+import {
+  handoffFailedMessage,
+  handoffStartMessages,
+} from '../../../../src/agents/multi-agent/handoff-messages.js';
 import { emitBehaviorSignal } from '../../../../src/agents/realtime/behavior-event-dispatcher.js';
 import { dispatchSpeechStart } from '../../../../src/agents/realtime/speech-state-dispatcher.js';
 import { buildProactiveOutreachPayload } from '../../../../src/agents/voice-agent/proactive-outreach-message.js';
@@ -281,5 +284,40 @@ describe('handoff_progress', () => {
       type: 'handoff_complete',
       target: 'maya-santos',
     } as unknown as DataMessage);
+  });
+});
+
+describe('handoff_failed for a locked teammate', () => {
+  const DECLINE =
+    'There is someone I deeply respect... a sage. But Nayan only speaks to those who have proven their commitment to growth. Keep showing up.';
+
+  it("the decline a multi-agent call sends reaches the app's failure handler as words to show", async () => {
+    const failed: Array<{ target: string; userMessage?: string }> = [];
+    cleanups.push(
+      handoffService.onHandoffFailed((_error, target, _rollbackTo, userMessage) =>
+        failed.push({ target, userMessage })
+      )
+    );
+    const { message } = handoffFailedMessage(
+      'nayan-patel',
+      { success: false, error: DECLINE, declined: true },
+      'ferni'
+    );
+    expect(await handoffService.processDataMessage(message as unknown as DataMessage)).toBe(true);
+    expect(failed).toEqual([{ target: 'nayan-patel', userMessage: DECLINE }]);
+  });
+
+  it('a technical failure carries nothing to show, so the app keeps its own wording', async () => {
+    const failed: Array<string | undefined> = [];
+    cleanups.push(
+      handoffService.onHandoffFailed((_e, _t, _r, userMessage) => failed.push(userMessage))
+    );
+    const { message } = handoffFailedMessage(
+      'ferni',
+      { success: false, error: 'Already with ferni' },
+      'ferni'
+    );
+    await handoffService.processDataMessage(message as unknown as DataMessage);
+    expect(failed).toEqual([undefined]);
   });
 });

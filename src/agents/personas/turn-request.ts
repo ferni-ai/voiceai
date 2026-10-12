@@ -36,8 +36,10 @@ import { ferniStateTurn } from './ferni-state.js';
 import { firstCallNote } from './first-call-rapport.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
+import { callerTurnsOf, happyExitNote, happyExitsEnabled } from './happy-exits.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
+import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
 import {
   understandingFor,
@@ -113,6 +115,8 @@ export function withTurnReminder(
     turnStyleReminderEnabled()
       ? styleFor(chatCtx, session, options.shape !== false, state.ownStory)
       : '',
+    // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
+    options.shape !== false ? exitFor(chatCtx, session, words) : '',
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
     state.last,
   ]
@@ -134,6 +138,19 @@ function thoughtFor(session: object, said: string): string {
   // supportHeld first: it records hard news (and counts the turns since) even with CANDOR off.
   const held = supportHeld(session, said, source === 'model' && sig.careful) || sig.careful;
   return deliberator.noteFor(said, held);
+}
+
+/** HAPPY_EXITS=on: the goodbye note when they are wrapping up (happy-exits.ts). */
+function exitFor(chatCtx: llm.ChatContext, session: object, said: string): string {
+  if (!happyExitsEnabled() || !said) return '';
+  const { signals } = signalsFor(session, said);
+  return happyExitNote(session, {
+    said,
+    callerTurns: callerTurnsOf(chatCtx),
+    careful: (signals ?? regexSignals(said, callerMove(said))).careful,
+    wantsToEnd: understandingFor(session, said)?.wantsToEnd,
+    rng: rngFor(`${callSeed(session)}:exit:${said}`),
+  });
 }
 
 /** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */
@@ -169,7 +186,11 @@ function styleFor(
     said,
     rngFor(`${callSeed(session)}:${said}`),
     undefined,
-    withOwnStory(withSupportHold(session, said, signals, source), said, ownStory)
+    withRecent(
+      withOwnStory(withSupportHold(session, said, signals, source), said, ownStory),
+      said,
+      chatCtx
+    )
   );
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
@@ -178,6 +199,26 @@ function styleFor(
     'TURN_SHAPE'
   );
   return turn.reminder;
+}
+
+/**
+ * TURN_LENGTH / TURN_TEXTURE=learned: the turns before this reply, which set its length
+ * (turn-length.ts). Spoken words only: per-turn notes ride after a blank line or as a header.
+ */
+function withRecent(
+  signals: TurnSignals | undefined,
+  said: string,
+  chatCtx: llm.ChatContext
+): TurnSignals | undefined {
+  if (!lengthLearned() && !textureLearned()) return signals;
+  const turns = chatCtx.items.flatMap((item) => {
+    if (item.type !== 'message' || (item.role !== 'user' && item.role !== 'assistant')) return [];
+    const text = (item.textContent ?? '').split('\n')[0].trim();
+    return text && !text.startsWith(TURN_CONTEXT_HEADER)
+      ? [{ ferni: item.role === 'assistant', text }]
+      : [];
+  });
+  return { ...(signals ?? regexSignals(said, callerMove(said))), recent: recentTurns(turns) };
 }
 
 /**

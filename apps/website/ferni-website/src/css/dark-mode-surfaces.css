@@ -1,0 +1,239 @@
+/* =======================================================
+   DARK MODE SURFACES
+   =======================================================
+
+   dark-mode.css flips the page and its text to Night Ink, but many
+   cards, sections and page-level <style> blocks paint their own white
+   or cream background and light-only brand colors. In dark mode that
+   left light text on white cards and dark sage text on the dark field.
+
+   This file loads last and only acts under prefers-color-scheme: dark.
+   Selectors start with :root:root so they outrank page-level <style>
+   rules and the body:not(.theme--dark) overrides in story-brand.css.
+
+   Night Ink: field #14110e, raised #1e1a16, card #2a241f, float #352e28.
+   Text: #f4efe6, #cfc3b4, #a89b8c. Sage on dark: #a5c99a.
+
+   ======================================================= */
+
+@media (prefers-color-scheme: dark) {
+  /* Page-level token aliases (team, features, about, capabilities...) */
+  :root:root {
+    --paper-cream: #14110e;
+    --paper-sand: #1e1a16;
+    --natural-ink: #f4efe6;
+    --ink-muted: #cfc3b4;
+    --text-muted: #cfc3b4;
+    --text-light: #a89b8c;
+    --ferni: #a5c99a;
+    --maya: #e0b8a8;
+    --peter: #8bc4cf;
+    --jordan: #f0c0a0;
+    --alex: #a8b8d8;
+    --nayan: #e8d0a8;
+    --warm-amber: #e4c27a;
+    --color-elevated: #2a241f;
+    --color-natural-ink: #f4efe6;
+
+    /* Light-theme literals in page styles read var(--page-*, <literal>).
+       Unset in light mode, so light mode keeps the literal. */
+    --page-card: #2a241f;
+    --page-paper: #14110e;
+    --page-sand: #1e1a16;
+    --page-ink: #f4efe6;
+    --page-ink-muted: #cfc3b4;
+    --page-ink-soft: #a89b8c;
+    --page-sage: #a5c99a;
+    --page-peter: #8bc4cf;
+    --page-alex: #a8b8d8;
+    --page-maya: #e0b8a8;
+    --page-jordan: #f0c0a0;
+    --page-nayan: #e8d0a8;
+    --page-amber: #e4c27a;
+    --page-gold: #e4c27a;
+  }
+
+  /* Cards and sections that hardcode a white or cream background */
+  :root:root .story__card,
+  :root:root .feature,
+  :root:root .voice-sample,
+  :root:root .proof-table,
+  :root:root .fund-explainer,
+  :root:root .gift-card,
+  :root:root .bth-card,
+  :root:root .kintsugi-section,
+  :root:root .specialists-header,
+  :root:root .persona-section,
+  :root:root .superpowers-section,
+  :root:root .superpower-card,
+  :root:root .companion-card,
+  :root:root .team-card,
+  :root:root .help-faq__item,
+  :root:root .help-contact__option,
+  :root:root .help-gift__content,
+  :root:root .help-contact,
+  :root:root .philosophy-card,
+  :root:root .step {
+    background: #2a241f;
+    border-color: rgba(244, 239, 230, 0.12);
+  }
+
+  :root:root .persona-section:nth-child(2n) {
+    background: #1e1a16;
+  }
+
+  :root:root .proof-table__col--coach,
+  :root:root .proof-table__col--friend {
+    background: rgba(244, 239, 230, 0.03);
+  }
+
+  /* Text that stayed on light-only colors */
+  :root:root .proof-table__col--label,
+  :root:root .fund-explainer__title,
+  :root:root .gift-card__name,
+  :root:root .gift-card__price,
+  :root:root .footer:not(.footer--bold) .footer__headline,
+  :root:root .footer:not(.footer--bold) .footer__logo-text {
+    color: #f4efe6;
+  }
+
+  /* --color-text-inverse is Night Ink in dark mode, but these sit on
+     sections and glass cards that stay dark in both themes */
+  :root:root .memory-demo__text,
+  :root:root .memory-demo__magic,
+  :root:root .memory-demo__speaker--user,
+  :root:root .memory-demo .section__title,
+  :root:root .two-am__quote,
+  :root:root .assistant-phone__time,
+  :root:root .assistant-phone__signal,
+  :root:root .ferni-chat-trigger,
+  :root:root .ferni-chat-trigger__text,
+  :root:root .ferni-chat-trigger__badge,
+  :root:root .story-page__section--dark .story-page__subhead {
+    color: #f4efe6 !important;
+  }
+
+  /* Injected by js/voice-samples.js with light-only ink */
+  :root:root .voice-samples-showcase__title,
+  :root:root .voice-sample__persona,
+  :root:root .voice-sample__question {
+    color: #f4efe6;
+  }
+
+  :root:root .voice-sample__role,
+  :root:root .voice-sample__q-label {
+    color: #a89b8c;
+  }
+
+  /* Dark sage (#4a6741) reads at 2:1 on the dark field; use light sage */
+  :root:root .step__link,
+  :root:root .hero__badge,
+  :root:root .memory-demo__speaker--ferni,
+  :root:root .proof-table__good,
+  :root:root .gift-card__impact,
+  :root:root .fund-note a,
+  :root:root .proof__disclaimer strong,
+  :root:root .assistant-cta__text em,
+  :root:root .story-page__accent,
+  :root:root .story-page__cta-note a,
+  :root:root .step__description strong,
+  :root:root .story-page__eyebrow,
+  :root:root .help-contact__option-value,
+  :root:root .help-accessibility__link,
+  :root:root .team-card--ferni .team-card__trait,
+  :root:root .difference-ferni .difference-label,
+  :root:root .difference-ferni strong,
+  :root:root .eq-timing,
+  :root:root .domain-power,
+  :root:root .hero-overline,
+  :root:root .capabilities-link-overline,
+  :root:root .capabilities-link-cta,
+  :root:root .cta-overline,
+  :root:root .voice-samples-showcase__eyebrow {
+    color: #a5c99a !important;
+  }
+
+  /* Capabilities persona cards color text with --persona-accent */
+  :root:root .persona-card[data-persona='ferni'] :is(.persona-role, .persona-power strong) {
+    color: #a5c99a;
+  }
+  :root:root .persona-card[data-persona='maya'] :is(.persona-role, .persona-power strong) {
+    color: #e0b8a8;
+  }
+  :root:root .persona-card[data-persona='peter'] :is(.persona-role, .persona-power strong) {
+    color: #8bc4cf;
+  }
+  :root:root .persona-card[data-persona='jordan'] :is(.persona-role, .persona-power strong) {
+    color: #f0c0a0;
+  }
+  :root:root .persona-card[data-persona='alex'] :is(.persona-role, .persona-power strong) {
+    color: #a8b8d8;
+  }
+  :root:root .persona-card[data-persona='nayan'] :is(.persona-role, .persona-power strong) {
+    color: #e8d0a8;
+  }
+
+  :root:root .team-card--nayan .team-card__trait {
+    color: #e8d0a8;
+  }
+  :root:root .team-card--peter .team-card__trait {
+    color: #8bc4cf;
+  }
+  :root:root .team-card--alex .team-card__trait {
+    color: #a8b8d8;
+  }
+  :root:root .team-card--maya .team-card__trait {
+    color: #e0b8a8;
+  }
+  :root:root .team-card--jordan .team-card__trait {
+    color: #f0c0a0;
+  }
+
+  /* Light pastel avatars in dark mode need dark initials */
+  :root:root .persona-card[data-persona='nayan'] .persona-avatar,
+  :root:root .persona-avatar__text,
+  :root:root .journey__avatar,
+  :root:root .journey__avatar--maya,
+  :root:root .journey__avatar--jordan,
+  :root:root .journey__avatar--nayan {
+    color: #14110e;
+  }
+
+  /* Sage fills: the accent lightens in dark mode, so white text on it fails */
+  :root:root .btn-primary,
+  :root:root .capabilities-badge,
+  :root:root .final-cta__phone-label {
+    color: #14110e;
+  }
+
+  :root:root .persona-voice-input input,
+  :root:root .ferni-chat-panel__input {
+    background: #1e1a16;
+    color: #f4efe6;
+    border-color: rgba(244, 239, 230, 0.16);
+  }
+
+  /* Contact form submit: its Tailwind fill classes are not loaded here */
+  :root:root button.btn-magnetic {
+    color: #f4efe6;
+  }
+
+  :root:root .btn-secondary {
+    background: #2a241f;
+    color: #f4efe6;
+  }
+
+  /* White-on-sage list on the story page: keep the sage, light the text */
+  :root:root .story-page__list-label {
+    color: rgba(244, 239, 230, 0.9);
+  }
+
+  :root:root .story-page__list-value,
+  :root:root .story-page__section--accent .story-page__subhead {
+    color: #f4efe6 !important;
+  }
+
+  :root:root .story-page__section--accent {
+    background: #3d5a35 !important;
+  }
+}

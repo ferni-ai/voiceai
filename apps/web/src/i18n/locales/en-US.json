@@ -81,7 +81,9 @@
   },
   "transcript": {
     "enabled": "Transcription on",
-    "disabled": "Transcription off"
+    "disabled": "Transcription off",
+    "captionsLabel": "Live captions",
+    "you": "You"
   },
   "placeholders": {
     "customAmount": "Custom amount",
@@ -344,7 +346,7 @@
         "calendar": "Calendar",
         "history": "Past chats",
         "people": "Your people",
-        "insights": "How you're doing"
+        "insights": "What I've learned"
       }
     },
     "ariaLabel": "Settings menu",
@@ -4631,7 +4633,8 @@
     "sourceInferred": "I noticed",
     "correctButton": "Correct",
     "memoriesCount": "{count} memories",
-    "confidence": "{confidence}% confident"
+    "confidence": "{confidence}% confident",
+    "earlier": "earlier"
   },
   "memoryCorrection": {
     "modalTitle": "Correct This Memory",
@@ -8801,6 +8804,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Past Chats",
     "loadError": "Couldn't load data.",
     "tryAgain": "Try again?",
     "ariaLabel": "Conversation history",
@@ -9459,6 +9463,7 @@
       "groupSessions": "group sessions",
       "vibeController": "the vibe controller",
       "smartHomeSettings": "smart home settings",
+      "siriShortcuts": "Siri Shortcuts",
       "appleHealthSettings": "Apple Health settings",
       "eightSleepSettings": "Eight Sleep settings",
       "ouraSettings": "Oura settings",
@@ -10254,7 +10259,9 @@
     "deletingAccount": "Deleting your account...",
     "accountDeleted": "Your account is deleted. Take care.",
     "couldNotStartHuddle": "Couldn't start a team huddle. Try again?",
-    "defaultHuddleTopic": "Weekly check-in on your progress"
+    "defaultHuddleTopic": "Weekly check-in on your progress",
+    "couldNotLoadMemories": "Couldn't load what I remember. Try again?",
+    "memoryCorrected": "Got it. I'll remember it that way."
   },
   "trustSignals": {
     "prefix": {
@@ -10419,6 +10426,12 @@
       "fair": "Fair",
       "poor": "Poor connection",
       "disconnected": "Disconnected"
+    },
+    "island": {
+      "offline": "You're offline. I'll reconnect when you're back.",
+      "reconnecting": "Reconnecting…",
+      "weak": "Weak connection",
+      "backOnline": "Back online"
     }
   },
   "ideasGallery": {
@@ -10876,6 +10889,9 @@
     },
     "confidenceTitle": "{confidence}% confidence",
     "loadError": "Unable to load your progress"
+  },
+  "avatarFeedback": {
+    "nomNom": "Nom nom!"
   },
   "avatarTapReactions": {
     "tickles": "Hehe, that tickles!"
