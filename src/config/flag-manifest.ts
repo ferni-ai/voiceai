@@ -174,7 +174,7 @@ export const FLAG_MANIFEST = {
   OPENER_FOLLOW_UP: { default: 'off', owner: 'memory', kind: 'experiment' },
   OPENER_GATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   OPENER_GATE_EARLY: { default: 'off', owner: 'voice', kind: 'experiment' },
-  OUTREACH_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  OUTBOUND_CONFIRM: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
   OUTREACH_DRY_RUN: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   OUTREACH_GROUNDED_CHECKINS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   OVERLAP_GREETING_WITH_PREWARM: { default: 'on', owner: 'voice', kind: 'kill-switch' },
