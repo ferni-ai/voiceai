@@ -140,7 +140,10 @@ export const firestoreForgetStore: ForgetStore = {
     for (let i = 0; i < refs.length; i += 400) {
       const batch = db.batch();
       for (const r of refs.slice(i, i + 400)) {
-        batch.update(user.collection(r.collection).doc(r.id), { forgottenAt: at });
+        // A fact already copied to the graph store is picked up by the next
+        // sync again (firestore-spanner-sync.ts), which removes the copy.
+        const resync = r.collection === 'dynamic_facts' ? { syncedToSpanner: false } : {};
+        batch.update(user.collection(r.collection).doc(r.id), { forgottenAt: at, ...resync });
       }
       await batch.commit();
     }
@@ -148,7 +151,11 @@ export const firestoreForgetStore: ForgetStore = {
   async addTopic(userId, topic) {
     const db = getFirestoreDb();
     if (!db) return;
-    const ref = db.collection('bogle_users').doc(userId).collection('memory_state').doc('forgotten');
+    const ref = db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('memory_state')
+      .doc('forgotten');
     await db.runTransaction(async (tx) => {
       const doc = await tx.get(ref);
       const topics: unknown = doc.exists ? doc.data()?.topics : [];

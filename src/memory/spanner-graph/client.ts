@@ -202,6 +202,29 @@ export async function insertFact(fact: Omit<GraphFact, 'createdAt'>): Promise<vo
 }
 
 /**
+ * Delete a fact the caller asked to forget, its entity links, and its copy in
+ * the semantic memory index (insertFact indexes it there). Throws when the
+ * graph can't be written, so the sync retries instead of marking it done.
+ */
+export async function deleteFact(userId: string, factId: string): Promise<void> {
+  if (!isSpannerReady()) throw new Error('Spanner not ready');
+  const db = getDatabase();
+  await db.runTransactionAsync(async (transaction) => {
+    await transaction.runUpdate({
+      sql: 'DELETE FROM entity_facts WHERE user_id = @userId AND fact_id = @factId',
+      params: { userId, factId },
+    });
+    await transaction.runUpdate({
+      sql: 'DELETE FROM facts WHERE user_id = @userId AND fact_id = @factId',
+      params: { userId, factId },
+    });
+    await transaction.commit();
+  });
+  const { removeIndexedMemory } = await import('../retrieval/semantic-memory-search.js');
+  await removeIndexedMemory('fact', factId);
+}
+
+/**
  * Insert a relationship
  */
 export async function insertRelationship(rel: Omit<GraphRelationship, 'createdAt'>): Promise<void> {

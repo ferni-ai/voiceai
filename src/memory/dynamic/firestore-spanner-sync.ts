@@ -289,12 +289,61 @@ export function syncableFact(
   };
 }
 
-async function getUnsyncedFacts(limit: number): Promise<SyncableFact[]> {
+export interface FactDoc {
+  id: string;
+  path: string;
+  data: Record<string, unknown>;
+}
+
+export interface FactSyncOps {
+  insert: (fact: SyncableFact) => Promise<boolean>;
+  /** Removes a forgotten fact's copy from the graph (and the index it feeds); throws on failure. */
+  remove: (userId: string, factId: string) => Promise<void>;
+  markSynced: (userId: string, docId: string) => Promise<void>;
+}
+
+/**
+ * Copies live facts and removes forgotten ones (forget.ts sets forgottenAt
+ * and syncedToSpanner=false, so a fact copied before it was forgotten comes
+ * back here once). A forgotten fact is marked synced once its copy is gone,
+ * so the cursor (syncedToSpanner == false, oldest first) moves past it; if
+ * the removal fails it is retried next cycle, and the live facts after it
+ * in the batch are still copied.
+ */
+export async function syncFactDocs(
+  docs: readonly FactDoc[],
+  ops: FactSyncOps
+): Promise<{ synced: number; removed: number; failed: number }> {
+  const out = { synced: 0, removed: 0, failed: 0 };
+  for (const doc of docs) {
+    const fact = syncableFact(doc.id, doc.path, doc.data);
+    const userId = doc.path.split('/')[1] ?? '';
+    try {
+      if (fact) {
+        if (!(await ops.insert(fact))) {
+          out.failed++;
+          continue;
+        }
+        out.synced++;
+      } else {
+        await ops.remove(userId, `fact_${userId}_${doc.id}`);
+        out.removed++;
+      }
+      await ops.markSynced(userId, doc.id);
+    } catch (error) {
+      out.failed++;
+      log.warn({ error: String(error), factId: doc.id }, 'Fact not synced');
+    }
+  }
+  return out;
+}
+
+async function getUnsyncedFactDocs(limit: number): Promise<FactDoc[]> {
   const db = getFirestoreDb();
   if (!db) return [];
 
   const cutoffTime = new Date(Date.now() - config.minAgeMs).toISOString();
-  const facts: SyncableFact[] = [];
+  const facts: FactDoc[] = [];
 
   try {
     const snapshot = await db
@@ -306,8 +355,7 @@ async function getUnsyncedFacts(limit: number): Promise<SyncableFact[]> {
       .get();
 
     for (const doc of snapshot.docs) {
-      const fact = syncableFact(doc.id, doc.ref.path, doc.data());
-      if (fact) facts.push(fact);
+      facts.push({ id: doc.id, path: doc.ref.path, data: doc.data() });
     }
   } catch (error) {
     log.warn(
@@ -428,15 +476,17 @@ export async function runSyncCycle(): Promise<SyncResult> {
       }
     }
 
-    // 2. Sync facts
-    const facts = await getUnsyncedFacts(config.batchSize);
-    for (const fact of facts) {
-      const success = await syncFactToSpanner(fact);
-      if (success) {
-        await markAsSynced('dynamic_facts', fact.userId, fact.id);
-        result.factsSynced++;
-      }
-    }
+    // 2. Sync facts: copy live ones, remove forgotten ones
+    const factDocs = await getUnsyncedFactDocs(config.batchSize);
+    const facts = await syncFactDocs(factDocs, {
+      insert: syncFactToSpanner,
+      remove: async (userId, factId) => {
+        const { deleteFact } = await import('../spanner-graph/client.js');
+        await deleteFact(userId, factId);
+      },
+      markSynced: async (userId, docId) => markAsSynced('dynamic_facts', userId, docId),
+    });
+    result.factsSynced += facts.synced;
 
     // 3. Sync relationships
     const relationships = await getUnsyncedRelationships(config.batchSize);
