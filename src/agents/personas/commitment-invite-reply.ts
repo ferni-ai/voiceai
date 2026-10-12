@@ -27,7 +27,7 @@ const IMPERATIVE =
   /^(?:\W*(?:so|okay|ok|well|maybe|just|and)\W+)*(?:try|write|jot|send|text|call|make|list|pick|find|spend|take|set|block|put|grab|start|open|look|book|ask|tell|draft|go)\b/i;
 /** Ferni handing them an action: "commit to", "how about you", "what if you", "you could try". */
 const HANDS_A_STEP =
-  /\b(?:commit to|how about (?:you|we)|what if you|why don'?t you|you (?:could|should|might) (?:try|just|start|write|send|text|call|make|list|pick|spend|take|block|look)|(?:do|would) you (?:want|like) to (?:try |commit to )(?!that\b|it\b|something\b|anything\b|one\b|a (?:little|small|tiny)\b)\w+ing\b|maybe (?:try|just)\b)/i;
+  /\b(?:commit to|how about (?:you|we|(?:just |maybe )?(?!(?:some|any|no|every)thing\b)\w+ing)\b|what if you|why don'?t you|you (?:could|should|might) (?:try|just|start|write|send|text|call|make|list|pick|spend|take|block|look)|(?:do|would) you (?:want|like) to (?:try |commit to )(?!that\b|it\b|something\b|anything\b|one\b|a (?:little|small|tiny)\b)\w+ing\b|maybe (?:try|just)\b)/i;
 
 /** A sentence that names a step for them rather than asking for theirs. */
 export function suggestsStep(sentence: string): boolean {
