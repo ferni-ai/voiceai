@@ -1,8 +1,8 @@
 /**
- * Live captions styles. During a call the captions take the persona's own
- * slot, under the name and above the team roster, in the layout rather than
- * over it. Ferni's words read as a speech bubble from the face; the caller's
- * words use a quieter register. Colours, spacing and type are tokens.
+ * Live captions styles, variant C ("refined minimal"): one calm line under
+ * Ferni's name, no bubble. Words fade in as they are spoken (opacity only),
+ * the caller's words in the secondary colour, a moment as a quiet dotted
+ * line beneath. Type is 15-16px at 1.35, never wider than ~38 characters.
  *
  * @module ui/captions/live-captions.styles
  */
@@ -19,48 +19,34 @@ const CSS = `
 body[data-connected='true'] #personaSubtitle,
 body[data-connected='true'] #coach .subscription-badge { display: none; }
 .ferni-captions {
-  --ferni-captions-lines: 2;
   display: none; flex-direction: column; align-items: center; gap: var(--space-xs);
-  width: min(34rem, 100%); margin: var(--space-sm) auto; text-align: center;
+  width: 100%; max-width: 38ch; margin: var(--space-sm) auto 0; text-align: center;
+  font-family: var(--font-body); font-size: var(--text-base); line-height: 1.35;
 }
 body[data-connected='true'] .ferni-captions { display: flex; }
-@media (max-height: 600px) { .ferni-captions { --ferni-captions-lines: 1; } }
 /* Captions v2 replaces the one-line pill that sat over the avatar. */
 #transcriptContainer { display: none; }
 .ferni-captions__viewport {
   /* The slot is reserved while captions are on, so the roster never jumps. */
-  display: none; flex-direction: column; align-items: center; gap: var(--space-xs);
-  width: 100%; box-sizing: border-box; overflow: hidden;
-  height: calc(var(--ferni-captions-lines) * 1lh + var(--space-md) + var(--space-xs));
-  padding-top: var(--space-sm);
-  font-family: var(--font-body); font-size: var(--text-lg); line-height: 1.3;
-  font-weight: var(--font-weight-medium); color: var(--color-text-primary);
+  /* One line. It stays centred while it fits; past that the newest words
+     hold the right edge and the earliest slide out left under a soft fade
+     (rtl box, ltr text: auto margins centre, overflow runs leftwards). */
+  display: none; direction: rtl; width: 100%; height: 1lh; overflow: hidden;
+  font-weight: var(--font-weight-normal); color: var(--color-text-primary);
   border-radius: var(--radius-lg); cursor: pointer;
   transition: opacity ${DURATION.SLOW}ms ${EASING.DECELERATE};
 }
 .ferni-captions--on .ferni-captions__viewport { display: flex; }
+.ferni-captions--overflowing .ferni-captions__viewport {
+  -webkit-mask-image: linear-gradient(to right, transparent, black 3ch);
+  mask-image: linear-gradient(to right, transparent, black 3ch);
+}
 .ferni-captions--words-off .ferni-captions__viewport { opacity: 0; pointer-events: none; }
 .ferni-captions__viewport:focus-visible { outline: 2px solid var(--color-accent-primary); outline-offset: 2px; }
-.ferni-captions--overflowing .ferni-captions__viewport {
-  -webkit-mask-image: linear-gradient(to bottom, transparent, black 0.8lh);
-  mask-image: linear-gradient(to bottom, transparent, black 0.8lh);
-}
 .ferni-caption-line { margin: 0; overflow-wrap: anywhere; }
-/* Ferni's words: a soft bubble with a small tail up toward the face. */
-.ferni-captions .ferni-caption-line[data-speaker='agent'] {
-  position: relative; max-width: 100%; box-sizing: border-box;
-  padding: var(--space-2xs) var(--space-md); border-radius: var(--radius-xl);
-  background: var(--color-bg-elevated); box-shadow: var(--shadow-sm);
-}
-.ferni-captions .ferni-caption-line[data-speaker='agent']:first-child::before {
-  content: ''; position: absolute; top: calc(-1 * var(--space-xs)); left: 50%;
-  width: var(--space-sm); height: var(--space-sm); background: inherit;
-  transform: translateX(-50%) rotate(45deg);
-}
-.ferni-caption-line--settled { color: var(--color-text-secondary); }
-.ferni-caption-line[data-speaker='user'] {
-  font-size: var(--text-base); font-weight: var(--font-weight-normal); color: var(--color-text-secondary);
-}
+.ferni-caption-line { flex: none; direction: ltr; white-space: nowrap; margin-inline: auto; }
+.ferni-caption-line--settled { display: none; }
+.ferni-caption-line[data-speaker='user'] { color: var(--color-text-secondary); }
 .ferni-captions__moments {
   display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-xs);
   margin: 0; padding: 0; list-style: none;
@@ -68,27 +54,25 @@ body[data-connected='true'] .ferni-captions { display: flex; }
 
 .ferni-moment {
   display: inline-block; max-width: 100%;
-  padding: var(--space-xs) var(--space-md); border-radius: var(--radius-xl);
-  background: var(--color-bg-elevated); box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-border-subtle);
-  font-size: var(--text-sm); line-height: 1.25; color: var(--color-text-primary);
+  font-size: var(--text-sm); line-height: 1.35; color: var(--color-text-secondary);
   white-space: nowrap;
-  animation: ferni-moment-in ${DURATION.SLOW * 2}ms ${EASING.SPRING} both;
+  animation: ferni-moment-in ${DURATION.MODERATE}ms ${EASING.SPRING_GENTLE} both;
   transition: opacity ${DURATION.SLOW}ms ${EASING.DECELERATE};
 }
 .ferni-moment::before {
-  content: ''; display: inline-block; vertical-align: middle; width: var(--space-sm); height: var(--space-sm);
+  content: ''; display: inline-block; vertical-align: middle; width: var(--space-xs); height: var(--space-xs);
   margin-inline-end: var(--space-sm); border-radius: var(--radius-full); background: var(--persona-primary);
 }
 .ferni-moment__label {
-  margin-inline-end: var(--space-xs); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary);
+  margin-inline-end: var(--space-xs); font-weight: var(--font-weight-medium); color: var(--color-text-secondary);
 }
 .ferni-moment--leaving { opacity: 0; }
-@keyframes ferni-moment-in { from { opacity: 0; transform: translateY(var(--space-xs)) scale(0.96); } }
+@keyframes ferni-moment-in { from { opacity: 0; transform: translateY(var(--space-xs)); } }
 .ferni-caption-line:not(.ferni-caption-line--settled) .ferni-caption-words {
-  animation: ferni-words-in ${DURATION.SLOW * 2}ms ${EASING.DECELERATE} both;
+  animation: ferni-words-in ${DURATION.DELIBERATE}ms ${EASING.DECELERATE} both;
 }
-@keyframes ferni-words-in { from { opacity: 0; filter: blur(var(--space-2xs)); } }
+/* Opacity only (animation standard #1037): words surface as they're said. */
+@keyframes ferni-words-in { from { opacity: 0; } }
 .ferni-caption-line__name {
   display: inline-flex; align-items: center; gap: var(--space-xs); margin-inline-end: var(--space-sm);
   line-height: var(--leading-snug);

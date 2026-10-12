@@ -246,13 +246,14 @@ class LiveCaptions {
     this.frame = requestAnimationFrame(() => this.layout());
   }
 
-  /** Keep the newest words in view; fade the top when older text scrolls. */
+  /** Fade the left edge when the line is longer than the slot. */
   private layout(): void {
     if (!this.root || !this.viewport) return;
-    this.viewport.scrollTop = this.viewport.scrollHeight;
+    // One line (variant C): fade the left edge once early words slide out.
+    const line = this.viewport.lastElementChild as HTMLElement | null;
     this.root.classList.toggle(
       'ferni-captions--overflowing',
-      this.viewport.scrollHeight > this.viewport.clientHeight
+      (line?.offsetWidth ?? 0) > this.viewport.clientWidth
     );
   }
 }
