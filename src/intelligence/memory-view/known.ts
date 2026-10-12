@@ -84,7 +84,7 @@ export interface KnownStore {
   /** YYYY-MM-DD of the caller's summaries with these ids, for pondering's provenance. */
   summaryDays: (userId: string, ids: string[]) => Promise<Map<string, string>>;
   /** Topics the caller asked Ferni to forget (memory/recall/forget.ts). Throws if unreadable. */
-  forgotten: (userId: string) => Promise<string[]>;
+  forgotten: (userId: string) => Promise<string[] | null>;
 }
 
 const PREFERENCE =
@@ -249,6 +249,8 @@ export async function loadKnownView(
   const summaryDays = bases.length
     ? await store.summaryDays(userId, [...new Set(bases)]).catch(() => new Map<string, string>())
     : new Map<string, string>();
+  // null: unreadable or malformed (the forget store's contract, #1094); fail the same way.
+  if (!Array.isArray(forgotten)) throw new Error('Forgotten topics unreadable');
   const parts = { facts, world, mind, pondering, summaryDays, forgotten };
   return buildKnownView(parts, now, withPondering);
 }

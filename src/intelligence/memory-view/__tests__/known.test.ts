@@ -304,6 +304,11 @@ describe('loadKnownView', () => {
     await expect(
       loadKnownView('u-1', s, { now: NOW, env: { MEMORY_VIEW: 'on' } })
     ).rejects.toThrow();
+    // The forget store's null: no db, or a malformed list (#1094).
+    vi.mocked(s.forgotten).mockResolvedValueOnce(null);
+    await expect(
+      loadKnownView('u-1', s, { now: NOW, env: { MEMORY_VIEW: 'on' } })
+    ).rejects.toThrow();
   });
 
   it('never reads pondering unless its own flag is on', async () => {
