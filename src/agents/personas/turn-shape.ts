@@ -29,6 +29,7 @@ import {
   textureLearned,
   textureLine,
 } from './turn-length.js';
+import { quietLineFor } from './quiet-caller.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -166,7 +167,21 @@ const QUESTION_LINE = {
   allowed:
     'You may ask one question if you really want to know something; otherwise end on a thought.',
   none: 'No question this time: end on a thought, a reaction or something of your own.',
+  /** FERNI_STATE=on, his stories held back this turn: "something of your own" invited one. */
+  noneOnThem: 'No question this time: end on a thought or a reaction.',
+  /** FERNI_STATE=on: a word about himself is followed by turning to them. */
+  noneUnlessOwn:
+    'No question this time, unless you said something about yourself: then end by asking them one about their world.',
 };
+
+/**
+ * The no-question line. ownStory is Ferni's own state's say on this turn
+ * (ferni-state.ts): undefined when FERNI_STATE is off, and then as before.
+ */
+function noQuestion(ownStory: boolean | undefined): string {
+  if (ownStory === undefined) return QUESTION_LINE.none;
+  return ownStory ? QUESTION_LINE.noneUnlessOwn : QUESTION_LINE.noneOnThem;
+}
 
 export interface TurnShape {
   move: CallerMove;
@@ -220,7 +235,8 @@ function modelChosenShape(
   // (dev A/B, 15 calls per arm, judge.mjs, 2026-10-10).
   const parts = [REGISTER];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
-  else if (move === 'share' && !sig.careful && rng() < 0.3) parts.push(SECOND_STORY);
+  else if (move === 'share' && !sig.careful && rng() < 0.3 && sig.ownStory !== false)
+    parts.push(SECOND_STORY);
   const stance = stanceFor(
     userText,
     move,
@@ -245,7 +261,8 @@ function modelChosenShape(
   parts.push(...extras.lines, learn.length ? FIT_THE_MOMENT_LEARNED : FIT_THE_MOMENT);
   if (learn.length) parts.push(lengthLine(target));
   parts.push(planLine(sig.pickUp));
-  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none));
+  if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
+  parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory)));
   const learned = [
     learn.length ? `length_${target}` : '',
     texture ? `texture_${texture.kind}` : '',
@@ -279,7 +296,13 @@ export function turnShapeFor(
   const parts = [REGISTER];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
   // Not while they're venting: a friend stays with them instead of telling a story.
-  else if (move === 'share' && shape !== 'react' && !sig.careful && rng() < 0.3)
+  else if (
+    move === 'share' &&
+    shape !== 'react' &&
+    !sig.careful &&
+    rng() < 0.3 &&
+    sig.ownStory !== false
+  )
     parts.push(SECOND_STORY);
   const stance = stanceFor(
     userText,
@@ -293,9 +316,10 @@ export function turnShapeFor(
   const asks = questionAllowed(shape, rng);
   const extras = extrasFor(userText, move, shape, asks, rng, process.env, sig, style);
   parts.push(...extras.lines);
+  if (sig.quiet) parts.push(...[quietLineFor()].filter(Boolean));
   parts.push(
     extras.shapeLine ?? SHAPE_LINE[shape],
-    extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none)
+    extras.questionLine ?? (asks ? QUESTION_LINE.allowed : noQuestion(sig.ownStory))
   );
   return {
     move,

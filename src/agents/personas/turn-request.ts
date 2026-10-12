@@ -32,12 +32,13 @@ import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-n
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
-import { ferniStateNote } from './ferni-state.js';
+import { ferniStateTurn } from './ferni-state.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { attunementNote } from './turn-attunement.js';
 import { honestFriendNote } from './honest-friend.js';
 import { getDeliberator } from './deliberation.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
+import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { callerMove, rngFor, turnShapeEnabled, turnShapeFor } from './turn-shape.js';
 import {
@@ -92,6 +93,9 @@ export function withTurnReminder(
   const notes = formatNotes((director?.current() ?? []).filter(keep));
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
+  // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
+  // It also decides whether a story of his own may ride this reply.
+  const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
@@ -103,13 +107,19 @@ export function withTurnReminder(
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
-    // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
-    ferniStateNote(chatCtx, session, { careful: options.shape === false }),
+    state.note,
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
     honestFriendNote(chatCtx, words, { careful: options.shape === false }),
-    turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
+    turnStyleReminderEnabled()
+      ? styleFor(chatCtx, session, options.shape !== false, state.ownStory)
+      : '',
+    // His self-share line after the shape, nearest the reply (ferni-state.ts).
+    state.last,
+    // DIRECTOR_ESCALATE=on: a note the director had to give twice, as a rule
+    // for this reply, last of all; never with crisis guidance.
+    options.shape !== false ? (director?.hardRule?.() ?? '') : '',
     // ATTUNE=on: this reply sized to the caller's state; after the shape, which it outranks.
     attunementNote(chatCtx, session, { careful: options.shape === false }),
   ]
@@ -151,7 +161,12 @@ function callerWords(chatCtx: llm.ChatContext): string {
  * single style reminder when shaping is off, there are no words, or the
  * caller asked for none (a crisis reply must not be held to a few words).
  */
-function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): string {
+function styleFor(
+  chatCtx: llm.ChatContext,
+  session: object,
+  shape: boolean,
+  ownStory?: boolean
+): string {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
   if (!said) return TURN_STYLE_REMINDER;
   // Seeded per call and words: the preemptive and final requests agree, but
@@ -161,7 +176,11 @@ function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): st
     said,
     rngFor(`${callSeed(session)}:${said}`),
     undefined,
-    withSupportHold(session, said, signals, source)
+    withQuiet(
+      withOwnStory(withSupportHold(session, said, signals, source), said, ownStory),
+      said,
+      chatCtx
+    )
   );
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
@@ -202,6 +221,40 @@ function withSupportHold(
   const sig = signals ?? regexSignals(said, callerMove(said));
   // Only the model's reading is sticky: plain (no reading yet) is careful by default.
   return { ...sig, supportFirst: supportHeld(session, said, source === 'model' && sig.careful) };
+}
+
+/** FERNI_STATE=on: his state's say on a story of his own rides with the signals (ferni-state.ts). */
+function withOwnStory(
+  signals: TurnSignals | undefined,
+  said: string,
+  ownStory: boolean | undefined
+): TurnSignals | undefined {
+  if (ownStory === undefined) return signals;
+  return { ...(signals ?? regexSignals(said, callerMove(said))), ownStory };
+}
+
+/**
+ * QUIET_CALLER=on: a caller saying very little gets room, not advice
+ * (quiet-caller.ts); "I'm still here" reads as an ack.
+ */
+function withQuiet(
+  signals: TurnSignals | undefined,
+  said: string,
+  chatCtx: llm.ChatContext
+): TurnSignals | undefined {
+  if (!quietCallerEnabled()) return signals;
+  const sig = signals ?? regexSignals(said, callerMove(said));
+  const quiet = isQuietCaller(callerTurnsOf(chatCtx));
+  const move = presentAck(said) ? 'ack' : sig.move;
+  return quiet || move !== sig.move ? { ...sig, move, quiet } : sig;
+}
+
+/** What the caller has said on the call, notes aside, oldest first. */
+function callerTurnsOf(chatCtx: llm.ChatContext): string[] {
+  return chatCtx.items
+    .filter((i) => i.type === 'message' && i.role === 'user')
+    .map((i) => (i as llm.ChatMessage).textContent ?? '')
+    .filter((t) => t && !t.startsWith(TURN_CONTEXT_HEADER));
 }
 
 const callSeeds = new WeakMap<object, string>();

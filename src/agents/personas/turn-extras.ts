@@ -82,6 +82,13 @@ export interface TurnSignals {
   recent?: RecentTurns;
   /** TURN_PLAN=on: what this reply has to pick up from the last turns. */
   pickUp?: string;
+  /**
+   * FERNI_STATE=on: whether a story of his own may ride this reply
+   * (ferni-state.ts). Undefined when his state has no say.
+   */
+  ownStory?: boolean;
+  /** QUIET_CALLER=on: their last turns were a few words each (quiet-caller.ts). */
+  quiet?: boolean;
 }
 
 /** The model's understanding as signals. */
@@ -150,7 +157,7 @@ export function extrasFor(
   // aloud on chit-chat, where friends rarely do either.
   const learnedTexture = env.TURN_TEXTURE === 'learned';
   const chat = move === 'share' || move === 'ack';
-  if (on(env, 'THINK_ALOUD') && shape !== 'react' && !(learnedTexture && chat)) {
+  if (on(env, 'THINK_ALOUD') && shape !== 'react' && !(learnedTexture && chat) && !signals.quiet) {
     // Live, request turns are rare: also think aloud on some longer answers.
     const p =
       move === 'request' || move === 'about_ferni'
@@ -213,7 +220,13 @@ export function extrasFor(
       out.lines.push(LAUGH_SPONTANEOUS);
       out.fired.push('laugh_spontaneous');
     }
-    if (move !== 'ack' && !venting && shape !== 'react' && rng() < scaled(0.25, style.opinion)) {
+    if (
+      move !== 'ack' &&
+      !venting &&
+      !signals.quiet &&
+      shape !== 'react' &&
+      rng() < scaled(0.25, style.opinion)
+    ) {
       out.lines.push(OPINION);
       out.fired.push('opinion');
     }
