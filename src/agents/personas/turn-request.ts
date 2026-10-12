@@ -34,6 +34,7 @@ import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { ferniStateNote } from './ferni-state.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
+import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
@@ -106,6 +107,8 @@ export function withTurnReminder(
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
+    // ATTUNE=on: this reply sized to the caller's state; after the shape, which it outranks.
+    attunementNote(chatCtx, session, { careful: options.shape === false }),
   ]
     .filter(Boolean)
     .join(' ');
