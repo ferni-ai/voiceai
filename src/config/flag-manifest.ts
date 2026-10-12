@@ -176,7 +176,8 @@ export const FLAG_MANIFEST = {
   OPENER_GATE_EARLY: { default: 'off', owner: 'voice', kind: 'experiment' },
   OUTBOUND_CONFIRM: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
   OUTREACH_DRY_RUN: { default: 'off', owner: 'platform', kind: 'kill-switch' },
-  OUTREACH_GROUNDED_CHECKINS: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on: the daily scheduler sends no generic "thinking of you" check-ins
+  OUTREACH_GROUNDED_CHECKINS: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
   OVERLAP_GREETING_WITH_PREWARM: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PACE_MATCHING: { default: 'on', owner: 'voice', kind: 'config' },
   PAUSE_HOLD: { default: 'off', owner: 'voice', kind: 'experiment' },
