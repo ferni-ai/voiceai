@@ -11,6 +11,9 @@ import { DURATION, EASING } from '../../config/animation-constants.js';
 
 const STYLE_ID = 'ferni-captions-styles';
 
+/** On <body> for the whole call while captions are on; the picker yields to them. */
+export const CAPTIONS_CALL_CLASS = 'ferni-captions-call';
+
 const CSS = `
 .ferni-captions {
   position: fixed; left: 50%; bottom: var(--ferni-captions-bottom, var(--space-xl));
@@ -63,6 +66,20 @@ const CSS = `
 }
 .ferni-caption-line[data-speaker='user'] .ferni-caption-line__name::before { background: var(--color-text-muted); }
 .engagement-triggers .ferni-captions-toggle--on { color: var(--persona-primary); border-color: var(--persona-primary); }
+/* In a call with captions on, the persona picker yields its row to them, and
+   the page keeps room for two caption lines above the waveform (the region is
+   fixed, so nothing else in the layout would leave a gap). The picker leaves
+   at once, inside the avatar's own connect transition: a fade would hold its
+   row (and put captions over it) until the fade ended, and a picker that
+   mounts late in the call causes no reflow. */
+body[data-connected='true'].${CAPTIONS_CALL_CLASS} #teamRoster { display: none; }
+body[data-connected='true'].${CAPTIONS_CALL_CLASS} #waveformContainer {
+  /* Sized for the boxed captions (padding, a name row and two --text-lg
+     lines); that is more than two unboxed --text-xl lines need, so it still
+     leaves room for them. --leading-snug is a clamp() that mixes numbers and
+     lengths, which calc() rejects, so its upper bound stands in. */
+  margin-block-start: calc(2 * var(--space-sm) + 1.4 * (var(--text-sm) + 2 * var(--text-lg)));
+}
 @media (prefers-reduced-motion: reduce) {
   .ferni-captions { transition: opacity ${DURATION.NORMAL}ms linear; transform: translate(-50%, 0); }
   .ferni-caption-line .ferni-caption-words { animation: none; }

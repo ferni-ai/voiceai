@@ -19,6 +19,7 @@ import {
 } from '@/ui/captions/live-captions.js';
 import { captionsOn, mountCaptionsToggle } from '@/ui/captions/captions-toggle.js';
 import { PREFERENCE_KEYS } from '@/config/storage-keys.js';
+import { CAPTIONS_CALL_CLASS } from '@/ui/captions/live-captions.styles.js';
 
 const say = (type: string, text: string, isFinal?: boolean): void => {
   window.dispatchEvent(new CustomEvent('ferni:transcript', { detail: { type, text, isFinal } }));
@@ -247,6 +248,42 @@ describe('live captions region', () => {
     expect(document.querySelector('.ferni-captions .ferni-caption-note')?.textContent).toBe(
       'Reminder set for 7:30'
     );
+  });
+
+  it('moves the persona picker aside for the whole call while captions are on', () => {
+    const connect = (state: string): void => {
+      if (state === 'connected') document.body.dataset.connected = 'true';
+      else delete document.body.dataset.connected;
+      window.dispatchEvent(new CustomEvent('ferni:connection-state', { detail: { state } }));
+    };
+    const yielded = (): boolean => document.body.classList.contains(CAPTIONS_CALL_CLASS);
+    expect(yielded()).toBe(false);
+    connect('connected');
+    expect(yielded()).toBe(true); // at connect, before anyone speaks: no jump mid-call
+    enabled = false;
+    say('agent', 'Captions turned off', true);
+    expect(yielded()).toBe(false);
+    enabled = true;
+    say('agent', 'And back on', true);
+    expect(yielded()).toBe(true);
+    connect('disconnected');
+    expect(yielded()).toBe(false);
+    const css = document.getElementById('ferni-captions-styles')?.textContent ?? '';
+    expect(css).toContain(`.${CAPTIONS_CALL_CLASS} #teamRoster { display: none; }`);
+  });
+
+  it('moves the picker with the captions switch, before anyone speaks again', () => {
+    document.body.dataset.connected = 'true';
+    enabled = false;
+    captions.refresh();
+    expect(document.body.classList.contains(CAPTIONS_CALL_CLASS)).toBe(false);
+    enabled = true; // the captions button turned them on mid-call
+    captions.refresh();
+    expect(document.body.classList.contains(CAPTIONS_CALL_CLASS)).toBe(true);
+    enabled = false; // and off again: the picker comes back
+    captions.refresh();
+    expect(document.body.classList.contains(CAPTIONS_CALL_CLASS)).toBe(false);
+    delete document.body.dataset.connected;
   });
 
   it('retires the status-island pill once captions v2 is on', () => {

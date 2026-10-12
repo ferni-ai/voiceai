@@ -8,7 +8,7 @@
  * - POST /api/landing/ai/faq - Smart FAQ answers
  * - POST /api/landing/ai/hover-preview - Contextual hover tooltips
  * - POST /api/landing/ai/sentiment-copy - Sentiment-reactive copy
- * - GET /api/landing/ai/social-proof - Dynamic social proof
+ * - GET /api/landing/ai/social-proof - Always empty (kept for cached page JS)
  *
  * @module LandingAIRoutes
  */
@@ -202,7 +202,7 @@ export async function handleLandingAIRoutes(
 
   // Route: GET /api/landing/ai/social-proof
   if (pathname === '/api/landing/ai/social-proof' && method === 'GET') {
-    return handleSocialProof(req, res);
+    return handleSocialProof(res);
   }
 
   // Route not found
@@ -519,24 +519,10 @@ async function handleSentimentCopy(req: IncomingMessage, res: ServerResponse): P
 }
 
 /**
- * Handle social proof data
+ * Social proof is always empty. It used to return invented stats and visitors;
+ * Ferni has no users to quote yet. Kept so cached page JS gets a harmless answer.
  */
-async function handleSocialProof(_req: IncomingMessage, res: ServerResponse): Promise<boolean> {
-  // Dynamic social proof messages (would be real stats in production)
-  const proofs = [
-    { message: '2,847 conversations happening right now', type: 'live' },
-    { message: 'Sarah from Austin just had her 100th check-in', type: 'milestone' },
-    { message: '94% of users say Ferni helps them feel heard', type: 'stat' },
-    { message: 'Join 50,000+ people finding clarity', type: 'community' },
-    { message: 'Someone just started their journey in Seattle', type: 'recent' },
-  ];
-
-  const proof = proofs[Math.floor(Math.random() * proofs.length)];
-
-  sendJSON(res, {
-    ...proof,
-    timestamp: new Date().toISOString(),
-  });
-
+function handleSocialProof(res: ServerResponse): boolean {
+  sendJSON(res, { messages: [] });
   return true;
 }

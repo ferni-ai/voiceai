@@ -277,7 +277,7 @@ The key insight: **Gemini receives raw audio** (native audio understanding) **bu
 | Response → Audio | ~100ms (Cartesia) | ~100ms | 0ms |
 | **Total** | **~350ms** | **~600ms** | **~250ms** |
 
-That 250ms savings comes from skipping the STT step. The audio goes directly into Gemini's native understanding.
+These are rough per-stage estimates for comparing the two architectures, not measurements of Ferni. That 250ms savings comes from skipping the STT step. The audio goes directly into Gemini's native understanding.
 
 ## Why Cartesia for TTS?
 
@@ -411,4 +411,4 @@ But more than that: for AI that feels like someone who actually shows up for you
 
 ---
 
-*Learn more about our architecture in [The Movie Production Paradigm](/dev-blog/movie-production-paradigm) or how we handle [tool calling without LLMs](/dev-blog/ftis-v2-small-models-tool-selection).*
+*Learn more about our architecture in [The Movie Production Paradigm](/developers/blog/movie-production-paradigm/) or how we handle [tool calling without LLMs](/developers/blog/ftis-v2-small-models-tool-selection/).*

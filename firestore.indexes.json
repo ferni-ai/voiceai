@@ -1,6 +1,16 @@
 {
   "indexes": [
     {
+      "collectionGroup": "pre_briefings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "targetPersona", "order": "ASCENDING" },
+        { "fieldPath": "used", "order": "ASCENDING" },
+        { "fieldPath": "expiresAt", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "outreach_triggers",
       "queryScope": "COLLECTION",
       "fields": [
