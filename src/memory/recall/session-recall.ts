@@ -14,6 +14,7 @@
  *
  * @module memory/recall/session-recall
  */
+import { foldedWords, legacyForgetTokens, stem } from './forget-tokens.js';
 
 export interface RecallFact {
   entity: string;
@@ -47,7 +48,7 @@ export function insideJokesEnabled(env: Record<string, string | undefined> = pro
 const SELF_ENTITY = /^(speaker|user|me)$/i;
 
 const STOPWORDS = new Set(
-  'the and but for with that this was are you your have has had not just about what when where how who why can could would should will from they them their there then than into onto been being its it\'s i\'m im my our out get got going really very some like know think well yeah okay also'.split(
+  "the and but for with that this was are you your have has had not just about what when where how who why can could would should will from they them their there then than into onto been being its it's i'm im my our out get got going really very some like know think well yeah okay also".split(
     ' '
   )
 );
@@ -100,14 +101,30 @@ const FORGET_FILLER = new Set(
  * one ("555-123-4567" = "5551234567").
  */
 export function forgetTokens(text: string): string[] {
-  const joined = text.toLowerCase().replace(/(\d)[\s().-]+(?=\d)/g, '$1');
-  const words = joined.match(/[a-z0-9][a-z0-9']*/g) ?? [];
-  const out = words
-    .map((w) => w.replace(/'s$/, ''))
-    .filter((w) => w.length >= 2 && !STOPWORDS.has(w) && !FORGET_FILLER.has(w))
-    .map((w) => (w.length > 3 && /[^s]s$/.test(w) ? w.slice(0, -1) : w));
+  const out = topicWords(text).map((w) => (w.plain ? w.word : stem(w.word)));
   return [...new Set(out)];
 }
+
+const isTopicWord = (w: string) => w.length >= 2 && !STOPWORDS.has(w) && !FORGET_FILLER.has(w);
+
+function topicWords(text: string): Array<{ word: string; plain: boolean }> {
+  return foldedWords(text).filter((w) => isTopicWord(w.word));
+}
+
+/**
+ * A topic as stored (forget.ts): its words with their case (so a name stays
+ * a name when read back), filler left out. "Forget my sister's wedding" ->
+ * "sister wedding"; "James" -> "James".
+ */
+export function storedTopic(topic: string): string {
+  const words = topic.match(/\S+/g) ?? [];
+  return words
+    .filter((w) => topicWords(w).length > 0)
+    .map((w) => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''))
+    .join(' ');
+}
+
+const LEGACY_SKIP: ReadonlySet<string> = new Set([...STOPWORDS, ...FORGET_FILLER]);
 
 /**
  * True when `text` is about a topic the caller asked to forget (forget.ts):
@@ -117,9 +134,29 @@ export function forgetTokens(text: string): string[] {
 export function isForgotten(text: string, topics: readonly string[]): boolean {
   if (topics.length === 0) return false;
   const words = new Set(forgetTokens(text));
+  // "ex wife" in a memory is the "ex-wife" / "exwife" of a request, and back.
+  const raw = foldedWords(text).map((w) => w.word);
+  for (let i = 0; i + 1 < raw.length; i++) words.add(stem(`${raw[i]}${raw[i + 1]}`));
+  // A capitalized word in a memory is often just a sentence's first word
+  // ("Divorce papers came"): it matches stemmed too. A topic's name never
+  // stems, so forgetting "James" can't hide "jam".
+  for (const w of raw) {
+    if (!isTopicWord(w)) continue;
+    words.add(w); // a name kept whole in a topic ("Charles") matches "charles"
+    words.add(stem(w));
+  }
+  let legacy: Set<string> | undefined;
   return topics.some((t) => {
     const want = forgetTokens(t);
-    return want.length > 0 && want.every((w) => words.has(w));
+    if (want.length > 0) {
+      if (want.every((w) => words.has(w))) return true;
+      if (want.length > 1 && want.length <= 3 && words.has(stem(want.join('')))) return true;
+    }
+    // A topic stored by the tokenizer before 2026-10-11 ("zo" for "Zoë",
+    // "babie" for "babies") still hides what it hid then.
+    const stored = t.toLowerCase().split(/\s+/).filter(Boolean);
+    legacy ??= new Set(legacyForgetTokens(text, LEGACY_SKIP));
+    return stored.length > 0 && stored.every((w) => legacy!.has(w));
   });
 }
 
@@ -246,7 +283,7 @@ export function formatRecall(
   lines.push(
     'These are from past calls, not this one. Use at most one, and only if it fits naturally, the way a friend who remembers would. ' +
       'Words like today, tomorrow or Friday inside a memory are as of when it was said. ' +
-      "Anything a few days old or that could have changed, check instead of asserting (\"is she still...?\"). " +
+      'Anything a few days old or that could have changed, check instead of asserting ("is she still...?"). ' +
       'Never bring up health, pregnancy, money or relationships unless they bring it up first. Never list them or say you looked it up.'
   );
   return lines.join('\n');
@@ -257,7 +294,7 @@ export interface RecallStore {
   facts(userId: string): Promise<Array<Record<string, unknown>>>;
   summaries(userId: string): Promise<Array<Record<string, unknown>>>;
   /** Topics the caller asked to forget (forget.ts); nothing about them is recalled. */
-  forgotten?(userId: string): Promise<string[]>;
+  forgotten?(userId: string): Promise<string[] | null>;
 }
 
 const MAX_FACTS = 300;
@@ -283,22 +320,25 @@ export async function loadRecallSnapshot(
   const [rawFacts, rawSummaries, forgotten] = await Promise.all([
     store.facts(userId).catch(() => []),
     store.summaries(userId).catch(() => []),
-    store.forgotten ? store.forgotten(userId).catch(() => []) : Promise.resolve([]),
+    store.forgotten
+      ? store.forgotten(userId).catch((): null => null)
+      : Promise.resolve<string[]>([]),
   ]);
+  // Topics that can't be read: nothing that might be about one is recalled
+  // (fails closed, like episode quotes). Facts, threads and jokes alike.
+  if (forgotten === null) return { facts: [], followUps: [], insideJokes: [] };
   const facts = dedupeFacts(
     rawFacts
       // Marked by forget.ts: left in storage (recoverable), out of recall.
       .filter((d) => typeof d.forgottenAt !== 'string')
       .slice(0, MAX_FACTS)
-      .map(
-        (d): RecallFact => ({
-          entity: String(d.entityName ?? ''),
-          key: String(d.key ?? ''),
-          value: String(d.value ?? ''),
-          confidence: confidenceOf(d.confidence),
-          ...(typeof d.extractedAt === 'string' ? { extractedAt: d.extractedAt } : {}),
-        })
-      )
+      .map((d): RecallFact => ({
+        entity: String(d.entityName ?? ''),
+        key: String(d.key ?? ''),
+        value: String(d.value ?? ''),
+        confidence: confidenceOf(d.confidence),
+        ...(typeof d.extractedAt === 'string' ? { extractedAt: d.extractedAt } : {}),
+      }))
       .filter((f) => f.confidence >= MIN_RECALL_CONFIDENCE)
       .filter((f) => !isForgotten(`${f.entity} ${f.key} ${f.value}`, forgotten))
   );
@@ -318,7 +358,7 @@ export async function loadRecallSnapshot(
       if (typeof item !== 'string') continue;
       const text = item.trim();
       const seen = insideJokes.some((j) => j.toLowerCase() === text.toLowerCase());
-      if (text && !seen) insideJokes.push(text);
+      if (text && !seen && !isForgotten(text, forgotten)) insideJokes.push(text);
       if (insideJokes.length >= MAX_INSIDE_JOKES) break;
     }
     if (insideJokes.length >= MAX_INSIDE_JOKES) break;
