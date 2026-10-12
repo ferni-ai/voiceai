@@ -113,6 +113,7 @@ export const FLAG_MANIFEST = {
   FERNI_PERSONA_SLIP_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_SCRIPTED_HINT_LINES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   FERNI_SELF_MEMORY: { default: 'off', owner: 'voice', kind: 'experiment' },
+  FERNI_SELF_RECALL: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_STATE: { default: 'off', owner: 'voice', kind: 'experiment' },
   FERNI_TASK_MOOD_ALONE_TRIGGERS: { default: 'off', owner: 'platform', kind: 'config' },
   FERNI_TASK_SCRIPTED_TRANSITIONS: { default: 'off', owner: 'platform', kind: 'experiment' },
