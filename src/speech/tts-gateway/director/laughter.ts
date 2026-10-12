@@ -52,6 +52,12 @@ const TOPIC_WEIGHT: Record<Valence, 'light' | 'medium' | 'heavy'> = {
 
 const LAUGHTER_TAG = /\[laughter\]/i;
 
+/** Who and which turn: what the engine knows before the reply's first phrase. */
+export type LaughterWho = Pick<
+  LaughterInput,
+  'sessionId' | 'personaId' | 'turn' | 'userEmotion' | 'comfortLevel' | 'teamVoices'
+>;
+
 /** Where to add `[laughter]` for this reply, or undefined for none. */
 export function decideReplyLaughter(input: LaughterInput): LaughPlacement | undefined {
   if (!input.sessionId || input.replyValence === 'heavy') return undefined;
