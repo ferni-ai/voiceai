@@ -116,6 +116,9 @@ export interface PersonaConfig {
   /** Short description/title */
   readonly subtitle: string;
 
+  /** i18n key of the AI role label under the name ("AI life coach"); see ai-role-label.ui.ts */
+  readonly roleLabel?: string;
+
   /** Role in the coach/team system */
   readonly role: PersonaRole;
 

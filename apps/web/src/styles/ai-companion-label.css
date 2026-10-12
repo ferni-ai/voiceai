@@ -1,7 +1,8 @@
 /*
- * "AI companion" label: a small, persistent, honest chip near Ferni's name on
- * the main screen and on the sign-in gate. Visual only. It lives in its own
- * element so the dynamic subtitle (#personaSubtitle) can never overwrite it.
+ * AI role label ("AI life coach", "AI habits coach"): a small, persistent,
+ * honest chip under the speaker's name on the main screen and on the sign-in
+ * gate. It lives in its own element so the dynamic subtitle (#personaSubtitle)
+ * can never overwrite it. ai-role-label.ui.ts swaps the words on a handoff.
  */
 .ai-companion-label {
   display: inline-block;
@@ -15,6 +16,9 @@
   line-height: var(--leading-normal);
   letter-spacing: 0.01em;
   white-space: nowrap;
+  /* The handoff eases the pill's width; clip the incoming words while it grows. */
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .ai-companion-label-row {

@@ -3566,7 +3566,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "Your Personal AI Companion",
+        "role": "Your AI life coach",
         "description": "I'm here for whatever you need — from daily check-ins to deep conversations.",
         "unlockHint": "Always by your side",
         "unlockedMessage": "We've been through a lot together.",
@@ -3637,11 +3637,11 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — Your AI Life Companion",
+      "title": "Ferni — Your AI Life Coach",
       "message": "I've been using Ferni and it's genuinely changed how I approach my day. Join me! {url}",
       "shortMessage": "Join me on Ferni! {url}",
       "emailSubject": "You should try Ferni",
-      "emailBody": "Hey! I've been using Ferni — it's an AI companion that actually feels human. Thought you'd love it. {url}"
+      "emailBody": "Hey! I've been using Ferni — it's an AI life coach that actually feels human. Thought you'd love it. {url}"
     },
     "modal": {
       "title": "Share the Growth",
@@ -9512,7 +9512,18 @@
     "dismiss": "Just happy to chat"
   },
   "aiLabel": {
-    "companion": "AI companion"
+    "role": {
+      "lifeCoach": "AI life coach",
+      "habitsCoach": "AI habits coach",
+      "insightsMentor": "AI insights mentor",
+      "lifePlanner": "AI life planner",
+      "communicationCoach": "AI communication coach",
+      "wisdomGuide": "AI wisdom guide",
+      "investingMentor": "AI investing mentor",
+      "stockPickingGuide": "AI stock-picking guide",
+      "lifeMentor": "AI life mentor",
+      "friend": "AI friend"
+    }
   },
   "afterCall": {
     "ariaLabel": "After your call",

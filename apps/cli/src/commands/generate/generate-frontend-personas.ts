@@ -29,6 +29,8 @@ interface PersonaManifest {
     initials?: string;
     avatar?: { initials?: string };
     self_reference?: string;
+    /** i18n key of the AI role label shown under the name ("AI life coach") */
+    role_label?: string;
   };
   voice?: {
     provider: string;
@@ -84,6 +86,8 @@ interface FrontendPersona {
   name: string;
   initials: string;
   subtitle: string;
+  /** i18n key of the AI role label; the web falls back to "AI friend" */
+  roleLabel?: string;
   role: 'coach' | 'team' | 'standalone';
   description: string;
   helperText: string;
@@ -337,6 +341,7 @@ async function manifestToFrontendPersona(
     name: manifest.identity.display_name || manifest.identity.name,
     initials: manifest.identity.initials || generateInitials(manifest.identity.name),
     subtitle: manifest.team?.role_description?.split(' - ')[0] || roleSubtitles[roleId] || 'Team Member',
+    roleLabel: manifest.identity.role_label,
     role: isCoordinator ? 'coach' : 'team',
     description,
     helperText: manifest.team?.role_description?.split(' - ')[0] || description.split('.')[0],
