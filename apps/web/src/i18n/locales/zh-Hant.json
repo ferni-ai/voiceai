@@ -11090,7 +11090,8 @@
     "ferniSpeaking": "Ferni 正在說話",
     "youSpeaking": "你正在說話",
     "ferniThinking": "Ferni 正在思考",
-    "tapToInterrupt": "輕點以打斷"
+    "tapToInterrupt": "輕點以打斷",
+    "tapToHear": "輕點收聽 Ferni"
   },
   "answerCard": {
     "answer": "",
