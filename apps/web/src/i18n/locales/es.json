@@ -11239,5 +11239,17 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "Aporta",
+    "title": "Un dólar mantiene viva la conversación",
+    "body": "Ferni es gratis por ahora. Si una charla te ayudó, puedes enviar un dólar por Venmo. Más es bienvenido, nunca esperado.",
+    "qrAlt": "Código QR de Venmo para @{handle}",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "openVenmo": "Abrir Venmo",
+    "helper": "Escanéalo con la cámara de tu teléfono o toca Abrir Venmo. Puedes cambiar el importe.",
+    "maybeLater": "Quizás después",
+    "close": "Cerrar"
   }
 }

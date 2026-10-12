@@ -11113,5 +11113,17 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "出份力",
+    "title": "一美元，讓對話繼續",
+    "body": "Ferni 目前免費。如果某次聊天幫到了你，可以透過 Venmo 寄一美元。多給也歡迎，但從不強求。",
+    "qrAlt": "@{handle} 的 Venmo QR 碼",
+    "copy": "複製",
+    "copied": "已複製",
+    "openVenmo": "開啟 Venmo",
+    "helper": "用手機相機掃描，或點按「開啟 Venmo」。金額可以修改。",
+    "maybeLater": "以後再說",
+    "close": "關閉"
   }
 }
