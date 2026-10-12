@@ -241,7 +241,6 @@ export async function showCognitiveInsights(): Promise<void> {
       memories: data.memories ?? [],
       patterns: data.patterns ?? [],
       totalInteractions: data.totalInteractions ?? 0,
-      knowledgeScore: data.knowledgeScore ?? 0,
     });
     return;
   }
@@ -449,7 +448,6 @@ function getDemoCognitiveData() {
       },
     ],
     totalInteractions: 45,
-    knowledgeScore: 78,
   };
 }
 
