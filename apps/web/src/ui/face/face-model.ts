@@ -17,7 +17,7 @@ import {
   EXPRESSIONS,
   type ExpressionConfig,
   type ExpressionId,
-} from '../../config/expressions.generated.js';
+} from '../../config/avatar-expressions.js';
 
 /** Names the older expression code uses that aren't token ids, and the token each means. */
 export const ALIASES: Readonly<Record<string, ExpressionId>> = {
