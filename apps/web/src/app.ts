@@ -303,7 +303,7 @@ import { initCosmeticsService } from './services/cosmetics.service.js';
 import { initSeedsEconomy } from './services/seeds-economy.service.js';
 import { watchServerSeeds } from './services/seeds-ledger.service.js';
 // Referral Service - network effect seeds system
-import { initReferralService, processPendingReferral } from './services/referral.service.js';
+import { checkReferralFromUrl, initReferralService, processPendingReferral } from './services/referral.service.js';
 // Seeds UI - display balance and toast notifications
 import { initSeedsDisplay } from './ui/seeds-display.ui.js';
 import { initSeedsToast } from './ui/seeds-toast.ui.js';
@@ -517,6 +517,7 @@ class VoiceAIApp {
       bindStaticDom(); // index.html text marked with data-i18n
       bindLocaleRefresh(); // a no-reload language change finishes with a reload
       installDialogFocus(); // focus into, around and back out of every modal
+      checkReferralFromUrl(); // before the sign-in gate and the waitlist: a friend who waits keeps the code
       // Require sign-in, like iOS; await it so an existing session is restored
       const authState = await initializeAuth();
       // The dev server accepts ?e2e=1 so Playwright can reach the settings
@@ -1791,7 +1792,6 @@ class VoiceAIApp {
     // 🌱 Server seed ledger - one balance from the server once it keeps seeds
     this.safeInit('SeedsLedger', () => watchServerSeeds());
 
-    // 🤝 Referral Service - Network effect seeds (check URL for ?ref= param)
     this.safeInit('ReferralService', () => initReferralService());
 
     // 🌱 Seeds UI - Display balance and toast notifications
