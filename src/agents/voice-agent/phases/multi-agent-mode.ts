@@ -19,6 +19,7 @@ import type { SessionServices } from '../../../services/types.js';
 import type { Persona } from '../../../personas/types.js';
 import type { UserData } from '../types.js';
 import { startInCallChannels } from '../../multi-agent/live-data-context.js';
+import { waitForSessionEnd, type WatchedRoom } from './session-end-watch.js';
 
 // ============================================================================
 // TYPES
@@ -400,51 +401,9 @@ export async function runMultiAgentMode(
       `[multi-agent-mode] 🎭 voiceSwitch handler registered for LLM-triggered handoffs\n`
     );
 
-    let endReason: string | undefined;
-    // Wait for disconnect — also end when room empties (agent can stay
-    // "connected" after the user leaves / room delete).
-    await new Promise<void>((resolve) => {
-      let settled = false;
-      let emptySinceMs: number | null = null;
-      const EMPTY_ROOM_GRACE_MS = 5_000;
-      const finish = (reason: string): void => {
-        if (settled) return;
-        settled = true;
-        endReason = reason;
-        clearInterval(poll);
-        clearTimeout(safety);
-        process.stderr.write(`[multi-agent-mode] 🎭 Ending session wait (${reason})\n`);
-        resolve();
-      };
-
-      ctx.room?.once('disconnected', () => {
-        finish('room.disconnected');
-      });
-
-      ctx.room?.on('participantDisconnected', () => {
-        if ((ctx.room?.remoteParticipants?.size ?? 0) === 0) {
-          emptySinceMs = emptySinceMs ?? Date.now();
-        }
-      });
-
-      const poll = setInterval(() => {
-        if (!ctx.room?.isConnected) {
-          finish('room.!isConnected');
-          return;
-        }
-        const remoteCount = ctx.room?.remoteParticipants?.size ?? 0;
-        if (remoteCount === 0) {
-          emptySinceMs = emptySinceMs ?? Date.now();
-          if (Date.now() - emptySinceMs >= EMPTY_ROOM_GRACE_MS) {
-            finish('empty_room');
-          }
-        } else {
-          emptySinceMs = null;
-        }
-      }, 1_000);
-
-      const safety = setTimeout(() => finish('timeout'), 10 * 60_000);
-    });
+    // Until the room disconnects or empties, or the call goes idle (session-end-watch.ts)
+    const endReason = await waitForSessionEnd(ctx.room as unknown as WatchedRoom);
+    process.stderr.write(`[multi-agent-mode] 🎭 Ending session wait (${endReason})\n`);
 
     // Cleanup
     handoffEvents.off('voiceSwitch', voiceSwitchHandler);
