@@ -101,7 +101,7 @@ describe('turn transitions', () => {
     expect(phaseFrom('listening')).toBe('listening');
     expect(phaseFrom('user')).toBe('listening');
     expect(phaseFrom('thinking')).toBe('thinking');
-    expect(phaseFrom('none')).toBe('idle');
+    expect(phaseFrom('none')).toBe('listening');
     expect(phaseFrom('shouting')).toBeNull();
   });
 
@@ -109,7 +109,6 @@ describe('turn transitions', () => {
     expect(gesturesFor('thinking', 'speaking')).toEqual(['release-think', 'anticipate']);
     expect(gesturesFor('listening', 'thinking')).toEqual(['think']);
     expect(gesturesFor('speaking', 'listening')).toEqual(['settle-blink']);
-    expect(gesturesFor('speaking', 'idle')).toEqual(['settle-blink']);
     expect(gesturesFor('thinking', 'listening')).toEqual(['release-think']);
     expect(gesturesFor('speaking', 'speaking')).toEqual([]);
   });
@@ -150,6 +149,14 @@ describe('gestures', () => {
     pose.forEach((p) => p.animation.onfinish?.());
     expect(pose.every((p) => p.animation.cancelled)).toBe(true);
     expect(breathing.playbackRate).toBe(1);
+  });
+
+  it('settles and blinks when Ferni stops, also when the next turn is nobody (none)', () => {
+    const gestures = createTurnGestures(makeDeps());
+    gestures.handle('ferni');
+    played = [];
+    gestures.handle('none');
+    expect(played.find((p) => p.target === 'eyes')?.keyframes).toEqual(BLINK_KEYFRAMES);
   });
 
   it('settles and blinks the eyes (not the body) when Ferni stops speaking', () => {

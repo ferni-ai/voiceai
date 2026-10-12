@@ -9,7 +9,7 @@
  *   open a little), then a settle with a slight undershoot before rest.
  * - Into thinking: chin lifts, gaze moves up and to the right, breathing
  *   slows. Held until thinking ends, then eased back.
- * - Speaking to listening or idle: the body settles and the eyes blink once.
+ * - Speaking to listening (or nobody): the body settles and the eyes blink once.
  *
  * Driven by the `ferni:avatar-turn` window event (detail `{ speaker }`), which
  * the turn driver dispatches once per settled turn change. Body gestures go
@@ -46,13 +46,13 @@ export const BLINK_DELAY_MS = DURATION.FAST;
 /** Breathing plays at this rate while thinking. */
 export const THINKING_BREATH_RATE = 0.75;
 
-export type TurnPhase = 'speaking' | 'listening' | 'thinking' | 'idle';
+export type TurnPhase = 'speaking' | 'listening' | 'thinking';
 export type Gesture = 'anticipate' | 'think' | 'release-think' | 'settle-blink';
 
 /**
- * Read the event's speaker. Accepts the shared contract's names
- * (speaking, listening, thinking) and the speaker-cues names (ferni, user,
- * thinking, none) so either vocabulary drives the same gestures.
+ * Read the event's speaker. The turn driver sends its Speaker type (ferni,
+ * user, thinking, none); `none` reads as listening, since Ferni is waiting on
+ * the caller. The speaking/listening names are accepted too, to be safe.
  */
 export function phaseFrom(speaker: unknown): TurnPhase | null {
   switch (speaker) {
@@ -61,12 +61,10 @@ export function phaseFrom(speaker: unknown): TurnPhase | null {
       return 'speaking';
     case 'listening':
     case 'user':
+    case 'none':
       return 'listening';
     case 'thinking':
       return 'thinking';
-    case 'none':
-    case 'idle':
-      return 'idle';
     default:
       return null;
   }
