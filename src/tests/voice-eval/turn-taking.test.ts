@@ -56,6 +56,8 @@ describe('turn-taking scorecard from logs', () => {
     expect(m.callerTurns).toBe(4);
     expect(m.replyGapMs).toEqual([900, 1500]);
     expect(m.eouDelayMs).toEqual([300, 600]);
+    expect(m.firstTurnEouDelayMs).toEqual([300]);
+    expect(m.laterTurnEouDelayMs).toEqual([600]);
     expect(m.falseInterruptions).toEqual({ n: 2, unresumed: 1 });
     expect(m.silentReplies).toBe(1);
     expect(m.bargeIns).toMatchObject({

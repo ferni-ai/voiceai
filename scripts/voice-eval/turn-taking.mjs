@@ -17,7 +17,9 @@
 //
 // Log metrics (per call, then pooled):
 //   replyGapMs        REPLY_GAP stopToAudioMs: caller stops to Ferni heard
-//   eouDelayMs        TURN_METRICS eouDelayMs: caller stops to the turn ending
+//   eouDelayMs        TURN_METRICS eouDelayMs: caller stops to the turn ending;
+//                     firstTurnEouDelayMs / laterTurnEouDelayMs split it, since
+//                     ink ends a stream's first turn ~2x later than the rest
 //   falseInterruptions BARGE_IN_FALSE_INTERRUPTION per Ferni reply: Ferni went
 //                     quiet for the caller and no words came. unresumed = the
 //                     reply never came back (the caller heard silence)
@@ -84,6 +86,8 @@ export function turnTakingOfLines(lines) {
     replies,
     replyGapMs: gaps,
     eouDelayMs: nums(tm.map((l) => l.eouDelayMs)),
+    firstTurnEouDelayMs: nums(tm.slice(0, 1).map((l) => l.eouDelayMs)),
+    laterTurnEouDelayMs: nums(tm.slice(1).map((l) => l.eouDelayMs)),
     falseInterruptions: { n: fi.length, unresumed: fi.filter((l) => l.resumed === false).length },
     // Newer builds only: a reply that finished without any audio and wasn't interrupted.
     silentReplies: receipts.filter(
@@ -124,6 +128,8 @@ export function poolLogCalls(calls) {
     replies,
     replyGapMs: dist(all((c) => c.replyGapMs)),
     eouDelayMs: dist(all((c) => c.eouDelayMs)),
+    firstTurnEouDelayMs: dist(all((c) => c.firstTurnEouDelayMs)),
+    laterTurnEouDelayMs: dist(all((c) => c.laterTurnEouDelayMs)),
     falseInterruptions: {
       n: fi,
       perReply: rate(fi, replies),
