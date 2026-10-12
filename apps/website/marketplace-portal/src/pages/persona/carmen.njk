@@ -7,6 +7,7 @@ personaSecondary: "#A67B5B"
 ---
 
 {% from "partials/icons.njk" import play, plus, starFilled, star, verified, check %}
+{% from "partials/pricing.njk" import priced, priceBadge with context %}
 
 <!-- Hero -->
 <section class="persona-detail-hero" style="--persona-color: #D4A373; --persona-secondary: #A67B5B;">
@@ -40,10 +41,10 @@ personaSecondary: "#A67B5B"
           <span>by Ferni Labs</span>
         </div>
         <div class="persona-detail-actions">
-          <button class="btn btn-add-team btn-lg">
+          <a href="{{ site.appUrl }}" class="btn btn-add-team btn-lg">
             {{ plus(20) }}
-            Add to Team - $7.99/mo
-          </button>
+            {{ priced('Add to Team - $7.99/mo', 'Add to Team') }}
+          </a>
           <button class="btn btn-preview-voice">
             {{ play(20) }}
             Preview Voice
@@ -267,9 +268,9 @@ personaSecondary: "#A67B5B"
           <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
             Your village is waiting
           </p>
-          <button class="btn" style="background: white; color: #A67B5B; width: 100%;">
-            Add to Team - $7.99/mo
-          </button>
+          <a href="{{ site.appUrl }}" class="btn" style="background: white; color: #A67B5B; width: 100%;">
+            {{ priced('Add to Team - $7.99/mo', 'Add to Team') }}
+          </a>
         </div>
       </div>
 
@@ -303,7 +304,7 @@ personaSecondary: "#A67B5B"
               </span>
               <span class="persona-rating-count">4.9</span>
             </div>
-            <span class="persona-price">$9.99/mo</span>
+            {{ priceBadge('$9.99/mo') }}
           </div>
         </div>
       </a>
@@ -325,7 +326,7 @@ personaSecondary: "#A67B5B"
               </span>
               <span class="persona-rating-count">4.7</span>
             </div>
-            <span class="persona-price free">Free+</span>
+            {{ priceBadge('Free+') }}
           </div>
         </div>
       </a>
@@ -347,7 +348,7 @@ personaSecondary: "#A67B5B"
               </span>
               <span class="persona-rating-count">4.75</span>
             </div>
-            <span class="persona-price free">Free+</span>
+            {{ priceBadge('Free+') }}
           </div>
         </div>
       </a>
