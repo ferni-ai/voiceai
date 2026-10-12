@@ -29,6 +29,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { breathingComposite, isAvatarCompositorEnabled } from './avatar-motion/compositor.js';
 import { disposeGaze, initGaze } from './avatar-motion/gaze.js';
+import { startAvatarGlowPulse } from './avatar-motion/glow-layer.js';
 import { isNaturalBlinkEnabled } from './avatar-motion/natural-blink.js';
 import { speakingSystem } from './speaking-system.ui.js';
 
@@ -308,35 +309,8 @@ function startGlowAnimation(breathDuration: number): void {
   // Glow is slightly faster, creating a subtle "heartbeat" effect
   const glowDuration = breathDuration * 0.85;
   
-  const glowKeyframes: Keyframe[] = [
-    { 
-      filter: 'brightness(1) saturate(1)',
-      offset: 0,
-    },
-    {
-      filter: 'brightness(1.03) saturate(1.05)',
-      offset: 0.4,
-    },
-    {
-      filter: 'brightness(1.05) saturate(1.08)',
-      offset: 0.5,
-    },
-    {
-      filter: 'brightness(1.02) saturate(1.03)',
-      offset: 0.7,
-    },
-    { 
-      filter: 'brightness(1) saturate(1)',
-      offset: 1,
-    },
-  ];
-  
-  glowAnimation = safeAnimate(avatarElement, glowKeyframes, {
-    duration: glowDuration,
-    iterations: Infinity,
-    easing: EASING.GENTLE,
-    fill: 'both',
-  });
+  // Opacity of a soft-light layer, not a filter on the avatar (see glow-layer.ts)
+  glowAnimation = startAvatarGlowPulse(avatarElement, glowDuration);
 }
 
 // ============================================================================
