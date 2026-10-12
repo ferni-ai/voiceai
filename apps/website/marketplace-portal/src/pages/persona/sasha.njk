@@ -6,7 +6,7 @@ personaColor: "#E07B53"
 personaSecondary: "#B85C3C"
 ---
 
-{% from "partials/icons.njk" import play, plus, verified, check %}
+{% from "partials/icons.njk" import play, plus, check %}
 {% from "partials/pricing.njk" import priced, priceBadge with context %}
 
 <!-- Hero -->
@@ -31,7 +31,7 @@ personaSecondary: "#B85C3C"
         <h1>Sasha</h1>
         <p class="persona-detail-tagline">Creative Catalyst</p>
         <div class="persona-detail-meta">
-          <span>by Ferni Labs</span>
+          <span>by Ferni</span>
         </div>
         <div class="persona-detail-actions">
           <a href="{{ site.appUrl }}" class="btn btn-add-team btn-lg">
@@ -192,11 +192,7 @@ personaSecondary: "#B85C3C"
           <div style="display: flex; align-items: center; gap: var(--space-3);">
             <div style="width: 48px; height: 48px; background: var(--accent-primary); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">F</div>
             <div>
-              <div style="font-weight: 600;">Ferni Labs</div>
-              <div style="font-size: var(--text-sm); color: var(--success); display: flex; align-items: center; gap: var(--space-1);">
-                {{ verified(14) }}
-                Verified Publisher
-              </div>
+              <div style="font-weight: 600;">Ferni</div>
             </div>
           </div>
         </div>
