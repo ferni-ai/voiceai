@@ -16,6 +16,12 @@ vi.mock('../../src/eq/capabilities/active-listening.js', async (importOriginal) 
 import { handleDataMessage } from '../../src/app/data-message-handlers.js';
 import { resetListenSignalForTests } from '../../src/app/backchannel-signal.js';
 import { LISTEN_NODS_FLAG_KEY } from '../../src/ui/avatar-motion/listen-nods.js';
+import {
+  SPRING_BODY_FLAG_KEY,
+  disposeSpringBody,
+  initSpringBody,
+  springBody,
+} from '../../src/ui/avatar-motion/spring-body.js';
 import { ferniExpressions } from '../../src/ui/ferni-expressions.ui.js';
 import type { DataMessage } from '../../src/types/events.js';
 
@@ -115,5 +121,50 @@ describe('listen nods, flag on', () => {
     vi.advanceTimersByTime(5000);
     expect(performMicroNod).not.toHaveBeenCalled();
     expect(smile).not.toHaveBeenCalledWith('pleased', expect.anything(), expect.anything());
+  });
+});
+
+describe('listen nods kick the spring body', () => {
+  let animate: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    localStorage.setItem(LISTEN_NODS_FLAG_KEY, 'true');
+    document.body.innerHTML = '<div id="coach"><div class="avatar-container"></div></div>';
+    animate = vi.fn(() => ({ effect: { setKeyframes: vi.fn() }, cancel: vi.fn() }));
+    const body = document.querySelector('.avatar-container');
+    if (body) Object.defineProperty(body, 'animate', { value: animate, configurable: true });
+  });
+  afterEach(() => {
+    disposeSpringBody();
+    localStorage.removeItem(SPRING_BODY_FLAG_KEY);
+    vi.restoreAllMocks();
+  });
+
+  it('nod kicks down and a laugh bounces up', () => {
+    const kick = vi.spyOn(springBody, 'kick');
+    send(listeningNod);
+    vi.advanceTimersByTime(1200);
+    send(laugh);
+    vi.advanceTimersByTime(60);
+    expect(kick.mock.calls).toEqual([['nod'], ['laugh']]);
+  });
+
+  it('spring body flag off: the kicks move nothing', () => {
+    expect(initSpringBody()).toBe(false);
+    send(listeningNod);
+    vi.advanceTimersByTime(500);
+    expect(performMicroNod).toHaveBeenCalledTimes(1);
+    expect(animate).not.toHaveBeenCalled();
+  });
+
+  it('spring body flag on: a nod moves the body', () => {
+    localStorage.setItem(SPRING_BODY_FLAG_KEY, 'true');
+    expect(initSpringBody()).toBe(true);
+    send(listeningNod);
+    vi.advanceTimersByTime(100);
+    expect(animate).toHaveBeenCalledWith(
+      expect.any(Array),
+      expect.objectContaining({ composite: 'add' })
+    );
   });
 });

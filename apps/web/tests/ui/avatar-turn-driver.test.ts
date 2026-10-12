@@ -15,6 +15,7 @@ vi.mock('../../src/services/connection.service.js', () => ({
 }));
 
 import {
+  AVATAR_TURN_EVENT,
   AVATAR_TURNS_FLAG_KEY,
   TURN_SETTLE_MS,
   TURN_SETTLE_REDUCED_MS,
@@ -279,5 +280,82 @@ describe('turn driver: flag and wiring', () => {
     expect(targets.showThinking).not.toHaveBeenCalled();
     vi.advanceTimersByTime(TURN_SETTLE_REDUCED_MS - TURN_SETTLE_MS);
     expect(targets.showThinking).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('turn driver: ferni:avatar-turn event', () => {
+  let room: FakeRoom;
+  let targets: ReturnType<typeof fakeTargets>;
+  let heard: unknown[];
+  const listener = (e: Event): void => {
+    heard.push((e as CustomEvent<{ speaker: unknown }>).detail.speaker);
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    localStorage.clear();
+    room = new FakeRoom();
+    targets = fakeTargets();
+    heard = [];
+    vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query: string) => ({ matches: false, media: query }) as MediaQueryList
+    );
+    window.addEventListener(AVATAR_TURN_EVENT, listener);
+  });
+  afterEach(() => {
+    window.removeEventListener(AVATAR_TURN_EVENT, listener);
+    disposeAvatarTurns();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('fires once per settled change with the Speaker name', () => {
+    const driver = createTurnDriver(targets, TURN_SETTLE_MS);
+    driver.update(signals('listening', true));
+    expect(heard).toEqual(['user']);
+    driver.update(signals('thinking'));
+    driver.update(signals('thinking'));
+    vi.advanceTimersByTime(TURN_SETTLE_MS - 1);
+    expect(heard).toEqual(['user']);
+    vi.advanceTimersByTime(1);
+    expect(heard).toEqual(['user', 'thinking']);
+    driver.update(signals('speaking'));
+    vi.advanceTimersByTime(TURN_SETTLE_MS * 4);
+    expect(heard).toEqual(['user', 'thinking', 'ferni']);
+  });
+
+  it('does not fire for a brief flip that comes back', () => {
+    const driver = createTurnDriver(targets, TURN_SETTLE_MS);
+    driver.update(signals('speaking'));
+    driver.update(signals('listening'));
+    vi.advanceTimersByTime(TURN_SETTLE_MS / 2);
+    driver.update(signals('speaking'));
+    vi.advanceTimersByTime(TURN_SETTLE_MS * 4);
+    expect(heard).toEqual(['ferni']);
+  });
+
+  it('settles to none when the call ends, and only once', () => {
+    const driver = createTurnDriver(targets, TURN_SETTLE_MS);
+    driver.update(signals('speaking'));
+    driver.dispose();
+    driver.dispose();
+    expect(heard).toEqual(['ferni', 'none']);
+  });
+
+  it('flag off: no turn events at all', () => {
+    expect(initAvatarTurns(() => room, targets)).toBe(false);
+    room.setAgent('speaking');
+    document.dispatchEvent(new CustomEvent('ferni:connected'));
+    vi.advanceTimersByTime(TURN_SETTLE_MS * 4);
+    expect(heard).toEqual([]);
+  });
+
+  it('flag on: room turns arrive as events', () => {
+    localStorage.setItem(AVATAR_TURNS_FLAG_KEY, 'true');
+    room.setAgent('listening');
+    initAvatarTurns(() => room, targets);
+    room.setAgent('speaking');
+    vi.advanceTimersByTime(TURN_SETTLE_MS);
+    expect(heard).toEqual(['none', 'ferni']);
   });
 });
