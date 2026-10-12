@@ -13,7 +13,10 @@
 
 import { AUDIO } from '../config/index.js';
 import { createLogger } from '../utils/logger.js';
+import { computeGatedRms } from './audio-rms.js';
 import { proceduralSounds, playProceduralSound, type ProceduralSoundEffect } from './procedural-sounds.service.js';
+
+export { computeGatedRms, RMS_GAIN, RMS_NOISE_GATE } from './audio-rms.js';
 
 const log = createLogger('Audio');
 
@@ -463,6 +466,14 @@ class AudioService {
     return amplified;
   }
 
+  /** Gated time-domain RMS of the agent audio (0-1), or null with no analyser. */
+  getRmsVolume(): number | null {
+    if (!this.analyser) return null;
+    const samples = new Uint8Array(this.analyser.fftSize);
+    this.analyser.getByteTimeDomainData(samples);
+    return computeGatedRms(samples);
+  }
+
   /**
    * Resume audio context (required after user interaction).
    */
@@ -565,9 +576,6 @@ class AudioService {
    * Start the visualization animation loop.
    */
   private startVisualizationLoop(): void {
-    let frameCount = 0;
-    let loggedZero = false;
-
     const update = () => {
       if (!this.analyser || !this.visualizationCallback) {
         return;
@@ -575,17 +583,6 @@ class AudioService {
 
       const volume = this.getCurrentVolume();
       this.visualizationCallback(volume);
-
-      // Debug: Log volume status
-      frameCount++;
-      if (frameCount % 120 === 0) {
-        if (volume > 0.01) {
-          loggedZero = false;
-        } else if (!loggedZero) {
-          loggedZero = true;
-        }
-      }
-
       this.animationFrame = requestAnimationFrame(update);
     };
 

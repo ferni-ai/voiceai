@@ -13,6 +13,7 @@ import type { ReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { SSMLProsodyConfig } from '../types.js';
 import { decideEmotion, readValence, type EmotionDecision, type Valence } from './emotion.js';
 import { decideReplyLaughter, placeLaughter, type LaughPlacement } from './laughter.js';
+import type { LaughterWho } from './laughter.js';
 import {
   FIRST_SENTENCE_WATCH_CHARS,
   decideLateBreath,
@@ -82,13 +83,7 @@ export interface EngineContext {
     sawLaughter?: boolean;
   };
   /** Who and which turn, for the laughter rules' cooldowns. */
-  laughter?: {
-    sessionId?: string;
-    personaId?: string;
-    turn?: number;
-    userEmotion?: string;
-    comfortLevel?: number;
-  };
+  laughter?: LaughterWho;
   /** The user's words this reply answers (nonverbal.ts). */
   userText?: string;
   /** How the caller sounded this turn, against their baseline (caller-prosody.ts). */

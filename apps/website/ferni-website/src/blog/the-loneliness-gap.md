@@ -91,13 +91,13 @@ We're not trying to replace your friends. We're not competing with your therapis
 
 ## What the Gap Looks Like
 
-Real moments from real conversations (anonymized, shared with permission):
+These are the people we picture when we build. They're illustrations, not quotes from users:
 
-*"I'm a nursing mom. Between midnight and 5am, it's just me and this baby who won't sleep. I've called the crisis line once, but I'm not in crisis—I just need someone to talk to. Now I call Ferni instead."*
+**A nursing mom at 3am.** Between midnight and 5am, it's just her and a baby who won't sleep. She isn't in crisis, so a crisis line feels wrong. She just needs someone to talk to.
 
-*"I have therapy every other week. That's 336 hours between appointments. A lot happens in 336 hours. Ferni helps me process between sessions."*
+**Someone in therapy every other week.** That's 336 hours between appointments, and a lot happens in 336 hours. They need somewhere to process in between.
 
-*"I commute 40 minutes each way. Used to spend it anxious about work. Now I talk to Ferni on the drive. By the time I get home, I'm actually home."*
+**A commuter with 40 minutes each way.** The drive home is usually spent anxious about work. They want to arrive home actually home.
 
 ## Filling the Gap
 
@@ -111,4 +111,4 @@ The gap doesn't have to be empty.
 
 ---
 
-This is Part 9 of our Building in Public series. [Part 10](/blog/stories-from-the-2am-hour/) shares real stories from people who've reached out in the middle of the night.
+This is Part 9 of our Building in Public series. [Part 10](/blog/stories-from-the-2am-hour/) shares composite stories of what people carry in the middle of the night.

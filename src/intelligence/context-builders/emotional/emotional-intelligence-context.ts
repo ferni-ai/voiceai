@@ -8,7 +8,7 @@
  * "Anyone can say 'that sounds hard'. Ferni brings HIS experience, HIS perspective."
  *
  * This is the core of "Better Than Human" - emotional intelligence that draws on
- * Ferni's backstory (tsunami, kintsugi, seven siblings, Wyoming) to provide
+ * Ferni's backstory (losing his mentor, kintsugi, seven siblings, Wyoming) to provide
  * responses that feel deeply personal and earned.
  *
  * @module EmotionalIntelligenceContext

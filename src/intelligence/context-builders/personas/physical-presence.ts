@@ -189,7 +189,7 @@ const PERSONA_PRESENCE: Record<
     ],
     thinking: [
       'removing glasses to clean them thoughtfully',
-      'gazing at the old Vanguard photo on the wall',
+      'gazing at the old photo of his father by the railway line',
       'drumming fingers lightly on the desk',
       'taking a measured breath',
     ],

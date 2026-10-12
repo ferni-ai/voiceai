@@ -172,6 +172,38 @@ describe('push subscribe → sender lookup', () => {
     expect(collections.get('push_subscriptions')?.size ?? 0).toBe(0);
   });
 
+  it('refuses a web endpoint that is not a browser push service (SSRF)', async () => {
+    const res = response();
+    await handlePushRoutes(
+      post(
+        '/api/push/subscribe',
+        { ...SUBSCRIPTION, endpoint: 'https://169.254.169.254/computeMetadata/v1/' },
+        { authorization: 'Bearer verified-uid-ssrf' }
+      ),
+      res,
+      '/api/push/subscribe'
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(collections.get('push_subscriptions')?.has('uid-ssrf') ?? false).toBe(false);
+  });
+
+  it('still accepts a native token, which is not a URL', async () => {
+    const res = response();
+    await handlePushRoutes(
+      post(
+        '/api/push/subscribe',
+        { ...SUBSCRIPTION, endpoint: 'fcm-device-token-abc', platform: 'ios' },
+        { authorization: 'Bearer verified-uid-ios' }
+      ),
+      res,
+      '/api/push/subscribe'
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(collections.get('push_subscriptions')?.has('uid-ios')).toBe(true);
+  });
+
   it('unsubscribe removes it from the store the sender reads', async () => {
     const headers = { authorization: 'Bearer verified-uid-3' };
     await handlePushRoutes(
