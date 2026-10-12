@@ -32,6 +32,7 @@ import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { filterCaptionStream } from './caption-filter.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
+import { sttWithNameFix } from './name-mishear.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
 import { isScreeningCall } from '../shared/line-screen.js';
@@ -638,12 +639,8 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
    * - audioForStt: goes to the STT (FIRST_TURN_FAST may end turn 1 early: first-turn-fast.ts)
    * - audioForProcessor: goes to processAudioStream (prosody, biomarkers, voice emotion)
    *
-   * This populates userData.voiceEmotion and userData.voiceBiomarkers, which
-   * turn-handler.ts reads to activate BTH features:
-   * - Protective instinct + somatic presence (turn-handler.ts:1178)
-   * - Voice biomarker pipeline (turn-handler.ts:1617)
-   * - Audio-native LLM context (turn-handler.ts:1691)
-   * - Voice-memory emotional weighting (turn-handler.ts:602)
+   * The processor fills userData.voiceEmotion and voiceBiomarkers for turn-handler.ts. The
+   * transcripts that come back have a misheard "Ferni" put right (name-mishear.ts).
    */
   async sttNode(
     audio: NodeReadableStream<AudioFrame>,
@@ -676,7 +673,10 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
       sendDataMessage,
     }).catch((e) => log.debug({ error: String(e) }, 'Audio processor (non-critical)'));
 
-    return sttWithFirstTurnFast(this.session, audioForStt, (a) => super.sttNode(a, modelSettings));
+    return sttWithNameFix(
+      this.session,
+      sttWithFirstTurnFast(this.session, audioForStt, (a) => super.sttNode(a, modelSettings))
+    );
   }
 
   /** Captions are what the app shows: drop speech markup the TTS consumes. See caption-filter.ts. */
