@@ -285,7 +285,10 @@ export class FirestoreVectorStore implements VectorStoreContract {
       try {
         embedding = await embed(doc.text);
       } catch (error) {
-        log.warn({ docId: doc.id, error: String(error) }, 'Failed to generate embedding - storing without embedding for later retry');
+        log.warn(
+          { docId: doc.id, error: String(error) },
+          'Failed to generate embedding - storing without embedding for later retry'
+        );
         needsEmbedding = true;
         // Continue to store document without embedding rather than dropping it
       }
@@ -528,6 +531,11 @@ export class FirestoreVectorStore implements VectorStoreContract {
           const data = doc.data();
           if (!data) continue;
 
+          // The query can't express every filter (several sources, categories),
+          // and a document of another user must never come back.
+          const metadata = data.metadata as VectorDocument['metadata'] | undefined;
+          if (!metadata || !matchesFilter({ metadata }, options?.filter)) continue;
+
           const docEmbedding = extractEmbedding(data.embedding, this.EMBEDDING_DIMENSION, doc.id);
           if (!docEmbedding) continue;
 
@@ -625,8 +633,22 @@ export class FirestoreVectorStore implements VectorStoreContract {
       const collRef = this.db.collection(this.COLLECTION_NAME);
 
       if (collRef.findNearest) {
+        // Filter BEFORE findNearest, as search() does: without it the nearest
+        // vectors of every user came back.
+        let baseQuery: CollectionReference | Query = collRef;
+        if (options?.filter?.source) {
+          const sources = Array.isArray(options.filter.source)
+            ? options.filter.source
+            : [options.filter.source];
+          if (sources.length === 1) {
+            baseQuery = baseQuery.where('metadata.source', '==', sources[0]);
+          }
+        }
+        if (options?.filter?.userId) {
+          baseQuery = baseQuery.where('metadata.userId', '==', options.filter.userId);
+        }
         // Request more results to allow for minScore filtering
-        const searchQuery = collRef.findNearest({
+        const searchQuery = (baseQuery as CollectionReference).findNearest!({
           vectorField: 'embedding',
           queryVector: queryEmbedding,
           limit: topK * 2,
@@ -647,6 +669,11 @@ export class FirestoreVectorStore implements VectorStoreContract {
         for (const doc of snapshot.docs) {
           const data = doc.data();
           if (!data) continue;
+
+          // The query can't express every filter (several sources, categories),
+          // and a document of another user must never come back.
+          const metadata = data.metadata as VectorDocument['metadata'] | undefined;
+          if (!metadata || !matchesFilter({ metadata }, options?.filter)) continue;
 
           const docEmbedding = extractEmbedding(data.embedding, this.EMBEDDING_DIMENSION, doc.id);
           if (!docEmbedding) continue;

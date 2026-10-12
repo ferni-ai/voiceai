@@ -273,12 +273,19 @@ export async function semanticSearch(
     filter.userId = options.userId;
   }
 
-  // Search
-  const results = await store.search(query, {
-    topK,
+  // Search. Without a userId only shared documents (persona knowledge) may
+  // come back, never anyone's own memories, so ask for more and keep those.
+  const found = await store.search(query, {
+    topK: options?.userId ? topK : topK * 4,
     filter: Object.keys(filter).length > 0 ? filter : undefined,
     minScore,
   });
+  const results = found
+    .filter((r) => {
+      const owner = r.document.metadata.userId;
+      return owner === undefined || owner === null || owner === options?.userId;
+    })
+    .slice(0, topK);
 
   // Record metrics
   const durationMs = Date.now() - startTime;
