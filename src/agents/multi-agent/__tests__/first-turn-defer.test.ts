@@ -309,6 +309,20 @@ describe('turn 1 background work with FIRST_TURN_DEFER_BACKGROUND', () => {
     await detach();
   });
 
+  it('a safety release cancels the pending settle and the cap: no timer is left behind', () => {
+    vi.useFakeTimers();
+    try {
+      const deferral = deferFirstTurn(vi.fn<UserTurnHook>(async () => {}));
+      deferral.onFinalTranscript('long day at work'); // arms the cap
+      deferral.onAgentState('speaking'); // arms the settle
+      expect(vi.getTimerCount()).toBe(2);
+      deferral.onCrisisDecision('guide');
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('defers only in a cold process: once the turn pipeline has run, a new call builds turn 1 at once', async () => {
     const first = new EventEmitter();
     const hook = blockingHook(0);
