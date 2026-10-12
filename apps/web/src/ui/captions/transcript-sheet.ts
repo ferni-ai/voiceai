@@ -9,7 +9,6 @@
 
 import { DURATION, EASING } from '../../config/animation-constants.js';
 import { t } from '../../i18n/index.js';
-import type { CaptionEntry } from './live-captions.js';
 
 const STYLE_ID = 'ferni-transcript-sheet-styles';
 
@@ -94,10 +93,14 @@ function build(): HTMLDialogElement {
   return dialog;
 }
 
-/** Open (or refresh) the sheet with every utterance so far, newest in view. */
-export function openTranscriptSheet(
-  entries: readonly CaptionEntry[],
-  render: (entry: CaptionEntry) => HTMLElement
+/**
+ * Open (or refresh) the sheet with every utterance so far, newest in view.
+ * Generic over the entry type so this module does not import live-captions
+ * (which imports it): the caller passes its entries and how to draw one.
+ */
+export function openTranscriptSheet<T>(
+  entries: readonly T[],
+  render: (entry: T) => HTMLElement
 ): void {
   if (!sheet?.isConnected) sheet = build();
   const list = sheet.querySelector('ol');
