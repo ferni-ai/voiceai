@@ -111,13 +111,13 @@ const ENROLLMENT_PROMPTS = [
 
 export function initVoiceEnrollmentUI(): void {
   cleanupOrphanedElements();
+  document.querySelectorAll('#voice-enrollment-styles').forEach((el) => el.remove()); // HMR: fresh styles
   injectStyles();
   log.debug('VoiceEnrollmentUI initialized');
 }
 
 function cleanupOrphanedElements(): void {
-  document.querySelectorAll('.voice-enrollment-modal').forEach((el) => el.remove());
-  document.querySelectorAll('#voice-enrollment-styles').forEach((el) => el.remove());
+  document.querySelectorAll('.voice-enrollment-modal').forEach((el) => el.remove()); // not the styles
 }
 
 // ============================================================================
@@ -533,7 +533,6 @@ function injectStyles(): void {
 export async function showVoiceEnrollmentModal(opts: VoiceEnrollmentOptions = {}): Promise<void> {
   options = opts;
   cleanupOrphanedElements();
-  injectStyles(); // the cleanup above also removes the styles init() injected
 
   currentState = 'checking';
   modal = createModal();
