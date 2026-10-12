@@ -10204,7 +10204,12 @@
     "getIdeas": "לקבל רעיונות",
     "emptyTitle": "אין עדיין הצעות",
     "emptyText": "כדאי לנסות להוסיף עוד פרטים על מערכת היחסים שלכם.",
-    "generateError": "לא הצלחתי ליצור רעיונות. לנסות שוב?"
+    "generateError": "לא הצלחתי ליצור רעיונות. לנסות שוב?",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "מה שאני עושה בשבילכם",
@@ -11198,6 +11203,40 @@
     "youSpeaking": "את/ה מדבר/ת",
     "ferniThinking": "פרני חושב",
     "tapToInterrupt": "הקש כדי להפריע"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   },
   "venmoChipIn": {
     "eyebrow": "לתרום",
