@@ -6271,7 +6271,7 @@
     },
     "emptyDescription": "Deine Chronik ist noch leer, aber jede große Geschichte beginnt irgendwo. Halte deinen ersten Gedanken fest und sieh deiner Weisheit beim Wachsen zu.",
     "quoted": "\"{text}\"",
-    "replyFailed": "Gerade kam keine Antwort. Versuch es gleich noch einmal."
+    "replyFailed": "Das ist nicht durchgegangen. Das liegt an mir, nicht an dir. Schick es gern noch einmal."
   },
   "marketplacePermissionConsent": {
     "required": "Erforderliche Berechtigungen",

@@ -6271,7 +6271,7 @@
     },
     "emptyDescription": "你的时光日志还是空的，但每一个伟大的故事都有一个起点。记录下你的第一个想法，看着你的智慧慢慢成长吧。",
     "quoted": "“{text}”",
-    "replyFailed": "暂时没能获得回复。请稍后再试。"
+    "replyFailed": "没有发送成功。是我这边的问题，不是你的。再发一次试试。"
   },
   "marketplacePermissionConsent": {
     "required": "必要权限",

@@ -6309,7 +6309,7 @@
     },
     "emptyDescription": "Ta chronique est vide, mais chaque belle histoire commence quelque part. Capture ta première pensée et regarde ta sagesse grandir.",
     "quoted": "« {text} »",
-    "replyFailed": "Impossible d'obtenir une réponse pour le moment. Réessaie dans un instant."
+    "replyFailed": "Ça n'est pas passé. C'est de mon côté, pas du tien. Essaie de l'envoyer à nouveau."
   },
   "marketplacePermissionConsent": {
     "required": "Autorisations requises",

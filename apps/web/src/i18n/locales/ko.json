@@ -6271,7 +6271,7 @@
     },
     "emptyDescription": "연대기가 비어 있지만, 모든 위대한 이야기는 어딘가에서 시작돼요. 첫 생각을 기록하고 지혜가 자라나는 모습을 지켜보세요.",
     "quoted": "\"{text}\"",
-    "replyFailed": "지금은 답을 받지 못했어요. 잠시 후 다시 시도해 주세요."
+    "replyFailed": "전달되지 않았어요. 당신 탓이 아니에요. 다시 보내 보세요."
   },
   "marketplacePermissionConsent": {
     "required": "필수 권한",

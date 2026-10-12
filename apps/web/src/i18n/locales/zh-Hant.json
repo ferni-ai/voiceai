@@ -6271,7 +6271,7 @@
     },
     "emptyDescription": "你的時光紀錄目前是空的，但每個偉大的故事都有個起點。寫下你的第一個想法，看著你的智慧漸漸成長。",
     "quoted": "「{text}」",
-    "replyFailed": "暫時沒能取得回覆。請稍後再試。"
+    "replyFailed": "沒有傳送成功。是我這邊的問題，不是你的。再傳一次試試。"
   },
   "marketplacePermissionConsent": {
     "required": "必要權限",

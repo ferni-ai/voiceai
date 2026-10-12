@@ -6309,7 +6309,7 @@
     },
     "emptyDescription": "Tu crónica está vacía, pero toda gran historia comienza en algún lugar. Captura tu primer pensamiento y mira cómo crece tu sabiduría.",
     "quoted": "\"{text}\"",
-    "replyFailed": "No se pudo obtener una respuesta ahora. Inténtalo de nuevo en un momento."
+    "replyFailed": "Eso no se envió. Es cosa mía, no tuya. Intenta enviarlo otra vez."
   },
   "marketplacePermissionConsent": {
     "required": "Permisos requeridos",

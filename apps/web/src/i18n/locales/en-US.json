@@ -6284,7 +6284,7 @@
     },
     "emptyDescription": "Your chronicle is empty, but every great story starts somewhere. Capture your first thought, and watch your wisdom grow.",
     "quoted": "\"{text}\"",
-    "replyFailed": "Couldn't get a reply right now. Try again in a moment."
+    "replyFailed": "That didn't go through. It's on my end, not yours. Try sending it again."
   },
   "marketplacePermissionConsent": {
     "required": "Required Permissions",
