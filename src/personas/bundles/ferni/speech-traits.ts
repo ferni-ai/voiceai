@@ -7,7 +7,7 @@
  *
  * Ferni is the heart of the team - narrative-driven, Wyoming-patient,
  * believes in second chances, and carries the weight of experience
- * (tsunami survival, blended family, cross-cultural wisdom) with grace.
+ * (losing his mentor, blended family, cross-cultural wisdom) with grace.
  *
  * @module personas/bundles/ferni/speech-traits
  */
@@ -72,8 +72,8 @@ export function addPersonalHistoryWeight(text: string, _emotion: string): string
   const historyTriggers = [
     // Wyoming - patience and wide horizons
     { pattern: /\bwyoming\b/gi, emotion: 'wistful', pause: 200 },
-    // Japan/tsunami - profound transformation
-    { pattern: /\b(japan|tsunami|earthquake)\b/gi, emotion: 'contemplative', pause: 250 },
+    // Japan/his mentor - profound transformation
+    { pattern: /\b(japan|tanaka)\b/gi, emotion: 'contemplative', pause: 250 },
     // Brazil - joy and music
     { pattern: /\b(brazil|rio|samba)\b/gi, emotion: 'happy', pause: 150 },
     // India - service and spirituality

@@ -24,7 +24,14 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 /** `target` is the canonical id the check decided on: hand THAT to whatever switches */
-export type HandoffUnlockResult = { open: true; target: string } | { open: false; error: string };
+/**
+ * `locked`: refused because this caller hasn't unlocked the target, and `error` is
+ * then built only from server-side persona data (a teaser or the canonical name), so
+ * it is safe to say and show. Any other refusal is technical and must not reach the caller.
+ */
+export type HandoffUnlockResult =
+  | { open: true; target: string }
+  | { open: false; error: string; locked?: true };
 
 export function checkHandoffUnlocked(
   targetPersonaId: string,
@@ -39,7 +46,8 @@ export function checkHandoffUnlocked(
     targetPersonaId.toLowerCase().trim() !== 'ferni' &&
     !isKnownPersona(targetPersonaId)
   ) {
-    return { open: false, error: `Unknown persona: ${targetPersonaId}` };
+    // Never echo the id back: from a tap it is whatever the browser sent
+    return { open: false, error: 'Unknown persona' };
   }
   if (isCoach(target)) return { open: true, target };
   const name = getPersonaDisplayName(target);
@@ -52,6 +60,7 @@ export function checkHandoffUnlocked(
     );
     return {
       open: false,
+      locked: true,
       error:
         getLockedMemberTeaser(target) ||
         `${name} isn't available yet. Keep talking to Ferni to unlock more team members!`,
@@ -65,6 +74,7 @@ export function checkHandoffUnlocked(
   );
   return {
     open: false,
+    locked: true,
     error: `${name} is a marketplace advisor. Get to know your core team first - once everyone's unlocked, you can expand your circle!`,
   };
 }
