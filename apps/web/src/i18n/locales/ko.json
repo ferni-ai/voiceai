@@ -11112,5 +11112,17 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "응원하기",
+    "title": "1달러가 대화를 이어갑니다",
+    "body": "Ferni는 지금은 무료예요. 대화가 도움이 됐다면 Venmo로 1달러를 보낼 수 있어요. 더 보내도 좋지만, 기대하지는 않아요.",
+    "qrAlt": "@{handle}의 Venmo QR 코드",
+    "copy": "복사",
+    "copied": "복사됨",
+    "openVenmo": "Venmo 열기",
+    "helper": "휴대폰 카메라로 스캔하거나 Venmo 열기를 누르세요. 금액은 바꿀 수 있어요.",
+    "maybeLater": "다음에",
+    "close": "닫기"
   }
 }
