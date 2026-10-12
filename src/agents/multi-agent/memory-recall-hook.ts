@@ -61,6 +61,7 @@ import {
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { OPENER_FOLLOW_UP_LINE, openerFollowUpEnabled } from '../../memory/recall/opener.js';
+import { takeOpenerClaim } from '../../memory/recall/opener-claim.js';
 import { forgottenTopics } from '../../memory/recall/forget.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
@@ -266,8 +267,13 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         ? null
         : [ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
       const checkIn = checkInOffered ? null : checkInNote;
+      // One follow-up per call opener (opener-claim.ts): a check-in in this
+      // note, or one the greeting already asked, leaves the thread line out.
+      const greetingAsked = followUpsOffered ? undefined : takeOpenerClaim(deps.userId);
       const opener =
         !followUpsOffered &&
+        !checkIn &&
+        !greetingAsked &&
         snapshot.followUps.length > 0 &&
         (deps.opener ?? openerFollowUpEnabled())
           ? OPENER_FOLLOW_UP_LINE

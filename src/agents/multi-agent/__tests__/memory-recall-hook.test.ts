@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { voice } from '@livekit/agents';
+import { claimOpenerFollowUp } from '../../../memory/recall/opener-claim.js';
+import type { OpenCommitment } from '../../../services/superhuman/commitment-follow-up.js';
 
 // A fake Firestore that records how dynamic_facts is queried.
 const fake = vi.hoisted(() => {
@@ -172,6 +174,44 @@ describe('createMemoryRecall', () => {
     });
     await noThreads.ready;
     expect(noThreads.noteFor('Biscuit is asleep')).not.toMatch(/start of the call/);
+  });
+
+  it('asks one follow-up per call opener: a greeting check-in or pondered item, or a check-in note, wins', async () => {
+    const opening = (userId: string, checkIns?: () => Promise<OpenCommitment[]>) =>
+      createMemoryRecall({
+        userId,
+        userName: 'Maya',
+        store,
+        opener: true,
+        ...(checkIns && { checkIns }),
+      });
+    const THREAD = /start of the call\. After saying hello/;
+
+    // The greeting already asked about something: the note leaves the thread line out.
+    claimOpenerFollowUp('u-greeted', 'greeting');
+    const greeted = opening('u-greeted');
+    await greeted.ready;
+    expect(greeted.noteFor("Hey Ferni, it's me!")).not.toMatch(THREAD);
+
+    // The claim was taken with that call's first note: the next call asks as usual.
+    const next = opening('u-greeted');
+    await next.ready;
+    expect(next.noteFor("Hey Ferni, it's me!")).toMatch(THREAD);
+
+    // A check-in in the first note is the one follow-up.
+    const withCheckIn = opening('u-check', async () => [
+      {
+        id: 'c1',
+        statement: "I'm going to send my resume to Dana by Thursday.",
+        createdAt: Date.now() - 3 * 86_400_000,
+        followUpAfter: Date.now(),
+        followUpCount: 0,
+      },
+    ]);
+    await withCheckIn.ready;
+    const first = withCheckIn.noteFor("Hey Ferni, it's me!");
+    expect(first).toContain('send my resume to Dana');
+    expect(first).not.toMatch(THREAD);
   });
 
   it('offers shared inside jokes once per call, only with INSIDE_JOKES=on', async () => {
