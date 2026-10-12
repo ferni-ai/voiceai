@@ -3727,8 +3727,7 @@
       "disabled": "カレンダーの予定はありません",
       "loadingSuggestions": "最適な時間を見つけています...",
       "noSuggestions": "提案が見つかりませんでした",
-      "suggestion": "カレンダーによると、この時間は普段空いているようです",
-      "suggestedTime": "おすすめの時間"
+      "suggestion": "カレンダーによると、この時間は普段空いているようです"
     },
     "validation": {
       "nameRequired": "プラクティスには名前が必要です"

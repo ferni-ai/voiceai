@@ -3741,8 +3741,7 @@
       "disabled": "No calendar events",
       "loadingSuggestions": "Finding the best times...",
       "noSuggestions": "No suggestions found",
-      "suggestion": "Your calendar shows this time is usually free",
-      "suggestedTime": "Suggested time"
+      "suggestion": "Your calendar shows this time is usually free"
     },
     "validation": {
       "nameRequired": "Every practice needs a name"
