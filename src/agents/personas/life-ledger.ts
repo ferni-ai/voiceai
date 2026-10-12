@@ -27,6 +27,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { getDisplayName, isKnownId } from '../../personas/persona-ids.js';
+import { getPersonaPronouns, type PersonaPronouns } from '../../personas/persona-pronouns.js';
 import { selfRecallEnabled } from './self-recall.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -67,7 +68,11 @@ export interface LedgerStore {
 }
 
 /** Lists what was said about himself, from his lines; injected so tests need no model. */
-export type FactExtractor = (personaName: string, lines: string[]) => Promise<string[]>;
+export type FactExtractor = (
+  personaName: string,
+  lines: string[],
+  pronouns?: PersonaPronouns
+) => Promise<string[]>;
 
 const MAX_FACTS_PER_CALL = 8;
 const MAX_FACT_WORDS = 20;
@@ -158,12 +163,12 @@ export function formatLedger(
   ].join('\n');
 }
 
-const EXTRACT_PROMPT = (name: string) =>
-  `Below are things ${name} said on a phone call. List the concrete things ${name} said about ${name}'s OWN life: what happened to them, people and pets in their life, places, habits, opinions and plans. One per line, under 15 words, in the third person ("${name}'s wife teases him about his coffee"). Only what ${name} states about ${name} ("I", "my", "we"): a remark about a situation in general ("a slow week can be nice") is a reaction to the other person, not part of ${name}'s life. Leave out anything about the other person, advice, and generic small talk. If there is nothing, reply NONE.`;
+const EXTRACT_PROMPT = (name: string, p: PersonaPronouns) =>
+  `Below are things ${name} said on a phone call. List the concrete things ${name} said about ${name}'s OWN life: what happened to ${p.object}, people and pets in ${p.possessive} life, places, habits, opinions and plans. One per line, under 15 words, in the third person ("${name}'s neighbor teases ${p.object} about ${p.possessive} coffee"). Only what ${name} states about ${name} ("I", "my", "we"): a remark about a situation in general ("a slow week can be nice") is a reaction to the other person, not part of ${name}'s life. Leave out anything about the other person, advice, and generic small talk. If there is nothing, reply NONE.`;
 
 /** With FERNI_SELF_MEMORY: only real claims about his life. */
-const SELF_MEMORY_PROMPT = (name: string) =>
-  `${EXTRACT_PROMPT(name)} Leave out jokes, hypotheticals ("${name} would end up...") and remarks about the call itself.`;
+const SELF_MEMORY_PROMPT = (name: string, p: PersonaPronouns) =>
+  `${EXTRACT_PROMPT(name, p)} Leave out jokes, hypotheticals ("${name} would end up...") and remarks about the call itself.`;
 
 /**
  * A second, narrower question: which facts the biography explicitly rules out.
@@ -174,8 +179,8 @@ const SELF_MEMORY_PROMPT = (name: string) =>
  * seven), so each verdict must quote the biography words it contradicts, and
  * a quote that isn't in the biography doesn't count.
  */
-const CONFLICT_PROMPT = (name: string, biography: string) =>
-  `Here is ${name}'s biography, in his voice:\n"""\n${biography.trim()}\n"""\nBelow are numbered facts about ${name}. List only the facts the biography explicitly rules out: it states something they cannot both be true with (a different age, a different hometown or country he grew up in, a different number of siblings, no wife). A fact the biography doesn't mention, or that fits with it, is fine; when unsure, it is fine. For each fact it rules out, write one line: the fact's number, a "|", then the exact words from the biography it contradicts. If none, reply NONE.`;
+const CONFLICT_PROMPT = (name: string, biography: string, p: PersonaPronouns) =>
+  `Here is ${name}'s biography, in ${p.possessive} voice:\n"""\n${biography.trim()}\n"""\nBelow are numbered facts about ${name}. List only the facts the biography explicitly rules out: it states something they cannot both be true with (a different age, a different hometown or country ${p.subject} grew up in, a different number of siblings, a different marital status). A fact the biography doesn't mention, or that fits with it, is fine; when unsure, it is fine. For each fact it rules out, write one line: the fact's number, a "|", then the exact words from the biography it contradicts. If none, reply NONE.`;
 
 const biographies = new Map<string, Promise<string>>();
 /**
@@ -265,12 +270,16 @@ async function askModel(systemInstruction: string, input: string, temperature = 
   return (await model.generateContent(input)).response.text().trim();
 }
 
-/** The facts that don't conflict with the persona's biography. Keeps all if it can't tell. */
+/**
+ * The facts that don't conflict with the persona's biography. Keeps all if it
+ * can't tell. Pronouns default to the persona's by name, they/them if unknown.
+ */
 export async function consistentWithBiography(
   name: string,
   facts: string[],
   biography: string,
-  ask: (system: string, input: string) => Promise<string> = (sys, input) => askModel(sys, input, 0)
+  ask: (system: string, input: string) => Promise<string> = (sys, input) => askModel(sys, input, 0),
+  pronouns: PersonaPronouns = getPersonaPronouns(name)
 ): Promise<string[]> {
   if (!biography || facts.length === 0) return facts;
   const numbered = facts.map((f, i) => `${i + 1}. ${f}`).join('\n');
@@ -279,7 +288,7 @@ export async function consistentWithBiography(
   // tells him driving tired is worse"); real contradictions came back 4/4.
   const verdicts = await Promise.all(
     [0, 1].map(() =>
-      ask(CONFLICT_PROMPT(name, biography), numbered)
+      ask(CONFLICT_PROMPT(name, biography, pronouns), numbered)
         .then((reply) => quotedConflicts(reply, biography))
         .catch((error: unknown) => {
           log.warn({ error: String(error) }, 'Biography check failed; keeping the facts');
@@ -343,8 +352,8 @@ export function notTheCallers(facts: string[], callerNames: string[], personaNam
   return facts.filter((f) => !re.test(f));
 }
 
-const defaultExtractor: FactExtractor = async (name, lines) => {
-  const prompt = selfMemoryEnabled() ? SELF_MEMORY_PROMPT(name) : EXTRACT_PROMPT(name);
+const defaultExtractor: FactExtractor = async (name, lines, pronouns = getPersonaPronouns(name)) => {
+  const prompt = selfMemoryEnabled() ? SELF_MEMORY_PROMPT(name, pronouns) : EXTRACT_PROMPT(name, pronouns);
   const text = await askModel(prompt, lines.map((l) => `- ${l}`).join('\n'));
   return !text || /^none\b/i.test(text) ? [] : text.split('\n');
 };
@@ -421,7 +430,8 @@ export function createLedgerRecorder(
       for (const [personaId, said] of lines) {
         try {
           const name = personaDisplayName(personaId);
-          const raw = await (deps.extract ?? defaultExtractor)(name, said);
+          const pronouns = getPersonaPronouns(personaId);
+          const raw = await (deps.extract ?? defaultExtractor)(name, said, pronouns);
           const strict = selfMemoryEnabled(deps.env);
           const grounded = groundedFacts(strict ? lifeFactsOnly(raw) : raw, said);
           const mine = strict
@@ -432,7 +442,7 @@ export function createLedgerRecorder(
               )
             : grounded;
           const own = strict
-            ? await consistentWithBiography(name, mine, await canonText(personaId, deps.env), deps.ask)
+            ? await consistentWithBiography(name, mine, await canonText(personaId, deps.env), deps.ask, pronouns)
             : mine;
           if (strict) {
             log.info({ personaId, extracted: raw.length, kept: own.length }, 'LIFE_LEDGER_SELF_MEMORY');
