@@ -14,24 +14,40 @@
  * - Display time follows text length (toastDuration); hover or focus pauses
  *   it; Reduce Motion changes the animation, never the time on screen.
  * - Neutral surface; the tone shows only in the icon and the leading stripe.
+ * - During a voice call only errors and system toasts render; the rest go to
+ *   the transcript or wait for the call to end (toast-call-gate.ts).
+ * - F6 focuses it (toast-region-keys.ts); phones keep it under the status island.
  *
  * @module ui/overlay/toast-region
  */
 
 import { DURATION } from '../../config/animation-constants.js';
 import { t } from '../../i18n/index.js';
+import {
+  appCallSignal,
+  emitInlineFeedback,
+  routeDuringCall,
+  type CallSignal,
+  type ToastTone,
+} from './toast-call-gate.js';
+import { followStatusIsland, placeBelowIsland } from './toast-region-island.js';
+import { installRegionHotkey } from './toast-region-keys.js';
 import { injectToastRegionStyles } from './toast-region.styles.js';
 
-export type ToastTone = 'info' | 'success' | 'warning' | 'error';
+export type { ToastTone };
 
 /**
  * Why a toast left: its time ran out, the reader closed it, its action ran,
- * code dismissed it, or a higher-priority toast dropped it from the queue.
+ * code dismissed it, a higher-priority toast dropped it from the queue, or it
+ * went to the transcript instead because a call was live.
  */
-export type ToastDismissReason = 'timeout' | 'user' | 'action' | 'api' | 'superseded';
+export type ToastDismissReason = 'timeout' | 'user' | 'action' | 'api' | 'superseded' | 'inline';
 
-/** Queue order and preemption. Unset, it follows the tone: error > warning > info = success. */
-export type ToastPriority = 'normal' | 'elevated' | 'urgent';
+/**
+ * Queue order and preemption. Unset, it follows the tone: error > warning >
+ * info = success. 'system' also renders during a call.
+ */
+export type ToastPriority = 'normal' | 'elevated' | 'urgent' | 'system';
 
 export interface ToastOptions {
   message: string;
@@ -41,8 +57,10 @@ export interface ToastOptions {
   action?: { label: string; callback: () => void };
   /** A bold headline above the message (achievements, notification cards). */
   title?: string;
-  /** Achievement toasts use a star icon and the success stripe. */
-  kind?: 'achievement';
+  /** Achievement toasts use a star icon and the success stripe. Both kinds wait out a call. */
+  kind?: 'achievement' | 'notice';
+  /** Hold this toast until the voice call ends (toast-call-gate.ts). */
+  defer?: boolean;
   /** Shows a close button; `persistent` implies it. */
   dismissible?: boolean;
   /** Stays until the reader or the caller dismisses it. */
@@ -81,7 +99,12 @@ const NEEDS_ATTENTION_MS = 6000;
 const PHONE_QUERY = '(max-width: 768px)';
 const GROUP_WINDOW_MS = 1500;
 
-const PRIORITY_RANK: Record<ToastPriority, number> = { normal: 0, elevated: 1, urgent: 2 };
+const PRIORITY_RANK: Record<ToastPriority, number> = {
+  normal: 0,
+  elevated: 1,
+  urgent: 2,
+  system: 3,
+};
 
 function priorityRank(options: ToastOptions): number {
   if (options.priority) return PRIORITY_RANK[options.priority];
@@ -133,9 +156,17 @@ class ToastRegion {
   private queue: Entry[] = [];
   private paused = false;
   private counter = 0;
+  /** Held while a call is live; released when it ends. */
+  private deferred: Entry[] = [];
+  private readonly stopCallWatch: () => void;
+  private stops: (() => void)[] = []; // hotkey and island watchers
+
+  constructor(private readonly call: CallSignal) {
+    this.stopCallWatch = call.onCallEnd(() => this.releaseDeferred());
+  }
 
   show(options: ToastOptions): string {
-    const pending = [...this.visible, ...this.queue];
+    const pending = [...this.visible, ...this.queue, ...this.deferred];
     const keyed = options.key ? pending.find((e) => e.options.key === options.key) : undefined;
     if (keyed) return this.update(keyed, options);
 
@@ -171,14 +202,34 @@ class ToastRegion {
       count: 1,
       lastAt: now,
     };
-    const rank = priorityRank(options);
+    const route = this.call.isLive() ? routeDuringCall(options) : 'show';
+    if (route === 'inline') {
+      emitInlineFeedback(options);
+      // After show() returns, so callers that keep the id see it first.
+      queueMicrotask(() => options.onDismiss?.('inline'));
+    } else if (route === 'defer') {
+      this.deferred.push(entry);
+    } else {
+      this.enqueue(entry);
+    }
+    return entry.id;
+  }
+
+  private enqueue(entry: Entry): void {
+    const rank = priorityRank(entry.options);
     this.preempt(rank);
     // Higher priority goes first; equal priority keeps arrival order.
     const at = this.queue.findIndex((e) => priorityRank(e.options) < rank);
     if (at < 0) this.queue.push(entry);
     else this.queue.splice(at, 0, entry);
     this.drain();
-    return entry.id;
+  }
+
+  /** The call ended: what waited for it shows now, in arrival order, ahead of the post-call card. */
+  private releaseDeferred(): void {
+    const held = this.deferred;
+    this.deferred = [];
+    held.forEach((entry) => this.enqueue(entry));
   }
 
   /** Same slot, new content: re-render if on screen and restart the timer. */
@@ -210,9 +261,10 @@ class ToastRegion {
   }
 
   dismiss(id: string, reason: ToastDismissReason = 'api'): void {
-    const queued = this.queue.findIndex((e) => e.id === id);
-    if (queued >= 0) {
-      const [dropped] = this.queue.splice(queued, 1);
+    for (const waiting of [this.queue, this.deferred]) {
+      const at = waiting.findIndex((e) => e.id === id);
+      if (at < 0) continue;
+      const [dropped] = waiting.splice(at, 1);
       dropped?.options.onDismiss?.(reason);
       return;
     }
@@ -231,7 +283,7 @@ class ToastRegion {
   }
 
   dismissAll(): void {
-    [...this.queue].forEach((e) => this.dismiss(e.id));
+    [...this.deferred, ...this.queue].forEach((e) => this.dismiss(e.id));
     [...this.visible].forEach((e) => this.dismiss(e.id));
   }
 
@@ -244,6 +296,9 @@ class ToastRegion {
     this.visible.forEach((e) => clearTimeout(e.timer));
     this.visible = [];
     this.queue = [];
+    this.deferred = [];
+    this.stopCallWatch();
+    this.stops.splice(0).forEach((stop) => stop());
     this.root?.remove();
     this.polite?.remove();
     this.assertive?.remove();
@@ -259,6 +314,7 @@ class ToastRegion {
 
   private mount(entry: Entry): void {
     this.ensureRoot();
+    if (this.root) placeBelowIsland(this.root);
     const el = this.build(entry, true);
     entry.element = el;
     this.list?.appendChild(el);
@@ -360,6 +416,7 @@ class ToastRegion {
     root.className = 'ferni-toast-region';
     root.setAttribute('aria-label', t('notifications.regionLabel'));
     root.setAttribute('popover', 'manual');
+    root.tabIndex = -1; // F6 target
     const list = document.createElement('ol');
     list.className = 'ferni-toast-region__list';
     root.appendChild(list);
@@ -367,6 +424,10 @@ class ToastRegion {
     root.addEventListener('pointerleave', () => this.resume());
     root.addEventListener('focusin', () => this.pause());
     root.addEventListener('focusout', () => this.resume());
+    this.stops.push(
+      installRegionHotkey(root, () => this.visible.length > 0),
+      followStatusIsland(root)
+    );
 
     // Live regions stay outside the popover so they exist before any text lands.
     const polite = document.createElement('div');
@@ -397,9 +458,10 @@ class ToastRegion {
 }
 
 let region: ToastRegion | null = null;
+let callSignal: CallSignal = appCallSignal;
 
 function getRegion(): ToastRegion {
-  region ??= new ToastRegion();
+  region ??= new ToastRegion(callSignal);
   return region;
 }
 
@@ -428,8 +490,9 @@ export function toastPromise<T>(
   return promise;
 }
 
-/** Tests only: drop the region and its DOM. */
-export function resetToastRegion(): void {
+/** Tests only: drop the region and its DOM; `signal` stands in for the call state. */
+export function resetToastRegion(signal: CallSignal = appCallSignal): void {
   region?.reset();
   region = null;
+  callSignal = signal;
 }
