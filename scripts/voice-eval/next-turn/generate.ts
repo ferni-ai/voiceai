@@ -33,6 +33,7 @@ const ARMS: Record<string, string> = {
   texture: 'TURN_TEXTURE=learned',
   plan: 'TURN_PLAN=on TURN_PLAN_CHECK=on',
   all: 'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_PLAN=on TURN_PLAN_CHECK=on',
+  lt: 'TURN_LENGTH=learned TURN_TEXTURE=learned',
   inflight:
     'TURN_LENGTH=learned TURN_TEXTURE=learned TURN_PLAN=on TURN_PLAN_CHECK=on ATTUNE=on QUIET_CALLER=on HONEST_FRIEND=on',
 };
@@ -50,6 +51,10 @@ const { laneReason } = await import('../../../src/agents/model-provider/fast-lan
 const { recentTurns } = await import('../../../src/agents/personas/turn-length.js');
 const { regexSignals } = await import('../../../src/agents/personas/turn-extras.js');
 const { callerMove } = await import('../../../src/agents/personas/turn-shape.js');
+const { llm } = await import('@livekit/agents');
+const { attunementNote } = await import('../../../src/agents/personas/turn-attunement.js');
+const { honestFriendNote } = await import('../../../src/agents/personas/honest-friend.js');
+const quietMod = await import('../../../src/agents/personas/quiet-caller.js');
 
 type Turn = { who: 'caller' | 'friend'; text: string };
 type Moment = { id: string; context: Turn[]; names: { friend: string; caller: string } };
@@ -111,7 +116,13 @@ await pool(
     const recent = recentTurns(m.context.map((t) => ({ ferni: t.who === 'friend', text: t.text })));
     const plan = process.env.TURN_PLAN === 'on' ? await fastJson(PLAN, lines(m)) : null;
     const pickUp = typeof plan?.json.pickUp === 'string' ? plan.json.pickUp : undefined;
-    const sig = { ...regexSignals(said, callerMove(said)), recent, pickUp };
+    // In-flight flags (ATTUNE, HONEST_FRIEND, QUIET_CALLER), as turn-request.ts adds them.
+    const ctx = llm.ChatContext.empty();
+    for (const t of m.context) ctx.addMessage({ role: t.who === 'friend' ? 'assistant' : 'user', content: neutralise(t.text, m.names) as string });
+    const callerTurns = m.context.filter((t) => t.who === 'caller').map((t) => neutralise(t.text, m.names) as string);
+    const quiet = quietMod.quietCallerEnabled() && quietMod.isQuietCaller(callerTurns);
+    const move = quietMod.quietCallerEnabled() && quietMod.presentAck(said) ? 'ack' : callerMove(said);
+    const sig = { ...regexSignals(said, move), recent, pickUp, ...(quiet ? { quiet } : {}) };
     const shape = turnShapeFor(said, rngFor(`${m.id}:${said}`), undefined, sig);
     const lane = laneReason(said);
     const model = lane === 'chat' ? 'gemini-3.5-flash-lite' : 'gemini-3.5-flash';
@@ -122,7 +133,8 @@ await pool(
     };
     const draft = async (note = '') => {
       for (let attempt = 0; attempt < 3; attempt++) {
-        const contents = contentsOf(m, `${shape.reminder}${note}`);
+        const reminder = [honestFriendNote(ctx, said), shape.reminder, attunementNote(ctx, {})].filter(Boolean).join(' ');
+        const contents = contentsOf(m, `${reminder}${note}`);
         const reply = (await gemini(model, {
           systemInstruction: { parts: [{ text: system }] },
           contents,
