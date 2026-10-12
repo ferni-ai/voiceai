@@ -6,7 +6,8 @@ personaColor: "#2C3E50"
 personaSecondary: "#1A252F"
 ---
 
-{% from "partials/icons.njk" import play, plus, starFilled, star, verified, check %}
+{% from "partials/icons.njk" import play, plus, check %}
+{% from "partials/pricing.njk" import priced, priceBadge with context %}
 
 <!-- Hero -->
 <section class="persona-detail-hero" style="--persona-color: #2C3E50; --persona-secondary: #1A252F;">
@@ -30,20 +31,13 @@ personaSecondary: "#1A252F"
         <h1>Kenji</h1>
         <p class="persona-detail-tagline">Sleep Guide</p>
         <div class="persona-detail-meta">
-          <span style="display: inline-flex; align-items: center; gap: var(--space-1); color: var(--warning);">
-            {{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ star(16) }}
-          </span>
-          <span>4.7 (1,205 reviews)</span>
-          <span style="opacity: 0.7;">|</span>
-          <span>18,400+ users</span>
-          <span style="opacity: 0.7;">|</span>
-          <span>by Ferni Labs</span>
+          <span>by Ferni</span>
         </div>
         <div class="persona-detail-actions">
-          <button class="btn btn-add-team btn-lg">
+          <a href="{{ site.appUrl }}" class="btn btn-add-team btn-lg">
             {{ plus(20) }}
-            Try Free
-          </button>
+            {{ priced('Try Free', 'Add to Team') }}
+          </a>
           <button class="btn btn-preview-voice">
             {{ play(20) }}
             Preview Voice
@@ -126,75 +120,6 @@ personaSecondary: "#1A252F"
             and out through your mouth. Good. The day is done. You've done enough. Now it's time to rest."
           </p>
         </div>
-
-        <!-- Reviews -->
-        <div class="reviews-section">
-          <div class="reviews-header">
-            <div class="reviews-summary">
-              <span class="reviews-rating-big">4.7</span>
-              <div class="reviews-rating-info">
-                <span class="reviews-stars" style="color: var(--warning);">
-                  {{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ star(18) }}
-                </span>
-                <span class="reviews-count">1,205 reviews</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #2C3E50, #1A252F); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">A</div>
-              <div>
-                <div class="review-author">Alex P.</div>
-                <div class="review-date">5 days ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              I've tried every sleep app out there. What makes Kenji different is that he actually listens
-              and adapts. When I said guided meditations make me anxious, he suggested something else.
-              Finally sleeping through the night.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #7B6BA8, #5A4D80); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">R</div>
-              <div>
-                <div class="review-author">Rachel M.</div>
-                <div class="review-date">2 weeks ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              Kenji's voice is so soothing. The bedtime check-ins have become my favorite part of
-              the evening. I fall asleep faster and wake up less during the night. Would love more
-              content for middle-of-the-night wake-ups.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #D4A373, #A67B5B); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">D</div>
-              <div>
-                <div class="review-author">David L.</div>
-                <div class="review-date">1 month ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              As a shift worker, my sleep schedule is chaos. Kenji helped me understand circadian
-              rhythms and create a routine that works for my weird hours. Game changer for anyone
-              with non-traditional schedules.
-            </p>
-          </div>
-        </div>
       </div>
 
       <!-- Right Column -->
@@ -245,6 +170,7 @@ personaSecondary: "#1A252F"
         </div>
 
         <!-- Pricing -->
+        {% if pricing.showPrices %}
         <div style="background: var(--bg-elevated); border-radius: var(--radius-2xl); padding: var(--space-6); box-shadow: var(--shadow-card); margin-bottom: var(--space-6);">
           <h3 style="font-size: var(--text-lg); margin-bottom: var(--space-4);">Pricing</h3>
           <div style="display: flex; flex-direction: column; gap: var(--space-3);">
@@ -258,6 +184,7 @@ personaSecondary: "#1A252F"
             </div>
           </div>
         </div>
+        {% endif %}
 
         <!-- Publisher -->
         <div style="background: var(--bg-elevated); border-radius: var(--radius-2xl); padding: var(--space-6); box-shadow: var(--shadow-card); margin-bottom: var(--space-6);">
@@ -265,11 +192,7 @@ personaSecondary: "#1A252F"
           <div style="display: flex; align-items: center; gap: var(--space-3);">
             <div style="width: 48px; height: 48px; background: var(--accent-primary); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">F</div>
             <div>
-              <div style="font-weight: 600;">Ferni Labs</div>
-              <div style="font-size: var(--text-sm); color: var(--success); display: flex; align-items: center; gap: var(--space-1);">
-                {{ verified(14) }}
-                Verified Publisher
-              </div>
+              <div style="font-weight: 600;">Ferni</div>
             </div>
           </div>
         </div>
@@ -278,11 +201,11 @@ personaSecondary: "#1A252F"
         <div style="background: linear-gradient(135deg, #2C3E50, #1A252F); border-radius: var(--radius-2xl); padding: var(--space-6); color: white; text-align: center;">
           <h3 style="margin-bottom: var(--space-2); color: white;">Ready for better sleep?</h3>
           <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
-            Start your free trial tonight
+            {{ priced('Start your free trial tonight', 'Free to add to your team') }}
           </p>
-          <button class="btn" style="background: white; color: #2C3E50; width: 100%;">
-            Try Free
-          </button>
+          <a href="{{ site.appUrl }}" class="btn" style="background: white; color: #2C3E50; width: 100%;">
+            {{ priced('Try Free', 'Add to Team') }}
+          </a>
         </div>
       </div>
 
@@ -310,13 +233,7 @@ personaSecondary: "#1A252F"
         <div class="persona-body">
           <p class="persona-description">Strategies that work with how your ADHD brain operates—not against it.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-              <span class="persona-rating-count">4.9</span>
-            </div>
-            <span class="persona-price">$9.99/mo</span>
+            {{ priceBadge('$9.99/mo') }}
           </div>
         </div>
       </a>
@@ -332,13 +249,7 @@ personaSecondary: "#1A252F"
         <div class="persona-body">
           <p class="persona-description">Living with chronic illness is more than symptoms—Amara is here for all of it.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-              <span class="persona-rating-count">4.92</span>
-            </div>
-            <span class="persona-price">$9.99/mo</span>
+            {{ priceBadge('$9.99/mo') }}
           </div>
         </div>
       </a>
@@ -354,13 +265,7 @@ personaSecondary: "#1A252F"
         <div class="persona-body">
           <p class="persona-description">Non-judgmental support for your recovery journey.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-              <span class="persona-rating-count">4.95</span>
-            </div>
-            <span class="persona-price">$14.99/mo</span>
+            {{ priceBadge('$14.99/mo') }}
           </div>
         </div>
       </a>

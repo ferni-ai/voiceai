@@ -227,3 +227,58 @@ export function formatReport(results: readonly CaseResult[]): string {
     ...rows,
   ].join('\n');
 }
+
+/**
+ * The interim transcript live recall sees before the final one: the opening
+ * words while the caller is still talking (at least 3, the fewest semantic
+ * recall searches with). Live, even a short question arrives in interims.
+ */
+export function interimOf(ask: string): string | null {
+  const words = ask.trim().split(/\s+/);
+  if (words.length <= 3) return null;
+  return words.slice(0, Math.max(3, Math.ceil(words.length * 0.6))).join(' ');
+}
+
+export interface PairedTally {
+  /** Questions judged in both arms. */
+  n: number;
+  both: number;
+  onlyA: number;
+  onlyB: number;
+  neither: number;
+  /** Exact two-sided sign test on the discordant pairs (McNemar's exact test). */
+  pValue: number;
+}
+
+function choose(n: number, k: number): number {
+  let c = 1;
+  for (let i = 1; i <= k; i++) c = (c * (n - k + i)) / i;
+  return c;
+}
+
+/** The same questions under two recall settings, paired by question. */
+export function paired(a: readonly CaseResult[], b: readonly CaseResult[]): PairedTally {
+  const key = (r: CaseResult) => `${r.history}|${r.ask}`;
+  const inB = new Map(b.map((r) => [key(r), r]));
+  const t = { n: 0, both: 0, onlyA: 0, onlyB: 0, neither: 0 };
+  for (const ra of a) {
+    const rb = inB.get(key(ra));
+    if (!rb || ra.correct === null || rb.correct === null) continue;
+    t.n++;
+    if (ra.correct && rb.correct) t.both++;
+    else if (ra.correct) t.onlyA++;
+    else if (rb.correct) t.onlyB++;
+    else t.neither++;
+  }
+  const d = t.onlyA + t.onlyB;
+  let tail = 0;
+  for (let i = 0; i <= Math.min(t.onlyA, t.onlyB); i++) tail += choose(d, i);
+  return { ...t, pValue: d === 0 ? 1 : Math.min(1, (2 * tail) / 2 ** d) };
+}
+
+export function formatPaired(labelA: string, labelB: string, t: PairedTally): string {
+  return (
+    `${labelA} vs ${labelB}, ${t.n} questions: both right ${t.both}, only ${labelA} ${t.onlyA}, ` +
+    `only ${labelB} ${t.onlyB}, both wrong ${t.neither} (exact sign test p=${t.pValue.toFixed(3)})`
+  );
+}

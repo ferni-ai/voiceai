@@ -1082,7 +1082,7 @@ export async function createSessionServices(
       const textLower = text.toLowerCase();
 
       const storyPatterns =
-        /\b(i remember|back in|when i was|years ago|one time|there was|let me tell you|i'll never forget|i once|my father|at vanguard|in 1974|in 1975|in 2008)\b/i;
+        /\b(i remember|back in|when i was|years ago|one time|there was|let me tell you|i'll never forget|i once|my father|back at the firm|in 1987|in 2008)\b/i;
       const isStory = storyPatterns.test(textLower);
 
       if (isStory) {
