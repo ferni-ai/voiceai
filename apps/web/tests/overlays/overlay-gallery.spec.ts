@@ -55,6 +55,8 @@ async function openScene(page: Page, scene: string, flagOn = false): Promise<voi
         if (!withAchievement)
           localStorage.setItem('ferni-last-interaction-date', new Date().toDateString());
         if (overlayHost) localStorage.setItem('ferni:flag:overlay-host', 'true');
+        // The welcome tour is not a gallery scene; on a slow runner it opened mid-test.
+        localStorage.setItem('ferni:onboarding:complete', 'true');
       } catch {
         // Storage unavailable: the scene still renders.
       }
