@@ -64,6 +64,19 @@ function factText(d: Record<string, unknown>): string {
     .join(' ');
 }
 
+const forgetGenerations = new Map<string, number>();
+function bumpForgetGeneration(userId: string): void {
+  forgetGenerations.set(userId, (forgetGenerations.get(userId) ?? 0) + 1);
+}
+/**
+ * Changes whenever this process records a forget for the caller, so a cache
+ * of their forgotten topics (firestore-vector-store/forget-filter.ts) knows
+ * to read them again at once rather than after its TTL.
+ */
+export function forgetGeneration(userId: string): number {
+  return forgetGenerations.get(userId) ?? 0;
+}
+
 /** Forget a topic. Throws only if the store does; see forgetForCaller. */
 export async function forgetTopic(
   userId: string,
@@ -81,7 +94,9 @@ export async function forgetTopic(
   }
   await store.addTopic(userId, tokens, topic.trim());
   noteForgotten(userId, tokens);
+  bumpForgetGeneration(userId);
   if (matched.length > 0) await store.markForgotten(userId, matched, now.toISOString());
+  bumpForgetGeneration(userId);
   log.info({ userId: userId.slice(0, 8), marked: matched.length }, 'Forgot a topic');
   return { kind: 'forgotten', marked: matched.length };
 }

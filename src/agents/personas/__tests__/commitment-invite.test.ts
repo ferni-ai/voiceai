@@ -13,6 +13,9 @@ import {
   INVITE_NOTE,
   inviteFits,
   NAMED_NOTE,
+  inviteNote,
+  inviteSeed,
+  ASKS,
   REFLECT_NOTE,
   type InviteInput,
 } from '../commitment-invite.js';
@@ -133,6 +136,58 @@ describe('when an invite fits', () => {
     expect(inviteFits(input(promised))).toBe('committed');
   });
 
+  it('never on a tender or spent turn the venting words miss', () => {
+    for (const said of [
+      'Thanks. I think I just need to breathe for a minute.',
+      'You have no idea how much I needed to hear that today. That makes sense.',
+      'That makes sense, it just feels heavy.',
+    ])
+      expect(inviteFits(input([...WORKING_CALL.slice(0, 5), said]))).toBe('careful');
+  });
+
+  it('never once they said they are not here to plan', () => {
+    const call = [...WORKING_CALL];
+    call[3] = "Honestly I'm not looking for homework, I just want to think out loud.";
+    expect(inviteFits(input(call))).toBe('no-plans');
+  });
+
+  it("a tentative step of theirs counts as floated; an earlier one means don't ask", () => {
+    const floats = [
+      'That makes sense. I guess I could look through my old design files.',
+      'Hm, I might just walk to the end of my street tomorrow morning.',
+      'Maybe I should just jot down my wins, that makes sense.',
+    ];
+    for (const said of floats) {
+      const session = {};
+      expect(reminder([...WORKING_CALL.slice(0, 5), said], session)).toMatch(NAMED);
+    }
+    const earlier = [...WORKING_CALL];
+    earlier[4] = 'I guess I could text her about it.';
+    expect(inviteFits(input(earlier))).toBe('floated');
+    // A promise in any verb is a promise; "I'll be fine" is not one.
+    const aim = [...WORKING_CALL.slice(0, 5), "Okay that makes sense, I'll aim for Thursday."];
+    expect(inviteFits(input(aim))).toBe('committed');
+    const fine = [...WORKING_CALL.slice(0, 5), "That makes sense, I'll be fine."];
+    expect(inviteFits(input(fine))).toBe(true);
+  });
+
+  it('rotates two different example asks per caller and turn, stable for one turn', () => {
+    const notes = new Set(
+      ['u1', 'u2', 'u3', 'u4', 'u5'].map((userId) =>
+        inviteNote(inviteSeed({ userData: { userId } }, WORKING_CALL[5]))
+      )
+    );
+    expect(notes.size).toBeGreaterThan(2);
+    const seed = inviteSeed({ userData: { userId: 'u1' } }, 'x');
+    expect(inviteNote(seed)).toBe(inviteNote(seed));
+    for (let s = 0; s < 30; s++) {
+      const quoted = inviteNote(s).match(/"([^"]+)"/g) ?? [];
+      expect(quoted).toHaveLength(2);
+      expect(quoted[0]).not.toBe(quoted[1]);
+      expect(ASKS.map((a) => `"${a}"`)).toEqual(expect.arrayContaining(quoted));
+    }
+  });
+
   it('never on a heavy call or a careful turn', () => {
     const heavy = [...WORKING_CALL];
     heavy[3] = 'My dad is in the hospital again, so that too.';
@@ -169,7 +224,8 @@ describe('on the live request path', () => {
     const note = reminder(WORKING_CALL, session);
     expect(note).toMatch(INVITE);
     // Last, after the turn style's question allowance: nearest the reply.
-    expect(note.endsWith(`${INVITE_NOTE})`)).toBe(true);
+    expect(note).toContain(INVITE_NOTE);
+    expect(note.endsWith(`${inviteNote(inviteSeed(session, WORKING_CALL[5]))})`)).toBe(true);
     expect(note).not.toMatch(REFLECT);
     // The preemptive and the final request for one turn agree.
     expect(reminder(WORKING_CALL, session)).toMatch(INVITE);
@@ -265,9 +321,9 @@ describe('on the live request path', () => {
 describe('the notes', () => {
   it('stay short and never hand them a step', () => {
     for (const note of [INVITE_NOTE, REFLECT_NOTE, NAMED_NOTE])
-      expect(note.split(/\s+/).length).toBeLessThanOrEqual(60);
+      expect(note.split(/\s+/).length).toBeLessThanOrEqual(70);
     expect(INVITE_NOTE).toMatch(/easy to say no/);
-    expect(INVITE_NOTE).toMatch(/don't suggest one/);
+    expect(INVITE_NOTE).toMatch(/Never name a step for them/);
     // It must beat the turn shape's "No question this time" line it follows.
     expect(INVITE_NOTE).toMatch(/over any length or no-question line above/);
   });

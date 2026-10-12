@@ -23,6 +23,8 @@ export interface RecallFact {
   confidence: number;
   /** When it was extracted (ISO), so Ferni knows how old the memory is. */
   extractedAt?: string;
+  /** When a newer fact replaced it (fact-supersession.ts): how things were, not how they are. */
+  supersededAt?: string;
 }
 
 export interface RecallSnapshot {
@@ -178,6 +180,8 @@ export interface RecallBlend {
 
 /** A margin of 0.2 (a clear match) weighs as much as naming the entity. */
 const SEMANTIC_WEIGHT = 10;
+/** A replaced fact ranks as if it shared two fewer words with the turn. */
+const SUPERSEDED_PENALTY = 1;
 /** Newer memories edge out older ones: +0.5 today, +0.18 a month ago. */
 const RECENCY_WEIGHT = 0.5;
 const RECENCY_DAYS = 30;
@@ -219,6 +223,8 @@ export function recallForTurn(
     const margin = blend?.semantic.get(id) ?? 0;
     if (!named && (blend?.namedOnly || (overlap === 0 && margin === 0))) continue;
     let score = (named ? 2 : 0) + overlap * 0.5 + fact.confidence * 0.5;
+    // Replaced facts stay findable ("where did I work before?") but yield to current ones.
+    if (fact.supersededAt) score -= SUPERSEDED_PENALTY;
     if (blend) score += margin * SEMANTIC_WEIGHT + recency(fact.extractedAt, blend.now);
     scored.push({ fact, score });
   }
@@ -273,7 +279,9 @@ export function formatRecall(
   const lines: string[] = [`[WHAT YOU REMEMBER ABOUT ${who.toUpperCase()}]`];
   for (const f of facts) {
     const subject = SELF_ENTITY.test(f.entity) ? who : f.entity;
-    lines.push(`- ${subject}: ${f.key.replace(/_/g, ' ')} = ${f.value}${age(f.extractedAt, now)}`);
+    // "baker at Rise and Grind" read as his job after he'd moved to Northwind (benchmark, 2026-10-11).
+    const was = f.supersededAt ? ' [no longer true: how things were before]' : '';
+    lines.push(`- ${subject}: ${f.key.replace(/_/g, ' ')} = ${f.value}${age(f.extractedAt, now)}${was}`);
   }
   if (followUps.length > 0) {
     lines.push('Open threads from last time:');
@@ -343,6 +351,7 @@ export async function loadRecallSnapshot(
         value: String(d.value ?? ''),
         confidence: confidenceOf(d.confidence),
         ...(typeof d.extractedAt === 'string' ? { extractedAt: d.extractedAt } : {}),
+        ...(typeof d.supersededAt === 'string' ? { supersededAt: d.supersededAt } : {}),
       }))
       .filter((f) => f.confidence >= MIN_RECALL_CONFIDENCE)
       .filter((f) => !isForgotten(`${f.entity} ${f.key} ${f.value}`, forgotten))
