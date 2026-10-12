@@ -2357,6 +2357,7 @@
       "family": "Family",
       "friend": "Friend",
       "colleague": "Colleague",
+      "professional": "Professional",
       "mentor": "Mentor",
       "acquaintance": "Acquaintance",
       "other": "Other"
@@ -8385,7 +8386,7 @@
     "badgeSoon": "Soon",
     "badgeCheckIn": "Check in",
     "emptyTitle": "No one here yet",
-    "emptyDescription": "Add people you care about and we'll help you nurture those relationships.",
+    "emptyDescription": "Tell me about someone you care about and I'll keep them here.",
     "addSomeone": "Add Someone",
     "importFromGoogleCsv": "Import from Google or CSV",
     "noMatchFilter": "No people match this filter",
@@ -8413,12 +8414,13 @@
       "family": "Family",
       "friends": "Friends",
       "work": "Work",
+      "professional": "Professional",
       "mentor": "Mentor",
       "acquaintance": "Acquaintance",
       "misc": "Other"
     },
-    "loadError": "Couldn't load your contacts",
-    "loadErrorRetry": "Couldn't load your contacts. Try again?"
+    "loadError": "Something unexpected happened. Want to try again?",
+    "loadErrorRetry": "Something unexpected happened. Want to try again?"
   },
   "importContacts": {
     "googleContacts": "Google Contacts",
