@@ -49,6 +49,7 @@ import {
 import { turnOpenedSince } from '../integrations/turn-opening-sound.js';
 import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
+import { withInviteReplyCheck } from './commitment-invite-reply.js';
 import { getDeliberator } from './deliberation.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
@@ -305,7 +306,8 @@ export async function gatedReply(
     const stream = tapToolCalls(await model(request), session);
     if (!stream) return stream;
     const trimmed = env.OPENER_GATE !== 'off' ? openerGate.wrap(stream, openedBySound) : stream;
-    return withToolLeadIn(trimmed, chatCtx, session, env);
+    // COMMITMENT_INVITE: on the invite turn, no step named for them (commitment-invite-reply.ts).
+    return withToolLeadIn(withInviteReplyCheck(trimmed, session), chatCtx, session, env);
   };
   const reply = await ask(ctx);
   if (!reply || !gate?.escalation) return reply;
