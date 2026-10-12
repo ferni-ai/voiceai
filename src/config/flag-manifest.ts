@@ -305,6 +305,7 @@ export const FLAG_MANIFEST = {
   USE_VERTEX_AI: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   VERTEX_KEEPALIVE: { default: 'off', owner: 'voice', kind: 'experiment' },
   VITEST: { default: 'off', owner: 'tools', kind: 'experiment' },
+  VOICED_PRESENCE: { default: 'off', owner: 'voice', kind: 'experiment' },
   VOICEMAIL_DETECT: { default: 'off', owner: 'voice', kind: 'experiment' },
   VOICE_HUMANIZATION_DISABLED: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
