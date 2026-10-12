@@ -4543,7 +4543,7 @@
     "successDeployed": "Page deployed!",
     "title": "Create Agent Page",
     "nameLabel": "Agent Name",
-    "namePlaceholder": "e.g., Joel Dickson",
+    "namePlaceholder": "e.g., Nate Holloway",
     "nameHint": "The full name of your AI agent",
     "initialsLabel": "Initials",
     "initialsPlaceholder": "e.g., JD",

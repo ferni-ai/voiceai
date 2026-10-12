@@ -543,7 +543,7 @@ body {
   --persona-bg-tint: rgba(184, 149, 106, 0.08);
 }
 
-/* Joel Dickson - Vanguard Burgundy (distinguished, trustworthy, financial wisdom) */
+/* Nate Holloway (joel-dickson) - Burgundy (distinguished, trustworthy, financial wisdom) */
 [data-persona='joel-dickson'] {
   --persona-primary: #9A0718;
   --persona-secondary: #7A0514;
@@ -928,7 +928,7 @@ body {
   );
 }
 
-/* Joel Dickson - Vanguard Burgundy (distinguished, trustworthy) */
+/* Nate Holloway (joel-dickson) - Burgundy (distinguished, trustworthy) */
 [data-theme='zen'][data-persona='joel-dickson'] .btn-primary {
   background: linear-gradient(
     145deg,
@@ -5958,7 +5958,7 @@ body {
   ) !important;
 }
 
-/* Joel Dickson - Vanguard Burgundy (financial wisdom) */
+/* Nate Holloway (joel-dickson) - Burgundy (financial wisdom) */
 [data-persona='joel-dickson'] .btn-primary {
   background: linear-gradient(
     145deg,
@@ -6704,7 +6704,7 @@ body {
 } /* Golden amber - wisdom */
 .team-member[data-persona-id='joel-dickson'] {
   --member-color: #9A0718;
-} /* Vanguard burgundy - financial wisdom */
+} /* burgundy - financial wisdom */
 .team-member[data-persona-id='peter-john'] {
   --member-color: #3a6b73;
 } /* Ocean teal - research */
