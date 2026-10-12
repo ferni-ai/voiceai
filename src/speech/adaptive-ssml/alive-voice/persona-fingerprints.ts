@@ -61,8 +61,8 @@ export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
       { trigger: /\bsecond chance/i, speed: 0.88, emotion: 'affectionate' },
       // Kintsugi philosophy - serene wisdom
       { trigger: /\bkintsugi\b/i, pause: 300, emotion: 'serene' },
-      // Japan/tsunami moments - wistful memories
-      { trigger: /\b(Japan|tsunami)\b/i, pause: 250, emotion: 'wistful' },
+      // Japan/his mentor - wistful memories
+      { trigger: /\b(Japan|Tanaka)\b/i, pause: 250, emotion: 'wistful' },
       // Celebration moments - elated joy
       { trigger: /\b(proud of you|you did it|amazing)\b/i, speed: 1.02, emotion: 'elated' },
       // Deep gratitude moments

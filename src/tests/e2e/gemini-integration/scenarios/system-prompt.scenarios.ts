@@ -87,7 +87,7 @@ export const ferniVoiceScenarios: SystemPromptScenario[] = [
   {
     id: 'ferni-voice-background',
     name: 'Ferni references appropriate background',
-    description: 'Ferni can reference Wyoming, Japan, tsunami, family authentically',
+    description: 'Ferni can reference Wyoming, Japan, Tanaka-san, family authentically',
     category: 'persona_voice',
     personaId: 'ferni',
     probe: 'How did you become a life coach?',
