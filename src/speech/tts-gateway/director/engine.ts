@@ -88,6 +88,8 @@ export interface EngineContext {
     turn?: number;
     userEmotion?: string;
     comfortLevel?: number;
+    /** TEAM_VOICES=on (team-laughter.ts). */
+    teamVoices?: boolean;
   };
   /** The user's words this reply answers (nonverbal.ts). */
   userText?: string;
