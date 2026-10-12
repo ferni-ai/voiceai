@@ -189,14 +189,14 @@ export function setupAllMocks(options: SetupAllMocksOptions = {}): void {
  */
 function setupInternalMocks(): void {
   // Handoff tools
-  vi.mock('../../../tools/handoff/index.js', () => ({
+  vi.doMock('../../../tools/handoff/index.js', () => ({
     getAgentContext: vi.fn(() => 'You are Ferni, a warm and supportive life coach.'),
     getCurrentAgent: vi.fn(() => 'ferni'),
     updateUserContextForHandoff: vi.fn(),
   }));
 
   // Conversation engines
-  vi.mock('../../../conversation/index.js', () => ({
+  vi.doMock('../../../conversation/index.js', () => ({
     getConversationHumanizer: vi.fn(() => ({
       getHumanizingGuidance: vi.fn(() => null),
       processUserMessage: vi.fn(() => ({
@@ -254,7 +254,7 @@ function setupInternalMocks(): void {
   }));
 
   // Humanizing context
-  vi.mock('../../../intelligence/context-builders/humanizing.js', () => ({
+  vi.doMock('../../../intelligence/context-builders/humanizing.js', () => ({
     buildHumanizingContext: vi.fn(() => ({
       shouldMoodShift: false,
       moodShift: null,
@@ -266,32 +266,32 @@ function setupInternalMocks(): void {
     shouldMoodShift: vi.fn(() => false),
   }));
 
-  vi.mock('../../../intelligence/context-builders/humanizing-debug.js', () => ({
+  vi.doMock('../../../intelligence/context-builders/humanizing-debug.js', () => ({
     logHumanizingResult: vi.fn(),
     logValidation: vi.fn(),
   }));
 
-  vi.mock('../../../intelligence/context-builders/conversation-humanizing.js', () => ({
+  vi.doMock('../../../intelligence/context-builders/conversation-humanizing.js', () => ({
     buildConversationHumanizingContext: vi.fn(() => ({})),
     formatConversationHumanizingForPrompt: vi.fn(() => ''),
   }));
 
   // Speech modules
-  vi.mock('../../../speech/response-naturalness.js', () => ({
+  vi.doMock('../../../speech/response-naturalness.js', () => ({
     getResponseEnhancements: vi.fn(() => ({
       acknowledgment: null,
       catchphrase: null,
     })),
   }));
 
-  vi.mock('../../../speech/emotion-matching.js', () => ({
+  vi.doMock('../../../speech/emotion-matching.js', () => ({
     getEmotionGuidance: vi.fn(() => ({
       emotion: 'neutral',
       intensity: 0.5,
     })),
   }));
 
-  vi.mock('../../../speech/text-voice-mismatch.js', () => ({
+  vi.doMock('../../../speech/text-voice-mismatch.js', () => ({
     buildMismatchGuidance: vi.fn(() => ''),
     detectMismatch: vi.fn(() => ({
       hasMismatch: false,
@@ -302,12 +302,12 @@ function setupInternalMocks(): void {
     recordMismatchInsight: vi.fn(),
   }));
 
-  vi.mock('../../../speech/adaptive-ssml.js', () => ({
+  vi.doMock('../../../speech/adaptive-ssml.js', () => ({
     detectVocalCues: vi.fn(() => ({})),
   }));
 
   // Injection builders
-  vi.mock('../../processors/injection-builders.js', () => ({
+  vi.doMock('../../processors/injection-builders.js', () => ({
     buildAdvancedHumanizationInjections: vi.fn(() => ({
       injections: [],
       emotionForTTS: null,
@@ -327,7 +327,7 @@ function setupInternalMocks(): void {
   }));
 
   // Session state
-  vi.mock('../../session/session-state.js', () => ({
+  vi.doMock('../../session/session-state.js', () => ({
     extractPersonalThemes: vi.fn(() => []),
     createInitialSessionState: vi.fn(() => ({
       sessionId: 'test-session',
@@ -345,7 +345,7 @@ function setupInternalMocks(): void {
   }));
 
   // E2E diagnostics
-  vi.mock('../../shared/e2e-diagnostics.js', () => ({
+  vi.doMock('../../shared/e2e-diagnostics.js', () => ({
     e2e: {
       workerStarting: vi.fn(),
       workerReady: vi.fn(),

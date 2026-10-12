@@ -25,6 +25,7 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
+import { requestAttention } from '../services/attention-queue.js';
 import {
   relationshipStageService,
   type RelationshipStage,
@@ -78,7 +79,7 @@ const ICONS = {
 // PREDEFINED HINTS
 // ============================================================================
 
-export const FEATURE_HINTS: FeatureHint[] = [
+export const getFeatureHints = (): FeatureHint[] => [
   // Team Huddle hint - unlocks at building-trust
   {
     id: 'team-huddle-intro',
@@ -167,7 +168,8 @@ let styleElement: HTMLStyleElement | null = null;
 let isInitialized = false;
 const activeHints: Map<string, ActiveHint> = new Map();
 let dismissedHints: Set<string> = new Set();
-const registeredHints: FeatureHint[] = [...FEATURE_HINTS];
+let hintRegistry: FeatureHint[] | null = null; // built on first use, after initI18n
+const registeredHints = (): FeatureHint[] => (hintRegistry ??= getFeatureHints());
 let checkInterval: ReturnType<typeof setInterval> | null = null;
 
 // ============================================================================
@@ -222,9 +224,9 @@ function createContainer(): void {
  * Register a custom hint.
  */
 export function registerHint(hint: FeatureHint): void {
-  const exists = registeredHints.some((h) => h.id === hint.id);
+  const exists = registeredHints().some((h) => h.id === hint.id);
   if (!exists) {
-    registeredHints.push(hint);
+    registeredHints().push(hint);
     log.debug('Hint registered', { id: hint.id });
   }
 }
@@ -233,7 +235,7 @@ export function registerHint(hint: FeatureHint): void {
  * Show a specific hint by ID.
  */
 export function showHint(hintId: string): void {
-  const hint = registeredHints.find((h) => h.id === hintId);
+  const hint = registeredHints().find((h) => h.id === hintId);
   if (!hint) {
     log.warn('Hint not found', { hintId });
     return;
@@ -263,7 +265,7 @@ export function dismissHint(hintId: string): void {
     activeHints.delete(hintId);
 
     // Mark as dismissed if showOnce
-    const hint = registeredHints.find((h) => h.id === hintId);
+    const hint = registeredHints().find((h) => h.id === hintId);
     if (hint?.showOnce) {
       dismissedHints.add(hintId);
       saveDismissedHints();
@@ -305,7 +307,7 @@ function checkForHintOpportunities(): void {
   const currentStage = relationshipStageService.getStage();
 
   // Find hints that should be shown
-  for (const hint of registeredHints) {
+  for (const hint of registeredHints()) {
     // Skip if already showing or dismissed
     if (activeHints.has(hint.id) || dismissedHints.has(hint.id)) {
       continue;
@@ -331,15 +333,14 @@ function checkForHintOpportunities(): void {
     if (hint.showAfterDelay) {
       trackedTimeout(() => {
         if (!activeHints.has(hint.id) && !dismissedHints.has(hint.id)) {
-          displayHint(hint);
+          requestAttention('feature-hint', () => displayHint(hint));
         }
       }, hint.showAfterDelay);
     } else {
-      displayHint(hint);
+      requestAttention('feature-hint', () => displayHint(hint));
     }
 
-    // Only show one hint per check cycle
-    break;
+    break; // one hint per check cycle
   }
 }
 
@@ -546,7 +547,7 @@ function addSpotlight(hintId: string, target: Element): void {
     height: `${rect.height + 16}px`,
     borderRadius: 'var(--radius-lg, 12px)',
     pointerEvents: 'none',
-    zIndex: 'var(--z-dropdown, 7000)',
+    zIndex: 'var(--z-dropdown)',
   });
 
   document.body.appendChild(spotlight);
@@ -714,7 +715,7 @@ function injectStyles(): void {
       left: 0;
       width: 0;
       height: 0;
-      z-index: var(--z-dropdown, 7000);
+      z-index: var(--z-dropdown);
       pointer-events: none;
     }
     
@@ -725,7 +726,7 @@ function injectStyles(): void {
       position: fixed;
       pointer-events: auto;
       opacity: 0;
-      z-index: var(--z-dropdown, 7000);
+      z-index: var(--z-dropdown);
     }
     
     .hint-content {
@@ -959,7 +960,7 @@ function injectStyles(): void {
     /* ========================================================================
        MOBILE
        ======================================================================== */
-    @media (max-width: clamp(336px, 90vw, 480px)) {
+    @media (max-width: 480px) {
       .feature-hint--card .hint-content,
       .feature-hint--spotlight-card .hint-content {
         max-width: calc(100vw - var(--space-8, 32px));

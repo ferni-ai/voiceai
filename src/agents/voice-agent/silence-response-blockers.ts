@@ -8,6 +8,7 @@
 import { shouldSkipGenerateReply } from '../../handoff/unified-state.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
+import { armSilentLine } from '../outbound-call/silent-line.js';
 import { canTriggerProactive } from '../shared/response-orchestrator.js';
 
 /**
@@ -17,7 +18,7 @@ import { canTriggerProactive } from '../shared/response-orchestrator.js';
  * later. Word-bounded phrases only (substring-classifier-pitfalls).
  */
 const STEPPED_AWAY =
-  /\b(?:give me (?:a|one) (?:sec|second|minute|moment)|(?:one|just a|wait a) (?:sec|second|minute|moment)|hold on|hang on|be right back|brb|bear with me|back in a (?:sec|second|minute|moment|bit))\b/i;
+  /\b(?:give me (?:a|one) (?:sec|second|minute|moment)|(?:one|just a|wait a) (?:sec|second|minute|moment)|hold on|hang on|let me (?:grab|get|check|find)|be right back|brb|bear with me|back in a (?:sec|second|minute|moment|bit))\b/i;
 /** How long a promise to wait holds before a check-in is natural again. */
 const STEP_AWAY_GRACE_SEC = 120;
 
@@ -44,6 +45,8 @@ export function silenceResponseBlocked(
       silenceSec: Math.round(silenceDurationSec),
     });
   }
+  // A placed call whose other end stays quiet gets hung up (silent-line.ts).
+  const silentLine = armSilentLine(sessionId, silenceDurationSec, undefined, { hold: steppedAway });
 
   // FIX: Skip silence response if tools are actively executing (e.g., music search)
   // This prevents gateway timeouts when LLM is busy processing tool calls
@@ -93,5 +96,7 @@ export function silenceResponseBlocked(
     });
   }
 
-  return Boolean(steppedAway || toolsActive || handoffOrDraining || noParticipants || !sdkIdle);
+  return Boolean(
+    steppedAway || silentLine || toolsActive || handoffOrDraining || noParticipants || !sdkIdle
+  );
 }

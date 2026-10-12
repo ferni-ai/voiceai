@@ -252,15 +252,6 @@ test.describe('Admin Dashboard - All Sections', () => {
     });
   });
 
-  test.describe('Builder Metrics Section', () => {
-    test('navigates and renders', async ({ page }) => {
-      await page.click('[data-section="builder-metrics"]');
-      await page.waitForSelector('.admin-content', { timeout: 10000 });
-
-      await expect(page.locator('#adminSectionTitle')).toHaveText('Builder Metrics');
-    });
-  });
-
   test.describe('Diagnostics Section', () => {
     test('navigates and shows diagnostics', async ({ page }) => {
       await page.click('[data-section="diagnostics"]');
@@ -350,7 +341,6 @@ test.describe('Admin Dashboard - All Sections', () => {
         'flags',
         'finops',
         'operations',
-        'builder-metrics',
         'diagnostics',
         'api-docs',
         'avatar-soul',
@@ -490,7 +480,6 @@ test.describe('Admin Dashboard Smoke Test', () => {
       'flags',
       'finops',
       'operations',
-      'builder-metrics',
       'diagnostics',
       'api-docs',
       'avatar-soul',

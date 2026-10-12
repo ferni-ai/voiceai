@@ -4,7 +4,7 @@
  * Tests for time-based content adaptation on landing page.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
 // Mock logger
 vi.mock('../../../utils/safe-logger.js', () => ({
@@ -247,15 +247,11 @@ describe('TimeAware', () => {
   });
 
   describe('getTimeAwareContentWithOccasions', () => {
-    // We need to mock Date for special occasion tests
-    let originalDate: DateConstructor;
-
-    beforeEach(() => {
-      originalDate = global.Date;
-    });
-
+    // vi.setSystemTime fakes Date for the special occasion tests. Undo it with
+    // vi.useRealTimers: reassigning global.Date by hand leaves Vitest 5 thinking
+    // Date is still faked, so the next setSystemTime never reaches the global.
     afterEach(() => {
-      global.Date = originalDate;
+      vi.useRealTimers();
     });
 
     it('should return normal content when no special occasion', () => {

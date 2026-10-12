@@ -9571,9 +9571,6 @@ async function handleRuntimeStatus(isContainer: boolean): Promise<void> {
   console.log(`\n${colors.bold}Agent Config:${colors.reset}\n`);
   console.log(`  ${colors.cyan}${icons.info}${colors.reset} Persona: ${personaId}`);
   console.log(
-    `  ${colors.cyan}${icons.info}${colors.reset} Single Process: ${process.env.USE_SINGLE_PROCESS || 'false'}`
-  );
-  console.log(
     `  ${colors.cyan}${icons.info}${colors.reset} Node Options: ${process.env.NODE_OPTIONS || 'default'}`
   );
 
@@ -9688,7 +9685,7 @@ async function handleRuntimeEnv(): Promise<void> {
 
   // Group environment variables by category
   const categories: Record<string, string[]> = {
-    'Agent Config': ['PERSONA_ID', 'AGENT_ID', 'USE_SINGLE_PROCESS', 'NODE_ENV'],
+    'Agent Config': ['PERSONA_ID', 'AGENT_ID', 'NODE_ENV'],
     LiveKit: ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET'],
     'AI Services': [
       'GOOGLE_API_KEY',
@@ -9853,7 +9850,6 @@ async function handleRuntimeAnalyze(isContainer: boolean): Promise<void> {
     platform: `${process.platform} ${process.arch}`,
     nodeEnv: process.env.NODE_ENV || 'not set',
     personaId: process.env.PERSONA_ID || process.env.AGENT_ID || 'not set',
-    singleProcess: process.env.USE_SINGLE_PROCESS || 'false',
     livekitConfigured: !!process.env.LIVEKIT_URL,
     geminiConfigured: !!process.env.GOOGLE_API_KEY,
     cartesiaConfigured: !!process.env.CARTESIA_API_KEY,
@@ -9899,8 +9895,7 @@ ${JSON.stringify(runtimeData, null, 2)}
 
 Context:
 - This is a LiveKit voice agent using Gemini for LLM, Cartesia/Deepgram for TTS/STT
-- Running in ${isContainer ? 'Docker container (Cloud Run or LiveKit Cloud)' : 'local development mode'}
-- Single process mode ${envSummary.singleProcess === 'true' ? 'is enabled (good for containers)' : 'is disabled (uses child processes)'}`;
+- Running in ${isContainer ? 'Docker container (Cloud Run or LiveKit Cloud)' : 'local development mode'}`;
 
   try {
     const analysis = await callGeminiRuntime(prompt);

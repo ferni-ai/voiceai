@@ -20,6 +20,7 @@ import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { handleDevModeSync } from './dev-mode-sync.js';
+import { advertiseTapInterrupt, handleTapInterrupt } from './tap-interrupt.js';
 // Unified handoff module (Phase 3 migration)
 import {
   getCurrentAgent,
@@ -100,6 +101,7 @@ const getLogger = () => livekitLog();
  */
 export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelResult {
   const { room } = ctx; // handlers read the rest from ctx per message, so it can be live
+  advertiseTapInterrupt(room); // TAP_INTERRUPT=on: lets the app show its stop button
 
   const dataReceivedHandler = async (data: Uint8Array, participant?: { identity: string }) => {
     const ourIdentity = room.localParticipant?.identity;
@@ -130,7 +132,9 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
         '📬 Parsed data message'
       );
 
-      // Handle different message types
+      if (message.type === 'user_interrupt') {
+        await handleTapInterrupt(message, room, ctx.session, theirIdentity);
+      }
       if (message.type === 'handoff_request' && !ctx.skipHandoffs) {
         await handleHandoffRequest(message, ctx);
       }
@@ -155,8 +159,7 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
         await handleClaudeNarration(message, ctx);
       }
 
-      // 🧪 SYNTHETIC TEXT: Inject text as if it came from STT (bypasses STT, exercises LLM pipeline)
-      // Used for production E2E testing without voice calls
+      // 🧪 SYNTHETIC TEXT: inject text as if from STT (production E2E tests without voice calls)
       if (message.type === 'synthetic_text') {
         await handleSyntheticText(message, ctx);
       }
@@ -169,8 +172,7 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
         await handleMacOSContext(message, ctx);
       }
 
-      // DEV MODE SYNC: Frontend dev panel can send dev mode state to backend
-      // This allows dev panel unlock bypasses to propagate to voice agent
+      // DEV MODE SYNC: dev panel unlock bypasses propagate to the voice agent
       if (message.type === 'dev_mode_sync') {
         await handleDevModeSync(message, ctx);
       }
@@ -205,14 +207,12 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
     }
   };
 
-  // Register the handler (wrap async handler to avoid misused-promises)
   const dataReceivedHandlerWrapper = (data: Uint8Array, participant?: { identity: string }) => {
     void dataReceivedHandler(data, participant);
   };
 
   room.on('dataReceived', dataReceivedHandlerWrapper);
 
-  // Return cleanup function
   return {
     handler: dataReceivedHandlerWrapper,
     cleanup: () => {

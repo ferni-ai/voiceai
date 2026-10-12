@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-10-05T10:56:53.909Z
+ * Generated: 2026-10-11T00:27:40.182Z
  */
 
 :root {
@@ -74,8 +74,8 @@
   --color-success-bg: rgba(61, 122, 82, 0.18);
   --color-error: #b5453a;
   --color-error-bg: rgba(181, 69, 58, 0.18);
-  --color-warning: #a67c35;
-  --color-warning-bg: rgba(166, 124, 53, 0.18);
+  --color-warning: #87652a;
+  --color-warning-bg: rgba(135, 101, 42, 0.18);
 
   --color-success-light: #a5c99a;
   --color-success-dark: #3d7a52;

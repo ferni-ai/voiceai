@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { adminFetch } from '../admin-fetch.js';
 import { ICONS } from '../icons.js';
 
 const log = createLogger('SemanticRoutingSection');
@@ -663,10 +664,9 @@ export function render(): string {
 
 async function fetchSemanticMetrics(): Promise<SemanticRoutingMetrics | null> {
   try {
-    // Fetch both endpoints in parallel for comprehensive data
     const [semanticResponse, dashboardResponse] = await Promise.all([
-      fetch('/api/observability/semantic-routing'),
-      fetch('/api/observability/routing-dashboard'),
+      adminFetch('/api/observability/semantic-routing'),
+      adminFetch('/api/observability/routing-dashboard'),
     ]);
 
     // Get base metrics from semantic-routing endpoint

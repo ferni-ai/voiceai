@@ -162,7 +162,7 @@ function injectStyles(): void {
     .oura-settings {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -836,12 +836,12 @@ async function handleDisconnect(): Promise<void> {
   renderLoadingState();
 
   try {
-    await apiDelete('/api/oura/disconnect');
+    if (!(await apiDelete('/api/oura/disconnect')).ok) throw new Error('Disconnect failed');
     toast.success(t('toasts.ouraDisconnected'));
     callbacks.onDisconnected?.();
     renderConnectState();
   } catch {
-    toast.error("Couldn't disconnect. Try again?");
+    toast.error(t('toasts.couldNotDisconnect'));
     await loadStatus();
   } finally {
     isLoading = false;

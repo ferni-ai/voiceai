@@ -2515,7 +2515,8 @@
       "features": "ما يمكن لـ Ferni رؤيته"
     },
     "title": "الأجهزة القابلة للارتداء",
-    "notConfigured": "لم يُعدّ بعد"
+    "notConfigured": "لم يُعدّ بعد",
+    "appleHealthOnIphone": "يمكنك إعداد Apple Health من تطبيق Ferni على iPhone"
   },
   "transcript": {
     "enabled": "نسخ النص مفعّل",
@@ -3387,8 +3388,8 @@
     "categorySweet": "لحظات لطيفة",
     "connectionConnected": "متصلون",
     "connectionConnecting": "جاري الاتصال...",
-    "connectionDisconnected": "غير متصلين",
-    "connectionDisconnectedMessage": "حدث خطأ ما، ولكن يمكن المحاولة مجددًا.",
+    "connectionIdle": "نحن جاهزون متى شئت",
+    "connectionIdleMessage": "كلما أردت الحديث، أنا هنا.",
     "connectionError": "انقطع الاتصال",
     "connectionErrorMessage": "حدث خطأ ما، ولكن يمكن المحاولة مجددًا.",
     "connectionReconnect": "إعادة الاتصال",
@@ -8038,6 +8039,8 @@
       "waitingTip": "نصيحة: ابحثوا عن 'تطبيقاتي' ← 'إضافة تطبيق' على ecobee.com"
     },
     "hueSetup": {
+      "webUnavailableTitle": "غير متاح على الويب بعد",
+      "webUnavailableText": "لا يستطيع المتصفح الوصول إلى Hue Bridge على شبكتكم المنزلية من هذه الصفحة الآمنة، لذلك لا يمكن ربط Hue من هنا بعد.",
       "findTitle": "البحث عن Hue Bridge الخاص بكم",
       "findText": "لنبحث عن Hue Bridge الخاص بكم على الشبكة. يرجى التأكد من الاتصال بشبكة WiFi نفسها المتصل بها الجهاز.",
       "ipLabel": "عنوان IP الخاص بـ Bridge",
@@ -9817,6 +9820,14 @@
     "cta": "هل تود المساعدة في إبقاء Ferni مجانياً؟",
     "dismiss": "يسعدني فقط التحدث"
   },
+  "afterCall": {
+    "ariaLabel": "بعد مكالمتك",
+    "rememberTitle": "سيتذكر {name}",
+    "rememberEmpty": "لا شيء جديد نحتفظ به هذه المرة. شكرًا على الصحبة.",
+    "nextStepTitle": "خطوة تالية لطيفة",
+    "invitation": "عد متى شئت. سأكون هنا.",
+    "close": "إغلاق"
+  },
   "moments": {
     "teamUnlockTitle": "تعرف على {name}",
     "niceWork": "عمل رائع",
@@ -10475,7 +10486,12 @@
     "getIdeas": "الحصول على أفكار",
     "emptyTitle": "لا توجد اقتراحات بعد",
     "emptyText": "جرّبوا إضافة المزيد من التفاصيل عن علاقتكم.",
-    "generateError": "تعذر ابتكار أفكار. هل تودون المحاولة مجدداً؟"
+    "generateError": "تعذر ابتكار أفكار. هل تودون المحاولة مجدداً؟",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "ما أقدمه لكم",
@@ -11031,6 +11047,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "تقدم العلاقة",
+    "emptyInvite": "قصتنا تبدأ مع أول محادثة بيننا.",
     "progress": "التقدم",
     "next": "التالي: {stage}",
     "stages": {
@@ -11271,7 +11288,8 @@
   "entrance": {
     "helper": "المرشد الشخصي",
     "connectToTalk": "تواصل",
-    "endTalk": "إنهاء"
+    "endTalk": "إنهاء",
+    "connectingCancel": "جارٍ الاتصال. اضغط للإلغاء"
   },
   "teamHuddle": {
     "typeWeekly": "اطمئنان أسبوعي",
@@ -11554,5 +11572,45 @@
   "agentAcks": {
     "gameStartFailed": "لم تبدأ اللعبة. جرّبوا أن تطلبوا من Ferni اللعب بصوتٍ عالٍ.",
     "actionFailed": "لم تتم العملية. ربما تمت معالجتها بالفعل."
+  },
+  "speakerCues": {
+    "ferniSpeaking": "فيرني يتحدث",
+    "youSpeaking": "أنت تتحدث",
+    "ferniThinking": "فيرني يفكر",
+    "tapToInterrupt": "انقر للمقاطعة"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
   }
 }

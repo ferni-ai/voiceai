@@ -18,6 +18,7 @@ import { createLogger } from '../utils/logger.js';
 import { fetchWearableProviders, type WearableProviderStatus } from '../services/biometrics.service.js';
 import { startOAuthConnect } from '../services/oauth-connect.service.js';
 import { toast } from './whisper.ui.js';
+import { connectAppleHealth } from './apple-health-connect.js';
 import { wearableRowState } from './wearable-settings-state.js';
 import { asModalDialog } from '../utils/accessibility.js';
 
@@ -390,18 +391,7 @@ class WearableSettingsUI {
       if (!result.success && result.error) toast.error(result.error);
       return;
     }
-    try {
-      const response = await apiPost<{ success: boolean; authUrl?: string }>(
-        '/api/wearable/connect',
-        { provider }
-      );
-
-      if (response.data?.success && response.data.authUrl) {
-        window.location.href = response.data.authUrl;
-      }
-    } catch (error) {
-      log.error('Failed to connect provider:', error);
-    }
+    await connectAppleHealth(); // deep link into the iOS app; off iOS it says where to set it up
   }
 
   private async disconnectProvider(provider: WearableProvider): Promise<void> {
@@ -424,7 +414,7 @@ class WearableSettingsUI {
       .wearable-settings {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -766,7 +756,7 @@ class WearableSettingsUI {
         color: var(--persona-primary, #6b9b5a);
       }
 
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .wearable-settings__wrapper {
           max-width: 100%;
           border-radius: var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0;
