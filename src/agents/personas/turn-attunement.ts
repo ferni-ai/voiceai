@@ -241,6 +241,9 @@ const HOW: Record<Exclude<CallerState, 'neutral'>, string> = {
   hurried: 'get to the point and let them go warmly',
 };
 
+const NO_ORDERS =
+  'no instructions, not even caring ones (to rest, breathe, eat or put their feet up): notice how they are, or just keep them company';
+
 /** The target as one line for the end of the reminder; '' for a neutral caller. */
 export function attunementLine(t: AttuneTarget, turns: string[]): string {
   if (t.state === 'neutral') return '';
@@ -250,6 +253,9 @@ export function attunementLine(t: AttuneTarget, turns: string[]): string {
     parts.push('they asked, so give your honest take in a sentence, one idea, not a list');
   if (!t.ownStories) parts.push('no stories or news of your own');
   else if (t.state === 'low') parts.push('they asked about you: one short sentence about yourself');
+  // Told to give no advice, replies still gave orders: "Go on, get those socks
+  // off" to a tired caller (qwen 1/5). Taking care of them reads as a command.
+  parts.push(NO_ORDERS);
   parts.push(t.questions === 0 ? 'no question' : 'at most one easy question');
   const said = words(turns[turns.length - 1] ?? '');
   return (

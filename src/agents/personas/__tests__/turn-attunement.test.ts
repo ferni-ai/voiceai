@@ -108,6 +108,7 @@ describe('attunementLine', () => {
     expect(line).toContain('no advice');
     expect(line).toContain('no stories or news of your own');
     expect(line).toContain('no question');
+    expect(line).toContain('no instructions, not even caring ones');
     expect(line).toContain('outranks');
   });
 });
