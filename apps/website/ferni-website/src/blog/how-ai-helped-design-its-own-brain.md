@@ -69,17 +69,17 @@ This felt strange at first. Then it felt appropriate. Who better to think about 
 
 The guardrails are still human. We decide what matters. We define the values. But the exploration—the "what if we tried it this way?"—AI is genuinely helpful there.
 
-## What Users Actually Experience
+## What We Want It to Feel Like
 
-Most users don't know about any of this. They just notice something feels different.
+Users shouldn't have to know about any of this. They should just notice something feels different. A few illustrations of what we're aiming for (written by us, not quotes from users):
 
-"I mentioned my dad's birthday once, like two months ago. Ferni asked about it the week of. My actual friends forgot."
+You mention your dad's birthday once, two months ago. Ferni asks about it the week of.
 
-"It remembers that I hate mornings. It never suggests 'try waking up earlier' like every other self-help thing."
+You've said you hate mornings. Ferni never suggests "try waking up earlier" like every other self-help thing.
 
-"I told Ferni about a fight with my partner. A week later it asked how things were going—gently, not intrusively. It felt like someone actually cared."
+You tell Ferni about a fight with your partner. A week later it asks how things are going, gently, not intrusively.
 
-The architecture is invisible. The experience isn't.
+The architecture should be invisible. The experience shouldn't.
 
 ---
 

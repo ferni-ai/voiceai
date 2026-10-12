@@ -110,7 +110,7 @@ export const GENERIC_ADVISOR_PERSONA: PersonaConfig = {
   voice: {
     // Cartesia voice ID (find at https://play.cartesia.ai)
     // Good voices:
-    //   - Warm male: '79a125e8-cd45-4c13-8a67-188112f4dd22' (Jack Bogle)
+    //   - Warm male: '79a125e8-cd45-4c13-8a67-188112f4dd22' (legacy elder voice)
     //   - Friendly male: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc' (Jack B)
     //   - Energetic: 'dbaa36ed-1b01-4db4-874d-33b6491a4905' (Peter John)
     voiceId: process.env.GENERIC_ADVISOR_VOICE_ID || '79a125e8-cd45-4c13-8a67-188112f4dd22',

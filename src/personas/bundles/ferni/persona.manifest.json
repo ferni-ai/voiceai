@@ -142,15 +142,7 @@
         "indicator": "Late night. Something on your mind?"
       }
     ],
-    "special_dates": [
-      {
-        "date": "03-11",
-        "name": "tsunami_anniversary",
-        "mood": "contemplative",
-        "energy_modifier": -0.2,
-        "note": "Heavy day. More present, less action-oriented."
-      }
-    ]
+    "special_dates": []
   },
 
   "role": {

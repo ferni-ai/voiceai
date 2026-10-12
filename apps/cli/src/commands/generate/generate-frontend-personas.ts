@@ -29,8 +29,7 @@ interface PersonaManifest {
     initials?: string;
     avatar?: { initials?: string };
     self_reference?: string;
-    /** i18n key of the AI role label shown under the name ("AI life coach") */
-    role_label?: string;
+    role_label?: string; // i18n key of the role label under the name ("Life coach")
   };
   voice?: {
     provider: string;
@@ -86,8 +85,7 @@ interface FrontendPersona {
   name: string;
   initials: string;
   subtitle: string;
-  /** i18n key of the AI role label; the web falls back to "AI friend" */
-  roleLabel?: string;
+  roleLabel?: string; // i18n key of the role label; the web falls back to "Friend"
   role: 'coach' | 'team' | 'standalone';
   description: string;
   helperText: string;
@@ -473,9 +471,7 @@ async function generateFrontendConfig(): Promise<void> {
   const previous = await readFile(outputPath, 'utf-8').catch(() => null);
   await writeFile(outputPath, JSON.stringify(keepTimestampIfUnchanged(config, previous), null, 2), 'utf-8');
   
-  console.log(`\n✨ Generated: ${outputPath}`);
-  console.log(`   Personas: ${Object.keys(personas).length}`);
-  console.log(`   Coordinator: ${coordinatorId}`);
+  console.log(`\n✨ Generated: ${outputPath} (${Object.keys(personas).length} personas, coordinator: ${coordinatorId})`);
   console.log(`   Team order: ${teamOrder.join(', ')}`);
 }
 

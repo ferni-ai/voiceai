@@ -39,9 +39,6 @@ pnpm landing:generate
 
 # Generate hero variations only
 pnpm landing:generate:heroes
-
-# Generate social proof only
-pnpm landing:generate:social
 ```
 
 ### What Gets Generated
@@ -49,7 +46,6 @@ pnpm landing:generate:social
 | Content Type | Description | TTL |
 |--------------|-------------|-----|
 | Hero Variations | Different headlines/taglines | 24h-7d |
-| Social Proof | User testimonial-style messages | 24h-7d |
 
 ### Scheduling
 

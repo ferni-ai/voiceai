@@ -124,13 +124,11 @@ const STYLES = `
   min-height: 52px;
 }
 
-.sign-in-gate-btn:hover {
-  transform: translateY(-1px);
-}
-
-.sign-in-gate-btn:active {
-  transform: translateY(0);
-}
+.sign-in-gate-btn:hover { transform: translateY(-1px); }
+.sign-in-gate-btn:active { transform: translateY(0); }
+/* Ring drawn inside the button, so the focused one doesn't look wider than its sibling */
+.sign-in-gate-btn:focus-visible { outline: 2px solid currentColor; outline-offset: -5px;
+  box-shadow: none; border-radius: var(--radius-lg, 12px); }
 
 .sign-in-gate-btn:disabled {
   opacity: 0.6;
@@ -384,7 +382,7 @@ function showAccessNotice(notice: AccessNotice, retry: () => void): void {
   if (email) {
     const emailP = document.createElement('p');
     emailP.className = 'sign-in-gate-waitlist-email';
-    const emailMsg = t('auth.waitlistEmail');
+    const emailMsg = t('auth.waitlistEmail', { email: '{email}' }); // marker kept for the bold address
     emailP.innerHTML = emailMsg.replace('{email}', `<strong>${escapeHtml(email)}</strong>`);
     waitlistDiv.appendChild(emailP);
   }
@@ -547,6 +545,7 @@ function createOverlay(): HTMLElement {
   const googleBtn = document.createElement('button');
   googleBtn.className = 'sign-in-gate-btn sign-in-gate-btn--google';
   googleBtn.dataset.provider = 'google';
+  googleBtn.dataset.focusRing = 'inset'; // no outward pulse: the focused button would look wider
   googleBtn.appendChild(createGoogleIcon());
   const googleText = document.createElement('span');
   googleText.textContent = t('auth.continueWithGoogle');
@@ -556,6 +555,7 @@ function createOverlay(): HTMLElement {
   const appleBtn = document.createElement('button');
   appleBtn.className = 'sign-in-gate-btn sign-in-gate-btn--apple';
   appleBtn.dataset.provider = 'apple';
+  appleBtn.dataset.focusRing = 'inset';
   appleBtn.appendChild(createAppleIcon());
   const appleText = document.createElement('span');
   appleText.textContent = t('auth.continueWithApple');
@@ -571,7 +571,7 @@ function createOverlay(): HTMLElement {
   // Footer with Terms/Privacy links
   const footer = document.createElement('p');
   footer.className = 'sign-in-gate-footer';
-  const parts = t('auth.agreeTerms').split('{terms}');
+  const parts = t('auth.agreeTerms', { terms: '{terms}', privacy: '{privacy}' }).split('{terms}'); // split around links
   const parts2 = parts[1]!.split('{privacy}');
   footer.appendChild(document.createTextNode(parts[0]!));
   const termsLink = document.createElement('a');

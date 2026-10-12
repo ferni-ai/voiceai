@@ -35,11 +35,11 @@ import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { addTapListener, addTapListeners, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { isVenmoChipInEnabled, openSupport } from './support/open-support.js';
 import { toast } from './whisper.ui.js';
 
 const log = createLogger('SubscriptionUI');
 
-// FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
@@ -491,8 +491,7 @@ export async function loadStatus(): Promise<SubscriptionStatus | null> {
       status = response.data;
       log.debug('Subscription status loaded:', status);
 
-      // FIX: Sync subscription tier to team unlock service
-      // This ensures team members unlock correctly based on subscription
+      // Keep team member unlocks in step with the subscription tier
       if (status?.tier) {
         teamUnlockService.setTier(status.tier);
       }
@@ -518,6 +517,7 @@ export function setOnUpgrade(callback: (tier: string) => void): void {
 // ============================================================================
 
 export function showUpgradeModal(prompt?: string): void {
+  if (isVenmoChipInEnabled()) return void openSupport(); // every upgrade entry point chips in on Venmo
   // Use modal coordinator for upgrade prompts (medium priority - can be queued)
   modalCoordinator.request('subscription-upgrade', 'medium', () => {
     showUpgradeModalInternal(prompt);

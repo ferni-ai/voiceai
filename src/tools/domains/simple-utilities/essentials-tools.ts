@@ -315,10 +315,10 @@ const quickCaptureDef: ToolDefinition = {
           if (isReminder || (hasDate && (isTask || urgency === 'now' || urgency === 'soon'))) {
             routing = 'reminder';
             try {
-              const { createReminder, parseNaturalTime } =
+              const { createReminder, parseNaturalTime, userTimeZone } =
                 await import('../../../services/scheduling/reminder-scheduler.js');
-              const timeMatch = thought.match(/(?:at |by |tomorrow |next )([\w\s:]+)/i);
-              const scheduledFor = parseNaturalTime(timeMatch ? timeMatch[1] : 'tomorrow at 9am');
+              const when = thought.match(/\b(?:at|by|tomorrow|next|in)\b[\w\s:]*/i)?.[0];
+              const scheduledFor = parseNaturalTime(when ?? 'tomorrow at 9am', userTimeZone(ctx));
               if (scheduledFor && ctx.userId) {
                 const reminder = await createReminder({
                   userId: ctx.userId,

@@ -20,6 +20,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 import { onContactChange, onContactInteractionChange } from '../data-layer/hooks/contacts-hooks.js';
+import { createExpiringMarks } from '../../utils/expiring-marks.js';
 
 const log = getLogger();
 
@@ -38,6 +39,7 @@ export interface ContactRelationship {
   phone?: string;
   relationship?: 'family' | 'friend' | 'colleague' | 'acquaintance' | 'professional' | 'other';
   notes?: string;
+  howWeMet?: string;
 
   // Relationship tracking
   firstInteraction: Date;
@@ -214,7 +216,7 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
 // ============================================================================
 
 const contactCache = new Map<string, ContactRelationship[]>();
-const loadedUsers = new Set<string>();
+const loadedUsers = createExpiringMarks(); // expires, so another process's writes show up here
 
 // ============================================================================
 // CORE OPERATIONS
@@ -264,7 +266,6 @@ export async function upsertContact(
   let saved: ContactRelationship;
 
   if (existingIndex >= 0) {
-    // Update existing
     saved = {
       ...contacts[existingIndex],
       ...contact,
@@ -272,7 +273,6 @@ export async function upsertContact(
     };
     contacts[existingIndex] = saved;
   } else {
-    // Create new
     saved = {
       id: `contact_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       userId,
@@ -282,6 +282,7 @@ export async function upsertContact(
       phone: contact.phone,
       relationship: contact.relationship || 'other',
       notes: contact.notes,
+      howWeMet: contact.howWeMet,
       firstInteraction: contact.firstInteraction || now,
       lastInteraction: contact.lastInteraction || now,
       interactionCount: contact.interactionCount || 0,
@@ -650,7 +651,7 @@ export async function getContactsNeedingAttention(
  * Relationship aliases for natural language matching
  * Maps common words to relationship types
  */
-const RELATIONSHIP_ALIASES: Record<string, string[]> = {
+export const RELATIONSHIP_ALIASES: Record<string, string[]> = {
   family: [
     'mom',
     'mother',
@@ -763,31 +764,11 @@ export async function searchContacts(
   if (results.length === 0) {
     try {
       const { searchContacts: searchMainContacts } = await import('../contacts.js');
+      const { fromSavedContact } = await import('./people-list.js');
       const mainResults = await searchMainContacts(userId, queryLower);
-
-      // Convert main contacts to ContactRelationship format
-      for (const result of mainResults) {
-        const mainContact = result.contact;
+      for (const { contact: mainContact } of mainResults) {
         if (mainContact.phones?.[0]?.number || mainContact.emails?.[0]?.address) {
-          const converted: ContactRelationship = {
-            id: mainContact.id,
-            userId: mainContact.userId,
-            contactId: mainContact.id,
-            name: mainContact.displayName,
-            email: mainContact.emails?.[0]?.address,
-            phone: mainContact.phones?.[0]?.number,
-            relationship:
-              (mainContact.relationship as ContactRelationship['relationship']) || 'other',
-            notes: mainContact.notes || mainContact.nicknames?.join(', '),
-            firstInteraction: mainContact.createdAt,
-            lastInteraction: mainContact.lastContactedAt || mainContact.updatedAt,
-            interactionCount: 1,
-            strengthScore: 50,
-            topics: [],
-            recentContext: [],
-            createdAt: mainContact.createdAt,
-            updatedAt: mainContact.updatedAt,
-          };
+          const converted = fromSavedContact(mainContact);
           results.push(converted);
           log.info(
             { userId, query, contactName: converted.name, phone: converted.phone },

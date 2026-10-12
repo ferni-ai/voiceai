@@ -24,6 +24,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
+import { newContactFrom } from './contact-create.js';
 import {
   getUserId,
   handleCorsPreflightIfNeeded,
@@ -53,6 +54,7 @@ import {
 import { buildNudgeContext } from '../services/contacts/outreach-nudges.js';
 import { contactEdits } from './contact-edits.js';
 import { buildRelationshipInsightsView } from '../services/contacts/relationship-insights-view.js';
+import { findPerson, listPeople } from '../services/contacts/people-list.js';
 
 const log = createLogger({ module: 'ContactsAPI' });
 
@@ -72,7 +74,7 @@ async function listContacts(
   }
 
   try {
-    const contacts = await getContacts(userId);
+    const contacts = await listPeople(userId); // the panel's people and the ones saved in calls
     sendJSON(res, { contacts, count: contacts.length });
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to list contacts');
@@ -119,7 +121,7 @@ async function getContactHandler(
   }
 
   try {
-    const contact = await getContact(userId, contactId);
+    const contact = await findPerson(userId, contactId);
     if (!contact) {
       sendError(res, 'Contact not found', 404);
       return;
@@ -148,41 +150,16 @@ async function createContact(
     return;
   }
 
-  const name = body.name as string | undefined;
-  const email = body.email as string | undefined;
-  const phone = body.phone as string | undefined;
-
-  if (!name) {
-    sendError(res, 'Name is required', 400);
+  // Everything the form sends, birthday and how you met included
+  const fields = newContactFrom(body);
+  if ('error' in fields) {
+    sendError(res, fields.error, 400);
     return;
   }
 
   try {
-    const contactId = email || phone || `manual_${Date.now()}`;
-    const contact = await upsertContact(userId, {
-      name,
-      contactId,
-      email,
-      phone,
-      relationship: body.relationship as
-        | 'family'
-        | 'friend'
-        | 'colleague'
-        | 'acquaintance'
-        | 'professional'
-        | 'other'
-        | undefined,
-      notes: body.notes as string | undefined,
-      importantDates: body.importantDates as
-        | Array<{
-            date: string;
-            type: 'birthday' | 'anniversary' | 'memorial' | 'custom';
-            label?: string;
-          }>
-        | undefined,
-    });
-
-    log.info({ userId, contactId: contact.id, name }, 'Contact created');
+    const contact = await upsertContact(userId, fields);
+    log.info({ userId, contactId: contact.id, name: fields.name }, 'Contact created');
     sendJSON(res, { contact }, 201);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to create contact');
@@ -791,7 +768,6 @@ export async function handleContactsRoutes(
     }
   }
 
-  // 404 for unmatched contact routes
   // Unmatched contact routes: the server answers 404
   return false;
 }

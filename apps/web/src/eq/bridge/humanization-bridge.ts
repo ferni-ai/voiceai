@@ -18,8 +18,8 @@
 
 import { EASING } from '../../config/animation-constants.js';
 import { emotionState } from '../../emotion/emotion-state.js';
-import type { EmotionalExpression } from '../../ui/ferni-expressions.ui.js';
-import { ferniExpressions } from '../../ui/ferni-expressions.ui.js';
+import { playNameLift } from '../../ui/avatar-motion/name-lift.js';
+import { ferniExpressions, type EmotionalExpression } from '../../ui/ferni-expressions.ui.js';
 import { createLogger } from '../../utils/logger.js';
 import type { BetterThanHumanSignal } from '../types.js';
 import { getAvatarSoul } from '../utils/avatar-soul-loader.js';
@@ -73,7 +73,6 @@ function emitBthUIHint(
   log.debug('BTH UI hint emitted', { type, content: content.slice(0, 50) });
 }
 
-// Export for external use
 export { emitBthUIHint, type BthHintType, type BthHintDetail };
 
 // ============================================================================
@@ -103,9 +102,7 @@ export function setAvatarContainer(container: HTMLElement | null): void {
 // BETTER THAN HUMAN SIGNAL HANDLERS
 // ============================================================================
 
-/**
- * Handle Better Than Human signals from backend
- */
+/** Handle Better Than Human signals from backend */
 export function handleBetterThanHumanSignal(signal: BetterThanHumanSignal): void {
   log.debug('Better Than Human signal received:', signal.signalType);
 
@@ -139,6 +136,9 @@ export function handleBetterThanHumanSignal(signal: BetterThanHumanSignal): void
       break;
     case 'anticipatory_presence':
       void handleAnticipatoryPresenceSignal(signal);
+      break;
+    case 'name_lift':
+      playNameLift(signal);
       break;
     case 'micro_expression':
       // Backend-driven subliminal flash (concern 60ms, delight 100ms, recognition 80ms)

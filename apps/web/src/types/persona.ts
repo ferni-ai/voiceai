@@ -21,7 +21,8 @@ export type PersonaId =
   'ferni' | 'alex-chen' | 'maya-santos' | 'jordan-taylor' | 'peter-john' | 'nayan-patel';
 
 /**
- * The Financial Legends (Peter Lynch, John Bogle, Joel Dickson): marketplace
+ * The Financial Legends (Tom Brannigan, Henry Caldwell, Nate Holloway: fictional
+ * characters inspired by investing philosophies; the ids predate them): marketplace
  * advisors the voice agent can hand a call to. They are not on Ferni's team
  * (no team grid, no unlock), but while one is speaking the web shows THAT
  * person. Mirrors FINANCIAL_LEGENDS in src/personas/persona-ids.ts.
@@ -164,7 +165,7 @@ export const DEFAULT_PERSONA_ID: PersonaId = 'ferni';
 
 /**
  * Core team persona IDs (built-in, not from marketplace).
- * Jack Bogle and Joel Dickson are available through the Agent Marketplace.
+ * The financial legends are available through the Agent Marketplace.
  */
 export const ALL_PERSONA_IDS: readonly PersonaId[] = [
   'ferni',
