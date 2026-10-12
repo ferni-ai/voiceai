@@ -1758,10 +1758,10 @@
       "plant": "Pflanze Samen für Funktionen ein, die du dir wünschst",
       "suggest": "Schlage neue Ideen für 5 Samen vor",
       "title": "Wie Samen funktionieren",
-      "conversation": "Führe ein Gespräch: +1 Samenkorn",
+      "conversation": "Erstes Gespräch des Tages: +5 Samen",
       "note": "Samen helfen uns zu entscheiden, was wir als Nächstes bauen!",
-      "streak30": "30-Tage-Serie: +15 Samen",
-      "streak7": "7-Tage-Serie: +5 Samen",
+      "streak30": "30-Tage-Serie: +100 Samen",
+      "streak7": "7-Tage-Serie: +25 Samen",
       "vote": "Stimme für Funktionen ab: 1–10 Samen"
     },
     "intro": "Jede große Beziehung hat ihre Jahreszeiten. Das sind die Samen, die wir gemeinsam pflanzen.",

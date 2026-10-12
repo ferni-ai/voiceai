@@ -1771,10 +1771,10 @@
       "plant": "Planta semillas en las funciones que quieras que construyamos",
       "suggest": "Sugiere nuevas ideas por 5 semillas",
       "title": "Cómo funcionan las semillas",
-      "conversation": "Ten una conversación: +1 semilla",
+      "conversation": "Primera conversación del día: +5 semillas",
       "note": "¡Las semillas nos ayudan a priorizar qué construir después!",
-      "streak30": "Racha de 30 días: +15 semillas",
-      "streak7": "Racha de 7 días: +5 semillas",
+      "streak30": "Racha de 30 días: +100 semillas",
+      "streak7": "Racha de 7 días: +25 semillas",
       "vote": "Vota por funciones: de 1 a 10 semillas"
     },
     "intro": "Cada gran relación tiene sus estaciones. Estas son las semillas que estamos sembrando en conjunto.",

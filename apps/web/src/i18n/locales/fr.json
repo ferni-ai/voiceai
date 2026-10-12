@@ -1771,10 +1771,10 @@
       "plant": "Plante des graines sur les fonctionnalités que tu veux voir apparaître",
       "suggest": "Suggère de nouvelles idées pour 5 graines",
       "title": "Comment fonctionnent les graines",
-      "conversation": "Avoir une conversation : +1 graine",
+      "conversation": "Première conversation de la journée : +5 graines",
       "note": "Les graines nous aident à savoir quoi construire ensuite !",
-      "streak30": "Série de 30 jours : +15 graines",
-      "streak7": "Série de 7 jours : +5 graines",
+      "streak30": "Série de 30 jours : +100 graines",
+      "streak7": "Série de 7 jours : +25 graines",
       "vote": "Vote pour des fonctionnalités : 1 à 10 graines"
     },
     "intro": "Chaque belle relation a ses saisons. Ce sont les graines que nous plantons ensemble.",
