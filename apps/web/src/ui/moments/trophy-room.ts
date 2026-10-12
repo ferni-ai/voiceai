@@ -599,7 +599,7 @@ const TROPHY_ROOM_STYLES = `
   justify-content: center;
   color: var(--color-text-muted, #7a6f63);
   transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-  z-index: 10;
+  z-index: var(--z-content);
 }
 
 .trophy-room__close:hover {
@@ -759,7 +759,7 @@ const TROPHY_ROOM_STYLES = `
 .trophy-room__detail {
   position: fixed;
   inset: 0;
-  z-index: ${MOMENT_Z_INDEX.trophyRoom + 10};
+  z-index: ${MOMENT_Z_INDEX.trophyRoomDetail};
   display: flex;
   align-items: center;
   justify-content: center;
