@@ -15,6 +15,7 @@ import {
   type Moment,
   type Pattern,
   type ToldItem,
+  sensitivityKey,
 } from './types.js';
 
 export const ESTABLISHED_MOMENTS = 2;
@@ -112,11 +113,12 @@ export function applyCallReading(
       ? model.current
       : undefined;
 
+  // A sensitivity the caller asked Ferni to forget isn't re-added by a later call.
+  const forgotten = new Set(model.rejectedSensitivities ?? []);
+  const heard = reading.sensitivities.filter((s) => !forgotten.has(sensitivityKey(s.topic)));
   const sensitivities = [
-    ...reading.sensitivities.map((s) => ({ ...s, at })),
-    ...model.sensitivities.filter(
-      (s) => !reading.sensitivities.some((n) => norm(n.topic) === norm(s.topic))
-    ),
+    ...heard.map((s) => ({ ...s, at })),
+    ...model.sensitivities.filter((s) => !heard.some((n) => norm(n.topic) === norm(s.topic))),
   ].slice(0, MAX_SENSITIVITIES);
 
   const next: MindModel = {

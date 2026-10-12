@@ -21,10 +21,11 @@
  */
 import { createHash } from 'node:crypto';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { firestoreForgetStore } from '../../memory/recall/forget.js';
+import { forgetForCaller, type ForgetResult } from '../../memory/recall/forget.js';
 import { forgetTokens } from '../../memory/recall/session-recall.js';
 import {
   correctRemembered,
+  firestoreMemoryControlStore,
   forgetRemembered,
   MAX_CORRECTION_CHARS,
 } from '../../memory/recall/memory-control.js';
@@ -33,7 +34,7 @@ import {
   type WorldFactStore,
 } from '../world-model/temporal/store.js';
 import type { TemporalFact } from '../world-model/temporal/types.js';
-import type { MindModel } from '../theory-of-mind/types.js';
+import { sensitivityKey, type MindModel } from '../theory-of-mind/types.js';
 import { hashId, type KnownKind, type StoredPondering } from './known.js';
 
 export type KnownAction = 'forget' | 'wrong' | 'correct';
@@ -44,7 +45,8 @@ export type ActionResult =
   | { kind: 'invalid'; reason: string };
 
 export interface ActionStore {
-  forgetFact: (userId: string, id: string) => Promise<boolean>;
+  /** Forget one fact; its words (entity, key, value) when it was the caller's, else null. */
+  forgetFact: (userId: string, id: string) => Promise<string | null>;
   correctFact: (userId: string, id: string, value: string) => Promise<ActionResult>;
   world: WorldFactStore & {
     get: (userId: string, id: string) => Promise<TemporalFact | null>;
@@ -56,7 +58,8 @@ export interface ActionStore {
     userId: string,
     change: (p: StoredPondering) => StoredPondering | null
   ) => Promise<boolean>;
-  addForgottenTopic: (userId: string, topic: string) => Promise<void>;
+  /** forget.ts forgetTopic: records the topic unless it is too broad. Never throws. */
+  forgetTopic: (userId: string, topic: string) => Promise<ForgetResult>;
 }
 
 const NOT_FOUND: ActionResult = { kind: 'not-found' };
@@ -74,6 +77,21 @@ export function cleanCorrection(value: unknown): string | { reason: string } {
     return { reason: `value is over ${MAX_CORRECTION_CHARS} characters` };
   }
   return clean;
+}
+
+/** Fewer distinct words than this (of 3+ letters) is a name, not a topic: "Mom is ok" is just "mom". */
+const MIN_TOPIC_WORDS = 2;
+
+/**
+ * Keep one forgotten item from coming back in other words: record its words
+ * as a forgotten topic, but only when they are specific (two real words or
+ * more) and forget.ts doesn't find them too broad. Otherwise only the item
+ * itself is forgotten, so "Mom: is ok" never silences everything about Mom.
+ */
+async function forgetNarrowTopic(store: ActionStore, userId: string, words: string): Promise<void> {
+  const specific = forgetTokens(words).filter((w) => w.length >= 3);
+  if (specific.length < MIN_TOPIC_WORDS) return;
+  await store.forgetTopic(userId, specific.join(' '));
 }
 
 /** One action on one of the caller's items, with the time it happens. */
@@ -120,13 +138,19 @@ async function worldAction(store: ActionStore, r: ActionRequest): Promise<Action
   if (!old || old.validTo !== null) return NOT_FOUND;
   if (r.action === 'correct') return correctWorld(store, old, r);
   await store.world.forget(r.userId, r.id, r.at, r.action === 'wrong');
-  const topic = forgetTokens(`${old.subject} ${old.value}`).join(' ');
-  if (topic !== '') await store.addForgottenTopic(r.userId, topic);
+  await forgetNarrowTopic(store, r.userId, `${old.subject} ${old.value}`);
   return DONE;
 }
 
 async function factAction(store: ActionStore, r: ActionRequest): Promise<ActionResult> {
-  if (r.action !== 'correct') return (await store.forgetFact(r.userId, r.id)) ? DONE : NOT_FOUND;
+  if (r.action !== 'correct') {
+    // Re-extraction of the same words lands on the same (forgotten) document; the topic
+    // keeps the same fact said slightly differently out too.
+    const words = await store.forgetFact(r.userId, r.id);
+    if (words === null) return NOT_FOUND;
+    await forgetNarrowTopic(store, r.userId, words);
+    return DONE;
+  }
   const clean = cleanCorrection(r.value);
   if (typeof clean !== 'string') return { kind: 'invalid', reason: clean.reason };
   return store.correctFact(r.userId, r.id, clean);
@@ -138,8 +162,15 @@ function mindChange(
 ): (m: MindModel) => MindModel | null {
   return (m: MindModel): MindModel | null => {
     if (kind === 'sensitivity') {
-      const left = m.sensitivities.filter((s) => hashId(s.topic) !== id);
-      return left.length === m.sensitivities.length ? null : { ...m, sensitivities: left };
+      const gone = m.sensitivities.find((s) => hashId(s.topic) === id);
+      if (!gone) return null;
+      return {
+        ...m,
+        sensitivities: m.sensitivities.filter((s) => s !== gone),
+        rejectedSensitivities: [
+          ...new Set([...(m.rejectedSensitivities ?? []), sensitivityKey(gone.topic)]),
+        ],
+      };
     }
     const pattern = m.patterns.find((p) => p.key === id);
     if (!pattern) return null;
@@ -230,7 +261,11 @@ const worldDoc = (userId: string, id: string): FirebaseFirestore.DocumentReferen
   getFirestoreDb()?.collection('bogle_users').doc(userId).collection('world_facts').doc(id) ?? null;
 
 export const firestoreActionStore: ActionStore = {
-  forgetFact: async (userId, id) => forgetRemembered(userId, id),
+  async forgetFact(userId, id) {
+    const d = await firestoreMemoryControlStore.fact(userId, id);
+    if (!d || !(await forgetRemembered(userId, id))) return null;
+    return ['entityName', 'key', 'value'].map((k) => String(d[k] ?? '')).join(' ');
+  },
   async correctFact(userId, id, value) {
     const r = await correctRemembered(userId, id, value);
     return r.kind === 'corrected' ? { kind: 'done', replacedBy: r.fact.id } : r;
@@ -249,5 +284,5 @@ export const firestoreActionStore: ActionStore = {
     changeDoc([userId, 'mind_model', 'current'], change, isMind),
   updatePondering: async (userId, change) =>
     changeDoc([userId, 'predictive_intelligence', 'pondering'], change, isPondering),
-  addForgottenTopic: async (userId, topic) => firestoreForgetStore.addTopic(userId, topic),
+  forgetTopic: async (userId, topic) => forgetForCaller(userId, topic),
 };

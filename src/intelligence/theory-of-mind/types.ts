@@ -14,6 +14,8 @@
  * @module intelligence/theory-of-mind/types
  */
 
+import { createHash } from 'node:crypto';
+
 /** coping: how they handle stress. feeling: how they tend to feel about something. support: what helps them. care: what matters to them. */
 export type PatternKind = 'coping' | 'feeling' | 'support' | 'care';
 
@@ -69,7 +71,15 @@ export interface MindModel {
   sensitivities: Sensitivity[];
   /** Readings the caller said are wrong (memory-view/actions.ts): never noted again. */
   rejected?: Array<{ key: string; statement: string }>;
+  /** sensitivityKey of sensitivities the caller asked Ferni to forget: never re-added. */
+  rejectedSensitivities?: string[];
   updatedAt: string;
+}
+
+/** A sensitivity's topic as a stable key (hashed, so a forgotten topic isn't kept in clear). */
+export function sensitivityKey(topic: string): string {
+  const norm = topic.toLowerCase().replace(/\s+/g, ' ').trim();
+  return createHash('sha1').update(norm).digest('hex').slice(0, 16);
 }
 
 /** What one call adds, as read from its transcript and summary. */
