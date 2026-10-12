@@ -29,6 +29,7 @@ const SCENES = [
   'achievement',
   'celebration',
   'milestone',
+  'first-milestone',
   'notification-card',
   'outreach',
   'offline-banner',
@@ -130,7 +131,13 @@ async function useTheme(page: Page, theme: 'zen' | 'midnight'): Promise<void> {
  * layout is still settling, so they show three lines, one or none depending on
  * when the frame is taken (tests/e2e/captions-layout.spec.ts checks their box).
  */
-const NO_SNAPSHOT = new Set(['achievement', 'celebration', 'collision', 'captions']);
+const NO_SNAPSHOT = new Set([
+  'achievement',
+  'celebration',
+  'first-milestone',
+  'collision',
+  'captions',
+]);
 
 /** Text that changes with the clock or animates, kept out of the pixel diff. */
 const MASKS = ['.avatar-container', '.settings-menu__header-eyebrow', '.countdown-text'];
@@ -235,6 +242,85 @@ for (const scene of ['toast-pair', 'notice-action', 'toast-over-sheet'] as const
         region.y < a.y + a.h &&
         a.y < region.y + region.h;
       expect(overlaps).toBe(false);
+    }
+  });
+}
+
+interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const overlaps = (a: Box, b: Box): boolean =>
+  a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/** Boxes of the first visible match of each selector, plus the viewport. */
+async function boxes(page: Page, selectors: string[]): Promise<{ vw: number; vh: number; found: (Box | null)[] }> {
+  return page.evaluate((sels) => {
+    const box = (el: Element | null) => {
+      if (!el || el.getClientRects().length === 0) return null;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 ? { x: r.x, y: r.y, w: r.width, h: r.height } : null;
+    };
+    return {
+      vw: window.innerWidth,
+      vh: window.innerHeight,
+      found: sels.map((s) => box(document.querySelector(s))),
+    };
+  }, selectors);
+}
+
+/** What a celebration card may never cover: Connect, the call controls and the menu trigger. */
+const CONTROLS = ['#connectBtn', '.controls-row', '#waveformContainer', '.mobile-menu-trigger'];
+
+// With the flag off, the old cards are still what people see (#1065 moved the
+// easter-egg card off the controls, #846 the milestone card): keep them there.
+for (const [scene, card] of [
+  ['achievement', '.achievement-notification'],
+  ['first-milestone', '.ferni-milestone'],
+] as const) {
+  test(`${scene}: card stays on screen and clear of the controls with the overlay host off`, async ({
+    page,
+  }) => {
+    await openScene(page, scene);
+    const { vw, vh, found } = await boxes(page, [card, ...CONTROLS]);
+    const [box, ...controls] = found;
+    expect(box, `${card} is not on screen`).not.toBeNull();
+    if (!box) return;
+    expect(box.x).toBeGreaterThanOrEqual(8);
+    expect(box.y).toBeGreaterThanOrEqual(8);
+    expect(box.x + box.w).toBeLessThanOrEqual(vw - 8);
+    expect(box.y + box.h).toBeLessThanOrEqual(vh - 8);
+    for (const [i, c] of controls.entries()) {
+      if (c) expect(overlaps(box, c), `${card} covers ${CONTROLS[i]}`).toBe(false);
+    }
+  });
+}
+
+// With the flag on, every celebration is an achievement toast in the region,
+// and the old card does not appear as well.
+for (const [scene, legacy] of [
+  ['achievement', '.achievement-notification'],
+  ['celebration', '.moment-celebration'],
+  ['first-milestone', '.ferni-milestone'],
+] as const) {
+  test(`${scene}: an achievement toast instead of the card with the overlay host on`, async ({
+    page,
+  }) => {
+    await openScene(page, scene, true);
+    await expect(page.locator('.ferni-toast-region .ferni-toast--achievement').first()).toBeVisible();
+    await expect(page.locator(legacy)).toHaveCount(0);
+    const { vw, vh, found } = await boxes(page, ['.ferni-toast-region', ...CONTROLS]);
+    const [region, ...controls] = found;
+    expect(region).not.toBeNull();
+    if (!region) return;
+    expect(region.x).toBeGreaterThanOrEqual(15);
+    expect(vw - (region.x + region.w)).toBeGreaterThanOrEqual(15);
+    expect(region.y + region.h).toBeLessThanOrEqual(vh / 2);
+    for (const [i, c] of controls.entries()) {
+      if (c) expect(overlaps(region, c), `toast region covers ${CONTROLS[i]}`).toBe(false);
     }
   });
 }

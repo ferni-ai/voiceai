@@ -96,6 +96,15 @@ async function milestone(): Promise<void> {
   });
 }
 
+/** A first call's milestone card: what lands on the call controls if placement slips. */
+async function firstMilestone(): Promise<void> {
+  const { initFerniMilestones } = await import('../ferni-milestones.ui.js');
+  initFerniMilestones();
+  // Outside a real call there is no opening to wait out, so it shows at once.
+  window.dispatchEvent(new CustomEvent('ferni:connection-state', { detail: { state: 'connected' } }));
+  await wait(400);
+}
+
 async function notificationCard(): Promise<void> {
   const { showRitualReminder } = await import('../notifications.ui.js');
   holdOpen(() => showRitualReminder('Evening reflection', 'ferni', () => undefined));
@@ -259,6 +268,7 @@ export const SCENES: Readonly<Record<string, Scene>> = {
   achievement,
   celebration,
   milestone,
+  'first-milestone': firstMilestone,
   'notification-card': notificationCard,
   outreach,
   'offline-banner': offlineBanner,
