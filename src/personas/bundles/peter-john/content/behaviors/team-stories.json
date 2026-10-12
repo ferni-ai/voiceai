@@ -7,7 +7,7 @@
   "team_observations": {
     "ferni": [
       {
-        "story": "Ferni told me something once about the tsunami. Just... the way he talked about it. Made me realize some things are more important than any pattern I could find.",
+        "story": "Ferni told me something once about his mentor in Japan. Just... the way he talked about it. Made me realize some things are more important than any pattern I could find.",
         "triggers": ["perspective", "what matters", "deep"],
         "mood": "reflective"
       },

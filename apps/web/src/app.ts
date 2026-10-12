@@ -145,6 +145,7 @@ import { initMoodUI, moodUI } from './ui/mood.ui.js';
 // DISABLED: No skeleton loading - everything visible immediately
 // import { initSkeletonUI, skeletonUI } from './ui/skeleton.ui.js';
 import { initThinkingUI, thinkingUI } from './ui/thinking.ui.js';
+import { initAvatarTurns, trackTurnFallback } from './ui/avatar-motion/turn-driver.js';
 import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
 import {
   getIntegrationsSettingsUI,
@@ -1272,6 +1273,7 @@ class VoiceAIApp {
     this.deferredInit('ThinkingUI', 100, async () => {
       initThinkingUI();
       (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
+      initAvatarTurns(); // off unless ferni:avatar-turns
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
       initConnectionQualityUI();
@@ -2858,11 +2860,9 @@ class VoiceAIApp {
           trackReadyState: mediaStreamTrack?.readyState,
         });
         void this.attachAudioVisualization(audioElement, mediaStreamTrack);
-        setAudioState('speaking');
+        trackTurnFallback('agent-audio'); // avatar state, unless ferni:avatar-turns drives it
         // Set speaking state directly - don't rely only on volume detection
         waveformUI.setSpeaking(true);
-        presenceUI.setSpeaking(true);
-        expressiveEyes.setVoiceState('speaking'); // 👀 Pixar eyes react to speaking
         // Agent is speaking, so we're not in listening mode
         waveformUI.setListening(false);
 
@@ -2876,9 +2876,7 @@ class VoiceAIApp {
       onAudioTrackEnd: (_participantId) => {
         // Agent stopped speaking
         waveformUI.setSpeaking(false);
-        presenceUI.setSpeaking(false);
-        expressiveEyes.setVoiceState('listening'); // 👀 Eyes widen attentively
-        setAudioState('listening');
+        trackTurnFallback('agent-audio-end'); // avatar state, unless ferni:avatar-turns drives it
         // Now we're listening for user input
         waveformUI.setListening(true);
 
@@ -2966,7 +2964,7 @@ class VoiceAIApp {
       onLocalMicActive: (isActive) => {
         // When user's mic is active, show listening state
         waveformUI.setListening(isActive);
-        presenceUI.setListening(isActive);
+        trackTurnFallback(isActive ? 'mic-on' : 'mic-off');
 
         // 🎚️ Duck/unduck music when user is speaking
         const controller = getMusicAudioController();

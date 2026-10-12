@@ -665,8 +665,6 @@ body {
 /* Zen header styling - clean, extends to top */
 [data-theme='zen'] .header {
   background: transparent;
-  /* Subtle border at bottom of frosted glass area */
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   /* Padding at top instead of margin so frosted glass covers full area */
   margin-top: 0;
   padding-top: calc(32px + env(safe-area-inset-top, 0px));
@@ -681,6 +679,8 @@ body {
   right: -50vw;
   bottom: 0;
   background: rgba(255, 255, 255, 0.75);
+  /* Fade out at the bottom: a hard edge read as a seam across the screen */
+  mask-image: linear-gradient(to bottom, black 70%, transparent);
   backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   z-index: -1;
@@ -5790,7 +5790,6 @@ body {
 .btn-connecting {
   position: relative;
   cursor: pointer; /* tap to cancel */
-  /* Subtle width expansion to accommodate spinner */
   min-width: min(160px, 100%);
   transition: min-width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -5800,11 +5799,15 @@ body {
   transform: scale(0.9);
 }
 
-/* Connecting state overlay with spinner + text */
-.btn-connecting::after {
+/* Connecting label over the button. Undo the .btn-primary::after glow
+   (behind the button, blurred, fill colour) or the label is invisible. */
+.btn.btn-connecting::after {
   content: attr(data-status);
   position: absolute;
   inset: 0;
+  z-index: 1;
+  background: none;
+  filter: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12848,14 +12851,14 @@ body.ambient-aurora {
 /* ---------------------------------------------------------------------
    BUTTON - Fixed 56px height, never changes
    --------------------------------------------------------------------- */
-.btn,
+.btn:not(.btn-mute),
 .btn-primary {
   min-height: var(--ferni-button-height) !important;
   padding: var(--ferni-button-padding) !important;
   font-size: var(--ferni-button-font) !important;
 }
 
-.btn-secondary {
+.btn-secondary:not(.btn-mute) {
   min-height: 48px !important;
   padding: 12px 28px !important;
 }
@@ -12957,10 +12960,6 @@ body.ambient-aurora {
      When connected, maximize avatar presence
      ========================= */
 
-  body[data-connected="true"] .header {
-    padding-top: calc(var(--space-sm) + env(safe-area-inset-top, 0px)) !important;
-  }
-
   body[data-connected="true"] .avatar-container {
     width: min(160px, 45vw) !important;
     height: min(160px, 45vw) !important;
@@ -12973,10 +12972,7 @@ body.ambient-aurora {
   }
 
   body[data-connected="true"] #personaSubtitle {
-    opacity: 0 !important;
-    height: 0 !important;
-    margin: 0 !important;
-    overflow: hidden !important;
+    visibility: hidden !important; /* keeps its line: collapsing it shifted the layout */
   }
 
   body[data-connected="true"] #helperText {
@@ -13017,7 +13013,7 @@ body.ambient-aurora {
   }
 
   .btn-primary,
-  .btn-secondary {
+  .btn-secondary:not(.btn-mute) {
     min-width: min(180px, 100%) !important;
     padding: 16px 36px !important;
   }
@@ -13071,7 +13067,7 @@ body.ambient-aurora {
     padding: 0 var(--space-md) !important;
   }
 
-  .btn-primary {
+  #connectBtn {
     width: 100% !important;
     max-width: 280px !important;
   }
