@@ -36,6 +36,7 @@ import { ferniStateNote } from './ferni-state.js';
 import { firstCallNote } from './first-call-rapport.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
+import { callerTurnsOf, happyExitNote, happyExitsEnabled } from './happy-exits.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
@@ -110,6 +111,8 @@ export function withTurnReminder(
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
+    // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
+    options.shape !== false ? exitFor(chatCtx, session, words) : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -129,6 +132,19 @@ function thoughtFor(session: object, said: string): string {
   // supportHeld first: it records hard news (and counts the turns since) even with CANDOR off.
   const held = supportHeld(session, said, source === 'model' && sig.careful) || sig.careful;
   return deliberator.noteFor(said, held);
+}
+
+/** HAPPY_EXITS=on: the goodbye note when they are wrapping up (happy-exits.ts). */
+function exitFor(chatCtx: llm.ChatContext, session: object, said: string): string {
+  if (!happyExitsEnabled() || !said) return '';
+  const { signals } = signalsFor(session, said);
+  return happyExitNote(session, {
+    said,
+    callerTurns: callerTurnsOf(chatCtx),
+    careful: (signals ?? regexSignals(said, callerMove(said))).careful,
+    wantsToEnd: understandingFor(session, said)?.wantsToEnd,
+    rng: rngFor(`${callSeed(session)}:exit:${said}`),
+  });
 }
 
 /** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */
