@@ -11947,13 +11947,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(180px, 100%);
@@ -12019,13 +12012,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(200px, 100%);
@@ -12093,13 +12079,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(160px, 100%);
@@ -12162,13 +12141,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(140px, 100%);
@@ -12232,13 +12204,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(120px, 100%);
@@ -12463,8 +12428,6 @@ body.ambient-aurora {
   }
 
   /* Hide secondary elements that take up space */
-  #teamRoster,
-  .entrance-roster,
   .garden-widget-wrapper,
   #gardenWidgetContainer {
     display: none !important;
@@ -12874,7 +12837,7 @@ body.ambient-aurora {
    Philosophy: On mobile, Ferni should feel like texting a friend.
    Hide the dashboard complexity, focus on the conversation.
 
-   - Hide team roster (secondary)
+   - Team roster as a compact scrolling row, not hidden (2026-10-11)
    - Hide garden widget (tertiary)
    - Hide subscription badge when connected (distraction)
    - Larger avatar for intimacy
@@ -12887,16 +12850,8 @@ body.ambient-aurora {
      HIDE SECONDARY ELEMENTS
      ========================= */
 
-  /* Team roster - nice on desktop, overwhelming on mobile */
-  #teamRoster,
-  .entrance-roster,
-  .team-roster {
-    display: none !important;
-    visibility: hidden !important;
-    height: 0 !important;
-    overflow: hidden !important;
-    pointer-events: none !important;
-  }
+  /* Team roster stays, as a compact row (see TEAM ROSTER ON PHONES below).
+     Hiding it left phones no way to see or switch teammates. */
 
   /* Garden widget - meaningful but not essential for core experience */
   .garden-widget-wrapper,
@@ -13372,4 +13327,48 @@ body.ambient-aurora {
 
 [data-theme="midnight"] .progress-ring-fill {
   stroke: var(--persona-text) !important;
+}
+
+/* ========================================================================
+   TEAM ROSTER ON PHONES (2026-10-11)
+   The roster used to be hidden at every phone width (and up to 768px), so a
+   phone had no way to see or switch teammates. Un-hidden, it wrapped into a
+   two-row grid that pushed Connect down. On phones it is one row that
+   scrolls sideways: centred when it fits (auto margins on the ends, which
+   unlike justify-content: center never clip the first card when it
+   overflows), snap-scrolled, inset by the safe area, cards >= 44px tall.
+   ======================================================================== */
+@media (max-width: 768px) {
+  #teamRoster {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    max-width: 100%;
+    gap: 4px;
+    padding: 6px max(10px, env(safe-area-inset-right)) 6px max(10px, env(safe-area-inset-left));
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  #teamRoster::-webkit-scrollbar {
+    display: none;
+  }
+
+  #teamRoster > :first-child {
+    margin-inline-start: auto;
+  }
+
+  #teamRoster > :last-child {
+    margin-inline-end: auto;
+  }
+
+  #teamRoster .team-member {
+    flex: 0 0 auto;
+    min-width: 52px;
+    min-height: 44px;
+    scroll-snap-align: center;
+  }
 }
