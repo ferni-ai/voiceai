@@ -49,7 +49,6 @@ import {
   showFerniFundThankYou,
   showGroupCoaching,
   showHouseholdManager,
-  showLifeContextDashboard,
   showLinkedInSettings,
   showOuraSettings,
   showPatternInsights,
@@ -245,7 +244,7 @@ import {
   conversationTracker,
   initConversationTracker,
 } from './services/conversation-tracker.service.js';
-import { initRitualsService, ritualsService } from './services/rituals.service.js';
+import { initRitualsService } from './services/rituals.service.js';
 import { getOnboardingUI, initOnboardingUI, startOnboardingIfNeeded } from './ui/onboarding.ui.js';
 import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
 // 🎬 Cameo Roster - Team member pop-in animations in the roster
@@ -1270,7 +1269,7 @@ class VoiceAIApp {
     this.deferredInit('ThinkingUI', 100, async () => {
       initThinkingUI();
       (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
-      (await import('./ui/avatar-motion/turn-gestures.js')).initTurnGestures(initAvatarTurns()); // off unless ferni:avatar-turns (+ ferni:turn-gestures)
+      (await import('./ui/avatar-motion/turn-gestures.js')).initTurnGestures(initAvatarTurns()); // turns on unless ferni:avatar-turns=off; gestures need ferni:turn-gestures
       (await import('./ui/avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
@@ -2859,11 +2858,8 @@ class VoiceAIApp {
           trackReadyState: mediaStreamTrack?.readyState,
         });
         void this.attachAudioVisualization(audioElement, mediaStreamTrack);
-        trackTurnFallback('agent-audio'); // avatar state, unless ferni:avatar-turns drives it
-        // Set speaking state directly - don't rely only on volume detection
-        waveformUI.setSpeaking(true);
-        // Agent is speaking, so we're not in listening mode
-        waveformUI.setListening(false);
+        // Avatar and waveform follow lk.agent.state (turn-driver); this only acts under its kill switch
+        trackTurnFallback('agent-audio');
 
         // 🎚️ Duck music when agent is speaking
         getMusicAudioController().duckForAgent();
@@ -2873,11 +2869,7 @@ class VoiceAIApp {
       },
 
       onAudioTrackEnd: (_participantId) => {
-        // Agent stopped speaking
-        waveformUI.setSpeaking(false);
-        trackTurnFallback('agent-audio-end'); // avatar state, unless ferni:avatar-turns drives it
-        // Now we're listening for user input
-        waveformUI.setListening(true);
+        trackTurnFallback('agent-audio-end'); // avatar + waveform, only under the turn-driver kill switch
 
         // 🎚️ Unduck music when agent stops speaking
         getMusicAudioController().unduckForAgent();
@@ -2961,9 +2953,7 @@ class VoiceAIApp {
       },
 
       onLocalMicActive: (isActive) => {
-        // When user's mic is active, show listening state
-        waveformUI.setListening(isActive);
-        trackTurnFallback(isActive ? 'mic-on' : 'mic-off');
+        trackTurnFallback(isActive ? 'mic-on' : 'mic-off'); // avatar + waveform, under the kill switch only
 
         // 🎚️ Duck/unduck music when user is speaking
         const controller = getMusicAudioController();

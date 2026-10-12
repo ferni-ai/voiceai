@@ -79,6 +79,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      actions: read # queue-tested lists merge-queue runs
     outputs:
       cache-key: ${{ steps.cache-key.outputs.key }}
       # 'false' only when a PR touches nothing but docs/, scripts/voice-eval/ and
@@ -89,9 +90,13 @@ jobs:
       # ignores apps/**, and none has .ts, so the test, lint and build jobs can't
       # see the change. Security and Quality Gates (brand scans the website) stay on
       # `code`. The merge queue is scoped the same way unless CI_SCOPED_QUEUE=off.
-      node: ${{ steps.node.outputs.matched }}
+      # On a push to main whose exact tree a successful merge-queue run already
+      # tested, the Node suite is skipped too (queue-tested; Security and Quality
+      # Gates still run). Admin merges and direct pushes always get the full suite.
+      node: ${{ steps.queue.outputs.tested == 'true' && 'false' || steps.node.outputs.matched }}
+      queue-run: ${{ steps.queue.outputs.run-id }}
       # voice-eval scripts are tested by Unit Tests (src/tests/voice-eval)
-      voice-eval: ${{ steps.voice-eval.outputs.matched }}
+      voice-eval: ${{ steps.queue.outputs.tested == 'true' && 'false' || steps.voice-eval.outputs.matched }}
       # the web app, design system or brand changed (Overlay Gallery)
       web: ${{ steps.web.outputs.matched }}
     steps:
@@ -111,6 +116,10 @@ jobs:
         with:
           exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|macos-menubar)/'
           merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
+
+      - name: Did the merge queue already test this tree?
+        id: queue
+        uses: ./.github/actions/queue-tested
 
       - name: Did voice-eval scripts change?
         id: voice-eval
