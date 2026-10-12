@@ -150,6 +150,8 @@ export const FLAG_MANIFEST = {
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   INTERRUPT_TRACE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   IN_PROCESS_SCHEDULERS: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  // public landing-page Gemini calls; off until the chat has per-IP and daily limits
+  LANDING_AI: { default: 'off', owner: 'platform', kind: 'experiment' },
   LAUGH_ALONG: { default: 'off', owner: 'voice', kind: 'experiment' },
   LAZY_FIRESTORE: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   LIFE_LEDGER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
