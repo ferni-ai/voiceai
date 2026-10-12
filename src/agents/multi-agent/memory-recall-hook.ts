@@ -69,6 +69,7 @@ import {
   type EpisodeStore,
 } from '../../memory/recall/episodes.js';
 import { firestoreEpisodeStore } from '../../memory/storage/episode-store.js';
+import { createSummaryRecall, summaryRecallEnabled } from '../../memory/recall/call-summaries.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -128,6 +129,8 @@ export interface MemoryRecallDeps {
   /** RECALL_EPISODES=on (episodes.ts, needs semantic); read from the environment when not given. */
   episodes?: boolean;
   episodeStore?: EpisodeStore;
+  /** RECALL_SUMMARIES=on (call-summaries.ts); read from the environment when not given. */
+  summaries?: boolean;
 }
 
 export interface MemoryRecall {
@@ -171,6 +174,15 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let checkInNote: string | null = null;
   let checkInOffered = false;
   const semanticOn = deps.semantic ?? semanticRecallEnabled();
+  // Key points of earlier calls' summaries; loaded apart so the snapshot never waits.
+  const summaryRecall =
+    (deps.summaries ?? summaryRecallEnabled())
+      ? createSummaryRecall({
+          userId: deps.userId,
+          store: deps.store ?? firestoreRecallStore,
+          ...(semanticOn && { embed: deps.embed }),
+        })
+      : undefined;
   let index: SemanticIndex | undefined;
   // Semantic recall only: threads and stories past the first note, by id.
   const laterFollowUps = new Map<string, string>();
@@ -263,6 +275,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       if (!snapshot || !text) return null;
       index?.observe(text);
       episodes?.observe(text);
+      summaryRecall?.observe(text);
       const semantic = index?.matches() ?? new Map<string, number>();
       const blend = index ? { semantic, now: Date.now() } : undefined;
       const budget = FACTS_PER_TURN - factsThisTurn;
@@ -309,6 +322,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         [
           checkIn,
           formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes }),
+          summaryRecall?.take(text) ?? null,
           told,
           extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
           episodes?.take() ?? null,
@@ -346,6 +360,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       tokensLeft = RECALL_TOKENS_PER_TURN;
       entitiesThisTurn.clear();
       index?.newTurn();
+      summaryRecall?.newTurn();
     },
   };
 }
