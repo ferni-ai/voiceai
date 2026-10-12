@@ -225,6 +225,9 @@ importers:
       twilio:
         specifier: ^5.10.7
         version: 5.10.7
+      undici:
+        specifier: ^6.28.1
+        version: 6.29.0
       uuid:
         specifier: 14.0.2
         version: 14.0.2
