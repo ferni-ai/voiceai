@@ -1801,10 +1801,10 @@
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
       "title": "How Seeds Work",
-      "conversation": "Have a conversation: +1 seed",
+      "conversation": "First conversation of the day: +5 seeds",
       "note": "Seeds help us prioritise what to build next!",
-      "streak30": "30-day streak: +15 seeds",
-      "streak7": "7-day streak: +5 seeds",
+      "streak30": "30-day streak: +100 seeds",
+      "streak7": "7-day streak: +25 seeds",
       "vote": "Vote for features: 1-10 seeds"
     },
     "intro": "Every great relationship has seasons. These are seeds we're planting together.",

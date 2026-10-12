@@ -12,6 +12,7 @@
 import { t } from '../i18n/index.js';
 import { isNoStreaksOn } from '../config/no-streaks.js';
 import { createLogger } from '../utils/logger.js';
+import { containsWords } from '../utils/contains-words.js';
 import { appState } from '../state/app.state.js';
 import { noteServerBalance, refreshServerSeeds, serverSeeds } from './seeds-ledger.service.js';
 
@@ -197,8 +198,8 @@ export const STAGE_INFO: Record<RoadmapStage, ReturnType<typeof stageInfo>> = {
 // ============================================================================
 
 // Only features that are not built yet. Shipped ones (connections, household, voice ID,
-// personalize, marketplace) have their own panels; listing them here asked people to vote
-// for what they already had. No arrival dates: the old quarters had all passed.
+// personalize, marketplace) have their own panels. No arrival dates, and every feature is
+// an idea ('seed'): nothing here is being built, so no "growing" or "almost ready" stage.
 const ROADMAP_FEATURE_DEFS: RoadmapFeatureDef[] = [
   // -------------------------------------------------------------------------
   // CONNECT CATEGORY
@@ -206,7 +207,7 @@ const ROADMAP_FEATURE_DEFS: RoadmapFeatureDef[] = [
   {
     id: 'group-coaching',
     ns: 'groupCoaching',
-    stage: 'sprout',
+    stage: 'seed',
     canVote: true,
     icon: 'users',
     category: 'connect',
@@ -214,7 +215,7 @@ const ROADMAP_FEATURE_DEFS: RoadmapFeatureDef[] = [
   {
     id: 'video-settings',
     ns: 'videoSettings',
-    stage: 'bud',
+    stage: 'seed',
     canVote: true,
     icon: 'video',
     category: 'connect',
@@ -355,7 +356,7 @@ class RoadmapService {
    */
   getSeedBalance(): number {
     // Once the server keeps seeds, the one balance every screen shows
-    return serverSeeds()?.balance ?? this.seedBalanceCache ?? 10; // Default to 10 for new users
+    return serverSeeds()?.balance ?? this.seedBalanceCache ?? 25; // server STARTER_SEEDS (seeds/ledger.ts)
   }
 
   /**
@@ -809,7 +810,7 @@ class SmartPromptTracker {
 
     for (const rule of SMART_PROMPT_RULES) {
       for (const trigger of rule.triggers) {
-        if (lowerText.includes(trigger.toLowerCase())) {
+        if (containsWords(lowerText, trigger)) {
           const currentCount = this.mentionCounts.get(rule.featureId) ?? 0;
           this.mentionCounts.set(rule.featureId, currentCount + 1);
 
@@ -842,9 +843,6 @@ class SmartPromptTracker {
 
         // Skip features user already voted for
         if (roadmapService.hasVoted(rule.featureId)) continue;
-
-        // Skip features that are already in bloom (launching soon)
-        if (feature.stage === 'bloom') continue;
 
         // Calculate confidence level
         let confidence: 'low' | 'medium' | 'high' = 'low';
