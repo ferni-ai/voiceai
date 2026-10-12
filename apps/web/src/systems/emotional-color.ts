@@ -273,18 +273,12 @@ class EmotionalColorManager {
     // Interpolate toward target state
     this.interpolateToTarget(now);
 
-    // Apply breath modulation
-    if (this.config.breathModulation) {
-      this.applyBreathModulation();
-    }
-
-    // Apply ambient subtle shifts
-    if (this.config.ambientShifts) {
-      this.applyAmbientShifts();
-    }
-
-    // Update CSS custom properties
+    // CSS mirrors the emotion itself, before the per-frame breath and ambient
+    // drift, so it changes only during a transition (see setRootVar)
     this.updateCSSProperties();
+
+    if (this.config.breathModulation) this.applyBreathModulation();
+    if (this.config.ambientShifts) this.applyAmbientShifts();
 
     // Notify listeners
     this.notifyListeners();
@@ -350,20 +344,18 @@ class EmotionalColorManager {
   }
 
   private updateCSSProperties(): void {
-    const root = document.documentElement;
-
     // Core emotional properties
-    root.style.setProperty('--emotional-warmth', this.state.warmth.toFixed(3));
-    root.style.setProperty('--emotional-intensity', this.state.intensity.toFixed(3));
-    root.style.setProperty('--emotional-depth', this.state.depth.toFixed(3));
-    root.style.setProperty('--emotional-glow', this.state.glow.toFixed(3));
-    root.style.setProperty('--emotional-state', this.state.emotion);
+    this.setRootVar('--emotional-warmth', this.state.warmth.toFixed(3));
+    this.setRootVar('--emotional-intensity', this.state.intensity.toFixed(3));
+    this.setRootVar('--emotional-depth', this.state.depth.toFixed(3));
+    this.setRootVar('--emotional-glow', this.state.glow.toFixed(3));
+    this.setRootVar('--emotional-state', this.state.emotion);
 
     // Calculate derived colors
-    this.updateDerivedColors(root);
+    this.updateDerivedColors();
   }
 
-  private updateDerivedColors(root: HTMLElement): void {
+  private updateDerivedColors(): void {
     // Accent color shifts based on warmth
     const accentHue = this.lerp(
       COLOR_BASES.coolAccent.h,
@@ -374,7 +366,7 @@ class EmotionalColorManager {
     const accentSat = this.lerp(30, 70, this.state.intensity);
     const accentLit = this.lerp(40, 60, 1 - this.state.depth);
 
-    root.style.setProperty(
+    this.setRootVar(
       '--emotional-accent',
       `hsl(${accentHue.toFixed(1)}, ${accentSat.toFixed(1)}%, ${accentLit.toFixed(1)}%)`
     );
@@ -383,7 +375,7 @@ class EmotionalColorManager {
     const glowHue = this.lerp(COLOR_BASES.glowCool.h, COLOR_BASES.glowWarm.h, (this.state.warmth + 1) / 2);
     const glowAlpha = this.state.glow * 0.4;
 
-    root.style.setProperty(
+    this.setRootVar(
       '--emotional-glow-color',
       `hsla(${glowHue.toFixed(1)}, 60%, 55%, ${glowAlpha.toFixed(3)})`
     );
@@ -392,16 +384,27 @@ class EmotionalColorManager {
     const bgHueShift = this.state.warmth * COLOR_BASES.bgWarmShift;
     const bgSatShift = (this.state.intensity - 0.5) * COLOR_BASES.bgSatRange;
 
-    root.style.setProperty('--emotional-bg-hue-shift', `${bgHueShift.toFixed(1)}deg`);
-    root.style.setProperty('--emotional-bg-sat-shift', `${bgSatShift.toFixed(1)}%`);
+    this.setRootVar('--emotional-bg-hue-shift', `${bgHueShift.toFixed(1)}deg`);
+    this.setRootVar('--emotional-bg-sat-shift', `${bgSatShift.toFixed(1)}%`);
 
     // Overlay for depth
     const depthOverlay = this.state.depth * 0.08;
-    root.style.setProperty('--emotional-depth-overlay', `rgba(0, 0, 0, ${depthOverlay.toFixed(3)})`);
+    this.setRootVar('--emotional-depth-overlay', `rgba(0, 0, 0, ${depthOverlay.toFixed(3)})`);
 
     // Highlight brightness based on intensity
     const highlightBrightness = 1 + this.state.intensity * 0.1;
-    root.style.setProperty('--emotional-highlight-brightness', highlightBrightness.toFixed(3));
+    this.setRootVar('--emotional-highlight-brightness', highlightBrightness.toFixed(3));
+  }
+
+  /**
+   * A custom property on :root changes the computed style of every element, so
+   * each write re-runs style for the whole document. Writing ~11 every frame
+   * cost that 60 times a second while idle; write only what changed.
+   */
+  private setRootVar(name: string, value: string): void {
+    // Reading the inline declaration does not compute style, so this is cheap
+    const { style } = document.documentElement;
+    if (style.getPropertyValue(name) !== value) style.setProperty(name, value);
   }
 
   private lerp(a: number, b: number, t: number): number {
@@ -478,34 +481,13 @@ export function blendEmotionalStates(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CSS Usage Examples (for reference)
+// Usage
 // ─────────────────────────────────────────────────────────────────────────────
 
 /*
-Usage in CSS:
-
-.avatar-glow {
-  box-shadow: 0 0 60px var(--emotional-glow-color);
-}
-
-.glass-card {
-  filter: hue-rotate(var(--emotional-bg-hue-shift));
-  background:
-    var(--emotional-depth-overlay),
-    var(--glass-bg);
-}
-
-.accent-text {
-  color: var(--emotional-accent);
-}
-
-.highlight-element {
-  filter: brightness(var(--emotional-highlight-brightness));
-}
-
-For more control, subscribe to state changes:
-
-import { getEmotionalColor } from './emotional-color.js';
+CSS can read the --emotional-* properties on :root (e.g. box-shadow: 0 0 60px
+var(--emotional-glow-color)); they change only while an emotion transitions.
+For the per-frame breathing values, subscribe:
 
 getEmotionalColor().subscribe((state) => {
   // Custom logic based on state.warmth, state.intensity, etc.
