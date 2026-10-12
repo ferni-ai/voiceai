@@ -258,8 +258,8 @@ export const FLAG_MANIFEST = {
   SKIP_PERSONA_INDEXING: { default: 'off', owner: 'platform', kind: 'config' },
   SKIP_TWILIO_VALIDATION: { default: 'off', owner: 'platform', kind: 'config' },
   SONATA_STT_ENABLE_VAD: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  // the speculative TTS warmup + per-turn pre-render; the live reply path never reads its cache
-  SPECULATIVE_TTS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // speculative TTS warmup + per-turn pre-render: Cartesia calls the gateway reply path never reads
+  SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   STREAMING_TTS_OVERLAP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   STT_REFRESH_AFTER_GREETING: { default: 'off', owner: 'voice', kind: 'experiment' },
   STYLE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
