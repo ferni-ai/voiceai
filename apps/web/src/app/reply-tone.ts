@@ -66,21 +66,27 @@ function applySpeed(speed: number): void {
   breathAdjusted = true;
 }
 
+/** Puts a resting face on Ferni; the expression arbiter passes its own gate. */
+export type SetRestingFace = (expression: EmotionalExpression) => void;
+
 /**
  * Handle a `reply_tone` message. Returns true when the message was one (it is
  * consumed even with the flag off, so it never reaches the other handlers).
  */
-export function handleReplyTone(message: DataMessage): boolean {
+export function handleReplyTone(
+  message: DataMessage,
+  setFace: SetRestingFace = (expression) => ferniExpressions.setExpression(expression)
+): boolean {
   if (message.type !== REPLY_TONE_MESSAGE) return false;
   if (!isReplyToneEnabled()) return true;
   const { emotion, speed } = message;
   const expression = typeof emotion === 'string' ? REPLY_TONE_EXPRESSIONS[emotion] : undefined;
   if (expression) {
-    ferniExpressions.setExpression(expression);
+    setFace(expression);
     restingFace = expression;
   } else if (restingFace && ferniExpressions.getExpression() === restingFace) {
     // The voice takes its tone from the words: drop the last reply's face.
-    ferniExpressions.setExpression('neutral');
+    setFace('neutral');
     restingFace = null;
   }
   if (typeof speed === 'number') applySpeed(speed);
