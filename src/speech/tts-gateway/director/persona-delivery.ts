@@ -33,7 +33,13 @@ import { join } from 'node:path';
 import { flagOn, type Env } from '../../../config/env-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { toSonicEmotion } from '../../sonic-emotions.js';
-import { fitsWords, toStableEmotion, type StableEmotion, type Valence } from './emotion.js';
+import {
+  fitsWords,
+  toStableEmotion,
+  type EmotionDecision,
+  type StableEmotion,
+  type Valence,
+} from './emotion.js';
 
 const log = createLogger({ module: 'PersonaDelivery' });
 
@@ -134,6 +140,48 @@ export function personaEmotion(
   if (!allowed || !chosen || allowed.has(chosen)) return chosen;
   const preferred = delivery.defaultEmotion ? [delivery.defaultEmotion, ...allowed] : [...allowed];
   return preferred.find((e) => fitsWords(e, valence));
+}
+
+/** The Director's tone decision, as the persona would make it (source 'persona' when changed). */
+export function personaTone(
+  delivery: PersonaDelivery | undefined,
+  decision: EmotionDecision,
+  valence: Valence
+): EmotionDecision {
+  if (!delivery) return decision;
+  const emotion = personaEmotion(delivery, decision.emotion, valence);
+  return emotion === decision.emotion
+    ? decision
+    : { emotion, source: emotion ? 'persona' : 'none' };
+}
+
+/** The reply's speed and resting loudness; without a persona, the Director's own pace. */
+export function placePace(
+  delivery: PersonaDelivery | undefined,
+  relative: number,
+  pacingLive: boolean
+): { speed: number; volume: number } {
+  if (!delivery) return { speed: relative, volume: 1 };
+  return { speed: personaPace(delivery, relative), volume: pacingLive ? delivery.volume : 1 };
+}
+
+/** An incoming volume (a soft start, the LLM's own tag) scaled by the reply's, inside 0.5-2. */
+export function composeVolume(incoming: number | undefined, reply: number): number | undefined {
+  if (reply === 1) return incoming;
+  return round2(clamp((incoming ?? 1) * reply, VOLUME_LIMITS));
+}
+
+/** A later push's <volume> tag, scaled by the reply's loudness rather than replacing it. */
+export function composeVolumeTag(
+  tags: string,
+  incoming: number | undefined,
+  reply: number
+): string {
+  if (reply === 1 || incoming === undefined) return tags;
+  return tags.replace(
+    /<volume\s+ratio="[\d.]+"\s*\/>/,
+    `<volume ratio="${composeVolume(incoming, reply)}"/>`
+  );
 }
 
 const SAFE_ID = /^[a-z0-9][a-z0-9-]*$/;
