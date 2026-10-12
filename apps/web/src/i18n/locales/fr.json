@@ -3931,6 +3931,8 @@
     "loadingCoaches": "Recherche de coachs en cours...",
     "noMatches": "Aucun résultat pour l'instant",
     "noMatchesHint": "Essaie une autre recherche ou explore tous les coachs.",
+    "nobodyYet": "Personne de nouveau à rencontrer pour l'instant.",
+    "nobodyYetHint": "Quand quelqu'un de nouveau pourra rejoindre tes appels, tu le rencontreras ici. Pour l'instant, parle avec ton équipe.",
     "becomeCreator": "Lance-toi dans la création",
     "poweredBy": "Propulsé par Ferni",
     "teamLocked": {
