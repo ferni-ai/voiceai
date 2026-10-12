@@ -30,6 +30,7 @@ import {
 import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
+import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { ferniStateNote } from './ferni-state.js';
@@ -90,7 +91,9 @@ export function withTurnReminder(
   // Nothing steers back to a locked teammate the caller didn't just name.
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
-  const notes = formatNotes((director?.current() ?? []).filter(keep));
+  // DIRECTOR_ANSWER_TURN_GUARD=on: notes written before they answered Ferni's question are stale.
+  const answering = isAnswerTurn(chatCtx.items, words);
+  const notes = answering ? '' : formatNotes((director?.current() ?? []).filter(keep));
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
   // The style goes last, nearest the reply: the per-turn shape is followed
@@ -110,7 +113,9 @@ export function withTurnReminder(
     firstCallNote(chatCtx, session, words),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
-    turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
+    turnStyleReminderEnabled()
+      ? styleFor(chatCtx, session, options.shape !== false, answering)
+      : '',
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
     options.shape !== false ? exitFor(chatCtx, session, words) : '',
   ]
@@ -165,22 +170,29 @@ function callerWords(chatCtx: llm.ChatContext): string {
  * single style reminder when shaping is off, there are no words, or the
  * caller asked for none (a crisis reply must not be held to a few words).
  */
-function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): string {
+function styleFor(
+  chatCtx: llm.ChatContext,
+  session: object,
+  shape: boolean,
+  answering = false
+): string {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
   if (!said) return TURN_STYLE_REMINDER;
   // Seeded per call and words: the preemptive and final requests agree, but
   // the same words on another call (or said again) can get another shape.
   const { signals, source } = signalsFor(session, said);
+  const held = withSupportHold(session, said, signals, source);
+  const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
   const turn = turnShapeFor(
     said,
     rngFor(`${callSeed(session)}:${said}`),
     undefined,
-    withRecent(withSupportHold(session, said, signals, source), said, chatCtx)
+    withRecent(sig, said, chatCtx)
   );
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
   log.info(
-    { move: turn.move, shape: turn.shape, extras: turn.extras, source, understood },
+    { move: turn.move, shape: turn.shape, extras: turn.extras, source, understood, answering },
     'TURN_SHAPE'
   );
   return turn.reminder;
