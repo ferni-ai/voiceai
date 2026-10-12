@@ -225,6 +225,7 @@ export const FLAG_MANIFEST = {
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },
   PUBSUB_ENABLED: { default: 'off', owner: 'voice', kind: 'config' },
   QUIET_HOURS_UNIFIED: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  RECALL_BRIDGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   RECALL_EPISODES: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_FACT_QUOTES: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_PEOPLE: { default: 'off', owner: 'memory', kind: 'experiment' },
