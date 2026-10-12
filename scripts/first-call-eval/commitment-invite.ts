@@ -94,8 +94,9 @@ async function ferniSystem(): Promise<string> {
 
 async function oneCall(p: Persona, system: string, id: string) {
   const { withTurnReminder } = await import('../../src/agents/personas/turn-request.js');
-  const { INVITE_NOTE, NAMED_NOTE, REFLECT_NOTE } =
+  const { INVITE_NOTE, NAMED_NOTE, REFLECT_NOTE, inviteTurnSeed } =
     await import('../../src/agents/personas/commitment-invite.js');
+  const { checkInviteReply } = await import('../../src/agents/personas/commitment-invite-reply.js');
   const noteIn = (asked: string): string =>
     asked.includes(INVITE_NOTE)
       ? 'invite'
@@ -109,6 +110,7 @@ async function oneCall(p: Persona, system: string, id: string) {
     { who: 'agent', text: `Hey ${p.name}, good to hear from you. What's going on?` },
   ];
   const notes: string[] = [];
+  const dropped: Array<{ turn: number; before: string }> = [];
   for (let turn = 1; turn <= p.turns; turn++) {
     lines.push({ who: 'user', text: await callerSays(p, lines, turn) });
     const ctx = llm.ChatContext.empty();
@@ -124,9 +126,13 @@ async function oneCall(p: Persona, system: string, id: string) {
       temperature: 0.8,
       thinkingLevel: 'MINIMAL',
     });
-    lines.push({ who: 'agent', text: reply });
+    // As gatedReply does on the invite turn (commitment-invite-reply.ts).
+    const seed = inviteTurnSeed(session);
+    const checked = seed === undefined ? reply : checkInviteReply(reply, seed).text;
+    if (checked !== reply) dropped.push({ turn, before: reply });
+    lines.push({ who: 'agent', text: checked });
   }
-  return { lines, notes };
+  return { lines, notes, dropped };
 }
 
 async function run(label: string, reps: number, concurrency: number): Promise<void> {
