@@ -44,8 +44,8 @@ const keyword = (body: string): string =>
 
 export type Env = Record<string, string | undefined>;
 
-/** What a text was: the after-call check-in, or a follow-up (reminder, commitment, thread). */
-export type TextKind = 'checkin' | 'follow-up';
+/** What a text was: the after-call check-in, a follow-up (reminder, commitment, thread), or one sent for a member to someone else. */
+export type TextKind = 'checkin' | 'follow-up' | 'on-behalf';
 
 export interface CheckinRecord {
   userId: string;
@@ -138,7 +138,9 @@ export function matchCheckin(records: readonly StoredCheckin[], now: Date): Stor
   let best: StoredCheckin | null = null;
   for (const r of records) {
     const t = Date.parse(r.sentAt);
-    if (r.status !== 'sent' || Number.isNaN(t) || now.getTime() - t > REPLY_WINDOW_MS) continue;
+    // A reply to a text sent for a member comes from their contact: not feedback, not kept.
+    if (r.kind === 'on-behalf' || r.status !== 'sent' || Number.isNaN(t)) continue;
+    if (now.getTime() - t > REPLY_WINDOW_MS) continue;
     if (!best || t > Date.parse(best.sentAt)) best = r;
   }
   return best;
