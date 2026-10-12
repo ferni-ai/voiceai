@@ -40,6 +40,7 @@ import { handleVoiceEventDataMessage } from '../services/voice-events.service.js
 import { smartPromptTracker } from '../services/roadmap.service.js';
 import { setWrappingUp } from '../state/app.state.js';
 import { handleAgentAckMessage } from './agent-ack-handlers.js';
+import { observeListenSignal } from './backchannel-signal.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
 import { coachUI } from '../ui/coach.ui.js';
@@ -148,8 +149,8 @@ export function clearLastAgentResponse(): void {
  * Routes to appropriate handler based on message type.
  */
 export function handleDataMessage(message: DataMessage): void {
-  // Try to process as handoff (async - fire and forget)
-  void handoffService.processDataMessage(message);
+  observeListenSignal(message); // avatar listen nods (ferni:listen-nods); observes, never consumes
+  void handoffService.processDataMessage(message); // handoff: async, fire and forget
 
   // 🎬 Try to process as cameo (team member pop-in)
   if (cameoService.processDataMessage(message)) {
@@ -208,8 +209,7 @@ export function handleDataMessage(message: DataMessage): void {
   }
 
   // Try to process as music event (for avatar dancing)
-  // Backend sends 'music_state', we normalize to MusicEvent
-  // 🎧 DEBUG: Log all incoming messages to trace music state flow
+  // Backend sends 'music_state', we normalize to MusicEvent (🎧 debug-logged to trace the flow)
   if ((message as { type?: string }).type === 'music_state') {
     log.info('🎧 [FRONTEND] Received music_state message', {
       rawMessage: JSON.stringify(message).slice(0, 500),

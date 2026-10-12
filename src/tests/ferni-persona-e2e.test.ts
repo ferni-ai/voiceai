@@ -625,7 +625,7 @@ describe('Persona Consistency', () => {
     expect(allContent.includes('wyoming') || allContent.includes('teton')).toBe(true);
   });
 
-  it('should have tsunami/mortality references in late night presence', async () => {
+  it('should have mentor/mortality references in late night presence', async () => {
     const bundle = await import('../personas/bundles/index.js').then((m) =>
       m.loadBundleById('ferni')
     );

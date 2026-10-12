@@ -1319,7 +1319,7 @@
         "calendar": "カレンダー",
         "history": "過去のお話",
         "people": "あなたの大切な人たち",
-        "insights": "最近の様子"
+        "insights": "学んだこと"
       }
     },
     "ariaLabel": "設定メニュー",
@@ -8790,6 +8790,7 @@
     }
   },
   "conversationHistory": {
+    "title": "過去のお話",
     "loadError": "データを読み込めませんでした。",
     "tryAgain": "もう一度試しますか？",
     "ariaLabel": "お話の履歴",
