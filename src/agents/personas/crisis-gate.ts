@@ -48,6 +48,7 @@ import {
 } from '../safety/crisis-shadow.js';
 import { turnOpenedSince } from '../integrations/turn-opening-sound.js';
 import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
+import { holdCommitmentInvite } from './commitment-invite.js';
 import { getDeliberator } from './deliberation.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
@@ -254,6 +255,16 @@ export function holdUntilCleared(
 }
 
 /**
+ * A crisis turn: no background thought now or for the next few turns
+ * (deliberation.ts), and no small-step invite for the rest of the call
+ * (commitment-invite.ts).
+ */
+function holdAfterCrisis(session: object): void {
+  getDeliberator(session)?.hold();
+  holdCommitmentInvite(session);
+}
+
+/**
  * One persona reply through the gate: the crisis script instead of the model,
  * or the model asked with the turn reminder (plus crisis guidance when the
  * patterns call for it) and held until the classifier clears it. The opener
@@ -280,8 +291,7 @@ export async function gatedReply(
   gate?.escalation
     ?.then((decision) => signalCrisisDecision(session, decision?.action))
     .catch(() => undefined);
-  // A crisis turn: no background thought now or for the next few turns (deliberation.ts).
-  if (gate && gate.decision.action !== 'pass') getDeliberator(session)?.hold();
+  if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
   if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
 
   // A reply with crisis guidance keeps the plain style reminder: a per-turn
@@ -300,7 +310,7 @@ export async function gatedReply(
   const reply = await ask(ctx);
   if (!reply || !gate?.escalation) return reply;
   return holdUntilCleared(reply, gate.escalation, async (decision) => {
-    if (decision.action !== 'pass') getDeliberator(session)?.hold();
+    if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(decision.script);
     if (decision.action === 'pass') return null;
     return ask(withTurnStyleReminder(plain(), decision.guidance));

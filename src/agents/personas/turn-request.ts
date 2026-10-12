@@ -33,9 +33,10 @@ import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { ferniStateNote } from './ferni-state.js';
-import { firstCallNote } from './first-call-rapport.js';
+import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
+import { commitmentInviteNote } from './commitment-invite.js';
 import { callerTurnsOf, happyExitNote, happyExitsEnabled } from './happy-exits.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
@@ -113,6 +114,8 @@ export function withTurnReminder(
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
     options.shape !== false ? exitFor(chatCtx, session, words) : '',
+    // COMMITMENT_INVITE=on: once a call, one small step in their words (commitment-invite.ts)
+    inviteFor(chatCtx, session, words, options.shape === false),
   ]
     .filter(Boolean)
     .join(' ');
@@ -145,6 +148,31 @@ function exitFor(chatCtx: llm.ChatContext, session: object, said: string): strin
     wantsToEnd: understandingFor(session, said)?.wantsToEnd,
     rng: rngFor(`${callSeed(session)}:exit:${said}`),
   });
+}
+
+/** COMMITMENT_INVITE=on: the once-a-call invite, or saying back what they named (commitment-invite.ts). */
+function inviteFor(
+  chatCtx: llm.ChatContext,
+  session: object,
+  said: string,
+  crisis: boolean
+): string {
+  if (!said) return '';
+  const { signals } = signalsFor(session, said);
+  return commitmentInviteNote(
+    session,
+    {
+      said,
+      callerTurns: callerTurnsOf(chatCtx),
+      ferniLines: chatCtx.items.flatMap((i) =>
+        i.type === 'message' && i.role === 'assistant' ? [i.textContent ?? ''] : []
+      ),
+      careful: (signals ?? regexSignals(said, callerMove(said))).careful,
+      wantsToEnd: understandingFor(session, said)?.wantsToEnd,
+      firstCall: isFirstCall((session as { userData?: unknown }).userData),
+    },
+    { crisis }
+  );
 }
 
 /** The caller's words this reply answers: their messages since the agent last spoke, notes aside. */
