@@ -29,6 +29,14 @@ import {
 
 const log = getLogger().child({ service: 'message-enrichment' });
 
+// task: CLAUDE_LLM_TASKS=outreach can route these to Claude (services/llm/claude-text.ts).
+const OUTREACH_LLM = {
+  maxTokens: MAX_TOKENS_SHORT,
+  temperature: TEMP_REASONING,
+  timeout: LLM_TIMEOUT_MS,
+  task: 'outreach',
+} as const;
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -368,11 +376,7 @@ async function generateFromLLM(
   startTime: number
 ): Promise<EnrichedMessage> {
   const prompt = buildEnrichmentPrompt(context);
-  const enrichedText = await callLLM(prompt, {
-    maxTokens: MAX_TOKENS_SHORT,
-    temperature: TEMP_REASONING,
-    timeout: LLM_TIMEOUT_MS,
-  });
+  const enrichedText = await callLLM(prompt, OUTREACH_LLM);
 
   if (!enrichedText) {
     log.warn('LLM enrichment failed, falling back to template');
@@ -423,11 +427,7 @@ export async function enrichVoicemailMessage(context: EnrichmentContext): Promis
 
     // Try to get structured components
     const componentsPrompt = buildVoicemailComponentsPrompt(context);
-    const componentsResponse = await callLLM(componentsPrompt, {
-      maxTokens: MAX_TOKENS_SHORT,
-      temperature: TEMP_REASONING,
-      timeout: LLM_TIMEOUT_MS,
-    });
+    const componentsResponse = await callLLM(componentsPrompt, OUTREACH_LLM);
 
     if (componentsResponse) {
       try {

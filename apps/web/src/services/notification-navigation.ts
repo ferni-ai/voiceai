@@ -7,12 +7,11 @@
  * resolve to the same `ferni:open-*` events the app already listens for.
  */
 
-type PanelName = 'engagement' | 'predictions' | 'huddle' | 'analytics';
+type PanelName = 'engagement' | 'predictions' | 'analytics';
 
 const PANEL_EVENTS: Record<PanelName, string> = {
   engagement: 'ferni:open-engagement',
   predictions: 'ferni:open-predictions',
-  huddle: 'ferni:open-team-huddle',
   analytics: 'ferni:open-analytics',
 };
 
@@ -20,7 +19,6 @@ const PANEL_EVENTS: Record<PanelName, string> = {
 const TYPE_PANELS = new Map<string, PanelName>([
   ['ritual_reminder', 'engagement'],
   ['prediction_result', 'predictions'],
-  ['team_huddle', 'huddle'],
   ['streak_milestone', 'analytics'],
 ]);
 

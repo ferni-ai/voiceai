@@ -11,6 +11,7 @@ vi.mock('../../../token/livekit.js', () => ({
   createToken: vi.fn(async () => 'jwt-token'),
   createRoomWithAgent,
   getLiveKitUrl: () => 'wss://example.livekit.cloud',
+  getRoomService: () => ({ listRooms: async () => [] }),
 }));
 vi.mock('../../../../api/auth-middleware.js', () => ({ rateLimit: () => false }));
 vi.mock('../../../../services/identity/firebase-auth.js', () => ({

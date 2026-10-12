@@ -12,6 +12,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { memoryControlEnabled } from './memory/remembered.js';
 import { LINKEDIN_ENABLED } from '../config/linkedin.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 // Relationship stage service - used for feature unlocking and progress display
@@ -26,6 +27,7 @@ import { isFullTeamUnlocked } from '../services/team-unlock.service.js';
 import { signOutOfThisBrowser } from './sign-out.js';
 // Roadmap service - for "What's Growing" experience
 import { roadmapService } from '../services/roadmap.service.js';
+import { isPatternInsightsOn } from '../config/pattern-insights-flag.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -71,8 +73,6 @@ export interface SettingsMenuUICallbacks {
   onEightSleepClick?: () => void;
   onOuraClick?: () => void;
   onAppleHealthClick?: () => void;
-  onTeamHuddleClick?: () => void;
-  onTeamObservationsClick?: () => void;
   onTrustJourneyClick?: () => void;
   onTrustDashboardClick?: () => void;
   onMusicDashboardClick?: () => void;
@@ -293,8 +293,7 @@ const ICONS = {
 };
 
 // ============================================================================
-// FEATURE LOCK MAPPING - Maps menu actions to unlockable features
-// Progressive disclosure: features unlock as relationship deepens
+// FEATURE LOCK MAPPING: menu actions to features that unlock as the relationship deepens
 // ============================================================================
 
 const FEATURE_LOCK_MAP: Record<string, string> = {
@@ -303,15 +302,13 @@ const FEATURE_LOCK_MAP: Record<string, string> = {
   analytics: 'progress-analytics',
 
   // Building Trust stage (7+ convos, 3+ days)
-  team: 'team-huddle',
   'conversation-memory': 'memory-browser',
   wellbeing: 'wellbeing-dashboard',
   predictions: 'prediction-accuracy',
   'group-coaching': 'group-coaching',
   'video-call-settings': 'video-sessions',
-
-  // Established stage (20+ convos, 14+ days)
-  cognitive: 'deep-insights',
+  // Established stage (20+ convos, 14+ days). What Ferni remembers is open from the first call.
+  ...(memoryControlEnabled() ? {} : { cognitive: 'deep-insights' }),
   history: 'conversation-history',
 };
 
@@ -786,7 +783,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('trust-dashboard', ICONS.ring, t('menu.items.trustDashboard'))}
             ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
             ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane'), t('common.new'))}
-            ${this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights'))}
+            ${isPatternInsightsOn() ? this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights')) : ''}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
             ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear'), t('common.new'))}
           `
@@ -844,6 +841,7 @@ class SettingsMenuUI {
             ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects'), !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
             ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
+            ${memoryControlEnabled() ? this.renderMenuItem('cognitive', ICONS.brain, t('ferniKnows.panelTitle')) : ''}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
                 )
@@ -1046,8 +1044,6 @@ class SettingsMenuUI {
       contacts: { icon: ICONS.users, label: t('menu.items.contacts') },
       'video-call-settings': { icon: ICONS.video, label: t('menu.items.videoSessions') },
       'group-coaching': { icon: ICONS.users, label: t('menu.items.groupCoaching') },
-      team: { icon: ICONS.team, label: t('menu.items.teamHuddles') },
-      'team-observations': { icon: ICONS.lightbulb, label: t('menu.items.teamObservations') },
       'play-games': { icon: ICONS.sparkles, label: t('menu.items.playGames') },
       'music-dashboard': { icon: ICONS.music, label: t('menu.items.musicalYou') },
       'creative-you': { icon: ICONS.creative, label: t('menu.items.creativeYou') },
@@ -1270,12 +1266,6 @@ class SettingsMenuUI {
       case 'theme':
         this.callbacks.onThemeToggle?.();
         break;
-      case 'team':
-        this.callbacks.onTeamHuddleClick?.();
-        break;
-      case 'team-observations':
-        this.callbacks.onTeamObservationsClick?.();
-        break;
       case 'notifications':
         this.callbacks.onNotificationSettingsClick?.();
         break;
@@ -1435,8 +1425,7 @@ class SettingsMenuUI {
       case 'pattern-insights':
         this.callbacks.onPatternInsightsClick?.();
         break;
-      case 'conversation-insights':
-        // Consolidated into Pattern Insights (Phase 2)
+      case 'conversation-insights': // consolidated into Pattern Insights
         this.callbacks.onPatternInsightsClick?.();
         break;
       case 'knowledge-quiz':
