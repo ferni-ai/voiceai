@@ -264,18 +264,6 @@ async function seed() {
     name: 'Trust Building for Skeptical Users',
     variants: [
       {
-        id: 'social-proof',
-        name: 'Social Proof',
-        config: {
-          showTestimonials: true,
-          showUserCount: true,
-          showRatings: true,
-        },
-        contextConditions: [
-          { field: 'emotionalState', operator: 'eq', value: 'skeptical', weightModifier: 1.6 },
-        ],
-      },
-      {
         id: 'privacy-first',
         name: 'Privacy Emphasis',
         config: {
