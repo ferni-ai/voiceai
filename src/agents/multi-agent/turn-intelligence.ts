@@ -24,6 +24,11 @@ import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import type { UserData } from '../shared/types.js';
 import type { TurnHandlerContext } from '../voice-agent/turn-handler.js';
 import { getUserResponseGapMs } from '../voice-agent/user-response-gap.js';
+import {
+  createFirstReplyGate,
+  markTurnPipelineWarm,
+  type FirstReplyGate,
+} from './first-turn-calm.js';
 import { TURN_CONTEXT_HEADER } from './turn-context-header.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
@@ -286,7 +291,12 @@ interface ContextAgent {
  * question. Appended at the end, it was dropped as stale 122 times in 112 turns
  * (some turns pushed twice): the per-turn context reached no reply.
  */
-export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent) {
+export function createTurnContextPusher(
+  hook: UserTurnHook,
+  agent: ContextAgent,
+  // FIRST_TURN_CALM: the first turn's run waits for the first reply (first-turn-calm.ts).
+  firstReply: FirstReplyGate = createFirstReplyGate()
+) {
   let pending: string | null = null;
   let pushedId: string | null = null;
   let turnText = '';
@@ -334,9 +344,12 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
       turnText = `${turnText} ${transcript.trim()}`.trim();
       const forText = turnText;
       const mine = ++run;
+      await firstReply.ready();
+      if (mine !== run) return; // a later segment of this turn superseded it
       const { llm } = await import('@livekit/agents');
       const scratch = llm.ChatContext.empty();
-      await hook(scratch, llm.ChatMessage.create({ role: 'user', content: turnText }));
+      await hook(scratch, llm.ChatMessage.create({ role: 'user', content: forText }));
+      markTurnPipelineWarm();
       if (mine !== run) return; // a later segment of this turn superseded it
       const notes = scratch.items
         .map((item) => (item as { textContent?: string }).textContent?.trim())
@@ -348,6 +361,7 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
     },
 
     async onAgentState(newState: string | undefined): Promise<void> {
+      firstReply.onAgentState(newState);
       if (newState === 'thinking' || newState === 'speaking') turnText = ''; // the turn ended
       agentListening = newState === 'listening';
       await tryPush();
