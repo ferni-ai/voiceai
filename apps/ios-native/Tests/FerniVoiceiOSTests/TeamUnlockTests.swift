@@ -36,4 +36,13 @@ final class TeamUnlockTests: XCTestCase {
         let team = TeamUnlockService.evaluate(stage: .firstMeeting, stageProgress: 0, plan: .partner)
         XCTAssertEqual(team.unlocked, Set(PersonaRegistry.all.map(\.id)))
     }
+
+    /// While Ferni is free, a locked teammate's reason is the relationship, never a plan.
+    func testNoPlanInTheLockReasonWhilePaidPlansAreHidden() throws {
+        try XCTSkipIf(PaidPlans.isOffered, "paid plans are on")
+        let team = TeamUnlockService.evaluate(stage: .firstMeeting, stageProgress: 0, plan: .free)
+        let reason = try XCTUnwrap(team.statuses["nayan"]?.lockReason)
+        XCTAssertFalse(reason.contains("Partner tier"), reason)
+        XCTAssertEqual(reason, "Unlocks at \(RelationshipStage.deepPartnership.title)")
+    }
 }

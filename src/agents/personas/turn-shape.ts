@@ -21,6 +21,13 @@
 import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
 import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
+import {
+  lengthLearned,
+  lengthLine,
+  targetWords,
+  textureLearned,
+  textureLine,
+} from './turn-length.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -192,6 +199,8 @@ const FIT_THE_MOMENT =
   'Anything that matters to them, good or bad (news, something they are proud of, worried about or hurt by), gets a real response to that specific thing, with the feeling it deserves, not a remark that would fit anything. ' +
   'When they ask you something or ask for help, actually answer it; when they ask about you, talk about yourself, something specific. ' +
   'Most replies are a sentence or two, some only a few words; go longer only when they asked for it.';
+/** FIT_THE_MOMENT without its fixed length rule, for TURN_LENGTH=learned (the length line says it). */
+const FIT_THE_MOMENT_LEARNED = FIT_THE_MOMENT.replace(/ Most replies are .*$/, '');
 
 function modelChosenShape(
   userText: string,
@@ -218,17 +227,32 @@ function modelChosenShape(
     move !== 'ack' && rng() < scaled(0.3, style.opinion)
   );
   parts.push(...stance.lines);
-  if (rng() < scaled(0.5, style.filler))
+  // TURN_LENGTH / TURN_TEXTURE=learned (turn-length.ts): length and roughness drawn from friends'
+  // next turns; a question or request still gets a real answer.
+  const learn = { length: lengthLearned() && move !== 'request', texture: textureLearned() };
+  // Off, nothing is drawn, so the rest of the reminder is the same as before.
+  const target =
+    learn.length || learn.texture
+      ? targetWords(userText, sig.recent, rng, sig.careful || move !== 'share')
+      : 0;
+  const texture = learn.texture ? textureLine(target, rng) : null;
+  if (texture) parts.push(texture.line);
+  else if (rng() < scaled(0.5, style.filler))
     parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
   const asks = rng() < 0.25;
   const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig, style);
-  parts.push(...extras.lines, FIT_THE_MOMENT);
+  parts.push(...extras.lines, learn.length ? FIT_THE_MOMENT_LEARNED : FIT_THE_MOMENT);
+  if (learn.length) parts.push(lengthLine(target));
   parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none));
+  const learned = [
+    learn.length ? `length_${target}` : '',
+    texture ? `texture_${texture.kind}` : '',
+  ];
   return {
     move,
     shape: 'answer',
     reminder: parts.join(' '),
-    extras: ['model_shape', ...stance.fired, ...extras.fired],
+    extras: ['model_shape', ...stance.fired, ...extras.fired, ...learned.filter(Boolean)],
   };
 }
 

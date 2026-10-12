@@ -22,6 +22,8 @@ interface Scenario {
   /** The other read of this turn (the reply gate's), and the pipeline's. */
   gate: Risk;
   pipeline: Risk;
+  /** Ferni's line reaches the pipeline (turn-intelligence forwards it with the flag on). */
+  unforwarded?: boolean;
 }
 
 type Injection = { category: string; content: string };
@@ -45,15 +47,21 @@ const state = vi.hoisted(() => ({
 vi.mock('../../processors/index.js', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   processTurn: vi.fn(async (ctx: { userText: string }) => {
-    const { env, gate, pipeline } = state.scenario as Scenario;
+    const { env, gate, pipeline, unforwarded } = state.scenario as Scenario;
     // The reply gate's read of the same words, with Ferni's line as context.
     startCrisisClassifier(
-      { latest: ctx.userText, earlier: [], companion: 'How was the drive back?' },
+      {
+        latest: ctx.userText,
+        earlier: ['Hi.', 'Long drive.'],
+        companion: 'How was the drive back?',
+      },
       { pattern: 'none', env, generate: reads(gate), scope: SESSION }
     );
     const turnCrisis = startTurnCrisis(
       ctx.userText,
-      {},
+      unforwarded
+        ? {}
+        : { recentTranscripts: ['Long drive.'], lastAgentResponse: 'How was the drive back?' },
       {
         sessionId: SESSION,
         env,
@@ -102,8 +110,18 @@ async function runTurn(userText: string, scenario: Scenario) {
 beforeEach(() => resetCrisisClassifierCache());
 
 describe('turn handler: crisis agreement gate', () => {
-  it('gives disagreeing reads with no pattern the soft check-in, not crisis guidance', async () => {
+  it('keeps crisis guidance when reads disagree on words with distress in them', async () => {
     const turn = await runTurn('I just feel off tonight', {
+      env: GATE_ON,
+      gate: 'none',
+      pipeline: 'crisis',
+    });
+    expect(turn.soft).toEqual([]);
+    expect(turn.crisis).toHaveLength(1);
+  });
+
+  it('gives disagreeing reads of quiet words the soft check-in, not crisis guidance', async () => {
+    const turn = await runTurn('Why is that?', {
       env: GATE_ON,
       gate: 'none',
       pipeline: 'crisis',
@@ -111,6 +129,18 @@ describe('turn handler: crisis agreement gate', () => {
     expect(turn.soft.map((i) => i.content)).toEqual([SOFT_CRISIS_CHECK]);
     expect(turn.crisis).toEqual([]);
     expect(turn.override).toBe(false);
+  });
+
+  it("fails closed to full crisis guidance when Ferni's line never reached the pipeline", async () => {
+    const turn = await runTurn('I just feel off tonight', {
+      env: GATE_ON,
+      gate: 'none',
+      pipeline: 'crisis',
+      unforwarded: true,
+    });
+    expect(turn.soft).toEqual([]);
+    expect(turn.crisis).toHaveLength(1);
+    expect(turn.crisis[0].content).toContain('988');
   });
 
   it('with the flag off, the same turn gets full crisis guidance', async () => {

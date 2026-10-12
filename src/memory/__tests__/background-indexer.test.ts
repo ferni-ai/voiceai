@@ -202,7 +202,7 @@ describe('Background Indexer', () => {
         { file: 'investment-story.md', expected: 'stories' },
         { file: 'great-anecdote.md', expected: 'stories' },
         // Wisdom
-        { file: 'bogle-wisdom.md', expected: 'wisdom' },
+        { file: 'index-investing-wisdom.md', expected: 'wisdom' },
         { file: 'my-opinion.md', expected: 'wisdom' },
         // Coaching
         { file: 'coaching-tips.md', expected: 'coaching' },

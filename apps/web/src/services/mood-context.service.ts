@@ -4,7 +4,7 @@
  * Provides time-based and date-based mood context for Ferni.
  * This enables visual representation of Ferni's mood based on:
  * - Time of day (early morning contemplative, evening reflective)
- * - Special dates (March 11 tsunami anniversary = more subdued)
+ * - Special dates (cherry blossom season, Wyoming first snow)
  * 
  * Based on Ferni's persona.manifest.json personality.moods_by_time
  * 
@@ -60,15 +60,6 @@ const SPECIAL_DATES: Record<string, SpecialDate> = {
   // =========================================================================
   // JAPAN MEMORIES
   // =========================================================================
-  
-  // March 11 - Japan Tsunami Anniversary (2011)
-  // "The silence before was the worst part. Then the roar. Then the aftermath."
-  '03-11': {
-    name: 'tsunami_anniversary',
-    mood: 'contemplative',
-    energyModifier: -0.2,
-    note: 'Heavy day. More present, less action-oriented.',
-  },
   
   // Cherry Blossom Season (late March - early April)
   // "Spring: Japan memories. Cherry blossoms. Renewal."

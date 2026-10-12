@@ -26,6 +26,7 @@ import {
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { sessionIsVerifiedOwner } from '../voice-agent-entry/caller-recognition.js';
 import { createTurnKeeper } from './turn-keeper.js';
+import { installNeverSilent } from './never-silent-install.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
 import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
 
@@ -140,6 +141,9 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     );
     cleanupFunctions.push(() => keeper.stop());
   }
+
+  // Say something human when a reply fails instead of going silent (never-silent.ts).
+  installNeverSilent(input);
 
   // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). With the
   // end-of-turn model on, the model decides and a second hold would only stack delay.

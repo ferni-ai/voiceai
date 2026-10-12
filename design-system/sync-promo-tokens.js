@@ -369,13 +369,6 @@ function generateColorVars(colors) {
   lines.push(`  --color-paper-sand: ${zen.natural.paperCream};`);
   lines.push('');
 
-  // Legacy aliases
-  lines.push('  /* ============================================');
-  lines.push('     COLORS - Legacy Aliases');
-  lines.push('     ============================================ */');
-  lines.push(`  --color-jaggi: var(--color-nayan);`);
-  lines.push(`  --color-jaggi-secondary: var(--color-jack);`);
-  lines.push('');
 
   return lines;
 }
