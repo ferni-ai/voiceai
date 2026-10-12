@@ -16,6 +16,7 @@ import {
   type SweepLLM,
   type SweepStore,
 } from '../memory/dynamic/fact-sweep.js';
+import { firestoreSweepStore } from '../memory/storage/sweep-store.js';
 
 export const FACT_SWEEP_TASK = 'fact-sweep';
 
@@ -36,7 +37,7 @@ export async function sweepAfterCall(
     },
     {
       llm: deps.llm ?? (async (prompt) => callLLM(prompt, { temperature: 0, maxTokens: 2000 })),
-      ...(deps.store && { store: deps.store }),
+      store: deps.store ?? firestoreSweepStore,
     }
   );
 }

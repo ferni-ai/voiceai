@@ -24,7 +24,6 @@
  * @module memory/dynamic/fact-sweep
  */
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { callMomentLine } from '../operations/call-moment.js';
 import type { ExtractedFact } from './deep-extraction-worker.js';
 import { buildExtractionFirestoreWritePayloads, factDocId } from './extraction-firestore-docs.js';
@@ -130,9 +129,9 @@ export async function sweepCall(
     lines: readonly string[];
     timeZone?: string;
   },
-  deps: { llm: SweepLLM; store?: SweepStore; now?: Date }
+  deps: { llm: SweepLLM; store: SweepStore; now?: Date }
 ): Promise<number> {
-  const store = deps.store ?? firestoreSweepStore;
+  const { store } = deps;
   const windows = sweepWindows(call.lines);
   if (windows.length === 0) return 0;
   const stored = await store.facts(call.userId);
@@ -168,33 +167,3 @@ export async function sweepCall(
     log.info({ userId: call.userId.slice(0, 8), added, windows: windows.length }, 'Call swept');
   return added;
 }
-
-/** bogle_users/{uid}/dynamic_facts: create only, so an existing fact is never overwritten. */
-export const firestoreSweepStore: SweepStore = {
-  async facts(userId) {
-    const db = getFirestoreDb();
-    if (!db) return [];
-    const snap = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('dynamic_facts')
-      .orderBy('extractedAt', 'desc')
-      .limit(300)
-      .get();
-    return snap.docs.map((d) => {
-      const x = d.data();
-      return {
-        entityName: String(x.entityName ?? ''),
-        key: String(x.key ?? ''),
-        value: String(x.value ?? ''),
-      };
-    });
-  },
-  async add(userId, docs) {
-    const db = getFirestoreDb();
-    if (!db) return 0;
-    const facts = db.collection('bogle_users').doc(userId).collection('dynamic_facts');
-    const results = await Promise.allSettled(docs.map(async (d) => facts.doc(d.id).create(d.data)));
-    return results.filter((r) => r.status === 'fulfilled').length;
-  },
-};
