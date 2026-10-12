@@ -182,7 +182,7 @@ describe('Moments routing behind the overlay-host flag', () => {
   });
 
   it('keeps a toast on screen for its full time under Reduce Motion', () => {
-    // Moments alone shortens a whisper to 100 ms under Reduce Motion.
+    // The region never shortens display time under Reduce Motion (Moments used to cut it to 100 ms).
     mediaMatches(REDUCE);
     localStorage.setItem(OVERLAY_HOST_STORAGE_KEY, 'true');
     getMomentsManager().whisper('Saved', { type: 'success' });
