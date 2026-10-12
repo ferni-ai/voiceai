@@ -11253,6 +11253,21 @@
     "notFound": "",
     "failed": ""
   },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
+  },
   "venmoChipIn": {
     "eyebrow": "Aporta",
     "title": "Un dólar mantiene viva la conversación",

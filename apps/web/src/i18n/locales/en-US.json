@@ -11130,6 +11130,21 @@
     "notFound": "Couldn't find that one. Try the account I texted.",
     "failed": "Couldn't send that. Try again?"
   },
+  "memoryView": {
+    "subtitle": "What I'd bring up on a call. Change anything, any time.",
+    "lifeNow": "Your life now",
+    "dates": "Dates that matter",
+    "readsYou": "How I read you",
+    "readsYouNote": "Impressions, not facts. Tell me if I've got you wrong.",
+    "thinkingAbout": "On my mind",
+    "thinkingAboutNote": "Things I've been meaning to ask you about.",
+    "fixedByYou": "You fixed this",
+    "thatsWrong": "That's wrong",
+    "forget": "Forget",
+    "correctLabel": "What's right?",
+    "wrongDone": "Got it. I had that wrong.",
+    "empty": "Nothing yet. What I learn about you shows up here, and you can change any of it."
+  },
   "venmoChipIn": {
     "eyebrow": "Chip in",
     "title": "A dollar keeps the conversation going",

@@ -11127,6 +11127,21 @@
     "notFound": "",
     "failed": ""
   },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
+  },
   "venmoChipIn": {
     "eyebrow": "出份力",
     "title": "一美元，讓對話繼續",

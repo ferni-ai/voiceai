@@ -11252,6 +11252,21 @@
     "notFound": "",
     "failed": ""
   },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
+  },
   "venmoChipIn": {
     "eyebrow": "לתרום",
     "title": "דולר אחד שומר על השיחה",
