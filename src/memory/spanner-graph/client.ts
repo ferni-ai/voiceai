@@ -220,8 +220,14 @@ export async function deleteFact(userId: string, factId: string): Promise<void> 
     });
     await transaction.commit();
   });
-  const { removeIndexedMemory } = await import('../retrieval/semantic-memory-search.js');
-  await removeIndexedMemory('fact', factId);
+  // Not removeIndexedMemory: it logs and swallows a failure, and a delete
+  // that didn't happen must never be reported as done.
+  const { getFirestoreVectorStore } = await import('../firestore-vector-store.js');
+  const store = getFirestoreVectorStore();
+  if (!store.isInitialized) await store.initialize();
+  if (!(await store.removeDocument(`fact_${factId}`))) {
+    throw new Error('Index copy not removed');
+  }
 }
 
 /**

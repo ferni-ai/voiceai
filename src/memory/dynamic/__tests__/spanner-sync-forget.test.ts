@@ -31,18 +31,21 @@ describe('a sync batch with forgotten facts', () => {
     data: { ...live(id).data, forgottenAt: '2026-01-07T00:00:00Z' },
   });
 
-  function ops(removeFails = false) {
+  /** forgottenSince: docs forgotten after the sync read them (seen by the transactional re-read). */
+  function ops(opts: { removeFails?: boolean; forgottenSince?: string[] } = {}) {
     const log: string[] = [];
     return {
       log,
       ops: {
         insert: async (f: { id: string }) => (log.push(`insert ${f.id}`), true),
         remove: async (_u: string, factId: string) => {
-          if (removeFails) throw new Error('graph down');
+          if (opts.removeFails) throw new Error('graph down');
           log.push(`remove ${factId}`);
         },
-        markSynced: async (_u: string, id: string) => {
+        markSynced: async (_u: string, id: string, o: { onlyIfLive: boolean }) => {
+          if (o.onlyIfLive && opts.forgottenSince?.includes(id)) return false;
           log.push(`mark ${id}`);
+          return true;
         },
       },
     };
@@ -52,13 +55,27 @@ describe('a sync batch with forgotten facts', () => {
     const { log, ops: o } = ops();
     const out = await syncFactDocs([forgotten('f0'), live('f1')], o);
     expect(log).toEqual(['remove fact_u1_f0', 'mark f0', 'insert f1', 'mark f1']);
-    expect(out).toEqual({ synced: 1, removed: 1, failed: 0 });
+    expect(out).toEqual({ synced: 1, removed: 1, failed: 0, deleteFailures: 0 });
   });
 
-  it('retries a removal that failed, without holding up the live facts behind it', async () => {
-    const { log, ops: o } = ops(true);
+  it('takes back a copy written for a fact forgotten between the read and the write', async () => {
+    const { log, ops: o } = ops({ forgottenSince: ['f1'] });
+    const out = await syncFactDocs([live('f1')], o);
+    expect(log).toEqual(['insert f1', 'remove fact_u1_f1', 'mark f1']);
+    expect(out).toMatchObject({ synced: 0, removed: 1 });
+  });
+
+  it('never reports a failed removal as done: left unsynced, counted, live facts still copied', async () => {
+    const { log, ops: o } = ops({ removeFails: true });
     const out = await syncFactDocs([forgotten('f0'), live('f1')], o);
-    expect(log).toEqual(['insert f1', 'mark f1']); // f0 not marked: picked up again next cycle
-    expect(out).toEqual({ synced: 1, removed: 0, failed: 1 });
+    expect(log).toEqual(['insert f1', 'mark f1']); // f0 not marked: retried next cycle
+    expect(out).toEqual({ synced: 1, removed: 0, failed: 0, deleteFailures: 1 });
+  });
+});
+
+describe('deleting a graph copy', () => {
+  it('throws when the graph store is not ready, so the sync never marks it removed', async () => {
+    const { deleteFact } = await import('../../spanner-graph/client.js');
+    await expect(deleteFact('u1', 'fact_u1_f0')).rejects.toThrow();
   });
 });

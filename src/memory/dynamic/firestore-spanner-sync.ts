@@ -107,6 +107,8 @@ interface SyncStats {
   totalRelationshipsSynced: number;
   totalSyncRuns: number;
   failedSyncs: number;
+  /** Copies of forgotten facts the graph store couldn't remove yet (retried each cycle). */
+  factDeleteFailures: number;
   avgSyncDurationMs: number;
 }
 
@@ -121,6 +123,7 @@ const syncStats: SyncStats = {
   totalRelationshipsSynced: 0,
   totalSyncRuns: 0,
   failedSyncs: 0,
+  factDeleteFailures: 0,
   avgSyncDurationMs: 0,
 };
 
@@ -299,7 +302,11 @@ export interface FactSyncOps {
   insert: (fact: SyncableFact) => Promise<boolean>;
   /** Removes a forgotten fact's copy from the graph (and the index it feeds); throws on failure. */
   remove: (userId: string, factId: string) => Promise<void>;
-  markSynced: (userId: string, docId: string) => Promise<void>;
+  /**
+   * Marks the doc synced, in one transaction with a re-read: with onlyIfLive
+   * it refuses (false) when the fact was forgotten since it was read.
+   */
+  markSynced: (userId: string, docId: string, opts: { onlyIfLive: boolean }) => Promise<boolean>;
 }
 
 /**
@@ -313,23 +320,35 @@ export interface FactSyncOps {
 export async function syncFactDocs(
   docs: readonly FactDoc[],
   ops: FactSyncOps
-): Promise<{ synced: number; removed: number; failed: number }> {
-  const out = { synced: 0, removed: 0, failed: 0 };
+): Promise<{ synced: number; removed: number; failed: number; deleteFailures: number }> {
+  const out = { synced: 0, removed: 0, failed: 0, deleteFailures: 0 };
+  const removeCopy = async (userId: string, docId: string): Promise<boolean> => {
+    try {
+      await ops.remove(userId, `fact_${userId}_${docId}`);
+    } catch (error) {
+      // Left unsynced, so the next cycle tries again; never reported as removed.
+      out.deleteFailures++;
+      log.error({ error: String(error), factId: docId }, 'Forgotten fact copy not removed');
+      return false;
+    }
+    out.removed++;
+    return ops.markSynced(userId, docId, { onlyIfLive: false });
+  };
   for (const doc of docs) {
     const fact = syncableFact(doc.id, doc.path, doc.data);
     const userId = doc.path.split('/')[1] ?? '';
     try {
-      if (fact) {
-        if (!(await ops.insert(fact))) {
-          out.failed++;
-          continue;
-        }
-        out.synced++;
-      } else {
-        await ops.remove(userId, `fact_${userId}_${doc.id}`);
-        out.removed++;
+      if (!fact) {
+        await removeCopy(userId, doc.id);
+        continue;
       }
-      await ops.markSynced(userId, doc.id);
+      if (!(await ops.insert(fact))) {
+        out.failed++;
+        continue;
+      }
+      // Forgotten between the read and the write: take the copy back out.
+      if (await ops.markSynced(userId, doc.id, { onlyIfLive: true })) out.synced++;
+      else await removeCopy(userId, doc.id);
     } catch (error) {
       out.failed++;
       log.warn({ error: String(error), factId: doc.id }, 'Fact not synced');
@@ -408,6 +427,32 @@ async function getUnsyncedRelationships(limit: number): Promise<SyncableRelation
   return relationships;
 }
 
+/**
+ * Marks a dynamic fact synced in a transaction that re-reads it: with
+ * onlyIfLive, a fact forgotten since the sync read it stays unsynced (false),
+ * so its copy is removed (forget.ts also resets syncedToSpanner).
+ */
+async function markFactSynced(
+  userId: string,
+  docId: string,
+  opts: { onlyIfLive: boolean }
+): Promise<boolean> {
+  const db = getFirestoreDb();
+  if (!db) return false;
+  const ref = db.collection('bogle_users').doc(userId).collection('dynamic_facts').doc(docId);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const forgottenAt = snap.exists ? snap.get('forgottenAt') : undefined;
+    if (opts.onlyIfLive && (!snap.exists || (forgottenAt !== undefined && forgottenAt !== null))) {
+      return false;
+    }
+    if (snap.exists) {
+      tx.update(ref, { syncedToSpanner: true, syncedAt: new Date().toISOString() });
+    }
+    return true;
+  });
+}
+
 async function markAsSynced(
   collection: 'dynamic_entities' | 'dynamic_facts' | 'dynamic_relationships',
   userId: string,
@@ -484,9 +529,10 @@ export async function runSyncCycle(): Promise<SyncResult> {
         const { deleteFact } = await import('../spanner-graph/client.js');
         await deleteFact(userId, factId);
       },
-      markSynced: async (userId, docId) => markAsSynced('dynamic_facts', userId, docId),
+      markSynced: async (userId, docId, opts) => markFactSynced(userId, docId, opts),
     });
     result.factsSynced += facts.synced;
+    syncStats.factDeleteFailures += facts.deleteFailures;
 
     // 3. Sync relationships
     const relationships = await getUnsyncedRelationships(config.batchSize);
