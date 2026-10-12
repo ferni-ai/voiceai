@@ -36,6 +36,10 @@ describe('Early Bird achievement', () => {
     document.body.innerHTML = '<div class="avatar-container"><div id="coachAvatar"></div></div>';
     Element.prototype.animate = vi.fn() as unknown as Element['animate'];
     vi.useFakeTimers();
+    // Pin a neutral midday clock: init's sleepy-mode check unlocks Night Owl (and
+    // plays 'success') between midnight and 5am local time, so tests that init
+    // before setting a time failed whenever CI ran overnight in UTC.
+    vi.setSystemTime(new Date(2026, 9, 11, 12, 0));
     mod = await loadEasterEggs();
   });
 
