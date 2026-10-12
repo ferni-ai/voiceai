@@ -75,7 +75,7 @@ describe('summary snippets in the live hook (RECALL_SUMMARIES)', () => {
       setTimeout(r, 0);
     });
     expect(on.noteFor('what did I decide about the Roth')).toContain(
-      '- From our call on Jan 9: User is moving his Vanguard account into a Roth IRA'
+      '- From our call on Jan 9: "User is moving his Vanguard account into a Roth IRA"'
     );
 
     const off = createMemoryRecall({ userId: 'u-sum', store: withSummary, summaries: false });
