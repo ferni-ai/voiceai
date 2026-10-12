@@ -11,7 +11,9 @@
 import type { UserProfile } from '../../types/user-profile.js';
 import { toSafeDate } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { indexConversationSummary } from '../semantic-rag.js';
+import { indexConversationSummary, removeConversationDocument } from '../semantic-rag.js';
+import { firestoreForgetStore } from '../recall/forget.js';
+import { isForgotten } from '../recall/session-recall.js';
 import { getFirestore } from '../firestore-factory.js';
 import { readCallSummaries } from '../storage/call-summaries.js';
 
@@ -32,6 +34,32 @@ export interface IndexingOptions {
   maxSummaries?: number;
   /** Maximum facts to index (default: 100) */
   maxFacts?: number;
+}
+
+/**
+ * Topics the caller asked to forget, or null when they can't be read. The
+ * index feeds the recallFromMemory tool, so an unreadable list indexes
+ * nothing rather than risk a forgotten memory (fails closed).
+ */
+export async function readForgottenTopics(
+  userId: string,
+  store: Pick<typeof firestoreForgetStore, 'topics'> = firestoreForgetStore
+): Promise<string[] | null> {
+  try {
+    const topics: unknown = await store.topics(userId);
+    return Array.isArray(topics) && topics.every((t) => typeof t === 'string') ? topics : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Takes a forgotten item out of the index too: it may have been indexed before it was forgotten. */
+async function dropForgotten(id: string, result: IndexingResult): Promise<void> {
+  result.skipped++;
+  result.categories['forgotten'] = (result.categories['forgotten'] || 0) + 1;
+  await removeConversationDocument(id).catch((error: unknown) =>
+    log.warn({ error: String(error), id }, 'Forgotten memory not removed from the index')
+  );
 }
 
 // Track last indexed time per user for needsReindex check
@@ -68,6 +96,12 @@ export async function indexUserMemories(
   const maxSummaries = options?.maxSummaries ?? 50;
   const maxFacts = options?.maxFacts ?? 100;
 
+  const forgotten = await readForgottenTopics(userId);
+  if (forgotten === null) {
+    log.warn({ userId }, 'Forgotten topics unreadable: indexing nothing');
+    return result;
+  }
+
   try {
     // 1. Index conversation summaries
     const summariesSnapshot = await readCallSummaries(db, userId, { limit: maxSummaries });
@@ -78,6 +112,10 @@ export async function indexUserMemories(
 
       if (!text || typeof text !== 'string' || text.length < 10) {
         result.skipped++;
+        continue;
+      }
+      if (summary.forgottenAt != null || isForgotten(text, forgotten)) {
+        await dropForgotten(doc.id, result);
         continue;
       }
 
@@ -116,6 +154,12 @@ export async function indexUserMemories(
 
       // Create a searchable text from the fact
       const searchableText = fact.key ? `${fact.key}: ${text}` : text;
+      // Marked by forget.ts, or about a forgotten topic: never searchable again.
+      const about = `${String(fact.entityName ?? '')} ${String(fact.key ?? '')} ${text}`;
+      if (fact.forgottenAt != null || isForgotten(about, forgotten)) {
+        await dropForgotten(`fact_${doc.id}`, result);
+        continue;
+      }
 
       try {
         await indexConversationSummary(userId, {
@@ -147,6 +191,10 @@ export async function indexUserMemories(
         const text = insight.description || insight.content;
 
         if (!text || typeof text !== 'string') continue;
+        if (isForgotten(text, forgotten)) {
+          await dropForgotten(`insight_${doc.id}`, result);
+          continue;
+        }
 
         try {
           await indexConversationSummary(userId, {

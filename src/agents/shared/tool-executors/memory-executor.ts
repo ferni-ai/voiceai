@@ -186,6 +186,17 @@ async function execute(
       }
 
       try {
+        // Nothing they asked to forget comes back: unreadable topics recall
+        // nothing from memory (fails closed); the index may still hold copies
+        // made before the forget (user-memory-indexer.ts removes them later).
+        const { readForgottenTopics } =
+          await import('../../../memory/signals/user-memory-indexer.js');
+        const { isForgotten } = await import('../../../memory/recall/session-recall.js');
+        const forgotten = await readForgottenTopics(ctx.userId);
+        if (forgotten === null) {
+          log.warn({ userId: ctx.userId }, 'Forgotten topics unreadable: recalling nothing');
+          return "I can't look back through our past conversations right now.";
+        }
         const { getRAGContext } = await import('../../../memory/semantic-rag.js');
         const ragResults = await getRAGContext(topic, {
           topK: 5,
@@ -202,13 +213,15 @@ async function execute(
           timestamp?: Date;
         }
 
-        const memories: MemoryItem[] = ragResults.results.map((r) => ({
-          content: r.content,
-          score: r.score,
-          timestamp: r.metadata?.timestamp
-            ? new Date(r.metadata.timestamp as string | number)
-            : undefined,
-        }));
+        const memories: MemoryItem[] = ragResults.results
+          .filter((r) => !isForgotten(r.content, forgotten))
+          .map((r) => ({
+            content: r.content,
+            score: r.score,
+            timestamp: r.metadata?.timestamp
+              ? new Date(r.metadata.timestamp as string | number)
+              : undefined,
+          }));
 
         // Also get facts from Firestore
         const { getFirestore } = await import('firebase-admin/firestore');
@@ -234,6 +247,7 @@ async function execute(
           for (const doc of factsSnapshot.docs) {
             const data = doc.data();
             const factText = (data.fact || data.content || '') as string;
+            if (data.forgottenAt != null || isForgotten(factText, forgotten)) continue;
             const factEmbedding = data.embedding as number[] | undefined;
 
             let score = 0;

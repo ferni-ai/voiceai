@@ -53,6 +53,11 @@ vi.mock('../../../../memory/embeddings.js', () => ({
   cosineSimilarity: vi.fn().mockReturnValue(0.8),
 }));
 
+// Nothing forgotten (memory-executor-forget.test.ts covers forgetting).
+vi.mock('../../../../memory/signals/user-memory-indexer.js', () => ({
+  readForgottenTopics: async () => [],
+}));
+
 // Mock RAG
 vi.mock('../../../../memory/semantic-rag.js', () => ({
   getRAGContext: vi.fn().mockResolvedValue({
