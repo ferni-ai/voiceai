@@ -247,6 +247,10 @@ export async function installTurnListeners(
     ),
     () => loop.close()
   );
+  // PAUSE_HOLD: a reply to a turn ink ended hesitantly waits out the pause (pause-hold.ts).
+  const { attachPauseHold } = await import('../../speech/output-control/pause-hold.js');
+  const detachPauseHold = attachPauseHold(input.session as never, input.sessionId);
+  if (detachPauseHold) input.cleanupFunctions.push(detachPauseHold);
   const retrieval = await installToolRetrieval(input);
   const understanding = await installTurnUnderstanding(input.session, input.cleanupFunctions);
   if (!retrieval && !understanding) return null;
