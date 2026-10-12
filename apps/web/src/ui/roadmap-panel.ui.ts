@@ -545,8 +545,7 @@ class RoadmapPanelUI {
               <div class="roadmap-detail__seed-stats">
                 <div class="roadmap-detail__seed-total">
                   <span class="roadmap-detail__seed-total-icon">${ICONS.seed}</span>
-                  <span class="roadmap-detail__seed-total-count">${this.formatNumber(totalSeeds)}</span>
-                  <span class="roadmap-detail__seed-total-label">${t('roadmap.seedsPlanted') || 'seeds planted'}</span>
+                  <span class="roadmap-detail__seed-total-label">${t('roadmap.seedsPlanted', { count: `<span class="roadmap-detail__seed-total-count">${this.formatNumber(totalSeeds)}</span>` })}</span>
                 </div>
                 <div class="roadmap-detail__seed-gardeners">
                   ${t('roadmap.gardeners', { count: this.formatNumber(uniqueVoters) }) || `${this.formatNumber(uniqueVoters)} gardeners`}
