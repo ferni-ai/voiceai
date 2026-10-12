@@ -22,7 +22,7 @@ We couldn't help them then. Ferni was a closed system - designed for personal us
 
 That changes today.
 
-**Introducing the Ferni Developer Platform** - the complete infrastructure for building voice-first AI applications. The same stack that powers 50,000+ daily Ferni conversations, now available to every developer.
+**Introducing the Ferni Developer Platform** - the complete infrastructure for building voice-first AI applications. The same stack that powers Ferni's own conversations, now available to every developer.
 
 ---
 

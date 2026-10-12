@@ -12,6 +12,7 @@ import {
   noteReplyText,
   replyAudioHoldMs,
 } from '../output-control/reply-activity.js';
+import { waitForPauseHold } from '../output-control/pause-hold.js';
 
 // Same module name as the gateway node, so TTFB log lines are unchanged.
 const log = createLogger({ module: 'GatewayTTSNode' });
@@ -19,7 +20,10 @@ const log = createLogger({ module: 'GatewayTTSNode' });
 export type FirstAudioObserver = (() => void) & {
   /** Record when the first LLM text arrived and when the first text went to the provider. */
   stage(stage: 'text' | 'push'): void;
-  /** Resolves once an opening sound no longer holds this session's reply audio. */
+  /**
+   * Resolves once an opening sound no longer holds this session's reply audio,
+   * and the caller has had time to go on after a pause (pause-hold.ts).
+   */
   hold(): Promise<void>;
   /** Sonic's leading silence dropped before the first audio (lead-silence.ts). */
   trimmed(ms: number): void;
@@ -74,6 +78,7 @@ export function createFirstAudioObserver({
           setTimeout(resolve, ms);
         });
       }
+      await waitForPauseHold(sessionId);
     },
   });
 }

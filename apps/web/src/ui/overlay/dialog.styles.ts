@@ -73,7 +73,7 @@ html.ferni-scroll-locked { overflow: hidden; }
   font: inherit; font-size: 0.9375rem; font-weight: 600; cursor: pointer;
   background: var(--color-background-secondary); color: var(--color-text-primary);
 }
-.ferni-dialog__button--primary { background: var(--color-accent-primary); color: var(--color-text-inverse); }
+.ferni-dialog__button--primary { background: var(--color-accent-primary); color: var(--color-text-on-accent); }
 .ferni-dialog__button--destructive {
   background: transparent; border-color: var(--color-semantic-error); color: var(--color-semantic-error);
 }

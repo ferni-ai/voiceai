@@ -177,6 +177,7 @@ export const FLAG_MANIFEST = {
   OUTREACH_GROUNDED_CHECKINS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   OVERLAP_GREETING_WITH_PREWARM: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PACE_MATCHING: { default: 'on', owner: 'voice', kind: 'config' },
+  PAUSE_HOLD: { default: 'off', owner: 'voice', kind: 'experiment' },
   PAYWALL: { default: 'off', owner: 'billing', kind: 'kill-switch' },
   PERSIST_AGENT_PROFILES: { default: 'off', owner: 'memory', kind: 'experiment' },
   PHONE_AUDIO_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -296,6 +297,7 @@ export const FLAG_MANIFEST = {
   USE_TTS_GATEWAY: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // readers disagree: on in memory and Gemini config, off in Gemini Live and Gemma
   USE_VERTEX_AI: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  VERTEX_KEEPALIVE: { default: 'off', owner: 'voice', kind: 'experiment' },
   VITEST: { default: 'off', owner: 'tools', kind: 'experiment' },
   VOICEMAIL_DETECT: { default: 'off', owner: 'voice', kind: 'experiment' },
   VOICE_HUMANIZATION_DISABLED: { default: 'off', owner: 'platform', kind: 'kill-switch' },
