@@ -141,6 +141,7 @@ export const FLAG_MANIFEST = {
   GTM_PLATFORM_LINKEDIN: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   GTM_PLATFORM_TWITTER: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   GTM_REQUIRE_APPROVAL: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  HANDOFF_ASK_FIRST: { default: 'off', owner: 'voice', kind: 'experiment' },
   HAPPY_EXITS: { default: 'off', owner: 'voice', kind: 'experiment' },
   HEADS_UP_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   HUMAN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -166,6 +167,7 @@ export const FLAG_MANIFEST = {
   MULTI_AGENT_MODE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   MULTI_AGENT_SINGLE_SESSION: { default: 'off', owner: 'voice', kind: 'experiment' },
   MUSIC_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  NAME_CORRECTION: { default: 'off', owner: 'memory', kind: 'experiment' },
   // a mode: on speaks a fallback when a reply fails, shadow only logs it
   NEVER_SILENT: { default: 'off', owner: 'voice', kind: 'experiment' },
   ONNX_USE_COREML: { default: 'on', owner: 'platform', kind: 'kill-switch' },
@@ -213,6 +215,7 @@ export const FLAG_MANIFEST = {
   POST_TTS_VOCAL_FRY: { default: 'off', owner: 'voice', kind: 'experiment' },
   POST_TTS_WARMTH: { default: 'off', owner: 'voice', kind: 'experiment' },
   PREDICTIONS_USE_ASYNC: { default: 'off', owner: 'voice', kind: 'experiment' },
+  PRESENCE_CHECK_CAP: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_HUM: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_SNORE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_SOUNDS: { default: 'off', owner: 'voice', kind: 'experiment' },
