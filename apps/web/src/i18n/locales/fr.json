@@ -4652,7 +4652,8 @@
     "sourceInferred": "Je l'ai remarqué",
     "correctButton": "Corriger",
     "memoriesCount": "{count} souvenirs",
-    "confidence": "Sûr à {confidence} %"
+    "confidence": "Sûr à {confidence} %",
+    "earlier": "avant"
   },
   "memoryCorrection": {
     "modalTitle": "Corriger ce souvenir",
@@ -10339,7 +10340,9 @@
       "one": "Tu as gagné {count} graine !",
       "many": "Tu as gagné {count} de graines !",
       "other": "Tu as gagné {count} graines !"
-    }
+    },
+    "couldNotLoadMemories": "Je n'ai pas pu charger ce dont je me souviens. On réessaie ?",
+    "memoryCorrected": "Compris. Je m'en souviendrai comme ça."
   },
   "trustSignals": {
     "prefix": {

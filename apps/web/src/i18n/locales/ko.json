@@ -4620,7 +4620,8 @@
     "sourceInferred": "제가 알아차린 것",
     "correctButton": "수정하기",
     "memoriesCount": "{count}개의 기억들",
-    "confidence": "{confidence}% 확신해요"
+    "confidence": "{confidence}% 확신해요",
+    "earlier": "이전"
   },
   "memoryCorrection": {
     "modalTitle": "이 기억 수정하기",
@@ -10241,7 +10242,9 @@
     "seedsEarned": {
       "other": "{count}개의 씨앗을 얻었어요!",
       "one": "{count}개의 씨앗을 얻었어요!"
-    }
+    },
+    "couldNotLoadMemories": "기억하는 내용을 불러오지 못했어요. 다시 시도할까요?",
+    "memoryCorrected": "알겠어요. 그렇게 기억할게요."
   },
   "trustSignals": {
     "prefix": {

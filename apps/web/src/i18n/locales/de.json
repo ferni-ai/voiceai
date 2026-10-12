@@ -4620,7 +4620,8 @@
     "sourceInferred": "Mir ist aufgefallen",
     "correctButton": "Korrigieren",
     "memoriesCount": "{count} Erinnerungen",
-    "confidence": "{confidence}% sicher"
+    "confidence": "{confidence}% sicher",
+    "earlier": "früher"
   },
   "memoryCorrection": {
     "modalTitle": "Diese Erinnerung korrigieren",
@@ -10241,7 +10242,9 @@
     "seedsEarned": {
       "one": "Du hast {count} Samenkorn gesammelt!",
       "other": "Du hast {count} Samen gesammelt!"
-    }
+    },
+    "couldNotLoadMemories": "Ich konnte nicht laden, woran ich mich erinnere. Noch mal versuchen?",
+    "memoryCorrected": "Verstanden. Ich merke es mir so."
   },
   "trustSignals": {
     "prefix": {
