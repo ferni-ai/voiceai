@@ -45,6 +45,8 @@ export interface SemanticIndex {
   matches(): Map<string, number>;
   /** The user's next turn begins: earlier embeddings no longer apply. */
   newTurn(): void;
+  /** True while the index is built but this turn has no embedded transcript yet. */
+  awaitingTurn(): boolean;
 }
 
 /**
@@ -189,6 +191,9 @@ export function createSemanticIndex(
     matches() {
       if (!latest || latest.turn !== turn || vectors.size === 0) return new Map();
       return standouts(latest.vector, vectors, anchors);
+    },
+    awaitingTurn() {
+      return vectors.size > 0 && latest?.turn !== turn;
     },
     newTurn() {
       turn++;
