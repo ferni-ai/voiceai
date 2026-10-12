@@ -389,7 +389,6 @@
     "setup:llm-scheduler:delete": "npx tsx apps/cli/src/commands/setup/setup-llm-content-scheduler.ts --delete",
     "landing:generate": "npx tsx src/scripts/generate-landing-content.ts",
     "landing:generate:heroes": "npx tsx src/scripts/generate-landing-content.ts heroes",
-    "landing:generate:social": "npx tsx src/scripts/generate-landing-content.ts social",
     "devblog:changelog": "node scripts/generate-changelog-post.js",
     "devblog:changelog:dry": "node scripts/generate-changelog-post.js --dry-run",
     "devblog:image": "node scripts/generate-dev-blog-image.js",
