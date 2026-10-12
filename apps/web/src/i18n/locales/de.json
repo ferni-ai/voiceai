@@ -8503,7 +8503,7 @@
   "predictions": {
     "promise": "Versprechen",
     "title": "Sag deine Woche voraus",
-    "description": "Ein Spiel mit Peter im Gespräch. Du schätzt, wie deine Woche läuft, und siehst danach, wie nah du dran warst.",
+    "description": "Ein Spiel mit Peter im Gespräch. Schätz, wie deine Woche läuft, und sieh dann, wie nah du dran warst.",
     "accurate": "Treffend",
     "watching": "Im Blick",
     "accuracy": "Vorhersagegenauigkeit",
@@ -8511,7 +8511,7 @@
     "accuracyLabel": "Genauigkeit",
     "resolved": "Gelöst",
     "streak": "Serie",
-    "ctaText": "Bitte Peter im nächsten Gespräch darum. Deine Vorhersagen und wie sie ausgegangen sind, erscheinen hier.",
+    "ctaText": "Frag Peter beim nächsten Gespräch danach. Deine Schätzungen und wie sie ausgegangen sind, erscheinen hier.",
     "activePredictions": "Aktive Vorhersagen",
     "recentResults": "Letzte Ergebnisse"
   },

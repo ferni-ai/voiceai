@@ -8503,7 +8503,7 @@
   "predictions": {
     "promise": "約束",
     "title": "今週を予想しよう",
-    "description": "通話中に Peter と遊ぶゲームです。今週がどうなるかを予想して、あとでどれだけ近かったかを確かめます。",
+    "description": "通話中に Peter と遊ぶゲームです。今週がどうなるか予想して、あとでどれだけ近かったか確かめましょう。",
     "accurate": "的確",
     "watching": "見守り中",
     "accuracy": "予測の精度",
@@ -8511,7 +8511,7 @@
     "accuracyLabel": "精度",
     "resolved": "解決済み",
     "streak": "ストリーク",
-    "ctaText": "次の通話で Peter に頼んでみてください。あなたの予想とその結果がここに表示されます。",
+    "ctaText": "次に話すとき、Peter に頼んでみてください。あなたの予想と、その結果がここに表示されます。",
     "activePredictions": "進行中の予測",
     "recentResults": "最近の結果"
   },

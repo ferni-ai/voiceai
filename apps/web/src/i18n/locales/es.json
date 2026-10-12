@@ -8556,7 +8556,7 @@
   "predictions": {
     "promise": "Promesa",
     "title": "Predice tu semana",
-    "description": "Un juego con Peter durante una llamada. Adivinas cómo irá tu semana y luego ves cuánto te acercaste.",
+    "description": "Un juego con Peter durante una llamada. Adivina cómo irá tu semana y luego mira cuánto te acercaste.",
     "accurate": "Preciso",
     "watching": "Observando",
     "accuracy": "Precisión de las predicciones",
@@ -8564,7 +8564,7 @@
     "accuracyLabel": "Precisión",
     "resolved": "Resuelto",
     "streak": "Racha",
-    "ctaText": "Pídele a Peter jugar en tu próxima llamada. Tus predicciones y cómo resultaron aparecerán aquí.",
+    "ctaText": "Pídele a Peter jugar la próxima vez que hablen. Tus predicciones, y cómo resultaron, aparecerán aquí.",
     "activePredictions": "Predicciones activas",
     "recentResults": "Resultados recientes"
   },

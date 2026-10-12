@@ -8503,7 +8503,7 @@
   "predictions": {
     "promise": "承諾",
     "title": "預測你的一週",
-    "description": "這是你在通話中和 Peter 一起玩的遊戲。你預測這一週會怎樣，之後看看猜得有多準。",
+    "description": "這是在通話中和 Peter 一起玩的遊戲。猜猜你這一週會怎樣，再看看猜得有多準。",
     "accurate": "準確",
     "watching": "觀察中",
     "accuracy": "預測準確度",
@@ -8511,7 +8511,7 @@
     "accuracyLabel": "準確度",
     "resolved": "已解決",
     "streak": "連續天數",
-    "ctaText": "下次通話時請 Peter 和你一起玩。你的預測和結果會顯示在這裡。",
+    "ctaText": "下次聊天時請 Peter 和你一起玩。你的預測和結果會顯示在這裡。",
     "activePredictions": "進行中的預測",
     "recentResults": "最近的結果"
   },

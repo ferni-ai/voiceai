@@ -8516,7 +8516,7 @@
   "predictions": {
     "promise": "Promise",
     "title": "Predict your week",
-    "description": "A game you play with Peter on a call. You guess how your week will go, then see how close you were.",
+    "description": "A game you play with Peter on a call. Guess how your week will go, then see how close you got.",
     "accurate": "Accurate",
     "watching": "Watching",
     "accuracy": "Prediction accuracy",
@@ -8524,7 +8524,7 @@
     "accuracyLabel": "Accuracy",
     "resolved": "Resolved",
     "streak": "Streak",
-    "ctaText": "Ask Peter to play on your next call. Your predictions and how they turned out show up here.",
+    "ctaText": "Ask Peter to play next time you talk. Your guesses, and how they turned out, will show up here.",
     "activePredictions": "Active Predictions",
     "recentResults": "Recent Results"
   },
