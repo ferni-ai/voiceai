@@ -4620,7 +4620,8 @@
     "sourceInferred": "我注意到的",
     "correctButton": "纠正",
     "memoriesCount": "{count} 条记忆",
-    "confidence": "{confidence}% 确定"
+    "confidence": "{confidence}% 确定",
+    "earlier": "以前"
   },
   "memoryCorrection": {
     "modalTitle": "纠正这条记忆",
@@ -10241,7 +10242,9 @@
     "seedsEarned": {
       "other": "你获得了 {count} 颗种子！",
       "one": "你获得了 {count} 颗种子！"
-    }
+    },
+    "couldNotLoadMemories": "没能加载我记得的内容。再试一次？",
+    "memoryCorrected": "明白了，我会这样记住。"
   },
   "trustSignals": {
     "prefix": {

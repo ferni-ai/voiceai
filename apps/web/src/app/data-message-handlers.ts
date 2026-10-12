@@ -39,7 +39,7 @@ import { handleVoiceEventDataMessage } from '../services/voice-events.service.js
 import { smartPromptTracker } from '../services/roadmap.service.js';
 import { setWrappingUp } from '../state/app.state.js';
 import { handleAgentAckMessage } from './agent-ack-handlers.js';
-import { handleReplyTone } from './reply-tone.js';
+import { routeExpressionMessage } from './expression-routes.js';
 import { observeListenSignal } from './backchannel-signal.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
@@ -159,7 +159,7 @@ export function handleDataMessage(message: DataMessage): void {
   }
 
   if (routeGroupDataMessage(message)) return; // group roundtable / call → participant grid
-  if (handleReplyTone(message)) return; // Ferni's reply tone → resting face (ferni:reply-tone)
+  if (routeExpressionMessage(message)) return; // reply tone; expression signals (ferni:expression-arbiter)
   // 🌉 Humanization signal (breakthrough, vulnerability…) or agent ack / fallback notice
   if (humanizationBridge.processMessage(message) || handleAgentAckMessage(message)) {
     return;

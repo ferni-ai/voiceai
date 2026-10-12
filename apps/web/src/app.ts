@@ -1257,7 +1257,6 @@ class VoiceAIApp {
     // DEFERRED LOADING - Premium features loaded after first paint
     // This significantly speeds up initial page load time
     // =========================================================================
-
     // Essential extras - load after 100ms (needed early but not for first paint)
     this.deferredInit('SoundUI', 100, async () => {
       initSoundUI();
@@ -1273,7 +1272,8 @@ class VoiceAIApp {
     this.deferredInit('ThinkingUI', 100, async () => {
       initThinkingUI();
       (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
-      initAvatarTurns(); // off unless ferni:avatar-turns
+      (await import('./ui/avatar-motion/turn-gestures.js')).initTurnGestures(initAvatarTurns()); // off unless ferni:avatar-turns (+ ferni:turn-gestures)
+      (await import('./ui/avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
       initConnectionQualityUI();
@@ -3043,9 +3043,8 @@ class VoiceAIApp {
       thinkingUI.hide();
     });
 
-    // When handoff fails - hide indicator and show error
-    // FIX AUDIT GAP #1: Now receives rollbackTo to restore waveform/avatar persona
-    handoffService.onHandoffFailed((error, targetPersona, rollbackTo) => {
+    // When handoff fails: hide indicator, restore persona (rollbackTo), show the error or decline
+    handoffService.onHandoffFailed((error, targetPersona, rollbackTo, userMessage) => {
       log.error('onHandoffFailed:', { error, targetPersona, rollbackTo });
       // FIX BUG: Clear safety timeout
       if (handoffUITimeout) {
@@ -3064,7 +3063,8 @@ class VoiceAIApp {
       }
 
       thinkingUI.hide();
-      messageUI.show(t('app.handoffFailed'), 'error', 3000);
+      if (userMessage) toast.show({ message: userMessage, duration: 6000 });
+      else messageUI.show(t('app.handoffFailed'), 'error', 3000);
     });
 
     // When handoff is cancelled - hide indicator

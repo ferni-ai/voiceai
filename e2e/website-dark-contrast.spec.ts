@@ -26,8 +26,11 @@ const PAGES = [
   '/give/',
   '/help/',
   '/how-it-works/',
+  '/privacy/',
+  '/sms-consent/',
   '/story/',
   '/team/',
+  '/terms/',
 ];
 
 let server: ChildProcess | undefined;

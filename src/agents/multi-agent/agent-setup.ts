@@ -64,7 +64,7 @@ import {
 // ============================================================================
 import { FerniAgent } from '../personas/ferni-agent.js';
 import {
-  createTurnContextPusher,
+  attachTurnContextPusher,
   createTurnIntelligenceHook,
   resolveTurnIntelligenceMode,
 } from './turn-intelligence.js';
@@ -1644,9 +1644,9 @@ Reference past context when relevant, but don't force it. Let the conversation f
       personaId: persona.id,
     });
     const onRecallTranscript = (event: unknown) => {
-      const evt = event as { transcript?: string };
+      const evt = event as { transcript?: string; isFinal?: boolean };
       if (!evt.transcript) return;
-      const note = recall.noteFor(evt.transcript);
+      const note = recall.noteFor(evt.transcript, { final: evt.isFinal });
       if (note) addRecallNote(agent as unknown as RecallAgent, note);
     };
     const onRecallAgentState = (event: unknown) => {
@@ -1664,27 +1664,14 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // turns for the next reply: never in onUserTurnCompleted, where changing the
   // chat context throws away the SDK's preemptive generation (turn-intelligence.ts).
   if (turnContextHook && sessionWithEvents.on) {
-    const pusher = createTurnContextPusher(
-      turnContextHook,
-      agent as unknown as Parameters<typeof createTurnContextPusher>[1]
+    forPersona(
+      attachTurnContextPusher(
+        turnContextHook,
+        agent as unknown as Parameters<typeof attachTurnContextPusher>[1],
+        sessionWithEvents,
+        { userData }
+      )
     );
-    const failed = (error: unknown) => log.warn({ error: String(error) }, 'Turn context failed');
-    const onTranscript = (event: unknown) => {
-      const evt = event as { transcript?: string; isFinal?: boolean };
-      if (evt.isFinal && evt.transcript) pusher.onFinalTranscript(evt.transcript).catch(failed);
-    };
-    const onAgentState = (event: unknown) =>
-      pusher.onAgentState((event as { newState?: string }).newState).catch(failed);
-    const onUserState = (event: unknown) =>
-      pusher.onUserState((event as { newState?: string }).newState).catch(failed);
-    sessionWithEvents.on('user_input_transcribed', onTranscript);
-    sessionWithEvents.on('agent_state_changed', onAgentState);
-    sessionWithEvents.on('user_state_changed', onUserState);
-    forPersona(() => {
-      sessionWithEvents.off?.('user_input_transcribed', onTranscript);
-      sessionWithEvents.off?.('agent_state_changed', onAgentState);
-      sessionWithEvents.off?.('user_state_changed', onUserState);
-    });
   }
 
   // Track handler status

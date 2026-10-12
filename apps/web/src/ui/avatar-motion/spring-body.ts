@@ -4,14 +4,16 @@
  * (overlapping action), and every move settles with a small bounce
  * (follow-through). Squash and stretch never exceed 5% and keep volume.
  *
- * Transforms go through one additive Web Animation per element, so they stack
- * on top of whatever else moves the avatar (speaking pulse, GSAP reactions)
- * and never touch style.transform.
+ * Transforms go through one compositor transform layer per element (an
+ * additive Web Animation kept on top), so they stack on whatever else moves
+ * the avatar (breathing, speaking pulse, GSAP reactions) and never touch
+ * style.transform.
  *
  * Off by default. Turn on: localStorage.setItem('ferni:spring-body', 'true')
  */
 
 import { createLogger } from '../../utils/logger.js';
+import { addTransformLayer, type TransformLayer } from './compositor.js';
 import {
   MAX_DEFORMATION,
   isAtRest,
@@ -26,7 +28,7 @@ const log = createLogger('SpringBody');
 export const SPRING_BODY_FLAG_KEY = 'ferni:spring-body';
 export const SPRING_BODY_TURN_EVENT = 'ferni:avatar-turn';
 
-/** Matches Speaker in speaker-cues.ui.ts. */
+/** Matches Speaker in speaker-cues.ui.ts (the turn driver's event names). */
 export type SpringTurn = 'ferni' | 'user' | 'thinking' | 'none';
 export type SpringKick = 'nod' | 'laugh';
 
@@ -70,13 +72,7 @@ const KICK_MOVES: Record<SpringKick, Move> = {
 };
 const EYE_OMEGA = 1.3;
 const EYE_AMPLITUDE = 0.6;
-const FOREVER_MS = 1e9;
 const REDUCED_KICK_MS = 200;
-
-type Keyframed = { setKeyframes(frames: Keyframe[]): void };
-function isKeyframed(effect: unknown): effect is Keyframed {
-  return typeof (effect as Partial<Keyframed> | null)?.setKeyframes === 'function';
-}
 
 interface Part {
   state: SpringState;
@@ -85,7 +81,8 @@ interface Part {
   scale: number;
   render(s: number, height: number): string;
   el: Element;
-  anim: Animation | null;
+  layer: TransformLayer;
+  moved: boolean;
   height: number;
 }
 
@@ -107,7 +104,8 @@ function makePart(el: Element, scale: number, render: Part['render']): Part {
     scale,
     render,
     el,
-    anim: null,
+    layer: addTransformLayer(el),
+    moved: false,
     height: 0,
   };
 }
@@ -122,10 +120,8 @@ export function createSpringBody(deps: SpringBodyDeps): SpringBody {
   let generation = 0;
 
   const write = (p: Part): void => {
-    const transform = p.render(p.state.x, p.height);
-    const frames: Keyframe[] = [{ transform }, { transform }];
-    if (p.anim && isKeyframed(p.anim.effect)) p.anim.effect.setKeyframes(frames);
-    else p.anim = p.el.animate(frames, { duration: FOREVER_MS, fill: 'both', composite: 'add' });
+    p.layer.set(p.render(p.state.x, p.height));
+    p.moved = true;
   };
 
   const frame = (): void => {
@@ -198,7 +194,7 @@ export function createSpringBody(deps: SpringBodyDeps): SpringBody {
     frameId = null;
     for (const p of parts) {
       p.state = { x: p.target, v: 0 };
-      if (p.anim) write(p);
+      if (p.moved) write(p);
     }
   };
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', reset);
@@ -216,7 +212,7 @@ export function createSpringBody(deps: SpringBodyDeps): SpringBody {
       if (frameId !== null) deps.caf(frameId);
       frameId = null;
       if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', reset);
-      for (const p of parts) p.anim?.cancel();
+      for (const p of parts) p.layer.dispose();
     },
   };
 }
@@ -233,8 +229,19 @@ function prefersReducedMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-const TURNS: readonly string[] = ['ferni', 'user', 'thinking', 'none'];
-const isTurn = (v: unknown): v is SpringTurn => typeof v === 'string' && TURNS.includes(v);
+/** Both vocabularies: the turn driver's Speaker and the avatar contract's phase. */
+const TURN_NAMES: Readonly<Record<string, SpringTurn>> = {
+  ferni: 'ferni',
+  user: 'user',
+  thinking: 'thinking',
+  none: 'none',
+  speaking: 'ferni',
+  listening: 'user',
+  idle: 'none',
+};
+export function springTurnFrom(v: unknown): SpringTurn | null {
+  return typeof v === 'string' && Object.hasOwn(TURN_NAMES, v) ? (TURN_NAMES[v] ?? null) : null;
+}
 
 let active: SpringBody | null = null;
 
@@ -247,7 +254,8 @@ export const springBody: Pick<SpringBody, 'turn' | 'kick'> = {
 function onTurnEvent(e: Event): void {
   const speaker: unknown =
     e instanceof CustomEvent ? (e.detail as { speaker?: unknown } | null)?.speaker : undefined;
-  if (isTurn(speaker)) springBody.turn(speaker);
+  const turn = springTurnFrom(speaker);
+  if (turn) springBody.turn(turn);
   else log.warn('Ignoring avatar turn event without a known speaker', { speaker });
 }
 

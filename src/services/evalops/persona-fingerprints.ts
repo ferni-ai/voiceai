@@ -168,8 +168,8 @@ export const peterFingerprint: PersonaVoiceFingerprint = {
     "I'm seeing a pattern",
 
     // Personal touches
-    'Carolyn reminds me',
-    'my wife Carolyn',
+    'Diane reminds me',
+    'my wife Diane',
     'Saturday morning research',
 
     // Uncertainty handling

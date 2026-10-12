@@ -12,6 +12,10 @@
  * - Ferni thinking: the thinking pose (curious tilt, eyes up, "Thinking").
  * - Nobody: idle eyes, so the natural blink and micro-idle run again.
  *
+ * Each settled change also fires a window `ferni:avatar-turn` event (detail
+ * `{ speaker }`, a Speaker), which the spring body, blinks, gaze and turn
+ * gestures follow. It only fires while this driver runs.
+ *
  * A turn must hold for a short settle time before the avatar follows it, so
  * brief flips don't flicker. With reduced motion the settle is longer, so the
  * avatar changes pose less often.
@@ -34,6 +38,8 @@ import { thinkingUI } from '../thinking.ui.js';
 const log = createLogger('AvatarTurns');
 
 export const AVATAR_TURNS_FLAG_KEY = 'ferni:avatar-turns';
+/** Window event fired once per settled turn change, detail `{ speaker }`. */
+export const AVATAR_TURN_EVENT = 'ferni:avatar-turn';
 /** How long a turn must hold before the avatar follows it. */
 export const TURN_SETTLE_MS = DURATION.FAST_RELEASE;
 /** The settle time when the viewer prefers reduced motion: fewer pose changes. */
@@ -89,6 +95,10 @@ export interface TurnDriver {
   dispose(): void;
 }
 
+function announceTurn(speaker: Speaker): void {
+  window.dispatchEvent(new CustomEvent(AVATAR_TURN_EVENT, { detail: { speaker } }));
+}
+
 function applyPose(targets: AvatarTargets, pose: AvatarPose): void {
   // Thinking first: hiding it clears the class the eyes are about to set.
   if (!pose.thinking) targets.hideThinking();
@@ -113,8 +123,10 @@ export function createTurnDriver(targets: AvatarTargets, settleMs: number): Turn
 
   const show = (speaker: Speaker): void => {
     clearTimer();
+    const changed = speaker !== shown;
     shown = speaker;
     applyPose(targets, POSES[speaker]);
+    if (changed) announceTurn(speaker);
   };
 
   return {
@@ -131,6 +143,7 @@ export function createTurnDriver(targets: AvatarTargets, settleMs: number): Turn
     dispose() {
       clearTimer();
       if (shown === null) return;
+      if (shown !== 'none') announceTurn('none'); // the call ended: settle to rest
       shown = null;
       // Only what the driver turned on: the call's own teardown owns the rest.
       targets.hideThinking();

@@ -93,3 +93,65 @@ export function claimAvatarContainer(container: HTMLElement): boolean {
   releaseStaleTransformFills(container);
   return true;
 }
+
+/** An additive transform on one element, kept above anything that would replace it. */
+export interface TransformLayer {
+  set(transform: string): void;
+  dispose(): void;
+}
+
+const LAYER_DURATION_MS = 1e9;
+
+type Keyframed = { setKeyframes(frames: Keyframe[]): void };
+function isKeyframed(effect: unknown): effect is Keyframed {
+  return typeof (effect as Partial<Keyframed> | null)?.setKeyframes === 'function';
+}
+
+/** A replace-mode transform animation composites over everything before it. */
+function replacesTransform(animation: Animation): boolean {
+  const effect = asKeyframeEffect(animation);
+  if (!effect || effect.composite !== 'replace') return false;
+  return effect.getKeyframes().some((frame) => frame.transform !== undefined);
+}
+
+/** True when nothing after `mine` in composite order would hide it. */
+function isOnTop(element: Element, mine: Animation): boolean {
+  if (typeof element.getAnimations !== 'function') return true;
+  const animations = element.getAnimations();
+  for (const animation of [...animations].reverse()) {
+    if (animation === mine) return true;
+    if (replacesTransform(animation)) return false;
+  }
+  return false; // cancelled by someone else (avatar-feedback cancels every animation)
+}
+
+/**
+ * A transform layer that adds to the breathing loop, the body pulse and any
+ * GSAP move instead of fighting them: one `composite: 'add'` animation, moved
+ * back on top whenever a later replace-mode transform animation (a breathing
+ * restart with the compositor off, a `fill: 'forwards'` settle) would hide it,
+ * or recreated after someone cancelled it. Never writes `style.transform`.
+ * Used by the spring body (`ferni:spring-body`).
+ */
+export function addTransformLayer(element: Element): TransformLayer {
+  let animation: Animation | null = null;
+  return {
+    set(transform) {
+      const frames: Keyframe[] = [{ transform }, { transform }];
+      if (animation && isKeyframed(animation.effect) && isOnTop(element, animation)) {
+        animation.effect.setKeyframes(frames);
+        return;
+      }
+      animation?.cancel();
+      animation = element.animate(frames, {
+        duration: LAYER_DURATION_MS,
+        fill: 'both',
+        composite: 'add',
+      });
+    },
+    dispose() {
+      animation?.cancel();
+      animation = null;
+    },
+  };
+}

@@ -30,6 +30,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
 import { FastLaneLLM, fastLaneEnabled } from './fast-lane.js';
 import { HedgedLLM } from './hedged-llm.js';
+import { installVertexKeepAlive } from './vertex-keepalive.js';
 import type {
   AgentSessionTurnDetection,
   LLMModelConfig,
@@ -282,25 +283,9 @@ export function logStreamOpens<T extends { stream: (...args: never[]) => unknown
   stt.stream = ((...args: never[]) => {
     opened += 1;
     log.info({ stream: opened, sinceCreatedMs: Date.now() - createdAt }, 'STT_STREAM_OPEN');
-    const stream = open(...args);
-    latestStream.set(stt, stream);
-    return stream;
+    return open(...args);
   }) as T['stream'];
   return stt;
-}
-
-/** The last stream each STT opened, for refreshSttStream. */
-const latestStream = new WeakMap<object, unknown>();
-
-/**
- * Reopen the Cartesia socket under the STT's current stream (our plugin patch's
- * refresh()). False when there is no stream, the patch is missing, or the
- * caller is mid-turn.
- */
-export function refreshSttStream(stt: unknown): boolean {
-  if (!stt || typeof stt !== 'object') return false;
-  const stream = latestStream.get(stt) as { refresh?: () => boolean } | undefined;
-  return typeof stream?.refresh === 'function' ? stream.refresh() : false;
 }
 
 /**
@@ -371,6 +356,8 @@ export class CartesiaCascadeProvider implements ModelProvider {
   async createLLMModel(config: LLMModelConfig): Promise<unknown> {
     const opts = buildCascadeLLMOptions(process.env, config.temperature);
     const hedge = buildCascadeHedge(process.env);
+    // VERTEX_KEEPALIVE=on: reply requests reuse a warm socket (vertex-keepalive.ts).
+    installVertexKeepAlive();
     log.info(
       {
         model: opts.model,

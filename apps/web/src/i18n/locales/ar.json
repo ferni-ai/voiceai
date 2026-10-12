@@ -4744,7 +4744,8 @@
     "sourceInferred": "لاحظتُ",
     "correctButton": "تعديل",
     "memoriesCount": "{count} ذكريات",
-    "confidence": "بنسبة ثقة {confidence}%"
+    "confidence": "بنسبة ثقة {confidence}%",
+    "earlier": "سابقًا"
   },
   "memoryCorrection": {
     "modalTitle": "تصحيح هذه الذكرى",
@@ -10629,7 +10630,9 @@
       "few": "لقد كسبت {count} بذور!",
       "many": "لقد كسبت {count} بذرة!",
       "other": "لقد كسبت {count} بذرة!"
-    }
+    },
+    "couldNotLoadMemories": "لم أتمكن من تحميل ما أتذكره. هل نحاول مرة أخرى؟",
+    "memoryCorrected": "فهمت. سأتذكره هكذا."
   },
   "trustSignals": {
     "prefix": {

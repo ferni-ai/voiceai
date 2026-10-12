@@ -28,6 +28,8 @@
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { breathingComposite, isAvatarCompositorEnabled } from './avatar-motion/compositor.js';
+import { disposeGaze, initGaze } from './avatar-motion/gaze.js';
+import { isNaturalBlinkEnabled } from './avatar-motion/natural-blink.js';
 import { speakingSystem } from './speaking-system.ui.js';
 
 const log = createLogger('PresenceUI');
@@ -152,8 +154,7 @@ export function initPresenceUI(): void {
   // Start breathing animation using Web Animations API
   startBreathingAnimation();
   
-  // Start subtle eye tracking loop
-  startEyeTracking();
+  if (!initGaze()) startEyeTracking(); // ferni:gaze owns the eyes when on, else mouse tracking
   
   // 🆕 Human-like behaviors - makes avatar feel alive
   startBlinking();
@@ -507,11 +508,10 @@ const MIN_BLINK_INTERVAL = 1500; // At least 1.5s between blinks
 function performBlink(): void {
   if (!avatarElement || !avatarContainer) return;
   
-  // Check for reduced motion
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   
-  // Don't blink while speaking (looks unnatural)
-  if (isSpeaking) return;
+  // Don't blink while speaking (looks unnatural); natural blink owns blinks when on
+  if (isSpeaking || isNaturalBlinkEnabled()) return;
   
   // Prevent rapid blinking
   const now = Date.now();
@@ -1446,8 +1446,8 @@ export function dispose(): void {
   // FIX BUG: Clear all tracked timeouts first
   _clearAllTimeouts();
 
-  // Stop all animations
-  stopEyeTracking();
+  stopEyeTracking(); // stop all animations, eyes first
+  disposeGaze();
   stopBlinking();
   stopMicroIdleMovements();
 

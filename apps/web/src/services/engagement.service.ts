@@ -20,6 +20,7 @@ import {
   isDailyCheckInRecordedMessage,
 } from '../types/events.js';
 import type { EngagementData, EmotionalWeatherData } from '../ui/engagement.ui.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import { runningAccuracy, toPredictionData, type PredictionData } from './prediction-data.js';
@@ -197,9 +198,11 @@ class EngagementService {
   }
 
   /**
-   * Check if streak count is a milestone.
+   * Check if streak count is a milestone. None under VITE_NO_STREAKS, so
+   * onStreakMilestone (celebration, notice, glow, streak seed reward) never fires.
    */
   private isStreakMilestone(count: number): boolean {
+    if (isNoStreaksOn()) return false;
     const milestones = [3, 7, 14, 21, 30, 60, 90, 100, 365];
     return milestones.includes(count);
   }

@@ -14,16 +14,20 @@
 //   their .judge.json and .score.json: feeling and recall on dev, and
 //   backchannel timing once score.mjs carries presence (#706);
 // - bogle_users/<owner>/ferni_commitments in Firestore (read-only): promises
-//   whose due time fell in the window, kept vs missed (promise-keeper.ts).
+//   whose due time fell in the window, kept vs missed (promise-keeper.ts);
+// - panel/*.json: Ferni Listening Panel reports (ferni-rater/tools/score_round.py
+//   output, saved by the weekly panel review): blind human 1-5 "sounds like a
+//   real person" scores, the headline because people, not a judge, give them.
 //
 // Schema (scorecard.json):
-// { generatedAt, windowDays, sources: { callReviewDays, evalRuns },
+// { generatedAt, windowDays, sources: { callReviewDays, evalRuns, panelReports },
 //   dimensions: { <name>: {
 //     label, unit, better: 'higher'|'lower',
 //     human: { value, range?, source } | null   (null: no published baseline),
 //     target: { value, why },
 //     current: { prodReal: { value, n } | null, devEval: { value, n } | null },
-//       (followThrough adds due: promises that fell due, settled or not)
+//       (followThrough adds due: promises that fell due, settled or not;
+//        humanPanel's n is listeners and it adds round)
 //     trend: [{ date, prodReal, devEval }]       (one row per day with data)
 //   } } }
 // value is the median (or rate) over calls in the window; n is how many calls
@@ -40,6 +44,8 @@ const PROJECT = process.env.GCP_PROJECT ?? 'johnb-2025';
 const SCENARIOS = new URL('./scenarios/', import.meta.url);
 const MIN_CALLER_TURNS = 4;
 const FELT = ['feltUnderstood', 'feltValidated', 'feltCaredFor'];
+// Judge dimensions read straight from judge.mjs scores.
+const JUDGED = [...FELT, 'callbackTact'];
 const ANCHOR = {
   value: 3,
   source: 'judge.mjs anchor: 3 = a good human friend (a wording, not a measured friend)',
@@ -47,6 +53,13 @@ const ANCHOR = {
 
 /** Each dimension's definition; value(call) reads one reviewed call or eval run. */
 export const DIMENSIONS = {
+  humanPanel: {
+    label: 'Blind listeners: sounds like a real person (1 robotic, 4 mostly real, 5 a real friend)',
+    unit: 'score 1-5',
+    better: 'higher',
+    human: null, // measured from the round's real-person clip when it has one (panelOf)
+    target: { value: 4, why: "the panel's own scale: 4 = mostly real" },
+  },
   speed: {
     label: 'Reply gap p50 (caller stops to Ferni heard)',
     unit: 'ms',
@@ -77,6 +90,13 @@ export const DIMENSIONS = {
       },
     ])
   ),
+  callbackTact: {
+    label: 'Judge: callbacks to an earlier call feel natural, not watched',
+    unit: 'score 1-5',
+    better: 'higher',
+    human: ANCHOR,
+    target: { value: 4, why: 'judge anchor 4 = better than most friends' },
+  },
   recall: {
     label: 'Facts from the earlier call recalled unprompted',
     unit: 'rate',
@@ -120,6 +140,10 @@ const median = (xs) => {
   const m = Math.floor(s.length / 2);
   return Math.round((s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2) * 100) / 100;
 };
+const mean = (xs) => {
+  const v = xs.filter((x) => Number.isFinite(x));
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+};
 const summarize = (xs) => {
   const vals = xs.filter((x) => typeof x === 'number');
   return vals.length ? { value: median(vals), n: vals.length } : null;
@@ -131,7 +155,7 @@ export function reviewedValues(call) {
   // An app opened and closed without a conversation says nothing about Ferni.
   if ((m.callerTurns ?? 0) < MIN_CALLER_TURNS) return {};
   const f = m.fallbacks ?? {};
-  const felt = Object.fromEntries(FELT.map((k) => [k, call.judge?.scores?.[k] ?? null]));
+  const felt = Object.fromEntries(JUDGED.map((k) => [k, call.judge?.scores?.[k] ?? null]));
   return {
     speed: m.replyGapMs?.source === 'reply-gap' ? m.replyGapMs.p50 : null,
     listening: m.callerTalkShare,
@@ -146,7 +170,7 @@ export function reviewedValues(call) {
 
 /** One eval run's values: feeling from its judge verdict, recall, backchannel timing. */
 export function evalValues(run, judge, score) {
-  const out = Object.fromEntries(FELT.map((k) => [k, judge?.scores?.[k] ?? null]));
+  const out = Object.fromEntries(JUDGED.map((k) => [k, judge?.scores?.[k] ?? null]));
   const scenario = run.meta?.scenario;
   const file = scenario && new URL(`${scenario}.txt`, SCENARIOS);
   if (file && existsSync(file)) {
@@ -180,7 +204,45 @@ export function followThroughOf(promises, since, until) {
 }
 
 /** Rows [{ date, side: 'prodReal'|'devEval', values }] -> current + trend per dimension. */
-export function assemble(rows, followThrough, meta) {
+/**
+ * Panel reports [{ date, report }] -> the latest round's score and one trend
+ * row per report. A round's score is the mean of its versions' human scores;
+ * a report with no listeners is not a measurement.
+ */
+export function panelOf(reports) {
+  // build_round.py's real-person clip is the arm whose flags read HUMAN_REFERENCE=<source>.
+  const isPerson = (r) => String(r['what changed'] ?? '').startsWith('HUMAN_REFERENCE');
+  const score = (rows) =>
+    rows.length
+      ? Math.round(mean(rows.map((r) => Number.parseFloat(r['human score']))) * 100) / 100
+      : null;
+  const scored = reports
+    .filter(({ report }) => report.listeners > 0 && report.rows?.some((r) => !isPerson(r)))
+    .map(({ date, report }) => ({
+      date,
+      round: report.round,
+      listeners: report.listeners,
+      value: score(report.rows.filter((r) => !isPerson(r))),
+      person: score(report.rows.filter(isPerson)),
+      source: report.rows.find(isPerson)?.['what changed'].split('=')[1],
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const last = scored.at(-1);
+  return {
+    current: last ? { value: last.value, n: last.listeners, round: last.round } : null,
+    // The same listeners scoring a real person in the same round: a measured baseline.
+    human:
+      last?.person != null
+        ? {
+            value: last.person,
+            source: `panel round ${last.round}: real-person clip (${last.source})`,
+          }
+        : null,
+    trend: scored.map((x) => ({ date: x.date, prodReal: null, devEval: x.value })),
+  };
+}
+
+export function assemble(rows, followThrough, meta, panel = { current: null, trend: [] }) {
   const dims = {};
   for (const [name, def] of Object.entries(DIMENSIONS)) {
     const pick = (side, date) =>
@@ -194,6 +256,12 @@ export function assemble(rows, followThrough, meta) {
         devEval: median(pick('devEval', date)),
       }))
       .filter((t) => t.prodReal !== null || t.devEval !== null);
+    if (name === 'humanPanel') {
+      current = { prodReal: null, devEval: panel.current };
+      trend = panel.trend;
+      dims[name] = { ...def, human: panel.human ?? null, current, trend };
+      continue;
+    }
     if (name === 'followThrough') {
       current = { prodReal: followThrough.overall, devEval: null };
       trend = Object.entries(followThrough.byDate)
@@ -284,6 +352,21 @@ function ownerPromises() {
   return out;
 }
 
+/** Panel reports saved in the window, dated by when they were saved. */
+function panelReports(since) {
+  const dir = join(EVIDENCE, 'panel');
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => ({ f, at: statSync(join(dir, f)).mtimeMs }))
+    .filter(({ at }) => at >= Date.parse(since))
+    .map(({ f, at }) => ({
+      date: new Date(at).toISOString().slice(0, 10),
+      report: readJson(join(dir, f)),
+    }))
+    .filter(({ report }) => report);
+}
+
 function main() {
   const args = process.argv.slice(2);
   const opt = (k, d) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
@@ -299,10 +382,20 @@ function main() {
   } catch (e) {
     console.error(`follow-through not read: ${e.message}`);
   }
-  const card = assemble([...reviewed.rows, ...evals], follow, {
-    windowDays: days,
-    sources: { callReviewDays: reviewed.days, evalRuns: evals.length },
-  });
+  const reports = panelReports(since);
+  const card = assemble(
+    [...reviewed.rows, ...evals],
+    follow,
+    {
+      windowDays: days,
+      sources: {
+        callReviewDays: reviewed.days,
+        evalRuns: evals.length,
+        panelReports: reports.length,
+      },
+    },
+    panelOf(reports)
+  );
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, JSON.stringify(card, null, 2));
   for (const [k, d] of Object.entries(card.dimensions))

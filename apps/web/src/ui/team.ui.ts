@@ -39,6 +39,7 @@ import { createLogger } from '../utils/logger.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
 import { initHandoffPresence } from './handoff-presence.ui.js';
 import { openMarketplace } from './lazy-screens.js';
+import { applyLockState } from './team-lock-state.js';
 import { toast } from './whisper.ui.js';
 
 const log = createLogger('TeamUI');
@@ -1179,6 +1180,7 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   nameSpan.className = 'team-name';
   nameSpan.textContent = displayName;
   element.appendChild(nameSpan);
+  applyLockState(element, agent.id as UnlockTeamMemberId, isLocked, agent.isCoordinator);
 
   return element;
 }
@@ -1531,7 +1533,7 @@ function showLockedMemberFeedback(
   // Get the teaser message or fallback
   const name = memberConfig?.displayName || personaId;
   const message =
-    memberConfig?.teaserMessage || t('teamRoster.notAvailableYet', { name });
+    status.lockReason || memberConfig?.teaserMessage || t('teamRoster.notAvailableYet', { name });
 
   // Announce to screen readers
   announceToScreenReader(message);
@@ -1569,12 +1571,11 @@ function updateTeamMemberLockStates(state: ReturnType<typeof teamUnlockService.g
         removeClass(element, 'team-member--almost-unlocked');
       }
     } else {
-      removeClass(element, 'team-member--locked');
-      removeClass(element, 'team-member--almost-unlocked');
+      removeClass(element, 'team-member--locked', 'team-member--almost-unlocked');
     }
 
-    // Update data attribute
-    element.setAttribute('data-locked', isLocked.toString());
+    // data-locked, the state classes and the lock reason (the server's words) as tooltip
+    applyLockState(element, personaId as UnlockTeamMemberId, isLocked, personaId === 'ferni');
 
     // Update aria-label
     const memberConfig = getTeamMember(personaId as UnlockTeamMemberId);
@@ -1713,8 +1714,7 @@ function clearSwitchingFeedback(targetPersonaId: SpeakerId): void {
   // Clear switching-to from target
   const targetElement = teamMemberElements.get(targetPersonaId);
   if (targetElement) {
-    removeClass(targetElement, 'switching-to');
-    removeClass(targetElement, 'send-failed');
+    removeClass(targetElement, 'switching-to', 'team-member--switching', 'send-failed');
   }
 
   // Clear switching-from from all elements (in case we don't know which one)
@@ -1746,7 +1746,7 @@ function showSwitchingFeedback(fromId: SpeakerId, toId: PersonaId): void {
 
   // Highlight the target persona with a subtle glow
   if (toElement) {
-    addClass(toElement, 'switching-to');
+    addClass(toElement, 'switching-to', 'team-member--switching');
   }
 
   // 🎬 Energy transfer animation - magical pulse travels from one to the other

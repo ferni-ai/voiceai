@@ -63,6 +63,13 @@ import {
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
+import {
+  createEpisodeRecall,
+  recallEpisodesEnabled,
+  type EpisodeStore,
+} from '../../memory/recall/episodes.js';
+import { firestoreEpisodeStore } from '../../memory/storage/episode-store.js';
+import { createSummaryRecall, summaryRecallEnabled } from '../../memory/recall/call-summaries.js';
 
 const log = createLogger({ module: 'MemoryRecall' });
 
@@ -119,13 +126,21 @@ export interface MemoryRecallDeps {
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
   embed?: RetrievalEmbedder;
+  /** RECALL_EPISODES=on (episodes.ts, needs semantic); read from the environment when not given. */
+  episodes?: boolean;
+  episodeStore?: EpisodeStore;
+  /** RECALL_SUMMARIES=on (call-summaries.ts); read from the environment when not given. */
+  summaries?: boolean;
 }
 
 export interface MemoryRecall {
   /** Resolves once the snapshot is loaded (for tests and startup logging). */
   ready: Promise<void>;
-  /** The recall note for this transcript, or null. Synchronous: never waits on the store. */
-  noteFor(transcript: string): string | null;
+  /**
+   * The recall note for this transcript, or null. Synchronous: never waits on
+   * the store. `final: false` marks an interim transcript.
+   */
+  noteFor(transcript: string, opts?: { final?: boolean }): string | null;
   /** The agent started replying: the next transcript belongs to a new user turn. */
   newTurn(): void;
 }
@@ -162,10 +177,29 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let checkInNote: string | null = null;
   let checkInOffered = false;
   const semanticOn = deps.semantic ?? semanticRecallEnabled();
+  // Key points of earlier calls' summaries; loaded apart so the snapshot never waits.
+  const summaryRecall =
+    (deps.summaries ?? summaryRecallEnabled())
+      ? createSummaryRecall({
+          userId: deps.userId,
+          store: deps.store ?? firestoreRecallStore,
+          ...(semanticOn && { embed: deps.embed }),
+        })
+      : undefined;
   let index: SemanticIndex | undefined;
   // Semantic recall only: threads and stories past the first note, by id.
   const laterFollowUps = new Map<string, string>();
   const laterTold = new Map<string, LedgerFact>();
+  // The caller's own words from earlier calls; indexed apart so the snapshot never waits.
+  const episodes =
+    semanticOn && (deps.episodes ?? recallEpisodesEnabled())
+      ? createEpisodeRecall({
+          userId: deps.userId,
+          before: new Date(started),
+          store: deps.episodeStore ?? firestoreEpisodeStore,
+          embed: deps.embed,
+        })
+      : undefined;
   const personaId = deps.personaId ?? 'ferni';
   // FERNI_SELF_RECALL=on: asked about himself, what he told about it (self-recall.ts).
   const selfRecall = deps.selfRecall ?? selfRecallEnabled();
@@ -239,12 +273,20 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
 
   return {
     ready,
-    noteFor(transcript) {
+    noteFor(transcript, opts = {}) {
       const text = transcript.trim();
       if (!snapshot || !text) return null;
       index?.observe(text);
+      episodes?.observe(text);
+      summaryRecall?.observe(text);
       const semantic = index?.matches() ?? new Map<string, number>();
-      const blend = index ? { semantic, now: Date.now() } : undefined;
+      // The first interim of a turn comes before its embedding. Word matches
+      // alone then spent the turn's four facts ("work" -> "works long
+      // shifts"), and the final transcript's meaning-matched facts found no
+      // room ("employer = St. Mary's", benchmark 2026-10-11). Interims wait
+      // for the meaning unless they name someone; a final transcript never waits.
+      const namedOnly = opts.final === false && (index?.awaitingTurn() ?? false);
+      const blend = index ? { semantic, now: Date.now(), namedOnly } : undefined;
       const budget = FACTS_PER_TURN - factsThisTurn;
       const ranked =
         budget > 0
@@ -289,8 +331,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         [
           checkIn,
           formatRecall(facts, followUps, deps.userName, Date.now(), { insideJokes }),
+          summaryRecall?.take(text) ?? null,
           told,
           extraTold.length > 0 ? formatLedger(extraTold, deps.userName) : null,
+          episodes?.take() ?? null,
           self,
         ]
           .filter(Boolean)
@@ -319,11 +363,13 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       return note;
     },
     newTurn() {
+      episodes?.newTurn();
       selfNoteGiven = false;
       factsThisTurn = 0;
       tokensLeft = RECALL_TOKENS_PER_TURN;
       entitiesThisTurn.clear();
       index?.newTurn();
+      summaryRecall?.newTurn();
     },
   };
 }

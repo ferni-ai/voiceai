@@ -1,6 +1,6 @@
 {
   "_generated": {
-    "timestamp": "2026-10-04T19:42:40.729Z",
+    "timestamp": "2026-10-11T16:06:12.680Z",
     "source": "scripts/generate-frontend-personas.ts",
     "version": "1.0.0"
   },
@@ -1011,16 +1011,16 @@
     },
     "john-bogle": {
       "id": "john-bogle",
-      "name": "John Bogle",
-      "initials": "JB",
-      "subtitle": "Index Investing Pioneer",
+      "name": "Henry Caldwell",
+      "initials": "HC",
+      "subtitle": "Index Investing Mentor",
       "role": "standalone",
-      "description": "The father of index investing who put investors first",
-      "helperText": "Index Investing Pioneer",
+      "description": "An index-investing elder who puts investors first",
+      "helperText": "Index Investing Mentor",
       "skills": [],
-      "entrancePhrase": "John Bogle here. You know, before we talk about money, I'd love to know - how are you really doing?",
+      "entrancePhrase": "Henry Caldwell here. You know, before we talk about money, I'd love to know - how are you really doing?",
       "quotes": [
-        "\"The father of index investing who put investors first.\""
+        "\"An index-investing elder who puts investors first.\""
       ],
       "traits": [
         "wise",

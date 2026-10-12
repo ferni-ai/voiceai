@@ -250,6 +250,12 @@ const OVERLAY_PAIRS: OverlayPair[] = [
     },
   },
   {
+    name: 'dialog primary button',
+    file: 'src/ui/overlay/dialog.styles.ts',
+    selector: '.ferni-dialog__button--primary',
+    surface: '--color-background-elevated',
+  },
+  {
     name: 'outreach persona name',
     file: 'src/ui/proactive-outreach.ui.ts',
     selector: '.proactive-outreach__persona',

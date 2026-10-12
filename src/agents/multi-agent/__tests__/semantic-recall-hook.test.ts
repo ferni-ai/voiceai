@@ -53,6 +53,7 @@ const TOPICS: Array<[string, RegExp]> = [
   ['reading', /history book|reading/i],
   ['craft', /pottery|clay/i],
   ['pet', /retriever|pup/i],
+  ['hospital', /hospital|St\. Mary/i],
 ];
 const embed: RetrievalEmbedder = async (texts) =>
   texts.map((t) => {
@@ -233,6 +234,62 @@ describe('semantic recall across calls', () => {
         "I've been getting my hands into clay again"
       )
     ).toContain('Ask how the pottery class went');
+  });
+
+  it("an interim's loose word matches don't crowd out what the final transcript means", async () => {
+    // The benchmark miss (2026-10-11): "which hospital did I work at" matched
+    // four rows on "work" before its embedding landed, and the turn had no
+    // room left for the employer the question meant.
+    const fact = (entityName: string, key: string, value: string) => ({
+      entityName,
+      factType: 'attribute' as const,
+      key,
+      value,
+      confidence: 0.9,
+    });
+    const payloads = buildExtractionFirestoreWritePayloads(
+      'u-work',
+      {
+        entities: [],
+        relationships: [],
+        facts: [
+          fact('user', 'previous_employer', "St. Mary's"),
+          fact('user', 'schedule', 'works long shifts'),
+          fact('Neighbor', 'helps', 'walks the dog during work shifts'),
+          fact('Dana', 'relation', 'a friend from work'),
+          fact('commute', 'length', 'forty minutes to work'),
+        ],
+      },
+      { sessionId: 'call-1', turnNumber: 2 },
+      '2026-10-09T18:00:00.000Z',
+      noLog
+    );
+    fs.data.set('u-work/dynamic_facts', payloads.facts);
+    const interim = 'which hospital did I work at';
+    const final = 'which hospital did I work at before this one?';
+    const ask = async (marked: boolean) => {
+      const recall = createMemoryRecall({ userId: 'u-work', semantic: true, embed });
+      await recall.ready;
+      await settle(); // the call-start index
+      const early = recall.noteFor(interim, marked ? { final: false } : undefined);
+      await settle(); // the interim's embedding lands while they are still talking
+      return [early, recall.noteFor(final, marked ? { final: true } : undefined)].join('\n');
+    };
+    // Unmarked transcripts keep the old behaviour: the interim spends the turn.
+    expect(await ask(false)).not.toContain("St. Mary's");
+    const note = await ask(true);
+    expect(note).toContain("St. Mary's");
+    expect(note).not.toContain('forty minutes');
+  });
+
+  it('an interim that names someone still recalls them before the embedding lands', async () => {
+    seedCallOne('u-named');
+    const recall = createMemoryRecall({ userId: 'u-named', semantic: true, embed });
+    await recall.ready;
+    await settle();
+    recall.noteFor('hey there');
+    recall.newTurn();
+    expect(recall.noteFor("how's Biscuit doing", { final: false })).toContain('golden retriever');
   });
 
   it('never waits on a slow embedder: the note is keyword recall, at once', async () => {
