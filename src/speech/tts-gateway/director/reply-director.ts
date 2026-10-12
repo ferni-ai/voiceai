@@ -18,12 +18,14 @@
 import { readCallerProsody, type CallerProsody } from '../../audio-prosody/caller-prosody.js';
 import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 
+import { flagOn } from '../../../config/env-flag.js';
 import { voiceHonorsProsodyTags } from '../../../config/voice-capabilities.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.js';
 import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { prosodyTags } from '../providers/cartesia.js';
 import { DirectorEngine } from './engine.js';
+import { ferniSpeedNudge } from './ferni-energy.js';
 import { leverModes, speechDirectorMode } from './gate.js';
 import { RawCues } from './raw-cues.js';
 import { directorSessions, type DirectorSessions } from './session-state.js';
@@ -173,12 +175,14 @@ class DirectedReply implements ReplyStream {
         opts.sessionId && modes.prosody !== 'off'
           ? readCallerProsody(opts.sessionId, wordCount(opts.turnContext?.userRequest))
           : undefined,
+      ferniNudge: ferniSpeedNudge(opts.sessionId),
       laughter: {
         sessionId: opts.sessionId,
         personaId: opts.personaId,
         turn: opts.turnContext?.turnNumber,
         userEmotion: opts.turnContext?.userEmotion?.primary,
         comfortLevel: opts.comfortLevel ?? opts.turnContext?.comfortLevel,
+        teamVoices: flagOn('TEAM_VOICES', opts.env),
       },
     });
   }

@@ -129,7 +129,7 @@ export interface SurfaceDecision {
  */
 const MEMORY_TRIGGERS = [
   { pattern: /\b(father|dad|parent)/i, memory: 'father_relationship' },
-  { pattern: /\b(japan|tokyo|tsunami)/i, memory: 'japan_experience' },
+  { pattern: /\b(japan|tokyo)/i, memory: 'japan_experience' },
   { pattern: /\b(wyoming|home|childhood)/i, memory: 'wyoming_roots' },
   { pattern: /\b(mentor|teacher|learned from)/i, memory: 'tanaka_san' },
   { pattern: /\b(survive|survived|made it through)/i, memory: 'survival' },

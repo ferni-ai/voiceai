@@ -50,11 +50,6 @@ const AI_LANDING_EXPERIMENTS: Record<string, ExperimentSeed> = {
     description: 'Enable AI-powered FAQ',
     primaryGoal: 'faq_engagement',
   },
-  'landing-ai-social-proof': {
-    name: 'AI Social Proof',
-    description: 'Enable AI-generated social proof',
-    primaryGoal: 'social_proof_engagement',
-  },
   'landing-ai-hover-previews': {
     name: 'Hover Previews',
     description: 'Enable hover preview interactions',

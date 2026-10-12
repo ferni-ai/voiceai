@@ -23,8 +23,10 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { SELF_VOICED_NOTE, SPARSE_MARKUP_NOTE, adaptSpeechMarkup } from './speech-markup-notes.js';
 import { getModelProvider } from '../model-provider/index.js';
+import { withOwnLife } from '../../personas/persona-slip-guard.js';
+import { withStoryHonesty } from './ai-honesty.js';
 // Use centralized FTIS mode check - single source of truth
-import { isFTISEnabled } from '../processors/tool-routing-integration.js';
+import { isFtisEnabled } from '../../config/tool-config.js';
 
 const log = createLogger({ module: 'PromptLoader' });
 
@@ -342,7 +344,7 @@ async function loadBetterThanHumanModules(): Promise<string | null> {
 async function loadFunctionCallingWithBase(bundleDir: string): Promise<string | null> {
   // 🎯 FTIS MODE: Load FTIS instructions instead of JSON function calling
   // FTIS executes tools directly - LLM just responds to results
-  if (isFTISEnabled()) {
+  if (isFtisEnabled()) {
     log.info(
       { bundleDir },
       '🎯 FTIS MODE: Loading FTIS instructions (tools execute automatically)'
@@ -451,18 +453,11 @@ async function loadToolUsageGuidance(bundleDir: string): Promise<string | null> 
     return null;
   }
 
-  const guidance = await loadFile(bundleDir, 'identity/tool-usage-guidance.md');
-
-  if (guidance) {
-    log.debug(
-      { bundleDir, providerId: provider.id },
-      `${provider.getLogPrefix()} Loaded tool usage guidance (conceptual knowledge about WHEN to use tools)`
-    );
-    return guidance;
-  }
-
-  log.debug({ bundleDir }, 'No tool-usage-guidance.md found');
-  return null;
+  // Plus what every persona can do (music, timers, reminders, weather): dev call 2026-10-12
+  const own = await loadFile(bundleDir, 'identity/tool-usage-guidance.md');
+  const guidance = [own, await loadSharedFile('shared-capabilities.md')].filter(Boolean);
+  log.debug({ bundleDir, own: !!own }, `${provider.getLogPrefix()} Loaded tool usage guidance`);
+  return guidance.length ? guidance.join('\n\n') : null;
 }
 
 async function loadAssemblyConfig(bundleDir: string): Promise<AssemblyConfig | null> {
@@ -515,10 +510,10 @@ export async function loadSystemPrompt(
   return adaptSpeechMarkup(await loadSystemPromptForTTS(personaId, mode));
 }
 
-/** identity/character.md plus the persona's tool-usage guidance, or null if it has none. */
+/** identity/character.md (+ own life, persona-slip-guard.ts) and tool-usage guidance, or null. */
 async function loadCharacterPrompt(personaId: string): Promise<string | null> {
   const bundleDir = PERSONA_BUNDLES[personaId.toLowerCase()] || personaId;
-  const character = await loadFile(bundleDir, 'identity/character.md');
+  const character = await withOwnLife(await loadFile(bundleDir, 'identity/character.md'), bundleDir);
   if (!character) return null;
   const tools = await loadToolUsageGuidance(bundleDir);
   const prompt = tools ? `${character}\n\n---\n\n${tools}` : character;
@@ -777,7 +772,7 @@ export async function loadModelBaseInstructions(): Promise<string> {
   const promptConfig = provider.getPromptModules();
 
   // Check if FTIS mode is active OR provider uses native prompts (no JSON format)
-  const isFTISMode = isFTISEnabled();
+  const isFTISMode = isFtisEnabled();
   // Also skip JSON instructions when provider uses native FC with native prompts
   const useNativePrompts = !promptConfig.includeFunctionCallingBase;
   const skipJsonInstructions = isFTISMode || useNativePrompts;
@@ -836,10 +831,9 @@ export async function loadModelBaseInstructions(): Promise<string> {
       );
     }
 
-    // The one rule for when someone sincerely asks if they're talking to an AI.
-    // Appended to every base (character, minimal, full) so no persona or
-    // provider path can lose it; the persona prompts never bring it up.
-    const aiHonesty = await fs.readFile(join(sharedDir, 'ai-honesty.md'), 'utf-8');
+    // The one sincere-ask rule, on every base so no path loses it (ai-honesty.ts).
+    const honestyRule = await fs.readFile(join(sharedDir, 'ai-honesty.md'), 'utf-8');
+    const aiHonesty = withStoryHonesty(honestyRule);
 
     // Combine: base content + voice output rules (always appended)
     const combined = [baseContent, voiceOutputRules, aiHonesty]
@@ -907,4 +901,3 @@ export function getModelBaseInstructionsCached(): string | null {
 // ============================================================================
 
 export { FALLBACK_PROMPTS, PERSONA_BUNDLES };
-

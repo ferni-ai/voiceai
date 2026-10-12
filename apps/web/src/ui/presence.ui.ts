@@ -27,6 +27,10 @@
 
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { breathingComposite, isAvatarCompositorEnabled } from './avatar-motion/compositor.js';
+import { disposeGaze, initGaze } from './avatar-motion/gaze.js';
+import { isNaturalBlinkEnabled } from './avatar-motion/natural-blink.js';
+import { speakingSystem } from './speaking-system.ui.js';
 
 const log = createLogger('PresenceUI');
 
@@ -45,7 +49,7 @@ import {
   VOICE_GLOW_TRANSITIONS,
 } from '@design-system/tokens';
 
-import { DURATION, EASING, ANIMATION_PRESET } from '../config/animation-constants.js';
+import { DURATION, EASING, ANIMATION_PRESET, safeAnimate } from '../config/animation-constants.js';
 
 // ============================================================================
 // TIMING CONSTANTS (derived from design system)
@@ -150,18 +154,15 @@ export function initPresenceUI(): void {
   // Start breathing animation using Web Animations API
   startBreathingAnimation();
   
-  // Start subtle eye tracking loop
-  startEyeTracking();
+  if (!initGaze()) startEyeTracking(); // ferni:gaze owns the eyes when on, else mouse tracking
   
   // 🆕 Human-like behaviors - makes avatar feel alive
   startBlinking();
   startMicroIdleMovements();
   
   // 🔊 NEW: Initialize three-layer speaking system (body, halo, lid)
-  import('./speaking-system.ui.js').then(m => {
-    m.speakingSystem.init();
-    log.debug('🔊 Three-layer speaking system initialized');
-  });
+  speakingSystem.init();
+  log.debug('🔊 Three-layer speaking system initialized');
   
   // 🚀 Ferni EQ: Listen for breath sync events
   document.addEventListener('ferni:breath-sync', handleBreathSync as EventListener);
@@ -175,6 +176,7 @@ export function initPresenceUI(): void {
 function handleMouseMove(e: MouseEvent): void {
   lastMouseX = e.clientX;
   lastMouseY = e.clientY;
+  startEyeTracking(); // the loop stops itself once the gaze settles
 }
 
 // ============================================================================
@@ -281,11 +283,11 @@ function startBreathingAnimation(): void {
     },
   ];
   
-  breathingAnimation = avatarContainer.animate(keyframes, {
+  breathingAnimation = safeAnimate(avatarContainer, keyframes, {
     duration,
     iterations: Infinity,
     easing: EASING.STANDARD, // Smooth ease-in-out
-    fill: 'both',
+    fill: 'both', composite: breathingComposite(), // 'add' under ferni:avatar-compositor
   });
   
   // Start secondary glow animation (slightly out of phase)
@@ -329,7 +331,7 @@ function startGlowAnimation(breathDuration: number): void {
     },
   ];
   
-  glowAnimation = avatarElement.animate(glowKeyframes, {
+  glowAnimation = safeAnimate(avatarElement, glowKeyframes, {
     duration: glowDuration,
     iterations: Infinity,
     easing: EASING.GENTLE,
@@ -506,11 +508,10 @@ const MIN_BLINK_INTERVAL = 1500; // At least 1.5s between blinks
 function performBlink(): void {
   if (!avatarElement || !avatarContainer) return;
   
-  // Check for reduced motion
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   
-  // Don't blink while speaking (looks unnatural)
-  if (isSpeaking) return;
+  // Don't blink while speaking (looks unnatural); natural blink owns blinks when on
+  if (isSpeaking || isNaturalBlinkEnabled()) return;
   
   // Prevent rapid blinking
   const now = Date.now();
@@ -662,7 +663,7 @@ function stopMicroIdleMovements(): void {
  */
 function startVoicePulse(): void {
   if (voicePulseFrame !== null) return; // Already running
-  if (!voicePulseEnabled) return;
+  if (!voicePulseEnabled || isAvatarCompositorEnabled()) return; // speaking-system owns the body pulse
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   
   log.debug('🔊 Starting voice pulse animation');
@@ -722,8 +723,8 @@ function stopVoicePulse(): void {
     voicePulseFrame = null;
   }
   
-  // Reset to neutral with smooth transition
-  if (avatarContainer) {
+  // Reset to neutral with smooth transition (no replace-mode fill under ferni:avatar-compositor)
+  if (avatarContainer && !isAvatarCompositorEnabled()) {
     avatarContainer.style.setProperty('--voice-scale-x', '1');
     avatarContainer.style.setProperty('--voice-scale-y', '1');
     
@@ -761,7 +762,7 @@ export function setVoiceVolume(volume: number): void {
   // 🔊 NEW: Update unified speaking system with volume
   // This drives the three-layer animation (body, halo, lid)
   if (isSpeaking) {
-    import('./speaking-system.ui.js').then(m => m.speakingSystem.updateVolume(currentVoiceVolume));
+    speakingSystem.updateVolume(currentVoiceVolume);
   }
 }
 
@@ -790,18 +791,13 @@ export function isVoicePulseEnabled(): boolean {
 // ============================================================================
 
 /**
- * Start WALL-E style eye tracking.
- * 
- * Like WALL-E examining something interesting:
- * - Smooth, curious following
- * - Slight "lag" that feels organic
- * - Gentle return to center when mouse is far
+ * WALL-E style eye tracking: smooth, slightly lagging, eases back to centre.
+ * Runs only until the gaze settles; mousemove restarts it. It used to run every
+ * frame forever, and its getBoundingClientRect forced a style + layout pass each time.
  */
 function startEyeTracking(): void {
-  if (eyeTrackingFrame !== null) return;
-  
+  if (eyeTrackingFrame !== null || !avatarElement) return;
   let lastTime = performance.now();
-  
   const trackEyes = (currentTime: number) => {
     const deltaTime = Math.min(currentTime - lastTime, 50);
     lastTime = currentTime;
@@ -842,8 +838,11 @@ function startEyeTracking(): void {
       // Apply via CSS custom properties (for CSS to use if needed)
       avatarContainer.style.setProperty('--eye-offset-x', `${currentOffsetX.toFixed(2)}px`);
       avatarContainer.style.setProperty('--eye-offset-y', `${currentOffsetY.toFixed(2)}px`);
+      if (Math.abs(targetOffsetX - currentOffsetX) + Math.abs(targetOffsetY - currentOffsetY) < 0.02) {
+        eyeTrackingFrame = null;
+        return;
+      }
     }
-    
     eyeTrackingFrame = requestAnimationFrame(trackEyes);
   };
   
@@ -891,11 +890,11 @@ export function setSpeaking(speaking: boolean): void {
     if (speaking) {
       startVoicePulse();
       // 🔊 NEW: Start unified speaking system (body + halo + lid)
-      import('./speaking-system.ui.js').then(m => m.speakingSystem.start());
+      speakingSystem.start();
     } else {
       stopVoicePulse();
       // 🔊 NEW: Stop unified speaking system
-      import('./speaking-system.ui.js').then(m => m.speakingSystem.stop());
+      speakingSystem.stop();
     }
     
     // 🎬 Zen blink when stopping speaking (natural pause moment)
@@ -1447,8 +1446,8 @@ export function dispose(): void {
   // FIX BUG: Clear all tracked timeouts first
   _clearAllTimeouts();
 
-  // Stop all animations
-  stopEyeTracking();
+  stopEyeTracking(); // stop all animations, eyes first
+  disposeGaze();
   stopBlinking();
   stopMicroIdleMovements();
 

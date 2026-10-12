@@ -592,7 +592,7 @@ const scheduleAtBestTimeTool: ToolDefinition = {
   id: 'scheduleAtBestTime',
   name: 'Schedule At Best Time',
   description:
-    'Remind the user to reach someone at the time that person usually responds. Ferni texts, emails or calls the user; she never messages the contact.',
+    'Remind the user to reach someone at the time that person usually responds. Ferni texts, emails or calls the user; he never messages the contact.',
   domain: 'scheduling',
   tags: ['scheduling', 'optimal', 'best-time', 'intelligent', 'smart', 'ml'],
 

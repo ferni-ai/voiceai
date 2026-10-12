@@ -655,7 +655,7 @@ class CognitiveInsightsUI {
       .cognitive-insights {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -682,7 +682,7 @@ class CognitiveInsightsUI {
       .cognitive-insights__card {
         position: relative;
         width: 100%;
-        max-width: clamp(308px, 90vw, 440px);
+        max-width: var(--modal-width, clamp(336px, 90vw, 480px));
         max-height: 80vh;
         background: var(--color-bg-elevated, #FFFDFB);
         border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
@@ -1314,7 +1314,7 @@ class CognitiveInsightsUI {
       }
 
       /* Responsive */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .cognitive-insights {
           padding: var(--space-4, 16px);
         }

@@ -26,9 +26,21 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { getDisplayName, isKnownId } from '../../personas/persona-ids.js';
+import { selfRecallEnabled } from './self-recall.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'LifeLedger' });
+
+/**
+ * The name a persona goes by ("Peter", not "peter" from "peter-john"). Facts
+ * are extracted and written in the third person under this name.
+ */
+export function personaDisplayName(personaId: string): string {
+  if (isKnownId(personaId)) return getDisplayName(personaId);
+  const first = personaId.split('-')[0] ?? personaId;
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
 
 export function lifeLedgerEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return env.LIFE_LEDGER !== 'off';
@@ -38,11 +50,14 @@ export function selfMemoryEnabled(env: Record<string, string | undefined> = proc
   return env.FERNI_SELF_MEMORY === 'on';
 }
 
+/** A stored fact retract-ledger-facts.ts marked as not his life keeps `retracted: true` and is never recalled. */
 export interface LedgerFact {
   personaId: string;
   fact: string;
   /** ISO time the call ended. */
   saidAt: string;
+  /** Set when a later call's fact replaced it (FERNI_SELF_RECALL); never recalled again. */
+  supersededAt?: string;
 }
 
 /** The slice of storage this needs; injected so tests need no database. */
@@ -149,7 +164,7 @@ const SELF_MEMORY_PROMPT = (name: string) =>
  * a quote that isn't in the biography doesn't count.
  */
 const CONFLICT_PROMPT = (name: string, biography: string) =>
-  `Here is ${name}'s biography, in his voice:\n"""\n${biography.trim()}\n"""\nBelow are numbered facts about ${name}. List only the facts the biography explicitly rules out: it states something they cannot both be true with (a different hometown or country he grew up in, a different number of siblings, no wife). A fact the biography doesn't mention, or that fits with it, is fine; when unsure, it is fine. For each fact it rules out, write one line: the fact's number, a "|", then the exact words from the biography it contradicts. If none, reply NONE.`;
+  `Here is ${name}'s biography, in his voice:\n"""\n${biography.trim()}\n"""\nBelow are numbered facts about ${name}. List only the facts the biography explicitly rules out: it states something they cannot both be true with (a different age, a different hometown or country he grew up in, a different number of siblings, no wife). A fact the biography doesn't mention, or that fits with it, is fine; when unsure, it is fine. For each fact it rules out, write one line: the fact's number, a "|", then the exact words from the biography it contradicts. If none, reply NONE.`;
 
 const biographies = new Map<string, Promise<string>>();
 /**
@@ -174,6 +189,58 @@ export function biographyCore(personaId: string): Promise<string> {
     biographies.set(personaId, bio);
   }
   return bio;
+}
+
+/**
+ * With FERNI_SELF_RECALL: the biography plus the own-life sheet (his age and
+ * friends), so "Ferni is fifty-two" is checked against "You're fifty-seven"
+ * instead of being saved (it was, on 2026-10-11's eval: the core biography
+ * gives no age).
+ */
+async function canonText(
+  personaId: string,
+  env?: Record<string, string | undefined>
+): Promise<string> {
+  const bio = await biographyCore(personaId);
+  if (!selfRecallEnabled(env)) return bio;
+  const { getBundleSearchPaths } = await import('../../personas/bundles/loader.js');
+  for (const root of getBundleSearchPaths()) {
+    const own = await readFile(
+      join(root, personaId, 'identity', 'character-own-life.md'),
+      'utf8'
+    ).catch(() => '');
+    if (own) return `${bio.trim()}\n\n${own.trim()}`;
+  }
+  return bio;
+}
+
+const SUPERSEDE_PROMPT = (name: string) =>
+  `Below are things ${name} told a friend on earlier calls (numbered), then what ${name} told them today. List the numbers of the earlier things today's make no longer true or replace with a newer version of the same thing: he finished the book he said he was reading, they decided against the dog they were looking at, the chair he was fixing is fixed now. Something today's don't touch is still true. One number per line. If none, reply NONE.`;
+
+/**
+ * Earlier facts a newer one replaces (FERNI_SELF_RECALL). Without this, "Ferni
+ * and his wife have been talking about getting a dog" kept coming back after
+ * "they decided against the terrier", and he told it as current (eval,
+ * 2026-10-11). Never throws: a failed check supersedes nothing.
+ */
+export async function supersededFacts(
+  name: string,
+  earlier: LedgerFact[],
+  fresh: string[],
+  ask: (system: string, input: string) => Promise<string> = (sys, input) => askModel(sys, input, 0)
+): Promise<LedgerFact[]> {
+  const same = new Set(fresh.map((f) => f.toLowerCase()));
+  const candidates = earlier.filter((f) => !same.has(f.fact.toLowerCase()));
+  if (candidates.length === 0 || fresh.length === 0) return [];
+  const input = `EARLIER:\n${candidates.map((f, i) => `${i + 1}. ${f.fact}`).join('\n')}\n\nTODAY:\n${fresh.map((f) => `- ${f}`).join('\n')}`;
+  const reply = await ask(SUPERSEDE_PROMPT(name), input).catch((error: unknown) => {
+    log.warn({ error: String(error) }, 'Supersede check failed; keeping earlier facts');
+    return '';
+  });
+  const picked = new Set(
+    (reply.match(/^\D{0,3}(\d+)\b/gm) ?? []).map((m) => Number(m.replace(/\D/g, '')))
+  );
+  return candidates.filter((_, i) => picked.has(i + 1));
 }
 
 async function askModel(systemInstruction: string, input: string, temperature = 0.2): Promise<string> {
@@ -293,8 +360,8 @@ export const firestoreLedgerStore: LedgerStore = {
       .limit(limit * 3)
       .get();
     return snap.docs
-      .map((d) => d.data() as LedgerFact)
-      .filter((f) => f.personaId === personaId)
+      .map((d) => d.data() as LedgerFact & { retracted?: boolean })
+      .filter((f) => f.personaId === personaId && f.retracted !== true && !f.supersededAt)
       .slice(0, limit);
   },
 };
@@ -342,7 +409,7 @@ export function createLedgerRecorder(
       let saved = 0;
       for (const [personaId, said] of lines) {
         try {
-          const name = personaId === 'ferni' ? 'Ferni' : personaId.split('-')[0];
+          const name = personaDisplayName(personaId);
           const raw = await (deps.extract ?? defaultExtractor)(name, said);
           const strict = selfMemoryEnabled(deps.env);
           const grounded = groundedFacts(strict ? lifeFactsOnly(raw) : raw, said);
@@ -354,14 +421,26 @@ export function createLedgerRecorder(
               )
             : grounded;
           const own = strict
-            ? await consistentWithBiography(name, mine, await biographyCore(personaId), deps.ask)
+            ? await consistentWithBiography(name, mine, await canonText(personaId, deps.env), deps.ask)
             : mine;
           if (strict) {
             log.info({ personaId, extracted: raw.length, kept: own.length }, 'LIFE_LEDGER_SELF_MEMORY');
           }
           const facts = own.map((fact) => ({ personaId, fact, saidAt }));
           if (facts.length === 0) continue;
-          await (deps.store ?? firestoreLedgerStore).save(userId, facts);
+          const store = deps.store ?? firestoreLedgerStore;
+          if (selfRecallEnabled(deps.env)) {
+            const earlier = await store.recent(userId, personaId, RECALL_LIMIT * 4).catch(() => []);
+            const gone = await supersededFacts(name, earlier, own, deps.ask);
+            if (gone.length > 0) {
+              await store.save(
+                userId,
+                gone.map((f) => ({ ...f, supersededAt: saidAt }))
+              );
+              log.info({ personaId, superseded: gone.length }, 'LIFE_LEDGER_SUPERSEDED');
+            }
+          }
+          await store.save(userId, facts);
           saved += facts.length;
         } catch (error) {
           log.warn({ error: String(error), personaId }, 'Life ledger not saved');

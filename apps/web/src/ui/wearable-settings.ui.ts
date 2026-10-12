@@ -414,7 +414,7 @@ class WearableSettingsUI {
       .wearable-settings {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -756,7 +756,7 @@ class WearableSettingsUI {
         color: var(--persona-primary, #6b9b5a);
       }
 
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .wearable-settings__wrapper {
           max-width: 100%;
           border-radius: var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0;

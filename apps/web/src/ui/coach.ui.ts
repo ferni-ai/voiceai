@@ -18,7 +18,7 @@ import type { PersonaConfig } from '../types/persona.js';
 import type { ConnectionState, AudioState, VoiceEmotion } from '../types/events.js';
 import { appState } from '../state/app.state.js';
 import { getElementById, setText, setClasses, addClass, removeClass } from '../utils/dom.js';
-// 🔤 Kinetic Typography for name animations
+import { safeAnimate } from '../config/animation-constants.js';
 import { animateNameHandoff, scrambleReveal } from './kinetic-typography.ui.js';
 import {
   getPersonaAnimationProfile,
@@ -29,6 +29,7 @@ import {
 import { relationshipStageService } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { isAvatarCompositorEnabled } from './avatar-motion/compositor.js';
 
 const log = createLogger('CoachUI');
 
@@ -228,11 +229,11 @@ function startBreathingAnimation(): void {
  * Different intensity based on persona personality.
  * Brand: warm, grounded, present.
  */
-function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy'): void {
+function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy', maxDuration = Infinity): void {
   if (!elements) return;
-  
+
   const profile = getAnimationProfile();
-  
+
   let keyframes: Keyframe[];
   let duration: number;
   
@@ -283,12 +284,15 @@ function playReaction(type: 'bounce' | 'attention' | 'settle' | 'joy'): void {
       break;
   }
   
-  elements.avatar.animate(keyframes, {
-    duration,
+  safeAnimate(elements.avatar, keyframes, {
+    duration: Math.min(duration, maxDuration),
     easing: profile.easing,
     fill: 'forwards',
   });
 }
+
+/** Upper bound for the persona-swap entrance (bounce, name, subtitle, ring). */
+export const PERSONA_SWAP_MAX_MS = 350;
 
 /**
  * Update the displayed persona with their unique colors.
@@ -300,26 +304,19 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
   // Update current persona ID for animation profile
   currentPersonaId = persona.id;
 
-  // Trigger transition animation
+  // Ring sparkle (CSS) and the persona's entrance bounce, both starting now
   addClass(elements.container, 'persona-transitioning');
-  
-  // Play persona-specific entrance bounce
-  const profile = getAnimationProfile();
-  trackedTimeout(() => {
-    playReaction('bounce');
-  }, profile.reactionDelay);
-  
-  // Remove transition class after animation completes
+  playReaction('bounce', PERSONA_SWAP_MAX_MS);
   trackedTimeout(() => {
     elements?.container && removeClass(elements.container, 'persona-transitioning');
-  }, 600);
+  }, PERSONA_SWAP_MAX_MS);
 
   // Note: avatarText is hidden by CSS - all personas now show eyes instead of initials
   // setText(elements.avatarText, persona.initials);
 
   // 🔤 Animate name change with kinetic typography
   if (elements.name && elements.name.textContent !== persona.name) {
-    void animateNameHandoff(elements.name, persona.name, { duration: 500 });
+    void animateNameHandoff(elements.name, persona.name, { duration: PERSONA_SWAP_MAX_MS - 100 });
   } else {
     setText(elements.name, persona.name);
   }
@@ -329,11 +326,14 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
     ? relationshipStageService.getSubtitle()
     : persona.subtitle;
   
-  // 🔤 Scramble reveal subtitle
-  if (elements.subtitle && elements.subtitle.textContent !== subtitle) {
-    scrambleReveal(elements.subtitle, subtitle, { duration: 400 });
-  } else {
-    setText(elements.subtitle, subtitle);
+  // Fade, not scramble: a scramble rewrites the text (and re-runs layout) every frame
+  const subtitleChanged = elements.subtitle.textContent !== subtitle;
+  setText(elements.subtitle, subtitle);
+  if (subtitleChanged) {
+    safeAnimate(elements.subtitle, [{ opacity: 0 }, { opacity: 1 }], {
+      duration: PERSONA_SWAP_MAX_MS - 100,
+      easing: getAnimationProfile().easing,
+    });
   }
 
   // Update theme class
@@ -409,10 +409,9 @@ export function updateAudioState(state: AudioState): void {
  * Most visual movement should come from the waveform and avatar itself.
  */
 export function setVisualizationVolume(volume: number): void {
-  if (!elements) return;
-
-  // Scale the ring VERY subtly - the waveform provides main visual feedback
-  // Ring should feel like a gentle halo, not bouncing wildly
+  // Under ferni:avatar-compositor the speaking system owns the ring (one writer, no jitter)
+  if (!elements || isAvatarCompositorEnabled()) return;
+  // Scale the ring VERY subtly - the waveform provides main visual feedback, a gentle halo
   const scale = 1 + volume * 0.06; // Reduced from 0.3 to 0.06 (6% max vs 30%)
   elements.avatarRing.style.transform = `scale(${scale})`;
 

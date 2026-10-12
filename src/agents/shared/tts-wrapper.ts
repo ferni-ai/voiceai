@@ -33,7 +33,6 @@ import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
 import {
   applyPostTTSEnhancement,
   PostTTSPresets,
-  postTtsEnvOverrides,
   type PostTTSConfig,
 } from './performance/post-tts-transform.js';
 import { wrapWithTTSCheckpoints } from './performance/tts-checkpoints.js';
@@ -44,7 +43,7 @@ import {
 } from './performance/streaming-tts-transform.js';
 import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
-import { isFTISEnabled } from '../processors/tool-routing-integration.js';
+import { isFtisEnabled } from '../../config/tool-config.js';
 
 // TTS Gateway integration
 import { createGatewayTTSNode, isTTSGatewayEnabled } from '../../speech/tts-gateway/index.js';
@@ -438,7 +437,7 @@ export async function wrappedTtsNode(
 
   let filteredText: NodeReadableStream<string>;
   if (skipJsonWorkaround) {
-    const reason = isFTISEnabled()
+    const reason = isFtisEnabled()
       ? 'FTIS handles all tools'
       : `${provider.displayName} uses native function calling`;
     log.info(`${provider.getLogPrefix()} JSON workaround removed — ${reason}`);
@@ -731,7 +730,7 @@ export async function wrappedTtsNode(
             });
           }
 
-          // V3.2: Track Ferni's commitments in her response
+          // V3.2: Track Ferni's commitments in his response
           // This catches when Ferni says things like "I'll check in about that" or "Let me know how it goes"
           // Fire-and-forget to not block TTS stream
           if (userId && userId !== 'anonymous' && rawLLMBuffer.length > 10 && !isGarbageResponse) {
@@ -1155,7 +1154,6 @@ export async function wrappedTtsNode(
     const enhancementConfig = {
       ...PostTTSPresets.betterThanHuman,
       ...postTTSConfig,
-      ...postTtsEnvOverrides(),
       sessionId,
       personaId,
     };
@@ -1190,7 +1188,7 @@ const PERSONA_DISPLAY_NAMES: Record<string, string> = {
   'alex-chen': 'Alex',
   'jordan-taylor': 'Jordan',
   'nayan-patel': 'Nayan',
-  'joel-dickson': 'Joel',
+  'joel-dickson': 'Nate',
 };
 
 /**

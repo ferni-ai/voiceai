@@ -615,7 +615,7 @@
 
 @media (prefers-color-scheme: dark) {
   .footer:not(.footer--bold) {
-    background: var(--color-dark-bg, var(--color-text-primary));
+    background: var(--color-dark-bg, var(--color-bg-primary));
     border-top-color: rgba(255, 255, 255, 0.1);
   }
   
@@ -624,11 +624,11 @@
   }
   
   .footer:not(.footer--bold) .footer__headline {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-text-primary);
   }
   
   .footer:not(.footer--bold) .footer__subline {
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+    color: var(--color-text-secondary);
   }
   
   .footer:not(.footer--bold) .footer__nav-title {
@@ -636,11 +636,11 @@
   }
   
   .footer:not(.footer--bold) .footer__nav-group a {
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+    color: var(--color-text-secondary);
   }
   
   .footer:not(.footer--bold) .footer__nav-group a:hover {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-text-primary);
   }
   
   .footer:not(.footer--bold) .footer__bottom {
@@ -648,7 +648,7 @@
   }
   
   .footer:not(.footer--bold) .footer__logo-text {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-text-primary);
   }
   
   .footer:not(.footer--bold) .footer__motto {
@@ -662,12 +662,12 @@
   }
   
   .footer:not(.footer--bold) .footer__legal a:hover {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-text-primary);
   }
   
   /* Legacy dark mode support */
   .footer-brand .footer-logo {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-text-primary);
   }
   
   .footer-tagline {
@@ -679,11 +679,11 @@
   }
   
   .footer-column a {
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+    color: var(--color-text-secondary);
   }
   
   .footer-column a:hover {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-text-primary);
   }
   
   .footer-bottom {
@@ -697,15 +697,15 @@
   }
 
   .footer-team__title {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-text-primary);
   }
 
   .footer-team__subtitle {
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+    color: var(--color-text-secondary);
   }
 
   .team-avatar__name {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-text-primary);
   }
 
   .team-avatar__role {
@@ -808,7 +808,7 @@
 /* Dark mode for footer inner elements */
 @media (prefers-color-scheme: dark) {
   .footer-logo {
-    color: var(--color-bg-primary, var(--color-bg-elevated));
+    color: var(--color-text-primary);
   }
 
   .footer-logo:hover {
@@ -817,11 +817,11 @@
 
   .social-link {
     background: rgba(255, 255, 255, 0.08);
-    color: var(--color-dark-text-secondary, var(--color-bg-secondary));
+    color: var(--color-text-secondary);
   }
 
   .social-link:hover {
     background: var(--color-highlight, var(--color-nayan));
-    color: var(--color-dark-bg, var(--color-text-primary));
+    color: var(--color-dark-bg, var(--color-bg-primary));
   }
 }

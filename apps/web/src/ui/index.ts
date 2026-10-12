@@ -516,7 +516,7 @@ export {
   dismissHint,
   dismissAllHints,
   featureHints,
-  FEATURE_HINTS,
+  getFeatureHints,
 } from './feature-hints.ui.js';
 export type { FeatureHint, HintType } from './feature-hints.ui.js';
 

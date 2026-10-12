@@ -1319,7 +1319,7 @@
         "calendar": "Kalender",
         "history": "Bisherige Gespräche",
         "people": "Deine Leute",
-        "insights": "Wie es dir geht"
+        "insights": "Was ich gelernt habe"
       }
     },
     "ariaLabel": "Einstellungen-Menü",
@@ -3300,8 +3300,8 @@
     "categorySweet": "Süße Momente",
     "connectionConnected": "Wir sind verbunden",
     "connectionConnecting": "Verbindung wird hergestellt...",
-    "connectionDisconnected": "Wir sind nicht verbunden",
-    "connectionDisconnectedMessage": "Etwas ist schiefgelaufen, aber wir können es noch einmal versuchen.",
+    "connectionIdle": "Bereit, wann immer du bist",
+    "connectionIdleMessage": "Wann immer du reden willst, bin ich da.",
     "connectionError": "Verbindung verloren",
     "connectionErrorMessage": "Etwas ist schiefgelaufen, aber wir können es noch einmal versuchen.",
     "connectionReconnect": "Erneut verbinden",
@@ -4620,7 +4620,8 @@
     "sourceInferred": "Mir ist aufgefallen",
     "correctButton": "Korrigieren",
     "memoriesCount": "{count} Erinnerungen",
-    "confidence": "{confidence}% sicher"
+    "confidence": "{confidence}% sicher",
+    "earlier": "früher"
   },
   "memoryCorrection": {
     "modalTitle": "Diese Erinnerung korrigieren",
@@ -8790,6 +8791,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Bisherige Gespräche",
     "loadError": "Daten konnten nicht geladen werden.",
     "tryAgain": "Nochmal versuchen?",
     "ariaLabel": "Gesprächsverlauf",
@@ -9506,8 +9508,7 @@
     "rememberEmpty": "Diesmal gibt es nichts Neues festzuhalten. Danke für deine Gesellschaft.",
     "nextStepTitle": "Ein sanfter nächster Schritt",
     "invitation": "Komm wieder, wann immer du magst. Ich bin da.",
-    "close": "Schließen",
-    "seeCost": "Was dieser Anruf gekostet hat"
+    "close": "Schließen"
   },
   "moments": {
     "teamUnlockTitle": "Lerne {name} kennen",
@@ -10111,7 +10112,12 @@
     "getIdeas": "Ideen holen",
     "emptyTitle": "Noch keine Vorschläge",
     "emptyText": "Versuche, mehr Kontext über eure Beziehung hinzuzufügen.",
-    "generateError": "Ideen konnten nicht geladen werden. Erneut versuchen?"
+    "generateError": "Ideen konnten nicht geladen werden. Erneut versuchen?",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "WAS ICH FÜR DICH TUE",
@@ -10236,7 +10242,9 @@
     "seedsEarned": {
       "one": "Du hast {count} Samenkorn gesammelt!",
       "other": "Du hast {count} Samen gesammelt!"
-    }
+    },
+    "couldNotLoadMemories": "Ich konnte nicht laden, woran ich mich erinnere. Noch mal versuchen?",
+    "memoryCorrected": "Verstanden. Ich merke es mir so."
   },
   "trustSignals": {
     "prefix": {
@@ -10401,6 +10409,12 @@
       "fair": "Akzeptabel",
       "poor": "Schlechte Verbindung",
       "disconnected": "Getrennt"
+    },
+    "island": {
+      "offline": "Du bist offline. Ich verbinde mich wieder, sobald du zurück bist.",
+      "reconnecting": "Verbinde neu…",
+      "weak": "Schwache Verbindung",
+      "backOnline": "Wieder online"
     }
   },
   "ideasGallery": {
@@ -10599,6 +10613,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "Beziehungsfortschritt",
+    "emptyInvite": "Unsere Geschichte beginnt mit deinem ersten Gespräch.",
     "progress": "Fortschritt",
     "next": "Nächstes: {stage}",
     "stages": {
@@ -10858,6 +10873,9 @@
       "other": "{count} Tage"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "Mjam, mjam!"
+  },
   "avatarTapReactions": {
     "tickles": "Hehe, das kitzelt!"
   },
@@ -11073,5 +11091,51 @@
     "youSpeaking": "Du sprichst",
     "ferniThinking": "Ferni denkt nach",
     "tapToInterrupt": "Tippen zum Unterbrechen"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "Beitragen",
+    "title": "Ein Dollar hält das Gespräch am Laufen",
+    "body": "Ferni ist vorerst kostenlos. Wenn dir ein Gespräch geholfen hat, kannst du einen Dollar über Venmo senden. Mehr ist willkommen, aber nie erwartet.",
+    "qrAlt": "Venmo-QR-Code für @{handle}",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "openVenmo": "Venmo öffnen",
+    "helper": "Scanne ihn mit der Kamera deines Handys oder tippe auf Venmo öffnen. Den Betrag kannst du ändern.",
+    "maybeLater": "Vielleicht später",
+    "close": "Schließen"
   }
 }

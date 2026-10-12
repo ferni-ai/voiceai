@@ -1322,7 +1322,7 @@
         "calendar": "Calendario",
         "history": "Charlas anteriores",
         "people": "Tu gente",
-        "insights": "Cómo te va"
+        "insights": "Lo que he aprendido"
       }
     },
     "ariaLabel": "Menú de configuración",
@@ -3322,8 +3322,8 @@
     "categorySweet": "Momentos dulces",
     "connectionConnected": "Estamos en conexión",
     "connectionConnecting": "Conectando...",
-    "connectionDisconnected": "No hay conexión",
-    "connectionDisconnectedMessage": "Algo salió mal, pero podemos volver a intentarlo.",
+    "connectionIdle": "Cuando quieras",
+    "connectionIdleMessage": "Cuando tengas ganas de hablar, aquí estoy.",
     "connectionError": "Conexión perdida",
     "connectionErrorMessage": "Algo salió mal, pero podemos volver a intentarlo.",
     "connectionReconnect": "Volver a conectar",
@@ -4652,7 +4652,8 @@
     "sourceInferred": "Me di cuenta",
     "correctButton": "Corregir",
     "memoriesCount": "{count} recuerdos",
-    "confidence": "{confidence}% de seguridad"
+    "confidence": "{confidence}% de seguridad",
+    "earlier": "antes"
   },
   "memoryCorrection": {
     "modalTitle": "Corregir este recuerdo",
@@ -8857,6 +8858,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Charlas anteriores",
     "loadError": "No se pudieron cargar los datos.",
     "tryAgain": "¿Quieres volver a intentarlo?",
     "ariaLabel": "Historial de conversaciones",
@@ -9587,8 +9589,7 @@
     "rememberEmpty": "Nada nuevo que guardar esta vez. Gracias por la compañía.",
     "nextStepTitle": "Un pequeño siguiente paso",
     "invitation": "Vuelve cuando quieras. Aquí estaré.",
-    "close": "Cerrar",
-    "seeCost": "Lo que costó esta llamada"
+    "close": "Cerrar"
   },
   "moments": {
     "teamUnlockTitle": "Conoce a {name}",
@@ -10206,7 +10207,12 @@
     "getIdeas": "Ver ideas",
     "emptyTitle": "Aún no hay sugerencias",
     "emptyText": "Prueba a añadir más contexto sobre tu relación.",
-    "generateError": "No se pudieron generar ideas. ¿Quieres volver a intentarlo?"
+    "generateError": "No se pudieron generar ideas. ¿Quieres volver a intentarlo?",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "LO QUE HAGO POR TI",
@@ -10334,7 +10340,9 @@
       "one": "¡Has ganado {count} semilla!",
       "many": "¡Has ganado {count} semillas!",
       "other": "¡Has ganado {count} semillas!"
-    }
+    },
+    "couldNotLoadMemories": "No pude cargar lo que recuerdo. ¿Lo intentamos de nuevo?",
+    "memoryCorrected": "Entendido. Lo recordaré así."
   },
   "trustSignals": {
     "prefix": {
@@ -10507,6 +10515,12 @@
       "fair": "Regular",
       "poor": "Conexión débil",
       "disconnected": "Sin conexión"
+    },
+    "island": {
+      "offline": "No tienes conexión. Me reconecto en cuanto vuelvas.",
+      "reconnecting": "Reconectando…",
+      "weak": "Conexión débil",
+      "backOnline": "De nuevo en línea"
     }
   },
   "ideasGallery": {
@@ -10711,6 +10725,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "Progreso de la relación",
+    "emptyInvite": "Nuestra historia empieza con tu primera conversación.",
     "progress": "progreso",
     "next": "Siguiente: {stage}",
     "stages": {
@@ -10980,6 +10995,9 @@
       "other": "{count} días"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "¡Ñam, ñam!"
+  },
   "avatarTapReactions": {
     "tickles": "¡Jeje, eso me da cosquillas!"
   },
@@ -11199,5 +11217,51 @@
     "youSpeaking": "Estás hablando",
     "ferniThinking": "Ferni está pensando",
     "tapToInterrupt": "Toca para interrumpir"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "Aporta",
+    "title": "Un dólar mantiene viva la conversación",
+    "body": "Ferni es gratis por ahora. Si una charla te ayudó, puedes enviar un dólar por Venmo. Más es bienvenido, nunca esperado.",
+    "qrAlt": "Código QR de Venmo para @{handle}",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "openVenmo": "Abrir Venmo",
+    "helper": "Escanéalo con la cámara de tu teléfono o toca Abrir Venmo. Puedes cambiar el importe.",
+    "maybeLater": "Quizás después",
+    "close": "Cerrar"
   }
 }

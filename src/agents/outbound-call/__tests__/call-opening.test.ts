@@ -21,6 +21,7 @@ function phone(answered: boolean | Error, heard: FirstWords | Error) {
       return heard;
     }),
     say: vi.fn(async (text: string) => void order.push(`say: ${text}`)),
+    answerScreener: vi.fn(async (text: string) => void order.push(`screener: ${text}`)),
     leaveVoicemail: vi.fn(async () => void order.push('voicemail')),
     hangUp: vi.fn(async (d?: string) => void order.push(`hang up${d ? ` (${d})` : ''}`)),
   } satisfies CallOpeningPorts;

@@ -18,6 +18,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { t } from '../i18n/index.js';
 import { roadmapService, smartPromptTracker, STAGE_INFO, type RoadmapFeature, type SmartPromptRecommendation } from '../services/roadmap.service.js';
 import { getCurrentStreak, getNextStreakMilestone } from '../services/seeds-economy.service.js';
@@ -308,10 +309,9 @@ class RoadmapPanelUI {
     this.bindOverviewEvents();
   }
 
-  /**
-   * Render streak progress indicator
-   */
+  /** Render streak progress indicator (nothing under VITE_NO_STREAKS) */
   private renderStreakProgress(): string {
+    if (isNoStreaksOn()) return '';
     const currentStreak = getCurrentStreak();
     const nextMilestone = getNextStreakMilestone();
 
@@ -545,8 +545,7 @@ class RoadmapPanelUI {
               <div class="roadmap-detail__seed-stats">
                 <div class="roadmap-detail__seed-total">
                   <span class="roadmap-detail__seed-total-icon">${ICONS.seed}</span>
-                  <span class="roadmap-detail__seed-total-count">${this.formatNumber(totalSeeds)}</span>
-                  <span class="roadmap-detail__seed-total-label">${t('roadmap.seedsPlanted') || 'seeds planted'}</span>
+                  <span class="roadmap-detail__seed-total-label">${t('roadmap.seedsPlanted', { count: `<span class="roadmap-detail__seed-total-count">${this.formatNumber(totalSeeds)}</span>` })}</span>
                 </div>
                 <div class="roadmap-detail__seed-gardeners">
                   ${t('roadmap.gardeners', { count: this.formatNumber(uniqueVoters) }) || `${this.formatNumber(uniqueVoters)} gardeners`}
@@ -1079,7 +1078,7 @@ class RoadmapPanelUI {
       .roadmap-panel {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -3208,7 +3207,7 @@ class RoadmapPanelUI {
       /* ========================================================================
          RESPONSIVE
          ======================================================================== */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .roadmap-panel {
           padding: 0;
           align-items: flex-end;

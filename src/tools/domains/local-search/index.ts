@@ -20,6 +20,8 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { resolveCallerLocation } from '../../shared/caller-location.js';
 
 import { detectExplicitSource, formatResults, unifiedSearch } from './unified-search.js';
+import { pickRestaurantDef } from './restaurant-pick.js';
+import { isCoachLocalEnabled } from '../../../config/coach-local-flag.js';
 
 // Google Places (primary)
 import {
@@ -365,13 +367,17 @@ const checkLocalSearchStatusDef: ToolDefinition = {
 // DOMAIN EXPORT
 // ============================================================================
 
-export const { getToolDefinitions, domain, definitions } = createDomainExport('local-search', [
+export const { domain, definitions } = createDomainExport('local-search', [
   searchLocalBusinessesDef,
   findRestaurantsDef,
   getBusinessInfoDef,
   getBusinessReviewsDef,
   lookupByPhoneDef,
   checkLocalSearchStatusDef,
+  pickRestaurantDef,
 ]);
+/** What the registry loads: no pickRestaurant while COACH_LOCAL is off (config/coach-local-flag.ts). */
+export const getToolDefinitions = (): Promise<ToolDefinition[]> =>
+  Promise.resolve(definitions.filter((d) => d !== pickRestaurantDef || isCoachLocalEnabled()));
 
 export default { getToolDefinitions, domain, definitions };

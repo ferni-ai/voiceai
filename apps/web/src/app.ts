@@ -112,6 +112,7 @@ import {
 } from './ui/spotify.ui.js';
 import { openEverythingConnected } from './ui/everything-connected.js';
 import { initTeamUI, teamUI } from './ui/team.ui.js';
+import { initRosterPreferences } from './services/roster-preferences.service.js';
 import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
 // Group Conversations - Team Roundtables and Conference Calls
 import { initGroupConversationUI } from './ui/group-conversation.ui.js';
@@ -145,6 +146,7 @@ import { initMoodUI, moodUI } from './ui/mood.ui.js';
 // DISABLED: No skeleton loading - everything visible immediately
 // import { initSkeletonUI, skeletonUI } from './ui/skeleton.ui.js';
 import { initThinkingUI, thinkingUI } from './ui/thinking.ui.js';
+import { initAvatarTurns, trackTurnFallback } from './ui/avatar-motion/turn-driver.js';
 import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
 import {
   getIntegrationsSettingsUI,
@@ -299,6 +301,7 @@ import {
 import { initCosmeticsService } from './services/cosmetics.service.js';
 // Seeds Economy - earn seeds through engagement
 import { initSeedsEconomy } from './services/seeds-economy.service.js';
+import { watchServerSeeds } from './services/seeds-ledger.service.js';
 // Referral Service - network effect seeds system
 import { initReferralService, processPendingReferral } from './services/referral.service.js';
 // Seeds UI - display balance and toast notifications
@@ -315,7 +318,7 @@ const log = createLogger('App');
 import { initModalCoordinator, modalCoordinator } from './services/modal-coordinator.service.js';
 
 // 🎬 Character-quality Animation Orchestrator
-import { animatePersonaTransition, playCharacterReaction } from './ui/animation-orchestrator.ui.js';
+import { animatePersonaTransition } from './ui/animation-orchestrator.ui.js';
 // ⚡ GSAP Performance Utilities
 import { initGSAP, promoteAllToGPU } from './utils/gsap-animations.js';
 // Agent particles disabled for cleaner UI
@@ -473,14 +476,25 @@ class VoiceAIApp {
       return;
     }
 
+    // Pages opened from a text link that replace the app (/a/:id)
+    const { openStandalonePage } = await import('./app/standalone-pages.js');
+    if (await openStandalonePage(window.location.pathname)) return;
+
     // Check for CLI authentication route
     if (window.location.pathname === '/cli-auth') {
       initCLIAuth();
       return;
     }
 
-    // DISABLED: No skeleton loading - everything visible immediately
-    // initSkeletonUI();
+    // Approval page for a pending action, opened from a text link: /p/:id
+    if (window.location.pathname.startsWith('/p/')) {
+      const { pendingActionIdFromPath, initApprovePage } = await import('./ui/approve-page.ui.js');
+      const actionId = pendingActionIdFromPath(window.location.pathname);
+      if (actionId) {
+        await initApprovePage(actionId);
+        return;
+      }
+    }
 
     // Add app-loaded class immediately so everything is visible
     document.body.classList.add('app-loaded');
@@ -493,10 +507,13 @@ class VoiceAIApp {
       void initPlatform();
       log.info('Running on:', platform());
 
-      // Initialize theme system first (affects all UI)
+      // Before the theme: the circadian theme names its period with t(), and
+      // index.html already applied the stored theme, so there is no flash.
+      await initI18n(); // before any UI renders
+
+      // Initialize theme system (affects all UI)
       this.initializeTheme();
 
-      await initI18n(); // before any UI renders
       bindStaticDom(); // index.html text marked with data-i18n
       bindLocaleRefresh(); // a no-reload language change finishes with a reload
       installDialogFocus(); // focus into, around and back out of every modal
@@ -1219,6 +1236,7 @@ class VoiceAIApp {
     this.safeInit('WaveformUI', () => initWaveformUI());
     this.safeInit('CoachUI', () => initCoachUI());
     this.safeInit('ExpressiveEyes', () => initExpressiveEyes()); // 👀 Pixar-style eye expressions
+    this.safeInit('RosterPreferences', () => initRosterPreferences()); // saved teammates, before the bar renders
     this.safeInit('TeamUI', () => initTeamUI());
     this.safeInit('SpotifyUI', () => initSpotifyUI());
     this.safeInit('ControlsUI', () =>
@@ -1238,7 +1256,6 @@ class VoiceAIApp {
     // DEFERRED LOADING - Premium features loaded after first paint
     // This significantly speeds up initial page load time
     // =========================================================================
-
     // Essential extras - load after 100ms (needed early but not for first paint)
     this.deferredInit('SoundUI', 100, async () => {
       initSoundUI();
@@ -1254,6 +1271,8 @@ class VoiceAIApp {
     this.deferredInit('ThinkingUI', 100, async () => {
       initThinkingUI();
       (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
+      (await import('./ui/avatar-motion/turn-gestures.js')).initTurnGestures(initAvatarTurns()); // off unless ferni:avatar-turns (+ ferni:turn-gestures)
+      (await import('./ui/avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
       initConnectionQualityUI();
@@ -1768,6 +1787,9 @@ class VoiceAIApp {
 
     // 🌱 Seeds Economy - Earn seeds through natural engagement
     this.safeInit('SeedsEconomy', () => initSeedsEconomy());
+
+    // 🌱 Server seed ledger - one balance from the server once it keeps seeds
+    this.safeInit('SeedsLedger', () => watchServerSeeds());
 
     // 🤝 Referral Service - Network effect seeds (check URL for ?ref= param)
     this.safeInit('ReferralService', () => initReferralService());
@@ -2837,11 +2859,9 @@ class VoiceAIApp {
           trackReadyState: mediaStreamTrack?.readyState,
         });
         void this.attachAudioVisualization(audioElement, mediaStreamTrack);
-        setAudioState('speaking');
+        trackTurnFallback('agent-audio'); // avatar state, unless ferni:avatar-turns drives it
         // Set speaking state directly - don't rely only on volume detection
         waveformUI.setSpeaking(true);
-        presenceUI.setSpeaking(true);
-        expressiveEyes.setVoiceState('speaking'); // 👀 Pixar eyes react to speaking
         // Agent is speaking, so we're not in listening mode
         waveformUI.setListening(false);
 
@@ -2855,9 +2875,7 @@ class VoiceAIApp {
       onAudioTrackEnd: (_participantId) => {
         // Agent stopped speaking
         waveformUI.setSpeaking(false);
-        presenceUI.setSpeaking(false);
-        expressiveEyes.setVoiceState('listening'); // 👀 Eyes widen attentively
-        setAudioState('listening');
+        trackTurnFallback('agent-audio-end'); // avatar state, unless ferni:avatar-turns drives it
         // Now we're listening for user input
         waveformUI.setListening(true);
 
@@ -2945,7 +2963,7 @@ class VoiceAIApp {
       onLocalMicActive: (isActive) => {
         // When user's mic is active, show listening state
         waveformUI.setListening(isActive);
-        presenceUI.setListening(isActive);
+        trackTurnFallback(isActive ? 'mic-on' : 'mic-off');
 
         // 🎚️ Duck/unduck music when user is speaking
         const controller = getMusicAudioController();
@@ -3024,9 +3042,8 @@ class VoiceAIApp {
       thinkingUI.hide();
     });
 
-    // When handoff fails - hide indicator and show error
-    // FIX AUDIT GAP #1: Now receives rollbackTo to restore waveform/avatar persona
-    handoffService.onHandoffFailed((error, targetPersona, rollbackTo) => {
+    // When handoff fails: hide indicator, restore persona (rollbackTo), show the error or decline
+    handoffService.onHandoffFailed((error, targetPersona, rollbackTo, userMessage) => {
       log.error('onHandoffFailed:', { error, targetPersona, rollbackTo });
       // FIX BUG: Clear safety timeout
       if (handoffUITimeout) {
@@ -3045,7 +3062,8 @@ class VoiceAIApp {
       }
 
       thinkingUI.hide();
-      messageUI.show(t('app.handoffFailed'), 'error', 3000);
+      if (userMessage) toast.show({ message: userMessage, duration: 6000 });
+      else messageUI.show(t('app.handoffFailed'), 'error', 3000);
     });
 
     // When handoff is cancelled - hide indicator
@@ -3075,12 +3093,9 @@ class VoiceAIApp {
       // Also hide thinking indicator in case it's stuck
       thinkingUI.hide();
 
-      // 🎬 Character-style celebration on handoff
-      const avatarContainer = document.querySelector('.avatar-container');
-      if (avatarContainer instanceof HTMLElement) {
-        void playCharacterReaction(avatarContainer, 'joy', newPersona.id);
-      }
-      coachUI.flash();
+      // The avatar's entrance is coach.ui's single persona bounce (activePersona
+      // subscription). A second 'joy' bounce and a brightness flash here doubled
+      // the motion and animated filter, which repaints every frame.
 
       // Update theme persona colors
       this.updatePersonaTheme(newPersona.id);

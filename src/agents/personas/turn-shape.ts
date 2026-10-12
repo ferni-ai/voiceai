@@ -18,8 +18,16 @@
  * @module agents/personas/turn-shape
  */
 
+import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
 import { extrasFor, regexSignals, type TurnSignals } from './turn-extras.js';
+import {
+  lengthLearned,
+  lengthLine,
+  targetWords,
+  textureLearned,
+  textureLine,
+} from './turn-length.js';
 
 export type CallerMove = 'request' | 'about_ferni' | 'ack' | 'share' | 'lookup';
 export type Shape = 'react' | 'one' | 'answer' | 'full';
@@ -94,13 +102,18 @@ const SHAPE_LINE: Record<Shape, string> = {
   full: 'THIS REPLY: they asked for it, so give it properly, still spoken and plain, not a list or a speech.',
 };
 
-export function pickShape(move: CallerMove, rng: () => number = Math.random): Shape {
+export function pickShape(
+  move: CallerMove,
+  rng: () => number = Math.random,
+  lengthBias = NEUTRAL_STYLE.replyLength
+): Shape {
+  const odds = biasShapeOdds(SHAPE_ODDS[move], lengthBias);
   let r = rng();
-  for (const [shape, p] of SHAPE_ODDS[move]) {
+  for (const [shape, p] of odds) {
     if (r < p) return shape;
     r -= p;
   }
-  return SHAPE_ODDS[move][SHAPE_ODDS[move].length - 1][0];
+  return odds[odds.length - 1][0];
 }
 
 /**
@@ -186,8 +199,15 @@ const FIT_THE_MOMENT =
   'Anything that matters to them, good or bad (news, something they are proud of, worried about or hurt by), gets a real response to that specific thing, with the feeling it deserves, not a remark that would fit anything. ' +
   'When they ask you something or ask for help, actually answer it; when they ask about you, talk about yourself, something specific. ' +
   'Most replies are a sentence or two, some only a few words; go longer only when they asked for it.';
+/** FIT_THE_MOMENT without its fixed length rule, for TURN_LENGTH=learned (the length line says it). */
+const FIT_THE_MOMENT_LEARNED = FIT_THE_MOMENT.replace(/ Most replies are .*$/, '');
 
-function modelChosenShape(userText: string, rng: () => number, sig: TurnSignals): TurnShape {
+function modelChosenShape(
+  userText: string,
+  rng: () => number,
+  sig: TurnSignals,
+  style: StyleProfile
+): TurnShape {
   const { move } = sig;
   if (move === 'lookup') {
     const reminder = [REGISTER, LOOKUP, SHAPE_LINE.answer, QUESTION_LINE.none].join(' ');
@@ -200,18 +220,39 @@ function modelChosenShape(userText: string, rng: () => number, sig: TurnSignals)
   const parts = [REGISTER];
   if (move === 'about_ferni') parts.push(ABOUT_YOU);
   else if (move === 'share' && !sig.careful && rng() < 0.3) parts.push(SECOND_STORY);
-  const stance = stanceFor(userText, move, sig, move !== 'ack' && rng() < 0.3);
+  const stance = stanceFor(
+    userText,
+    move,
+    sig,
+    move !== 'ack' && rng() < scaled(0.3, style.opinion)
+  );
   parts.push(...stance.lines);
-  if (rng() < 0.5) parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
+  // TURN_LENGTH / TURN_TEXTURE=learned (turn-length.ts): length and roughness drawn from friends'
+  // next turns; a question or request still gets a real answer.
+  const learn = { length: lengthLearned() && move !== 'request', texture: textureLearned() };
+  // Off, nothing is drawn, so the rest of the reminder is the same as before.
+  const target =
+    learn.length || learn.texture
+      ? targetWords(userText, sig.recent, rng, sig.careful || move !== 'share')
+      : 0;
+  const texture = learn.texture ? textureLine(target, rng) : null;
+  if (texture) parts.push(texture.line);
+  else if (rng() < scaled(0.5, style.filler))
+    parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
   const asks = rng() < 0.25;
-  const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig);
-  parts.push(...extras.lines, FIT_THE_MOMENT);
+  const extras = extrasFor(userText, move, 'answer', asks, rng, process.env, sig, style);
+  parts.push(...extras.lines, learn.length ? FIT_THE_MOMENT_LEARNED : FIT_THE_MOMENT);
+  if (learn.length) parts.push(lengthLine(target));
   parts.push(extras.questionLine ?? (asks ? QUESTION_LINE.allowed : QUESTION_LINE.none));
+  const learned = [
+    learn.length ? `length_${target}` : '',
+    texture ? `texture_${texture.kind}` : '',
+  ];
   return {
     move,
     shape: 'answer',
     reminder: parts.join(' '),
-    extras: ['model_shape', ...stance.fired, ...extras.fired],
+    extras: ['model_shape', ...stance.fired, ...extras.fired, ...learned.filter(Boolean)],
   };
 }
 
@@ -220,12 +261,13 @@ export function turnShapeFor(
   userText: string,
   rng: () => number = Math.random,
   mode: TurnShapeMode = turnShapeMode(),
-  signals?: TurnSignals
+  signals?: TurnSignals,
+  style: StyleProfile = NEUTRAL_STYLE
 ): TurnShape {
   const sig = signals ?? regexSignals(userText, callerMove(userText));
-  if (mode === 'model') return modelChosenShape(userText, rng, sig);
+  if (mode === 'model') return modelChosenShape(userText, rng, sig, style);
   const move = sig.move;
-  const shape = pickShape(move, rng);
+  const shape = pickShape(move, rng, style.replyLength);
   if (move === 'lookup') {
     const reminder = [REGISTER, LOOKUP, SHAPE_LINE[shape], QUESTION_LINE.none].join(' ');
     return { move, shape, reminder, extras: [] };
@@ -237,12 +279,17 @@ export function turnShapeFor(
   // Not while they're venting: a friend stays with them instead of telling a story.
   else if (move === 'share' && shape !== 'react' && !sig.careful && rng() < 0.3)
     parts.push(SECOND_STORY);
-  const stance = stanceFor(userText, move, sig, move !== 'ack' && rng() < 0.3);
+  const stance = stanceFor(
+    userText,
+    move,
+    sig,
+    move !== 'ack' && rng() < scaled(0.3, style.opinion)
+  );
   parts.push(...stance.lines);
-  if (shape !== 'react' && rng() < 0.5)
+  if (shape !== 'react' && rng() < scaled(0.5, style.filler))
     parts.push(ROUGH_FORMS[Math.floor(rng() * ROUGH_FORMS.length)]);
   const asks = questionAllowed(shape, rng);
-  const extras = extrasFor(userText, move, shape, asks, rng, process.env, sig);
+  const extras = extrasFor(userText, move, shape, asks, rng, process.env, sig, style);
   parts.push(...extras.lines);
   parts.push(
     extras.shapeLine ?? SHAPE_LINE[shape],

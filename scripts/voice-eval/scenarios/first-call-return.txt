@@ -1,0 +1,12 @@
+# Call 2 after a first call (play with EVAL_SEED=first-call-seed): does Ferni
+# pick up what call 1 learned? The caller never restates it. Counted by
+# recall-facts.mjs: a fact counts only when Ferni says it before the caller.
+#@fact name \bjess\b
+#@fact job hygien|dentist|dental|cleanings
+#@fact soccer \bava\b|soccer|tournament|snack
+#@fact spanish spanish|mexico|spring trip
+Hey Ferni, it's me again.
+Not much going on. Just got home.
+What do you remember about me, anyway?
+Ha, okay. Anything you wanted to ask me about?
+Alright, I've got to go. Talk soon.

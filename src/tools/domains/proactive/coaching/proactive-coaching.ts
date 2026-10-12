@@ -7,14 +7,14 @@
  * - Spot patterns and offer help
  * - Check in during life transitions
  * - Know when to push and when to give space
- *
- * TRIGGERS include:
+ * TRIGGERS include (streak_at_risk is off under TEAM_BY_NEED):
  * - Life Coaching: loneliness_check_in, social_win_celebration, belonging_milestone
  * - Quiet Growth: rest_permission_needed, plateau_celebration, seasonal_transition
  * - Standard: silence_check_in, streak_at_risk, pattern_detected, mood_trend
  */
 
 import { llm, log } from '@livekit/agents';
+import { isTeamByNeedEnabled } from '../../../../config/team-by-need-flag.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { getProductivityStore } from '../../../../services/stores/productivity-store.js';
@@ -139,8 +139,8 @@ export function detectProactiveTriggers(context: DetectionContext): ProactiveTri
     }
   }
 
-  // 2. STREAK AT RISK
-  for (const habit of context.activeHabits) {
+  // 2. STREAK AT RISK (none under TEAM_BY_NEED: no streak nudges)
+  for (const habit of isTeamByNeedEnabled() ? [] : context.activeHabits) {
     if (habit.lastCompletion) {
       const hoursSinceCompletion =
         (now.getTime() - habit.lastCompletion.getTime()) / (1000 * 60 * 60);

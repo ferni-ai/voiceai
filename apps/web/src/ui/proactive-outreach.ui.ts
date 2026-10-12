@@ -244,7 +244,7 @@ function injectStyles(): void {
       position: fixed;
       top: 80px;
       right: 20px;
-      z-index: var(--z-notification, 3000);
+      z-index: var(--z-notification);
       max-width: min(360px, 100%);
       pointer-events: none;
     }
@@ -301,7 +301,7 @@ function injectStyles(): void {
 
     .proactive-outreach__persona {
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text, #4a6741);
       font-size: 14px;
     }
 
