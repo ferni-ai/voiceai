@@ -10114,6 +10114,13 @@
     "generateError": "Could not generate ideas. Try again?"
   },
   "ferniCare": {
+    "states": {
+      "signedOut": "You need to sign in first.",
+      "signIn": "Sign in",
+      "offline": "This needs a connection. I'll be here when you're back.",
+      "somethingUnexpected": "Something unexpected happened. Want to try again?",
+      "tryAgain": "Try again"
+    },
     "eyebrow": "WHAT I DO FOR YOU",
     "title": "Little things I remember",
     "subtitle": "So you don't have to",
