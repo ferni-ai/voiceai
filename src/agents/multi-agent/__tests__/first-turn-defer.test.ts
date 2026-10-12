@@ -7,7 +7,13 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { gatedReply } from '../../personas/crisis-gate.js';
-import { deferFirstTurn, firstTurnDeferEnabled, hasSafetySignal } from '../first-turn-defer.js';
+import {
+  deferFirstTurn,
+  firstTurnDeferEnabled,
+  hasSafetySignal,
+  resetTurnPipelineWarm,
+  SPEAKING_SETTLE_MS,
+} from '../first-turn-defer.js';
 import { attachTurnContextPusher, type UserTurnHook } from '../turn-intelligence.js';
 
 const ON = { FIRST_TURN_DEFER_BACKGROUND: 'on' };
@@ -53,10 +59,12 @@ const replyRequestDelay = (start: number) =>
     setTimeout(() => resolve(performance.now() - start), 10);
   });
 
+beforeEach(() => resetTurnPipelineWarm()); // every test is a fresh process
+
 describe('firstTurnDeferEnabled', () => {
   it('is on only with FIRST_TURN_DEFER_BACKGROUND=on and a live crisis gate', () => {
     expect(firstTurnDeferEnabled({})).toBe(false);
-    expect(firstTurnDeferEnabled({ FIRST_TURN_DEFER_BACKGROUND: 'true' })).toBe(false);
+    expect(firstTurnDeferEnabled({ FIRST_TURN_DEFER_BACKGROUND: 'off' })).toBe(false);
     expect(firstTurnDeferEnabled(ON)).toBe(true);
     expect(firstTurnDeferEnabled({ ...ON, CRISIS_GUARD_MODE: 'shadow' })).toBe(false);
     expect(firstTurnDeferEnabled({ ...ON, CRISIS_GUARD_MODE: 'off' })).toBe(false);
@@ -88,7 +96,7 @@ describe('turn 1 background work with FIRST_TURN_DEFER_BACKGROUND', () => {
     };
 
     expect(await delayWith({})).toBeGreaterThanOrEqual(900);
-    expect(await delayWith(ON)).toBeLessThan(200);
+    expect(await delayWith(ON)).toBeLessThan(500); // well under the 1 s block, with room for a loaded CI box
   });
 
   it('builds turn 1 once Ferni speaks, and its note reaches the context for turn 2', async () => {
@@ -243,6 +251,7 @@ describe('turn 1 background work with FIRST_TURN_DEFER_BACKGROUND', () => {
     await vi.waitFor(() => expect(first).toHaveBeenCalledTimes(1));
     agentState(session, 'listening');
 
+    resetTurnPipelineWarm(); // so only the handoff, not a warm process, can skip the hold
     const next = blockingHook(0);
     const detachNext = attachTurnContextPusher(next, makeAgent(), session, { env: ON });
     await detachFirst();
@@ -264,6 +273,59 @@ describe('turn 1 background work with FIRST_TURN_DEFER_BACKGROUND', () => {
       llm.ChatMessage.create({ role: 'user', content: 'hi' })
     );
     expect(hook).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets the reply play for the settle period before the held work starts', async () => {
+    const session = new EventEmitter();
+    const hook = blockingHook(0);
+    const detach = attachTurnContextPusher(hook, makeAgent(), session, { env: ON });
+    finalTranscript(session, 'long day at work');
+    agentState(session, 'speaking');
+    const spokeAt = performance.now();
+    await vi.waitFor(() => expect(hook).toHaveBeenCalledTimes(1), { timeout: 2000 });
+    expect(performance.now() - spokeAt).toBeGreaterThanOrEqual(SPEAKING_SETTLE_MS - 20);
+    await detach();
+  });
+
+  it('a reply that ends inside the settle period releases at once', async () => {
+    const session = new EventEmitter();
+    const hook = blockingHook(0);
+    const detach = attachTurnContextPusher(hook, makeAgent(), session, { env: ON });
+    finalTranscript(session, 'hi');
+    agentState(session, 'speaking');
+    agentState(session, 'listening');
+    await vi.waitFor(() => expect(hook).toHaveBeenCalledTimes(1), { timeout: 400 });
+    await detach();
+  });
+
+  it('a crisis decision inside the settle period still releases at once', async () => {
+    const session = new EventEmitter();
+    const hook = blockingHook(0);
+    const detach = attachTurnContextPusher(hook, makeAgent(), session, { env: ON });
+    finalTranscript(session, 'long day at work');
+    agentState(session, 'speaking');
+    session.emit('crisis_gate_decision', { action: 'guide' });
+    await vi.waitFor(() => expect(hook).toHaveBeenCalledTimes(1), { timeout: 400 });
+    await detach();
+  });
+
+  it('defers only in a cold process: once the turn pipeline has run, a new call builds turn 1 at once', async () => {
+    const first = new EventEmitter();
+    const hook = blockingHook(0);
+    const detachFirst = attachTurnContextPusher(hook, makeAgent(), first, { env: ON });
+    finalTranscript(first, 'first call');
+    agentState(first, 'listening'); // not 'speaking': still held
+    await pause(50);
+    expect(hook).not.toHaveBeenCalled();
+    await detachFirst(); // the call ends; its turn 1 is built, and the process is now warm
+    expect(hook).toHaveBeenCalledTimes(1);
+
+    const second = new EventEmitter();
+    const next = blockingHook(0);
+    const detachSecond = attachTurnContextPusher(next, makeAgent(), second, { env: ON });
+    finalTranscript(second, 'second call');
+    await vi.waitFor(() => expect(next).toHaveBeenCalledTimes(1), { timeout: 500 });
+    await detachSecond();
   });
 
   it('builds turn 1 at once when off (the default)', async () => {

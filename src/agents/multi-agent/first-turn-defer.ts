@@ -38,6 +38,7 @@
  */
 
 import { setImmediate } from 'node:timers';
+import { flagOn } from '../../config/env-flag.js';
 import { getProviderIdSync } from '../../config/model-provider-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { detectCrisis } from '../safety/crisis-guard.js';
@@ -57,6 +58,27 @@ export const MAX_DEFER_MS = 6000;
 export const SESSION_END_WAIT_MS = 3000;
 
 /**
+ * How long the reply plays before the held work starts, so its audio has
+ * queued (LiveKit's output holds up to 1 s; Cartesia delivers faster than real
+ * time) and a stall of a few hundred ms doesn't cut into its first words.
+ * From #1084 (FIRST_TURN_CALM), which this supersedes.
+ */
+export const SPEAKING_SETTLE_MS = 600;
+
+/**
+ * Once the turn pipeline has run in a process it is warm: later calls' first
+ * turns stalled 99 ms p50 on dev (n=58) against 782 ms for a process's first
+ * call (n=10), so only a cold process defers. With AGENT_JOB_EXECUTOR=process
+ * every call is a fresh process. (#1084's measurement.)
+ */
+let pipelineWarm = false;
+export const turnPipelineWarm = (): boolean => pipelineWarm;
+/** Tests: a fresh process. */
+export const resetTurnPipelineWarm = (): void => {
+  pipelineWarm = false;
+};
+
+/**
  * On by flag, only while CrisisGate decides each reply's crisis handling live,
  * which needs the cascade's llmNode path: the realtime models (OpenAI
  * Realtime, Gemini Live, Gemini native audio) reply without it.
@@ -65,7 +87,7 @@ export function firstTurnDeferEnabled(
   env: Record<string, string | undefined> = process.env
 ): boolean {
   return (
-    env.FIRST_TURN_DEFER_BACKGROUND === 'on' &&
+    flagOn('FIRST_TURN_DEFER_BACKGROUND', env) &&
     resolveCrisisGuardMode(env) === 'live' &&
     getProviderIdSync(env) === 'cartesia-cascade'
   );
@@ -106,6 +128,7 @@ export function deferFirstTurn(
   options: {
     maxDeferMs?: number;
     endWaitMs?: number;
+    settleMs?: number;
     voiceEmotion?: () => unknown;
     safetySignal?: (text: string, voiceEmotion: unknown) => boolean;
   } = {}
@@ -113,6 +136,7 @@ export function deferFirstTurn(
   const {
     maxDeferMs = MAX_DEFER_MS,
     endWaitMs = SESSION_END_WAIT_MS,
+    settleMs = SPEAKING_SETTLE_MS,
     voiceEmotion = () => undefined,
     safetySignal = hasSafetySignal,
   } = options;
@@ -122,6 +146,7 @@ export function deferFirstTurn(
   let calls = 0;
   let firstTurnSegments = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let settle: ReturnType<typeof setTimeout> | undefined;
   let release: () => void = () => {};
   const gate = new Promise<void>((resolve) => {
     release = resolve;
@@ -131,6 +156,7 @@ export function deferFirstTurn(
     if (released) return;
     released = true;
     if (timer) clearTimeout(timer);
+    if (settle) clearTimeout(settle);
     // Nothing was held when no turn-1 words arrived (e.g. a session ending at the greeting).
     if (armedAt) log.info({ reason, waitedMs: Date.now() - armedAt }, 'FIRST_TURN_DEFER released');
     release();
@@ -139,8 +165,12 @@ export function deferFirstTurn(
   return {
     // The pusher calls this once per final transcript, in order.
     hook: async (turnCtx, newMessage) => {
-      if (++calls > firstTurnSegments) return hook(turnCtx, newMessage);
-      const run = gate.then(() => hook(turnCtx, newMessage));
+      const built = (): Promise<void> =>
+        hook(turnCtx, newMessage).finally(() => {
+          pipelineWarm = true;
+        });
+      if (++calls > firstTurnSegments) return built();
+      const run = gate.then(built);
       held.add(run);
       try {
         await run;
@@ -154,6 +184,7 @@ export function deferFirstTurn(
       if (!armedAt) {
         armedAt = Date.now();
         timer = setTimeout(() => open('timeout'), maxDeferMs);
+        timer.unref?.();
       }
       try {
         if (safetySignal(transcript, voiceEmotion())) open('safety');
@@ -163,7 +194,13 @@ export function deferFirstTurn(
       }
     },
     onAgentState(newState) {
-      if (armedAt && newState === 'speaking') open('speaking');
+      if (!armedAt || released) return;
+      // Ferni has started the reply: let its audio queue first. A reply that
+      // already ended (any other state) needs no settle.
+      if (newState === 'speaking' && !settle) {
+        settle = setTimeout(() => open('speaking'), settleMs);
+        settle.unref?.(); // never keeps a finished process alive
+      } else if (settle) open('speaking');
     },
     onCrisisDecision(action) {
       if (action && action !== 'pass') open('crisis_gate');

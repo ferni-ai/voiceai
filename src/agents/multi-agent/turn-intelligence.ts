@@ -30,6 +30,7 @@ import {
   firstTurnDeferEnabled,
   hadUserTurn,
   noteUserTurn,
+  turnPipelineWarm,
 } from './first-turn-defer.js';
 import { TURN_CONTEXT_HEADER } from './turn-context-header.js';
 
@@ -385,7 +386,7 @@ export function attachTurnContextPusher(
 ): () => Promise<void> {
   const { env = process.env, userData } = options;
   const deferral =
-    firstTurnDeferEnabled(env) && !hadUserTurn(session)
+    firstTurnDeferEnabled(env) && !hadUserTurn(session) && !turnPipelineWarm()
       ? deferFirstTurn(hook, {
           voiceEmotion: () => (userData as { voiceEmotion?: unknown } | undefined)?.voiceEmotion,
         })
