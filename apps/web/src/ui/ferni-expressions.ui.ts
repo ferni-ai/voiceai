@@ -128,6 +128,8 @@ export type CharacterReaction =
 
 let isInitialized = false;
 let currentExpression: EmotionalExpression = 'neutral';
+/** Target lid paths of the current expression (null until one is set); read by ferni:lid-blend. */
+let currentLidBase: { top: string; bottom: string } | null = null;
 let lidOverlay: HTMLElement | null = null;
 let sparkleContainer: HTMLElement | null = null;
 let styleElement: HTMLStyleElement | null = null;
@@ -247,18 +249,14 @@ export function setExpression(
   if (!isInitialized) {
     initFerniExpressions();
   }
-  
   if (!lidOverlay || expression === currentExpression) return;
-  
   // Cancel any existing expression animation
   if (expressionTimeline) {
     expressionTimeline.kill();
   }
-  
   const prevExpression = currentExpression;
   currentExpression = expression;
   
-  // Get the lid elements
   // Get lid elements and dimples
   const lidTop = lidOverlay.querySelector('.lid-top') as SVGPathElement;
   const lidBottom = lidOverlay.querySelector('.lid-bottom') as SVGPathElement;
@@ -268,8 +266,7 @@ export function setExpression(
   
   if (!lidTop || !lidBottom) return;
   
-  // Expression configurations - Brand-aligned emotional range
-  // dimpleOpacity: 0-1, appears during warm/happy expressions
+  // Expression configurations - Brand-aligned emotional range. dimpleOpacity: 0-1, for warm/happy expressions
   const expressions: Record<EmotionalExpression, {
     topPath: string;
     bottomPath: string;
@@ -562,7 +559,7 @@ export function setExpression(
   
   const config = expressions[expression];
   if (!config) return;
-  
+  currentLidBase = { top: config.topPath, bottom: config.bottomPath };
   // Create timeline; weight-aware easing + reduced motion when ferni:weighted-easing is on
   const tl = gsap.timeline();
   expressionTimeline = tl;
@@ -616,11 +613,14 @@ export function setExpression(
   log.debug('Expression set:', expression);
 }
 
-/**
- * Get current expression.
- */
+/** Get current expression. */
 export function getExpression(): EmotionalExpression {
   return currentExpression;
+}
+
+/** The current expression's lid paths, so the speaking lid can open from them (ferni:lid-blend). */
+export function getLidBasePaths(): { top: string; bottom: string } | null {
+  return currentLidBase;
 }
 
 // ============================================================================
@@ -1355,8 +1355,8 @@ export function dispose(): void {
   styleElement = null;
   currentIconElement = null;
   currentExpression = 'neutral';
+  currentLidBase = null;
   isInitialized = false;
-  
   log.debug('Ferni expressions disposed');
 }
 
