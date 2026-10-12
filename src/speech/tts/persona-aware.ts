@@ -15,7 +15,11 @@
 import { CartesiaMarkupFilter, filterCartesiaMarkup } from './cartesia-markup-filter.js';
 import { tts } from '@livekit/agents';
 import { TTS as CartesiaTTS } from '@livekit/agents-plugin-cartesia';
-import { CARTESIA_MODEL, DEFAULT_VOICE_IDS } from '../../config/voice-ids.js';
+import {
+  CARTESIA_API_VERSION,
+  CARTESIA_MODEL,
+  DEFAULT_VOICE_IDS,
+} from '../../config/voice-ids.js';
 import type { PersonaVoiceConfig } from './types.js';
 
 // ============================================================================
@@ -33,6 +37,7 @@ export const SUPPORTED_ACCENTS: EnglishAccent[] = ['american', 'british', 'austr
 function createCartesiaTTSInstance(voiceId: string): CartesiaTTS {
   return new CartesiaTTS({
     model: CARTESIA_MODEL,
+    apiVersion: CARTESIA_API_VERSION,
     voice: voiceId,
     language: 'en',
     sampleRate: 24000,

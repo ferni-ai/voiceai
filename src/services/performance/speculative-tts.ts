@@ -18,7 +18,11 @@
 import { createLogger } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
-import { getVoiceIdForPersona, CARTESIA_MODEL } from '../../config/voice-ids.js';
+import {
+  getVoiceIdForPersona,
+  CARTESIA_MODEL,
+  CARTESIA_API_VERSION,
+} from '../../config/voice-ids.js';
 
 // Note: This file was moved from agents/shared/performance/ to services/performance/
 // to fix architecture layer violations (services should not import from agents)
@@ -31,8 +35,6 @@ const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
 // ============================================================================
 
 const CARTESIA_API_URL = 'https://api.cartesia.ai/tts/bytes';
-const CARTESIA_API_VERSION = '2024-06-10';
-// CARTESIA_MODEL imported from config/voice-ids.ts for consistency
 
 /**
  * Get Cartesia API key from environment
