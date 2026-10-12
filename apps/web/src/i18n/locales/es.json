@@ -8326,7 +8326,7 @@
     "growthDesc": "Avances que quizás tú no notes.",
     "guardianPresence": "Presencia protectora",
     "guardianDesc": "Capto lo que dejas sin decir.",
-    "keepTalking": "Solo sigue hablando. Siempre te escucho, siempre aprendo, siempre estoy aquí.",
+    "keepTalking": "Por ahora, solo habla. Te estoy prestando atención.",
     "betterThanMemory": "Mejor que la memoria humana, a tu servicio.",
     "chapter": {
       "default": {
@@ -11203,9 +11203,9 @@
   },
   "x": "Amistad • Mención: 12 veces",
   "insightsView": {
-    "patternDesc": "Lo que sale una y otra vez en tus llamadas.",
-    "emptyNote": "Aún no hay nada. Después de algunas llamadas, aquí aparecerán los patrones que Ferni note.",
-    "loadFailed": "No se pudo cargar lo que Ferni ha notado. Inténtalo de nuevo en un momento."
+    "patternDesc": "Lo que sale una y otra vez cuando hablamos.",
+    "emptyNote": "Aún no hay nada, y está bien. Después de algunas conversaciones empezaré a notar patrones, y aparecerán aquí.",
+    "loadFailed": "Mmm, lo que he notado no se cargó. Es cosa mía, no tuya. Espera un momento y vuelve a abrir esto."
   },
   "agentAcks": {
     "gameStartFailed": "El juego no arrancó. Pídele a Ferni en voz alta que lo juegue contigo.",

@@ -8326,7 +8326,7 @@
     "growthDesc": "Des progrès que tu ne remarques peut-être pas toi-même.",
     "guardianPresence": "Présence bienveillante",
     "guardianDesc": "Je capte ce que tu ne dis pas.",
-    "keepTalking": "Continue simplement à parler. Je t'écoute, j'apprends et je suis toujours là.",
+    "keepTalking": "Pour l'instant, parle simplement. Je fais attention.",
     "betterThanMemory": "Mieux que la mémoire humaine, à ton service.",
     "chapter": {
       "default": {
@@ -11203,9 +11203,9 @@
   },
   "x": "Proche • 12 mentions",
   "insightsView": {
-    "patternDesc": "Ce qui revient souvent dans tes appels.",
-    "emptyNote": "Rien pour l'instant. Après quelques appels, les tendances que Ferni remarque s'affichent ici.",
-    "loadFailed": "Impossible de charger ce que Ferni a remarqué. Réessaie dans un instant."
+    "patternDesc": "Ce qui revient souvent quand on parle.",
+    "emptyNote": "Rien pour l'instant, et ce n'est pas grave. Après quelques conversations, je commencerai à remarquer des tendances, et elles s'afficheront ici.",
+    "loadFailed": "Hum, ce que j'ai remarqué ne s'est pas chargé. C'est de mon côté, pas du tien. Attends un instant, puis rouvre ceci."
   },
   "agentAcks": {
     "gameStartFailed": "Le jeu n'a pas démarré. Demande à Ferni de le lancer à voix haute.",

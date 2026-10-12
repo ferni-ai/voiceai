@@ -8277,7 +8277,7 @@
     "growthDesc": "那些你可能自己沒注意到的進步。",
     "guardianPresence": "守護者的陪伴",
     "guardianDesc": "我能讀懂你欲言又止的心聲。",
-    "keepTalking": "繼續聊聊吧。我一直在聽、一直在學習，而且會一直陪著你。",
+    "keepTalking": "現在，儘管聊就好。我在認真聽。",
     "betterThanMemory": "比人類的記憶更可靠，全心為你服務。",
     "chapter": {
       "default": {
@@ -11077,9 +11077,9 @@
   },
   "x": "朋友 • 提及 12 次",
   "insightsView": {
-    "patternDesc": "你在通話中反覆提到的事。",
-    "emptyNote": "這裡還沒有內容。通話幾次之後，Ferni 注意到的規律會顯示在這裡。",
-    "loadFailed": "無法載入 Ferni 注意到的內容。請稍後再試。"
+    "patternDesc": "我們聊天時反覆出現的事。",
+    "emptyNote": "這裡還沒有內容，沒關係。聊過幾次之後，我會開始注意到一些規律，它們會顯示在這裡。",
+    "loadFailed": "嗯，我注意到的內容沒有載入。是我這邊的問題，不是你的。稍等一下，再打開一次。"
   },
   "agentAcks": {
     "gameStartFailed": "遊戲沒能開始。試著直接對 Ferni 說出來吧。",
