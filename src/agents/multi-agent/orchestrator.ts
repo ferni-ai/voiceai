@@ -631,7 +631,6 @@ export class AgentOrchestrator {
         isHandoff: context.isHandoff,
         previousPersonaId: context.previousPersonaId,
         hasConversationSummary: !!context.conversationSummary,
-        recentMessageCount: context.recentMessages?.length || 0,
       },
       '🎭 [spawnAgent] Starting agent creation...'
     );
