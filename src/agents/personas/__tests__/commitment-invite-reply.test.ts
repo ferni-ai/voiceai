@@ -25,6 +25,7 @@ const ENV = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'off', OPENER_G
 const HANDED = [
   'Well, looking through your old designs is a solid first step, so would you want to commit to finding just three of your favorite projects by tomorrow?',
   'How about we just look at opening that account?',
+  'How about just writing down three bullet points of what you do best, and then leaving it at that for today?',
   "Like, what if you spent three days pretending you've decided?",
   'Do you want to try listing one or two of your favorite designs from this year?',
   'Write down three wins tonight.',
@@ -33,6 +34,7 @@ const HANDED = [
 const ASKED_FOR_THEIRS = [
   ...ASKS,
   'Is there one small thing you want to try before we talk again?',
+  'How about something small, if anything, before we talk again?',
   'Do you want to try that tomorrow morning before we talk again?',
   'Three drafts on Thursday, that sounds like you.',
   'That makes sense, it really does.',
