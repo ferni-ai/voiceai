@@ -276,4 +276,14 @@ describe('initGaze (DOM)', () => {
     expect(eyes()?.hasAttribute(GAZE_ATTR)).toBe(false);
     expect(eyes()?.style.getPropertyValue('--eye-offset-x')).toBe('');
   });
+
+  it('is torn down when presence is disposed', async () => {
+    localStorage.setItem(GAZE_FLAG_KEY, 'true');
+    initGaze();
+    const { dispose } = await import('../../../src/ui/presence.ui.js');
+    dispose();
+    expect(eyes()?.hasAttribute(GAZE_ATTR)).toBe(false);
+    window.dispatchEvent(new CustomEvent(AVATAR_TURN_EVENT, { detail: { speaker: 'thinking' } }));
+    expect(eyes()?.style.getPropertyValue('--eye-offset-x')).toBe('');
+  });
 });

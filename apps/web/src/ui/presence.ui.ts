@@ -28,7 +28,7 @@
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { breathingComposite, isAvatarCompositorEnabled } from './avatar-motion/compositor.js';
-import { initGaze } from './avatar-motion/gaze.js';
+import { disposeGaze, initGaze } from './avatar-motion/gaze.js';
 import { isNaturalBlinkEnabled } from './avatar-motion/natural-blink.js';
 import { speakingSystem } from './speaking-system.ui.js';
 
@@ -1446,8 +1446,8 @@ export function dispose(): void {
   // FIX BUG: Clear all tracked timeouts first
   _clearAllTimeouts();
 
-  // Stop all animations
-  stopEyeTracking();
+  stopEyeTracking(); // stop all animations, eyes first
+  disposeGaze();
   stopBlinking();
   stopMicroIdleMovements();
 
