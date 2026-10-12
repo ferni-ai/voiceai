@@ -25,24 +25,16 @@ const CONFIG = {
   output: path.join(PROJECT_ROOT, 'apps/web/src/config/sequences.generated.ts'),
 };
 
-/** Sequences only: keys starting with "_" are documentation. */
-function sequencesOf(tokens) {
-  return Object.fromEntries(
-    Object.entries(tokens.sequences ?? {}).filter(
-      ([id, s]) => !id.startsWith('_') && s && Array.isArray(s.steps)
-    )
-  );
-}
-
-function simplificationsOf(tokens, ids) {
-  const all = tokens.reducedMotion?.simplifications ?? {};
-  return Object.fromEntries(Object.entries(all).filter(([id]) => ids.includes(id)));
-}
+const pick = (obj, keep) => Object.fromEntries(Object.entries(obj ?? {}).filter(keep));
 
 export function generate(tokens) {
-  const sequences = sequencesOf(tokens);
+  // Keys starting with "_" are documentation, not sequences.
+  const sequences = pick(
+    tokens.sequences,
+    ([id, s]) => !id.startsWith('_') && Array.isArray(s?.steps)
+  );
   const ids = Object.keys(sequences);
-  const reduced = simplificationsOf(tokens, ids);
+  const reduced = pick(tokens.reducedMotion?.simplifications, ([id]) => ids.includes(id));
   return `/**
  * Motion Sequences - Auto-Generated
  * 🎬 AUTO-GENERATED FROM design-system/tokens/sequences.json
