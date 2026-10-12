@@ -15,7 +15,6 @@
 
 import { DURATION, prefersReducedMotion } from '../../config/animation-constants.js';
 import { t } from '../../i18n/index.js';
-import { tp } from '../../i18n/plural.js';
 import { getHapticsService } from '../../services/haptics.service.js';
 import { createLogger } from '../../utils/logger.js';
 import { createTimeoutTracker } from '../../utils/tracked-timeout.js';
@@ -36,12 +35,8 @@ import {
 } from './moment-regions.js';
 import { MOMENT_ICONS, getIcon } from './icons.js';
 import { isOverlayHostEnabled } from '../overlay/overlay-flag.js';
-import {
-  dismissAllToasts,
-  dismissToast,
-  showToast,
-  type ToastTone,
-} from '../overlay/toast-region.js';
+import { dismissAllToasts, dismissToast, showToast } from '../overlay/toast-region.js';
+import { NOTICE_TONES, celebrationCopy } from './toast-copy.js';
 import type {
   MomentState,
   WhisperConfig,
@@ -68,16 +63,6 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // ============================================================================
 // MOMENTS MANAGER CLASS
 // ============================================================================
-
-/** Toast tone for each notice type when the overlay host renders notices. */
-const NOTICE_TONES: Record<NoticeType, ToastTone> = {
-  info: 'info',
-  checkin: 'info',
-  secret: 'info',
-  seeds: 'success',
-  badge: 'success',
-  streak: 'success',
-};
 
 class MomentsManager {
   private container: HTMLElement | null = null;
@@ -376,6 +361,19 @@ class MomentsManager {
    * Show a celebration - milestone moment with visual flourish.
    */
   async celebrate(type: CelebrationType, data?: Omit<CelebrationConfig, 'type'>): Promise<void> {
+    if (isOverlayHostEnabled()) {
+      this.emit('celebration:started', { type });
+      // An achievement toast instead of the centred card over the call controls.
+      const { title, subtitle } = celebrationCopy({ type, ...data });
+      this.playHaptic('success');
+      this.triggerAvatarCelebration();
+      showToast(
+        subtitle ? { kind: 'achievement', title, message: subtitle } : { kind: 'achievement', message: title }
+      );
+      this.emit('celebration:completed', { type });
+      return;
+    }
+
     this.initialize();
 
     // Dismiss any active moment
@@ -407,21 +405,7 @@ class MomentsManager {
     if (config.type === 'team_unlock') iconName = 'users';
     if (config.type === 'secret') iconName = 'star';
 
-    const title =
-      config.title ??
-      (config.type === 'streak'
-        ? tp('moments.streakTitle', config.count ?? 0)
-        : config.type === 'team_unlock'
-          ? t('moments.teamUnlockTitle', { name: config.personaName ?? '' })
-          : t('moments.niceWork'));
-
-    const subtitle =
-      config.subtitle ??
-      (config.type === 'streak'
-        ? t('moments.streakSubtitle')
-        : config.type === 'team_unlock'
-          ? t('celebration.teamUnlockSubtitle')
-          : undefined);
+    const { title, subtitle } = celebrationCopy(config);
 
     element.innerHTML = `
       <div class="moment-celebration__icon">${getIcon(iconName, 48)}</div>
