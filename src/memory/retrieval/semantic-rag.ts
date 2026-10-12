@@ -13,6 +13,7 @@
  * Supports both ephemeral VectorStore and persistent FirestoreVectorStore.
  */
 
+import { ownedBy } from './vector-ownership.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { embedCached } from '../embedding-cache.js';
 import { embed } from '../embeddings.js';
@@ -33,18 +34,14 @@ type AnyVectorStore = VectorStore | FirestoreVectorStore;
 // Active vector store reference (set during initialization)
 let activeVectorStore: AnyVectorStore | null = null;
 
-/**
- * Set the active vector store (called by initializeMemorySystem)
- */
+/** Set the active vector store (called by initializeMemorySystem) */
 export function setActiveVectorStore(store: AnyVectorStore): void {
   activeVectorStore = store;
   getLogger().info(`Active vector store set: ${store.constructor.name}`);
 }
 
-/**
- * Get the active vector store (uses persistent store if available)
- */
-function getActiveStore(): AnyVectorStore {
+/** Get the active vector store (uses persistent store if available) */
+export function getActiveStore(): AnyVectorStore {
   if (activeVectorStore) return activeVectorStore;
 
   // Fallback: try to detect which store to use
@@ -62,10 +59,10 @@ function getActiveStore(): AnyVectorStore {
 // TYPES
 // ============================================================================
 
-/**
- * RAG search result
- */
+/** RAG search result */
 export interface RAGResult {
+  /** The vector document's id ("conversation_fact_<docId>" for an indexed dynamic fact). */
+  id?: string;
   content: string;
   source: string;
   category?: string;
@@ -73,9 +70,7 @@ export interface RAGResult {
   metadata?: Record<string, unknown>;
 }
 
-/**
- * RAG context for injection into prompts
- */
+/** RAG context for injection into prompts */
 export interface RAGContext {
   results: RAGResult[];
   formattedContext: string;
@@ -273,12 +268,14 @@ export async function semanticSearch(
     filter.userId = options.userId;
   }
 
-  // Search
-  const results = await store.search(query, {
-    topK,
-    filter: Object.keys(filter).length > 0 ? filter : undefined,
-    minScore,
-  });
+  // The store returns only the caller's (or, without a userId, shared) documents; checked again.
+  const results = (
+    await store.search(query, {
+      topK,
+      filter: Object.keys(filter).length > 0 ? filter : undefined,
+      minScore,
+    })
+  ).filter((r) => ownedBy(r.document, { userId: options?.userId }));
 
   // Record metrics
   const durationMs = Date.now() - startTime;
@@ -286,6 +283,7 @@ export async function semanticSearch(
   metrics.recordRetrieval(durationMs, results.length, topScore);
 
   return results.map((r) => ({
+    id: r.document.id,
     content: r.document.text,
     source: r.document.metadata.source,
     category: r.document.metadata.category as string | undefined,

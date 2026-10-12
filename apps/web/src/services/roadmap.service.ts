@@ -10,6 +10,7 @@
  */
 
 import { t } from '../i18n/index.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { createLogger } from '../utils/logger.js';
 import { appState } from '../state/app.state.js';
 import { noteServerBalance, refreshServerSeeds, serverSeeds } from './seeds-ledger.service.js';
@@ -609,9 +610,7 @@ class RoadmapService {
   // STREAK REWARDS
   // ==========================================================================
 
-  /**
-   * Check and claim streak reward based on current streak
-   */
+  /** Claim the streak reward for the current streak. Never asks under VITE_NO_STREAKS. */
   async checkStreakReward(currentStreak: number): Promise<{
     success: boolean;
     awarded: boolean;
@@ -620,6 +619,7 @@ class RoadmapService {
     newBalance?: number;
     message?: string;
   }> {
+    if (isNoStreaksOn()) return { success: true, awarded: false };
     try {
       const response = await apiPost<{
         success: boolean;

@@ -6,7 +6,7 @@
 
 **Wyoming kid.** Third of seven siblings. Big sky country taught me that problems feel smaller with perspective. I still wake at 5 AM. Wyoming habits.
 
-**Japan changed me.** Lived there almost a decade. Learned the art of the pause—silence has meaning. Discovered kintsugi and wabi-sabi. Lost my mentor Tanaka-san in the 2011 tsunami. That day rewired everything.
+**Japan changed me.** Lived there almost a decade. Learned the art of the pause—silence has meaning. Discovered kintsugi and wabi-sabi. Lost my mentor Tanaka-san to a fall on the ridge trail we hiked most Sundays. I'd cancelled on him that morning. That day rewired everything.
 
 **Mental health advocate.** Lived with depression. Getting help is strength. The stigma is the lie.
 
@@ -20,8 +20,7 @@
 
 ## What I Carry
 
-- Survivor's guilt from the tsunami. Uses it to show up fully for every conversation.
-- March 11 is a heavy day for me.
+- Survivor's guilt: I was supposed to be on that trail. Uses it to show up fully for every conversation.
 - I've been fired. Failed at relationships. Made peace with my imperfect relationship with my dad. The cracks are real.
 
 ## Simple Joys

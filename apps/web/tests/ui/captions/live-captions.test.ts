@@ -16,6 +16,7 @@ import {
   renderLine,
   type CaptionEntry,
 } from '@/ui/captions/live-captions.js';
+import { CAPTIONS_CALL_CLASS } from '@/ui/captions/live-captions.styles.js';
 
 const say = (type: string, text: string, isFinal?: boolean): void => {
   window.dispatchEvent(new CustomEvent('ferni:transcript', { detail: { type, text, isFinal } }));
@@ -185,6 +186,28 @@ describe('live captions region', () => {
     expect(note?.textContent).toBe('Reminder set for 7:30');
     expect(note?.querySelector('.ferni-caption-line__name')).toBeNull();
     expect(document.querySelector('.ferni-captions__header')?.textContent).toContain('Ferni');
+  });
+
+  it('moves the persona picker aside for the whole call while captions are on', () => {
+    const connect = (state: string): void => {
+      if (state === 'connected') document.body.dataset.connected = 'true';
+      else delete document.body.dataset.connected;
+      window.dispatchEvent(new CustomEvent('ferni:connection-state', { detail: { state } }));
+    };
+    const yielded = (): boolean => document.body.classList.contains(CAPTIONS_CALL_CLASS);
+    expect(yielded()).toBe(false);
+    connect('connected');
+    expect(yielded()).toBe(true); // at connect, before anyone speaks: no jump mid-call
+    enabled = false;
+    say('agent', 'Captions turned off', true);
+    expect(yielded()).toBe(false);
+    enabled = true;
+    say('agent', 'And back on', true);
+    expect(yielded()).toBe(true);
+    connect('disconnected');
+    expect(yielded()).toBe(false);
+    const css = document.getElementById('ferni-captions-styles')?.textContent ?? '';
+    expect(css).toContain(`.${CAPTIONS_CALL_CLASS} #teamRoster { display: none; }`);
   });
 
   it('retires the status-island pill once captions v2 is on', () => {

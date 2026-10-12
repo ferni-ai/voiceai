@@ -234,7 +234,7 @@ describe('Personas Config', () => {
       expect(lynch.initials).toBe('PL');
       expect(lynch.colors.primary).toBe(getPersonaColors('lynch').primary);
       expect(lynch.colors.primary).not.toBe(getPersona('peter-john').colors.primary);
-      expect(getPersona('john-bogle').name).toBe('John Bogle');
+      expect(getPersona('john-bogle').name).toBe('Henry Caldwell');
       expect(getPersona('joel-dickson').name).toBe('Joel Dickson');
     });
   });

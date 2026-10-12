@@ -8,7 +8,7 @@ Browse and add AI personas to your team. Light theme (Zen Garden) designed for c
 
 - **Home Page** - Featured carousel, category chips, persona grid
 - **Categories** - Browse by category (Health, Life, Career, Creative, etc.)
-- **Persona Detail** - Voice samples, personality traits, reviews, Add to Team
+- **Persona Detail** - Voice samples, personality traits, Add to Team
 - **My Team** - Manage installed personas (requires auth)
 
 ## Personas
