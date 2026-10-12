@@ -3,9 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 // No database: the default store must read as unreadable, not as "nothing forgotten".
 vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 import { foldText, stem } from '../forget-tokens.js';
-import { forgetTokens, isForgotten } from '../session-recall.js';
+import { forgetTokens, isForgotten, loadRecallSnapshot, storedTopic } from '../session-recall.js';
 import {
   forgottenTopics,
+  forgetTopic,
   forgottenTopicsOrNull,
   parseTopics,
   type ForgetStore,
@@ -30,6 +31,26 @@ describe('a forgotten topic matches its other forms', () => {
     expect(isForgotten(memory, [topic])).toBe(true);
   });
 
+  it.each([
+    ['cookies', 'She baked a cookie'],
+    ['cookie', 'A tin of cookies'],
+    ['movies', 'We watched a movie'],
+    ['movie', 'Talked about movies'],
+    ['studied', 'He studies law'],
+    ['studies', 'She studied abroad'],
+  ])('stems -ies/-ied/-ie forms alike: "%s" covers "%s"', (topic, memory) => {
+    expect(isForgotten(memory, [topic])).toBe(true);
+  });
+
+  it('never stems a name or a short word in a topic', () => {
+    expect(isForgotten('Got a new job', ['news'])).toBe(false);
+    expect(isForgotten('Watching the news', ['news'])).toBe(true);
+    expect(isForgotten('Making strawberry jam', ['James'])).toBe(false);
+    expect(isForgotten('James called', ['James'])).toBe(true);
+    // A memory's capitalized first word still matches a topic's stem.
+    expect(isForgotten('Divorce papers came', ['divorcing'])).toBe(true);
+  });
+
   it('never over-matches part of another word', () => {
     expect(isForgotten('Planning a party on Saturday', ['art'])).toBe(false);
     expect(isForgotten('Planning a party on Saturday', ['parties'])).toBe(true);
@@ -49,6 +70,65 @@ describe('a forgotten topic matches its other forms', () => {
   it('folds accents, curly apostrophes and hyphens inside words', () => {
     expect(foldText('Zoë’s Ex-Wife')).toBe("zoe's exwife");
     expect(forgetTokens('555-123-4567')).toEqual(['5551234567']);
+  });
+});
+
+describe('topics stored by the earlier tokenizer still hide what they hid', () => {
+  // Exactly as the code before 2026-10-11 stored them (forgetTokens(topic).join(' ')).
+  it.each([
+    ['zo', 'Lunch with Zoë'], // from "Zoë"
+    ['babie', 'Talked about babies'], // from "babies"
+    ['babie', 'They want a baby'],
+    ['divorce', 'She is divorcing him'],
+    ['sister wedding', "My sister's wedding is in May"],
+    ['4353397687', 'His number is 435-339-7687'],
+    ['ex', 'Ran into my ex at the store'],
+  ])('stored "%s" hides "%s"', (stored, memory) => {
+    expect(isForgotten(memory, [stored])).toBe(true);
+  });
+
+  it('a new forget stores the words with their case, and what was asked', async () => {
+    expect(storedTopic("my sister's wedding")).toBe("sister's wedding");
+    expect(storedTopic('James')).toBe('James');
+    const recorded: Array<[string, string | undefined]> = [];
+    const store: ForgetStore = {
+      facts: async () => [],
+      markForgotten: async () => undefined,
+      addTopic: async (_u, topic, asked) => {
+        recorded.push([topic, asked]);
+      },
+      topics: async () => [],
+    };
+    await forgetTopic('u', 'forget about James', store);
+    expect(recorded).toEqual([['James', 'forget about James']]);
+  });
+});
+
+describe('recall fails closed when the topics are unreadable', () => {
+  it('recalls no facts, threads or jokes', async () => {
+    const snapshot = await loadRecallSnapshot(
+      {
+        facts: async () => [{ entityName: 'User', key: 'job', value: 'nurse', confidence: 0.9 }],
+        summaries: async () => [
+          { followUpItems: ['Ask about the move'], insideJokes: ['the fungus incident'] },
+        ],
+        forgotten: async () => null,
+      },
+      'u'
+    );
+    expect(snapshot).toEqual({ facts: [], followUps: [], insideJokes: [] });
+  });
+
+  it('leaves out an inside joke about a forgotten topic', async () => {
+    const snapshot = await loadRecallSnapshot(
+      {
+        facts: async () => [],
+        summaries: async () => [{ insideJokes: ['the divorce lawyer bit', 'the fungus incident'] }],
+        forgotten: async () => ['divorce'],
+      },
+      'u'
+    );
+    expect(snapshot.insideJokes).toEqual(['the fungus incident']);
   });
 });
 

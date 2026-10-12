@@ -14,7 +14,7 @@
  *
  * @module memory/recall/session-recall
  */
-import { foldText, stem } from './forget-tokens.js';
+import { foldedWords, legacyForgetTokens, stem } from './forget-tokens.js';
 
 export interface RecallFact {
   entity: string;
@@ -101,18 +101,30 @@ const FORGET_FILLER = new Set(
  * one ("555-123-4567" = "5551234567").
  */
 export function forgetTokens(text: string): string[] {
-  const out = rawForgetWords(text)
-    .filter((w) => w.length >= 2 && !STOPWORDS.has(w) && !FORGET_FILLER.has(w))
-    .map(stem);
+  const out = topicWords(text).map((w) => (w.plain ? w.word : stem(w.word)));
   return [...new Set(out)];
 }
 
-/** Folded words (forget-tokens.ts) with "'s" dropped and numbers joined, before filtering. */
-function rawForgetWords(text: string): string[] {
-  const joined = foldText(text).replace(/(\d)[\s().-]+(?=\d)/g, '$1');
-  const words = joined.match(/[a-z0-9][a-z0-9']*/g) ?? [];
-  return words.map((w) => w.replace(/'s$/, '').replace(/'/g, ''));
+const isTopicWord = (w: string) => w.length >= 2 && !STOPWORDS.has(w) && !FORGET_FILLER.has(w);
+
+function topicWords(text: string): Array<{ word: string; plain: boolean }> {
+  return foldedWords(text).filter((w) => isTopicWord(w.word));
 }
+
+/**
+ * A topic as stored (forget.ts): its words with their case (so a name stays
+ * a name when read back), filler left out. "Forget my sister's wedding" ->
+ * "sister wedding"; "James" -> "James".
+ */
+export function storedTopic(topic: string): string {
+  const words = topic.match(/\S+/g) ?? [];
+  return words
+    .filter((w) => topicWords(w).length > 0)
+    .map((w) => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''))
+    .join(' ');
+}
+
+const LEGACY_SKIP: ReadonlySet<string> = new Set([...STOPWORDS, ...FORGET_FILLER]);
 
 /**
  * True when `text` is about a topic the caller asked to forget (forget.ts):
@@ -123,13 +135,24 @@ export function isForgotten(text: string, topics: readonly string[]): boolean {
   if (topics.length === 0) return false;
   const words = new Set(forgetTokens(text));
   // "ex wife" in a memory is the "ex-wife" / "exwife" of a request, and back.
-  const raw = rawForgetWords(text);
+  const raw = foldedWords(text).map((w) => w.word);
   for (let i = 0; i + 1 < raw.length; i++) words.add(stem(`${raw[i]}${raw[i + 1]}`));
+  // A capitalized word in a memory is often just a sentence's first word
+  // ("Divorce papers came"): it matches stemmed too. A topic's name never
+  // stems, so forgetting "James" can't hide "jam".
+  for (const w of raw) if (isTopicWord(w)) words.add(stem(w));
+  let legacy: Set<string> | undefined;
   return topics.some((t) => {
     const want = forgetTokens(t);
-    if (want.length === 0) return false;
-    if (want.every((w) => words.has(w))) return true;
-    return want.length > 1 && want.length <= 3 && words.has(stem(want.join('')));
+    if (want.length > 0) {
+      if (want.every((w) => words.has(w))) return true;
+      if (want.length > 1 && want.length <= 3 && words.has(stem(want.join('')))) return true;
+    }
+    // A topic stored by the tokenizer before 2026-10-11 ("zo" for "Zoë",
+    // "babie" for "babies") still hides what it hid then.
+    const stored = t.toLowerCase().split(/\s+/).filter(Boolean);
+    legacy ??= new Set(legacyForgetTokens(text, LEGACY_SKIP));
+    return stored.length > 0 && stored.every((w) => legacy!.has(w));
   });
 }
 
@@ -267,7 +290,7 @@ export interface RecallStore {
   facts(userId: string): Promise<Array<Record<string, unknown>>>;
   summaries(userId: string): Promise<Array<Record<string, unknown>>>;
   /** Topics the caller asked to forget (forget.ts); nothing about them is recalled. */
-  forgotten?(userId: string): Promise<string[]>;
+  forgotten?(userId: string): Promise<string[] | null>;
 }
 
 const MAX_FACTS = 300;
@@ -293,8 +316,13 @@ export async function loadRecallSnapshot(
   const [rawFacts, rawSummaries, forgotten] = await Promise.all([
     store.facts(userId).catch(() => []),
     store.summaries(userId).catch(() => []),
-    store.forgotten ? store.forgotten(userId).catch(() => []) : Promise.resolve([]),
+    store.forgotten
+      ? store.forgotten(userId).catch((): null => null)
+      : Promise.resolve<string[]>([]),
   ]);
+  // Topics that can't be read: nothing that might be about one is recalled
+  // (fails closed, like episode quotes). Facts, threads and jokes alike.
+  if (forgotten === null) return { facts: [], followUps: [], insideJokes: [] };
   const facts = dedupeFacts(
     rawFacts
       // Marked by forget.ts: left in storage (recoverable), out of recall.
@@ -326,7 +354,7 @@ export async function loadRecallSnapshot(
       if (typeof item !== 'string') continue;
       const text = item.trim();
       const seen = insideJokes.some((j) => j.toLowerCase() === text.toLowerCase());
-      if (text && !seen) insideJokes.push(text);
+      if (text && !seen && !isForgotten(text, forgotten)) insideJokes.push(text);
       if (insideJokes.length >= MAX_INSIDE_JOKES) break;
     }
     if (insideJokes.length >= MAX_INSIDE_JOKES) break;

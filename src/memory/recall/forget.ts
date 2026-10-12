@@ -23,7 +23,7 @@
  */
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { forgetTokens, isForgotten } from './session-recall.js';
+import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
 
 export { isForgotten };
 
@@ -51,7 +51,8 @@ export interface ForgetStore {
   /** The caller's facts in every fact collection. */
   facts: (userId: string) => Promise<StoredFactRef[]>;
   markForgotten: (userId: string, refs: StoredFactRef[], at: string) => Promise<void>;
-  addTopic: (userId: string, topic: string) => Promise<void>;
+  /** Records a topic as stored (storedTopic) and, for a later tokenizer to re-derive, as asked. */
+  addTopic: (userId: string, topic: string, asked?: string) => Promise<void>;
   /** The recorded topics; null when they can't be read (no store, malformed), [] when there are none. */
   topics: (userId: string) => Promise<string[] | null>;
 }
@@ -70,15 +71,15 @@ export async function forgetTopic(
   store: ForgetStore = firestoreForgetStore,
   now: Date = new Date()
 ): Promise<ForgetResult> {
-  const tokens = forgetTokens(topic).join(' ');
-  if (!tokens) return { kind: 'nothing' };
+  const tokens = storedTopic(topic);
+  if (forgetTokens(tokens).length === 0) return { kind: 'nothing' };
   const facts = await store.facts(userId);
   const live = facts.filter((f) => typeof f.data.forgottenAt !== 'string');
   const matched = live.filter((f) => isForgotten(factText(f.data), [tokens]));
   if (matched.length > MAX_UNASKED && matched.length > live.length * MAX_SHARE) {
     return { kind: 'too-broad', matched: matched.length };
   }
-  await store.addTopic(userId, tokens);
+  await store.addTopic(userId, tokens, topic.trim());
   if (matched.length > 0) await store.markForgotten(userId, matched, now.toISOString());
   log.info({ userId: userId.slice(0, 8), marked: matched.length }, 'Forgot a topic');
   return { kind: 'forgotten', marked: matched.length };
@@ -173,7 +174,7 @@ export const firestoreForgetStore: ForgetStore = {
       await batch.commit();
     }
   },
-  async addTopic(userId, topic) {
+  async addTopic(userId, topic, asked) {
     const db = getFirestoreDb();
     if (!db) return;
     const ref = db
@@ -185,7 +186,17 @@ export const firestoreForgetStore: ForgetStore = {
       const doc = await tx.get(ref);
       const topics: unknown = doc.exists ? doc.data()?.topics : [];
       const list = Array.isArray(topics) ? topics.map(String) : [];
-      if (!list.includes(topic)) tx.set(ref, { topics: [...list, topic] }, { merge: true });
+      // What was asked is kept too, so a later tokenizer can re-derive the topic.
+      const rawAsked: unknown = doc.exists ? doc.data()?.asked : [];
+      const askedList = Array.isArray(rawAsked) ? rawAsked.map(String) : [];
+      const nextAsked = asked && !askedList.includes(asked) ? [...askedList, asked] : askedList;
+      if (!list.includes(topic) || nextAsked !== askedList) {
+        tx.set(
+          ref,
+          { topics: list.includes(topic) ? list : [...list, topic], asked: nextAsked },
+          { merge: true }
+        );
+      }
     });
   },
   async topics(userId) {
