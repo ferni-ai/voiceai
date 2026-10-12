@@ -432,7 +432,7 @@
     "ci:cost-forecast": "npx tsx apps/cli/src/index.ts costs-ai forecast",
     "ci:all": "npm run ci:review && npm run ci:api-diff && npm run ci:bundle && npm run ci:security",
     "prepare": "husky || true",
-    "postinstall": "patch-package || true; bash scripts/apply-livekit-patch.sh || true; npx tsx apps/cli/src/commands/patch/livekit-timeout.ts || true",
+    "postinstall": "[ ! -f apps/cli/src/commands/patch/livekit-timeout.ts ] || tsx apps/cli/src/commands/patch/livekit-timeout.ts",
     "test:live": "npx tsx scripts/test-gemini-live-e2e.ts"
   },
   "keywords": [
@@ -523,7 +523,6 @@
     "gray-matter": "4.0.3",
     "husky": "^9.1.7",
     "onnxruntime-web": "1.30.0",
-    "patch-package": "8.0.1",
     "postject": "1.0.0-alpha.6",
     "prettier": "^3.9.9",
     "sharp": "^0.35.5",
