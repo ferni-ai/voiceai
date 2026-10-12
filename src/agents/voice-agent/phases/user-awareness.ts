@@ -14,6 +14,7 @@
  */
 
 import type { UserProfile } from '../../../types/user-profile.js';
+import { relationshipArcLines } from '../../../services/session/relationship-arc.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../../shared/outbound-opener.js';
 
 // ============================================================================
@@ -111,8 +112,10 @@ export function buildUserAwareness(config: UserAwarenessConfig): UserAwarenessRe
   // Relationship context
   addRelationshipContext(facts, profile, isReturningUser, sessionStartTime);
 
-  // Better Than Human #1: Last Conversation Context
-  if (isReturningUser && profile.lastConversationSummary) {
+  // Better Than Human #1: where their stories stand (RELATIONSHIP_ARC), else last time
+  const arc = relationshipArcLines(profile, sessionStartTime);
+  if (arc) facts.push(...arc);
+  else if (isReturningUser && profile.lastConversationSummary) {
     facts.push(`Last time you talked about: ${profile.lastConversationSummary}`);
   }
 

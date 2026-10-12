@@ -21,7 +21,7 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import { runAfterCall } from './after-call-tasks.js';
-// 🦀 Rust-accelerated word counting
+import { rememberCall } from './relationship-arc.js';
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
 const log = getLogger();
@@ -1840,7 +1840,7 @@ export async function createSessionServices(
           }
 
           if (summary?.keyPoints && summary.keyPoints.length > 0) {
-            updatedProfile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
+            rememberCall(updatedProfile, summary.keyPoints);
           } else if (turns.length > 0) {
             // FIX: Always save at least a basic summary from turns
             // This ensures returning users are recognized even if LLM summarization fails

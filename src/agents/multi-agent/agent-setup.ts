@@ -25,6 +25,7 @@ import type { ConversationManager } from '../../services/conversation-manager.js
 import { diag } from '../../services/diagnostic-logger.js';
 import { modelConfig } from '../../services/model-config.js';
 import type { SessionServices } from '../../services/types.js';
+import { relationshipArcLines } from '../../services/session/relationship-arc.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getRealtimeModel } from '../../config/gemini-config.js';
@@ -36,7 +37,6 @@ import { capToolsToLimit, getMaxTools, staticCoreToolsEnabled } from '../../conf
 // Model provider abstraction - centralizes all model-specific behavior
 import { getModelProvider, isUsingOpenAI } from '../model-provider/index.js';
 
-// Get the model provider (singleton)
 const modelProvider = getModelProvider();
 // FIX: Import speech cleanup to prevent memory leaks on agent cleanup
 import { cleanupSpeechSession } from '../../speech/session-cleanup.js';
@@ -428,11 +428,11 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       }
 
       // =========================================================================
-      // BETTER THAN HUMAN #1: Last Conversation Context
-      // A human friend might vaguely remember "oh we talked recently"
-      // Ferni remembers EXACTLY what you talked about
+      // BETTER THAN HUMAN #1: where their stories stand (RELATIONSHIP_ARC), else last time
       // =========================================================================
-      if (isReturningUser && userProfile.lastConversationSummary) {
+      const arc = relationshipArcLines(userProfile, sessionStartTime);
+      if (arc) userAwareness.push(...arc);
+      else if (isReturningUser && userProfile.lastConversationSummary) {
         userAwareness.push(`Last time you talked about: ${userProfile.lastConversationSummary}`);
       }
 

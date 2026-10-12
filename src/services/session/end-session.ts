@@ -11,8 +11,8 @@
 
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { rememberCall } from './relationship-arc.js';
 
-// Session types
 import type { ConversationTurn } from '../../memory/index.js';
 import type { HumanizingStateUpdate } from '../humanizing-state.js';
 import type { GlobalServices, SessionServices } from '../types.js';
@@ -447,7 +447,7 @@ function setSummaryOnProfile(
   turns: ConversationTurn[]
 ): UserProfile {
   if (summary?.keyPoints && summary.keyPoints.length > 0) {
-    profile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
+    rememberCall(profile, summary.keyPoints);
   } else if (turns.length > 0) {
     // Fallback: extract from user turns
     const fallbackSummary = createFallbackSummary(turns);
