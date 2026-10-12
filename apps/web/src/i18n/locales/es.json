@@ -1322,7 +1322,7 @@
         "calendar": "Calendario",
         "history": "Charlas anteriores",
         "people": "Tu gente",
-        "insights": "Cómo te va"
+        "insights": "Lo que he aprendido"
       }
     },
     "ariaLabel": "Menú de configuración",
@@ -8857,6 +8857,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Charlas anteriores",
     "loadError": "No se pudieron cargar los datos.",
     "tryAgain": "¿Quieres volver a intentarlo?",
     "ariaLabel": "Historial de conversaciones",

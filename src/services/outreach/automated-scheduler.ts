@@ -8,12 +8,10 @@
  * - Onboarding arc progression
  * - Re-engagement campaigns
  * - Milestone celebrations
- *
  * Runs on Cloud Scheduler (cron) and respects:
  * - User preferences and quiet hours
  * - Optimal timing per user
  * - Rate limits and quotas
- *
  * @module AutomatedScheduler
  */
 
@@ -37,6 +35,7 @@ import {
   unansweredCount,
 } from './outreach-cadence.js';
 import { dailyCheckInChannel, logDailyCheckIn } from './proactive-channels/daily-checkin.js';
+import { blocksGenericCheckIns } from './grounded-checkin.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
 
@@ -208,6 +207,7 @@ async function processCandidate(
   if (!outreachType) {
     return { sent: false, reason: 'No outreach needed' };
   }
+  if (blocksGenericCheckIns()) return { sent: false, reason: 'No grounded reason to reach out' };
 
   // Determine best channel
   const channel = proactive ? proactive.channel : await determineBestChannel(candidate);
