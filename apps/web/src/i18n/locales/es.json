@@ -1159,7 +1159,7 @@
       "upgrade": "Únete al camino"
     },
     "expiresLabel": "Activa hasta el",
-    "freeNote": "Como miembro fundador, tienes tiempo ilimitado con todo el equipo, y nos ayudas a que Ferni siga siendo gratis para todo el mundo",
+    "freeNote": "Ferni es gratis. Si quieres ayudar a que siga, puedes aportar por Venmo.",
     "label": "CRECIENDO EN CONJUNTO",
     "renewsLabel": "Se renueva el",
     "restore": {
@@ -6388,12 +6388,15 @@
     "categoryConnectDescription": "Nutre tus relaciones",
     "categoryGrow": "Crecer",
     "categoryGrowDescription": "Progreso amable",
-    "insightYourMorningsSetTone": "Tus mañanas marcan el rumbo",
-    "insightYourMorningsDesc": "Las conversaciones con las que empiezas el día suelen definir cómo transcurre el resto.",
-    "insightEveningReflectionsHelp": "Las reflexiones de la noche ayudan",
-    "insightEveningReflectionsDesc": "Tomarte un momento para reflexionar antes de descansar suele traer claridad para el día siguiente.",
-    "insightIRememberEverything": "Lo recuerdo todo",
-    "insightIRememberEverythingDesc": "Cada conversación, cada detalle, cada momento de crecimiento. Guardo tu historia completa.",
+    "noInsightsYetTitle": "Todavía no hay nada",
+    "noInsightsYetDesc": "Habla conmigo un rato y aquí aparecerá lo que note de ti.",
+    "practicePrompt": {
+      "dailyCheckin": "Qué alegría verte. ¿Cómo te sientes en este momento, de verdad?",
+      "gratitude": "Hagamos una pausa para agradecer. ¿De qué sientes gratitud en este momento?",
+      "brainstorm": "Hagamos una lluvia de ideas. ¿Qué desafío o decisión tienes en mente?",
+      "weeklyReview": "Repasemos tu semana. ¿Qué es lo que más destaca para ti?",
+      "windDown": "Bajemos el ritmo juntos. ¿De qué sientes orgullo hoy?"
+    },
     "practiceSetYourIntention": "Define tu intención",
     "practiceSetYourIntentionDesc": "Empieza con claridad. ¿Qué es lo que más importa hoy?",
     "practiceGratitudeMoment": "Momento de gratitud",

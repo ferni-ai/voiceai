@@ -1156,7 +1156,7 @@
       "upgrade": "加入旅程"
     },
     "expiresLabel": "有效期至",
-    "freeNote": "创始成员可以无限期与整个团队交流 —— 并帮助 Ferni 对所有人保持免费",
+    "freeNote": "Ferni 是免费的。如果你想帮助它继续下去，可以通过 Venmo 支持一下。",
     "label": "共同成长",
     "renewsLabel": "续期日",
     "restore": {
@@ -6350,12 +6350,15 @@
     "categoryConnectDescription": "滋养人际关系",
     "categoryGrow": "成长",
     "categoryGrowDescription": "温柔地蜕变",
-    "insightYourMorningsSetTone": "清晨决定了一天的基调",
-    "insightYourMorningsDesc": "你开启新一天时的对话，往往会悄悄塑造这一整天的模样。",
-    "insightEveningReflectionsHelp": "夜晚的回顾很有帮助",
-    "insightEveningReflectionsDesc": "在睡前花点时间静心回顾，往往能让明天变得更加清晰。",
-    "insightIRememberEverything": "我记得所有的一切",
-    "insightIRememberEverythingDesc": "每一次对话、每一个细节、每一个成长的瞬间。我为你完整珍藏着你的故事。",
+    "noInsightsYetTitle": "这里还没有内容",
+    "noInsightsYetDesc": "和我聊一会儿，我注意到的关于你的事情就会出现在这里。",
+    "practicePrompt": {
+      "dailyCheckin": "很高兴见到你。说真的，你现在感觉怎么样？",
+      "gratitude": "让我们停下脚步，心怀感激。此时此刻，有什么是让你感到温暖和感谢的？",
+      "brainstorm": "我们来头脑风暴一下吧。你现在正面临什么挑战或抉择？",
+      "weeklyReview": "我们来回顾一下你的一周吧。有什么让你印象深刻的事吗？",
+      "windDown": "我们一起来放松一下吧。今天有什么让你感到骄傲的事吗？"
+    },
     "practiceSetYourIntention": "设定你的意图",
     "practiceSetYourIntentionDesc": "带着清晰的目标开始。今天对你来说最重要的是什么？",
     "practiceGratitudeMoment": "感恩时刻",

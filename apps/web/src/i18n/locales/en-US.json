@@ -1017,7 +1017,7 @@
       "pastDue": "Looks like something needs updating. Mind taking a look?",
       "default": "You believed in us early. That means more than you know."
     },
-    "freeNote": "Founders get unlimited time with the whole team — and help keep Ferni free for everyone",
+    "freeNote": "Ferni is free. If you'd like to help keep it going, you can chip in on Venmo.",
     "noBilling": "Your plan isn't billed here, so there's nothing to change."
   },
   "creativeYou": {
@@ -6363,12 +6363,15 @@
     "categoryConnectDescription": "Nurture relationships",
     "categoryGrow": "Grow",
     "categoryGrowDescription": "Gentle progress",
-    "insightYourMorningsSetTone": "Your mornings set the tone",
-    "insightYourMorningsDesc": "The conversations you start your day with tend to shape how the rest unfolds.",
-    "insightEveningReflectionsHelp": "Evening reflections help",
-    "insightEveningReflectionsDesc": "Taking a moment to reflect before rest often brings clarity to the next day.",
-    "insightIRememberEverything": "I remember everything",
-    "insightIRememberEverythingDesc": "Every conversation, every detail, every growth moment. I hold your story complete.",
+    "noInsightsYetTitle": "Nothing to show yet",
+    "noInsightsYetDesc": "Talk with me for a while and what I notice about you will show up here.",
+    "practicePrompt": {
+      "dailyCheckin": "Good to see you. How are you feeling right now, really?",
+      "gratitude": "Let's pause and appreciate. What's one thing you're grateful for right now?",
+      "brainstorm": "Let's brainstorm. What challenge or decision is on your mind?",
+      "weeklyReview": "Let's look back at your week. What stands out to you?",
+      "windDown": "Let's wind down together. What's one thing you're proud of from today?"
+    },
     "practiceSetYourIntention": "Set Your Intention",
     "practiceSetYourIntentionDesc": "Begin with clarity. What matters most today?",
     "practiceGratitudeMoment": "Gratitude Moment",

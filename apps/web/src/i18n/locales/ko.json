@@ -1156,7 +1156,7 @@
       "upgrade": "여정에 동참하기"
     },
     "expiresLabel": "만료일",
-    "freeNote": "파운더분들은 전체 팀과 무제한으로 대화하실 수 있으며, Ferni가 모두를 위해 무료로 유지될 수 있도록 도와주시는 역할을 합니다",
+    "freeNote": "Ferni는 무료예요. 계속 운영되도록 돕고 싶다면 Venmo로 후원할 수 있어요.",
     "label": "함께 성장하기",
     "renewsLabel": "갱신일",
     "restore": {
@@ -6350,12 +6350,15 @@
     "categoryConnectDescription": "소중한 관계를 가꾸어보세요",
     "categoryGrow": "성장하기",
     "categoryGrowDescription": "조금씩 부드럽게 나아가요",
-    "insightYourMorningsSetTone": "아침이 하루의 분위기를 결정해요",
-    "insightYourMorningsDesc": "하루를 시작하는 대화가 오늘 하루 전체의 흐름을 만들어가곤 해요.",
-    "insightEveningReflectionsHelp": "저녁에 나누는 돌아보기가 도움이 돼요",
-    "insightEveningReflectionsDesc": "쉬기 전에 잠시 돌아보는 시간을 가지면 다음 날이 한결 더 선명해져요.",
-    "insightIRememberEverything": "저는 전부 기억하고 있어요",
-    "insightIRememberEverythingDesc": "모든 대화, 작은 디테일, 그리고 성장의 순간들까지요. 당신의 소중한 이야기를 온전히 품고 있을게요.",
+    "noInsightsYetTitle": "아직 표시할 내용이 없어요",
+    "noInsightsYetDesc": "저와 잠시 이야기하면 제가 알게 된 당신에 대한 것들이 여기에 나타나요.",
+    "practicePrompt": {
+      "dailyCheckin": "만나서 반가워요. 지금 기분이 정말 어떠신가요?",
+      "gratitude": "잠시 멈추어 감사함을 느껴봐요. 지금 이 순간 감사한 일 한 가지는 무엇인가요?",
+      "brainstorm": "함께 아이디어를 모아봐요. 지금 어떤 고민이나 결정을 앞두고 계신가요?",
+      "weeklyReview": "지난 한 주를 돌아봐요. 어떤 기억이 가장 먼저 떠오르시나요?",
+      "windDown": "함께 하루를 마무리해 봐요. 오늘 스스로 자랑스러웠던 일 한 가지는 무엇인가요?"
+    },
     "practiceSetYourIntention": "오늘의 의도 세우기",
     "practiceSetYourIntentionDesc": "선명하게 시작해 봐요. 오늘 가장 중요한 것은 무엇인가요?",
     "practiceGratitudeMoment": "감사의 순간",
