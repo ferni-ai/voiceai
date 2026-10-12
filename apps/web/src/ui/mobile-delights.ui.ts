@@ -17,7 +17,7 @@
  * Every interaction should feel magical but not gimmicky.
  */
 
-import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { DURATION, EASING, prefersReducedMotion, safeAnimate } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -106,8 +106,7 @@ let lastTapTime = 0;
 let immersiveOverlay: HTMLElement | null = null;
 
 // Ambient glow state
-let glowFrame: number | null = null;
-let glowPhase = 0;
+let glowAnimation: Animation | null = null;
 
 // Touch tracking for tap-to-look (exported for testing/debugging)
 export let lastTouchPosition = { x: 0, y: 0 };
@@ -197,10 +196,8 @@ export function disposeMobileDelights(): void {
   }
 
   // Stop glow animation
-  if (glowFrame) {
-    cancelAnimationFrame(glowFrame);
-    glowFrame = null;
-  }
+  glowAnimation?.cancel();
+  glowAnimation = null;
 
   // Remove event listeners
   document.removeEventListener('touchstart', handleTapToLook);
@@ -276,13 +273,13 @@ function handleDeviceOrientation(event: DeviceOrientationEvent): void {
   // gamma: left-to-right tilt (-90 to 90)
   tiltState.beta = event.beta ?? 0;
   tiltState.gamma = event.gamma ?? 0;
+  if (tiltFrame === null) tiltFrame = requestAnimationFrame(updateTiltParallax);
 }
 
+/** Runs only while the tilt is easing toward the latest orientation event. */
 function updateTiltParallax(): void {
-  if (!tiltState.enabled) {
-    tiltFrame = requestAnimationFrame(updateTiltParallax);
-    return;
-  }
+  tiltFrame = null;
+  if (!tiltState.enabled || document.hidden) return;
 
   // Smooth interpolation for organic feel
   const smoothing = 0.1;
@@ -300,16 +297,18 @@ function updateTiltParallax(): void {
   const avatar = document.querySelector('#coachAvatar') as HTMLElement;
   const avatarRing = document.querySelector('#avatarRing') as HTMLElement;
 
+  // The separate `translate` property: `transform` belongs to GSAP and the speaking system
   if (avatar) {
-    avatar.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+    avatar.style.translate = `${xOffset}px ${yOffset}px`;
   }
 
   // Ring moves slightly less for depth effect
   if (avatarRing) {
-    avatarRing.style.transform = `translate(${xOffset * 0.5}px, ${yOffset * 0.5}px)`;
+    avatarRing.style.translate = `${xOffset * 0.5}px ${yOffset * 0.5}px`;
   }
 
-  tiltFrame = requestAnimationFrame(updateTiltParallax);
+  const moving = Math.abs(tiltState.beta - tiltState.smoothBeta) + Math.abs(tiltState.gamma - tiltState.smoothGamma);
+  if (moving > 0.01) tiltFrame = requestAnimationFrame(updateTiltParallax);
 }
 
 /**
@@ -710,36 +709,21 @@ function initAmbientGlow(): void {
   glowElement.className = 'ambient-glow';
   avatarContainer.appendChild(glowElement);
 
-  // Start breathing animation
-  glowFrame = requestAnimationFrame(updateAmbientGlow);
+  // Breathing on the compositor (it was a JS loop writing both every frame):
+  // opacity 0.05-0.55 and scale up to 1.08 twice a ~7 s cycle
+  glowAnimation = safeAnimate(
+    glowElement,
+    [
+      { opacity: 0.3, transform: 'scale(1)' },
+      { opacity: 0.55, transform: 'scale(1.08)' },
+      { opacity: 0.3, transform: 'scale(1)' },
+      { opacity: 0.05, transform: 'scale(1.08)' },
+      { opacity: 0.3, transform: 'scale(1)' },
+    ],
+    { duration: 7000, easing: 'ease-in-out', iterations: Infinity }
+  );
 
   log.debug('Ambient glow initialized');
-}
-
-function updateAmbientGlow(): void {
-  glowPhase += 0.015; // Slow, meditative breathing (~4 second cycle)
-
-  // Organic breathing curve (not a simple sine wave)
-  const breathIn = Math.sin(glowPhase);
-  const breathOut = Math.sin(glowPhase + 0.5);
-  const breath = (breathIn + breathOut * 0.3) / 1.3;
-
-  // Map to opacity and scale
-  const baseOpacity = 0.3;
-  const opacityRange = 0.25;
-  const opacity = baseOpacity + breath * opacityRange;
-
-  const baseScale = 1;
-  const scaleRange = 0.08;
-  const scale = baseScale + Math.abs(breath) * scaleRange;
-
-  const glowElement = document.querySelector('.ambient-glow') as HTMLElement;
-  if (glowElement) {
-    glowElement.style.opacity = String(opacity);
-    glowElement.style.transform = `scale(${scale})`;
-  }
-
-  glowFrame = requestAnimationFrame(updateAmbientGlow);
 }
 
 // ============================================================================
