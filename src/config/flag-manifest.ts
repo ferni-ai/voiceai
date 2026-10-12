@@ -37,6 +37,7 @@ export const FLAG_MANIFEST = {
   AFTER_CALL_EXTRACTION: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // set by the job runner for its child processes
   AGENT_JOB_CHILD: { default: 'off', owner: 'voice', kind: 'config' },
+  AI_HONESTY_STORY: { default: 'off', owner: 'voice', kind: 'experiment' },
   ALLOW_CLIENT_DEV_MODE: { default: 'off', owner: 'voice', kind: 'kill-switch' },
   ALLOW_PRODUCTION_DATA: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   ALLOW_SOTA_SEED: { default: 'off', owner: 'voice', kind: 'config' },
