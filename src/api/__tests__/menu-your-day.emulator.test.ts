@@ -7,11 +7,13 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import admin from 'firebase-admin';
+import type { Firestore } from 'firebase-admin/firestore';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
-// src/tests/setup.ts fakes getFirestoreDb for every test; the keeper and the route
-// read through it, so this file swaps the real one back in to reach the emulator.
+// src/tests/setup.ts fakes firebase-admin and getFirestoreDb for every test; the keeper
+// and the route read through them, so this file swaps the real ones back in.
+vi.mock('firebase-admin/app', () => vi.importActual('firebase-admin/app'));
+vi.mock('firebase-admin/firestore', () => vi.importActual('firebase-admin/firestore'));
 vi.mock('../../utils/firestore-utils.js', () => vi.importActual('../../utils/firestore-utils.js'));
 vi.mock('../../services/superhuman/firestore-utils.js', () =>
   vi.importActual('../../utils/firestore-utils.js')
@@ -22,7 +24,7 @@ process.env.GCLOUD_PROJECT ??= 'demo-menu-your-day';
 
 let server: Server;
 let base: string;
-let db: admin.firestore.Firestore;
+let db: Firestore;
 const newUser = () => `u-${Math.random().toString(36).slice(2)}`;
 
 /** The hub's exact query (ferni-hub-data.ts readRoutes). */
@@ -41,8 +43,8 @@ beforeAll(async () => {
     server.listen(0, '127.0.0.1', resolve);
   });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  if (!admin.apps.length) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
-  db = admin.firestore();
+  const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+  db = getAdminFirestore();
 });
 
 afterAll(() => server?.close());
