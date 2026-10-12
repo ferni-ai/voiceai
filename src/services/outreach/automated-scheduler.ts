@@ -8,12 +8,10 @@
  * - Onboarding arc progression
  * - Re-engagement campaigns
  * - Milestone celebrations
- *
  * Runs on Cloud Scheduler (cron) and respects:
  * - User preferences and quiet hours
  * - Optimal timing per user
  * - Rate limits and quotas
- *
  * @module AutomatedScheduler
  */
 
@@ -37,7 +35,7 @@ import {
   unansweredCount,
 } from './outreach-cadence.js';
 import { dailyCheckInChannel, logDailyCheckIn } from './proactive-channels/daily-checkin.js';
-import { isGroundedCheckInsOn } from './grounded-checkin.js';
+import { blocksGenericCheckIns } from './grounded-checkin.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
 
@@ -209,13 +207,7 @@ async function processCandidate(
   if (!outreachType) {
     return { sent: false, reason: 'No outreach needed' };
   }
-  // Every type here is generic: nothing the user said backs it up, and in
-  // production it is the same "Thinking of you. How are things going?" for
-  // everyone. With grounded check-ins on, only the proactive run's
-  // quote-backed follow-ups reach out (proactive-channels/pondered-triggers.ts).
-  if (isGroundedCheckInsOn()) {
-    return { sent: false, reason: 'No grounded reason to reach out' };
-  }
+  if (blocksGenericCheckIns()) return { sent: false, reason: 'No grounded reason to reach out' };
 
   // Determine best channel
   const channel = proactive ? proactive.channel : await determineBestChannel(candidate);

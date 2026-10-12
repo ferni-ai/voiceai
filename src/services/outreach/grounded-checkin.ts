@@ -12,7 +12,7 @@
  *   and nothing about a dated thing once they have talked since it was due.
  * - Rare: at most WEEKLY_CAP a week and one a day.
  * - Ferni's voice: one short question, no "just checking in" or "thinking of
- *   you" (#898 flagged that phrase becoming a tic).
+ *   you" (PR 898 flagged that phrase becoming a tic).
  *
  * Pure: the Firestore reads live in proactive-channels/pondered-triggers.ts.
  * Off unless OUTREACH_GROUNDED_CHECKINS=on.
@@ -26,9 +26,22 @@ export function isGroundedCheckInsOn(
   return env.OUTREACH_GROUNDED_CHECKINS === 'on';
 }
 
+/**
+ * True when the daily scheduler must not send its own check-ins. Every type it
+ * picks is generic: nothing the user said backs it up, and in production it is
+ * the same "Thinking of you. How are things going?" for everyone. With grounded
+ * check-ins on, only the proactive run's quote-backed follow-ups reach out
+ * (proactive-channels/pondered-triggers.ts).
+ */
+export function blocksGenericCheckIns(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return isGroundedCheckInsOn(env);
+}
+
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
-/** Evening, their time, as #734's follow-ups. */
+/** Evening, their time, as PR 734's follow-ups. */
 export const SEND_HOUR = 17;
 export const JUST_TALKED_HOURS = 12;
 /** An undated item waits this long without a call; before that it is for the next call. */
