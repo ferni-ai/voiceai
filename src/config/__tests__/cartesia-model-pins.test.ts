@@ -9,7 +9,7 @@
  * ids written into source, scripts, manifests and the env template.
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -32,7 +32,8 @@ function trackedFiles(): string[] {
   return out
     .split('\n')
     .filter((f) => /\.(ts|mts|js|mjs|cjs|json|sh|py)$|^\.env\.example$/.test(f))
-    .filter((f) => !/__tests__\/|\.test\.|\.spec\./.test(f));
+    .filter((f) => !/__tests__\/|\.test\.|\.spec\./.test(f))
+    .filter((f) => existsSync(join(ROOT, f))); // a deletion not yet staged
 }
 
 /** Model ids in string literals, JSON values and env assignments. */
@@ -78,10 +79,12 @@ describe('isPinnedCartesiaModel', () => {
 
 describe('the scanners', () => {
   it('find quoted, JSON and env model ids, and header/query versions', () => {
-    expect(modelIdsIn(`model_id: 'sonic-english', "model": "sonic-3-latest"\nCARTESIA_MODEL=sonic-2`)).toEqual(
-      ['sonic-english', 'sonic-3-latest', 'sonic-2']
-    );
-    expect(modelIdsIn("see docs.cartesia.ai/build-with-cartesia/sonic-3/ssml-tags; import 'sonic-boom'")).toEqual([]);
+    expect(
+      modelIdsIn(`model_id: 'sonic-english', "model": "sonic-3-latest"\nCARTESIA_MODEL=sonic-2`)
+    ).toEqual(['sonic-english', 'sonic-3-latest', 'sonic-2']);
+    expect(
+      modelIdsIn("see docs.cartesia.ai/build-with-cartesia/sonic-3/ssml-tags; import 'sonic-boom'")
+    ).toEqual([]);
     expect(apiVersionsIn(`'Cartesia-Version': '2024-06-10', cartesia_version=2025-04-16`)).toEqual([
       '2024-06-10',
       '2025-04-16',
@@ -101,7 +104,8 @@ describe('repo pins (Cartesia Oct 20 2026 shutdown)', () => {
     const bad: string[] = [];
     for (const file of files) {
       for (const id of modelIdsIn(readFileSync(join(ROOT, file), 'utf8'))) {
-        const allowedOld = PRE_36_SNAPSHOT_ALLOWED[file] && /^sonic-[\d.]+-\d{4}-\d{2}-\d{2}$/.test(id);
+        const allowedOld =
+          PRE_36_SNAPSHOT_ALLOWED[file] && /^sonic-[\d.]+-\d{4}-\d{2}-\d{2}$/.test(id);
         if (!isPinnedCartesiaModel(id) && !allowedOld) bad.push(`${file}: ${id}`);
       }
     }
@@ -120,7 +124,9 @@ describe('repo pins (Cartesia Oct 20 2026 shutdown)', () => {
 
   it('no caller uses an endpoint Cartesia shut down', () => {
     const bad = files.filter((f) =>
-      /\/voices\/clone\/clip|\/voices\/mix|\/voice-changer\//.test(readFileSync(join(ROOT, f), 'utf8'))
+      /\/voices\/clone\/clip|\/voices\/mix|\/voice-changer\//.test(
+        readFileSync(join(ROOT, f), 'utf8')
+      )
     );
     expect(bad).toEqual([]);
   });
