@@ -9,6 +9,7 @@ import { shouldSkipGenerateReply } from '../../handoff/unified-state.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { armSilentLine } from '../outbound-call/silent-line.js';
+import { goodbyesSaid } from '../shared/call-farewell.js';
 import { canTriggerProactive } from '../shared/response-orchestrator.js';
 import { musicHoldsRemark } from './silence-remark-guard.js';
 
@@ -43,6 +44,13 @@ export function silenceResponseBlocked(
   const steppedAway = callerSteppedAway(context?.lastUserMessage, silenceDurationSec);
   if (steppedAway) {
     diag.state('🤫 [SILENCE] Skipped - they said they were stepping away', {
+      silenceSec: Math.round(silenceDurationSec),
+    });
+  }
+  // Both said goodbye: the next thing is the call ending, not a remark (call-farewell.ts).
+  const farewell = goodbyesSaid(sessionId);
+  if (farewell) {
+    diag.state('🤫 [SILENCE] Skipped - goodbyes said', {
       silenceSec: Math.round(silenceDurationSec),
     });
   }
@@ -102,6 +110,7 @@ export function silenceResponseBlocked(
 
   return Boolean(
     steppedAway ||
+    farewell ||
     silentLine ||
     toolsActive ||
     handoffOrDraining ||

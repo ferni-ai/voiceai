@@ -59,6 +59,8 @@ export interface PresenceDeps {
   stop: () => void;
   /** The caller's voice this turn (userData.voiceEmotion), if read. */
   mood: () => string | undefined;
+  /** The call has said its goodbyes or is closing: no sounds (call-farewell.ts). */
+  quiet?: () => boolean;
   rng?: () => number;
   setTimer?: (fn: () => void, ms: number) => unknown;
   clearTimer?: (handle: unknown) => void;
@@ -87,7 +89,7 @@ export function createPresenceWatcher(deps: PresenceDeps, timing: PresenceTiming
     timer = setT(() => {
       timer = null;
       if (whistled || agent !== 'listening' || user === 'speaking') return;
-      if (isHeavyMood(deps.mood())) return;
+      if (isHeavyMood(deps.mood()) || deps.quiet?.()) return;
       if (rng() >= chance) return;
       if (deps.play()) {
         whistled = true;
