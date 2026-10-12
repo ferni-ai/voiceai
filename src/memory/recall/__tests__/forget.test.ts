@@ -62,7 +62,7 @@ describe('forgetTopic', () => {
     expect(
       state.facts.filter((f) => f.data.forgottenAt === at.toISOString()).map((f) => f.id)
     ).toEqual(['d1', 'e1']);
-    expect(state.topics).toEqual(['divorce']); // the words, not the request
+    expect(state.topics).toEqual(['divorc']); // the words (stemmed), not the request
   });
 
   it('refuses a topic that covers much of what is known, and asks to narrow it', async () => {

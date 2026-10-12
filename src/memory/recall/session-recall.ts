@@ -14,6 +14,7 @@
  *
  * @module memory/recall/session-recall
  */
+import { foldText, stem } from './forget-tokens.js';
 
 export interface RecallFact {
   entity: string;
@@ -47,7 +48,7 @@ export function insideJokesEnabled(env: Record<string, string | undefined> = pro
 const SELF_ENTITY = /^(speaker|user|me)$/i;
 
 const STOPWORDS = new Set(
-  'the and but for with that this was are you your have has had not just about what when where how who why can could would should will from they them their there then than into onto been being its it\'s i\'m im my our out get got going really very some like know think well yeah okay also'.split(
+  "the and but for with that this was are you your have has had not just about what when where how who why can could would should will from they them their there then than into onto been being its it's i'm im my our out get got going really very some like know think well yeah okay also".split(
     ' '
   )
 );
@@ -100,13 +101,17 @@ const FORGET_FILLER = new Set(
  * one ("555-123-4567" = "5551234567").
  */
 export function forgetTokens(text: string): string[] {
-  const joined = text.toLowerCase().replace(/(\d)[\s().-]+(?=\d)/g, '$1');
-  const words = joined.match(/[a-z0-9][a-z0-9']*/g) ?? [];
-  const out = words
-    .map((w) => w.replace(/'s$/, ''))
+  const out = rawForgetWords(text)
     .filter((w) => w.length >= 2 && !STOPWORDS.has(w) && !FORGET_FILLER.has(w))
-    .map((w) => (w.length > 3 && /[^s]s$/.test(w) ? w.slice(0, -1) : w));
+    .map(stem);
   return [...new Set(out)];
+}
+
+/** Folded words (forget-tokens.ts) with "'s" dropped and numbers joined, before filtering. */
+function rawForgetWords(text: string): string[] {
+  const joined = foldText(text).replace(/(\d)[\s().-]+(?=\d)/g, '$1');
+  const words = joined.match(/[a-z0-9][a-z0-9']*/g) ?? [];
+  return words.map((w) => w.replace(/'s$/, '').replace(/'/g, ''));
 }
 
 /**
@@ -117,9 +122,14 @@ export function forgetTokens(text: string): string[] {
 export function isForgotten(text: string, topics: readonly string[]): boolean {
   if (topics.length === 0) return false;
   const words = new Set(forgetTokens(text));
+  // "ex wife" in a memory is the "ex-wife" / "exwife" of a request, and back.
+  const raw = rawForgetWords(text);
+  for (let i = 0; i + 1 < raw.length; i++) words.add(stem(`${raw[i]}${raw[i + 1]}`));
   return topics.some((t) => {
     const want = forgetTokens(t);
-    return want.length > 0 && want.every((w) => words.has(w));
+    if (want.length === 0) return false;
+    if (want.every((w) => words.has(w))) return true;
+    return want.length > 1 && want.length <= 3 && words.has(stem(want.join('')));
   });
 }
 
@@ -246,7 +256,7 @@ export function formatRecall(
   lines.push(
     'These are from past calls, not this one. Use at most one, and only if it fits naturally, the way a friend who remembers would. ' +
       'Words like today, tomorrow or Friday inside a memory are as of when it was said. ' +
-      "Anything a few days old or that could have changed, check instead of asserting (\"is she still...?\"). " +
+      'Anything a few days old or that could have changed, check instead of asserting ("is she still...?"). ' +
       'Never bring up health, pregnancy, money or relationships unless they bring it up first. Never list them or say you looked it up.'
   );
   return lines.join('\n');
@@ -290,15 +300,13 @@ export async function loadRecallSnapshot(
       // Marked by forget.ts: left in storage (recoverable), out of recall.
       .filter((d) => typeof d.forgottenAt !== 'string')
       .slice(0, MAX_FACTS)
-      .map(
-        (d): RecallFact => ({
-          entity: String(d.entityName ?? ''),
-          key: String(d.key ?? ''),
-          value: String(d.value ?? ''),
-          confidence: confidenceOf(d.confidence),
-          ...(typeof d.extractedAt === 'string' ? { extractedAt: d.extractedAt } : {}),
-        })
-      )
+      .map((d): RecallFact => ({
+        entity: String(d.entityName ?? ''),
+        key: String(d.key ?? ''),
+        value: String(d.value ?? ''),
+        confidence: confidenceOf(d.confidence),
+        ...(typeof d.extractedAt === 'string' ? { extractedAt: d.extractedAt } : {}),
+      }))
       .filter((f) => f.confidence >= MIN_RECALL_CONFIDENCE)
       .filter((f) => !isForgotten(`${f.entity} ${f.key} ${f.value}`, forgotten))
   );

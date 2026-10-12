@@ -52,7 +52,8 @@ export interface ForgetStore {
   facts: (userId: string) => Promise<StoredFactRef[]>;
   markForgotten: (userId: string, refs: StoredFactRef[], at: string) => Promise<void>;
   addTopic: (userId: string, topic: string) => Promise<void>;
-  topics: (userId: string) => Promise<string[]>;
+  /** The recorded topics; null when they can't be read (no store, malformed), [] when there are none. */
+  topics: (userId: string) => Promise<string[] | null>;
 }
 
 /** The text a fact document is about, in either collection's shape. */
@@ -105,15 +106,42 @@ export function forgetProblem(result: Exclude<ForgetResult, { kind: 'forgotten' 
   return "I couldn't remove that just now. Ask me again in a moment?";
 }
 
-/** Recorded topics (their words). Never throws: an unreadable list is empty. */
+/**
+ * Recorded topics, or null when they can't be read: a reader of raw words
+ * (episode quotes, call summaries) must then offer nothing rather than risk
+ * a forgotten one.
+ */
+export async function forgottenTopicsOrNull(
+  userId: string,
+  store: ForgetStore = firestoreForgetStore
+): Promise<string[] | null> {
+  return store.topics(userId).catch((error: unknown) => {
+    log.warn({ error: String(error) }, 'Forgotten topics not loaded');
+    return null;
+  });
+}
+
+/**
+ * Recorded topics (their words). Never throws: an unreadable list is empty.
+ * For readers whose own records carry forgottenAt (facts); readers of raw
+ * words use forgottenTopicsOrNull.
+ */
 export async function forgottenTopics(
   userId: string,
   store: ForgetStore = firestoreForgetStore
 ): Promise<string[]> {
-  return store.topics(userId).catch((error: unknown) => {
-    log.warn({ error: String(error) }, 'Forgotten topics not loaded');
-    return [];
-  });
+  const topics = await forgottenTopicsOrNull(userId, store);
+  return topics ?? [];
+}
+
+/**
+ * The stored topics field: none recorded is [], anything else that isn't a
+ * list of strings is unreadable (null), so readers fail closed.
+ */
+export function parseTopics(raw: unknown): string[] | null {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw) || !raw.every((t) => typeof t === 'string')) return null;
+  return raw;
 }
 
 /** bogle_users/{uid}/{dynamic_facts,extracted_facts}, and memory_state/forgotten. */
@@ -148,7 +176,11 @@ export const firestoreForgetStore: ForgetStore = {
   async addTopic(userId, topic) {
     const db = getFirestoreDb();
     if (!db) return;
-    const ref = db.collection('bogle_users').doc(userId).collection('memory_state').doc('forgotten');
+    const ref = db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('memory_state')
+      .doc('forgotten');
     await db.runTransaction(async (tx) => {
       const doc = await tx.get(ref);
       const topics: unknown = doc.exists ? doc.data()?.topics : [];
@@ -158,14 +190,13 @@ export const firestoreForgetStore: ForgetStore = {
   },
   async topics(userId) {
     const db = getFirestoreDb();
-    if (!db) return [];
+    if (!db) return null;
     const doc = await db
       .collection('bogle_users')
       .doc(userId)
       .collection('memory_state')
       .doc('forgotten')
       .get();
-    const topics: unknown = doc.exists ? doc.data()?.topics : undefined;
-    return Array.isArray(topics) ? topics.map(String) : [];
+    return parseTopics(doc.exists ? doc.data()?.topics : undefined);
   },
 };
