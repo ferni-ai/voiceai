@@ -1,0 +1,14 @@
+/*
+ * One owner for the slot under the avatar (ui/avatar-slot.ui.ts):
+ * handoff caption > status whisper > thinking indicator.
+ */
+
+/* A visible whisper takes the slot from the thinking indicator. */
+#coach.has-status-whisper .thinking-float {
+  visibility: hidden;
+}
+
+/* The handoff caption takes it from a whisper that was already showing. */
+.avatar-container.is-handing-off ~ .status-whisper {
+  visibility: hidden;
+}

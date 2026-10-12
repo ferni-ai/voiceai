@@ -266,7 +266,7 @@ export function getToolCategories() {
  */
 export function getToolDocumentation(): string {
   const categories = getToolCategories();
-  const sections = ['# John Bogle Voice AI - Tool Reference', '', '## Financial Domain', ''];
+  const sections = ['# Ferni Voice AI - Tool Reference', '', '## Financial Domain', ''];
 
   // Financial
   const financialCategories = ['marketData', 'economic', 'calculators', 'personalFinance'];

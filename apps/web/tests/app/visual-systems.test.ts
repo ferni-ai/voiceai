@@ -37,12 +37,12 @@ describe('initVisualSystems', () => {
   });
 
   it('starts the animation, color and typography systems', () => {
-    expect(rootVar('--breath-phase')).toBe('');
+    expect(rootVar('--breath-rate-ms')).toBe('');
     expect(STYLE_IDS.filter((id) => document.getElementById(id))).toEqual([]);
 
     initVisualSystems('ferni');
 
-    expect(rootVar('--breath-phase')).not.toBe('');
+    expect(rootVar('--breath-rate-ms')).not.toBe('');
     expect(rootVar('--mood-primary')).toMatch(/^#[0-9a-f]{6}$/i);
     expect(STYLE_IDS.filter((id) => document.getElementById(id))).toEqual(STYLE_IDS);
   });
@@ -70,7 +70,7 @@ describe('initVisualSystems', () => {
 
     try {
       expect(() => fresh.initVisualSystems('ferni')).not.toThrow();
-      expect(rootVar('--breath-phase')).not.toBe('');
+      expect(rootVar('--breath-rate-ms')).not.toBe('');
       expect(document.getElementById('mood-typography-styles')).not.toBeNull();
       expect(logError).toHaveBeenCalledWith('Failed to start color system', expect.any(Error));
     } finally {
