@@ -9,6 +9,7 @@ vi.mock('../../../memory/recall/memory-control.js', () => ({ listRemembered: vi.
 
 const { buildKnownView, createFirestoreKnownStore, loadKnownView, isMemoryViewPonderingOn } =
   await import('../known.js');
+const { loadRecallSnapshot } = await import('../../../memory/recall/session-recall.js');
 import type { KnownStore } from '../known.js';
 import type { TemporalFact } from '../../world-model/temporal/types.js';
 import type { MindModel } from '../../theory-of-mind/types.js';
@@ -70,7 +71,14 @@ const pondering = {
   thinkingOf: [{ text: "your sister's move to Denver", basis: 'sum-2' }],
 };
 
-const empty = { facts: [], world: [], mind: null, pondering: null, summaryDays: new Map() };
+const empty = {
+  facts: [],
+  world: [],
+  mind: null,
+  pondering: null,
+  summaryDays: new Map<string, string>(),
+  forgotten: [] as string[],
+};
 
 describe('buildKnownView', () => {
   it('files facts under people, preferences and life now, with when they were learned', () => {
@@ -191,6 +199,78 @@ describe('buildKnownView', () => {
   });
 });
 
+describe('what the caller asked Ferni to forget', () => {
+  it('is left out of every section, with the matcher recall uses', () => {
+    const view = buildKnownView(
+      {
+        facts: [
+          { id: 'f1', subject: 'Biscuit', detail: 'breed: golden retriever' },
+          { id: 'f2', subject: 'you', detail: 'employer: Acme' },
+        ],
+        world: [
+          world({}),
+          world({
+            id: 'w2',
+            subject: 'self',
+            subjectKind: 'self',
+            attribute: 'job',
+            value: 'Acme',
+          }),
+          world({ id: 'w3', attribute: 'event', value: 'knee surgery', eventDate: '2026-10-12' }),
+        ],
+        mind: {
+          ...mind,
+          sensitivities: [{ topic: 'knee surgery', how: 'go gently', at: 'x' }],
+        },
+        pondering: {
+          followUps: [{ text: 'How is Mindy’s knee surgery recovery going?', basis: 'sum-1' }],
+          thinkingOf: [{ text: 'your new job at Acme', basis: 'sum-3' }],
+          dismissed: ['sum-3'],
+        },
+        summaryDays: new Map(),
+        forgotten: ['knee surgery', 'jokes anxious'],
+      },
+      NOW,
+      true
+    );
+    const ids = Object.values(view).flatMap((items) => items.map((i: { id: string }) => i.id));
+    expect(ids).toEqual(['f1', 'f2', 'w2']);
+  });
+
+  it('matches recall: a forgotten fact is in neither, a kept one in both', async () => {
+    const docs = [
+      { entityName: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 0.9 },
+      { entityName: 'user', key: 'employer', value: 'Acme', confidence: 0.9 },
+    ];
+    for (const topics of [
+      ['biscuit'],
+      ['employer acme'],
+      ['retriever golden'],
+      ['nothing like it'],
+    ]) {
+      const recalled = await loadRecallSnapshot(
+        { facts: async () => docs, summaries: async () => [], forgotten: async () => topics },
+        'u-1'
+      );
+      const view = buildKnownView(
+        {
+          ...empty,
+          facts: docs.map((d, i) => ({
+            id: `f${i}`,
+            subject: d.entityName === 'user' ? 'you' : d.entityName,
+            detail: `${d.key}: ${d.value}`,
+          })),
+          forgotten: topics,
+        },
+        NOW,
+        false
+      );
+      const shown = [...view.people, ...view.lifeNow].map((i) => i.text.split(': ')[1]);
+      expect(shown.sort(), topics[0]).toEqual(recalled.facts.map((f) => f.value).sort());
+    }
+  });
+});
+
 describe('loadKnownView', () => {
   function store(): KnownStore & Record<string, ReturnType<typeof vi.fn>> {
     return {
@@ -201,6 +281,7 @@ describe('loadKnownView', () => {
       }),
       pondering: vi.fn(async () => pondering),
       summaryDays: vi.fn(async () => new Map()),
+      forgotten: vi.fn(async () => []),
     };
   }
 
@@ -208,13 +289,21 @@ describe('loadKnownView', () => {
     const s = store();
     const env = { MEMORY_VIEW: 'on', MEMORY_VIEW_PONDERING: 'on' };
     const view = await loadKnownView('u-1', s, { now: NOW, env });
-    for (const fn of [s.facts, s.worldFacts, s.mindModel, s.pondering]) {
+    for (const fn of [s.facts, s.forgotten, s.worldFacts, s.mindModel, s.pondering]) {
       expect(fn).toHaveBeenCalledWith('u-1');
     }
     expect(s.summaryDays).toHaveBeenCalledWith('u-1', ['sum-1', 'sum-2']);
     expect(view.people).toHaveLength(1);
     expect(view.readsYou).toEqual([]);
     expect(view.thinkingAbout).toHaveLength(2);
+  });
+
+  it('fails rather than show what may have been forgotten when the topics are unreadable', async () => {
+    const s = store();
+    vi.mocked(s.forgotten).mockRejectedValueOnce(new Error('firestore down'));
+    await expect(
+      loadKnownView('u-1', s, { now: NOW, env: { MEMORY_VIEW: 'on' } })
+    ).rejects.toThrow();
   });
 
   it('never reads pondering unless its own flag is on', async () => {
