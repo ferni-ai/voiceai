@@ -1154,7 +1154,7 @@
       "upgrade": "加入這趟旅程"
     },
     "expiresLabel": "有效期限至",
-    "freeNote": "創始成員可以無限時間與整個團隊互動，並協助我們讓 Ferni 對所有人保持免費",
+    "freeNote": "Ferni 是免費的。如果你想幫助它繼續下去，可以透過 Venmo 支持一下。",
     "label": "共同成長",
     "renewsLabel": "自動續訂日期",
     "restore": {
@@ -6327,12 +6327,17 @@
     "categoryConnectDescription": "滋養人際關係",
     "categoryGrow": "成長",
     "categoryGrowDescription": "溫和地進步",
-    "insightYourMorningsSetTone": "你的早晨決定了一天的基調",
-    "insightYourMorningsDesc": "你用來開啟一天的對話，往往會形塑接下來的日常。",
-    "insightEveningReflectionsHelp": "睡前反思很有幫助",
-    "insightEveningReflectionsDesc": "在休息前花點時間反思，能讓隔天的心境更清晰。",
-    "insightIRememberEverything": "我記得所有事情",
-    "insightIRememberEverythingDesc": "每一次對話、每一個細節、每一個成長的瞬間。我為你完整保留你的故事。",
+    "noInsightsYetTitle": "這裡還什麼都沒有。",
+    "noInsightsYetDesc": "聊過幾次之後，我會開始注意到一些事：你的習慣模式、你提到的計畫、重要的時刻。它們會出現在這裡。現在，我們先聊聊吧。",
+    "insightsUnavailableTitle": "我沒能載入我注意到的內容。",
+    "insightsUnavailableDesc": "這是我的問題，不是你的。稍後再試一次。我會一直在這裡。",
+    "practicePrompt": {
+      "dailyCheckin": "很高興見到你。你現在真實的感覺如何？",
+      "gratitude": "讓我們停下腳步，心存感激。此時此刻，有哪一件事讓你感到感恩？",
+      "brainstorm": "我們來腦力激盪一下吧。你現在正為什麼挑戰或決定而煩惱呢？",
+      "weeklyReview": "我們來回顧一下你的一週。最讓你印象深刻的是什麼？",
+      "windDown": "我們一起沉澱下來吧。今天有哪一件事讓你為自己感到驕傲？"
+    },
     "practiceSetYourIntention": "設定你的意圖",
     "practiceSetYourIntentionDesc": "帶著清晰的心境開始。今天最重要的是什麼？",
     "practiceGratitudeMoment": "感恩時刻",

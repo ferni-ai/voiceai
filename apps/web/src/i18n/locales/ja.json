@@ -1154,7 +1154,7 @@
       "upgrade": "道のりに加わる"
     },
     "expiresLabel": "有効期限",
-    "freeNote": "ファウンダーはチーム全員と無制限にお話しでき、Ferniをすべての人に無料で提供し続けるサポートになります。",
+    "freeNote": "Ferniは無料です。続けていくのを応援したい方は、Venmoで支援できます。",
     "label": "共に成長する",
     "renewsLabel": "更新日",
     "restore": {
@@ -6327,12 +6327,17 @@
     "categoryConnectDescription": "関係を育む",
     "categoryGrow": "成長する",
     "categoryGrowDescription": "穏やかな歩み",
-    "insightYourMorningsSetTone": "朝の過ごし方が一日を決めます",
-    "insightYourMorningsDesc": "一日の始まりに交わすお話が、その後の時間の流れを整えてくれます。",
-    "insightEveningReflectionsHelp": "夜の振り返りが力になります",
-    "insightEveningReflectionsDesc": "休む前に少しだけ振り返る時間を持つことで、明日がよりすっきりと見えてきます。",
-    "insightIRememberEverything": "私はすべてを覚えています",
-    "insightIRememberEverythingDesc": "すべてのお話、細かな出来事、そして成長の瞬間。あなたの物語を大切に覚えています。",
+    "noInsightsYetTitle": "まだ何もありません。",
+    "noInsightsYetDesc": "何度かお話しするうちに、あなたのパターン、話してくれた予定、大切な瞬間に気づいていきます。それがここに表示されます。今はただ、お話ししましょう。",
+    "insightsUnavailableTitle": "気づいたことを読み込めませんでした。",
+    "insightsUnavailableDesc": "あなたのせいではありません。少ししてからもう一度試してください。私はここにいます。",
+    "practicePrompt": {
+      "dailyCheckin": "お会いできて嬉しいです。今、本当はどんな気分ですか？",
+      "gratitude": "立ち止まって、感謝を味わいましょう。今、感謝していることを一つ教えてください。",
+      "brainstorm": "ブレストをしましょう。今、どんな課題や決断について考えていますか？",
+      "weeklyReview": "この一週間を振り返ってみましょう。どんなことが心に残っていますか？",
+      "windDown": "一緒に心を落ち着けましょう。今日、自分を誇らしく思えたことは何ですか？"
+    },
     "practiceSetYourIntention": "意図を設定する",
     "practiceSetYourIntentionDesc": "すっきりとした気持ちで始めましょう。今日、一番大切なことは何ですか？",
     "practiceGratitudeMoment": "感謝のひととき",

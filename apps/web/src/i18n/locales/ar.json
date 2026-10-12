@@ -1166,7 +1166,7 @@
       "upgrade": "الانضمام إلى الرحلة"
     },
     "expiresLabel": "نشط حتى",
-    "freeNote": "يحصل المؤسسون على وقت غير محدود مع الفريق بأكمله — ويساعدون في إبقاء Ferni مجانيًا للجميع",
+    "freeNote": "Ferni مجاني. إذا أردت المساعدة في استمراره، يمكنك المساهمة عبر Venmo.",
     "label": "ننمو معًا",
     "renewsLabel": "يتجدد في",
     "restore": {
@@ -6475,12 +6475,17 @@
     "categoryConnectDescription": "رعاية العلاقات",
     "categoryGrow": "نمو",
     "categoryGrowDescription": "تقدّم لطيف",
-    "insightYourMorningsSetTone": "الصباح يحدد وتيرة اليوم",
-    "insightYourMorningsDesc": "المحادثات التي يبدأ بها اليوم غالبًا ما ترسم ملامح بقية الساعات.",
-    "insightEveningReflectionsHelp": "التفكّر المسائي يساعد",
-    "insightEveningReflectionsDesc": "تخصيص لحظة للتفكّر قبل النوم يمنح وضوحًا لليوم التالي.",
-    "insightIRememberEverything": "أتذكر كل شيء",
-    "insightIRememberEverythingDesc": "كل محادثة، كل تفصيل، كل لحظة نمو. أحتفظ بقصتكم كاملة.",
+    "noInsightsYetTitle": "لا شيء هنا بعد.",
+    "noInsightsYetDesc": "بعد بضع محادثات سأبدأ بملاحظة أشياء: أنماطك، والخطط التي تذكرها، واللحظات المهمة. ستظهر هنا. أما الآن، فلنتحدث فقط.",
+    "insightsUnavailableTitle": "لم أتمكن من تحميل ما لاحظته.",
+    "insightsUnavailableDesc": "الخطأ مني، لا منك. حاول مرة أخرى بعد قليل. سأبقى هنا.",
+    "practicePrompt": {
+      "dailyCheckin": "يسعدني لقاؤكم. كيف تشعرون الآن حقاً؟",
+      "gratitude": "لنأخذ استراحة ونعبّر عن تقديرنا. ما هو الشيء الوحيد الذي تشعرون بالامتنان له الآن؟",
+      "brainstorm": "لنقم بعصف ذهني معاً. ما التحدي أو القرار الذي يشغل بالكم؟",
+      "weeklyReview": "لنلقِ نظرة على أسبوعكم. ما الذي يسترعي انتباهكم؟",
+      "windDown": "لنسترخِ معاً. ما هو الشيء الوحيد الذي تفخرون به اليوم؟"
+    },
     "practiceSetYourIntention": "تحديد النية",
     "practiceSetYourIntentionDesc": "البدء بوضوح. ما هو الأكثر أهمية اليوم؟",
     "practiceGratitudeMoment": "لحظة امتنان",

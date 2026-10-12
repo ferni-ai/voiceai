@@ -1154,7 +1154,7 @@
       "upgrade": "Komm mit auf die Reise"
     },
     "expiresLabel": "Aktiv bis",
-    "freeNote": "Als Gründungsmitglied erhältst du unbegrenzte Zeit mit dem gesamten Team – und hilfst dabei, Ferni für alle kostenlos zu halten",
+    "freeNote": "Ferni ist kostenlos. Wenn du helfen möchtest, dass es weitergeht, kannst du über Venmo etwas beisteuern.",
     "label": "GEMEINSAM WACHSEN",
     "renewsLabel": "Verlängert sich am",
     "restore": {
@@ -6327,12 +6327,17 @@
     "categoryConnectDescription": "Beziehungen pflegen",
     "categoryGrow": "Wachsen",
     "categoryGrowDescription": "Sanfter Fortschritt",
-    "insightYourMorningsSetTone": "Deine Morgen geben den Ton an",
-    "insightYourMorningsDesc": "Die Gespräche, mit denen du deinen Tag beginnst, prägen oft den gesamten weiteren Verlauf.",
-    "insightEveningReflectionsHelp": "Abendliche Reflexionen helfen",
-    "insightEveningReflectionsDesc": "Sich vor dem Schlafen einen Moment Zeit zum Nachdenken zu nehmen, bringt oft Klarheit für den nächsten Tag.",
-    "insightIRememberEverything": "Ich erinnere mich an alles",
-    "insightIRememberEverythingDesc": "Jedes Gespräch, jedes Detail, jeder Moment des Wachsens. Ich bewahre deine ganze Geschichte.",
+    "noInsightsYetTitle": "Noch nichts hier.",
+    "noInsightsYetDesc": "Nach ein paar Gesprächen fallen mir Dinge auf: deine Muster, die Pläne, die du erwähnst, die Momente, die zählen. Sie erscheinen hier. Für jetzt: lass uns einfach reden.",
+    "insightsUnavailableTitle": "Ich konnte nicht laden, was mir aufgefallen ist.",
+    "insightsUnavailableDesc": "Das liegt an mir, nicht an dir. Versuch es gleich noch mal. Ich bin noch da.",
+    "practicePrompt": {
+      "dailyCheckin": "Schön, dich zu sehen. Wie geht es dir gerade wirklich?",
+      "gratitude": "Lass uns kurz innehalten. Für welche Sache bist du gerade dankbar?",
+      "brainstorm": "Lass uns brainstormen. Welche Herausforderung oder Entscheidung beschäftigt dich gerade?",
+      "weeklyReview": "Lass uns auf deine Woche zurückblicken. Was ist dir besonders in Erinnerung geblieben?",
+      "windDown": "Lass uns gemeinsam herunterkommen. Worauf bist du heute stolz?"
+    },
     "practiceSetYourIntention": "Setze deine Intention",
     "practiceSetYourIntentionDesc": "Beginne mit Klarheit. Was ist heute am wichtigsten?",
     "practiceGratitudeMoment": "Moment der Dankbarkeit",

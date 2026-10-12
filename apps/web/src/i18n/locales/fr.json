@@ -1157,7 +1157,7 @@
       "upgrade": "Rejoindre le parcours"
     },
     "expiresLabel": "Actif jusqu'au",
-    "freeNote": "Les membres fondateurs profitent d'un temps illimité avec toute l'équipe — et aident à garder Ferni gratuit pour tout le monde",
+    "freeNote": "Ferni est gratuit. Si tu veux l'aider à continuer, tu peux contribuer via Venmo.",
     "label": "GRANDIR ENSEMBLE",
     "renewsLabel": "Se renouvelle le",
     "restore": {
@@ -6365,12 +6365,17 @@
     "categoryConnectDescription": "Nourrir tes relations",
     "categoryGrow": "Grandir",
     "categoryGrowDescription": "Progresser en douceur",
-    "insightYourMorningsSetTone": "Tes matins donnent le ton",
-    "insightYourMorningsDesc": "Les conversations par lesquelles tu commences ta journée ont tendance à façonner la suite.",
-    "insightEveningReflectionsHelp": "Les réflexions du soir aident",
-    "insightEveningReflectionsDesc": "Prendre un moment pour réfléchir avant de te reposer apporte souvent de la clarté pour le lendemain.",
-    "insightIRememberEverything": "Je me souviens de tout",
-    "insightIRememberEverythingDesc": "Chaque conversation, chaque détail, chaque moment de croissance. Je garde ton histoire intacte.",
+    "noInsightsYetTitle": "Rien ici pour l'instant.",
+    "noInsightsYetDesc": "Après quelques conversations, je commencerai à remarquer des choses : tes habitudes, les projets dont tu parles, les moments qui comptent. Ils apparaîtront ici. Pour l'instant, parlons simplement.",
+    "insightsUnavailableTitle": "Je n'ai pas pu charger ce que j'ai remarqué.",
+    "insightsUnavailableDesc": "C'est de ma faute, pas de la tienne. Réessaie dans un moment. Je serai toujours là.",
+    "practicePrompt": {
+      "dailyCheckin": "Quel plaisir de te voir. Comment te sens-tu en ce moment, vraiment ?",
+      "gratitude": "Faisons une pause pour apprécier. Quelle est la chose pour laquelle tu as de la gratitude en ce moment ?",
+      "brainstorm": "Et si on brainstormait ? Quel défi ou quelle décision te préoccupe ?",
+      "weeklyReview": "Jetons un œil à ta semaine. Qu'est-ce qui te marque le plus ?",
+      "windDown": "Relâchons la pression ensemble. Quelle est ta plus grande fierté aujourd'hui ?"
+    },
     "practiceSetYourIntention": "Pose ton intention",
     "practiceSetYourIntentionDesc": "Commence avec clarté. Qu'est-ce qui compte le plus aujourd'hui ?",
     "practiceGratitudeMoment": "Instant gratitude",

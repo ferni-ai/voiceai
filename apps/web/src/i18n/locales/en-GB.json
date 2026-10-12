@@ -1154,7 +1154,7 @@
       "upgrade": "Join the Journey"
     },
     "expiresLabel": "Active until",
-    "freeNote": "Founders get unlimited time with the whole team — and help keep Ferni free for everyone",
+    "freeNote": "Ferni is free. If you'd like to help keep it going, you can chip in on Venmo.",
     "label": "GROWING TOGETHER",
     "renewsLabel": "Renews",
     "restore": {
@@ -6327,12 +6327,17 @@
     "categoryConnectDescription": "Nurture relationships",
     "categoryGrow": "Grow",
     "categoryGrowDescription": "Gentle progress",
-    "insightYourMorningsSetTone": "Your mornings set the tone",
-    "insightYourMorningsDesc": "The conversations you start your day with tend to shape how the rest unfolds.",
-    "insightEveningReflectionsHelp": "Evening reflections help",
-    "insightEveningReflectionsDesc": "Taking a moment to reflect before rest often brings clarity to the next day.",
-    "insightIRememberEverything": "I remember everything",
-    "insightIRememberEverythingDesc": "Every conversation, every detail, every growth moment. I hold your story complete.",
+    "noInsightsYetTitle": "Nothing here yet.",
+    "noInsightsYetDesc": "After a few conversations, I'll start to notice things: your patterns, the plans you mention, the moments that matter. They'll show up here. For now, just talk.",
+    "insightsUnavailableTitle": "I couldn't load what I've noticed.",
+    "insightsUnavailableDesc": "That's on me, not you. Try again in a bit. I'll still be here.",
+    "practicePrompt": {
+      "dailyCheckin": "Good to see you. How are you feeling right now, really?",
+      "gratitude": "Let's pause and appreciate. What's one thing you're grateful for right now?",
+      "brainstorm": "Let's brainstorm. What challenge or decision is on your mind?",
+      "weeklyReview": "Let's look back at your week. What stands out to you?",
+      "windDown": "Let's wind down together. What's one thing you're proud of from today?"
+    },
     "practiceSetYourIntention": "Set Your Intention",
     "practiceSetYourIntentionDesc": "Begin with clarity. What matters most today?",
     "practiceGratitudeMoment": "Gratitude Moment",

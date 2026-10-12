@@ -1157,7 +1157,7 @@
       "upgrade": "להצטרף למסע"
     },
     "expiresLabel": "פעיל עד",
-    "freeNote": "מייסדים מקבלים זמן ללא הגבלה עם כל הצוות — ועוזרים לשמור על Ferni חינמי עבור כולם",
+    "freeNote": "Ferni חינמי. אם תרצה לעזור לו להמשיך, אפשר לתרום דרך Venmo.",
     "label": "צומחים יחד",
     "renewsLabel": "מתחדש ב-",
     "restore": {
@@ -6364,12 +6364,17 @@
     "categoryConnectDescription": "לטפח מערכות יחסים",
     "categoryGrow": "צמיחה",
     "categoryGrowDescription": "התקדמות עדינה",
-    "insightYourMorningsSetTone": "הבקרים קובעים את הטון",
-    "insightYourMorningsDesc": "השיחות שאיתן מתחילים את היום נוטות לעצב את המשכו.",
-    "insightEveningReflectionsHelp": "התבוננות בערב עוזרת",
-    "insightEveningReflectionsDesc": "עצירה לרגע של התבוננות לפני המנוחה מביאה לעיתים קרובות בהירות ליום המחרת.",
-    "insightIRememberEverything": "הכל שמור אצלי בזיכרון",
-    "insightIRememberEverythingDesc": "כל שיחה, כל פרט, כל רגע של צמיחה. הסיפור שלך שמור אצלי במלואו.",
+    "noInsightsYetTitle": "עדיין אין כאן כלום.",
+    "noInsightsYetDesc": "אחרי כמה שיחות אתחיל לשים לב לדברים: הדפוסים שלך, התוכניות שאתה מזכיר, הרגעים שחשובים. הם יופיעו כאן. בינתיים, פשוט נדבר.",
+    "insightsUnavailableTitle": "לא הצלחתי לטעון את מה ששמתי לב אליו.",
+    "insightsUnavailableDesc": "זה עליי, לא עליך. נסה שוב בעוד רגע. אני עדיין כאן.",
+    "practicePrompt": {
+      "dailyCheckin": "איזה כיף להיפגש. איך ההרגשה כרגע, באמת?",
+      "gratitude": "בואו נעצור לרגע ונוקיר תודה. מהו דבר אחד שעליו יש לכם הכרת תודה כרגע?",
+      "brainstorm": "בואו נעשה סיעור מוחות. איזה אתגר או החלטה עומדים על הפרק כרגע?",
+      "weeklyReview": "בואו נביט לאחור על השבוע שלכם. מה בולט במיוחד?",
+      "windDown": "בואו נוריד הילוך יחד. במה אפשר להתגאות מהיום שהיה?"
+    },
     "practiceSetYourIntention": "הגדרת כוונה",
     "practiceSetYourIntentionDesc": "להתחיל עם בהירות. מה הכי חשוב היום?",
     "practiceGratitudeMoment": "רגע של הודיה",
