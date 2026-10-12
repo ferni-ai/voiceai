@@ -43,10 +43,6 @@ export type MilestoneType =
   | 'full-circle'
   | 'found-your-person'
   | 'team-player'
-  | 'deep-dive'
-  | 'quick-checkin'
-  | 'night-talk'
-  | 'early-riser'
   | 'hundred-conversations'
   | 'explorer'
   | 'secret-keeper'
@@ -63,11 +59,8 @@ export type MilestoneType =
   | 'jordan-planner'
   | 'nayan-sage'
   // Time & seasons
-  | 'weekend-warrior'
-  | 'midnight-friend'
   | 'three-month'
   | 'six-month'
-  | 'marathon-talk'
   | 'fifty-talks';
 
 interface Milestone {
@@ -105,12 +98,6 @@ interface MilestoneProgress {
 
   // Conversation tracking
   totalConversations: number;
-  longestConversationMinutes: number;
-  shortMeaningfulChats: number;
-  lateNightChats: number;
-  earlyMorningChats: number;
-  weekendChats: number;
-  midnightChats: number;
 
   // Discovery tracking
   easterEggsFound: Set<string>;
@@ -228,38 +215,6 @@ const MILESTONES: Milestone[] = [
   // ═══════════════════════════════════════════════════════════════════════════
   // CONVERSATION DEPTH
   // ═══════════════════════════════════════════════════════════════════════════
-  {
-    id: 'deep-dive',
-    category: 'conversation',
-    name: 'ferniMilestones.deepDive.name',
-    message: 'ferniMilestones.deepDive.message',
-    subtitle: 'ferniMilestones.deepDive.subtitle',
-    celebrated: false,
-  },
-  {
-    id: 'quick-checkin',
-    category: 'conversation',
-    name: 'ferniMilestones.quickCheckin.name',
-    message: 'ferniMilestones.quickCheckin.message',
-    subtitle: 'ferniMilestones.quickCheckin.subtitle',
-    celebrated: false,
-  },
-  {
-    id: 'night-talk',
-    category: 'conversation',
-    name: 'ferniMilestones.nightTalk.name',
-    message: 'ferniMilestones.nightTalk.message',
-    subtitle: 'ferniMilestones.nightTalk.subtitle',
-    celebrated: false,
-  },
-  {
-    id: 'early-riser',
-    category: 'conversation',
-    name: 'ferniMilestones.earlyRiser.name',
-    message: 'ferniMilestones.earlyRiser.message',
-    subtitle: 'ferniMilestones.earlyRiser.subtitle',
-    celebrated: false,
-  },
   {
     id: 'hundred-conversations',
     category: 'conversation',
@@ -413,26 +368,6 @@ const MILESTONES: Milestone[] = [
   // TIME & SEASONS - Better than human: we remember every moment
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    id: 'weekend-warrior',
-    category: 'conversation',
-    name: 'ferniMilestones.weekendWarrior.name',
-    message: 'ferniMilestones.weekendWarrior.message',
-    subtitle: 'ferniMilestones.weekendWarrior.subtitle',
-    celebrated: false,
-    progress: 0,
-    target: 5,
-  },
-  {
-    id: 'midnight-friend',
-    category: 'conversation',
-    name: 'ferniMilestones.midnightFriend.name',
-    message: 'ferniMilestones.midnightFriend.message',
-    subtitle: 'ferniMilestones.midnightFriend.subtitle',
-    celebrated: false,
-    progress: 0,
-    target: 5,
-  },
-  {
     id: 'three-month',
     category: 'relationship',
     name: 'ferniMilestones.threeMonth.name',
@@ -451,14 +386,6 @@ const MILESTONES: Milestone[] = [
     celebrated: false,
     progress: 0,
     target: 180,
-  },
-  {
-    id: 'marathon-talk',
-    category: 'conversation',
-    name: 'ferniMilestones.marathonTalk.name',
-    message: 'ferniMilestones.marathonTalk.message',
-    subtitle: 'ferniMilestones.marathonTalk.subtitle',
-    celebrated: false,
   },
   {
     id: 'fifty-talks',
@@ -485,12 +412,6 @@ let progress: MilestoneProgress = {
   personaConversations: {},
   naturalHandoffs: 0,
   totalConversations: 0,
-  longestConversationMinutes: 0,
-  shortMeaningfulChats: 0,
-  lateNightChats: 0,
-  earlyMorningChats: 0,
-  weekendChats: 0,
-  midnightChats: 0,
   easterEggsFound: new Set(),
   themesUsed: new Set(),
   thankYouCount: 0,
@@ -593,8 +514,6 @@ function setupEventListeners(): void {
 function trackConversationStart(): void {
   const now = new Date();
   const today = now.toISOString().split('T')[0] ?? '';
-  const hour = now.getHours();
-  const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
 
   // First conversation ever? - This is special!
   if (!progress.firstConversation) {
@@ -609,29 +528,8 @@ function trackConversationStart(): void {
     updateStreaks();
   }
 
-  // Time-based tracking
-  if (hour >= 22 || hour < 4) {
-    progress.lateNightChats++;
-    checkAndCelebrate('night-talk');
-  }
-
-  // Midnight friend (midnight to 4am specifically)
-  if (hour >= 0 && hour < 4) {
-    progress.midnightChats++;
-    updateMilestoneProgress('midnight-friend', progress.midnightChats);
-  }
-
-  if (hour >= 5 && hour < 7) {
-    progress.earlyMorningChats++;
-    checkAndCelebrate('early-riser');
-  }
-
-  // Weekend warrior (Saturday or Sunday)
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
-    progress.weekendChats++;
-    updateMilestoneProgress('weekend-warrior', progress.weekendChats);
-  }
-
+  // No milestones for when or how long someone talks: Ferni doesn't comment on
+  // the hour, the weekday or the length of a call.
   progress.totalConversations++;
 
   // Check conversation count milestones
@@ -651,30 +549,7 @@ function trackConversationStart(): void {
   saveState();
 }
 
-function trackConversationEnd(durationMinutes: number): void {
-  // Track longest conversation
-  if (durationMinutes > progress.longestConversationMinutes) {
-    progress.longestConversationMinutes = durationMinutes;
-  }
-
-  // Deep dive (10+ minutes)
-  if (durationMinutes >= 10) {
-    checkAndCelebrate('deep-dive');
-  }
-
-  // Marathon talk (60+ minutes) - Better than human: we have all the time you need
-  if (durationMinutes >= 60) {
-    checkAndCelebrate('marathon-talk');
-  }
-
-  // Quick check-in (1-3 minutes, meaningful)
-  if (durationMinutes >= 1 && durationMinutes <= 3) {
-    progress.shortMeaningfulChats++;
-    if (progress.shortMeaningfulChats >= 5) {
-      checkAndCelebrate('quick-checkin');
-    }
-  }
-
+function trackConversationEnd(_durationMinutes: number): void {
   // Consistent check-ins
   updateMilestoneProgress('consistent', progress.totalConversations);
 
@@ -883,7 +758,6 @@ function sendMilestoneOutreach(milestone: Milestone): void {
     'streak-30',
     'hundred-conversations',
     'fifty-talks',
-    'marathon-talk',
   ];
 
   if (!emailMilestones.includes(milestone.id)) return;
@@ -923,7 +797,6 @@ function sendMilestoneNotification(milestone: Milestone): void {
     'full-circle',
     'hundred-conversations',
     'fifty-talks',
-    'marathon-talk',
   ];
 
   if (!notifyMilestones.includes(milestone.id)) return;
@@ -984,7 +857,6 @@ async function showMilestoneCelebration(milestone: Milestone): Promise<void> {
     'hundred-conversations',
     'full-circle',
     'secret-keeper',
-    'marathon-talk',
   ].includes(milestone.id);
 
   // Play appropriate sound
@@ -1051,15 +923,8 @@ function triggerMilestoneExpression(milestone: Milestone, isBig: boolean): void 
     'nayan-sage': 'thinking',
 
     // Conversation milestones
-    'deep-dive': 'thinking',
-    'quick-checkin': 'nod',
-    'night-talk': 'moonlight',
-    'early-riser': 'coffee',
     'hundred-conversations': 'trophy',
     'fifty-talks': 'warmGlow',
-    'weekend-warrior': 'cozy',
-    'midnight-friend': 'moonlight',
-    'marathon-talk': 'celebration',
 
     // Discovery milestones
     explorer: 'sparkle',
@@ -1474,12 +1339,6 @@ export function resetMilestones(): void {
     personaConversations: {},
     naturalHandoffs: 0,
     totalConversations: 0,
-    longestConversationMinutes: 0,
-    shortMeaningfulChats: 0,
-    lateNightChats: 0,
-    earlyMorningChats: 0,
-    weekendChats: 0,
-    midnightChats: 0,
     easterEggsFound: new Set(),
     themesUsed: new Set(),
     thankYouCount: 0,
