@@ -111,6 +111,8 @@ export const FLAG_MANIFEST = {
   ENDPOINT_FAST_FINISHED: { default: 'off', owner: 'voice', kind: 'experiment' },
   EVALOPS_FIRESTORE_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
+  FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
+  FACT_SWEEP: { default: 'off', owner: 'memory', kind: 'experiment' },
   // never on when NODE_ENV=production
   FERNI_DEVELOPER_TOOLS: { default: 'off', owner: 'tools', kind: 'config' },
   FERNI_LOCAL_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -166,6 +168,7 @@ export const FLAG_MANIFEST = {
   // a mode: on speaks a fallback when a reply fails, shadow only logs it
   NEVER_SILENT: { default: 'off', owner: 'voice', kind: 'experiment' },
   ONNX_USE_COREML: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  OPENER_FOLLOW_UP: { default: 'off', owner: 'memory', kind: 'experiment' },
   OPENER_GATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   OPENER_GATE_EARLY: { default: 'off', owner: 'voice', kind: 'experiment' },
   OUTREACH_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
@@ -216,6 +219,11 @@ export const FLAG_MANIFEST = {
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },
   PUBSUB_ENABLED: { default: 'off', owner: 'voice', kind: 'config' },
   QUIET_HOURS_UNIFIED: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  RECALL_EPISODES: { default: 'off', owner: 'memory', kind: 'experiment' },
+  RECALL_FACT_QUOTES: { default: 'off', owner: 'memory', kind: 'experiment' },
+  RECALL_PEOPLE: { default: 'off', owner: 'memory', kind: 'experiment' },
+  RECALL_RARE_WORDS: { default: 'off', owner: 'memory', kind: 'experiment' },
+  RECALL_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
   REMINDER_SCHEDULER_IN_PROCESS: { default: 'off', owner: 'platform', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH_NAME: { default: 'off', owner: 'outreach', kind: 'experiment' },
