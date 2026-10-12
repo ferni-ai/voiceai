@@ -28,6 +28,9 @@ export interface ToastOptions {
   /** Callers may extend the display time; they cannot shorten it. */
   duration?: number;
   action?: { label: string; callback: () => void };
+  /** Achievement toasts: a bold headline above the message and a star icon. */
+  title?: string;
+  kind?: 'achievement';
 }
 
 interface Entry {
@@ -46,7 +49,10 @@ const PHONE_QUERY = '(max-width: 768px)';
 
 /** clamp(3 s, 1.5 s + 60 ms per character, 8 s); errors and actions get at least 6 s. */
 export function toastDuration(options: ToastOptions): number {
-  const byLength = Math.min(MAX_MS, Math.max(MIN_MS, 1500 + 60 * options.message.length));
+  const byLength = Math.min(
+    MAX_MS,
+    Math.max(MIN_MS, 1500 + 60 * (options.message.length + (options.title?.length ?? 0)))
+  );
   const floor = options.tone === 'error' || options.action ? NEEDS_ATTENTION_MS : 0;
   return Math.max(byLength, floor, options.duration ?? 0);
 }
@@ -54,6 +60,9 @@ export function toastDuration(options: ToastOptions): number {
 export function maxVisibleToasts(): number {
   return window.matchMedia?.(PHONE_QUERY).matches ? 1 : 2;
 }
+
+const STAR_PATH =
+  '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>';
 
 const ICON_PATHS: Record<ToastTone, string> = {
   info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
@@ -74,7 +83,10 @@ class ToastRegion {
 
   show(options: ToastOptions): string {
     const duplicate = [...this.visible, ...this.queue].find(
-      (e) => e.options.message === options.message && e.options.tone === options.tone
+      (e) =>
+        e.options.message === options.message &&
+        e.options.tone === options.tone &&
+        e.options.title === options.title
     );
     if (duplicate) return duplicate.id;
 
@@ -141,13 +153,24 @@ class ToastRegion {
     const requested = entry.options.tone ?? 'info';
     const tone: ToastTone = requested in ICON_PATHS ? requested : 'info';
     const el = document.createElement('li');
-    el.className = `ferni-toast ferni-toast--${tone} ferni-toast--entering`;
+    const { title, kind, message } = entry.options;
+    const achievement = kind === 'achievement';
+    el.className = `ferni-toast ferni-toast--${achievement ? 'achievement' : tone} ferni-toast--entering`;
     el.dataset.toastId = entry.id;
-    el.innerHTML = `<svg class="ferni-toast__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[tone]}</svg>`;
+    el.innerHTML = `<svg class="ferni-toast__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${achievement ? STAR_PATH : ICON_PATHS[tone]}</svg>`;
+    const body = document.createElement('span');
+    body.className = 'ferni-toast__body';
+    if (title) {
+      const heading = document.createElement('strong');
+      heading.className = 'ferni-toast__title';
+      heading.textContent = title;
+      body.appendChild(heading);
+    }
     const text = document.createElement('span');
     text.className = 'ferni-toast__message';
-    text.textContent = entry.options.message;
-    el.appendChild(text);
+    text.textContent = message;
+    body.appendChild(text);
+    el.appendChild(body);
 
     const action = entry.options.action;
     if (action) {
@@ -167,7 +190,7 @@ class ToastRegion {
     this.visible.push(entry);
     this.bringToFront();
     requestAnimationFrame(() => el.classList.remove('ferni-toast--entering'));
-    this.announce(entry.options.message, tone === 'error');
+    this.announce(title ? `${title}. ${message}` : message, tone === 'error');
     if (!this.paused) this.startTimer(entry);
   }
 

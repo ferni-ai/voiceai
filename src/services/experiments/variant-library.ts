@@ -36,11 +36,6 @@ export interface TrustBadgeVariant {
   style: 'minimal' | 'prominent' | 'hidden';
 }
 
-export interface SocialProofVariant {
-  type: 'stats' | 'testimonials' | 'logos' | 'combined';
-  position: 'hero' | 'below-hero' | 'floating';
-}
-
 export interface TeamShowcaseVariant {
   order: 'ferni-first' | 'random' | 'by-specialty';
   style: 'cards' | 'carousel' | 'grid';
@@ -50,7 +45,7 @@ export interface TeamShowcaseVariant {
 export interface PricingVariant {
   anchor: 'free' | 'friend' | 'partner';
   style: 'cards' | 'table' | 'slider';
-  emphasis: 'value' | 'features' | 'social-proof';
+  emphasis: 'value' | 'features';
 }
 
 export interface VariantDefinition<T> {
@@ -166,29 +161,6 @@ export const TRUST_BADGE_VARIANTS: VariantDefinition<TrustBadgeVariant> = {
 };
 
 // ============================================================================
-// SOCIAL PROOF VARIANTS
-// ============================================================================
-
-export const SOCIAL_PROOF_VARIANTS: VariantDefinition<SocialProofVariant> = {
-  control: {
-    type: 'stats',
-    position: 'below-hero',
-  },
-  testimonials_hero: {
-    type: 'testimonials',
-    position: 'hero',
-  },
-  combined: {
-    type: 'combined',
-    position: 'below-hero',
-  },
-  floating: {
-    type: 'testimonials',
-    position: 'floating',
-  },
-};
-
-// ============================================================================
 // TEAM SHOWCASE VARIANTS
 // ============================================================================
 
@@ -235,11 +207,6 @@ export const PRICING_VARIANTS: VariantDefinition<PricingVariant> = {
     style: 'cards',
     emphasis: 'features',
   },
-  social_emphasis: {
-    anchor: 'free',
-    style: 'cards',
-    emphasis: 'social-proof',
-  },
 };
 
 // ============================================================================
@@ -272,15 +239,6 @@ export const EXPERIMENTS: ExperimentDefinition[] = [
     primaryGoal: 'cta_click',
     secondaryGoals: ['scroll_50'],
     variants: TRUST_BADGE_VARIANTS,
-  },
-  {
-    id: 'social-proof',
-    name: 'Social Proof Test',
-    description: 'Test social proof type and placement',
-    element: 'social-proof',
-    primaryGoal: 'cta_click',
-    secondaryGoals: ['scroll_75', 'time_60s'],
-    variants: SOCIAL_PROOF_VARIANTS,
   },
   {
     id: 'team-showcase',
@@ -493,7 +451,6 @@ export default {
   HERO_HEADLINE_VARIANTS,
   HERO_CTA_VARIANTS,
   TRUST_BADGE_VARIANTS,
-  SOCIAL_PROOF_VARIANTS,
   TEAM_SHOWCASE_VARIANTS,
   PRICING_VARIANTS,
   getVariant,

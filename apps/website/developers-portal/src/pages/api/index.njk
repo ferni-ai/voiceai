@@ -1526,8 +1526,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
           <div class="code-content">
             <pre><code>curl https://api.ferni.ai/api/marketplace/usage/habit-tracker-pro \
-  -H "x-user-id: user_abc123" \
-  -H "x-subscription-tier: pro"</code></pre>
+  -H "x-user-id: user_abc123"</code></pre>
           </div>
         </div>
 
@@ -1543,23 +1542,28 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
           <div class="code-content">
             <pre><code class="language-json">{
-  "itemId": "habit-tracker-pro",
   "period": "2025-01",
   "userId": "user_abc123",
-  "tier": "pro",
+  "itemId": "habit-tracker-pro",
   "totals": {
     "executions": 45,
     "executionTimeMs": 12500,
-    "quotaUsed": 45,
-    "quotaLimit": 1000
+    "dataTransferBytes": 0
   },
-  "breakdown": [
-    {
-      "date": "2025-01-14",
-      "executions": 5,
-      "executionTimeMs": 1250
-    }
-  ]
+  "quota": {
+    "maxExecutions": 100,
+    "maxExecutionTimeMs": 60000,
+    "currentExecutions": 45,
+    "currentExecutionTimeMs": 12500,
+    "usagePercentage": 45,
+    "exceeded": false,
+    "resetsAt": "2025-02-01T00:00:00.000Z"
+  },
+  "billedAmount": {
+    "amountCents": 0,
+    "currency": "USD",
+    "breakdown": []
+  }
 }</code></pre>
           </div>
         </div>
@@ -1587,8 +1591,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
           <div class="code-content">
             <pre><code>curl https://api.ferni.ai/api/marketplace/usage/summary \
-  -H "x-user-id: user_abc123" \
-  -H "x-subscription-tier: pro"</code></pre>
+  -H "x-user-id: user_abc123"</code></pre>
           </div>
         </div>
 
@@ -1606,7 +1609,7 @@ x-publisher-name: Acme Corp</code></pre>
             <pre><code class="language-json">{
   "period": "2025-01",
   "userId": "user_abc123",
-  "tier": "pro",
+  "tier": "free",
   "aggregate": {
     "totalExecutions": 87,
     "totalTimeMs": 24500,
@@ -1614,13 +1617,24 @@ x-publisher-name: Acme Corp</code></pre>
   },
   "items": [
     {
+      "period": "2025-01",
+      "userId": "user_abc123",
       "itemId": "habit-tracker-pro",
       "totals": {
         "executions": 45,
         "executionTimeMs": 12500,
-        "quotaUsed": 45,
-        "quotaLimit": 1000
-      }
+        "dataTransferBytes": 0
+      },
+      "quota": {
+        "maxExecutions": 100,
+        "maxExecutionTimeMs": 60000,
+        "currentExecutions": 45,
+        "currentExecutionTimeMs": 12500,
+        "usagePercentage": 45,
+        "exceeded": false,
+        "resetsAt": "2025-02-01T00:00:00.000Z"
+      },
+      "billedAmount": { "amountCents": 0, "currency": "USD", "breakdown": [] }
     }
   ]
 }</code></pre>
@@ -1650,8 +1664,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
           <div class="code-content">
             <pre><code>curl https://api.ferni.ai/api/marketplace/quota/check/habit-tracker-pro \
-  -H "x-user-id: user_abc123" \
-  -H "x-subscription-tier: pro"</code></pre>
+  -H "x-user-id: user_abc123"</code></pre>
           </div>
         </div>
 
@@ -1667,11 +1680,7 @@ x-publisher-name: Acme Corp</code></pre>
           </div>
           <div class="code-content">
             <pre><code class="language-json">{
-  "allowed": true,
-  "reason": null,
-  "quotaUsed": 45,
-  "quotaLimit": 1000,
-  "remainingQuota": 955
+  "allowed": true
 }</code></pre>
           </div>
         </div>
@@ -1689,10 +1698,8 @@ x-publisher-name: Acme Corp</code></pre>
           <div class="code-content">
             <pre><code class="language-json">{
   "allowed": false,
-  "reason": "Monthly quota exceeded. Upgrade to Pro for higher limits.",
-  "quotaUsed": 100,
-  "quotaLimit": 100,
-  "remainingQuota": 0
+  "reason": "Monthly quota exceeded (100/100 executions)",
+  "upgradeRequired": true
 }</code></pre>
           </div>
         </div>

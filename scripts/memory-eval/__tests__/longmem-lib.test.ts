@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   HUMAN_REFERENCE,
   RunDays,
+  formatPaired,
   formatReport,
+  interimOf,
   judgePrompt,
+  paired,
   parseYesNo,
   tally,
   wilson,
@@ -88,6 +91,51 @@ describe('scoring', () => {
     expect(report).toContain('| knowledge-update | 0/0 | 0% [0%, 0%] | – | n/a |');
     expect(report).toContain('| overall | 1/2 | 50%');
     expect(HUMAN_REFERENCE.overall).toBe(0.879);
+  });
+});
+
+describe('paired arms', () => {
+  const res = (ask: string, correct: boolean | null): CaseResult => ({
+    history: 'h',
+    category: 'single-session',
+    ask,
+    gold: 'g',
+    note: null,
+    response: 'r',
+    correct,
+    retrieved: null,
+  });
+
+  it('pairs by question and counts the discordant ones', () => {
+    const off = [res('a', true), res('b', false), res('c', false), res('d', true), res('e', null)];
+    const on = [res('d', false), res('c', true), res('b', true), res('a', true), res('e', true)];
+    expect(paired(off, on)).toMatchObject({ n: 4, both: 1, onlyA: 1, onlyB: 2, neither: 0 });
+  });
+
+  it('gives the exact two-sided sign test on the discordant pairs', () => {
+    const off = Array.from({ length: 5 }, (_, i) => res(`q${i}`, false));
+    const on = Array.from({ length: 5 }, (_, i) => res(`q${i}`, true));
+    // 5 of 5 discordant pairs favour one arm: p = 2 / 2^5.
+    expect(paired(off, on).pValue).toBeCloseTo(0.0625, 6);
+    // 3 against 1: p = 2 * (1 + 4) / 16.
+    const mixed = paired(
+      [res('a', true), res('b', false), res('c', false), res('d', false)],
+      [res('a', false), res('b', true), res('c', true), res('d', true)]
+    );
+    expect(mixed.pValue).toBeCloseTo(0.625, 6);
+    expect(paired([res('a', true)], [res('a', true)]).pValue).toBe(1);
+    expect(formatPaired('off', 'on', paired(off, on))).toBe(
+      'off vs on, 5 questions: both right 0, only off 0, only on 5, both wrong 0 (exact sign test p=0.063)'
+    );
+  });
+
+  it('feeds recall the opening words first, as an interim transcript would', () => {
+    // 10 words: the first 6.
+    expect(interimOf('Which hospital did I work at before my current one?')).toBe(
+      'Which hospital did I work at'
+    );
+    expect(interimOf("What's my daughter's name?")).toBe("What's my daughter's");
+    expect(interimOf('Where am I?')).toBeNull();
   });
 });
 

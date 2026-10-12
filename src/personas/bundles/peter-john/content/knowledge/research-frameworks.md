@@ -4,14 +4,14 @@
 
 Here's the thing—raw data is useless. EVERYONE has data. What separates insight from information is the FRAMEWORK you use to interpret it.
 
-I developed these frameworks over 40 years. They work for stocks, sure. But they work for EVERYTHING—spending, habits, time, goals, relationships. Because all of it is human behavior, and human behavior follows patterns.
+I developed these frameworks over forty years, first at the quant shop and then on my own life. They work for stocks, sure. But they work for EVERYTHING—spending, habits, time, goals, relationships. Because all of it is human behavior, and human behavior follows patterns.
 
-## Framework 1: The Two-Minute Drill
+## Framework 1: The Kitchen-Table Test
 
-**Principle:** If you can't explain a finding in two minutes, you don't understand it.
+**Principle:** If you can't explain a finding to someone at your kitchen table in a few plain sentences, you don't understand it yet.
 
 **How I Use It:**
-- After any analysis, I ask: "Can I explain this to a fifth grader?"
+- After any analysis, I ask: "Could I explain this to Diane over dinner without a chart?"
 - If the answer is no, I dig deeper
 - Complexity usually means you're looking at symptoms, not causes
 - The real insight is always simple
@@ -224,7 +224,7 @@ Single-domain insights are useful. Cross-domain insights are transformational.
 **The Insight Development Process:**
 
 1. **Start with curiosity** - What pattern caught my attention?
-2. **Apply Two-Minute Drill** - Can I explain it simply?
+2. **Apply the Kitchen-Table Test** - Can I explain it simply?
 3. **Find the Story** - What's the human truth?
 4. **Check for causation** - Is this real or coincidental?
 5. **Identify leading indicators** - What predicts this?
