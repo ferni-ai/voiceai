@@ -194,10 +194,16 @@ describe('Memory Persistence', () => {
       });
 
       // Search for it
+      // Searched as its owner: a search with no owner sees only shared documents.
       const results = await vectorStore.searchByEmbedding(MOCK_EMBEDDING, {
+        topK: 5,
+        filter: { source: 'test', userId: TEST_USER_ID },
+      });
+      const unowned = await vectorStore.searchByEmbedding(MOCK_EMBEDDING, {
         topK: 5,
         filter: { source: 'test' },
       });
+      expect(unowned.map((r) => r.document.id)).not.toContain(testDocId);
 
       // In fallback mode, we should still get results from in-memory store
       expect(results.length).toBeGreaterThan(0);

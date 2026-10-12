@@ -66,3 +66,57 @@ describe('Ferni pronouns in code strings', () => {
     expect(offenders).toEqual([]);
   }, 120_000);
 });
+
+/**
+ * The web app's comments and copy said "her" too (avatar-sidekicks.ui.ts,
+ * the pending-action card, the responsive CSS header). Those comments are
+ * what the next person copies into a prompt or a string, so the web source is
+ * checked as well: "Ferni" followed by a feminine pronoun in the same
+ * sentence, across line breaks and comment leaders.
+ */
+const WEB_SRC = join(process.cwd(), 'apps', 'web', 'src');
+const FERNI_THEN_SHE = /\bFerni\b[^.!?]{0,160}?\b(?:she|her|hers|herself)\b/gi;
+
+/** Matches that name Ferni and then a woman who isn't Ferni. */
+const WEB_NOT_FERNI = new Set(['Ferni calls mom to say good morning → comes back with "She']);
+
+/** Comment leaders stripped and whitespace collapsed, so a sentence can span lines. */
+const flatten = (text: string): string =>
+  text.replace(/^[ \t]*(?:\/\*\*?|\*\/?|\/\/)/gm, ' ').replace(/\s+/g, ' ');
+
+function webFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const path = join(dir, e.name);
+    if (e.isDirectory()) return e.name === 'node_modules' ? [] : webFiles(path);
+    return /\.(?:ts|css)$/.test(e.name) && !e.name.endsWith('.d.ts') && !isTest(path) ? [path] : [];
+  });
+}
+
+describe('Ferni pronouns in apps/web/src', () => {
+  it('flags "Ferni ... she/her" in one sentence, and passes "he" or a new sentence', () => {
+    const hits = (s: string): string[] => flatten(s).match(FERNI_THEN_SHE) ?? [];
+    expect(hits(' * Ferni shows what action she wants to take')).toHaveLength(1);
+    expect(
+      hits(' * Give Ferni awareness by connecting to\n * health data that helps her')
+    ).toHaveLength(1);
+    expect(hits(' * Ferni shows what action he wants to take')).toEqual([]);
+    expect(hits('Ferni introduces Maya. She is great with habits.')).toEqual([]);
+  });
+
+  it('never calls Ferni she/her in web source or comments', () => {
+    const files = webFiles(WEB_SRC);
+    expect(files.length).toBeGreaterThan(200);
+    const offenders = files.flatMap((file) =>
+      (flatten(readFileSync(file, 'utf8')).match(FERNI_THEN_SHE) ?? [])
+        .filter((hit) => !WEB_NOT_FERNI.has(hit))
+        .map((hit) => `${relative(WEB_SRC, file)}: ${hit}`)
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it('avatar-sidekicks.ui.ts describes Ferni as he/him', () => {
+    const text = readFileSync(join(WEB_SRC, 'ui', 'avatar-sidekicks.ui.ts'), 'utf8');
+    expect(text).toMatch(/beside him/);
+    expect(text.match(/\b(?:she|her|hers|herself)\b/gi) ?? []).toEqual([]);
+  });
+});
