@@ -17,11 +17,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
 import { showToast } from './overlay/toast-region.js';
-import {
-  CELEBRATION_PRESETS,
-  type CelebrationConfig,
-  type CelebrationType,
-} from './celebration-presets.js';
+import { CELEBRATION_PRESETS, type CelebrationConfig } from './celebration-presets.js';
 
 const log = createLogger('CelebrationUI');
 

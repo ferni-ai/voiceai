@@ -8,10 +8,18 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 vi.mock('@/services/haptics.service.js', () => ({ getHapticsService: () => ({ play: vi.fn() }) }));
-vi.mock('@/services/outreach.service.js', () => ({ outreachService: { sendMilestoneCelebration: vi.fn(() => Promise.resolve()) } }));
-vi.mock('@/services/push-notifications.service.js', () => ({ showNotification: vi.fn(() => Promise.resolve()) }));
-vi.mock('@/services/ferni-audio.service.js', () => ({ getFerniAudioEngine: () => ({ play: vi.fn() }) }));
-vi.mock('@/services/glow-controller.service.js', () => ({ getGlowController: () => ({ pulse: vi.fn() }) }));
+vi.mock('@/services/outreach.service.js', () => ({
+  outreachService: { sendMilestoneCelebration: vi.fn(() => Promise.resolve()) },
+}));
+vi.mock('@/services/push-notifications.service.js', () => ({
+  showNotification: vi.fn(() => Promise.resolve()),
+}));
+vi.mock('@/services/ferni-audio.service.js', () => ({
+  getFerniAudioEngine: () => ({ play: vi.fn() }),
+}));
+vi.mock('@/services/glow-controller.service.js', () => ({
+  getGlowController: () => ({ pulse: vi.fn() }),
+}));
 vi.mock('@/ui/sound.ui.js', () => ({ soundUI: { play: vi.fn() } }));
 vi.mock('@/ui/ferni-moments.ui.js', () => ({ ferniMoments: { play: vi.fn() } }));
 vi.mock('@/ui/celebrations.ui.js', () => ({ celebrationsUI: { celebrate: vi.fn() } }));
@@ -67,19 +75,26 @@ describe('achievement toast', () => {
   it('renders a headline, a message and the star icon', () => {
     showToast({ kind: 'achievement', title: 'Early Bird', message: 'First chat of the day' });
     expect(achievements()).toEqual([{ title: 'Early Bird', message: 'First chat of the day' }]);
-    expect(document.querySelector('.ferni-toast--achievement .ferni-toast__icon path')).not.toBeNull();
+    expect(
+      document.querySelector('.ferni-toast--achievement .ferni-toast__icon path')
+    ).not.toBeNull();
   });
 
   it('counts the headline in the reading time', () => {
     const message = 'x'.repeat(40);
-    expect(toastDuration({ kind: 'achievement', title: 'y'.repeat(30), message })).toBe(1500 + 60 * 70);
+    expect(toastDuration({ kind: 'achievement', title: 'y'.repeat(30), message })).toBe(
+      1500 + 60 * 70
+    );
     expect(toastDuration({ message })).toBe(3000 + 900);
   });
 });
 
 describe('moments.celebrate', () => {
   it('keeps the centred celebration card when the flag is off', async () => {
-    void getMomentsManager().celebrate('badge', { title: 'Early Bird', subtitle: 'First chat of the day' });
+    void getMomentsManager().celebrate('badge', {
+      title: 'Early Bird',
+      subtitle: 'First chat of the day',
+    });
     await vi.advanceTimersByTimeAsync(100);
     expect(document.querySelector('.moment-celebration')).not.toBeNull();
     expect(achievements()).toEqual([]);
@@ -87,7 +102,10 @@ describe('moments.celebrate', () => {
 
   it('shows an achievement toast instead when the flag is on', async () => {
     localStorage.setItem(OVERLAY_HOST_STORAGE_KEY, 'true');
-    await getMomentsManager().celebrate('badge', { title: 'Early Bird', subtitle: 'First chat of the day' });
+    await getMomentsManager().celebrate('badge', {
+      title: 'Early Bird',
+      subtitle: 'First chat of the day',
+    });
     expect(document.querySelector('.moment-celebration')).toBeNull();
     expect(achievements()).toEqual([{ title: 'Early Bird', message: 'First chat of the day' }]);
   });
@@ -96,7 +114,11 @@ describe('moments.celebrate', () => {
 describe('celebration card (celebration.ui)', () => {
   it('shows an achievement toast and no card when the flag is on', async () => {
     localStorage.setItem(OVERLAY_HOST_STORAGE_KEY, 'true');
-    await getCelebrationUI().celebrate({ type: 'big_win', title: 'Nice work', subtitle: 'Seven days in a row' });
+    await getCelebrationUI().celebrate({
+      type: 'big_win',
+      title: 'Nice work',
+      subtitle: 'Seven days in a row',
+    });
     expect(document.querySelector('.ferni-celebration-card')).toBeNull();
     expect(achievements()).toEqual([{ title: 'Nice work', message: 'Seven days in a row' }]);
   });
@@ -121,5 +143,22 @@ describe('Ferni milestones', () => {
     expect(achievements()).toHaveLength(1);
     expect(document.querySelector('.ferni-milestone')).toBeNull();
     expect(document.querySelector('.ferni-toast-live[role="status"]')?.textContent).not.toBe('');
+  });
+});
+
+describe('easter-egg achievements', () => {
+  it('render in the toast region when the flag is on, never as the corner card', async () => {
+    localStorage.setItem(OVERLAY_HOST_STORAGE_KEY, 'true');
+    document.body.innerHTML = '<div class="avatar-container"><div id="coachAvatar"></div></div>';
+    Element.prototype.animate = vi.fn() as unknown as Element['animate'];
+    const eggs = await import('@/ui/easter-eggs.ui.js');
+    eggs.initEasterEggsUI();
+    const avatar = document.getElementById('coachAvatar');
+    for (let i = 0; i < 3; i++) avatar?.click(); // triple-click unlocks an achievement
+
+    expect(document.querySelector('.achievement-notification')).toBeNull();
+    // Clicking the avatar also pokes its eye, a second achievement; both are toasts.
+    expect(achievements().map((a) => a.title)).toContain('Clicker');
+    eggs.easterEggsUI.dispose();
   });
 });
