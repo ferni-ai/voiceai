@@ -154,7 +154,7 @@ const REFRAMING_PERSPECTIVES = {
     reframed:
       "The math doesn't care when you started. Every dollar you save today still compounds. And you have more earning power and wisdom than a 22-year-old.",
     jackWisdom:
-      "I founded Vanguard when I was 45. Some of my best work came after 60. It's never too late to start doing the right thing.",
+      "Plenty of people do their best work after 45, and some after 60. It's never too late to start doing the right thing.",
   },
 
   small_amounts: {

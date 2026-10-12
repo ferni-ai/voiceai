@@ -138,7 +138,9 @@ describe('initErrorReporting', () => {
     const sent = events(bodies);
     expect(sent).toHaveLength(1);
     const text = JSON.stringify(sent);
-    for (const secret of ['divorce', 'cannot sleep', '415', '0134', 'abc.def.ghi']) {
+    // Phone fragments, not bare digits: event ids and timestamps are random and
+    // contained '415' often enough to fail main overnight.
+    for (const secret of ['divorce', 'cannot sleep', '(415)', '555-0134', '5550134', 'abc.def.ghi']) {
       expect(text).not.toContain(secret);
     }
     const event = sent[0] as {

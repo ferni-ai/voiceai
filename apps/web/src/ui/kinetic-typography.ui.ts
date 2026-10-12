@@ -387,12 +387,14 @@ export function textBreathing(
 // ============================================================================
 
 /**
- * Animate name change during persona handoff.
- * Combines scramble effect with Pixar-style reveal.
- * 
+ * Animate name change during persona handoff: the old name shrinks and fades,
+ * the new name pops in. Transform and opacity only, so it runs on the
+ * compositor; the text is swapped once, between the two halves. (A scramble
+ * phase used to rewrite the text every frame, re-running layout each time.)
+ *
  * @param element - Name element
  * @param newName - New persona name
- * @param options - Animation options
+ * @param options - Animation options; duration covers both halves
  */
 export async function animateNameHandoff(
   element: HTMLElement,
@@ -402,59 +404,40 @@ export async function animateNameHandoff(
     onComplete?: () => void;
   } = {}
 ): Promise<void> {
-  const {
-    duration = 600,
-    onComplete,
-  } = options;
-  
+  const { duration = 300, onComplete } = options;
+
   if (prefersReducedMotion) {
     element.textContent = newName;
     onComplete?.();
     return;
   }
-  
+
   return new Promise<void>((resolve) => {
-    // Phase 1: Shrink and fade current name
-    const shrinkAnim = element.animate([
-      { transform: 'scale(1)', opacity: 1, offset: 0 },
-      { transform: 'scale(0.95)', opacity: 0.5, offset: 0.4 },
-      { transform: 'scale(0.9)', opacity: 0, offset: 1 },
-    ], {
-      duration: duration * 0.4,
-      easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-      fill: 'forwards',
-    });
+    const shrinkAnim = element.animate(
+      [
+        { transform: 'scale(1)', opacity: 1 },
+        { transform: 'scale(0.94)', opacity: 0 },
+      ],
+      { duration: duration * 0.35, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' }
+    );
 
     shrinkAnim.onfinish = () => {
-      // CRITICAL: Cancel Phase 1 animation before Phase 2/3 to prevent stuck opacity: 0
-      // Web Animations with fill: 'forwards' persist even after onfinish!
+      element.textContent = newName;
+      // Cancel only after the pop starts, so no frame shows the new name at full opacity
+      const popAnim = element.animate(
+        [
+          { transform: 'scale(0.94)', opacity: 0, offset: 0 },
+          { transform: 'scale(1.03)', opacity: 1, offset: 0.6 },
+          { transform: 'scale(1)', opacity: 1, offset: 1 },
+        ],
+        { duration: duration * 0.65, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
+      );
       shrinkAnim.cancel();
 
-      // Phase 2: Scramble reveal new name
-      scrambleReveal(element, newName, {
-        duration: duration * 0.4,
-        onComplete: () => {
-          // Phase 3: Pop into place
-          const popAnim = element.animate([
-            { transform: 'scale(0.95)', opacity: 0.8, offset: 0 },
-            { transform: 'scale(1.05)', opacity: 1, offset: 0.5 },
-            { transform: 'scale(1)', opacity: 1, offset: 1 },
-          ], {
-            duration: duration * 0.2,
-            easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-            fill: 'forwards',
-          });
-
-          popAnim.onfinish = () => {
-            // Clear animation and set final styles to prevent stuck states
-            popAnim.cancel();
-            element.style.transform = '';
-            element.style.opacity = '';
-            onComplete?.();
-            resolve();
-          };
-        },
-      });
+      popAnim.onfinish = () => {
+        onComplete?.();
+        resolve();
+      };
     };
   });
 }

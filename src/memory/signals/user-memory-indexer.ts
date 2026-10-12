@@ -9,9 +9,11 @@
  */
 
 import type { UserProfile } from '../../types/user-profile.js';
-import { toSafeDate } from '../../utils/firestore-utils.js';
+import { getFirestoreDb, toSafeDate } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { indexConversationSummary } from '../semantic-rag.js';
+import { removeConversationDocument } from '../retrieval/conversation-index.js';
+import { isForgotten } from '../recall/session-recall.js';
 import { getFirestore } from '../firestore-factory.js';
 import { readCallSummaries } from '../storage/call-summaries.js';
 
@@ -32,6 +34,96 @@ export interface IndexingOptions {
   maxSummaries?: number;
   /** Maximum facts to index (default: 100) */
   maxFacts?: number;
+}
+
+/**
+ * Topics the caller asked to forget, or null when they can't be read. The
+ * index feeds the recallFromMemory tool, so an unreadable list indexes
+ * nothing rather than risk a forgotten memory (fails closed).
+ */
+export async function readForgottenTopics(
+  userId: string,
+  read: (userId: string) => Promise<unknown> = readTopicsField
+): Promise<string[] | null> {
+  try {
+    const topics = await read(userId);
+    // None recorded is []; anything but a list of strings is unreadable.
+    if (topics === undefined || topics === null) return [];
+    return Array.isArray(topics) && topics.every((t) => typeof t === 'string') ? topics : null;
+  } catch {
+    return null;
+  }
+}
+
+/** memory_state/forgotten.topics; throws with no database, so readers fail closed. */
+async function readTopicsField(userId: string): Promise<unknown> {
+  const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore not available');
+  const doc = await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('memory_state')
+    .doc('forgotten')
+    .get();
+  return doc.exists ? doc.data()?.topics : undefined;
+}
+
+const FACT_COPY = /^conversation_fact_(.+)$/;
+
+/**
+ * Index results that are copies of a dynamic fact now forgotten (forgottenAt)
+ * or deleted, checked by the fact's id rather than its text: the text may
+ * not name the topic. If the facts can't be read, every fact copy is dropped.
+ */
+export async function forgottenFactCopies(
+  userId: string,
+  ids: ReadonlyArray<string | undefined>,
+  read: (
+    userId: string,
+    docIds: string[]
+  ) => Promise<Map<string, Record<string, unknown> | undefined>> = readFactDocs
+): Promise<Set<string>> {
+  const copies = ids.flatMap((id) => {
+    const m = id ? FACT_COPY.exec(id) : null;
+    return m?.[1] ? [{ id: id as string, docId: m[1] }] : [];
+  });
+  if (copies.length === 0) return new Set();
+  try {
+    const docs = await read(
+      userId,
+      copies.map((c) => c.docId)
+    );
+    return new Set(
+      copies
+        .filter((c) => {
+          const d = docs.get(c.docId);
+          return !d || (d.forgottenAt !== undefined && d.forgottenAt !== null);
+        })
+        .map((c) => c.id)
+    );
+  } catch {
+    return new Set(copies.map((c) => c.id));
+  }
+}
+
+async function readFactDocs(
+  userId: string,
+  docIds: string[]
+): Promise<Map<string, Record<string, unknown> | undefined>> {
+  const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore not available');
+  const facts = db.collection('bogle_users').doc(userId).collection('dynamic_facts');
+  const snaps = await db.getAll(...docIds.map((id) => facts.doc(id)));
+  return new Map(snaps.map((d) => [d.id, d.exists ? d.data() : undefined]));
+}
+
+/** Takes a forgotten item out of the index too: it may have been indexed before it was forgotten. */
+async function dropForgotten(id: string, result: IndexingResult): Promise<void> {
+  result.skipped++;
+  result.categories['forgotten'] = (result.categories['forgotten'] || 0) + 1;
+  await removeConversationDocument(id).catch((error: unknown) =>
+    log.warn({ error: String(error), id }, 'Forgotten memory not removed from the index')
+  );
 }
 
 // Track last indexed time per user for needsReindex check
@@ -68,6 +160,12 @@ export async function indexUserMemories(
   const maxSummaries = options?.maxSummaries ?? 50;
   const maxFacts = options?.maxFacts ?? 100;
 
+  const forgotten = await readForgottenTopics(userId);
+  if (forgotten === null) {
+    log.warn({ userId }, 'Forgotten topics unreadable: indexing nothing');
+    return result;
+  }
+
   try {
     // 1. Index conversation summaries
     const summariesSnapshot = await readCallSummaries(db, userId, { limit: maxSummaries });
@@ -78,6 +176,10 @@ export async function indexUserMemories(
 
       if (!text || typeof text !== 'string' || text.length < 10) {
         result.skipped++;
+        continue;
+      }
+      if (summary.forgottenAt != null || isForgotten(text, forgotten)) {
+        await dropForgotten(doc.id, result);
         continue;
       }
 
@@ -114,8 +216,17 @@ export async function indexUserMemories(
         continue;
       }
 
-      // Create a searchable text from the fact
-      const searchableText = fact.key ? `${fact.key}: ${text}` : text;
+      // Create a searchable text from the fact; a person's name stays in it,
+      // so a topic like "Steve" still matches the indexed copy.
+      const entity = String(fact.entityName ?? '');
+      const named = entity && !/^(user|speaker|me)$/i.test(entity) ? `${entity} ` : '';
+      const searchableText = fact.key ? `${named}${fact.key}: ${text}` : `${named}${text}`;
+      // Marked by forget.ts, or about a forgotten topic: never searchable again.
+      const about = `${String(fact.entityName ?? '')} ${String(fact.key ?? '')} ${text}`;
+      if (fact.forgottenAt != null || isForgotten(about, forgotten)) {
+        await dropForgotten(`fact_${doc.id}`, result);
+        continue;
+      }
 
       try {
         await indexConversationSummary(userId, {
@@ -147,6 +258,10 @@ export async function indexUserMemories(
         const text = insight.description || insight.content;
 
         if (!text || typeof text !== 'string') continue;
+        if (isForgotten(text, forgotten)) {
+          await dropForgotten(`insight_${doc.id}`, result);
+          continue;
+        }
 
         try {
           await indexConversationSummary(userId, {

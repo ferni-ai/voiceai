@@ -33,7 +33,7 @@ import {
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
+import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import {
   applyClassifierVerdict,
   buildCrisisGuidance,
@@ -47,6 +47,7 @@ import {
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
 import { turnOpenedSince } from '../integrations/turn-opening-sound.js';
+import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { getDeliberator } from './deliberation.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
@@ -163,8 +164,11 @@ export function startCrisisGate(
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
     if (scope) {
-      const verdicts = await turnVerdicts(scope, latest);
-      const outcome = agreementOutcome({ pattern, verdicts, latest, companion });
+      // Fail closed: a failed lookup counts as a missing read, which escalates.
+      const verdicts = await turnVerdicts(scope, { latest, earlier, companion }).catch(() => [
+        null,
+      ]);
+      const outcome = agreementOutcome({ pattern, verdicts, latest, earlier, companion });
       if (outcome !== 'escalate') {
         log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');
         return outcome === 'soft' ? { action: 'guide', guidance: SOFT_CRISIS_CHECK } : null;
@@ -272,6 +276,10 @@ export async function gatedReply(
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => turnOpenedSince(session, askedAt);
   const gate = startCrisisGate(chatCtx, session.userData, options);
+  signalCrisisDecision(session, gate?.decision.action);
+  gate?.escalation
+    ?.then((decision) => signalCrisisDecision(session, decision?.action))
+    .catch(() => undefined);
   // A crisis turn: no background thought now or for the next few turns (deliberation.ts).
   if (gate && gate.decision.action !== 'pass') getDeliberator(session)?.hold();
   if (gate?.decision.action === 'replace') return textReply(gate.decision.script);
