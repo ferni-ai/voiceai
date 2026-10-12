@@ -6294,20 +6294,6 @@
       },
       "empty": "Hola. Estoy aquí... bueno, soy tú. Empieza a escribir en tu diario y tendré más sobre lo que reflexionar. Por ahora, ¿qué tienes en mente?"
     },
-    "fallback": {
-      "option1": "Qué interesante. ¿Qué te hace pensar en eso ahora?",
-      "option2": "Te escucho. ¿Qué más hay ahí?",
-      "option3": "Cuéntame más. ¿Qué hay detrás de eso?",
-      "option4": "Eso es algo en lo que también he estado pensando. ¿Cuál es la pregunta detrás de la pregunta?",
-      "advice": "He aprendido que el mejor consejo suele venir de quedarse un rato más con la pregunta. ¿Qué te dice tu intuición?",
-      "feeling": "Es mucho peso para cargar. Yo también he sentido eso. ¿Qué te ayudaría más ahora: hablarlo o simplemente quedarte un momento con ello?",
-      "remember": "Recuerdo más de lo que crees. Las entradas del diario guardan mucho. ¿Qué buscas específicamente?"
-    },
-    "fallbackKeywords": {
-      "advice": "consejo,debería",
-      "feeling": "sentir,sentimiento",
-      "remember": "recordar"
-    },
     "dialogLabel": "Tu crónica",
     "switchToVoice": "Cambiar a voz",
     "captured": "¡Capturado!",
@@ -6322,7 +6308,8 @@
       }
     },
     "emptyDescription": "Tu crónica está vacía, pero toda gran historia comienza en algún lugar. Captura tu primer pensamiento y mira cómo crece tu sabiduría.",
-    "quoted": "\"{text}\""
+    "quoted": "\"{text}\"",
+    "replyFailed": "No se pudo obtener una respuesta ahora. Inténtalo de nuevo en un momento."
   },
   "marketplacePermissionConsent": {
     "required": "Permisos requeridos",

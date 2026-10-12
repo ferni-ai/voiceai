@@ -6256,20 +6256,6 @@
       },
       "empty": "Hey. Ich bin hier – na ja, eigentlich bin ich du. Fang einfach an zu schreiben, dann kann ich über mehr reflektieren. Aber für den Moment: Was geht dir durch den Kopf?"
     },
-    "fallback": {
-      "option1": "Das ist interessant. Wie kommst du gerade jetzt darauf?",
-      "option2": "Ich verstehe dich. Was gibt es da noch?",
-      "option3": "Erzähl mir mehr. Was liegt darunter?",
-      "option4": "Darüber habe ich auch schon nachgedacht. Was ist die Frage hinter der Frage?",
-      "advice": "Ich habe gelernt, dass der beste Rat meistens kommt, wenn man ein bisschen länger mit der Frage verweilt. Was sagt dein Bauchgefühl?",
-      "feeling": "Das ist ganz schön viel zu tragen. Das kenne ich auch. Was würde dir jetzt helfen – darüber zu sprechen oder es einfach nur kurz zuzulassen?",
-      "remember": "Ich erinnere mich an mehr, als du vielleicht denkst. In den Journal-Einträgen steckt so einiges. Wonach suchst du genau?"
-    },
-    "fallbackKeywords": {
-      "advice": "Rat,sollte",
-      "feeling": "fühlen,Gefühl",
-      "remember": "erinnern"
-    },
     "dialogLabel": "Deine Chronik",
     "switchToVoice": "Zur Sprache wechseln",
     "captured": "Festgehalten!",
@@ -6284,7 +6270,8 @@
       }
     },
     "emptyDescription": "Deine Chronik ist noch leer, aber jede große Geschichte beginnt irgendwo. Halte deinen ersten Gedanken fest und sieh deiner Weisheit beim Wachsen zu.",
-    "quoted": "\"{text}\""
+    "quoted": "\"{text}\"",
+    "replyFailed": "Gerade kam keine Antwort. Versuch es gleich noch einmal."
   },
   "marketplacePermissionConsent": {
     "required": "Erforderliche Berechtigungen",
