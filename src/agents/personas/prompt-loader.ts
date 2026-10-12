@@ -452,22 +452,11 @@ async function loadToolUsageGuidance(bundleDir: string): Promise<string | null> 
     return null;
   }
 
-  // Every persona can do the everyday things (music, timers, reminders, weather):
-  // dev call 2026-10-12, Peter thought music wasn't his and offered market trends.
-  const shared = await loadSharedFile('shared-capabilities.md');
+  // Plus what every persona can do (music, timers, reminders, weather): dev call 2026-10-12
   const own = await loadFile(bundleDir, 'identity/tool-usage-guidance.md');
-  const guidance = [own, shared].filter(Boolean).join('\n\n') || null;
-
-  if (guidance) {
-    log.debug(
-      { bundleDir, providerId: provider.id },
-      `${provider.getLogPrefix()} Loaded tool usage guidance (conceptual knowledge about WHEN to use tools)`
-    );
-    return guidance;
-  }
-
-  log.debug({ bundleDir }, 'No tool-usage-guidance.md found');
-  return null;
+  const guidance = [own, await loadSharedFile('shared-capabilities.md')].filter(Boolean);
+  log.debug({ bundleDir, own: !!own }, `${provider.getLogPrefix()} Loaded tool usage guidance`);
+  return guidance.length ? guidance.join('\n\n') : null;
 }
 
 async function loadAssemblyConfig(bundleDir: string): Promise<AssemblyConfig | null> {
