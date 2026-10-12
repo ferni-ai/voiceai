@@ -1,0 +1,119 @@
+/**
+ * Listen nods through the real handleDataMessage: with `ferni:listen-nods` on,
+ * the avatar nods with its own backchannel (on the wire delay), smiles with its
+ * laugh, and nods on the agent's active_listening_nod; with it off, nothing.
+ * Message shapes are the agent's (src/agents/integrations/backchannel-signal.ts,
+ * src/agents/realtime/speech-state-dispatcher.ts).
+ */
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const performMicroNod = vi.hoisted(() => vi.fn());
+vi.mock('../../src/eq/capabilities/active-listening.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/eq/capabilities/active-listening.js')>()),
+  performMicroNod,
+}));
+
+import { handleDataMessage } from '../../src/app/data-message-handlers.js';
+import { resetListenSignalForTests } from '../../src/app/backchannel-signal.js';
+import { LISTEN_NODS_FLAG_KEY } from '../../src/ui/avatar-motion/listen-nods.js';
+import { ferniExpressions } from '../../src/ui/ferni-expressions.ui.js';
+import type { DataMessage } from '../../src/types/events.js';
+
+const send = (message: Record<string, unknown>): void =>
+  handleDataMessage(message as unknown as DataMessage);
+
+function setReducedMotion(reduce: boolean): void {
+  window.matchMedia = vi.fn((query: string) => ({
+    matches: reduce && query.includes('reduce'),
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as unknown as typeof window.matchMedia;
+}
+
+const backchannel = { type: 'backchannel_played', kind: 'backchannel', wireDelayMs: 220 };
+const laugh = { type: 'backchannel_played', kind: 'laugh', wireDelayMs: 60 };
+const listeningNod = {
+  type: 'humanization_signal',
+  signalType: 'active_listening_nod',
+  nodType: 'subtle',
+  pauseType: 'breath',
+  durationMs: 600,
+  timestamp: 1,
+};
+
+let smile: ReturnType<typeof vi.spyOn>;
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  performMicroNod.mockClear();
+  resetListenSignalForTests();
+  setReducedMotion(false);
+  smile = vi.spyOn(ferniExpressions, 'setExpression').mockImplementation(() => undefined);
+});
+
+afterEach(() => {
+  localStorage.removeItem(LISTEN_NODS_FLAG_KEY);
+  smile.mockRestore();
+  vi.useRealTimers();
+});
+
+describe('listen nods, flag off (default)', () => {
+  it('does not nod or smile for any listen signal', () => {
+    send(backchannel);
+    send(laugh);
+    send(listeningNod);
+    vi.advanceTimersByTime(5000);
+    expect(performMicroNod).not.toHaveBeenCalled();
+    expect(smile).not.toHaveBeenCalledWith('pleased', expect.anything(), expect.anything());
+  });
+});
+
+describe('listen nods, flag on', () => {
+  beforeEach(() => localStorage.setItem(LISTEN_NODS_FLAG_KEY, 'true'));
+
+  it('nods when the backchannel reaches the wire', () => {
+    send(backchannel);
+    vi.advanceTimersByTime(219);
+    expect(performMicroNod).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(performMicroNod).toHaveBeenCalledWith('subtle');
+  });
+
+  it('smiles for a laugh instead of nodding', () => {
+    send(laugh);
+    vi.advanceTimersByTime(60);
+    expect(smile).toHaveBeenCalledWith('pleased', expect.any(Number), expect.any(Number));
+    expect(performMicroNod).not.toHaveBeenCalled();
+  });
+
+  it('nods on the agent active_listening_nod (no other client code does)', () => {
+    send(listeningNod);
+    expect(performMicroNod).toHaveBeenCalledWith('subtle');
+  });
+
+  it('nods at most once per 1.2 s across both signals', () => {
+    send(listeningNod);
+    send(backchannel);
+    vi.advanceTimersByTime(1000);
+    send(listeningNod);
+    expect(performMicroNod).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(200);
+    send(listeningNod);
+    expect(performMicroNod).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips all motion under prefers-reduced-motion', () => {
+    setReducedMotion(true);
+    send(backchannel);
+    send(laugh);
+    send(listeningNod);
+    vi.advanceTimersByTime(5000);
+    expect(performMicroNod).not.toHaveBeenCalled();
+    expect(smile).not.toHaveBeenCalledWith('pleased', expect.anything(), expect.anything());
+  });
+});

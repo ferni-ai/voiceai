@@ -38,6 +38,7 @@ import { initializeFrontendPublisher } from '../realtime/frontend-publisher.js';
 import type { JobContext } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import { getLogger } from '../../utils/safe-logger.js';
+import { takeHandoffReason } from '../../tools/handoff/handoff-reasons.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
@@ -232,7 +233,8 @@ export async function handleHandoffFromDataChannel(
 
   const result = await orchestrator.handoff({
     targetPersonaId: target,
-    reason,
+    // The model's own reason when it asked for this handoff (its tool noted it)
+    reason: takeHandoffReason(String(services.sessionId), target) ?? reason,
     userName: services.userProfile?.name,
     userEmotion: services.sessionPriming?.emotionalContext?.lastEmotion,
     onAgentReady,

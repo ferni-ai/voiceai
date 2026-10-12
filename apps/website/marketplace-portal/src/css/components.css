@@ -403,26 +403,12 @@ code {
   border-top: 1px solid var(--border-subtle);
 }
 
-.persona-rating {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.persona-stars {
-  color: var(--warning);
-  font-size: var(--text-sm);
-}
-
-.persona-rating-count {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
 .persona-price {
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-primary);
+  /* keeps the price on the right now that it is the footer's only item */
+  margin-left: auto;
 }
 
 .persona-price.free {
@@ -595,6 +581,7 @@ code {
 
 .btn-add-team:hover {
   background: rgba(255, 255, 255, 0.9);
+  color: var(--persona-color, var(--accent-primary));
 }
 
 .btn-preview-voice {
@@ -707,92 +694,6 @@ code {
   font-weight: 600;
   color: var(--text-primary);
   margin-left: auto;
-}
-
-/* ========================================
-   REVIEWS
-   ======================================== */
-
-.reviews-section {
-  margin-top: var(--space-12);
-}
-
-.reviews-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-6);
-}
-
-.reviews-summary {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.reviews-rating-big {
-  font-size: var(--text-4xl);
-  font-weight: 800;
-  color: var(--text-primary);
-}
-
-.reviews-rating-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.reviews-stars {
-  color: var(--warning);
-  font-size: var(--text-lg);
-}
-
-.reviews-count {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
-
-.review-card {
-  background: var(--bg-elevated);
-  border-radius: var(--radius-xl);
-  padding: var(--space-5);
-  margin-bottom: var(--space-4);
-  box-shadow: var(--shadow-sm);
-}
-
-.review-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
-}
-
-.review-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-full);
-  background: var(--bg-secondary);
-}
-
-.review-author {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.review-date {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.review-stars {
-  margin-left: auto;
-  color: var(--warning);
-  font-size: var(--text-sm);
-}
-
-.review-content {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  line-height: var(--leading-relaxed);
 }
 
 /* ========================================
