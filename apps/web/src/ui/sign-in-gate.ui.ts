@@ -381,7 +381,7 @@ function showAccessNotice(notice: AccessNotice, retry: () => void): void {
   if (email) {
     const emailP = document.createElement('p');
     emailP.className = 'sign-in-gate-waitlist-email';
-    const emailMsg = t('auth.waitlistEmail');
+    const emailMsg = t('auth.waitlistEmail', { email: '{email}' }); // marker kept for the bold address
     emailP.innerHTML = emailMsg.replace('{email}', `<strong>${escapeHtml(email)}</strong>`);
     waitlistDiv.appendChild(emailP);
   }
@@ -581,7 +581,7 @@ function createOverlay(): HTMLElement {
   // Footer with Terms/Privacy links
   const footer = document.createElement('p');
   footer.className = 'sign-in-gate-footer';
-  const parts = t('auth.agreeTerms').split('{terms}');
+  const parts = t('auth.agreeTerms', { terms: '{terms}', privacy: '{privacy}' }).split('{terms}'); // split around links
   const parts2 = parts[1]!.split('{privacy}');
   footer.appendChild(document.createTextNode(parts[0]!));
   const termsLink = document.createElement('a');

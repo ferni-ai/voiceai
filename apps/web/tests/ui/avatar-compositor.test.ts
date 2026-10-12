@@ -46,7 +46,7 @@ function mountAvatar(): void {
       <div class="avatar-container">
         <div id="avatarRing"></div>
         <div id="coachAvatar"><span id="avatarText"></span></div>
-        <svg class="ferni-lid-overlay"><path class="lid-top"></path><path class="lid-bottom"></path></svg>
+        <svg class="avatar-lid-overlay"><path class="lid-top"></path><path class="lid-bottom"></path></svg>
       </div>
       <div id="personaName"></div><div id="personaSubtitle"></div><div id="statusIndicator"></div>
     </div>`;
@@ -168,6 +168,7 @@ describe('speaking system body pulse', () => {
     'with the flag %s and reduced motion: body and halo hold still, the lid still opens',
     async (_label, on) => {
       if (on) localStorage.setItem(FLAG, 'true');
+      localStorage.setItem('ferni:lid-blend', 'true'); // the lid mouth runs only under lid-blend
       setReducedMotion(true);
       const { speakingSystem } = await import('../../src/ui/speaking-system.ui.js');
       speakingSystem.init();
@@ -180,7 +181,7 @@ describe('speaking system body pulse', () => {
       expect(waves.length).toBeGreaterThan(0);
       waves.forEach((w) => expect(w.style.opacity).toBe('0'));
       const lid = document.querySelector('.lid-bottom')?.getAttribute('d') ?? '';
-      expect(lid).not.toContain('Q 50,110 ');
+      expect(lid).toMatch(/Q 50,70(\.\d+)? /);
     }
   );
 });

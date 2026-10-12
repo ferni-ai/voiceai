@@ -198,7 +198,7 @@ function ensureStylesExist(): void {
     
     .confirm-modal-btn--confirm {
       background: var(--color-accent, #4a6741);
-      color: white;
+      color: var(--color-text-on-accent);
     }
     
     .confirm-modal-btn--confirm:hover {
@@ -207,11 +207,11 @@ function ensureStylesExist(): void {
     
     .confirm-modal-btn--destructive {
       background: var(--color-error, #ef4444);
-      color: white;
+      color: var(--color-semantic-on-error);
     }
     
     .confirm-modal-btn--destructive:hover {
-      background: var(--color-error-dark, #dc2626);
+      filter: brightness(1.1);
     }
   `;
   document.head.appendChild(styles);

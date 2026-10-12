@@ -10826,6 +10826,12 @@
       "fair": "مقبول",
       "poor": "اتصال ضعيف",
       "disconnected": "غير متصل"
+    },
+    "island": {
+      "offline": "لا يوجد اتصال بالإنترنت. سأعيد الاتصال عند عودتك.",
+      "reconnecting": "جارٍ إعادة الاتصال…",
+      "weak": "اتصال ضعيف",
+      "backOnline": "عاد الاتصال"
     }
   },
   "ideasGallery": {
@@ -11347,6 +11353,9 @@
       "many": "{count} يوماً",
       "other": "{count} يوم"
     }
+  },
+  "avatarFeedback": {
+    "nomNom": "يم يم!"
   },
   "avatarTapReactions": {
     "tickles": "ههه، هذا يثير الدغدغة!"

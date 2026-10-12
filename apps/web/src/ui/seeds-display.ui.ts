@@ -161,7 +161,7 @@ function injectStyles(): void {
     .seeds-daily-bonus-text {
       font-size: 0.8125rem;
       font-weight: 500;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text, #4a6741);
     }
 
     /* Compact variant for header */
@@ -305,7 +305,7 @@ function injectStyles(): void {
 
     .seeds-action-btn--primary {
       background: var(--persona-tint, rgba(74, 103, 65, 0.08));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text, #4a6741);
     }
 
     .seeds-action-btn--primary:hover {

@@ -317,7 +317,7 @@ const log = createLogger('App');
 import { initModalCoordinator, modalCoordinator } from './services/modal-coordinator.service.js';
 
 // 🎬 Character-quality Animation Orchestrator
-import { animatePersonaTransition, playCharacterReaction } from './ui/animation-orchestrator.ui.js';
+import { animatePersonaTransition } from './ui/animation-orchestrator.ui.js';
 // ⚡ GSAP Performance Utilities
 import { initGSAP, promoteAllToGPU } from './utils/gsap-animations.js';
 // Agent particles disabled for cleaner UI
@@ -1257,7 +1257,6 @@ class VoiceAIApp {
     // DEFERRED LOADING - Premium features loaded after first paint
     // This significantly speeds up initial page load time
     // =========================================================================
-
     // Essential extras - load after 100ms (needed early but not for first paint)
     this.deferredInit('SoundUI', 100, async () => {
       initSoundUI();
@@ -1274,6 +1273,7 @@ class VoiceAIApp {
       initThinkingUI();
       (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
       initAvatarTurns(); // off unless ferni:avatar-turns
+      (await import('./ui/avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
       initConnectionQualityUI();
@@ -3094,12 +3094,9 @@ class VoiceAIApp {
       // Also hide thinking indicator in case it's stuck
       thinkingUI.hide();
 
-      // 🎬 Character-style celebration on handoff
-      const avatarContainer = document.querySelector('.avatar-container');
-      if (avatarContainer instanceof HTMLElement) {
-        void playCharacterReaction(avatarContainer, 'joy', newPersona.id);
-      }
-      coachUI.flash();
+      // The avatar's entrance is coach.ui's single persona bounce (activePersona
+      // subscription). A second 'joy' bounce and a brightness flash here doubled
+      // the motion and animated filter, which repaints every frame.
 
       // Update theme persona colors
       this.updatePersonaTheme(newPersona.id);

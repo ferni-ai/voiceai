@@ -78,6 +78,7 @@ vi.mock('../../../../memory/firestore-vector-store.js', () => ({
 vi.mock('../../performance/session-optimizations.js', () => ({
   getCachedMemoryResult: vi.fn().mockReturnValue(null),
   cacheMemoryResult: vi.fn(),
+  clearSessionMemoryCache: vi.fn(),
 }));
 
 describe('MemoryExecutor', () => {

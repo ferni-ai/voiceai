@@ -6,7 +6,7 @@ personaColor: "#E07B53"
 personaSecondary: "#B85C3C"
 ---
 
-{% from "partials/icons.njk" import play, plus, starFilled, star, verified, check %}
+{% from "partials/icons.njk" import play, plus, verified, check %}
 {% from "partials/pricing.njk" import priced, priceBadge with context %}
 
 <!-- Hero -->
@@ -31,13 +31,6 @@ personaSecondary: "#B85C3C"
         <h1>Sasha</h1>
         <p class="persona-detail-tagline">Creative Catalyst</p>
         <div class="persona-detail-meta">
-          <span style="display: inline-flex; align-items: center; gap: var(--space-1); color: var(--warning);">
-            {{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ star(16) }}
-          </span>
-          <span>4.75 (1,456 reviews)</span>
-          <span style="opacity: 0.7;">|</span>
-          <span>22,100+ users</span>
-          <span style="opacity: 0.7;">|</span>
           <span>by Ferni Labs</span>
         </div>
         <div class="persona-detail-actions">
@@ -126,75 +119,6 @@ personaSecondary: "#B85C3C"
             "Okay okay okay—I love this direction! But what if we pushed it even further? What's
             the version of this idea that scares you a little? That's usually where the magic is."
           </p>
-        </div>
-
-        <!-- Reviews -->
-        <div class="reviews-section">
-          <div class="reviews-header">
-            <div class="reviews-summary">
-              <span class="reviews-rating-big">4.75</span>
-              <div class="reviews-rating-info">
-                <span class="reviews-stars" style="color: var(--warning);">
-                  {{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ star(18) }}
-                </span>
-                <span class="reviews-count">1,456 reviews</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #E07B53, #B85C3C); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">M</div>
-              <div>
-                <div class="review-author">Maya T.</div>
-                <div class="review-date">4 days ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              Sasha's energy is contagious! I was stuck on a novel for months, and after one
-              brainstorming session with her, I had new plot ideas AND the motivation to actually
-              write them. She makes creativity feel fun again.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #6B5B95, #4A4063); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">J</div>
-              <div>
-                <div class="review-author">Jordan K.</div>
-                <div class="review-date">2 weeks ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              As a musician, I've tried so many creativity tools. Sasha stands out because she
-              actually pushes you to try weird things instead of just validating safe choices.
-              Sometimes her energy is a lot, but that's kind of what I need.
-            </p>
-          </div>
-
-          <div class="review-card">
-            <div class="review-header">
-              <div class="review-avatar" style="background: linear-gradient(135deg, #2C3E50, #1A252F); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">L</div>
-              <div>
-                <div class="review-author">Lisa H.</div>
-                <div class="review-date">1 month ago</div>
-              </div>
-              <span class="review-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-            </div>
-            <p class="review-content">
-              I started a side business selling my art because Sasha helped me believe it was
-              worth sharing. She helped me work through imposter syndrome and actually put my
-              work out there. Best investment I've made.
-            </p>
-          </div>
         </div>
       </div>
 
@@ -313,12 +237,6 @@ personaSecondary: "#B85C3C"
         <div class="persona-body">
           <p class="persona-description">Strategies that work with how your ADHD brain operates.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-              <span class="persona-rating-count">4.9</span>
-            </div>
             {{ priceBadge('$9.99/mo') }}
           </div>
         </div>
@@ -335,12 +253,6 @@ personaSecondary: "#B85C3C"
         <div class="persona-body">
           <p class="persona-description">Strategic thinking for navigating your professional journey.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
-              </span>
-              <span class="persona-rating-count">4.6</span>
-            </div>
             {{ priceBadge('$12.99/mo') }}
           </div>
         </div>
@@ -357,12 +269,6 @@ personaSecondary: "#B85C3C"
         <div class="persona-body">
           <p class="persona-description">Your village for practical parenting support.</p>
           <div class="persona-footer">
-            <div class="persona-rating">
-              <span class="persona-stars" style="color: var(--warning);">
-                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
-              </span>
-              <span class="persona-rating-count">4.85</span>
-            </div>
             {{ priceBadge('$7.99/mo') }}
           </div>
         </div>
