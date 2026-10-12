@@ -140,7 +140,11 @@ export function isForgotten(text: string, topics: readonly string[]): boolean {
   // A capitalized word in a memory is often just a sentence's first word
   // ("Divorce papers came"): it matches stemmed too. A topic's name never
   // stems, so forgetting "James" can't hide "jam".
-  for (const w of raw) if (isTopicWord(w)) words.add(stem(w));
+  for (const w of raw) {
+    if (!isTopicWord(w)) continue;
+    words.add(w); // a name kept whole in a topic ("Charles") matches "charles"
+    words.add(stem(w));
+  }
   let legacy: Set<string> | undefined;
   return topics.some((t) => {
     const want = forgetTokens(t);
