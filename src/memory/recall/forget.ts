@@ -184,17 +184,23 @@ export const firestoreForgetStore: ForgetStore = {
     for (let i = 0; i < refs.length; i += 400) {
       const batch = db.batch();
       for (const r of refs.slice(i, i + 400)) {
-        batch.update(user.collection(r.collection).doc(r.id), { forgottenAt: at });
+        // A fact already copied to the graph store is picked up by the next
+        // sync again (firestore-spanner-sync.ts), which removes the copy.
+        const resync = r.collection === 'dynamic_facts' ? { syncedToSpanner: false } : {};
+        batch.update(user.collection(r.collection).doc(r.id), { forgottenAt: at, ...resync });
       }
       await batch.commit();
     }
     // Their copies in the memory tool's index go now, not at the next re-index
     // (user-memory-indexer.ts); recallFromMemory also checks by id meanwhile.
     const { removeConversationDocument } = await import('../retrieval/conversation-index.js');
+    const { removeIndexedMemory } = await import('../retrieval/semantic-memory-search.js');
     for (const r of refs.filter((x) => x.collection === 'dynamic_facts')) {
       await removeConversationDocument(`fact_${r.id}`).catch((error: unknown) =>
         log.warn({ error: String(error) }, 'Forgotten fact not removed from the index')
       );
+      // The graph sync's copy (spanner-graph insertFact), read by per-turn memory search.
+      await removeIndexedMemory('fact', `fact_${userId}_${r.id}`);
     }
   },
   async addTopic(userId, topic, asked) {

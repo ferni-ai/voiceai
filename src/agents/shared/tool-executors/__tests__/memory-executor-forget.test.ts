@@ -57,9 +57,18 @@ vi.mock('../../../../memory/embeddings.js', () => ({
   embed: vi.fn().mockRejectedValue(new Error('no embeddings in tests')),
   cosineSimilarity: vi.fn(),
 }));
+const cleared: string[] = [];
 vi.mock('../../performance/session-optimizations.js', () => ({
   getCachedMemoryResult: () => (cached === null ? null : { result: cached }),
   cacheMemoryResult: vi.fn(),
+  clearSessionMemoryCache: (sessionId: string) => {
+    cleared.push(sessionId);
+    cached = null;
+  },
+}));
+vi.mock('../../../../memory/recall/forget.js', () => ({
+  forgetForCaller: async () => ({ kind: 'forgotten', marked: 1 }),
+  forgetProblem: () => "I couldn't remove that just now.",
 }));
 
 const { memoryExecutor } = await import('../memory-executor.js');
@@ -108,5 +117,12 @@ describe('recallFromMemory and forgetting', () => {
     topics = null;
     const said = await memoryExecutor.execute('recallFromMemory', { topic: 'Lisbon' }, ctx);
     expect(said).not.toContain('Lisbon');
+  });
+
+  it('forgetting clears what this call already recalled', async () => {
+    cached = 'I recall: a trip to Lisbon';
+    await memoryExecutor.execute('forgetMemory', { topic: 'Lisbon' }, ctx);
+    expect(cleared).toContain('s1');
+    expect(cached).toBeNull();
   });
 });

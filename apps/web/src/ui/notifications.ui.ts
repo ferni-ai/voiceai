@@ -79,7 +79,7 @@ const TYPE_COLORS: Record<Notification['type'], { bg: string; border: string; ic
   ritual_reminder: {
     bg: 'var(--persona-tint, var(--color-accent-subtle))',
     border: 'var(--persona-primary, var(--color-accent-primary))',
-    icon: 'var(--persona-primary, var(--color-accent-primary))',
+    icon: 'var(--persona-text, var(--color-accent-text))',
   },
   streak_milestone: {
     bg: 'var(--color-semantic-success-glow)',
@@ -99,7 +99,7 @@ const TYPE_COLORS: Record<Notification['type'], { bg: string; border: string; ic
   welcome: {
     bg: 'var(--persona-tint, var(--color-accent-subtle))',
     border: 'var(--persona-primary, var(--color-accent-primary))',
-    icon: 'var(--persona-primary, var(--color-accent-primary))',
+    icon: 'var(--persona-text, var(--color-accent-text))',
   },
 };
 

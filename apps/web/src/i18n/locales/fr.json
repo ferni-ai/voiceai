@@ -1322,7 +1322,7 @@
         "calendar": "Calendrier",
         "history": "Anciennes conversations",
         "people": "Tes proches",
-        "insights": "Comment tu vas"
+        "insights": "Ce que j'ai appris"
       }
     },
     "ariaLabel": "Menu des paramètres",
@@ -8857,6 +8857,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Anciennes conversations",
     "loadError": "Impossible de charger les données.",
     "tryAgain": "Réessayer ?",
     "ariaLabel": "Historique des conversations",
@@ -10511,6 +10512,12 @@
       "fair": "Moyenne",
       "poor": "Connexion faible",
       "disconnected": "Hors ligne"
+    },
+    "island": {
+      "offline": "Tu es hors ligne. Je me reconnecte dès que tu reviens.",
+      "reconnecting": "Reconnexion…",
+      "weak": "Connexion faible",
+      "backOnline": "De retour en ligne"
     }
   },
   "ideasGallery": {
@@ -10984,6 +10991,9 @@
       "many": "{count} de jours",
       "other": "{count} jours"
     }
+  },
+  "avatarFeedback": {
+    "nomNom": "Miam miam !"
   },
   "avatarTapReactions": {
     "tickles": "Héhé, ça chatouille !"

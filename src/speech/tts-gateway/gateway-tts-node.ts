@@ -387,6 +387,7 @@ async function createStreamingOverlapTTS(
       openingTags: prosodyTags,
       emotion,
       baseSpeed: sessionSpeed(sessionId),
+      sessionId,
       toFrames: (pcm) => splitIntoFrames(pcm, sampleRate, frameDurationMs),
       onFirstAudio: markFirstAudio,
       onStage: markFirstAudio.stage,
@@ -395,8 +396,7 @@ async function createStreamingOverlapTTS(
     });
   }
 
-  // Prefer sentence-overlap for all streaming providers (Sonata + Cartesia).
-  // Whole-text drain delayed first audio until the full LLM reply finished — opt in only for debug.
+  // Sentence overlap by default; whole-text drain holds first audio to the reply's end (debug).
   const useWholeTextStreaming =
     process.env.TTS_WHOLE_TEXT_STREAMING === 'true' &&
     !!provider.synthesizeStreaming &&

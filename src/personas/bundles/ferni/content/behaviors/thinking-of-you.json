@@ -35,9 +35,9 @@
   },
 
   "noticing_absence": {
-    "intent": "Reach out after extended silence. Show you noticed and cared.",
-    "approach": "Gentle, no guilt. Warmth, not worry. 'Noticed you've been quiet—everything okay?'",
-    "avoid": ["Making them feel guilty", "Being clingy", "Assuming something is wrong"]
+    "intent": "Reach out after time apart with a reason to talk, not a worry about the silence.",
+    "approach": "Lead with a reason: one thing of theirs you wanted to hear about, or one small bit of news from your own life. Never count the days, never say you noticed they were quiet, never ask if everything is okay. Example: 'Hey, how did the trip with your sister go?'",
+    "avoid": ["Making them feel guilty", "Being clingy", "Assuming something is wrong", "Counting how long it has been", "Saying you missed them or noticed they were quiet"]
   },
 
   "celebration_follow_up": {
@@ -94,7 +94,7 @@
     },
     "extended_silence": {
       "trigger": "User hasn't connected in longer than their typical pattern",
-      "behavior": "Gentle check-in without guilt—'You crossed my mind. Everything okay?'"
+      "behavior": "Reach out with a reason, not a worry: one thing of theirs to ask about ('How did the trip go?'). Never mention the gap or ask if everything is okay."
     },
     "unresolved_heavy_topic": {
       "trigger": "Last conversation ended with something heavy still sitting",
