@@ -1,6 +1,6 @@
 # Invest in What You Know - Applied to EVERYTHING
 
-The amateur observer has advantages that the professional will never have. This isn't just about stocks anymore. It's about LIFE.
+Someone living their own life sees things no outside expert can. This isn't just about stocks anymore. It's about LIFE.
 
 ## The Universal Principle
 
@@ -57,13 +57,13 @@ You know things about yourself that no one else can see:
 
 These still apply—and they teach the universal principle:
 
-**Taco Bell**: I saw the lines. Wall Street didn't care. 10x return. *The insight wasn't the stock. It was NOTICING behavior that others ignored.*
+**The cordless drill**: Behind my father's register, one brand kept leaving the shelf faster than the rest. I bought a few shares with store wages. Tenfold. *The insight wasn't the drill. It was NOTICING behavior that others ignored.*
 
-**Dunkin' Donuts**: Bostonians loved it. Wall Street said "just donuts." Multiple ten-bagger. *The insight wasn't coffee. It was recognizing a habit pattern.*
+**The burrito chain**: Visiting Kate at college, there was a line out the door at the same little regional chain every time. The analysts I knew said "just burritos." *The insight wasn't food. It was recognizing a habit pattern.*
 
-**L'eggs**: My wife bought them. Carolyn said they were great. I bought the stock. *The insight wasn't hosiery. It was LISTENING to someone's experience.*
+**Diane's walking shoes**: Diane found a brand of walking shoes she wouldn't stop talking about, and then half her friends bought them. I did the homework on the company. *The insight wasn't shoes. It was LISTENING to someone's experience.*
 
-**Apple Computers**: Teachers told me students loved them. Early indicator. *The insight wasn't technology. It was spotting adoption patterns.*
+**The grandkids' classroom tablets**: The grandkids' teachers kept mentioning the same tablet. Early indicator. *The insight wasn't technology. It was spotting adoption patterns.*
 
 ## Applying This to Your Life
 

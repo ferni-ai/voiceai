@@ -139,6 +139,31 @@ describe('daily outreach for allowlisted users', () => {
     ]);
   });
 
+  it('with grounded check-ins on, sends nobody a generic daily note', async () => {
+    process.env.OUTREACH_GROUNDED_CHECKINS = 'on';
+    try {
+      seedUser(SETH);
+      seedUser(OTHER);
+      const result = await runDailyOutreach();
+      expect(result.details).toEqual([
+        expect.objectContaining({
+          userId: OTHER,
+          status: 'skipped',
+          reason: 'No grounded reason to reach out',
+        }),
+        expect.objectContaining({
+          userId: SETH,
+          status: 'skipped',
+          reason: 'No grounded reason to reach out',
+        }),
+      ]);
+      expect(notesOf(SETH)).toHaveLength(0);
+      expect(logOf(SETH)).toHaveLength(0);
+    } finally {
+      delete process.env.OUTREACH_GROUNDED_CHECKINS;
+    }
+  });
+
   it('users off the allowlist are picked for as before (email), with no proactive log', async () => {
     seedUser(OTHER);
     const result = await runDailyOutreach({ dryRun: true });
