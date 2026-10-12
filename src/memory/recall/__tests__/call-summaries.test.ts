@@ -122,8 +122,42 @@ describe('caller-derived text stays one quoted line', () => {
 });
 
 describe('createSummaryRecall', () => {
-  const store = { summaries: async () => summaries };
-  const none = async () => [] as string[];
+  // Keyed on the caller: another user's summaries or topics never answer.
+  const store = { summaries: vi.fn(async (uid: string) => (uid.startsWith('u') ? summaries : [])) };
+  const none = vi.fn(async (_uid: string) => [] as string[]);
+
+  it('reads only the caller’s own summaries and forgotten topics', async () => {
+    const mine = vi.fn(async (uid: string) => (uid === 'u1' ? summaries : []));
+    const topics = vi.fn(async (uid: string) => (uid === 'u1' ? [] : ['vanguard roth']));
+    const recall = createSummaryRecall({
+      userId: 'u1',
+      store: { summaries: mine },
+      forgotten: topics,
+    });
+    await recall.ready;
+    expect(mine).toHaveBeenCalledWith('u1');
+    expect(topics).toHaveBeenCalledWith('u1');
+    expect(recall.take('the Roth')).toContain('Roth IRA');
+    // Read as anyone else, the same stores give nothing (and that user's topic hides it).
+    const other = createSummaryRecall({
+      userId: 'someone-else',
+      store: { summaries: mine },
+      forgotten: topics,
+    });
+    await other.ready;
+    expect(other.take('the Roth')).toBeNull();
+  });
+
+  it('collects strings however deeply a summary nests them', () => {
+    const nested = [
+      {
+        timestamp: '2026-01-09T18:00:00Z',
+        keyPoints: ['a lunch'],
+        extra: { deep: { note: 'divorce' } },
+      },
+    ];
+    expect(summarySnippets(nested, ['divorce'])).toEqual([]);
+  });
 
   it('offers what the turn is about once a call, within the turn budget', async () => {
     const recall = createSummaryRecall({ userId: 'u1', store, forgotten: none });

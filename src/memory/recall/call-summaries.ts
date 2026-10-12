@@ -90,10 +90,14 @@ export function asQuotedLine(text: string): string {
 
 /** Every string in a summary's fields, one level of arrays deep. */
 function summaryText(s: Record<string, unknown>): string {
-  return Object.values(s)
-    .flatMap((v) => (Array.isArray(v) ? v : [v]))
-    .filter((v): v is string => typeof v === 'string')
-    .join(' \n ');
+  return strings(s, 0).join(' \n ');
+}
+
+/** Every string in a value, however nested (a few levels, bounded). */
+function strings(v: unknown, depth: number): string[] {
+  if (typeof v === 'string') return [v];
+  if (depth > 4 || v === null || typeof v !== 'object') return [];
+  return Object.values(v as Record<string, unknown>).flatMap((x) => strings(x, depth + 1));
 }
 
 /**
@@ -195,7 +199,7 @@ export function createSummaryRecall(deps: {
   /** With SEMANTIC_RECALL: snippets also match by meaning. */
   embed?: RetrievalEmbedder;
   /** Topics the caller asked to forget, or null if unreadable: then nothing is offered. */
-  forgotten?: () => Promise<string[] | null>;
+  forgotten?: (userId: string) => Promise<string[] | null>;
 }): SummaryRecall {
   const byId = new Map<string, SummarySnippet>();
   let snippets: SummarySnippet[] = [];
@@ -204,7 +208,7 @@ export function createSummaryRecall(deps: {
   let tokensLeft = SUMMARY_TOKENS_PER_TURN;
   const ready = Promise.all([
     deps.store.summaries(deps.userId),
-    topicsOrNull(deps.forgotten ?? (async () => forgottenTopicsOrNull(deps.userId))),
+    topicsOrNull(async () => (deps.forgotten ?? forgottenTopicsOrNull)(deps.userId)),
   ])
     .then(async ([summaries, forgotten]) => {
       if (forgotten === null) {

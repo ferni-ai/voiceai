@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createMemoryRecall } from '../memory-recall-hook.js';
 import type { RetrievalEmbedder } from '../../../memory/recall/semantic-recall.js';
 
@@ -60,12 +60,17 @@ describe('episode recall in the live hook', () => {
 describe('summary snippets in the live hook (RECALL_SUMMARIES)', () => {
   const withSummary = {
     facts: async () => [],
-    summaries: async () => [
-      {
-        timestamp: '2026-01-09T18:00:00.000Z',
-        keyPoints: ['User is moving his Vanguard account into a Roth IRA'],
-      },
-    ],
+    // Keyed on the caller: the hook must read its own user's summaries.
+    summaries: vi.fn(async (uid: string) =>
+      uid === 'u-sum'
+        ? [
+            {
+              timestamp: '2026-01-09T18:00:00.000Z',
+              keyPoints: ['User is moving his Vanguard account into a Roth IRA'],
+            },
+          ]
+        : []
+    ),
   };
 
   it('quotes the dated key point a turn is about; off, never', async () => {
@@ -77,6 +82,7 @@ describe('summary snippets in the live hook (RECALL_SUMMARIES)', () => {
     expect(on.noteFor('what did I decide about the Roth')).toContain(
       '- From our call on Jan 9: "User is moving his Vanguard account into a Roth IRA"'
     );
+    expect(withSummary.summaries).toHaveBeenCalledWith('u-sum');
 
     const off = createMemoryRecall({ userId: 'u-sum', store: withSummary, summaries: false });
     await off.ready;
