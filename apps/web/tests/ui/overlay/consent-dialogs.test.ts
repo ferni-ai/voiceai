@@ -8,15 +8,17 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 vi.mock('@/utils/api.js', () => ({ apiPost: vi.fn(() => Promise.resolve({ ok: true, status: 200 })) }));
 vi.mock('@/services/connection.service.js', () => ({
-  connectionService: { sendData: vi.fn(() => Promise.resolve(true)), isConnected: () => false },
+  connectionService: { sendData: vi.fn(() => Promise.resolve(true)), isConnected: () => false, getRoom: () => null },
 }));
 
 import {
   cleanupActionConfirmations,
   dismissActionConfirmation,
+  setActionConfirmationCallbacks,
   showActionConfirmation,
   type PendingAction,
 } from '@/ui/action-confirmation.ui.js';
+import { apiPost } from '@/utils/api.js';
 import { resetDialogScrollLock } from '@/ui/overlay/dialog.js';
 import { OVERLAY_HOST_STORAGE_KEY } from '@/ui/overlay/overlay-flag.js';
 
@@ -88,5 +90,27 @@ describe('action confirmation', () => {
     vi.advanceTimersByTime(4000);
     vi.advanceTimersByTime(500);
     expect(dialogs()).toHaveLength(0);
+  });
+
+  it('treats Escape as dismissing, not rejecting, and "Not now" as a rejection', async () => {
+    localStorage.setItem(OVERLAY_HOST_STORAGE_KEY, 'true');
+    const onReject = vi.fn();
+    setActionConfirmationCallbacks({ onReject });
+    vi.mocked(apiPost).mockClear();
+
+    showActionConfirmation(action('a1', 'Email Sam'));
+    escape(dialogs()[0]);
+    vi.advanceTimersByTime(500);
+    await vi.runAllTimersAsync();
+    expect(dialogs()).toHaveLength(0);
+    expect(onReject).not.toHaveBeenCalled();
+    expect(apiPost).not.toHaveBeenCalled();
+
+    // Control: the reject button in the same dialog does reject.
+    showActionConfirmation(action('a2', 'Text Maya'));
+    dialogs()[0]?.querySelector<HTMLElement>('[data-action="reject"]')?.click();
+    await vi.runAllTimersAsync();
+    expect(onReject).toHaveBeenCalledWith('a2');
+    setActionConfirmationCallbacks({});
   });
 });
