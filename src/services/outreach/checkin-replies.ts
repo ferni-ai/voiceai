@@ -44,6 +44,9 @@ const keyword = (body: string): string =>
 
 export type Env = Record<string, string | undefined>;
 
+/** What a text was: the after-call check-in, or a follow-up (reminder, commitment, thread). */
+export type TextKind = 'checkin' | 'follow-up';
+
 export interface CheckinRecord {
   userId: string;
   sessionId: string;
@@ -54,6 +57,10 @@ export interface CheckinRecord {
   phoneLast4: string;
   /** phoneHash() of the number, so a reply can be matched without storing the number. */
   phoneHash: string;
+  /** Absent on records from before follow-up texts: those are check-ins. */
+  kind?: TextKind;
+  /** What the text was about (a session id, a follow-up id). */
+  refId?: string;
 }
 
 export interface StoredCheckin extends CheckinRecord {
