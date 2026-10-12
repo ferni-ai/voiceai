@@ -201,7 +201,7 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
       find node_modules -name "*.map" -delete; \
       find node_modules -name "*.ts" ! -name "*.d.ts" -delete; \
       find node_modules -name "CHANGELOG*" -delete; \
-      find node_modules -type d \( -name test -o -name tests -o -name __tests__ \) -prune -exec rm -rf {} +; \
+      find node_modules -type d \( -name test -o -name tests -o -name __tests__ \) ! -path "*/suffix-thumb/*" -prune -exec rm -rf {} +; \
       true ) 2>/dev/null
 
 # UI server is compiled from TypeScript (src/servers/api/index.ts → dist/servers/api/index.js)
