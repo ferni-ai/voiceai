@@ -12,6 +12,8 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { setIslandPoorQuality } from './status-island-connection.js';
 
 const log = createLogger('ConnectionQuality');
 
@@ -268,8 +270,8 @@ function injectStyles(): void {
       font-variant-numeric: tabular-nums;
     }
 
-    /* Warning pulse animation */
-    .connection-quality--warning {
+    /* Warning pulse (only while shown: its opacity keyframes would override the hidden state) */
+    .connection-quality--visible.connection-quality--warning {
       animation: quality-pulse 2s ease-in-out infinite;
     }
 
@@ -413,6 +415,7 @@ function createIndicator(): HTMLElement {
 }
 
 function updateIndicator(): void {
+  if (isOverlayHostEnabled()) setIslandPoorQuality(currentQuality === 'poor'); // status island shows it
   if (!indicator) return;
 
   const bars = indicator.querySelectorAll('.connection-quality__bar');
@@ -420,7 +423,6 @@ function updateIndicator(): void {
   const activeBars = getActiveBars(currentQuality);
   const color = QUALITY_COLORS[currentQuality];
 
-  // Update CSS variable for color
   indicator.style.setProperty('--quality-color', color);
 
   // Update bars
@@ -520,10 +522,7 @@ export function startAutoUpdate(getStats: () => ConnectionStats): void {
     }
   };
 
-  // Initial update
   update();
-
-  // Start interval
   updateTimer = setInterval(update, options.updateInterval);
   log.debug('Auto-update started');
 }
@@ -540,6 +539,7 @@ export function stopAutoUpdate(): void {
 
 /** Toggle visibility; hidden (opacity 0) means hidden from assistive tech too. */
 function setVisible(visible: boolean): void {
+  if (visible && isOverlayHostEnabled()) return; // the status island shows the weak state instead
   indicator?.classList.toggle('connection-quality--visible', visible);
   if (visible) indicator?.removeAttribute('aria-hidden');
   else indicator?.setAttribute('aria-hidden', 'true');
@@ -598,6 +598,5 @@ export const connectionQuality = {
   dispose: disposeConnectionQuality,
 };
 
-// Aliases for backward compatibility with app.ts
 export const connectionQualityUI = connectionQuality;
 export const initConnectionQualityUI = initConnectionQuality;

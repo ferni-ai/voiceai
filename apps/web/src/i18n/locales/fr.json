@@ -10512,6 +10512,12 @@
       "fair": "Moyenne",
       "poor": "Connexion faible",
       "disconnected": "Hors ligne"
+    },
+    "island": {
+      "offline": "Tu es hors ligne. Je me reconnecte dès que tu reviens.",
+      "reconnecting": "Reconnexion…",
+      "weak": "Connexion faible",
+      "backOnline": "De retour en ligne"
     }
   },
   "ideasGallery": {

@@ -9737,7 +9737,7 @@ body {
   opacity: 0;
   transform: translateY(-10px);
   transition: all var(--transition-base);
-  z-index: var(--z-elevated);
+  z-index: var(--z-notification);
 }
 
 .connection-quality.visible {

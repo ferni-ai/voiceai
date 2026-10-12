@@ -10406,6 +10406,12 @@
       "fair": "普通",
       "poor": "接続不安定",
       "disconnected": "切断されました"
+    },
+    "island": {
+      "offline": "オフラインのようです。つながったら、すぐに再接続しますね。",
+      "reconnecting": "再接続中…",
+      "weak": "接続が不安定です",
+      "backOnline": "オンラインに戻りました"
     }
   },
   "ideasGallery": {
