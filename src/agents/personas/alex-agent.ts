@@ -76,8 +76,9 @@ function buildMemoryTools(agentId: string): ToolSet {
 
 function buildCommunicationTools(): ToolSet {
   const commTools = createCommunicationTools();
-  // These text, call or email someone else: they wait for the caller's yes (outbound-gate.ts)
-  const ctx: ToolContext = { agentId: 'alex', agentDisplayName: 'Alex', userId: 'default' };
+  // These can text, call or email someone else: they wait for the caller's yes, checked
+  // against the session's own user (outbound-gate.ts)
+  const ctx = { agentId: 'alex', agentDisplayName: 'Alex' };
   const gate = (id: keyof typeof commTools) => gateLegacyTool(id, commTools[id], ctx);
   return {
     // Email workflow

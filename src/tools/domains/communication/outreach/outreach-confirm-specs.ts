@@ -82,3 +82,18 @@ export function postConfirm(where: string): ConfirmSpec {
     },
   };
 }
+
+/**
+ * setReminder / scheduleReminder: a reminder to an address the model named
+ * (contact, deliveryAddress) can reach someone else, so it is read back first.
+ * One that goes to the owner's own profile runs at once.
+ * productivity/reminders.ts narrows `applies` for setReminder (owner's number).
+ */
+export const reminderConfirm: ConfirmSpec = {
+  applies: (args) => firstText(args, ['contact', 'deliveryAddress']) !== '',
+  prepare: async (args) => {
+    const to = firstText(args, ['contact', 'deliveryAddress']);
+    const says = firstText(args, ['message', 'reminderText', 'title']);
+    return { args, readBack: `a reminder sent to ${to}${says ? `, saying "${says}"` : ''}` };
+  },
+};

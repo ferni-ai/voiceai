@@ -18,6 +18,11 @@ const edge = vi.hoisted(() => ({
   postThread: vi.fn(async (..._a: unknown[]) => ({ success: true, ids: ['1'] })),
   saveDraft: vi.fn(async (..._a: unknown[]) => 'draft-1'),
   legacySend: vi.fn(async (..._a: unknown[]) => 'sent'),
+  createReminder: vi.fn(async (..._a: unknown[]) => ({ id: 'reminder-123456' })),
+}));
+vi.mock('../../../services/scheduling/reminder-scheduler.js', async (orig) => ({
+  ...(await orig<object>()),
+  createReminder: edge.createReminder,
 }));
 
 vi.mock('../../../services/background-agents/executors/call-executor.js', () => ({
@@ -55,12 +60,13 @@ import type { Tool, ToolContext } from '../types.js';
 
 const ctx: ToolContext = { userId: 'user-1', agentId: 'ferni', agentDisplayName: 'Ferni' };
 
-function liveCall() {
+function liveCall(userId = 'user-1') {
   const session = { agentState: 'listening' };
   const listeners = outreachConfirmListeners(session);
   return {
     run: async (tool: Tool, args: Record<string, unknown>, callId: string) => {
-      const out = await tool.execute(args, { ctx: { session }, toolCallId: callId });
+      const runCtx = { session, userData: { userId } }; // LiveKit's RunContext
+      const out = await tool.execute(args, { ctx: runCtx, toolCallId: callId });
       listeners.onToolsExecuted({ functionCalls: [{ callId }] });
       return String(out);
     },
@@ -130,6 +136,41 @@ describe('the Alex persona agent (legacy tool set) gets the gated tools', () => 
     }
     expect(edge.legacySend).not.toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("checks the session's own user, never a placeholder", async () => {
+    const { AlexAgent } = await import('../../../agents/personas/alex-agent.js');
+    const tools = new AlexAgent('You are Alex.').toolCtx.functionTools as unknown as Record<
+      string,
+      Tool
+    >;
+    const text = { to: '2125550199', message: 'hi' };
+    expect(await liveCall('voice-eval-sam').run(tools.sendTextMessage, text, 'c1')).toContain(
+      'test account'
+    );
+    expect(await liveCall('').run(tools.sendTextMessage, text, 'c1')).toMatch(/^Nothing was sent/);
+    const call = liveCall('owner-uid');
+    expect(await call.run(tools.sendTextMessage, text, 'c1')).toContain('NOT SENT YET');
+    call.caller('yes');
+    await call.run(tools.sendTextMessage, text, 'c2');
+    expect(edge.legacySend).toHaveBeenCalledTimes(1);
+  });
+
+  it('a reminder to an address the model named waits for a yes; one to the owner does not', async () => {
+    const { definitions } = await import('../../domains/productivity/index.js');
+    const setReminder = () => definitions.find((d) => d.id === 'setReminder')!.create(ctx);
+    const remind = { message: 'pay rent', when: 'in 2 hours', deliveryMethod: 'email' };
+    const toStranger = { ...remind, deliveryAddress: 'stranger@example.com' };
+    const out = await liveCall().run(setReminder(), toStranger, 'c1');
+    expect(out).toContain('a reminder sent to stranger@example.com');
+    expect(edge.createReminder).not.toHaveBeenCalled();
+    const inApp = { message: 'pay rent', when: 'in 2 hours', deliveryMethod: 'in_app' };
+    expect(await liveCall().run(setReminder(), inApp, 'c1')).not.toContain('NOT SENT YET');
+    const legacy = { reminderText: 'pay rent', when: 'in 2 hours', contactMethod: 'sms' };
+    expect(outboundDispatchRefusal('scheduleReminder', 'user-1', legacy)).toBeNull();
+    expect(
+      outboundDispatchRefusal('scheduleReminder', 'user-1', { ...legacy, contact: '2125550199' })
+    ).toMatch(/^Nothing was sent/);
   });
 });
 

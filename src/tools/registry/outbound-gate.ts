@@ -27,6 +27,7 @@ import {
   argsConfirm,
   multiOutreachConfirm,
   postConfirm,
+  reminderConfirm,
   reachOutConfirm,
   sendBatchConfirm,
 } from '../domains/communication/outreach/outreach-confirm-specs.js';
@@ -51,10 +52,20 @@ export const OUTBOUND_TOOLS: Readonly<Record<string, ConfirmSpec>> = {
   makePhoneCall: argsConfirm('a call'),
   sendVoiceMessage: argsConfirm('a voice message'),
   sendApprovedEmail: argsConfirm('an email'),
+  // A reminder sent to an address the model names (setReminder is gated in productivity/reminders.ts)
+  scheduleReminder: reminderConfirm,
 };
 
-/** Gate a tool built without a ToolDefinition (legacy persona tool sets). */
-export function gateLegacyTool(id: string, tool: unknown, ctx: ToolContext): unknown {
+/**
+ * Gate a tool built without a ToolDefinition (legacy persona tool sets). The
+ * user is read from each run's session (ctx.userData.userId), never a fixed
+ * placeholder, so test accounts and the owner check apply to the real caller.
+ */
+export function gateLegacyTool(
+  id: string,
+  tool: unknown,
+  ctx: Omit<ToolContext, 'userId'>
+): unknown {
   const def: ToolDefinition = {
     id,
     name: id,
@@ -62,7 +73,15 @@ export function gateLegacyTool(id: string, tool: unknown, ctx: ToolContext): unk
     domain: 'communication',
     create: () => tool as Tool,
   };
-  return gateOutboundTool(def).create(ctx);
+  const gated = gateOutboundTool(def);
+  if (gated === def) return tool;
+  type Run = { ctx?: { userData?: { userId?: unknown } } } | undefined;
+  const execute = (args: Record<string, unknown>, opts?: unknown): Promise<unknown> => {
+    const userId = (opts as Run)?.ctx?.userData?.userId;
+    const user = typeof userId === 'string' ? userId : ''; // no session user: the gate sends nothing
+    return gated.create({ ...ctx, userId: user }).execute(args, opts) as Promise<unknown>;
+  };
+  return { ...(tool as Tool), execute };
 }
 
 /** The definition, wrapped to wait for the caller's yes if it reaches a third party. */
@@ -85,8 +104,14 @@ const DISPATCH_OUTBOUND = new Set([
  * For the executor path (chat API, text dispatch), which has no live call to
  * hear a yes: why an outbound tool sent nothing, or null to run it.
  */
-export function outboundDispatchRefusal(fn: string, userId: string | undefined): string | null {
+export function outboundDispatchRefusal(
+  fn: string,
+  userId: string | undefined,
+  args: Record<string, unknown> = {}
+): string | null {
   if (!DISPATCH_OUTBOUND.has(fn.toLowerCase())) return null;
+  const spec = Object.entries(OUTBOUND_TOOLS).find(([id]) => id.toLowerCase() === fn.toLowerCase());
+  if (spec?.[1].applies && !spec[1].applies(args)) return null; // e.g. a reminder to the owner
   if (isSyntheticUserId(userId)) return testAccountReply(fn);
   if (!isOutreachConfirmOn()) return null;
   return 'Nothing was sent: I can only call, text or email someone after the caller says yes on a live call.';

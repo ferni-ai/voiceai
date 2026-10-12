@@ -23,6 +23,8 @@ import {
 import { recordReminderPromise } from '../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 import { userReach } from '../../../services/outreach/user-reach.js';
 import { isAssistantActionsReal } from '../../../config/assistant-actions-flag.js';
+import { withOutreachConfirmation } from '../communication/outreach/outreach-confirm.js';
+import { reminderConfirm } from '../communication/outreach/outreach-confirm-specs.js';
 
 const log = getLogger();
 
@@ -329,7 +331,14 @@ function formatTime(date: Date): string {
 // EXPORTS
 // ============================================================================
 
-export const reminderTools: ToolDefinition[] = [setReminderDef, getRemindersDef, cancelReminderDef];
+/** A reminder to an address the model named waits for a yes; with the flag on, only email uses it. */
+const toNamedAddress = withOutreachConfirmation(setReminderDef, {
+  ...reminderConfirm,
+  applies: (a) =>
+    reminderConfirm.applies!(a) && (a.deliveryMethod === 'email' || !isAssistantActionsReal()),
+});
+
+export const reminderTools: ToolDefinition[] = [toNamedAddress, getRemindersDef, cancelReminderDef];
 
 export function createReminderTools(): ToolDefinition[] {
   return reminderTools;
