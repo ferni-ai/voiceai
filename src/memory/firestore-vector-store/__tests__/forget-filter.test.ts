@@ -1,5 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { forgetTopic, type ForgetStore } from '../../recall/forget.js';
 import {
+  READ_TIMEOUT_MS,
   clearForgottenTopicsCache,
   sourcePath,
   withoutForgotten,
@@ -22,7 +24,7 @@ function reads(
     topics: async (uid) => {
       topicReads.push(uid);
       if (opts.topicsFail) throw new Error('down');
-      return topics;
+      return topics as string[] | null;
     },
     docs: async (paths) => {
       if (opts.docsFail) throw new Error('down');
@@ -83,7 +85,45 @@ describe('vector search never returns what the caller asked to forget', () => {
     expect(out.map((x) => x.document.id)).toEqual(['b']);
   });
 
+  it('a forget in this process counts at once, not after the cache TTL', async () => {
+    let stored: string[] = [];
+    const rd: ForgetReads = { topics: async () => stored, docs: async () => new Map() };
+    const store: ForgetStore = {
+      facts: async () => [],
+      markForgotten: async () => undefined,
+      addTopic: async (_u, t) => {
+        stored = [...stored, t];
+      },
+      topics: async () => stored,
+    };
+    const hits = [r('a', 'Finalised the divorce papers')];
+    expect(await withoutForgotten('u-gen', hits, rd, 1000)).toHaveLength(1); // caches []
+    await forgetTopic('u-gen', 'my divorce', store);
+    expect(await withoutForgotten('u-gen', hits, rd, 2000)).toEqual([]); // well within the TTL
+  });
+
+  it('treats a read slower than the timeout as unreadable (fails closed)', async () => {
+    vi.useFakeTimers();
+    const hang: ForgetReads = {
+      topics: () => new Promise(() => undefined),
+      docs: async () => new Map(),
+    };
+    const pending = withoutForgotten('u-slow', [r('b', 'Trip to Lisbon')], hang);
+    await vi.advanceTimersByTimeAsync(READ_TIMEOUT_MS + 1);
+    expect(await pending).toEqual([]);
+    vi.useRealTimers();
+  });
+
   it('reads sources only under the caller, and never from a path-like id', () => {
+    for (const id of ['', '.', '..']) {
+      expect(
+        sourcePath('u1', {
+          id: 'x',
+          metadata: { sourceCollection: 'extracted_facts', sourceDocId: id },
+        })
+      ).toBeUndefined();
+    }
+    expect(sourcePath('u1', { id: 'conversation_fact_..' })).toBeUndefined();
     expect(sourcePath('u1', { id: 'conversation_fact_f1' })).toBe(
       'bogle_users/u1/dynamic_facts/f1'
     );

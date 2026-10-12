@@ -19,42 +19,42 @@
  * @module memory/firestore-vector-store/forget-filter
  */
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { forgetGeneration, forgottenTopicsOrNull } from '../recall/forget.js';
 import { isForgotten } from '../recall/session-recall.js';
 
 /** Topics change rarely; a short cache keeps search from paying a read every time. */
 const TOPICS_TTL_MS = 15_000;
-const topicsCache = new Map<string, { at: number; topics: string[] }>();
+/** A read slower than this counts as unreadable, so search fails closed instead of hanging. */
+export const READ_TIMEOUT_MS = 300;
+const topicsCache = new Map<string, { at: number; gen: number; topics: string[] }>();
 
-/** For tests, and for a forget in this process to count at once. */
+/** For tests. */
 export function clearForgottenTopicsCache(userId?: string): void {
   if (userId) topicsCache.delete(userId);
   else topicsCache.clear();
 }
 
-/** None recorded is []; anything but a list of strings is unreadable (null). */
-export function parseForgottenTopics(raw: unknown): string[] | null {
-  if (raw === undefined || raw === null) return [];
-  return Array.isArray(raw) && raw.every((t) => typeof t === 'string') ? raw : null;
+async function withinTimeout<T>(read: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('forget read timed out')), READ_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([read, late]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export interface ForgetReads {
-  topics: (userId: string) => Promise<unknown>;
+  /** The caller's forgotten topics, or null when they can't be read (forget.ts). */
+  topics: (userId: string) => Promise<string[] | null>;
   /** Source docs by path; a missing doc maps to undefined. */
   docs: (paths: string[]) => Promise<Map<string, Record<string, unknown> | undefined>>;
 }
 
 const firestoreReads: ForgetReads = {
-  async topics(userId) {
-    const db = getFirestoreDb();
-    if (!db) throw new Error('Firestore not available');
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('memory_state')
-      .doc('forgotten')
-      .get();
-    return doc.exists ? doc.data()?.topics : undefined;
-  },
+  topics: async (userId) => forgottenTopicsOrNull(userId),
   async docs(paths) {
     const db = getFirestoreDb();
     if (!db) throw new Error('Firestore not available');
@@ -68,11 +68,13 @@ async function topicsFor(
   reads: ForgetReads,
   now: number
 ): Promise<string[] | null> {
+  const gen = forgetGeneration(userId); // a forget in this process reads them again at once
   const hit = topicsCache.get(userId);
-  if (hit && now - hit.at < TOPICS_TTL_MS) return hit.topics;
+  if (hit && hit.gen === gen && now - hit.at < TOPICS_TTL_MS) return hit.topics;
   try {
-    const topics = parseForgottenTopics(await reads.topics(userId));
-    if (topics) topicsCache.set(userId, { at: now, topics });
+    const raw: unknown = await withinTimeout(reads.topics(userId));
+    const topics = Array.isArray(raw) && raw.every((t) => typeof t === 'string') ? raw : null;
+    if (topics) topicsCache.set(userId, { at: now, gen, topics });
     return topics;
   } catch {
     return null;
@@ -85,18 +87,17 @@ export function sourcePath(
   doc: { id: string; metadata?: Record<string, unknown> }
 ): string | undefined {
   const user = `bogle_users/${userId}`;
+  const ok = (id: string) => id !== '' && id !== '.' && id !== '..' && !id.includes('/');
   const conv = /^conversation_fact_(.+)$/.exec(doc.id);
-  if (conv?.[1]) return `${user}/dynamic_facts/${conv[1]}`;
+  if (conv?.[1]) return ok(conv[1]) ? `${user}/dynamic_facts/${conv[1]}` : undefined;
   const graph = `fact_fact_${userId}_`;
-  if (doc.id.startsWith(graph)) return `${user}/dynamic_facts/${doc.id.slice(graph.length)}`;
+  if (doc.id.startsWith(graph)) {
+    const id = doc.id.slice(graph.length);
+    return ok(id) ? `${user}/dynamic_facts/${id}` : undefined;
+  }
   const col = doc.metadata?.sourceCollection;
   const id = doc.metadata?.sourceDocId;
-  if (
-    typeof col === 'string' &&
-    typeof id === 'string' &&
-    /^[\w-]+$/.test(col) &&
-    !id.includes('/')
-  ) {
+  if (typeof col === 'string' && typeof id === 'string' && /^[\w-]+$/.test(col) && ok(id)) {
     return `${user}/${col}/${id}`;
   }
   return undefined;
@@ -123,7 +124,7 @@ export async function withoutForgotten<
   if (paths.length === 0) return kept;
   let docs: Map<string, Record<string, unknown> | undefined>;
   try {
-    docs = await reads.docs(paths);
+    docs = await withinTimeout(reads.docs(paths));
   } catch {
     return kept.filter((r) => sourcePath(userId, r.document) === undefined);
   }
