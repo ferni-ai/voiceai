@@ -53,6 +53,7 @@ Answer as JSON only: {"replaces": [numbers]}`;
     maxTokens: 60,
     temperature: 0,
     timeout: 8000,
+    task: 'memory',
   });
   if (!out || !Array.isArray(out.replaces)) return [];
   return out.replaces

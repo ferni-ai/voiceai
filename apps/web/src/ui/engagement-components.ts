@@ -379,8 +379,8 @@ export const SHARED_STYLES = `
     opacity: 1;
   }
 
-  /* Modal Header */
-  .ferni-modal__header {
+  /* Modal Header (base Modal in components/base/modal.ts styles its own) */
+  .ferni-modal__header:not(.ferni-modal-wrapper *) {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -573,8 +573,8 @@ export const SHARED_STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    width: var(--ma-silence, 34px);
-    height: var(--ma-silence, 34px);
+    width: var(--space-11, 44px);
+    height: var(--space-11, 44px);
     padding: 0;
     background: var(--color-background-secondary);
     border: 1px solid var(--color-border-subtle);
