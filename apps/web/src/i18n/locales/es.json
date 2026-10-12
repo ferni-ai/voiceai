@@ -3931,8 +3931,8 @@
     "loadingCoaches": "Buscando coaches...",
     "noMatches": "Sin resultados aún",
     "noMatchesHint": "Prueba con otra búsqueda o explora todos los coaches.",
-    "nobodyYet": "Aún no hay nuevos amigos que conocer",
-    "nobodyYetHint": "Cuando alguien nuevo pueda unirse a tus llamadas, lo conocerás aquí.",
+    "nobodyYet": "Todavía no hay nadie nuevo que conocer.",
+    "nobodyYetHint": "Cuando alguien nuevo pueda unirse a tus llamadas, lo conocerás aquí. Por ahora, habla con tu equipo.",
     "becomeCreator": "Conviértete en creador",
     "poweredBy": "Con la tecnología de Ferni",
     "teamLocked": {

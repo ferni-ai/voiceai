@@ -3908,8 +3908,8 @@
     "loadingCoaches": "正在尋找教練...",
     "noMatches": "找不到相符的結果",
     "noMatchesHint": "試試其他關鍵字，或探索所有教練。",
-    "nobodyYet": "還沒有新朋友可以認識",
-    "nobodyYetHint": "等有新朋友可以加入你的通話時，你會在這裡認識他們。",
+    "nobodyYet": "還沒有新朋友可以認識。",
+    "nobodyYetHint": "等有新朋友可以加入你的通話時，你會在這裡認識他們。現在，先和你的團隊聊聊吧。",
     "becomeCreator": "成為創作者",
     "poweredBy": "由 Ferni 提供技術支援",
     "teamLocked": {

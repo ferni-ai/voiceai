@@ -73,7 +73,8 @@ describe('Meet More Friends', () => {
 
   it('says plainly that nobody new can join yet', async () => {
     await openMarketplace();
-    expect(emptyText()).toContain('No new friends to meet yet');
+    expect(emptyText()).toContain('Nobody new to meet yet.');
+    expect(emptyText()).toContain('For now, talk with your team.'); // always a path
     expect(emptyText()).not.toContain('No matches yet');
   });
 
@@ -81,7 +82,7 @@ describe('Meet More Friends', () => {
     team.full = false;
     await openMarketplace();
     expect(document.body.textContent).not.toMatch(/coaches? waiting/i);
-    expect(emptyText()).toContain('No new friends to meet yet');
+    expect(emptyText()).toContain('Nobody new to meet yet.');
   });
 
   it('shows no star rating on a card', async () => {
