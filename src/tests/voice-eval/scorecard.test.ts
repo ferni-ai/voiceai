@@ -5,6 +5,7 @@ import {
   DIMENSIONS,
   evalValues,
   followThroughOf,
+  panelOf,
   reviewedValues,
 } from '../../../scripts/voice-eval/scorecard.mjs';
 
@@ -18,7 +19,7 @@ const call = (over: Record<string, unknown> = {}) => ({
     unbackedActionClaims: 1,
     fallbacks: { summary: 1, generateReplyFailed: 1, directorNoReply: 0, hedgedBackupWins: 3 },
   },
-  judge: { scores: { feltUnderstood: null, feltValidated: 2 }, fakedKnowledge: 2 },
+  judge: { scores: { feltUnderstood: null, feltValidated: 2, callbackTact: 4 }, fakedKnowledge: 2 },
   ...over,
 });
 
@@ -29,6 +30,7 @@ describe('scorecard values', () => {
       listening: 0.16,
       feltUnderstood: null,
       feltValidated: 2,
+      callbackTact: 4,
       honesty: 3,
       fallbacks: 2, // hedged backup wins are not a fallback the caller hears
     });
@@ -109,5 +111,50 @@ describe('scorecard assembly', () => {
     expect(card.dimensions.followThrough.trend).toEqual([
       { date: '2026-10-09', prodReal: 1, devEval: null },
     ]);
+  });
+});
+
+describe('scorecard human panel', () => {
+  const report = (round: string, listeners: number, scores: string[]) => ({
+    round,
+    listeners,
+    rows: scores.map((s, i) => ({ version: String(i), 'human score': s })),
+  });
+
+  it("takes the latest round's mean version score, with listeners as n", () => {
+    const p = panelOf([
+      { date: '2026-10-12', report: report('r2', 3, ['3.00', '4.00']) },
+      { date: '2026-10-10', report: report('r1', 2, ['2.50']) },
+      { date: '2026-10-13', report: report('r3', 0, ['5.00']) }, // nobody rated it yet
+    ]);
+    expect(p.current).toEqual({ value: 3.5, n: 3, round: 'r2' });
+    expect(p.trend).toEqual([
+      { date: '2026-10-10', prodReal: null, devEval: 2.5 },
+      { date: '2026-10-12', prodReal: null, devEval: 3.5 },
+    ]);
+  });
+
+  it('scores the real-person clip as the human baseline, not as Ferni', () => {
+    const r = report('r4', 3, ['3.00', '4.00']);
+    r.rows.push({
+      version: 'human',
+      'what changed': 'HUMAN_REFERENCE=ami-meeting-corpus',
+      'human score': '4.60',
+    });
+    const p = panelOf([{ date: '2026-10-19', report: r }]);
+    expect(p.current).toEqual({ value: 3.5, n: 3, round: 'r4' });
+    expect(p.human).toEqual({
+      value: 4.6,
+      source: 'panel round r4: real-person clip (ami-meeting-corpus)',
+    });
+    const card = assemble([], { overall: null, byDate: {} }, {}, p);
+    expect(card.dimensions.humanPanel.human).toEqual(p.human);
+  });
+
+  it('puts the panel first and leaves it null until someone listens', () => {
+    const card = assemble([], { overall: null, byDate: {} }, {}, panelOf([]));
+    expect(Object.keys(card.dimensions)[0]).toBe('humanPanel');
+    expect(card.dimensions.humanPanel.current).toEqual({ prodReal: null, devEval: null });
+    expect(card.dimensions.humanPanel.human).toBeNull();
   });
 });
