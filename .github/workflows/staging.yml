@@ -46,9 +46,12 @@ jobs:
       # macos-menubar (see ci.yml's setup job; CI_SCOPED_QUEUE=off scopes PRs only)
       code: ${{ steps.code.outputs.matched }}
       # A preview is for clicking through the web app, so a PR gets one only when it
-      # changes what the UI server image serves, or carries the `preview` label
-      # (read when the PR is pushed: add the label, then push). Never in the queue.
-      preview: ${{ github.event_name != 'pull_request' || steps.ui.outputs.matched == 'true' || contains(github.event.pull_request.labels.*.name, 'preview') }}
+      # carries the `preview` label (read when the PR is pushed: add the label, then
+      # push), or from workflow_dispatch. Never in the queue. Every UI-touching PR used
+      # to get one: a second image build plus a Cloud Run deploy per push, which held
+      # the hosted runners the prod web deploy needed. Whether the image starts is
+      # checked in Build & Test instead, on every PR and in the queue.
+      preview: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'preview') }}
     permissions:
       contents: read
       pull-requests: read
@@ -102,11 +105,6 @@ jobs:
         with:
           exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|macos-menubar)/'
           merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
-
-      - id: ui
-        uses: ./.github/actions/pr-changes
-        with:
-          include: '^(apps/web/|src/servers/|src/api/|design-system/|docker/Dockerfile\.ui$|\.github/workflows/staging\.yml$)'
 
   # ============================================================================
   # BUILD & TEST
@@ -174,14 +172,34 @@ jobs:
       # One tag per run attempt: the 8 runners on a VM share one Docker daemon, so two
       # queue entries building at once collided on a fixed tag ("already exists",
       # 2026-10-11), and a cancelled run left its tag behind for the next one.
-      - name: Build UI image (no push)
+      # A built image can still fail to start: the runtime prune deleted a file that
+      # compromise imports (suffix-thumb/src/test, fixed in #1211), the server died
+      # with ERR_MODULE_NOT_FOUND, and only a Cloud Run deploy noticed, after every
+      # UI deploy from main had failed. So start it and wait for /health. The LiveKit values are dummies: the server only checks
+      # that they are set, and /health touches no backend.
+      - name: Build UI image (no push) and check it starts
         env:
           IMAGE: john-bogle-ui:merge-check-${{ github.run_id }}-${{ github.run_attempt }}
+          CONTAINER: ui-start-check-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          trap 'docker image rm "$IMAGE" >/dev/null 2>&1 || echo "::warning::could not remove $IMAGE"' EXIT
+          trap 'docker rm -f "$CONTAINER" >/dev/null 2>&1; docker image rm "$IMAGE" >/dev/null 2>&1 || echo "::warning::could not remove $IMAGE"' EXIT
           docker build -f docker/Dockerfile.ui -t "$IMAGE" \
             --build-arg BASE_REGISTRY=mirror.gcr.io/library/ \
             --build-arg BUILDKIT_SYNTAX=mirror.gcr.io/docker/dockerfile:1.4 .
+          docker run -d --name "$CONTAINER" -p 127.0.0.1::8080 \
+            -e LIVEKIT_URL=wss://start-check.invalid -e LIVEKIT_API_KEY=start-check \
+            -e LIVEKIT_API_SECRET=start-check "$IMAGE" >/dev/null
+          PORT=$(docker port "$CONTAINER" 8080/tcp | head -1 | sed 's/.*://')
+          for i in $(seq 1 60); do
+            if curl -fsS "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
+              echo "UI image started: /health answered after ${i}s"; exit 0
+            fi
+            [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER")" = "true" ] || break
+            sleep 1
+          done
+          echo "::error::the UI image did not answer /health within 60s"
+          docker logs --tail 80 "$CONTAINER" 2>&1 || true
+          exit 1
 
   # ============================================================================
   # DEPLOY STAGING
