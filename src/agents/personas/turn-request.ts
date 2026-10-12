@@ -33,6 +33,7 @@ import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { ferniStateNote } from './ferni-state.js';
+import { beatNote, priorCallsOf } from './personal-beats.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
@@ -103,6 +104,12 @@ export function withTurnReminder(
     gameTurnNote(session),
     // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
     ferniStateNote(chatCtx, session, { careful: options.shape === false }),
+    // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
+    beatNote({
+      said: words,
+      priorCalls: priorCallsOf((session as { userData?: unknown }).userData),
+      careful: options.shape === false,
+    }),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
