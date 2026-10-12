@@ -56,3 +56,30 @@ describe('episode recall in the live hook', () => {
     expect(await ask(false)).not.toContain('435 339 7687');
   });
 });
+
+describe('summary snippets in the live hook (RECALL_SUMMARIES)', () => {
+  const withSummary = {
+    facts: async () => [],
+    summaries: async () => [
+      {
+        timestamp: '2026-01-09T18:00:00.000Z',
+        keyPoints: ['User is moving his Vanguard account into a Roth IRA'],
+      },
+    ],
+  };
+
+  it('quotes the dated key point a turn is about; off, never', async () => {
+    const on = createMemoryRecall({ userId: 'u-sum', store: withSummary, summaries: true });
+    await on.ready;
+    await new Promise<void>((r) => {
+      setTimeout(r, 0);
+    });
+    expect(on.noteFor('what did I decide about the Roth')).toContain(
+      '- From our call on Jan 9: User is moving his Vanguard account into a Roth IRA'
+    );
+
+    const off = createMemoryRecall({ userId: 'u-sum', store: withSummary, summaries: false });
+    await off.ready;
+    expect(off.noteFor('what did I decide about the Roth') ?? '').not.toContain('From our call');
+  });
+});
