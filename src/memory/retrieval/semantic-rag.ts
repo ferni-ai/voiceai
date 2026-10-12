@@ -58,9 +58,7 @@ export function getActiveStore(): AnyVectorStore {
 // TYPES
 // ============================================================================
 
-/**
- * RAG search result
- */
+/** RAG search result */
 export interface RAGResult {
   /** The vector document's id ("conversation_fact_<docId>" for an indexed dynamic fact). */
   id?: string;
@@ -71,9 +69,7 @@ export interface RAGResult {
   metadata?: Record<string, unknown>;
 }
 
-/**
- * RAG context for injection into prompts
- */
+/** RAG context for injection into prompts */
 export interface RAGContext {
   results: RAGResult[];
   formattedContext: string;
@@ -271,12 +267,16 @@ export async function semanticSearch(
     filter.userId = options.userId;
   }
 
-  // Search
-  const results = await store.search(query, {
-    topK,
-    filter: Object.keys(filter).length > 0 ? filter : undefined,
-    minScore,
-  });
+  // Without a userId only shared documents come back, never anyone's memories.
+  const results = (
+    await store.search(query, {
+      topK: options?.userId ? topK : topK * 4,
+      filter: Object.keys(filter).length > 0 ? filter : undefined,
+      minScore,
+    })
+  )
+    .filter((r) => [undefined, null, options?.userId].includes(r.document.metadata.userId))
+    .slice(0, topK);
 
   // Record metrics
   const durationMs = Date.now() - startTime;

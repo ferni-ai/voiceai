@@ -186,7 +186,7 @@ describe('Semantic RAG', () => {
       expect(mockVectorStore.search).toHaveBeenCalledWith(
         'test query',
         expect.objectContaining({
-          topK: 3,
+          topK: 12, // no userId: asks for more, keeps only shared documents
           filter: expect.objectContaining({
             source: ['persona'],
           }),
