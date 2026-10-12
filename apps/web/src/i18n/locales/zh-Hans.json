@@ -8277,7 +8277,6 @@
     "growthDesc": "那些你可能自己都没注意到的进步。",
     "guardianPresence": "守护般的陪伴",
     "guardianDesc": "我能读懂你未曾说出口的话。",
-    "whatMightLook": "感悟大概会是这样的",
     "keepTalking": "继续聊聊吧。我一直在听，在学，也一直在这里陪着你。",
     "betterThanMemory": "比人类的记忆更贴心，时刻为你守候。",
     "chapter": {
@@ -11078,9 +11077,9 @@
   },
   "x": "朋友 • 提及 12 次",
   "insightsView": {
-    "samplePattern": "“周日的傍晚对你来说似乎有些难熬……”",
-    "sampleInsight": "“这周你提到了 8 次感到疲惫。这种疲惫似乎与你在工作中难以划定界限有关。”",
-    "sampleEvidence": "基于 {count} 次对话"
+    "patternDesc": "你在通话中反复提到的事。",
+    "emptyNote": "这里还没有内容。通话几次之后，Ferni 注意到的规律会显示在这里。",
+    "loadFailed": "无法加载 Ferni 注意到的内容。请稍后再试。"
   },
   "agentAcks": {
     "gameStartFailed": "游戏没能开始。试试直接对 Ferni 说出来吧。",

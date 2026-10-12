@@ -8277,7 +8277,6 @@
     "growthDesc": "스스로는 미처 알아차리지 못한 변화들을 짚어드릴게요.",
     "guardianPresence": "곁을 지켜주는 존재",
     "guardianDesc": "말하지 않은 마음까지도 제가 알아차릴게요.",
-    "whatMightLook": "인사이트는 이런 모습일 거예요",
     "keepTalking": "그저 편하게 계속 이야기해 주세요. 전 언제나 듣고 있고, 배우고 있으며, 늘 여기에 있으니까요.",
     "betterThanMemory": "사람의 기억력보다 더 꼼꼼하게, 오직 당신만을 위해 작동해요.",
     "chapter": {
@@ -11078,9 +11077,9 @@
   },
   "x": "친구 • 12번 언급됨",
   "insightsView": {
-    "samplePattern": "\"일요일 저녁을 조금 힘들어하시는 것 같아요...\"",
-    "sampleInsight": "\"이번 주에 피곤하다는 말씀을 8번 하셨어요. 이 피로감은 직장에서의 경계 세우기에 어려움을 느끼는 부분과 관련이 있어 보여요.\"",
-    "sampleEvidence": "{count}번의 대화 기준"
+    "patternDesc": "통화에서 자꾸 나오는 이야기들.",
+    "emptyNote": "아직 아무것도 없어요. 몇 번 통화하고 나면 Ferni가 발견한 패턴이 여기에 표시돼요.",
+    "loadFailed": "Ferni가 발견한 내용을 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
   },
   "agentAcks": {
     "gameStartFailed": "게임을 시작하지 못했어요. Ferni에게 말로 요청해 보세요.",

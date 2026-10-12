@@ -8326,7 +8326,6 @@
     "growthDesc": "Des progrès que tu ne remarques peut-être pas toi-même.",
     "guardianPresence": "Présence bienveillante",
     "guardianDesc": "Je capte ce que tu ne dis pas.",
-    "whatMightLook": "À quoi ressemblent les déclics",
     "keepTalking": "Continue simplement à parler. Je t'écoute, j'apprends et je suis toujours là.",
     "betterThanMemory": "Mieux que la mémoire humaine, à ton service.",
     "chapter": {
@@ -11204,9 +11203,9 @@
   },
   "x": "Proche • 12 mentions",
   "insightsView": {
-    "samplePattern": "\"Les dimanches soir ont l'air difficiles pour toi...\"",
-    "sampleInsight": "\"Tu as mentionné ressentir de la fatigue 8 fois cette semaine. Cette fatigue semble liée à des difficultés à poser des limites au travail.\"",
-    "sampleEvidence": "D'après {count} conversations"
+    "patternDesc": "Ce qui revient souvent dans tes appels.",
+    "emptyNote": "Rien pour l'instant. Après quelques appels, les tendances que Ferni remarque s'affichent ici.",
+    "loadFailed": "Impossible de charger ce que Ferni a remarqué. Réessaie dans un instant."
   },
   "agentAcks": {
     "gameStartFailed": "Le jeu n'a pas démarré. Demande à Ferni de le lancer à voix haute.",

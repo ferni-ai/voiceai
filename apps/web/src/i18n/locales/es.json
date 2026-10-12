@@ -8326,7 +8326,6 @@
     "growthDesc": "Avances que quizás tú no notes.",
     "guardianPresence": "Presencia protectora",
     "guardianDesc": "Capto lo que dejas sin decir.",
-    "whatMightLook": "Cómo podrían verse las reflexiones",
     "keepTalking": "Solo sigue hablando. Siempre te escucho, siempre aprendo, siempre estoy aquí.",
     "betterThanMemory": "Mejor que la memoria humana, a tu servicio.",
     "chapter": {
@@ -11204,9 +11203,9 @@
   },
   "x": "Amistad • Mención: 12 veces",
   "insightsView": {
-    "samplePattern": "\"Las tardes de domingo parecen ser difíciles para ti...\"",
-    "sampleInsight": "\"Has mencionado sentir cansancio 8 veces esta semana. Este cansancio parece estar relacionado con la dificultad para poner límites en el trabajo.\"",
-    "sampleEvidence": "Según {count} conversaciones"
+    "patternDesc": "Lo que sale una y otra vez en tus llamadas.",
+    "emptyNote": "Aún no hay nada. Después de algunas llamadas, aquí aparecerán los patrones que Ferni note.",
+    "loadFailed": "No se pudo cargar lo que Ferni ha notado. Inténtalo de nuevo en un momento."
   },
   "agentAcks": {
     "gameStartFailed": "El juego no arrancó. Pídele a Ferni en voz alta que lo juegue contigo.",
