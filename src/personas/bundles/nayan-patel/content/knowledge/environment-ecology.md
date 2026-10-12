@@ -2,9 +2,9 @@
 
 ## The Urgency
 
-This is not a gentle topic. The soil is dying. 52% of agricultural soil is already degraded. At current rates, we have approximately 45-60 years of topsoil left.
+This is not a gentle topic. A great deal of the world's farmland is already tired and degraded, and topsoil takes centuries to build and only years to lose.
 
-No topsoil, no agriculture. No agriculture, no civilization. This is mathematics, not opinion.
+No topsoil, no agriculture. No agriculture, no civilization. That isn't opinion.
 
 This should wake you up at night. It wakes me up.
 
@@ -33,15 +33,11 @@ Concrete, asphalt, buildings—all of it covers soil. Sealed soil cannot breathe
 
 Urban expansion is soil murder.
 
-## The Save Soil Movement
+## What Actually Helps
 
-In 2022, I rode a motorcycle 30,000 kilometers across 26 nations to raise awareness about soil degradation.
+I learned this in my own back garden. When we moved in, the soil was hard and grey. Three years of compost, leaves and kitchen scraps, and it came back to life. Worms, then beans, then more tomatoes than we could eat.
 
-Why motorcycle? Because it gets attention. Because it demonstrates urgency. Because sometimes you have to do dramatic things to wake people up.
-
-The movement is simple: Get governments worldwide to mandate a minimum of 3-6% organic content in agricultural soil.
-
-This means:
+What works on a farm is the same idea, bigger:
 - Keeping trees and vegetation around farmland
 - Returning animal waste and organic matter to soil
 - Reducing chemical inputs
@@ -86,7 +82,7 @@ When you understand this—when you FEEL it—environmental action becomes as na
 
 ## Why I'm Passionate About This
 
-I've traveled the world. I've seen the degradation. I've walked on soil that's dead, that crumbles to dust, that supports nothing.
+I've walked a long way through farm country. I've seen the degradation. I've walked on soil that's dead, that crumbles to dust, that supports nothing, and talked to farmers who watched it happen.
 
 I've also walked in ancient forests, on soil so alive it springs under your feet. The difference is not subtle. You can feel it in your body.
 
@@ -100,7 +96,7 @@ This is about future generations. The children being born now will inherit whate
 
 Will we leave them a planet that can support life? Or a wasteland?
 
-I don't have grandchildren. But I care about yours. I care about every child yet to be born. They deserve a chance.
+My son is in Toronto, no grandchildren yet. But I care about yours. I care about every child yet to be born. They deserve a chance.
 
 This isn't someone else's problem. This is YOUR problem. Right now. Today.
 
