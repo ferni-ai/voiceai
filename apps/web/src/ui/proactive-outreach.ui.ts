@@ -318,7 +318,7 @@ function injectStyles(): void {
 
     .proactive-outreach__persona {
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text, #4a6741);
       font-size: 14px;
     }
 

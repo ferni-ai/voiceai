@@ -29,6 +29,7 @@ import {
   type Room,
 } from '@livekit/rtc-node';
 import { createLogger } from '../../utils/safe-logger.js';
+import { logVoicedTake } from './voiced-presence.js';
 
 const log = createLogger({ module: 'DirectClipTrack' });
 
@@ -46,11 +47,11 @@ const IDLE_POLL_MS = 5;
 /** A clip the caller talks over within this long of play() is taken back. */
 export const CANCEL_WINDOW_MS = 200;
 
-/** REACTION_SIDETRACK=direct: reaction clips play on this track. */
+/** REACTION_SIDETRACK=direct: reaction clips play on this track, as VOICED_PRESENCE takes must. */
 export function reactionSidetrackDirect(
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return env.REACTION_SIDETRACK === 'direct';
+  return env.REACTION_SIDETRACK === 'direct' || env.VOICED_PRESENCE === 'on';
 }
 
 /** When a clip's first frame went out, measured, not estimated. */
@@ -261,7 +262,8 @@ export async function startDirectClips(
   room: Room,
   session: voice.AgentSession
 ): Promise<DirectClipTrack | null> {
-  const track = new DirectClipTrack((wire) =>
+  const track = new DirectClipTrack((wire) => {
+    logVoicedTake(wire.label, wire.playToWireMs);
     log.info(
       {
         clip: wire.label,
@@ -272,8 +274,8 @@ export async function startDirectClips(
         track: 'direct',
       },
       'CLIP_WIRE'
-    )
-  );
+    );
+  });
   try {
     await track.publish(room);
   } catch (error) {

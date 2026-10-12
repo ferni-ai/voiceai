@@ -36,3 +36,23 @@ export const multiOutreachConfirm: ConfirmSpec = {
 export const sendBatchConfirm: ConfirmSpec = {
   prepare: async () => 'Nothing was sent: batch messages need their own confirmation, coming soon.',
 };
+
+const firstText = (args: Record<string, unknown>, keys: string[]): string =>
+  keys.map((k) => args[k]).find((v): v is string => typeof v === 'string' && v.trim() !== '') ?? '';
+
+/**
+ * Read back a tool's own arguments: who (name and number or address) and what.
+ * The confirmed send runs with exactly these arguments.
+ */
+export function argsConfirm(what: string): ConfirmSpec {
+  return {
+    prepare: async (args) => {
+      const name = firstText(args, ['contactName', 'friendName', 'recipientName']);
+      const address = firstText(args, ['contactPhone', 'friendPhone', 'recipientEmail']);
+      if (!name && !address) return `Nothing was sent: I couldn't tell who ${what} would go to.`;
+      const says = firstText(args, ['message', 'objective', 'purpose']);
+      const who = [name, address].filter(Boolean).join(' at ');
+      return { args, readBack: `${what} to ${who}${says ? `, about "${says}"` : ''}` };
+    },
+  };
+}

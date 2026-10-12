@@ -1,6 +1,6 @@
 ---
-title: "5 Patterns That Saved Our Production Voice Agent"
-excerpt: "The code snippets we wish we'd known from day one - learned the hard way so you don't have to."
+title: "5 Patterns Every Production Voice Agent Needs"
+excerpt: "The code snippets we wish we'd had from day one, for the failure modes voice AI hits that web apps never do."
 author: "Seth Ford"
 authorInitials: "SF"
 authorColor: "#4a6741"
@@ -10,19 +10,19 @@ image: "quick-tips-essentials.png"
 readTime: 5
 ---
 
-# 5 Patterns That Saved Our Production Voice Agent
+# 5 Patterns Every Production Voice Agent Needs
 
-**At 2:47 AM on launch day, our voice agent stopped responding to every third user.**
+**The worst bug in voice AI has no error message.**
 
-No errors. No crashes. Just... silence. Users would say "Hey Ferni" and get nothing back. We spent four hours debugging before finding the culprit: a missing reconnection handler.
+No exception. No crash. Just silence. Someone says "Hey Ferni" and gets nothing back, and the cause is something as small as a missing reconnection handler.
 
-That night taught us something important: **voice AI has failure modes you've never seen in traditional web development.** Network blips that would be invisible in HTTP become conversation-ending silences. Rate limits don't show error pages - they just make your AI seem stupid.
+That's the core lesson: **voice AI has failure modes you've never seen in traditional web development.** Network blips that would be invisible in HTTP become conversation-ending silences. Rate limits don't show error pages - they just make your AI seem stupid.
 
-Here are five patterns we learned the hard way. Copy-paste them into your codebase before you need them.
+Here are five patterns that guard against those failures. Copy-paste them into your codebase before you need them.
 
 ---
 
-## 1. The Reconnection Handler That Would Have Saved Launch Night
+## 1. The Reconnection Handler
 
 Our original code looked innocent enough:
 
@@ -34,7 +34,7 @@ await client.start();
 
 The problem? WebSocket connections drop. A lot. Mobile users walk through dead zones. Coffee shop WiFi hiccups. Home routers restart at 3 AM. And when that connection drops mid-sentence, your user gets silence.
 
-**What we use now:**
+**What to use instead:**
 
 ```typescript
 const client = new FerniClient({
@@ -67,13 +67,11 @@ The key insight: **users forgive reconnection delays if they know what's happeni
 
 ---
 
-## 2. The Webhook Signature Check That Prevented a $50K Fraud Attempt
+## 2. The Webhook Signature Check
 
-Three weeks after launch, we got an unusual spike in "subscription upgraded" webhooks. All from the same IP. All with suspiciously similar timing.
+Picture a burst of "subscription upgraded" webhooks, all from the same IP, all with suspiciously similar timing. Someone has found your webhook endpoint and is spoofing upgrade events to get free premium access.
 
-Someone had found our webhook endpoint and was trying to spoof upgrade events to get free premium access.
-
-Fortunately, we'd implemented signature verification. The fraudulent requests all failed validation and were logged (we forwarded them to our security team). Without this check, we would have accidentally granted free subscriptions to hundreds of spoofed accounts.
+With signature verification, every forged request fails validation and gets logged. Without it, you hand out free subscriptions to every spoofed account.
 
 **This is not optional:**
 
@@ -105,13 +103,13 @@ app.post('/webhook', (req, res) => {
 });
 ```
 
-**Pro tip:** Set `maxAge` to prevent replay attacks. We learned this after someone tried to replay a legitimate webhook 1000 times.
+**Pro tip:** Set `maxAge` to prevent replay attacks. A valid signature doesn't help if someone can capture a legitimate webhook and send it again a thousand times.
 
 ---
 
-## 3. The Handoff Pattern That Made Users Think Our AI Was Psychic
+## 3. The Context-Preserving Handoff
 
-Users would start conversations with Ferni, then say "actually, can I talk to someone who knows about fitness?" We had Maya (our coaching persona), but the naive approach - just switching - felt jarring.
+A conversation starts with Ferni, then turns into "actually, can I talk to someone who knows about fitness?" We have Maya (our coaching persona), but the naive approach - just switching - feels jarring.
 
 "Hi! I'm Maya! How can I help?"
 
@@ -143,13 +141,13 @@ async function handoffToSpecialist(context, targetPersona) {
 
 Now Maya would say: "Ferni mentioned you're looking to start a morning workout routine and that you've struggled with consistency before. I totally get that - let's figure out something that actually fits your life."
 
-Users thought our AI was psychic. It wasn't - it just remembered what they'd said.
+It feels like the AI was listening, because it was. It just remembered what was said.
 
 ---
 
-## 4. The Streaming Handler That Made Our App Feel Instant
+## 4. The Streaming Handler
 
-Our first implementation waited for the complete response before doing anything. The LLM would think for 800ms, then suddenly dump the entire response. It felt sluggish and robotic.
+The naive implementation waits for the complete response before doing anything. The LLM thinks, then suddenly dumps the entire response. It feels sluggish and robotic.
 
 The fix was streaming - but not just for text. Voice AI streams emotions, actions, and transcript simultaneously.
 
@@ -180,15 +178,15 @@ for await (const chunk of stream) {
 }
 ```
 
-The result: responses feel 3x faster even though the actual latency is the same. Perception matters.
+The result: responses feel faster even though the total latency is the same, because the first words arrive sooner. Perception matters.
 
 ---
 
 ## 5. The Error Boundary That Turned Failures Into Features
 
-Rate limits were killing our user experience. The LLM would hit its context limit mid-conversation, and users would get a generic "Something went wrong."
+Rate limits and context limits are brutal in voice. The LLM hits a limit mid-conversation, and the person on the other end gets a generic "Something went wrong."
 
-We turned this into a feature instead of a bug:
+Turn it into a feature instead of a bug:
 
 ```typescript
 async function safeVoiceInteraction(input) {
@@ -224,7 +222,7 @@ async function safeVoiceInteraction(input) {
 }
 ```
 
-Users don't know they hit a rate limit. They just think the AI is thoughtful.
+The user never hears about a rate limit. They just hear an AI taking a moment to think.
 
 ---
 
@@ -250,7 +248,7 @@ Your users will never know. They'll just think your AI is remarkably good at con
 4. **Enable streaming** - perceived speed matters more than actual speed
 5. **Write error boundaries** - graceful degradation is a feature
 
-We learned all of this the hard way. You don't have to.
+Each of these is cheaper to add before launch than after.
 
 ---
 

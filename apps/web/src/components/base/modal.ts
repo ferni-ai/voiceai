@@ -89,6 +89,9 @@ export class Modal extends BaseComponent {
   private isOpen = false;
 
   constructor(config: ModalConfig, options: ModalOptions = {}) {
+    // The header/close layout lives in these styles; without them the shared
+    // engagement .ferni-modal rules laid the header out as columns.
+    injectModalStyles();
     super({
       ...options,
       className: options.className || 'ferni-modal-wrapper',
@@ -344,7 +347,7 @@ export function injectModalStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: var(--space-4);
+      padding: var(--ma-silence, 34px); /* same inset as the sibling menu panels */
     }
 
     .ferni-modal__backdrop {
@@ -358,7 +361,7 @@ export function injectModalStyles(): void {
     .ferni-modal__card {
       position: relative;
       width: 100%;
-      max-height: 90vh;
+      max-height: 80vh;
       overflow-y: auto;
       background: var(--color-background-elevated, #FFFDFB);
       border-radius: var(--radius-2xl, 24px);
@@ -401,9 +404,10 @@ export function injectModalStyles(): void {
     .ferni-modal__close {
       position: absolute;
       top: var(--space-4, 16px);
-      inset-inline-end: var(--space-4, 16px);
-      width: 32px;
-      height: 32px;
+      inset-inline-end: var(--space-6, 24px);
+      width: var(--space-11, 44px);
+      height: var(--space-11, 44px);
+      padding: 0;
       display: flex;
       align-items: center;
       justify-content: center;

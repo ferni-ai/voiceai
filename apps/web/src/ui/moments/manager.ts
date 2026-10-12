@@ -24,15 +24,20 @@ import {
   WHISPER_ANIMATION,
   NOTICE_ANIMATION,
   MILESTONE_ANIMATION,
-  REDUCED_MOTION_DURATIONS,
 } from './constants.js';
 import { injectMomentStyles, removeMomentStyles } from './styles.js';
+import {
+  createMomentRegions,
+  findDuplicateMoment,
+  regionFor,
+  whisperText,
+  type MomentRegions,
+} from './moment-regions.js';
 import { MOMENT_ICONS, getIcon } from './icons.js';
 import { isOverlayHostEnabled } from '../overlay/overlay-flag.js';
 import { dismissAllToasts, dismissToast, showToast } from '../overlay/toast-region.js';
 import { NOTICE_TONES, celebrationCopy } from './toast-copy.js';
 import type {
-  MomentLevel,
   MomentState,
   WhisperConfig,
   WhisperType,
@@ -61,6 +66,7 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 class MomentsManager {
   private container: HTMLElement | null = null;
+  private regions: MomentRegions | null = null;
   private active: MomentState | null = null;
   private queue: Array<{ id: string; config: WhisperConfig | NoticeConfig }> = [];
   private idCounter = 0;
@@ -87,8 +93,7 @@ class MomentsManager {
   private createContainer(): void {
     this.container = document.createElement('div');
     this.container.className = 'moments-container';
-    this.container.setAttribute('role', 'status');
-    this.container.setAttribute('aria-live', 'polite');
+    this.regions = createMomentRegions(this.container);
     document.body.appendChild(this.container);
   }
 
@@ -123,6 +128,8 @@ class MomentsManager {
       duration: options?.duration ?? MOMENT_DURATIONS.whisper.default,
       icon: options?.icon,
     };
+    const duplicate = findDuplicateMoment(config, this.active, this.queue);
+    if (duplicate) return duplicate;
 
     // If there's an active moment, queue this one
     if (this.active) {
@@ -136,17 +143,15 @@ class MomentsManager {
   }
 
   private displayWhisper(id: string, config: WhisperConfig): void {
-    if (!this.container) return;
+    if (!this.regions) return;
 
     const type = config.type ?? 'info';
 
     // Create element
     const element = document.createElement('div');
     element.className = `moment-whisper moment-whisper--${type}`;
-    element.setAttribute('role', 'alert');
-    element.textContent = config.message;
-
-    this.container.appendChild(element);
+    element.append(whisperText(config.message));
+    regionFor(this.regions, config).appendChild(element);
 
     // Play haptic
     const hapticKey = `whisper:${type}` as keyof typeof HAPTIC_MAP;
@@ -157,11 +162,8 @@ class MomentsManager {
       element.classList.add('moment-whisper--entering');
     });
 
-    // Set up auto-dismiss
-    const duration = this.getAccessibleDuration(
-      config.duration ?? MOMENT_DURATIONS.whisper.default,
-      'whisper'
-    );
+    // Reduce Motion changes the animation (a fade), never the time on screen (WCAG 2.2.1)
+    const duration = config.duration ?? MOMENT_DURATIONS.whisper.default;
     const timeout = trackedTimeout(() => this.dismissWhisper(id), duration);
 
     // Track state
@@ -184,19 +186,22 @@ class MomentsManager {
     if (!this.active || this.active.id !== id) return;
 
     const { element, timeout } = this.active;
-
+    this.active.status = 'exiting';
     if (timeout) clearTimeout(timeout);
 
     // Animate out
     element.classList.remove('moment-whisper--entering');
     element.classList.add('moment-whisper--exiting');
 
-    trackedTimeout(() => {
-      element.remove();
-      this.active = null;
-      this.emit('whisper:dismissed', { id });
-      this.processQueue();
-    }, prefersReducedMotion() ? 1 : DURATION.NORMAL);
+    trackedTimeout(
+      () => {
+        element.remove();
+        this.active = null;
+        this.emit('whisper:dismissed', { id });
+        this.processQueue();
+      },
+      prefersReducedMotion() ? DURATION.FAST : DURATION.NORMAL
+    );
 
     log.debug({ id }, 'Whisper dismissed');
   }
@@ -242,10 +247,10 @@ class MomentsManager {
       action: options?.action,
       duration:
         options?.duration ??
-        (options?.action
-          ? MOMENT_DURATIONS.notice.withAction
-          : MOMENT_DURATIONS.notice.default),
+        (options?.action ? MOMENT_DURATIONS.notice.withAction : MOMENT_DURATIONS.notice.default),
     };
+    const duplicate = findDuplicateMoment(config, this.active, this.queue);
+    if (duplicate) return duplicate;
 
     // If there's an active moment, queue this one
     if (this.active) {
@@ -259,14 +264,13 @@ class MomentsManager {
   }
 
   private displayNotice(id: string, config: NoticeConfig): void {
-    if (!this.container) return;
+    if (!this.regions) return;
 
     const type = config.type ?? 'info';
 
     // Create element
     const element = document.createElement('div');
     element.className = `moment-notice moment-notice--${type}`;
-    element.setAttribute('role', 'alert');
 
     // Build content based on type
     if (type === 'seeds' && config.amount !== undefined) {
@@ -291,7 +295,7 @@ class MomentsManager {
       element.appendChild(actionBtn);
     }
 
-    this.container.appendChild(element);
+    regionFor(this.regions, config).appendChild(element);
 
     // Trigger avatar pulse (via event)
     this.triggerAvatarPulse();
@@ -305,11 +309,8 @@ class MomentsManager {
       element.classList.add('moment-notice--entering');
     });
 
-    // Set up auto-dismiss
-    const duration = this.getAccessibleDuration(
-      config.duration ?? MOMENT_DURATIONS.notice.default,
-      'notice'
-    );
+    // Reduce Motion changes the animation (a fade), never the time on screen (WCAG 2.2.1)
+    const duration = config.duration ?? MOMENT_DURATIONS.notice.default;
     const timeout = trackedTimeout(() => this.dismissNotice(id), duration);
 
     // Track state
@@ -332,19 +333,22 @@ class MomentsManager {
     if (!this.active || this.active.id !== id) return;
 
     const { element, timeout } = this.active;
-
+    this.active.status = 'exiting';
     if (timeout) clearTimeout(timeout);
 
     // Animate out
     element.classList.remove('moment-notice--entering');
     element.classList.add('moment-notice--exiting');
 
-    trackedTimeout(() => {
-      element.remove();
-      this.active = null;
-      this.emit('notice:dismissed', { id });
-      this.processQueue();
-    }, prefersReducedMotion() ? 1 : DURATION.NORMAL);
+    trackedTimeout(
+      () => {
+        element.remove();
+        this.active = null;
+        this.emit('notice:dismissed', { id });
+        this.processQueue();
+      },
+      prefersReducedMotion() ? DURATION.FAST : DURATION.NORMAL
+    );
 
     log.debug({ id }, 'Notice dismissed');
   }
@@ -356,10 +360,7 @@ class MomentsManager {
   /**
    * Show a celebration - milestone moment with visual flourish.
    */
-  async celebrate(
-    type: CelebrationType,
-    data?: Omit<CelebrationConfig, 'type'>
-  ): Promise<void> {
+  async celebrate(type: CelebrationType, data?: Omit<CelebrationConfig, 'type'>): Promise<void> {
     if (isOverlayHostEnabled()) {
       this.emit('celebration:started', { type });
       // An achievement toast instead of the centred card over the call controls.
@@ -642,10 +643,7 @@ class MomentsManager {
   /**
    * Subscribe to moment events.
    */
-  on<K extends keyof MomentEvents>(
-    event: K,
-    listener: MomentEventListener<K>
-  ): () => void {
+  on<K extends keyof MomentEvents>(event: K, listener: MomentEventListener<K>): () => void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
@@ -727,13 +725,6 @@ class MomentsManager {
     }
   }
 
-  private getAccessibleDuration(duration: number, level: MomentLevel): number {
-    if (prefersReducedMotion()) {
-      return REDUCED_MOTION_DURATIONS[level] ?? duration;
-    }
-    return duration;
-  }
-
   private wait(ms: number): Promise<void> {
     return new Promise((resolve) => trackedTimeout(resolve, ms));
   }
@@ -756,6 +747,7 @@ class MomentsManager {
     this.dismissAll();
     this.container?.remove();
     this.container = null;
+    this.regions = null;
     removeMomentStyles();
     this.listeners.clear();
     this.initialized = false;
