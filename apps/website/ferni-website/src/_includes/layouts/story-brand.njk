@@ -22,7 +22,7 @@
   {# ====== STYLES (with cache-busting) ====== #}
   {# CRITICAL: tokens.css MUST come first - defines all CSS variables #}
   <link rel="stylesheet" href="/css/tokens.css?v=20261005">
-  <link rel="stylesheet" href="/css/story-brand.css?v=20260103">
+  <link rel="stylesheet" href="/css/story-brand.css?v=20261011">
   <link rel="stylesheet" href="/css/components.css?v=20251224">
   <link rel="stylesheet" href="/css/sections/footer.css?v=20251231">
   <link rel="stylesheet" href="/css/landing-intelligence.css?v=20251224">
@@ -34,6 +34,7 @@
   <link rel="stylesheet" href="/css/ferni-eq.css?v=20251231">
   <link rel="stylesheet" href="/css/ferni-showcase.css?v=20251230">
   <link rel="stylesheet" href="/css/waitlist-modal.css?v=20251225">
+  <link rel="stylesheet" href="/css/dark-mode-surfaces.css?v=20261011">
   
   {# ====== OPEN GRAPH ====== #}
   <meta property="og:title" content="{{ title }} | Ferni">
@@ -105,28 +106,8 @@
             "name": "Free",
             "price": "0",
             "priceCurrency": "USD"
-          },
-          {
-            "@type": "Offer",
-            "name": "Friend",
-            "price": "9.99",
-            "priceCurrency": "USD",
-            "billingIncrement": "P1M"
-          },
-          {
-            "@type": "Offer",
-            "name": "Partner",
-            "price": "19.99",
-            "priceCurrency": "USD",
-            "billingIncrement": "P1M"
           }
         ],
-        "aggregateRating": {
-          "@type": "AggregateRating",
-          "ratingValue": "4.9",
-          "ratingCount": "1247",
-          "bestRating": "5"
-        },
         "description": "Six AI specialists who actually listen, remember everything, and help you grow. Available 24/7 via voice, text, or app."
       },
       {
@@ -242,7 +223,7 @@
   <script src="/js/persona-quiz.js"></script>
   
   {# ====== AI COPY MAGIC - Gemini-powered dynamic copy ====== #}
-  {# Time-aware hero, smart social proof, adaptive CTAs, hover insights #}
+  {# Time-aware hero, adaptive CTAs, hover insights, persona voices #}
   <script src="/js/ai-copy-magic.js"></script>
   
   {# ====== AI STORYTELLING - Superhuman narrative generation ====== #}

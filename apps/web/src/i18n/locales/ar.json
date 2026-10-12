@@ -1331,7 +1331,7 @@
         "calendar": "التقويم",
         "history": "المحادثات السابقة",
         "people": "المقربون منك",
-        "insights": "كيف حالك"
+        "insights": "ما تعلمته"
       }
     },
     "ariaLabel": "قائمة الإعدادات",
@@ -9055,6 +9055,7 @@
     }
   },
   "conversationHistory": {
+    "title": "المحادثات السابقة",
     "loadError": "تعذر تحميل البيانات.",
     "tryAgain": "هل تودون المحاولة مجدداً؟",
     "ariaLabel": "سجل المحادثات",
@@ -10828,6 +10829,12 @@
       "fair": "مقبول",
       "poor": "اتصال ضعيف",
       "disconnected": "غير متصل"
+    },
+    "island": {
+      "offline": "لا يوجد اتصال بالإنترنت. سأعيد الاتصال عند عودتك.",
+      "reconnecting": "جارٍ إعادة الاتصال…",
+      "weak": "اتصال ضعيف",
+      "backOnline": "عاد الاتصال"
     }
   },
   "ideasGallery": {
@@ -11350,6 +11357,9 @@
       "other": "{count} يوم"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "يم يم!"
+  },
   "avatarTapReactions": {
     "tickles": "ههه، هذا يثير الدغدغة!"
   },
@@ -11630,5 +11640,17 @@
     "correctLabel": "",
     "wrongDone": "",
     "empty": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "ساهم",
+    "title": "دولار واحد يُبقي الحديث مستمرًا",
+    "body": "Ferni مجاني حاليًا. إن ساعدك حديث، يمكنك إرسال دولار عبر Venmo. المزيد مرحَّب به، ولكنه غير متوقَّع أبدًا.",
+    "qrAlt": "رمز QR على Venmo للحساب @{handle}",
+    "copy": "نسخ",
+    "copied": "تم النسخ",
+    "openVenmo": "افتح Venmo",
+    "helper": "امسحه بكاميرا هاتفك، أو اضغط على افتح Venmo. يمكنك تغيير المبلغ.",
+    "maybeLater": "ربما لاحقًا",
+    "close": "إغلاق"
   }
 }

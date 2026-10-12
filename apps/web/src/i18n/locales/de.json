@@ -1319,7 +1319,7 @@
         "calendar": "Kalender",
         "history": "Bisherige Gespräche",
         "people": "Deine Leute",
-        "insights": "Wie es dir geht"
+        "insights": "Was ich gelernt habe"
       }
     },
     "ariaLabel": "Einstellungen-Menü",
@@ -8791,6 +8791,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Bisherige Gespräche",
     "loadError": "Daten konnten nicht geladen werden.",
     "tryAgain": "Nochmal versuchen?",
     "ariaLabel": "Gesprächsverlauf",
@@ -10408,6 +10409,12 @@
       "fair": "Akzeptabel",
       "poor": "Schlechte Verbindung",
       "disconnected": "Getrennt"
+    },
+    "island": {
+      "offline": "Du bist offline. Ich verbinde mich wieder, sobald du zurück bist.",
+      "reconnecting": "Verbinde neu…",
+      "weak": "Schwache Verbindung",
+      "backOnline": "Wieder online"
     }
   },
   "ideasGallery": {
@@ -10866,6 +10873,9 @@
       "other": "{count} Tage"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "Mjam, mjam!"
+  },
   "avatarTapReactions": {
     "tickles": "Hehe, das kitzelt!"
   },
@@ -11130,5 +11140,17 @@
     "correctLabel": "",
     "wrongDone": "",
     "empty": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "Beitragen",
+    "title": "Ein Dollar hält das Gespräch am Laufen",
+    "body": "Ferni ist vorerst kostenlos. Wenn dir ein Gespräch geholfen hat, kannst du einen Dollar über Venmo senden. Mehr ist willkommen, aber nie erwartet.",
+    "qrAlt": "Venmo-QR-Code für @{handle}",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "openVenmo": "Venmo öffnen",
+    "helper": "Scanne ihn mit der Kamera deines Handys oder tippe auf Venmo öffnen. Den Betrag kannst du ändern.",
+    "maybeLater": "Vielleicht später",
+    "close": "Schließen"
   }
 }

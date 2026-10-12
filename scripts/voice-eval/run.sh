@@ -1,7 +1,13 @@
 #!/bin/zsh
 # Run one scripted conversation against a LiveKit Cloud agent and score it.
 #
-# usage: scripts/voice-eval/run.sh <dev|prod|local|phone> <scenario> [label] [user_id]
+# usage: scripts/voice-eval/run.sh [--persona <id>] <dev|prod|local|phone> <scenario> [label] [user_id]
+#   --persona: start the call as that teammate (maya-santos, alex-chen, peter-john,
+#             jordan-taylor, nayan-patel, ...) instead of Ferni: sent as persona_id in
+#             the job metadata, which the agent reads to pick its persona. Also
+#             settable as EVAL_PERSONA. Recorded as meta.persona, so judge.mjs judges
+#             the call as that teammate. Not for phone (inbound calls carry no metadata).
+#             Default: the scenario's "#@persona <id>" line (teammate-*.txt), else Ferni.
 #   scenario: a name under scenarios/ (long-day, story, playful, ...)
 #   label:    names the output files (default: HHMMSS)
 #   user_id:  who the agent thinks is calling (also settable as EVAL_UID).
@@ -50,6 +56,9 @@
 set -euo pipefail
 HERE=${0:A:h}
 ROOT=${HERE:h:h}
+persona_opt=()
+zparseopts -D -E -- -persona:=persona_opt
+persona=${persona_opt[2]:-${EVAL_PERSONA:-}}
 env=$1; scenario=$2; label=${3:-$(date +%H%M%S)}
 seed=${EVAL_SEED:-}
 uid=${4:-${EVAL_UID:-voice-eval-$scenario-$(date +%Y%m%d%H%M%S)-$(od -An -N2 -tx1 /dev/urandom | tr -d ' \n')}}
@@ -60,6 +69,16 @@ fi
 for s in $scenario $seed; do
   [[ -f $HERE/scenarios/$s.txt ]] || { print -u2 "run.sh: no scenario $HERE/scenarios/$s.txt"; exit 2; }
 done
+# A scenario written for one teammate names them: "#@persona maya-santos".
+[[ -n $persona ]] || persona=$(sed -n 's/^#@persona[[:space:]]*//p' $HERE/scenarios/$scenario.txt | head -1)
+if [[ -n $persona && ! -f $ROOT/src/personas/bundles/$persona/persona.manifest.json ]]; then
+  print -u2 "run.sh: no persona bundle $ROOT/src/personas/bundles/$persona"
+  exit 2
+fi
+if [[ $env == phone && -n $persona ]]; then
+  print -u2 "run.sh: --persona needs job metadata; phone calls always reach Ferni"
+  exit 2
+fi
 if [[ $env == phone && -n $seed ]]; then
   print -u2 "run.sh: EVAL_SEED needs a known caller; phone callers are anonymous"
   exit 2
@@ -79,8 +98,21 @@ fi
 json=$out/$scenario-$label.json
 stamp=$(date +%H%M%S)
 
+# The job metadata the agent is dispatched with: who calls, from where, and (with
+# --persona) which persona answers, as persona_id. Built with JSON.stringify: a
+# quote or backslash in a value must not break it.
+job_meta() {
+  node -e '
+    const [uid, tz, city, region, persona] = process.argv.slice(1);
+    const m = { user_id: uid, user_name: "Sam", timezone: tz };
+    if (city) Object.assign(m, { city, regionCode: region });
+    if (persona) m.persona_id = persona;
+    process.stdout.write(JSON.stringify(m));
+  ' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}" "$persona"
+}
+
 if [[ -n ${EVAL_DRY_RUN:-} ]]; then
-  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"seed\":\"$seed\",\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
+  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"metadata\":$(job_meta),\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
   exit 0
 fi
 
@@ -124,18 +156,12 @@ converse_call() {
   adir=$(prepare_turns $sc)
   turns=(${(f)"$(<$adir/turns.list)"})
   room="eval-$sc-$label-$(date +%H%M%S)"
-  # Built with JSON.stringify: a quote or backslash in a value must not break it.
-  meta=$(node -e '
-    const [uid, tz, city, region] = process.argv.slice(1);
-    const m = { user_id: uid, user_name: "Sam", timezone: tz };
-    if (city) Object.assign(m, { city, regionCode: region });
-    process.stdout.write(JSON.stringify(m));
-  ' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}")
+  meta=$(job_meta)
   tok=$(lk token create --project $project --join --room $room --identity eval-user --name Sam \
     --agent $agent --job-metadata "$meta" --valid-for 20m 2>/dev/null \
     | grep -Eo 'eyJ[A-Za-z0-9._-]+' | head -1)
   print -u2 "voice-eval: $role $sc as $uid in $room"
-  (cd $ROOT && VOICE_EVAL_META="{\"uid\":\"$uid\",\"env\":\"$env\",\"scenario\":\"$sc\",\"label\":\"$label\",\"room\":\"$room\",\"role\":\"$role\",\"seed\":\"$seed\"}" \
+  (cd $ROOT && VOICE_EVAL_META="{\"uid\":\"$uid\",\"env\":\"$env\",\"scenario\":\"$sc\",\"label\":\"$label\",\"room\":\"$room\",\"role\":\"$role\",\"seed\":\"$seed\",\"persona\":\"$persona\"}" \
     node $HERE/converse.mjs $url "$tok" $file $turns)
 }
 

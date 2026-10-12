@@ -81,7 +81,9 @@
   },
   "transcript": {
     "enabled": "Transcription on",
-    "disabled": "Transcription off"
+    "disabled": "Transcription off",
+    "captionsLabel": "Live captions",
+    "you": "You"
   },
   "placeholders": {
     "customAmount": "Custom amount",
@@ -344,7 +346,7 @@
         "calendar": "Calendar",
         "history": "Past chats",
         "people": "Your people",
-        "insights": "How you're doing"
+        "insights": "What I've learned"
       }
     },
     "ariaLabel": "Settings menu",
@@ -8802,6 +8804,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Past Chats",
     "loadError": "Couldn't load data.",
     "tryAgain": "Try again?",
     "ariaLabel": "Conversation history",
@@ -9460,6 +9463,7 @@
       "groupSessions": "group sessions",
       "vibeController": "the vibe controller",
       "smartHomeSettings": "smart home settings",
+      "siriShortcuts": "Siri Shortcuts",
       "appleHealthSettings": "Apple Health settings",
       "eightSleepSettings": "Eight Sleep settings",
       "ouraSettings": "Oura settings",
@@ -10422,6 +10426,12 @@
       "fair": "Fair",
       "poor": "Poor connection",
       "disconnected": "Disconnected"
+    },
+    "island": {
+      "offline": "You're offline. I'll reconnect when you're back.",
+      "reconnecting": "Reconnecting…",
+      "weak": "Weak connection",
+      "backOnline": "Back online"
     }
   },
   "ideasGallery": {
@@ -10880,6 +10890,9 @@
     "confidenceTitle": "{confidence}% confidence",
     "loadError": "Unable to load your progress"
   },
+  "avatarFeedback": {
+    "nomNom": "Nom nom!"
+  },
   "avatarTapReactions": {
     "tickles": "Hehe, that tickles!"
   },
@@ -11130,5 +11143,17 @@
     "correctLabel": "What's right?",
     "wrongDone": "Got it. I had that wrong.",
     "empty": "Nothing yet. What I learn about you shows up here, and you can change any of it."
+  },
+  "venmoChipIn": {
+    "eyebrow": "Chip in",
+    "title": "A dollar keeps the conversation going",
+    "body": "Ferni is free for now. If a talk helped, you can send a dollar on Venmo. More is welcome, never expected.",
+    "qrAlt": "Venmo QR code for @{handle}",
+    "copy": "Copy",
+    "copied": "Copied",
+    "openVenmo": "Open Venmo",
+    "helper": "Scan with your phone's camera, or tap Open Venmo. You can change the amount.",
+    "maybeLater": "Maybe later",
+    "close": "Close"
   }
 }

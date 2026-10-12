@@ -1319,7 +1319,7 @@
         "calendar": "Calendar",
         "history": "Past chats",
         "people": "Your people",
-        "insights": "How you're doing"
+        "insights": "What I've learned"
       }
     },
     "ariaLabel": "Settings menu",
@@ -8791,6 +8791,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Past Chats",
     "loadError": "Couldn't load data.",
     "tryAgain": "Try again?",
     "ariaLabel": "Conversation history",
@@ -10411,6 +10412,12 @@
       "fair": "Fair",
       "poor": "Poor connection",
       "disconnected": "Disconnected"
+    },
+    "island": {
+      "offline": "You're offline. I'll reconnect when you're back.",
+      "reconnecting": "Reconnecting…",
+      "weak": "Weak connection",
+      "backOnline": "Back online"
     }
   },
   "ideasGallery": {
@@ -10869,6 +10876,9 @@
       "other": "{count} days"
     }
   },
+  "avatarFeedback": {
+    "nomNom": "Nom nom!"
+  },
   "avatarTapReactions": {
     "tickles": "Hehe, that tickles!"
   },
@@ -11130,5 +11140,17 @@
     "correctLabel": "",
     "wrongDone": "",
     "empty": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "Chip in",
+    "title": "A dollar keeps the conversation going",
+    "body": "Ferni is free for now. If a talk helped, you can send a dollar on Venmo. More is welcome, never expected.",
+    "qrAlt": "Venmo QR code for @{handle}",
+    "copy": "Copy",
+    "copied": "Copied",
+    "openVenmo": "Open Venmo",
+    "helper": "Scan with your phone's camera, or tap Open Venmo. You can change the amount.",
+    "maybeLater": "Maybe later",
+    "close": "Close"
   }
 }
