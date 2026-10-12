@@ -56,6 +56,7 @@ vi.mock('../../../../memory/embeddings.js', () => ({
 // Nothing forgotten (memory-executor-forget.test.ts covers forgetting).
 vi.mock('../../../../memory/signals/user-memory-indexer.js', () => ({
   readForgottenTopics: async () => [],
+  forgottenFactCopies: async () => new Set<string>(),
 }));
 
 // Mock RAG

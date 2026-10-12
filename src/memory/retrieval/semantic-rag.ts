@@ -66,6 +66,8 @@ function getActiveStore(): AnyVectorStore {
  * RAG search result
  */
 export interface RAGResult {
+  /** The vector document's id ("conversation_fact_<docId>" for an indexed dynamic fact). */
+  id?: string;
   content: string;
   source: string;
   category?: string;
@@ -294,6 +296,7 @@ export async function semanticSearch(
   metrics.recordRetrieval(durationMs, results.length, topScore);
 
   return results.map((r) => ({
+    id: r.document.id,
     content: r.document.text,
     source: r.document.metadata.source,
     category: r.document.metadata.category as string | undefined,

@@ -171,12 +171,22 @@ async function execute(
     log.info({ topic, userId: ctx.userId }, '🧠 Recalling from memory');
 
     if (ctx.userId) {
-      // Check cache first
+      // Nothing they asked to forget comes back, cached or not: unreadable
+      // topics recall nothing (fails closed).
+      const { readForgottenTopics, forgottenFactCopies } =
+        await import('../../../memory/signals/user-memory-indexer.js');
+      const { isForgotten } = await import('../../../memory/recall/session-recall.js');
+      const forgotten = await readForgottenTopics(ctx.userId);
+      if (forgotten === null) {
+        log.warn({ userId: ctx.userId }, 'Forgotten topics unreadable: recalling nothing');
+        return "I can't look back through our past conversations right now.";
+      }
+
       if (ctx.sessionId) {
         try {
           const { getCachedMemoryResult } = await import('../performance/session-optimizations.js');
           const cached = getCachedMemoryResult(ctx.sessionId, topic);
-          if (cached) {
+          if (cached && !isForgotten(String(cached.result), forgotten)) {
             log.debug({ topic }, '💾 Memory recall from cache');
             return cached.result as string;
           }
@@ -186,17 +196,6 @@ async function execute(
       }
 
       try {
-        // Nothing they asked to forget comes back: unreadable topics recall
-        // nothing from memory (fails closed); the index may still hold copies
-        // made before the forget (user-memory-indexer.ts removes them later).
-        const { readForgottenTopics } =
-          await import('../../../memory/signals/user-memory-indexer.js');
-        const { isForgotten } = await import('../../../memory/recall/session-recall.js');
-        const forgotten = await readForgottenTopics(ctx.userId);
-        if (forgotten === null) {
-          log.warn({ userId: ctx.userId }, 'Forgotten topics unreadable: recalling nothing');
-          return "I can't look back through our past conversations right now.";
-        }
         const { getRAGContext } = await import('../../../memory/semantic-rag.js');
         const ragResults = await getRAGContext(topic, {
           topK: 5,
@@ -213,8 +212,13 @@ async function execute(
           timestamp?: Date;
         }
 
+        // An indexed fact is checked by its id: forgotten or gone, it is never said back.
+        const dropped = await forgottenFactCopies(
+          ctx.userId,
+          ragResults.results.map((r) => r.id)
+        );
         const memories: MemoryItem[] = ragResults.results
-          .filter((r) => !isForgotten(r.content, forgotten))
+          .filter((r) => !(r.id && dropped.has(r.id)) && !isForgotten(r.content, forgotten))
           .map((r) => ({
             content: r.content,
             score: r.score,

@@ -9,10 +9,9 @@
  */
 
 import type { UserProfile } from '../../types/user-profile.js';
-import { toSafeDate } from '../../utils/firestore-utils.js';
+import { getFirestoreDb, toSafeDate } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { indexConversationSummary, removeConversationDocument } from '../semantic-rag.js';
-import { firestoreForgetStore } from '../recall/forget.js';
 import { isForgotten } from '../recall/session-recall.js';
 import { getFirestore } from '../firestore-factory.js';
 import { readCallSummaries } from '../storage/call-summaries.js';
@@ -43,14 +42,78 @@ export interface IndexingOptions {
  */
 export async function readForgottenTopics(
   userId: string,
-  store: Pick<typeof firestoreForgetStore, 'topics'> = firestoreForgetStore
+  read: (userId: string) => Promise<unknown> = readTopicsField
 ): Promise<string[] | null> {
   try {
-    const topics: unknown = await store.topics(userId);
+    const topics = await read(userId);
+    // None recorded is []; anything but a list of strings is unreadable.
+    if (topics === undefined || topics === null) return [];
     return Array.isArray(topics) && topics.every((t) => typeof t === 'string') ? topics : null;
   } catch {
     return null;
   }
+}
+
+/** memory_state/forgotten.topics; throws with no database, so readers fail closed. */
+async function readTopicsField(userId: string): Promise<unknown> {
+  const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore not available');
+  const doc = await db
+    .collection('bogle_users')
+    .doc(userId)
+    .collection('memory_state')
+    .doc('forgotten')
+    .get();
+  return doc.exists ? doc.data()?.topics : undefined;
+}
+
+const FACT_COPY = /^conversation_fact_(.+)$/;
+
+/**
+ * Index results that are copies of a dynamic fact now forgotten (forgottenAt)
+ * or deleted, checked by the fact's id rather than its text: the text may
+ * not name the topic. If the facts can't be read, every fact copy is dropped.
+ */
+export async function forgottenFactCopies(
+  userId: string,
+  ids: ReadonlyArray<string | undefined>,
+  read: (
+    userId: string,
+    docIds: string[]
+  ) => Promise<Map<string, Record<string, unknown> | undefined>> = readFactDocs
+): Promise<Set<string>> {
+  const copies = ids.flatMap((id) => {
+    const m = id ? FACT_COPY.exec(id) : null;
+    return m?.[1] ? [{ id: id as string, docId: m[1] }] : [];
+  });
+  if (copies.length === 0) return new Set();
+  try {
+    const docs = await read(
+      userId,
+      copies.map((c) => c.docId)
+    );
+    return new Set(
+      copies
+        .filter((c) => {
+          const d = docs.get(c.docId);
+          return !d || (d.forgottenAt !== undefined && d.forgottenAt !== null);
+        })
+        .map((c) => c.id)
+    );
+  } catch {
+    return new Set(copies.map((c) => c.id));
+  }
+}
+
+async function readFactDocs(
+  userId: string,
+  docIds: string[]
+): Promise<Map<string, Record<string, unknown> | undefined>> {
+  const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore not available');
+  const facts = db.collection('bogle_users').doc(userId).collection('dynamic_facts');
+  const snaps = await db.getAll(...docIds.map((id) => facts.doc(id)));
+  return new Map(snaps.map((d) => [d.id, d.exists ? d.data() : undefined]));
 }
 
 /** Takes a forgotten item out of the index too: it may have been indexed before it was forgotten. */
@@ -152,8 +215,11 @@ export async function indexUserMemories(
         continue;
       }
 
-      // Create a searchable text from the fact
-      const searchableText = fact.key ? `${fact.key}: ${text}` : text;
+      // Create a searchable text from the fact; a person's name stays in it,
+      // so a topic like "Steve" still matches the indexed copy.
+      const entity = String(fact.entityName ?? '');
+      const named = entity && !/^(user|speaker|me)$/i.test(entity) ? `${entity} ` : '';
+      const searchableText = fact.key ? `${named}${fact.key}: ${text}` : `${named}${text}`;
       // Marked by forget.ts, or about a forgotten topic: never searchable again.
       const about = `${String(fact.entityName ?? '')} ${String(fact.key ?? '')} ${text}`;
       if (fact.forgottenAt != null || isForgotten(about, forgotten)) {
