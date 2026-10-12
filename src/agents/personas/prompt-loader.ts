@@ -24,6 +24,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { SELF_VOICED_NOTE, SPARSE_MARKUP_NOTE, adaptSpeechMarkup } from './speech-markup-notes.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { withOwnLife } from '../../personas/persona-slip-guard.js';
+import { withStoryHonesty } from './ai-honesty.js';
 // Use centralized FTIS mode check - single source of truth
 import { isFtisEnabled } from '../../config/tool-config.js';
 
@@ -837,10 +838,9 @@ export async function loadModelBaseInstructions(): Promise<string> {
       );
     }
 
-    // The one rule for when someone sincerely asks if they're talking to an AI.
-    // Appended to every base (character, minimal, full) so no persona or
-    // provider path can lose it; the persona prompts never bring it up.
-    const aiHonesty = await fs.readFile(join(sharedDir, 'ai-honesty.md'), 'utf-8');
+    // The one sincere-ask rule, on every base so no path loses it (ai-honesty.ts).
+    const honestyRule = await fs.readFile(join(sharedDir, 'ai-honesty.md'), 'utf-8');
+    const aiHonesty = withStoryHonesty(honestyRule);
 
     // Combine: base content + voice output rules (always appended)
     const combined = [baseContent, voiceOutputRules, aiHonesty]
