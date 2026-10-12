@@ -69,6 +69,8 @@ export const FLAG_MANIFEST = {
   // set by CI runners, not by us
   CI: { default: 'off', owner: 'tools', kind: 'config' },
   CLIP_TRACK_PACED: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the after-call extraction keeps the caller's own commitments (needs AFTER_CALL_EXTRACTION)
+  COACH_COMMITMENT_CAPTURE: { default: 'on', owner: 'intelligence', kind: 'kill-switch' },
   COACH_FOLLOW_THROUGH: { default: 'off', owner: 'platform', kind: 'experiment' },
   COACH_MEDIA: { default: 'off', owner: 'tools', kind: 'experiment' },
   COHORT_FLAGS: { default: 'off', owner: 'platform', kind: 'experiment' },
