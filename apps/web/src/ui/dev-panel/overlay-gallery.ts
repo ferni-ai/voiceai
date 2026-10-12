@@ -25,6 +25,23 @@ const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms)
 /** Long enough to screenshot; real toasts use the Moments defaults. */
 const HOLD_MS = 60_000;
 
+/**
+ * Run `show` with its self-dismiss timers stretched to HOLD_MS. Outreach and
+ * notification cards close themselves after 15 s, and a busy CI runner can
+ * spend that long on the first theme, so the second theme's frame missed the
+ * card. Only timers scheduled synchronously inside `show` are affected.
+ */
+function holdOpen(show: () => void): void {
+  const realSetTimeout = window.setTimeout;
+  window.setTimeout = ((handler: TimerHandler, ms?: number, ...args: unknown[]) =>
+    realSetTimeout(handler, ms !== undefined && ms >= 5_000 ? HOLD_MS : ms, ...args)) as typeof window.setTimeout;
+  try {
+    show();
+  } finally {
+    window.setTimeout = realSetTimeout;
+  }
+}
+
 async function twoToasts(): Promise<void> {
   const { showWhisper } = await import('../whisper.ui.js');
   showWhisper({
@@ -81,19 +98,21 @@ async function milestone(): Promise<void> {
 
 async function notificationCard(): Promise<void> {
   const { showRitualReminder } = await import('../notifications.ui.js');
-  showRitualReminder('Evening reflection', 'ferni', () => undefined);
+  holdOpen(() => showRitualReminder('Evening reflection', 'ferni', () => undefined));
 }
 
 async function outreach(): Promise<void> {
   const ui = await import('../proactive-outreach.ui.js');
   ui.initProactiveOutreachUI();
-  ui.showOutreach({
-    id: 'gallery-outreach',
-    type: 'thinking_of_you',
-    message: 'Thinking of you before your interview tomorrow. You have prepared well.',
-    personaId: 'ferni',
-    personaName: 'Ferni',
-  });
+  holdOpen(() =>
+    ui.showOutreach({
+      id: 'gallery-outreach',
+      type: 'thinking_of_you',
+      message: 'Thinking of you before your interview tomorrow. You have prepared well.',
+      personaId: 'ferni',
+      personaName: 'Ferni',
+    })
+  );
 }
 
 async function offlineBanner(): Promise<void> {
