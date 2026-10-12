@@ -88,6 +88,13 @@ describe('Voice Agent Entry - Module Structure', () => {
     expect(content).toContain('await cleanupThenEndJob(ctx, sessionEndReason, cleanupHandlers);');
   });
 
+  it('the single-agent wait uses the shared two-hour ceiling, not a 10-minute timer', async () => {
+    const content = await readAllEntryFiles();
+
+    expect(content).toContain('timers.push(startSessionCeiling(sessionId, () => {');
+    expect(content).not.toContain('10 * 60_000');
+  });
+
   it('should have cleanup handler integration', async () => {
     const content = await readAllEntryFiles();
 

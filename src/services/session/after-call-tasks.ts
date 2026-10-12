@@ -66,7 +66,7 @@ export function clearAfterCallTasks(): void {
   inFlight.clear();
 }
 
-/** Tasks started and not yet settled (finished, failed or timed out). */
+/** Tasks (and tracked call ends) started and not yet settled. */
 export function pendingAfterCallTasks(): number {
   return inFlight.size;
 }
@@ -99,6 +99,23 @@ async function runOne(
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Counts a call's end (its summary, which then starts these tasks) as pending
+ * until it settles. Session cleanup races a 10 s timeout and keeps running past
+ * it; without this, a per-call process could see 0 pending in the gap before
+ * runAfterCallTasks registers anything, exit, and kill the summary and tasks.
+ * Returns `work` unchanged.
+ */
+export function trackSessionEnd<T>(work: Promise<T>): Promise<T> {
+  const p = work.then(
+    () => undefined,
+    () => undefined // the caller handles the error; this only counts the work
+  );
+  inFlight.add(p);
+  void p.finally(() => inFlight.delete(p));
+  return work;
 }
 
 /** Starts every registered task for this call and returns without waiting. */

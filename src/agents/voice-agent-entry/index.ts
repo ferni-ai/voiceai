@@ -17,7 +17,7 @@
 import { isValidTimeZone } from '../shared/time-context.js';
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
-import { cleanupThenEndJob } from '../voice-agent/phases/session-end.js';
+import { cleanupThenEndJob, startSessionCeiling } from '../voice-agent/phases/session-end.js';
 import { noteCallerJoined } from './sip-caller.js';
 
 // Event cleanup registry for proper memory management
@@ -958,13 +958,13 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }, 1_000);
       timers.push(poll);
 
-      // Absolute safety net (shorter than 30m — leaked activeCalls hurt ops)
-      timers.push(setTimeout(() => {
+      // Two-hour backstop (not a call limit); the web client gets conversation_end first
+      timers.push(startSessionCeiling(sessionId, () => {
         if (!settled) {
           logDisconnectDiagnostics('disconnect_wait_timeout');
           finish('timeout');
         }
-      }, 10 * 60_000));
+      }));
     });
 
     e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);

@@ -13,6 +13,7 @@ import type { JobContext } from '@livekit/agents';
 
 import { sendFrontendSignal } from '../../../services/communication/frontend-signal.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { markSessionClosing } from '../../shared/session-closing-tracker.js';
 
 const log = createLogger({ module: 'session-end' });
 
@@ -32,6 +33,12 @@ const MAX_DURATION_DISCONNECT_DELAY_MS = 2_000;
 
 /** Longest the goodbye signal may hold up the end of the call. */
 const END_SIGNAL_TIMEOUT_MS = 3_000;
+
+/**
+ * Longest the cleanup handlers may hold up ending the job. A handler that never
+ * settles must not keep a silent agent in the room; the rest keep running.
+ */
+export const CLEANUP_LIMIT_MS = 15_000;
 
 export interface SessionEndOptions {
   maxDurationMs?: number;
@@ -83,10 +90,25 @@ export function waitForSessionEnd(
       if (Date.now() - emptySinceMs >= emptyRoomGraceMs) finish('empty_room');
     }, 1_000);
 
-    const ceiling = setTimeout(() => {
-      void tellClientCallIsOver(sessionId).finally(() => finish('timeout'));
-    }, maxDurationMs);
+    const ceiling = startSessionCeiling(sessionId, () => finish('timeout'), maxDurationMs);
   });
+}
+
+/**
+ * The call's hard ceiling (single- and multi-agent): when it fires, the call is
+ * marked closing (so no fallback line is spoken over the goodbye), the web
+ * client is sent `conversation_end`, and then `onCeiling` ends the wait.
+ * Clear the returned timer to cancel it.
+ */
+export function startSessionCeiling(
+  sessionId: string,
+  onCeiling: () => void,
+  maxDurationMs = MAX_SESSION_DURATION_MS
+): ReturnType<typeof setTimeout> {
+  return setTimeout(() => {
+    markSessionClosing(sessionId);
+    void tellClientCallIsOver(sessionId).finally(onCeiling);
+  }, maxDurationMs);
 }
 
 /** Sends `conversation_end` so the web client hangs up instead of facing a silent room. */
@@ -113,23 +135,47 @@ async function tellClientCallIsOver(sessionId: string): Promise<void> {
 const endedJobs = new WeakSet<JobContext>();
 
 /**
- * Ends the job once the call's cleanup has run, so the agent leaves the room
- * instead of the worker waiting for it to close. Runs `cleanup` first (each
- * handler's error is logged, never thrown) and calls ctx.shutdown at most once
- * per job. A room that already disconnected needs no shutdown, as in the
- * single-agent path.
+ * Ends the job once the call's cleanup has run, or after CLEANUP_LIMIT_MS, so
+ * the agent leaves the room instead of the worker waiting for it to close.
+ * Runs `cleanup` in order (each handler's error is logged, never thrown); past
+ * the limit it logs the handlers that hadn't finished and leaves them running.
+ * Calls ctx.shutdown at most once per job. A room that already disconnected
+ * needs no shutdown, as in the single-agent path.
+ *
+ * After-call work (summary, extraction) is not awaited here: handleSessionCleanup
+ * counts it as pending (after-call-tasks.ts trackSessionEnd), and a per-call
+ * process drains that count before it exits (job-child.ts).
  */
 export async function cleanupThenEndJob(
   ctx: JobContext,
   reason: string | undefined,
-  cleanup: ReadonlyArray<() => void | Promise<void>>
+  cleanup: ReadonlyArray<() => void | Promise<void>>,
+  limitMs = CLEANUP_LIMIT_MS
 ): Promise<void> {
-  for (const step of cleanup) {
-    try {
-      await step();
-    } catch (error) {
-      log.warn({ reason, error: String(error) }, 'Cleanup step failed before ending the job');
+  const unfinished = new Map(cleanup.map((step, i) => [i, step.name || `handler #${i}`] as const));
+  const steps = (async () => {
+    for (const [i, step] of cleanup.entries()) {
+      try {
+        await step();
+      } catch (error) {
+        log.warn({ reason, error: String(error) }, 'Cleanup step failed before ending the job');
+      }
+      unfinished.delete(i);
     }
+  })();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const outcome = await Promise.race([
+    steps.then(() => 'done' as const),
+    new Promise<'limit'>((resolve) => {
+      timer = setTimeout(() => resolve('limit'), limitMs);
+    }),
+  ]);
+  clearTimeout(timer);
+  if (outcome === 'limit') {
+    log.warn(
+      { reason, limitMs, unfinished: [...unfinished.values()] },
+      'Cleanup over its limit; ending the job anyway'
+    );
   }
   if (endedJobs.has(ctx) || reason === 'room.disconnected') return;
   endedJobs.add(ctx);

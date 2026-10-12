@@ -23,12 +23,21 @@ vi.mock('../../../../services/communication/frontend-signal.js', () => ({
   sendFrontendSignal: (type: string, data?: Record<string, unknown>, id?: string) =>
     sendFrontendSignal(type, data, id),
 }));
+const warn = vi.fn();
 vi.mock('../../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({ warn: vi.fn(), info: vi.fn(), debug: vi.fn(), error: vi.fn() }),
+  createLogger: () => ({ warn, info: vi.fn(), debug: vi.fn(), error: vi.fn() }),
+  getLogger: () => ({ warn: vi.fn(), info: vi.fn(), debug: vi.fn(), error: vi.fn() }),
 }));
 
-const { MAX_SESSION_DURATION_MS, cleanupThenEndJob, waitForSessionEnd } =
-  await import('../session-end.js');
+const {
+  CLEANUP_LIMIT_MS,
+  MAX_SESSION_DURATION_MS,
+  cleanupThenEndJob,
+  startSessionCeiling,
+  waitForSessionEnd,
+} = await import('../session-end.js');
+const { clearSessionClosing, isSessionClosing } =
+  await import('../../../shared/session-closing-tracker.js');
 
 interface FakeRoom extends EventEmitter {
   isConnected: boolean;
@@ -69,6 +78,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   events.length = 0;
   sendFrontendSignal.mockClear();
+  warn.mockClear();
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -156,5 +166,74 @@ describe('cleanupThenEndJob', () => {
     await cleanupThenEndJob(ctx, 'timeout', []);
     expect(later).toHaveBeenCalledTimes(1);
     expect(shutdown).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('cleanup limit', () => {
+  it('a handler that never settles: shutdown once, at the limit, naming what did not finish', async () => {
+    expect(CLEANUP_LIMIT_MS).toBe(15_000);
+    const { ctx, shutdown } = fakeCall(0);
+    const hung = function hungHandler(): Promise<void> {
+      return new Promise<void>(() => {
+        /* never settles */
+      });
+    };
+    // An inline arrow has no name: it is reported by position
+    void cleanupThenEndJob(ctx, 'timeout', [hung, () => undefined]);
+
+    await vi.advanceTimersByTimeAsync(CLEANUP_LIMIT_MS - 100);
+    expect(shutdown).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(200);
+    expect(shutdown).toHaveBeenCalledTimes(1);
+    expect(shutdown).toHaveBeenCalledWith('timeout');
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ unfinished: ['hungHandler', 'handler #1'] }),
+      expect.any(String)
+    );
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(shutdown).toHaveBeenCalledTimes(1);
+  });
+
+  it('a slow handler that finishes inside the limit is awaited, and nothing is reported', async () => {
+    const { ctx, shutdown } = fakeCall(0);
+    const done = cleanupThenEndJob(ctx, 'empty_room', [
+      () =>
+        new Promise<void>((resolve) => {
+          setTimeout(resolve, 12_000);
+        }),
+    ]);
+    await vi.advanceTimersByTimeAsync(11_000);
+    expect(shutdown).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1_500);
+    await done;
+    expect(shutdown).toHaveBeenCalledTimes(1);
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+describe('startSessionCeiling (single-agent and multi-agent)', () => {
+  it('marks the call closing, sends conversation_end, then ends the wait', async () => {
+    const onCeiling = vi.fn(() => events.push('ceiling'));
+    startSessionCeiling('s-ceiling', onCeiling);
+    await vi.advanceTimersByTimeAsync(MAX_SESSION_DURATION_MS - 1);
+    expect(onCeiling).not.toHaveBeenCalled();
+    expect(isSessionClosing('s-ceiling')).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1);
+    // Closing at once, so a fallback line can't be spoken over the goodbye
+    expect(isSessionClosing('s-ceiling')).toBe(true);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(events).toEqual(['signal:conversation_end', 'ceiling']);
+    clearSessionClosing('s-ceiling');
+  });
+
+  it('a cleared ceiling never fires', async () => {
+    const onCeiling = vi.fn();
+    clearTimeout(startSessionCeiling('s-cleared', onCeiling));
+    await vi.advanceTimersByTimeAsync(MAX_SESSION_DURATION_MS + 10_000);
+    expect(onCeiling).not.toHaveBeenCalled();
+    expect(sendFrontendSignal).not.toHaveBeenCalled();
   });
 });

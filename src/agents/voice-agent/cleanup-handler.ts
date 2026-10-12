@@ -133,7 +133,7 @@ import { recordSessionEngagement } from '../../personas/shared/personality-ab-te
 // FIX AUDIT: Import proper types for event handlers instead of using `any`
 import type { HandoffEventPayload } from '../shared/handoff/types.js';
 
-// 🧠 DEEP SIGNAL EXTRACTION: LLM-powered extraction at session end
+import { trackSessionEnd } from '../../services/session/after-call-tasks.js';
 
 // ============================================================================
 // CLEANUP TIMEOUT PROTECTION
@@ -271,8 +271,8 @@ export async function handleSessionCleanup(
   const timeout = createCleanupTimeout(timeoutMs);
 
   try {
-    // Wrap cleanup with timeout protection to prevent zombie sessions
-    await Promise.race([executeSessionCleanup(ctx, cleanupStart), timeout.promise]);
+    // Timeout-guarded, and tracked: it runs on past the timeout; a per-call process drains it
+    await Promise.race([trackSessionEnd(executeSessionCleanup(ctx, cleanupStart)), timeout.promise]);
   } catch (error) {
     const elapsed = Date.now() - cleanupStart;
     success = false;
