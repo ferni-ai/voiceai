@@ -25,6 +25,7 @@ import {
 } from './nonverbal.js';
 import { normalizeForSpeech } from './normalize.js';
 import { decideSpeed } from './pacing.js';
+import { personaEmotion, personaPace, type PersonaDelivery } from './persona-delivery.js';
 import { respondToProsody, type ProsodyResponse } from './prosody-response.js';
 import type { CallerProsody } from '../../audio-prosody/caller-prosody.js';
 import { commaDensity, planPauses, removeMidSentenceEllipses } from './pauses.js';
@@ -95,6 +96,11 @@ export interface EngineContext {
   callerProsody?: CallerProsody;
   /** Ferni's own energy on this call as a pace nudge (ferni-energy.ts; 0 when FERNI_STATE is off). */
   ferniNudge?: number;
+  /**
+   * TEAM_VOICES=on: this persona's resting pace, band, loudness and tones
+   * (persona-delivery.ts). Absent: Ferni's delivery (Ferni, or the flag off).
+   */
+  persona?: PersonaDelivery;
   /** Renders opening controls; providers/cartesia.ts prosodyTags. */
   renderTags: (prosody: SSMLProsodyConfig) => string;
   /**
@@ -140,6 +146,11 @@ export function composeSpeed(incoming: number, reply: number): number {
   return Math.round(ratio * 100) / 100;
 }
 
+/** An incoming volume (a soft start, the LLM's own tag) scaled by the reply's, inside Cartesia's 0.5-2. */
+export function composeVolume(incoming: number, reply: number): number {
+  return Math.round(Math.min(2, Math.max(0.5, incoming * reply)) * 100) / 100;
+}
+
 export class DirectorEngine {
   readonly plan: SpeechPlan = { segments: [] };
   readonly stats: EngineStats = {
@@ -162,6 +173,11 @@ export class DirectorEngine {
     return this.ctx.callerProsody;
   }
   speed = 1;
+  /**
+   * The pace before the persona's scale (persona-delivery.ts): what the next
+   * reply smooths from. Equals `speed` without a persona profile.
+   */
+  relativeSpeed = 1;
   /** Stage 2 tempo for this reply, when the voice can't take a <speed> tag. */
   tempo: number | undefined;
   /** The opening breath/sigh decision (decided unless the nonverbal lever is off). */
@@ -179,6 +195,8 @@ export class DirectorEngine {
   private readonly spokenPhrases: PhraseAssembler;
   private opened = false;
   private replySpeed = 1;
+  /** The persona's resting loudness, applied with the pacing lever live (1: unchanged). */
+  private replyVolume = 1;
   private pendingTags = '';
   private segmentsSinceBreath = Infinity;
   private spokenSighChecked = false;
@@ -360,13 +378,15 @@ export class DirectorEngine {
     // Decided in shadow too, so the plan log shows what it would do.
     this.prosody = respondToProsody(this.ctx.callerProsody, this.replyValence);
     const answerVoice = this.live('prosody');
+    const persona = this.ctx.persona;
     this.emotion = decideEmotion({
       authored: this.ctx.cues.authoredEmotion,
-      sessionHint: this.ctx.sessionHint,
+      sessionHint: this.ctx.sessionHint ?? persona?.defaultEmotion,
       openingText,
       previous: this.ctx.carry.emotion,
       prosody: answerVoice ? this.prosody.emotion : undefined,
     });
+    if (persona) this.toPersonaEmotion(persona);
     const pace = decideSpeed({
       valence: readValence(openingText),
       emotion: this.emotion.emotion,
@@ -374,7 +394,7 @@ export class DirectorEngine {
       previous: this.ctx.carry.speed,
       nudge: (answerVoice ? this.prosody.speedNudge : 0) + (this.ctx.ferniNudge ?? 0),
     });
-    this.speed = Math.abs(pace.speed - 1) < SPEED_EPSILON ? 1 : pace.speed;
+    this.settlePace(pace.speed);
     this.replySpeed = this.live('pacing') && pace.supported ? this.speed : 1;
     if (this.ctx.modes.nonverbal !== 'off') {
       this.opening = decideOpening({
@@ -393,12 +413,34 @@ export class DirectorEngine {
     }
   }
 
+  /** The persona's tone: the Director's pick if the persona uses it, else its nearest fit. */
+  private toPersonaEmotion(persona: PersonaDelivery): void {
+    const emotion = personaEmotion(persona, this.emotion.emotion, this.replyValence);
+    if (emotion !== this.emotion.emotion) {
+      this.emotion = { emotion, source: emotion ? 'persona' : 'none' };
+    }
+  }
+
+  /**
+   * The Director's pace is relative to a resting 1.0 and smoothed in that
+   * space (the carry-over); a persona profile places it on the persona's own
+   * scale, and sets the reply's resting loudness.
+   */
+  private settlePace(relative: number): void {
+    const persona = this.ctx.persona;
+    const speed = persona ? personaPace(persona, relative) : relative;
+    this.speed = Math.abs(speed - 1) < SPEED_EPSILON ? 1 : speed;
+    this.relativeSpeed = persona ? relative : this.speed;
+    this.replyVolume = persona && this.live('pacing') ? persona.volume : 1;
+  }
+
   private openingTags(original: string, lead: SSMLProsodyConfig): string {
     if (!this.live('emotion') && !this.live('pacing')) return original;
     return this.ctx.renderTags({
       // A soft start (interrupt recovery) keeps its own pace, scaled by the reply's.
       speed: this.live('pacing') ? composeSpeed(lead.speed ?? 1, this.replySpeed) : lead.speed,
-      volume: lead.volume,
+      volume:
+        this.replyVolume === 1 ? lead.volume : composeVolume(lead.volume ?? 1, this.replyVolume),
       emotion: this.live('emotion') ? this.emotion.emotion : lead.emotion,
     });
   }
@@ -415,6 +457,12 @@ export class DirectorEngine {
       tags = tags.replace(
         SPEED_TAG,
         `<speed ratio="${composeSpeed(lead.speed, this.replySpeed)}"/>`
+      );
+    }
+    if (this.replyVolume !== 1 && lead.volume !== undefined) {
+      tags = tags.replace(
+        VOLUME_TAG,
+        `<volume ratio="${composeVolume(lead.volume, this.replyVolume)}"/>`
       );
     }
     if (this.live('emotion')) tags = tags.replace(ANY_EMOTION_TAG, '');

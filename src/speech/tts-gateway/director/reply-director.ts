@@ -26,6 +26,7 @@ import { prosodyTags } from '../providers/cartesia.js';
 import { DirectorEngine } from './engine.js';
 import { ferniSpeedNudge } from './ferni-energy.js';
 import { leverModes, speechDirectorMode } from './gate.js';
+import { personaDelivery, teamVoicesOn } from './persona-delivery.js';
 import { RawCues } from './raw-cues.js';
 import { directorSessions, type DirectorSessions } from './session-state.js';
 import type { DirectorMode, LeverModes, SpeechPlan, TurnContext } from './types.js';
@@ -78,6 +79,8 @@ export interface PlanSummary {
   callerPitchSlope?: number;
   callerVoicedMs?: number;
   speed: number;
+  /** TEAM_VOICES: the Director's pace before the persona's scale (absent when the same). */
+  relativeSpeed?: number;
   /** Stage 2 tempo planned for this turn (a voice that ignores <speed>). */
   tempo?: number;
   /** Prosody tags were taken off every push (the voice ignores them). */
@@ -175,6 +178,7 @@ class DirectedReply implements ReplyStream {
           ? readCallerProsody(opts.sessionId, wordCount(opts.turnContext?.userRequest))
           : undefined,
       ferniNudge: ferniSpeedNudge(opts.sessionId),
+      persona: teamVoicesOn(opts.env) ? personaDelivery(opts.personaId) : undefined,
       laughter: {
         sessionId: opts.sessionId,
         personaId: opts.personaId,
@@ -355,6 +359,7 @@ class DirectedReply implements ReplyStream {
       prosodyEmotion: engine.prosody.emotion,
       ...callerReading(engine.callerProsody),
       speed: engine.speed,
+      relativeSpeed: engine.relativeSpeed === engine.speed ? undefined : engine.relativeSpeed,
       tempo: engine.tempo,
       tagsStripped: this.stripProsody,
       opening: engine.opening.opening?.kind,
@@ -370,7 +375,8 @@ class DirectedReply implements ReplyStream {
     if (opts.sessionId && engine.stats.pushesIn > 0) {
       (opts.sessions ?? directorSessions).update(opts.sessionId, opts.personaId, {
         emotion: engine.emotion.emotion,
-        speed: engine.speed,
+        // Smoothed in the Director's relative space; the persona scale is reapplied each reply.
+        speed: engine.relativeSpeed,
         ...engine.nonverbalCarry(),
       });
     }

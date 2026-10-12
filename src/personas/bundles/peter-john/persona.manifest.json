@@ -130,9 +130,10 @@
       "surprised",
       "sympathetic",
       "wistful",
-      "playful"
+      "happy"
     ],
-    "default_speed": 0.95,
+    "default_speed": 1.03,
+    "speed_band": [0.95, 1.08],
     "default_volume": 1.0,
     "laughter_frequency": 0.18,
     "nonverbals": ["[laughter]", "Ha!", "Oh!", "Ooh!", "Wait—"]

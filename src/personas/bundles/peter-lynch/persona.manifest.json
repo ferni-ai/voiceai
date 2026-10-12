@@ -20,7 +20,11 @@
       "similarity_boost": 0.78,
       "style": 0.35,
       "speed": 1.0
-    }
+    },
+    "default_speed": 1.0,
+    "speed_band": [0.94, 1.08],
+    "default_emotion": "curious",
+    "emotion_range": ["curious", "excited", "content", "affectionate", "sympathetic"]
   },
   "personality": {
     "warmth": 0.75,
