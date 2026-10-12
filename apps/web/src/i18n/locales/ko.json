@@ -1319,7 +1319,7 @@
         "calendar": "캘린더",
         "history": "지난 대화",
         "people": "소중한 사람들",
-        "insights": "요즘 나의 상태"
+        "insights": "내가 알게 된 것들"
       }
     },
     "ariaLabel": "설정 메뉴",
@@ -4620,7 +4620,8 @@
     "sourceInferred": "제가 알아차린 것",
     "correctButton": "수정하기",
     "memoriesCount": "{count}개의 기억들",
-    "confidence": "{confidence}% 확신해요"
+    "confidence": "{confidence}% 확신해요",
+    "earlier": "이전"
   },
   "memoryCorrection": {
     "modalTitle": "이 기억 수정하기",
@@ -8790,6 +8791,7 @@
     }
   },
   "conversationHistory": {
+    "title": "지난 대화",
     "loadError": "데이터를 불러오지 못했어요.",
     "tryAgain": "다시 시도해 볼까요?",
     "ariaLabel": "대화 기록",
@@ -10240,7 +10242,9 @@
     "seedsEarned": {
       "other": "{count}개의 씨앗을 얻었어요!",
       "one": "{count}개의 씨앗을 얻었어요!"
-    }
+    },
+    "couldNotLoadMemories": "기억하는 내용을 불러오지 못했어요. 다시 시도할까요?",
+    "memoryCorrected": "알겠어요. 그렇게 기억할게요."
   },
   "trustSignals": {
     "prefix": {
@@ -10405,6 +10409,12 @@
       "fair": "보통",
       "poor": "연결 불안정",
       "disconnected": "연결 끊김"
+    },
+    "island": {
+      "offline": "인터넷에 연결되어 있지 않아요. 다시 연결되면 바로 이어갈게요.",
+      "reconnecting": "다시 연결하는 중…",
+      "weak": "연결이 약해요",
+      "backOnline": "다시 연결됐어요"
     }
   },
   "ideasGallery": {
@@ -10862,6 +10872,9 @@
       "other": "{count}일",
       "one": "{count}일"
     }
+  },
+  "avatarFeedback": {
+    "nomNom": "냠냠!"
   },
   "avatarTapReactions": {
     "tickles": "헤헤, 간지러워요!"

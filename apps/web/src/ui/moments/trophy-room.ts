@@ -33,7 +33,6 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 const DATE_FORMAT: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
 
 const BADGE_CATEGORIES: Record<BadgeCategory, { labelKey: string; iconName: string }> = {
-  time: { labelKey: 'trophyRoom.categories.time', iconName: 'clock' },
   consistency: { labelKey: 'trophyRoom.categories.consistency', iconName: 'flame' },
   team: { labelKey: 'trophyRoom.categories.team', iconName: 'users' },
   memory: { labelKey: 'trophyRoom.categories.memory', iconName: 'lightbulb' },
@@ -48,14 +47,9 @@ interface BadgeConfig extends Omit<Badge, 'earnedAt' | 'name' | 'description' | 
 }
 
 const BADGE_DEFINITIONS: Record<string, BadgeConfig> = {
-  early_bird: { id: 'early_bird', nameKey: 'trophyRoom.badges.earlybrd.name', descriptionKey: 'trophyRoom.badges.earlybrd.desc', icon: 'sunrise', category: 'time', quoteKey: 'trophyRoom.badges.early_bird.quote' },
-  night_owl: { id: 'night_owl', nameKey: 'trophyRoom.badges.nightowl.name', descriptionKey: 'trophyRoom.badges.nightowl.desc', icon: 'moon', category: 'time', quoteKey: 'trophyRoom.badges.night_owl.quote' },
-  magic_hour: { id: 'magic_hour', nameKey: 'trophyRoom.badges.magichour.name', descriptionKey: 'trophyRoom.badges.magichour.desc', icon: 'sparkle', category: 'time', quoteKey: 'trophyRoom.badges.magic_hour.quote' },
-  night_shift: { id: 'night_shift', nameKey: 'trophyRoom.badges.nightshift.name', descriptionKey: 'trophyRoom.badges.nightshift.desc', icon: 'moon', category: 'time', quoteKey: 'trophyRoom.badges.night_shift.quote' },
   first_flame: { id: 'first_flame', nameKey: 'trophyRoom.badges.firstflame.name', descriptionKey: 'trophyRoom.badges.firstflame.desc', icon: 'flame', category: 'consistency', quoteKey: 'trophyRoom.badges.first_flame.quote' },
   streak_master: { id: 'streak_master', nameKey: 'trophyRoom.badges.streakmaster.name', descriptionKey: 'trophyRoom.badges.streakmaster.desc', icon: 'hundred', category: 'consistency', quoteKey: 'trophyRoom.badges.streak_master.quote' },
   daily_devotion: { id: 'daily_devotion', nameKey: 'trophyRoom.badges.dailydevote.name', descriptionKey: 'trophyRoom.badges.dailydevote.desc', icon: 'crown', category: 'consistency', quoteKey: 'trophyRoom.badges.daily_devotion.quote' },
-  deep_dive: { id: 'deep_dive', nameKey: 'trophyRoom.badges.deepdive.name', descriptionKey: 'trophyRoom.badges.deepdive.desc', icon: 'waves', category: 'consistency', quoteKey: 'trophyRoom.badges.deep_dive.quote' },
   first_meet: { id: 'first_meet', nameKey: 'trophyRoom.badges.firstmeet.name', descriptionKey: 'trophyRoom.badges.firstmeet.desc', icon: 'heart', category: 'team', quoteKey: 'trophyRoom.badges.first_meet.quote' },
   full_team: { id: 'full_team', nameKey: 'trophyRoom.badges.fullteam.name', descriptionKey: 'trophyRoom.badges.fullteam.desc', icon: 'handshake', category: 'team', quoteKey: 'trophyRoom.badges.full_team.quote' },
   team_player: { id: 'team_player', nameKey: 'trophyRoom.badges.teamplayer.name', descriptionKey: 'trophyRoom.badges.teamplayer.desc', icon: 'refresh', category: 'team', quoteKey: 'trophyRoom.badges.team_player.quote' },
@@ -83,7 +77,7 @@ class TrophyRoom {
   private detailModal: HTMLElement | null = null;
   private styleElement: HTMLStyleElement | null = null;
   private earnedBadges: Map<string, Badge> = new Map();
-  private activeCategory: BadgeCategory = 'time';
+  private activeCategory: BadgeCategory = 'consistency';
   private haptics = getHapticsService();
   private onCloseCallback: (() => void) | null = null;
 
@@ -605,7 +599,7 @@ const TROPHY_ROOM_STYLES = `
   justify-content: center;
   color: var(--color-text-muted, #7a6f63);
   transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
-  z-index: 10;
+  z-index: var(--z-content);
 }
 
 .trophy-room__close:hover {
@@ -765,7 +759,7 @@ const TROPHY_ROOM_STYLES = `
 .trophy-room__detail {
   position: fixed;
   inset: 0;
-  z-index: ${MOMENT_Z_INDEX.trophyRoom + 10};
+  z-index: ${MOMENT_Z_INDEX.trophyRoomDetail};
   display: flex;
   align-items: center;
   justify-content: center;

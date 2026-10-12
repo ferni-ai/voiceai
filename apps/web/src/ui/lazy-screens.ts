@@ -115,6 +115,7 @@ export async function openSupportFerni(): Promise<void> {
 }
 
 export async function openFerniFund(userId: string): Promise<void> {
+  if (isVenmoChipInEnabled()) return openSupport();
   const m = await loadScreen('lazyScreens.screens.garden', () => import('./ferni-fund.ui.js'));
   await m?.ferniFundUI.open(userId);
 }
