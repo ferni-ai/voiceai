@@ -11590,7 +11590,8 @@
     "ferniSpeaking": "فيرني يتحدث",
     "youSpeaking": "أنت تتحدث",
     "ferniThinking": "فيرني يفكر",
-    "tapToInterrupt": "انقر للمقاطعة"
+    "tapToInterrupt": "انقر للمقاطعة",
+    "tapToHear": "اضغط لسماع فيرني"
   },
   "answerCard": {
     "answer": "",
