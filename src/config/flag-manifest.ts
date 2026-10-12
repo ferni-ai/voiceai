@@ -291,6 +291,7 @@ export const FLAG_MANIFEST = {
   VOICE_HUMANIZATION_DISABLED: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   WAITLIST_GATE: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  WELCOME_BACK_BOTH_SIDES: { default: 'off', owner: 'voice', kind: 'experiment' },
   WORKER_PUBSUB: { default: 'off', owner: 'platform', kind: 'experiment' },
   WORLD_MODEL_SNAPSHOT: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   WORLD_MODEL_TEMPORAL: { default: 'off', owner: 'intelligence', kind: 'experiment' },
