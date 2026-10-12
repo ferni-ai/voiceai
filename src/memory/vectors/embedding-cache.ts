@@ -131,7 +131,7 @@ export class EmbeddingCache {
           return false;
         }
 
-        // protocol 2: ioredis 6 defaults to RESP3, which fails outright on Redis < 6.
+        // protocol 2: ioredis 6 defaults to RESP3; keep v5's RESP2 wire protocol.
         this.redisClient = new redisModule.default(this.config.redisUrl!, { protocol: 2 });
 
         // Test connection

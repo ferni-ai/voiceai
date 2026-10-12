@@ -90,6 +90,11 @@ describe('buildSentryOptions', () => {
         httpHeaders: false,
         httpBodies: [],
         urlQueryParams: false,
+        genAI: { inputs: false, outputs: false },
+        databaseQueryData: false,
+        queues: false,
+        graphQL: { document: false, variables: false },
+        stackFrameVariables: false,
       },
       includeLocalVariables: false,
     });

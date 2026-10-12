@@ -86,7 +86,7 @@ export class RedisJobQueue {
       const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
       const redisPassword = process.env.REDIS_PASSWORD;
 
-      // protocol 2: ioredis 6 defaults to RESP3, which fails outright on Redis < 6.
+      // protocol 2: ioredis 6 defaults to RESP3; keep v5's RESP2 wire protocol.
       const options = { maxRetriesPerRequest: 3, lazyConnect: true, protocol: 2 } as const;
       const redisClient = redisUrl
         ? new Redis(redisUrl, { ...options, keyPrefix: 'ferni:' })

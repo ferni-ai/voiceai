@@ -96,7 +96,7 @@ export class RedisCache {
       const Redis = (await import('ioredis')).default;
 
       // lazyConnect: we test the connection manually below. protocol 2: ioredis 6
-      // defaults to RESP3, which fails outright on Redis < 6.
+      // defaults to RESP3; keep v5's RESP2 wire protocol.
       const options = {
         keyPrefix: this.config.keyPrefix,
         maxRetriesPerRequest: this.config.maxRetriesPerRequest,

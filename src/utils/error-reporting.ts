@@ -63,13 +63,20 @@ export function buildSentryOptions(env: Env = process.env): SentryNode.NodeOptio
     // runtime channel hooks alone, so LiveKit's own tracer setup is untouched.
     enableOpenTelemetrySetup: tracing,
     enableRuntimeChannelInjection: tracing,
-    // Sentry 11 collects user, cookies, headers and bodies unless told not to.
+    // Sentry 11 dropped sendDefaultPii and collects all of these by default.
+    // AI prompts/completions would carry call transcripts; DB, queue and
+    // GraphQL payloads can carry phone numbers. Keep every one off.
     dataCollection: {
       userInfo: false,
       cookies: false,
       httpHeaders: false,
       httpBodies: [],
       urlQueryParams: false,
+      genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
+      queues: false,
+      graphQL: { document: false, variables: false },
+      stackFrameVariables: false,
     },
     includeLocalVariables: false,
     maxBreadcrumbs: 30,
