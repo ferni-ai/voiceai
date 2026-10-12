@@ -471,6 +471,11 @@ async function execute(
 
     // Both fact collections, and recall from then on (forget.ts).
     const forgot = await forgetForCaller(ctx.userId, target);
+    // A recall cached earlier in this call must not say it back.
+    if (ctx.sessionId) {
+      const { clearSessionMemoryCache } = await import('../performance/session-optimizations.js');
+      clearSessionMemoryCache(ctx.sessionId);
+    }
     if (forgot.kind !== 'forgotten') return forgetProblem(forgot);
     return `I've forgotten about that. Your privacy matters.`;
   }
