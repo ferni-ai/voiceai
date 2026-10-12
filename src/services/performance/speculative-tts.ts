@@ -685,10 +685,7 @@ class SpeculativeTTSEngine {
         body: JSON.stringify({
           model_id: CARTESIA_MODEL,
           transcript: plainText, // Use stripped text
-          voice: {
-            mode: 'id',
-            id: resolvedVoiceId,
-          },
+          voice: { mode: 'id', id: resolvedVoiceId },
           output_format: {
             container: 'raw',
             encoding: 'pcm_s16le',
