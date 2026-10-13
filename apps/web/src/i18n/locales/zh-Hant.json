@@ -2219,7 +2219,6 @@
       "other": "已匯入 {count} 位聯絡人！"
     },
     "integrationNowConnected": "{integration} 已連線！",
-    "inviteSentTo": "邀請已傳送至 {email}！",
     "householdMemberRemoved": "{name} 已移除",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} 已加入你的團隊",

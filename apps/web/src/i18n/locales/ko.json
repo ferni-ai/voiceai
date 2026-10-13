@@ -2219,7 +2219,6 @@
       "other": "연락처 {count}개를 가져왔어요!"
     },
     "integrationNowConnected": "{integration}이(가) 연결되었어요!",
-    "inviteSentTo": "{email}(으)로 초대장을 보냈어요!",
     "householdMemberRemoved": "{name} 님이 삭제되었어요",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} 님이 팀에 추가되었어요",
