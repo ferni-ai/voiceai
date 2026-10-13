@@ -14,7 +14,8 @@
  * @module services/platform/user-records-export
  */
 
-import { DocumentReference, getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { FieldPath, getFirestore } from 'firebase-admin/firestore';
+import { toPlain, type Plain } from './export-redaction.js';
 
 /** Collections whose {uid} document, and the stores under it, belong to that person */
 export const USER_RECORD_ROOTS = ['bogle_users', 'users'] as const;
@@ -209,90 +210,6 @@ export const OWNED_ELSEWHERE: ReadonlyArray<
 ];
 
 /**
- * Fields never exported, at any depth: inside nested objects, arrays, and JSON kept as a
- * string. A key is normalised before it's matched (NFKC, lower case, every separator and
- * non-letter removed), so accessToken, access_token, access-token, ACCESS.TOKEN and
- * "access token" are one key. Long unambiguous terms match anywhere in that key; short
- * ones only as a whole word or as the whole key, so "footprint" is not "otp".
- */
-const SECRET_KEY_PARTS = [
-  'token',
-  'secret',
-  'password',
-  'passwd',
-  'passcode',
-  'credential',
-  'apikey',
-  'accesskey',
-  'privatekey',
-  'signingkey',
-  'clientkey',
-  'oauth',
-  'p256dh',
-  'authorization',
-  'bearer',
-  'jwt',
-  'cookie',
-  'webauthn',
-  'passkey',
-  'pushsubscription',
-  'endpoint',
-  'refresh',
-  'sessionid',
-  'sessionkey',
-  'verificationcode',
-  'otpcode',
-  'pincode',
-  'authcode',
-  'totp',
-  'recoverycode',
-  'backupcode',
-];
-/** Secret only as a whole word of the key (auth in authMethod, not in author) */
-const SECRET_WORDS = new Set(['auth', 'otp', 'pin', 'hash', 'salt', 'mfa']);
-/** Secret only as the entire key */
-const SECRET_KEYS = new Set(['keys', 'key', 'access', 'code', 'sig', 'signature', 'nonce']);
-
-function normaliseKey(key: string): string {
-  return key
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
-}
-
-export function isSecretField(key: string): boolean {
-  const whole = normaliseKey(key);
-  if (SECRET_KEYS.has(whole) || SECRET_KEY_PARTS.some((part) => whole.includes(part))) {
-    return true;
-  }
-  const words = key
-    .normalize('NFKC')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-    .toLowerCase()
-    .split(/[^a-z0-9]+/);
-  return words.some((w) => SECRET_WORDS.has(w));
-}
-
-/** Values that are credentials whatever their key says (bearer, JWT, Google, Stripe, push) */
-const SECRET_VALUES = [
-  /^\s*bearer\s+\S/i,
-  /^ya29\./,
-  /^eyJ[\w-]{8,}\.[\w-]{8,}\./,
-  /^(sk|rk)_(live|test)_/,
-  /^[\w-]{20,}:APA91b/, // FCM registration token
-  /^Expo(nent)?PushToken\[/,
-  /^AIza[\w-]{30,}/,
-  /^(xox[abpr]|gh[pousr])[-_]/,
-  /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
-  /^https:\/\/(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|web\.push\.apple\.com|[\w.-]+\.notify\.windows\.com)\//i,
-];
-
-export function isSecretValue(value: string): boolean {
-  return SECRET_VALUES.some((pattern) => pattern.test(value));
-}
-
-/**
  * Stores a menu panel reads or the voice agent writes (menu audit 2026-10-12). The
  * export must carry each one; menu-export.emulator.test.ts fails when it doesn't.
  */
@@ -318,67 +235,7 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'contact_relationships',
 ];
 
-const MAX_DOCS_PER_COLLECTION = 10_000;
-
 type Db = FirebaseFirestore.Firestore;
-type Plain = string | number | boolean | null | Plain[] | { [key: string]: Plain };
-
-const DROP = Symbol('drop');
-
-/** instanceof that tolerates a stubbed module (the shared test setup fakes firestore) */
-function isA<T>(type: unknown, value: unknown): value is T {
-  return typeof type === 'function' && value instanceof type;
-}
-
-/**
- * Firestore values as JSON, with secrets removed: timestamps become ISO strings,
- * references their paths, and a string holding JSON is filtered like any object and
- * kept as a string. Secret fields and secret-looking values are dropped.
- */
-function clean(value: unknown): Plain | typeof DROP {
-  if (value === null || value === undefined) return null;
-  if (isA<Timestamp>(Timestamp, value)) return value.toDate().toISOString();
-  if (value instanceof Date) return value.toISOString();
-  if (isA<DocumentReference>(DocumentReference, value)) return value.path;
-  if (typeof value === 'string') return cleanString(value);
-  if (Array.isArray(value)) return value.map(clean).filter((v): v is Plain => v !== DROP);
-  // Bytes: nothing a person reads, and the one shape a key name can't describe
-  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return DROP;
-  if (typeof value === 'object') {
-    // No prototype, so a stored "__proto__" key is an own field the filter sees, not a setter
-    const out = Object.create(null) as Record<string, Plain>;
-    for (const [k, v] of Object.entries(value)) {
-      if (isSecretField(k)) continue;
-      const kept = clean(v);
-      if (kept !== DROP) out[k] = kept;
-    }
-    return out;
-  }
-  if (typeof value === 'number' || typeof value === 'boolean') return value;
-  return DROP; // functions, symbols, bigints: nothing a person stored
-}
-
-function cleanString(value: string): Plain | typeof DROP {
-  if (isSecretValue(value)) return DROP;
-  const trimmed = value.trim();
-  if (!/^[[{"]/.test(trimmed)) return value;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(trimmed);
-  } catch {
-    return value; // looks like JSON but isn't: plain text
-  }
-  // A JSON string literal may hold JSON again (double-encoded): clean() reaches it too
-  const kept = clean(parsed);
-  return kept === DROP ? DROP : JSON.stringify(kept);
-}
-
-/** A stored value as it goes into the export file (exported for tests) */
-export function toPlain(value: unknown): Plain {
-  const kept = clean(value);
-  return kept === DROP ? null : kept;
-}
-
 function pick(data: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
   return Object.fromEntries(fields.filter((f) => f in data).map((f) => [f, data[f]]));
 }
@@ -410,26 +267,118 @@ async function eachStore(db: Db, userId: string, read: StoreReader): Promise<voi
   }
 }
 
+/** Bounds on one export, so a big account (or a crafted one) can't exhaust the server */
+export interface ExportLimits {
+  /** Documents read per page; a store is read page by page, never at once */
+  pageSize: number;
+  /** Documents across the whole export */
+  maxDocs: number;
+  /** Bytes of JSON across the whole export */
+  maxBytes: number;
+  /** Wall time for the reads, inside the UI server's 30 s request limit */
+  deadlineMs: number;
+  /** Called after each page is read (tests count pages) */
+  onPage?: (label: string, docs: number) => void;
+}
+
+export const EXPORT_LIMITS: ExportLimits = {
+  pageSize: 500,
+  maxDocs: 20_000,
+  maxBytes: 20 * 1024 * 1024,
+  deadlineMs: 20_000,
+};
+
+/** Exports running at once in this process; each holds up to maxBytes */
+const MAX_CONCURRENT_EXPORTS = 3;
+let exportsRunning = 0;
+
+/**
+ * An export stopped at a limit: too many documents or bytes (413: the person can pick
+ * fewer categories or ask us for a copy), out of time, or too many running (503: later).
+ */
+export class ExportLimitError extends Error {
+  constructor(readonly reason: 'docs' | 'bytes' | 'time' | 'busy') {
+    super(`Export stopped at its ${reason} limit`);
+    this.name = 'ExportLimitError';
+  }
+
+  get status(): 413 | 503 {
+    return this.reason === 'docs' || this.reason === 'bytes' ? 413 : 503;
+  }
+}
+
 /**
  * Every record kept for this person, as stored. Keys are store paths
- * ("users/{uid}/calendar_events"), values the documents with their ids.
+ * ("users/{uid}/calendar_events"), values the documents with their ids. Reads go page by
+ * page in document-id order and stop with ExportLimitError at the first limit crossed.
  */
 export async function exportUserRecords(
   userId: string,
-  firestore?: Db
+  firestore?: Db,
+  limits: ExportLimits = EXPORT_LIMITS
+): Promise<Record<string, Plain>> {
+  const db = await openFor(userId, firestore);
+  if (exportsRunning >= MAX_CONCURRENT_EXPORTS) throw new ExportLimitError('busy');
+  exportsRunning += 1;
+  try {
+    return await readAll(db, userId, limits);
+  } finally {
+    exportsRunning -= 1;
+  }
+}
+
+/** A read that gives up at the export's deadline instead of holding the request open */
+async function beforeDeadline<T>(read: Promise<T>, deadline: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new ExportLimitError('time')),
+      Math.max(0, deadline - Date.now())
+    );
+  });
+  try {
+    return await Promise.race([read, late]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function readAll(
+  db: Db,
+  userId: string,
+  limits: ExportLimits
 ): Promise<Record<string, Plain>> {
   const out: Record<string, Plain> = {};
-  await eachStore(await openFor(userId, firestore), userId, {
+  const deadline = Date.now() + limits.deadlineMs;
+  let docs = 0;
+  let bytes = 0;
+  const take = (value: Plain): Plain => {
+    docs += 1;
+    bytes += JSON.stringify(value).length;
+    if (docs > limits.maxDocs) throw new ExportLimitError('docs');
+    if (bytes > limits.maxBytes) throw new ExportLimitError('bytes');
+    if (Date.now() > deadline) throw new ExportLimitError('time');
+    return value;
+  };
+  await eachStore(db, userId, {
     doc: async (label, ref) => {
-      const snap = await ref.get();
-      if (snap.exists) out[label] = toPlain(snap.data());
+      const snap = await beforeDeadline(ref.get(), deadline);
+      if (snap.exists) out[label] = take(toPlain(snap.data()));
     },
     query: async (label, query, fields) => {
-      const snap = await query.limit(MAX_DOCS_PER_COLLECTION).get();
-      const rows = snap.docs.map((d) => ({
-        id: d.id,
-        ...(toPlain(fields ? pick(d.data(), fields) : d.data()) as Record<string, Plain>),
-      }));
+      const rows: Plain[] = [];
+      let page = query.orderBy(FieldPath.documentId()).limit(limits.pageSize);
+      for (;;) {
+        const snap = await beforeDeadline(page.get(), deadline);
+        limits.onPage?.(label, snap.size);
+        for (const d of snap.docs) {
+          const data = toPlain(fields ? pick(d.data(), fields) : d.data()) as Record<string, Plain>;
+          rows.push(take({ id: d.id, ...data }));
+        }
+        const last = snap.docs[snap.docs.length - 1];
+        if (snap.size < limits.pageSize || !last) break;
+        page = query.orderBy(FieldPath.documentId()).startAfter(last).limit(limits.pageSize);
+      }
       if (rows.length > 0) out[label] = rows;
     },
   });

@@ -76,6 +76,13 @@ const CATEGORY_NAME_KEYS: Record<string, string> = {
   Records: 'dataExportService.categoryName.records',
 };
 
+/** What the person is told when an export stops at a limit (src/api/routes/data.ts) */
+const EXPORT_FAILURE_KEYS: Record<number, string> = {
+  413: 'dataExportService.exportTooLarge',
+  429: 'dataExportService.exportTooOften',
+  503: 'dataExportService.exportBusy',
+};
+
 function localizeCategories(categories: ExportableCategory[]): ExportableCategory[] {
   return categories.map((c) => {
     const key = CATEGORY_DESCRIPTION_KEYS[c.category];
@@ -135,7 +142,10 @@ class DataExportService {
 
       if (!response.ok) {
         log.error('Export request failed', { status: response.status });
-        throw new DataRightsError('server', t('dataExportService.exportFailed'));
+        throw new DataRightsError(
+          'server',
+          t(EXPORT_FAILURE_KEYS[response.status] ?? 'dataExportService.exportFailed')
+        );
       }
 
       // Get the exported data as blob

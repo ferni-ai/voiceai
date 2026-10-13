@@ -8860,6 +8860,9 @@
     "categoryWellbeing": "Wellness snapshots and trends",
     "categoryHabits": "Maya's habit coaching data",
     "categoryProductivity": "Tasks, notes, and journal entries",
+    "exportTooLarge": "Your story is too big to download in one go. Pick fewer kinds of data and try again, or write to hello@ferni.ai and we'll send you all of it.",
+    "exportTooOften": "You've asked for a few downloads just now. Try again in ten minutes.",
+    "exportBusy": "That's taking longer than it should. Try again in a minute.",
     "categoryRecords": "Every call, summary, event, note and memory I keep for you, as stored",
     "categoryName": {
       "conversations": "Conversations",

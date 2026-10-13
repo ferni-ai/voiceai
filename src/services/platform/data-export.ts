@@ -27,7 +27,7 @@ type AnyRecord = Record<string, any>;
 import { getLogger } from '../../utils/safe-logger.js';
 import { erasureSteps } from './erasure-step.js';
 import { EXPORT_CATEGORIES } from './export-categories.js';
-import { countUserRecords, exportUserRecords } from './user-records-export.js';
+import { countUserRecords, ExportLimitError, exportUserRecords } from './user-records-export.js';
 
 const log = getLogger();
 
@@ -218,6 +218,8 @@ class DataExportService {
             exportData.categories[this.categoryToKey(category)] = data;
           }
         } catch (categoryError) {
+          // A limit stops the whole export: a file silently missing Records would look complete
+          if (categoryError instanceof ExportLimitError) throw categoryError;
           log.warn({ error: String(categoryError), userId, category }, 'Failed to export category');
           // Continue with other categories
         }

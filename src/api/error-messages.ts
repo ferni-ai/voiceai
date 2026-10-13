@@ -33,6 +33,9 @@ export const API_ERRORS = {
 
   // Data management
   DATA_EXPORT_FAILED: "Hmm, couldn't export your data. Mind trying again?",
+  DATA_EXPORT_TOO_LARGE:
+    "Your story is too big to download in one go. Pick fewer kinds of data and try again, or write to hello@ferni.ai and we'll send you all of it.",
+  DATA_EXPORT_BUSY: "That's taking longer than it should. Try again in a minute.",
   DATA_DELETE_FAILED: "Couldn't delete your data right now. Try again?",
   DATA_DELETE_CONFIRMATION: 'This is a big step. Please confirm you want to delete your data.',
   INVALID_REQUEST: "Something didn't look right. Could you try again?",

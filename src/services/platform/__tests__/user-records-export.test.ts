@@ -3,14 +3,8 @@
  * reviewed it) and the secret-field filter (whole words, so ordinary fields survive).
  */
 import { describe, expect, it, vi } from 'vitest';
-import {
-  EXPORTED_STORES,
-  isSecretField,
-  isSecretValue,
-  KNOWN_USER_STORES,
-  toPlain,
-  WITHHELD_STORES,
-} from '../user-records-export.js';
+import { isSecretField, isSecretValue, MAX_FIELD_DEPTH, toPlain } from '../export-redaction.js';
+import { EXPORTED_STORES, KNOWN_USER_STORES, WITHHELD_STORES } from '../user-records-export.js';
 
 // The shared setup fakes firestore; the value cleaner checks its real Timestamp class
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
@@ -134,6 +128,23 @@ describe('the value written to the file', () => {
     expect(JSON.parse(out)).not.toHaveProperty('bytes');
     expect(out).toContain('label');
     expect(out).toContain('she said');
+  });
+
+  it('stops at a bounded depth, in maps and in JSON strings, without running out of stack', () => {
+    let deepMap: Record<string, unknown> = { apiKey: 'deep-secret', note: 'bottom' };
+    let deepJson = JSON.stringify({ apiKey: 'deep-secret', note: 'bottom' });
+    for (let i = 0; i < 5_000; i++) deepMap = { next: deepMap };
+    // JSON kept as a string inside JSON inside maps: escaping doubles per level, so 12 is plenty
+    for (let i = 0; i < 12; i++) deepJson = JSON.stringify({ next: deepJson });
+    let wrapped: unknown = deepJson;
+    for (let i = 0; i < 25; i++) wrapped = { next: wrapped };
+    const out = JSON.stringify(toPlain({ top: 'kept', deepMap, deepJson: wrapped }));
+    expect(out).toContain('"top":"kept"');
+    expect(out).not.toContain('deep-secret');
+    expect(out).not.toContain('bottom'); // past MAX_FIELD_DEPTH it is left out, not walked
+    const shallow = { a: { b: { c: 'reachable' } } };
+    expect(JSON.stringify(toPlain(shallow))).toContain('reachable');
+    expect(MAX_FIELD_DEPTH).toBeGreaterThanOrEqual(20); // Firestore's own nesting limit
   });
 
   it('drops a credential value under an innocent key', () => {
