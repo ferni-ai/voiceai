@@ -293,6 +293,7 @@ export const FLAG_MANIFEST = {
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_INTELLIGENCE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_KEEPER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  TURN_KEEPER_SPOKE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_OPENING_SOUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_LENGTH: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_SHAPE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
