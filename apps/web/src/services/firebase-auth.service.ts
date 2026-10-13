@@ -60,8 +60,6 @@ export type AuthStateCallback = (state: AuthState) => void;
 // ============================================================================
 
 let currentUser: User | null = null;
-let currentToken: string | null = null;
-let tokenExpiry: number = 0;
 const authStateCallbacks: AuthStateCallback[] = [];
 let isInitialized = false;
 let initPromise: Promise<void> | null = null;
@@ -155,8 +153,6 @@ export async function initAuth(): Promise<AuthState> {
     // Set up auth state listener
     onAuthStateChanged(auth, (user) => {
       currentUser = user;
-      currentToken = null; // Clear cached token on state change
-      tokenExpiry = 0;
       notifyAuthStateChange(user);
 
       if (user) {
@@ -195,32 +191,19 @@ export async function initAuth(): Promise<AuthState> {
 // ============================================================================
 
 /**
- * Get current ID token for API calls.
+ * Get current ID token for API calls, or null if not authenticated.
  *
- * - Returns cached token if still valid
- * - Automatically refreshes if expired
- * - Returns null if not authenticated
+ * Always asks the SDK: it caches the token and refreshes it 5 min before it
+ * expires. A local 55-min clock started when the token was READ (not issued)
+ * sent expired tokens for ~40 min of every hour (prod 401s, 2026-10-12).
  */
 export async function getAuthToken(): Promise<string | null> {
   if (!currentUser) {
     return null;
   }
 
-  // Return cached token if still valid (with 5 min buffer)
-  const now = Date.now();
-  if (currentToken && tokenExpiry > now + 5 * 60 * 1000) {
-    return currentToken;
-  }
-
   try {
-    // Force refresh if token is expired
-    const forceRefresh = tokenExpiry > 0 && tokenExpiry < now;
-    currentToken = await currentUser.getIdToken(forceRefresh);
-
-    // Firebase tokens are valid for 1 hour
-    tokenExpiry = now + 55 * 60 * 1000; // 55 minutes to be safe
-
-    return currentToken;
+    return await currentUser.getIdToken();
   } catch (error) {
     log.error('Failed to get auth token:', error);
     return null;
@@ -465,8 +448,6 @@ export async function signOut(): Promise<void> {
   log.info('Signing out');
   await firebaseSignOut(auth);
   currentUser = null;
-  currentToken = null;
-  tokenExpiry = 0;
 }
 
 // ============================================================================
