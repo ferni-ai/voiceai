@@ -5757,67 +5757,6 @@ body {
   }
 }
 
-/* Idle connect button: breathe the glow on the compositor.
-   The box-shadow breath above repaints the button every frame, forever, while
-   the app sits idle. The button clips its own children (overflow: hidden, for
-   the ripple), so the glow is a pre-rendered shadow on .controls-row::before,
-   anchored to the button, and only its opacity animates. Hover, connecting,
-   loading and disabled keep the old rules; browsers without anchor
-   positioning keep the box-shadow breath. */
-@supports (anchor-name: --a) and (position-visibility: anchors-visible) {
-  #connectBtn {
-    anchor-name: --connect-btn;
-  }
-
-  #connectBtn:not(:disabled):not(:hover) {
-    animation: none;
-  }
-
-  .controls-row::before {
-    content: '';
-    position: absolute;
-    position-anchor: --connect-btn;
-    position-visibility: anchors-visible;
-    top: anchor(top);
-    bottom: anchor(bottom);
-    left: anchor(left);
-    right: anchor(right);
-    border-radius: 26px;
-    box-shadow: 0 0 40px -8px var(--persona-glow);
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  [data-theme='zen'] .controls-row::before {
-    box-shadow: 0 0 30px -6px var(--persona-glow);
-  }
-
-  .controls-row:has(#connectBtn:not(:disabled):not(:hover):not(.btn-connecting):not(.loading))::before {
-    animation: connectGlowBreath 3s ease-in-out infinite;
-  }
-
-  [data-theme='zen'] .controls-row:has(#connectBtn:not(:disabled):not(:hover):not(.btn-connecting):not(.loading))::before {
-    animation-duration: 4s;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .controls-row::before,
-    [data-theme='zen'] .controls-row::before {
-      animation: none !important;
-    }
-  }
-}
-
-@keyframes connectGlowBreath {
-  0%,
-  100% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
 /* Focus state - accessible and beautiful */
 .btn-primary:focus-visible {
   outline: none;

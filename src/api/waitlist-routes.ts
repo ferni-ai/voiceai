@@ -33,6 +33,7 @@ import {
   getApprovalSecret,
   verifyApprovalToken,
 } from './waitlist-approval-token.js';
+import { addSigninToWaitlist, keepWaitlistReferral } from './waitlist-record.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
 
@@ -498,8 +499,13 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
       return true;
     }
 
+    // The waitlist record first: it keeps a friend's referral code until they're in
+    const waitlistDocId = Buffer.from(email).toString('base64').replace(/[/+=]/g, '_');
+    const waitlistRef = db.collection('waitlist').doc(waitlistDocId);
+    const waitlistDoc = await waitlistRef.get();
+    const referralCode = await keepWaitlistReferral(req, waitlistRef, waitlistDoc);
     // Check user_profiles for existing access (from approval)
-    const profileDocId = Buffer.from(email).toString('base64').replace(/[/+=]/g, '_');
+    const profileDocId = waitlistDocId;
     const profileDoc = await db.collection('user_profiles').doc(profileDocId).get();
 
     if (profileDoc.exists) {
@@ -511,6 +517,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
           status: 'approved',
           tier: profile.subscription.tier || 'friend',
           email,
+          referralCode,
         });
         return true;
       }
@@ -532,21 +539,18 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
           status: 'approved',
           tier: bogleProfile.subscription.tier || 'friend',
           email,
+          referralCode,
         });
         return true;
       }
     }
-
-    // Check waitlist status
-    const waitlistDocId = Buffer.from(email).toString('base64').replace(/[/+=]/g, '_');
-    const waitlistDoc = await db.collection('waitlist').doc(waitlistDocId).get();
 
     if (waitlistDoc.exists && waitlistDoc.data()?.status === 'approved') {
       // Approved but no profile yet - create one now
       const grant = { email, uid: decodedToken.uid, tier: 'partner' as const, years: 10 };
       await grantAccess(db, profileDocId, { ...grant, grantedVia: 'waitlist-approval-auto' });
       log.info({ email: hashEmail(email) }, 'Auto-created profile for approved waitlist user');
-      sendJson(res, 200, { approved: true, status: 'approved', tier: 'partner', email });
+      sendJson(res, 200, { approved: true, status: 'approved', tier: 'partner', email, referralCode });
       return true;
     }
 
@@ -559,7 +563,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
         { merge: true }
       );
       log.info({ email: hashEmail(email) }, 'Open access: signed-in user let in on the free tier');
-      sendJson(res, 200, { approved: true, status: 'approved', tier: 'free', email });
+      sendJson(res, 200, { approved: true, status: 'approved', tier: 'free', email, referralCode });
       return true;
     }
 
@@ -575,18 +579,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     }
 
     // Not on waitlist - add them automatically
-    await db
-      .collection('waitlist')
-      .doc(waitlistDocId)
-      .set(
-        cleanForFirestore({
-          email,
-          status: 'pending',
-          source: 'app_signin',
-          timestamp: new Date(),
-          createdAt: new Date(),
-        })
-      );
+    await addSigninToWaitlist(waitlistRef, email, referralCode);
 
     log.info({ email: hashEmail(email) }, 'Auto-added user to waitlist on sign-in');
     sendJson(res, 200, {

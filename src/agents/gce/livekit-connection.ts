@@ -114,7 +114,7 @@ function sendWorkerStatus(
   label: string
 ): { activeJobs: number; load: number; full: boolean } {
   const activeJobs = jobRunner.activeJobCount();
-  const full = workerIsFull(activeJobs, load);
+  const full = isShuttingDown || workerIsFull(activeJobs, load); // draining takes no new jobs
   const status = full ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
   safeSend(
     new WorkerMessage({
@@ -330,7 +330,7 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
       });
 
       // Load-aware: reject if at max capacity to prevent wasted dispatch cycles
-      if (workerIsFull(jobRunner.activeJobCount(), getCpuLoad())) {
+      if (isShuttingDown || workerIsFull(jobRunner.activeJobCount(), getCpuLoad())) {
         const rejectResponse = new WorkerMessage({
           message: {
             case: 'availability',
