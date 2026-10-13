@@ -3879,11 +3879,11 @@
       "subtitle": "Crée des compagnons avec des voix et des personnalités sur mesure",
       "create": "Créer un agent",
       "empty": "Aucun agent pour l'instant",
-      "emptyHint": "Crée ton premier agent personnalisé pour préserver la voix d'un proche, concevoir un mentor ou imaginer ton propre compagnon.",
+      "emptyHint": "Crée ton premier agent personnalisé pour préserver les histoires d'un proche, concevoir un mentor ou imaginer ton propre compagnon.",
       "createFirst": "Créer ton premier agent",
       "whatYouCan": "Ce que tu peux créer",
       "legacy": "Héritage",
-      "legacyDesc": "Préserve la voix et la sagesse d'une personne qui t'est chère",
+      "legacyDesc": "Préserve les histoires et la sagesse d'une personne qui t'est chère",
       "mentor": "Mentor",
       "mentorDesc": "Crée un coach inspiré d'une figure marquante",
       "twin": "Double numérique",
@@ -5095,7 +5095,7 @@
     },
     "voiceStep": {
       "title": "Quelle voix devrait-il avoir ?",
-      "subtitle": "Choisis une voix ou clones-en une"
+      "subtitle": "Choisis une voix"
     },
     "voiceOption": {
       "cloneTitle": "Cloner une voix",
@@ -7282,7 +7282,7 @@
   "agentTypes": {
     "legacy": {
       "name": "Héritage",
-      "description": "Préserve la voix et la sagesse d'une personne qui t'est chère",
+      "description": "Préserve les histoires et la sagesse d'une personne qui t'est chère",
       "feature1": "Clonage de voix à partir d'enregistrements",
       "feature2": "Capture d'histoires et de souvenirs",
       "feature3": "Sauvegarde de la sagesse et des expressions favorites",
