@@ -285,6 +285,7 @@ import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
 import { cancelConnectAttempt, connectWithTimeout } from './app/call-connect.js';
 import { onCallEnded, onCallStarted } from './app/call-end.js';
 import { connectFailure } from './services/connect-failure.js';
+import { showAgentLostPrompt } from './app/agent-lost-prompt.js';
 import { buildConversationUsageBody } from './services/call-payloads.js';
 // Moments System - Unified feedback system (whisper, notice, celebration, milestone)
 import { initMomentsSystem } from './ui/moments/index.js';
@@ -302,7 +303,7 @@ import { initCosmeticsService } from './services/cosmetics.service.js';
 import { initSeedsEconomy } from './services/seeds-economy.service.js';
 import { watchServerSeeds } from './services/seeds-ledger.service.js';
 // Referral Service - network effect seeds system
-import { initReferralService, processPendingReferral } from './services/referral.service.js';
+import { checkReferralFromUrl, initReferralService, processPendingReferral } from './services/referral.service.js';
 // Seeds UI - display balance and toast notifications
 import { initSeedsDisplay } from './ui/seeds-display.ui.js';
 import { initSeedsToast } from './ui/seeds-toast.ui.js';
@@ -511,6 +512,7 @@ class VoiceAIApp {
       bindStaticDom(); // index.html text marked with data-i18n
       bindLocaleRefresh(); // a no-reload language change finishes with a reload
       installDialogFocus(); // focus into, around and back out of every modal
+      checkReferralFromUrl(); // before the sign-in gate and the waitlist: a friend who waits keeps the code
       // Require sign-in, like iOS; await it so an existing session is restored
       const authState = await initializeAuth();
       // The dev server accepts ?e2e=1 so Playwright can reach the settings
@@ -695,11 +697,6 @@ class VoiceAIApp {
 
     // Update all UI systems
     presenceUI.setConnected(true);
-    // keyboardUI.setConnected(true);
-
-    // Connection quality indicator disabled for clean UI
-    // connectionQualityUI.show();
-    // connectionQualityUI.setQuality('good');
 
     // Start session stats
     statsUI.startSession();
@@ -1771,7 +1768,6 @@ class VoiceAIApp {
     // 🌱 Server seed ledger - one balance from the server once it keeps seeds
     this.safeInit('SeedsLedger', () => watchServerSeeds());
 
-    // 🤝 Referral Service - Network effect seeds (check URL for ?ref= param)
     this.safeInit('ReferralService', () => initReferralService());
 
     // 🌱 Seeds UI - Display balance and toast notifications
@@ -2257,8 +2253,6 @@ class VoiceAIApp {
 
     // 🔊 Check for voice profile re-enrollment needs
     void this.checkVoiceReEnrollment();
-    // Agent particles disabled for cleaner professional UI
-    // this.safeInit('AgentParticlesUI', () => void initAgentParticles());
 
     // 💚 Connection Heart - Listen for connect requests
     this.addTrackedListener(window, 'ferni:request-connect', () => {
@@ -2759,7 +2753,6 @@ class VoiceAIApp {
           presenceUI.setConnected(false);
           connectionQualityUI.hide();
           waveformUI.stop();
-          // agentParticlesUI.stop();
         }
       },
 
@@ -2957,6 +2950,12 @@ class VoiceAIApp {
           showCallNotice(connectFailure('dropped'), { onRetry: () => void this.connect() })
         );
       },
+      // Ferni's side ended with the caller still here (services/agent-drop-watch.ts)
+      onAgentLost: () =>
+        showAgentLostPrompt({
+          endCall: () => this.performStandardDisconnect(),
+          connect: () => this.connect(),
+        }),
     });
 
     // Handoff service callbacks
