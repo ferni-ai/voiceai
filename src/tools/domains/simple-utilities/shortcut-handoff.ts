@@ -13,6 +13,7 @@
  */
 
 import { isAssistantActionsReal } from '../../../config/assistant-actions-flag.js';
+import { gateOutboundTool } from '../../registry/outbound-gate.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
 type DomainModule = { getToolDefinitions: () => ToolDefinition[] | Promise<ToolDefinition[]> };
@@ -53,6 +54,6 @@ export async function handOff(
   const defs = await (await load()).getToolDefinitions();
   const def = defs.find((d) => d.id === toolId);
   if (!def) return `I can't ${verb} ${contact} right now, so nothing was sent.`;
-  const tool = def.create(ctx);
+  const tool = gateOutboundTool(def).create(ctx); // the call or text waits for a yes
   return String(await tool.execute(args, opts ?? { toolCallId: `${shortcut}-handoff`, ctx: {} }));
 }

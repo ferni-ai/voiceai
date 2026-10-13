@@ -7,17 +7,26 @@
  * This runs the real RUN body from docker/Dockerfile.agent under /bin/sh -c
  * (Docker's RUN shell) with a stub pnpm, once failing and once succeeding.
  * Since #989 the RUN also keeps suffix-thumb's runtime test/ dir out of the prune
- * and fails unless compromise still loads after it, so the stub installs those.
+ * and fails unless every package src/ imports lazily still loads after it
+ * (scripts/docker/runtime-imports.mjs), so the stub installs those.
  */
 import { describe, it, expect } from 'vitest';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync, existsSync } from 'node:fs';
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  chmodSync,
+  existsSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(__dirname, '../../..');
 const DOCKERFILE = join(ROOT, 'docker/Dockerfile.agent');
 const VERIFY = join(ROOT, 'scripts/docker/verify-node-modules.cjs');
+const RUNTIME_IMPORTS = join(ROOT, 'scripts/docker/runtime-imports.mjs');
 
 /** The RUN that builds /prod-deps, joined into one shell command. */
 function prodDepsRun(): string {
@@ -36,9 +45,9 @@ function prodDepsRun(): string {
   return body.join('').replace(/^RUN --mount=\S+\s*/, '');
 }
 
-/** A stub ESM package; `loads: false` gives it an entry point that throws on import. */
+/** A stub ESM package; `loads: false` imports a file the prune deleted, as suffix-thumb did. */
 function esmPackage(name: string, loads = true): string {
-  const body = loads ? 'export default {};' : "throw new Error('missing runtime file');";
+  const body = loads ? 'export default {};' : "import './src/test/pruned.js'; export default {};";
   return (
     `mkdir -p node_modules/${name} && ` +
     `echo '{"name":"${name}","type":"module","exports":"./index.js"}' > node_modules/${name}/package.json && ` +
@@ -55,14 +64,33 @@ function run(install: 'fail' | 'ok' | 'compromise-broken'): {
   const bin = join(dir, 'bin');
   mkdirSync(bin);
   const ws = join(dir, 'ws');
-  const apps = ['apps/rust-audio', 'apps/rust-perf', 'design-system', 'apps/cli', 'apps/web',
-    'apps/async', 'apps/intelligence-worker', 'packages/shared-types'];
+  const apps = [
+    'apps/rust-audio',
+    'apps/rust-perf',
+    'design-system',
+    'apps/cli',
+    'apps/web',
+    'apps/async',
+    'apps/intelligence-worker',
+    'packages/shared-types',
+  ];
   for (const d of ['', ...apps]) {
     mkdirSync(join(ws, d), { recursive: true });
-    writeFileSync(join(ws, d, 'package.json'), '{"name":"x","dependencies":{"dotenv":"1"}}');
+    writeFileSync(
+      join(ws, d, 'package.json'),
+      '{"name":"x","dependencies":{"dotenv":"1","compromise":"1","compromise-dates":"1"}}'
+    );
   }
+  // The agent source the check reads: compromise is only ever imported lazily.
+  const src = join(dir, 'src');
+  mkdirSync(src);
+  writeFileSync(
+    join(src, 'nlp.ts'),
+    "export const load = async () => [await import('compromise'), await import('compromise-dates')];"
+  );
   mkdirSync(join(ws, 'patches'));
-  for (const f of ['pnpm-workspace.yaml', '.npmrc', 'pnpm-lock.yaml']) writeFileSync(join(ws, f), '');
+  for (const f of ['pnpm-workspace.yaml', '.npmrc', 'pnpm-lock.yaml'])
+    writeFileSync(join(ws, f), '');
   writeFileSync(
     join(bin, 'pnpm'),
     `#!/bin/sh\nif [ "$1" = install ]; then ${
@@ -83,7 +111,9 @@ function run(install: 'fail' | 'ok' | 'compromise-broken'): {
   writeFileSync(join(dir, 'verify.cjs'), readFileSync(VERIFY));
   const script = prodDepsRun()
     .replaceAll('/prod-deps', join(dir, 'prod-deps'))
-    .replaceAll('/tmp/verify-node-modules.cjs', join(dir, 'verify.cjs'));
+    .replaceAll('/tmp/verify-node-modules.cjs', join(dir, 'verify.cjs'))
+    .replaceAll('/tmp/runtime-imports.mjs', RUNTIME_IMPORTS)
+    .replaceAll('/app/src', src);
   const r = spawnSync('/bin/sh', ['-c', script], {
     cwd: ws,
     env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
@@ -107,7 +137,7 @@ describe('Dockerfile.agent prod-deps RUN', () => {
   it('passes and verifies dependencies when the install succeeds', () => {
     const { code, out, modules } = run('ok');
     expect(out).toContain('production dependencies present');
-    expect(out).toContain('Checking pruned packages still load');
+    expect(out).toContain('Checking lazily imported packages still load');
     expect(out).toContain('Production node_modules ready');
     expect(code).toBe(0);
     // the prune keeps suffix-thumb's runtime test/ dir and still drops everyone else's
@@ -117,7 +147,8 @@ describe('Dockerfile.agent prod-deps RUN', () => {
 
   it('fails the build when compromise no longer loads after the prune', () => {
     const { code, out } = run('compromise-broken');
-    expect(out).toContain('Checking pruned packages still load');
+    expect(out).toContain("lazily imported module(s) can't load");
+    expect(out).toContain('Checking lazily imported packages still load');
     expect(code).not.toBe(0);
     expect(out).not.toContain('Production node_modules ready');
   });

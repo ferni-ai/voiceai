@@ -20,6 +20,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 import { onContactChange, onContactInteractionChange } from '../data-layer/hooks/contacts-hooks.js';
+import { createExpiringMarks } from '../../utils/expiring-marks.js';
 
 const log = getLogger();
 
@@ -38,6 +39,7 @@ export interface ContactRelationship {
   phone?: string;
   relationship?: 'family' | 'friend' | 'colleague' | 'acquaintance' | 'professional' | 'other';
   notes?: string;
+  howWeMet?: string;
 
   // Relationship tracking
   firstInteraction: Date;
@@ -214,7 +216,7 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
 // ============================================================================
 
 const contactCache = new Map<string, ContactRelationship[]>();
-const loadedUsers = new Set<string>();
+const loadedUsers = createExpiringMarks(); // expires, so another process's writes show up here
 
 // ============================================================================
 // CORE OPERATIONS
@@ -264,7 +266,6 @@ export async function upsertContact(
   let saved: ContactRelationship;
 
   if (existingIndex >= 0) {
-    // Update existing
     saved = {
       ...contacts[existingIndex],
       ...contact,
@@ -272,7 +273,6 @@ export async function upsertContact(
     };
     contacts[existingIndex] = saved;
   } else {
-    // Create new
     saved = {
       id: `contact_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       userId,
@@ -282,6 +282,7 @@ export async function upsertContact(
       phone: contact.phone,
       relationship: contact.relationship || 'other',
       notes: contact.notes,
+      howWeMet: contact.howWeMet,
       firstInteraction: contact.firstInteraction || now,
       lastInteraction: contact.lastInteraction || now,
       interactionCount: contact.interactionCount || 0,
@@ -418,7 +419,6 @@ export async function recordInteraction(
   const streakInfo = await detectStreak(userId, interaction.contactId, interaction.type);
 
   if (contact) {
-    // Update contact stats
     contact.lastInteraction = now;
     contact.interactionCount++;
 
@@ -479,7 +479,6 @@ export async function recordInteraction(
     await persistContact(contact);
   }
 
-  // Create the full interaction record with streak info
   const fullInteraction: InteractionRecord = {
     ...interaction,
     id: `int_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
@@ -487,7 +486,6 @@ export async function recordInteraction(
     streakCount: streakInfo.streakCount,
   };
 
-  // Persist the interaction record
   await persistInteraction(fullInteraction);
 
   log.info(
@@ -599,7 +597,6 @@ export async function getRelationshipInsights(userId: string): Promise<ContactIn
     }
   }
 
-  // Sort by priority
   const priorityOrder = { high: 0, medium: 1, low: 2 };
   insights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
@@ -650,7 +647,7 @@ export async function getContactsNeedingAttention(
  * Relationship aliases for natural language matching
  * Maps common words to relationship types
  */
-const RELATIONSHIP_ALIASES: Record<string, string[]> = {
+export const RELATIONSHIP_ALIASES: Record<string, string[]> = {
   family: [
     'mom',
     'mother',
@@ -763,31 +760,11 @@ export async function searchContacts(
   if (results.length === 0) {
     try {
       const { searchContacts: searchMainContacts } = await import('../contacts.js');
+      const { fromSavedContact } = await import('./people-list.js');
       const mainResults = await searchMainContacts(userId, queryLower);
-
-      // Convert main contacts to ContactRelationship format
-      for (const result of mainResults) {
-        const mainContact = result.contact;
+      for (const { contact: mainContact } of mainResults) {
         if (mainContact.phones?.[0]?.number || mainContact.emails?.[0]?.address) {
-          const converted: ContactRelationship = {
-            id: mainContact.id,
-            userId: mainContact.userId,
-            contactId: mainContact.id,
-            name: mainContact.displayName,
-            email: mainContact.emails?.[0]?.address,
-            phone: mainContact.phones?.[0]?.number,
-            relationship:
-              (mainContact.relationship as ContactRelationship['relationship']) || 'other',
-            notes: mainContact.notes || mainContact.nicknames?.join(', '),
-            firstInteraction: mainContact.createdAt,
-            lastInteraction: mainContact.lastContactedAt || mainContact.updatedAt,
-            interactionCount: 1,
-            strengthScore: 50,
-            topics: [],
-            recentContext: [],
-            createdAt: mainContact.createdAt,
-            updatedAt: mainContact.updatedAt,
-          };
+          const converted = fromSavedContact(mainContact);
           results.push(converted);
           log.info(
             { userId, query, contactName: converted.name, phone: converted.phone },
@@ -941,7 +918,6 @@ export async function getInteractionStats(
     };
   }
 
-  // Count by type
   const byType: Record<string, number> = {};
   const lastByType: Record<string, Date> = {};
   let longestStreak: { type: InteractionType; count: number } | null = null;
@@ -960,7 +936,6 @@ export async function getInteractionStats(
     }
   }
 
-  // Calculate avg per month
   const firstInteraction = history[history.length - 1]?.date || new Date();
   const monthsSpan = Math.max(
     1,
@@ -1113,7 +1088,6 @@ async function persistContact(contact: ContactRelationship): Promise<void> {
   if (!firestore) return;
 
   try {
-    // Remove undefined values before persisting to Firestore
     const cleanContact = Object.fromEntries(
       Object.entries(contact).filter(([_, v]) => v !== undefined)
     );
@@ -1182,6 +1156,13 @@ export function clearCache(userId?: string): void {
     contactCache.clear();
     loadedUsers.clear();
   }
+}
+
+/** A removed contact leaves this process's cache and the semantic index (person-removal.ts) */
+export function forgetContact(userId: string, contact: ContactRelationship): void {
+  clearCache(userId);
+  const forgotten = { name: contact.name, relationship: 'contact' };
+  void onContactChange(userId, contact.id, forgotten, 'delete');
 }
 
 export default {

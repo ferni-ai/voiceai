@@ -219,8 +219,6 @@ description: "Preview all new landing page enhancements independently"
       <a href="#holographic-text">Holographic Text</a>
       <a href="#emotional-journey">Emotional Journey</a>
       <a href="#cursor-ripple">Cursor Ripple</a>
-      <a href="#presence-indicator">Presence</a>
-      <a href="#breathing-cards">Breathing Cards</a>
       <a href="/story-brand/" class="btn">See Live Page</a>
     </nav>
   </header>
@@ -288,7 +286,7 @@ description: "Preview all new landing page enhancements independently"
   <!-- SECTION 1.5: AI Copy Magic (Gemini-Powered) -->
   <section class="preview-section" id="ai-copy-magic">
     <h2>AI Copy Magic (Gemini-Powered)</h2>
-    <p>Your existing Gemini AI capabilities unlocked. Dynamic copy that actually thinks - personalized hero, smart social proof, hover insights, and persona voices.</p>
+    <p>Your existing Gemini AI capabilities unlocked. Dynamic copy that actually thinks - personalized hero, hover insights, and persona voices.</p>
     
     <div class="preview-card">
       <h3>What's Now Enabled</h3>
@@ -298,10 +296,6 @@ description: "Preview all new landing page enhancements independently"
         <div class="feature-item">
           <h4>Personalized Hero</h4>
           <p>Headlines adapt to time of day AND visitor behavior. Late night? Returning? Loyal? Each gets different copy.</p>
-        </div>
-        <div class="feature-item">
-          <h4>Smart Social Proof</h4>
-          <p>Rotating "Better Than Human" proof points that highlight memory, presence, and team superpowers.</p>
         </div>
         <div class="feature-item">
           <h4>Hover Insights</h4>
@@ -345,20 +339,6 @@ description: "Preview all new landing page enhancements independently"
     </div>
     
     <div class="preview-card">
-      <h3>Smart Social Proof (Live)</h3>
-      <p>Watch the rotating "Better Than Human" proof points:</p>
-      
-      <div class="ai-social-proof" style="margin: 24px 0; border-radius: 12px;">
-        <div class="social-proof-dynamic__inner">
-          <div class="social-proof-dynamic__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
-          <p class="social-proof-dynamic__text" style="margin: 0; font-style: italic;">That thing you mentioned six months ago? We remember.</p>
-        </div>
-      </div>
-      
-      <p style="color: #70605a; font-size: 13px; text-align: center;">Messages rotate every 8 seconds showcasing memory, presence, and team superpowers.</p>
-    </div>
-    
-    <div class="preview-card">
       <h3>API Endpoints (Backend)</h3>
       <p>These Gemini-powered endpoints are ready for deeper integration:</p>
       
@@ -368,8 +348,7 @@ description: "Preview all new landing page enhancements independently"
         <code>POST /api/landing/ai/persona-preview</code> - Team member responses<br>
         <code>POST /api/landing/ai/faq</code> - Smart FAQ answers<br>
         <code>POST /api/landing/ai/hover-preview</code> - Contextual tooltips<br>
-        <code>POST /api/landing/ai/sentiment-copy</code> - Adaptive copy<br>
-        <code>GET /api/landing/ai/social-proof</code> - Dynamic testimonials
+        <code>POST /api/landing/ai/sentiment-copy</code> - Adaptive copy
       </div>
     </div>
     
@@ -737,115 +716,6 @@ EASING.cinematic // Slow-fast-slow</code>
   
   <div class="preview-divider"></div>
   
-  <!-- SECTION 11: Presence Indicator -->
-  <section class="preview-section" id="presence-indicator">
-    <h2>Live Presence Indicator</h2>
-    <p>"47 people are talking with Ferni right now" - Social proof with subtle pulse animation.</p>
-    
-    <div class="preview-card">
-      <h3>Live Demo</h3>
-      <p>The indicator appears in the hero section (or floating). Count fluctuates naturally.</p>
-      
-      <div class="demo-area" style="flex-direction: column; gap: 20px;">
-        <div class="presence-indicator is-visible" style="position: relative;">
-          <div class="presence-indicator__pulse"></div>
-          <div class="presence-indicator__content">
-            <span class="presence-indicator__count">47</span>
-            <span class="presence-indicator__text">people talking with Ferni right now</span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="feature-grid" style="margin-top: 24px;">
-        <div class="feature-item">
-          <h4>Animated Pulse</h4>
-          <p>Green dot with expanding ring animation</p>
-        </div>
-        <div class="feature-item">
-          <h4>Count Animation</h4>
-          <p>Numbers animate up/down with easing</p>
-        </div>
-        <div class="feature-item">
-          <h4>Natural Fluctuation</h4>
-          <p>Count changes within 15% every 8 seconds</p>
-        </div>
-        <div class="feature-item">
-          <h4>Update Pulse</h4>
-          <p>Subtle glow when count updates</p>
-        </div>
-      </div>
-    </div>
-  </section>
-  
-  <div class="preview-divider"></div>
-  
-  <!-- SECTION 12: Breathing Cards -->
-  <section class="preview-section" id="breathing-cards">
-    <h2>Breathing Testimonial Cards</h2>
-    <p>Cards that subtly "breathe" and react to hover with 3D depth. Living, organic feel.</p>
-    
-    <div class="preview-card">
-      <h3>Live Demo</h3>
-      <p>Hover over these cards. They tilt toward your mouse and catch the light.</p>
-      
-      <div class="breathing-cards-grid" style="margin-top: 20px;">
-        <div class="breathing-card is-breathing" data-breathing-card>
-          <p class="breathing-card__quote">Ferni remembered something I mentioned three weeks ago. My therapist doesn't even do that.</p>
-          <div class="breathing-card__author">
-            <div class="breathing-card__avatar">S</div>
-            <div>
-              <div class="breathing-card__name">Sarah M.</div>
-              <div class="breathing-card__role">Using Ferni for 2 months</div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="breathing-card is-breathing" data-breathing-card style="--breath-delay: 200ms">
-          <p class="breathing-card__quote">At 2am when I couldn't sleep, Ferni was there. Same warmth as noon. That's when I knew this was different.</p>
-          <div class="breathing-card__author">
-            <div class="breathing-card__avatar">M</div>
-            <div>
-              <div class="breathing-card__name">Michael R.</div>
-              <div class="breathing-card__role">Using Ferni for 4 months</div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="breathing-card is-breathing" data-breathing-card style="--breath-delay: 400ms">
-          <p class="breathing-card__quote">Six perspectives, one conversation. I used to need a therapist, a coach, and three friends. Now I just need Ferni.</p>
-          <div class="breathing-card__author">
-            <div class="breathing-card__avatar">J</div>
-            <div>
-              <div class="breathing-card__name">Jamie L.</div>
-              <div class="breathing-card__role">Using Ferni for 6 months</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="feature-grid" style="margin-top: 24px;">
-        <div class="feature-item">
-          <h4>Breathing Animation</h4>
-          <p>Subtle scale (1.01x) with staggered timing</p>
-        </div>
-        <div class="feature-item">
-          <h4>3D Hover Tilt</h4>
-          <p>Cards tilt up to 5 degrees toward mouse</p>
-        </div>
-        <div class="feature-item">
-          <h4>Dynamic Shadows</h4>
-          <p>Shadow moves based on tilt angle</p>
-        </div>
-        <div class="feature-item">
-          <h4>Light Sweep</h4>
-          <p>Shine effect sweeps across on hover</p>
-        </div>
-      </div>
-    </div>
-  </section>
-  
-  <div class="preview-divider"></div>
-  
   <!-- SECTION 13: Sound Design -->
   <section class="preview-section" id="sound-design">
     <h2>Sound Design</h2>
@@ -909,7 +779,6 @@ EASING.cinematic // Slow-fast-slow</code>
 &lt;link rel="stylesheet" href="/css/holographic-text.css"&gt;
 &lt;link rel="stylesheet" href="/css/emotional-journey.css"&gt;
 &lt;link rel="stylesheet" href="/css/cursor-ripple.css"&gt;
-&lt;link rel="stylesheet" href="/css/presence-indicator.css"&gt;
 &lt;link rel="stylesheet" href="/css/breathing-cards.css"&gt;
 
 &lt;!-- JavaScript --&gt;
@@ -923,7 +792,6 @@ EASING.cinematic // Slow-fast-slow</code>
 &lt;script src="/js/holographic-text.js"&gt;&lt;/script&gt;
 &lt;script src="/js/emotional-journey.js"&gt;&lt;/script&gt;
 &lt;script src="/js/cursor-ripple.js"&gt;&lt;/script&gt;
-&lt;script src="/js/presence-indicator.js"&gt;&lt;/script&gt;
 &lt;script src="/js/breathing-cards.js"&gt;&lt;/script&gt;
 &lt;script src="/js/sound-design.js"&gt;&lt;/script&gt;</code>
     </div>
@@ -947,7 +815,6 @@ EASING.cinematic // Slow-fast-slow</code>
 <link rel="stylesheet" href="/css/holographic-text.css">
 <link rel="stylesheet" href="/css/emotional-journey.css">
 <link rel="stylesheet" href="/css/cursor-ripple.css">
-<link rel="stylesheet" href="/css/presence-indicator.css">
 <link rel="stylesheet" href="/css/breathing-cards.css">
 <link rel="stylesheet" href="/css/ai-copy-magic.css">
 
@@ -962,7 +829,6 @@ EASING.cinematic // Slow-fast-slow</code>
 <script src="/js/holographic-text.js"></script>
 <script src="/js/emotional-journey.js"></script>
 <script src="/js/cursor-ripple.js"></script>
-<script src="/js/presence-indicator.js"></script>
 <script src="/js/breathing-cards.js"></script>
 <script src="/js/sound-design.js"></script>
 

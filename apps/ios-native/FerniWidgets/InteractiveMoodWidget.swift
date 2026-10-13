@@ -107,7 +107,7 @@ struct InteractiveMoodProvider: TimelineProvider {
             case .okay:
                 return "Hanging in there?"
             case .meh, .low:
-                return "Here for you 💚"
+                return "Go easy on yourself today"
             case .none:
                 return "Thanks for checking in"
             }
@@ -223,8 +223,9 @@ struct InteractiveMoodWidgetView: View {
     private var checkedInView: some View {
         VStack(spacing: 8) {
             if let mood = entry.currentMood {
-                Text(mood.emoji)
+                Image(systemName: mood.symbolName)
                     .font(.system(size: family == .systemSmall ? 36 : 44))
+                    .foregroundColor(.white)
 
                 Text("Feeling \(mood.rawValue)")
                     .font(.caption)
@@ -252,8 +253,9 @@ struct InteractiveMoodWidgetView: View {
     private func moodButton(for mood: MoodType) -> some View {
         Button(intent: MoodCheckInIntent(mood: mood)) {
             VStack(spacing: 4) {
-                Text(mood.emoji)
+                Image(systemName: mood.symbolName)
                     .font(.system(size: family == .systemSmall ? 22 : 26))
+                    .foregroundColor(.white)
 
                 if family == .systemMedium {
                     Text(mood.rawValue.capitalized)

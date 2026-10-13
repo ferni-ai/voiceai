@@ -1,5 +1,14 @@
 # LiveKit Agents SDK Patch Documentation
 
+> **Obsolete (2026-10-12).** `@livekit/agents-plugin-google` 1.5.1 has no
+> `dist/beta/realtime/realtime_api.js` (realtime moved to `dist/realtime/`), and
+> its Realtime model logs "toolChoice is not supported by the Google Realtime API".
+> `scripts/apply-livekit-patch.sh` failed on every install under `|| true`, so it
+> was removed from `postinstall` and deleted. The live patches are pnpm's
+> `patchedDependencies` (`pnpm-workspace.yaml`, `patches/`) and
+> `apps/cli/src/commands/patch/livekit-timeout.ts`. The history below is kept for
+> reference.
+
 ## Summary
 
 We patch `@livekit/agents-plugin-google` to enable proper Gemini function calling via `toolChoice` configuration.
@@ -87,13 +96,9 @@ pnpm patch @livekit/agents-plugin-google
 pnpm patch-commit <temp-directory>
 ```
 
-### Option 2: Shell script (Current)
+### Option 2: Shell script (removed 2026-10-12)
 
-```bash
-./scripts/apply-livekit-patch.sh
-```
-
-This script is run via `postinstall` in package.json.
+`scripts/apply-livekit-patch.sh` used to run from `postinstall`; see the note at the top.
 
 ### Option 3: Manual
 
