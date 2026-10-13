@@ -115,10 +115,10 @@ const teamInfo = (): TeamMemberInfo[] => [
   {
     id: 'nayan-patel',
     displayName: t('teamIntro.members.nayan.name', 'Nayan'),
-    role: t('teamIntro.members.nayan.role', 'Premium Partner'),
+    role: t('teamIntro.members.nayan.role', 'Wisdom & Reflection'),
     description: t('teamIntro.members.nayan.description', 'Advanced support for your most complex challenges.'),
-    unlockHint: t('teamIntro.members.nayan.unlockHint', 'Available with Partner subscription'),
-    unlockedMessage: t('teamIntro.members.nayan.unlockedMessage', 'Your premium partner for growth'),
+    unlockHint: t('teamIntro.members.nayan.unlockHint', 'Reach "Deep Partnership" relationship'),
+    unlockedMessage: t('teamIntro.members.nayan.unlockedMessage', "There's wisdom in your journey. Let me share what I see."),
     initials: 'NA',
   },
 ];

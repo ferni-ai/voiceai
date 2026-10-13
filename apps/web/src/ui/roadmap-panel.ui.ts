@@ -18,6 +18,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import { t } from '../i18n/index.js';
 import { roadmapService, smartPromptTracker, STAGE_INFO, type RoadmapFeature, type SmartPromptRecommendation } from '../services/roadmap.service.js';
 import { getCurrentStreak, getNextStreakMilestone } from '../services/seeds-economy.service.js';
@@ -265,20 +266,6 @@ class RoadmapPanelUI {
         <div class="roadmap-panel__body">
           <p class="roadmap-panel__intro">${t('roadmap.intro')}</p>
 
-          <!-- Stage Legend -->
-          <div class="roadmap-panel__legend">
-            ${Object.entries(STAGE_INFO)
-              .map(
-                ([_stage, info]) => `
-              <div class="roadmap-panel__legend-item ${info.colorClass}">
-                <span class="roadmap-panel__legend-icon">${ICONS[info.icon] || ''}</span>
-                <span class="roadmap-panel__legend-label">${info.label}</span>
-              </div>
-            `
-              )
-              .join('')}
-          </div>
-
           <!-- Suggest a Feature Button -->
           <button class="roadmap-panel__suggest-btn" ${seedBalance < 5 ? 'disabled' : ''}>
             <span class="roadmap-panel__suggest-icon">${ICONS.lightbulb}</span>
@@ -308,10 +295,9 @@ class RoadmapPanelUI {
     this.bindOverviewEvents();
   }
 
-  /**
-   * Render streak progress indicator
-   */
+  /** Render streak progress indicator (nothing under VITE_NO_STREAKS) */
   private renderStreakProgress(): string {
+    if (isNoStreaksOn()) return '';
     const currentStreak = getCurrentStreak();
     const nextMilestone = getNextStreakMilestone();
 
@@ -910,16 +896,16 @@ class RoadmapPanelUI {
       <ul class="roadmap-panel__seeds-tooltip-list">
         <li>
           <span class="roadmap-panel__seeds-tooltip-icon">${ICONS.conversation}</span>
-          <span>${t('roadmap.howSeedsWork.conversation') || 'Have a conversation: +1 seed'}</span>
+          <span>${t('roadmap.howSeedsWork.conversation')}</span>
         </li>
-        <li>
+        ${isNoStreaksOn() ? '' : `<li>
           <span class="roadmap-panel__seeds-tooltip-icon">${ICONS.flame}</span>
-          <span>${t('roadmap.howSeedsWork.streak7') || '7-day streak: +5 seeds'}</span>
+          <span>${t('roadmap.howSeedsWork.streak7')}</span>
         </li>
         <li>
           <span class="roadmap-panel__seeds-tooltip-icon">${ICONS.star}</span>
-          <span>${t('roadmap.howSeedsWork.streak30') || '30-day streak: +15 seeds'}</span>
-        </li>
+          <span>${t('roadmap.howSeedsWork.streak30')}</span>
+        </li>`}
         <li>
           <span class="roadmap-panel__seeds-tooltip-icon">${ICONS.lightbulb}</span>
           <span>${t('roadmap.howSeedsWork.suggest') || 'Suggest a feature: -5 seeds'}</span>
@@ -1444,51 +1430,6 @@ class RoadmapPanelUI {
         color: var(--color-text-secondary, #5c544a);
         line-height: 1.6;
         margin: 0 0 var(--space-5, 20px) 0;
-      }
-
-      /* ========================================================================
-         LEGEND - Growth stages visualization
-         ======================================================================== */
-      .roadmap-panel__legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-3, 12px);
-        padding: var(--space-4, 16px);
-        background: var(--color-background-secondary, #f5f2ed);
-        border-radius: var(--radius-xl, 16px);
-        margin-bottom: var(--space-6, 24px);
-        justify-content: center;
-        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-      }
-
-      .roadmap-panel__legend-item {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2, 8px);
-        padding: var(--space-1, 4px) var(--space-3, 12px);
-        background: var(--color-background-elevated, #fffdfb);
-        border-radius: var(--radius-full, 9999px);
-        box-shadow: var(--shadow-xs, 0 1px 2px rgba(0, 0, 0, 0.04));
-      }
-
-      .roadmap-panel__legend-icon {
-        width: 16px;
-        height: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .roadmap-panel__legend-icon svg {
-        width: 100%;
-        height: 100%;
-      }
-
-      .roadmap-panel__legend-label {
-        font-family: var(--font-body, Inter, sans-serif);
-        font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-secondary, #5c544a);
-        font-weight: var(--font-weight-medium, 500);
       }
 
       /* ========================================================================
@@ -2765,16 +2706,6 @@ class RoadmapPanelUI {
 
       [data-theme="midnight"] .roadmap-panel__intro {
         color: var(--color-text-secondary, #f0ebe4);
-      }
-
-      [data-theme="midnight"] .roadmap-panel__legend {
-        background: var(--color-background-tertiary, #2a241f);
-        border-color: var(--color-border-subtle, rgba(215, 185, 145, 0.12));
-      }
-
-      [data-theme="midnight"] .roadmap-panel__legend-item {
-        background: var(--color-background-elevated, #352e28);
-        box-shadow: var(--shadow-sm);
       }
 
       [data-theme="midnight"] .roadmap-panel__section-title {

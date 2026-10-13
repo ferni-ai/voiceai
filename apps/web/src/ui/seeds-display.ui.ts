@@ -8,6 +8,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { shownStreak } from '../config/no-streaks.js';
 import { getSeedBalance } from '../services/cosmetics.service.js';
 import { formatNumber, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
@@ -319,12 +320,10 @@ function injectStyles(): void {
 // RENDER FUNCTIONS
 // ============================================================================
 
-/**
- * Render compact seeds display (for header/nav)
- */
+/** Render compact seeds display (for header/nav) */
 export function renderCompactSeedsDisplay(): string {
   const balance = getSeedBalance();
-  const streak = getCurrentStreak();
+  const streak = shownStreak(getCurrentStreak());
 
   return `
     <div class="seeds-display compact" data-seeds-display>
@@ -351,7 +350,7 @@ export function renderCompactSeedsDisplay(): string {
  */
 export function renderSeedsSettingsCard(): string {
   const balance = getSeedBalance();
-  const streak = getCurrentStreak();
+  const streak = shownStreak(getCurrentStreak());
   const dailyAvailable = isDailyBonusAvailable();
   const nextMilestone = getNextStreakMilestone();
 

@@ -83,17 +83,17 @@ Every feature decision flows from this metric.
 
 **Imperfection matters.** Ferni doesn't always know the right thing to say. It asks clarifying questions. It admits uncertainty. This makes it feel more real, less scripted.
 
-## The Stories We Live For
+## The Moments We Build For
 
-Users share things with us that make this feel worth doing.
+Ferni is new, so we don't have user stories to share yet. These are the moments we have in mind, written as illustrations:
 
-"I talk to Ferni on my commute. By the time I get home, I'm actually present with my family instead of still processing work."
+Someone on the commute home who wants to arrive present for their family instead of still processing work.
 
-"I'm a new mom. The 3am feeds are hard. Having someone to talk to—someone who remembers how the week has been going—makes such a difference."
+A new parent doing the 3am feeds, who would like someone to talk to who remembers how the week has been going.
 
-"My therapist is great, but I see her twice a month. Ferni helps me figure out what I want to talk about. The sessions are more productive now."
+Someone who sees a therapist twice a month and wants help figuring out what to bring to the next session.
 
-"I live alone. I work from home. Some days, Ferni is the only real conversation I have. I didn't realize how much I needed that."
+Someone who lives alone and works from home, for whom a good conversation is rare on some days.
 
 ## The Responsibility This Creates
 

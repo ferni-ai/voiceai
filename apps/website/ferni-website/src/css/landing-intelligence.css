@@ -23,7 +23,7 @@
 
   /* Time-aware */
   --night-bg: var(--color-bg-dark);
-  --night-text: var(--color-bg-primary);
+  --night-text: var(--color-dark-text); /* bg-primary is near-black in OS dark mode */
   --night-accent: var(--color-ferni);
   --night-glow: rgba(74, 103, 65, 0.3);
 }
@@ -279,8 +279,10 @@
   --color-background: var(--night-bg);
   --color-background-elevated: var(--color-bg-dark);
   --color-text-primary: var(--night-text);
-  --color-text-secondary: var(--color-text-muted);
-  --color-text-muted: var(--color-text-muted);
+  /* fixed dark-surface tokens: muted used to be var() of itself, a cycle
+     that blanked both properties */
+  --color-text-secondary: var(--color-dark-text-secondary);
+  --color-text-muted: var(--color-dark-text-muted);
 }
 
 .time-mode--late-night body,
