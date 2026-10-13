@@ -113,7 +113,7 @@ const LAUGH_TYPES = {
 /**
  * Patterns that indicate agent humor/jokes.
  */
-const AGENT_HUMOR_PATTERNS = [
+export const AGENT_HUMOR_PATTERNS = [
   // Self-aware jokes
   { pattern: /\b(just kidding|jk|I'm kidding|kidding)\b/i, type: 'full' as const, confidence: 0.9 },
   {
@@ -176,7 +176,7 @@ const AGENT_HUMOR_PATTERNS = [
 /**
  * Patterns in user message that suggest they're being playful/joking.
  */
-const USER_PLAYFUL_PATTERNS = [
+export const USER_PLAYFUL_PATTERNS = [
   /\b(haha|hehe|lol|lmao|rofl)\b/i,
   /\b(just kidding|jk|I'm kidding)\b/i,
   /\b(😂|😄|😆|🤣|😅)/,
@@ -188,7 +188,7 @@ const USER_PLAYFUL_PATTERNS = [
 /**
  * Patterns that should BLOCK laughter.
  */
-const BLOCK_LAUGHTER_PATTERNS = [
+export const BLOCK_LAUGHTER_PATTERNS = [
   // Heavy emotional content
   /\b(died|death|passed away|loss|grief|mourning|funeral)\b/i,
   /\b(cancer|terminal|diagnosis|hospital)\b/i,
@@ -209,7 +209,7 @@ const BLOCK_LAUGHTER_PATTERNS = [
 /**
  * Patterns that suggest agent is being supportive (no laughing).
  */
-const SUPPORTIVE_PATTERNS = [
+export const SUPPORTIVE_PATTERNS = [
   /\b(I('m| am) (so )?sorry)\b/i,
   /\b(that('s| is) (really )?(hard|difficult|tough))\b/i,
   /\b(I (can )?imagine)\b/i,
@@ -310,7 +310,7 @@ const sessionLaughHistory = new Map<
 /**
  * Get or create session laugh history.
  */
-function getSessionHistory(sessionId: string): {
+export function getSessionHistory(sessionId: string): {
   lastLaughTurn: number;
   laughCount: number;
   sessionStart: number;
@@ -328,7 +328,7 @@ function getSessionHistory(sessionId: string): {
 /**
  * Record that a laugh was added.
  */
-function recordLaugh(sessionId: string, turnCount: number): void {
+export function recordLaugh(sessionId: string, turnCount: number): void {
   const history = getSessionHistory(sessionId);
   history.lastLaughTurn = turnCount;
   history.laughCount++;

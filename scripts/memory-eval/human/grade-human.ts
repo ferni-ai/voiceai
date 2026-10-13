@@ -11,7 +11,7 @@
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { callLLM } from '../../../src/services/llm/llm-utils.js';
+import { callLLM } from '../../../src/services/llm-utils.js';
 import { HUMAN_KEY } from '../fixtures/human-baseline-key.js';
 import {
   failureCount,

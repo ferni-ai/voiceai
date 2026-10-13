@@ -161,4 +161,30 @@ describe('selfRegisterCaller', () => {
     expect(lookupByPhone).toHaveBeenCalledWith(CALLER_ID_PHONE);
     expect(createSelfRegisteredIdentity).not.toHaveBeenCalled();
   });
+
+  it('gives the same reply whether or not the number is already on file', async () => {
+    vi.mocked(getInboundCallContext).mockReturnValue({
+      callSid: 'CA123',
+      callerPhone: CALLER_ID_PHONE,
+      isKnownCaller: false,
+      isVoiceEnrolled: false,
+    });
+    const tool = makeTool({ sessionId: 'session-1' });
+    const args = { callerName: 'Pat', claimedSponsorName: 'Seth' };
+
+    vi.mocked(lookupByPhone).mockResolvedValue({ found: false } as never);
+    const unknownNumber = await tool.execute(args);
+    vi.mocked(lookupByPhone).mockResolvedValue({ found: true } as never);
+    const knownNumber = await tool.execute(args);
+    vi.mocked(lookupByPhone).mockResolvedValue({ found: false } as never);
+    vi.mocked(createSelfRegisteredIdentity).mockRejectedValue(
+      new Error('Phone number already registered')
+    );
+    const raceToRegister = await tool.execute(args);
+
+    expect(createSelfRegisteredIdentity).toHaveBeenCalledTimes(2);
+    expect(unknownNumber.message).toContain('Nice to meet you, Pat!');
+    expect(knownNumber).toEqual(unknownNumber);
+    expect(raceToRegister).toEqual(unknownNumber);
+  });
 });

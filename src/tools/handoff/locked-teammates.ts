@@ -38,6 +38,10 @@ import { z } from 'zod';
 import { teamMemberIdOf } from '../../intelligence/context-builders/team/team-availability.js';
 import { ALIAS_TO_CANONICAL, isCoach } from '../../personas/persona-ids.js';
 import {
+  personaSlipGuardEnabled,
+  TEAMMATES_ARE_COLLEAGUES,
+} from '../../personas/persona-slip-guard.js';
+import {
   getTeamMemberUnlockStatus,
   getTeamUnlockState,
   TEAM_MEMBERS,
@@ -47,6 +51,7 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { isHandoffTargetOpen } from './handoff-availability.js';
 import { createHandoffTools } from './handoff-factory.js';
 import type { UnlockView } from './locked-handoffs.js';
+import { teammateHeardAs } from './teammate-names.js';
 
 export const ASK_FOR_TEAMMATE = 'askForTeammate';
 
@@ -72,13 +77,14 @@ export function unlockViewFor(sessionUserData: unknown): UnlockView {
 
 const speaking = (view: UnlockView): string => view.currentAgentId ?? 'ferni';
 
-/** Persona ID for a name or alias ("Maya", "maya santos", "Peter Lynch"), exact matches only. */
+/** Persona ID for a name or alias ("Maya", "maya santos", "Tom Brannigan"), exact matches only. */
 function personaIdOf(name: string): string | null {
   const key = name.trim().toLowerCase().replace(/_/g, '-');
   for (const candidate of [key, key.replace(/\s+/g, '-')]) {
     if (Object.hasOwn(ALIAS_TO_CANONICAL, candidate)) return ALIAS_TO_CANONICAL[candidate];
   }
-  return null;
+  // As speech-to-text wrote it: "Naya" is Nayan (teammate-names.ts)
+  return teammateHeardAs(key);
 }
 
 const isOpen = (id: string, view: UnlockView): boolean =>
@@ -103,10 +109,15 @@ function nameList(names: string[]): string {
     : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
-/** The teammates in `members` the caller's words name ("Maya", "maya santos"): whole words only. */
+/**
+ * The teammates in `members` the caller's words name ("Maya", "maya santos"), or name
+ * as speech-to-text spells them ("Naya" for Nayan): whole words only.
+ */
 export function teammatesNamedIn(text: string, members: TeamMemberUnlock[]): TeamMemberUnlock[] {
-  const words = new Set(text.toLowerCase().match(/[a-z]+/g) ?? []);
-  return members.filter((m) => words.has(m.displayName.toLowerCase()));
+  const named = new Set(
+    (text.toLowerCase().match(/[a-z]+/g) ?? []).map(teammateHeardAs).filter(Boolean)
+  );
+  return members.filter((m) => named.has(m.memberId));
 }
 
 /**
@@ -134,9 +145,12 @@ export function teamStatusNote(view: UnlockView, callerWords = ''): string {
   const open = TEAM_MEMBERS.filter(
     (m) => !isSpeaker(m.memberId, view) && isOpen(m.memberId, view)
   ).map((m) => m.displayName);
-  return open.length > 0
-    ? `Of your teammates, only ${nameList(open)} ${open.length > 1 ? 'are' : 'is'} available to this caller; don't bring up the others.`
-    : "None of your teammates are available to this caller yet; don't bring them up.";
+  if (open.length === 0)
+    return "None of your teammates are available to this caller yet; don't bring them up.";
+  const line = `Of your teammates, only ${nameList(open)} ${open.length > 1 ? 'are' : 'is'} available to this caller; don't bring up the others.`;
+  // Asked whether he had friends, Ferni named the teammates on this line
+  // (prod call, 2026-10-11; persona-slip-guard.ts).
+  return personaSlipGuardEnabled() ? `${line} ${TEAMMATES_ARE_COLLEAGUES}` : line;
 }
 
 /**

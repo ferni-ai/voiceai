@@ -235,7 +235,7 @@ function handleFocusIn(e: Event): void {
   
   interactive.classList.add('pixar-focus');
   
-  if (prefersReducedMotion) return;
+  if (prefersReducedMotion || interactive.dataset.focusRing === 'inset') return; // inset rings stay in the box
   
   // Pulse animation for focus ring - use persona colors
   const pulseAnim = interactive.animate([

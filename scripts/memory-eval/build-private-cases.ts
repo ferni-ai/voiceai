@@ -20,7 +20,7 @@ import { mkdirSync, chmodSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { getFirestoreDb } from '../../src/utils/firestore-utils.js';
-import { callLLM } from '../../src/services/llm/llm-utils.js';
+import { callLLM } from '../../src/services/llm-utils.js';
 import { callerZone, localDay } from './longmem-lib.js';
 import { assertVertexOnly, isInside, writePrivate } from './real-data.js';
 import {

@@ -12,6 +12,9 @@ type Verdict = { category: string; transcript: string; delayMs: number };
 const stubs = vi.hoisted(() => ({
   room: undefined as unknown,
   verdict: { category: 'human', transcript: 'Hello?', delayMs: 300 } as Verdict,
+  /** Verdicts for successive detector runs, before falling back to `verdict`. */
+  queue: [] as Verdict[],
+  amdOptions: [] as unknown[],
   amdCreated: 0,
   hangUpCall: vi.fn(async (_sessionId: string, _disposition?: string) => true),
 }));
@@ -19,11 +22,12 @@ const stubs = vi.hoisted(() => ({
 vi.mock('@livekit/agents', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@livekit/agents')>();
   class FakeAMD {
-    constructor() {
+    constructor(_session: unknown, options: unknown) {
       stubs.amdCreated += 1;
+      stubs.amdOptions.push(options);
     }
     async execute() {
-      return stubs.verdict;
+      return stubs.queue.shift() ?? stubs.verdict;
     }
     async aclose() {}
   }
@@ -73,6 +77,8 @@ const savedFlag = process.env.CALL_OPENING_AMD;
 
 beforeEach(() => {
   stubs.amdCreated = 0;
+  stubs.queue = [];
+  stubs.amdOptions = [];
   stubs.hangUpCall.mockClear();
   phoneRoom('active');
   registerOnBehalfCallRoom(SESSION, 'c1', 'room-c1');
@@ -164,6 +170,36 @@ describe('with CALL_OPENING_AMD on', () => {
     await vi.waitFor(() => expect(stubs.hangUpCall).toHaveBeenCalledWith(SESSION, 'unreachable'));
     expect(agent.session.generateReply).not.toHaveBeenCalled();
     expect(agent.say).not.toHaveBeenCalled();
+  });
+
+  it('answers a call screener once, then leaves the hello of the person to the reply', async () => {
+    stubs.queue = [
+      {
+        category: 'machine-ivr',
+        transcript:
+          "The person you're calling is using a screening service. Say your name and why you're calling.",
+        delayMs: 800,
+      },
+      { category: 'machine-ivr', transcript: 'Please stay on the line.', delayMs: 600 },
+    ];
+    stubs.verdict = { category: 'human', transcript: 'Hello?', delayMs: 300 };
+    const agent = callingAgent();
+    expect(openIfOnBehalfCall(SESSION, agent)).toBe(true);
+    await vi.waitFor(() => expect(agent.wireHandlers).toHaveBeenCalledTimes(1));
+    expect(agent.session.say).toHaveBeenCalledTimes(1);
+    expect(agent.session.say).toHaveBeenCalledWith(
+      "Hi, it's Ferni, Seth's AI friend, calling to check in on Doug.",
+      { allowInterruptions: false }
+    );
+    expect(stubs.amdCreated).toBe(3);
+    expect(stubs.amdOptions).toMatchObject([
+      { noSpeechTimeoutMs: 2_500, interruptOnMachine: true },
+      { noSpeechTimeoutMs: 10_000, interruptOnMachine: true },
+      { noSpeechTimeoutMs: 10_000, interruptOnMachine: true },
+    ]);
+    expect(agent.say).not.toHaveBeenCalled(); // the reply to "Hello?" is the opener
+    expect(agent.userData).toEqual({}); // the screener line is not the greeting
+    expect(stubs.hangUpCall).not.toHaveBeenCalled();
   });
 
   it('hangs up without listening when the phone is never answered', async () => {

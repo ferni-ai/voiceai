@@ -11,7 +11,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { callLLM } from '../../../src/services/llm/llm-utils.js';
+import { callLLM } from '../../../src/services/llm-utils.js';
 import {
   RunDays,
   callerZone,

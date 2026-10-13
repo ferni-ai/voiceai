@@ -17,6 +17,7 @@ import { createCircuitBreaker } from './circuit-breaker.js';
 import { recordLatency, recordSuccessRate } from './anomaly-detection.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
+import { useVertexAI } from '../../config/vertex-flag.js';
 
 const log = createLogger({ module: 'health-monitors' });
 
@@ -175,9 +176,7 @@ async function checkCartesia(): Promise<HealthCheckResult> {
   }
 }
 
-/**
- * Gemini AI health check - verify API connectivity
- */
+/** Gemini AI health check - verify API connectivity */
 async function checkGemini(): Promise<HealthCheckResult> {
   const start = Date.now();
 
@@ -185,7 +184,7 @@ async function checkGemini(): Promise<HealthCheckResult> {
   // reported Gemini down (every check, with Slack alerts) while every reply
   // was being served. Ask the client the agent actually uses for the model's
   // metadata instead: no tokens spent.
-  if (process.env.USE_VERTEX_AI === 'true') {
+  if (useVertexAI()) {
     try {
       const { getGeminiClient, GEMINI_MODEL } = await import('../../config/gemini-config.js');
       const client = (await getGeminiClient()) as {

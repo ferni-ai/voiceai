@@ -64,6 +64,60 @@ describe('director notes', () => {
     ).toHaveLength(1);
   });
 
+  it('drops a note that says the caller is testing whether Ferni notices', () => {
+    // Prod 2026-10-12: STT heard "Ferni" as "Freddy"; this note made Ferni ask "Who's Freddy?".
+    const call = [
+      { speaker: 'user' as const, text: 'How are you doing, Freddy?' },
+      { speaker: 'ferni' as const, text: 'Hanging in there.' },
+    ];
+    for (const note of [
+      'He called you "Freddy." He might be distracted or playfully testing if you\'ll notice the wrong name.',
+      "He called you Freddy, seeing if you'll notice.",
+      'He called you Freddy, testing whether you remember your name.',
+    ]) {
+      expect(parseNotes(note, call), note).toEqual([]);
+    }
+    // Testing that isn't about Ferni stays.
+    const music = [
+      {
+        speaker: 'user' as const,
+        text: 'Are you testing the new music? Checking if the timer works.',
+      },
+      { speaker: 'ferni' as const, text: 'Mm, which one?' },
+    ];
+    expect(
+      parseNotes("Seth asked if you're testing the new music; answer directly.", music)
+    ).toHaveLength(1);
+    expect(parseNotes('He is checking if the timer works; tell him it does.', music)).toHaveLength(
+      1
+    );
+  });
+
+  it('drops a note that points back at an earlier line with "answer that"', () => {
+    const call = [
+      {
+        speaker: 'user' as const,
+        text: 'I actually did send it. Wednesday night. No reply yet though.',
+      },
+      { speaker: 'ferni' as const, text: 'Getting it out the door is the hardest part.' },
+      { speaker: 'user' as const, text: 'The running, not so much. Once, maybe.' },
+      { speaker: 'ferni' as const, text: 'Once is better than zero, right?' },
+    ];
+    // Dev 2026-10-11: this note reached the reply to "Yeah, okay, thanks. Talk
+    // soon.", which came out as "Dana's probably just buried in stuff" instead of a goodbye.
+    expect(
+      parseNotes(
+        'Sam mentioned a sent message with no reply. Answer that instead of focusing on the running.',
+        call
+      )
+    ).toEqual([]);
+    expect(parseNotes('Once is a start for the running; keep it light.', call)).toHaveLength(1);
+    // A question they asked still gets answered (a real note from dev).
+    expect(
+      parseNotes('Sam asked about the running. Answer that directly before wandering off.', call)
+    ).toHaveLength(1);
+  });
+
   it('tells the director not to guess hidden motives and to answer questions', () => {
     expect(DIRECTOR_SYSTEM).toMatch(/hidden motives/);
     expect(DIRECTOR_SYSTEM).toMatch(/When they ask something, the next reply answers it/);

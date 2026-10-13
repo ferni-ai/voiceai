@@ -105,9 +105,17 @@ export class OpenerGate {
     this.repliesSinceKept = every; // the first reply may keep one
   }
 
-  /** Decide for one reply's opening text. */
-  decide(opening: string): string {
+  /**
+   * Decide for one reply's opening text. `openedBySound`: a turn-opening clip
+   * already said "Mm" (turn-opening-sound.ts), so the reply's own reaction word
+   * goes, and the clip counts as this reply's kept opener.
+   */
+  decide(opening: string, openedBySound = false): string {
     const { text, stripped } = stripStockOpener(opening);
+    if (openedBySound) {
+      this.repliesSinceKept = 0;
+      return stripped ? text : capitalizeStart(opening);
+    }
     if (!stripped) return capitalizeStart(opening);
     if (this.repliesSinceKept >= this.every) {
       this.repliesSinceKept = 0;
@@ -117,9 +125,12 @@ export class OpenerGate {
     return text;
   }
 
-  /** Wrap one reply's LLM stream. */
-  wrap(input: ReadableStream<Chunk>): ReadableStream<Chunk> {
-    const decide = (opening: string): string => this.decide(opening);
+  /** Wrap one reply's LLM stream; `openedBySound` is asked when the opening is decided. */
+  wrap(
+    input: ReadableStream<Chunk>,
+    openedBySound: () => boolean = () => false
+  ): ReadableStream<Chunk> {
+    const decide = (opening: string): string => this.decide(opening, openedBySound());
     const early = this.early;
     let buffered = '';
     let template: Chunk | null = null;

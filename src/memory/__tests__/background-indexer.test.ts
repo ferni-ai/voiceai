@@ -5,7 +5,7 @@
  * content hashing, and status tracking.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { perfBudget } from '../../tests/perf-budget.js';
 
 // Mock Firestore
@@ -51,6 +51,13 @@ describe('Background Indexer', () => {
     // Reset indexing state
     const { resetIndexingState } = await import('../background-indexer.js');
     resetIndexingState();
+  });
+
+  afterEach(async () => {
+    // Let any indexing a test started finish before the file tears down, so its
+    // delayed log calls don't land after the worker has closed.
+    const { waitForIndexing } = await import('../background-indexer.js');
+    await waitForIndexing();
   });
 
   describe('State management', () => {
@@ -195,7 +202,7 @@ describe('Background Indexer', () => {
         { file: 'investment-story.md', expected: 'stories' },
         { file: 'great-anecdote.md', expected: 'stories' },
         // Wisdom
-        { file: 'bogle-wisdom.md', expected: 'wisdom' },
+        { file: 'index-investing-wisdom.md', expected: 'wisdom' },
         { file: 'my-opinion.md', expected: 'wisdom' },
         // Coaching
         { file: 'coaching-tips.md', expected: 'coaching' },

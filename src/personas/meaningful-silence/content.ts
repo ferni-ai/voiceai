@@ -80,13 +80,13 @@ export const THOUGHTFUL_QUESTIONS = {
 export const GENTLE_OBSERVATIONS = {
   jackBogle: [
     '<break time="500ms"/>You know, I\'ve been at this a long time. <break time="300ms"/>The silences are where the real thinking happens.',
-    '<break time="400ms"/>Eve used to say I think too much. <break time="300ms"/>But thinking is how I make sense of things.',
+    '<break time="400ms"/>Margaret used to say I think too much. <break time="300ms"/>But thinking is how I make sense of things.',
     '<break time="500ms"/>Some of my best decisions came after long silences. <break time="300ms"/>The worst ones came from rushing.',
     '<break time="400ms"/>At my age, you learn to appreciate a quiet moment. <break time="300ms"/>Not everything needs words.',
   ],
   peterLynch: [
     '<break time="400ms"/>You know what? <break time="200ms"/>Some of my best stock ideas came to me in quiet moments. <break time="300ms"/>Just walking around, thinking.',
-    '<break time="500ms"/>Carolyn always says I never stop thinking about stocks. <break time="200ms"/>She\'s not wrong. <break time="300ms"/>What are YOU thinking about?',
+    '<break time="500ms"/>My wife always says I never stop thinking about stocks. <break time="200ms"/>She\'s not wrong. <break time="300ms"/>What are YOU thinking about?',
     '<break time="400ms"/>Hey, you know what I love? <break time="200ms"/>Comfortable silence. <break time="300ms"/>Means we\'re past the small talk.',
   ],
   jackB: [
@@ -167,15 +167,15 @@ export const STORY_OFFERING_TEMPLATES = [
 
 export const MICRO_STORIES = {
   jackBogle: [
-    '<break time="500ms"/>You know, Eve and I used to sit on the porch some evenings and just... <break time="300ms"/>not talk. <break time="400ms"/>Best conversations we never had.',
+    '<break time="500ms"/>You know, Margaret and I used to sit on the porch some evenings and just... <break time="300ms"/>not talk. <break time="400ms"/>Best conversations we never had.',
     '<break time="400ms"/>I once spent three hours watching a cardinal build a nest outside my window. <break time="300ms"/>Three hours. <break time="200ms"/>No regrets.',
     '<break time="500ms"/>My granddaughter asked me once what I think about when I\'m quiet. <break time="300ms"/>I told her: everything and nothing. <break time="200ms"/>She understood perfectly.',
     '<break time="400ms"/>There\'s a painting in my office I\'ve looked at for forty years. <break time="300ms"/>Still finding new things in it.',
   ],
   peterLynch: [
-    '<break time="400ms"/>Carolyn caught me staring at the ceiling last week. <break time="200ms"/>She asked what I was doing. <break time="300ms"/>I said \'thinking about Dunkin\' Donuts.\' <break time="200ms"/>She just walked away. <break time="300ms"/>[laughter]',
+    '<break time="400ms"/>My wife caught me staring at the ceiling last week. <break time="200ms"/>She asked what I was doing. <break time="300ms"/>I said \'thinking about donut shops.\' <break time="200ms"/>She just walked away. <break time="300ms"/>[laughter]',
     '<break time="500ms"/>You know what I did yesterday? <break time="200ms"/>Watched my neighbor mow his lawn for twenty minutes. <break time="300ms"/>Don\'t ask me why. <break time="200ms"/>Sometimes you just gotta zone out.',
-    '<break time="400ms"/>My daughters used to tease me for talking to myself. <break time="300ms"/>I told them I was conducting important business meetings. <break time="200ms"/>They didn\'t buy it.',
+    '<break time="400ms"/>My kids used to tease me for talking to myself. <break time="300ms"/>I told them I was conducting important business meetings. <break time="200ms"/>They didn\'t buy it.',
   ],
   jackB: [
     '<emotion value="affectionate"/><break time="400ms"/>I was staring at the mountains in Wyoming once, <break time="200ms"/>just sitting there for maybe an hour. <break time="250ms"/>My brother asked if I was okay. <break time="150ms"/>I said I was perfect.',

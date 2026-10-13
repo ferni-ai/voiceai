@@ -263,7 +263,7 @@ class GamePickerUI {
   private renderGameCard(game: GameOption, index: number): string {
     const difficultyColors: Record<string, string> = {
       easy: 'var(--color-success)',
-      medium: 'var(--persona-primary)',
+      medium: 'var(--persona-text)',
       hard: 'var(--color-warning)',
     };
 
@@ -658,7 +658,7 @@ class GamePickerUI {
       .game-picker__backdrop {
         position: absolute;
         inset: 0;
-        background: rgba(44, 37, 32, 0.75);
+        background: var(--color-utility-backdrop);
       }
 
       .game-picker__content {
@@ -720,7 +720,7 @@ class GamePickerUI {
         width: 36px;
         height: 36px;
         border: none;
-        background: var(--color-background-subtle, #F5F1E8);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-full, 50%);
         cursor: pointer;
         display: flex;
@@ -731,7 +731,7 @@ class GamePickerUI {
       }
       
       .game-picker__close:hover {
-        background: var(--color-background-hover, #E8E2DA);
+        background: var(--color-background-tertiary);
         color: var(--color-text-primary, #2C2520);
       }
       
@@ -765,7 +765,7 @@ class GamePickerUI {
       @container (max-width: 400px) { .game-picker__tab { flex: 1 0 auto; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: var(--radius-lg, 12px); font-size: 12px; } }
       
       .game-picker__tab:hover {
-        background: var(--color-background-subtle, #F5F1E8);
+        background: var(--color-background-secondary);
         color: var(--color-text-primary, #2C2520);
       }
       
@@ -798,7 +798,7 @@ class GamePickerUI {
       }
       
       .game-picker__library-notice {
-        background: var(--color-background-subtle, #F5F1E8);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-lg, 12px);
         padding: var(--space-4, 16px);
         margin-bottom: var(--space-3, 12px);
@@ -818,7 +818,7 @@ class GamePickerUI {
       }
 
       .game-picker__reflection-notice {
-        background: linear-gradient(135deg, var(--color-background-subtle, #F5F1E8), rgba(74, 103, 65, 0.08));
+        background: linear-gradient(135deg, var(--color-background-secondary), rgba(74, 103, 65, 0.08));
         border-radius: var(--radius-lg, 12px);
         padding: var(--space-4, 16px);
         margin-bottom: var(--space-3, 12px);
@@ -838,7 +838,7 @@ class GamePickerUI {
         align-items: center;
         gap: var(--space-4, 16px);
         padding: var(--space-4, 16px);
-        background: var(--color-background-subtle, #F5F1E8);
+        background: var(--color-background-secondary);
         border: 2px solid transparent;
         border-radius: var(--radius-xl, 16px);
         cursor: pointer;
@@ -855,7 +855,7 @@ class GamePickerUI {
       }
       
       .game-card:hover {
-        background: var(--color-background-hover, #E8E2DA);
+        background: var(--color-background-tertiary);
         border-color: var(--color-text-secondary);
         transform: translateX(4px);
       }
@@ -915,7 +915,7 @@ class GamePickerUI {
       
       .game-card__badge--new {
         background: var(--color-semantic-warning-glow, rgba(166, 124, 53, 0.18));
-        color: color-mix(in srgb, var(--color-semantic-warning, #a67c35) 70%, black);
+        color: var(--color-semantic-warning-text);
       }
       
       .game-card__badge--spotify {
@@ -970,27 +970,6 @@ class GamePickerUI {
         margin: 0;
       }
       
-      /* Dark theme */
-      [data-theme="dark"] .game-picker__backdrop {
-        background: rgba(0, 0, 0, 0.7);
-      }
-      
-      [data-theme="dark"] .game-picker__content {
-        background: var(--color-background-elevated, #3a3330);
-      }
-      
-      [data-theme="dark"] .game-card {
-        background: var(--color-background-subtle, #2a2520);
-      }
-      
-      [data-theme="dark"] .game-card:hover {
-        background: var(--color-background-hover, #4a4540);
-      }
-      
-      [data-theme="dark"] .game-card__icon {
-        background: var(--color-background-elevated, #3a3330);
-      }
-      
       /* Help button */
       .game-picker__help-btn {
         display: inline-flex;
@@ -1008,7 +987,7 @@ class GamePickerUI {
       }
       
       .game-picker__help-btn:hover {
-        background: var(--color-background-subtle, #F5F1E8);
+        background: var(--color-background-secondary);
         color: var(--color-text-secondary);
         border-color: var(--color-text-secondary);
       }
@@ -1026,7 +1005,7 @@ class GamePickerUI {
       .game-help-modal__backdrop {
         position: absolute;
         inset: 0;
-        background: rgba(44, 37, 32, 0.75);
+        background: var(--color-utility-backdrop);
       }
       
       .game-help-modal__content {
@@ -1048,7 +1027,7 @@ class GamePickerUI {
         width: 32px;
         height: 32px;
         border: none;
-        background: var(--color-background-subtle, #F5F1E8);
+        background: var(--color-background-secondary);
         border-radius: var(--radius-full, 50%);
         cursor: pointer;
         display: flex;
@@ -1059,7 +1038,7 @@ class GamePickerUI {
       }
       
       .game-help-modal__close:hover {
-        background: var(--color-background-hover, #E8E2DA);
+        background: var(--color-background-tertiary);
         color: var(--color-text-primary, #2C2520);
       }
       
@@ -1149,7 +1128,7 @@ class GamePickerUI {
       }
       
       .game-help-tip {
-        background: var(--color-background-subtle, #F5F1E8);
+        background: var(--color-background-secondary);
         padding: var(--space-4, 16px);
         border-radius: var(--radius-lg, 12px);
         font-size: 14px;

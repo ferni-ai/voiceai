@@ -17,7 +17,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
-import { getLocale, t } from '../i18n/index.js';
+import { t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import {
   getCustomAgent,
@@ -35,7 +35,8 @@ const log = createLogger('TalkToTwinUI');
 
 interface Message {
   id: string;
-  role: 'user' | 'twin';
+  /** 'notice' is the app saying a reply didn't come, never the twin's voice */
+  role: 'user' | 'twin' | 'notice';
   content: string;
   timestamp: Date;
 }
@@ -369,7 +370,7 @@ async function handleSendMessage(): Promise<void> {
 /** Send what the person said ('' only asks an agent to open its scene) and add the reply */
 async function sendMessage(userMessage: string): Promise<void> {
   if (isThinking || !currentAgent || !twinContext) return;
-  const earlier = [...messages];
+  const earlier = messages.filter((m): m is Message & { role: 'user' | 'twin' } => m.role !== 'notice');
   if (userMessage) addMessage('user', userMessage);
   isThinking = true;
   renderMessages();
@@ -385,7 +386,7 @@ async function sendMessage(userMessage: string): Promise<void> {
     soundUI.play('click');
   } catch (error) {
     log.error('Failed to generate twin response:', error);
-    addMessage('twin', t('talkToTwin.error'), 1);
+    addMessage('notice', t('talkToTwin.error'), 1);
   }
 
   isThinking = false;
@@ -438,75 +439,21 @@ async function callTwinAPI(
   relevantJournals: JournalEntry[],
   keyThemes: string[]
 ): Promise<string> {
-  try {
-    const response = await apiPost<{ response: string }>('/api/journal/twin-response', {
-      userMessage,
-      profile,
-      relevantJournals: relevantJournals.map((j) => ({
-        content: j.content,
-        mood: j.mood,
-        date: j.date.toISOString(),
-      })),
-      keyThemes,
-    });
-
-    if (response.ok && response.data) {
-      return response.data.response;
-    }
-  } catch (error) {
-    log.warn('Twin API failed, using fallback:', error);
+  const response = await apiPost<{ response: string }>('/api/journal/twin-response', {
+    userMessage,
+    profile,
+    relevantJournals: relevantJournals.map((j) => ({
+      content: j.content,
+      mood: j.mood,
+      date: j.date.toISOString(),
+    })),
+    keyThemes,
+  });
+  if (response.ok && response.data?.response) {
+    return response.data.response;
   }
-
-  // Fallback: Generate a simple response based on profile
-  return generateFallbackResponse(userMessage, profile, relevantJournals);
-}
-
-function generateFallbackResponse(
-  userMessage: string,
-  profile: TwinProfile,
-  relevantJournals: JournalEntry[]
-): string {
-  // Simple pattern-based response as fallback. Each locale lists, comma-separated,
-  // the words that signal an intent in `talkToTwin.fallbackKeywords.<intent>`.
-  const lowerMessage = userMessage.toLocaleLowerCase(getLocale());
-  const mentions = (intent: string): boolean =>
-    t(`talkToTwin.fallbackKeywords.${intent}`)
-      .split(',')
-      .some((word) => lowerMessage.includes(word.trim()));
-
-  if (mentions('advice')) {
-    if (profile.philosophy) {
-      return t('talkToTwin.fallback.advicePhilosophy', { philosophy: profile.philosophy });
-    }
-    if (profile.values.length > 0) {
-      return t('talkToTwin.fallback.adviceValues', { values: profile.values.slice(0, 3).join(', ') });
-    }
-  }
-
-  if (mentions('feeling')) {
-    const recent = relevantJournals[0];
-    if (recent) {
-      return t('talkToTwin.fallback.feelRecent', { excerpt: recent.content.slice(0, 200) });
-    }
-    return t('talkToTwin.fallback.feelDefault');
-  }
-
-  if (mentions('remember')) {
-    if (relevantJournals.length > 0) {
-      const entries = relevantJournals
-        .slice(0, 2)
-        .map((entry) => t('talkToTwin.fallback.rememberEntry', { excerpt: entry.content.slice(0, 100) }));
-      return [t('talkToTwin.fallback.rememberIntro'), ...entries].join(' ');
-    }
-  }
-
-  // Default response using mannerisms
-  if (profile.mannerisms.length > 0) {
-    const phrase = profile.mannerisms[Math.floor(Math.random() * profile.mannerisms.length)];
-    return t('talkToTwin.fallback.mannerism', { phrase: phrase ?? '' });
-  }
-
-  return t('talkToTwin.fallback.default');
+  // No canned reply in the person's own voice: the caller shows the error notice.
+  throw new Error(`Twin response failed with status ${response.status}`);
 }
 
 // ============================================================================
@@ -618,7 +565,7 @@ function getTwinStyles(): string {
     .talk-twin-overlay {
       position: fixed;
       inset: 0;
-      z-index: var(--z-modal, 2100);
+      z-index: var(--z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -744,6 +691,11 @@ function getTwinStyles(): string {
     
     .twin-message--twin {
       align-self: flex-start;
+    }
+
+    .twin-message--notice {
+      align-self: center;
+      color: var(--color-text-muted);
     }
     
     .message-avatar {
@@ -890,7 +842,7 @@ function getTwinStyles(): string {
     }
     
     /* Responsive */
-    @media (max-width: clamp(448px, 90vw, 640px)) {
+    @media (max-width: 640px) {
       .twin-container {
         width: 100vw;
         height: 100vh;

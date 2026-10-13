@@ -48,8 +48,7 @@ import {
   factDocId,
 } from '../../src/memory/dynamic/extraction-firestore-docs.js';
 import { summarizeWithLLM } from '../../src/memory/operations/summarizer.js';
-import { createSummarizationLLMCaller } from '../../src/services/llm-utils.js';
-import { callLLM } from '../../src/services/llm/llm-utils.js';
+import { callLLM, createSummarizationLLMCaller } from '../../src/services/llm-utils.js';
 import { createMemoryRecall } from '../../src/agents/multi-agent/memory-recall-hook.js';
 import type { RecallStore } from '../../src/memory/recall/session-recall.js';
 import type { RetrievalEmbedder } from '../../src/memory/recall/semantic-recall.js';
@@ -190,22 +189,26 @@ function trackedEmbedder() {
 }
 
 /**
- * A local model through Ollama, for a judge of another family. Qwen3 ignores
- * think:false and reasons in its answer, so it thinks in the separate
- * thinking field and only the answer is read.
+ * A local model through Ollama, for a judge of another family. A reasoning
+ * model (Qwen3) ignores think:false and reasons in its answer, so it thinks
+ * in the separate field and only the answer is read; a model without
+ * thinking (Qwen2.5) rejects think, and is asked without it.
  */
 async function askLocal(model: string, prompt: string): Promise<string> {
-  const res = await fetch('http://127.0.0.1:11434/api/chat', {
-    method: 'POST',
-    body: JSON.stringify({
-      model,
-      messages: [{ role: 'user', content: prompt }],
-      stream: false,
-      think: true,
-      // Grading prompts are short; the default context window costs memory and speed.
-      options: { temperature: 0, num_predict: 2000, num_ctx: 8192 },
-    }),
-  });
+  const request = (think: boolean) =>
+    fetch('http://127.0.0.1:11434/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        stream: false,
+        ...(think && { think: true }),
+        // Grading prompts are short; the default context window costs memory and speed.
+        options: { temperature: 0, num_predict: think ? 2000 : 16, num_ctx: 8192 },
+      }),
+    });
+  let res = await request(true);
+  if (res.status === 400) res = await request(false);
   if (!res.ok) throw new Error(`ollama ${model}: HTTP ${res.status}`);
   const body = (await res.json()) as { message?: { content?: string } };
   return (body.message?.content ?? '').trim();

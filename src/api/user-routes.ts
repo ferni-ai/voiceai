@@ -19,6 +19,7 @@ import {
   updateTimingPreferences,
 } from '../services/outreach/timing-intelligence.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { isValidTimeZone } from '../utils/time-zone.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 import type { UserProfile } from '../types/user-profile.js';
@@ -112,18 +113,6 @@ function isValidAccent(accent: unknown): accent is EnglishAccent {
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
-}
-
-/**
- * Validate timezone string using Intl API
- */
-function isValidTimezone(tz: string): boolean {
-  try {
-    Intl.DateTimeFormat(undefined, { timeZone: tz });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -464,7 +453,7 @@ export async function handleUserRoutes(
       return true;
     }
 
-    if (!isValidTimezone(body.timezone)) {
+    if (!isValidTimeZone(body.timezone)) {
       sendJson(res, 400, { success: false, error: 'Invalid timezone' });
       return true;
     }
@@ -640,7 +629,7 @@ export async function handleUserRoutes(
 
       // Validate and apply timezone
       if (body?.timezone) {
-        if (!isValidTimezone(body.timezone)) {
+        if (!isValidTimeZone(body.timezone)) {
           sendJson(res, 400, { success: false, error: 'Invalid timezone' });
           return true;
         }
@@ -760,7 +749,7 @@ export async function handleUserRoutes(
       }
 
       // If timezone provided, also update timing preferences
-      if (body?.timezone && isValidTimezone(body.timezone)) {
+      if (body?.timezone && isValidTimeZone(body.timezone)) {
         updateTimingPreferences(userId, { timezone: body.timezone });
       }
 
