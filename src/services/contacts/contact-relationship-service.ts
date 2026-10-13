@@ -21,6 +21,7 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 import { onContactChange, onContactInteractionChange } from '../data-layer/hooks/contacts-hooks.js';
 import { createExpiringMarks } from '../../utils/expiring-marks.js';
+import { isRememberedContact } from './remembered-contacts.js';
 
 const log = getLogger();
 
@@ -544,11 +545,9 @@ export async function completeFollowUp(userId: string, contactId: string): Promi
 // INSIGHTS & INTELLIGENCE
 // ============================================================================
 
-/**
- * Get relationship insights for a user
- */
+/** Relationship insights for a user. Nobody they have lost is "weakening" or "overdue". */
 export async function getRelationshipInsights(userId: string): Promise<ContactInsight[]> {
-  const contacts = await getContacts(userId);
+  const contacts = (await getContacts(userId)).filter((c) => !isRememberedContact(c));
   const insights: ContactInsight[] = [];
   const now = new Date();
 
@@ -603,16 +602,14 @@ export async function getRelationshipInsights(userId: string): Promise<ContactIn
   return insights;
 }
 
-/**
- * Get contacts that need attention
- */
 /** Days without contact before someone needs attention (Your People's "Needs attention" too) */
 export const NEEDS_ATTENTION_AFTER_DAYS = 14;
 export async function getContactsNeedingAttention(
   userId: string,
   limit = 5
 ): Promise<ContactRelationship[]> {
-  const contacts = await getContacts(userId);
+  // Someone the user has lost is remembered, never someone to check in on
+  const contacts = (await getContacts(userId)).filter((c) => !isRememberedContact(c));
   const now = new Date();
 
   // Score contacts by urgency
