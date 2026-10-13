@@ -133,7 +133,7 @@ index 0ebb807b6f2a2536013b0728bf714b5fd3c7efc0..a0f68b2e2969c6ae1e616557bd1b441b
            const retryInterval = intervalForRetry(this._connOptions, i);
            if (this._connOptions.maxRetry === 0 || !error.retryable) {
 diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
-index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..0528252ff432bd5c0f77960df3593d53540d1fd7 100644
+index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..31dea7155ee2bf070f7b9d6c5174ca42579ff9bd 100644
 --- a/dist/voice/agent_activity.cjs
 +++ b/dist/voice/agent_activity.cjs
 @@ -116,6 +116,12 @@ async function raceWithAbort(p, signal) {
@@ -242,7 +242,42 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..0528252ff432bd5c0f77960df3593d53
          speechHandle = preemptive.speechHandle;
          if (userMessage) {
            preemptive.userMessage.content = [...userMessage.content];
-@@ -3537,8 +3598,16 @@ class AgentActivity {
+@@ -3442,10 +3503,34 @@ class AgentActivity {
+     if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
+       this.updatePausedSpeech(speechHandle, 0);
+       audioOutput.pause();
++      // PATCHED(ferni): PLAYOUT_LAUNCH_RESUME. Only a VAD end of speech releases this hold,
++      // and a cancelled turn decision drops even that resume (#2204). Our turns end on
++      // ink-2's end of turn, often inside VAD's hangover, so a reply could stay paused
++      // with the caller silent until they spoke again (dev 2026-10-13: 16 s and 46 s).
++      // Resume after falseInterruptionTimeout unless the caller is really speaking.
++      if (process.env.PLAYOUT_LAUNCH_RESUME !== "off") this.__ferniArmLaunchResume(speechHandle, Date.now());
+       return;
+     }
+     audioOutput == null ? void 0 : audioOutput.resume();
+   }
++  // PATCHED(ferni): PLAYOUT_LAUNCH_RESUME watchdog for a reply paused at playout launch.
++  __ferniArmLaunchResume(speechHandle, pausedAt) {
++    clearTimeout(this.__ferniLaunchResumeTimer);
++    const ms = this.agentSession.sessionOptions.turnHandling.interruption.falseInterruptionTimeout ?? 2e3;
++    this.__ferniLaunchResumeTimer = setTimeout(() => {
++      var _a;
++      this.__ferniLaunchResumeTimer = void 0;
++      if (this.closeAbort.signal.aborted || !this.pausedSpeech || this.pausedSpeech.handle !== speechHandle || speechHandle.interrupted || speechHandle.done()) return;
++      const eot = (_a = this.audioRecognition) == null ? void 0 : _a.endOfTurnTask;
++      if (this.agentSession.userState === "speaking" || eot && !eot.done) {
++        this.__ferniArmLaunchResume(speechHandle, pausedAt);
++        return;
++      }
++      this.falseInterruptionPending = false;
++      this.logger.info({ heldMs: Date.now() - pausedAt, speechId: speechHandle.id }, "PLAYOUT_LAUNCH_RESUMED");
++      this.startFalseInterruptionTimer(0);
++    }, ms);
++  }
+   cancelFalseInterruptionTimer() {
+     if (this.falseInterruptionTimer !== void 0) {
+       clearTimeout(this.falseInterruptionTimer);
+@@ -3537,8 +3622,16 @@ class AgentActivity {
          (error) => this.logger.warn({ error }, "failed to report end of agent speech on pause cancel")
        );
      }
@@ -259,7 +294,7 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..0528252ff432bd5c0f77960df3593d53
        if (this.pausedSpeech.handle._hasGenerations) {
          await this.pausedSpeech.handle.waitIfNotInterrupted([
            this.pausedSpeech.handle._waitForGeneration()
-@@ -3547,7 +3616,7 @@ class AgentActivity {
+@@ -3547,7 +3640,7 @@ class AgentActivity {
      }
      this.pausedSpeech = void 0;
      const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;
@@ -269,7 +304,7 @@ index cd29f66fff4feea7bb32078b7d59bd71dd42d8ba..0528252ff432bd5c0f77960df3593d53
      }
    }
 diff --git a/dist/voice/agent_activity.js b/dist/voice/agent_activity.js
-index 431882ec37d768f8ba0b0e732d0e346b6757ac67..642f3bbd28f77d0166056cd77591b9a95fd85ad7 100644
+index 431882ec37d768f8ba0b0e732d0e346b6757ac67..0cf1c2518df69de606856ae6cf6d3c35a8410c35 100644
 --- a/dist/voice/agent_activity.js
 +++ b/dist/voice/agent_activity.js
 @@ -160,6 +160,12 @@ async function raceWithAbort(p, signal) {
@@ -378,7 +413,42 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..642f3bbd28f77d0166056cd77591b9a9
          speechHandle = preemptive.speechHandle;
          if (userMessage) {
            preemptive.userMessage.content = [...userMessage.content];
-@@ -3581,8 +3642,16 @@ class AgentActivity {
+@@ -3486,10 +3547,34 @@ class AgentActivity {
+     if (pauseIsAllowed && this.agentSession.agentState !== "speaking" && !this.userSilenceEvent.isSet) {
+       this.updatePausedSpeech(speechHandle, 0);
+       audioOutput.pause();
++      // PATCHED(ferni): PLAYOUT_LAUNCH_RESUME. Only a VAD end of speech releases this hold,
++      // and a cancelled turn decision drops even that resume (#2204). Our turns end on
++      // ink-2's end of turn, often inside VAD's hangover, so a reply could stay paused
++      // with the caller silent until they spoke again (dev 2026-10-13: 16 s and 46 s).
++      // Resume after falseInterruptionTimeout unless the caller is really speaking.
++      if (process.env.PLAYOUT_LAUNCH_RESUME !== "off") this.__ferniArmLaunchResume(speechHandle, Date.now());
+       return;
+     }
+     audioOutput == null ? void 0 : audioOutput.resume();
+   }
++  // PATCHED(ferni): PLAYOUT_LAUNCH_RESUME watchdog for a reply paused at playout launch.
++  __ferniArmLaunchResume(speechHandle, pausedAt) {
++    clearTimeout(this.__ferniLaunchResumeTimer);
++    const ms = this.agentSession.sessionOptions.turnHandling.interruption.falseInterruptionTimeout ?? 2e3;
++    this.__ferniLaunchResumeTimer = setTimeout(() => {
++      var _a;
++      this.__ferniLaunchResumeTimer = void 0;
++      if (this.closeAbort.signal.aborted || !this.pausedSpeech || this.pausedSpeech.handle !== speechHandle || speechHandle.interrupted || speechHandle.done()) return;
++      const eot = (_a = this.audioRecognition) == null ? void 0 : _a.endOfTurnTask;
++      if (this.agentSession.userState === "speaking" || eot && !eot.done) {
++        this.__ferniArmLaunchResume(speechHandle, pausedAt);
++        return;
++      }
++      this.falseInterruptionPending = false;
++      this.logger.info({ heldMs: Date.now() - pausedAt, speechId: speechHandle.id }, "PLAYOUT_LAUNCH_RESUMED");
++      this.startFalseInterruptionTimer(0);
++    }, ms);
++  }
+   cancelFalseInterruptionTimer() {
+     if (this.falseInterruptionTimer !== void 0) {
+       clearTimeout(this.falseInterruptionTimer);
+@@ -3581,8 +3666,16 @@ class AgentActivity {
          (error) => this.logger.warn({ error }, "failed to report end of agent speech on pause cancel")
        );
      }
@@ -395,7 +465,7 @@ index 431882ec37d768f8ba0b0e732d0e346b6757ac67..642f3bbd28f77d0166056cd77591b9a9
        if (this.pausedSpeech.handle._hasGenerations) {
          await this.pausedSpeech.handle.waitIfNotInterrupted([
            this.pausedSpeech.handle._waitForGeneration()
-@@ -3591,7 +3660,7 @@ class AgentActivity {
+@@ -3591,7 +3684,7 @@ class AgentActivity {
      }
      this.pausedSpeech = void 0;
      const interruptionOptions = this.agentSession.sessionOptions.turnHandling.interruption;

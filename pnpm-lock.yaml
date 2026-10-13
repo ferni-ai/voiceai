@@ -80,7 +80,7 @@ patchedDependencies:
     hash: d57a9d2d6fcdd6e9e83f321b8a087bc68803fb6541f433fcb43429c3086fa011
     path: patches/@livekit__agents-plugin-google@1.6.4.patch
   '@livekit/agents@1.6.4':
-    hash: a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12
+    hash: 556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b
     path: patches/@livekit__agents@1.6.4.patch
 
 importers:
@@ -122,19 +122,19 @@ importers:
         version: 4.3.0(@types/node@20.19.27)
       '@livekit/agents':
         specifier: 1.6.4
-        version: 1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5)
+        version: 1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/agents-plugin-cartesia':
         specifier: 1.6.4
-        version: 1.6.4(patch_hash=513a7ff80d2a81dc22c2fa32a0481bb64a0946e5b60cb61b8a2e00bcb968e438)(@livekit/agents@1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(zod@4.6.5)
+        version: 1.6.4(patch_hash=513a7ff80d2a81dc22c2fa32a0481bb64a0946e5b60cb61b8a2e00bcb968e438)(@livekit/agents@1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(zod@4.6.5)
       '@livekit/agents-plugin-google':
         specifier: 1.6.4
-        version: 1.6.4(patch_hash=d57a9d2d6fcdd6e9e83f321b8a087bc68803fb6541f433fcb43429c3086fa011)(@livekit/agents@1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(ws@8.22.0)(zod@4.6.5)
+        version: 1.6.4(patch_hash=d57a9d2d6fcdd6e9e83f321b8a087bc68803fb6541f433fcb43429c3086fa011)(@livekit/agents@1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(ws@8.22.0)(zod@4.6.5)
       '@livekit/agents-plugin-openai':
         specifier: 1.6.4
-        version: 1.6.4(@livekit/agents@1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(zod@4.6.5)
+        version: 1.6.4(@livekit/agents@1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(zod@4.6.5)
       '@livekit/agents-plugin-silero':
         specifier: 1.6.4
-        version: 1.6.4(@livekit/agents@1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)
+        version: 1.6.4(@livekit/agents@1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)
       '@livekit/noise-cancellation-node':
         specifier: ^0.3.0
         version: 0.3.0(@livekit/rtc-node@0.13.35)
@@ -8890,9 +8890,9 @@ snapshots:
 
   '@levischuck/tiny-cbor@0.2.11': {}
 
-  '@livekit/agents-plugin-cartesia@1.6.4(patch_hash=513a7ff80d2a81dc22c2fa32a0481bb64a0946e5b60cb61b8a2e00bcb968e438)(@livekit/agents@1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(zod@4.6.5)':
+  '@livekit/agents-plugin-cartesia@1.6.4(patch_hash=513a7ff80d2a81dc22c2fa32a0481bb64a0946e5b60cb61b8a2e00bcb968e438)(@livekit/agents@1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(zod@4.6.5)':
     dependencies:
-      '@livekit/agents': 1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5)
+      '@livekit/agents': 1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/rtc-node': 0.13.35
       ws: 8.22.0
       zod: 4.6.5
@@ -8900,10 +8900,10 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents-plugin-google@1.6.4(patch_hash=d57a9d2d6fcdd6e9e83f321b8a087bc68803fb6541f433fcb43429c3086fa011)(@livekit/agents@1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(ws@8.22.0)(zod@4.6.5)':
+  '@livekit/agents-plugin-google@1.6.4(patch_hash=d57a9d2d6fcdd6e9e83f321b8a087bc68803fb6541f433fcb43429c3086fa011)(@livekit/agents@1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(ws@8.22.0)(zod@4.6.5)':
     dependencies:
       '@google/genai': 2.29.0(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))
-      '@livekit/agents': 1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5)
+      '@livekit/agents': 1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/mutex': 1.1.1
       '@livekit/rtc-node': 0.13.35
       '@types/json-schema': 7.0.15
@@ -8918,9 +8918,9 @@ snapshots:
       - ws
       - zod
 
-  '@livekit/agents-plugin-openai@1.6.4(@livekit/agents@1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(zod@4.6.5)':
+  '@livekit/agents-plugin-openai@1.6.4(@livekit/agents@1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(zod@4.6.5)':
     dependencies:
-      '@livekit/agents': 1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5)
+      '@livekit/agents': 1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/mutex': 1.1.1
       '@livekit/rtc-node': 0.13.35
       openai: 6.10.0(ws@8.22.0)(zod@4.6.5)
@@ -8930,9 +8930,9 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents-plugin-silero@1.6.4(@livekit/agents@1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)':
+  '@livekit/agents-plugin-silero@1.6.4(@livekit/agents@1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)':
     dependencies:
-      '@livekit/agents': 1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5)
+      '@livekit/agents': 1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/rtc-node': 0.13.35
       onnxruntime-node: 1.30.0
       ws: 8.22.0
@@ -8940,7 +8940,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents@1.6.4(patch_hash=a13b59721673c46f9b21a803053195808e56a76acb654cd4bec3b31a60682d12)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5)':
+  '@livekit/agents@1.6.4(patch_hash=556f411bbf080fa006a3c558bfb442fba5f8550ee9fa36a5d51970ab67249e4b)(@livekit/rtc-node@0.13.35)(@types/node@20.19.27)(typescript@5.9.3)(zod@4.6.5)':
     dependencies:
       '@bufbuild/protobuf': 1.10.1
       '@livekit/av': 10.1.0
