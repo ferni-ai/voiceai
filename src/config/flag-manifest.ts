@@ -282,6 +282,7 @@ export const FLAG_MANIFEST = {
   SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   STREAMING_TTS_OVERLAP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   STT_REFRESH_AFTER_GREETING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  STT_RETRY_RESET: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   STYLE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TAP_INTERRUPT: { default: 'off', owner: 'voice', kind: 'experiment' },
   TEAM_VOICES: { default: 'off', owner: 'voice', kind: 'experiment' },
