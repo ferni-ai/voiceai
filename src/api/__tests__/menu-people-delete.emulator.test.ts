@@ -8,10 +8,14 @@
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import admin from 'firebase-admin';
+import type { Firestore } from 'firebase-admin/firestore';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
+
+// src/tests/setup.ts fakes firebase-admin for every test; this file reads the emulator
+vi.mock('firebase-admin/app', () => vi.importActual('firebase-admin/app'));
+vi.mock('firebase-admin/firestore', () => vi.importActual('firebase-admin/firestore'));
 if (emulator) {
   // Both contact services pick their project from these; the test's admin client must match
   process.env.GOOGLE_CLOUD_PROJECT = 'demo-menu-people';
@@ -37,7 +41,7 @@ vi.mock('../../services/data-layer/hooks/contacts-hooks.js', async (importOrigin
 
 let server: Server;
 let base: string;
-let db: admin.firestore.Firestore;
+let db: Firestore;
 const newUser = (): string => `menu-people-${Math.random().toString(36).slice(2)}`;
 
 beforeAll(async () => {
@@ -53,8 +57,8 @@ beforeAll(async () => {
     server.listen(0, '127.0.0.1', resolve);
   });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  if (!admin.apps.length) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
-  db = admin.firestore();
+  const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+  db = getAdminFirestore();
 });
 
 afterAll(() => server?.close());
