@@ -24,8 +24,9 @@
  * talker, and their loudness against their own usual, half-way each and inside
  * PACE_BAND / LOUDNESS_BAND_DB. Pace and loudness only: matching a caller's
  * pitch lowered trust in the entrainment studies, and Cartesia has no pitch
- * control anyway. Heavy words drop to HEAVY at once, as a friend does on hard
- * news; the way back up is gradual.
+ * control anyway. Heavy words (or a sympathetic reply) drop to HEAVY at once,
+ * and a low caller's target is reached at once, as a friend does on hard news;
+ * the way back up is gradual.
  *
  * @module speech/tts-gateway/director/attune
  */
@@ -205,15 +206,17 @@ export function decideAttune(input: AttuneInput): Attunement {
   const speed = target.speed * follow.speed + (input.nudge ?? 0);
   const volume = target.volume * follow.volume;
   const heavy = input.valence === 'heavy';
+  // Hard news, theirs or in Ferni's words: the voice drops at once, not over turns.
+  const drop = heavy || input.state === 'low';
   return {
     state: input.state,
-    speed: approach(prevSpeed, speed, MAX_SPEED_STEP, SPEED_RANGE, heavy && speed < prevSpeed),
+    speed: approach(prevSpeed, speed, MAX_SPEED_STEP, SPEED_RANGE, drop && speed < prevSpeed),
     volume: approach(
       prevVolume,
       volume,
       MAX_VOLUME_STEP,
       VOLUME_RANGE,
-      heavy && volume < prevVolume
+      drop && volume < prevVolume
     ),
     emotion: input.state === 'low' && heavy ? 'sympathetic' : target.emotion,
   };
