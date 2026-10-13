@@ -13,23 +13,23 @@ import {
 
 const day = (d: string) => Date.parse(`${d}T18:00:00Z`);
 const calls: StoredCall[] = [
-  { id: 'c3', at: day('2026-01-20'), user: ['Started at the new studio today.'] },
+  { id: 'c3', at: day('2026-01-20'), user: ['Started at the new branch office today.'] },
   {
     id: 'c1',
     at: day('2026-01-05'),
-    user: ['My sister Mindy lives in Utah.', 'I play guitar at home.'],
+    user: ['My cousin Lena lives in Ohio.', 'I play piano at home.'],
   },
-  { id: 'c2', at: day('2026-01-12'), user: ['Thinking about leaving my job.'] },
+  { id: 'c2', at: day('2026-01-12'), user: ['Thinking about switching teams.'] },
 ];
 
 describe('groupIntoHistories', () => {
   it('groups consecutive calls, oldest first, dated back from the run date', () => {
-    const [h, ...rest] = groupIntoHistories(calls, 2, 5, '2026-10-11', 'Seth');
+    const [h, ...rest] = groupIntoHistories(calls, 2, 5, '2026-10-11', 'Priya');
     expect(rest).toEqual([]); // the third call can't fill a second history
     expect(h!.id).toBe('real-1');
     expect(h!.sessions.map((s) => s.user[0])).toEqual([
-      'My sister Mindy lives in Utah.',
-      'Thinking about leaving my job.',
+      'My cousin Lena lives in Ohio.',
+      'Thinking about switching teams.',
     ]);
     expect(h!.sessions[0]!.daysAgo).toBe(279); // 2026-01-05 to 2026-10-11
   });
@@ -37,24 +37,24 @@ describe('groupIntoHistories', () => {
 
 describe('generationPrompt', () => {
   it('shows each call with its date and asks for quoted evidence', () => {
-    const [h] = groupIntoHistories(calls, 3, 1, '2026-10-11', 'Seth');
+    const [h] = groupIntoHistories(calls, 3, 1, '2026-10-11', 'Priya');
     const prompt = generationPrompt(h!, '2026-10-11', 2);
-    expect(prompt).toContain('Call 1 (2026-01-05):\n- My sister Mindy lives in Utah.');
+    expect(prompt).toContain('Call 1 (2026-01-05):\n- My cousin Lena lives in Ohio.');
     expect(prompt).toContain('Call 3 (2026-01-20)');
     expect(prompt).toMatch(/exact words from the transcript/);
   });
 });
 
 describe('verifiedCases', () => {
-  const [h] = groupIntoHistories(calls, 3, 1, '2026-10-11', 'Seth');
+  const [h] = groupIntoHistories(calls, 3, 1, '2026-10-11', 'Priya');
 
   it('keeps cases whose quotes are in what was said, ignoring case and punctuation', () => {
     const raw = JSON.stringify([
       {
         category: 'single-session',
-        ask: 'Where does my sister live?',
-        gold: 'Utah',
-        evidence: ['my sister mindy lives in utah'],
+        ask: 'Where does my cousin live?',
+        gold: 'Ohio',
+        evidence: ['my cousin lena lives in ohio'],
       },
       { category: 'abstention', ask: "What's my dog's name?", gold: 'never said', evidence: [] },
       {
@@ -64,10 +64,10 @@ describe('verifiedCases', () => {
         evidence: ['I play drums at home'],
       }, // not said
       { category: 'temporal', ask: 'When?', gold: '2026-01-05', evidence: [] }, // no quote
-      { category: 'restraint', ask: 'q', gold: 'g', evidence: ['I play guitar at home.'] }, // not generated
+      { category: 'restraint', ask: 'q', gold: 'g', evidence: ['I play piano at home.'] }, // not generated
     ]);
     const { kept, dropped } = verifiedCases('```json\n' + raw + '\n```', h!);
-    expect(kept.map((c) => c.ask)).toEqual(['Where does my sister live?', "What's my dog's name?"]);
+    expect(kept.map((c) => c.ask)).toEqual(['Where does my cousin live?', "What's my dog's name?"]);
     expect(dropped).toBe(3);
   });
 
@@ -99,39 +99,39 @@ describe('verifiedCases', () => {
       JSON.stringify([
         {
           category: 'single-session',
-          ask: 'Where does Mindy live?',
-          gold: 'Utah',
-          evidence: ['lives in Utah'],
+          ask: 'Where does Lena live?',
+          gold: 'Ohio',
+          evidence: ['lives in Ohio'],
         },
       ]),
       h!
     );
     const loaded = parseCaseFile(caseFile('2026-10-11', [h!], new Map([[h!.id, kept]])));
-    expect(loaded.cases[0]!.ask).toBe('Where does Mindy live?');
+    expect(loaded.cases[0]!.ask).toBe('Where does Lena live?');
     expect(loaded.histories[0]!.sessions).toHaveLength(3);
   });
 });
 
 describe('quoteFound', () => {
-  const said = 'my sister mindy lives in utah i play guitar at home';
+  const said = 'my cousin lena lives in ohio i play piano at home';
 
   it('matches whole words only, so "to the part" is not found in "to the party"', () => {
-    expect(quoteFound('play guitar at home', said)).toBe(true);
-    expect(quoteFound('i play guitar at hom', said)).toBe(false);
+    expect(quoteFound('play piano at home', said)).toBe(true);
+    expect(quoteFound('i play piano at hom', said)).toBe(false);
     expect(quoteFound('went to the part', 'we went to the party')).toBe(false);
     expect(quoteFound('went to the party', 'we went to the party')).toBe(true);
   });
 
   it('needs a quote of 3 words or 12 characters', () => {
-    expect(quoteFound('Utah', said)).toBe(false); // one word, four characters
-    expect(quoteFound('lives in utah', said)).toBe(true); // three words
-    expect(quoteFound('utah home', said)).toBe(false); // two short words
+    expect(quoteFound('Ohio', said)).toBe(false); // one word, four characters
+    expect(quoteFound('lives in ohio', said)).toBe(true); // three words
+    expect(quoteFound('ohio home', said)).toBe(false); // two short words
     expect(quoteFound('saxophonists', 'i love saxophonists')).toBe(true); // one word, 12 characters
   });
 
   it('rejects a quote that matches only part of a word or a phrase', () => {
-    expect(quoteFound('sister mindy lives in ut', said)).toBe(false);
-    expect(quoteFound('sister mindy lives in utah', said)).toBe(true);
+    expect(quoteFound('cousin lena lives in ut', said)).toBe(false);
+    expect(quoteFound('cousin lena lives in ohio', said)).toBe(true);
   });
 });
 
@@ -154,7 +154,7 @@ describe('call ages', () => {
       1,
       1,
       '2026-10-11',
-      'Seth',
+      'Priya',
       'America/New_York'
     );
     expect(h!.sessions[0]!.daysAgo).toBe(279);

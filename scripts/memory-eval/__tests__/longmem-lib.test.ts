@@ -253,8 +253,8 @@ describe('case files', () => {
   it('loads histories and fixed gold answers kept outside the repo', () => {
     const loaded = parseCaseFile({
       runDate: '2026-10-11',
-      histories: [{ id: 'seth-1', name: 'Seth', sessions: [{ daysAgo: 3, user: ['hi'] }] }],
-      cases: [{ history: 'seth-1', category: 'temporal', ask: 'When?', gold: 'Friday 2026-10-09' }],
+      histories: [{ id: 'priya-1', name: 'Priya', sessions: [{ daysAgo: 3, user: ['hi'] }] }],
+      cases: [{ history: 'priya-1', category: 'temporal', ask: 'When?', gold: 'Friday 2026-10-09' }],
     });
     expect(loaded.cases[0]!.gold(new RunDays('2030-01-01'))).toBe('Friday 2026-10-09');
     expect(() =>
