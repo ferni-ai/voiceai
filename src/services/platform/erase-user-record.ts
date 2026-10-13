@@ -16,6 +16,7 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { ensureFirebaseAdmin } from '../identity/firebase-auth.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { gatherErasureKeys, KEYED_STORES, type KeyedStore } from './erase-other-keys.js';
 import { ERASED_STORES, storeLabel, type OwnedStore } from './user-stores.js';
 
 const log = createLogger({ module: 'erase-user-record' });
@@ -76,32 +77,54 @@ async function eraseStore(db: Db, store: OwnedStore, userId: string): Promise<vo
   }
 }
 
+interface Job {
+  label: string;
+  erase: () => Promise<void>;
+  /** A store that can't be read can't be shown to be empty */
+  remains: () => Promise<boolean>;
+}
+
 /**
- * Delete every store kept for the user, then check that nothing is left.
- * Throws when Firestore is unreachable or anything survives, so callers never
- * report an erasure that did not happen.
+ * Delete every store kept for the user, by uid (user-stores.ts) and by their other
+ * keys (erase-other-keys.ts), then check that nothing is left. Throws when Firestore
+ * is unreachable or anything survives, so callers never report an erasure that did
+ * not happen.
  */
 export async function eraseUserRecord(
   userId: string,
   firestore?: Db,
-  stores: readonly OwnedStore[] = ERASED_STORES
+  stores: readonly OwnedStore[] = ERASED_STORES,
+  keyed: readonly KeyedStore[] = KEYED_STORES
 ): Promise<void> {
   assertErasableUserId(userId);
   const db = firestore ?? defaultDb();
-  const results = await Promise.allSettled(stores.map((store) => eraseStore(db, store, userId)));
-  const errors = stores.filter((store, i) => {
+  // Gathered first: the sweep erases the sponsored identities the phone index points at
+  const keys = keyed.length > 0 ? await gatherErasureKeys(db, userId) : null;
+  const jobs: Job[] = [
+    ...stores.map((store) => ({
+      label: storeLabel(store),
+      erase: async () => eraseStore(db, store, userId),
+      remains: async () => holdsUser(db, store, userId).catch(() => true),
+    })),
+    ...(keys
+      ? keyed.map((k) => ({
+          label: k.label,
+          erase: async () => k.erase(db, keys),
+          remains: async () => k.remains(db, keys).catch(() => true),
+        }))
+      : []),
+  ];
+  const results = await Promise.allSettled(jobs.map(async (job) => job.erase()));
+  const errors = jobs.filter((job, i) => {
     const result = results[i];
     if (result?.status !== 'rejected') return false;
-    log.warn(
-      { error: String(result.reason), userId, store: storeLabel(store) },
-      'Store not erased'
-    );
+    log.warn({ error: String(result.reason), userId, store: job.label }, 'Store not erased');
     return true;
   });
-  const left = await findUserRecordRemnants(db, userId, stores);
-  if (errors.length > 0 || left.length > 0) {
-    const stuck = [...new Set([...errors.map(storeLabel), ...left])].join(',');
-    throw new Error(`User record not fully erased: ${stuck}`);
+  const left = await Promise.all(jobs.map(async (job) => job.remains()));
+  const stuck = new Set([...errors, ...jobs.filter((_, i) => left[i])].map((job) => job.label));
+  if (stuck.size > 0) {
+    throw new Error(`User record not fully erased: ${[...stuck].join(',')}`);
   }
 }
 

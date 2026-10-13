@@ -8,19 +8,29 @@
  * trust the list it checks, and every store in ERASED_STORES), each with a document under
  * it, since Firestore doesn't cascade. Then the real route and the real deleteAllData run
  * for A, and the whole database is scanned: nothing may name A, and all of B is still there.
+ *
+ * Stores keyed by something other than the uid are seeded the way their writers key them:
+ * the waitlist and access grants by email, the sponsored phone index by identity, A/B test
+ * assignments under each test, and tool-call telemetry shared by many people in one doc.
  */
 import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import admin from 'firebase-admin';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { emailDocId } from '../../services/platform/erase-other-keys.js';
 import { ERASED_STORES, storeLabel } from '../../services/platform/user-stores.js';
+
+/** The Firebase record each test uid signs in with: its email, and whether Firebase verified it */
+const firebaseUsers = vi.hoisted(
+  () => new Map<string, { email: string; emailVerified: boolean }>()
+);
 
 // The shared setup fakes Firestore for every test; here the erase must reach the emulator
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
 vi.mock('../../services/identity/firebase-auth.js', () => ({
   ensureFirebaseAdmin: () => true,
   deleteFirebaseUser: vi.fn(async () => true),
-  getFirebaseUser: vi.fn(async () => null),
+  getFirebaseUser: vi.fn(async (uid: string) => firebaseUsers.get(uid) ?? null),
 }));
 vi.mock('../auth-middleware.js', () => ({
   requireAuth: vi.fn(async (req: IncomingMessage) => {
@@ -63,6 +73,9 @@ const MUST_ERASE = [
   'oura_tokens/{uid}',
   'apple_calendar_tokens/{uid}',
   'developer_oauth_tokens[userId]',
+  'feature_checkins[userId]',
+  'context_injection_outcomes[injection.userId]',
+  'user_profiles[firebaseUid]',
 ];
 
 let db: admin.firestore.Firestore;
@@ -82,7 +95,9 @@ async function seed(store: string, uid: string): Promise<void> {
   const field = /^(.+)\[(.+)\]$/.exec(store);
   let doc: admin.firestore.DocumentReference;
   if (field) {
-    doc = await db.collection(field[1]!).add({ [field[2]!]: uid, marker: 'seeded' });
+    // "injection.userId" is a field inside a map
+    const value = field[2]!.split('.').reduceRight<unknown>((v, key) => ({ [key]: v }), uid);
+    doc = await db.collection(field[1]!).add({ ...(value as object), marker: 'seeded' });
   } else {
     const path = store.replace('{uid}', uid);
     doc = path.split('/').length % 2 === 0 ? db.doc(path) : db.collection(path).doc();
@@ -91,8 +106,17 @@ async function seed(store: string, uid: string): Promise<void> {
   await doc.collection('nested').add({ marker: 'under' });
 }
 
-/** Every document in the database that names uid, in its path or a top-level field */
-async function docsNaming(uid: string): Promise<string[]> {
+/** True when any value in the document, however deep, is one of names */
+const holds = (value: unknown, names: readonly string[]): boolean =>
+  typeof value === 'string'
+    ? names.includes(value)
+    : typeof value === 'object' &&
+      value !== null &&
+      Object.values(value).some((v) => holds(v, names));
+
+/** Every document in the database that names the person (uid or other keys), in its path or any field */
+async function docsNaming(uid: string, ...otherKeys: string[]): Promise<string[]> {
+  const names = [uid, ...otherKeys];
   const found: string[] = [];
   // A document under one that names uid is the person's too
   const walk = async (
@@ -106,8 +130,8 @@ async function docsNaming(uid: string): Promise<string[]> {
         const fields = data.get(ref.path);
         const named =
           underNamed ||
-          ref.path.split('/').includes(uid) ||
-          Object.values(fields ?? {}).includes(uid);
+          ref.path.split('/').some((part) => names.includes(part)) ||
+          holds(fields, names);
         if (named && fields) found.push(ref.path);
         await walk(await ref.listCollections(), named);
       }
@@ -146,19 +170,72 @@ async function deleteAccount(uid: string): Promise<{ status: number; body: strin
   return { status, body };
 }
 
+/** The stores keyed by something other than the uid, as their writers key them; returns those keys */
+async function seedOtherKeys(uid: string, email: string, phone: string): Promise<string[]> {
+  const identity = await db.collection('sponsored_identities').add({ sponsorUserId: uid });
+  await Promise.all([
+    db.doc(`waitlist/${emailDocId(email)}`).set({ email, status: 'pending' }),
+    db.doc(`user_profiles/${emailDocId(email)}`).set({ email, subscription: { tier: 'partner' } }),
+    db.doc(`sponsored_identity_phone_index/${phone}`).set({ identityId: identity.id }),
+    db.doc('ab_tests/t-tone').set({ name: 'tone test' }), // shared by everyone in the test
+    db.doc(`ab_tests/t-tone/assignments/${uid}`).set({ userId: uid, testId: 't-tone' }),
+    db.doc(`ab_tests/t-pace/assignments/${uid}`).set({ userId: uid, testId: 't-pace' }),
+  ]);
+  return [email, emailDocId(email), phone, identity.id];
+}
+
 describe.skipIf(!emulator)('DELETE /api/account erases every store kept for the person', () => {
   it('leaves no document naming the deleted user, and all of another user', async () => {
     const a = `del-a-${Date.now()}`;
     const b = `del-b-${Date.now()}`;
+    firebaseUsers.set(a, { email: `${a}@example.com`, emailVerified: true });
+    firebaseUsers.set(b, { email: `${b}@example.com`, emailVerified: true });
     const stores = [...new Set([...MUST_ERASE, ...ERASED_STORES.map(storeLabel)])];
     for (const uid of [a, b]) await Promise.all(stores.map((s) => seed(s, uid)));
-    expect((await docsNaming(a)).length).toBeGreaterThanOrEqual(MUST_ERASE.length);
-    const bBefore = (await docsNaming(b)).sort();
+    const aKeys = await seedOtherKeys(a, `${a}@example.com`, '+15550000001');
+    const bKeys = await seedOtherKeys(b, `${b}@example.com`, '+15550000002');
+    // Tool-call telemetry: both people's calls in one batch
+    await db.doc('tool_usage_calls/batch_1').set({
+      calls: [
+        { toolId: 'weather', userId: a, sessionId: 's-a' },
+        { toolId: 'music', userId: b, sessionId: 's-b' },
+      ],
+    });
+    // A STOP for A's phone stays, so nobody texts that number again
+    await db.doc('feature_checkin_optouts/hash-of-a-phone').set({ at: 'now', via: 'reply' });
+    expect((await docsNaming(a, ...aKeys)).length).toBeGreaterThanOrEqual(MUST_ERASE.length + 6);
+    const bBefore = (await docsNaming(b, ...bKeys)).sort();
 
     const res = await deleteAccount(a);
 
     expect(res.status, res.body).toBe(200);
-    expect(await docsNaming(a)).toEqual([]);
-    expect((await docsNaming(b)).sort()).toEqual(bBefore);
+    expect(await docsNaming(a, ...aKeys)).toEqual([]);
+    expect((await docsNaming(b, ...bKeys)).sort()).toEqual(bBefore);
+    expect((await db.doc('tool_usage_calls/batch_1').get()).get('calls')).toEqual([
+      { toolId: 'weather', sessionId: 's-a' },
+      { toolId: 'music', userId: b, sessionId: 's-b' },
+    ]);
+    expect((await db.doc('ab_tests/t-tone').get()).exists).toBe(true);
+    expect((await db.doc('feature_checkin_optouts/hash-of-a-phone').get()).exists).toBe(true);
   }, 120_000);
+
+  it("never erases by an unverified email, or another person's access grant", async () => {
+    const c = `del-c-${Date.now()}`;
+    const someoneElse = `del-x-${Date.now()}`;
+    // Anyone can make an account claiming an address; only Firebase-verified ones count
+    firebaseUsers.set(c, { email: 'victim@example.com', emailVerified: false });
+    await db
+      .doc(`waitlist/${emailDocId('victim@example.com')}`)
+      .set({ email: 'victim@example.com' });
+    const d = `del-d-${Date.now()}`;
+    firebaseUsers.set(d, { email: 'shared@example.com', emailVerified: true });
+    const grant = db.doc(`user_profiles/${emailDocId('shared@example.com')}`);
+    await grant.set({ email: 'shared@example.com', firebaseUid: someoneElse });
+
+    expect((await deleteAccount(c)).status).toBe(200);
+    expect((await deleteAccount(d)).status).toBe(200);
+
+    expect((await db.doc(`waitlist/${emailDocId('victim@example.com')}`).get()).exists).toBe(true);
+    expect((await grant.get()).get('firebaseUid')).toBe(someoneElse);
+  }, 60_000);
 });

@@ -500,8 +500,7 @@ class ToolUsageAnalyticsService {
               // Use removeUndefined to filter out ALL undefined fields
               removeUndefined({
                 toolId: c.toolId,
-                agentId: c.agentId,
-                userId: c.userId,
+                agentId: c.agentId, // no userId: many people's calls share a batch
                 sessionId: c.sessionId,
                 timestamp: c.timestamp.toISOString(),
                 latencyMs: c.latencyMs,
