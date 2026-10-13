@@ -61,8 +61,23 @@ describe('parseLiveVerdict', () => {
     expect(parseLiveVerdict('Yes, it names Thursday, which is wrong.\n\nVERDICT: no')).toBe(false);
     expect(parseLiveVerdict('Reasoning.\n**VERDICT: no**')).toBe(false);
   });
-  it('takes the last VERDICT line when the judge writes more than one', () => {
+  it('takes the verdict on the last line when the judge writes more than one', () => {
     expect(parseLiveVerdict('VERDICT: no\nOn reflection:\nVERDICT: yes')).toBe(true);
+  });
+  it('reads a verdict in markdown emphasis, in any case, with trailing blank lines', () => {
+    expect(parseLiveVerdict('Reasoning.\n**VERDICT:** yes')).toBe(true);
+    expect(parseLiveVerdict('Reasoning.\nVerdict: **yes**')).toBe(true);
+    expect(parseLiveVerdict('Reasoning.\n__verdict: NO__')).toBe(false);
+    expect(parseLiveVerdict('Reasoning.\nVERDICT: yes.\n\n  \n')).toBe(true);
+  });
+  it('is null when anything follows the verdict line', () => {
+    expect(parseLiveVerdict('VERDICT: no\nActually it matches, so yes.')).toBeNull();
+    expect(parseLiveVerdict('VERDICT: yes\n(I think)')).toBeNull();
+  });
+  it('is null for a verdict line with anything else on it', () => {
+    expect(parseLiveVerdict('VERDICT: yes, mostly')).toBeNull();
+    expect(parseLiveVerdict('Final VERDICT: yes')).toBeNull();
+    expect(parseLiveVerdict('VERDICT: yes no')).toBeNull();
   });
   it('is null without a VERDICT line: a bare yes, a truncated reply, or nothing', () => {
     expect(parseLiveVerdict('yes')).toBeNull();

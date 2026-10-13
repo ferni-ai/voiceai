@@ -29,7 +29,12 @@ import {
   type CaseResult,
 } from '../longmem-lib.js';
 import { PERSONAS } from '../fixtures/live-personas.js';
-import { LIVE_JUDGE_MAX_TOKENS, liveJudgePrompt, parseLiveVerdict } from './live-judge.js';
+import {
+  LIVE_JUDGE_MAX_TOKENS,
+  liveJudgeHash,
+  liveJudgePrompt,
+  parseLiveVerdict,
+} from './live-judge.js';
 import { agentLines, repliesAfter, type EvalRun } from './transcript.js';
 
 const OUT = join(import.meta.dirname, '../../voice-eval/out');
@@ -125,7 +130,14 @@ async function main(): Promise<void> {
   mkdirSync(dir, { recursive: true });
   const file = join(dir, `live-${labels.join('-vs-')}.json`);
   const models = { judge: getExtractionModel(), fallback: getOpenAIFallbackModel() };
-  writeFileSync(file, JSON.stringify({ labels, models, prompts: promptHashes(), runs }, null, 2));
+  writeFileSync(
+    file,
+    JSON.stringify(
+      { labels, models, prompts: { ...promptHashes(), live: liveJudgeHash() }, runs },
+      null,
+      2
+    )
+  );
   console.log(`\n${sections.join('\n\n')}\n\nReport: ${file}`);
   const failures = runs.reduce((sum, run) => sum + failureCount(run), 0);
   if (failures > 0) {

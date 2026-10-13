@@ -14,7 +14,8 @@
  *
  * @module scripts/memory-eval/live/live-judge
  */
-import { judgePrompt, parseYesNo, type MemoryCategory } from '../longmem-lib.js';
+import { createHash } from 'node:crypto';
+import { CATEGORIES, judgePrompt, type MemoryCategory } from '../longmem-lib.js';
 
 /** Read a spoken reply in the light of the question; added before the reply-format line. */
 export const LIVE_RULE = [
@@ -50,23 +51,32 @@ export function liveJudgePrompt(
   return lines.join('\n');
 }
 
+/** A short hash of the live judge's template, for the report beside promptHashes(). */
+export function liveJudgeHash(): string {
+  const all = CATEGORIES.map((c) => liveJudgePrompt(c, '{ask}', '{gold}', '{response}', '{day}'));
+  return createHash('sha256').update(all.join('\n---\n')).digest('hex').slice(0, 12);
+}
+
 /** Room for the judge to work out a date before its verdict (it does, for a weekday). */
 export const LIVE_JUDGE_MAX_TOKENS = 400;
 
-const VERDICT_LINE = /^\W*verdict:\s*(yes|no)\W*$/i;
+/** "VERDICT: yes" or "VERDICT: no", any case, once markdown emphasis is taken off; a full stop may follow. */
+const VERDICT_LINE = /^verdict\s*:\s*(yes|no)\s*\.?$/i;
 
 /**
- * yes/no from the last "VERDICT:" line of the judge's reply, and nothing
- * else: a leading "No" or "Yes" in the reasoning is not the verdict. null when
- * there is no such line (a judge failure, not a no).
+ * yes/no from the judge's reply only when its last non-empty line is the
+ * verdict: "VERDICT: yes", also as "**VERDICT:** yes" or "Verdict: **yes**".
+ * A verdict followed by more text ("VERDICT: no", then "Actually it matches,
+ * so yes.") is not trusted, and a leading "No" or "Yes" in the reasoning is
+ * never the verdict. null otherwise (a judge failure, not a no).
  */
 export function parseLiveVerdict(reply: string | null | undefined): boolean | null {
-  const line = reply
+  const last = reply
     ?.split('\n')
     .map((l) => l.trim())
-    .reverse()
-    .find((l) => VERDICT_LINE.test(l));
-  const word = line?.match(VERDICT_LINE)?.[1]?.toLowerCase();
+    .filter(Boolean)
+    .at(-1);
+  const word = last?.replace(/[*_`]/g, '').trim().match(VERDICT_LINE)?.[1]?.toLowerCase();
   if (word === undefined) return null;
   return word === 'yes';
 }
