@@ -46,6 +46,7 @@ export const FLAG_MANIFEST = {
   APPROVALS_PAGE: { default: 'off', owner: 'platform', kind: 'experiment' },
   // only with APPROVALS_PAGE=on
   APPROVALS_PASSKEYS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  ARRIVAL_GROUNDED: { default: 'off', owner: 'voice', kind: 'experiment' },
   ASK_ADVICE: { default: 'off', owner: 'voice', kind: 'experiment' },
   ASSISTANT_ACTIONS_REAL: { default: 'off', owner: 'platform', kind: 'experiment' },
   AVATAR_LISTEN_SIGNALS: { default: 'off', owner: 'voice', kind: 'experiment' },
