@@ -83,7 +83,7 @@ type RouteHandler = (ctx: RequestContext) => Promise<ResponseContext>;
  */
 async function getTipConfig(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Prefer authenticated userId over deprecated x-user-id
-  const userId = ctx.authUserId || ctx.query.userId;
+  const userId = ctx.authUserId; // verified only; ?userId= never names the subject
 
   const config = tipJar.getConfig();
   const stats = tipJar.getStats();
@@ -383,7 +383,7 @@ async function contributeFund(ctx: RequestContext): Promise<ResponseContext> {
  */
 async function getContributorImpact(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Prefer authenticated userId over deprecated x-user-id
-  const userId = ctx.authUserId || ctx.query.userId;
+  const userId = ctx.authUserId; // verified only; ?userId= never names the subject
 
   if (!userId) {
     return {
@@ -489,7 +489,7 @@ async function createOrganization(ctx: RequestContext): Promise<ResponseContext>
 async function getOrganization(ctx: RequestContext): Promise<ResponseContext> {
   const { orgId } = ctx.query;
   // SECURITY: Prefer authenticated userId over deprecated x-user-id
-  const userId = ctx.authUserId || ctx.query.userId;
+  const userId = ctx.authUserId; // verified only; ?userId= never names the subject
 
   if (!orgId) {
     return {
@@ -769,7 +769,7 @@ async function getUserMonetization(ctx: RequestContext): Promise<ResponseContext
  */
 async function getJourneyInfo(ctx: RequestContext): Promise<ResponseContext> {
   // SECURITY: Prefer authenticated userId over deprecated x-user-id
-  const userId = ctx.authUserId || ctx.query.userId;
+  const userId = ctx.authUserId; // verified only; ?userId= never names the subject
 
   const currentSeason = getCurrentSeason();
 

@@ -21,6 +21,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { sendJSON, sendError, handleCorsPreflightIfNeeded } from './helpers.js';
+import { requireVerifiedSubject } from './verified-subject.js';
 
 // Import semantic intelligence services
 import {
@@ -404,14 +405,9 @@ export async function handleSemanticIntelligenceRoutes(
     return true;
   }
 
-  // Extract userId from query params
-  const url = new URL(req.url || '', `http://${req.headers.host}`);
-  const userId = url.searchParams.get('userId');
-
-  if (!userId) {
-    sendError(res, 'Missing userId parameter', 400);
-    return true;
-  }
+  // SECURITY: the verified caller's data only, never whoever ?userId= names
+  const userId = await requireVerifiedSubject(req, res);
+  if (userId === null) return true;
 
   // Route to appropriate handler
   const route = pathname.replace('/api/semantic-intelligence', '');
