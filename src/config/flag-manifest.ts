@@ -206,6 +206,7 @@ export const FLAG_MANIFEST = {
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PIPELINE_SWITCHING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   PONDERING: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   POST_TTS_ADAPTIVE_PACING: { default: 'off', owner: 'voice', kind: 'experiment' },
   POST_TTS_AMPLITUDE_JITTER: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -234,9 +235,12 @@ export const FLAG_MANIFEST = {
   POST_TTS_VOCAL_FRY: { default: 'off', owner: 'voice', kind: 'experiment' },
   POST_TTS_WARMTH: { default: 'off', owner: 'voice', kind: 'experiment' },
   PREDICTIONS_USE_ASYNC: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: preemptive replies are also synthesized before the commit (multi-agent/preemptive-tts.ts)
+  PREEMPTIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_CHECK_CAP: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_HUM: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_SNORE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  PRESENCE_SOUND_ASSETS: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_SOUNDS: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRE_STT_SIP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PROACTIVE_CHANNELS: { default: 'off', owner: 'outreach', kind: 'experiment' },
@@ -273,6 +277,8 @@ export const FLAG_MANIFEST = {
   SEMANTIC_ROUTER_WARMUP: { default: 'on', owner: 'tools', kind: 'config' },
   SEMANTIC_ROUTING_DEBUG: { default: 'off', owner: 'tools', kind: 'config' },
   SESSION_CONTINUITY_WRITE: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: tell the caller's app when the agent session ends without them (session-ended-signal.ts)
+  SESSION_ENDED_SIGNAL: { default: 'off', owner: 'voice', kind: 'experiment' },
   SILENCE_REMARK_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   SILENT_LINE_HANGUP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   SKIP_CONVERSATIONAL_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
@@ -330,9 +336,13 @@ export const FLAG_MANIFEST = {
   VOICEMAIL_DETECT: { default: 'off', owner: 'voice', kind: 'experiment' },
   // the reply's pace, loudness and tone answer the caller's mood (director/attune.ts)
   VOICE_ATTUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // clone and voice-upload routes answer 403 until a consent design exists (api/custom-agent/voice-routes.ts)
+  VOICE_CLONE_CREATION: { default: 'off', owner: 'voice', kind: 'experiment' },
   VOICE_HUMANIZATION_DISABLED: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   WAITLIST_GATE: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  // on: web callers' audio gets BVC noise cancellation (multi-agent/room-input-options.ts)
+  WEB_NOISE_CANCEL: { default: 'off', owner: 'voice', kind: 'experiment' },
   WELCOME_BACK_BOTH_SIDES: { default: 'off', owner: 'voice', kind: 'experiment' },
   WORKER_DRAIN_TIMEOUT_MS: { default: '1800000', owner: 'platform', kind: 'config' },
   WORKER_PUBSUB: { default: 'off', owner: 'platform', kind: 'experiment' },
