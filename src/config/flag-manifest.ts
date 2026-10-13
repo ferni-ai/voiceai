@@ -204,6 +204,7 @@ export const FLAG_MANIFEST = {
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PIPELINE_SWITCHING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   PONDERING: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   POST_TTS_ADAPTIVE_PACING: { default: 'off', owner: 'voice', kind: 'experiment' },
   POST_TTS_AMPLITUDE_JITTER: { default: 'off', owner: 'voice', kind: 'experiment' },
