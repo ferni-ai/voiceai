@@ -19,6 +19,7 @@ import type { SessionServices } from '../../../services/types.js';
 import type { Persona } from '../../../personas/types.js';
 import type { UserData } from '../types.js';
 import { startInCallChannels } from '../../multi-agent/live-data-context.js';
+import { startResumeLookup } from '../../multi-agent/resume-after-drop.js';
 import { waitForSessionEnd, type WatchedRoom } from './session-end-watch.js';
 
 // ============================================================================
@@ -176,6 +177,9 @@ export async function runMultiAgentMode(
     const { handoffEvents } = await import('../../../handoff/index.js');
     const handoffMsgs = await import('../../multi-agent/handoff-messages.js');
     const { llmHandoffHandler } = await import('../../multi-agent/llm-handoff.js');
+
+    // RESUME_AFTER_DROP: look for a call that dropped moments ago while the agent builds
+    startResumeLookup(sessionId, userId, services.realtimeConversationId);
 
     // Initialize multi-agent session
     const multiAgentResult = await initializeMultiAgentSession({
