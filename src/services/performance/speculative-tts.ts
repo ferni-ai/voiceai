@@ -10,8 +10,8 @@
  * 3. Streaming: Start TTS on first LLM chunk, don't wait for complete response
  * 4. Cache: Keep frequently used phrases in audio form
  *
- * SPECULATIVE_TTS=off skips the warmup and pre-renders: the live reply path
- * (gateway TTS) never reads this cache (0 hits on dev, 2026-10-11).
+ * Off by default; SPECULATIVE_TTS=on runs the warmup and pre-renders. The live
+ * reply path (gateway TTS) never reads this cache (0 hits on dev, 2026-10-11).
  * @module agents/shared/performance/speculative-tts
  */
 

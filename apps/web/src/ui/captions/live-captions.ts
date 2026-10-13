@@ -16,6 +16,8 @@
  *   secondary text colour. The current speaker shows as a small dot and name
  *   above the text (as in FaceTime). Only the current turn shows, so text
  *   never sits under the wrong name; the history keeps every turn.
+ * - Tapping the captions (or the expand button) opens every turn so far in a
+ *   bottom sheet (transcript-sheet.ts).
  *
  * Reads the same `ferni:transcript` window events transcriptUI does, so the
  * transport is unchanged; it also honours transcriptUI's on/off setting.
@@ -27,6 +29,11 @@ import { t } from '../../i18n/index.js';
 import { appState } from '../../state/app.state.js';
 import { CAPTIONS_CALL_CLASS, injectCaptionStyles } from './live-captions.styles.js';
 import { transcriptUI } from '../transcript.ui.js';
+import {
+  EXPAND_ICON,
+  injectTranscriptSheetStyles,
+  openTranscriptSheet,
+} from './transcript-sheet.js';
 
 /** 'note' is quiet in-call feedback (ferni:inline-feedback), not speech. */
 export type CaptionSpeaker = 'user' | 'agent' | 'note';
@@ -171,14 +178,24 @@ class LiveCaptions {
     const root = document.createElement('section');
     root.className = 'ferni-captions';
     root.setAttribute('aria-label', t('transcript.captionsLabel'));
-    // Header: who is speaking now (FaceTime puts the name above the caption).
+    // Header: who is speaking now (FaceTime puts the name above the caption),
+    // and the control that opens the full transcript.
     const header = document.createElement('div');
     header.className = 'ferni-captions__header';
     const speaker = document.createElement('span');
     speaker.className = 'ferni-caption-line__name';
-    header.append(speaker);
+    const expand = document.createElement('button');
+    expand.type = 'button';
+    expand.className = 'ferni-captions__expand';
+    expand.setAttribute('aria-label', t('transcript.showAll'));
+    expand.innerHTML = EXPAND_ICON;
+    header.append(speaker, expand);
     const viewport = document.createElement('div');
     viewport.className = 'ferni-captions__viewport';
+    const open = (): void =>
+      openTranscriptSheet(this.entries, (e) => renderLine(e, e.speaker !== 'note'));
+    expand.addEventListener('click', open);
+    viewport.addEventListener('click', open);
     root.append(header, viewport);
     document.body.append(root);
     window.addEventListener('resize', () => this.schedule());
@@ -266,6 +283,7 @@ export function initLiveCaptions(isEnabled: () => boolean = transcriptUI.isEnabl
   if (instance) return instance;
   // Styles first: they also retire the status-island pill this replaces.
   injectCaptionStyles();
+  injectTranscriptSheetStyles();
   const captions = new LiveCaptions(isEnabled);
   window.addEventListener('ferni:transcript', ((e: CustomEvent) => {
     const { type, text, isFinal } = e.detail as { type: string; text: string; isFinal?: boolean };

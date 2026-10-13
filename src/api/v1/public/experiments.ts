@@ -21,10 +21,12 @@ import {
 } from '../../../services/experiments/web-experiments.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { parseBody } from '../../helpers.js';
+import { experimentSubject } from './experiment-subject.js';
 
 const log = createLogger({ module: 'PublicExperimentsAPI' });
 
 const BASE_PATH = '/api/v1/public/experiments';
+const MAX_BATCH_EVENTS = 50;
 
 // parseBody imported from '../../helpers.js'
 
@@ -36,7 +38,7 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*', // Allow cross-origin for landing pages
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   });
   res.end(JSON.stringify(data));
 }
@@ -61,7 +63,7 @@ export async function handlePublicExperimentsRoutes(
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',
     });
     res.end();
@@ -73,15 +75,9 @@ export async function handlePublicExperimentsRoutes(
     const variantMatch = pathname.match(/\/experiments\/([^\/]+)\/variant$/);
     if (variantMatch && method === 'GET') {
       const experimentId = variantMatch[1];
-      const userId = parsedUrl.searchParams.get('userId');
-
-      if (!userId) {
-        sendJson(res, 400, {
-          error: 'userId is required',
-          code: 'MISSING_USER_ID',
-        });
-        return true;
-      }
+      // Only an anonymous visitor id, or the verified caller (experiment-subject.ts)
+      const userId = await experimentSubject(req, res, parsedUrl.searchParams.get('userId') ?? '');
+      if (userId === null) return true;
 
       const assignment = await assignVariant(experimentId, userId, {
         isNewUser: parsedUrl.searchParams.get('isNewUser') === 'true',
@@ -126,9 +122,11 @@ export async function handlePublicExperimentsRoutes(
         });
         return true;
       }
+      const userId = await experimentSubject(req, res, body.userId);
+      if (userId === null) return true;
 
       if (body.eventType === 'exposure') {
-        await trackExposure(body.experimentId, body.variantId, body.userId, body.metadata);
+        await trackExposure(body.experimentId, body.variantId, userId, body.metadata);
       } else if (body.eventType === 'conversion') {
         if (!body.goalId) {
           sendJson(res, 400, { error: 'goalId is required for conversion events' });
@@ -137,7 +135,7 @@ export async function handlePublicExperimentsRoutes(
         await trackConversion(
           body.experimentId,
           body.variantId,
-          body.userId,
+          userId,
           body.goalId,
           body.value,
           body.metadata
@@ -172,16 +170,24 @@ export async function handlePublicExperimentsRoutes(
         sendJson(res, 400, { error: 'events array is required' });
         return true;
       }
+      // One browser, one subject: every event must name the same id
+      const ids = new Set(body.events.map((e) => e.userId));
+      if (ids.size !== 1 || body.events.length > MAX_BATCH_EVENTS) {
+        sendJson(res, 400, { error: `1-${MAX_BATCH_EVENTS} events for a single userId` });
+        return true;
+      }
+      const userId = await experimentSubject(req, res, [...ids][0]);
+      if (userId === null) return true;
 
       const results = await Promise.allSettled(
         body.events.map(async (event) => {
           if (event.eventType === 'exposure') {
-            await trackExposure(event.experimentId, event.variantId, event.userId, event.metadata);
+            await trackExposure(event.experimentId, event.variantId, userId, event.metadata);
           } else if (event.eventType === 'conversion' && event.goalId) {
             await trackConversion(
               event.experimentId,
               event.variantId,
-              event.userId,
+              userId,
               event.goalId,
               event.value,
               event.metadata

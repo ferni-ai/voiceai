@@ -34,7 +34,8 @@
 //
 // Env: JUDGE_PROVIDERS (default gemini), JUDGE_MODEL (default gemini-3.1-pro-preview),
 // JUDGE_CLAUDE_MODEL (default claude-opus-5-5; Vertex Model Garden in the same
-// project, else ANTHROPIC_API_KEY), JUDGE_CLAUDE_REGION (default global),
+// project, else ANTHROPIC_API_KEY plus ANTHROPIC_WORKSPACE_ID for an organization
+// key), JUDGE_CLAUDE_REGION (default global),
 // JUDGE_CLAUDE_EFFORT (default medium), JUDGE_K (samples per call, default 3,
 // averaged), GCP_PROJECT (default: gcloud config), JUDGE_PERSONA,
 // JUDGE_PERSONA_BIO (a background file to use instead of the bundle's).
@@ -226,6 +227,8 @@ async function askClaude(prompt, ctx) {
   }
   if (ctx.via === 'anthropic-api') {
     const headers = { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' };
+    // An organization key (not scoped to one workspace) gets a 400 without this.
+    if (process.env.ANTHROPIC_WORKSPACE_ID) headers['anthropic-workspace-id'] = process.env.ANTHROPIC_WORKSPACE_ID;
     res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers, body: JSON.stringify({ model: ctx.model, ...body }) });
   }
   const msg = await res.json();
