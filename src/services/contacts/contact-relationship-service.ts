@@ -21,6 +21,7 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { cleanForFirestore, toSafeDate } from '../../utils/firestore-utils.js';
 import { onContactChange, onContactInteractionChange } from '../data-layer/hooks/contacts-hooks.js';
 import { createExpiringMarks } from '../../utils/expiring-marks.js';
+import { RELATIONSHIP_ALIASES } from './relationship-aliases.js';
 
 const log = getLogger();
 
@@ -217,10 +218,25 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
 
 const contactCache = new Map<string, ContactRelationship[]>();
 const loadedUsers = createExpiringMarks(); // expires, so another process's writes show up here
+/** Why this user's last read failed. A failed read is not marked loaded: the next one retries */
+const loadFailures = new Map<string, string>();
 
 // ============================================================================
 // CORE OPERATIONS
 // ============================================================================
+
+/** A read of one user's contacts: what is stored, or why it couldn't be read */
+export type ContactsLoad<T> = { ok: true; contacts: T[] } | { ok: false; error: string };
+
+/**
+ * This user's contacts, or why they couldn't be read. A panel or an export uses this, so
+ * a failed read is never shown as "nobody here"; getContacts degrades to [] for the agent.
+ */
+export async function loadContacts(userId: string): Promise<ContactsLoad<ContactRelationship>> {
+  await ensureUserLoaded(userId);
+  const error = loadFailures.get(userId);
+  return error ? { ok: false, error } : { ok: true, contacts: contactCache.get(userId) || [] };
+}
 
 /**
  * Get all contacts for a user
@@ -644,54 +660,6 @@ export async function getContactsNeedingAttention(
 }
 
 /**
- * Relationship aliases for natural language matching
- * Maps common words to relationship types
- */
-export const RELATIONSHIP_ALIASES: Record<string, string[]> = {
-  family: [
-    'mom',
-    'mother',
-    'mama',
-    'ma',
-    'mommy',
-    'dad',
-    'father',
-    'papa',
-    'pa',
-    'daddy',
-    'brother',
-    'bro',
-    'sis',
-    'sister',
-    'grandma',
-    'grandmother',
-    'granny',
-    'nana',
-    'grandpa',
-    'grandfather',
-    'grandad',
-    'gramps',
-    'aunt',
-    'auntie',
-    'uncle',
-    'cousin',
-    'niece',
-    'nephew',
-    'son',
-    'daughter',
-    'kid',
-    'child',
-    'wife',
-    'husband',
-    'spouse',
-    'partner',
-  ],
-  friend: ['friend', 'buddy', 'pal', 'bestie', 'bff'],
-  colleague: ['colleague', 'coworker', 'boss', 'manager', 'teammate'],
-  professional: ['doctor', 'dentist', 'lawyer', 'therapist', 'accountant'],
-};
-
-/**
  * Search contacts by name, topic, or relationship alias
  *
  * 🐛 FIX: Also searches the main contacts service (user_contacts collection)
@@ -1076,10 +1044,11 @@ async function ensureUserLoaded(userId: string): Promise<void> {
 
     contactCache.set(userId, contacts);
     loadedUsers.add(userId);
+    loadFailures.delete(userId);
     log.debug({ userId, count: contacts.length }, 'Loaded contact relationships');
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to load contacts');
-    loadedUsers.add(userId);
+    loadFailures.set(userId, String(error));
   }
 }
 
@@ -1152,9 +1121,11 @@ export function clearCache(userId?: string): void {
   if (userId) {
     contactCache.delete(userId);
     loadedUsers.delete(userId);
+    loadFailures.delete(userId);
   } else {
     contactCache.clear();
     loadedUsers.clear();
+    loadFailures.clear();
   }
 }
 
