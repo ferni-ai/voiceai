@@ -48,6 +48,7 @@ describe('classifyConnectError', () => {
       'timeout',
       'network',
       'dropped',
+      'agent_left',
       'unknown',
     ] as const;
     const messages = kinds.map((k) => connectFailure(k).message);
