@@ -1,9 +1,10 @@
 /**
  * After-call card tests.
  *
- * - Flag off: the goodbye still ends with the conversation cost card.
- * - Flag on: the after-call card shows what was saved during this call and a
- *   commitment from it, or a warm fallback when nothing was saved.
+ * - Default: the goodbye ends with the after-call recap (what was saved during
+ *   this call and a commitment from it), or a short warm close when nothing
+ *   was saved. Never the cost card. Support Ferni is a quiet link on it.
+ * - Flag off (env or localStorage): the conversation cost card, as before.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -16,8 +17,10 @@ vi.mock('../../src/utils/api.js', () => ({
   getApiHeaders: vi.fn(() => ({})),
 }));
 
+const mockSupportOpen = vi.fn(() => Promise.resolve());
+
 vi.mock('../../src/ui/support-ferni.ui.js', () => ({
-  supportFerniUI: { open: vi.fn(() => Promise.resolve()) },
+  supportFerniUI: { open: mockSupportOpen },
 }));
 
 const FLAG_KEY = 'ferni:flag:after-call-card';
@@ -75,18 +78,21 @@ describe('after-call card', () => {
     document.body.innerHTML = '';
     localStorage.clear();
     mockApiGet.mockReset();
+    mockSupportOpen.mockClear();
     await startCall();
   });
 
   afterEach(async () => {
+    vi.unstubAllEnvs();
     const { hideAfterCallCard } = await import('../../src/ui/after-call/after-call-card.ui.js');
     hideAfterCallCard(true);
     const { hide } = await import('../../src/ui/conversation-cost.ui.js');
     hide();
   });
 
-  describe('flag off (default)', () => {
-    it('shows the conversation cost card after the call, as before', async () => {
+  describe('flag off', () => {
+    it('shows the conversation cost card after the call when the build turns it off', async () => {
+      vi.stubEnv('VITE_AFTER_CALL_CARD', 'false');
       routeApi({ memories: [{ content: 'Likes tea', learnedAt: inCall(1000) }] });
 
       await runPostCall();
@@ -95,12 +101,19 @@ describe('after-call card', () => {
       expect(afterCallCard()).toBeNull();
       expect(mockApiGet).not.toHaveBeenCalledWith('/api/cognitive/memories');
     });
+
+    it('shows the cost card when one browser turns it off', async () => {
+      localStorage.setItem(FLAG_KEY, 'false');
+      routeApi({});
+
+      await runPostCall();
+
+      expect(costCard()).not.toBeNull();
+      expect(afterCallCard()).toBeNull();
+    });
   });
 
-  describe('flag on', () => {
-    beforeEach(() => {
-      localStorage.setItem(FLAG_KEY, 'true');
-    });
+  describe('default build', () => {
 
     it('shows memories saved during this call and a commitment from it, not the cost card', async () => {
       routeApi({
@@ -131,7 +144,7 @@ describe('after-call card', () => {
       expect(card!.querySelector('.after-call-empty')).toBeNull();
     });
 
-    it('shows the warm fallback, not invented content, when nothing was saved this call', async () => {
+    it('shows only a short warm close, not invented content or the cost card, when nothing was saved this call', async () => {
       routeApi({
         memories: [{ content: 'Old fact from last spring', learnedAt: LONG_AGO }],
         commitments: [],
@@ -141,37 +154,116 @@ describe('after-call card', () => {
 
       const card = afterCallCard();
       expect(card).not.toBeNull();
-      expect(card!.querySelectorAll('li')).toHaveLength(0);
-      expect(card!.querySelector('.after-call-empty')?.textContent).toBe(
-        'Nothing new to hold onto this time. Thanks for the company.'
-      );
-      expect(card!.querySelector('.after-call-commitment')).toBeNull();
-      expect(card!.querySelector('.after-call-invitation')?.textContent).toBe(
+      expect(costCard()).toBeNull();
+      expect(card!.querySelector('.after-call-close-line')?.textContent).toBe(
         "Come back whenever you like. I'll be here."
       );
+      expect(card!.querySelectorAll('h2, li')).toHaveLength(0);
+      expect(card!.textContent).not.toContain('Old fact from last spring');
     });
 
-    it('falls back when the memory and commitment requests fail', async () => {
+    it('shows the warm close when the memory and commitment requests fail', async () => {
       mockApiGet.mockResolvedValue({ ok: false, status: 500 });
 
       await runPostCall();
 
       const card = afterCallCard();
-      expect(card!.querySelector('.after-call-empty')).not.toBeNull();
-      expect(card!.querySelector('.after-call-invitation')).not.toBeNull();
-      expect(card!.querySelector('.after-call-cost')).toBeNull();
+      expect(card!.querySelector('.after-call-close-line')).not.toBeNull();
+      expect(costCard()).toBeNull();
     });
 
-    it('keeps the call cost one tap away', async () => {
-      routeApi({});
+    it('offers Support Ferni as a quiet link that opens only when tapped', async () => {
+      routeApi({ memories: [{ content: 'Likes tea', learnedAt: inCall(1000) }] });
 
       await runPostCall();
-      afterCallCard()!.querySelector<HTMLButtonElement>('.after-call-cost')!.click();
-      await vi.waitFor(() => expect(costCard()).not.toBeNull());
+      const link = afterCallCard()!.querySelector<HTMLButtonElement>('.after-call-support');
+      expect(link?.textContent).toBe('Support Ferni');
+      // It comes after the recap, not in place of it.
+      expect(afterCallCard()!.lastElementChild).toBe(link);
+      expect(afterCallCard()!.querySelector('li')?.textContent).toBe('Likes tea');
+      expect(mockSupportOpen).not.toHaveBeenCalled();
+      expect(costCard()).toBeNull();
+
+      link!.click();
+      await vi.waitFor(() => expect(mockSupportOpen).toHaveBeenCalledTimes(1));
       const { isAfterCallCardShowing } =
         await import('../../src/ui/after-call/after-call-card.ui.js');
       expect(isAfterCallCardShowing()).toBe(false);
-      expect(afterCallCard()?.classList.contains('visible') ?? false).toBe(false);
+      expect(costCard()).toBeNull();
+    });
+
+    describe('placement', () => {
+      const CARD_CONTENT_PX = 288;
+      let restoreHeight: number;
+
+      /** Lay out Connect's row and the round buttons under it, in a viewport `height` tall. */
+      function layOut(height: number, row: [number, number], triggers: [number, number]): void {
+        document.body.innerHTML = `
+          <main class="main">
+            <div class="controls-row"><div class="controls"><button id="connectBtn">Connect</button></div></div>
+            <div class="engagement-triggers"><button>Daily practice</button></div>
+            <p id="helperText">Your personal guide</p>
+          </main>`;
+        Object.defineProperty(window, 'innerHeight', { value: height, configurable: true });
+        const box = ([top, bottom]: [number, number]) => () =>
+          ({ top, bottom, height: bottom - top, left: 0, right: 390, width: 390, x: 0, y: top }) as DOMRect;
+        document.querySelector('.controls-row')!.getBoundingClientRect = box(row);
+        document.querySelector('.engagement-triggers')!.getBoundingClientRect = box(triggers);
+      }
+
+      beforeEach(() => {
+        restoreHeight = window.innerHeight;
+        vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function (
+          this: HTMLElement
+        ) {
+          return this.classList.contains('ferni-after-call-card') ? CARD_CONTENT_PX : 0;
+        });
+      });
+
+      afterEach(() => {
+        vi.restoreAllMocks();
+        Object.defineProperty(window, 'innerHeight', { value: restoreHeight, configurable: true });
+      });
+
+      it('is a fixed sheet that scrolls inside itself, not a block that grows the page', async () => {
+        layOut(844, [562, 614], [638, 686]);
+        routeApi({});
+
+        await runPostCall();
+
+        const card = afterCallCard()!;
+        expect(card.parentElement).toBe(document.body);
+        expect(document.querySelector('.controls-row')!.nextElementSibling).not.toBe(card);
+        const style = getComputedStyle(card);
+        expect(style.position).toBe('fixed');
+        expect(style.overflowY).toBe('auto');
+        expect(document.getElementById('ferni-after-call-styles')!.textContent).toMatch(
+          /max-height: calc\(100dvh/
+        );
+        expect(card.querySelector('.after-call-support')).not.toBeNull();
+      });
+
+      it('sits just below the call controls when it fits there, so it never covers Connect', async () => {
+        layOut(1024, [562, 614], [638, 686]);
+        routeApi({});
+
+        await runPostCall();
+
+        const card = afterCallCard()!;
+        expect(card.classList.contains('below-controls')).toBe(true);
+        expect(card.style.getPropertyValue('--after-call-anchor')).toBe('686px');
+      });
+
+      it('sits just above Connect when it does not fit below and there is more room above', async () => {
+        layOut(844, [562, 614], [638, 686]);
+        routeApi({});
+
+        await runPostCall();
+
+        const card = afterCallCard()!;
+        expect(card.classList.contains('above-controls')).toBe(true);
+        expect(card.style.getPropertyValue('--after-call-anchor')).toBe(`${844 - 562}px`);
+      });
     });
 
     it('closes when the next call connects', async () => {

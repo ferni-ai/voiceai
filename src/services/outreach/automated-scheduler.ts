@@ -8,16 +8,15 @@
  * - Onboarding arc progression
  * - Re-engagement campaigns
  * - Milestone celebrations
- *
  * Runs on Cloud Scheduler (cron) and respects:
  * - User preferences and quiet hours
  * - Optimal timing per user
  * - Rate limits and quotas
- *
  * @module AutomatedScheduler
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { isSyntheticUserId } from '../../utils/synthetic-user.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deliver, getChannelStatus, type DeliveryChannel } from './unified-delivery.js';
 import {
@@ -28,24 +27,22 @@ import {
 import { getOnboardingState, getPendingCheckIns } from './intelligent-onboarding-arc.js';
 import { getOptimalOutreachTime, getPreferredChannel } from './engagement-tracking.js';
 import { allowedDeliveryChannels } from './outreach-consent.js';
+import { isValidTimezone } from './call-hours-guard.js';
+import { hoursWindow, isQuietAt, isQuietHoursUnified, isUserQuiet } from './quiet-hours.js';
 import {
   cadenceHold,
   engagementLevel as engagementLevelOf,
   lastTalkedAt,
   unansweredCount,
 } from './outreach-cadence.js';
+import { dailyCheckInChannel, logDailyCheckIn } from './proactive-channels/daily-checkin.js';
+import { blocksGenericCheckIns } from './grounded-checkin.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
 
 const CANDIDATE_PAGE_SIZE = 200;
 /** Bound one run's reads; users past this are reached on later days. */
 const MAX_USERS_SCANNED = 5000;
-/**
- * Accounts made by test harnesses (voice-eval callers, e2e runs, local
- * devices). They share production Firestore and look active, so without this
- * they'd be the main recipients of "thinking of you" messages.
- */
-const SYNTHETIC_USER_ID = /^(voice-eval-|e2e-|device:(test|local-dev|debug))/;
 
 // ============================================================================
 // TYPES
@@ -94,6 +91,7 @@ interface UserOutreachCandidate {
     quietHoursEnd?: number;
     timezone?: string;
   };
+  contactInfo?: { timezone?: string };
 }
 
 // ============================================================================
@@ -189,8 +187,13 @@ async function processCandidate(
     return { sent: false, reason: 'Outreach disabled by user' };
   }
 
+  // Proactive dogfood users (PROACTIVE_CHANNELS): channel, quiet hours (in
+  // their own time zone) and caps come from the proactive channel policy.
+  const now = new Date();
+  const proactive = await dailyCheckInChannel(userId, now);
+
   // Check quiet hours
-  if (config.respectQuietHours && isInQuietHours(candidate)) {
+  if (!proactive && config.respectQuietHours && isInQuietHours(candidate)) {
     return { sent: false, reason: 'In quiet hours' };
   }
 
@@ -199,11 +202,12 @@ async function processCandidate(
   if (!outreachType) {
     return { sent: false, reason: 'No outreach needed' };
   }
+  if (blocksGenericCheckIns()) return { sent: false, reason: 'No grounded reason to reach out' };
 
   // Determine best channel
-  const channel = await determineBestChannel(candidate);
+  const channel = proactive ? proactive.channel : await determineBestChannel(candidate);
   if (!channel) {
-    return { sent: false, reason: 'No available channel' };
+    return { sent: false, reason: proactive?.why ?? 'No available channel' };
   }
 
   // Check if we have contact info for the channel
@@ -242,6 +246,10 @@ async function processCandidate(
     phone,
     outreachType,
   });
+
+  if (proactive) {
+    await logDailyCheckIn(userId, now, proactive, outreachType, deliveryResult.success);
+  }
 
   if (deliveryResult.success) {
     // Record that we sent outreach
@@ -290,7 +298,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         const data = doc.data();
         const userId = doc.id;
         if (data.outreachPreferences?.enabled === false) continue;
-        if (SYNTHETIC_USER_ID.test(userId)) continue;
+        if (isSyntheticUserId(userId)) continue; // test harness accounts
 
         const lastOutreach = data.lastOutreachDate?.toDate?.() || data.lastOutreachDate;
         const engagementLevel = engagementLevelOf(data, now.getTime());
@@ -316,6 +324,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
           engagementLevel,
           unanswered: unansweredCount(data),
           outreachPreferences: data.outreachPreferences,
+          contactInfo: data.contactInfo,
         });
       }
       if (page.size < CANDIDATE_PAGE_SIZE) break;
@@ -439,28 +448,12 @@ async function determineBestChannel(
  * Check if user is in quiet hours
  */
 function isInQuietHours(candidate: UserOutreachCandidate): boolean {
-  const { outreachPreferences } = candidate;
-
-  // Default quiet hours: 10 PM - 8 AM
-  const quietStart = outreachPreferences?.quietHoursStart ?? 22;
-  const quietEnd = outreachPreferences?.quietHoursEnd ?? 8;
-  const timezone = outreachPreferences?.timezone || 'America/Los_Angeles';
-
-  try {
-    const now = new Date();
-    const userTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
-    const hour = userTime.getHours();
-
-    // Handle overnight quiet hours (e.g., 22:00 - 08:00)
-    if (quietStart > quietEnd) {
-      return hour >= quietStart || hour < quietEnd;
-    }
-
-    return hour >= quietStart && hour < quietEnd;
-  } catch {
-    // If timezone fails, assume not in quiet hours
-    return false;
-  }
+  if (isQuietHoursUnified()) return isUserQuiet(candidate);
+  // Off: the hour fields only, default 22-8, in the user's zone or Los Angeles.
+  const prefs = candidate.outreachPreferences;
+  const zone = prefs?.timezone || 'America/Los_Angeles';
+  const window = hoursWindow(prefs?.quietHoursStart ?? 22, prefs?.quietHoursEnd ?? 8);
+  return isValidTimezone(zone) && isQuietAt(new Date(), window, [zone]);
 }
 
 // ============================================================================
@@ -496,11 +489,6 @@ async function recordOutreachSent(
 // ============================================================================
 
 /**
- * Handler for Cloud Scheduler HTTP trigger
- *
- * Called by: Cloud Scheduler job hitting /api/outreach/scheduler/daily
- */
-/**
  * The scheduled daily run. Callers must have authenticated the request
  * (outreach.routes.ts accepts Cloud Scheduler's OIDC token or an admin); a
  * header check here was spoofable.
@@ -514,14 +502,3 @@ export async function handleSchedulerTrigger(
     dryRun: opts.dryRun === true,
   });
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export const automatedScheduler = {
-  runDaily: runDailyOutreach,
-  handleTrigger: handleSchedulerTrigger,
-};
-
-export default automatedScheduler;

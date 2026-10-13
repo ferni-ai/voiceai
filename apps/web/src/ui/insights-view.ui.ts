@@ -435,7 +435,7 @@ export class InsightsView {
             </div>
             <div class="insights-empty__cap-content">
               <span class="insights-empty__cap-title">${t('insights.patternRecognition')}</span>
-              <span class="insights-empty__cap-desc">${t('insightsView.samplePattern')}</span>
+              <span class="insights-empty__cap-desc">${t('insightsView.patternDesc')}</span>
             </div>
           </div>
           
@@ -460,23 +460,9 @@ export class InsightsView {
           </div>
         </div>
 
-        <!-- Sample Insight Preview -->
-        <div class="insights-empty__sample">
-          <div class="insights-empty__sample-label">
-            <span class="insights-empty__sample-dot"></span>
-            ${t('insights.whatMightLook')}
-          </div>
-          <div class="insights-empty__sample-card">
-            <div class="insights-empty__sample-icon">${INSIGHT_ICONS.pattern}</div>
-            <div class="insights-empty__sample-content">
-              <p class="insights-empty__sample-text">${t('insightsView.sampleInsight')}</p>
-              <span class="insights-empty__sample-evidence">${t('insightsView.sampleEvidence', { count: 23 })}</span>
-            </div>
-          </div>
-        </div>
-
         <!-- Warm Invitation -->
         <div class="insights-empty__invitation">
+          <p class="insights-empty__invitation-text">${t('insightsView.emptyNote')}</p>
           <p class="insights-empty__invitation-text">
             ${t('insights.keepTalking')}
           </p>
@@ -559,9 +545,21 @@ export class InsightsView {
       const response = await apiGet<InsightData>(`/api/insights/${userId}`);
       if (response.ok && response.data) {
         this.update(response.data);
+      } else {
+        log.warn(`Insights returned ${response.status}`);
+        this.showLoadFailed();
       }
     } catch (error) {
       log.warn('Failed to load insights', error);
+      this.showLoadFailed();
+    }
+  }
+
+  /** A failed load is not "nothing here yet". */
+  private showLoadFailed(): void {
+    const content = this.container?.querySelector('#insights-content');
+    if (content) {
+      content.innerHTML = `<p class="insights-empty__invitation-text">${t('insightsView.loadFailed')}</p>`;
     }
   }
 
@@ -604,7 +602,7 @@ export class InsightsView {
       .insights-view {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1292,102 +1290,6 @@ export class InsightsView {
         font-style: italic;
       }
 
-      /* Sample Insight Preview */
-      .insights-empty__sample {
-        margin-bottom: var(--space-5, 20px);
-      }
-
-      .insights-empty__sample-label {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2, 8px);
-        font-size: var(--text-2xs, 0.625rem);
-        font-weight: var(--font-weight-semibold, 600);
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--color-text-dimmed);
-        margin-bottom: var(--space-2, 8px);
-      }
-
-      .insights-empty__sample-dot {
-        width: 6px;
-        height: 6px;
-        background: var(--persona-primary, #4a6741);
-        border-radius: var(--radius-full);
-        animation: insightsDotPulse 2s ease-in-out infinite;
-      }
-
-      @keyframes insightsDotPulse {
-        0%, 100% { opacity: 0.4; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.3); }
-      }
-
-      .insights-empty__sample-card {
-        display: flex;
-        gap: var(--space-3, 12px);
-        padding: var(--space-4, 16px);
-        background: linear-gradient(
-          135deg,
-          var(--persona-tint, rgba(74, 103, 65, 0.08)),
-          var(--color-background-secondary, rgba(44, 37, 32, 0.03))
-        );
-        border-radius: var(--radius-xl, 1.25rem);
-        border: 1px solid var(--persona-tint, rgba(74, 103, 65, 0.15));
-        position: relative;
-        overflow: hidden;
-      }
-
-      .insights-empty__sample-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(
-          90deg,
-          var(--persona-primary, #4a6741),
-          var(--persona-secondary, #3d5a35)
-        );
-        opacity: 0.6;
-      }
-
-      .insights-empty__sample-icon {
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        color: var(--persona-primary, #4a6741);
-        opacity: 0.8;
-      }
-
-      .insights-empty__sample-icon svg {
-        width: 18px;
-        height: 18px;
-      }
-
-      .insights-empty__sample-content {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-2, 8px);
-      }
-
-      .insights-empty__sample-text {
-        font-size: var(--text-sm, 0.875rem);
-        color: var(--color-text-primary);
-        line-height: 1.5;
-        margin: 0;
-        opacity: 0.85;
-      }
-
-      .insights-empty__sample-evidence {
-        font-size: var(--text-xs, 0.75rem);
-        color: var(--color-text-dimmed);
-        font-style: italic;
-      }
-
       /* Warm Invitation */
       .insights-empty__invitation {
         text-align: center;
@@ -1474,15 +1376,6 @@ export class InsightsView {
 
       [data-theme="midnight"] .insights-empty__cap-icon--concern {
         background: linear-gradient(135deg, rgba(196, 133, 106, 0.25), rgba(196, 133, 106, 0.1));
-      }
-
-      [data-theme="midnight"] .insights-empty__sample-card {
-        background: linear-gradient(
-          135deg,
-          rgba(74, 103, 65, 0.12),
-          rgba(255, 255, 255, 0.02)
-        );
-        border-color: rgba(74, 103, 65, 0.2);
       }
 
       [data-theme="midnight"] .insights-empty__invitation {

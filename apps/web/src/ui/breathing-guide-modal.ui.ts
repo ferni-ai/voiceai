@@ -12,6 +12,8 @@ import {
   type BreathingGuide,
   type BreathingPattern,
 } from './breathing-guide.ui.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { openDialog, type DialogHandle } from './overlay/dialog.js';
 
 const log = createLogger('BreathingGuideModal');
 
@@ -38,6 +40,8 @@ const PURPOSE_TO_PATTERN: Record<string, BreathingPattern> = {
 };
 
 let overlay: HTMLElement | null = null;
+/** The open dialog while the overlay host renders the guide. */
+let dialog: DialogHandle | null = null;
 let guide: BreathingGuide | null = null;
 
 function cleanupOrphanedElements(): void {
@@ -67,6 +71,10 @@ export function mapBreathingPayloadToPattern(payload: BreathingExercisePayload):
 }
 
 export function closeBreathingGuideModal(): void {
+  if (dialog) {
+    dialog.close(); // its onClose stops the guide
+    return;
+  }
   if (!overlay) {
     cleanupOrphanedElements();
     return;
@@ -80,6 +88,7 @@ export function closeBreathingGuideModal(): void {
 }
 
 export function openBreathingGuideModal(payload: BreathingExercisePayload = {}): void {
+  dialog?.close();
   cleanupOrphanedElements();
   const pattern = mapBreathingPayloadToPattern(payload);
 
@@ -119,11 +128,39 @@ export function openBreathingGuideModal(payload: BreathingExercisePayload = {}):
   const body = document.createElement('div');
   body.className = 'ferni-breathing-modal__body';
 
+  if (isOverlayHostEnabled()) {
+    // A native <dialog>: Escape closes it (the old overlay had no Escape), the
+    // page behind is inert, and on phones it is a sheet.
+    injectModalStyles();
+    const content = document.createElement('div');
+    content.append(header, body);
+    dialog = openDialog(content, {
+      size: 'md',
+      detent: 'large',
+      labelledBy: title.id,
+      onClose: () => {
+        guide?.stop();
+        guide = null;
+        dialog = null;
+      },
+    });
+    startGuide(body, pattern);
+    log.info('Opened breathing guide', { pattern, technique: payload.technique });
+    return;
+  }
+
   card.append(header, body);
   overlay.append(backdrop, card);
   injectModalStyles();
   document.body.appendChild(overlay);
 
+  startGuide(body, pattern);
+
+  requestAnimationFrame(() => overlay?.classList.add('ferni-breathing-modal--visible'));
+  log.info('Opened breathing guide', { pattern, technique: payload.technique });
+}
+
+function startGuide(body: HTMLElement, pattern: BreathingPattern): void {
   guide = createBreathingGuide(body, {
     pattern,
     color: 'var(--persona-primary)',
@@ -131,9 +168,6 @@ export function openBreathingGuideModal(payload: BreathingExercisePayload = {}):
     showTimer: true,
   });
   guide.start();
-
-  requestAnimationFrame(() => overlay?.classList.add('ferni-breathing-modal--visible'));
-  log.info('Opened breathing guide', { pattern, technique: payload.technique });
 }
 
 function injectModalStyles(): void {
@@ -147,7 +181,7 @@ function injectModalStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: var(--z-modal, 1000);
+      z-index: var(--z-modal);
       opacity: 0;
       transition: opacity var(--duration-normal, ${DURATION.NORMAL}ms) ${EASING.STANDARD};
     }

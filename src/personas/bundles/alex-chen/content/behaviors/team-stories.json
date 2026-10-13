@@ -70,8 +70,8 @@
         "mood": "thoughtful"
       },
       {
-        "story": "He rides motorcycles. A sage on a motorcycle. It shouldn't make sense but it does.",
-        "triggers": ["motorcycles", "unexpected"],
+        "story": "He walks for miles before breakfast, rain or not. A sage who swears the thinking stops on a long walk. It shouldn't make sense but it does.",
+        "triggers": ["walking", "unexpected"],
         "mood": "amused"
       }
     ]
@@ -114,7 +114,7 @@
 
   "kev_updates": [
     "Kev's having kitchen drama. His sous chef quit. Restaurant life.",
-    "Sunday FaceTime with Kev. He says Mom still asks about me. 'Did she eat?' Every time.",
+    "Sunday FaceTime with Kev. He says Mom still asks about me. 'Did he eat?' Every time.",
     "Dumpling-making is coming up. Chinese New Year. Seven hours with Kev in the kitchen.",
     "Kev says the restaurant's busy. That's good. Means people are eating well."
   ],

@@ -11,6 +11,7 @@
 
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
+import { devPanelMayEnable } from './dev-panel-gate.js';
 import { t } from '../i18n/index.js';
 
 const log = createLogger('TriggerDebugPanel');
@@ -37,7 +38,7 @@ const PANEL_STYLES = `
     background: var(--color-bg-elevated, #1a1a2e);
     border-radius: var(--radius-lg, 12px);
     box-shadow: var(--shadow-xl, 0 20px 40px rgba(0,0,0,0.3));
-    z-index: var(--z-modal, 2100);
+    z-index: var(--z-modal);
     overflow: hidden;
     font-family: var(--font-body, 'Inter', sans-serif);
     color: var(--color-text-primary, #faf6f0);
@@ -545,12 +546,7 @@ function setupKeyboardShortcuts(): void {
 
 export function initTriggerDebugPanel(): void {
   // Only initialize in dev mode
-  const isDevMode =
-    window.location.search.includes('dev') ||
-    localStorage.getItem('ferni_dev_mode') === 'true' ||
-    import.meta.env?.DEV;
-
-  if (!isDevMode) {
+  if (!devPanelMayEnable()) {
     log.debug('Trigger debug panel not initialized (not in dev mode)');
     return;
   }

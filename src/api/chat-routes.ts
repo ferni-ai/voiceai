@@ -16,6 +16,7 @@ import type { FunctionDeclaration } from '@google/generative-ai';
 
 import { claimedUserFor } from './acting-user.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
+import { offeredChatTools, refuseChatTool } from './chat-tool-access.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { executeTool } from '../agents/shared/tool-dispatcher.js';
@@ -69,10 +70,11 @@ async function processMessageWithLLM(
   message: string,
   userId: string,
   personaId: string,
+  isAdmin: boolean,
   conversationHistory: Array<{ role: string; content: string }> = []
 ): Promise<{ response: string; toolCalls: Array<{ fn: string; args: Record<string, unknown> }> }> {
-  // Get available tools for this user/persona
-  const tools = await getToolDefinitionsForChat(userId, personaId);
+  // Offer the model only the tools this caller may run
+  const tools = offeredChatTools(await getToolDefinitionsForChat(userId, personaId), isAdmin);
 
   // Build system prompt
   const systemPrompt = buildSystemPrompt(personaId, tools);
@@ -154,18 +156,6 @@ async function getToolDefinitionsForChat(
           date: { type: 'string' },
           time: { type: 'string' },
           attendees: { type: 'array', items: { type: 'string' } },
-        },
-      },
-    },
-    {
-      name: 'initiateCall',
-      description: 'Call someone on behalf of the user',
-      parameters: {
-        type: 'object',
-        properties: {
-          name: { type: 'string' },
-          phone: { type: 'string' },
-          reason: { type: 'string' },
         },
       },
     },
@@ -450,6 +440,7 @@ export async function handleChatRoutes(
         body.message,
         userId,
         personaId,
+        auth.isAdmin,
         body.conversationHistory
       );
 
@@ -457,6 +448,11 @@ export async function handleChatRoutes(
       const executedTools: ChatResponse['toolCalls'] = [];
 
       for (const toolCall of llmResult.toolCalls) {
+        // The model's pick is steered by the client's message and history
+        if (refuseChatTool(toolCall.fn, auth)) {
+          executedTools.push({ ...toolCall, result: 'Not available in text chat', success: false });
+          continue;
+        }
         const startTime = Date.now();
         try {
           const result = await executeTool(
@@ -501,6 +497,10 @@ export async function handleChatRoutes(
 
       const userId = claimedUserFor(auth, body.userId, res);
       if (!userId) return true;
+      if (refuseChatTool(body.fn, auth)) {
+        sendError(res, 'Not authorized to run this tool', 403);
+        return true;
+      }
       log.info({ userId, tool: body.fn }, 'Executing tool directly');
 
       const startTime = Date.now();
@@ -521,8 +521,8 @@ export async function handleChatRoutes(
     // GET /api/chat/tools - List available tools
     if (pathname === '/api/chat/tools' && req.method === 'GET') {
       const personaId = 'ferni'; // Could get from query params
-
-      const tools = await getToolDefinitionsForChat(auth.userId, personaId);
+      const all = await getToolDefinitionsForChat(auth.userId, personaId);
+      const tools = offeredChatTools(all, auth.isAdmin);
 
       sendJSON(res, {
         success: true,

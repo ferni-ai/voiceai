@@ -10,7 +10,6 @@
     "closeDashboard": "关闭控制面板",
     "closeDetails": "关闭详情",
     "closeHistory": "关闭历史记录",
-    "closeHuddle": "关闭讨论组",
     "closeMenu": "关闭菜单",
     "closePublisher": "关闭发布者门户",
     "closeSettings": "关闭设置",
@@ -545,7 +544,6 @@
     "target": "目标",
     "tasks": "任务",
     "teachings": "教导",
-    "teamHuddle": "团队小聚",
     "teamMembersUnlocked": "已解锁的团队成员",
     "teamUnlock": "团队解锁",
     "testCall": "测试通话",
@@ -1156,7 +1154,7 @@
       "upgrade": "加入旅程"
     },
     "expiresLabel": "有效期至",
-    "freeNote": "创始成员可以无限期与整个团队交流 —— 并帮助 Ferni 对所有人保持免费",
+    "freeNote": "Ferni 是免费的。如果你想帮助它继续下去，可以通过 Venmo 支持一下。",
     "label": "共同成长",
     "renewsLabel": "续期日",
     "restore": {
@@ -1241,7 +1239,6 @@
       "gifts": "礼物与特别的日子",
       "videoSessions": "视频通话",
       "groupCoaching": "与朋友一起",
-      "teamHuddles": "团队碰头会",
       "teamSessions": "团队时间",
       "conferenceCalls": "多人通话",
       "concierge": "现实生活协助",
@@ -1296,8 +1293,7 @@
       "growthJournal": "成长日志",
       "knowledgeQuiz": "你有多了解我？",
       "soundEffects": "音效",
-      "sleepSchedule": "睡眠作息",
-      "teamObservations": "团队观察"
+      "sleepSchedule": "睡眠作息"
     },
     "quickAdd": {
       "person": "新认识的人",
@@ -1319,7 +1315,7 @@
         "calendar": "日历",
         "history": "往期聊天",
         "people": "你身边的人",
-        "insights": "你的近况感悟"
+        "insights": "我对你的了解"
       }
     },
     "ariaLabel": "设置菜单",
@@ -1417,8 +1413,6 @@
     "dailyChallenge": {
       "title": "今日挑战",
       "xpReward": "+{xp} XP",
-      "completion": "已完成 {percent}%",
-      "playing": "{count} 人正在玩",
       "start": "开始挑战",
       "dayStreak": {
         "other": "连续 {count} 天啦！",
@@ -1758,10 +1752,10 @@
       "plant": "为你希望实现的功能播下种子",
       "suggest": "提议新想法需消耗 5 颗种子",
       "title": "种子如何运作",
-      "conversation": "进行一次对话：+1 颗种子",
+      "conversation": "每天第一次对话：+5 颗种子",
       "note": "种子能帮我们决定下一步优先开发什么！",
-      "streak30": "连续 30 天：+15 颗种子",
-      "streak7": "连续 7 天：+5 颗种子",
+      "streak30": "连续 30 天：+100 颗种子",
+      "streak7": "连续 7 天：+25 颗种子",
       "vote": "为功能投票：1-10 颗种子"
     },
     "intro": "每段美好的关系都有四季。这些是我们共同播下的种子。",
@@ -3300,8 +3294,8 @@
     "categorySweet": "甜蜜瞬间",
     "connectionConnected": "我们已联结",
     "connectionConnecting": "正在连接...",
-    "connectionDisconnected": "连接已断开",
-    "connectionDisconnectedMessage": "出了点小状况，不过我们可以再试一次。",
+    "connectionIdle": "随时准备好了",
+    "connectionIdleMessage": "想聊的时候，我一直都在。",
     "connectionError": "连接已断开",
     "connectionErrorMessage": "出了点小状况，不过我们可以再试一次。",
     "connectionReconnect": "重新连接",
@@ -3727,8 +3721,7 @@
       "disabled": "未创建日历日程",
       "loadingSuggestions": "正在寻找最佳时间...",
       "noSuggestions": "未找到推荐时间",
-      "suggestion": "你的日历显示这个时间通常是有空的",
-      "suggestedTime": "推荐时间"
+      "suggestion": "你的日历显示这个时间通常是有空的"
     },
     "validation": {
       "nameRequired": "每个练习都需要一个名字"
@@ -3771,7 +3764,6 @@
         "name": "晨间记录",
         "humanName": "晨间时刻",
         "description": "带着意图开启新的一天",
-        "scienceNote": "晨间设定意图能将专注度提升 31%（《哈佛商业评论》）",
         "cue": "当你的脚落地起床时",
         "routine": "停顿，呼吸，设定一个意图",
         "reward": "掌控感与清晰的思绪",
@@ -3785,7 +3777,6 @@
         "name": "感恩时刻",
         "humanName": "感恩片刻",
         "description": "记下三件你感激的事",
-        "scienceNote": "感恩练习能提升 25% 的幸福感（加州大学伯克利分校）",
         "cue": "晚上给手机充电时",
         "routine": "写下今天发生的、无论大小的三件好事",
         "reward": "心中涌起温暖的感激之情",
@@ -3799,7 +3790,6 @@
         "name": "周回顾",
         "humanName": "每周反思",
         "description": "反思收获与成长",
-        "scienceNote": "每周反思能将目标的达成率提高 42%（多米尼克大学）",
         "cue": "周日早晨，配上一杯咖啡或茶",
         "routine": "回顾收获，记录成长，并为新的一周设定目标",
         "reward": "掌控感与方向感",
@@ -3812,7 +3802,6 @@
       "custom": {
         "name": "自定义",
         "humanName": "全新开始",
-        "scienceNote": "围绕你的生活量身定制的练习，坚持下去的可能性要高出 3 倍",
         "cue": "由你选择触发契机",
         "routine": "由你设计练习内容",
         "reward": "由你定义成功的喜悦",
@@ -3908,6 +3897,8 @@
     "loadingCoaches": "正在寻找教练...",
     "noMatches": "暂无匹配结果",
     "noMatchesHint": "试试其他搜索词，或浏览所有教练。",
+    "nobodyYet": "还没有新朋友可以认识。",
+    "nobodyYetHint": "等有新朋友可以加入你的通话时，你会在这里认识他们。现在，先和你的团队聊聊吧。",
     "becomeCreator": "成为创作者",
     "poweredBy": "由 Ferni 提供支持",
     "teamLocked": {
@@ -4543,7 +4534,7 @@
     "successDeployed": "页面已成功部署！",
     "title": "创建智能体页面",
     "nameLabel": "智能体名称",
-    "namePlaceholder": "例如：Joel Dickson",
+    "namePlaceholder": "例如：Nate Holloway",
     "nameHint": "你的 AI 智能体的全名",
     "initialsLabel": "首字母",
     "initialsPlaceholder": "例如：JD",
@@ -4620,7 +4611,8 @@
     "sourceInferred": "我注意到的",
     "correctButton": "纠正",
     "memoriesCount": "{count} 条记忆",
-    "confidence": "{confidence}% 确定"
+    "confidence": "{confidence}% 确定",
+    "earlier": "以前"
   },
   "memoryCorrection": {
     "modalTitle": "纠正这条记忆",
@@ -5326,11 +5318,8 @@
     "upcomingIntro": "我一直在默默关注着你。这是我接下来会发起记录的时间。",
     "learningTitle": "我正在学习你何时最需要我",
     "learningDesc": "我们聊得越多，我就越能理解你的生活节奏、习惯和需求。",
-    "whatThisWillLook": "呈现的效果",
-    "noticedConcern": "注意到的担忧",
-    "streakSupport": "连续天数支持",
-    "nextMonday": "下周一",
-    "calendarAware": "日历感知",
+    "upcomingEmptyNote": "还没有安排，没关系。等我打算联系你时，你会在这里看到。",
+    "upcomingLoadFailed": "嗯，你的联系安排没有加载出来。是我这边的问题，不是你的。稍等一下，再打开一次。",
     "perfectTiming": "完美时机",
     "perfectTimingDesc": "我会学习你最容易接受交流的时间",
     "patternDetection": "规律发现",
@@ -5348,10 +5337,6 @@
     "streakMilestonesDesc": "庆祝你的坚持——我记得你旅程中的每一步",
     "to": "至",
     "quietNote": "如果你在凌晨两点醒来并联系我，我依然会像中午一样，温和地陪伴在你身边。",
-    "sampleFriday": "周五 {time}",
-    "sampleOverwhelmed": "“你昨天提到感觉压力很大。现在好些了吗？”",
-    "sampleMeditation": "“你的冥想连续天数已经达到 6 天啦！准备好迎接第 7 天了吗？”",
-    "samplePresentation": "“那场重要的演示快到了。想一起准备一下吗？”",
     "guardianDesc": "全天候守护着你",
     "emptyCta": "继续和我聊聊吧。每一次对话都能帮我更好地理解何时以及如何给你最贴心的支持。",
     "emptyTip": "在设置中开启“{feature}”，解锁主动支持"
@@ -6255,20 +6240,6 @@
       },
       "empty": "嗨。我在这里——其实，我就是你。开始写日记吧，这样我就有更多可以帮你梳理的内容了。现在，你脑海里在想些什么？"
     },
-    "fallback": {
-      "option1": "这很有意思。为什么你现在会想到这个？",
-      "option2": "我听着呢。还有别的吗？",
-      "option3": "多跟我说说。这背后隐藏着什么？",
-      "option4": "这也是我一直在思考的问题。在这个问题背后，真正的疑问是什么？",
-      "advice": "我明白，最好的建议往往来自于与问题多相处一会儿。你的直觉怎么说？",
-      "feeling": "这确实很沉重。我也曾有过这种感觉。现在怎么做能帮到你——是把它说透，还是先静静地待一会儿？",
-      "remember": "我记住的事情可能比你想象的还要多。日记记录里保存了很多东西。你具体在寻找什么？"
-    },
-    "fallbackKeywords": {
-      "advice": "建议,应该",
-      "feeling": "感觉,感受",
-      "remember": "记得"
-    },
     "dialogLabel": "你的时光日志",
     "switchToVoice": "切换到语音",
     "captured": "已记录！",
@@ -6283,7 +6254,8 @@
       }
     },
     "emptyDescription": "你的时光日志还是空的，但每一个伟大的故事都有一个起点。记录下你的第一个想法，看着你的智慧慢慢成长吧。",
-    "quoted": "“{text}”"
+    "quoted": "“{text}”",
+    "replyFailed": "没有发送成功。是我这边的问题，不是你的。再发一次试试。"
   },
   "marketplacePermissionConsent": {
     "required": "必要权限",
@@ -6349,12 +6321,17 @@
     "categoryConnectDescription": "滋养人际关系",
     "categoryGrow": "成长",
     "categoryGrowDescription": "温柔地蜕变",
-    "insightYourMorningsSetTone": "清晨决定了一天的基调",
-    "insightYourMorningsDesc": "你开启新一天时的对话，往往会悄悄塑造这一整天的模样。",
-    "insightEveningReflectionsHelp": "夜晚的回顾很有帮助",
-    "insightEveningReflectionsDesc": "在睡前花点时间静心回顾，往往能让明天变得更加清晰。",
-    "insightIRememberEverything": "我记得所有的一切",
-    "insightIRememberEverythingDesc": "每一次对话、每一个细节、每一个成长的瞬间。我为你完整珍藏着你的故事。",
+    "noInsightsYetTitle": "这里还什么都没有。",
+    "noInsightsYetDesc": "聊过几次之后，我会开始注意到一些事：你的习惯模式、你提到的计划、重要的时刻。它们会出现在这里。现在，我们先聊聊吧。",
+    "insightsUnavailableTitle": "我没能加载我注意到的内容。",
+    "insightsUnavailableDesc": "这是我的问题，不是你的。稍后再试一次。我会一直在这里。",
+    "practicePrompt": {
+      "dailyCheckin": "很高兴见到你。说真的，你现在感觉怎么样？",
+      "gratitude": "让我们停下脚步，心怀感激。此时此刻，有什么是让你感到温暖和感谢的？",
+      "brainstorm": "我们来头脑风暴一下吧。你现在正面临什么挑战或抉择？",
+      "weeklyReview": "我们来回顾一下你的一周吧。有什么让你印象深刻的事吗？",
+      "windDown": "我们一起来放松一下吧。今天有什么让你感到骄傲的事吗？"
+    },
     "practiceSetYourIntention": "设定你的意图",
     "practiceSetYourIntentionDesc": "带着清晰的目标开始。今天对你来说最重要的是什么？",
     "practiceGratitudeMoment": "感恩时刻",
@@ -7215,19 +7192,6 @@
       "one": "已启用 {count} 项功能中的 {active} 项"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "团队综合分析",
-    "assessment": "整体评估",
-    "connections": "跨领域联结",
-    "recommendations": "团队建议",
-    "loading": "正在加载团队观察...",
-    "empty": {
-      "title": "暂无团队观察",
-      "description": "当你与团队交流时，他们会彼此分享感悟。"
-    },
-    "recent": "最近观察",
-    "title": "团队观察"
-  },
   "observationTypes": {
     "insight": "感悟",
     "concern": "担忧",
@@ -7970,7 +7934,9 @@
     "emptyVision": "随着时间的推移，<strong>规律将会显现</strong>。日子会连成星期。你会<strong>更清晰地</strong>看见自己。",
     "last4Weeks": "最近 4 周",
     "stable": "稳定",
-    "fromLastMonth": "比上个月 {change}%",
+    "improving": "在上升",
+    "declining": "最近稍低一些",
+    "trendUnavailable": "这个趋势没有加载出来。稍后再试一次。",
     "trendUp": "上升",
     "trendDown": "下降",
     "trendStable": "持平",
@@ -8013,7 +7979,6 @@
     "loading": "加载中...",
     "whatIveLearned": "我对你的了解",
     "loadingInsights": "正在加载感悟...",
-    "understanding": "理解",
     "thingsIWantToRemember": "我想记住的事",
     "proactive": "主动",
     "patternsIveNoticed": "我注意到的规律",
@@ -8276,8 +8241,7 @@
     "growthDesc": "那些你可能自己都没注意到的进步。",
     "guardianPresence": "守护般的陪伴",
     "guardianDesc": "我能读懂你未曾说出口的话。",
-    "whatMightLook": "感悟大概会是这样的",
-    "keepTalking": "继续聊聊吧。我一直在听，在学，也一直在这里陪着你。",
+    "keepTalking": "现在，尽管聊就好。我在认真听。",
     "betterThanMemory": "比人类的记忆更贴心，时刻为你守候。",
     "chapter": {
       "default": {
@@ -8501,23 +8465,17 @@
   },
   "predictions": {
     "promise": "承诺",
-    "title": "你的水晶球",
-    "description": "我会学着在你开口之前，就预见到你的需要。",
-    "preview": "预览",
+    "title": "预测你的一周",
+    "description": "这是在通话中和 Peter 一起玩的游戏。猜猜你这一周会怎样，再看看猜得有多准。",
     "accurate": "准确",
-    "exampleStress": "你在周二提到了压力",
     "watching": "关注中",
-    "checkIn": "我会找你记录",
     "accuracy": "预测准确率",
     "keepTalking": "继续聊聊吧。我们正在共同建立默契。",
     "accuracyLabel": "准确率",
+    "loadFailed": "嗯，你的预测没有加载出来。是我这边的问题，不是你的。稍等一下，再打开一次。",
     "resolved": "已解决",
     "streak": "连续天数",
-    "sampleOverwhelmed": "“你这周会感到有些不堪重负”",
-    "sampleGym": "“去健身房的习惯可能会遇到阻碍”",
-    "sampleSunday": "“周日的傍晚会让人感觉有些沉重”",
-    "exampleGym": "你错过了 2 次健身",
-    "ctaText": "和 Peter 聊聊，开始进行预测。通过预测游戏来建立自我认知。",
+    "ctaText": "下次聊天时请 Peter 和你一起玩。你的预测和结果会显示在这里。",
     "activePredictions": "进行中的预测",
     "recentResults": "最近的结果"
   },
@@ -8588,6 +8546,10 @@
   },
   "engagementPanel": {
     "title": "每日记录",
+    "emptyTitle": "我们的每日聊聊会留在这里",
+    "emptyMessage": "这里还没有内容，没关系。我们在通话里做每日聊聊时，你当时的感受会显示在这里。下次聊天时，跟我说一声就好。",
+    "loadFailedTitle": "嗯，没有加载出来",
+    "loadFailedMessage": "是我这边的问题，不是你的。稍等一下，再打开一次。",
     "yourWeek": "你的这一周",
     "weatherTrend": "情绪天气趋势",
     "howYouFeel": "你感觉怎么样",
@@ -8790,6 +8752,7 @@
     }
   },
   "conversationHistory": {
+    "title": "往期聊天",
     "loadError": "无法加载数据。",
     "tryAgain": "再试一次？",
     "ariaLabel": "对话历史",
@@ -8976,9 +8939,6 @@
     "he": "希伯来语"
   },
   "featureHints": {
-    "teamHuddlesTitle": "团队小聚来啦！",
-    "teamHuddlesMessage": "既然我们对彼此更熟悉了，你可以同时听到多位团队成员的声音啦。",
-    "teamHuddlesCta": "试试团队小聚",
     "createRitualsTitle": "创造你自己的仪式",
     "createRitualsMessage": "你现在可以自定义每日练习了。什么样的小习惯对你最有帮助呢？",
     "createRitualsCta": "创造一个仪式",
@@ -9506,8 +9466,7 @@
     "rememberEmpty": "这次没有需要记住的新内容。谢谢你的陪伴。",
     "nextStepTitle": "温和的下一步",
     "invitation": "随时回来，我会在这里。",
-    "close": "关闭",
-    "seeCost": "这次通话的费用"
+    "close": "关闭"
   },
   "moments": {
     "teamUnlockTitle": "认识 {name}",
@@ -10111,7 +10070,12 @@
     "getIdeas": "获取灵感",
     "emptyTitle": "暂无建议",
     "emptyText": "试着添加更多关于你们关系的背景信息吧。",
-    "generateError": "无法生成灵感。要再试一次吗？"
+    "generateError": "无法生成灵感。要再试一次吗？",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "我能为你做些什么",
@@ -10222,8 +10186,6 @@
     "allDataDeleted": "所有数据已删除",
     "deletingAccount": "正在注销你的账号...",
     "accountDeleted": "你的账号已注销。多保重。",
-    "couldNotStartHuddle": "无法开始团队讨论。要再试一次吗？",
-    "defaultHuddleTopic": "每周记录你的进展",
     "outlookCalendar": "Outlook 日历",
     "conversationsLeft": {
       "other": "还剩 {count} 次对话。只要你需要，我随时都在。",
@@ -10236,7 +10198,9 @@
     "seedsEarned": {
       "other": "你获得了 {count} 颗种子！",
       "one": "你获得了 {count} 颗种子！"
-    }
+    },
+    "couldNotLoadMemories": "没能加载我记得的内容。再试一次？",
+    "memoryCorrected": "明白了，我会这样记住。"
   },
   "trustSignals": {
     "prefix": {
@@ -10362,22 +10326,7 @@
         "one": "我有 {count} 篇日记的感悟想与你分享。"
       }
     },
-    "error": "我现在有点转不过弯来。给我一点时间，然后再试一次好吗？",
-    "fallback": {
-      "advicePhilosophy": "你知道我学到了什么吗：“{philosophy}” 无论你正面临什么，请记住这一点。",
-      "adviceValues": "想想对我们来说重要的事情：{values}。让它们指引你吧。",
-      "feelRecent": "我也曾有过这种感觉。我在日记里写过：“{excerpt}……” 我们以前也挺过来了。",
-      "feelDefault": "我懂你。我们以前也经历过艰难的时期，并找到了出路。真正让你困扰的是什么呢？",
-      "rememberIntro": "嗯，我记得。",
-      "rememberEntry": "那时候我写过：“{excerpt}……”",
-      "mannerism": "{phrase} 这也是我一直在思考的事情。是什么让你提起这个的？",
-      "default": "这是个好问题。你怎么会想到这个的？"
-    },
-    "fallbackKeywords": {
-      "advice": "建议,我应该",
-      "feeling": "感觉,觉得",
-      "remember": "记得,过去"
-    }
+    "error": "没有发送成功。是我这边的问题，不是你的。再发一次试试。"
   },
   "mood": {
     "holiday": {
@@ -10401,6 +10350,12 @@
       "fair": "一般",
       "poor": "连接较差",
       "disconnected": "已断开连接"
+    },
+    "island": {
+      "offline": "你离线了。网络恢复后我会马上重新连接。",
+      "reconnecting": "正在重新连接…",
+      "weak": "网络较弱",
+      "backOnline": "已恢复在线"
     }
   },
   "ideasGallery": {
@@ -10599,6 +10554,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "关系进展",
+    "emptyInvite": "我们的故事从你的第一次对话开始。",
     "progress": "进度",
     "next": "下一步：{stage}",
     "stages": {
@@ -10810,11 +10766,6 @@
     "endTalk": "挂断",
     "connectingCancel": "正在连接。点按即可取消"
   },
-  "teamHuddle": {
-    "typeWeekly": "每周记录",
-    "typeMilestone": "里程碑庆祝",
-    "typeSpecial": "特别时刻"
-  },
   "analyticsDashboard": {
     "title": "你的旅程",
     "loading": "正在加载你的进度...",
@@ -10857,6 +10808,9 @@
       "other": "{count} 天",
       "one": "{count} 天"
     }
+  },
+  "avatarFeedback": {
+    "nomNom": "好吃好吃！"
   },
   "avatarTapReactions": {
     "tickles": "嘿嘿，好痒呀！"
@@ -10994,19 +10948,6 @@
       "roomToGrow": "成长空间",
       "insight": "“你的精力在周中会下降。周三似乎是你最难熬的一天。”"
     },
-    "predictions": {
-      "title": "我的预测",
-      "message": "我会学会预测你的需求，在你开口之前就准备好。",
-      "guessOverwhelmed": "“你这周会感到有些不堪重负”",
-      "resultStress": "你在周二和周四提到了压力",
-      "guessGym": "“去健身房的习惯可能会遇到阻碍”",
-      "guessSunday": "“周日晚上会感觉有些沉重”",
-      "resultCheckIn": "我会找你记录一下",
-      "skipped": {
-        "other": "你本周跳过了 {count} 次",
-        "one": "你本周跳过了 {count} 次"
-      }
-    },
     "team": {
       "title": "我们的观察",
       "message": "你的整个团队都会分享他们的观察，来帮助你成长。",
@@ -11060,9 +11001,9 @@
   },
   "x": "朋友 • 提及 12 次",
   "insightsView": {
-    "samplePattern": "“周日的傍晚对你来说似乎有些难熬……”",
-    "sampleInsight": "“这周你提到了 8 次感到疲惫。这种疲惫似乎与你在工作中难以划定界限有关。”",
-    "sampleEvidence": "基于 {count} 次对话"
+    "patternDesc": "我们聊天时反复出现的事。",
+    "emptyNote": "这里还没有内容，没关系。聊过几次之后，我会开始注意到一些规律，它们会显示在这里。",
+    "loadFailed": "嗯，我注意到的内容没有加载出来。是我这边的问题，不是你的。稍等一下，再打开一次。"
   },
   "agentAcks": {
     "gameStartFailed": "游戏没能开始。试试直接对 Ferni 说出来吧。",
@@ -11072,6 +11013,68 @@
     "ferniSpeaking": "Ferni 正在说话",
     "youSpeaking": "你正在说话",
     "ferniThinking": "Ferni 正在思考",
-    "tapToInterrupt": "轻点以打断"
+    "tapToInterrupt": "轻点以打断",
+    "tapToHear": "轻点收听 Ferni"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "出份力",
+    "title": "一美元，让对话继续",
+    "body": "Ferni 目前免费。如果某次聊天帮到了你，可以通过 Venmo 寄一美元。多给也欢迎，但从不强求。",
+    "qrAlt": "@{handle} 的 Venmo 二维码",
+    "copy": "复制",
+    "copied": "已复制",
+    "openVenmo": "打开 Venmo",
+    "helper": "用手机相机扫一扫，或点按“打开 Venmo”。金额可以修改。",
+    "maybeLater": "以后再说",
+    "close": "关闭"
   }
 }

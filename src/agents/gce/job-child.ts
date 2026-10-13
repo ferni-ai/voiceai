@@ -6,6 +6,8 @@
  * @module agents/gce/job-child
  */
 
+import '../../instrument.js'; // error reporting first; a no-op without SENTRY_DSN
+
 import { performance } from 'node:perf_hooks';
 
 import { initializeLogger } from '@livekit/agents';
@@ -18,6 +20,7 @@ import { drainBackground } from './drain-background.js';
 import { runJobInProcess, setOnJobLifecycle, setWorkerId, shutdownJob } from './job-executor.js';
 import { asToChild, decodeJob, type ToChild, type ToParent } from './job-process-protocol.js';
 import { startProcessRuntime } from './process-runtime.js';
+import { warmCallPath } from './call-path-warmup.js';
 import { warmupResources } from './warmup.js';
 
 /** Longest a finished call waits for its background memory work before the process exits. */
@@ -93,6 +96,7 @@ async function main(): Promise<void> {
 
   const started = Date.now();
   await warmupResources(log);
+  await warmCallPath(log);
   reportLoad();
 
   let busy = false;

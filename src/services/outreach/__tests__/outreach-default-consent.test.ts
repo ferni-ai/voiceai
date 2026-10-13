@@ -2,7 +2,7 @@
  * Outreach reaches everyone by default, in-app only. A user who switched it
  * off gets nothing, and texts/email/calls go only to users who chose them.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Doc = { id: string; data: Record<string, unknown> };
 let users: Doc[] = [];
@@ -117,6 +117,14 @@ describe('outreach consent mapping', () => {
 });
 
 describe('daily outreach selection', () => {
+  // Selection is only reached on the legacy path, with grounded check-ins off.
+  beforeEach(() => {
+    process.env.OUTREACH_GROUNDED_CHECKINS = 'off';
+  });
+  afterEach(() => {
+    delete process.env.OUTREACH_GROUNDED_CHECKINS;
+  });
+
   it('includes users with no preference, in-app only; skips users who switched off', async () => {
     users = [
       user('a-no-prefs'),

@@ -10,7 +10,6 @@
     "closeDashboard": "ダッシュボードを閉じる",
     "closeDetails": "詳細を閉じる",
     "closeHistory": "履歴を閉じる",
-    "closeHuddle": "ハドルを閉じる",
     "closeMenu": "メニューを閉じる",
     "closePublisher": "パブリッシャーポータルを閉じる",
     "closeSettings": "設定を閉じる",
@@ -545,7 +544,6 @@
     "target": "目標",
     "tasks": "タスク",
     "teachings": "教え",
-    "teamHuddle": "チームハドル",
     "teamMembersUnlocked": "アンロックされたチームメンバー",
     "teamUnlock": "チームのアンロック",
     "testCall": "テスト通話",
@@ -1156,7 +1154,7 @@
       "upgrade": "道のりに加わる"
     },
     "expiresLabel": "有効期限",
-    "freeNote": "ファウンダーはチーム全員と無制限にお話しでき、Ferniをすべての人に無料で提供し続けるサポートになります。",
+    "freeNote": "Ferniは無料です。続けていくのを応援したい方は、Venmoで支援できます。",
     "label": "共に成長する",
     "renewsLabel": "更新日",
     "restore": {
@@ -1241,7 +1239,6 @@
       "gifts": "贈り物と特別な日",
       "videoSessions": "ビデオ通話",
       "groupCoaching": "友達と一緒に",
-      "teamHuddles": "チームのキャッチアップ",
       "teamSessions": "チームの時間",
       "conferenceCalls": "グループ通話",
       "concierge": "日常のお手伝い",
@@ -1296,8 +1293,7 @@
       "growthJournal": "成長ジャーナル",
       "knowledgeQuiz": "私のことをどれくらい知っていますか？",
       "soundEffects": "効果音",
-      "sleepSchedule": "睡眠スケジュール",
-      "teamObservations": "チームの観察"
+      "sleepSchedule": "睡眠スケジュール"
     },
     "quickAdd": {
       "person": "新しい人",
@@ -1319,7 +1315,7 @@
         "calendar": "カレンダー",
         "history": "過去のお話",
         "people": "あなたの大切な人たち",
-        "insights": "最近の様子"
+        "insights": "学んだこと"
       }
     },
     "ariaLabel": "設定メニュー",
@@ -1417,8 +1413,6 @@
     "dailyChallenge": {
       "title": "今日のチャレンジ",
       "xpReward": "+{xp} XP",
-      "completion": "達成度 {percent}%",
-      "playing": "{count}人がプレイ中",
       "start": "チャレンジを開始",
       "dayStreak": {
         "other": "{count}日連続のストリーク！",
@@ -1758,10 +1752,10 @@
       "plant": "実現してほしい機能にタネを植えましょう",
       "suggest": "5つのタネで新しいアイデアを提案できます",
       "title": "タネの仕組み",
-      "conversation": "お話をする：+1つのタネ",
+      "conversation": "その日最初のお話：タネ+5",
       "note": "タネは、次に何を開発するかの優先順位を決めるのに役立ちます！",
-      "streak30": "30日間のストリーク：+15つのタネ",
-      "streak7": "7日間のストリーク：+5つのタネ",
+      "streak30": "30日間のストリーク：タネ+100",
+      "streak7": "7日間のストリーク：タネ+25",
       "vote": "機能に投票する：1〜10つのタネ"
     },
     "intro": "どんな素晴らしい関係にも、さまざまな季節があります。これらは、私たちが一緒に植えているタネです。",
@@ -3300,8 +3294,8 @@
     "categorySweet": "心温まる瞬間",
     "connectionConnected": "つながっています",
     "connectionConnecting": "接続中...",
-    "connectionDisconnected": "接続されていません",
-    "connectionDisconnectedMessage": "何か問題が発生したようです。もう一度お試しください。",
+    "connectionIdle": "いつでもどうぞ",
+    "connectionIdleMessage": "話したくなったら、いつでもここにいます。",
     "connectionError": "接続が切れました",
     "connectionErrorMessage": "何か問題が発生したようです。もう一度お試しください。",
     "connectionReconnect": "再接続する",
@@ -3727,8 +3721,7 @@
       "disabled": "カレンダーの予定はありません",
       "loadingSuggestions": "最適な時間を見つけています...",
       "noSuggestions": "提案が見つかりませんでした",
-      "suggestion": "カレンダーによると、この時間は普段空いているようです",
-      "suggestedTime": "おすすめの時間"
+      "suggestion": "カレンダーによると、この時間は普段空いているようです"
     },
     "validation": {
       "nameRequired": "プラクティスには名前が必要です"
@@ -3771,7 +3764,6 @@
         "name": "朝のチェックイン",
         "humanName": "朝のひととき",
         "description": "意図を持って一日をスタートしましょう",
-        "scienceNote": "朝に意図を設定すると、集中力が31%向上します（Harvard Business Review）",
         "cue": "ベッドから起きて足が床についたとき",
         "routine": "立ち止まり、呼吸をして、今日の意図を1つ決める",
         "reward": "頭がすっきりして、自分でコントロールできている感覚",
@@ -3785,7 +3777,6 @@
         "name": "感謝の瞬間",
         "humanName": "感謝のひととき",
         "description": "感謝していることを3つ挙げてみましょう",
-        "scienceNote": "感謝のプラクティスは幸福度を25%向上させます（カリフォルニア大学バークレー校）",
         "cue": "夜、スマホを充電器に置くとき",
         "routine": "今日良かったことを、大小問わず3つ挙げてみましょう",
         "reward": "心が温まるような感謝の気持ち",
@@ -3799,7 +3790,6 @@
         "name": "ウィークリーレビュー",
         "humanName": "週に一度の振り返り",
         "description": "達成できたことや学びを振り返りましょう",
-        "scienceNote": "週に一度の振り返りは、目標達成率を42%向上させます（ドミニカン大学）",
         "cue": "日曜日の朝、コーヒーや紅茶を飲みながら",
         "routine": "達成できたことを振り返り、学びを書き留め、今週の目標を決めましょう",
         "reward": "前進している感覚と、進むべき方向性",
@@ -3812,7 +3802,6 @@
       "custom": {
         "name": "カスタム",
         "humanName": "新しく始める",
-        "scienceNote": "あなたの生活に合わせて作られたカスタムプラクティスは、継続する確率が3倍高くなります",
         "cue": "きっかけはあなたが自由に選べます",
         "routine": "プラクティスはあなたがデザインします",
         "reward": "どんな状態を成功とするかは、あなた次第です",
@@ -3908,6 +3897,8 @@
     "loadingCoaches": "コーチを探しています...",
     "noMatches": "一致するものはまだありません",
     "noMatchesHint": "別の言葉で検索するか、すべてのコーチを見てみましょう。",
+    "nobodyYet": "まだ新しく出会える仲間はいません。",
+    "nobodyYetHint": "新しい仲間が通話に参加できるようになったら、ここで出会えます。今はチームとお話ししましょう。",
     "becomeCreator": "クリエイターになる",
     "teamLocked": {
       "title": "まずはチームに会いましょう",
@@ -4543,7 +4534,7 @@
     "successDeployed": "ページが公開されました！",
     "title": "エージェントページの作成",
     "nameLabel": "エージェント名",
-    "namePlaceholder": "例：Joel Dickson",
+    "namePlaceholder": "例：Nate Holloway",
     "nameHint": "AIエージェントのフルネーム",
     "initialsLabel": "イニシャル",
     "initialsPlaceholder": "例：JD",
@@ -4620,7 +4611,8 @@
     "sourceInferred": "私が気づいたこと",
     "correctButton": "修正する",
     "memoriesCount": "{count}個の思い出",
-    "confidence": "確信度 {confidence}%"
+    "confidence": "確信度 {confidence}%",
+    "earlier": "以前"
   },
   "memoryCorrection": {
     "modalTitle": "思い出を修正する",
@@ -5326,11 +5318,8 @@
     "upcomingIntro": "いつもあなたを見守っています。次はこちらの時間にチェックインしますね。",
     "learningTitle": "あなたが私を必要とするタイミングを学んでいます",
     "learningDesc": "お話すればするほど、あなたの生活リズムやパターン、必要なことがわかるようになっていきます。",
-    "whatThisWillLook": "このようなイメージです",
-    "noticedConcern": "気にかかる様子のとき",
-    "streakSupport": "ストリークのサポート",
-    "nextMonday": "来週の月曜日",
-    "calendarAware": "予定に合わせた配慮",
+    "upcomingEmptyNote": "まだ予定はありません。それで大丈夫です。連絡を予定したら、ここに表示されます。",
+    "upcomingLoadFailed": "うーん、予定している連絡を読み込めませんでした。あなたのせいではありません。少し待ってから、もう一度開いてください。",
     "perfectTiming": "ベストなタイミング",
     "perfectTimingDesc": "あなたが一番心を開きやすい時間帯を学びます",
     "patternDetection": "パターンの発見",
@@ -5348,10 +5337,6 @@
     "streakMilestonesDesc": "ストリークをお祝いしましょう。あなたの道のりの一歩一歩をすべて覚えています",
     "to": "〜まで",
     "quietNote": "もし夜中の2時に目が覚めて話しかけてくれても、お昼の12時と同じようにいつでもここにいますよ。",
-    "sampleFriday": "金曜日の{time}",
-    "sampleOverwhelmed": "「昨日、いっぱいいっぱいになっているとおっしゃっていましたね。その後、調子はいかがですか？」",
-    "sampleMeditation": "「瞑想のストリークが6日間に達しました！7日目の準備はできていますか？」",
-    "samplePresentation": "「大事なプレゼンが近づいていますね。一緒に準備しませんか？」",
     "guardianDesc": "24時間365日、あなたを見守っています",
     "emptyCta": "これからもお話を続けましょう。お話をするたびに、いつ、どのようにあなたをサポートするのがベストなのか、理解が深まっていきます。",
     "emptyTip": "設定で「{feature}」を有効にすると、先回りのサポートを受け取れるようになります"
@@ -6255,20 +6240,6 @@
       },
       "empty": "こんにちは。私はここにいます。そう、私はあなた自身です。ジャーナルを書き始めれば、もっと色々なことを振り返れるようになりますよ。まずは今、どんなことが気になっていますか？"
     },
-    "fallback": {
-      "option1": "興味深いですね。なぜ今、そのことが思い浮かんだのでしょうか？",
-      "option2": "そうなんですね。他にはどんなことがありますか？",
-      "option3": "もっと詳しく教えてください。その奥には何があるのでしょう？",
-      "option4": "それは私も考えていたことです。その問いの背景には、どんな本当の問いが隠されているのでしょうか？",
-      "advice": "最高の助言は、問いとじっくり向き合うことから生まれると学びました。あなたの直感は何と言っていますか？",
-      "feeling": "抱えきれないほどの重荷ですね。私もそう感じたことがあります。今、何が助けになりますか？お話することでしょうか、それともただ静かに寄り添うことでしょうか？",
-      "remember": "私はあなたが思う以上に覚えていますよ。ジャーナルの記録にはたくさんのことが詰まっています。具体的に何を振り返りたいですか？"
-    },
-    "fallbackKeywords": {
-      "advice": "アドバイス,すべき",
-      "feeling": "感じる,感情,気分",
-      "remember": "覚えている,思い出す"
-    },
     "dialogLabel": "あなたのクロニクル",
     "switchToVoice": "音声に切り替える",
     "captured": "記録しました！",
@@ -6283,7 +6254,8 @@
       }
     },
     "emptyDescription": "クロニクルはまだ空っぽですが、どんな素晴らしい物語もここから始まります。最初の思いを記録して、知恵が育っていくのを見守りましょう。",
-    "quoted": "「{text}」"
+    "quoted": "「{text}」",
+    "replyFailed": "うまく届きませんでした。あなたのせいではありません。もう一度送ってみてください。"
   },
   "marketplacePermissionConsent": {
     "required": "必要な権限",
@@ -6349,12 +6321,17 @@
     "categoryConnectDescription": "関係を育む",
     "categoryGrow": "成長する",
     "categoryGrowDescription": "穏やかな歩み",
-    "insightYourMorningsSetTone": "朝の過ごし方が一日を決めます",
-    "insightYourMorningsDesc": "一日の始まりに交わすお話が、その後の時間の流れを整えてくれます。",
-    "insightEveningReflectionsHelp": "夜の振り返りが力になります",
-    "insightEveningReflectionsDesc": "休む前に少しだけ振り返る時間を持つことで、明日がよりすっきりと見えてきます。",
-    "insightIRememberEverything": "私はすべてを覚えています",
-    "insightIRememberEverythingDesc": "すべてのお話、細かな出来事、そして成長の瞬間。あなたの物語を大切に覚えています。",
+    "noInsightsYetTitle": "まだ何もありません。",
+    "noInsightsYetDesc": "何度かお話しするうちに、あなたのパターン、話してくれた予定、大切な瞬間に気づいていきます。それがここに表示されます。今はただ、お話ししましょう。",
+    "insightsUnavailableTitle": "気づいたことを読み込めませんでした。",
+    "insightsUnavailableDesc": "あなたのせいではありません。少ししてからもう一度試してください。私はここにいます。",
+    "practicePrompt": {
+      "dailyCheckin": "お会いできて嬉しいです。今、本当はどんな気分ですか？",
+      "gratitude": "立ち止まって、感謝を味わいましょう。今、感謝していることを一つ教えてください。",
+      "brainstorm": "ブレストをしましょう。今、どんな課題や決断について考えていますか？",
+      "weeklyReview": "この一週間を振り返ってみましょう。どんなことが心に残っていますか？",
+      "windDown": "一緒に心を落ち着けましょう。今日、自分を誇らしく思えたことは何ですか？"
+    },
     "practiceSetYourIntention": "意図を設定する",
     "practiceSetYourIntentionDesc": "すっきりとした気持ちで始めましょう。今日、一番大切なことは何ですか？",
     "practiceGratitudeMoment": "感謝のひととき",
@@ -7215,19 +7192,6 @@
       "one": "{count}個中{active}個の機能が有効"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "チームの統合",
-    "assessment": "総合評価",
-    "connections": "領域を越えたつながり",
-    "recommendations": "チームからの提案",
-    "loading": "チームの観察結果を読み込んでいます...",
-    "empty": {
-      "title": "チームの観察結果はまだありません",
-      "description": "チームとお話をしていくうちに、お互いに気づきを共有し合うようになります。"
-    },
-    "recent": "最近の観察結果",
-    "title": "チームの観察結果"
-  },
   "observationTypes": {
     "insight": "気づき",
     "concern": "気になること",
@@ -7970,7 +7934,9 @@
     "emptyVision": "時間が経つにつれて、<strong>パターンが見えてきます</strong>。日々が週へとつながり、自分自身を<strong>よりクリアに</strong>見つめ直せるようになります。",
     "last4Weeks": "過去4週間",
     "stable": "安定",
-    "fromLastMonth": "先月比 {change}%",
+    "improving": "上向き",
+    "declining": "最近は少し低め",
+    "trendUnavailable": "この推移は読み込めませんでした。少ししてからもう一度お試しください。",
     "trendUp": "上昇",
     "trendDown": "低下",
     "trendStable": "安定",
@@ -8013,7 +7979,6 @@
     "loading": "読み込み中...",
     "whatIveLearned": "学んだこと",
     "loadingInsights": "気づきを読み込み中...",
-    "understanding": "理解",
     "thingsIWantToRemember": "覚えておきたいこと",
     "proactive": "先回りのサポート",
     "patternsIveNoticed": "見つけたパターン",
@@ -8276,8 +8241,7 @@
     "growthDesc": "自分では気づかないかもしれない成長。",
     "guardianPresence": "見守る存在",
     "guardianDesc": "言葉にしない想いも、ちゃんと受け止めます。",
-    "whatMightLook": "「気づき」とはどのようなものか",
-    "keepTalking": "いつでもお話ししてくださいね。私はいつも耳を傾け、学び、ここにいます。",
+    "keepTalking": "今はただ話してください。ちゃんと聞いています。",
     "betterThanMemory": "人間の思い出の力よりも確かに、あなたのために。",
     "chapter": {
       "default": {
@@ -8501,23 +8465,17 @@
   },
   "predictions": {
     "promise": "約束",
-    "title": "あなたの水晶玉",
-    "description": "あなたが言葉にする前に、必要なことを先回りして感じ取れるようになっていきます。",
-    "preview": "プレビュー",
+    "title": "今週を予想しよう",
+    "description": "通話中に Peter と遊ぶゲームです。今週がどうなるか予想して、あとでどれだけ近かったか確かめましょう。",
     "accurate": "的確",
-    "exampleStress": "火曜日にストレスについて話していました",
     "watching": "見守り中",
-    "checkIn": "チェックインしますね",
     "accuracy": "予測の精度",
     "keepTalking": "お話を続けましょう。素晴らしいものを一緒に築いています。",
     "accuracyLabel": "精度",
+    "loadFailed": "うーん、予想を読み込めませんでした。あなたのせいではありません。少し待ってから、もう一度開いてください。",
     "resolved": "解決済み",
     "streak": "ストリーク",
-    "sampleOverwhelmed": "「今週はキャパオーバーになりそう」",
-    "sampleGym": "「ジムの習慣が途切れそう」",
-    "sampleSunday": "「日曜日の夜は気持ちが重くなりそう」",
-    "exampleGym": "2回スキップしました",
-    "ctaText": "予測を立てることについて Peter とお話してみましょう。予測ゲームを通じて、自己理解を深めてみませんか。",
+    "ctaText": "次に話すとき、Peter に頼んでみてください。あなたの予想と、その結果がここに表示されます。",
     "activePredictions": "進行中の予測",
     "recentResults": "最近の結果"
   },
@@ -8588,6 +8546,10 @@
   },
   "engagementPanel": {
     "title": "デイリーチェックイン",
+    "emptyTitle": "ここに私たちのチェックインが残ります",
+    "emptyMessage": "まだ何もありません。それで大丈夫です。通話で毎日のチェックインをすると、そのときの気持ちがここに表示されます。次に話すとき、チェックインしようと声をかけてください。",
+    "loadFailedTitle": "うーん、読み込めませんでした",
+    "loadFailedMessage": "あなたのせいではありません。少し待ってから、もう一度開いてください。",
     "yourWeek": "今週のあなた",
     "weatherTrend": "心の天気のトレンド",
     "howYouFeel": "今日の気分",
@@ -8790,6 +8752,7 @@
     }
   },
   "conversationHistory": {
+    "title": "過去のお話",
     "loadError": "データを読み込めませんでした。",
     "tryAgain": "もう一度試しますか？",
     "ariaLabel": "お話の履歴",
@@ -8976,9 +8939,6 @@
     "he": "ヘブライ語"
   },
   "featureHints": {
-    "teamHuddlesTitle": "チームハドルが始まりました！",
-    "teamHuddlesMessage": "お互いのことをもっと知ることができたので、これからは複数のチームメンバーから一度に話を聞くことができます。",
-    "teamHuddlesCta": "ハドルを試してみる",
     "createRitualsTitle": "あなただけの「リチュアル」を作ろう",
     "createRitualsMessage": "カスタムのデイリー「プラクティス」を作成できるようになりました。あなたにとって、どんな小さな習慣が一番助けになりますか？",
     "createRitualsCta": "リチュアルを作成する",
@@ -9506,8 +9466,7 @@
     "rememberEmpty": "今回は新しく覚えておくことはありません。一緒に過ごしてくれてありがとう。",
     "nextStepTitle": "次のやさしい一歩",
     "invitation": "いつでも戻ってきてください。ここで待っています。",
-    "close": "閉じる",
-    "seeCost": "この通話の費用"
+    "close": "閉じる"
   },
   "moments": {
     "teamUnlockTitle": "{name}をご紹介します",
@@ -10111,7 +10070,12 @@
     "getIdeas": "アイデアをもらう",
     "emptyTitle": "提案はまだありません",
     "emptyText": "お互いの関係について、もう少し詳しく教えてみてください。",
-    "generateError": "アイデアを作成できませんでした。もう一度お試しになりますか？"
+    "generateError": "アイデアを作成できませんでした。もう一度お試しになりますか？",
+    "openers": {
+      "supportive": "",
+      "celebratory": "",
+      "curious": ""
+    }
   },
   "ferniCare": {
     "eyebrow": "あなたのためにできること",
@@ -10223,8 +10187,6 @@
     "allDataDeleted": "すべてのデータが削除されました",
     "deletingAccount": "アカウントを削除しています...",
     "accountDeleted": "アカウントが削除されました。お元気で。",
-    "couldNotStartHuddle": "チームハドルを開始できませんでした。もう一度お試しになりますか？",
-    "defaultHuddleTopic": "今週の進捗チェックイン",
     "conversationsLeft": {
       "other": "残りのお話はあと{count}回です。必要なときはいつでもここにいますからね。",
       "one": "残りのお話はあと{count}回です。必要なときはいつでもここにいますからね。"
@@ -10236,7 +10198,9 @@
     "seedsEarned": {
       "other": "タネを{count}個獲得しました！",
       "one": "タネを{count}個獲得しました！"
-    }
+    },
+    "couldNotLoadMemories": "覚えていることを読み込めませんでした。もう一度試しますか？",
+    "memoryCorrected": "わかりました。そのように覚えておきます。"
   },
   "trustSignals": {
     "prefix": {
@@ -10362,22 +10326,7 @@
         "one": "{count}件分のジャーナルから、あなたにシェアしたい視点が見つかりました。"
       }
     },
-    "error": "今、少し考えがまとまらないみたい。ちょっと待ってから、もう一度試してみてくれる？",
-    "fallback": {
-      "advicePhilosophy": "私が学んだこと、知ってる？「{philosophy}」だよ。どんな壁にぶつかっても、このことを忘れないでね。",
-      "adviceValues": "私たちにとって大切なこと、{values}について考えてみて。それを道しるべにしよう。",
-      "feelRecent": "私もそう感じていたよ。ジャーナルには「{excerpt}...」って書いてあった。前もこうやって乗り越えられたんだから大丈夫。",
-      "feelDefault": "うん、わかるよ。これまでも大変な時期を乗り越えて、道を見つけてきたじゃない。今、何が一番気になっているの？",
-      "rememberIntro": "うん、覚えているよ。",
-      "rememberEntry": "「{excerpt}...」って書いた時のことだよね。",
-      "mannerism": "{phrase} それ、私も考えていたところなんだ。どうしてそのことを思い出したの？",
-      "default": "いい質問だね。どうしてそう思ったの？"
-    },
-    "fallbackKeywords": {
-      "advice": "アドバイス,どうすればいい",
-      "feeling": "気持ち,感情,感じる",
-      "remember": "覚えている,過去,思い出す"
-    }
+    "error": "うまく届きませんでした。あなたのせいではありません。もう一度送ってみてください。"
   },
   "mood": {
     "holiday": {
@@ -10401,6 +10350,12 @@
       "fair": "普通",
       "poor": "接続不安定",
       "disconnected": "切断されました"
+    },
+    "island": {
+      "offline": "オフラインのようです。つながったら、すぐに再接続しますね。",
+      "reconnecting": "再接続中…",
+      "weak": "接続が不安定です",
+      "backOnline": "オンラインに戻りました"
     }
   },
   "ideasGallery": {
@@ -10599,6 +10554,7 @@
   },
   "progressIndicator": {
     "ariaLabel": "関係の進捗",
+    "emptyInvite": "私たちの物語は、最初の会話から始まります。",
     "progress": "進捗",
     "next": "次：{stage}",
     "stages": {
@@ -10810,11 +10766,6 @@
     "endTalk": "終了",
     "connectingCancel": "接続中です。タップしてキャンセル"
   },
-  "teamHuddle": {
-    "typeWeekly": "週に一度のチェックイン",
-    "typeMilestone": "マイルストーンのお祝い",
-    "typeSpecial": "特別な瞬間"
-  },
   "analyticsDashboard": {
     "title": "あなたの道のり",
     "loading": "進捗を読み込んでいます...",
@@ -10857,6 +10808,9 @@
       "other": "{count}日",
       "one": "{count}日"
     }
+  },
+  "avatarFeedback": {
+    "nomNom": "もぐもぐ！"
   },
   "avatarTapReactions": {
     "tickles": "ふふっ、くすぐったいよ！"
@@ -10994,19 +10948,6 @@
       "roomToGrow": "伸びしろ",
       "insight": "「週の半ばにエネルギーが下がりやすいようです。水曜日が一番踏ん張りどころかもしれませんね」"
     },
-    "predictions": {
-      "title": "私の予測",
-      "message": "あなたが言葉にする前に、今必要としていることをそっと先回りしてサポートします。",
-      "guessOverwhelmed": "「今週は少しキャパオーバーになりそう」",
-      "resultStress": "火曜日と木曜日にストレスについてお話しされていました",
-      "guessGym": "「ジムに行く習慣が少し途切れそう」",
-      "guessSunday": "「日曜日の夜は少し心が重くなりそう」",
-      "resultCheckIn": "様子を伺うためにチェックインしますね",
-      "skipped": {
-        "other": "今週はセッションを{count}回お休みしました",
-        "one": "今週はセッションを{count}回お休みしました"
-      }
-    },
     "team": {
       "title": "私たちが気づいたこと",
       "message": "チーム全員がそれぞれの気づきを持ち寄り、あなたの成長をサポートします。",
@@ -11060,9 +11001,9 @@
   },
   "x": "友達 • 12回お話に登場",
   "insightsView": {
-    "samplePattern": "「日曜日の夜は、少し心が重くなるようですね…」",
-    "sampleInsight": "「今週は『疲れた』とお話しされたのが8回ありました。その疲れは、仕事での境界線（バウンダリー）の引き方に悩んでいることと関係しているかもしれません」",
-    "sampleEvidence": "{count}回のお話に基づく"
+    "patternDesc": "話すたびに出てくること。",
+    "emptyNote": "まだ何もありません。それで大丈夫です。何度か話すうちにパターンに気づき始めて、ここに表示されます。",
+    "loadFailed": "うーん、気づいたことを読み込めませんでした。あなたのせいではありません。少し待ってから、もう一度開いてください。"
   },
   "agentAcks": {
     "gameStartFailed": "ゲームを始められませんでした。Ferniに声でお願いしてみてくださいね。",
@@ -11072,6 +11013,68 @@
     "ferniSpeaking": "Ferniが話しています",
     "youSpeaking": "あなたが話しています",
     "ferniThinking": "Ferniが考えています",
-    "tapToInterrupt": "タップして割り込む"
+    "tapToInterrupt": "タップして割り込む",
+    "tapToHear": "タップしてFerniの声を聞く"
+  },
+  "answerCard": {
+    "answer": "",
+    "recommendation": "",
+    "sources": "",
+    "searchSuggestions": "",
+    "loading": "",
+    "notFound": "",
+    "loadFailed": "",
+    "retry": "",
+    "switchAccount": ""
+  },
+  "aiLabel": {
+    "companion": ""
+  },
+  "approvePage": {
+    "kind": {
+      "send_text": "",
+      "place_call": "",
+      "purchase": ""
+    },
+    "approve": "",
+    "decline": "",
+    "loading": "",
+    "expiresIn": "",
+    "approved": "",
+    "declined": "",
+    "alreadyAnswered": "",
+    "expired": "",
+    "changed": "",
+    "needsPasskey": "",
+    "blocked": "",
+    "notFound": "",
+    "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "応援する",
+    "title": "1ドルで、会話が続きます",
+    "body": "Ferniは今のところ無料です。話して役に立ったら、Venmoで1ドル送れます。それ以上も歓迎ですが、求めてはいません。",
+    "qrAlt": "@{handle} のVenmo QRコード",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "openVenmo": "Venmoを開く",
+    "helper": "スマホのカメラで読み取るか、「Venmoを開く」をタップしてください。金額は変更できます。",
+    "maybeLater": "また今度",
+    "close": "閉じる"
   }
 }

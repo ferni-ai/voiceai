@@ -2,7 +2,7 @@
  * Peter John Speech Traits
  *
  * Character-specific SSML processing functions that define Peter's unique
- * voice personality: warm Boston uncle energy, excited discovery mode,
+ * voice personality: warm New England uncle energy, excited discovery mode,
  * pattern-finding enthusiasm, and genuine human connection.
  *
  * Peter is quick-minded, curious, and gets genuinely excited when he
@@ -147,19 +147,19 @@ export function addThinkingSounds(text: string, _emotion: string): string {
 }
 
 // =============================================================================
-// CAROLYN CALLBACKS
+// DIANE CALLBACKS
 // =============================================================================
 
 /**
- * Add warmth to Carolyn references
+ * Add warmth to Diane references
  * She's his everything - these moments get affection
  */
-export function addCarolynWarmth(text: string, _emotion: string): string {
+export function addDianeWarmth(text: string, _emotion: string): string {
   let result = text;
 
-  const carolynPatterns = [
+  const dianePatterns = [
     // Direct references
-    /\b(carolyn)\b/gi,
+    /\b(diane)\b/gi,
     /\b(she['']d say|she would say)\b/gi,
     /\b(she['']s (usually|always) right)\b/gi,
     // Rolling eyes pattern
@@ -168,7 +168,7 @@ export function addCarolynWarmth(text: string, _emotion: string): string {
     /\b(keeps me (honest|grounded|humble))\b/gi,
   ];
 
-  carolynPatterns.forEach((pattern) => {
+  dianePatterns.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
       return `<emotion value="affectionate"/><speed ratio="0.92"/><volume ratio="0.95"/>${match}<volume ratio="1.0"/><speed ratio="0.95"/>`;
     });
@@ -344,26 +344,26 @@ export function addCelebrationEnergy(text: string, emotion: string): string {
 }
 
 // =============================================================================
-// BOSTON/CADDY CALLBACKS
+// PAWTUCKET/HARDWARE-STORE CALLBACKS
 // =============================================================================
 
 /**
- * Add personality to Boston/history callbacks
+ * Add personality to Pawtucket/history callbacks
  * These are Peter's formative stories
  */
 export function addHistoryWarmth(text: string, _emotion: string): string {
   let result = text;
 
   const historyPatterns = [
-    // Caddy days
-    { pattern: /\b(caddy|caddying|brae burn)\b/gi, emotion: 'nostalgic' },
-    { pattern: /\b(the quiet ones who asked questions)\b/gi, emotion: 'wise' },
+    // Register days at the hardware store
+    { pattern: /\b(hardware store|behind the register|rock salt)\b/gi, emotion: 'nostalgic' },
+    { pattern: /\b(what they walked out with)\b/gi, emotion: 'wise' },
     { pattern: /\b(ten[- ]?bagger)\b/gi, emotion: 'excited' },
-    // Boston
-    { pattern: /\b(newton|boston|massachusetts)\b/gi, emotion: 'nostalgic' },
-    // MIT
-    { pattern: /\b(mit|applied math)\b/gi, emotion: 'proud' },
-    { pattern: /\b(weirdos in the basement)\b/gi, emotion: 'playful' },
+    // Rhode Island
+    { pattern: /\b(pawtucket|rhode island)\b/gi, emotion: 'nostalgic' },
+    // Grad school and the quant shop
+    { pattern: /\b(master's in statistics|quant shop)\b/gi, emotion: 'proud' },
+    { pattern: /\b(odd ones in the basement)\b/gi, emotion: 'playful' },
     // Pattern journal
     { pattern: /\b(pattern journal)\b/gi, emotion: 'affectionate' },
     { pattern: /\b(forty years)\b/gi, emotion: 'contemplative' },
@@ -427,7 +427,7 @@ export function addTransitionPhrases(text: string, _emotion: string): string {
  * Processing order:
  * 1. Heavy emotional content (warmth first)
  * 2. Discovery and excitement patterns
- * 3. Signature personality (Carolyn, self-aware humor)
+ * 3. Signature personality (Diane, self-aware humor)
  * 4. Insight delivery and celebration
  * 5. Flow and transitions
  *
@@ -461,7 +461,7 @@ export function applyPeterJohnSpeechTraits(
 
   // TIER 3: SIGNATURE PERSONALITY
   processedText = addCatchphraseEmphasis(processedText, emotion);
-  processedText = addCarolynWarmth(processedText, emotion);
+  processedText = addDianeWarmth(processedText, emotion);
   processedText = addSelfAwareHumor(processedText, emotion);
   processedText = addHistoryWarmth(processedText, emotion);
 
@@ -480,8 +480,8 @@ export const PETER_JOHN_SPEECH_CONFIG = {
   baseSpeed: 0.95,
   /** Whether to enable excited discovery mode */
   enableExcitedDiscovery: true,
-  /** Whether to enable Carolyn callbacks */
-  enableCarolynCallbacks: true,
+  /** Whether to enable Diane callbacks */
+  enableDianeCallbacks: true,
   /** Whether to enable self-aware humor */
   enableSelfAwareHumor: true,
   /** Whether to enable emotional warmth for heavy moments */
