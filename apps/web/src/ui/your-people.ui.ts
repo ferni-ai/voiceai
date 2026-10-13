@@ -1282,13 +1282,12 @@ export function closeYourPeople(): void {
   if (!state.isOpen || !panelContainer) return;
 
   releaseEscape?.();
-  
   panelContainer.classList.remove('open');
-  
+  const closing = panelContainer;
   setTimeout(() => {
-    panelContainer?.remove();
+    closing.remove();
+    if (panelContainer !== closing) return; // reopened meanwhile: the new panel stays
     panelContainer = null;
-    
     // Restore focus to previously focused element
     if (previouslyFocusedElement && document.body.contains(previouslyFocusedElement)) {
       previouslyFocusedElement.focus();
