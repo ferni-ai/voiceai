@@ -86,7 +86,12 @@
     "captionsToggle": "Captions",
     "showAll": "Show the conversation so far",
     "sheetTitle": "The conversation so far",
-    "close": "Close"
+    "close": "Close",
+    "momentRemember": "I'll remember:",
+    "momentRememberShort": "Noted:",
+    "momentNoticed": "I noticed:",
+    "momentNoticedShort": "Noticed:",
+    "momentWin": "Nice:"
   },
   "placeholders": {
     "customAmount": "Custom amount",

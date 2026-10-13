@@ -18,6 +18,7 @@ import {
   type CaptionEntry,
 } from '@/ui/captions/live-captions.js';
 import { captionsOn, mountCaptionsToggle } from '@/ui/captions/captions-toggle.js';
+import { continueAfterLabel, fitOneLine, renderChip } from '@/ui/captions/moment-chips.js';
 import { PREFERENCE_KEYS } from '@/config/storage-keys.js';
 import { CAPTIONS_CALL_CLASS } from '@/ui/captions/live-captions.styles.js';
 
@@ -85,9 +86,9 @@ describe('currentTurn', () => {
     final: true,
   });
 
-  it("returns the newest speaker's run with notes inside it", () => {
-    const entries = [e('agent', 'a'), e('user', 'b'), e('agent', 'c'), e('note', 'n')];
-    expect(currentTurn(entries).map((x) => x.text)).toEqual(['c', 'n']);
+  it("returns the newest speaker's run", () => {
+    const entries = [e('agent', 'a'), e('user', 'b'), e('agent', 'c'), e('agent', 'd')];
+    expect(currentTurn(entries).map((x) => x.text)).toEqual(['c', 'd']);
   });
 
   it('caps a long turn at the last three utterances', () => {
@@ -180,6 +181,79 @@ describe('captions toggle', () => {
   });
 });
 
+describe('moment chip text', () => {
+  it('lower-cases a sentence starter so it reads on from the label, but never a name', () => {
+    expect(continueAfterLabel('You started martial arts')).toBe('you started martial arts');
+    expect(continueAfterLabel("You've been sleeping better")).toBe("you've been sleeping better");
+    expect(continueAfterLabel('Your sister called')).toBe('your sister called');
+    expect(continueAfterLabel('My favourite part')).toBe('my favourite part');
+    expect(continueAfterLabel('Maya starts Monday')).toBe('Maya starts Monday');
+    expect(continueAfterLabel('Youngstown trip')).toBe('Youngstown trip');
+    expect(continueAfterLabel('I went running')).toBe('I went running');
+  });
+
+  const chipAt = (width: number): HTMLLIElement => {
+    const chip = renderChip({
+      key: 'k',
+      label: "I'll remember:",
+      shortLabel: 'Noted:',
+      text: 'you started martial arts on Tuesdays',
+    });
+    // Fake layout: every character is 10px wide.
+    Object.defineProperty(chip, 'scrollWidth', { get: () => (chip.textContent ?? '').length * 10 });
+    fitOneLine(chip, width);
+    return chip;
+  };
+  const parts = (chip: HTMLElement): [string | undefined, string | undefined] => [
+    chip.querySelector('.ferni-moment__label')?.textContent ?? undefined,
+    chip.querySelector('.ferni-moment__text')?.textContent ?? undefined,
+  ];
+
+  it('gives way label first: the short label keeps the whole fact', () => {
+    const chip = chipAt(430); // full 500px, "Noted:" 420px
+    expect(parts(chip)).toEqual(['Noted:', 'you started martial arts on Tuesdays']);
+    expect(chip.getAttribute('aria-label')).toBe(
+      "I'll remember: you started martial arts on Tuesdays"
+    );
+  });
+
+  it('then drops the label (dot stays) before cutting any of the fact', () => {
+    const chip = chipAt(400); // "Noted:" still 420px; no label 360px
+    expect(parts(chip)).toEqual([undefined, 'you started martial arts on Tuesdays']);
+    expect(chip.getAttribute('aria-label')).toBe(
+      "I'll remember: you started martial arts on Tuesdays"
+    );
+  });
+
+  it('keeps a chip to one line by dropping whole words, with the full text as its name', () => {
+    const chip = renderChip({
+      key: 'k',
+      label: "I'll remember:",
+      text: 'you started martial arts on Tuesdays',
+    });
+    // Fake layout: every character is 10px wide.
+    Object.defineProperty(chip, 'scrollWidth', { get: () => (chip.textContent ?? '').length * 10 });
+    fitOneLine(chip, 300);
+    const body = chip.querySelector('.ferni-moment__text')?.textContent ?? '';
+    expect(body.endsWith('…')).toBe(true);
+    expect((chip.textContent ?? '').length * 10).toBeLessThanOrEqual(300);
+    expect('you started martial arts on Tuesdays'.startsWith(body.slice(0, -1))).toBe(true);
+    expect(body).not.toMatch(/\s…$/);
+    expect(body).not.toMatch(/\b(on|at|the|and)…$/);
+    expect(chip.getAttribute('aria-label')).toBe(
+      "I'll remember: you started martial arts on Tuesdays"
+    );
+  });
+
+  it('leaves a chip alone when it already fits', () => {
+    const chip = renderChip({ key: 'k', text: 'Reminder set for 7:30' });
+    Object.defineProperty(chip, 'scrollWidth', { get: () => 100 });
+    fitOneLine(chip, 300);
+    expect(chip.textContent).toBe('Reminder set for 7:30');
+    expect(chip.hasAttribute('aria-label')).toBe(false);
+  });
+});
+
 describe('live captions region', () => {
   let enabled = true;
   const captions = initLiveCaptions(() => enabled);
@@ -238,16 +312,66 @@ describe('live captions region', () => {
     expect(lines()).toHaveLength(0);
   });
 
-  it('shows in-call feedback as a quiet note in the current turn', () => {
-    say('agent', 'Saving that for you', true);
+  it('shows what Ferni is holding on to as a chip, even with captions off', () => {
+    vi.useFakeTimers();
+    enabled = false;
+    window.dispatchEvent(
+      new CustomEvent('ferni:backend-trust-signal', {
+        detail: { type: 'callback', title: 'Remember when', message: 'Martial arts on Tuesdays' },
+      })
+    );
     window.dispatchEvent(
       new CustomEvent('ferni:inline-feedback', {
         detail: { message: 'Reminder set for 7:30', tone: 'success', key: 'reminder' },
       })
     );
-    expect(document.querySelector('.ferni-captions .ferni-caption-note')?.textContent).toBe(
-      'Reminder set for 7:30'
+    const chips = (): string[] =>
+      [...document.querySelectorAll('.ferni-captions .ferni-moment')].map(
+        (c) => c.textContent ?? ''
+      );
+    // One moment at a time: the newest.
+    expect(chips()).toEqual(['Reminder set for 7:30']);
+    const region = document.querySelector('.ferni-captions');
+    expect(region?.classList.contains('ferni-captions--visible')).toBe(true);
+    expect(region?.classList.contains('ferni-captions--words-off')).toBe(true);
+    // An update to the same moment replaces it.
+    window.dispatchEvent(
+      new CustomEvent('ferni:inline-feedback', {
+        detail: { message: 'Reminder moved to 8:00', key: 'reminder' },
+      })
     );
+    expect(chips()).toEqual(['Reminder moved to 8:00']);
+    // Chips settle away, and the region goes with them.
+    vi.advanceTimersByTime(15_000);
+    expect(chips()).toEqual([]);
+    expect(region?.classList.contains('ferni-captions--visible')).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it('speaks a memory callback in Ferni\'s voice: "I\'ll remember: you started…"', () => {
+    window.dispatchEvent(
+      new CustomEvent('ferni:backend-trust-signal', {
+        detail: {
+          type: 'callback',
+          title: 'Remember when',
+          message: 'You started martial arts on Tuesdays',
+        },
+      })
+    );
+    const chip = document.querySelector('.ferni-captions .ferni-moment');
+    expect(chip?.querySelector('.ferni-moment__label')?.textContent).toBe("I'll remember:");
+    expect(chip?.querySelector('.ferni-moment__text')?.textContent).toBe(
+      'you started martial arts on Tuesdays'
+    );
+  });
+
+  it('keeps private trust signals (reading between the lines) off screen', () => {
+    window.dispatchEvent(
+      new CustomEvent('ferni:backend-trust-signal', {
+        detail: { type: 'reading_lines', title: 'I sense', message: 'You sound tired' },
+      })
+    );
+    expect(document.querySelectorAll('.ferni-captions .ferni-moment')).toHaveLength(0);
   });
 
   it('moves the persona picker aside for the whole call while captions are on', () => {
