@@ -26,6 +26,7 @@ import {
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { sessionIsVerifiedOwner } from '../voice-agent-entry/caller-recognition.js';
 import { createTurnKeeper } from './turn-keeper.js';
+import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
 import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
@@ -206,6 +207,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
 /** Whether the person on the line is the account owner, whose yes may confirm a send. */
 export function speakerIsAccountOwner(sessionId: string): boolean {
+  // ROOM_GUESTS=on: with a guest on the same mic, the yes may not be the owner's.
+  if (roomGuestsEnabled() && hasGuests(sessionId)) return false;
   return !outboundPartiesFor(sessionId) && sessionIsVerifiedOwner(sessionId);
 }
 
