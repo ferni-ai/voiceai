@@ -7,7 +7,6 @@
 
 import type { EngagementData, RitualStreakData, EmotionalWeatherData } from '../ui/engagement.ui.js';
 import type { PredictionData } from './engagement.service.js';
-import type { TeamHuddleData, TeamHuddleParticipant } from '../ui/team-huddle.ui.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('DemoData');
@@ -206,124 +205,6 @@ export function calculateDemoPredictionAccuracy(): number | null {
 }
 
 // ============================================================================
-// DEMO TEAM HUDDLES
-// ============================================================================
-
-// Persona colors from design system - use CSS variable references
-const PERSONA_COLORS = {
-  'ferni': 'var(--persona-ferni-primary, #4a6741)',
-  'maya-santos': 'var(--persona-maya-primary, #a67a6a)',
-  'peter-john': 'var(--persona-peter-primary, #3a6b73)',
-  'alex-chen': 'var(--persona-alex-primary, #5a6b8a)',
-  'jordan-taylor': 'var(--persona-jordan-primary, #c4856a)',
-  'nayan-patel': 'var(--persona-nayan-primary, #b8956a)',
-} as const satisfies Record<string, string>;
-
-const DEMO_TEAM_HUDDLE_PARTICIPANTS: TeamHuddleParticipant[] = [
-  {
-    personaId: 'ferni',
-    name: 'Ferni',
-    initials: 'F',
-    comment: "I've watched you grow. The person I'm talking to now has more confidence than a month ago.",
-    avatarColor: PERSONA_COLORS['ferni'],
-  },
-  {
-    personaId: 'alex-chen',
-    name: 'Alex Chen',
-    initials: 'AC',
-    comment: 'Your calendar discipline has improved. I see fewer scattered meetings.',
-    avatarColor: PERSONA_COLORS['alex-chen'],
-  },
-  {
-    personaId: 'maya-santos',
-    name: 'Maya Santos',
-    initials: 'MS',
-    comment: 'Compound and Interest are proud. Your habit consistency is up this week.',
-    avatarColor: PERSONA_COLORS['maya-santos'],
-  },
-];
-
-export const DEMO_TEAM_HUDDLES: TeamHuddleData[] = [
-  {
-    id: 'demo-huddle-weekly',
-    title: 'Weekly Team Check-in',
-    intro: "The team wanted to share something with you. Here's what they're noticing:",
-    participants: DEMO_TEAM_HUDDLE_PARTICIPANTS,
-    outro: "That's what they're seeing. What stands out to you?",
-    scheduledAt: new Date().toISOString(),
-    type: 'weekly',
-  },
-  {
-    id: 'demo-huddle-milestone',
-    title: 'Milestone Celebration',
-    intro: "We noticed something worth celebrating. Everyone wanted to acknowledge your progress:",
-    participants: [
-      {
-        personaId: 'ferni',
-        name: 'Ferni',
-        initials: 'F',
-        comment: "21 days of showing up. That's not luck—that's character.",
-        avatarColor: PERSONA_COLORS['ferni'],
-      },
-      {
-        personaId: 'jordan-taylor',
-        name: 'Jordan Taylor',
-        initials: 'JT',
-        comment: "Looking at your life arc—you're in a growth chapter. Lean into it.",
-        avatarColor: PERSONA_COLORS['jordan-taylor'],
-      },
-      {
-        personaId: 'peter-john',
-        name: 'Peter John',
-        initials: 'PJ',
-        comment: "The data tells a story: your energy correlates with your morning routine quality.",
-        avatarColor: PERSONA_COLORS['peter-john'],
-      },
-    ],
-    outro: "Milestones matter. Take a moment to acknowledge how far you've come.",
-    scheduledAt: new Date().toISOString(),
-    type: 'milestone',
-  },
-];
-
-/**
- * Get a demo team huddle (weekly check-in by default)
- */
-export function getDemoTeamHuddle(type: 'weekly' | 'milestone' | 'special' = 'weekly'): TeamHuddleData {
-  const firstHuddle = DEMO_TEAM_HUDDLES[0];
-  const huddle = DEMO_TEAM_HUDDLES.find(h => h.type === type) ?? firstHuddle;
-  // Default fallback in case array is empty (shouldn't happen with our data)
-  const baseHuddle = huddle ?? {
-    id: 'default',
-    title: 'Team Check-in',
-    intro: 'Your team wanted to share some thoughts:',
-    participants: [],
-    outro: "That's what they're seeing.",
-    type: 'weekly' as const,
-    scheduledAt: new Date().toISOString(),
-  };
-  return {
-    id: baseHuddle.id,
-    title: baseHuddle.title,
-    intro: baseHuddle.intro,
-    participants: baseHuddle.participants,
-    outro: baseHuddle.outro,
-    type: baseHuddle.type,
-    scheduledAt: new Date().toISOString(),
-  };
-}
-
-/**
- * Get all demo team huddles
- */
-export function getDemoTeamHuddles(): TeamHuddleData[] {
-  return DEMO_TEAM_HUDDLES.map(h => ({
-    ...h,
-    scheduledAt: new Date().toISOString(),
-  }));
-}
-
-// ============================================================================
 // DEMO DATA LOADER
 // ============================================================================
 
@@ -356,8 +237,6 @@ export default {
   getDemoEngagementData,
   getDemoPredictions,
   calculateDemoPredictionAccuracy,
-  getDemoTeamHuddle,
-  getDemoTeamHuddles,
   enableDemoData,
   disableDemoData,
   isDemoDataEnabled,

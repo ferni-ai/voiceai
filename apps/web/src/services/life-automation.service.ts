@@ -147,6 +147,16 @@ export interface QueueStats {
   throughput: number;
 }
 
+/** listWorkflows failed: the HTTP status (0 when there was no answer) */
+export class WorkflowsLoadError extends Error {
+  constructor(
+    readonly status: number,
+    readonly offline: boolean
+  ) {
+    super(`Couldn't list workflows (${status})`);
+  }
+}
+
 // ============================================================================
 // SERVICE CLASS
 // ============================================================================
@@ -163,12 +173,15 @@ class LifeAutomationService {
    */
   async listWorkflows(userId: string): Promise<Workflow[]> {
     const response = await apiGet<{ workflows: Workflow[] }>(
-      `${this.baseUrl}/workflows?userId=${encodeURIComponent(userId)}`
+      `${this.baseUrl}/workflows?userId=${encodeURIComponent(userId)}`,
+      undefined,
+      { maxRetries: 1, timeout: 4000 } // the panel's spinner ends inside 10 s
     );
 
-    if (!response.ok || !response.data) {
-      log.error('Failed to list workflows');
-      return [];
+    if (!response.ok || !Array.isArray(response.data?.workflows)) {
+      log.error('Failed to list workflows', { status: response.status, error: response.error });
+      // A failure is not "no routines": the panel shows it as an error, with Try again
+      throw new WorkflowsLoadError(response.status, response.offline === true);
     }
 
     return response.data.workflows;

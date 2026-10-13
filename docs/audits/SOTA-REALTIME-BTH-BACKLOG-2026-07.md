@@ -52,7 +52,9 @@ Earlier ~7–10s was **session entry work after `startCall`** (profile load, dia
 - `cloudbuild-async.yaml`: escaped `$$SERVICE_URL`; custom `_IMAGE_TAG` for manual submit
 - `ferni-async` Cloud Run healthy: `https://ferni-async-bmopaivmsq-uc.a.run.app/health`
 - Daily outreach packaged via `apps/async/esbuild.config.js` → `dist/daily-outreach/`
-- Release gate: `node scripts/ops/sota-release-gate.mjs`
+- Release gate: `VOICE_EVAL_RESULT=pooled.json VOICE_EVAL_RECALL=recall.json node scripts/ops/sota-release-gate.mjs`
+  (since 2026-10 the latency, barge-in and memory checks read voice-eval output, not the retired VM's
+  `/api/observability`; see `scripts/ops/voice-eval-metrics.mjs`)
 
 ## Parked from prior audits
 

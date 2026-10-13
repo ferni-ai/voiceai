@@ -307,11 +307,6 @@ function setupTeamListeners(): void {
     void director.teamUnlock(personaId, personaName);
   }) as EventListener);
   
-  // Team huddle
-  document.addEventListener('ferni:team-huddle-start', () => {
-    void playBeat('team_huddle_start');
-  });
-  
   log.debug('Team listeners set up');
 }
 

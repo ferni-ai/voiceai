@@ -90,7 +90,7 @@ export const PERSONA_MEMORY_CONFIGS: Record<string, MemoryToolConfig> = {
   },
   'nayan-patel': {
     personaId: 'nayan-patel',
-    displayName: 'Jack Bogle',
+    displayName: 'Nayan',
     emoji: '📊',
     memoryTypes: ['fund', 'philosophy'],
   },
