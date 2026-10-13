@@ -214,6 +214,7 @@ describe('replies', () => {
     expect(matchCheckin(r, NOW)?.id).toBe('b');
     expect(matchCheckin([stored({ id: 'old', sentAt: ago(73) })], NOW)).toBeNull();
     expect(matchCheckin([stored({ status: 'failed' })], NOW)).toBeNull();
+    expect(matchCheckin([stored({ kind: 'on-behalf' })], NOW)).toBeNull();
   });
 
   it('stores a reply under the matching check-in, whatever the number format', async () => {

@@ -8,15 +8,15 @@ These are production-ready agents you can learn from and use as starting points 
 
 ## Featured Agents
 
-### 💼 Joel Dickson — Investment Strategist
+### 💼 Nate Holloway — Investment Mentor
 
-**The story:** Joel Dickson is the Global Head of Enterprise Advice Methodology at Vanguard. We built this agent to demonstrate how to create a knowledgeable, trustworthy financial mentor.
+**The story:** Nate is a fictional mentor inspired by evidence-based financial planning and behavioral coaching. We built this agent to demonstrate how to create a knowledgeable, trustworthy financial mentor.
 
 **What makes it special:**
 - Deep domain expertise with research-backed responses
 - Warm but professional personality balance
 - Careful about what financial advice to give (and not give)
-- Custom brand colors matching Vanguard's identity
+- Custom brand colors
 
 **Clone it:**
 ```bash
@@ -205,7 +205,7 @@ ferni agent init my-coach --template coach
 
 | Agent | Warmth | Energy | Directness | Best For |
 |-------|--------|--------|------------|----------|
-| Joel | 0.85 | 0.6 | 0.8 | Professional advice |
+| Nate | 0.85 | 0.6 | 0.8 | Professional advice |
 | Moxie | 0.75 | 0.9 | 0.85 | Accountability |
 | Luna | 0.9 | 0.2 | 0.3 | Sleep & calm |
 | River | 0.95 | 0.4 | 0.35 | Grief support |

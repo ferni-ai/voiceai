@@ -35,9 +35,10 @@ import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-n
 import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
-import { ferniStateNote } from './ferni-state.js';
+import { ferniStateTurn } from './ferni-state.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
+import { roomGuestsNote } from './room-guests.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
@@ -98,6 +99,9 @@ export function withTurnReminder(
   const notes = formatNotes((director?.current() ?? []).filter(keep));
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
+  // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
+  // It also decides whether a story of his own may ride this reply.
+  const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   // The style goes last, nearest the reply: the per-turn shape is followed
   // best there (turn-shape.ts), and live it otherwise sat behind the notes.
   const reminder = [
@@ -109,20 +113,26 @@ export function withTurnReminder(
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session),
-    // How Ferni himself is doing (FERNI_STATE=on); none with crisis guidance.
-    ferniStateNote(chatCtx, session, { careful: options.shape === false }),
+    state.note,
     // FIRST_CALL_RAPPORT=on: a new caller's first call (names, a reason to come back)
     firstCallNote(chatCtx, session, words),
+    // ROOM_GUESTS=on: someone else is in the room on the same mic (room-guests.ts)
+    roomGuestsNote(session, words),
     // NAME_CORRECTION=on: the name they gave for themselves wins over the account's
     nameCorrectionNote(chatCtx, session, words, process.env, {
       verifiedOwner: sessionIsVerifiedOwner,
     }),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
-    turnStyleReminderEnabled() ? styleFor(chatCtx, session, options.shape !== false) : '',
+    turnStyleReminderEnabled()
+      ? styleFor(chatCtx, session, options.shape !== false, state.ownStory)
+      : '',
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
     options.shape !== false ? exitFor(chatCtx, session, words) : '',
-    // COMMITMENT_INVITE=on: once a call, one small step in their words (commitment-invite.ts)
+    // His self-share line after the shape, nearest the reply (ferni-state.ts).
+    state.last,
+    // COMMITMENT_INVITE=on: once a call, one small step in their words (commitment-invite.ts).
+    // Last, so on its one turn the invite wins over the self-share.
     inviteFor(chatCtx, session, words, options.shape === false),
   ]
     .filter(Boolean)
@@ -201,7 +211,12 @@ function callerWords(chatCtx: llm.ChatContext): string {
  * single style reminder when shaping is off, there are no words, or the
  * caller asked for none (a crisis reply must not be held to a few words).
  */
-function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): string {
+function styleFor(
+  chatCtx: llm.ChatContext,
+  session: object,
+  shape: boolean,
+  ownStory?: boolean
+): string {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
   if (!said) return TURN_STYLE_REMINDER;
   // Seeded per call and words: the preemptive and final requests agree, but
@@ -211,7 +226,11 @@ function styleFor(chatCtx: llm.ChatContext, session: object, shape: boolean): st
     said,
     rngFor(`${callSeed(session)}:${said}`),
     undefined,
-    withRecent(withSupportHold(session, said, signals, source), said, chatCtx)
+    withRecent(
+      withOwnStory(withSupportHold(session, said, signals, source), said, ownStory),
+      said,
+      chatCtx
+    )
   );
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
@@ -272,6 +291,16 @@ function withSupportHold(
   const sig = signals ?? regexSignals(said, callerMove(said));
   // Only the model's reading is sticky: plain (no reading yet) is careful by default.
   return { ...sig, supportFirst: supportHeld(session, said, source === 'model' && sig.careful) };
+}
+
+/** FERNI_STATE=on: his state's say on a story of his own rides with the signals (ferni-state.ts). */
+function withOwnStory(
+  signals: TurnSignals | undefined,
+  said: string,
+  ownStory: boolean | undefined
+): TurnSignals | undefined {
+  if (ownStory === undefined) return signals;
+  return { ...(signals ?? regexSignals(said, callerMove(said))), ownStory };
 }
 
 const callSeeds = new WeakMap<object, string>();

@@ -30,6 +30,20 @@ describe('handoffConsent', () => {
     expect(handoffConsent(chat(['user', 'what would bogle say']), 'John Bogle')).toBe('asked');
   });
 
+  it('is asked when speech-to-text misspells the name (the handoff-every-teammate line)', () => {
+    expect(
+      handoffConsent(
+        chat(['user', 'Hey Jordan. Okay, last one. Can I talk to Naya?']),
+        'Nayan Patel'
+      )
+    ).toBe('asked');
+    expect(handoffConsent(chat(['user', 'can you put Pete on?']), 'Peter John')).toBe('asked');
+  });
+
+  it("does not take one teammate's misspelling as asking for another", () => {
+    expect(handoffConsent(chat(['user', 'Can I talk to Naya?']), 'Maya Santos')).toBe('none');
+  });
+
   it('matches names as whole words, not inside other words', () => {
     expect(handoffConsent(chat(['user', 'Johnny from work keeps texting me']), 'John Bogle')).toBe(
       'none'

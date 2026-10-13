@@ -16,6 +16,7 @@ import { embed, cosineSimilarity } from '../../../memory/embeddings.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { onCorrelationInsightChange } from '../../data-layer/hooks/better-than-human-hooks.js';
 import type { SemanticCorrelation, CorrelationDomain, InsightType, CoOccurrence } from './types.js';
+import { correlationForStorage } from './storage-shape.js';
 
 const log = createLogger({ module: 'correlation-mining' });
 
@@ -111,8 +112,8 @@ async function detectCorrelations(userId: string, newObs: ObservationBuffer): Pr
       obs.domain !== newObs.domain // Cross-domain correlations only
   );
 
+  const touched: SemanticCorrelation[] = []; // only these changed, so only these are written
   for (const otherObs of recentObs) {
-    // Calculate semantic similarity if embeddings available
     let similarity = 0.5; // Default moderate similarity
     if (newObs.embedding && otherObs.embedding) {
       similarity = cosineSimilarity(newObs.embedding, otherObs.embedding);
@@ -131,20 +132,16 @@ async function detectCorrelations(userId: string, newObs: ObservationBuffer): Pr
     );
 
     if (existingCorr) {
-      // Update existing correlation
       updateCorrelation(existingCorr, newObs, otherObs, similarity);
+      touched.push(existingCorr);
     } else if (correlations.length < CONFIG.MAX_CORRELATIONS_PER_USER) {
-      // Create new correlation candidate
       const newCorr = createCorrelation(userId, newObs, otherObs, similarity);
       correlations.push(newCorr);
+      touched.push(newCorr);
     }
   }
-
-  // Save updated correlations
   correlationCache.set(userId, correlations);
-
-  // Persist to Firestore (debounced/batched in production)
-  await saveCorrelations(userId, correlations);
+  if (touched.length > 0) await saveCorrelations(userId, touched);
 }
 
 /**
@@ -478,7 +475,7 @@ async function saveCorrelations(
 
     for (const corr of toSave.slice(0, 50)) {
       // Limit batch size
-      batch.set(collRef.doc(corr.id), cleanForFirestore(corr));
+      batch.set(collRef.doc(corr.id), cleanForFirestore(correlationForStorage(corr)));
     }
 
     await batch.commit();

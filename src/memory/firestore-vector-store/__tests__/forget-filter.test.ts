@@ -148,3 +148,33 @@ describe('vector search never returns what the caller asked to forget', () => {
     expect(rd.topicReads).toEqual(['u1', 'u1']);
   });
 });
+
+describe('call summaries the caller disputed an item of (dispute.ts)', () => {
+  const DEV = 'conversation_summary_session-AJ_2cEy';
+  const OTHER = 'conversation_summary_session-AJ_old';
+  const LEGACY = 'conversation_summary_session-AJ_legacy';
+
+  it('maps a summary copy to its summary doc', () => {
+    expect(sourcePath('u1', { id: DEV })).toBe('bogle_users/u1/summaries/summary_session-AJ_2cEy');
+  });
+
+  it('drops the copy of a summary with a disputed item, keeps the others and legacy copies', async () => {
+    const rd = reads([], {
+      'bogle_users/u1/summaries/summary_session-AJ_2cEy': {
+        keyPoints: ['The user was working on contracts on the evening of 2026-10-11.'],
+        disputedItems: ['The user was working on contracts on the evening of 2026-10-11.'],
+      },
+      'bogle_users/u1/summaries/summary_session-AJ_old': { keyPoints: ['Mail pile'] },
+    });
+    const out = await withoutForgotten(
+      'u1',
+      [
+        r(DEV, 'The user was working on contracts on the evening of 2026-10-11.'),
+        r(OTHER, 'Mail pile'),
+        r(LEGACY, 'From conversation_summaries, no summaries doc'),
+      ],
+      rd
+    );
+    expect(out.map((x) => x.document.id)).toEqual([OTHER, LEGACY]);
+  });
+});

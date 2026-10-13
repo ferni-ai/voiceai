@@ -39,6 +39,8 @@ describe('speculative TTS voice resolution', () => {
     });
     vi.stubGlobal('fetch', mockFetch);
     vi.stubEnv('CARTESIA_API_KEY', 'test-api-key');
+    // These cover the engine when enabled; the flag defaults off.
+    vi.stubEnv('SPECULATIVE_TTS', 'on');
     // Empty overrides fall through to the VOICE_IDS defaults.
     for (const name of PERSONA_ENV_OVERRIDES) vi.stubEnv(name, '');
     getSpeculativeTTS().clearCache();

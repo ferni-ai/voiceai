@@ -1,13 +1,25 @@
 /**
  * Test Setup - Global test configuration and mocks
- * 
+ *
  * This file runs before each test file and sets up:
  * - DOM environment
  * - Global mocks (localStorage, Audio, etc.)
  * - Test utilities
  */
 
-import { vi, beforeEach, afterEach } from 'vitest';
+import { vi, beforeEach, afterEach, expect } from 'vitest';
+
+import {
+  guardRealFirestore,
+  isolateGcpCredentials,
+  setGcpGuardTestPath,
+} from '../../../src/tests/gcp-test-guard.js';
+
+// Contract tests run the server's real route handlers, so keep them off real
+// Google Cloud exactly as the backend suite does (see gcp-test-guard.ts).
+isolateGcpCredentials();
+guardRealFirestore();
+setGcpGuardTestPath(expect.getState().testPath);
 
 // ============================================================================
 // MOCK: localStorage
@@ -99,7 +111,6 @@ afterEach(() => {
   // Clean up after each test
   vi.restoreAllMocks();
 });
-
 
 // ============================================================================
 // i18n: load the real English strings, as the app does at startup, so tests

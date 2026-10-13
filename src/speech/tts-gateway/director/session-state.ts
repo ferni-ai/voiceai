@@ -18,6 +18,8 @@ import { resetLaughterSession } from '../../adaptive-ssml/contextual-laughter.js
 export interface CarryOver {
   emotion?: string;
   speed: number;
+  /** The previous reply's attuned loudness (attune.ts); absent when attunement is off. */
+  volume?: number;
   /** Replies since the last opening sigh / breath (nonverbal.ts cooldowns). */
   sinceSigh?: number;
   sinceBreath?: number;
