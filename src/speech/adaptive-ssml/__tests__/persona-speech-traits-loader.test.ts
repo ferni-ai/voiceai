@@ -32,6 +32,8 @@ describe('Persona Speech Traits Loader', () => {
     it('should return false for personas without custom traits', () => {
       expect(hasCustomSpeechTraits('unknown-persona')).toBe(false);
       expect(hasCustomSpeechTraits('non-existent-persona')).toBe(false);
+      // Object prototype keys are not personas.
+      expect(hasCustomSpeechTraits('toString')).toBe(false);
     });
   });
 

@@ -25,11 +25,8 @@
  * @module speech/adaptive-ssml/persona-speech-traits-loader
  */
 
-import {
-  ALL_CANONICAL_IDS,
-  isCanonicalId,
-  type CanonicalPersonaId,
-} from '../../personas/persona-ids.js';
+// Type-only, through the personas context's public index (architecture gate).
+import type { CanonicalPersonaId } from '../../personas/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { quickHumanizeSync, preloadAllSpeechProfiles } from '../humanization/index.js';
 
@@ -174,6 +171,7 @@ const TRAIT_LOADERS: Record<CanonicalPersonaId, () => Promise<PersonaSpeechTrait
       (await import('../../personas/bundles/peter-lynch/speech-traits.js')).peterLynchSpeechTraits
     ),
 };
+const hasTraitLoader = (id: string): id is CanonicalPersonaId => Object.hasOwn(TRAIT_LOADERS, id);
 
 /**
  * Load speech traits for a persona.
@@ -183,7 +181,7 @@ async function loadPersonaTraits(personaId: string): Promise<PersonaSpeechTraitC
   const cached = traitRegistry.get(personaId);
   if (cached) return cached;
 
-  const loader = isCanonicalId(personaId) ? TRAIT_LOADERS[personaId] : undefined;
+  const loader = hasTraitLoader(personaId) ? TRAIT_LOADERS[personaId] : undefined;
   if (!loader) return null; // Unknown persona - no custom traits
 
   try {
@@ -218,7 +216,7 @@ let preloaded = false;
 export async function preloadAllTraits(): Promise<void> {
   if (preloaded) return;
 
-  const personas = ALL_CANONICAL_IDS;
+  const personas = Object.keys(TRAIT_LOADERS);
 
   // Preload both layers in parallel
   await Promise.all([
@@ -316,14 +314,14 @@ export function applyPersonaSpeechTraitsSync(
  * Check if a persona has custom speech traits.
  */
 export function hasCustomSpeechTraits(personaId: string): boolean {
-  return isCanonicalId(personaId);
+  return hasTraitLoader(personaId);
 }
 
 /**
  * Get list of personas with custom speech traits.
  */
 export function getPersonasWithSpeechTraits(): string[] {
-  return [...ALL_CANONICAL_IDS];
+  return Object.keys(TRAIT_LOADERS);
 }
 
 /**

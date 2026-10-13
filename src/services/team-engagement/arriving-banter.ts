@@ -6,7 +6,7 @@
  * @module team-engagement/arriving-banter
  */
 
-import type { CanonicalPersonaId } from '../../personas/persona-ids.js';
+import type { CanonicalPersonaId } from '../../personas/index.js';
 
 // ============================================================================
 // ARRIVING BANTER - Warm welcomes spoken by NEW persona AFTER voice switch
