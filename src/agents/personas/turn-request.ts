@@ -36,7 +36,12 @@ import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.
 import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { ferniStateTurn } from './ferni-state.js';
-import { listenFirstEnabled, listeningCuesFor, withoutSharingNotes } from './listen-first.js';
+import {
+  callerTimeZoneOf,
+  listenFirstEnabled,
+  listeningCuesFor,
+  withoutSharingNotes,
+} from './listen-first.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
 import { nameCorrectionNote } from './name-correction.js';
 import { roomGuestsNote } from './room-guests.js';
@@ -263,8 +268,8 @@ function listeningFor(
   session: object
 ): ReturnType<typeof listeningCuesFor> {
   if (!listenFirstEnabled()) return null;
-  const { userData } = session as { userData?: { callerTimezone?: string } };
-  return listeningCuesFor(chatCtx.items, userData?.callerTimezone);
+  const { userData } = session as { userData?: unknown };
+  return listeningCuesFor(chatCtx.items, callerTimeZoneOf(userData));
 }
 
 /**

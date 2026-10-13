@@ -16,7 +16,7 @@
  */
 
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
-import { callerHour } from '../shared/time-context.js';
+import { callerHour, isValidTimeZone } from '../shared/time-context.js';
 
 export function listenFirstEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return env.LISTEN_FIRST === 'on';
@@ -38,6 +38,24 @@ export function lowInformation(turn: string): boolean {
 export function lowEnergyCaller(callerTurns: readonly string[]): boolean {
   const recent = callerTurns.slice(-4);
   return recent.length >= 3 && recent.filter(lowInformation).length >= 3;
+}
+
+/**
+ * The caller's time zone: the device's, from the call's metadata (the app
+ * sends it), else the account's (profile contactInfo.timezone). Phone calls
+ * carry no metadata zone, so without the account's they never read as late
+ * night.
+ */
+export function callerTimeZoneOf(userData: unknown): string | undefined {
+  const ud = userData as
+    | {
+        callerTimezone?: string;
+        services?: { userProfile?: { contactInfo?: { timezone?: unknown } } | null };
+      }
+    | undefined;
+  if (isValidTimeZone(ud?.callerTimezone)) return ud?.callerTimezone;
+  const account = ud?.services?.userProfile?.contactInfo?.timezone;
+  return typeof account === 'string' && isValidTimeZone(account) ? account : undefined;
 }
 
 /** 11 pm to 5 am where the caller is; unknown zone is not late night. */
