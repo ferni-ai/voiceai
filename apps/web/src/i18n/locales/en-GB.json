@@ -10962,19 +10962,6 @@
       "roomToGrow": "Room to grow",
       "insight": "\"Your energy dips mid-week. Wednesday seems to be your hardest day.\""
     },
-    "predictions": {
-      "title": "My Predictions",
-      "message": "I'll learn to anticipate what you need before you ask.",
-      "guessOverwhelmed": "\"You'd feel overwhelmed this week\"",
-      "resultStress": "You mentioned stress on Tuesday and Thursday",
-      "guessGym": "\"The gym habit would struggle\"",
-      "guessSunday": "\"Sunday evening will feel heavy\"",
-      "resultCheckIn": "I'll check in with you",
-      "skipped": {
-        "one": "You skipped {count} session this week",
-        "other": "You skipped {count} sessions this week"
-      }
-    },
     "team": {
       "title": "What We Notice",
       "message": "Your whole team shares observations to help you grow.",

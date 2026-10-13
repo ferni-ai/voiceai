@@ -11082,20 +11082,6 @@
       "roomToGrow": "Espacio para crecer",
       "insight": "\"Tu energía baja a mitad de semana. El miércoles parece ser tu día más difícil.\""
     },
-    "predictions": {
-      "title": "Mis predicciones",
-      "message": "Aprenderé a anticipar lo que necesitas antes de que lo pidas.",
-      "guessOverwhelmed": "\"Sentirías agobio esta semana\"",
-      "resultStress": "Mencionaste tener estrés el martes y el jueves",
-      "guessGym": "\"El hábito del gimnasio se vería afectado\"",
-      "guessSunday": "\"El domingo por la tarde se sentirá pesado\"",
-      "resultCheckIn": "Haré un registro contigo",
-      "skipped": {
-        "one": "Te saltaste {count} sesión esta semana",
-        "many": "Te saltaste {count} sesiones esta semana",
-        "other": "Te saltaste {count} sesiones esta semana"
-      }
-    },
     "team": {
       "title": "Lo que notamos",
       "message": "Todo tu equipo comparte observaciones para ayudarte a crecer.",
