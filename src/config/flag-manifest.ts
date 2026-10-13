@@ -161,6 +161,8 @@ export const FLAG_MANIFEST = {
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   INTERRUPT_TRACE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   IN_PROCESS_SCHEDULERS: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  // voice journal speech-to-text through Gemini on Vertex when Deepgram and Whisper have no key
+  JOURNAL_TRANSCRIBE_VERTEX: { default: 'off', owner: 'memory', kind: 'experiment' },
   // public landing-page Gemini calls; off until the chat has per-IP and daily limits
   LANDING_AI: { default: 'off', owner: 'platform', kind: 'experiment' },
   LAUGH_ALONG: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -305,6 +307,8 @@ export const FLAG_MANIFEST = {
   TOOL_CORE_STATIC: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_HUM: { default: 'off', owner: 'voice', kind: 'experiment' },
   TOOL_LEAD_IN: { default: 'on', owner: 'voice', kind: 'config' },
+  // hourly pool shared by anonymous journal transcriptions (api/journal-transcribe-limits.ts)
+  TRANSCRIBE_ANON_MAX_PER_HOUR: { default: '200', owner: 'memory', kind: 'config' },
   // on: inner TTS failures reach the agent session (which closes after 4 in a row)
   TTS_FORWARD_ERRORS: { default: 'off', owner: 'voice', kind: 'experiment' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
