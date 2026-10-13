@@ -77,6 +77,7 @@ export interface PlanSummary {
   callerPitchRelSt?: number;
   callerEnergyRelDb?: number;
   callerRateRel?: number;
+  callerWordsPerSec?: number;
   callerPitchSlope?: number;
   callerVoicedMs?: number;
   speed: number;
@@ -435,6 +436,7 @@ function callerReading(p: CallerProsody | undefined): Partial<PlanSummary> {
     callerPitchRelSt: round1(p.pitchRelSt),
     callerEnergyRelDb: round1(p.energyRelDb),
     callerRateRel: Math.round(p.rateRel * 100) / 100,
+    callerWordsPerSec: p.wordsPerSec === undefined ? undefined : round1(p.wordsPerSec),
     callerPitchSlope: round1(p.pitchSlopeStPerS),
     callerVoicedMs: p.voicedMs,
   };
