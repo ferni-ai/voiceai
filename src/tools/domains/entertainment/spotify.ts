@@ -1177,15 +1177,15 @@ async function setVolume(volumePercent: number): Promise<string> {
 // ============================================================================
 
 /**
- * Jack's personal music recommendations based on mood/situation
+ * Elder-persona music recommendations based on mood/situation
  *
- * Jack Bogle (1929-2019) grew up with Big Band, classical, and early jazz.
- * These suggestions reflect his era and tastes.
+ * Big Band, classical, and early jazz: the era and tastes of the legacy
+ * index-investing elder persona.
  */
 function getJackMusicSuggestion(mood: string): string {
   const suggestions: Record<string, string[]> = {
     focus: [
-      'Beethoven Symphony', // Jack loved Beethoven
+      'Beethoven Symphony',
       'Bach Cello Suites',
       'classical piano Mozart',
       'jazz instrumental Dave Brubeck',
@@ -1223,7 +1223,7 @@ function getJackMusicSuggestion(mood: string): string {
       'swing celebration music',
     ],
     thinking: [
-      'Beethoven Symphony No 9', // Jack's favorite
+      'Beethoven Symphony No 9',
       'Mozart Piano Concerto',
       'Bach Well Tempered Clavier',
       'classical thinking music',

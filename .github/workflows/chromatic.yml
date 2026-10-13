@@ -22,6 +22,7 @@ concurrency:
 
 jobs:
   chromatic:
+    if: ${{ vars.OPTIONAL_CI != 'off' }}
     name: Visual Regression Tests
     # optional: hosted only; re-enable VM via CI_RUNNER in Nov if wanted
     runs-on: ubuntu-latest

@@ -44,9 +44,9 @@ export const LAYER_MAP: Record<string, string> = {
   // every context, so they are pipeline steps, not a context of their own.
   'src/agents': 'L4',
   ...under('src', 'L4', ['context', 'runtime', 'handoff', 'intelligence/context-builders']),
-  ...under('src/services', 'L4', ['session', 'session-manager', 'session-ext', 'session-context', 'di', 'outreach']),
+  ...under('src/services', 'L4', ['session', 'session-manager', 'session-ext', 'di', 'outreach']),
   // Flags live in L4: an L3 import of a flag module is debt (have L4 pass the decision in).
-  ...under('src/config', 'L4', ['feature-flags.ts', 'unified-flags.ts', 'voice-humanization-flags.ts', 'linkedin-flag.ts']),
+  ...under('src/config', 'L4', ['feature-flags.ts', 'voice-humanization-flags.ts', 'linkedin-flag.ts']),
   ...under('src/config', 'L4', ['assistant-actions-flag.ts', 'call-opening-flag.ts', 'gmail-send-flag.ts']),
   ...under('src/services/platform', 'L4', ['feature-flags.ts', 'feature-rollout.ts']),
 
@@ -81,7 +81,7 @@ export const LAYER_MAP: Record<string, string> = {
   ...under('src/services', 'L3:growth', ['superhuman', 'coaching', 'habits', 'personal-journey', 'life-thesis', 'rituals', 'journal']),
   ...under('src/services', 'L3:growth', ['group-coaching', 'therapeutic-frameworks', 'wisdom', 'wisdom-synthesis', 'ceo-coaching']),
   ...under('src/services', 'L3:growth', ['creative-you', 'musical-you', 'predictive-insights', 'revelation-moments']),
-  ...under('src/services', 'L3:growth', ['seeds', 'behavior', 'behavioral-economics']),
+  ...under('src/services', 'L3:growth', ['seeds', 'behavior', 'behavioral-economics', 'follow-through']),
 
   // L2: types, errors, translations and pure helpers (including the logger facade).
   ...under('src', 'L2', ['types', 'errors', 'i18n', 'utils']),
