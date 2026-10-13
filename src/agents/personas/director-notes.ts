@@ -21,7 +21,9 @@
  * @module agents/personas/director-notes
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { splitSaidBy } from '../multi-agent/persona-swap.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
 import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
 
@@ -36,6 +38,15 @@ export function directorNotesEnabled(
 export interface Line {
   speaker: 'user' | 'ferni';
   text: string;
+  /** Who said an assistant line, when the call had a teammate on it (TEAM_PERSONA_AWARE). */
+  name?: string;
+}
+
+/** The teammate on the call now, for a director written for them (TEAM_PERSONA_AWARE). */
+export interface Speaker {
+  name: string;
+  /** A line or two on who they are, from their persona bundle. */
+  summary: string;
 }
 
 /** Writes notes from a prompt; injectable so tests need no model. */
@@ -72,13 +83,47 @@ export function directorLooksBack(env: Record<string, string | undefined> = proc
   return env.DIRECTOR_LOOK_BACK === 'on';
 }
 
-export function buildDirectorPrompt(lines: Line[], userName?: string): string {
+/**
+ * The director's instructions for a teammate on the call (Peter after a
+ * handoff): the role describes them, not Ferni, and every rule names them.
+ * Dev call 2026-10-12: after the handoff to Peter the director, written for
+ * Ferni, said "Match his minimal energy".
+ */
+export function teammateDirectorSystem(speaker: Speaker, lookBack = directorLooksBack()): string {
+  const n = speaker.name;
+  const who = speaker.summary ? `${n} (${speaker.summary})` : n;
+  const role = `You are the director of a live, unscripted phone call between ${who} and someone ${n} cares about. ${n} improvises every word. Other names in the call are teammates who talked with them earlier; your notes are only for ${n}. Between ${n}'s turns you whisper at most two private notes for ${n}'s next reply.`;
+  const rules = (lookBack ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM)
+    .split('\n')
+    .slice(1)
+    .join('\n')
+    .replace(/\bFerni's\b|\bhe's\b|\bhis\b/g, `${n}'s`)
+    .replace(/\bFerni\b|\bhim\b/g, n)
+    .replace(/\bhimself\b/g, 'themself');
+  return `${role}\n${rules}`;
+}
+
+export function buildDirectorPrompt(lines: Line[], userName?: string, speaker?: Speaker): string {
   const who = userName || 'Them';
+  const self = speaker?.name ?? 'Ferni';
   const transcript = lines
     .slice(-12)
-    .map((l) => `${l.speaker === 'ferni' ? 'Ferni' : who}: ${l.text}`)
+    .map((l) => `${l.speaker === 'ferni' ? (l.name ?? self) : who}: ${l.text}`)
     .join('\n');
-  return `The call so far:\n${transcript}\n\nYour notes for Ferni's next reply:`;
+  return `The call so far:\n${transcript}\n\nYour notes for ${self}'s next reply:`;
+}
+
+/**
+ * The teammate on the call, for the director; undefined for Ferni or with
+ * TEAM_PERSONA_AWARE off, which keeps the director written for Ferni.
+ */
+export async function teammateSpeaker(personaId: string): Promise<Speaker | undefined> {
+  if (!flagOn('TEAM_PERSONA_AWARE') || personaId === 'ferni') return undefined;
+  const { getDisplayName, toCanonical } = await import('../../personas/persona-ids.js');
+  if (toCanonical(personaId) === 'ferni') return undefined;
+  const { AgentRegistry } = await import('../../personas/registry/unified-registry.js');
+  const agent = await AgentRegistry.getAgentOrNull(personaId).catch(() => null);
+  return { name: getDisplayName(personaId), summary: agent?.description ?? '' };
 }
 
 const GENERIC =
@@ -174,6 +219,8 @@ export class Director {
       budgetMs?: number;
       /** Ask the model for notes (DIRECTOR_NOTES=on); false keeps only the told-this-call record. */
       writeNotes?: boolean;
+      /** The teammate on the call now, if not Ferni (TEAM_PERSONA_AWARE): teammateSpeaker */
+      speaker?: () => Promise<Speaker | undefined>;
     }
   ) {}
 
@@ -185,15 +232,23 @@ export class Director {
     if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
     const started = Date.now();
+    const speaking = this.opts.speaker?.(); // who is on the call as this reply ends
+    const write = async (): Promise<string | undefined> => {
+      const speaker = speaking ? await speaking : undefined;
+      if (!speaker) {
+        return writer(
+          directorLooksBack() ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM,
+          buildDirectorPrompt(lines, this.opts.userName)
+        );
+      }
+      return writer(
+        teammateDirectorSystem(speaker),
+        buildDirectorPrompt(lines, this.opts.userName, speaker)
+      );
+    };
     const work = (async () => {
       try {
-        const reply = await withTimeout(
-          writer(
-            directorLooksBack() ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM,
-            buildDirectorPrompt(lines, this.opts.userName)
-          ),
-          this.opts.budgetMs ?? 4000
-        );
+        const reply = await withTimeout(write(), this.opts.budgetMs ?? 4000);
         if (gen !== this.generation) return; // a newer turn superseded this one
         if (reply === undefined) {
           // No model, or over budget: not the same as the director saying NONE.
@@ -286,7 +341,11 @@ export function linesFromChat(
       .replace(/<[^>]+>/g, '')
       .replace(/\s+/g, ' ')
       .trim();
-    if (text) lines.push({ speaker: item.role === 'user' ? 'user' : 'ferni', text });
+    if (!text) continue;
+    // A teammate's reply carried over at a handoff is marked with who said it (persona-swap.ts).
+    const said = item.role === 'assistant' ? splitSaidBy(text) : undefined;
+    if (said) lines.push({ speaker: 'ferni', text: said.text, name: said.name });
+    else lines.push({ speaker: item.role === 'user' ? 'user' : 'ferni', text });
   }
   return lines;
 }

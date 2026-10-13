@@ -275,6 +275,8 @@ export interface DirectorNotesInput {
   userName: string | undefined;
   agent: ChatAgent | (() => ChatAgent);
   cleanupFunctions: Cleanup;
+  /** The persona on the call now, read when used, so it follows swaps */
+  personaId?: () => string;
 }
 
 /**
@@ -286,12 +288,14 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
   const { session, sessionId, userName, agent, cleanupFunctions } = input;
   // The deliberator reads the call at the same moment the director does.
   await installDeliberation(input);
-  const { directorNotesEnabled, Director, setDirector, linesFromChat } =
+  const { directorNotesEnabled, Director, setDirector, linesFromChat, teammateSpeaker } =
     await import('../personas/director-notes.js');
   const { toldThisCallEnabled } = await import('../personas/told-this-call.js');
   const writeNotes = directorNotesEnabled();
   if (!writeNotes && !toldThisCallEnabled()) return;
-  const director = new Director({ sessionId, userName, writeNotes });
+  const onCall = input.personaId;
+  const speaker = onCall ? () => teammateSpeaker(onCall()) : undefined; // TEAM_PERSONA_AWARE
+  const director = new Director({ sessionId, userName, writeNotes, speaker });
   setDirector(session, director);
   let spoke = false;
   const directorHandler = (ev: unknown): void => {

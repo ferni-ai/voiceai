@@ -10,8 +10,10 @@
  *
  * Off unless MULTI_AGENT_SINGLE_SESSION=on.
  */
-import type { llm, voice } from '@livekit/agents';
+import { llm, type voice } from '@livekit/agents';
 import type { UserData } from '../shared/types.js';
+import { flagOn } from '../../config/env-flag.js';
+import { getDisplayName } from '../../personas/persona-ids.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
@@ -27,6 +29,40 @@ export function conversationSoFar<T>(session: voice.AgentSession<T>): llm.ChatCo
     excludeFunctionCall: true,
     excludeConfigUpdate: true,
   });
+}
+
+/** How a carried-over reply is marked with who said it (TEAM_PERSONA_AWARE) */
+export const saidBy = (name: string): string => `(${name} said:) `;
+const SAID_BY = /^\(([^()]{1,40}) said:\) /;
+
+/** The speaker and words of a marked reply, or undefined if it isn't marked */
+export function splitSaidBy(text: string): { name: string; text: string } | undefined {
+  const m = SAID_BY.exec(text);
+  return m ? { name: m[1], text: text.slice(m[0].length) } : undefined;
+}
+
+/**
+ * The talk so far with the outgoing persona's replies marked as theirs, so the
+ * next persona doesn't take them for its own past lines: after a handoff Peter
+ * echoed Ferni's phrasing. Replies marked at an earlier swap keep their mark.
+ * Copies the messages it marks (copy() shares them with the outgoing agent).
+ */
+export function markWhoSpoke(talk: llm.ChatContext, personaId: string): llm.ChatContext {
+  const prefix = saidBy(getDisplayName(personaId) ?? personaId);
+  talk.items = talk.items.map((item) => {
+    if (item.type !== 'message' || item.role !== 'assistant') return item;
+    const [first, ...rest] = item.content;
+    if (typeof first === 'string' && splitSaidBy(first)) return item;
+    return llm.ChatMessage.create({
+      id: item.id,
+      role: 'assistant',
+      content: typeof first === 'string' ? [prefix + first, ...rest] : [prefix, ...item.content],
+      createdAt: item.createdAt,
+      interrupted: item.interrupted,
+      extra: item.extra,
+    });
+  });
+  return talk;
 }
 
 /** How long the next persona has to come up before the swap counts as failed */
@@ -153,7 +189,10 @@ export async function swapPersona(
   const session = from.session as voice.AgentSession<UserData>;
   const swapNumber = (latestSwap.get(session) ?? 0) + 1;
   latestSwap.set(session, swapNumber);
-  await to.agent.updateChatCtx(conversationSoFar(session));
+  const talk = conversationSoFar(session);
+  await to.agent.updateChatCtx(
+    flagOn('TEAM_PERSONA_AWARE') ? markWhoSpoke(talk, from.personaId) : talk
+  );
   let transition: Promise<unknown>;
   try {
     transition = onReady
