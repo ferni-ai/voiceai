@@ -8546,6 +8546,10 @@
   },
   "engagementPanel": {
     "title": "每日自我檢視",
+    "emptyTitle": "我們的每日聊聊會留在這裡",
+    "emptyMessage": "這裡還沒有內容，沒關係。我們在通話裡做每日聊聊時，你當時的感受會顯示在這裡。下次聊天時，跟我說一聲就好。",
+    "loadFailedTitle": "嗯，沒有載入",
+    "loadFailedMessage": "是我這邊的問題，不是你的。稍等一下，再打開一次。",
     "yourWeek": "你的本週回顧",
     "weatherTrend": "情緒天氣趨勢",
     "howYouFeel": "你的感受",
@@ -9887,6 +9891,7 @@
     "timeout": "花了太多時間。檢查一下網路連線並重試好嗎？",
     "network": "無法連線到 Ferni。檢查一下網路並重試好嗎？",
     "dropped": "連線中斷了。要重新連線嗎？",
+    "agentLeft": "Ferni 斷線了。要重新連線嗎？",
     "unknown": "無法連線。要再試一次嗎？"
   },
   "ambientSounds": {
@@ -10322,22 +10327,7 @@
         "one": "我有 {count} 篇日記的獨特觀點想跟你分享。"
       }
     },
-    "error": "我現在腦袋有點轉不過來。給我一點時間，然後再試一次好嗎？",
-    "fallback": {
-      "advicePhilosophy": "你知道我學到了什麼嗎？「{philosophy}」無論你現在面臨什麼，都要記住這點。",
-      "adviceValues": "想想對我們來說重要的事情：{values}。讓這些指引你吧。",
-      "feelRecent": "我也有過這種感覺。我在日記裡寫過：「{excerpt}...」我們以前也挺過來了。",
-      "feelDefault": "我懂。我們以前也經歷過艱難的時刻，並找到了出路。真正讓你困擾的是什麼呢？",
-      "rememberIntro": "對啊，我記得。",
-      "rememberEntry": "那時候我寫過：「{excerpt}...」",
-      "mannerism": "{phrase} 這也是我一直在思考的事情。是什麼讓你提起這個的？",
-      "default": "這是個好問題。你怎麼會想到這個呢？"
-    },
-    "fallbackKeywords": {
-      "advice": "建議,我應該",
-      "feeling": "感覺,心情",
-      "remember": "記得,過去"
-    }
+    "error": "沒有傳送成功。是我這邊的問題，不是你的。再傳一次試試。"
   },
   "mood": {
     "holiday": {

@@ -8546,6 +8546,10 @@
   },
   "engagementPanel": {
     "title": "Daily Check-in",
+    "emptyTitle": "Our check-ins will live here",
+    "emptyMessage": "Nothing here yet, and that's okay. When we do a daily check-in on a call, how you were feeling shows up here. Next time we talk, just ask me to check in.",
+    "loadFailedTitle": "Hmm, this didn't load",
+    "loadFailedMessage": "That's on me, not you. Give it a moment, then open this again.",
     "yourWeek": "Your Week",
     "weatherTrend": "Emotional weather trend",
     "howYouFeel": "How you're feeling",
@@ -9890,6 +9894,7 @@
     "timeout": "That took too long. Check your connection and retry?",
     "network": "Couldn't reach Ferni. Check your internet and retry?",
     "dropped": "Lost the connection. Reconnect?",
+    "agentLeft": "Ferni dropped off the line. Reconnect?",
     "unknown": "Couldn't connect. Try again?"
   },
   "ambientSounds": {
@@ -10325,22 +10330,7 @@
         "other": "I've got {count} journal entries worth of perspective to share."
       }
     },
-    "error": "I'm having trouble thinking right now. Give me a moment and try again?",
-    "fallback": {
-      "advicePhilosophy": "You know what I've learned? \"{philosophy}\" Whatever you're facing, remember that.",
-      "adviceValues": "Think about what matters to us: {values}. Let those guide you.",
-      "feelRecent": "I've felt that too. In my journal I wrote: \"{excerpt}...\" We got through it before.",
-      "feelDefault": "I hear you. We've been through tough times before and found our way. What's really bothering you?",
-      "rememberIntro": "Yeah, I remember.",
-      "rememberEntry": "There was that time I wrote: \"{excerpt}...\"",
-      "mannerism": "{phrase} That's something I've been thinking about too. What made you bring this up?",
-      "default": "That's a good question. What made you think of that?"
-    },
-    "fallbackKeywords": {
-      "advice": "advice,should i",
-      "feeling": "feeling,feel",
-      "remember": "remember,past"
-    }
+    "error": "That didn't go through. It's on my end, not yours. Try sending it again."
   },
   "mood": {
     "holiday": {

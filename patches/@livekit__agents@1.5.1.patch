@@ -82,6 +82,54 @@ index 80d90a8426f404afdae800bf9c018c68427ef2ea..7e71e20099f0c8f4a988ff5456f0cd3c
      turns.push({ role: "user", parts: [{ text: "." }] });
    }
    return [
+diff --git a/dist/stt/stt.cjs b/dist/stt/stt.cjs
+index 083f39a4862dd6685479259b45ffe4390b6c7097..d86f3b4958070c28a8891b35392822de9e3b7870 100644
+--- a/dist/stt/stt.cjs
++++ b/dist/stt/stt.cjs
+@@ -169,12 +169,19 @@ class SpeechStream {
+    */
+   async mainTask() {
+     for (let i = 0; i < this._connOptions.maxRetry + 1; i++) {
++      const runStartedAt = Date.now(); // PATCHED (Ferni): STT_RETRY_RESET
+       try {
+         return await this.run();
+       } catch (error) {
+         if (this.abortController.signal.aborted) {
+           return;
+         }
++        // PATCHED (Ferni): a connection that stayed up 30 s was healthy, so its drop starts a
++        // fresh retry count. Cartesia closes the socket every ~5 min; without this the 4th
++        // routine reconnect ended the session (prod 2026-10-13, a 20-minute call).
++        if (process.env.STT_RETRY_RESET !== "off" && Date.now() - runStartedAt >= 30000) {
++          i = 0;
++        }
+         if (error instanceof import_exceptions.APIError) {
+           const retryInterval = (0, import_types.intervalForRetry)(this._connOptions, i);
+           if (this._connOptions.maxRetry === 0 || !error.retryable) {
+diff --git a/dist/stt/stt.js b/dist/stt/stt.js
+index b060a4da72c8605592f878adc364096f1f51f6fb..32838ea53677d27baabf446922f79b5bc11ca609 100644
+--- a/dist/stt/stt.js
++++ b/dist/stt/stt.js
+@@ -144,12 +144,19 @@ class SpeechStream {
+    */
+   async mainTask() {
+     for (let i = 0; i < this._connOptions.maxRetry + 1; i++) {
++      const runStartedAt = Date.now(); // PATCHED (Ferni): STT_RETRY_RESET
+       try {
+         return await this.run();
+       } catch (error) {
+         if (this.abortController.signal.aborted) {
+           return;
+         }
++        // PATCHED (Ferni): a connection that stayed up 30 s was healthy, so its drop starts a
++        // fresh retry count. Cartesia closes the socket every ~5 min; without this the 4th
++        // routine reconnect ended the session (prod 2026-10-13, a 20-minute call).
++        if (process.env.STT_RETRY_RESET !== "off" && Date.now() - runStartedAt >= 30000) {
++          i = 0;
++        }
+         if (error instanceof APIError) {
+           const retryInterval = intervalForRetry(this._connOptions, i);
+           if (this._connOptions.maxRetry === 0 || !error.retryable) {
 diff --git a/dist/voice/agent_activity.cjs b/dist/voice/agent_activity.cjs
 index d7d4fbf6209de5197e25edfe6f808cae3ab2ddea..d846257f4a2f0b6553ed8147a6537fe298133911 100644
 --- a/dist/voice/agent_activity.cjs
