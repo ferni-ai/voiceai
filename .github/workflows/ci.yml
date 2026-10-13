@@ -1040,6 +1040,63 @@ jobs:
           retention-days: 7
 
   # ============================================================================
+  # NODE TESTS (node --test) - design-system/lib and the website portals
+  # ============================================================================
+  # These use node's own test runner, so no vitest config picks them up, and until
+  # this job nothing ran them. Each portal is built first: its site test checks
+  # _site, and only part of _site is committed. If it stays fast and stable it
+  # can become a required check.
+  node-tests:
+    name: Node Tests
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
+    timeout-minutes: 10
+    needs: setup
+    if: needs.setup.outputs.code != 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # design-system/lib tests import root packages (sharp)
+      - name: Restore node_modules cache
+        id: nm-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+          fail-on-cache-miss: false
+
+      - name: Install dependencies (node_modules cache miss)
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
+
+      - name: design-system/lib
+        run: node --test design-system/lib/
+
+      - name: Website portals (build, then test)
+        run: |
+          found=0
+          for t in apps/website/*/__tests__; do
+            [ -d "$t" ] || continue
+            dir=$(dirname "$t"); found=1
+            echo "::group::$dir"
+            (cd "$dir" && npm ci --no-audit --no-fund --loglevel=error && npx eleventy)
+            node --test "$t/"
+            echo "::endgroup::"
+          done
+          [ "$found" = 1 ] || { echo "::error::no apps/website/*/__tests__ found"; exit 1; }
+
+  # ============================================================================
   # DEPENDENCY CHECK
   # ============================================================================
   dependencies:
