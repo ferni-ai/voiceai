@@ -2233,7 +2233,6 @@
       "two": "{count} אנשי קשר יובאו בהצלחה!"
     },
     "integrationNowConnected": "{integration} מחובר כעת!",
-    "inviteSentTo": "ההזמנה נשלחה אל {email}!",
     "householdMemberRemoved": "{name} הוסר",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} התווסף לצוות שלך",
