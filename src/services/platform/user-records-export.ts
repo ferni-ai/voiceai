@@ -14,7 +14,7 @@
  * @module services/platform/user-records-export
  */
 
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { DocumentReference, getFirestore, Timestamp } from 'firebase-admin/firestore';
 
 /** Collections whose {uid} document, and the stores under it, belong to that person */
 export const USER_RECORD_ROOTS = ['bogle_users', 'users'] as const;
@@ -159,7 +159,33 @@ export const OWNED_ELSEWHERE: ReadonlyArray<
   { collection: 'engagement_profiles', doc: 'uid' },
   { collection: 'households', doc: 'uid' },
   // People You've Told Me About: the person's own account of their people, from their calls
-  { collection: 'contact_relationships', field: 'userId' },
+  // Its schema is known (ContactRelationship), so its fields are allowlisted too.
+  {
+    collection: 'contact_relationships',
+    field: 'userId',
+    fields: [
+      'contactId',
+      'name',
+      'email',
+      'phone',
+      'relationship',
+      'notes',
+      'firstInteraction',
+      'lastInteraction',
+      'interactionCount',
+      'strengthScore',
+      'avgResponseTimeHours',
+      'preferredChannel',
+      'bestTimeToReach',
+      'topics',
+      'recentContext',
+      'importantDates',
+      'pendingFollowUp',
+      'lastFollowUpDate',
+      'createdAt',
+      'updatedAt',
+    ],
+  },
   { collection: 'contact_interactions', field: 'userId' },
   // Family Phone Access: only what the sponsor entered (CreateSponsoredIdentityData). Not the
   // family member's own activity (calls, minutes, last call), voice enrollment, self-
@@ -183,46 +209,87 @@ export const OWNED_ELSEWHERE: ReadonlyArray<
 ];
 
 /**
- * Fields never exported, at any depth (inside nested objects and arrays too): tokens,
- * web-push subscription parts (endpoint, keys.p256dh, keys.auth), refresh and access
- * credentials, password hashes and salts, PINs, one-time codes. Keys are matched by whole
- * words (camelCase and snake_case split), so "footprint" is not "otp" and "zipCode" stays.
+ * Fields never exported, at any depth: inside nested objects, arrays, and JSON kept as a
+ * string. A key is normalised before it's matched (NFKC, lower case, every separator and
+ * non-letter removed), so accessToken, access_token, access-token, ACCESS.TOKEN and
+ * "access token" are one key. Long unambiguous terms match anywhere in that key; short
+ * ones only as a whole word or as the whole key, so "footprint" is not "otp".
  */
-const SECRET_WORDS = new Set([
+const SECRET_KEY_PARTS = [
   'token',
-  'tokens',
   'secret',
-  'secrets',
-  'credential',
-  'credentials',
   'password',
+  'passwd',
   'passcode',
-  'oauth',
+  'credential',
   'apikey',
+  'accesskey',
+  'privatekey',
+  'signingkey',
+  'clientkey',
+  'oauth',
   'p256dh',
-  'auth',
-  'refresh',
-  'hash',
-  'salt',
-  'otp',
-  'pin',
+  'authorization',
+  'bearer',
+  'jwt',
+  'cookie',
   'webauthn',
   'passkey',
-  'passkeys',
-]);
-const SECRET_KEYS = new Set(['endpoint', 'keys', 'access', 'code']);
-const SECRET_PAIRS = ['api key', 'session id', 'session key', 'verification code', 'private key'];
+  'pushsubscription',
+  'endpoint',
+  'refresh',
+  'sessionid',
+  'sessionkey',
+  'verificationcode',
+  'otpcode',
+  'pincode',
+  'authcode',
+  'totp',
+  'recoverycode',
+  'backupcode',
+];
+/** Secret only as a whole word of the key (auth in authMethod, not in author) */
+const SECRET_WORDS = new Set(['auth', 'otp', 'pin', 'hash', 'salt', 'mfa']);
+/** Secret only as the entire key */
+const SECRET_KEYS = new Set(['keys', 'key', 'access', 'code', 'sig', 'signature', 'nonce']);
+
+function normaliseKey(key: string): string {
+  return key
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
 
 export function isSecretField(key: string): boolean {
-  if (SECRET_KEYS.has(key.toLowerCase())) return true;
+  const whole = normaliseKey(key);
+  if (SECRET_KEYS.has(whole) || SECRET_KEY_PARTS.some((part) => whole.includes(part))) {
+    return true;
+  }
   const words = key
+    .normalize('NFKC')
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
     .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter(Boolean);
-  if (words.some((w) => SECRET_WORDS.has(w))) return true;
-  const joined = ` ${words.join(' ')} `;
-  return SECRET_PAIRS.some((pair) => joined.includes(` ${pair} `));
+    .split(/[^a-z0-9]+/);
+  return words.some((w) => SECRET_WORDS.has(w));
+}
+
+/** Values that are credentials whatever their key says (bearer, JWT, Google, Stripe, push) */
+const SECRET_VALUES = [
+  /^\s*bearer\s+\S/i,
+  /^ya29\./,
+  /^eyJ[\w-]{8,}\.[\w-]{8,}\./,
+  /^(sk|rk)_(live|test)_/,
+  /^[\w-]{20,}:APA91b/, // FCM registration token
+  /^Expo(nent)?PushToken\[/,
+  /^AIza[\w-]{30,}/,
+  /^(xox[abpr]|gh[pousr])[-_]/,
+  /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+  /^https:\/\/(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|web\.push\.apple\.com|[\w.-]+\.notify\.windows\.com)\//i,
+];
+
+export function isSecretValue(value: string): boolean {
+  return SECRET_VALUES.some((pattern) => pattern.test(value));
 }
 
 /**
@@ -256,21 +323,60 @@ const MAX_DOCS_PER_COLLECTION = 10_000;
 type Db = FirebaseFirestore.Firestore;
 type Plain = string | number | boolean | null | Plain[] | { [key: string]: Plain };
 
-/** Firestore values as JSON: timestamps become ISO strings, references their paths */
-function toPlain(value: unknown): Plain {
+const DROP = Symbol('drop');
+
+/** instanceof that tolerates a stubbed module (the shared test setup fakes firestore) */
+function isA<T>(type: unknown, value: unknown): value is T {
+  return typeof type === 'function' && value instanceof type;
+}
+
+/**
+ * Firestore values as JSON, with secrets removed: timestamps become ISO strings,
+ * references their paths, and a string holding JSON is filtered like any object and
+ * kept as a string. Secret fields and secret-looking values are dropped.
+ */
+function clean(value: unknown): Plain | typeof DROP {
   if (value === null || value === undefined) return null;
-  if (value instanceof Timestamp) return value.toDate().toISOString();
+  if (isA<Timestamp>(Timestamp, value)) return value.toDate().toISOString();
   if (value instanceof Date) return value.toISOString();
-  if (Array.isArray(value)) return value.map(toPlain);
+  if (isA<DocumentReference>(DocumentReference, value)) return value.path;
+  if (typeof value === 'string') return cleanString(value);
+  if (Array.isArray(value)) return value.map(clean).filter((v): v is Plain => v !== DROP);
+  // Bytes: nothing a person reads, and the one shape a key name can't describe
+  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return DROP;
   if (typeof value === 'object') {
-    const path = (value as { path?: unknown; firestore?: unknown }).firestore
-      ? (value as { path?: unknown }).path
-      : undefined;
-    if (typeof path === 'string') return path;
-    const fields = Object.entries(value).filter(([k]) => !isSecretField(k));
-    return Object.fromEntries(fields.map(([k, v]) => [k, toPlain(v)]));
+    // No prototype, so a stored "__proto__" key is an own field the filter sees, not a setter
+    const out = Object.create(null) as Record<string, Plain>;
+    for (const [k, v] of Object.entries(value)) {
+      if (isSecretField(k)) continue;
+      const kept = clean(v);
+      if (kept !== DROP) out[k] = kept;
+    }
+    return out;
   }
-  return value as string | number | boolean;
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  return DROP; // functions, symbols, bigints: nothing a person stored
+}
+
+function cleanString(value: string): Plain | typeof DROP {
+  if (isSecretValue(value)) return DROP;
+  const trimmed = value.trim();
+  if (!/^[[{"]/.test(trimmed)) return value;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return value; // looks like JSON but isn't: plain text
+  }
+  // A JSON string literal may hold JSON again (double-encoded): clean() reaches it too
+  const kept = clean(parsed);
+  return kept === DROP ? DROP : JSON.stringify(kept);
+}
+
+/** A stored value as it goes into the export file (exported for tests) */
+export function toPlain(value: unknown): Plain {
+  const kept = clean(value);
+  return kept === DROP ? null : kept;
 }
 
 function pick(data: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {

@@ -2,13 +2,18 @@
  * The export's two filters: the store allowlist (a store is exported only once someone has
  * reviewed it) and the secret-field filter (whole words, so ordinary fields survive).
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   EXPORTED_STORES,
   isSecretField,
+  isSecretValue,
   KNOWN_USER_STORES,
+  toPlain,
   WITHHELD_STORES,
 } from '../user-records-export.js';
+
+// The shared setup fakes firestore; the value cleaner checks its real Timestamp class
+vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
 
 describe('secret fields', () => {
   it.each([
@@ -32,6 +37,29 @@ describe('secret fields', () => {
     'clientSecret',
     'webauthnCredential',
     'privateKey',
+    // the same key spelled every way: camel, snake, kebab, upper, dotted, spaced
+    'accessToken',
+    'access_token',
+    'access-token',
+    'ACCESS_TOKEN',
+    'Access.Token',
+    'access token',
+    'APIKey',
+    'X-API-KEY',
+    'idToken',
+    'ID_TOKEN',
+    'pushSubscription',
+    'push_subscription',
+    'keys.auth',
+    'keys.p256dh',
+    'Authorization',
+    'mfaSecret',
+    'AUTH',
+    'Pin',
+    'otp_code',
+    // look-alikes a byte-wise match misses: full-width letters, a zero-width space
+    'ａｃｃｅｓｓＴｏｋｅｎ',
+    'access\u200bToken',
   ])('drops %s', (key) => expect(isSecretField(key)).toBe(true));
 
   it.each([
@@ -46,7 +74,75 @@ describe('secret fields', () => {
     'keystone',
     'hashtags',
     'notes',
+    'title',
+    'relationship',
   ])('keeps %s', (key) => expect(isSecretField(key)).toBe(false));
+
+  it.each([
+    'Bearer abc.def',
+    'ya29.a0AfH6SM',
+    'eyJhbGciOiJIUzI1.eyJzdWIiOiIxMjM0.sig',
+    'sk_live_51H',
+    'https://fcm.googleapis.com/fcm/send/abc',
+    '-----BEGIN RSA PRIVATE KEY-----\nMII',
+  ])('drops a credential-looking value %s', (value) => expect(isSecretValue(value)).toBe(true));
+});
+
+describe('the value written to the file', () => {
+  it('drops secrets inside arrays of objects and nested maps', () => {
+    const out = JSON.stringify(
+      toPlain({
+        title: 'Lunch',
+        attendees: [
+          { name: 'Sam', access_token: 's1' },
+          { name: 'Ana', 'push-subscription': { a: 's2' } },
+        ],
+        meta: { deep: [[{ ID_TOKEN: 's3', keep: 'k' }]] },
+      })
+    );
+    expect(out).not.toMatch(/s1|s2|s3/);
+    expect(out).toContain('"name":"Sam"');
+    expect(out).toContain('"keep":"k"');
+  });
+
+  it('filters JSON kept as a string, nested strings included, and keeps it a string', () => {
+    const inner = JSON.stringify({ refreshToken: 's4', note: 'hi' });
+    const stored = JSON.stringify({ list: [{ apiKey: 's5', label: 'ok' }], inner });
+    const out = toPlain({ blob: stored, raw: '{not json', text: 'plain' }) as Record<
+      string,
+      string
+    >;
+    expect(JSON.stringify(out)).not.toMatch(/s4|s5/);
+    expect(JSON.parse(out.blob!).list[0].label).toBe('ok');
+    expect(JSON.parse(JSON.parse(out.blob!).inner).note).toBe('hi');
+    expect(out.raw).toBe('{not json');
+    expect(out.text).toBe('plain');
+  });
+
+  it('writes a Firestore timestamp as an ISO string', async () => {
+    const { Timestamp } = await import('firebase-admin/firestore');
+    expect(toPlain({ at: Timestamp.fromMillis(0) })).toEqual({ at: '1970-01-01T00:00:00.000Z' });
+  });
+
+  it('filters double-encoded JSON, drops bytes, and treats a "__proto__" key as a field', () => {
+    const twice = JSON.stringify(JSON.stringify({ sessionToken: 's6', ok: 1 }));
+    const stored = JSON.parse('{"__proto__": {"apiKey": "s7", "label": "p"}}') as unknown;
+    const out = JSON.stringify(
+      toPlain({ twice, bytes: Buffer.from('s8-secret'), stored, said: '"Hello," she said' })
+    );
+    expect(out).not.toMatch(/s6|s7/);
+    expect(JSON.parse(out)).not.toHaveProperty('bytes');
+    expect(out).toContain('label');
+    expect(out).toContain('she said');
+  });
+
+  it('drops a credential value under an innocent key', () => {
+    const out = JSON.stringify(
+      toPlain({ note: 'Bearer zz-secret', items: ['ya29.zz-secret', 'milk'] })
+    );
+    expect(out).not.toContain('zz-secret');
+    expect(out).toContain('milk');
+  });
 });
 
 describe('store allowlist', () => {

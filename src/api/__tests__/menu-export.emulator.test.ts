@@ -50,7 +50,9 @@ async function seed(store: string, uid: string, marker: string): Promise<void> {
     await db.doc(path).set({ marker }, { merge: true });
   } else if (parts.length === 1) {
     const field = store === 'sponsored_identities' ? 'sponsorUserId' : 'userId';
-    await db.collection(path).add({ [field]: uid, marker, lastInteraction: new Date() });
+    await db
+      .collection(path)
+      .add({ [field]: uid, name: marker, marker, lastInteraction: new Date() });
   } else {
     await db.collection(path).add({ marker, at: new Date() });
   }
@@ -113,6 +115,13 @@ describe.skipIf(!emulator)('export carries every known user store (Firestore emu
       zipCode: '33701',
       attendees: [{ name: 'Sam', accessToken: 'n-secret' }],
       meta: { keys: { auth: 'm-secret' }, passwordHash: 'h-secret', otp: '123987' },
+      // the same secrets spelled to dodge a byte-wise match, and kept as a JSON string
+      'ID-TOKEN': 'idt-secret',
+      APIKey: 'apik-secret',
+      pushSubscription: JSON.stringify({ endpoint: 'https://x/ps-secret', note: 'device' }),
+      shared: [{ who: 'Ana', 'access.token': 'dot-secret' }],
+      note: 'Bearer bearer-secret',
+      settings: JSON.stringify({ refreshToken: 'json-secret', theme: 'dark' }),
     });
     // A sponsored identity: what the sponsor entered, not the family member's own record
     await db.collection('sponsored_identities').add({
@@ -133,6 +142,7 @@ describe.skipIf(!emulator)('export carries every known user store (Firestore emu
     expect(Object.keys(records)).not.toContain('bogle_users/{uid}/push_subscriptions');
     for (const kept of [
       'Dana',
+      '\\"theme\\":\\"dark\\"',
       'Lunch with Sam',
       '"name":"Sam"',
       '33701',
