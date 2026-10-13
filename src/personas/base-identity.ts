@@ -12,13 +12,13 @@
  * NOTE: This is intentionally similar to src/persona/core-identity.ts
  * The difference:
  *   - THIS FILE (base-identity.ts): Generic rules for ANY persona
- *   - core-identity.ts: Jack Bogle's FULL identity (includes his specific character)
+ *   - core-identity.ts: the legacy single-persona identity (its specific character)
  *
  * For new personas, use buildSystemPrompt(personaSpecificContent) which
  * combines these generic rules with your persona's unique content.
  *
- * Jack Bogle's agent uses CORE_IDENTITY directly because it has
- * additional Jack-specific character details baked in.
+ * The legacy single-persona agent used CORE_IDENTITY directly because it had
+ * additional character details baked in.
  */
 
 export const BASE_IDENTITY_RULES = `

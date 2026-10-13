@@ -1,6 +1,6 @@
 ---
-title: "Performance Optimization: Achieving Sub-200ms Response Times"
-excerpt: "How Ferni delivers real-time voice AI - and how you can optimize your integration for the best user experience."
+title: "Performance Optimization: Keeping Your Code Out of the Latency Budget"
+excerpt: "Where the time goes in a voice turn, and how to keep your integration from adding to it."
 author: "Ferni Dev Team"
 authorInitials: "FD"
 authorColor: "#4a6741"
@@ -12,9 +12,9 @@ readTime: 10
 
 In voice AI, latency is everything.
 
-Humans perceive delays over 200ms as unnatural. Above 500ms, conversations feel broken. Our goal is to make voice AI feel as natural as talking to a friend.
+In everyday conversation, the gap between one person finishing and the other starting is often only a few hundred milliseconds. Our goal is to make voice AI feel as natural as talking to a friend.
 
-Here's how we achieve it - and how you can too.
+We're not there yet. Today a Ferni reply takes around two seconds end to end, most of it in the model. That's why the time your own code adds matters: every millisecond it spends lands on top of a budget that's already tight. Here's how to keep your share small.
 
 ## The Latency Budget
 
@@ -24,8 +24,8 @@ A voice interaction has multiple stages:
 User speaks → STT → LLM → Your code → TTS → User hears
               50ms   80ms   ???ms     60ms
 
-Total budget: 200ms
-Your budget:  ~10ms
+Ideal budget: 200ms
+Your share:   ~10ms
 ```
 
 Every millisecond in "Your code" directly impacts user experience.
@@ -355,12 +355,12 @@ Before going live:
 
 ## Benchmarks
 
-Our target metrics for production deployments:
+Targets we suggest for the latency your integration adds (these are goals, not measurements of Ferni):
 
 | Metric | Target | Acceptable |
 |--------|--------|------------|
-| End-to-end latency (p50) | <150ms | <200ms |
-| End-to-end latency (p95) | <200ms | <300ms |
+| Added latency per turn (p50) | <150ms | <200ms |
+| Added latency per turn (p95) | <200ms | <300ms |
 | Context load time | <10ms | <25ms |
 | Database queries | <5ms | <10ms |
 | Cache hit rate | >80% | >60% |
@@ -370,7 +370,7 @@ Our target metrics for production deployments:
 ## Next Steps
 
 - [Scaling Guide](/developers/docs/scaling/)
-- [Monitoring & Observability](/developers/blog/monitoring-guide/)
+- [Monitoring & Observability](/developers/blog/monitoring-observability-voice-ai/)
 - [Infrastructure Patterns](/developers/docs/infrastructure/)
 
 Questions? Join us on [Discord](https://discord.gg/ferni).

@@ -22,10 +22,14 @@ import {
   presenceSoundsEnabled,
 } from './presence-watcher.js';
 import { startToolHum } from './tool-hum.js';
+import { startVoicedPresence, voicedPresenceEnabled } from './voiced-presence.js';
 import { reactionSidetrackDirect, startDirectClips } from './direct-clip-track.js';
 import { LAUGH_CLIP } from './backchannel-policy.js';
 import { callerVenting } from '../personas/turn-extras.js';
 import { quirkAwarenessEnabled, recordQuirk } from '../../services/session/quirk-log.js';
+import { withBackchannelSignal } from './backchannel-signal.js';
+import { createDataMessageSender } from '../shared/data-message-envelope.js';
+import { avatarListenSignalsEnabled } from '../realtime/listen-turn-signals.js';
 
 const log = createLogger({ module: 'ClipPlayer' });
 
@@ -156,8 +160,9 @@ const BACKCHANNEL_VOLUME = 0.75;
  *
  * REACTION_SIDETRACK=direct: backchannel, laugh and opening clips play on a
  * mixer-free track (direct-clip-track.ts, ~56 ms to the wire instead of
- * ~650); presence sounds and the tool hum stay on the mixer track. One clip
- * at a time across both, and one lastPlayedAt for all of them.
+ * ~650); presence sounds and the tool hum stay on the mixer track, except
+ * VOICED_PRESENCE takes (voiced-presence.ts), which play direct. One clip at a
+ * time across both, and one lastPlayedAt for all of them.
  */
 export async function startBackchannelClips(
   room: Room,
@@ -198,6 +203,13 @@ export async function startBackchannelClips(
     personaId
   );
   const stopToolHum = startToolHum(session, player);
+  const voiced = startVoicedPresence({
+    session,
+    direct,
+    mixerBusy: () => player.playing,
+    getClip,
+    personaId,
+  });
   const playClip = (text: string, opts?: { pauseStartedAt?: number }): boolean => {
     const pcm = getClip(text, personaId());
     if (pcm === null) return false;
@@ -214,16 +226,25 @@ export async function startBackchannelClips(
     return true;
   };
   const cancelFresh = (): boolean => direct?.cancelIfFresh() ?? false;
+  const wireDelayMs = (): number =>
+    direct ? (direct.lastWireMs ?? 60) : process.env.CLIP_TRACK_PACED === 'on' ? 220 : 650;
+  // Live backchannels and laughs (not the turn-opening "Mm") tell the avatar they played.
+  // VOICED_PRESENCE varies the live picks; the signal wraps the variation so
+  // its kind follows the requested clip (a laugh take still signals 'laugh').
+  const variedPlayClip = voiced?.vary(playClip) ?? playClip;
+  const livePlayClip = avatarListenSignalsEnabled()
+    ? withBackchannelSignal(variedPlayClip, createDataMessageSender(room), wireDelayMs)
+    : variedPlayClip;
   return {
     playClip,
     lastPlayedAt: () => lastPlayedAt,
     cancelFresh,
-    wireDelayMs: () =>
-      direct ? (direct.lastWireMs ?? 60) : process.env.CLIP_TRACK_PACED === 'on' ? 220 : 650,
-    live: { playClip, cancelClip: cancelFresh },
+    wireDelayMs,
+    live: { playClip: livePlayClip, cancelClip: cancelFresh },
     close: async () => {
       stopPresence();
       stopToolHum();
+      voiced?.close();
       await direct?.close();
       await player.close();
     },
@@ -245,7 +266,8 @@ function startPresenceSounds(
   otherTrackBusy: () => boolean = () => false,
   personaId: () => string = () => 'ferni'
 ): () => void {
-  if (!presenceSoundsEnabled()) return () => {};
+  // VOICED_PRESENCE: no whistle or snore until researched; voiced-presence.ts fills the quiet.
+  if (!presenceSoundsEnabled() || voicedPresenceEnabled()) return () => {};
   const mood = () =>
     (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
       ?.primary;
