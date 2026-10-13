@@ -22,11 +22,8 @@ import {
   TEMP_CONTENT,
   MAX_TOKENS_SHORT,
 } from '../../config/gemini-config.js';
-import {
-  BRAND_ACCENT,
-  getPersonaColor,
-  getPersonaGlowColor,
-} from '../../config/brand-colors.js';
+import { getGenerativeModel } from '../../config/generative-model.js';
+import { BRAND_ACCENT, getPersonaColor, getPersonaGlowColor } from '../../config/brand-colors.js';
 
 const log = createLogger({ module: 'LLMContentGenerator' });
 
@@ -336,21 +333,16 @@ interface LLMProvider {
   generate(prompt: string, systemPrompt: string): Promise<string>;
 }
 
-// Default to Gemini via existing infrastructure
+// The shared Gemini client (Vertex via ADC on Cloud Run, so no API key needed)
 async function getDefaultLLMProvider(): Promise<LLMProvider> {
   try {
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-
-    if (!apiKey) {
-      log.warn('No Google API key found, using fallback content generation');
-      return getFallbackProvider();
-    }
-
-    const genAI = new GoogleGenerativeAI(apiKey);
     // Use content generation model (can be overridden via env)
     const modelName = process.env.GEMINI_OUTREACH_MODEL || getContentGenerationModel();
-    const model = genAI.getGenerativeModel({ model: modelName });
+    const model = await getGenerativeModel({ model: modelName });
+    if (!model) {
+      log.warn('Gemini client not configured, using fallback content generation');
+      return getFallbackProvider();
+    }
 
     return {
       async generate(prompt: string, systemPrompt: string): Promise<string> {
@@ -361,7 +353,9 @@ async function getDefaultLLMProvider(): Promise<LLMProvider> {
             maxOutputTokens: MAX_TOKENS_SHORT,
           },
         });
-        return result.response.text().trim();
+        const text = result.response.text().trim();
+        if (!text) throw new Error(`Empty reply from ${modelName}`); // never send a blank text
+        return text;
       },
     };
   } catch (error) {

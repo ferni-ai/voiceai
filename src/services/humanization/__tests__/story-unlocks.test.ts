@@ -193,9 +193,9 @@ describe('StoryUnlocks', () => {
         storiesTold: ['tanaka-san'],
       });
 
-      // 'tsunami' requires 'tanaka-san' as prerequisite
-      const unlockedWithout = isStoryUnlocked('tsunami', withoutPrereq);
-      const unlockedWith = isStoryUnlocked('tsunami', withPrereq);
+      // 'the-ridge' requires 'tanaka-san' as prerequisite
+      const unlockedWithout = isStoryUnlocked('the-ridge', withoutPrereq);
+      const unlockedWith = isStoryUnlocked('the-ridge', withPrereq);
 
       expect(unlockedWithout).toBe(false);
       expect(unlockedWith).toBe(true);
@@ -226,7 +226,7 @@ describe('StoryUnlocks', () => {
       const stories = getStoriesByDepth('sacred');
 
       expect(stories.length).toBeGreaterThan(0);
-      expect(stories).toContain('tsunami');
+      expect(stories).toContain('the-ridge');
     });
   });
 
@@ -317,11 +317,11 @@ describe('StoryUnlocks', () => {
 
       const followUps = getFollowUpStories('tanaka-san', context);
 
-      // Tsunami requires tanaka-san as prerequisite
-      // If implementation finds follow-ups, check for tsunami
+      // The ridge requires tanaka-san as prerequisite
+      // If implementation finds follow-ups, check for the ridge
       if (followUps.length > 0) {
-        const tsunamiFollowUp = followUps.find((f) => f.story.id === 'tsunami');
-        expect(tsunamiFollowUp).toBeDefined();
+        const ridgeFollowUp = followUps.find((f) => f.story.id === 'the-ridge');
+        expect(ridgeFollowUp).toBeDefined();
       } else {
         // Function may return empty if prerequisites aren't met in this context
         expect(followUps).toEqual([]);
@@ -351,7 +351,7 @@ describe('StoryUnlocks', () => {
       expect(ids.length).toBeGreaterThan(10);
       expect(ids).toContain('wyoming-sky');
       expect(ids).toContain('tanaka-san');
-      expect(ids).toContain('tsunami');
+      expect(ids).toContain('the-ridge');
     });
   });
 

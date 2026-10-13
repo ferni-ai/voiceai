@@ -14,6 +14,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { getAgent, getTool, listAgents, listTools } from '../../marketplace/index.js';
+import { isKnownId } from '../../personas/persona-ids.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
 
@@ -178,11 +179,12 @@ export async function handleBrowseRoutes(
         return true;
       }
 
-      // Add path field to each agent for manifest loading
-      const agentsWithPath = registry.agents.map((agent) => ({
-        ...agent,
-        path: `agents/${agent.id}`,
-      }));
+      // List only agents the voice agent can actually be. An id it doesn't know resolves
+      // to Ferni (personas/persona-ids.ts toCanonical), so listing one promised a new
+      // friend who never shows up. No registry agent has a persona bundle yet.
+      const agentsWithPath = registry.agents
+        .filter((agent) => isKnownId(agent.id))
+        .map((agent) => ({ ...agent, path: `agents/${agent.id}` }));
 
       sendJson(res, 200, {
         ...registry,

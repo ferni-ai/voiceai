@@ -64,6 +64,35 @@ describe('director notes', () => {
     ).toHaveLength(1);
   });
 
+  it('drops a note that says the caller is testing whether Ferni notices', () => {
+    // Prod 2026-10-12: STT heard "Ferni" as "Freddy"; this note made Ferni ask "Who's Freddy?".
+    const call = [
+      { speaker: 'user' as const, text: 'How are you doing, Freddy?' },
+      { speaker: 'ferni' as const, text: 'Hanging in there.' },
+    ];
+    for (const note of [
+      'He called you "Freddy." He might be distracted or playfully testing if you\'ll notice the wrong name.',
+      "He called you Freddy, seeing if you'll notice.",
+      'He called you Freddy, testing whether you remember your name.',
+    ]) {
+      expect(parseNotes(note, call), note).toEqual([]);
+    }
+    // Testing that isn't about Ferni stays.
+    const music = [
+      {
+        speaker: 'user' as const,
+        text: 'Are you testing the new music? Checking if the timer works.',
+      },
+      { speaker: 'ferni' as const, text: 'Mm, which one?' },
+    ];
+    expect(
+      parseNotes("Seth asked if you're testing the new music; answer directly.", music)
+    ).toHaveLength(1);
+    expect(parseNotes('He is checking if the timer works; tell him it does.', music)).toHaveLength(
+      1
+    );
+  });
+
   it('drops a note that points back at an earlier line with "answer that"', () => {
     const call = [
       {

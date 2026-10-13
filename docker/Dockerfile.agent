@@ -190,6 +190,9 @@ RUN rm -rf dist && pnpm run build:fast && \
 COPY patches/ ./patches/
 # Refuses a partial prod install (see scripts/docker/verify-node-modules.cjs).
 COPY scripts/docker/verify-node-modules.cjs /tmp/verify-node-modules.cjs
+# Fails the build when a package src/ imports lazily can't load after the prune
+# (see scripts/docker/runtime-imports.mjs; the suffix-thumb outage, #989).
+COPY scripts/docker/runtime-imports.mjs /tmp/runtime-imports.mjs
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     echo "=== Preparing production node_modules ===" && \
     mkdir -p /prod-deps && \
@@ -209,8 +212,8 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     { find node_modules -name "*.ts" ! -name "*.d.ts" -delete 2>/dev/null || true; } && \
     { find node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" \
       -o -name "docs" \) ! -path "*/suffix-thumb/*" -exec rm -rf {} + 2>/dev/null || true; } && \
-    echo "=== Checking pruned packages still load ===" && \
-    node --input-type=module -e "await import('compromise'); await import('compromise-dates')" && \
+    echo "=== Checking lazily imported packages still load ===" && \
+    node /tmp/runtime-imports.mjs /app/src /prod-deps && \
     echo "=== Patching LiveKit SDK timeouts ===" && \
     find node_modules -name "worker.js" -o -name "worker.cjs" | xargs -I{} sh -c ' \
       grep -q "initializeTimeout: 3e4" "{}" && \

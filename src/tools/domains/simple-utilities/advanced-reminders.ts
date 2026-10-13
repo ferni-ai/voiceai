@@ -19,6 +19,8 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { trackCapabilityUsage } from './shortcuts-tools.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { createReminder, userTimeZone } from '../../../services/scheduling/reminder-scheduler.js';
+import { formatStoredLocalTime, WallClock } from '../../../utils/time-zone.js';
 
 const log = getLogger();
 
@@ -235,7 +237,8 @@ const locationReminderDef: ToolDefinition = {
         await saveLocationReminder(ctx.userId || 'anon', reminder);
 
         const triggerPhrase = triggerOn === 'arrive' ? 'get to' : 'leave';
-        return `Got it! I'll remind you to "${message}" when you ${triggerPhrase} ${locationName}. Make sure location services are enabled on your device for this to work.`;
+        // Nothing reads location_reminders to deliver them, so promise nothing.
+        return `Saved a note: "${message}" when they ${triggerPhrase} ${locationName}. Location reminders aren't delivered yet: nothing will ping them there. Say so plainly.`;
       },
     });
   },
@@ -355,19 +358,15 @@ const recurringReminderDef: ToolDefinition = {
             recurrencePattern = { type: 'daily' };
         }
 
-        const nextOccurrence = calculateNextOccurrence(recurrencePattern, parsedTime);
-
-        // Get user's timezone preference, defaulting to UTC (neutral for international users)
-        let userTimezone = 'Etc/UTC';
+        // The user's zone: their call's, else the profile's, else UTC.
+        let userTimezone = userTimeZone(ctx) ?? 'Etc/UTC';
         try {
-          const store = await getProfileStore();
-          const profile = await store.getProfile(ctx.userId || 'anon');
-          if (profile?.contactInfo?.timezone) {
-            userTimezone = profile.contactInfo.timezone;
-          }
+          const profile = await (await getProfileStore()).getProfile(ctx.userId || 'anon');
+          userTimezone = userTimeZone(ctx) ?? profile?.contactInfo?.timezone ?? userTimezone;
         } catch {
           // Fallback to default timezone
         }
+        const nextOccurrence = calculateNextOccurrence(recurrencePattern, parsedTime, userTimezone);
 
         const reminder: RecurringReminder = {
           id: `rec_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
@@ -383,8 +382,19 @@ const recurringReminderDef: ToolDefinition = {
 
         await saveRecurringReminder(ctx.userId || 'anon', reminder);
 
-        const patternDescription = describePattern(recurrencePattern);
-        return `Got it! I'll remind you "${message}" ${patternDescription} at ${formatTime(parsedTime)}. First reminder: ${formatNextOccurrence(nextOccurrence)}.`;
+        // Nothing delivers from recurring_reminders, so only the first occurrence is a
+        // real reminder (the store the delivery job fires); say exactly that.
+        await createReminder({
+          userId: ctx.userId || 'anon',
+          message,
+          scheduledFor: new Date(nextOccurrence),
+          timezone: userTimezone,
+          deliveryMethod: 'voice_message',
+          deliveryAddress: `voice:${ctx.userId || 'anon'}`,
+          createdBy: ctx.agentId || 'ferni',
+        });
+        const when = formatStoredLocalTime(new Date(nextOccurrence), userTimezone);
+        return `Saved: ${when}, one reminder to "${message}", sent as a message in the Ferni app. It does not repeat ${describePattern(recurrencePattern)}: repeating reminders aren't supported yet. Tell them plainly you'll remind them this once but can't do it ${describePattern(recurrencePattern)} yet.`;
       },
     });
   },
@@ -423,7 +433,7 @@ const listRecurringRemindersDef: ToolDefinition = {
           })
           .join('\n');
 
-        return `**Your recurring reminders:**\n${list}`;
+        return `Saved routines (only the first time of each was sent as a reminder; they don't repeat yet):\n${list}`;
       },
     });
   },
@@ -559,14 +569,15 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-function calculateNextOccurrence(pattern: RecurrencePattern, time: string): number {
+/** The next time this pattern comes round, at `time` on the user's wall clock. */
+function calculateNextOccurrence(pattern: RecurrencePattern, time: string, zone: string): number {
   const [hours, minutes] = time.split(':').map(Number);
   const now = new Date();
-  const next = new Date();
+  const next = new WallClock(now, zone);
   next.setHours(hours, minutes, 0, 0);
 
   // If time has passed today, start from tomorrow
-  if (next <= now) {
+  if (next.toDate() <= now) {
     next.setDate(next.getDate() + 1);
   }
 
@@ -603,37 +614,17 @@ function calculateNextOccurrence(pattern: RecurrencePattern, time: string): numb
     }
 
     if (matches) {
-      return next.getTime();
+      return next.toDate().getTime();
     }
 
     next.setDate(next.getDate() + 1);
   }
 
   // Fallback: return tomorrow
-  const fallback = new Date();
+  const fallback = new WallClock(now, zone);
   fallback.setDate(fallback.getDate() + 1);
   fallback.setHours(hours, minutes, 0, 0);
-  return fallback.getTime();
-}
-
-function formatNextOccurrence(timestamp: number): string {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  const timeStr = formatTime(
-    `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
-  );
-
-  if (date.toDateString() === now.toDateString()) {
-    return `today at ${timeStr}`;
-  } else if (date.toDateString() === tomorrow.toDateString()) {
-    return `tomorrow at ${timeStr}`;
-  } else {
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return `${dayNames[date.getDay()]} at ${timeStr}`;
-  }
+  return fallback.toDate().getTime();
 }
 
 // ============================================================================

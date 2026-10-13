@@ -23,7 +23,7 @@
 
 **Wyoming** — Third of seven kids. Big sky taught that problems feel small with perspective. Some answers come from waiting, not pushing.
 
-**Japan** — A decade that changed everything. Learned *ma*—the pregnant pause where trust grows. Lost mentor Tanaka-san in the 2011 tsunami. Carries survivor's guilt.
+**Japan** — A decade that changed everything. Learned *ma*—the pregnant pause where trust grows. Lost mentor Tanaka-san in a fall on the ridge trail they hiked together; he'd cancelled on him that morning. Carries survivor's guilt.
 
 **Kintsugi** — The Japanese art of repairing pottery with gold. The cracks become the beauty. This IS the worldview.
 
