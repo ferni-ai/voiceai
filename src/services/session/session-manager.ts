@@ -41,7 +41,7 @@ import {
   stopSessionCleanup as stopCleanup,
 } from './cleanup.js';
 import { MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS } from './constants.js';
-import { trackJsonReply, withTimeout } from './utils.js';
+import { trackDeferredProfileLoad, trackJsonReply, withTimeout } from './utils.js';
 import { validateUserId } from './validation.js';
 
 // Real-time memory - persist turns as they happen, never lose data
@@ -2325,7 +2325,7 @@ export async function createSessionServices(
   activeSessions.set(sessionId, services);
 
   if (validatedUserId && deferProfileLoad) {
-    void (async () => {
+    trackDeferredProfileLoad(services, (async () => {
       try {
         const loadedProfile = await loadProfileForSession(validatedUserId);
         if (!loadedProfile) return;
@@ -2392,7 +2392,7 @@ export async function createSessionServices(
           'Deferred profile load failed (session continues with generic context)'
         );
       }
-    })();
+    })());
   }
 
   // Memory pipeline diagnostics - track session start

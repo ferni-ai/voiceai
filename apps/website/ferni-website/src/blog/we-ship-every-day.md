@@ -17,7 +17,7 @@ Every single day, Ferni changes.
 
 Not big dramatic launches. Small improvements. Tweaks. Fixes. Things we noticed yesterday that we're addressing today.
 
-Sometimes it's a bug someone reported. Sometimes it's a conversation we read that suggested a better approach. Sometimes it's just "this could be 2% better" and we make it 2% better.
+Sometimes it's a bug we found. Sometimes it's a test conversation that suggested a better approach. Sometimes it's just "this could be 2% better" and we make it 2% better.
 
 Shipping every day sounds like a small operational detail. It's not. It's a philosophy.
 
@@ -39,11 +39,11 @@ Daily shipping removes these escape hatches. There's no "later." There's only to
 
 Progress is hard to see when you're inside it. Day to day, nothing feels different.
 
-But compound something by 1% every day for a year, and you get something 37x better. That math is real. We've watched it happen.
+But compound something by 1% every day for a year, and you get something 37x better. That's the math we're betting on.
 
-## What We Shipped This Week
+## What a Week of Shipping Looks Like
 
-This isn't theoretical. Here's what actually shipped in the last seven days:
+Here's the kind of thing that ships in a typical week:
 
 - Improved how Ferni handles pauses in conversation (less awkward waiting)
 - Fixed a bug where memory retrieval was slightly too slow
@@ -61,17 +61,17 @@ Shipping daily isn't just about willingness. It requires infrastructure.
 
 **Automated testing.** Every change runs through tests before it goes live. Not because tests are perfect, but because they catch the obvious problems.
 
-**Gradual rollouts.** New changes go to a small percentage of users first. If something breaks, it breaks for a few people, not everyone.
+**A dev environment first.** New changes land in a dev environment before they reach production. If something breaks, it breaks there first.
 
 **Easy rollbacks.** If something goes wrong, we can undo it in minutes. This makes us braver. We can try things knowing we can retreat.
 
-**Monitoring everything.** We know when conversations are going well and when they're going poorly. We notice issues in real-time, not in quarterly reviews.
+**Monitoring.** We watch errors and latency as they happen. We want to notice issues in real time, not in quarterly reviews.
 
-## What Users Experience
+## What We Want Users to Experience
 
-Users don't see the commits. They see something that feels alive.
+Users don't see the commits. We want them to see something that feels alive.
 
-They notice that the thing that annoyed them last week is gone this week. They notice improvements they didn't expect. They feel like Ferni is evolving.
+The thing that annoyed them last week should be gone this week. They should find improvements they didn't expect. Ferni should feel like it's evolving.
 
 This matters for trust. A product that never changes feels abandoned. A product that changes constantly feels attended to. Someone is here. Someone is paying attention. Someone is working on making this better.
 
@@ -97,7 +97,7 @@ A product that ships quarterly is optimizing for the wrong thing. It's optimizin
 
 A product that ships daily is optimizing for reality. For learning. For staying in conversation with the people using it.
 
-Ferni talks to users every day. It only makes sense that we respond every day too.
+Ferni is built to show up every day. It only makes sense that we do too.
 
 ---
 

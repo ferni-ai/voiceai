@@ -5,13 +5,13 @@
  * - Live text chat with Ferni (no account required)
  * - Persona preview responses
  * - Smart FAQ answers
- * - AI-generated social proof
  * - Personalized hero headlines
  *
  * @module services/landing-intelligence/ai-interactions
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { landingAiEnabled } from './landing-ai-flag.js';
 
 const log = createLogger({ module: 'LandingAIInteractions' });
 
@@ -19,8 +19,8 @@ const log = createLogger({ module: 'LandingAIInteractions' });
 // GEMINI CONFIG (uses centralized config)
 // ============================================================================
 
+import { getGenerativeAI, type GenerativeAI } from '../../config/generative-model.js';
 import {
-  getGeminiClient,
   isGeminiConfigured,
   getDefaultModel,
   TEMP_EXTRACTION,
@@ -29,7 +29,6 @@ import {
   TEMP_CREATIVE,
   MAX_TOKENS_TINY,
   MAX_TOKENS_SHORT,
-  MAX_TOKENS_MEDIUM,
 } from '../../config/gemini-config.js';
 
 // ============================================================================
@@ -39,10 +38,10 @@ import {
 // Model name comes from centralized config (GEMINI_MODEL env var)
 const MODEL_NAME = getDefaultModel();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getGenAI(): Promise<any | null> {
-  if (!isGeminiConfigured()) return null;
-  return getGeminiClient();
+// The shared Gemini client in the old SDK's shape; null (static fallbacks) when LANDING_AI is off
+async function getGenAI(): Promise<GenerativeAI | null> {
+  if (!landingAiEnabled() || !isGeminiConfigured()) return null;
+  return getGenerativeAI();
 }
 
 // Rate limiting for demo chat (per visitor)
@@ -109,14 +108,6 @@ export interface PersonalizedHeroResponse {
   subhead: string;
   ctaText: string;
   generationReason: string;
-}
-
-export interface SocialProofSnippet {
-  type: 'conversation' | 'moment' | 'insight';
-  content: string;
-  persona?: string;
-  topic?: string;
-  time?: string;
 }
 
 // ============================================================================
@@ -261,7 +252,7 @@ export async function sendDemoChatMessage(
 async function generateChatResponse(messages: DemoChatMessage[], persona: string): Promise<string> {
   const genAI = await getGenAI();
   if (!genAI) {
-    log.warn('Gemini API not configured, using fallback response');
+    log.debug('Landing AI off or Gemini not configured, using fallback response');
     return getFallbackResponse(messages[messages.length - 1].content, persona);
   }
 
@@ -285,24 +276,21 @@ Remember: This is their first impression of Ferni. Make it count.`;
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
-    // Build conversation history
-    const history = messages.slice(0, -1).map((m) => ({
+    // Conversation history, then the new turn (what startChat().sendMessage() sent)
+    const contents = messages.slice(0, -1).map((m) => ({
       role: m.role === 'user' ? 'user' : 'model',
       parts: [{ text: m.content }],
     }));
+    const lastText = messages[messages.length - 1].content;
+    contents.push({ role: 'user', parts: [{ text: systemPrompt }, { text: lastText }] });
 
-    const chat = model.startChat({
-      history,
+    const result = await model.generateContent({
+      contents,
       generationConfig: {
         maxOutputTokens: MAX_TOKENS_TINY,
         temperature: TEMP_REASONING,
       },
     });
-
-    const result = await chat.sendMessage([
-      { text: systemPrompt },
-      { text: messages[messages.length - 1].content },
-    ]);
 
     return result.response.text();
   } catch (error) {
@@ -651,105 +639,6 @@ function getDefaultHero(request: PersonalizedHeroRequest): PersonalizedHeroRespo
     ctaText: 'Start free',
     generationReason: 'Default for new visitors',
   };
-}
-
-// ============================================================================
-// AI-GENERATED SOCIAL PROOF
-// ============================================================================
-
-const SOCIAL_PROOF_TEMPLATES = [
-  {
-    type: 'conversation' as const,
-    template:
-      'Last night at {time}, someone asked me about {topic}. We talked for 47 minutes. No timer, no "we have to wrap up." Just presence.',
-  },
-  {
-    type: 'moment' as const,
-    template:
-      "This morning, I reminded someone about a breakthrough they had 4 months ago. They'd forgotten. I hadn't.",
-  },
-  {
-    type: 'insight' as const,
-    template:
-      'Someone said "I\'m fine" three times this week. So I gently asked what was really going on. Turns out, a lot.',
-  },
-];
-
-/**
- * Generate dynamic social proof snippets
- */
-export async function generateSocialProof(count = 3): Promise<SocialProofSnippet[]> {
-  const genAI = await getGenAI();
-  if (!genAI) {
-    // Return template-based snippets
-    return SOCIAL_PROOF_TEMPLATES.slice(0, count).map((t) => ({
-      type: t.type,
-      content: t.template.replace('{time}', getRandomTime()).replace('{topic}', getRandomTopic()),
-    }));
-  }
-
-  const prompt = `Generate ${count} social proof snippets for Ferni's landing page.
-
-Each should be a brief (1-2 sentence) moment that shows Ferni's superpowers:
-- Infinite memory (remembering details from months ago)
-- Always available (2am conversations)
-- Reading between lines (noticing what's not said)
-- Six perspectives (different specialists)
-
-Format as JSON array:
-[
-  {
-    "type": "conversation|moment|insight",
-    "content": "The snippet text",
-    "persona": "ferni|maya|peter|alex|jordan|nayan",
-    "topic": "career|relationship|habit|stress|decision",
-    "time": "2:47 AM|last Tuesday|3 months ago"
-  }
-]
-
-Make them feel REAL and specific, not generic. No made-up names.`;
-
-  try {
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        maxOutputTokens: MAX_TOKENS_MEDIUM,
-        temperature: TEMP_CREATIVE,
-        responseMimeType: 'application/json',
-      },
-    });
-
-    return JSON.parse(result.response.text());
-  } catch (error) {
-    log.error({ error }, 'Failed to generate social proof');
-    return SOCIAL_PROOF_TEMPLATES.slice(0, count).map((t) => ({
-      type: t.type,
-      content: t.template.replace('{time}', getRandomTime()).replace('{topic}', getRandomTopic()),
-    }));
-  }
-}
-
-function getRandomTime(): string {
-  const times = [
-    '2:47 AM',
-    '3:12 AM',
-    '11:34 PM',
-    'last Tuesday at midnight',
-    'early this morning',
-  ];
-  return times[Math.floor(Math.random() * times.length)];
-}
-
-function getRandomTopic(): string {
-  const topics = [
-    'a difficult conversation with their mom',
-    'whether to take the new job',
-    "a relationship that wasn't working",
-    'building a morning routine',
-    "stress they couldn't shake",
-  ];
-  return topics[Math.floor(Math.random() * topics.length)];
 }
 
 // ============================================================================
