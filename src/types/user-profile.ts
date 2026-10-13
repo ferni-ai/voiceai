@@ -1034,7 +1034,7 @@ export interface UserProfile {
       timesReferenced: number;
     }>;
 
-    // Jack Bogle - Funds, philosophy, allocations
+    // Index-investing memories (legacy key) - Funds, philosophy, allocations
     bogle?: Array<{
       id: string;
       type: 'fund' | 'philosophy' | 'allocation' | 'wisdom' | 'avoid';

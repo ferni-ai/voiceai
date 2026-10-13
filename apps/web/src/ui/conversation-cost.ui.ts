@@ -19,6 +19,8 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { formatCurrency, formatNumber, t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
+import { anchorAboveControls, anchoredCardCss } from './after-call/anchor-above-controls.js';
+import { openSupport } from './support/open-support.js';
 
 const log = createLogger('ConversationCostUI');
 
@@ -53,6 +55,8 @@ interface ConversationCostResponse {
 let container: HTMLElement | null = null;
 let isVisible = false;
 let dismissTimeout: ReturnType<typeof setTimeout> | null = null;
+/** Stops the card following the controls when the viewport changes. */
+let stopAnchor: (() => void) | null = null;
 
 // ============================================================================
 // STYLES
@@ -66,7 +70,6 @@ function injectStyles(): void {
   style.textContent = `
     .ferni-cost-card {
       position: fixed;
-      bottom: 120px;
       left: 50%;
       transform: translateX(-50%) translateY(20px) scale(0.95);
       opacity: 0;
@@ -181,6 +184,8 @@ function injectStyles(): void {
       color: var(--color-text-primary);
     }
 
+    ${anchoredCardCss('.ferni-cost-card')}
+
     @media (prefers-reduced-motion: reduce) {
       .ferni-cost-card {
         transition: opacity ${DURATION.FAST}ms;
@@ -281,10 +286,8 @@ function handleTipClick(_amount: string): void {
   // Hide the cost card first
   hide();
 
-  // Open the Support Ferni modal which has proper payment integration
-  import('./support-ferni.ui.js').then(({ supportFerniUI }) => {
-    void supportFerniUI.open();
-  });
+  // Venmo chip-in when configured, otherwise the Stripe Support Ferni modal
+  openSupport().catch((error: unknown) => log.warn('Support failed to open', { error: String(error) }));
 }
 
 // ============================================================================
@@ -318,6 +321,7 @@ export async function showConversationCost(): Promise<void> {
     // Create and show the card
     container = createCostCard(data);
     document.body.appendChild(container);
+    stopAnchor = anchorAboveControls(container);
 
     // Animate in
     requestAnimationFrame(() => {
@@ -343,6 +347,8 @@ export async function showConversationCost(): Promise<void> {
  */
 export function hide(): void {
   if (!container || !isVisible) return;
+  stopAnchor?.();
+  stopAnchor = null;
 
   if (dismissTimeout) {
     clearTimeout(dismissTimeout);
@@ -363,6 +369,8 @@ export function hide(): void {
  * Cleanup any existing cost cards (HMR protection)
  */
 function cleanupExisting(): void {
+  stopAnchor?.();
+  stopAnchor = null;
   document.querySelectorAll('.ferni-cost-card').forEach((el) => el.remove());
   if (dismissTimeout) {
     clearTimeout(dismissTimeout);

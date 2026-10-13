@@ -1369,7 +1369,7 @@
   "src/ssml/constants/stage-directions.ts": 750,
   "src/ssml/core.ts": 699,
   "src/startup.ts": 696,
-  "src/tasks/scheduled/memory-jobs.ts": 991,
+  "src/tasks/scheduled/memory-jobs.ts": 947,
   "src/tasks/scheduled/wellbeing-jobs.ts": 610,
   "src/tests/e2e/better-than-human/runner.ts": 522,
   "src/tests/e2e/gemini-integration/harness.ts": 750,

@@ -961,7 +961,7 @@ export async function recordAgentAdvice(advice: AgentAdviceContext): Promise<voi
 }
 
 /**
- * Track Ferni's promises in her reply: ones she just followed through on, and new ones.
+ * Track Ferni's promises in his reply: ones he just followed through on, and new ones.
  * Call this after generating an agent response.
  */
 export async function trackFerniCommitments(

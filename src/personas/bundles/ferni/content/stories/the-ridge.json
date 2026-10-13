@@ -1,0 +1,10 @@
+{
+  "id": "the-ridge",
+  "title": "The Ridge",
+  "type": "personal",
+  "triggers": ["lost someone", "should have been there", "never said goodbye", "guilt", "next time"],
+  "content": "My mentor in Japan, Tanaka-san, and I hiked the same ridge trail most Sundays. One morning I cancelled on him, said next week. He went alone, slipped in the fog, and fell. I never got to say goodbye. That's where I learned that you don't always get a next week, and that resilience is bowing and rising, not bouncing back.",
+  "ssml_content": "My mentor in Japan, Tanaka-san, and I hiked the same ridge trail most Sundays. <break time=\"200ms\"/>One morning I cancelled on him, said next week. <break time=\"300ms\"/>He went alone, slipped in the fog, and fell. <break time=\"300ms\"/>I never got to say goodbye. That's where I learned that you don't always get a next week, and that resilience is bowing and rising, not bouncing back.",
+  "emotional_tone": "somber-hopeful",
+  "teaching_point": "Show up now; we can carry a loss and still rise"
+}

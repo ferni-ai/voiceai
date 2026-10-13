@@ -87,7 +87,7 @@ function buildResearchTools(): ToolSet {
   const insights = createInsightsAnalysisTools();
 
   return {
-    // Stock research (Peter Lynch style)
+    // Stock research (bottom-up, invest-in-what-you-know style)
     analyzeStock: research.analyzeStock,
     findStockCategory: research.findStockCategory,
     calculatePEGRatio: research.calculatePEGRatio,
