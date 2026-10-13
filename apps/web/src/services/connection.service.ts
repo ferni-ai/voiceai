@@ -60,6 +60,7 @@ import type { ConnectionState, DataMessage } from '../types/events.js';
 import type { RoomState, TokenRequest } from '../types/livekit.js';
 import { createLogger } from '../utils/logger.js';
 import { agentAudioTrackKind } from './agent-audio-track.js';
+import { watchAgentDrop, type AgentLostReason } from './agent-drop-watch.js';
 import {
   AGENT_JOIN_TIMEOUT_AFTER_FAILED_DISPATCH_MS,
   AGENT_JOIN_TIMEOUT_MS,
@@ -104,6 +105,8 @@ export interface ConnectionCallbacks {
   onError?: (error: Error) => void;
   /** The room dropped without the user hanging up. The service has already cleaned up. */
   onUnexpectedDisconnect?: (reason: string) => void;
+  /** Ferni's side ended while the caller is still in the room (agent-drop-watch.ts). */
+  onAgentLost?: (reason: AgentLostReason) => void;
 }
 
 // ============================================================================
@@ -168,7 +171,6 @@ class ConnectionService {
   expectMusicTrack(): void {
     this.expectingMusicTrack = true;
 
-    // Clear any existing timeout
     if (this.expectingMusicTrackTimeout) {
       clearTimeout(this.expectingMusicTrackTimeout);
     }
@@ -430,7 +432,6 @@ class ConnectionService {
         hasFirebaseUid: !!state.firebaseUid,
       });
 
-      // Fetch token
       let tokenResponse;
       try {
         tokenResponse = await fetchConnectionToken(tokenRequest);
@@ -453,10 +454,8 @@ class ConnectionService {
       this.room = room;
       this.awaitingAgent = true;
 
-      // Set up event handlers
       this.setupRoomHandlers();
 
-      // Connect to room
       try {
         await room.connect(tokenResponse.url, tokenResponse.token, { autoSubscribe: true });
       } catch (roomError) {
@@ -580,10 +579,8 @@ class ConnectionService {
     this.isDisconnecting = true;
 
     try {
-      // Stop quality monitoring
       this.stopQualityMonitoring();
 
-      // Clean up event handlers
       this.cleanup();
 
       // Clean up cached audio elements
@@ -677,6 +674,10 @@ class ConnectionService {
 
     // 🔄 Re-enable the mic after reconnects, foregrounding and native resume (unless muted)
     this.cleanupFunctions.push(registerMicRestoreHandlers(this.room as unknown as MicRoom));
+    // Ferni's side ended with the caller still here: offer to reconnect (flag-gated)
+    const onAgentLost = (reason: AgentLostReason): void => this.callbacks.onAgentLost?.(reason);
+    const userHangingUp = (): boolean => this.isDisconnecting;
+    this.cleanupFunctions.push(watchAgentDrop(this.room, { userHangingUp, onAgentLost }));
 
     // Participant connected (agent joins)
     // During connect(), waitForAgent reports the arrival instead (including an agent already here).
@@ -690,7 +691,6 @@ class ConnectionService {
       this.room?.off('participantConnected', onParticipantConnected);
     });
 
-    // Participant disconnected
     const onParticipantDisconnected = (participant: { identity: string; isLocal?: boolean }) => {
       if (!participant.isLocal) {
         this.callbacks.onAgentDisconnected?.();

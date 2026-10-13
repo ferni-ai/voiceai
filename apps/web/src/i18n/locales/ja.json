@@ -2100,8 +2100,7 @@
     "couldNotDisconnect": "連携を解除できませんでした。もう一度試してみてくださいね。",
     "sonosConnected": "Sonosに接続しました！",
     "transcribing": "文字起こし中...",
-    "transcriptionUnavailable": "文字起こしを利用できません。音声のみを保存します。",
-    "audioSaved": "音声を保存しました！",
+    "transcriptionUnavailable": "今回は言葉を聞き取れなかったので、何も保存していません。もう一度試しますか？",
     "entrySaved": "エントリーを保存しました！",
     "couldNotSaveEntry": "エントリーを保存できませんでした。もう一度試してみてくださいね。",
     "profileSaved": "プロフィールを保存しました！",
@@ -2219,7 +2218,6 @@
       "other": "{count}件の連絡先をインポートしました！"
     },
     "integrationNowConnected": "{integration}と接続しました！",
-    "inviteSentTo": "{email}に招待を送信しました！",
     "householdMemberRemoved": "{name}を削除しました",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name}をあなたのチームに追加しました",
@@ -3857,10 +3855,12 @@
       "create": "エージェントを作成",
       "empty": "エージェントはまだありません",
       "emptyHint": "最初のエージェントを作成して、大切な人の声を残したり、メンターを育てたり、あなただけのパートナーをデザインしてみましょう。",
+      "emptyHintWithoutVoice": "最初のエージェントを作成して、大切な人の思い出を残したり、メンターを育てたり、あなただけのパートナーをデザインしてみましょう。",
       "createFirst": "最初のエージェントを作成する",
       "whatYouCan": "作成できるもの",
       "legacy": "レガシー",
       "legacyDesc": "大切な人の声や知恵を未来に残す",
+      "legacyDescWithoutVoice": "大切な人の思い出や知恵を未来に残す",
       "mentor": "メンター",
       "mentorDesc": "憧れの人物をモデルにしたコーチを作成する",
       "twin": "デジタルツイン",
@@ -5063,7 +5063,8 @@
     },
     "voiceStep": {
       "title": "どんな声がいいですか？",
-      "subtitle": "声を選ぶか、クローンを作成します"
+      "subtitle": "声を選ぶか、クローンを作成します",
+      "subtitleWithoutClone": "声を選びます"
     },
     "voiceOption": {
       "cloneTitle": "声をクローンする",
@@ -7236,6 +7237,7 @@
     "legacy": {
       "name": "レガシー",
       "description": "大切な人の声と知恵を、ずっと残しておけます",
+      "descriptionWithoutVoice": "大切な人の思い出と知恵を、ずっと残しておけます",
       "feature1": "録音からの音声クローニング",
       "feature2": "お話や思い出を記録",
       "feature3": "知恵やお気に入りの言葉を保存",
@@ -9892,6 +9894,7 @@
     "timeout": "接続に時間がかかりすぎてしまいました。接続状況を確認して、もう一度試してみますか？",
     "network": "Ferniに接続できませんでした。インターネット接続を確認して、もう一度試してみますか？",
     "dropped": "接続が切れてしまいました。再接続しますか？",
+    "agentLeft": "Ferniとの通話が切れてしまいました。再接続しますか？",
     "unknown": "接続できませんでした。もう一度試してみますか？"
   },
   "ambientSounds": {
