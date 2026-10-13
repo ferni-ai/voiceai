@@ -9978,6 +9978,7 @@
     "timeout": "Ça a pris trop de temps. Tu vérifies ta connexion et tu réessaies ?",
     "network": "Impossible de joindre Ferni. Tu vérifies ta connexion internet et tu réessaies ?",
     "dropped": "La connexion a été coupée. On se reconnecte ?",
+    "agentLeft": "Ferni a quitté la ligne. On se reconnecte ?",
     "unknown": "Impossible de se connecter. Tu réessaies ?"
   },
   "ambientSounds": {

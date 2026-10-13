@@ -9894,6 +9894,7 @@
     "timeout": "That took too long. Check your connection and retry?",
     "network": "Couldn't reach Ferni. Check your internet and retry?",
     "dropped": "Lost the connection. Reconnect?",
+    "agentLeft": "Ferni dropped off the line. Reconnect?",
     "unknown": "Couldn't connect. Try again?"
   },
   "ambientSounds": {

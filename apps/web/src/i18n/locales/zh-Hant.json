@@ -9891,6 +9891,7 @@
     "timeout": "花了太多時間。檢查一下網路連線並重試好嗎？",
     "network": "無法連線到 Ferni。檢查一下網路並重試好嗎？",
     "dropped": "連線中斷了。要重新連線嗎？",
+    "agentLeft": "Ferni 斷線了。要重新連線嗎？",
     "unknown": "無法連線。要再試一次嗎？"
   },
   "ambientSounds": {
