@@ -2122,8 +2122,7 @@
     "couldNotDisconnect": "Impossible de se déconnecter. Tu veux réessayer ?",
     "sonosConnected": "Sonos connecté !",
     "transcribing": "Transcription en cours...",
-    "transcriptionUnavailable": "Transcription indisponible. Enregistrement de l'audio uniquement.",
-    "audioSaved": "Audio enregistré !",
+    "transcriptionUnavailable": "Je n'ai pas pu saisir les mots cette fois, donc rien n'a été enregistré. On réessaie ?",
     "entrySaved": "Entrée enregistrée !",
     "couldNotSaveEntry": "Impossible d'enregistrer l'entrée. Tu veux réessayer ?",
     "profileSaved": "Profil enregistré !",
@@ -2242,7 +2241,6 @@
       "many": "{count} contacts importés !"
     },
     "integrationNowConnected": "Connexion à {integration} réussie !",
-    "inviteSentTo": "Invitation envoyée à {email} !",
     "householdMemberRemoved": "Retrait de {name}",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} a rejoint ton équipe",
@@ -3889,10 +3887,12 @@
       "create": "Créer un agent",
       "empty": "Aucun agent pour l'instant",
       "emptyHint": "Crée ton premier agent personnalisé pour préserver la voix d'un proche, concevoir un mentor ou imaginer ton propre compagnon.",
+      "emptyHintWithoutVoice": "Crée ton premier agent personnalisé pour préserver les histoires d'un proche, concevoir un mentor ou imaginer ton propre compagnon.",
       "createFirst": "Créer ton premier agent",
       "whatYouCan": "Ce que tu peux créer",
       "legacy": "Héritage",
       "legacyDesc": "Préserve la voix et la sagesse d'une personne qui t'est chère",
+      "legacyDescWithoutVoice": "Préserve les histoires et la sagesse d'une personne qui t'est chère",
       "mentor": "Mentor",
       "mentorDesc": "Crée un coach inspiré d'une figure marquante",
       "twin": "Double numérique",
@@ -5104,7 +5104,8 @@
     },
     "voiceStep": {
       "title": "Quelle voix devrait-il avoir ?",
-      "subtitle": "Choisis une voix ou clones-en une"
+      "subtitle": "Choisis une voix ou clones-en une",
+      "subtitleWithoutClone": "Choisis une voix"
     },
     "voiceOption": {
       "cloneTitle": "Cloner une voix",
@@ -7292,6 +7293,7 @@
     "legacy": {
       "name": "Héritage",
       "description": "Préserve la voix et la sagesse d'une personne qui t'est chère",
+      "descriptionWithoutVoice": "Préserve les histoires et la sagesse d'une personne qui t'est chère",
       "feature1": "Clonage de voix à partir d'enregistrements",
       "feature2": "Capture d'histoires et de souvenirs",
       "feature3": "Sauvegarde de la sagesse et des expressions favorites",
@@ -8609,6 +8611,10 @@
   },
   "engagementPanel": {
     "title": "Check-in quotidien",
+    "emptyTitle": "Nos points du jour vivront ici",
+    "emptyMessage": "Rien pour l'instant, et ce n'est pas grave. Quand on fait un point du jour pendant un appel, ce que tu ressentais s'affiche ici. La prochaine fois qu'on parle, demande-moi simplement.",
+    "loadFailedTitle": "Hum, ça ne s'est pas chargé",
+    "loadFailedMessage": "C'est de mon côté, pas du tien. Attends un instant, puis rouvre ceci.",
     "yourWeek": "Ta semaine",
     "weatherTrend": "Tendance de ta météo émotionnelle",
     "howYouFeel": "Comment tu te sens",
@@ -9983,6 +9989,7 @@
     "timeout": "Ça a pris trop de temps. Tu vérifies ta connexion et tu réessaies ?",
     "network": "Impossible de joindre Ferni. Tu vérifies ta connexion internet et tu réessaies ?",
     "dropped": "La connexion a été coupée. On se reconnecte ?",
+    "agentLeft": "Ferni a quitté la ligne. On se reconnecte ?",
     "unknown": "Impossible de se connecter. Tu réessaies ?"
   },
   "ambientSounds": {
@@ -10437,22 +10444,7 @@
         "other": "J'ai le recul de {count} entrées de journal à partager."
       }
     },
-    "error": "J'ai un peu de mal à réfléchir là tout de suite. Laisse-moi un instant et réessaie ?",
-    "fallback": {
-      "advicePhilosophy": "Tu sais ce que j'ai appris ? \"{philosophy}\" Peu importe ce que tu traverses, garde ça en tête.",
-      "adviceValues": "Pense à ce qui compte pour nous : {values}. Laisse-toi guider par ça.",
-      "feelRecent": "J'ai ressenti ça aussi. Dans mon journal, j'ai écrit : \"{excerpt}...\" On a déjà surmonté ça.",
-      "feelDefault": "Je te comprends. On a déjà traversé des moments difficiles et on a trouvé notre chemin. Qu'est-ce qui te tracasse vraiment ?",
-      "rememberIntro": "Oui, je m'en souviens.",
-      "rememberEntry": "Il y a eu ce moment où j'ai écrit : \"{excerpt}...\"",
-      "mannerism": "{phrase} C'est quelque chose à quoi je pense aussi. Qu'est-ce qui t'a fait aborder le sujet ?",
-      "default": "C'est une bonne question. Qu'est-ce qui t'y a fait penser ?"
-    },
-    "fallbackKeywords": {
-      "advice": "conseil,devrais-je",
-      "feeling": "sentiment,ressentir,sens",
-      "remember": "souvenir,rappeler,passé"
-    }
+    "error": "Ça n'est pas passé. C'est de mon côté, pas du tien. Essaie de l'envoyer à nouveau."
   },
   "mood": {
     "holiday": {
@@ -11090,20 +11082,6 @@
       "feelingConnected": "Sentiment de connexion",
       "roomToGrow": "De la marge pour grandir",
       "insight": "« Ton énergie baisse en milieu de semaine. Le mercredi semble être ta journée la plus difficile. »"
-    },
-    "predictions": {
-      "title": "Mes prédictions",
-      "message": "J'apprendrai à anticiper tes besoins avant même que tu ne demandes.",
-      "guessOverwhelmed": "« Tu te sentirais sous pression cette semaine »",
-      "resultStress": "Tu as parlé de stress mardi et jeudi",
-      "guessGym": "« Ton habitude d'aller au sport serait difficile à tenir »",
-      "guessSunday": "« Le dimanche soir te semblera pesant »",
-      "resultCheckIn": "Je ferai un check-in avec toi",
-      "skipped": {
-        "one": "Tu as manqué {count} session cette semaine",
-        "many": "Tu as manqué {count} de sessions cette semaine",
-        "other": "Tu as manqué {count} sessions cette semaine"
-      }
     },
     "team": {
       "title": "Ce que notre équipe remarque",

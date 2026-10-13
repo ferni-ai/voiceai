@@ -2109,8 +2109,7 @@
     "couldNotDisconnect": "Verbindung konnte nicht getrennt werden. Nochmal versuchen?",
     "sonosConnected": "Sonos verbunden!",
     "transcribing": "Wird transkribiert...",
-    "transcriptionUnavailable": "Transkription nicht verfügbar. Es wird nur das Audio gespeichert.",
-    "audioSaved": "Audio gespeichert!",
+    "transcriptionUnavailable": "Diesmal konnte ich die Worte nicht verstehen, daher wurde nichts gespeichert. Noch einmal versuchen?",
     "entrySaved": "Eintrag gespeichert!",
     "couldNotSaveEntry": "Eintrag konnte nicht gespeichert werden. Versuchst du es noch mal?",
     "profileSaved": "Profil gespeichert!",
@@ -2228,7 +2227,6 @@
       "other": "{count} Kontakte importiert!"
     },
     "integrationNowConnected": "{integration} ist jetzt verbunden!",
-    "inviteSentTo": "Einladung an {email} gesendet!",
     "householdMemberRemoved": "{name} entfernt",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} zu deinem Team hinzugefügt",
@@ -3866,10 +3864,12 @@
       "create": "Agent erstellen",
       "empty": "Noch keine Agenten",
       "emptyHint": "Erstelle deinen ersten eigenen Agenten, um die Stimme eines geliebten Menschen zu bewahren, einen Mentor zu erschaffen oder deinen ganz persönlichen Begleiter zu gestalten.",
+      "emptyHintWithoutVoice": "Erstelle deinen ersten eigenen Agenten, um die Geschichten eines geliebten Menschen zu bewahren, einen Mentor zu erschaffen oder deinen ganz persönlichen Begleiter zu gestalten.",
       "createFirst": "Erstelle deinen ersten Agenten",
       "whatYouCan": "Was du erschaffen kannst",
       "legacy": "Vermächtnis",
       "legacyDesc": "Bewahre die Stimme und Weisheit eines geliebten Menschen",
+      "legacyDescWithoutVoice": "Bewahre die Geschichten und Weisheit eines geliebten Menschen",
       "mentor": "Mentor",
       "mentorDesc": "Erschaffe einen Coach, der auf einer inspirierenden Persönlichkeit basiert",
       "twin": "Digitaler Zwilling",
@@ -5072,7 +5072,8 @@
     },
     "voiceStep": {
       "title": "Wie sollen sie klingen?",
-      "subtitle": "Wähle eine Stimme oder klone eine"
+      "subtitle": "Wähle eine Stimme oder klone eine",
+      "subtitleWithoutClone": "Wähle eine Stimme"
     },
     "voiceOption": {
       "cloneTitle": "Stimme klonen",
@@ -7245,6 +7246,7 @@
     "legacy": {
       "name": "Legacy",
       "description": "Bewahre die Stimme und Weisheit von jemandem, der dir am Herzen liegt",
+      "descriptionWithoutVoice": "Bewahre die Geschichten und Weisheit von jemandem, der dir am Herzen liegt",
       "feature1": "Stimmenklonung aus Aufnahmen",
       "feature2": "Geschichten und Erinnerungen festhalten",
       "feature3": "Weisheiten und Lieblingssprüche bewahren",
@@ -8555,6 +8557,10 @@
   },
   "engagementPanel": {
     "title": "Täglicher Check-in",
+    "emptyTitle": "Hier landen unsere Check-ins",
+    "emptyMessage": "Hier ist noch nichts, und das ist okay. Wenn wir im Gespräch einen täglichen Check-in machen, siehst du hier, wie es dir ging. Frag mich beim nächsten Mal einfach danach.",
+    "loadFailedTitle": "Hm, das hat nicht geladen",
+    "loadFailedMessage": "Das liegt an mir, nicht an dir. Warte kurz und öffne das hier noch einmal.",
     "yourWeek": "Deine Woche",
     "weatherTrend": "Emotionaler Wettertrend",
     "howYouFeel": "Wie du dich fühlst",
@@ -9896,6 +9902,7 @@
     "timeout": "Das hat zu lange gedauert. Überprüfe deine Verbindung und versuche es noch einmal?",
     "network": "Ich konnte keine Verbindung zu Ferni herstellen. Überprüfe dein Internet und versuche es noch einmal?",
     "dropped": "Verbindung verloren. Neu verbinden?",
+    "agentLeft": "Ferni ist aus der Leitung gefallen. Neu verbinden?",
     "unknown": "Verbindung fehlgeschlagen. Nochmal versuchen?"
   },
   "ambientSounds": {
@@ -10331,22 +10338,7 @@
         "other": "Ich habe die Perspektiven aus {count} Tagebucheinträgen, die ich mit dir teilen möchte."
       }
     },
-    "error": "Ich kann gerade nicht richtig nachdenken. Gib mir einen Moment und versuch es noch einmal?",
-    "fallback": {
-      "advicePhilosophy": "Weißt du, was ich gelernt habe? „{philosophy}“ Was auch immer dir bevorsteht, denk daran.",
-      "adviceValues": "Denk daran, was uns wichtig ist: {values}. Lass dich davon leiten.",
-      "feelRecent": "Das habe ich auch gefühlt. In meinem Tagebuch habe ich geschrieben: „{excerpt}…“ Wir haben das schon mal geschafft.",
-      "feelDefault": "Ich verstehe dich. Wir haben schon früher schwere Zeiten durchgestanden und unseren Weg gefunden. Was bedrückt dich wirklich?",
-      "rememberIntro": "Ja, ich erinnere mich.",
-      "rememberEntry": "Da war dieses eine Mal, als ich geschrieben habe: „{excerpt}…“",
-      "mannerism": "{phrase} Darüber habe ich auch schon nachgedacht. Wie kommst du gerade darauf?",
-      "default": "Das ist eine gute Frage. Wie bist du darauf gekommen?"
-    },
-    "fallbackKeywords": {
-      "advice": "Rat,sollte ich",
-      "feeling": "Gefühl,fühlen",
-      "remember": "erinnern,Vergangenheit"
-    }
+    "error": "Das ist nicht durchgegangen. Das liegt an mir, nicht an dir. Schick es gern noch einmal."
   },
   "mood": {
     "holiday": {
@@ -10967,19 +10959,6 @@
       "feelingConnected": "Sich verbunden fühlen",
       "roomToGrow": "Raum für Wachstum",
       "insight": "„Deine Energie sinkt Mitte der Woche. Der Mittwoch scheint dein schwerster Tag zu sein.“"
-    },
-    "predictions": {
-      "title": "Meine Vorhersagen",
-      "message": "Ich werde lernen, deine Bedürfnisse vorauszusehen, noch bevor du fragst.",
-      "guessOverwhelmed": "„Dass du dich diese Woche überfordert fühlen würdest“",
-      "resultStress": "Du hast am Dienstag und Donnerstag Stress erwähnt",
-      "guessGym": "„Dass es mit dem Fitnessstudio diese Woche schwierig wird“",
-      "guessSunday": "„Dass sich der Sonntagabend schwer anfühlen wird“",
-      "resultCheckIn": "Ich mache einen Check-in bei dir",
-      "skipped": {
-        "one": "Du hast diese Woche {count} Sitzung übersprungen",
-        "other": "Du hast diese Woche {count} Sitzungen übersprungen"
-      }
     },
     "team": {
       "title": "Was uns auffällt",

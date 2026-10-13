@@ -14,6 +14,10 @@ import { z } from 'zod';
 import { bookCandidates, videoCandidates } from '../../../services/coach-media/candidates.js';
 import { checkedPick } from '../../../services/coach-media/checked-pick.js';
 import { fitContext } from '../../../services/coach-media/fit.js';
+import {
+  GROUNDING_PER_USER_PER_DAY,
+  takeDailyBudget,
+} from '../../../services/coach-media/quota.js';
 import { groundedAnswer } from '../../../services/coach-media/grounded-search.js';
 import { groundedResultText, pickResultText } from '../../../services/coach-media/result-text.js';
 import {
@@ -57,6 +61,12 @@ const parameters = z.object({
 const NONE_FIT =
   "Couldn't vet a good, well-grounded one this time. Say so honestly rather than recommend one unchecked.";
 
+const NO_ACCOUNT =
+  "Can't look that up on this call; share what you know and suggest they ask again once signed in.";
+
+const OVER_DAILY_CAP =
+  "That's a lot of lookups today; share what you know instead and offer to look it up tomorrow.";
+
 const NOTHING =
   "Couldn't find a solid resource on that just now. Say so plainly rather than guessing a title or link.";
 
@@ -68,6 +78,11 @@ export async function runFindCoachingResources(
   const names = sessionIdentifiers(userData);
   const topic = topicOnlyQuery(args.topic, names);
   if (!topic) return 'Ask what topic they want help with, in a few general words.';
+  // No account, no per-user cap to hold it to: no paid lookups.
+  if (!userId || userId === 'anonymous') return NO_ACCOUNT;
+  if (!(await takeDailyBudget(`grounding:${userId}`, GROUNDING_PER_USER_PER_DAY))) {
+    return OVER_DAILY_CAP;
+  }
   const sensitive = args.healthOrMoney === true;
   const format = args.format ?? 'any';
   getLogger().info({ format }, 'coach-media: finding resources');

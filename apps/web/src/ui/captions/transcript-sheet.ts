@@ -1,6 +1,6 @@
 /**
- * Full call transcript as a bottom sheet, opened from the live captions (like
- * expanding Live Captions, or a call transcript on iOS). A native modal
+ * "The conversation so far" as a bottom sheet, opened by tapping the live
+ * captions (like expanding Live Captions, or a call transcript on iOS). A native modal
  * <dialog>: focus moves in and back out, Escape closes it, the page behind is
  * inert, and tapping the backdrop closes it too.
  *
@@ -13,21 +13,14 @@ import { t } from '../../i18n/index.js';
 const STYLE_ID = 'ferni-transcript-sheet-styles';
 
 const CSS = `
-.ferni-captions .ferni-captions__expand { position: absolute; top: 0; right: 0; }
-.ferni-captions__viewport { cursor: pointer; }
-.ferni-captions__expand,
 .ferni-transcript-sheet__close {
   display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0;
   border: 0; border-radius: var(--radius-full); background: transparent; cursor: pointer;
   color: var(--color-text-secondary);
 }
-.ferni-captions__expand svg,
 .ferni-transcript-sheet__close svg { width: 1.25rem; height: 1.25rem; }
-.ferni-captions__expand:hover,
-.ferni-captions__expand:focus-visible,
 .ferni-transcript-sheet__close:hover,
-.ferni-transcript-sheet__close:focus-visible { background: var(--color-bg-elevated); color: var(--color-text-primary); }
-.ferni-captions__expand:focus-visible,
+.ferni-transcript-sheet__close:focus-visible { background: var(--color-bg-secondary); color: var(--color-text-primary); }
 .ferni-transcript-sheet__close:focus-visible { outline: 2px solid var(--color-accent-primary); outline-offset: 2px; }
 .ferni-transcript-sheet {
   position: fixed; inset: auto 0 0; margin: 0 auto; padding: 0; border: 0;
@@ -57,9 +50,6 @@ const CSS = `
 }
 `;
 
-/** Expand chevron for the live captions header (the caller sets aria-label). */
-export const EXPAND_ICON =
-  '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 15 6-6 6 6"/></svg>';
 const CLOSE_ICON =
   '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
 
