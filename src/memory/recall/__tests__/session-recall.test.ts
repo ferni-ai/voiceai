@@ -191,6 +191,31 @@ describe('memory with manners', () => {
   });
 });
 
+describe('superseded facts', () => {
+  const store = {
+    facts: async () => [
+      { entityName: 'User', key: 'current employer', value: 'Northwind', confidence: 0.9 },
+      {
+        entityName: 'User',
+        key: 'current_job',
+        value: 'Works as a baker at Rise and Grind',
+        confidence: 0.9,
+        supersededAt: '2026-10-06T19:00:00Z',
+      },
+    ],
+    summaries: async () => [],
+  };
+
+  it('stay findable but rank below current facts and read as how things were', async () => {
+    const snapshot = await loadRecallSnapshot(store, 'u');
+    const picked = recallForTurn(snapshot, 'where do I work, my current job or employer?');
+    expect(picked.map((f) => f.value)).toEqual(['Northwind', 'Works as a baker at Rise and Grind']);
+    const note = formatRecall(picked, [], 'Eli')!;
+    expect(note).toContain('- Eli: current employer = Northwind\n');
+    expect(note).toContain('current job = Works as a baker at Rise and Grind [no longer true: how things were before]');
+  });
+});
+
 // Inside jokes (INSIDE_JOKES=on): bits the summarizer saw land between the
 // caller and Ferni on past calls. Ferni once said "Classic Biscuit" about a dog
 // first mentioned seconds earlier; shared history has to be real.

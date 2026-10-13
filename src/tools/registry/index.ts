@@ -25,7 +25,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { wrapCreateWithUserIdGuard } from './user-id-guard.js';
-
+import { gateOutboundTool } from './outbound-gate.js';
 import {
   ALL_TOOL_DOMAINS,
   DOMAIN_TO_CATEGORY,
@@ -81,11 +81,8 @@ export class ToolRegistry {
   // REGISTRATION
   // ==========================================================================
 
-  /**
-   * Register a tool definition
-   */
+  /** Register a tool definition */
   register(definition: ToolDefinition): void {
-    // Validate
     const errors = validateToolDefinition(definition);
     if (errors.length > 0) {
       getLogger().error({ toolId: definition.id, errors }, 'Invalid tool definition');
@@ -97,8 +94,9 @@ export class ToolRegistry {
       getLogger().debug({ toolId: definition.id }, 'Tool re-registered (parallel init)');
     }
 
-    // Store it with the session userId winning over a model-supplied one (./user-id-guard.ts)
-    this.tools.set(definition.id, { ...definition, create: wrapCreateWithUserIdGuard(definition) });
+    // Session userId wins (./user-id-guard.ts); calls/texts wait for a yes (./outbound-gate.ts)
+    const create = wrapCreateWithUserIdGuard(gateOutboundTool(definition));
+    this.tools.set(definition.id, { ...definition, create });
 
     // Index by primary domain
     this.indexByDomain(definition.domain, definition.id);

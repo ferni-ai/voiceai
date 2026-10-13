@@ -21,6 +21,7 @@ import {
   callerRecognitionFor,
   unrecognisedCallerGreeting,
 } from '../voice-agent-entry/caller-recognition.js';
+import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -215,28 +216,36 @@ export async function directedGreeting(
   const { directedText } = await import('../../speech/direction/index.js');
   const partOfDay = hour === null ? '' : partOfDayFor(hour);
   // Not gated on history: the profile behind it can still be loading.
-  const [checkIn, pondered] = await Promise.all([
+  const [checkIn, pondered, welcome] = await Promise.all([
     checkInFor(userData?.userId),
     ponderFor(userData?.userId, history),
+    loadWelcomeBack(userData?.userId, personaId, history),
   ]);
   // One thing to ask about per call: what they said they'd do comes first.
   const ask = checkIn ? undefined : pondered;
   // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
   const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
+  // Back after a gap (WELCOME_BACK_BOTH_SIDES): one thread, one thing from his life, never the gap.
+  const back =
+    welcome && !unknown ? planWelcomeBack(welcome, { checkIn, pondered: ask?.text }) : undefined;
   const direction =
     GREETING_DIRECTION +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +
+    (back?.direction ?? '') +
     (unknown ? ` ${unknown}` : '');
   const directed = await directedText(sessionId, {
     moment: 'greeting',
     direction,
-    facts: greetingFacts(
-      partOfDay,
-      userData?.userName,
-      history,
-      checkIn,
-      unknown ? undefined : ask?.text
+    facts: welcomeBackFacts(
+      greetingFacts(
+        partOfDay,
+        userData?.userName,
+        history,
+        checkIn,
+        unknown ? undefined : ask?.text
+      ),
+      back
     ),
     fallback: scripted,
     urgency: 'now',
