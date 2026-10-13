@@ -88,4 +88,17 @@ describe('metricsFor', () => {
     expect(m.closeHook).toBe(true);
     expect(m.aiVolunteered).toBe(0);
   });
+
+  it('counts the account name Ferni keeps using after they gave their own', () => {
+    const renamed = { ...persona, name: 'Jess', accountName: 'Sam' };
+    const m = metricsFor(renamed, [
+      { who: 'agent', text: 'Hey Sam!' },
+      { who: 'user', text: "It's Jess, actually." },
+      { who: 'agent', text: 'Sorry, Sam. Long day?' },
+      { who: 'user', text: 'Yeah.' },
+      { who: 'agent', text: 'Tell me, Jess.' },
+    ]);
+    expect(m.accountNameAfter).toBe(1); // the greeting came before she said her name
+    expect(metricsFor(persona, [{ who: 'agent', text: 'Hey.' }]).accountNameAfter).toBeNull();
+  });
 });

@@ -28,6 +28,7 @@ import type {
 } from './types.js';
 import { DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_DIMENSION } from './types.js';
 import { extractEmbedding, filteredQuery, keepCandidate } from './helpers.js';
+import { ownerId } from '../retrieval/vector-ownership.js';
 import { FallbackCache } from './fallback-cache.js';
 import { RecoveryManager, migrateCacheToFirestore } from './recovery.js';
 import { getVectorSearchCache, type VectorSearchCache } from './search-cache.js';
@@ -156,9 +157,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
     this.searchCache = getVectorSearchCache();
   }
 
-  /**
-   * Initialize the Firestore connection.
-   */
+  /** Initialize the Firestore connection. */
   async initialize(): Promise<void> {
     if (this._initialized) return;
 
@@ -250,9 +249,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
     return this._initialized;
   }
 
-  /**
-   * Get health status.
-   */
+  /** Get health status. */
   getHealth(): VectorStoreHealth {
     const recoveryState = this.recoveryManager.getState();
     return {
@@ -435,7 +432,17 @@ export class FirestoreVectorStore implements VectorStoreContract {
 
     // Use coalescer to prevent duplicate concurrent searches for the same query
     const coalesceKey = getVectorSearchCoalesceKey(query, options);
-    return vectorSearchCoalescer.execute(coalesceKey, () => this.doSearch(query, options));
+    const found = await vectorSearchCoalescer.execute(coalesceKey, () =>
+      this.doSearch(query, options)
+    );
+    return this.forgetFiltered(found, options?.filter);
+  }
+
+  /** Nothing the owner asked to forget comes back (forget-filter.ts). */
+  private async forgetFiltered(results: VectorSearchResult[], filter?: VectorFilter) {
+    const owner = ownerId(filter?.userId);
+    if (!owner) return results; // ownerless (shared) documents only
+    return (await import('./forget-filter.js')).withoutForgotten(owner, results);
   }
 
   /**
@@ -569,11 +576,15 @@ export class FirestoreVectorStore implements VectorStoreContract {
   /** Search by embedding directly. */
   async searchByEmbedding(
     queryEmbedding: number[],
-    options?: {
-      topK?: number;
-      filter?: VectorFilter;
-      minScore?: number;
-    }
+    options?: { topK?: number; filter?: VectorFilter; minScore?: number }
+  ): Promise<VectorSearchResult[]> {
+    const found = await this.searchByEmbeddingUnfiltered(queryEmbedding, options);
+    return this.forgetFiltered(found, options?.filter);
+  }
+
+  private async searchByEmbeddingUnfiltered(
+    queryEmbedding: number[],
+    options?: { topK?: number; filter?: VectorFilter; minScore?: number }
   ): Promise<VectorSearchResult[]> {
     await this.ensureInitialized();
 

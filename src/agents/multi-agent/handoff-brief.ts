@@ -13,15 +13,43 @@
 
 import { getGenerativeModel } from '../../config/generative-model.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
-import { getArrivingBanter } from '../../services/team-engagement/banter.js';
+import { getArrivingBanter, getHandoffBanter } from '../../services/team-engagement/banter.js';
 import { characterOf } from '../../speech/direction/cue-say.js';
 import { directLine, type Actor } from '../../speech/direction/director.js';
+import { handoffAskFirstEnabled } from '../../tools/handoff/handoff-consent.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'HandoffBrief' });
 
 export function briefedHandoffs(env: Record<string, string | undefined> = process.env): boolean {
   return env.BRIEFED_HANDOFF === 'on';
+}
+
+const firstName = (personaId: string): string => getPersonaDisplayName(personaId).split(/\s+/)[0];
+
+/**
+ * What the outgoing persona says as it hands over: the pair's banter, or a
+ * plain line. Off, the old switchboard line. With HANDOFF_ASK_FIRST=on the
+ * caller asked for this teammate (tools/handoff/handoff-consent.ts), so it is
+ * a yes.
+ */
+export function departureLine(from: string, to: string, env = process.env): string {
+  const banter = getHandoffBanter(from, to);
+  if (banter) return banter;
+  return handoffAskFirstEnabled(env)
+    ? `Sure, here's ${firstName(to)}.`
+    : `Let me hand you off to ${getPersonaDisplayName(to)}.`;
+}
+
+/**
+ * What the arriving teammate says first: banter, or a plain line. With
+ * HANDOFF_ASK_FIRST=on they say who they are instead of "What's up?", which
+ * made the caller start over.
+ */
+export function arrivalLine(to: string, from: string, env = process.env): string {
+  const banter = getArrivingBanter(to, from);
+  if (banter) return banter;
+  return handoffAskFirstEnabled(env) ? `Hey, it's ${firstName(to)}.` : "Hey! What's up?";
 }
 
 export interface BriefTurn {
@@ -306,7 +334,7 @@ export async function briefingFor(
         emotion: request.userEmotion,
         userName: request.userName,
       },
-      getArrivingBanter(to, from.personaId) ?? "Hey! What's up?"
+      arrivalLine(to, from.personaId)
     );
   } catch (error) {
     log.warn({ error: String(error) }, 'Handoff brief failed: the teammate starts unbriefed');

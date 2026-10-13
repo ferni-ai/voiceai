@@ -9,7 +9,7 @@
 
 // Design system animation constants available via CSS variables:
 // --duration-normal, --duration-slow, --duration-entrance, --ease-spring, etc.
-import { formatDate, formatNumber, t } from '../i18n/index.js';
+import { formatDate, t } from '../i18n/index.js';
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import {
@@ -28,7 +28,6 @@ const log = createLogger('WellbeingDashboard');
 export interface WellbeingData {
   overallScore: number; // 0-100
   trend: 'improving' | 'stable' | 'declining';
-  comparisonToLastMonth: number; // percentage change
 }
 
 export interface DimensionCard {
@@ -36,7 +35,7 @@ export interface DimensionCard {
   displayNameKey: string;
   currentScore: number; // 0-1
   trend: 'up' | 'stable' | 'down';
-  sparkline: number[]; // Last 30 days
+  sparkline: number[] | null; // Last 30 days; null when the trend failed to load
   insight: string;
   color: string;
 }
@@ -1347,11 +1346,11 @@ function transformApiResponse(
       }
     }
 
-    // Build sparkline from trends data
-    const sparkline =
-      trendsData?.dataPoints
-        .map((dp) => dp[dim.dimension as keyof typeof dp] as number | null)
-        .filter((v): v is number => v !== null) || Array(7).fill(dim.currentScore); // Fallback to flat line
+    const sparkline = trendsData
+      ? trendsData.dataPoints
+          .map((dp) => dp[dim.dimension as keyof typeof dp] as number | null)
+          .filter((v): v is number => v !== null)
+      : null;
 
     return {
       ...dim,
@@ -1411,8 +1410,6 @@ function transformApiResponse(
     overall: {
       overallScore,
       trend: trends.direction,
-      comparisonToLastMonth:
-        trends.direction === 'improving' ? 5 : trends.direction === 'declining' ? -5 : 0,
     },
     dimensions,
     calendar,
@@ -1443,6 +1440,7 @@ async function fetchDashboardData(): Promise<DashboardData | null> {
     const trendsData: ApiTrendsResponse | null = trendsResponse.ok
       ? await trendsResponse.json()
       : null;
+    if (!trendsData) log.warn(`Wellbeing trends returned ${trendsResponse.status}`);
 
     if (!hasWellbeingData(dashboardData)) {
       // Return null to show empty state for new users
@@ -1742,12 +1740,13 @@ function renderScoreSection(overall: WellbeingData): string {
       : overall.trend === 'declining'
         ? ICONS.trendDown
         : '';
-  const trendText =
-    overall.trend === 'stable'
-      ? t('wellbeing.stable')
-      : t('wellbeing.fromLastMonth', {
-          change: formatNumber(overall.comparisonToLastMonth, { signDisplay: 'exceptZero' }),
-        });
+  const trendText = t(
+    overall.trend === 'improving'
+      ? 'wellbeing.improving'
+      : overall.trend === 'declining'
+        ? 'wellbeing.declining'
+        : 'wellbeing.stable'
+  );
 
   return `
     <div class="wellbeing-score-section">
@@ -1803,7 +1802,7 @@ function renderDimensionCard(dim: DimensionCard): string {
         <div class="wellbeing-dimension-card__score" style="color: ${dim.color}">${score}</div>
       </div>
       <div class="wellbeing-dimension-card__sparkline">
-        ${renderSparkline(dim.sparkline, dim.color)}
+        ${dim.sparkline ? renderSparkline(dim.sparkline, dim.color) : t('wellbeing.trendUnavailable')}
       </div>
       <div class="wellbeing-dimension-card__insight">${dim.insight}</div>
     </div>
