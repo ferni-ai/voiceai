@@ -21,6 +21,7 @@ import type { JobContext, voice } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import type { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
+import { wireDeferredHandlers } from './greeting-wiring.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
@@ -284,22 +285,8 @@ export class AgentOrchestrator {
       // Prompt-cache warm + STT refresh when the greeting ends (after-greeting.ts).
       void import('../model-provider/after-greeting.js').then((m) => m.run(agent.session));
 
-      // ⚡ FAST-AGENT-JOIN: Wire deferred handlers in background after greeting starts
-      // Handlers run in parallel with speech - user hears greeting while handlers wire
-      if (agent.wireHandlers) {
-        agent
-          .wireHandlers()
-          .then(() => {
-            log.info({ personaId: agent.personaId }, '⚡ Deferred handlers wired after greeting');
-          })
-          .catch((err) => {
-            // 🐛 FIX: Don't swallow errors! Music handler won't work if this fails.
-            log.error(
-              { error: String(err), personaId: agent.personaId },
-              '🚨 CRITICAL: Deferred handler wiring FAILED! Music/tools may not work.'
-            );
-          });
-      }
+      // ⚡ FAST-AGENT-JOIN: wire deferred handlers as the greeting starts, or after it (greeting-wiring.ts)
+      void wireDeferredHandlers(agent);
     } catch (err) {
       log.warn({ error: String(err), personaId: agent.personaId }, '🎭 Initial greeting failed');
     }

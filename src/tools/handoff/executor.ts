@@ -22,6 +22,7 @@ import {
 } from '../../personas/voice-registry.js';
 import type { AgentId } from '../../services/agent-bus.js';
 import { checkHandoffUnlocked } from './handoff-unlock-check.js';
+import { handoffNotConfirmed } from './unconfirmed-handoff.js';
 // FIX BUG #1: Import trust context builder for handoffs
 import { getLogger } from '../../utils/safe-logger.js';
 import {
@@ -427,9 +428,6 @@ export async function executeHandoff(
   // Get display name
   const targetAgentName = agent?.name || getPersonaDisplayName(canonicalTargetId);
 
-  // FIX BUG #2: Record the handoff via state.ts (updates rate limiting timestamp too)
-  recordHandoffToState(previousAgent, canonicalTargetId as AgentId, reason);
-
   // FIX BUG #6: Capture conversation context if provided
   // This ensures the new persona has awareness of what was just discussed
   if (options.topics || options.emotionalState || options.voiceEmotion) {
@@ -588,6 +586,8 @@ export async function executeHandoff(
 
   // 🐛 FIX: Properly log and handle handler failures/timeouts
   if (handlerResult.success) {
+    // Only a confirmed switch goes into the history (and its rate limit): unconfirmed-handoff.ts
+    recordHandoffToState(previousAgent, canonicalTargetId as AgentId, reason);
     getLogger().info(
       {
         targetId: canonicalTargetId,
@@ -673,12 +673,10 @@ export async function executeHandoff(
       },
       '⚠️ Handoff handler did not complete successfully'
     );
+    const target = { targetAgent: canonicalTargetId, targetAgentName };
+    return handoffNotConfirmed({ sessionState, previousAgent, ...target });
   }
 
-  // Note: We still return success: true from the executor's perspective because:
-  // 1. The handoff state WAS updated (currentAgent changed)
-  // 2. The voiceSwitch event WAS emitted
-  // The handler result indicates whether greeting/instructions were applied
   const totalDurationMs = Date.now() - executionStart;
   getLogger().info(
     {
