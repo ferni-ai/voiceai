@@ -297,7 +297,8 @@ function updateIndicator(): void {
       playErrorPulse();
       break;
     case 'disconnected':
-      startDisconnectedPulse();
+      // At rest, as before the first call: an infinite heartbeat here ran
+      // forever after every hang-up (animation standard 5)
       break;
   }
 
@@ -452,26 +453,6 @@ function handleVoiceVerifyEnd(): void {
 // ============================================================================
 // ANIMATIONS
 // ============================================================================
-
-function startDisconnectedPulse(): void {
-  if (!indicator || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    return;
-  }
-
-  // Gentle heartbeat - waiting to connect
-  pulseAnimation = indicator.animate(
-    [
-      { transform: 'scale(1)', opacity: 0.75 },
-      { transform: 'scale(1.08)', opacity: 1 },
-      { transform: 'scale(1)', opacity: 0.75 },
-    ],
-    {
-      duration: 2000,
-      easing: 'ease-in-out',
-      iterations: Infinity,
-    }
-  );
-}
 
 function startConnectedPulse(): void {
   if (!indicator || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
