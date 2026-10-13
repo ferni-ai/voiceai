@@ -49,7 +49,6 @@ import {
   showFerniFundThankYou,
   showGroupCoaching,
   showHouseholdManager,
-  showLifeContextDashboard,
   showLinkedInSettings,
   showOuraSettings,
   showPatternInsights,
@@ -112,6 +111,7 @@ import {
 } from './ui/spotify.ui.js';
 import { openEverythingConnected } from './ui/everything-connected.js';
 import { initTeamUI, teamUI } from './ui/team.ui.js';
+import { initRosterPreferences } from './services/roster-preferences.service.js';
 import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
 // Group Conversations - Team Roundtables and Conference Calls
 import { initGroupConversationUI } from './ui/group-conversation.ui.js';
@@ -145,6 +145,7 @@ import { initMoodUI, moodUI } from './ui/mood.ui.js';
 // DISABLED: No skeleton loading - everything visible immediately
 // import { initSkeletonUI, skeletonUI } from './ui/skeleton.ui.js';
 import { initThinkingUI, thinkingUI } from './ui/thinking.ui.js';
+import { initAvatarTurns, trackTurnFallback } from './ui/avatar-motion/turn-driver.js';
 import { initTranscriptUI, transcriptUI } from './ui/transcript.ui.js';
 import {
   getIntegrationsSettingsUI,
@@ -222,7 +223,7 @@ import {
   getDemoEngagementData,
   getDemoPredictions,
 } from './services/engagement-demo-data.js';
-import { scoredStreak } from './services/prediction-data.js';
+import { pendingPredictionCount, scoredStreak } from './services/prediction-data.js';
 // Environment detection
 import { getApiHeadersAsync } from './utils/api.js';
 import { shouldUseDemoData } from './utils/environment.js';
@@ -243,14 +244,13 @@ import {
   conversationTracker,
   initConversationTracker,
 } from './services/conversation-tracker.service.js';
-import { initRitualsService, ritualsService } from './services/rituals.service.js';
+import { initRitualsService } from './services/rituals.service.js';
 import { getOnboardingUI, initOnboardingUI, startOnboardingIfNeeded } from './ui/onboarding.ui.js';
 import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
 // 🎬 Cameo Roster - Team member pop-in animations in the roster
 import { initCameoRoster } from './ui/cameo-roster.ui.js';
 import { initRelationshipProgressUI } from './ui/stage-celebration.ui.js';
 // Trust Journey is now integrated into journey.ui.ts - no separate init needed
-import { initTeamHuddleUI } from './ui/team-huddle.ui.js';
 // Team Intro - Meet the team modal for mobile
 import { initTeamIntro, showTeamIntro } from './ui/team-intro.ui.js';
 // Push Notifications
@@ -283,6 +283,7 @@ import { announceMonthlyGiftPaid } from './services/seed-payment.js';
 import { toast } from './ui/whisper.ui.js';
 import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
 import { cancelConnectAttempt, connectWithTimeout } from './app/call-connect.js';
+import { onCallEnded, onCallStarted } from './app/call-end.js';
 import { connectFailure } from './services/connect-failure.js';
 import { buildConversationUsageBody } from './services/call-payloads.js';
 // Moments System - Unified feedback system (whisper, notice, celebration, milestone)
@@ -301,7 +302,7 @@ import { initCosmeticsService } from './services/cosmetics.service.js';
 import { initSeedsEconomy } from './services/seeds-economy.service.js';
 import { watchServerSeeds } from './services/seeds-ledger.service.js';
 // Referral Service - network effect seeds system
-import { initReferralService, processPendingReferral } from './services/referral.service.js';
+import { checkReferralFromUrl, initReferralService, processPendingReferral } from './services/referral.service.js';
 // Seeds UI - display balance and toast notifications
 import { initSeedsDisplay } from './ui/seeds-display.ui.js';
 import { initSeedsToast } from './ui/seeds-toast.ui.js';
@@ -316,7 +317,7 @@ const log = createLogger('App');
 import { initModalCoordinator, modalCoordinator } from './services/modal-coordinator.service.js';
 
 // 🎬 Character-quality Animation Orchestrator
-import { animatePersonaTransition, playCharacterReaction } from './ui/animation-orchestrator.ui.js';
+import { animatePersonaTransition } from './ui/animation-orchestrator.ui.js';
 // ⚡ GSAP Performance Utilities
 import { initGSAP, promoteAllToGPU } from './utils/gsap-animations.js';
 // Agent particles disabled for cleaner UI
@@ -387,17 +388,12 @@ import {
   showConversationHistory,
   showDataExport,
   showPredictionTracker,
-  showTeamHuddle,
   showTrustDashboard,
   showYourStoryDashboard,
 } from './app/panel-methods.js';
 
 // Data message handlers (extracted for file size)
-import {
-  handleDataMessage,
-  handleEngagementTrigger,
-  setShowTeamHuddleCallback,
-} from './app/data-message-handlers.js';
+import { handleDataMessage, handleEngagementTrigger } from './app/data-message-handlers.js';
 
 // ============================================================================
 // APPLICATION CLASS
@@ -494,9 +490,6 @@ class VoiceAIApp {
       }
     }
 
-    // DISABLED: No skeleton loading - everything visible immediately
-    // initSkeletonUI();
-
     // Add app-loaded class immediately so everything is visible
     document.body.classList.add('app-loaded');
 
@@ -518,6 +511,7 @@ class VoiceAIApp {
       bindStaticDom(); // index.html text marked with data-i18n
       bindLocaleRefresh(); // a no-reload language change finishes with a reload
       installDialogFocus(); // focus into, around and back out of every modal
+      checkReferralFromUrl(); // before the sign-in gate and the waitlist: a friend who waits keeps the code
       // Require sign-in, like iOS; await it so an existing session is restored
       const authState = await initializeAuth();
       // The dev server accepts ?e2e=1 so Playwright can reach the settings
@@ -715,11 +709,8 @@ class VoiceAIApp {
     // Update gesture system
     gesturesUI.setCurrentPersona(persona.id);
 
-    // Show engagement triggers ONLY for returning users
-    // First conversation should be pure - just Ferni, nothing else
-    if (modalCoordinator.hasMinimumConversations(1)) {
-      setTimeout(() => engagementTriggerUI.show(), 500);
-    }
+    // Quick actions for returning users; the after-call card is now owed when this call ends
+    onCallStarted();
 
     // The "<persona> joined" message comes from onAgentConnected, now that the agent is really here.
 
@@ -817,18 +808,8 @@ class VoiceAIApp {
     soundUI.play('hangup');
     delightService.haptic('light'); // Subtle haptic for the click
 
-    // Step 8: Now perform the actual disconnect (gracefully)
+    // Step 8: Now perform the actual disconnect (gracefully); it also brings up the after-call card
     await this.performStandardDisconnect(true); // true = skip disconnect sound
-
-    // Step 9: After a moment, the after-call card (flag on) or the cost card (flag off)
-    setTimeout(async () => {
-      try {
-        const { showPostCallCard } = await import('./ui/after-call/post-call.js');
-        await showPostCallCard();
-      } catch (e) {
-        log.debug('Post-call card skipped', { error: String(e) });
-      }
-    }, 800);
 
     log.info('🌅 Goodbye ceremony complete');
   }
@@ -858,7 +839,7 @@ class VoiceAIApp {
     presenceUI.setListening(false);
     connectionQualityUI.hide();
     transcriptUI.hide();
-    engagementTriggerUI.hide();
+    onCallEnded(); // face back to neutral, quick actions back, after-call card once per call
 
     // Clean up game board UI
     void import('./ui/game-board.ui.js')
@@ -1237,6 +1218,7 @@ class VoiceAIApp {
     this.safeInit('WaveformUI', () => initWaveformUI());
     this.safeInit('CoachUI', () => initCoachUI());
     this.safeInit('ExpressiveEyes', () => initExpressiveEyes()); // 👀 Pixar-style eye expressions
+    this.safeInit('RosterPreferences', () => initRosterPreferences()); // saved teammates, before the bar renders
     this.safeInit('TeamUI', () => initTeamUI());
     this.safeInit('SpotifyUI', () => initSpotifyUI());
     this.safeInit('ControlsUI', () =>
@@ -1254,9 +1236,7 @@ class VoiceAIApp {
 
     // =========================================================================
     // DEFERRED LOADING - Premium features loaded after first paint
-    // This significantly speeds up initial page load time
     // =========================================================================
-
     // Essential extras - load after 100ms (needed early but not for first paint)
     this.deferredInit('SoundUI', 100, async () => {
       initSoundUI();
@@ -1272,9 +1252,12 @@ class VoiceAIApp {
     this.deferredInit('ThinkingUI', 100, async () => {
       initThinkingUI();
       (await import('./ui/speaker-cues.ui.js')).initSpeakerCues(); // off unless ferni:speaker-cues
+      (await import('./ui/avatar-motion/turn-gestures.js')).initTurnGestures(initAvatarTurns()); // turns on unless ferni:avatar-turns=off; gestures need ferni:turn-gestures
+      (await import('./ui/avatar-motion/natural-blink.js')).initNaturalBlink(); // off unless ferni:natural-blink
     });
     this.deferredInit('ConnectionQualityUI', 100, async () => {
       initConnectionQualityUI();
+      (await import('./ui/tap-to-hear.ui.js')).initTapToHear(); // only shows while the browser blocks call audio
     });
     this.deferredInit('MoodUI', 100, async () => {
       initMoodUI();
@@ -1726,7 +1709,6 @@ class VoiceAIApp {
     this.safeInit('PersonaTransitionUI', () => initPersonaTransitionUI());
     // 🎬 Cameo Roster - Team member pop-in/out in the roster
     this.safeInit('CameoRoster', () => initCameoRoster());
-    this.safeInit('TeamHuddleUI', () => initTeamHuddleUI());
     // Team Intro - "Meet the Team" modal (used by mobile bottom sheet)
     this.safeInit('TeamIntro', () => initTeamIntro());
     this.safeInit('RelationshipProgressUI', () => initRelationshipProgressUI());
@@ -1790,7 +1772,6 @@ class VoiceAIApp {
     // 🌱 Server seed ledger - one balance from the server once it keeps seeds
     this.safeInit('SeedsLedger', () => watchServerSeeds());
 
-    // 🤝 Referral Service - Network effect seeds (check URL for ?ref= param)
     this.safeInit('ReferralService', () => initReferralService());
 
     // 🌱 Seeds UI - Display balance and toast notifications
@@ -1873,9 +1854,6 @@ class VoiceAIApp {
         onNotificationSettingsClick: () => void openNotificationSettings(),
         onSleepSettingsClick: () => void import('./ui/sleep-settings.ui.js').then((m) => m.show()),
         onSpotifyClick: () => void triggerSpotifyLinkToggle(),
-        onTeamHuddleClick: () => showTeamHuddle(),
-        onTeamObservationsClick: () =>
-          void import('./ui/team-observations-panel.ui.js').then((m) => m.show()),
         // Trust Journey is now integrated into the unified Journey modal
         onTrustJourneyClick: () => journeyUI.open(),
         onTrustDashboardClick: () =>
@@ -2018,9 +1996,6 @@ class VoiceAIApp {
     });
     this.addTrackedListener(window, 'ferni:open-predictions', () => {
       void getPredictionsUI().show();
-    });
-    this.addTrackedListener(window, 'ferni:open-team-huddle', () => {
-      void showTeamHuddle();
     });
 
     // 🎤 Voice-Activated Navigation - Handle panel open events from voice commands
@@ -2276,9 +2251,6 @@ class VoiceAIApp {
         celebrateStreak(days, 'ferni');
       }
     }) as EventListener);
-
-    // Set up team huddle callback for data message handlers
-    setShowTeamHuddleCallback(() => showTeamHuddle());
 
     // 📊 Load engagement data (API first, demo fallback in dev)
     void this.loadEngagementData();
@@ -2858,13 +2830,8 @@ class VoiceAIApp {
           trackReadyState: mediaStreamTrack?.readyState,
         });
         void this.attachAudioVisualization(audioElement, mediaStreamTrack);
-        setAudioState('speaking');
-        // Set speaking state directly - don't rely only on volume detection
-        waveformUI.setSpeaking(true);
-        presenceUI.setSpeaking(true);
-        expressiveEyes.setVoiceState('speaking'); // 👀 Pixar eyes react to speaking
-        // Agent is speaking, so we're not in listening mode
-        waveformUI.setListening(false);
+        // Avatar and waveform follow lk.agent.state (turn-driver); this only acts under its kill switch
+        trackTurnFallback('agent-audio');
 
         // 🎚️ Duck music when agent is speaking
         getMusicAudioController().duckForAgent();
@@ -2874,13 +2841,7 @@ class VoiceAIApp {
       },
 
       onAudioTrackEnd: (_participantId) => {
-        // Agent stopped speaking
-        waveformUI.setSpeaking(false);
-        presenceUI.setSpeaking(false);
-        expressiveEyes.setVoiceState('listening'); // 👀 Eyes widen attentively
-        setAudioState('listening');
-        // Now we're listening for user input
-        waveformUI.setListening(true);
+        trackTurnFallback('agent-audio-end'); // avatar + waveform, only under the turn-driver kill switch
 
         // 🎚️ Unduck music when agent stops speaking
         getMusicAudioController().unduckForAgent();
@@ -2964,9 +2925,7 @@ class VoiceAIApp {
       },
 
       onLocalMicActive: (isActive) => {
-        // When user's mic is active, show listening state
-        waveformUI.setListening(isActive);
-        presenceUI.setListening(isActive);
+        trackTurnFallback(isActive ? 'mic-on' : 'mic-off'); // avatar + waveform, under the kill switch only
 
         // 🎚️ Duck/unduck music when user is speaking
         const controller = getMusicAudioController();
@@ -3045,9 +3004,8 @@ class VoiceAIApp {
       thinkingUI.hide();
     });
 
-    // When handoff fails - hide indicator and show error
-    // FIX AUDIT GAP #1: Now receives rollbackTo to restore waveform/avatar persona
-    handoffService.onHandoffFailed((error, targetPersona, rollbackTo) => {
+    // When handoff fails: hide indicator, restore persona (rollbackTo), show the error or decline
+    handoffService.onHandoffFailed((error, targetPersona, rollbackTo, userMessage) => {
       log.error('onHandoffFailed:', { error, targetPersona, rollbackTo });
       // FIX BUG: Clear safety timeout
       if (handoffUITimeout) {
@@ -3066,7 +3024,8 @@ class VoiceAIApp {
       }
 
       thinkingUI.hide();
-      messageUI.show(t('app.handoffFailed'), 'error', 3000);
+      if (userMessage) toast.show({ message: userMessage, duration: 6000 });
+      else messageUI.show(t('app.handoffFailed'), 'error', 3000);
     });
 
     // When handoff is cancelled - hide indicator
@@ -3096,12 +3055,9 @@ class VoiceAIApp {
       // Also hide thinking indicator in case it's stuck
       thinkingUI.hide();
 
-      // 🎬 Character-style celebration on handoff
-      const avatarContainer = document.querySelector('.avatar-container');
-      if (avatarContainer instanceof HTMLElement) {
-        void playCharacterReaction(avatarContainer, 'joy', newPersona.id);
-      }
-      coachUI.flash();
+      // The avatar's entrance is coach.ui's single persona bounce (activePersona
+      // subscription). A second 'joy' bounce and a brightness flash here doubled
+      // the motion and animated filter, which repaints every frame.
 
       // Update theme persona colors
       this.updatePersonaTheme(newPersona.id);
@@ -3165,8 +3121,7 @@ class VoiceAIApp {
 
       onPredictionsUpdate: (predictions) => {
         // Update predictions UI
-        const readyCount = predictions.filter((p) => p.status === 'resolved').length;
-        engagementTriggerUI.updateBadges({ predictionsReady: readyCount > 0 ? readyCount : 0 });
+        engagementTriggerUI.updateBadges({ predictionsReady: pendingPredictionCount(predictions) });
 
         // Accuracy and streak come from the server's scores, not the raw numbers.
         getPredictionsUI().update({

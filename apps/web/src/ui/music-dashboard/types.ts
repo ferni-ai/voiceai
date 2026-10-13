@@ -98,8 +98,6 @@ export interface DailyChallenge {
   description: string;
   instructions: string;
   xpReward: number;
-  participantCount: number;
-  completionRate: number;
 }
 
 export interface DailyChallengeProgress {
