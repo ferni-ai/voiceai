@@ -12,17 +12,15 @@ readTime: 10
 
 # Announcing the Ferni Developer Platform: Voice AI You Can Actually Build On
 
-**Three months ago, a developer emailed us asking if they could use Ferni to build a voice interface for their CRM.**
+**Here's a sentence that should just work: "Pull up the Johnson account."**
 
-They'd tried everything else. Built with DialogFlow (too rigid). Experimented with custom LLM chains (too slow). Even attempted raw WebRTC with Whisper (got latency down to 2 seconds, then gave up).
+Say it to a voice agent connected to your CRM and it should do the obvious thing. Building that yourself is harder than it sounds. Intent systems like DialogFlow are rigid. Hand-rolled LLM chains are slow. Raw WebRTC plus speech-to-text is a lot of plumbing before you reach the part you care about.
 
-"I just want to say 'Pull up the Johnson account' and have it work," they wrote. "Why is this so hard?"
-
-We couldn't help them then. Ferni was a closed system - designed for personal use, not developer extension.
+Until now, Ferni couldn't help with that. It was a closed system - designed for personal use, not developer extension.
 
 That changes today.
 
-**Introducing the Ferni Developer Platform** - the complete infrastructure for building voice-first AI applications. The same stack that powers 50,000+ daily Ferni conversations, now available to every developer.
+**Introducing the Ferni Developer Platform** - the complete infrastructure for building voice-first AI applications. The same stack that powers Ferni's own conversations, now available to every developer.
 
 ---
 
@@ -30,9 +28,9 @@ That changes today.
 
 Let me be honest about our motivation: we built this because we needed it ourselves.
 
-Ferni started as a single AI companion. Then users asked for different personas (Maya for coaching, Peter for planning, Alex for productivity). Then they wanted to connect their calendars. Then their email. Then Notion. Then custom tools for their specific workflows.
+Ferni started as a single AI companion. Then we added different personas (Maya for coaching, Peter for planning, Alex for productivity). Then calendar connections. Then email. Then Notion. Then custom tools for specific workflows.
 
-Each integration required changes to our core codebase. Every new tool meant coordinating between teams. Our velocity dropped. Feature requests piled up.
+Each integration required changes to our core codebase. Every new tool meant touching the core engine. Our velocity dropped.
 
 So we built an extension system. A way for anyone - including us - to add new capabilities without touching the core engine.
 
@@ -123,7 +121,7 @@ Not everything needs a full MCP server. For simpler integrations, we support thr
 
 ### Webhooks
 
-Our earliest internal feedback was "I need to know when things happen." Users would ask Ferni to set reminders, track habits, or log activities - and we had no way to push that data to external systems.
+Our earliest internal feedback was "I need to know when things happen." Ferni could set reminders, track habits, and log activities - and we had no way to push that data to external systems.
 
 Webhooks solved this:
 
@@ -142,7 +140,7 @@ curl -X POST https://api.ferni.ai/api/v2/developers/webhooks \
   }'
 ```
 
-Every webhook is signed with HMAC-SHA256. We learned this the hard way - someone found one of our internal webhook endpoints and started spoofing events. Always verify:
+Every webhook is signed with HMAC-SHA256. An unsigned webhook endpoint is an open door: anyone who finds it can spoof events. Always verify:
 
 ```typescript
 import crypto from 'crypto';
@@ -159,7 +157,7 @@ function verifyWebhook(payload: string, signature: string, secret: string) {
 
 ### Workflows
 
-This was the hardest to get right. Users wanted complex automations: "Every morning at 8am, check my calendar, summarize what's coming up, and read it to me."
+This was the hardest to get right. The automations people actually want are compound: "Every morning at 8am, check my calendar, summarize what's coming up, and read it to me."
 
 That's not one tool call. It's a sequence of tools with conditions and error handling.
 
@@ -291,7 +289,7 @@ Rate limit headers on every response tell you where you stand.
 - Webhooks are signed with HMAC-SHA256
 - Resource ownership is strictly enforced
 
-We take security seriously because we've seen what happens when you don't. Every webhook we've ever received without signature verification has been either a bug or an attack.
+We take security seriously because a voice agent that can act on your behalf is only as safe as the integrations behind it.
 
 ---
 
@@ -309,11 +307,9 @@ We're just getting started. On the roadmap:
 
 ## One More Thing
 
-Remember that CRM developer who emailed us three months ago?
+Remember "pull up the Johnson account"?
 
-He was our first beta tester. His MCP server now handles "pull up the Johnson account" exactly like he imagined.
-
-But he built something we didn't expect: voice-activated lead scoring. His agents say things like "Johnson hasn't responded in two weeks - should I flag them as cold?" He didn't ask us for that feature. He built it himself, in an afternoon, with tools we gave him.
+With an MCP server in front of your CRM, that's a registration call and a tool, not a research project. And once the basics work, you can go further than we would think to: an agent that notices "Johnson hasn't responded in two weeks - should I flag them as cold?" is a tool and a workflow away. We didn't have to build that feature for you to have it.
 
 That's why we built a platform instead of just a product.
 

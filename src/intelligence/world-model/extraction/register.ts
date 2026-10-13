@@ -33,7 +33,7 @@ import {
 export const WORLD_EXTRACTION_TASK = 'world-extraction';
 
 const llm: ExtractionLlm = (prompt) =>
-  callLLM(prompt, { maxTokens: 2000, temperature: 0.1, timeout: 20_000 });
+  callLLM(prompt, { maxTokens: 2000, temperature: 0.1, timeout: 20_000, task: 'memory' });
 
 /** The task body; exported so tests can run it with a fake model and store. */
 export async function extractWorldAfterCall(

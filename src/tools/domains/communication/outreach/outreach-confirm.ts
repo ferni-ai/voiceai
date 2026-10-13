@@ -1,25 +1,26 @@
 /**
- * Server-enforced confirmation for reachOut (and quickText/quickEmail, which
- * hand off to it), which otherwise sends at once with model-written text.
- * With OUTREACH_CONFIRM=on (off by default):
+ * Server-enforced confirmation for every tool that calls, texts or emails
+ * someone other than the account owner (see registry/outbound-gate.ts for the
+ * list). ON by default; OUTBOUND_CONFIRM=off turns it off for tests only and
+ * is ignored when NODE_ENV=production.
  * - The first call sends nothing. It fixes the words, channel, contact and
- *   address (outreach-confirm-specs.ts), stores them for this session and
- *   user for 5 minutes, and returns the read-back.
+ *   address (outreach-confirm-specs.ts, telephony/call-confirm.ts), stores
+ *   them for this session and user for 5 minutes, and returns the read-back.
  * - The next call sends that stored action once, only if the caller's first
  *   speech-to-text turn after the preview is a plain yes with no other tool
  *   output in between. Tool output and model text are never read.
  * - Anything else (a no, a question, another tool's output, expiry, no live
  *   call, a speaker not proven to be the account owner) sends nothing.
+ * - Test accounts (voice-eval-*, e2e-*) never reach anyone, flag or no flag.
  *
- * NOT covered yet: multiOutreach and sendBatchMessages send nothing under the
- * flag (their confirmation is a follow-up); calls by callOnBehalf and
- * callAndConverse dial unconfirmed (a follow-up; the flag stays off until
- * then). In-app chat has no transcript, so these tools send nothing there.
+ * multiOutreach and sendBatchMessages send nothing yet (their read-back is a
+ * follow-up). In-app chat has no transcript, so these tools send nothing there.
  *
  * @module tools/domains/communication/outreach/outreach-confirm
  */
 
 import { getLogger } from '../../../../utils/safe-logger.js';
+import { isSyntheticUserId } from '../../../../utils/synthetic-user.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../../registry/types.js';
 
 const log = getLogger();
@@ -37,9 +38,21 @@ export interface Planned {
   channel: string;
 }
 
+/** On unless OUTBOUND_CONFIRM=off outside production (the escape hatch is for tests). */
 export function isOutreachConfirmOn(): boolean {
-  return process.env.OUTREACH_CONFIRM === 'on';
+  if (process.env.OUTBOUND_CONFIRM !== 'off') return true;
+  if (process.env.NODE_ENV !== 'production') return false;
+  log.warn('OUTBOUND_CONFIRM=off is ignored in production');
+  return true;
 }
+
+/** What a gated tool says for a test account, which never reaches a real person. */
+export function testAccountReply(toolId: string): string {
+  return `Nothing was sent: this is a test account, so ${toolId} never calls, texts or emails anyone.`;
+}
+
+/** Marks a definition already wrapped, so wrapping it again (e.g. at registration) is a no-op. */
+const GATED = Symbol.for('ferni.outbound-confirm');
 
 type SessionEvent =
   { kind: 'caller'; text: string; agentSpeaking: boolean } | { kind: 'tool'; callIds: string[] };
@@ -79,6 +92,7 @@ function record(session: object, event: SessionEvent): void {
 // Replies made only of these count as a yes. Longest first, so "yes please" beats "yes".
 const YES_PHRASES = [
   ...'go ahead|do it|send it|send them|please do|please send|thats right|sounds good'.split('|'),
+  ...'call them|call her|call him|make the call'.split('|'),
   ...'yes yeah yep yup ya sure ok okay correct absolutely definitely'.split(' '),
 ];
 const FILLERS = ['thank you', 'please', 'thanks'];
@@ -174,15 +188,20 @@ export interface ConfirmSpec {
   ) => Promise<{ args: Record<string, unknown>; readBack: string } | string>;
 }
 
-/** Wrap an outreach tool so that, with OUTREACH_CONFIRM=on, it acts only on a caller's yes. */
+/** Wrap an outbound tool so it acts only on a caller's yes (see the module comment). */
 export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec): ToolDefinition {
-  return {
+  if ((def as unknown as Record<symbol, unknown>)[GATED]) return def;
+  const gatedDef: ToolDefinition = {
     ...def,
     create: (ctx: ToolContext): Tool => {
       const tool = def.create(ctx);
       type Execute = (a: unknown, o?: unknown) => Promise<unknown>;
       const execute = (tool as { execute: Execute }).execute.bind(tool);
       const gated = async (args: Record<string, unknown>, opts?: unknown): Promise<unknown> => {
+        if (isSyntheticUserId(ctx.userId)) {
+          log.info({ toolId: def.id }, 'OUTBOUND_CONFIRM: test account, nothing sent');
+          return testAccountReply(def.id);
+        }
         if (!isOutreachConfirmOn()) return execute(args, opts);
         const run = opts as { ctx?: { session?: object }; toolCallId?: string } | undefined;
         const session = run?.ctx?.session;
@@ -221,11 +240,13 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
         };
         log.info({ toolId: def.id }, 'OUTREACH_CONFIRM: preview stored, waiting for caller');
         return (
-          `NOT SENT YET. Read this to the caller word for word and ask if you should send it: ` +
+          `NOT SENT YET. Read this to the caller word for word and ask if you should go ahead: ` +
           `${prepared.readBack}. Call ${def.id} again only after the caller says yes.`
         );
       };
       return { ...tool, execute: gated } as Tool;
     },
   };
+  (gatedDef as unknown as Record<symbol, unknown>)[GATED] = true;
+  return gatedDef;
 }

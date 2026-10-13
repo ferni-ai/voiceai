@@ -53,5 +53,7 @@
     "facts": [["startup founder", "startup|founder|company"], ["burned out", "burn|exhausted|tired"], ["fundraising", "fundrais|investors|raise|vc"], ["used to paint", "paint"]] },
   { "id": "wary", "name": "Sam", "who": "44, privacy-conscious, worried about what the app remembers", "style": "cautious, asks what happens to what they say", "nameWhen": "late", "turns": 8,
     "ai": "Is this a real person on the line or is it AI?",
-    "facts": [["worried about privacy", "privacy|data|remember|record"], ["works in insurance", "insurance|claims"], ["has a teenage son", "son|teen"], ["into woodworking", "wood"]] }
+    "facts": [["worried about privacy", "privacy|data|remember|record"], ["works in insurance", "insurance|claims"], ["has a teenage son", "son|teen"], ["into woodworking", "wood"]] },
+  { "id": "renamed", "name": "Jess", "accountName": "Sam", "who": "31, graphic designer, signed up through an old account that has the name Sam on it, but everyone calls her Jess", "style": "easygoing, chatty; if Ferni calls her Sam she corrects him lightly, once (\"it's Jess, actually\")", "nameWhen": "volunteer", "turns": 9,
+    "facts": [["graphic designer", "design"], ["just adopted a rescue dog", "dog|rescue|pupp"], ["training for a 10k", "10k|race|running|run\\b"], ["moving apartments next month", "moving|apartment|boxes"]] }
 ]

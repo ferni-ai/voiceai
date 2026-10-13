@@ -203,12 +203,12 @@ description: Six AI specialists who actually listen, remember everything, and he
 <section class="stats-bar">
   <div class="stats-bar__inner content-grid">
     <div class="stat">
-      <div class="stat__value">10K+</div>
-      <div class="stat__label">Conversations</div>
+      <div class="stat__value">Free</div>
+      <div class="stat__label">Right Now</div>
     </div>
     <div class="stat">
-      <div class="stat__value">&lt;500ms</div>
-      <div class="stat__label">Response Time</div>
+      <div class="stat__value">6</div>
+      <div class="stat__label">Specialists</div>
     </div>
     <div class="stat">
       <div class="stat__value">∞</div>
@@ -1243,12 +1243,7 @@ description: Six AI specialists who actually listen, remember everything, and he
         const text = entry.target.textContent;
         
         // Parse different stat formats
-        if (text.includes('K+')) {
-          animateCounter(entry.target, 10, 'K+');
-        } else if (text.includes('ms')) {
-          const el = entry.target;
-          el.textContent = '<500ms';
-        } else if (text === '∞') {
+        if (text === '∞') {
           // Keep infinity as is
         } else if (text.includes('/')) {
           // Keep 24/7 as is

@@ -33,6 +33,7 @@ import { AgentRegistry, type Agent } from '../../personas/registry/unified-regis
 import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { executeHandoff } from './executor.js';
+import { holdUnaskedHandoff } from './handoff-consent.js';
 import { handoffToolResponse } from './handoff-tool-response.js';
 import { noteHandoffReason } from './handoff-reasons.js';
 import { introduceTeammate } from './introduce-member.js';
@@ -446,10 +447,7 @@ export async function buildHandoffTools(
         context_summary: z.string().optional().describe('Summary of relevant conversation context'),
       }),
       execute: async ({ reason, context_summary }, runContext) => {
-        // Get user profile from RUNTIME context: { ctx: { userData: UserData } }, services.userProfile.
-        // This is critical for unlock validation - build time may not have profile data,
-        // but runtime context always should (after user joins session)
-        //
+        // The unlock check needs the RUNTIME profile ({ ctx: { userData } }); build time may lack it.
         // 🐛 FIX BUG-008: Include recentMessages and conversationTopics in type for clearing
         interface RuntimeUserData {
           services?: { userProfile?: UserProfile | null; sessionId?: string };
@@ -464,6 +462,8 @@ export async function buildHandoffTools(
           };
         }
         const ctx = (runContext as { ctx?: { userData?: RuntimeUserData } })?.ctx;
+        const held = holdUnaskedHandoff(ctx, def.agentName, isTargetCoordinator);
+        if (held) return held;
         const userData = ctx?.userData;
         const runtimeUserProfile = userData?.services?.userProfile || userProfile || null;
         const runtimeTier =
