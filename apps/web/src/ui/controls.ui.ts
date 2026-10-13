@@ -19,6 +19,9 @@ import { t } from '../i18n/index.js';
 
 const log = createLogger('ControlsUI');
 
+/** The span holding a button's visible label (index.html `.btn-content`) */
+const LABEL_SELECTOR = '.btn-content';
+
 
 // ============================================================================
 // TYPES
@@ -237,11 +240,11 @@ function updateWrapUpState(isWrappingUp: boolean): void {
     addClass(elements.disconnectBtn, 'btn-wrap-up');
 
     // Update button text to be warmer
-    const textSpan = elements.disconnectBtn.querySelector('.btn-text');
+    const textSpan = elements.disconnectBtn.querySelector(LABEL_SELECTOR);
     if (textSpan) {
       textSpan.textContent = t('session.goodbye');
     } else {
-      // Fallback for buttons without .btn-text
+      // Fallback for buttons without a label span
       elements.disconnectBtn.setAttribute('data-wrap-up-text', t('session.goodbye'));
     }
 
@@ -258,9 +261,9 @@ function updateWrapUpState(isWrappingUp: boolean): void {
     removeClass(elements.disconnectBtn, 'btn-agent-hangup'); // Clear agent hangup state too
 
     // Reset button text
-    const textSpan = elements.disconnectBtn.querySelector('.btn-text');
+    const textSpan = elements.disconnectBtn.querySelector(LABEL_SELECTOR);
     if (textSpan) {
-      textSpan.textContent = t('session.end');
+      textSpan.textContent = t('entrance.endTalk');
     }
     elements.disconnectBtn.removeAttribute('data-wrap-up-text');
     elements.disconnectBtn.setAttribute('aria-label', t('session.endConversation'));
@@ -279,7 +282,7 @@ export function showClosingState(): void {
   addClass(elements.disconnectBtn, 'btn-closing');
 
   // Change text to show it's happening
-  const textSpan = elements.disconnectBtn.querySelector('.btn-text');
+  const textSpan = elements.disconnectBtn.querySelector(LABEL_SELECTOR);
   if (textSpan) {
     textSpan.textContent = t('session.untilNextTime');
   }
@@ -304,7 +307,7 @@ export function showAgentHangupState(): void {
   addClass(elements.disconnectBtn, 'btn-agent-hangup');
 
   // Brief text change
-  const textSpan = elements.disconnectBtn.querySelector('.btn-text');
+  const textSpan = elements.disconnectBtn.querySelector(LABEL_SELECTOR);
   if (textSpan) {
     textSpan.textContent = t('session.ending');
   }

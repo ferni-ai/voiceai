@@ -81,7 +81,7 @@ export const LAYER_MAP: Record<string, string> = {
   ...under('src/services', 'L3:growth', ['superhuman', 'coaching', 'habits', 'personal-journey', 'life-thesis', 'rituals', 'journal']),
   ...under('src/services', 'L3:growth', ['group-coaching', 'therapeutic-frameworks', 'wisdom', 'wisdom-synthesis', 'ceo-coaching']),
   ...under('src/services', 'L3:growth', ['creative-you', 'musical-you', 'predictive-insights', 'revelation-moments']),
-  ...under('src/services', 'L3:growth', ['seeds', 'behavior', 'behavioral-economics']),
+  ...under('src/services', 'L3:growth', ['seeds', 'behavior', 'behavioral-economics', 'follow-through']),
 
   // L2: types, errors, translations and pure helpers (including the logger facade).
   ...under('src', 'L2', ['types', 'errors', 'i18n', 'utils']),
