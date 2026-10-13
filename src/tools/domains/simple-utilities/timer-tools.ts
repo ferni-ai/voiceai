@@ -10,14 +10,12 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
-import {
-  recordUsage,
-  getTimerFollowUp,
-  getUserPatterns,
-} from './pattern-intelligence.js';
+import { recordUsage, getTimerFollowUp, getUserPatterns } from './pattern-intelligence.js';
 import { updateTimerPreferences } from './persistence.js';
 import { onTimerComplete } from './voice-callbacks.js';
 import { activeTimers } from './shared-state.js';
+import { runContextTimeZone } from '../../../utils/caller-time-zone.js';
+import { formatStoredLocalTime, wallTimeIn } from '../../../utils/time-zone.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 const setTimerDef: ToolDefinition = {
@@ -83,8 +81,9 @@ const setTimerDef: ToolDefinition = {
             });
         }, totalMs);
 
-        // Persist timer preference for cross-session learning
-        const hour = new Date().getHours();
+        // Persist timer preference for cross-session learning (the user's hour, not the server's)
+        const zone = runContextTimeZone(toolCtx);
+        const hour = wallTimeIn(new Date(), zone ?? 'Etc/UTC').hour;
         const timeOfDay =
           hour >= 5 && hour < 12
             ? 'morning'
@@ -121,7 +120,10 @@ const setTimerDef: ToolDefinition = {
             ? `⏱️ **Your ${usualTimer.label} timer set for ${timeStr}!**`
             : `⏱️ **Timer set for ${timeStr}!**${label ? `\n(${label})` : ''}`;
 
-        response += `\n\nI'll check in when it's done!`;
+        // Say what was set: an in-call timer that is gone if the call ends first.
+        response += `\n\nIt goes off ${formatStoredLocalTime(endTime, zone)}. It only runs while this call is open: if the call ends first, it won't ring.`;
+        if (existing)
+          response += ` This replaced the "${existing.label}" timer, which won't ring now.`;
 
         return response;
       },
