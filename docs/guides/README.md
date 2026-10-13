@@ -125,7 +125,7 @@ Ferni AI consists of 6 specialized AI agents:
 
 ### Ferni (Coordinator)
 
-The life coach and team coordinator. Wyoming roots, Japan tsunami survivor, mental health advocate. Asks powerful questions and orchestrates the team.
+The life coach and team coordinator. Wyoming roots, a decade in Japan, mental health advocate. Asks powerful questions and orchestrates the team.
 
 **Domains**: Life coaching, purpose, relationships, resilience, team coordination
 

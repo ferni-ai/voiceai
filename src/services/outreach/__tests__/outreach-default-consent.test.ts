@@ -118,6 +118,14 @@ describe('outreach consent mapping', () => {
 });
 
 describe('daily outreach selection', () => {
+  // Selection is only reached on the legacy path, with grounded check-ins off.
+  beforeEach(() => {
+    process.env.OUTREACH_GROUNDED_CHECKINS = 'off';
+  });
+  afterEach(() => {
+    delete process.env.OUTREACH_GROUNDED_CHECKINS;
+  });
+
   it('includes users with no preference, in-app only; skips users who switched off', async () => {
     users = [
       user('a-no-prefs'),

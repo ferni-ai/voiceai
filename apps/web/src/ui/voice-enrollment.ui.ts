@@ -24,6 +24,14 @@ import {
   type EnrollmentProgress,
   type VoiceProfile,
 } from '../services/voice-auth.service.js';
+import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { openDialog, type DialogHandle } from './overlay/dialog.js';
+import {
+  ENROLLMENT_DIALOG_CSS,
+  ENROLLMENT_PROMPTS,
+  ICONS,
+  type EnrollmentState,
+} from './voice-enrollment-content.js';
 
 const log = createLogger('VoiceEnrollmentUI');
 
@@ -39,42 +47,13 @@ export interface VoiceEnrollmentOptions {
   onCancel?: () => void;
 }
 
-type EnrollmentState =
-  | 'idle'
-  | 'checking'
-  | 'not_available'
-  | 'already_enrolled'
-  | 'ready'
-  | 'recording'
-  | 'processing'
-  | 'complete'
-  | 'error';
-
-// ============================================================================
-// ICONS (Lucide-style, brand compliant)
-// ============================================================================
-
-const ICONS = {
-  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>',
-  close:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-  check:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
-  alert:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>',
-  speaker:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="12" cy="12" r="3"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>',
-  sparkles:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
-  trash:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>',
-};
-
 // ============================================================================
 // STATE
 // ============================================================================
 
 let modal: HTMLElement | null = null;
+/** The native dialog holding `modal` while the overlay host renders it. */
+let enrollmentDialog: DialogHandle | null = null;
 let styleElement: HTMLStyleElement | null = null;
 let currentState: EnrollmentState = 'idle';
 let progress: EnrollmentProgress | null = null;
@@ -94,30 +73,18 @@ export function getEnrollmentDebugState(): {
 }
 
 // ============================================================================
-// ENROLLMENT PROMPTS - Different phrases for each sample
-// ============================================================================
-
-const ENROLLMENT_PROMPTS = [
-  "Say anything that comes to mind - maybe what you had for breakfast?",
-  "Tell me about your favorite place to relax.",
-  "Describe something that made you smile recently.",
-  "What's a hobby you enjoy or want to try?",
-  "Share a fun fact about yourself.",
-];
-
-// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
 export function initVoiceEnrollmentUI(): void {
   cleanupOrphanedElements();
+  document.querySelectorAll('#voice-enrollment-styles').forEach((el) => el.remove()); // HMR: fresh styles
   injectStyles();
   log.debug('VoiceEnrollmentUI initialized');
 }
 
 function cleanupOrphanedElements(): void {
-  document.querySelectorAll('.voice-enrollment-modal').forEach((el) => el.remove());
-  document.querySelectorAll('#voice-enrollment-styles').forEach((el) => el.remove());
+  document.querySelectorAll('.voice-enrollment-modal').forEach((el) => el.remove()); // not the styles
 }
 
 // ============================================================================
@@ -153,6 +120,8 @@ function injectStyles(): void {
       inset: 0;
       background: rgba(44, 37, 32, 0.75);
     }
+
+    ${ENROLLMENT_DIALOG_CSS}
 
     .voice-enrollment-card {
       position: relative;
@@ -536,6 +505,26 @@ export async function showVoiceEnrollmentModal(opts: VoiceEnrollmentOptions = {}
 
   currentState = 'checking';
   modal = createModal();
+  if (isOverlayHostEnabled()) {
+    injectStyles(); // cleanupOrphanedElements() above also removed the styles
+    // The card in a native <dialog>: top layer instead of z 1800 under every
+    // modal, Escape (the old overlay had none), inert page, a sheet on phones.
+    const body = document.createElement('div');
+    const card = modal.querySelector('.voice-enrollment-card');
+    if (card) body.appendChild(card);
+    modal = body;
+    enrollmentDialog = openDialog(body, {
+      size: 'md',
+      detent: 'large', // the start button sits below the fold at medium
+      labelledBy: 'voice-enrollment-title',
+      className: 'voice-enrollment-dialog',
+      onClose: () => {
+        if (enrollmentDialog) handleCancel(); // Escape, backdrop or drag
+      },
+    });
+    await checkStatusAndProfile();
+    return;
+  }
   document.body.appendChild(modal);
 
   // Animate in
@@ -560,6 +549,16 @@ export function hideVoiceEnrollmentModal(): void {
   if (animationFrame) {
     cancelAnimationFrame(animationFrame);
     animationFrame = null;
+  }
+
+  if (enrollmentDialog) {
+    const dialog = enrollmentDialog;
+    enrollmentDialog = null;
+    dialog.close();
+    modal = null;
+    currentState = 'idle';
+    progress = null;
+    return;
   }
 
   modal.classList.remove('voice-enrollment-modal--visible');

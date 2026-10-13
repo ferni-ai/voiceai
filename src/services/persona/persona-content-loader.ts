@@ -1499,7 +1499,7 @@ export async function loadQuirks(personaId = 'ferni'): Promise<Quirks | null> {
 
 /**
  * Load secret modes content for a specific persona
- * Used for contextual personality shifts (tsunami depth, late night, etc.)
+ * Used for contextual personality shifts (mentor depth, late night, etc.)
  */
 export async function loadSecretModes(personaId = 'ferni'): Promise<SecretModes | null> {
   const content = await loadPersonaContent<SecretModes>(personaId, 'secret_modes');
