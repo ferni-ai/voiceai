@@ -17,7 +17,7 @@ import {
   isCommitmentCaptureOn,
   recordCallerCommitments,
   type CaptureDeps,
-} from '../../../services/superhuman/after-call-commitments.js';
+} from '../../../services/superhuman/index.js';
 import {
   registerAfterCallTask,
   type AfterCallContext,
