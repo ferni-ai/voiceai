@@ -2100,8 +2100,7 @@
     "couldNotDisconnect": "연결을 해제할 수 없었어요. 다시 시도해 보시겠어요?",
     "sonosConnected": "Sonos가 연결되었어요!",
     "transcribing": "텍스트로 변환하는 중이에요...",
-    "transcriptionUnavailable": "텍스트 변환을 사용할 수 없어요. 오디오만 저장할게요.",
-    "audioSaved": "오디오가 저장되었어요!",
+    "transcriptionUnavailable": "이번에는 말을 알아듣지 못해서 아무것도 저장하지 않았어요. 다시 해볼까요?",
     "entrySaved": "항목이 저장되었어요!",
     "couldNotSaveEntry": "항목을 저장할 수 없었어요. 다시 시도해 보시겠어요?",
     "profileSaved": "프로필이 저장되었어요!",
@@ -3856,10 +3855,12 @@
       "create": "에이전트 만들기",
       "empty": "아직 에이전트가 없어요",
       "emptyHint": "소중한 사람의 목소리를 간직하거나, 멘토를 만들거나, 나만의 동반자를 디자인하는 첫 번째 에이전트를 만들어 보세요.",
+      "emptyHintWithoutVoice": "소중한 사람의 이야기를 간직하거나, 멘토를 만들거나, 나만의 동반자를 디자인하는 첫 번째 에이전트를 만들어 보세요.",
       "createFirst": "첫 번째 에이전트 만들기",
       "whatYouCan": "이런 에이전트를 만들 수 있어요",
       "legacy": "소중한 유산",
       "legacyDesc": "소중한 사람의 목소리와 지혜를 고스란히 간직해 보세요",
+      "legacyDescWithoutVoice": "소중한 사람의 이야기와 지혜를 고스란히 간직해 보세요",
       "mentor": "멘토",
       "mentorDesc": "나에게 영감을 주는 인물을 바탕으로 코치를 만들어 보세요",
       "twin": "디지털 트윈",
@@ -5062,7 +5063,8 @@
     },
     "voiceStep": {
       "title": "어떤 목소리가 좋을까요?",
-      "subtitle": "목소리를 선택하거나 직접 클론해 보세요"
+      "subtitle": "목소리를 선택하거나 직접 클론해 보세요",
+      "subtitleWithoutClone": "목소리를 선택해 보세요"
     },
     "voiceOption": {
       "cloneTitle": "목소리 클론하기",
@@ -7235,6 +7237,7 @@
     "legacy": {
       "name": "레거시",
       "description": "소중한 사람의 목소리와 지혜를 간직해 보세요",
+      "descriptionWithoutVoice": "소중한 사람의 이야기와 지혜를 간직해 보세요",
       "feature1": "녹음 파일로 목소리 복제하기",
       "feature2": "이야기와 기억들 기록하기",
       "feature3": "지혜와 자주 하던 말 저장하기",

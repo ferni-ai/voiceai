@@ -2100,8 +2100,7 @@
     "couldNotDisconnect": "無法中斷連線。要再試一次嗎？",
     "sonosConnected": "Sonos 已連線！",
     "transcribing": "正在語音轉文字...",
-    "transcriptionUnavailable": "無法轉換文字。僅儲存音訊。",
-    "audioSaved": "音訊已儲存！",
+    "transcriptionUnavailable": "這次沒能聽清內容，所以什麼都沒有儲存。要再試一次嗎？",
     "entrySaved": "記錄已儲存！",
     "couldNotSaveEntry": "無法儲存記錄。要再試一次嗎？",
     "profileSaved": "個人檔案已儲存！",
@@ -3856,10 +3855,12 @@
       "create": "創造 AI 夥伴",
       "empty": "目前沒有 AI 夥伴",
       "emptyHint": "創造你的第一個專屬 AI 夥伴，珍藏摯愛的聲音、打造一位導師，或設計專屬於你的貼心伴侶。",
+      "emptyHintWithoutVoice": "創造你的第一個專屬 AI 夥伴，珍藏摯愛的故事、打造一位導師，或設計專屬於你的貼心伴侶。",
       "createFirst": "創造你的第一個 AI 夥伴",
       "whatYouCan": "你可以創造什麼",
       "legacy": "情感傳承",
       "legacyDesc": "珍藏你所珍愛之人的聲音與智慧",
+      "legacyDescWithoutVoice": "珍藏你所珍愛之人的故事與智慧",
       "mentor": "心靈導師",
       "mentorDesc": "以啟發人心的人物為藍本，打造專屬教練",
       "twin": "數位分身",
@@ -5062,7 +5063,8 @@
     },
     "voiceStep": {
       "title": "他們聽起來應該是什麼樣子？",
-      "subtitle": "選擇聲音或複製聲音"
+      "subtitle": "選擇聲音或複製聲音",
+      "subtitleWithoutClone": "選擇聲音"
     },
     "voiceOption": {
       "cloneTitle": "複製聲音",
@@ -7235,6 +7237,7 @@
     "legacy": {
       "name": "傳承",
       "description": "珍藏你所珍愛之人的聲音與智慧",
+      "descriptionWithoutVoice": "珍藏你所珍愛之人的故事與智慧",
       "feature1": "透過錄音進行聲音複製",
       "feature2": "記錄故事與回憶",
       "feature3": "珍藏智慧與口頭禪",
