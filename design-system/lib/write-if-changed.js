@@ -13,7 +13,7 @@ const ISO_TIMESTAMP = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/g;
 
 /** The content with every ISO-8601 UTC timestamp blanked. */
 export function withoutTimestamps(text) {
-  return text;
+  return text.replace(ISO_TIMESTAMP, '<timestamp>');
 }
 
 /** @returns {boolean} whether the file was written */
