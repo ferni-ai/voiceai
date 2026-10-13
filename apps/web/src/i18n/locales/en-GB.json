@@ -3855,10 +3855,12 @@
       "create": "Create Agent",
       "empty": "No agents yet",
       "emptyHint": "Create your first custom agent to preserve a loved one's voice, build a mentor, or design your own companion.",
+      "emptyHintWithoutVoice": "Create your first custom agent to keep a loved one's stories, build a mentor, or design your own companion.",
       "createFirst": "Create Your First Agent",
       "whatYouCan": "What you can create",
       "legacy": "Legacy",
       "legacyDesc": "Preserve the voice and wisdom of someone you cherish",
+      "legacyDescWithoutVoice": "Preserve the stories and wisdom of someone you cherish",
       "mentor": "Mentor",
       "mentorDesc": "Create a coach based on an inspiring figure",
       "twin": "Digital Twin",
@@ -5061,7 +5063,8 @@
     },
     "voiceStep": {
       "title": "How should they sound?",
-      "subtitle": "Choose a voice or clone one"
+      "subtitle": "Choose a voice or clone one",
+      "subtitleWithoutClone": "Choose a voice"
     },
     "voiceOption": {
       "cloneTitle": "Clone a Voice",
@@ -7234,6 +7237,7 @@
     "legacy": {
       "name": "Legacy",
       "description": "Preserve the voice and wisdom of someone you cherish",
+      "descriptionWithoutVoice": "Preserve the stories and wisdom of someone you cherish",
       "feature1": "Voice cloning from recordings",
       "feature2": "Capture stories and memories",
       "feature3": "Store wisdom and favourite sayings",

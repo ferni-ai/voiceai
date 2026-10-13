@@ -3855,10 +3855,12 @@
       "create": "创建智能体",
       "empty": "暂无智能体",
       "emptyHint": "创建你的第一个自定义智能体，留存挚爱之人的声音、打造一位导师，或设计专属你自己的伴侣。",
+      "emptyHintWithoutVoice": "创建你的第一个自定义智能体，留存挚爱之人的故事、打造一位导师，或设计专属你自己的伴侣。",
       "createFirst": "创建你的第一个智能体",
       "whatYouCan": "你可以创建什么",
       "legacy": "传承",
       "legacyDesc": "留存你所珍视之人的声音与智慧",
+      "legacyDescWithoutVoice": "留存你所珍视之人的故事与智慧",
       "mentor": "导师",
       "mentorDesc": "以给你启发的人物为原型，创建一位教练",
       "twin": "数字分身",
@@ -5061,7 +5063,8 @@
     },
     "voiceStep": {
       "title": "它听起来应该是什么样的？",
-      "subtitle": "选择一个声音或克隆一个"
+      "subtitle": "选择一个声音或克隆一个",
+      "subtitleWithoutClone": "选择一个声音"
     },
     "voiceOption": {
       "cloneTitle": "克隆声音",
@@ -7234,6 +7237,7 @@
     "legacy": {
       "name": "传承",
       "description": "珍藏你所珍爱之人的声音与智慧",
+      "descriptionWithoutVoice": "珍藏你所珍爱之人的故事与智慧",
       "feature1": "通过录音克隆声音",
       "feature2": "记录故事与记忆",
       "feature3": "留存智慧与常用语",

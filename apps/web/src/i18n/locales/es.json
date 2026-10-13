@@ -3878,10 +3878,12 @@
       "create": "Crear agente",
       "empty": "Aún no hay agentes",
       "emptyHint": "Crea tu primer agente personalizado para preservar la voz de un ser querido, diseñar un mentor o crear tu propio compañero.",
+      "emptyHintWithoutVoice": "Crea tu primer agente personalizado para preservar las historias de un ser querido, diseñar un mentor o crear tu propio compañero.",
       "createFirst": "Crea tu primer agente",
       "whatYouCan": "Qué puedes crear",
       "legacy": "Legado",
       "legacyDesc": "Preserva la voz y la sabiduría de alguien a quien aprecias",
+      "legacyDescWithoutVoice": "Preserva las historias y la sabiduría de alguien a quien aprecias",
       "mentor": "Mentor",
       "mentorDesc": "Crea un coach basado en una figura inspiradora",
       "twin": "Gemelo digital",
@@ -5093,7 +5095,8 @@
     },
     "voiceStep": {
       "title": "¿Cómo debería sonar?",
-      "subtitle": "Elige una voz o clona una"
+      "subtitle": "Elige una voz o clona una",
+      "subtitleWithoutClone": "Elige una voz"
     },
     "voiceOption": {
       "cloneTitle": "Clonar una voz",
@@ -7281,6 +7284,7 @@
     "legacy": {
       "name": "Legado",
       "description": "Conserva la voz y la sabiduría de alguien a quien aprecias",
+      "descriptionWithoutVoice": "Conserva las historias y la sabiduría de alguien a quien aprecias",
       "feature1": "Clonación de voz a partir de grabaciones",
       "feature2": "Captura de historias y recuerdos",
       "feature3": "Guarda su sabiduría y frases favoritas",

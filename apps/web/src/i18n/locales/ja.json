@@ -3855,10 +3855,12 @@
       "create": "エージェントを作成",
       "empty": "エージェントはまだありません",
       "emptyHint": "最初のエージェントを作成して、大切な人の声を残したり、メンターを育てたり、あなただけのパートナーをデザインしてみましょう。",
+      "emptyHintWithoutVoice": "最初のエージェントを作成して、大切な人の思い出を残したり、メンターを育てたり、あなただけのパートナーをデザインしてみましょう。",
       "createFirst": "最初のエージェントを作成する",
       "whatYouCan": "作成できるもの",
       "legacy": "レガシー",
       "legacyDesc": "大切な人の声や知恵を未来に残す",
+      "legacyDescWithoutVoice": "大切な人の思い出や知恵を未来に残す",
       "mentor": "メンター",
       "mentorDesc": "憧れの人物をモデルにしたコーチを作成する",
       "twin": "デジタルツイン",
@@ -5061,7 +5063,8 @@
     },
     "voiceStep": {
       "title": "どんな声がいいですか？",
-      "subtitle": "声を選ぶか、クローンを作成します"
+      "subtitle": "声を選ぶか、クローンを作成します",
+      "subtitleWithoutClone": "声を選びます"
     },
     "voiceOption": {
       "cloneTitle": "声をクローンする",
@@ -7234,6 +7237,7 @@
     "legacy": {
       "name": "レガシー",
       "description": "大切な人の声と知恵を、ずっと残しておけます",
+      "descriptionWithoutVoice": "大切な人の思い出と知恵を、ずっと残しておけます",
       "feature1": "録音からの音声クローニング",
       "feature2": "お話や思い出を記録",
       "feature3": "知恵やお気に入りの言葉を保存",
