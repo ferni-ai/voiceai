@@ -8,16 +8,15 @@
  * - Onboarding arc progression
  * - Re-engagement campaigns
  * - Milestone celebrations
- *
  * Runs on Cloud Scheduler (cron) and respects:
  * - User preferences and quiet hours
  * - Optimal timing per user
  * - Rate limits and quotas
- *
  * @module AutomatedScheduler
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { isSyntheticUserId } from '../../utils/synthetic-user.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deliver, getChannelStatus, type DeliveryChannel } from './unified-delivery.js';
 import {
@@ -37,18 +36,13 @@ import {
   unansweredCount,
 } from './outreach-cadence.js';
 import { dailyCheckInChannel, logDailyCheckIn } from './proactive-channels/daily-checkin.js';
+import { blocksGenericCheckIns } from './grounded-checkin.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
 
 const CANDIDATE_PAGE_SIZE = 200;
 /** Bound one run's reads; users past this are reached on later days. */
 const MAX_USERS_SCANNED = 5000;
-/**
- * Accounts made by test harnesses (voice-eval callers, e2e runs, local
- * devices). They share production Firestore and look active, so without this
- * they'd be the main recipients of "thinking of you" messages.
- */
-const SYNTHETIC_USER_ID = /^(voice-eval-|e2e-|device:(test|local-dev|debug))/;
 
 // ============================================================================
 // TYPES
@@ -208,6 +202,7 @@ async function processCandidate(
   if (!outreachType) {
     return { sent: false, reason: 'No outreach needed' };
   }
+  if (blocksGenericCheckIns()) return { sent: false, reason: 'No grounded reason to reach out' };
 
   // Determine best channel
   const channel = proactive ? proactive.channel : await determineBestChannel(candidate);
@@ -303,7 +298,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         const data = doc.data();
         const userId = doc.id;
         if (data.outreachPreferences?.enabled === false) continue;
-        if (SYNTHETIC_USER_ID.test(userId)) continue;
+        if (isSyntheticUserId(userId)) continue; // test harness accounts
 
         const lastOutreach = data.lastOutreachDate?.toDate?.() || data.lastOutreachDate;
         const engagementLevel = engagementLevelOf(data, now.getTime());

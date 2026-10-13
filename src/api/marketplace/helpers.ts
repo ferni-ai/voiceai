@@ -6,8 +6,13 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { AgentManifest, ToolManifest } from '../../marketplace/schema/types.js';
+import { getSubscriptionInfo } from '../../services/billing/stripe-subscription.js';
+import type { SubscriptionTier } from '../../types/subscription.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { parseBody as parseBodyHelper, sendJSON } from '../helpers.js';
 import { isVerifiedAdmin } from '../rate-limit-identity.js';
+
+const log = createLogger({ module: 'marketplace-helpers' });
 
 // ============================================================================
 // TYPES
@@ -79,10 +84,16 @@ export function getPublisher(req: IncomingMessage): PublisherSession | null {
 }
 
 /**
- * Get subscription tier from headers (default: free)
+ * The plan a user is on, read from their account (never from the request, which
+ * the client controls). Fails closed: if the lookup fails, the user gets 'free'.
  */
-export function getSubscriptionTier(req: IncomingMessage): string {
-  return (req.headers['x-subscription-tier'] as string) || 'free';
+export async function getSubscriptionTier(userId: string): Promise<SubscriptionTier> {
+  try {
+    return (await getSubscriptionInfo(userId)).tier;
+  } catch (error) {
+    log.warn({ error, userId }, 'Plan lookup failed; using the free quota');
+    return 'free';
+  }
 }
 
 // ============================================================================

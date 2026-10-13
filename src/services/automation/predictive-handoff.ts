@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { preBriefingIndexUnavailable, reportPreBriefingError } from './pre-briefing-index-guard.js';
 import type { PersonaId } from './insight-action-bridge.js';
 
 const log = createLogger({ module: 'predictive-handoff' });
@@ -565,7 +566,7 @@ export async function storePreBriefing(
   targetPersona: PersonaId,
   context: string,
   relevantHistory: string[] = [],
-  suggestedApproach: string = ''
+  suggestedApproach = ''
 ): Promise<PreBriefing> {
   const briefing: PreBriefing = {
     id: `brief_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
@@ -596,15 +597,13 @@ export async function storePreBriefing(
   return briefing;
 }
 
-/**
- * Get active pre-briefing for a persona
- */
+/** Get active pre-briefing for a persona (missing-index guard: pre-briefing-index-guard.ts) */
 export async function getPreBriefing(
   userId: string,
   personaId: PersonaId
 ): Promise<PreBriefing | null> {
   const db = getFirestoreDb();
-  if (!db) return null;
+  if (!db || preBriefingIndexUnavailable()) return null;
 
   try {
     const snapshot = await db
@@ -623,7 +622,7 @@ export async function getPreBriefing(
 
     return snapshot.docs[0].data() as PreBriefing;
   } catch (error) {
-    log.error({ error: String(error), userId, personaId }, 'Failed to get pre-briefing');
+    reportPreBriefingError(error, { userId, personaId });
     return null;
   }
 }

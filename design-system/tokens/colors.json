@@ -92,7 +92,9 @@
         "secondary": "#cfc3b4",
         "muted": "#a89b8c",
         "dimmed": "#a89888",
-        "inverse": "#14110e"
+        "inverse": "#14110e",
+        "onAccent": "#14110e",
+        "_onAccentNote": "Text on an accent fill. Ink, because the midnight sage is light: 7.6:1 on #8eae7a, 9.7:1 on the hover #a4c48f. White there was 2.47:1."
       },
       "border": {
         "subtle": "rgba(244, 239, 230, 0.10)",
@@ -120,7 +122,15 @@
         "warningTint": "rgba(224, 184, 96, 0.12)",
         "info": "#9ec8c4",
         "infoGlow": "rgba(158, 200, 196, 0.22)",
-        "infoTint": "rgba(158, 200, 196, 0.12)"
+        "infoTint": "rgba(158, 200, 196, 0.12)",
+        "onSuccess": "#14110e",
+        "onError": "#14110e",
+        "onWarning": "#14110e",
+        "onInfo": "#14110e",
+        "_onNote": "Text on a semantic fill. The midnight semantics are light tints (they double as text colours on the dark field), so text on them is ink: 9.1:1 on error, 10.0:1 on warning. White on #e7a39a was 2.08:1.",
+        "warningBg": "#2c2518",
+        "warningText": "#e0b860",
+        "_warningBgNote": "Banner fill and text. A dark amber surface (the warning tint over #14110e) with warning text, 8.1:1, instead of the light #fef3cd fallback."
       },
       "utility": {
         "_description": "Utility colors for common UI patterns - focus rings, backdrops, overlays",
@@ -247,6 +257,7 @@
         "muted": "#6b635a",
         "dimmed": "#756a5e",
         "inverse": "#faf8f5",
+        "onAccent": "#faf8f5",
         "_contrastRatios": "primary: 12.0:1, secondary: 7.0:1, muted: 5.5:1, dimmed: 4.7:1"
       },
       "border": {
@@ -276,7 +287,14 @@
         "_warningNote": "#87652a: 5.05:1 with #faf8f5 text on a warning fill, and as warning text on the zen background (WCAG AA). #a67c35 was 3.57:1.",
         "info": "#3a6b9c",
         "infoGlow": "rgba(58, 107, 156, 0.18)",
-        "infoTint": "rgba(58, 107, 156, 0.08)"
+        "infoTint": "rgba(58, 107, 156, 0.08)",
+        "onSuccess": "#faf8f5",
+        "onError": "#faf8f5",
+        "onWarning": "#faf8f5",
+        "onInfo": "#faf8f5",
+        "warningBg": "#f8eed6",
+        "warningText": "#6e5220",
+        "_warningBgNote": "Banner fill and text: 6.3:1."
       },
       "utility": {
         "_description": "Utility colors for common UI patterns - focus rings, backdrops, overlays",
@@ -421,7 +439,7 @@
       "tint": "rgba(154, 7, 24, 0.06)",
       "subtle": "rgba(154, 7, 24, 0.06)",
       "light": "#c83040",
-      "_note": "Vanguard burgundy red - distinguished, trustworthy, Stanford PhD mentor",
+      "_note": "Burgundy red - distinguished, trustworthy mentor (Nate, id joel-dickson)",
       "_textOnDarkContrast": "4.9:1 on #352e28 - WCAG AA compliant"
     },
     "lynch": {
@@ -434,7 +452,7 @@
       "tint": "rgba(26, 95, 42, 0.06)",
       "subtle": "rgba(26, 95, 42, 0.06)",
       "light": "#5f8f6a",
-      "_note": "Peter Lynch (Financial Legend) - Fidelity forest green, from his bundle avatar colour",
+      "_note": "Tom Brannigan (Financial Legend, id peter-lynch) - forest green, from his bundle avatar colour",
       "_textOnDarkContrast": "4.7:1 on #352e28 - WCAG AA compliant"
     },
     "bogle": {
@@ -447,7 +465,7 @@
       "tint": "rgba(139, 0, 0, 0.06)",
       "subtle": "rgba(139, 0, 0, 0.06)",
       "light": "#ae4c4c",
-      "_note": "John Bogle (Financial Legend) - deep Vanguard red, from his bundle avatar colour",
+      "_note": "Henry Caldwell (Financial Legend, id john-bogle) - deep red, from his bundle avatar colour",
       "_textOnDarkContrast": "4.9:1 on #352e28 - WCAG AA compliant"
     },
 

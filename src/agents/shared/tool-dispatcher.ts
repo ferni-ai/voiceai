@@ -26,6 +26,7 @@ import {
 import { getConversationState } from '../../services/conversation-state.js';
 import { isServiceHealthyFast } from '../../services/self-healing/index.js';
 import { isMetaToolCall, unwrapMetaToolCall } from './meta-tool.js';
+import { outboundDispatchRefusal } from '../../tools/registry/outbound-gate.js';
 import {
   notifyToolFailed,
   notifyToolStarted,
@@ -168,6 +169,9 @@ async function routeToTool(
   if (fnLower === '__conversation__' || fnLower === 'conversation') {
     return null;
   }
+
+  const refusal = outboundDispatchRefusal(fn, ctx.userId); // no live call here to hear a yes
+  if (refusal) return refusal;
 
   const { routeToToolModular } = await import('./tool-executors/index.js');
   const modularResult = await routeToToolModular(fn, args, ctx);

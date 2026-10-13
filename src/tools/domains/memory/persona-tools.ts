@@ -6,7 +6,7 @@
  * Each persona remembers things in their own natural way:
  *
  * Ferni: "Remember I like morning check-ins"
- * Jack: "I prefer Vanguard Total Stock Market"
+ * Nayan: "I prefer a total stock market index fund"
  * Peter: "Add Apple to my watchlist - I use their products daily"
  * Maya: "I always overspend at Target when I'm stressed"
  * Jordan: "My anniversary is June 15th"
@@ -712,7 +712,7 @@ export function createMemoryManagementTools() {
             'comm-specialist',
           ])
           .describe(
-            'Which persona stored this memory (jack-b=Bogle, nayan-patel=Ferni, spend-save=Maya, event-planner=Jordan)'
+            'Which persona stored this memory (jack-b=Ferni, nayan-patel=Nayan, including funds and investing philosophy, peter-john=Peter, spend-save=Maya, event-planner=Jordan, comm-specialist=Alex)'
           ),
       }),
       execute: async ({ searchTerm, persona }, { ctx }) => {
@@ -750,7 +750,7 @@ export function createMemoryManagementTools() {
             'comm-specialist',
           ])
           .describe(
-            'Which persona stored this memory (jack-b=Bogle, nayan-patel=Ferni, spend-save=Maya, event-planner=Jordan)'
+            'Which persona stored this memory (jack-b=Ferni, nayan-patel=Nayan, including funds and investing philosophy, peter-john=Peter, spend-save=Maya, event-planner=Jordan, comm-specialist=Alex)'
           ),
         updates: z.object({
           name: z.string().optional().describe('New name'),

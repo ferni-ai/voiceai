@@ -399,7 +399,7 @@ Want to add a new tool? Add it to the props department. The actors don't need to
 
 ### 3. Reliability
 
-From our [research on orchestration patterns](https://www.onabout.ai/p/mastering-multi-agent-orchestration-architectures-patterns-roi-benchmarks-for-2025-2026):
+From [one industry write-up on orchestration patterns](https://www.onabout.ai/p/mastering-multi-agent-orchestration-architectures-patterns-roi-benchmarks-for-2025-2026):
 
 > "Organizations using multi-agent architectures achieve 45% faster problem resolution and 60% more accurate outcomes compared to single-agent systems."
 
@@ -465,4 +465,4 @@ Now go make your film.
 
 ---
 
-*Dive deeper into specific elements: [FTIS V2 (the props department)](/dev-blog/ftis-v2-small-models-tool-selection), [half-cascade architecture (the stage)](/dev-blog/half-cascade-architecture), or [our tool calling battles (why we needed this model)](/dev-blog/realtime-api-tool-calling-wars).*
+*Dive deeper into specific elements: [FTIS V2 (the props department)](/developers/blog/ftis-v2-small-models-tool-selection/), [half-cascade architecture (the stage)](/developers/blog/half-cascade-architecture/), or [our tool calling battles (why we needed this model)](/developers/blog/realtime-api-tool-calling-wars/).*
