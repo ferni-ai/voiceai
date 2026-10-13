@@ -53,6 +53,8 @@ import {
   loadLifeUpdates,
   type LifeUpdateDeps,
 } from '../personas/life-updates.js';
+import { commonGroundEnabled, formatCommonGround } from '../personas/common-ground.js';
+import { firestoreGroundStore, type GroundStore } from '../personas/common-ground-after-call.js';
 import {
   callCheckIns,
   coachFollowThroughMode,
@@ -111,6 +113,8 @@ export interface MemoryRecallDeps {
   lifeUpdates?: LifeUpdateDeps;
   /** What they said they'd do, asked about early (COACH_FOLLOW_THROUGH). */
   checkIns?: () => Promise<OpenCommitment[]>;
+  /** What the two of them both know (common-ground.ts, COMMON_GROUND). */
+  groundStore?: GroundStore;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
   semantic?: boolean;
   embed?: RetrievalEmbedder;
@@ -154,6 +158,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
 
   let ledgerNote: string | null = null;
   let sinceNote: string | null = null;
+  let groundNote: string | null = null;
   let checkInNote: string | null = null;
   let checkInOffered = false;
   const semanticOn = deps.semantic ?? semanticRecallEnabled();
@@ -219,7 +224,16 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       checkInNote = formatCheckIn(open, Date.now());
     })
     .catch((error: unknown) => log.warn({ error: String(error) }, 'Check-ins not loaded'));
-  const ready = Promise.all([loaded, since, checkedIn]).then(() => undefined);
+  // Like the life updates: joins the first note only if loaded by then.
+  const ground = commonGroundEnabled()
+    ? (deps.groundStore ?? firestoreGroundStore)
+        .load(deps.userId)
+        .then((g) => {
+          groundNote = formatCommonGround(g, deps.userName);
+        })
+        .catch((error: unknown) => log.warn({ error: String(error) }, 'Common ground not loaded'))
+    : Promise.resolve();
+  const ready = Promise.all([loaded, since, checkedIn, ground]).then(() => undefined);
 
   return {
     ready,
@@ -261,7 +275,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       // The ledger, like the follow-ups, comes once, with the first note.
       const told = followUpsOffered
         ? null
-        : [ledgerNote, sinceNote].filter(Boolean).join('\n') || null;
+        : [ledgerNote, sinceNote, groundNote].filter(Boolean).join('\n') || null;
       const checkIn = checkInOffered ? null : checkInNote;
       const note =
         [
