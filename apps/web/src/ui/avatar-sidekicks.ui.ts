@@ -1069,7 +1069,7 @@ function injectStyles(): void {
     }
     
     /* Dark theme adjustments */
-    [data-theme='dark'] .sidekick-icon {
+    [data-theme='midnight'] .sidekick-icon {
       filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
     }
     

@@ -402,6 +402,21 @@ function confidenceOf(raw: unknown): number {
 export const MAX_FOLLOW_UPS = 3;
 const MAX_INSIDE_JOKES = 3;
 
+/**
+ * A summary without the items the caller disputed (dispute.ts: disputedItems)
+ * and without that list itself, so no reader serves or matches them.
+ */
+export function undisputed(s: Record<string, unknown>): Record<string, unknown> {
+  if (!Array.isArray(s.disputedItems)) return s;
+  const gone = new Set(s.disputedItems.map(String));
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(s)) {
+    if (k === 'disputedItems') continue;
+    out[k] = Array.isArray(v) ? v.filter((x) => typeof x !== 'string' || !gone.has(x)) : v;
+  }
+  return out;
+}
+
 /** Load a user's recall snapshot. Never throws; an unreachable store yields an empty snapshot. */
 export async function loadRecallSnapshot(
   store: RecallStore,
@@ -410,7 +425,10 @@ export async function loadRecallSnapshot(
 ): Promise<RecallSnapshot> {
   const [rawFacts, rawSummaries, forgotten] = await Promise.all([
     store.facts(userId).catch(() => []),
-    store.summaries(userId).catch(() => []),
+    store
+      .summaries(userId)
+      .then((all) => all.map(undisputed))
+      .catch(() => []),
     store.forgotten
       ? store.forgotten(userId).catch((): null => null)
       : Promise.resolve<string[]>([]),
