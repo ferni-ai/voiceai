@@ -11,6 +11,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { getExtractionModel, getOpenAIFallbackModel } from '../../../src/config/gemini-config.js';
 import { callLLM } from '../../../src/services/llm-utils.js';
 import {
   RunDays,
@@ -22,6 +23,7 @@ import {
   localDay,
   paired,
   parseYesNo,
+  promptHashes,
   type CaseResult,
 } from '../longmem-lib.js';
 import { PERSONAS } from '../fixtures/live-personas.js';
@@ -107,7 +109,8 @@ async function main(): Promise<void> {
   const dir = join(tmpdir(), 'longmem');
   mkdirSync(dir, { recursive: true });
   const file = join(dir, `live-${labels.join('-vs-')}.json`);
-  writeFileSync(file, JSON.stringify({ labels, runs }, null, 2));
+  const models = { judge: getExtractionModel(), fallback: getOpenAIFallbackModel() };
+  writeFileSync(file, JSON.stringify({ labels, models, prompts: promptHashes(), runs }, null, 2));
   console.log(`\n${sections.join('\n\n')}\n\nReport: ${file}`);
   const failures = runs.reduce((sum, run) => sum + failureCount(run), 0);
   if (failures > 0) {

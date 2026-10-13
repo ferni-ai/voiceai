@@ -71,6 +71,20 @@ describe('verifiedCases', () => {
     expect(dropped).toBe(3);
   });
 
+  it('drops entries that are not objects instead of failing', () => {
+    const raw = JSON.stringify([
+      null,
+      'a string',
+      3,
+      { category: 'abstention', ask: "What's my dog's name?", gold: 'never said', evidence: [] },
+    ]);
+    const { kept, dropped, parseError } = verifiedCases(raw, h!);
+    expect(parseError).toBe(false);
+    expect(kept).toHaveLength(1);
+    expect(dropped).toBe(3);
+    expect(verifiedCases('[null]', h!)).toEqual({ kept: [], dropped: 1, parseError: false });
+  });
+
   it('keeps nothing from a reply that is not a JSON array, and says it failed to parse', () => {
     expect(verifiedCases('Sorry, I cannot do that.', h!)).toEqual({
       kept: [],
@@ -158,5 +172,34 @@ describe('call ages', () => {
       'America/New_York'
     );
     expect(h!.sessions[0]!.daysAgo).toBe(279);
+  });
+
+  const ageIn = (at: number, runDate: string) =>
+    groupIntoHistories(
+      [{ id: 'c', at, user: ['Hi.'] }],
+      1,
+      1,
+      runDate,
+      'Priya',
+      'America/New_York'
+    )[0]!.sessions[0]!.daysAgo;
+
+  it('keeps a call made on the run day at 0 days ago, dated the run day', () => {
+    // 10:00 in New York on the run day.
+    expect(ageIn(Date.parse('2026-10-11T14:00:00Z'), '2026-10-11')).toBe(0);
+    const [h] = groupIntoHistories(
+      [{ id: 'today', at: Date.parse('2026-10-11T14:00:00Z'), user: ['Hi.'] }],
+      1,
+      1,
+      '2026-10-11',
+      'Priya',
+      'America/New_York'
+    );
+    expect(generationPrompt(h!, '2026-10-11', 2)).toContain('Call 1 (2026-10-11)');
+  });
+
+  it('dates a call at 23:30 the night before as 1 day ago, though it is the run day in UTC', () => {
+    // 2026-10-10 23:30 in New York (EDT) is 2026-10-11 03:30 UTC.
+    expect(ageIn(Date.parse('2026-10-11T03:30:00Z'), '2026-10-11')).toBe(1);
   });
 });

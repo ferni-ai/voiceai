@@ -34,7 +34,8 @@ export function positiveInt(value: string | undefined, name: string, fallback: n
 /**
  * Consecutive calls, `perHistory` at a time, as histories dated back from the
  * run date. Ages count whole calendar days in the caller's zone, so a call
- * late at night still lands on the day it happened.
+ * late at night still lands on the day it happened; a call on the run day
+ * itself is 0 days ago (questions are asked later that day).
  */
 export function groupIntoHistories(
   calls: readonly StoredCall[],
@@ -55,7 +56,8 @@ export function groupIntoHistories(
       id: `real-${histories.length + 1}`,
       name,
       sessions: sorted.slice(i, i + perHistory).map((c) => ({
-        daysAgo: Math.max(1, daysBetween(localDay(c.at, zone), runDate)),
+        // A clock ahead of the caller's zone could date a call after the run; never in the future.
+        daysAgo: Math.max(0, daysBetween(localDay(c.at, zone), runDate)),
         user: c.user,
       })),
     });
@@ -155,7 +157,12 @@ export function verifiedCases(
   if (!parsed) return { kept: [], dropped: 0, parseError: true };
   const kept: GeneratedCase[] = [];
   let dropped = 0;
-  for (const item of parsed as Array<Partial<GeneratedCase>>) {
+  for (const entry of parsed) {
+    if (!entry || typeof entry !== 'object') {
+      dropped++;
+      continue;
+    }
+    const item = entry as Partial<GeneratedCase>;
     const category = item.category as MemoryCategory;
     const evidence = Array.isArray(item.evidence) ? item.evidence.map(String) : [];
     const ok =

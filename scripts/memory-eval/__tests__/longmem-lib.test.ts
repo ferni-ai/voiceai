@@ -124,13 +124,20 @@ describe('scoring', () => {
     expect(report).toContain('| overall | 1/2 | 50%');
   });
 
-  it('counts a missing answer as a failure, apart from a judge failure', () => {
+  it('counts a missing answer as wrong and as a failure; a judge failure only as a failure', () => {
     const blank: CaseResult = { ...r('temporal', null, null), response: '', noAnswer: true };
     const t = tally([r('temporal', true, true), blank, r('temporal', null, null)]);
-    expect(t).toMatchObject({ n: 1, correct: 1, judgeFailures: 1, noAnswers: 1 });
+    expect(t).toMatchObject({ n: 2, correct: 1, accuracy: 0.5, judgeFailures: 1, noAnswers: 1 });
     expect(failureCount([blank, r('temporal', true, true)])).toBe(1);
     expect(failureCount([r('temporal', true, true)])).toBe(0);
-    expect(formatReport([blank])).toContain('| temporal | – | – | – | 1 |');
+    expect(formatReport([blank])).toContain('| temporal | 0/1 | 0% [0%, 79%] | – | 1 |');
+    expect(formatReport([blank])).toContain('| overall | 0/1 | 0%');
+  });
+
+  it('states the accuracy denominator under the table', () => {
+    expect(formatReport([r('temporal', true, true)])).toMatch(
+      /Accuracy is correct \/ \(judged \+ no answer\).*judge failure is left out/
+    );
   });
 
   it('fingerprints the prompt templates, so a changed wording shows in a report', () => {

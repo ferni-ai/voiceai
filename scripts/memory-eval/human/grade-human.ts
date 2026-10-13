@@ -33,8 +33,8 @@ async function main(): Promise<void> {
   let people = 0;
   for (const f of files) {
     const doc = JSON.parse(readFileSync(join(dir, f), 'utf8')) as {
-      answers?: Record<string, string>;
-      data?: { answers?: Record<string, string> };
+      answers?: Record<string, unknown>;
+      data?: { answers?: Record<string, unknown> };
     };
     const answers = doc.answers ?? doc.data?.answers;
     if (!answers || typeof answers !== 'object') {
@@ -43,7 +43,10 @@ async function main(): Promise<void> {
     }
     people++;
     for (const [id, k] of Object.entries(HUMAN_KEY)) {
-      const response = answers[id] ?? '';
+      const value = answers[id] ?? '';
+      // Something other than text is not an answer: counted as none, and said.
+      if (typeof value !== 'string') console.log(`skipped ${f} ${id}: answer is not text`);
+      const response = typeof value === 'string' ? value : '';
       // A blank answer is a failure; the judge is not asked to grade nothing.
       const noAnswer = response.trim() === '';
       const judgeReply = noAnswer

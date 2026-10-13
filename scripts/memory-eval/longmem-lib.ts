@@ -233,7 +233,10 @@ export interface CaseResult {
 }
 
 export interface Tally {
-  /** Judged questions: the accuracy denominator. */
+  /**
+   * The accuracy denominator: judged answers plus missing answers (counted
+   * wrong). An answer the judge gave no verdict on is left out.
+   */
   n: number;
   correct: number;
   accuracy: number;
@@ -276,28 +279,31 @@ export function wilson(k: number, n: number): [number, number] {
 }
 
 export function tally(results: readonly CaseResult[]): Tally {
-  const answered = results.filter((r) => !r.noAnswer);
-  const judged = answered.filter((r) => r.correct !== null);
+  const noAnswers = results.filter((r) => r.noAnswer).length;
+  const judged = results.filter((r) => !r.noAnswer && r.correct !== null);
   const correct = judged.filter((r) => r.correct).length;
+  const n = judged.length + noAnswers;
   const retrievable = results.filter((r) => r.retrieved !== null);
   return {
-    n: judged.length,
+    n,
     correct,
-    accuracy: judged.length ? correct / judged.length : 0,
-    ci95: wilson(correct, judged.length),
+    accuracy: n ? correct / n : 0,
+    ci95: wilson(correct, n),
     retrieved: retrievable.length
       ? retrievable.filter((r) => r.retrieved).length / retrievable.length
       : null,
-    judgeFailures: answered.length - judged.length,
-    noAnswers: results.length - answered.length,
+    judgeFailures: results.length - noAnswers - judged.length,
+    noAnswers,
   };
 }
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
 /**
- * The table per category. A category with no judged answers shows "–", not
- * 0%: nothing was measured. Failures count missing answers and judge failures.
+ * The table per category, with its denominator stated under it. A missing
+ * answer counts as wrong; a judge failure is left out of accuracy. A category
+ * with neither a judged nor a missing answer shows "–", not 0%: nothing was
+ * measured. Failures count missing answers and judge failures.
  */
 export function formatReport(results: readonly CaseResult[]): string {
   const rows = [...CATEGORIES, 'overall' as const].map((cat) => {
@@ -313,6 +319,9 @@ export function formatReport(results: readonly CaseResult[]): string {
     '| Category | Correct | Accuracy [95% CI] | Evidence in note | Failures |',
     '|---|---|---|---|---|',
     ...rows,
+    '',
+    'Accuracy is correct / (judged + no answer): a missing answer counts as wrong, ' +
+      'a judge failure is left out. Failures counts both.',
   ].join('\n');
 }
 
