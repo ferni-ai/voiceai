@@ -83,10 +83,15 @@
     "enabled": "Transcription on",
     "disabled": "Transcription off",
     "captionsLabel": "Live captions",
-    "showAll": "Show full transcript",
-    "sheetTitle": "Transcript",
-    "close": "Close transcript",
-    "you": "You"
+    "captionsToggle": "Captions",
+    "showAll": "Show the conversation so far",
+    "sheetTitle": "The conversation so far",
+    "close": "Close",
+    "momentRemember": "I'll remember:",
+    "momentRememberShort": "Noted:",
+    "momentNoticed": "I noticed:",
+    "momentNoticedShort": "Noticed:",
+    "momentWin": "Nice:"
   },
   "placeholders": {
     "customAmount": "Custom amount",
