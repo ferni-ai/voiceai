@@ -7,7 +7,7 @@
  * Features:
  * - DynamicTTS class that switches voices based on current agent
  * - Automatic voice switching on handoff events
- * - Support for all 6 personas: Ferni, Jack Bogle, Peter John, Alex, Maya, Jordan
+ * - Support for all 6 personas: Ferni, Henry (legacy index elder), Peter John, Alex, Maya, Jordan
  *
  * Voice IDs are now sourced from the voice-registry (single source of truth).
  *

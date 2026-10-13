@@ -1,0 +1,38 @@
+/*
+ * Tap target size: gives small controls a 44px touch target on touch screens.
+ *
+ * WCAG 2.5.5 and Apple's HIG both ask for 44x44px. The 2026-10-12 visual hunt
+ * measured these under it at 390px: confirm-modal buttons 37px tall,
+ * onboarding buttons 40px, the avatar's journey indicator 40x40, personalize
+ * category chips 18px and Your People filter chips 28px.
+ *
+ * Buttons and chips grow to at least 44x44px. The journey indicator is a
+ * badge on the avatar, so it keeps its size and gets an invisible 44px hit
+ * area instead. Desktop sizes are unchanged. tests/tap-target-size.test.ts
+ * keeps each selector here matched to a component that still exists.
+ */
+@media (pointer: coarse) {
+  .confirm-modal-btn,
+  .onboarding__btn,
+  .personalize-category-btn,
+  .yp-filter {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* The category row is a flex child of the modal and shrinks below its chips,
+     which clips them; keep it at its content height so the chips stay whole. */
+  .personalize-categories {
+    flex-shrink: 0;
+  }
+
+  .unified-indicator::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}

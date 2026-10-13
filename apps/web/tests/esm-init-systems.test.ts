@@ -52,12 +52,12 @@ describe('ESM init systems', () => {
 
   it('initTranscendentSystems starts breath sync on :root', () => {
     const root = document.documentElement.style;
-    expect(root.getPropertyValue('--breath-phase')).toBe('');
+    expect(root.getPropertyValue('--breath-rate-ms')).toBe('');
 
     const systems = initTranscendentSystems({ debug: false });
 
     expect(systems.isInitialized).toBe(true);
-    expect(root.getPropertyValue('--breath-phase')).toMatch(/^\d\.\d{4}$/);
+    expect(root.getPropertyValue('--breath-rate-ms')).toMatch(/^\d+ms$/);
   });
 
   // Contextual spacing writes a geometric --space-N scale inline on :root,
