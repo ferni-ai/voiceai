@@ -70,7 +70,6 @@ import {
 import {
   debounce,
   renderStars,
-  formatReviewCount,
 } from './marketplace/utils.js';
 
 const log = createLogger('Marketplace');
@@ -389,7 +388,7 @@ async function renderBrowseTab(): Promise<void> {
   const installedIds = marketplaceService.getInstalledAgentIds();
 
   if (agents.length === 0) {
-    showEmpty();
+    showEmpty(!searchQuery && !currentCategory);
     return;
   }
 
@@ -414,6 +413,7 @@ async function renderTeamLockedMessage(): Promise<void> {
 
   // Fetch marketplace agents to show preview
   const registry = await marketplaceService.fetchRegistry();
+  if (registry.agents.length === 0) return showEmpty(true); // no "N coaches waiting" for nobody
   const availableAgents = registry.agents.slice(0, 6); // Show first 6 as preview
   const totalAgentCount = registry.agents.length;
 
@@ -1514,15 +1514,6 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
         ? `<button class="agent-action uninstall" data-agent-id="${agent.id}">${t('marketplace.agent.remove')}</button>`
         : `<button class="agent-action install" data-agent-id="${agent.id}">${t('marketplace.agent.addToTeam')}</button>`;
 
-      // Rating display
-      const ratingHtml = agent.rating
-        ? `<div class="agent-rating">
-            <span class="rating-stars">${renderStars(agent.rating)}</span>
-            <span class="rating-value">${formatNumber(agent.rating, ONE_DECIMAL)}</span>
-            ${agent.reviewCount ? `<span class="rating-count">(${formatReviewCount(agent.reviewCount)})</span>` : ''}
-          </div>`
-        : '';
-
       // Staggered animation delay for breathing
       const animationDelay = (index % 6) * 0.5;
 
@@ -1537,7 +1528,6 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
       <div class="discover-info">
         <h3 class="agent-name">${agent.name}</h3>
         <span class="agent-category" data-category="${agent.category}">${categoryLabel(agent.category)}</span>
-        ${ratingHtml}
         ${badgeHtml}
       </div>
       <p class="agent-description">${agent.short_description}</p>
@@ -1573,17 +1563,22 @@ function renderAgentGrid(agents: (MarketplaceAgent & { isInstalled: boolean })[]
 }
 
 /**
- * Show the empty state with warm, human messaging
+ * Show the empty state. `nobodyYet`: nobody can join yet at all, as opposed to a
+ * search or category with no matches.
  */
-function showEmpty(): void {
+function showEmpty(nobodyYet = false): void {
   const grid = marketplaceModal?.querySelector('.marketplace-grid') as HTMLElement;
   const empty = marketplaceModal?.querySelector('.marketplace-empty') as HTMLElement;
+  const title = empty?.querySelector('.empty-title');
+  const hint = empty?.querySelector('.empty-hint');
+  if (title) title.textContent = t(nobodyYet ? 'marketplace.nobodyYet' : 'marketplace.noMatches');
+  if (hint) hint.textContent = t(nobodyYet ? 'marketplace.nobodyYetHint' : 'marketplace.noMatchesHint');
 
   if (grid) grid.style.display = 'none';
   if (empty) empty.style.display = 'flex';
 }
 
-// renderStars and formatReviewCount imported from ./marketplace/utils.js
+// renderStars imported from ./marketplace/utils.js
 
 /**
  * Set loading state with accessibility announcements

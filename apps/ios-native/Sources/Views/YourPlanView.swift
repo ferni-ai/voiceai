@@ -16,9 +16,10 @@ struct YourPlanView: View {
 
     private var tier: SubscriptionTier { subscriptions.currentTier }
 
-    /// Paid plans above the current one.
+    /// Paid plans above the current one (none while Ferni is free).
     private var otherPlans: [SubscriptionTier] {
-        [SubscriptionTier.friend, .partner].filter {
+        guard PaidPlans.isOffered else { return [] }
+        return [SubscriptionTier.friend, .partner].filter {
             $0.availablePersonas.count > tier.availablePersonas.count
         }
     }
@@ -67,28 +68,36 @@ struct YourPlanView: View {
                 }
             }
 
-            Section {
-                Button("Restore purchases") { Task { await model.restore() } }
-                    .disabled(model.isWorking)
-            } footer: {
-                VStack(alignment: .leading, spacing: 8) {
-                    if let message = phaseMessage {
-                        Text(message).foregroundColor(.primary)
-                    }
-                    Text("Plans are billed through your Apple ID and renew monthly until you cancel.")
-                    HStack(spacing: 16) {
-                        Link("Terms", destination: URL(string: "https://ferni.ai/terms")!)
-                        Link("Privacy", destination: URL(string: "https://ferni.ai/privacy")!)
-                    }
-                }
+            if PaidPlans.isOffered {
+                restoreSection
             }
         }
         .navigationTitle("Your plan")
-        .task { await model.loadPlansIfNeeded() }
+        .task { if PaidPlans.isOffered { await model.loadPlansIfNeeded() } }
+    }
+
+    private var restoreSection: some View {
+        Section {
+            Button("Restore purchases") { Task { await model.restore() } }
+                .disabled(model.isWorking)
+        } footer: {
+            VStack(alignment: .leading, spacing: 8) {
+                if let message = phaseMessage {
+                    Text(message).foregroundColor(.primary)
+                }
+                Text("Plans are billed through your Apple ID and renew monthly until you cancel.")
+                HStack(spacing: 16) {
+                    Link("Terms", destination: URL(string: "https://ferni.ai/terms")!)
+                    Link("Privacy", destination: URL(string: "https://ferni.ai/privacy")!)
+                }
+            }
+        }
     }
 
     private var summary: String {
         switch tier {
+        case .free where !PaidPlans.isOffered:
+            return "Ferni's always here for you. The rest of the team joins as you two get to know each other."
         case .free: return "Ferni's always here for you. A plan brings the rest of the team along."
         case .friend: return "\(tier.teammateNames) are on your team."
         case .partner: return "The whole team is with you, Nayan too."

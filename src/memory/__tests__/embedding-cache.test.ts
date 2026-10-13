@@ -8,8 +8,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EmbeddingCache, getEmbeddingCache, resetEmbeddingCache } from '../embedding-cache.js';
 
-// Mock the embeddings module
-vi.mock('../embeddings.js', () => ({
+// Mock the embeddings module the cache imports (vectors/, not the ../embeddings.js
+// shim), or the real provider runs: Vertex whenever a project id is set.
+vi.mock('../vectors/embeddings.js', () => ({
   embed: vi.fn(async (text: string) => {
     // Return a simple hash-based mock embedding
     const hash = text.split('').reduce((a, c) => a + c.charCodeAt(0), 0);

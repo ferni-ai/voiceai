@@ -5,7 +5,9 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  CRISIS_ATTRIBUTION_RULES,
   CRISIS_CLASSIFIER_PROMPT,
+  crisisClassifierPrompt,
   DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS,
   classifyCrisis,
   resetCrisisClassifierCache,
@@ -13,6 +15,7 @@ import {
   resolveCrisisClassifierMode,
   resolveCrisisClassifierTimeoutMs,
   startCrisisClassifier,
+  turnVerdicts,
   verdictOutcome,
   type CrisisGenerateFn,
 } from '../crisis-classifier.js';
@@ -140,6 +143,109 @@ describe('modes', () => {
     expect(resolveCrisisClassifierTimeoutMs({ CRISIS_CLASSIFIER_TIMEOUT_MS: '-1' })).toBe(
       DEFAULT_CRISIS_CLASSIFIER_TIMEOUT_MS
     );
+  });
+});
+
+describe("Ferni's lines are Ferni's (CRISIS_AGREEMENT_GATE)", () => {
+  beforeEach(() => resetCrisisClassifierCache());
+
+  it('leaves the prompt as it was with the gate off', () => {
+    expect(crisisClassifierPrompt({})).toBe(CRISIS_CLASSIFIER_PROMPT);
+    expect(crisisClassifierPrompt({ CRISIS_AGREEMENT_GATE: 'off' })).toBe(CRISIS_CLASSIFIER_PROMPT);
+  });
+
+  it('adds the attribution rules before the output format with the gate on', () => {
+    const prompt = crisisClassifierPrompt({ CRISIS_AGREEMENT_GATE: 'on' });
+    expect(prompt).toContain(CRISIS_ATTRIBUTION_RULES);
+    expect(prompt.indexOf(CRISIS_ATTRIBUTION_RULES)).toBeLessThan(
+      prompt.indexOf('Return JSON only')
+    );
+    expect(prompt.startsWith(CRISIS_CLASSIFIER_PROMPT.split('Return JSON only')[0])).toBe(true);
+  });
+
+  it('sends the model the prompt for its environment, one call per prompt', async () => {
+    const generate = vi.fn<CrisisGenerateFn>(async () => '{"risk":"none","subject":"self"}');
+    const input = {
+      latest: 'You Fern.',
+      earlier: [],
+      companion: 'sometimes the easiest thing is the only thing that makes sense',
+    };
+    const live = { CRISIS_CLASSIFIER_MODE: 'live' };
+    await startCrisisClassifier(input, { pattern: 'none', generate, env: live })?.verdict;
+    await startCrisisClassifier(input, {
+      pattern: 'none',
+      generate,
+      env: { ...live, CRISIS_AGREEMENT_GATE: 'on' },
+    })?.verdict;
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(generate.mock.calls[0][0]).toBe(CRISIS_CLASSIFIER_PROMPT);
+    expect(generate.mock.calls[1][0]).toContain(CRISIS_ATTRIBUTION_RULES);
+  });
+});
+
+describe('turnVerdicts (security review finding 2)', () => {
+  beforeEach(() => resetCrisisClassifierCache());
+
+  it("never lets another turn's none soften a read; another turn's crisis still counts", async () => {
+    const env = { CRISIS_CLASSIFIER_MODE: 'live', CRISIS_AGREEMENT_GATE: 'on' };
+    const scope = 'session-turns';
+    const pasta = { latest: 'same.', earlier: [], companion: 'I made pasta again' };
+    const point = { latest: 'same.', earlier: [], companion: "some days I don't see the point" };
+    await startCrisisClassifier(pasta, {
+      pattern: 'none',
+      env,
+      scope,
+      generate: replying('{"risk":"none","subject":"self"}'),
+    })?.verdict;
+    await startCrisisClassifier(point, {
+      pattern: 'none',
+      env,
+      scope,
+      generate: replying('{"risk":"crisis","subject":"self"}'),
+    })?.verdict;
+    expect(await turnVerdicts(scope, point)).toEqual([{ risk: 'crisis', subject: 'self' }]);
+    // Fail closed: a crisis read of the same words is never ignored.
+    expect(await turnVerdicts(scope, pasta)).toEqual([
+      { risk: 'none', subject: 'self' },
+      { risk: 'crisis', subject: 'self' },
+    ]);
+  });
+
+  it('pairs two reads of one turn whose older history differs', async () => {
+    const env = { CRISIS_CLASSIFIER_MODE: 'live', CRISIS_AGREEMENT_GATE: 'on' };
+    const scope = 'session-one-turn';
+    const gate = {
+      latest: 'Why is that?',
+      earlier: ['Hi.', 'Long drive.'],
+      companion: 'How was it?',
+    };
+    const pipeline = { ...gate, earlier: ['Long drive.', 'Why is that?'] };
+    await startCrisisClassifier(gate, {
+      pattern: 'none',
+      env,
+      scope,
+      generate: replying('{"risk":"none","subject":"self"}'),
+    })?.verdict;
+    await startCrisisClassifier(pipeline, {
+      pattern: 'none',
+      env,
+      scope,
+      generate: replying('{"risk":"crisis","subject":"self"}'),
+    })?.verdict;
+    expect(await turnVerdicts(scope, gate)).toHaveLength(2);
+  });
+
+  it('finds no reads, so nothing to soften, for a turn it never saw', async () => {
+    expect(await turnVerdicts('session-none', { latest: 'same.', earlier: [] })).toEqual([]);
+  });
+});
+
+describe('the attribution rules (security review finding 4)', () => {
+  it("count anything in the caller's turn as the caller's words, quotes included", () => {
+    expect(CRISIS_ATTRIBUTION_RULES).toMatch(
+      /everything in LATEST and EARLIER is the caller's own words/
+    );
+    expect(CRISIS_ATTRIBUTION_RULES).toMatch(/Ferni said/);
   });
 });
 
