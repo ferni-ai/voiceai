@@ -162,7 +162,7 @@ export async function uploadAudioToGcs(
     await file.save(buffer, {
       metadata: {
         contentType,
-        cacheControl: 'public, max-age=86400', // 1 day cache
+        cacheControl: makePublic ? 'public, max-age=86400' : 'private, no-store',
         metadata: {
           userId,
           agentId,
@@ -200,7 +200,8 @@ export async function uploadVoicePreview(
 }
 
 /**
- * Upload voice journal entry audio to GCS
+ * Upload voice journal entry audio to GCS. Always private: a journal recording
+ * must never get a public URL. Read it back through generateSignedUrl.
  */
 export async function uploadVoiceJournalEntry(
   audioBuffer: ArrayBuffer | Buffer,
@@ -209,7 +210,7 @@ export async function uploadVoiceJournalEntry(
   entryId: string
 ): Promise<UploadResult | null> {
   const filename = `entry-${entryId}.webm`;
-  return uploadAudioToGcs(audioBuffer, userId, agentId, filename, 'voiceJournal', true);
+  return uploadAudioToGcs(audioBuffer, userId, agentId, filename, 'voiceJournal', false);
 }
 
 // ============================================================================
