@@ -10428,22 +10428,7 @@
         "other": "Tengo la perspectiva de {count} entradas de diario para compartir contigo."
       }
     },
-    "error": "Me cuesta un poco pensar en este momento. ¿Me das un momento y lo volvemos a intentar?",
-    "fallback": {
-      "advicePhilosophy": "¿Sabes qué he aprendido? \"{philosophy}\" Te enfrentes a lo que te enfrentes, recuerda eso.",
-      "adviceValues": "Piensa en lo que nos importa: {values}. Deja que eso te guíe.",
-      "feelRecent": "Yo también me he sentido así. En mi diario escribí: \"{excerpt}...\" Ya lo superamos antes.",
-      "feelDefault": "Te escucho. Ya hemos pasado por momentos difíciles antes y encontramos el camino. ¿Qué es lo que realmente te preocupa?",
-      "rememberIntro": "Sí, me acuerdo.",
-      "rememberEntry": "Hubo una vez que escribí: \"{excerpt}...\"",
-      "mannerism": "{phrase} En eso también he estado pensando. ¿Qué te hizo sacar el tema?",
-      "default": "Es una buena pregunta. ¿Qué te hizo pensar en eso?"
-    },
-    "fallbackKeywords": {
-      "advice": "consejo,debería",
-      "feeling": "sentimiento,sentir",
-      "remember": "recordar,pasado"
-    }
+    "error": "Eso no se envió. Es cosa mía, no tuya. Intenta enviarlo otra vez."
   },
   "mood": {
     "holiday": {

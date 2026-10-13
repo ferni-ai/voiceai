@@ -10322,22 +10322,7 @@
         "one": "我有 {count} 篇日記的獨特觀點想跟你分享。"
       }
     },
-    "error": "我現在腦袋有點轉不過來。給我一點時間，然後再試一次好嗎？",
-    "fallback": {
-      "advicePhilosophy": "你知道我學到了什麼嗎？「{philosophy}」無論你現在面臨什麼，都要記住這點。",
-      "adviceValues": "想想對我們來說重要的事情：{values}。讓這些指引你吧。",
-      "feelRecent": "我也有過這種感覺。我在日記裡寫過：「{excerpt}...」我們以前也挺過來了。",
-      "feelDefault": "我懂。我們以前也經歷過艱難的時刻，並找到了出路。真正讓你困擾的是什麼呢？",
-      "rememberIntro": "對啊，我記得。",
-      "rememberEntry": "那時候我寫過：「{excerpt}...」",
-      "mannerism": "{phrase} 這也是我一直在思考的事情。是什麼讓你提起這個的？",
-      "default": "這是個好問題。你怎麼會想到這個呢？"
-    },
-    "fallbackKeywords": {
-      "advice": "建議,我應該",
-      "feeling": "感覺,心情",
-      "remember": "記得,過去"
-    }
+    "error": "沒有傳送成功。是我這邊的問題，不是你的。再傳一次試試。"
   },
   "mood": {
     "holiday": {
