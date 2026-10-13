@@ -44,6 +44,14 @@ describe('Daily Challenges', () => {
       expect(challenge1.date).toBe(challenge2.date);
     });
 
+    it('carries no invented participant count or completion rate', () => {
+      // These were Math.random() and showed as "N playing / X% completion".
+      const challenge = getDailyChallenge(new Date('2026-10-12'));
+
+      expect(challenge).not.toHaveProperty('participantCount');
+      expect(challenge).not.toHaveProperty('completionRate');
+    });
+
     it("should return a specific date's challenge", async () => {
       const specificDate = new Date('2024-01-15');
       const challenge = await getDailyChallenge(specificDate);

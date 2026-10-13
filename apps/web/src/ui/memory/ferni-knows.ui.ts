@@ -161,7 +161,7 @@ export function initFerniKnowsPanel(): void {
     box-shadow: var(--shadow-xl);
     transform: translateX(100%);
     transition: transform var(--duration-slow) var(--ease-spring);
-    z-index: 1000;
+    z-index: var(--z-panel);
     display: flex;
     flex-direction: column;
   `;

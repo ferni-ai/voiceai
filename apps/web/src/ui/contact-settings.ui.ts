@@ -186,7 +186,7 @@ function injectStyles(): void {
     .contact-settings-header {
       padding: 1.5rem;
       text-align: center;
-      border-bottom: 1px solid rgba(44, 37, 32, 0.1);
+      border-bottom: 1px solid var(--color-border-medium);
     }
 
     .contact-settings-icon {
@@ -209,20 +209,20 @@ function injectStyles(): void {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: rgba(44, 37, 32, 0.6);
+      color: var(--color-text-muted);
       margin-bottom: 0.25rem;
     }
 
     .contact-settings-title {
       font-size: 1.25rem;
       font-weight: 600;
-      color: var(--color-natural-ink, #2C2520);
+      color: var(--color-text-primary);
       margin: 0 0 0.5rem;
     }
 
     .contact-settings-subtitle {
       font-size: 0.875rem;
-      color: rgba(44, 37, 32, 0.7);
+      color: var(--color-text-secondary);
       line-height: 1.5;
       margin: 0;
     }
@@ -246,7 +246,7 @@ function injectStyles(): void {
     }
 
     .contact-settings-close:hover {
-      background: rgba(44, 37, 32, 0.1);
+      background: var(--color-tonal-surface-hover-background);
     }
 
     .contact-settings-close svg {
@@ -276,13 +276,13 @@ function injectStyles(): void {
       gap: 0.5rem;
       font-size: 0.875rem;
       font-weight: 500;
-      color: rgba(44, 37, 32, 0.8);
+      color: var(--color-text-secondary);
     }
 
     .contact-settings-label svg {
       width: 18px;
       height: 18px;
-      color: rgba(44, 37, 32, 0.5);
+      color: var(--color-text-muted);
     }
 
     .contact-settings-input-wrapper {
@@ -296,7 +296,7 @@ function injectStyles(): void {
       padding: 0.75rem 1rem;
       font-size: 1rem;
       font-family: inherit;
-      border: 2px solid rgba(44, 37, 32, 0.2);
+      border: 2px solid var(--color-border-strong);
       border-radius: 8px;
       background: var(--color-bg-elevated, #FFFDFB);
       color: var(--color-text-primary, #2C2520);
@@ -305,12 +305,12 @@ function injectStyles(): void {
 
     .contact-settings-input:focus {
       outline: none;
-      border-color: var(--color-ferni, #4a6741);
+      border-color: var(--persona-text);
       box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
     }
 
     .contact-settings-input::placeholder {
-      color: rgba(44, 37, 32, 0.4);
+      color: var(--color-text-muted);
     }
 
     .contact-settings-verified {
@@ -324,7 +324,7 @@ function injectStyles(): void {
       border-radius: 999px;
       font-size: 0.75rem;
       font-weight: 500;
-      color: var(--color-ferni, #4a6741);
+      color: var(--persona-text);
     }
 
     .contact-settings-verified svg {
@@ -339,9 +339,9 @@ function injectStyles(): void {
       font-size: 0.875rem;
       font-weight: 500;
       background: transparent;
-      border: 2px solid var(--color-ferni, #4a6741);
+      border: 2px solid var(--persona-text);
       border-radius: 8px;
-      color: var(--color-ferni, #4a6741);
+      color: var(--persona-text);
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -370,7 +370,7 @@ function injectStyles(): void {
 
     .contact-settings-verification-text {
       font-size: 0.875rem;
-      color: rgba(44, 37, 32, 0.7);
+      color: var(--color-text-secondary);
       margin: 0 0 0.75rem;
     }
 
@@ -382,14 +382,14 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.3em;
       text-align: center;
-      border: 2px solid rgba(44, 37, 32, 0.2);
+      border: 2px solid var(--color-border-strong);
       border-radius: 8px;
       background: var(--color-bg-elevated, #FFFDFB);
     }
 
     .contact-settings-code-input:focus {
       outline: none;
-      border-color: var(--color-ferni, #4a6741);
+      border-color: var(--persona-text);
       box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
     }
 
@@ -398,7 +398,7 @@ function injectStyles(): void {
       align-items: flex-start;
       gap: 0.75rem;
       padding: 1rem;
-      background: rgba(44, 37, 32, 0.03);
+      background: var(--color-tonal-surface2-background);
       border-radius: 8px;
       margin-top: 0.5rem;
     }
@@ -407,13 +407,13 @@ function injectStyles(): void {
       flex-shrink: 0;
       width: 18px;
       height: 18px;
-      color: rgba(44, 37, 32, 0.5);
+      color: var(--color-text-muted);
       margin-top: 1px;
     }
 
     .contact-settings-privacy-text {
       font-size: 0.75rem;
-      color: rgba(44, 37, 32, 0.6);
+      color: var(--color-text-secondary);
       line-height: 1.5;
       margin: 0;
     }
@@ -422,7 +422,7 @@ function injectStyles(): void {
       display: flex;
       gap: 0.75rem;
       padding: 1rem 1.5rem;
-      background: var(--color-warm-white, #FAF8F5);
+      background: var(--color-background-secondary);
       border-radius: 0 0 16px 16px;
     }
 
@@ -451,8 +451,8 @@ function injectStyles(): void {
 
     .contact-settings-btn--secondary {
       background: transparent;
-      border: 2px solid var(--color-ferni, #4a6741);
-      color: var(--color-ferni, #4a6741);
+      border: 2px solid var(--persona-text);
+      color: var(--persona-text);
     }
 
     .contact-settings-btn--secondary:hover {
@@ -489,9 +489,9 @@ function injectStyles(): void {
     .contact-settings-success {
       padding: 0.75rem 1rem;
       background: rgba(74, 103, 65, 0.1);
-      border-left: 4px solid var(--color-ferni, #4a6741);
+      border-left: 4px solid var(--persona-text);
       border-radius: 8px;
-      color: var(--color-ferni, #4a6741);
+      color: var(--persona-text);
       font-size: 0.875rem;
       margin-bottom: 1rem;
       display: flex;
@@ -509,7 +509,7 @@ function injectStyles(): void {
     .contact-settings-section {
       margin-top: 1.25rem;
       padding-top: 1.25rem;
-      border-top: 1px solid rgba(44, 37, 32, 0.1);
+      border-top: 1px solid var(--color-border-medium);
     }
 
     .contact-settings-section-header {
@@ -525,20 +525,20 @@ function injectStyles(): void {
       gap: 0.5rem;
       font-size: 1rem;
       font-weight: 600;
-      color: var(--color-natural-ink, #2C2520);
+      color: var(--color-text-primary);
     }
 
     .contact-settings-section-title svg {
       width: 18px;
       height: 18px;
-      color: rgba(44, 37, 32, 0.6);
+      color: var(--color-text-muted);
     }
 
     .contact-settings-toggle {
       position: relative;
       width: 48px;
       height: 28px;
-      background: rgba(44, 37, 32, 0.2);
+      background: var(--color-border-strong);
       border: none;
       border-radius: 999px;
       cursor: pointer;
@@ -582,7 +582,7 @@ function injectStyles(): void {
 
     .contact-settings-time-label {
       font-size: 0.875rem;
-      color: rgba(44, 37, 32, 0.7);
+      color: var(--color-text-secondary);
       white-space: nowrap;
     }
 
@@ -591,7 +591,7 @@ function injectStyles(): void {
       padding: 0.75rem 2.5rem 0.75rem 1rem;
       font-family: inherit;
       font-size: 1rem;
-      border: 2px solid rgba(44, 37, 32, 0.2);
+      border: 2px solid var(--color-border-strong);
       border-radius: 8px;
       background: var(--color-bg-elevated, #FFFDFB);
       color: var(--color-text-primary, #2C2520);
@@ -605,14 +605,14 @@ function injectStyles(): void {
 
     .contact-settings-time-select:focus {
       outline: none;
-      border-color: var(--color-ferni, #4a6741);
+      border-color: var(--persona-text);
       box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
     }
 
     .contact-settings-quiet-note {
       margin-top: 0.75rem;
       font-size: 0.75rem;
-      color: rgba(44, 37, 32, 0.6);
+      color: var(--color-text-muted);
       line-height: 1.5;
     }
 
@@ -622,10 +622,10 @@ function injectStyles(): void {
       gap: 0.5rem;
       margin-top: 0.75rem;
       padding: 0.5rem 0.75rem;
-      background: rgba(44, 37, 32, 0.03);
+      background: var(--color-tonal-surface2-background);
       border-radius: 8px;
       font-size: 0.75rem;
-      color: rgba(44, 37, 32, 0.6);
+      color: var(--color-text-secondary);
     }
 
     .contact-settings-timezone svg {

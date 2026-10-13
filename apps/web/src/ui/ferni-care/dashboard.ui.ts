@@ -14,6 +14,7 @@ import { formatDate, t } from '../../i18n/index.js';
 import { showCareConnections } from './connections-tab.ui.js';
 import { showIdeasGallery } from './ideas-gallery.ui.js';
 import { calendarTriggerSummary } from './routine-builder-calendar.js';
+import { bindRoutinesNotice, loadRoutines, routinesDataState, routinesNoticeHtml } from './routines-load.js';
 
 const log = createLogger('FerniCare');
 
@@ -578,27 +579,25 @@ export class FerniCareDashboard {
 
   private async loadWorkflows(): Promise<void> {
     const content = this.overlay?.querySelector('#ferni-care-content');
-    if (!content) return;
+    const root = this.overlay?.querySelector('.ferni-care');
+    if (!content || !root) return;
 
     this.isLoading = true;
+    root.setAttribute('data-state', 'loading');
+    root.setAttribute('aria-busy', 'true');
     content.innerHTML = `<div class="ferni-loading"><div class="ferni-loading-spinner"></div></div>`;
 
-    try {
-      const userId = getUserId();
-      if (!userId) {
-        content.innerHTML = `<div class="ferni-empty"><p>${t('ferniCare.signInPrompt')}</p></div>`;
-        return;
-      }
-
-      const service = getLifeAutomationService();
-      this.workflows = await service.listWorkflows(userId);
-      content.innerHTML = this.renderRoutines();
-    } catch (error) {
-      log.error('Failed to load workflows', error);
-      content.innerHTML = `<div class="ferni-empty"><p>${t('ferniCare.loadError')}</p></div>`;
-    } finally {
-      this.isLoading = false;
+    const load = await loadRoutines();
+    this.isLoading = false;
+    root.setAttribute('data-state', routinesDataState(load));
+    root.removeAttribute('aria-busy');
+    if (load.kind !== 'ready') {
+      content.innerHTML = routinesNoticeHtml(load.kind);
+      bindRoutinesNotice(content, () => void this.loadWorkflows());
+      return;
     }
+    this.workflows = load.workflows;
+    content.innerHTML = this.renderRoutines();
   }
 
   private attachEventListeners(): void {

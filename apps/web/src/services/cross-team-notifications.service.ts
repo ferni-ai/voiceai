@@ -15,8 +15,7 @@ import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { apiGet } from '../utils/api.js';
 import { openAuthedWebSocket } from './authed-websocket.service.js';
 import { createLogger } from '../utils/logger.js';
-import type { TeamInsight } from '../types/team-insight.js';
-import { acknowledgeTeamInsight, toCrossTeamInsight, type CrossTeamInsight, type CrossTeamPriority } from './cross-team-insight-mapper.js';
+import { acknowledgeTeamInsight, parseTeamInsights, toCrossTeamInsight, type CrossTeamInsight, type CrossTeamPriority } from './cross-team-insight-mapper.js';
 
 const log = createLogger('CrossTeamNotifications');
 
@@ -393,10 +392,10 @@ export async function startInsightsPolling(userId: string): Promise<void> {
   const pollForInsights = async () => {
     try {
       // apiGet handles authentication; the server sends TeamInsight, not CrossTeamInsight
-      const response = await apiGet<{ insights?: TeamInsight[] }>(`/api/team-insights?userId=${userId}&limit=5`);
+      const response = await apiGet<{ insights?: unknown }>(`/api/team-insights?userId=${userId}&limit=5`);
       if (!response.ok || !response.data) return;
       // The server only returns insights not yet acknowledged; showing one acknowledges it
-      showBestInsight((response.data.insights ?? []).map(toCrossTeamInsight));
+      showBestInsight(parseTeamInsights(response.data.insights, 'cross-team poll').map(toCrossTeamInsight));
     } catch (err) {
       log.debug('Failed to poll insights:', err);
     }
