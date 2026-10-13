@@ -24,6 +24,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
 import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
+import { claimsIdentity, speakerNote } from './director-persona.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
 
@@ -36,6 +37,8 @@ export function directorNotesEnabled(
 export interface Line {
   speaker: 'user' | 'ferni';
   text: string;
+  /** Who said an assistant line, when known (DIRECTOR_PERSONA_AWARE: director-persona.ts). */
+  by?: string;
 }
 
 /** Writes notes from a prompt; injectable so tests need no model. */
@@ -72,13 +75,19 @@ export function directorLooksBack(env: Record<string, string | undefined> = proc
   return env.DIRECTOR_LOOK_BACK === 'on';
 }
 
-export function buildDirectorPrompt(lines: Line[], userName?: string): string {
+/**
+ * `speaking` (DIRECTOR_PERSONA_AWARE) names the persona on the call now: each
+ * assistant line is labelled with who said it, or with them when unknown.
+ * Without it every assistant line is Ferni's.
+ */
+export function buildDirectorPrompt(lines: Line[], userName?: string, speaking?: string): string {
   const who = userName || 'Them';
+  const assistant = (l: Line): string => (speaking ? (l.by ?? speaking) : 'Ferni');
   const transcript = lines
     .slice(-12)
-    .map((l) => `${l.speaker === 'ferni' ? 'Ferni' : who}: ${l.text}`)
+    .map((l) => `${l.speaker === 'ferni' ? assistant(l) : who}: ${l.text}`)
     .join('\n');
-  return `The call so far:\n${transcript}\n\nYour notes for Ferni's next reply:`;
+  return `The call so far:\n${transcript}\n\nYour notes for ${speaking ?? 'Ferni'}'s next reply:`;
 }
 
 const GENERIC =
@@ -91,10 +100,11 @@ const PUSHY =
  * discuss their tone instead of answering. Dev call 2026-10-05: "Sam is
  * ignoring your questions about his morning routine. Talk about the shift in
  * his tone instead." turned "what would you suggest I start with?" into "I
- * notice you went from sounding pretty excited to... a bit distant".
+ * notice you went from sounding pretty excited to... a bit distant". Prod
+ * 2026-10-12: "playfully testing if you'll notice the wrong name".
  */
 const MIND_READING =
-  /\b(dodging|deflecting|avoiding|ignoring) (your|the|his|her|their)\b|\btesting (you|him|ferni)\b|\bescape to\b|\b(shift|change|drop) in (his|her|their) (tone|mood|energy)\b|\b(talk|ask) about (his|her|their) (tone|mood|energy|feelings)\b|\b(talk|ask) about why (they|he|she)\b/i;
+  /\b(dodging|deflecting|avoiding|ignoring) (your|the|his|her|their)\b|\btesting (you|him|ferni)\b|\b(testing|seeing|checking) (if|whether) (you|ferni)\b|\bescape to\b|\b(shift|change|drop) in (his|her|their) (tone|mood|energy)\b|\b(talk|ask) about (his|her|their) (tone|mood|energy|feelings)\b|\b(talk|ask) about why (they|he|she)\b/i;
 /**
  * Sending Ferni back to an earlier line. Notes are read on the caller's next
  * turn, so this one steers away from whatever they just said. Dev call
@@ -132,7 +142,7 @@ function contentWords(text: string): Set<string> {
  * unusable. With the call's lines given, a note must mention something said
  * in it: the director once reported a "weather bit" nobody had mentioned.
  */
-export function parseNotes(reply: string | undefined, call?: Line[]): string[] {
+export function parseNotes(reply: string | undefined, call?: Line[], speaking?: string): string[] {
   if (!reply) return [];
   const said = call ? contentWords(call.map((l) => l.text).join(' ')) : null;
   const notes = reply
@@ -143,6 +153,7 @@ export function parseNotes(reply: string | undefined, call?: Line[]): string[] {
     .filter((l) => !/^["“'].*["”']$/.test(l))
     .filter((l) => !GENERIC.test(l) && !PUSHY.test(l) && !MIND_READING.test(l))
     .filter((l) => directorLooksBack() || !backToEarlier(l))
+    .filter((l) => speaking === undefined || !claimsIdentity(l))
     .filter((l) => !said || [...contentWords(l)].some((w) => said.has(w)))
     .map((l) => (l.length > 160 ? `${l.slice(0, 157)}...` : l));
   return notes.slice(0, 2);
@@ -173,6 +184,8 @@ export class Director {
       budgetMs?: number;
       /** Ask the model for notes (DIRECTOR_NOTES=on); false keeps only the told-this-call record. */
       writeNotes?: boolean;
+      /** The persona on the call now (DIRECTOR_PERSONA_AWARE); unset, the director directs Ferni. */
+      speaking?: () => string;
     }
   ) {}
 
@@ -184,12 +197,14 @@ export class Director {
     if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
     const started = Date.now();
+    const speaking = this.opts.speaking?.();
+    const system = directorLooksBack() ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM;
     const work = (async () => {
       try {
         const reply = await withTimeout(
           writer(
-            directorLooksBack() ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM,
-            buildDirectorPrompt(lines, this.opts.userName)
+            speaking ? `${system}\n${speakerNote(speaking)}` : system,
+            buildDirectorPrompt(lines, this.opts.userName, speaking)
           ),
           this.opts.budgetMs ?? 4000
         );
@@ -202,7 +217,7 @@ export class Director {
           );
           return;
         }
-        this.notes = parseNotes(reply, lines.slice(-12));
+        this.notes = parseNotes(reply, lines.slice(-12), speaking);
         log.info(
           { sessionId: this.opts.sessionId, ms: Date.now() - started, notes: this.notes },
           'DIRECTOR_NOTES'
@@ -275,7 +290,8 @@ export function getDirector(session: object | undefined): Director | undefined {
  * expression" as part of the call.
  */
 export function linesFromChat(
-  items: ReadonlyArray<{ type?: string; role?: string; textContent?: string }>
+  items: ReadonlyArray<{ id?: string; type?: string; role?: string; textContent?: string }>,
+  by?: (item: { id?: string }) => string | undefined
 ): Line[] {
   const lines: Line[] = [];
   for (const item of items) {
@@ -285,7 +301,10 @@ export function linesFromChat(
       .replace(/<[^>]+>/g, '')
       .replace(/\s+/g, ' ')
       .trim();
-    if (text) lines.push({ speaker: item.role === 'user' ? 'user' : 'ferni', text });
+    if (!text) continue;
+    const name = item.role === 'assistant' ? by?.(item) : undefined;
+    if (name) lines.push({ speaker: 'ferni', text, by: name });
+    else lines.push({ speaker: item.role === 'user' ? 'user' : 'ferni', text });
   }
   return lines;
 }

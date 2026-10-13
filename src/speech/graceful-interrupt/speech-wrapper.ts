@@ -209,10 +209,15 @@ function getPersonaRecoveryOpening(personaId: string, interruptType: 'hard' | 's
  * Get optional verbal barge-in acknowledgment.
  * Uses probability based on interrupt type; returns SSML-wrapped phrase or empty string.
  */
-function getBargeInAcknowledgment(
+export function getBargeInAcknowledgment(
   personaId: string,
-  interruptType: 'hard' | 'soft'
+  interruptType: 'hard' | 'soft',
+  env: Record<string, string | undefined> = process.env
 ): string {
+  // These words hand the floor back ("Go ahead!", "Yes?"), but this runs at the start of
+  // the answer, after the caller finished: prod 2026-10-13, "Go ahead!Sure." on most of
+  // Jordan's replies. Off unless BARGE_IN_ACK_WORDS=on.
+  if (env.BARGE_IN_ACK_WORDS !== 'on') return '';
   const prob = ACKNOWLEDGMENT_PROBABILITY[interruptType];
   if (Math.random() >= prob) {
     return '';
@@ -221,7 +226,7 @@ function getBargeInAcknowledgment(
   const pool = personaAcks[interruptType];
   const phrase = pool[Math.floor(Math.random() * pool.length)];
   if (!phrase) return '';
-  return `${ACKNOWLEDGMENT_SSML_WRAP}${phrase}<break time="120ms"/>`;
+  return `${ACKNOWLEDGMENT_SSML_WRAP}${phrase}<break time="120ms"/> `;
 }
 
 // =============================================================================

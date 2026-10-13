@@ -83,6 +83,10 @@ vi.mock('../routes/conversations.js', () => ({
 vi.mock('../../services/superhuman/commitment-keeper.js', () => ({
   loadUserCommitments: data.commitments,
 }));
+// GET reads through the store's throwing loader, PATCH through the keeper
+vi.mock('../../services/superhuman/commitment-store.js', () => ({
+  loadActiveCommitmentsOrThrow: data.commitments,
+}));
 
 const { bindVerifiedIdentity } = await import('../../servers/api/request-identity.js');
 const { handleCalendarRoutes } = await import('../calendar-routes/index.js');

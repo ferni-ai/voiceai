@@ -19,6 +19,7 @@ import type { SessionServices } from '../../../services/types.js';
 import type { Persona } from '../../../personas/types.js';
 import type { UserData } from '../types.js';
 import { startInCallChannels } from '../../multi-agent/live-data-context.js';
+import { startResumeLookup } from '../../multi-agent/resume-after-drop.js';
 import { waitForSessionEnd, type WatchedRoom } from './session-end-watch.js';
 
 // ============================================================================
@@ -175,7 +176,10 @@ export async function runMultiAgentMode(
       await import('../../group-conversation/session-roundtable-agents.js');
     const { handoffEvents } = await import('../../../handoff/index.js');
     const handoffMsgs = await import('../../multi-agent/handoff-messages.js');
-    const { offerAgent, withdrawAgent } = await import('../../../tools/handoff/ready-agents.js');
+    const { llmHandoffHandler } = await import('../../multi-agent/llm-handoff.js');
+
+    // RESUME_AFTER_DROP: look for a call that dropped moments ago while the agent builds
+    startResumeLookup(sessionId, userId, services.realtimeConversationId);
 
     // Initialize multi-agent session
     const multiAgentResult = await initializeMultiAgentSession({
@@ -325,73 +329,14 @@ export async function runMultiAgentMode(
       );
     }
 
-    // Handler for LLM-triggered handoffs via voiceSwitch events
-    const voiceSwitchHandler = (event: { persona: { id: string }; previousAgentId?: string }) => {
-      void (async () => {
-        const targetPersonaId = event.persona?.id;
-        if (!targetPersonaId) {
-          process.stderr.write(`[multi-agent-mode] 🎭 voiceSwitch event missing persona ID\n`);
-          return;
-        }
-
-        const acquired = await handoffLock.acquire();
-        if (!acquired) {
-          process.stderr.write(
-            `[multi-agent-mode] 🔒 Handoff already in progress, ignoring LLM request for ${targetPersonaId}\n`
-          );
-          return;
-        }
-
-        try {
-          const currentPersonaId =
-            event.previousAgentId || multiAgentResult.orchestrator.getCurrentPersonaId();
-          process.stderr.write(
-            `[multi-agent-mode] 🎭 LLM-triggered handoff via voiceSwitch: ${currentPersonaId || 'unknown'} → ${targetPersonaId}\n`
-          );
-
-          for (const m of handoffMsgs.handoffStartMessages(targetPersonaId, currentPersonaId)) {
-            await publishDataMessage(ctx.room, m);
-          }
-
-          // With one session per call the tool hands the next persona to the SDK: it stops
-          // waiting once that persona is built (ready-agents.ts)
-          const handoffTool = { targetId: targetPersonaId, greetingSpoken: false };
-          const result = await handleHandoffFromDataChannel(
-            multiAgentResult.orchestrator,
-            targetPersonaId,
-            'LLM requested handoff',
-            services,
-            (agent) => {
-              offerAgent(String(services.sessionId), targetPersonaId, agent);
-              handoffEvents.emit('handoffHandlerComplete', { ...handoffTool, success: true });
-            }
-          );
-
-          if (!result.success) {
-            process.stderr.write(`[multi-agent-mode] 🎭 LLM handoff failed: ${result.error}\n`);
-            await publishDataMessage(ctx.room, {
-              type: 'handoff_failed',
-              target: targetPersonaId,
-              error: result.error,
-              rollbackTo: currentPersonaId,
-              timestamp: Date.now(),
-            });
-          }
-
-          // Emit handoffHandlerComplete
-          handoffEvents.emit('handoffHandlerComplete', {
-            targetId: targetPersonaId,
-            success: result.success,
-            greetingSpoken: result.success,
-            instructionsUpdated: result.success,
-            error: result.error,
-          });
-        } finally {
-          withdrawAgent(String(services.sessionId), targetPersonaId); // if the tool never took it
-          handoffLock.release();
-        }
-      })();
-    };
+    // Handoffs the LLM asks for: its handoff tool emits voiceSwitch (llm-handoff.ts)
+    const voiceSwitchHandler = llmHandoffHandler({
+      orchestrator: multiAgentResult.orchestrator,
+      services,
+      lock: handoffLock,
+      publish: (m) => publishDataMessage(ctx.room, m),
+      runHandoff: handleHandoffFromDataChannel,
+    });
 
     handoffEvents.on('voiceSwitch', voiceSwitchHandler);
     // In-call controls and Ferni's teammate introductions, for the agent speaking now
