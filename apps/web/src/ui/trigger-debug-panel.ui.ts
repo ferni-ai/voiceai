@@ -11,6 +11,7 @@
 
 import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
+import { devPanelMayEnable } from './dev-panel-gate.js';
 import { t } from '../i18n/index.js';
 
 const log = createLogger('TriggerDebugPanel');
@@ -545,12 +546,7 @@ function setupKeyboardShortcuts(): void {
 
 export function initTriggerDebugPanel(): void {
   // Only initialize in dev mode
-  const isDevMode =
-    window.location.search.includes('dev') ||
-    localStorage.getItem('ferni_dev_mode') === 'true' ||
-    import.meta.env?.DEV;
-
-  if (!isDevMode) {
+  if (!devPanelMayEnable()) {
     log.debug('Trigger debug panel not initialized (not in dev mode)');
     return;
   }

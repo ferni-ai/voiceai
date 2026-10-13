@@ -165,6 +165,33 @@ function spoken(u: LifeUpdate, told: LedgerFact[]): boolean {
   return [...contentWords(u.update)].filter((w) => said.has(w)).length >= 2;
 }
 
+/** Updates written but not yet said, and not so old that his life has moved on. */
+function unspoken(stored: LifeUpdate[], told: LedgerFact[], now: number): LifeUpdate[] {
+  return stored.filter(
+    (u) => now - Date.parse(u.createdAt) < PENDING_MAX_DAYS * DAY_MS && !spoken(u, told)
+  );
+}
+
+/**
+ * The updates already written for this caller and not yet said, without
+ * writing any: for a greeting, which can't wait for the model. Never throws.
+ */
+export async function pendingLifeUpdates(
+  userId: string,
+  told: LedgerFact[],
+  personaId = 'ferni',
+  deps: Pick<LifeUpdateDeps, 'store' | 'now' | 'env'> = {}
+): Promise<LifeUpdate[]> {
+  if (!lifeMovesOnEnabled(deps.env)) return [];
+  try {
+    const stored = await (deps.store ?? firestoreLifeUpdateStore).recent(userId, personaId, 6);
+    return unspoken(stored, told, (deps.now ?? Date.now)()).slice(0, MAX_UPDATES);
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Pending life updates not loaded');
+    return [];
+  }
+}
+
 /**
  * What has happened in his life since he last told this caller about it:
  * pending updates if there are any, otherwise freshly written ones. Never
@@ -181,9 +208,7 @@ export async function loadLifeUpdates(
   const store = deps.store ?? firestoreLifeUpdateStore;
   try {
     const stored = await store.recent(userId, personaId, 6);
-    const pending = stored.filter(
-      (u) => now - Date.parse(u.createdAt) < PENDING_MAX_DAYS * DAY_MS && !spoken(u, told)
-    );
+    const pending = unspoken(stored, told, now);
     if (pending.length > 0) {
       log.info({ updates: pending.length }, 'LIFE_UPDATES_PENDING');
       return pending.slice(0, MAX_UPDATES);

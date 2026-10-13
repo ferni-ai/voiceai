@@ -4,7 +4,7 @@
  * Auto-generated from design tokens.
  * DO NOT EDIT DIRECTLY - modify tokens/*.json and rebuild.
  *
- * Build: 2026-10-11T00:27:37.722Z
+ * Build: 2026-10-11T19:03:03.535Z
  */
 
 /* ========================================
@@ -45,6 +45,7 @@
   --color-text-muted: #a89b8c;
   --color-text-dimmed: #a89888;
   --color-text-inverse: #14110e;
+  --color-text-on-accent: #14110e;
   --color-border-subtle: rgba(244, 239, 230, 0.10);
   --color-border-medium: rgba(244, 239, 230, 0.16);
   --color-border-strong: rgba(244, 239, 230, 0.24);
@@ -66,6 +67,12 @@
   --color-semantic-info: #9ec8c4;
   --color-semantic-info-glow: rgba(158, 200, 196, 0.22);
   --color-semantic-info-tint: rgba(158, 200, 196, 0.12);
+  --color-semantic-on-success: #14110e;
+  --color-semantic-on-error: #14110e;
+  --color-semantic-on-warning: #14110e;
+  --color-semantic-on-info: #14110e;
+  --color-semantic-warning-bg: #2c2518;
+  --color-semantic-warning-text: #e0b860;
   --color-utility-focus-ring: rgba(142, 174, 122, 0.45);
   --color-utility-focus-ring-subtle: rgba(142, 174, 122, 0.18);
   --color-utility-backdrop: rgba(8, 7, 6, 0.72);
@@ -137,6 +144,7 @@
   --color-text-muted: #a89b8c;
   --color-text-dimmed: #a89888;
   --color-text-inverse: #14110e;
+  --color-text-on-accent: #14110e;
   --color-border-subtle: rgba(244, 239, 230, 0.10);
   --color-border-medium: rgba(244, 239, 230, 0.16);
   --color-border-strong: rgba(244, 239, 230, 0.24);
@@ -158,6 +166,12 @@
   --color-semantic-info: #9ec8c4;
   --color-semantic-info-glow: rgba(158, 200, 196, 0.22);
   --color-semantic-info-tint: rgba(158, 200, 196, 0.12);
+  --color-semantic-on-success: #14110e;
+  --color-semantic-on-error: #14110e;
+  --color-semantic-on-warning: #14110e;
+  --color-semantic-on-info: #14110e;
+  --color-semantic-warning-bg: #2c2518;
+  --color-semantic-warning-text: #e0b860;
   --color-utility-focus-ring: rgba(142, 174, 122, 0.45);
   --color-utility-focus-ring-subtle: rgba(142, 174, 122, 0.18);
   --color-utility-backdrop: rgba(8, 7, 6, 0.72);
@@ -225,6 +239,7 @@
   --color-text-muted: #6b635a;
   --color-text-dimmed: #756a5e;
   --color-text-inverse: #faf8f5;
+  --color-text-on-accent: #faf8f5;
   --color-border-subtle: rgba(44, 37, 32, 0.05);
   --color-border-medium: rgba(44, 37, 32, 0.10);
   --color-border-strong: rgba(44, 37, 32, 0.18);
@@ -246,6 +261,12 @@
   --color-semantic-info: #3a6b9c;
   --color-semantic-info-glow: rgba(58, 107, 156, 0.18);
   --color-semantic-info-tint: rgba(58, 107, 156, 0.08);
+  --color-semantic-on-success: #faf8f5;
+  --color-semantic-on-error: #faf8f5;
+  --color-semantic-on-warning: #faf8f5;
+  --color-semantic-on-info: #faf8f5;
+  --color-semantic-warning-bg: #f8eed6;
+  --color-semantic-warning-text: #6e5220;
   --color-utility-focus-ring: rgba(61, 90, 69, 0.3);
   --color-utility-focus-ring-subtle: rgba(61, 90, 69, 0.1);
   --color-utility-backdrop: rgba(44, 37, 32, 0.6);
