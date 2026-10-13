@@ -75,7 +75,8 @@ export function fromSavedContact(contact: Contact): ContactRelationship {
 
 const digits = (phone: string | undefined): string => (phone ?? '').replace(/\D/g, '').slice(-10);
 
-function samePerson(kept: ContactRelationship, saved: ContactRelationship): boolean {
+/** The panel's copy and a saved contact are one person: id link, then email, phone or name */
+export function samePerson(kept: ContactRelationship, saved: ContactRelationship): boolean {
   if (kept.contactId === saved.id) return true; // data capture links them by id
   if (kept.email && saved.email && kept.email.toLowerCase() === saved.email.toLowerCase()) {
     return true;
