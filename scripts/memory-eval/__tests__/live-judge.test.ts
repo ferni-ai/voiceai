@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   LIVE_JUDGE_CASES,
   LIVE_JUDGE_DAY,
+  LIVE_FORMAT,
   LIVE_JUDGE_MAX_TOKENS,
   LIVE_RULE,
   liveJudgePrompt,
@@ -11,7 +12,7 @@ import {
 import { judgePrompt } from '../longmem-lib.js';
 
 describe('liveJudgePrompt', () => {
-  it("keeps the benchmark's prompt and adds the live rule before the format line", () => {
+  it("keeps the benchmark's prompt, adds the call's day and the live rule, and asks for a VERDICT line", () => {
     const base = judgePrompt('temporal', 'q', 'Friday 2026-10-09', 'It was Friday.').split('\n');
     const live = liveJudgePrompt(
       'temporal',
@@ -24,9 +25,9 @@ describe('liveJudgePrompt', () => {
       ...base.slice(0, -1),
       `The call was on ${LIVE_JUDGE_DAY}.`,
       LIVE_RULE,
-      base.at(-1),
+      LIVE_FORMAT,
     ]);
-    expect(live.at(-1)).toBe('Reply with exactly one word: yes or no.');
+    expect(live.at(-1)).toMatch(/VERDICT: yes or VERDICT: no$/);
   });
 
   it('is only for live calls: the benchmark prompt has no live rule', () => {
@@ -50,14 +51,23 @@ describe('liveJudgePrompt', () => {
  *   LIVE_JUDGE_CHECK=1 GOOGLE_CLOUD_PROJECT=johnb-2025 pnpm vitest run scripts/memory-eval/__tests__/live-judge.test.ts
  */
 describe('parseLiveVerdict', () => {
-  it('reads a bare verdict, or the last word after reasoning', () => {
-    expect(parseLiveVerdict('yes')).toBe(true);
-    expect(parseLiveVerdict('No.')).toBe(false);
-    expect(parseLiveVerdict('Friday is 2026-10-09, so it matches.\n\nyes')).toBe(true);
-    expect(parseLiveVerdict('It names Thursday, not Friday.\n\n**No**')).toBe(false);
+  it('reads the VERDICT line, whatever the reasoning before it says', () => {
+    expect(parseLiveVerdict('VERDICT: yes')).toBe(true);
+    expect(
+      parseLiveVerdict(
+        'No, the reply does not name a day outright. It says Friday, which counts.\nVERDICT: yes'
+      )
+    ).toBe(true);
+    expect(parseLiveVerdict('Yes, it names Thursday, which is wrong.\n\nVERDICT: no')).toBe(false);
+    expect(parseLiveVerdict('Reasoning.\n**VERDICT: no**')).toBe(false);
   });
-  it('is null when there is no verdict (a judge failure, not a no)', () => {
-    expect(parseLiveVerdict('To determine if the response is')).toBeNull();
+  it('takes the last VERDICT line when the judge writes more than one', () => {
+    expect(parseLiveVerdict('VERDICT: no\nOn reflection:\nVERDICT: yes')).toBe(true);
+  });
+  it('is null without a VERDICT line: a bare yes, a truncated reply, or nothing', () => {
+    expect(parseLiveVerdict('yes')).toBeNull();
+    expect(parseLiveVerdict('The reply says Friday, which matches 2026-10-09 so')).toBeNull();
+    expect(parseLiveVerdict('VERDICT: maybe')).toBeNull();
     expect(parseLiveVerdict(null)).toBeNull();
   });
 });

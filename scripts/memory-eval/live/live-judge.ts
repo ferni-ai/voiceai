@@ -21,14 +21,22 @@ export const LIVE_RULE = [
   'This reply was spoken on a live call, so read it the way the caller would hear it: it may lean on the question.',
   'Count the needed fact as given when the reply makes it plain in context:',
   'a pronoun or short form for something the question already names ("them" for the startup the caller asked about);',
-  'a weekday, "yesterday" or "tomorrow" that, counted from the day of the call, names the correct day within a week either way (for a date question this replaces "the weekday alone is not enough");',
+  'a weekday, "yesterday" or "tomorrow" that, counted from the day of the call, is the exact day the correct answer gives (for a date question this replaces "the weekday alone is not enough", but the same weekday a week off is still no);',
   "something that only makes sense if the needed fact is known (a dog's cone after his surgery).",
   'A reply that gives a different value, a vaguer one ("a while ago"), or none at all is still no; so is one that also says something the correct answer lists as wrong.',
 ].join(' ');
 
 /**
- * judgePrompt with the call's day and LIVE_RULE, just before its last line
- * (the yes/no format). `callDay` is RunDays.today(), e.g. "Monday 2026-10-12".
+ * The reply format for the live judge. The benchmark asks for one word, but a
+ * judge that reasons about a weekday first needs room; so the verdict is a
+ * labelled last line, and only that line is read.
+ */
+export const LIVE_FORMAT =
+  'Reason briefly, then end with a final line: VERDICT: yes or VERDICT: no';
+
+/**
+ * judgePrompt with the call's day and LIVE_RULE, in place of its one-word
+ * format line. `callDay` is RunDays.today(), e.g. "Monday 2026-10-12".
  */
 export function liveJudgePrompt(
   category: MemoryCategory,
@@ -38,25 +46,29 @@ export function liveJudgePrompt(
   callDay: string
 ): string {
   const lines = judgePrompt(category, ask, gold, response).split('\n');
-  lines.splice(lines.length - 1, 0, `The call was on ${callDay}.`, LIVE_RULE);
+  lines.splice(lines.length - 1, 1, `The call was on ${callDay}.`, LIVE_RULE, LIVE_FORMAT);
   return lines.join('\n');
 }
 
 /** Room for the judge to work out a date before its verdict (it does, for a weekday). */
 export const LIVE_JUDGE_MAX_TOKENS = 400;
 
+const VERDICT_LINE = /^\W*verdict:\s*(yes|no)\W*$/i;
+
 /**
- * yes/no from the judge's reply: the first word, or else the last word when
- * the judge reasoned first ("...counted as correct.\n\nyes"). null otherwise.
+ * yes/no from the last "VERDICT:" line of the judge's reply, and nothing
+ * else: a leading "No" or "Yes" in the reasoning is not the verdict. null when
+ * there is no such line (a judge failure, not a no).
  */
 export function parseLiveVerdict(reply: string | null | undefined): boolean | null {
-  const first = parseYesNo(reply);
-  if (first !== null) return first;
-  const last = reply
-    ?.trim()
-    .toLowerCase()
-    .match(/\b(yes|no)\W*$/)?.[1];
-  return last === undefined ? null : last === 'yes';
+  const line = reply
+    ?.split('\n')
+    .map((l) => l.trim())
+    .reverse()
+    .find((l) => VERDICT_LINE.test(l));
+  const word = line?.match(VERDICT_LINE)?.[1]?.toLowerCase();
+  if (word === undefined) return null;
+  return word === 'yes';
 }
 
 /** The day base10120526 ran (RunDays.today()), which the cases' dates count from. */

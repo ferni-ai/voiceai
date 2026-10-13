@@ -20,8 +20,11 @@ import {
   failureCount,
   formatPaired,
   formatReport,
+  formatStrict,
+  judgePrompt,
   localDay,
   paired,
+  parseYesNo,
   promptHashes,
   type CaseResult,
 } from '../longmem-lib.js';
@@ -71,6 +74,15 @@ async function score(label: string, allowMissing: boolean): Promise<CaseResult[]
             maxTokens: LIVE_JUDGE_MAX_TOKENS,
           });
       const correct = parseLiveVerdict(judgeReply);
+      // The benchmark's own judge too, so the report shows both standards.
+      const strict = noAnswer
+        ? null
+        : parseYesNo(
+            await callLLM(judgePrompt(category, ask, gold, response), {
+              temperature: 0,
+              maxTokens: 10,
+            })
+          );
       results.push({
         history: p.id,
         category,
@@ -82,6 +94,7 @@ async function score(label: string, allowMissing: boolean): Promise<CaseResult[]
         correct,
         retrieved: null,
         judgeReply,
+        strict,
       });
       const mark = noAnswer ? '!' : correct ? '✓' : correct === false ? '✗' : '?';
       console.log(`${mark} ${label} ${p.id} [${category}] ${ask} → ${response}`);
@@ -103,7 +116,9 @@ async function main(): Promise<void> {
     throw new Error('usage: score-live.ts <label> [label2] [--allow-missing]');
   const runs: CaseResult[][] = [];
   for (const label of labels) runs.push(await score(label, allowMissing));
-  const sections = labels.map((l, i) => `== ${l}\n${formatReport(runs[i]!)}`);
+  const sections = labels.map(
+    (l, i) => `== ${l}\n${formatReport(runs[i]!)}\n${formatStrict(runs[i]!)}`
+  );
   if (runs.length === 2)
     sections.push(formatPaired(labels[0]!, labels[1]!, paired(runs[0]!, runs[1]!)));
   const dir = join(tmpdir(), 'longmem');
