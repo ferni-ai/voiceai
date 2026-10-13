@@ -14,6 +14,7 @@ import {
   callerRecognitionFor,
   unrecognisedCallerGreeting,
 } from '../voice-agent-entry/caller-recognition.js';
+import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -23,9 +24,14 @@ import {
 export const GREETING_DIRECTION =
   'They just called you. Answer like you would a friend calling: relaxed and low-key, one short sentence, maybe a quick easy question. No exclamation marks, no "so good to hear your voice", no cheer, do not list what you can do or introduce yourself. If they have called before, you may pick up from last time in a few words, the way a friend would, but only if it was light: never open on something painful. Name the actual thing ("how did the interview go?"), never a vague callback ("did you figure that out?"); if you are not told what you talked about, do not refer back.';
 
-/** Added when they told you last time they meant to do something (COACH_FOLLOW_THROUGH). */
+/**
+ * Added when they told you last time they meant to do something (COACH_FOLLOW_THROUGH).
+ * Without a written example he opened "Hey Sam, did you actually start running
+ * again?": a yes-or-no check before any hello, which the judge called an
+ * accountability check (dev, 2026-10-11).
+ */
 export const CHECK_IN_DIRECTION =
-  ' They told you they meant to do something: you may open by asking how it went, naming it in their words, unless it was painful.';
+  ' They told you they meant to do something: you may say hello, then ask how it went as an open question, naming it in their words ("Hey Sam. How did the running go this week?"). Not a yes-or-no question and not "did you actually", which sound like checking up on them. Skip it if it was painful.';
 
 /** How long the greeting waits for the caller's open commitments before going without. */
 const CHECK_IN_WAIT_MS = 400;
@@ -151,15 +157,23 @@ export async function directedGreeting(
   const { directedText } = await import('../../speech/direction/index.js');
   const partOfDay = hour === null ? '' : partOfDayFor(hour);
   // Not gated on history: the profile behind it can still be loading.
-  const checkIn = await checkInFor(userData?.userId);
+  const [checkIn, welcome] = await Promise.all([
+    checkInFor(userData?.userId),
+    loadWelcomeBack(userData?.userId, personaId, history),
+  ]);
   // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
   const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
+  // Back after a gap (WELCOME_BACK_BOTH_SIDES): one thread, one thing from his life, never the gap.
+  const back = welcome && !unknown ? planWelcomeBack(welcome, { checkIn }) : undefined;
   const direction =
-    GREETING_DIRECTION + (checkIn ? CHECK_IN_DIRECTION : '') + (unknown ? ` ${unknown}` : '');
+    GREETING_DIRECTION +
+    (checkIn ? CHECK_IN_DIRECTION : '') +
+    (back?.direction ?? '') +
+    (unknown ? ` ${unknown}` : '');
   const directed = await directedText(sessionId, {
     moment: 'greeting',
     direction,
-    facts: greetingFacts(partOfDay, userData?.userName, history, checkIn),
+    facts: welcomeBackFacts(greetingFacts(partOfDay, userData?.userName, history, checkIn), back),
     fallback: scripted,
     urgency: 'now',
     maxChars: 140,

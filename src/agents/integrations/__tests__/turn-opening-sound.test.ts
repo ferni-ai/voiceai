@@ -187,7 +187,7 @@ describe('early mode (TURN_OPENING_SOUND=early)', () => {
     say(text: string): void;
   }
 
-  function rig(): Rig {
+  function rig(wireDelayMs?: () => number): Rig {
     vi.useFakeTimers({ now: 10_000 });
     const session = new EventEmitter();
     const played: string[] = [];
@@ -196,7 +196,7 @@ describe('early mode (TURN_OPENING_SOUND=early)', () => {
     let transcript = 'Work was rough, I am exhausted.';
     attachTurnOpeningSound(
       session,
-      { playClip: (t) => (played.push(t), true), lastPlayedAt: () => 0 },
+      { playClip: (t) => (played.push(t), true), lastPlayedAt: () => 0, wireDelayMs },
       () => transcript,
       () => false,
       {
@@ -231,6 +231,16 @@ describe('early mode (TURN_OPENING_SOUND=early)', () => {
     expect(r.played).toEqual(['Oof']);
     expect(r.holds).toEqual([450]);
     expect(turnOpenedSince(r.session, 10_000)).toBe(true);
+  });
+
+  it('holds the reply for the clip plus its trip to the wire', () => {
+    const r = rig(() => 220);
+    r.say('Work was rough, I am exhausted.');
+    r.session.emit('agent_state_changed', { newState: 'thinking' });
+    vi.advanceTimersByTime(130);
+    expect(r.played).toEqual(['Oof']);
+    // a 450 ms clip heard 220 ms after play(): the reply waits for both
+    expect(r.holds).toEqual([670]);
   });
 
   it('stays quiet when the reply words already reached TTS', () => {

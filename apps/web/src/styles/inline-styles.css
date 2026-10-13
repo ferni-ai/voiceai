@@ -308,23 +308,44 @@ body {
   --transition-slow: 350ms var(--ease-out-expo);
   --transition-slower: 500ms var(--ease-out-expo);
 
-  /* Z-Index Scale (per CLAUDE.md) */
+  /* Z-index scale: the ONLY place a --z-* value is defined for the web app.
+     Call sites use var(--z-*) with no fallback (tests/z-index-scale.test.ts).
+     The generated public/design-system/tokens.css carries an older scale;
+     every name here overrides it, so the app never reads those values. It
+     lives here, not there, because tokens.css is stale-while-revalidate in
+     the service worker and this file ships inside the hashed bundle. */
+  --z-hide: -1;
+  --z-auto: auto;
   --z-base: 0;              /* Default stacking */
   --z-raised: 1;            /* Within-component layering */
   --z-content: 10;          /* Content elements (waveforms) */
+  --z-docked: 10;           /* Docked in-page chrome */
+  --z-elevated: 10;         /* Legacy alias of --z-content */
   --z-floating: 20;         /* Floating elements */
-  --z-overlay: 30;          /* Local overlays */
+  --z-overlay: 30;          /* Local overlays inside a component */
   --z-sticky: 100;          /* Sticky headers, nav */
-  --z-dropdown: 1000;       /* Dropdowns, tooltips */
+  --z-dropdown: 1000;       /* Dropdowns, coach marks */
+  --z-banner: 1200;         /* App banners */
+  --z-fixed: 1200;          /* Fixed app chrome (settings trigger) */
+  --z-panel: 1300;          /* Side panels (settings menu) */
+  --z-popover: 1500;        /* Popovers */
+  --z-skip-link: 1600;      /* Skip link */
+  --z-tooltip: 1800;        /* Tooltips */
   --z-modal-backdrop: 2000; /* Modal backdrop */
   --z-modal: 2100;          /* Modal content */
   --z-modal-elevated: 2200; /* Above modals (close buttons) */
   --z-notification: 3000;   /* Toast notifications */
+  --z-toast: 3000;          /* Alias of --z-notification */
   --z-loading: 4000;        /* Loading overlays */
+  --z-celebration: 9999;    /* Full-screen celebration canvas */
   --z-system: 9999;         /* Critical system UI (splash) */
-  /* Legacy aliases for backwards compatibility */
-  --z-elevated: 10;
-  --z-toast: 3000;
+
+  /* Overlay spacing and radii (8-pt grid, rem so text size scales them) */
+  --overlay-gutter: 1rem;      /* Edge gutter on phones; 1.5rem on desktop */
+  --overlay-gap: 0.5rem;       /* Between stacked toasts, between actions */
+  --overlay-radius-sm: 0.75rem; /* Toast, tooltip */
+  --overlay-radius-md: 1rem;    /* Popover, card */
+  --overlay-radius-lg: 1.5rem;  /* Dialog, sheet */
 
   /* Backdrop overlays */
   --backdrop-light: rgba(20, 16, 14, 0.4);
@@ -529,7 +550,7 @@ body {
   --persona-bg-tint: rgba(184, 149, 106, 0.08);
 }
 
-/* Joel Dickson - Vanguard Burgundy (distinguished, trustworthy, financial wisdom) */
+/* Nate Holloway (joel-dickson) - Burgundy (distinguished, trustworthy, financial wisdom) */
 [data-persona='joel-dickson'] {
   --persona-primary: #9A0718;
   --persona-secondary: #7A0514;
@@ -651,8 +672,9 @@ body {
 /* Zen header styling - clean, extends to top */
 [data-theme='zen'] .header {
   background: transparent;
-  /* Subtle border at bottom of frosted glass area */
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  /* No bottom border: the frosted panel below fades out instead. A hard
+     1px line plus a white-to-beige step cut the page in two at the end of
+     the header (2026-10-11 audit). */
   /* Padding at top instead of margin so frosted glass covers full area */
   margin-top: 0;
   padding-top: calc(32px + env(safe-area-inset-top, 0px));
@@ -670,6 +692,9 @@ body {
   backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px)) saturate(1.2);
   z-index: -1;
+  /* Fade the panel's bottom edge into the page instead of ending it on a line. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
 }
 
 /* Zen avatar styling: the face carries the persona color. The eyes are
@@ -910,7 +935,7 @@ body {
   );
 }
 
-/* Joel Dickson - Vanguard Burgundy (distinguished, trustworthy) */
+/* Nate Holloway (joel-dickson) - Burgundy (distinguished, trustworthy) */
 [data-theme='zen'][data-persona='joel-dickson'] .btn-primary {
   background: linear-gradient(
     145deg,
@@ -1799,6 +1824,13 @@ html.theme-transitioning *::after {
   pointer-events: auto !important;
 }
 
+/* Stable roster: the entrance plays once. Rebuilding the bar after a tap, add or
+   handoff must not replay it on every avatar; roster-motion.ts moves only what changed. */
+.app-loaded .entrance-roster.roster-settled .team-member {
+  animation: none;
+  opacity: 1;
+}
+
 /* CRITICAL: Marketplace "More" button must ALWAYS be visible and clickable.
    It's added dynamically after the entrance animations, so it needs explicit visibility. */
 .team-member--marketplace {
@@ -2441,7 +2473,7 @@ html.theme-transitioning *::after {
 }
 
 /* Mobile adjustments */
-@media (max-width: clamp(364px, 90vw, 520px)) {
+@media (max-width: 520px) {
   .landing-content-card {
     padding: 32px 24px;
     border-radius: 20px;
@@ -3691,63 +3723,28 @@ body {
   animation-duration: 1.5s; /* Energetic - research enthusiasm */
 }
 
-/* Persona transition - playful bounce entrance */
-#coach.persona-transitioning #coachAvatar {
-  animation: personaBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes personaBounce {
-  0% {
-    transform: scale(0.8) rotate(-5deg) translate3d(0, 0, 0);
-    opacity: 0.5;
-  }
-  40% {
-    transform: scale(1.08) rotate(2deg) translate3d(0, -2px, 0);
-    opacity: 1;
-  }
-  60% {
-    transform: scale(0.97) rotate(-1deg) translate3d(0, 1px, 0);
-  }
-  80% {
-    transform: scale(1.02) rotate(0.5deg) translate3d(0, -0.5px, 0);
-  }
-  /* Perfect settle to exact origin */
-  100% {
-    transform: scale(1) rotate(0deg) translate3d(0, 0, 0);
-    opacity: 1;
-  }
-}
-
-/* Avatar ring sparkle during transition */
+/* Persona transition. The avatar's entrance bounce is coach.ui's WAAPI
+   playReaction('bounce'); a CSS bounce here ran on the same element underneath
+   it (and its keyframe name collided with the idle personaBounce below).
+   The ring animates transform/opacity only: border-width and box-shadow
+   re-ran layout and paint on every frame. */
 #coach.persona-transitioning #avatarRing {
-  animation: ringSparkle 0.6s ease-out;
+  animation: ringSparkle 0.35s ease-out;
 }
 
 @keyframes ringSparkle {
   0% {
     opacity: 0.2;
     transform: scale(1);
-    border-width: 1.5px;
-    box-shadow: 0 0 0 transparent;
   }
   40% {
     opacity: 0.8;
-    transform: scale(1.15);
-    border-width: 3px;
-    box-shadow: 0 0 20px var(--persona-glow);
-  }
-  70% {
-    opacity: 0.5;
-    transform: scale(1.05);
-    border-width: 2px;
-    box-shadow: 0 0 8px var(--persona-glow);
+    transform: scale(1.12);
   }
   /* Perfect return to exact initial state */
   100% {
     opacity: 0.4;
     transform: scale(1);
-    border-width: 1.5px;
-    box-shadow: 0 0 0 transparent;
   }
 }
 
@@ -3818,6 +3815,8 @@ body {
 
 .avatar-lid-overlay .lid-top,
 .avatar-lid-overlay .lid-bottom {
+  /* The lids take the page colour on purpose: the light lid dropping over the eyes is the
+     "cap" that carries the expression (Seth, 2026-10-11). Don't recolour it to the face. */
   fill: var(--color-background-primary, #1a1612);
   transition: d 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -3851,14 +3850,6 @@ body {
 
 .morph-icon-container svg {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
-}
-
-/* Dark theme adjustments for lid overlay */
-[data-theme='dark'] .avatar-lid-overlay .lid-top,
-[data-theme='dark'] .avatar-lid-overlay .lid-bottom,
-[data-theme='dark'] .avatar-lid-overlay .brow-left,
-[data-theme='dark'] .avatar-lid-overlay .brow-right {
-  fill: var(--color-background-primary, #352e28);
 }
 
 /* Reduced motion - disable lid transitions */
@@ -5108,6 +5099,16 @@ body {
   opacity: 1;
 }
 
+/* Before a call the bars are frozen: waveform.ui.ts only animates them
+   between start() (call connected, app.ts) and stop() (hang-up), so
+   pre-connect they sat as an unexplained row of nine dots above Connect.
+   Hide them until the waveform is live; the container keeps its height so
+   nothing shifts when a call starts. */
+#waveformContainer:not(.active) .waveform-bars {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
 /* Transitioning state - shimmer effect during handoffs */
 #waveformContainer.transitioning .waveform-bar {
   animation: barShimmer 1.2s ease-in-out infinite;
@@ -5733,6 +5734,67 @@ body {
   }
 }
 
+/* Idle connect button: breathe the glow on the compositor.
+   The box-shadow breath above repaints the button every frame, forever, while
+   the app sits idle. The button clips its own children (overflow: hidden, for
+   the ripple), so the glow is a pre-rendered shadow on .controls-row::before,
+   anchored to the button, and only its opacity animates. Hover, connecting,
+   loading and disabled keep the old rules; browsers without anchor
+   positioning keep the box-shadow breath. */
+@supports (anchor-name: --a) and (position-visibility: anchors-visible) {
+  #connectBtn {
+    anchor-name: --connect-btn;
+  }
+
+  #connectBtn:not(:disabled):not(:hover) {
+    animation: none;
+  }
+
+  .controls-row::before {
+    content: '';
+    position: absolute;
+    position-anchor: --connect-btn;
+    position-visibility: anchors-visible;
+    top: anchor(top);
+    bottom: anchor(bottom);
+    left: anchor(left);
+    right: anchor(right);
+    border-radius: 26px;
+    box-shadow: 0 0 40px -8px var(--persona-glow);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  [data-theme='zen'] .controls-row::before {
+    box-shadow: 0 0 30px -6px var(--persona-glow);
+  }
+
+  .controls-row:has(#connectBtn:not(:disabled):not(:hover):not(.btn-connecting):not(.loading))::before {
+    animation: connectGlowBreath 3s ease-in-out infinite;
+  }
+
+  [data-theme='zen'] .controls-row:has(#connectBtn:not(:disabled):not(:hover):not(.btn-connecting):not(.loading))::before {
+    animation-duration: 4s;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .controls-row::before,
+    [data-theme='zen'] .controls-row::before {
+      animation: none !important;
+    }
+  }
+}
+
+@keyframes connectGlowBreath {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 /* Focus state - accessible and beautiful */
 .btn-primary:focus-visible {
   outline: none;
@@ -5766,7 +5828,6 @@ body {
 .btn-connecting {
   position: relative;
   cursor: pointer; /* tap to cancel */
-  /* Subtle width expansion to accommodate spinner */
   min-width: min(160px, 100%);
   transition: min-width 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -5776,11 +5837,15 @@ body {
   transform: scale(0.9);
 }
 
-/* Connecting state overlay with spinner + text */
-.btn-connecting::after {
+/* Connecting label over the button. Undo the .btn-primary::after glow
+   (behind the button, blurred, fill colour) or the label is invisible. */
+.btn.btn-connecting::after {
   content: attr(data-status);
   position: absolute;
   inset: 0;
+  z-index: 1;
+  background: none;
+  filter: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5953,7 +6018,7 @@ body {
   ) !important;
 }
 
-/* Joel Dickson - Vanguard Burgundy (financial wisdom) */
+/* Nate Holloway (joel-dickson) - Burgundy (financial wisdom) */
 [data-persona='joel-dickson'] .btn-primary {
   background: linear-gradient(
     145deg,
@@ -6625,20 +6690,10 @@ body {
   color: var(--color-text-primary);
 }
 
-/* 🌬️ ACTIVE MEMBER BREATHING - Very subtle idle animation */
-.team-member.active:not(.switching-to):not(.switching-from) {
-  animation: teamMemberBreathing 6s ease-in-out infinite;
-}
-
-@keyframes teamMemberBreathing {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-1px);
-  }
-}
+/* The active member used to "breathe" with a transform loop here, but the
+   rule above pins transform with !important, so it never moved: it only ran
+   on the main thread every frame (Chrome can't composite a property that an
+   !important declaration overrides). Removed. */
 
 /* ✨ ACTIVE RING SHIMMER - Very subtle glow pulse on selected member */
 .team-member.active .team-avatar-ring {
@@ -6699,7 +6754,7 @@ body {
 } /* Golden amber - wisdom */
 .team-member[data-persona-id='joel-dickson'] {
   --member-color: #9A0718;
-} /* Vanguard burgundy - financial wisdom */
+} /* burgundy - financial wisdom */
 .team-member[data-persona-id='peter-john'] {
   --member-color: #3a6b73;
 } /* Ocean teal - research */
@@ -7173,6 +7228,79 @@ body {
   border-color: rgba(44, 37, 32, 0.2) !important;
 }
 
+/* ========================================================================
+       TEAM MEMBER STATES - one look per state, so the bar answers
+       "who can I talk to right now?" at a glance.
+       Class contract (applied by team.ui.ts / the handoff work):
+         .team-member--in-team    on your team, tap to talk
+         .team-member--addable    unlocked, not on your team yet: an empty slot
+         .team-member--locked     not available yet (styled above, silhouette)
+         .team-member--switching  a handoff to this member is in progress
+       ======================================================================== */
+
+.team-member--in-team .team-avatar-ring {
+  border-style: solid;
+}
+
+/* Addable read as a dimmer teammate: the dashed ring used a white-on-light
+   border token at opacity 0 and vanished, the initial was hidden by the avatar's
+   color: transparent rule, and the whole card (badge included) sat at 0.6.
+   Mute the avatar and name instead, keep the + badge crisp, and draw a ring
+   from the text colour so it shows on light and dark themes. */
+.team-member--addable {
+  opacity: 1;
+}
+
+.team-member--addable .team-avatar-ring--addable,
+[data-theme='zen'] .team-member--addable .team-avatar-ring--addable {
+  opacity: 1; /* the base ring is hidden until hover/active */
+  border-width: 2px;
+  border-color: color-mix(in srgb, currentColor 35%, transparent) !important;
+}
+
+.team-member--addable .team-avatar--addable {
+  opacity: 0.55;
+  filter: saturate(0.6);
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+}
+
+.team-member--addable .team-name {
+  opacity: 0.65;
+}
+
+.team-member--addable:hover .team-avatar--addable,
+.team-member--addable:focus-visible .team-avatar--addable {
+  opacity: 1;
+  filter: none;
+}
+
+.team-member--addable:hover .team-name,
+.team-member--addable:focus-visible .team-name {
+  opacity: 1;
+}
+
+/* Switching: same anticipation glow as the existing .switching-to class. */
+.team-member--switching .team-avatar {
+  transform: scale(1.08);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.25),
+    0 0 30px -5px var(--member-color);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.team-member--switching .team-avatar-ring {
+  opacity: 1;
+  animation: switchingPulse 0.6s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-member--switching .team-avatar-ring {
+    animation: none;
+  }
+}
+
 [data-theme='zen'] .team-member--addable:hover .team-avatar-ring--addable {
   border-color: var(--persona-primary, #4a6741) !important;
 }
@@ -7468,7 +7596,7 @@ body {
        ======================================================================== */
 
 /* Tablet Portrait (max 768px) - md breakpoint */
-@media (max-width: clamp(538px, 90vw, 768px)) {
+@media (max-width: 768px) {
   :root {
     /* Layout tokens */
     --panel-width: min(340px, 100%);
@@ -7508,7 +7636,7 @@ body {
 }
 
 /* Mobile Landscape / Large phones (481px - 767px) - sm-md gap */
-@media (max-width: clamp(537px, 90vw, 767px)) and (min-width: clamp(337px, 90vw, 481px)) {
+@media (max-width: 767px) and (min-width: 481px) {
   :root {
     /* Layout tokens */
     --panel-width: min(320px, 100%);
@@ -7547,7 +7675,7 @@ body {
 }
 
 /* Mobile Portrait (max 480px) - xs-sm gap */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   :root {
     /* Layout tokens - panels go full-width on mobile */
     --panel-width: 100vw;
@@ -7590,7 +7718,7 @@ body {
 }
 
 /* Small Mobile (max 375px) - xs breakpoint */
-@media (max-width: min(375px, 100%)) {
+@media (max-width: 375px) {
   :root {
     /* Layout tokens - full-width panels */
     --panel-width: 100vw;
@@ -7633,7 +7761,7 @@ body {
 }
 
 /* Very Small (max 320px) - smallest phones */
-@media (max-width: min(320px, 100%)) {
+@media (max-width: 320px) {
   :root {
     /* Layout tokens - full-width, minimal spacing */
     --panel-width: 100vw;
@@ -7754,7 +7882,7 @@ body {
 
 /* iPad Landscape (height 701px+, width < 1366px, TOUCH DEVICES ONLY)
    NOTE: Added (pointer: coarse) to prevent matching desktop browsers */
-@media (min-height: 701px) and (max-width: min(1366px, 100%)) and (orientation: landscape) and (pointer: coarse) {
+@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) and (pointer: coarse) {
   :root {
     /* Layout tokens */
     --panel-width: min(360px, 100%);
@@ -7789,7 +7917,7 @@ body {
 }
 
 /* Tablet (769px - 1199px) - lg breakpoint */
-@media (max-width: min(1199px, 100%)) and (min-width: clamp(538px, 90vw, 769px)) {
+@media (max-width: 1199px) and (min-width: 769px) {
   :root {
     /* Layout tokens */
     --panel-width: min(360px, 100%);
@@ -7830,7 +7958,7 @@ body {
 }
 
 /* Large Desktop (1200px+) - xl breakpoint */
-@media (min-width: min(1200px, 100%)) {
+@media (min-width: 1200px) {
   :root {
     /* Layout tokens - generous desktop sizing */
     --panel-width: min(400px, 100%);
@@ -7883,7 +8011,7 @@ body {
        ======================================================================== */
 
 /* Large Desktop (1200px+) - Match 768px to prevent layout overflow */
-@media (min-width: min(1200px, 100%)) {
+@media (min-width: 1200px) {
   /* Match 768px exactly - larger fonts/avatars cause helper text to disappear */
 
   .app {
@@ -7992,7 +8120,7 @@ body {
 
 /* Tablet (768px - 1199px) - Balanced */
 /* MUST match 768px styles to prevent layout breakage */
-@media (max-width: min(1199px, 100%)) and (min-width: clamp(538px, 90vw, 769px)) {
+@media (max-width: 1199px) and (min-width: 769px) {
   /* Team roster tokens defined in consolidated section above */
 
   .app {
@@ -8085,7 +8213,7 @@ body {
 
 /* Tablet portrait and below (768px) */
 /* Tablet portrait and below (768px) - Transition to mobile-first layout */
-@media (max-width: clamp(538px, 90vw, 768px)) {
+@media (max-width: 768px) {
   .app {
     padding: var(--space-md);
   }
@@ -8194,7 +8322,7 @@ body {
 }
 
 /* Mobile landscape / Large phones (480px - 767px) */
-@media (max-width: clamp(537px, 90vw, 767px)) and (min-width: clamp(337px, 90vw, 481px)) {
+@media (max-width: 767px) and (min-width: 481px) {
   .app {
     min-height: 100dvh;
     padding: var(--space-sm);
@@ -8303,7 +8431,7 @@ body {
 /* Mobile portrait (max 480px) - HERO AVATAR FOCUSED
        The avatar becomes the central, prominent element on mobile.
        Instead of shrinking, we make it LARGER for better presence. */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   :root {
     --text-4xl: 1.75rem;
     --text-3xl: 1.375rem;
@@ -8488,7 +8616,7 @@ body {
 /* iPhone Pro / Modern large phones (390px - 430px)
        iPhone 15 Pro: 393px, iPhone 15 Pro Max: 430px
        HERO AVATAR: These phones get premium treatment with large, centered avatar */
-@media (min-width: min(390px, 100%)) and (max-width: clamp(301px, 90vw, 430px)) {
+@media (min-width: 390px) and (max-width: 430px) {
   .header {
     /* Margin-top ensures avatar ring isn't clipped by #app overflow:hidden */
     padding: var(--space-xs) var(--space-sm) var(--space-xs);
@@ -8600,7 +8728,7 @@ body {
 }
 
 /* iPhone Pro Max / Extra large phones (431px - 480px) */
-@media (min-width: clamp(302px, 90vw, 431px)) and (max-width: clamp(336px, 90vw, 480px)) {
+@media (min-width: 431px) and (max-width: 480px) {
   .avatar-container {
     /* HERO AVATAR: 180px - largest mobile avatar
            Pro Max phones have the real estate for commanding presence */
@@ -8713,7 +8841,7 @@ body {
 
 /* Small mobile (max 375px) - iPhone SE, etc 
        Even small phones get a HERO AVATAR - just slightly smaller */
-@media (max-width: min(375px, 100%)) {
+@media (max-width: 375px) {
   :root {
     --text-4xl: 1.5rem;
     --text-3xl: 1.25rem;
@@ -8840,7 +8968,7 @@ body {
 }
 
 /* Very small screens (max 320px) - HERO AVATAR (smaller but still prominent) */
-@media (max-width: min(320px, 100%)) {
+@media (max-width: 320px) {
   .app {
     padding: var(--space-xs);
   }
@@ -9197,7 +9325,7 @@ body {
 
 /* iPad landscape - larger tablets in horizontal orientation
    NOTE: Added (pointer: coarse) to only match touch devices, not desktop browsers */
-@media (min-height: 701px) and (max-width: min(1366px, 100%)) and (orientation: landscape) and (pointer: coarse) {
+@media (min-height: 701px) and (max-width: 1366px) and (orientation: landscape) and (pointer: coarse) {
   .header {
     flex-direction: row;
     align-items: center;
@@ -9672,7 +9800,7 @@ body {
   opacity: 0;
   transform: translateY(-10px);
   transition: all var(--transition-base);
-  z-index: var(--z-elevated);
+  z-index: var(--z-notification);
 }
 
 .connection-quality.visible {
@@ -10347,7 +10475,7 @@ body {
   /* Sized so avatar head fits inside the hat */
   width: min(150px, 100%);
   height: 90px;
-  z-index: var(--z-content, 10);
+  z-index: var(--z-content);
   pointer-events: none;
   filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.18));
   transform-origin: 50% 100%; /* Pivot from bottom for natural wobble */
@@ -10578,10 +10706,10 @@ body {
   opacity: 1;
 }
 
-/* Ensure roster has room for hint */
+/* Room for the hint. Not !important: it beat the phone row's scrolling. */
 #teamRoster {
   padding-bottom: 16px;
-  overflow: visible !important;
+  overflow: visible;
 }
 
 /* Full coach section becomes drop zone */
@@ -11480,7 +11608,7 @@ body.ambient-aurora {
 }
 
 /* Responsive connection quality */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   .connection-quality {
     top: var(--space-sm);
     inset-inline-end: var(--space-sm);
@@ -11627,7 +11755,7 @@ body.ambient-aurora {
        FERNI-CENTERED RESPONSIVE DESIGN SYSTEM
        
        A comprehensive, mobile-first approach to make Ferni feel like
-       she's speaking directly to you - not a dashboard, but a conversation.
+       he's speaking directly to you - not a dashboard, but a conversation.
        
        BREAKPOINT STRATEGY (Mobile-First):
        ├── ≤320px    : Very Small (iPhone SE 1st gen, older devices)
@@ -11654,7 +11782,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    DESKTOP LARGE (≥1200px) - Full experience with generous spacing
    ------------------------------------------------------------------------ */
-@media (min-width: min(1200px, 100%)) {
+@media (min-width: 1200px) {
   .main {
     gap: var(--space-sm);
     padding: var(--space-sm);
@@ -11706,7 +11834,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    DESKTOP / TABLET LANDSCAPE (1025px - 1199px)
    ------------------------------------------------------------------------ */
-@media (min-width: min(1025px, 100%)) and (max-width: min(1199px, 100%)) {
+@media (min-width: 1025px) and (max-width: 1199px) {
   .avatar-container {
     /* Desktop smaller screens */
     width: min(120px, 100%);
@@ -11751,7 +11879,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    TABLET PORTRAIT (768px - 1024px) - Show team roster, hide garden
    ------------------------------------------------------------------------ */
-@media (min-width: clamp(538px, 90vw, 768px)) and (max-width: min(1024px, 100%)) {
+@media (min-width: 768px) and (max-width: 1024px) {
   /* Hide garden widget on tablet - access via menu */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -11812,7 +11940,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    LARGE PHONES / SMALL TABLETS (481px - 767px)
    ------------------------------------------------------------------------ */
-@media (min-width: clamp(337px, 90vw, 481px)) and (max-width: clamp(537px, 90vw, 767px)) {
+@media (min-width: 481px) and (max-width: 767px) {
   /* Hide garden widget */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -11872,7 +12000,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    iPHONE PRO MAX (431px - 480px) - Premium large phone experience
    ------------------------------------------------------------------------ */
-@media (min-width: clamp(302px, 90vw, 431px)) and (max-width: clamp(336px, 90vw, 480px)) {
+@media (min-width: 431px) and (max-width: 480px) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -11880,13 +12008,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(180px, 100%);
@@ -11944,7 +12065,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    iPHONE PRO (390px - 430px) - Hero avatar, premium feel
    ------------------------------------------------------------------------ */
-@media (min-width: min(390px, 100%)) and (max-width: clamp(301px, 90vw, 430px)) {
+@media (min-width: 390px) and (max-width: 430px) {
   /* Hide secondary elements for focused experience */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -11952,13 +12073,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(200px, 100%);
@@ -12018,7 +12132,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    STANDARD MOBILE (376px - 389px) - Budget Androids, older phones
    ------------------------------------------------------------------------ */
-@media (min-width: min(376px, 100%)) and (max-width: min(389px, 100%)) {
+@media (min-width: 376px) and (max-width: 389px) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -12026,13 +12140,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(160px, 100%);
@@ -12087,7 +12194,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    SMALL PHONES (321px - 375px) - iPhone SE 2/3, iPhone 8
    ------------------------------------------------------------------------ */
-@media (min-width: min(321px, 100%)) and (max-width: min(375px, 100%)) {
+@media (min-width: 321px) and (max-width: 375px) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -12095,13 +12202,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(140px, 100%);
@@ -12157,7 +12257,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    VERY SMALL PHONES (≤320px) - iPhone SE 1st gen, older devices
    ------------------------------------------------------------------------ */
-@media (max-width: min(320px, 100%)) {
+@media (max-width: 320px) {
   /* Hide secondary elements */
   .garden-widget-wrapper,
   #gardenWidgetContainer {
@@ -12165,13 +12265,6 @@ body.ambient-aurora {
     visibility: hidden !important;
   }
 
-  #teamRoster,
-  .entrance-roster {
-    display: none !important;
-    visibility: hidden !important;
-    max-height: 0 !important;
-    overflow: hidden !important;
-  }
 
   .avatar-container {
     width: min(120px, 100%);
@@ -12396,8 +12489,6 @@ body.ambient-aurora {
   }
 
   /* Hide secondary elements that take up space */
-  #teamRoster,
-  .entrance-roster,
   .garden-widget-wrapper,
   #gardenWidgetContainer {
     display: none !important;
@@ -12569,7 +12660,7 @@ body.ambient-aurora {
 /* ------------------------------------------------------------------------
    COMMON MOBILE STYLES (≤480px) - Shared optimizations
    ------------------------------------------------------------------------ */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   /* Compact header for mobile */
   .header {
     gap: var(--space-sm);
@@ -12751,14 +12842,14 @@ body.ambient-aurora {
 /* ---------------------------------------------------------------------
    BUTTON - Fixed 56px height, never changes
    --------------------------------------------------------------------- */
-.btn,
+.btn:not(.btn-mute),
 .btn-primary {
   min-height: var(--ferni-button-height) !important;
   padding: var(--ferni-button-padding) !important;
   font-size: var(--ferni-button-font) !important;
 }
 
-.btn-secondary {
+.btn-secondary:not(.btn-mute) {
   min-height: 48px !important;
   padding: 12px 28px !important;
 }
@@ -12790,7 +12881,7 @@ body.ambient-aurora {
    MOBILE ADJUSTMENT - Only for very small screens
    Just reduce padding, keep all component sizes the same
    --------------------------------------------------------------------- */
-@media (max-width: clamp(336px, 90vw, 480px)) {
+@media (max-width: 480px) {
   :root {
     --ferni-container-padding: var(--space-sm, 0.75rem);
   }
@@ -12807,7 +12898,7 @@ body.ambient-aurora {
    Philosophy: On mobile, Ferni should feel like texting a friend.
    Hide the dashboard complexity, focus on the conversation.
 
-   - Hide team roster (secondary)
+   - Team roster as a compact scrolling row, not hidden (2026-10-11)
    - Hide garden widget (tertiary)
    - Hide subscription badge when connected (distraction)
    - Larger avatar for intimacy
@@ -12820,16 +12911,8 @@ body.ambient-aurora {
      HIDE SECONDARY ELEMENTS
      ========================= */
 
-  /* Team roster - nice on desktop, overwhelming on mobile */
-  #teamRoster,
-  .entrance-roster,
-  .team-roster {
-    display: none !important;
-    visibility: hidden !important;
-    height: 0 !important;
-    overflow: hidden !important;
-    pointer-events: none !important;
-  }
+  /* Team roster stays, as a compact row (see TEAM ROSTER ON PHONES below).
+     Hiding it left phones no way to see or switch teammates. */
 
   /* Garden widget - meaningful but not essential for core experience */
   .garden-widget-wrapper,
@@ -12852,17 +12935,13 @@ body.ambient-aurora {
     bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px)) !important;
     inset-inline-end: var(--space-md) !important;
     top: auto !important;
-    z-index: var(--z-floating, 20) !important;
+    z-index: var(--z-floating) !important;
   }
 
   /* =========================
      ZEN CONVERSATION MODE
      When connected, maximize avatar presence
      ========================= */
-
-  body[data-connected="true"] .header {
-    padding-top: calc(var(--space-sm) + env(safe-area-inset-top, 0px)) !important;
-  }
 
   body[data-connected="true"] .avatar-container {
     width: min(160px, 45vw) !important;
@@ -12876,10 +12955,7 @@ body.ambient-aurora {
   }
 
   body[data-connected="true"] #personaSubtitle {
-    opacity: 0 !important;
-    height: 0 !important;
-    margin: 0 !important;
-    overflow: hidden !important;
+    visibility: hidden !important; /* keeps its line: collapsing it shifted the layout */
   }
 
   body[data-connected="true"] #helperText {
@@ -12920,7 +12996,7 @@ body.ambient-aurora {
   }
 
   .btn-primary,
-  .btn-secondary {
+  .btn-secondary:not(.btn-mute) {
     min-width: min(180px, 100%) !important;
     padding: 16px 36px !important;
   }
@@ -12974,7 +13050,7 @@ body.ambient-aurora {
     padding: 0 var(--space-md) !important;
   }
 
-  .btn-primary {
+  #connectBtn {
     width: 100% !important;
     max-width: 280px !important;
   }
@@ -13312,4 +13388,48 @@ body.ambient-aurora {
 
 [data-theme="midnight"] .progress-ring-fill {
   stroke: var(--persona-text) !important;
+}
+
+/* ========================================================================
+   TEAM ROSTER ON PHONES (2026-10-11)
+   The roster used to be hidden at every phone width (and up to 768px), so a
+   phone had no way to see or switch teammates. Un-hidden, it wrapped into a
+   two-row grid that pushed Connect down. On phones it is one row that
+   scrolls sideways: centred when it fits (auto margins on the ends, which
+   unlike justify-content: center never clip the first card when it
+   overflows), snap-scrolled, inset by the safe area, cards >= 44px tall.
+   ======================================================================== */
+@media (max-width: 768px) {
+  #teamRoster {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    max-width: 100%;
+    gap: 4px;
+    padding: 6px max(10px, env(safe-area-inset-right)) 6px max(10px, env(safe-area-inset-left));
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  #teamRoster::-webkit-scrollbar {
+    display: none;
+  }
+
+  #teamRoster > :first-child {
+    margin-inline-start: auto;
+  }
+
+  #teamRoster > :last-child {
+    margin-inline-end: auto;
+  }
+
+  #teamRoster .team-member {
+    flex: 0 0 auto;
+    min-width: 52px;
+    min-height: 44px;
+    scroll-snap-align: center;
+  }
 }

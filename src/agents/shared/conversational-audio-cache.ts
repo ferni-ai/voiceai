@@ -14,8 +14,14 @@
  * @module agents/shared/conversational-audio-cache
  */
 
-import { getVoiceIdForPersona, CARTESIA_MODEL, cartesiaPronunciation } from '../../config/voice-ids.js';
+import {
+  getVoiceIdForPersona,
+  CARTESIA_MODEL,
+  cartesiaPronunciation,
+} from '../../config/voice-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { backchannelsFor, bootBackchannels } from './reaction-clips.js';
+import { renderVoicedTake, voicedTakeTexts } from './voiced-take-render.js';
 
 const log = createLogger({ module: 'ConversationalAudioCache' });
 
@@ -203,22 +209,6 @@ const ARRIVING_BANTER: Record<string, string[]> = {
   'nayan-patel': ['Hello. Nayan here.', 'Namaste.', "Hello. I'm here.", 'Hello. Good to meet you.'],
 };
 
-/**
- * Backchannels - short acknowledgments during conversation.
- * Most critical for latency - used during active listening.
- */
-export const BACKCHANNELS: Record<string, string[]> = {
-  // 'Hmm' opens replies (turn-opening-sound.ts); '[laughter]', 'Oh no'..'Ha': backchannel-*.ts.
-  // prettier-ignore
-  ferni: ['Mm', 'Hmm', 'Yeah', 'Mhm', 'Right', 'I hear you', 'Mm-hmm', 'Oh', '[laughter]',
-    'Oh no', 'Oof', 'Whoa', 'No way', 'Ha', 'Aw'],
-  'maya-santos': ['Mm', 'Yeah', 'Mhm', 'Okay', 'I hear you', 'Oh', 'Right'],
-  'peter-john': ['Mm', 'Yeah', 'Okay', 'Interesting', 'Oh!', 'Right'],
-  'alex-chen': ['Mm', 'Yeah', 'Got it', 'Right', 'Okay', 'I see'],
-  'jordan-taylor': ['Yeah', 'Mhm', 'Oh!', 'Yes!', 'Uh-huh', 'Mm'],
-  'nayan-patel': ['Mm', 'Yes', 'Indeed', 'I see', 'Ah'],
-};
-
 // ============================================================================
 // CARTESIA API (Direct calls for speed)
 // ============================================================================
@@ -295,6 +285,54 @@ function estimateDuration(byteLength: number): number {
   return Math.round((byteLength / 48000) * 1000);
 }
 
+/** Render one phrase into the cache unless it is already there. */
+async function cachePhrase(
+  text: string,
+  voiceId: string,
+  category: CachedAudio['category'],
+  render: (text: string, voiceId: string) => Promise<ArrayBuffer | null> = generateAudio
+): Promise<'cached' | 'generated' | 'failed'> {
+  const key = getCacheKey(text, voiceId);
+  if (audioCache.has(key)) return 'cached';
+  const audio = await render(text, voiceId);
+  if (!audio || audio.byteLength === 0) return 'failed';
+  audioCache.set(key, {
+    audio,
+    text,
+    voiceId,
+    generatedAt: Date.now(),
+    durationMs: estimateDuration(audio.byteLength),
+    category,
+  });
+  touchLRU(key);
+  evictLRU();
+  return 'generated';
+}
+
+/** A failed warm (no key, Cartesia down) is retried after this, not on every lookup. */
+const REACTION_RETRY_MS = 60_000;
+const reactionWarms = new Map<string, { at: number; done: Promise<number> }>();
+
+/**
+ * Render a persona's missing reaction clips in its voice. Called when a
+ * persona's TTS is set up for a call (persona-tts.ts: the start of a call or a
+ * handoff) and on its first clip lookup; repeat calls within REACTION_RETRY_MS
+ * share one run. Resolves to the number of clips newly rendered.
+ */
+export async function warmPersonaReactions(personaId: string): Promise<number> {
+  const prev = reactionWarms.get(personaId);
+  if (prev && Date.now() - prev.at < REACTION_RETRY_MS) return prev.done;
+  const voiceId = getVoiceIdForPersona(personaId);
+  const reactions = backchannelsFor(personaId);
+  const voiced = voicedTakeTexts(reactions);
+  const done = Promise.all([
+    ...reactions.map(async (text) => cachePhrase(text, voiceId, 'backchannel')),
+    ...voiced.map(async (text) => cachePhrase(text, voiceId, 'backchannel', renderVoicedTake)),
+  ]).then((results) => results.filter((r) => r === 'generated').length);
+  reactionWarms.set(personaId, { at: Date.now(), done });
+  return done;
+}
+
 // ============================================================================
 // PUBLIC API
 // ============================================================================
@@ -326,35 +364,18 @@ export async function prewarmConversationalAudio(): Promise<number> {
   };
 
   // Collect all phrases to generate
-  const tasks: Array<{
-    text: string;
-    personaId: string;
-    category: 'greeting' | 'handoff' | 'arriving' | 'backchannel';
-  }> = [];
-
+  const tasks: Array<{ text: string; personaId: string; category: CachedAudio['category'] }> = [];
   for (const personaId of PERSONAS) {
-    // Greetings
-    const greetings = GREETINGS[personaId] || [];
-    for (const text of greetings) {
-      tasks.push({ text, personaId, category: 'greeting' });
-    }
-
-    // Handoff banter
-    const handoffs = HANDOFF_BANTER[personaId] || [];
-    for (const text of handoffs) {
-      tasks.push({ text, personaId, category: 'handoff' });
-    }
-
-    // Arriving banter
-    const arrivals = ARRIVING_BANTER[personaId] || [];
-    for (const text of arrivals) {
-      tasks.push({ text, personaId, category: 'arriving' });
-    }
-
-    // Backchannels (MOST CRITICAL for latency)
-    const backchannels = BACKCHANNELS[personaId] || [];
-    for (const text of backchannels) {
-      tasks.push({ text, personaId, category: 'backchannel' });
+    const byCategory: Record<CachedAudio['category'], readonly string[] | undefined> = {
+      greeting: GREETINGS[personaId],
+      handoff: HANDOFF_BANTER[personaId],
+      arriving: ARRIVING_BANTER[personaId],
+      backchannel: bootBackchannels(personaId), // most critical for latency
+    };
+    for (const [category, texts] of Object.entries(byCategory)) {
+      for (const text of texts ?? []) {
+        tasks.push({ text, personaId, category: category as CachedAudio['category'] });
+      }
     }
   }
 
@@ -373,27 +394,9 @@ export async function prewarmConversationalAudio(): Promise<number> {
         const voiceId = getVoiceIdForPersona(personaId);
         if (!voiceId) return;
 
-        const key = getCacheKey(text, voiceId);
-        if (audioCache.has(key)) {
-          cachedCount++;
-          return;
-        }
-
-        const audio = await generateAudio(text, voiceId);
-        if (audio && audio.byteLength > 0) {
-          audioCache.set(key, {
-            audio,
-            text,
-            voiceId,
-            generatedAt: Date.now(),
-            durationMs: estimateDuration(audio.byteLength),
-            category,
-          });
-          touchLRU(key);
-          evictLRU();
-          cachedCount++;
-          categoryCount[category]++;
-        }
+        const result = await cachePhrase(text, voiceId, category);
+        if (result !== 'failed') cachedCount++;
+        if (result === 'generated') categoryCount[category]++;
       })
     );
   }
@@ -448,6 +451,7 @@ export function getCachedAudio(text: string, voiceId: string): ArrayBuffer | nul
 export function getCachedAudioForPersona(text: string, personaId: string): ArrayBuffer | null {
   const voiceId = getVoiceIdForPersona(personaId);
   if (!voiceId) return null;
+  void warmPersonaReactions(personaId);
   return getCachedAudio(text, voiceId);
 }
 
@@ -481,20 +485,8 @@ export function getConversationalCacheMetrics(): CacheMetrics & {
 export function clearConversationalCache(): void {
   audioCache.clear();
   lruOrder.length = 0;
+  reactionWarms.clear();
   warmupComplete = false;
   metrics.cacheHits = 0;
   metrics.cacheMisses = 0;
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  prewarmConversationalAudio,
-  getCachedAudio,
-  getCachedAudioForPersona,
-  isPhraseCached,
-  getConversationalCacheMetrics,
-  clearConversationalCache,
-};

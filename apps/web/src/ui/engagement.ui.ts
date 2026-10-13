@@ -13,6 +13,7 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { isNoStreaksOn } from '../config/no-streaks.js';
 import {
   ICONS,
   WEATHER_COPY,
@@ -336,12 +337,11 @@ export class EngagementUI {
     `;
   }
 
-  /**
-   * Render individual streak item
-   */
+  /** Render a ritual. Under VITE_NO_STREAKS: name and due state only, no count. */
   private renderStreakItem(streak: RitualStreakData): string {
-    const isPersonalBest = streak.currentStreak >= streak.longestStreak && streak.currentStreak > 1;
-    const milestoneMessage = getStreakMilestoneMessage(streak.currentStreak);
+    const noStreaks = isNoStreaksOn();
+    const isPersonalBest = !noStreaks && streak.currentStreak >= streak.longestStreak && streak.currentStreak > 1;
+    const milestoneMessage = noStreaks ? null : getStreakMilestoneMessage(streak.currentStreak);
     const isDue = streak.dueToday;
 
     return `
@@ -350,12 +350,12 @@ export class EngagementUI {
           <span class="engagement-streak__name">${escapeHtml(streak.ritualName)}</span>
           ${isPersonalBest ? `<span class="engagement-streak__best">${t('engagementPanel.personalBest')}</span>` : ''}
         </div>
-        <div class="engagement-streak__body">
+        ${noStreaks ? '' : `<div class="engagement-streak__body">
           <span class="engagement-streak__count">
             ${tp('engagementPanel.streakDays', streak.currentStreak)}
           </span>
           ${renderStreakDots(streak.currentStreak, 7, streak.personaId)}
-        </div>
+        </div>`}
         ${milestoneMessage ? `<p class="engagement-streak__milestone">${escapeHtml(milestoneMessage)}</p>` : ''}
       </div>
     `;
@@ -367,7 +367,7 @@ export class EngagementUI {
   private renderStatsSection(stats: EngagementStats): string {
     const statsItems: { value: number | string; label: string }[] = [
       { value: stats.totalRitualDays, label: t('engagementPanel.totalDays') },
-      { value: stats.longestOverallStreak, label: t('engagementPanel.bestStreak') },
+      ...(isNoStreaksOn() ? [] : [{ value: stats.longestOverallStreak, label: t('engagementPanel.bestStreak') }]),
       { value: stats.currentActiveStreaks, label: t('engagementPanel.activeRituals') },
     ];
 
@@ -500,7 +500,7 @@ export class EngagementUI {
       .engagement-panel {
         position: fixed;
         inset: 0;
-        z-index: var(--z-modal, 1400);
+        z-index: var(--z-modal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -997,7 +997,7 @@ export class EngagementUI {
       }
 
       /* Responsive */
-      @media (max-width: clamp(336px, 90vw, 480px)) {
+      @media (max-width: 480px) {
         .engagement-panel {
           padding: var(--space-4, 16px);
         }

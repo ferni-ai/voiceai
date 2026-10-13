@@ -267,7 +267,7 @@ describe('"I\'ll circle back tomorrow" (scheduleFollowUp) is a check-in promise'
 describe('scheduleAtBestTime says what it actually does', () => {
   it('reminds the user (not the contact), and says so in its description and reply', async () => {
     const def = (await scheduling.getToolDefinitions()).find((d) => d.id === 'scheduleAtBestTime');
-    expect(def?.description).toMatch(/calls the user; she never messages the contact/);
+    expect(def?.description).toMatch(/calls the user; he never messages the contact/);
 
     const tool = await domainTool('scheduleAtBestTime');
     const said = await tool.execute({ message: 'dinner?', contactName: 'Sarah', channel: 'text' });

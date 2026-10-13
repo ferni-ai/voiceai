@@ -19,6 +19,23 @@
  * - Spring: For playful, bouncy effects
  * - Anticipation: For "wind-up before action" effects
  * - Follow-through: For settling after action
+ *
+ * ANIMATION STANDARDS (measured in the dev app, 2026-10; see PR #1034):
+ * 1. Animate transform and opacity only. filter, box-shadow, border-width,
+ *    width/height/top/left and text rewrites repaint or re-layout every frame.
+ *    For a glow, fade the opacity of a pre-painted layer instead.
+ * 2. Durations come from DURATION / ANIMATION_PRESET, never literals. A
+ *    response to an event (a handoff, a tap) shows its result in the next
+ *    frame and settles within DURATION.MODERATE; never await a sound or a
+ *    timer before showing it.
+ * 3. One engine per element: WAAPI (safeAnimate) or CSS or GSAP, not two on
+ *    the same property. Overlap phases in one timeline; don't chain timeouts.
+ * 4. Reduced motion: go through safeAnimate(), which keeps opacity and pins
+ *    motion to its end state. CSS animations need a prefers-reduced-motion rule.
+ * 5. Nothing runs per frame while idle. No rAF loop that writes styles when
+ *    nothing changed, and never a per-frame custom property on :root (it
+ *    re-runs style for the whole document). Write on change, to the element
+ *    that uses it. will-change only while an animation runs.
  */
 
 // ============================================================================
@@ -238,6 +255,48 @@ export function getPersonaAdjustedTiming(
  */
 export function prefersReducedMotion(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+}
+
+/** Keyframe keys that are not motion: they still play under reduced motion. */
+const NON_MOTION_KEYS = new Set(['opacity', 'offset', 'easing', 'composite']);
+
+/**
+ * Reduced-motion version of a keyframe list: every motion property (transform,
+ * scale, position, glow...) is pinned to its final value, so the element lands
+ * exactly where the full animation would leave it; only opacity still changes.
+ */
+export function toReducedMotionKeyframes(keyframes: Keyframe[]): Keyframe[] {
+  const last = keyframes[keyframes.length - 1] ?? {};
+  const settled: Keyframe = {};
+  for (const [key, value] of Object.entries(last)) {
+    if (!NON_MOTION_KEYS.has(key)) settled[key] = value;
+  }
+  const frames = keyframes.map((frame) => {
+    const kept: Keyframe = { ...settled };
+    for (const key of NON_MOTION_KEYS) if (key in frame) kept[key] = frame[key];
+    return kept;
+  });
+  return frames.length > 1 ? frames : [settled, settled];
+}
+
+/**
+ * element.animate() that respects prefers-reduced-motion. With reduced motion
+ * the animation plays once as an opacity-only fade (or instantly, when it has
+ * no opacity) and ends in the same state the full animation would.
+ */
+export function safeAnimate(
+  element: Element,
+  keyframes: Keyframe[],
+  options?: number | KeyframeAnimationOptions
+): Animation {
+  if (!prefersReducedMotion()) return element.animate(keyframes, options);
+  const timing: KeyframeAnimationOptions = typeof options === 'number' ? { duration: options } : { ...options };
+  const fades = keyframes.some((frame) => 'opacity' in frame);
+  return element.animate(toReducedMotionKeyframes(keyframes), {
+    ...timing,
+    duration: fades ? timing.duration : 0,
+    iterations: 1,
+  });
 }
 
 /**

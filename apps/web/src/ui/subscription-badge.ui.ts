@@ -22,11 +22,11 @@ import {
   showUpgradeModal,
   type SubscriptionStatus,
 } from './subscription.ui.js';
+import { isVenmoChipInEnabled } from './support/open-support.js';
 import { apiGet } from '../utils/api.js';
 
 const log = createLogger('SubBadge');
 
-// FIX BUG: Track all setTimeout calls for proper cleanup
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
@@ -203,7 +203,7 @@ async function refreshStatus(): Promise<void> {
  */
 async function refreshTrialStatus(): Promise<void> {
   const deviceId = appState.getState().deviceId;
-  if (!deviceId) return;
+  if (!deviceId || isVenmoChipInEnabled()) return; // Ferni is free on Venmo: no trial clock
 
   try {
     const sessionTimeMs = sessionStartTime ? Date.now() - sessionStartTime : 0;
@@ -526,7 +526,7 @@ function injectStyles(): void {
     }
     
     /* Mobile - slightly larger touch target */
-    @media (max-width: clamp(538px, 90vw, 768px)) {
+    @media (max-width: 768px) {
       .subscription-badge {
         padding: var(--space-2, 8px) var(--space-3, 12px);
         font-size: 0.8125rem;
