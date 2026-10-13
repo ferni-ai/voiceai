@@ -38,37 +38,26 @@ import type { CallerProsody } from '../../audio-prosody/caller-prosody.js';
 import { commaDensity, planPauses, removeMidSentenceEllipses } from './pauses.js';
 import { PhraseAssembler } from './phrasing.js';
 import type { CarryOver } from './session-state.js';
+import {
+  ANY_EMOTION_TAG,
+  composeSpeed,
+  composeVolume,
+  parseLead,
+  PROSODY_TAG,
+  SPEED_TAG,
+  VOLUME_TAG,
+  volumeOnly,
+  wordCount,
+} from './engine-tags.js';
+export { composeSpeed, composeVolume } from './engine-tags.js';
 import type { Lever, LeverModes, RustEvent, SpeechPlan, SpeechSegment } from './types.js';
 
-/** Leading inline tags continuation-tts puts on a push. */
-const LEAD_TAGS = /^((?:\s*<(?:speed|volume|emotion)\b[^>]*\/>)*)([\s\S]*)$/;
-const SPEED_TAG = /<speed\s+ratio="([\d.]+)"\s*\/>/;
-const VOLUME_TAG = /<volume\s+ratio="([\d.]+)"\s*\/>/;
-const EMOTION_TAG = /<emotion\s+value="([a-z_]+)"\s*\/>/;
-/** Any emotion tag, anywhere in a push: stripped after the opening when emotion is live. */
-const ANY_EMOTION_TAG = /<\/?emotion\b[^>]*>/gi;
-/**
- * The tags a PVC ignores, stripped from each push for one. <volume> stays: a
- * PVC honors it (voice-capabilities.ts), and it is how a reply restarts
- * softly after the caller interrupts.
- */
-const PROSODY_TAG = /<\/?(?:speed|emotion)\b[^>]*>/gi;
-const VOLUME_TAGS = /<volume\s+ratio="[\d.]+"\s*\/>/g;
-
-/** Only the volume tags of a run of leading tags. */
-function volumeOnly(tags: string): string {
-  return (tags.match(VOLUME_TAGS) ?? []).join('');
-}
 /**
  * Stage 2 tempo range for a voice that ignores <speed>. Listeners hear about
  * +/-10% tempo; more is a different voice. Gentle on purpose.
  */
 export const STAGE2_TEMPO_MIN = 0.85;
 export const STAGE2_TEMPO_MAX = 1.15;
-/** Cartesia's accepted speed range (providers/cartesia.ts prosodyTags). */
-const MIN_RATIO = 0.6;
-const MAX_RATIO = 1.5;
-
 /** A breath before a phrase this long, at most every other segment. */
 const BREATH_MIN_WORDS = 10;
 const BREATH_FULL_WORDS = 18;
@@ -121,35 +110,6 @@ export interface EngineStats {
   words: number;
   breaths: number;
   sighs: number;
-}
-
-function parseLead(push: string): { tags: string; body: string; prosody: SSMLProsodyConfig } {
-  const [, tags = '', body = ''] = LEAD_TAGS.exec(push) ?? [];
-  const prosody: SSMLProsodyConfig = {};
-  const speed = SPEED_TAG.exec(tags);
-  const volume = VOLUME_TAG.exec(tags);
-  const emotion = EMOTION_TAG.exec(tags);
-  if (speed) prosody.speed = Number(speed[1]);
-  if (volume) prosody.volume = Number(volume[1]);
-  if (emotion) prosody.emotion = emotion[1];
-  return { tags, body: body.trim(), prosody };
-}
-
-const wordCount = (text: string): number => text.split(/\s+/).filter(Boolean).length;
-
-/**
- * The Director's reply speed applied ON TOP of whatever speed the push already
- * asks for (a soft start, or per-sentence pace matching from continuation-tts):
- * multiplied, never substituted, inside Cartesia's range.
- */
-export function composeSpeed(incoming: number, reply: number): number {
-  const ratio = Math.min(MAX_RATIO, Math.max(MIN_RATIO, incoming * reply));
-  return Math.round(ratio * 100) / 100;
-}
-
-/** An incoming volume (a soft start) scaled by the reply's attuned one, inside Cartesia's 0.5-2. */
-export function composeVolume(incoming: number, reply: number): number {
-  return Math.round(Math.min(2, Math.max(0.5, incoming * reply)) * 100) / 100;
 }
 
 export class DirectorEngine {
