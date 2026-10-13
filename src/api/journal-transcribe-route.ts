@@ -4,8 +4,13 @@
  * Transcription costs money per call (Deepgram, Whisper or Gemini on Vertex),
  * and this route had no auth at all: with a working transcriber behind it,
  * anyone could use it as a free transcription proxy. So it now needs a signed
- * in person, is rate limited per person on the expensive tier, and refuses
- * audio over the transcriber's cap before reading or decoding it.
+ * in person, is rate limited, and refuses audio over the transcriber's cap
+ * while the body streams in (bounded-body.ts), before decoding it.
+ *
+ * Firebase anonymous sign-in is on (no-sign-up onboarding), so anyone can mint
+ * a fresh uid per request. Anonymous callers are therefore limited by client
+ * IP, not uid, and every caller also shares a per-IP limit, so one address
+ * can't fan out across many accounts. Anonymous people can still journal.
  *
  * @module api/journal-transcribe-route
  */
@@ -13,20 +18,32 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { transcribeAudioBuffer } from '../services/custom-agent/memory-capture-service.js';
 import { MAX_TRANSCRIBE_BYTES } from '../services/custom-agent/vertex-transcribe.js';
+import { getClientIp } from '../utils/client-ip.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { RATE_LIMIT_TIERS, rateLimit, requireAuth } from './auth-middleware.js';
-import { parseBody, sendJSON } from './helpers.js';
+import { BodyTooLargeError, readJsonBodyLimited } from './bounded-body.js';
+import { sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'journal-transcribe-route' });
 
 /** Base64 length of the largest clip the transcriber accepts. */
 export const MAX_AUDIO_BASE64_CHARS = Math.ceil(MAX_TRANSCRIBE_BYTES / 3) * 4;
 /** Room for the JSON around the audio (mimeType, quotes, braces). */
-const MAX_BODY_BYTES = MAX_AUDIO_BASE64_CHARS + 64 * 1024;
+export const MAX_BODY_BYTES = MAX_AUDIO_BASE64_CHARS + 64 * 1024;
+
+/** Everyone behind one address together: three people's worth of the expensive tier. */
+export const PER_IP_TIER: (typeof RATE_LIMIT_TIERS)[string] = {
+  name: 'journal-transcribe-ip',
+  maxRequests: RATE_LIMIT_TIERS.expensive.maxRequests * 3,
+  windowMs: RATE_LIMIT_TIERS.expensive.windowMs,
+};
 
 const PLACEHOLDER = '[Transcription unavailable]';
 
-function tooLarge(res: ServerResponse): true {
+function tooLarge(req: IncomingMessage, res: ServerResponse): true {
+  // The rest of the body is never read, so close the connection once the 413 is out.
+  res.setHeader('Connection', 'close');
+  res.once('finish', () => req.destroy());
   sendJSON(res, { error: 'Audio too large', maxBytes: MAX_TRANSCRIBE_BYTES, transcript: '' }, 413);
   return true;
 }
@@ -39,13 +56,22 @@ export async function handleJournalTranscribe(
   const auth = await requireAuth(req, res);
   if (!auth) return true; // 401 already sent
 
-  // The expensive tier (10 a minute), keyed by the verified uid, never an IP or a body field.
-  const limited = rateLimit(req, res, {
+  // getClientIp trusts only the proxy hops Cloud Run adds, never a caller-written header entry.
+  const ip = getClientIp(req);
+  const perIp = rateLimit(req, res, {
+    tier: PER_IP_TIER,
+    keyPrefix: 'expensive:journal-transcribe-ip',
+    keyGenerator: () => `ip:${ip}`,
+  });
+  if (perIp) return true; // 429 already sent
+
+  // The expensive tier (10 a minute) per person: the verified uid, or the IP for an anonymous uid.
+  const perPerson = rateLimit(req, res, {
     tier: RATE_LIMIT_TIERS.expensive,
     keyPrefix: 'expensive:journal-transcribe',
-    keyGenerator: () => `user:${auth.userId}`,
+    keyGenerator: () => (auth.isAnonymous ? `anon-ip:${ip}` : `user:${auth.userId}`),
   });
-  if (limited) return true; // 429 already sent
+  if (perPerson) return true; // 429 already sent
 
   const declared = Number(req.headers['content-length']);
   if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
@@ -53,10 +79,24 @@ export async function handleJournalTranscribe(
       { userId: auth.userId, bytes: declared },
       'Journal transcribe refused: body too large'
     );
-    return tooLarge(res);
+    return tooLarge(req, res);
   }
 
-  const body = await parseBody<{ audioBase64?: string; mimeType?: string }>(req);
+  let body: { audioBase64?: string; mimeType?: string };
+  try {
+    body = await readJsonBodyLimited(req, MAX_BODY_BYTES);
+  } catch (error) {
+    if (error instanceof BodyTooLargeError) {
+      log.warn(
+        { userId: auth.userId, maxBytes: MAX_BODY_BYTES },
+        'Journal transcribe refused: body too large'
+      );
+      return tooLarge(req, res);
+    }
+    log.warn({ error: String(error), userId: auth.userId }, 'Journal transcribe: unreadable body');
+    sendJSON(res, { error: 'Invalid request body' }, 400);
+    return true;
+  }
   if (!body.audioBase64) {
     sendJSON(res, { error: 'Missing audioBase64 data' }, 400);
     return true;
@@ -66,7 +106,7 @@ export async function handleJournalTranscribe(
       { userId: auth.userId, chars: body.audioBase64.length },
       'Journal transcribe refused: audio too large'
     );
-    return tooLarge(res);
+    return tooLarge(req, res);
   }
 
   try {
