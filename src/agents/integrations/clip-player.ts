@@ -23,6 +23,7 @@ import {
 } from './presence-watcher.js';
 import { startToolHum } from './tool-hum.js';
 import { startVoicedPresence, voicedPresenceEnabled } from './voiced-presence.js';
+import { presenceClipPickers } from './presence-clips.js';
 import { reactionSidetrackDirect, startDirectClips } from './direct-clip-track.js';
 import { withBackchannelSignal } from './backchannel-signal.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
@@ -263,19 +264,22 @@ function startPresenceSounds(
     return ok;
   };
   const stop = () => player.stop();
+  // PRESENCE_SOUND_ASSETS: a recorded whistle or snore when one loaded, else the synthesized one
+  const recorded = presenceClipPickers();
   const watchers = [
     createPresenceWatcher({
       play: () =>
         presenceHumEnabled() && Math.random() < 0.5
           ? playing('hum', synthHum())
-          : playing('whistle', synthWhistle()),
+          : playing('whistle', recorded?.whistle.next() ?? synthWhistle()),
       stop,
       mood,
     }),
   ];
   if (presenceSnoreEnabled()) {
+    const snore = () => recorded?.snore.next() ?? synthSnore();
     watchers.push(
-      createPresenceWatcher({ play: () => playing('snore', synthSnore()), stop, mood }, LONG_QUIET)
+      createPresenceWatcher({ play: () => playing('snore', snore()), stop, mood }, LONG_QUIET)
     );
   }
   const onAgent = (ev: { newState?: string }) =>

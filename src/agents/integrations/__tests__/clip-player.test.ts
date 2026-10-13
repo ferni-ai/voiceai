@@ -28,21 +28,25 @@ describe('mixer keep-alive', () => {
     const mixer = new AudioMixer(48000, 1, { blocksize: 4800, capacity: 1, streamTimeoutMs: 500 });
     if (keepAlive) mixer.addStream(silence(paced) as never);
     const out = mixer[Symbol.asyncIterator]();
-    mixer.addStream(pcmToFrames(tone()) as never);
-    for (let i = 0; i < 4; i++) await out.next(); // first clip plays out
     try {
       mixer.addStream(pcmToFrames(tone()) as never);
-    } catch {
-      return 0; // the mixer ended with the first clip
+      for (let i = 0; i < 4; i++) await out.next(); // first clip plays out
+      try {
+        mixer.addStream(pcmToFrames(tone()) as never);
+      } catch {
+        return 0; // the mixer ended with the first clip
+      }
+      let peak = 0;
+      for (let i = 0; i < 4; i++) {
+        const r = await out.next();
+        if (r.done) break;
+        peak = Math.max(peak, peakOf(r.value as AudioFrame));
+      }
+      return peak;
+    } finally {
+      // Close on every path: a native mixer left open past the test can abort the worker.
+      await mixer.aclose();
     }
-    let peak = 0;
-    for (let i = 0; i < 4; i++) {
-      const r = await out.next();
-      if (r.done) break;
-      peak = Math.max(peak, peakOf(r.value as AudioFrame));
-    }
-    await mixer.aclose();
-    return peak;
   }
 
   it('without it, the SDK mixer ends after the first clip', async () => {
