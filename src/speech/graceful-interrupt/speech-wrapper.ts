@@ -183,7 +183,7 @@ const PERSONA_RECOVERY_OPENINGS: Record<string, { hard: string[]; soft: string[]
       '<break time="240ms"/><volume ratio="0.82"/><speed ratio="0.92"/>',
     ],
   },
-  // Joel Dickson - Warm and measured, thoughtful pauses
+  // Nate Holloway (joel-dickson) - Warm and measured, thoughtful pauses
   'joel-dickson': {
     hard: [
       '<break time="450ms"/><volume ratio="0.70"/><speed ratio="0.84"/>',

@@ -91,10 +91,11 @@ const PUSHY =
  * discuss their tone instead of answering. Dev call 2026-10-05: "Sam is
  * ignoring your questions about his morning routine. Talk about the shift in
  * his tone instead." turned "what would you suggest I start with?" into "I
- * notice you went from sounding pretty excited to... a bit distant".
+ * notice you went from sounding pretty excited to... a bit distant". Prod
+ * 2026-10-12: "playfully testing if you'll notice the wrong name".
  */
 const MIND_READING =
-  /\b(dodging|deflecting|avoiding|ignoring) (your|the|his|her|their)\b|\btesting (you|him|ferni)\b|\bescape to\b|\b(shift|change|drop) in (his|her|their) (tone|mood|energy)\b|\b(talk|ask) about (his|her|their) (tone|mood|energy|feelings)\b|\b(talk|ask) about why (they|he|she)\b/i;
+  /\b(dodging|deflecting|avoiding|ignoring) (your|the|his|her|their)\b|\btesting (you|him|ferni)\b|\b(testing|seeing|checking) (if|whether) (you|ferni)\b|\bescape to\b|\b(shift|change|drop) in (his|her|their) (tone|mood|energy)\b|\b(talk|ask) about (his|her|their) (tone|mood|energy|feelings)\b|\b(talk|ask) about why (they|he|she)\b/i;
 /**
  * Sending Ferni back to an earlier line. Notes are read on the caller's next
  * turn, so this one steers away from whatever they just said. Dev call

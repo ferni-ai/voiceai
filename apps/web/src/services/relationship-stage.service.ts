@@ -302,7 +302,6 @@ export const UNLOCKABLE_FEATURES: Record<string, RelationshipStage> = {
   'progress-analytics': 'getting-started',
 
   // Building Trust (7+ conversations, 3+ days, 2-day streak)
-  'team-huddle': 'building-trust',
   'memory-browser': 'building-trust',
   'memory-timeline': 'building-trust',
   'wellbeing-dashboard': 'building-trust',
