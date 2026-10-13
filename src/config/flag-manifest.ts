@@ -302,6 +302,8 @@ export const FLAG_MANIFEST = {
   TOOL_CORE_STATIC: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_HUM: { default: 'off', owner: 'voice', kind: 'experiment' },
   TOOL_LEAD_IN: { default: 'on', owner: 'voice', kind: 'config' },
+  // on: inner TTS failures reach the agent session (which closes after 4 in a row)
+  TTS_FORWARD_ERRORS: { default: 'off', owner: 'voice', kind: 'experiment' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_INTELLIGENCE: { default: 'on', owner: 'voice', kind: 'kill-switch' },

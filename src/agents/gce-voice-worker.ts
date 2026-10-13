@@ -186,16 +186,16 @@ import { warmCallPath } from './gce/call-path-warmup.js';
 import { startProcessRuntime } from './gce/process-runtime.js';
 import { jobExecutorMode, startJobRunner, stopJobRunner } from './gce/job-runner.js';
 import { drainTimeoutMs, waitForActiveJobs } from './gce/drain.js';
+import { sdkLoggerOptions } from './gce/sdk-logger-options.js';
 log('Phase 2.5: Starting async background workers');
 const processRuntime = startProcessRuntime(log);
 
 const moduleLoadTime = Date.now() - moduleLoadStart;
 log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
 
-// Initialize LiveKit SDK logger
-// Set to 'debug' for verbose turn monitoring and startup logging
-const logLevel = process.env.LOG_LEVEL || 'info';
-initializeLogger({ pretty: true, level: logLevel as 'debug' | 'info' | 'warn' | 'error' });
+// Initialize LiveKit SDK logger: JSON lines when deployed, pretty locally.
+// LOG_LEVEL=debug for verbose turn monitoring and startup logging.
+initializeLogger(sdkLoggerOptions());
 
 // Initialize LiveKit connection module
 initLiveKitConnection(
