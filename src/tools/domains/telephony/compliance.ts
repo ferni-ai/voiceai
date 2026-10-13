@@ -5,13 +5,17 @@
  * - AI disclosure (required in many jurisdictions)
  * - Recording consent (two-party consent states)
  * - HIPAA considerations for healthcare calls
- * - User authorization tracking
+ * - A dialable number: a real US number, never an emergency or premium-rate one
+ *   (the user's authorization is their spoken yes, outreach-confirm.ts)
  *
  * @module tools/domains/telephony/compliance
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { OnBehalfCallRequest, CallType } from './types.js';
+import { checkDialableNumber } from './dialable-number.js';
+
+export { checkDialableNumber, type DialCheck } from './dialable-number.js';
 
 const log = getLogger().child({ module: 'telephony-compliance' });
 
@@ -66,7 +70,7 @@ const DEFAULT_COMPLIANCE_CONFIG: ComplianceConfig = {
   ],
 
   requireHIPAADisclosure: true,
-  requireExplicitAuthorization: false, // For now, user asking = authorization
+  requireExplicitAuthorization: false, // the spoken yes is enforced in outreach-confirm.ts
 };
 
 // ============================================================================
@@ -88,6 +92,12 @@ export function checkCallCompliance(
     { callType: request.callType, requiresHIPAA: request.requiresHIPAA },
     'Checking call compliance'
   );
+
+  // -------------------------------------------------------------------------
+  // The number itself: no emergency, premium-rate or malformed numbers
+  // -------------------------------------------------------------------------
+  const number = checkDialableNumber(request.resolvedContact?.phone ?? '');
+  if (!number.ok) issues.push(number.reason);
 
   // -------------------------------------------------------------------------
   // AI Disclosure (almost always required)
@@ -141,16 +151,8 @@ export function checkCallCompliance(
   // Business Calls
   // -------------------------------------------------------------------------
   if (request.callType === 'business') {
-    disclosures.push(
-      `State that you are Ferni calling on behalf of ${request.userName}.`
-    );
+    disclosures.push(`State that you are Ferni calling on behalf of ${request.userName}.`);
   }
-
-  // -------------------------------------------------------------------------
-  // Authorization Tracking (future enhancement)
-  // -------------------------------------------------------------------------
-  // For now, we assume the user asking = authorization
-  // In the future, we could require explicit confirmation for sensitive calls
 
   const passed = issues.length === 0;
 

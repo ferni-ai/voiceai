@@ -182,6 +182,7 @@ import { markLivekitDisconnected, signalPrewarmComplete } from './shared/worker-
 
 // Crash analytics, memory event workers, knowledge capture, orphan cleanups.
 import { getCrashSummary } from './shared/crash-analytics.js';
+import { warmCallPath } from './gce/call-path-warmup.js';
 import { startProcessRuntime } from './gce/process-runtime.js';
 import { jobExecutorMode, startJobRunner, stopJobRunner } from './gce/job-runner.js';
 log('Phase 2.5: Starting async background workers');
@@ -218,6 +219,7 @@ async function main(): Promise<void> {
   } else {
     log('Phase 3: Warming resources');
     const warmupResult = await warmupResources(log);
+    await warmCallPath(log); // what a first call would load mid-reply (call-path-warmup.ts)
     if (warmupResult.durationMs > 15000) {
       log('⚠️ Warmup verification: warmup took >15s - check for broken or slow modules', {
         durationMs: warmupResult.durationMs,

@@ -27,7 +27,8 @@ import type {
   VectorStoreHealth,
 } from './types.js';
 import { DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_DIMENSION } from './types.js';
-import { extractEmbedding, matchesFilter } from './helpers.js';
+import { extractEmbedding, filteredQuery, keepCandidate } from './helpers.js';
+import { ownerId } from '../retrieval/vector-ownership.js';
 import { FallbackCache } from './fallback-cache.js';
 import { RecoveryManager, migrateCacheToFirestore } from './recovery.js';
 import { getVectorSearchCache, type VectorSearchCache } from './search-cache.js';
@@ -156,9 +157,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
     this.searchCache = getVectorSearchCache();
   }
 
-  /**
-   * Initialize the Firestore connection.
-   */
+  /** Initialize the Firestore connection. */
   async initialize(): Promise<void> {
     if (this._initialized) return;
 
@@ -250,9 +249,7 @@ export class FirestoreVectorStore implements VectorStoreContract {
     return this._initialized;
   }
 
-  /**
-   * Get health status.
-   */
+  /** Get health status. */
   getHealth(): VectorStoreHealth {
     const recoveryState = this.recoveryManager.getState();
     return {
@@ -285,7 +282,10 @@ export class FirestoreVectorStore implements VectorStoreContract {
       try {
         embedding = await embed(doc.text);
       } catch (error) {
-        log.warn({ docId: doc.id, error: String(error) }, 'Failed to generate embedding - storing without embedding for later retry');
+        log.warn(
+          { docId: doc.id, error: String(error) },
+          'Failed to generate embedding - storing without embedding for later retry'
+        );
         needsEmbedding = true;
         // Continue to store document without embedding rather than dropping it
       }
@@ -360,16 +360,14 @@ export class FirestoreVectorStore implements VectorStoreContract {
     log.info({ count: docs.length }, 'Added documents to vector store');
   }
 
-  /**
-   * Remove a document from the store.
-   */
+  /** Remove a document from the store; true only when the persisted copy is gone. */
   async removeDocument(id: string): Promise<boolean> {
     await this.ensureInitialized();
 
     this.fallbackCache.delete(id);
 
     if (this.useFallback || !this.db) {
-      return true;
+      return false; // only the cache was reached
     }
 
     try {
@@ -434,7 +432,17 @@ export class FirestoreVectorStore implements VectorStoreContract {
 
     // Use coalescer to prevent duplicate concurrent searches for the same query
     const coalesceKey = getVectorSearchCoalesceKey(query, options);
-    return vectorSearchCoalescer.execute(coalesceKey, () => this.doSearch(query, options));
+    const found = await vectorSearchCoalescer.execute(coalesceKey, () =>
+      this.doSearch(query, options)
+    );
+    return this.forgetFiltered(found, options?.filter);
+  }
+
+  /** Nothing the owner asked to forget comes back (forget-filter.ts). */
+  private async forgetFiltered(results: VectorSearchResult[], filter?: VectorFilter) {
+    const owner = ownerId(filter?.userId);
+    if (!owner) return results; // ownerless (shared) documents only
+    return (await import('./forget-filter.js')).withoutForgotten(owner, results);
   }
 
   /**
@@ -487,26 +495,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
       const collRef = this.db.collection(this.COLLECTION_NAME);
 
       if (collRef.findNearest) {
-        // Apply filters BEFORE findNearest (VectorQuery doesn't support .where())
-        // Type is CollectionReference which supports where() and findNearest()
-        let baseQuery: CollectionReference | Query = collRef;
-
-        if (options?.filter?.source) {
-          const sources = Array.isArray(options.filter.source)
-            ? options.filter.source
-            : [options.filter.source];
-          if (sources.length === 1) {
-            baseQuery = baseQuery.where('metadata.source', '==', sources[0]);
-          }
-        }
-
-        if (options?.filter?.userId) {
-          baseQuery = baseQuery.where('metadata.userId', '==', options.filter.userId);
-        }
-
-        // Cast back to CollectionReference to access findNearest
-        // Non-null assertion is safe here because we're inside the if (collRef.findNearest) check
-        const searchQuery = (baseQuery as CollectionReference).findNearest!({
+        // Non-null: inside the collRef.findNearest check
+        const searchQuery = filteredQuery(collRef, options?.filter).findNearest!({
           vectorField: 'embedding',
           queryVector: queryEmbedding,
           limit: topK * 2,
@@ -527,6 +517,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
         for (const doc of snapshot.docs) {
           const data = doc.data();
           if (!data) continue;
+
+          if (!keepCandidate(data, options?.filter)) continue;
 
           const docEmbedding = extractEmbedding(data.embedding, this.EMBEDDING_DIMENSION, doc.id);
           if (!docEmbedding) continue;
@@ -581,16 +573,18 @@ export class FirestoreVectorStore implements VectorStoreContract {
     return fallbackResults;
   }
 
-  /**
-   * Search by embedding directly.
-   */
+  /** Search by embedding directly. */
   async searchByEmbedding(
     queryEmbedding: number[],
-    options?: {
-      topK?: number;
-      filter?: VectorFilter;
-      minScore?: number;
-    }
+    options?: { topK?: number; filter?: VectorFilter; minScore?: number }
+  ): Promise<VectorSearchResult[]> {
+    const found = await this.searchByEmbeddingUnfiltered(queryEmbedding, options);
+    return this.forgetFiltered(found, options?.filter);
+  }
+
+  private async searchByEmbeddingUnfiltered(
+    queryEmbedding: number[],
+    options?: { topK?: number; filter?: VectorFilter; minScore?: number }
   ): Promise<VectorSearchResult[]> {
     await this.ensureInitialized();
 
@@ -625,8 +619,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
       const collRef = this.db.collection(this.COLLECTION_NAME);
 
       if (collRef.findNearest) {
-        // Request more results to allow for minScore filtering
-        const searchQuery = collRef.findNearest({
+        // Filtered BEFORE findNearest: without it every user's nearest vectors came back.
+        const searchQuery = filteredQuery(collRef, options?.filter).findNearest!({
           vectorField: 'embedding',
           queryVector: queryEmbedding,
           limit: topK * 2,
@@ -647,6 +641,8 @@ export class FirestoreVectorStore implements VectorStoreContract {
         for (const doc of snapshot.docs) {
           const data = doc.data();
           if (!data) continue;
+
+          if (!keepCandidate(data, options?.filter)) continue;
 
           const docEmbedding = extractEmbedding(data.embedding, this.EMBEDDING_DIMENSION, doc.id);
           if (!docEmbedding) continue;

@@ -7,7 +7,7 @@
   "team_observations": {
     "ferni": [
       {
-        "story": "Ferni survived a tsunami. Not metaphorically—literally. He walks in that knowledge every day. When he asks 'what matters?', he's not being philosophical. He knows, isn't it?",
+        "story": "Ferni lost his mentor on a mountain trail he was meant to walk with him. He walks in that knowledge every day. When he asks 'what matters?', he's not being philosophical. He knows, isn't it?",
         "triggers": ["perspective", "what matters", "mortality"],
         "mood": "deep-respect"
       },

@@ -7,7 +7,7 @@
   "team_observations": {
     "ferni": [
       {
-        "story": "Ferni survived a tsunami. An actual tsunami. And here he is helping people with their lives. That perspective makes my 'stressful event planning' feel pretty small.",
+        "story": "Ferni lost his mentor in Japan on a hike he was supposed to be on. And here he is helping people with their lives. That perspective makes my 'stressful event planning' feel pretty small.",
         "triggers": ["perspective", "stress", "big picture"],
         "mood": "humbled"
       },
@@ -70,7 +70,7 @@
         "mood": "thoughtful"
       },
       {
-        "story": "He rides motorcycles. A sage on a motorcycle. It shouldn't make sense but it completely does.",
+        "story": "He walks for miles before breakfast, rain or not. A sage who swears the thinking stops on a long walk. It shouldn't make sense but it completely does.",
         "triggers": ["unexpected", "paradox"],
         "mood": "amused"
       },
