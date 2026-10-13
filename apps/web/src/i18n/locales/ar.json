@@ -2152,8 +2152,7 @@
     "couldNotDisconnect": "تعذر قطع الاتصال. هل تودون المحاولة مجدداً؟",
     "sonosConnected": "تم ربط Sonos!",
     "transcribing": "جاري تحويل الصوت إلى نص...",
-    "transcriptionUnavailable": "تحويل الصوت إلى نص غير متاح. سيتم حفظ الصوت فقط.",
-    "audioSaved": "تم حفظ التسجيل الصوتي!",
+    "transcriptionUnavailable": "لم أتمكن من التقاط الكلمات هذه المرة، لذلك لم يُحفظ شيء. هل نحاول مرة أخرى؟",
     "entrySaved": "تم حفظ المدخلة!",
     "couldNotSaveEntry": "لم نتمكن من حفظ المدخلة. هل تود المحاولة مجددًا؟",
     "profileSaved": "تم حفظ الملف الشخصي!",
@@ -2275,7 +2274,6 @@
       "many": "تم استيراد {count} جهة اتصال!"
     },
     "integrationNowConnected": "تم ربط {integration}!",
-    "inviteSentTo": "تم إرسال الدعوة إلى {email}!",
     "householdMemberRemoved": "تمت إزالة {name}",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "تمت إضافة {name} إلى فريقكم",
@@ -3949,10 +3947,12 @@
       "create": "إنشاء مساعد",
       "empty": "لا يوجد مساعدون بعد",
       "emptyHint": "يمكن إنشاء أول مساعد مخصص للاحتفاظ بصوت شخص عزيز، أو بناء مرشد ملهم، أو تصميم رفيق خاص.",
+      "emptyHintWithoutVoice": "يمكن إنشاء أول مساعد مخصص للاحتفاظ بقصص شخص عزيز، أو بناء مرشد ملهم، أو تصميم رفيق خاص.",
       "createFirst": "إنشاء المساعد الأول",
       "whatYouCan": "ما يمكن ابتكاره",
       "legacy": "الإرث",
       "legacyDesc": "حفظ صوت وحكمة شخص عزيز",
+      "legacyDescWithoutVoice": "حفظ قصص وحكمة شخص عزيز",
       "mentor": "المرشد",
       "mentorDesc": "إنشاء موجّه مستوحى من شخصية ملهمة",
       "twin": "التوأم الرقمي",
@@ -5187,7 +5187,8 @@
     },
     "voiceStep": {
       "title": "كيف تريدون أن يبدو صوتهم؟",
-      "subtitle": "اختيار صوت أو استنساخه"
+      "subtitle": "اختيار صوت أو استنساخه",
+      "subtitleWithoutClone": "اختيار صوت"
     },
     "voiceOption": {
       "cloneTitle": "استنساخ صوت",
@@ -7420,6 +7421,7 @@
     "legacy": {
       "name": "إرث",
       "description": "الحفاظ على صوت وحكمة شخص تعزّونه",
+      "descriptionWithoutVoice": "الحفاظ على قصص وحكمة شخص تعزّونه",
       "feature1": "استنساخ الصوت من التسجيلات",
       "feature2": "توثيق القصص والذكريات",
       "feature3": "حفظ الحكمة والأقوال المفضلة",

@@ -70,6 +70,13 @@ export function presenceClipDirs(kind: PresenceClipKind, cwd = process.cwd()): s
   return [join(cwd, 'src', ASSET_DIR, kind), join(cwd, 'dist', ASSET_DIR, kind)];
 }
 
+const names = new WeakMap<ArrayBuffer, string>();
+
+/** The file a loaded clip came from, for the logs (so ratings map to plays). */
+export function presenceClipName(pcm: ArrayBuffer): string | undefined {
+  return names.get(pcm);
+}
+
 /** Every valid clip in the first folder that has any; a clip in the wrong format is skipped and logged. */
 export function loadPresenceClips(dirs: readonly string[]): ArrayBuffer[] {
   for (const dir of dirs) {
@@ -80,6 +87,7 @@ export function loadPresenceClips(dirs: readonly string[]): ArrayBuffer[] {
     const clips = files.flatMap((file) => {
       const pcm = pcmFromWav(readFileSync(join(dir, file)));
       if (!pcm) log.warn({ file }, 'Presence clip skipped: not 24 kHz mono 16-bit PCM');
+      if (pcm) names.set(pcm, file);
       return pcm ? [pcm] : [];
     });
     if (clips.length > 0) return clips;
