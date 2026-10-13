@@ -1080,8 +1080,10 @@ jobs:
         if: steps.nm-cache.outputs.cache-hit != 'true'
         run: pnpm install --no-frozen-lockfile
 
+      # Globs, not directories: node 22 treats a directory argument as one failing
+      # test file ("not ok 1 - design-system/lib").
       - name: design-system/lib
-        run: node --test design-system/lib/
+        run: node --test 'design-system/lib/*.test.js'
 
       - name: Website portals (build, then test)
         run: |
@@ -1091,7 +1093,7 @@ jobs:
             dir=$(dirname "$t"); found=1
             echo "::group::$dir"
             (cd "$dir" && npm ci --no-audit --no-fund --loglevel=error && npx eleventy)
-            node --test "$t/"
+            node --test "$t/*.test.js"
             echo "::endgroup::"
           done
           [ "$found" = 1 ] || { echo "::error::no apps/website/*/__tests__ found"; exit 1; }
