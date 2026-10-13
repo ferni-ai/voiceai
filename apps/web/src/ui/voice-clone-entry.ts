@@ -17,17 +17,35 @@ const MIC_ICON = `<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"
 /** The feature line that promises cloning from recordings. */
 const CLONE_FEATURE_KEY = 'agentTypes.legacy.feature1';
 
+/**
+ * Copy that promises someone's voice, and the wording shown in its place while
+ * off. The original copy stays in the locales: the feature comes back,
+ * consent-gated, when the flag turns on.
+ */
+const COPY_WHILE_OFF: Readonly<Record<string, string>> = {
+  'agentTypes.legacy.description': 'agentTypes.legacy.descriptionWithoutVoice',
+  'marketplace.creations.legacyDesc': 'marketplace.creations.legacyDescWithoutVoice',
+  'marketplace.creations.emptyHint': 'marketplace.creations.emptyHintWithoutVoice',
+  'customAgentWizard.voiceStep.subtitle': 'customAgentWizard.voiceStep.subtitleWithoutClone',
+};
+
+/** The i18n key to show: voice-promising copy is swapped for its neutral twin while off. */
+export function voiceCopyKey(key: string): string {
+  return isVoiceCloneCreationOn() ? key : (COPY_WHILE_OFF[key] ?? key);
+}
+
 /** The voice option to show: a saved 'clone' choice falls back to the library while off. */
 export function effectiveVoiceOption(option: AgentDraft['voiceOption']): VoiceOption {
   if (option === 'clone' && !isVoiceCloneCreationOn()) return 'library';
   return option || 'library';
 }
 
-/** Agent types without the "Voice cloning from recordings" line while off. */
+/** Agent types without the "Voice cloning from recordings" line or voice promise while off. */
 export function visibleAgentTypes(types: AgentTypeInfo[]): AgentTypeInfo[] {
   if (isVoiceCloneCreationOn()) return types;
   return types.map((type) => ({
     ...type,
+    descriptionKey: voiceCopyKey(type.descriptionKey),
     featureKeys: type.featureKeys.filter((key) => key !== CLONE_FEATURE_KEY),
   }));
 }

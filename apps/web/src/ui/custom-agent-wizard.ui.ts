@@ -37,7 +37,7 @@ import {
   dispatchCustomAgentEvent,
 } from '../services/custom-agent.service.js';
 import { openMemoryInput, toAddMemoryRequest } from './memory-input-modal.ui.js';
-import { effectiveVoiceOption, renderCloneVoiceOption, visibleAgentTypes } from './voice-clone-entry.js';
+import { effectiveVoiceOption, renderCloneVoiceOption, visibleAgentTypes, voiceCopyKey } from './voice-clone-entry.js';
 
 const log = createLogger('CustomAgentWizard');
 
@@ -459,7 +459,7 @@ function renderVoiceStep(): string {
     <div class="wizard-step wizard-step--voice">
       <div class="step-header">
         <h2 class="step-title" id="wizard-title">${t('customAgentWizard.voiceStep.title')}</h2>
-        <p class="step-subtitle">${t('customAgentWizard.voiceStep.subtitle')}</p>
+        <p class="step-subtitle">${t(voiceCopyKey('customAgentWizard.voiceStep.subtitle'))}</p>
       </div>
       
       <div class="voice-options">${renderCloneVoiceOption(voiceOption === 'clone')}

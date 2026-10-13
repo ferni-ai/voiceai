@@ -52,7 +52,7 @@ import {
 import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
 import { confirmDelete } from './confirm-modal.ui.js';
 import { openAgentEditor } from './custom-agent-editor.ui.js';
-import { openVoiceCloneRecorderWhenOn, renderRecordVoiceButton } from './voice-clone-entry.js';
+import { openVoiceCloneRecorderWhenOn, renderRecordVoiceButton, voiceCopyKey } from './voice-clone-entry.js';
 import { getFirebaseUid, getAuthState } from '../services/firebase-auth.service.js';
 import { toast } from './whisper.ui.js';
 
@@ -638,7 +638,7 @@ async function renderCreationsTab(): Promise<void> {
             </svg>
           </div>
           <h4 class="creations-empty-title">${t('marketplace.creations.empty')}</h4>
-          <p class="creations-empty-hint">${t('marketplace.creations.emptyHint')}</p>
+          <p class="creations-empty-hint">${t(voiceCopyKey('marketplace.creations.emptyHint'))}</p>
           <button class="creations-empty-btn" data-action="create-agent">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -658,7 +658,7 @@ async function renderCreationsTab(): Promise<void> {
                 </svg>
               </span>
               <h5 class="creation-type-name">${t('marketplace.creations.legacy')}</h5>
-              <p class="creation-type-desc">${t('marketplace.creations.legacyDesc')}</p>
+              <p class="creation-type-desc">${t(voiceCopyKey('marketplace.creations.legacyDesc'))}</p>
               <span class="creation-type-cta">${t('marketplace.creations.startCreating')} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
             </button>
             <button type="button" class="creation-type-card" data-action="create-type" data-type="mentor" aria-label="${t('marketplace.creations.createMentorAria')}">

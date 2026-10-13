@@ -19,7 +19,7 @@ vi.mock('../../src/ui/voice-clone-recorder.ui.js', () => ({
 }));
 
 const { t } = await import('../../src/i18n/index.js');
-const { openVoiceCloneRecorderWhenOn, renderRecordVoiceButton } =
+const { openVoiceCloneRecorderWhenOn, renderRecordVoiceButton, voiceCopyKey } =
   await import('../../src/ui/voice-clone-entry.js');
 
 const VOICE_STEP = 2;
@@ -73,11 +73,16 @@ describe('voice cloning while off (the default)', () => {
     expect(recorder.open).not.toHaveBeenCalled();
   });
 
-  it('describes Legacy without promising someone\'s voice', () => {
-    expect(t('agentTypes.legacy.description')).not.toMatch(/voice/i);
-    expect(t('marketplace.creations.legacyDesc')).not.toMatch(/voice/i);
-    expect(t('marketplace.creations.emptyHint')).not.toMatch(/voice/i);
-    expect(t('customAgentWizard.voiceStep.subtitle')).not.toMatch(/clone/i);
+  it('hides copy that promises someone\'s voice, without deleting it', async () => {
+    expect(t(voiceCopyKey('agentTypes.legacy.description'))).not.toMatch(/voice/i);
+    expect(t(voiceCopyKey('marketplace.creations.legacyDesc'))).not.toMatch(/voice/i);
+    expect(t(voiceCopyKey('marketplace.creations.emptyHint'))).not.toMatch(/voice/i);
+    expect(t(voiceCopyKey('customAgentWizard.voiceStep.subtitle'))).not.toMatch(/clone/i);
+    // The cherished-person copy is kept for when cloning returns, consent-gated.
+    expect(t('agentTypes.legacy.description')).toMatch(/someone you cherish/);
+    await openWizardAt(0);
+    expect(legacyCardText()).not.toMatch(/voice/i);
+    expect(legacyCardText()).toContain('someone you cherish');
   });
 });
 
@@ -93,6 +98,14 @@ describe('voice cloning when VITE_VOICE_CLONE_CREATION=true', () => {
     vi.stubEnv('VITE_VOICE_CLONE_CREATION', 'true');
     await openWizardAt(0);
     expect(legacyCardText()).toContain(t('agentTypes.legacy.feature1'));
+  });
+
+  it('shows the original voice copy again', async () => {
+    vi.stubEnv('VITE_VOICE_CLONE_CREATION', 'true');
+    expect(voiceCopyKey('marketplace.creations.legacyDesc')).toBe('marketplace.creations.legacyDesc');
+    expect(t(voiceCopyKey('customAgentWizard.voiceStep.subtitle'))).toMatch(/clone/i);
+    await openWizardAt(0);
+    expect(legacyCardText()).toContain('voice and wisdom');
   });
 
   it('renders the Voice button and opens the recorder', async () => {

@@ -3856,11 +3856,13 @@
       "subtitle": "Erschaffe Begleiter mit ganz persönlichen Stimmen und Charakteren",
       "create": "Agent erstellen",
       "empty": "Noch keine Agenten",
-      "emptyHint": "Erstelle deinen ersten eigenen Agenten, um die Geschichten eines geliebten Menschen zu bewahren, einen Mentor zu erschaffen oder deinen ganz persönlichen Begleiter zu gestalten.",
+      "emptyHint": "Erstelle deinen ersten eigenen Agenten, um die Stimme eines geliebten Menschen zu bewahren, einen Mentor zu erschaffen oder deinen ganz persönlichen Begleiter zu gestalten.",
+      "emptyHintWithoutVoice": "Erstelle deinen ersten eigenen Agenten, um die Geschichten eines geliebten Menschen zu bewahren, einen Mentor zu erschaffen oder deinen ganz persönlichen Begleiter zu gestalten.",
       "createFirst": "Erstelle deinen ersten Agenten",
       "whatYouCan": "Was du erschaffen kannst",
       "legacy": "Vermächtnis",
-      "legacyDesc": "Bewahre die Geschichten und Weisheit eines geliebten Menschen",
+      "legacyDesc": "Bewahre die Stimme und Weisheit eines geliebten Menschen",
+      "legacyDescWithoutVoice": "Bewahre die Geschichten und Weisheit eines geliebten Menschen",
       "mentor": "Mentor",
       "mentorDesc": "Erschaffe einen Coach, der auf einer inspirierenden Persönlichkeit basiert",
       "twin": "Digitaler Zwilling",
@@ -5063,7 +5065,8 @@
     },
     "voiceStep": {
       "title": "Wie sollen sie klingen?",
-      "subtitle": "Wähle eine Stimme"
+      "subtitle": "Wähle eine Stimme oder klone eine",
+      "subtitleWithoutClone": "Wähle eine Stimme"
     },
     "voiceOption": {
       "cloneTitle": "Stimme klonen",
@@ -7235,7 +7238,8 @@
   "agentTypes": {
     "legacy": {
       "name": "Legacy",
-      "description": "Bewahre die Geschichten und Weisheit von jemandem, der dir am Herzen liegt",
+      "description": "Bewahre die Stimme und Weisheit von jemandem, der dir am Herzen liegt",
+      "descriptionWithoutVoice": "Bewahre die Geschichten und Weisheit von jemandem, der dir am Herzen liegt",
       "feature1": "Stimmenklonung aus Aufnahmen",
       "feature2": "Geschichten und Erinnerungen festhalten",
       "feature3": "Weisheiten und Lieblingssprüche bewahren",
