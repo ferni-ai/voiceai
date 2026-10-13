@@ -1,0 +1,22 @@
+/**
+ * Follow-through (growth context): what Ferni should follow through on for a
+ * person, when to bring it up, and how it closes. Other contexts import from
+ * here only. Plan: docs/plans/2026-10-12-follow-through.md.
+ *
+ * @module services/follow-through
+ */
+
+export {
+  apply,
+  isClosed,
+  nextOccurrence,
+  type FollowUp,
+  type FollowUpEvent,
+  type FollowUpKind,
+  type FollowUpStatus,
+  type Repeat,
+  type SurfacedVia,
+} from './follow-up.js';
+export { isQuietHour, rightMoment, type Moment } from './right-moment.js';
+export { closeFromReply, type ReplyVerdict } from './close-from-reply.js';
+export type { FollowUpStore, NewFollowUp } from './ports.js';

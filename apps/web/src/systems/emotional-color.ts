@@ -8,7 +8,8 @@
  * This goes beyond themes - it's real-time emotional modulation.
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, prefersReducedMotion } from '../config/animation-constants.js';
+import { createFrameLoop, type FrameLoop } from '../utils/frame-loop.js';
 import { getBreathSync } from './breath-sync.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -135,7 +136,8 @@ class EmotionalColorManager {
   private targetState: EmotionalColorState;
   private listeners: Set<ColorListener> = new Set();
 
-  private animationFrame: number | null = null;
+  /** Runs while an emotion transitions (or modulation has subscribers). */
+  private loop: FrameLoop | null = null;
   private transitionStartTime: number = 0;
   private previousState: EmotionalColorState | null = null;
 
@@ -171,15 +173,20 @@ class EmotionalColorManager {
   // ─────────────────────────────────────────────────────────────────────────
 
   start(): void {
-    if (this.animationFrame) return;
-    this.tick();
+    if (this.loop) return;
+    this.loop = createFrameLoop(this.tick, () => this.isChanging());
+    if (this.tick()) this.loop.wake(); // the first frame writes the initial values
   }
 
   stop(): void {
-    if (this.animationFrame) {
-      cancelAnimationFrame(this.animationFrame);
-      this.animationFrame = null;
-    }
+    this.loop?.dispose();
+    this.loop = null;
+  }
+
+  /** Breath and ambient drift only reach subscribers, so they need none here. */
+  private isChanging(): boolean {
+    const modulated = this.config.breathModulation || this.config.ambientShifts;
+    return this.previousState !== null || (modulated && this.listeners.size > 0 && !prefersReducedMotion());
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -206,6 +213,7 @@ class EmotionalColorManager {
       blend: 0,
       timestamp: Date.now(),
     };
+    this.loop?.wake();
   }
 
   /**
@@ -232,6 +240,7 @@ class EmotionalColorManager {
       blend: 0,
       timestamp: Date.now(),
     };
+    this.loop?.wake();
   }
 
   /**
@@ -260,6 +269,7 @@ class EmotionalColorManager {
    */
   subscribe(listener: ColorListener): () => void {
     this.listeners.add(listener);
+    this.loop?.wake();
     return () => this.listeners.delete(listener);
   }
 
@@ -267,11 +277,8 @@ class EmotionalColorManager {
   // Animation Loop
   // ─────────────────────────────────────────────────────────────────────────
 
-  private tick = (): void => {
-    const now = performance.now();
-
-    // Interpolate toward target state
-    this.interpolateToTarget(now);
+  private tick = (): boolean => {
+    this.interpolateToTarget(performance.now());
 
     // CSS mirrors the emotion itself, before the per-frame breath and ambient
     // drift, so it changes only during a transition (see setRootVar)
@@ -280,11 +287,8 @@ class EmotionalColorManager {
     if (this.config.breathModulation) this.applyBreathModulation();
     if (this.config.ambientShifts) this.applyAmbientShifts();
 
-    // Notify listeners
     this.notifyListeners();
-
-    // Continue loop
-    this.animationFrame = requestAnimationFrame(this.tick);
+    return this.isChanging();
   };
 
   private interpolateToTarget(now: number): void {

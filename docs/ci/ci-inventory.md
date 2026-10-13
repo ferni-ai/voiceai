@@ -83,7 +83,7 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 | Property | Value |
 |----------|-------|
-| Trigger | PR to main, merge queue |
+| Trigger | Merge queue (on PRs it's skipped and reports success, #1250) |
 | Runner | `CI_PR_RUNNER` / `CI_RUNNER` |
 
 ### staging.yml

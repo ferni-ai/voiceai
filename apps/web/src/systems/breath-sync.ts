@@ -11,7 +11,8 @@
  * - Color intensity pulses
  */
 
-import { DURATION } from '../config/animation-constants.js';
+import { prefersReducedMotion } from '../config/animation-constants.js';
+import { createFrameLoop, type FrameLoop } from '../utils/frame-loop.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('BreathSync');
@@ -82,7 +83,8 @@ class BreathSyncManager {
   private config: BreathConfig;
   private state: BreathState;
   private listeners: Set<BreathListener> = new Set();
-  private animationFrame: number | null = null;
+  /** Pushes the phase to subscribers; idle when nobody subscribes. */
+  private loop: FrameLoop | null = null;
   private startTime: number = 0;
 
   // For natural variation
@@ -104,19 +106,29 @@ class BreathSyncManager {
   // Lifecycle
   // ─────────────────────────────────────────────────────────────────────────
 
+  /**
+   * The phase is a pure function of time, computed when read. The frame loop
+   * only pushes it to subscribers, so with none (or with reduced motion, or a
+   * hidden page) nothing runs per frame.
+   */
   start(): void {
-    if (this.animationFrame) return;
+    if (this.loop) return;
 
     this.startTime = performance.now();
     this.nextVariationTime = this.startTime + this.getNextVariationInterval();
-    this.tick();
+    this.updateCSSProperties();
+    this.loop = createFrameLoop(this.tick, () => this.listeners.size > 0 && !prefersReducedMotion());
+    this.loop.wake();
   }
 
   stop(): void {
-    if (this.animationFrame) {
-      cancelAnimationFrame(this.animationFrame);
-      this.animationFrame = null;
-    }
+    this.loop?.dispose();
+    this.loop = null;
+  }
+
+  /** True while the per-frame loop is scheduled. */
+  isLooping(): boolean {
+    return this.loop?.isRunning() ?? false;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -124,10 +136,12 @@ class BreathSyncManager {
   // ─────────────────────────────────────────────────────────────────────────
 
   getState(): Readonly<BreathState> {
+    this.advance(performance.now());
     return { ...this.state };
   }
 
   getPhase(): number {
+    this.advance(performance.now());
     return this.state.phase;
   }
 
@@ -185,6 +199,7 @@ class BreathSyncManager {
       source: 'guided',
       timestamp: Date.now(),
     };
+    this.updateCSSProperties();
   }
 
   /**
@@ -194,6 +209,7 @@ class BreathSyncManager {
     this.transitionToRate(this.config.baseRate, 2);
     this.state.source = 'ambient';
     this.state.depth = 0.7;
+    this.updateCSSProperties();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -202,6 +218,7 @@ class BreathSyncManager {
 
   subscribe(listener: BreathListener): () => void {
     this.listeners.add(listener);
+    this.loop?.wake();
     return () => this.listeners.delete(listener);
   }
 
@@ -210,7 +227,12 @@ class BreathSyncManager {
   // ─────────────────────────────────────────────────────────────────────────
 
   private tick = (): void => {
-    const now = performance.now();
+    this.advance(performance.now());
+    this.notifyListeners();
+  };
+
+  /** Bring the phase up to `now`. */
+  private advance(now: number): void {
     const elapsed = now - this.startTime;
 
     // Apply natural variation periodically
@@ -233,16 +255,7 @@ class BreathSyncManager {
       phase,
       timestamp: Date.now(),
     };
-
-    // Notify listeners
-    this.notifyListeners();
-
-    // Update CSS custom properties
-    this.updateCSSProperties();
-
-    // Continue loop
-    this.animationFrame = requestAnimationFrame(this.tick);
-  };
+  }
 
   private notifyListeners(): void {
     const stateCopy = { ...this.state };
@@ -303,6 +316,7 @@ class BreathSyncManager {
       const easedProgress = 1 - Math.pow(1 - progress, 3);
 
       this.state.rate = currentRate + (targetRate - currentRate) * easedProgress;
+      this.updateCSSProperties();
 
       if (progress < 1) {
         requestAnimationFrame(animate);

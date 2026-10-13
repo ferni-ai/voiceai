@@ -15,8 +15,13 @@
  * "I'm tired", "I'm Jewish", "I'm Jess's mom", or someone speaking for the
  * account holder ("I'm Jess, Sam's wife"). Calls Ferni places for a user
  * (outbound-opener.ts) are skipped: the person on the line isn't the account.
- * The profile is written only for a verified owner (caller-recognition.ts,
- * passed in by turn-request.ts).
+ * The account (profile.preferredName, in Firestore and in the in-memory
+ * profile the end-of-call save writes) changes only on an affirmative owner
+ * signal: sessionIsVerifiedOwner (caller-recognition.ts: a signed-in app
+ * dispatch or a signed caller attestation, never a number lookup, a model or
+ * tool argument), passed in by turn-request.ts. Anyone else is renamed for
+ * this call only. Still possible: someone else talking on a verified owner's
+ * session (on speaker) who says "I'm X" without naming whose phone it is.
  *
  * @module agents/personas/name-correction
  */
@@ -136,15 +141,34 @@ function lastAgentLine(chatCtx: llm.ChatContext): string {
   return '';
 }
 
-/** Renames the caller for the rest of the call and, for a verified owner, for good. */
-function rename(user: SessionUser, name: string, deps: NameCorrectionDeps): void {
-  user.userName = name;
-  // The end-of-call save writes the in-memory profile: without this it would put the old name back.
-  if (user.services?.userProfile) user.services.userProfile.preferredName = name;
+const outboundOf = (deps: NameCorrectionDeps): ((sessionId: string) => boolean) =>
+  deps.outbound ?? ((id: string) => outboundPartiesFor(id) !== undefined);
+
+/**
+ * Whether the account may keep the name: only on an affirmative owner signal
+ * for this session (a signed-in app session or a signed caller attestation,
+ * from turn-request.ts), never on a call Ferni placed for someone, and never
+ * without an account. Undefined or anything but true is no.
+ */
+function ownerMayKeep(user: SessionUser, deps: NameCorrectionDeps): boolean {
   const { userId, services } = user;
   const sessionId = services?.sessionId;
-  const owner = deps.verifiedOwner;
-  if (!userId || userId === 'anonymous' || !sessionId || !owner?.(sessionId)) return;
+  if (!userId || userId === 'anonymous' || !sessionId) return false;
+  return deps.verifiedOwner?.(sessionId) === true && !outboundOf(deps)(sessionId);
+}
+
+/**
+ * Renames the caller for the rest of the call (session only) and, when the
+ * account owner is proven to be the one on the line, on the account.
+ */
+function rename(user: SessionUser, name: string, deps: NameCorrectionDeps): void {
+  user.userName = name;
+  if (!ownerMayKeep(user, deps)) return;
+  // The end-of-call save writes the in-memory profile, so it changes only
+  // for the owner too, and the save then keeps the name instead of the old one.
+  if (user.services?.userProfile) user.services.userProfile.preferredName = name;
+  const userId = user.userId as string;
+  const sessionId = user.services?.sessionId as string;
   runBackground((deps.persist ?? persistPreferredName)(userId, name), {
     task: 'name-correction-persist',
     sessionId,
@@ -155,8 +179,8 @@ function rename(user: SessionUser, name: string, deps: NameCorrectionDeps): void
 function callerOn(session: object, deps: NameCorrectionDeps): SessionUser | null {
   const user = (session as { userData?: SessionUser }).userData;
   const sessionId = user?.services?.sessionId;
-  const outbound = deps.outbound ?? ((id: string) => outboundPartiesFor(id) !== undefined);
-  return user && !(sessionId && outbound(sessionId)) ? user : null;
+  // No session id: it can't be told apart from an on-behalf call, so nothing.
+  return user && sessionId && !outboundOf(deps)(sessionId) ? user : null;
 }
 
 /** "Sam" is the name Ferni has for "Sam Smith". */

@@ -4,7 +4,11 @@
  * Handles Twilio callbacks for family check-in calls:
  * - Status updates (initiated, ringing, answered, completed)
  * - Speech gathering responses
- * - Call completion processing
+ *
+ * Both check the Twilio signature whenever a Twilio auth token is configured,
+ * and always in production. There is no call-completion route: the old
+ * unauthenticated POST /api/family-checkin/complete/:callId let anyone write a
+ * call record and trigger an urgent SMS to any user, and nothing called it.
  *
  * @module api/family-checkin-webhook-routes
  */
@@ -46,13 +50,6 @@ export async function handleFamilyCheckinWebhookRoutes(
     return true;
   }
 
-  // POST /api/family-checkin/complete/:callId - Call completion (from voice agent)
-  if (pathname.startsWith('/api/family-checkin/complete/') && req.method === 'POST') {
-    const callId = pathname.split('/').pop() || '';
-    await handleCallComplete(req, res, callId);
-    return true;
-  }
-
   return false;
 }
 
@@ -71,12 +68,7 @@ async function handleStatusCallback(
 ): Promise<void> {
   const body = await parseBody(req);
 
-  // Validate Twilio signature (skip in dev)
-  if (process.env.NODE_ENV === 'production') {
-    if (!validateTwilioRequest(req, res, body)) {
-      return;
-    }
-  }
+  if (mustVerifyTwilio() && !validateTwilioRequest(req, res, body)) return;
 
   const { CallSid, CallStatus, CallDuration, To, AnsweredBy } = body;
 
@@ -159,12 +151,7 @@ async function handleSpeechResponse(
 ): Promise<void> {
   const body = await parseBody(req);
 
-  // Validate Twilio signature (skip in dev)
-  if (process.env.NODE_ENV === 'production') {
-    if (!validateTwilioRequest(req, res, body)) {
-      return;
-    }
-  }
+  if (mustVerifyTwilio() && !validateTwilioRequest(req, res, body)) return;
 
   const { SpeechResult, Confidence, CallSid } = body;
 
@@ -265,59 +252,6 @@ async function handleSpeechResponse(
 }
 
 // ============================================================================
-// CALL COMPLETE (Voice Agent)
-// ============================================================================
-
-/**
- * Handle call completion from the voice agent
- * Called when a LiveKit SIP call ends
- */
-async function handleCallComplete(
-  req: IncomingMessage,
-  res: ServerResponse,
-  callId: string
-): Promise<void> {
-  try {
-    const body = (await parseJsonBody(req)) as {
-      sponsorUserId: string;
-      status?: string;
-      durationSeconds?: number;
-      transcript?: Array<{ role: string; content: string }>;
-      familyMemberName: string;
-      relationship: string;
-    };
-
-    log.info(
-      {
-        callId,
-        status: body.status,
-        durationSeconds: body.durationSeconds,
-        hasTranscript: !!body.transcript,
-      },
-      '📞 Family check-in call complete'
-    );
-
-    const { handleCheckinCallComplete } =
-      await import('../services/family/family-checkin-caller.js');
-
-    await handleCheckinCallComplete(callId, body.sponsorUserId, {
-      status: (body.status as 'completed' | 'failed' | 'no_answer') || 'completed',
-      durationSeconds: body.durationSeconds,
-      transcript: body.transcript,
-      familyMemberName: body.familyMemberName,
-      relationship: body.relationship,
-    });
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: true }));
-  } catch (error) {
-    log.error({ callId, error: String(error) }, 'Error handling call complete');
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Failed to process call completion' }));
-  }
-}
-
-// ============================================================================
 // HELPERS
 // ============================================================================
 
@@ -380,21 +314,9 @@ async function parseBody(req: IncomingMessage): Promise<Record<string, string>> 
   });
 }
 
-async function parseJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve) => {
-    let data = '';
-    req.on('data', (chunk) => {
-      data += chunk;
-    });
-    req.on('end', () => {
-      try {
-        resolve(JSON.parse(data) as Record<string, unknown>);
-      } catch {
-        resolve({});
-      }
-    });
-    req.on('error', () => resolve({}));
-  });
+/** Verify whenever a Twilio auth token is set, and always in production (fails closed there). */
+function mustVerifyTwilio(): boolean {
+  return process.env.NODE_ENV === 'production' || Boolean(process.env.TWILIO_AUTH_TOKEN);
 }
 
 function validateTwilioRequest(

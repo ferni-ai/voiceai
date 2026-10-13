@@ -32,6 +32,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { onContactChange } from '../../data-layer/hooks/contacts-hooks.js';
+import { createExpiringMarks } from '../../../utils/expiring-marks.js';
 
 // ============================================================================
 // TYPES
@@ -196,11 +197,11 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
 }
 
 // ============================================================================
-// IN-MEMORY CACHE (with Firestore or local file sync)
+// IN-MEMORY CACHE (with Firestore or local file sync), read again once the read expires
 // ============================================================================
 
 const contactsStore = new Map<string, Contact>();
-const loadedUsers = new Set<string>(); // Track which users have been loaded from persistence
+const loadedUsers = createExpiringMarks(); // expires, so another process's writes show up here
 let localContactsLoaded = false;
 
 /**
@@ -231,8 +232,6 @@ async function ensureContactsLoaded(userId: string): Promise<void> {
         } as Contact;
         contactsStore.set(doc.id, contact);
       }
-
-      loadedUsers.add(userId);
       getLogger().debug({ userId, count: snapshot.size }, 'Loaded contacts from Firestore');
     } catch (err) {
       getLogger().warn({ err, userId }, 'Failed to load contacts from Firestore');
