@@ -128,6 +128,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
         }
       },
       log: (fields) => log.info({ sessionId, ...fields }, 'TURN_KEEPER_RECOVERED'),
+      spokeCountsAsAnswer: process.env.TURN_KEEPER_SPOKE === 'on',
     });
     const onState = () => keeper.onStateChange();
     sessionWithEvents.on('agent_state_changed', onState);
