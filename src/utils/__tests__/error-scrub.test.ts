@@ -99,6 +99,7 @@ function realisticEvent(): Event {
       {
         span_id: '1',
         trace_id: '2',
+        status: 'ok',
         start_timestamp: 0,
         description: `GET https://x.example/u?phone=${PHONE_E164}`,
         data: { 'http.request.body': TRANSCRIPT },

@@ -1,8 +1,9 @@
 /**
- * Avatar turn driver (behind ferni:avatar-turns, off by default): the avatar
- * follows LiveKit's real turn state instead of the audio-track and mic
- * callbacks, holds each change for a settle time so brief flips don't
- * flicker, and leaves the old track-driven behaviour untouched when off.
+ * Avatar turn driver (on by default, kill switch ferni:avatar-turns=off): the
+ * avatar and waveform follow LiveKit's real turn state instead of the
+ * audio-track and mic callbacks, hold each change for a settle time so brief
+ * flips don't flicker, and the old track-driven behaviour comes back under
+ * the kill switch.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,6 +13,9 @@ vi.mock('../../src/utils/logger.js', () => ({
 }));
 vi.mock('../../src/services/connection.service.js', () => ({
   connectionService: { getRoom: () => null },
+}));
+vi.mock('../../src/ui/waveform.ui.js', () => ({
+  waveformUI: { setSpeaking: vi.fn(), setListening: vi.fn() },
 }));
 
 import {
@@ -66,6 +70,8 @@ function fakeTargets(): AvatarTargets & { [K in keyof AvatarTargets]: ReturnType
     setEyes: vi.fn(),
     showThinking: vi.fn(),
     hideThinking: vi.fn(),
+    setWaveSpeaking: vi.fn(),
+    setWaveListening: vi.fn(),
   };
 }
 
@@ -217,7 +223,8 @@ describe('turn driver: flag and wiring', () => {
     vi.useRealTimers();
   });
 
-  it('does nothing when the flag is off', () => {
+  it('does nothing when the kill switch is set', () => {
+    localStorage.setItem(AVATAR_TURNS_FLAG_KEY, 'off');
     expect(initAvatarTurns(() => room, targets)).toBe(false);
     room.setAgent('thinking');
     document.dispatchEvent(new CustomEvent('ferni:connected'));
@@ -226,18 +233,51 @@ describe('turn driver: flag and wiring', () => {
     Object.values(targets).forEach((fn) => expect(fn).not.toHaveBeenCalled());
   });
 
-  it('keeps the track and mic callbacks driving the avatar when the flag is off', () => {
+  it('keeps the track and mic callbacks driving avatar and waveform under the kill switch', () => {
+    localStorage.setItem(AVATAR_TURNS_FLAG_KEY, 'off');
     initAvatarTurns(() => room, targets);
     trackTurnFallback('agent-audio', targets);
     expect(lastCall(targets.setAudioState)).toBe('speaking');
     expect(lastCall(targets.setSpeaking)).toBe(true);
     expect(lastCall(targets.setEyes)).toBe('speaking');
+    expect(lastCall(targets.setWaveSpeaking)).toBe(true);
+    expect(lastCall(targets.setWaveListening)).toBe(false);
     trackTurnFallback('agent-audio-end', targets);
     expect(lastCall(targets.setAudioState)).toBe('listening');
     expect(lastCall(targets.setSpeaking)).toBe(false);
     expect(lastCall(targets.setEyes)).toBe('listening');
+    expect(lastCall(targets.setWaveSpeaking)).toBe(false);
+    expect(lastCall(targets.setWaveListening)).toBe(true);
     trackTurnFallback('mic-on', targets);
     expect(lastCall(targets.setListening)).toBe(true);
+    expect(lastCall(targets.setWaveListening)).toBe(true);
+  });
+
+  it("treats the old 'false' value as the kill switch too", () => {
+    localStorage.setItem(AVATAR_TURNS_FLAG_KEY, 'false');
+    expect(initAvatarTurns(() => room, targets)).toBe(false);
+  });
+
+  it('is on by default: with no stored value, speaking follows the agent state, not the track', () => {
+    room.setAgent('listening');
+    expect(initAvatarTurns(() => room, targets)).toBe(true);
+    // The voice track arrives while Ferni is still listening: nothing speaks.
+    trackTurnFallback('agent-audio', targets);
+    expect(targets.setSpeaking).not.toHaveBeenCalledWith(true);
+    expect(targets.setWaveSpeaking).not.toHaveBeenCalledWith(true);
+    expect(lastCall(targets.setSpeaking)).toBe(false);
+    expect(lastCall(targets.setWaveSpeaking)).toBe(false);
+
+    room.setAgent('speaking');
+    vi.advanceTimersByTime(TURN_SETTLE_MS);
+    expect(lastCall(targets.setSpeaking)).toBe(true);
+    expect(lastCall(targets.setWaveSpeaking)).toBe(true);
+
+    // He goes quiet with the track still subscribed: speaking stops.
+    room.setAgent('listening');
+    vi.advanceTimersByTime(TURN_SETTLE_MS);
+    expect(lastCall(targets.setSpeaking)).toBe(false);
+    expect(lastCall(targets.setWaveSpeaking)).toBe(false);
   });
 
   it('follows the room turn state and silences the track callbacks when the flag is on', () => {
@@ -342,7 +382,8 @@ describe('turn driver: ferni:avatar-turn event', () => {
     expect(heard).toEqual(['ferni', 'none']);
   });
 
-  it('flag off: no turn events at all', () => {
+  it('kill switch: no turn events at all', () => {
+    localStorage.setItem(AVATAR_TURNS_FLAG_KEY, 'off');
     expect(initAvatarTurns(() => room, targets)).toBe(false);
     room.setAgent('speaking');
     document.dispatchEvent(new CustomEvent('ferni:connected'));

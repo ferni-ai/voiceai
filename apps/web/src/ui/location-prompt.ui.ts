@@ -326,32 +326,6 @@ function addStyles(): void {
         transition: none;
       }
     }
-
-    /* Dark theme */
-    [data-theme="dark"] .ferni-location-prompt-card {
-      background: var(--color-background-elevated, #2c2520);
-    }
-
-    [data-theme="dark"] .ferni-location-prompt-title {
-      color: var(--color-text-primary, #faf6f0);
-    }
-
-    [data-theme="dark"] .ferni-location-prompt-message {
-      color: var(--color-text-secondary, #e0dcd6);
-    }
-
-    [data-theme="dark"] .ferni-location-prompt-note {
-      color: var(--color-text-muted, #a09890);
-    }
-
-    [data-theme="dark"] .ferni-location-prompt-btn--secondary {
-      background: var(--color-background-tertiary, #3d3530);
-      color: var(--color-text-secondary, #e0dcd6);
-    }
-
-    [data-theme="dark"] .ferni-location-prompt-btn--secondary:hover {
-      background: var(--color-background-secondary, #4d4540);
-    }
   `;
   document.head.appendChild(style);
 }

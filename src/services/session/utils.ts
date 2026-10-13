@@ -124,3 +124,5 @@ export function paceToWPM(pace: 'slow' | 'moderate' | 'fast'): number {
   const paceToWPMMap = { slow: 110, moderate: 150, fast: 180 };
   return paceToWPMMap[pace];
 }
+
+export { trackDeferredProfileLoad } from './deferred-profile.js';

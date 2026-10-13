@@ -73,7 +73,7 @@ describe('handoff to a Financial Legend', () => {
     );
   });
 
-  it('shows john-bogle and joel-dickson as themselves', async () => {
+  it('shows Henry Caldwell (john-bogle) and Nate Holloway (joel-dickson) as themselves', async () => {
     await handoffService.processDataMessage(handoffCompleteFromAgent('john-bogle'));
     expect(appState.get('activePersona').name).toBe('Henry Caldwell');
     expect(appState.get('activePersona').colors.primary).toBe(
@@ -81,7 +81,7 @@ describe('handoff to a Financial Legend', () => {
     );
 
     await handoffService.processDataMessage(handoffCompleteFromAgent('joel-dickson'));
-    expect(appState.get('activePersona').name).toBe('Joel Dickson');
+    expect(appState.get('activePersona').name).toBe('Nate Holloway');
     expect(appState.get('activePersona').colors.primary).toBe(
       GENERATED_PERSONA_COLORS['joel']?.primary
     );

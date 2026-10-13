@@ -1,12 +1,13 @@
 /**
  * Avatar compositor: one owner per animated property.
  *
- * Behind `ferni:avatar-compositor` (localStorage, off by default). With it on:
+ * On by default; `ferni:avatar-compositor` = `off` in localStorage is the kill
+ * switch (it brings back the old replace-mode breathing). With it on:
  * - the speaking system owns the body pulse (inline transform on
  *   `.avatar-container`) and the ring (`#avatarRing` transform and opacity);
  * - the breathing loop composites with `add`, so the body pulse stacks on top
  *   of breathing instead of being hidden by it;
- * - the presence voice pulse and the coach ring writer stand down;
+ * - the coach ring writer stands down;
  * - the container's CSS `conversationalSpeaking` loop is switched off (the
  *   inner `#coachAvatar` keeps it), because a CSS animation would replace the
  *   inline pulse the same way the old breathing loop did.
@@ -32,12 +33,14 @@ export const AVATAR_COMPOSITOR_CSS = `
 #coach.is-speaking .avatar-container[${COMPOSITOR_ATTR}] { animation: none; }
 `;
 
+/** On unless the kill switch is set to `off` (or `false`). */
 export function isAvatarCompositorEnabled(): boolean {
   try {
-    return localStorage.getItem(AVATAR_COMPOSITOR_FLAG_KEY) === 'true';
+    const value = localStorage.getItem(AVATAR_COMPOSITOR_FLAG_KEY);
+    return value !== 'off' && value !== 'false';
   } catch (error) {
-    log.debug('Could not read the avatar compositor flag, treating it as off', error);
-    return false;
+    log.debug('Could not read the avatar compositor flag, treating it as on', error);
+    return true;
   }
 }
 

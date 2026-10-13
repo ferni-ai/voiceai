@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-10-11T00:27:40.182Z
+ * Generated: 2026-10-12T10:57:16.750Z
  */
 
 :root {
@@ -551,9 +551,14 @@
     /* Background */
     --color-bg-primary: #14110e;
     --color-bg-secondary: #1e1a16;
+    --color-bg-tertiary: #2a241f;
     --color-bg-elevated: #352e28;
     --color-bg-glass: rgba(244, 239, 230, 0.06);
     --color-bg-overlay: rgba(20, 17, 14, 0.92);
+    --color-bg: #14110e;
+    --color-bg-surface: #1e1a16;
+    --color-bg-warm: #2a241f;
+    --color-elevated: #352e28;
 
     /* Text */
     --color-text-primary: #f4efe6;
@@ -563,6 +568,10 @@
     --color-text-inverse: #14110e;
     --color-text: #f4efe6;
     --color-background: #14110e;
+    --color-background-subtle: #1e1a16;
+    --color-background-muted: #2a241f;
+    --color-background-surface: #1e1a16;
+    --color-background-elevated: #352e28;
     --color-paper-cream: #14110e;
 
     /* Accent */
@@ -610,9 +619,14 @@
   /* Background */
   --color-bg-primary: #14110e;
   --color-bg-secondary: #1e1a16;
+  --color-bg-tertiary: #2a241f;
   --color-bg-elevated: #352e28;
   --color-bg-glass: rgba(244, 239, 230, 0.06);
   --color-bg-overlay: rgba(20, 17, 14, 0.92);
+  --color-bg: #14110e;
+  --color-bg-surface: #1e1a16;
+  --color-bg-warm: #2a241f;
+  --color-elevated: #352e28;
 
   /* Text */
   --color-text-primary: #f4efe6;
@@ -622,6 +636,10 @@
   --color-text-inverse: #14110e;
   --color-text: #f4efe6;
   --color-background: #14110e;
+  --color-background-subtle: #1e1a16;
+  --color-background-muted: #2a241f;
+  --color-background-surface: #1e1a16;
+  --color-background-elevated: #352e28;
   --color-paper-cream: #14110e;
 
   /* Accent */

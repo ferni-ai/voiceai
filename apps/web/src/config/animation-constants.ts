@@ -36,6 +36,10 @@
  *    nothing changed, and never a per-frame custom property on :root (it
  *    re-runs style for the whole document). Write on change, to the element
  *    that uses it. will-change only while an animation runs.
+ * 6. Measure layouts per second, not only style and task time. Two shapes
+ *    looked cheap and weren't: any animation on an anchor-positioned element
+ *    re-runs anchor layout every frame (60 layouts/s, PR #1248's connect
+ *    glow), and `composite: 'add'` keeps an animation off the compositor.
  */
 
 // ============================================================================

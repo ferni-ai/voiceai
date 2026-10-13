@@ -15,15 +15,18 @@
  *   you" (PR 898 flagged that phrase becoming a tic).
  *
  * Pure: the Firestore reads live in proactive-channels/pondered-triggers.ts.
- * Off unless OUTREACH_GROUNDED_CHECKINS=on.
+ * On by default; OUTREACH_GROUNDED_CHECKINS=off brings back the generic
+ * daily check-ins (kill switch only, not a recommended setting).
  *
  * @module services/outreach/grounded-checkin
  */
 
+import { flagOn } from '../../config/env-flag.js';
+
 export function isGroundedCheckInsOn(
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return env.OUTREACH_GROUNDED_CHECKINS === 'on';
+  return flagOn('OUTREACH_GROUNDED_CHECKINS', env);
 }
 
 /**

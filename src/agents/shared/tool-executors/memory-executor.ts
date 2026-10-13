@@ -115,7 +115,7 @@ async function execute(
           personaId: ctx.personaId || 'ferni',
         };
 
-        await db
+        const stored = await db
           .collection('bogle_users')
           .doc(ctx.userId)
           .collection('extracted_facts')
@@ -137,6 +137,9 @@ async function execute(
               userId: ctx.userId,
               importance,
               timestamp: new Date(),
+              // The fact it copies, so a forget reaches this copy (firestore-vector-store/forget-filter.ts).
+              sourceCollection: 'extracted_facts',
+              sourceDocId: stored.id,
               emotionalWeight: importance === 'high' ? 0.9 : importance === 'medium' ? 0.6 : 0.3,
             },
           });
@@ -355,9 +358,7 @@ async function execute(
     return '';
   }
 
-  // ========================================
-  // UPDATE MEMORY
-  // ========================================
+  // --- UPDATE MEMORY ---
   if (fnLower === 'updatememory') {
     const oldFact = args.oldFact as string;
     const newFact = args.newFact as string;

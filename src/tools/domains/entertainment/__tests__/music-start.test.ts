@@ -20,6 +20,7 @@ vi.mock('../../../../audio/index.js', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   isMusicAvailable: () => ({ available: true, reason: 'Music playback available' }),
   getMusicPlayer: () => ({
+    getSessionId: () => 's1',
     isInitialized: () => true,
     isCurrentlyPlaying: () => false,
     getCurrentPlayingTrack: () => null,
