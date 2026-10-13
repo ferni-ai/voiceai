@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { parseCaseFile } from '../longmem-lib.js';
 import {
+  GENERATED,
   caseFile,
   generationPrompt,
   groupIntoHistories,
+  positiveInt,
+  quoteFound,
   verifiedCases,
   type StoredCall,
 } from '../private-cases-lib.js';
@@ -68,8 +71,27 @@ describe('verifiedCases', () => {
     expect(dropped).toBe(3);
   });
 
-  it('keeps nothing from a reply that is not a JSON array', () => {
-    expect(verifiedCases('Sorry, I cannot do that.', h!)).toEqual({ kept: [], dropped: 0 });
+  it('keeps nothing from a reply that is not a JSON array, and says it failed to parse', () => {
+    expect(verifiedCases('Sorry, I cannot do that.', h!)).toEqual({
+      kept: [],
+      dropped: 0,
+      parseError: true,
+    });
+  });
+
+  it('reads the array past a sentence before the code fence', () => {
+    const raw = `Here are the cases:\n\`\`\`json\n${JSON.stringify([
+      { category: 'abstention', ask: "What's my dog's name?", gold: 'never said', evidence: [] },
+    ])}\n\`\`\`\nHope that helps.`;
+    const { kept, parseError } = verifiedCases(raw, h!);
+    expect(parseError).toBe(false);
+    expect(kept.map((c) => c.category)).toEqual(['abstention']);
+  });
+
+  it('does not generate the opener or restraint categories', () => {
+    expect(GENERATED).not.toContain('opener');
+    expect(GENERATED).not.toContain('restraint');
+    expect(generationPrompt(h!, '2026-10-11', 2)).not.toMatch(/- opener/);
   });
 
   it('writes a case file the benchmark loads', () => {
@@ -87,5 +109,54 @@ describe('verifiedCases', () => {
     const loaded = parseCaseFile(caseFile('2026-10-11', [h!], new Map([[h!.id, kept]])));
     expect(loaded.cases[0]!.ask).toBe('Where does Mindy live?');
     expect(loaded.histories[0]!.sessions).toHaveLength(3);
+  });
+});
+
+describe('quoteFound', () => {
+  const said = 'my sister mindy lives in utah i play guitar at home';
+
+  it('matches whole words only, so "to the part" is not found in "to the party"', () => {
+    expect(quoteFound('play guitar at home', said)).toBe(true);
+    expect(quoteFound('i play guitar at hom', said)).toBe(false);
+    expect(quoteFound('went to the part', 'we went to the party')).toBe(false);
+    expect(quoteFound('went to the party', 'we went to the party')).toBe(true);
+  });
+
+  it('needs a quote of 3 words or 12 characters', () => {
+    expect(quoteFound('Utah', said)).toBe(false); // one word, four characters
+    expect(quoteFound('lives in utah', said)).toBe(true); // three words
+    expect(quoteFound('utah home', said)).toBe(false); // two short words
+    expect(quoteFound('saxophonists', 'i love saxophonists')).toBe(true); // one word, 12 characters
+  });
+
+  it('rejects a quote that matches only part of a word or a phrase', () => {
+    expect(quoteFound('sister mindy lives in ut', said)).toBe(false);
+    expect(quoteFound('sister mindy lives in utah', said)).toBe(true);
+  });
+});
+
+describe('positiveInt', () => {
+  it('takes a positive whole number or the fallback', () => {
+    expect(positiveInt(undefined, '--calls', 4)).toBe(4);
+    expect(positiveInt('3', '--calls', 4)).toBe(3);
+    expect(() => positiveInt('0', '--calls', 4)).toThrow(/positive integer/);
+    expect(() => positiveInt('2.5', '--calls', 4)).toThrow(/positive integer/);
+    expect(() => positiveInt('many', '--calls', 4)).toThrow(/positive integer/);
+  });
+});
+
+describe('call ages', () => {
+  it('counts calendar days in the caller zone, so a late call keeps its day', () => {
+    // 2026-01-05 23:30 in New York is 2026-01-06 04:30 UTC.
+    const lateNight = Date.parse('2026-01-06T04:30:00Z');
+    const [h] = groupIntoHistories(
+      [{ id: 'late', at: lateNight, user: ['Went to bed late.'] }],
+      1,
+      1,
+      '2026-10-11',
+      'Seth',
+      'America/New_York'
+    );
+    expect(h!.sessions[0]!.daysAgo).toBe(279);
   });
 });

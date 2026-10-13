@@ -196,3 +196,8 @@ test_higgs_output.wav
 # Xcode build data: also captured shell env (PERPLEXITY_API_KEY, GEMINI key)
 apps/ios-native/build/
 **/XCBuildData/
+
+# Private memory-benchmark cases built from real calls (build-private-cases.ts
+# writes them outside the repo by default; these patterns are a backstop).
+scripts/memory-eval/**/cases-*.json
+scripts/memory-eval/**/cases-*.md

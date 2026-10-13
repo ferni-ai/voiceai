@@ -67,6 +67,7 @@
     "test:smoke": "npx tsx apps/cli/src/commands/test/test.ts smoke",
     "test:all": "npx tsx apps/cli/src/commands/test/test.ts all",
     "typecheck": "NODE_OPTIONS='--max-old-space-size=8192' tsc --noEmit",
+    "typecheck:memory-eval": "tsc -p tsconfig.scripts.json",
     "validate": "npx tsx apps/cli/src/commands/validate/validate.ts",
     "validate:voices": "npx tsx apps/cli/src/commands/validate/validate.ts voices",
     "validate:humanization": "npx tsx apps/cli/src/commands/validate/validate.ts humanization",

@@ -1,7 +1,9 @@
 /**
  * The pure half of the long-term memory benchmark (longmem.ts): case types,
- * dates, prompts, judging and the report. No model, no Firestore, no clock.
+ * dates, prompts, judging and the report. No model, no Firestore, no clock
+ * (callers pass the time in).
  */
+import { createHash } from 'node:crypto';
 
 export type MemoryCategory =
   | 'single-session'
@@ -61,11 +63,33 @@ export interface MemoryCase {
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_MS = 86_400_000;
 
+/** The timezone calls are dated in (run.sh's EVAL_TZ, default New York). */
+export const callerZone = (): string => process.env.EVAL_TZ ?? 'America/New_York';
+
+/** The calendar date (YYYY-MM-DD) a moment falls on in a zone. */
+export function localDay(ms: number, zone: string): string {
+  return new Date(ms).toLocaleDateString('en-CA', { timeZone: zone });
+}
+
+/** Whether a string is a real calendar date: 2026-02-31 is not. */
+function isCalendarDate(date: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const t = Date.parse(`${date}T00:00:00Z`);
+  return Number.isFinite(t) && new Date(t).toISOString().slice(0, 10) === date;
+}
+
+/** Whole calendar days from `earlier` to `later` (both YYYY-MM-DD). */
+export function daysBetween(earlier: string, later: string): number {
+  return Math.round(
+    (Date.parse(`${later}T00:00:00Z`) - Date.parse(`${earlier}T00:00:00Z`)) / DAY_MS
+  );
+}
+
 /** Calendar arithmetic from the run date (YYYY-MM-DD in the caller's zone). */
 export class RunDays {
   private readonly base: number;
   constructor(runDate: string) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(runDate)) throw new Error(`bad run date: ${runDate}`);
+    if (!isCalendarDate(runDate)) throw new Error(`bad run date: ${runDate}`);
     this.base = Date.parse(`${runDate}T12:00:00Z`);
   }
   private at(offsetDays: number): Date {
@@ -198,18 +222,46 @@ export interface CaseResult {
   gold: string;
   note: string | null;
   response: string;
+  /** No answer came back (empty or failed). Counted as a failure; the judge is not asked. */
+  noAnswer?: boolean;
   correct: boolean | null;
   /** null for abstention (nothing to retrieve) or a judge failure. */
   retrieved: boolean | null;
+  /** The judge's raw reply, kept so a report can be re-graded by hand. */
+  judgeReply?: string | null;
+  evidenceReply?: string | null;
 }
 
 export interface Tally {
+  /** Judged questions: the accuracy denominator. */
   n: number;
   correct: number;
   accuracy: number;
   ci95: [number, number];
   retrieved: number | null;
+  /** The judge gave no yes or no. */
   judgeFailures: number;
+  /** The answerer gave nothing. */
+  noAnswers: number;
+}
+
+/** Results that must not pass silently: an answer missing, or a judge with no verdict. */
+export function failureCount(results: readonly CaseResult[]): number {
+  return results.filter((r) => r.noAnswer || r.correct === null).length;
+}
+
+/** Short hashes of the prompt templates, so a report says which wording it measured. */
+export function promptHashes(): Record<'answer' | 'judge' | 'evidence', string> {
+  const hash = (parts: string[]) =>
+    createHash('sha256').update(parts.join('\n---\n')).digest('hex').slice(0, 12);
+  return {
+    answer: hash([
+      answerPrompt('{name}', '{today}', '{note}', '{ask}'),
+      answerPrompt('{name}', '{today}', '{note}', '{ask}', 'unprompted'),
+    ]),
+    judge: hash(CATEGORIES.map((c) => judgePrompt(c, '{ask}', '{gold}', '{response}'))),
+    evidence: hash([evidencePrompt('{ask}', '{gold}', '{note}')]),
+  };
 }
 
 /** Wilson score interval, 95%. */
@@ -224,7 +276,8 @@ export function wilson(k: number, n: number): [number, number] {
 }
 
 export function tally(results: readonly CaseResult[]): Tally {
-  const judged = results.filter((r) => r.correct !== null);
+  const answered = results.filter((r) => !r.noAnswer);
+  const judged = answered.filter((r) => r.correct !== null);
   const correct = judged.filter((r) => r.correct).length;
   const retrievable = results.filter((r) => r.retrieved !== null);
   return {
@@ -235,41 +288,29 @@ export function tally(results: readonly CaseResult[]): Tally {
     retrieved: retrievable.length
       ? retrievable.filter((r) => r.retrieved).length / retrievable.length
       : null,
-    judgeFailures: results.length - judged.length,
+    judgeFailures: answered.length - judged.length,
+    noAnswers: results.length - answered.length,
   };
 }
 
-/**
- * Human reference: LoCoMo (Maharana et al. 2024, arXiv 2402.17753, Table 2),
- * human QA F1 by category. A different metric (token F1, not judged
- * accuracy), measured by people reading the conversations, and LoCoMo has no
- * knowledge-update category. An orientation point, not a like-for-like bar.
- */
-export const HUMAN_REFERENCE: Record<MemoryCategory | 'overall', number | null> = {
-  'single-session': 0.951,
-  'multi-session': 0.858,
-  temporal: 0.926,
-  'knowledge-update': null,
-  abstention: 0.894,
-  'false-premise': null,
-  unprompted: null,
-  restraint: null,
-  opener: null,
-  overall: 0.879,
-};
-
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 
+/**
+ * The table per category. A category with no judged answers shows "–", not
+ * 0%: nothing was measured. Failures count missing answers and judge failures.
+ */
 export function formatReport(results: readonly CaseResult[]): string {
   const rows = [...CATEGORIES, 'overall' as const].map((cat) => {
     const t = tally(cat === 'overall' ? results : results.filter((r) => r.category === cat));
-    const human = HUMAN_REFERENCE[cat];
-    return `| ${cat} | ${t.correct}/${t.n} | ${pct(t.accuracy)} [${pct(t.ci95[0])}, ${pct(t.ci95[1])}] | ${
-      t.retrieved === null ? '–' : pct(t.retrieved)
-    } | ${human === null ? 'n/a' : pct(human)} |`;
+    const measured = t.n > 0;
+    return (
+      `| ${cat} | ${measured ? `${t.correct}/${t.n}` : '–'} | ` +
+      `${measured ? `${pct(t.accuracy)} [${pct(t.ci95[0])}, ${pct(t.ci95[1])}]` : '–'} | ` +
+      `${t.retrieved === null ? '–' : pct(t.retrieved)} | ${t.judgeFailures + t.noAnswers} |`
+    );
   });
   return [
-    '| Category | Correct | Accuracy [95% CI] | Evidence in note | Human (LoCoMo F1) |',
+    '| Category | Correct | Accuracy [95% CI] | Evidence in note | Failures |',
     '|---|---|---|---|---|',
     ...rows,
   ].join('\n');

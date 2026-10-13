@@ -22,17 +22,21 @@
  * grades every answer again with a local model of another family (e.g.
  * qwen3:30b-a3b) and reports how far the two judges agree. --cases <file>
  * replaces the seeded histories with ones kept outside the repo, such as
- * real calls; nothing from them is sent anywhere but the models already used.
+ * real calls. Real calls reach only Vertex AI (the run refuses otherwise,
+ * see real-data.ts), and its outputs are written beside the cases file,
+ * readable only by the owner.
  *
  *   GOOGLE_CLOUD_PROJECT=johnb-2025 pnpm tsx scripts/memory-eval/longmem.ts \
  *     [--only maya] [--category opener] [--date YYYY-MM-DD] [--arms off,on] [--memory file.json]
  *
  * The judge is the answerer's model family: cross-check with a second-family
- * judge before quoting a headline.
+ * judge before quoting a headline. The answer is at temperature 0, so the
+ * headline is repeatable; the report records the model ids and prompt hashes.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { getExtractionModel, getOpenAIFallbackModel } from '../../src/config/gemini-config.js';
 import { fastCapture } from '../../src/memory/dynamic/fast-capture.js';
 import {
   DeepExtractionWorker,
@@ -52,22 +56,29 @@ import type { RetrievalEmbedder } from '../../src/memory/recall/semantic-recall.
 import { embedForRetrieval } from '../../src/memory/vectors/retrieval-embeddings.js';
 import { CASES, HISTORIES, callTurns } from './fixtures/longmem-cases.js';
 import {
+  CATEGORIES,
   RunDays,
   answerPrompt,
+  callerZone,
   evidencePrompt,
+  failureCount,
   formatAgreement,
   formatPaired,
   formatReport,
   hasEvidence,
   interimOf,
   judgePrompt,
+  localDay,
   paired,
   parseCaseFile,
   parseYesNo,
+  promptHashes,
   type CaseResult,
+  type MemoryCategory,
   type SecondOpinion,
   type MemoryHistory,
 } from './longmem-lib.js';
+import { assertVertexOnly, writePrivate } from './real-data.js';
 
 const quiet = { debug: () => undefined };
 
@@ -200,8 +211,9 @@ async function askLocal(model: string, prompt: string): Promise<string> {
   return (body.message?.content ?? '').trim();
 }
 
+/** The model's reply, trimmed; '' when every provider failed (the caller counts that as no answer). */
 async function ask(prompt: string, temperature: number): Promise<string> {
-  return (await callLLM(prompt, { temperature, maxTokens: 300 })) ?? '';
+  return ((await callLLM(prompt, { temperature, maxTokens: 300 })) ?? '').trim();
 }
 
 interface SavedMemory {
@@ -228,19 +240,35 @@ async function main(): Promise<void> {
     : undefined;
   // Saved memory holds dates relative to its own run date.
   const casesFile = flag('--cases');
+  if (casesFile) assertVertexOnly();
   const external = casesFile
     ? parseCaseFile(JSON.parse(readFileSync(casesFile, 'utf8')))
     : undefined;
   const allHistories = external?.histories ?? HISTORIES;
+  if (only && !allHistories.some((h) => h.id === only)) {
+    throw new Error(`unknown --only: ${only} (have ${allHistories.map((h) => h.id).join(', ')})`);
+  }
   const onlyCategory = flag('--category');
+  if (onlyCategory && !CATEGORIES.includes(onlyCategory as MemoryCategory)) {
+    throw new Error(`unknown --category: ${onlyCategory}`);
+  }
   const allCases = (external?.cases ?? CASES).filter(
     (c) => !onlyCategory || c.category === onlyCategory
   );
   const judge2 = flag('--judge2');
-  const runDate =
-    saved?.runDate ?? external?.runDate ?? flag('--date') ?? new Date().toISOString().slice(0, 10);
+  // Every source of the run date must agree: a saved memory, a cases file and --date.
+  const dates = [saved?.runDate, external?.runDate, flag('--date')].filter((d): d is string =>
+    Boolean(d)
+  );
+  if (new Set(dates).size > 1) {
+    throw new Error(
+      `dates disagree: ${dates.join(', ')} (--memory, --cases and --date must match)`
+    );
+  }
+  const runDate = dates[0] ?? localDay(Date.now(), callerZone());
   const arms = (flag('--arms') ?? 'off,on').split(',') as Arm[];
   if (arms.some((a) => a !== 'off' && a !== 'on')) throw new Error(`bad --arms: ${arms.join(',')}`);
+  if (new Set(arms).size !== arms.length) throw new Error(`duplicate --arms: ${arms.join(',')}`);
   const days = new RunDays(runDate);
   const histories = allHistories.filter((h) => !only || h.id === only);
   const tracker = trackedEmbedder();
@@ -281,23 +309,30 @@ async function main(): Promise<void> {
         const note = [early, recall.noteFor(c.ask)].filter(Boolean).join('\n\n') || null;
         const response = await ask(
           answerPrompt(history.name, days.today(), note, c.ask, c.category),
-          0.3
+          0
         );
-        const correct = parseYesNo(await ask(judgePrompt(c.category, c.ask, gold, response), 0));
-        const retrieved = !hasEvidence(c.category)
+        // No answer is a failure: the judge is not asked to grade nothing.
+        const noAnswer = response === '';
+        const judgeReply = noAnswer
           ? null
-          : parseYesNo(await ask(evidencePrompt(c.ask, gold, note), 0));
-        const second: SecondOpinion | undefined = judge2
-          ? {
-              judge: judge2,
-              correct: parseYesNo(
-                await askLocal(judge2, judgePrompt(c.category, c.ask, gold, response))
-              ),
-              retrieved: !hasEvidence(c.category)
-                ? null
-                : parseYesNo(await askLocal(judge2, evidencePrompt(c.ask, gold, note))),
-            }
-          : undefined;
+          : await ask(judgePrompt(c.category, c.ask, gold, response), 0);
+        const correct = parseYesNo(judgeReply);
+        const evidenceReply = hasEvidence(c.category)
+          ? await ask(evidencePrompt(c.ask, gold, note), 0)
+          : null;
+        const retrieved = parseYesNo(evidenceReply);
+        const second: SecondOpinion | undefined =
+          judge2 && !noAnswer
+            ? {
+                judge: judge2,
+                correct: parseYesNo(
+                  await askLocal(judge2, judgePrompt(c.category, c.ask, gold, response))
+                ),
+                retrieved: !hasEvidence(c.category)
+                  ? null
+                  : parseYesNo(await askLocal(judge2, evidencePrompt(c.ask, gold, note))),
+              }
+            : undefined;
         results[arm].push({
           ...(second && { second }),
           history: history.id,
@@ -306,11 +341,18 @@ async function main(): Promise<void> {
           gold,
           note,
           response,
+          noAnswer,
           correct,
           retrieved,
+          judgeReply,
+          evidenceReply,
         });
+        // Real calls: the question and answer stay out of the console (only the mark and category).
+        const mark = noAnswer ? '!' : correct ? '✓' : correct === false ? '✗' : '?';
         console.log(
-          `${correct ? '✓' : correct === false ? '✗' : '?'} ${arm} [${c.category}] ${c.ask} → ${response}`
+          casesFile
+            ? `${mark} ${arm} [${c.category}]`
+            : `${mark} ${arm} [${c.category}] ${c.ask} → ${response}`
         );
       }
     }
@@ -320,13 +362,27 @@ async function main(): Promise<void> {
     process.exitCode = 1;
   }
 
-  const dir = join(tmpdir(), 'longmem');
+  // Real calls stay beside their cases file; seeded runs go to the temp dir.
+  const dir = casesFile ? dirname(resolve(casesFile)) : join(tmpdir(), 'longmem');
   mkdirSync(dir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const file = join(dir, `longmem-${stamp}.json`);
   const memoryOut = memoryFile ?? join(dir, `memory-${stamp}.json`);
-  if (!memoryFile) writeFileSync(memoryOut, JSON.stringify(toSave));
-  writeFileSync(file, JSON.stringify({ runDate, arms, written, stored, results }, null, 2));
+  if (!memoryFile) writePrivate(memoryOut, JSON.stringify(toSave));
+  const models = { answerer: getExtractionModel(), fallback: getOpenAIFallbackModel() };
+  writePrivate(
+    file,
+    JSON.stringify(
+      { runDate, arms, models, prompts: promptHashes(), judge2, written, stored, results },
+      null,
+      2
+    )
+  );
+  const failures = arms.reduce((sum, arm) => sum + failureCount(results[arm]), 0);
+  if (failures > 0) {
+    console.error(`${failures} cases with no answer or no judge verdict: see the Failures column`);
+    process.exitCode = 1;
+  }
   const sections = arms.map((arm) =>
     [`== recall ${arm}`, formatReport(results[arm]), formatAgreement(results[arm])]
       .filter(Boolean)
