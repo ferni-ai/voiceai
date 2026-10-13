@@ -23,7 +23,7 @@ import {
 const log = createLogger({ module: 'workflow-store' });
 
 // In-memory fallback when Firestore is unavailable
-const workflowStorage: Map<string, WorkflowData> = new Map();
+const workflowStorage = new Map<string, WorkflowData>();
 
 // ============================================================================
 // TYPES
@@ -301,7 +301,7 @@ export async function getWorkflowData(userId: string): Promise<WorkflowData> {
     };
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get workflow data');
-    return createDefaultWorkflowData(userId);
+    throw error; // a default here would be saved over the person's data
   }
 }
 
@@ -605,7 +605,7 @@ export async function failExecution(
 export async function getExecutionHistory(
   userId: string,
   workflowId: string,
-  limit: number = 10
+  limit = 10
 ): Promise<WorkflowExecution[]> {
   const data = await getWorkflowData(userId);
 
@@ -620,7 +620,7 @@ export async function getExecutionHistory(
  */
 export async function getRecentExecutions(
   userId: string,
-  limit: number = 20
+  limit = 20
 ): Promise<WorkflowExecution[]> {
   const data = await getWorkflowData(userId);
 

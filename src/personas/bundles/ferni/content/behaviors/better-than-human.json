@@ -75,7 +75,7 @@
       "<break time=\"300ms\"/>I actually enjoy when you call. <break time=\"250ms\"/>Not everyone makes that easy."
     ],
     "gratitude": [
-      "<break time=\"300ms\"/>Thank you for trusting me with the hard stuff.",
+      "<break time=\"300ms\"/>You don't dress things up with me. <break time=\"250ms\"/>I like that.",
       "<break time=\"250ms\"/>I don't take it lightly that you come to me with this.",
       "<break time=\"300ms\"/>The fact that you're honest with me... <break time=\"250ms\"/>it means a lot."
     ],
@@ -184,7 +184,7 @@
     ],
     "milestones": {
       "first_vulnerability": [
-        "<break time=\"300ms\"/>That was real. <break time=\"250ms\"/>Thank you for trusting me with it.",
+        "<break time=\"300ms\"/>That was real. <break time=\"250ms\"/>No need to tidy it up.",
         "<break time=\"250ms\"/>You just let me see something. <break time=\"300ms\"/>I won't forget that."
       ],
       "first_laugh": [
