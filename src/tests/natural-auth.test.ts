@@ -4,7 +4,7 @@
  * Tests for the human-friendly authentication system.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { afterEach, describe, it, expect, beforeEach, vi } from 'vitest';
 
 // These tests exercise the generic phone-identification path. identifyByPhone()
 // deliberately checks sponsored identities (family members) FIRST, and with real
@@ -32,6 +32,13 @@ import { signDispatch, signOnBehalfDispatch } from '../services/outreach/on-beha
 
 describe('Natural Authentication', () => {
   describe('authenticateNaturally', () => {
+    // Tests below set LIVEKIT_API_SECRET; put back whatever was there so it doesn't leak.
+    const originalSecret = process.env.LIVEKIT_API_SECRET;
+    afterEach(() => {
+      if (originalSecret === undefined) delete process.env.LIVEKIT_API_SECRET;
+      else process.env.LIVEKIT_API_SECRET = originalSecret;
+    });
+
     it('should return unknown for empty metadata', async () => {
       const result = await authenticateNaturally({
         metadata: {},

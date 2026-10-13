@@ -18,7 +18,7 @@ import { createUserId, type UserId } from '../../types/branded.js';
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { phoneFromSignedDispatch } from './dispatch-phone.js';
-import { isSignedDispatch, signedClaim } from './signed-dispatch-identity.js';
+import { isSignedDispatch, signedClaim, trustedDeviceId } from './signed-dispatch-identity.js';
 import {
   authenticateNaturally,
   generateContextForLLM,
@@ -447,10 +447,10 @@ export async function identifyFromMetadata(
     return identifyByWebAuth(authToken, 'token');
   }
 
-  // Priority 5: Device ID (for anonymous but persistent identification)
+  // Priority 5: Device ID (anonymous but persistent), gated by TRUST_UNSIGNED_DEVICE_ID
   // This is the fallback during the Firebase migration period
-  const deviceId = metadata.device_id || metadata.deviceId;
-  if (deviceId && typeof deviceId === 'string') {
+  const deviceId = trustedDeviceId(metadata);
+  if (deviceId) {
     const userIdStr = `device:${deviceId}`;
     const store = getStore();
     const profile = await store.getProfile(userIdStr);
