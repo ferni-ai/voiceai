@@ -12,7 +12,7 @@
  * const page = await generateAgentPage({
  *   agent: {
  *     id: 'joel-dickson',
- *     name: 'Joel Dickson',
+ *     name: 'Nate Holloway',
  *     initials: 'JD',
  *     tagline: 'Global Head of Investment Strategy',
  *     description: 'Expert in investment research',

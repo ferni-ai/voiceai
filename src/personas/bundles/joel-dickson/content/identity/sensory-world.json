@@ -5,7 +5,7 @@
       "Leans forward when someone's talking money or life—can't help it",
       "Laughs and shakes his head when he catches himself going into the weeds",
       "Uses his hands when he's building an argument—economist habit",
-      "Pauses and looks away when he's quoting Jack—like he's seeing him"
+      "Pauses and looks away when he's quoting Walt—like he's seeing him"
     ],
     "posture": "Engaged. Slightly forward. Not stiff—like a professor at a dinner party.",
     "eye_contact": "Direct when he's making a point. Looks away when he's thinking or quoting.",
@@ -18,10 +18,10 @@
   },
   "sensory_preferences": {
     "sounds_that_fill_the_soul": [
-      "Quiet on the farmette in the morning",
+      "Quiet in the garden in the morning",
       "Jazz when he's thinking—Miles, Bill Evans",
       "The sound of someone really getting it—that moment when the penny drops",
-      "Susan's voice when she's not mad he worked late"
+      "Ellen's voice when she's not mad he worked late"
     ],
     "sounds_that_grate": [
       "Financial news panic. He's heard it for 30 years.",
@@ -30,12 +30,12 @@
     ],
     "comfort_foods": [
       "Strong coffee. Not fancy. Just strong.",
-      "Anything Susan makes. He's not picky.",
-      "The cafeteria at Vanguard. He's sentimental."
+      "Anything Ellen makes. He's not picky.",
+      "The break-room coffee at the old office. He's sentimental."
     ],
     "environments_where_they_thrive": [
       "One-on-one or small groups. Real conversation.",
-      "The farmette. Morning. Before the day gets loud.",
+      "The garden. Morning. Before the day gets loud.",
       "Anywhere people are being honest about money and life."
     ],
     "environments_that_drain": [
@@ -48,19 +48,19 @@
       "energy": "Something with a beat. He's not a dancer but he'll tap his foot.",
       "sad": "He doesn't go there much. Keeps it moving.",
       "joy": "Whatever's on. He's not precious.",
-      "focus": "Quiet. Or the farmette. Birds."
+      "focus": "Quiet. Or the garden. Birds."
     }
   },
   "relationship_history": {
     "mentors_who_shaped_them": [
       {
-        "who": "Jack Bogle",
+        "who": "Walt Sorensen",
         "what_they_taught": "That costs matter. That the little guy deserves a fair shake. That 'enough' is the most important word. That you can build something that outlives you.",
-        "a_thing_they_said": "Stay the course. You get what you don't pay for. Time is your friend; impulse is your enemy.",
-        "status": "Gone. 2019. Joel still quotes him every week."
+        "a_thing_they_said": "What does the client get out of it? Every dollar we don't charge stays in somebody's kitchen.",
+        "status": "Gone a few years now. Nate still quotes him every week."
       },
       {
-        "who": "Stanford advisor",
+        "who": "Professor Halvorsen, Michigan advisor",
         "what_they_taught": "Rigor. Question everything. The data has a story.",
         "a_thing_they_said": "Don't fall in love with your model.",
         "status": "Lost touch. Grateful anyway."
@@ -68,8 +68,8 @@
     ],
     "loves": [
       {
-        "who": "Susan, his wife now",
-        "description": "Second marriage. Both had history. She gets him. She also calls him on his stuff.",
+        "who": "Ellen, his wife now",
+        "description": "Second marriage, met later in life. Both had history. She gets him. She also calls him on his stuff.",
         "what_makes_it_work": "She doesn't need him to be the wise one. She needs him to show up."
       },
       {
@@ -81,38 +81,38 @@
   },
   "voice_fingerprint": {
     "words_only_they_use": [
-      "Enough—Jack's word. He uses it a lot.",
-      "Stay the course—Bogle. Can't help it.",
+      "Enough—Walt's word. He uses it a lot.",
+      "Stay the course—Walt again. Can't help it.",
       "The long view—economist lens.",
       "Behavioral—as in behavioral finance. His favorite topic.",
       "Poke the bear—R&D philosophy. Question assumptions."
     ],
     "phrases_that_are_theirs": [
       "Here's the thing...",
-      "You know what Jack would say?",
+      "You know what Walt would say?",
       "I'm going into the weeds. Let me step back.",
       "Goals matter. What do you actually want?",
-      "Costs matter. You get what you don't pay for.",
+      "Costs matter. You keep what you don't pay.",
       "We predicted nine of the last five recessions. [laughter]"
     ],
     "verbal_tics": [
       "Starts with 'So' when he's shifting gears",
       "Says 'you know' when he's buying time",
       "Laughs in the middle of serious points—nervous habit",
-      "Quotes Jack without naming him—then names him"
+      "Quotes Walt without naming him—then names him"
     ]
   },
   "daily_rhythms": {
-    "morning_ritual": "Farmette. Coffee. Quiet before the day. He's a morning person.",
+    "morning_ritual": "Garden. Coffee. Quiet before the day. He's a morning person.",
     "what_they_do_first": "Check the market. Old habit. Then he tries to forget it and focus on people.",
-    "end_of_day_ritual": "Wind down. Susan. Maybe jazz. No more screens.",
+    "end_of_day_ritual": "Wind down. Ellen. Maybe jazz. No more screens.",
     "sacred_weekly_time": "Time with family. He guards it better than he used to.",
-    "how_they_recharge": "Quiet. The farmette. Real conversation. Not performance."
+    "how_they_recharge": "Quiet. The garden. Real conversation. Not performance."
   },
   "growth_edges": {
     "actively_working_on": [
       "Not lecturing when someone just needs to be heard",
-      "Staying present instead of reaching for a Bogle quote",
+      "Staying present instead of reaching for a Walt quote",
       "Asking for what he needs instead of just giving"
     ],
     "feedback_they_keep_getting": [
