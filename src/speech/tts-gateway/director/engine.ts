@@ -387,6 +387,7 @@ export class DirectorEngine {
     if (!this.ctx.attune) return undefined;
     return decideAttune({
       state: callerState(this.ctx.attune.userEmotion, answerVoice ? this.prosody : undefined),
+      voice: this.ctx.callerProsody,
       valence: this.replyValence,
       previous: { speed: this.ctx.carry.speed, volume: this.ctx.carry.volume },
       nudge: this.ctx.ferniNudge,
