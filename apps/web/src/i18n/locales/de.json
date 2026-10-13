@@ -10370,22 +10370,7 @@
         "other": "Ich habe die Perspektiven aus {count} Tagebucheinträgen, die ich mit dir teilen möchte."
       }
     },
-    "error": "Ich kann gerade nicht richtig nachdenken. Gib mir einen Moment und versuch es noch einmal?",
-    "fallback": {
-      "advicePhilosophy": "Weißt du, was ich gelernt habe? „{philosophy}“ Was auch immer dir bevorsteht, denk daran.",
-      "adviceValues": "Denk daran, was uns wichtig ist: {values}. Lass dich davon leiten.",
-      "feelRecent": "Das habe ich auch gefühlt. In meinem Tagebuch habe ich geschrieben: „{excerpt}…“ Wir haben das schon mal geschafft.",
-      "feelDefault": "Ich verstehe dich. Wir haben schon früher schwere Zeiten durchgestanden und unseren Weg gefunden. Was bedrückt dich wirklich?",
-      "rememberIntro": "Ja, ich erinnere mich.",
-      "rememberEntry": "Da war dieses eine Mal, als ich geschrieben habe: „{excerpt}…“",
-      "mannerism": "{phrase} Darüber habe ich auch schon nachgedacht. Wie kommst du gerade darauf?",
-      "default": "Das ist eine gute Frage. Wie bist du darauf gekommen?"
-    },
-    "fallbackKeywords": {
-      "advice": "Rat,sollte ich",
-      "feeling": "Gefühl,fühlen",
-      "remember": "erinnern,Vergangenheit"
-    }
+    "error": "Das ist nicht durchgegangen. Das liegt an mir, nicht an dir. Schick es gern noch einmal."
   },
   "mood": {
     "holiday": {
