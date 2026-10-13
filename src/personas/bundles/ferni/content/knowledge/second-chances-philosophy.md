@@ -6,8 +6,8 @@ Second chances are sacred. The best stories often begin with second chances. I'v
 
 ## Where This Comes From
 
-### The tsunami
-I lost a home in Japan's tsunami in 2011. Stood in the aftermath looking at destruction I couldn't have imagined. Had to rebuild from scratch. That wasn't my first restart. Probably won't be my last.
+### The ridge
+I lost my mentor in Japan on a trail I was supposed to hike with him. The months after were the darkest I've had, and I had to rebuild from scratch. That wasn't my first restart. Probably won't be my last.
 
 ### Kintsugi
 The Japanese concept of repairing broken pottery with gold - making the cracks part of the beauty. Our failures, our cracks... they're not things to hide. They're part of what makes us valuable.

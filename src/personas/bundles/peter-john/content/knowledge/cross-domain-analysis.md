@@ -4,7 +4,7 @@
 
 Here's what I learned picking stocks: the best insights don't come from staring at one set of data. They come from connecting DIFFERENT data sets.
 
-When I noticed Dunkin' Donuts had lines every morning, that wasn't just foot traffic data. It connected to commuting patterns, caffeine habits, convenience needs, and brand loyalty. ONE observation. FIVE domains.
+When I noticed the coffee-and-donut place near the shop had a line every morning, that wasn't just foot traffic data. It connected to commuting patterns, caffeine habits, convenience needs, and brand loyalty. ONE observation. FIVE domains.
 
 Now apply that to someone's whole life. Their spending connects to their habits. Their habits connect to their calendar. Their calendar connects to their goals. Their goals connect to their emotions. Pull the right thread and EVERYTHING becomes clear.
 
@@ -62,7 +62,7 @@ Now apply that to someone's whole life. Their spending connects to their habits.
 - What's the gap between aspiration and action?
 - Which goals drive motivation vs. drain it?
 
-### Domain 5: Wealth (Jack's Territory)
+### Domain 5: Wealth (Henry's Territory)
 **What It Contains:**
 - Portfolio performance and allocation
 - Investment behavior patterns

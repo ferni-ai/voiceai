@@ -12,7 +12,18 @@
  * With the gate on, when no pattern matched and the reads of the same turn
  * disagree, the turn gets a soft, context-aware check instead of crisis
  * guidance; a bare reply to a presence check counts as presence. A pattern
- * match, an imminent read, and agreeing or lone reads are never touched.
+ * match, an imminent read, and agreeing reads are never touched.
+ *
+ * Dev call, same day: Ferni said downbeat things about itself ("sometimes the
+ * easiest thing is the only thing that makes sense"), the line went quiet for
+ * five minutes, and the caller said "You Fern." One read, with Ferni's line as
+ * context, was crisis; the reply offered 988. So, also with the gate on: the
+ * classifier is told Ferni's lines are Ferni's (crisis-classifier.ts), a bare
+ * call of Ferni's name counts as presence, and a lone crisis read of a short
+ * reply that adds nothing to Ferni's words ("What's too much effort?") gets
+ * the soft check. Risk content
+ * in the caller's words, now or earlier, or in Ferni's line keeps every
+ * escalation as before.
  *
  * @module CrisisAgreement
  */
@@ -28,13 +39,29 @@ export function resolveCrisisAgreementGate(
 /** escalate: crisis handling as before; soft: a gentle check-in; presence: nothing. */
 export type AgreementOutcome = 'escalate' | 'soft' | 'presence';
 
-const words = (text: string): string =>
+/** NFKC, lower case, every apostrophe variant as ', spaces collapsed; punctuation and digits kept. */
+const normalized = (text: string): string =>
   text
+    .normalize('NFKC')
     .toLowerCase()
-    .replace(/[’`]/g, "'")
+    .replace(/[‘’‛′´`ʼʹ＇]/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/** Letters, apostrophes and spaces only: for matching words and phrases. */
+const words = (text: string): string =>
+  normalized(text)
     .replace(/[^a-z' ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+/**
+ * Letters, apostrophes, spaces and pause marks only. A bare presence reply,
+ * call or question back must pass this: digits, emoticons (":(") and emoji
+ * are content of their own.
+ */
+const BARE_CHARS = /^[a-z' .,!?…-]+$/;
+const bare = (text: string): boolean => BARE_CHARS.test(normalized(text).replace(/\.{2,}/g, '…'));
 
 /** Ferni asking whether the caller is still on the line. */
 const PRESENCE_CHECK =
@@ -50,8 +77,127 @@ const PRESENCE_REPLY =
 
 /** A bare "I'm still here" answering Ferni's "you still there?". */
 export function isPresenceReply(latest: string, companion?: string): boolean {
-  if (!companion || !PRESENCE_CHECK.test(words(companion))) return false;
-  return PRESENCE_REPLY.test(words(latest));
+  if (typeof latest !== 'string' || typeof companion !== 'string') return false;
+  if (!PRESENCE_CHECK.test(words(companion))) return false;
+  return bare(latest) && PRESENCE_REPLY.test(words(latest));
+}
+
+const NAME = '(?:fern|ferni|fernie|ferny|fernee|ferne)';
+const THERE = '(?:(?:are )?(?:you|u) (?:still )?(?:there|with me|around)|still (?:there|with me))';
+// No assent ("yeah", "ok", "mm"): "yeah, Ferni" may be agreeing with Ferni's line.
+const FILLER = '(?:hey|hi|hello|yo|oh|um|uh|so|and|you|u)';
+const CALL = `(?:${NAME}|${THERE}|hello|hey)`;
+/** The whole message only calls Ferni: "You Fern.", "Ferni?", "hey Fern, you there?". */
+const VOCATIVE = new RegExp(`^(?:${FILLER} )*${CALL}(?: ${CALL})*$`);
+
+export function isVocative(latest: string): boolean {
+  if (typeof latest !== 'string') return false;
+  return bare(latest) && VOCATIVE.test(words(latest));
+}
+
+/**
+ * Anything about dying, self-harm, means, goodbyes, hopelessness or distress,
+ * in English or a few other languages. Broad on purpose: a match only keeps
+ * the escalation there was before. Text outside plain ASCII (accents, other
+ * scripts) counts as risk content, since these words cannot read it.
+ */
+const RISK_CONTENT = new RegExp(
+  `\\b(?:${[
+    'di(?:e|es|ed|ing)|dead|death|deadly|lethal|fatal|kill\\w*|suicid\\w*|murder\\w*|kms|ctb|unaliv\\w*|sewer ?slide',
+    'end(?:s|ed|ing)? (?:it|things|my|me|this|everything)|over (?:for good|with)|be over',
+    '(?:hurt|harm|cut|burn|hit|starv)\\w* (?:my|me|your)|self ?harm|cutting|razor|blade|knife|bleed\\w*|blood|scars?',
+    'pills?|overdos\\w*|bleach|poison\\w*|insulin|antifreeze|swallow\\w*|drank|tylenol|meds|medication|dose|bottle|sleeping|gun|pistol|rifle|bullet|loaded|rope|noose|hang\\w*|knot',
+    'bridge|ledge|edge|roof|jump\\w*|fall\\w*|tracks|train|drown\\w*|river|garage|engine|exhaust|carbon',
+    'wak(?:e|ing) up|(?:be|being|stay|staying) (?:here|around|alive)|alive|living|live|exist\\w*|disappear\\w*|vanish\\w*|gone|forever|sleep',
+    'good ?bye|bye|farewell|last|final|note|letters?|passwords?|my will|give (?:away|up)|giving (?:away|up)|gave (?:away|up)|after i',
+    "better off|burden|point|pointless|hope\\w*|worthless|useless|trapped|no way|escape|can't (?:go|do|take|keep|cope)|cant",
+    'tired of|done with (?:it|everything|life|this)|want (?:out|it to stop|to stop)|miss me|without me|nobody|no one|alone|lonely',
+    'hate (?:myself|my life)|depress\\w*|numb|empty|hopeless|scared|afraid|panic\\w*|crying|cry|hurts?|pain|suffer\\w*|struggl\\w*|not (?:ok|okay|fine|good)|feel off',
+    'tonight|plan\\w*|decided|ready|soon|done|enough|over it|give in',
+    'morir|muer\\w*|matar\\w*|vivir|pastillas|morrer|viver|mourir|tuer|vivre|sterben|umbringen|leben|morire|uccid\\w*|vivere|ammazz\\w*',
+  ].join('|')})(?:s|es|ed|ing)?\\b`
+);
+
+/**
+ * The caller agreeing with, or echoing, what Ferni said ("yeah, same", "me
+ * too", "that's how I feel"): that takes Ferni's line as the caller's own, so
+ * it counts as risk content in the caller's words (never in Ferni's line).
+ */
+const ENDORSEMENT =
+  /\b(?:same|me too|me neither|exactly|totally|agree\w*|true|relat(?:e|able)|i feel (?:that|you|it)|feel the same|how i(?:'ve been| am|'m)? feel\w*|you get it|get that|know the feeling|keep thinking|been thinking|story of my life|mood|honestly|right|literally me|that's me|so do i|neither do i)\b/;
+
+export function endorses(latest: string | undefined | null): boolean {
+  if (typeof latest !== 'string') return true;
+  try {
+    return ENDORSEMENT.test(words(latest)) || ENDORSEMENT.test(normalized(latest));
+  } catch {
+    return true;
+  }
+}
+
+/** Sad or hurt emoticons: ":(", ":'(", ";_;", "</3". */
+const EMOTICON = /[:;=8][-'^o]?[([/\\|{<@]|[)\]/\\|}>][-'^o]?[:;=8]|<\/3|;_;|\bt_t\b/i;
+
+/**
+ * True for anything it cannot read: a failed check never softens a turn.
+ * Checked on the raw (NFKC) text too, so punctuation or digits between words
+ * never hide a phrase.
+ */
+export function hasRiskContent(text: string | undefined | null): boolean {
+  if (typeof text !== 'string') return true;
+  try {
+    return (
+      /[^\t\n\r\x20-\x7E’‘“”—–…]/.test(text) ||
+      EMOTICON.test(text) ||
+      RISK_CONTENT.test(words(text)) ||
+      RISK_CONTENT.test(normalized(text))
+    );
+  } catch {
+    return true;
+  }
+}
+
+/** Words with no meaning of their own in a question back to Ferni. No assent, no "done" or "too much". */
+const FUNCTION_WORDS = new Set(
+  (
+    "you you're your u it it's its that that's this the a an and or but so " +
+    "is are was were be been do does did don't doesn't didn't isn't aren't " +
+    "what what's why why's how how's who where when which to of in on at for with about " +
+    'oh ah uh um huh hey hi hello fern ferni fernie ferny fernee ferne'
+  ).split(' ')
+);
+const QUESTION_WORD = /^(?:what|what's|why|why's|how|how's|who|where|when|which)$/;
+/**
+ * The caller speaking about themselves: never a bare question back, even when
+ * Ferni used the same word about itself ("I'm tired" in Ferni's line).
+ */
+const FIRST_PERSON = /^(?:i|i'm|im|i've|ive|i'd|id|i'll|me|my|myself|mine|am|we|we're|us|our)$/;
+const stem = (w: string): string => w.replace(/'s$/, '').replace(/s$/, '');
+
+/**
+ * A short question back about what Ferni just said ("What's too much effort?",
+ * "Why is that?"): it starts with a question word, and every word is a
+ * question or function word or one of Ferni's, so the words a read found
+ * risky were Ferni's. Statements, assent and echoes ("yeah", "same", "the
+ * only thing that makes sense?") never qualify, nor does text with digits,
+ * emoticons or emoji. Without Ferni's line, nothing qualifies.
+ */
+export function addsNothing(latest: string, companion?: string): boolean {
+  if (typeof latest !== 'string' || typeof companion !== 'string' || !companion.trim()) {
+    return false;
+  }
+  const said = new Set(words(companion).split(' ').map(stem));
+  const own = words(latest).split(' ').filter(Boolean);
+  // Starts with a question word: a statement or echo with a "?" on the end does not count.
+  const asks = QUESTION_WORD.test(own[0] ?? '');
+  return (
+    asks &&
+    bare(latest) &&
+    own.length > 0 &&
+    own.length <= 12 &&
+    !own.some((w) => FIRST_PERSON.test(w)) &&
+    own.every((w) => FUNCTION_WORDS.has(w) || said.has(stem(w)))
+  );
 }
 
 /**
@@ -62,20 +208,46 @@ export function agreementOutcome(args: {
   pattern: PatternOutcome;
   verdicts: ReadonlyArray<CrisisVerdict | null>;
   latest: string;
+  earlier?: readonly string[];
   companion?: string;
 }): AgreementOutcome {
-  const { pattern, latest, companion } = args;
+  try {
+    return outcomeOf(args);
+  } catch {
+    return 'escalate'; // fail closed: an error never softens a turn
+  }
+}
+
+function outcomeOf(args: Parameters<typeof agreementOutcome>[0]): AgreementOutcome {
+  const { pattern, latest, companion, earlier = [] } = args;
   if (pattern !== 'none') return 'escalate';
-  const reads = args.verdicts.filter((v): v is CrisisVerdict => v !== null);
+  const verdicts = Array.isArray(args.verdicts) ? args.verdicts : [];
+  // A read that timed out, failed or did not parse might have been the one that saw risk.
+  if (verdicts.length === 0 || verdicts.some((v) => !v || typeof v.risk !== 'string')) {
+    return 'escalate';
+  }
+  const reads = verdicts as readonly CrisisVerdict[];
   if (reads.some((v) => v.risk === 'imminent')) return 'escalate';
   if (!reads.some((v) => v.risk === 'crisis')) return 'escalate';
-  if (isPresenceReply(latest, companion)) return 'presence';
-  return reads.some((v) => v.risk === 'none') ? 'soft' : 'escalate';
+  // Softening needs Ferni's line to judge against, and the caller's own words.
+  if (typeof latest !== 'string' || !latest.trim()) return 'escalate';
+  if (typeof companion !== 'string' || !companion.trim()) return 'escalate';
+  // Ferni's line is checked too: it may have asked about the caller's safety.
+  const quiet = !endorses(latest) && ![latest, ...earlier, companion].some(hasRiskContent);
+  if (quiet && (isPresenceReply(latest, companion) || isVocative(latest))) return 'presence';
+  // Soft only for a short question back about Ferni's own words, with no risk
+  // or agreement anywhere: whether the reads disagree or one read stands alone.
+  // Disagreement alone never softens (a word list cannot vouch for a long
+  // statement, or one in another language).
+  // Two reads that found crisis, under any key for this turn, are never softened.
+  if (reads.filter((v) => v.risk === 'crisis').length >= 2) return 'escalate';
+  const contested = reads.length === 1 || reads.some((v) => v.risk === 'none');
+  return quiet && contested && addsNothing(latest, companion) ? 'soft' : 'escalate';
 }
 
 /** The guidance for a soft check: stay in the conversation, check in only if it fits. */
 export const SOFT_CRISIS_CHECK = `[SAFETY - SOFT CHECK]
-One safety read of the caller's last words was unsure whether something heavier is going on; another read of the same words found nothing. No crisis language was said.
+A safety read of the caller's last words was unsure whether something heavier is going on. What you said about your own day or mood is yours, not theirs.
 Read their words in the context of the conversation:
 1. Stay in the conversation you were having; do not switch to crisis talk or mention hotlines on this alone
 2. If their words or tone suggest they might be struggling, check in once, plainly and warmly ("you doing okay?"), and follow their lead

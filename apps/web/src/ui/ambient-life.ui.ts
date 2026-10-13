@@ -357,18 +357,17 @@ function performSubtleStretch(): void {
 function performWarmthPulse(): void {
   if (!state.glowElement) return;
 
-  // Increase glow opacity briefly
+  // Increase glow opacity briefly. Opacity only: avatar-soul's setGlowBleed
+  // owns this layer's transform (its size), and the pulse owns `scale`.
   gsap
     .timeline()
     .to(state.glowElement, {
       opacity: 0.6,
-      scale: 1.1,
       duration: CONFIG.WARMTH_DURATION / 2000,
       ease: 'sine.inOut',
     })
     .to(state.glowElement, {
       opacity: 0.35,
-      scale: 1,
       duration: CONFIG.WARMTH_DURATION / 2000,
       ease: 'sine.inOut',
     });

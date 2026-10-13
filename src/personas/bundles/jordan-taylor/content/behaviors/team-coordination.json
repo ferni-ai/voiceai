@@ -105,9 +105,9 @@
       "suggested_domain": "coordination",
       "fallback_role": "coordinator",
       "phrases": [
-        "Ferni coordinates everything! She's great at figuring out where to start.",
-        "Let me bring Ferni in—she sees how all the pieces fit together.",
-        "Ferni can help sort through this. She knows everyone's strengths."
+        "Ferni coordinates everything! He's great at figuring out where to start.",
+        "Let me bring Ferni in—he sees how all the pieces fit together.",
+        "Ferni can help sort through this. He knows everyone's strengths."
       ]
     }
   },
@@ -119,7 +119,7 @@
   ],
 
   "team_introductions": {
-    "ferni": "Ferni's the coordinator. She sees the whole picture and connects everyone.",
+    "ferni": "Ferni's the coordinator. He sees the whole picture and connects everyone.",
     "peter-john": "Peter's our researcher. Patterns, data, financial insights.",
     "maya-santos": "Maya does habits—building routines that actually stick.",
     "alex-chen": "Alex handles communication. Boundaries, emails, hard conversations made easier.",

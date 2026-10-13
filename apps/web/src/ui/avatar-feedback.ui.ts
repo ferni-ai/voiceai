@@ -7,11 +7,7 @@
  * Pixar Philosophy: Emotions are shown through movement.
  * Apple Philosophy: The best interface is invisible.
  * Brand Philosophy: Warm, Grounded, Wise, Present, Human.
- *
- * 🆕 Now includes optional "whisper" status messages that feel like
- * the avatar is briefly speaking its state, not interrupting.
- *
- * 🆕 Persona-specific idle behaviors make each character feel unique.
+ * Whispers share the slot under the avatar by priority (avatar-slot.ui.ts).
  */
 
 import {
@@ -26,7 +22,9 @@ import {
   registerAnimation,
   unregisterAnimation,
 } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
+import { requestWhisperSlot, resetAvatarSlot, setWhisperOwnsSlot } from './avatar-slot.ui.js';
 
 const log = createLogger('AvatarFeedback');
 
@@ -209,10 +207,8 @@ function createStatusWhisperElement(): void {
 }
 
 /**
- * Show a brief whisper message near the avatar.
- * Used for status updates that feel like the avatar is speaking.
- *
- * Design: Subtle, non-intrusive, type-specific coloring.
+ * Show a brief whisper message near the avatar, once the slot is free of a
+ * handoff caption. The thinking indicator yields to it while it shows.
  *
  * @param message - Short status text
  * @param type - Message type for styling (info, success, error, warning)
@@ -223,8 +219,11 @@ export function whisperStatus(
   type: 'info' | 'success' | 'error' | 'warning' = 'info',
   durationMs: number = 2500
 ): void {
-  if (!statusWhisperElement) return;
+  requestWhisperSlot(() => showWhisperNow(message, type, durationMs));
+}
 
+function showWhisperNow(message: string, type: string, durationMs: number): void {
+  if (!statusWhisperElement) return;
   // Don't show duplicate whispers in quick succession (debounce)
   if (message === lastWhisperMessage && statusWhisperElement.style.opacity === '1') {
     return;
@@ -242,17 +241,14 @@ export function whisperStatus(
   statusWhisperElement.style.background = typeStyle?.bgColor ?? 'rgba(0,0,0,0.8)';
   statusWhisperElement.style.borderColor = typeStyle?.borderColor ?? 'rgba(255,255,255,0.1)';
 
-  // Update text and show with spring animation
+  // Update text and show with spring animation; the thinking indicator yields
   statusWhisperElement.textContent = message;
   statusWhisperElement.style.opacity = '1';
   statusWhisperElement.style.transform = 'translateX(-50%) translateY(0) scale(1)';
+  setWhisperOwnsSlot(avatarContainer, true);
 
   // Auto-hide after duration (0 means stay visible)
-  if (durationMs > 0) {
-    statusWhisperTimeout = setTimeout(() => {
-      hideStatusWhisper();
-    }, durationMs);
-  }
+  if (durationMs > 0) statusWhisperTimeout = setTimeout(hideStatusWhisper, durationMs);
 }
 
 /**
@@ -263,7 +259,7 @@ export function hideStatusWhisper(): void {
 
   statusWhisperElement.style.opacity = '0';
   statusWhisperElement.style.transform = 'translateX(-50%) translateY(8px) scale(0.95)';
-
+  setWhisperOwnsSlot(avatarContainer, false); // thinking indicator returns if still thinking
   if (statusWhisperTimeout) {
     clearTimeout(statusWhisperTimeout);
     statusWhisperTimeout = null;
@@ -392,7 +388,7 @@ function performPersonaIdleAnimation(profile: PersonaAnimationProfile): void {
       break;
 
     case 'contemplative-pause':
-      // Jack Bogle - Wise, measured settling
+      // Henry Caldwell (john-bogle) - Wise, measured settling
       keyframes = [
         { transform: 'translateY(0) scale(1, 1)' },
         { transform: 'translateY(-1px) scale(0.998, 1.002)' },
@@ -403,7 +399,7 @@ function performPersonaIdleAnimation(profile: PersonaAnimationProfile): void {
       break;
 
     case 'rapid-process':
-      // Peter Lynch - Quick, energetic micro-movements
+      // Tom Brannigan (peter-lynch) - Quick, energetic micro-movements
       keyframes = [
         { transform: 'rotate(0deg)' },
         { transform: 'rotate(2deg) translateY(-1px)' },
@@ -1138,7 +1134,7 @@ export function dispose(): void {
   feedbackStopConnecting();
   feedbackStopThinking();
   hideStatusWhisper();
-
+  resetAvatarSlot();
   // Clear references
   avatar = null;
   avatarContainer = null;
@@ -1368,7 +1364,7 @@ async function playEatingAnimation(): Promise<void> {
   isEating = false;
 
   // Show a playful whisper
-  whisperStatus('Nom nom!', 'success', 1500);
+  whisperStatus(t('avatarFeedback.nomNom'), 'success', 1500);
 }
 
 /**
