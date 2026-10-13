@@ -20,7 +20,7 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
-import { apiGet, apiPost } from '../utils/api.js';
+import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { formatDate, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
@@ -355,7 +355,7 @@ class SanctuaryUI {
       ]);
 
       // Transform API insights to BetterThanHumanInsight format
-      let insights = this.getDefaultInsights();
+      let insights = this.getDefaultInsights(!insightsResult.ok);
       if (insightsResult.ok && insightsResult.data) {
         const apiInsights: BetterThanHumanInsight[] = [];
         
@@ -423,7 +423,7 @@ class SanctuaryUI {
       return {
         greeting,
         timeContext,
-        insights: this.getDefaultInsights(),
+        insights: this.getDefaultInsights(true),
         practices: this.getDefaultPractices(),
         inspirations: this.getInspirations(timeContext),
       };
@@ -460,7 +460,7 @@ class SanctuaryUI {
       description: cmd.description,
       category: this.mapCategoryToPractice(cmd.category),
       personaId: this.personaId,
-      prompt: cmd.id,
+      prompt: cmd.description, // spoken aloud by the agent, so never the command id
       icon: cmd.icon,
     }));
   }
@@ -476,39 +476,22 @@ class SanctuaryUI {
     return mapping[category] ?? 'ground';
   }
 
-  private getDefaultInsights(): BetterThanHumanInsight[] {
-    const time = this.getTimeContext();
-    const insights: BetterThanHumanInsight[] = [];
-
-    // Time-aware insights
-    if (time.period === 'morning') {
-      insights.push({
-        id: 'morning-pattern',
-        type: 'pattern',
-        icon: 'pattern',
-        title: t('sanctuary.insightYourMorningsSetTone'),
-        description: t('sanctuary.insightYourMorningsDesc'),
-      });
-    } else if (time.period === 'evening') {
-      insights.push({
-        id: 'evening-reflection',
+  /**
+   * Shown when there is nothing real to show. No generic "insight" dressed up as
+   * being about this person. `unavailable`: the load failed, so say so (it's on us)
+   * instead of telling someone with a history that nothing has been noticed yet.
+   */
+  private getDefaultInsights(unavailable = false): BetterThanHumanInsight[] {
+    const key = unavailable ? 'sanctuary.insightsUnavailable' : 'sanctuary.noInsightsYet';
+    return [
+      {
+        id: unavailable ? 'insights-unavailable' : 'no-insights-yet',
         type: 'observation',
         icon: 'observation',
-        title: t('sanctuary.insightEveningReflectionsHelp'),
-        description: t('sanctuary.insightEveningReflectionsDesc'),
-      });
-    }
-
-    // Always include a "Better Than Human" insight
-    insights.push({
-      id: 'bth-memory',
-      type: 'memory',
-      icon: 'memory',
-      title: t('sanctuary.insightIRememberEverything'),
-      description: t('sanctuary.insightIRememberEverythingDesc'),
-    });
-
-    return insights;
+        title: t(`${key}Title`),
+        description: t(`${key}Desc`),
+      },
+    ];
   }
 
   private getDefaultPractices(): GuidedPractice[] {
@@ -524,7 +507,7 @@ class SanctuaryUI {
         category: 'ground',
         duration: t('sanctuary.durationRange', { min: 3, max: 5 }),
         personaId: 'ferni',
-        prompt: '/daily-checkin',
+        prompt: t('sanctuary.practicePrompt.dailyCheckin'),
         recommended: true,
         recommendedReason: t('sanctuary.reasonMorning'),
       });
@@ -539,7 +522,7 @@ class SanctuaryUI {
         category: 'reflect',
         duration: t('sanctuary.durationRange', { min: 2, max: 3 }),
         personaId: 'ferni',
-        prompt: '/gratitude',
+        prompt: t('sanctuary.practicePrompt.gratitude'),
       },
       {
         id: 'brainstorm',
@@ -548,7 +531,7 @@ class SanctuaryUI {
         category: 'explore',
         duration: t('sanctuary.durationRange', { min: 5, max: 10 }),
         personaId: 'ferni',
-        prompt: '/brainstorm',
+        prompt: t('sanctuary.practicePrompt.brainstorm'),
       },
       {
         id: 'weekly-review',
@@ -557,7 +540,7 @@ class SanctuaryUI {
         category: 'reflect',
         duration: t('sanctuary.durationRange', { min: 10, max: 15 }),
         personaId: 'ferni',
-        prompt: '/weekly-review',
+        prompt: t('sanctuary.practicePrompt.weeklyReview'),
       }
     );
 
@@ -570,7 +553,7 @@ class SanctuaryUI {
         category: 'ground',
         duration: t('sanctuary.durationMinutes', { count: 5 }),
         personaId: 'ferni',
-        prompt: '/wind-down',
+        prompt: t('sanctuary.practicePrompt.windDown'),
         recommended: true,
         recommendedReason: t('sanctuary.reasonEvening'),
       });
@@ -742,8 +725,6 @@ class SanctuaryUI {
   }
 
   private renderInspiration(inspiration: Inspiration): string {
-    const isQuote = inspiration.type === 'quote';
-
     return `
       <blockquote class="sanctuary-quote ${inspiration.type}">
         <p class="sanctuary-quote-text">${escapeHtml(inspiration.content)}</p>

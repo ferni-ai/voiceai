@@ -73,7 +73,8 @@ describe('quickCalendar runs the calendar', () => {
     });
     const [, input] = calendar.createEvent.mock.calls[0];
     expect(input.title).toBe('Lunch with Sarah');
-    expect(input.startTime).toEqual(new Date(2026, 9, 12, 13, 0));
+    // No zone recorded for u1: the wall time is read as UTC (it was the server's clock).
+    expect(input.startTime).toEqual(new Date('2026-10-12T13:00:00Z'));
     expect(reply).toMatch(/Lunch with Sarah/);
   });
 

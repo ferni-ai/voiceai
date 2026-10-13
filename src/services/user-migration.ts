@@ -145,6 +145,16 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
     // 1. Load source profile
     const sourceProfile = await store.getProfile(legacyUserId);
     if (!sourceProfile) {
+      // Nothing to move: never overwrite the caller's existing profile with defaults
+      if (await store.getProfile(firebaseUid)) {
+        log.info('No device profile to migrate and the account already has one');
+        return {
+          success: true,
+          conversationsMigrated: 0,
+          memoriesMigrated: 0,
+          profileAction: 'none',
+        };
+      }
       log.info('No existing profile to migrate - creating fresh profile');
       // Create a new profile with the Firebase UID using the proper factory
       const newProfile = createUserProfile(firebaseUid, displayName || 'Friend');
@@ -163,6 +173,19 @@ export async function migrateUserData(request: MigrationRequest): Promise<Migrat
         conversationsMigrated: 0,
         memoriesMigrated: 0,
         profileAction: 'created',
+      };
+    }
+
+    // The in-memory map is lost on restart; the source profile remembers where it went
+    const migratedTo = sourceProfile.customData?.migratedTo;
+    if (typeof migratedTo === 'string' && migratedTo !== firebaseUid) {
+      log.warn('Device profile already migrated to a different Firebase UID');
+      return {
+        success: false,
+        conversationsMigrated: 0,
+        memoriesMigrated: 0,
+        profileAction: 'none',
+        error: 'Device already migrated to a different account',
       };
     }
 

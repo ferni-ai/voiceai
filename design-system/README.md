@@ -407,8 +407,8 @@ Each persona has a distinct animation personality (see `animation.json`):
 | Persona | Inspiration | Timing | Bounciness | Style |
 |---------|-------------|--------|------------|-------|
 | Ferni | WALL-E (curious, gentle) | 1.0x | High (0.7) | Playful, warm |
-| Jack Bogle | Carl from Up (wise) | 1.4x | Low (0.3) | Measured, deliberate |
-| Peter Lynch | Linguini (energetic) | 0.8x | Medium (0.6) | Quick, practical |
+| Henry Caldwell | Carl from Up (wise) | 1.4x | Low (0.3) | Measured, deliberate |
+| Tom Brannigan | Linguini (energetic) | 0.8x | Medium (0.6) | Quick, practical |
 | Alex Chen | Joy (warm, articulate) | 1.1x | Medium (0.5) | Smooth, empathetic |
 | Maya Santos | EVE (focused) | 0.95x | Low (0.4) | Methodical |
 | Jordan Taylor | Dory (joyful) | 0.85x | High (0.8) | Expressive |

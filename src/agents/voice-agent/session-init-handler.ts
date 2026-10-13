@@ -24,12 +24,7 @@ import type { PersonaConfig } from '../../personas/types.js';
 import type { AgentId } from '../../services/agent-bus.js';
 import { getConversationState } from '../../services/conversation-state.js';
 import { diag } from '../../services/diagnostic-logger.js';
-import {
-  checkTrialStatus,
-  isEligibleForTrial,
-  startTrial,
-  type TrialCheckResult,
-} from '../../services/first-taste-trial.js';
+import type { TrialCheckResult } from '../../services/first-taste-trial.js';
 import { createSessionServices, type SessionServices } from '../../services/index.js';
 import {
   createFirestoreSuperhumanStore,
@@ -59,11 +54,8 @@ import {
 import { getOutreachOrchestrator } from '../../services/outreach/outreach-orchestrator.js';
 import { startThinkingOfYouEngine } from '../../services/outreach/thinking-of-you.js';
 
-// "Better Than Human" - Intelligent Onboarding Arc
-import {
-  initializeOnboarding,
-  isInOnboardingPeriod,
-} from '../../services/outreach/intelligent-onboarding-arc.js';
+// "Better Than Human" - first-taste trial and onboarding arc, decided after the profile loads
+import { runTrialCheck, startOnboardingArc } from './new-user-arc.js';
 
 // Embedding cache precomputation for fast semantic search
 import { precomputeUserMemoryEmbeddings } from '../../memory/embedding-cache.js';
@@ -129,6 +121,7 @@ import { registerInterval, clearNamedInterval } from '../../utils/interval-manag
 // Session State Management (Single Source of Truth)
 import { createSessionStateManager, type SessionStateManager } from '../session/session-state.js';
 import { createUserDataProxy } from '../session/user-data-proxy.js';
+import { syncReturningOnceLoaded } from '../../services/session/deferred-profile.js';
 import type { UserData } from '../shared/types.js';
 
 // Language Service - Load user's preferred language at session start
@@ -953,8 +946,8 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     diag.session('🚀 Profile loading started in background (non-blocking)');
   }
 
-  const isReturningUser =
-    services.userProfile !== null && (services.userProfile.totalConversations || 0) > 0;
+  // Fast path: profile not loaded yet; trial, onboarding and userData below wait for it.
+  const isReturningUser = (services.userProfile?.totalConversations ?? 0) > 0;
 
   // ================================================================
   // TRIAL STATUS - Start with defaults, update in background
@@ -969,35 +962,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
 
   // Start trial check in background - returns a promise for later await if needed
   const trialStatusPromise = userId
-    ? (async () => {
-        try {
-          if (!isReturningUser) {
-            // New user - check eligibility and start trial
-            const eligible = await isEligibleForTrial(userId);
-            if (eligible) {
-              await startTrial(userId);
-              trialState.isTrialUser = true;
-              trialState.isFirstConversation = true;
-              trialState.trialStatus = await checkTrialStatus(userId, 0);
-              diag.session('Started first taste trial for new user', { userId });
-            }
-          } else {
-            // Returning user - just check status
-            const status = await checkTrialStatus(userId, 0);
-            trialState.trialStatus = status;
-            if (status.inTrial) {
-              trialState.isTrialUser = true;
-              diag.session('User is in active trial', {
-                userId,
-                timeRemainingMs: status.timeRemainingMs,
-              });
-            }
-          }
-        } catch (trialErr) {
-          diag.warn('Trial check failed (non-fatal)', { error: String(trialErr) });
-        }
-        return trialState;
-      })()
+    ? runTrialCheck(userId, services, isReturningUser, trialState)
     : Promise.resolve(trialState);
 
   // Fire and forget the promise (don't block)
@@ -1008,27 +973,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   // Auto-initializes for new users, persists to Firestore, generates
   // personalized check-ins during the first 14 days.
   // ================================================================
-  if (userId) {
-    fireAndForget(async () => {
-      try {
-        // Initialize onboarding for new users
-        if (!isReturningUser) {
-          await initializeOnboarding(userId, {
-            name: userName || services.userProfile?.name,
-          });
-          diag.session('Onboarding arc initialized for new user', { userId });
-        } else {
-          // For returning users, check if they're in onboarding period
-          const inOnboarding = await isInOnboardingPeriod(userId);
-          if (inOnboarding) {
-            diag.session('User in onboarding period', { userId });
-          }
-        }
-      } catch (err) {
-        diag.warn('Onboarding initialization failed (non-fatal)', { error: String(err) });
-      }
-    }, 'session-init:onboarding-init');
-  }
+  if (userId) startOnboardingArc(userId, userName, services, isReturningUser);
 
   // ================================================================
   // INITIALIZE CONVERSATION STATE
@@ -1097,6 +1042,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
       : undefined,
     hasSpokenTrialEndPrompt: false,
   });
+  syncReturningOnceLoaded(services, isReturningUser, userData);
 
   // ⚡ CRITICAL FIX: Load user's preferred language from Firestore
   // Without this, Japanese/Spanish/etc speakers get their transcripts rejected as "foreign"
