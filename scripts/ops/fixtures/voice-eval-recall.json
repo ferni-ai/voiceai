@@ -1,0 +1,8 @@
+{
+  "n": 4,
+  "mean": 0.63,
+  "lo": 0.41,
+  "hi": 0.84,
+  "perFact": { "interview": { "hits": 3, "n": 4 }, "mochi": { "hits": 2, "n": 4 } },
+  "slips": 0
+}

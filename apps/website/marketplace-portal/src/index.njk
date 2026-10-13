@@ -4,7 +4,7 @@ title: Marketplace - Specialized AI Coaches for Your Journey
 description: A garden of specialized AI coaches awaits. ADHD support, sobriety companions, sleep specialists, parenting guides—experts who understand your specific journey.
 ---
 
-{% from "partials/icons.njk" import heart, users, briefcase, palette, wallet, book, brain, trees, moon, flower, heartHandshake, sparkles, target, arrowRight, leaf, sprout %}
+{% from "partials/icons.njk" import users, briefcase, palette, wallet, book, brain, trees, moon, flower, heartHandshake, sparkles, target, arrowRight, leaf, sprout %}
 
 <!-- Hero Section - Emotional, inspiring -->
 <section class="hero hero--coming-soon">
@@ -27,13 +27,6 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
         </div>
       </div>
       <div class="hero-feature">
-        <div class="hero-feature-icon">{{ heart(24) }}</div>
-        <div class="hero-feature-text">
-          <strong>Community ratings</strong>
-          <span>Real experiences, real reviews</span>
-        </div>
-      </div>
-      <div class="hero-feature">
         <div class="hero-feature-icon">{{ users(24) }}</div>
         <div class="hero-feature-text">
           <strong>Seamless handoffs</strong>
@@ -43,8 +36,8 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
     </div>
     
     <div class="hero-arrival">
-      <span class="arrival-label">Expected arrival</span>
-      <span class="arrival-date">Q1 2026</span>
+      <span class="arrival-label">Arriving</span>
+      <span class="arrival-date">Soon</span>
     </div>
   </div>
   
@@ -94,7 +87,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
           <h3>Eli</h3>
           <p class="preview-role">ADHD Navigator</p>
           <p class="preview-desc">Turns overwhelming days into manageable moments. No judgment, just practical strategies that actually work.</p>
-          <div class="preview-badge">Coming Q1 2026</div>
+          <div class="preview-badge">Coming soon</div>
         </div>
       </a>
 
@@ -128,7 +121,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
           <h3>Marcus</h3>
           <p class="preview-role">Sobriety Companion</p>
           <p class="preview-desc">24/7 support for your recovery journey. Here for the hard moments, celebrating the small wins.</p>
-          <div class="preview-badge">Coming Q1 2026</div>
+          <div class="preview-badge">Coming soon</div>
         </div>
       </a>
 
@@ -162,7 +155,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
           <h3>Kenji</h3>
           <p class="preview-role">Sleep Specialist</p>
           <p class="preview-desc">Understands why your mind races at 2am. Gentle guidance back to restful nights.</p>
-          <div class="preview-badge">Coming Q1 2026</div>
+          <div class="preview-badge">Coming soon</div>
         </div>
       </a>
 
@@ -196,7 +189,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
           <h3>Carmen</h3>
           <p class="preview-role">Parenting Guide</p>
           <p class="preview-desc">Because parents need someone too. Practical wisdom for the beautiful chaos of raising tiny humans.</p>
-          <div class="preview-badge">Coming Q1 2026</div>
+          <div class="preview-badge">Coming soon</div>
         </div>
       </a>
 
@@ -230,7 +223,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
           <h3>Amara</h3>
           <p class="preview-role">Grief Companion</p>
           <p class="preview-desc">Holds space for loss without rushing healing. Your grief is valid. Your pace is right.</p>
-          <div class="preview-badge">Coming Q1 2026</div>
+          <div class="preview-badge">Coming soon</div>
         </div>
       </a>
 
@@ -264,7 +257,7 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
           <h3>Sasha</h3>
           <p class="preview-role">Creative Catalyst</p>
           <p class="preview-desc">Helps you past the blank page. Sparks ideas, unblocks creativity, champions your artistic voice.</p>
-          <div class="preview-badge">Coming Q1 2026</div>
+          <div class="preview-badge">Coming soon</div>
         </div>
       </a>
     </div>
@@ -737,7 +730,9 @@ description: A garden of specialized AI coaches awaits. ADHD support, sobriety c
 .preview-content h3 {
   font-size: var(--text-lg);
   margin-bottom: var(--space-1);
-  color: var(--persona-color, var(--text-primary));
+  /* pure persona colours (Carmen's sand, Sasha's coral) were 2.2-2.9:1 on the
+     card; mixing in the text colour keeps the hue and clears 4.5:1 */
+  color: color-mix(in srgb, var(--persona-color) 55%, var(--text-primary));
 }
 
 .preview-role {

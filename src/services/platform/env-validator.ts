@@ -116,7 +116,7 @@ const ENV_VARS: EnvVar[] = [
   {
     name: 'JACK_BOGLE_VOICE_ID',
     required: false,
-    description: 'Cartesia voice ID for Jack Bogle',
+    description: 'Cartesia voice ID for the legacy index-elder persona (john-bogle id)',
     category: 'ai',
   },
   {

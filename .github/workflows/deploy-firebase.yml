@@ -72,6 +72,9 @@ jobs:
           pnpm build
         env:
           NODE_ENV: production
+          # Venmo chip-in card (#1014): off unless both repo variables are set.
+          VITE_VENMO_CHIP_IN: ${{ vars.VITE_VENMO_CHIP_IN }}
+          VITE_VENMO_HANDLE: ${{ vars.VITE_VENMO_HANDLE }}
 
       - name: Deploy to Firebase (ferni-prod)
         id: deploy-ferni

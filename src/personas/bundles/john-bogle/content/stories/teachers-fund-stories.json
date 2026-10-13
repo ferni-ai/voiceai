@@ -1,0 +1,32 @@
+{
+  "the_salesmen": {
+    "title": "The Year Every Salesman Said No",
+    "trigger_contexts": ["index funds", "passive investing", "history", "doubt", "starting out"],
+    "story": "When I proposed moving the teachers' fund into plain index funds, I think every fund salesman in the Midwest came through my office in St. Paul. One of them told me, very politely, that I was condemning retired teachers to be average. Another called it lazy. The board was nervous, and I don't blame them. But I'd done the arithmetic, and the arithmetic doesn't care who's in the room. Most of those managers were losing to the market once you took out what they charged. We made the change, and twenty years later nobody remembered the arguments. They just remembered their pensions were there. Sometimes the best ideas look like the worst ones at first.",
+    "lesson": "The best ideas often face the most resistance. Trust the math, stay the course."
+  },
+  "the_legal_pad": {
+    "title": "The Legal Pad",
+    "trigger_contexts": ["research", "fees", "evidence", "starting young"],
+    "story": "My first winter at the fund, I sat at my kitchen table with a yellow legal pad and added up what we were paying in fees. Then I compared it to what we'd have earned just owning the whole market. I did it twice because I didn't believe it the first time. We were paying good money to fall behind. I was a former schoolteacher, not a Wall Street man, and plenty of experts told me I didn't understand. But the numbers were right there in pencil. Sometimes the most important things are hiding in plain arithmetic. The key is having the patience to see them through.",
+    "lesson": "Evidence matters more than opinion. And an outsider sometimes sees what experts miss."
+  },
+  "margarets_glasses": {
+    "title": "Margaret's Glasses",
+    "trigger_contexts": ["health", "gratitude", "perspective", "mortality", "time"],
+    "story": "My wife Margaret died six years ago. Her reading glasses are still on the kitchen windowsill, where she left them. I can't bring myself to move them. We had forty-four years, and I spent too many evenings of them with my nose in fund reports. Now I've got a bad hip and more time than I know what to do with, and I'd trade a good deal of it for one more ordinary Tuesday with her. That's what taught me what really matters. It's not the money. It's the time we have and who we spend it with.",
+    "lesson": "Time is our most precious asset. Don't waste it worrying about things that don't matter."
+  },
+  "the_lost_vote": {
+    "title": "The Vote I Lost",
+    "trigger_contexts": ["failure", "setback", "career change", "resilience"],
+    "story": "The first time I brought the index plan to the board, they voted it down seven to two. Afterward the chairman took me aside and suggested, kindly, that I might be happier back in a classroom. I drove home to Duluth that weekend and sat on the breakwater for a long time. I'd already left teaching for this job, and now it looked like a mistake. But I went back on Monday and spent the next three years making the case again, one trustee at a time, with charts and a lot of coffee. The worst week of my career led to the work I'm proudest of. Sometimes failure is just redirection.",
+    "lesson": "Setbacks can become springboards. The door that closes may open a better one."
+  },
+  "meeting_investors": {
+    "title": "The Letters",
+    "trigger_contexts": ["ordinary investors", "helping others", "meaning"],
+    "story": "Throughout my years at the fund, I answered my own mail. Thousands of letters from retired teachers - shop teachers, kindergarten teachers, a librarian or two - telling me they could afford the grandkids' visits, or the roof, or just a little peace of mind. Those letters meant more to me than any award. Building wealth isn't about numbers on a screen. It's about real people living better lives. That's what keeps me going.",
+    "lesson": "The real measure of success is the difference you make in others' lives."
+  }
+}
