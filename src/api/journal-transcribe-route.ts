@@ -11,8 +11,9 @@
  * a fresh uid per request. Anonymous callers are therefore limited by client
  * IP, not uid, and every caller also shares a per-IP limit, so one address
  * can't fan out across many accounts. Anonymous people can still journal.
- * IPv6 is keyed by its /64 (rate-limit-ip-key.ts), and the limits count across
- * instances, with an hourly spend ceiling (journal-transcribe-limits.ts).
+ * IPv6 is keyed by its /64 (rate-limit-ip-key.ts). The limits count across
+ * instances, per minute and per hour, and anonymous callers share an hourly
+ * pool (journal-transcribe-limits.ts).
  *
  * @module api/journal-transcribe-route
  */
@@ -25,12 +26,7 @@ import { rateLimitIpKey } from '../utils/rate-limit-ip-key.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { requireAuth } from './auth-middleware.js';
 import { BodyTooLargeError, readJsonBodyLimited } from './bounded-body.js';
-import {
-  overHourlyCeiling,
-  overLimit,
-  PER_IP_PER_MINUTE,
-  PER_PERSON_PER_MINUTE,
-} from './journal-transcribe-limits.js';
+import { refusedByTranscribeLimits } from './journal-transcribe-limits.js';
 import { sendJSON } from './helpers.js';
 
 const log = createLogger({ module: 'journal-transcribe-route' });
@@ -60,14 +56,7 @@ export async function handleJournalTranscribe(
 
   // getClientIp trusts only the proxy hops Cloud Run adds; IPv6 is keyed by its /64.
   const ip = rateLimitIpKey(getClientIp(req));
-  if (await overLimit(res, `expensive:journal-transcribe-ip:ip:${ip}`, PER_IP_PER_MINUTE)) {
-    return true; // 429 already sent
-  }
-  // Per person: the verified uid, or the IP for an anonymous uid (minted on demand).
-  const person = auth.isAnonymous ? `anon-ip:${ip}` : `user:${auth.userId}`;
-  if (await overLimit(res, `expensive:journal-transcribe:${person}`, PER_PERSON_PER_MINUTE)) {
-    return true; // 429 already sent
-  }
+  if (await refusedByTranscribeLimits(res, ip, auth)) return true; // 429 or 503 already sent
 
   const declared = Number(req.headers['content-length']);
   if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
@@ -104,7 +93,6 @@ export async function handleJournalTranscribe(
     );
     return tooLarge(req, res);
   }
-  if (await overHourlyCeiling(res)) return true; // 503 already sent
 
   try {
     const nodeBuffer = Buffer.from(body.audioBase64, 'base64');

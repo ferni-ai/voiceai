@@ -300,8 +300,8 @@ export const FLAG_MANIFEST = {
   TOOL_CORE_STATIC: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_HUM: { default: 'off', owner: 'voice', kind: 'experiment' },
   TOOL_LEAD_IN: { default: 'on', owner: 'voice', kind: 'config' },
-  // hourly ceiling on journal transcriptions across everyone (api/journal-transcribe-limits.ts)
-  TRANSCRIBE_MAX_PER_HOUR: { default: '300', owner: 'memory', kind: 'config' },
+  // hourly pool shared by anonymous journal transcriptions (api/journal-transcribe-limits.ts)
+  TRANSCRIBE_ANON_MAX_PER_HOUR: { default: '200', owner: 'memory', kind: 'config' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_INTELLIGENCE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
