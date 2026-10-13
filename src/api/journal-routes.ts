@@ -32,6 +32,7 @@ import {
 import { getLogger } from '../utils/safe-logger.js';
 import { parseBody, sendJSON } from './helpers.js';
 import { requireAuth } from './auth-middleware.js';
+import { refuseOtherUsersJournal } from './journal-owner.js';
 import { getVerifiedUserId } from '../servers/api/request-identity.js';
 
 const log = getLogger();
@@ -419,14 +420,11 @@ export async function handleJournalRoutes(
 
     // GET /api/journal/chronicle - Get Chronicle data for The Chronicle UI
     if (method === 'GET' && pathname.startsWith('/api/journal/chronicle')) {
-      // Extract userId from query string
-      const url = new URL(req.url || '', `http://${req.headers.host}`);
-      const userId = url.searchParams.get('userId');
-
-      if (!userId) {
-        sendJson(res, 400, { error: 'Missing userId parameter' });
-        return true;
-      }
+      // SECURITY: the caller's own chronicle; ?userId= naming anyone else gets 403
+      const auth = await requireAuth(req, res);
+      if (!auth) return true;
+      const { userId } = auth;
+      if (refuseOtherUsersJournal(req, res, userId)) return true;
 
       try {
         const chronicleData = await getChronicleData(userId);
@@ -489,6 +487,8 @@ export async function handleJournalRoutes(
 
     // POST /api/journal/twin-response - Generate response from Digital Twin
     if (method === 'POST' && pathname === '/api/journal/twin-response') {
+      const auth = await requireAuth(req, res); // SECURITY: not an open LLM endpoint
+      if (!auth) return true;
       const body = await parseBody<{
         userMessage: string;
         profile: {
