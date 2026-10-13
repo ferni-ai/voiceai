@@ -52,25 +52,36 @@ Nothing tracked the work except the PRs themselves.
 
 ## Labels that mean something
 
-| Label                                  | Meaning                                                                         |
-| -------------------------------------- | ------------------------------------------------------------------------------- |
-| `ready-to-build`                       | The daemon may pick this up                                                     |
-| `pipeline/complete`, `pipeline/failed` | Set by the daemon when it finishes                                              |
-| `size/large-ok`                        | This PR can't be split; the 1000-line limit doesn't apply. Say why in the PR.   |
-| `ci-health`                            | A CI job is failing on many PRs: one problem on main (opened by CI Health)      |
-| `needs-ultrareview`                    | Large or risky PR: Seth runs `/code-review ultra <PR#> --post` before it merges |
+| Label                                  | Meaning                                                                                                               |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `ready-to-build`                       | The daemon may pick this up                                                                                           |
+| `pipeline/complete`, `pipeline/failed` | Set by the daemon when it finishes                                                                                    |
+| `size/large-ok`                        | This PR can't be split; the 1000-line limit doesn't apply. Say why in the PR.                                         |
+| `ci-health`                            | A CI job is failing on many PRs: one problem on main (opened by CI Health)                                            |
+| `needs-ultrareview`                    | Large or risky PR: an independent verifier must PASS it before it's marked ready (Seth may also run the cloud review) |
 
-## Review: how much depends on the risk
+## Review: machines check, people decide intent
 
-1. **Every PR**: the PR Flow check (size, base branch, issue link) and the AI
-   review, which reads `AGENTS.md` and this file and checks the diff against
-   them.
-2. **The author labels large or risky PRs `needs-ultrareview`**: over 400 reviewable lines,
-   or touching auth and identity, account deletion or privacy, real caller
-   data, payments, or secrets. Seth runs the cloud review; findings are fixed
-   before the PR enters the queue.
-3. A reviewer's finding is fixed in the same PR, or becomes its own issue with
-   a link from the PR. It is never just dismissed.
+Nobody reads every PR. Quality comes from checks that run on every change, an
+independent verifier on risky ones, and flags that make merging safe.
+
+1. **Every PR**: CI, the PR Flow check (size, base branch, issue link) and the
+   AI review, which reads `AGENTS.md` and this file and checks the diff
+   against them. A 🔴 finding is fixed before the PR enters the queue.
+2. **Risky PRs** (over 400 reviewable lines, or touching auth and identity,
+   account deletion or privacy, real caller data, payments, or secrets): the
+   author labels them `needs-ultrareview` and, before marking the PR ready,
+   has an independent verifier subagent (fresh context, told to find reasons
+   to reject, e.g. `compound-loop:verifier`) check the diff. Its verdict goes
+   in the PR, and the PR waits for a PASS. Seth may also run
+   `/code-review ultra <PR#> --post`; nothing waits for it.
+3. A finding is fixed in the same PR, or becomes its own issue linked from the
+   PR. It is never just dismissed.
+
+Merging is safe because new behaviour ships behind a flag that is off
+(`AGENTS.md` rule 3). The decision that changes what callers get is turning
+the flag on: on dev freely, on prod once its evals are in the PR and it has
+run on dev.
 
 ## When CI is red
 
@@ -83,9 +94,21 @@ Nothing tracked the work except the PRs themselves.
 
 ## Who decides what
 
-- **Seth** sets priority (the order of Todo), approves anything that changes
-  what callers hear or what happens to their data, runs ultra reviews, and
-  approves prod deploys.
-- **Agents** pick up Todo work in order, keep the board true for their item,
-  and stop to ask when the issue doesn't say enough. They never merge around a
-  failing check, skip a hook, or deploy to prod on their own.
+Seth decides what gets built and in what order, and a short list of things
+nobody can undo. Everything else is decided by the checks above.
+
+- **Seth sets priority**: the order of Todo, and whether an issue is
+  `ready-to-build`.
+- **Ask Seth on the issue, before building**, only for:
+  - deleting or migrating real caller data, or changing how long it's kept;
+  - secrets, IAM, billing, or who can reach an API;
+  - legal text (terms, privacy policy) and anything about Ferni saying he's
+    an AI;
+  - turning a flag on in prod when its evals are worse on any measure.
+    Ask once, on the issue, and carry on with other work while waiting.
+- **Agents decide the rest**: they pick up Todo in order, keep the board true
+  for their item, merge through the queue when checks pass, and stop to ask
+  only when the issue doesn't say enough. They never merge around a failing
+  check, skip a hook, or turn a prod flag on with worse evals.
+- **Seth gets a digest, not a queue**: what merged, what turned on, and what's
+  stuck. He reads it when he likes; nothing waits for it.
