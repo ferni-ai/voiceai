@@ -53,8 +53,8 @@ type AudioPathType = keyof typeof AUDIO_PATHS;
 // ============================================================================
 
 export interface UploadResult {
-  /** Public URL if the file is made public */
-  publicUrl: string;
+  /** Public URL, only when the caller asked for a public file; null for a private one */
+  publicUrl: string | null;
   /** GCS file path */
   filePath: string;
   /** File size in bytes */
@@ -125,7 +125,8 @@ async function getStorageClient(): Promise<any> {
  * @param agentId - Agent ID for file organization
  * @param filename - Original filename
  * @param pathType - Type of audio (voiceClone, voiceJournal, voicePreview)
- * @param makePublic - Whether to make the file publicly accessible (default: true)
+ * @param makePublic - Whether to make the file publicly readable (default: false).
+ *   Voice-clone samples are always private: they are raw recordings of a person.
  * @returns Upload result with URL or null if upload failed
  */
 export async function uploadAudioToGcs(
@@ -134,7 +135,7 @@ export async function uploadAudioToGcs(
   agentId: string,
   filename: string,
   pathType: AudioPathType = 'voiceClone',
-  makePublic = true
+  makePublic = false
 ): Promise<UploadResult | null> {
   const storage = await getStorageClient();
 
@@ -172,8 +173,8 @@ export async function uploadAudioToGcs(
       public: makePublic,
     });
 
-    const publicUrl = `${GCS_BASE_URL}/${filePath}`;
-    log.info({ filePath, size: buffer.length, publicUrl }, 'Audio uploaded to GCS');
+    const publicUrl = makePublic ? `${GCS_BASE_URL}/${filePath}` : null;
+    log.info({ filePath, size: buffer.length, isPublic: makePublic }, 'Audio uploaded to GCS');
 
     return {
       publicUrl,
@@ -196,7 +197,7 @@ export async function uploadVoicePreview(
   voiceId: string
 ): Promise<UploadResult | null> {
   const filename = `preview-${voiceId}.mp3`;
-  return uploadAudioToGcs(audioBuffer, userId, agentId, filename, 'voicePreview', true);
+  return uploadAudioToGcs(audioBuffer, userId, agentId, filename, 'voicePreview');
 }
 
 /**
