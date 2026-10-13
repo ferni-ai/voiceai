@@ -74,11 +74,15 @@ beforeEach(() => {
   vi.setSystemTime(NOW);
   process.env.PROACTIVE_CHANNELS = 'on';
   process.env.PROACTIVE_CHANNELS_USERS = SETH;
+  // These cases exercise the legacy daily check-in path, which only runs when
+  // grounded check-ins are explicitly switched off.
+  process.env.OUTREACH_GROUNDED_CHECKINS = 'off';
 });
 afterEach(() => {
   vi.useRealTimers();
   delete process.env.PROACTIVE_CHANNELS;
   delete process.env.PROACTIVE_CHANNELS_USERS;
+  delete process.env.OUTREACH_GROUNDED_CHECKINS;
 });
 
 describe('daily outreach for allowlisted users', () => {
@@ -141,6 +145,29 @@ describe('daily outreach for allowlisted users', () => {
     expect(result.details).toEqual([
       expect.objectContaining({ status: 'skipped', reason: 'daily limit reached' }),
     ]);
+  });
+
+  it('by default (flag unset) sends nobody a generic daily note', async () => {
+    delete process.env.OUTREACH_GROUNDED_CHECKINS;
+    {
+      seedUser(SETH);
+      seedUser(OTHER);
+      const result = await runDailyOutreach();
+      expect(result.details).toEqual([
+        expect.objectContaining({
+          userId: OTHER,
+          status: 'skipped',
+          reason: 'No grounded reason to reach out',
+        }),
+        expect.objectContaining({
+          userId: SETH,
+          status: 'skipped',
+          reason: 'No grounded reason to reach out',
+        }),
+      ]);
+      expect(notesOf(SETH)).toHaveLength(0);
+      expect(logOf(SETH)).toHaveLength(0);
+    }
   });
 
   it('users off the allowlist are picked for as before (email), with no proactive log', async () => {

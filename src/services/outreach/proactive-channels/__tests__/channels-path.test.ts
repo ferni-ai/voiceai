@@ -296,7 +296,7 @@ describe('proactive check-in words', () => {
   });
 
   it('a reply that calls Ferni an assistant is not sent; the promise line goes instead', async () => {
-    modelReply = 'Hi! As your AI assistant, I wanted to check in about the move.';
+    modelReply = 'Hi! As your assistant, I wanted to check in about the move.';
     seedUser();
     seedPromise('p1');
     await runHandler();

@@ -156,107 +156,35 @@ describe('Automation Routes', () => {
     });
   });
 
-  describe('POST /api/automation/send-message', () => {
-    it('should require channel, recipient, and message', async () => {
-      vi.mocked(parseRequestBody).mockResolvedValue({});
-
-      const req = createMockRequest({
-        url: '/api/automation/send-message',
-        method: 'POST',
-        headers: { 'x-user-id': 'user-123' },
-      });
-      const res = createMockResponse();
-
-      await handleAutomationRoutes(req, res, '/api/automation/send-message');
-
-      expect(res._statusCode).toBe(400);
-      expect(JSON.parse(res._data)).toEqual({
-        success: false,
-        error: 'channel, recipient, and message are required',
-      });
-    });
-
-    it('should send message on behalf successfully', async () => {
+  // Any signed-in account could relay a text or email to any number or
+  // address through these, and nothing called them; they are gone (404).
+  describe('removed send and create routes', () => {
+    it.each([
+      '/api/automation/send-message',
+      '/api/automation/send-message/execute',
+      '/api/automation/create-event',
+      '/api/automation/create-event/execute',
+    ])('%s is not handled and sends nothing', async (path) => {
       vi.mocked(parseRequestBody).mockResolvedValue({
         channel: 'sms',
-        recipient: { name: 'John', phone: '+1234567890' },
+        recipient: { name: 'John', phone: '+15555550123' },
         message: 'Hello!',
-      });
-      mockSendOnBehalf.sendMessageOnBehalf.mockResolvedValue({
-        success: true,
-        requiresApproval: false,
-        messageId: 'msg-123',
-      });
-
-      const req = createMockRequest({
-        url: '/api/automation/send-message',
-        method: 'POST',
-        headers: { 'x-user-id': 'user-123' },
-      });
-      const res = createMockResponse();
-
-      await handleAutomationRoutes(req, res, '/api/automation/send-message');
-
-      expect(res._statusCode).toBe(200);
-      expect(mockSendOnBehalf.sendMessageOnBehalf).toHaveBeenCalledWith({
-        userId: 'user-123',
-        channel: 'sms',
-        recipient: { name: 'John', phone: '+1234567890' },
-        message: 'Hello!',
-        context: undefined,
-        metadata: undefined,
-      });
-    });
-  });
-
-  describe('POST /api/automation/create-event', () => {
-    it('should require title and startTime', async () => {
-      vi.mocked(parseRequestBody).mockResolvedValue({});
-
-      const req = createMockRequest({
-        url: '/api/automation/create-event',
-        method: 'POST',
-        headers: { 'x-user-id': 'user-123' },
-      });
-      const res = createMockResponse();
-
-      await handleAutomationRoutes(req, res, '/api/automation/create-event');
-
-      expect(res._statusCode).toBe(400);
-      expect(JSON.parse(res._data)).toEqual({
-        success: false,
-        error: 'title and startTime are required',
-      });
-    });
-
-    it('should create event on behalf successfully', async () => {
-      vi.mocked(parseRequestBody).mockResolvedValue({
+        pendingActionId: 'action-123',
         title: 'Team Meeting',
         startTime: '2026-01-20T10:00:00Z',
       });
-      mockCalendarOnBehalf.createEventOnBehalf.mockResolvedValue({
-        success: true,
-        requiresApproval: true,
-        pendingActionId: 'action-123',
-      });
-
       const req = createMockRequest({
-        url: '/api/automation/create-event',
+        url: path,
         method: 'POST',
         headers: { 'x-user-id': 'user-123' },
       });
       const res = createMockResponse();
 
-      await handleAutomationRoutes(req, res, '/api/automation/create-event');
-
-      expect(res._statusCode).toBe(200);
-      expect(mockCalendarOnBehalf.createEventOnBehalf).toHaveBeenCalledWith(
-        expect.objectContaining({
-          userId: 'user-123',
-          title: 'Team Meeting',
-          startTime: '2026-01-20T10:00:00Z',
-        })
-      );
+      expect(await handleAutomationRoutes(req, res, path)).toBe(false);
+      expect(mockSendOnBehalf.sendMessageOnBehalf).not.toHaveBeenCalled();
+      expect(mockSendOnBehalf.executeApprovedMessage).not.toHaveBeenCalled();
+      expect(mockCalendarOnBehalf.createEventOnBehalf).not.toHaveBeenCalled();
+      expect(mockCalendarOnBehalf.executeApprovedEvent).not.toHaveBeenCalled();
     });
   });
 

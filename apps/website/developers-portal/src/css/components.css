@@ -14,7 +14,7 @@
   z-index: 9999;
   padding: var(--space-3) var(--space-5);
   background: var(--accent-primary);
-  color: white;
+  color: var(--text-inverse);
   font-weight: 600;
   text-decoration: none;
   border-radius: var(--radius-lg);
@@ -616,7 +616,7 @@ pre code {
 
 .btn-primary {
   background: var(--accent-primary);
-  color: white;
+  color: var(--text-inverse); /* white on the sage accent was 2.47:1 */
 }
 
 .btn-primary:hover {
