@@ -96,14 +96,53 @@ describe.skipIf(!emulator)('export carries every known user store (Firestore emu
     expect(event?.at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
-  it('never exports sign-in credentials, as a store or as a field', async () => {
+  it("exports no credential, nested secret or unreviewed store, and keeps the owner's content", async () => {
     const uid = id();
+    // A token store, a web-push subscription, and stores nobody has reviewed for export
     await db.doc(`bogle_users/${uid}/google_calendar_tokens/data`).set({ refresh: 'r-secret' });
+    await db.collection(`bogle_users/${uid}/push_subscriptions`).add({
+      endpoint: 'https://push.example/e-secret',
+      keys: { p256dh: 'k-secret', auth: 'a-secret' },
+    });
+    await db.collection(`bogle_users/${uid}/webauthn_passkeys`).add({ publicKey: 'w-secret' });
+    await db.collection(`users/${uid}/plaid_items`).add({ itemId: 'pl-secret' });
+    // Secrets nested in objects and arrays inside the owner's own content
     await db.doc(`bogle_users/${uid}`).set({ name: 'Dana', pushToken: 'p-secret' });
-    const { records } = await exportAll(uid);
+    await db.collection(`users/${uid}/calendar_events`).add({
+      title: 'Lunch with Sam',
+      zipCode: '33701',
+      attendees: [{ name: 'Sam', accessToken: 'n-secret' }],
+      meta: { keys: { auth: 'm-secret' }, passwordHash: 'h-secret', otp: '123987' },
+    });
+    // A sponsored identity: what the sponsor entered, not the family member's own record
+    await db.collection('sponsored_identities').add({
+      sponsorUserId: uid,
+      displayName: 'Barbara',
+      phoneNumber: '+15550101',
+      relationship: 'parent',
+      familyUserId: 'family_s-secret',
+      voiceProfileId: 'v-secret',
+      totalCalls: 41,
+      selfRegisteredName: 'Babs-secret',
+    });
 
-    expect(JSON.stringify(records)).toContain('Dana');
-    expect(JSON.stringify(records)).not.toMatch(/r-secret|p-secret/);
+    const { records } = await exportAll(uid);
+    const file = JSON.stringify(records);
+
+    expect(file).not.toMatch(/-secret|123987/);
+    expect(Object.keys(records)).not.toContain('bogle_users/{uid}/push_subscriptions');
+    for (const kept of [
+      'Dana',
+      'Lunch with Sam',
+      '"name":"Sam"',
+      '33701',
+      'Barbara',
+      '+15550101',
+    ]) {
+      expect(file).toContain(kept);
+    }
+    const [identity] = records.sponsored_identities as Array<Record<string, unknown>>;
+    expect(identity).not.toHaveProperty('totalCalls');
   });
 
   it("someone else's records are not in the file", async () => {

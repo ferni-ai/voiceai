@@ -5,38 +5,225 @@
  * The curated export categories (Conversations, Contacts, Productivity, ...) read their
  * own stores, and several panels read stores none of them touched: the calendar, the
  * voice agent's calls and summaries, shared memories, outreach, routines, seeds. Rather
- * than add a category per store, everything under a person's two records is exported:
- * bogle_users/{uid}/* (the voice agent) and users/{uid}/* (the app), plus the few
- * stores kept elsewhere and keyed by the person. KNOWN_USER_STORES below is the list a
- * test holds the export to; a new store under either record is exported without a change.
+ * than add a category per store, the allowlisted stores under a person's two records,
+ * bogle_users/{uid} (the voice agent) and users/{uid} (the app), are exported as stored,
+ * plus the few stores kept elsewhere and keyed by the person. Credentials never leave:
+ * stores are allowlisted by name and secret fields are dropped at any depth.
+ * KNOWN_USER_STORES below is the list a test holds the export to.
  *
  * @module services/platform/user-records-export
  */
 
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 
-/** Collections whose {uid} document, and everything under it, belongs to that person */
+/** Collections whose {uid} document, and the stores under it, belong to that person */
 export const USER_RECORD_ROOTS = ['bogle_users', 'users'] as const;
+
+/**
+ * The stores exported, by name: an ALLOWLIST, so a store nobody has reviewed (a new
+ * credential, a session table) never leaves in a file people share. Names come from a
+ * read-only listing of prod on 2026-10-12 (bogle_users: 83 names over 2,783 records;
+ * users: 18 over 659). A new store is exported only once it's added here.
+ */
+export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
+  bogle_users: [
+    'alarms',
+    'analytics',
+    'behavioral_intelligence',
+    'bth_signals',
+    'coaching_intelligence',
+    'commitments',
+    'communication_style',
+    'concierge_requests',
+    'contacts',
+    'conversation_threads',
+    'conversations',
+    'corrections',
+    'custom_agents',
+    'decision_points',
+    'deep_understanding',
+    'dynamic_entities',
+    'dynamic_facts',
+    'dynamic_relationships',
+    'emotional_arcs',
+    'ferni_commitments',
+    'follow_up_actions',
+    'future_self_letters',
+    'human_memory',
+    'human_signals',
+    'humanization',
+    'humor_history',
+    'journal',
+    'memories',
+    'memory_capsules',
+    'memory_highlights',
+    'memory_protection',
+    'monetization_tips',
+    'monetization_value_capture',
+    'motivational_interviewing',
+    'music_learning',
+    'on_behalf_calls',
+    'onboarding_arc',
+    'open_loops',
+    'outreach_attempts',
+    'outreach_history',
+    'persona_affinities',
+    'persona_interactions',
+    'persona_told',
+    'personality_resonance',
+    'planning_coordination',
+    'predictive_ml',
+    'preferences',
+    'proactive_insights',
+    'promoted_entities',
+    'reading_between_lines',
+    'relational_nodes',
+    'relationship_arc',
+    'relationship_network',
+    'relationship_nodes',
+    'relationships',
+    'reminders',
+    'sabotage_patterns',
+    'saved_rituals',
+    'scheduled_calls',
+    'self_awareness',
+    'semantic_correlations',
+    'semantic_intelligence',
+    'semantic_threads',
+    'shared_moments',
+    'summaries',
+    'surfacing_events',
+    'team',
+    'team_engagement',
+    'team_insights',
+    'temporal_snapshots',
+    'topic_patterns',
+    'trust',
+    'trust_moments',
+    'trust_profiles',
+    'utility_preferences',
+    'voice_sessions',
+    'wellbeing_profile',
+    'wellbeing_snapshots',
+    'world_facts',
+  ],
+  users: [
+    'blockers',
+    'burnout_patterns',
+    'calendar_events',
+    'decisions',
+    'energy',
+    'focus_sessions',
+    'goals',
+    'gratitude',
+    'ideas',
+    'journal',
+    'life_automation',
+    'maya_gamification',
+    'notifications',
+    'practices',
+    'priorities',
+    'relationships',
+    'shared_memories',
+    'wins',
+  ],
+  user_seeds: ['entries'],
+  engagement_profiles: [
+    'conversation_sessions',
+    'predictions',
+    'ritual_streaks',
+    'weather_history',
+  ],
+  households: [],
+};
+
+/** Stores that exist under a person's record and are withheld on purpose, with why */
+export const WITHHELD_STORES: Readonly<Record<string, string>> = {
+  push_subscriptions: 'web-push endpoint and keys: whoever holds them can push to the device',
+  google_calendar_tokens: 'OAuth refresh token',
+  voice_profile: 'the voiceprint that recognizes the caller, an authenticator',
+  pending_messages: 'in-flight send-on-behalf queue, holds approval links',
+  outreach_context: 'scheduler state rebuilt from outreach_attempts',
+  active_context: 'per-call scratch state, rebuilt every call',
+  background_results: 'job results already delivered into conversations',
+  extraction_history: 'pipeline bookkeeping (which turns were processed)',
+  insights_cache: 'cache rebuilt from the stores above',
+};
 
 /** Stores outside those records: a document keyed by the uid, or documents naming it */
 export const OWNED_ELSEWHERE: ReadonlyArray<
-  { collection: string; doc: 'uid' } | { collection: string; field: string }
+  | { collection: string; doc: 'uid' }
+  | { collection: string; field: string; fields?: readonly string[] }
 > = [
   { collection: 'user_seeds', doc: 'uid' }, // seed balance and history (Seeds card)
-  { collection: 'engagement_profiles', doc: 'uid' }, // the profile doc; its subcollections too
+  { collection: 'engagement_profiles', doc: 'uid' },
   { collection: 'households', doc: 'uid' },
-  { collection: 'contact_relationships', field: 'userId' }, // People You've Told Me About
+  // People You've Told Me About: the person's own account of their people, from their calls
+  { collection: 'contact_relationships', field: 'userId' },
   { collection: 'contact_interactions', field: 'userId' },
-  { collection: 'sponsored_identities', field: 'sponsorUserId' }, // Family Phone Access
+  // Family Phone Access: only what the sponsor entered (CreateSponsoredIdentityData). Not the
+  // family member's own activity (calls, minutes, last call), voice enrollment, self-
+  // registration, or familyUserId, the key to that person's own record.
+  {
+    collection: 'sponsored_identities',
+    field: 'sponsorUserId',
+    fields: [
+      'displayName',
+      'preferredName',
+      'relationship',
+      'phoneNumber',
+      'accessLevel',
+      'allowedPersonas',
+      'notes',
+      'status',
+      'createdAt',
+      'updatedAt',
+    ],
+  },
 ];
 
 /**
- * Never exported, though stored under the person: sign-in credentials, which would put
- * a live token in a file people share, and caches rebuilt from the stores above.
+ * Fields never exported, at any depth (inside nested objects and arrays too): tokens,
+ * web-push subscription parts (endpoint, keys.p256dh, keys.auth), refresh and access
+ * credentials, password hashes and salts, PINs, one-time codes. Keys are matched by whole
+ * words (camelCase and snake_case split), so "footprint" is not "otp" and "zipCode" stays.
  */
-export const NOT_EXPORTED = /token|secret|credential|oauth|_cache$/i;
-/** The same for a field inside an exported document (a push token, a stored password hash) */
-const SECRET_FIELD = /token|secret|credential|password|oauth|api_?key/i;
+const SECRET_WORDS = new Set([
+  'token',
+  'tokens',
+  'secret',
+  'secrets',
+  'credential',
+  'credentials',
+  'password',
+  'passcode',
+  'oauth',
+  'apikey',
+  'p256dh',
+  'auth',
+  'refresh',
+  'hash',
+  'salt',
+  'otp',
+  'pin',
+  'webauthn',
+  'passkey',
+  'passkeys',
+]);
+const SECRET_KEYS = new Set(['endpoint', 'keys', 'access', 'code']);
+const SECRET_PAIRS = ['api key', 'session id', 'session key', 'verification code', 'private key'];
+
+export function isSecretField(key: string): boolean {
+  if (SECRET_KEYS.has(key.toLowerCase())) return true;
+  const words = key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+  if (words.some((w) => SECRET_WORDS.has(w))) return true;
+  const joined = ` ${words.join(' ')} `;
+  return SECRET_PAIRS.some((pair) => joined.includes(` ${pair} `));
+}
 
 /**
  * Stores a menu panel reads or the voice agent writes (menu audit 2026-10-12). The
@@ -53,7 +240,6 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'bogle_users/{uid}/saved_rituals', // Build a Ritual
   'bogle_users/{uid}/journal',
   'bogle_users/{uid}/team_insights', // Team Insights
-  'bogle_users/{uid}/voice_profile', // Recognizing You
   'bogle_users/{uid}/wellbeing_snapshots', // How You're Feeling
   'users/{uid}/calendar_events', // What's Ahead
   'users/{uid}/life_automation', // What I Do For You
@@ -81,31 +267,40 @@ function toPlain(value: unknown): Plain {
       ? (value as { path?: unknown }).path
       : undefined;
     if (typeof path === 'string') return path;
-    const fields = Object.entries(value).filter(([k]) => !SECRET_FIELD.test(k));
+    const fields = Object.entries(value).filter(([k]) => !isSecretField(k));
     return Object.fromEntries(fields.map(([k, v]) => [k, toPlain(v)]));
   }
   return value as string | number | boolean;
 }
 
-interface StoreReader {
-  doc(label: string, ref: FirebaseFirestore.DocumentReference): Promise<void>;
-  query(label: string, query: FirebaseFirestore.Query): Promise<void>;
+function pick(data: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
+  return Object.fromEntries(fields.filter((f) => f in data).map((f) => [f, data[f]]));
 }
 
-/** Visit each store kept for the person; labels are paths with the uid written as {uid} */
+interface StoreReader {
+  doc(label: string, ref: FirebaseFirestore.DocumentReference): Promise<void>;
+  query(label: string, query: FirebaseFirestore.Query, fields?: readonly string[]): Promise<void>;
+}
+
+/**
+ * Visit each exported store kept for the person. Every read is scoped to them: their
+ * own {uid} document and its allowlisted subcollections, or a query on an owner field.
+ */
 async function eachStore(db: Db, userId: string, read: StoreReader): Promise<void> {
-  const tree = async (ref: FirebaseFirestore.DocumentReference, label: string): Promise<void> => {
-    await read.doc(label, ref);
-    for (const sub of await ref.listCollections()) {
-      if (!NOT_EXPORTED.test(sub.id)) await read.query(`${label}/${sub.id}`, sub);
+  const tree = async (root: string): Promise<void> => {
+    const ref = db.collection(root).doc(userId);
+    await read.doc(`${root}/{uid}`, ref);
+    for (const sub of EXPORTED_STORES[root] ?? []) {
+      await read.query(`${root}/{uid}/${sub}`, ref.collection(sub));
     }
   };
-  for (const root of USER_RECORD_ROOTS)
-    await tree(db.collection(root).doc(userId), `${root}/{uid}`);
+  for (const root of USER_RECORD_ROOTS) await tree(root);
   for (const store of OWNED_ELSEWHERE) {
-    const collection = db.collection(store.collection);
-    if ('doc' in store) await tree(collection.doc(userId), `${store.collection}/{uid}`);
-    else await read.query(store.collection, collection.where(store.field, '==', userId));
+    if ('doc' in store) await tree(store.collection);
+    else {
+      const owned = db.collection(store.collection).where(store.field, '==', userId);
+      await read.query(store.collection, owned, store.fields);
+    }
   }
 }
 
@@ -123,11 +318,11 @@ export async function exportUserRecords(
       const snap = await ref.get();
       if (snap.exists) out[label] = toPlain(snap.data());
     },
-    query: async (label, query) => {
+    query: async (label, query, fields) => {
       const snap = await query.limit(MAX_DOCS_PER_COLLECTION).get();
       const rows = snap.docs.map((d) => ({
         id: d.id,
-        ...(toPlain(d.data()) as Record<string, Plain>),
+        ...(toPlain(fields ? pick(d.data(), fields) : d.data()) as Record<string, Plain>),
       }));
       if (rows.length > 0) out[label] = rows;
     },
