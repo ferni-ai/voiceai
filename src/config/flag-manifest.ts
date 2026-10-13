@@ -235,6 +235,7 @@ export const FLAG_MANIFEST = {
   PRESENCE_CHECK_CAP: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_HUM: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_SNORE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  PRESENCE_SOUND_ASSETS: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRESENCE_SOUNDS: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRE_STT_SIP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PROACTIVE_CHANNELS: { default: 'off', owner: 'outreach', kind: 'experiment' },
