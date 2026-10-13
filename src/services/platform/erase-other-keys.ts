@@ -3,11 +3,8 @@
  * uid-keyed sweep in user-stores.ts can't find: the waitlist and access grants
  * (keyed by email), the phone index of the family members they sponsor, A/B test
  * assignments (one subcollection per test) and tool-call telemetry (many people's
- * calls in one shared document).
- *
- * The email comes from the person's Firebase record at deletion time, and only when
- * Firebase has verified it: an unverified address could be anyone's, and deleting by
- * it would erase another person's waitlist place or access grant.
+ * calls in one shared document). The keys, and why each can be trusted, are in
+ * erasure-keys.ts.
  *
  * Not erased on purpose: feature_checkin_optouts/{phoneHash}. It is a STOP record for
  * a phone, kept so no one texts that number again (an on-behalf text from another
@@ -16,18 +13,12 @@
  * @module services/platform/erase-other-keys
  */
 
-import { getFirebaseUser } from '../identity/firebase-auth.js';
+import { chunks, emailDocId, type ErasureKeys } from './erasure-keys.js';
+
+export { emailDocId, gatherErasureKeys, type ErasureKeys } from './erasure-keys.js';
 
 type Db = FirebaseFirestore.Firestore;
 type DocRef = FirebaseFirestore.DocumentReference;
-
-export interface ErasureKeys {
-  userId: string;
-  /** Verified email addresses, lower-cased as the writers store them */
-  emails: string[];
-  /** sponsored_identities the person sponsors; their phone index entries go with them */
-  sponsoredIdentityIds: string[];
-}
 
 export interface KeyedStore {
   label: string;
@@ -36,28 +27,10 @@ export interface KeyedStore {
   remains: (db: Db, keys: ErasureKeys) => Promise<boolean>;
 }
 
-/** The document id the waitlist and user_profiles writers derive from an email (waitlist-routes.ts) */
-export const emailDocId = (email: string): string =>
-  Buffer.from(email).toString('base64').replace(/[/+=]/g, '_');
-
 const PAGE = 300;
-/** Firestore's limit on the values of an 'in' query */
-const IN_LIMIT = 30;
 
-/** Read before anything is erased: the sponsored identities are erased by the sweep */
-export async function gatherErasureKeys(db: Db, userId: string): Promise<ErasureKeys> {
-  const user = await getFirebaseUser(userId);
-  const email = user?.emailVerified === true ? user.email?.toLowerCase().trim() : undefined;
-  const sponsored = await db
-    .collection('sponsored_identities')
-    .where('sponsorUserId', '==', userId)
-    .get();
-  return {
-    userId,
-    emails: email ? [email] : [],
-    sponsoredIdentityIds: sponsored.docs.map((d) => d.id),
-  };
-}
+/** The uid and the phone profiles that are the same person */
+const uidsOf = (keys: ErasureKeys): string[] => [keys.userId, ...keys.linkedUserIds];
 
 /** A document per email: the waitlist place, and an access grant unless it names someone else */
 function byEmail(collection: string): KeyedStore {
@@ -82,12 +55,8 @@ function byEmail(collection: string): KeyedStore {
 }
 
 const phoneIndexRefs = async (db: Db, keys: ErasureKeys): Promise<DocRef[]> => {
-  const chunks: string[][] = [];
-  for (let i = 0; i < keys.sponsoredIdentityIds.length; i += IN_LIMIT) {
-    chunks.push(keys.sponsoredIdentityIds.slice(i, i + IN_LIMIT));
-  }
   const snaps = await Promise.all(
-    chunks.map(async (ids) =>
+    chunks(keys.sponsoredIdentityIds).map(async (ids) =>
       db.collection('sponsored_identity_phone_index').where('identityId', 'in', ids).get()
     )
   );
@@ -97,41 +66,83 @@ const phoneIndexRefs = async (db: Db, keys: ErasureKeys): Promise<DocRef[]> => {
 /** ab_tests/{test}/assignments/{uid}: a handful of tests, each looked up by id */
 const assignmentRefs = async (db: Db, keys: ErasureKeys): Promise<DocRef[]> => {
   const tests = await db.collection('ab_tests').listDocuments();
-  const refs = tests.map((test) => test.collection('assignments').doc(keys.userId));
+  const refs = tests.flatMap((test) =>
+    uidsOf(keys).map((uid) => test.collection('assignments').doc(uid))
+  );
   const snaps = await Promise.all(refs.map(async (ref) => ref.get()));
   return snaps.filter((snap) => snap.exists).map((snap) => snap.ref);
 };
 
-interface ToolCall {
-  userId?: unknown;
+type ToolCall = Record<string, unknown> & { userId?: unknown };
+
+const CALLS = 'tool_usage_calls';
+/** Instances still running the old writer during a rollout keep writing uids for a while */
+const ROLLOUT_MARGIN_MS = 24 * 60 * 60 * 1000;
+
+const names = (call: ToolCall | null | undefined, uids: readonly string[]): boolean =>
+  typeof call?.userId === 'string' && uids.includes(call.userId);
+
+const callsNaming = (calls: unknown, uids: readonly string[]): calls is ToolCall[] =>
+  Array.isArray(calls) && calls.some((c: ToolCall) => names(c, uids));
+
+/**
+ * The batch id past which no batch holds a uid. tool-usage-analytics.ts stopped writing
+ * uids and marks every batch since with noUserIds; batch ids are batch_{epoch ms}, so
+ * id order is time order. Undefined (scan everything) until the first marked batch.
+ */
+async function legacyEnd(db: Db): Promise<string | undefined> {
+  const first = await db
+    .collection(CALLS)
+    .where('noUserIds', '==', true)
+    .orderBy('__name__')
+    .limit(1)
+    .get();
+  const id = first.docs[0]?.id;
+  const ms = Number(/^batch_(\d+)$/.exec(id ?? '')?.[1]);
+  if (!id) return undefined;
+  return Number.isFinite(ms) ? `batch_${ms + ROLLOUT_MARGIN_MS}` : id;
 }
 
 /**
- * tool_usage_calls/{batch} holds many people's calls in one array, and the array
- * can't be queried by uid, so every batch is read. The person's calls lose their
- * userId; everyone else's are left as they are. Returns how many batches named them.
+ * tool_usage_calls/{batch} holds many people's calls in one array, which can't be
+ * queried by uid. Only batches written before calls lost their uid can name anyone,
+ * so only those are read: a set that stops growing once the change is deployed.
  */
-async function stripToolCalls(db: Db, userId: string, write: boolean): Promise<number> {
-  let named = 0;
+async function batchesNaming(db: Db, uids: readonly string[]): Promise<DocRef[]> {
+  const end = await legacyEnd(db);
+  const named: DocRef[] = [];
   let last: FirebaseFirestore.QueryDocumentSnapshot | undefined;
   for (;;) {
-    const base = db.collection('tool_usage_calls').orderBy('__name__').limit(PAGE);
-    const snap = await (last ? base.startAfter(last) : base).get();
-    if (snap.empty) return named;
+    let query = db.collection(CALLS).orderBy('__name__');
+    if (end) query = query.endBefore(end);
+    if (last) query = query.startAfter(last);
+    const snap = await query.select('calls').limit(PAGE).get();
+    named.push(...snap.docs.filter((d) => callsNaming(d.get('calls'), uids)).map((d) => d.ref));
+    if (snap.size < PAGE) return named;
     last = snap.docs[snap.docs.length - 1];
-    for (const doc of snap.docs) {
-      const calls: unknown = doc.get('calls');
-      if (!Array.isArray(calls) || !calls.some((c: ToolCall) => c?.userId === userId)) continue;
-      named++;
-      if (!write) continue;
-      const kept = calls.map((c: ToolCall & Record<string, unknown>) => {
-        if (c?.userId !== userId) return c;
-        const { userId: _dropped, ...rest } = c;
-        return rest;
-      });
-      await doc.ref.update({ calls: kept });
-    }
   }
+}
+
+/**
+ * The person's calls lose their userId; everyone else's are left as they are. In a
+ * transaction, so two erasures stripping one batch can't write back each other's uids.
+ */
+async function stripToolCalls(db: Db, uids: readonly string[]): Promise<void> {
+  const refs = await batchesNaming(db, uids);
+  await Promise.all(
+    refs.map(async (ref) =>
+      db.runTransaction(async (tx) => {
+        const calls: unknown = (await tx.get(ref)).get('calls');
+        if (!callsNaming(calls, uids)) return;
+        const kept = calls.map((c) => {
+          if (!names(c, uids)) return c;
+          const { userId: _dropped, ...rest } = c;
+          return rest;
+        });
+        tx.update(ref, { calls: kept });
+      })
+    )
+  );
 }
 
 const deleteAll = async (db: Db, refs: DocRef[]): Promise<void> => {
@@ -153,9 +164,7 @@ export const KEYED_STORES: readonly KeyedStore[] = [
   },
   {
     label: 'tool_usage_calls[calls.userId]',
-    erase: async (db, keys) => {
-      await stripToolCalls(db, keys.userId, true);
-    },
-    remains: async (db, keys) => (await stripToolCalls(db, keys.userId, false)) > 0,
+    erase: async (db, keys) => stripToolCalls(db, uidsOf(keys)),
+    remains: async (db, keys) => (await batchesNaming(db, uidsOf(keys))).length > 0,
   },
 ];

@@ -240,6 +240,21 @@ export async function getFirebaseUser(uid: string): Promise<admin.auth.UserRecor
 }
 
 /**
+ * getFirebaseUser for callers that must not take a failed lookup for "no such user"
+ * (account erasure, which deletes by the user's email and phone): null only when
+ * Firebase says the user doesn't exist. Any other failure throws.
+ */
+export async function getFirebaseUserOrThrow(uid: string): Promise<admin.auth.UserRecord | null> {
+  if (!ensureInitialized()) throw new Error('Firebase Admin is not initialized');
+  try {
+    return await admin.auth().getUser(uid);
+  } catch (error) {
+    if ((error as { code?: unknown } | null)?.code === 'auth/user-not-found') return null;
+    throw error;
+  }
+}
+
+/**
  * The Firebase user whose sign-in phone number is `e164`, or null. Firebase
  * only puts a number on an account through phone verification (or an admin),
  * and no two accounts share one, so this is a verified owner of the number.

@@ -509,6 +509,7 @@ class ToolUsageAnalyticsService {
                 errorType: c.errorType,
               })
             ),
+            noUserIds: true, // account erasure scans only the batches written before this
             createdAt: new Date().toISOString(),
           })
         );

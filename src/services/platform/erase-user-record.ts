@@ -16,7 +16,12 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import { ensureFirebaseAdmin } from '../identity/firebase-auth.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { gatherErasureKeys, KEYED_STORES, type KeyedStore } from './erase-other-keys.js';
+import { KEYED_STORES, type KeyedStore } from './erase-other-keys.js';
+import {
+  gatherErasureKeys,
+  keepStripeCustomersForCleanup,
+  type ErasureKeys,
+} from './erasure-keys.js';
 import { ERASED_STORES, storeLabel, type OwnedStore } from './user-stores.js';
 
 const log = createLogger({ module: 'erase-user-record' });
@@ -85,10 +90,11 @@ interface Job {
 }
 
 /**
- * Delete every store kept for the user, by uid (user-stores.ts) and by their other
- * keys (erase-other-keys.ts), then check that nothing is left. Throws when Firestore
- * is unreachable or anything survives, so callers never report an erasure that did
- * not happen.
+ * Delete every store kept for the user, by uid (user-stores.ts, for the uid and every
+ * phone profile that is the same person) and by their other keys (erase-other-keys.ts),
+ * then check that nothing is left. Throws when Firestore or Firebase Auth is
+ * unreachable or anything survives, so callers never report an erasure that did not
+ * happen.
  */
 export async function eraseUserRecord(
   userId: string,
@@ -98,14 +104,18 @@ export async function eraseUserRecord(
 ): Promise<void> {
   assertErasableUserId(userId);
   const db = firestore ?? defaultDb();
-  // Gathered first: the sweep erases the sponsored identities the phone index points at
-  const keys = keyed.length > 0 ? await gatherErasureKeys(db, userId) : null;
+  // Gathered first: the sweep erases the records the keys are read from
+  const keys = keyed.length > 0 ? await gatherKeys(db, userId, keyed) : null;
+  const uids = [userId, ...(keys?.linkedUserIds ?? [])];
+  uids.forEach(assertErasableUserId);
   const jobs: Job[] = [
-    ...stores.map((store) => ({
-      label: storeLabel(store),
-      erase: async () => eraseStore(db, store, userId),
-      remains: async () => holdsUser(db, store, userId).catch(() => true),
-    })),
+    ...uids.flatMap((uid) =>
+      stores.map((store) => ({
+        label: uid === userId ? storeLabel(store) : `${storeLabel(store)} (linked phone profile)`,
+        erase: async () => eraseStore(db, store, uid),
+        remains: async () => holdsUser(db, store, uid).catch(() => true),
+      }))
+    ),
     ...(keys
       ? keyed.map((k) => ({
           label: k.label,
@@ -125,6 +135,30 @@ export async function eraseUserRecord(
   const stuck = new Set([...errors, ...jobs.filter((_, i) => left[i])].map((job) => job.label));
   if (stuck.size > 0) {
     throw new Error(`User record not fully erased: ${[...stuck].join(',')}`);
+  }
+}
+
+/**
+ * Without the keys the stores they name can't be erased or shown empty, so nothing is
+ * erased and the erasure fails, to be retried; the Stripe ids are kept before any
+ * profile holding them goes.
+ */
+async function gatherKeys(
+  db: Db,
+  userId: string,
+  keyed: readonly KeyedStore[]
+): Promise<ErasureKeys> {
+  try {
+    const keys = await gatherErasureKeys(db, userId);
+    await keepStripeCustomersForCleanup(db, keys.stripeCustomerIds);
+    return keys;
+  } catch (error) {
+    log.error(
+      { error: String(error), userId },
+      "Couldn't read the keys to erase by; nothing erased"
+    );
+    const labels = keyed.map((k) => k.label).join(',');
+    throw new Error(`User record not fully erased: keys unreadable, so not erased: ${labels}`);
   }
 }
 
