@@ -1,7 +1,10 @@
 import { llm } from '@livekit/agents';
 import { describe, expect, it, vi } from 'vitest';
 
-import { rememberDispatchIdentity } from '../../voice-agent-entry/caller-recognition.js';
+import {
+  rememberCallerRecognition,
+  rememberDispatchIdentity,
+} from '../../voice-agent-entry/caller-recognition.js';
 import { nameCorrectionNote, nameNote, statedName } from '../name-correction.js';
 import { withTurnReminder } from '../turn-request.js';
 
@@ -142,6 +145,66 @@ describe('nameCorrectionNote', () => {
     expect(nameCorrectionNote(said, session, "I'm Jess, actually.", ON, d)).toContain('Jess');
     expect(session.userData.userName).toBe('Jess');
     expect(d.persist).not.toHaveBeenCalled();
+    // nor through the end-of-call save, which writes the in-memory profile
+    expect(session.userData.services.userProfile.preferredName).toBe('Sam');
+  });
+
+  it('keeps the account name unless the owner signal is exactly true', () => {
+    for (const signal of [undefined, 'yes', 1, null]) {
+      const session = samCall();
+      const persist = vi.fn(async () => undefined);
+      const verifiedOwner = (() => signal) as unknown as (id: string) => boolean;
+      nameCorrectionNote(said, session, "I'm Jess, actually.", ON, {
+        persist,
+        verifiedOwner,
+        outbound: () => false,
+      });
+      expect(session.userData.userName).toBe('Jess'); // this call only
+      expect(session.userData.services.userProfile.preferredName).toBe('Sam');
+      expect(persist).not.toHaveBeenCalled();
+    }
+  });
+
+  it('writes nothing for an anonymous session, whatever the owner check says', () => {
+    const session = samCall();
+    session.userData.userId = 'anonymous';
+    const d = deps();
+    nameCorrectionNote(said, session, "I'm Jess, actually.", ON, d);
+    expect(session.userData.services.userProfile.preferredName).toBe('Sam');
+    expect(d.persist).not.toHaveBeenCalled();
+  });
+
+  it('writes nothing to the account with no owner check passed in', () => {
+    const session = samCall();
+    const persist = vi.fn(async () => undefined);
+    nameCorrectionNote(said, session, "I'm Jess, actually.", ON, {
+      persist,
+      outbound: () => false,
+    });
+    expect(session.userData.services.userProfile.preferredName).toBe('Sam');
+    expect(persist).not.toHaveBeenCalled();
+  });
+
+  it('writes nothing to the account once the call turns out to be on behalf of someone', () => {
+    const session = samCall();
+    const persist = vi.fn(async () => undefined);
+    const outbound = vi.fn((_id: string) => true).mockReturnValueOnce(false);
+    nameCorrectionNote(said, session, "I'm Jess, actually.", ON, {
+      persist,
+      verifiedOwner: () => true,
+      outbound,
+    });
+    expect(session.userData.services.userProfile.preferredName).toBe('Sam');
+    expect(persist).not.toHaveBeenCalled();
+  });
+
+  it('does nothing without a session id (an on-behalf call cannot be ruled out)', () => {
+    const session = samCall();
+    (session.userData.services as { sessionId?: string }).sessionId = undefined;
+    const d = deps();
+    expect(nameCorrectionNote(said, session, "I'm Jess, actually.", ON, d)).toBe('');
+    expect(session.userData.userName).toBe('Sam');
+    expect(d.persist).not.toHaveBeenCalled();
   });
 
   it('leaves a call Ferni placed for the user alone', () => {
@@ -185,8 +248,19 @@ describe('withTurnReminder saving the name', () => {
     try {
       atomicProfileUpdate.mockClear();
       withTurnReminder(ctx, samCall()); // session s1 not yet known as the owner
-      await new Promise((resolve) => setTimeout(resolve, 50)); // a dynamic import's worth
+      await new Promise((resolve) => {
+        setTimeout(resolve, 50);
+      }); // a dynamic import's worth
       expect(atomicProfileUpdate).not.toHaveBeenCalled();
+
+      rememberCallerRecognition('s1', { status: 'maybe', attestation: 'B' }); // number, unattested
+      const phone = samCall();
+      withTurnReminder(ctx, phone);
+      await new Promise((resolve) => {
+        setTimeout(resolve, 50);
+      });
+      expect(atomicProfileUpdate).not.toHaveBeenCalled();
+      expect(phone.userData.services.userProfile.preferredName).toBe('Sam');
 
       rememberDispatchIdentity('s1', 'firebase', '{}'); // the app, signed in
       withTurnReminder(ctx, samCall());
