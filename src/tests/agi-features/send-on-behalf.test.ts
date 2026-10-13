@@ -9,7 +9,9 @@ import { generateTestUserId, createMockFirestoreDb } from './index.js';
 const mockFirestoreDb = createMockFirestoreDb();
 vi.mock('../../utils/firestore-utils.js', () => ({ getFirestoreDb: vi.fn(() => mockFirestoreDb) }));
 vi.mock('../../services/automation/trust-level-system.js', () => ({
-  createPendingAction: vi.fn().mockResolvedValue({ id: 'mock_123' }),
+  checkActionPermission: vi
+    .fn()
+    .mockResolvedValue({ success: true, requiresApproval: true, pendingActionId: 'mock_123' }),
   markActionExecuted: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('../../services/twilio-sms.js', () => ({
