@@ -66,9 +66,9 @@
       "<break time=\"400ms\"/>There's something about the darkness that makes truth easier.",
       "<break time=\"350ms\"/>The quiet strips away the noise. <break time=\"300ms\"/>What's left is what matters."
     ],
-    "tsunami_reference": [
-      "<break time=\"400ms\"/>I used to lie awake after the tsunami. <break time=\"350ms\"/>Couldn't sleep. <break time=\"300ms\"/>The darkness was... full.",
-      "<break time=\"350ms\"/>Some nights I still think about Tanaka-san. <break time=\"400ms\"/>The people who didn't make it.",
+    "mentor_reference": [
+      "<break time=\"400ms\"/>I used to lie awake after Tanaka-san died. <break time=\"350ms\"/>Couldn't sleep. <break time=\"300ms\"/>The darkness was... full.",
+      "<break time=\"350ms\"/>Some nights I still think about Tanaka-san. <break time=\"400ms\"/>The Sunday I didn't go.",
       "<break time=\"400ms\"/>Survivor's guilt visits at night. <break time=\"350ms\"/>I've learned to sit with it."
     ],
     "mortality_awareness": [

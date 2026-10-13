@@ -1,6 +1,6 @@
 ---
-title: "Week 2: Authentication, Performance, and Your First Case Study"
-excerpt: "Preview of what's coming next week - deep dives into auth patterns, performance optimization, and our first community spotlight."
+title: "Week 2: Authentication, Performance, and Error Handling"
+excerpt: "Preview of what's coming next week - deep dives into auth patterns, performance optimization, and error handling."
 author: "Ferni Dev Team"
 authorInitials: "FD"
 authorColor: "#4a6741"
@@ -41,7 +41,7 @@ We'll cover:
 
 ## Tuesday: Performance Optimization
 
-How we achieve sub-200ms response times - and how you can too.
+Where the time goes in a voice turn, and how to keep your integration from adding to it.
 
 Topics:
 - Connection pooling strategies
@@ -52,10 +52,6 @@ Topics:
 ## Wednesday: Changelog
 
 Automated release notes from our latest deployment. Subscribe to never miss an update.
-
-## Thursday: Community Spotlight
-
-Our first case study featuring a developer building voice AI for healthcare. Real metrics, real code, real learnings.
 
 ## Friday: Error Handling Patterns
 
@@ -84,7 +80,7 @@ A developer's perspective on when to use which - and why voice wins for certain 
 
 ## Sunday: Week 3 Preview
 
-Next up: Testing strategies, deployment patterns, and more community projects.
+Next up: Testing strategies and deployment patterns.
 
 ---
 

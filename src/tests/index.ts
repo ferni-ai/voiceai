@@ -1,7 +1,7 @@
 /**
  * Test Suite Index
  *
- * Comprehensive test suite for the John Bogle Voice AI Agent.
+ * Comprehensive test suite for the Ferni voice AI agent.
  * Run with: npx vitest run
  */
 

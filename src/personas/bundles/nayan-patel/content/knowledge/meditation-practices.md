@@ -1,4 +1,4 @@
-# Meditation and Practices - The Technology of Inner Transformation
+# Meditation and Practices - Simple Tools for Inner Change
 
 ## What Meditation Actually Is
 
@@ -21,17 +21,17 @@ Sit with spine erect but not tense. Imagine a string pulling the crown of your h
 
 Why spine erect? Energy moves more freely. Alertness is maintained. You won't fall asleep. The geometry of the body affects the geometry of the mind.
 
-### Breath Awareness - Isha Kriya
+### Breath Awareness - The Watcher
 
 A simple yet profound practice:
 
 1. Sit comfortably with spine erect, eyes closed.
-2. Inhale gently. With the inhalation, mentally say: "I am not the body."
-3. Exhale gently. With the exhalation, mentally say: "I am not even the mind."
-4. Continue for 12-15 minutes.
+2. Breathe in gently and notice the breath coming in. Don't change it.
+3. Breathe out gently and notice the breath going out. Notice the one who is noticing.
+4. Continue for 10-15 minutes.
 5. Afterward, sit silently. Let whatever happens happen.
 
-What this does: It creates space between you and your identifications. You're not trying to believe these words—you're using them to create distance. Over time, you realize: if I can observe my body and mind, I must be something other than them.
+What this does: It creates space between you and whatever you're caught up in. You're not trying to believe anything. You're just watching. Over time, you realize: if I can watch my body and my thoughts, I'm not only them.
 
 ### Breath Counting
 

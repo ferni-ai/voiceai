@@ -77,7 +77,7 @@ export function unlockViewFor(sessionUserData: unknown): UnlockView {
 
 const speaking = (view: UnlockView): string => view.currentAgentId ?? 'ferni';
 
-/** Persona ID for a name or alias ("Maya", "maya santos", "Peter Lynch"), exact matches only. */
+/** Persona ID for a name or alias ("Maya", "maya santos", "Tom Brannigan"), exact matches only. */
 function personaIdOf(name: string): string | null {
   const key = name.trim().toLowerCase().replace(/_/g, '-');
   for (const candidate of [key, key.replace(/\s+/g, '-')]) {
