@@ -13,7 +13,7 @@
  * - API responses: Network First with Cache Fallback
  */
 
-const CACHE_VERSION = 'ferni-v2.0.2';
+const CACHE_VERSION = 'ferni-v2.0.3';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const AI_CONTENT_CACHE = `ai-content-${CACHE_VERSION}`;
 
@@ -37,7 +37,6 @@ const STATIC_ASSETS = [
 // AI content patterns to cache with stale-while-revalidate
 const AI_CONTENT_PATTERNS = [
   /\/api\/landing\/ai\/personalized-hero/,
-  /\/api\/landing\/ai\/social-proof/,
   /\/api\/landing\/ai\/late-night-scenario/,
   /\/api\/landing\/time-content/,
 ];

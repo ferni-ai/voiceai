@@ -13,6 +13,7 @@ struct MeetTeammateSheet: View {
 
     @StateObject private var model: PlanPurchaseModel
     @ObservedObject private var subscriptions: SubscriptionService
+    @Environment(\.dismiss) private var dismiss
 
     init(persona: Persona, model: PlanPurchaseModel? = nil, onTalk: @escaping (String) -> Void) {
         let model = model ?? PlanPurchaseModel()
@@ -41,6 +42,8 @@ struct MeetTeammateSheet: View {
                 }
                 if isOnTeam {
                     welcome
+                } else if !PaidPlans.isOffered {
+                    joinsWithTime
                 } else if let plan {
                     joinSection(plan)
                 }
@@ -50,7 +53,7 @@ struct MeetTeammateSheet: View {
             .padding(.bottom, 24)
         }
         .background(Color(white: 0.10).ignoresSafeArea())
-        .task { await model.loadPlansIfNeeded() }
+        .task { if PaidPlans.isOffered { await model.loadPlansIfNeeded() } }
         .preferredColorScheme(.dark)
     }
 
@@ -124,6 +127,15 @@ struct MeetTeammateSheet: View {
                 caption(note)
             }
             primaryButton("Talk with \(persona.name)") { onTalk(persona.id) }
+        }
+    }
+
+    /// While Ferni is free there's nothing to buy: teammates join as the
+    /// friendship with Ferni grows.
+    private var joinsWithTime: some View {
+        VStack(spacing: 12) {
+            caption("\(persona.name) joins your team as you and Ferni get to know each other. Keep talking and Ferni will bring them in.")
+            primaryButton("Keep talking with Ferni") { dismiss() }
         }
     }
 

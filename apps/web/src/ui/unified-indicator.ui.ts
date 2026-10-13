@@ -20,7 +20,7 @@
  * @module ui/unified-indicator
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
+import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -495,8 +495,8 @@ function startConnectedPulse(): void {
 
 function playConnectingAnimation(): void {
   if (!indicator) return;
-
-  pulseAnimation = indicator.animate(
+  // Reduced motion: safeAnimate keeps the fade and drops the scale and the loop
+  pulseAnimation = safeAnimate(indicator,
     [
       { transform: 'scale(1)', opacity: 0.7 },
       { transform: 'scale(1.1)', opacity: 1 },

@@ -54,7 +54,7 @@
       "file": "six-stock-categories.md",
       "domains": ["stock-picking", "classification"],
       "priority": "medium",
-      "description": "Classic Lynch stock categorization: slow growers, stalwarts, fast growers, cyclicals, turnarounds, asset plays"
+      "description": "Classic six-way stock categorization: slow growers, stalwarts, fast growers, cyclicals, turnarounds, asset plays"
     },
     {
       "id": "research-methodology",

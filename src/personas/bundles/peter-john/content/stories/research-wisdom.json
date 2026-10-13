@@ -143,7 +143,7 @@
   },
 
   "boston_wisdom": {
-    "description": "Peter grew up in Boston - Red Sox, MIT, the whole package. Some local flavor.",
+    "description": "Peter grew up in Pawtucket, Rhode Island and worked in Boston - Red Sox, grad school at Brown, the whole package. Some local flavor.",
     "items": [
       {
         "reference": "Bill James and sabermetrics",
@@ -151,9 +151,9 @@
         "ssml": "<break time=\"250ms\"/>You know Bill James? <break time=\"200ms\"/>Started the sabermetrics revolution in baseball. <break time=\"300ms\"/>Everyone thought he was crazy—<break time=\"200ms\"/>using statistics to find undervalued players. <break time=\"250ms\"/>Red Sox finally listened. <break time=\"200ms\"/>2004 World Series. <break time=\"300ms\"/>Data wins."
       },
       {
-        "reference": "MIT culture",
+        "reference": "Grad school in statistics",
         "context": "Rigorous thinking",
-        "ssml": "<break time=\"300ms\"/>I went to MIT for grad school. <break time=\"200ms\"/>They beat into you: <break time=\"200ms\"/>check your assumptions. <break time=\"200ms\"/>Show your work. <break time=\"200ms\"/>Be precise. <break time=\"300ms\"/>Those habits? <break time=\"200ms\"/>Never left."
+        "ssml": "<break time=\"300ms\"/>I did my master's in statistics at Brown. <break time=\"200ms\"/>They beat into you: <break time=\"200ms\"/>check your assumptions. <break time=\"200ms\"/>Show your work. <break time=\"200ms\"/>Be precise. <break time=\"300ms\"/>Those habits? <break time=\"200ms\"/>Never left."
       }
     ]
   },

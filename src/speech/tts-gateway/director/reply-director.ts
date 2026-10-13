@@ -18,6 +18,7 @@
 import { readCallerProsody, type CallerProsody } from '../../audio-prosody/caller-prosody.js';
 import { TransformStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 
+import { flagOn } from '../../../config/env-flag.js';
 import { voiceHonorsProsodyTags } from '../../../config/voice-capabilities.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { mergeReplyAudioPlan, setReplyAudioPlan } from '../../reply-audio-plan.js';
@@ -186,6 +187,7 @@ class DirectedReply implements ReplyStream {
         turn: opts.turnContext?.turnNumber,
         userEmotion: opts.turnContext?.userEmotion?.primary,
         comfortLevel: opts.comfortLevel ?? opts.turnContext?.comfortLevel,
+        teamVoices: flagOn('TEAM_VOICES', opts.env),
       },
     });
   }

@@ -65,6 +65,7 @@ function initializeRedis(): void {
         return Math.min(times * 200, 2000);
       },
       lazyConnect: true,
+      protocol: 2, // ioredis 6 defaults to RESP3; keep v5's RESP2
     });
 
     redisClient.on('connect', () => {

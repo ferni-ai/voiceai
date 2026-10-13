@@ -43,6 +43,7 @@ export const COHORT_FLAGS = [
   'LIFE_MOVES_ON',
   'CANDOR',
   'WORLD_MODEL_TEMPORAL',
+  'POST_CALL_CHECKIN',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
