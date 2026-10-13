@@ -33,7 +33,9 @@ import { AgentRegistry, type Agent } from '../../personas/registry/unified-regis
 import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { executeHandoff } from './executor.js';
+import { holdUnaskedHandoff } from './handoff-consent.js';
 import { handoffToolResponse } from './handoff-tool-response.js';
+import { noteHandoffReason } from './handoff-reasons.js';
 import { introduceTeammate } from './introduce-member.js';
 
 // FIX BUG: Use safe-logger utility instead of console fallback
@@ -445,12 +447,7 @@ export async function buildHandoffTools(
         context_summary: z.string().optional().describe('Summary of relevant conversation context'),
       }),
       execute: async ({ reason, context_summary }, runContext) => {
-        // Get user profile from RUNTIME context (available when tool is executed)
-        // The runContext structure is { ctx: { userData: UserData } } where UserData.services has userProfile
-        //
-        // This is critical for unlock validation - build time may not have profile data,
-        // but runtime context always should (after user joins session)
-        //
+        // The unlock check needs the RUNTIME profile ({ ctx: { userData } }); build time may lack it.
         // 🐛 FIX BUG-008: Include recentMessages and conversationTopics in type for clearing
         interface RuntimeUserData {
           services?: { userProfile?: UserProfile | null; sessionId?: string };
@@ -465,6 +462,8 @@ export async function buildHandoffTools(
           };
         }
         const ctx = (runContext as { ctx?: { userData?: RuntimeUserData } })?.ctx;
+        const held = holdUnaskedHandoff(ctx, def.agentName, isTargetCoordinator);
+        if (held) return held;
         const userData = ctx?.userData;
         const runtimeUserProfile = userData?.services?.userProfile || userProfile || null;
         const runtimeTier =
@@ -502,8 +501,9 @@ export async function buildHandoffTools(
             }
           : undefined;
 
-        // Use the generic executor with runtime user context for unlock validation
-        // NOW INCLUDES cognitive handoff context!
+        // The multi-agent handler that runs this handoff only hears the persona: keep why
+        noteHandoffReason(sessionId, def.agentId, reason, context_summary);
+        // The generic executor, with runtime user context (unlock check) and cognitive context
         const result = await executeHandoff(def.agentId, reason, {
           context: context_summary ? { summary: context_summary } : undefined,
           userProfile: runtimeUserProfile,

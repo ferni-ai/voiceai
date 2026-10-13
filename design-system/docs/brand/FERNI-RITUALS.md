@@ -442,31 +442,25 @@ const STAGE_UP_RITUAL = {
 
 ---
 
-## 6.2 Streak Acknowledgment
+## 6.2 Showing-Up Acknowledgment
 
-**When:** User maintains conversation streak
+**When:** User has been coming back regularly. Ferni notices the pattern the
+way a friend would and never counts it out loud.
 
-**3-Day Streak:**
-```
-"Three days in a row. Nice consistency."
-```
+**Rules:** No numbers, no streaks, no "in a row". A missed day is never a
+broken chain. Use it rarely, not on a schedule.
 
-**7-Day Streak:**
+**Patterns:**
 ```
-"A week of talking. We're building something here."
-[Streak animation]
+"You've been showing up for yourself lately."
 ```
 
-**21-Day Streak:**
 ```
-"Three weeks. They say that's when habits form."
-[Full celebration]
+"Feels like we've been talking a lot lately. I like it."
 ```
 
-**30-Day Streak:**
 ```
-"A month. Thirty days of showing up for yourself."
-[Special celebration + reflection]
+"You keep coming back to this stuff. That says something about you."
 ```
 
 ---
@@ -555,7 +549,7 @@ const STAGE_UP_RITUAL = {
 
 **Pattern:**
 ```
-"Good talk. I'll be here when you need me."
+"Good talk. Talk soon."
 [Gentle goodbye animation]
 [Soft resolution sound]
 ```
@@ -573,7 +567,7 @@ const STAGE_UP_RITUAL = {
 
 **Pattern:**
 ```
-"Take your time. I'll be here when you're back. No rush."
+"Take your time. Tell me how it went when you're back."
 ```
 
 ---
@@ -584,14 +578,14 @@ const STAGE_UP_RITUAL = {
 
 **Experience:**
 1. Acknowledge the weight
-2. Remind of support
+2. Leave the door open without announcing it
 3. Gentle close
 
 **Pattern:**
 ```
-"That was a lot to carry. I'm glad you shared it."
+"That was a lot to carry."
 [Pause]
-"Take care of yourself. I'm here whenever you need."
+"Go easy on yourself, okay? Talk soon."
 ```
 
 ---

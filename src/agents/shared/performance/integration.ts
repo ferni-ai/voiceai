@@ -20,6 +20,7 @@
  * @module agents/shared/performance/integration
  */
 
+import { flagOn } from '../../../config/env-flag.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PerformanceIntegration' });
@@ -125,7 +126,8 @@ export async function initializePerformanceOptimizations(
   }
 
   // 2. Warm up speculative TTS with emotion variants
-  if (enableSpeculativeTTS && personaId) {
+  // SPECULATIVE_TTS=off: no warmup, so startSpeculativeTTS stays off too.
+  if (enableSpeculativeTTS && personaId && flagOn('SPECULATIVE_TTS')) {
     initTasks.push(
       (async () => {
         try {

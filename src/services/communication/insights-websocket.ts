@@ -26,6 +26,7 @@ import {
   stopInsightMonitoring,
 } from './insights-broadcast.js';
 import { getProactiveInsights, generateTeamStatus } from '../cross-persona-insights.js';
+import { toClientInsight } from '../cross-persona/insight-wire-format.js';
 import {
   rejectUpgrade,
   selectWsProtocol,
@@ -110,7 +111,12 @@ export function initInsightsWebSocket(httpServer: Server): WebSocketServer {
   broadcastUnsubscribe = insightsBroadcast.subscribe((event: InsightBroadcastEvent) => {
     broadcastToUser(event.userId, {
       type: 'event',
-      event,
+      // Clients read the same shape GET /api/team-insights returns.
+      event: {
+        ...event,
+        insight: event.insight && toClientInsight(event.insight),
+        insights: event.insights?.map(toClientInsight),
+      },
       timestamp: new Date().toISOString(),
     });
   });
@@ -317,7 +323,7 @@ async function handleScanRequest(ws: WebSocket, userId: string): Promise<void> {
     safeSend(ws, {
       type: 'scan_result',
       userId,
-      insights,
+      insights: insights.map(toClientInsight),
       teamStatus,
       timestamp: new Date().toISOString(),
     });
@@ -342,7 +348,7 @@ async function sendCurrentState(ws: WebSocket, userId: string): Promise<void> {
     safeSend(ws, {
       type: 'initial_state',
       userId,
-      insights,
+      insights: insights.map(toClientInsight),
       teamStatus,
       timestamp: new Date().toISOString(),
     });

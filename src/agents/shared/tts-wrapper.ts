@@ -730,7 +730,7 @@ export async function wrappedTtsNode(
             });
           }
 
-          // V3.2: Track Ferni's commitments in her response
+          // V3.2: Track Ferni's commitments in his response
           // This catches when Ferni says things like "I'll check in about that" or "Let me know how it goes"
           // Fire-and-forget to not block TTS stream
           if (userId && userId !== 'anonymous' && rawLLMBuffer.length > 10 && !isGarbageResponse) {
@@ -1188,7 +1188,7 @@ const PERSONA_DISPLAY_NAMES: Record<string, string> = {
   'alex-chen': 'Alex',
   'jordan-taylor': 'Jordan',
   'nayan-patel': 'Nayan',
-  'joel-dickson': 'Joel',
+  'joel-dickson': 'Nate',
 };
 
 /**

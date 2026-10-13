@@ -132,7 +132,7 @@ describe('Ferni keeps her promises', () => {
   it('a reminder she promised is sent, the promise is kept, and Trust shows it', async () => {
     await seedConversations();
     const said = await setReminder('in 30 minutes');
-    expect(said).toMatch(/I'll text you/);
+    expect(said).toMatch(/sent by text\./);
 
     const [promise] = promises();
     expect(promise).toMatchObject({ type: 'remind', outcome: 'open', fulfilled: false });

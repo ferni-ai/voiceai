@@ -10,7 +10,6 @@
     "closeDashboard": "Close dashboard",
     "closeDetails": "Close details",
     "closeHistory": "Close history",
-    "closeHuddle": "Close huddle",
     "closeMenu": "Close menu",
     "closePublisher": "Close publisher portal",
     "closeSettings": "Close settings",
@@ -545,7 +544,6 @@
     "target": "Target",
     "tasks": "Tasks",
     "teachings": "Teachings",
-    "teamHuddle": "Team Huddle",
     "teamMembersUnlocked": "Team members unlocked",
     "teamUnlock": "Team Unlock",
     "testCall": "Test Call",
@@ -1156,7 +1154,7 @@
       "upgrade": "Join the Journey"
     },
     "expiresLabel": "Active until",
-    "freeNote": "Founders get unlimited time with the whole team — and help keep Ferni free for everyone",
+    "freeNote": "Ferni is free. If you'd like to help keep it going, you can chip in on Venmo.",
     "label": "GROWING TOGETHER",
     "renewsLabel": "Renews",
     "restore": {
@@ -1241,7 +1239,6 @@
       "gifts": "Gifts & Special Days",
       "videoSessions": "Video Call",
       "groupCoaching": "With Friends",
-      "teamHuddles": "Team Catch-Up",
       "teamSessions": "Team Time",
       "conferenceCalls": "Group Calls",
       "concierge": "Real-World Help",
@@ -1296,8 +1293,7 @@
       "conversationInsights": "How We Connect",
       "growthJournal": "Growth Journal",
       "knowledgeQuiz": "How Well Do You Know Me?",
-      "soundEffects": "Sound Effects",
-      "teamObservations": "Team Observations"
+      "soundEffects": "Sound Effects"
     },
     "quickAdd": {
       "person": "Someone new",
@@ -1319,7 +1315,7 @@
         "calendar": "Calendar",
         "history": "Past chats",
         "people": "Your people",
-        "insights": "How you're doing"
+        "insights": "What I've learned"
       }
     },
     "ariaLabel": "Settings menu",
@@ -1417,8 +1413,6 @@
     "dailyChallenge": {
       "title": "Today's Challenge",
       "xpReward": "+{xp} XP",
-      "completion": "{percent}% completion",
-      "playing": "{count} playing",
       "start": "Start Challenge",
       "dayStreak": {
         "one": "{count} day streak!",
@@ -1801,10 +1795,10 @@
       "plant": "Plant seeds on features you want to see built",
       "suggest": "Suggest new ideas for 5 seeds",
       "title": "How Seeds Work",
-      "conversation": "Have a conversation: +1 seed",
+      "conversation": "First conversation of the day: +5 seeds",
       "note": "Seeds help us prioritise what to build next!",
-      "streak30": "30-day streak: +15 seeds",
-      "streak7": "7-day streak: +5 seeds",
+      "streak30": "30-day streak: +100 seeds",
+      "streak7": "7-day streak: +25 seeds",
       "vote": "Vote for features: 1-10 seeds"
     },
     "intro": "Every great relationship has seasons. These are seeds we're planting together.",
@@ -3727,8 +3721,7 @@
       "disabled": "No calendar events",
       "loadingSuggestions": "Finding the best times...",
       "noSuggestions": "No suggestions found",
-      "suggestion": "Your calendar shows this time is usually free",
-      "suggestedTime": "Suggested time"
+      "suggestion": "Your calendar shows this time is usually free"
     },
     "validation": {
       "nameRequired": "Every practice needs a name"
@@ -3771,7 +3764,6 @@
         "name": "Morning Check-in",
         "humanName": "Morning moment",
         "description": "Start the day with intention",
-        "scienceNote": "Morning intentions improve focus by 31% (Harvard Business Review)",
         "cue": "After your feet hit the floor",
         "routine": "Pause, breathe, set one intention",
         "reward": "Feeling of clarity and control",
@@ -3785,7 +3777,6 @@
         "name": "Gratitude Moment",
         "humanName": "Gratitude pause",
         "description": "Name three things you appreciate",
-        "scienceNote": "Gratitude practices increase happiness by 25% (UC Berkeley)",
         "cue": "When you put your phone on the charger at night",
         "routine": "Name three things—big or small—that were good today",
         "reward": "Warm feeling of appreciation",
@@ -3799,7 +3790,6 @@
         "name": "Weekly Review",
         "humanName": "Weekly reflection",
         "description": "Reflect on wins and learnings",
-        "scienceNote": "Weekly reflection improves goal achievement by 42% (Dominican University)",
         "cue": "Sunday morning with coffee/tea",
         "routine": "Review wins, note learnings, set intentions for the week",
         "reward": "Sense of progress and direction",
@@ -3812,7 +3802,6 @@
       "custom": {
         "name": "Custom",
         "humanName": "Start fresh",
-        "scienceNote": "Custom practices built around your life are 3x more likely to stick",
         "cue": "You choose the trigger",
         "routine": "You design the practice",
         "reward": "You define what success feels like",
@@ -3908,6 +3897,8 @@
     "loadingCoaches": "Finding coaches...",
     "noMatches": "No matches yet",
     "noMatchesHint": "Try a different search or explore all coaches.",
+    "nobodyYet": "Nobody new to meet yet.",
+    "nobodyYetHint": "When someone new can join your calls, you'll meet them here. For now, talk with your team.",
     "becomeCreator": "Become a creator",
     "poweredBy": "Powered by Ferni",
     "teamLocked": {
@@ -4543,7 +4534,7 @@
     "successDeployed": "Page deployed!",
     "title": "Create Agent Page",
     "nameLabel": "Agent Name",
-    "namePlaceholder": "e.g., Joel Dickson",
+    "namePlaceholder": "e.g., Nate Holloway",
     "nameHint": "The full name of your AI agent",
     "initialsLabel": "Initials",
     "initialsPlaceholder": "e.g., JD",
@@ -4620,7 +4611,8 @@
     "sourceInferred": "I noticed",
     "correctButton": "Correct",
     "memoriesCount": "{count} memories",
-    "confidence": "{confidence}% confident"
+    "confidence": "{confidence}% confident",
+    "earlier": "earlier"
   },
   "memoryCorrection": {
     "modalTitle": "Correct This Memory",
@@ -5326,11 +5318,8 @@
     "upcomingIntro": "I'm watching out for you. Here's when I'll check in.",
     "learningTitle": "I'm learning when you need me",
     "learningDesc": "The more we talk, the better I understand your rhythms, patterns, and needs.",
-    "whatThisWillLook": "What this will look like",
-    "noticedConcern": "Noticed concern",
-    "streakSupport": "Streak support",
-    "nextMonday": "Next Monday",
-    "calendarAware": "Calendar aware",
+    "upcomingEmptyNote": "Nothing planned yet, and that's okay. When I plan to check in, you'll see it here.",
+    "upcomingLoadFailed": "Hmm, your check-ins didn't load. That's on me, not you. Give it a moment, then open this again.",
     "perfectTiming": "Perfect Timing",
     "perfectTimingDesc": "I learn when you're most receptive",
     "patternDetection": "Pattern Detection",
@@ -5348,10 +5337,6 @@
     "streakMilestonesDesc": "Celebrate consistency—I remember every step of your journey",
     "to": "To",
     "quietNote": "If you're awake at 2am and reach out, I'm here with the same presence as noon.",
-    "sampleFriday": "Friday at {time}",
-    "sampleOverwhelmed": "\"You mentioned feeling overwhelmed yesterday. How are you holding up?\"",
-    "sampleMeditation": "\"Your meditation streak is at 6 days! Ready for day 7?\"",
-    "samplePresentation": "\"That big presentation is coming up. Want to prep together?\"",
     "guardianDesc": "Watching out for you 24/7",
     "emptyCta": "Keep talking with me. Every conversation helps me understand when and how to support you best.",
     "emptyTip": "Enable \"{feature}\" in Settings to unlock proactive support"
@@ -6255,20 +6240,6 @@
       },
       "empty": "Hey. I'm here - well, I'm you. Start journalling and I'll have more to reflect on. For now, what's on your mind?"
     },
-    "fallback": {
-      "option1": "That's interesting. What makes you bring that up now?",
-      "option2": "I hear you. What else is there?",
-      "option3": "Tell me more. What's underneath that?",
-      "option4": "That's something I've been thinking about too. What's the question behind the question?",
-      "advice": "I've learnt that the best advice usually comes from sitting with the question longer. What does your gut say?",
-      "feeling": "That's a lot to carry. I've felt that too. What would help right now - to talk it through or to just sit with it?",
-      "remember": "I remember more than you might think. The journal entries hold a lot. What specifically are you looking for?"
-    },
-    "fallbackKeywords": {
-      "advice": "advice,should",
-      "feeling": "feel,feeling",
-      "remember": "remember"
-    },
     "dialogLabel": "Your Chronicle",
     "switchToVoice": "Switch to voice",
     "captured": "Captured!",
@@ -6283,7 +6254,8 @@
       }
     },
     "emptyDescription": "Your chronicle is empty, but every great story starts somewhere. Capture your first thought, and watch your wisdom grow.",
-    "quoted": "\"{text}\""
+    "quoted": "\"{text}\"",
+    "replyFailed": "That didn't go through. It's on my end, not yours. Try sending it again."
   },
   "marketplacePermissionConsent": {
     "required": "Required Permissions",
@@ -6349,12 +6321,17 @@
     "categoryConnectDescription": "Nurture relationships",
     "categoryGrow": "Grow",
     "categoryGrowDescription": "Gentle progress",
-    "insightYourMorningsSetTone": "Your mornings set the tone",
-    "insightYourMorningsDesc": "The conversations you start your day with tend to shape how the rest unfolds.",
-    "insightEveningReflectionsHelp": "Evening reflections help",
-    "insightEveningReflectionsDesc": "Taking a moment to reflect before rest often brings clarity to the next day.",
-    "insightIRememberEverything": "I remember everything",
-    "insightIRememberEverythingDesc": "Every conversation, every detail, every growth moment. I hold your story complete.",
+    "noInsightsYetTitle": "Nothing here yet.",
+    "noInsightsYetDesc": "After a few conversations, I'll start to notice things: your patterns, the plans you mention, the moments that matter. They'll show up here. For now, just talk.",
+    "insightsUnavailableTitle": "I couldn't load what I've noticed.",
+    "insightsUnavailableDesc": "That's on me, not you. Try again in a bit. I'll still be here.",
+    "practicePrompt": {
+      "dailyCheckin": "Good to see you. How are you feeling right now, really?",
+      "gratitude": "Let's pause and appreciate. What's one thing you're grateful for right now?",
+      "brainstorm": "Let's brainstorm. What challenge or decision is on your mind?",
+      "weeklyReview": "Let's look back at your week. What stands out to you?",
+      "windDown": "Let's wind down together. What's one thing you're proud of from today?"
+    },
     "practiceSetYourIntention": "Set Your Intention",
     "practiceSetYourIntentionDesc": "Begin with clarity. What matters most today?",
     "practiceGratitudeMoment": "Gratitude Moment",
@@ -7215,19 +7192,6 @@
       "other": "{active} of {count} capabilities active"
     }
   },
-  "teamObservationsPanel": {
-    "synthesis": "Team Synthesis",
-    "assessment": "Overall Assessment",
-    "connections": "Cross-Domain Connections",
-    "recommendations": "Team Recommendations",
-    "loading": "Loading team observations...",
-    "empty": {
-      "title": "No team observations yet",
-      "description": "As you talk with the team, they'll share insights with each other."
-    },
-    "recent": "Recent Observations",
-    "title": "Team Observations"
-  },
   "observationTypes": {
     "insight": "Insight",
     "concern": "Concern",
@@ -7970,7 +7934,9 @@
     "emptyVision": "Over time, <strong>patterns will emerge</strong>. Days will connect to weeks. You'll see yourself <strong>more clearly</strong>.",
     "last4Weeks": "Last 4 Weeks",
     "stable": "Stable",
-    "fromLastMonth": "{change}% from last month",
+    "improving": "Trending up",
+    "declining": "A bit lower lately",
+    "trendUnavailable": "This trend didn't load. Try again in a bit.",
     "trendUp": "up",
     "trendDown": "down",
     "trendStable": "stable",
@@ -8013,7 +7979,6 @@
     "loading": "Loading...",
     "whatIveLearned": "What I've Learned",
     "loadingInsights": "Loading insights...",
-    "understanding": "Understanding",
     "thingsIWantToRemember": "Things I Want to Remember",
     "proactive": "Proactive",
     "patternsIveNoticed": "Patterns I've Noticed",
@@ -8276,8 +8241,7 @@
     "growthDesc": "Progress you might not notice yourself.",
     "guardianPresence": "Guardian Presence",
     "guardianDesc": "I catch what you're not saying.",
-    "whatMightLook": "What insights might look like",
-    "keepTalking": "Just keep talking. I'm always listening, always learning, always here.",
+    "keepTalking": "For now, just talk. I'm paying attention.",
     "betterThanMemory": "Better than human memory, working for you.",
     "chapter": {
       "default": {
@@ -8501,23 +8465,17 @@
   },
   "predictions": {
     "promise": "Promise",
-    "title": "Your Crystal Ball",
-    "description": "I'll learn to anticipate what you need before you ask.",
-    "preview": "Preview",
+    "title": "Predict your week",
+    "description": "A game you play with Peter on a call. Guess how your week will go, then see how close you got.",
     "accurate": "Accurate",
-    "exampleStress": "You mentioned stress on Tuesday",
     "watching": "Watching",
-    "checkIn": "I'll check in with you",
     "accuracy": "Prediction accuracy",
     "keepTalking": "Keep talking. We're building something.",
     "accuracyLabel": "Accuracy",
+    "loadFailed": "Hmm, your predictions didn't load. That's on me, not you. Give it a moment, then open this again.",
     "resolved": "Resolved",
     "streak": "Streak",
-    "sampleOverwhelmed": "\"You'd feel overwhelmed this week\"",
-    "sampleGym": "\"The gym habit would struggle\"",
-    "sampleSunday": "\"Sunday evening will feel heavy\"",
-    "exampleGym": "You skipped 2 sessions",
-    "ctaText": "Talk to Peter about making predictions. Build self-awareness through the prediction game.",
+    "ctaText": "Ask Peter to play next time you talk. Your guesses, and how they turned out, will show up here.",
     "activePredictions": "Active Predictions",
     "recentResults": "Recent Results"
   },
@@ -8790,6 +8748,7 @@
     }
   },
   "conversationHistory": {
+    "title": "Past Chats",
     "loadError": "Couldn't load data.",
     "tryAgain": "Try again?",
     "ariaLabel": "Conversation history",
@@ -8976,9 +8935,6 @@
     "he": "Hebrew"
   },
   "featureHints": {
-    "teamHuddlesTitle": "Team Huddles are here!",
-    "teamHuddlesMessage": "Now that we know each other better, you can hear from multiple team members at once.",
-    "teamHuddlesCta": "Try a huddle",
     "createRitualsTitle": "Create your own rituals",
     "createRitualsMessage": "You can now create custom daily practices. What small habit would help you most?",
     "createRitualsCta": "Create a ritual",
@@ -10230,8 +10186,6 @@
     "allDataDeleted": "All data deleted",
     "deletingAccount": "Deleting your account...",
     "accountDeleted": "Your account is deleted. Take care.",
-    "couldNotStartHuddle": "Couldn't start a team huddle. Try again?",
-    "defaultHuddleTopic": "Weekly check-in on your progress",
     "conversationsLeft": {
       "one": "{count} conversation left. I'm here whenever you need me.",
       "other": "{count} conversations left. I'm here whenever you need me."
@@ -10243,7 +10197,9 @@
     "seedsEarned": {
       "one": "You earned {count} seed!",
       "other": "You earned {count} seeds!"
-    }
+    },
+    "couldNotLoadMemories": "Couldn't load what I remember. Try again?",
+    "memoryCorrected": "Got it. I'll remember it that way."
   },
   "trustSignals": {
     "prefix": {
@@ -10408,6 +10364,12 @@
       "fair": "Fair",
       "poor": "Poor connection",
       "disconnected": "Disconnected"
+    },
+    "island": {
+      "offline": "You're offline. I'll reconnect when you're back.",
+      "reconnecting": "Reconnecting…",
+      "weak": "Weak connection",
+      "backOnline": "Back online"
     }
   },
   "ideasGallery": {
@@ -10818,11 +10780,6 @@
     "endTalk": "Disconnect",
     "connectingCancel": "Connecting. Tap to cancel"
   },
-  "teamHuddle": {
-    "typeWeekly": "Weekly Check-in",
-    "typeMilestone": "Milestone Celebration",
-    "typeSpecial": "Special Moment"
-  },
   "analyticsDashboard": {
     "title": "Your Journey",
     "loading": "Loading your progress...",
@@ -10865,6 +10822,9 @@
       "one": "{count} day",
       "other": "{count} days"
     }
+  },
+  "avatarFeedback": {
+    "nomNom": "Nom nom!"
   },
   "avatarTapReactions": {
     "tickles": "Hehe, that tickles!"
@@ -11068,9 +11028,9 @@
   },
   "x": "Friend • Mentioned 12 times",
   "insightsView": {
-    "samplePattern": "\"Sunday evenings seem hard for you...\"",
-    "sampleInsight": "\"You've mentioned feeling tired 8 times this week. The tiredness seems connected to boundary-setting challenges at work.\"",
-    "sampleEvidence": "Based on {count} conversations"
+    "patternDesc": "What keeps coming up when we talk.",
+    "emptyNote": "Nothing here yet, and that's okay. After a few conversations, I'll start to notice patterns, and they'll show up here.",
+    "loadFailed": "Hmm, what I've noticed didn't load. That's on me, not you. Give it a moment, then open this again."
   },
   "agentAcks": {
     "gameStartFailed": "That game didn't start. Try asking Ferni to play it out loud.",
@@ -11080,7 +11040,8 @@
     "ferniSpeaking": "Ferni is talking",
     "youSpeaking": "You're talking",
     "ferniThinking": "Ferni is thinking",
-    "tapToInterrupt": "Tap to interrupt"
+    "tapToInterrupt": "Tap to interrupt",
+    "tapToHear": "Tap to hear Ferni"
   },
   "answerCard": {
     "answer": "",
@@ -11112,5 +11073,32 @@
     "blocked": "",
     "notFound": "",
     "failed": ""
+  },
+  "memoryView": {
+    "subtitle": "",
+    "lifeNow": "",
+    "dates": "",
+    "readsYou": "",
+    "readsYouNote": "",
+    "thinkingAbout": "",
+    "thinkingAboutNote": "",
+    "fixedByYou": "",
+    "thatsWrong": "",
+    "forget": "",
+    "correctLabel": "",
+    "wrongDone": "",
+    "empty": ""
+  },
+  "venmoChipIn": {
+    "eyebrow": "Chip in",
+    "title": "A dollar keeps the conversation going",
+    "body": "Ferni is free for now. If a talk helped, you can send a dollar on Venmo. More is welcome, never expected.",
+    "qrAlt": "Venmo QR code for @{handle}",
+    "copy": "Copy",
+    "copied": "Copied",
+    "openVenmo": "Open Venmo",
+    "helper": "Scan with your phone's camera, or tap Open Venmo. You can change the amount.",
+    "maybeLater": "Maybe later",
+    "close": "Close"
   }
 }
